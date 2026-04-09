@@ -15,6 +15,7 @@ const PI4: f64 = PI / 4.;
 use nalgebra::Matrix2;
 use num_complex::Complex64;
 use pyo3::prelude::*;
+use rustworkx_core::petgraph::algo::toposort;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{SmallVec, smallvec};
 
@@ -101,9 +102,9 @@ pub fn run_split_2q_unitaries(
     let mut mapping: Vec<usize> = (0..dag.num_qubits()).collect();
     let new_dag = dag.copy_empty_like(VarsMode::Alike, BlocksMode::Keep)?;
     let mut new_dag = new_dag.into_builder();
-    for node in dag.topological_op_nodes(false) {
-        let NodeType::Operation(inst) = &dag.dag()[node] else {
-            unreachable!("Op nodes contain a non-operation");
+    for node in toposort(dag.dag(), None).unwrap() {
+        let NodeType::Operation(ref inst) = dag.dag()[node] else {
+            continue;
         };
         if let OperationRef::Unitary(unitary_gate) = inst.op.view() {
             if unitary_gate.num_qubits() == 2 {

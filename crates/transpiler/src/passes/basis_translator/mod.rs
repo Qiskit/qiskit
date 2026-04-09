@@ -20,6 +20,7 @@ use errors::BasisTranslatorError;
 use hashbrown::{HashMap, HashSet};
 use indexmap::{IndexMap, IndexSet};
 use pyo3::prelude::*;
+use rustworkx_core::petgraph::algo::toposort;
 
 mod basis_search;
 mod compose_transforms;
@@ -36,7 +37,7 @@ use qiskit_circuit::parameter::symbol_expr::SymbolExpr;
 use qiskit_circuit::parameter::symbol_expr::Value;
 use qiskit_circuit::{BlocksMode, Clbit, PhysicalQubit, Qubit, VarsMode};
 use qiskit_circuit::{
-    dag_circuit::DAGCircuit,
+    dag_circuit::{DAGCircuit, NodeType},
     operations::{Operation, OperationRef, PauliBased, PyOperationTypes, PythonOperation},
 };
 use smallvec::SmallVec;
@@ -343,8 +344,10 @@ fn apply_translation(
             )
         })?;
     let mut out_dag_builder = out_dag.into_builder();
-    for node in dag.topological_op_nodes(false) {
-        let node_obj = dag[node].unwrap_operation();
+    for node in toposort(dag.dag(), None).unwrap() {
+        let NodeType::Operation(ref node_obj) = dag.dag()[node] else {
+            continue;
+        };
         let node_qarg = dag.get_qargs(node_obj.qubits);
         let node_carg = dag.get_cargs(node_obj.clbits);
         let qubit_set: AhashIndexSet<Qubit> = AhashIndexSet::from_iter(node_qarg.iter().copied());
@@ -497,8 +500,10 @@ fn replace_node(
         });
     }
     if params_view.is_empty() {
-        for inner_index in target_dag.topological_op_nodes(false) {
-            let inner_node = &target_dag[inner_index].unwrap_operation();
+        for inner_index in toposort(target_dag.dag(), None).unwrap() {
+            let NodeType::Operation(ref inner_node) = target_dag[inner_index] else {
+                continue;
+            };
             let old_qargs = dag.qargs_interner().get(node.qubits);
             let old_cargs = dag.cargs_interner().get(node.clbits);
             let new_qubits: Vec<Qubit> = target_dag
@@ -574,8 +579,10 @@ fn replace_node(
                     _ => None,
                 }),
         );
-        for inner_index in target_dag.topological_op_nodes(false) {
-            let inner_node = &target_dag[inner_index].unwrap_operation();
+        for inner_index in toposort(target_dag.dag(), None).unwrap() {
+            let NodeType::Operation(ref inner_node) = target_dag[inner_index] else {
+                continue;
+            };
             let old_qargs = dag.qargs_interner().get(node.qubits);
             let old_cargs = dag.cargs_interner().get(node.clbits);
             let new_qubits: Vec<Qubit> = target_dag

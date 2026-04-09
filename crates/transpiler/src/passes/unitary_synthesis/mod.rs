@@ -22,12 +22,13 @@ use std::hash;
 use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
 use pyo3::{intern, wrap_pyfunction};
+use rustworkx_core::petgraph::algo::toposort;
 
 use self::decomposers::{Decomposer2q, DecomposerCache, Direction2q, FlipDirection};
 use crate::QiskitError;
 use crate::target::Target;
 use qiskit_circuit::bit::QuantumRegister;
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType};
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, PyOperationTypes, PythonOperation, StandardGate,
@@ -336,8 +337,10 @@ pub fn run_unitary_synthesis(
     let mut out = dag
         .copy_empty_like(VarsMode::Alike, BlocksMode::Drop)?
         .into_builder();
-    for node in dag.topological_op_nodes(false) {
-        let inst = dag[node].unwrap_operation();
+    for node in toposort(dag.dag(), None).unwrap() {
+        let NodeType::Operation(ref inst) = dag.dag()[node] else {
+            continue;
+        };
         let Some(cf) = dag.try_view_control_flow(inst) else {
             // Handle regular instructions - this path is where we end up most of the time.
             if !synthesize_onto(&mut out, state, inst)? {
