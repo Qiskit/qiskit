@@ -15,8 +15,10 @@
 import unittest
 from test import QiskitTestCase
 
+import scipy
 import numpy as np
 from ddt import idata, ddt, data, unpack
+from qiskit.quantum_info import Operator
 
 from qiskit.circuit import (
     AnnotatedOperation,
@@ -32,11 +34,13 @@ from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 from qiskit.circuit.library import (
     Barrier,
     CCXGate,
+    CHGate,
     CPhaseGate,
     CRXGate,
     CRYGate,
     CRZGate,
     CXGate,
+    DCXGate,
     CUGate,
     LinearFunction,
     MCXGate,
@@ -59,11 +63,17 @@ from qiskit.circuit.library import (
     HGate,
     UnitaryGate,
     UGate,
+    XXPlusYYGate,
+    XXMinusYYGate,
     PauliEvolutionGate,
     PauliProductMeasurement,
+    PauliProductRotationGate,
+    get_standard_gate_name_mapping,
 )
 from qiskit.dagcircuit import DAGOpNode
+
 from qiskit.quantum_info import SparseObservable, SparsePauliOp, Pauli
+from qiskit._accelerate.standard_generators import _standard_gate_exponent
 
 ROTATION_GATES = [
     RXGate,
@@ -397,8 +407,6 @@ class TestCommutationChecker(QiskitTestCase):
     def test_cutoff_angles(self, gate_cls):
         """Check rotations with a small enough angle are cut off."""
         max_power = 30
-        from qiskit.circuit.library import DCXGate
-
         generic_gate = DCXGate()  # gate that does not commute with any rotation gate
 
         # the cutoff angle depends on the average gate fidelity; i.e. it is the angle
@@ -501,6 +509,24 @@ class TestCommutationChecker(QiskitTestCase):
             scc.commute(almost_identity, [0], [], other, [0], [], approximation_degree=1 - 1e-4)
         )
 
+    def test_matrix_threshold_noncachable(self):
+        """Test the matrix threshold is obeyed for non-cachable gates."""
+        num_qubits = 2
+        big = UnitaryGate(np.eye(2**num_qubits))
+        qubits = list(range(num_qubits))
+        other = HGate()
+
+        # We check passing args in both orders; [A, B] and [B, A] since the commutation
+        # checking does some sorting which we want to also test here.
+        # Since we should skip the test, the commutation should come out to ``False``,
+        # and only if the matrix check is run (which it shouldn't) this would be ``True``.
+        self.assertFalse(
+            scc.commute(big, qubits, [], other, [0], [], matrix_max_num_qubits=num_qubits - 1)
+        )
+        self.assertFalse(
+            scc.commute(other, [0], [], big, qubits, [], matrix_max_num_qubits=num_qubits - 1)
+        )
+
     @data("pauli", "evolution", "measure")
     def test_pauli_based_gates(self, gate_type):
         """Test Pauli-based gates."""
@@ -571,6 +597,36 @@ class TestCommutationChecker(QiskitTestCase):
         with self.subTest(left=z, right=x):
             self.assertFalse(scc.commute(z, qargs, [], x, qargs, []))
 
+    @data("evolution", "pauli", "measure", "rotation")
+    def test_pauli_and_standard_gate(self, pauli_type):
+        """Test Pauli-based gates and standard gate commutations are efficiently supported."""
+        # 40-qubit Pauli gate with following terms: X: 0-9, Y: 10-19, Z: 20-29, I: 30-39
+        pauli = 10 * "I" + 10 * "Z" + 10 * "Y" + 10 * "X"
+        pauli_indices = list(range(len(pauli)))
+        pauli_gate = build_pauli_gate(pauli, pauli_type)
+
+        # Test cases in the format: (gate, indices, commutes)
+        x = Parameter("x")
+        cases = [
+            (CXGate(), [30, 0], True),  # CX vs. IX
+            (CXGate(), [29, 0], True),  # CX vs. ZX
+            (CXGate(), [29, 10], False),  # CX vs. ZY
+            (RXXGate(x), [0, 1], True),
+            (RXXGate(1.2), [11, 15], True),
+            (RXXGate(x), [0, 15], False),
+            (HGate(), [33], True),
+            (HGate(), [2], False),
+            (CPhaseGate(0.1), [30, 31], True),
+            (CPhaseGate(0.1), [2, 3], False),
+            (XXPlusYYGate(1, 1), [0, 1], False),
+            (XXPlusYYGate(1, 0), [0, 1], True),
+        ]
+
+        for std_gate, indices, expected in cases:
+            with self.subTest(std_gate=std_gate, indices=indices):
+                commutes = scc.commute(pauli_gate, pauli_indices, [], std_gate, indices, [])
+                self.assertEqual(expected, commutes)
+
 
 def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
     """Build a Pauli-based gate off a Pauli string.
@@ -579,6 +635,7 @@ def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
 
         * ``"pauli"`` for ``PauliGate``
         * ``"measure"`` for ``PauliProductMeasurement``
+        * ``"rotation"`` for ``PauliProductRotationGate``
         * ``"evolution"`` for ``PauliEvolutionGate``
 
     Args:
@@ -592,10 +649,54 @@ def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
         return PauliGate(pauli_string)
     if gate_type == "measure":
         return PauliProductMeasurement(Pauli(pauli_string))
+    if gate_type == "rotation":
+        return PauliProductRotationGate(Pauli(pauli_string), angle=1.0)
     if gate_type == "evolution":
         return PauliEvolutionGate(SparseObservable(pauli_string))
 
     raise ValueError(f"Invalid gate type: {gate_type}")
+
+
+@ddt
+class TestInternalStandardGateExponent(QiskitTestCase):
+    """Test that `_standard_gate_exponent` produces correct Pauli generators.
+
+    This is testing internal Rust functionality since we do not yet have sufficient
+    matrix construction features in Rust to test it there. Once we do, these test should
+    move to Rust.
+    """
+
+    def test_gate_exponents(self):
+        """Test the matrix representations are correct, if they are provided."""
+        for name, gate in get_standard_gate_name_mapping().items():
+            with self.subTest(name=name):
+                if (std_gate := gate._standard_gate) is None:
+                    continue  # not a _standard_gate
+
+                gate = gate.to_mutable()
+                gate.params = [0.1, 0.2, 0.3, 0.4][: len(gate.params)]
+
+                if (exponent := _standard_gate_exponent(std_gate, gate.params)) is None:
+                    continue  # no standard exponent registered
+
+                expected = gate.to_matrix()
+                exponent_matrix = SparsePauliOp.from_sparse_observable(exponent).to_matrix()
+                constructed = scipy.linalg.expm(-1j * exponent_matrix)
+
+                # we ignore global phase here, so use Operator.equiv
+                self.assertTrue(Operator(expected).equiv(constructed))
+
+    @data(
+        (XXPlusYYGate(0, 1), [0, 1], ZGate(), [0], True),
+        (XXMinusYYGate(0, 1), [1, 0], RZGate(0.2), [1], True),
+        (CHGate(), [0, 1], HGate(), [1], True),
+        (UGate(np.pi, 0, np.pi), [0], XGate(), [0], True),
+        (RGate(np.pi, 0), [0], XGate(), [0], True),
+    )
+    @unpack
+    def test_unsupported_gates_commute_fallback(self, gate1, q1, gate2, q2, expected):
+        """Verify that gates without Rust generators still commute correctly via matrix fallback."""
+        self.assertEqual(expected, scc.commute(gate1, q1, [], gate2, q2, []))
 
 
 if __name__ == "__main__":

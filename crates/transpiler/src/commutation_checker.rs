@@ -16,8 +16,8 @@ use ndarray::linalg::kron;
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
 use qiskit_circuit::object_registry::PyObjectAsKey;
-use qiskit_quantum_info::sparse_observable::PySparseObservable;
-use qiskit_quantum_info::sparse_observable::SparseObservable;
+use qiskit_circuit::standard_gate::standard_generators::standard_gate_exponent;
+use qiskit_quantum_info::sparse_observable::{PySparseObservable, SparseObservable};
 use smallvec::SmallVec;
 use std::fmt::Debug;
 
@@ -91,6 +91,12 @@ const fn build_supported_ops() -> [bool; STANDARD_GATE_SIZE] {
     lut[StandardGate::ISwap as usize] = true;
     lut[StandardGate::ECR as usize] = true;
     lut[StandardGate::CCX as usize] = true;
+    lut[StandardGate::CCZ as usize] = true;
+    lut[StandardGate::CS as usize] = true;
+    lut[StandardGate::CSdg as usize] = true;
+    lut[StandardGate::CSX as usize] = true;
+    lut[StandardGate::I as usize] = true;
+    lut[StandardGate::GlobalPhase as usize] = true;
     lut[StandardGate::CSwap as usize] = true;
     lut
 }
@@ -246,6 +252,21 @@ fn try_pauli_generator(
         "pauli_product_rotation" => try_extract_op_from_ppr(operation, qubits, num_qubits),
         _ => None,
     }
+}
+
+fn try_standard_gate_generator(
+    operation: &OperationRef,
+    params: &[Param],
+    qubits: &[Qubit],
+    num_qubits: u32,
+) -> Option<SparseObservable> {
+    if let OperationRef::StandardGate(gate) = operation {
+        if let Some(local) = standard_gate_exponent(*gate, params) {
+            let out = SparseObservable::identity(num_qubits);
+            return Some(out.compose_map(&local, |i| qubits[i as usize].0));
+        }
+    }
+    None
 }
 
 fn get_bits_from_py<T>(
@@ -521,20 +542,33 @@ impl CommutationChecker {
             _ => (),
         };
 
-        // Handle commutations in between Pauli-based gates, like PauliGate or PauliEvolutionGate
+        // Handle commutations between Pauli-based gates among themselves, and with standard gates
+        // TODO Support trivial commutations of standard gates with identities in the Paulis
         let size = qargs1.iter().chain(qargs2.iter()).max().unwrap().0 + 1;
-        if let Some(obs1) = try_pauli_generator(op1, qargs1, size) {
-            if let Some(obs2) = try_pauli_generator(op2, qargs2, size) {
-                return Ok(obs1.commutes(&obs2, tol));
+        let maybe_pauli1 = try_pauli_generator(op1, qargs1, size);
+        let maybe_pauli2 = try_pauli_generator(op2, qargs2, size);
+
+        match (maybe_pauli1, maybe_pauli2) {
+            (None, None) => (), // No gate is Pauli-based, continue
+            (None, Some(pauli2)) => {
+                if let Some(pauli1) = try_standard_gate_generator(op1, params1, qargs1, size) {
+                    return Ok(pauli1.commutes(&pauli2, tol));
+                }
             }
-        }
+            (Some(pauli1), None) => {
+                if let Some(pauli2) = try_standard_gate_generator(op2, params2, qargs2, size) {
+                    return Ok(pauli1.commutes(&pauli2, tol));
+                }
+            }
+            (Some(pauli1), Some(pauli2)) => return Ok(pauli1.commutes(&pauli2, tol)),
+        };
 
         // Now there are no more parameterized gates that are allowed
         if matches!(precheck_status, PrecheckStatus::Parameterized) {
             return Ok(false);
         }
 
-        // Sort the arguments.
+        // Sort the arguments, such that `second_op` always is the larger one.
         let reversed = if op1.num_qubits() != op2.num_qubits() {
             op1.num_qubits() > op2.num_qubits()
         } else {
@@ -569,12 +603,11 @@ impl CommutationChecker {
             is_cachable(first_op, first_params) && is_cachable(second_op, second_params);
 
         if !check_cache {
-            // The arguments are sorted, so if qargs1.len() > matrix_max_num_qubits, then
-            // qargs1.len() > matrix_max_num_qubits as well.
-            if qargs2.len() > matrix_max_num_qubits as usize {
+            // The arguments are sorted, so if first_qargs.len() > matrix_max_num_qubits, then
+            // second_qargs.len() > matrix_max_num_qubits as well.
+            if second_qargs.len() > matrix_max_num_qubits as usize {
                 return Ok(false);
             }
-
             return self.commute_matmul(
                 first_op,
                 first_params,
@@ -608,9 +641,7 @@ impl CommutationChecker {
             }
         }
 
-        if qargs1.len() > matrix_max_num_qubits as usize
-            || qargs2.len() > matrix_max_num_qubits as usize
-        {
+        if second_qargs.len() > matrix_max_num_qubits as usize {
             return Ok(false);
         }
 
@@ -679,10 +710,13 @@ impl CommutationChecker {
             }
         }
 
-        let first_qarg: Vec<Qubit> = Vec::from_iter((0..first_qargs.len() as u32).map(Qubit));
-        let second_qarg: Vec<Qubit> = second_qargs.iter().map(|q| qarg[q]).collect();
+        let first_indices = Vec::from_iter(0..first_qargs.len());
+        let second_indices = second_qargs
+            .iter()
+            .map(|q| qarg[q].index())
+            .collect::<Vec<_>>();
 
-        if first_qarg.len() > second_qarg.len() {
+        if first_indices.len() > second_indices.len() {
             return Err(CommutationError::FirstInstructionTooLarge);
         };
         let first_mat = match try_matrix_with_definition(first_op, first_params, None) {
@@ -701,7 +735,7 @@ impl CommutationChecker {
         //  2. This code here expands the first op to match the second -- hence we always
         //     match the operator sizes.
         // This whole extension logic could be avoided since we know the second one is larger.
-        let extra_qarg2 = num_qubits - first_qarg.len() as u32;
+        let extra_qarg2 = num_qubits - first_indices.len() as u32;
         let first_mat = if extra_qarg2 > 0 {
             let id_op = Array2::<Complex64>::eye(usize::pow(2, extra_qarg2));
             kron(&id_op, &first_mat)
@@ -715,7 +749,7 @@ impl CommutationChecker {
         let op12 = match unitary_compose::compose(
             &first_mat.view(),
             &second_mat.view(),
-            &second_qarg,
+            &second_indices,
             false,
         ) {
             Ok(matrix) => matrix,
@@ -724,13 +758,13 @@ impl CommutationChecker {
         let op21 = match unitary_compose::compose(
             &first_mat.view(),
             &second_mat.view(),
-            &second_qarg,
+            &second_indices,
             true,
         ) {
             Ok(matrix) => matrix,
             Err(e) => return Err(CommutationError::EinsumError(e)),
         };
-        let (fid, phase) = gate_metrics::gate_fidelity(&op12.view(), &op21.view(), None);
+        let (fid, phase) = gate_metrics::gate_fidelity(&op12.view(), &op21.view());
 
         // we consider the gates as commuting if the process fidelity of
         // AB (BA)^\dagger is approximately the identity and there is no global phase difference
@@ -751,6 +785,7 @@ impl CommutationChecker {
 /// Used to differentiate between the reasons why gates might not commute, which allow
 /// the commutation checker to handle cases individually. E.g. a ``PauliEvolutionGate`` can
 /// still be checked even if the gate is parameterized.
+#[derive(Debug, Clone)]
 enum PrecheckStatus {
     Commuting,     // gates commute for sure
     NonCommuting,  // gates do not commute for sure
