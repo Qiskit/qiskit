@@ -136,19 +136,19 @@ class TestConvertToPauliRotations(QiskitTestCase):
 
     def test_control_flow(self):
         """Test that simple control flow circuit works with the pass"""
-        qc = QuantumCircuit(2,1)
+        qc = QuantumCircuit(2, 1)
         qc.h(0)
         qc.measure(0, 0)
-        qc_true = QuantumCircuit(2,1)
+        qc_true = QuantumCircuit(2, 1)
         qc_true.h(0)
         qc.if_else((0, True), qc_true, None, range(2), [0])
         qct = ConvertToPauliRotations()(qc)
-        qc_exp = QuantumCircuit(2,1)
+        qc_exp = QuantumCircuit(2, 1)
         qc_exp.append(PauliProductRotationGate(Pauli("Y"), np.pi / 2), [0])
         qc_exp.append(PauliProductRotationGate(Pauli("X"), np.pi), [0])
         qc_exp.append(PauliProductMeasurement(Pauli("Z")), [0], [0])
         qc_exp.global_phase = np.pi / 2
-        qc_exp_true = QuantumCircuit(2,1)
+        qc_exp_true = QuantumCircuit(2, 1)
         qc_exp_true.global_phase = np.pi / 2
         qc_exp_true.append(PauliProductRotationGate(Pauli("Y"), np.pi / 2), [0])
         qc_exp_true.append(PauliProductRotationGate(Pauli("X"), np.pi), [0])
