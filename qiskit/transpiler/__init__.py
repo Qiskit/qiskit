@@ -302,6 +302,7 @@ you would do something like the following (building off the previous example):
     inverse_gate_list = [
         lib.CXGate(),
         lib.HGate(),
+        (lib.SGate(), lib.SdgGate()),
         (lib.RXGate(np.pi / 4), lib.RXGate(-np.pi / 4)),
         (lib.PhaseGate(np.pi / 4), lib.PhaseGate(-np.pi / 4)),
         (lib.TGate(), lib.TdgGate()),

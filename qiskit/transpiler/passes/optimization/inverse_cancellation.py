@@ -29,8 +29,13 @@ from qiskit._accelerate.inverse_cancellation import (
 
 
 class InverseCancellation(TransformationPass):
-    """Cancel specific Gates which are inverses of each other when they occur back-to-
-    back."""
+    """Cancel adjacent gates that are inverses of each other.
+
+    Entries in ``gates_to_cancel`` can be either a single gate or a 2-tuple of gates.
+    Single-gate entries are only valid for self-inverse gates such as :class:`.HGate`
+    or :class:`.CXGate`. Gates whose inverses are represented by a different gate, such
+    as :class:`.SGate` and :class:`.SdgGate`, must be given as a tuple pair.
+    """
 
     def __init__(
         self,
@@ -43,8 +48,10 @@ class InverseCancellation(TransformationPass):
             gates_to_cancel: List describing the gates to cancel. Each element of the
                 list is either a single gate or a pair of gates. If a single gate, then
                 it should be self-inverse. If a pair of gates, then the gates in the
-                pair should be inverses of each other. If ``None`` a default list of
-                self-inverse gates and a default list of inverse gate pairs will be used.
+                pair should be inverses of each other. For example, use
+                ``[(SGate(), SdgGate())]`` instead of ``[SGate(), SdgGate()]``.
+                If ``None`` a default list of self-inverse gates and a default list of
+                inverse gate pairs will be used.
                 The current default list of self-inverse gates is:
 
                   * :class:`.CXGate`

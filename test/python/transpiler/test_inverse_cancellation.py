@@ -29,6 +29,8 @@ from qiskit.circuit.library import (
     HGate,
     CXGate,
     PhaseGate,
+    SGate,
+    SdgGate,
     XGate,
     TGate,
     TdgGate,
@@ -182,6 +184,11 @@ class TestInverseCancellation(QiskitTestCase):
         qc.rx(np.pi / 4, 0)
         with self.assertRaises(TranspilerError):
             InverseCancellation([RXGate(np.pi / 4)])
+
+    def test_inverse_pair_requires_tuple(self):
+        """Test that non-self-inverse gates must be passed as tuple pairs."""
+        with self.assertRaisesRegex(TranspilerError, "Gate s is not self-inverse"):
+            InverseCancellation([SGate(), SdgGate()])
 
     def test_string_gate_error(self):
         """Test that when gate is passed as a string an error is raised."""
@@ -365,6 +372,15 @@ class TestInverseCancellation(QiskitTestCase):
         inverse_pass = InverseCancellation([(TGate(), TdgGate())])
         new_circ = inverse_pass(qc)
         self.assertEqual(qc, new_circ)
+
+    def test_s_sdg_inverse_pair(self):
+        """Test that a custom SGate/SdgGate pair cancels when given as a tuple."""
+        qc = QuantumCircuit(1)
+        qc.s(0)
+        qc.sdg(0)
+        inverse_pass = InverseCancellation([(SGate(), SdgGate())])
+        new_circ = inverse_pass(qc)
+        self.assertEqual(new_circ, QuantumCircuit(1))
 
     @ddt.data([(TGate(), TdgGate())], None)
     def test_some_inverse_pairs(self, gates_to_cancel):
