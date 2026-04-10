@@ -1845,10 +1845,13 @@ mod test {
             C_ONE * (angle / 2.).cos() * Array2::eye(dim) - IM * (angle / 2.).sin() * pauli_product;
 
         let matrix = ppr.matrix().unwrap();
+        // Loosen the tolerance in Miri mode allows for larger roundoff errors
+        // to mimic different hardware / OS configs, but keep 1e-17 for tight checks
+        let epsilon = if cfg!(miri) { 1e-12 } else { 1e-17 };
 
         for i in 0..dim {
             for j in 0..dim {
-                assert_abs_diff_eq!(expected_matrix[(i, j)], matrix[(i, j)], epsilon = 1e-12);
+                assert_abs_diff_eq!(expected_matrix[(i, j)], matrix[(i, j)], epsilon = epsilon);
             }
         }
     }
