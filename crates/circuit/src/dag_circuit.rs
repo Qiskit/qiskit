@@ -79,6 +79,7 @@ use rustworkx_core::traversal::{
     bfs_successors as core_bfs_successors, descendants as core_descendants,
 };
 
+#[inline]
 fn dag_compose_width_error(bit_kind: &str, other: usize, dest: usize) -> String {
     format!("Cannot compose onto a DAGCircuit with fewer {bit_kind} ({other} > {dest}).")
 }
