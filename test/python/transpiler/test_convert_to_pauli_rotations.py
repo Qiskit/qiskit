@@ -136,57 +136,54 @@ class TestConvertToPauliRotations(QiskitTestCase):
 
     def test_control_flow(self):
         """Test that simple control flow circuit works with the pass"""
-        qr = QuantumRegister(2)
-        cr = ClassicalRegister(1)
-        qc = QuantumCircuit(qr, cr)
+        qc = QuantumCircuit(2,1)
         qc.h(0)
         qc.measure(0, 0)
-        qc_true = QuantumCircuit(qr, cr)
+        qc_true = QuantumCircuit(2,1)
         qc_true.h(0)
         qc.if_else((0, True), qc_true, None, range(2), [0])
-
         qct = ConvertToPauliRotations()(qc)
-        qc_exp = QuantumCircuit(qr, cr)
+        qc_exp = QuantumCircuit(2,1)
         qc_exp.append(PauliProductRotationGate(Pauli("Y"), np.pi / 2), [0])
         qc_exp.append(PauliProductRotationGate(Pauli("X"), np.pi), [0])
         qc_exp.append(PauliProductMeasurement(Pauli("Z")), [0], [0])
         qc_exp.global_phase = np.pi / 2
-        qc_exp_true = QuantumCircuit(qr, cr)
+        qc_exp_true = QuantumCircuit(2,1)
         qc_exp_true.global_phase = np.pi / 2
         qc_exp_true.append(PauliProductRotationGate(Pauli("Y"), np.pi / 2), [0])
         qc_exp_true.append(PauliProductRotationGate(Pauli("X"), np.pi), [0])
         qc_exp.if_else((0, True), qc_exp_true, None, range(2), [0])
-        ops_names = set(qct.count_ops().keys())
-        self.assertEqual(
-            ops_names, {"pauli_product_rotation", "pauli_product_measurement", "if_else"}
-        )
         self.assertEqual(qct, qc_exp)
 
     def test_nested_control_flow(self):
         """Test that nested control flow circuit works with the pass"""
-        qr = QuantumRegister(2)
-        cr = ClassicalRegister(1)
+        # subcircuit with parameterized gate
         theta = Parameter("theta")
         qc1 = QuantumCircuit(2)
         qc1.h(0)
         qc1.ry(theta, 0)
-        qc2 = QuantumCircuit(2)
-        qc2.append(PauliProductRotationGate(Pauli("Y"), np.pi / 2), [0])
-        qc2.append(PauliProductRotationGate(Pauli("X"), np.pi), [0])
-        qc2.append(PauliProductRotationGate(Pauli("Y"), theta), [0])
-        qc2.global_phase = np.pi / 2
+        # build input circuit by composing a subcircuit into nested control flow
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(1)
         qc = QuantumCircuit(qr, cr)
         qc.compose(qc1, [0, 1], inplace=True)
         with qc.for_loop(range(3)):
             with qc.while_loop((cr, 0)):
                 qc.compose(qc1, [0, 1], inplace=True)
         qct = ConvertToPauliRotations()(qc1)
+        # qc2 is the transpiled equivalent of subcircuit qc1
+        qc2 = QuantumCircuit(2)
+        qc2.append(PauliProductRotationGate(Pauli("Y"), np.pi / 2), [0])
+        qc2.append(PauliProductRotationGate(Pauli("X"), np.pi), [0])
+        qc2.append(PauliProductRotationGate(Pauli("Y"), theta), [0])
+        qc2.global_phase = np.pi / 2
+        # expected output circuit of transpiled qc, should be equivalent to qct
         qc_exp = QuantumCircuit(qr, cr)
         qc_exp.global_phase = np.pi / 2
         qc_exp.compose(qc2, [0, 1], inplace=True)
         with qc_exp.for_loop(range(3)):
             with qc_exp.while_loop((cr, 0)):
                 qc_exp.compose(qc2, [0, 1], inplace=True)
-        qc_b = qc.assign_parameters([0.123], inplace=True)
-        qct_b = qct.assign_parameters([0.123], inplace=True)
-        self.assertEqual(qc_b, qct_b)
+            qc_b = qc.assign_parameters([0.123], inplace=True)
+            qct_b = qct.assign_parameters([0.123], inplace=True)
+            self.assertEqual(qc_b, qct_b)
