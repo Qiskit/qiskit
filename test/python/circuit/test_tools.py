@@ -19,6 +19,7 @@ from numpy import pi
 
 from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.circuit import Parameter
+from qiskit.exceptions import QiskitError
 from test import QiskitTestCase
 
 
@@ -94,6 +95,30 @@ class TestPiCheck(QiskitTestCase):
         expected_string = "π/2 + x"
         result = pi_check(input_number)
         self.assertEqual(result, expected_string)
+
+    def test_output_modes(self):
+        """Test supported output styles."""
+        self.assertEqual(pi_check(pi / 2, output="text"), "π/2")
+        self.assertEqual(pi_check(pi / 2, output="qasm"), "pi/2")
+        self.assertEqual(pi_check(pi / 2, output="latex"), r"\frac{\pi}{2}")
+        self.assertEqual(pi_check(pi / 2, output="mpl"), "$\\pi$/2")
+        self.assertEqual(pi_check(pi**2, output="qasm"), str(pi**2))
+
+    def test_ndigits_applies_to_numeric_fallback(self):
+        """Test ndigits only affects fallback numeric formatting."""
+        self.assertEqual(pi_check(0.3333333333333, ndigits=3), "0.333")
+        self.assertEqual(pi_check(pi / 2, ndigits=3), "π/2")
+
+    def test_string_passthrough(self):
+        """Test string inputs are returned unchanged."""
+        self.assertEqual(pi_check("already formatted"), "already formatted")
+
+    def test_invalid_output_raises(self):
+        """Test invalid output styles raise."""
+        with self.assertRaisesRegex(
+            QiskitError, "pi_check parameter output should be text, latex, mpl, or qasm."
+        ):
+            pi_check(pi, output="invalid")
 
 
 if __name__ == "__main__":

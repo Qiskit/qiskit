@@ -25,25 +25,32 @@ POW_LIST = np.pi ** np.arange(2, 5)
 
 
 def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
-    """Computes if a number is close to an integer
-    fraction or multiple of PI and returns the
-    corresponding string.
+    """Return a string representation of ``inpt``, using simple ``pi`` forms when possible.
+
+    For numeric inputs, ``pi_check`` formats the real and imaginary parts independently. Within
+    ``eps``, it prefers integer multiples of pi, powers of pi from ``pi**2`` through ``pi**4``
+    (except for ``output="qasm"``), and reduced fractions of the form ``n*pi/d`` or
+    ``n/(d*pi)`` with numerators and denominators up to :data:`MAX_FRAC`.  If none of those
+    patterns match, the value falls back to ordinary numeric formatting; ``ndigits`` only affects
+    this fallback formatting.
+
+    String inputs are returned unchanged.  For :class:`~qiskit.circuit.ParameterExpression`
+    inputs, numeric coefficients are rewritten using the same rules while preserving the symbolic
+    structure of the expression's string form.
 
     Args:
-        inpt (float): Number to check.
-        eps (float): EPS to check against.
-        output (str): Options are 'text' (default),
-                      'latex', 'mpl', and 'qasm'.
-        ndigits (int or None): Number of digits to print
-                               if returning raw inpt.
-                               If `None` (default), Python's
-                               default float formatting is used.
+        inpt (complex | ParameterExpression | str): Value to format.
+        eps (float): Tolerance used to decide whether a numeric value matches a supported pi form.
+        output (str): Output style. Supported values are ``"text"`` (default), ``"latex"``,
+            ``"mpl"``, and ``"qasm"``.
+        ndigits (int | None): Significant digits to use when returning a raw numeric fallback.
+            If ``None`` (default), Python's default float formatting is used.
 
     Returns:
-        str: string representation of output.
+        str: Formatted string representation of ``inpt``.
 
     Raises:
-        QiskitError: if output is not a valid option.
+        QiskitError: If ``output`` is not a valid option.
     """
     if isinstance(inpt, ParameterExpression):
         param_str = str(inpt)
