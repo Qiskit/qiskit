@@ -85,12 +85,25 @@ class Layout:
                      1: qr[1],
                      2: qr[2]}
         """
+        check_virtual = set()
+        check_physical = set()
+        for key, value in input_dict.items():
+            virtual, physical = Layout.order_based_on_type(key, value)
+            
+            if virtual is not None and virtual in check_virtual:
+                raise LayoutError(f"Duplicate virtual qubit {virtual}")
+            if physical in check_physical:
+                raise LayoutError(f"Duplicate physical qubit {physical}")
+            
+            if virtual is not None:
+                check_virtual.add(virtual)
+            check_physical.add(physical)
+            
         for key, value in input_dict.items():
             virtual, physical = Layout.order_based_on_type(key, value)
             self._p2v[physical] = virtual
-            if virtual is None:
-                continue
-            self._v2p[virtual] = physical
+            if virtual is not None:
+                self._v2p[virtual] = physical
 
     @staticmethod
     def order_based_on_type(value1, value2):
