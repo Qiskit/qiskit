@@ -6267,6 +6267,22 @@ impl DAGCircuit {
         nodes
     }
 
+    /// Get the nodes on a given wire as a non-allocating iterator
+    ///
+    /// This will panic if the wire is not in the circuit
+    pub fn nodes_on_wire_iter(&self, wire: Wire) -> impl Iterator<Item = NodeIndex> {
+        let start_node = match wire {
+            Wire::Qubit(qubit) => self.qubit_io_map[qubit.index()][0],
+            Wire::Clbit(clbit) => self.clbit_io_map[clbit.index()][0],
+            Wire::Var(var) => self.var_io_map[var.index()][0],
+        };
+        NodesOnWireIter {
+            dag: self,
+            wire,
+            next_node: Some(start_node),
+        }
+    }
+
     fn remove_idle_wire(&mut self, wire: Wire) {
         let [in_node, out_node] = match wire {
             Wire::Qubit(qubit) => self.qubit_io_map[qubit.index()],
@@ -8114,6 +8130,40 @@ impl DAGCircuit {
             self.add_wire(Wire::Var(Var::new(var_idx)))?;
         }
         Ok(())
+    }
+}
+
+struct NodesOnWireIter<'a> {
+    dag: &'a DAGCircuit,
+    wire: Wire,
+    next_node: Option<NodeIndex>,
+}
+
+impl<'a> Iterator for NodesOnWireIter<'a> {
+    type Item = NodeIndex;
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        // If the wire is empty there are the input and output nodes which is the minimum
+        // If the dag is all on a single wire we would have all the operations + the 2 io
+        // nodes.
+        (2, Some(self.dag.num_ops() + 2))
+    }
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let out_node = self.next_node?;
+        self.next_node = self
+            .dag
+            .dag
+            .edges_directed(out_node, Outgoing)
+            .filter_map(|e: EdgeReference<'a, Wire>| {
+                if e.weight() == &self.wire {
+                    Some(e.target())
+                } else {
+                    None
+                }
+            })
+            .next();
+        Some(out_node)
     }
 }
 
