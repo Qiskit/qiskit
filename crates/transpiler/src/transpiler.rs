@@ -848,7 +848,7 @@ mod tests {
             assert!(result.1.output_permutation().is_some());
         }
     }
-    
+
     #[test]
     fn test_update_best_dag() {
         let circuit1 = CircuitData::from_packed_operations(
@@ -924,17 +924,25 @@ mod tests {
             Param::Float(0.),
         )
         .unwrap();
-        let dag_worst = DAGCircuit::from_circuit_data(&circuit1, false, None, None, None, None).unwrap();
+        let dag_worst =
+            DAGCircuit::from_circuit_data(&circuit1, false, None, None, None, None).unwrap();
         let circuit2 = CircuitData::from_packed_operations(
             1,
             1,
-            vec![Ok((StandardGate::H.into(), smallvec![], vec![Qubit(0)], vec![]))],
+            vec![Ok((
+                StandardGate::H.into(),
+                smallvec![],
+                vec![Qubit(0)],
+                vec![],
+            ))],
             Param::Float(0.),
         )
         .unwrap();
-        let dag_better = DAGCircuit::from_circuit_data(&circuit2, false, None, None, None, None).unwrap();
+        let dag_better =
+            DAGCircuit::from_circuit_data(&circuit2, false, None, None, None, None).unwrap();
         let circuit3 = CircuitData::from_packed_operations(1, 1, vec![], Param::Float(0.)).unwrap();
-        let dag_best = DAGCircuit::from_circuit_data(&circuit3, false, None, None, None, None).unwrap();
+        let dag_best =
+            DAGCircuit::from_circuit_data(&circuit3, false, None, None, None, None).unwrap();
         let mut state = MinPointState::new(&dag_worst);
 
         state.update_with(&dag_worst);
