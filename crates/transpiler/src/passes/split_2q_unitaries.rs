@@ -15,14 +15,13 @@ const PI4: f64 = PI / 4.;
 use nalgebra::Matrix2;
 use num_complex::Complex64;
 use pyo3::prelude::*;
-use rustworkx_core::petgraph::algo::toposort;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{SmallVec, smallvec};
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
+use qiskit_circuit::Qubit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType, Wire};
 use qiskit_circuit::operations::{ArrayType, Operation, OperationRef, Param, UnitaryGate};
-use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
+use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
 use qiskit_synthesis::two_qubit_decompose::{Specialization, TwoQubitWeylDecomposition};
 
@@ -100,12 +99,7 @@ pub fn run_split_2q_unitaries(
     // We have swap-like unitaries, so we create a new DAG in a manner similar to
     // The Elide Permutations pass, while also splitting the unitaries to 1-qubit gates
     let mut mapping: Vec<usize> = (0..dag.num_qubits()).collect();
-    let new_dag = dag.copy_empty_like(VarsMode::Alike, BlocksMode::Keep)?;
-    let mut new_dag = new_dag.into_builder();
-    for node in toposort(dag.dag(), None).unwrap() {
-        let NodeType::Operation(ref inst) = dag.dag()[node] else {
-            continue;
-        };
+    let rebuilder_callback = |new_dag: &mut DAGCircuitBuilder, inst: &PackedInstruction| {
         if let OperationRef::Unitary(unitary_gate) = inst.op.view() {
             if unitary_gate.num_qubits() == 2 {
                 let decomp = TwoQubitWeylDecomposition::new_inner(
@@ -157,7 +151,7 @@ pub fn run_split_2q_unitaries(
                         None,
                     )?;
                     new_dag.add_global_phase(&Param::Float(decomp.global_phase + PI4))?;
-                    continue; // skip the general instruction handling code
+                    return Ok(());
                 }
             }
         }
@@ -178,8 +172,10 @@ pub fn run_split_2q_unitaries(
             #[cfg(feature = "cache_pygates")]
             inst.py_op.get().map(|x| x.clone()),
         )?;
-    }
-    Ok(Some((new_dag.build(), mapping)))
+        Ok(())
+    };
+    dag.rebuild_dag_with(rebuilder_callback)
+        .map(|x| Some((x, mapping)))
 }
 
 pub fn split_2q_unitaries_mod(m: &Bound<PyModule>) -> PyResult<()> {
