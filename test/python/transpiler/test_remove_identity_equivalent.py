@@ -28,6 +28,7 @@ from qiskit.circuit.library import (
     XXPlusYYGate,
     GlobalPhaseGate,
     UnitaryGate,
+    PauliProductRotationGate,
     PauliEvolutionGate,
 )
 from qiskit.quantum_info import Operator, Pauli
@@ -192,6 +193,7 @@ class TestRemoveIdentityEquivalent(QiskitTestCase):
         UnitaryGate(np.exp(-0.123j) * np.eye(2)),
         UnitaryGate(np.exp(-0.123j) * np.eye(4)),
         UnitaryGate(np.exp(-0.123j) * np.eye(8)),
+        PauliProductRotationGate(Pauli("XYIZ"), 0),
     )
     def test_remove_identity_up_to_global_phase(self, gate):
         """Test that gates equivalent to identity up to a global phase are removed from the circuit,
