@@ -18,6 +18,8 @@ use pyo3::types::{IntoPyDict, PyComplex, PyFloat, PyInt, PyNotImplemented, PySet
 use std::sync::Arc;
 use thiserror::Error;
 use uuid::Uuid;
+use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign, Neg};
+use num_traits::Zero;
 
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;
@@ -288,14 +290,14 @@ impl ParameterExpression {
 
             // apply the operation and put the result onto the stack for the next replay
             let result: ParameterExpression = match op {
-                OpCode::ADD => lhs.add(&rhs.unwrap())?,
-                OpCode::MUL => lhs.mul(&rhs.unwrap())?,
-                OpCode::SUB => lhs.sub(&rhs.unwrap())?,
-                OpCode::RSUB => rhs.unwrap().sub(&lhs)?,
+                OpCode::ADD => (&lhs).add(&rhs.unwrap())?,
+                OpCode::MUL => (&lhs).mul(&rhs.unwrap())?,
+                OpCode::SUB => (&lhs).sub(&rhs.unwrap())?,
+                OpCode::RSUB => (&rhs.unwrap()).sub(&lhs)?,
                 OpCode::POW => lhs.pow(&rhs.unwrap())?,
                 OpCode::RPOW => rhs.unwrap().pow(&lhs)?,
-                OpCode::DIV => lhs.div(&rhs.unwrap())?,
-                OpCode::RDIV => rhs.unwrap().div(&lhs)?,
+                OpCode::DIV => (&lhs).div(&rhs.unwrap())?,
+                OpCode::RDIV => (&rhs.unwrap()).div(&lhs)?,
                 OpCode::ABS => lhs.abs(),
                 OpCode::SIN => lhs.sin(),
                 OpCode::ASIN => lhs.asin(),
@@ -696,6 +698,154 @@ impl ParameterExpression {
         Ok(merged)
     }
 }
+
+
+impl Add for ParameterExpression {
+    type Output = ParameterExpression;
+    fn add(self, rhs: Self) -> ParameterExpression {
+        match (&self).add(&rhs) {
+            Ok(e) => e,
+            Err(_) => self.clone(),
+        }
+    }
+}
+
+impl Add for &ParameterExpression {
+    type Output = ParameterExpression;
+    fn add(self, rhs: Self) -> ParameterExpression {
+        match self.add(rhs) {
+            Ok(e) => e,
+            Err(_) => self.clone(),
+        }
+    }
+}
+
+impl AddAssign for ParameterExpression {
+    fn add_assign(&mut self, rhs: ParameterExpression) {
+        match self.merged_name_map(&rhs) {
+            Ok(name_map) => self.name_map = name_map,
+            _ => (),
+        };
+        self.expr = &self.expr + &rhs.expr;
+    }
+}
+
+impl Sub for ParameterExpression {
+    type Output = ParameterExpression;
+    fn sub(self, rhs: Self) -> ParameterExpression {
+        match (&self).sub(&rhs) {
+            Ok(e) => e,
+            Err(_) => self.clone(),
+        }
+    }
+}
+
+impl Sub for &ParameterExpression {
+    type Output = ParameterExpression;
+    fn sub(self, rhs: Self) -> ParameterExpression {
+        match self.sub(rhs) {
+            Ok(e) => e,
+            Err(_) => self.clone(),
+        }
+    }
+}
+
+impl SubAssign for ParameterExpression {
+    fn sub_assign(&mut self, rhs: ParameterExpression) {
+        match self.merged_name_map(&rhs) {
+            Ok(name_map) => self.name_map = name_map,
+            _ => (),
+        };
+        self.expr = &self.expr - &rhs.expr;
+    }
+}
+
+impl Mul for ParameterExpression {
+    type Output = ParameterExpression;
+    fn mul(self, rhs: Self) -> ParameterExpression {
+        match (&self).mul(&rhs) {
+            Ok(e) => e,
+            Err(_) => self.clone(),
+        }
+    }
+}
+
+impl Mul for &ParameterExpression {
+    type Output = ParameterExpression;
+    fn mul(self, rhs: Self) -> ParameterExpression {
+        match self.mul(rhs) {
+            Ok(e) => e,
+            Err(_) => self.clone(),
+        }
+    }
+}
+
+impl MulAssign for ParameterExpression {
+    fn mul_assign(&mut self, rhs: ParameterExpression) {
+        match self.merged_name_map(&rhs) {
+            Ok(name_map) => self.name_map = name_map,
+            _ => (),
+        };
+        self.expr = &self.expr * &rhs.expr;
+    }
+}
+
+impl Div for ParameterExpression {
+    type Output = ParameterExpression;
+    fn div(self, rhs: Self) -> ParameterExpression {
+        match (&self).div(&rhs) {
+            Ok(e) => e,
+            Err(_) => self.clone(),
+        }
+    }
+}
+
+impl Div for &ParameterExpression {
+    type Output = ParameterExpression;
+    fn div(self, rhs: Self) -> ParameterExpression {
+        match self.div(rhs) {
+            Ok(e) => e,
+            Err(_) => self.clone(),
+        }
+    }
+}
+
+impl DivAssign for ParameterExpression {
+    fn div_assign(&mut self, rhs: ParameterExpression) {
+        match self.merged_name_map(&rhs) {
+            Ok(name_map) => self.name_map = name_map,
+            _ => (),
+        };
+        self.expr = &self.expr / &rhs.expr;
+    }
+}
+
+impl Neg for ParameterExpression {
+    type Output = ParameterExpression;
+    fn neg(self) -> ParameterExpression {
+        (&self).neg()
+    }
+}
+
+impl Neg for &ParameterExpression {
+    type Output = ParameterExpression;
+    fn neg(self) -> ParameterExpression {
+        self.neg()
+    }
+}
+
+impl Zero for ParameterExpression {
+    fn zero() -> ParameterExpression {
+        ParameterExpression::from_f64(0.0f64)
+    }
+    fn is_zero(&self) -> bool {
+        match self.try_to_value(true) {
+            Ok(v) => v.is_zero(),
+            Err(_) => false,
+        }
+    }
+}
+
 
 /// A parameter expression.
 ///
@@ -1210,7 +1360,7 @@ impl PyParameterExpression {
 
     pub fn __add__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
         if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
-            Ok(self.inner.add(&rhs.inner)?.into())
+            Ok((&self.inner).add(&rhs.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __add__",
@@ -1220,7 +1370,7 @@ impl PyParameterExpression {
 
     pub fn __radd__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
         if let Ok(lhs) = Self::extract_coerce(lhs.as_borrowed()) {
-            Ok(lhs.inner.add(&self.inner)?.into())
+            Ok((&lhs.inner).add(&self.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __radd__",
@@ -1230,7 +1380,7 @@ impl PyParameterExpression {
 
     pub fn __sub__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
         if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
-            Ok(self.inner.sub(&rhs.inner)?.into())
+            Ok((&self.inner).sub(&rhs.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __sub__",
@@ -1240,7 +1390,7 @@ impl PyParameterExpression {
 
     pub fn __rsub__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
         if let Ok(lhs) = Self::extract_coerce(lhs.as_borrowed()) {
-            Ok(lhs.inner.sub(&self.inner)?.into())
+            Ok((&lhs.inner).sub(&self.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __rsub__",
@@ -1251,7 +1401,7 @@ impl PyParameterExpression {
     pub fn __mul__<'py>(&self, rhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
         let py = rhs.py();
         if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
-            match self.inner.mul(&rhs.inner) {
+            match (&self.inner).mul(&rhs.inner) {
                 Ok(result) => PyParameterExpression::from(result).into_bound_py_any(py),
                 Err(e) => Err(PyErr::from(e)),
             }
@@ -1262,7 +1412,7 @@ impl PyParameterExpression {
 
     pub fn __rmul__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
         if let Ok(lhs) = Self::extract_coerce(lhs.as_borrowed()) {
-            Ok(lhs.inner.mul(&self.inner)?.into())
+            Ok((&lhs.inner).mul(&self.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __rmul__",
@@ -1272,7 +1422,7 @@ impl PyParameterExpression {
 
     pub fn __truediv__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
         if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
-            Ok(self.inner.div(&rhs.inner)?.into())
+            Ok((&self.inner).div(&rhs.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __truediv__",
@@ -1282,7 +1432,7 @@ impl PyParameterExpression {
 
     pub fn __rtruediv__(&self, lhs: &Bound<PyAny>) -> PyResult<Self> {
         if let Ok(lhs) = Self::extract_coerce(lhs.as_borrowed()) {
-            Ok(lhs.inner.div(&self.inner)?.into())
+            Ok((&lhs.inner).div(&self.inner)?.into())
         } else {
             Err(pyo3::exceptions::PyTypeError::new_err(
                 "Unsupported data type for __rtruediv__",
