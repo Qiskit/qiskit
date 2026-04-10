@@ -320,7 +320,7 @@ impl CommutationChecker {
 
     #[pyo3(signature=(op1, op2, max_num_qubits=None, approximation_degree=1., matrix_max_num_qubits=3))]
     fn commute_nodes(
-        &mut self,
+        &self,
         py: Python,
         op1: &DAGOpNode,
         op2: &DAGOpNode,
@@ -419,7 +419,7 @@ impl CommutationChecker {
 
     #[allow(clippy::too_many_arguments)]
     pub fn commute<T>(
-        &mut self,
+        &self,
         op1: &OperationRef,
         params1: Option<&Parameters<T>>,
         qargs1: &[Qubit],
