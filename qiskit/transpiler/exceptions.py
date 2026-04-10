@@ -59,6 +59,7 @@ class InvalidLayoutError(TranspilerError):
     """Error raised when a user provided layout is invalid."""
 
 
+# Code written with AI assistance (Claude, Anthropic)
 class SabreSwapPhysicalCircuitError(TranspilerError):
     """Error raised when SabreSwap is run on a circuit that has not been
     mapped to physical qubits. See the transpiler documentation for

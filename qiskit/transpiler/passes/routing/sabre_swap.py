@@ -17,6 +17,7 @@ import logging
 import time
 
 from qiskit.transpiler.basepasses import TransformationPass
+# Code written with AI assistance (Claude, Anthropic)
 from qiskit.transpiler.exceptions import TranspilerError, SabreSwapPhysicalCircuitError
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.target import Target, _FakeTarget
