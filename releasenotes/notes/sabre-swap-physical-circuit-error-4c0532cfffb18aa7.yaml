@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Added :class:`.SabreSwapPhysicalCircuitError`, a new specialised subclass
+    of :class:`.TranspilerError` raised when :class:`.SabreSwap` is run on a
+    circuit that has not been mapped to physical qubits. This makes it easier
+    for users to catch and handle this specific error condition.

@@ -17,7 +17,7 @@ import logging
 import time
 
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.exceptions import TranspilerError, SabreSwapPhysicalCircuitError
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.target import Target, _FakeTarget
 from qiskit.transpiler.coupling import CouplingMap
@@ -188,7 +188,7 @@ class SabreSwap(TransformationPass):
         if self._routing_target is None:
             self._routing_target = RoutingTarget.from_target(self.target)
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
-            raise TranspilerError("Sabre swap runs on physical circuits only.")
+            raise SabreSwapPhysicalCircuitError("Sabre swap runs on physical circuits only.")
         num_dag_qubits = len(dag.qubits)
         num_coupling_qubits = self.target.num_qubits
         if num_dag_qubits < num_coupling_qubits:

@@ -164,6 +164,18 @@ class TestSabreSwap(QiskitTestCase):
         after_result = output(test_circuit)
         self.assertEqual(before_result, after_result)
 
+    def test_raises_physical_circuit_error_for_virtual_circuit(self):
+        """Test that SabreSwap raises SabreSwapPhysicalCircuitError for non-physical circuits."""
+        from qiskit.transpiler.exceptions import SabreSwapPhysicalCircuitError
+        # Create a circuit with a non-physical register name (not "q")
+        qc = QuantumCircuit(QuantumRegister(2, "virtual"))
+        qc.cx(0, 1)
+        backend = GenericBackendV2(num_qubits=2)
+        sabre = SabreSwap(backend.target)
+        dag = circuit_to_dag(qc)
+        with self.assertRaises(SabreSwapPhysicalCircuitError):
+            sabre.run(dag)
+
     def test_trivial_case(self):
         """Test that an already mapped circuit is unchanged.
                   ┌───┐┌───┐
