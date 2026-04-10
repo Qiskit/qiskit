@@ -15,10 +15,14 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+import typing
 
 from qiskit.circuit.operation import Operation
 from qiskit.circuit import Qubit
 from qiskit._accelerate.commutation_checker import CommutationChecker as RustChecker
+
+if typing.TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGOpNode
 
 
 class CommutationChecker:
@@ -60,12 +64,16 @@ class CommutationChecker:
 
     def commute_nodes(
         self,
-        op1,
-        op2,
+        op1: DAGOpNode,
+        op2: DAGOpNode,
         max_num_qubits: int = 3,
         approximation_degree: float = 1.0,
     ) -> bool:
-        """Checks if two DAGOpNodes commute."""
+        """Checks if two :class:`.DAGOpNode`\ s commute.
+
+        This is equivalent to :meth:`commute` but with the operation, qubits, and clbits
+        bundled in the :class:`.DAGOpNode` object. See :meth:`commute` for more details.
+        """
         return self.cc.commute_nodes(op1, op2, max_num_qubits, approximation_degree, max_num_qubits)
 
     def commute(
