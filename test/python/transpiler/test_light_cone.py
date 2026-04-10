@@ -21,10 +21,10 @@ from qiskit.circuit import (
     Parameter,
     QuantumCircuit,
 )
-from qiskit.circuit.library import real_amplitudes
+from qiskit.circuit.library import PauliProductMeasurement, real_amplitudes
 from qiskit.circuit.library.n_local.efficient_su2 import efficient_su2
 from qiskit.converters import circuit_to_dag
-from qiskit.quantum_info import SparsePauliOp, SparseObservable
+from qiskit.quantum_info import Pauli, SparsePauliOp, SparseObservable
 from qiskit.transpiler.passes.optimization.light_cone import LightCone
 from qiskit.transpiler.passmanager import PassManager
 
@@ -230,6 +230,54 @@ class TestLightConePass(QiskitTestCase):
         expected.measure(0, 0)
 
         self.assertEqual(expected, new_circuit)
+
+    def test_mid_circuit_measurement(self):
+        """Test for a mid-circuit standard measurement."""
+        light_cone = LightCone()
+        pm = PassManager([light_cone])
+
+        qc = QuantumCircuit(2, 1)
+        qc.cx(0, 1)
+        qc.z(0)
+        qc.measure(0, 0)
+        qc.h(0)
+
+        new_circuit = pm.run(qc)
+
+        expected = QuantumCircuit(2, 1)
+        expected.measure(0, 0)
+
+        self.assertEqual(expected, new_circuit)
+
+    def test_mid_circuit_pauli_product_measurement(self):
+        """Test for a mid-circuit Pauli product measurement."""
+        light_cone = LightCone()
+        pm = PassManager([light_cone])
+
+        qc = QuantumCircuit(1, 1)
+        qc.h(0)
+        qc.append(PauliProductMeasurement(Pauli("X")), [0], [0])
+        qc.z(0)
+
+        new_circuit = pm.run(qc)
+
+        expected = QuantumCircuit(1, 1)
+        expected.h(0)
+        expected.append(PauliProductMeasurement(Pauli("X")), [0], [0])
+
+        self.assertEqual(expected, new_circuit)
+
+    def test_observable_rejects_mid_circuit_measurement(self):
+        """Test that observables reject non-final measurements as well."""
+        light_cone = LightCone(bit_terms="X", indices=[0])
+        pm = PassManager([light_cone])
+
+        qc = QuantumCircuit(1, 1)
+        qc.measure(0, 0)
+        qc.h(0)
+
+        with self.assertRaises(ValueError):
+            pm.run(qc)
 
     @ddt.data(SparsePauliOp("IX"), SparseObservable("I+"))
     def test_parameter_expression(self, sparse_object):

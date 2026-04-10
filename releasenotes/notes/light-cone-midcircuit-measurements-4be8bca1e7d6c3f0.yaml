@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed :class:`.LightCone` so it correctly handles mid-circuit measurements,
+    including :class:`.PauliProductMeasurement` instructions, instead of only
+    seeding the light cone from final measurements. Circuits that mix an
+    observable with any measurement instructions now consistently raise
+    :exc:`ValueError`.
+
+    See `#15937 <https://github.com/Qiskit/qiskit/issues/15937>`__.
