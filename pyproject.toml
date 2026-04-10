@@ -14,8 +14,12 @@ name = "qiskit"
 description = "An open-source SDK for working with quantum computers at the level of extended quantum circuits, operators, and primitives."
 requires-python = ">=3.10"
 license = "Apache-2.0"
-license-files = ["LICENSE.txt"]
-authors = [{ name = "Qiskit Development Team", email = "qiskit@us.ibm.com" }]
+license-files = [
+    "LICENSE.txt",
+]
+authors = [
+    { name = "Qiskit Development Team", email = "qiskit@us.ibm.com" },
+]
 keywords = [
     "qiskit",
     "quantum circuit",
@@ -50,7 +54,9 @@ dynamic = ["version", "readme", "dependencies"]
 # If modifying this table, sync with `qiskit.utils.optionals` and the `optionals-all` dependency
 # group below.
 [project.optional-dependencies]
-qasm3-import = ["qiskit-qasm3-import >= 0.1.0"]
+qasm3-import = [
+    "qiskit-qasm3-import >= 0.1.0",
+]
 visualization = [
     "matplotlib >= 3.3",
     "pydot",
@@ -59,15 +65,20 @@ visualization = [
     "seaborn >= 0.9.0",
     "sympy>=1.3",
 ]
-crosstalk-pass = ["z3-solver >= 4.7"]
-csp-layout-pass = ["python-constraint >= 1.4"]
-qpy-compat = ["symengine>=0.11,<0.14", "sympy>1.3"]
+crosstalk-pass = [
+    "z3-solver >= 4.7",
+]
+csp-layout-pass = [
+    "python-constraint >= 1.4",
+]
+qpy-compat = [
+    "symengine>=0.11,<0.14",
+    "sympy>1.3"
+]
 # This will make the resolution work for installers from PyPI, but `pip install .[all]` will be
 # unreliable because `qiskit` will resolve to the PyPI version, so local changes in the
 # optionals won't be reflected.
-all = [
-    "qiskit[qasm3-import,visualization,crosstalk-pass,csp-layout-pass,qpy-compat]",
-]
+all = ["qiskit[qasm3-import,visualization,crosstalk-pass,csp-layout-pass,qpy-compat]"]
 
 [project.urls]
 Homepage = "https://www.ibm.com/quantum/qiskit"
@@ -182,7 +193,7 @@ build = ["setuptools>=77.0", "setuptools-rust==1.12.0"]
 # on-by-default lints that are harder to deal with.
 lint = [
     "ruff==0.15.2",
-    "reno>=4.1.0",          # duplicated with `doc`
+    "reno>=4.1.0",  # duplicated with `doc`
     "black[jupyter]~=25.1",
 ]
 # Dependencies to run the test suite.  This group needs to be installable on all Python versions
@@ -191,17 +202,20 @@ test = [
     "stestr>=2.0",
     "ddt>=1.2.0",
     "coverage>=4.4.0",
-    "threadpoolctl",   # More detail from Numpy/Scipy BLAS-usage reports.
+    "threadpoolctl",  # More detail from Numpy/Scipy BLAS-usage reports.
 ]
 # Random tests.
-test-random = ["qiskit-aer", "hypothesis>=4.24.3"]
+test-random = [
+    "qiskit-aer",
+    "hypothesis>=4.24.3",
+]
 # Dependencies to build the documentation.  It's ok if the range of Python versions that can build
 # the docs is more restrictive than Python versions that Qiskit supports.
 doc = [
     "Sphinx==9.1.0",
     "docutils==0.22.4",
     "openqasm-pygments",
-    "reno>=4.1.0",                # duplicated with `lint`
+    "reno>=4.1.0",  # duplicated with `lint`
     "sphinxcontrib-katex==0.9.9",
     "breathe>=4.35.0",
 ]
@@ -211,7 +225,10 @@ doc = [
 # reliably be installed by `pip`.  If you are familiar with the old Qiskit repository setup, the
 # complete `optionals-all` corresponds to `requirements-optional.txt`.  If updating this, you
 # probably need to update `qiskit.utils.optionals` as well.
-optionals-test = ["fixtures", "testtools"]
+optionals-test = [
+    "fixtures",
+    "testtools",
+]
 optionals-interactive = [
     "ipython",
     "matplotlib>=3.3",
@@ -230,9 +247,9 @@ optionals-functional = [
     "sympy>=1.3",
 ]
 optionals-all = [
-    { include-group = "optionals-test" },
-    { include-group = "optionals-interactive" },
-    { include-group = "optionals-functional" },
+    {include-group = "optionals-test"},
+    {include-group = "optionals-interactive"},
+    {include-group = "optionals-functional"},
 ]
 
 # The complete development environment.  This doesn't _need_ to work on all Python versions (in
@@ -243,11 +260,11 @@ optionals-all = [
 # If you are familiar with the old Qiskit development structure, `pip install --group dev` replaces
 # the old `pip install -r requirements-dev.txt`.
 dev = [
-    { include-group = "build" },
-    { include-group = "lint" },
-    { include-group = "test" },
-    { include-group = "test-random" },
-    { include-group = "doc" },
+    {include-group = "build"},
+    {include-group = "lint"},
+    {include-group = "test"},
+    {include-group = "test-random"},
+    {include-group = "doc"},
 ]
 
 [tool.setuptools]
@@ -256,7 +273,7 @@ include-package-data = true
 [tool.setuptools.dynamic]
 version = { file = "qiskit/VERSION.txt" }
 readme = { file = "README.md", content-type = "text/markdown" }
-dependencies = { file = "requirements.txt" }
+dependencies = {file = "requirements.txt" }
 
 [tool.setuptools.packages.find]
 include = ["qiskit", "qiskit.*"]
@@ -334,39 +351,39 @@ select = [
     "D417",
 ]
 ignore = [
-    "E402",    # module-import-not-at-top-of-file false positives with module docs
-    "E501",    # line-too-long rely on black for formatting
-    "PLR2004", # magic-value-comparison overly pedantic especially in tests
-    "PLR0911", # too-many-return-statements
-    "PLR0912", # too-many-branches
-    "PLR0904", # too-many-public-methods
-    "PLR0914", # too-many-locals
-    "PLR0915", # too-many-statements
-    "PLR1702", # too-many-nested-blocks
-    "PLR0904", # too-many-public-methods
-    "PLC0415", # import-outside-top-level
-    "E731",    # lambda-assignment
-    "PLW1514", # unspecified-encoding do not want to implement
-    "PLR0913", # too-many-arguments
-    "PLW1641", # eq-without-hash  not everything has to be hashablie
-    "PLW3301", # nested-min-max
-    "PLW2901", # redefined-loop-variablke - TODO fix this
-    "RUF003",  # ambiguous-unicode-character-comment
-    "RUF005",  # collection-literal-concatenation
-    "RUF012",  # mutable-class-default"
-    "RUF001",  # ambiguous-unicode-character-string
-    "RUF002",  # ambiguous-unicode-character-docstring
-    "RUF007",  # zip-instead-of-pairwise overly opinionated
+    "E402",  # module-import-not-at-top-of-file false positives with module docs
+    "E501",  # line-too-long rely on black for formatting
+    "PLR2004",  # magic-value-comparison overly pedantic especially in tests
+    "PLR0911",  # too-many-return-statements
+    "PLR0912",  # too-many-branches
+    "PLR0904",  # too-many-public-methods
+    "PLR0914",  # too-many-locals
+    "PLR0915",  # too-many-statements
+    "PLR1702",  # too-many-nested-blocks
+    "PLR0904",  # too-many-public-methods
+    "PLC0415",  # import-outside-top-level
+    "E731",     # lambda-assignment
+    "PLW1514",  # unspecified-encoding do not want to implement
+    "PLR0913",  # too-many-arguments
+    "PLW1641",  # eq-without-hash  not everything has to be hashablie
+    "PLW3301",  # nested-min-max
+    "PLW2901",  # redefined-loop-variablke - TODO fix this
+    "RUF003",   # ambiguous-unicode-character-comment
+    "RUF005",   # collection-literal-concatenation
+    "RUF012",   # mutable-class-default"
+    "RUF001",   # ambiguous-unicode-character-string
+    "RUF002",   # ambiguous-unicode-character-docstring
+    "RUF007",   # zip-instead-of-pairwise overly opinionated
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "*.ipynb" = ["F821"]
 # Security rules from bandit don't apply to tests and utils
 "tools/*" = [
-    # Tools can print to stdout
+# Tools can print to stdout
     "T201",
     "S603",
-    # Docstring rules don't apply to tools as they're not documented
+# Docstring rules don't apply to tools as they're not documented
     "D100",
     "D101",
     "D102",
@@ -413,7 +430,7 @@ ignore = [
     "D417",
     "D418",
     "D419",
-    # Implicit namespace rules don't apply to tools because they're all standalone scripts
+# Implicit namespace rules don't apply to tools because they're all standalone scripts
     "INP001",
 ]
 "test/*" = [
@@ -423,7 +440,7 @@ ignore = [
     "S311",
     "S307",
     "RUF015",
-    # Docstring rules don't apply to tests as they're not documented
+# Docstring rules don't apply to tests as they're not documented
     "D100",
     "D101",
     "D102",
@@ -479,9 +496,9 @@ ignore = [
 
 [tool.coverage.report]
 exclude_also = [
-    "def __repr__",              # Printable epresentational string does not typically execute during testing
-    "raise NotImplementedError", # Abstract methods are not testable
-    "raise RuntimeError",        # Exceptions for defensive programming that cannot be tested a head
-    "if TYPE_CHECKING:",         # Code that only runs during type checks
-    "@abstractmethod",           # Abstract methods are not testable
-]
+    "def __repr__",               # Printable epresentational string does not typically execute during testing
+    "raise NotImplementedError",  # Abstract methods are not testable
+    "raise RuntimeError",         # Exceptions for defensive programming that cannot be tested a head
+    "if TYPE_CHECKING:",          # Code that only runs during type checks
+    "@abstractmethod",            # Abstract methods are not testable
+    ]
