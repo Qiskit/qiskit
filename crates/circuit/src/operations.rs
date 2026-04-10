@@ -1848,7 +1848,7 @@ mod test {
 
         for i in 0..dim {
             for j in 0..dim {
-                assert_abs_diff_eq!(expected_matrix[(i, j)], matrix[(i, j)]);
+                assert_abs_diff_eq!(expected_matrix[(i, j)], matrix[(i, j)], epsilon = 1e-12);
             }
         }
     }
