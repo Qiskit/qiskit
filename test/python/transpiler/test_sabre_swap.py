@@ -167,6 +167,7 @@ class TestSabreSwap(QiskitTestCase):
     def test_raises_physical_circuit_error_for_virtual_circuit(self):
         """Test that SabreSwap raises SabreSwapPhysicalCircuitError for non-physical circuits."""
         from qiskit.transpiler.exceptions import SabreSwapPhysicalCircuitError
+
         # Create a circuit with a non-physical register name (not "q")
         qc = QuantumCircuit(QuantumRegister(2, "virtual"))
         qc.cx(0, 1)

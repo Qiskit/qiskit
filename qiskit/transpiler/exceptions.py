@@ -60,8 +60,8 @@ class InvalidLayoutError(TranspilerError):
 
 
 class SabreSwapPhysicalCircuitError(TranspilerError):
-    """Error raised when SabreSwap is run on a circuit that has not been 
-    mapped to physical qubits. See the transpiler documentation for 
+    """Error raised when SabreSwap is run on a circuit that has not been
+    mapped to physical qubits. See the transpiler documentation for
     information on pass ordering:
     https://docs.quantum.ibm.com/api/qiskit/transpiler_plugins#plugin-stages
     """
