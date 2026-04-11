@@ -1554,14 +1554,17 @@ impl DAGCircuit {
                     .map(|s| s.extract())
                     .collect::<PyResult<HashSet<String>>>()?;
                 for wire in wires {
-                    let nodes_found = self.nodes_on_wire(wire, true).into_iter().any(|node| {
-                        let weight = self.dag.node_weight(node).unwrap();
-                        if let NodeType::Operation(packed) = weight {
-                            !ignore_set.contains(packed.op.name())
-                        } else {
-                            false
-                        }
-                    });
+                    let nodes_found = self
+                        .nodes_on_wire(wire)
+                        .filter(|node| matches!(self.dag[*node], NodeType::Operation(_)))
+                        .any(|node| {
+                            let weight = self.dag.node_weight(node).unwrap();
+                            if let NodeType::Operation(packed) = weight {
+                                !ignore_set.contains(packed.op.name())
+                            } else {
+                                false
+                            }
+                        });
 
                     if !nodes_found {
                         result.push(match wire {
@@ -4167,8 +4170,8 @@ impl DAGCircuit {
         })?;
 
         let nodes = self
-            .nodes_on_wire(wire, only_ops)
-            .into_iter()
+            .nodes_on_wire(wire)
+            .filter(|node| !only_ops || matches!(self.dag[*node], NodeType::Operation(_)))
             .map(|n| self.get_node(py, n))
             .collect::<PyResult<Vec<_>>>()?;
         Ok(PyTuple::new(py, nodes)?.into_any().try_iter()?.unbind())
@@ -6238,39 +6241,10 @@ impl DAGCircuit {
         self.global_phase = Param::Float(angle.rem_euclid(::std::f64::consts::TAU));
     }
 
-    /// Get the nodes on the given wire.
-    ///
-    /// Note: result is empty if the wire is not in the DAG.
-    pub fn nodes_on_wire(&self, wire: Wire, only_ops: bool) -> Vec<NodeIndex> {
-        let mut nodes = Vec::new();
-        let mut current_node = match wire {
-            Wire::Qubit(qubit) => self.qubit_io_map.get(qubit.index()).map(|x| x[0]),
-            Wire::Clbit(clbit) => self.clbit_io_map.get(clbit.index()).map(|x| x[0]),
-            Wire::Var(var) => self.var_io_map.get(var.index()).map(|x| x[0]),
-        };
-
-        while let Some(node) = current_node {
-            if only_ops {
-                let node_weight = self.dag.node_weight(node).unwrap();
-                if let NodeType::Operation(_) = node_weight {
-                    nodes.push(node);
-                }
-            } else {
-                nodes.push(node);
-            }
-
-            let edges = self.dag.edges_directed(node, Outgoing);
-            current_node = edges
-                .into_iter()
-                .find_map(|edge| (*edge.weight() == wire).then_some(edge.target()));
-        }
-        nodes
-    }
-
     /// Get the nodes on a given wire as a non-allocating iterator
     ///
     /// This will panic if the wire is not in the circuit
-    pub fn nodes_on_wire_iter(&self, wire: Wire) -> impl Iterator<Item = NodeIndex> {
+    pub fn nodes_on_wire(&self, wire: Wire) -> impl Iterator<Item = NodeIndex> {
         let start_node = match wire {
             Wire::Qubit(qubit) => self.qubit_io_map[qubit.index()][0],
             Wire::Clbit(clbit) => self.clbit_io_map[clbit.index()][0],
