@@ -34,7 +34,6 @@ pub mod operations;
 pub mod packed_instruction;
 pub mod parameter;
 pub mod parameter_table;
-pub mod py_check;
 pub mod register_data;
 pub mod standard_gate;
 pub mod var_stretch_container;
