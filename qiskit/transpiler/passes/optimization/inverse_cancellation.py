@@ -43,7 +43,9 @@ class InverseCancellation(TransformationPass):
             gates_to_cancel: List describing the gates to cancel. Each element of the
                 list is either a single gate or a pair of gates. If a single gate, then
                 it should be self-inverse. If a pair of gates, then the gates in the
-                pair should be inverses of each other. If ``None`` a default list of
+                pair should be inverses of each other. Gates such as :class:`.SGate` and
+                :class:`.SdgGate` must therefore be passed as a tuple pair, for example
+                ``[(SGate(), SdgGate())]``. If ``None`` a default list of
                 self-inverse gates and a default list of inverse gate pairs will be used.
                 The current default list of self-inverse gates is:
 
