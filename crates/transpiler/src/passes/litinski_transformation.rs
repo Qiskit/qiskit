@@ -267,7 +267,7 @@ pub fn run_litinski_transformation(
                     // Evolve the single-qubit Pauli-Z/X with Z/X on the given qubit.
                     // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
                     // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
-                    let (sign, z, x, indices) = clifford.evolve_single_qubit_pauli_by_clifford(
+                    let (sign, z, x, indices) = clifford.evolve_single_qubit_pauli(
                         pauli_z,
                         pauli_x,
                         dag.get_qargs(inst.qubits)[0].index(),
@@ -325,7 +325,7 @@ pub fn run_litinski_transformation(
                 OperationRef::StandardInstruction(StandardInstruction::Measure) => {
                     // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
                     // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
-                    let (sign, z, x, indices) = clifford.evolve_single_qubit_pauli_by_clifford(
+                    let (sign, z, x, indices) = clifford.evolve_single_qubit_pauli(
                         true,
                         false,
                         dag.get_qargs(inst.qubits)[0].index(),

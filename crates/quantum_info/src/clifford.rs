@@ -291,7 +291,7 @@ impl Clifford {
     /// Evolving a single qubit pauli on qubit qbit by the Clifford.
     /// The pauli (X, Y or Z) is given as (pauli_z, pauli_x)
     /// Returns the evolved Pauli in the a sparse ZX format: (sign, z, x, indices).
-    pub fn evolve_single_qubit_pauli_by_clifford(
+    pub fn evolve_single_qubit_pauli(
         &self,
         pauli_z: bool,
         pauli_x: bool,
