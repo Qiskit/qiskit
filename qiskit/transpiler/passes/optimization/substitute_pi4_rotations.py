@@ -12,6 +12,8 @@
 
 """Convert rotation gates into {Clifford,T,Tdg} when their angles are integer multiples of pi/4"""
 
+from __future__ import annotations
+
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.passes.utils import control_flow
@@ -67,14 +69,14 @@ class SubstitutePi4Rotations(TransformationPass):
       assert Operator(qc) == Operator(qct)
     """
 
-    def __init__(self, approximation_degree: float = 1.0):
+    def __init__(self, approximation_degree: float | None = 1.0):
         """
         Args:
             approximation_degree: Used in the tolerance computations.
                 This gives the threshold for the average gate fidelity.
         """
         super().__init__()
-        self.approximation_degree = approximation_degree
+        self.approximation_degree = approximation_degree or 1.0
 
     @control_flow.trivial_recurse
     def run(self, dag: DAGCircuit) -> DAGCircuit:

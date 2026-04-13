@@ -13,8 +13,10 @@
 
 """Common preset passmanager generators."""
 
-import collections
+from __future__ import annotations
 
+import collections
+import typing
 
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
@@ -55,6 +57,11 @@ from qiskit.transpiler.optimization_metric import OptimizationMetric
 from qiskit.utils import deprecate_func
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _CLIFFORD_GATE_NAMES
 
+
+if typing.TYPE_CHECKING:
+    from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
+    from qiskit.transpiler.target import Target
+    from qiskit.transpiler.coupling import CouplingMap
 
 _ControlFlowState = collections.namedtuple("_ControlFlowState", ("working", "not_working"))
 
@@ -185,34 +192,34 @@ def if_has_control_flow_else(if_present, if_absent):
 
 
 def generate_unroll_3q(
-    target,
-    basis_gates=None,
-    approximation_degree=None,
-    unitary_synthesis_method="default",
-    unitary_synthesis_plugin_config=None,
-    hls_config=None,
-    qubits_initially_zero=True,
-    optimization_metric=OptimizationMetric.COUNT_2Q,
+    target: Target | None,
+    basis_gates: list[str] | None = None,
+    approximation_degree: float | None = None,
+    unitary_synthesis_method: str = "default",
+    unitary_synthesis_plugin_config: dict | None = None,
+    hls_config: HLSConfig | None = None,
+    qubits_initially_zero: bool = True,
+    optimization_metric: OptimizationMetric = OptimizationMetric.COUNT_2Q,
 ):
     """Generate an unroll >3q :class:`~qiskit.transpiler.PassManager`
 
     Args:
-        target (Target): the :class:`~.Target` object representing the backend
-        basis_gates (list): A list of str gate names that represent the basis
+        target: the :class:`~.Target` object representing the backend
+        basis_gates: A list of str gate names that represent the basis
             gates on the backend target
-        approximation_degree (Optional[float]): The heuristic approximation degree to
+        approximation_degree: The heuristic approximation degree to
             use. Can be between 0 and 1.
         unitary_synthesis_method (str): The unitary synthesis method to use. You can see
             a list of installed plugins with :func:`.unitary_synthesis_plugin_names`.
-        unitary_synthesis_plugin_config (dict): The optional dictionary plugin
+        unitary_synthesis_plugin_config: The optional dictionary plugin
             configuration, this is plugin specific refer to the specified plugin's
             documentation for how to use.
-        hls_config (HLSConfig): An optional configuration class to use for
+        hls_config: An optional configuration class to use for
             :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
             Specifies how to synthesize various high-level objects.
-        qubits_initially_zero (bool): Indicates whether the input circuit is
+        qubits_initially_zero: Indicates whether the input circuit is
             zero-initialized.
-        optimization_metric (OptimizationMetric): the :class:`~.OptimizationMetric` object
+        optimization_metric: the :class:`~.OptimizationMetric` object
             that defines the metric used when optimizing the unrolling.
 
     Returns:
@@ -423,39 +430,39 @@ def generate_pre_op_passmanager(target=None, coupling_map=None, remove_reset_in_
 
 
 def generate_translation_passmanager(
-    target,
-    basis_gates=None,
-    method="translator",
-    approximation_degree=None,
-    coupling_map=None,
-    unitary_synthesis_method="default",
-    unitary_synthesis_plugin_config=None,
-    hls_config=None,
-    qubits_initially_zero=True,
+    target: Target | None,
+    basis_gates: list[str] | None = None,
+    method: str = "translator",
+    approximation_degree: float | None = None,
+    coupling_map: CouplingMap | None = None,
+    unitary_synthesis_method: str = "default",
+    unitary_synthesis_plugin_config: dict | None = None,
+    hls_config: HLSConfig | None = None,
+    qubits_initially_zero: bool = True,
 ):
     """Generate a basis translation :class:`~qiskit.transpiler.PassManager`
 
     Args:
-        target (Target): the :class:`~.Target` object representing the backend
-        basis_gates (list): A list of str gate names that represent the basis
+        target: the :class:`~.Target` object representing the backend
+        basis_gates: A list of str gate names that represent the basis
             gates on the backend target
-        method (str): The basis translation method to use
-        approximation_degree (Optional[float]): The heuristic approximation degree to
+        method: The basis translation method to use
+        approximation_degree: The heuristic approximation degree to
             use. Can be between 0 and 1.
-        coupling_map (CouplingMap): the coupling map of the backend
+        coupling_map: the coupling map of the backend
             in case synthesis is done on a physical circuit. The
             directionality of the coupling_map will be taken into
             account if pulse_optimize is True/None and natural_direction
             is True/None.
-        unitary_synthesis_plugin_config (dict): The optional dictionary plugin
+        unitary_synthesis_method: The unitary synthesis method to use. You can
+            see a list of installed plugins with :func:`.unitary_synthesis_plugin_names`.
+        unitary_synthesis_plugin_config: The optional dictionary plugin
             configuration, this is plugin specific refer to the specified plugin's
             documentation for how to use.
-        unitary_synthesis_method (str): The unitary synthesis method to use. You can
-            see a list of installed plugins with :func:`.unitary_synthesis_plugin_names`.
-        hls_config (HLSConfig): An optional configuration class to use for
+        hls_config: An optional configuration class to use for
             :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
             Specifies how to synthesize various high-level objects.
-        qubits_initially_zero (bool): Indicates whether the input circuit is
+        qubits_initially_zero: Indicates whether the input circuit is
             zero-initialized.
 
     Returns:

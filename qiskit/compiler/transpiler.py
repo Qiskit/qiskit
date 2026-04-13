@@ -160,7 +160,7 @@ def transpile(
             argument.
         dt: Backend sample time (resolution) in seconds.
             If ``None`` (default), ``backend.dt`` is used.
-        approximation_degree (float): heuristic dial used for circuit approximation
+        approximation_degree: heuristic dial used for circuit approximation
             (1.0=no approximation, 0.0=maximal approximation)
         seed_transpiler: Sets random seed for the stochastic parts of the transpiler
         optimization_level: How much optimization to perform on the circuits.
