@@ -1564,6 +1564,49 @@ class QuantumCircuit:
         return str(self.draw(output="text"))
 
     def __eq__(self, other) -> bool:
+        """Check if this circuit is equal to another circuit.
+
+        Two circuits are considered equal if they have the same structure,
+        i.e., the same qubits, classical bits, and gates, regardless of the
+        order in which gates were appended. For example::
+
+            qc1 = QuantumCircuit(2)
+            qc1.x(0)
+            qc1.x(1)
+
+            qc2 = QuantumCircuit(2)
+            qc2.x(1)
+            qc2.x(0)
+
+            qc1 == qc2  # True
+
+        The following are considered in equality checks:
+
+        * Gate operations and their parameters
+        * Global phase (:attr:`global_phase`)
+        * Calibrations (:attr:`calibrations`)
+
+        The following are **not** considered in equality checks:
+
+        * Circuit name (:attr:`name`)
+        * Circuit metadata (:attr:`metadata`)
+
+        .. note::
+
+            This method does **not** check unitary equivalence. Two circuits
+            may be unitarily equivalent but not considered equal here. To
+            check unitary equivalence, use :class:`.quantum_info.Operator`::
+
+                from qiskit.quantum_info import Operator
+                Operator(qc1) == Operator(qc2)
+
+        Args:
+            other: The other object to compare to. If not a
+                :class:`QuantumCircuit`, returns ``False``.
+
+        Returns:
+            bool: ``True`` if the circuits are equal, ``False`` otherwise.
+        """
         if not isinstance(other, QuantumCircuit):
             return False
 
