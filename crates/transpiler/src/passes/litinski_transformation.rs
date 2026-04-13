@@ -264,7 +264,7 @@ pub fn run_litinski_transformation(
                     };
                     global_phase_update = radd_param(global_phase_update, phase_update);
 
-                    // Evolve the single-qubit Pauli-Z/X with Z/X on the given qubit.
+                    // Evolving the single qubit pauli (X, Y or Z) by the Clifford.
                     // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
                     // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
                     let (sign, z, x, indices) = clifford.evolve_single_qubit_pauli(
@@ -323,6 +323,7 @@ pub fn run_litinski_transformation(
                     )?;
                 }
                 OperationRef::StandardInstruction(StandardInstruction::Measure) => {
+                    // Evolve a measurement in the Z-basis by a Clifford.
                     // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
                     // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
                     let (sign, z, x, indices) = clifford.evolve_single_qubit_pauli(
