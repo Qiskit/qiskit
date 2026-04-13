@@ -96,9 +96,10 @@ pub fn faer_to_ndarray<T>(mat: MatRef<'_, T>) -> ArrayView2<'_, T> {
     unsafe { ArrayView2::from_shape_ptr((nrows, ncols).strides((row_stride, col_stride)), ptr) }
 }
 
-fn nalgebra_to_faer<R: Dim, C: Dim, RStride: Dim, CStride: Dim>(
-    mat: MatrixView<'_, Complex64, R, C, RStride, CStride>,
-) -> MatRef<'_, Complex64> {
+#[inline]
+pub(crate) fn nalgebra_to_faer<R: Dim, C: Dim, RStride: Dim, CStride: Dim, T: nalgebra::Scalar>(
+    mat: MatrixView<'_, T, R, C, RStride, CStride>,
+) -> MatRef<'_, T> {
     let dim = ::ndarray::Dim(mat.shape());
     let strides = ::ndarray::Dim(mat.strides());
 
@@ -121,7 +122,10 @@ fn nalgebra_to_faer<R: Dim, C: Dim, RStride: Dim, CStride: Dim>(
 /// striding and will access the memory as if the array was a contiguous R x C
 /// matrix. If using striding here it's best to not ever call `into_slice()`. There
 /// might also be similar sharp edges with strided matrices.
-fn faer_to_nalgebra(mat: MatRef<'_, Complex64>) -> MatrixView<'_, Complex64, Dyn, Dyn, Dyn, Dyn> {
+#[inline]
+pub(crate) fn faer_to_nalgebra(
+    mat: MatRef<'_, Complex64>,
+) -> MatrixView<'_, Complex64, Dyn, Dyn, Dyn, Dyn> {
     // This function's code is based on faer-ext's IntoNalgebra::into_nalgebra implementation at:
     // https://codeberg.org/sarah-quinones/faer-ext/src/commit/0f055b39529c94d1a000982df745cb9ce170f994/src/lib.rs#L77-L96
 
