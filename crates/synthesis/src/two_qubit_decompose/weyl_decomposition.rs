@@ -9,6 +9,7 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
+
 use approx::abs_diff_eq;
 use num_complex::{Complex, Complex64, ComplexFloat};
 use smallvec::SmallVec;
@@ -473,13 +474,11 @@ impl TwoQubitWeylDecomposition {
     /// data structures
     pub fn new_inner(
         unitary_matrix: ArrayView2<Complex64>,
-
         fidelity: Option<f64>,
         _specialization: Option<Specialization>,
     ) -> PyResult<Self> {
         let mut u = ndarray_to_matrix4(unitary_matrix);
-        //        let unitary_matrix = unitary_matrix.to_owned();
-        let det_u = matrixview4_to_faer(u.as_view()).determinant();
+        let det_u = u.determinant();
         let det_pow = det_u.powf(-0.25);
         u *= det_pow;
         let mut global_phase = det_u.arg() / 4.;
