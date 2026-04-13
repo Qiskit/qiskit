@@ -562,7 +562,8 @@ impl MinPointState {
             true
         } else if (new_depth, new_size) > (self.best_depth, self.best_size) {
             self.count += 1;
-            // Limit backtracking to avoid infinite loops
+            // Limit to 5 iterations without improvement
+            // and back track to previous best
             self.count < 5
         } else if (new_depth, new_size) < (self.best_depth, self.best_size) {
             self.count = 1;
@@ -870,7 +871,9 @@ mod tests {
 
         let mut state = MinPointState::new(&dag1);
         assert!(state.update_with(&dag1));
-        state.update_with(&dag2);
+        assert_eq!(state.count, 1);
+        assert!(state.update_with(&dag2));
+        assert_eq!(state.count, 1);
         assert_eq!(
             state.best_dag.depth(false).unwrap(),
             dag2.depth(false).unwrap()
@@ -952,5 +955,15 @@ mod tests {
         }
         state.update_with(&dag_best);
         assert_eq!(state.count, 1);
+        // After updating to the dag_best the state tracked dag should
+        // be empty
+        assert_eq!(
+            state.best_dag.depth(false).unwrap(),
+            0
+        );
+        assert_eq!(
+            state.best_dag.size(false).unwrap(),
+            0
+        );
     }
 }
