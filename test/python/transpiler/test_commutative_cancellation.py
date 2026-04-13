@@ -885,30 +885,26 @@ measure q0[1] -> c0[1];
 
 
     def test_approximation_degree(self):
-        """Test that approximation_degree parameter is accepted and passed through."""
+        """Test that approximation_degree parameter is accepted and correctly wired."""
         qr = QuantumRegister(2, "q")
-        circuit = QuantumCircuit(qr)
-        circuit.h(qr[0])
-        circuit.h(qr[0])
-        circuit.cx(qr[0], qr[1])
-        circuit.cx(qr[0], qr[1])
 
-        # Test with explicit approximation_degree
-        passmanager = PassManager()
-        passmanager.append(CommutativeCancellation(approximation_degree=0.5))
-        result = passmanager.run(circuit)
+        for approx_degree in [None, 0.5, 1.0]:
+            with self.subTest(approximation_degree=approx_degree):
+                circuit = QuantumCircuit(qr)
+                circuit.h(qr[0])
+                circuit.h(qr[0])
+                circuit.cx(qr[0], qr[1])
+                circuit.cx(qr[0], qr[1])
 
-        # The gates should be cancelled (H cancels H, CX cancels CX)
-        # regardless of approximation_degree setting
-        self.assertEqual(result.count_ops()["h"], 0)
-        self.assertEqual(result.count_ops()["cx"], 0)
+                passmanager = PassManager()
+                passmanager.append(
+                    CommutativeCancellation(approximation_degree=approx_degree)
+                )
+                result = passmanager.run(circuit)
 
-        # Also test with None (should default to 1.0)
-        passmanager2 = PassManager()
-        passmanager2.append(CommutativeCancellation(approximation_degree=None))
-        result2 = passmanager2.run(circuit)
-        self.assertEqual(result2.count_ops()["h"], 0)
-        self.assertEqual(result2.count_ops()["cx"], 0)
+                # Gates should be fully cancelled regardless of approximation_degree
+                self.assertEqual(result.count_ops().get("h", 0), 0)
+                self.assertEqual(result.count_ops().get("cx", 0), 0)
 
 
 if __name__ == "__main__":

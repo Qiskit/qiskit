@@ -34,21 +34,25 @@ class CommutativeCancellation(TransformationPass):
         H, X, Y, Z, CX, CY, CZ
     """
 
-    def __init__(self, basis_gates=None, target=None, approximation_degree=None):
+    def __init__(
+        self,
+        basis_gates: list[str] | None = None,
+        target: "Target" | None = None,
+        approximation_degree: float | None = None,
+    ) -> None:
         """
         CommutativeCancellation initializer.
 
         Args:
-            basis_gates (list[str]): Basis gates to consider, e.g.
-                ``['u3', 'cx']``. For the effects of this pass, the basis is
-                the set intersection between the ``basis_gates`` parameter
-                and the gates in the dag.
-            target (Target): The :class:`~.Target` representing the target backend, if both
-                ``basis_gates`` and ``target`` are specified then this argument will take
-                precedence and ``basis_gates`` will be ignored.
-            approximation_degree (float): Heuristic dial used to manage circuit approximation
-                (0.0 to 1.0, default 1.0). Lower values allow more gate cancellation
-                approximations. If None, defaults to 1.0.
+            basis_gates: Basis gates to consider, e.g. ``['u3', 'cx']``. For the
+                effects of this pass, the basis is the set intersection between
+                the ``basis_gates`` parameter and the gates in the dag.
+            target: The :class:`~.Target` representing the target backend. If both
+                ``basis_gates`` and ``target`` are specified, ``target`` takes
+                precedence and ``basis_gates`` is ignored.
+            approximation_degree: Heuristic dial for circuit approximation (0.0 to
+                1.0, default 1.0). Lower values allow more gate cancellation
+                approximations. If ``None``, defaults to 1.0.
         """
         super().__init__()
         if basis_gates:
