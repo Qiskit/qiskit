@@ -78,6 +78,7 @@ class TestQPYRoundtrip(QiskitTestCase):
         )
         self.assertEqual(circuit, new_circuit)
         self.assertEqual(circuit.layout, new_circuit.layout)
+        self.assertEqual(circuit.parameters, new_circuit.parameters)
 
     @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
     def test_simple(self, version, write_with, read_with):
@@ -239,6 +240,20 @@ class TestQPYRoundtrip(QiskitTestCase):
         exp = exp.subs({b: a})
         qc.ry(exp, 0)
         self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
+
+    @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
+    def test_degenerate_parameter_expression(self, version, write_with, read_with):
+        """Test a circuit with a parameter expression that simplifies to 0."""
+        x = Parameter("x")
+        y_vec = ParameterVector("y", 2)
+        z = Parameter("z")
+        cases = [0 * x, 0 * x + 2, 0 * x + z, x - x, 0 * y_vec[0], 0 * (x + y_vec[1])]
+        for case in cases:
+            qc = QuantumCircuit(1)
+            qc.rz(case, 0)
+            self.assert_roundtrip_equal(
+                qc, version=version, write_with=write_with, read_with=read_with
+            )
 
     @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
     def test_random_circuits(self, version, write_with, read_with):

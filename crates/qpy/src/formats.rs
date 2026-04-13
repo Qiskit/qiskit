@@ -661,6 +661,11 @@ pub enum ParameterExpressionSymbolPack {
     Parameter(ParameterExpressionParameterSymbolPack),
     #[brw(magic = b'v')]
     ParameterVector(ParameterExpressionParameterVectorSymbolPack),
+    /// This variant _should not_ exist; it is counter to the QPY spec, and has no semantic meaning.
+    /// However, Qiskit 2.0 (with QPY 13 non-symengine serialisation but before Rust-space
+    /// `ParameterExpression` or QPY) would populate the "symbol map" with the raw dictionaries
+    /// given to `ParameterExpression.subs` calls, which include expressions.  The equivalent "read"
+    /// code would load up the entries, then immediately filter them out to make the symbol map.
     #[brw(magic = b'e')]
     ParameterExpression(ParameterExpressionParameterExpressionSymbolPack),
 }
