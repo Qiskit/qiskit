@@ -450,7 +450,10 @@ pub fn get_sabre_heuristic(target: &Target) -> Result<sabre::Heuristic> {
         1e-10,
     )
     .with_basic(1.0, sabre::SetScaling::Constant)
-    .with_lookahead(0.5, 20, sabre::SetScaling::Size)
+    .with_lookahead(
+        vec![0.5 / target.num_qubits.unwrap_or(20) as f64],
+        sabre::SetScaling::Constant,
+    )
     .with_decay(0.001, 5)?)
 }
 
