@@ -7,5 +7,5 @@ fixes:
     Previously, such invalid inputs were silently accepted, leading to
     corrupted internal state (`_p2v` / `_v2p`).
 
-    This fix ensures that a ``Layout`` object always maintains a valid
+    This fix ensures that a `Layout` object always maintains a valid
     one-to-one mapping between virtual and physical qubits.
