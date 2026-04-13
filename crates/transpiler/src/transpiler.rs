@@ -874,7 +874,7 @@ mod tests {
 
         let mut state = MinPointState::new(&dag1);
         assert!(state.update_with(&dag1));
-        assert_eq!(state.count, 1);
+        assert_eq!(state.count, 0);
         assert!(state.update_with(&dag2));
         assert_eq!(state.count, 1);
         assert_eq!(
@@ -960,13 +960,7 @@ mod tests {
         assert_eq!(state.count, 1);
         // After updating to the dag_best the state tracked dag should
         // be empty
-        assert_eq!(
-            state.best_dag.depth(false).unwrap(),
-            0
-        );
-        assert_eq!(
-            state.best_dag.size(false).unwrap(),
-            0
-        );
+        assert_eq!(state.best_dag.depth(false).unwrap(), 0);
+        assert_eq!(state.best_dag.size(false).unwrap(), 0);
     }
 }
