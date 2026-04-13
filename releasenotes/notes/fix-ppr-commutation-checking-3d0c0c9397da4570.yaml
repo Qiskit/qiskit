@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed matrix-based checks for :class:`.PauliProductRotationGate` in the
+    :class:`.CommutationChecker`.  Previously, these checks always returned
+    ``False``.
