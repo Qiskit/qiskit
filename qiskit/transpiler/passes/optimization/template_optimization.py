@@ -112,7 +112,9 @@ class TemplateOptimization(TransformationPass):
                     data = Operator(dagdependency_to_circuit(template)).data
                 else:
                     data = Operator(template).data
+
                 comparison = np.allclose(data, identity)
+                
                 if not comparison:
                     raise TranspilerError(
                         "A template is a QuantumCircuit() that performs the identity."

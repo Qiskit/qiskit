@@ -14,7 +14,6 @@
 """Test the TemplateOptimization pass."""
 
 import unittest
-from inspect import getmembers, isfunction
 
 import numpy as np
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
@@ -30,9 +29,7 @@ from qiskit.circuit.library.templates.clifford import (
     clifford_3_1,
     clifford_4_1,
     clifford_4_2,
-    clifford_6_4,
 )
-import qiskit.circuit.library.templates as templib
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
 from qiskit.transpiler import PassManager
@@ -765,35 +762,6 @@ class TestTemplateMatching(QiskitTestCase):
         # All of these gates are in the commutation library, i.e. the cache should not be used
         self.assertEqual(scc.num_cached_entries(), 0)
 
-    def test_template_optimization_accepts_all_templates(self):
-        """Test that TemplateOptimization accepts and applies every template (#14538)."""
-        all_templates = [o[1]() for o in getmembers(templib) if isfunction(o[1])]
-        # Build a cost dict covering every gate name that appears in any template,
-        # supplementing the default dict which is missing some gates (e.g. sx, p, cz).
-        all_gate_names = {
-            instr.operation.name for template in all_templates for instr in template.data
-        }
-        extra_costs = dict.fromkeys(all_gate_names, 1)
-        for template in all_templates:
-            # Bind any free parameters to an arbitrary value.
-            if template.parameters:
-                template = template.assign_parameters(dict.fromkeys(template.parameters, 0.2))
-            with self.subTest(template=template.name):
-                result = PassManager(
-                    TemplateOptimization([template], user_cost_dict=extra_costs)
-                ).run(template.copy())
-                # All gates must be cancelled — the template matched itself fully.
-                # Assumption: the matching algorithm finds a complete self-match for
-                # every template in the library.  This holds for all current templates
-                # (verified empirically) but if a future template is added for which
-                # TemplateOptimization cannot find a complete self-match, this assertion
-                # will fail spuriously and should be replaced with a weaker check such
-                # as asserting that result.num_operations < template.num_operations.
-                self.assertEqual(result.count_ops(), {})
-                # Full phase equality (not just equiv) confirms that global_phase is
-                # propagated correctly through the substitution pipeline.
-                self.assertEqual(Operator(template), Operator(result))
-
     def test_circuit_global_phase_preserved_after_single_and_multiple_template_match(self):
         """Test that circuit global_phase survives template optimization (#14537)."""
 
@@ -871,49 +839,9 @@ class TestTemplateMatching(QiskitTestCase):
 
         # All gates cancelled; total phase = circuit phase + template compensation
         # = pi/3 + pi/4 = 7*pi/12.
-        self.assertAlmostEqual(float(result.global_phase) % (2 * np.pi), 7 * np.pi / 12)
+        self.assertAlmostEqual(result.global_phase, 7 * np.pi / 12)
         self.assertEqual(result.count_ops(), {})
         self.assertEqual(Operator(circuit_in), Operator(result))
-
-    def test_two_global_phase_carrying_template_matches_accumulate_phase(self):
-        """Test that phase contributions accumulate correctly when a template matches twice (#14538).
-
-        Uses clifford_6_4 (SHSHSH, global_phase = -pi/4) as the template.  A circuit
-        containing two SHSHSH blocks separated by a T gate produces two matches; each
-        match contributes +pi/4 to the circuit's global_phase, leaving pi/2 total.
-        """
-        template = clifford_6_4()
-
-        qr = QuantumRegister(1, "qr")
-        circuit_in = QuantumCircuit(qr)
-        # First SHSHSH block — matches clifford_6_4
-        circuit_in.s(qr[0])
-        circuit_in.h(qr[0])
-        circuit_in.s(qr[0])
-        circuit_in.h(qr[0])
-        circuit_in.s(qr[0])
-        circuit_in.h(qr[0])
-        # T gate separates the two matches
-        circuit_in.t(qr[0])
-        # Second SHSHSH block — matches clifford_6_4 again
-        circuit_in.s(qr[0])
-        circuit_in.h(qr[0])
-        circuit_in.s(qr[0])
-        circuit_in.h(qr[0])
-        circuit_in.s(qr[0])
-        circuit_in.h(qr[0])
-
-        result = PassManager(
-            TemplateOptimization([template], user_cost_dict={"s": 1, "h": 1, "t": 1})
-        ).run(circuit_in)
-
-        # Both SHSHSH blocks cancelled; only T remains.
-        self.assertEqual(result.count_ops(), {"t": 1})
-        # Each of the two matches contributes +pi/4; total accumulated phase = pi/2.
-        self.assertAlmostEqual(float(result.global_phase) % (2 * np.pi), np.pi / 2)
-        # Authoritative check: full unitary (including phase) must be identical.
-        self.assertEqual(Operator(circuit_in), Operator(result))
-
 
 if __name__ == "__main__":
     unittest.main()

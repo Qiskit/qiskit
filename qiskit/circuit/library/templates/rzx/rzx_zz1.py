@@ -13,8 +13,6 @@
 
 from __future__ import annotations
 
-from math import pi
-
 import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
@@ -68,6 +66,6 @@ def rzx_zz1(theta: ParameterValueType | None = None):
     qc.rx(np.pi / 2, 1)
     qc.rz(np.pi / 2, 1)
     # Gate content has unitary e^{-i*pi/2} * I; global_phase = pi/2 makes Operator(qc) == I exactly.
-    qc.global_phase = pi / 2
+    qc.global_phase = np.pi / 2
 
     return qc

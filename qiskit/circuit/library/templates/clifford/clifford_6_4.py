@@ -37,6 +37,6 @@ def clifford_6_4():
     qc.h(0)
     qc.s(0)
     qc.h(0)
-    # SHSHSH has gate unitary e^{i*pi/4} * I; global_phase = -pi/4 makes Operator(qc) == I exactly.
+    # Add a global phase of -pi/4 to get Operator(qc) == I
     qc.global_phase = -pi / 4
     return qc
