@@ -20,10 +20,10 @@ use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
 
 use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError, PyCircuitData};
-use qiskit_circuit::getenv_use_multiple_threads;
 use qiskit_circuit::operations::{ArrayType, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
+use qiskit_util::getenv_use_multiple_threads;
 use smallvec::{SmallVec, smallvec};
 
 type Instruction = (

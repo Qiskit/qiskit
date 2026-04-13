@@ -12,14 +12,15 @@
 
 use std::f64::consts::FRAC_1_SQRT_2;
 
+use nalgebra::Matrix2;
 use ndarray::{Array2, ArrayView2, array, aview2};
 use num_complex::{Complex64, ComplexFloat};
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray1, PyReadonlyArray2};
 use pyo3::prelude::*;
 
 use crate::linalg::ndarray_to_faer;
-use qiskit_circuit::util::{C_ZERO, GateArray2Q, IM, M_IM, c64};
-
+use qiskit_util::alias::{GateArray1Q, GateArray2Q};
+use qiskit_util::complex::{C_M_ONE, C_ONE, C_ZERO, IM, M_IM, c64};
 pub(super) const DEFAULT_FIDELITY: f64 = 1.0 - 1.0e-9;
 
 pub trait TraceToFidelity {
@@ -97,6 +98,10 @@ static MAGIC_DAGGER: GateArray2Q = [
     ],
 ];
 
+pub static IPZ: GateArray1Q = [[IM, C_ZERO], [C_ZERO, M_IM]];
+pub static IPY: GateArray1Q = [[C_ZERO, C_ONE], [C_M_ONE, C_ZERO]];
+pub static IPX: GateArray1Q = [[C_ZERO, IM], [IM, C_ZERO]];
+
 #[inline(always)]
 pub(crate) fn transpose_conjugate(mat: ArrayView2<Complex64>) -> Array2<Complex64> {
     mat.t().mapv(|x| x.conj())
@@ -118,6 +123,13 @@ pub(crate) fn rx_matrix(theta: f64) -> Array2<Complex64> {
     array![[cos, isin], [isin, cos]]
 }
 
+pub(crate) fn rx_matrix_nalgebra(theta: f64) -> Matrix2<Complex64> {
+    let half_theta = theta / 2.;
+    let cos = c64(half_theta.cos(), 0.);
+    let isin = c64(0., -half_theta.sin());
+    Matrix2::new(cos, isin, isin, cos)
+}
+
 pub(crate) fn ry_matrix(theta: f64) -> Array2<Complex64> {
     let half_theta = theta / 2.;
     let cos = c64(half_theta.cos(), 0.);
@@ -128,6 +140,11 @@ pub(crate) fn ry_matrix(theta: f64) -> Array2<Complex64> {
 pub(crate) fn rz_matrix(theta: f64) -> Array2<Complex64> {
     let ilam2 = c64(0., 0.5 * theta);
     array![[(-ilam2).exp(), C_ZERO], [C_ZERO, ilam2.exp()]]
+}
+
+pub(crate) fn rz_matrix_nalgebra(theta: f64) -> Matrix2<Complex64> {
+    let ilam2 = c64(0., 0.5 * theta);
+    Matrix2::new((-ilam2).exp(), C_ZERO, C_ZERO, ilam2.exp())
 }
 
 /// Generates the array :math:`e^{(i a XX + i b YY + i c ZZ)}`

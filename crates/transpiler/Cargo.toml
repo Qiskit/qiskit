@@ -26,6 +26,7 @@ rustworkx-core.workspace = true
 qiskit-circuit.workspace = true
 qiskit-synthesis.workspace = true
 qiskit-quantum-info.workspace = true
+qiskit-util = { workspace = true, features = ["py"] }
 thiserror.workspace = true
 bytemuck.workspace = true
 fixedbitset.workspace = true
