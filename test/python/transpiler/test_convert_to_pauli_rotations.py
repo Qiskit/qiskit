@@ -163,8 +163,8 @@ class TestConvertToPauliRotations(QiskitTestCase):
         qc1.h(0)
         qc1.ry(theta, 0)
         # build input circuit by composing a subcircuit into nested control flow
-        qr = QuantumRegister(2,"q")
-        cr = ClassicalRegister(1,"c")
+        qr = QuantumRegister(2, "q")
+        cr = ClassicalRegister(1, "c")
         qc = QuantumCircuit(qr, cr)
         qc.compose(qc1, [0, 1], inplace=True)
         with qc.for_loop(range(3)):
