@@ -51,8 +51,6 @@ use qiskit_circuit::packed_instruction::PackedOperation;
 use crate::TranspilerError;
 use bounds::AngleBound;
 
-type TargetIndexMap<K, V> = IndexMap<K, V, RandomState>;
-
 /// Represents a Qiskit `Gate` object or a Variadic instruction.
 /// Keeps a reference to its Python instance for caching purposes.
 #[derive(FromPyObject, Debug, Clone, IntoPyObjectRef)]
@@ -188,7 +186,7 @@ impl Clone for NormalOperation {
 #[derive(Debug, Clone)]
 struct TargetProperties {
     /// Contains the mapping of qargs and properties for the instruction.
-    pub properties: TargetIndexMap<Qargs, Option<InstructionProperties>>,
+    pub properties: IndexMap<Qargs, Option<InstructionProperties>, RandomState>,
     /// Contains the instruction's original instance.
     pub instruction: TargetOperation,
     /// Contains the specified angle constraints for a parametric instruction.
@@ -233,7 +231,7 @@ pub struct Target {
     pub qubit_properties: Option<Vec<QubitProperties>>,
     #[pyo3(get, set)]
     pub concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
-    gate_map: TargetIndexMap<String, TargetProperties>,
+    gate_map: IndexMap<String, TargetProperties, RandomState>,
     global_operations: HashMap<u32, HashSet<String>>,
     qarg_gate_map: HashMap<Qargs, HashSet<String>>,
     has_angle_bounds: bool,
@@ -356,7 +354,7 @@ impl Target {
         &mut self,
         instruction: TargetOperation,
         name: String,
-        properties: Option<TargetIndexMap<Qargs, Option<InstructionProperties>>>,
+        properties: Option<IndexMap<Qargs, Option<InstructionProperties>, RandomState>>,
         angle_bounds: Option<SmallVec<[Option<[f64; 2]>; 3]>>,
     ) -> PyResult<()> {
         if self.gate_map.contains_key(&name) {
@@ -962,7 +960,7 @@ impl Target {
         operation: PackedOperation,
         params: Option<Parameters<CircuitData>>,
         name: Option<&str>,
-        props_map: Option<TargetIndexMap<Qargs, Option<InstructionProperties>>>,
+        props_map: Option<IndexMap<Qargs, Option<InstructionProperties>, RandomState>>,
     ) -> Result<(), TargetError> {
         let parsed_name = if let Some(name) = name {
             name.to_string()
@@ -995,7 +993,7 @@ impl Target {
         &mut self,
         name: String,
         instruction: TargetOperation,
-        properties: TargetIndexMap<Qargs, Option<InstructionProperties>>,
+        properties: IndexMap<Qargs, Option<InstructionProperties>, RandomState>,
         angle_bounds: Option<SmallVec<[Option<[f64; 2]>; 3]>>,
     ) -> Result<(), TargetError> {
         let properties = match instruction {
@@ -1219,7 +1217,7 @@ impl Target {
             }
         }
         let mut incomplete_basis_gates: Vec<&str> = Vec::new();
-        let mut size_dict: TargetIndexMap<u32, u32> = IndexMap::default();
+        let mut size_dict: IndexMap<u32, u32, RandomState> = IndexMap::default();
         *size_dict
             .entry(1)
             .or_insert(self.num_qubits.unwrap_or_default()) = self.num_qubits.unwrap_or_default();
@@ -1528,7 +1526,8 @@ impl Target {
     /// Retrieves an iterator over the property maps stored within the Target
     pub fn values(
         &self,
-    ) -> impl ExactSizeIterator<Item = &TargetIndexMap<Qargs, Option<InstructionProperties>>> {
+    ) -> impl ExactSizeIterator<Item = &IndexMap<Qargs, Option<InstructionProperties>, RandomState>>
+    {
         self.gate_map.values().map(|props| &props.properties)
     }
 
@@ -1629,10 +1628,7 @@ impl Target {
     }
 
     /// Retrieves a gate location in the gate map by index
-    pub fn get_by_index(
-        &self,
-        index: usize,
-    ) -> Option<(&str, &TargetIndexMap<Qargs, Option<InstructionProperties>>)> {
+    pub fn get_by_index(&self, index: usize) -> Option<(&str, &<Self as Index<&str>>::Output)> {
         self.gate_map
             .get_index(index)
             .map(|(name, props)| (name.as_str(), &props.properties))
@@ -1647,7 +1643,7 @@ impl Target {
 
 // To access the Target's gate map by gate name.
 impl Index<&str> for Target {
-    type Output = TargetIndexMap<Qargs, Option<InstructionProperties>>;
+    type Output = IndexMap<Qargs, Option<InstructionProperties>, RandomState>;
     fn index(&self, index: &str) -> &Self::Output {
         &self.gate_map.index(index).properties
     }
