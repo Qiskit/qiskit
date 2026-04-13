@@ -288,12 +288,13 @@ impl Clifford {
         );
     }
 
-    /// Evolving the single-qubit Pauli with pauli on qubit qbit.
+    /// Evolving a single qubits pauli on qubit qbit by the Clifford.
+    /// The pauli (X, Y or Z) is given as (pauli_z, pauli_x)
     /// Returns the evolved Pauli in the a sparse ZX format: (sign, z, x, indices).
-    pub fn get_inverse_pauli(
+    pub fn evolve_single_qubit_pauli_by_clifford(
         &self,
-        pauli_z: &[bool],
-        pauli_x: &[bool],
+        pauli_z: bool,
+        pauli_x: bool,
         qbit: usize,
     ) -> (bool, Vec<bool>, Vec<bool>, Vec<usize>) {
         let mut z = Vec::with_capacity(self.num_qubits);
@@ -304,17 +305,17 @@ impl Clifford {
         let mut pauli_y_count: u32 = 0;
         for i in 0..self.num_qubits {
             let (z_bit, x_bit) = match (pauli_z, pauli_x) {
-                ([true], [false]) => (
+                (true, false) => (
                     // pauli Z
                     self.tableau[qbit][i],
                     self.tableau[qbit][i + self.num_qubits],
                 ),
-                ([false], [true]) => (
+                (false, true) => (
                     // pauli X
                     self.tableau[qbit + self.num_qubits][i],
                     self.tableau[qbit + self.num_qubits][i + self.num_qubits],
                 ),
-                ([true], [true]) => (
+                (true, true) => (
                     // pauli Y
                     self.tableau[qbit + self.num_qubits][i] ^ self.tableau[qbit][i],
                     self.tableau[qbit + self.num_qubits][i + self.num_qubits]
