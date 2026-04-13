@@ -183,5 +183,4 @@ class TestConvertToPauliRotations(QiskitTestCase):
         with qc_exp.for_loop(range(3)):
             with qc_exp.while_loop((cr, 0)):
                 qc_exp.compose(qc2, [0, 1], inplace=True)
-        qc_exp.global_phase = np.pi / 2
         self.assertEqual(qct, qc_exp)
