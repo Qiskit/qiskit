@@ -537,15 +537,18 @@ class QuantumCircuit:
     (:meth:`append`), or whether you want to join the instructions from two circuits together
     (:meth:`compose`).
 
-    A single instruction or operation appears as a single entry in the :attr:`data` of the circuit,
-    and as a single box when drawn in the circuit visualizers (see :meth:`draw`).  A single
-    instruction is the "unit" that a hardware backend might be defined in terms of (see
-    :class:`.Target`).  An :class:`~.circuit.Instruction` can come with a
-    :attr:`~.circuit.Instruction.definition`, which is one rule the transpiler (see
-    :mod:`qiskit.transpiler`) will be able to fall back on to decompose it for hardware, if needed.
-    An :class:`.Operation` that is not also an :class:`~.circuit.Instruction` can
-    only be decomposed if it has some associated high-level synthesis method registered for it (see
-    :mod:`qiskit.transpiler.passes.synthesis.plugin`).
+    A single instruction or operation appears as one entry in the :attr:`data` of the circuit,
+and as a single box when visualized (see :meth:`draw`).
+
+An instruction represents the basic unit of execution that a hardware backend understands
+(see :class:`.Target`). Some :class:`~.circuit.Instruction` objects include a
+:attr:`~.circuit.Instruction.definition`, which provides a decomposition rule. The transpiler
+(see :mod:`qiskit.transpiler`) can use this rule to break the instruction down into simpler
+operations supported by the target hardware.
+
+Operations that are not instances of :class:`~.circuit.Instruction` cannot be decomposed in
+this way. Instead, they require a registered high-level synthesis method
+(see :mod:`qiskit.transpiler.passes.synthesis.plugin`) to be translated into executable form.
 
     A :class:`QuantumCircuit` alone is not a single :class:`~.circuit.Instruction`; it is rather
     more complicated, since it can, in general, represent a complete program with typed classical
