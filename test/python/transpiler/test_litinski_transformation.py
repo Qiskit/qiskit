@@ -627,11 +627,24 @@ class TestLitinskiTransformation(QiskitTestCase):
             circuit_in.ry(1.0, qbit)
         transform = LitinskiTransformation(fix_clifford=True, use_ppr=True)
         circuit_out = transform(circuit_in)
+
+        # Remove "I" terms to get the same PPR
+        # since PPR('IZ') is not the same gate as PPR(Z)=RZ on qubit 0
+        if pauli_ev.to_label()[-2] == "I":
+            pauli_z_x = Pauli(pauli_ev.to_label()[-1])
+            phase = pauli_ev.phase
+            pauli_ev = Pauli((pauli_z_x.z, pauli_z_x.x, phase))
+            qubits = [0]
+        elif pauli_ev.to_label()[-1] == "I":
+            phase = pauli_ev.phase
+            pauli_z_x = Pauli(pauli_ev.to_label()[-2])
+            pauli_ev = Pauli((pauli_z_x.z, pauli_z_x.x, phase))
+            qubits = [1]
+        else:  # no "I" terms
+            qubits = [0, 1]
+
         ppr = PauliProductRotationGate(pauli_ev, 1.0)
         circuit_target = QuantumCircuit(2)
-        circuit_target.append(ppr, [0, 1])
+        circuit_target.append(ppr, qubits)
         circuit_target.compose(circuit, [0, 1], inplace=True)
-        # we check Operators equality and not circuit equality
-        # since PPR('IZ') is not the same gate as PPR(Z)=RZ on qubit 0
-        self.assertEqual(Operator(circuit_in), Operator(circuit_out))
-        self.assertEqual(Operator(circuit_out), Operator(circuit_target))
+        self.assertEqual(circuit_out, circuit_target)
