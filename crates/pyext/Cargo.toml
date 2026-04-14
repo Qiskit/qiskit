@@ -42,3 +42,4 @@ qiskit-cext-vtable = { workspace = true, features = ["python_binding", "addr"] }
 qiskit-transpiler.workspace = true
 qiskit-quantum-info.workspace = true
 qiskit-synthesis.workspace = true
+mimalloc = { workspace = true, optional = true }

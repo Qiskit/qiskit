@@ -135,7 +135,7 @@ fix_cformat:
 # instead.
 .PHONY: build-clib build-clib-release build-clib-dev
 build-clib:
-	cargo rustc -p qiskit-cext --crate-type cdylib ${C_LIB_CARGO_FLAGS} -- ${C_LIB_RUSTC_FLAGS}
+	cargo rustc -p qiskit-cext --features=mimalloc --crate-type cdylib ${C_LIB_CARGO_FLAGS} -- ${C_LIB_RUSTC_FLAGS}
 build-clib-release: C_LIB_CARGO_FLAGS=--release
 build-clib-release: build-clib
 build-clib-dev: C_LIB_CARGO_FLAGS=--profile dev
