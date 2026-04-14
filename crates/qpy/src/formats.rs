@@ -43,8 +43,8 @@ pub struct QPYFile {
     #[br(count = num_programs)]
     #[bw(calc = Vec::new())]
     _circuit_table: Vec<u64>,
-    #[br(count = num_programs)]
-    pub circuits: Vec<QPYCircuitV17>,
+    #[br(count = num_programs, args { inner: (qpy_version as u32,) })]
+    pub circuits: Vec<QPYCircuit>,
 }
 
 /// A QPY file in the style of version 17 for backwards compatibility

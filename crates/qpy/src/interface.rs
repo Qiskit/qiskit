@@ -25,6 +25,7 @@ use qiskit_circuit::converters::QuantumCircuitData;
 use crate::bytes::Bytes;
 use crate::circuit_reader::unpack_circuit;
 use crate::circuit_writer::pack_circuit;
+use crate::error::QpyError;
 use crate::formats;
 use crate::formats::{QPY17File, QPYFile};
 use crate::value::{SymbolicEncoding, ValueType, deserialize, serialize};
@@ -75,7 +76,7 @@ pub fn dump_qpy(
             "Rust QPY only supports QPY version 17 and above",
         ));
     }
-    let packed_circuits: Vec<formats::QPYCircuitV17> = circuits
+    let packed_circuits: Vec<formats::QPYCircuit> = circuits
         .iter_mut()
         .map(|circuit| {
             pack_circuit(
@@ -86,7 +87,7 @@ pub fn dump_qpy(
                 &annotation_factories,
             )
         })
-        .collect::<PyResult<Vec<_>>>()?;
+        .collect::<Result<Vec<formats::QPYCircuit>, QpyError>>()?;
     let symbolic_encoding = match use_symengine {
         true => SymbolicEncoding::Symengine,
         false => SymbolicEncoding::Sympy,
@@ -99,7 +100,7 @@ pub fn dump_qpy(
         circuits: packed_circuits,
     };
     let qpy_file_v17: QPY17File = qpy_file.try_into()?;
-    Ok(serialize(&qpy_file_v17))
+    Ok(serialize(&qpy_file_v17)?)
 }
 
 #[pyfunction]
@@ -185,7 +186,11 @@ impl TryFrom<QPYFile> for QPY17File {
     type Error = PyErr;
     fn try_from(qpy_file: QPYFile) -> PyResult<QPY17File> {
         // We should serialize the circuits and compute the offset table based on their lengths
-        let circuits = qpy_file.circuits.iter().map(serialize).collect::<Vec<_>>();
+        let circuits = qpy_file
+            .circuits
+            .iter()
+            .map(serialize)
+            .collect::<Result<Vec<_>, QpyError>>()?;
         // the initial offset is the size of all the fields in QPY17File up to and not including circuits.
         // The fields up to circuit_table take QPY17_HEADER_SIZE bytes, and circuit_table take 8*circuits.len() bytes.
         let initial_offset =
