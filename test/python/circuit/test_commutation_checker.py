@@ -561,7 +561,9 @@ class TestCommutationChecker(QiskitTestCase):
 
         with self.subTest("different paulis"):
             self.assertFalse(scc.commute(ppm1, [0, 1, 2, 3], [0], ppm2, [0, 1, 2, 3], [0]))
-        with self.subTest("same paulis"):
+        with self.subTest("same paulis, different qubits"):
+            self.assertFalse(scc.commute(ppm1, [0, 1, 2, 3], [0], ppm1, [1, 0, 2, 3], [0]))
+        with self.subTest("same paulis and qubits"):
             self.assertTrue(scc.commute(ppm1, [0, 1, 2, 3], [0], ppm1, [0, 1, 2, 3], [0]))
 
     def test_pauli_evolution_sums(self):

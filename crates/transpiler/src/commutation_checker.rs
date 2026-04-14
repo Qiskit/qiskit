@@ -505,7 +505,7 @@ impl CommutationChecker {
             if cargs1 == cargs2 {
                 // If both PPMs write to the same classical bit, it's generally incorrect to interchange them.
                 // So we return true only if both PPMs are identical.
-                return Ok(ppm1 == ppm2);
+                return Ok(qargs1 == qargs2 && ppm1 == ppm2);
             } else {
                 // PPMs write to different classical bits, and they commute if and only if their pauli generators do.
                 let size = qargs1.iter().chain(qargs2.iter()).max().unwrap().0 + 1;
