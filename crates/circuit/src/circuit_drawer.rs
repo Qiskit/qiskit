@@ -1630,6 +1630,7 @@ q_3: ──────────────────────┤1     
             let qubits = (0..num_qubits)
                 .map(|x| Qubit(x + (i as u32 % (num_wires - num_qubits))))
                 .collect::<Vec<_>>();
+            #[allow(clippy::approx_constant)]
             let params = (0..num_params)
                 .map(|_x| 3.141.into())
                 .collect::<Vec<Param>>();
@@ -1718,6 +1719,7 @@ q_4: ─────────────────────────
 
     #[cfg(not(miri))]
     #[test]
+    #[allow(clippy::approx_constant)]
     fn test_global_phase() {
         let mut circuit = basic_circuit();
         circuit.set_global_phase_param(3.14.into()).unwrap();
@@ -1848,7 +1850,7 @@ q_1: ┤1         ├┤1            ├┤1         ├
             }
         }
         for i in [1, 2, 3, 4] {
-            let qubits = (0..i).map(|x| Qubit::new(x)).collect::<Vec<_>>();
+            let qubits = (0..i).map(Qubit::new).collect::<Vec<_>>();
             let inst = PackedInstruction {
                 op: StandardInstruction::Barrier(i as u32).into(),
                 qubits: circuit.add_qargs(&qubits),
