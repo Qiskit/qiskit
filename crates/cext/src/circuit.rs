@@ -23,7 +23,8 @@ use num_complex::{Complex64, ComplexFloat};
 
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
+use qiskit_circuit::circuit_drawer::draw_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interner;
@@ -32,6 +33,7 @@ use qiskit_circuit::operations::{
     PauliProductRotation, StandardGate, StandardInstruction, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
+use qiskit_circuit::parameter_table::ParameterTableError;
 use qiskit_circuit::{BlocksMode, Clbit, Qubit, VarsMode};
 use smallvec::smallvec;
 
@@ -340,6 +342,46 @@ pub unsafe extern "C" fn qk_circuit_num_clbits(circuit: *const CircuitData) -> u
 }
 
 /// @ingroup QkCircuit
+/// Get the number of unbound symbols in ``QkParam`` objects in the circuit.
+///
+/// @param circuit A pointer to the circuit.
+///
+/// @return The number of unbound ``QkParam`` symbols in the circuit.
+///
+/// # Example
+///
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(2, 0);
+/// QkParam *x = qk_param_new_symbol("x");
+/// QkParam *y = qk_param_new_symbol("y");
+///
+/// uint32_t q0[1] = {0};
+/// const QkParam *rx_param[1] = {x};
+/// const QkParam *ry_param[1] = {y};
+///
+/// qk_circuit_parameterized_gate(qc, QkGate_RX, q0, rx_param);
+/// qk_circuit_parameterized_gate(qc, QkGate_RY, q0, ry_param);
+///
+/// // check the number of QkParam symbols
+/// size_t num_symbols = qk_circuit_num_param_symbols(qc); // == 2
+///
+/// qk_param_free(x);
+/// qk_param_free(y);
+/// qk_circuit_free(qc);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_num_param_symbols(circuit: *const CircuitData) -> usize {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+
+    circuit.num_parameters()
+}
+
+/// @ingroup QkCircuit
 /// Free the circuit.
 ///
 /// @param circuit A pointer to the circuit to free.
@@ -455,6 +497,95 @@ pub unsafe extern "C" fn qk_circuit_gate(
         circuit.push_standard_gate(gate, params, qargs).unwrap()
     }
     ExitCode::Success
+}
+
+/// @ingroup QkCircuit
+/// Append a ``QkGate`` with ``QkParam*`` parameters to the circuit.
+///
+/// @param circuit A pointer to the circuit to add the gate to.
+/// @param gate The ``QkGate`` to add to the circuit.
+/// @param qubits The pointer to the array of ``uint32_t`` qubit indices to add the gate on. This
+/// can be a null pointer if there are no qubits for ``gate`` (e.g. ``QkGate_GlobalPhase``).
+/// @param params The pointer to the array of ``QkParam*`` parameters to use for the gate parameters.
+/// This can be a null pointer if there are no parameters for ``gate`` (e.g. ``QkGate_H``).
+///
+/// @return ``QkExitCode_Success`` upon successful append. Upon failure,
+///     ``QkExitCode_ParameterNameConflict`` indicates that a new parameter symbol has a name
+///     conflict with an existing one. ``QkExitCode_ParameterError`` describes other generic
+///     failures when attempting to track the parameter symbols.
+///
+/// # Example
+///
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(100, 0);
+/// QkParam *theta = qk_param_new_symbol("theta");
+/// uint32_t qubit[1] = {0};
+/// const QkParam* params[1] = {theta};
+/// qk_circuit_parameterized_gate(qc, QkGate_RX, qubit, params); // add RX(theta) to the circuit
+/// ```
+///
+/// # Safety
+///
+/// The ``qubits`` and ``params`` types are expected to be a pointer to an array of ``uint32_t``
+/// and ``QkParam*`` respectively where the length is matching the expectations for the standard
+/// gate. If the array is insufficiently long the behavior of this function is undefined as this
+/// will read outside the bounds of the array. It can be a null pointer if there are no qubits
+/// or params for a given gate. You can check ``qk_gate_num_qubits`` and ``qk_gate_num_params`` to
+/// determine how many qubits and params are required for a given gate.
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``,
+/// or if any of the elements in the ``params`` array is not a valid, non-null pointer to a
+/// ``QkParam``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_parameterized_gate(
+    circuit: *mut CircuitData,
+    gate: StandardGate,
+    qubits: *const u32,
+    params: *const *const Param,
+) -> ExitCode {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+
+    // SAFETY: Per the documentation the qubits pointer is an array of num_qubits() elements.
+    let qargs: &[Qubit] = unsafe {
+        match gate.num_qubits() {
+            0 => &[],
+            1 => &[Qubit(*qubits.wrapping_add(0))],
+            2 => &[
+                Qubit(*qubits.wrapping_add(0)),
+                Qubit(*qubits.wrapping_add(1)),
+            ],
+            3 => &[
+                Qubit(*qubits.wrapping_add(0)),
+                Qubit(*qubits.wrapping_add(1)),
+                Qubit(*qubits.wrapping_add(2)),
+            ],
+            4 => &[
+                Qubit(*qubits.wrapping_add(0)),
+                Qubit(*qubits.wrapping_add(1)),
+                Qubit(*qubits.wrapping_add(2)),
+                Qubit(*qubits.wrapping_add(3)),
+            ],
+            // There are no ``QkGate``s > 4 qubits
+            _ => unreachable!(),
+        }
+    };
+
+    // SAFETY: Per documentation, the params pointer is an array of num_params() elements, and
+    // each element is a valid, non-null pointer to a Param.
+    let params: Vec<Param> =
+        unsafe { ::std::slice::from_raw_parts(params, gate.num_params() as usize) }
+            .iter()
+            .map(|&ptr| unsafe { const_ptr_as_ref(ptr) }.clone())
+            .collect();
+
+    match circuit.push_standard_gate(gate, &params, qargs) {
+        Ok(()) => ExitCode::Success,
+        Err(CircuitDataError::ParameterTableError(ParameterTableError::NameConflict(_))) => {
+            ExitCode::ParameterNameConflict
+        }
+        Err(_) => ExitCode::ParameterError,
+    }
 }
 
 /// @ingroup QkCircuit
@@ -941,7 +1072,7 @@ pub struct CInstruction {
     /// A pointer to an array of clbit indices this instruction operates on.
     clbits: *mut u32,
     /// A pointer to an array of parameter values for this instruction.
-    params: *mut f64,
+    params: *mut *mut Param,
     /// The number of qubits for this instruction.
     num_qubits: u32,
     /// The number of clbits for this instruction.
@@ -956,8 +1087,9 @@ impl CInstruction {
     /// This must be cleared by a call to `qk_circuit_instruction_clear` to avoid leaking its
     /// allocations.
     ///
-    /// Panics if the operation name contains a nul, or if the instruction has non-float parameters.
-    pub(crate) fn from_packed_instruction_with_floats(
+    /// Panics if the operation name contains a nul, or if the instruction has non-numeric
+    /// parameters (not [Param::Float] or [Param::ParameterExpression]).
+    pub(crate) fn from_packed_instruction_with_numeric(
         packed: &PackedInstruction,
         qargs_interner: &Interner<[Qubit]>,
         cargs_interner: &Interner<[Clbit]>,
@@ -971,11 +1103,13 @@ impl CInstruction {
             .params_view()
             .iter()
             .map(|p| match p {
-                Param::Float(p) => Some(*p),
+                Param::Float(_) | Param::ParameterExpression(_) => {
+                    Some(Box::into_raw(Box::new(p.clone())))
+                }
                 _ => None,
             })
-            .collect::<Option<Box<[f64]>>>()
-            .expect("caller is responsible for ensuring all parameters are floats");
+            .collect::<Option<Box<[*mut Param]>>>()
+            .expect("caller is responsible for ensuring all parameters are numeric");
         Self {
             name,
             num_qubits: qargs.len() as u32,
@@ -1027,7 +1161,7 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 ) {
     // SAFETY: Per documentation, `circuit` is a pointer to valid data.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
-    let inst = CInstruction::from_packed_instruction_with_floats(
+    let inst = CInstruction::from_packed_instruction_with_numeric(
         &circuit.data()[index],
         circuit.qargs_interner(),
         circuit.cargs_interner(),
@@ -1325,7 +1459,10 @@ pub unsafe extern "C" fn qk_circuit_instruction_clear(inst: *mut CInstruction) {
         inst.num_clbits = 0;
         if inst.num_params > 0 && !inst.params.is_null() {
             let params = std::slice::from_raw_parts_mut(inst.params, inst.num_params as usize);
-            let _ = Box::from_raw(params as *mut [f64]);
+            for param in params.iter() {
+                let _ = Box::from_raw(*param);
+            }
+            let _ = Box::from_raw(params);
             inst.params = std::ptr::null_mut();
         }
         inst.num_params = 0;
@@ -1831,6 +1968,84 @@ pub unsafe extern "C" fn qk_circuit_delay(
         .unwrap();
 
     ExitCode::Success
+}
+
+/// The configuration options for the ``qk_circuit_draw`` function.
+#[repr(C)]
+pub struct CircuitDrawerConfig {
+    /// If `true`, bundles classical registers into single wires.
+    bundle_cregs: bool,
+    /// If `true`, merges the bottom and top lines of adjacent wires.
+    merge_wires: bool,
+    /// Sets the line length for wrapping the rendered text. Use 0
+    /// to auto-detect console width. Use `SIZE_MAX` to effectively skip
+    /// wrapping altogether.
+    fold: usize,
+}
+
+/// @ingroup QkCircuit
+/// Draw the circuit as text.
+///
+/// @param circuit A pointer to the circuit to draw.
+/// @param config A pointer to the ``QkCircuitDrawerConfig`` structure or NULL. If NULL,
+///     the drawer will use these defaults:
+///     * ``bundle_cregs = true``
+///     * ``merge_wires = true``
+///     * ``fold = 0``
+///
+/// @return A pointer to a null-terminated string containing the circuit representation.
+///     You must use ``qk_str_free`` to release the allocated memory when done.
+///
+/// # Example
+/// ```c
+///     QkCircuit *circuit = qk_circuit_new(2, 1);
+///
+///     qk_circuit_gate(circuit, QkGate_H, (uint32_t[]){0}, NULL);
+///     qk_circuit_gate(circuit, QkGate_CX, (uint32_t[]){0, 1}, NULL);
+///     qk_circuit_measure(circuit, 0, 0);
+///     qk_circuit_measure(circuit, 1, 0);
+///
+///     QkCircuitDrawerConfig config = {false, true, 0};
+///
+///     char *circ_str = qk_circuit_draw(circuit, &config);
+///
+///     printf("%s", circ_str);
+///    
+///     qk_str_free(circ_str);
+///     qk_circuit_free(circuit);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``, or
+/// if ``config`` is not NULL and a non-valid pointer to a ``QkCircuitDrawerConfig`` struct.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_draw(
+    circuit: *const CircuitData,
+    config: *const CircuitDrawerConfig,
+) -> *mut c_char {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+
+    let (bundle_cregs, merge_wires, fold) = if !config.is_null() {
+        // SAFETY: Per documentation, the pointer is to a valid QkCircuitDrawerConfig struct.
+        let config = unsafe { const_ptr_as_ref(config) };
+        (
+            config.bundle_cregs,
+            config.merge_wires,
+            if config.fold != 0 {
+                Some(config.fold)
+            } else {
+                None
+            },
+        )
+    } else {
+        (true, true, None)
+    };
+
+    let circuit_str = draw_circuit(circuit, bundle_cregs, merge_wires, fold).unwrap();
+
+    CString::new(circuit_str).unwrap().into_raw()
 }
 
 /// @ingroup QkCircuit

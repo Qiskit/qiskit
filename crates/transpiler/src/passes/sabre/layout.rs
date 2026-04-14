@@ -22,7 +22,8 @@ use rustworkx_core::petgraph::graph::NodeIndex;
 
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::nlayout::NLayout;
-use qiskit_circuit::{BlocksMode, PhysicalQubit, VirtualQubit, getenv_use_multiple_threads};
+use qiskit_circuit::{BlocksMode, PhysicalQubit, VirtualQubit};
+use qiskit_util::getenv_use_multiple_threads;
 
 use crate::TranspilerError;
 use crate::neighbors::Neighbors;

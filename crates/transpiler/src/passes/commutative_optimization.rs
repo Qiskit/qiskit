@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use itertools::Itertools;
+
 use std::f64::consts::PI;
 
 use num_complex::Complex64;
@@ -23,7 +25,8 @@ use crate::passes::remove_identity_equiv::{average_gate_fidelity_below_tol, is_i
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, StandardGate, multiply_param, radd_param,
+    Operation, OperationRef, Param, PauliBased, PauliProductRotation, StandardGate, multiply_param,
+    radd_param,
 };
 use qiskit_circuit::{BlocksMode, Clbit, NoBlocks, Qubit, imports};
 
@@ -192,6 +195,40 @@ fn canonicalize(
             }
         }
     }
+
+    if let OperationRef::PauliProductRotation(ppr) = inst.op.view() {
+        let qargs = dag.get_qargs(inst.qubits);
+        let mut paired = qargs
+            .iter()
+            .zip(ppr.z.iter())
+            .zip(ppr.x.iter())
+            .map(|((q, z), x)| (q, z, x))
+            .collect::<Vec<_>>();
+        paired.sort_by_key(|(q, _, _)| **q);
+        let (sorted_qargs, sorted_z, sorted_x) =
+            paired
+                .into_iter()
+                .multiunzip::<(Vec<Qubit>, Vec<bool>, Vec<bool>)>();
+        let sorted_ppr = PauliProductRotation {
+            z: sorted_z,
+            x: sorted_x,
+            angle: ppr.angle.clone(),
+        };
+
+        let sorted_qubits = dag.add_qargs(&sorted_qargs);
+
+        let canonical_instruction = PackedInstruction {
+            op: PauliBased::PauliProductRotation(sorted_ppr).into(),
+            qubits: sorted_qubits,
+            clbits: Default::default(),
+            params: inst.params.clone(),
+            label: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: std::sync::OnceLock::new(),
+        };
+        return Some((canonical_instruction, Param::Float(0.)));
+    }
+
     None
 }
 
@@ -305,6 +342,34 @@ fn try_merge(
                 return Ok((true, None, phase_update));
             } else {
                 return Ok((true, Some(merged_instruction), 0.));
+            }
+        }
+    }
+
+    // Special handling for PauliProductRotations.
+    if let (OperationRef::PauliProductRotation(ppr1), OperationRef::PauliProductRotation(ppr2)) =
+        (inst1.op.view(), inst2.op.view())
+    {
+        let merge_result = ppr1.merge_with(ppr2);
+
+        if let Some(merged_ppr) = merge_result {
+            let angle = merged_ppr.angle.clone();
+            let merged_params = Some(Box::new(Parameters::Params(smallvec![angle])));
+
+            let packed = PackedInstruction {
+                op: PauliBased::PauliProductRotation(merged_ppr).into(),
+                qubits: inst1.qubits,
+                clbits: inst1.clbits,
+                params: merged_params,
+                label: None,
+                #[cfg(feature = "cache_pygates")]
+                py_op: std::sync::OnceLock::new(),
+            };
+
+            if let Some(phase_update) = is_identity_equiv(&packed, false, None, error_cutoff_fn)? {
+                return Ok((true, None, phase_update));
+            } else {
+                return Ok((true, Some(packed), 0.));
             }
         }
     }

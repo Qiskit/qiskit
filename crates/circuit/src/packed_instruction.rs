@@ -24,7 +24,7 @@ use crate::operations::{
 };
 use crate::{Block, Clbit, Qubit};
 use hashbrown::HashMap;
-use nalgebra::Matrix2;
+use nalgebra::{Matrix2, Matrix4};
 use ndarray::{Array2, CowArray, Ix2};
 use num_complex::Complex64;
 use pyo3::prelude::*;
@@ -984,6 +984,7 @@ impl PackedInstruction {
         }
     }
 
+    #[inline]
     pub fn try_matrix_as_nalgebra_1q(&self) -> Option<Matrix2<Complex64>> {
         match self.op.view() {
             OperationRef::Unitary(u) => u.matrix_as_nalgebra_1q(),
@@ -991,6 +992,34 @@ impl PackedInstruction {
             _ => self
                 .try_matrix_as_static_1q()
                 .map(|arr| Matrix2::new(arr[0][0], arr[0][1], arr[1][0], arr[1][1])),
+        }
+    }
+
+    /// Returns a static matrix for 1-qubit gates. Will return `None` when the gate is not 1-qubit.
+    #[inline]
+    pub fn try_matrix_as_static_2q(&self) -> Option<[[Complex64; 4]; 4]> {
+        match self.op.view() {
+            OperationRef::StandardGate(standard) => {
+                standard.matrix_as_static_2q(self.params_view())
+            }
+            OperationRef::Gate(gate) => gate.matrix_as_static_2q(),
+            OperationRef::Unitary(unitary) => unitary.matrix_as_static_2q(),
+            _ => None,
+        }
+    }
+
+    #[inline]
+    pub fn try_matrix_as_nalgebra_2q(&self) -> Option<Matrix4<Complex64>> {
+        match self.op.view() {
+            OperationRef::Unitary(u) => u.matrix_as_nalgebra_2q(),
+            // default implementation
+            _ => self.try_matrix_as_static_2q().map(|arr| {
+                Matrix4::new(
+                    arr[0][0], arr[0][1], arr[0][2], arr[0][3], arr[1][0], arr[1][1], arr[1][2],
+                    arr[1][3], arr[2][0], arr[2][1], arr[2][2], arr[2][3], arr[3][0], arr[3][1],
+                    arr[3][2], arr[3][3],
+                )
+            }),
         }
     }
 
