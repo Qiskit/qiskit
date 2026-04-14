@@ -63,6 +63,16 @@ pub fn py_check_direction_target(dag: &DAGCircuit, target: &PyTarget) -> PyResul
     check_direction_target(dag, target)
 }
 
+/// Check if the two-qubit gates follow the right direction with respect to instructions supported in the given target.
+///
+/// # Arguments:
+///
+/// * `dag` - the [`DAGCircuit`] to analyze.
+/// * `target` the [`Target`] against which gate directionality compliance is checked.
+///
+/// # Returns:
+///
+/// `true` iff all two-qubit gates comply with the target's coupling constraints
 pub fn check_direction_target(dag: &DAGCircuit, target: &Target) -> PyResult<bool> {
     let target_check = |inst: &PackedInstruction, op_args: &[Qubit]| -> bool {
         let qargs = [

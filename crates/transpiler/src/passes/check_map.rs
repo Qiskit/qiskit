@@ -17,8 +17,7 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::{PhysicalQubit, Qubit};
 
-use crate::target::PyTarget;
-use crate::target::Target;
+use crate::target::{PyTarget, Target};
 
 fn recurse(
     dag: &DAGCircuit,
