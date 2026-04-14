@@ -177,7 +177,7 @@ class PauliProductRotationGate(Gate):
 
     def to_matrix(self):
         """Calculate the matrix of PauliProductRotationGate(pauli, angle),
-        it eqauls to: exp(-0.5j * angle * pauli) or equivalently to
+        it equals to: exp(-0.5j * angle * pauli) or equivalently to
         cos(angle/2) * I - 1j * sin(angle / 2) * pauli"""
         angle = self.params[0]
         pauli_matrix = self.pauli().to_matrix(sparse=False)
