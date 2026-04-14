@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import typing
 import numpy as np
-import scipy as sc
 
 from qiskit.circuit import QuantumCircuit, CircuitError, Gate
 from qiskit._accelerate.synthesis.pauli_products import synth_pauli_product_rotation
@@ -179,4 +178,5 @@ class PauliProductRotationGate(Gate):
     def to_matrix(self):
         pauli_matrix = self.pauli().to_matrix(sparse=False)
         angle = self.params[0]
-        return sc.linalg.expm(-0.5j * angle * pauli_matrix)
+        iden_matrix = np.eye(pauli_matrix.shape[0], dtype=complex)
+        return np.cos(angle / 2) * iden_matrix - 1j * np.sin(angle / 2) * pauli_matrix
