@@ -23,12 +23,17 @@ The intention is that (much) longer term, we might be wanting to expose more of 
   This depends on `qiskit-circuit`, but is otherwise pretty standalone, and it's unlikely that other things will need to interact with it.
 * `qiskit-qasm3` is the Qiskit-specific side of the OpenQASM 3 importer.
   The actual parser lives at https://github.com/Qiskit/openqasm3_parser, and is its own set of Rust-only crates.
-* `qiskit-quantum-info` is the crate for quantum information.
+* `qiskit-quantum-info` contains definitions and operations on quantum-information-related objects,
+  without reference to circuit-level objects.  This is a base crate.  Interactions between
+  circuit-level objects and quantum-info objects are either in `qiskit-circuit` (if they are part of
+  core IR definitions) or `qiskit_synthesis::quantum_info` (if not).
 * `qiskit-synthesis` is the crate for synthesis functionality.
 * `qiskit-circuit-library` is the crate for circuit library functions. It contains constructors or other
   circuit functionality that builds on the core circuit data model defined in `qiskit-circuit`.
 * `qiskit-providers` is the crate that defines the providers interface for Qiskit. The providers interface is what defines the concept of a Backend.
   The backend models a quantum computer, which is the QPU and the infrastructure around it required to execute circuits on the quantum computer.
+* `qiskit-util` is for small utility functions and data structures that are independent of all
+  Qiskit-specific objects, so it can be depended-on by both `quantum-info` and `circuit`.
 
 We use a structure with several crates in it for a couple of reasons:
 

@@ -16,8 +16,8 @@ use ndarray::linalg::kron;
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
 use qiskit_circuit::object_registry::PyObjectAsKey;
-use qiskit_quantum_info::sparse_observable::PySparseObservable;
-use qiskit_quantum_info::sparse_observable::SparseObservable;
+use qiskit_circuit::standard_gate::standard_generators::standard_gate_exponent;
+use qiskit_quantum_info::sparse_observable::{PySparseObservable, SparseObservable};
 use smallvec::SmallVec;
 use std::fmt::Debug;
 
@@ -91,6 +91,12 @@ const fn build_supported_ops() -> [bool; STANDARD_GATE_SIZE] {
     lut[StandardGate::ISwap as usize] = true;
     lut[StandardGate::ECR as usize] = true;
     lut[StandardGate::CCX as usize] = true;
+    lut[StandardGate::CCZ as usize] = true;
+    lut[StandardGate::CS as usize] = true;
+    lut[StandardGate::CSdg as usize] = true;
+    lut[StandardGate::CSX as usize] = true;
+    lut[StandardGate::I as usize] = true;
+    lut[StandardGate::GlobalPhase as usize] = true;
     lut[StandardGate::CSwap as usize] = true;
     lut
 }
@@ -248,6 +254,21 @@ fn try_pauli_generator(
     }
 }
 
+fn try_standard_gate_generator(
+    operation: &OperationRef,
+    params: &[Param],
+    qubits: &[Qubit],
+    num_qubits: u32,
+) -> Option<SparseObservable> {
+    if let OperationRef::StandardGate(gate) = operation {
+        if let Some(local) = standard_gate_exponent(*gate, params) {
+            let out = SparseObservable::identity(num_qubits);
+            return Some(out.compose_map(&local, |i| qubits[i as usize].0));
+        }
+    }
+    None
+}
+
 fn get_bits_from_py<T>(
     py_bits1: &Bound<'_, PyTuple>,
     py_bits2: &Bound<'_, PyTuple>,
@@ -275,30 +296,26 @@ where
 }
 
 /// This is the internal structure for the Python CommutationChecker class
-/// It handles the actual commutation checking, cache management, and library
-/// lookups. It's not meant to be a public facing Python object though and only used
+/// It handles the actual commutation checking, and library lookups. It's
+/// not meant to be a public facing Python object though and only used
 /// internally by the Python class.
 #[pyclass(module = "qiskit._accelerate.commutation_checker")]
 pub struct CommutationChecker {
     library: CommutationLibrary,
-    cache_max_entries: usize,
-    cache: HashMap<(String, String), CommutationCacheEntry>,
-    current_cache_entries: usize,
     #[pyo3(get)]
     gates: Option<HashSet<String>>,
 }
 
 #[pymethods]
 impl CommutationChecker {
-    #[pyo3(signature = (standard_gate_commutations=None, cache_max_entries=1_000_000, gates=None))]
+    #[pyo3(signature = (standard_gate_commutations=None, gates=None))]
     #[new]
     fn py_new(
         standard_gate_commutations: Option<Bound<PyAny>>,
-        cache_max_entries: usize,
         gates: Option<HashSet<String>>,
     ) -> Self {
         let library = CommutationLibrary::py_new(standard_gate_commutations);
-        CommutationChecker::new(Some(library), cache_max_entries, gates)
+        CommutationChecker::new(Some(library), gates)
     }
 
     #[pyo3(signature=(op1, op2, max_num_qubits=None, approximation_degree=1., matrix_max_num_qubits=3))]
@@ -367,25 +384,8 @@ impl CommutationChecker {
         )?)
     }
 
-    /// Return the current number of cache entries
-    fn num_cached_entries(&self) -> usize {
-        self.current_cache_entries
-    }
-
-    /// Clear the cache
-    fn clear_cached_commutations(&mut self) {
-        self.clear_cache()
-    }
-
     fn __getstate__(&self, py: Python) -> PyResult<Py<PyDict>> {
         let out_dict = PyDict::new(py);
-        out_dict.set_item("cache_max_entries", self.cache_max_entries)?;
-        out_dict.set_item("current_cache_entries", self.current_cache_entries)?;
-        let cache_dict = PyDict::new(py);
-        for (key, value) in &self.cache {
-            cache_dict.set_item(key, commutation_entry_to_pydict(py, value)?)?;
-        }
-        out_dict.set_item("cache", cache_dict)?;
         out_dict.set_item("library", self.library.library.clone().into_pyobject(py)?)?;
         out_dict.set_item("gates", self.gates.clone())?;
         Ok(out_dict.unbind())
@@ -393,26 +393,9 @@ impl CommutationChecker {
 
     fn __setstate__(&mut self, py: Python, state: Py<PyAny>) -> PyResult<()> {
         let dict_state = state.cast_bound::<PyDict>(py)?;
-        self.cache_max_entries = dict_state
-            .get_item("cache_max_entries")?
-            .unwrap()
-            .extract()?;
-        self.current_cache_entries = dict_state
-            .get_item("current_cache_entries")?
-            .unwrap()
-            .extract()?;
         self.library = CommutationLibrary {
             library: dict_state.get_item("library")?.unwrap().extract()?,
         };
-        let raw_cache: Bound<PyDict> = dict_state.get_item("cache")?.unwrap().extract()?;
-        self.cache = HashMap::with_capacity(raw_cache.len());
-        for (key, value) in raw_cache.iter() {
-            let value_dict: &Bound<PyDict> = value.cast()?;
-            self.cache.insert(
-                key.extract()?,
-                commutation_cache_entry_from_pydict(value_dict)?,
-            );
-        }
         self.gates = dict_state.get_item("gates")?.unwrap().extract()?;
         Ok(())
     }
@@ -423,21 +406,13 @@ impl CommutationChecker {
     ///
     /// # Arguments
     ///
-    /// - `library`: An optional existing [CommutationLibrary] with cached entries.
-    /// - `cache_max_entries`: The maximum size of the cache.
+    /// - `library`: An optional existing [CommutationLibrary].
     /// - `gates`: An optional set of gates (by name) to check commutations for. If `None`,
-    ///   commutation is cached and checked for all gates.
-    pub fn new(
-        library: Option<CommutationLibrary>,
-        cache_max_entries: usize,
-        gates: Option<HashSet<String>>,
-    ) -> Self {
+    ///   commutation is checked for all gates.
+    pub fn new(library: Option<CommutationLibrary>, gates: Option<HashSet<String>>) -> Self {
         // Initialize sets before they are used in the commutation checker
         CommutationChecker {
             library: library.unwrap_or(CommutationLibrary { library: None }),
-            cache: HashMap::new(),
-            cache_max_entries,
-            current_cache_entries: 0,
             gates,
         }
     }
@@ -521,20 +496,33 @@ impl CommutationChecker {
             _ => (),
         };
 
-        // Handle commutations in between Pauli-based gates, like PauliGate or PauliEvolutionGate
+        // Handle commutations between Pauli-based gates among themselves, and with standard gates
+        // TODO Support trivial commutations of standard gates with identities in the Paulis
         let size = qargs1.iter().chain(qargs2.iter()).max().unwrap().0 + 1;
-        if let Some(obs1) = try_pauli_generator(op1, qargs1, size) {
-            if let Some(obs2) = try_pauli_generator(op2, qargs2, size) {
-                return Ok(obs1.commutes(&obs2, tol));
+        let maybe_pauli1 = try_pauli_generator(op1, qargs1, size);
+        let maybe_pauli2 = try_pauli_generator(op2, qargs2, size);
+
+        match (maybe_pauli1, maybe_pauli2) {
+            (None, None) => (), // No gate is Pauli-based, continue
+            (None, Some(pauli2)) => {
+                if let Some(pauli1) = try_standard_gate_generator(op1, params1, qargs1, size) {
+                    return Ok(pauli1.commutes(&pauli2, tol));
+                }
             }
-        }
+            (Some(pauli1), None) => {
+                if let Some(pauli2) = try_standard_gate_generator(op2, params2, qargs2, size) {
+                    return Ok(pauli1.commutes(&pauli2, tol));
+                }
+            }
+            (Some(pauli1), Some(pauli2)) => return Ok(pauli1.commutes(&pauli2, tol)),
+        };
 
         // Now there are no more parameterized gates that are allowed
         if matches!(precheck_status, PrecheckStatus::Parameterized) {
             return Ok(false);
         }
 
-        // Sort the arguments.
+        // Sort the arguments, such that `second_op` always is the larger one.
         let reversed = if op1.num_qubits() != op2.num_qubits() {
             op1.num_qubits() > op2.num_qubits()
         } else {
@@ -552,40 +540,6 @@ impl CommutationChecker {
             (qargs1, qargs2)
         };
 
-        // For our cache to work correctly, we require the gate's definition to only depend on the
-        // ``params`` attribute. This cannot be guaranteed for custom gates, so we only check
-        // the cache for
-        //  * gates we know are in the cache (SUPPORTED_OPS), or
-        //  * standard gates with float params (otherwise we cannot cache them)
-        let is_cachable = |op: &OperationRef, params: &[Param]| {
-            if let OperationRef::StandardGate(gate) = op {
-                SUPPORTED_OP[(*gate) as usize]
-                    || params.iter().all(|p| matches!(p, Param::Float(_)))
-            } else {
-                false
-            }
-        };
-        let check_cache =
-            is_cachable(first_op, first_params) && is_cachable(second_op, second_params);
-
-        if !check_cache {
-            // The arguments are sorted, so if qargs1.len() > matrix_max_num_qubits, then
-            // qargs1.len() > matrix_max_num_qubits as well.
-            if qargs2.len() > matrix_max_num_qubits as usize {
-                return Ok(false);
-            }
-
-            return self.commute_matmul(
-                first_op,
-                first_params,
-                first_qargs,
-                second_op,
-                second_params,
-                second_qargs,
-                tol,
-            );
-        }
-
         // Query commutation library
         let relative_placement = get_relative_placement(first_qargs, second_qargs);
         if let Some(is_commuting) =
@@ -595,22 +549,7 @@ impl CommutationChecker {
             return Ok(is_commuting);
         }
 
-        // Query cache
-        let key1 = hashable_params(first_params)?;
-        let key2 = hashable_params(second_params)?;
-        if let Some(commutation_dict) = self
-            .cache
-            .get(&(first_op.name().to_string(), second_op.name().to_string()))
-        {
-            let hashes = (key1.clone(), key2.clone());
-            if let Some(commutation) = commutation_dict.get(&(relative_placement.clone(), hashes)) {
-                return Ok(*commutation);
-            }
-        }
-
-        if qargs1.len() > matrix_max_num_qubits as usize
-            || qargs2.len() > matrix_max_num_qubits as usize
-        {
+        if second_qargs.len() > matrix_max_num_qubits as usize {
             return Ok(false);
         }
 
@@ -625,25 +564,6 @@ impl CommutationChecker {
             tol,
         )?;
 
-        // TODO: implement a LRU cache for this
-        if self.current_cache_entries >= self.cache_max_entries {
-            self.clear_cache();
-        }
-        // Cache results from is_commuting
-        self.cache
-            .entry((first_op.name().to_string(), second_op.name().to_string()))
-            .and_modify(|entries| {
-                let key = (relative_placement.clone(), (key1.clone(), key2.clone()));
-                entries.insert(key, is_commuting);
-                self.current_cache_entries += 1;
-            })
-            .or_insert_with(|| {
-                let mut entries = HashMap::with_capacity(1);
-                let key = (relative_placement, (key1, key2));
-                entries.insert(key, is_commuting);
-                self.current_cache_entries += 1;
-                entries
-            });
         Ok(is_commuting)
     }
 
@@ -679,10 +599,13 @@ impl CommutationChecker {
             }
         }
 
-        let first_qarg: Vec<Qubit> = Vec::from_iter((0..first_qargs.len() as u32).map(Qubit));
-        let second_qarg: Vec<Qubit> = second_qargs.iter().map(|q| qarg[q]).collect();
+        let first_indices = Vec::from_iter(0..first_qargs.len());
+        let second_indices = second_qargs
+            .iter()
+            .map(|q| qarg[q].index())
+            .collect::<Vec<_>>();
 
-        if first_qarg.len() > second_qarg.len() {
+        if first_indices.len() > second_indices.len() {
             return Err(CommutationError::FirstInstructionTooLarge);
         };
         let first_mat = match try_matrix_with_definition(first_op, first_params, None) {
@@ -701,7 +624,7 @@ impl CommutationChecker {
         //  2. This code here expands the first op to match the second -- hence we always
         //     match the operator sizes.
         // This whole extension logic could be avoided since we know the second one is larger.
-        let extra_qarg2 = num_qubits - first_qarg.len() as u32;
+        let extra_qarg2 = num_qubits - first_indices.len() as u32;
         let first_mat = if extra_qarg2 > 0 {
             let id_op = Array2::<Complex64>::eye(usize::pow(2, extra_qarg2));
             kron(&id_op, &first_mat)
@@ -715,7 +638,7 @@ impl CommutationChecker {
         let op12 = match unitary_compose::compose(
             &first_mat.view(),
             &second_mat.view(),
-            &second_qarg,
+            &second_indices,
             false,
         ) {
             Ok(matrix) => matrix,
@@ -724,13 +647,13 @@ impl CommutationChecker {
         let op21 = match unitary_compose::compose(
             &first_mat.view(),
             &second_mat.view(),
-            &second_qarg,
+            &second_indices,
             true,
         ) {
             Ok(matrix) => matrix,
             Err(e) => return Err(CommutationError::EinsumError(e)),
         };
-        let (fid, phase) = gate_metrics::gate_fidelity(&op12.view(), &op21.view(), None);
+        let (fid, phase) = gate_metrics::gate_fidelity(&op12.view(), &op21.view());
 
         // we consider the gates as commuting if the process fidelity of
         // AB (BA)^\dagger is approximately the identity and there is no global phase difference
@@ -739,11 +662,6 @@ impl CommutationChecker {
         let matrix_tol = tol;
         Ok(phase.abs() <= tol && (1.0 - fid).abs() <= matrix_tol)
     }
-
-    fn clear_cache(&mut self) {
-        self.cache.clear();
-        self.current_cache_entries = 0;
-    }
 }
 
 /// A pre-check status.
@@ -751,6 +669,7 @@ impl CommutationChecker {
 /// Used to differentiate between the reasons why gates might not commute, which allow
 /// the commutation checker to handle cases individually. E.g. a ``PauliEvolutionGate`` can
 /// still be checked even if the gate is parameterized.
+#[derive(Debug, Clone)]
 enum PrecheckStatus {
     Commuting,     // gates commute for sure
     NonCommuting,  // gates do not commute for sure
@@ -1050,104 +969,11 @@ impl<'a, 'py> FromPyObject<'a, 'py> for CommutationLibraryEntry {
     }
 }
 
-type CacheKey = (
-    SmallVec<[Option<Qubit>; 2]>,
-    (SmallVec<[ParameterKey; 3]>, SmallVec<[ParameterKey; 3]>),
-);
-
-type CommutationCacheEntry = HashMap<CacheKey, bool>;
-
-fn commutation_entry_to_pydict(py: Python, entry: &CommutationCacheEntry) -> PyResult<Py<PyDict>> {
-    let out_dict = PyDict::new(py);
-    for (k, v) in entry.iter() {
-        let qubits = PyTuple::new(py, k.0.iter().map(|q| q.map(|t| t.0)))?;
-        let params0 = PyTuple::new(py, k.1.0.iter().map(|pk| pk.0))?;
-        let params1 = PyTuple::new(py, k.1.1.iter().map(|pk| pk.0))?;
-        out_dict.set_item(
-            PyTuple::new(py, [qubits, PyTuple::new(py, [params0, params1])?])?,
-            PyBool::new(py, *v),
-        )?;
-    }
-    Ok(out_dict.unbind())
-}
-
-fn commutation_cache_entry_from_pydict(dict: &Bound<PyDict>) -> PyResult<CommutationCacheEntry> {
-    let mut ret = hashbrown::HashMap::with_capacity(dict.len());
-    for (k, v) in dict {
-        let raw_key: CacheKeyRaw = k.extract()?;
-        let qubits = raw_key.0.iter().map(|q| q.map(Qubit)).collect();
-        let params0: SmallVec<_> = raw_key.1.0;
-        let params1: SmallVec<_> = raw_key.1.1;
-        let v: bool = v.extract()?;
-        ret.insert((qubits, (params0, params1)), v);
-    }
-    Ok(ret)
-}
-
-type CacheKeyRaw = (
-    SmallVec<[Option<u32>; 2]>,
-    (SmallVec<[ParameterKey; 3]>, SmallVec<[ParameterKey; 3]>),
-);
-
-/// This newtype wraps a f64 to make it hashable so we can cache parameterized gates
-/// based on the parameter value (assuming it's a float angle). However, Rust doesn't do
-/// this by default and there are edge cases to track around it's usage. The biggest one
-/// is this does not work with f64::NAN, f64::INFINITY, or f64::NEG_INFINITY
-/// If you try to use these values with this type they will not work as expected.
-/// This should only be used with the cache hashmap's keys and not used beyond that.
-#[derive(Debug, Copy, Clone, PartialEq, FromPyObject)]
-struct ParameterKey(f64);
-
-impl ParameterKey {
-    fn key(&self) -> u64 {
-        // If we get a -0 the to_bits() return is not equivalent to 0
-        // because -0 has the sign bit set we'd be hashing 9223372036854775808
-        // and be storing it separately from 0. So this normalizes all 0s to
-        // be represented by 0
-        if self.0 == 0. { 0 } else { self.0.to_bits() }
-    }
-}
-
-impl std::hash::Hash for ParameterKey {
-    fn hash<H>(&self, state: &mut H)
-    where
-        H: std::hash::Hasher,
-    {
-        self.key().hash(state)
-    }
-}
-
-impl Eq for ParameterKey {}
-
-fn hashable_params(params: &[Param]) -> Result<SmallVec<[ParameterKey; 3]>, CommutationError> {
-    params
-        .iter()
-        .map(|x| {
-            if let Param::Float(x) = x {
-                // NaN and Infinity (negative or positive) are not valid
-                // parameter values and our hacks to store parameters in
-                // the cache HashMap don't take these into account. So return
-                // an error to Python if we encounter these values.
-                if x.is_nan() || x.is_infinite() {
-                    Err(CommutationError::HashingNaN)
-                } else {
-                    Ok(ParameterKey(*x))
-                }
-            } else {
-                Err(CommutationError::HashingParameter)
-            }
-        })
-        .collect()
-}
-
 #[pyfunction]
 pub fn get_standard_commutation_checker() -> CommutationChecker {
     let library = standard_gates_commutations::get_commutation_library();
     CommutationChecker {
         library,
-        cache_max_entries: 1_000_000,
-        cache: HashMap::new(),
-        current_cache_entries: 0,
         gates: None,
     }
 }

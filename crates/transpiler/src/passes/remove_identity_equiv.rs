@@ -21,12 +21,12 @@ use crate::gate_metrics::rotation_trace_and_dim;
 use crate::target::Target;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
-use qiskit_circuit::getenv_use_multiple_threads;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_util::getenv_use_multiple_threads;
 
 // The point at which to start running the analysis in parallel.
 // This value was found experimentally during the development of
@@ -179,7 +179,21 @@ where
         ));
     }
 
-    // Special handling for large pauli rotation gates.
+    // Special handling for pauli product rotation gates.
+    if let OperationRef::PauliProductRotation(ppr) = view {
+        if let Some((tr_over_dim, dim)) = ppr.rotation_trace_and_dim() {
+            return Ok(average_gate_fidelity_below_tol(
+                tr_over_dim,
+                dim,
+                error_cutoff_fn(inst),
+            ));
+        } else {
+            // Parameterized rotation
+            return Ok(None);
+        }
+    }
+
+    // Special handling for pauli evolution gates.
     if view.name() == "PauliEvolution" {
         if let OperationRef::Gate(py_gate) = view {
             let result = Python::attach(|py| -> PyResult<Option<(Complex64, usize)>> {
