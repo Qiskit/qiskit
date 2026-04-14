@@ -62,7 +62,7 @@ from qiskit.circuit.library import (
     PauliEvolutionGate,
     CPhaseGate,
 )
-from qiskit.quantum_info import SparsePauliOp
+from qiskit.quantum_info import SparsePauliOp, average_gate_fidelity
 from qiskit.circuit import Measure
 from qiskit.circuit.controlflow import IfElseOp
 from qiskit.circuit import Parameter, Gate
@@ -1054,6 +1054,93 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
             },
             {(0, 1)},
         )
+
+    def test_approximate_synthesis(self):
+        # Arbitrary Hermitian matrix with a norm known to be sensibly sized (it's about 2.8).
+        herm = np.array(
+            [
+                [-0.742, 0.643 + 0.341j, 0.166 - 0.432j, 0.803 + 0.285j],
+                [0.643 - 0.341j, 1.462, -0.477 + 0.0674j, 0.216 + 0.653j],
+                [0.166 + 0.432j, -0.477 - 0.0674j, 0.007, -0.231 - 0.226j],
+                [0.803 - 0.285j, 0.216 - 0.653j, -0.231 + 0.226j, -0.743],
+            ]
+        )
+        # A unitary perturbation that is a small distance from the identity.  It needs 3 cx to
+        # synthesise.
+        perturbation = scipy.linalg.expm(-1j * herm * 1e-3)
+
+        target = Target(2)
+        target.add_instruction(CXGate(), {(0, 1): InstructionProperties(error=1e-4)})
+        target.add_instruction(RZGate(Parameter("a")))
+        target.add_instruction(SXGate())
+
+        pass_exact = UnitarySynthesis(target=target, approximation_degree=1.0)
+        pass_approximate = UnitarySynthesis(target=target, approximation_degree=None)
+
+        # iSwap can be synthesised with 2 CX.
+        near_2cx = iSwapGate().to_matrix() @ perturbation
+        qc = QuantumCircuit(2)
+        qc.ensure_physical()
+        qc.unitary(near_2cx, [0, 1])
+
+        # First, a sanity check: the pass defaults should produce an exact synthesis, and it should
+        # have taken 3 cx since we know the perturbation needs that.
+        from_default = UnitarySynthesis(target=target)(qc)
+        self.assertLess(
+            1 - average_gate_fidelity(Operator(near_2cx), Operator(from_default)), 1e-15
+        )
+        self.assertEqual(from_default.count_ops()["cx"], 3)
+        # These two circuits should be exactly identical, since it's the same decomposition.
+        self.assertEqual(from_default, pass_exact(qc))
+        # ... but now if we allow approximation up to the gate error, we should be able to find the
+        # 2-cx synthesis of iSwap (or something else that's nearby).
+        self.assertEqual(pass_approximate(qc).count_ops()["cx"], 2)
+
+        # The same applies for gates that are near a 1-cx decomposition...
+        near_1cx = CXGate().to_matrix() @ perturbation
+        qc = QuantumCircuit(2)
+        qc.ensure_physical()
+        qc.unitary(near_1cx, [0, 1])
+        from_exact = pass_exact(qc)
+        self.assertLess(1 - average_gate_fidelity(Operator(near_1cx), Operator(from_exact)), 1e-15)
+        self.assertEqual(from_exact.count_ops()["cx"], 3)
+        self.assertEqual(pass_approximate(qc).count_ops()["cx"], 1)
+
+        # ... and near a 0q decomposition.
+        near_separable = np.kron(XGate().to_matrix(), ZGate().to_matrix()) @ perturbation
+        qc = QuantumCircuit(2)
+        qc.ensure_physical()
+        qc.unitary(near_separable, [0, 1])
+        from_exact = pass_exact(qc)
+        self.assertLess(
+            1 - average_gate_fidelity(Operator(near_separable), Operator(from_exact)), 1e-15
+        )
+        self.assertEqual(from_exact.count_ops()["cx"], 3)
+        self.assertNotIn("cx", pass_approximate(qc).count_ops())
+
+    def test_problematic_unitary(self):
+        """Test on a circuit with a special unitary matrix that caused problems for
+        Quantum Shannon Decomposition based on nalgebra.
+
+        Based on regression test of #15870.
+        """
+        unitary_matrix = np.array(
+            [
+                [0j, 0j, 0j, 0j, 0j, 0j, 0j, (1 + 0j)],
+                [0j, 0j, 0j, 0j, 0j, 0j, (1 + 0j), 0j],
+                [0j, 0j, 0j, 0j, 0j, (1 + 0j), 0j, 0j],
+                [0j, (1 + 0j), 0j, 0j, 0j, 0j, 0j, 0j],
+                [0j, 0j, 0j, 0j, (1 + 0j), 0j, 0j, 0j],
+                [0j, 0j, (1 + 0j), 0j, 0j, 0j, 0j, 0j],
+                [0j, 0j, 0j, (1 + 0j), 0j, 0j, 0j, 0j],
+                [(1 + 0j), 0j, 0j, 0j, 0j, 0j, 0j, 0j],
+            ]
+        )
+
+        circuit = QuantumCircuit(3)
+        circuit.unitary(unitary_matrix, list(range(3)))
+
+        _ = UnitarySynthesis(basis_gates=["cx", "u"])(circuit)
 
 
 if __name__ == "__main__":

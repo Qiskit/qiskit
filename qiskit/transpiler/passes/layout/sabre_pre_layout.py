@@ -116,7 +116,7 @@ class SabrePreLayout(AnalysisPass):
 
         if self.coupling_map is None:
             raise TranspilerError(
-                "SabrePreLayout requires coupling_map to be used with either"
+                "SabrePreLayout requires coupling_map to be used with either "
                 "CouplingMap or a Target."
             )
 

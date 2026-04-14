@@ -127,7 +127,7 @@ class _DAGDependencyV2:
         """Set the global phase of the circuit.
 
         Args:
-            angle (float, ParameterExpression)
+            angle (float, ParameterExpression): The angle to set the global phase to.
         """
         if isinstance(angle, ParameterExpression):
             self._global_phase = angle
@@ -470,6 +470,11 @@ class _DAGDependencyV2:
 
         This function needs `pydot <https://github.com/erocarrera/pydot>`, which in turn needs
         Graphviz <https://www.graphviz.org/>` to be installed.
+
+        .. warning::
+            This function will call the system Graphviz tool on a file involving user-controllable
+            strings (such as gate labels or register names).  It is recommended to only call this
+            function on trusted input.
 
         Args:
             scale (float): scaling factor

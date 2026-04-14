@@ -10,13 +10,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::env;
-
 pub mod annotation;
 pub mod bit;
 pub mod bit_locator;
 mod blocks;
 pub mod circuit_data;
+pub mod circuit_drawer;
 pub mod circuit_instruction;
 pub mod classical;
 pub mod converters;
@@ -36,13 +35,12 @@ pub mod packed_instruction;
 pub mod parameter;
 pub mod parameter_table;
 pub mod register_data;
-pub mod slice;
-pub mod util;
+pub mod standard_gate;
+pub mod var_stretch_container;
+mod variable_mapper;
 pub mod vf2;
 
-mod variable_mapper;
-
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyString, PyTuple};
 
@@ -205,17 +203,14 @@ pub enum BlocksMode {
     Keep,
 }
 
-#[inline]
-pub fn getenv_use_multiple_threads() -> bool {
-    let parallel_context = env::var("QISKIT_IN_PARALLEL")
-        .unwrap_or_else(|_| "FALSE".to_string())
-        .to_uppercase()
-        == "TRUE";
-    let force_threads = env::var("QISKIT_FORCE_THREADS")
-        .unwrap_or_else(|_| "FALSE".to_string())
-        .to_uppercase()
-        == "TRUE";
-    !parallel_context || force_threads
+/// Simple error type for objects with built-in hard-coded capacity limits.
+#[derive(Clone, Copy, Debug, thiserror::Error)]
+#[error("exceeded allowed runtime capacity")]
+pub struct CapacityError;
+impl From<CapacityError> for PyErr {
+    fn from(val: CapacityError) -> PyErr {
+        PyRuntimeError::new_err(val.to_string())
+    }
 }
 
 pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
@@ -228,7 +223,8 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<bit::PyClassicalRegister>()?;
     m.add_class::<bit::PyQuantumRegister>()?;
     m.add_class::<bit::PyAncillaRegister>()?;
-    m.add_class::<circuit_data::CircuitData>()?;
+
+    m.add_class::<circuit_data::PyCircuitData>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
     m.add_class::<dag_circuit::DAGCircuit>()?;
     m.add_class::<dag_node::DAGNode>()?;

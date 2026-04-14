@@ -129,7 +129,7 @@ class BasePass(GenericPass, metaclass=MetaPass):
                 be used (if set).
 
         Returns:
-            If on transformation pass, the resulting QuantumCircuit.
+            If a transformation pass, the resulting QuantumCircuit.
             If analysis pass, the input circuit.
         """
         from qiskit.transpiler import PassManager

@@ -77,7 +77,7 @@ Filtering warnings
 Python has built-in mechanisms to filter warnings, described in the documentation of the
 :mod:`warnings` module.  You can use these subclasses in your warning filters from within Python to
 silence warnings you are not interested in.  For example, if you are knowingly using experimental
-features and are comfortable that they make break in later versions, you can silence
+features and are comfortable that they may break in later versions, you can silence
 :exc:`ExperimentalWarning` like this::
 
     import warnings

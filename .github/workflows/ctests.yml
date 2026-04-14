@@ -2,26 +2,24 @@
 name: C API Tests
 on:
   workflow_call:
+    inputs:
+      python-version:
+        description: Python version to test.
+        type: string
+        required: true
+      runner: 
+        description: Runner image to use.
+        type: string
+        required: true
 
 jobs:
   tests:
-    if: github.repository_owner == 'Qiskit'
-    name: tests-c-${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - ubuntu-latest
-          # Used for the ARM builds.
-          - macos-14
-          - ubuntu-24.04-arm
-          - windows-latest
+    name: ${{ inputs.runner }}
+    runs-on: ${{ inputs.runner }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.13"
-
+          python-version: ${{ inputs.python-version }}
       - name: Run tests
         run: make ctest

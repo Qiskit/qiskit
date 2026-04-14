@@ -128,7 +128,7 @@ class DAGDependency:
         """Set the global phase of the circuit.
 
         Args:
-            angle (float, ParameterExpression)
+            angle (float, ParameterExpression): The angle to set the global phase to.
         """
         from qiskit.circuit.parameterexpression import ParameterExpression  # needed?
 
@@ -505,8 +505,13 @@ class DAGDependency:
         """
         Draws the DAGDependency graph.
 
-        This function needs `pydot <https://github.com/erocarrera/pydot>`, which in turn needs
-        Graphviz <https://www.graphviz.org/>` to be installed.
+        This function needs `pydot <https://github.com/erocarrera/pydot>`_, which in turn needs
+        `Graphviz <https://www.graphviz.org/>`_ to be installed.
+
+        .. warning::
+            This function will call the system Graphviz tool on a file involving user-controllable
+            strings (such as gate labels or register names).  It is recommended to only call this
+            function on trusted input.
 
         Args:
             scale (float): scaling factor
@@ -515,7 +520,7 @@ class DAGDependency:
                          'color' (default): color input/output/op nodes
 
         Returns:
-            Ipython.display.Image: if in Jupyter notebook and not saving to file, otherwise None.
+            IPython.display.Image: if in Jupyter notebook and not saving to file, otherwise None.
         """
         from qiskit.visualization.dag_visualization import dag_drawer
 
