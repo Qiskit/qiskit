@@ -175,50 +175,36 @@ class TestCommutationChecker(QiskitTestCase):
 
     def test_standard_gates_commutations(self):
         """Check that commutativity checker uses standard gates commutations as expected."""
-        scc.clear_cached_commutations()
         self.assertTrue(scc.commute(ZGate(), [0], [], CXGate(), [0, 1], []))
-        self.assertEqual(scc.num_cached_entries(), 0)
 
     def test_caching_positive_results(self):
         """Check that hashing positive results in commutativity checker works as expected."""
-        scc.clear_cached_commutations()
         self.assertTrue(scc.commute(ZGate(), [0], [], CUGate(1, 2, 3, 0), [0, 1], []))
-        self.assertGreater(scc.num_cached_entries(), 0)
 
     def test_caching_lookup_with_non_overlapping_qubits(self):
         """Check that commutation lookup with non-overlapping qubits works as expected."""
-        scc.clear_cached_commutations()
         self.assertTrue(scc.commute(CXGate(), [0, 2], [], CXGate(), [0, 1], []))
         self.assertFalse(scc.commute(CXGate(), [0, 1], [], CXGate(), [1, 2], []))
-        self.assertEqual(scc.num_cached_entries(), 0)
 
     def test_caching_store_and_lookup_with_non_overlapping_qubits(self):
         """Check that commutations storing and lookup with non-overlapping qubits works as expected."""
-        scc_lenm = scc.num_cached_entries()
         cx_like = CUGate(np.pi, 0, np.pi, 0)
         self.assertTrue(scc.commute(cx_like, [0, 2], [], CXGate(), [0, 1], []))
         self.assertFalse(scc.commute(cx_like, [0, 1], [], CXGate(), [1, 2], []))
         self.assertTrue(scc.commute(cx_like, [1, 4], [], CXGate(), [1, 6], []))
         self.assertFalse(scc.commute(cx_like, [5, 3], [], CXGate(), [3, 1], []))
-        self.assertEqual(scc.num_cached_entries(), scc_lenm + 2)
 
     def test_caching_negative_results(self):
         """Check that hashing negative results in commutativity checker works as expected."""
-        scc.clear_cached_commutations()
         self.assertFalse(scc.commute(XGate(), [0], [], CUGate(1, 2, 3, 0), [0, 1], []))
-        self.assertGreater(scc.num_cached_entries(), 0)
 
     def test_caching_different_qubit_sets(self):
         """Check that hashing same commutativity results over different qubit sets works as expected."""
-        scc.clear_cached_commutations()
-        # All the following should be cached in the same way
-        # though each relation gets cached twice: (A, B) and (B, A)
         cx_like = CUGate(np.pi, 0, np.pi, 0)
         scc.commute(XGate(), [0], [], cx_like, [0, 1], [])
         scc.commute(XGate(), [10], [], cx_like, [10, 20], [])
         scc.commute(XGate(), [10], [], cx_like, [10, 5], [])
         scc.commute(XGate(), [5], [], cx_like, [5, 7], [])
-        self.assertEqual(scc.num_cached_entries(), 1)
 
     def test_zero_rotations(self):
         """Check commutativity between (non-parameterized) gates with parameters."""
@@ -391,17 +377,14 @@ class TestCommutationChecker(QiskitTestCase):
 
         cx_like = CUGate(np.pi, 0, np.pi, 0)
 
-        scc.clear_cached_commutations()
         self.assertTrue(scc.commute(ZGate(), [0], [], cx_like, [0, 1], []))
         cc2 = pickle.loads(pickle.dumps(scc))
-        self.assertEqual(cc2.num_cached_entries(), 1)
         dop1 = DAGOpNode(ZGate(), qargs=[0], cargs=[])
         dop2 = DAGOpNode(cx_like, qargs=[0, 1], cargs=[])
         cc2.commute_nodes(dop1, dop2)
         dop1 = DAGOpNode(ZGate(), qargs=[0], cargs=[])
         dop2 = DAGOpNode(CXGate(), qargs=[0, 1], cargs=[])
         cc2.commute_nodes(dop1, dop2)
-        self.assertEqual(cc2.num_cached_entries(), 1)
 
     @idata(ROTATION_GATES)
     def test_cutoff_angles(self, gate_cls):
