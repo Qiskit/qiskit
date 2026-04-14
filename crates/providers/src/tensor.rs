@@ -59,6 +59,12 @@ pub struct DTypeVar {
     pub name: String,
 }
 
+impl<T: Into<String>> From<T> for DTypeVar {
+    fn from(value: T) -> Self {
+        Self { name: value.into() }
+    }
+}
+
 /// A tensor data type whose value is yet unknown, but will be the promotion of others.
 #[derive(Debug, Clone)]
 pub struct DTypePromotion {
