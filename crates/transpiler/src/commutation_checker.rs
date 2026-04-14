@@ -496,6 +496,24 @@ impl CommutationChecker {
             _ => (),
         };
 
+        // Special handling for commutativity of two pauli product measurements
+        if let (
+            OperationRef::PauliProductMeasurement(ppm1),
+            OperationRef::PauliProductMeasurement(ppm2),
+        ) = (op1, op2)
+        {
+            if cargs1 == cargs2 {
+                // If both PPMs write to the same classical bit, it's generally incorrect to interchange them.
+                // So we return true only if both PPMs are identical.
+                return Ok(ppm1 == ppm2);
+            } else {
+                // PPMs write to different classical bits, and they commute if and only if their pauli generators do.
+                let size = qargs1.iter().chain(qargs2.iter()).max().unwrap().0 + 1;
+                let pauli1 =  try_pauli_generator(op1, qargs1, size).expect("extracting sparse observable generator from pauli product measurement in infallible");
+                let pauli2 =  try_pauli_generator(op2, qargs2, size).expect("extracting sparse observable generator from pauli product measurement in infallible");
+                return Ok(pauli1.commutes(&pauli2, tol));
+            }
+        }
         // Handle commutations between Pauli-based gates among themselves, and with standard gates
         // TODO Support trivial commutations of standard gates with identities in the Paulis
         let size = qargs1.iter().chain(qargs2.iter()).max().unwrap().0 + 1;
