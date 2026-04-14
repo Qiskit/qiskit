@@ -196,7 +196,7 @@ def dump(
             f"{common.QPY_COMPATIBILITY_VERSION} and {common.QPY_VERSION} for `qpy.dump`."
         )
 
-    use_rust = version >= common.QPY_RUST_MIN_VERSION
+    use_rust = version >= common.QPY_RUST_WRITE_MIN_VERSION
     if use_rust:
         _qpy.dump(
             programs,
@@ -353,7 +353,7 @@ def load(
             f"The QPY format version being read, {version}, isn't supported by "
             "this Qiskit version. Please upgrade your version of Qiskit to load this QPY payload"
         )
-    use_rust = version >= common.QPY_RUST_MIN_VERSION
+    use_rust = version >= common.QPY_RUST_READ_MIN_VERSION
     if use_rust:
         return _qpy.load(file_obj, metadata_deserializer, annotation_factories)
 
@@ -371,6 +371,7 @@ def load(
                 file_obj.read(formats.FILE_HEADER_V10_SIZE),
             )
         )
+    use_rust = version >= common.QPY_RUST_READ_MIN_VERSION
 
     config = user_config.get_config()
     min_qpy_version = config.get("min_qpy_version")

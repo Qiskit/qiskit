@@ -11,5 +11,6 @@
 // that they have been altered from the originals.
 
 pub mod iqp;
+pub mod pbc;
 pub mod quantum_volume;
 pub mod suzuki_trotter;

@@ -40,11 +40,12 @@ use rustworkx_core::petgraph::{
 use qiskit_circuit::NoBlocks;
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::imports::{ImportOnceCell, QUANTUM_CIRCUIT};
+use qiskit_circuit::imports::QUANTUM_CIRCUIT;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::{Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedOperation;
+use qiskit_util::py::ImportOnceCell;
 
 use crate::standard_equivalence_library::generate_standard_equivalence_library;
 
@@ -358,10 +359,8 @@ impl<'a, 'py> FromPyObject<'a, 'py> for CircuitFromPython {
 
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         if ob.is_instance(QUANTUM_CIRCUIT.get_bound(ob.py()))? {
-            let data: Bound<PyAny> = ob.getattr("_data")?;
-            let data_downcast: Bound<PyCircuitData> = data.cast_into()?;
-            let data_extract: PyCircuitData = data_downcast.extract()?;
-            Ok(Self(data_extract.into()))
+            let data = ob.getattr("_data")?.cast_into::<PyCircuitData>()?;
+            Ok(Self(data.borrow().inner.clone()))
         } else {
             Err(PyTypeError::new_err(
                 "Provided object was not an instance of QuantumCircuit",

@@ -105,7 +105,7 @@ class BasePassManager(ABC):
         try:
             del self._tasks[index]
         except IndexError as ex:
-            raise PassManagerError(f"Index to replace {index} does not exist") from ex
+            raise PassManagerError(f"Index to remove {index} does not exist") from ex
 
     def __setitem__(self, index, item):
         self.replace(index, item)
@@ -142,7 +142,8 @@ class BasePassManager(ABC):
         """Convert input program into pass manager IR.
 
         Args:
-            in_program: Input program.
+            input_program: Input program.
+            **kwargs: Keyword arguments for the pass manager frontend.
 
         Returns:
             Pass manager IR.
@@ -162,6 +163,7 @@ class BasePassManager(ABC):
             in_program: The input program, this can be used if you need
                 any metadata about the original input for the output.
                 It should not be mutated.
+            **kwargs: Keyword arguments for the pass manager backend.
 
         Returns:
             Output program.
@@ -183,7 +185,7 @@ class BasePassManager(ABC):
                 A single input object cannot be a Python builtin list object.
                 A list object is considered as multiple input objects to optimize.
             callback: A callback function that will be called after each pass execution. The
-                function will be called with 4 keyword arguments::
+                function will be called with 5 keyword arguments::
 
                     task (GenericPass): the pass being run
                     passmanager_ir (Any): depending on pass manager subclass
@@ -290,6 +292,8 @@ def _run_workflow(
     Args:
         program: Arbitrary program to optimize.
         pass_manager: Pass manager with scheduled passes.
+        initial_property_set: An optional dictionary to preseed the
+            property set in the pass manager with.
         **kwargs: Keyword arguments for IR conversion.
 
     Returns:
@@ -342,6 +346,10 @@ def _run_workflow_in_new_process(
     Args:
         program: Arbitrary program to optimize.
         pass_manager_bin: Binary of the pass manager with scheduled passes.
+        initial_property_set: An optional dictionary to preseed the
+            property set in the pass manager with.
+        callback: An optional callable that will be called after each pass
+            executes.
 
     Returns:
           Optimized program.

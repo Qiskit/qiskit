@@ -56,7 +56,7 @@ pub extern "C" fn qk_sabre_layout_options_default() -> SabreLayoutOptions {
     }
 }
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Run the SabreLayout transpiler pass on a circuit.
 ///
 /// The SabreLayout pass chooses a layout via an iterative bidirectional routing of the input
@@ -120,11 +120,13 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_sabre_layout(
             1.0,
             heuristic::SetScaling::Constant,
         )),
-        Some(heuristic::LookaheadHeuristic::new(
-            0.5,
-            20,
-            heuristic::SetScaling::Size,
-        )),
+        Some(
+            heuristic::LookaheadHeuristic::new(
+                vec![0.5 / target.num_qubits.unwrap_or(20) as f64],
+                heuristic::SetScaling::Constant,
+            )
+            .expect("number of layers should be valid"),
+        ),
         Some(heuristic::DecayHeuristic::new(0.001, 5)),
         Some(10 * target.num_qubits.unwrap() as usize),
         1e-10,

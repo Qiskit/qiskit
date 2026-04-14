@@ -1242,6 +1242,25 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
         self.assertGreaterEqual(ratio, self.threshold)
 
+    def test_barrier_label_truncation(self):
+        """Test that long barrier labels are truncated"""
+        circuit = QuantumCircuit(2)
+        circuit.barrier()
+        circuit.barrier(label="a" * 10)
+        circuit.barrier(label="b" * 1000)
+
+        fname = "barrier_label_truncation.png"
+        self.circuit_drawer(circuit, output="mpl", filename=fname, barrier_label_len=9)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, self.threshold)
+
     def test_if_op(self):
         """Test the IfElseOp with if only"""
         qr = QuantumRegister(4, "q")
