@@ -1,3 +1,15 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2026.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
 """The Omelyan-Trotter product formula."""
 
 from __future__ import annotations
@@ -47,10 +59,10 @@ class OmelyanTrotter(ProductFormula):
     (see Ref. [10] for a trove of schemes at orders n = 4, 6).
     For convenience, some of the most efficient schemes known are implemented
     as derivatives of this class.
-    The schemes are of even order, resulting in symmetric parameters.
+    The scheme parameters are symmetric, which results in even orders n.
     Furthermore, the notation used to obtain the product formula is
     the so-called ramp notation with parameters c_k (see Ref. [5]).
-    The notation enables implementations with an arbitrary number of 
+    The notation enables implementations with an arbitrary number of
     operators.
     Due to the properties of such a notation the sum of all parameters c_k
     should be equal to 1/2, otherwise the scheme becomes invalid.
@@ -164,7 +176,9 @@ class OmelyanTrotter(ProductFormula):
             warnings.warn(
                 "The parameters in c_vec do not sum up to 1/2. "
                 f"The difference is {abs(sum(c_vec) - 0.5):.2e}. "
-                "The scheme may be invalid!", UserWarning)
+                "The scheme may be invalid!",
+                UserWarning,
+            )
 
         self.cycles = cycles
         # Check if the parameters in c_vec are real
@@ -226,7 +240,7 @@ class OmelyanTrotter(ProductFormula):
                 return reorder_paulis(paulis)
 
             return paulis
-        
+
         # Merge same single qubit gates within a step by adding their angles
         def merge_single_qubit(step_paulis):
             merged = []
@@ -235,22 +249,26 @@ class OmelyanTrotter(ProductFormula):
                     merged_single = False
                     for index, element in enumerate(reversed(merged)):
                         if label == element[0] and indices == element[1]:
-                            merged[-1-index] = (label, indices, angle + element[2])
+                            merged[-1 - index] = (label, indices, angle + element[2])
                             merged_single = True
                             break
                         elif indices[0] in element[1]:
                             break
                     if not merged_single:
-                      merged.append((label, indices, angle))
+                        merged.append((label, indices, angle))
                 else:
                     merged.append((label, indices, angle))
             return merged
 
         # Merge steps within a full product formula by adding up the angles at the point where they meet
         def merge_steps(full_paulis, step_length):
-            merge_points = range(step_length, (self.reps-1) * step_length + 1, step_length)
+            merge_points = range(step_length, (self.reps - 1) * step_length + 1, step_length)
             for i in reversed(merge_points):
-                full_paulis[i-1] = (full_paulis[i-1][0], full_paulis[i-1][1], 2*full_paulis[i-1][2])
+                full_paulis[i - 1] = (
+                    full_paulis[i - 1][0],
+                    full_paulis[i - 1][1],
+                    2 * full_paulis[i - 1][2],
+                )
                 del full_paulis[i]
             return full_paulis
 
@@ -276,7 +294,7 @@ class OmelyanTrotter(ProductFormula):
             full = merge_steps(full, len(one_step))
 
         return full
-    
+
     @staticmethod
     def _ramp(cs, grouped_paulis):
         q = len(cs)
@@ -291,24 +309,25 @@ class OmelyanTrotter(ProductFormula):
             add_paulis(formula, paulis, cs[0])
 
         # Ramps in the middle (up and down)
-        for k in range(q-1):
+        for k in range(q - 1):
             # Point where the ramps meet above
-            add_paulis(formula, grouped_paulis[-1], cs[k] + cs[q-k-1])
+            add_paulis(formula, grouped_paulis[-1], cs[k] + cs[q - k - 1])
             # Ramp down
             for paulis in reversed(grouped_paulis[1:-1]):
-                add_paulis(formula, paulis, cs[q-k-1])
+                add_paulis(formula, paulis, cs[q - k - 1])
             # Point where the ramps meet below
-            add_paulis(formula, grouped_paulis[0], cs[q-k-1] + cs[k+1])
+            add_paulis(formula, grouped_paulis[0], cs[q - k - 1] + cs[k + 1])
             # Ramp up
             for paulis in grouped_paulis[1:-1]:
-                add_paulis(formula, paulis, cs[k+1])
+                add_paulis(formula, paulis, cs[k + 1])
         # Final point where the ramps meet above
-        add_paulis(formula, grouped_paulis[-1], cs[q-1] + cs[0])
+        add_paulis(formula, grouped_paulis[-1], cs[q - 1] + cs[0])
         # Final ramp down
         for paulis in reversed(grouped_paulis[:-1]):
             add_paulis(formula, paulis, cs[0])
-        
+
         return formula
+
 
 def real_or_fail(value, tol=100):
     """Return real if close, otherwise fail. Unbound parameters are left unchanged.

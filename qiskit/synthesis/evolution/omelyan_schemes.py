@@ -1,3 +1,15 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2026.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
 """The Omelyan-Trotter scheme collection."""
 
 from omelyan_trotter import OmelyanTrotter
@@ -27,9 +39,19 @@ class Leapfrog2(OmelyanTrotter):
         OmelyanTrotter
     """
 
-    def __init__(self, reps=1, merge_single=True, merge_steps=True, insert_barriers=False, cx_structure="chain",
-                 atomic_evolution=None, wrap=False, preserve_order=True, *,
-                 atomic_evolution_sparse_observable=False):
+    def __init__(
+        self,
+        reps=1,
+        merge_single=True,
+        merge_steps=True,
+        insert_barriers=False,
+        cx_structure="chain",
+        atomic_evolution=None,
+        wrap=False,
+        preserve_order=True,
+        *,
+        atomic_evolution_sparse_observable=False,
+    ):
         order = 2
         cycles = 1
         c_vec = [0.5]
@@ -47,6 +69,7 @@ class Leapfrog2(OmelyanTrotter):
             preserve_order=preserve_order,
             atomic_evolution_sparse_observable=atomic_evolution_sparse_observable,
         )
+
 
 class Omelyan2(OmelyanTrotter):
     r"""Second-order Omelyan improved scheme [1].
@@ -72,13 +95,22 @@ class Omelyan2(OmelyanTrotter):
         Omelyan4
     """
 
-    def __init__(self, reps=1, merge_single=True, merge_steps=True, insert_barriers=False, cx_structure="chain",
-                 atomic_evolution=None, wrap=False, preserve_order=True, *,
-                 atomic_evolution_sparse_observable=False):
+    def __init__(
+        self,
+        reps=1,
+        merge_single=True,
+        merge_steps=True,
+        insert_barriers=False,
+        cx_structure="chain",
+        atomic_evolution=None,
+        wrap=False,
+        preserve_order=True,
+        *,
+        atomic_evolution_sparse_observable=False,
+    ):
         order = 2
         cycles = 2
-        c_vec = [0.193183327503770311,
-                 0.306816672496229689]
+        c_vec = [0.193183327503770311, 0.306816672496229689]
         super().__init__(
             order=order,
             cycles=cycles,
@@ -93,6 +125,7 @@ class Omelyan2(OmelyanTrotter):
             preserve_order=preserve_order,
             atomic_evolution_sparse_observable=atomic_evolution_sparse_observable,
         )
+
 
 class Forest_Ruth4(OmelyanTrotter):
     r"""Fourth-order Forest-Ruth product formula [1].
@@ -117,15 +150,23 @@ class Forest_Ruth4(OmelyanTrotter):
         OmelyanTrotter
         Leapfrog2
     """
-    
-    def __init__(self, reps=1, merge_single=True, merge_steps=True, insert_barriers=False, cx_structure="chain",
-                 atomic_evolution=None, wrap=False, preserve_order=True, *,
-                 atomic_evolution_sparse_observable=False):
+
+    def __init__(
+        self,
+        reps=1,
+        merge_single=True,
+        merge_steps=True,
+        insert_barriers=False,
+        cx_structure="chain",
+        atomic_evolution=None,
+        wrap=False,
+        preserve_order=True,
+        *,
+        atomic_evolution_sparse_observable=False,
+    ):
         order = 4
         cycles = 3
-        c_vec = [0.675603595979828817,
-                -0.851207191959657634,
-                 0.675603595979828816]
+        c_vec = [0.675603595979828817, -0.851207191959657634, 0.675603595979828816]
         super().__init__(
             order=order,
             cycles=cycles,
@@ -140,6 +181,7 @@ class Forest_Ruth4(OmelyanTrotter):
             preserve_order=preserve_order,
             atomic_evolution_sparse_observable=atomic_evolution_sparse_observable,
         )
+
 
 class Omelyan4(OmelyanTrotter):
     r"""Fourth-order Omelyan's improved Forest-Ruth scheme [1].
@@ -162,15 +204,27 @@ class Omelyan4(OmelyanTrotter):
         Forest_Ruth4
     """
 
-    def __init__(self, reps=1, merge_single=True, merge_steps=True, insert_barriers=False, cx_structure="chain",
-                 atomic_evolution=None, wrap=False, preserve_order=True, *,
-                 atomic_evolution_sparse_observable=False):
+    def __init__(
+        self,
+        reps=1,
+        merge_single=True,
+        merge_steps=True,
+        insert_barriers=False,
+        cx_structure="chain",
+        atomic_evolution=None,
+        wrap=False,
+        preserve_order=True,
+        *,
+        atomic_evolution_sparse_observable=False,
+    ):
         order = 4
         cycles = 4
-        c_vec = [0.172086508927428834,
-                -0.581097833373203791,
-                 0.489536610172273414,
-                 0.419474714273501542]
+        c_vec = [
+            0.172086508927428834,
+            -0.581097833373203791,
+            0.489536610172273414,
+            0.419474714273501542,
+        ]
         super().__init__(
             order=order,
             cycles=cycles,
@@ -185,6 +239,7 @@ class Omelyan4(OmelyanTrotter):
             preserve_order=preserve_order,
             atomic_evolution_sparse_observable=atomic_evolution_sparse_observable,
         )
+
 
 class Malezic_Ostmeyer4(OmelyanTrotter):
     r"""Fourth-order maximal cycles scheme with improved efficiency,
@@ -209,17 +264,29 @@ class Malezic_Ostmeyer4(OmelyanTrotter):
         Malezic_Ostmeyer6
     """
 
-    def __init__(self, reps=1, merge_single=True, merge_steps=True, insert_barriers=False, cx_structure="chain",
-                 atomic_evolution=None, wrap=False, preserve_order=True, *,
-                 atomic_evolution_sparse_observable=False):
+    def __init__(
+        self,
+        reps=1,
+        merge_single=True,
+        merge_steps=True,
+        insert_barriers=False,
+        cx_structure="chain",
+        atomic_evolution=None,
+        wrap=False,
+        preserve_order=True,
+        *,
+        atomic_evolution_sparse_observable=False,
+    ):
         order = 4
         cycles = 6
-        c_vec = [0.074082572180463262,
-                 0.232923088374338803,
-                 0.296820560634668408,
-                 0.122086989386933251,
-                -0.350153632343424469,
-                 0.124240421767020743]
+        c_vec = [
+            0.074082572180463262,
+            0.232923088374338803,
+            0.296820560634668408,
+            0.122086989386933251,
+            -0.350153632343424469,
+            0.124240421767020743,
+        ]
         super().__init__(
             order=order,
             cycles=cycles,
@@ -234,6 +301,7 @@ class Malezic_Ostmeyer4(OmelyanTrotter):
             preserve_order=preserve_order,
             atomic_evolution_sparse_observable=atomic_evolution_sparse_observable,
         )
+
 
 class Yoshida6(OmelyanTrotter):
     r"""Sixth-order minimal cycles Yoshida scheme [1].
@@ -253,18 +321,30 @@ class Yoshida6(OmelyanTrotter):
         OmelyanTrotter
     """
 
-    def __init__(self, reps=1, merge_single=True, merge_steps=True, insert_barriers=False, cx_structure="chain",
-                 atomic_evolution=None, wrap=False, preserve_order=True, *,
-                 atomic_evolution_sparse_observable=False):
+    def __init__(
+        self,
+        reps=1,
+        merge_single=True,
+        merge_steps=True,
+        insert_barriers=False,
+        cx_structure="chain",
+        atomic_evolution=None,
+        wrap=False,
+        preserve_order=True,
+        *,
+        atomic_evolution_sparse_observable=False,
+    ):
         order = 6
         cycles = 7
-        c_vec = [0.392256805238778632,
-                 0.117786606679679069,
-                -0.588839992089435503,
-                 0.657593160341955605,
-                -0.588839992089435498, 
-                 0.117786606679679063,
-                 0.392256805238778632]
+        c_vec = [
+            0.392256805238778632,
+            0.117786606679679069,
+            -0.588839992089435503,
+            0.657593160341955605,
+            -0.588839992089435498,
+            0.117786606679679063,
+            0.392256805238778632,
+        ]
         super().__init__(
             order=order,
             cycles=cycles,
@@ -279,6 +359,7 @@ class Yoshida6(OmelyanTrotter):
             preserve_order=preserve_order,
             atomic_evolution_sparse_observable=atomic_evolution_sparse_observable,
         )
+
 
 class Blanes_Moan6(OmelyanTrotter):
     r"""Sixth-order improved scheme found by Blanes and Moan [1].
@@ -302,21 +383,33 @@ class Blanes_Moan6(OmelyanTrotter):
         Malezic_Ostmeyer6
     """
 
-    def __init__(self, reps=1, merge_single=True, merge_steps=True, insert_barriers=False, cx_structure="chain",
-                 atomic_evolution=None, wrap=False, preserve_order=True, *,
-                 atomic_evolution_sparse_observable=False):
+    def __init__(
+        self,
+        reps=1,
+        merge_single=True,
+        merge_steps=True,
+        insert_barriers=False,
+        cx_structure="chain",
+        atomic_evolution=None,
+        wrap=False,
+        preserve_order=True,
+        *,
+        atomic_evolution_sparse_observable=False,
+    ):
         order = 6
         cycles = 10
-        c_vec = [0.050262764400392200,
-                 0.314960616927694200,
-                 0.492426372489875900,
-                 0.237063913978121900,
-                 0.346358189850726900,
-                -0.362762779254344799,
-                 0.195602488600053199,
-                -0.425118767797690800,
-                -0.447346482695478100,
-                 0.098553683500649899]
+        c_vec = [
+            0.050262764400392200,
+            0.314960616927694200,
+            0.492426372489875900,
+            0.237063913978121900,
+            0.346358189850726900,
+            -0.362762779254344799,
+            0.195602488600053199,
+            -0.425118767797690800,
+            -0.447346482695478100,
+            0.098553683500649899,
+        ]
         super().__init__(
             order=order,
             cycles=cycles,
@@ -331,6 +424,7 @@ class Blanes_Moan6(OmelyanTrotter):
             preserve_order=preserve_order,
             atomic_evolution_sparse_observable=atomic_evolution_sparse_observable,
         )
+
 
 class Malezic_Ostmeyer6(OmelyanTrotter):
     r"""Sixth-order maximal cycles scheme with improved efficiency,
@@ -355,25 +449,37 @@ class Malezic_Ostmeyer6(OmelyanTrotter):
         Malezic_Ostmeyer4
     """
 
-    def __init__(self, reps=1, merge_single=True, merge_steps=True, insert_barriers=False, cx_structure="chain",
-                 atomic_evolution=None, wrap=False, preserve_order=True, *,
-                 atomic_evolution_sparse_observable=False):
+    def __init__(
+        self,
+        reps=1,
+        merge_single=True,
+        merge_steps=True,
+        insert_barriers=False,
+        cx_structure="chain",
+        atomic_evolution=None,
+        wrap=False,
+        preserve_order=True,
+        *,
+        atomic_evolution_sparse_observable=False,
+    ):
         order = 6
         cycles = 14
-        c_vec = [0.037251326545569924,
-                 0.120600278793781562,
-                 0.266062994460763541,
-                 0.163668553338143183,
-                 0.071316838327437583,
-                 0.058117508592333414,
-                 0.188707697234255120,
-                -0.200016005078878524,
-                 0.074145714537530386,
-                 0.087345801243357893,
-                 0.044234977360777830,
-                -0.230821838291030424,
-                -0.237197828922049295,
-                 0.056583981858007803]
+        c_vec = [
+            0.037251326545569924,
+            0.120600278793781562,
+            0.266062994460763541,
+            0.163668553338143183,
+            0.071316838327437583,
+            0.058117508592333414,
+            0.188707697234255120,
+            -0.200016005078878524,
+            0.074145714537530386,
+            0.087345801243357893,
+            0.044234977360777830,
+            -0.230821838291030424,
+            -0.237197828922049295,
+            0.056583981858007803,
+        ]
         super().__init__(
             order=order,
             cycles=cycles,
@@ -388,6 +494,7 @@ class Malezic_Ostmeyer6(OmelyanTrotter):
             preserve_order=preserve_order,
             atomic_evolution_sparse_observable=atomic_evolution_sparse_observable,
         )
+
 
 class Morales8(OmelyanTrotter):
     r"""Eighth-order scheme derived by Morales et al. [1],
@@ -412,28 +519,40 @@ class Morales8(OmelyanTrotter):
         Morales10
     """
 
-    def __init__(self, reps=1, merge_single=True, merge_steps=True, insert_barriers=False, cx_structure="chain",
-                 atomic_evolution=None, wrap=False, preserve_order=True, *,
-                 atomic_evolution_sparse_observable=False):
+    def __init__(
+        self,
+        reps=1,
+        merge_single=True,
+        merge_steps=True,
+        insert_barriers=False,
+        cx_structure="chain",
+        atomic_evolution=None,
+        wrap=False,
+        preserve_order=True,
+        *,
+        atomic_evolution_sparse_observable=False,
+    ):
         order = 8
         cycles = 17
-        c_vec = [0.063916804931420539,
-                 0.280744226331782243,
-                -0.192002866507456979,
-                 0.079913811043049626,
-                -0.200245552140900553,
-                 0.093348240747703450,
-                 0.130101971174520761,
-                 0.145686923839933300,
-                -0.302927118840104760,
-                 0.145686923839933298,
-                 0.130101971174520761,
-                 0.093348240747703449,
-                -0.200245552140900555,
-                 0.079913811043049619,
-                -0.192002866507456983,
-                 0.280744226331782242,
-                 0.063916804931420539]
+        c_vec = [
+            0.063916804931420539,
+            0.280744226331782243,
+            -0.192002866507456979,
+            0.079913811043049626,
+            -0.200245552140900553,
+            0.093348240747703450,
+            0.130101971174520761,
+            0.145686923839933300,
+            -0.302927118840104760,
+            0.145686923839933298,
+            0.130101971174520761,
+            0.093348240747703449,
+            -0.200245552140900555,
+            0.079913811043049619,
+            -0.192002866507456983,
+            0.280744226331782242,
+            0.063916804931420539,
+        ]
         super().__init__(
             order=order,
             cycles=cycles,
@@ -448,6 +567,7 @@ class Morales8(OmelyanTrotter):
             preserve_order=preserve_order,
             atomic_evolution_sparse_observable=atomic_evolution_sparse_observable,
         )
+
 
 class Morales10(OmelyanTrotter):
     r"""Tenth-order scheme derived by Morales et al. [1],
@@ -471,44 +591,56 @@ class Morales10(OmelyanTrotter):
         Morales8
     """
 
-    def __init__(self, reps=1, merge_single=True, merge_steps=True, insert_barriers=False, cx_structure="chain",
-                 atomic_evolution=None, wrap=False, preserve_order=True, *,
-                 atomic_evolution_sparse_observable=False):
+    def __init__(
+        self,
+        reps=1,
+        merge_single=True,
+        merge_steps=True,
+        insert_barriers=False,
+        cx_structure="chain",
+        atomic_evolution=None,
+        wrap=False,
+        preserve_order=True,
+        *,
+        atomic_evolution_sparse_observable=False,
+    ):
         order = 10
         cycles = 33
-        c_vec = [0.040603659105128917,
-                 0.102059372373484241,
-                 0.333576029136068776,
-                 0.077073458899788712,
-                -0.079218462368935611,
-                -0.342772124480309763,
-                 0.030499570279594295,
-                -0.132205995915730353,
-                 0.065321365348933640,
-                 0.101094763095369042,
-                -0.173114884665614835,
-                 0.494275937663783538,
-                -0.494140660592729350,
-                 0.173907705343525828,
-                 0.145215861148504397,
-                -0.247250658997780216,
-                 0.310150129253800483,
-                -0.247250658997778264,
-                 0.145215861148507680,
-                 0.173907705343526472,
-                -0.494140660592732433,
-                 0.494275937663780444,
-                -0.173114884665617632,
-                 0.101094763095363679,
-                 0.065321365348932828,
-                -0.132205995915731028,
-                 0.030499570279623287,
-                -0.342772124480303955,
-                -0.079218462368930145,
-                 0.077073458899794397,
-                 0.333576029136074380,
-                 0.102059372373477402,
-                 0.040603659105131142]
+        c_vec = [
+            0.040603659105128917,
+            0.102059372373484241,
+            0.333576029136068776,
+            0.077073458899788712,
+            -0.079218462368935611,
+            -0.342772124480309763,
+            0.030499570279594295,
+            -0.132205995915730353,
+            0.065321365348933640,
+            0.101094763095369042,
+            -0.173114884665614835,
+            0.494275937663783538,
+            -0.494140660592729350,
+            0.173907705343525828,
+            0.145215861148504397,
+            -0.247250658997780216,
+            0.310150129253800483,
+            -0.247250658997778264,
+            0.145215861148507680,
+            0.173907705343526472,
+            -0.494140660592732433,
+            0.494275937663780444,
+            -0.173114884665617632,
+            0.101094763095363679,
+            0.065321365348932828,
+            -0.132205995915731028,
+            0.030499570279623287,
+            -0.342772124480303955,
+            -0.079218462368930145,
+            0.077073458899794397,
+            0.333576029136074380,
+            0.102059372373477402,
+            0.040603659105131142,
+        ]
         super().__init__(
             order=order,
             cycles=cycles,
