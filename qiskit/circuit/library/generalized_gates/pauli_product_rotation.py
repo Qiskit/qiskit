@@ -181,6 +181,6 @@ class PauliProductRotationGate(Gate):
         cos(angle/2) * I - 1j * sin(angle / 2) * pauli"""
         angle = self.params[0]
         pauli_matrix = self.pauli().to_matrix(sparse=False)
-        ppr_matrix = -1j * np.sin(angle / 2) * ppr_matrix
+        ppr_matrix = -1j * np.sin(angle / 2) * pauli_matrix
         np.fill_diagonal(ppr_matrix, ppr_matrix.diagonal() + np.cos(angle / 2))
         return ppr_matrix
