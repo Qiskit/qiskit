@@ -23,8 +23,6 @@ use qiskit_circuit::classical::expr::Expr;
 use std::io::{Read, Seek, Write};
 use std::marker::PhantomData;
 
-// Only QPY version 17 is currently supported
-
 /// The entire serialized QPY file with all its components
 #[binrw]
 #[brw(big)]
@@ -39,7 +37,7 @@ pub struct QPYFile {
     pub symbolic_encoding: SymbolicEncoding,
     pub type_key: ValueType,
     #[br(temp)]
-    #[br(if(qpy_version <= 17))]
+    #[br(if(qpy_version >= 16))]
     #[br(count = num_programs)]
     #[bw(calc = Vec::new())]
     _circuit_table: Vec<u64>,
