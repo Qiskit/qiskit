@@ -843,5 +843,6 @@ class TestTemplateMatching(QiskitTestCase):
         self.assertEqual(result.count_ops(), {})
         self.assertEqual(Operator(circuit_in), Operator(result))
 
+
 if __name__ == "__main__":
     unittest.main()
