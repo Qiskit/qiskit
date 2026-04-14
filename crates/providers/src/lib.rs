@@ -12,4 +12,4 @@
 
 mod data_tree;
 
-pub use data_tree::{DataTree, TreeEntry};
+pub use data_tree::{DataTree, PathEntry, TreeEntry};

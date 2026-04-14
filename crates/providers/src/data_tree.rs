@@ -14,6 +14,16 @@ use std::marker::PhantomData;
 
 use hashbrown::HashMap;
 
+/// A path entry used for tracking a path through a [`DataTree`]
+///
+/// Each entry can either be an index or a key. A slice of `PathEntry` are used to form
+/// a traversal path through the [`DataTree`].
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum PathEntry<'a> {
+    Index(usize),
+    Key(&'a str),
+}
+
 /// An item stored in a `DataTree`
 ///
 /// This can either be a Leaf which is a concrete item of type `T` or a subtree.
@@ -175,6 +185,38 @@ impl<'a, T> DataTree<'a, T> {
         }
     }
 
+    /// Take a path slice and return the entry at the given path
+    ///
+    /// This will return `None` if a path can not be found. This includes an
+    /// invalid path, such as a path a leaf node in the middle. An empty path
+    /// will also return `None`.
+    pub fn get_by_path(&self, path: &[PathEntry]) -> Option<&TreeEntry<'_, T>> {
+        if path.is_empty() {
+            return None;
+        }
+        let start = match path[0] {
+            PathEntry::Index(idx) => Some(&self.data[idx]),
+            PathEntry::Key(key) => self.keys.get(key).map(|idx| &self.data[*idx]),
+        }?;
+        match start {
+            TreeEntry::Leaf(_) => {
+                if path.len() > 1 {
+                    // If there are more components in the path this is an invalid path
+                    None
+                } else {
+                    Some(start)
+                }
+            }
+            TreeEntry::Tree(inner_tree) => {
+                if path.len() > 1 {
+                    inner_tree.get_by_path(&path[1..])
+                } else {
+                    Some(start)
+                }
+            }
+        }
+    }
+
     /// Get an item from the `DataTree` by index.
     ///
     /// This will return `None` if the index is not valid.
@@ -261,7 +303,7 @@ impl<'a, T> DataTree<'a, T> {
 
     /// Return an iterator over the leaves in the `DataTree`
     ///
-    /// This method will return an iterator over all leave nodes in the tree by traversing the tree
+    /// This method will return an iterator over all leaf nodes in the tree by traversing the tree
     /// in a DFS order.
     ///
     /// # Example
@@ -298,9 +340,117 @@ impl<'a, T> DataTree<'a, T> {
             inner_next: None,
         }
     }
+
+    /// Return an iterator over the leaves in the `DataTree` that returns the path and leaf value.
+    ///
+    /// This method will return an iterator over all the leaf nodes in the tree in a DFS order.
+    /// Unlike [`iter_leaves`] which just returns the value this will return an owned `Vec` of the
+    /// path through the data tree to get to that value. This has allocation overhead for each leaf
+    /// node in the tree and should only be used if you need the path along with the value.
+    ///
+    /// ```rust
+    /// use qiskit_providers::{DataTree, PathEntry};
+    /// let mut subsubsubtree = DataTree::new();
+    /// subsubsubtree.push_leaf(3);
+    /// subsubsubtree.push_leaf(4);
+    /// let mut subsubtree = DataTree::new();
+    /// subsubtree.push_tree(subsubsubtree);
+    /// subsubtree.insert_leaf("b", 5);
+    /// let mut subsubtree_prime = DataTree::new();
+    /// subsubtree_prime.push_leaf(7);
+    /// let mut subtree = DataTree::new();
+    /// subtree.insert_tree("c", subsubtree);
+    /// subtree.insert_leaf("d", 6);
+    /// subtree.push_tree(subsubtree_prime);
+    /// let mut tree = DataTree::new();
+    /// tree.insert_leaf("a", 0);
+    /// tree.insert_tree("root", subtree);
+    /// tree.insert_leaf("z", 26);
+    /// let result: Vec<_> = tree.iter_path().map(|(a, b)| (a, *b)).collect();
+    /// let expected_paths: Vec<Vec<usize>> = vec![
+    ///     vec![0],
+    ///     vec![1, 0, 0, 0],
+    ///     vec![1, 0, 0, 1],
+    ///     vec![1, 0, 1],
+    ///     vec![1, 1],
+    ///     vec![1, 2, 0],
+    ///     vec![2],
+    /// ];
+    /// let expected_vals = vec![0, 3, 4, 5, 6, 7, 26];
+    /// let expected: Vec<_> = expected_paths
+    ///     .into_iter()
+    ///     .map(|x| x.into_iter().map(PathEntry::Index).collect::<Vec<_>>())
+    ///     .zip(expected_vals)
+    ///     .collect();
+    /// assert_eq!(result, expected);
+    /// ```
+    pub fn iter_path(&self) -> IterDataTree<'_, T> {
+        IterDataTree {
+            tree: self,
+            index: 0,
+            inner: None,
+            inner_next: None,
+            path: Vec::new(),
+        }
+    }
 }
 
-#[derive(Debug)]
+pub struct IterDataTree<'a, T> {
+    tree: &'a DataTree<'a, T>,
+    index: usize,
+    inner: Option<Box<IterDataTree<'a, T>>>,
+    inner_next: Option<(Vec<PathEntry<'a>>, &'a T)>,
+    path: Vec<PathEntry<'a>>,
+}
+
+impl<'a, T> Iterator for IterDataTree<'a, T> {
+    type Item = (Vec<PathEntry<'a>>, &'a T);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index >= self.tree.len() {
+            return None;
+        }
+        let entry = &self.tree.data[self.index];
+        match entry {
+            TreeEntry::Leaf(val) => {
+                self.index += 1;
+                let mut out_path = self.path.clone();
+                out_path.push(PathEntry::Index(self.index - 1));
+                Some((out_path, val))
+            }
+            TreeEntry::Tree(subtree) => match self.inner {
+                Some(ref mut inner) => {
+                    if let Some(val) = inner.next() {
+                        let (return_path, return_val) = self.inner_next.replace(val).unwrap();
+                        Some((return_path, return_val))
+                    } else {
+                        self.inner = None;
+                        self.index += 1;
+                        let (return_path, return_val) = self.inner_next.take().unwrap();
+                        self.inner_next = None;
+                        Some((return_path, return_val))
+                    }
+                }
+                None => {
+                    let mut inner = subtree.iter_path();
+                    let mut inner_path = self.path.clone();
+                    inner_path.push(PathEntry::Index(self.index));
+                    inner.path = inner_path;
+                    self.inner = Some(Box::new(inner));
+                    let (inner_path, val) = self.inner.as_mut().map(|x| x.next().unwrap())?;
+                    self.inner_next = self.inner.as_mut().and_then(|x| x.next());
+                    if self.inner_next.is_none() {
+                        self.index += 1;
+                        self.inner = None;
+                        self.inner_next = None;
+                    }
+                    Some((inner_path, val))
+                }
+            },
+        }
+    }
+}
+
 pub struct IterLeaves<'a, T> {
     tree: &'a DataTree<'a, T>,
     index: usize,
@@ -335,6 +485,7 @@ impl<'a, T: std::fmt::Debug> Iterator for IterLeaves<'a, T> {
                         return_val
                     }
                 }
+
                 None => {
                     self.inner = Some(Box::new(subtree.iter_leaves()));
                     let val = self.inner.as_mut().map(|x| x.next().unwrap());
@@ -409,6 +560,56 @@ mod test {
         assert_eq!(
             vec![10, 1, 2, 3, 4, 5, 100],
             tree.iter_leaves().copied().collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn test_nested_dict_iter_path() {
+        let mut inner_tree = DataTree::new();
+        inner_tree.insert_leaf("y", 10);
+        inner_tree.insert_leaf("yy", 1);
+        let mut inner_inner_tree = DataTree::new();
+        inner_inner_tree.push_leaf(2);
+        inner_inner_tree.push_leaf(3);
+        inner_inner_tree.push_leaf(4);
+        inner_inner_tree.push_leaf(5);
+        inner_tree.push_tree(inner_inner_tree);
+        let mut tree = DataTree::new();
+        tree.insert_tree("x", inner_tree.clone());
+        tree.insert_leaf("z", 100);
+        let expected_paths = vec![
+            vec![PathEntry::Index(0), PathEntry::Index(0)],
+            vec![PathEntry::Index(0), PathEntry::Index(1)],
+            vec![
+                PathEntry::Index(0),
+                PathEntry::Index(2),
+                PathEntry::Index(0),
+            ],
+            vec![
+                PathEntry::Index(0),
+                PathEntry::Index(2),
+                PathEntry::Index(1),
+            ],
+            vec![
+                PathEntry::Index(0),
+                PathEntry::Index(2),
+                PathEntry::Index(2),
+            ],
+            vec![
+                PathEntry::Index(0),
+                PathEntry::Index(2),
+                PathEntry::Index(3),
+            ],
+            vec![PathEntry::Index(1)],
+        ];
+        let expected_vals = vec![10, 1, 2, 3, 4, 5, 100];
+        let expected = expected_paths
+            .into_iter()
+            .zip(expected_vals.into_iter())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            expected,
+            tree.iter_path().map(|(a, b)| (a, *b)).collect::<Vec<_>>()
         );
     }
 
