@@ -2851,7 +2851,9 @@ class QuantumCircuit:
 
         Args:
             instruction: :class:`~.circuit.Instruction` instance to append, or a
-                :class:`.CircuitInstruction` with all its context.
+                :class:`.CircuitInstruction` with all its context. Objects implementing
+                ``to_instruction()`` are also supported, but passing an
+                :class:`~.circuit.Instruction` directly is generally preferred.
             qargs: specifiers of the :class:`~.circuit.Qubit`\\ s to attach instruction to.
             cargs: specifiers of the :class:`.Clbit`\\ s to attach instruction to.
             copy: if ``True`` (the default), then the incoming ``instruction`` is copied before
@@ -2865,7 +2867,8 @@ class QuantumCircuit:
             were actually added to the circuit.
 
         Raises:
-            CircuitError: if the operation passed is not an instance of :class:`~.circuit.Instruction` .
+            CircuitError: if the operation passed cannot be resolved to an
+                :class:`~.circuit.Instruction`.
         """
         if isinstance(instruction, CircuitInstruction):
             operation = instruction.operation
