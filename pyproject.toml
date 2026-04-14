@@ -212,12 +212,12 @@ test-random = [
 # Dependencies to build the documentation.  It's ok if the range of Python versions that can build
 # the docs is more restrictive than Python versions that Qiskit supports.
 doc = [
-    "Sphinx==9.1.0",
-    "docutils==0.22.4",
-    "openqasm-pygments",
-    "reno>=4.1.0",  # duplicated with `lint`
-    "sphinxcontrib-katex==0.9.9",
-    "breathe>=4.35.0",
+    "Sphinx==9.1.0; python_version>='3.12'",
+    "docutils==0.22.4; python_version>='3.12'",
+    "openqasm-pygments; python_version>='3.12'",
+    "reno>=4.1.0; python_version>='3.12'",  # duplicated with `lint`
+    "sphinxcontrib-katex==0.9.9; python_version>='3.12'",
+    "breathe>=4.35.0; python_version>='3.12'",
 ]
 
 
