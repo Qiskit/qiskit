@@ -685,13 +685,13 @@ struct F64UiFormatter {
 }
 
 impl F64UiFormatter {
-    fn new(num_significant_digits: i32) -> Self {
+    fn new(num_significant_digits: usize) -> Self {
         let options = lexical_write_float::Options::builder()
-            .max_significant_digits(core::num::NonZeroUsize::new(
-                num_significant_digits as usize,
+            .max_significant_digits(core::num::NonZeroUsize::new(num_significant_digits))
+            .positive_exponent_break(core::num::NonZeroI32::new(num_significant_digits as i32))
+            .negative_exponent_break(core::num::NonZeroI32::new(
+                -(num_significant_digits as i32) + 1,
             ))
-            .positive_exponent_break(core::num::NonZeroI32::new(num_significant_digits))
-            .negative_exponent_break(core::num::NonZeroI32::new(-num_significant_digits + 1))
             .trim_floats(true)
             .build_strict();
 
@@ -2231,6 +2231,25 @@ q_1: ┤ Rz(1.2346e8) ├┤ Rx(0.12346) ├┤ Rx(1.2346e-5) ├
 
         for test in test_points {
             assert_eq!(format_float_pi(test.0), test.1.map(|s| s.to_string()));
+        }
+    }
+
+    #[test]
+    fn test_f64_ui_formatter() {
+        let test_data_5_sig_digits = [
+            (-1.23, "-1.23"),
+            (1.23456, "1.2346"),
+            (-12.34567, "-12.346"),
+            (123456.78, "123460"),
+            (-0.0001, "-0.0001"),
+            (12.34 * 1_000_000.0, "1.234e7"),
+            (-0.00001, "-1e-5"),
+            (12345678.000001, "1.2346e7"),
+        ];
+
+        let mut formatter = F64UiFormatter::new(5);
+        for test in test_data_5_sig_digits {
+            assert_eq!(test.1, formatter.format(test.0));
         }
     }
 }
