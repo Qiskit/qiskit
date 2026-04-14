@@ -19,3 +19,16 @@ from .lie_trotter import LieTrotter
 from .suzuki_trotter import SuzukiTrotter
 from .qdrift import QDrift
 from .pauli_network import synth_pauli_network_rustiq
+from .omelyan_trotter import OmelyanTrotter
+from omelyan_schemes import (
+    Leapfrog2,
+    Omelyan2,
+    Forest_Ruth4,
+    Omelyan4,
+    Malezic_Ostmeyer4,
+    Yoshida6,
+    Blanes_Moan6,
+    Malezic_Ostmeyer6,
+    Morales8,
+    Morales10,
+)
