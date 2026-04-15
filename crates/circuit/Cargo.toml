@@ -18,7 +18,7 @@ qiskit-quantum-info.workspace = true
 rayon.workspace = true
 ahash.workspace = true
 rustworkx-core.workspace = true
-bytemuck.workspace = true
+bytemuck = {workspace = true, features = ["derive"]}
 bitfield-struct.workspace = true
 num-complex.workspace = true
 num-bigint.workspace = true
