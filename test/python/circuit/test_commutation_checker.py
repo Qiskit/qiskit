@@ -534,10 +534,11 @@ class TestCommutationChecker(QiskitTestCase):
         for p1, q1, p2, q2, expected in cases:
             if p1 == "I" and gate_type == "measure":
                 continue  # PPM doesn't support all-identity gates
+            c1, c2 = ([0], [1]) if gate_type == "measure" else ([], [])
 
             gate1 = build_pauli_gate(p1, gate_type)
             gate2 = build_pauli_gate(p2, gate_type)
-            self.assertEqual(expected, scc.commute(gate1, q1, [], gate2, q2, []))
+            self.assertEqual(expected, scc.commute(gate1, q1, c1, gate2, q2, c2))
 
     @data(
         ("pauli", "measure"),
@@ -553,10 +554,45 @@ class TestCommutationChecker(QiskitTestCase):
         ]
 
         for p1, q1, p2, q2, expected in cases:
+            c1 = [0] if gate_type1 == "measure" else []
+            c2 = [1] if gate_type2 == "measure" else []
+
             gate1 = build_pauli_gate(p1, gate_type1)
             gate2 = build_pauli_gate(p2, gate_type2)
+
             with self.subTest(p1=p1, p2=p2):
-                self.assertEqual(expected, scc.commute(gate1, q1, [], gate2, q2, []))
+                self.assertEqual(expected, scc.commute(gate1, q1, c1, gate2, q2, c2))
+
+    def test_ppms_with_same_clbit(self):
+        """Test commutativity of two Pauli product measurements with the same clbit."""
+
+        # Each case represents (pauli1, qubits1, pauli2, qubits2, expected result).
+        # Recall that the convention is that pauli strings are read right-to-left, i.e.
+        # pauli strings and qubits are in reverse order relative to each other.
+        cases = [
+            # different Paulis
+            ("XXII", [1, 0, 2, 3], "IIZZ", [1, 0, 2, 3], False),
+            # different qubits
+            ("XYIZ", [1, 0, 2, 3], "XYIZ", [1, 0, 4, 3], False),
+            # different Paulis (including sign)
+            ("ZXII", [1, 0, 2, 3], "-ZXII", [1, 0, 2, 3], False),
+            # same Paulis and qubits
+            ("XYIZ", [1, 0, 2, 3], "XYIZ", [1, 0, 2, 3], True),
+            # same Paulis and qubits
+            ("-XYIZ", [1, 0, 2, 3], "-XYIZ", [1, 0, 2, 3], True),
+            # same Paulis and qubits up to reordering
+            ("XXIY", [0, 1, 2, 3], "YIXX", [3, 2, 1, 0], True),
+            # same Paulis and qubits up to reordering
+            ("XXIY", [0, 1, 2, 3], "XXIY", [0, 1, 3, 2], True),
+            # same Paulis and qubits up to reordering
+            ("-XXIY", [0, 1, 2, 3], "-YIXX", [2, 3, 1, 0], True),
+        ]
+
+        for pauli1, qubits1, pauli2, qubits2, expected in cases:
+            with self.subTest(pauli1=pauli1, qubits1=qubits1, pauli2=pauli2, qubits2=qubits2):
+                ppm1 = build_pauli_gate(pauli1, "measure")
+                ppm2 = build_pauli_gate(pauli2, "measure")
+                self.assertEqual(scc.commute(ppm1, qubits1, [0], ppm2, qubits2, [0]), expected)
 
     def test_pauli_evolution_sums(self):
         """Test PauliEvolutionGate commutations for operators that are sums of Paulis."""
