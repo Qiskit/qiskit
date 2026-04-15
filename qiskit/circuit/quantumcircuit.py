@@ -1566,9 +1566,10 @@ class QuantumCircuit:
     def __eq__(self, other) -> bool:
         """Check if this circuit is equal to another circuit.
 
-        Two circuits are considered equal if they have the same structure,
-        i.e., the same qubits, classical bits, and gates, regardless of the
-        order in which gates were appended. For example::
+        Equality is determined by comparing the :class:`.DAGCircuit` representation
+        of both circuits, delegating to :meth:`.DAGCircuit.__eq__`. This means that
+        the insertion order of gates does not matter, as long as the dependency
+        structure between gates is the same. For example::
 
             qc1 = QuantumCircuit(2)
             qc1.x(0)
@@ -1578,34 +1579,38 @@ class QuantumCircuit:
             qc2.x(1)
             qc2.x(0)
 
-            qc1 == qc2  # True
+            qc1 == qc2  # True, because x(0) and x(1) are independent
 
-        The following are considered in equality checks:
+        The following are considered when checking equality:
 
-        * Gate operations and their parameters
+        * DAG structure (gate names, parameters, and qubit dependencies)
+        * Quantum and classical registers
         * Global phase (:attr:`global_phase`)
         * Calibrations (:attr:`calibrations`)
+        * Variables (``Var`` nodes)
 
-        The following are **not** considered in equality checks:
+        The following are **not** considered:
 
         * Circuit name (:attr:`name`)
         * Circuit metadata (:attr:`metadata`)
 
         .. note::
 
-            This method does **not** check unitary equivalence. Two circuits
-            may be unitarily equivalent but not considered equal here. To
-            check unitary equivalence, use :class:`.quantum_info.Operator`::
+            This does **not** check whether two circuits implement the same unitary.
+            Two circuits with different gate structures may still be unitarily equivalent.
+            To check that, use :class:`.Operator`::
 
                 from qiskit.quantum_info import Operator
                 Operator(qc1) == Operator(qc2)
 
         Args:
-            other: The other object to compare to. If not a
-                :class:`QuantumCircuit`, returns ``False``.
+            other: The object to compare against.
 
         Returns:
             bool: ``True`` if the circuits are equal, ``False`` otherwise.
+
+        See Also:
+            :meth:`.DAGCircuit.__eq__`: The underlying equality implementation.
         """
         if not isinstance(other, QuantumCircuit):
             return False
