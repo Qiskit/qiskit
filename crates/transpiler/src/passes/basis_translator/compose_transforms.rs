@@ -177,8 +177,6 @@ fn name_to_packed_operation(name: &str, num_qubits: u32) -> Option<PackedOperati
             _ => unreachable!(),
         };
         Some(inst.into())
-    } else if name == "unitary" {
-        unreachable!("Having a unitary result from an `EquivalenceLibrary is not possible")
     } else {
         None
     }
