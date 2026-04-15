@@ -625,42 +625,6 @@ class TestCommutationChecker(QiskitTestCase):
         with self.subTest(left=z, right=x):
             self.assertFalse(scc.commute(z, qargs, [], x, qargs, []))
 
-<<<<<<< HEAD
-=======
-    @data("evolution", "pauli", "measure", "rotation")
-    def test_pauli_and_standard_gate(self, pauli_type):
-        """Test Pauli-based gates and standard gate commutations are efficiently supported."""
-        # 40-qubit Pauli gate with following terms: X: 0-9, Y: 10-19, Z: 20-29, I: 30-39
-        pauli = 10 * "I" + 10 * "Z" + 10 * "Y" + 10 * "X"
-        pauli_qubits = list(range(len(pauli)))
-        pauli_clbits = [0] if pauli_type == "measure" else []
-        pauli_gate = build_pauli_gate(pauli, pauli_type)
-
-        # Test cases in the format: (gate, indices, commutes)
-        x = Parameter("x")
-        cases = [
-            (CXGate(), [30, 0], True),  # CX vs. IX
-            (CXGate(), [29, 0], True),  # CX vs. ZX
-            (CXGate(), [29, 10], False),  # CX vs. ZY
-            (RXXGate(x), [0, 1], True),
-            (RXXGate(1.2), [11, 15], True),
-            (RXXGate(x), [0, 15], False),
-            (HGate(), [33], True),
-            (HGate(), [2], False),
-            (CPhaseGate(0.1), [30, 31], True),
-            (CPhaseGate(0.1), [2, 3], False),
-            (XXPlusYYGate(1, 1), [0, 1], False),
-            (XXPlusYYGate(1, 0), [0, 1], True),
-        ]
-
-        for std_gate, indices, expected in cases:
-            with self.subTest(std_gate=std_gate, indices=indices):
-                commutes = scc.commute(
-                    pauli_gate, pauli_qubits, pauli_clbits, std_gate, indices, []
-                )
-                self.assertEqual(expected, commutes)
-
->>>>>>> 89ff976e0 (Fixed commutation checking between two Pauli product measurements (#16023))
 
 def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
     """Build a Pauli-based gate off a Pauli string.

@@ -16,14 +16,8 @@ use ndarray::linalg::kron;
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
 use qiskit_circuit::object_registry::PyObjectAsKey;
-<<<<<<< HEAD
-use qiskit_quantum_info::sparse_observable::PySparseObservable;
-use qiskit_quantum_info::sparse_observable::SparseObservable;
-=======
 use qiskit_circuit::operations::PauliProductMeasurement;
-use qiskit_circuit::standard_gate::standard_generators::standard_gate_exponent;
 use qiskit_quantum_info::sparse_observable::{PySparseObservable, SparseObservable};
->>>>>>> 89ff976e0 (Fixed commutation checking between two Pauli product measurements (#16023))
 use smallvec::SmallVec;
 use std::fmt::Debug;
 
@@ -539,9 +533,6 @@ impl CommutationChecker {
             _ => (),
         };
 
-<<<<<<< HEAD
-        // Handle commutations in between Pauli-based gates, like PauliGate or PauliEvolutionGate
-=======
         // Special handling for commutativity of two pauli product measurements in the case they write to
         // the same classical bit. In this case, it's generally incorrect to interchange them, so we only
         // do this if they have the same generators (represented as sparse observables + signs).
@@ -560,7 +551,8 @@ impl CommutationChecker {
 
         // Handle commutations between Pauli-based gates among themselves, and with standard gates
         // TODO Support trivial commutations of standard gates with identities in the Paulis
->>>>>>> 89ff976e0 (Fixed commutation checking between two Pauli product measurements (#16023))
+
+        // Handle commutations in between Pauli-based gates, like PauliGate or PauliEvolutionGate
         let size = qargs1.iter().chain(qargs2.iter()).max().unwrap().0 + 1;
         if let Some(obs1) = try_pauli_generator(op1, qargs1, size) {
             if let Some(obs2) = try_pauli_generator(op2, qargs2, size) {
