@@ -2203,6 +2203,7 @@ dependencies = [
  "indexmap",
  "num-bigint",
  "num-complex",
+ "num-traits",
  "numpy",
  "oq3_semantics",
  "pyo3",
