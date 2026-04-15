@@ -14,6 +14,7 @@
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
+from qiskit.transpiler.passes.utils import control_flow
 from qiskit._accelerate.convert_to_pauli_rotations import convert_to_pauli_rotations
 
 
@@ -46,6 +47,7 @@ class ConvertToPauliRotations(TransformationPass):
       assert Operator(qc) == Operator(qct)
     """
 
+    @control_flow.trivial_recurse
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the ConvertToPauliRotations optimization pass on ``dag``.
 
