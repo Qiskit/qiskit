@@ -1567,8 +1567,9 @@ class QuantumCircuit:
         """Check if this circuit is equal to another circuit.
 
         Equality is determined by comparing the :class:`.DAGCircuit` representation
-        of both circuits, delegating to :meth:`.DAGCircuit.__eq__`.This means that the insertion order of independent operations does not affect
-        equality, as long as the dependency structure between operations is the same.
+        of both circuits, delegating to :meth:`.DAGCircuit.__eq__`. This means that
+        the insertion order of independent operations does not affect equality, as
+        long as the dependency structure between operations is the same.
         For example::
 
             qc1 = QuantumCircuit(2)
