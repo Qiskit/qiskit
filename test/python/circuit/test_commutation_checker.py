@@ -566,41 +566,17 @@ class TestCommutationChecker(QiskitTestCase):
             # different qubits
             ("XYIZ", [1, 0, 2, 3], "XYIZ", [1, 0, 4, 3], False),
             # different Paulis (including sign)
-            (
-                "ZXII",
-                [1, 0, 2, 3],
-                "-ZXII",
-                [1, 0, 2, 3],
-                False,
-            ),
+            ("ZXII", [1, 0, 2, 3], "-ZXII", [1, 0, 2, 3], False),
             # same Paulis and qubits
             ("XYIZ", [1, 0, 2, 3], "XYIZ", [1, 0, 2, 3], True),
             # same Paulis and qubits
             ("-XYIZ", [1, 0, 2, 3], "-XYIZ", [1, 0, 2, 3], True),
             # same Paulis and qubits up to reordering
-            (
-                "XXIY",
-                [0, 1, 2, 3],
-                "YIXX",
-                [3, 2, 1, 0],
-                True,
-            ),
+            ("XXIY", [0, 1, 2, 3], "YIXX", [3, 2, 1, 0], True),
             # same Paulis and qubits up to reordering
-            (
-                "XXIY",
-                [0, 1, 2, 3],
-                "XXIY",
-                [0, 1, 3, 2],
-                True,
-            ),
+            ("XXIY", [0, 1, 2, 3], "XXIY", [0, 1, 3, 2], True),
             # same Paulis and qubits up to reordering
-            (
-                "-XXIY",
-                [0, 1, 2, 3],
-                "-YIXX",
-                [2, 3, 1, 0],
-                True,
-            ),
+            ("-XXIY", [0, 1, 2, 3], "-YIXX", [2, 3, 1, 0], True),
         ]
 
         for pauli1, qubits1, pauli2, qubits2, expected in cases:
