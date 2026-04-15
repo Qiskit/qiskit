@@ -946,7 +946,7 @@ def generate_box():
     return [bare, nested]
 
 
-def generate_circuits(generating_version, current_version, load_context=False):
+def generate_circuits(generating_version, current_version, load_context=False, qpy_version=None):
     """Generate reference circuits.
 
     If load_context is True, avoid generating Pulse-based reference
@@ -1018,7 +1018,7 @@ def generate_circuits(generating_version, current_version, load_context=False):
         if not Version("2.2.0rc1") <= generating_version <= Version("2.4.0rc2"):
             output_circuits["replay_with_cancellations.qpy"] = generate_replay_with_cancellations()
 
-    if generating_version.release >= (2, 0, 0):
+    if generating_version.release >= (2, 0, 0) and (qpy_version is None or qpy_version > 13):
         output_circuits["v14_expr.qpy"] = generate_v14_expr()
         output_circuits["box.qpy"] = generate_box()
     return output_circuits
@@ -1104,11 +1104,11 @@ def assert_equal(
         sys.exit(3)
 
 
-def generate_qpy(qpy_files):
+def generate_qpy(qpy_files, qpy_version=None):
     """Generate qpy files from reference circuits."""
     for path, circuits in qpy_files.items():
         with open(path, "wb") as fd:
-            dump(circuits, fd)
+            dump(circuits, fd, version=qpy_version)
 
 
 def load_qpy(qpy_files, generating_version):
@@ -1199,6 +1199,15 @@ def _main():
             "to test generating and loading QPY."
         ),
     )
+    parser.add_argument(
+        "--qpy-version",
+        type=int,
+        default=None,
+        help=(
+            "Optionally specify the QPY format version to use for serialization. "
+            "If not specified, the default (latest) QPY version is used."
+        ),
+    )
     args = parser.parse_args()
 
     current_version = Version(qiskit.__version__)
@@ -1207,8 +1216,8 @@ def _main():
     generating_version = Version(args.version or "0.18.0")
 
     if args.command == "generate":
-        qpy_files = generate_circuits(generating_version, current_version)
-        generate_qpy(qpy_files)
+        qpy_files = generate_circuits(generating_version, current_version, qpy_version=args.qpy_version)
+        generate_qpy(qpy_files, qpy_version=args.qpy_version)
     else:
         qpy_files = generate_circuits(generating_version, current_version, load_context=True)
         load_qpy(qpy_files, generating_version)
