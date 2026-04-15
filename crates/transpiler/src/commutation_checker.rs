@@ -16,6 +16,7 @@ use ndarray::linalg::kron;
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
 use qiskit_circuit::object_registry::PyObjectAsKey;
+use qiskit_circuit::operations::PauliProductMeasurement;
 use qiskit_circuit::standard_gate::standard_generators::standard_gate_exponent;
 use qiskit_quantum_info::sparse_observable::{PySparseObservable, SparseObservable};
 use smallvec::SmallVec;
@@ -224,6 +225,18 @@ fn try_extract_op_from_ppm(
     let local = xz_to_observable(&ppm.x, &ppm.z);
     let out = SparseObservable::identity(num_qubits);
     Some(out.compose_map(&local, |i| qubits[i as usize].0))
+}
+
+/// Given a pauli product measurement, returns its generator (represented as a sparse observable)
+/// and the sign (representing the pauli phase).
+fn observable_generator_from_ppm(
+    ppm: &PauliProductMeasurement,
+    qubits: &[Qubit],
+    num_qubits: u32,
+) -> (SparseObservable, bool) {
+    let local = xz_to_observable(&ppm.x, &ppm.z);
+    let out = SparseObservable::identity(num_qubits);
+    (out.compose_map(&local, |i| qubits[i as usize].0), ppm.neg)
 }
 
 fn try_extract_op_from_ppr(
@@ -495,6 +508,22 @@ impl CommutationChecker {
             PrecheckStatus::NonCommuting => return Ok(false),
             _ => (),
         };
+
+        // Special handling for commutativity of two pauli product measurements in the case they write to
+        // the same classical bit. In this case, it's generally incorrect to interchange them, so we only
+        // do this if they have the same generators (represented as sparse observables + signs).
+        if let (
+            OperationRef::PauliProductMeasurement(ppm1),
+            OperationRef::PauliProductMeasurement(ppm2),
+        ) = (op1, op2)
+        {
+            if cargs1 == cargs2 {
+                let size = qargs1.iter().chain(qargs2.iter()).max().unwrap().0 + 1;
+                let pauli1 = observable_generator_from_ppm(ppm1, qargs1, size);
+                let pauli2 = observable_generator_from_ppm(ppm2, qargs2, size);
+                return Ok(pauli1 == pauli2);
+            }
+        }
 
         // Handle commutations between Pauli-based gates among themselves, and with standard gates
         // TODO Support trivial commutations of standard gates with identities in the Paulis
