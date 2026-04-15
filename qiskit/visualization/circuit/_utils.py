@@ -50,6 +50,26 @@ def _is_boolean_expression(gate_text, op):
     return isinstance(op, (PhaseOracleGate, BitFlipOracleGate)) and gate_text == op.label
 
 
+def _format_latex_label_with_mathmode(label):
+    """Format a latex label that contains explicit math-mode segments."""
+    parts = re.split(r"(?<!\\)\$", label)
+    if len(parts) % 2 == 0:
+        return None
+
+    formatted = []
+    for index, part in enumerate(parts):
+        if not part:
+            continue
+        if index % 2:
+            formatted.append(part)
+        else:
+            part = part.replace("_", "\\_")
+            part = part.replace("^", "\\string^")
+            part = part.replace("-", "\\mbox{-}")
+            formatted.append(f"\\mathrm{{{part}}}")
+    return "".join(formatted)
+
+
 def get_gate_ctrl_text(op, drawer, style=None):
     """Load the gate_text and ctrl_text strings based on names and labels"""
 
@@ -118,11 +138,15 @@ def get_gate_ctrl_text(op, drawer, style=None):
         ) and (op_type not in [PauliEvolutionGate, PauliProductMeasurement]):
             gate_text = f"$\\mathrm{{{gate_text.capitalize()}}}$"
         else:
-            gate_text = f"$\\mathrm{{{gate_text}}}$"
-            # Remove mathmode _, ^, and - formatting from user names and labels
-            gate_text = gate_text.replace("_", "\\_")
-            gate_text = gate_text.replace("^", "\\string^")
-            gate_text = gate_text.replace("-", "\\mbox{-}")
+            formatted_gate_text = _format_latex_label_with_mathmode(gate_text)
+            if formatted_gate_text is None:
+                gate_text = f"$\\mathrm{{{gate_text}}}$"
+                # Remove mathmode _, ^, and - formatting from user names and labels
+                gate_text = gate_text.replace("_", "\\_")
+                gate_text = gate_text.replace("^", "\\string^")
+                gate_text = gate_text.replace("-", "\\mbox{-}")
+            else:
+                gate_text = formatted_gate_text
         ctrl_text = f"$\\mathrm{{{ctrl_text}}}$"
 
     # Only capitalize internally-created gate or instruction names
