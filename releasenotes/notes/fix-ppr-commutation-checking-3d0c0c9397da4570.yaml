@@ -1,6 +1,6 @@
 ---
-fixes:
+features_transpiler:
   - |
-    Fixed matrix-based checks for :class:`.PauliProductRotationGate` in the
+    Enable matrix-based checks for :class:`.PauliProductRotationGate` in the
     :class:`.CommutationChecker`.  Previously, these checks always returned
     ``False``.

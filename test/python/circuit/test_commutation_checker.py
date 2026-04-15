@@ -627,17 +627,20 @@ class TestCommutationChecker(QiskitTestCase):
                 commutes = scc.commute(pauli_gate, pauli_indices, [], std_gate, indices, [])
                 self.assertEqual(expected, commutes)
 
-    @data("evolution", "pauli", "rotation")
+    @data("evolution", "pauli", "rotation", "measure")
     def test_pauli_based_with_matrix(self, pauli_type):
         """Test commutation with a matrix-based gate."""
         z_pauli = build_pauli_gate("Z", pauli_type)
+        clbit = [0] if pauli_type == "measure" else []
         z_unitary = UnitaryGate(ZGate().to_matrix())
         x_unitary = UnitaryGate(XGate().to_matrix())
 
         with self.subTest(other="x_unitary"):
-            self.assertFalse(scc.commute(z_pauli, [0], [], x_unitary, [0], []))
+            self.assertFalse(scc.commute(z_pauli, [0], clbit, x_unitary, [0], []))
+
+        expect = pauli_type != "measure"  # False for measure, else True
         with self.subTest(other="z_unitary"):
-            self.assertTrue(scc.commute(z_pauli, [0], [], z_unitary, [0], []))
+            self.assertEqual(expect, scc.commute(z_pauli, [0], clbit, z_unitary, [0], []))
 
 
 def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
