@@ -1,7 +1,7 @@
 fixes:
   - |
-    Fixed :meth:`.QuantumCircuit.compose` raising :exc:`ValueError` (``'qubits'
-    argument is the wrong length``) when ``front=True`` is used with an explicit
-    ``qubits`` mapping.
+    Fixed an issue with :meth:`.QuantumCircuit.compose` when called with ``front=True``
+    and an explicit ``qubits`` mapping, which could incorrectly raise a :exc:`ValueError`
+    instead of returning the correct circuit.
 
     See `#15834 <https://github.com/Qiskit/qiskit/issues/15834>`__.

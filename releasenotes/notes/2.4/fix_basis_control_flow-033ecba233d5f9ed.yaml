@@ -1,8 +1,8 @@
 fixes:
   - |
-    Fixed error in :class:`.BasisTranslator` in which a circuit with nested
-    control flow operations would  have its blocks skip the calculated
-    transformations.
+    Fixed an issue in :class:`.BasisTranslator` where circuits containing nested
+    control flow operations did not have the transformation applied to their control
+    flow blocks.
 
     See `#13162 <https://github.com/Qiskit/qiskit/issues/13162>`__,
     `#14025 <https://github.com/Qiskit/qiskit/issues/14025>`__,

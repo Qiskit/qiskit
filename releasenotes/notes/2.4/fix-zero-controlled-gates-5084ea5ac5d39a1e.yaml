@@ -2,9 +2,8 @@
 fixes:
   - |
     Fixed the :meth:`.Gate.control` method to correctly handle the edge case where 
-    ``num_ctrl_qubits`` is 0. Previously, this could raise an error or cause a core
+    ``num_ctrl_qubits`` is :math:`0`. Previously, this could raise an error or cause a core
     dump. Now it returns a copy of the original gate.
-
     Fixed `#15666 <https://github.com/Qiskit/qiskit-terra/issues/15666>`__.
 
   - |
@@ -13,11 +12,10 @@ fixes:
     :meth:`.QuantumCircuit.mcx` methods when appending multi-controlled
     gates with no control qubits. Previously, this could lead to memory overflows.
     This case is now handled correctly.
-
     Fixed `#15664 <https://github.com/Qiskit/qiskit-terra/issues/15664>`__.
 
   - |
-    Fixed the definition of :class:`.MCPhaseGate` for the case of 0 controls
+    Fixed the definition of :class:`.MCPhaseGate` for the case of :math:`0` controls
     qubits. 
 
 
