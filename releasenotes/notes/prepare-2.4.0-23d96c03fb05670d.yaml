@@ -1,5 +1,13 @@
 ---
 prelude: |
-  Qiskit 2.4.0 is a new feature release of the Qiskit SDK. 
-
-  TODO
+  Qiskit 2.4.0 is a new feature release of the Qiskit SDK. The highlights of this
+  release are:
+  
+   * Support for building Python extension modules that use the Qiskit C API and
+     can be safely distributed in Python wheels.
+   * Initial porting of QPY serialization and deserialization internals to Rust.
+     This greatly speeds up both generating and loading QPY payloads and is also
+     a starting point towards adding QPY support to the C API.
+   * Expansion of the C API's functionality including support for parameterized
+     circuits and a circuit text drawer.
+   * Improvements to the clifford+t transpilation pipeline.
