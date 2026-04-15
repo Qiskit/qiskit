@@ -210,12 +210,24 @@ pub fn local_equivalence(weyl: PyReadonlyArray1<f64>) -> PyResult<[f64; 3]> {
     Ok([g0_equiv + 0., g1_equiv + 0., g2_equiv + 0.])
 }
 
+/// Copy the input array view into a Matrix2 output
+///
+/// This function assumes the input is a 2x2 matrix. If a matrix of a
+/// different shape is passed in it will pick the first 4 elements in logical
+/// order (row major) and if it doesn't have 4 elements it will panic. This
+/// should only really be used for copying a 2x2 ndarray view into a Matrix2.
 #[inline]
-pub fn ndarray_to_matrix2<T: Copy>(view: ArrayView2<T>) -> Matrix2<T> {
+pub(super) fn ndarray_to_matrix2<T: Copy>(view: ArrayView2<T>) -> Matrix2<T> {
     Matrix2::new(view[[0, 0]], view[(0, 1)], view[(1, 0)], view[(1, 1)])
 }
 
+/// Copy the input array view into a Matrix4 output
+///
+/// This function assumes the input is a 4x4 matrix. If a matrix of a
+/// different shape is passed in it will pick the first 16 elements in logical
+/// order (row major) and if it doesn't have 16 elements it will panic. This
+/// should only really be used for copying a 4x4 ndarray view into a Matrix4.
 #[inline]
-pub fn ndarray_to_matrix4(view: ArrayView2<Complex64>) -> Matrix4<Complex64> {
+pub(super) fn ndarray_to_matrix4(view: ArrayView2<Complex64>) -> Matrix4<Complex64> {
     Matrix4::from_row_iterator(view.iter().copied())
 }

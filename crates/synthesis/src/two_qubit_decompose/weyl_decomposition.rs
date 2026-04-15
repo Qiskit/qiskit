@@ -91,7 +91,7 @@ fn magic_basis_transform(
 }
 
 fn transform_from_magic_basis(u: Mat<c64>) -> Mat<c64> {
-    let unitary: Matrix4<Complex64> = faer_to_matrix4(u.as_ref());
+    let unitary: Matrix4<Complex64> = Matrix4::from_fn(|i, j| u[(i, j)]);
     matrixview4_to_faer(
         magic_basis_transform(unitary.as_view(), MagicBasisTransform::OutOf).as_view(),
     )
@@ -338,11 +338,7 @@ impl Specialization {
     }
 }
 
-#[inline]
-fn faer_to_matrix4<T: nalgebra::Scalar + Copy>(view: MatRef<T>) -> Matrix4<T> {
-    Matrix4::from_fn(|i, j| view[(i, j)])
-}
-
+/// Convert a MatrixView4 as a MatRef without copies.
 #[inline]
 fn matrixview4_to_faer<T: nalgebra::Scalar + Copy>(mat: MatrixView4<T>) -> MatRef<T> {
     let nrows = mat.nrows();
