@@ -561,38 +561,46 @@ class TestCommutationChecker(QiskitTestCase):
         # Recall that the convention is that pauli strings are read right-to-left, i.e.
         # pauli strings and qubits are in reverse order relative to each other.
         cases = [
-            ("XXII", [1, 0, 2, 3], "IIZZ", [1, 0, 2, 3], False),  # different Paulis
-            ("XYIZ", [1, 0, 2, 3], "XYIZ", [1, 0, 4, 3], False),  # different qubits
+            # different Paulis
+            ("XXII", [1, 0, 2, 3], "IIZZ", [1, 0, 2, 3], False),
+            # different qubits
+            ("XYIZ", [1, 0, 2, 3], "XYIZ", [1, 0, 4, 3], False),
+            # different Paulis (including sign)
             (
                 "ZXII",
                 [1, 0, 2, 3],
                 "-ZXII",
                 [1, 0, 2, 3],
                 False,
-            ),  # different Paulis (including sign)
-            ("XYIZ", [1, 0, 2, 3], "XYIZ", [1, 0, 2, 3], True),  # same Paulis and qubits
-            ("-XYIZ", [1, 0, 2, 3], "-XYIZ", [1, 0, 2, 3], True),  # same Paulis and qubits
+            ),
+            # same Paulis and qubits
+            ("XYIZ", [1, 0, 2, 3], "XYIZ", [1, 0, 2, 3], True),
+            # same Paulis and qubits
+            ("-XYIZ", [1, 0, 2, 3], "-XYIZ", [1, 0, 2, 3], True),
+            # same Paulis and qubits up to reordering
             (
                 "XXIY",
                 [0, 1, 2, 3],
                 "YIXX",
                 [3, 2, 1, 0],
                 True,
-            ),  # same Paulis and qubits up to reordering
+            ),
+            # same Paulis and qubits up to reordering
             (
                 "XXIY",
                 [0, 1, 2, 3],
                 "XXIY",
                 [0, 1, 3, 2],
                 True,
-            ),  # same Paulis and qubits up to reordering
+            ),
+            # same Paulis and qubits up to reordering
             (
                 "-XXIY",
                 [0, 1, 2, 3],
                 "-YIXX",
                 [2, 3, 1, 0],
                 True,
-            ),  # same Paulis and qubits up to reordering
+            ),
         ]
 
         for pauli1, qubits1, pauli2, qubits2, expected in cases:
