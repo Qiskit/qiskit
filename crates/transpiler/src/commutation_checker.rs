@@ -16,7 +16,6 @@ use ndarray::linalg::kron;
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
 use qiskit_circuit::object_registry::PyObjectAsKey;
-use qiskit_circuit::operations::PauliProductMeasurement;
 use qiskit_circuit::standard_gate::standard_generators::standard_gate_exponent;
 use qiskit_quantum_info::sparse_observable::{PySparseObservable, SparseObservable};
 use smallvec::SmallVec;
@@ -225,18 +224,6 @@ fn try_extract_op_from_ppm(
     let local = xz_to_observable(&ppm.x, &ppm.z);
     let out = SparseObservable::identity(num_qubits);
     Some(out.compose_map(&local, |i| qubits[i as usize].0))
-}
-
-/// Given a pauli product measurement, returns its generator (represented as a sparse observable)
-/// and the sign (representing the pauli phase).
-fn observable_generator_from_ppm(
-    ppm: &PauliProductMeasurement,
-    qubits: &[Qubit],
-    num_qubits: u32,
-) -> (SparseObservable, bool) {
-    let local = xz_to_observable(&ppm.x, &ppm.z);
-    let out = SparseObservable::identity(num_qubits);
-    (out.compose_map(&local, |i| qubits[i as usize].0), ppm.neg)
 }
 
 fn try_extract_op_from_ppr(
@@ -525,16 +512,6 @@ impl CommutationChecker {
             _ => (),
         };
 
-        // Sort the arguments, such that `op2` always is the larger one.
-        let reversed = (op1.num_qubits(), op1.name().len(), op1.name())
-            > (op2.num_qubits(), op2.name().len(), op2.name());
-
-        let (op1, op2, params1, params2, qargs1, qargs2) = if reversed {
-            (op2, op1, params2, params1, qargs2, qargs1)
-        } else {
-            (op1, op2, params1, params2, qargs1, qargs2)
-        };
-
         // Special handling for commutativity of two pauli product measurements in the case they write to
         // the same classical bit. In this case, it's generally incorrect to interchange them, so we only
         // do this if they have the same pauli generators.
@@ -544,12 +521,36 @@ impl CommutationChecker {
         ) = (op1, op2)
         {
             if cargs1 == cargs2 {
-                let size = qargs1.iter().chain(qargs2.iter()).max().unwrap().0 + 1;
-                let pauli1 = observable_generator_from_ppm(ppm1, qargs1, size);
-                let pauli2 = observable_generator_from_ppm(ppm2, qargs2, size);
-                return Ok(pauli1 == pauli2);
+                if (ppm1.neg != ppm2.neg) || (qargs1.len() != qargs2.len()) {
+                    return Ok(false);
+                }
+                // Mark all qubit indices in qargs1
+                self.scratch_map.clear();
+                for (i, &q) in qargs1.iter().enumerate() {
+                    self.scratch_map.insert(q.index(), i);
+                }
+                // Check that every qubit index in qargs2 is marked and has the same z,x values.
+                for (j, &q) in qargs2.iter().enumerate() {
+                    let Some(&i) = self.scratch_map.get(&q.index()) else {
+                        return Ok(false);
+                    };
+                    if ppm1.z[i] != ppm2.z[j] || ppm1.x[i] != ppm2.x[j] {
+                        return Ok(false);
+                    }
+                }
+                return Ok(true);
             }
         }
+
+        // Sort the arguments, such that `op2` always is the larger one.
+        let reversed = (op1.num_qubits(), op1.name().len(), op1.name())
+            > (op2.num_qubits(), op2.name().len(), op2.name());
+
+        let (op1, op2, params1, params2, qargs1, qargs2) = if reversed {
+            (op2, op1, params2, params1, qargs2, qargs1)
+        } else {
+            (op1, op2, params1, params2, qargs1, qargs2)
+        };
 
         // Handle commutations using Pauli-based generators.
         if let (Some((z1, x1)), Some((z2, x2))) = (
