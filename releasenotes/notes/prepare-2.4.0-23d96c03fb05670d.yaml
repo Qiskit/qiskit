@@ -16,9 +16,9 @@ prelude: |
 
    * **Expansion of the C API's functionality:**
      The C API now exposes DAG-based representations through an opaque :c:struct:`QkDag`
-     type, along with DAG-level transpiler
-     pass functions that operate directly on this representation. Additional features include
-     support for parameterized circuits and a circuit text drawer.
+     type, along with DAG-level transpiler pass functions that operate directly on this
+     representation. Additional features include support for parameterized circuits,
+     instructions for Pauli-based computations, and a circuit text drawer.
 
    * **Improvements to the Clifford+T transpilation pipeline:**
      We have significantly improved the Clifford+T transpilation pipeline for targeting

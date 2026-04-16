@@ -3,18 +3,8 @@ features_quantum_info:
   - |
     Added the :meth:`.SparseObservable.evolve` method, which
     conjugates a :class:`~.quantum_info.SparseObservable` by a
-    :class:`~.quantum_info.Pauli`.
-
-    Internally this is implemented using a precomputed static lookup table for single-qubit
-    :class:`~.quantum_info.SparseObservable.BitTerm` conjugation, encoding
-    the full :math:`P^\dagger Q P` conjugation rules for all supported :class:`~.BitTerm`'s.
-    These include ``X``, ``Y``, ``Z``; ``+`` and ``-``; ``l`` and ``r``;
-    and the computational-basis projectors ``0`` and ``1``.
-    Each lookup entry yields either zero or a minimal list of resulting BitTerms together
-    with their associated complex coefficients.
-
-    This approach avoids runtime matrix operations and enables deterministic,
-    allocation-free evolution with exact algebraic semantics.
+    :class:`~.quantum_info.Pauli`. Internally this uses a static
+    lookup table to avoid any matrix calculations.
 
     As an example::
 
