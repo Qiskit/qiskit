@@ -981,6 +981,7 @@ impl PackedInstruction {
                 standard.matrix_as_static_1q(self.params_view())
             }
             OperationRef::Gate(gate) => gate.matrix_as_static_1q(),
+            OperationRef::PauliProductRotation(ppr) => ppr.matrix_as_static_1q(),
             OperationRef::Unitary(unitary) => unitary.matrix_as_static_1q(),
             _ => None,
         }
@@ -1005,6 +1006,7 @@ impl PackedInstruction {
                 standard.matrix_as_static_2q(self.params_view())
             }
             OperationRef::Gate(gate) => gate.matrix_as_static_2q(),
+            OperationRef::PauliProductRotation(ppr) => ppr.matrix_as_static_2q(),
             OperationRef::Unitary(unitary) => unitary.matrix_as_static_2q(),
             _ => None,
         }
