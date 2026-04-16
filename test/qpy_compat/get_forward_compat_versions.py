@@ -98,7 +98,7 @@ def get_qiskit_versions():
                 python_versions = [re.sub(r"^cp(\d)(\d+)$", r"\1.\2", v) for v in python_versions]
                 python_version = max(python_versions, key=lambda s: tuple(map(int, s.split("."))))
             except ValueError:
-                print(
+                print( # noqa: T201
                     f"skipping '{version}', no installable binary artifacts",
                     file=sys.stderr,
                 )
@@ -113,7 +113,7 @@ def main():
     results = get_qiskit_versions()
     for qpy_version, supported_versions in results.items():
         for supported_version, python_version in supported_versions:
-            print(f"{qpy_version} {supported_version} {python_version}")
+            print(f"{qpy_version} {supported_version} {python_version}") # noqa: T201
 
 
 if __name__ == "__main__":

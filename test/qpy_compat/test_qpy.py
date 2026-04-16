@@ -1111,7 +1111,10 @@ def generate_qpy(qpy_files, qpy_version=None):
     """Generate qpy files from reference circuits."""
     for path, circuits in qpy_files.items():
         with open(path, "wb") as fd:
-            dump(circuits, fd, version=qpy_version)
+            if qpy_version is None:  # avoid the version param because it's missing in old qiskit
+                dump(circuits, fd)
+            else:
+                dump(circuits, fd, version=qpy_version)
 
 
 def load_qpy(qpy_files, generating_version):
