@@ -12,6 +12,7 @@
 
 use std::f64::consts::FRAC_1_SQRT_2;
 
+use nalgebra::Matrix2;
 use ndarray::{Array2, ArrayView2, array, aview2};
 use num_complex::{Complex64, ComplexFloat};
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray1, PyReadonlyArray2};
@@ -122,6 +123,13 @@ pub(crate) fn rx_matrix(theta: f64) -> Array2<Complex64> {
     array![[cos, isin], [isin, cos]]
 }
 
+pub(crate) fn rx_matrix_nalgebra(theta: f64) -> Matrix2<Complex64> {
+    let half_theta = theta / 2.;
+    let cos = c64(half_theta.cos(), 0.);
+    let isin = c64(0., -half_theta.sin());
+    Matrix2::new(cos, isin, isin, cos)
+}
+
 pub(crate) fn ry_matrix(theta: f64) -> Array2<Complex64> {
     let half_theta = theta / 2.;
     let cos = c64(half_theta.cos(), 0.);
@@ -132,6 +140,11 @@ pub(crate) fn ry_matrix(theta: f64) -> Array2<Complex64> {
 pub(crate) fn rz_matrix(theta: f64) -> Array2<Complex64> {
     let ilam2 = c64(0., 0.5 * theta);
     array![[(-ilam2).exp(), C_ZERO], [C_ZERO, ilam2.exp()]]
+}
+
+pub(crate) fn rz_matrix_nalgebra(theta: f64) -> Matrix2<Complex64> {
+    let ilam2 = c64(0., 0.5 * theta);
+    Matrix2::new((-ilam2).exp(), C_ZERO, C_ZERO, ilam2.exp())
 }
 
 /// Generates the array :math:`e^{(i a XX + i b YY + i c ZZ)}`

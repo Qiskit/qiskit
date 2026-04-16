@@ -20,7 +20,7 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, PauliProductMeasurement, PauliProductRotation, StandardGate,
-    add_param, multiply_param, radd_param,
+    StandardInstruction, add_param, multiply_param, radd_param,
 };
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 use qiskit_quantum_info::sparse_observable::BitTerm;
@@ -469,7 +469,7 @@ fn generate_pauli_product_rotation_gate(paulis: &[BitTerm], angle: Param) -> Pau
 #[pyfunction]
 #[pyo3(name = "convert_to_pauli_rotations")]
 pub fn py_convert_to_pauli_rotations(dag: &DAGCircuit) -> PyResult<DAGCircuit> {
-    let mut new_dag = dag.copy_empty_like(VarsMode::Alike, BlocksMode::Drop)?;
+    let mut new_dag = dag.copy_empty_like(VarsMode::Alike, BlocksMode::Keep)?;
 
     // Iterate over nodes in the DAG and collect nodes
     let mut global_phase = Param::Float(0.0);
@@ -478,7 +478,13 @@ pub fn py_convert_to_pauli_rotations(dag: &DAGCircuit) -> PyResult<DAGCircuit> {
         let NodeType::Operation(inst) = &dag[node_index] else {
             unreachable!("dag.topological_op_nodes only returns Operations");
         };
-        if ["barrier", "reset", "delay"].contains(&inst.op.name()) {
+        if matches!(
+            inst.op.view(),
+            OperationRef::ControlFlow(_)
+                | OperationRef::StandardInstruction(StandardInstruction::Barrier(_))
+                | OperationRef::StandardInstruction(StandardInstruction::Reset)
+                | OperationRef::StandardInstruction(StandardInstruction::Delay(_))
+        ) {
             new_dag.push_back(inst.clone())?;
         } else if inst.op.name() == "measure" {
             let z = vec![true];

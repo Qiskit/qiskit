@@ -19,6 +19,7 @@ from collections.abc import Sequence
 from qiskit.circuit.operation import Operation
 from qiskit.circuit import Qubit
 from qiskit._accelerate.commutation_checker import CommutationChecker as RustChecker
+from qiskit.utils import deprecate_arg, deprecate_func
 
 
 class CommutationChecker:
@@ -45,10 +46,10 @@ class CommutationChecker:
     gates with free parameters (such as :class:`.RXGate` with a :class:`.ParameterExpression` as
     angle). Otherwise, a matrix-based check is performed, where two operations are said to
     commute, if the average gate fidelity of performing the commutation is above a certain threshold
-    (see ``approximation_degree``). The result of this commutation is then added to the
-    cached lookup table.
+    (see ``approximation_degree``).
     """
 
+    @deprecate_arg("cache_max_entries", since="2.5.0", removal_timeline="in Qiskit 3.0")
     def __init__(
         self,
         standard_gate_commutations: dict | None = None,
@@ -56,7 +57,7 @@ class CommutationChecker:
         *,
         gates: set[str] | None = None,
     ):
-        self.cc = RustChecker(standard_gate_commutations, cache_max_entries, gates)
+        self.cc = RustChecker(standard_gate_commutations, gates)
 
     def commute_nodes(
         self,
@@ -118,13 +119,21 @@ class CommutationChecker:
             matrix_max_num_qubits,
         )
 
+    @deprecate_func(since="2.5", removal_timeline="in Qiskit 3.0")
     def num_cached_entries(self):
-        """Returns number of cached entries"""
-        return self.cc.num_cached_entries()
+        """Returns number of cached entries
 
+        This method will always return 0 because there is no longer an
+        internal cache.
+        """
+        return 0
+
+    @deprecate_func(since="2.5", removal_timeline="in Qiskit 3.0")
     def clear_cached_commutations(self):
-        """Clears the dictionary holding cached commutations"""
-        self.cc.clear_cached_commutations()
+        """Clears the dictionary holding cached commutations
+
+        This method is a no-op as there is no longer an internal cache
+        """
 
     def check_commutation_entries(
         self,

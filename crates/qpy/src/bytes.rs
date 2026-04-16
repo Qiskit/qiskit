@@ -32,7 +32,7 @@ impl Bytes {
         self.0
             .iter()
             .fold(String::with_capacity(self.0.len() * 2), |mut acc, b| {
-                write!(&mut acc, "{:02x}", b).unwrap();
+                let _ = write!(&mut acc, "{:02x}", b);
                 acc
             })
     }

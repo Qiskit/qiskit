@@ -503,3 +503,10 @@ exclude_also = [
     "if TYPE_CHECKING:",          # Code that only runs during type checks
     "@abstractmethod",            # Abstract methods are not testable
     ]
+
+# Qiskit doesn't mandate use of `uv`, but we can include this as a convenience for the multitude of
+# devs who do like it.  Without setting the per-group Python versions, `uv sync` (and any other
+# command that attempts to build the lockfile) will fail on some groups, even if you don't attempt
+# to use the group with a bad version of Python.
+[tool.uv.dependency-groups]
+doc = { requires-python = ">=3.12" }
