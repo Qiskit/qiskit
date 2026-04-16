@@ -6391,8 +6391,7 @@ impl DAGCircuit {
                         op_node
                             .instruction
                             .qubits
-                            .extract::<Vec<ShareableQubit>>(py)?
-                            .into_iter(),
+                            .extract::<Vec<ShareableQubit>>(py)?,
                     )?
                     .collect(),
             );
@@ -6402,8 +6401,7 @@ impl DAGCircuit {
                         op_node
                             .instruction
                             .clbits
-                            .extract::<Vec<ShareableClbit>>(py)?
-                            .into_iter(),
+                            .extract::<Vec<ShareableClbit>>(py)?,
                     )?
                     .collect(),
             );
