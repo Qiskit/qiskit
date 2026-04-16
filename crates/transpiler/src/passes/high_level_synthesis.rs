@@ -12,7 +12,6 @@
 
 use hashbrown::HashMap;
 use hashbrown::HashSet;
-use nalgebra::DMatrix;
 use ndarray::prelude::*;
 use pyo3::Bound;
 use pyo3::IntoPyObjectExt;
@@ -793,9 +792,8 @@ fn extract_definition(op: &PackedOperation, params: &[Param]) -> PyResult<Option
                 }
                 // Run 3q+ synthesis
                 _ => {
-                    let matrix = DMatrix::from_fn(shape[0], shape[1], |i, j| unitary[[i, j]]);
                     let synth_circ =
-                        quantum_shannon_decomposition(&matrix, None, None, None, None)?;
+                        quantum_shannon_decomposition(unitary.view(), None, None, None, None)?;
                     Ok(Some(synth_circ))
                 }
             }

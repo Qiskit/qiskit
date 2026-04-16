@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use approx::relative_eq;
+use qiskit_quantum_info::sparse_pauli_op::MatrixCompressedPaulis;
 use std::any::{Any, TypeId};
 use std::fmt::Debug;
 use std::num::NonZero;
@@ -31,9 +32,9 @@ use crate::parameter::symbol_expr::{Symbol, Value};
 use crate::{ControlFlowBlocks, imports};
 
 use nalgebra::{Matrix2, Matrix4};
-use ndarray::{Array2, ArrayView2, Dim, ShapeBuilder, array};
+use ndarray::{Array1, Array2, ArrayView2, Dim, ShapeBuilder, array};
 use num_bigint::BigUint;
-use num_complex::Complex64;
+use num_complex::{Complex64, c64};
 use smallvec::SmallVec;
 
 use numpy::{PyArray1, PyReadonlyArray2, ToPyArray};
@@ -1715,6 +1716,61 @@ impl PauliProductRotation {
 
         Some((tr_over_dim, dim as f64))
     }
+
+    /// Return a dense matrix representation of the matrix.
+    ///
+    /// # Returns
+    ///
+    /// * Some(matrix) - If the matrix was successfully computed.
+    /// * None - If the angle is not a [Param::Float] or the number of qubits exceeds 63.
+    pub fn matrix(&self) -> Option<Array2<Complex64>> {
+        let Param::Float(coeff) = self.angle else {
+            // We cannot compute a matrix representation for a parameterized angle
+            return None;
+        };
+        let x = ArrayView2::from_shape((1, self.x.len()), &self.x)
+            .expect("1 x x.len() is a compatible shape");
+        let z = ArrayView2::from_shape((1, self.z.len()), &self.z)
+            .expect("1 x z.len() is a compatible shape");
+        let phases = Array1::zeros(self.x.len());
+        let coeffs = Array1::ones(1);
+
+        let Ok(compressed) =
+            MatrixCompressedPaulis::from_zx_arrays(x, z, phases.view(), coeffs.view())
+        else {
+            return None;
+        };
+
+        let mut out = c64(0.0, -(coeff / 2.0).sin()) * compressed.to_matrix_dense(false);
+        let cos = c64((coeff / 2.0).cos(), 0.0);
+        for i in 0..out.ncols() {
+            out[(i, i)] += cos;
+        }
+        Some(out)
+    }
+
+    pub fn matrix_as_static_1q(&self) -> Option<[[Complex64; 2]; 2]> {
+        if self.num_qubits() == 1 {
+            let arr = self.matrix()?;
+            Some([[arr[(0, 0)], arr[(0, 1)]], [arr[(1, 0)], arr[(1, 1)]]])
+        } else {
+            None
+        }
+    }
+
+    pub fn matrix_as_static_2q(&self) -> Option<[[Complex64; 4]; 4]> {
+        if self.num_qubits() == 2 {
+            let arr = self.matrix()?;
+            Some([
+                [arr[[0, 0]], arr[[0, 1]], arr[[0, 2]], arr[[0, 3]]],
+                [arr[[1, 0]], arr[[1, 1]], arr[[1, 2]], arr[[1, 3]]],
+                [arr[[2, 0]], arr[[2, 1]], arr[[2, 2]], arr[[2, 3]]],
+                [arr[[3, 0]], arr[[3, 1]], arr[[3, 2]], arr[[3, 3]]],
+            ])
+        } else {
+            None
+        }
+    }
 }
 
 impl PartialEq for PauliProductRotation {
@@ -1925,6 +1981,49 @@ impl<T: CustomOperation> From<T> for BoxedCustomOperation {
 impl From<Box<dyn CustomOperation>> for BoxedCustomOperation {
     fn from(value: Box<dyn CustomOperation>) -> Self {
         Self(value)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use approx::assert_abs_diff_eq;
+    use ndarray::{Array2, arr2, linalg::kron};
+    use qiskit_util::complex::{C_ONE, C_ZERO, IM};
+
+    use crate::operations::{Param, PauliProductRotation};
+
+    #[test]
+    fn test_ppr_matrix() {
+        // Prepare I X Y Z with some rotation angle
+        let z = vec![false, false, true, true];
+        let x = vec![false, true, true, false];
+        let dim = 2usize.pow(x.len() as u32);
+        let angle = -0.5;
+        let ppr = PauliProductRotation {
+            z,
+            x,
+            angle: Param::Float(angle),
+        };
+
+        let pauli_i = arr2(&[[C_ONE, C_ZERO], [C_ZERO, C_ONE]]);
+        let pauli_x = arr2(&[[C_ZERO, C_ONE], [C_ONE, C_ZERO]]);
+        let pauli_y = arr2(&[[C_ZERO, -IM], [IM, C_ZERO]]);
+        let pauli_z = arr2(&[[C_ONE, C_ZERO], [C_ZERO, -C_ONE]]);
+
+        let pauli_product = kron(&pauli_z, &kron(&pauli_y, &kron(&pauli_x, &pauli_i)));
+        let expected_matrix =
+            C_ONE * (angle / 2.).cos() * Array2::eye(dim) - IM * (angle / 2.).sin() * pauli_product;
+
+        let matrix = ppr.matrix().unwrap();
+        // Loosen the tolerance in Miri mode allows for larger roundoff errors
+        // to mimic different hardware / OS configs, but keep 1e-17 for tight checks
+        let epsilon = if cfg!(miri) { 1e-12 } else { 1e-17 };
+
+        for i in 0..dim {
+            for j in 0..dim {
+                assert_abs_diff_eq!(expected_matrix[(i, j)], matrix[(i, j)], epsilon = epsilon);
+            }
+        }
     }
 }
 

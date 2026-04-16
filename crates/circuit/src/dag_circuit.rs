@@ -79,6 +79,11 @@ use rustworkx_core::traversal::{
     bfs_successors as core_bfs_successors, descendants as core_descendants,
 };
 
+#[inline]
+fn dag_compose_width_error(bit_kind: &str, other: usize, dest: usize) -> String {
+    format!("Cannot compose onto a DAGCircuit with fewer {bit_kind} ({other} > {dest}).")
+}
+
 use crate::imports::PARAMETER;
 use crate::instruction::Parameters;
 use crate::parameter_table::ParameterUuid;
@@ -1433,12 +1438,6 @@ impl DAGCircuit {
         if front {
             return Err(DAGCircuitError::new_err(
                 "Front composition not supported yet.",
-            ));
-        }
-
-        if other.qubits.len() > self.qubits.len() || other.clbits.len() > self.clbits.len() {
-            return Err(DAGCircuitError::new_err(
-                "Trying to compose with another DAGCircuit which has more 'in' edges.",
             ));
         }
 
@@ -7699,9 +7698,18 @@ impl DAGCircuit {
         inline_captures: bool,
     ) -> PyResult<()> {
         if other.qubits.len() > self.qubits.len() || other.clbits.len() > self.clbits.len() {
-            return Err(DAGCircuitError::new_err(
-                "Trying to compose with another DAGCircuit which has more 'in' edges.",
-            ));
+            if other.qubits.len() > self.qubits.len() {
+                return Err(DAGCircuitError::new_err(dag_compose_width_error(
+                    "qubits",
+                    other.qubits.len(),
+                    self.qubits.len(),
+                )));
+            }
+            return Err(DAGCircuitError::new_err(dag_compose_width_error(
+                "classical bits",
+                other.clbits.len(),
+                self.clbits.len(),
+            )));
         }
 
         let qubit_map = match qubits {
