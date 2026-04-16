@@ -12,7 +12,8 @@
 
 """List the (qpy_version, qiskit_version, python_versions) triplets for forward-compatibility QPY testing.
 
-For each QPY format version, output all the qiskit versions supporting loading from that QPY version"""
+For each QPY format version, output all the qiskit versions supporting loading from that QPY version
+"""
 
 import json
 import re
@@ -67,7 +68,7 @@ def get_qiskit_versions():
         data = json.load(fd)
 
     # best[minor_key] = (parsed_version, python_version_str)
-    results = {qpy_version: [] for qpy_version in QPY_COMPAT_MATRIX.keys()} 
+    results = {qpy_version: [] for qpy_version in QPY_COMPAT_MATRIX.keys()}
     for raw_version, payload in data["releases"].items():
         version = packaging.version.parse(raw_version)
         if version > our_version:
@@ -94,12 +95,8 @@ def get_qiskit_versions():
                     for release in payload
                     if release["packagetype"] == "bdist_wheel" and not release["yanked"]
                 ]
-                python_versions = [
-                    re.sub(r"^cp(\d)(\d+)$", r"\1.\2", v) for v in python_versions
-                ]
-                python_version = max(
-                    python_versions, key=lambda s: tuple(map(int, s.split(".")))
-                )
+                python_versions = [re.sub(r"^cp(\d)(\d+)$", r"\1.\2", v) for v in python_versions]
+                python_version = max(python_versions, key=lambda s: tuple(map(int, s.split("."))))
             except ValueError:
                 print(
                     f"skipping '{version}', no installable binary artifacts",
@@ -115,11 +112,9 @@ def get_qiskit_versions():
 def main():
     results = get_qiskit_versions()
     for qpy_version, supported_versions in results.items():
-        for (supported_version, python_version) in supported_versions:
-            print(
-                f"{qpy_version} {supported_version} {python_version}"
-            )
+        for supported_version, python_version in supported_versions:
+            print(f"{qpy_version} {supported_version} {python_version}")
+
 
 if __name__ == "__main__":
     main()
-

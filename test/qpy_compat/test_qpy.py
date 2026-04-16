@@ -1224,7 +1224,9 @@ def _main():
     generating_version = Version(args.version or "0.18.0")
 
     if args.command == "generate":
-        qpy_files = generate_circuits(generating_version, current_version, qpy_version=args.qpy_version)
+        qpy_files = generate_circuits(
+            generating_version, current_version, qpy_version=args.qpy_version
+        )
         generate_qpy(qpy_files, qpy_version=args.qpy_version)
     else:
         qpy_files = generate_circuits(generating_version, current_version, load_context=True)
