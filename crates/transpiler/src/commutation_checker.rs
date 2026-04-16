@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -16,8 +16,8 @@ use ndarray::linalg::kron;
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
 use qiskit_circuit::object_registry::PyObjectAsKey;
-use qiskit_quantum_info::sparse_observable::PySparseObservable;
-use qiskit_quantum_info::sparse_observable::SparseObservable;
+use qiskit_circuit::standard_gate::standard_generators::standard_gate_exponent;
+use qiskit_quantum_info::sparse_observable::{PySparseObservable, SparseObservable};
 use smallvec::SmallVec;
 use std::fmt::Debug;
 
@@ -91,6 +91,12 @@ const fn build_supported_ops() -> [bool; STANDARD_GATE_SIZE] {
     lut[StandardGate::ISwap as usize] = true;
     lut[StandardGate::ECR as usize] = true;
     lut[StandardGate::CCX as usize] = true;
+    lut[StandardGate::CCZ as usize] = true;
+    lut[StandardGate::CS as usize] = true;
+    lut[StandardGate::CSdg as usize] = true;
+    lut[StandardGate::CSX as usize] = true;
+    lut[StandardGate::I as usize] = true;
+    lut[StandardGate::GlobalPhase as usize] = true;
     lut[StandardGate::CSwap as usize] = true;
     lut
 }
@@ -145,7 +151,7 @@ fn try_extract_op_from_pauli_gate(
     // In that case we return None.
     Python::attach(|py| {
         let py_obs = gate
-            .gate
+            .instruction
             .call_method0(py, intern!(py, "_extract_sparse_observable"))
             .ok()? // Return None if the method didn't exist
             .cast_bound::<PySparseObservable>(py)
@@ -170,7 +176,7 @@ fn try_extract_op_from_pauli_evo(
 
     Python::attach(|py| {
         let py_obs = gate
-            .gate
+            .instruction
             .call_method0(py, intern!(py, "_extract_sparse_observable"))
             .ok()? // Return None if the method didn't exist
             .cast_bound::<PySparseObservable>(py)
@@ -183,18 +189,10 @@ fn try_extract_op_from_pauli_evo(
     })
 }
 
-fn try_extract_op_from_ppm(
-    operation: &OperationRef,
-    qubits: &[Qubit],
-    num_qubits: u32,
-) -> Option<SparseObservable> {
-    let OperationRef::PauliProductMeasurement(ppm) = operation else {
-        // Gate is called "pauli_product_measurement" but is not actually a PPM...
-        return None;
-    };
+fn xz_to_observable(x: &[bool], z: &[bool]) -> SparseObservable {
     let mut indices = Vec::new();
     let mut bit_terms = Vec::new();
-    for (i, (x_i, z_i)) in ppm.x.iter().zip(ppm.z.iter()).enumerate() {
+    for (i, (x_i, z_i)) in x.iter().zip(z.iter()).enumerate() {
         // The only failure case possible here is the identity, because of how we're
         // constructing the value to convert.
         let Ok(term) = ::bytemuck::checked::try_cast(((*x_i as u8) << 1) | (*z_i as u8)) else {
@@ -208,12 +206,36 @@ fn try_extract_op_from_ppm(
     let coeffs = vec![Complex64::new(1., 0.)];
     let boundaries = vec![0, bit_terms.len()];
 
+    let num_qubits = x.len() as u32;
     // SAFETY: We know the data is consistent since we constructed it manually, and that indices are
     // sorted in ascending order. Hence, calling new_unchecked is safe.
-    let local = unsafe {
-        SparseObservable::new_unchecked(ppm.num_qubits(), coeffs, bit_terms, indices, boundaries)
-    };
+    unsafe { SparseObservable::new_unchecked(num_qubits, coeffs, bit_terms, indices, boundaries) }
+}
 
+fn try_extract_op_from_ppm(
+    operation: &OperationRef,
+    qubits: &[Qubit],
+    num_qubits: u32,
+) -> Option<SparseObservable> {
+    let OperationRef::PauliProductMeasurement(ppm) = operation else {
+        // Gate is called "pauli_product_measurement" but is not actually a PPM...
+        return None;
+    };
+    let local = xz_to_observable(&ppm.x, &ppm.z);
+    let out = SparseObservable::identity(num_qubits);
+    Some(out.compose_map(&local, |i| qubits[i as usize].0))
+}
+
+fn try_extract_op_from_ppr(
+    operation: &OperationRef,
+    qubits: &[Qubit],
+    num_qubits: u32,
+) -> Option<SparseObservable> {
+    let OperationRef::PauliProductRotation(rotation) = operation else {
+        // Gate is called "pauli_product_rotation" but is not actually the right type
+        return None;
+    };
+    let local = xz_to_observable(&rotation.x, &rotation.z);
     let out = SparseObservable::identity(num_qubits);
     Some(out.compose_map(&local, |i| qubits[i as usize].0))
 }
@@ -227,8 +249,24 @@ fn try_pauli_generator(
         "pauli" => try_extract_op_from_pauli_gate(operation, qubits, num_qubits),
         "PauliEvolution" => try_extract_op_from_pauli_evo(operation, qubits, num_qubits),
         "pauli_product_measurement" => try_extract_op_from_ppm(operation, qubits, num_qubits),
+        "pauli_product_rotation" => try_extract_op_from_ppr(operation, qubits, num_qubits),
         _ => None,
     }
+}
+
+fn try_standard_gate_generator(
+    operation: &OperationRef,
+    params: &[Param],
+    qubits: &[Qubit],
+    num_qubits: u32,
+) -> Option<SparseObservable> {
+    if let OperationRef::StandardGate(gate) = operation {
+        if let Some(local) = standard_gate_exponent(*gate, params) {
+            let out = SparseObservable::identity(num_qubits);
+            return Some(out.compose_map(&local, |i| qubits[i as usize].0));
+        }
+    }
+    None
 }
 
 fn get_bits_from_py<T>(
@@ -236,7 +274,7 @@ fn get_bits_from_py<T>(
     py_bits2: &Bound<'_, PyTuple>,
 ) -> PyResult<(Vec<T>, Vec<T>)>
 where
-    T: From<u32> + Copy,
+    T: From<u32> + Copy + Debug,
     u32: From<T>,
 {
     // Using `PyObjectAsKey` here is a total hack, but this is a short-term workaround before a
@@ -244,7 +282,7 @@ where
     let mut registry: ObjectRegistry<T, PyObjectAsKey> = ObjectRegistry::new();
 
     for bit in py_bits1.iter().chain(py_bits2.iter()) {
-        registry.add(bit.into(), false)?;
+        registry.add_allow_existing(bit.into())?;
     }
 
     Ok((
@@ -322,10 +360,10 @@ impl CommutationChecker {
     #[allow(clippy::too_many_arguments)]
     fn py_commute(
         &mut self,
-        op1: OperationFromPython,
+        op1: OperationFromPython<Py<PyAny>>,
         qargs1: &Bound<'_, PyTuple>,
         cargs1: &Bound<'_, PyTuple>,
-        op2: OperationFromPython,
+        op2: OperationFromPython<Py<PyAny>>,
         qargs2: &Bound<'_, PyTuple>,
         cargs2: &Bound<'_, PyTuple>,
         max_num_qubits: Option<u32>,
@@ -504,20 +542,33 @@ impl CommutationChecker {
             _ => (),
         };
 
-        // Handle commutations in between Pauli-based gates, like PauliGate or PauliEvolutionGate
+        // Handle commutations between Pauli-based gates among themselves, and with standard gates
+        // TODO Support trivial commutations of standard gates with identities in the Paulis
         let size = qargs1.iter().chain(qargs2.iter()).max().unwrap().0 + 1;
-        if let Some(obs1) = try_pauli_generator(op1, qargs1, size) {
-            if let Some(obs2) = try_pauli_generator(op2, qargs2, size) {
-                return Ok(obs1.commutes(&obs2, tol));
+        let maybe_pauli1 = try_pauli_generator(op1, qargs1, size);
+        let maybe_pauli2 = try_pauli_generator(op2, qargs2, size);
+
+        match (maybe_pauli1, maybe_pauli2) {
+            (None, None) => (), // No gate is Pauli-based, continue
+            (None, Some(pauli2)) => {
+                if let Some(pauli1) = try_standard_gate_generator(op1, params1, qargs1, size) {
+                    return Ok(pauli1.commutes(&pauli2, tol));
+                }
             }
-        }
+            (Some(pauli1), None) => {
+                if let Some(pauli2) = try_standard_gate_generator(op2, params2, qargs2, size) {
+                    return Ok(pauli1.commutes(&pauli2, tol));
+                }
+            }
+            (Some(pauli1), Some(pauli2)) => return Ok(pauli1.commutes(&pauli2, tol)),
+        };
 
         // Now there are no more parameterized gates that are allowed
         if matches!(precheck_status, PrecheckStatus::Parameterized) {
             return Ok(false);
         }
 
-        // Sort the arguments.
+        // Sort the arguments, such that `second_op` always is the larger one.
         let reversed = if op1.num_qubits() != op2.num_qubits() {
             op1.num_qubits() > op2.num_qubits()
         } else {
@@ -552,12 +603,11 @@ impl CommutationChecker {
             is_cachable(first_op, first_params) && is_cachable(second_op, second_params);
 
         if !check_cache {
-            // The arguments are sorted, so if qargs1.len() > matrix_max_num_qubits, then
-            // qargs1.len() > matrix_max_num_qubits as well.
-            if qargs2.len() > matrix_max_num_qubits as usize {
+            // The arguments are sorted, so if first_qargs.len() > matrix_max_num_qubits, then
+            // second_qargs.len() > matrix_max_num_qubits as well.
+            if second_qargs.len() > matrix_max_num_qubits as usize {
                 return Ok(false);
             }
-
             return self.commute_matmul(
                 first_op,
                 first_params,
@@ -591,9 +641,7 @@ impl CommutationChecker {
             }
         }
 
-        if qargs1.len() > matrix_max_num_qubits as usize
-            || qargs2.len() > matrix_max_num_qubits as usize
-        {
+        if second_qargs.len() > matrix_max_num_qubits as usize {
             return Ok(false);
         }
 
@@ -642,7 +690,7 @@ impl CommutationChecker {
         tol: f64,
     ) -> Result<bool, CommutationError> {
         // Compute relative positioning of qargs of the second gate to the first gate.
-        // Since the qargs come out the same BitData, we already know there are no accidential
+        // Since the qargs come out the same BitData, we already know there are no accidental
         // bit-duplications, but this code additionally maps first_qargs to [0..n] and then
         // computes second_qargs relative to that. For example, it performs the mappings
         //  (first_qargs, second_qargs) = ( [1, 2], [0, 2] ) --> ( [0, 1], [2, 1] )
@@ -662,10 +710,13 @@ impl CommutationChecker {
             }
         }
 
-        let first_qarg: Vec<Qubit> = Vec::from_iter((0..first_qargs.len() as u32).map(Qubit));
-        let second_qarg: Vec<Qubit> = second_qargs.iter().map(|q| qarg[q]).collect();
+        let first_indices = Vec::from_iter(0..first_qargs.len());
+        let second_indices = second_qargs
+            .iter()
+            .map(|q| qarg[q].index())
+            .collect::<Vec<_>>();
 
-        if first_qarg.len() > second_qarg.len() {
+        if first_indices.len() > second_indices.len() {
             return Err(CommutationError::FirstInstructionTooLarge);
         };
         let first_mat = match try_matrix_with_definition(first_op, first_params, None) {
@@ -684,7 +735,7 @@ impl CommutationChecker {
         //  2. This code here expands the first op to match the second -- hence we always
         //     match the operator sizes.
         // This whole extension logic could be avoided since we know the second one is larger.
-        let extra_qarg2 = num_qubits - first_qarg.len() as u32;
+        let extra_qarg2 = num_qubits - first_indices.len() as u32;
         let first_mat = if extra_qarg2 > 0 {
             let id_op = Array2::<Complex64>::eye(usize::pow(2, extra_qarg2));
             kron(&id_op, &first_mat)
@@ -698,7 +749,7 @@ impl CommutationChecker {
         let op12 = match unitary_compose::compose(
             &first_mat.view(),
             &second_mat.view(),
-            &second_qarg,
+            &second_indices,
             false,
         ) {
             Ok(matrix) => matrix,
@@ -707,13 +758,13 @@ impl CommutationChecker {
         let op21 = match unitary_compose::compose(
             &first_mat.view(),
             &second_mat.view(),
-            &second_qarg,
+            &second_indices,
             true,
         ) {
             Ok(matrix) => matrix,
             Err(e) => return Err(CommutationError::EinsumError(e)),
         };
-        let (fid, phase) = gate_metrics::gate_fidelity(&op12.view(), &op21.view(), None);
+        let (fid, phase) = gate_metrics::gate_fidelity(&op12.view(), &op21.view());
 
         // we consider the gates as commuting if the process fidelity of
         // AB (BA)^\dagger is approximately the identity and there is no global phase difference
@@ -734,6 +785,7 @@ impl CommutationChecker {
 /// Used to differentiate between the reasons why gates might not commute, which allow
 /// the commutation checker to handle cases individually. E.g. a ``PauliEvolutionGate`` can
 /// still be checked even if the gate is parameterized.
+#[derive(Debug, Clone)]
 enum PrecheckStatus {
     Commuting,     // gates commute for sure
     NonCommuting,  // gates do not commute for sure
@@ -825,7 +877,7 @@ pub fn try_matrix_with_definition(
             Some(
                 QI_OPERATOR
                     .get_bound(py)
-                    .call1((gate.gate.clone_ref(py),))
+                    .call1((gate.instruction.clone_ref(py),))
                     .ok()?
                     .getattr(intern!(py, "data"))
                     .ok()?
@@ -845,7 +897,7 @@ pub fn try_matrix_with_definition(
             Some(
                 QI_OPERATOR
                     .get_bound(py)
-                    .call1((operation.operation.clone_ref(py),))
+                    .call1((operation.instruction.clone_ref(py),))
                     .ok()?
                     .getattr(intern!(py, "data"))
                     .ok()?
@@ -926,7 +978,7 @@ fn get_relative_placement(
 }
 
 #[derive(Clone, Debug)]
-#[pyclass]
+#[pyclass(skip_from_py_object)]
 pub struct CommutationLibrary {
     pub library: Option<HashMap<(String, String), CommutationLibraryEntry>>,
 }

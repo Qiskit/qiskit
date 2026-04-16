@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -75,8 +75,10 @@ Optimizations
    CommutationAnalysis
    CommutativeCancellation
    CommutativeInverseCancellation
+   CommutativeOptimization
    ConsolidateBlocks
    ContractIdleWiresInControlFlow
+   ConvertToPauliRotations
    ElidePermutations
    HoareOptimizer
    InverseCancellation
@@ -142,6 +144,7 @@ The synthesis transpiler plugin documentation can be found in the
    HighLevelSynthesis
    LinearFunctionsToPermutations
    SolovayKitaev
+   SynthesizeRZRotations
    UnitarySynthesis
 
 Post Layout
@@ -228,6 +231,7 @@ from .optimization import CommutativeOptimization
 from .optimization import CommutativeInverseCancellation
 from .optimization import ConsolidateBlocks
 from .optimization import ContractIdleWiresInControlFlow
+from .optimization import ConvertToPauliRotations
 from .optimization import ElidePermutations
 from .optimization import HoareOptimizer
 from .optimization import InverseCancellation
@@ -267,6 +271,7 @@ from .synthesis import HighLevelSynthesis
 from .synthesis import LinearFunctionsToPermutations
 from .synthesis import SolovayKitaev
 from .synthesis import SolovayKitaevSynthesis
+from .synthesis import SynthesizeRZRotations
 from .synthesis import RossSelingerSynthesis
 from .synthesis import UnitarySynthesis
 from .synthesis import unitary_synthesis_plugin_names

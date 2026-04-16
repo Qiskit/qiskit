@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -55,7 +55,7 @@ from qiskit.transpiler.passes import ConsolidateBlocks, GatesInBasis
 from qiskit.transpiler.passes.scheduling.alignments.check_durations import InstructionDurationCheck
 from qiskit.transpiler.preset_passmanagers.builtin_plugins import OptimizationPassManager
 from qiskit.transpiler.timing_constraints import TimingConstraints
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP, LAGOS_CMAP, TOKYO_CMAP, BOGOTA_CMAP
 
@@ -64,7 +64,7 @@ def mock_get_passmanager_stage(
     stage_name,
     plugin_name,
     pm_config,
-    optimization_level=None,  # pylint: disable=unused-argument
+    optimization_level=None,
 ) -> PassManager:
     """Mock function for get_passmanager_stage."""
     if stage_name == "translation" and plugin_name == "custom_stage_for_test":
@@ -293,7 +293,6 @@ class TestPresetPassManager(QiskitTestCase):
         gates_in_basis_true_count = 0
         consolidate_blocks_count = 0
 
-        # pylint: disable=unused-argument
         def counting_callback_func(pass_, dag, time, property_set, count):
             nonlocal gates_in_basis_true_count
             nonlocal consolidate_blocks_count
@@ -1058,9 +1057,9 @@ class TestFinalLayouts(QiskitTestCase):
                     qc.cx(qubit_control, qubit_target)
         expected_layouts = [
             [0, 1, 2, 3, 4],
-            [5, 6, 10, 11, 0],
-            [5, 6, 0, 11, 10],
-            [5, 6, 0, 10, 11],
+            [5, 6, 10, 0, 11],
+            [5, 6, 10, 0, 11],
+            [5, 11, 6, 0, 10],
         ]
         backend = GenericBackendV2(num_qubits=20, coupling_map=TOKYO_CMAP, seed=42)
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
@@ -1588,7 +1587,7 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         target = Target(num_qubits)
         for inst in (lib.IGate(), lib.PhaseGate(Parameter("t")), lib.SXGate()):
             target.add_instruction(inst, {(i,): None for i in range(num_qubits)})
-        target.add_instruction(CXGate(), {pair: None for pair in CouplingMap.from_line(num_qubits)})
+        target.add_instruction(CXGate(), dict.fromkeys(CouplingMap.from_line(num_qubits)))
 
         pm = generate_preset_pass_manager(
             optimization_level=optimization_level,

@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -22,7 +22,8 @@ use rustworkx_core::petgraph::graph::NodeIndex;
 
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::nlayout::NLayout;
-use qiskit_circuit::{BlocksMode, PhysicalQubit, VirtualQubit, getenv_use_multiple_threads};
+use qiskit_circuit::{BlocksMode, PhysicalQubit, VirtualQubit};
+use qiskit_util::getenv_use_multiple_threads;
 
 use crate::TranspilerError;
 use crate::neighbors::Neighbors;

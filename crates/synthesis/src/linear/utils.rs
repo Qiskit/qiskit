@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -18,7 +18,7 @@ use rand_pcg::Pcg64Mcg;
 use rayon::iter::{IndexedParallelIterator, ParallelIterator};
 use rayon::prelude::IntoParallelIterator;
 
-use qiskit_circuit::getenv_use_multiple_threads;
+use qiskit_util::getenv_use_multiple_threads;
 
 /// Specifies the minimum number of qubits in order to parallelize computations
 /// (this number is chosen based on several local experiments).

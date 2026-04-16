@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -37,10 +37,10 @@ from qiskit.transpiler.passes import TemplateOptimization
 from qiskit.circuit.library.templates import rzx
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.utils import optionals
-from test.python.quantum_info.operators.symplectic.test_clifford import (  # pylint: disable=wrong-import-order
+from test.python.quantum_info.operators.symplectic.test_clifford import (
     random_clifford_circuit,
 )
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 def _ry_to_rz_template_pass(parameter: Parameter = None, extra_costs=None):
@@ -53,7 +53,7 @@ def _ry_to_rz_template_pass(parameter: Parameter = None, extra_costs=None):
     template.rx(-np.pi / 2, 0)
     template.ry(parameter, 0)
     template.rx(np.pi / 2, 0)
-    template.rz(-parameter, 0)  # pylint: disable=invalid-unary-operand-type
+    template.rz(-parameter, 0)
 
     costs = {"rx": 16, "ry": 16, "rz": 0}
     if extra_costs is not None:
@@ -737,7 +737,7 @@ class TestTemplateMatching(QiskitTestCase):
         qc.swap(0, 1)
         qc.h(0)
         qc_opt = pm.run(qc)
-        self.assertTrue(Operator(qc) == Operator(qc_opt))
+        self.assertEqual(Operator(qc), Operator(qc_opt))
 
     def test_clifford_templates(self):
         """Tests TemplateOptimization pass on several larger examples."""
@@ -758,9 +758,91 @@ class TestTemplateMatching(QiskitTestCase):
                 seed=seed,
             )
             qc_opt = pm.run(qc)
-            self.assertTrue(Operator(qc) == Operator(qc_opt))
+            self.assertEqual(Operator(qc), Operator(qc_opt))
         # All of these gates are in the commutation library, i.e. the cache should not be used
         self.assertEqual(scc.num_cached_entries(), 0)
+
+    def test_circuit_global_phase_preserved_after_single_and_multiple_template_match(self):
+        """Test that circuit global_phase survives template optimization (#14537)."""
+
+        circuit_in = QuantumCircuit(2, global_phase=np.pi / 4)
+        circuit_in.cx(0, 1)
+        circuit_in.cx(0, 1)
+
+        circuit_in_mult = QuantumCircuit(2, global_phase=np.pi / 3)
+        # Two independent pairs of CX gates — the template will match twice.
+        circuit_in_mult.cx(0, 1)
+        circuit_in_mult.cx(0, 1)
+        circuit_in_mult.cx(0, 1)
+        circuit_in_mult.cx(0, 1)
+
+        template = QuantumCircuit(2)
+        template.cx(0, 1)
+        template.cx(0, 1)
+
+        result = TemplateOptimization([template])(circuit_in)
+
+        result_mult = TemplateOptimization([template])(circuit_in_mult)
+
+        with self.subTest(msg="single template match"):
+            self.assertAlmostEqual(float(result.global_phase), np.pi / 4)
+            self.assertEqual(result.count_ops(), {})
+
+        with self.subTest(msg="multiple template matches"):
+            self.assertAlmostEqual(float(result_mult.global_phase), np.pi / 3)
+            self.assertEqual(result_mult.count_ops(), {})
+
+    def test_template_nonzero_global_phase_applied_to_circuit(self):
+        """Test the template's global phase is respected (#14537)."""
+
+        template = QuantumCircuit(1)
+        template.h(0)
+        template.s(0)
+        template.h(0)
+        template.s(0)
+        template.h(0)
+        template.s(0)
+        template.global_phase = -np.pi / 4
+
+        qr = QuantumRegister(1, "qr")
+        circuit_in = QuantumCircuit(qr, global_phase=np.pi / 4)
+        circuit_in.h(qr[0])
+        circuit_in.s(qr[0])
+        circuit_in.h(qr[0])
+        circuit_in.s(qr[0])
+
+        result = TemplateOptimization([template])(circuit_in)
+
+        self.assertEqual(Operator(circuit_in), Operator(result))
+
+    def test_circuit_and_template_both_have_nonzero_global_phase(self):
+        """Test that circuit and template global phases both contribute to the result (#14537)."""
+        template = QuantumCircuit(1)
+        template.h(0)
+        template.s(0)
+        template.h(0)
+        template.s(0)
+        template.h(0)
+        template.s(0)
+        template.global_phase = -np.pi / 4
+
+        qr = QuantumRegister(1, "qr")
+        circuit_in = QuantumCircuit(qr)
+        circuit_in.h(qr[0])
+        circuit_in.s(qr[0])
+        circuit_in.h(qr[0])
+        circuit_in.s(qr[0])
+        circuit_in.h(qr[0])
+        circuit_in.s(qr[0])
+        circuit_in.global_phase = np.pi / 3
+
+        result = TemplateOptimization([template])(circuit_in)
+
+        # All gates cancelled; total phase = circuit phase + template compensation
+        # = pi/3 + pi/4 = 7*pi/12.
+        self.assertAlmostEqual(result.global_phase, 7 * np.pi / 12)
+        self.assertEqual(result.count_ops(), {})
+        self.assertEqual(Operator(circuit_in), Operator(result))
 
 
 if __name__ == "__main__":

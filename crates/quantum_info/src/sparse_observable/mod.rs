@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -15,6 +15,7 @@ mod lookup;
 use hashbrown::HashSet;
 use indexmap::IndexSet;
 use itertools::Itertools;
+use lookup::conjugate_bitterm;
 use ndarray::Array2;
 use num_complex::Complex64;
 use num_traits::Zero;
@@ -38,9 +39,8 @@ use std::{
 };
 use thiserror::Error;
 
-use qiskit_circuit::{
-    imports::{ImportOnceCell, NUMPY_COPY_ONLY_IF_NEEDED},
-    slice::{PySequenceIndex, SequenceIndex},
+use qiskit_util::py::{
+    ImportOnceCell, PySequenceIndex, SequenceIndex, imports::NUMPY_COPY_ONLY_IF_NEEDED,
 };
 
 static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Pauli");
@@ -54,7 +54,7 @@ static BIT_TERM_INTO_PY: PyOnceLock<[Option<Py<PyAny>>; 16]> = PyOnceLock::new()
 ///
 /// This is just the Rust-space representation.  We make a separate Python-space `enum.IntEnum` to
 /// represent the same information, since we enforce strongly typed interactions in Rust, including
-/// not allowing the stored values to be outside the valid `BitTerm`s, but doing so in Python would
+/// not allowing the stored values to be outside the valid `BitTerm`\ s, but doing so in Python would
 /// make it very difficult to use the class efficiently with Numpy array views.  We attach this
 /// sister class of `BitTerm` to `SparseObservable` as a scoped class.
 ///
@@ -76,7 +76,7 @@ static BIT_TERM_INTO_PY: PyOnceLock<[Option<Py<PyAny>>; 16]> = PyOnceLock::new()
 /// # Dev notes
 ///
 /// This type is required to be `u8`, but it's a subtype of `u8` because not all `u8` are valid
-/// `BitTerm`s.  For interop with Python space, we accept Numpy arrays of `u8` to represent this,
+/// `BitTerm`\ s.  For interop with Python space, we accept Numpy arrays of `u8` to represent this,
 /// which we transmute into slices of `BitTerm`, after checking that all the values are correct (or
 /// skipping the check if Python space promises that it upheld the checks).
 ///
@@ -280,6 +280,15 @@ pub enum LabelError {
 pub enum ArithmeticError {
     #[error("mismatched numbers of qubits: {left}, {right}")]
     MismatchedQubits { left: u32, right: u32 },
+
+    #[error("invalid operation: {0}")]
+    InvalidOperation(String),
+
+    #[error("duplicate indices in qargs")]
+    DuplicatedIndex,
+
+    #[error("{0}")]
+    OutOfBounds(String),
 }
 
 /// One part of the type of the iteration value from [PairwiseOrdered].
@@ -600,7 +609,7 @@ impl SparseObservable {
     /// Clear all the terms from this operator, making it equal to the zero operator again.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction operations may not need to reallocate.
+    /// subtraction operations may not need to reallocate.
     pub fn clear(&mut self) {
         self.coeffs.clear();
         self.bit_terms.clear();
@@ -694,7 +703,7 @@ impl SparseObservable {
 
     /// Calculate the transpose.
     ///
-    /// This operation transposes the individual bit terms but does directly act
+    /// This operation transposes the individual bit terms but does not directly act
     /// on the coefficients.
     pub fn transpose(&self) -> SparseObservable {
         let mut out = self.clone();
@@ -847,6 +856,189 @@ impl SparseObservable {
                 }
             }
         }
+        out
+    }
+
+    /// Evolve this [SparseObservable] by another one.
+    ///
+    /// In terms of operator algebra, evolution corresponds to conjugation:
+    /// ``let out = q.evolve(p);`` corresponds to $P^\dagger Q P$.
+    ///
+    /// This implements Heisenberg-picture evolution of the observable.  Unlike a
+    /// literal implementation via two full compositions, this method performs the
+    /// conjugation directly at the single-qubit level using a fixed lookup table
+    /// for $P^\dagger Q P$.  This avoids materializing any intermediate
+    /// [SparseObservable] and computes the evolved observable in a single pass.
+    ///
+    /// Currently, this method supports evolution only by a *single-term* [SparseObservable].
+    pub fn evolve(
+        &self,
+        op: &SparseObservable,
+        qargs: Option<&[u32]>,
+    ) -> Result<SparseObservable, ArithmeticError> {
+        if op.num_terms() != 1 {
+            return Err(ArithmeticError::InvalidOperation(
+                "evolve only supports single-term operators".to_string(),
+            ));
+        }
+
+        let t = op.iter().next().unwrap();
+        let op_coeff = t.coeff;
+        let mut layout = vec![None; self.num_qubits as usize];
+
+        if let Some(qargs) = qargs {
+            if op.num_qubits > self.num_qubits {
+                return Err(ArithmeticError::OutOfBounds(format!(
+                    "operator has more qubits ({}) than the base ({})",
+                    op.num_qubits, self.num_qubits
+                )));
+            }
+            // Handling the zero-qubit scalar edge case (Identity Operator evolution).
+            if op.num_qubits == 0 {
+                let scalar = op.coeffs()[0];
+                return Ok(self * (scalar.conj() * scalar));
+            }
+
+            if qargs.len() != op.num_qubits as usize {
+                return Err(ArithmeticError::OutOfBounds(format!(
+                    "qargs has length {}, but operator has {} qubit(s)",
+                    qargs.len(),
+                    op.num_qubits
+                )));
+            }
+
+            let qargs_set = HashSet::<&u32>::from_iter(qargs.iter());
+            if qargs_set.len() != qargs.len() {
+                return Err(ArithmeticError::DuplicatedIndex);
+            }
+
+            if let Some(&max_q) = qargs.iter().max() {
+                if max_q >= self.num_qubits {
+                    return Err(ArithmeticError::OutOfBounds(
+                        "qargs contains out-of-range qubits".to_string(),
+                    ));
+                }
+            }
+
+            // This maps operator bit terms to observable qubits via qargs, considering
+            // qargs[i] specifies which observable qubit (at index i), the next operator qubit
+            // in consideration acts on.  Operator qubits are numbered 0 to (num_qubits - 1),
+            // where qubit 0 is considered, the rightmost (least significant) qubit.
+            for (op_qubit, &self_qubit) in qargs.iter().enumerate() {
+                if let Some(bit_term_idx) = t.indices.iter().position(|&q| q as usize == op_qubit) {
+                    layout[self_qubit as usize] = Some(t.bit_terms[bit_term_idx]);
+                }
+            }
+        } else {
+            if self.num_qubits != op.num_qubits {
+                return Err(ArithmeticError::MismatchedQubits {
+                    left: self.num_qubits,
+                    right: op.num_qubits,
+                });
+            }
+
+            for (q, bt) in t.indices.iter().zip(t.bit_terms.iter()) {
+                layout[*q as usize] = Some(*bt);
+            }
+        }
+
+        let mut out = SparseObservable::zero(self.num_qubits);
+
+        for term in self.iter() {
+            let mut frontier = vec![(term.coeff, Vec::<u32>::new(), Vec::<BitTerm>::new())];
+            let mut term_map = vec![None; self.num_qubits as usize];
+            for (i, &q) in term.indices.iter().enumerate() {
+                term_map[q as usize] = Some(term.bit_terms[i]);
+            }
+
+            for (q, &op_bt) in layout.iter().enumerate() {
+                let term_bt = term_map[q];
+
+                let mut next_frontier = Vec::new();
+
+                for (coeff, indices, bit_terms) in frontier {
+                    match (op_bt, term_bt) {
+                        (None, None) => {
+                            next_frontier.push((coeff, indices, bit_terms));
+                        }
+                        (None, Some(bt)) => {
+                            let mut indices = indices;
+                            let mut bit_terms = bit_terms;
+                            indices.push(q as u32);
+                            bit_terms.push(bt);
+                            next_frontier.push((coeff, indices, bit_terms));
+                        }
+                        (Some(_), None) => {
+                            next_frontier.push((coeff, indices, bit_terms));
+                        }
+                        (Some(p), Some(qbt)) => {
+                            let outputs = conjugate_bitterm(p, qbt);
+                            for &(c, new_bt) in outputs {
+                                let mut new_indices = indices.clone();
+                                let mut new_bit_terms = bit_terms.clone();
+                                new_indices.push(q as u32);
+                                new_bit_terms.push(new_bt);
+                                next_frontier.push((coeff * c, new_indices, new_bit_terms));
+                            }
+                        }
+                    }
+                }
+
+                frontier = next_frontier;
+                if frontier.is_empty() {
+                    break;
+                }
+            }
+
+            for (coeff, indices, bit_terms) in frontier {
+                if coeff == Complex64::new(0.0, 0.0) {
+                    continue;
+                }
+                out.coeffs.push(op_coeff.conj() * coeff * op_coeff);
+                out.indices.extend(indices);
+                out.bit_terms.extend(bit_terms);
+                out.boundaries.push(out.indices.len());
+            }
+        }
+
+        Ok(out)
+    }
+
+    /// Add another [SparseObservable] onto this one, while scaling its coefficients.
+    ///
+    /// # Panics
+    ///
+    /// If the number of qubits of `rhs` and `self` differ.
+    pub fn scaled_add_inplace(&mut self, rhs: &SparseObservable, factor: Complex64) {
+        if rhs.num_qubits != self.num_qubits {
+            panic!(
+                "operand ({}) has a different number of qubits to the base ({})",
+                rhs.num_qubits, self.num_qubits
+            );
+        }
+        self.coeffs.extend(rhs.coeffs.iter().map(|c| c * factor));
+        self.bit_terms.extend_from_slice(&rhs.bit_terms);
+        self.indices.extend_from_slice(&rhs.indices);
+        // We only need to write out the new endpoints, not the initial zero.
+        let offset = self.boundaries[self.boundaries.len() - 1];
+        self.boundaries
+            .extend(rhs.boundaries[1..].iter().map(|boundary| offset + boundary));
+    }
+
+    /// Add two [SparseObservable] instances while scaling the coefficients of `rhs`
+    /// with `factor`.
+    ///
+    /// # Panics
+    ///
+    /// If the number of qubits of `other` and `self` differ.
+    pub fn scaled_add(&self, rhs: &SparseObservable, factor: Complex64) -> SparseObservable {
+        let mut out = SparseObservable::with_capacity(
+            self.num_qubits,
+            self.coeffs.len() + rhs.coeffs.len(),
+            self.bit_terms.len() + rhs.bit_terms.len(),
+        );
+        out += self;
+        out.scaled_add_inplace(rhs, factor);
         out
     }
 
@@ -1284,7 +1476,7 @@ mod compose {
         /// Stack of the coefficients to this point.  We could recalculate by a full
         /// multiplication on each go, but most steps will be in the low indices, where we can
         /// re-use all the multiplications that came before.  This is one longer than the length
-        /// of `multliples`, because it starts off populated with the product of the
+        /// of `multiples`, because it starts off populated with the product of the
         /// non-multiple coefficients (or 1).
         coeffs: Vec<Complex64>,
         /// The full set of indices (including ones that don't correspond to multiples).  Within
@@ -1791,7 +1983,12 @@ impl<'a, 'py> FromPyObject<'a, 'py> for BitTerm {
 /// A single term from a complete :class:`SparseObservable`.
 ///
 /// These are typically created by indexing into or iterating through a :class:`SparseObservable`.
-#[pyclass(name = "Term", frozen, module = "qiskit.quantum_info")]
+#[pyclass(
+    name = "Term",
+    frozen,
+    module = "qiskit.quantum_info",
+    skip_from_py_object
+)]
 #[derive(Clone, Debug)]
 struct PySparseTerm {
     inner: SparseTerm,
@@ -2249,7 +2446,7 @@ impl PySparseTerm {
 /// associative, :class:`SparseObservable` makes no guarantees about the summation order).
 ///
 /// These two categories of representation degeneracy can cause the ``==`` operator to claim that
-/// two observables are not equal, despite representating the same object.  In these cases, it can
+/// two observables are not equal, despite representing the same object.  In these cases, it can
 /// be convenient to define some *canonical form*, which allows observables to be compared
 /// structurally.
 ///
@@ -2431,7 +2628,7 @@ impl PySparseTerm {
 #[derive(Debug)]
 pub struct PySparseObservable {
     // This class keeps a pointer to a pure Rust-SparseTerm and serves as interface from Python.
-    inner: Arc<RwLock<SparseObservable>>,
+    pub inner: Arc<RwLock<SparseObservable>>,
 }
 
 #[pymethods]
@@ -3134,10 +3331,10 @@ impl PySparseObservable {
     )]
     unsafe fn from_raw_parts<'py>(
         num_qubits: u32,
-        coeffs: PyArrayLike1<'py, Complex64>,
-        bit_terms: PyArrayLike1<'py, u8>,
-        indices: PyArrayLike1<'py, u32>,
-        boundaries: PyArrayLike1<'py, usize>,
+        coeffs: PyArrayLike1<'py, Complex64, numpy::AllowTypeChange>,
+        bit_terms: PyArrayLike1<'py, u8, numpy::AllowTypeChange>,
+        indices: PyArrayLike1<'py, u32, numpy::AllowTypeChange>,
+        boundaries: PyArrayLike1<'py, usize, numpy::AllowTypeChange>,
         check: bool,
     ) -> PyResult<Self> {
         let coeffs = coeffs.as_array().to_vec();
@@ -3172,7 +3369,7 @@ impl PySparseObservable {
     /// Clear all the terms from this operator, making it equal to the zero operator again.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction operations may not need to reallocate.
+    /// subtraction operations may not need to reallocate.
     ///
     /// Examples:
     ///
@@ -3196,7 +3393,7 @@ impl PySparseObservable {
     /// .. note::
     ///
     ///     When using this for equality comparisons, note that floating-point rounding and the
-    ///     non-associativity fo floating-point addition may cause non-zero coefficients of summed
+    ///     non-associativity of floating-point addition may cause non-zero coefficients of summed
     ///     terms to compare unequal.  To compare two observables up to a tolerance, it is safest to
     ///     compare the canonicalized difference of the two observables to zero.
     ///
@@ -3507,6 +3704,74 @@ impl PySparseObservable {
                 inner.compose(&other_inner).into_pyobject(py)
             }
         }
+    }
+
+    /// Evolve this observable by a Pauli term.
+    ///
+    /// An evolution of the observable :math:`O` by a Pauli :math:`P` corresponds to
+    /// :math:`P^\dagger O P`.
+    ///
+    /// Unlike a literal implementation via two full compositions, this method
+    /// performs the conjugation directly at the single-qubit level using a fixed
+    /// lookup table.  This avoids materializing any intermediate
+    /// :class:`SparseObservable` and computes the evolved observable in a single
+    /// pass over the terms.
+    /// ``self`` and ``other`` must have the same number of qubits, unless ``qargs`` is given,
+    /// in which case ``other`` can be smaller than ``self``, provided the number of qubits
+    /// in ``other`` and the length of ``qargs`` match. ``qargs`` specifies which qubits of
+    /// ``self`` are evolved by ``other``.
+    ///
+    /// Currently, this method supports evolution only by a *single-term* operator, meaning
+    /// that ``other`` must be a Pauli represented by :class:`~.quantum_info.Pauli`.
+    ///
+    /// Args:
+    ///     other: the Pauli Operator used to conjugate ``self``.
+    ///     qargs: if given, the qubits in ``self`` to be evolved by ``other``.
+    ///         The length must match the number of qubits in ``other``.
+    ///
+    /// Returns:
+    ///      A new evolved :class:`SparseObservable` with applied conjugations.
+    ///
+    /// Raises:
+    ///     TypeError : if ``other`` is not of Type :class:`~.quantum_info.Pauli`.
+    ///     ValueError: if ``self`` and ``other`` have different numbers of qubits (and ``qargs`` is not given).
+    ///     ValueError: if ``qargs`` length doesn't match ``other`` number of qubits.
+    ///     ValueError: if ``qargs`` contains duplicates or out-of-range indices.
+    ///     ValueError: if ``other`` contains more than one term.
+    #[pyo3(signature = (other, /, qargs=None))]
+    fn evolve<'py>(
+        &self,
+        other: &Bound<'py, PyAny>,
+        qargs: Option<&Bound<'py, PyAny>>,
+    ) -> PyResult<Bound<'py, PySparseObservable>> {
+        let py = other.py();
+
+        if !other.is_instance(PAULI_TYPE.get_bound(py))? {
+            return Err(PyTypeError::new_err(format!(
+                "evolve only accepts Pauli instances, got: {}",
+                other.get_type().repr()?
+            )));
+        }
+
+        let base = self.as_inner()?;
+        let u_obs = Self::from_pauli(other)?;
+        let u_inner = u_obs.as_inner()?;
+
+        let qargs_vec = if let Some(qargs) = qargs {
+            let vec = qargs
+                .try_iter()?
+                .map(|obj| obj.and_then(|obj| obj.extract::<u32>()))
+                .collect::<PyResult<Vec<u32>>>()?;
+            Some(vec)
+        } else {
+            None
+        };
+
+        let out = base
+            .evolve(&u_inner, qargs_vec.as_deref())
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+
+        out.into_pyobject(py)
     }
 
     /// Apply a transpiler layout to this :class:`SparseObservable`.
@@ -4162,7 +4427,7 @@ impl ArrayView {
 
 /// Use the Numpy Python API to convert a `PyArray` into a dynamically chosen `dtype`, copying only
 /// if required.
-fn cast_array_type<'py, T>(
+fn cast_array_type<'py, T: numpy::Element>(
     py: Python<'py>,
     array: Bound<'py, PyArray1<T>>,
     dtype: Option<&Bound<'py, PyAny>>,

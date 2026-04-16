@@ -32,14 +32,11 @@ on:
 
 jobs:
   unit-tests:
-    if: github.repository_owner == 'Qiskit'
-    name: ${{ inputs.runner }}-tests-Python-${{ inputs.python-version }}
+    name: ${{ inputs.runner }} - Python ${{ inputs.python-version }}
     runs-on: ${{ inputs.runner }}
     timeout-minutes: 60
     env:
       QISKIT_TEST_CAPTURE_STREAMS: 1
-    strategy:
-      fail-fast: false
     steps:
       - uses: actions/checkout@v6
       - name: Set up Python ${{ inputs.python-version }}
@@ -47,7 +44,7 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
       - name: Cache stestr
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           key: 'stestr | "${{ runner.os }}" | "${{ inputs.python-version }}" | "${{ github.run_id }}"'
           restore-keys: |
@@ -58,8 +55,9 @@ jobs:
       - name: Prepare venv
         run: |
           set -e
-          python -m pip install --upgrade pip setuptools wheel
           python -m venv test-job
+          source test-job/bin/activate
+          python -m pip install -U pip
       - name: Set gate-caching settings for build
         if: ${{ !inputs.qiskit-pycache }}
         run: 'echo "QISKIT_NO_CACHE_GATES=1" >> $GITHUB_ENV'
@@ -68,12 +66,11 @@ jobs:
         run: |
           set -e
           source test-job/bin/activate
-          python -m pip install -U pip build
+          python -m pip install -U build
           python -m build --sdist .
           python -m pip install -U \
             -c constraints.txt \
-            -r requirements.txt \
-            -r requirements-dev.txt \
+            --group test \
             dist/qiskit-*.tar.gz
       - name: Install Qiskit directly
         if: ${{ !inputs.install-from-sdist }}
@@ -82,14 +79,13 @@ jobs:
           source test-job/bin/activate
           python -m pip install -U \
             -c constraints.txt \
-            -r requirements.txt \
-            -r requirements-dev.txt \
+            --group test \
             -e .
       - name: Install Optional packages
         run: |
           set -e
           source test-job/bin/activate
-          python -m pip install -r requirements-optional.txt -c constraints.txt
+          python -m pip install --group optionals-all -c constraints.txt
           python -m pip check
         if: ${{ inputs.install-optionals }}
       - name: Install optional non-Python dependencies
@@ -106,7 +102,7 @@ jobs:
           python tools/report_numpy_state.py
           export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
           echo "PYTHONHASHSEED=$PYTHONHASHSEED"
-          stestr run --slowest
+          stestr run --slowest --abbreviate
         env:
           QISKIT_PARALLEL: FALSE
           QISKIT_IGNORE_USER_SETTINGS: TRUE
@@ -131,7 +127,7 @@ jobs:
           pushd /tmp/terra-tests
           export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
           echo "PYTHONHASHSEED=$PYTHONHASHSEED"
-          stestr run --slowest
+          stestr run --slowest --abbreviate
           popd
         env:
           QISKIT_PARALLEL: FALSE
@@ -146,7 +142,7 @@ jobs:
           popd
           cp -r /tmp/terra-tests/.stestr .
       - name: Copy and Publish images
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         if: ${{ failure() }}
         with:
           name: copied-images-${{ runner.name }}-tests-Python-${{ inputs.python-version }}

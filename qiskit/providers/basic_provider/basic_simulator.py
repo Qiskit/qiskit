@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -27,12 +27,6 @@ Where the input is a :class:`.QuantumCircuit` object and the output is a
 :class:`.BasicProviderJob` object,
 which can later be queried for the Result object. The result will contain a 'memory' data
 field, which is a result of measurements for each shot.
-
-
-# The simulator supports:
-# - Up to 24 qubits for statevector simulation (memory scales exponentially)
-# - Up to 2048 qubits for Clifford/Stabilizer simulation (memory scales quadratically)
-
 
 """
 
@@ -74,7 +68,10 @@ logger = logging.getLogger(__name__)
 
 
 class BasicSimulator(BackendV2):
-    """Python implementation of a basic (non-efficient) quantum simulator."""
+    """Python implementation of a basic (non-efficient) quantum simulator.
+
+    The simulator supports up to 24 qubits for statevector simulation and up to
+    2048 qubits for Clifford/Stabilizer simulation."""
 
     # Formerly calculated as `int(log2(local_hardware_info()["memory"]*(1024**3)/16))`.
     # After the removal of `local_hardware_info()`, Statevector simulation is limited to 24 qubits.
@@ -124,9 +121,7 @@ class BasicSimulator(BackendV2):
         self._memory = self.options.get("memory")
         self._initial_statevector = self.options.get("initial_statevector")
         self._seed_simulator = self.options.get("seed_simulator")
-        self._use_clifford_optimization = self.options.get(
-            "use_clifford_optimization"
-        )  # ADDED FOR CLIFFORD
+        self._use_clifford_optimization = self.options.get("use_clifford_optimization")
 
     @property
     def max_circuits(self) -> None:
@@ -231,7 +226,7 @@ class BasicSimulator(BackendV2):
             memory=True,
             initial_statevector=None,
             seed_simulator=None,
-            use_clifford_optimization=False,  # ADDED FOR CLIFFORD
+            use_clifford_optimization=False,
         )
 
     def _add_unitary(self, gate: np.ndarray, qubits: list[int]) -> None:
@@ -258,7 +253,7 @@ class BasicSimulator(BackendV2):
         Args:
             qubit: index indicating the qubit to measure
 
-        Return:
+        Returns:
             pair (outcome, probability) where outcome is '0' or '1' and
             probability is the probability of the returned outcome.
         """
@@ -343,9 +338,9 @@ class BasicSimulator(BackendV2):
         """Apply a reset instruction to a qubit.
 
         Args:
-            qubit: the qubit being rest
+            qubit: the qubit being reset
 
-        This is done by doing a simulating a measurement
+        This is done by simulating a measurement
         outcome and projecting onto the outcome state while
         renormalizing.
         """
@@ -380,9 +375,7 @@ class BasicSimulator(BackendV2):
         self._memory = self.options.get("memory")
         self._initial_statevector = self.options.get("initial_statevector")
         self._seed_simulator = self.options.get("seed_simulator")
-        self._use_clifford_optimization = self.options.get(
-            "use_clifford_optimization"
-        )  # ADDED FOR CLIFFORD
+        self._use_clifford_optimization = self.options.get("use_clifford_optimization")
         # Apply custom run options
         if run_options.get("initial_statevector", None) is not None:
             self._initial_statevector = np.array(run_options["initial_statevector"], dtype=complex)
@@ -403,9 +396,7 @@ class BasicSimulator(BackendV2):
             self._memory = run_options["memory"]
 
         if "use_clifford_optimization" in run_options:
-            self._use_clifford_optimization = run_options[
-                "use_clifford_optimization"
-            ]  # ADDED FOR CLIFFORD
+            self._use_clifford_optimization = run_options["use_clifford_optimization"]
         # Set seed for local random number gen.
         self._local_rng = np.random.default_rng(seed=self._seed_simulator)
 
@@ -710,7 +701,7 @@ class BasicSimulator(BackendV2):
                 # Check if single qubit gate
                 elif operation.name in SINGLE_QUBIT_GATES:
                     params = getattr(operation, "params", None)
-                    qubit = [circuit.find_bit(bit).index for bit in operation.qubits][0]
+                    qubit = next(circuit.find_bit(bit).index for bit in operation.qubits)
                     gate = single_gate_matrix(operation.name, params)
                     self._add_unitary(gate, [qubit])
                 elif operation.name in TWO_QUBIT_GATES_WITH_PARAMETERS:
@@ -745,8 +736,8 @@ class BasicSimulator(BackendV2):
                     pass
                 # Check if measure
                 elif operation.name == "measure":
-                    qubit = [circuit.find_bit(bit).index for bit in operation.qubits][0]
-                    cmembit = [circuit.find_bit(bit).index for bit in operation.clbits][0]
+                    qubit = next(circuit.find_bit(bit).index for bit in operation.qubits)
+                    cmembit = next(circuit.find_bit(bit).index for bit in operation.clbits)
                     if self._sample_measure:
                         # If sampling measurements record the qubit and cmembit
                         # for this measurement for later sampling

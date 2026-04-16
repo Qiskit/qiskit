@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -29,7 +29,7 @@ use std::{
 };
 use thiserror::Error;
 
-use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
+use qiskit_util::py::{PySequenceIndex, SequenceIndex};
 
 use crate::imports;
 
@@ -40,7 +40,7 @@ static PAULI_INTO_PY: PyOnceLock<[Option<Py<PyAny>>; 16]> = PyOnceLock::new();
 ///
 /// This is just the Rust-space representation.  We make a separate Python-space `enum.IntEnum` to
 /// represent the same information, since we enforce strongly typed interactions in Rust, including
-/// not allowing the stored values to be outside the valid `Pauli`s, but doing so in Python would
+/// not allowing the stored values to be outside the valid `Pauli`\ s, but doing so in Python would
 /// make it very difficult to use the class efficiently with Numpy array views.  We attach this
 /// sister class of `Pauli` to `QubitSparsePauli` and `QubitSparsePauliList` as a scoped class.
 ///
@@ -59,7 +59,7 @@ static PAULI_INTO_PY: PyOnceLock<[Option<Py<PyAny>>; 16]> = PyOnceLock::new();
 /// # Dev notes
 ///
 /// This type is required to be `u8`, but it's a subtype of `u8` because not all `u8` are valid
-/// `Pauli`s.  For interop with Python space, we accept Numpy arrays of `u8` to represent this,
+/// `Pauli`\ s.  For interop with Python space, we accept Numpy arrays of `u8` to represent this,
 /// which we transmute into slices of `Pauli`, after checking that all the values are correct (or
 /// skipping the check if Python space promises that it upheld the checks).
 ///
@@ -372,7 +372,7 @@ impl QubitSparsePauliList {
     /// Clear all the elements of the list.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction of elements in the list may not need to reallocate.
+    /// subtraction of elements in the list may not need to reallocate.
     pub fn clear(&mut self) {
         self.paulis.clear();
         self.indices.clear();
@@ -1166,7 +1166,12 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Pauli {
 ///     :param int|None num_qubits: Optional number of qubits for the operator.  For most data
 ///         inputs, this can be inferred and need not be passed.  It is only necessary for the
 ///         sparse-label format.  If given unnecessarily, it must match the data input.
-#[pyclass(name = "QubitSparsePauli", frozen, module = "qiskit.quantum_info")]
+#[pyclass(
+    name = "QubitSparsePauli",
+    frozen,
+    module = "qiskit.quantum_info",
+    skip_from_py_object
+)]
 #[derive(Clone, Debug)]
 pub struct PyQubitSparsePauli {
     inner: QubitSparsePauli,
@@ -1450,13 +1455,13 @@ impl PyQubitSparsePauli {
     ///
     /// Args:
     ///     other (QubitSparsePauli): the qubit sparse Pauli to compose with.
-    fn compose(&self, other: PyQubitSparsePauli) -> PyResult<Self> {
+    fn compose(&self, other: &PyQubitSparsePauli) -> PyResult<Self> {
         Ok(PyQubitSparsePauli {
             inner: self.inner.compose(&other.inner)?,
         })
     }
 
-    fn __matmul__(&self, other: PyQubitSparsePauli) -> PyResult<Self> {
+    fn __matmul__(&self, other: &PyQubitSparsePauli) -> PyResult<Self> {
         self.compose(other)
     }
 
@@ -1464,7 +1469,7 @@ impl PyQubitSparsePauli {
     ///
     /// Args:
     ///     other (QubitSparsePauli): the qubit sparse Pauli to check for commutation with.
-    fn commutes(&self, other: PyQubitSparsePauli) -> PyResult<bool> {
+    fn commutes(&self, other: &PyQubitSparsePauli) -> PyResult<bool> {
         Ok(self.inner.commutes(&other.inner)?)
     }
 
@@ -1974,7 +1979,7 @@ impl PyQubitSparsePauliList {
     /// Clear all the elements from the list, making it equal to the empty list again.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction operations resulting from composition may not need to reallocate.
+    /// subtraction operations resulting from composition may not need to reallocate.
     ///
     /// Examples:
     ///

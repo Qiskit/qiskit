@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -26,6 +26,7 @@ from qiskit.circuit.library import (
     PhaseGate,
     UnitaryGate,
     PauliEvolutionGate,
+    PauliProductRotationGate,
     Initialize,
     U2Gate,
     CZGate,
@@ -43,9 +44,9 @@ from qiskit.circuit.library import (
 )
 from qiskit.circuit.parameter import Parameter
 from qiskit.transpiler.passes import CommutativeOptimization
-from qiskit.quantum_info import Operator, SparsePauliOp, Clifford
+from qiskit.quantum_info import Operator, SparsePauliOp, Clifford, Pauli
 
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt
@@ -312,6 +313,48 @@ class TestCommutativeOptimization(QiskitTestCase):
         qct = CommutativeOptimization()(qc)
 
         self.assertEqual(qct, qc)
+
+    def test_merge_pauli_product_rotations(self):
+        """Test that the pass merges PauliProductRotationGates."""
+
+        qc = QuantumCircuit(4)
+        qc.append(PauliProductRotationGate(Pauli("XXII"), -1), [0, 1, 2, 3])
+        qc.append(PauliProductRotationGate(Pauli("ZZIY"), 1), [0, 1, 3, 2])
+        qc.append(PauliProductRotationGate(Pauli("ZZYI"), 1), [1, 0, 2, 3])
+        qc.append(PauliProductRotationGate(Pauli("YYXX"), 1), [0, 1, 2, 3])
+        qc.append(PauliProductRotationGate(Pauli("XXII"), 1), [0, 1, 2, 3])
+
+        # The two "XXII" rotations should cancel.
+        # The two "ZZIY" rotations (after canonicalizing) should get combined.
+        qct = CommutativeOptimization()(qc)
+
+        expected = QuantumCircuit(4)
+        expected.append(PauliProductRotationGate(Pauli("ZZIY"), 2), [0, 1, 2, 3])
+        expected.append(PauliProductRotationGate(Pauli("YYXX"), 1), [0, 1, 2, 3])
+
+        self.assertEqual(Operator(expected), Operator(qc))
+        self.assertEqual(qct, expected)
+
+    def test_merge_parameterized_pauli_product_rotations(self):
+        """Test that the pass merges parameterized PauliProductRotationGates."""
+
+        p = Parameter("p")
+        q = Parameter("q")
+        r = Parameter("r")
+
+        qc = QuantumCircuit(4)
+        qc.append(PauliProductRotationGate(Pauli("YYXX"), p), [0, 1, 2, 3])
+        qc.append(PauliProductRotationGate(Pauli("YYXX"), q), [0, 1, 2, 3])
+        qc.append(PauliProductRotationGate(Pauli("ZXXX"), r), [0, 1, 2, 3])
+        qc.append(PauliProductRotationGate(Pauli("YYXX"), -1), [0, 1, 2, 3])
+
+        qct = CommutativeOptimization()(qc)
+
+        expected = QuantumCircuit(4)
+        expected.append(PauliProductRotationGate(Pauli("ZXXX"), r), [0, 1, 2, 3])
+        expected.append(PauliProductRotationGate(Pauli("YYXX"), p + q - 1), [0, 1, 2, 3])
+
+        self.assertEqual(qct, expected)
 
     def test_2pi_multiples(self):
         """Test 2pi multiples are handled with the correct phase they introduce."""
@@ -1152,7 +1195,7 @@ measure q0[1] -> c0[1];
         self.assertEqual(qc, qct)
 
     def test_circuit_with_clbits(self):
-        """Test optimization for circuit wih classical bits."""
+        """Test optimization for circuit with classical bits."""
         qc = QuantumCircuit(2, 2)
         qc.cx(0, 1)
         qc.z(0)

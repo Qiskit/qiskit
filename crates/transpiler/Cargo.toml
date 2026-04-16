@@ -26,9 +26,10 @@ rustworkx-core.workspace = true
 qiskit-circuit.workspace = true
 qiskit-synthesis.workspace = true
 qiskit-quantum-info.workspace = true
+qiskit-util = { workspace = true, features = ["py"] }
 thiserror.workspace = true
 bytemuck.workspace = true
-fixedbitset = "0.5.7"
+fixedbitset.workspace = true
 anyhow.workspace = true
 
 [dependencies.uuid]
@@ -63,4 +64,7 @@ features = ["rayon"]
 pyo3 = { workspace = true, features = ["auto-initialize"] }
 
 [features]
-cache_pygates = ["qiskit-circuit/cache_pygates", "qiskit-synthesis/cache_pygates"]
+cache_pygates = [
+    "qiskit-circuit/cache_pygates",
+    "qiskit-synthesis/cache_pygates",
+]

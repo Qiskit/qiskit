@@ -4,11 +4,13 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
+
+use itertools::Itertools;
 
 use std::f64::consts::PI;
 
@@ -23,9 +25,10 @@ use crate::passes::remove_identity_equiv::{average_gate_fidelity_below_tol, is_i
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, StandardGate, multiply_param, radd_param,
+    Operation, OperationRef, Param, PauliBased, PauliProductRotation, StandardGate, multiply_param,
+    radd_param,
 };
-use qiskit_circuit::{BlocksMode, Clbit, Qubit, imports};
+use qiskit_circuit::{BlocksMode, Clbit, NoBlocks, Qubit, imports};
 
 use qiskit_circuit::VarsMode;
 use qiskit_circuit::packed_instruction::PackedInstruction;
@@ -192,6 +195,40 @@ fn canonicalize(
             }
         }
     }
+
+    if let OperationRef::PauliProductRotation(ppr) = inst.op.view() {
+        let qargs = dag.get_qargs(inst.qubits);
+        let mut paired = qargs
+            .iter()
+            .zip(ppr.z.iter())
+            .zip(ppr.x.iter())
+            .map(|((q, z), x)| (q, z, x))
+            .collect::<Vec<_>>();
+        paired.sort_by_key(|(q, _, _)| **q);
+        let (sorted_qargs, sorted_z, sorted_x) =
+            paired
+                .into_iter()
+                .multiunzip::<(Vec<Qubit>, Vec<bool>, Vec<bool>)>();
+        let sorted_ppr = PauliProductRotation {
+            z: sorted_z,
+            x: sorted_x,
+            angle: ppr.angle.clone(),
+        };
+
+        let sorted_qubits = dag.add_qargs(&sorted_qargs);
+
+        let canonical_instruction = PackedInstruction {
+            op: PauliBased::PauliProductRotation(sorted_ppr).into(),
+            qubits: sorted_qubits,
+            clbits: Default::default(),
+            params: inst.params.clone(),
+            label: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: std::sync::OnceLock::new(),
+        };
+        return Some((canonical_instruction, Param::Float(0.)));
+    }
+
     None
 }
 
@@ -283,7 +320,7 @@ fn try_merge(
     if let (OperationRef::StandardGate(gate1), OperationRef::StandardGate(gate2)) =
         (inst1.op.view(), inst2.op.view())
     {
-        // Check wether the two gates are self-inverse.
+        // Check whether the two gates are self-inverse.
         if let Some((gate1inv, params1inv)) = gate1.inverse(params1) {
             if (gate1inv == gate2) && compare_params(&params1inv, params2)? {
                 return Ok((true, None, 0.));
@@ -309,20 +346,49 @@ fn try_merge(
         }
     }
 
+    // Special handling for PauliProductRotations.
+    if let (OperationRef::PauliProductRotation(ppr1), OperationRef::PauliProductRotation(ppr2)) =
+        (inst1.op.view(), inst2.op.view())
+    {
+        let merge_result = ppr1.merge_with(ppr2);
+
+        if let Some(merged_ppr) = merge_result {
+            let angle = merged_ppr.angle.clone();
+            let merged_params = Some(Box::new(Parameters::Params(smallvec![angle])));
+
+            let packed = PackedInstruction {
+                op: PauliBased::PauliProductRotation(merged_ppr).into(),
+                qubits: inst1.qubits,
+                clbits: inst1.clbits,
+                params: merged_params,
+                label: None,
+                #[cfg(feature = "cache_pygates")]
+                py_op: std::sync::OnceLock::new(),
+            };
+
+            if let Some(phase_update) = is_identity_equiv(&packed, false, None, error_cutoff_fn)? {
+                return Ok((true, None, phase_update));
+            } else {
+                return Ok((true, Some(packed), 0.));
+            }
+        }
+    }
+
     // Special handling for PauliEvolutionGates.
     if inst1.op.name() == "PauliEvolution" && inst2.op.name() == "PauliEvolution" {
         if let (OperationRef::Gate(py_gate1), OperationRef::Gate(py_gate2)) =
             (inst1.op.view(), inst2.op.view())
         {
             let merged_instruction = Python::attach(|py| -> PyResult<Option<PackedInstruction>> {
-                let merge_result = imports::MERGE_TWO_PAULI_EVOLUTIONS
-                    .get_bound(py)
-                    .call1((py_gate1.gate.clone_ref(py), py_gate2.gate.clone_ref(py)))?;
+                let merge_result = imports::MERGE_TWO_PAULI_EVOLUTIONS.get_bound(py).call1((
+                    py_gate1.instruction.clone_ref(py),
+                    py_gate2.instruction.clone_ref(py),
+                ))?;
 
                 if merge_result.is_none() {
                     Ok(None)
                 } else {
-                    let instr: OperationFromPython = merge_result.extract()?;
+                    let instr: OperationFromPython<NoBlocks> = merge_result.extract()?;
                     let merged_param = instr
                         .params
                         .expect("PauliEvolution gate contains a parameter")
@@ -412,7 +478,7 @@ pub fn run_commutative_optimization(
     // this does not happen right now).
     let mut new_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep)?;
 
-    let node_indices = dag.topological_op_nodes(false)?.collect::<Vec<_>>();
+    let node_indices = dag.topological_op_nodes(false).collect::<Vec<_>>();
     let num_nodes = node_indices.len();
 
     let mut node_actions: Vec<NodeAction> = vec![NodeAction::Keep; num_nodes];
@@ -506,7 +572,7 @@ pub fn run_commutative_optimization(
         return Ok(None);
     }
 
-    new_dag.set_global_phase(new_global_phase)?;
+    new_dag.set_global_phase_param(new_global_phase)?;
 
     for idx in 0..num_nodes {
         match &node_actions[idx] {

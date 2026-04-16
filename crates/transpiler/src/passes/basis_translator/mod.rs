@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -37,7 +37,7 @@ use qiskit_circuit::parameter::symbol_expr::Value;
 use qiskit_circuit::{BlocksMode, Clbit, PhysicalQubit, Qubit, VarsMode};
 use qiskit_circuit::{
     dag_circuit::DAGCircuit,
-    operations::{Operation, OperationRef, PythonOperation},
+    operations::{Operation, OperationRef, PauliBased, PyOperationTypes, PythonOperation},
 };
 use smallvec::SmallVec;
 
@@ -202,7 +202,7 @@ pub fn run_basis_translator(
         })
         .collect::<Result<_, BasisTranslatorError>>()?;
 
-    let (out_dag, _) = apply_translation(
+    let out_dag = apply_translation(
         dag,
         &new_target_basis,
         &instr_map,
@@ -334,8 +334,7 @@ fn apply_translation(
     min_qubits: usize,
     qargs_with_non_global_operation: &AhashIndexMap<Qargs, AhashIndexSet<&str>>,
     qarg_mapping: Option<&HashMap<Qubit, Qubit>>,
-) -> Result<(DAGCircuit, bool), BasisTranslatorError> {
-    let mut is_updated = false;
+) -> Result<DAGCircuit, BasisTranslatorError> {
     let out_dag = dag
         .copy_empty_like(VarsMode::Alike, BlocksMode::Keep)
         .map_err(|_| {
@@ -344,9 +343,7 @@ fn apply_translation(
             )
         })?;
     let mut out_dag_builder = out_dag.into_builder();
-    for node in dag.topological_op_nodes(false).map_err(|_| {
-        BasisTranslatorError::BasisDAGCircuitError("Error retrieving Op nodes from DAG".to_string())
-    })? {
+    for node in dag.topological_op_nodes(false) {
         let node_obj = dag[node].unwrap_operation();
         let node_qarg = dag.get_qargs(node_obj.qubits);
         let node_carg = dag.get_cargs(node_obj.clbits);
@@ -374,7 +371,7 @@ fn apply_translation(
                                 .map(|(k, v)| (v, *k))
                                 .collect()
                         };
-                    (updated_dag, is_updated) = apply_translation(
+                    updated_dag = apply_translation(
                         dag_block,
                         target_basis,
                         instr_map,
@@ -383,12 +380,7 @@ fn apply_translation(
                         qargs_with_non_global_operation,
                         Some(&qarg_mapping),
                     )?;
-                    let flow_block = if is_updated {
-                        updated_dag
-                    } else {
-                        dag_block.clone()
-                    };
-                    flow_blocks.push(out_dag_builder.add_block(flow_block));
+                    flow_blocks.push(out_dag_builder.add_block(updated_dag));
                 }
                 let new_instr = PackedInstruction::from_control_flow(
                     node_obj.op.control_flow().clone(),
@@ -476,9 +468,8 @@ fn apply_translation(
                 node_obj.op.name().to_string(),
             ));
         }
-        is_updated = true;
     }
-    Ok((out_dag_builder.build(), is_updated))
+    Ok(out_dag_builder.build())
 }
 
 fn replace_node(
@@ -505,12 +496,8 @@ fn replace_node(
             target_dag: format!("{:?}", target_dag),
         });
     }
-    if node.params_view().is_empty() {
-        for inner_index in target_dag.topological_op_nodes(false).map_err(|_| {
-            BasisTranslatorError::BasisDAGCircuitError(
-                "Error retrieving Op nodes from DAG".to_string(),
-            )
-        })? {
+    if params_view.is_empty() {
+        for inner_index in target_dag.topological_op_nodes(false) {
             let inner_node = &target_dag[inner_index].unwrap_operation();
             let old_qargs = dag.qargs_interner().get(node.qubits);
             let old_cargs = dag.cargs_interner().get(node.clbits);
@@ -525,23 +512,32 @@ fn replace_node(
                 .map(|clbit| old_cargs[clbit.0 as usize])
                 .collect();
             let new_op: PackedOperation = match inner_node.op.view() {
+                OperationRef::Gate(gate) => Python::attach(|py| {
+                    gate.py_copy(py).map(|op| PyOperationTypes::Gate(op).into())
+                })
+                .expect("Error while copying gate instance."),
+                OperationRef::Instruction(instruction) => Python::attach(|py| {
+                    instruction
+                        .py_copy(py)
+                        .map(|op| PyOperationTypes::Instruction(op).into())
+                })
+                .expect("Error while copying instruction instance."),
+                OperationRef::Operation(operation) => Python::attach(|py| {
+                    operation
+                        .py_copy(py)
+                        .map(|op| PyOperationTypes::Operation(op).into())
+                })
+                .expect("Error while copying operation instance."),
                 OperationRef::ControlFlow(_) => panic!("control flow should not be present here"),
-                OperationRef::Gate(gate) => {
-                    Python::attach(|py| gate.py_copy(py).map(|op| op.into()))
-                        .expect("Error while copying gate instance.")
-                }
-                OperationRef::Instruction(instruction) => {
-                    Python::attach(|py| instruction.py_copy(py).map(|op| op.into()))
-                        .expect("Error while copying instruction instance.")
-                }
-                OperationRef::Operation(operation) => {
-                    Python::attach(|py| operation.py_copy(py).map(|op| op.into()))
-                        .expect("Error while copying operation instance.")
-                }
                 OperationRef::StandardGate(gate) => gate.into(),
                 OperationRef::StandardInstruction(instruction) => instruction.into(),
                 OperationRef::Unitary(unitary) => unitary.clone().into(),
-                OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
+                OperationRef::PauliProductMeasurement(ppm) => {
+                    PauliBased::PauliProductMeasurement(ppm.clone()).into()
+                }
+                OperationRef::PauliProductRotation(rotation) => {
+                    PauliBased::PauliProductRotation(rotation.clone()).into()
+                }
             };
             let new_params: Option<Parameters<_>> = inner_node.params.as_deref().cloned();
             dag.apply_operation_back(
@@ -578,11 +574,7 @@ fn replace_node(
                     _ => None,
                 }),
         );
-        for inner_index in target_dag.topological_op_nodes(false).map_err(|_| {
-            BasisTranslatorError::BasisDAGCircuitError(
-                "Error retrieving Op nodes from DAG".to_string(),
-            )
-        })? {
+        for inner_index in target_dag.topological_op_nodes(false) {
             let inner_node = &target_dag[inner_index].unwrap_operation();
             let old_qargs = dag.qargs_interner().get(node.qubits);
             let old_cargs = dag.cargs_interner().get(node.clbits);
@@ -599,23 +591,30 @@ fn replace_node(
             let new_op: PackedOperation = match inner_node.op.view() {
                 OperationRef::ControlFlow(cf) => cf.clone().into(),
                 OperationRef::Gate(gate) => Python::attach(|py| {
-                    gate.py_copy(py).map(|op| op.into())
+                    gate.py_copy(py).map(|op| PyOperationTypes::Gate(op).into())
                 })
                 .map_err(|err| BasisTranslatorError::BasisDAGCircuitError(err.to_string()))?,
-                OperationRef::Instruction(instruction) => {
-                    Python::attach(|py| instruction.py_copy(py).map(|op| op.into())).map_err(
-                        |err| BasisTranslatorError::BasisDAGCircuitError(err.to_string()),
-                    )?
-                }
-                OperationRef::Operation(operation) => {
-                    Python::attach(|py| operation.py_copy(py).map(|op| op.into())).map_err(
-                        |err| BasisTranslatorError::BasisDAGCircuitError(err.to_string()),
-                    )?
-                }
+                OperationRef::Instruction(instruction) => Python::attach(|py| {
+                    instruction
+                        .py_copy(py)
+                        .map(|op| PyOperationTypes::Instruction(op).into())
+                })
+                .map_err(|err| BasisTranslatorError::BasisDAGCircuitError(err.to_string()))?,
+                OperationRef::Operation(operation) => Python::attach(|py| {
+                    operation
+                        .py_copy(py)
+                        .map(|op| PyOperationTypes::Operation(op).into())
+                })
+                .map_err(|err| BasisTranslatorError::BasisDAGCircuitError(err.to_string()))?,
                 OperationRef::StandardGate(gate) => gate.into(),
                 OperationRef::StandardInstruction(instruction) => instruction.into(),
                 OperationRef::Unitary(unitary) => unitary.clone().into(),
-                OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
+                OperationRef::PauliProductMeasurement(ppm) => {
+                    PauliBased::PauliProductMeasurement(ppm.clone()).into()
+                }
+                OperationRef::PauliProductRotation(rotation) => {
+                    PauliBased::PauliProductRotation(rotation.clone()).into()
+                }
             };
 
             let mut new_params: Option<Parameters<_>> = inner_node.params.as_deref().cloned();
@@ -647,14 +646,14 @@ fn replace_node(
                                         BasisTranslatorError::BasisDAGCircuitError(err.to_string())
                                     }),
                                 OperationRef::Gate(gate) => gate
-                                    .gate
+                                    .instruction
                                     .bind(py)
                                     .setattr("params", new_params_inner.clone())
                                     .map_err(|err| {
                                         BasisTranslatorError::BasisDAGCircuitError(err.to_string())
                                     }),
                                 OperationRef::Operation(oper) => oper
-                                    .operation
+                                    .instruction
                                     .bind(py)
                                     .setattr("params", new_params_inner.clone())
                                     .map_err(|err| {

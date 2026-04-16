@@ -60,7 +60,7 @@ on:
       python-version:
         description: "The Python version to use to host the build runner."
         type: string
-        default: "3.13"
+        default: "3.14"
         required: false
 
       pgo:
@@ -80,8 +80,7 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          # Used for the ARM builds.
-          - macos-14
+          - macos-15
           - windows-latest
           - ubuntu-24.04-arm
     steps:
@@ -107,7 +106,7 @@ jobs:
           set -e
           mkdir -p "$PGO_WORK_DIR"
           cat >>"$GITHUB_ENV" <<EOF
-          CIBW_BEFORE_ALL_LINUX=yum install -y wget && {package}/tools/install_rust.sh
+          CIBW_BEFORE_ALL_LINUX=dnf install -y wget && {package}/tools/install_rust.sh
           CIBW_BEFORE_BUILD=bash ./tools/build_pgo.sh $PGO_WORK_DIR $PGO_OUT_PATH
           CIBW_ENVIRONMENT=RUSTUP_TOOLCHAIN=stable RUSTFLAGS='-Cprofile-use=$PGO_OUT_PATH -Cllvm-args=-pgo-warn-missing-function'
           CIBW_ENVIRONMENT_MACOS=MACOSX_DEPLOYMENT_TARGET='10.12' RUSTUP_TOOLCHAIN=stable RUSTFLAGS='-Cprofile-use=$PGO_OUT_PATH -Cllvm-args=-pgo-warn-missing-function'
@@ -116,8 +115,8 @@ jobs:
         env:
           PGO_WORK_DIR: ${{ github.workspace }}/pgo-data
           PGO_OUT_PATH: ${{ github.workspace }}/merged.profdata
-      - uses: pypa/cibuildwheel@v3.0.1
-      - uses: actions/upload-artifact@v5
+      - uses: pypa/cibuildwheel@v3.4.0
+      - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
           name: ${{ inputs.artifact-prefix }}wheels-tier-1-${{ matrix.os }}
@@ -132,8 +131,8 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
       - uses: dtolnay/rust-toolchain@stable
-      - uses: pypa/cibuildwheel@v3.0.1
-      - uses: actions/upload-artifact@v5
+      - uses: pypa/cibuildwheel@v3.4.0
+      - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
           name: ${{ inputs.artifact-prefix }}wheels-macos-intel
@@ -150,14 +149,14 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
       - uses: dtolnay/rust-toolchain@stable
-      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-qemu-action@v4
         with:
           platforms: all
-      - uses: pypa/cibuildwheel@v3.0.1
+      - uses: pypa/cibuildwheel@v3.4.0
         env:
           CIBW_ARCHS_LINUX: s390x
           CIBW_TEST_SKIP: "cp*"
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
           name: ${{ inputs.artifact-prefix }}wheels-linux-s390x
@@ -173,14 +172,14 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
       - uses: dtolnay/rust-toolchain@stable
-      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-qemu-action@v4
         with:
           platforms: all
-      - uses: pypa/cibuildwheel@v3.0.1
+      - uses: pypa/cibuildwheel@v3.4.0
         env:
           CIBW_ARCHS_LINUX: ppc64le
           CIBW_TEST_SKIP: "cp*"
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
           name: ${{ inputs.artifact-prefix }}wheels-linux-ppc64le
@@ -199,7 +198,7 @@ jobs:
           set -e
           python -m pip install -U build
           python -m build --sdist .
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           path: ./dist/*.tar.gz
           name: ${{ inputs.artifact-prefix }}sdist

@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -19,10 +19,10 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
 use crate::pauli_exp_val::fast_sum;
-use qiskit_circuit::util::c64;
 use qiskit_quantum_info::sparse_observable::BitTerm;
 use qiskit_quantum_info::sparse_observable::PySparseObservable;
 use qiskit_quantum_info::sparse_observable::SparseTermView;
+use qiskit_util::complex::c64;
 
 const OPER_TABLE_SIZE: usize = (b'Z' as usize) + 1;
 const fn generate_oper_table() -> [[f64; 2]; OPER_TABLE_SIZE] {

@@ -6,7 +6,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -49,7 +49,7 @@ venv_dir="$(pwd -P)/venvs/$package-$version"
 if [[ ! -d $cache_dir ]] ; then
     echo "Building venv for $package==$version"
     "$python" -m venv "$venv_dir"
-    "$venv_dir/bin/pip" install -c "${our_dir}/qpy_test_constraints.txt" "${package}==${version}"
+    "$venv_dir/bin/pip" install -c "${our_dir}/qpy_test_constraints.txt" "${package}==${version}" packaging
     mkdir -p "$cache_dir"
     pushd "$cache_dir"
     echo "Generating QPY files with $package==$version"
