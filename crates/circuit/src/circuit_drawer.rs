@@ -20,6 +20,7 @@ use crossterm::terminal;
 use hashbrown::HashSet;
 use itertools::{Itertools, MinMaxResult};
 use pyo3::prelude::*;
+use std::f64::consts::PI;
 use std::fmt::Debug;
 use std::ops::Index;
 use unicode_segmentation::UnicodeSegmentation;
@@ -62,7 +63,7 @@ pub fn draw_circuit(
             } else {
                 format!(
                     "global phase: {}\n",
-                    format_float_pi(*f).unwrap_or_default()
+                    format_float_pi(*f).unwrap_or_else(|| f.to_string())
                 )
             }
         }
@@ -766,7 +767,7 @@ impl TextDrawer {
                         .params_view()
                         .iter()
                         .map(|param| match param {
-                            Param::Float(f) => format_float_pi(*f).unwrap_or_default(),
+                            Param::Float(f) => format_float_pi(*f).unwrap_or_else(|| f.to_string()),
                             Param::ParameterExpression(expr) => expr.to_string(),
                             _ => format!("{:?}", param),
                         })
@@ -1205,28 +1206,26 @@ impl TextDrawer {
     }
 }
 
-/// """Computes if a number is close to an integer
+/// Computes if a number is close to an integer
 /// fraction or multiple of PI and returns the
 /// corresponding string.
-
+///
 /// Args:
-///     f (float): Number to check.
-
+///     f : Number to check.
+///
 /// Returns:
-///     Option<String>: string representation of output. None if no pi format is found
-use std::f64::consts::PI;
-
+///     The string representation of output. None if no Pi formatting is found.  
 pub fn format_float_pi(f: f64) -> Option<String> {
     const DENOMINATOR: i64 = 16;
-    // epsilon value defines the treshold to detect pi.
+    // epsilon value defines the threshold to detect pi.
     const EPS: f64 = 1e-9;
 
     // pi_str is needed to match the output expected according to the format needed
-    let pi_str: String = String::from("π");
+    let pi_str = "π";
 
     // f_abs and sign help us working trough each steps
     let f_abs = f.abs();
-    let sign: &str = if f < 0.0 { "-" } else { "" };
+    let sign = if f < 0.0 { "-" } else { "" };
 
     // Detecting 0 before moving on
     if f_abs < EPS {
@@ -1235,31 +1234,24 @@ pub fn format_float_pi(f: f64) -> Option<String> {
 
     // First check is for whole multiples of pi
     let val = f_abs / PI;
-    if val >= 1.0 - EPS {
-        let round = val.round();
-        if (val - round).abs() < EPS {
-            let n = round as i64;
-            let str_out = match n {
-                1 => format!("{}{}", sign, pi_str),
-                n => format!("{}{}{}", sign, n, pi_str),
-            };
-            return Some(str_out);
-        }
+    let round = val.round();
+    if val >= 1.0 - EPS && (val - round).abs() < EPS {
+        let round = round as usize;
+        return Some(if round == 1 {
+            format!("{}{}", sign, pi_str)
+        } else {
+            format!("{}{}{}", sign, round, pi_str)
+        });
     }
 
     // Second is a check for powers of pi
     if f_abs > PI {
-        for k in 2i32..=4 {
-            let pow = PI.powi(k);
-            if (f_abs - pow).abs() < EPS {
-                let str_out = format!("{}{}^{}", sign, pi_str, k);
-                return Some(str_out);
-            }
-        }
+        if let Some(k) = (2..=4).find(|k| (f_abs - PI.powi(*k)).abs() < EPS) {
+            return Some(format!("{}{}^{}", sign, pi_str, k));
     }
 
-    // Third is a check for a number larger than MAX_FRAC * pi, not a
-    // multiple or power of pi, since no fractions will exceed MAX_FRAC * pi
+    // Third is a check for a number larger than DENOMINATOR * pi, not a
+    // multiple or power of pi, since no fractions will exceed DENOMINATOR * pi
     if f_abs > (DENOMINATOR as f64 * PI) {
         return None;
     }
@@ -1274,25 +1266,18 @@ pub fn format_float_pi(f: f64) -> Option<String> {
         return Some(str_out);
     }
 
-    // Fifth check is for fractions where the numer > 1*pi and numer
-    // is up to DENOMINATOR*pi and denom is up to DENOMINATOR and all
-    // fractions are reduced. Ex. 15pi/16, 2pi/5, 15pi/2, 16pi/9.
-    for d in 1i64..=DENOMINATOR {
-        for p in 1i64..=DENOMINATOR {
-            let val = (p as f64 / d as f64) * PI;
+    // Fifth check is for fractions where the numer > 1*pi or > 1 and numer
+    // is up to DENOMINATOR*pi or DENOMINATOR and denom is up to DENOMINATOR or DENOMINATOR*pi and all
+    // fractions are reduced. Ex. 15pi/16, 2pi/5, 15pi/2, 16pi/9 or 15/16pi, 2/5pi, 15/2pi, 16/9pi
+    for d in 1..=DENOMINATOR {
+        for p in 1..=DENOMINATOR {
+            let up = p as f64 / d as f64;
+            let val = up * PI;
             if (f_abs - val).abs() < EPS {
                 let str_out = format!("{}{}{}/{}", sign, p, pi_str, d);
                 return Some(str_out);
             }
-        }
-    }
-
-    // Sixth check is for fractions where the numer > 1 and numer
-    // is up to DENOMINATOR and denom is up to DENOMINATOR*pi and all
-    // fractions are reduced. Ex. 15/16pi, 2/5pi, 15/2pi, 16/9pi
-    for d in 1i64..=DENOMINATOR {
-        for p in 1i64..=DENOMINATOR {
-            let val = (p as f64 / d as f64) / PI;
+            let val = up / PI;
             if (f_abs - val).abs() < EPS {
                 let str_out = match d {
                     1 => format!("{}{}/{}", sign, p, pi_str),
@@ -2104,10 +2089,6 @@ q_1: ┤ Ry(🎩) ├┤1          ├┤ 💶🔉(🎩) ├┤1           ├�
         assert_eq!(result, expected.trim_start_matches("\n"));
     }
 
-    // ──pi formating part──────────────────────────────────────────────────────────────
-
-    use std::f64::consts::PI;
-
     // ── helpers ──────────────────────────────────────────────────────────────
     fn check(input: f64, expected: &str) {
         assert_eq!(
@@ -2124,174 +2105,61 @@ q_1: ┤ Ry(🎩) ├┤1          ├┤ 💶🔉(🎩) ├┤1           ├�
         );
     }
 
-    // ── zero ─────────────────────────────────────────────────────────────────
     #[test]
-    fn test_zero() {
-        check(0.0, "0");
-        check(-0.0, "0");
-        check(1e-12, "0");
-    }
+    fn test_format_float_pi() {
+        let some = [
+            (0.0, "0"),
+            (-0.0, "0"),
+            (1e-12, "0"),
+            (PI, "π"),
+            (-PI, "-π"),
+            (2.0 * PI, "2π"),
+            (3.0 * PI, "3π"),
+            (10.0 * PI, "10π"),
+            (16.0 * PI, "16π"),
+            (-2.0 * PI, "-2π"),
+            (-5.0 * PI, "-5π"),
+            (PI.powi(2), "π^2"),
+            (-PI.powi(2), "-π^2"),
+            (PI.powi(3), "π^3"),
+            (PI.powi(4), "π^4"),
+            (PI / 2.0, "π/2"),
+            (PI / 3.0, "π/3"),
+            (PI / 4.0, "π/4"),
+            (PI / 6.0, "π/6"),
+            (-PI / 2.0, "-π/2"),
+            (2.0 * PI / 3.0, "2π/3"),
+            (3.0 * PI / 4.0, "3π/4"),
+            (5.0 * PI / 6.0, "5π/6"),
+            (7.0 * PI / 4.0, "7π/4"),
+            (15.0 * PI / 16.0, "15π/16"),
+            (-2.0 * PI / 3.0, "-2π/3"),
+            (1.0 / PI, "1/π"),
+            (2.0 / PI, "2/π"),
+            (1.0 / (2.0 * PI), "1/2π"),
+            (3.0 / (4.0 * PI), "3/4π"),
+            (-1.0 / PI, "-1/π"),
+            (-1.0 / (2.0 * PI), "-1/2π"),
+        ];
 
-    // ── integers multiple of pi ────────────────────────────────────────────────
-    #[test]
-    fn test_pi_itself() {
-        check(PI, "π");
-    }
+        for element in some {
+            check(element.0, element.1);
+        }
 
-    #[test]
-    fn test_negative_pi() {
-        check(-PI, "-π");
-    }
+        let none = [
+            17.0 * PI + 1.0,
+            100.0,
+            1.0,
+            2.0,
+            1.5,
+            -7.3,
+            PI + 1e-6,
+            PI - 1e-6,
+            PI / 2.0 + 1e-6,
+        ];
 
-    #[test]
-    fn test_integer_multiples() {
-        check(2.0 * PI, "2π");
-        check(3.0 * PI, "3π");
-        check(10.0 * PI, "10π");
-        check(16.0 * PI, "16π");
-    }
-
-    #[test]
-    fn test_negative_integer_multiples() {
-        check(-2.0 * PI, "-2π");
-        check(-5.0 * PI, "-5π");
-    }
-
-    // ── power of pi ───────────────────────────────────────────────────────
-    #[test]
-    fn test_pi_squared() {
-        check(PI * PI, "π^2");
-    }
-
-    #[test]
-    fn test_pi_cubed() {
-        check(PI.powi(3), "π^3");
-    }
-
-    #[test]
-    fn test_pi_pow_4() {
-        check(PI.powi(4), "π^4");
-    }
-
-    #[test]
-    fn test_negative_pi_squared() {
-        check(-PI * PI, "-π^2");
-    }
-
-    // ── fractions π/d  ───────────────────────────────────────
-    #[test]
-    fn test_pi_over_2() {
-        check(PI / 2.0, "π/2");
-    }
-
-    #[test]
-    fn test_pi_over_3() {
-        check(PI / 3.0, "π/3");
-    }
-
-    #[test]
-    fn test_pi_over_4() {
-        check(PI / 4.0, "π/4");
-    }
-
-    #[test]
-    fn test_pi_over_6() {
-        check(PI / 6.0, "π/6");
-    }
-
-    #[test]
-    fn test_negative_pi_over_2() {
-        check(-PI / 2.0, "-π/2");
-    }
-
-    // ── fractions p*π/d  ─────────────────────────────────────
-    #[test]
-    fn test_2pi_over_3() {
-        check(2.0 * PI / 3.0, "2π/3");
-    }
-
-    #[test]
-    fn test_3pi_over_4() {
-        check(3.0 * PI / 4.0, "3π/4");
-    }
-
-    #[test]
-    fn test_5pi_over_6() {
-        check(5.0 * PI / 6.0, "5π/6");
-    }
-
-    #[test]
-    fn test_7pi_over_4() {
-        check(7.0 * PI / 4.0, "7π/4");
-    }
-
-    #[test]
-    fn test_15pi_over_16() {
-        check(15.0 * PI / 16.0, "15π/16");
-    }
-
-    #[test]
-    fn test_negative_2pi_over_3() {
-        check(-2.0 * PI / 3.0, "-2π/3");
-    }
-
-    // ── p/(d*π) ─────────────────────────────────────────────────────
-    #[test]
-    fn test_1_over_pi() {
-        // d == 1 → format "p/π"
-        check(1.0 / PI, "1/π");
-    }
-
-    #[test]
-    fn test_2_over_pi() {
-        check(2.0 / PI, "2/π");
-    }
-
-    #[test]
-    fn test_1_over_2pi() {
-        // d > 1 → format "p/dπ"
-        check(1.0 / (2.0 * PI), "1/2π");
-    }
-
-    #[test]
-    fn test_3_over_4pi() {
-        check(3.0 / (4.0 * PI), "3/4π");
-    }
-
-    #[test]
-    fn test_negative_1_over_pi() {
-        check(-1.0 / PI, "-1/π");
-    }
-
-    #[test]
-    fn test_negative_1_over_2pi() {
-        check(-1.0 / (2.0 * PI), "-1/2π");
-    }
-
-    // ── out bounds ───────────────────────────────────────────────────
-    #[test]
-    fn test_large_non_multiple() {
-        check_none(17.0 * PI + 1.0);
-        check_none(100.0);
-    }
-
-    #[test]
-    fn test_arbitrary_numbers() {
-        check_none(1.0);
-        check_none(2.0);
-        check_none(1.5);
-        check_none(-7.3);
-    }
-
-    // ── near pi values ──────────────
-    #[test]
-    fn test_near_pi_but_not_pi() {
-        check_none(PI + 1e-6);
-        check_none(PI - 1e-6);
-    }
-
-    #[test]
-    fn test_near_pi_over_2_but_not() {
-        check_none(PI / 2.0 + 1e-6);
+        for val in none {
+            check_none(val);
+        }
     }
 }
