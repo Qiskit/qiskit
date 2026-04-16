@@ -75,6 +75,13 @@ static B_NON_NORMALIZED_DAGGER: Matrix4<Complex64> = Matrix4::new(
     C_ZERO,
 );
 
+static ONEQ_IDENTITY: Matrix2<Complex64> = Matrix2::new(
+    Complex64::ONE,
+    Complex64::ZERO,
+    Complex64::ZERO,
+    Complex64::ONE,
+);
+
 enum MagicBasisTransform {
     Into,
     OutOf,
@@ -127,8 +134,7 @@ fn decompose_two_qubit_product_gate(
     }
     r /= det_r.sqrt();
     let r_t_conj: Matrix2<Complex64> = r.adjoint();
-    let eye = Matrix2::identity();
-    let mut temp = eye.kronecker(&r_t_conj);
+    let mut temp = ONEQ_IDENTITY.kronecker(&r_t_conj);
     temp = special_unitary * temp;
     let mut l: Matrix2<Complex64> = temp
         .view_with_steps((0, 0), (2, 2), (1, 1))
