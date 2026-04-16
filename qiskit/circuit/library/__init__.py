@@ -23,17 +23,20 @@ benchmarking tools, and examples that are conjectured to be hard to simulate cla
 The goal is to provide circuits that are well-defined, widely applicable, and easy to reuse across
 different workflows.
 
-Criteria for circuits in the library include that they are:
+The criteria for a circuit in the library are:
 
 Well-defined
-   They have a clear structure or a mathematical action, ideally supported by a paper or reference.
+   The circuit has a clear structure or a mathematical action, supported by a paper or
+   reference.
 
 Widely used and relevant
-   They represent state-of-the-art circuits, are commonly used in
-   research or applications, and are broadly applicable.
+   The circuit is a canonical or best-known choice for a well-defined task, is a standard reference
+   or common baseline, or is historically foundational to a substantial subfield of quantum
+   computing.
 
 Standalone
-   They are self-contained and can be used without relying on external dependencies.
+   The circuit is self-contained, meaning it can be generated efficiently without new
+   external dependencies.
 
 Elements in the circuit library are either :class:`.QuantumCircuit`\ s or
 :class:`~.circuit.Instruction`\ s, allowing them to be easily investigated or plugged into other
