@@ -24,12 +24,16 @@ import struct
 import warnings
 import re
 
+
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.qpy import formats, common, binary_io, type_keys
 from qiskit.qpy.exceptions import QpyError
 from qiskit import user_config
 from qiskit.version import __version__
+from qiskit.circuit.library import (
+    BlueprintCircuit,
+)  # TO INFORM THE RUST QPY MODULE ABOUT THE BLUEPRINTCIRCUIT CLASS
 
 if TYPE_CHECKING:
     from qiskit.circuit import annotation
@@ -180,6 +184,11 @@ def dump(
     """
     if not isinstance(programs, Iterable):
         programs = [programs]
+
+    # explicitly call ._build() before the circuit list is processed
+    for program in programs:
+        if isinstance(program, BlueprintCircuit):
+            program._build()
 
     # dump accepts only QuantumCircuit typed objects
     for program in programs:
