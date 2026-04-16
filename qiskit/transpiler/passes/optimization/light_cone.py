@@ -11,11 +11,12 @@
 # that they have been altered from the originals.
 
 """Cancel the redundant (self-adjoint) gates through commutation relations."""
+
 from __future__ import annotations
 import warnings
 from qiskit.circuit import Gate, Qubit
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
-from qiskit.circuit.library import PauliGate, ZGate , PauliProductMeasurement
+from qiskit.circuit.library import PauliGate, ZGate, PauliProductMeasurement
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils.remove_final_measurements import calc_final_ops
@@ -66,9 +67,7 @@ class LightCone(TransformationPass):
             pauli_label = Pauli((node.op._pauli_z, node.op._pauli_x, 0)).to_label()
             return [(PauliGate(pauli_label), list(node.qargs))]
         else:
-            raise ValueError(
-                f"_measurement_commutation_ops called with unexpected operation"
-            )
+            raise ValueError(f"_measurement_commutation_ops called with unexpected operation")
 
     def _get_initial_lightcone(
         self, dag: DAGCircuit
