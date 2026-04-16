@@ -17,7 +17,6 @@
 import argparse
 import itertools
 import random
-import re
 import sys
 
 import numpy as np
