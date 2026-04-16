@@ -296,6 +296,13 @@ fn commute(
     let op1 = inst1.op.view();
     let op2 = inst2.op.view();
 
+    // Since we do not attempt to marge PPMs with other gates, we should never
+    // try to commute two PPMs.
+    debug_assert!(
+        !matches!(op1, OperationRef::PauliProductMeasurement(_))
+            || !matches!(op2, OperationRef::PauliProductMeasurement(_))
+    );
+
     // To check commutation of two Pauli-based gates, we extract their Pauli generators
     // and check whether they commute.
     // Note that we have previously removed all PPRs equivalent to identity up to a global
@@ -567,7 +574,7 @@ pub fn run_commutative_optimization(
         let node_index1 = node_indices[idx1];
         let instr1 = dag[node_index1].unwrap_operation();
 
-        // For now, assume that control-flow operations do not commute with anything.
+        // Right now the control-flow operations cannot be merged with anything.
         if instr1.op.try_control_flow().is_some() {
             continue;
         }
@@ -591,6 +598,13 @@ pub fn run_commutative_optimization(
                 unreachable!("The current instruction should not be deleted.")
             }
         };
+
+        // Right now we do not merge pauli product measurement instructions with other instructions.
+        // However, we did previously canonincalize them so that we can efficiently check commutation relations
+        // between them and pauli product rotations.
+        if matches!(instr1.op.view(), OperationRef::PauliProductMeasurement(_)) {
+            continue;
+        }
 
         let qargs1: &[Qubit] = new_dag.get_qargs(instr1.qubits);
         let cargs1: &[Clbit] = new_dag.get_cargs(instr1.clbits);

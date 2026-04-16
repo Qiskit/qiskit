@@ -1294,6 +1294,26 @@ measure q0[1] -> c0[1];
         self.assertEqual(qct, qc_expected)
         self.assertEqual(Operator(qct), Operator(qc))
 
+    def test_consecutive_ppms(self):
+        """Test circuits with consecutive pauli product measurements"""
+        qc = QuantumCircuit(4, 2)
+        qc.append(PauliProductRotationGate(Pauli("XX"), 1), [0, 1])
+        qc.append(PauliProductMeasurement(Pauli("ZZ")), [0, 1], [0])
+        qc.append(PauliProductMeasurement(Pauli("ZZ")), [0, 1], [0])
+        qc.append(PauliProductMeasurement(Pauli("YX")), [0, 2], [1])
+        qc.append(PauliProductRotationGate(Pauli("XX"), -1), [0, 1])
+
+        qct = CommutativeOptimization()(qc)
+
+        # The two rotation gates commute through all measurement gates and should cancel.
+        # The measurement gates should remain unchanged.
+        qc_expected = QuantumCircuit(4, 2)
+        qc_expected.append(PauliProductMeasurement(Pauli("ZZ")), [0, 1], [0])
+        qc_expected.append(PauliProductMeasurement(Pauli("ZZ")), [0, 1], [0])
+        qc_expected.append(PauliProductMeasurement(Pauli("YX")), [0, 2], [1])
+
+        self.assertEqual(qct, qc_expected)
+
 
 if __name__ == "__main__":
     unittest.main()
