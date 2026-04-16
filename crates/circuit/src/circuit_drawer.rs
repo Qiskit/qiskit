@@ -1248,6 +1248,7 @@ pub fn format_float_pi(f: f64) -> Option<String> {
     if f_abs > PI {
         if let Some(k) = (2..=4).find(|k| (f_abs - PI.powi(*k)).abs() < EPS) {
             return Some(format!("{}{}^{}", sign, pi_str, k));
+        }
     }
 
     // Third is a check for a number larger than DENOMINATOR * pi, not a
