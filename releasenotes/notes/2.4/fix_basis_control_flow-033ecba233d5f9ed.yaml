@@ -3,7 +3,6 @@ fixes:
     Fixed an issue in :class:`.BasisTranslator` where circuits containing nested
     control flow operations did not have the transformation applied to their control
     flow blocks.
-
     See `#13162 <https://github.com/Qiskit/qiskit/issues/13162>`__,
     `#14025 <https://github.com/Qiskit/qiskit/issues/14025>`__,
     and `#15734 <https://github.com/Qiskit/qiskit/issues/15734>`__.
