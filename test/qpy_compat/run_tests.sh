@@ -49,9 +49,9 @@ python -m venv "$qiskit_venv"
 
 # Run all of the tests of cross-Qiskit-version compatibility.
 if $no_docker; then
-    "$qiskit_python" "$our_dir/get_versions.py" --no-docker | parallel -j 2 --colsep=" " bash "$our_dir/process_version_with_venv.sh" -p "$qiskit_python"
+    "$qiskit_python" "$our_dir/get_versions.py" --no-docker | parallel -j 2 --halt soon,fail=1 --joblog parallel_compat.log --colsep=" " bash "$our_dir/process_version_with_venv.sh" -p "$qiskit_python"
 else
-    "$qiskit_python" "$our_dir/get_versions.py" | parallel -j 2 --colsep=" " bash "$our_dir/process_version.sh" -p "$qiskit_python"
+    "$qiskit_python" "$our_dir/get_versions.py" | parallel -j 2 --halt soon,fail=1 --joblog parallel_compat.log --colsep=" " bash "$our_dir/process_version.sh" -p "$qiskit_python"
 fi
 
 # Test dev compatibility with itself.
@@ -128,4 +128,4 @@ done
 
 echo "Getting forward compatibility versions..."
 "$qiskit_python" "$our_dir/get_forward_compat_versions.py" | \
-    parallel -j 2 --colsep=" " bash "$our_dir/process_forward_version.sh"
+    parallel -j 2 --halt soon,fail=1 --joblog parallel_forward.log --colsep=" " bash "$our_dir/process_forward_version.sh"
