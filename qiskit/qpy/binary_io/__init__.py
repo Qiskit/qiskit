@@ -18,19 +18,17 @@ from .value import (
     write_value,
     read_value,
     # for backward compatibility; provider, runtime, experiment call this private methods.
-    # ruff: noqa: F401
-    _write_parameter_expression,
-    _read_parameter_expression,
-    _read_parameter_expression_v3,
+    _write_parameter_expression,  # noqa: F401
+    _read_parameter_expression,  # noqa: F401
+    _read_parameter_expression_v3,  # noqa: F401
 )
 
 from .circuits import (
     write_circuit,
     read_circuit,
     # for backward compatibility; provider calls this private methods.
-    # ruff: noqa: F401
-    _write_instruction,
-    _read_instruction,
+    _write_instruction,  # noqa: F401
+    _read_instruction,  # noqa: F401
 )
 
 from .schedules import (

@@ -12,42 +12,24 @@
 
 """Quantum Operators."""
 
-from .channel import PTM, Chi, Choi, Kraus, Stinespring, SuperOp
-from .dihedral import CNOTDihedral
+from . import channel, dihedral, symplectic, utils
+from .channel import *
+from .dihedral import *
+from .symplectic import *
+from .utils import *
 from .measures import average_gate_fidelity, diamond_norm, gate_error, process_fidelity
 from .operator import Operator
 from .scalar_op import ScalarOp
-from .symplectic import (
-    Clifford,
-    Pauli,
-    PauliList,
-    SparsePauliOp,
-    pauli_basis,
-    get_clifford_gate_names,
-)
-from .utils import anti_commutator, commutator, double_commutator
 
 __all__ = [
-    "PTM",
-    "CNOTDihedral",
-    "Chi",
-    "Choi",
-    "Clifford",
-    "Kraus",
     "Operator",
-    "Pauli",
-    "PauliList",
     "ScalarOp",
-    "SparsePauliOp",
-    "Stinespring",
-    "SuperOp",
-    "anti_commutator",
     "average_gate_fidelity",
-    "commutator",
     "diamond_norm",
-    "double_commutator",
     "gate_error",
-    "get_clifford_gate_names",
-    "pauli_basis",
     "process_fidelity",
 ]
+__all__ += channel.__all__
+__all__ += dihedral.__all__
+__all__ += symplectic.__all__
+__all__ += utils.__all__

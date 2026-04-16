@@ -377,6 +377,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F403"]  # allow star imports in init files for re-export
 "*.ipynb" = ["F821"]
 # Security rules from bandit don't apply to tests and utils
 "tools/*" = [

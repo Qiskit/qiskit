@@ -200,5 +200,6 @@ __all__ = [
     "XXPlusYYGate",
     "YGate",
     "ZGate",
+    "get_standard_gate_name_mapping",
     "iSwapGate",
 ]

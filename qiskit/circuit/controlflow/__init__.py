@@ -71,5 +71,6 @@ __all__ = [
     "SwitchCaseOp",
     "WhileLoopOp",
     "condition_resources",
+    "get_control_flow_name_mapping",
     "node_resources",
 ]

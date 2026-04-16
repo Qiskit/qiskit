@@ -1413,49 +1413,30 @@ from . import library
 from .equivalence_library import StandardEquivalenceLibrary, SessionEquivalenceLibrary
 from .commutation_checker import CommutationChecker
 
-from .controlflow import (
-    ControlFlowOp,
-    BoxOp,
-    WhileLoopOp,
-    ForLoopOp,
-    IfElseOp,
-    SwitchCaseOp,
-    CASE_DEFAULT,
-    BreakLoopOp,
-    ContinueLoopOp,
-    CONTROL_FLOW_OP_NAMES,
-    get_control_flow_name_mapping,
-)
+from . import controlflow
+from .controlflow import *
 
 from .annotated_operation import AnnotatedOperation, InverseModifier, ControlModifier, PowerModifier
 from .twirling import pauli_twirl_2q_gates
 
 __all__ = [
-    "CASE_DEFAULT",
-    "CONTROL_FLOW_OP_NAMES",
     "AncillaQubit",
     "AncillaRegister",
     "AnnotatedOperation",
     "Annotation",
     "Barrier",
     "Bit",
-    "BoxOp",
-    "BreakLoopOp",
     "CircuitError",
     "CircuitInstruction",
     "ClassicalRegister",
     "Clbit",
     "CommutationChecker",
-    "ContinueLoopOp",
-    "ControlFlowOp",
     "ControlModifier",
     "ControlledGate",
     "Delay",
     "Duration",
     "EquivalenceLibrary",
-    "ForLoopOp",
     "Gate",
-    "IfElseOp",
     "Instruction",
     "InstructionSet",
     "InverseModifier",
@@ -1474,11 +1455,9 @@ __all__ = [
     "SessionEquivalenceLibrary",
     "StandardEquivalenceLibrary",
     "Store",
-    "SwitchCaseOp",
-    "WhileLoopOp",
     "annotation",
-    "get_control_flow_name_mapping",
     "library",
     "pauli_twirl_2q_gates",
     "singleton",
 ]
+__all__ += controlflow.__all__

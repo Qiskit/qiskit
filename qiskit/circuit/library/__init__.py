@@ -873,116 +873,32 @@ Template circuits with :class:`~qiskit.circuit.library.RZXGate`.
 
 """
 
-from .standard_gates import *  # noqa: F403
-from .templates import *  # noqa: F403
+from . import (
+    standard_gates,
+    templates,
+    generalized_gates,
+    boolean_logic,
+    basis_change,
+    arithmetic,
+    n_local as mod_n_local,  # avoid conflict with the function called `n_local`
+    data_preparation,
+)
+
+from .standard_gates import *
+from .templates import *
 from ..barrier import Barrier
 from ..measure import Measure
 from ..reset import Reset
-
-
 from .blueprintcircuit import BlueprintCircuit
-from .generalized_gates import (
-    Diagonal,
-    DiagonalGate,
-    MCMT,
-    MCMTVChain,
-    Permutation,
-    PermutationGate,
-    GMS,
-    MCMTGate,
-    MSGate,
-    GR,
-    GRX,
-    GRY,
-    GRZ,
-    RVGate,
-    PauliGate,
-    PauliProductRotationGate,
-    LinearFunction,
-    Isometry,
-    UnitaryGate,
-    UCGate,
-    UCPauliRotGate,
-    UCRXGate,
-    UCRYGate,
-    UCRZGate,
-)
+from .generalized_gates import *
 from .pauli_evolution import PauliEvolutionGate
 from .pauli_product_measurement import PauliProductMeasurement
 from .hamiltonian_gate import HamiltonianGate
-from .boolean_logic import (
-    AND,
-    AndGate,
-    OR,
-    OrGate,
-    XOR,
-    BitwiseXorGate,
-    random_bitwise_xor,
-    InnerProduct,
-    InnerProductGate,
-)
-from .basis_change import QFT, QFTGate
-from .arithmetic import (
-    ModularAdderGate,
-    HalfAdderGate,
-    FullAdderGate,
-    MultiplierGate,
-    FunctionalPauliRotations,
-    LinearPauliRotations,
-    LinearPauliRotationsGate,
-    PiecewiseLinearPauliRotations,
-    PiecewiseLinearPauliRotationsGate,
-    PiecewisePolynomialPauliRotations,
-    PiecewisePolynomialPauliRotationsGate,
-    PolynomialPauliRotations,
-    PolynomialPauliRotationsGate,
-    IntegerComparator,
-    IntegerComparatorGate,
-    WeightedAdder,
-    WeightedSumGate,
-    QuadraticForm,
-    QuadraticFormGate,
-    LinearAmplitudeFunction,
-    LinearAmplitudeFunctionGate,
-    VBERippleCarryAdder,
-    CDKMRippleCarryAdder,
-    DraperQFTAdder,
-    PiecewiseChebyshev,
-    PiecewiseChebyshevGate,
-    HRSCumulativeMultiplier,
-    RGQFTMultiplier,
-    ExactReciprocal,
-    ExactReciprocalGate,
-)
-
-from .n_local import (
-    n_local,
-    NLocal,
-    TwoLocal,
-    pauli_two_design,
-    PauliTwoDesign,
-    real_amplitudes,
-    RealAmplitudes,
-    efficient_su2,
-    EfficientSU2,
-    hamiltonian_variational_ansatz,
-    evolved_operator_ansatz,
-    EvolvedOperatorAnsatz,
-    excitation_preserving,
-    ExcitationPreserving,
-    qaoa_ansatz,
-    QAOAAnsatz,
-)
-from .data_preparation import (
-    z_feature_map,
-    zz_feature_map,
-    pauli_feature_map,
-    PauliFeatureMap,
-    ZFeatureMap,
-    ZZFeatureMap,
-    StatePreparation,
-    Initialize,
-)
+from .boolean_logic import *
+from .basis_change import *
+from .arithmetic import *
+from .n_local import *
+from .data_preparation import *
 from .quantum_volume import QuantumVolume, quantum_volume
 from .fourier_checking import FourierChecking, fourier_checking
 from .graph_state import GraphState, GraphStateGate
@@ -993,124 +909,41 @@ from .grover_operator import GroverOperator, grover_operator
 from .phase_oracle import PhaseOracle, PhaseOracleGate
 from .bit_flip_oracle import BitFlipOracleGate
 from .overlap import UnitaryOverlap, unitary_overlap
-from .standard_gates import get_standard_gate_name_mapping
 
 __all__ = [
-    "AND",
-    "GMS",
-    "GR",
-    "GRX",
-    "GRY",
-    "GRZ",
     "IQP",
-    "MCMT",
-    "OR",
-    "QFT",
-    "XOR",
-    "AndGate",
     "Barrier",
     "BitFlipOracleGate",
-    "BitwiseXorGate",
     "BlueprintCircuit",
-    "CDKMRippleCarryAdder",
-    "Diagonal",
-    "DiagonalGate",
-    "DraperQFTAdder",
-    "EfficientSU2",
-    "EvolvedOperatorAnsatz",
-    "ExactReciprocal",
-    "ExactReciprocalGate",
-    "ExcitationPreserving",
     "FourierChecking",
-    "FullAdderGate",
-    "FunctionalPauliRotations",
     "GraphState",
     "GraphStateGate",
     "GroverOperator",
-    "HRSCumulativeMultiplier",
-    "HalfAdderGate",
     "HamiltonianGate",
     "HiddenLinearFunction",
-    "Initialize",
-    "InnerProduct",
-    "InnerProductGate",
-    "IntegerComparator",
-    "IntegerComparatorGate",
-    "Isometry",
-    "LinearAmplitudeFunction",
-    "LinearAmplitudeFunctionGate",
-    "LinearFunction",
-    "LinearPauliRotations",
-    "LinearPauliRotationsGate",
-    "MCMTGate",
-    "MCMTVChain",
-    "MSGate",
     "Measure",
-    "ModularAdderGate",
-    "MultiplierGate",
-    "NLocal",
-    "OrGate",
     "PauliEvolutionGate",
-    "PauliFeatureMap",
-    "PauliGate",
     "PauliProductMeasurement",
-    "PauliProductRotationGate",
-    "PauliTwoDesign",
-    "Permutation",
-    "PermutationGate",
     "PhaseEstimation",
     "PhaseOracle",
     "PhaseOracleGate",
-    "PiecewiseChebyshev",
-    "PiecewiseChebyshevGate",
-    "PiecewiseLinearPauliRotations",
-    "PiecewiseLinearPauliRotationsGate",
-    "PiecewisePolynomialPauliRotations",
-    "PiecewisePolynomialPauliRotationsGate",
-    "PolynomialPauliRotations",
-    "PolynomialPauliRotationsGate",
-    "QAOAAnsatz",
-    "QFTGate",
-    "QuadraticForm",
-    "QuadraticFormGate",
     "QuantumVolume",
-    "RGQFTMultiplier",
-    "RVGate",
-    "RealAmplitudes",
     "Reset",
-    "StatePreparation",
-    "TwoLocal",
-    "UCGate",
-    "UCPauliRotGate",
-    "UCRXGate",
-    "UCRYGate",
-    "UCRZGate",
-    "UnitaryGate",
     "UnitaryOverlap",
-    "VBERippleCarryAdder",
-    "WeightedAdder",
-    "WeightedSumGate",
-    "ZFeatureMap",
-    "ZZFeatureMap",
-    "efficient_su2",
-    "evolved_operator_ansatz",
-    "excitation_preserving",
     "fourier_checking",
-    "get_standard_gate_name_mapping",
     "grover_operator",
-    "hamiltonian_variational_ansatz",
     "hidden_linear_function",
     "iqp",
-    "n_local",
-    "pauli_feature_map",
-    "pauli_two_design",
     "phase_estimation",
-    "qaoa_ansatz",
     "quantum_volume",
-    "random_bitwise_xor",
     "random_iqp",
-    "real_amplitudes",
     "unitary_overlap",
-    "z_feature_map",
-    "zz_feature_map",
 ]
+__all__ += standard_gates.__all__
+__all__ += templates.__all__
+__all__ += generalized_gates.__all__
+__all__ += boolean_logic.__all__
+__all__ += basis_change.__all__
+__all__ += arithmetic.__all__
+__all__ += mod_n_local.__all__
+__all__ += data_preparation.__all__

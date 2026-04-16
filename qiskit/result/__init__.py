@@ -50,8 +50,10 @@ Expectation values
 
 """
 
+from . import distributions
+
 from .counts import Counts
-from .distributions import QuasiDistribution, ProbDistribution
+from .distributions import *
 from .exceptions import ResultError
 from .models import MeasLevel, MeasReturnType
 from .result import Result
@@ -64,8 +66,6 @@ __all__ = [
     "Counts",
     "MeasLevel",
     "MeasReturnType",
-    "ProbDistribution",
-    "QuasiDistribution",
     "Result",
     "ResultError",
     "marginal_counts",
@@ -73,3 +73,4 @@ __all__ = [
     "marginal_memory",
     "sampled_expectation_value",
 ]
+__all__ += distributions.__all__
