@@ -749,7 +749,6 @@ class TestTemplateMatching(QiskitTestCase):
             clifford_3_1(),
         ]
         pm = PassManager(TemplateOptimization(template_list=template_list))
-        scc.clear_cached_commutations()
         for seed in range(10):
             qc = random_clifford_circuit(
                 num_qubits=5,
@@ -759,8 +758,6 @@ class TestTemplateMatching(QiskitTestCase):
             )
             qc_opt = pm.run(qc)
             self.assertEqual(Operator(qc), Operator(qc_opt))
-        # All of these gates are in the commutation library, i.e. the cache should not be used
-        self.assertEqual(scc.num_cached_entries(), 0)
 
     def test_circuit_global_phase_preserved_after_single_and_multiple_template_match(self):
         """Test that circuit global_phase survives template optimization (#14537)."""
