@@ -69,7 +69,7 @@ class CommutationChecker:
         max_num_qubits: int = 3,
         approximation_degree: float = 1.0,
     ) -> bool:
-        """Checks if two :class:`.DAGOpNode`\ s commute.
+        """Checks if two :class:`.DAGOpNode` objects commute.
 
         This is equivalent to :meth:`commute` but with the operation, qubits, and clbits
         bundled in the :class:`.DAGOpNode` object. See :meth:`commute` for more details.
