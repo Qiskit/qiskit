@@ -1,4 +1,7 @@
 ---
-features_transpiler:
+features_visualization:
   - |
-    The :func:`~qiskit.transpiler.CouplingMap.draw` function now supports passing layout methods to be used in :func:`~rustworkx.visualization.graphviz_draw`
+    The :func:`.CouplingMap.draw` function now supports passing
+    layout methods to be used in :func:`rustworkx.visualization.graphviz_draw` which is called internally. This enables you to
+    adjust the graphviz graph layout algorithm used for
+    visualizing the :class:`.CouplingMap` object.

@@ -3,7 +3,7 @@ features_c:
   - |
     Included to the C API the Suzuki-Trotter evolution by adding the
     circuit generator in the circuit library. The new function
-    ``qk_circuit_library_suzuki_trotter`` can be used as follows:
+    :c:func:`qk_circuit_library_suzuki_trotter` can be used as follows:
     
     .. code-block:: C
 

@@ -1,0 +1,28 @@
+---
+prelude: |
+  Qiskit 2.4.0 is a new feature release of the Qiskit SDK. The highlights of this
+  release are:
+  
+   * **Support for building Python extension modules that use the Qiskit C API and
+     can be safely distributed in Python wheels:**
+     This release makes it practical to move performance‑critical or low‑level
+     components using Qiskit into compiled extensions that leverage Qiskit's
+     C API. These extensions can now be packaged and distributed as ordinary
+     Python wheels using standard Python tooling.
+
+   * **Initial porting of QPY serialization and deserialization internals to Rust:**
+     This greatly speeds up both generating and loading QPY payloads and is also
+     a starting point towards adding QPY support to the C API.
+
+   * **Expansion of the C API's functionality:**
+     The C API now exposes DAG-based representations through an opaque :c:struct:`QkDag`
+     type, along with DAG-level transpiler pass functions that operate directly on this
+     representation. Additional features include support for parameterized circuits,
+     instructions for Pauli-based computations, and a circuit text drawer.
+
+   * **Improvements to the Clifford+T transpilation pipeline:**
+     We have significantly improved the Clifford+T transpilation pipeline for targeting
+     discrete Clifford+T basis gate sets, delivering higher compilation quality and
+     substantially faster runtimes. In particular, Qiskit now uses the ``gridsynth``
+     algorithm as the default method for synthesizing RZ rotations in a discrete basis,
+     replacing the Solovay-Kitaev decomposition used in prior releases.

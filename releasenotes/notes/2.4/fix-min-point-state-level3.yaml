@@ -1,0 +1,7 @@
+fixes:
+  - |
+    Fixed an issue in the :c:func:`qk_transpile` and :c:func:`qk_transpile_stage_optimization`
+    C API functions when using ``optimization_level=3`` in :c:struct:`QkTranspileOptions`.
+    Previously, the internal minimum-point tracking logic failed to update the DAG
+    after finding a better candidate circuit, which could result in circuits with suboptimal
+    depth and size.
