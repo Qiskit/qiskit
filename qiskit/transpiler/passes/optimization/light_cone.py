@@ -19,7 +19,6 @@ from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 from qiskit.circuit.library import PauliGate, ZGate, PauliProductMeasurement
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.passes.utils.remove_final_measurements import calc_final_ops
 from qiskit.quantum_info import Pauli
 
 translation_table = str.maketrans({"+": "X", "-": "X", "l": "Y", "r": "Y", "0": "Z", "1": "Z"})
@@ -66,8 +65,8 @@ class LightCone(TransformationPass):
         elif isinstance(node.op, PauliProductMeasurement):
             pauli_label = Pauli((node.op._pauli_z, node.op._pauli_x, 0)).to_label()
             return [(PauliGate(pauli_label), list(node.qargs))]
-        else:
-            raise ValueError(f"_measurement_commutation_ops called with unexpected operation")
+
+        raise ValueError("_measurement_commutation_ops called with unexpected operation")
 
     def _get_initial_lightcone(
         self, dag: DAGCircuit
