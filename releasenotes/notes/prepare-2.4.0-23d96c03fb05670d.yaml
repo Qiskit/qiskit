@@ -6,9 +6,9 @@ prelude: |
    * **Support for building Python extension modules that use the Qiskit C API and
      can be safely distributed in Python wheels:**
      This release makes it practical to move performance‑critical or low‑level
-     components into compiled extensions while keeping Qiskit’s Python interfaces intact.
-     These can be packaged and distributed as ordinary Python wheels using standard
-     Python tooling.
+     components using Qiskit into compiled extensions that leverage Qiskit's
+     C API. These extensions can now be packaged and distributed as ordinary
+     Python wheels using standard Python tooling.
 
    * **Initial porting of QPY serialization and deserialization internals to Rust:**
      This greatly speeds up both generating and loading QPY payloads and is also
