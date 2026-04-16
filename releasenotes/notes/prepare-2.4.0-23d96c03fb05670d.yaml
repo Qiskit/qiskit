@@ -18,7 +18,7 @@ prelude: |
      The Qiskit C API is expanded to support more advanced compiler-level workflows,
      enabling deeper integration with low-level quantum compiler tooling while remaining
      interoperable with Python circuits and transpilation workflows. The C API now exposes
-     DAG-based representations through an opaque QkDag type, along with DAG-level transpiler
+     DAG-based representations through an opaque :c:struct:`QkDag` type, along with DAG-level transpiler
      pass functions that operate directly on this representation. Additional features include
      support for parameterized circuits and a circuit text drawer.
 
