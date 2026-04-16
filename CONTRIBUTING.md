@@ -166,7 +166,11 @@ to `build_rust` overrides this default.
 ### Compile time options
 
 When building qiskit from source there are options available to control how
-Qiskit is built. Right now the only option is if you set the environment
+Qiskit is built. The first option is if you set the
+environment variable `QISKIT_BUILD_WITH_MIMALLOC=1` this will enable using
+[mimalloc](https://github.com/microsoft/mimalloc) as the global allocator for
+Qiskit. This improves the runtime performance of Qiskit but will require having
+a C compiler installed when building Qiskit. If you set the environment
 variable `QISKIT_NO_CACHE_GATES=1` this will disable runtime caching of
 Python gate objects when accessing them from a `QuantumCircuit` or `DAGCircuit`.
 This makes a tradeoff between runtime performance for Python access and memory

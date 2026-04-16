@@ -131,9 +131,12 @@ else:
 # is all in rust (default to no caching and make caching an opt-in feature). This is opt-out
 # right now to avoid the runtime overhead until we are leveraging the rust gates infrastructure.
 if os.getenv("QISKIT_NO_CACHE_GATES") == "1":
-    features = ["mimalloc"]
+    features = []
 else:
-    features = ["cache_pygates", "mimalloc"]
+    features = ["cache_pygates"]
+
+if os.getenv("QISKIT_BUILD_WITH_MIMALLOC") == "1":
+    features.append("mimalloc")
 
 
 setup(

@@ -1,0 +1,17 @@
+---
+features_misc:
+  - Qiskit can now optionally be built with `mimalloc <https://github.com/microsoft/mimalloc>`__ as the global
+    allocator. This improves the runtime performance of Qiskit and also should
+    reduce the resident set size when running Qiskit. By default the precompiled
+    wheels on PyPI will are built with mimalloc, when building from source you
+    need to opt-in and enable using mimalloc. Enabling mimalloc when building
+    from source will require a C compiler to be installed as mimalloc will be
+    built from source.
+build:
+  - A new environment variable, ``QISKIT_BUILD_WITH_MIMALLOC`` is used to
+    control whether to build Qiskit using mimalloc as the global allocator.
+    When ``QISKIT_BUILD_WITH_MIMALLOC=1`` this will enable using mimalloc for
+    both building the Python package and using the Makefile to build the
+    C API as a standalone shared library with ``make c``. If enabled building
+    Qiskit from source a C compiler is required to build
+    `mimalloc <https://github.com/microsoft/mimalloc>`__.
