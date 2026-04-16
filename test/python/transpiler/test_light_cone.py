@@ -354,6 +354,25 @@ class TestLightConePass(QiskitTestCase):
         ):
             light_cone.run(dag)
 
+        def test_mid_circuit_measurement_not_empty(self):
+        """Test that LightCone does not return an empty circuit when
+        mid-circuit measurements are present."""
+        light_cone = LightCone()
+        pm = PassManager([light_cone])
+
+        qc = QuantumCircuit(2, 1)
+        qc.cx(0, 1)
+        qc.z(0)
+        qc.measure(0, 0)
+        qc.h(0)
+
+        new_circuit = pm.run(qc)
+
+        expected = QuantumCircuit(2, 1)
+        expected.measure(0, 0)
+
+        self.assertEqual(expected, new_circuit)
+
 
 if __name__ == "__main__":
     unittest.main()
