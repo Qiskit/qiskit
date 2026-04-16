@@ -11,7 +11,8 @@
 // that they have been altered from the originals.
 
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
-use rand::{Rng, SeedableRng};
+use rand::rngs::SysRng;
+use rand::{RngExt, SeedableRng};
 use rand_pcg::Pcg64Mcg;
 
 use qiskit_circuit::circuit_data::CircuitData;
@@ -52,7 +53,7 @@ pub extern "C" fn qk_sabre_layout_options_default() -> SabreLayoutOptions {
         max_iterations: 4,
         num_swap_trials: 20,
         num_random_trials: 20,
-        seed: Pcg64Mcg::from_os_rng().random(),
+        seed: Pcg64Mcg::try_from_rng(&mut SysRng).unwrap().random(),
     }
 }
 
