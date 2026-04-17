@@ -21,7 +21,7 @@ use qiskit_circuit::{
     operations::{Param, StandardGate},
 };
 use rand::rngs::SysRng;
-use rand::{RngExt, SeedableRng};
+use rand::prelude::*;
 use rand_pcg::Pcg64Mcg;
 use smallvec::{SmallVec, smallvec};
 

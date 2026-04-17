@@ -12,7 +12,7 @@
 
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 use rand::rngs::SysRng;
-use rand::{RngExt, SeedableRng};
+use rand::prelude::*;
 use rand_pcg::Pcg64Mcg;
 
 use qiskit_circuit::circuit_data::CircuitData;

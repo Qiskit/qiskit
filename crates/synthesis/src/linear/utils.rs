@@ -14,7 +14,7 @@ use ndarray::{
     Array1, Array2, ArrayView1, ArrayView2, ArrayViewMut2, Axis, Zip, azip, concatenate, s,
 };
 use rand::rngs::SysRng;
-use rand::{RngExt, SeedableRng};
+use rand::prelude::*;
 use rand_pcg::Pcg64Mcg;
 use rayon::iter::{IndexedParallelIterator, ParallelIterator};
 use rayon::prelude::IntoParallelIterator;
