@@ -20,9 +20,7 @@ use pyo3::{Bound, PyResult, pyfunction, wrap_pyfunction};
 use qiskit_circuit::instruction::Parameters;
 use smallvec::smallvec;
 
-use crate::commutation_checker::{
-    CommutationChecker, try_matrix_with_definition, try_pauli_generator_for_pauli_based,
-};
+use crate::commutation_checker::{CommutationChecker, try_matrix_with_definition};
 use crate::passes::remove_identity_equiv::{average_gate_fidelity_below_tol, is_identity_equiv};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
@@ -272,6 +270,60 @@ fn canonicalize(
     None
 }
 
+/// Checks commutation between two pauli-based gates, assuming
+/// * the qubits are sorted by index
+/// * the first instruction is not a PPM
+#[inline]
+fn try_commute_pauli_based_with_sorted_qargs(
+    op1: &OperationRef,
+    op2: &OperationRef,
+    qargs1: &[Qubit],
+    qargs2: &[Qubit],
+) -> Option<bool> {
+    // To check whether two Pauli-based gates commute, we extract their Pauli generators and
+    // test them for commutation. While we could also use the commutation checker, we can perform
+    // a more efficient check here because the qubits are already sorted by index.
+    //
+    // Two important notes:
+    // * We do not need to handle the case where both instructions are PPMs writing to the
+    //   same clbit. This is because we do not attempt to merge a PPM with other gates, so
+    //   the first instruction is never a PPM.
+    // * All PPRs equivalent to the identity up to a global phase have already been removed.
+    //   As a result, commutation of Pauli generators is both a necessary and sufficient condition.
+    let (z1, x1, z2, x2) = match (op1, op2) {
+        (OperationRef::PauliProductMeasurement(_), _) => {
+            unreachable!(
+                "The first instruction cannot be a PPM (as we do not try to merge such instructions)"
+            );
+        }
+        (OperationRef::PauliProductRotation(pp1), OperationRef::PauliProductRotation(pp2)) => {
+            (&pp1.z, &pp1.x, &pp2.z, &pp2.x)
+        }
+        (OperationRef::PauliProductRotation(pp1), OperationRef::PauliProductMeasurement(pp2)) => {
+            (&pp1.z, &pp1.x, &pp2.z, &pp2.x)
+        }
+        _ => {
+            return None;
+        }
+    };
+
+    let mut parity = false;
+    let (n1, n2) = (qargs1.len(), qargs2.len());
+    let (mut i1, mut i2) = (0, 0);
+    while i1 < n1 && i2 < n2 {
+        match qargs1[i1].cmp(&qargs2[i2]) {
+            std::cmp::Ordering::Less => i1 += 1,
+            std::cmp::Ordering::Greater => i2 += 1,
+            std::cmp::Ordering::Equal => {
+                parity ^= (x1[i1] && z2[i2]) ^ (z1[i1] && x2[i2]);
+                i1 += 1;
+                i2 += 1;
+            }
+        }
+    }
+    Some(!parity)
+}
+
 /// Return `true` if two instructions commute (up to the specified tolerance).
 ///
 /// # Arguments:
@@ -296,47 +348,11 @@ fn commute(
     let op1 = inst1.op.view();
     let op2 = inst2.op.view();
 
-    // Since we do not attempt to marge PPMs with other gates, we should never
-    // try to commute two PPMs.
-    debug_assert!(
-        !matches!(op1, OperationRef::PauliProductMeasurement(_))
-            || !matches!(op2, OperationRef::PauliProductMeasurement(_))
-    );
-
-    // To check commutation of two Pauli-based gates, we extract their Pauli generators
-    // and check whether they commute.
-    // Note that we have previously removed all PPRs equivalent to identity up to a global
-    // phase, so this is both a necessary and a sufficient condition.
-    if matches!(
-        op1,
-        OperationRef::PauliProductRotation(_) | OperationRef::PauliProductMeasurement(_)
-    ) && matches!(
-        op2,
-        OperationRef::PauliProductRotation(_) | OperationRef::PauliProductMeasurement(_)
-    ) {
-        if let (Some((z1, x1)), Some((z2, x2))) = (
-            try_pauli_generator_for_pauli_based(&op1),
-            try_pauli_generator_for_pauli_based(&op2),
-        ) {
-            let mut parity = false;
-
-            // Due to canonicalization, the qubits in PPRs and PPMs are known to be
-            // sorted by qubit index.
-            let (n1, n2) = (qargs1.len(), qargs2.len());
-            let (mut i1, mut i2) = (0, 0);
-            while i1 < n1 && i2 < n2 {
-                match qargs1[i1].cmp(&qargs2[i2]) {
-                    std::cmp::Ordering::Less => i1 += 1,
-                    std::cmp::Ordering::Greater => i2 += 1,
-                    std::cmp::Ordering::Equal => {
-                        parity ^= (x1[i1] && z2[i2]) ^ (z1[i1] && x2[i2]);
-                        i1 += 1;
-                        i2 += 1;
-                    }
-                }
-            }
-            return Ok(!parity);
-        }
+    // For pauli-based gates, we use a more efficient implementation instead of calling
+    // the generic commutation checker, since we have already sorted the qubits by index
+    // during canonicalization.
+    if let Some(val) = try_commute_pauli_based_with_sorted_qargs(&op1, &op2, qargs1, qargs2) {
+        return Ok(val);
     }
 
     Ok(commutation_checker.commute(
