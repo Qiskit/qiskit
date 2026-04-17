@@ -91,38 +91,6 @@ pub struct CircuitInstruction {
     pub py_op: OnceLock<Py<PyAny>>,
 }
 
-impl<'py> FromPyObject<'_, 'py> for CircuitInstruction {
-    type Error = PyErr;
-
-    fn extract(obj: pyo3::Borrowed<'_, 'py, pyo3::PyAny>) -> Result<Self, Self::Error> {
-        if let Ok(obj) = obj.cast::<Self>() {
-            let borrowed = obj.borrow();
-            let py = borrowed.py();
-            Ok(Self {
-                operation: borrowed.operation.clone(),
-                qubits: borrowed.qubits.clone_ref(py),
-                clbits: borrowed.clbits.clone_ref(py),
-                params: borrowed.params.clone(),
-                label: borrowed.label.clone(),
-                #[cfg(feature = "cache_pygates")]
-                py_op: match borrowed.py_op.get() {
-                    Some(x) => {
-                        let out = OnceLock::new();
-                        let _ = out.set(x.clone_ref(py));
-                        out
-                    }
-                    None => OnceLock::new(),
-                },
-            })
-        } else {
-            Err(PyTypeError::new_err(format!(
-                "Invalid type, expected CircuitInstruction found {}",
-                obj.get_type().name()?
-            )))
-        }
-    }
-}
-
 impl CircuitInstruction {
     /// Get the Python-space operation, ensuring that it is mutable from Python space (singleton
     /// gates might not necessarily satisfy this otherwise).
