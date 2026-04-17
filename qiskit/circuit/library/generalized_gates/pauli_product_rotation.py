@@ -176,11 +176,19 @@ class PauliProductRotationGate(Gate):
         return Pauli((self._pauli_z, self._pauli_x, 0))
 
     def to_matrix(self):
-        """Calculate the matrix of PauliProductRotationGate(pauli, angle),
-        it equals to: exp(-0.5j * angle * pauli) or equivalently to
-        cos(angle/2) * I - 1j * sin(angle / 2) * pauli"""
+        r"""Returns a dense matrix representation of
+        :class:`~.PauliProductRotationGate`.
+
+        This implements
+
+        .. math::
+
+        e^{-i \theta / 2 P} = cos(\theta / 2) I - i sin(\theta / 2) P.
+
+        for a rotation angle :math:`\theta` and Pauli :math:`P`.
+        """
         angle = self.params[0]
-        pauli_matrix = self.pauli().to_matrix(sparse=False)
-        ppr_matrix = -1j * np.sin(angle / 2) * pauli_matrix
-        np.fill_diagonal(ppr_matrix, ppr_matrix.diagonal() + np.cos(angle / 2))
-        return ppr_matrix
+        out = self.pauli().to_matrix(sparse=False)
+        out *= -1j * np.sin(angle / 2)
+        np.fill_diagonal(out, out.diagonal() + np.cos(angle / 2))
+        return out
