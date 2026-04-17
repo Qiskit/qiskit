@@ -318,6 +318,8 @@ pub struct CommutationChecker {
     library: CommutationLibrary,
     #[pyo3(get)]
     gates: Option<HashSet<String>>,
+    // scratch_map is used as a temporary workspace to avoid repeated allocations
+    // when computing commutation relations between pauli-based gates.
     scratch_map: HashMap<usize, usize>,
 }
 

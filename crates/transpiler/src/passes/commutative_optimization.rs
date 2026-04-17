@@ -349,7 +349,7 @@ fn commute(
     let op2 = inst2.op.view();
 
     // For pauli-based gates, we use a more efficient implementation instead of calling
-    // the generic commutation checker, since we have already sorted the qubits by index
+    // the generic commutation checker, using the fact we have already sorted the qubits by index
     // during canonicalization.
     if let Some(val) = try_commute_pauli_based_with_sorted_qargs(&op1, &op2, qargs1, qargs2) {
         return Ok(val);
@@ -616,7 +616,7 @@ pub fn run_commutative_optimization(
         };
 
         // Right now we do not merge pauli product measurement instructions with other instructions.
-        // However, we did previously canonincalize them so that we can efficiently check commutation relations
+        // However, we did previously canonicalize them so that we can efficiently check commutation relations
         // between them and pauli product rotations.
         if matches!(instr1.op.view(), OperationRef::PauliProductMeasurement(_)) {
             continue;
