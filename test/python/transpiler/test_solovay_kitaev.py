@@ -33,10 +33,11 @@ from qiskit.circuit.library import (
     RXGate,
     RYGate,
     RZGate,
+    PauliProductRotationGate,
 )
 from qiskit.circuit import QuantumRegister
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.quantum_info import Operator
+from qiskit.quantum_info import Operator, Pauli
 from qiskit.synthesis.discrete_basis.generate_basis_approximations import (
     generate_basic_approximations,
 )
@@ -382,6 +383,20 @@ class TestSolovayKitaev(QiskitTestCase):
         transpiled = self.default_sk(circuit)
         diff = _trace_distance(circuit, transpiled)
         self.assertLess(diff, 1e-6)
+
+    def test_ppr(self):
+        """Test a circuit with a Pauli-product rotation."""
+        ppr = PauliProductRotationGate(Pauli("X"), 0.2)
+        circuit = QuantumCircuit(1)
+        circuit.append(ppr, [0])
+
+        transpiled = self.default_sk(circuit)
+        with self.subTest(msg="test gate set"):
+            self.assertEqual(set(transpiled.count_ops()), {"h", "t", "tdg"})
+
+        with self.subTest(msg="test approximation"):
+            diff = _trace_distance(circuit, transpiled)
+            self.assertLess(diff, 1e-5)
 
     @data(["unitary"], ["rz"])
     def test_sk_synth_gates_to_basis(self, synth_gates):

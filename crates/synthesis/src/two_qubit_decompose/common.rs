@@ -12,13 +12,14 @@
 
 use std::f64::consts::FRAC_1_SQRT_2;
 
+use nalgebra::{Matrix2, Matrix4};
 use ndarray::{Array2, ArrayView2, array, aview2};
 use num_complex::{Complex64, ComplexFloat};
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray1, PyReadonlyArray2};
 use pyo3::prelude::*;
 
 use crate::linalg::ndarray_to_faer;
-use qiskit_util::alias::{GateArray1Q, GateArray2Q};
+use qiskit_util::alias::GateArray2Q;
 use qiskit_util::complex::{C_M_ONE, C_ONE, C_ZERO, IM, M_IM, c64};
 pub(super) const DEFAULT_FIDELITY: f64 = 1.0 - 1.0e-9;
 
@@ -97,14 +98,11 @@ static MAGIC_DAGGER: GateArray2Q = [
     ],
 ];
 
-pub static IPZ: GateArray1Q = [[IM, C_ZERO], [C_ZERO, M_IM]];
-pub static IPY: GateArray1Q = [[C_ZERO, C_ONE], [C_M_ONE, C_ZERO]];
-pub static IPX: GateArray1Q = [[C_ZERO, IM], [IM, C_ZERO]];
+pub(super) static IPZ: Matrix2<Complex64> = Matrix2::new(IM, C_ZERO, C_ZERO, M_IM);
 
-#[inline(always)]
-pub(crate) fn transpose_conjugate(mat: ArrayView2<Complex64>) -> Array2<Complex64> {
-    mat.t().mapv(|x| x.conj())
-}
+pub(super) static IPY: Matrix2<Complex64> = Matrix2::new(C_ZERO, C_ONE, C_M_ONE, C_ZERO);
+
+pub(super) static IPX: Matrix2<Complex64> = Matrix2::new(C_ZERO, IM, IM, C_ZERO);
 
 /// A good approximation to the best value x to get the minimum
 /// trace distance for :math:`U_d(x, x, x)` from :math:`U_d(a, b, c)`.
@@ -115,23 +113,23 @@ pub(crate) fn closest_partial_swap(a: f64, b: f64, c: f64) -> f64 {
     m + am * bm * cm * (6. + ab * ab + bc * bc + ca * ca) / 18.
 }
 
-pub(crate) fn rx_matrix(theta: f64) -> Array2<Complex64> {
+pub(crate) fn rx_matrix(theta: f64) -> Matrix2<Complex64> {
     let half_theta = theta / 2.;
     let cos = c64(half_theta.cos(), 0.);
     let isin = c64(0., -half_theta.sin());
-    array![[cos, isin], [isin, cos]]
+    Matrix2::new(cos, isin, isin, cos)
 }
 
-pub(crate) fn ry_matrix(theta: f64) -> Array2<Complex64> {
+pub(crate) fn ry_matrix(theta: f64) -> Matrix2<Complex64> {
     let half_theta = theta / 2.;
     let cos = c64(half_theta.cos(), 0.);
     let sin = c64(half_theta.sin(), 0.);
-    array![[cos, -sin], [sin, cos]]
+    Matrix2::new(cos, -sin, sin, cos)
 }
 
-pub(crate) fn rz_matrix(theta: f64) -> Array2<Complex64> {
+pub(crate) fn rz_matrix(theta: f64) -> Matrix2<Complex64> {
     let ilam2 = c64(0., 0.5 * theta);
-    array![[(-ilam2).exp(), C_ZERO], [C_ZERO, ilam2.exp()]]
+    Matrix2::new((-ilam2).exp(), C_ZERO, C_ZERO, ilam2.exp())
 }
 
 /// Generates the array :math:`e^{(i a XX + i b YY + i c ZZ)}`
@@ -210,4 +208,26 @@ pub fn local_equivalence(weyl: PyReadonlyArray1<f64>) -> PyResult<[f64; 3]> {
         - 4. * weyl_2_sin_squared_product
         - weyl.iter().map(|x| (4. * x).cos()).product::<f64>();
     Ok([g0_equiv + 0., g1_equiv + 0., g2_equiv + 0.])
+}
+
+/// Copy the input array view into a Matrix2 output
+///
+/// This function assumes the input is a 2x2 matrix. If a matrix of a
+/// different shape is passed in it will pick the first 4 elements in logical
+/// order (row major) and if it doesn't have 4 elements it will panic. This
+/// should only really be used for copying a 2x2 ndarray view into a Matrix2.
+#[inline]
+pub(super) fn ndarray_to_matrix2<T: Copy>(view: ArrayView2<T>) -> Matrix2<T> {
+    Matrix2::new(view[[0, 0]], view[(0, 1)], view[(1, 0)], view[(1, 1)])
+}
+
+/// Copy the input array view into a Matrix4 output
+///
+/// This function assumes the input is a 4x4 matrix. If a matrix of a
+/// different shape is passed in it will pick the first 16 elements in logical
+/// order (row major) and if it doesn't have 16 elements it will panic. This
+/// should only really be used for copying a 4x4 ndarray view into a Matrix4.
+#[inline]
+pub(super) fn ndarray_to_matrix4(view: ArrayView2<Complex64>) -> Matrix4<Complex64> {
+    Matrix4::from_row_iterator(view.iter().copied())
 }

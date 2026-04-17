@@ -166,7 +166,7 @@ impl WireInputElement<'_> {
                         .registers()
                         .first()
                         .expect("Register cannot be empty");
-                    if !register.is_empty() {
+                    if register.len() > 1 {
                         Some(format!("{}_{}: ", register.name(), index))
                     } else {
                         Some(format!("{}: ", register.name()))
@@ -186,7 +186,7 @@ impl WireInputElement<'_> {
                         .registers()
                         .first()
                         .expect("Register cannot be empty");
-                    if !register.is_empty() {
+                    if register.len() > 1 {
                         Some(format!("{}_{}: ", register.name(), index))
                     } else {
                         Some(format!("{}: ", register.name()))
@@ -1297,6 +1297,102 @@ c2_1: ══════════
     }
 
     #[test]
+    fn test_single_bit_registers() {
+        // Single-bit registers should render as "q: " and "c: " (no auto-index suffix "_0").
+        let qreg = QuantumRegister::new_owning("q", 1);
+        let creg = ClassicalRegister::new_owning("c", 1);
+
+        let qubits: Vec<ShareableQubit> = (0..qreg.len())
+            .map(|i| qreg.get(i).expect("index in range"))
+            .collect();
+        let clbits: Vec<ShareableClbit> = (0..creg.len())
+            .map(|i| creg.get(i).expect("index in range"))
+            .collect();
+
+        let mut circuit = CircuitData::new(Some(qubits), Some(clbits), Param::Float(0.0)).unwrap();
+        _ = circuit.add_creg(creg, true);
+        _ = circuit.add_qreg(qreg, true);
+
+        circuit
+            .push_standard_gate(StandardGate::H, &[], &[Qubit::new(0)])
+            .unwrap();
+
+        let inst = PackedInstruction {
+            op: StandardInstruction::Measure.into(),
+            qubits: circuit.add_qargs(&[Qubit::new(0)]),
+            clbits: circuit.add_cargs(&[Clbit::new(0)]),
+            params: None,
+            label: None,
+        };
+        circuit.push(inst).unwrap();
+
+        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        let expected = "
+   ┌───┐┌───┐
+q: ┤ H ├┤ M ├
+   └───┘└─╥─┘
+          ║
+c: ═══════╩══
+";
+        assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[test]
+    fn test_mixed_single_and_multi_bit_registers() {
+        // Single-bit registers ("q", "c") mixed with multi-bit registers ("qr", "cr").
+        // Single-bit ones render without the index suffix ("q:", "c:").
+        // Multi-bit ones keep the index ("qr_0:", "qr_1:", "cr_0:", "cr_1:").
+        let q = QuantumRegister::new_owning("q", 1);
+        let qr = QuantumRegister::new_owning("qr", 2);
+        let c = ClassicalRegister::new_owning("c", 1);
+        let cr = ClassicalRegister::new_owning("cr", 2);
+
+        let qubits: Vec<ShareableQubit> = (0..q.len())
+            .map(|i| q.get(i).expect("index in range"))
+            .chain((0..qr.len()).map(|i| qr.get(i).expect("index in range")))
+            .collect();
+        let clbits: Vec<ShareableClbit> = (0..c.len())
+            .map(|i| c.get(i).expect("index in range"))
+            .chain((0..cr.len()).map(|i| cr.get(i).expect("index in range")))
+            .collect();
+
+        let mut circuit = CircuitData::new(Some(qubits), Some(clbits), Param::Float(0.0)).unwrap();
+        _ = circuit.add_creg(c, true);
+        _ = circuit.add_creg(cr, true);
+        _ = circuit.add_qreg(q, true);
+        _ = circuit.add_qreg(qr, true);
+
+        circuit
+            .push_standard_gate(StandardGate::H, &[], &[Qubit::new(0)])
+            .unwrap();
+        circuit
+            .push_standard_gate(StandardGate::H, &[], &[Qubit::new(1)])
+            .unwrap();
+
+        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        let expected = "
+      ┌───┐
+   q: ┤ H ├
+      └───┘
+      ┌───┐
+qr_0: ┤ H ├
+      └───┘
+
+qr_1: ─────
+
+
+   c: ═════
+
+
+cr_0: ═════
+
+
+cr_1: ═════
+";
+        assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[test]
     fn test_fold() {
         let mut circuit = basic_circuit();
 
@@ -1534,6 +1630,7 @@ q_3: ──────────────────────┤1     
             let qubits = (0..num_qubits)
                 .map(|x| Qubit(x + (i as u32 % (num_wires - num_qubits))))
                 .collect::<Vec<_>>();
+            #[allow(clippy::approx_constant)]
             let params = (0..num_params)
                 .map(|_x| 3.141.into())
                 .collect::<Vec<Param>>();
@@ -1622,6 +1719,7 @@ q_4: ─────────────────────────
 
     #[cfg(not(miri))]
     #[test]
+    #[allow(clippy::approx_constant)]
     fn test_global_phase() {
         let mut circuit = basic_circuit();
         circuit.set_global_phase_param(3.14.into()).unwrap();
@@ -1752,7 +1850,7 @@ q_1: ┤1         ├┤1            ├┤1         ├
             }
         }
         for i in [1, 2, 3, 4] {
-            let qubits = (0..i).map(|x| Qubit::new(x)).collect::<Vec<_>>();
+            let qubits = (0..i).map(Qubit::new).collect::<Vec<_>>();
             let inst = PackedInstruction {
                 op: StandardInstruction::Barrier(i as u32).into(),
                 qubits: circuit.add_qargs(&qubits),
