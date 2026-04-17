@@ -12,7 +12,7 @@
 
 use approx::relative_eq;
 use qiskit_quantum_info::sparse_pauli_op::MatrixCompressedPaulis;
-use std::any::{Any, TypeId};
+use std::any::Any;
 use std::fmt::Debug;
 use std::num::NonZero;
 use std::ops::{Deref, DerefMut};
@@ -1942,7 +1942,8 @@ impl dyn CustomOperation + 'static {
     /// Casts a reference to a CustomOperation to its original type if the correct
     /// type is specified.
     pub fn downcast_ref<T: CustomOperation + 'static>(&self) -> Option<&T> {
-        (self.type_id() == TypeId::of::<T>()).then(|| unsafe { &*(self as *const _ as *const T) })
+        let self_as_any: &dyn Any = self;
+        self_as_any.downcast_ref()
     }
 }
 
