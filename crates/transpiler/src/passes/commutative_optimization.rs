@@ -482,7 +482,7 @@ pub fn run_commutative_optimization(
     let num_nodes = node_indices.len();
 
     let mut node_actions: Vec<NodeAction> = vec![NodeAction::Keep; num_nodes];
-    let mut new_global_phase = dag.global_phase().clone();
+    let mut new_global_phase = new_dag.set_global_phase_f64(0.0);
 
     let mut modified: bool = false;
 
