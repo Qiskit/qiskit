@@ -1154,6 +1154,11 @@ name = "hashbrown"
 version = "0.14.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
+dependencies = [
+ "ahash 0.8.12",
+ "allocator-api2",
+ "rayon",
+]
 
 [[package]]
 name = "hashbrown"
@@ -2167,7 +2172,7 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-transpiler",
  "qiskit-util",
- "rand 0.9.4",
+ "rand 0.10.1",
  "rand_distr",
  "rand_pcg",
  "rayon",
@@ -2208,7 +2213,7 @@ dependencies = [
  "qiskit-circuit-library",
  "qiskit-quantum-info",
  "qiskit-transpiler",
- "rand 0.9.4",
+ "rand 0.10.1",
  "rand_pcg",
  "smallvec",
  "thiserror 2.0.18",
@@ -2269,7 +2274,7 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-synthesis",
  "qiskit-util",
- "rand 0.9.4",
+ "rand 0.10.1",
  "rand_distr",
  "rand_pcg",
  "rayon",
@@ -2368,7 +2373,7 @@ dependencies = [
  "pyo3",
  "qiskit-circuit",
  "qiskit-util",
- "rand 0.9.4",
+ "rand 0.10.1",
  "rand_distr",
  "rand_pcg",
  "rayon",
@@ -2398,7 +2403,7 @@ dependencies = [
  "qiskit-circuit",
  "qiskit-quantum-info",
  "qiskit-util",
- "rand 0.9.4",
+ "rand 0.10.1",
  "rand_distr",
  "rand_pcg",
  "rayon",
@@ -2431,7 +2436,7 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-synthesis",
  "qiskit-util",
- "rand 0.9.4",
+ "rand 0.10.1",
  "rand_pcg",
  "rayon",
  "rayon-cond",
@@ -2765,7 +2770,7 @@ checksum = "aaeee6f84153fd6f62507fc22bfe9499c8485075b44186dcbb918166ef75116f"
 dependencies = [
  "fixedbitset 0.5.7",
  "foldhash",
- "hashbrown 0.15.5",
+ "hashbrown 0.14.5",
  "indexmap",
  "ndarray",
  "num-traits",
