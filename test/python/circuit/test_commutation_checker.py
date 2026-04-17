@@ -515,9 +515,10 @@ class TestCommutationChecker(QiskitTestCase):
             scc.commute(other, [0], [], big, qubits, [], matrix_max_num_qubits=num_qubits - 1)
         )
 
-    @data(*pauli_based_types)
-    def test_pauli_based_gates(self, gate_type):
-        """Test Pauli-based gates."""
+    @data(*list(itertools.product(pauli_based_types, repeat=2)))
+    @unpack
+    def test_pauli_based_gates(self, gate_type1, gate_type2):
+        """Test commutation relations across different Pauli-based gates."""
         cases = [
             ("I", [0], "XYZ", list(range(3)), True),
             ("ZZZZ", list(range(4)), "XXXX", list(range(4)), True),
@@ -528,30 +529,16 @@ class TestCommutationChecker(QiskitTestCase):
         ]
 
         for p1, q1, p2, q2, expected in cases:
-            if p1 == "I" and gate_type == "measure":
-                continue  # PPM doesn't support all-identity gates
-            c1, c2 = ([0], [1]) if gate_type == "measure" else ([], [])
-
-            gate1 = build_pauli_gate(p1, gate_type)
-            gate2 = build_pauli_gate(p2, gate_type)
-            self.assertEqual(expected, scc.commute(gate1, q1, c1, gate2, q2, c2))
-
-    @data(*list(itertools.product(pauli_based_types, repeat=2)))
-    @unpack
-    def test_mix_pauli_gates(self, gate_type1, gate_type2):
-        """Test commutation relations across different Pauli-based gates."""
-        cases = [
-            ("ZZIIIIIIIY", list(range(10)), "YYIIIIIIIZ", list(range(10)), False),
-            ("ZX", [1, 10], "ZIZYIZXXZXZ", list(range(11)), True),
-        ]
-
-        for p1, q1, p2, q2, expected in cases:
+            # For commutation of PPMs, use different classical bits.
+            # (we include separate tests for PPMs writing to the same clbit).
             c1 = [0] if gate_type1 == "measure" else []
             c2 = [1] if gate_type2 == "measure" else []
 
+            if p1 == "I" and gate_type1 == "measure":
+                continue  # PPM doesn't support all-identity gates
+
             gate1 = build_pauli_gate(p1, gate_type1)
             gate2 = build_pauli_gate(p2, gate_type2)
-
             with self.subTest(p1=p1, p2=p2):
                 self.assertEqual(expected, scc.commute(gate1, q1, c1, gate2, q2, c2))
 
