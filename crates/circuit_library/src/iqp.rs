@@ -20,8 +20,8 @@ use qiskit_circuit::{
     circuit_data::{CircuitData, PyCircuitData},
     operations::{Param, StandardGate},
 };
-use rand::rngs::SysRng;
 use rand::prelude::*;
+use rand::rngs::SysRng;
 use rand_pcg::Pcg64Mcg;
 use smallvec::{SmallVec, smallvec};
 

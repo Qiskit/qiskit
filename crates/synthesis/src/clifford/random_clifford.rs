@@ -14,8 +14,8 @@ use crate::linear::utils::{
     binary_matmul_inner, calc_inverse_matrix_inner, replace_row_inner, swap_rows_inner,
 };
 use ndarray::{Array1, Array2, ArrayView2, ArrayViewMut2, Axis, concatenate, s};
-use rand::rngs::SysRng;
 use rand::prelude::*;
+use rand::rngs::SysRng;
 use rand_pcg::Pcg64Mcg;
 
 /// Sample from the quantum Mallows distribution.
