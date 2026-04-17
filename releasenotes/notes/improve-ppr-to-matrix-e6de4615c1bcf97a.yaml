@@ -1,4 +1,4 @@
 ---
 features_circuits:
-  - Improve the runtime of :meth:`~.PauliProductRotation.to_matrix`.
+  - Improve the runtime of :meth:`~.PauliProductRotationGate.to_matrix`.
     For 10‑qubit Pauli operators, this results in a ~500× speedup.
