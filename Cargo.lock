@@ -770,7 +770,7 @@ dependencies = [
  "private-gemm-x86",
  "pulp",
  "rand 0.9.4",
- "rand_distr",
+ "rand_distr 0.5.1",
  "rayon",
  "reborrow",
  "spindle",
@@ -2167,9 +2167,9 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-transpiler",
  "qiskit-util",
- "rand 0.9.4",
- "rand_distr",
- "rand_pcg",
+ "rand 0.10.1",
+ "rand_distr 0.6.0",
+ "rand_pcg 0.10.2",
  "rayon",
  "rustworkx-core",
  "smallvec",
@@ -2208,8 +2208,8 @@ dependencies = [
  "qiskit-circuit-library",
  "qiskit-quantum-info",
  "qiskit-transpiler",
- "rand 0.9.4",
- "rand_pcg",
+ "rand 0.10.1",
+ "rand_pcg 0.10.2",
  "smallvec",
  "thiserror 2.0.18",
 ]
@@ -2269,9 +2269,9 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-synthesis",
  "qiskit-util",
- "rand 0.9.4",
- "rand_distr",
- "rand_pcg",
+ "rand 0.10.1",
+ "rand_distr 0.6.0",
+ "rand_pcg 0.10.2",
  "rayon",
  "smallvec",
  "thiserror 2.0.18",
@@ -2368,9 +2368,9 @@ dependencies = [
  "pyo3",
  "qiskit-circuit",
  "qiskit-util",
- "rand 0.9.4",
- "rand_distr",
- "rand_pcg",
+ "rand 0.10.1",
+ "rand_distr 0.6.0",
+ "rand_pcg 0.10.2",
  "rayon",
  "rustworkx-core",
  "thiserror 2.0.18",
@@ -2398,9 +2398,9 @@ dependencies = [
  "qiskit-circuit",
  "qiskit-quantum-info",
  "qiskit-util",
- "rand 0.9.4",
- "rand_distr",
- "rand_pcg",
+ "rand 0.10.1",
+ "rand_distr 0.6.0",
+ "rand_pcg 0.10.2",
  "rayon",
  "rsgridsynth",
  "rstar",
@@ -2431,8 +2431,8 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-synthesis",
  "qiskit-util",
- "rand 0.9.4",
- "rand_pcg",
+ "rand 0.10.1",
+ "rand_pcg 0.10.2",
  "rayon",
  "rayon-cond",
  "rustworkx-core",
@@ -2564,12 +2564,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "rand_distr"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4d431c2703ccf129de4d45253c03f49ebb22b97d6ad79ee3ecfc7e3f4862c1d8"
+dependencies = [
+ "num-traits",
+ "rand 0.10.1",
+]
+
+[[package]]
 name = "rand_pcg"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b48ac3f7ffaab7fac4d2376632268aa5f89abdb55f7ebf8f4d11fffccb2320f7"
 dependencies = [
  "rand_core 0.9.5",
+]
+
+[[package]]
+name = "rand_pcg"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "caa0f4137e1c0a72f4c651489402276c8e8e1cf081f3b0ba156d2cbeef09e86a"
+dependencies = [
+ "rand_core 0.10.1",
 ]
 
 [[package]]
@@ -2772,8 +2791,8 @@ dependencies = [
  "petgraph 0.8.3",
  "priority-queue",
  "rand 0.9.4",
- "rand_distr",
- "rand_pcg",
+ "rand_distr 0.5.1",
+ "rand_pcg 0.9.0",
  "rayon",
  "rayon-cond",
 ]

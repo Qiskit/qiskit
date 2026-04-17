@@ -15,6 +15,7 @@ use pyo3::prelude::*;
 use nalgebra::Matrix4;
 use num_complex::{Complex64, ComplexFloat};
 use rand::prelude::*;
+use rand::rngs::SysRng;
 use rand_distr::StandardNormal;
 use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
@@ -116,7 +117,7 @@ pub fn quantum_volume(num_qubits: u32, depth: usize, seed: Option<u64>) -> PyRes
     }
     let mut outer_rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-        None => Pcg64Mcg::from_os_rng(),
+        None => Pcg64Mcg::try_from_rng(&mut SysRng).unwrap(),
     };
     let seed_vec: Vec<u64> = rand::distr::StandardUniform
         .sample_iter(&mut outer_rng)
