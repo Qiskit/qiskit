@@ -228,9 +228,23 @@ pub fn py_remove_identity_equiv(
     approx_degree: Option<f64>,
     target: Option<&Target>,
 ) -> PyResult<()> {
+    // TODO: This is a hack to avoid panicking in the case that the global phase contains `Py`
+    // pointers (such as backrefs to `ParameterVector` objects in an expression `Symbol`) that would
+    // get cloned when updating the global phase.  It's easier to do it out here than to try to
+    // reattach to Python-space within a pure-Rust function but only if we can spot a hiding `Py`
+    // (or we'd break standalone C).
+    //
+    // This doesn't account for control-flow blocks which _also_ might have set global phases, byt
+    // `run_remove_identity_equiv` as of Qiskit 2.4 doesn't recurse, so the hack should hold.
+    let old_phase = dag.global_phase().clone();
+    dag.set_global_phase_f64(0.0);
+
     // Explicitly release GIL because threads may call Python to get
     // the matrix for a PyGate
-    py.detach(|| run_remove_identity_equiv(dag, approx_degree, target))
+    py.detach(|| run_remove_identity_equiv(dag, approx_degree, target))?;
+
+    dag.add_global_phase(&old_phase)?;
+    Ok(())
 }
 
 pub fn run_remove_identity_equiv(
