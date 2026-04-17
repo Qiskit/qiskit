@@ -183,7 +183,7 @@ class PauliProductRotationGate(Gate):
 
         .. math::
 
-           e^{-i \theta / 2 P} = \cos(\theta / 2) I - i \sin(\theta / 2) P.
+           e^{-i \theta / 2 P} = \cos(\theta / 2) I - i \sin(\theta / 2) P
 
         for a rotation angle :math:`\theta` and Pauli :math:`P`.
         """
