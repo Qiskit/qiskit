@@ -954,6 +954,7 @@ impl PackedInstruction {
             OperationRef::StandardGate(g) => g.matrix(self.params_view()),
             OperationRef::Gate(g) => g.matrix(),
             OperationRef::Unitary(u) => u.matrix(),
+            OperationRef::PauliProductRotation(ppr) => ppr.matrix(),
             _ => None,
         }
     }
@@ -966,6 +967,7 @@ impl PackedInstruction {
         match self.op.view() {
             OperationRef::StandardGate(g) => g.matrix(self.params_view()).map(CowArray::from),
             OperationRef::Gate(g) => g.matrix().map(CowArray::from),
+            OperationRef::PauliProductRotation(ppr) => ppr.matrix().map(CowArray::from),
             OperationRef::Unitary(u) => Some(CowArray::from(u.matrix_view())),
             _ => None,
         }
@@ -979,6 +981,7 @@ impl PackedInstruction {
                 standard.matrix_as_static_1q(self.params_view())
             }
             OperationRef::Gate(gate) => gate.matrix_as_static_1q(),
+            OperationRef::PauliProductRotation(ppr) => ppr.matrix_as_static_1q(),
             OperationRef::Unitary(unitary) => unitary.matrix_as_static_1q(),
             _ => None,
         }
@@ -1003,6 +1006,7 @@ impl PackedInstruction {
                 standard.matrix_as_static_2q(self.params_view())
             }
             OperationRef::Gate(gate) => gate.matrix_as_static_2q(),
+            OperationRef::PauliProductRotation(ppr) => ppr.matrix_as_static_2q(),
             OperationRef::Unitary(unitary) => unitary.matrix_as_static_2q(),
             _ => None,
         }

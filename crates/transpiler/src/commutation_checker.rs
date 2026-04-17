@@ -798,6 +798,7 @@ pub fn try_matrix_with_definition(
 ) -> Option<Array2<Complex64>> {
     match operation {
         OperationRef::StandardGate(gate) => gate.matrix(params),
+        OperationRef::PauliProductRotation(ppr) => ppr.matrix(),
         OperationRef::Unitary(unitary) => unitary.matrix(),
         OperationRef::Gate(gate) => Python::attach(|py| -> Option<_> {
             if let Some(matrix) = gate.matrix() {
