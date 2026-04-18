@@ -2757,14 +2757,30 @@ switch (switch_dummy_0) {
         expected = """\
 OPENQASM 3.0;
 include "stdgates.inc";
-gate unitary _gate_q_0 {
+gate unitary_gate _gate_q_0 {
   U(pi, -pi, 0) _gate_q_0;
 }
 qubit[1] q;
-unitary q[0];
+unitary_gate q[0];
 """
         test = dumps(qc)
         self.assertEqual(test, expected)
+
+    def test_nested_unitary_definitions_do_not_use_bare_unitary_name(self):
+        """Test synthesized subcircuits avoid exporting a declared gate called ``unitary``."""
+        from qiskit.circuit.library import Initialize
+
+        raw_state = [1, 2, 3, 4, 5, 6, 7, 8]
+        norm = sum(value * value for value in raw_state) ** 0.5
+
+        qc = QuantumCircuit(3)
+        qc.compose(
+            Initialize([value / norm for value in raw_state]).definition, range(3), inplace=True
+        )
+
+        test = dumps(qc)
+        self.assertNotIn("gate unitary ", test)
+        self.assertNotIn("\nunitary ", test)
 
 
 @ddt
