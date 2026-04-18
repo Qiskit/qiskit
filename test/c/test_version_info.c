@@ -24,13 +24,13 @@ static char *build_version_string(void) {
     char *suffix = calloc(suffix_len, sizeof(char));
     switch (QISKIT_RELEASE_LEVEL) {
     case QISKIT_RELEASE_LEVEL_DEV:
-        snprintf(suffix, suffix_len, "-dev");
+        snfprintf(stderr, suffix, suffix_len, "-dev");
         break;
     case QISKIT_RELEASE_LEVEL_BETA:
-        snprintf(suffix, suffix_len, "-beta%u", QISKIT_RELEASE_SERIAL);
+        snfprintf(stderr, suffix, suffix_len, "-beta%u", QISKIT_RELEASE_SERIAL);
         break;
     case QISKIT_RELEASE_LEVEL_RC:
-        snprintf(suffix, suffix_len, "-rc%u", QISKIT_RELEASE_SERIAL);
+        snfprintf(stderr, suffix, suffix_len, "-rc%u", QISKIT_RELEASE_SERIAL);
         break;
     default:
         // no suffix
@@ -39,7 +39,7 @@ static char *build_version_string(void) {
 
     const size_t version_len = 32;
     char *version = calloc(version_len, sizeof(char));
-    snprintf(version, version_len, "%u.%u.%u%s", QISKIT_VERSION_MAJOR, QISKIT_VERSION_MINOR,
+    snfprintf(stderr, version, version_len, "%u.%u.%u%s", QISKIT_VERSION_MAJOR, QISKIT_VERSION_MINOR,
              QISKIT_VERSION_PATCH, suffix);
     free(suffix);
     return version;
@@ -54,7 +54,7 @@ static int test_version(void) {
     if (strcmp(ref, QISKIT_VERSION) == 0)
         result = Ok;
     else {
-        printf("Qiskit version (%s) didn't match the expectation (%s)", QISKIT_VERSION, ref);
+        fprintf(stderr, "Qiskit version (%s) didn't match the expectation (%s)", QISKIT_VERSION, ref);
         result = EqualityError;
     }
 
