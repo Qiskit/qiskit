@@ -19,11 +19,12 @@ import numpy as np
 import scipy
 from ddt import ddt, data, unpack
 
-from qiskit import transpile
+from qiskit import generate_preset_pass_manager, transpile
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import PauliEvolutionGate, HamiltonianGate, PhaseGate, RZGate
 from qiskit.circuit.library.pauli_evolution import _merge_two_pauli_evolutions
 from qiskit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential, QDrift
+from qiskit.synthesis.evolution.lie_trotter import _match_special_z_only_cubic_pattern
 from qiskit.synthesis.evolution.product_formula import reorder_paulis
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, Statevector, SparseObservable
@@ -414,6 +415,60 @@ class TestEvolutionGate(QiskitTestCase):
         lie_trotter = PauliEvolutionGate(operator, time, synthesis=LieTrotter())
 
         self.assertSuzukiTrotterIsCorrect(lie_trotter)
+
+    def test_lie_trotter_special_z_only_cubic_issue_case(self):
+        """Test the narrow Z-only cubic fast path from Qiskit/qiskit#13285."""
+        time = Parameter("x")
+        operator = SparsePauliOp(["IZZ", "ZZI", "ZZZ"], coeffs=[1, 2, 3])
+        evolution = PauliEvolutionGate(operator, time, synthesis=LieTrotter())
+
+        self.assertEqual(evolution.definition.count_ops(), {"cx": 4, "rz": 3})
+        self.assertSetEqual({parameter.name for parameter in evolution.definition.parameters}, {"x"})
+
+        circuit = QuantumCircuit(3)
+        circuit.append(evolution, circuit.qubits)
+        pm = generate_preset_pass_manager(optimization_level=3, basis_gates=["cx", "rz"])
+        transpiled = pm.run(circuit)
+        self.assertEqual(transpiled.count_ops().get("cx", 0), 4)
+        self.assertEqual(transpiled.count_ops().get("rz", 0), 3)
+
+        numeric_evolution = PauliEvolutionGate(operator, 0.25, synthesis=LieTrotter())
+        self.assertSuzukiTrotterIsCorrect(numeric_evolution)
+
+    def test_lie_trotter_special_z_only_cubic_permuted_wires(self):
+        """Test wire permutations of the narrow Z-only cubic pattern remain exact."""
+        for pivot, leaf_a, leaf_b in [(0, 1, 2), (1, 0, 2), (2, 0, 1)]:
+            operator = SparsePauliOp.from_sparse_list(
+                [
+                    ("ZZ", [leaf_a, pivot], 1),
+                    ("ZZ", [pivot, leaf_b], 2),
+                    ("ZZZ", [leaf_a, pivot, leaf_b], 3),
+                ],
+                num_qubits=3,
+            )
+            evolution = PauliEvolutionGate(operator, 0.25, synthesis=LieTrotter())
+            self.assertEqual(evolution.definition.count_ops(), {"cx": 4, "rz": 3})
+            self.assertSuzukiTrotterIsCorrect(evolution)
+
+    def test_lie_trotter_special_z_only_cubic_matcher_negatives(self):
+        """Test the special matcher rejects malformed and out-of-scope operators."""
+        negatives = [
+            SparsePauliOp(["IZZ", "IZZ", "ZZZ"], coeffs=[1, 2, 3]),
+            SparsePauliOp(["IZZ", "IIX", "ZZZ"], coeffs=[1, 2, 3]),
+            SparsePauliOp(["IZZ", "IIZ", "ZZZ"], coeffs=[1, 2, 3]),
+            SparsePauliOp(["IZZ", "ZII", "ZZZ"], coeffs=[1, 2, 3]),
+            SparsePauliOp(["IZZ", "ZZI", "ZZZ", "ZII"], coeffs=[1, 2, 3, 4]),
+        ]
+
+        for operator in negatives:
+            self.assertIsNone(_match_special_z_only_cubic_pattern(operator))
+
+        grouped = [
+            SparsePauliOp(["IZZ", "ZZI"], coeffs=[1, 2]),
+            SparsePauliOp(["ZZZ"], coeffs=[3]),
+        ]
+        evolution = PauliEvolutionGate(grouped, 0.5, synthesis=LieTrotter())
+        self.assertSuzukiTrotterIsCorrect(evolution)
 
     def test_lie_trotter_reordered_manual(self):
         """Test the evolution circuit of Lie Trotter against a manually constructed circuit."""

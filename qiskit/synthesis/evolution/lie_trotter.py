@@ -15,12 +15,110 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp
 import qiskit.quantum_info
 
+from .product_formula import real_or_fail
 from .suzuki_trotter import SuzukiTrotter
+
+
+@dataclass(frozen=True)
+class _SpecialZOnlyCubicMatch:
+    """Canonical representation of the narrow Z-only `{2, 2, 3}` pattern."""
+
+    pivot: int
+    leaf_a: int
+    leaf_b: int
+    coeff_leaf_a_pivot: float | Any
+    coeff_pivot_leaf_b: float | Any
+    coeff_three_body: float | Any
+
+
+def _match_special_z_only_cubic_pattern(operator: object) -> _SpecialZOnlyCubicMatch | None:
+    """Return a match for the narrow Z-only `{2, 2, 3}` cubic pattern if present."""
+    if isinstance(operator, list):
+        return None
+
+    simplify = getattr(operator, "simplify", None)
+    if callable(simplify):
+        operator = simplify()
+
+    to_sparse_list = getattr(operator, "to_sparse_list", None)
+    num_qubits = getattr(operator, "num_qubits", None)
+    if not callable(to_sparse_list) or not isinstance(num_qubits, int):
+        return None
+
+    terms = list(to_sparse_list())
+    if len(terms) != 3:
+        return None
+
+    parsed_terms: list[tuple[tuple[int, ...], float | Any]] = []
+    for pauli, qubits, coeff in terms:
+        if len(pauli) != len(qubits) or set(pauli) != {"Z"}:
+            return None
+
+        try:
+            real_coeff = real_or_fail(coeff)
+        except ValueError:
+            return None
+
+        support = tuple(sorted(int(qubit) for qubit in qubits))
+        parsed_terms.append((support, real_coeff))
+
+    two_local = [(support, coeff) for support, coeff in parsed_terms if len(support) == 2]
+    three_local = [(support, coeff) for support, coeff in parsed_terms if len(support) == 3]
+    if len(two_local) != 2 or len(three_local) != 1:
+        return None
+
+    (support_a, coeff_a), (support_b, coeff_b) = two_local
+    (support_three, coeff_three) = three_local[0]
+    set_a = set(support_a)
+    set_b = set(support_b)
+    shared = set_a & set_b
+    support_union = set_a | set_b
+    if len(shared) != 1 or support_union != set(support_three):
+        return None
+
+    pivot = next(iter(shared))
+    leaf_a, leaf_b = sorted(support_union - {pivot})
+
+    coeff_leaf_a_pivot = coeff_a
+    coeff_pivot_leaf_b = coeff_b
+    if set(support_a) == {pivot, leaf_b} and set(support_b) == {leaf_a, pivot}:
+        coeff_leaf_a_pivot, coeff_pivot_leaf_b = coeff_b, coeff_a
+    elif set(support_a) != {leaf_a, pivot} or set(support_b) != {pivot, leaf_b}:
+        return None
+
+    return _SpecialZOnlyCubicMatch(
+        pivot=pivot,
+        leaf_a=leaf_a,
+        leaf_b=leaf_b,
+        coeff_leaf_a_pivot=coeff_leaf_a_pivot,
+        coeff_pivot_leaf_b=coeff_pivot_leaf_b,
+        coeff_three_body=coeff_three,
+    )
+
+
+def _synthesize_special_z_only_cubic(
+    num_qubits: int, time: Any, match: _SpecialZOnlyCubicMatch
+) -> QuantumCircuit:
+    """Emit the exact `4 CX + 3 RZ` template for the narrow matched pattern."""
+    circuit = QuantumCircuit(num_qubits)
+
+    circuit.cx(match.leaf_a, match.pivot)
+    circuit.rz(2 * match.coeff_leaf_a_pivot * time, match.pivot)
+
+    circuit.cx(match.leaf_b, match.pivot)
+    circuit.rz(2 * match.coeff_three_body * time, match.pivot)
+
+    circuit.cx(match.leaf_a, match.pivot)
+    circuit.rz(2 * match.coeff_pivot_leaf_b * time, match.pivot)
+
+    circuit.cx(match.leaf_b, match.pivot)
+    return circuit
 
 
 class LieTrotter(SuzukiTrotter):
@@ -121,3 +219,19 @@ class LieTrotter(SuzukiTrotter):
             "cx_structure": self._cx_structure,
             "wrap": self._wrap,
         }
+
+    def synthesize(self, evolution):
+        """Synthesize a :class:`.PauliEvolutionGate` with a narrow fast path for `#13285`."""
+        if (
+            self.reps == 1
+            and self._atomic_evolution is None
+            and not self._wrap
+            and not self.insert_barriers
+            and self._cx_structure == "chain"
+            and not isinstance(evolution.operator, list)
+        ):
+            match = _match_special_z_only_cubic_pattern(evolution.operator)
+            if match is not None:
+                return _synthesize_special_z_only_cubic(evolution.num_qubits, evolution.time, match)
+
+        return super().synthesize(evolution)
