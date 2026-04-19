@@ -573,7 +573,7 @@ class TestLitinskiTransformation(QiskitTestCase):
         self.assertEqual(circuit_out, circuit_target)
 
     @data("X", "Y", "Z")
-    def test_single_qubit_evole_randon_clifford(self, p):
+    def test_single_qubit_evole_random_clifford(self, p):
         """Test that LitinskiTransformation is correct for one qubit rotations RX/RY/RZ
         and random single qubit Clifford circuits"""
         for seed in range(10):
