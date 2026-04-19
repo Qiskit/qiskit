@@ -296,7 +296,7 @@ impl Clifford {
         pauli_z: bool,
         pauli_x: bool,
         qbit: usize,
-    ) -> (bool, Vec<bool>, Vec<bool>, Vec<usize>) {
+    ) -> (bool, Vec<bool>, Vec<bool>, Vec<u32>) {
         let mut z = Vec::with_capacity(self.num_qubits);
         let mut x = Vec::with_capacity(self.num_qubits);
         let mut indices = Vec::with_capacity(self.num_qubits);
@@ -326,7 +326,7 @@ impl Clifford {
             if z_bit || x_bit {
                 z.push(z_bit);
                 x.push(x_bit);
-                indices.push(i);
+                indices.push(i as u32);
                 if x_bit {
                     pauli_indices.push(i);
                 }

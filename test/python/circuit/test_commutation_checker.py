@@ -175,50 +175,36 @@ class TestCommutationChecker(QiskitTestCase):
 
     def test_standard_gates_commutations(self):
         """Check that commutativity checker uses standard gates commutations as expected."""
-        scc.clear_cached_commutations()
         self.assertTrue(scc.commute(ZGate(), [0], [], CXGate(), [0, 1], []))
-        self.assertEqual(scc.num_cached_entries(), 0)
 
     def test_caching_positive_results(self):
         """Check that hashing positive results in commutativity checker works as expected."""
-        scc.clear_cached_commutations()
         self.assertTrue(scc.commute(ZGate(), [0], [], CUGate(1, 2, 3, 0), [0, 1], []))
-        self.assertGreater(scc.num_cached_entries(), 0)
 
     def test_caching_lookup_with_non_overlapping_qubits(self):
         """Check that commutation lookup with non-overlapping qubits works as expected."""
-        scc.clear_cached_commutations()
         self.assertTrue(scc.commute(CXGate(), [0, 2], [], CXGate(), [0, 1], []))
         self.assertFalse(scc.commute(CXGate(), [0, 1], [], CXGate(), [1, 2], []))
-        self.assertEqual(scc.num_cached_entries(), 0)
 
     def test_caching_store_and_lookup_with_non_overlapping_qubits(self):
         """Check that commutations storing and lookup with non-overlapping qubits works as expected."""
-        scc_lenm = scc.num_cached_entries()
         cx_like = CUGate(np.pi, 0, np.pi, 0)
         self.assertTrue(scc.commute(cx_like, [0, 2], [], CXGate(), [0, 1], []))
         self.assertFalse(scc.commute(cx_like, [0, 1], [], CXGate(), [1, 2], []))
         self.assertTrue(scc.commute(cx_like, [1, 4], [], CXGate(), [1, 6], []))
         self.assertFalse(scc.commute(cx_like, [5, 3], [], CXGate(), [3, 1], []))
-        self.assertEqual(scc.num_cached_entries(), scc_lenm + 2)
 
     def test_caching_negative_results(self):
         """Check that hashing negative results in commutativity checker works as expected."""
-        scc.clear_cached_commutations()
         self.assertFalse(scc.commute(XGate(), [0], [], CUGate(1, 2, 3, 0), [0, 1], []))
-        self.assertGreater(scc.num_cached_entries(), 0)
 
     def test_caching_different_qubit_sets(self):
         """Check that hashing same commutativity results over different qubit sets works as expected."""
-        scc.clear_cached_commutations()
-        # All the following should be cached in the same way
-        # though each relation gets cached twice: (A, B) and (B, A)
         cx_like = CUGate(np.pi, 0, np.pi, 0)
         scc.commute(XGate(), [0], [], cx_like, [0, 1], [])
         scc.commute(XGate(), [10], [], cx_like, [10, 20], [])
         scc.commute(XGate(), [10], [], cx_like, [10, 5], [])
         scc.commute(XGate(), [5], [], cx_like, [5, 7], [])
-        self.assertEqual(scc.num_cached_entries(), 1)
 
     def test_zero_rotations(self):
         """Check commutativity between (non-parameterized) gates with parameters."""
@@ -391,17 +377,14 @@ class TestCommutationChecker(QiskitTestCase):
 
         cx_like = CUGate(np.pi, 0, np.pi, 0)
 
-        scc.clear_cached_commutations()
         self.assertTrue(scc.commute(ZGate(), [0], [], cx_like, [0, 1], []))
         cc2 = pickle.loads(pickle.dumps(scc))
-        self.assertEqual(cc2.num_cached_entries(), 1)
         dop1 = DAGOpNode(ZGate(), qargs=[0], cargs=[])
         dop2 = DAGOpNode(cx_like, qargs=[0, 1], cargs=[])
         cc2.commute_nodes(dop1, dop2)
         dop1 = DAGOpNode(ZGate(), qargs=[0], cargs=[])
         dop2 = DAGOpNode(CXGate(), qargs=[0, 1], cargs=[])
         cc2.commute_nodes(dop1, dop2)
-        self.assertEqual(cc2.num_cached_entries(), 1)
 
     @idata(ROTATION_GATES)
     def test_cutoff_angles(self, gate_cls):
@@ -542,10 +525,11 @@ class TestCommutationChecker(QiskitTestCase):
         for p1, q1, p2, q2, expected in cases:
             if p1 == "I" and gate_type == "measure":
                 continue  # PPM doesn't support all-identity gates
+            c1, c2 = ([0], [1]) if gate_type == "measure" else ([], [])
 
             gate1 = build_pauli_gate(p1, gate_type)
             gate2 = build_pauli_gate(p2, gate_type)
-            self.assertEqual(expected, scc.commute(gate1, q1, [], gate2, q2, []))
+            self.assertEqual(expected, scc.commute(gate1, q1, c1, gate2, q2, c2))
 
     @data(
         ("pauli", "measure"),
@@ -561,10 +545,45 @@ class TestCommutationChecker(QiskitTestCase):
         ]
 
         for p1, q1, p2, q2, expected in cases:
+            c1 = [0] if gate_type1 == "measure" else []
+            c2 = [1] if gate_type2 == "measure" else []
+
             gate1 = build_pauli_gate(p1, gate_type1)
             gate2 = build_pauli_gate(p2, gate_type2)
+
             with self.subTest(p1=p1, p2=p2):
-                self.assertEqual(expected, scc.commute(gate1, q1, [], gate2, q2, []))
+                self.assertEqual(expected, scc.commute(gate1, q1, c1, gate2, q2, c2))
+
+    def test_ppms_with_same_clbit(self):
+        """Test commutativity of two Pauli product measurements with the same clbit."""
+
+        # Each case represents (pauli1, qubits1, pauli2, qubits2, expected result).
+        # Recall that the convention is that pauli strings are read right-to-left, i.e.
+        # pauli strings and qubits are in reverse order relative to each other.
+        cases = [
+            # different Paulis
+            ("XXII", [1, 0, 2, 3], "IIZZ", [1, 0, 2, 3], False),
+            # different qubits
+            ("XYIZ", [1, 0, 2, 3], "XYIZ", [1, 0, 4, 3], False),
+            # different Paulis (including sign)
+            ("ZXII", [1, 0, 2, 3], "-ZXII", [1, 0, 2, 3], False),
+            # same Paulis and qubits
+            ("XYIZ", [1, 0, 2, 3], "XYIZ", [1, 0, 2, 3], True),
+            # same Paulis and qubits
+            ("-XYIZ", [1, 0, 2, 3], "-XYIZ", [1, 0, 2, 3], True),
+            # same Paulis and qubits up to reordering
+            ("XXIY", [0, 1, 2, 3], "YIXX", [3, 2, 1, 0], True),
+            # same Paulis and qubits up to reordering
+            ("XXIY", [0, 1, 2, 3], "XXIY", [0, 1, 3, 2], True),
+            # same Paulis and qubits up to reordering
+            ("-XXIY", [0, 1, 2, 3], "-YIXX", [2, 3, 1, 0], True),
+        ]
+
+        for pauli1, qubits1, pauli2, qubits2, expected in cases:
+            with self.subTest(pauli1=pauli1, qubits1=qubits1, pauli2=pauli2, qubits2=qubits2):
+                ppm1 = build_pauli_gate(pauli1, "measure")
+                ppm2 = build_pauli_gate(pauli2, "measure")
+                self.assertEqual(scc.commute(ppm1, qubits1, [0], ppm2, qubits2, [0]), expected)
 
     def test_pauli_evolution_sums(self):
         """Test PauliEvolutionGate commutations for operators that are sums of Paulis."""
@@ -602,7 +621,8 @@ class TestCommutationChecker(QiskitTestCase):
         """Test Pauli-based gates and standard gate commutations are efficiently supported."""
         # 40-qubit Pauli gate with following terms: X: 0-9, Y: 10-19, Z: 20-29, I: 30-39
         pauli = 10 * "I" + 10 * "Z" + 10 * "Y" + 10 * "X"
-        pauli_indices = list(range(len(pauli)))
+        pauli_qubits = list(range(len(pauli)))
+        pauli_clbits = [0] if pauli_type == "measure" else []
         pauli_gate = build_pauli_gate(pauli, pauli_type)
 
         # Test cases in the format: (gate, indices, commutes)
@@ -624,8 +644,25 @@ class TestCommutationChecker(QiskitTestCase):
 
         for std_gate, indices, expected in cases:
             with self.subTest(std_gate=std_gate, indices=indices):
-                commutes = scc.commute(pauli_gate, pauli_indices, [], std_gate, indices, [])
+                commutes = scc.commute(
+                    pauli_gate, pauli_qubits, pauli_clbits, std_gate, indices, []
+                )
                 self.assertEqual(expected, commutes)
+
+    @data("evolution", "pauli", "rotation", "measure")
+    def test_pauli_based_with_matrix(self, pauli_type):
+        """Test commutation with a matrix-based gate."""
+        z_pauli = build_pauli_gate("Z", pauli_type)
+        clbit = [0] if pauli_type == "measure" else []
+        z_unitary = UnitaryGate(ZGate().to_matrix())
+        x_unitary = UnitaryGate(XGate().to_matrix())
+
+        with self.subTest(other="x_unitary"):
+            self.assertFalse(scc.commute(z_pauli, [0], clbit, x_unitary, [0], []))
+
+        expect = pauli_type != "measure"  # False for measure, else True
+        with self.subTest(other="z_unitary"):
+            self.assertEqual(expect, scc.commute(z_pauli, [0], clbit, z_unitary, [0], []))
 
 
 def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:

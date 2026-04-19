@@ -1246,7 +1246,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         """Test that long barrier labels are truncated"""
         circuit = QuantumCircuit(2)
         circuit.barrier()
-        circuit.barrier(label="a" * 20)
+        circuit.barrier(label="a" * 10)
+        circuit.barrier(label="b" * 1000)
 
         fname = "barrier_label_truncation.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname, barrier_label_len=9)
