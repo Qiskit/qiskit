@@ -12,7 +12,9 @@
 
 use crate::bit::{ClassicalRegister, ShareableClbit, ShareableQubit};
 use crate::circuit_data::CircuitData;
-use crate::operations::{Operation, OperationRef, Param, StandardGate, StandardInstruction};
+use crate::operations::{
+    ControlFlowInstruction, Operation, OperationRef, Param, StandardGate, StandardInstruction,
+};
 use crate::packed_instruction::PackedInstruction;
 use crate::{Clbit, Qubit};
 use approx;
@@ -21,7 +23,7 @@ use hashbrown::HashSet;
 use itertools::{Itertools, MinMaxResult};
 use pyo3::prelude::*;
 use std::fmt::Debug;
-use std::ops::Index;
+use std::ops::{Index, IndexMut};
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
@@ -87,49 +89,18 @@ pub fn draw_circuit(
     Ok(output)
 }
 
-/// Return a list of layers such that each layer contains a list of op node indices, representing instructions
-/// whose qubits/clbits indices do not overlap. The instruction are packed into each layer as long as there
-/// is no qubit/clbit overlap.
-fn build_layers(circ: &CircuitData) -> Vec<Vec<&PackedInstruction>> {
-    let mut layers: Vec<Vec<&PackedInstruction>> = Vec::new();
-    let num_qubits = circ.num_qubits();
-    let num_clbits = circ.num_clbits();
-    let mut layers_frontier = vec![0usize; num_qubits + num_clbits];
-
-    for inst in circ.data() {
-        if matches!(
-            inst.op.view(),
-            OperationRef::StandardGate(StandardGate::GlobalPhase)
-        ) {
-            if layers.last().is_none() {
-                layers.push(Vec::new())
-            }
-            layers.last_mut().unwrap().push(inst);
-            continue;
-        }
-        let (node_min, node_max) = get_instruction_range(
-            circ.get_qargs(inst.qubits),
-            circ.get_cargs(inst.clbits),
-            num_qubits,
-        );
-
-        let layer_idx = *layers_frontier[node_min..=node_max]
-            .iter()
-            .max()
-            .expect("Instruction range should be valid");
-        if layers.len() == layer_idx {
-            layers.push(Vec::new());
-        }
-        layers[layer_idx].push(inst);
-        layers_frontier[node_min..=node_max].fill(layer_idx + 1);
-    }
-    layers
+#[derive(Clone, Copy, Debug)]
+struct MappedInstruction<'a> {
+    // TODO: Document
+    inst: &'a PackedInstruction,
+    mapping_context: Option<usize>, // TODO: document the mapping context of the instruction bits w.r.t global matrix view
 }
 
 /// Calculate the range (inclusive) of the given instruction qubits/clbits over the wire indices.
 /// The assumption is that clbits always appear after the qubits in the visualization, hence the clbit indices
 /// are offset by the number of instruction qubits when calculating the range.
 fn get_instruction_range(
+    // TODO: make it take slices of u32?
     node_qubits: &[Qubit],
     node_clbits: &[Clbit],
     num_qubits: usize,
@@ -146,11 +117,11 @@ fn get_instruction_range(
     }
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 enum WireInputElement<'a> {
     Qubit(&'a ShareableQubit),
     Clbit(&'a ShareableClbit),
-    Creg(&'a ClassicalRegister),
+    Creg(&'a ClassicalRegister), // TODO: document: this is always w.r.t the top-level circuit
 }
 
 impl WireInputElement<'_> {
@@ -203,35 +174,37 @@ impl WireInputElement<'_> {
 /// Enum for representing elements that appear directly on a wire and how they're connected.
 #[derive(Clone, Debug, Copy)]
 enum OnWireElement<'a> {
-    Control(&'a PackedInstruction),
-    Swap(&'a PackedInstruction),
+    Control(MappedInstruction<'a>),
+    Swap(MappedInstruction<'a>),
     Barrier,
     Reset,
 }
 
 /// Represent elements that appear in a boxed operation.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum BoxedElement<'a> {
-    Single(&'a PackedInstruction),
-    Multi(&'a PackedInstruction),
+    Single(MappedInstruction<'a>),
+    Multi(MappedInstruction<'a>),
 }
 
 /// Enum for representing the elements stored in the visualization matrix. The elements
 /// do not directly implement visualization capabilities, but rather carry enough information
 /// to enable visualization later on by the actual drawer.
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 enum VisualizationElement<'a> {
     #[default]
     /// A wire element without any associated information.
     Empty,
     /// A Vertical line element, belonging to an instruction (e.g of a controlled gate or a measure).
-    VerticalLine(&'a PackedInstruction),
+    VerticalLine(MappedInstruction<'a>),
     /// A circuit input element (qubit, clbit, creg).
     Input(WireInputElement<'a>),
     /// An element which is drawn without a surrounding box. Used only on qubit wires.
     DirectOnWire(OnWireElement<'a>),
     // A boxed element which can span one or more wires. Used only on qubit wires.
     Boxed(BoxedElement<'a>),
+    // A frame element for control flow operations
+    Frame,
 }
 
 /// A representation of a single column (called here a layer) of a visualization matrix
@@ -246,6 +219,12 @@ impl<'a> Index<usize> for VisualizationLayer<'a> {
     }
 }
 
+impl<'a> IndexMut<usize> for VisualizationLayer<'a> {
+    fn index_mut(&mut self, index: usize) -> &mut VisualizationElement<'a> {
+        &mut self.0[index]
+    }
+}
+
 impl<'a> VisualizationLayer<'a> {
     fn len(&self) -> usize {
         self.0.len()
@@ -254,62 +233,266 @@ impl<'a> VisualizationLayer<'a> {
     fn add_input(&mut self, input: WireInputElement<'a>, idx: usize) {
         self.0[idx] = VisualizationElement::Input(input);
     }
+}
+
+/// A Plain, logical 2D representation of a circuit.
+///
+/// A dense representation of the circuit of size N * (M + 1), where the first
+/// layer(column) represents the qubits and clbits inputs in the circuits,
+/// M is the number of operation layers and N is the number of
+/// qubits and clbits (or cregs if bundling is enabled).
+///
+/// This structure follows a column-major order, where each layer represents a column of the circuit,
+#[derive(Clone)]
+struct VisualizationMatrix<'a> {
+    /// Layers stored in the matrix.
+    layers: Vec<VisualizationLayer<'a>>,
+    /// A reference to the circuit this matrix was constructed from. TODO: this is the top level circuit
+    circuit: &'a CircuitData,
+    /// A mapping from instruction's Clbit indices to the visualization matrix wires,
+    /// to be used when mapping clbits to bit of bundled cregs
+    clbit_map: Vec<usize>,
+
+    wire_map_contexts: Vec<(&'a CircuitData, Vec<u32>)>, // TODO: make a struct? document
+}
+
+impl<'a> VisualizationMatrix<'a> {
+    fn from_circuit(circuit: &'a CircuitData, bundle_cregs: bool) -> PyResult<Self> {
+        let mut vis_matrix = VisualizationMatrix {
+            layers: Vec::new(),
+            circuit,
+            clbit_map: Vec::new(),
+            wire_map_contexts: Vec::new(),
+        };
+
+        let inst_layers = vis_matrix.build_layers(circuit, None);
+
+        let num_wires = circuit.num_qubits()
+            + if !bundle_cregs {
+                circuit.num_clbits()
+            } else {
+                // Anonymous bits are not bundled so need to be counted explicitly
+                circuit.cregs_data().len() + circuit.num_clbits()
+                    - circuit
+                        .cregs_data()
+                        .registers()
+                        .iter()
+                        .map(|r| r.len())
+                        .sum::<usize>()
+            };
+
+        vis_matrix.layers = vec![
+            VisualizationLayer(vec![VisualizationElement::default(); num_wires]);
+            inst_layers.len() + 1 // Add 1 to account for the inputs layer
+        ];
+
+        let input_layer = vis_matrix.layers.first_mut().unwrap();
+        let mut input_idx = 0;
+        for qubit in circuit.qubits().objects() {
+            input_layer.add_input(WireInputElement::Qubit(qubit), input_idx);
+            input_idx += 1;
+        }
+
+        let mut visited_cregs: HashSet<&ClassicalRegister> = HashSet::new();
+        // let mut clbit_map: Vec<usize> = Vec::new();
+        for clbit in circuit.clbits().objects() {
+            if bundle_cregs {
+                let bit_location = circuit
+                    .clbit_indices()
+                    .get(clbit)
+                    .expect("Bit should have bit info");
+                if !bit_location.registers().is_empty() {
+                    let creg = &bit_location
+                        .registers()
+                        .first()
+                        .expect("Registers should not be empty")
+                        .0;
+
+                    if visited_cregs.contains(creg) {
+                        vis_matrix.clbit_map.push(input_idx - 1);
+                    } else {
+                        input_layer.add_input(WireInputElement::Creg(creg), input_idx);
+                        visited_cregs.insert(creg);
+                        vis_matrix.clbit_map.push(input_idx);
+                        input_idx += 1;
+                    }
+                    continue;
+                }
+            }
+
+            input_layer.add_input(WireInputElement::Clbit(clbit), input_idx);
+            vis_matrix.clbit_map.push(input_idx);
+            input_idx += 1;
+        }
+
+        for (i, layer) in inst_layers.iter().enumerate() {
+            for inst in layer {
+                vis_matrix.add_instruction(i + 1, bundle_cregs, inst);
+            }
+        }
+
+        Ok(vis_matrix)
+    }
+
+    /// Return a list of layers such that each layer contains a list of instructions
+    /// whose qubits/clbits indices do not overlap. The instruction are packed into each layer as long as there
+    /// is no qubit/clbit overlap.
+    fn build_layers(
+        &mut self,
+        circ: &'a CircuitData,
+        current_mapping: Option<usize>,
+    ) -> Vec<Vec<MappedInstruction<'a>>> {
+        // TODO: document why we need the pair
+        let mut layers: Vec<Vec<MappedInstruction<'a>>> = Vec::new();
+        let num_qubits = circ.num_qubits();
+        let num_clbits = circ.num_clbits();
+        let mut layers_frontier = vec![0usize; num_qubits + num_clbits]; // TODO: explain about the invariant of this vector
+
+        for inst in circ.data() {
+            if matches!(
+                inst.op.view(),
+                OperationRef::StandardGate(StandardGate::GlobalPhase)
+            ) {
+                if layers.last().is_none() {
+                    layers.push(Vec::new())
+                }
+                layers.last_mut().unwrap().push(MappedInstruction {
+                    inst,
+                    mapping_context: None,
+                });
+                continue;
+            }
+
+            let (node_min, node_max) = get_instruction_range(
+                circ.get_qargs(inst.qubits),
+                circ.get_cargs(inst.clbits),
+                num_qubits,
+            );
+
+            let mut layer_idx = *layers_frontier[node_min..=node_max]
+                .iter()
+                .max()
+                .expect("Instruction range should be valid");
+            if layers.len() == layer_idx {
+                layers.push(Vec::new());
+            }
+            layers[layer_idx].push(MappedInstruction {
+                inst,
+                mapping_context: current_mapping,
+            }); // TODO: we might don't want to do that for a control flow, since it might skew the layers for subsequence instructions
+            layers_frontier[node_min..=node_max].fill(layer_idx + 1);
+
+            // TODO: document
+            if let OperationRef::ControlFlow(_) = inst.op.view() {
+                let mut wire_map = circ
+                    .get_qargs(inst.qubits)
+                    .iter()
+                    .map(|q| q.index() as u32)
+                    .collect::<Vec<u32>>(); // TODO: Need to add this to wire_maps. TODO: need to use bytemuck from Ray
+                if let Some(context_idx) = current_mapping {
+                    let top_level_mapping = &self.wire_map_contexts[context_idx].1;
+                    wire_map
+                        .iter_mut()
+                        .for_each(|i| *i = top_level_mapping[*i as usize]);
+                }
+                for block in inst.blocks_view() {
+                    // TODO: for multi-block cf inst (e.g. switch), how should we mark the blocks in the matrix?
+                    let block_circ = &circ.blocks()[*block];
+                    self.wire_map_contexts.push((block_circ, wire_map.clone()));
+                    let block_layers =
+                        self.build_layers(block_circ, Some(self.wire_map_contexts.len() - 1));
+                    layer_idx += block_layers.len() + 1;
+
+                    layers.extend(block_layers);
+                    if layers.len() == layer_idx {
+                        layers.push(Vec::new());
+                    }
+
+                    layers[layer_idx].push(MappedInstruction {
+                        inst,
+                        mapping_context: current_mapping,
+                    }); // TODO: test that for nesting this works fine
+                    // TODO: rephrase: "close" the area by using the inst range
+                    // We want the next block or instructions to start outside the frame-boundaries of this block
+                    layers_frontier[node_min..=node_max].fill(layer_idx + 1); // TODO: else and switch cases don't get the extra layer (they're all part of the same instruction- do we want it?
+                }
+            }
+        }
+        layers
+    }
 
     /// Adds the required visualization elements to represent the given instruction
     fn add_instruction(
         &mut self,
+        layer_idx: usize,
         cregbundle: bool,
-        inst: &'a PackedInstruction,
-        circuit: &CircuitData,
-        clbit_map: &[usize],
+        inst: &MappedInstruction<'a>,
     ) {
-        match inst.op.view() {
+        match inst.inst.op.view() {
             OperationRef::StandardGate(gate) => {
-                self.add_standard_gate(gate, inst, circuit);
+                self.add_standard_gate(layer_idx, gate, inst);
             }
             OperationRef::StandardInstruction(std_inst) => {
-                self.add_standard_instruction(cregbundle, std_inst, inst, circuit, clbit_map);
+                self.add_standard_instruction(layer_idx, cregbundle, std_inst, inst);
             }
             OperationRef::Unitary(_) => {
-                self.add_unitary_gate(inst, circuit);
+                self.add_unitary_gate(layer_idx, inst);
+            }
+            OperationRef::ControlFlow(cf_inst) => {
+                self.add_control_flow_op(layer_idx, cf_inst, inst);
             }
             _ => unimplemented!(
                 "{}",
                 format!(
                     "Visualization is not implemented for instruction of type {:?}",
-                    inst.op.name()
+                    inst.inst.op.name()
                 )
             ),
         }
     }
 
-    fn add_controls(&mut self, inst: &'a PackedInstruction, controls: &Vec<usize>) {
-        for control in controls {
-            self.0[*control] = VisualizationElement::DirectOnWire(OnWireElement::Control(inst));
+    // TODO: document
+    // TODO: is there an opportunity to spare the Vec if it's not mapped?
+    fn mapped_qargs(&self, inst: &MappedInstruction) -> Vec<Qubit> {
+        if let Some(mapping_idx) = inst.mapping_context {
+            let mapping_context = &self.wire_map_contexts[mapping_idx];
+            let qargs = mapping_context.0.get_qargs(inst.inst.qubits);
+            qargs
+                .iter()
+                .map(|q| Qubit(mapping_context.1[q.index()]))
+                .collect::<Vec<Qubit>>()
+        } else {
+            self.circuit.get_qargs(inst.inst.qubits).to_vec()
         }
     }
 
-    fn add_vertical_lines<I>(&mut self, vertical_lines: I, inst: &'a PackedInstruction)
-    where
-        I: Iterator<Item = usize>,
-    {
-        for vline in vertical_lines {
-            self.0[vline] = VisualizationElement::VerticalLine(inst);
+    // TODO: document
+    // TODO: is there an opportunity to spare the Vec if it's not mapped?
+    fn mapped_cargs(&self, inst: &MappedInstruction) -> Vec<Clbit> {
+        if let Some(mapping_idx) = inst.mapping_context {
+            let mapping_context = &self.wire_map_contexts[mapping_idx];
+            let cargs = mapping_context.0.get_cargs(inst.inst.clbits);
+            cargs
+                .iter()
+                .map(|c| Clbit(mapping_context.1[c.index()]))
+                .collect::<Vec<Clbit>>()
+        } else {
+            self.circuit.get_cargs(inst.inst.clbits).to_vec()
         }
     }
 
     fn add_standard_gate(
         &mut self,
+        layer_idx: usize,
         gate: StandardGate,
-        inst: &'a PackedInstruction,
-        circuit: &CircuitData,
+        inst: &MappedInstruction<'a>,
     ) {
         if gate == StandardGate::GlobalPhase {
             return;
         }
 
-        let qargs = circuit.get_qargs(inst.qubits);
-        let (minima, maxima) = get_instruction_range(qargs, &[], 0);
+        let qargs = self.mapped_qargs(inst);
+        let (minima, maxima) = get_instruction_range(&qargs, &[], 0);
 
         match gate {
             StandardGate::ISwap
@@ -324,7 +507,8 @@ impl<'a> VisualizationLayer<'a> {
             | StandardGate::RCCX
             | StandardGate::RC3X => {
                 for q in minima..=maxima {
-                    self.0[q] = VisualizationElement::Boxed(BoxedElement::Multi(inst));
+                    self.layers[layer_idx][q] =
+                        VisualizationElement::Boxed(BoxedElement::Multi(*inst));
                 }
             }
             StandardGate::H
@@ -347,7 +531,8 @@ impl<'a> VisualizationLayer<'a> {
             | StandardGate::U1
             | StandardGate::U2
             | StandardGate::U3 => {
-                self.0[qargs[0].index()] = VisualizationElement::Boxed(BoxedElement::Single(inst));
+                self.layers[layer_idx][qargs[0].index()] =
+                    VisualizationElement::Boxed(BoxedElement::Single(*inst));
             }
             StandardGate::CH
             | StandardGate::CX
@@ -367,10 +552,11 @@ impl<'a> VisualizationLayer<'a> {
             | StandardGate::C3X
             | StandardGate::C3SX
             | StandardGate::CPhase => {
-                self.0[qargs.last().unwrap().index()] =
-                    VisualizationElement::Boxed(BoxedElement::Single(inst));
+                self.layers[layer_idx][qargs.last().unwrap().index()] =
+                    VisualizationElement::Boxed(BoxedElement::Single(*inst));
                 if gate.num_ctrl_qubits() > 0 {
                     self.add_controls(
+                        layer_idx,
                         inst,
                         &qargs
                             .iter()
@@ -382,187 +568,138 @@ impl<'a> VisualizationLayer<'a> {
 
                 let vert_lines = (minima..=maxima)
                     .filter(|idx| !(qargs.iter().map(|q| q.0 as usize)).contains(idx));
-                self.add_vertical_lines(vert_lines, inst);
+                self.add_vertical_lines(layer_idx, vert_lines, inst);
             }
             StandardGate::GlobalPhase => {}
             StandardGate::Swap | StandardGate::CSwap => {
                 // taking the last 2 elements of qargs
                 if gate == StandardGate::CSwap {
                     let control = vec![qargs[0].0 as usize];
-                    self.add_controls(inst, &control);
+                    self.add_controls(layer_idx, inst, &control);
                 }
                 let swap_qubits = qargs.iter().map(|q| q.0 as usize).rev().take(2);
                 for qubit in swap_qubits {
-                    self.0[qubit] = VisualizationElement::DirectOnWire(OnWireElement::Swap(inst));
+                    self.layers[layer_idx][qubit] =
+                        VisualizationElement::DirectOnWire(OnWireElement::Swap(*inst));
                 }
 
                 let vert_lines = (minima..=maxima)
                     .filter(|idx| !(qargs.iter().map(|q| q.0 as usize)).contains(idx));
-                self.add_vertical_lines(vert_lines, inst);
+                self.add_vertical_lines(layer_idx, vert_lines, inst);
             }
+        }
+    }
+
+    fn add_controls(
+        &mut self,
+        layer_idx: usize,
+        inst: &MappedInstruction<'a>,
+        controls: &Vec<usize>,
+    ) {
+        let layer = &mut self.layers[layer_idx];
+        for control in controls {
+            layer[*control] = VisualizationElement::DirectOnWire(OnWireElement::Control(*inst));
+        }
+    }
+
+    fn add_vertical_lines<I>(
+        &mut self,
+        layer_idx: usize,
+        vertical_lines: I,
+        inst: &MappedInstruction<'a>,
+    ) where
+        I: Iterator<Item = usize>,
+    {
+        for vline in vertical_lines {
+            self.layers[layer_idx][vline] = VisualizationElement::VerticalLine(*inst);
         }
     }
 
     fn add_standard_instruction(
         &mut self,
+        layer_idx: usize,
         cregbundle: bool,
         std_inst: StandardInstruction,
-        inst: &'a PackedInstruction,
-        circuit: &CircuitData,
-        clbit_map: &[usize],
+        inst: &MappedInstruction<'a>,
     ) {
-        let qargs = circuit.get_qargs(inst.qubits);
-        let (minima, mut maxima) =
-            get_instruction_range(qargs, circuit.get_cargs(inst.clbits), circuit.num_qubits());
+        let qargs = &self.mapped_qargs(inst);
+        let clbits = &self.mapped_cargs(inst);
+
+        let (minima, mut maxima) = get_instruction_range(qargs, clbits, self.circuit.num_qubits());
 
         match std_inst {
             StandardInstruction::Barrier(_) => {
                 for q in qargs {
-                    self.0[q.index()] = VisualizationElement::DirectOnWire(OnWireElement::Barrier);
+                    self.layers[layer_idx][q.index()] =
+                        VisualizationElement::DirectOnWire(OnWireElement::Barrier);
                 }
             }
             StandardInstruction::Reset => {
                 for q in qargs {
-                    self.0[q.index()] = VisualizationElement::DirectOnWire(OnWireElement::Reset);
+                    self.layers[layer_idx][q.index()] =
+                        VisualizationElement::DirectOnWire(OnWireElement::Reset);
                 }
             }
             StandardInstruction::Measure => {
-                self.0[qargs.last().unwrap().index()] =
-                    VisualizationElement::Boxed(BoxedElement::Single(inst));
+                self.layers[layer_idx][qargs.last().unwrap().index()] =
+                    VisualizationElement::Boxed(BoxedElement::Single(*inst));
 
                 // Some bits may be bundled, so we need to map the Clbit index to the proper wire index
                 if cregbundle {
-                    maxima = clbit_map[circuit
-                        .get_cargs(inst.clbits)
+                    maxima = self.clbit_map[self
+                        .circuit
+                        .get_cargs(inst.inst.clbits)
                         .first()
                         .expect("Measure should have a clbit arg")
                         .index()];
                 }
-                self.add_vertical_lines(minima + 1..=maxima, inst);
+                self.add_vertical_lines(layer_idx, minima + 1..=maxima, inst);
             }
             StandardInstruction::Delay(_) => {
                 for q in qargs {
-                    self.0[q.index()] = VisualizationElement::Boxed(BoxedElement::Single(inst));
+                    self.layers[layer_idx][q.index()] =
+                        VisualizationElement::Boxed(BoxedElement::Single(*inst));
                 }
             }
         }
     }
 
-    fn add_unitary_gate(&mut self, inst: &'a PackedInstruction, circuit: &CircuitData) {
-        let qargs = circuit.get_qargs(inst.qubits);
+    fn add_unitary_gate(&mut self, layer_idx: usize, inst: &MappedInstruction<'a>) {
+        let qargs = &self.mapped_qargs(inst);
+
         if qargs.len() == 1 {
-            self.0[qargs.first().unwrap().index()] =
-                VisualizationElement::Boxed(BoxedElement::Single(inst));
+            self.layers[layer_idx][qargs.first().unwrap().index()] =
+                VisualizationElement::Boxed(BoxedElement::Single(*inst));
         } else {
             let (minima, maxima) = get_instruction_range(qargs, &[], 0);
 
             for q in minima..=maxima {
-                self.0[q] = VisualizationElement::Boxed(BoxedElement::Multi(inst));
+                self.layers[layer_idx][q] = VisualizationElement::Boxed(BoxedElement::Multi(*inst));
             }
         }
     }
-}
 
-/// A Plain, logical 2D representation of a circuit.
-///
-/// A dense representation of the circuit of size N * (M + 1), where the first
-/// layer(column) represents the qubits and clbits inputs in the circuits,
-/// M is the number of operation layers and N is the number of
-/// qubits and clbits (or cregs if bundling is enabled).
-///
-/// This structure follows a column-major order, where each layer represents a column of the circuit,
-#[derive(Clone)]
-struct VisualizationMatrix<'a> {
-    /// Layers stored in the matrix.
-    layers: Vec<VisualizationLayer<'a>>,
-    /// A reference to the circuit this matrix was constructed from.
-    circuit: &'a CircuitData,
-    /// A mapping from instruction's Clbit indices to the visualization matrix wires,
-    /// to be used when mapping clbits to bit of bundled cregs
-    clbit_map: Vec<usize>,
-}
-
-impl<'a> VisualizationMatrix<'a> {
-    fn from_circuit(circuit: &'a CircuitData, bundle_cregs: bool) -> PyResult<Self> {
-        let inst_layers = build_layers(circuit);
-
-        let num_wires = circuit.num_qubits()
-            + if !bundle_cregs {
-                circuit.num_clbits()
-            } else {
-                // Anonymous bits are not bundled so need to be counted explicitly
-                circuit.cregs_data().len() + circuit.num_clbits()
-                    - circuit
-                        .cregs_data()
-                        .registers()
-                        .iter()
-                        .map(|r| r.len())
-                        .sum::<usize>()
-            };
-
-        let mut layers = vec![
-            VisualizationLayer(vec![VisualizationElement::default(); num_wires]);
-            inst_layers.len() + 1
-        ]; // Add 1 to account for the inputs layer
-
-        let input_layer = layers.first_mut().unwrap();
-        let mut input_idx = 0;
-        for qubit in circuit.qubits().objects() {
-            input_layer.add_input(WireInputElement::Qubit(qubit), input_idx);
-            input_idx += 1;
-        }
-
-        let mut visited_cregs: HashSet<&ClassicalRegister> = HashSet::new();
-        let mut clbit_map: Vec<usize> = Vec::new();
-        for clbit in circuit.clbits().objects() {
-            if bundle_cregs {
-                let bit_location = circuit
-                    .clbit_indices()
-                    .get(clbit)
-                    .expect("Bit should have bit info");
-                if !bit_location.registers().is_empty() {
-                    let creg = &bit_location
-                        .registers()
-                        .first()
-                        .expect("Registers should not be empty")
-                        .0;
-
-                    if visited_cregs.contains(creg) {
-                        clbit_map.push(input_idx - 1);
-                    } else {
-                        input_layer.add_input(WireInputElement::Creg(creg), input_idx);
-                        visited_cregs.insert(creg);
-                        clbit_map.push(input_idx);
-                        input_idx += 1;
-                    }
-                    continue;
-                }
-            }
-
-            input_layer.add_input(WireInputElement::Clbit(clbit), input_idx);
-            clbit_map.push(input_idx);
-            input_idx += 1;
-        }
-
-        for (i, layer) in inst_layers.iter().enumerate() {
-            for inst in layer {
-                layers[i + 1].add_instruction(bundle_cregs, inst, circuit, &clbit_map);
-            }
-        }
-
-        Ok(VisualizationMatrix {
-            layers,
-            circuit,
-            clbit_map,
-        })
+    fn add_control_flow_op(
+        &mut self,
+        layer_idx: usize,
+        _cf_inst: &ControlFlowInstruction,
+        inst: &MappedInstruction<'a>,
+    ) {
+        let qargs = self.mapped_qargs(inst);
+        let (minima, maxima) = get_instruction_range(&qargs, &[], 0);
+        (minima..=maxima).for_each(|q| self.layers[layer_idx][q] = VisualizationElement::Frame);
     }
 
-    fn num_wires(&self) -> usize {
+    fn num_lanes(&self) -> usize {
         self.layers.first().map_or(0, |layer| layer.len())
     }
 
     fn num_layers(&self) -> usize {
         self.layers.len()
+    }
+
+    fn is_lane_wire(&self, lane_idx: usize) -> bool {
+        !matches!(self.layers[0][lane_idx], VisualizationElement::Frame) // TODO: use enum instead
     }
 }
 
@@ -576,14 +713,14 @@ impl<'a> Index<usize> for VisualizationMatrix<'a> {
 
 impl Debug for VisualizationMatrix<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for w in 0..self.num_wires() {
+        for w in 0..self.num_lanes() {
             for l in 0..self.num_layers() {
                 let element = &self[l][w];
                 let label = match &element {
                     VisualizationElement::Empty => "~",
                     VisualizationElement::VerticalLine(inst) => {
                         let mut line = "|";
-                        if let Some(std_inst) = inst.op.try_standard_instruction() {
+                        if let Some(std_inst) = inst.inst.op.try_standard_instruction() {
                             if std_inst == StandardInstruction::Measure {
                                 line = "║";
                             }
@@ -602,12 +739,59 @@ impl Debug for VisualizationMatrix<'_> {
                         OnWireElement::Swap(_) => "x",
                     },
                     VisualizationElement::Boxed(_) => "[ ]",
+                    VisualizationElement::Frame => {
+                        if self.is_lane_wire(w) {
+                            &FRAME_VERTICAL.to_string()
+                        } else {
+                            &FRAME_HORIZONTAL.to_string()
+                        }
+                    }
                 };
                 write!(f, "{:^5}", label)?;
             }
             writeln!(f)?;
         }
         Ok(())
+    }
+}
+
+#[derive(Clone, Debug)]
+enum TextDrawerElement {
+    Wire(TextWireElement),
+    Ribbon(TextRibbonElement),
+}
+
+impl TextDrawerElement {
+    fn width(&self) -> usize {
+        match self {
+            TextDrawerElement::Wire(wire_element) => wire_element.width(),
+            TextDrawerElement::Ribbon(_) => 0,
+        }
+    }
+}
+
+#[derive(Clone, Default, Debug)]
+struct TextRibbonElement {
+    lane: String,
+}
+
+impl TextRibbonElement {
+    fn width(&self) -> usize {
+        self.lane.width()
+    }
+
+    fn stretch(&mut self, pad_char: char, width: usize) {
+        let current_width = self.width();
+
+        if current_width < width {
+            let pad_size = width - current_width;
+
+            let left_pad = pad_size / 2;
+            let right_pad = pad_size - left_pad;
+            self.lane.reserve(pad_size);
+            (0..left_pad).for_each(|_| self.lane.insert(0, pad_char));
+            (0..right_pad).for_each(|_| self.lane.push(pad_char));
+        }
     }
 }
 
@@ -669,55 +853,108 @@ impl TextWireElement {
     }
 }
 
-pub const Q_WIRE: char = '─';
-pub const C_WIRE: char = '═';
-pub const TOP_CON: char = '┴';
-pub const BOT_CON: char = '┬';
-pub const C_WIRE_CON_TOP: char = '╩';
-pub const C_BOT_CON: char = '╥';
-pub const Q_LEFT_CON: char = '┤';
-pub const Q_RIGHT_CON: char = '├';
-pub const CL_LEFT_CON: char = '╡';
-pub const CL_RIGHT_CON: char = '╞';
-pub const TOP_LEFT_BOX: char = '┌';
-pub const TOP_RIGHT_BOX: char = '┐';
-pub const BOT_LEFT_BOX: char = '└';
-pub const BOT_RIGHT_BOX: char = '┘';
-pub const BARRIER: char = '░';
-pub const BULLET: char = '■';
-pub const CONNECTING_WIRE: char = '│';
-pub const CL_CONNECTING_WIRE: char = '║';
-pub const Q_Q_CROSSED_WIRE: char = '┼';
-pub const Q_CL_CROSSED_WIRE: char = '╪';
-pub const CL_CL_CROSSED_WIRE: char = '╬';
-pub const CL_Q_CROSSED_WIRE: char = '╫';
+// impl Index<usize> for TextWireElement {
+//     type Output = TextDrawerElement;
+
+//     fn index(&self, index: usize) -> &Self::Output {
+//         &self.
+//     }
+// }
+// impl IndexMut<usize> for TextWireElement {
+//     fn index_mut(&mut self, index: Idx) -> &mut Self::Output {
+//         &mut self.p[idx]
+//     }
+// }
+
+const Q_WIRE: char = '─';
+const C_WIRE: char = '═';
+const TOP_CON: char = '┴';
+const BOT_CON: char = '┬';
+const C_WIRE_CON_TOP: char = '╩';
+const C_BOT_CON: char = '╥';
+const Q_LEFT_CON: char = '┤';
+const Q_RIGHT_CON: char = '├';
+const _CL_LEFT_CON: char = '╡';
+const _CL_RIGHT_CON: char = '╞';
+const TOP_LEFT_BOX: char = '┌';
+const TOP_RIGHT_BOX: char = '┐';
+const BOT_LEFT_BOX: char = '└';
+const BOT_RIGHT_BOX: char = '┘';
+const BARRIER: char = '░';
+const BULLET: char = '■';
+const CONNECTING_WIRE: char = '│';
+const CL_CONNECTING_WIRE: char = '║';
+const Q_Q_CROSSED_WIRE: char = '┼';
+const Q_CL_CROSSED_WIRE: char = '╪';
+const CL_CL_CROSSED_WIRE: char = '╬';
+const CL_Q_CROSSED_WIRE: char = '╫';
+const FRAME_VERTICAL: char = '┆';
+const FRAME_HORIZONTAL: char = '┄';
+
+#[derive(Debug)]
+enum TextDrawerLane {
+    WireLane(Vec<TextWireElement>),
+    RibbonLane(Vec<TextRibbonElement>),
+}
 
 /// Textual representation of the circuit
 struct TextDrawer {
-    /// The array of textural wire elements corresponding to the visualization elements
-    wires: Vec<Vec<TextWireElement>>,
+    /// The array of textual element lanes corresponding to the visualization elements
+    lanes: Vec<TextDrawerLane>,
+
+    num_layers: usize,
 }
 
-impl Index<usize> for TextDrawer {
-    type Output = Vec<TextWireElement>;
+// impl Index<usize> for TextDrawer {
+//     type Output = Vec<TextWireElement>;
 
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.wires[index]
-    }
-}
+//     fn index(&self, index: usize) -> &Self::Output {
+//         &self.wires[index]
+//     }
+// }
 
 impl TextDrawer {
     fn from_visualization_matrix(vis_mat: &VisualizationMatrix, cregbundle: bool) -> Self {
         let mut text_drawer = TextDrawer {
-            wires: vec![Vec::new(); vis_mat.num_wires()],
+            lanes: Vec::new(),
+            num_layers: 0,
         };
 
+        for lane in 0..vis_mat.num_lanes() {
+            text_drawer.lanes.push(if vis_mat.is_lane_wire(lane) {
+                TextDrawerLane::WireLane(Vec::new())
+            } else {
+                TextDrawerLane::RibbonLane(Vec::new())
+            });
+        }
+
         for (i, layer) in vis_mat.layers.iter().enumerate() {
-            let layer_wires = Self::draw_layer(layer, vis_mat, cregbundle, i);
-            for (j, wire) in layer_wires.iter().enumerate() {
-                text_drawer.wires[j].push(wire.clone());
+            let layer_elements = Self::draw_layer(layer, vis_mat, cregbundle, i);
+
+            for (j, element) in layer_elements.iter().enumerate() {
+                let lane = &mut text_drawer.lanes[j];
+
+                match (element, lane) {
+                    (
+                        TextDrawerElement::Wire(wire_element),
+                        TextDrawerLane::WireLane(wire_lane),
+                    ) => {
+                        wire_lane.push(wire_element.clone());
+                    }
+                    (
+                        TextDrawerElement::Ribbon(ribbon_element),
+                        TextDrawerLane::RibbonLane(ribbon_lane),
+                    ) => {
+                        ribbon_lane.push(ribbon_element.clone());
+                    }
+                    _ => unreachable!(
+                        "Layer element variant should correspond to the TextDrawerLane variant in each lane"
+                    ),
+                }
             }
         }
+        text_drawer.num_layers = vis_mat.layers.len();
+
         text_drawer
     }
 
@@ -789,11 +1026,12 @@ impl TextDrawer {
     }
 
     fn get_layer_width(&self, ind: usize) -> usize {
-        self.wires
-            .iter()
-            .map(|wire| wire[ind].width())
-            .max()
-            .unwrap_or(0)
+        let layer_width = |lane: &TextDrawerLane| match lane {
+            TextDrawerLane::WireLane(wire_lane) => wire_lane[ind].width(),
+            TextDrawerLane::RibbonLane(ribbon_lane) => ribbon_lane[ind].width(),
+        };
+
+        self.lanes.iter().map(layer_width).max().unwrap_or(0)
     }
 
     fn draw_layer(
@@ -801,37 +1039,54 @@ impl TextDrawer {
         vis_mat: &VisualizationMatrix,
         cregbundle: bool,
         layer_ind: usize,
-    ) -> Vec<TextWireElement> {
-        let mut wires: Vec<TextWireElement> = layer
-            .0
-            .iter()
-            .enumerate()
-            .map(|(i, element)| Self::draw_element(element, vis_mat, cregbundle, i))
-            .collect();
+    ) -> Vec<TextDrawerElement> {
+        let mut layer_elments: Vec<TextDrawerElement> = Vec::new();
+
+        for (lane_idx, element) in layer.0.iter().enumerate() {
+            if vis_mat.is_lane_wire(lane_idx) {
+                layer_elments.push(TextDrawerElement::Wire(Self::draw_wire_element(
+                    element, vis_mat, cregbundle, lane_idx,
+                )));
+            } else {
+                layer_elments.push(TextDrawerElement::Ribbon(Self::draw_ribbon_element(
+                    element, vis_mat, cregbundle, lane_idx,
+                )));
+            }
+        }
 
         let num_qubits = vis_mat.circuit.num_qubits();
 
-        let layer_width = wires.iter().map(|wire| wire.width()).max().unwrap_or(0);
+        let layer_width = layer_elments
+            .iter()
+            .map(|element| element.width())
+            .max()
+            .unwrap_or(0);
 
-        for (i, wire) in wires.iter_mut().enumerate() {
-            if layer_ind == 0 {
-                wire.pad_wire_left(' ', layer_width);
-            } else if i < num_qubits {
-                wire.pad_wire(Q_WIRE, layer_width);
-            } else {
-                wire.pad_wire(C_WIRE, layer_width);
+        for (i, element) in layer_elments.iter_mut().enumerate() {
+            match element {
+                TextDrawerElement::Wire(element) => {
+                    if layer_ind == 0 {
+                        element.pad_wire_left(' ', layer_width);
+                    } else if i < num_qubits {
+                        element.pad_wire(Q_WIRE, layer_width);
+                    } else {
+                        element.pad_wire(C_WIRE, layer_width);
+                    }
+                }
+                TextDrawerElement::Ribbon(element) => {
+                    element.stretch('#', layer_width);
+                }
             }
         }
-        wires
+        layer_elments
     }
 
-    pub fn draw_element(
+    fn draw_wire_element(
         vis_ele: &VisualizationElement,
         vis_mat: &VisualizationMatrix,
         cregbundle: bool,
-        ind: usize,
+        lane_idx: usize,
     ) -> TextWireElement {
-        let circuit = vis_mat.circuit;
         let (top, mid, bot);
         match vis_ele {
             VisualizationElement::Boxed(sub_type) => {
@@ -841,10 +1096,10 @@ impl TextDrawer {
                     BoxedElement::Single(inst) => {
                         let mut top_con = Q_WIRE;
                         let mut bot_con = Q_WIRE;
-                        let mut label = format!(" {} ", Self::get_label(inst));
-                        if let Some(gate) = inst.op.try_standard_gate() {
+                        let mut label = format!(" {} ", Self::get_label(inst.inst));
+                        if let Some(gate) = inst.inst.op.try_standard_gate() {
                             if gate.is_controlled_gate() {
-                                let qargs = circuit.get_qargs(inst.qubits);
+                                let qargs = &vis_mat.mapped_qargs(inst);
                                 let (minima, maxima) = get_instruction_range(qargs, &[], 0);
                                 if qargs.last().unwrap().index() > minima {
                                     top_con = TOP_CON;
@@ -856,7 +1111,7 @@ impl TextDrawer {
                                 // lines regardless of whether the text element padding size is odd or even.
                                 (label.len() % 2 == 0).then(|| label.push(' '));
                             }
-                        } else if let Some(std_inst) = inst.op.try_standard_instruction() {
+                        } else if let Some(std_inst) = inst.inst.op.try_standard_instruction() {
                             if std_inst == StandardInstruction::Measure {
                                 bot_con = C_BOT_CON;
                             }
@@ -883,18 +1138,18 @@ impl TextDrawer {
                         );
                     }
                     BoxedElement::Multi(inst) => {
-                        let label = format!(" {} ", Self::get_label(inst));
+                        let label = format!(" {} ", Self::get_label(inst.inst));
                         let label_len = label.width();
-                        let qargs = circuit.get_qargs(inst.qubits);
+                        let qargs = &vis_mat.mapped_qargs(inst);
                         let (minima, maxima) = get_instruction_range(qargs, &[], 0);
                         let mid_idx = (minima + maxima) / 2;
                         let num_affected =
-                            if let Some(idx) = qargs.iter().position(|&x| x.index() == ind) {
+                            if let Some(idx) = qargs.iter().position(|&x| x.index() == lane_idx) {
                                 format!("{:^width$}", idx, width = qargs.len())
                             } else {
                                 " ".to_string()
                             };
-                        let mid_section = if ind == mid_idx {
+                        let mid_section = if lane_idx == mid_idx {
                             format!("{:^total_q$}{}", num_affected, label, total_q = qargs.len(),)
                         } else {
                             format!(
@@ -907,7 +1162,7 @@ impl TextDrawer {
                         };
                         let left_len = (mid_section.width() - 1) / 2;
                         let right_len = mid_section.width() - left_len - 1;
-                        top = if ind == minima {
+                        top = if lane_idx == minima {
                             format!(
                                 "{}{}{}{}{}",
                                 TOP_LEFT_BOX,
@@ -925,7 +1180,7 @@ impl TextDrawer {
                             )
                         };
                         mid = format!("{}{}{}", Q_LEFT_CON, mid_section, Q_RIGHT_CON);
-                        bot = if ind == maxima {
+                        bot = if lane_idx == maxima {
                             format!(
                                 "{}{}{}{}{}",
                                 BOT_LEFT_BOX,
@@ -949,15 +1204,15 @@ impl TextDrawer {
                 let (wire_top, wire_symbol, wire_bot) = match on_wire {
                     OnWireElement::Control(inst) => {
                         let (minima, maxima) =
-                            get_instruction_range(circuit.get_qargs(inst.qubits), &[], 0);
+                            get_instruction_range(&vis_mat.mapped_qargs(inst), &[], 0);
                         (
-                            if ind == minima {
+                            if lane_idx == minima {
                                 " ".to_string()
                             } else {
                                 CONNECTING_WIRE.to_string()
                             },
                             BULLET.to_string(),
-                            if ind == maxima {
+                            if lane_idx == maxima {
                                 " ".to_string()
                             } else {
                                 CONNECTING_WIRE.to_string()
@@ -966,15 +1221,15 @@ impl TextDrawer {
                     }
                     OnWireElement::Swap(inst) => {
                         let (minima, maxima) =
-                            get_instruction_range(circuit.get_qargs(inst.qubits), &[], 0);
+                            get_instruction_range(&vis_mat.mapped_qargs(inst), &[], 0);
                         (
-                            if ind == minima {
+                            if lane_idx == minima {
                                 " ".to_string()
                             } else {
                                 CONNECTING_WIRE.to_string()
                             },
                             "X".to_string(),
-                            if ind == maxima {
+                            if lane_idx == maxima {
                                 " ".to_string()
                             } else {
                                 CONNECTING_WIRE.to_string()
@@ -996,17 +1251,21 @@ impl TextDrawer {
                 bot = format!(" {} ", wire_bot);
             }
             VisualizationElement::Input(input) => {
-                let input_name = input.get_name(circuit).unwrap_or_else(|| match input {
-                    WireInputElement::Qubit(_) => format!("q_{}: ", ind),
-                    WireInputElement::Clbit(_) => format!("c_{}: ", ind - circuit.num_qubits()),
-                    WireInputElement::Creg(_) => unreachable!(),
-                });
+                let input_name = input
+                    .get_name(vis_mat.circuit)
+                    .unwrap_or_else(|| match input {
+                        WireInputElement::Qubit(_) => format!("q_{}: ", lane_idx),
+                        WireInputElement::Clbit(_) => {
+                            format!("c_{}: ", lane_idx - vis_mat.circuit.num_qubits())
+                        }
+                        WireInputElement::Creg(_) => unreachable!(),
+                    });
                 top = " ".repeat(input_name.width());
                 bot = " ".repeat(input_name.width());
                 mid = input_name;
             }
             VisualizationElement::VerticalLine(inst) => {
-                let is_measure = if let Some(std_inst) = inst.op.try_standard_instruction() {
+                let is_measure = if let Some(std_inst) = inst.inst.op.try_standard_instruction() {
                     std_inst == StandardInstruction::Measure
                 } else {
                     false
@@ -1015,12 +1274,14 @@ impl TextDrawer {
                 if is_measure {
                     top = CL_CONNECTING_WIRE.to_string();
 
-                    let clbit = circuit.get_cargs(inst.clbits).first().unwrap();
-                    if ind == vis_mat.clbit_map[clbit.index()] {
+                    let clbits = &vis_mat.mapped_cargs(inst);
+                    let clbit = clbits.first().unwrap();
+                    if lane_idx == vis_mat.clbit_map[clbit.index()] {
                         mid = C_WIRE_CON_TOP.to_string();
 
-                        let shareable_clbit = circuit.clbits().get(*clbit).unwrap();
-                        let registers = circuit
+                        let shareable_clbit = vis_mat.circuit.clbits().get(*clbit).unwrap();
+                        let registers = vis_mat
+                            .circuit
                             .clbit_indices()
                             .get(shareable_clbit)
                             .unwrap()
@@ -1036,7 +1297,7 @@ impl TextDrawer {
                     } else {
                         bot = CL_CONNECTING_WIRE.to_string();
                         mid = {
-                            if ind < circuit.num_qubits() {
+                            if lane_idx < vis_mat.circuit.num_qubits() {
                                 CL_Q_CROSSED_WIRE
                             } else {
                                 CL_CL_CROSSED_WIRE
@@ -1048,7 +1309,7 @@ impl TextDrawer {
                     top = CONNECTING_WIRE.to_string();
                     bot = CONNECTING_WIRE.to_string();
                     mid = {
-                        if ind < circuit.num_qubits() {
+                        if lane_idx < vis_mat.circuit.num_qubits() {
                             Q_Q_CROSSED_WIRE
                         } else {
                             Q_CL_CROSSED_WIRE
@@ -1057,11 +1318,23 @@ impl TextDrawer {
                     .to_string();
                 }
             }
+            VisualizationElement::Frame => {
+                top = FRAME_VERTICAL.to_string();
+                bot = FRAME_VERTICAL.to_string();
+                mid = {
+                    if lane_idx < vis_mat.circuit.num_qubits() {
+                        Q_Q_CROSSED_WIRE
+                    } else {
+                        C_WIRE
+                    }
+                }
+                .to_string();
+            }
             VisualizationElement::Empty => {
                 top = " ".to_string();
                 bot = " ".to_string();
                 mid = {
-                    if ind < circuit.num_qubits() {
+                    if lane_idx < vis_mat.circuit.num_qubits() {
                         Q_WIRE
                     } else {
                         C_WIRE
@@ -1073,12 +1346,27 @@ impl TextDrawer {
         TextWireElement { top, mid, bot }
     }
 
+    fn draw_ribbon_element(
+        vis_ele: &VisualizationElement,
+        _vis_mat: &VisualizationMatrix,
+        _cregbundle: bool,
+        _lane_idx: usize,
+    ) -> TextRibbonElement {
+        match vis_ele {
+            VisualizationElement::Frame => TextRibbonElement {
+                lane: FRAME_HORIZONTAL.to_string(),
+            },
+            _ => {
+                unimplemented!()
+            }
+        }
+    }
+
     fn draw(&self, mergewires: bool, fold: usize) -> String {
         // Calculate the layer ranges for each fold of the circuit
-        let num_layers = self.wires[0].len();
         // We skip the first (inputs) layer since it's printed for each fold, regardless
         // of screen width limit
-        let layer_widths = (1..num_layers).map(|layer| self.get_layer_width(layer));
+        let layer_widths = (1..self.num_layers).map(|layer| self.get_layer_width(layer));
         let (mut start, mut current_fold) = (1usize, 0usize);
 
         let mut ranges: Vec<(usize, usize)> = layer_widths
@@ -1095,61 +1383,79 @@ impl TextDrawer {
                 }
             })
             .collect();
-        ranges.push((start, num_layers));
+        ranges.push((start, self.num_layers));
 
         let mut output = String::new();
 
-        let mut wire_strings: Vec<String> = Vec::new();
+        let mut lane_strings: Vec<String> = Vec::new();
         for (start, end) in ranges {
-            wire_strings.clear();
-
-            for wire in &self.wires {
-                let top_line: String = wire[start..end]
-                    .iter()
-                    .map(|elem| elem.top.clone())
-                    .collect::<Vec<String>>()
-                    .join("");
-                let mid_line: String = wire[start..end]
-                    .iter()
-                    .map(|elem| elem.mid.clone())
-                    .collect::<Vec<String>>()
-                    .join("");
-                let bot_line: String = wire[start..end]
-                    .iter()
-                    .map(|elem| elem.bot.clone())
-                    .collect::<Vec<String>>()
-                    .join("");
-                wire_strings.push(format!(
-                    "{}{}{}{}",
-                    if start > 1 { "«" } else { "" },
-                    wire[0].top,
-                    top_line,
-                    if end < num_layers - 1 { "»" } else { "" }
-                ));
-                wire_strings.push(format!(
-                    "{}{}{}{}",
-                    if start > 1 { "«" } else { "" },
-                    wire[0].mid,
-                    mid_line,
-                    if end < num_layers - 1 { "»" } else { "" }
-                ));
-                wire_strings.push(format!(
-                    "{}{}{}{}",
-                    if start > 1 { "«" } else { "" },
-                    wire[0].bot,
-                    bot_line,
-                    if end < num_layers - 1 { "»" } else { "" }
-                ));
+            lane_strings.clear();
+            for lane in &self.lanes {
+                match lane {
+                    TextDrawerLane::WireLane(wire_lane) => {
+                        let top_line: String = wire_lane[start..end]
+                            .iter()
+                            .map(|elem| elem.top.clone())
+                            .collect::<Vec<String>>()
+                            .join("");
+                        let mid_line: String = wire_lane[start..end]
+                            .iter()
+                            .map(|elem| elem.mid.clone())
+                            .collect::<Vec<String>>()
+                            .join("");
+                        let bot_line: String = wire_lane[start..end]
+                            .iter()
+                            .map(|elem| elem.bot.clone())
+                            .collect::<Vec<String>>()
+                            .join("");
+                        lane_strings.push(format!(
+                            "{}{}{}{}",
+                            if start > 1 { "«" } else { "" },
+                            wire_lane[0].top,
+                            top_line,
+                            if end < self.num_layers - 1 { "»" } else { "" }
+                        ));
+                        lane_strings.push(format!(
+                            "{}{}{}{}",
+                            if start > 1 { "«" } else { "" },
+                            wire_lane[0].mid,
+                            mid_line,
+                            if end < self.num_layers - 1 { "»" } else { "" }
+                        ));
+                        lane_strings.push(format!(
+                            "{}{}{}{}",
+                            if start > 1 { "«" } else { "" },
+                            wire_lane[0].bot,
+                            bot_line,
+                            if end < self.num_layers - 1 { "»" } else { "" }
+                        ));
+                    }
+                    TextDrawerLane::RibbonLane(ribbon_lane) => {
+                        let lane_string = ribbon_lane[start..end]
+                            .iter()
+                            .map(|elem| elem.lane.clone())
+                            .collect::<Vec<String>>()
+                            .join("");
+                        lane_strings.push(format!(
+                            "{}{}{}{}",
+                            if start > 1 { "«" } else { "" },
+                            ribbon_lane[0].lane,
+                            lane_string,
+                            if end < self.num_layers - 1 { "»" } else { "" }
+                        ));
+                    }
+                }
             }
-            for wire_idx in 0..wire_strings.len() {
-                if mergewires && wire_idx % 3 == 2 && wire_idx < wire_strings.len() - 3 {
+
+            for wire_idx in 0..lane_strings.len() {
+                if mergewires && wire_idx % 3 == 2 && wire_idx < lane_strings.len() - 3 {
                     // Merge the bot_line of the this wire with the top_line of the next wire
                     let merged_line =
-                        Self::merge_lines(&wire_strings[wire_idx], &wire_strings[wire_idx + 1]);
+                        Self::merge_lines(&lane_strings[wire_idx], &lane_strings[wire_idx + 1]);
                     output.push_str(&format!("{}\n", merged_line));
                 } else if !mergewires || wire_idx % 3 != 0 || wire_idx == 0 {
                     // if mergewires, skip all top_line strings but the very first one
-                    output.push_str(&format!("{}\n", wire_strings[wire_idx]));
+                    output.push_str(&format!("{}\n", lane_strings[wire_idx]));
                 }
             }
         }
@@ -1211,9 +1517,12 @@ mod tests {
     use super::*;
     use crate::bit::{ClassicalRegister, QuantumRegister, ShareableClbit, ShareableQubit};
     use crate::instruction::Parameters;
+    use crate::operations::ControlFlow;
     use crate::operations::{
-        ArrayType, DelayUnit, STANDARD_GATE_SIZE, StandardInstruction, UnitaryGate,
+        ArrayType, ControlFlowInstruction, DelayUnit, STANDARD_GATE_SIZE, StandardInstruction,
+        UnitaryGate,
     };
+    use crate::packed_instruction::PackedOperation;
     use crate::parameter::parameter_expression::ParameterExpression;
     use crate::parameter::symbol_expr::Symbol;
 
@@ -1999,5 +2308,109 @@ q_1: ┤ Ry(🎩) ├┤1          ├┤ 💶🔉(🎩) ├┤1           ├�
      └────────┘└───────────┘└──────────┘└────────────┘└──────────┘
 ";
         assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[test]
+    fn test_box_op() {
+        let qubits = (0..3).map(|_| ShareableQubit::new_anonymous()).collect();
+        let mut outer_box_circ = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
+        outer_box_circ
+            .push_standard_gate(StandardGate::H, &[], &[Qubit(0)])
+            .unwrap();
+        outer_box_circ
+            .push_standard_gate(StandardGate::CX, &[], &[Qubit(0), Qubit(1)])
+            .unwrap();
+
+        let qubits = vec![ShareableQubit::new_anonymous()];
+        let mut inner_box_circ = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
+        inner_box_circ
+            .push_standard_gate(StandardGate::S, &[], &[Qubit(0)])
+            .unwrap();
+
+        let cf_inst_inner = ControlFlowInstruction {
+            control_flow: ControlFlow::Box {
+                duration: None,
+                annotations: Vec::new(),
+            },
+            num_qubits: 1,
+            num_clbits: 0,
+        };
+        let block = outer_box_circ.add_block(inner_box_circ);
+        outer_box_circ
+            .push_packed_operation(
+                PackedOperation::from_control_flow(cf_inst_inner.into()),
+                Some(Parameters::Blocks(vec![block])),
+                &[Qubit(0)],
+                &[],
+            )
+            .unwrap();
+
+        outer_box_circ
+            .push_standard_gate(StandardGate::CCX, &[], &[Qubit(2), Qubit(0), Qubit(1)])
+            .unwrap();
+
+        let qubits = (0..5).map(|_| ShareableQubit::new_anonymous()).collect();
+        let mut top_level_circuit =
+            CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
+
+        let cf_inst = ControlFlowInstruction {
+            control_flow: ControlFlow::Box {
+                duration: None,
+                annotations: Vec::new(),
+            },
+            num_qubits: 2,
+            num_clbits: 0,
+        };
+        let block = top_level_circuit.add_block(outer_box_circ);
+        top_level_circuit
+            .push_packed_operation(
+                PackedOperation::from_control_flow(cf_inst.into()),
+                Some(Parameters::Blocks(vec![block])),
+                &[Qubit(1), Qubit(3), Qubit(2)],
+                &[],
+            )
+            .unwrap();
+        top_level_circuit
+            .push_standard_gate(StandardGate::Y, &[], &[Qubit(4)])
+            .unwrap();
+        top_level_circuit
+            .push_standard_gate(StandardGate::Z, &[], &[Qubit(0)])
+            .unwrap();
+
+        let result = draw_circuit(&top_level_circuit, false, false, Some(100)).unwrap();
+
+        println!("{}", result);
+        let _expected = "
+     ┌───┐
+q_0: ┤ Z ├───────────────────────
+     └───┘
+       ┆  ┌───┐     ┆┌───┐┆     ┆
+q_1: ──┼──┤ H ├──■──┼┤ S ├┼──■──┼
+       ┆  └───┘  │  ┆└───┘┆  │  ┆
+       ┆         │           │  ┆
+q_2: ──┼─────────┼───────────■──┼
+       ┆         │           │  ┆
+       ┆       ┌─┴─┐       ┌─┴─┐┆
+q_3: ──┼───────┤ X ├───────┤ X ├┼
+       ┆       └───┘       └───┘┆
+     ┌───┐
+q_4: ┤ Y ├───────────────────────
+     └───┘
+";
+
+        // TODO: test the case where the box spans classical bits
+
+        // TODO: test the case where there are measures or PPM inside a Box op
+
+        // TODO: test the case of box inside box where the top/bottom frames collide
+        //      ┌─────── ┌───┐     ┌───┐┌─────── ┌───┐ ───────┐  ───────┐
+        // q_0: ┤        ┤ H ├──■──┤ X ├┤        ┤ X ├        ├─        ├─
+        //      │        └───┘  │  └─┬─┘│        └─┬─┘        │         │
+        //      │             ┌─┴─┐  │  │          │          │         │
+        // q_1: ┤ Box-0  ─────┤ X ├──■──┤ Box-1  ──┼──  End-1 ├─  End-0 ├─
+        //      │             └───┘  │  │          │          │         │
+        //      │                    │  │          │          │         │
+        // q_2: ┤        ────────────■──┤        ──■──        ├─        ├─
+        //      └───────                └───────       ───────┘  ───────┘
     }
 }
