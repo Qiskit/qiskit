@@ -4636,6 +4636,75 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
         actual = str(qc.draw("text", fold=-1, initial_state=False))
         self.assertEqual(actual, expected)
 
+    def test_non_builder_control_flow_cregbundle(self):
+        """Test text draw with non-builder control flow and cregbundle=True.
+
+        Regression test for https://github.com/Qiskit/qiskit/issues/15822.
+        When a circuit is built by composing sub-circuits, the inner control-flow
+        blocks contain Clbit objects that are distinct from the outer circuit's bits.
+        The text drawer must match the builder-style output when cregbundle=True.
+        """
+        # Proves: draw("text", cregbundle=True) renders the same bundled register
+        # labels for compose-style control flow as for builder-style control flow.
+        cell = QuantumCircuit([Qubit(), Clbit()])
+        with cell.if_test(expr.lift(True)):
+            cell.measure(0, 0)
+
+        qc = QuantumCircuit(2, 2)
+        for i in range(2):
+            qc.compose(cell, qubits=[i], clbits=[i], inplace=True)
+
+        expected = QuantumCircuit(2, 2)
+        for i in range(2):
+            with expected.if_test(expr.lift(True)):
+                expected.measure(i, i)
+
+        self.assertEqual(
+            str(circuit_drawer(qc, output="text", cregbundle=True, fold=-1, initial_state=False)),
+            str(
+                circuit_drawer(
+                    expected,
+                    output="text",
+                    cregbundle=True,
+                    fold=-1,
+                    initial_state=False,
+                )
+            ),
+        )
+
+    def test_non_builder_control_flow_cregbundle_false(self):
+        """Test text draw with non-builder control flow and cregbundle=False.
+
+        Proves: the non-builder compose case matches builder-style drawing without
+        bundling, showing the same individual classical bit wires.
+        """
+        # Proves: draw("text", cregbundle=False) matches builder-style control flow.
+        cell = QuantumCircuit([Qubit(), Clbit()])
+        with cell.if_test(expr.lift(True)):
+            cell.measure(0, 0)
+
+        qc = QuantumCircuit(2, 2)
+        for i in range(2):
+            qc.compose(cell, qubits=[i], clbits=[i], inplace=True)
+
+        expected = QuantumCircuit(2, 2)
+        for i in range(2):
+            with expected.if_test(expr.lift(True)):
+                expected.measure(i, i)
+
+        self.assertEqual(
+            str(circuit_drawer(qc, output="text", cregbundle=False, fold=-1, initial_state=False)),
+            str(
+                circuit_drawer(
+                    expected,
+                    output="text",
+                    cregbundle=False,
+                    fold=-1,
+                    initial_state=False,
+                )
+            ),
+        )
+
     def test_control_flow_different_registers(self):
         """Test drawing with control flow where the blocks are defined on separate registers."""
         # define a block on custom registers
