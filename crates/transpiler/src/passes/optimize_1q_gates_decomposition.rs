@@ -352,8 +352,9 @@ pub fn run_optimize_1q_gates_decomposition(
     target: Option<&Target>,
     basis_gates: Option<HashSet<String>>,
     global_decomposers: Option<Vec<String>>,
-) -> PyResult<()> {
+) -> PyResult<bool> {
     let runs: Vec<Vec<NodeIndex>> = dag.collect_1q_runs().unwrap().collect();
+    let mut changed = false;
     let process_run =
         |raw_run: &[NodeIndex], dag: &DAGCircuit| -> PyResult<Option<OneQubitGateSequence>> {
             let mut error = match target {
@@ -461,6 +462,7 @@ pub fn run_optimize_1q_gates_decomposition(
             .zip(sequences)
             .filter_map(|(raw_run, sequence)| sequence.map(|x| (raw_run, x)))
             .try_for_each(|(raw_run, sequence)| -> PyResult<()> {
+                changed = true;
                 for gate in sequence.gates {
                     dag.insert_1q_on_incoming_qubit((gate.0, &gate.1), raw_run[0]);
                 }
@@ -472,6 +474,7 @@ pub fn run_optimize_1q_gates_decomposition(
         for raw_run in runs {
             let sequence = process_run(&raw_run, dag)?;
             if let Some(sequence) = sequence {
+                changed = true;
                 for gate in sequence.gates {
                     dag.insert_1q_on_incoming_qubit((gate.0, &gate.1), raw_run[0]);
                 }
@@ -480,7 +483,7 @@ pub fn run_optimize_1q_gates_decomposition(
             }
         }
     }
-    Ok(())
+    Ok(changed)
 }
 
 #[inline(always)]
