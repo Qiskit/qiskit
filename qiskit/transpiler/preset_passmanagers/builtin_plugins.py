@@ -1042,7 +1042,11 @@ class CliffordTInitPassManager(PassManagerStagePlugin):
                     ContractIdleWiresInControlFlow(),
                 ]
             )
-            init.append(CommutativeOptimization())
+            init.append(
+                CommutativeOptimization(
+                    approximation_degree=pass_manager_config.approximation_degree
+                )
+            )
 
             # We do not want to consolidate blocks for a Clifford+T basis set,
             # since this involves resynthesizing 2-qubit unitaries.
@@ -1161,7 +1165,9 @@ class OptimizeCliffordRZPassManager(PassManagerStagePlugin):
                         approximation_degree=pass_manager_config.approximation_degree,
                         target=pass_manager_config.target,
                     ),
-                    CommutativeOptimization(),
+                    CommutativeOptimization(
+                        approximation_degree=pass_manager_config.approximation_degree
+                    ),
                     ContractIdleWiresInControlFlow(),
                 ]
 
@@ -1188,7 +1194,9 @@ class TranslateToCliffordTPassManager(PassManagerStagePlugin):
     def pass_manager(self, pass_manager_config, optimization_level=None):
         rz_to_t_translation = PassManager(
             [
-                SubstitutePi4Rotations(),
+                SubstitutePi4Rotations(
+                    approximation_degree=pass_manager_config.approximation_degree
+                ),
                 SynthesizeRZRotations(
                     approximation_degree=pass_manager_config.approximation_degree
                 ),
@@ -1242,8 +1250,12 @@ class OptimizeCliffordTPassManager(PassManagerStagePlugin):
             case 2 | 3:
                 loop = [
                     OptimizeCliffordT(basis_gates=basis_gates),
-                    CommutativeOptimization(),
-                    SubstitutePi4Rotations(),
+                    CommutativeOptimization(
+                        approximation_degree=pass_manager_config.approximation_degree
+                    ),
+                    SubstitutePi4Rotations(
+                        approximation_degree=pass_manager_config.approximation_degree
+                    ),
                     ContractIdleWiresInControlFlow(),
                 ]
                 loop_check, continue_loop = _optimization_check_fixed_point()
