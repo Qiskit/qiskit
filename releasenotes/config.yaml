@@ -77,6 +77,11 @@ template: |
 
       See `#15019 <https://github.com/Qiskit/qiskit/issues/15019>`__.
 
+  # Performance release notes are for runtime and output quality improvements which do not 
+  # include API or semantic changes. 
+  performance:
+    - Measurable performance improvements.
+
   # Choose only the "features" sections you need and delete the rest.  Try to be concise.  You may
   # use a code example for complicated features.
   features_c:
@@ -159,8 +164,3 @@ template: |
   # These generally shouldn't concern users, just people building from source.
   build:
     - Changes to the build system that packagers might need to be aware of.
-
-  # Performance release notes are for runtime and output quality improvements which do not 
-  # include API or semantic changes. 
-  performance:
-    - Measurable performance improvements.
