@@ -71,5 +71,7 @@ class RemoveIdentityEquivalent(TransformationPass):
         self._target = target
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
-        remove_identity_equiv(dag, self._approximation_degree, self._target)
+        changed = remove_identity_equiv(dag, self._approximation_degree, self._target)
+        if changed:
+            self.property_set["_opt_pass_changed"] = True
         return dag

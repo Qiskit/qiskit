@@ -517,6 +517,27 @@ def _optimization_check_minimum_point(prefix: str):
     return (setup, check)
 
 
+def _optimization_check_changed_flag():
+    """Loop condition based on per-pass changed flags.
+
+    Each optimization pass sets property_set["_opt_pass_changed"] = True if it
+    modified the DAG. The loop continues only if at least one pass made a change.
+    The reset pass clears the flag at the start of each iteration.
+    """
+    from qiskit.transpiler.basepasses import AnalysisPass
+
+    class _ResetChangedFlag(AnalysisPass):
+        """Reset the _opt_pass_changed flag at the start of each loop iteration."""
+
+        def run(self, dag):
+            self.property_set["_opt_pass_changed"] = False
+
+    def check(property_set):
+        return property_set.get("_opt_pass_changed", False)
+
+    return (_ResetChangedFlag(), check)
+
+
 class OptimizationPassManager(PassManagerStagePlugin):
     """Plugin class for optimization stage"""
 
@@ -557,7 +578,9 @@ class OptimizationPassManager(PassManagerStagePlugin):
                     ContractIdleWiresInControlFlow(),
                 ]
                 post_loop = []
-                loop_check, continue_loop = _optimization_check_fixed_point()
+                reset_changed, continue_loop = _optimization_check_changed_flag()
+                loop = [reset_changed] + loop
+                loop_check = []
             case 3:
                 pre_loop = []
                 loop = [
