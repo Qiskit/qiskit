@@ -1240,8 +1240,11 @@ def _main():
             "QPY backwards comptability loader tests running\n"
             f"generating_version={generating_version}\n"
             f"current_version={current_version}\n"
+            f"QPY version={args.qpy_version if args.qpy_version else 'default'}"
         )
-        qpy_files = generate_circuits(generating_version, current_version, load_context=True)
+        qpy_files = generate_circuits(
+            generating_version, current_version, load_context=True, qpy_version=args.qpy_version
+        )
         load_qpy(qpy_files, generating_version)
 
 

@@ -74,7 +74,7 @@ docker run --rm \
     -v "$PWD":/work \
     -w /work \
     "$docker_tag" \
-    python -u src/test_qpy.py load --version="$dev_version" \
+    python -u src/test_qpy.py load --version="$dev_version" --qpy-version="$qpy_version" \
     || { docker rmi "$docker_tag"; docker builder prune -f; return 1; }
 popd
 
