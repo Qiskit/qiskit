@@ -162,8 +162,11 @@ def generate_preset_pass_manager(
             for the ``scheduling`` stage of the output :class:`~.StagedPassManager`. You can
             see a list of installed plugins by using :func:`~.list_stage_plugins` with
             ``"scheduling"`` for the ``stage_name`` argument.
-        approximation_degree: Heuristic dial used for circuit approximation
-            (1.0=no approximation, 0.0=maximal approximation).
+        approximation_degree: Heuristic dial used for circuit approximation, where
+            ``1.0`` means no approximation (up to numerical tolerance) and ``0.0``
+            means the maximum approximation. A value of ``None`` indicates that
+            approximation is allowed up to the reported error rate for an operation in
+            the target.
         seed_transpiler: Sets random seed for the stochastic parts of
             the transpiler.
         unitary_synthesis_method: The name of the unitary synthesis

@@ -80,11 +80,11 @@ class UnitarySynthesis(TransformationPass):
                 not specified the ``target`` argument must be used. If both this
                 and the ``target`` are specified the value of ``target`` will
                 be used and this will be ignored.
-            approximation_degree: heuristic dial used for circuit approximation
+            approximation_degree: Heuristic dial used for circuit approximation
                 (1.0=no approximation, 0.0=maximal approximation). Approximation can
                 make the synthesized circuit cheaper at the cost of straying from
-                the original unitary. If None, approximation is done based on gate fidelities.
-            coupling_map: the coupling map of the target
+                the original unitary. If ``None``, approximation is done based on gate fidelities.
+            coupling_map: The coupling map of the target
                 in case synthesis is done on a physical circuit. The
                 directionality of the coupling_map will be taken into
                 account if ``pulse_optimize`` is ``True``/``None`` and ``natural_direction``
@@ -121,7 +121,7 @@ class UnitarySynthesis(TransformationPass):
             target: The optional :class:`~.Target` for the target device the pass
                 is compiling for. If specified this will supersede the values
                 set for ``basis_gates`` and ``coupling_map``.
-            fallback_on_default: specifies whether the default synthesis method should be used
+            fallback_on_default: Specifies whether the default synthesis method should be used
                 in the case that a non-default synthesis ``method`` is specified but is either
                 unable to synthesize the operation or the synthesized circuit does not conform
                 to the target.

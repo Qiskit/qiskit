@@ -68,8 +68,11 @@ class PassManagerConfig:
                 be a plugin name if an external scheduling stage plugin is being used.
             instruction_durations: Dictionary of duration
                 (in dt) for each instruction.
-            approximation_degree: heuristic dial used for circuit approximation
-                (1.0=no approximation, 0.0=maximal approximation)
+            approximation_degree: Heuristic dial used for circuit approximation, where
+                ``1.0`` means no approximation (up to numerical tolerance) and ``0.0``
+                means the maximum approximation. A value of ``None`` indicates that
+                approximation is allowed up to the reported error rate for an operation in
+                the target.
             seed_transpiler: Sets random seed for the stochastic parts of
                 the transpiler.
             timing_constraints: Hardware time alignment restrictions.

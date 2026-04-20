@@ -206,9 +206,12 @@ def generate_unroll_3q(
     Args:
         target: the :class:`~.Target` object representing the backend
         basis_gates: A list of str gate names that represent the basis
-            gates on the backend target
-        approximation_degree: The heuristic approximation degree to
-            use. Can be between 0 and 1.
+            gates on the backend target.
+        approximation_degree: Heuristic dial used for circuit approximation, where
+            ``1.0`` means no approximation (up to numerical tolerance) and ``0.0``
+            means the maximum approximation. A value of ``None`` indicates that
+            approximation is allowed up to the reported error rate for an operation in
+            the target.
         unitary_synthesis_method (str): The unitary synthesis method to use. You can see
             a list of installed plugins with :func:`.unitary_synthesis_plugin_names`.
         unitary_synthesis_plugin_config: The optional dictionary plugin
@@ -447,8 +450,11 @@ def generate_translation_passmanager(
         basis_gates: A list of str gate names that represent the basis
             gates on the backend target
         method: The basis translation method to use
-        approximation_degree: The heuristic approximation degree to
-            use. Can be between 0 and 1.
+        approximation_degree: Heuristic dial used for circuit approximation, where
+            ``1.0`` means no approximation (up to numerical tolerance) and ``0.0``
+            means the maximum approximation. A value of ``None`` indicates that
+            approximation is allowed up to the reported error rate for an operation in
+            the target.
         coupling_map: the coupling map of the backend
             in case synthesis is done on a physical circuit. The
             directionality of the coupling_map will be taken into
