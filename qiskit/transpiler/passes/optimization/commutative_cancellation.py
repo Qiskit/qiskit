@@ -85,7 +85,9 @@ class CommutativeCancellation(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        commutation_cancellation.cancel_commutations(
+        changed = commutation_cancellation.cancel_commutations(
             dag, self._commutation_checker, sorted(self.basis)
         )
+        if changed:
+            self.property_set["_opt_pass_changed"] = True
         return dag
