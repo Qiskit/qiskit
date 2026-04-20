@@ -1223,7 +1223,7 @@ pub fn format_float_pi(f: f64) -> Option<String> {
     // pi_str is needed to match the output expected according to the format needed
     let pi_str = "π";
 
-    // f_abs and sign help us working trough each steps
+    // f_abs and sign help us working through each steps
     let f_abs = f.abs();
     let sign = if f < 0.0 { "-" } else { "" };
 
@@ -1262,27 +1262,27 @@ pub fn format_float_pi(f: f64) -> Option<String> {
     let val = PI / f_abs;
     let round = val.round();
     if round >= 1.0 && (val - round).abs() < EPS {
-        let d = round as i64;
+        let d = round as usize;
         let str_out = format!("{}{}/{}", sign, pi_str, d);
         return Some(str_out);
     }
 
-    // Fifth check is for fractions where the numer > 1*pi or > 1 and numer
-    // is up to DENOMINATOR*pi or DENOMINATOR and denom is up to DENOMINATOR or DENOMINATOR*pi and all
-    // fractions are reduced. Ex. 15pi/16, 2pi/5, 15pi/2, 16pi/9 or 15/16pi, 2/5pi, 15/2pi, 16/9pi
-    for d in 1..=DENOMINATOR {
-        for p in 1..=DENOMINATOR {
-            let up = p as f64 / d as f64;
+    // Fifth check is for fractions of the form (numer/denom) * pi or (numer/denom) / pi
+    // where 1 <= numer,denom <= DENOMINATOR, which are not covered in the previous checks.
+    // Ex. 15pi/16, 2pi/5, 15pi/2, 16pi/9 or 15/16pi, 2/5pi, 15/2pi, 16/9pi
+    for denom in 1..=DENOMINATOR {
+        for numer in 1..=DENOMINATOR {
+            let up = numer as f64 / denom as f64;
             let val = up * PI;
             if (f_abs - val).abs() < EPS {
-                let str_out = format!("{}{}{}/{}", sign, p, pi_str, d);
+                let str_out = format!("{}{}{}/{}", sign, numer, pi_str, denom);
                 return Some(str_out);
             }
             let val = up / PI;
             if (f_abs - val).abs() < EPS {
-                let str_out = match d {
-                    1 => format!("{}{}/{}", sign, p, pi_str),
-                    d => format!("{}{}/{}{}", sign, p, d, pi_str),
+                let str_out = match denom {
+                    1 => format!("{}{}/{}", sign, numer, pi_str),
+                    d => format!("{}{}/{}{}", sign, numer, d, pi_str),
                 };
                 return Some(str_out);
             }
@@ -2090,77 +2090,58 @@ q_1: ┤ Ry(🎩) ├┤1          ├┤ 💶🔉(🎩) ├┤1           ├�
         assert_eq!(result, expected.trim_start_matches("\n"));
     }
 
-    // ── helpers ──────────────────────────────────────────────────────────────
-    fn check(input: f64, expected: &str) {
-        assert_eq!(
-            format_float_pi(input).as_deref(),
-            Some(expected),
-            "format_float_pi({input}) should be Some({expected:?})"
-        );
-    }
-    fn check_none(input: f64) {
-        assert_eq!(
-            format_float_pi(input),
-            None,
-            "format_float_pi({input}) should be None"
-        );
-    }
-
     #[test]
     fn test_format_float_pi() {
-        let some = [
-            (0.0, "0"),
-            (-0.0, "0"),
-            (1e-12, "0"),
-            (PI, "π"),
-            (-PI, "-π"),
-            (2.0 * PI, "2π"),
-            (3.0 * PI, "3π"),
-            (10.0 * PI, "10π"),
-            (16.0 * PI, "16π"),
-            (-2.0 * PI, "-2π"),
-            (-5.0 * PI, "-5π"),
-            (PI.powi(2), "π^2"),
-            (-PI.powi(2), "-π^2"),
-            (PI.powi(3), "π^3"),
-            (PI.powi(4), "π^4"),
-            (PI / 2.0, "π/2"),
-            (PI / 3.0, "π/3"),
-            (PI / 4.0, "π/4"),
-            (PI / 6.0, "π/6"),
-            (-PI / 2.0, "-π/2"),
-            (2.0 * PI / 3.0, "2π/3"),
-            (3.0 * PI / 4.0, "3π/4"),
-            (5.0 * PI / 6.0, "5π/6"),
-            (7.0 * PI / 4.0, "7π/4"),
-            (15.0 * PI / 16.0, "15π/16"),
-            (-2.0 * PI / 3.0, "-2π/3"),
-            (1.0 / PI, "1/π"),
-            (2.0 / PI, "2/π"),
-            (1.0 / (2.0 * PI), "1/2π"),
-            (3.0 / (4.0 * PI), "3/4π"),
-            (-1.0 / PI, "-1/π"),
-            (-1.0 / (2.0 * PI), "-1/2π"),
+        let test_points = [
+            (0.0, Some("0")),
+            (-0.0, Some("0")),
+            (1e-12, Some("0")),
+            (PI, Some("π")),
+            (-PI, Some("-π")),
+            (2.0 * PI, Some("2π")),
+            (3.0 * PI, Some("3π")),
+            (10.0 * PI, Some("10π")),
+            (16.0 * PI, Some("16π")),
+            (-2.0 * PI, Some("-2π")),
+            (-5.0 * PI, Some("-5π")),
+            (PI.powi(2), Some("π^2")),
+            (-PI.powi(2), Some("-π^2")),
+            (PI.powi(3), Some("π^3")),
+            (PI.powi(4), Some("π^4")),
+            (PI / 2.0, Some("π/2")),
+            (PI / 3.0, Some("π/3")),
+            (PI / 4.0, Some("π/4")),
+            (PI / 6.0, Some("π/6")),
+            (-PI / 2.0, Some("-π/2")),
+            (2.0 * PI / 3.0, Some("2π/3")),
+            (3.0 * PI / 4.0, Some("3π/4")),
+            (5.0 * PI / 6.0, Some("5π/6")),
+            (7.0 * PI / 4.0, Some("7π/4")),
+            (15.0 * PI / 16.0, Some("15π/16")),
+            (-2.0 * PI / 3.0, Some("-2π/3")),
+            (1.0 / PI, Some("1/π")),
+            (2.0 / PI, Some("2/π")),
+            (1.0 / (2.0 * PI), Some("1/2π")),
+            (3.0 / (4.0 * PI), Some("3/4π")),
+            (-1.0 / PI, Some("-1/π")),
+            (-1.0 / (2.0 * PI), Some("-1/2π")),
+            (-18.0 / 16.0 * PI, Some("-9π/8")),
+            (60.0 / 44.0 / PI, Some("15/11π")),
+            (17.0 * PI + 1.0, None),
+            (100.0, None),
+            (1.0, None),
+            (2.0, None),
+            (1.5, None),
+            (-7.3, None),
+            (PI + 1e-6, None),
+            (PI - 1e-6, None),
+            (PI / 2.0 + 1e-6, None),
+            (17.0 * PI / 2.0, None),
+            (9.0 / (17.0 * PI), None),
         ];
 
-        for element in some {
-            check(element.0, element.1);
-        }
-
-        let none = [
-            17.0 * PI + 1.0,
-            100.0,
-            1.0,
-            2.0,
-            1.5,
-            -7.3,
-            PI + 1e-6,
-            PI - 1e-6,
-            PI / 2.0 + 1e-6,
-        ];
-
-        for val in none {
-            check_none(val);
+        for test in test_points {
+            assert_eq!(format_float_pi(test.0), test.1.map(|s| s.to_string()));
         }
     }
 }
