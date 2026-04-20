@@ -91,8 +91,6 @@ def generate_random_circuits(version):
                 qc.if_else(condition, body, None, [qc.qubits[0]], [])
             else:
                 qc.x(0).c_if(qc.cregs[0], i)
-        for j in range(i):
-            qc.measure(j, j)
         random_circuits.append(qc)
     return random_circuits
 
@@ -1051,7 +1049,8 @@ def assert_equal(
             sys.exit(1)
     elif reference != qpy:
         msg = (
-            f"QPY Error: \nReference Circuit {count}:\n{reference}\nis not equivalent to "
+            f"QPY Error: \nFor {context}:\n"
+            f"Reference Circuit {count}:\n{reference}\nis not equal to "
             f"qpy loaded circuit {count}:\n{qpy}\n"
         )
         sys.stderr.write(msg)
@@ -1140,7 +1139,11 @@ def load_qpy(qpy_files, generating_version):
             msg = f"QPY Error: Failed to load {path} with the exception: {ex}\n"
             sys.stderr.write(msg)
             sys.exit(1)
-        equivalent = path in {"open_controlled_gates.qpy", "controlled_gates.qpy"}
+        equivalent = (path in {"open_controlled_gates.qpy", "controlled_gates.qpy"}) or (
+            path == "multiple.qpy"
+            and generating_version.release
+            < (2, 0)  # 1.4.x used conditionals directly on gates, but loaded using c_if wrappers
+        )
         for i, circuit in enumerate(circuits):
             bind = None
             if path == "parameterized.qpy":
@@ -1231,7 +1234,7 @@ def _main():
         )
         generate_qpy(qpy_files, qpy_version=args.qpy_version)
     else:
-        print(
+        print(  # noqa: T201
             "QPY backwards comptability loader tests running\n"
             f"generating_version={generating_version}\n"
             f"current_version={current_version}\n"
