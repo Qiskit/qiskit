@@ -116,6 +116,11 @@ fn test_pauli_compose() {
         pauli_x: vec![false],
         pauli_phase: 0,
     }; // Z
+    let pi = Pauli {
+        pauli_z: vec![false],
+        pauli_x: vec![false],
+        pauli_phase: 0,
+    }; // I
 
     let pauli_out = pauli_compose(&px, &py);
     let pauli_exp = Pauli {
@@ -164,6 +169,12 @@ fn test_pauli_compose() {
         pauli_phase: 3,
     }; // iX
     assert_eq!(pauli_out, pauli_exp);
+
+    let pauli_out = pauli_compose(&pi, &px);
+    assert_eq!(pauli_out, px);
+
+    let pauli_out = pauli_compose(&py, &pi);
+    assert_eq!(pauli_out, py);
 
     let pxx = Pauli {
         pauli_z: vec![false, false],
@@ -237,7 +248,17 @@ fn test_evolve_1_qubit() {
         pauli_z: vec![true],
         pauli_x: vec![false],
         pauli_phase: 2,
-    }; // Z
+    }; // -Z
+    let pi = Pauli {
+        pauli_z: vec![false],
+        pauli_x: vec![false],
+        pauli_phase: 0,
+    }; // I
+    let pi_min = Pauli {
+        pauli_z: vec![false],
+        pauli_x: vec![false],
+        pauli_phase: 2,
+    }; // -I
 
     let pauli_out = evolve_pauli_by_clifford(&px, &cliff_s); // -Y
     assert_eq!(pauli_out, py_min);
@@ -265,6 +286,12 @@ fn test_evolve_1_qubit() {
 
     let pauli_out = evolve_pauli_by_clifford(&pz, &cliff_h); // X
     assert_eq!(pauli_out, px);
+
+    let pauli_out = evolve_pauli_by_clifford(&pi, &cliff_h); // I
+    assert_eq!(pauli_out, pi);
+
+    let pauli_out = evolve_pauli_by_clifford(&pi_min, &cliff_h); // -I
+    assert_eq!(pauli_out, pi_min);
 
     let pauli_out = evolve_pauli_by_clifford(&px, &cliff_sx); // X
     assert_eq!(pauli_out, px);
@@ -360,6 +387,11 @@ fn test_evolve_2_qubits() {
         pauli_x: vec![false, true],
         pauli_phase: 3,
     }; // iYX
+    let pii = Pauli {
+        pauli_z: vec![false, false],
+        pauli_x: vec![false, false],
+        pauli_phase: 0,
+    }; // II
 
     let pauli_out = evolve_pauli_by_clifford(&pxx, &cliff);
     assert_eq!(pauli_out, pxz_min);
@@ -381,4 +413,7 @@ fn test_evolve_2_qubits() {
 
     let pauli_out = evolve_pauli_by_clifford(&pyx_im, &cliff);
     assert_eq!(pauli_out, pyi_im);
+
+    let pauli_out = evolve_pauli_by_clifford(&pii, &cliff);
+    assert_eq!(pauli_out, pii);
 }
