@@ -84,13 +84,15 @@ def generate_random_circuits(version):
         qc.measure_all()
         for j in range(i):
             qc.reset(j)
-            if version.release >= (2, 0, 0):
+            if version.release >= (1, 4, 0):
                 condition = (qc.cregs[0], i)
                 body = QuantumCircuit([qc.qubits[0]])
                 body.x(0)
                 qc.if_else(condition, body, None, [qc.qubits[0]], [])
             else:
                 qc.x(0).c_if(qc.cregs[0], i)
+        for j in range(i):
+            qc.measure(j, j)
         random_circuits.append(qc)
     return random_circuits
 
@@ -254,7 +256,7 @@ def generate_single_clbit_condition_teleportation(version):
     teleport_qc = QuantumCircuit(qr, cr, name="Reset Test")
     teleport_qc.x(0)
     teleport_qc.measure(0, cr[0])
-    if version.release >= (2, 0, 0):
+    if version.release >= (1, 4, 0):
         condition = (cr[0], 1)
         body = QuantumCircuit([teleport_qc.qubits[0]])
         body.x(0)
@@ -1016,7 +1018,11 @@ def generate_circuits(generating_version, current_version, load_context=False, q
         if not Version("2.2.0rc1") <= generating_version <= Version("2.4.0rc2"):
             output_circuits["replay_with_cancellations.qpy"] = generate_replay_with_cancellations()
 
-    if generating_version.release >= (2, 0, 0) and (qpy_version is None or qpy_version > 13):
+    if (
+        generating_version.release >= (2, 0, 0)
+        and (qpy_version is None or qpy_version > 13)
+        and current_version.release >= (2, 0, 0)
+    ):
         output_circuits["v14_expr.qpy"] = generate_v14_expr()
         output_circuits["box.qpy"] = generate_box()
     return output_circuits
@@ -1139,11 +1145,7 @@ def load_qpy(qpy_files, generating_version):
             msg = f"QPY Error: Failed to load {path} with the exception: {ex}\n"
             sys.stderr.write(msg)
             sys.exit(1)
-        equivalent = (path in {"open_controlled_gates.qpy", "controlled_gates.qpy"}) or (
-            path == "multiple.qpy"
-            and generating_version.release
-            < (2, 0)  # 1.4.x used conditionals directly on gates, but loaded using c_if wrappers
-        )
+        equivalent = path in {"open_controlled_gates.qpy", "controlled_gates.qpy"}
         for i, circuit in enumerate(circuits):
             bind = None
             if path == "parameterized.qpy":
