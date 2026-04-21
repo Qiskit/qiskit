@@ -163,12 +163,9 @@ def transpile(
             If ``None`` (default), ``backend.dt`` is used.
         approximation_degree (float): heuristic dial used for circuit approximation
             (1.0=no approximation, 0.0=maximal approximation)
-        seed_transpiler: Sets random seed for the stochastic parts of the transpiler. If this
-            is not specified here it can also be specified via an environment variable:
-            ``QISKIT_TRANSPILER_SEED`` or in a user configuration file. The priority order is
-            this argument, then the environment variable, and finally the user configuration
-            option. So setting this argument will take precedence over the other methods of
-            setting a seed.
+        seed_transpiler: Sets a seed for the PRNG used by the stochastic parts of the transpiler.
+            This parameter takes precedence over the ``QISKIT_TRANSPILER_SEED`` environment 
+            variable and ``transpiler_seed`` setting in the user configuration file .
         optimization_level: How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
             at the expense of longer transpilation time.

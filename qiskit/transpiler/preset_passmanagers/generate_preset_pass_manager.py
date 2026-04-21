@@ -162,9 +162,9 @@ def generate_preset_pass_manager(
         approximation_degree (float): Heuristic dial used for circuit approximation
             (1.0=no approximation, 0.0=maximal approximation).
         seed_transpiler (int): Sets random seed for the stochastic parts of
-            the transpiler. is not specified here it can also be specified via an environment
+            the transpiler. If it is not specified here it can also be specified via an environment
             variable: ``QISKIT_TRANSPILER_SEED`` or in a user configuration file. The priority
-            order is this argument, then the environment variable, and finally the user
+            order is: this argument, then the environment variable, and finally the user
             configuration option. So setting this argument will take precedence over the other
             methods of setting a seed.
         unitary_synthesis_method (str): The name of the unitary synthesis

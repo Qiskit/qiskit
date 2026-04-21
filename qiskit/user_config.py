@@ -220,7 +220,7 @@ class UserConfig:
             if transpiler_seed is not None:
                 if transpiler_seed < 0:
                     raise exceptions.QiskitUserConfigError(
-                        "transpiler_seed in the user configuration file not a valid seed value. It "
+                        "transpiler_seed in the user configuration file is a negative int. It "
                         "must be a non-negative integer."
                     )
                 self.settings["transpiler_seed"] = transpiler_seed
