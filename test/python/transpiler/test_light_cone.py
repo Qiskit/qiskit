@@ -21,12 +21,17 @@ from qiskit.circuit import (
     Parameter,
     QuantumCircuit,
 )
-from qiskit.circuit.library import real_amplitudes, PauliProductRotationGate, PauliProductMeasurement
+from qiskit.circuit.library import (
+    real_amplitudes,
+    PauliProductRotationGate,
+    PauliProductMeasurement,
+)
 from qiskit.circuit.library.n_local.efficient_su2 import efficient_su2
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info import SparsePauliOp, SparseObservable, Pauli
 from qiskit.transpiler.passes.optimization.light_cone import LightCone
 from qiskit.transpiler.passmanager import PassManager
+
 
 @ddt.ddt
 class TestLightConePass(QiskitTestCase):
@@ -414,6 +419,7 @@ class TestLightConePass(QiskitTestCase):
         expected.measure(1, 1)
 
         self.assertEqual(expected, new_circuit)
+
 
 if __name__ == "__main__":
     unittest.main()
