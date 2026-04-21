@@ -204,10 +204,6 @@ def generate_preset_pass_manager(
     """
     config = user_config.get_config()
 
-    new_optimization = 2
-    if optimization_level is None:
-        new_optimization = config.get("transpile_optimization_level", 2)
-
     if seed_transpiler is None:
         if seed := os.getenv("QISKIT_TRANSPILER_SEED", None) is not None:
             seed_transpiler = int(seed)
@@ -218,11 +214,11 @@ def generate_preset_pass_manager(
     # pattern `generate_preset_pass_manager(backend.target)` to generate a default
     # pass manager for a given target.
     if isinstance(optimization_level, Target):
-        target = optimization_level
-        optimization_level = new_optimization
+        target, optimization_level = optimization_level, None
     elif isinstance(optimization_level, Backend):
-        backend = optimization_level
-        optimization_level = new_optimization
+        backend, optimization_level = optimization_level, None
+    if optimization_level is None:
+        optimization_level = config.get("transpile_optimization_level", 2)
 
     # If there are no loose constraints => use backend target if available
     _no_loose_constraints = basis_gates is None and coupling_map is None and dt is None
