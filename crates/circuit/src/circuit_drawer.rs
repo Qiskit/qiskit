@@ -1104,7 +1104,7 @@ impl TextDrawer {
                             let right_pad = width - 2;
 
                             return TextWireElement {
-                                top: " ".repeat(width),
+                                top: format!(" {}{}", CONNECTING_WIRE, " ".repeat(right_pad)),
                                 mid: format!(
                                     "{}{}{}",
                                     Q_WIRE,
@@ -2269,6 +2269,36 @@ q_1: ┤ Ry(🎩) ├┤1          ├┤ 💶🔉(🎩) ├┤1           ├�
 
         circuit
             .push_standard_gate(StandardGate::CX, &[], &[Qubit(0), Qubit(2)])
+            .unwrap();
+
+        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        println!("=======");
+        println!("{result}");
+        println!("=======");
+    }
+
+    #[test]
+    #[ignore = "temporary debug printer for mixed 3-qubit control and cphase output"]
+    fn debug_print_mixed_three_qubit_output() {
+        let qubits = vec![
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+        ];
+        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
+
+        circuit
+            .push_standard_gate(StandardGate::CX, &[], &[Qubit(1), Qubit(2)])
+            .unwrap();
+        circuit
+            .push_standard_gate(
+                StandardGate::CPhase,
+                &[Param::Float(0.5)],
+                &[Qubit(0), Qubit(2)],
+            )
+            .unwrap();
+        circuit
+            .push_standard_gate(StandardGate::CX, &[], &[Qubit(0), Qubit(1)])
             .unwrap();
 
         let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
