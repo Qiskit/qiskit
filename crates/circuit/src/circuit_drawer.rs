@@ -1097,18 +1097,39 @@ impl TextDrawer {
                         }
                         .to_string();
                     }
-                } else {
-                    top = CONNECTING_WIRE.to_string();
-                    bot = CONNECTING_WIRE.to_string();
-                    mid = {
-                        if ind < circuit.num_qubits() {
-                            Q_Q_CROSSED_WIRE
-                        } else {
-                            Q_CL_CROSSED_WIRE
+                    } else {
+                        if inst.op.try_standard_gate() == Some(StandardGate::CPhase) {
+                            let label = Self::get_label(inst);
+                            let width = label.width() + 3;
+                            let right_pad = width - 2;
+
+                            return TextWireElement {
+                                top: " ".repeat(width),
+                                mid: format!(
+                                    "{}{}{}",
+                                    Q_WIRE,
+                                    if ind < circuit.num_qubits() {
+                                        Q_Q_CROSSED_WIRE
+                                    } else {
+                                        Q_CL_CROSSED_WIRE
+                                    },
+                                    Q_WIRE.to_string().repeat(right_pad)
+                                ),
+                                bot: format!(" {}{}", CONNECTING_WIRE, " ".repeat(right_pad)),
+                            };
                         }
+
+                        top = CONNECTING_WIRE.to_string();
+                        bot = CONNECTING_WIRE.to_string();
+                        mid = {
+                            if ind < circuit.num_qubits() {
+                                Q_Q_CROSSED_WIRE
+                            } else {
+                                Q_CL_CROSSED_WIRE
+                            }
+                        }
+                        .to_string();
                     }
-                    .to_string();
-                }
             }
             VisualizationElement::Empty => {
                 top = " ".to_string();
@@ -1195,6 +1216,25 @@ impl TextDrawer {
                 ));
             }
             for wire_idx in 0..wire_strings.len() {
+                if wire_idx % 3 == 0 {
+                    let row = &wire_strings[wire_idx];
+                    let elements = &self.wires[wire_idx / 3][start..end];
+                    let trimmed = row.trim_matches(' ');
+                    let suppressible_row =
+                        trimmed.is_empty() || trimmed.chars().all(|ch| ch == CONNECTING_WIRE);
+                    let inline_connector_layout = elements.iter().all(|elem| {
+                        elem.width() > 3
+                            && elem.top.width() == elem.mid.width()
+                            && elem.bot.width() == elem.mid.width()
+                            && (elem.mid.contains(BULLET)
+                                || elem.mid.contains(Q_Q_CROSSED_WIRE)
+                                || elem.mid.contains(Q_CL_CROSSED_WIRE))
+                    });
+                    if inline_connector_layout && suppressible_row {
+                        continue;
+                    }
+                }
+
                 if mergewires && wire_idx % 3 == 2 && wire_idx < wire_strings.len() - 3 {
                     // Merge the bot_line of the this wire with the top_line of the next wire
                     let merged_line =
@@ -2194,5 +2234,46 @@ q_1: ┤ Ry(🎩) ├┤1          ├┤ 💶🔉(🎩) ├┤1           ├�
         for test in test_points {
             assert_eq!(format_float_pi(test.0), test.1.map(|s| s.to_string()));
         }
+    #[ignore = "temporary debug printer for CPhase output"]
+    fn debug_print_cphase_output() {
+        let qubits = vec![
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+        ];
+        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
+
+        circuit
+            .push_standard_gate(
+                StandardGate::CPhase,
+                &[Param::Float(0.5)],
+                &[Qubit(0), Qubit(2)],
+            )
+            .unwrap();
+
+        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        println!("=======");
+        println!("{result}");
+        println!("=======");
+    }
+
+    #[test]
+    #[ignore = "temporary debug printer for controlled-gate output"]
+    fn debug_print_control_gate_output() {
+        let qubits = vec![
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+        ];
+        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
+
+        circuit
+            .push_standard_gate(StandardGate::CX, &[], &[Qubit(0), Qubit(2)])
+            .unwrap();
+
+        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        println!("=======");
+        println!("{result}");
+        println!("=======");
     }
 }
