@@ -1006,27 +1006,47 @@ impl TextDrawer {
                         ("   ".to_string(), "|0>".to_string(), "   ".to_string())
                     },
                     OnWireElement::CPhaseEndpoint(inst) => {
-                        let (minima, maxima) =
-                            get_instruction_range(circuit.get_qargs(inst.qubits), &[], 0);
-                        (
-                            if ind == minima {
-                                " ".to_string()
+                        let qargs = circuit.get_qargs(inst.qubits);
+                        let (minima, maxima) = get_instruction_range(qargs, &[], 0);
+                        let label = Self::get_label(inst);
+                        let width = label.width() + 3;
+                        let right_pad = width - 2;
+
+                        return TextWireElement {
+                            top: if ind == maxima {
+                                format!(" {}{}", CONNECTING_WIRE, " ".repeat(width - 2))
                             } else {
-                                CONNECTING_WIRE.to_string()
+                                " ".repeat(width)
                             },
-                            BULLET.to_string(),
-                            if ind == maxima {
-                                " ".to_string()
+                            mid: format!(
+                                "{}{}{}",
+                                Q_WIRE,
+                                BULLET,
+                                Q_WIRE.to_string().repeat(right_pad)
+                            ),
+                            bot: if ind == minima {
+                                format!(
+                                    " {}{}{}",
+                                    CONNECTING_WIRE,
+                                    label,
+                                    " ".repeat(width - label.width() - 2)
+                                )
                             } else {
-                                CONNECTING_WIRE.to_string()
+                                " ".repeat(width)
                             },
-                        )
+                        };
                     },  
                 };
 
-                top = format!(" {} ", wire_top);
-                mid = format!("{}{}{}", Q_WIRE, wire_symbol, Q_WIRE);
-                bot = format!(" {} ", wire_bot);
+                if matches!(on_wire, OnWireElement::CPhaseEndpoint(_)) {
+                    top = wire_top;
+                    mid = wire_symbol;
+                    bot = wire_bot;
+                } else {
+                    top = format!(" {} ", wire_top);
+                    mid = format!("{}{}{}", Q_WIRE, wire_symbol, Q_WIRE);
+                    bot = format!(" {} ", wire_bot);
+                }
             }
             VisualizationElement::Input(input) => {
                 let input_name = input.get_name(circuit).unwrap_or_else(|| match input {
