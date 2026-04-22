@@ -208,9 +208,12 @@ impl WireInputElement<'_> {
 #[derive(Clone, Debug, Copy)]
 enum OnWireElement<'a> {
     Control(&'a PackedInstruction),
+    // Distinguishes a a normal contrl dot from a CPhase endpoint that needs
+    // special spacing and label placement
+    CPhaseEndpoint(&'a PackedInstruction),
     Swap(&'a PackedInstruction),
     Barrier,
-    Reset,
+    Reset, 
 }
 
 /// Represent elements that appear in a boxed operation.
@@ -369,8 +372,7 @@ impl<'a> VisualizationLayer<'a> {
             | StandardGate::CCX
             | StandardGate::CCZ
             | StandardGate::C3X
-            | StandardGate::C3SX
-            | StandardGate::CPhase => {
+            | StandardGate::C3SX => {
                 self.0[qargs.last().unwrap().index()] =
                     VisualizationElement::Boxed(BoxedElement::Single(inst));
                 if gate.num_ctrl_qubits() > 0 {
@@ -382,6 +384,15 @@ impl<'a> VisualizationLayer<'a> {
                             .map(|q| q.index())
                             .collect(),
                     );
+                }
+
+                let vert_lines = (minima..=maxima)
+                    .filter(|idx| !(qargs.iter().map(|q| q.0 as usize)).contains(idx));
+                self.add_vertical_lines(vert_lines, inst);
+            }
+            | StandardGate::CPhase => {
+                for q in qargs {
+                    self.0[q.index()] = VisualizationElement::DirectOnWire(OnWireElement::CPhaseEndpoint(inst));
                 }
 
                 let vert_lines = (minima..=maxima)
@@ -604,6 +615,7 @@ impl Debug for VisualizationMatrix<'_> {
                         OnWireElement::Control(_) => "■",
                         OnWireElement::Reset => "|0>",
                         OnWireElement::Swap(_) => "x",
+                        OnWireElement::CPhaseEndpoint(_) => "■",
                     },
                     VisualizationElement::Boxed(_) => "[ ]",
                 };
@@ -992,7 +1004,24 @@ impl TextDrawer {
                     ),
                     OnWireElement::Reset => {
                         ("   ".to_string(), "|0>".to_string(), "   ".to_string())
-                    }
+                    },
+                    OnWireElement::CPhaseEndpoint(inst) => {
+                        let (minima, maxima) =
+                            get_instruction_range(circuit.get_qargs(inst.qubits), &[], 0);
+                        (
+                            if ind == minima {
+                                " ".to_string()
+                            } else {
+                                CONNECTING_WIRE.to_string()
+                            },
+                            BULLET.to_string(),
+                            if ind == maxima {
+                                " ".to_string()
+                            } else {
+                                CONNECTING_WIRE.to_string()
+                            },
+                        )
+                    },  
                 };
 
                 top = format!(" {} ", wire_top);
