@@ -384,8 +384,7 @@ impl PauliLindbladMap {
         Ok(log_fid.exp())
     }
 
-    /// Sample sign and Pauli operator pairs from the map.
-    /// Note that here the "sign" bool is interpreted as the exponent of (-1)^b.
+    /// Equal to parity_sample_generators but don't return the extra generator information
     pub fn parity_sample(
         &self,
         num_samples: u64,
@@ -393,63 +392,13 @@ impl PauliLindbladMap {
         scale: Option<f64>,
         local_scale: Option<Vec<f64>>,
     ) -> (Vec<bool>, QubitSparsePauliList) {
-        let mut rng = match seed {
-            Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-            None => Pcg64Mcg::try_from_rng(&mut SysRng).unwrap(),
-        };
-        let modified_probabilities;
-        let modified_non_negative_rates;
-        let (probabilities, non_negative_rates) = if local_scale.is_some() || scale.is_some() {
-            let global = scale.unwrap_or(1.);
-            let locals = local_scale.as_ref();
-            let rates = self
-                .rates
-                .iter()
-                .enumerate()
-                .map(|(i, rate)| *rate * locals.map(|locals| locals[i]).unwrap_or(1.) * global)
-                .collect::<Vec<_>>();
-            (_, modified_probabilities, modified_non_negative_rates) =
-                derived_values_from_rates(&rates);
-            (
-                modified_probabilities.as_slice(),
-                modified_non_negative_rates.as_slice(),
-            )
-        } else {
-            (
-                self.probabilities.as_slice(),
-                self.non_negative_rates.as_slice(),
-            )
-        };
-        let mut random_signs = Vec::with_capacity(num_samples as usize);
-        let mut random_paulis = QubitSparsePauliList::empty(self.num_qubits());
-
-        for _ in 0..num_samples {
-            let mut random_sign = false;
-            let mut random_pauli = QubitSparsePauli::identity(self.num_qubits());
-
-            for ((probability, generator), non_negative_rate) in probabilities
-                .iter()
-                .zip(self.qubit_sparse_pauli_list.iter())
-                .zip(non_negative_rates.iter())
-            {
-                // Sample true or false with given probability. If false, apply the Pauli
-                if !Bernoulli::new(*probability).unwrap().sample(&mut rng) {
-                    random_pauli = random_pauli.compose(&generator.to_term()).unwrap();
-                    // if rate is negative, flip random_sign
-                    random_sign = random_sign == *non_negative_rate;
-                }
-            }
-
-            random_signs.push(random_sign);
-            random_paulis
-                .add_qubit_sparse_pauli(random_pauli.view())
-                .unwrap();
-        }
-
+        let (random_signs, random_paulis, _, _) =
+            self.parity_sample_generators(num_samples, seed, scale, local_scale);
         (random_signs, random_paulis)
     }
 
-    /// Equal to parity_sample but also preserving the information which generators were sampled.
+    /// Sample sign and Pauli operator pairs from the map.
+    /// Note that here the "sign" bool is interpreted as the exponent of (-1)^b.
     #[allow(clippy::type_complexity)]
     pub fn parity_sample_generators(
         &self,
