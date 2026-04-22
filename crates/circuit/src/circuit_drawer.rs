@@ -2236,8 +2236,8 @@ q_1: ┤ Ry(🎩) ├┤1          ├┤ 💶🔉(🎩) ├┤1           ├�
         }
     #[ignore = "temporary debug printer for CPhase output"]
     fn debug_print_cphase_output() {
+    fn test_cphase_two_qubits() {
         let qubits = vec![
-            ShareableQubit::new_anonymous(),
             ShareableQubit::new_anonymous(),
             ShareableQubit::new_anonymous(),
         ];
@@ -2247,69 +2247,22 @@ q_1: ┤ Ry(🎩) ├┤1          ├┤ 💶🔉(🎩) ├┤1           ├�
             .push_standard_gate(
                 StandardGate::CPhase,
                 &[Param::Float(0.5)],
-                &[Qubit(0), Qubit(2)],
+                &[Qubit(0), Qubit(1)],
             )
             .unwrap();
 
         let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
-        println!("=======");
         println!("{result}");
-        println!("=======");
+        let expected = "
+q_0: ─■───────
+      │P(0.5)
+q_1: ─■───────
+";
+        assert_eq!(result, expected.trim_start_matches("\n"));
     }
 
     #[test]
-    #[ignore = "temporary debug printer for controlled-gate output"]
-    fn debug_print_control_gate_output() {
-        let qubits = vec![
-            ShareableQubit::new_anonymous(),
-            ShareableQubit::new_anonymous(),
-            ShareableQubit::new_anonymous(),
-        ];
-        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
-
-        circuit
-            .push_standard_gate(StandardGate::CX, &[], &[Qubit(0), Qubit(2)])
-            .unwrap();
-
-        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
-        println!("=======");
-        println!("{result}");
-        println!("=======");
-    }
-
-    #[test]
-    #[ignore = "temporary debug printer for mixed 3-qubit control and cphase output"]
-    fn debug_print_mixed_three_qubit_output() {
-        let qubits = vec![
-            ShareableQubit::new_anonymous(),
-            ShareableQubit::new_anonymous(),
-            ShareableQubit::new_anonymous(),
-        ];
-        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
-
-        circuit
-            .push_standard_gate(StandardGate::CX, &[], &[Qubit(1), Qubit(2)])
-            .unwrap();
-        circuit
-            .push_standard_gate(
-                StandardGate::CPhase,
-                &[Param::Float(0.5)],
-                &[Qubit(0), Qubit(2)],
-            )
-            .unwrap();
-        circuit
-            .push_standard_gate(StandardGate::CX, &[], &[Qubit(0), Qubit(1)])
-            .unwrap();
-
-        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
-        println!("=======");
-        println!("{result}");
-        println!("=======");
-    }
-
-    #[test]
-    #[ignore = "temporary debug printer for reverse-order cphase output"]
-    fn debug_print_reverse_cphase_output() {
+    fn test_cphase_three_qubits_reversed_order() {
         let qubits = vec![
             ShareableQubit::new_anonymous(),
             ShareableQubit::new_anonymous(),
@@ -2326,14 +2279,18 @@ q_1: ┤ Ry(🎩) ├┤1          ├┤ 💶🔉(🎩) ├┤1           ├�
             .unwrap();
 
         let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
-        println!("=======");
-        println!("{result}");
-        println!("=======");
+        let expected = "
+q_0: ─■───────
+      │P(0.5)
+q_1: ─┼───────
+      │
+q_2: ─■───────
+";
+        assert_eq!(result, expected.trim_start_matches("\n"));
     }
 
     #[test]
-    #[ignore = "temporary debug printer for complex mixed-gate output"]
-    fn debug_print_complex_mixed_output() {
+    fn test_cphase_complex_mixed_gates() {
         let qubits = vec![
             ShareableQubit::new_anonymous(),
             ShareableQubit::new_anonymous(),
@@ -2370,8 +2327,19 @@ q_1: ┤ Ry(🎩) ├┤1          ├┤ 💶🔉(🎩) ├┤1           ├�
             .unwrap();
 
         let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
-        println!("=======");
-        println!("{result}");
-        println!("=======");
+        let expected = "
+q_0: ──■─────────────■──────■────────
+       │             │      │P(1.25)
+       │             │      │
+q_1: ──┼───■─────────┼───X──■────────
+       │   │P(0.5)   │   │
+       │   │       ┌─┴─┐ │
+q_2: ──┼───┼───────┤ Z ├─X─────■─────
+       │   │       └───┘       │
+     ┌─┴─┐ │                 ┌─┴─┐
+q_3: ┤ X ├─■─────────────────┤ X ├───
+     └───┘                   └───┘
+";
+        assert_eq!(result, expected);
     }
 }
