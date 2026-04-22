@@ -18,7 +18,7 @@ import tempfile
 import numpy as np
 import scipy
 
-from ddt import ddt, data
+from ddt import ddt, data, unpack
 
 from qiskit import transpile
 from qiskit.circuit import QuantumCircuit, Parameter
@@ -36,7 +36,7 @@ from qiskit.circuit.library import (
 )
 from qiskit.circuit import QuantumRegister
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.quantum_info import Operator
+from qiskit.quantum_info import Operator, get_clifford_gate_names
 from qiskit.synthesis.discrete_basis.generate_basis_approximations import (
     generate_basic_approximations,
 )
@@ -45,6 +45,8 @@ from qiskit.transpiler.passes import UnitarySynthesis, Collect1qRuns, Consolidat
 from qiskit.transpiler.passes.synthesis import SolovayKitaev, SolovayKitaevSynthesis
 from qiskit.synthesis.discrete_basis import SolovayKitaevDecomposition
 from test import QiskitTestCase, combine
+
+CLIFFORD_T = get_clifford_gate_names() + ["t", "tdg"]
 
 
 def _trace_distance(circuit1, circuit2):
@@ -98,6 +100,40 @@ class TestSolovayKitaev(QiskitTestCase):
         diff = _trace_distance(circuit, compiled)
         self.assertLess(diff, 1e-4)
         self.assertEqual(set(compiled.count_ops().keys()), {"h", "t", "tdg", "cx"})
+
+    @data(
+        (2, (50, 100), (1e-2, 1e-1)), (3, (300, 400), (1e-3, 1e-2)), (4, (1800, 2200), (5e-5, 5e-4))
+    )
+    @unpack
+    def test_transpile(self, degree, t_range, error_range):
+        """Test calling the plugin via the transpile function.
+
+        We test a range for T and the error to ensure the SK plugin is called with the right inputs.
+        Only an upper limit would allow to use a better subroutine, but we want to ensure
+        SK is actually called.
+        """
+
+        circuit = QuantumCircuit(1)
+        circuit.rz(0.1, 0)
+
+        out = transpile(
+            circuit,
+            basis_gates=CLIFFORD_T,
+            unitary_synthesis_method="sk",
+            unitary_synthesis_plugin_config={"recursion_degree": degree},
+        )
+        ops = out.count_ops()
+
+        with self.subTest(msg="discrete gate set"):
+            self.assertTrue(set(ops.keys()).issubset(CLIFFORD_T))
+
+        with self.subTest(t_range=t_range):
+            t_count = ops.get("t", 0) + ops.get("tdg", 0)
+            self.assertTrue(t_range[0] <= t_count <= t_range[1])
+
+        with self.subTest(error_range=error_range):
+            error = _trace_distance(circuit, out)
+            self.assertTrue(error_range[0] <= error <= error_range[1])
 
     def test_plugin(self):
         """Test calling the plugin directly."""
@@ -478,6 +514,27 @@ class TestSolovayKitaevDecomposition(QiskitTestCase):
         expected.h(0)
 
         self.assertEqual(synth, expected)
+
+    @data("delay", "reset", "measure")
+    def test_directives_are_invalid(self, directive):
+        """Test the passing a directive as basis gate raises."""
+        basis_gates = ["h", "t", directive]
+        with self.assertRaisesRegex(ValueError, "Only Gate types are supported"):
+            _ = SolovayKitaevDecomposition(basis_gates=basis_gates, depth=1)
+
+    @data("if_loop", "while_loop", "switch_case", "if_else", "box")
+    def test_unsupported_gates(self, inst):
+        """Test the passing unsupported instructions raises."""
+        basis_gates = ["h", "t", inst]
+        with self.assertRaisesRegex(ValueError, "Unsupported gate"):
+            _ = SolovayKitaevDecomposition(basis_gates=basis_gates, depth=1)
+
+    @data("cx", "cswap", "global_phase")
+    def test_non_1q_gates_are_invalid(self, gate):
+        """Test the passing multi-qubit basis gates raises."""
+        basis_gates = ["h", "t", gate]
+        with self.assertRaisesRegex(ValueError, "Only single-qubit gates are supported"):
+            _ = SolovayKitaevDecomposition(basis_gates=basis_gates, depth=1)
 
 
 def _convert_u2_to_su2(u2_matrix: np.ndarray) -> tuple[np.ndarray, float]:

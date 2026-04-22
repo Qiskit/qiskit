@@ -27,6 +27,7 @@ import numpy as np
 
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.library import get_standard_gate_name_mapping
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.synthesis.discrete_basis.solovay_kitaev import SolovayKitaevDecomposition
 from qiskit.transpiler.basepasses import TransformationPass
@@ -317,10 +318,21 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
         """Run the SolovayKitaevSynthesis synthesis plugin on the given unitary."""
 
         config = options.get("config") or {}
-        basis_gates = options.get("basis_gates", None)
         depth = config.get("depth", 12)
         basic_approximations = config.get("basic_approximations", None)
         recursion_degree = config.get("recursion_degree", 5)
+
+        # SK only accepts single-qubit standard gates, so we filter them
+        # from the input basis gate set of the unitary synthesis plugin
+        if basis_gates := options.get("basis_gates", None):
+            std_gates = get_standard_gate_name_mapping()
+
+            def is_valid(gate_str):
+                if (gate := std_gates.get(gate_str, None)) is not None:
+                    return gate.num_qubits == 1 and isinstance(gate, Gate)
+                return False
+
+            basis_gates = list(filter(is_valid, iter(basis_gates)))
 
         # Check if we didn't yet construct the Solovay-Kitaev instance (which contains the basic
         # approximations) or if the basic approximations need to be recomputed.
