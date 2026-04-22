@@ -310,7 +310,7 @@ impl Operation for OperationRef<'_> {
             Self::Unitary(unitary) => unitary.name(),
             Self::PauliProductMeasurement(ppm) => ppm.name(),
             Self::PauliProductRotation(rotation) => rotation.name(),
-            Self::CustomOperation(gate) => gate.name(),
+            Self::CustomOperation(operation) => operation.name(),
         }
     }
     #[inline]
@@ -325,7 +325,7 @@ impl Operation for OperationRef<'_> {
             Self::Unitary(unitary) => unitary.num_qubits(),
             Self::PauliProductMeasurement(ppm) => ppm.num_qubits(),
             Self::PauliProductRotation(rotation) => rotation.num_qubits(),
-            Self::CustomOperation(gate) => gate.num_qubits(),
+            Self::CustomOperation(operation) => operation.num_qubits(),
         }
     }
     #[inline]
@@ -340,7 +340,7 @@ impl Operation for OperationRef<'_> {
             Self::Unitary(unitary) => unitary.num_clbits(),
             Self::PauliProductMeasurement(ppm) => ppm.num_clbits(),
             Self::PauliProductRotation(rotation) => rotation.num_clbits(),
-            Self::CustomOperation(gate) => gate.num_clbits(),
+            Self::CustomOperation(operation) => operation.num_clbits(),
         }
     }
     #[inline]
@@ -355,7 +355,7 @@ impl Operation for OperationRef<'_> {
             Self::Unitary(unitary) => unitary.num_params(),
             Self::PauliProductMeasurement(ppm) => ppm.num_params(),
             Self::PauliProductRotation(rotation) => rotation.num_params(),
-            Self::CustomOperation(gate) => gate.num_params(),
+            Self::CustomOperation(operation) => operation.num_params(),
         }
     }
     #[inline]
@@ -370,7 +370,7 @@ impl Operation for OperationRef<'_> {
             Self::Unitary(unitary) => unitary.directive(),
             Self::PauliProductMeasurement(ppm) => ppm.directive(),
             Self::PauliProductRotation(rotation) => rotation.directive(),
-            Self::CustomOperation(gate) => gate.directive(),
+            Self::CustomOperation(operation) => operation.directive(),
         }
     }
 }
@@ -1948,6 +1948,11 @@ impl dyn CustomOperation + 'static {
 }
 
 /// Internal representation of a custom operation within a Circuit.
+///
+/// It acts as a wrapper for a CustomOperation which ensures that
+/// the operation is wrapped within a [`Box`] pointer and is aligned
+/// to 8 bytes, which enables it to be safely represented as a
+/// [`PackedOperation`].
 #[derive(Debug)]
 #[repr(align(8))]
 pub(crate) struct BoxedCustomOperation(Box<dyn CustomOperation>);

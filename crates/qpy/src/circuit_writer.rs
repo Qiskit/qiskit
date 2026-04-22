@@ -1160,8 +1160,8 @@ fn pack_custom_instruction(
             }
             // TODO: Separate the handling of these two as gate also contains matrix definiton
             // And we don't currently serialize gate matrices.
-            OperationRef::CustomOperation(gate) => {
-                if let Some(definition) = gate.definition(operation.params_view()) {
+            OperationRef::CustomOperation(op) => {
+                if let Some(definition) = op.definition(operation.params_view()) {
                     has_definition = true;
                     let mut qc = QuantumCircuitData {
                         data: definition,
@@ -1177,7 +1177,7 @@ fn pack_custom_instruction(
                         qpy_data.annotation_handler.annotation_factories,
                     )?)?;
                     base_gate_raw = serialize(&pack_custom_operation(
-                        gate,
+                        op,
                         operation.params_view(),
                         qpy_data,
                     )?)?;
