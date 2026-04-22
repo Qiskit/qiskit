@@ -1,0 +1,5 @@
+---
+features_quantum_info:
+  - Added the :meth:`.PauliLindbladMap.parity_sample_generators` method which is
+    identical to :meth:`.PauliLindbladMap.parity_sample` except for also tracking
+    and returning the underlying generators that resulted in the final Pauli terms.
