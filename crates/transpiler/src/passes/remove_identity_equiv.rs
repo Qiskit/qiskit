@@ -250,8 +250,7 @@ pub fn py_remove_identity_equiv(
     //
     // This doesn't account for control-flow blocks which _also_ might have set global phases, byt
     // `run_remove_identity_equiv` as of Qiskit 2.4 doesn't recurse, so the hack should hold.
-    let old_phase = dag.global_phase().clone();
-    dag.set_global_phase_f64(0.0);
+    let old_phase = dag.set_global_phase_f64(0.0);
 
     // Explicitly release GIL because threads may call Python to get
     // the matrix for a PyGate
