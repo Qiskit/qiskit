@@ -70,9 +70,9 @@ class PassManagerConfig:
                 (in dt) for each instruction.
             approximation_degree: Heuristic dial used for circuit approximation, where
                 ``1.0`` means no approximation (up to numerical tolerance) and ``0.0``
-                means the maximum approximation. A value of ``None`` indicates that
-                approximation is allowed up to the reported error rate for an operation in
-                the target.
+                means the maximum approximation. If ``target`` is available, a value of ``None``
+                indicates that approximation is allowed up to the reported error rate for an operation
+                in the target.
             seed_transpiler: Sets random seed for the stochastic parts of
                 the transpiler.
             timing_constraints: Hardware time alignment restrictions.

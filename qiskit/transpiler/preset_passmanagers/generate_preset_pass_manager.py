@@ -166,9 +166,9 @@ def generate_preset_pass_manager(
             ``"scheduling"`` for the ``stage_name`` argument.
         approximation_degree: Heuristic dial used for circuit approximation, where
             ``1.0`` means no approximation (up to numerical tolerance) and ``0.0``
-            means the maximum approximation. A value of ``None`` indicates that
-            approximation is allowed up to the reported error rate for an operation in
-            the target.
+            means the maximum approximation. If ``target`` is available, a value of ``None``
+            indicates that approximation is allowed up to the reported error rate for an operation
+            in the target.
         seed_transpiler (int): Sets random seed for the stochastic parts of
             the transpiler. If it is not specified here it can also be specified via an environment
             variable: ``QISKIT_TRANSPILER_SEED`` or in a user configuration file. The priority
