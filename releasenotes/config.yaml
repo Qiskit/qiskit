@@ -82,6 +82,10 @@ template: |
   performance:
     - Measurable performance improvements.
 
+  # A feature is a new user-visible functionality. It can come in the form of a new function, 
+  # class, parameter, environment variable or any other user accessible and publicly documented 
+  # endpoint. In addition, new capabilities (for example "Qiskit can now compile to Clifford+T"), 
+  # newly supported workflows and new types of language interoperability are considered features.
   # Choose only the "features" sections you need and delete the rest.  Try to be concise.  You may
   # use a code example for complicated features.
   features_c:
