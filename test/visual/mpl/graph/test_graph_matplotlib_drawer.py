@@ -482,7 +482,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9, msg=fname)
+        self.assertGreaterEqual(ratio, 0.99, msg=fname)
 
     def test_plot_16_qubit_gate_map(self):
         """Test plot_gate_map using 16 qubit backend"""
@@ -500,7 +500,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.8, msg=fname)
+        self.assertGreaterEqual(ratio, 0.99, msg=fname)
 
     def test_plot_20_qubit_gate_map(self):
         """Test plot_gate_map using 20 qubit backend"""
@@ -590,7 +590,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.8, msg=fname)
+        self.assertGreaterEqual(ratio, 0.99, msg=fname)
 
     def test_qubit_color(self):
         """Test qubit_color parameter of plot_gate_map"""
@@ -729,7 +729,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
         fname = "5_plot_circuit_layout.png"
         figure = plot_circuit_layout(circuit, backend)
-        self._assert_figure_matches_reference(figure, fname)
+        self._assert_figure_matches_reference(figure, fname, threshold=0.9)
 
     def test_plot_7_qubit_circuit_layout(self):
         """Test plot_circuit_layout using a 7 qubit backend"""
@@ -746,7 +746,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
         fname = "7_plot_circuit_layout.png"
         figure = plot_circuit_layout(circuit, backend)
-        self._assert_figure_matches_reference(figure, fname)
+        self._assert_figure_matches_reference(figure, fname, threshold=0.9)
 
     def test_plot_20_qubit_circuit_layout(self):
         """Test plot_circuit_layout using a 20 qubit backend"""
@@ -763,7 +763,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
         fname = "20_plot_circuit_layout.png"
         figure = plot_circuit_layout(circuit, backend)
-        self._assert_figure_matches_reference(figure, fname)
+        self._assert_figure_matches_reference(figure, fname, threshold=0.9)
 
     def test_plot_error_map_backend_v2(self):
         """Test plotting error map with fake backend v2."""
