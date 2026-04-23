@@ -972,7 +972,7 @@ def generate_delay_stretch():
     s = expr.Stretch(uuid.UUID(bytes=b"hallo, QPY_world", version=4), "a")
     stretch = stretch_expr.add_stretch(s)
     stretch_expr.delay(stretch, 0)
-    stretch_expr.delay(expr.add(Duration.dt(200), stretch), 1)
+    stretch_expr.delay(expr.add(Duration.dt(200), stretch), 0)
     stretch_expr.delay(expr.sub(Duration.ns(3.14159), stretch), 0)
     return [stretch_expr]
 
