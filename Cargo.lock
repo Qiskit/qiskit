@@ -2181,6 +2181,7 @@ version = "2.5.0-dev"
 dependencies = [
  "anyhow",
  "cbindgen",
+ "hashbrown 0.15.5",
 ]
 
 [[package]]
@@ -2284,7 +2285,6 @@ version = "2.5.0-dev"
 dependencies = [
  "anyhow",
  "cbindgen",
- "hashbrown 0.15.5",
  "pyo3",
  "qiskit-accelerate",
  "qiskit-bindgen",
