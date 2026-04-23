@@ -968,9 +968,10 @@ def generate_delay_stretch():
     import uuid
 
     stretch_expr = QuantumCircuit(name="stretch_expr")
-    s = expr.Stretch(uuid.UUID(bytes=b"hello, qpy world", version=4), "a")
+    s = expr.Stretch(uuid.UUID(bytes=b"hallo, QPY_world", version=4), "a")
     stretch = stretch_expr.add_stretch(s)
     qc = QuantumCircuit(1)
+    qc.add_stretch(stretch)
     qc.delay(stretch)
     return [qc]
 
