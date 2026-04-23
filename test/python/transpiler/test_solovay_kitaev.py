@@ -120,6 +120,7 @@ class TestSolovayKitaev(QiskitTestCase):
         out = transpile(
             circuit,
             basis_gates=CLIFFORD_T,
+            translation_method="synthesis",
             unitary_synthesis_method="sk",
             unitary_synthesis_plugin_config={"recursion_degree": degree},
         )

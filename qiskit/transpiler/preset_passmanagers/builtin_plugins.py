@@ -13,7 +13,6 @@
 """Built-in transpiler stage plugins for preset pass managers."""
 
 import os
-import warnings
 
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayout
 from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
@@ -41,7 +40,6 @@ from qiskit.transpiler.passes import OptimizeCliffordT
 from qiskit.transpiler.passes import SubstitutePi4Rotations
 from qiskit.transpiler.passes import Collect1qRuns
 from qiskit.transpiler.passes import Collect2qBlocks
-from qiskit.transpiler.passes import CheckGateDirection
 from qiskit.transpiler.passes import GateDirection
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.preset_passmanagers.plugin import (
@@ -85,7 +83,10 @@ class DefaultInitPassManager(PassManagerStagePlugin):
     """Plugin class for default init stage."""
 
     def pass_manager(self, pass_manager_config, optimization_level=None):
-        optimization_metric = OptimizationMetric.COUNT_2Q
+        if pass_manager_config._is_clifford_t:
+            optimization_metric = OptimizationMetric.COUNT_T
+        else:
+            optimization_metric = OptimizationMetric.COUNT_2Q
 
         if optimization_level == 0:
             init = None
@@ -160,7 +161,11 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 ]
             )
             init.append(CommutativeCancellation())
-            init.append(ConsolidateBlocks())
+
+            # We do not want to consolidate blocks for a Clifford+T basis set,
+            # since this involves resynthesizing 2-qubit unitaries.
+            if not pass_manager_config._is_clifford_t:
+                init.append(ConsolidateBlocks())
 
             # If approximation degree is None that indicates a request to approximate up to the
             # error rates in the target. However, in the init stage we don't yet know the target
@@ -490,6 +495,11 @@ class OptimizationPassManager(PassManagerStagePlugin):
         """Build pass manager for optimization stage."""
 
         # Use the dedicated plugin for the Clifford+T basis when appropriate.
+        if pass_manager_config._is_clifford_t:
+            return OptimizeCliffordTPassManager().pass_manager(
+                pass_manager_config, optimization_level
+            )
+
         match optimization_level:
             case 0:
                 return None
@@ -1188,19 +1198,7 @@ class TranslateToCliffordTPassManager(PassManagerStagePlugin):
     """
 
     def pass_manager(self, pass_manager_config, optimization_level=None):
-        if pass_manager_config.unitary_synthesis_method in ["gridsynth", "sk"]:
-            if pass_manager_config.unitary_synthesis_method == "gridsynth":
-                warnings.warn(
-                    "Passing 'gridsynth' as unitary_synthesis_method is significantly less "
-                    "performant than simply using a discrete basis gate set and setting the "
-                    "synthesis accuracy via approximation_degree."
-                )
-
-            return self._unitary_synthesis_based_pm(pass_manager_config)
-
-        return self._rz_synthesis_based_pm(pass_manager_config)
-
-    def _rz_synthesis_based_pm(self, pass_manager_config):
+        pass_manager_config.translation_method
         rz_to_t_translation = PassManager(
             [
                 SubstitutePi4Rotations(),
@@ -1210,103 +1208,6 @@ class TranslateToCliffordTPassManager(PassManagerStagePlugin):
             ]
         )
         return rz_to_t_translation
-
-    def _unitary_synthesis_based_pm(self, pass_manager_config):
-        basis_gates = pass_manager_config.basis_gates
-        approximation_degree = pass_manager_config.approximation_degree
-        coupling_map = pass_manager_config.coupling_map
-        unitary_synthesis_plugin_config = pass_manager_config.unitary_synthesis_plugin_config
-        unitary_synthesis_method = pass_manager_config.unitary_synthesis_method
-        hls_config = pass_manager_config.hls_config
-        qubits_initially_zero = pass_manager_config.qubits_initially_zero
-        target = pass_manager_config.target
-
-        extended_basis_gates = list(basis_gates) + ["u"]
-
-        unroll = [
-            # Use the UnitarySynthesis pass to unroll 1-qubit and 2-qubit gates named "unitary" into
-            # extended_basis_gates.
-            UnitarySynthesis(
-                basis_gates=extended_basis_gates,
-                approximation_degree=approximation_degree,
-                coupling_map=coupling_map,
-                plugin_config=unitary_synthesis_plugin_config,
-                method=unitary_synthesis_method,
-                target=None,
-            ),
-            # Use the HighLevelSynthesis pass to unroll all the remaining 1q and 2q custom
-            # gates into extended_basis_gates + the gates in the equivalence library.
-            # We set target=None to make sure extended_basis_gates is not overwritten by the target.
-            HighLevelSynthesis(
-                hls_config=hls_config,
-                coupling_map=coupling_map,
-                target=None,
-                use_qubit_indices=True,
-                equivalence_library=sel,
-                basis_gates=extended_basis_gates,
-                qubits_initially_zero=qubits_initially_zero,
-                optimization_metric=OptimizationMetric.COUNT_T,
-            ),
-            # Use the BasisTranslator pass to translate all the gates into extended_basis_gates.
-            # In other words, this translates the gates in the equivalence library that are not
-            # in extended_basis_gates to gates in extended_basis_gates only.
-            # Note that we do not want to make any assumptions on which Clifford gates are present
-            # in basis_gates. The BasisTranslator will do the conversion if possible (and provide
-            # a helpful error message otherwise).
-            BasisTranslator(sel, extended_basis_gates, None),
-            # The next step is to resynthesize blocks of consecutive 1q-gates into Clifford+T.
-            # Use Collect1qRuns and ConsolidateBlocks passes to replace such blocks by 1q "unitary"
-            # gates.
-            Collect1qRuns(),
-            ConsolidateBlocks(
-                basis_gates=None,
-                target=None,
-                approximation_degree=approximation_degree,
-                force_consolidate=True,
-            ),
-            # We use the "clifford" unitary synthesis plugin to replace single-qubit
-            # unitary gates that can be represented as Cliffords by Clifford gates.
-            UnitarySynthesis(method="clifford", plugin_config={"max_qubits": 1}),
-            # We decompose single-qubit unitary gates using the UnitarySynthesisPlugin interface.
-            # By default it's the "default" method (which currently calls the Solovay-Kitaev
-            # decomposition). If a custom ``unitary_synthesis_method`` method is specified, it should
-            # either return the synthesized circuit in the Clifford+T basis set, or ``None``
-            # in which case the default method would be called as fallback.
-            UnitarySynthesis(
-                basis_gates=basis_gates,
-                approximation_degree=approximation_degree,
-                coupling_map=coupling_map,
-                plugin_config=unitary_synthesis_plugin_config,
-                method=unitary_synthesis_method,
-                min_qubits=1,
-                target=None,
-                fallback_on_default=True,
-            ),
-            # Finally, we use BasisTranslator to translate Clifford+T circuit to the actually
-            # specified set of basis gates.
-            BasisTranslator(sel, basis_gates, target),
-        ]
-        # We use the BasisTranslator pass to translate any 1q-gates added by GateDirection
-        # into basis_gates.
-        translator = BasisTranslator(sel, basis_gates, target)
-        fix_1q = [translator]
-
-        if (coupling_map and not coupling_map.is_symmetric) or (
-            target is not None and target.get_non_global_operation_names(strict_direction=True)
-        ):
-            unroll.append(CheckGateDirection(coupling_map, target=target))
-
-            def _direction_condition(property_set):
-                return not property_set["is_direction_mapped"]
-
-            unroll.append(
-                ConditionalController(
-                    [GateDirection(coupling_map, target=target)] + fix_1q,
-                    condition=_direction_condition,
-                )
-            )
-
-        return PassManager(unroll)
 
 
 class OptimizeCliffordTPassManager(PassManagerStagePlugin):

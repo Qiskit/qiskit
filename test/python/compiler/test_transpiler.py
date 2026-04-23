@@ -2392,6 +2392,49 @@ class TestTranspile(QiskitTestCase):
         together_circuits = make_pm().run(circuits)
         self.assertEqual(together_circuits, own_circuits)
 
+    def test_discrete_basis_plugin_method(self):
+        """Test setting routing / layout with a Clifford+T basis."""
+        circuit = QuantumCircuit(2)
+        circuit.rz(0.1, 0)
+        circuit.cx(0, 1)
+
+        coupling_map = [[0, 1], [1, 2]]
+
+        basis_gates = ["h", "t", "tdg", "cx", "swap"]
+
+        with self.subTest(msg="invalid manual setup"):
+            # to verify the arguments have an effect, trigger a failure
+            with self.assertRaises(TranspilerError):
+                _ = transpile(
+                    circuit,
+                    basis_gates=basis_gates,
+                    coupling_map=coupling_map,
+                    initial_layout=[0, 2],
+                    layout_method="trivial",
+                    routing_method="none",
+                )
+
+        with self.subTest(msg="manual routing with a swap"):
+            compiled = transpile(
+                circuit,
+                basis_gates=basis_gates,
+                coupling_map=coupling_map,
+                initial_layout=[0, 2],
+                layout_method="trivial",
+                routing_method="basic",
+            )
+            self.assertEqual(1, compiled.count_ops().get("swap", 0))
+
+        with self.subTest(msg="sabre should manage no swaps"):
+            compiled = transpile(
+                circuit,
+                basis_gates=basis_gates,
+                coupling_map=coupling_map,
+                layout_method="sabre",
+                routing_method="sabre",
+            )
+            self.assertEqual(0, compiled.count_ops().get("swap", 0))
+
 
 @ddt
 class TestPostTranspileIntegration(QiskitTestCase):
