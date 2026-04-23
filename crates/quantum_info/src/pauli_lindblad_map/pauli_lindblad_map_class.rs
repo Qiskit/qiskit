@@ -384,19 +384,6 @@ impl PauliLindbladMap {
         Ok(log_fid.exp())
     }
 
-    /// Equal to parity_sample_generators but don't return the extra generator information
-    pub fn parity_sample(
-        &self,
-        num_samples: u64,
-        seed: Option<u64>,
-        scale: Option<f64>,
-        local_scale: Option<Vec<f64>>,
-    ) -> (Vec<bool>, QubitSparsePauliList) {
-        let (random_signs, random_paulis, _, _) =
-            self.parity_sample_generators(num_samples, seed, scale, local_scale);
-        (random_signs, random_paulis)
-    }
-
     /// Sample sign and Pauli operator pairs from the map.
     /// Note that here the "sign" bool is interpreted as the exponent of (-1)^b.
     #[allow(clippy::type_complexity)]
@@ -1613,7 +1600,8 @@ impl PyPauliLindbladMap {
         seed: Option<u64>,
     ) -> PyResult<Bound<'py, PyTuple>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let (signs, paulis) = py.detach(|| inner.parity_sample(num_samples, seed, None, None));
+        let (signs, paulis, _, _) =
+            py.detach(|| inner.parity_sample_generators(num_samples, seed, None, None));
 
         let signs = PyArray1::from_vec(py, signs.iter().map(|b| !b).collect());
         let paulis = paulis.into_pyobject(py).unwrap();
@@ -1665,8 +1653,8 @@ impl PyPauliLindbladMap {
         local_scale: Option<Vec<f64>>,
     ) -> PyResult<Bound<'py, PyTuple>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let (signs, paulis) =
-            py.detach(|| inner.parity_sample(num_samples, seed, scale, local_scale));
+        let (signs, paulis, _, _) =
+            py.detach(|| inner.parity_sample_generators(num_samples, seed, scale, local_scale));
 
         let signs = PyArray1::from_vec(py, signs);
         let paulis = paulis.into_pyobject(py).unwrap();
@@ -1756,7 +1744,8 @@ impl PyPauliLindbladMap {
             }
         }
 
-        let (_, paulis) = py.detach(|| inner.parity_sample(num_samples, seed, None, None));
+        let (_, paulis, _, _) =
+            py.detach(|| inner.parity_sample_generators(num_samples, seed, None, None));
 
         paulis.into_pyobject(py)
     }
