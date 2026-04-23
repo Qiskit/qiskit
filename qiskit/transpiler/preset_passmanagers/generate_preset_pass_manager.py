@@ -16,6 +16,7 @@ Preset pass manager generation function
 from __future__ import annotations
 
 import copy
+import os
 import warnings
 import typing
 
@@ -34,6 +35,7 @@ from qiskit.transpiler.preset_passmanagers.clifford_t_pass_manager import (
 )
 from qiskit.transpiler.preset_passmanagers.common import is_clifford_t_basis
 from qiskit.transpiler.target import Target, _FakeTarget
+from qiskit import user_config
 
 from .level0 import level_0_pass_manager
 from .level1 import level_1_pass_manager
@@ -167,9 +169,13 @@ def generate_preset_pass_manager(
             means the maximum approximation. A value of ``None`` indicates that
             approximation is allowed up to the reported error rate for an operation in
             the target.
-        seed_transpiler: Sets random seed for the stochastic parts of
-            the transpiler.
-        unitary_synthesis_method: The name of the unitary synthesis
+        seed_transpiler (int): Sets random seed for the stochastic parts of
+            the transpiler. If it is not specified here it can also be specified via an environment
+            variable: ``QISKIT_TRANSPILER_SEED`` or in a user configuration file. The priority
+            order is: this argument, then the environment variable, and finally the user
+            configuration option. So setting this argument will take precedence over the other
+            methods of setting a seed.
+        unitary_synthesis_method (str): The name of the unitary synthesis
             method to use. By default ``'default'`` is used. You can see a list of
             installed plugins with :func:`.unitary_synthesis_plugin_names`.
         unitary_synthesis_plugin_config: An optional configuration dictionary
@@ -206,16 +212,23 @@ def generate_preset_pass_manager(
     Raises:
         ValueError: if an invalid value for ``optimization_level`` is passed in.
     """
+    config = user_config.get_config()
+
+    if seed_transpiler is None:
+        if seed := os.getenv("QISKIT_TRANSPILER_SEED", None) is not None:
+            seed_transpiler = int(seed)
+        else:
+            seed_transpiler = config.get("transpiler_seed", None)
 
     # Handle positional arguments for target and backend. This enables the usage
     # pattern `generate_preset_pass_manager(backend.target)` to generate a default
     # pass manager for a given target.
     if isinstance(optimization_level, Target):
-        target = optimization_level
-        optimization_level = 2
+        target, optimization_level = optimization_level, None
     elif isinstance(optimization_level, Backend):
-        backend = optimization_level
-        optimization_level = 2
+        backend, optimization_level = optimization_level, None
+    if optimization_level is None:
+        optimization_level = config.get("transpile_optimization_level", 2)
 
     # If there are no loose constraints => use backend target if available
     _no_loose_constraints = basis_gates is None and coupling_map is None and dt is None

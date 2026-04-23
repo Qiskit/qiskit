@@ -1740,6 +1740,29 @@ impl PauliProductRotation {
         }
         Some(out)
     }
+
+    pub fn matrix_as_static_1q(&self) -> Option<[[Complex64; 2]; 2]> {
+        if self.num_qubits() == 1 {
+            let arr = self.matrix()?;
+            Some([[arr[(0, 0)], arr[(0, 1)]], [arr[(1, 0)], arr[(1, 1)]]])
+        } else {
+            None
+        }
+    }
+
+    pub fn matrix_as_static_2q(&self) -> Option<[[Complex64; 4]; 4]> {
+        if self.num_qubits() == 2 {
+            let arr = self.matrix()?;
+            Some([
+                [arr[[0, 0]], arr[[0, 1]], arr[[0, 2]], arr[[0, 3]]],
+                [arr[[1, 0]], arr[[1, 1]], arr[[1, 2]], arr[[1, 3]]],
+                [arr[[2, 0]], arr[[2, 1]], arr[[2, 2]], arr[[2, 3]]],
+                [arr[[3, 0]], arr[[3, 1]], arr[[3, 2]], arr[[3, 3]]],
+            ])
+        } else {
+            None
+        }
+    }
 }
 
 impl PartialEq for PauliProductRotation {

@@ -10,8 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use cbindgen::bindgen::ir;
-use hashbrown::HashMap;
 use qiskit_cext_vtable::{FUNCTIONS_CIRCUIT, FUNCTIONS_QI, FUNCTIONS_TRANSPILE};
 use std::fs;
 use std::io::Write;
@@ -19,83 +17,6 @@ use std::path::Path;
 
 static WRAPPER_FUNCS: &str = "funcs_py.h";
 static GENERATED_FUNCS: &str = "funcs_py_generated.h";
-
-/// Render a given type object into a string representing it in C.
-fn render_type_as_c(ty: &ir::Type, config: &cbindgen::Config) -> String {
-    fn render(ty: &ir::Type, config: &cbindgen::Config, acc: &mut String) {
-        match ty {
-            ir::Type::Ptr {
-                ty,
-                is_const,
-                is_nullable: _,
-                is_ref,
-            } => {
-                assert!(!is_ref, "C++ reference-likes not handled");
-                if *is_const {
-                    acc.push_str("const ");
-                }
-                render(ty, config, acc);
-                acc.push_str(" *");
-            }
-            ir::Type::Path(p) => acc.push_str(p.export_name()),
-            ir::Type::Primitive(ty) => acc.push_str(ty.to_repr_c(config)),
-            ir::Type::Array(..) => todo!("array types not yet handled"),
-            ir::Type::FuncPtr {
-                args,
-                ret,
-                is_nullable,
-                never_return,
-            } => {
-                assert!(!is_nullable, "nullability of funcptrs is not handled");
-                assert!(!never_return, "diverging functions not handled");
-                render(ret, config, acc);
-                acc.push_str("(*)(");
-                let mut args = args.iter();
-                if let Some((_, first)) = args.next() {
-                    render(first, config, acc);
-                    for (_, arg) in args {
-                        acc.push_str(", ");
-                        render(arg, config, acc)
-                    }
-                }
-                acc.push(')');
-            }
-        }
-    }
-    let mut acc = String::new();
-    render(ty, config, &mut acc);
-    acc
-}
-
-/// Calculate a mapping of exported function names to C casts to appropriate function-pointer types.
-fn functions_as_c_funcptr_casts(bindings: &cbindgen::Bindings) -> HashMap<&str, String> {
-    let to_funcptr = |func: &ir::Function| {
-        let to_funcptr_arg = |arg: &ir::FunctionArgument| {
-            let ir::FunctionArgument {
-                name: _,
-                ty,
-                array_length,
-            } = arg;
-            assert!(array_length.is_none(), "array arguments not handled");
-            (None, ty.clone())
-        };
-        ir::Type::FuncPtr {
-            ret: Box::new(func.ret.clone()),
-            args: func.args.iter().map(to_funcptr_arg).collect(),
-            is_nullable: false,
-            never_return: false,
-        }
-    };
-    let config = &bindings.config;
-    bindings
-        .functions
-        .iter()
-        .map(|func| {
-            let funcptr = to_funcptr(func);
-            (func.path.name(), render_type_as_c(&funcptr, config))
-        })
-        .collect()
-}
 
 /// Install (overwriting) the Python-extension-specific header files into the given directory.
 fn install_py_function_headers(
@@ -125,7 +46,7 @@ fn install_py_function_headers(
         ("_Qk_API_Transpile", &FUNCTIONS_TRANSPILE),
         ("_Qk_API_QI", &FUNCTIONS_QI),
     ];
-    let funcs = functions_as_c_funcptr_casts(bindings);
+    let funcs = qiskit_bindgen::render::c::functions_as_funcptr_casts(bindings);
     for (vtable_name, vtable) in vtables {
         for export in vtable.exports(0) {
             writeln!(

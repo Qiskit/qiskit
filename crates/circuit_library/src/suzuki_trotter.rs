@@ -36,7 +36,7 @@ pub fn suzuki_trotter_evolution(
     preserve_order: bool,
     insert_barriers: bool,
 ) -> Result<CircuitData, EvolutionError> {
-    if order > 1 && order % 2 != 0 || order == 0 {
+    if order > 1 && !order.is_multiple_of(2) || order == 0 {
         return Err(EvolutionError::OrderSymmetry(order));
     }
 

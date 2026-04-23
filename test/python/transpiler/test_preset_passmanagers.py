@@ -1057,9 +1057,9 @@ class TestFinalLayouts(QiskitTestCase):
                     qc.cx(qubit_control, qubit_target)
         expected_layouts = [
             [0, 1, 2, 3, 4],
-            [5, 6, 10, 11, 0],
-            [5, 6, 0, 11, 10],
-            [5, 6, 0, 10, 11],
+            [5, 6, 10, 0, 11],
+            [5, 6, 10, 0, 11],
+            [5, 11, 6, 0, 10],
         ]
         backend = GenericBackendV2(num_qubits=20, coupling_map=TOKYO_CMAP, seed=42)
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)

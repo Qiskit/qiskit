@@ -383,7 +383,10 @@ impl MatrixCompressedPaulis {
                 // Technically this discards part of the storable data, but in practice, a dense
                 // operator with more than 32 qubits needs in the region of 1 ZiB memory.  We still use
                 // `u64` to help sparse-matrix construction, though.
-                let coeff = if (i_row as u32 & z_like as u32).count_ones() % 2 == 0 {
+                let coeff = if (i_row as u32 & z_like as u32)
+                    .count_ones()
+                    .is_multiple_of(2)
+                {
                     coeff
                 } else {
                     -coeff
