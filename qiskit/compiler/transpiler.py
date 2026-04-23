@@ -13,6 +13,7 @@
 
 """Circuit transpile function"""
 import logging
+import os
 from time import time
 from typing import Any, TypeVar
 from collections.abc import Callable
@@ -162,7 +163,9 @@ def transpile(
             If ``None`` (default), ``backend.dt`` is used.
         approximation_degree (float): heuristic dial used for circuit approximation
             (1.0=no approximation, 0.0=maximal approximation)
-        seed_transpiler: Sets random seed for the stochastic parts of the transpiler
+        seed_transpiler: Sets a seed for the PRNG used by the stochastic parts of the transpiler.
+            This parameter takes precedence over the ``QISKIT_TRANSPILER_SEED`` environment
+            variable and ``transpiler_seed`` setting in the user configuration file .
         optimization_level: How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
             at the expense of longer transpilation time.
@@ -259,6 +262,13 @@ def transpile(
         # Take optimization level from the configuration or 2 as default.
         config = user_config.get_config()
         optimization_level = config.get("transpile_optimization_level", 2)
+
+    if seed_transpiler is None:
+        if seed := os.getenv("QISKIT_TRANSPILER_SEED", None) is not None:
+            seed_transpiler = int(seed)
+        else:
+            config = user_config.get_config()
+            seed_transpiler = config.get("transpiler_seed", None)
 
     if not ignore_backend_supplied_default_methods:
         if scheduling_method is None and hasattr(backend, "get_scheduling_stage_plugin"):
