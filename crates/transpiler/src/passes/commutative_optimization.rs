@@ -21,7 +21,9 @@ use qiskit_circuit::instruction::Parameters;
 use smallvec::smallvec;
 
 use crate::commutation_checker::{CommutationChecker, try_matrix_with_definition};
-use crate::passes::remove_identity_equiv::{average_gate_fidelity_below_tol, is_identity_equiv};
+use crate::passes::remove_identity_equiv::{
+    MINIMUM_TOL, average_gate_fidelity_below_tol, is_identity_equiv,
+};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{
@@ -569,7 +571,7 @@ pub fn run_commutative_optimization(
     approximation_degree: f64,
     matrix_max_num_qubits: u32,
 ) -> PyResult<Option<DAGCircuit>> {
-    let tol = 1e-12_f64.max(1. - approximation_degree);
+    let tol = MINIMUM_TOL.max(1. - approximation_degree);
     let error_cutoff_fn = |_inst: &PackedInstruction| -> f64 { tol };
 
     // Create output DAG.

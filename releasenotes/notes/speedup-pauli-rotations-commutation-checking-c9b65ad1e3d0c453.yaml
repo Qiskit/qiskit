@@ -10,5 +10,5 @@ features_transpiler:
     circuits containing :class:`.PauliProductRotationGate` and :class:`.PauliProductMeasurement`
     objects.
   - |
-    The :class:`.CommutativeOptimization` transpiler pass now removes gates that are quivalent to
+    The :class:`.CommutativeOptimization` transpiler pass now removes gates that are equivalent to
     identity up to a global phase.
