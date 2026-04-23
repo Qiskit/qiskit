@@ -16,6 +16,7 @@ use std::time::Instant;
 use hashbrown::HashMap;
 use indexmap::{IndexMap, IndexSet};
 use rand::prelude::*;
+use rand::rngs::SysRng;
 use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
 use rustworkx_core::petgraph::data::Create;
@@ -143,7 +144,7 @@ impl Vf2PassConfiguration {
             None => {
                 // In Python space, `None` means "seed with OS entropy" because seeding was expected
                 // to be the default.
-                Some(Pcg64Mcg::from_os_rng().next_u64())
+                Some(Pcg64Mcg::try_from_rng(&mut SysRng).unwrap().next_u64())
             }
             Some(-1) => None,
             Some(seed) => {

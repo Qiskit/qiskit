@@ -376,7 +376,6 @@ pub fn is_zero_matrix_faer(mat: MatRef<Complex64>, atol: Option<f64>) -> bool {
 #[cfg(test)]
 mod test {
     use super::*;
-    use faer::prelude::*;
     use nalgebra::DMatrix;
 
     #[test]

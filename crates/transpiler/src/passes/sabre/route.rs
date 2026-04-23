@@ -25,6 +25,7 @@ use hashbrown::HashSet;
 use indexmap::IndexMap;
 use ndarray::Array2;
 use rand::prelude::*;
+use rand::rngs::SysRng;
 use rand_pcg::Pcg64Mcg;
 use rayon_cond::CondIterator;
 use rustworkx_core::dictmap::*;
@@ -850,7 +851,7 @@ pub fn swap_map<'a>(
 ) -> RoutingResult<'a> {
     let seeds = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-        None => Pcg64Mcg::from_os_rng(),
+        None => Pcg64Mcg::try_from_rng(&mut SysRng).unwrap(),
     }
     .sample_iter(&rand::distr::StandardUniform)
     .take(num_trials)
