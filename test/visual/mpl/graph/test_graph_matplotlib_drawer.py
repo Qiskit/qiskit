@@ -698,21 +698,12 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         qubit_coordinates = [[0, 1], [1, 1], [1, 0], [1, 2], [2, 0], [2, 2], [2, 1], [3, 1]]
 
         fname = "8_qubit_coupling_map.png"
-        self.graph_plot_coupling_map(
+        figure = plot_coupling_map(
             num_qubits=num_qubits,
             qubit_coordinates=qubit_coordinates,
             coupling_map=coupling_map,
-            filename=fname,
         )
-
-        ratio = VisualTestUtilities._save_diff(
-            self._image_path(fname),
-            self._reference_path(fname),
-            fname,
-            FAILURE_DIFF_DIR,
-            FAILURE_PREFIX,
-        )
-        self.assertGreaterEqual(ratio, 0.8, msg=fname)
+        self._assert_figure_matches_reference(figure, fname, threshold=0.8)
 
     def test_plot_5_qubit_circuit_layout(self):
         """Test plot_circuit_layout using a 5 qubit backend"""
