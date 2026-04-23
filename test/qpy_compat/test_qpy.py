@@ -944,7 +944,7 @@ def generate_box():
             nested.x(0)
             nested.noop(1)
 
-    labeled = QuantumCircuit(2)
+    labeled = QuantumCircuit(2, name="labeled boxes")
     with labeled.box():
         labeled.cx(0, 1)
     with labeled.box(duration=1, unit="dt", label="hello"):
@@ -965,15 +965,16 @@ def generate_delay():
 def generate_delay_stretch():
     """Circuits that contain a stretch delay. Added in QPY 14 in Qiskit 2.0."""
     from qiskit.circuit.classical import expr
+    from qiskit.circuit import Duration
     import uuid
 
-    stretch_expr = QuantumCircuit(name="stretch_expr")
+    stretch_expr = QuantumCircuit(1, name="stretch_expr_delay_circuit")
     s = expr.Stretch(uuid.UUID(bytes=b"hallo, QPY_world", version=4), "a")
     stretch = stretch_expr.add_stretch(s)
-    qc = QuantumCircuit(1)
-    qc.add_stretch(stretch)
-    qc.delay(stretch)
-    return [qc]
+    stretch_expr.delay(stretch, 0)
+    stretch_expr.delay(expr.add(Duration.dt(200), stretch), 1)
+    stretch_expr.delay(expr.sub(Duration.ns(3.14159), stretch), 0)
+    return [stretch_expr]
 
 
 def generate_circuits(generating_version, current_version, load_context=False):
