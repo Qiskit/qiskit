@@ -273,7 +273,6 @@ fn canonicalize(
 /// Checks commutation between two pauli-based gates, assuming
 /// * the qubits are sorted by index
 /// * the first instruction is not a PPM
-#[inline]
 fn try_commute_pauli_based_with_sorted_qargs(
     op1: &OperationRef,
     op2: &OperationRef,
@@ -293,7 +292,8 @@ fn try_commute_pauli_based_with_sorted_qargs(
     let (z1, x1, z2, x2) = match (op1, op2) {
         (OperationRef::PauliProductMeasurement(_), _) => {
             unreachable!(
-                "The first instruction cannot be a PPM (as we do not try to merge such instructions)"
+                "The commutative optimization pass does not merge Pauli product measurement instructions. \
+                Thus, the first instruction cannot be a PauliProductMeasurement."
             );
         }
         (OperationRef::PauliProductRotation(pp1), OperationRef::PauliProductRotation(pp2)) => {
