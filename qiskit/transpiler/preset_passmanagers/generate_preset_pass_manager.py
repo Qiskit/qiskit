@@ -93,10 +93,9 @@ def generate_preset_pass_manager(
 
     .. note::
 
-        When the target basis consists of Clifford+T gates, this function constructs
-        a specialized Clifford+T transpiler pipeline, see :func:`.clifford_t_pass_manager`
-        for documentation. The arguments that apply to transpiling into continuous basis sets
-        are ignored in this flow.
+        When the target basis consists of Clifford+T gates and no layout, routing, or translation
+        methods are set, this function constructs a specialized Clifford+T transpiler pipeline.
+        See :func:`.clifford_t_pass_manager` for more documentation.
 
     Args:
         optimization_level (int): The optimization level to generate a
