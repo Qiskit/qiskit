@@ -1044,7 +1044,7 @@ class CliffordTInitPassManager(PassManagerStagePlugin):
             )
             init.append(
                 CommutativeOptimization(
-                    approximation_degree=pass_manager_config.approximation_degree
+                    approximation_degree=pass_manager_config.approximation_degree or 1.0
                 )
             )
 
@@ -1166,7 +1166,7 @@ class OptimizeCliffordRZPassManager(PassManagerStagePlugin):
                         target=pass_manager_config.target,
                     ),
                     CommutativeOptimization(
-                        approximation_degree=pass_manager_config.approximation_degree
+                        approximation_degree=pass_manager_config.approximation_degree or 1.0
                     ),
                     ContractIdleWiresInControlFlow(),
                 ]
@@ -1195,10 +1195,10 @@ class TranslateToCliffordTPassManager(PassManagerStagePlugin):
         rz_to_t_translation = PassManager(
             [
                 SubstitutePi4Rotations(
-                    approximation_degree=pass_manager_config.approximation_degree
+                    approximation_degree=pass_manager_config.approximation_degree or 1.0
                 ),
                 SynthesizeRZRotations(
-                    approximation_degree=pass_manager_config.approximation_degree
+                    approximation_degree=pass_manager_config.approximation_degree or 1.0
                 ),
             ]
         )
@@ -1251,10 +1251,10 @@ class OptimizeCliffordTPassManager(PassManagerStagePlugin):
                 loop = [
                     OptimizeCliffordT(basis_gates=basis_gates),
                     CommutativeOptimization(
-                        approximation_degree=pass_manager_config.approximation_degree
+                        approximation_degree=pass_manager_config.approximation_degree or 1.0
                     ),
                     SubstitutePi4Rotations(
-                        approximation_degree=pass_manager_config.approximation_degree
+                        approximation_degree=pass_manager_config.approximation_degree or 1.0
                     ),
                     ContractIdleWiresInControlFlow(),
                 ]

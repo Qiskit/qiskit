@@ -12,7 +12,6 @@
 
 """Commutative Optimization transpiler pass."""
 
-from __future__ import annotations
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
@@ -39,7 +38,7 @@ class CommutativeOptimization(TransformationPass):
     :class:`.CommutativeInverseCancellation`.
     """
 
-    def __init__(self, approximation_degree: float | None = 1.0, matrix_max_num_qubits: int = 0):
+    def __init__(self, approximation_degree: float = 1.0, matrix_max_num_qubits: int = 0):
         """
         Args:
             approximation_degree: the threshold used in the average gate fidelity
@@ -50,7 +49,7 @@ class CommutativeOptimization(TransformationPass):
         """
         super().__init__()
         self.commutation_checker = scc.cc
-        self.approximation_degree = approximation_degree or 1.0
+        self.approximation_degree = approximation_degree
         self.matrix_max_num_qubits = matrix_max_num_qubits
 
     @trivial_recurse
