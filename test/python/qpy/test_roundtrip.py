@@ -247,3 +247,9 @@ class TestQPYRoundtrip(QiskitTestCase):
             self.assert_roundtrip_equal(
                 qc, version=version, read_with=read_with, write_with=write_with
             )
+
+    @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
+    def test_delay_roundtrip(self, version, write_with, read_with):
+        qc = QuantumCircuit(1)
+        qc.delay(1, 0, "dt")
+        self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)

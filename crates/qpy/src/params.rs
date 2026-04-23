@@ -451,6 +451,7 @@ pub(crate) fn unpack_parameter_expression(
                             item.item_type,
                             &item.item_bytes,
                             qpy_data,
+                            Endian::Big,
                         )?)?;
                         Ok((sym, replacement))
                     })
@@ -628,14 +629,7 @@ pub(crate) fn pack_param_obj(
     })
 }
 
-pub(crate) fn generic_value_to_param(
-    value: &GenericValue,
-    endian: Endian,
-) -> Result<Param, QpyError> {
-    let value = match endian {
-        Endian::Big => value,
-        Endian::Little => &value.as_le(),
-    };
+pub(crate) fn generic_value_to_param(value: &GenericValue) -> Result<Param, QpyError> {
     match value {
         GenericValue::Float64(float_val) => Ok(Param::Float(*float_val)),
         GenericValue::ParameterExpressionSymbol(symbol) => {
