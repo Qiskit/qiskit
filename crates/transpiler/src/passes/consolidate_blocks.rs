@@ -413,31 +413,41 @@ fn py_run_consolidate_blocks(
             ];
             let matrix = blocks_to_matrix(dag, &block, block_index_map).ok();
             if let Some(matrix) = matrix {
-                let num_basis_gates = if let Some(ref decomposer) = decomposer {
-                    match decomposer {
-                        DecomposerType::TwoQubitBasis(decomp) => decomp.num_basis_gates_inner(
-                            nalgebra_array_view::<Complex64, U4, U4>(matrix.as_view()),
-                        )?,
-                        DecomposerType::TwoQubitControlledU(decomp) => decomp
-                            .num_basis_gates_inner(nalgebra_array_view::<Complex64, U4, U4>(
-                                matrix.as_view(),
-                            ))?,
-                    }
-                } else {
-                    // If we don't have a decomposer set we have force_consolidate set.
-                    // This value doesn't matter since we're always going to consolidate,
-                    // but usize::MAX is selected as a safeguard against a logic bug since
-                    // with that value we'll only consolidate if force_consolidate is true
-                    // in the absence of a decomposer.
-                    usize::MAX
-                };
-
-                if force_consolidate
-                    || num_basis_gates < basis_count
+                let consolidate = if force_consolidate
                     || block.len() > MAX_2Q_DEPTH
                     || (basis_gates.is_some() && outside_basis)
                     || (target.is_some() && outside_basis)
                 {
+                    true
+                } else {
+                    let num_basis_gates = if let Some(ref decomposer) = decomposer {
+                        match decomposer {
+                            DecomposerType::TwoQubitBasis(decomp) => {
+                                decomp.num_basis_gates_inner(nalgebra_array_view::<
+                                    Complex64,
+                                    U4,
+                                    U4,
+                                >(
+                                    matrix.as_view()
+                                ))?
+                            }
+                            DecomposerType::TwoQubitControlledU(decomp) => decomp
+                                .num_basis_gates_inner(nalgebra_array_view::<Complex64, U4, U4>(
+                                    matrix.as_view(),
+                                ))?,
+                        }
+                    } else {
+                        // If we don't have a decomposer set we have force_consolidate set.
+                        // This value doesn't matter since we're always going to consolidate,
+                        // but usize::MAX is selected as a safeguard against a logic bug since
+                        // with that value we'll only consolidate if force_consolidate is true
+                        // in the absence of a decomposer.
+                        usize::MAX
+                    };
+                    num_basis_gates < basis_count
+                };
+
+                if consolidate {
                     if approx::abs_diff_eq!(IDENTITY_2Q, matrix) {
                         for node in block {
                             dag.remove_op_node(node);
