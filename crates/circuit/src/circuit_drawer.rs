@@ -1107,8 +1107,8 @@ impl TextDrawer {
                     } else {
                         if inst.op.try_standard_gate() == Some(StandardGate::CPhase) {
                             // Match the endpoint width so the connector rows stay aligned with the
-                            // label row produced by `OnWireElement::CPhaseEndpoint`.
-                            // refer to the comment in `OnWireElement::CPhaseEndpoint` for more details.
+                            // label row produced by OnWireElement::CPhaseEndpoint.
+                            // refer to the comment in OnWireElement::CPhaseEndpoint for more details.
                             let label = Self::get_label(inst);
                             let width = label.width() + 3;
                             let right_pad = width - 2;
