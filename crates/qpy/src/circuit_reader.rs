@@ -704,24 +704,7 @@ fn unpack_py_instruction(
     qpy_data: &mut QPYReadData,
 ) -> Result<(PackedOperation, Vec<GenericValue>), QpyError> {
     let name = instruction.gate_class_name.clone();
-    // Ints on control flow expressions are part of expressions which are encoded as big endian
-    // BoxOp however uses floats or ints for duration as part of params which are little endian
-    // All other gates are using little endian for float or int params
-    let endian = if [
-        "IfElseOp",
-        "ForLoopOp",
-        "WhileLoopOp",
-        "SwitchCaseOp",
-        "BreakLoopOp",
-        "ContinueLoopOp",
-    ]
-    .contains(&name.as_str())
-    {
-        Endian::Big
-    } else {
-        Endian::Little
-    };
-    let mut instruction_values = get_instruction_values(instruction, qpy_data, endian)?;
+    let mut instruction_values = get_instruction_values(instruction, qpy_data, Endian::Little)?;
     Python::attach(|py| -> Result<_, QpyError> {
         let mut py_params: Vec<Bound<PyAny>> = instruction_values
             .iter()
