@@ -105,11 +105,8 @@ pub(crate) fn pack_biguint(bigint: &BigUint) -> BigIntPack {
     BigIntPack { bytes }
 }
 
-pub(crate) fn unpack_biguint(big_int_pack: BigIntPack, endian: Endian) -> BigUint {
-    match endian {
-        Endian::Little => BigUint::from_bytes_le(&big_int_pack.bytes),
-        Endian::Big => BigUint::from_bytes_be(&big_int_pack.bytes),
-    }
+pub(crate) fn unpack_biguint(big_int_pack: BigIntPack) -> BigUint {
+    BigUint::from_bytes_be(&big_int_pack.bytes)
 }
 
 // Data that is needed globally while writing the circuit
@@ -445,7 +442,7 @@ pub(crate) fn load_value(
                     Endian::Big => Ok(GenericValue::Int64(i64::from_be_bytes(bytes_array))),
                 }
             } else {
-                load_biguint_value(bytes, endian)
+                load_biguint_value(bytes)
             }
         }
         ValueType::Float => {
@@ -531,9 +528,9 @@ pub(crate) fn load_value(
 
 // a specialized method used for biguints (marked by 'i' like Int64)
 // since the general load method will attempt to load a Int64 instead
-pub(crate) fn load_biguint_value(bytes: &Bytes, endian: Endian) -> Result<GenericValue, QpyError> {
+pub(crate) fn load_biguint_value(bytes: &Bytes) -> Result<GenericValue, QpyError> {
     let (bigint_pack, _) = deserialize::<BigIntPack>(bytes)?;
-    let bigint = unpack_biguint(bigint_pack, endian);
+    let bigint = unpack_biguint(bigint_pack);
     Ok(GenericValue::BigInt(bigint))
 }
 

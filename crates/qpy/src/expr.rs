@@ -92,7 +92,7 @@ pub(crate) fn unpack_expression_value(
             ty,
         },
         ExpressionValueElementPack::Int(val) => Value::Uint {
-            raw: unpack_biguint(val, Endian::Big),
+            raw: unpack_biguint(val),
             ty,
         },
         ExpressionValueElementPack::Duration(duration) => {
