@@ -114,15 +114,11 @@ impl Param {
                 Ok(a.as_ref() == &ParameterExpression::from_f64(*b))
             }
             [Self::ParameterExpression(a), Self::ParameterExpression(b)] => Ok(a == b),
+            [Self::Obj(a), Self::Obj(b)] => Python::attach(|py| a.bind(py).eq(b)),
             [Self::Obj(_), Self::Float(_)] => Ok(false),
             [Self::Float(_), Self::Obj(_)] => Ok(false),
-            [Self::Obj(a), Self::ParameterExpression(b)] => {
-                Python::attach(|py| a.bind(py).eq(b.as_ref().clone()))
-            }
-            [Self::Obj(a), Self::Obj(b)] => Python::attach(|py| a.bind(py).eq(b)),
-            [Self::ParameterExpression(a), Self::Obj(b)] => {
-                Python::attach(|py| a.as_ref().clone().into_bound_py_any(py)?.eq(b))
-            }
+            [Self::Obj(_a), Self::ParameterExpression(_b)] => Ok(false),
+            [Self::ParameterExpression(_a), Self::Obj(_b)] => Ok(false),
         }
     }
 
