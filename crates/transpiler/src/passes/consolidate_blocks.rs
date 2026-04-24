@@ -437,12 +437,7 @@ fn py_run_consolidate_blocks(
                                 ))?,
                         }
                     } else {
-                        // If we don't have a decomposer set we have force_consolidate set.
-                        // This value doesn't matter since we're always going to consolidate,
-                        // but usize::MAX is selected as a safeguard against a logic bug since
-                        // with that value we'll only consolidate if force_consolidate is true
-                        // in the absence of a decomposer.
-                        usize::MAX
+                        unreachable!("A decomposer is always set unless force_consolidate is true");
                     };
                     num_basis_gates < basis_count
                 };
