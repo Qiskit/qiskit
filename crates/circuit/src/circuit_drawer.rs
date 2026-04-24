@@ -260,6 +260,17 @@ impl<'a> VisualizationLayer<'a> {
         self.0[idx] = VisualizationElement::Input(input);
     }
 
+    fn add_vertical_lines_between_qargs(
+        &mut self,
+        minima: usize,
+        maxima: usize,
+        qargs: &[Qubit],
+        inst: &'a PackedInstruction,
+    ) {
+        let vert_lines = (minima..=maxima).filter(|idx| !qargs.iter().any(|q| q.index() == *idx));
+        self.add_vertical_lines(vert_lines, inst);
+    }
+
     /// Adds the required visualization elements to represent the given instruction
     fn add_instruction(
         &mut self,
@@ -384,18 +395,14 @@ impl<'a> VisualizationLayer<'a> {
                     );
                 }
 
-                let vert_lines = (minima..=maxima)
-                    .filter(|idx| !(qargs.iter().map(|q| q.0 as usize)).contains(idx));
-                self.add_vertical_lines(vert_lines, inst);
+                self.add_vertical_lines_between_qargs(minima, maxima, qargs, inst);
             }
             | StandardGate::CPhase => {
                 for q in qargs {
-                    self.0[q.index()] = VisualizationElement::DirectOnWire(OnWireElement::CPhaseEndpoint(inst));
+                    self.0[q.index()] =
+                        VisualizationElement::DirectOnWire(OnWireElement::CPhaseEndpoint(inst));
                 }
-
-                let vert_lines = (minima..=maxima)
-                    .filter(|idx| !(qargs.iter().map(|q| q.0 as usize)).contains(idx));
-                self.add_vertical_lines(vert_lines, inst);
+                self.add_vertical_lines_between_qargs(minima, maxima, qargs, inst);
             }
             StandardGate::GlobalPhase => {}
             StandardGate::Swap | StandardGate::CSwap => {
@@ -409,9 +416,7 @@ impl<'a> VisualizationLayer<'a> {
                     self.0[qubit] = VisualizationElement::DirectOnWire(OnWireElement::Swap(inst));
                 }
 
-                let vert_lines = (minima..=maxima)
-                    .filter(|idx| !(qargs.iter().map(|q| q.0 as usize)).contains(idx));
-                self.add_vertical_lines(vert_lines, inst);
+                self.add_vertical_lines_between_qargs(minima, maxima, qargs, inst);
             }
         }
     }
