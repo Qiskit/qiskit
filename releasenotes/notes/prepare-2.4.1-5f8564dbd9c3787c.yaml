@@ -1,0 +1,3 @@
+---
+prelude: |
+  Qiskit v2.4.1 fixes a small number of bugs identified since the release of Qiskit v2.4.0.
