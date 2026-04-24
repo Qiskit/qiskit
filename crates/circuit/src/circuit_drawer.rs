@@ -208,8 +208,6 @@ impl WireInputElement<'_> {
 #[derive(Clone, Debug, Copy)]
 enum OnWireElement<'a> {
     Control(&'a PackedInstruction),
-    // Distinguishes a a normal contrl dot from a CPhase endpoint that needs
-    // special spacing and label placement
     CPhaseEndpoint(&'a PackedInstruction),
     Swap(&'a PackedInstruction),
     Barrier,
@@ -1008,6 +1006,15 @@ impl TextDrawer {
                     OnWireElement::CPhaseEndpoint(inst) => {
                         let qargs = circuit.get_qargs(inst.qubits);
                         let (minima, maxima) = get_instruction_range(qargs, &[], 0);
+                        // Example 3-qubit CPhase gate with label "P(0.5)":
+                        // q_0: ─■───────
+                        //       │P(0.5)     
+                        // q_1: ─┼───────
+                        //       │
+                        // q_2: ─■───────                        
+                        // Here label = "P(0.5)" has width 6, so width = label.width() + 3 = 9
+                        // for every wire fragment touched by the gate. right_pad = width - 2 = 7
+                        // is the number of trailing wire chars after the bullet/cross
                         let label = Self::get_label(inst);
                         let width = label.width() + 3;
                         let right_pad = width - 2;
@@ -1099,6 +1106,9 @@ impl TextDrawer {
                     }
                     } else {
                         if inst.op.try_standard_gate() == Some(StandardGate::CPhase) {
+                            // Match the endpoint width so the connector rows stay aligned with the
+                            // label row produced by `OnWireElement::CPhaseEndpoint`.
+                            // refer to the comment in `OnWireElement::CPhaseEndpoint` for more details.
                             let label = Self::get_label(inst);
                             let width = label.width() + 3;
                             let right_pad = width - 2;
