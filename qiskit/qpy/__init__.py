@@ -431,7 +431,8 @@ versions, the file header is immediately followed by the circuit payloads in seq
 without any padding in-between.
 
 All values use network byte order [#f1]_ (big endian) for cross platform
-compatibility.
+compatibility. The exception to this is for QPY format versions <= 17 the encoding of
+integers and floats as part of ``INSTRUCTION_PARAM`` is little endian.
 
 Each individual circuit is composed of the following parts in order from top to bottom:
 

@@ -405,10 +405,25 @@ impl<T: FromGenericValue> FromGenericValue for Vec<T> {
     }
 }
 
+/// Load a bytes array value of a specified type
+///
+/// # Args
+///
+/// * `type_key` - The type of the data
+/// * `bytes` - The raw data as a u8 array
+/// * `qpy_data` - QPY reader metadata
+/// * `endian` - The endianess of the data used only for reading
+///   `ValueType::Integer` and `ValueType::Float` primitive types
+///   (this applies recursively for `ValueType::Tuple` too). All other
+///   data is big endian per the QPY format documentation. The use of
+///   little endian data for floats and integers in instruction parameter
+///   contexts only is an oversight/mistake in the QPY implementation for
+///   format versions <=17. All data is supposed to be network byte order.
 pub(crate) fn load_value(
     type_key: ValueType,
     bytes: &Bytes,
     qpy_data: &mut QPYReadData,
+    endian: Endian,
 ) -> Result<GenericValue, QpyError> {
     match type_key {
         ValueType::Bool => {
@@ -417,15 +432,21 @@ pub(crate) fn load_value(
         }
         ValueType::Integer => {
             // a little tricky since this can be either i64 or biguint
-            let result = bytes.try_into();
-            if let Ok(value) = result {
-                Ok(GenericValue::Int64(value))
+            if bytes.len() <= 8 {
+                let mut bytes_array: [u8; 8] = [0; 8];
+                for (idx, byte) in bytes.iter().enumerate() {
+                    bytes_array[idx] = *byte;
+                }
+                match endian {
+                    Endian::Little => Ok(GenericValue::Int64(i64::from_le_bytes(bytes_array))),
+                    Endian::Big => Ok(GenericValue::Int64(i64::from_be_bytes(bytes_array))),
+                }
             } else {
                 load_biguint_value(bytes)
             }
         }
         ValueType::Float => {
-            let value: f64 = bytes.try_into()?;
+            let value: f64 = bytes.try_to_f64(endian)?;
             Ok(GenericValue::Float64(value))
         }
         ValueType::Complex => {
@@ -465,7 +486,7 @@ pub(crate) fn load_value(
         }
         ValueType::Tuple => {
             let (elements_pack, _) = deserialize::<GenericDataSequencePack>(bytes)?;
-            let values = unpack_generic_value_sequence(elements_pack, qpy_data)?;
+            let values = unpack_generic_value_sequence(elements_pack, qpy_data, endian)?;
             Ok(GenericValue::Tuple(values))
         }
         ValueType::NumpyObject => {
@@ -619,8 +640,9 @@ pub(crate) fn pack_generic_value(
 pub(crate) fn unpack_generic_value(
     value_pack: &GenericDataPack,
     qpy_data: &mut QPYReadData,
+    endian: Endian,
 ) -> Result<GenericValue, QpyError> {
-    let result = load_value(value_pack.type_key, &value_pack.data, qpy_data)?;
+    let result = load_value(value_pack.type_key, &value_pack.data, qpy_data, endian)?;
     Ok(result)
 }
 
@@ -636,7 +658,7 @@ pub(crate) fn unpack_duration_value(
             let duration = unpack_duration(deserialize::<DurationPack>(&value_pack.data)?.0);
             Ok(GenericValue::Duration(duration))
         }
-        _ => unpack_generic_value(value_pack, qpy_data), // fallback (duration can also be expression)
+        _ => unpack_generic_value(value_pack, qpy_data, Endian::Little), // fallback (duration can also be expression)
     }
 }
 
@@ -690,11 +712,12 @@ pub(crate) fn pack_generic_value_sequence(
 pub(crate) fn unpack_generic_value_sequence(
     value_seqeunce_pack: GenericDataSequencePack,
     qpy_data: &mut QPYReadData,
+    endian: Endian,
 ) -> Result<Vec<GenericValue>, QpyError> {
     value_seqeunce_pack
         .elements
         .iter()
-        .map(|data_pack| unpack_generic_value(data_pack, qpy_data))
+        .map(|data_pack| unpack_generic_value(data_pack, qpy_data, endian))
         .collect()
 }
 

@@ -943,7 +943,38 @@ def generate_box():
         with nested.box(duration=200.0, unit="ns"):
             nested.x(0)
             nested.noop(1)
-    return [bare, nested]
+
+    labeled = QuantumCircuit(2, name="labeled boxes")
+    with labeled.box():
+        labeled.cx(0, 1)
+    with labeled.box(duration=1, unit="dt", label="hello"):
+        with labeled.box(duration=2.5, unit="s", label="world"):
+            labeled.cx(0, 1)
+
+    return [bare, nested, labeled]
+
+
+def generate_delay():
+    """Circuits that contain a delay"""
+    qc = QuantumCircuit(1, name="delay dt")
+    qc.delay(1, 0)
+    qc.delay(9223372036854775806, 0)
+    return qc
+
+
+def generate_delay_stretch():
+    """Circuits that contain a stretch delay. Added in QPY 14 in Qiskit 2.0."""
+    from qiskit.circuit.classical import expr
+    from qiskit.circuit import Duration
+    import uuid
+
+    stretch_expr = QuantumCircuit(1, name="stretch_expr_delay_circuit")
+    s = expr.Stretch(uuid.UUID(bytes=b"hallo, QPY_world", version=4), "a")
+    stretch = stretch_expr.add_stretch(s)
+    stretch_expr.delay(stretch, 0)
+    stretch_expr.delay(expr.add(Duration.dt(200), stretch), 0)
+    stretch_expr.delay(expr.sub(Duration.ns(3.14159), stretch), 0)
+    return [stretch_expr]
 
 
 def generate_circuits(generating_version, current_version, load_context=False):
@@ -960,6 +991,7 @@ def generate_circuits(generating_version, current_version, load_context=False):
         "string_parameters.qpy": [generate_string_parameters()],
         "register_edge_cases.qpy": generate_register_edge_cases(),
         "parameterized.qpy": [generate_parameterized_circuit()],
+        "delay.qpy": [generate_delay()],
     }
 
     if generating_version.release >= (0, 18, 1):
@@ -1021,6 +1053,7 @@ def generate_circuits(generating_version, current_version, load_context=False):
     if generating_version.release >= (2, 0, 0):
         output_circuits["v14_expr.qpy"] = generate_v14_expr()
         output_circuits["box.qpy"] = generate_box()
+        output_circuits["delay_stretch.qpy"] = generate_delay_stretch()
     return output_circuits
 
 
