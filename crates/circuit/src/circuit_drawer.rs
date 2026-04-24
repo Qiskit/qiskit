@@ -63,7 +63,10 @@ pub fn draw_circuit(
             if approx::abs_diff_eq!(*f, 0.) {
                 String::new()
             } else {
-                format!("global phase: {}\n", F64UiFormatter::new(5).format(*f))
+                format!(
+                    "global phase: {}\n",
+                    F64UiFormatter::new(5).format_with_pi(*f)
+                )
             }
         }
         Param::ParameterExpression(expr) => {
@@ -672,13 +675,19 @@ impl TextWireElement {
     }
 }
 
-/// A simple formatter for rendering nicely-truncated floating-point numbers,
-/// in a way similar to Python's g or printf's %g format specifiers.
+/// A formatter for UI rendering of floating-point numbers
+///
+/// Supports formatting similar to Python's `g` or C printf's `%g` format specifiers
+/// as well as formatting of multiples and fractions of pi.
+///
 /// Example outputs:
-/// F64UiFormatter::new(4).format(1.23456) --> 1.235
-/// F64UiFormatter::new(4).format(123.456) --> 123.5
-/// F64UiFormatter::new(5).format(12345678f64) --> 1.2346e7
-/// F64UiFormatter::new(5).format(-0.00001234) --> -1.234e-5
+/// ```text
+/// F64UiFormatter::new(4).format(1.23456)        → 1.235
+/// F64UiFormatter::new(4).format(123.456)        → 123.5
+/// F64UiFormatter::new(5).format(12345678.0)     → 1.2346e7
+/// F64UiFormatter::new(5).format(-0.00001234)    → -1.234e-5
+/// F64UiFormatter::new(5).format_with_pi(5π/6)   → 5π/6
+/// ```
 struct F64UiFormatter {
     buffer: Vec<u8>,
     options: lexical_write_float::Options,
@@ -706,6 +715,12 @@ impl F64UiFormatter {
     fn format(&mut self, num: f64) -> &str {
         let buf = num.to_lexical_with_options::<STANDARD>(&mut self.buffer, &self.options);
         std::str::from_utf8_mut(buf).expect("Byte representation should be valid")
+    }
+
+    /// Tries to format the string as a multiple or simple fraction of pi if possible,
+    /// otherwise falls back to the simpler [F64UiFormatter::format] logic
+    fn format_with_pi(&mut self, num: f64) -> String {
+        format_float_pi(num).unwrap_or_else(|| self.format(num).to_owned())
     }
 }
 
@@ -807,7 +822,9 @@ impl TextDrawer {
                         .params_view()
                         .iter()
                         .map(|param| match param {
-                            Param::Float(f) => F64UiFormatter::new(5).format(*f).to_string(),
+                            Param::Float(f) => {
+                                F64UiFormatter::new(5).format_with_pi(*f).to_string()
+                            }
                             Param::ParameterExpression(expr) => expr.to_string(),
                             _ => format!("{:?}", param),
                         })
@@ -2139,7 +2156,7 @@ q_1: ┤ Ry(🎩) ├┤1          ├┤ 💶🔉(🎩) ├┤1           ├�
             ShareableQubit::new_anonymous(),
             ShareableQubit::new_anonymous(),
         ];
-        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(12.3)).unwrap();
+        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.8 * PI)).unwrap();
 
         circuit
             .push_standard_gate(StandardGate::RX, &[Param::Float(1.234567)], &[Qubit(0)])
@@ -2165,15 +2182,22 @@ q_1: ┤ Ry(🎩) ├┤1          ├┤ 💶🔉(🎩) ├┤1           ├�
         circuit
             .push_standard_gate(StandardGate::RX, &[Param::Float(0.0000123456)], &[Qubit(1)])
             .unwrap();
+        circuit
+            .push_standard_gate(
+                StandardGate::RX,
+                &[Param::Float(2.0 / 3.0 * PI)],
+                &[Qubit(1)],
+            )
+            .unwrap();
 
         let result = draw_circuit(&circuit, true, true, None).unwrap();
         let expected = "
-global phase: 6.0168
+global phase: 4π/5
       ┌────────────┐ ┌────────────┐ ┌───────────────┐
-q_0: ─┤ Rx(1.2346) ├─┤ Rx(123.46) ├─┤ Ry(1.23456*ϕ) ├
-     ┌┴────────────┴┐├────────────┴┐├───────────────┤
-q_1: ┤ Rz(1.2346e8) ├┤ Rx(0.12346) ├┤ Rx(1.2346e-5) ├
-     └──────────────┘└─────────────┘└───────────────┘
+q_0: ─┤ Rx(1.2346) ├─┤ Rx(123.46) ├─┤ Ry(1.23456*ϕ) ├────────────
+     ┌┴────────────┴┐├────────────┴┐├───────────────┤┌──────────┐
+q_1: ┤ Rz(1.2346e8) ├┤ Rx(0.12346) ├┤ Rx(1.2346e-5) ├┤ Rx(2π/3) ├
+     └──────────────┘└─────────────┘└───────────────┘└──────────┘
 ";
 
         assert_eq!(result, expected.trim_start_matches("\n"));
@@ -2245,11 +2269,13 @@ q_1: ┤ Rz(1.2346e8) ├┤ Rx(0.12346) ├┤ Rx(1.2346e-5) ├
             (12.34 * 1_000_000.0, "1.234e7"),
             (-0.00001, "-1e-5"),
             (12345678.000001, "1.2346e7"),
+            (15.0 * PI / 16.0, "15π/16"),
+            (-2.0 * PI / 3.0, "-2π/3"),
         ];
 
         let mut formatter = F64UiFormatter::new(5);
         for test in test_data_5_sig_digits {
-            assert_eq!(test.1, formatter.format(test.0));
+            assert_eq!(test.1.to_owned(), formatter.format_with_pi(test.0));
         }
     }
 }
