@@ -44,6 +44,13 @@ class DraperQFTAdder(Adder):
         cout_0: ┤2     ├────────────────────────■────────■───────┤2      ├
                 └──────┘                                         └───────┘
 
+    .. note::
+
+        The QFT and inverse QFT blocks in this diagram omit their final swap networks.
+        Between the two blocks, the Fourier-basis sum register is therefore in reversed
+        significance order, so the controlled-phase gates are drawn against that ordering.
+        The inverse QFT block omits the matching swaps, restoring the output order.
+
     .. seealso::
 
         The following generic gate objects perform additions, like this circuit class,
