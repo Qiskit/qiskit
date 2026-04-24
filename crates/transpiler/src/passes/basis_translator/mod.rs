@@ -538,6 +538,7 @@ fn replace_node(
                 OperationRef::PauliProductRotation(rotation) => {
                     PauliBased::PauliProductRotation(rotation.clone()).into()
                 }
+                OperationRef::CustomOperation(_) => inner_node.op.clone(),
             };
             let new_params: Option<Parameters<_>> = inner_node.params.as_deref().cloned();
             dag.apply_operation_back(
@@ -615,6 +616,7 @@ fn replace_node(
                 OperationRef::PauliProductRotation(rotation) => {
                     PauliBased::PauliProductRotation(rotation.clone()).into()
                 }
+                OperationRef::CustomOperation(_) => inner_node.op.clone(),
             };
 
             let mut new_params: Option<Parameters<_>> = inner_node.params.as_deref().cloned();

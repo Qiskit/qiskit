@@ -12,8 +12,10 @@
 
 use approx::relative_eq;
 use qiskit_quantum_info::sparse_pauli_op::MatrixCompressedPaulis;
+use std::any::Any;
 use std::fmt::Debug;
 use std::num::NonZero;
+use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 use std::sync::Arc;
 use std::{fmt, vec};
@@ -22,7 +24,7 @@ use crate::bit::{ClassicalRegister, ShareableClbit};
 use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::classical::expr;
 use crate::duration::Duration;
-use crate::packed_instruction::PackedInstruction;
+use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::{
     ParameterExpression, PyParameter, PyParameterExpression,
 };
@@ -36,7 +38,7 @@ use num_complex::{Complex64, c64};
 use smallvec::SmallVec;
 
 use numpy::{PyArray1, PyReadonlyArray2, ToPyArray};
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyNotImplementedError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyTuple};
 use pyo3::{IntoPyObjectExt, Python, intern};
@@ -292,6 +294,7 @@ pub enum OperationRef<'a> {
     Unitary(&'a UnitaryGate),
     PauliProductMeasurement(&'a PauliProductMeasurement),
     PauliProductRotation(&'a PauliProductRotation),
+    CustomOperation(&'a dyn CustomOperation),
 }
 
 impl Operation for OperationRef<'_> {
@@ -307,6 +310,7 @@ impl Operation for OperationRef<'_> {
             Self::Unitary(unitary) => unitary.name(),
             Self::PauliProductMeasurement(ppm) => ppm.name(),
             Self::PauliProductRotation(rotation) => rotation.name(),
+            Self::CustomOperation(operation) => operation.name(),
         }
     }
     #[inline]
@@ -321,6 +325,7 @@ impl Operation for OperationRef<'_> {
             Self::Unitary(unitary) => unitary.num_qubits(),
             Self::PauliProductMeasurement(ppm) => ppm.num_qubits(),
             Self::PauliProductRotation(rotation) => rotation.num_qubits(),
+            Self::CustomOperation(operation) => operation.num_qubits(),
         }
     }
     #[inline]
@@ -335,6 +340,7 @@ impl Operation for OperationRef<'_> {
             Self::Unitary(unitary) => unitary.num_clbits(),
             Self::PauliProductMeasurement(ppm) => ppm.num_clbits(),
             Self::PauliProductRotation(rotation) => rotation.num_clbits(),
+            Self::CustomOperation(operation) => operation.num_clbits(),
         }
     }
     #[inline]
@@ -349,6 +355,7 @@ impl Operation for OperationRef<'_> {
             Self::Unitary(unitary) => unitary.num_params(),
             Self::PauliProductMeasurement(ppm) => ppm.num_params(),
             Self::PauliProductRotation(rotation) => rotation.num_params(),
+            Self::CustomOperation(operation) => operation.num_params(),
         }
     }
     #[inline]
@@ -363,6 +370,7 @@ impl Operation for OperationRef<'_> {
             Self::Unitary(unitary) => unitary.directive(),
             Self::PauliProductMeasurement(ppm) => ppm.directive(),
             Self::PauliProductRotation(rotation) => rotation.directive(),
+            Self::CustomOperation(operation) => operation.directive(),
         }
     }
 }
@@ -1837,6 +1845,151 @@ impl PartialEq for PauliProductMeasurement {
 
 impl Eq for PauliProductMeasurement {}
 
+/// Describes the kind of operation associated with this type.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(u8)]
+pub enum CustomOperationKind {
+    /// A unitary operation in the circuit.
+    Gate,
+    /// A non-unitary operation in the circuit.
+    Instruction,
+}
+
+/// Trait that implements common methods found in operations that, in conjunction with
+/// the [Operation] trait, allows a struct to operate in a circuit.
+///
+/// Unlike [Operation] alone, this trait focuses on the specific functions that are
+/// typically available for the two main Qiskit operation types: Gate and Instruction.
+///
+/// To classify an operation, you must implement the [CustomOperation::kind] method,
+/// which returns a [CustomOperationKind] object with two variants:
+/// - [CustomOperationKind::Gate]: For unitary instructions.
+///     - In addition to this, the implementor should define required methods for
+///       the `Gate` to function properly:
+///       - [CustomOperation::matrix]
+///       - [CustomOperation::num_ctrl_qubits]
+///       - [CustomOperation::is_controlled_gate]
+/// - [CustomOperationKind::Instruction]: For non-unitary instruction.
+///
+/// Implementors must also define [CustomOperation::clone_dyn] as a way to clone the
+/// original object using its implementation of [Clone] once it is dynamically
+/// dispatched.
+pub trait CustomOperation: Operation + Any + Debug + Send + Sync {
+    /// Return the custom label assigned to this instruction.
+    fn label(&self) -> Option<&str> {
+        None
+    }
+
+    /// Returns an inverted version of this instruction and the computed parameters.
+    fn inverse(&self, _params: &[Param]) -> Option<(PackedOperation, SmallVec<[Param; 3]>)> {
+        None
+    }
+
+    /// Returns a circuit representing the possible list of instructions that
+    /// this operation is composed of.
+    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
+        None
+    }
+
+    /// If the instance is a gate, returns the unitary matrix that represents it,
+    /// if the parameters are correct. Otherwise, it returns None.
+    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
+        // TODO: Make fallible.
+        None
+    }
+
+    /// If the instance is a gate, returns the number of control qubits.
+    fn num_ctrl_qubits(&self) -> Option<NonZero<u32>> {
+        None
+    }
+
+    /// If the instance is a gate, checks if it contains any control Qubits.
+    fn is_controlled_gate(&self) -> bool {
+        self.num_ctrl_qubits().is_some()
+    }
+
+    /// Creates python instance of this operation.
+    fn create_py_op<'py>(
+        &self,
+        _py: Python<'py>,
+        _params: Option<SmallVec<[Param; 3]>>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        Err(PyNotImplementedError::new_err(
+            "Rust native operations cannot be exposed to Python yet.",
+        ))
+    }
+
+    /// Returns the python type linked to this operation.
+    fn py_type<'py>(&self, _py: Python<'py>) -> PyResult<&Bound<'py, pyo3::types::PyType>> {
+        Err(PyNotImplementedError::new_err(
+            "Rust native operations cannot be exposed to Python yet.",
+        ))
+    }
+
+    /// Dynamic clone function to clone the original operation type.
+    ///
+    /// As long as the enclosed type `T: Clone`, this implementation will
+    /// trickle down to just calling the implementor's `Clone::clone()` method.
+    fn clone_dyn(&self) -> Box<dyn CustomOperation>;
+
+    /// Returns the kind of operation associated with this type.
+    fn kind(&self) -> CustomOperationKind;
+}
+
+impl dyn CustomOperation + 'static {
+    // Trait implementation needs to be repeated here from Any as upcasting
+    // is stabilized in Rust 1.86+ and we barely missed the cutoff.
+    /// Casts a reference to a CustomOperation to its original type if the correct
+    /// type is specified.
+    pub fn downcast_ref<T: CustomOperation + 'static>(&self) -> Option<&T> {
+        let self_as_any: &dyn Any = self;
+        self_as_any.downcast_ref()
+    }
+}
+
+/// Internal representation of a custom operation within a Circuit.
+///
+/// It acts as a wrapper for a CustomOperation which ensures that
+/// the operation is wrapped within a [`Box`] pointer and is aligned
+/// to 8 bytes, which enables it to be safely represented as a
+/// [`PackedOperation`].
+#[derive(Debug)]
+#[repr(align(8))]
+pub(crate) struct BoxedCustomOperation(Box<dyn CustomOperation>);
+
+impl Deref for BoxedCustomOperation {
+    type Target = dyn CustomOperation;
+
+    fn deref(&self) -> &Self::Target {
+        self.0.as_ref()
+    }
+}
+
+impl DerefMut for BoxedCustomOperation {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.0.as_mut()
+    }
+}
+
+impl Clone for BoxedCustomOperation {
+    fn clone(&self) -> Self {
+        Self(self.0.clone_dyn())
+    }
+}
+
+impl<T: CustomOperation> From<T> for BoxedCustomOperation {
+    fn from(value: T) -> Self {
+        let op = Box::new(value);
+        Self(op)
+    }
+}
+
+impl From<Box<dyn CustomOperation>> for BoxedCustomOperation {
+    fn from(value: Box<dyn CustomOperation>) -> Self {
+        Self(value)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use approx::assert_abs_diff_eq;
@@ -1877,5 +2030,160 @@ mod test {
                 assert_abs_diff_eq!(expected_matrix[(i, j)], matrix[(i, j)], epsilon = epsilon);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test_custom_gates {
+    use crate::Qubit;
+    use crate::circuit_data::CircuitData;
+    use crate::gate_matrix::H_GATE;
+    use crate::operations::{
+        CustomOperation, CustomOperationKind, Operation, OperationRef, Param, StandardGate,
+    };
+    use ndarray::aview2;
+    use smallvec::smallvec;
+    use std::f64::consts::PI;
+
+    #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    struct CustomH;
+    impl Operation for CustomH {
+        fn name(&self) -> &str {
+            "h"
+        }
+
+        fn num_qubits(&self) -> u32 {
+            1
+        }
+
+        fn num_clbits(&self) -> u32 {
+            0
+        }
+
+        fn num_params(&self) -> u32 {
+            0
+        }
+
+        fn directive(&self) -> bool {
+            false
+        }
+    }
+
+    impl CustomOperation for CustomH {
+        fn clone_dyn(&self) -> Box<dyn CustomOperation> {
+            Box::new(self.clone())
+        }
+        fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
+            CircuitData::from_standard_gates(
+                1,
+                [(StandardGate::H, smallvec![], smallvec![Qubit(0)])],
+                0.0.into(),
+            )
+            .ok()
+        }
+
+        fn matrix(&self, params: &[Param]) -> Option<ndarray::Array2<numpy::Complex64>> {
+            params.is_empty().then_some(aview2(&H_GATE).to_owned())
+        }
+
+        fn kind(&self) -> CustomOperationKind {
+            CustomOperationKind::Gate
+        }
+    }
+
+    #[test]
+    fn try_custom_h_gate() {
+        let gate: Box<dyn CustomOperation> = Box::new(CustomH);
+
+        // Try downcasting
+        let gate = gate
+            .downcast_ref::<CustomH>()
+            .expect("Should downcast to an H gate");
+
+        assert_eq!(
+            gate.name(),
+            "h",
+            "Gate names did not match, expected 'H' obtained '{}'",
+            gate.name()
+        );
+        assert_eq!(
+            gate.num_qubits(),
+            1,
+            "The number of qubits of gate did not match, expected '1' obtained '{}'",
+            gate.num_qubits()
+        );
+        assert_eq!(
+            gate.num_params(),
+            0,
+            "The number of parameters of gate did not match, expected '0' obtained '{}'",
+            gate.num_params()
+        );
+        assert_eq!(
+            gate.label(),
+            None,
+            "Gate labels did not match, expected 'None' obtained '{:?}'",
+            gate.label()
+        );
+        let matrix_res = gate.matrix(&[]);
+        let matrix_exp = Some(aview2(&H_GATE));
+        assert_eq!(
+            matrix_res.as_ref().map(|mat| mat.view()),
+            matrix_exp,
+            "Gate matrix did not match, expected {:?} obtained '{:?}'",
+            matrix_exp,
+            matrix_res,
+        );
+
+        let matrix_res = gate.matrix(&[Param::Float(PI)]);
+        let matrix_exp = None;
+        assert_eq!(
+            matrix_res, matrix_exp,
+            "Gate matrix did not match, expected {:?} obtained '{:?}'",
+            matrix_exp, matrix_res
+        );
+
+        let circuit = gate.definition(&[]).expect("Circuit should exist.");
+        assert_eq!(
+            circuit.len(),
+            1,
+            "Definition length mismatch, expected {} got {}.",
+            1,
+            circuit.len()
+        );
+
+        let hgate = circuit.iter().next().expect("Should be H gate");
+        assert_eq!(
+            hgate.op.standard_gate(),
+            StandardGate::H,
+            "Definition length mismatch, expected {:?} got {:?}.",
+            hgate.op.standard_gate(),
+            StandardGate::H
+        );
+    }
+
+    // Exclude this test from miri as it uses pointers without provenance
+    // when extracting the view of the `CustomGate`.
+    #[cfg(not(miri))]
+    #[test]
+    fn try_add_to_circuit() {
+        let mut circuit = CircuitData::with_capacity(1, 0, 1, 0.0.into())
+            .expect("Circuit with small capacity should be built.");
+
+        circuit
+            .push_custom_operation(CustomH, &[], &[Qubit(0)], &[])
+            .expect("Instruction should be added to the circuit.");
+
+        // Retrieve operation
+        let retrieved_gate = &circuit.data()[0];
+
+        let OperationRef::CustomOperation(gate_as_h) = retrieved_gate.op.view() else {
+            panic!("Gate should be a custom gate of type CustomH");
+        };
+
+        let Some(downcast_gate) = gate_as_h.downcast_ref::<CustomH>() else {
+            panic!("Gate should be a custom gate of type CustomH");
+        };
+
+        assert_eq!(gate_as_h.downcast_ref::<CustomH>(), Some(downcast_gate))
     }
 }

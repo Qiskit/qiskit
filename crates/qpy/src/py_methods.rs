@@ -332,6 +332,11 @@ pub(crate) fn gate_class_name(op: &PackedOperation) -> Result<String, QpyError> 
                 Ok(String::from(PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME))
             }
             OperationRef::ControlFlow(inst) => Ok(inst.name().to_string()),
+            OperationRef::CustomOperation(operation) => operation
+                .py_type(py)?
+                .getattr(intern!(py, "__class__"))?
+                .getattr(intern!(py, "__name__"))?
+                .extract::<String>(),
         }?;
         Ok(name)
     })
