@@ -12,7 +12,7 @@
 
 use super::optimize_1q_gates_decomposition::matmul_1q;
 use hashbrown::{HashMap, HashSet};
-use nalgebra::{Matrix2, Matrix4, U4};
+use nalgebra::{Matrix2, U4};
 use ndarray::ArrayView2;
 use ndarray::{Array2, aview2};
 use num_complex::Complex64;
@@ -42,32 +42,10 @@ use qiskit_synthesis::two_qubit_decompose::{
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::SmallVec;
 
+use crate::passes::remove_identity_equiv::{MINIMUM_TOL, average_gate_fidelity_below_tol};
 use crate::passes::unitary_synthesis::{PARAM_SET, TWO_QUBIT_BASIS_SET};
 use crate::target::{Qargs, Target};
 use qiskit_circuit::PhysicalQubit;
-
-static IDENTITY_2Q: Matrix4<Complex64> = Matrix4::new(
-    // Row 1
-    Complex64::ONE,
-    Complex64::ZERO,
-    Complex64::ZERO,
-    Complex64::ZERO,
-    // Row 2
-    Complex64::ZERO,
-    Complex64::ONE,
-    Complex64::ZERO,
-    Complex64::ZERO,
-    // Row 3
-    Complex64::ZERO,
-    Complex64::ZERO,
-    Complex64::ONE,
-    Complex64::ZERO,
-    // Row 4
-    Complex64::ZERO,
-    Complex64::ZERO,
-    Complex64::ZERO,
-    Complex64::ONE,
-);
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug)]
@@ -220,7 +198,7 @@ impl PhysQargsMap {
 
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
-#[pyo3(name = "consolidate_blocks", signature = (dag, decomposer, basis_gate_name, force_consolidate, target=None, basis_gates=None, blocks=None, runs=None, qubit_map=None))]
+#[pyo3(name = "consolidate_blocks", signature = (dag, decomposer, basis_gate_name, force_consolidate, target=None, basis_gates=None, blocks=None, runs=None, qubit_map=None, approximation_degree=None))]
 fn py_run_consolidate_blocks(
     dag: &mut DAGCircuit,
     decomposer: DecomposerType,
@@ -231,7 +209,14 @@ fn py_run_consolidate_blocks(
     blocks: Option<Vec<Vec<usize>>>,
     runs: Option<Vec<Vec<usize>>>,
     qubit_map: Option<Vec<PhysicalQubit>>,
+    approximation_degree: Option<f64>,
 ) -> PyResult<()> {
+    let tol = if let Some(degree) = approximation_degree {
+        MINIMUM_TOL.max(1. - degree)
+    } else {
+        MINIMUM_TOL
+    };
+
     // The node indices that enter from `blocks` and `runs` come from Python space, and we can't
     // trust that they come from a correct analysis (or the block/run collection might have been
     // invalidated). Rather than panicking, we should raise Python-space exceptions. We don't have
@@ -424,10 +409,15 @@ fn py_run_consolidate_blocks(
                     || (basis_gates.is_some() && outside_basis)
                     || (target.is_some() && outside_basis)
                 {
-                    if approx::abs_diff_eq!(IDENTITY_2Q, matrix) {
+                    let trace = matrix.trace();
+                    let dim = 4.0;
+                    if let Some(phase_update) =
+                        average_gate_fidelity_below_tol(trace / dim, dim, tol)
+                    {
                         for node in block {
                             dag.remove_op_node(node);
                         }
+                        dag.add_global_phase(&Param::Float(phase_update))?;
                     } else {
                         let unitary_gate = UnitaryGate {
                             array: ArrayType::TwoQ(matrix),
@@ -509,10 +499,13 @@ fn py_run_consolidate_blocks(
             if already_in_block {
                 continue;
             }
-            if approx::abs_diff_eq!(aview2(&ONE_QUBIT_IDENTITY), aview2(&matrix)) {
+            let trace = matrix[0][0] + matrix[1][1];
+            let dim = 2.0;
+            if let Some(phase_update) = average_gate_fidelity_below_tol(trace / dim, dim, tol) {
                 for node in run {
                     dag.remove_op_node(node);
                 }
+                dag.add_global_phase(&Param::Float(phase_update))?;
             } else {
                 let array: Matrix2<Complex64> =
                     Matrix2::from_row_iterator(matrix.into_iter().flat_map(|x| x.into_iter()));
@@ -558,8 +551,8 @@ pub fn run_consolidate_blocks(
     approximation_degree: Option<f64>,
     target: Option<&Target>,
 ) -> PyResult<()> {
-    let approximation_degree = approximation_degree.unwrap_or(1.0);
-    let (decomposer, basis_gate) = get_decomposer_and_basis_gate(target, approximation_degree);
+    let (decomposer, basis_gate) =
+        get_decomposer_and_basis_gate(target, approximation_degree.unwrap_or(1.0));
     py_run_consolidate_blocks(
         dag,
         decomposer,
@@ -571,6 +564,7 @@ pub fn run_consolidate_blocks(
         None,
         // TODO: this doesn't handle the possibility of control-flow operations yet.
         None,
+        approximation_degree,
     )
 }
 
