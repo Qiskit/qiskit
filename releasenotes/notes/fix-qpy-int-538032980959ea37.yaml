@@ -1,15 +1,7 @@
 ---
 fixes:
   - |
-    Fixed an issue in the :func:`.qpy.load` function when reading QPY payloads using
-    QPY format versions >=13 that contained a circuit which contained :class:`.Delay`
-    instructions that had an integer duration value with a duration unit of ``"dt"``
-    were incorrectly loaded through a :class:`.ParameterExpression` as part of the
-    deserialization process. This typically wasn't visible through Python as the
-    :class:`.ParameterExpression` was coerced into an integer when it was accessed
-    from Python. But for code acting on the instruction internally via Rust this could
-    cause issues as it was diverging from underlying expectations around
-    :class:`.Delay` instructions. One concrete example of this is if you passed a
-    circuit loaded via :func:`.qpy.load` to the :func:`.qasm3.dumps_experimental`
-    function this would cause an internal error. This has been fixed so now an integer
-    object is correctly created directly for the duration.
+    Fixed :func:`.qpy.load` for QPY versions >=13, where :class:`.Delay` instructions with integer
+    durations could deserialize to incorrect types. This could cause later code to raise errors,
+    such as :func:`.qasm3.dumps_experimental` returning an error saying "Failed to parse parameter
+    value". See `#16076 <https://github.com/Qiskit/qiskit/pull/16076>`__ for more detail.
