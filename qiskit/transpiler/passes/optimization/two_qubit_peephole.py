@@ -55,15 +55,45 @@ class TwoQubitPeepholeOptimization(TransformationPass):
     and use all the cores available on your local system. You can refer to
     the `configuration guide <https://docs.quantum.ibm.com/guides/configure-qiskit-local>`__
     for details on how to control the threading behavior for Qiskit more broadly
-    which will also control this pass.
+    which will also control this pass
 
-    Unlike :class:`.UnitarySynthesis` pass this does not use the :ref`unitary-synth-plugin`.
+    This pass is similar in functionality to running :class:`.ConsolidateBlocks`
+    and :class:`.UnitarySynthesis` sequentially in your pass manager. However,
+    this pass offers improved runtime performance by performing the synthesis in
+    parallel. It also has improved heuristics enabled by doing the optimization in
+    a single step which can result in better quality output, especially in cases
+    of overcomplete and/or hetergeneous targets. However, these heuristics and this
+    pass as a whole are only valid for physical circuits. Additionally, unlike
+    :class:`.UnitarySynthesis` pass this does not use the :ref:`unitary-synth-plugin`.
     This is a tradeoff for performance and it forgoes the pluggability exposed
     via that interface. Internally it currently only uses the :class:`.TwoQubitBasisDecomposer`
     and :class:`.TwoQubitControlledUDecomposer` for synthesizing the two qubit unitaries.
     You should not use this pass if you need to use the pluggable interface and the ability
     to use different synthesis algorithms, instead you should use a combination of
-    :class:`.ConsolidateBlocks` and :class:`.UnitarySynthesis` to use the plugin mechanism
+    :class:`.ConsolidateBlocks` and :class:`.UnitarySynthesis` to leverage the plugin
+    mechanism in :class:`.UnitarySynthesis`.
+
+    .. plot::
+      :include-source:
+
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.transpiler.passes import TwoQubitPeepholeOptimization
+      from qiskit.providers.fake_provider import GenericBackendV2
+
+      # Build an unoptimized 2 qubit circuit
+      unoptimized = QuantumCircuit(2)
+      for i in range(10):
+        if i % 2:
+          unoptimized.cx(0, 1)
+        else:
+          unoptimized.cx(1, 0)
+      # Generate a target with random error rates
+      backend = GenericBackendV2(2, ["u", "cx"], coupling_map=[[0, 1], [1, 0]])
+      # Instantiate pass
+      peephole_pass = TwoQubitPeepholeOptimization(backend.target)
+      # Run pass and visualize output
+      optimized = peephole_pass(unoptimized)
+      optimized.draw("mpl")
     """
 
     def __init__(
