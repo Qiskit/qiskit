@@ -116,7 +116,7 @@ class CSPLayout(AnalysisPass):
                 return (control, target) in edges
 
             def bidirectional_constraint(control, target):
-                return (control, target) in edges and (target, control) in edges
+                return (control, target) in edges or (target, control) in edges
 
             for pair in cxs:
                 problem.addConstraint(constraint, [pair[0], pair[1]])
