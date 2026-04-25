@@ -333,6 +333,7 @@ class TestCSPLayout(QiskitTestCase):
         self.assertEqual(
             pass_.property_set["CSPLayout_stop_reason"], "nonexistent solution"
         )
+        self.assertIsNone(pass_.property_set.get("layout"))
 
     def test_multi_qubit_gate_with_complete_connectivity(self):
         """CSPLayout should find a solution for a 3-qubit gate when all
