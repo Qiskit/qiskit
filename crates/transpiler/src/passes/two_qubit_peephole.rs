@@ -34,6 +34,7 @@ use qiskit_circuit::operations::{
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 
+use super::unitary_synthesis::Direction2q;
 use crate::passes::unitary_synthesis::{
     Approximation, QpuConstraint, TwoQSynthesisResult, fidelity_2q_sequence, synthesize_2q_matrix,
 };
@@ -42,10 +43,11 @@ use crate::target::Target;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_synthesis::linalg::nalgebra_array_view;
 use qiskit_synthesis::matrix::two_qubit::blocks_to_matrix;
+use qiskit_synthesis::two_qubit_decompose::TwoQubitGateSequence;
 use qiskit_util::getenv_use_multiple_threads;
 use thread_local::ThreadLocal;
 
-type MappingIterItem = Option<(TwoQSynthesisResult, [Qubit; 2])>;
+type MappingIterItem = Option<(TwoQSynthesisResult<f64>, [Qubit; 2])>;
 
 // This is a separate function in case we need to handle any Python synchronization in the future
 // (such as releasing the GIL). For right now this doesn't seem to be necessary, but keeping it
@@ -57,6 +59,24 @@ pub fn py_two_qubit_unitary_peephole_optimize(
     approximation_degree: Option<f64>,
 ) -> PyResult<Option<DAGCircuit>> {
     two_qubit_unitary_peephole_optimize(dag, target, approximation_degree)
+}
+
+fn score_sequence(
+    dir: &Direction2q,
+    sequence: &TwoQubitGateSequence,
+    constraint: &QpuConstraint,
+    qargs: [PhysicalQubit; 2],
+) -> (i64, f64, i64) {
+    let fidelity = fidelity_2q_sequence(dir, sequence, constraint, qargs);
+    // Make the gate counts negative because synthesize_2q_matrix picks the largest value
+    // we want to minimize the gate counts.
+    let gate_count = -(sequence.gates.len() as i64);
+    let twoq_gate_count = -(sequence
+        .gates
+        .iter()
+        .filter(|x| x.0.num_qubits() == 2)
+        .count() as i64);
+    (twoq_gate_count, fidelity, gate_count)
 }
 
 /// This function runs the two qubit unitary peephole optimization pass
@@ -108,6 +128,7 @@ pub fn two_qubit_unitary_peephole_optimize(
                 q_phys,
                 &mut synthesis_state.borrow_mut(),
                 QpuConstraint::Target(target),
+                score_sequence,
             )?;
             if result.is_none() {
                 return Ok(None);
@@ -152,15 +173,20 @@ pub fn two_qubit_unitary_peephole_optimize(
                 original_total_count,
             );
             let new_2q_count = result
-                .sequence
-                .gates
-                .iter()
-                .filter(|x| x.0.num_qubits() == 2)
-                .count();
+                .score
+                .map(|score| -score.0 as usize)
+                .unwrap_or_else(|| {
+                    result
+                        .sequence
+                        .gates
+                        .iter()
+                        .filter(|x| x.0.num_qubits() == 2)
+                        .count()
+                });
             let new_gate_count = result.sequence.gates.len();
             let new_score = (
                 new_2q_count,
-                1. - result.fidelity.unwrap_or_else(|| {
+                1. - result.score.map(|score| score.1).unwrap_or_else(|| {
                     fidelity_2q_sequence(
                         &result.dir,
                         &result.sequence,
@@ -183,6 +209,11 @@ pub fn two_qubit_unitary_peephole_optimize(
                 node_mapping[node.index()] = run_index;
             }
             substitution_made.store(true, std::sync::atomic::Ordering::Relaxed);
+            let result = TwoQSynthesisResult {
+                sequence: result.sequence,
+                dir: result.dir,
+                score: result.score.map(|score| score.1),
+            };
             Ok(Some((result, q_virt)))
         };
 

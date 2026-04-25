@@ -23,7 +23,9 @@ use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
 use pyo3::{intern, wrap_pyfunction};
 
-use self::decomposers::{Decomposer2q, DecomposerCache, Direction2q, FlipDirection};
+pub(crate) use self::decomposers::Direction2q;
+
+use self::decomposers::{Decomposer2q, DecomposerCache, FlipDirection};
 use crate::QiskitError;
 use crate::target::Target;
 use qiskit_circuit::bit::QuantumRegister;
@@ -487,10 +489,10 @@ fn synthesize_1q_matrix_onto(
 }
 
 #[derive(Debug)]
-pub struct TwoQSynthesisResult {
+pub struct TwoQSynthesisResult<S> {
     pub sequence: TwoQubitGateSequence,
     pub dir: Direction2q,
-    pub fidelity: Option<f64>,
+    pub score: Option<S>,
 }
 
 /// Estimate the fidelity of a synthesized two qubit unitary synthesis output
@@ -544,12 +546,21 @@ pub(crate) fn fidelity_2q_sequence(
 /// `qargs_phys` - The physical qubits the unitary is being applied to
 /// `state` - The internal state of the pass, this includes the configured synthesizers
 /// `constraint` - The qpu constraints used for the synthesis, typically just a Target
-pub(crate) fn synthesize_2q_matrix(
+/// `fidelity_calculation` - A callable that is called with a two qubit synthesis output sequence and
+///   the context around it. It is expected to return a fidelity score to compare that synthesis output
+///   against other decomposers. The synthesis output with the maximum score is selected and is
+///   what is returned by the `synthesize_2q_matrix`.
+pub(crate) fn synthesize_2q_matrix<F, S>(
     mut unitary: CowArray<Complex64, Ix2>,
     qargs_phys: [PhysicalQubit; 2],
     state: &mut UnitarySynthesisState,
     constraint: QpuConstraint,
-) -> PyResult<Option<TwoQSynthesisResult>> {
+    mut fidelity_calculation: F,
+) -> PyResult<Option<TwoQSynthesisResult<S>>>
+where
+    F: FnMut(&Direction2q, &TwoQubitGateSequence, &QpuConstraint, [PhysicalQubit; 2]) -> S,
+    S: PartialOrd,
+{
     let decomposer_cache = &mut state.cache;
     let config = &state.config;
 
@@ -611,9 +622,9 @@ pub(crate) fn synthesize_2q_matrix(
     for sequence in sequences {
         let sequence = sequence?;
         let prev_fidelity = best_fidelity.unwrap_or_else(|| {
-            fidelity_2q_sequence(&best_pair.0, &best_pair.1, &constraint, qargs_phys)
+            fidelity_calculation(&best_pair.0, &best_pair.1, &constraint, qargs_phys)
         });
-        let this_fidelity = fidelity_2q_sequence(&sequence.0, &sequence.1, &constraint, qargs_phys);
+        let this_fidelity = fidelity_calculation(&sequence.0, &sequence.1, &constraint, qargs_phys);
         if this_fidelity > prev_fidelity {
             best_fidelity = Some(this_fidelity);
             best_pair = sequence;
@@ -624,7 +635,7 @@ pub(crate) fn synthesize_2q_matrix(
     Ok(Some(TwoQSynthesisResult {
         sequence: best_pair.1,
         dir: best_pair.0,
-        fidelity: best_fidelity,
+        score: best_fidelity,
     }))
 }
 
@@ -636,7 +647,9 @@ fn synthesize_2q_matrix_onto(
     state: &mut UnitarySynthesisState,
     constraint: QpuConstraint,
 ) -> PyResult<bool> {
-    let Some(result) = synthesize_2q_matrix(unitary, qargs_phys, state, constraint)? else {
+    let Some(result) =
+        synthesize_2q_matrix(unitary, qargs_phys, state, constraint, fidelity_2q_sequence)?
+    else {
         return Ok(false);
     };
     // ... now apply the best sequence.
