@@ -83,18 +83,18 @@ class CSPLayout(AnalysisPass):
             )
         qubits = dag.qubits
         qubit_indices = {q: i for i, q in enumerate(qubits)}
-        cxs = set()
-        multi_cxs = set()
+        two_qubit_interactions = set()
+        multi_qubit_interactions = set()
 
         from constraint import Problem, AllDifferentConstraint, RecursiveBacktrackingSolver
         from qiskit.transpiler.passes.layout._csp_custom_solver import CustomSolver
 
         for gate in dag.two_qubit_ops():
-            cxs.add((qubit_indices[gate.qargs[0]], qubit_indices[gate.qargs[1]]))
+            two_qubit_interactions.add((qubit_indices[gate.qargs[0]], qubit_indices[gate.qargs[1]]))
         for gate in dag.multi_qubit_ops():
             argindices = [qubit_indices[q] for q in gate.qargs]
             for i, j in itertools.combinations(argindices, 2):
-                multi_cxs.add((i, j))
+                multi_qubit_interactions.add((i, j))
         edges = set(self.coupling_map.get_edges())
 
         if self.time_limit is None and self.call_limit is None:
@@ -116,11 +116,11 @@ class CSPLayout(AnalysisPass):
                 return (control, target) in edges
 
             def bidirectional_constraint(control, target):
-                return (control, target) in edges or (target, control) in edges
+                return (control, target) in edges and (target, control) in edges
 
-            for pair in cxs:
+            for pair in two_qubit_interactions:
                 problem.addConstraint(constraint, [pair[0], pair[1]])
-            for pair in multi_cxs:
+            for pair in multi_qubit_interactions:
                 problem.addConstraint(bidirectional_constraint, [pair[0], pair[1]])
 
         else:
@@ -128,7 +128,7 @@ class CSPLayout(AnalysisPass):
             def constraint(control, target):
                 return (control, target) in edges or (target, control) in edges
 
-            for pair in cxs | multi_cxs:
+            for pair in two_qubit_interactions | multi_qubit_interactions:
                 problem.addConstraint(constraint, [pair[0], pair[1]])
 
         solution = problem.getSolution()
