@@ -743,6 +743,8 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
             ["rzz", "cz"],
             ["rzx", "ecr"],
             ["rzz", "rzx", "rxx", "ecr", "cx", "cz"],
+            ["cz", "swap"],
+            ["cx", "swap"],
         ],
         target_1q_gates=[
             ["rz", "sx"],
