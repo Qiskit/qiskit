@@ -379,10 +379,10 @@ class TestCSPLayout(QiskitTestCase):
         # 2. Provide unidirectional edges
         # This should fail because we enforce strict direction and require bidirectional connections
         unidirectional_coupling = CouplingMap([(0, 1), (1, 2), (0, 2)])
-        pass2 = CSPLayout(unidirectional_coupling, strict_direction=True, seed=self.seed)
-        pass2.run(dag)
-        self.assertEqual(pass2.property_set["CSPLayout_stop_reason"], "nonexistent solution")
-        self.assertIsNone(pass2.property_set.get("layout"))
+        pass_2 = CSPLayout(unidirectional_coupling, strict_direction=True, seed=self.seed)
+        pass_2.run(dag)
+        self.assertEqual(pass_2.property_set["CSPLayout_stop_reason"], "nonexistent solution")
+        self.assertIsNone(pass_2.property_set.get("layout"))
 
 
 if __name__ == "__main__":
