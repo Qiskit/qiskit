@@ -13,7 +13,7 @@
 # pylint: disable=missing-function-docstring
 
 """
-Tests for the default UnitarySynthesis transpiler pass.
+Tests for the TwoQubitPeepholeOptimization transpiler pass.
 """
 
 import math
