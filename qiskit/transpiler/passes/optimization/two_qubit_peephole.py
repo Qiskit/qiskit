@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Splits each two-qubit gate in the `dag` into two single-qubit gates, if possible without error."""
+"""A transpiler pass to optimize 2q blocks in a circuit."""
 
 from __future__ import annotations
 
