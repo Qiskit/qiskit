@@ -493,8 +493,20 @@ pub struct TwoQSynthesisResult {
     pub fidelity: Option<f64>,
 }
 
+/// Estimate the fidelity of a synthesized two qubit unitary synthesis output
+///
+/// The estimated fidelity is computed by taking the error rate from the target
+/// and computing the product of the fidelities of each gate in the circuit. In
+/// the absence of error rates (either QpuConstraint doesn't have a target or
+/// the target contains no error rates) then a fidelity of 1 is returned.
+///
+/// # Args
+/// `dir` - The direction of the synthesis (forward or reverse)
+/// `sequence` - The synthesis sequence
+/// `constraint` - The qpu constraints used for the synthesis, typically just a Target
+/// `qargs_phys` - The qpu qargs the unitary is run on
 #[inline]
-pub fn fidelity_2q_sequence(
+pub(crate) fn fidelity_2q_sequence(
     dir: &Direction2q,
     sequence: &TwoQubitGateSequence,
     constraint: &QpuConstraint,
@@ -522,7 +534,17 @@ pub fn fidelity_2q_sequence(
         .product()
 }
 
-pub fn synthesize_2q_matrix(
+/// Synthesize a given two qubit unitary matrix into a gate sequence.
+///
+/// For overcomplete targets this will run all compatible decomposers and pick the output synthesis
+/// with the highest estimated fidelity.
+///
+/// # Args
+/// `unitary` - The unitary to synthesize
+/// `qargs_phys` - The physical qubits the unitary is being applied to
+/// `state` - The internal state of the pass, this includes the configured synthesizers
+/// `constraint` - The qpu constraints used for the synthesis, typically just a Target
+pub(crate) fn synthesize_2q_matrix(
     mut unitary: CowArray<Complex64, Ix2>,
     qargs_phys: [PhysicalQubit; 2],
     state: &mut UnitarySynthesisState,
