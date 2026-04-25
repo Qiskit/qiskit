@@ -15,7 +15,7 @@
 import ddt
 import numpy as np
 
-from qiskit.circuit import Parameter, QuantumCircuit, QuantumRegister, Gate
+from qiskit.circuit import Parameter, QuantumCircuit, QuantumRegister, Gate, ParameterVector
 from qiskit.circuit.library import (
     CPhaseGate,
     RXGate,
@@ -28,6 +28,7 @@ from qiskit.circuit.library import (
     XXPlusYYGate,
     GlobalPhaseGate,
     UnitaryGate,
+    PauliProductRotationGate,
     PauliEvolutionGate,
 )
 from qiskit.quantum_info import Operator, Pauli
@@ -192,6 +193,7 @@ class TestRemoveIdentityEquivalent(QiskitTestCase):
         UnitaryGate(np.exp(-0.123j) * np.eye(2)),
         UnitaryGate(np.exp(-0.123j) * np.eye(4)),
         UnitaryGate(np.exp(-0.123j) * np.eye(8)),
+        PauliProductRotationGate(Pauli("XYIZ"), 0),
     )
     def test_remove_identity_up_to_global_phase(self, gate):
         """Test that gates equivalent to identity up to a global phase are removed from the circuit,
@@ -210,6 +212,16 @@ class TestRemoveIdentityEquivalent(QiskitTestCase):
         qc.append(GlobalPhaseGate(theta), [])
         transpiled = RemoveIdentityEquivalent()(qc)
         self.assertEqual(qc, transpiled)
+
+    def test_no_panic_on_parametervector_phase(self):
+        """Regression test for gh-16053."""
+        pv = ParameterVector("v", 1)
+        qc = QuantumCircuit(1, global_phase=pv[0])
+        qc.rz(0.0, 0)
+        qc = RemoveIdentityEquivalent()(qc)
+
+        expected = QuantumCircuit(1, global_phase=pv[0])
+        self.assertEqual(qc, expected)
 
     def test_pauli_evo_equals_stdgate(self):
         """Test the Pauli evolution gate is consistent with std gates."""

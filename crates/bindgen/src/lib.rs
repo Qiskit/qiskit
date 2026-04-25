@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+pub mod render;
+
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -69,15 +71,6 @@ pub static FN_DEPRECATED_WITH_NOTE: &str = "Qk_DEPRECATED_FN_NOTE({})";
 pub static CFG_FEATURE_DEFINES: &[(&str, &str)] =
     &[(PYTHON_BINDING_FEATURE, PYTHON_BINDING_DEFINE)];
 
-fn guarded_python_import(guard: &str) -> String {
-    format!(
-        "\
-#ifdef {guard}
-#include <Python.h>
-#endif"
-    )
-}
-
 #[inline]
 fn to_vec_string(slice: &[&str]) -> Vec<String> {
     slice.iter().map(|s| String::from(*s)).collect()
@@ -117,14 +110,6 @@ fn manual_include_files() -> anyhow::Result<Vec<PathBuf>> {
 
 /// Get the Qiskit configuration
 fn get_config() -> anyhow::Result<cbindgen::Config> {
-    // `Python.h` is required to be the first file included because it reserves the right to define
-    // preprocessor macros that affect standard-library includes.  This causes it to be ahead of our
-    // include guard, but `Python.h` has its own, so we should be fine.
-    let header = Some(format!(
-        "{}\n{}",
-        COPYRIGHT,
-        guarded_python_import(PYTHON_BINDING_DEFINE)
-    ));
     // We need to include the `attributes.h` file in all generated files to make sure Doxygen can
     // understand the deprecated attributes (even though `qiskit.h` is organised to include it).
     let includes = vec![
@@ -173,7 +158,7 @@ fn get_config() -> anyhow::Result<cbindgen::Config> {
         .map(|&(cfg, def)| (format!("feature = {cfg}"), String::from(def)))
         .collect();
     Ok(cbindgen::Config {
-        header,
+        header: Some(COPYRIGHT.to_owned()),
         language: cbindgen::Language::C,
         includes,
         include_version: true,

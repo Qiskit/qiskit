@@ -36,6 +36,8 @@ class PrimitiveJob(BasePrimitiveJob[ResultT, JobStatus]):
         """
         Args:
             function: A callable function to execute the job.
+            args: any additional positional arguments
+            kwargs: any additional keyword arguments
         """
         super().__init__(str(uuid.uuid4()))
         self._future = None

@@ -208,6 +208,7 @@ test = [
 test-random = [
     "qiskit-aer",
     "hypothesis>=4.24.3",
+    "ddt>=1.2.0",
 ]
 # Dependencies to build the documentation.  It's ok if the range of Python versions that can build
 # the docs is more restrictive than Python versions that Qiskit supports.
@@ -347,6 +348,8 @@ select = [
     "INP",
     # flake8-print
     "T20",
+    # Missing arguments in docstring
+    "D417",
 ]
 ignore = [
     "E402",  # module-import-not-at-top-of-file false positives with module docs
@@ -501,3 +504,10 @@ exclude_also = [
     "if TYPE_CHECKING:",          # Code that only runs during type checks
     "@abstractmethod",            # Abstract methods are not testable
     ]
+
+# Qiskit doesn't mandate use of `uv`, but we can include this as a convenience for the multitude of
+# devs who do like it.  Without setting the per-group Python versions, `uv sync` (and any other
+# command that attempts to build the lockfile) will fail on some groups, even if you don't attempt
+# to use the group with a bad version of Python.
+[tool.uv.dependency-groups]
+doc = { requires-python = ">=3.12" }

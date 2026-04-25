@@ -17,7 +17,7 @@ use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation,
-    PyInstruction, PyOperationTypes, StandardGate, StandardInstruction, multiply_param,
+    PyInstruction, PyOperationTypes, StandardGate, StandardInstruction, multiply_param, radd_param,
 };
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
@@ -28,18 +28,18 @@ use qiskit_quantum_info::clifford::Clifford;
 use qiskit_quantum_info::sparse_observable::{BitTerm, SparseObservable};
 
 use smallvec::smallvec;
-use std::f64::consts::PI;
+use std::f64::consts::{FRAC_PI_4, FRAC_PI_8};
 
 // List of gate/instruction names supported by the pass: the pass raises an error if the circuit
 // contains instruction with names outside of this list.
-static SUPPORTED_INSTRUCTION_NAMES: [&str; 20] = [
+static SUPPORTED_INSTRUCTION_NAMES: [&str; 22] = [
     "id", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg", "cx", "cz", "cy", "swap", "iswap", "ecr",
-    "dcx", "t", "tdg", "rz", "measure",
+    "dcx", "t", "tdg", "rz", "p", "u1", "measure",
 ];
 
 // List of instruction names which are modified by the pass: the pass is skipped if the circuit
 // contains no instructions with names in this list.
-static HANDLED_INSTRUCTION_NAMES: [&str; 4] = ["t", "tdg", "rz", "measure"];
+static HANDLED_INSTRUCTION_NAMES: [&str; 6] = ["t", "tdg", "rz", "p", "u1", "measure"];
 
 #[pyfunction]
 #[pyo3(signature = (dag, fix_clifford=true, insert_barrier=false, use_ppr=false))]
@@ -86,9 +86,11 @@ pub fn run_litinski_transformation(
     let num_qubits = dag.num_qubits();
     let mut clifford = Clifford::identity(num_qubits);
 
+    let mut qargs = Vec::new();
+
     // Keep track of the update to the global phase (produced when converting T/Tdg gates
     // to RZ-rotations).
-    let mut global_phase_update = 0.;
+    let mut global_phase_update = Param::Float(0.);
 
     // Keep track of the clifford operations in the circuit.
     let mut clifford_ops: Vec<&PackedInstruction> = Vec::with_capacity(clifford_count);
@@ -218,30 +220,41 @@ pub fn run_litinski_transformation(
                 }
                 OperationRef::StandardGate(StandardGate::T)
                 | OperationRef::StandardGate(StandardGate::Tdg)
-                | OperationRef::StandardGate(StandardGate::RZ) => {
+                | OperationRef::StandardGate(StandardGate::RZ)
+                | OperationRef::StandardGate(StandardGate::Phase)
+                | OperationRef::StandardGate(StandardGate::U1) => {
                     // Convert T and Tdg gates to RZ rotations
                     let (angle, phase_update) = match inst.op.view() {
                         OperationRef::StandardGate(StandardGate::T) => {
-                            (Param::Float(PI / 4.), PI / 8.)
+                            (Param::Float(FRAC_PI_4), Param::Float(FRAC_PI_8))
                         }
                         OperationRef::StandardGate(StandardGate::Tdg) => {
-                            (Param::Float(-PI / 4.0), -PI / 8.)
+                            (Param::Float(-FRAC_PI_4), Param::Float(-FRAC_PI_8))
                         }
                         OperationRef::StandardGate(StandardGate::RZ) => {
                             let param = &inst.params_view()[0];
-                            (param.clone(), 0.)
+                            (param.clone(), Param::Float(0.))
+                        }
+                        OperationRef::StandardGate(StandardGate::Phase)
+                        | OperationRef::StandardGate(StandardGate::U1) => {
+                            let param = &inst.params_view()[0];
+                            (param.clone(), multiply_param(param, 0.5))
                         }
                         _ => {
-                            unreachable!("We cannot have gates other than T/Tdg/RZ at this point.");
+                            unreachable!(
+                                "We cannot have gates other than T/Tdg/RZ/P/U1 at this point."
+                            );
                         }
                     };
-                    global_phase_update += phase_update;
+                    global_phase_update = radd_param(global_phase_update, phase_update);
 
                     // Evolve the single-qubit Pauli-Z with Z on the given qubit.
                     // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
                     // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
                     let (sign, z, x, indices) =
                         clifford.get_inverse_z(dag.get_qargs(inst.qubits)[0].index());
+                    qargs.clear();
+                    qargs.extend(bytemuck::cast_slice(&indices));
 
                     // In the legacy path, we add PauliEvolutionGate as rotation gates, otherwise
                     // we add PauliProductRotation. The new path should not call Python at any
@@ -270,7 +283,7 @@ pub fn run_litinski_transformation(
                                 .get_bound(py)
                                 .call1((obs, time.clone()))?;
                             Ok(PyOperationTypes::Gate(PyInstruction {
-                                qubits: indices.len() as u32,
+                                qubits: qargs.len() as u32,
                                 clbits: 0,
                                 params: 1,
                                 op_name: "PauliEvolution".to_string(),
@@ -282,7 +295,7 @@ pub fn run_litinski_transformation(
 
                     new_dag.apply_operation_back(
                         packed_op,
-                        &indices,
+                        &qargs,
                         &[],
                         Some(Parameters::Params(smallvec![param])),
                         None,
@@ -295,13 +308,16 @@ pub fn run_litinski_transformation(
                     // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
                     let (sign, z, x, indices) =
                         clifford.get_inverse_z(dag.get_qargs(inst.qubits)[0].index());
+                    qargs.clear();
+                    qargs.extend(bytemuck::cast_slice(&indices));
+
                     let ppm = PauliProductMeasurement { z, x, neg: sign };
 
                     let ppm_clbits = dag.get_cargs(inst.clbits);
 
                     new_dag.apply_operation_back(
                         PauliBased::PauliProductMeasurement(ppm).into(),
-                        &indices,
+                        &qargs,
                         ppm_clbits,
                         None,
                         None,
@@ -317,7 +333,7 @@ pub fn run_litinski_transformation(
         }
     }
 
-    new_dag.add_global_phase(&Param::Float(global_phase_update))?;
+    new_dag.add_global_phase(&global_phase_update)?;
 
     // Add Clifford gates to the Qiskit circuit (when required).
     // Since we aim to preserve the global phase of the circuit, we add the Clifford operations from

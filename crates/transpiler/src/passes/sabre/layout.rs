@@ -16,13 +16,15 @@ use pyo3::prelude::*;
 use hashbrown::HashSet;
 use ndarray::aview2;
 use rand::prelude::*;
+use rand::rngs::SysRng;
 use rand_pcg::Pcg64Mcg;
 use rayon_cond::CondIterator;
 use rustworkx_core::petgraph::graph::NodeIndex;
 
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::nlayout::NLayout;
-use qiskit_circuit::{BlocksMode, PhysicalQubit, VirtualQubit, getenv_use_multiple_threads};
+use qiskit_circuit::{BlocksMode, PhysicalQubit, VirtualQubit};
+use qiskit_util::getenv_use_multiple_threads;
 
 use crate::TranspilerError;
 use crate::neighbors::Neighbors;
@@ -84,7 +86,7 @@ pub fn sabre_layout_and_routing(
     let seeds = |count| {
         match seed {
             Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-            None => Pcg64Mcg::from_os_rng(),
+            None => Pcg64Mcg::try_from_rng(&mut SysRng).unwrap(),
         }
         .sample_iter(&rand::distr::StandardUniform)
         .take(count)

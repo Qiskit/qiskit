@@ -119,6 +119,11 @@ impl SolovayKitaevSynthesis {
                 let matrix_nalgebra: Matrix2<Complex64> = Matrix2::from_fn(|i, j| matrix[(i, j)]);
                 self.synthesize_matrix(&matrix_nalgebra, recursion_degree)
             }
+            OperationRef::PauliProductRotation(ppr) => {
+                let matrix = ppr.matrix().expect("PPR should have a matrix defined");
+                let matrix_nalgebra: Matrix2<Complex64> = Matrix2::from_fn(|i, j| matrix[(i, j)]);
+                self.synthesize_matrix(&matrix_nalgebra, recursion_degree)
+            }
             OperationRef::Gate(gate) => {
                 let matrix = gate.matrix();
                 match matrix {

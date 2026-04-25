@@ -21,6 +21,7 @@
  * @defgroup QkTranspiler QkTranspiler
  * @defgroup QkTranspilerPasses QkTranspilerPasses
  * @defgroup QkTranspilerPassesStandalone QkTranspilerPassesStandalone
+ * @defgroup QkTranspilerStageState QkTranspilerStageState
  * @defgroup QkVF2LayoutConfiguration QkVF2LayoutConfiguration
  * @defgroup QkVF2LayoutResult QkVF2LayoutResult
  */

@@ -14,6 +14,7 @@
 Preset pass manager generation function
 """
 import copy
+import os
 import warnings
 
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES, get_control_flow_name_mapping
@@ -25,8 +26,12 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
+from qiskit.transpiler.preset_passmanagers.clifford_t_pass_manager import (
+    clifford_t_pass_manager,
+)
 from qiskit.transpiler.preset_passmanagers.common import is_clifford_t_basis
 from qiskit.transpiler.target import Target, _FakeTarget
+from qiskit import user_config
 
 from .level0 import level_0_pass_manager
 from .level1 import level_1_pass_manager
@@ -87,6 +92,13 @@ def generate_preset_pass_manager(
     **coupling_map**             target    coupling_map
     **dt**                       target    dt
     ============================ ========= ========================
+
+    .. note::
+
+        When the target basis consists of Clifford+T gates, this function constructs
+        a specialized Clifford+T transpiler pipeline, see :func:`.clifford_t_pass_manager`
+        for documentation. The arguments that apply to transpiling into continuous basis sets
+        are ignored in this flow.
 
     Args:
         optimization_level (int): The optimization level to generate a
@@ -150,7 +162,11 @@ def generate_preset_pass_manager(
         approximation_degree (float): Heuristic dial used for circuit approximation
             (1.0=no approximation, 0.0=maximal approximation).
         seed_transpiler (int): Sets random seed for the stochastic parts of
-            the transpiler.
+            the transpiler. If it is not specified here it can also be specified via an environment
+            variable: ``QISKIT_TRANSPILER_SEED`` or in a user configuration file. The priority
+            order is: this argument, then the environment variable, and finally the user
+            configuration option. So setting this argument will take precedence over the other
+            methods of setting a seed.
         unitary_synthesis_method (str): The name of the unitary synthesis
             method to use. By default ``'default'`` is used. You can see a list of
             installed plugins with :func:`.unitary_synthesis_plugin_names`.
@@ -186,16 +202,23 @@ def generate_preset_pass_manager(
     Raises:
         ValueError: if an invalid value for ``optimization_level`` is passed in.
     """
+    config = user_config.get_config()
+
+    if seed_transpiler is None:
+        if seed := os.getenv("QISKIT_TRANSPILER_SEED", None) is not None:
+            seed_transpiler = int(seed)
+        else:
+            seed_transpiler = config.get("transpiler_seed", None)
 
     # Handle positional arguments for target and backend. This enables the usage
     # pattern `generate_preset_pass_manager(backend.target)` to generate a default
     # pass manager for a given target.
     if isinstance(optimization_level, Target):
-        target = optimization_level
-        optimization_level = 2
+        target, optimization_level = optimization_level, None
     elif isinstance(optimization_level, Backend):
-        backend = optimization_level
-        optimization_level = 2
+        backend, optimization_level = optimization_level, None
+    if optimization_level is None:
+        optimization_level = config.get("transpile_optimization_level", 2)
 
     # If there are no loose constraints => use backend target if available
     _no_loose_constraints = basis_gates is None and coupling_map is None and dt is None
@@ -302,11 +325,10 @@ def generate_preset_pass_manager(
     else:
         pm_config = PassManagerConfig(**pm_options)
 
-    pm_config._is_clifford_t = is_clifford_t_basis(
-        basis_gates=pm_config.basis_gates, target=pm_config.target
-    )
+    if is_clifford_t_basis(basis_gates=pm_config.basis_gates, target=pm_config.target):
+        pm = clifford_t_pass_manager(pm_config, optimization_level=optimization_level)
 
-    if optimization_level == 0:
+    elif optimization_level == 0:
         pm = level_0_pass_manager(pm_config)
     elif optimization_level == 1:
         pm = level_1_pass_manager(pm_config)
@@ -316,6 +338,7 @@ def generate_preset_pass_manager(
         pm = level_3_pass_manager(pm_config)
     else:
         raise ValueError(f"Invalid optimization level {optimization_level}")
+
     return pm
 
 
