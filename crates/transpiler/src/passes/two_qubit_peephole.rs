@@ -170,7 +170,7 @@ pub fn two_qubit_unitary_peephole_optimize(
                 }),
                 new_gate_count,
             );
-            // If the we are not outside the target and the new score isn't any better just use the
+            // If we are not outside the target and the new score isn't any better just use the
             // original (this includes a tie).
             if !outside_target && new_score >= original_score {
                 return Ok(None);
