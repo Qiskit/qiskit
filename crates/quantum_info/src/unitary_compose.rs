@@ -87,7 +87,7 @@ fn _einsum_matmul(
 ) -> Result<Array<Complex64, IxDyn>, &'static str> {
     let rank = tensor.ndim();
     let rank_mat = mat.ndim();
-    if rank_mat % 2 != 0 {
+    if !rank_mat.is_multiple_of(2) {
         return Err("Contracted matrix must have an even number of indices.");
     }
     // Get einsum indices for tensor
