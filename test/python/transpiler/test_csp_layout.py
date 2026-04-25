@@ -352,6 +352,7 @@ class TestCSPLayout(QiskitTestCase):
         self.assertEqual(
             pass_.property_set["CSPLayout_stop_reason"], "solution found"
         )
+        self.assertIsNotNone(pass_.property_set.get("layout"))
 
 
 if __name__ == "__main__":
