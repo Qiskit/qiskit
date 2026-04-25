@@ -115,13 +115,13 @@ class CSPLayout(AnalysisPass):
             def constraint(control, target):
                 return (control, target) in edges
 
-            def undirected_constraint(control, target):
-                return (control, target) in edges or (target, control) in edges
+            def bidirectional_constraint(control, target):
+                return (control, target) in edges and (target, control) in edges
 
             for pair in cxs:
                 problem.addConstraint(constraint, [pair[0], pair[1]])
             for pair in multi_cxs:
-                problem.addConstraint(undirected_constraint, [pair[0], pair[1]])
+                problem.addConstraint(bidirectional_constraint, [pair[0], pair[1]])
 
         else:
 
