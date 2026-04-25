@@ -360,6 +360,7 @@ mod transpiler {
                 export_fn!(remove_diagonal_gates_before_measure::qk_transpiler_pass_remove_diagonal_gates_before_measure),
                 export_fn!(remove_identity_equiv::qk_transpiler_pass_remove_identity_equivalent),
                 export_fn!(split_2q_unitaries::qk_transpiler_pass_split_2q_unitaries),
+                export_fn!(two_qubit_peephole::qk_transpiler_pass_two_qubit_peephole_optimization),
             ]
         });
         static FUNCTIONS_STANDALONE: ExportedFunctions = ExportedFunctions::leaves(50, || {
@@ -381,6 +382,7 @@ mod transpiler {
                 export_fn!(vf2::qk_transpiler_pass_standalone_vf2_layout_exact),
                 export_fn!(convert_to_pauli_rotations::qk_transpiler_pass_standalone_convert_to_pauli_rotations),
                 export_fn!(litinski_transformation::qk_transpiler_pass_standalone_litinski_transformation),
+                export_fn!(two_qubit_peephole::qk_transpiler_pass_standalone_two_qubit_peephole_optimization),
             ]
         });
         static FUNCTIONS_SABRE: ExportedFunctions = ExportedFunctions::leaves(5, || {
