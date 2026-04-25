@@ -355,6 +355,35 @@ class TestCSPLayout(QiskitTestCase):
         )
         self.assertIsNotNone(pass_.property_set.get("layout"))
 
+    def test_multi_qubit_gate_strict_direction(self):
+        """CSPLayout handles strict_direction=True for multi-qubit gates properly
+        by enforcing bidirectional constraints among all operands.
+        """
+        qr = QuantumRegister(3, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.ccx(qr[0], qr[1], qr[2])
+        dag = circuit_to_dag(circuit)
+
+        # 1. Provide bidirectional edges for all pairs
+        # This should yield a solution because (0,1), (1,0), (1,2), (2,1), (0,2), (2,0) are present
+        bidirectional_coupling = CouplingMap([
+            (0, 1), (1, 0),
+            (1, 2), (2, 1),
+            (0, 2), (2, 0)
+        ])
+        pass_ = CSPLayout(bidirectional_coupling, strict_direction=True, seed=self.seed)
+        pass_.run(dag)
+        self.assertEqual(pass_.property_set["CSPLayout_stop_reason"], "solution found")
+        self.assertIsNotNone(pass_.property_set.get("layout"))
+
+        # 2. Provide unidirectional edges
+        # This should fail because we enforce strict direction and require bidirectional connections
+        unidirectional_coupling = CouplingMap([(0, 1), (1, 2), (0, 2)])
+        pass2 = CSPLayout(unidirectional_coupling, strict_direction=True, seed=self.seed)
+        pass2.run(dag)
+        self.assertEqual(pass2.property_set["CSPLayout_stop_reason"], "nonexistent solution")
+        self.assertIsNone(pass2.property_set.get("layout"))
+
 
 if __name__ == "__main__":
     unittest.main()
