@@ -656,7 +656,9 @@ class TestLitinskiTransformation(QiskitTestCase):
         cliff = random_clifford_circuit(num_qubits, num_gates=20, seed=1234)
         circuit.compose(cliff, range(num_qubits), inplace=True)
         pauli = random_pauli(num_qubits, seed=1234)
-        circuit.compose(PauliProductRotationGate(pauli, angle=0.123), range(num_qubits), inplace=True)
+        circuit.compose(
+            PauliProductRotationGate(pauli, angle=0.123), range(num_qubits), inplace=True
+        )
 
         transform = LitinskiTransformation(fix_clifford=True, use_ppr=True)
         circuit_out = transform(circuit)
