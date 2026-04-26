@@ -25,6 +25,7 @@ use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 use crate::TranspilerError;
 use num_complex::Complex64;
 use qiskit_quantum_info::clifford::Clifford;
+use qiskit_quantum_info::dense_pauli::{Pauli, evolve_pauli_by_clifford};
 use qiskit_quantum_info::sparse_observable::{BitTerm, SparseObservable};
 
 use smallvec::smallvec;
@@ -32,14 +33,47 @@ use std::f64::consts::{FRAC_PI_4, FRAC_PI_8};
 
 // List of gate/instruction names supported by the pass: the pass raises an error if the circuit
 // contains instruction with names outside of this list.
-static SUPPORTED_INSTRUCTION_NAMES: [&str; 24] = [
-    "id", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg", "cx", "cz", "cy", "swap", "iswap", "ecr",
-    "dcx", "t", "tdg", "rz", "rx", "ry", "p", "u1", "measure",
+static SUPPORTED_INSTRUCTION_NAMES: [&str; 25] = [
+    "id",
+    "x",
+    "y",
+    "z",
+    "h",
+    "s",
+    "sdg",
+    "sx",
+    "sxdg",
+    "cx",
+    "cz",
+    "cy",
+    "swap",
+    "iswap",
+    "ecr",
+    "dcx",
+    "t",
+    "tdg",
+    "rz",
+    "rx",
+    "ry",
+    "p",
+    "u1",
+    "measure",
+    "pauli_product_rotation",
 ];
 
 // List of instruction names which are modified by the pass: the pass is skipped if the circuit
 // contains no instructions with names in this list.
-static HANDLED_INSTRUCTION_NAMES: [&str; 8] = ["t", "tdg", "rz", "rx", "ry", "p", "u1", "measure"];
+static HANDLED_INSTRUCTION_NAMES: [&str; 9] = [
+    "t",
+    "tdg",
+    "rz",
+    "rx",
+    "ry",
+    "p",
+    "u1",
+    "measure",
+    "pauli_product_rotation",
+];
 
 #[pyfunction]
 #[pyo3(signature = (dag, fix_clifford=true, insert_barrier=false, use_ppr=false))]
@@ -317,6 +351,44 @@ pub fn run_litinski_transformation(
                         &qargs,
                         &[],
                         Some(Parameters::Params(smallvec![param])),
+                        None,
+                        #[cfg(feature = "cache_pygates")]
+                        None,
+                    )?;
+                }
+                OperationRef::PauliProductRotation(rotation) => {
+                    // Evolve a PPR(z, x, angle) by a Clifford:
+                    // First, evolve P=Pauli(z, x, 0) by a Clifford
+                    // Second, compute: new_angle = (+/-1) * angle depending on P.pauli_phase
+                    // The output is PPR(P, new_angle)
+                    let in_z = &rotation.z;
+                    let in_x = &rotation.x;
+                    let angle = &rotation.angle;
+                    let pauli_in = Pauli {
+                        pauli_z: in_z.to_vec(),
+                        pauli_x: in_x.to_vec(),
+                        pauli_phase: 0,
+                    };
+                    let pauli_out = evolve_pauli_by_clifford(&pauli_in, &clifford);
+                    let out_z = pauli_out.pauli_z;
+                    let out_x = pauli_out.pauli_x;
+                    let out_sign = if pauli_out.pauli_phase == 0 {
+                        1.0
+                    } else {
+                        -1.0
+                    };
+                    let angle = multiply_param(angle, out_sign);
+                    let ppr = PauliProductRotation {
+                        z: out_z,
+                        x: out_x,
+                        angle: angle.clone(),
+                    };
+                    let qargs = dag.get_qargs(inst.qubits);
+                    new_dag.apply_operation_back(
+                        PauliBased::PauliProductRotation(ppr).into(),
+                        qargs,
+                        &[],
+                        Some(Parameters::Params(smallvec![angle])),
                         None,
                         #[cfg(feature = "cache_pygates")]
                         None,
