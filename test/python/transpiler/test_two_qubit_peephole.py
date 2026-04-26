@@ -713,6 +713,7 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
             dict(sorted(transpiled_circuit.count_ops().items())),
             dict(sorted(legacy.count_ops().items())),
         )
+        self.assertEqual(transpiled_circuit.size(lambda x: x.operation.num_qubits == 2), 1)
 
     def test_two_qubit_rzz_cz_gates_rzz_target(self):
         """Test the synthesis of a circuit containing a RZZ and CZ gates
