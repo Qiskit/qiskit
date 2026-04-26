@@ -113,7 +113,7 @@ def main():
     results = get_qiskit_versions()
     for qpy_version, supported_versions in results.items():
         for supported_version, python_version in supported_versions:
-            print(f"{qpy_version} {supported_version} {python_version}")  # noqa: T201
+            print(f"{qpy_version} {supported_version}")  # noqa: T201
 
 
 if __name__ == "__main__":
