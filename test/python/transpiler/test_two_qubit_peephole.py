@@ -56,6 +56,8 @@ from qiskit.circuit.library import (
     CRXGate,
     CRYGate,
     CUGate,
+    XXPlusYYGate,
+    XXMinusYYGate,
 )
 from qiskit.circuit import Measure
 from qiskit.circuit.controlflow import IfElseOp
@@ -597,6 +599,8 @@ class TestTwoQubitPeepholeOptimization(QiskitTestCase):
             CRXGate(0.1),
             CRYGate(0.1),
             CUGate(0.1, 0.2, 0.3, 0.4),
+            XXPlusYYGate(0.1),
+            XXMinusYYGate(0.1),
         ],
         target_gate=[
             CXGate(),
