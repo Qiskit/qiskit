@@ -62,9 +62,9 @@ class TwoQubitPeepholeOptimization(TransformationPass):
     this pass offers improved runtime performance by performing the synthesis in
     parallel. It also has improved heuristics enabled by doing the optimization in
     a single step which can result in better quality output, especially in cases
-    of overcomplete and/or hetergeneous targets. However, these heuristics and this
+    of overcomplete and/or heterogeneous targets. However, these heuristics and this
     pass as a whole are only valid for physical circuits. Additionally, unlike
-    :class:`.UnitarySynthesis` pass this does not use the :ref:`unitary-synth-plugin`.
+    :class:`.UnitarySynthesis` pass this does not use :ref:`unitary-synth-plugin`.
     This is a tradeoff for performance and it forgoes the pluggability exposed
     via that interface. Internally it currently only uses the :class:`.TwoQubitBasisDecomposer`
     and :class:`.TwoQubitControlledUDecomposer` for synthesizing the two qubit unitaries.
