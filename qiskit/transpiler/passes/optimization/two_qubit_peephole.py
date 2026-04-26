@@ -75,6 +75,7 @@ class TwoQubitPeepholeOptimization(TransformationPass):
 
     .. plot::
       :include-source:
+      :alt: Optimized circuit
 
       from qiskit.circuit import QuantumCircuit
       from qiskit.transpiler.passes import TwoQubitPeepholeOptimization
