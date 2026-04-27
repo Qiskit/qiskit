@@ -22,6 +22,7 @@ from qiskit.visualization import circuit_drawer
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.circuit.library import (
+    HGate,
     XGate,
     MCXGate,
     RZZGate,
@@ -238,6 +239,34 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit_drawer(circuit, filename=filename, output="latex_source", barrier_label_len=9)
 
         self.assertEqualToReference(filename)
+
+    def test_mathmode_gate_label(self):
+        """Test gate labels with explicit math mode."""
+        circuit = QuantumCircuit(1)
+        circuit.append(HGate(label="$U^a$"), [0])
+
+        source = circuit_drawer(circuit, output="latex_source")
+
+        self.assertIn(r"\gate{U^a}", source)
+        self.assertNotIn(r"\gate{\mathrm{$U", source)
+
+    def test_plain_gate_label(self):
+        """Test gate labels without explicit math mode."""
+        circuit = QuantumCircuit(1)
+        circuit.append(HGate(label="U^a"), [0])
+
+        source = circuit_drawer(circuit, output="latex_source")
+
+        self.assertIn(r"\gate{\mathrm{U\string^a}}", source)
+
+    def test_mixed_mathmode_gate_label(self):
+        """Test gate labels with text outside explicit math mode."""
+        circuit = QuantumCircuit(1)
+        circuit.append(HGate(label="prefix $U^a$ suffix"), [0])
+
+        source = circuit_drawer(circuit, output="latex_source")
+
+        self.assertIn(r"\gate{\mathrm{prefix\,}U^a\mathrm{\,suffix}}", source)
 
     def test_big_gates(self):
         """Test large gates with params"""

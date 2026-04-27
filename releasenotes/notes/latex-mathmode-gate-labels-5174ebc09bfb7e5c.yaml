@@ -1,0 +1,5 @@
+fixes:
+  - |
+    Fixed :meth:`.QuantumCircuit.draw` with ``output="latex"`` or
+    ``output="latex_source"`` so gate labels can include explicit LaTeX
+    math-mode segments such as ``"$U^a$"`` without producing invalid LaTeX.
