@@ -40,9 +40,9 @@ def get_qiskit_versions():
     # Fetch all qiskit versions from the minimum supported version onwards
     min_qpy_version = min(minimum_minor_by_qpy.values())
     min_version_str = f"{min_qpy_version.major}.{min_qpy_version.minor}"
-    
+
     results = {qpy_version: [] for qpy_version in QPY_MIN_COMPAT_VERSION.keys()}
-    
+
     for version, python_version in fetch_installable_qiskit_versions(
         package="qiskit",
         min_version=min_version_str,
@@ -50,7 +50,7 @@ def get_qiskit_versions():
     ):
         minor_version = packaging.version.parse(f"{version.major}.{version.minor}")
         minor_key = f"{version.major}.{version.minor}"
-        
+
         # Skip versions that are not in needed_minors unless they're >= minimum
         if minor_key not in needed_minors and minor_version < min(minimum_minor_by_qpy.values()):
             continue
@@ -59,7 +59,7 @@ def get_qiskit_versions():
         for qpy_version, minimum_minor in minimum_minor_by_qpy.items():
             if minor_version >= minimum_minor:
                 results[qpy_version].append(version)
-    
+
     return results
 
 

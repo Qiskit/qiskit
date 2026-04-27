@@ -62,7 +62,7 @@ def fetch_installable_qiskit_versions(
     """
     our_version = packaging.version.parse(qiskit.__version__)
     supported_tags = set(packaging.tags.sys_tags())
-    
+
     if no_docker is None:
         no_docker = "--no-docker" in sys.argv
 
@@ -74,7 +74,7 @@ def fetch_installable_qiskit_versions(
 
     for raw_version, payload in data["releases"].items():
         version = packaging.version.parse(raw_version)
-        
+
         # Apply version filters
         if min_version is not None and version < min_version:
             continue
@@ -110,12 +110,8 @@ def fetch_installable_qiskit_versions(
                     if release["packagetype"] == "bdist_wheel" and not release["yanked"]
                 ]
                 # Convert "cp311" to "3.11"
-                python_versions = [
-                    re.sub(r"^cp(\d)(\d+)$", r"\1.\2", v) for v in python_versions
-                ]
-                python_version = max(
-                    python_versions, key=lambda s: tuple(map(int, s.split(".")))
-                )
+                python_versions = [re.sub(r"^cp(\d)(\d+)$", r"\1.\2", v) for v in python_versions]
+                python_version = max(python_versions, key=lambda s: tuple(map(int, s.split("."))))
             except ValueError:
                 print(  # noqa: T201
                     f"skipping '{version}', which has no installable binary artifacts",
