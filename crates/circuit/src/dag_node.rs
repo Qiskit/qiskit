@@ -251,9 +251,10 @@ impl DAGOpNode {
     #[staticmethod]
     fn from_instruction(
         py: Python,
-        mut instruction: CircuitInstruction,
+        instruction: &CircuitInstruction,
         deepcopy: bool,
     ) -> PyResult<Py<PyAny>> {
+        let mut instruction = instruction.copy(py);
         if deepcopy {
             instruction.operation = match instruction.operation.view() {
                 OperationRef::ControlFlow(cf) => cf.clone().into(),
