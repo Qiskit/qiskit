@@ -652,14 +652,12 @@ class TestLitinskiTransformation(QiskitTestCase):
     def test_litinski_with_ppr_input(self):
         """Test that LitinskiTransformation is correct for PPR as input"""
         num_qubits = 5
+        qarg_paulis = [4, 1, 2]
         circuit = QuantumCircuit(num_qubits)
         cliff = random_clifford_circuit(num_qubits, num_gates=20, seed=1234)
         circuit.compose(cliff, range(num_qubits), inplace=True)
-        pauli = random_pauli(num_qubits, seed=1234)
-        circuit.compose(
-            PauliProductRotationGate(pauli, angle=0.123), range(num_qubits), inplace=True
-        )
-
+        pauli = random_pauli(len(qarg_paulis), seed=1234)
+        circuit.compose(PauliProductRotationGate(pauli, angle=0.123), qarg_paulis, inplace=True)
         transform = LitinskiTransformation(fix_clifford=True, use_ppr=True)
         circuit_out = transform(circuit)
         self.assertEqual(Operator(circuit_out), Operator(circuit))

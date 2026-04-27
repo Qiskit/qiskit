@@ -26,8 +26,30 @@ fn _count_y(x: &[bool], z: &[bool]) -> u8 {
     out as u8
 }
 
+/// Helper function that transforms a Pauli p to a dense format, by adding 'I' terms.
+/// This is used before and inside the function evolve_pauli_by_clifford,
+/// since the Pauli and Clifford are defined on the same qubits.
+pub fn pad_pauli(p: &Pauli, indices: Vec<u32>, num_qubits: usize) -> Pauli {
+    let orig_z = &p.pauli_z;
+    let orig_x = &p.pauli_x;
+    let orig_phase = p.pauli_phase;
+
+    let mut out_p_z = vec![false; num_qubits];
+    let mut out_p_x = vec![false; num_qubits];
+    for (&i, (&zv, &xv)) in indices.iter().zip(orig_z.iter().zip(orig_x.iter())) {
+        out_p_z[i as usize] = zv;
+        out_p_x[i as usize] = xv;
+    }
+    Pauli {
+        pauli_z: out_p_z,
+        pauli_x: out_p_x,
+        pauli_phase: orig_phase,
+    }
+}
+
 /// Compose the Paulis p1 and p2.
-/// Returns the output Pauli.
+/// Returns the output Pauli, like in the default Python code: p1.compose(p2)
+/// Assumes that both Paulis are defined on the same qubits.
 pub fn pauli_compose(p1: &Pauli, p2: &Pauli) -> Pauli {
     let x1 = &p1.pauli_x;
     let z1 = &p1.pauli_z;
@@ -54,6 +76,7 @@ pub fn pauli_compose(p1: &Pauli, p2: &Pauli) -> Pauli {
 /// Evolve a Pauli P by a Clifford C.
 /// According to the Heisenberg picture, namely compute Cdag.P.C .
 /// Returns the output Pauli.
+/// Assumes that the Pauli and Clifford are defined on the same qubits.
 pub fn evolve_pauli_by_clifford(p: &Pauli, cliff: &Clifford) -> Pauli {
     let pauli_z = &p.pauli_z;
     let pauli_x = &p.pauli_x;
@@ -78,20 +101,16 @@ pub fn evolve_pauli_by_clifford(p: &Pauli, cliff: &Clifford) -> Pauli {
                 cliff.evolve_single_qubit_pauli(pz, px, qbit);
 
             let evolved_pauli_phase = if ev_p_sign { 2u8 } else { 0u8 };
+
             // transform the evolved pauli to a dense format
-            let mut evolved_pauli_z = vec![false; pauli_num_qubits];
-            let mut evolved_pauli_x = vec![false; pauli_num_qubits];
-            for (&i, (&zv, &xv)) in ev_p_indices.iter().zip(ev_p_z.iter().zip(ev_p_x.iter())) {
-                evolved_pauli_z[i as usize] = zv;
-                evolved_pauli_x[i as usize] = xv;
-            }
-            // compose the ouput evolved dense paulies
-            let evolved_pauli = Pauli {
-                pauli_z: evolved_pauli_z,
-                pauli_x: evolved_pauli_x,
+            let ev_p = Pauli {
+                pauli_z: ev_p_z,
+                pauli_x: ev_p_x,
                 pauli_phase: evolved_pauli_phase,
             };
+            let evolved_pauli = pad_pauli(&ev_p, ev_p_indices, pauli_num_qubits);
 
+            // compose the ouput evolved dense paulies
             out_pauli = pauli_compose(&out_pauli, &evolved_pauli);
         }
     }

@@ -25,7 +25,7 @@ use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 use crate::TranspilerError;
 use num_complex::Complex64;
 use qiskit_quantum_info::clifford::Clifford;
-use qiskit_quantum_info::dense_pauli::{Pauli, evolve_pauli_by_clifford};
+use qiskit_quantum_info::dense_pauli::{Pauli, evolve_pauli_by_clifford, pad_pauli};
 use qiskit_quantum_info::sparse_observable::{BitTerm, SparseObservable};
 
 use smallvec::smallvec;
@@ -358,9 +358,11 @@ pub fn run_litinski_transformation(
                 }
                 OperationRef::PauliProductRotation(rotation) => {
                     // Evolve a PPR(z, x, angle) by a Clifford:
-                    // First, evolve P=Pauli(z, x, 0) by a Clifford
-                    // Second, compute: new_angle = (+/-1) * angle depending on P.pauli_phase
+                    // First, pad the pauli so that it will have the size of the Clifford
+                    // Second, evolve P=Pauli(z, x, 0) by a Clifford
+                    // Third, compute: new_angle = (+/-1) * angle depending on P.pauli_phase
                     // The output is PPR(P, new_angle)
+
                     let in_z = &rotation.z;
                     let in_x = &rotation.x;
                     let angle = &rotation.angle;
@@ -369,7 +371,12 @@ pub fn run_litinski_transformation(
                         pauli_x: in_x.to_vec(),
                         pauli_phase: 0,
                     };
-                    let pauli_out = evolve_pauli_by_clifford(&pauli_in, &clifford);
+                    let qargs_in = dag.get_qargs(inst.qubits);
+                    let indices_in: Vec<u32> = (0..qargs_in.len())
+                        .map(|i| qargs_in[i].index() as u32)
+                        .collect();
+                    let pauli_padded = pad_pauli(&pauli_in, indices_in, num_qubits);
+                    let pauli_out = evolve_pauli_by_clifford(&pauli_padded, &clifford);
                     let out_z = pauli_out.pauli_z;
                     let out_x = pauli_out.pauli_x;
                     let out_sign = if pauli_out.pauli_phase == 0 {
@@ -383,10 +390,14 @@ pub fn run_litinski_transformation(
                         x: out_x,
                         angle: angle.clone(),
                     };
-                    let qargs = dag.get_qargs(inst.qubits);
+
+                    let indices_out: Vec<u32> = (0..num_qubits as u32).collect();
+                    qargs.clear();
+                    qargs.extend(bytemuck::cast_slice(&indices_out));
+
                     new_dag.apply_operation_back(
                         PauliBased::PauliProductRotation(ppr).into(),
-                        qargs,
+                        &qargs,
                         &[],
                         Some(Parameters::Params(smallvec![angle])),
                         None,
