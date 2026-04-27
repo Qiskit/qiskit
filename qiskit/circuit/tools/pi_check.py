@@ -13,6 +13,8 @@
 
 """Check if number close to values of PI"""
 
+from typing import Literal
+
 import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.exceptions import QiskitError
@@ -24,26 +26,29 @@ RECIP_MESH = N / D / np.pi
 POW_LIST = np.pi ** np.arange(2, 5)
 
 
-def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
-    """Computes if a number is close to an integer
-    fraction or multiple of PI and returns the
-    corresponding string.
+def pi_check(
+    inpt: complex | ParameterExpression | str,
+    eps: float = 1e-9,
+    output: Literal["text", "latex", "mpl", "qasm"] = "text",
+    ndigits: int | None = None,
+):
+    """Return ``inpt`` as a string, preferring simple fractions of pi where possible.
+
+    String inputs are returned unchanged. :class:`~qiskit.circuit.ParameterExpression` inputs have
+    their numeric coefficients formatted using the same rules.
 
     Args:
-        inpt (float): Number to check.
-        eps (float): EPS to check against.
-        output (str): Options are 'text' (default),
-                      'latex', 'mpl', and 'qasm'.
-        ndigits (int or None): Number of digits to print
-                               if returning raw inpt.
-                               If `None` (default), Python's
-                               default float formatting is used.
+        inpt (complex | ParameterExpression | str): Value to format.
+        eps (float): Tolerance used to decide whether a numeric value matches a simple pi form.
+        output: Output style.
+        ndigits (int | None): Significant digits to use when returning a raw numeric fallback.
+            If ``None`` (default), Python's default float formatting is used.
 
     Returns:
-        str: string representation of output.
+        str: Formatted string representation of ``inpt``.
 
     Raises:
-        QiskitError: if output is not a valid option.
+        QiskitError: If ``output`` is not a valid option.
     """
     if isinstance(inpt, ParameterExpression):
         param_str = str(inpt)
