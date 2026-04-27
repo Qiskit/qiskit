@@ -33,7 +33,7 @@ use qiskit_circuit::operations::{
     Operation, OperationRef, Param, PyOperationTypes, PythonOperation, StandardGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
-use qiskit_circuit::{BlocksMode, PhysicalQubit, Qubit, VarsMode};
+use qiskit_circuit::{PhysicalQubit, Qubit};
 use qiskit_synthesis::euler_one_qubit_decomposer::unitary_to_gate_sequence_inner;
 use qiskit_synthesis::qsd::quantum_shannon_decomposition;
 use qiskit_synthesis::two_qubit_decompose::TwoQubitGateSequence;
@@ -333,18 +333,14 @@ pub fn run_unitary_synthesis(
         )
     };
 
-    let mut out = dag
-        .copy_empty_like(VarsMode::Alike, BlocksMode::Drop)?
-        .into_builder();
-    for node in dag.topological_op_nodes(false) {
-        let inst = dag[node].unwrap_operation();
+    let rebuilder_callback = |out: &mut DAGCircuitBuilder, inst: &PackedInstruction| {
         let Some(cf) = dag.try_view_control_flow(inst) else {
             // Handle regular instructions - this path is where we end up most of the time.
-            if !synthesize_onto(&mut out, state, inst)? {
+            if !synthesize_onto(out, state, inst)? {
                 // No synthesis was necessary, so reinstate the operation.
                 out.push_back(inst.clone())?;
             }
-            continue;
+            return Ok(());
         };
         // If we make it here, we've got control flow and have to set ourselves up to recurse.
         let blocks = cf
@@ -374,8 +370,9 @@ pub fn run_unitary_synthesis(
             inst.clbits,
             inst.label.as_deref().cloned(),
         ))?;
-    }
-    Ok(out.build())
+        Ok(())
+    };
+    dag.rebuild_dag_with(rebuilder_callback)
 }
 
 /// Synthesise a matrix onto the DAG.
