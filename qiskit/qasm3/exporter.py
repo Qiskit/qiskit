@@ -344,6 +344,13 @@ _BUILTIN_GATES = {
     "U": _CANONICAL_STANDARD_GATES[StandardGate.U],
 }
 
+# Some downstream consumers, notably qiskit-aer, interpret "unitary" as a special instruction name
+# rather than a user-defined gate.  Exported gate definitions that use the bare symbol can then be
+# misclassified, so we rename those declarations while preserving the circuit semantics.
+_DECLARED_GATE_NAME_RENAMES = {
+    "unitary": "unitary_gate",
+}
+
 
 @dataclasses.dataclass
 class GateInfo:
@@ -557,6 +564,7 @@ class SymbolTable:
     ) -> ast.Identifier:
         """Register the given gate in the symbol table, using the given components to build up the
         full AST definition."""
+        name = _DECLARED_GATE_NAME_RENAMES.get(name, name)
         name = self.escaped_declarable_name(name, allow_rename=True, unique=False)
         ident = ast.Identifier(name)
         self.gates[name] = GateInfo(

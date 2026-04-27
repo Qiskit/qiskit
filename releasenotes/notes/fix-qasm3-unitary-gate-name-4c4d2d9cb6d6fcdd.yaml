@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    The OpenQASM 3 exporter (:func:`.qasm3.dumps` and :func:`~.qasm3.dump`) will no longer emit a
+    declared gate called ``unitary`` when exporting circuit definitions built from
+    :class:`.UnitaryGate` instances.  This avoids collisions with downstream consumers such as
+    :mod:`qiskit_aer` that interpret ``unitary`` as a special instruction name.
+
+upgrade_qasm:
+  - |
+    OpenQASM 3 output for circuits containing exported :class:`.UnitaryGate` definitions now uses
+    gate names beginning with ``unitary_gate`` instead of the bare symbol ``unitary``.
