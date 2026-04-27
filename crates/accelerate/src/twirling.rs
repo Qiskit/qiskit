@@ -34,6 +34,7 @@ use qiskit_circuit::{BlocksMode, NoBlocks, VarsMode};
 use qiskit_transpiler::passes::run_optimize_1q_gates_decomposition;
 use qiskit_transpiler::target::Target;
 use rand::prelude::*;
+use rand::rngs::SysRng;
 use rand_pcg::Pcg64Mcg;
 
 static ECR_TWIRL_SET: [([StandardGate; 4], f64); 16] = [
@@ -316,7 +317,7 @@ pub(crate) fn twirl_circuit(
 ) -> PyResult<Vec<PyCircuitData>> {
     let mut rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-        None => Pcg64Mcg::from_os_rng(),
+        None => Pcg64Mcg::try_from_rng(&mut SysRng).unwrap(),
     };
     let twirling_mask: u8 = match twirled_gate {
         Some(gates) => {

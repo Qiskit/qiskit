@@ -254,7 +254,7 @@ pub fn run_litinski_transformation(
                     let (sign, z, x, indices) =
                         clifford.get_inverse_z(dag.get_qargs(inst.qubits)[0].index());
                     qargs.clear();
-                    qargs.extend(indices.iter().map(|i| Qubit::new(*i)));
+                    qargs.extend(bytemuck::cast_slice(&indices));
 
                     // In the legacy path, we add PauliEvolutionGate as rotation gates, otherwise
                     // we add PauliProductRotation. The new path should not call Python at any
@@ -309,7 +309,7 @@ pub fn run_litinski_transformation(
                     let (sign, z, x, indices) =
                         clifford.get_inverse_z(dag.get_qargs(inst.qubits)[0].index());
                     qargs.clear();
-                    qargs.extend(indices.iter().map(|i| Qubit::new(*i)));
+                    qargs.extend(bytemuck::cast_slice(&indices));
 
                     let ppm = PauliProductMeasurement { z, x, neg: sign };
 
