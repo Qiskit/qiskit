@@ -2275,7 +2275,7 @@ q_1: ─■───────
             )
             .unwrap();
 
-        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        let result = draw_circuit(&circuit, false, true, Some(100)).unwrap();
         let expected = "
 q_0: ─■───────
       │P(0.5)
