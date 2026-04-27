@@ -61,7 +61,7 @@ pub fn analyze_commutations(
     for qubit in 0..dag.num_qubits() {
         let wire = Wire::Qubit(Qubit(qubit as u32));
 
-        for current_gate_idx in dag.nodes_on_wire(wire, false) {
+        for current_gate_idx in dag.nodes_on_wire(wire) {
             // get the commutation set associated with the current wire, or create a new
             // index set containing the current gate
             let commutation_entry = commutation_set
