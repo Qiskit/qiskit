@@ -118,321 +118,332 @@ pub fn evolve_pauli_by_clifford(p: &Pauli, cliff: &Clifford) -> Pauli {
     out_pauli
 }
 
-#[test]
-fn test_pauli_compose() {
-    let px = Pauli {
-        pauli_z: vec![false],
-        pauli_x: vec![true],
-        pauli_phase: 0,
-    }; // X
-    let py = Pauli {
-        pauli_z: vec![true],
-        pauli_x: vec![true],
-        pauli_phase: 0,
-    }; // Y
-    let pz = Pauli {
-        pauli_z: vec![true],
-        pauli_x: vec![false],
-        pauli_phase: 0,
-    }; // Z
-    let pi = Pauli {
-        pauli_z: vec![false],
-        pauli_x: vec![false],
-        pauli_phase: 0,
-    }; // I
+#[cfg(test)]
+mod tests {
+    use crate::clifford::Clifford;
+    use crate::dense_pauli::{Pauli, evolve_pauli_by_clifford, pauli_compose};
 
-    let pauli_out = pauli_compose(&px, &py);
-    let pauli_exp = Pauli {
-        pauli_z: vec![true],
-        pauli_x: vec![false],
-        pauli_phase: 1,
-    }; // -iZ
-    assert_eq!(pauli_out, pauli_exp);
+    #[test]
+    fn test_pauli_compose() {
+        let px = Pauli {
+            pauli_z: vec![false],
+            pauli_x: vec![true],
+            pauli_phase: 0,
+        }; // X
+        let py = Pauli {
+            pauli_z: vec![true],
+            pauli_x: vec![true],
+            pauli_phase: 0,
+        }; // Y
+        let pz = Pauli {
+            pauli_z: vec![true],
+            pauli_x: vec![false],
+            pauli_phase: 0,
+        }; // Z
+        let pi = Pauli {
+            pauli_z: vec![false],
+            pauli_x: vec![false],
+            pauli_phase: 0,
+        }; // I
 
-    let pauli_out = pauli_compose(&py, &px);
-    let pauli_exp = Pauli {
-        pauli_z: vec![true],
-        pauli_x: vec![false],
-        pauli_phase: 3,
-    }; // iZ
-    assert_eq!(pauli_out, pauli_exp);
+        let pauli_out = pauli_compose(&px, &py);
+        let pauli_exp = Pauli {
+            pauli_z: vec![true],
+            pauli_x: vec![false],
+            pauli_phase: 1,
+        }; // -iZ
+        assert_eq!(pauli_out, pauli_exp);
 
-    let pauli_out = pauli_compose(&px, &pz);
-    let pauli_exp = Pauli {
-        pauli_z: vec![true],
-        pauli_x: vec![true],
-        pauli_phase: 3,
-    }; // iY
-    assert_eq!(pauli_out, pauli_exp);
+        let pauli_out = pauli_compose(&py, &px);
+        let pauli_exp = Pauli {
+            pauli_z: vec![true],
+            pauli_x: vec![false],
+            pauli_phase: 3,
+        }; // iZ
+        assert_eq!(pauli_out, pauli_exp);
 
-    let pauli_out = pauli_compose(&pz, &px);
-    let pauli_exp = Pauli {
-        pauli_z: vec![true],
-        pauli_x: vec![true],
-        pauli_phase: 1,
-    }; // -iY
-    assert_eq!(pauli_out, pauli_exp);
+        let pauli_out = pauli_compose(&px, &pz);
+        let pauli_exp = Pauli {
+            pauli_z: vec![true],
+            pauli_x: vec![true],
+            pauli_phase: 3,
+        }; // iY
+        assert_eq!(pauli_out, pauli_exp);
 
-    let pauli_out = pauli_compose(&py, &pz);
-    let pauli_exp = Pauli {
-        pauli_z: vec![false],
-        pauli_x: vec![true],
-        pauli_phase: 1,
-    }; // -iX
-    assert_eq!(pauli_out, pauli_exp);
+        let pauli_out = pauli_compose(&pz, &px);
+        let pauli_exp = Pauli {
+            pauli_z: vec![true],
+            pauli_x: vec![true],
+            pauli_phase: 1,
+        }; // -iY
+        assert_eq!(pauli_out, pauli_exp);
 
-    let pauli_out = pauli_compose(&pz, &py);
-    let pauli_exp = Pauli {
-        pauli_z: vec![false],
-        pauli_x: vec![true],
-        pauli_phase: 3,
-    }; // iX
-    assert_eq!(pauli_out, pauli_exp);
+        let pauli_out = pauli_compose(&py, &pz);
+        let pauli_exp = Pauli {
+            pauli_z: vec![false],
+            pauli_x: vec![true],
+            pauli_phase: 1,
+        }; // -iX
+        assert_eq!(pauli_out, pauli_exp);
 
-    let pauli_out = pauli_compose(&pi, &px);
-    assert_eq!(pauli_out, px);
+        let pauli_out = pauli_compose(&pz, &py);
+        let pauli_exp = Pauli {
+            pauli_z: vec![false],
+            pauli_x: vec![true],
+            pauli_phase: 3,
+        }; // iX
+        assert_eq!(pauli_out, pauli_exp);
 
-    let pauli_out = pauli_compose(&py, &pi);
-    assert_eq!(pauli_out, py);
+        let pauli_out = pauli_compose(&pi, &px);
+        assert_eq!(pauli_out, px);
 
-    let pxx = Pauli {
-        pauli_z: vec![false, false],
-        pauli_x: vec![true, true],
-        pauli_phase: 0,
-    }; // XX
-    let pxy = Pauli {
-        pauli_z: vec![true, false],
-        pauli_x: vec![true, true],
-        pauli_phase: 0,
-    }; // XY
+        let pauli_out = pauli_compose(&py, &pi);
+        assert_eq!(pauli_out, py);
 
-    let pauli_out = pauli_compose(&pxx, &pxy);
-    let pauli_exp = Pauli {
-        pauli_z: vec![true, false],
-        pauli_x: vec![false, false],
-        pauli_phase: 1,
-    }; // -iIZ
-    assert_eq!(pauli_out, pauli_exp);
+        let pxx = Pauli {
+            pauli_z: vec![false, false],
+            pauli_x: vec![true, true],
+            pauli_phase: 0,
+        }; // XX
+        let pxy = Pauli {
+            pauli_z: vec![true, false],
+            pauli_x: vec![true, true],
+            pauli_phase: 0,
+        }; // XY
 
-    let pauli_out = pauli_compose(&pxy, &pxx);
-    let pauli_exp = Pauli {
-        pauli_z: vec![true, false],
-        pauli_x: vec![false, false],
-        pauli_phase: 3,
-    }; // iIZ
-    assert_eq!(pauli_out, pauli_exp);
-}
+        let pauli_out = pauli_compose(&pxx, &pxy);
+        let pauli_exp = Pauli {
+            pauli_z: vec![true, false],
+            pauli_x: vec![false, false],
+            pauli_phase: 1,
+        }; // -iIZ
+        assert_eq!(pauli_out, pauli_exp);
 
-#[test]
-fn test_evolve_1_qubit() {
-    use ndarray::Array2;
+        let pauli_out = pauli_compose(&pxy, &pxx);
+        let pauli_exp = Pauli {
+            pauli_z: vec![true, false],
+            pauli_x: vec![false, false],
+            pauli_phase: 3,
+        }; // iIZ
+        assert_eq!(pauli_out, pauli_exp);
+    }
 
-    let cliff_s =
-        Clifford::from_array(Array2::from(vec![[true, true, false], [false, true, false]]).view()); // S
-    let cliff_h =
-        Clifford::from_array(Array2::from(vec![[false, true, false], [true, false, false]]).view()); // H
-    let cliff_sdg =
-        Clifford::from_array(Array2::from(vec![[true, true, true], [false, true, false]]).view()); // Sdg
-    let cliff_sx =
-        Clifford::from_array(Array2::from(vec![[true, false, false], [true, true, true]]).view()); // SX
-    let cliff_sxdg =
-        Clifford::from_array(Array2::from(vec![[true, false, false], [true, true, false]]).view()); // SXdg
+    #[test]
+    fn test_evolve_1_qubit() {
+        use ndarray::Array2;
 
-    let px = Pauli {
-        pauli_z: vec![false],
-        pauli_x: vec![true],
-        pauli_phase: 0,
-    }; // X
-    let py = Pauli {
-        pauli_z: vec![true],
-        pauli_x: vec![true],
-        pauli_phase: 0,
-    }; // Y
-    let pz = Pauli {
-        pauli_z: vec![true],
-        pauli_x: vec![false],
-        pauli_phase: 0,
-    }; // Z
-    let px_min = Pauli {
-        pauli_z: vec![false],
-        pauli_x: vec![true],
-        pauli_phase: 2,
-    }; // X
-    let py_min = Pauli {
-        pauli_z: vec![true],
-        pauli_x: vec![true],
-        pauli_phase: 2,
-    }; // Y
-    let pz_min = Pauli {
-        pauli_z: vec![true],
-        pauli_x: vec![false],
-        pauli_phase: 2,
-    }; // -Z
-    let pi = Pauli {
-        pauli_z: vec![false],
-        pauli_x: vec![false],
-        pauli_phase: 0,
-    }; // I
-    let pi_min = Pauli {
-        pauli_z: vec![false],
-        pauli_x: vec![false],
-        pauli_phase: 2,
-    }; // -I
+        let cliff_s = Clifford::from_array(
+            Array2::from(vec![[true, true, false], [false, true, false]]).view(),
+        ); // S
+        let cliff_h = Clifford::from_array(
+            Array2::from(vec![[false, true, false], [true, false, false]]).view(),
+        ); // H
+        let cliff_sdg = Clifford::from_array(
+            Array2::from(vec![[true, true, true], [false, true, false]]).view(),
+        ); // Sdg
+        let cliff_sx = Clifford::from_array(
+            Array2::from(vec![[true, false, false], [true, true, true]]).view(),
+        ); // SX
+        let cliff_sxdg = Clifford::from_array(
+            Array2::from(vec![[true, false, false], [true, true, false]]).view(),
+        ); // SXdg
 
-    let pauli_out = evolve_pauli_by_clifford(&px, &cliff_s); // -Y
-    assert_eq!(pauli_out, py_min);
+        let px = Pauli {
+            pauli_z: vec![false],
+            pauli_x: vec![true],
+            pauli_phase: 0,
+        }; // X
+        let py = Pauli {
+            pauli_z: vec![true],
+            pauli_x: vec![true],
+            pauli_phase: 0,
+        }; // Y
+        let pz = Pauli {
+            pauli_z: vec![true],
+            pauli_x: vec![false],
+            pauli_phase: 0,
+        }; // Z
+        let px_min = Pauli {
+            pauli_z: vec![false],
+            pauli_x: vec![true],
+            pauli_phase: 2,
+        }; // X
+        let py_min = Pauli {
+            pauli_z: vec![true],
+            pauli_x: vec![true],
+            pauli_phase: 2,
+        }; // Y
+        let pz_min = Pauli {
+            pauli_z: vec![true],
+            pauli_x: vec![false],
+            pauli_phase: 2,
+        }; // -Z
+        let pi = Pauli {
+            pauli_z: vec![false],
+            pauli_x: vec![false],
+            pauli_phase: 0,
+        }; // I
+        let pi_min = Pauli {
+            pauli_z: vec![false],
+            pauli_x: vec![false],
+            pauli_phase: 2,
+        }; // -I
 
-    let pauli_out = evolve_pauli_by_clifford(&py, &cliff_s); // X
-    assert_eq!(pauli_out, px);
+        let pauli_out = evolve_pauli_by_clifford(&px, &cliff_s); // -Y
+        assert_eq!(pauli_out, py_min);
 
-    let pauli_out = evolve_pauli_by_clifford(&pz, &cliff_s); // Z
-    assert_eq!(pauli_out, pz);
+        let pauli_out = evolve_pauli_by_clifford(&py, &cliff_s); // X
+        assert_eq!(pauli_out, px);
 
-    let pauli_out = evolve_pauli_by_clifford(&px, &cliff_sdg); // Y
-    assert_eq!(pauli_out, py);
+        let pauli_out = evolve_pauli_by_clifford(&pz, &cliff_s); // Z
+        assert_eq!(pauli_out, pz);
 
-    let pauli_out = evolve_pauli_by_clifford(&py, &cliff_sdg); // -X
-    assert_eq!(pauli_out, px_min);
+        let pauli_out = evolve_pauli_by_clifford(&px, &cliff_sdg); // Y
+        assert_eq!(pauli_out, py);
 
-    let pauli_out = evolve_pauli_by_clifford(&pz, &cliff_sdg); // Z
-    assert_eq!(pauli_out, pz);
+        let pauli_out = evolve_pauli_by_clifford(&py, &cliff_sdg); // -X
+        assert_eq!(pauli_out, px_min);
 
-    let pauli_out = evolve_pauli_by_clifford(&px, &cliff_h); // Z
-    assert_eq!(pauli_out, pz);
+        let pauli_out = evolve_pauli_by_clifford(&pz, &cliff_sdg); // Z
+        assert_eq!(pauli_out, pz);
 
-    let pauli_out = evolve_pauli_by_clifford(&py, &cliff_h); // -Y
-    assert_eq!(pauli_out, py_min);
+        let pauli_out = evolve_pauli_by_clifford(&px, &cliff_h); // Z
+        assert_eq!(pauli_out, pz);
 
-    let pauli_out = evolve_pauli_by_clifford(&pz, &cliff_h); // X
-    assert_eq!(pauli_out, px);
+        let pauli_out = evolve_pauli_by_clifford(&py, &cliff_h); // -Y
+        assert_eq!(pauli_out, py_min);
 
-    let pauli_out = evolve_pauli_by_clifford(&pi, &cliff_h); // I
-    assert_eq!(pauli_out, pi);
+        let pauli_out = evolve_pauli_by_clifford(&pz, &cliff_h); // X
+        assert_eq!(pauli_out, px);
 
-    let pauli_out = evolve_pauli_by_clifford(&pi_min, &cliff_h); // -I
-    assert_eq!(pauli_out, pi_min);
+        let pauli_out = evolve_pauli_by_clifford(&pi, &cliff_h); // I
+        assert_eq!(pauli_out, pi);
 
-    let pauli_out = evolve_pauli_by_clifford(&px, &cliff_sx); // X
-    assert_eq!(pauli_out, px);
+        let pauli_out = evolve_pauli_by_clifford(&pi_min, &cliff_h); // -I
+        assert_eq!(pauli_out, pi_min);
 
-    let pauli_out = evolve_pauli_by_clifford(&py, &cliff_sx); // -Z
-    assert_eq!(pauli_out, pz_min);
+        let pauli_out = evolve_pauli_by_clifford(&px, &cliff_sx); // X
+        assert_eq!(pauli_out, px);
 
-    let pauli_out = evolve_pauli_by_clifford(&pz, &cliff_sx); // Y
-    assert_eq!(pauli_out, py);
+        let pauli_out = evolve_pauli_by_clifford(&py, &cliff_sx); // -Z
+        assert_eq!(pauli_out, pz_min);
 
-    let pauli_out = evolve_pauli_by_clifford(&px, &cliff_sxdg); // X
-    assert_eq!(pauli_out, px);
+        let pauli_out = evolve_pauli_by_clifford(&pz, &cliff_sx); // Y
+        assert_eq!(pauli_out, py);
 
-    let pauli_out = evolve_pauli_by_clifford(&py, &cliff_sxdg); // Z
-    assert_eq!(pauli_out, pz);
+        let pauli_out = evolve_pauli_by_clifford(&px, &cliff_sxdg); // X
+        assert_eq!(pauli_out, px);
 
-    let pauli_out = evolve_pauli_by_clifford(&pz, &cliff_sxdg); // -Y
-    assert_eq!(pauli_out, py_min);
-}
+        let pauli_out = evolve_pauli_by_clifford(&py, &cliff_sxdg); // Z
+        assert_eq!(pauli_out, pz);
 
-#[test]
-fn test_evolve_2_qubits() {
-    use ndarray::Array2;
+        let pauli_out = evolve_pauli_by_clifford(&pz, &cliff_sxdg); // -Y
+        assert_eq!(pauli_out, py_min);
+    }
 
-    // random clifford, seed=1234
-    let cliff = Clifford::from_array(
-        Array2::from(vec![
-            [false, true, false, true, false],
-            [false, true, true, true, true],
-            [true, false, true, true, false],
-            [true, false, true, false, true],
-        ])
-        .view(),
-    );
+    #[test]
+    fn test_evolve_2_qubits() {
+        use ndarray::Array2;
 
-    let pxx = Pauli {
-        pauli_z: vec![false, false],
-        pauli_x: vec![true, true],
-        pauli_phase: 0,
-    }; // XX
-    let pxz_min = Pauli {
-        pauli_z: vec![true, false],
-        pauli_x: vec![false, true],
-        pauli_phase: 2,
-    }; // -XZ
-    let pxy = Pauli {
-        pauli_z: vec![true, false],
-        pauli_x: vec![true, true],
-        pauli_phase: 0,
-    }; // XY
-    let piy_min = Pauli {
-        pauli_z: vec![true, false],
-        pauli_x: vec![true, false],
-        pauli_phase: 2,
-    }; // -IY
-    let pyy = Pauli {
-        pauli_z: vec![true, true],
-        pauli_x: vec![true, true],
-        pauli_phase: 0,
-    }; // YY
-    let pzx_min = Pauli {
-        pauli_z: vec![false, true],
-        pauli_x: vec![true, false],
-        pauli_phase: 2,
-    }; // -ZX
-    let pyz_min = Pauli {
-        pauli_z: vec![true, true],
-        pauli_x: vec![false, true],
-        pauli_phase: 2,
-    }; // -YZ
-    let pxi = Pauli {
-        pauli_z: vec![false, false],
-        pauli_x: vec![false, true],
-        pauli_phase: 0,
-    }; // -XI
-    let pzi = Pauli {
-        pauli_z: vec![false, true],
-        pauli_x: vec![false, false],
-        pauli_phase: 0,
-    }; // ZZ
-    let pzz_min = Pauli {
-        pauli_z: vec![true, true],
-        pauli_x: vec![false, false],
-        pauli_phase: 2,
-    }; // ZI
-    let pyx_im = Pauli {
-        pauli_z: vec![false, true],
-        pauli_x: vec![true, true],
-        pauli_phase: 3,
-    }; // iYX
-    let pyi_im = Pauli {
-        pauli_z: vec![false, true],
-        pauli_x: vec![false, true],
-        pauli_phase: 3,
-    }; // iYX
-    let pii = Pauli {
-        pauli_z: vec![false, false],
-        pauli_x: vec![false, false],
-        pauli_phase: 0,
-    }; // II
+        // random clifford, seed=1234
+        let cliff = Clifford::from_array(
+            Array2::from(vec![
+                [false, true, false, true, false],
+                [false, true, true, true, true],
+                [true, false, true, true, false],
+                [true, false, true, false, true],
+            ])
+            .view(),
+        );
 
-    let pauli_out = evolve_pauli_by_clifford(&pxx, &cliff);
-    assert_eq!(pauli_out, pxz_min);
+        let pxx = Pauli {
+            pauli_z: vec![false, false],
+            pauli_x: vec![true, true],
+            pauli_phase: 0,
+        }; // XX
+        let pxz_min = Pauli {
+            pauli_z: vec![true, false],
+            pauli_x: vec![false, true],
+            pauli_phase: 2,
+        }; // -XZ
+        let pxy = Pauli {
+            pauli_z: vec![true, false],
+            pauli_x: vec![true, true],
+            pauli_phase: 0,
+        }; // XY
+        let piy_min = Pauli {
+            pauli_z: vec![true, false],
+            pauli_x: vec![true, false],
+            pauli_phase: 2,
+        }; // -IY
+        let pyy = Pauli {
+            pauli_z: vec![true, true],
+            pauli_x: vec![true, true],
+            pauli_phase: 0,
+        }; // YY
+        let pzx_min = Pauli {
+            pauli_z: vec![false, true],
+            pauli_x: vec![true, false],
+            pauli_phase: 2,
+        }; // -ZX
+        let pyz_min = Pauli {
+            pauli_z: vec![true, true],
+            pauli_x: vec![false, true],
+            pauli_phase: 2,
+        }; // -YZ
+        let pxi = Pauli {
+            pauli_z: vec![false, false],
+            pauli_x: vec![false, true],
+            pauli_phase: 0,
+        }; // -XI
+        let pzi = Pauli {
+            pauli_z: vec![false, true],
+            pauli_x: vec![false, false],
+            pauli_phase: 0,
+        }; // ZZ
+        let pzz_min = Pauli {
+            pauli_z: vec![true, true],
+            pauli_x: vec![false, false],
+            pauli_phase: 2,
+        }; // ZI
+        let pyx_im = Pauli {
+            pauli_z: vec![false, true],
+            pauli_x: vec![true, true],
+            pauli_phase: 3,
+        }; // iYX
+        let pyi_im = Pauli {
+            pauli_z: vec![false, true],
+            pauli_x: vec![false, true],
+            pauli_phase: 3,
+        }; // iYX
+        let pii = Pauli {
+            pauli_z: vec![false, false],
+            pauli_x: vec![false, false],
+            pauli_phase: 0,
+        }; // II
 
-    let pauli_out = evolve_pauli_by_clifford(&pyy, &cliff);
-    assert_eq!(pauli_out, pzx_min);
+        let pauli_out = evolve_pauli_by_clifford(&pxx, &cliff);
+        assert_eq!(pauli_out, pxz_min);
 
-    let pauli_out = evolve_pauli_by_clifford(&pxy, &cliff);
-    assert_eq!(pauli_out, piy_min);
+        let pauli_out = evolve_pauli_by_clifford(&pyy, &cliff);
+        assert_eq!(pauli_out, pzx_min);
 
-    let pauli_out = evolve_pauli_by_clifford(&piy_min, &cliff);
-    assert_eq!(pauli_out, pzi);
+        let pauli_out = evolve_pauli_by_clifford(&pxy, &cliff);
+        assert_eq!(pauli_out, piy_min);
 
-    let pauli_out = evolve_pauli_by_clifford(&pzi, &cliff);
-    assert_eq!(pauli_out, pzz_min);
+        let pauli_out = evolve_pauli_by_clifford(&piy_min, &cliff);
+        assert_eq!(pauli_out, pzi);
 
-    let pauli_out = evolve_pauli_by_clifford(&pyz_min, &cliff);
-    assert_eq!(pauli_out, pxi);
+        let pauli_out = evolve_pauli_by_clifford(&pzi, &cliff);
+        assert_eq!(pauli_out, pzz_min);
 
-    let pauli_out = evolve_pauli_by_clifford(&pyx_im, &cliff);
-    assert_eq!(pauli_out, pyi_im);
+        let pauli_out = evolve_pauli_by_clifford(&pyz_min, &cliff);
+        assert_eq!(pauli_out, pxi);
 
-    let pauli_out = evolve_pauli_by_clifford(&pii, &cliff);
-    assert_eq!(pauli_out, pii);
+        let pauli_out = evolve_pauli_by_clifford(&pyx_im, &cliff);
+        assert_eq!(pauli_out, pyi_im);
+
+        let pauli_out = evolve_pauli_by_clifford(&pii, &cliff);
+        assert_eq!(pauli_out, pii);
+    }
 }
