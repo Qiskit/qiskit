@@ -397,7 +397,7 @@ impl<'a> VisualizationLayer<'a> {
 
                 self.add_vertical_lines_between_qargs(minima, maxima, qargs, inst);
             }
-            | StandardGate::CPhase => {
+            StandardGate::CPhase => {
                 for q in qargs {
                     self.0[q.index()] =
                         VisualizationElement::DirectOnWire(OnWireElement::CPhaseEndpoint(inst));
@@ -1007,16 +1007,16 @@ impl TextDrawer {
                     ),
                     OnWireElement::Reset => {
                         ("   ".to_string(), "|0>".to_string(), "   ".to_string())
-                    },
+                    }
                     OnWireElement::CPhaseEndpoint(inst) => {
                         let qargs = circuit.get_qargs(inst.qubits);
                         let (minima, maxima) = get_instruction_range(qargs, &[], 0);
                         // Example 3-qubit CPhase gate with label "P(0.5)":
                         // q_0: ─■───────
-                        //       │P(0.5)     
+                        //       │P(0.5)
                         // q_1: ─┼───────
                         //       │
-                        // q_2: ─■───────                        
+                        // q_2: ─■───────
                         // Here label = "P(0.5)" has width 6, so width = label.width() + 3 = 9
                         // for every wire fragment touched by the gate. right_pad = width - 2 = 7
                         // is the number of trailing wire chars after the bullet/cross
@@ -1047,7 +1047,7 @@ impl TextDrawer {
                                 " ".repeat(width)
                             },
                         };
-                    },  
+                    }
                 };
 
                 if matches!(on_wire, OnWireElement::CPhaseEndpoint(_)) {
@@ -1109,42 +1109,42 @@ impl TextDrawer {
                         }
                         .to_string();
                     }
-                    } else {
-                        if inst.op.try_standard_gate() == Some(StandardGate::CPhase) {
-                            // Match the endpoint width so the connector rows stay aligned with the
-                            // label row produced by OnWireElement::CPhaseEndpoint.
-                            // refer to the comment in OnWireElement::CPhaseEndpoint for more details.
-                            let label = Self::get_label(inst);
-                            let width = label.width() + 3;
-                            let right_pad = width - 2;
+                } else {
+                    if inst.op.try_standard_gate() == Some(StandardGate::CPhase) {
+                        // Match the endpoint width so the connector rows stay aligned with the
+                        // label row produced by OnWireElement::CPhaseEndpoint.
+                        // refer to the comment in OnWireElement::CPhaseEndpoint for more details.
+                        let label = Self::get_label(inst);
+                        let width = label.width() + 3;
+                        let right_pad = width - 2;
 
-                            return TextWireElement {
-                                top: format!(" {}{}", CONNECTING_WIRE, " ".repeat(right_pad)),
-                                mid: format!(
-                                    "{}{}{}",
-                                    Q_WIRE,
-                                    if ind < circuit.num_qubits() {
-                                        Q_Q_CROSSED_WIRE
-                                    } else {
-                                        Q_CL_CROSSED_WIRE
-                                    },
-                                    Q_WIRE.to_string().repeat(right_pad)
-                                ),
-                                bot: format!(" {}{}", CONNECTING_WIRE, " ".repeat(right_pad)),
-                            };
-                        }
-
-                        top = CONNECTING_WIRE.to_string();
-                        bot = CONNECTING_WIRE.to_string();
-                        mid = {
-                            if ind < circuit.num_qubits() {
-                                Q_Q_CROSSED_WIRE
-                            } else {
-                                Q_CL_CROSSED_WIRE
-                            }
-                        }
-                        .to_string();
+                        return TextWireElement {
+                            top: format!(" {}{}", CONNECTING_WIRE, " ".repeat(right_pad)),
+                            mid: format!(
+                                "{}{}{}",
+                                Q_WIRE,
+                                if ind < circuit.num_qubits() {
+                                    Q_Q_CROSSED_WIRE
+                                } else {
+                                    Q_CL_CROSSED_WIRE
+                                },
+                                Q_WIRE.to_string().repeat(right_pad)
+                            ),
+                            bot: format!(" {}{}", CONNECTING_WIRE, " ".repeat(right_pad)),
+                        };
                     }
+
+                    top = CONNECTING_WIRE.to_string();
+                    bot = CONNECTING_WIRE.to_string();
+                    mid = {
+                        if ind < circuit.num_qubits() {
+                            Q_Q_CROSSED_WIRE
+                        } else {
+                            Q_CL_CROSSED_WIRE
+                        }
+                    }
+                    .to_string();
+                }
             }
             VisualizationElement::Empty => {
                 top = " ".to_string();
@@ -2231,7 +2231,7 @@ q_1: ┤ Ry(🎩) ├┤1          ├┤ 💶🔉(🎩) ├┤1           ├�
             assert_eq!(format_float_pi(test.0), test.1.map(|s| s.to_string()));
         }
     }
-    
+
     #[test]
     fn test_cphase_two_qubits() {
         let qubits = vec![
@@ -2340,4 +2340,3 @@ q_3: ┤ X ├─■─────────────────┤ X ├
         assert_eq!(result, expected);
     }
 }
-
