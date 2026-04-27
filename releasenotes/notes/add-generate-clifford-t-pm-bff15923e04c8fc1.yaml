@@ -1,0 +1,18 @@
+---
+features_transpiler:
+  - |
+    Added a new function :func:`~.generate_preset_clifford_t_pass_manager`, which provides
+    a fast and convenient way to construct a preset pass manager for Clifford+T compilation.
+    We recommend using this function instead of :func:`~.transpile` or
+    :func:`~.generate_preset_pass_manager` with a Clifford+T basis, as it exposes
+    arguments specifically tailored for Clifford+T compilations. In particular, it supports
+    arguments ``rz_synthesis_error`` and ``rz_cache_error`` which control synthesis of
+    RZ-rotations into Clifford+T basis.
+
+    For example::
+
+        from qiskit.transpiler.preset_passmanagers import generate_preset_clifford_t_pass_manager
+
+        # Generate a level 3 pass manager
+        basis_gates = ["cx", "s", "sdg", "h", "t", "tdg"]
+        pass_manager = generate_preset_clifford_t_pass_manager(basis_gates=basis_gates, optimization_level=3)

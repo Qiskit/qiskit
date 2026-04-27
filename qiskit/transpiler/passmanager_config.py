@@ -152,3 +152,78 @@ class PassManagerConfig:
             f"\tqubits_initially_zero: {self.qubits_initially_zero}\n"
             f"\ttarget: {str(self.target).replace(newline, newline_tab)}\n"
         )
+
+
+class PassManagerCliffordTConfig(PassManagerConfig):
+    """Pass Manager Configuration for Clifford+T transpilation."""
+
+    # This subclasses PassManagerConfig since we want to use the default
+    # stages for layout, routing and scheduling.
+
+    def __init__(
+        self,
+        initial_layout=None,
+        basis_gates=None,
+        coupling_map=None,
+        instruction_durations=None,
+        approximation_degree=None,
+        seed_transpiler=None,
+        timing_constraints=None,
+        unitary_synthesis_method="default",
+        unitary_synthesis_plugin_config=None,
+        target=None,
+        hls_config=None,
+        qubits_initially_zero=True,
+        rz_synthesis_error: float | None = None,
+        rz_cache_error: float | None = None,
+    ):
+        r"""
+
+        Args:
+            initial_layout (Layout): Initial position of virtual qubits on
+                physical qubits.
+            basis_gates (list): List of basis gate names to unroll to.
+            coupling_map (CouplingMap): Directed graph representing a coupling
+                map.
+            instruction_durations (InstructionDurations): Dictionary of duration
+                (in dt) for each instruction.
+            approximation_degree (float): heuristic dial used for circuit approximation
+                (1.0=no approximation, 0.0=maximal approximation)
+            seed_transpiler (int): Sets random seed for the stochastic parts of
+                the transpiler.
+            timing_constraints (TimingConstraints): Hardware time alignment restrictions.
+            unitary_synthesis_method (str): The string method to use for the
+                :class:`~qiskit.transpiler.passes.UnitarySynthesis` pass. Will
+                search installed plugins for a valid method. You can see a list of
+                installed plugins with :func:`.unitary_synthesis_plugin_names`.
+            unitary_synthesis_plugin_config (dict): The configuration dictionary that will
+                be passed to the specified unitary synthesis plugin. Refer to
+                the plugin documentation for how to use this.
+            target (Target): The backend target
+            hls_config (HLSConfig): An optional configuration class to use for
+                :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
+                Specifies how to synthesize various high-level objects.
+            qubits_initially_zero (bool): Indicates whether the input circuit is
+                zero-initialized.
+            rz_synthesis_error: Maximum allowed error for the approximate synthesis of
+                :math:`RZ(\theta)`.
+            rz_cache_error: Maximum allowed error when reusing a cached synthesis
+                result for angles close to :math:`\theta`.
+        """
+        self.rz_synthesis_error = rz_synthesis_error
+        self.rz_cache_error = rz_cache_error
+
+        super().__init__(
+            initial_layout=initial_layout,
+            basis_gates=basis_gates,
+            coupling_map=coupling_map,
+            instruction_durations=instruction_durations,
+            approximation_degree=approximation_degree,
+            seed_transpiler=seed_transpiler,
+            timing_constraints=timing_constraints,
+            unitary_synthesis_method=unitary_synthesis_method,
+            unitary_synthesis_plugin_config=unitary_synthesis_plugin_config,
+            target=target,
+            hls_config=hls_config,
+            qubits_initially_zero=qubits_initially_zero,
+        )
