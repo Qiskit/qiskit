@@ -36,7 +36,7 @@ _CircuitT = TypeVar("_CircuitT", bound=QuantumCircuit | list[QuantumCircuit])
 
 def transpile(
     circuits: _CircuitT,
-    backend: Backend | None = None,
+    backend: Backend | Target| None = None,
     basis_gates: list[str] | None = None,
     coupling_map: CouplingMap | list[list[int]] | None = None,
     initial_layout: Layout | dict | list | None = None,
@@ -251,6 +251,16 @@ def transpile(
             or errors in passes
     """
     arg_circuits_list = isinstance(circuits, list)
+
+    # Allow passing a Target as the second positional argument (backend position)
+    if isinstance(backend, Target):
+        if target is not None:
+            raise TypeError(
+                "Cannot pass a Target as the backend argument and also specify a target argument."
+            )
+        target = backend
+        backend = None
+
     circuits = circuits if arg_circuits_list else [circuits]
 
     if not circuits:
