@@ -199,6 +199,15 @@ of QPY in qiskit-terra 0.18.0.
    * - Qiskit (qiskit-terra for < 1.0.0) version
      - :func:`.dump` format(s) output versions
      - :func:`.load` maximum supported version (older format versions can always be read)
+   * - 2.4.1
+     - 13, 14, 15, 16, 17
+     - 17
+   * - 2.4.0
+     - 13, 14, 15, 16, 17
+     - 17
+   * - 2.3.1
+     - 13, 14, 15, 16, 17
+     - 17
    * - 2.3.0
      - 13, 14, 15, 16, 17
      - 17
@@ -425,7 +434,8 @@ versions, the file header is immediately followed by the circuit payloads in seq
 without any padding in-between.
 
 All values use network byte order [#f1]_ (big endian) for cross platform
-compatibility.
+compatibility. The exception to this is for QPY format versions <= 17 the encoding of
+integers and floats as part of ``INSTRUCTION_PARAM`` is little endian.
 
 Each individual circuit is composed of the following parts in order from top to bottom:
 

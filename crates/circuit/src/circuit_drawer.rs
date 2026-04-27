@@ -20,6 +20,7 @@ use crossterm::terminal;
 use hashbrown::HashSet;
 use itertools::{Itertools, MinMaxResult};
 use pyo3::prelude::*;
+use std::f64::consts::PI;
 use std::fmt::Debug;
 use std::ops::Index;
 use unicode_segmentation::UnicodeSegmentation;
@@ -60,7 +61,10 @@ pub fn draw_circuit(
             if approx::abs_diff_eq!(*f, 0.) {
                 String::new()
             } else {
-                format!("global phase: {}\n", f)
+                format!(
+                    "global phase: {}\n",
+                    format_float_pi(*f).unwrap_or_else(|| f.to_string())
+                )
             }
         }
         Param::ParameterExpression(expr) => {
@@ -166,7 +170,7 @@ impl WireInputElement<'_> {
                         .registers()
                         .first()
                         .expect("Register cannot be empty");
-                    if !register.is_empty() {
+                    if register.len() > 1 {
                         Some(format!("{}_{}: ", register.name(), index))
                     } else {
                         Some(format!("{}: ", register.name()))
@@ -186,7 +190,7 @@ impl WireInputElement<'_> {
                         .registers()
                         .first()
                         .expect("Register cannot be empty");
-                    if !register.is_empty() {
+                    if register.len() > 1 {
                         Some(format!("{}_{}: ", register.name(), index))
                     } else {
                         Some(format!("{}: ", register.name()))
@@ -763,7 +767,7 @@ impl TextDrawer {
                         .params_view()
                         .iter()
                         .map(|param| match param {
-                            Param::Float(f) => f.to_string(),
+                            Param::Float(f) => format_float_pi(*f).unwrap_or_else(|| f.to_string()),
                             Param::ParameterExpression(expr) => expr.to_string(),
                             _ => format!("{:?}", param),
                         })
@@ -1202,6 +1206,93 @@ impl TextDrawer {
     }
 }
 
+/// Computes if a number is close to an integer
+/// fraction or multiple of PI and returns the
+/// corresponding string.
+///
+/// Args:
+///     f : Number to check.
+///
+/// Returns:
+///     The string representation of output. None if no Pi formatting is found.  
+pub fn format_float_pi(f: f64) -> Option<String> {
+    const DENOMINATOR: i64 = 16;
+    // epsilon value defines the threshold to detect pi.
+    const EPS: f64 = 1e-9;
+
+    // pi_str is needed to match the output expected according to the format needed
+    let pi_str = "π";
+
+    // f_abs and sign help us working through each steps
+    let f_abs = f.abs();
+    let sign = if f < 0.0 { "-" } else { "" };
+
+    // Detecting 0 before moving on
+    if f_abs < EPS {
+        return Some("0".to_string());
+    }
+
+    // First check is for whole multiples of pi
+    let val = f_abs / PI;
+    let round = val.round();
+    if val >= 1.0 - EPS && (val - round).abs() < EPS {
+        let round = round as usize;
+        return Some(if round == 1 {
+            format!("{}{}", sign, pi_str)
+        } else {
+            format!("{}{}{}", sign, round, pi_str)
+        });
+    }
+
+    // Second is a check for powers of pi
+    if f_abs > PI {
+        if let Some(k) = (2..=4).find(|k| (f_abs - PI.powi(*k)).abs() < EPS) {
+            return Some(format!("{}{}^{}", sign, pi_str, k));
+        }
+    }
+
+    // Third is a check for a number larger than DENOMINATOR * pi, not a
+    // multiple or power of pi, since no fractions will exceed DENOMINATOR * pi
+    if f_abs > (DENOMINATOR as f64 * PI) {
+        return None;
+    }
+
+    // Fourth check is for fractions for 1*pi in the numer and any
+    // number in the denom.
+    let val = PI / f_abs;
+    let round = val.round();
+    if round >= 1.0 && (val - round).abs() < EPS {
+        let d = round as usize;
+        let str_out = format!("{}{}/{}", sign, pi_str, d);
+        return Some(str_out);
+    }
+
+    // Fifth check is for fractions of the form (numer/denom) * pi or (numer/denom) / pi
+    // where 1 <= numer,denom <= DENOMINATOR, which are not covered in the previous checks.
+    // Ex. 15pi/16, 2pi/5, 15pi/2, 16pi/9 or 15/16pi, 2/5pi, 15/2pi, 16/9pi
+    for denom in 1..=DENOMINATOR {
+        for numer in 1..=DENOMINATOR {
+            let up = numer as f64 / denom as f64;
+            let val = up * PI;
+            if (f_abs - val).abs() < EPS {
+                let str_out = format!("{}{}{}/{}", sign, numer, pi_str, denom);
+                return Some(str_out);
+            }
+            let val = up / PI;
+            if (f_abs - val).abs() < EPS {
+                let str_out = match denom {
+                    1 => format!("{}{}/{}", sign, numer, pi_str),
+                    d => format!("{}{}/{}{}", sign, numer, d, pi_str),
+                };
+                return Some(str_out);
+            }
+        }
+    }
+
+    // fall back when no conversion is possible
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use ndarray::Array2;
@@ -1292,6 +1383,102 @@ c1_1: ══════════
 c2_0: ══════════
 
 c2_1: ══════════
+";
+        assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[test]
+    fn test_single_bit_registers() {
+        // Single-bit registers should render as "q: " and "c: " (no auto-index suffix "_0").
+        let qreg = QuantumRegister::new_owning("q", 1);
+        let creg = ClassicalRegister::new_owning("c", 1);
+
+        let qubits: Vec<ShareableQubit> = (0..qreg.len())
+            .map(|i| qreg.get(i).expect("index in range"))
+            .collect();
+        let clbits: Vec<ShareableClbit> = (0..creg.len())
+            .map(|i| creg.get(i).expect("index in range"))
+            .collect();
+
+        let mut circuit = CircuitData::new(Some(qubits), Some(clbits), Param::Float(0.0)).unwrap();
+        _ = circuit.add_creg(creg, true);
+        _ = circuit.add_qreg(qreg, true);
+
+        circuit
+            .push_standard_gate(StandardGate::H, &[], &[Qubit::new(0)])
+            .unwrap();
+
+        let inst = PackedInstruction {
+            op: StandardInstruction::Measure.into(),
+            qubits: circuit.add_qargs(&[Qubit::new(0)]),
+            clbits: circuit.add_cargs(&[Clbit::new(0)]),
+            params: None,
+            label: None,
+        };
+        circuit.push(inst).unwrap();
+
+        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        let expected = "
+   ┌───┐┌───┐
+q: ┤ H ├┤ M ├
+   └───┘└─╥─┘
+          ║
+c: ═══════╩══
+";
+        assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[test]
+    fn test_mixed_single_and_multi_bit_registers() {
+        // Single-bit registers ("q", "c") mixed with multi-bit registers ("qr", "cr").
+        // Single-bit ones render without the index suffix ("q:", "c:").
+        // Multi-bit ones keep the index ("qr_0:", "qr_1:", "cr_0:", "cr_1:").
+        let q = QuantumRegister::new_owning("q", 1);
+        let qr = QuantumRegister::new_owning("qr", 2);
+        let c = ClassicalRegister::new_owning("c", 1);
+        let cr = ClassicalRegister::new_owning("cr", 2);
+
+        let qubits: Vec<ShareableQubit> = (0..q.len())
+            .map(|i| q.get(i).expect("index in range"))
+            .chain((0..qr.len()).map(|i| qr.get(i).expect("index in range")))
+            .collect();
+        let clbits: Vec<ShareableClbit> = (0..c.len())
+            .map(|i| c.get(i).expect("index in range"))
+            .chain((0..cr.len()).map(|i| cr.get(i).expect("index in range")))
+            .collect();
+
+        let mut circuit = CircuitData::new(Some(qubits), Some(clbits), Param::Float(0.0)).unwrap();
+        _ = circuit.add_creg(c, true);
+        _ = circuit.add_creg(cr, true);
+        _ = circuit.add_qreg(q, true);
+        _ = circuit.add_qreg(qr, true);
+
+        circuit
+            .push_standard_gate(StandardGate::H, &[], &[Qubit::new(0)])
+            .unwrap();
+        circuit
+            .push_standard_gate(StandardGate::H, &[], &[Qubit::new(1)])
+            .unwrap();
+
+        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        let expected = "
+      ┌───┐
+   q: ┤ H ├
+      └───┘
+      ┌───┐
+qr_0: ┤ H ├
+      └───┘
+
+qr_1: ─────
+
+
+   c: ═════
+
+
+cr_0: ═════
+
+
+cr_1: ═════
 ";
         assert_eq!(result, expected.trim_start_matches("\n"));
     }
@@ -1534,6 +1721,7 @@ q_3: ──────────────────────┤1     
             let qubits = (0..num_qubits)
                 .map(|x| Qubit(x + (i as u32 % (num_wires - num_qubits))))
                 .collect::<Vec<_>>();
+            #[allow(clippy::approx_constant)]
             let params = (0..num_params)
                 .map(|_x| 3.141.into())
                 .collect::<Vec<Param>>();
@@ -1622,6 +1810,7 @@ q_4: ─────────────────────────
 
     #[cfg(not(miri))]
     #[test]
+    #[allow(clippy::approx_constant)]
     fn test_global_phase() {
         let mut circuit = basic_circuit();
         circuit.set_global_phase_param(3.14.into()).unwrap();
@@ -1752,7 +1941,7 @@ q_1: ┤1         ├┤1            ├┤1         ├
             }
         }
         for i in [1, 2, 3, 4] {
-            let qubits = (0..i).map(|x| Qubit::new(x)).collect::<Vec<_>>();
+            let qubits = (0..i).map(Qubit::new).collect::<Vec<_>>();
             let inst = PackedInstruction {
                 op: StandardInstruction::Barrier(i as u32).into(),
                 qubits: circuit.add_qargs(&qubits),
@@ -1901,5 +2090,60 @@ q_1: ┤ Ry(🎩) ├┤1          ├┤ 💶🔉(🎩) ├┤1           ├�
      └────────┘└───────────┘└──────────┘└────────────┘└──────────┘
 ";
         assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[test]
+    fn test_format_float_pi() {
+        let test_points = [
+            (0.0, Some("0")),
+            (-0.0, Some("0")),
+            (1e-12, Some("0")),
+            (PI, Some("π")),
+            (-PI, Some("-π")),
+            (2.0 * PI, Some("2π")),
+            (3.0 * PI, Some("3π")),
+            (10.0 * PI, Some("10π")),
+            (16.0 * PI, Some("16π")),
+            (-2.0 * PI, Some("-2π")),
+            (-5.0 * PI, Some("-5π")),
+            (PI.powi(2), Some("π^2")),
+            (-PI.powi(2), Some("-π^2")),
+            (PI.powi(3), Some("π^3")),
+            (PI.powi(4), Some("π^4")),
+            (PI / 2.0, Some("π/2")),
+            (PI / 3.0, Some("π/3")),
+            (PI / 4.0, Some("π/4")),
+            (PI / 6.0, Some("π/6")),
+            (-PI / 2.0, Some("-π/2")),
+            (2.0 * PI / 3.0, Some("2π/3")),
+            (3.0 * PI / 4.0, Some("3π/4")),
+            (5.0 * PI / 6.0, Some("5π/6")),
+            (7.0 * PI / 4.0, Some("7π/4")),
+            (15.0 * PI / 16.0, Some("15π/16")),
+            (-2.0 * PI / 3.0, Some("-2π/3")),
+            (1.0 / PI, Some("1/π")),
+            (2.0 / PI, Some("2/π")),
+            (1.0 / (2.0 * PI), Some("1/2π")),
+            (3.0 / (4.0 * PI), Some("3/4π")),
+            (-1.0 / PI, Some("-1/π")),
+            (-1.0 / (2.0 * PI), Some("-1/2π")),
+            (-18.0 / 16.0 * PI, Some("-9π/8")),
+            (60.0 / 44.0 / PI, Some("15/11π")),
+            (17.0 * PI + 1.0, None),
+            (100.0, None),
+            (1.0, None),
+            (2.0, None),
+            (1.5, None),
+            (-7.3, None),
+            (PI + 1e-6, None),
+            (PI - 1e-6, None),
+            (PI / 2.0 + 1e-6, None),
+            (17.0 * PI / 2.0, None),
+            (9.0 / (17.0 * PI), None),
+        ];
+
+        for test in test_points {
+            assert_eq!(format_float_pi(test.0), test.1.map(|s| s.to_string()));
+        }
     }
 }

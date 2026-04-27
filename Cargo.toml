@@ -5,7 +5,7 @@ resolver = "2"
 [workspace.package]
 version = "2.5.0-dev"
 edition = "2024"
-rust-version = "1.85"  # Keep in sync with README.md, rust-toolchain.toml, and tools/install_rust_msrv.sh
+rust-version = "1.87"  # Keep in sync with README.md, rust-toolchain.toml, and tools/install_rust_msrv.sh
 license = "Apache-2.0"
 
 # Shared dependencies that can be inherited.  This just helps a little with
@@ -15,12 +15,13 @@ license = "Apache-2.0"
 # Each crate can add on specific features freely as it inherits.
 [workspace.dependencies]
 bytemuck = "1.25"
-bitfield-struct = "0.12.1"
+bitfield-struct = "0.13.0"
 indexmap.version = "2.10.0"
 hashbrown.version = "0.15.5"
 num-bigint = "0.4"
 num-complex = "0.4"
-nalgebra = "0.33"
+nalgebra = "0.34"
+faer = "0.24"
 numpy = "0.28"
 ndarray = "0.16"
 smallvec = "1.15"
@@ -30,15 +31,15 @@ fixedbitset = "0.5.7"
 approx = "0.5"
 itertools = "0.14.0"
 ahash = "0.8.12"
-rayon = "1.10"
+rayon = "1.12"
 nom = "8.0"
 nom-unicode = "0.4"
 nom-language = "0.1"
-rand = "0.9"
-rand_pcg = "0.9"
-rand_distr = "0.5"
+rand = "0.10"
+rand_pcg = "0.10"
+rand_distr = "0.6"
 num-traits = "0.2"
-uuid = { version = "1.22", features = ["v4", "fast-rng"], default-features = false }
+uuid = { version = "1.23", features = ["v4", "fast-rng"], default-features = false }
 anyhow = "1.0"
 binrw = "0.15"
 cbindgen = "0.29.2"
@@ -48,7 +49,7 @@ cbindgen = "0.29.2"
 # distributions).  We only activate that feature when building the C extension module; we still need
 # it disabled for Rust-only tests to avoid linker errors with it not being loaded.  See
 # https://pyo3.rs/main/features#extension-module for more.
-pyo3 = { version = "0.28.1", features = ["abi3-py310"] }
+pyo3 = { version = "0.28.3", features = ["abi3-py310"] }
 
 # These are our own crates.
 qiskit-accelerate = { path = "crates/accelerate" }
