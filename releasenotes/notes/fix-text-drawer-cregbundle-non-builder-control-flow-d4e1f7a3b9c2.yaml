@@ -1,0 +1,13 @@
+fixes:
+  - |
+    Fixed :meth:`.QuantumCircuit.draw` with ``output="text"`` and
+    ``cregbundle=True`` raising :exc:`.CircuitError` (``"Could not locate
+    provided bit"``) when the circuit was built by composing sub-circuits
+    (non-builder style, e.g. via :meth:`.QuantumCircuit.compose`).
+
+    In such circuits the classical bits inside a control-flow block are
+    distinct Python objects from the outer circuit's bits.  The text drawer
+    now correctly resolves the outer circuit's register information through
+    the outer bit argument rather than the inner bit argument.
+
+    See `#15822 <https://github.com/Qiskit/qiskit/issues/15822>`__.
