@@ -19,9 +19,9 @@ import inspect
 import os
 import re
 from pathlib import Path
-
+import sys
 import qiskit
-
+sys.path.insert(0, os.path.abspath("./_ext"))
 # pylint: disable=invalid-name,missing-function-docstring,missing-module-docstring
 
 
@@ -50,6 +50,7 @@ extensions = [
     "reno.sphinxext",
     "sphinxcontrib.katex",
     "breathe",
+    "qpy_version_history",
 ]
 
 breathe_projects = {"qiskit": "xml/"}
