@@ -2237,6 +2237,7 @@ from .exceptions import QpyError, UnsupportedFeatureForVersion, QPYLoadingDeprec
 from .interface import dump, load, get_qpy_version
 
 # For backward compatibility. Provide, Runtime, Experiment call these private functions.
+# ruff: disable[F401]
 from .binary_io import (
     _write_instruction,
     _read_instruction,
@@ -2244,4 +2245,18 @@ from .binary_io import (
     _read_parameter_expression,
     _read_parameter_expression_v3,
 )
+
+# ruff: enable[F401]
+
 from .common import QPY_VERSION, QPY_COMPATIBILITY_VERSION
+
+__all__ = [
+    "QPY_COMPATIBILITY_VERSION",
+    "QPY_VERSION",
+    "QPYLoadingDeprecatedFeatureWarning",
+    "QpyError",
+    "UnsupportedFeatureForVersion",
+    "dump",
+    "get_qpy_version",
+    "load",
+]

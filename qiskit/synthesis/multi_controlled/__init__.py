@@ -28,4 +28,23 @@ from .mcx_synthesis import (
     synth_c3x,
     synth_c4x,
 )
+
+# ruff: noqa: F401
 from .multi_control_rotation_gates import _apply_cu, _apply_mcu_graycode, _mcsu2_real_diagonal
+
+__all__ = [
+    "synth_c3x",
+    "synth_c4x",
+    "synth_mcmt_vchain",
+    "synth_mcmt_xgate",
+    "synth_mcx_1_clean_b95",
+    "synth_mcx_1_clean_kg24",
+    "synth_mcx_1_dirty_kg24",
+    "synth_mcx_2_clean_kg24",
+    "synth_mcx_2_dirty_kg24",
+    "synth_mcx_gray_code",
+    "synth_mcx_n_clean_m15",
+    "synth_mcx_n_dirty_i15",
+    "synth_mcx_noaux_hp24",
+    "synth_mcx_noaux_v24",
+]

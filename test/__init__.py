@@ -52,3 +52,6 @@ def combine(**kwargs):
         return data(*generate_cases(docstring=func.__doc__, **kwargs))(unpack(func))
 
     return deco
+
+
+__all__ = ["QiskitTestCase", "slow_test"]

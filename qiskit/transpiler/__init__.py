@@ -1567,3 +1567,30 @@ from .target import Target
 from .target import InstructionProperties
 from .target import QubitProperties
 from .optimization_metric import OptimizationMetric
+
+__all__ = [
+    "AnalysisPass",
+    "CircuitTooWideForTarget",
+    "ConditionalController",
+    "CouplingError",
+    "CouplingMap",
+    "DoWhileController",
+    "InstructionDurations",
+    "InstructionProperties",
+    "InvalidLayoutError",
+    "Layout",
+    "LayoutError",
+    "OptimizationMetric",
+    "PassManager",
+    "PassManagerConfig",
+    "PropertySet",
+    "QubitProperties",
+    "StagedPassManager",
+    "Target",
+    "TransformationPass",
+    "TranspileLayout",
+    "TranspilerAccessError",
+    "TranspilerError",
+    "WrapAngleRegistry",
+    "generate_preset_pass_manager",
+]

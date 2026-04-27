@@ -1387,7 +1387,7 @@ from qiskit._accelerate.circuit import (
 )
 
 from .exceptions import CircuitError
-from . import _utils
+from . import _utils  # noqa: F401
 from .quantumcircuit import QuantumCircuit
 from .gate import Gate
 
@@ -1413,19 +1413,51 @@ from . import library
 from .equivalence_library import StandardEquivalenceLibrary, SessionEquivalenceLibrary
 from .commutation_checker import CommutationChecker
 
-from .controlflow import (
-    ControlFlowOp,
-    BoxOp,
-    WhileLoopOp,
-    ForLoopOp,
-    IfElseOp,
-    SwitchCaseOp,
-    CASE_DEFAULT,
-    BreakLoopOp,
-    ContinueLoopOp,
-    CONTROL_FLOW_OP_NAMES,
-    get_control_flow_name_mapping,
-)
+from . import controlflow
+from .controlflow import *
 
 from .annotated_operation import AnnotatedOperation, InverseModifier, ControlModifier, PowerModifier
 from .twirling import pauli_twirl_2q_gates
+
+__all__ = [
+    "AncillaQubit",
+    "AncillaRegister",
+    "AnnotatedOperation",
+    "Annotation",
+    "Barrier",
+    "Bit",
+    "CircuitError",
+    "CircuitInstruction",
+    "ClassicalRegister",
+    "Clbit",
+    "CommutationChecker",
+    "ControlModifier",
+    "ControlledGate",
+    "Delay",
+    "Duration",
+    "EquivalenceLibrary",
+    "Gate",
+    "Instruction",
+    "InstructionSet",
+    "InverseModifier",
+    "Measure",
+    "Operation",
+    "Parameter",
+    "ParameterExpression",
+    "ParameterVector",
+    "ParameterVectorElement",
+    "PowerModifier",
+    "QuantumCircuit",
+    "QuantumRegister",
+    "Qubit",
+    "Register",
+    "Reset",
+    "SessionEquivalenceLibrary",
+    "StandardEquivalenceLibrary",
+    "Store",
+    "annotation",
+    "library",
+    "pauli_twirl_2q_gates",
+    "singleton",
+]
+__all__ += controlflow.__all__

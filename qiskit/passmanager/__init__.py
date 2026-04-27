@@ -256,3 +256,16 @@ from .flow_controllers import (
 from .base_tasks import GenericPass, BaseController
 from .compilation_status import PropertySet, WorkflowStatus, PassManagerState
 from .exceptions import PassManagerError
+
+__all__ = [
+    "BaseController",
+    "BasePassManager",
+    "ConditionalController",
+    "DoWhileController",
+    "FlowControllerLinear",
+    "GenericPass",
+    "PassManagerError",
+    "PassManagerState",
+    "PropertySet",
+    "WorkflowStatus",
+]

@@ -17,7 +17,6 @@
 import argparse
 import itertools
 import random
-import re
 import sys
 
 import numpy as np
@@ -29,7 +28,7 @@ from qiskit.circuit import Clbit
 from qiskit.circuit import Qubit
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
-from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info import random_unitary
 from qiskit.quantum_info import Operator
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT, DCXGate, PauliGate
 from qiskit.circuit.gate import Gate

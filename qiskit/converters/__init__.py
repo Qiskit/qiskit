@@ -72,3 +72,15 @@ def isinstancelist(obj):
         return True
     except TypeError:
         return False
+
+
+__all__ = [
+    "circuit_to_dag",
+    "circuit_to_dagdependency",
+    "circuit_to_gate",
+    "circuit_to_instruction",
+    "dag_to_circuit",
+    "dag_to_dagdependency",
+    "dagdependency_to_circuit",
+    "dagdependency_to_dag",
+]

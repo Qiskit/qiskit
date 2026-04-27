@@ -44,7 +44,7 @@ from qiskit.transpiler.timing_constraints import TimingConstraints
 
 # import QubitProperties here to provide convenience alias for building a
 # full target
-from qiskit.providers.backend import QubitProperties
+from qiskit.providers.backend import QubitProperties  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
