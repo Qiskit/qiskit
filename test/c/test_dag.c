@@ -50,11 +50,11 @@ static int test_empty(void) {
     qk_dag_free(dag);
 
     if (num_qubits != 0) {
-        printf("The number of qubits %u is not 0\n", num_qubits);
+        fprintf(stderr, "The number of qubits %u is not 0\n", num_qubits);
         return EqualityError;
     }
     if (num_clbits != 0) {
-        printf("The number of clbits %u is not 0\n", num_clbits);
+        fprintf(stderr, "The number of clbits %u is not 0\n", num_clbits);
         return EqualityError;
     }
     return Ok;
@@ -69,11 +69,11 @@ static int test_dag_with_quantum_reg(void) {
     qk_dag_free(dag);
     qk_quantum_register_free(qr);
     if (num_qubits != 1024) {
-        printf("The number of qubits %u is not 1024\n", num_qubits);
+        fprintf(stderr, "The number of qubits %u is not 1024\n", num_qubits);
         return EqualityError;
     }
     if (num_clbits != 0) {
-        printf("The number of clbits %u is not 0\n", num_clbits);
+        fprintf(stderr, "The number of clbits %u is not 0\n", num_clbits);
         return EqualityError;
     }
     return Ok;
@@ -88,11 +88,11 @@ static int test_dag_with_classical_reg(void) {
     qk_dag_free(dag);
     qk_classical_register_free(cr);
     if (num_qubits != 0) {
-        printf("The number of qubits %u is not 0\n", num_qubits);
+        fprintf(stderr, "The number of qubits %u is not 0\n", num_qubits);
         return EqualityError;
     }
     if (num_clbits != 2048) {
-        printf("The number of clbits %u is not 2048\n", num_clbits);
+        fprintf(stderr, "The number of clbits %u is not 2048\n", num_clbits);
         return EqualityError;
     }
     return Ok;
@@ -117,7 +117,7 @@ static int test_dag_to_circuit(void) {
 
     if (qk_circuit_num_qubits(circuit) != 2 || qk_circuit_num_clbits(circuit) != 1 ||
         qk_circuit_num_instructions(circuit) != 2) {
-        printf("DAG to circuit conversion encountered an issue\n");
+        fprintf(stderr, "DAG to circuit conversion encountered an issue\n");
         result = EqualityError;
     }
 
@@ -133,7 +133,7 @@ static int test_dag_apply_gate(void) {
 
     size_t num_ops = qk_dag_num_op_nodes(dag);
     if (num_ops != 0) {
-        printf("The number of op nodes %zu is not 0\n", num_ops);
+        fprintf(stderr, "The number of op nodes %zu is not 0\n", num_ops);
         result = EqualityError;
         goto cleanup;
     }
@@ -143,7 +143,7 @@ static int test_dag_apply_gate(void) {
 
     num_ops = qk_dag_num_op_nodes(dag);
     if (num_ops != 1) {
-        printf("The number of op nodes %zu is not 1\n", num_ops);
+        fprintf(stderr, "The number of op nodes %zu is not 1\n", num_ops);
         result = EqualityError;
         goto cleanup;
     }
@@ -154,14 +154,14 @@ static int test_dag_apply_gate(void) {
 
     num_ops = qk_dag_num_op_nodes(dag);
     if (num_ops != 2) {
-        printf("The number of op nodes %zu is not 2\n", num_ops);
+        fprintf(stderr, "The number of op nodes %zu is not 2\n", num_ops);
         result = EqualityError;
         goto cleanup;
     }
 
     // Check the node's kind.
     if (qk_dag_op_node_kind(dag, crx_node_idx) != QkOperationKind_Gate) {
-        printf("Expected gate kind\n");
+        fprintf(stderr, "Expected gate kind\n");
         result = EqualityError;
         goto cleanup;
     }
@@ -169,7 +169,7 @@ static int test_dag_apply_gate(void) {
     // Check the gate has the right number of params.
     uint32_t num_params = qk_dag_op_node_num_params(dag, crx_node_idx);
     if (num_params != 1) {
-        printf("Expected num params 1 but got %u\n", num_params);
+        fprintf(stderr, "Expected num params 1 but got %u\n", num_params);
         result = EqualityError;
         goto cleanup;
     }
@@ -178,13 +178,13 @@ static int test_dag_apply_gate(void) {
     double actual_crx_params[1];
     QkGate actual_gate = qk_dag_op_node_gate_op(dag, crx_node_idx, actual_crx_params);
     if (actual_gate != QkGate_CRX) {
-        printf("Expected gate of type %u but got %u\n", QkGate_CRX, actual_gate);
+        fprintf(stderr, "Expected gate of type %u but got %u\n", QkGate_CRX, actual_gate);
         result = EqualityError;
         goto cleanup;
     }
 
     if (actual_crx_params[0] != crx_params[0]) {
-        printf("Expected param %f but got %f\n", crx_params[0], actual_crx_params[0]);
+        fprintf(stderr, "Expected param %f but got %f\n", crx_params[0], actual_crx_params[0]);
         result = EqualityError;
     }
 cleanup:
@@ -204,13 +204,13 @@ static int test_op_node_bits_explicit(void) {
 
     uint32_t num_qubits = qk_dag_op_node_num_qubits(dag, h_node_idx);
     if (num_qubits != 1) {
-        printf("The number of qubits %u is not 1\n", num_qubits);
+        fprintf(stderr, "The number of qubits %u is not 1\n", num_qubits);
         result = EqualityError;
         goto cleanup;
     }
 
     if (qk_dag_op_node_qubits(dag, h_node_idx)[0] != h_bits[0]) {
-        printf("Expected a single qubit of value %u but got %u\n", h_bits[0],
+        fprintf(stderr, "Expected a single qubit of value %u but got %u\n", h_bits[0],
                qk_dag_op_node_qubits(dag, h_node_idx)[0]);
         result = EqualityError;
         goto cleanup;
@@ -218,7 +218,7 @@ static int test_op_node_bits_explicit(void) {
 
     uint32_t num_clbits = qk_dag_op_node_num_clbits(dag, h_node_idx);
     if (num_clbits != 0) {
-        printf("The number of clbits %u is not 0\n", num_clbits);
+        fprintf(stderr, "The number of clbits %u is not 0\n", num_clbits);
         result = EqualityError;
         goto cleanup;
     }
@@ -228,7 +228,7 @@ static int test_op_node_bits_explicit(void) {
 
     num_qubits = qk_dag_op_node_num_qubits(dag, cx_node_idx);
     if (num_qubits != 2) {
-        printf("The number of qubits %u is not 2\n", num_qubits);
+        fprintf(stderr, "The number of qubits %u is not 2\n", num_qubits);
         result = EqualityError;
         goto cleanup;
     }
@@ -236,7 +236,7 @@ static int test_op_node_bits_explicit(void) {
     const uint32_t *actual_cx_bits = qk_dag_op_node_qubits(dag, cx_node_idx);
     for (uint32_t i = 0; i < num_qubits; i++) {
         if (actual_cx_bits[i] != cx_bits[i]) {
-            printf("Expected a qubit of value %u in position %u but got %u\n", cx_bits[0], i,
+            fprintf(stderr, "Expected a qubit of value %u in position %u but got %u\n", cx_bits[0], i,
                    qk_dag_op_node_qubits(dag, cx_node_idx)[0]);
             result = EqualityError;
             goto cleanup;
@@ -245,7 +245,7 @@ static int test_op_node_bits_explicit(void) {
 
     num_clbits = qk_dag_op_node_num_clbits(dag, cx_node_idx);
     if (num_clbits != 0) {
-        printf("The number of clbits %u is not 0\n", num_clbits);
+        fprintf(stderr, "The number of clbits %u is not 0\n", num_clbits);
         result = EqualityError;
     }
 cleanup:
@@ -276,35 +276,35 @@ static int test_dag_node_type(void) {
 
     QkDagNodeType node_type = qk_dag_node_type(dag, qubit_in_idx);
     if (node_type != QkDagNodeType_QubitIn) {
-        printf("Expected node type %d but got %d\n", QkDagNodeType_QubitIn, node_type);
+        fprintf(stderr, "Expected node type %d but got %d\n", QkDagNodeType_QubitIn, node_type);
         result = EqualityError;
         goto cleanup;
     }
 
     node_type = qk_dag_node_type(dag, qubit_out_idx);
     if (node_type != QkDagNodeType_QubitOut) {
-        printf("Expected node type %d but got %d\n", QkDagNodeType_QubitOut, node_type);
+        fprintf(stderr, "Expected node type %d but got %d\n", QkDagNodeType_QubitOut, node_type);
         result = EqualityError;
         goto cleanup;
     }
 
     node_type = qk_dag_node_type(dag, clbit_in_idx);
     if (node_type != QkDagNodeType_ClbitIn) {
-        printf("Expected node type %d but got %d\n", QkDagNodeType_ClbitIn, node_type);
+        fprintf(stderr, "Expected node type %d but got %d\n", QkDagNodeType_ClbitIn, node_type);
         result = EqualityError;
         goto cleanup;
     }
 
     node_type = qk_dag_node_type(dag, clbit_out_idx);
     if (node_type != QkDagNodeType_ClbitOut) {
-        printf("Expected node type %d but got %d\n", QkDagNodeType_ClbitOut, node_type);
+        fprintf(stderr, "Expected node type %d but got %d\n", QkDagNodeType_ClbitOut, node_type);
         result = EqualityError;
         goto cleanup;
     }
 
     node_type = qk_dag_node_type(dag, h_node_idx);
     if (node_type != QkDagNodeType_Operation) {
-        printf("Expected node type %d but got %d\n", QkDagNodeType_Operation, node_type);
+        fprintf(stderr, "Expected node type %d but got %d\n", QkDagNodeType_Operation, node_type);
         result = EqualityError;
     }
 
@@ -333,25 +333,25 @@ static int test_dag_endpoint_node_value(void) {
 
         uint32_t actual = qk_dag_wire_node_value(dag, qubit_in_idx);
         if (actual != i) {
-            printf("Expected wire endpoint qubit value to be %u but got %u\n", i, actual);
+            fprintf(stderr, "Expected wire endpoint qubit value to be %u but got %u\n", i, actual);
             result = EqualityError;
             goto cleanup;
         }
         actual = qk_dag_wire_node_value(dag, qubit_out_idx);
         if (actual != i) {
-            printf("Expected wire endpoint qubit value to be %u but got %u\n", i, actual);
+            fprintf(stderr, "Expected wire endpoint qubit value to be %u but got %u\n", i, actual);
             result = EqualityError;
             goto cleanup;
         }
         actual = qk_dag_wire_node_value(dag, clbit_in_idx);
         if (actual != i) {
-            printf("Expected wire endpoint clbit value to be %u but got %u\n", i, actual);
+            fprintf(stderr, "Expected wire endpoint clbit value to be %u but got %u\n", i, actual);
             result = EqualityError;
             goto cleanup;
         }
         actual = qk_dag_wire_node_value(dag, clbit_out_idx);
         if (actual != i) {
-            printf("Expected wire endpoint clbit value to be %u but got %u\n", i, actual);
+            fprintf(stderr, "Expected wire endpoint clbit value to be %u but got %u\n", i, actual);
             result = EqualityError;
             goto cleanup;
         }
@@ -443,7 +443,7 @@ static int test_dag_get_instruction(void) {
     for (size_t i = 0; i < sizeof(indices) / sizeof(*indices); i++) {
         qk_dag_get_instruction(dag, indices[i], &inst);
         if (!instructions_equal(&inst, &expected[i])) {
-            printf("%s: mismatched instruction: %s\n", __func__, desc[i]);
+            fprintf(stderr, "%s: mismatched instruction: %s\n", __func__, desc[i]);
             result = EqualityError;
             goto cleanup;
         }
@@ -467,7 +467,7 @@ static int test_dag_topological_op_nodes(void) {
 
     size_t num_ops = qk_dag_num_op_nodes(dag);
     if (num_ops != 3) {
-        printf("The number of op nodes %zu shouldn't be 0\n", num_ops);
+        fprintf(stderr, "The number of op nodes %zu shouldn't be 0\n", num_ops);
         result = EqualityError;
         goto early_cleanup;
     }
@@ -476,19 +476,19 @@ static int test_dag_topological_op_nodes(void) {
     qk_dag_topological_op_nodes(dag, out_order);
 
     if (out_order[0] != t_gate_idx) {
-        printf("Expected gate index %u but got %u\n", t_gate_idx, out_order[0]);
+        fprintf(stderr, "Expected gate index %u but got %u\n", t_gate_idx, out_order[0]);
         result = EqualityError;
         goto cleanup;
     }
 
     if (out_order[1] != h_gate_idx) {
-        printf("Expected gate index %u but got %u\n", h_gate_idx, out_order[1]);
+        fprintf(stderr, "Expected gate index %u but got %u\n", h_gate_idx, out_order[1]);
         result = EqualityError;
         goto cleanup;
     }
 
     if (out_order[2] != s_gate_idx) {
-        printf("Expected gate index %u but got %u\n", s_gate_idx, out_order[2]);
+        fprintf(stderr, "Expected gate index %u but got %u\n", s_gate_idx, out_order[2]);
         result = EqualityError;
     }
 
@@ -560,7 +560,7 @@ static int check_unitary(const char *func, QkDag *dag, QkComplex64 scalar, const
         }
         default: {
             res = EqualityError;
-            printf("%s: bad pauli string '%s'\n", func, pauli);
+            fprintf(stderr, "%s: bad pauli string '%s'\n", func, pauli);
             goto cleanup;
         }
         }
@@ -576,13 +576,13 @@ static int check_unitary(const char *func, QkDag *dag, QkComplex64 scalar, const
     QkOperationKind kind = qk_dag_op_node_kind(dag, node);
     if (kind != QkOperationKind_Unitary) {
         res = EqualityError;
-        printf("%s: %s kind incorrect: %d\n", func, pauli, kind);
+        fprintf(stderr, "%s: %s kind incorrect: %d\n", func, pauli, kind);
         goto cleanup;
     }
     qk_dag_op_node_unitary(dag, node, next);
     if (memcmp(cur, next, sizeof(*cur) * dim * dim)) {
         res = EqualityError;
-        printf("%s: %s matrices unequal\n", func, pauli);
+        fprintf(stderr, "%s: %s matrices unequal\n", func, pauli);
         goto cleanup;
     }
 cleanup:
@@ -647,7 +647,7 @@ static int test_substitute_node_with_dag(void) {
 
     if (qk_dag_num_op_nodes(dag) != 4) {
         res = EqualityError;
-        printf("Number of instructions is %zu but expected 4\n", qk_dag_num_op_nodes(dag));
+        fprintf(stderr, "Number of instructions is %zu but expected 4\n", qk_dag_num_op_nodes(dag));
         goto cleanup;
     }
 
@@ -681,7 +681,7 @@ static int test_dag_node_neighbors(void) {
     if (successors.num_neighbors != 1 || successors.neighbors[0] != node_ccx ||
         predecessors.num_neighbors != 1 ||
         qk_dag_node_type(dag, predecessors.neighbors[0]) != QkDagNodeType_QubitIn) {
-        printf("Incorrect neighbors information for the H node!\n");
+        fprintf(stderr, "Incorrect neighbors information for the H node!\n");
         result = EqualityError;
         goto cleanup;
     }
@@ -689,7 +689,7 @@ static int test_dag_node_neighbors(void) {
     qk_dag_neighbors_clear(&predecessors);
 
     if (successors.neighbors != NULL || successors.num_neighbors != 0) {
-        printf("qk_dag_neighbors_clear didn't work!\n");
+        fprintf(stderr, "qk_dag_neighbors_clear didn't work!\n");
         result = RuntimeError;
         goto cleanup;
     }
@@ -704,7 +704,7 @@ static int test_dag_node_neighbors(void) {
         qk_dag_node_type(dag, predecessors.neighbors[0]) != QkDagNodeType_QubitIn ||
         qk_dag_node_type(dag, predecessors.neighbors[1]) != QkDagNodeType_QubitIn ||
         predecessors.neighbors[2] != node_h) {
-        printf("Incorrect neighbors information for the CCX node!\n");
+        fprintf(stderr, "Incorrect neighbors information for the CCX node!\n");
         result = EqualityError;
         goto cleanup;
     }
@@ -719,7 +719,7 @@ static int test_dag_node_neighbors(void) {
         qk_dag_node_type(dag, successors.neighbors[1]) != QkDagNodeType_QubitOut ||
         predecessors.num_neighbors != 1 || // CCX is counted as a unique predecessor
         predecessors.neighbors[0] != node_ccx) {
-        printf("Incorrect neighbors information for the CX node!\n");
+        fprintf(stderr, "Incorrect neighbors information for the CX node!\n");
         result = EqualityError;
     }
 
@@ -746,13 +746,13 @@ static int test_dag_copy_empty_like(void) {
     size_t num_ops_in_copied_dag = qk_dag_num_op_nodes(copied_dag); // 0
 
     if (num_ops_in_dag == 0) {
-        printf("Expected the original DAG to remain unchanged, but it now empty\n");
+        fprintf(stderr, "Expected the original DAG to remain unchanged, but it now empty\n");
         result = EqualityError;
         goto cleanup;
     }
 
     if (num_ops_in_copied_dag != 0) {
-        printf("Expected no operations in the copied-empty-like DAG, but got %zu\n",
+        fprintf(stderr, "Expected no operations in the copied-empty-like DAG, but got %zu\n",
                num_ops_in_copied_dag);
         result = EqualityError;
     }
@@ -828,7 +828,7 @@ static int test_dag_compose(void) {
     QkExitCode res = qk_dag_compose(dag_left, dag_right, NULL, NULL);
     if (res != QkExitCode_Success) {
         result = EqualityError;
-        printf("Error during compose. The composible dag possibly exceeded the allowed number of "
+        fprintf(stderr, "Error during compose. The composible dag possibly exceeded the allowed number of "
                "qubits.\n");
         goto cleanup;
     }
@@ -840,7 +840,7 @@ static int test_dag_compose(void) {
 
     if (left_op_nodes + right_op_nodes != new_op_nodes) {
         result = EqualityError;
-        printf("The operations did not get composed onto the left dag correctly. Expected %zu "
+        fprintf(stderr, "The operations did not get composed onto the left dag correctly. Expected %zu "
                "operations, got %zu.\n",
                left_op_nodes + right_op_nodes, new_op_nodes);
     }
@@ -860,7 +860,7 @@ static int test_dag_compose(void) {
 
     if (new_op_nodes != expected_op_nodes) {
         result = EqualityError;
-        printf("The operations did not get composed onto the left dag correctly. Expected %zu "
+        fprintf(stderr, "The operations did not get composed onto the left dag correctly. Expected %zu "
                "operations, got %zu.\n",
                left_op_nodes + right_op_nodes, new_op_nodes);
         goto expect_cleanup;
@@ -886,13 +886,13 @@ static int test_dag_compose(void) {
         // Check gate instances
         if (exp_gate != left_gate) {
             result = EqualityError;
-            printf("Incorrect operation found, expected %d, got %d.\n", exp_gate, left_gate);
+            fprintf(stderr, "Incorrect operation found, expected %d, got %d.\n", exp_gate, left_gate);
             goto loop_cleanup;
         }
 
         if (exp_num_param != left_num_param) {
             result = EqualityError;
-            printf(
+            fprintf(stderr, 
                 "Correct operation with mismatched number of parameters, expected %zu, got %zu.\n",
                 exp_num_param, left_num_param);
             goto loop_cleanup;
@@ -901,7 +901,7 @@ static int test_dag_compose(void) {
         for (int param_idx = 0; param_idx < (int)left_num_param; param_idx++) {
             if (exp_param[param_idx] != left_param[param_idx]) {
                 result = EqualityError;
-                printf("Correct operation with mismatched parameter, expected %f, got %f.\n",
+                fprintf(stderr, "Correct operation with mismatched parameter, expected %f, got %f.\n",
                        exp_param[param_idx], left_param[param_idx]);
                 goto loop_cleanup;
             }
@@ -911,7 +911,7 @@ static int test_dag_compose(void) {
         size_t left_num_qubits = qk_dag_op_node_num_qubits(dag_left, node_idx_left);
         if (exp_num_qubits != left_num_qubits) {
             result = EqualityError;
-            printf("Correct operation with mismatched number of qubits, expected %zu, got %zu.\n",
+            fprintf(stderr, "Correct operation with mismatched number of qubits, expected %zu, got %zu.\n",
                    exp_num_qubits, left_num_qubits);
             goto loop_cleanup;
         }
@@ -920,7 +920,7 @@ static int test_dag_compose(void) {
         const uint32_t *left_qubits = qk_dag_op_node_qubits(dag_left, node_idx_left);
         if (memcmp(expected_qubits, left_qubits, exp_num_qubits * sizeof(*expected_qubits))) {
             result = EqualityError;
-            printf("Correct operation with mismatched qubits\n");
+            fprintf(stderr, "Correct operation with mismatched qubits\n");
             goto loop_cleanup;
         }
 
@@ -1011,7 +1011,7 @@ static int test_dag_compose_permuted(void) {
     QkExitCode res = qk_dag_compose(dag_left, dag_right, qubits, clbits);
     if (res != QkExitCode_Success) {
         result = EqualityError;
-        printf("Error during compose. The composible dag possibly exceeded the allowed number of "
+        fprintf(stderr, "Error during compose. The composible dag possibly exceeded the allowed number of "
                "qubits..\n");
         goto cleanup;
     }
@@ -1023,7 +1023,7 @@ static int test_dag_compose_permuted(void) {
 
     if (left_op_nodes + right_op_nodes != new_op_nodes) {
         result = EqualityError;
-        printf("The operations did not get composed onto the left dag correctly. Expected %zu "
+        fprintf(stderr, "The operations did not get composed onto the left dag correctly. Expected %zu "
                "operations, got %zu.\n",
                left_op_nodes + right_op_nodes, new_op_nodes);
     }
@@ -1045,7 +1045,7 @@ static int test_dag_compose_permuted(void) {
 
     if (new_op_nodes != expected_op_nodes) {
         result = EqualityError;
-        printf("The operations did not get composed onto the left dag correctly. Expected %zu "
+        fprintf(stderr, "The operations did not get composed onto the left dag correctly. Expected %zu "
                "operations, got %zu.\n",
                left_op_nodes + right_op_nodes, new_op_nodes);
         goto expect_cleanup;
@@ -1066,7 +1066,7 @@ static int test_dag_compose_permuted(void) {
 
         if (exp_kind != exp_left) {
             result = EqualityError;
-            printf("Incorrect operation type found. Expected: %d got %d.\n", exp_kind, exp_left);
+            fprintf(stderr, "Incorrect operation type found. Expected: %d got %d.\n", exp_kind, exp_left);
             goto loop_cleanup;
         }
         if (exp_kind == QkOperationKind_Gate) {
@@ -1080,13 +1080,13 @@ static int test_dag_compose_permuted(void) {
             // Check gate instances
             if (exp_gate != left_gate) {
                 result = EqualityError;
-                printf("Incorrect operation found, expected %d, got %d.\n", exp_gate, left_gate);
+                fprintf(stderr, "Incorrect operation found, expected %d, got %d.\n", exp_gate, left_gate);
                 goto loop_cleanup;
             }
 
             if (exp_num_param != left_num_param) {
                 result = EqualityError;
-                printf("Correct operation with mismatched number of parameters, expected %zu, got "
+                fprintf(stderr, "Correct operation with mismatched number of parameters, expected %zu, got "
                        "%zu.\n",
                        exp_num_param, left_num_param);
                 goto loop_cleanup;
@@ -1095,7 +1095,7 @@ static int test_dag_compose_permuted(void) {
             for (int param_idx = 0; param_idx < (int)left_num_param; param_idx++) {
                 if (exp_param[param_idx] != left_param[param_idx]) {
                     result = EqualityError;
-                    printf("Correct operation with mismatched parameter, expected %f, got %f.\n",
+                    fprintf(stderr, "Correct operation with mismatched parameter, expected %f, got %f.\n",
                            exp_param[param_idx], left_param[param_idx]);
                     goto loop_cleanup;
                 }
@@ -1106,7 +1106,7 @@ static int test_dag_compose_permuted(void) {
         size_t left_num_qubits = qk_dag_op_node_num_qubits(dag_left, node_idx_left);
         if (exp_num_qubits != left_num_qubits) {
             result = EqualityError;
-            printf("Correct operation with mismatched number of qubits, expected %zu, got %zu.\n",
+            fprintf(stderr, "Correct operation with mismatched number of qubits, expected %zu, got %zu.\n",
                    exp_num_qubits, left_num_qubits);
             goto loop_cleanup;
         }
@@ -1115,7 +1115,7 @@ static int test_dag_compose_permuted(void) {
         const uint32_t *left_qubits = qk_dag_op_node_qubits(dag_left, node_idx_left);
         if (memcmp(expected_qubits, left_qubits, exp_num_qubits * sizeof(*expected_qubits))) {
             result = EqualityError;
-            printf("Correct operation with mismatched qubits.\n");
+            fprintf(stderr, "Correct operation with mismatched qubits.\n");
             goto loop_cleanup;
         }
 
@@ -1123,7 +1123,7 @@ static int test_dag_compose_permuted(void) {
         size_t left_num_clbits = qk_dag_op_node_num_clbits(dag_left, node_idx_left);
         if (exp_num_clbits != left_num_clbits) {
             result = EqualityError;
-            printf("Correct operation with mismatched number of clbits, expected %zu, got %zu.\n",
+            fprintf(stderr, "Correct operation with mismatched number of clbits, expected %zu, got %zu.\n",
                    exp_num_clbits, left_num_clbits);
             goto loop_cleanup;
         }
@@ -1132,7 +1132,7 @@ static int test_dag_compose_permuted(void) {
         const uint32_t *left_clbits = qk_dag_op_node_clbits(dag_left, node_idx_left);
         if (memcmp(expected_clbits, left_clbits, exp_num_clbits * sizeof(*expected_clbits))) {
             result = EqualityError;
-            printf("Correct operation with mismatched clbits.\n");
+            fprintf(stderr, "Correct operation with mismatched clbits.\n");
             goto loop_cleanup;
         }
 
@@ -1177,7 +1177,7 @@ static int test_dag_replace_block_with_unitary(void) {
     size_t num_ops = qk_dag_num_op_nodes(dag);
     if (num_ops != 3) {
         result = EqualityError;
-        printf("Number of instructions is %zu but expected 3\n", num_ops);
+        fprintf(stderr, "Number of instructions is %zu but expected 3\n", num_ops);
         goto cleanup;
     }
 
@@ -1185,7 +1185,7 @@ static int test_dag_replace_block_with_unitary(void) {
     QkOperationKind new_node_kind = qk_dag_op_node_kind(dag, new_node_idx);
     if (new_node_kind != QkOperationKind_Unitary) {
         result = EqualityError;
-        printf(
+        fprintf(stderr, 
             "The new node with index %u has incorrect operation type: expected: %d but got %d.\n",
             new_node_idx, QkOperationKind_Unitary, new_node_kind);
     }
@@ -1219,7 +1219,7 @@ static int test_dag_replace_qubitless_block_with_unitary(void) {
     size_t num_ops = qk_dag_num_op_nodes(dag);
     if (num_ops != 3) {
         result = EqualityError;
-        printf("Number of instructions is %zu but expected 3\n", num_ops);
+        fprintf(stderr, "Number of instructions is %zu but expected 3\n", num_ops);
         goto cleanup;
     }
 
@@ -1227,7 +1227,7 @@ static int test_dag_replace_qubitless_block_with_unitary(void) {
     QkOperationKind new_node_kind = qk_dag_op_node_kind(dag, new_node_idx);
     if (new_node_kind != QkOperationKind_Unitary) {
         result = EqualityError;
-        printf(
+        fprintf(stderr, 
             "The new node with index %u has incorrect operation type: expected: %d but got %d.\n",
             new_node_idx, QkOperationKind_Unitary, new_node_kind);
     }
@@ -1261,7 +1261,7 @@ static int test_dag_replace_illegal_block_with_unitary(void) {
     // replacing the provided node block would introduce a cycle.
     if (new_node_idx != UINT32_MAX) {
         result = EqualityError;
-        printf("The new node has index %u but expected %u\n", new_node_idx, UINT32_MAX);
+        fprintf(stderr, "The new node has index %u but expected %u\n", new_node_idx, UINT32_MAX);
         goto cleanup;
     }
 
@@ -1269,7 +1269,7 @@ static int test_dag_replace_illegal_block_with_unitary(void) {
     size_t num_ops = qk_dag_num_op_nodes(dag);
     if (num_ops != 3) {
         result = EqualityError;
-        printf("Number of instructions is %zu but expected 3\n", num_ops);
+        fprintf(stderr, "Number of instructions is %zu but expected 3\n", num_ops);
         goto cleanup;
     }
 
@@ -1302,7 +1302,7 @@ static int test_dag_substitute_node_with_unitary(void) {
     size_t num_ops_z = qk_dag_num_op_nodes(dag);
     if (num_ops_z != 4) {
         result = EqualityError;
-        printf("Number of instructions is %zu but expected 4\n", num_ops_z);
+        fprintf(stderr, "Number of instructions is %zu but expected 4\n", num_ops_z);
         goto cleanup;
     }
 
@@ -1310,7 +1310,7 @@ static int test_dag_substitute_node_with_unitary(void) {
     QkOperationKind new_node_kind_z = qk_dag_op_node_kind(dag, idx_z);
     if (new_node_kind_z != QkOperationKind_Unitary) {
         result = EqualityError;
-        printf("The node with index %u has incorrect operation type: expected: %d but got %d.\n",
+        fprintf(stderr, "The node with index %u has incorrect operation type: expected: %d but got %d.\n",
                idx_z, QkOperationKind_Unitary, new_node_kind_z);
     }
 
