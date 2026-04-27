@@ -247,7 +247,7 @@ class Gate(Instruction):
             )
 
         if any(not qarg for qarg in qargs):
-            raise CircuitError("One or more of the arguments are empty")
+            return iter([])
 
         if len(qargs) == 0:
             return [

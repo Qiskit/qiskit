@@ -1786,6 +1786,33 @@ class TestCircuitOperations(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "cannot have fewer physical qubits"):
             qc.ensure_physical(5)
 
+    def test_apply_gate_to_empty_qubit_list(self):
+        """Test that applying a gate to an empty list of qubits is a no-op."""
+        qc = QuantumCircuit(3)
+        qc.x([])
+        self.assertEqual(len(qc), 0)
+
+    def test_apply_cx_to_empty_qubit_lists(self):
+        """Test that applying a two-qubit gate to empty lists is a no-op."""
+        qc = QuantumCircuit(3)
+        qc.cx([], [])
+        self.assertEqual(len(qc), 0)
+
+    def test_apply_gate_to_empty_list_preserves_other_ops(self):
+        """Test that a no-op from an empty list does not affect other operations."""
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.x([])
+        qc.cx(1, 2)
+        self.assertEqual(len(qc), 2)
+
+    def test_apply_gate_to_nonempty_list_still_works(self):
+        """Regression: applying a gate to a non-empty list should still work."""
+        qc = QuantumCircuit(3)
+        qc.x([0, 1, 2])
+        self.assertEqual(len(qc), 3)
+
+
 
 class TestCircuitPrivateOperations(QiskitTestCase):
     """Direct tests of some of the private methods of QuantumCircuit.  These do not represent
