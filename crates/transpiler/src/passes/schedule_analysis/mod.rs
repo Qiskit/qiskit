@@ -17,7 +17,7 @@ use std::ops::{
     Add, AddAssign, Deref, DerefMut, Div, DivAssign, Mul, MulAssign, Rem, RemAssign, Sub, SubAssign,
 };
 
-use ahash::RandomState;
+use foldhash::fast::RandomState;
 use hashbrown::HashMap;
 use indexmap::IndexMap;
 use pyo3::{

@@ -13,7 +13,7 @@
 use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyTuple};
 
-use ahash::RandomState;
+use foldhash::fast::RandomState;
 
 use hashbrown::HashMap;
 use indexmap::IndexMap;

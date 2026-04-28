@@ -624,8 +624,8 @@ impl State {
     fn populate_extended_set(&mut self, problem: RoutingProblem) {
         let mut next_visit = self.front_layer.iter_nodes().copied().collect::<Vec<_>>();
         let mut to_visit = Vec::new();
-        let mut decremented: IndexMap<NodeIndex, u32, ahash::RandomState> =
-            IndexMap::with_hasher(ahash::RandomState::default());
+        let mut decremented: IndexMap<NodeIndex, u32, foldhash::fast::RandomState> =
+            IndexMap::with_hasher(foldhash::fast::RandomState::default());
         for layer in self.lookahead_layers.iter_mut() {
             for node in next_visit.drain(..) {
                 for edge in problem.sabre.dag.edges_directed(node, Direction::Outgoing) {

@@ -207,7 +207,9 @@ mod interned_map {
 /// assert_eq!(interner.get(key), &[0, 1, 2, 3, 4]);
 /// ```
 #[derive(Default)]
-pub struct Interner<T: ?Sized + ToOwned>(IndexSet<<T as ToOwned>::Owned, ::ahash::RandomState>);
+pub struct Interner<T: ?Sized + ToOwned>(
+    IndexSet<<T as ToOwned>::Owned, ::foldhash::fast::RandomState>,
+);
 
 // `Clone` and `Debug` can't use the derivation mechanism because the values that are actually
 // stored are of type `<T as ToOwned>::Owned`, which the derive system doesn't reason about.
@@ -286,7 +288,8 @@ where
     /// Note that the default item of the interner is always allocated and given a key immediately,
     /// which will use one slot of the capacity.
     pub fn with_capacity(capacity: usize) -> Self {
-        let mut set = IndexSet::with_capacity_and_hasher(capacity, ::ahash::RandomState::new());
+        let mut set =
+            IndexSet::with_capacity_and_hasher(capacity, ::foldhash::fast::RandomState::default());
         set.insert(Default::default());
         Self(set)
     }

@@ -125,7 +125,7 @@ pub fn cancel_commutations(
     */
     let (commutation_set, node_indices) =
         analyze_commutations(dag, commutation_checker, approximation_degree)?;
-    let mut cancellation_sets = IndexMap::with_hasher(::ahash::RandomState::new());
+    let mut cancellation_sets = IndexMap::with_hasher(::foldhash::fast::RandomState::default());
 
     (0..dag.num_qubits() as u32).for_each(|qubit| {
         let wire = Qubit(qubit);

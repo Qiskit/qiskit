@@ -27,7 +27,7 @@ use std::{error::Error, fmt::Display};
 
 use exceptions::CircuitError;
 
-use ahash::RandomState;
+use foldhash::fast::RandomState;
 use indexmap::{IndexMap, IndexSet};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyString};
@@ -612,7 +612,7 @@ impl EquivalenceLibrary {
         slf.key_to_node_index = state
             .get_item("key_to_node_index")?
             .unwrap()
-            .extract::<IndexMap<Key, usize, ::ahash::RandomState>>()?
+            .extract::<IndexMap<Key, usize, ::foldhash::fast::RandomState>>()?
             .into_iter()
             .map(|(key, val)| (key, NodeIndex::new(val)))
             .collect();
@@ -793,7 +793,7 @@ fn raise_if_shape_mismatch(
 
 fn rebind_equiv(equiv: Equivalence, query_params: &[Param]) -> PyResult<CircuitData> {
     let (equiv_params, mut equiv_circuit) = (equiv.params, equiv.circuit);
-    let param_mapping: PyResult<IndexMap<ParameterUuid, &Param, ::ahash::RandomState>> =
+    let param_mapping: PyResult<IndexMap<ParameterUuid, &Param, ::foldhash::fast::RandomState>> =
         equiv_params
             .iter()
             .zip(query_params.iter())

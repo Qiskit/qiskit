@@ -897,7 +897,7 @@ where
 {
     type Item = Result<
         (
-            IndexMap<N::NodeId, H::NodeId, ::ahash::RandomState>,
+            IndexMap<N::NodeId, H::NodeId, ::foldhash::fast::RandomState>,
             NS::Score,
         ),
         IsIsomorphicError<NS::Error, ES::Error>,
@@ -1250,7 +1250,7 @@ where
     NS: Semantics<N::NodeWeight, H::NodeWeight>,
     ES: Semantics<N::EdgeWeight, H::EdgeWeight, Score = NS::Score>,
 {
-    fn mapping(&self) -> IndexMap<NId, HId, ::ahash::RandomState> {
+    fn mapping(&self) -> IndexMap<NId, HId, ::foldhash::fast::RandomState> {
         self.needle
             .mapping
             .iter()
@@ -1824,7 +1824,7 @@ where
     ES: Semantics<N::EdgeWeight, H::EdgeWeight, Score = NS::Score>,
 {
     type Item = Result<
-        (IndexMap<NId, HId, ::ahash::RandomState>, NS::Score),
+        (IndexMap<NId, HId, ::foldhash::fast::RandomState>, NS::Score),
         IsIsomorphicError<NS::Error, ES::Error>,
     >;
 

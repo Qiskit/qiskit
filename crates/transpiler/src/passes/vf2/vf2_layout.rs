@@ -637,7 +637,7 @@ fn map_free_qubits(
 fn minimize_vf2<N, H, NG, HG, NO, HO, NS, ES>(
     vf2: vf2::Vf2<N, H, NG, HG, NO, HO, NS, ES>,
     config: &Vf2PassConfiguration,
-) -> Option<IndexMap<N::NodeId, H::NodeId, ::ahash::RandomState>>
+) -> Option<IndexMap<N::NodeId, H::NodeId, ::foldhash::fast::RandomState>>
 where
     N: vf2::alias::IntoVf2Graph,
     H: vf2::alias::IntoVf2Graph<EdgeType = N::EdgeType>,
