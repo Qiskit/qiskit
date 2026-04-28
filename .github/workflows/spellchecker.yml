@@ -1,0 +1,58 @@
+name: 'Spellchecking'
+
+on:
+  pull_request:
+    paths: ['releasenotes/notes/*.yaml']
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  spellcheckreleasenotes:
+    if: github.repository_owner == 'Qiskit'
+    name: Spell check release notes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Get release notes
+        id: release-note-yamls
+        uses: tj-actions/changed-files@v47
+        with:
+          files: |
+            releasenotes/notes/*.yaml
+      - uses: actions/setup-node@v6
+        if: steps.release-note-yamls.outputs.any_changed == 'true'
+        with:
+          node-version: 24
+      - name: Install Bob
+        if: steps.release-note-yamls.outputs.any_changed == 'true'
+        run: |
+          curl -fsSL https://bob.ibm.com/download/bobshell.sh | bash -s -- --pm npm
+      - name: Spell checking
+        if: steps.release-note-yamls.outputs.any_changed == 'true'
+        id: spellcheck
+        env:
+          BOBSHELL_API_KEY: ${{ secrets.BOBSHELL_API_KEY }}
+          RELEASE_NOTE_FILES: ${{ steps.release-note-yamls.outputs.all_changed_files }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BOB_PROMPT="Correct spelling and grammar of $(echo $RELEASE_NOTE_FILES | sed 's/releasenotes/@releasenotes/' ) . If possible, avoid redundancies and repetitions."
+          echo $BOB_PROMPT
+          bob "$BOB_PROMPT" --hide-intermediary-output --yolo > BOB_RESPONSE.txt
+          echo 'BOB_RESPONSE<<EOF' >> $GITHUB_OUTPUT
+          echo "Bob has some suggestions to improve the release notes:" >> $GITHUB_OUTPUT
+          echo "<code>" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          cat BOB_RESPONSE.txt >> $GITHUB_OUTPUT
+          echo "</code>" >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
+      - uses: tj-actions/verify-changed-files@v20
+        name: "Check if Bob made any fixes"
+        id: verify-changed-files
+      - uses: parkerbxyz/suggest-changes@v3
+        name: "Comment with Bob suggestions"
+        if: steps.verify-changed-files.outputs.files_changed == 'true'
+        with:
+          comment: ${{ steps.spellcheck.outputs.BOB_RESPONSE }}
+          event: 'COMMENT'
