@@ -981,29 +981,6 @@ impl CircuitData {
         Ok(())
     }
 
-    pub fn pack(&mut self, py: Python, inst: &CircuitInstruction) -> PyResult<PackedInstruction> {
-        let qubits = self.qargs_interner.insert_owned(
-            self.qubits
-                .map_objects(inst.qubits.extract::<Vec<ShareableQubit>>(py)?)?
-                .collect(),
-        );
-        let clbits = self.cargs_interner.insert_owned(
-            self.clbits
-                .map_objects(inst.clbits.extract::<Vec<ShareableClbit>>(py)?)?
-                .collect(),
-        );
-        let params = self.extract_blocks_from_circuit_parameters(inst.params.as_ref());
-        Ok(PackedInstruction {
-            op: inst.operation.clone(),
-            qubits,
-            clbits,
-            params,
-            label: inst.label.clone(),
-            #[cfg(feature = "cache_pygates")]
-            py_op: inst.py_op.clone(),
-        })
-    }
-
     /// Returns an iterator over all the instructions present in the circuit.
     pub fn iter(&self) -> impl ExactSizeIterator<Item = &PackedInstruction> {
         self.data.iter()
@@ -2679,18 +2656,18 @@ impl PyCircuitData {
     }
 
     pub fn __setitem__(&mut self, index: PySequenceIndex, value: &Bound<PyAny>) -> PyResult<()> {
-        fn set_single(slf: &mut CircuitData, index: usize, value: &Bound<PyAny>) -> PyResult<()> {
+        fn set_single(slf: &mut PyCircuitData, index: usize, value: &Bound<PyAny>) -> PyResult<()> {
             let py = value.py();
-            slf.untrack_instruction_parameters(index)?;
-            slf.untrack_instruction_blocks(index);
-            slf.data[index] = slf.pack(py, &value.cast::<CircuitInstruction>()?.borrow())?;
-            slf.track_instruction_blocks(index);
-            slf.track_instruction_parameters(index)?;
+            slf.inner.untrack_instruction_parameters(index)?;
+            slf.inner.untrack_instruction_blocks(index);
+            slf.inner.data[index] = slf.pack(py, &value.cast::<CircuitInstruction>()?.borrow())?;
+            slf.inner.track_instruction_blocks(index);
+            slf.inner.track_instruction_parameters(index)?;
             Ok(())
         }
 
         match index.with_len(self.inner.data.len())? {
-            SequenceIndex::Int(index) => set_single(&mut self.inner, index, value),
+            SequenceIndex::Int(index) => set_single(self, index, value),
             indices @ SequenceIndex::PosRange {
                 start,
                 stop,
@@ -2699,7 +2676,7 @@ impl PyCircuitData {
                 // `list` allows setting a slice with step +1 to an arbitrary length.
                 let values = value.try_iter()?.collect::<PyResult<Vec<_>>>()?;
                 for (index, value) in indices.iter().zip(values.iter()) {
-                    set_single(&mut self.inner, index, value)?;
+                    set_single(self, index, value)?;
                 }
                 if indices.len() > values.len() {
                     self.inner.delitem(SequenceIndex::PosRange {
@@ -2718,7 +2695,7 @@ impl PyCircuitData {
                 let values = value.try_iter()?.collect::<PyResult<Vec<_>>>()?;
                 if indices.len() == values.len() {
                     for (index, value) in indices.iter().zip(values.iter()) {
-                        set_single(&mut self.inner, index, value)?;
+                        set_single(self, index, value)?;
                     }
                     Ok(())
                 } else {
@@ -2734,13 +2711,13 @@ impl PyCircuitData {
 
     pub fn insert(&mut self, index: isize, value: PyRef<CircuitInstruction>) -> PyResult<()> {
         let py = value.py();
-        let packed = self.inner.pack(py, &value)?;
+        let packed = self.pack(py, &value)?;
         self.inner.insert(index, packed)
     }
 
     /// Primary entry point for appending an instruction from Python space.
     pub fn append(&mut self, value: &Bound<CircuitInstruction>) -> PyResult<()> {
-        let packed = self.inner.pack(value.py(), &value.borrow())?;
+        let packed = self.pack(value.py(), &value.borrow())?;
         Ok(self.inner.push(packed)?)
     }
 
@@ -2756,7 +2733,7 @@ impl PyCircuitData {
         params: &Bound<PyList>,
     ) -> PyResult<()> {
         let instruction_index = self.len();
-        let packed = self.inner.pack(value.py(), &value.borrow())?;
+        let packed = self.pack(value.py(), &value.borrow())?;
         self.inner.data.push(packed);
         for item in params.iter() {
             let (parameter_index, parameters) = item.extract::<(u32, Bound<PyAny>)>()?;
@@ -3279,6 +3256,31 @@ impl PyCircuitData {
 }
 
 impl PyCircuitData {
+    pub fn pack(&mut self, py: Python, inst: &CircuitInstruction) -> PyResult<PackedInstruction> {
+        let qubits = self.inner.qargs_interner.insert_owned(
+            self.qubits
+                .map_objects(inst.qubits.extract::<Vec<ShareableQubit>>(py)?)?
+                .collect(),
+        );
+        let clbits = self.inner.cargs_interner.insert_owned(
+            self.clbits
+                .map_objects(inst.clbits.extract::<Vec<ShareableClbit>>(py)?)?
+                .collect(),
+        );
+        let params = self
+            .inner
+            .extract_blocks_from_circuit_parameters(inst.params.as_ref());
+        Ok(PackedInstruction {
+            op: inst.operation.clone(),
+            qubits,
+            clbits,
+            params,
+            label: inst.label.clone(),
+            #[cfg(feature = "cache_pygates")]
+            py_op: inst.py_op.clone(),
+        })
+    }
+
     /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into an
     /// instruction.  This may construct the reference if the `Instruction` is a standard
     /// gate or instruction with no already stored operation.
