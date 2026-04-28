@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::target::{Qargs, Target};
+use crate::target::{PyTarget, Qargs, Target};
 use hashbrown::{HashMap, HashSet};
 use pyo3::prelude::*;
 use qiskit_circuit::PhysicalQubit;
@@ -22,6 +22,10 @@ use rustworkx_core::petgraph::prelude::NodeIndex;
 
 #[pyfunction]
 #[pyo3(name = "any_gate_missing_from_target")]
+pub fn py_gates_missing_from_target(dag: &DAGCircuit, target: &PyTarget) -> PyResult<bool> {
+    gates_missing_from_target(dag, &*target.try_read()?)
+}
+
 pub fn gates_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<bool> {
     #[inline]
     fn is_universal(gate: &PackedInstruction) -> bool {
@@ -113,7 +117,7 @@ pub fn gates_missing_from_basis(dag: &DAGCircuit, basis: HashSet<String>) -> PyR
 }
 
 pub fn gates_in_basis_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(gates_missing_from_target))?;
+    m.add_wrapped(wrap_pyfunction!(py_gates_missing_from_target))?;
     m.add_wrapped(wrap_pyfunction!(gates_missing_from_basis))?;
     Ok(())
 }

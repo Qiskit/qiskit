@@ -32,7 +32,7 @@ use crate::passes::{
     dense_layout,
     disjoint_layout::{self, DisjointSplit},
 };
-use crate::target::{Target, TargetCouplingError};
+use crate::target::{PyTarget, Target, TargetCouplingError};
 
 use super::dag::SabreDAG;
 use super::heuristic::Heuristic;
@@ -40,7 +40,32 @@ use super::route::{RoutingProblem, RoutingResult, RoutingTarget, swap_map, swap_
 
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
-#[pyo3(signature = (dag, target, heuristic, max_iterations, num_swap_trials, num_random_trials, seed=None, partial_layouts=vec![], skip_routing=false))]
+#[pyo3(signature = (dag, target, heuristic, max_iterations, num_swap_trials, num_random_trials, seed=None, partial_layouts=vec![], skip_routing=false), name = "sabre_layout_and_routing")]
+pub fn py_sabre_layout_and_routing(
+    dag: &mut DAGCircuit,
+    target: &PyTarget,
+    heuristic: &Heuristic,
+    max_iterations: usize,
+    num_swap_trials: usize,
+    num_random_trials: usize,
+    seed: Option<u64>,
+    partial_layouts: Vec<Vec<Option<PhysicalQubit>>>,
+    skip_routing: bool,
+) -> PyResult<(DAGCircuit, NLayout, NLayout)> {
+    sabre_layout_and_routing(
+        dag,
+        &*target.try_read()?,
+        heuristic,
+        max_iterations,
+        num_swap_trials,
+        num_random_trials,
+        seed,
+        partial_layouts,
+        skip_routing,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
 pub fn sabre_layout_and_routing(
     dag: &mut DAGCircuit,
     target: &Target,

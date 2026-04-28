@@ -32,7 +32,7 @@ use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{PhysicalQubit, VirtualQubit, vf2};
 
 use super::error_map::ErrorMap;
-use crate::target::{Qargs, QargsRef, Target, TargetOperation};
+use crate::target::{PyTarget, Qargs, QargsRef, Target, TargetOperation};
 
 create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
 
@@ -732,7 +732,23 @@ where
 }
 
 #[pyfunction]
-#[pyo3(signature = (dag, target, config, *, strict_direction=false, avg_error_map=None))]
+#[pyo3(signature = (dag, target, config, *, strict_direction=false, avg_error_map=None), name="vf2_layout_pass_average")]
+pub fn py_vf2_layout_pass_average(
+    dag: &DAGCircuit,
+    target: &PyTarget,
+    config: &Vf2PassConfiguration,
+    strict_direction: bool,
+    avg_error_map: Option<&ErrorMap>,
+) -> PyResult<Vf2PassReturn> {
+    vf2_layout_pass_average(
+        dag,
+        &*target.try_read()?,
+        config,
+        strict_direction,
+        avg_error_map,
+    )
+}
+
 pub fn vf2_layout_pass_average(
     dag: &DAGCircuit,
     target: &Target,
@@ -800,7 +816,15 @@ pub fn vf2_layout_pass_average(
 }
 
 #[pyfunction]
-#[pyo3(signature = (dag, target, config))]
+#[pyo3(signature = (dag, target, config), name = "vf2_layout_pass_exact")]
+pub fn py_vf2_layout_pass_exact(
+    dag: &DAGCircuit,
+    target: &PyTarget,
+    config: &Vf2PassConfiguration,
+) -> PyResult<Vf2PassReturn> {
+    vf2_layout_pass_exact(dag, &*target.try_read()?, config)
+}
+
 pub fn vf2_layout_pass_exact(
     dag: &DAGCircuit,
     target: &Target,
@@ -894,8 +918,8 @@ pub fn vf2_layout_pass_exact(
 }
 
 pub fn vf2_layout_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(vf2_layout_pass_average))?;
-    m.add_wrapped(wrap_pyfunction!(vf2_layout_pass_exact))?;
+    m.add_wrapped(wrap_pyfunction!(py_vf2_layout_pass_average))?;
+    m.add_wrapped(wrap_pyfunction!(py_vf2_layout_pass_exact))?;
     m.add("MultiQEncountered", m.py().get_type::<MultiQEncountered>())?;
     m.add(
         "VF2PassConfiguration",

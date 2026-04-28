@@ -27,6 +27,7 @@ use qiskit_circuit::instruction::Instruction;
 use qiskit_circuit::operations::StandardGate::{I, X, Y, Z};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_transpiler::target::PyTarget;
 
 use crate::QiskitError;
 
@@ -313,7 +314,7 @@ pub(crate) fn twirl_circuit(
     custom_twirled_gates: Option<Vec<OperationFromPython<NoBlocks>>>,
     seed: Option<u64>,
     num_twirls: usize,
-    optimizer_target: Option<&Target>,
+    optimizer_target: Option<&PyTarget>,
 ) -> PyResult<Vec<PyCircuitData>> {
     let mut rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
@@ -392,7 +393,10 @@ pub(crate) fn twirl_circuit(
                 &mut rng,
                 twirling_mask,
                 custom_gate_twirling_sets.as_ref(),
-                optimizer_target,
+                optimizer_target
+                    .map(|v| v.try_read())
+                    .transpose()?
+                    .as_deref(),
             )
             .map(Into::into)
         })

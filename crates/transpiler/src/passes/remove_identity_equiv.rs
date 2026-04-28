@@ -18,6 +18,7 @@ use rustworkx_core::petgraph::visit::NodeIndexable;
 
 use crate::commutation_checker::try_matrix_with_definition;
 use crate::gate_metrics::rotation_trace_and_dim;
+use crate::target::PyTarget;
 use crate::target::Target;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
@@ -240,7 +241,7 @@ pub fn py_remove_identity_equiv(
     py: Python,
     dag: &mut DAGCircuit,
     approx_degree: Option<f64>,
-    target: Option<&Target>,
+    target: Option<&PyTarget>,
 ) -> PyResult<()> {
     // TODO: This is a hack to avoid panicking in the case that the global phase contains `Py`
     // pointers (such as backrefs to `ParameterVector` objects in an expression `Symbol`) that would
@@ -254,7 +255,13 @@ pub fn py_remove_identity_equiv(
 
     // Explicitly release GIL because threads may call Python to get
     // the matrix for a PyGate
-    py.detach(|| run_remove_identity_equiv(dag, approx_degree, target))?;
+    py.detach(|| {
+        run_remove_identity_equiv(
+            dag,
+            approx_degree,
+            target.map(|v| v.try_read()).transpose()?.as_deref(),
+        )
+    })?;
 
     dag.add_global_phase(&old_phase)?;
     Ok(())
