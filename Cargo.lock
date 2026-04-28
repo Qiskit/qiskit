@@ -2361,6 +2361,13 @@ dependencies = [
 [[package]]
 name = "qiskit-providers"
 version = "2.5.0-dev"
+dependencies = [
+ "anyhow",
+ "hashbrown 0.15.5",
+ "ndarray",
+ "num-complex",
+ "rustworkx-core",
+]
 
 [[package]]
 name = "qiskit-pyext"
