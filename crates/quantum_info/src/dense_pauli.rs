@@ -47,6 +47,31 @@ pub fn pad_pauli(p: &Pauli, indices: Vec<u32>, num_qubits: usize) -> Pauli {
     }
 }
 
+/// Helper function that transforms a dense Pauli p to a sparse format, by reducing 'I' terms.
+pub fn unpad_pauli(p: &Pauli) -> (Pauli, Vec<u32>) {
+    let n = p.pauli_z.len();
+    let mut out_p_z: Vec<bool> = Vec::with_capacity(n);
+    let mut out_p_x: Vec<bool> = Vec::with_capacity(n);
+    let mut out_indices: Vec<u32> = Vec::with_capacity(n);
+
+    for i in 0..n {
+        if p.pauli_z[i] || p.pauli_x[i] {
+            out_p_z.push(p.pauli_z[i]);
+            out_p_x.push(p.pauli_x[i]);
+            out_indices.push(i as u32);
+        }
+    }
+
+    (
+        Pauli {
+            pauli_z: out_p_z,
+            pauli_x: out_p_x,
+            pauli_phase: p.pauli_phase,
+        },
+        out_indices,
+    )
+}
+
 /// Compose the Paulis p1 and p2.
 /// Returns the output Pauli, like in the default Python code: p1.compose(p2)
 /// Assumes that both Paulis are defined on the same qubits.

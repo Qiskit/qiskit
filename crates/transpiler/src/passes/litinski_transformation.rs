@@ -25,7 +25,7 @@ use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 use crate::TranspilerError;
 use num_complex::Complex64;
 use qiskit_quantum_info::clifford::Clifford;
-use qiskit_quantum_info::dense_pauli::{Pauli, evolve_pauli_by_clifford, pad_pauli};
+use qiskit_quantum_info::dense_pauli::{Pauli, evolve_pauli_by_clifford, pad_pauli, unpad_pauli};
 use qiskit_quantum_info::sparse_observable::{BitTerm, SparseObservable};
 
 use smallvec::smallvec;
@@ -379,9 +379,10 @@ pub fn run_litinski_transformation(
                         .collect();
                     let pauli_padded = pad_pauli(&pauli_in, indices_in, num_qubits);
                     let pauli_out = evolve_pauli_by_clifford(&pauli_padded, &clifford);
-                    let out_z = pauli_out.pauli_z;
-                    let out_x = pauli_out.pauli_x;
-                    let out_sign = if pauli_out.pauli_phase == 0 {
+                    let (pauli_unpadded, indices_out) = unpad_pauli(&pauli_out);
+                    let out_z = pauli_unpadded.pauli_z;
+                    let out_x = pauli_unpadded.pauli_x;
+                    let out_sign = if pauli_unpadded.pauli_phase == 0 {
                         1.0
                     } else {
                         -1.0
@@ -392,8 +393,6 @@ pub fn run_litinski_transformation(
                         x: out_x,
                         angle: angle.clone(),
                     };
-
-                    let indices_out: Vec<u32> = (0..num_qubits as u32).collect();
                     qargs.clear();
                     qargs.extend(bytemuck::cast_slice(&indices_out));
 
@@ -454,16 +453,15 @@ pub fn run_litinski_transformation(
                         .collect();
                     let pauli_padded = pad_pauli(&pauli_in, indices_in, num_qubits);
                     let pauli_out = evolve_pauli_by_clifford(&pauli_padded, &clifford);
-                    let out_z = pauli_out.pauli_z;
-                    let out_x = pauli_out.pauli_x;
-                    let out_neg = pauli_out.pauli_phase != 0;
+                    let (pauli_unpadded, indices_out) = unpad_pauli(&pauli_out);
+                    let out_z = pauli_unpadded.pauli_z;
+                    let out_x = pauli_unpadded.pauli_x;
+                    let out_neg = pauli_unpadded.pauli_phase != 0;
                     let ppm = PauliProductMeasurement {
                         z: out_z,
                         x: out_x,
                         neg: out_neg,
                     };
-
-                    let indices_out: Vec<u32> = (0..num_qubits as u32).collect();
                     qargs.clear();
                     qargs.extend(bytemuck::cast_slice(&indices_out));
 
