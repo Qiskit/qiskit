@@ -33,6 +33,12 @@ pub struct DataTreeBranch<T> {
     keys: HashMap<String, usize>,
 }
 
+impl<T> Default for DataTreeBranch<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> DataTreeBranch<T> {
     /// Construct a new empty [`DataTreeBranch`]
     pub fn new() -> Self {
