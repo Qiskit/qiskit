@@ -769,7 +769,7 @@ fn extract_definition(op: &PackedOperation, params: &[Param]) -> PyResult<Option
                         SmallVec::new(),
                         aview2(&CX_GATE),
                         1.0,
-                        "U",
+                        EulerBasis::U,
                         None,
                     )?;
                     let two_qubit_sequence =
