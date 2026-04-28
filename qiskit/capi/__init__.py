@@ -39,13 +39,63 @@ these two objects with the functions :func:`get_include` and :func:`get_lib` res
 
 .. autofunction:: get_include
 .. autofunction:: get_lib
+
+
+Native bindings to the C API
+============================
+
+Additionally, this module contains :mod:`ctypes` bindings to all Qiskit C API types and functions.
+These are avaialble as module attributes on :mod:`qiskit.capi` with the same name as they have in
+the C API.  For example, ``qiskit.capi.qk_circuit_new`` corresponds to :c:func:`qk_circuit_new`.
+
+.. py:attribute:: LIB
+    :type: ctypes.PyDLL
+
+    A :mod:`ctypes` wrapper around the library containing the Qiskit C API.
+
+    This is provided for completeness, though you can access all the functions, structs and
+    enumerations directly from the :mod:`qiskit.capi` module object.
+
+Structs
+-------
+
+Concrete ``struct`` types used in the C API are declared as corresponding :class:`ctypes.Structure`
+types with a complete :attr:`~ctypes.Structure._fields_` attribute.  These can be instantiated and
+inspected directly.
+
+Opaque pointers are represented by a :class:`ctypes.Structure` type with no
+:attr:`~ctypes.Structure._fields_` attribute set, and cannot be instantiated.  They are typically
+returned from functions wrapped in a :class:`ctypes.POINTER` type wrapper.
+
+Enums
+-----
+
+In places where the C API has an enumeration, this module declares a Python :class:`enum.Enum` whose
+values are a corresponding :mod:`ctypes` primitive integer type.  The Python-space
+:class:`~enum.Enum` type object is still a wrapping Python object, so :mod:`ctypes` functions that
+return an enumeration will return the raw numeric value, not the value in the :class:`~enum.Enum`.
+The Python-space :class:`~enum.Enum` objects are declared for convenience in constructing calls.
+
+Functions
+---------
+
+All the public library functions in the Qiskit C API are fully typed, and re-exported in the module
+root with the same name as they have in C.  You can also access the functions from :attr:`LIB`, if
+you prefer.
+
+Note that header-only functions, such as :c:func:`qk_import`, are not exported because they are not
+part of the C API library object.
 """
 
-__all__ = ["get_include", "get_lib"]
 
 from pathlib import Path
 
+from . import _ctypes
+from ._ctypes import *  # noqa: F403 (the names are auto-generated and in `__all__`).
 import qiskit._accelerate
+
+__all__ = ["get_include", "get_lib"]
+__all__ += _ctypes.__all__
 
 
 def get_include() -> str:

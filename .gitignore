@@ -20,6 +20,7 @@ __pycache__/
 *.so
 # Generated C header files included in package.
 /qiskit/capi/include
+/qiskit/capi/_ctypes.py
 
 # Distribution / packaging
 .Python
