@@ -1,5 +1,5 @@
 [package]
-name = "qiskit-bindgen-c"
+name = "qiskit-bindgen-cli"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -9,9 +9,12 @@ license.workspace = true
 workspace = true
 
 [[bin]]
-name = "qiskit-bindgen-c"
+name = "qiskit-bindgen-cli"
 
 [dependencies]
 qiskit-bindgen.workspace = true
+qiskit-cext-vtable  = { workspace = true, features = ["python_binding"] }
 anyhow.workspace = true
+indexmap.workspace = true
+cbindgen.workspace = true
 clap = { version = "4.6", features = ["derive"] }

@@ -2242,12 +2242,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "qiskit-bindgen-c"
+name = "qiskit-bindgen-cli"
 version = "2.5.0-dev"
 dependencies = [
  "anyhow",
+ "cbindgen",
  "clap",
+ "indexmap",
  "qiskit-bindgen",
+ "qiskit-cext-vtable",
 ]
 
 [[package]]
