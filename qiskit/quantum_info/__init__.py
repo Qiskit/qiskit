@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -30,9 +30,15 @@ Operators
    ScalarOp
    SparseObservable
    SparsePauliOp
+   PauliLindbladMap
+   QubitSparsePauli
+   QubitSparsePauliList
+   PhasedQubitSparsePauli
+   PhasedQubitSparsePauliList
    CNOTDihedral
    PauliList
    pauli_basis
+   get_clifford_gate_names
 
 .. _quantum_info_states:
 
@@ -115,6 +121,13 @@ Analysis
 
 from __future__ import annotations
 
+from qiskit._accelerate.pauli_lindblad_map import (
+    QubitSparsePauliList,
+    QubitSparsePauli,
+    PhasedQubitSparsePauli,
+    PhasedQubitSparsePauliList,
+    PauliLindbladMap,
+)
 from qiskit._accelerate.sparse_observable import SparseObservable
 
 from .analysis import hellinger_distance, hellinger_fidelity, Z2Symmetries
@@ -129,6 +142,7 @@ from .operators import (
     commutator,
     double_commutator,
     pauli_basis,
+    get_clifford_gate_names,
 )
 from .operators.channel import PTM, Chi, Choi, Kraus, Stinespring, SuperOp
 from .operators.dihedral import CNOTDihedral

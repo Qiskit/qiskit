@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -19,7 +19,7 @@ from numpy import pi
 
 from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.circuit import Parameter
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt
@@ -91,7 +91,7 @@ class TestPiCheck(QiskitTestCase):
         """Test pi/2 displays properly in ParameterExpression - #6758"""
         x = Parameter("x")
         input_number = x + pi / 2
-        expected_string = "x + π/2"
+        expected_string = "π/2 + x"
         result = pi_check(input_number)
         self.assertEqual(result, expected_string)
 

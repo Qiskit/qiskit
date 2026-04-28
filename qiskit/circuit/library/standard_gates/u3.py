@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -16,12 +16,11 @@ from __future__ import annotations
 
 import math
 from cmath import exp
-from typing import Optional, Union
+
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit._accelerate.circuit import StandardGate
 
 
@@ -34,14 +33,14 @@ class U3Gate(Gate):
 
        .. math::
 
-           U3(\theta, \phi, \lambda) =  U(\theta, \phi, \lambda)
+           U3(\theta, \phi, \lambda) = U(\theta, \phi, \lambda)
 
        .. code-block:: python
 
           circuit = QuantumCircuit(1)
           circuit.u(theta, phi, lambda)
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -49,7 +48,7 @@ class U3Gate(Gate):
         q_0: ┤ U3(ϴ,φ,λ) ├
              └───────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -68,12 +67,12 @@ class U3Gate(Gate):
         <https://doi.org/10.48550/arXiv.1707.03429>`_ by a global phase of
         :math:`e^{i(\phi+\lambda)/2}`.
 
-    **Examples:**
+    Examples:
 
     .. math::
 
-        U3(\theta, \phi, \lambda) = e^{-i \frac{\pi + \theta}{2}} P(\phi + \pi) \sqrt{X}
-        P(\theta + \pi) \sqrt{X} P(\lambda)
+        U3(\theta, \phi, \lambda) = P(\phi) R_Y(\theta) P(\lambda)
+        = e^{i\frac{\phi + \lambda}{2}} R_Z(\phi) R_Y(\theta) R_Z(\lambda)
 
     .. math::
 
@@ -84,16 +83,22 @@ class U3Gate(Gate):
         U3(\theta, 0, 0) = RY(\theta)
     """
 
-    _standard_gate = StandardGate.U3Gate
+    _standard_gate = StandardGate.U3
 
     def __init__(
         self,
         theta: ParameterValueType,
         phi: ParameterValueType,
         lam: ParameterValueType,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
-        """Create new U3 gate."""
+        r"""
+        Args:
+            theta: The angle :math:`\theta` corresponding to the :math:`R_Y(\theta)` rotation.
+            phi: The angle :math:`\phi` corresponding to the :math:`R_Z(\phi)` rotation.
+            lam: The angle :math:`\lambda` corresponding to the :math:`R_Z(\lambda)` rotation.
+            label: An optional label for the gate.
+        """
         super().__init__("u3", 1, [theta, phi, lam], label=label)
 
     def inverse(self, annotated: bool = False):
@@ -119,30 +124,34 @@ class U3Gate(Gate):
         ctrl_state: str | int | None = None,
         annotated: bool | None = None,
     ):
-        """Return a (multi-)controlled-U3 gate.
+        """Return a controlled version of the U3 gate.
+
+        For a single control qubit, the controlled gate is implemented as :class:`.CU3Gate`,
+        regardless of the value of `annotated`.
+
+        For more than one control qubit,
+        the controlled gate is implemented as :class:`.ControlledGate` when ``annotated``
+        is ``False``, and as :class:`.AnnotatedOperation` when ``annotated`` is ``True``.
+        When ``annotated`` is ``None``, it is interpreted as ``True`` when the gate has free
+        parameters (in which case the gate cannot be synthesized at the construction time)
+        and as ``False`` otherwise.
 
         Args:
-            num_ctrl_qubits: number of control qubits.
-            label: An optional label for the gate [Default: ``None``]
-            ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate. If ``None``, this is set to ``True`` if
-                the gate contains free parameters and more than one control qubit, in which
-                case it cannot yet be synthesized. Otherwise it is set to ``False``.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+                Ignored if the controlled gate is implemented as an annotated operation.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``.
+            annotated: Indicates whether the controlled gate should be implemented as a controlled gate
+                or as an annotated operation. If ``None``, treated as ``False``
 
         Returns:
-            ControlledGate: controlled version of this gate.
+            A controlled version of this gate.
         """
-        if not annotated and num_ctrl_qubits == 1:
+        if num_ctrl_qubits == 1:
             gate = CU3Gate(*self.params, label=label, ctrl_state=ctrl_state)
             gate.base_gate.label = self.label
         else:
-            # If the gate parameters contain free parameters, we cannot eagerly synthesize
-            # the controlled gate decomposition. In this case, we annotate the gate per default.
-            if annotated is None:
-                annotated = any(isinstance(p, ParameterExpression) for p in self.params)
-
             gate = super().control(
                 num_ctrl_qubits=num_ctrl_qubits,
                 label=label,
@@ -152,12 +161,17 @@ class U3Gate(Gate):
         return gate
 
     def _define(self):
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        """Default definition"""
 
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        qc.u(self.params[0], self.params[1], self.params[2], 0)
-        self.definition = qc
+        from qiskit.circuit import QuantumCircuit
+
+        #    ┌──────────┐
+        # q: ┤ U(θ,φ,λ) ├
+        #    └──────────┘
+
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.U3._get_definition(self.params), legacy_qubits=True
+        )
 
     def __array__(self, dtype=None, copy=None):
         """Return a Numpy.array for the U3 gate."""
@@ -203,7 +217,7 @@ class CU3Gate(ControlledGate):
 
 
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -212,7 +226,7 @@ class CU3Gate(ControlledGate):
         q_1: ┤ U3(ϴ,φ,λ) ├
              └───────────┘
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -258,15 +272,15 @@ class CU3Gate(ControlledGate):
                 \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.CU3Gate
+    _standard_gate = StandardGate.CU3
 
     def __init__(
         self,
         theta: ParameterValueType,
         phi: ParameterValueType,
         lam: ParameterValueType,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
         *,
         _base_label=None,
     ):
@@ -282,40 +296,19 @@ class CU3Gate(ControlledGate):
         )
 
     def _define(self):
-        """
-        gate cu3(theta,phi,lambda) c, t
-        { u1((lambda+phi)/2) c;
-          u1((lambda-phi)/2) t;
-          cx c,t;
-          u3(-theta/2,0,-(phi+lambda)/2) t;
-          cx c,t;
-          u3(theta/2,phi,0) t;
-        }
-        """
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u1 import U1Gate
-        from .x import CXGate  # pylint: disable=cyclic-import
+        """Default definition"""
 
-        #      ┌───────────────┐
-        # q_0: ┤ U1(λ/2 + φ/2) ├──■─────────────────────────────■─────────────────
-        #      ├───────────────┤┌─┴─┐┌───────────────────────┐┌─┴─┐┌─────────────┐
-        # q_1: ┤ U1(λ/2 - φ/2) ├┤ X ├┤ U3(-0/2,0,-λ/2 - φ/2) ├┤ X ├┤ U3(0/2,φ,0) ├
-        #      └───────────────┘└───┘└───────────────────────┘└───┘└─────────────┘
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (U1Gate((self.params[2] + self.params[1]) / 2), [q[0]], []),
-            (U1Gate((self.params[2] - self.params[1]) / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (U3Gate(-self.params[0] / 2, 0, -(self.params[1] + self.params[2]) / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (U3Gate(self.params[0] / 2, self.params[1], 0), [q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        from qiskit.circuit import QuantumCircuit
 
-        self.definition = qc
+        #      ┌──────────────┐
+        # q_0: ┤ P(λ/2 + φ/2) ├──■────────────────────────────■────────────────
+        #      ├──────────────┤┌─┴─┐┌──────────────────────┐┌─┴─┐┌────────────┐
+        # q_1: ┤ P(λ/2 - φ/2) ├┤ X ├┤ U(-θ/2,0,-λ/2 - φ/2) ├┤ X ├┤ U(θ/2,φ,0) ├
+        #      └──────────────┘└───┘└──────────────────────┘└───┘└────────────┘
+
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CU3._get_definition(self.params), legacy_qubits=True
+        )
 
     def inverse(self, annotated: bool = False):
         r"""Return inverted CU3 gate.

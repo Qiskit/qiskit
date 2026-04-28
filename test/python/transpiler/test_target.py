@@ -4,13 +4,13 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring
+
 from pickle import loads, dumps
 
 import math
@@ -32,24 +32,22 @@ from qiskit.circuit.library import (
     RZXGate,
     CZGate,
     UnitaryGate,
+    Barrier,
 )
 from qiskit.circuit import IfElseOp, ForLoopOp, WhileLoopOp, SwitchCaseOp
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.parameter import Parameter
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
+from qiskit.transpiler.target import _FakeTarget
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler import Target
 from qiskit.transpiler import InstructionProperties
-from qiskit.providers.fake_provider import (
-    GenericBackendV2,
-    Fake5QV1,
-    Fake7QPulseV1,
-)
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.providers.fake_provider import GenericBackendV2
+from test import QiskitTestCase
 from qiskit.providers.backend import QubitProperties
-from test.python.providers.fake_mumbai_v2 import (  # pylint: disable=wrong-import-order
+from test.python.providers.fake_mumbai_v2 import (
     FakeMumbaiFractionalCX,
 )
 
@@ -1019,11 +1017,10 @@ Instructions:
                 self,
                 duration=None,
                 error=None,
-                calibration=None,
                 tuned=None,
                 diamond_norm_error=None,
             ):
-                super().__init__(duration=duration, error=error, calibration=calibration)
+                super().__init__(duration=duration, error=error)
                 self.tuned = tuned
                 self.diamond_norm_error = diamond_norm_error
 
@@ -1092,6 +1089,9 @@ Instructions:
         self.assertTrue(mumbai.target.instruction_supported("rz", parameters=[Parameter("angle")]))
         self.assertTrue(
             mumbai.target.instruction_supported("rzx_45", qargs=(0, 1), parameters=[math.pi / 4])
+        )
+        self.assertFalse(
+            mumbai.target.instruction_supported("rzx_45", qargs=(1, 0), parameters=[math.pi / 4])
         )
         self.assertTrue(mumbai.target.instruction_supported("rzx_45", qargs=(0, 1)))
         self.assertTrue(mumbai.target.instruction_supported("rzx_45", parameters=[math.pi / 4]))
@@ -1192,7 +1192,7 @@ Instructions:
         self.assertTrue(deserialized_target.instruction_supported("u_var", (0, 1)))
 
     def test_target_no_num_qubits_qubit_properties(self):
-        """Checks that a Target can be initialized with no qubits but a list of Qubit Properities"""
+        """Checks that a Target can be initialized with no qubits but a list of Qubit Properties"""
 
         # Initialize target qubit properties
         qubit_properties = [QubitProperties()]
@@ -1204,6 +1204,45 @@ Instructions:
 
         # Check that the Target num_qubit attribute matches the length of qubit properties
         self.assertEqual(target.num_qubits, len(qubit_properties))
+
+    def test_gate_reconstruction_rust(self):
+        standard_gate = RXGate(3.14)
+        barrier = Barrier(5)
+        unitary = UnitaryGate([[0, 1], [1, 0]])
+
+        # Create Target and add rest of instructions.
+        target = Target()
+        target.add_instruction(standard_gate)
+        target.add_instruction(barrier)
+        target.add_instruction(unitary)
+
+        # Check the gate instances are working as expected
+        self.assertEqual(target.operation_from_name("rx"), target._raw_operation_from_name("rx"))
+        self.assertEqual(
+            target.operation_from_name("barrier"), target._raw_operation_from_name("barrier")
+        )
+        self.assertEqual(
+            target.operation_from_name("unitary"), target._raw_operation_from_name("unitary")
+        )
+
+    def test_num_qubits_inference_with_globals(self):
+        """If explicitly overriding `num_qubits` to be "any", it should persist."""
+        target = Target(num_qubits=None)
+        self.assertIsNone(target.num_qubits)
+        target.add_instruction(SXGate())
+        self.assertIsNone(target.num_qubits)
+        target.add_instruction(XGate(), {None: None})
+        self.assertIsNone(target.num_qubits)
+        target.add_instruction(IfElseOp, name="if_else")
+        self.assertIsNone(target.num_qubits)
+
+        # ... and now check that inference _is_ doing its job.
+        num_qubits = 5
+        target.add_instruction(CXGate(), {(i, i + 1): None for i in range(num_qubits - 1)})
+        self.assertEqual(target.num_qubits, num_qubits)
+        # Further globals shouldn't reset it.
+        target.add_instruction(CZGate(), {None: None})
+        self.assertEqual(target.num_qubits, num_qubits)
 
 
 class TestGlobalVariableWidthOperations(QiskitTestCase):
@@ -1698,7 +1737,7 @@ class TestInstructionProperties(QiskitTestCase):
         properties = InstructionProperties()
         self.assertEqual(
             repr(properties),
-            "InstructionProperties(duration=None, error=None, calibration=None)",
+            "InstructionProperties(duration=None, error=None)",
         )
 
 
@@ -1722,37 +1761,6 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual(target.operation_names, {"u", "cx"})
         self.assertEqual({(0,), (1,), (2,)}, target["u"].keys())
         self.assertEqual({(0, 1), (1, 2), (2, 0)}, target["cx"].keys())
-
-    def test_inst_map(self):
-        with self.assertWarns(DeprecationWarning):
-            fake_backend = Fake7QPulseV1()
-        config = fake_backend.configuration()
-        defaults = fake_backend.defaults()
-        constraints = TimingConstraints(**config.timing_constraints)
-        with self.assertWarns(DeprecationWarning):
-            target = Target.from_configuration(
-                basis_gates=config.basis_gates,
-                num_qubits=config.num_qubits,
-                coupling_map=CouplingMap(config.coupling_map),
-                dt=config.dt,
-                inst_map=defaults.instruction_schedule_map,
-                timing_constraints=constraints,
-            )
-            self.assertIsNotNone(target["sx"][(0,)].calibration)
-        self.assertEqual(target.granularity, constraints.granularity)
-        self.assertEqual(target.min_length, constraints.min_length)
-        self.assertEqual(target.pulse_alignment, constraints.pulse_alignment)
-        self.assertEqual(target.acquire_alignment, constraints.acquire_alignment)
-
-    def test_concurrent_measurements(self):
-        with self.assertWarns(DeprecationWarning):
-            fake_backend = Fake5QV1()
-        config = fake_backend.configuration()
-        target = Target.from_configuration(
-            basis_gates=config.basis_gates,
-            concurrent_measurements=config.meas_map,
-        )
-        self.assertEqual(target.concurrent_measurements, config.meas_map)
 
     def test_custom_basis_gates(self):
         basis_gates = ["my_x", "cx"]
@@ -1783,3 +1791,100 @@ class TestTargetFromConfiguration(QiskitTestCase):
         cmap = CouplingMap.from_line(15)
         with self.assertRaisesRegex(TranspilerError, "This constructor method only supports"):
             Target.from_configuration(basis_gates, 15, cmap)
+
+
+class TestFakeTarget(QiskitTestCase):
+    """Test the fake target class."""
+
+    def test_fake_instantiation(self):
+        cmap = CouplingMap([[0, 1]])
+        target = _FakeTarget(coupling_map=cmap)
+        self.assertEqual(target.num_qubits, 0)
+        self.assertEqual(target.build_coupling_map(), cmap)
+
+    def test_fake_from_configuration(self):
+        cmap = CouplingMap([[0, 1]])
+        target = _FakeTarget.from_configuration(coupling_map=cmap)
+        self.assertNotEqual(target, None)
+        self.assertEqual(target.num_qubits, 2)
+        self.assertEqual(target.build_coupling_map(), cmap)
+
+    def test_fake_only_when_necessary(self):
+        # Make sure _FakeTarget cannot be instantiated if there
+        # is enough info for a real Target
+        with self.assertRaises(TypeError):
+            _ = _FakeTarget.from_configuration(
+                basis_gates=["cx"], coupling_map=CouplingMap([[0, 1]])
+            )
+
+
+class TestAngleBounds(QiskitTestCase):
+    """Test angle bounds work correctly."""
+
+    def test_angle_bounds_mismatched_length(self):
+        """Test adding angle bounds method on incorrect number of params."""
+        target = Target("bounds", 1)
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+        lam = Parameter("Lambda")
+        with self.assertRaisesRegex(TranspilerError, "The number of bounds"):
+            target.add_instruction(UGate(theta, phi, lam), angle_bounds=[(0, 1), (0, 3)])
+
+    def test_angle_bound_on_fixed_angle(self):
+        """Test adding angle bounds method on fixed value."""
+        target = Target("bounds", 1)
+        theta = Parameter("theta")
+        lam = Parameter("Lambda")
+        with self.assertRaisesRegex(TranspilerError, "Angle bound set on a fixed value"):
+            target.add_instruction(UGate(theta, 3.14, lam), angle_bounds=[(0, 1), (0, 2), (0, 3)])
+
+    def test_has_angle_bound(self):
+        """Test target has angle bounds method with bounds."""
+        target = Target("bounds", 1)
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+        lam = Parameter("Lambda")
+        target.add_instruction(
+            UGate(theta, phi, lam), angle_bounds=[(0, 1), (0, 3), (-math.pi, math.pi)]
+        )
+        self.assertTrue(target.has_angle_bounds)
+
+    def test_not_has_angle_bound(self):
+        """Test target has angle bounds method with no bounds."""
+        target = Target("bounds", 1)
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+        lam = Parameter("Lambda")
+        target.add_instruction(UGate(theta, phi, lam))
+        self.assertFalse(target.has_angle_bounds())
+
+    def test_gate_has_angle_bound(self):
+        """Test gate has angle bounds method."""
+        target = Target("bounds", 1)
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+        lam = Parameter("Lambda")
+        target.add_instruction(
+            UGate(theta, phi, lam), angle_bounds=[(0, 1), (0, 3), (-math.pi, math.pi)]
+        )
+        target.add_instruction(XGate())
+        self.assertTrue(target.gate_has_angle_bounds("u"))
+        self.assertFalse(target.gate_has_angle_bounds("x"))
+
+    def test_instruction_supported_angle_check(self):
+        """Test instruction supported with angle bounds check enabled."""
+        target = Target("bounds", 1)
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+        lam = Parameter("Lambda")
+        target.add_instruction(
+            UGate(theta, phi, lam), angle_bounds=[(0, 1), (0, 3), (-math.pi, math.pi)]
+        )
+        target.add_instruction(XGate())
+        self.assertTrue(
+            target.instruction_supported("u", parameters=[0, 0, 0], check_angle_bounds=True)
+        )
+        self.assertFalse(
+            target.instruction_supported("u", parameters=[-3, 0, 0], check_angle_bounds=True)
+        )
+        self.assertTrue(target.instruction_supported("x", check_angle_bounds=True))

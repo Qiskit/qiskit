@@ -1,0 +1,7 @@
+---
+features_qpy:
+  - |
+    Added a new function :func:`.get_qpy_version` to the :func:`.qpy` module. This function will inspect a QPY file
+    and retrieve the QPY format version used in the payload.
+    The version is returned as an integer, which can be used for logging or debugging purposes.
+    see `#14201 <https://github.com/Qiskit/qiskit/issues/14201>`__.

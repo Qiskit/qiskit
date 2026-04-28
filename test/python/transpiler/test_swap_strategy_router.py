@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -37,7 +37,7 @@ from qiskit.transpiler.passes.routing.commuting_2q_gate_routing import (
     FindCommutingPauliEvolutions,
     Commuting2qGateRouter,
 )
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt
@@ -259,7 +259,8 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
             mixer.ry(-idx, idx)
 
         op = SparsePauliOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
-        circ = QAOAAnsatz(op, reps=2, mixer_operator=mixer)
+        with self.assertWarns(DeprecationWarning):
+            circ = QAOAAnsatz(op, reps=2, mixer_operator=mixer)
         swapped = self.pm_.run(circ.decompose())
 
         param_dict = {p: idx + 1 for idx, p in enumerate(swapped.parameters)}
@@ -575,7 +576,8 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
             mixer.ry(-idx, idx)
 
         op = SparsePauliOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
-        circ = QAOAAnsatz(op, reps=2, mixer_operator=mixer)
+        with self.assertWarns(DeprecationWarning):
+            circ = QAOAAnsatz(op, reps=2, mixer_operator=mixer)
 
         cmap = CouplingMap(couplinglist=[(0, 1), (1, 2), (2, 3)])
         swap_strat = SwapStrategy(cmap, swap_layers=[[(0, 1), (2, 3)], [(1, 2)]])

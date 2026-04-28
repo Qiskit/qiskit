@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -16,9 +16,8 @@ from __future__ import annotations
 
 import typing
 
-from .bit import Bit
+from . import Bit, Clbit, ClassicalRegister
 from .classical import expr
-from .classicalregister import ClassicalRegister, Clbit
 
 
 class VariableMapper(expr.ExprVisitor[expr.Expr]):
@@ -37,13 +36,16 @@ class VariableMapper(expr.ExprVisitor[expr.Expr]):
     ``ValueError`` will be raised instead.  The given ``add_register`` callable may choose to raise
     its own exception."""
 
-    __slots__ = ("target_cregs", "register_map", "bit_map", "var_map", "add_register")
+    # We don't want docstrings for the inherited visitor methods, which are self-explanatory and
+    # would just be noise.
+
+    __slots__ = ("add_register", "bit_map", "register_map", "target_cregs", "var_map")
 
     def __init__(
         self,
         target_cregs: typing.Iterable[ClassicalRegister],
         bit_map: typing.Mapping[Bit, Bit],
-        var_map: typing.Mapping[expr.Var, expr.Var] | None = None,
+        var_map: typing.Mapping[expr.Var | expr.Stretch, expr.Var | expr.Stretch] | None = None,
         *,
         add_register: typing.Callable[[ClassicalRegister], None] | None = None,
     ):
@@ -130,6 +132,9 @@ class VariableMapper(expr.ExprVisitor[expr.Expr]):
             return expr.Var(self.bit_map[node.var], node.type)
         if isinstance(node.var, ClassicalRegister):
             return expr.Var(self._map_register(node.var), node.type)
+        return self.var_map.get(node, node)
+
+    def visit_stretch(self, node, /):
         return self.var_map.get(node, node)
 
     def visit_value(self, node, /):

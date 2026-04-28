@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -21,7 +21,7 @@ from qiskit.circuit import QuantumCircuit, Qubit, AncillaQubit
 from qiskit.circuit.library import GroverOperator, grover_operator
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info import Operator, Statevector, DensityMatrix
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt
@@ -49,11 +49,15 @@ class TestGroverOperator(QiskitTestCase):
     @data(True, False)
     def test_grover_operator(self, use_function):
         """Test the base case for the Grover operator."""
-        grover_constructor = grover_operator if use_function else GroverOperator
         with self.subTest("single Z oracle"):
             oracle = QuantumCircuit(3)
             oracle.z(2)  # good state if last qubit is 1
-            grover_op = grover_constructor(oracle)
+            if use_function:
+                grover_op = grover_operator(oracle)
+            else:
+                with self.assertWarns(DeprecationWarning):
+                    grover_op = GroverOperator(oracle)
+
             self.assertGroverOperatorIsCorrect(grover_op, oracle)
 
         with self.subTest("target state x0x1"):
@@ -62,17 +66,24 @@ class TestGroverOperator(QiskitTestCase):
             oracle.z(1)
             oracle.x(1)
             oracle.z(3)
-            grover_op = grover_constructor(oracle)
+            if use_function:
+                grover_op = grover_operator(oracle)
+            else:
+                with self.assertWarns(DeprecationWarning):
+                    grover_op = GroverOperator(oracle)
             self.assertGroverOperatorIsCorrect(grover_op, oracle)
 
     @data(True, False)
     def test_quantum_info_input(self, use_function):
         """Test passing quantum_info.Operator and Statevector as input."""
-        grover_constructor = grover_operator if use_function else GroverOperator
-
         mark = Statevector.from_label("001")
         diffuse = 2 * DensityMatrix.from_label("000") - Operator.from_label("III")
-        grover_op = grover_constructor(oracle=mark, zero_reflection=diffuse)
+        if use_function:
+            grover_op = grover_operator(oracle=mark, zero_reflection=diffuse)
+        else:
+            with self.assertWarns(DeprecationWarning):
+                grover_op = GroverOperator(oracle=mark, zero_reflection=diffuse)
+
         self.assertGroverOperatorIsCorrect(
             grover_op, oracle=np.diag((-1) ** mark.data), zero_reflection=diffuse.data
         )
@@ -90,8 +101,12 @@ class TestGroverOperator(QiskitTestCase):
         stateprep = QuantumCircuit(1)
         stateprep.append(instr, [0])
 
-        grover_constructor = grover_operator if use_function else GroverOperator
-        grover_op = grover_constructor(oracle, stateprep)
+        if use_function:
+            grover_op = grover_operator(oracle, stateprep)
+        else:
+            with self.assertWarns(DeprecationWarning):
+                grover_op = GroverOperator(oracle, stateprep)
+
         self.assertEqual(grover_op.num_qubits, 1)
 
     @data(True, False)
@@ -100,8 +115,11 @@ class TestGroverOperator(QiskitTestCase):
         oracle = QuantumCircuit(4)
         oracle.z(3)
 
-        grover_constructor = grover_operator if use_function else GroverOperator
-        grover_op = grover_constructor(oracle, reflection_qubits=[0, 3])
+        if use_function:
+            grover_op = grover_operator(oracle, reflection_qubits=[0, 3])
+        else:
+            with self.assertWarns(DeprecationWarning):
+                grover_op = GroverOperator(oracle, reflection_qubits=[0, 3])
 
         dag = circuit_to_dag(grover_op.decompose())
         self.assertEqual(set(dag.idle_wires()), {dag.qubits[1], dag.qubits[2]})
@@ -116,8 +134,11 @@ class TestGroverOperator(QiskitTestCase):
         sampling_probability = 0.2
         bernoulli.ry(2 * np.arcsin(np.sqrt(sampling_probability)), 0)
 
-        grover_constructor = grover_operator if use_function else GroverOperator
-        grover_op = grover_constructor(oracle, bernoulli)
+        if use_function:
+            grover_op = grover_operator(oracle, bernoulli)
+        else:
+            with self.assertWarns(DeprecationWarning):
+                grover_op = GroverOperator(oracle, bernoulli)
 
         self.assertGroverOperatorIsCorrect(grover_op, oracle, bernoulli)
 
@@ -132,8 +153,11 @@ class TestGroverOperator(QiskitTestCase):
         zero_reflection.rz(np.pi, 0)
         zero_reflection.x(0)
 
-        grover_constructor = grover_operator if use_function else GroverOperator
-        grover_op = grover_constructor(oracle, zero_reflection=zero_reflection)
+        if use_function:
+            grover_op = grover_operator(oracle, zero_reflection=zero_reflection)
+        else:
+            with self.assertWarns(DeprecationWarning):
+                grover_op = GroverOperator(oracle, zero_reflection=zero_reflection)
 
         with self.subTest("zero reflection up to phase works"):
             self.assertGroverOperatorIsCorrect(grover_op, oracle)
@@ -173,8 +197,11 @@ class TestGroverOperator(QiskitTestCase):
         oracle.h(6)
         oracle.x(6)
 
-        grover_constructor = grover_operator if use_function else GroverOperator
-        grover_op = grover_constructor(oracle, reflection_qubits=[0, 1])
+        if use_function:
+            grover_op = grover_operator(oracle, reflection_qubits=[0, 1])
+        else:
+            with self.assertWarns(DeprecationWarning):
+                grover_op = GroverOperator(oracle, reflection_qubits=[0, 1])
         self.assertEqual(grover_op.width(), 7)
 
     def test_mcx_allocation(self):

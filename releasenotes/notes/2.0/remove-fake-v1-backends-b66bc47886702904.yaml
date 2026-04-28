@@ -1,0 +1,26 @@
+---
+upgrade_providers:
+  - |
+    All fake backend classes based on the deprecated ``BackendV1`` have been removed from the :mod:`.providers.fake_provider` module.
+    These classes have been deprecated since Qiskit 1.2 and were part of the deprecated ``BackendV1`` workflow. Their use in tests
+    has been replaced with the :class:`.GenericBackendV2` class, which allows to create custom instances of :class:`.BackendV2` that
+    implement a simulated :meth:`.BackendV2.run`. The removal affects:
+
+    * Base classes:
+
+      * ``FakeBackend``
+      * ``FakePulseBackend``
+      * ``FakeQasmBackend``
+
+    * Fake backends for special testing purposes:
+      * ``Fake1Q``
+      * ``FakeOpenPulse2Q``
+      * ``FakeOpenPulse3Q``
+
+    * Legacy fake backends:
+
+      * ``Fake5QV1``
+      * ``Fake20QV1``
+      * ``Fake7QPulseV1``
+      * ``Fake27QPulseV1``
+      * ``Fake127QPulseV1``

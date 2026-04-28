@@ -1,0 +1,33 @@
+---
+features:
+  - |
+    Improved synthesis of multi-controlled :class:`.CZGate` gates.
+  - |
+    Improved the default plugin for synthesizing :class:`~.AnnotatedOperation` objects.
+    The improvement is especially useful when creating and transpiling controlled circuits
+    with controlled gates within them. For example::
+
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.circuit.library import CXGate
+      from qiskit.compiler import transpile
+
+      inner = QuantumCircuit(5)
+      inner.append(CXGate().control(3, annotated=True), [0, 1, 2, 3, 4])
+      controlled_inner_gate = inner.to_gate().control(2, annotated=True)
+      qc = QuantumCircuit(15)
+      qc.append(controlled_inner_gate, [0, 1, 2, 3, 4, 5, 6])
+      qct = transpile(qc, basis_gates=["cx", "u"])
+
+    This code creates a quantum circuit ``qc`` that contains a 2-controlled quantum
+    circuit with a 3-controlled CX-gate within it. With the improvement, the number
+    of CX-gates in the transpiled circuit is reduced from ``378`` to ``30``.
+    Note that by specifying ``annotated=True`` when defining control logic, the controlled
+    gates are created as annotated operations. This avoids eager synthesis, allows the
+    transpiler to detect that ``controlled_inner_gate`` is equivalent to a
+    6-controlled X-gate, and to choose the best synthesis method available for
+    multi-controlled X-gates, in particular utilizing available ancilla qubits.
+  - |
+    The function :func:`.adder_qft_d00` used for synthesize :class:`.ModularAdderGate`
+    and :class:`.HalfAdderGate` gates now accepts an addional parameter ``annotated``. If
+    ``True``, the inverse-QFT-gate within the adders is implemented as an annotated
+    operations, allowing the transpiler to apply additional optimizations.

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -13,12 +13,11 @@
 """Test library of quantum volume circuits."""
 
 import unittest
-
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import PauliTwoDesign
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestPauliTwoDesign(QiskitTestCase):
@@ -26,7 +25,8 @@ class TestPauliTwoDesign(QiskitTestCase):
 
     def test_random_pauli(self):
         """Test the Random Pauli circuit."""
-        circuit = PauliTwoDesign(4, seed=12, reps=1)
+        with self.assertWarns(DeprecationWarning):
+            circuit = PauliTwoDesign(4, seed=12, reps=1)
 
         qr = QuantumRegister(4, "q")
         params = circuit.ordered_parameters
@@ -68,7 +68,8 @@ class TestPauliTwoDesign(QiskitTestCase):
 
     def test_resize(self):
         """Test resizing the Random Pauli circuit preserves the gates."""
-        circuit = PauliTwoDesign(1)
+        with self.assertWarns(DeprecationWarning):
+            circuit = PauliTwoDesign(1)
         top_gates = [instruction.operation.name for instruction in circuit.decompose().data]
 
         circuit.num_qubits = 3
@@ -83,7 +84,9 @@ class TestPauliTwoDesign(QiskitTestCase):
 
     def test_assign_keeps_one_initial_layer(self):
         """Test assigning parameters does not add an additional initial layer."""
-        circuit = PauliTwoDesign(2)
+        with self.assertWarns(DeprecationWarning):
+            circuit = PauliTwoDesign(2)
+
         values = list(range(circuit.num_parameters))
 
         bound0 = circuit.assign_parameters(values)

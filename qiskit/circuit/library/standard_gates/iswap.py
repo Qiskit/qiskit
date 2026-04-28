@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -12,12 +12,10 @@
 
 """iSWAP gate."""
 
-from typing import Optional
 
 import numpy as np
 
 from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array
 from qiskit._accelerate.circuit import StandardGate
 
@@ -36,7 +34,7 @@ class iSwapGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.iswap` method.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -44,7 +42,7 @@ class iSwapGate(SingletonGate):
               │
         q_1: ─⨂─
 
-    **Reference Implementation:**
+    Reference implementation:
 
     .. code-block:: text
 
@@ -54,7 +52,7 @@ class iSwapGate(SingletonGate):
         q_1: ┤ S ├─────┤ X ├──■──┤ H ├
              └───┘     └───┘     └───┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -86,46 +84,31 @@ class iSwapGate(SingletonGate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.ISwapGate
+    _standard_gate = StandardGate.ISwap
 
-    def __init__(self, label: Optional[str] = None):
-        """Create new iSwap gate."""
+    def __init__(self, label: str | None = None):
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("iswap", 2, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
-        """
-        gate iswap a,b {
-            s q[0];
-            s q[1];
-            h q[0];
-            cx q[0],q[1];
-            cx q[1],q[0];
-            h q[1];
-        }
-        """
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        """Default definition"""
 
-        from .h import HGate
-        from .s import SGate
-        from .x import CXGate
+        from qiskit.circuit import QuantumCircuit
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (SGate(), [q[0]], []),
-            (SGate(), [q[1]], []),
-            (HGate(), [q[0]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (CXGate(), [q[1], q[0]], []),
-            (HGate(), [q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        #      ┌───┐┌───┐     ┌───┐
+        # q_0: ┤ S ├┤ H ├──■──┤ X ├─────
+        #      ├───┤└───┘┌─┴─┐└─┬─┘┌───┐
+        # q_1: ┤ S ├─────┤ X ├──■──┤ H ├
+        #      └───┘     └───┘     └───┘
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.ISwap._get_definition(self.params), legacy_qubits=True
+        )
 
     def power(self, exponent: float, annotated: bool = False):
         return XXPlusYYGate(-np.pi * exponent)

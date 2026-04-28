@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -24,7 +24,7 @@ from qiskit.circuit import Parameter
 from qiskit.circuit.classical import expr, types
 from qiskit.quantum_info import Operator
 from qiskit.exceptions import QiskitError
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestCircuitToInstruction(QiskitTestCase):
@@ -142,6 +142,17 @@ class TestCircuitToInstruction(QiskitTestCase):
         self.assertRaises(
             QiskitError, circuit_to_instruction, qc, {theta: gamma, phi: phi, delta: delta}
         )
+
+    def test_control_flow_raises(self):
+        """Raising if a circuit to convert has control flow.
+        See https://github.com/Qiskit/qiskit/issues/11379"""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+        with qc.if_test((qc.clbits[0], 0)):
+            qc.x(0)
+        self.assertRaises(QiskitError, circuit_to_instruction, qc)
 
     def test_parameter_map(self):
         """Verify alternate parameter specification"""

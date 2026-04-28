@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -12,13 +12,10 @@
 
 """Global Phase Gate"""
 
-from typing import Optional
 
 import numpy
 
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit._accelerate.circuit import StandardGate
 
@@ -28,7 +25,7 @@ class GlobalPhaseGate(Gate):
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
 
-    **Mathematical Representation:**
+    Mathematical representation:
 
     .. math::
         \text{GlobalPhaseGate}\ =
@@ -37,9 +34,9 @@ class GlobalPhaseGate(Gate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.GlobalPhaseGate
+    _standard_gate = StandardGate.GlobalPhase
 
-    def __init__(self, phase: ParameterValueType, label: Optional[str] = None):
+    def __init__(self, phase: ParameterValueType, label: str | None = None):
         """
         Args:
             phase: The value of phase it takes.
@@ -48,10 +45,12 @@ class GlobalPhaseGate(Gate):
         super().__init__("global_phase", 0, [phase], label=label)
 
     def _define(self):
-        q = QuantumRegister(0, "q")
-        qc = QuantumCircuit(q, name=self.name, global_phase=self.params[0])
 
-        self.definition = qc
+        from qiskit.circuit import QuantumCircuit
+
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.GlobalPhase._get_definition(self.params), legacy_qubits=True
+        )
 
     def inverse(self, annotated: bool = False):
         r"""Return inverse GlobalPhaseGate gate.

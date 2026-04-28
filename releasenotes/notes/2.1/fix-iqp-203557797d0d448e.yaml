@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed the construction of Instantaneous Quantum Polynomial time (IQP) circuits
+    in :class:`~qiskit.circuit.library.IQP` and by :func:`~qiskit.circuit.library.iqp`.
+    The previous implementation incorrectly used powers of the :math:`\sqrt{T}` gate
+    instead of powers of the :math:`T` gate.

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -17,7 +17,7 @@ from qiskit.visualization.timeline import core, stylesheet, generators, layouts
 from qiskit.transpiler.target import Target, InstructionProperties
 from qiskit.circuit import Delay, Parameter, Measure
 from qiskit.circuit.library import HGate, CXGate
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestCanvas(QiskitTestCase):
@@ -166,18 +166,22 @@ class TestCanvas(QiskitTestCase):
         circ.measure(0, 0)
         circ.measure(1, 1)
 
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `target` parameter should be used instead",
-        ):
-            circ = transpile(
-                circ,
-                scheduling_method="alap",
-                basis_gates=[],
-                dt=1e-7,
-                instruction_durations=[("measure", 0, 2000), ("measure", 1, 2000)],
-                optimization_level=0,
-            )
+        target = Target(num_qubits=2, dt=1e-7)
+        target.add_instruction(
+            Measure(),
+            {
+                (0,): InstructionProperties(duration=2000 * 1e-7),
+                (1,): InstructionProperties(duration=2000 * 1e-7),
+            },
+        )
+
+        circ = transpile(
+            circ,
+            scheduling_method="alap",
+            dt=1e-7,
+            target=target,
+            optimization_level=0,
+        )
 
         canvas = core.DrawerCanvas(stylesheet=self.style)
         canvas.formatter.update({"control.show_clbits": False})
@@ -191,14 +195,7 @@ class TestCanvas(QiskitTestCase):
             "barriers": [],
             "gate_links": [generators.gen_gate_link],
         }
-        target = Target(num_qubits=2, dt=1e-7)
-        target.add_instruction(
-            Measure(),
-            {
-                (0,): InstructionProperties(duration=2000 * 1e-7),
-                (1,): InstructionProperties(duration=2000 * 1e-7),
-            },
-        )
+
         canvas.load_program(circ, target)
         canvas.update()
         self.assertEqual(len(canvas._output_dataset), 0)
@@ -209,18 +206,18 @@ class TestCanvas(QiskitTestCase):
         circ.measure(0, 0)
         circ.measure(1, 1)
 
-        with self.assertWarnsRegex(
-            DeprecationWarning,
-            expected_regex="The `target` parameter should be used instead",
-        ):
-            circ = transpile(
-                circ,
-                scheduling_method="alap",
-                dt=1e-7,
-                basis_gates=[],
-                instruction_durations=[("measure", 0, 2000), ("measure", 1, 2000)],
-                optimization_level=0,
-            )
+        target = Target(num_qubits=2, dt=1e-7)
+        target.add_instruction(
+            Measure(),
+            {
+                (0,): InstructionProperties(duration=2000 * 1e-7),
+                (1,): InstructionProperties(duration=2000 * 1e-7),
+            },
+        )
+
+        circ = transpile(
+            circ, scheduling_method="alap", dt=1e-7, optimization_level=0, target=target
+        )
 
         canvas = core.DrawerCanvas(stylesheet=self.style)
         canvas.formatter.update({"control.show_clbits": True})
@@ -234,14 +231,6 @@ class TestCanvas(QiskitTestCase):
             "barriers": [],
             "gate_links": [generators.gen_gate_link],
         }
-        target = Target(num_qubits=2, dt=1e-7)
-        target.add_instruction(
-            Measure(),
-            {
-                (0,): InstructionProperties(duration=2000 * 1e-7),
-                (1,): InstructionProperties(duration=2000 * 1e-7),
-            },
-        )
 
         canvas.load_program(circ, target)
         canvas.update()

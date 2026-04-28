@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass
-from typing import Iterable
+from collections.abc import Iterable
 
 import numpy as np
 from numpy.typing import NDArray
@@ -26,7 +26,7 @@ from qiskit import ClassicalRegister, QiskitError, QuantumCircuit
 from qiskit.quantum_info import Statevector
 
 from .base import BaseSamplerV2
-from .base.validation import _has_measure
+from .base.validation_v1 import _has_measure
 from .containers import (
     BitArray,
     DataBin,
@@ -94,7 +94,7 @@ class StatevectorSampler(BaseSamplerV2):
         circuit.measure([0, 1], alpha)
         circuit.measure([2], beta)
 
-        # Define a sweep over parameter values, where the second axis is over.
+        # Define a sweep over parameter values, where the second axis is over
         # the two parameters in the circuit.
         params = np.vstack([
             np.linspace(-np.pi, np.pi, 100),
@@ -254,7 +254,7 @@ def _samples_to_packed_array(
 def _final_measurement_mapping(circuit: QuantumCircuit) -> dict[tuple[ClassicalRegister, int], int]:
     """Return the final measurement mapping for the circuit.
 
-    Parameters:
+    Args:
         circuit: Input quantum circuit.
 
     Returns:

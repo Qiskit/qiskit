@@ -1,0 +1,21 @@
+---
+upgrade_circuits:
+  - |
+    The method ``gate.control`` no longer returns an :class:`.AnnotatedOperation` when
+    the argument ``annotated`` is set to ``True`` when a native controlled-gate class
+    is available. This change is consistent with how the argument ``annotated``
+    is used across the standard circuit library, and enables more efficient decompositions
+    of control-annotated gates. The affected gates are:
+
+    * Single-controlled ``H``, ``S``, ``Sdg``, ``U3``, ``Y``, ``Z``, ``SX``, ``RX``, ``RY``,
+      ``RZ``, ``Swap`` and ``CZ`` gates;
+
+    * Double-controlled ``Z``-gate;
+
+    * arbitrarily-controlled ``Phase``, ``CPhase``, ``MCPhase``, ``U1``, ``CU1``, ``MCU1``
+      and ``MCMT`` gates.
+
+  - |
+    The default value of the argument ``annotated`` in :meth:`QuantumCircuit.control` is now
+    ``None`` instead of ``False``. This does not affect the actual circuits, but is consistent
+    with the default value of ``annotated`` used across the circuit library.

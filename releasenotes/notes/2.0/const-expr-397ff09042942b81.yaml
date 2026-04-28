@@ -1,0 +1,22 @@
+---
+features_circuits:
+  - |
+    The classical realtime-expressions module :mod:`qiskit.circuit.classical` can now represent
+    constant expressions. The :class:`~.expr.Expr` class now has a bool
+    :attr:`~.expr.Expr.const` attribute which indicates the expression's const-ness. This allows
+    us to enforce that expressions in certain contexts must be possible to evaluate at compile time.
+
+    All :class:`~.expr.Var` expressions are considered to be non-const, while all :class:`~.expr.Value`
+    expressions are const.
+
+    An expression comprised only of other const expressions is also const::
+
+      from qiskit.circuit.classical import expr
+
+      assert expr.bit_and(5, 6).const
+
+    An expression that contains any non-const expression is non-const::
+
+      from qiskit.circuit.classical import expr, types
+
+      assert not expr.bit_and(5, expr.Var.new("a", types.Uint(5)).const

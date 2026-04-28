@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit._accelerate import euler_one_qubit_decomposer
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import Qubit
+from qiskit.circuit import Qubit
 from qiskit.circuit.library.standard_gates import (
     UGate,
     PhaseGate,
@@ -207,7 +207,7 @@ class OneQubitEulerDecomposer:
         # Convert to numpy array in case not already an array
         unitary = np.asarray(unitary, dtype=complex)
 
-        # Check input is a 2-qubit unitary
+        # Check input is a 1-qubit unitary
         if unitary.shape != (2, 2):
             raise QiskitError("OneQubitEulerDecomposer: expected 2x2 input matrix")
         if not is_unitary_matrix(unitary):
@@ -225,7 +225,7 @@ class OneQubitEulerDecomposer:
             euler_one_qubit_decomposer.unitary_to_circuit(
                 unitary, [self.basis], 0, None, simplify, atol
             ),
-            add_regs=True,
+            legacy_qubits=True,
         )
 
     @property

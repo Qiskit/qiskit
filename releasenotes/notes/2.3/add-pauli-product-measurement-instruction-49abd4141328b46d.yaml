@@ -1,0 +1,28 @@
+---
+features_circuits:
+  - |
+    Added a new instruction class, :class:`.PauliProductMeasurement`, which represents
+    a joint projective measurement on multiple qubits, where the measured observable is 
+    a tensor product of Pauli operators.
+    The outcome of this measurement is a single eigenvalue, either :math:`+1` or :math:`-1`,
+    indicating the eigenstate of the Pauli product.
+
+    For additional background, see
+    "A Game of Surface Codes: Large-Scale Quantum Computing with Lattice Surgery" by
+    Daniel Litinski (https://arxiv.org/abs/1808.02892).
+
+    A :class:`.PauliProductMeasurement` can be instantiated from a 
+    :class:`~.quantum_info.Pauli`, where the Pauli may include a phase of :math:`-1`,
+    but not of :math:`i` or :math:`-i`. The instruction has the same number of qubits as
+    the Pauli, and exactly :math:`1` classical bit.
+
+    As an example::
+
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.quantum_info import Pauli
+        from qiskit.circuit.library import PauliProductMeasurement
+
+        ppm = PauliProductMeasurement(Pauli("XZ"))
+
+        qc = QuantumCircuit(6, 2)
+        qc.append(ppm, [4, 1], [1])

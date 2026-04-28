@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -56,43 +56,44 @@ class UnitarySynthesis(TransformationPass):
 
     def __init__(
         self,
-        basis_gates: list[str] = None,
+        basis_gates: list[str] | None = None,
         approximation_degree: float | None = 1.0,
-        coupling_map: CouplingMap = None,
+        coupling_map: CouplingMap | None = None,
         pulse_optimize: bool | None = None,
         natural_direction: bool | None = None,
         synth_gates: list[str] | None = None,
         method: str = "default",
         min_qubits: int = 0,
-        plugin_config: dict = None,
-        target: Target = None,
+        plugin_config: dict | None = None,
+        target: Target | None = None,
+        fallback_on_default: bool = False,
     ):
         """Synthesize unitaries over some basis gates.
 
-        This pass can approximate 2-qubit unitaries given some
+        This pass can approximate unitaries given some
         gate fidelities (via ``target``).
         More approximation can be forced by setting a heuristic dial
         ``approximation_degree``.
 
         Args:
-            basis_gates (list[str]): List of gate names to target. If this is
+            basis_gates: List of gate names to target. If this is
                 not specified the ``target`` argument must be used. If both this
                 and the ``target`` are specified the value of ``target`` will
                 be used and this will be ignored.
-            approximation_degree (float): heuristic dial used for circuit approximation
+            approximation_degree: Heuristic dial used for circuit approximation
                 (1.0=no approximation, 0.0=maximal approximation). Approximation can
                 make the synthesized circuit cheaper at the cost of straying from
-                the original unitary. If None, approximation is done based on gate fidelities.
-            coupling_map (CouplingMap): the coupling map of the target
+                the original unitary. If ``None``, approximation is done based on gate fidelities.
+            coupling_map: The coupling map of the target
                 in case synthesis is done on a physical circuit. The
                 directionality of the coupling_map will be taken into
                 account if ``pulse_optimize`` is ``True``/``None`` and ``natural_direction``
                 is ``True``/``None``.
-            pulse_optimize (bool): Whether to optimize pulses during
+            pulse_optimize: Whether to optimize pulses during
                 synthesis. A value of ``None`` will attempt it but fall
                 back if it does not succeed. A value of ``True`` will raise
                 an error if pulse-optimized synthesis does not succeed.
-            natural_direction (bool): Whether to apply synthesis considering
+            natural_direction: Whether to apply synthesis considering
                 directionality of 2-qubit gates. Only applies when
                 ``pulse_optimize`` is ``True`` or ``None``. The natural direction is
                 determined by first checking to see whether the
@@ -104,11 +105,11 @@ class UnitarySynthesis(TransformationPass):
                 determined, raises :class:`.TranspilerError`. If set to None, no
                 exception will be raised if a natural direction can
                 not be determined.
-            synth_gates (list[str]): List of gates to synthesize. If None and
+            synth_gates: List of gates to synthesize. If None and
                 ``pulse_optimize`` is False or None, default to
                 ``['unitary']``. If ``None`` and ``pulse_optimize == True``,
                 default to ``['unitary', 'swap']``
-            method (str): The unitary synthesis method plugin to use.
+            method: The unitary synthesis method plugin to use.
             min_qubits: The minimum number of qubits in the unitary to synthesize. If this is set
                 and the unitary is less than the specified number of qubits it will not be
                 synthesized.
@@ -120,6 +121,10 @@ class UnitarySynthesis(TransformationPass):
             target: The optional :class:`~.Target` for the target device the pass
                 is compiling for. If specified this will supersede the values
                 set for ``basis_gates`` and ``coupling_map``.
+            fallback_on_default: Specifies whether the default synthesis method should be used
+                in the case that a non-default synthesis ``method`` is specified but is either
+                unable to synthesize the operation or the synthesized circuit does not conform
+                to the target.
 
         Raises:
             TranspilerError: if ``method`` was specified but is not found in the
@@ -138,16 +143,19 @@ class UnitarySynthesis(TransformationPass):
         self._pulse_optimize = pulse_optimize
         self._natural_direction = natural_direction
         self._plugin_config = plugin_config
-        self._target = target
+        self._fallback_on_default = fallback_on_default
+        # Bypass target if it doesn't contain any basis gates (i.e it's _FakeTarget), as this
+        # not part of the official target model.
+        self._target = target if target is not None and len(target.operation_names) > 0 else None
         if target is not None:
-            self._coupling_map = self._target.build_coupling_map()
+            self._coupling_map = target.build_coupling_map()
+            self._basis_gates = set(target.operation_names)
         if synth_gates:
             self._synth_gates = synth_gates
+        elif pulse_optimize:
+            self._synth_gates = ["unitary", "swap"]
         else:
-            if pulse_optimize:
-                self._synth_gates = ["unitary", "swap"]
-            else:
-                self._synth_gates = ["unitary"]
+            self._synth_gates = ["unitary"]
 
         self._synth_gates = set(self._synth_gates) - self._basis_gates
 
@@ -169,6 +177,26 @@ class UnitarySynthesis(TransformationPass):
         if not set(self._synth_gates).intersection(dag.count_ops()):
             return dag
 
+        # Special flow for the "default" method
+        if self.method == "default":
+            _coupling_edges = (
+                set(self._coupling_map.get_edges()) if self._coupling_map is not None else set()
+            )
+            qubit_indices = {bit: i for i, bit in enumerate(dag.qubits)}
+            out = run_main_loop(
+                dag,
+                list(qubit_indices.values()),
+                self._min_qubits,
+                self._target,
+                self._basis_gates,
+                self._synth_gates,
+                _coupling_edges,
+                self._approximation_degree,
+                self._natural_direction,
+                self._pulse_optimize,
+            )
+            return out
+
         if self.plugins:
             plugin_method = self.plugins.ext_plugins[self.method].obj
         else:
@@ -181,29 +209,17 @@ class UnitarySynthesis(TransformationPass):
         _gate_lengths = _gate_errors = None
         _gate_lengths_by_qubit = _gate_errors_by_qubit = None
 
-        if self.method == "default":
-            # If the method is the default, we only need to evaluate one set of keyword arguments.
-            # To simplify later logic, and avoid cases where static analysis might complain that we
-            # haven't initialized the "default" handler, we rebind the names so they point to the
-            # same object as the chosen method.
-            default_method = plugin_method
-            default_kwargs = plugin_kwargs
-            method_list = [(plugin_method, plugin_kwargs)]
-        else:
-            # If the method is not the default, we still need to initialise the default plugin's
-            # keyword arguments in case we have to fall back on it during the actual run.
-            default_method = self.plugins.ext_plugins["default"].obj
-            default_kwargs = {}
-            method_list = [(plugin_method, plugin_kwargs), (default_method, default_kwargs)]
+        # If the method is not the default, we still need to initialise the default plugin's
+        # keyword arguments in case we have to fall back on it during the actual run.
+        default_method = self.plugins.ext_plugins["default"].obj
+        default_kwargs = {}
+        method_list = [(plugin_method, plugin_kwargs), (default_method, default_kwargs)]
 
         # Handle approximation degree as a special case for backwards compatibility, it's
         # not part of the plugin interface and only something needed for the default
         # pass.
-        # pylint: disable=attribute-defined-outside-init
+
         default_method._approximation_degree = self._approximation_degree
-        if self.method == "default":
-            # pylint: disable=attribute-defined-outside-init
-            plugin_method._approximation_degree = self._approximation_degree
 
         qubit_indices = (
             {bit: i for i, bit in enumerate(dag.qubits)}
@@ -211,56 +227,48 @@ class UnitarySynthesis(TransformationPass):
             else {}
         )
 
-        if self.method == "default":
-            _coupling_edges = (
-                set(self._coupling_map.get_edges()) if self._coupling_map is not None else set()
-            )
-            out = run_main_loop(
-                dag,
-                list(qubit_indices.values()),
-                self._min_qubits,
-                self._target,
-                self._basis_gates,
-                _coupling_edges,
-                self._approximation_degree,
-                self._natural_direction,
-                self._pulse_optimize,
-            )
-            return out
-        else:
-            for method, kwargs in method_list:
-                if method.supports_basis_gates:
-                    kwargs["basis_gates"] = self._basis_gates
-                if method.supports_natural_direction:
-                    kwargs["natural_direction"] = self._natural_direction
-                if method.supports_pulse_optimize:
-                    kwargs["pulse_optimize"] = self._pulse_optimize
-                if method.supports_gate_lengths:
-                    _gate_lengths = _gate_lengths or _build_gate_lengths(self._target)
-                    kwargs["gate_lengths"] = _gate_lengths
-                if method.supports_gate_errors:
-                    _gate_errors = _gate_errors or _build_gate_errors(self._target)
-                    kwargs["gate_errors"] = _gate_errors
-                if method.supports_gate_lengths_by_qubit:
-                    _gate_lengths_by_qubit = _gate_lengths_by_qubit or _build_gate_lengths_by_qubit(
-                        self._target
-                    )
-                    kwargs["gate_lengths_by_qubit"] = _gate_lengths_by_qubit
-                if method.supports_gate_errors_by_qubit:
-                    _gate_errors_by_qubit = _gate_errors_by_qubit or _build_gate_errors_by_qubit(
-                        self._target
-                    )
-                    kwargs["gate_errors_by_qubit"] = _gate_errors_by_qubit
-                supported_bases = method.supported_bases
-                if supported_bases is not None:
-                    kwargs["matched_basis"] = _choose_bases(self._basis_gates, supported_bases)
-                if method.supports_target:
-                    kwargs["target"] = self._target
+        for method, kwargs in method_list:
+            if method.supports_basis_gates:
+                kwargs["basis_gates"] = self._basis_gates
+            if method.supports_natural_direction:
+                kwargs["natural_direction"] = self._natural_direction
+            if method.supports_pulse_optimize:
+                kwargs["pulse_optimize"] = self._pulse_optimize
+            if method.supports_gate_lengths:
+                _gate_lengths = _gate_lengths or _build_gate_lengths(self._target)
+                kwargs["gate_lengths"] = _gate_lengths
+            if method.supports_gate_errors:
+                _gate_errors = _gate_errors or _build_gate_errors(self._target)
+                kwargs["gate_errors"] = _gate_errors
+            if method.supports_gate_lengths_by_qubit:
+                _gate_lengths_by_qubit = _gate_lengths_by_qubit or _build_gate_lengths_by_qubit(
+                    self._target
+                )
+                kwargs["gate_lengths_by_qubit"] = _gate_lengths_by_qubit
+            if method.supports_gate_errors_by_qubit:
+                _gate_errors_by_qubit = _gate_errors_by_qubit or _build_gate_errors_by_qubit(
+                    self._target
+                )
+                kwargs["gate_errors_by_qubit"] = _gate_errors_by_qubit
+            supported_bases = method.supported_bases
+            if supported_bases is not None:
+                kwargs["matched_basis"] = _choose_bases(self._basis_gates, supported_bases)
+            if method.supports_target:
+                kwargs["target"] = self._target
 
-            out = self._run_main_loop(
-                dag, qubit_indices, plugin_method, plugin_kwargs, default_method, default_kwargs
+        out = self._run_main_loop(
+            dag, qubit_indices, plugin_method, plugin_kwargs, default_method, default_kwargs
+        )
+        return out
+
+    def _run_plugin_synthesis(self, method, kwargs, unitary, qubit_indices, qargs):
+        """Helper to run the synthesis plugin."""
+        if method.supports_coupling_map:
+            kwargs["coupling_map"] = (
+                self._coupling_map,
+                [qubit_indices[x] for x in qargs],
             )
-            return out
+        return method.run(unitary, **kwargs)
 
     def _run_main_loop(
         self, dag, qubit_indices, plugin_method, plugin_kwargs, default_method, default_kwargs
@@ -292,22 +300,31 @@ class UnitarySynthesis(TransformationPass):
 
         out_dag = dag.copy_empty_like()
         for node in dag.topological_op_nodes():
-            if node.name == "unitary" and len(node.qargs) >= self._min_qubits:
+            if node.name in self._synth_gates and len(node.qargs) >= self._min_qubits:
                 synth_dag = None
                 unitary = node.matrix
                 n_qubits = len(node.qargs)
-                if (
+                use_default_method = (
                     plugin_method.max_qubits is not None and n_qubits > plugin_method.max_qubits
-                ) or (plugin_method.min_qubits is not None and n_qubits < plugin_method.min_qubits):
+                ) or (plugin_method.min_qubits is not None and n_qubits < plugin_method.min_qubits)
+
+                if use_default_method:
                     method, kwargs = default_method, default_kwargs
                 else:
                     method, kwargs = plugin_method, plugin_kwargs
-                if method.supports_coupling_map:
-                    kwargs["coupling_map"] = (
-                        self._coupling_map,
-                        [qubit_indices[x] for x in node.qargs],
+
+                synth_dag = self._run_plugin_synthesis(
+                    method, kwargs, unitary, qubit_indices, node.qargs
+                )
+
+                # In the case that a non-default method was used and the option fallback_on_default
+                # is set, check whether the unitary was successfully synthesized: the returned
+                # circuit is not ``None``. If not, we fall back on running the default plugin.
+                if (not use_default_method) and self._fallback_on_default and (synth_dag is None):
+                    synth_dag = self._run_plugin_synthesis(
+                        default_method, default_kwargs, unitary, qubit_indices, node.qargs
                     )
-                synth_dag = method.run(unitary, **kwargs)
+
                 if synth_dag is None:
                     out_dag._apply_op_node_back(node)
                     continue

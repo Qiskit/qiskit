@@ -1,0 +1,5 @@
+---
+features_circuits:
+  - |
+    Improve the synthesis of a multi-controlled :class:`.U1Gate`,
+    so that it will not grow exponentially with the number of controls.

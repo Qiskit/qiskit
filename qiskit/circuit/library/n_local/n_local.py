@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -23,7 +23,7 @@ import numpy
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import QuantumCircuit, ParameterValueType
 from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit import (
     Instruction,
     Parameter,
@@ -44,11 +44,11 @@ from ..blueprintcircuit import BlueprintCircuit
 
 
 if typing.TYPE_CHECKING:
-    import qiskit  # pylint: disable=cyclic-import
+    import qiskit
 
 # entanglement for an individual block, e.g. if the block is CXGate() and we have
 # 3 qubits, this could be [(0, 1), (1, 2), (2, 0)]
-BlockEntanglement = typing.Union[str, Iterable[Iterable[int]]]
+BlockEntanglement = str | Iterable[Iterable[int]]
 
 
 def n_local(
@@ -103,108 +103,108 @@ def n_local(
 
     Entanglement:
 
-        The entanglement describes the connections of the gates in the entanglement layer.
-        For a two-qubit gate for example, the entanglement contains pairs of qubits on which the
-        gate should acts, e.g. ``[[ctrl0, target0], [ctrl1, target1], ...]``.
-        A set of default entanglement strategies is provided and can be selected by name:
+    The entanglement describes the connections of the gates in the entanglement layer.
+    For a two-qubit gate for example, the entanglement contains pairs of qubits on which the
+    gate should acts, e.g. ``[[ctrl0, target0], [ctrl1, target1], ...]``.
+    A set of default entanglement strategies is provided and can be selected by name:
 
-        * ``"full"`` entanglement is each qubit is entangled with all the others.
-        * ``"linear"`` entanglement is qubit :math:`i` entangled with qubit :math:`i + 1`,
-          for all :math:`i \in \{0, 1, ... , n - 2\}`, where :math:`n` is the total number of qubits.
-        * ``"reverse_linear"`` entanglement is qubit :math:`i` entangled with qubit :math:`i + 1`,
-          for all :math:`i \in \{n-2, n-3, ... , 1, 0\}`, where :math:`n` is the total number of qubits.
-          Note that if ``entanglement_blocks=="cx"`` then this option provides the same unitary as
-          ``"full"`` with fewer entangling gates.
-        * ``"pairwise"`` entanglement is one layer where qubit :math:`i` is entangled with qubit
-          :math:`i + 1`, for all even values of :math:`i`, and then a second layer where qubit :math:`i`
-          is entangled with qubit :math:`i + 1`, for all odd values of :math:`i`.
-        * ``"circular"`` entanglement is linear entanglement but with an additional entanglement of the
-          first and last qubit before the linear part.
-        * ``"sca"`` (shifted-circular-alternating) entanglement is a generalized and modified version
-          of the proposed circuit 14 in `Sim et al. <https://arxiv.org/abs/1905.10876>`__.
-          It consists of circular entanglement where the "long" entanglement connecting the first with
-          the last qubit is shifted by one each block.  Furthermore the role of control and target
-          qubits are swapped every block (therefore alternating).
+    * ``"full"`` entanglement is where each qubit is entangled with all the others.
+    * ``"linear"`` entanglement is qubit :math:`i` entangled with qubit :math:`i + 1`,
+        for all :math:`i \in \{0, 1, ... , n - 2\}`, where :math:`n` is the total number of qubits.
+    * ``"reverse_linear"`` entanglement is qubit :math:`i` entangled with qubit :math:`i + 1`,
+        for all :math:`i \in \{n-2, n-3, ... , 1, 0\}`, where :math:`n` is the total number of qubits.
+        Note that if ``entanglement_blocks=="cx"`` then this option provides the same unitary as
+        ``"full"`` with fewer entangling gates.
+    * ``"pairwise"`` entanglement is one layer where qubit :math:`i` is entangled with qubit
+        :math:`i + 1`, for all even values of :math:`i`, and then a second layer where qubit :math:`i`
+        is entangled with qubit :math:`i + 1`, for all odd values of :math:`i`.
+    * ``"circular"`` entanglement is linear entanglement but with an additional entanglement of the
+        first and last qubit before the linear part.
+    * ``"sca"`` (shifted-circular-alternating) entanglement is a generalized and modified version
+        of the proposed circuit 14 in `Sim et al. <https://arxiv.org/abs/1905.10876>`__.
+        It consists of circular entanglement where the "long" entanglement connecting the first with
+        the last qubit is shifted by one each block.  Furthermore the role of control and target
+        qubits are swapped every block (therefore alternating).
 
-        If an entanglement layer contains multiple blocks, then the entanglement should be
-        given as list of entanglements for each block. For example::
+    If an entanglement layer contains multiple blocks, then the entanglement should be
+    given as list of entanglements for each block. For example::
 
-            entanglement_blocks = ["rxx", "ryy"]
-            entanglement = ["full", "linear"]  # full for rxx and linear for ryy
+        entanglement_blocks = ["rxx", "ryy"]
+        entanglement = ["full", "linear"]  # full for rxx and linear for ryy
 
-        or::
+    or::
 
-            structure_rxx = [[0, 1], [2, 3]]
-            structure_ryy = [[0, 2]]
-            entanglement = [structure_rxx, structure_ryy]
+        structure_rxx = [[0, 1], [2, 3]]
+        structure_ryy = [[0, 2]]
+        entanglement = [structure_rxx, structure_ryy]
 
-        Finally, the entanglement can vary in each repetition of the circuit. For this, we
-        support passing a callable that takes as input the layer index and returns the entanglement
-        for the layer in the above format. See the examples below for a concrete example.
+    Finally, the entanglement can vary in each repetition of the circuit. For this, we
+    support passing a callable that takes as input the layer index and returns the entanglement
+    for the layer in the above format. See the examples below for a concrete example.
 
     Examples:
 
-        The rotation and entanglement gates can be specified via single strings, if they
-        are made up of a single block per layer:
+    The rotation and entanglement gates can be specified via single strings, if they
+    are made up of a single block per layer:
 
-        .. plot::
-            :alt: Circuit diagram output by the previous code.
-            :include-source:
-            :context:
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
+        :context:
 
-            from qiskit.circuit.library import n_local
+        from qiskit.circuit.library import n_local
 
-            circuit = n_local(3, "ry", "cx", "linear", reps=2, insert_barriers=True)
-            circuit.draw("mpl")
+        circuit = n_local(3, "ry", "cx", "linear", reps=2, insert_barriers=True)
+        circuit.draw("mpl")
 
-        Multiple gates per layer can be set by passing a list. Here, for example, we use
-        Pauli-Y and Pauli-Z rotations in the rotation layer:
+    Multiple gates per layer can be set by passing a list. Here, for example, we use
+    Pauli-Y and Pauli-Z rotations in the rotation layer:
 
-        .. plot::
-            :alt: Circuit diagram output by the previous code.
-            :include-source:
-            :context: close-figs
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
+        :context: close-figs
 
-            circuit = n_local(3, ["ry", "rz"], "cz", "full", reps=1, insert_barriers=True)
-            circuit.draw("mpl")
+        circuit = n_local(3, ["ry", "rz"], "cz", "full", reps=1, insert_barriers=True)
+        circuit.draw("mpl")
 
-        To omit rotation or entanglement layers, the block can be set to an empty list:
+    To omit rotation or entanglement layers, the block can be set to an empty list:
 
-        .. plot::
-            :alt: Circuit diagram output by the previous code.
-            :include-source:
-            :context: close-figs
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
+        :context: close-figs
 
-            circuit = n_local(4, [], "cry", reps=2)
-            circuit.draw("mpl")
+        circuit = n_local(4, [], "cry", reps=2)
+        circuit.draw("mpl")
 
-        The entanglement can be set explicitly via the ``entanglement`` argument:
+    The entanglement can be set explicitly via the ``entanglement`` argument:
 
-        .. plot::
-            :alt: Circuit diagram output by the previous code.
-            :include-source:
-            :context: close-figs
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
+        :context: close-figs
 
-            entangler_map = [[0, 1], [2, 0]]
-            circuit = n_local(3, "x", "crx", entangler_map, reps=2)
-            circuit.draw("mpl")
+        entangler_map = [[0, 1], [2, 0]]
+        circuit = n_local(3, "x", "crx", entangler_map, reps=2)
+        circuit.draw("mpl")
 
-        We can set different entanglements per layer, by specifing a callable that takes
-        as input the current layer index, and returns the entanglement structure. For example,
-        the following uses different entanglements for odd and even layers:
+    We can set different entanglements per layer, by specifying a callable that takes
+    as input the current layer index, and returns the entanglement structure. For example,
+    the following uses different entanglements for odd and even layers:
 
-        .. plot::
-            :alt: Circuit diagram output by the previous code.
-            :include-source:
-            :context: close-figs
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
+        :context: close-figs
 
-            def entanglement(layer_index):
-                if layer_index % 2 == 0:
-                    return [[0, 1], [0, 2]]
-                return [[1, 2]]
+        def entanglement(layer_index):
+            if layer_index % 2 == 0:
+                return [[0, 1], [0, 2]]
+            return [[1, 2]]
 
-            circuit = n_local(3, "x", "cx", entanglement, reps=3, insert_barriers=True)
-            circuit.draw("mpl")
+        circuit = n_local(3, "x", "cx", entanglement, reps=3, insert_barriers=True)
+        circuit.draw("mpl")
 
 
     Args:
@@ -260,7 +260,7 @@ def n_local(
         skip_final_rotation_layer=skip_final_rotation_layer,
         skip_unentangled_qubits=skip_unentangled_qubits,
     )
-    circuit = QuantumCircuit._from_circuit_data(data, add_regs=True, name=name)
+    circuit = QuantumCircuit._from_circuit_data(data, legacy_qubits=True, name=name)
 
     return circuit
 
@@ -309,9 +309,10 @@ class NLocal(BlueprintCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
-        additional_msg="Use the function qiskit.circuit.library.n_local instead.",
-        pending=True,
+        since="2.1",
+        additional_msg="This applies to NLocal subclasses too. Use the corresponding function "
+        "from the module qiskit.circuit.library.n_local instead.",
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(
         self,
@@ -445,7 +446,7 @@ class NLocal(BlueprintCircuit):
         """Set the number of qubits for the n-local circuit.
 
         Args:
-            The new number of qubits.
+            num_qubits: The new number of qubits.
         """
         if self._num_qubits != num_qubits:
             # invalidate the circuit
@@ -665,7 +666,7 @@ class NLocal(BlueprintCircuit):
         """Set the parameters used in the underlying circuit.
 
         Args:
-            The parameters to be used in the underlying circuit.
+            parameters: The parameters to be used in the underlying circuit.
 
         Raises:
             ValueError: If the length of ordered parameters does not match the number of
@@ -814,7 +815,6 @@ class NLocal(BlueprintCircuit):
         """
         return None
 
-    # pylint: disable=too-many-return-statements
     def get_entangler_map(
         self, rep_num: int, block_num: int, num_block_qubits: int
     ) -> Sequence[Sequence[int]]:
@@ -987,7 +987,7 @@ class NLocal(BlueprintCircuit):
         other: QuantumCircuit | qiskit.circuit.Instruction,
         entanglement: list[int] | str | list[list[int]] | None = None,
         front: bool = False,
-    ) -> "NLocal":
+    ) -> NLocal:
         """Append another layer to the NLocal.
 
         Args:
@@ -1080,7 +1080,7 @@ class NLocal(BlueprintCircuit):
         """Convert ``block`` to a circuit of correct width and parameterized using the iterator."""
         if self._overwrite_block_parameters:
             # check if special parameters should be used
-            # pylint: disable=assignment-from-none
+
             if params is None:
                 params = self._parameter_generator(rep_num, block_num, indices)
             if params is None:
@@ -1143,7 +1143,7 @@ class NLocal(BlueprintCircuit):
                 for indices in entangler_map:
                     # It's actually nontrivially faster to use a listcomp and pass that to `tuple`
                     # than to pass a generator expression directly.
-                    # pylint: disable=consider-using-generator
+
                     instr = CircuitInstruction(
                         simple_block.gate(*itertools.islice(param_iter, simple_block.num_params)),
                         tuple([target_qubits[i] for i in indices]),
@@ -1236,7 +1236,6 @@ class NLocal(BlueprintCircuit):
 
             self.append(block, self.qubits, copy=False)
 
-    # pylint: disable=unused-argument
     def _parameter_generator(self, rep: int, block: int, indices: list[int]) -> Parameter | None:
         """If certain blocks should use certain parameters this method can be overridden."""
         return None
@@ -1272,7 +1271,7 @@ def get_entangler_map(
         qubits on ``num_circuit_qubits`` qubits.
 
     Raises:
-        ValueError: If the entanglement mode ist not supported.
+        ValueError: If the entanglement mode is not supported.
     """
     try:
         return fast_entangler_map(num_circuit_qubits, num_block_qubits, entanglement, offset)

@@ -1,0 +1,9 @@
+---
+deprecations_circuits:
+  - |
+    The deprecated tuple-like interface for :class:`~.circuit.CircuitInstruction` was not
+    removed in this release as originally planned. It will be removed in Qiskit 3.0.0
+    instead. Instead, use the
+    :class:`~.circuit.CircuitInstruction.operation`,
+    :class:`~.circuit.CircuitInstruction.qubits`, and
+    :class:`~.circuit.CircuitInstruction.clbits` named attributes.

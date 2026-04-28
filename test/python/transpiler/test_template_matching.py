@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -34,12 +34,13 @@ from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import TemplateOptimization
-from qiskit.transpiler.passes.calibration.rzx_templates import rzx_templates
+from qiskit.circuit.library.templates import rzx
 from qiskit.transpiler.exceptions import TranspilerError
-from test.python.quantum_info.operators.symplectic.test_clifford import (  # pylint: disable=wrong-import-order
+from qiskit.utils import optionals
+from test.python.quantum_info.operators.symplectic.test_clifford import (
     random_clifford_circuit,
 )
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 def _ry_to_rz_template_pass(parameter: Parameter = None, extra_costs=None):
@@ -52,7 +53,7 @@ def _ry_to_rz_template_pass(parameter: Parameter = None, extra_costs=None):
     template.rx(-np.pi / 2, 0)
     template.ry(parameter, 0)
     template.rx(np.pi / 2, 0)
-    template.rz(-parameter, 0)  # pylint: disable=invalid-unary-operand-type
+    template.rz(-parameter, 0)
 
     costs = {"rx": 16, "ry": 16, "rz": 0}
     if extra_costs is not None:
@@ -61,6 +62,7 @@ def _ry_to_rz_template_pass(parameter: Parameter = None, extra_costs=None):
     return PassManager(TemplateOptimization([template], user_cost_dict=costs))
 
 
+@unittest.skipUnless(optionals.HAS_SYMPY, "sympy required for template optimization")
 class TestTemplateMatching(QiskitTestCase):
     """Test the TemplateOptimization pass."""
 
@@ -348,43 +350,6 @@ class TestTemplateMatching(QiskitTestCase):
         # however these are equivalent if the operators are the same
         self.assertTrue(Operator(circuit_in).equiv(circuit_out))
 
-    def test_output_symbolic_library_equal(self):
-        """Test that the template matcher returns parameter expressions that use the same symbolic
-        library as the default; it should not coerce everything to Sympy when playing with the
-        `ParameterExpression` internals."""
-
-        a, b = Parameter("a"), Parameter("b")
-
-        template = QuantumCircuit(1)
-        template.p(a, 0)
-        template.p(-a, 0)
-        template.rz(a, 0)
-        template.rz(-a, 0)
-
-        circuit = QuantumCircuit(1)
-        circuit.p(-b, 0)
-        circuit.p(b, 0)
-
-        pass_ = TemplateOptimization(template_list=[template], user_cost_dict={"p": 100, "rz": 1})
-        out = pass_(circuit)
-
-        expected = QuantumCircuit(1)
-        expected.rz(-b, 0)
-        expected.rz(b, 0)
-        self.assertEqual(out, expected)
-
-        def symbolic_library(expr):
-            """Get the symbolic library of the expression - 'sympy' or 'symengine'."""
-            return type(expr._symbol_expr).__module__.split(".")[0]
-
-        out_exprs = [expr for instruction in out.data for expr in instruction.operation.params]
-        self.assertEqual(
-            [symbolic_library(b)] * len(out_exprs), [symbolic_library(expr) for expr in out_exprs]
-        )
-
-        # Assert that the result still works with parametric assignment.
-        self.assertEqual(out.assign_parameters({b: 1.5}), expected.assign_parameters({b: 1.5}))
-
     def test_optimizer_does_not_replace_unbound_partial_match(self):
         """
         Test that partial matches with parameters will not raise errors.
@@ -428,7 +393,11 @@ class TestTemplateMatching(QiskitTestCase):
         circuit_in.p(2 * theta, 1)
         circuit_in.cx(0, 1)
 
-        pass_ = TemplateOptimization(**rzx_templates(["zz2"]))
+        pass_ = TemplateOptimization(
+            template_list=[rzx.rzx_zz2()],
+            user_cost_dict={"rzx": 0, "cx": 6, "rz": 0, "sx": 1, "p": 0, "h": 1, "rx": 1, "ry": 1},
+        )
+
         circuit_out = PassManager(pass_).run(circuit_in)
 
         # these are NOT equal if template optimization works
@@ -444,7 +413,7 @@ class TestTemplateMatching(QiskitTestCase):
 
     def test_two_parameter_template(self):
         """
-        Test a two-Parameter template based on rzx_templates(["zz3"]),
+        Test a two-Parameter template based on rzx.rzx_zz3()
 
                                 ┌───┐┌───────┐┌───┐┌────────────┐»
         q_0: ──■─────────────■──┤ X ├┤ Rz(φ) ├┤ X ├┤ Rz(-1.0*φ) ├»
@@ -577,8 +546,8 @@ class TestTemplateMatching(QiskitTestCase):
         # Ensure that the bound parameter in the output is referentially the same as the one we put
         # in the input circuit..
         self.assertEqual(len(circuit_out.parameters), 1)
-        self.assertIs(circuit_in.parameters[0], a_circuit)
-        self.assertIs(circuit_out.parameters[0], a_circuit)
+        self.assertEqual(circuit_in.parameters[0], a_circuit)
+        self.assertEqual(circuit_out.parameters[0], a_circuit)
 
     def test_naming_clash_in_expression(self):
         """Test that the template matching works and correctly replaces a template if there is a
@@ -600,8 +569,8 @@ class TestTemplateMatching(QiskitTestCase):
         # Ensure that the bound parameter in the output is referentially the same as the one we put
         # in the input circuit..
         self.assertEqual(len(circuit_out.parameters), 1)
-        self.assertIs(circuit_in.parameters[0], a_circuit)
-        self.assertIs(circuit_out.parameters[0], a_circuit)
+        self.assertEqual(circuit_in.parameters[0], a_circuit)
+        self.assertEqual(circuit_out.parameters[0], a_circuit)
 
     def test_template_match_with_uninvolved_parameter(self):
         """Test that the template matching algorithm succeeds at matching a circuit that contains an
@@ -768,7 +737,7 @@ class TestTemplateMatching(QiskitTestCase):
         qc.swap(0, 1)
         qc.h(0)
         qc_opt = pm.run(qc)
-        self.assertTrue(Operator(qc) == Operator(qc_opt))
+        self.assertEqual(Operator(qc), Operator(qc_opt))
 
     def test_clifford_templates(self):
         """Tests TemplateOptimization pass on several larger examples."""
@@ -780,7 +749,6 @@ class TestTemplateMatching(QiskitTestCase):
             clifford_3_1(),
         ]
         pm = PassManager(TemplateOptimization(template_list=template_list))
-        scc.clear_cached_commutations()
         for seed in range(10):
             qc = random_clifford_circuit(
                 num_qubits=5,
@@ -789,9 +757,89 @@ class TestTemplateMatching(QiskitTestCase):
                 seed=seed,
             )
             qc_opt = pm.run(qc)
-            self.assertTrue(Operator(qc) == Operator(qc_opt))
-        # All of these gates are in the commutation library, i.e. the cache should not be used
-        self.assertEqual(scc.num_cached_entries(), 0)
+            self.assertEqual(Operator(qc), Operator(qc_opt))
+
+    def test_circuit_global_phase_preserved_after_single_and_multiple_template_match(self):
+        """Test that circuit global_phase survives template optimization (#14537)."""
+
+        circuit_in = QuantumCircuit(2, global_phase=np.pi / 4)
+        circuit_in.cx(0, 1)
+        circuit_in.cx(0, 1)
+
+        circuit_in_mult = QuantumCircuit(2, global_phase=np.pi / 3)
+        # Two independent pairs of CX gates — the template will match twice.
+        circuit_in_mult.cx(0, 1)
+        circuit_in_mult.cx(0, 1)
+        circuit_in_mult.cx(0, 1)
+        circuit_in_mult.cx(0, 1)
+
+        template = QuantumCircuit(2)
+        template.cx(0, 1)
+        template.cx(0, 1)
+
+        result = TemplateOptimization([template])(circuit_in)
+
+        result_mult = TemplateOptimization([template])(circuit_in_mult)
+
+        with self.subTest(msg="single template match"):
+            self.assertAlmostEqual(float(result.global_phase), np.pi / 4)
+            self.assertEqual(result.count_ops(), {})
+
+        with self.subTest(msg="multiple template matches"):
+            self.assertAlmostEqual(float(result_mult.global_phase), np.pi / 3)
+            self.assertEqual(result_mult.count_ops(), {})
+
+    def test_template_nonzero_global_phase_applied_to_circuit(self):
+        """Test the template's global phase is respected (#14537)."""
+
+        template = QuantumCircuit(1)
+        template.h(0)
+        template.s(0)
+        template.h(0)
+        template.s(0)
+        template.h(0)
+        template.s(0)
+        template.global_phase = -np.pi / 4
+
+        qr = QuantumRegister(1, "qr")
+        circuit_in = QuantumCircuit(qr, global_phase=np.pi / 4)
+        circuit_in.h(qr[0])
+        circuit_in.s(qr[0])
+        circuit_in.h(qr[0])
+        circuit_in.s(qr[0])
+
+        result = TemplateOptimization([template])(circuit_in)
+
+        self.assertEqual(Operator(circuit_in), Operator(result))
+
+    def test_circuit_and_template_both_have_nonzero_global_phase(self):
+        """Test that circuit and template global phases both contribute to the result (#14537)."""
+        template = QuantumCircuit(1)
+        template.h(0)
+        template.s(0)
+        template.h(0)
+        template.s(0)
+        template.h(0)
+        template.s(0)
+        template.global_phase = -np.pi / 4
+
+        qr = QuantumRegister(1, "qr")
+        circuit_in = QuantumCircuit(qr)
+        circuit_in.h(qr[0])
+        circuit_in.s(qr[0])
+        circuit_in.h(qr[0])
+        circuit_in.s(qr[0])
+        circuit_in.h(qr[0])
+        circuit_in.s(qr[0])
+        circuit_in.global_phase = np.pi / 3
+
+        result = TemplateOptimization([template])(circuit_in)
+
+        # All gates cancelled; total phase = circuit phase + template compensation
+        # = pi/3 + pi/4 = 7*pi/12.
+        self.assertAlmostEqual(result.global_phase, 7 * np.pi / 12)
+        self.assertEqual(result.count_ops(), {})
+        self.assertEqual(Operator(circuit_in), Operator(result))
 
 
 if __name__ == "__main__":

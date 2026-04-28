@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -25,7 +25,7 @@ from qiskit.circuit.annotated_operation import (
 )
 from qiskit.circuit.library import SGate, SdgGate, UGate, RXGate
 from qiskit.quantum_info import Operator
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestAnnotatedOperationClass(QiskitTestCase):
@@ -156,6 +156,16 @@ class TestAnnotatedOperationClass(QiskitTestCase):
         original_list = _canonicalize_modifiers([InverseModifier(), InverseModifier()])
         canonical_list = _canonicalize_modifiers(original_list)
         expected_list = []
+        self.assertEqual(canonical_list, expected_list)
+
+    def test_canonicalize_controls(self):
+        """Test that ``canonicalize_modifiers`` works correctly."""
+        original_list = [
+            ControlModifier(num_ctrl_qubits=2, ctrl_state=2),
+            ControlModifier(num_ctrl_qubits=3, ctrl_state=7),
+        ]
+        canonical_list = _canonicalize_modifiers(original_list)
+        expected_list = [ControlModifier(num_ctrl_qubits=5, ctrl_state=23)]
         self.assertEqual(canonical_list, expected_list)
 
     def test_params_access(self):

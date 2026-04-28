@@ -1,0 +1,14 @@
+---
+features_circuits:
+  - |
+    The :class:`.PauliEvolutionGate` now natively supports :class:`.SparseObservable`\ s as input.
+    This efficiently allows to handle evolution under projectors, which are implemented as
+    controls of a phase rotation and require less gates than explicitly expanding the projector
+    in terms of Paulis. For example::
+
+      from qiskit.circuit.library import PauliEvolutionGate
+      from qiskit.quantum_info import SparseObservable
+
+      obs = SparseObservable("001")
+      evo_proj = PauliEvolutionGate(obs, time=1)
+      print(evo_proj.definition.draw())

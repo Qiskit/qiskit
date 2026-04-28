@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -15,21 +15,36 @@ Predicates for operators.
 """
 
 from __future__ import annotations
+import functools
 import numpy as np
 
 ATOL_DEFAULT = 1e-8
 RTOL_DEFAULT = 1e-5
 
 
+@functools.cache
+def _identity_matrix_cache(size):
+    m = np.eye(size)
+    m.flags.writeable = False
+    return m
+
+
+def _identity_matrix(size):
+    """Return identity matrix"""
+    if size <= 64:
+        return _identity_matrix_cache(size)
+    return np.eye(size)
+
+
 def matrix_equal(mat1, mat2, ignore_phase=False, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT, props=None):
     # pylint: disable-next=consider-using-f-string
-    """Test if two arrays are equal.
+    f"""Test if two arrays are equal.
 
     The final comparison is implemented using Numpy.allclose. See its
     documentation for additional information on tolerance parameters.
 
     If ignore_phase is True both matrices will be multiplied by
-    exp(-1j * theta) where `theta` is the first nphase for a
+    exp(-1j * theta) where `theta` is the phase of the
     first non-zero matrix element `|a| * exp(1j * theta)`.
 
     Args:
@@ -37,27 +52,23 @@ def matrix_equal(mat1, mat2, ignore_phase=False, rtol=RTOL_DEFAULT, atol=ATOL_DE
         mat2 (matrix_like): a matrix
         ignore_phase (bool): ignore complex-phase differences between
             matrices [Default: False]
-        rtol (double): the relative tolerance parameter [Default {}].
-        atol (double): the absolute tolerance parameter [Default {}].
+        rtol (double): the relative tolerance parameter [Default {RTOL_DEFAULT}].
+        atol (double): the absolute tolerance parameter [Default {ATOL_DEFAULT}].
         props (dict | None): if not ``None`` and ``ignore_phase`` is ``True``
             returns the phase difference between the two matrices under
             ``props['phase_difference']``
 
     Returns:
         bool: True if the matrices are equal or False otherwise.
-    """.format(
-        RTOL_DEFAULT, ATOL_DEFAULT
-    )
+    """
 
     if atol is None:
         atol = ATOL_DEFAULT
     if rtol is None:
         rtol = RTOL_DEFAULT
 
-    if not isinstance(mat1, np.ndarray):
-        mat1 = np.array(mat1)
-    if not isinstance(mat2, np.ndarray):
-        mat2 = np.array(mat2)
+    mat1 = np.asarray(mat1)
+    mat2 = np.asarray(mat2)
 
     if mat1.shape != mat2.shape:
         return False
@@ -87,10 +98,9 @@ def matrix_equal(mat1, mat2, ignore_phase=False, rtol=RTOL_DEFAULT, atol=ATOL_DE
 
 def is_square_matrix(mat):
     """Test if an array is a square matrix."""
-    mat = np.array(mat)
-    if mat.ndim != 2:
+    shape = np.shape(mat)
+    if len(shape) != 2:
         return False
-    shape = mat.shape
     return shape[0] == shape[1]
 
 
@@ -100,7 +110,7 @@ def is_diagonal_matrix(mat, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
         atol = ATOL_DEFAULT
     if rtol is None:
         rtol = RTOL_DEFAULT
-    mat = np.array(mat)
+    mat = np.asarray(mat)
     if mat.ndim != 2:
         return False
     return np.allclose(mat, np.diag(np.diagonal(mat)), rtol=rtol, atol=atol)
@@ -112,7 +122,7 @@ def is_symmetric_matrix(op, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
         atol = ATOL_DEFAULT
     if rtol is None:
         rtol = RTOL_DEFAULT
-    mat = np.array(op)
+    mat = np.asarray(op)
     if mat.ndim != 2:
         return False
     return np.allclose(mat, mat.T, rtol=rtol, atol=atol)
@@ -124,7 +134,7 @@ def is_hermitian_matrix(mat, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
         atol = ATOL_DEFAULT
     if rtol is None:
         rtol = RTOL_DEFAULT
-    mat = np.array(mat)
+    mat = np.asarray(mat)
     if mat.ndim != 2:
         return False
     return np.allclose(mat, np.conj(mat.T), rtol=rtol, atol=atol)
@@ -152,7 +162,7 @@ def is_identity_matrix(mat, ignore_phase=False, rtol=RTOL_DEFAULT, atol=ATOL_DEF
         atol = ATOL_DEFAULT
     if rtol is None:
         rtol = RTOL_DEFAULT
-    mat = np.array(mat)
+    mat = np.asarray(mat)
     if mat.ndim != 2:
         return False
     if ignore_phase:
@@ -162,13 +172,13 @@ def is_identity_matrix(mat, ignore_phase=False, rtol=RTOL_DEFAULT, atol=ATOL_DEF
         theta = np.angle(mat[0, 0])
         mat = np.exp(-1j * theta) * mat
     # Check if square identity
-    iden = np.eye(len(mat))
+    iden = _identity_matrix(len(mat))
     return np.allclose(mat, iden, rtol=rtol, atol=atol)
 
 
 def is_unitary_matrix(mat, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
     """Test if an array is a unitary matrix."""
-    mat = np.array(mat)
+    mat = np.asarray(mat)
     # Compute A^dagger.A and see if it is identity matrix
     mat = np.conj(mat.T).dot(mat)
     return is_identity_matrix(mat, ignore_phase=False, rtol=rtol, atol=atol)
@@ -176,8 +186,8 @@ def is_unitary_matrix(mat, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
 
 def is_isometry(mat, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
     """Test if an array is an isometry."""
-    mat = np.array(mat)
+    mat = np.asarray(mat)
     # Compute A^dagger.A and see if it is identity matrix
-    iden = np.eye(mat.shape[1])
+    iden = _identity_matrix(mat.shape[1])
     mat = np.conj(mat.T).dot(mat)
     return np.allclose(mat, iden, rtol=rtol, atol=atol)

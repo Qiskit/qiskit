@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -33,12 +33,6 @@ def dagdependency_to_circuit(dagdependency):
         name=name,
     )
     circuit.metadata = dagdependency.metadata
-
-    if hasattr(dagdependency, "_calibrations_prop"):
-        circuit._calibrations_prop = dagdependency._calibrations_prop
-    else:
-        # This can be _DAGDependencyV2
-        circuit._calibrations_prop = dagdependency.calibrations
 
     for node in dagdependency.topological_nodes():
         circuit._append(CircuitInstruction(node.op.copy(), node.qargs, node.cargs))

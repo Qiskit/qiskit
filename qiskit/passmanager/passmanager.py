@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -91,7 +91,7 @@ class BasePassManager(ABC):
         try:
             self._tasks[index] = tasks
         except IndexError as ex:
-            raise PassManagerError(f"Index to replace {index} does not exists") from ex
+            raise PassManagerError(f"Index to replace {index} does not exist") from ex
 
     def remove(self, index: int) -> None:
         """Removes a particular pass in the scheduler.
@@ -105,7 +105,7 @@ class BasePassManager(ABC):
         try:
             del self._tasks[index]
         except IndexError as ex:
-            raise PassManagerError(f"Index to replace {index} does not exists") from ex
+            raise PassManagerError(f"Index to remove {index} does not exist") from ex
 
     def __setitem__(self, index, item):
         self.replace(index, item)
@@ -142,12 +142,12 @@ class BasePassManager(ABC):
         """Convert input program into pass manager IR.
 
         Args:
-            in_program: Input program.
+            input_program: Input program.
+            **kwargs: Keyword arguments for the pass manager frontend.
 
         Returns:
             Pass manager IR.
         """
-        pass
 
     @abstractmethod
     def _passmanager_backend(
@@ -163,17 +163,19 @@ class BasePassManager(ABC):
             in_program: The input program, this can be used if you need
                 any metadata about the original input for the output.
                 It should not be mutated.
+            **kwargs: Keyword arguments for the pass manager backend.
 
         Returns:
             Output program.
         """
-        pass
 
     def run(
         self,
         in_programs: Any | list[Any],
-        callback: Callable = None,
-        num_processes: int = None,
+        callback: Callable | None = None,
+        num_processes: int | None = None,
+        *,
+        property_set: dict[str, object] | None = None,
         **kwargs,
     ) -> Any:
         """Run all the passes on the specified ``in_programs``.
@@ -183,7 +185,7 @@ class BasePassManager(ABC):
                 A single input object cannot be a Python builtin list object.
                 A list object is considered as multiple input objects to optimize.
             callback: A callback function that will be called after each pass execution. The
-                function will be called with 4 keyword arguments::
+                function will be called with 5 keyword arguments::
 
                     task (GenericPass): the pass being run
                     passmanager_ir (Any): depending on pass manager subclass
@@ -191,7 +193,7 @@ class BasePassManager(ABC):
                     running_time (float): the time to execute the pass
                     count (int): the index for the pass execution
 
-                The exact arguments pass expose the internals of the pass
+                The exact arguments passed expose the internals of the pass
                 manager and are subject to change as the pass manager internals
                 change. If you intend to reuse a callback function over
                 multiple releases be sure to check that the arguments being
@@ -211,7 +213,11 @@ class BasePassManager(ABC):
                 execution is enabled. This argument overrides ``num_processes`` in the user
                 configuration file, and the ``QISKIT_NUM_PROCS`` environment variable. If set
                 to ``None`` the system default or local user configuration will be used.
-
+            property_set: If given, the initial value to use as the :class:`.PropertySet` for the
+                pass manager pipeline.  This can be used to persist analysis from one run to
+                another, in cases where you know the analysis is safe to share.  Beware that some
+                analysis will be specific to the input circuit and the particular :class:`.Target`,
+                so you should take a lot of care when using this argument.
             kwargs: Arbitrary arguments passed to the compiler frontend and backend.
 
         Returns:
@@ -229,16 +235,19 @@ class BasePassManager(ABC):
         # ourselves, since that can be quite expensive.
         if len(in_programs) == 1 or not should_run_in_parallel(num_processes):
             out = [
-                _run_workflow(program=program, pass_manager=self, callback=callback, **kwargs)
+                _run_workflow(
+                    program=program,
+                    pass_manager=self,
+                    callback=callback,
+                    initial_property_set=property_set,
+                    **kwargs,
+                )
                 for program in in_programs
             ]
             if len(in_programs) == 1 and not is_list:
                 return out[0]
             return out
-
-        del callback
         del kwargs
-
         # Pass manager may contain callable and we need to serialize through dill rather than pickle.
         # See https://github.com/Qiskit/qiskit-terra/pull/3290
         # Note that serialized object is deserialized as a different object.
@@ -246,7 +255,11 @@ class BasePassManager(ABC):
         return parallel_map(
             _run_workflow_in_new_process,
             values=in_programs,
-            task_kwargs={"pass_manager_bin": dill.dumps(self)},
+            task_kwargs={
+                "pass_manager_bin": dill.dumps(self),
+                "callback": dill.dumps(callback),
+                "initial_property_set": property_set,
+            },
             num_processes=num_processes,
         )
 
@@ -270,6 +283,8 @@ class BasePassManager(ABC):
 def _run_workflow(
     program: Any,
     pass_manager: BasePassManager,
+    *,
+    initial_property_set: dict[str, object] | None = None,
     **kwargs,
 ) -> Any:
     """Run single program optimization with a pass manager.
@@ -277,6 +292,8 @@ def _run_workflow(
     Args:
         program: Arbitrary program to optimize.
         pass_manager: Pass manager with scheduled passes.
+        initial_property_set: An optional dictionary to preseed the
+            property set in the pass manager with.
         **kwargs: Keyword arguments for IR conversion.
 
     Returns:
@@ -285,6 +302,10 @@ def _run_workflow(
     flow_controller = pass_manager.to_flow_controller()
     initial_status = WorkflowStatus()
 
+    property_set = (
+        PropertySet() if initial_property_set is None else PropertySet(initial_property_set)
+    )
+    pass_manager.property_set = property_set
     passmanager_ir = pass_manager._passmanager_frontend(
         input_program=program,
         **kwargs,
@@ -292,8 +313,7 @@ def _run_workflow(
     passmanager_ir, final_state = flow_controller.execute(
         passmanager_ir=passmanager_ir,
         state=PassManagerState(
-            workflow_status=initial_status,
-            property_set=PropertySet(),
+            workflow_status=initial_status, property_set=pass_manager.property_set
         ),
         callback=kwargs.get("callback", None),
     )
@@ -317,17 +337,26 @@ def _run_workflow(
 def _run_workflow_in_new_process(
     program: Any,
     pass_manager_bin: bytes,
+    *,
+    initial_property_set: dict[str, object] | None,
+    callback: bytes,
 ) -> Any:
     """Run single program optimization in new process.
 
     Args:
         program: Arbitrary program to optimize.
         pass_manager_bin: Binary of the pass manager with scheduled passes.
+        initial_property_set: An optional dictionary to preseed the
+            property set in the pass manager with.
+        callback: An optional callable that will be called after each pass
+            executes.
 
     Returns:
           Optimized program.
     """
     return _run_workflow(
         program=program,
-        pass_manager=dill.loads(pass_manager_bin),
+        pass_manager=dill.loads(pass_manager_bin),  # noqa: S301 Only used for IPC
+        initial_property_set=initial_property_set,
+        callback=dill.loads(callback),  # noqa: S301 Only used for IPC
     )

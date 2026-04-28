@@ -10,8 +10,12 @@ scipy<1.11; python_version<'3.12'
 # affect local usage.
 z3-solver==4.12.2.0; platform_system=="Darwin"
 
-# There are minor differences in output between pydot 2 and pydot 3 for
+# There are minor differences in output between pydot 2, 3 and 4 for
 # things like the pass-manager drawer.  This is totally fine for general
 # usage, but our test suite uses an exact reference file that uses the
-# pydot 3 output, so we need to enforce that during tests.
-pydot>=3.0.0
+# pydot 4 output, so we need to enforce that during tests.
+pydot>=4.0.0
+
+# Our Sphinx version is not compatible with snowballstemmer>=3.0.0 (and
+# neither is latest Sphinx at this time). See https://github.com/sphinx-doc/sphinx/issues/13533.
+snowballstemmer<3.0.0

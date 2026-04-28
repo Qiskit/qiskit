@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -104,7 +104,7 @@ def _mcsu2_real_diagonal(
             `arXiv:2302.06377 (2023) <https://arxiv.org/abs/2302.06377>`__
 
     """
-    # pylint: disable=cyclic-import
+
     from qiskit.circuit.library.standard_gates import RXGate, RYGate, RZGate
     from qiskit.circuit.library.generalized_gates import UnitaryGate
     from qiskit.quantum_info.operators.predicates import is_unitary_matrix
@@ -130,7 +130,9 @@ def _mcsu2_real_diagonal(
             raise QiskitError(f"The unitary must be a 2x2 matrix, but has shape {unitary.shape}.")
 
         if not is_unitary_matrix(unitary):
-            raise QiskitError(f"The unitary in must be an unitary matrix, but is {unitary}.")
+            raise QiskitError(
+                f"The unitary for the input gate must be a unitary matrix, but is {unitary}."
+            )
 
         if not np.isclose(1.0, np.linalg.det(unitary)):
             raise QiskitError(
@@ -171,30 +173,29 @@ def _mcsu2_real_diagonal(
     k_1 = math.ceil(num_controls / 2.0)
     k_2 = math.floor(num_controls / 2.0)
 
-    circuit = QuantumCircuit(num_controls + 1, name="MCSU2")
     controls = list(range(num_controls))  # control indices, defined for code legibility
     target = num_controls  # target index, defined for code legibility
+
+    mcx1 = synth_mcx_n_dirty_i15(num_ctrl_qubits=k_1)
+    mcx1_num_ancillas = mcx1.num_qubits - k_1 - 1
+    mcx1_qubits = controls[:k_1] + [target] + controls[k_1 : k_1 + mcx1_num_ancillas]
+
+    mcx2 = synth_mcx_n_dirty_i15(num_ctrl_qubits=k_2)
+    mcx2_num_ancillas = mcx2.num_qubits - k_2 - 1
+    mcx2_qubits = controls[k_1:] + [target] + controls[k_1 - mcx2_num_ancillas : k_1]
+
+    circuit = QuantumCircuit(num_controls + 1, name="MCSU2")
 
     if not is_secondary_diag_real:
         circuit.h(target)
 
-    mcx_1 = synth_mcx_n_dirty_i15(num_ctrl_qubits=k_1)
-    circuit.compose(mcx_1, controls[:k_1] + [target] + controls[k_1 : 2 * k_1 - 2], inplace=True)
+    circuit.compose(mcx1, mcx1_qubits, inplace=True)
     circuit.append(s_gate, [target])
-
-    # TODO: improve CX count by using action_only=True (based on #9687)
-    mcx_2 = synth_mcx_n_dirty_i15(num_ctrl_qubits=k_2).to_gate()
-    circuit.compose(
-        mcx_2.inverse(), controls[k_1:] + [target] + controls[k_1 - k_2 + 2 : k_1], inplace=True
-    )
+    circuit.compose(mcx2, mcx2_qubits, inplace=True)
     circuit.append(s_gate.inverse(), [target])
-
-    mcx_3 = synth_mcx_n_dirty_i15(num_ctrl_qubits=k_1).to_gate()
-    circuit.compose(mcx_3, controls[:k_1] + [target] + controls[k_1 : 2 * k_1 - 2], inplace=True)
+    circuit.compose(mcx1, mcx1_qubits, inplace=True)
     circuit.append(s_gate, [target])
-
-    mcx_4 = synth_mcx_n_dirty_i15(num_ctrl_qubits=k_2).to_gate()
-    circuit.compose(mcx_4, controls[k_1:] + [target] + controls[k_1 - k_2 + 2 : k_1], inplace=True)
+    circuit.compose(mcx2, mcx2_qubits, inplace=True)
     circuit.append(s_gate.inverse(), [target])
 
     if not is_secondary_diag_real:

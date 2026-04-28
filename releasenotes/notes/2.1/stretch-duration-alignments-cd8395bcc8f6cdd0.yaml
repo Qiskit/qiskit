@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Circuits containing delays with stretches (see :meth:`.QuantumCircuit.add_stretch`) can now
+    successfully compile using the preset pass-managers (:func:`.transpile` and
+    :func:`.generate_preset_pass_manager`) when targetting a backend that has alignment constraints,
+    for example IBM Quantum Eagle devices like ``ibm_sherbrooke``.

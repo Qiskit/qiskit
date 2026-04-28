@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -13,8 +13,10 @@
 
 """Common preset passmanager generators."""
 
+from __future__ import annotations
+
 import collections
-from typing import Optional
+import typing
 
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
@@ -48,10 +50,18 @@ from qiskit.transpiler.passes import ContainsInstruction
 from qiskit.transpiler.passes import VF2PostLayout
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
+from qiskit.transpiler.passes import WrapAngles
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
+from qiskit.transpiler.optimization_metric import OptimizationMetric
 from qiskit.utils import deprecate_func
+from qiskit.quantum_info.operators.symplectic.clifford_circuits import _CLIFFORD_GATE_NAMES
 
+
+if typing.TYPE_CHECKING:
+    from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
+    from qiskit.transpiler.target import Target
+    from qiskit.transpiler.coupling import CouplingMap
 
 _ControlFlowState = collections.namedtuple("_ControlFlowState", ("working", "not_working"))
 
@@ -85,9 +95,9 @@ class _InvalidControlFlowForBackend:
     # Explicitly stateful closure to allow pickling.
 
     def __init__(self, basis_gates=(), target=None):
-        if target is not None:
+        if target is not None and len(target.operation_names) > 0:
             self.unsupported = [op for op in CONTROL_FLOW_OP_NAMES if op not in target]
-        elif basis_gates is not None:
+        elif basis_gates is not None and len(basis_gates) > 0:
             basis_gates = set(basis_gates)
             self.unsupported = [op for op in CONTROL_FLOW_OP_NAMES if op not in basis_gates]
         else:
@@ -182,32 +192,38 @@ def if_has_control_flow_else(if_present, if_absent):
 
 
 def generate_unroll_3q(
-    target,
-    basis_gates=None,
-    approximation_degree=None,
-    unitary_synthesis_method="default",
-    unitary_synthesis_plugin_config=None,
-    hls_config=None,
-    qubits_initially_zero=True,
+    target: Target | None,
+    basis_gates: list[str] | None = None,
+    approximation_degree: float | None = None,
+    unitary_synthesis_method: str = "default",
+    unitary_synthesis_plugin_config: dict | None = None,
+    hls_config: HLSConfig | None = None,
+    qubits_initially_zero: bool = True,
+    optimization_metric: OptimizationMetric = OptimizationMetric.COUNT_2Q,
 ):
     """Generate an unroll >3q :class:`~qiskit.transpiler.PassManager`
 
     Args:
-        target (Target): the :class:`~.Target` object representing the backend
-        basis_gates (list): A list of str gate names that represent the basis
-            gates on the backend target
-        approximation_degree (Optional[float]): The heuristic approximation degree to
-            use. Can be between 0 and 1.
+        target: the :class:`~.Target` object representing the backend
+        basis_gates: A list of str gate names that represent the basis
+            gates on the backend target.
+        approximation_degree: Heuristic dial used for circuit approximation, where
+            ``1.0`` means no approximation (up to numerical tolerance) and ``0.0``
+            means the maximum approximation. If ``target`` is available, a value of
+            ``None`` indicates that approximation is allowed up to the reported error
+            rate for an operation in the target.
         unitary_synthesis_method (str): The unitary synthesis method to use. You can see
             a list of installed plugins with :func:`.unitary_synthesis_plugin_names`.
-        unitary_synthesis_plugin_config (dict): The optional dictionary plugin
+        unitary_synthesis_plugin_config: The optional dictionary plugin
             configuration, this is plugin specific refer to the specified plugin's
             documentation for how to use.
-        hls_config (HLSConfig): An optional configuration class to use for
+        hls_config: An optional configuration class to use for
             :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
             Specifies how to synthesize various high-level objects.
-        qubits_initially_zero (bool): Indicates whether the input circuit is
+        qubits_initially_zero: Indicates whether the input circuit is
             zero-initialized.
+        optimization_metric: the :class:`~.OptimizationMetric` object
+            that defines the metric used when optimizing the unrolling.
 
     Returns:
         PassManager: The unroll 3q or more pass manager
@@ -233,6 +249,7 @@ def generate_unroll_3q(
             basis_gates=basis_gates,
             min_qubits=3,
             qubits_initially_zero=qubits_initially_zero,
+            optimization_metric=optimization_metric,
         )
     )
     # If there are no target instructions revert to using unroll3qormore so
@@ -251,7 +268,7 @@ def generate_embed_passmanager(coupling_map):
     that can be used to expand and apply an initial layout to a circuit
 
     Args:
-        coupling_map (Union[CouplingMap, Target): The coupling map for the backend to embed
+        coupling_map (Union[CouplingMap, Target]): The coupling map for the backend to embed
             the circuit to.
     Returns:
         PassManager: The embedding passmanager that assumes the layout property
@@ -416,39 +433,42 @@ def generate_pre_op_passmanager(target=None, coupling_map=None, remove_reset_in_
 
 
 def generate_translation_passmanager(
-    target,
-    basis_gates=None,
-    method="translator",
-    approximation_degree=None,
-    coupling_map=None,
-    unitary_synthesis_method="default",
-    unitary_synthesis_plugin_config=None,
-    hls_config=None,
-    qubits_initially_zero=True,
+    target: Target | None,
+    basis_gates: list[str] | None = None,
+    method: str = "translator",
+    approximation_degree: float | None = None,
+    coupling_map: CouplingMap | None = None,
+    unitary_synthesis_method: str = "default",
+    unitary_synthesis_plugin_config: dict | None = None,
+    hls_config: HLSConfig | None = None,
+    qubits_initially_zero: bool = True,
 ):
     """Generate a basis translation :class:`~qiskit.transpiler.PassManager`
 
     Args:
-        target (Target): the :class:`~.Target` object representing the backend
-        basis_gates (list): A list of str gate names that represent the basis
+        target: the :class:`~.Target` object representing the backend
+        basis_gates: A list of str gate names that represent the basis
             gates on the backend target
-        method (str): The basis translation method to use
-        approximation_degree (Optional[float]): The heuristic approximation degree to
-            use. Can be between 0 and 1.
-        coupling_map (CouplingMap): the coupling map of the backend
+        method: The basis translation method to use
+        approximation_degree: Heuristic dial used for circuit approximation, where
+            ``1.0`` means no approximation (up to numerical tolerance) and ``0.0``
+            means the maximum approximation. If ``target`` is available, a value of
+            ``None`` indicates that approximation is allowed up
+            to the reported error rate for an operation in the target.
+        coupling_map: the coupling map of the backend
             in case synthesis is done on a physical circuit. The
             directionality of the coupling_map will be taken into
             account if pulse_optimize is True/None and natural_direction
             is True/None.
-        unitary_synthesis_plugin_config (dict): The optional dictionary plugin
+        unitary_synthesis_method: The unitary synthesis method to use. You can
+            see a list of installed plugins with :func:`.unitary_synthesis_plugin_names`.
+        unitary_synthesis_plugin_config: The optional dictionary plugin
             configuration, this is plugin specific refer to the specified plugin's
             documentation for how to use.
-        unitary_synthesis_method (str): The unitary synthesis method to use. You can
-            see a list of installed plugins with :func:`.unitary_synthesis_plugin_names`.
-        hls_config (HLSConfig): An optional configuration class to use for
+        hls_config: An optional configuration class to use for
             :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
             Specifies how to synthesize various high-level objects.
-        qubits_initially_zero (bool): Indicates whether the input circuit is
+        qubits_initially_zero: Indicates whether the input circuit is
             zero-initialized.
 
     Returns:
@@ -457,6 +477,9 @@ def generate_translation_passmanager(
     Raises:
         TranspilerError: If the ``method`` kwarg is not a valid value
     """
+    if basis_gates is None and target is None:
+        return PassManager([])
+
     if method == "translator":
         translator = BasisTranslator(sel, basis_gates, target)
         unroll = [
@@ -560,12 +583,12 @@ def generate_translation_passmanager(
                 condition=_direction_condition,
             )
         )
+    if target is not None and target.has_angle_bounds():
+        unroll.append(WrapAngles(target))
     return PassManager(unroll)
 
 
-def generate_scheduling(
-    instruction_durations, scheduling_method, timing_constraints, _, target=None
-):
+def generate_scheduling(instruction_durations, scheduling_method, timing_constraints, target=None):
     """Generate a post optimization scheduling :class:`~qiskit.transpiler.PassManager`
 
     Args:
@@ -647,25 +670,65 @@ VF2Limits = collections.namedtuple("VF2Limits", ("call_limit", "max_trials"))
 
 def get_vf2_limits(
     optimization_level: int,
-    layout_method: Optional[str] = None,
-    initial_layout: Optional[Layout] = None,
+    layout_method: str | None = None,
+    initial_layout: Layout | None = None,
+    exact_match: bool = False,
 ) -> VF2Limits:
     """Get the VF2 limits for VF2-based layout passes.
 
     Returns:
-        VF2Limits: An namedtuple with optional elements
+        VF2Limits: A namedtuple with optional elements
         ``call_limit`` and ``max_trials``.
     """
     limits = VF2Limits(None, None)
     if layout_method is None and initial_layout is None:
         if optimization_level in {1, 2}:
             limits = VF2Limits(
-                int(5e4),  # Set call limit to ~100ms with rustworkx 0.10.2
-                2500,  # Limits layout scoring to < 600ms on ~400 qubit devices
+                50_000,  # Set call limit to ~100ms with rustworkx 0.10.2
+                2_500,  # Limits layout scoring to < 600ms on ~400 qubit devices
             )
         elif optimization_level == 3:
             limits = VF2Limits(
-                int(3e7),  # Set call limit to ~60 sec with rustworkx 0.10.2
-                250000,  # Limits layout scoring to < 60 sec on ~400 qubit devices
+                30_000_000,  # Set call limit to ~60 sec with rustworkx 0.10.2
+                250_000,  # Limits layout scoring to < 60 sec on ~400 qubit devices
+            )
+        # In Qiskit 2.2, strict mode still includes heavy Python usage for the semantics and
+        # scoring, so we dial the limits way down.
+        if exact_match:
+            limits = VF2Limits(
+                ((limits.call_limit // 100) or 1) if limits.call_limit is not None else None,
+                ((limits.max_trials // 100) or 1) if limits.max_trials is not None else None,
             )
     return limits
+
+
+# Clifford+T basis, consisting of Clifford+T gate names + additional instruction names
+# that are a part of every basis
+_CLIFFORD_T_BASIS = set(_CLIFFORD_GATE_NAMES).union(
+    {"t", "tdg", "delay", "barrier", "reset", "measure"}.union(CONTROL_FLOW_OP_NAMES)
+)
+
+
+def is_clifford_t_basis(basis_gates=None, target=None) -> bool:
+    """
+    Checks whether the given basis set can be considered as Clifford+T.
+
+    For this we require that:
+    1. The set only contains Clifford+T gates,
+    2. The set contains either T or Tdg gate or both.
+
+    In particular, these conditions guarantee that the empty basis set
+    is not considered as Clifford+T.
+    """
+
+    if target is not None:
+        basis = set(target.operation_names)
+    elif basis_gates is not None:
+        basis = set(basis_gates)
+    else:
+        basis = set()
+
+    if (basis_gates is None) or (("t" not in basis_gates) and ("tdg" not in basis_gates)):
+        return False
+
+    return basis.issubset(_CLIFFORD_T_BASIS)

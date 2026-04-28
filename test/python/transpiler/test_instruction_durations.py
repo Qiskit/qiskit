@@ -4,22 +4,20 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-function-docstring
 
 """Test InstructionDurations class."""
 
 from qiskit.circuit import Delay, Parameter
-from qiskit.providers.fake_provider import Fake27QPulseV1
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestInstructionDurationsClass(QiskitTestCase):
@@ -36,27 +34,6 @@ class TestInstructionDurationsClass(QiskitTestCase):
         with self.assertRaises(TranspilerError):
             InstructionDurations(invalid_dic)
 
-    def test_from_backend_for_backend_with_dt(self):
-        # Remove context once https://github.com/Qiskit/qiskit/issues/12760 is fixed
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake27QPulseV1()
-        gate = self._find_gate_with_length(backend)
-        durations = InstructionDurations.from_backend(backend)
-        self.assertGreater(durations.dt, 0)
-        self.assertGreater(durations.get(gate, 0), 0)
-
-    def test_from_backend_for_backend_without_dt(self):
-        # Remove context once https://github.com/Qiskit/qiskit/issues/12760 is fixed
-        with self.assertWarns(DeprecationWarning):
-            backend = Fake27QPulseV1()
-        delattr(backend.configuration(), "dt")
-        gate = self._find_gate_with_length(backend)
-        durations = InstructionDurations.from_backend(backend)
-        self.assertIsNone(durations.dt)
-        self.assertGreater(durations.get(gate, 0, "s"), 0)
-        with self.assertRaises(TranspilerError):
-            durations.get(gate, 0)
-
     def test_update_with_parameters(self):
         durations = InstructionDurations(
             [("rzx", (0, 1), 150, (0.5,)), ("rzx", (0, 1), 300, (1.0,))]
@@ -72,7 +49,7 @@ class TestInstructionDurationsClass(QiskitTestCase):
             try:
                 if props.gate_length(gate.gate, 0):
                     return gate.gate
-            except Exception:  # pylint: disable=broad-except
+            except Exception:
                 pass
         raise ValueError("Unable to find a gate with gate length.")
 

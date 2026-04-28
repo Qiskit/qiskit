@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -19,7 +19,8 @@ import rustworkx
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes.layout import disjoint_utils
+from qiskit.transpiler.target import Target
+from qiskit._accelerate import disjoint_utils
 
 from qiskit._accelerate.dense_layout import best_subset
 
@@ -66,11 +67,30 @@ class DenseLayout(AnalysisPass):
             raise TranspilerError(
                 "A coupling_map or target with constrained qargs is necessary to run the pass."
             )
-        layout_components = disjoint_utils.run_pass_over_connected_components(
-            dag,
-            self.coupling_map if self.target is None else self.target,
-            self._inner_run,
-        )
+        if self.target is not None:
+            layout_components = disjoint_utils.run_pass_over_connected_components(
+                dag,
+                self.target,
+                self._inner_run,
+            )
+            if layout_components is None:
+                target = Target.from_configuration(
+                    basis_gates=["u", "cx"], coupling_map=self.coupling_map
+                )
+                layout_components = disjoint_utils.run_pass_over_connected_components(
+                    dag,
+                    target,
+                    self._inner_run,
+                )
+        else:
+            target = Target.from_configuration(
+                basis_gates=["u", "cx"], coupling_map=self.coupling_map
+            )
+            layout_components = disjoint_utils.run_pass_over_connected_components(
+                dag,
+                target,
+                self._inner_run,
+            )
         layout_mapping = {}
         for component in layout_components:
             layout_mapping.update(component)
@@ -108,6 +128,10 @@ class DenseLayout(AnalysisPass):
 
         Args:
             num_qubits (int): Number of subset qubits to consider.
+            num_meas (int): The number of measure measurement operations in the circuit.
+            num_cx (int): The number of CXGates that are in the circuit
+            coupling_map (CouplingMap): The coupling map representing the connectivity of
+                the QPU.
 
         Returns:
             ndarray: Array of qubits to use for best connectivity mapping.
@@ -149,7 +173,7 @@ def _build_error_matrix(num_qubits, qubit_map, target=None):
     use_error = False
     if target is not None and target.qargs is not None:
         for qargs in target.qargs:
-            # Ignore gates over 2q DenseLayout only works with 2q
+            # Ignore gates over 2q. DenseLayout only works with 2q
             if len(qargs) > 2:
                 continue
             error = 0.0

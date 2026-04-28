@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    :meth:`.DAGCircuit.apply_operation_back`, :meth:`~.DAGCircuit.apply_operation_back` and
+    :func:`circuit_to_dag` will now add new edges in a deterministic order.  The previous behavior
+    could cause certain transpiler passes (such as :class:`.SabreSwap`) to traverse the DAG in
+    non-deterministic orders.
+  - |
+    :meth:`.DAGCircuit.apply_operation_front` can no longer insert invalid self loops when handling
+    nodes that include classical conditions.

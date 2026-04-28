@@ -4,13 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,super-init-not-called
 
 """Dummy passes used by Transpiler testing"""
 
@@ -122,10 +121,10 @@ class PassF_reduce_dag_property(DummyTP):
 
     def run(self, dag):
         super().run(dag)
-        if dag.duration is None:
-            dag.duration = 8
-        dag.duration = round(dag.duration * 0.8)
-        logging.getLogger(logger).info("dag property = %i", dag.duration)
+        if dag._duration is None:
+            dag._duration = 8
+        dag._duration = round(dag._duration * 0.8)
+        logging.getLogger(logger).info("dag property = %i", dag._duration)
         return dag
 
 
@@ -138,8 +137,8 @@ class PassG_calculates_dag_property(DummyAP):
 
     def run(self, dag):
         super().run(dag)
-        if dag.duration is not None:
-            self.property_set["property"] = dag.duration
+        if dag._duration is not None:
+            self.property_set["property"] = dag._duration
         else:
             self.property_set["property"] = 8
         logging.getLogger(logger).info(

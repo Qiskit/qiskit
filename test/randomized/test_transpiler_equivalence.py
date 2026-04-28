@@ -4,12 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=invalid-name
+
 
 """Randomized tests of transpiler circuit equivalence.
 
@@ -61,19 +61,38 @@ import hypothesis.strategies as st
 
 from qiskit import transpile, qasm2
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.circuit import Measure, Reset, Gate, Barrier
-from qiskit.providers.fake_provider import (
-    Fake5QV1,
-    Fake20QV1,
-    Fake7QPulseV1,
-    Fake27QPulseV1,
-    Fake127QPulseV1,
+from qiskit.circuit import Measure, Reset, Barrier
+from qiskit.providers.fake_provider import GenericBackendV2
+
+
+from qiskit.circuit.library.standard_gates import (
+    HGate,
+    IGate,
+    SGate,
+    SdgGate,
+    TGate,
+    TdgGate,
+    XGate,
+    YGate,
+    ZGate,
+    CXGate,
+    CYGate,
+    CZGate,
+    SwapGate,
+    CCXGate,
+    CSwapGate,
+    PhaseGate,
+    RXGate,
+    RYGate,
+    RZGate,
+    UGate,
+    RZZGate,
+    CPhaseGate,
+    CUGate,
 )
+from ..python.legacy_cmaps import ALMADEN_CMAP, KYOTO_CMAP
 
-# pylint: disable=wildcard-import,unused-wildcard-import
-from qiskit.circuit.library.standard_gates import *
-
-from qiskit_aer import Aer  # pylint: disable=wrong-import-order
+from qiskit_aer import AerSimulator
 
 default_profile = "transpiler_equivalence"
 settings.register_profile(
@@ -129,7 +148,6 @@ layout_methods = _getenv_list("QISKIT_RANDOMIZED_TEST_LAYOUT_METHODS") or [
 routing_methods = _getenv_list("QISKIT_RANDOMIZED_TEST_ROUTING_METHODS") or [
     None,
     "basic",
-    "stochastic",
     "lookahead",
     "sabre",
 ]
@@ -144,17 +162,14 @@ backend_needs_durations = _strtobool(
 )
 
 
-def _fully_supports_scheduling(backend):
-    """Checks if backend is not in the set of backends known not to have specified gate durations."""
-    return not isinstance(
-        backend,
-        (Fake20QV1, Fake5QV1),
-    )
+mock_backends = [
+    GenericBackendV2(num_qubits=5, seed=0),
+    GenericBackendV2(num_qubits=5, seed=2),
+    GenericBackendV2(num_qubits=20, coupling_map=ALMADEN_CMAP, seed=5),
+    GenericBackendV2(num_qubits=127, coupling_map=KYOTO_CMAP, seed=42),
+]
 
-
-mock_backends = [Fake5QV1(), Fake20QV1(), Fake7QPulseV1(), Fake27QPulseV1(), Fake127QPulseV1()]
-
-mock_backends_with_scheduling = [b for b in mock_backends if _fully_supports_scheduling(b)]
+mock_backends_with_scheduling = mock_backends
 
 
 @st.composite
@@ -193,8 +208,8 @@ class QCircuitMachine(RuleBasedStateMachine):
     qubits = Bundle("qubits")
     clbits = Bundle("clbits")
 
-    backend = Aer.get_backend("aer_simulator")
-    max_qubits = int(backend.configuration().n_qubits / 2)
+    backend = AerSimulator()
+    max_qubits = int(backend.num_qubits / 2)
 
     # Limit reg generation for more interesting circuits
     max_qregs = 3
@@ -250,22 +265,7 @@ class QCircuitMachine(RuleBasedStateMachine):
         """Append a gate with a variable number of qargs."""
         self.qc.append(gate(len(qargs)), qargs)
 
-    @precondition(lambda self: len(self.qc.data) > 0)
-    @rule(carg=clbits, data=st.data())
-    def add_c_if_last_gate(self, carg, data):
-        """Modify the last gate to be conditional on a classical register."""
-        creg = self.qc.find_bit(carg).registers[0][0]
-        val = data.draw(st.integers(min_value=0, max_value=2 ** len(creg) - 1))
-
-        last_gate = self.qc.data[-1]
-
-        # Conditional instructions are not supported
-        assume(isinstance(last_gate.operation, Gate))
-
-        last_gate.operation.c_if(creg, val)
-
     # Properties to check
-
     @invariant()
     def qasm(self):
         """After each circuit operation, it should be possible to build QASM."""
@@ -278,17 +278,14 @@ class QCircuitMachine(RuleBasedStateMachine):
         counts are not significantly different before and after transpilation.
 
         """
-        assume(
-            kwargs["backend"] is None
-            or kwargs["backend"].configuration().n_qubits >= len(self.qc.qubits)
-        )
+        assume(kwargs["backend"] is None or kwargs["backend"].num_qubits >= len(self.qc.qubits))
 
         call = (
             "transpile(qc, "
             + ", ".join(f"{key:s}={value!r}" for key, value in kwargs.items() if value is not None)
             + ")"
         )
-        print(f"Evaluating {call} for:\n{qasm2.dumps(self.qc)}")  # pylint: disable=bad-builtin
+        print(f"Evaluating {call} for:\n{qasm2.dumps(self.qc)}")  # noqa: T201
 
         shots = 4096
 

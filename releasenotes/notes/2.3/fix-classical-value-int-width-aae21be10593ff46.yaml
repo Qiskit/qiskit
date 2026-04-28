@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed a regression in the classical expression representation of
+    :class:~.expr.Value` of type :class:`~.types.Uint` of width greater
+    than 64 bits. Previously, the value of expressions with these types
+    was unintentionally coerced into a double floating point value
+    internally, resulting in loss of precision.

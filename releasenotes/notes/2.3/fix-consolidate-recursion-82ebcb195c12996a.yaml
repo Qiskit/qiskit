@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    The :class:`.ConsolidateBlocks` transpiler pass will now correctly evaluate whether a given
+    gate is hardware-supported while recursing into control-flow operations.

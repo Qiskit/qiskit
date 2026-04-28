@@ -5,17 +5,8 @@
 notifications:
     ".*":
         - "`@Qiskit/terra-core`"
-    "visualization/pulse_v2":
-        - "`@nkanazawa1989`"
-    "visualization/timeline":
-        - "`@nkanazawa1989`"
-    "pulse":
-        - "`@nkanazawa1989`"
-    "scheduler":
-        - "`@nkanazawa1989`"
     "qpy":
         - "`@mtreinish`"
-        - "`@nkanazawa1989`"
     "two_qubit_decompose":
         - "`@levbishop`"
     "circuit/library":
@@ -25,10 +16,16 @@ notifications:
         - "`@t-imamichi`"
         - "`@ajavadia`"
         - "`@levbishop`"
-    "(?!.*pulse.*)\\bvisualization\\b":
+    "visualization":
         - "@enavarro51"
-    "^docs/":
-        - "@Eric-Arellano"
-        - "@abbycross"
-        - "@beckykd"
 always_notify: true
+
+# Set the headings in the GitHub Releases release notes.
+categories:
+  "Changelog: Added": "Added"
+  "Changelog: Fixed": "Fixed"
+  "Changelog: Changed": "Changed"
+  "Changelog: Deprecated": "Deprecated"
+  "Changelog: Removed": "Removed"
+  "Changelog: Build": "Build System"
+  "Changelog: None": null

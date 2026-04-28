@@ -4,20 +4,26 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 
 """Test for the DAGCircuit object"""
 
 from __future__ import annotations
 
 from collections import Counter
+import math
+import pickle
+import copy
+import io
 import unittest
 
 from ddt import ddt, data
+import numpy as np
 from numpy import pi
 
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGInNode, DAGOutNode, DAGCircuitError
@@ -39,97 +45,121 @@ from qiskit.circuit import (
     WhileLoopOp,
     CASE_DEFAULT,
     Store,
+    BoxOp,
 )
 from qiskit.circuit.classical import expr, types
-from qiskit.circuit.library import IGate, HGate, CXGate, CZGate, XGate, YGate, U1Gate, RXGate
+from qiskit.circuit.library import (
+    IGate,
+    HGate,
+    CXGate,
+    CZGate,
+    XGate,
+    YGate,
+    U1Gate,
+    RXGate,
+    CSGate,
+)
 from qiskit.converters import circuit_to_dag
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
-def raise_if_dagcircuit_invalid(dag):
-    """Validates the internal consistency of a DAGCircuit._multi_graph.
-    Intended for use in testing.
+class DAGTest(QiskitTestCase):
+    """Base test class with helper methods."""
 
-    Raises:
-       DAGCircuitError: if DAGCircuit._multi_graph is inconsistent.
-    """
+    def raise_if_dagcircuit_invalid(self, dag):
+        """Validates the internal consistency of a DAGCircuit._multi_graph.
+        Intended for use in testing.
 
-    if not dag._is_dag():
-        raise DAGCircuitError("multi_graph is not a DAG.")
+        Raises:
+           DAGCircuitError: if DAGCircuit._multi_graph is inconsistent.
+        """
 
-    # Every node should be of type in, out, or op.
-    # All input/output nodes should be present in input_map/output_map.
-    for node in dag.nodes():
-        if isinstance(node, DAGInNode):
-            assert node == dag.input_map[node.wire]
-        elif isinstance(node, DAGOutNode):
-            assert node == dag.output_map[node.wire]
-        elif isinstance(node, DAGOpNode):
-            continue
-        else:
-            raise DAGCircuitError(f"Found node of unexpected type: {type(node)}")
+        if not dag._is_dag():
+            raise DAGCircuitError("multi_graph is not a DAG.")
 
-    # Shape of node.op should match shape of node.
-    for node in dag.op_nodes():
-        assert len(node.qargs) == node.op.num_qubits
-        assert len(node.cargs) == node.op.num_clbits
+        # Every node should be of type in, out, or op.
+        # All input/output nodes should be present in input_map/output_map.
+        for node in dag.nodes():
+            if isinstance(node, DAGInNode):
+                self.assertEqual(node, dag.input_map[node.wire])
+            elif isinstance(node, DAGOutNode):
+                self.assertEqual(node, dag.output_map[node.wire])
+            elif isinstance(node, DAGOpNode):
+                continue
+            else:
+                raise DAGCircuitError(f"Found node of unexpected type: {type(node)}")
 
-    # Every edge should be labled with a known wire.
-    edges_outside_wires = [edge_data for edge_data in dag._edges() if edge_data not in dag.wires]
-    if edges_outside_wires:
-        raise DAGCircuitError(
-            f"multi_graph contains one or more edges ({edges_outside_wires}) "
-            f"not found in DAGCircuit.wires ({dag.wires})."
-        )
+        # Shape of node.op should match shape of node.
+        for node in dag.op_nodes():
+            self.assertEqual(len(node.qargs), node.op.num_qubits)
+            self.assertEqual(len(node.cargs), node.op.num_clbits)
 
-    # Every wire should have exactly one input node and one output node.
-    for wire in dag.wires:
-        in_node = dag.input_map[wire]
-        out_node = dag.output_map[wire]
+        # Every edge should be labled with a known wire.
+        edges_outside_wires = [
+            edge_data for edge_data in dag._edges() if edge_data not in dag.wires
+        ]
+        if edges_outside_wires:
+            raise DAGCircuitError(
+                f"multi_graph contains one or more edges ({edges_outside_wires}) "
+                f"not found in DAGCircuit.wires ({dag.wires})."
+            )
 
-        assert in_node.wire == wire
-        assert out_node.wire == wire
-        assert isinstance(in_node, DAGInNode)
-        assert isinstance(out_node, DAGOutNode)
+        # Every wire should have exactly one input node and one output node.
+        for wire in dag.wires:
+            in_node = dag.input_map[wire]
+            out_node = dag.output_map[wire]
 
-    # Every wire should be propagated by exactly one edge between nodes.
-    for wire in dag.wires:
-        cur_node_id = dag.input_map[wire]._node_id
-        out_node_id = dag.output_map[wire]._node_id
+            self.assertEqual(in_node.wire, wire)
+            self.assertEqual(out_node.wire, wire)
+            self.assertIsInstance(in_node, DAGInNode)
+            self.assertIsInstance(out_node, DAGOutNode)
 
-        while cur_node_id != out_node_id:
-            out_edges = dag._out_edges(cur_node_id)
-            edges_to_follow = [(src, dest, data) for (src, dest, data) in out_edges if data == wire]
+        # Every wire should be propagated by exactly one edge between nodes.
+        for wire in dag.wires:
+            cur_node_id = dag.input_map[wire]._node_id
+            out_node_id = dag.output_map[wire]._node_id
 
-            assert len(edges_to_follow) == 1
-            cur_node_id = edges_to_follow[0][1]
+            while cur_node_id != out_node_id:
+                out_edges = dag._out_edges(cur_node_id)
+                edges_to_follow = [
+                    (src, dest, data) for (src, dest, data) in out_edges if data == wire
+                ]
 
-    # Wires can only terminate at input/output nodes.
-    op_counts = Counter()
-    for op_node in dag.op_nodes():
-        assert sum(1 for _ in dag.predecessors(op_node)) == sum(1 for _ in dag.successors(op_node))
-        op_counts[op_node.name] += 1
-    # The _op_names attribute should match the counted op names
-    assert op_counts == dag.count_ops()
+                self.assertEqual(len(edges_to_follow), 1)
+                cur_node_id = edges_to_follow[0][1]
 
-    # Node input/output edges should match node qarg/carg/condition.
-    for node in dag.op_nodes():
-        in_wires = set(dag._in_wires(node._node_id))
-        out_wires = set(dag._out_wires(node._node_id))
+        # Wires can only terminate at input/output nodes.
+        op_counts = Counter()
+        for op_node in dag.op_nodes():
+            self.assertEqual(
+                sum(1 for _ in dag.predecessors(op_node)), sum(1 for _ in dag.successors(op_node))
+            )
+            op_counts[op_node.name] += 1
+        # The _op_names attribute should match the counted op names
+        self.assertEqual(op_counts, dag.count_ops())
 
-        node_cond_bits = set(
-            node.condition[0][:] if getattr(node, "condition", None) is not None else []
-        )
-        node_qubits = set(node.qargs)
-        node_clbits = set(node.cargs)
+        # Node input/output edges should match node qarg/carg/condition.
+        for node in dag.op_nodes():
+            in_wires = set(dag._in_wires(node._node_id))
+            out_wires = set(dag._out_wires(node._node_id))
 
-        all_bits = node_qubits | node_clbits | node_cond_bits
+            node_cond_bits = set(
+                node.condition[0][:] if getattr(node, "condition", None) is not None else []
+            )
+            node_qubits = set(node.qargs)
+            node_clbits = set(node.cargs)
 
-        assert in_wires == all_bits, f"In-edge wires {in_wires} != node bits {all_bits}"
-        assert out_wires == all_bits, f"Out-edge wires {out_wires} != node bits {all_bits}"
+            all_bits = node_qubits | node_clbits | node_cond_bits
+
+            self.assertEqual(
+                in_wires, all_bits, f"In-edge wires {in_wires} != node bits {all_bits}"
+            )
+            self.assertEqual(
+                out_wires, all_bits, f"Out-edge wires {out_wires} != node bits {all_bits}"
+            )
 
 
-class TestDagRegisters(QiskitTestCase):
+class TestDagRegisters(DAGTest):
     """Test qreg and creg inside the dag"""
 
     def test_add_qreg_creg(self):
@@ -161,6 +191,80 @@ class TestDagRegisters(QiskitTestCase):
             ],
         )
 
+    def test_pickle_bit_locations_with_reg(self):
+        """Test bit locations preserved through pickle."""
+        dag = DAGCircuit()
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(1, "cr")
+        dag.add_qreg(qr)
+        dag.add_creg(cr)
+        self.assertEqual(dag.find_bit(dag.qubits[1]).index, 1)
+        self.assertEqual(dag.find_bit(dag.qubits[1]).registers, [(qr, 1)])
+        self.assertEqual(dag.find_bit(dag.clbits[0]).index, 0)
+        self.assertEqual(dag.find_bit(dag.clbits[0]).registers, [(cr, 0)])
+        with io.BytesIO() as buf:
+            pickle.dump(dag, buf)
+            buf.seek(0)
+            output = pickle.load(buf)
+        self.assertEqual(output.find_bit(output.qubits[1]).index, 1)
+        self.assertEqual(output.find_bit(output.qubits[1]).registers, [(qr, 1)])
+        self.assertEqual(output.find_bit(output.clbits[0]).index, 0)
+        self.assertEqual(output.find_bit(output.clbits[0]).registers, [(cr, 0)])
+
+    def test_deepcopy_bit_locations_with_reg(self):
+        """Test bit locations preserved through deepcopy."""
+        dag = DAGCircuit()
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(1, "cr")
+        dag.add_qreg(qr)
+        dag.add_creg(cr)
+        self.assertEqual(dag.find_bit(dag.qubits[1]).index, 1)
+        self.assertEqual(dag.find_bit(dag.qubits[1]).registers, [(qr, 1)])
+        self.assertEqual(dag.find_bit(dag.clbits[0]).index, 0)
+        self.assertEqual(dag.find_bit(dag.clbits[0]).registers, [(cr, 0)])
+        output = copy.deepcopy(dag)
+        self.assertEqual(output.find_bit(output.qubits[1]).index, 1)
+        self.assertEqual(output.find_bit(output.qubits[1]).registers, [(qr, 1)])
+        self.assertEqual(output.find_bit(output.clbits[0]).index, 0)
+        self.assertEqual(output.find_bit(output.clbits[0]).registers, [(cr, 0)])
+
+    def test_pickle_bit_locations_with_no_reg(self):
+        """Test bit locations with no registers preserved through pickle."""
+        dag = DAGCircuit()
+        qubits = [Qubit(), Qubit()]
+        clbits = [Clbit()]
+        dag.add_qubits(qubits)
+        dag.add_clbits(clbits)
+        self.assertEqual(dag.find_bit(dag.qubits[1]).index, 1)
+        self.assertEqual(dag.find_bit(dag.qubits[1]).registers, [])
+        self.assertEqual(dag.find_bit(dag.clbits[0]).index, 0)
+        self.assertEqual(dag.find_bit(dag.clbits[0]).registers, [])
+        with io.BytesIO() as buf:
+            pickle.dump(dag, buf)
+            buf.seek(0)
+            output = pickle.load(buf)
+        self.assertEqual(output.find_bit(output.qubits[1]).index, 1)
+        self.assertEqual(output.find_bit(output.qubits[1]).registers, [])
+        self.assertEqual(output.find_bit(output.clbits[0]).index, 0)
+        self.assertEqual(output.find_bit(output.clbits[0]).registers, [])
+
+    def test_deepcopy_bit_locations_with_no_reg(self):
+        """Test bit locations with no registers preserved through deepcopy."""
+        dag = DAGCircuit()
+        qubits = [Qubit(), Qubit()]
+        clbits = [Clbit()]
+        dag.add_qubits(qubits)
+        dag.add_clbits(clbits)
+        self.assertEqual(dag.find_bit(dag.qubits[1]).index, 1)
+        self.assertEqual(dag.find_bit(dag.qubits[1]).registers, [])
+        self.assertEqual(dag.find_bit(dag.clbits[0]).index, 0)
+        self.assertEqual(dag.find_bit(dag.clbits[0]).registers, [])
+        output = copy.deepcopy(dag)
+        self.assertEqual(output.find_bit(output.qubits[1]).index, 1)
+        self.assertEqual(output.find_bit(output.qubits[1]).registers, [])
+        self.assertEqual(output.find_bit(output.clbits[0]).index, 0)
+        self.assertEqual(output.find_bit(output.clbits[0]).registers, [])
+
     def test_add_reg_duplicate(self):
         """add_qreg with the same register twice is not allowed."""
         dag = DAGCircuit()
@@ -180,7 +284,7 @@ class TestDagRegisters(QiskitTestCase):
         """add_qreg with a classical register is not allowed."""
         dag = DAGCircuit()
         cr = ClassicalRegister(2)
-        self.assertRaises(DAGCircuitError, dag.add_qreg, cr)
+        self.assertRaises((DAGCircuitError, TypeError), dag.add_qreg, cr)
 
     def test_add_qubits_invalid_qubits(self):
         """Verify we raise if pass not a Qubit."""
@@ -299,7 +403,7 @@ class TestDagRegisters(QiskitTestCase):
             dag.find_bit(new_bit)
 
 
-class TestDagWireRemoval(QiskitTestCase):
+class TestDagWireRemoval(DAGTest):
     """Test removal of registers and idle wires."""
 
     def setUp(self):
@@ -388,7 +492,7 @@ class TestDagWireRemoval(QiskitTestCase):
     def test_remove_unknown_creg(self):
         """Classical register removal of unknown registers raises."""
         unknown_creg = ClassicalRegister(1)
-        with self.assertRaisesRegex(DAGCircuitError, ".*cregs not in circuit.*"):
+        with self.assertRaisesRegex(DAGCircuitError, ".*creg not in circuit.*"):
             self.dag.remove_cregs(unknown_creg)
 
         self.assert_cregs_equal(self.original_cregs)
@@ -410,8 +514,9 @@ class TestDagWireRemoval(QiskitTestCase):
         self.assertEqual(self.dag.qubits, result_dag.qubits)
         self.assertEqual(self.dag.cregs, result_dag.cregs)
         self.assertEqual(self.dag.qregs, result_dag.qregs)
-        self.assertEqual(self.dag.duration, result_dag.duration)
-        self.assertEqual(self.dag.unit, result_dag.unit)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(self.dag.duration, result_dag.duration)
+            self.assertEqual(self.dag.unit, result_dag.unit)
 
     def test_copy_empty_like_vars(self):
         """Variables should be part of the empty copy."""
@@ -420,13 +525,16 @@ class TestDagWireRemoval(QiskitTestCase):
         dag.add_input_var(expr.Var.new("b", types.Uint(8)))
         dag.add_declared_var(expr.Var.new("c", types.Bool()))
         dag.add_declared_var(expr.Var.new("d", types.Uint(8)))
+        dag.add_declared_stretch(expr.Stretch.new("e"))
         self.assertEqual(dag, dag.copy_empty_like())
 
         dag = DAGCircuit()
         dag.add_captured_var(expr.Var.new("a", types.Bool()))
         dag.add_captured_var(expr.Var.new("b", types.Uint(8)))
-        dag.add_declared_var(expr.Var.new("c", types.Bool()))
-        dag.add_declared_var(expr.Var.new("d", types.Uint(8)))
+        dag.add_declared_stretch(expr.Stretch.new("c"))
+        dag.add_declared_var(expr.Var.new("d", types.Bool()))
+        dag.add_declared_var(expr.Var.new("e", types.Uint(8)))
+        dag.add_declared_stretch(expr.Stretch.new("f"))
         self.assertEqual(dag, dag.copy_empty_like())
 
     def test_copy_empty_like_vars_captures(self):
@@ -435,15 +543,18 @@ class TestDagWireRemoval(QiskitTestCase):
         b = expr.Var.new("b", types.Uint(8))
         c = expr.Var.new("c", types.Bool())
         d = expr.Var.new("d", types.Uint(8))
+        e = expr.Stretch.new("e")
         all_captures = DAGCircuit()
         for var in [a, b, c, d]:
             all_captures.add_captured_var(var)
+        all_captures.add_captured_stretch(e)
 
         dag = DAGCircuit()
         dag.add_input_var(a)
         dag.add_input_var(b)
         dag.add_declared_var(c)
         dag.add_declared_var(d)
+        dag.add_declared_stretch(e)
         self.assertEqual(all_captures, dag.copy_empty_like(vars_mode="captures"))
 
         dag = DAGCircuit()
@@ -451,6 +562,7 @@ class TestDagWireRemoval(QiskitTestCase):
         dag.add_captured_var(b)
         dag.add_declared_var(c)
         dag.add_declared_var(d)
+        dag.add_declared_stretch(e)
         self.assertEqual(all_captures, dag.copy_empty_like(vars_mode="captures"))
 
     def test_copy_empty_like_vars_drop(self):
@@ -459,12 +571,14 @@ class TestDagWireRemoval(QiskitTestCase):
         b = expr.Var.new("b", types.Uint(8))
         c = expr.Var.new("c", types.Bool())
         d = expr.Var.new("d", types.Uint(8))
+        e = expr.Stretch.new("e")
 
         dag = DAGCircuit()
         dag.add_input_var(a)
         dag.add_input_var(b)
         dag.add_declared_var(c)
         dag.add_declared_var(d)
+        dag.add_declared_stretch(e)
         self.assertEqual(DAGCircuit(), dag.copy_empty_like(vars_mode="drop"))
 
         dag = DAGCircuit()
@@ -472,6 +586,7 @@ class TestDagWireRemoval(QiskitTestCase):
         dag.add_captured_var(b)
         dag.add_declared_var(c)
         dag.add_declared_var(d)
+        dag.add_captured_stretch(e)
         self.assertEqual(DAGCircuit(), dag.copy_empty_like(vars_mode="drop"))
 
     def test_remove_busy_clbit(self):
@@ -541,7 +656,8 @@ class TestDagWireRemoval(QiskitTestCase):
         self.assertEqual(dag, expected)
 
 
-class TestDagApplyOperation(QiskitTestCase):
+@ddt
+class TestDagApplyOperation(DAGTest):
     """Test adding an op node to a dag."""
 
     def setUp(self):
@@ -594,6 +710,37 @@ class TestDagApplyOperation(QiskitTestCase):
         reset_node = self.dag.op_nodes(op=Reset).pop()
 
         self.assertIn(reset_node, set(self.dag.predecessors(h_node)))
+
+    @data("front", "back")
+    def test_apply_operation_duplicate_wires(self, direction):
+        """The apply-front and apply-back methods should only attempt to add a single edge, even if
+        a classical variable is mentioned more than once."""
+        qc = QuantumCircuit()
+        a = qc.add_input("a", types.Bool())
+
+        dag = circuit_to_dag(qc)
+        op = IfElseOp(expr.logic_and(a, a), QuantumCircuit(), None)
+        if direction == "front":
+            dag.apply_operation_front(op, [], [])
+        else:
+            dag.apply_operation_back(op, [], [])
+        self.assertEqual(len(list(dag.edges())), 2)
+
+    @data("front", "back")
+    def test_apply_operation_determinism(self, direction):
+        """When adding a node with many qubits and clbits, the order of the edge ids should be
+        deterministic."""
+        qc = QuantumCircuit(100)
+        qubits = qc.qubits
+        if direction == "front":
+            apply = DAGCircuit.apply_operation_front
+        else:
+            apply = DAGCircuit.apply_operation_back
+        left = circuit_to_dag(qc)
+        apply(left, Barrier(len(qubits)), qubits, [])
+        right = circuit_to_dag(qc)
+        apply(right, Barrier(len(qubits)), qubits, [])
+        self.assertTrue(left.structurally_equal(right))
 
     def test_apply_operation_expr_condition(self):
         """Test that the operation-applying functions correctly handle wires implied from `Expr`
@@ -658,7 +805,7 @@ class TestDagApplyOperation(QiskitTestCase):
         self.assertEqual(test_wires, expected_wires)
 
 
-class TestDagNodeSelection(QiskitTestCase):
+class TestDagNodeSelection(DAGTest):
     """Test methods that select certain dag nodes"""
 
     def setUp(self):
@@ -853,9 +1000,9 @@ class TestDagNodeSelection(QiskitTestCase):
 
     def test_apply_operation_reject_invalid_qarg_carg(self):
         """Test that we can't add a carg to qargs and vice versa on apply methods"""
-        with self.assertRaises(KeyError):
+        with self.assertRaises((KeyError, TypeError)):
             self.dag.apply_operation_back(Measure(), [self.clbit1], [self.qubit1])
-        with self.assertRaises(KeyError):
+        with self.assertRaises((KeyError, TypeError)):
             self.dag.apply_operation_front(Measure(), [self.clbit1], [self.qubit1])
 
     def test_classical_successors(self):
@@ -1008,6 +1155,67 @@ class TestDagNodeSelection(QiskitTestCase):
             ("h", (self.qubit2,)),
         ]
         self.assertEqual(expected, [(i.op.name, i.qargs) for i in named_nodes])
+
+    def test_topological_nodes_reversals(self):
+        """Test topological_nodes in reverse order following the example pattern."""
+
+        self.dag.apply_operation_back(CXGate(), [self.qubit1, self.qubit2])
+        self.dag.apply_operation_back(XGate(), [self.qubit2])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1])
+        self.dag.apply_operation_back(HGate(), [self.qubit0])
+
+        nodes_in_reverse = self.dag.topological_nodes(reverse=True)
+
+        qr = self.dag.qregs["qr"]
+        cr = self.dag.cregs["cr"]
+
+        expected = [
+            qr[0],
+            ("h", (self.qubit0,)),
+            qr[1],
+            ("cx", (self.qubit0, self.qubit1)),
+            qr[0],
+            qr[2],
+            ("x", (self.qubit2,)),
+            ("cx", (self.qubit1, self.qubit2)),
+            qr[1],
+            qr[2],
+            cr[0],
+            cr[0],
+            cr[1],
+            cr[1],
+        ]
+
+        self.assertEqual(
+            [
+                ((i.op.name, i.qargs) if isinstance(i, DAGOpNode) else i.wire)
+                for i in nodes_in_reverse
+            ],
+            expected,
+        )
+
+    def test_topological_op_nodes_reversals(self):
+        """Test topological_op_nodes in reverse order following the example pattern."""
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit2, self.qubit1], [])
+        self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit2], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit2], [])
+
+        op_nodes_in_reverse = list(self.dag.topological_op_nodes(reverse=True))
+
+        expected = [
+            ("h", (self.qubit2,)),
+            ("cx", (self.qubit0, self.qubit2)),
+            ("h", (self.qubit0,)),
+            ("cx", (self.qubit2, self.qubit1)),
+            ("cx", (self.qubit0, self.qubit1)),
+        ]
+
+        self.assertEqual(
+            [(i.op.name, i.qargs) for i in op_nodes_in_reverse],
+            expected,
+        )
 
     def test_dag_nodes_on_wire(self):
         """Test that listing the gates on a qubit/classical bit gets the correct gates"""
@@ -1197,7 +1405,7 @@ class TestDagNodeSelection(QiskitTestCase):
                 self.fail("Unknown run encountered")
 
 
-class TestDagLayers(QiskitTestCase):
+class TestDagLayers(DAGTest):
     """Test finding layers on the dag"""
 
     def test_layers_basic(self):
@@ -1272,7 +1480,7 @@ def _sort_key(indices: dict[Qubit, int]):
     return _min_active_qubit_id
 
 
-class TestCircuitProperties(QiskitTestCase):
+class TestCircuitProperties(DAGTest):
     """DAGCircuit properties test."""
 
     def setUp(self):
@@ -1454,7 +1662,7 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.metadata, {})
 
 
-class TestCircuitControlFlowProperties(QiskitTestCase):
+class TestCircuitControlFlowProperties(DAGTest):
     """Properties tests of DAGCircuit with control-flow instructions."""
 
     def setUp(self):
@@ -1478,7 +1686,7 @@ class TestCircuitControlFlowProperties(QiskitTestCase):
                 # This for loop contributes 3x to size and depth.
                 with qc.for_loop((4, 0, 1)):
                     qc.z(2)
-        # While loops contribute 1x to both size and depth, so thsi
+        # While loops contribute 1x to both size and depth, so this
         with qc.while_loop((qc.clbits[0], True)):
             qc.h(0)
             qc.measure(0, 0)
@@ -1532,7 +1740,7 @@ class TestCircuitControlFlowProperties(QiskitTestCase):
         )
 
 
-class TestCircuitSpecialCases(QiskitTestCase):
+class TestCircuitSpecialCases(DAGTest):
     """DAGCircuit test for special cases, usually for regression."""
 
     def test_circuit_depth_with_repetition(self):
@@ -1551,7 +1759,7 @@ class TestCircuitSpecialCases(QiskitTestCase):
         self.assertEqual(dag.depth(), 2)
 
 
-class TestDagEquivalence(QiskitTestCase):
+class TestDagEquivalence(DAGTest):
     """DAGCircuit equivalence check."""
 
     def setUp(self):
@@ -1579,6 +1787,87 @@ class TestDagEquivalence(QiskitTestCase):
         circ1.u(0.0, 0.1, 0.2, self.qr1[3])
         circ1.ccx(self.qr2[0], self.qr2[1], self.qr1[0])
         self.dag1 = circuit_to_dag(circ1)
+
+    def test_unitary_gate_eq(self):
+        """Test equality of equal DAGOpNodes containing unitary gates.
+        See: https://github.com/Qiskit/qiskit-terra/issues/14047
+        """
+        # Create the unitary matrix
+        unitary_matrix = np.array(
+            [
+                [0.65328148 - 0.27059805j, 0.0 + 0.0j, 0.0 + 0.0j, 0.65328148 - 0.27059805j],
+                [0.0 + 0.0j, 0.65328148 - 0.27059805j, -0.65328148 + 0.27059805j, 0.0 + 0.0j],
+                [0.27059805 - 0.65328148j, 0.0 + 0.0j, 0.0 + 0.0j, -0.27059805 + 0.65328148j],
+                [0.0 + 0.0j, 0.27059805 - 0.65328148j, 0.27059805 - 0.65328148j, 0.0 + 0.0j],
+            ]
+        )
+
+        # Create the instruction
+        instruction = Instruction(
+            name="unitary", num_qubits=2, num_clbits=0, params=[unitary_matrix]
+        )
+
+        # Create the quantum register and qubits
+        qreg = QuantumRegister(9, "q")
+        qubit1 = Qubit(qreg, 7)
+        qubit2 = Qubit(qreg, 5)
+
+        # Create the DAGOpNode
+        dag_op_node = DAGOpNode(op=instruction, qargs=(qubit1, qubit2), cargs=())
+
+        # Create the DAGOpNode2
+        dag_op_node_2 = DAGOpNode(op=instruction, qargs=(qubit1, qubit2), cargs=())
+
+        self.assertEqual(dag_op_node, dag_op_node_2)
+
+    def test_unitary_gate_variants_eq(self):
+        """Test equality of equal DAGOpNodes containing unitary gates."""
+        # Create the instructions.
+        # Note that our rust code will interpret mat1 as ArrayType::NDArray and
+        # mat2 as ArrayType::TwoQ.
+        mat1 = np.asarray(CSGate().to_matrix(), dtype=complex)
+        mat2 = np.asarray(CSGate().to_matrix(), dtype=complex, order="f")
+        instruction1 = Instruction(name="unitary", num_qubits=2, num_clbits=0, params=[mat1])
+        instruction2 = Instruction(name="unitary", num_qubits=2, num_clbits=0, params=[mat2])
+
+        # Create the quantum register and qubits
+        qreg = QuantumRegister(9, "q")
+        qubit1 = Qubit(qreg, 7)
+        qubit2 = Qubit(qreg, 5)
+
+        # Create DAGOpNodes
+        node1 = DAGOpNode(op=instruction1, qargs=(qubit1, qubit2), cargs=())
+        node2 = DAGOpNode(op=instruction2, qargs=(qubit1, qubit2), cargs=())
+
+        self.assertEqual(node1, node2)
+
+    def test_boxop_neq(self):
+        """Test non equality of nonequal DAGOpNodes and QuantumCircuits containing BoxOp gates."""
+        qc = QuantumCircuit()
+
+        box1 = BoxOp(body=qc, duration=300.0, unit="dt")
+        box2 = BoxOp(body=qc, duration=300.0, unit="ms")
+        node1 = DAGOpNode(op=box1, qargs=(), cargs=())
+        node2 = DAGOpNode(op=box2, qargs=(), cargs=())
+        self.assertNotEqual(node1, node2)
+
+        qc1 = QuantumCircuit()
+        qc2 = QuantumCircuit()
+        qc1.append(box1)
+        qc2.append(box2)
+        self.assertNotEqual(qc1, qc2)
+
+        box1 = BoxOp(body=qc, duration=300.0, unit="dt")
+        box2 = BoxOp(body=qc, duration=200.0, unit="dt")
+        node1 = DAGOpNode(op=box1, qargs=(), cargs=())
+        node2 = DAGOpNode(op=box2, qargs=(), cargs=())
+        self.assertNotEqual(node1, node2)
+
+        qc1 = QuantumCircuit()
+        qc2 = QuantumCircuit()
+        qc1.append(box1)
+        qc2.append(box2)
+        self.assertNotEqual(qc1, qc2)
 
     def test_dag_eq(self):
         """DAG equivalence check: True."""
@@ -1709,8 +1998,10 @@ class TestDagEquivalence(QiskitTestCase):
         """The vars should be compared whether or not they're used."""
         a_bool = expr.Var.new("a", types.Bool())
         a_u8 = expr.Var.new("a", types.Uint(8))
+        a_stretch = expr.Stretch.new("a")
         a_u8_other = expr.Var.new("a", types.Uint(8))
         b_bool = expr.Var.new("b", types.Bool())
+        b_stretch = expr.Stretch.new("b")
 
         left = DAGCircuit()
         left.add_input_var(a_bool)
@@ -1755,6 +2046,17 @@ class TestDagEquivalence(QiskitTestCase):
         self.assertNotEqual(left, right)
 
         right = DAGCircuit()
+        right.add_captured_stretch(a_stretch)
+        right.add_captured_stretch(b_stretch)
+        self.assertEqual(right.num_input_vars, 0)
+        self.assertEqual(right.num_captured_vars, 0)
+        self.assertEqual(right.num_declared_vars, 0)
+        self.assertEqual(right.num_captured_stretches, 2)
+        self.assertEqual(right.num_declared_stretches, 0)
+        self.assertEqual(right.num_stretches, 2)
+        self.assertNotEqual(left, right)
+
+        right = DAGCircuit()
         right.add_declared_var(a_bool)
         right.add_declared_var(b_bool)
         self.assertEqual(right.num_input_vars, 0)
@@ -1763,16 +2065,103 @@ class TestDagEquivalence(QiskitTestCase):
         self.assertEqual(right.num_vars, 2)
         self.assertNotEqual(left, right)
 
+        right = DAGCircuit()
+        right.add_declared_stretch(a_stretch)
+        right.add_declared_stretch(b_stretch)
+        self.assertEqual(right.num_input_vars, 0)
+        self.assertEqual(right.num_captured_vars, 0)
+        self.assertEqual(right.num_declared_vars, 0)
+        self.assertEqual(right.num_captured_stretches, 0)
+        self.assertEqual(right.num_declared_stretches, 2)
+        self.assertEqual(right.num_stretches, 2)
+        self.assertNotEqual(left, right)
+
         left = DAGCircuit()
         left.add_captured_var(a_u8)
+        left.add_captured_stretch(b_stretch)
 
         right = DAGCircuit()
         right.add_captured_var(a_u8)
+        right.add_captured_stretch(b_stretch)
         self.assertEqual(left, right)
 
         right = DAGCircuit()
         right.add_captured_var(a_u8_other)
         self.assertNotEqual(left, right)
+
+    def test_pickle_vars(self):
+        """Test vars preserved through pickle."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+
+        # Check inputs.
+        dag = DAGCircuit()
+        dag.add_input_var(a)
+
+        self.assertEqual(dag.num_vars, 1)
+        self.assertEqual(dag.num_input_vars, 1)
+
+        with io.BytesIO() as buf:
+            pickle.dump(dag, buf)
+            buf.seek(0)
+            output = pickle.load(buf)
+
+        self.assertEqual(output.num_vars, 1)
+        self.assertEqual(output.num_input_vars, 1)
+        self.assertEqual(output, dag)
+
+        # Check captures and declarations.
+        dag = DAGCircuit()
+        dag.add_declared_var(a)
+        dag.add_captured_var(b)
+
+        self.assertEqual(dag.num_vars, 2)
+        self.assertEqual(dag.num_captured_vars, 1)
+        self.assertEqual(dag.num_declared_vars, 1)
+
+        with io.BytesIO() as buf:
+            pickle.dump(dag, buf)
+            buf.seek(0)
+            output = pickle.load(buf)
+
+        self.assertEqual(output.num_vars, 2)
+        self.assertEqual(output.num_captured_vars, 1)
+        self.assertEqual(output.num_declared_vars, 1)
+        self.assertEqual(output, dag)
+
+    def test_deepcopy_vars(self):
+        """Test vars preserved through deepcopy."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+
+        # Check inputs.
+        dag = DAGCircuit()
+        dag.add_input_var(a)
+
+        self.assertEqual(dag.num_vars, 1)
+        self.assertEqual(dag.num_input_vars, 1)
+
+        output = copy.deepcopy(dag)
+
+        self.assertEqual(output.num_vars, 1)
+        self.assertEqual(output.num_input_vars, 1)
+        self.assertEqual(output, dag)
+
+        # Check captures and declarations.
+        dag = DAGCircuit()
+        dag.add_declared_var(a)
+        dag.add_captured_var(b)
+
+        self.assertEqual(dag.num_vars, 2)
+        self.assertEqual(dag.num_captured_vars, 1)
+        self.assertEqual(dag.num_declared_vars, 1)
+
+        output = copy.deepcopy(dag)
+
+        self.assertEqual(output.num_vars, 2)
+        self.assertEqual(output.num_captured_vars, 1)
+        self.assertEqual(output.num_declared_vars, 1)
+        self.assertEqual(output, dag)
 
     def test_wires_added_for_simple_classical_vars(self):
         """Var uses should be represented in the wire structure."""
@@ -1896,20 +2285,32 @@ class TestDagEquivalence(QiskitTestCase):
         """Test that a DAG can't have both captures and inputs."""
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Bool())
+        c = expr.Stretch.new("c")
 
         dag = DAGCircuit()
         dag.add_input_var(a)
         with self.assertRaisesRegex(
-            DAGCircuitError, "cannot add captures to a circuit with inputs"
+            DAGCircuitError, "circuits with input variables cannot be enclosed"
         ):
             dag.add_captured_var(b)
+        with self.assertRaisesRegex(
+            DAGCircuitError, "circuits with input variables cannot be enclosed"
+        ):
+            dag.add_captured_stretch(c)
 
         dag = DAGCircuit()
         dag.add_captured_var(a)
         with self.assertRaisesRegex(
-            DAGCircuitError, "cannot add inputs to a circuit with captures"
+            DAGCircuitError, "circuits to be enclosed with captures cannot have input variables"
         ):
             dag.add_input_var(b)
+
+        dag = DAGCircuit()
+        dag.add_captured_stretch(c)
+        with self.assertRaisesRegex(
+            DAGCircuitError, "circuits to be enclosed with captures cannot have input variables"
+        ):
+            dag.add_input_var(a)
 
     def test_forbid_adding_nonstandalone_var(self):
         """Temporary "wrapping" vars aren't standalone and can't be tracked separately."""
@@ -1923,15 +2324,72 @@ class TestDagEquivalence(QiskitTestCase):
         """Can't re-add a variable that exists, nor a shadowing variable in the same scope."""
         a1 = expr.Var.new("a", types.Bool())
         a2 = expr.Var.new("a", types.Bool())
+        a3 = expr.Stretch.new("a")
         dag = DAGCircuit()
         dag.add_declared_var(a1)
         with self.assertRaisesRegex(DAGCircuitError, "already present in the circuit"):
             dag.add_declared_var(a1)
         with self.assertRaisesRegex(DAGCircuitError, "cannot add .* as its name shadows"):
             dag.add_declared_var(a2)
+        with self.assertRaisesRegex(DAGCircuitError, "cannot add .* as its name shadows"):
+            dag.add_declared_stretch(a3)
+
+        dag = DAGCircuit()
+        dag.add_declared_stretch(a3)
+        with self.assertRaisesRegex(DAGCircuitError, "already present in the circuit"):
+            dag.add_captured_stretch(a3)
+        with self.assertRaisesRegex(DAGCircuitError, "cannot add .* as its name shadows"):
+            dag.add_declared_var(a1)
+        with self.assertRaisesRegex(DAGCircuitError, "cannot add .* as its name shadows"):
+            dag.add_declared_var(a2)
+
+    def test_pickle_stretches(self):
+        """Test stretches preserved through pickle."""
+        a = expr.Stretch.new("a")
+        b = expr.Stretch.new("b")
+
+        # Check captures and declarations.
+        dag = DAGCircuit()
+        dag.add_declared_stretch(a)
+        dag.add_captured_stretch(b)
+
+        self.assertEqual(dag.num_stretches, 2)
+        self.assertEqual(dag.num_captured_stretches, 1)
+        self.assertEqual(dag.num_declared_stretches, 1)
+
+        with io.BytesIO() as buf:
+            pickle.dump(dag, buf)
+            buf.seek(0)
+            output = pickle.load(buf)
+
+        self.assertEqual(output.num_stretches, 2)
+        self.assertEqual(output.num_captured_stretches, 1)
+        self.assertEqual(output.num_declared_stretches, 1)
+        self.assertEqual(output, dag)
+
+    def test_deepcopy_stretches(self):
+        """Test stretches preserved through deepcopy."""
+        a = expr.Stretch.new("a")
+        b = expr.Stretch.new("b")
+
+        # Check captures and declarations.
+        dag = DAGCircuit()
+        dag.add_declared_stretch(a)
+        dag.add_captured_stretch(b)
+
+        self.assertEqual(dag.num_stretches, 2)
+        self.assertEqual(dag.num_captured_stretches, 1)
+        self.assertEqual(dag.num_declared_stretches, 1)
+
+        output = copy.deepcopy(dag)
+
+        self.assertEqual(output.num_stretches, 2)
+        self.assertEqual(output.num_captured_stretches, 1)
+        self.assertEqual(output.num_declared_stretches, 1)
+        self.assertEqual(output, dag)
 
 
-class TestDagSubstitute(QiskitTestCase):
+class TestDagSubstitute(DAGTest):
     """Test substituting a dag node with a sub-dag"""
 
     def setUp(self):
@@ -2239,7 +2697,7 @@ class TestDagSubstitute(QiskitTestCase):
 
 
 @ddt
-class TestDagSubstituteNode(QiskitTestCase):
+class TestDagSubstituteNode(DAGTest):
     """Test substituting a dagnode with a node."""
 
     def test_substituting_node_with_wrong_width_node_raises(self):
@@ -2282,7 +2740,7 @@ class TestDagSubstituteNode(QiskitTestCase):
 
         replacement_node = dag.substitute_node(node_to_be_replaced, U1Gate(0.1), inplace=inplace)
 
-        raise_if_dagcircuit_invalid(dag)
+        self.raise_if_dagcircuit_invalid(dag)
         self.assertEqual(set(dag.predecessors(replacement_node)), predecessors)
         self.assertEqual(set(dag.successors(replacement_node)), successors)
         self.assertEqual(dag.ancestors(replacement_node), ancestors)
@@ -2303,6 +2761,7 @@ class TestDagSubstituteNode(QiskitTestCase):
         dag.add_creg(cr1)
         dag.add_creg(cr2)
         node = dag.apply_operation_back(IfElseOp(expr.logic_not(cr1), body.copy(), None), qr, [])
+        self.assertEqual(dag.num_blocks(), 1)  # Sanity check.
         dag.substitute_node(node, IfElseOp(expr.equal(cr1, 0), body.copy(), None), inplace=inplace)
 
         expected = DAGCircuit()
@@ -2312,6 +2771,9 @@ class TestDagSubstituteNode(QiskitTestCase):
         expected.apply_operation_back(IfElseOp(expr.equal(cr1, 0), body.copy(), None), qr, [])
 
         self.assertEqual(dag, expected)
+        # If the below assertion fails, `substitute_node` most likely failed to track the refcounts
+        # correctly / failed to free a block after the substitution.
+        self.assertEqual(dag.num_blocks(), 1)
 
     @data(True, False)
     def test_reject_replace_if_else_op_with_other_resources(self, inplace):
@@ -2437,7 +2899,7 @@ class TestDagSubstituteNode(QiskitTestCase):
         self.assertEqual(dag, expected)
 
 
-class TestReplaceBlock(QiskitTestCase):
+class TestReplaceBlock(DAGTest):
     """Test replacing a block of nodes in a DAG."""
 
     def setUp(self):
@@ -2565,7 +3027,7 @@ class TestReplaceBlock(QiskitTestCase):
         self.assertEqual(dag, expected)
 
 
-class TestDagProperties(QiskitTestCase):
+class TestDagProperties(DAGTest):
     """Test the DAG properties."""
 
     def setUp(self):
@@ -2730,7 +3192,7 @@ class TestDagProperties(QiskitTestCase):
         self.assertEqual(dag.depth(), 6)
 
 
-class TestSwapNodes(QiskitTestCase):
+class TestSwapNodes(DAGTest):
     """Test Swapping connected nodes."""
 
     def test_1q_swap_fully_connected(self):
@@ -2750,7 +3212,7 @@ class TestSwapNodes(QiskitTestCase):
         self.assertEqual(dag, expected)
 
     def test_2q_swap_fully_connected(self):
-        """test swaping full connected 2q gates"""
+        """test swapping full connected 2q gates"""
         dag = DAGCircuit()
         qreg = QuantumRegister(2)
         dag.add_qreg(qreg)
@@ -2845,7 +3307,7 @@ class TestSwapNodes(QiskitTestCase):
         self.assertEqual(dag, expected)
 
 
-class TestDagCausalCone(QiskitTestCase):
+class TestDagCausalCone(DAGTest):
     """Test `get_causal_node` function"""
 
     def test_causal_cone_regular_circuit(self):
@@ -3092,6 +3554,248 @@ class TestDagCausalCone(QiskitTestCase):
         result = dag.quantum_causal_cone(dag.qubits[1])
         expected = {qreg[0], qreg[1], qreg[2], qreg[3]}
         self.assertEqual(result, expected)
+
+
+class TestDAGMakePhysical(DAGTest):
+    """Tests of `make_physical`."""
+
+    def test_basic(self):
+        """Test basic usage of `make_physical`."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+
+        def from_qubit_circuit(qc: QuantumCircuit):
+            qc.add_register(ClassicalRegister(5, "c"))
+            qc.add_input(a)
+            qc.add_var(b, expr.lift(False))
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure([0, 1], [0, 1])
+            return circuit_to_dag(qc, copy_operations=False)
+
+        base = from_qubit_circuit(QuantumCircuit(QuantumRegister(5, "virtuals")))
+        base.make_physical()
+        self.assertEqual(base, from_qubit_circuit(QuantumCircuit(QuantumRegister(5, "q"))))
+
+        expanded = from_qubit_circuit(QuantumCircuit([Qubit() for _ in range(3)]))
+        expanded.make_physical(10)
+        self.assertEqual(expanded, from_qubit_circuit(QuantumCircuit(QuantumRegister(10, "q"))))
+
+    def test_after_substitution(self):
+        """Make sure that having a nonsequential node ordering in the graph doesn't matter."""
+        base = DAGCircuit()
+        base.add_qreg(QuantumRegister(1, "virtuals"))
+        base.apply_operation_back(XGate(), [base.qubits[0]], [])
+        mid = base.apply_operation_back(HGate(), [base.qubits[0]], [])
+        base.apply_operation_back(XGate(), [base.qubits[0]], [])
+
+        replacement = QuantumCircuit(1, global_phase=-math.pi / 4)
+        replacement.s(0)
+        replacement.sx(0)
+        replacement.s(0)
+
+        base.substitute_node_with_dag(mid, circuit_to_dag(replacement))
+        base.make_physical(5)
+
+        expected = QuantumCircuit(QuantumRegister(5, "q"), global_phase=-math.pi / 4)
+        expected.x(0)
+        expected.s(0)
+        expected.sx(0)
+        expected.s(0)
+        expected.x(0)
+
+        self.raise_if_dagcircuit_invalid(base)
+        self.assertEqual(base, circuit_to_dag(expected))
+
+    def test_empty(self):
+        """An empty DAGCircuit."""
+        empty_0q = DAGCircuit()
+        empty_0q.make_physical()
+        expected = DAGCircuit()
+        expected.add_qreg(QuantumRegister(0, "q"))
+        self.assertEqual(empty_0q, expected)
+
+        empty_8q = DAGCircuit()
+        empty_8q.make_physical(8)
+        expanded = DAGCircuit()
+        expanded.add_qreg(QuantumRegister(8, "q"))
+        self.assertEqual(empty_8q, expanded)
+
+    def test_0q_with_classical(self):
+        """Classical data should still work fine even if there are no qubits."""
+        cr = ClassicalRegister(3, "cr")
+        qc = QuantumCircuit(cr)
+        a = qc.add_input("a", types.Bool())
+        b = qc.add_var("b", expr.lift(False))
+        qc.store(b, a)
+
+        def expected(num_qubits):
+            dag = DAGCircuit()
+            dag.add_qreg(QuantumRegister(num_qubits, "q"))
+            dag.add_creg(cr)
+            dag.add_input_var(a)
+            dag.add_declared_var(b)
+            dag.apply_operation_back(Store(b, expr.lift(False)), [], [])
+            dag.apply_operation_back(Store(b, a), [], [])
+            return dag
+
+        dag = circuit_to_dag(qc)
+        dag.make_physical()
+        self.assertEqual(dag, expected(0))
+
+        dag = circuit_to_dag(qc)
+        dag.make_physical(156)
+        self.assertEqual(dag, expected(156))
+
+
+class TestStructurallyEqual(DAGTest):
+    """Test structural-equality checks."""
+
+    def test_deterministic_circuit(self):
+        """Two DAGs created from the same circuit should be structurally equal."""
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.z(0)
+        qc.z(1)
+        qc.measure([0, 1], [0, 1])
+        left = circuit_to_dag(qc)
+        right = circuit_to_dag(qc)
+        # If this fails, it might be a problem with `circuit_to_dag`.
+        self.assertTrue(left.structurally_equal(right))
+
+    def test_name_does_not_matter(self):
+        left = circuit_to_dag(QuantumCircuit(name="left"))
+        right = circuit_to_dag(QuantumCircuit(name="right"))
+        self.assertTrue(left.structurally_equal(right))
+
+    def test_mismatch_global_phase(self):
+        # Explicit floats and bound parameter expressions should also be considered different,
+        # because they mean we must have done different things.
+        a = Parameter("a")
+        left = circuit_to_dag(QuantumCircuit(global_phase=2.0))
+        right = circuit_to_dag(QuantumCircuit(global_phase=a.bind({a: 2.0})))
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_mismatch_qubits(self):
+        left = circuit_to_dag(QuantumCircuit([Qubit() for _ in range(4)]))
+        right = circuit_to_dag(QuantumCircuit(left.qubits[::-1]))
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_mismatch_qregs(self):
+        left = circuit_to_dag(QuantumCircuit(QuantumRegister(4, "q")))
+        # ... but no register.
+        right = circuit_to_dag(QuantumCircuit(left.qubits))
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_mismatch_clbits(self):
+        left = circuit_to_dag(QuantumCircuit([Clbit() for _ in range(4)]))
+        right = circuit_to_dag(QuantumCircuit(left.clbits[::-1]))
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_mismatch_cregs(self):
+        left = circuit_to_dag(QuantumCircuit(ClassicalRegister(4, "c")))
+        # ... but no register.
+        right = circuit_to_dag(QuantumCircuit(left.clbits))
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_mismatch_vars_types(self):
+        left = circuit_to_dag(QuantumCircuit(inputs=[expr.Var.new("a", types.Bool())]))
+        right = circuit_to_dag(QuantumCircuit(inputs=[expr.Var.new("a", types.Uint(1))]))
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_mismatch_vars_names(self):
+        left = circuit_to_dag(QuantumCircuit(inputs=[expr.Var.new("a", types.Bool())]))
+        right = circuit_to_dag(QuantumCircuit(inputs=[expr.Var.new("b", types.Bool())]))
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_mismatch_vars_storage(self):
+        a = expr.Var.new("a", types.Bool())
+        left = circuit_to_dag(QuantumCircuit(inputs=[a]))
+        right = circuit_to_dag(QuantumCircuit(captures=[a]))
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_mismatch_vars_uuid(self):
+        # The two calls to `Var.new` produce different UUIDs.
+        left = circuit_to_dag(QuantumCircuit(inputs=[expr.Var.new("a", types.Bool())]))
+        right = circuit_to_dag(QuantumCircuit(inputs=[expr.Var.new("a", types.Bool())]))
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_matching_stretches(self):
+        left = QuantumCircuit()
+        a = left.add_stretch("a")
+        left = circuit_to_dag(left)
+        right = QuantumCircuit()
+        right.add_stretch(a)
+        right = circuit_to_dag(right)
+        self.assertTrue(left.structurally_equal(right))
+
+    def test_mismatch_stretch_names(self):
+        left = QuantumCircuit()
+        left.add_stretch("a")
+        left = circuit_to_dag(left)
+        right = QuantumCircuit()
+        right.add_stretch("b")
+        right = circuit_to_dag(right)
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_mismatch_stretch_uuids(self):
+        left = QuantumCircuit()
+        left.add_stretch("a")
+        left = circuit_to_dag(left)
+        right = QuantumCircuit()
+        # A new UUID.
+        right.add_stretch("a")
+        right = circuit_to_dag(right)
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_mismatch_stretch_orders(self):
+        left = QuantumCircuit()
+        a = left.add_stretch("a")
+        b = left.add_stretch("b")
+        left = circuit_to_dag(left)
+        right = QuantumCircuit()
+        # Wrong order of stretches; this matters.
+        right.add_stretch(b)
+        right.add_stretch(a)
+        right = circuit_to_dag(right)
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_mismatch_node_order(self):
+        left = circuit_to_dag(QuantumCircuit(2))
+        right = circuit_to_dag(QuantumCircuit(2))
+        self.assertTrue(left.structurally_equal(right))
+
+        left.apply_operation_back(XGate(), [left.qubits[0]], [])
+        left.apply_operation_back(XGate(), [left.qubits[1]], [])
+
+        # Exact same gates, but the modification order is different.
+        right.apply_operation_back(XGate(), [right.qubits[1]], [])
+        right.apply_operation_back(XGate(), [right.qubits[0]], [])
+
+        # Semantic equality should be fine.
+        self.assertEqual(left, right)
+        # ... but not structural.
+        self.assertFalse(left.structurally_equal(right))
+
+    def test_mismatch_with_node_removal(self):
+        left = circuit_to_dag(QuantumCircuit(2))
+        right = circuit_to_dag(QuantumCircuit(2))
+        self.assertTrue(left.structurally_equal(right))
+
+        left.apply_operation_back(XGate(), [left.qubits[0]], [])
+        left.apply_operation_back(XGate(), [left.qubits[1]], [])
+
+        right.apply_operation_back(XGate(), [right.qubits[0]], [])
+        to_remove = right.apply_operation_back(XGate(), [right.qubits[0]], [])
+        right.apply_operation_back(XGate(), [right.qubits[1]], [])
+        right.remove_op_node(to_remove)
+
+        # Semantic equality should be fine.
+        self.assertEqual(left, right)
+        # ... but not structural.  If the node we removed was the final node, it _might_ be ok, but
+        # that'd still be an implementation detail.
+        self.assertFalse(left.structurally_equal(right))
 
 
 if __name__ == "__main__":

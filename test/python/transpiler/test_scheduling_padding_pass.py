@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -18,7 +18,7 @@ from ddt import ddt, data
 from qiskit import QuantumCircuit
 from qiskit.circuit import Measure
 from qiskit.circuit.library import CXGate, HGate
-from qiskit.pulse import Schedule, Play, Constant, DriveChannel
+from qiskit.transpiler import PropertySet
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.passes import (
     ASAPScheduleAnalysis,
@@ -28,7 +28,7 @@ from qiskit.transpiler.passes import (
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target, InstructionProperties
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt
@@ -126,6 +126,22 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         expected.delay(1000, 0)
 
         self.assertEqual(expected, scheduled)
+
+    @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis)
+    def test_empty_circuit(self, schedule_pass):
+        """An empty circuit is trivially scheduled, so we should succeed without error."""
+        target = Target(num_qubits=4)
+        target.add_instruction(
+            CXGate(), {(i, i + 1): InstructionProperties(duration=1e-3) for i in range(3)}
+        )
+        target.add_instruction(
+            Measure(), {(i,): InstructionProperties(duration=1e-3) for i in range(4)}
+        )
+        qc = QuantumCircuit(4, 4)
+        property_set = PropertySet()
+        pass_ = schedule_pass(target=target)
+        pass_(qc, property_set=property_set)
+        self.assertEqual(property_set["node_start_time"], {})
 
     @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis)
     def test_shorter_measure_after_measure(self, schedule_pass):
@@ -294,34 +310,6 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         asap_expected.measure(1, 1)
 
         self.assertEqual(qc_asap, asap_expected)
-
-    def test_scheduling_with_calibration(self):
-        """Test if calibrated instruction can update node duration."""
-        qc = QuantumCircuit(2)
-        qc.x(0)
-        qc.cx(0, 1)
-        qc.x(1)
-        qc.cx(0, 1)
-
-        with self.assertWarns(DeprecationWarning):
-            xsched = Schedule(Play(Constant(300, 0.1), DriveChannel(0)))
-            qc.add_calibration("x", (0,), xsched)
-
-        durations = InstructionDurations([("x", None, 160), ("cx", None, 600)], dt=1e-7)
-        pm = PassManager([ASAPScheduleAnalysis(durations), PadDelay(durations=durations)])
-        scheduled = pm.run(qc)
-
-        expected = QuantumCircuit(2)
-        expected.x(0)
-        expected.delay(300, 1)
-        expected.cx(0, 1)
-        expected.x(1)
-        expected.delay(160, 0)
-        expected.cx(0, 1)
-        with self.assertWarns(DeprecationWarning):
-            expected.add_calibration("x", (0,), xsched)
-
-        self.assertEqual(expected, scheduled)
 
     def test_padding_not_working_without_scheduling(self):
         """Test padding fails when un-scheduled DAG is input."""

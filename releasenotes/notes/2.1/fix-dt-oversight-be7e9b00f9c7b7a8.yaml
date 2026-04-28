@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an oversight in the :class:`.Target` class where setting a new value for the ``dt`` attribute
+    and subsequently calling ``target.durations()`` would not show the updated ``dt`` value in the returned
+    :class:`.InstructionDurations` object. This is now fixed through an invalidation of the internal target
+    instruction durations cache in the ``dt`` setter.

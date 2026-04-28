@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -19,7 +19,7 @@ import numpy as np
 from qiskit.circuit.library import FourierChecking, fourier_checking
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info import Operator
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt
@@ -51,7 +51,8 @@ class TestFourierCheckingLibrary(QiskitTestCase):
     @unpack
     def test_fourier_checking(self, f_truth_table, g_truth_table):
         """Test if the Fourier Checking circuit produces the correct matrix."""
-        fc_circuit = FourierChecking(f_truth_table, g_truth_table)
+        with self.assertWarns(DeprecationWarning):
+            fc_circuit = FourierChecking(f_truth_table, g_truth_table)
         self.assertFourierCheckingIsCorrect(f_truth_table, g_truth_table, fc_circuit)
 
     @data(([1, -1, -1, -1], [1, 1, -1]), ([1], [-1]), ([1, -1, -1, -1, 1], [1, 1, -1, -1, 1]))
@@ -59,7 +60,8 @@ class TestFourierCheckingLibrary(QiskitTestCase):
     def test_invalid_input_raises(self, f_truth_table, g_truth_table):
         """Test that invalid input truth tables raise an error."""
         with self.assertRaises(CircuitError):
-            FourierChecking(f_truth_table, g_truth_table)
+            with self.assertWarns(DeprecationWarning):
+                FourierChecking(f_truth_table, g_truth_table)
 
     @data(([1, -1, -1, -1], [1, 1, -1, -1]), ([1, 1, 1, 1], [1, 1, 1, 1]))
     @unpack

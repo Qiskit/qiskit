@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -76,5 +76,5 @@ def synth_pauli_network_rustiq(
         upto_phase=upto_phase,
         resynth_clifford_method=resynth_clifford_method,
     )
-    circuit = QuantumCircuit._from_circuit_data(out, add_regs=True)
+    circuit = QuantumCircuit._from_circuit_data(out, legacy_qubits=True)
     return circuit

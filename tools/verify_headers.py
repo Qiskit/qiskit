@@ -5,19 +5,19 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=too-many-return-statements
 
 """Utility script to verify qiskit copyright file headers"""
 
 import argparse
 import multiprocessing
 import os
+import pathlib
 import sys
 import re
 
@@ -28,23 +28,15 @@ copyright_line = re.compile(r"^(\/\/|#) \(C\) Copyright IBM 20")
 
 
 def discover_files(code_paths):
-    """Find all .py, .pyx, .pxd files in a list of trees"""
-    out_paths = []
-    for path in code_paths:
-        if os.path.isfile(path):
-            out_paths.append(path)
-        else:
-            for directory in os.walk(path):
-                dir_path = directory[0]
-                for subfile in directory[2]:
-                    if (
-                        subfile.endswith(".py")
-                        or subfile.endswith(".pyx")
-                        or subfile.endswith(".pxd")
-                        or subfile.endswith(".rs")
-                    ):
-                        out_paths.append(os.path.join(dir_path, subfile))
-    return out_paths
+    """Find all .py, .rs, .c, and .h files in a list of trees"""
+    return [
+        file
+        for extension in ("py", "rs", "c", "h")
+        for path in code_paths
+        for file in pathlib.Path(path).glob(f"**/*.{extension}")
+        # CMake generates some files inside the tree.
+        if not file.is_relative_to("test/c/build")
+    ]
 
 
 def validate_header(file_path):
@@ -55,24 +47,25 @@ def validate_header(file_path):
     apache_text = """#
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-    header_rs = """// This code is part of Qiskit.
+    header_slashes = """// This code is part of Qiskit.
 //
 """
-    apache_text_rs = """//
+    apache_text_slashes = """//
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 """
+
     count = 0
     with open(file_path, encoding="utf8") as fd:
         lines = fd.readlines()
@@ -86,14 +79,15 @@ def validate_header(file_path):
         if line_start.search(line):
             start = index
             break
-    if file_path.endswith(".rs"):
-        if "".join(lines[start : start + 2]) != header_rs:
+
+    if file_path.suffix in (".rs", ".c", ".h"):
+        if "".join(lines[start : start + 2]) != header_slashes:
             return (file_path, False, f"Header up to copyright line does not match: {header}")
         if not copyright_line.search(lines[start + 2]):
             return (file_path, False, "Header copyright line not found")
-        if "".join(lines[start + 3 : start + 11]) != apache_text_rs:
+        if "".join(lines[start + 3 : start + 11]) != apache_text_slashes:
             return (file_path, False, f"Header apache text string doesn't match:\n {apache_text}")
-    else:
+    else:  # .py ending
         if "".join(lines[start : start + 2]) != header:
             return (file_path, False, f"Header up to copyright line does not match: {header}")
         if not copyright_line.search(lines[start + 2]):

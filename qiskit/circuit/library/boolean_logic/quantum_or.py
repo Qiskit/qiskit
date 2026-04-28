@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,7 +14,6 @@
 """Boolean OR circuit and gate."""
 
 from __future__ import annotations
-from typing import List, Optional
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit, AncillaRegister, Gate
 from qiskit.circuit.library.standard_gates import MCXGate
@@ -55,23 +54,23 @@ class OR(QuantumCircuit):
     """
 
     @deprecate_func(
-        since="1.3",
+        since="2.1",
         additional_msg="Use qiskit.circuit.library.OrGate instead.",
-        pending=True,
+        removal_timeline="in Qiskit 3.0",
     )
     def __init__(
         self,
         num_variable_qubits: int,
-        flags: Optional[List[int]] = None,
+        flags: list[int] | None = None,
         mcx_mode: str = "noancilla",
     ) -> None:
-        """Create a new logical OR circuit.
-
+        """
         Args:
             num_variable_qubits: The qubits of which the OR is computed. The result will be written
                 into an additional result qubit.
             flags: A list of +1/0/-1 marking negations or omissions of qubits.
             mcx_mode: The mode to be used to implement the multi-controlled X gate.
+
         """
         self.num_variable_qubits = num_variable_qubits
         self.flags = flags
@@ -135,7 +134,7 @@ class OrGate(Gate):
     .. plot::
        :alt: Diagram illustrating the previously described circuit.
 
-       from qiskit.circuit import QuantumCircuit
+       from qiskit import QuantumCircuit
        from qiskit.circuit.library import OrGate
        from qiskit.visualization.library import _generate_circuit_library_visualization
        circuit = QuantumCircuit(6)
@@ -151,11 +150,11 @@ class OrGate(Gate):
     ) -> None:
         """
         Args:
-            num_variable_qubits: The qubits of which the AND is computed. The result will be written
+            num_variable_qubits: The qubits of which the OR is computed. The result will be written
                 into an additional result qubit.
             flags: A list of +1/0/-1 marking negations or omissions of qubits.
         """
-        super().__init__("and", num_variable_qubits + 1, [])
+        super().__init__("or", num_variable_qubits + 1, [])
         self.num_variable_qubits = num_variable_qubits
         self.flags = flags
 
@@ -183,7 +182,6 @@ class OrGate(Gate):
 
         self.definition = circuit
 
-    # pylint: disable=unused-argument
     def inverse(self, annotated: bool = False):
         r"""Return inverted OR gate (itself).
 

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -12,18 +12,18 @@
 
 """Double-CNOT gate."""
 
+from __future__ import annotations
 from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array
 from qiskit._accelerate.circuit import StandardGate
 
 
 @with_gate_array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 1, 0, 0], [0, 0, 1, 0]])
 class DCXGate(SingletonGate):
-    r"""Double-CNOT gate.
+    r"""Double-CX gate.
 
     A 2-qubit Clifford gate consisting of two back-to-back
-    CNOTs with alternate controls.
+    CX gates with alternate controls.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.dcx` method.
@@ -50,29 +50,31 @@ class DCXGate(SingletonGate):
             \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.DCXGate
+    _standard_gate = StandardGate.DCX
 
-    def __init__(self, label=None):
-        """Create new DCX gate."""
+    def __init__(self, label: str | None = None) -> None:
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("dcx", 2, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
-        """
-        gate dcx a, b { cx a, b; cx b, a; }
-        """
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .x import CXGate
+        """Default definition"""
 
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [(CXGate(), [q[0], q[1]], []), (CXGate(), [q[1], q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        from qiskit.circuit import QuantumCircuit
 
-        self.definition = qc
+        #           ┌───┐
+        # q_0: ──■──┤ X ├
+        #      ┌─┴─┐└─┬─┘
+        # q_1: ┤ X ├──■──
+        #      └───┘
+
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.DCX._get_definition(self.params), legacy_qubits=True
+        )
 
     def __eq__(self, other):
         return isinstance(other, DCXGate)

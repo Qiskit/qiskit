@@ -6,11 +6,16 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+no_docker=false
+if [[ " $@ " =~ " --no-docker " ]]; then
+    no_docker=true
+fi
+
 set -e
 set -o pipefail
 set -x
@@ -27,6 +32,7 @@ repo_root="$(realpath -- "$our_dir/../..")"
 # First, prepare a wheel file for the dev version.  We install several venvs with this, and while
 # cargo will cache some rust artefacts, it still has to re-link each time, so the wheel build takes
 # a little while.
+
 wheel_dir="$(pwd -P)/wheels"
 python -m pip wheel --no-deps --wheel-dir "$wheel_dir" "$repo_root"
 all_wheels=("$wheel_dir"/*.whl)
@@ -39,10 +45,14 @@ qiskit_python="$qiskit_venv/bin/python"
 python -m venv "$qiskit_venv"
 
 # `packaging` is needed for the `get_versions.py` script.
-"$qiskit_venv/bin/pip" install -c "$repo_root/constraints.txt" "$qiskit_dev_wheel" packaging
+"$qiskit_venv/bin/pip" install -c "$repo_root/constraints.txt" "$qiskit_dev_wheel" packaging "symengine<0.14" "sympy>1.3"
 
 # Run all of the tests of cross-Qiskit-version compatibility.
-"$qiskit_python" "$our_dir/get_versions.py" | parallel -j 2 --colsep=" " bash "$our_dir/process_version.sh" -p "$qiskit_python"
+if $no_docker; then
+    "$qiskit_python" "$our_dir/get_versions.py" --no-docker | parallel -j 2 --colsep=" " bash "$our_dir/process_version_with_venv.sh" -p "$qiskit_python"
+else
+    "$qiskit_python" "$our_dir/get_versions.py" | parallel -j 2 --colsep=" " bash "$our_dir/process_version.sh" -p "$qiskit_python"
+fi
 
 # Test dev compatibility with itself.
 dev_version="$("$qiskit_python" -c 'import qiskit; print(qiskit.__version__)')"
@@ -57,7 +67,7 @@ popd
 # This will likely duplicate the base dev-compatibility test, but the tests are fairly fast, and
 # it's better safe than sorry with the serialisation tests.
 
-# Note that the constraint in the range of symengine versions is logically duplicated 
+# Note that the constraint in the range of symengine versions is logically duplicated
 # in `qpy_test_constraints.txt`
 symengine_versions=(
     '>=0.11,<0.12'
@@ -72,7 +82,7 @@ for i in "${!symengine_versions[@]}"; do
     symengine_venv="$symengine_venv_prefix$i"
     files_dir="$symengine_files_prefix$i"
     python -m venv "$symengine_venv"
-    "$symengine_venv/bin/pip" install -c "$repo_root/constraints.txt" "$qiskit_dev_wheel" "symengine$specifier"
+    "$symengine_venv/bin/pip" install -c "$repo_root/constraints.txt" packaging "$qiskit_dev_wheel" "symengine$specifier"
     mkdir -p "$files_dir"
     pushd "$files_dir"
     "$symengine_venv/bin/python" -c 'import symengine; print(symengine.__version__)' > "SYMENGINE_VERSION"

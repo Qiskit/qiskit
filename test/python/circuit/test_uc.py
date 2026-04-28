@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -17,7 +17,7 @@ Tests for uniformly controlled single-qubit unitaries.
 
 import unittest
 from ddt import ddt
-from test import combine  # pylint: disable=wrong-import-order
+from test import combine
 import numpy as np
 from scipy.linalg import block_diag
 
@@ -27,7 +27,7 @@ from qiskit.quantum_info.random import random_unitary
 from qiskit.compiler import transpile
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info import Operator
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 _id = np.eye(2, 2)
 _not = np.matrix([[0, 1], [1, 0]])
@@ -75,8 +75,10 @@ class TestUCGate(QiskitTestCase):
             unitary = np.dot(diag, unitary)
 
         unitary_desired = _get_ucg_matrix(squs)
-
-        self.assertTrue(matrix_equal(unitary_desired, unitary, ignore_phase=True))
+        self.assertTrue(
+            matrix_equal(unitary_desired, unitary, ignore_phase=True),
+            f"{unitary_desired}\ndoes not equal\n{unitary}",
+        )
 
     def test_global_phase_ucg(self):
         """Test global phase of uniformly controlled gates"""

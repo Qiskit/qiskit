@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`~.dagcircuit.DAGCircuit` that would cause
+    output :class:`~.expr.Var` nodes to become input nodes during
+    ``deepcopy`` and pickling.

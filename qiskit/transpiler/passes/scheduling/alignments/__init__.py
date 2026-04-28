@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -40,7 +40,7 @@ the underlying pulse instruction should satisfy other two waveform constraints.
 Pulse alignment constraint
 
     This value is reported by ``timing_constraints["pulse_alignment"]`` in the backend
-    configuration in units of dt. The start time of the all pulse instruction should be
+    configuration in units of dt. The start time of all pulse instructions should be
     multiple of this value. Violation of this constraint may result in the
     backend execution failure.
 
@@ -63,7 +63,7 @@ Granularity constraint
     configuration in units of dt. This is the constraint for a single pulse :class:`Play`
     instruction that may constitute your pulse gate.
     The length of waveform samples should be multiple of this constraint value.
-    Violation of this constraint may result in failue in backend execution.
+    Violation of this constraint may result in failure in backend execution.
 
 Minimum pulse length constraint
 
@@ -71,7 +71,7 @@ Minimum pulse length constraint
     configuration in units of dt. This is the constraint for a single pulse :class:`Play`
     instruction that may constitute your pulse gate.
     The length of waveform samples should be greater than this constraint value.
-    Violation of this constraint may result in failue in backend execution.
+    Violation of this constraint may result in failure in backend execution.
 
 """
 

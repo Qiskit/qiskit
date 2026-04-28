@@ -1,0 +1,8 @@
+---
+other:
+  - |
+    The implementation of Sabre routing used by :class:`.SabreLayout` and :class:`.SabreSwap` now
+    compresses runs of nodes that will automatically become eligible for routing at the same time
+    within its internal virtual-interaction representation.  This improves the efficiency of the
+    routing, reduces intermediate memory use, and avoids runs of 2q gates biasing the ``lookahead``
+    heuristic components.

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -18,7 +18,7 @@ import unittest
 from qiskit.converters.dagdependency_to_circuit import dagdependency_to_circuit
 from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestCircuitToDagCanonical(QiskitTestCase):
@@ -57,23 +57,8 @@ class TestCircuitToDagCanonical(QiskitTestCase):
         circuit_out = dagdependency_to_circuit(dag_dependency)
         self.assertEqual(circuit_out, circuit_in)
 
-    def test_calibrations(self):
-        """Test that calibrations are properly copied over."""
-        circuit_in = QuantumCircuit(1)
-        with self.assertWarns(DeprecationWarning):
-            circuit_in.add_calibration("h", [0], None)
-            self.assertEqual(len(circuit_in.calibrations), 1)
-
-        dag_dependency = circuit_to_dagdependency(circuit_in)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(len(dag_dependency.calibrations), 1)
-
-        circuit_out = dagdependency_to_circuit(dag_dependency)
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(len(circuit_out.calibrations), 1)
-
     def test_metadata(self):
-        """Test circuit metadata is preservered through conversion."""
+        """Test circuit metadata is preserved through conversion."""
         meta_dict = {"experiment_id": "1234", "execution_number": 4}
         qr = QuantumRegister(2)
         circuit_in = QuantumCircuit(qr, metadata=meta_dict)

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -15,10 +15,9 @@
 from __future__ import annotations
 
 from cmath import exp
-from typing import Optional
+
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.parameterexpression import ParameterValueType, ParameterExpression
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit._accelerate.circuit import StandardGate
 
 
@@ -30,7 +29,7 @@ class RZZGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.rzz` method.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -38,7 +37,7 @@ class RZZGate(Gate):
                 │zz(θ)
         q_1: ───■────
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -63,95 +62,54 @@ class RZZGate(Gate):
                 0 & RZ(-\theta)
             \end{pmatrix}
 
-    **Examples:**
+    Examples:
 
-        .. math::
+    .. math::
 
-            R_{ZZ}(\theta = 0) = I
+        R_{ZZ}(\theta = 0) = I
 
-        .. math::
+    .. math::
 
-            R_{ZZ}(\theta = 2\pi) = -I
+        R_{ZZ}(\theta = 2\pi) = -I
 
-        .. math::
+    .. math::
 
-            R_{ZZ}(\theta = \pi) = - i Z \otimes Z
+        R_{ZZ}(\theta = \pi) = - i Z \otimes Z
 
-        .. math::
+    .. math::
 
-            R_{ZZ}\left(\theta = \frac{\pi}{2}\right) = \frac{1}{\sqrt{2}}
-                                    \begin{pmatrix}
-                                        1-i & 0 & 0 & 0 \\
-                                        0 & 1+i & 0 & 0 \\
-                                        0 & 0 & 1+i & 0 \\
-                                        0 & 0 & 0 & 1-i
-                                    \end{pmatrix}
+        R_{ZZ}\left(\theta = \frac{\pi}{2}\right) = \frac{1}{\sqrt{2}}
+                                \begin{pmatrix}
+                                    1-i & 0 & 0 & 0 \\
+                                    0 & 1+i & 0 & 0 \\
+                                    0 & 0 & 1+i & 0 \\
+                                    0 & 0 & 0 & 1-i
+                                \end{pmatrix}
     """
 
-    _standard_gate = StandardGate.RZZGate
+    _standard_gate = StandardGate.RZZ
 
-    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
-        """Create new RZZ gate."""
+    def __init__(self, theta: ParameterValueType, label: str | None = None):
+        """
+        Args:
+            theta: The rotation angle.
+            label: An optional label for the gate.
+        """
         super().__init__("rzz", 2, [theta], label=label)
 
     def _define(self):
-        """
-        gate rzz(theta) a, b { cx a, b; u1(theta) b; cx a, b; }
-        """
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .x import CXGate
-        from .rz import RZGate
+        """Default definition"""
+
+        from qiskit.circuit import QuantumCircuit
 
         # q_0: ──■─────────────■──
         #      ┌─┴─┐┌───────┐┌─┴─┐
         # q_1: ┤ X ├┤ Rz(0) ├┤ X ├
         #      └───┘└───────┘└───┘
-        q = QuantumRegister(2, "q")
-        theta = self.params[0]
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (CXGate(), [q[0], q[1]], []),
-            (RZGate(theta), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
 
-        self.definition = qc
-
-    def control(
-        self,
-        num_ctrl_qubits: int = 1,
-        label: str | None = None,
-        ctrl_state: str | int | None = None,
-        annotated: bool | None = None,
-    ):
-        """Return a (multi-)controlled-RZZ gate.
-
-        Args:
-            num_ctrl_qubits: number of control qubits.
-            label: An optional label for the gate [Default: ``None``]
-            ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate. If ``None``, this is set to ``True`` if
-                the gate contains free parameters, in which case it cannot
-                yet be synthesized.
-
-        Returns:
-            ControlledGate: controlled version of this gate.
-        """
-        if annotated is None:
-            annotated = any(isinstance(p, ParameterExpression) for p in self.params)
-
-        gate = super().control(
-            num_ctrl_qubits=num_ctrl_qubits,
-            label=label,
-            ctrl_state=ctrl_state,
-            annotated=annotated,
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.RZZ._get_definition(self.params), legacy_qubits=True
         )
-        return gate
 
     def inverse(self, annotated: bool = False):
         """Return inverse RZZ gate (i.e. with the negative rotation angle).
