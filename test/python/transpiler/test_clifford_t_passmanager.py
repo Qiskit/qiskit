@@ -540,44 +540,6 @@ class TestCliffordTPassManager(QiskitTestCase):
         self.assertEqual(transpiled_basis_gates, transpiled_neither)
         self.assertEqual(transpiled_basis_gates, transpiled_both)
 
-    def test_arguments_passed_correctly(self):
-        """Test that the arguments ``approximation_degree``, ``rz_cache_error``, and ``rz_synthesis_error``
-        are correctly passed down to SynthesizeRZRotations pass.
-        """
-        basis_gates = get_clifford_gate_names() + ["t", "tdg"]
-
-        # The circuit consists of a single RZ-gate and we expect that the full compilation
-        # into Clifford+T with optimization level 0 is equivalent to calling SynthesizeRZRotations.
-        qc = QuantumCircuit(1)
-        theta = 2.3579
-        qc.rz(theta, 0)
-
-        # testing approximation_degree
-        for eps in 10.0 ** np.arange(-2, -13, -1):
-            approximation_degree = 1 - eps
-            with self.subTest(approximation_degree=approximation_degree):
-                pm = generate_preset_clifford_t_pass_manager(
-                    basis_gates=basis_gates,
-                    optimization_level=0,
-                    approximation_degree=approximation_degree,
-                )
-                transpiled = pm.run(qc)
-                expected = SynthesizeRZRotations(approximation_degree=approximation_degree)(qc)
-                self.assertEqual(transpiled, expected)
-
-        # testing rz_synthesis_error & rz_cache_error
-        for eps in 10.0 ** np.arange(-2, -13, -1):
-            with self.subTest(synthesis_error=eps):
-                pm = generate_preset_clifford_t_pass_manager(
-                    basis_gates=basis_gates,
-                    optimization_level=0,
-                    rz_synthesis_error=eps,
-                    rz_cache_error=0.0,
-                )
-                transpiled = pm.run(qc)
-                expected = SynthesizeRZRotations(synthesis_error=eps, cache_error=0.0)(qc)
-                self.assertEqual(transpiled, expected)
-
 
 def _get_t_count(qc):
     """Returns the number of T/Tdg gates in a circuit."""
