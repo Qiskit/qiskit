@@ -12,6 +12,13 @@
 
 """Calculate the width of a DAG circuit."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGCircuit
+
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
@@ -22,6 +29,6 @@ class Width(AnalysisPass):
     contains the number of qubits + the number of clbits.
     """
 
-    def run(self, dag):
-        """Run the Width pass on `dag`."""
+    def run(self, dag: DAGCircuit) -> None:
+        """Run the Width pass on ``dag``."""
         self.property_set["width"] = dag.width()

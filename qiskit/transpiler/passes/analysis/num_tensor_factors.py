@@ -12,6 +12,13 @@
 
 """Calculate the number of tensor factors of a DAG circuit."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGCircuit
+
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
@@ -21,6 +28,6 @@ class NumTensorFactors(AnalysisPass):
     The result is saved in ``property_set['num_tensor_factors']`` as an integer.
     """
 
-    def run(self, dag):
-        """Run the NumTensorFactors pass on `dag`."""
+    def run(self, dag: DAGCircuit) -> None:
+        """Run the NumTensorFactors pass on ``dag``."""
         self.property_set["num_tensor_factors"] = dag.num_tensor_factors()
