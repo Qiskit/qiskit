@@ -86,6 +86,16 @@ pub enum BitType {
     Clbit = b'c',
 }
 
+// Representation for symbolic encodings (now obsolete)
+#[binrw]
+#[brw(repr = u8)]
+#[repr(u8)]
+#[derive(Debug)]
+pub enum SymbolicEncoding {
+    Sympy = b'p',
+    Symengine = b'e',
+}
+
 impl TryFrom<u8> for BitType {
     type Error = QpyError;
     fn try_from(value: u8) -> Result<Self, Self::Error> {
