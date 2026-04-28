@@ -914,15 +914,8 @@ impl DAGCircuit {
     /// Args:
     ///     angle (float, :class:`.ParameterExpression`): The phase angle.
     #[setter(global_phase)]
-    pub fn set_global_phase_param(&mut self, angle: Param) -> PyResult<()> {
-        match angle {
-            Param::Float(angle) => self.set_global_phase_f64(angle),
-            Param::ParameterExpression(angle) => {
-                self.global_phase = Param::ParameterExpression(angle);
-            }
-            Param::Obj(_) => return Err(PyTypeError::new_err("Invalid type for global phase")),
-        }
-        Ok(())
+    pub fn set_global_phase(&mut self, angle: Param) -> PyResult<()> {
+        self.set_global_phase_param(angle).map(|_| ())
     }
 
     /// Remove all operation nodes with the given name.
@@ -6230,12 +6223,30 @@ impl DAGCircuit {
         Ok((in_node, out_node))
     }
 
-    /// Set the global phase to a float value.
+    /// Set the global phase to a float value.  Returns the old phase.
     ///
     /// Unlike the general [set_global_phase_param], this is infallible.
     #[inline]
-    pub fn set_global_phase_f64(&mut self, angle: f64) {
-        self.global_phase = Param::Float(angle.rem_euclid(::std::f64::consts::TAU));
+    pub fn set_global_phase_f64(&mut self, angle: f64) -> Param {
+        std::mem::replace(
+            &mut self.global_phase,
+            Param::Float(angle.rem_euclid(::std::f64::consts::TAU)),
+        )
+    }
+
+    /// Set the global phase to a general [Param].  Returns the old phase.
+    ///
+    /// Unlike the general [set_global_phase_param], this is infallible.
+    #[inline]
+    pub fn set_global_phase_param(&mut self, angle: Param) -> PyResult<Param> {
+        match angle {
+            Param::Float(angle) => Ok(self.set_global_phase_f64(angle)),
+            Param::ParameterExpression(angle) => Ok(std::mem::replace(
+                &mut self.global_phase,
+                Param::ParameterExpression(angle),
+            )),
+            Param::Obj(_) => Err(PyTypeError::new_err("Invalid type for global phase")),
+        }
     }
 
     /// Get the nodes on the given wire.
@@ -6391,8 +6402,7 @@ impl DAGCircuit {
                         op_node
                             .instruction
                             .qubits
-                            .extract::<Vec<ShareableQubit>>(py)?
-                            .into_iter(),
+                            .extract::<Vec<ShareableQubit>>(py)?,
                     )?
                     .collect(),
             );
@@ -6402,8 +6412,7 @@ impl DAGCircuit {
                         op_node
                             .instruction
                             .clbits
-                            .extract::<Vec<ShareableClbit>>(py)?
-                            .into_iter(),
+                            .extract::<Vec<ShareableClbit>>(py)?,
                     )?
                     .collect(),
             );
@@ -7300,14 +7309,13 @@ impl DAGCircuit {
 
     pub fn add_global_phase(&mut self, value: &Param) -> PyResult<()> {
         match value {
-            Param::Obj(_) => {
-                return Err(PyTypeError::new_err(
-                    "Invalid parameter type, only float and parameter expression are supported",
-                ));
-            }
-            _ => self.set_global_phase_param(add_global_phase(&self.global_phase, value))?,
+            Param::Obj(_) => Err(PyTypeError::new_err(
+                "Invalid parameter type, only float and parameter expression are supported",
+            )),
+            _ => self
+                .set_global_phase_param(add_global_phase(&self.global_phase, value))
+                .map(|_| ()),
         }
-        Ok(())
     }
 
     /// Return the op name counts in the circuit

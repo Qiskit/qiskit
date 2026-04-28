@@ -114,15 +114,11 @@ impl Param {
                 Ok(a.as_ref() == &ParameterExpression::from_f64(*b))
             }
             [Self::ParameterExpression(a), Self::ParameterExpression(b)] => Ok(a == b),
+            [Self::Obj(a), Self::Obj(b)] => Python::attach(|py| a.bind(py).eq(b)),
             [Self::Obj(_), Self::Float(_)] => Ok(false),
             [Self::Float(_), Self::Obj(_)] => Ok(false),
-            [Self::Obj(a), Self::ParameterExpression(b)] => {
-                Python::attach(|py| a.bind(py).eq(b.as_ref().clone()))
-            }
-            [Self::Obj(a), Self::Obj(b)] => Python::attach(|py| a.bind(py).eq(b)),
-            [Self::ParameterExpression(a), Self::Obj(b)] => {
-                Python::attach(|py| a.as_ref().clone().into_bound_py_any(py)?.eq(b))
-            }
+            [Self::Obj(_a), Self::ParameterExpression(_b)] => Ok(false),
+            [Self::ParameterExpression(_a), Self::Obj(_b)] => Ok(false),
         }
     }
 
@@ -1743,6 +1739,29 @@ impl PauliProductRotation {
             out[(i, i)] += cos;
         }
         Some(out)
+    }
+
+    pub fn matrix_as_static_1q(&self) -> Option<[[Complex64; 2]; 2]> {
+        if self.num_qubits() == 1 {
+            let arr = self.matrix()?;
+            Some([[arr[(0, 0)], arr[(0, 1)]], [arr[(1, 0)], arr[(1, 1)]]])
+        } else {
+            None
+        }
+    }
+
+    pub fn matrix_as_static_2q(&self) -> Option<[[Complex64; 4]; 4]> {
+        if self.num_qubits() == 2 {
+            let arr = self.matrix()?;
+            Some([
+                [arr[[0, 0]], arr[[0, 1]], arr[[0, 2]], arr[[0, 3]]],
+                [arr[[1, 0]], arr[[1, 1]], arr[[1, 2]], arr[[1, 3]]],
+                [arr[[2, 0]], arr[[2, 1]], arr[[2, 2]], arr[[2, 3]]],
+                [arr[[3, 0]], arr[[3, 1]], arr[[3, 2]], arr[[3, 3]]],
+            ])
+        } else {
+            None
+        }
     }
 }
 

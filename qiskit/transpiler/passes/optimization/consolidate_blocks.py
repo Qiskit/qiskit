@@ -123,6 +123,11 @@ class ConsolidateBlocks(TransformationPass):
                     basis_fidelity=approximation_degree or 1.0,
                 )
                 self.basis_gate_name = next(iter(kak_gates))
+            elif force_consolidate:
+                # if we haven't found a decomposer but consolidation is forced,
+                # pick a default
+                self.decomposer = TwoQubitBasisDecomposer(CXGate())
+                self.basis_gate_name = "cx"
             else:
                 self.decomposer = None
         else:

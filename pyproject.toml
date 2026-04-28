@@ -208,6 +208,7 @@ test = [
 test-random = [
     "qiskit-aer",
     "hypothesis>=4.24.3",
+    "ddt>=1.2.0",
 ]
 # Dependencies to build the documentation.  It's ok if the range of Python versions that can build
 # the docs is more restrictive than Python versions that Qiskit supports.
