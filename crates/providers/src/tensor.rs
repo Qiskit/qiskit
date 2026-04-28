@@ -217,7 +217,7 @@ impl TensorType {
 }
 
 /// A tensor of one of the supported dtypes.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Tensor {
     C64(ArrayD<Complex<f32>>),
     C128(ArrayD<Complex<f64>>),
