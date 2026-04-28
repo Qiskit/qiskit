@@ -15,6 +15,8 @@
 import unittest
 from test import QiskitTestCase
 
+import itertools
+
 import scipy
 import numpy as np
 from ddt import idata, ddt, data, unpack
@@ -115,6 +117,9 @@ class MyEvilRXGate(Gate):
     def _define(self):
         self.definition = QuantumCircuit(1)
         self.definition.rx(self.value, 0)
+
+
+pauli_based_types = ["pauli", "measure", "evolution", "rotation"]
 
 
 @ddt
@@ -510,9 +515,10 @@ class TestCommutationChecker(QiskitTestCase):
             scc.commute(other, [0], [], big, qubits, [], matrix_max_num_qubits=num_qubits - 1)
         )
 
-    @data("pauli", "evolution", "measure")
-    def test_pauli_based_gates(self, gate_type):
-        """Test Pauli-based gates."""
+    @data(*list(itertools.product(pauli_based_types, repeat=2)))
+    @unpack
+    def test_pauli_based_gates(self, gate_type1, gate_type2):
+        """Test commutation relations across different Pauli-based gates."""
         cases = [
             ("I", [0], "XYZ", list(range(3)), True),
             ("ZZZZ", list(range(4)), "XXXX", list(range(4)), True),
@@ -523,34 +529,16 @@ class TestCommutationChecker(QiskitTestCase):
         ]
 
         for p1, q1, p2, q2, expected in cases:
-            if p1 == "I" and gate_type == "measure":
-                continue  # PPM doesn't support all-identity gates
-            c1, c2 = ([0], [1]) if gate_type == "measure" else ([], [])
-
-            gate1 = build_pauli_gate(p1, gate_type)
-            gate2 = build_pauli_gate(p2, gate_type)
-            self.assertEqual(expected, scc.commute(gate1, q1, c1, gate2, q2, c2))
-
-    @data(
-        ("pauli", "measure"),
-        ("evolution", "measure"),
-        ("evolution", "pauli"),
-    )
-    @unpack
-    def test_mix_pauli_gates(self, gate_type1, gate_type2):
-        """Test commutation relations across different Pauli-based gates."""
-        cases = [
-            ("ZZIIIIIIIY", list(range(10)), "YYIIIIIIIZ", list(range(10)), False),
-            ("ZX", [1, 10], "ZIZYIZXXZXZ", list(range(11)), True),
-        ]
-
-        for p1, q1, p2, q2, expected in cases:
+            # For commutation of PPMs, use different classical bits.
+            # (we include separate tests for PPMs writing to the same clbit).
             c1 = [0] if gate_type1 == "measure" else []
             c2 = [1] if gate_type2 == "measure" else []
 
+            if p1 == "I" and gate_type1 == "measure":
+                continue  # PPM doesn't support all-identity gates
+
             gate1 = build_pauli_gate(p1, gate_type1)
             gate2 = build_pauli_gate(p2, gate_type2)
-
             with self.subTest(p1=p1, p2=p2):
                 self.assertEqual(expected, scc.commute(gate1, q1, c1, gate2, q2, c2))
 
@@ -616,7 +604,7 @@ class TestCommutationChecker(QiskitTestCase):
         with self.subTest(left=z, right=x):
             self.assertFalse(scc.commute(z, qargs, [], x, qargs, []))
 
-    @data("evolution", "pauli", "measure", "rotation")
+    @data(*pauli_based_types)
     def test_pauli_and_standard_gate(self, pauli_type):
         """Test Pauli-based gates and standard gate commutations are efficiently supported."""
         # 40-qubit Pauli gate with following terms: X: 0-9, Y: 10-19, Z: 20-29, I: 30-39
@@ -648,6 +636,34 @@ class TestCommutationChecker(QiskitTestCase):
                     pauli_gate, pauli_qubits, pauli_clbits, std_gate, indices, []
                 )
                 self.assertEqual(expected, commutes)
+
+    @data(*list(itertools.product(["rotation", "measure"], repeat=2)))
+    @unpack
+    def test_pauli_based_with_indices_and_phases(self, gate_type1, gate_type2):
+        """Test commutation relations between pauli product rotations,
+        with varying Pauli phases and varying qubit indices.
+        """
+        cases = [
+            ("XXYY", [2, 1, 5, 3], "ZZ", [2, 0], False),
+            ("XXYY", [2, 1, 5, 3], "ZZ", [2, 3], True),
+            ("-XXYY", [2, 1, 5, 3], "ZZ", [2, 0], False),
+            ("-XXYY", [2, 1, 5, 3], "ZZ", [2, 3], True),
+            ("XXYY", [2, 1, 5, 3], "-ZZZ", [2, 3, 1], False),
+            ("XXYY", [2, 1, 5, 3], "-ZZZ", [3, 2, 6], True),
+            ("XXYY", [2, 1, 5, 3], "ZZ", [4, 7], True),
+            ("ZZZ", [4, 1, 7], "XXX", [1, 4, 7], False),
+            ("ZZZ", [2, 1, 7], "XXX", [1, 4, 7], True),
+            ("-ZZZ", [4, 1, 7], "-ZZZ", [1, 4, 7], True),
+            ("-ZZZ", [2, 1, 7], "-ZZZ", [1, 4, 7], True),
+        ]
+        for p1, q1, p2, q2, expected in cases:
+            gate1 = build_pauli_gate(p1, gate_type1)
+            gate2 = build_pauli_gate(p2, gate_type2)
+            c1 = [0] if gate_type1 == "measure" else []
+            c2 = [1] if gate_type2 == "measure" else []
+
+            with self.subTest(p1=p1, q1=q1, p2=p2, q2=q2):
+                self.assertEqual(expected, scc.commute(gate1, q1, c1, gate2, q2, c2))
 
     @data("evolution", "pauli", "rotation", "measure")
     def test_pauli_based_with_matrix(self, pauli_type):

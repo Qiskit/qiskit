@@ -34,7 +34,7 @@ use qiskit_util::getenv_use_multiple_threads;
 // if the performance of this pass changes over time.
 const PARALLEL_THRESHOLD: usize = 50_000;
 
-const MINIMUM_TOL: f64 = 1e-12;
+pub const MINIMUM_TOL: f64 = 1e-12;
 
 /// Fidelity-based computation to check whether an operation `G` is equivalent
 /// to identity up to a global phase.
@@ -250,8 +250,7 @@ pub fn py_remove_identity_equiv(
     //
     // This doesn't account for control-flow blocks which _also_ might have set global phases, byt
     // `run_remove_identity_equiv` as of Qiskit 2.4 doesn't recurse, so the hack should hold.
-    let old_phase = dag.global_phase().clone();
-    dag.set_global_phase_f64(0.0);
+    let old_phase = dag.set_global_phase_f64(0.0);
 
     // Explicitly release GIL because threads may call Python to get
     // the matrix for a PyGate

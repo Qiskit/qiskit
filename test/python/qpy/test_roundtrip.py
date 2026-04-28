@@ -13,10 +13,11 @@
 """Tests for python write/rust read flow and vice versa"""
 
 import io
+import uuid
 
 from ddt import ddt, idata, unpack
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister, Duration
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.parameter import Parameter
@@ -247,3 +248,37 @@ class TestQPYRoundtrip(QiskitTestCase):
             self.assert_roundtrip_equal(
                 qc, version=version, read_with=read_with, write_with=write_with
             )
+
+    @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
+    def test_delay_roundtrip(self, version, write_with, read_with):
+        qc = QuantumCircuit(1)
+        qc.delay(1, 0, "dt")
+        self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
+
+    @all_qpy_combinations(14)
+    def test_delay_expr_roundtrip(self, version, write_with, read_with):
+        stretch_expr = QuantumCircuit(1, name="stretch_expr_delay_circuit")
+        s = expr.Stretch(uuid.uuid4(), "a")
+        stretch = stretch_expr.add_stretch(s)
+        stretch_expr.delay(stretch, 0)
+        stretch_expr.delay(expr.add(Duration.dt(200), stretch), 0)
+        stretch_expr.delay(expr.sub(Duration.ns(3.14159), stretch), 0)
+        self.assert_roundtrip_equal(
+            stretch_expr, version=version, read_with=read_with, write_with=write_with
+        )
+
+    @all_qpy_combinations(14)
+    def test_box_expr_roundtrip(self, version, write_with, read_with):
+        qc = QuantumCircuit(1, name="box_expr_circuit")
+        s = qc.add_stretch("s")
+        duration = expr.add(Duration.dt(100), expr.sub(s, Duration.ns(16.25)))
+        with qc.box(duration=duration):
+            qc.x(0)
+        self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
+
+    @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
+    def test_literal_integers_in_for(self, version, write_with, read_with):
+        qc = QuantumCircuit(1)
+        with qc.for_loop((2, 5, (1 << 60))) as _:
+            qc.x(0)
+        self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)

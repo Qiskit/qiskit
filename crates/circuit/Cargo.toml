@@ -33,6 +33,8 @@ nom-language.workspace = true
 crossterm = "0.29.0"
 unicode-width = "0.2"
 unicode-segmentation = "1.13"
+lexical-core = "1.0.6"
+lexical-write-float = "1.0.6"
 
 [dependencies.pyo3]
 workspace = true
