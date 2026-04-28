@@ -43,6 +43,7 @@ jobs:
           echo 'BOB_RESPONSE<<EOF' >> $GITHUB_OUTPUT
           echo "Bob has some suggestions to improve the release notes:" >> $GITHUB_OUTPUT
           echo "<code>" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
           cat BOB_RESPONSE.txt >> $GITHUB_OUTPUT
           echo "</code>" >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
