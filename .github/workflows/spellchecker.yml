@@ -42,9 +42,9 @@ jobs:
           bob "$BOB_PROMPT" --hide-intermediary-output --yolo > BOB_RESPONSE.txt
           echo 'BOB_RESPONSE<<EOF' >> $GITHUB_OUTPUT
           echo "Bob has some suggestions to improve the release notes:" >> $GITHUB_OUTPUT
-          echo "\`\`\`" >> $GITHUB_OUTPUT
+          echo "<code>" >> $GITHUB_OUTPUT
           cat BOB_RESPONSE.txt >> $GITHUB_OUTPUT
-          echo "\`\`\`" >> $GITHUB_OUTPUT
+          echo "</code>" >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
       - uses: tj-actions/verify-changed-files@v20
         name: "Check if Bob made any fixes"
