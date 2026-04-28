@@ -7,11 +7,16 @@
 # Licensed under the Apache License, Version 2.0
 
 import re
-import subprocess
 from docutils import nodes
 from docutils.parsers.rst import Directive
 from docutils.statemachine import ViewList
 from sphinx.util.nodes import nested_parse_with_titles
+from dulwich.repo import Repo
+from packaging import version
+from pathlib import Path
+
+from qiskit.qpy.common import QPY_VERSION_HISTORY
+
 
 def setup(app):
     app.add_directive("qpy-version-history", QPYVersionHistory)
@@ -22,75 +27,56 @@ class QPYVersionHistory(Directive):
     def run(self):
         data = self._build_data()
         if not data:
-            return [nodes.paragraph(text="No QPY data found")]
+            return [nodes.paragraph(text="QPY data not found")]
         return [self._build_table(data)]
 
+    def _get_repo(self):
+        path = Path(__file__).resolve()
+        for parent in path.parents:
+            if (parent / ".git").exists():
+                return Repo(str(parent))
+        raise RuntimeError("Repository not found")
+    
     def _get_tags(self):
-        proc = subprocess.run(["git", "tag", "--sort=-creatordate"], capture_output=True, text=True)
-        return proc.stdout.splitlines()
+        repo = self._get_repo()
+        tags = []
 
-    def _extract_qpy_constants(self, tag):
-        try:
-            proc = subprocess.run(["git", "show", f"{tag}^:qiskit/qpy/common.py"], capture_output=True, text=True, check=True)
-        except subprocess.CalledProcessError:
-            return None
+        for ref in repo.refs.keys():
+            if ref.startswith(b"refs/tags/"):
+                tag = ref.decode().split("/")[-1]
+                tags.append(tag)
 
-        content = proc.stdout
-        version = re.search(r"QPY_VERSION\s*=\s*(\d+)", content)
-        compat = re.search(r"QPY_COMPATIBILITY_VERSION\s*=\s*(\d+)", content)
-
-        if not version:
-            return None
-        dump_version = int(version.group(1))
-
-        # handling legacy versions
-        if compat:
-            load_version = int(compat.group(1))
-        else:
-            load_version = dump_version
-
-        return dump_version, load_version
-
-    def _version_key(self, v):
-        return tuple(int(x) for x in v.split("."))
-
+        return tags
+    
+    def _is_valid_version(self, tag):
+        return re.fullmatch(r"\d+\.\d+\.\d+", tag)
+    
     def _build_data(self):
+        tags = self._get_tags()
+        versions = sorted((version.parse(t) for t in tags if self._is_valid_version(t)))
+        history = sorted(
+            [(max_, min_, version.parse(first)) for max_, min_, first in QPY_VERSION_HISTORY],
+            key=lambda x: x[2]
+        )
+
+        def get_qpy_range(cur):
+            for max_, min_, first in reversed(history):
+                if cur >= first:
+                    return list(range(min_, max_ + 1))
+            return None
+
         data = {}
-
-        for tag in self._get_tags():
-            if not re.fullmatch(r"\d+\.\d+\.\d+", tag):
+        for v in versions:
+            qpy_range = get_qpy_range(v)
+            if not qpy_range:
                 continue
 
-            version_str = tag
-            result = self._extract_qpy_constants(tag)
-            if not result:
-                continue
-
-            qpy_version, compat_version = result
-
-            data[version_str] = {
-                "dump": list(range(compat_version, qpy_version + 1)),
-                "load": qpy_version,
+            data[str(v)] = {
+                "dump": qpy_range,
+                "load": max(qpy_range),
             }
 
-        # Manually adding legacy versions without proper tags available on github (< 0.20.0)
-        legacy_data = {
-            "0.19.2": {"dump": [4], "load": 4},
-            "0.19.1": {"dump": [3], "load": 3},
-            "0.19.0": {"dump": [2], "load": 2},
-            "0.18.3": {"dump": [1], "load": 1},
-            "0.18.2": {"dump": [1], "load": 1},
-            "0.18.1": {"dump": [1], "load": 1},
-            "0.18.0": {"dump": [1], "load": 1},
-        }
-
-        for k, v in legacy_data.items():
-            if k not in data:
-                data[k] = v
-        
-        sorted_data = dict(sorted(data.items(), key=lambda x: self._version_key(x[0]), reverse=True))
-
-        return sorted_data
+        return dict(sorted(data.items(), key=lambda x: version.parse(x[0]), reverse=True))
 
     def _build_table(self, data):
         table = nodes.table()
