@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::Python;
 use pyo3::intern;
 use pyo3::prelude::*;
 
@@ -26,9 +25,9 @@ use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::interner::Interner;
 use qiskit_circuit::operations::{ArrayType, OperationRef};
 use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_quantum_info::versor_u2::{VersorSU2, VersorU2, VersorU2Error};
 
 use crate::QiskitError;
-use crate::versor_u2::{VersorSU2, VersorU2, VersorU2Error};
 
 #[inline]
 fn matrix4_from_pyreadonly(array: &PyReadonlyArray2<Complex64>) -> Matrix4<Complex64> {
@@ -203,7 +202,7 @@ impl Separable1q {
 fn versor_from_1q_gate(inst: &PackedInstruction) -> PyResult<VersorU2> {
     let tol = 1e-12;
     match inst.op.view() {
-        OperationRef::StandardGate(gate) => VersorU2::from_standard(gate, inst.params_view()),
+        OperationRef::StandardGate(gate) => gate.versor_u2(inst.params_view()),
         OperationRef::Unitary(gate) => match &gate.array {
             ArrayType::NDArray(arr) => Ok(VersorU2::from_ndarray_unchecked(&arr.view())),
             ArrayType::OneQ(arr) => Ok(VersorU2::from_nalgebra_unchecked(arr)),

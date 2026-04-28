@@ -31,10 +31,10 @@ use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{ArrayType, Operation, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_quantum_info::convert_2q_block_matrix::{
+use qiskit_synthesis::linalg::nalgebra_array_view;
+use qiskit_synthesis::matrix::two_qubit::{
     blocks_to_matrix, get_1q_matrix_from_inst, get_2q_matrix_from_inst, get_matrix_from_inst,
 };
-use qiskit_synthesis::linalg::nalgebra_array_view;
 use qiskit_synthesis::two_qubit_decompose::RXXEquivalent;
 use qiskit_synthesis::two_qubit_decompose::{
     TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer,

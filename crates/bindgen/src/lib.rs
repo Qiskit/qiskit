@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+pub mod render;
+
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
