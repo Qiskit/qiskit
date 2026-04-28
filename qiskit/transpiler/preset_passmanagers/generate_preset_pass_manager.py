@@ -102,10 +102,9 @@ def generate_preset_pass_manager(
 
     .. note::
 
-        When the target basis consists of Clifford+T gates, this function constructs
-        a specialized Clifford+T transpiler pipeline, see :func:`.clifford_t_pass_manager`
-        for documentation. The arguments that apply to transpiling into continuous basis sets
-        are ignored in this flow.
+        When the target basis consists of Clifford+T gates and no layout, routing, or translation
+        methods are set, this function constructs a specialized Clifford+T transpiler pipeline.
+        See :func:`.clifford_t_pass_manager` for more documentation.
 
     Args:
         optimization_level: The optimization level to generate a
@@ -335,10 +334,20 @@ def generate_preset_pass_manager(
     else:
         pm_config = PassManagerConfig(**pm_options)
 
-    if is_clifford_t_basis(basis_gates=pm_config.basis_gates, target=pm_config.target):
-        pm = clifford_t_pass_manager(pm_config, optimization_level=optimization_level)
+    pm_config._is_clifford_t = is_clifford_t_basis(
+        basis_gates=pm_config.basis_gates, target=pm_config.target
+    )
 
-    elif optimization_level == 0:
+    if (
+        pm_config._is_clifford_t
+        and layout_method is None
+        and routing_method is None
+        and translation_method is None
+        and scheduling_method is None
+    ):
+        return clifford_t_pass_manager(pm_config, optimization_level=optimization_level)
+
+    if optimization_level == 0:
         pm = level_0_pass_manager(pm_config)
     elif optimization_level == 1:
         pm = level_1_pass_manager(pm_config)
