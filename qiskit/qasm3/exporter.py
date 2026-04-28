@@ -1226,18 +1226,27 @@ class QASM3Builder:
                     end=self.build_integer(indexset.stop - 1),
                     step=self.build_integer(indexset.step) if indexset.step != 1 else None,
                 )
+                type_ = ast.IntType()
+            elif isinstance(indexset, expr.Range):
+                indexset_ast = ast.Range(
+                    start=self.build_expression(indexset.start),
+                    end=self.build_expression(indexset.stop),
+                    step=(
+                        self.build_expression(indexset.step) if indexset.step is not None else None
+                    ),
+                )
+                type_ = _build_ast_type(indexset.type)
             else:
                 try:
                     indexset_ast = ast.IndexSet([self.build_integer(value) for value in indexset])
+                    type_ = ast.IntType()
                 except QASM3ExporterError:
                     raise QASM3ExporterError(
                         "The values in OpenQASM 3 'for' loops must all be integers, but received"
                         f" '{indexset}'."
                     ) from None
             body_ast = ast.ProgramBlock(self.build_current_scope())
-            # Force IntType as Qiskit ForLoop only supports indexset made of integers
-            type_ = ast.IntType()
-        return ast.ForLoopStatement(indexset_ast, loop_parameter_ast, body_ast, type_)
+        return ast.ForLoopStatement(indexset_ast, loop_parameter_ast, body_ast, type_=type_)
 
     def build_annotation(self, annotation: Annotation) -> ast.Annotation:
         """Use the custom serializers to construct an annotation object."""
