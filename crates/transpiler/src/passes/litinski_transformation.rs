@@ -33,7 +33,7 @@ use std::f64::consts::{FRAC_PI_4, FRAC_PI_8};
 
 // List of gate/instruction names supported by the pass: the pass raises an error if the circuit
 // contains instruction with names outside of this list.
-static SUPPORTED_INSTRUCTION_NAMES: [&str; 25] = [
+static SUPPORTED_INSTRUCTION_NAMES: [&str; 26] = [
     "id",
     "x",
     "y",
@@ -59,11 +59,12 @@ static SUPPORTED_INSTRUCTION_NAMES: [&str; 25] = [
     "u1",
     "measure",
     "pauli_product_rotation",
+    "pauli_product_measurement",
 ];
 
 // List of instruction names which are modified by the pass: the pass is skipped if the circuit
 // contains no instructions with names in this list.
-static HANDLED_INSTRUCTION_NAMES: [&str; 9] = [
+static HANDLED_INSTRUCTION_NAMES: [&str; 10] = [
     "t",
     "tdg",
     "rz",
@@ -73,6 +74,7 @@ static HANDLED_INSTRUCTION_NAMES: [&str; 9] = [
     "u1",
     "measure",
     "pauli_product_rotation",
+    "pauli_product_measurement",
 ];
 
 #[pyfunction]
@@ -359,9 +361,9 @@ pub fn run_litinski_transformation(
                 OperationRef::PauliProductRotation(rotation) => {
                     // Evolve a PPR(z, x, angle) by a Clifford:
                     // First, pad the pauli so that it will have the size of the Clifford
-                    // Second, evolve P=Pauli(z, x, 0) by a Clifford
+                    // Second, evolve P=Pauli(z, x, 0) by a Clifford to obtain P'
                     // Third, compute: new_angle = (+/-1) * angle depending on P.pauli_phase
-                    // The output is PPR(P, new_angle)
+                    // The output is PPR(P', new_angle)
 
                     let in_z = &rotation.z;
                     let in_x = &rotation.x;
@@ -418,6 +420,52 @@ pub fn run_litinski_transformation(
                     qargs.extend(bytemuck::cast_slice(&indices));
 
                     let ppm = PauliProductMeasurement { z, x, neg: sign };
+
+                    let ppm_clbits = dag.get_cargs(inst.clbits);
+
+                    new_dag.apply_operation_back(
+                        PauliBased::PauliProductMeasurement(ppm).into(),
+                        &qargs,
+                        ppm_clbits,
+                        None,
+                        None,
+                        #[cfg(feature = "cache_pygates")]
+                        None,
+                    )?;
+                }
+                OperationRef::PauliProductMeasurement(pp_meas) => {
+                    // Evolve a PPM(z, x, neg) by a Clifford:
+                    // First, pad the pauli so that it will have the size of the Clifford
+                    // Second, evolve P=Pauli(z, x, neg) by a Clifford to obtain P'
+                    // The output is PPM(P', P'.pauli_phase)
+
+                    let in_z = &pp_meas.z;
+                    let in_x = &pp_meas.x;
+                    let neg = pp_meas.neg;
+                    let in_phase = if neg { 2u8 } else { 0u8 };
+                    let pauli_in = Pauli {
+                        pauli_z: in_z.to_vec(),
+                        pauli_x: in_x.to_vec(),
+                        pauli_phase: in_phase,
+                    };
+                    let qargs_in = dag.get_qargs(inst.qubits);
+                    let indices_in: Vec<u32> = (0..qargs_in.len())
+                        .map(|i| qargs_in[i].index() as u32)
+                        .collect();
+                    let pauli_padded = pad_pauli(&pauli_in, indices_in, num_qubits);
+                    let pauli_out = evolve_pauli_by_clifford(&pauli_padded, &clifford);
+                    let out_z = pauli_out.pauli_z;
+                    let out_x = pauli_out.pauli_x;
+                    let out_neg = pauli_out.pauli_phase != 0;
+                    let ppm = PauliProductMeasurement {
+                        z: out_z,
+                        x: out_x,
+                        neg: out_neg,
+                    };
+
+                    let indices_out: Vec<u32> = (0..num_qubits as u32).collect();
+                    qargs.clear();
+                    qargs.extend(bytemuck::cast_slice(&indices_out));
 
                     let ppm_clbits = dag.get_cargs(inst.clbits);
 
