@@ -10,5 +10,9 @@ name = "qiskit_providers"
 
 [dependencies]
 
+[dependencies.hashbrown]
+workspace = true
+features = ["rayon", "serde"]
+
 [lints]
 workspace = true
