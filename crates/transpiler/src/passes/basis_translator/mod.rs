@@ -223,7 +223,11 @@ fn extract_basis(circuit: &DAGCircuit, min_qubits: usize) -> AhashIndexSet<GateI
         basis: &mut AhashIndexSet<GateIdentifier>,
         min_qubits: usize,
     ) {
-        for (_, operation) in circuit.op_nodes(true) {
+        // We should skip any instances of UnitaryGate as these should be handled by UnitarySynthesis
+        for (_, operation) in circuit
+            .op_nodes(true)
+            .filter(|(_, inst)| !matches!(inst.op.view(), OperationRef::Unitary(_)))
+        {
             if circuit.get_qargs(operation.qubits).len() >= min_qubits {
                 basis.insert((operation.op.name().to_string(), operation.op.num_qubits()));
             }
@@ -252,7 +256,11 @@ fn extract_basis_target(
     qarg_mapping: Option<&HashMap<Qubit, Qubit>>,
 ) {
     let qarg_mapping = |q: &Qubit| qarg_mapping.map(|map| map[q]).unwrap_or(*q);
-    for (_, node) in dag.op_nodes(true) {
+    // We should skip any instances of UnitaryGate as these should be handled by UnitarySynthesis
+    for (_, node) in dag
+        .op_nodes(true)
+        .filter(|(_, inst)| !matches!(inst.op.view(), OperationRef::Unitary(_)))
+    {
         let qargs: &[Qubit] = dag.get_qargs(node.qubits);
         if qargs.len() < min_qubits {
             continue;

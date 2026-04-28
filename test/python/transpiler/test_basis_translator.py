@@ -1314,3 +1314,27 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
                 pass
 
         self.assertEqual(transpiled, expected)
+
+    @unittest.skipUnless(HAS_AER, "Aer backend required for simulation")
+    def test_basis_with_unitary_basis_aer(self):
+        """Test that a circuit with a unitary gate in its target basis gets
+        skipped by the BasisTranslator"""
+        from qiskit_aer import AerSimulator
+
+        qr = QuantumRegister(3, "q")
+        cr = ClassicalRegister(3, "c")
+        qc = QuantumCircuit(qr, cr)
+
+        qc.cx(0, 1)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.sx(0)
+        qc.dcx(0, 2)
+
+        backend = AerSimulator()
+        pm = generate_preset_pass_manager(
+            optimization_level=2, backend=backend, seed_transpiler=134
+        )
+        transpiled = pm.run(qc)
+
+        self.assertEqual(Operator(qc), Operator(transpiled))

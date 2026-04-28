@@ -1,0 +1,11 @@
+fixes:
+- |
+    Fixed error in :class:`.BasisTranslator` in which if a backend
+    defined a :class:`.UnitaryGate` as part of its :class:`.Target`'s
+    basis gate set, the transpiler pipeline would panic.
+
+    The pass now filters out :class:`.UnitaryGate`'s by instance
+    ensuring none will ever get processed as part of the basis set.
+
+    See `#15278 <https://github.com/Qiskit/qiskit/issues/15278>`__
+    and `#15733 <https://github.com/Qiskit/qiskit/issues/15733>`__.
