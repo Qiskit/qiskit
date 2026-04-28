@@ -9,7 +9,7 @@ custom-written include files, and the installation logic.
 
 ## Usage
 
-This library is designed to be used by its consuming binary, `qiskit-bindgen-c`, and (in the future)
+This library is designed to be used by its consuming binary, `qiskit-bindgen-cli`, and (in the future)
 the Python-extension build process in `qiskit-pyext`.
 
 This encapsulates all the custom logic needed to parse the `qiskit-cext` source files into a
