@@ -18,6 +18,22 @@ from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import (
+    IGate,
+    XGate,
+    YGate,
+    ZGate,
+    HGate,
+    SGate,
+    SdgGate,
+    SXGate,
+    SXdgGate,
+    CXGate,
+    CYGate,
+    CZGate,
+    DCXGate,
+    SwapGate,
+    iSwapGate,
+    ECRGate,
     QFTGate,
     PauliEvolutionGate,
     PauliProductMeasurement,
@@ -28,8 +44,8 @@ from qiskit.circuit.random import random_clifford_circuit
 from qiskit.compiler import transpile
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import LitinskiTransformation
-from qiskit.quantum_info import Operator, Pauli, SparseObservable
-from test import QiskitTestCase
+from qiskit.quantum_info import Operator, Pauli, random_pauli
+from test import QiskitTestCase, combine
 
 
 @ddt
@@ -519,3 +535,223 @@ class TestLitinskiTransformation(QiskitTestCase):
 
         ops = [op.name for op in out.data]
         self.assertListEqual(expected_ops, ops)
+
+    @combine(
+        p=["X", "Y", "Z"],
+        cliff=[
+            IGate(),
+            XGate(),
+            YGate(),
+            ZGate(),
+            SGate(),
+            SdgGate(),
+            HGate(),
+            SXGate(),
+            SXdgGate(),
+        ],
+    )
+    def test_single_qubit_evole_clifford_gate(self, p, cliff):
+        """Test that LitinskiTransformation is correct for one qubit rotations RX/RY/RZ
+        and all single qubit Clifford gates"""
+        circuit = QuantumCircuit(1)
+        circuit.append(cliff, [0])
+        circuit_in = circuit.copy()
+        pauli = Pauli(p)
+        pauli_ev = pauli.evolve(circuit)
+        if p == "X":
+            circuit_in.rx(1.0, 0)
+        elif p == "Z":
+            circuit_in.rz(1.0, 0)
+        elif p == "Y":
+            circuit_in.ry(1.0, 0)
+        transform = LitinskiTransformation(fix_clifford=True, use_ppr=True)
+        circuit_out = transform(circuit_in)
+        ppr = PauliProductRotationGate(pauli_ev, 1.0)
+        circuit_target = QuantumCircuit(1)
+        circuit_target.append(ppr, [0])
+        circuit_target.compose(circuit, [0], inplace=True)
+        self.assertEqual(circuit_out, circuit_target)
+
+    @data("X", "Y", "Z")
+    def test_single_qubit_evole_random_clifford(self, p):
+        """Test that LitinskiTransformation is correct for one qubit rotations RX/RY/RZ
+        and random single qubit Clifford circuits"""
+        for seed in range(10):
+            circuit = random_clifford_circuit(1, num_gates=10, seed=seed)
+            circuit_in = circuit.copy()
+            pauli = Pauli(p)
+            pauli_ev = pauli.evolve(circuit)
+            if p == "X":
+                circuit_in.rx(1.0, 0)
+            elif p == "Z":
+                circuit_in.rz(1.0, 0)
+            elif p == "Y":
+                circuit_in.ry(1.0, 0)
+            transform = LitinskiTransformation(fix_clifford=True, use_ppr=True)
+            circuit_out = transform(circuit_in)
+            ppr = PauliProductRotationGate(pauli_ev, 1.0)
+            circuit_target = QuantumCircuit(1)
+            circuit_target.append(ppr, [0])
+            circuit_target.compose(circuit, [0], inplace=True)
+            self.assertEqual(circuit_out, circuit_target)
+
+    @combine(
+        p=["X", "Y", "Z"],
+        cliff=[
+            CXGate(),
+            CYGate(),
+            CZGate(),
+            DCXGate(),
+            SwapGate(),
+            iSwapGate(),
+            ECRGate(),
+        ],
+        qbit=[0, 1],
+    )
+    def test_two_qubit_evole_clifford_gate(self, p, cliff, qbit):
+        """Test that LitinskiTransformation is correct for one qubit rotations RX/RY/RZ
+        and all two qubit Clifford gates"""
+        circuit = QuantumCircuit(2)
+        circuit.append(cliff, [0, 1])
+        circuit_in = circuit.copy()
+        if qbit == 0:
+            pauli = Pauli("I" + p)
+        else:
+            pauli = Pauli(p + "I")
+        pauli_ev = pauli.evolve(circuit)
+        if p == "X":
+            circuit_in.rx(1.0, qbit)
+        elif p == "Z":
+            circuit_in.rz(1.0, qbit)
+        elif p == "Y":
+            circuit_in.ry(1.0, qbit)
+        transform = LitinskiTransformation(fix_clifford=True, use_ppr=True)
+        circuit_out = transform(circuit_in)
+
+        # Remove "I" terms to get the same PPR
+        # since PPR('IZ') is not the same gate as PPR(Z)=RZ on qubit 0
+        if pauli_ev.to_label()[-2] == "I":
+            pauli_z_x = Pauli(pauli_ev.to_label()[-1])
+            phase = pauli_ev.phase
+            pauli_ev = Pauli((pauli_z_x.z, pauli_z_x.x, phase))
+            qubits = [0]
+        elif pauli_ev.to_label()[-1] == "I":
+            phase = pauli_ev.phase
+            pauli_z_x = Pauli(pauli_ev.to_label()[-2])
+            pauli_ev = Pauli((pauli_z_x.z, pauli_z_x.x, phase))
+            qubits = [1]
+        else:  # no "I" terms
+            qubits = [0, 1]
+
+        ppr = PauliProductRotationGate(pauli_ev, 1.0)
+        circuit_target = QuantumCircuit(2)
+        circuit_target.append(ppr, qubits)
+        circuit_target.compose(circuit, [0, 1], inplace=True)
+        self.assertEqual(circuit_out, circuit_target)
+
+    @data("ppm", "ppr")
+    def test_litinski_with_ppr_ppm_input(self, pp_type):
+        """Test that LitinskiTransformation is correct for PPR/PPM as input"""
+        num_qubits = 5
+        qarg_paulis = [1, 2, 4]
+        cliff = random_clifford_circuit(num_qubits, num_gates=20, seed=1234)
+        pauli = random_pauli(len(qarg_paulis), seed=5678)
+
+        # pad the original pauli
+        p = pauli.to_label()
+        p_pad = Pauli(p[0] + "I" + p[1] + p[2] + "I")
+        pauli_ev = p_pad.evolve(cliff)
+        # unpad the evolved pauli
+        q = pauli_ev.to_label()
+        phase = 0
+        if q[0] == "-":
+            q = q[1:]
+            phase = 2
+        out_str = ""
+        out_ind = []
+        for i in range(num_qubits):
+            if q[i] != "I":
+                out_str += q[i]
+                out_ind.append(num_qubits - i - 1)
+        out_ev = Pauli(out_str)
+        out_ev.phase = phase
+
+        if pp_type == "ppr":
+            circuit = QuantumCircuit(num_qubits)
+            circuit.compose(cliff, range(num_qubits), inplace=True)
+            circuit.compose(PauliProductRotationGate(pauli, angle=0.123), qarg_paulis, inplace=True)
+        else:  # pp_type == "ppm"
+            circuit = QuantumCircuit(num_qubits, 1)
+            circuit.compose(cliff, range(num_qubits), inplace=True)
+            circuit.append(PauliProductMeasurement(pauli), qarg_paulis, [0])
+
+        transform = LitinskiTransformation(fix_clifford=True, use_ppr=True)
+        circuit_out = transform(circuit)
+
+        if pp_type == "ppr":
+            circuit_target = QuantumCircuit(num_qubits)
+            circuit_target.compose(
+                PauliProductRotationGate(out_ev, angle=0.123), out_ind, inplace=True
+            )
+            circuit_target.compose(cliff, range(num_qubits), inplace=True)
+        else:  # pp_type == "ppm"
+            circuit_target = QuantumCircuit(num_qubits, 1)
+            circuit_target.append(PauliProductMeasurement(out_ev), out_ind, [0])
+            circuit_target.compose(cliff, range(num_qubits), inplace=True)
+
+        self.assertEqual(circuit_out, circuit_target)
+
+    def test_game_of_surface_code_example(self):
+        """Test the circuit from Litinski's paper, "Game of Surface Codes", Figure 4"""
+
+        # Original circuit: only standard gates and Z-measurements
+        qc1 = QuantumCircuit(4, 4)
+        qc1.rz(np.pi / 4, 0)
+        qc1.cx(1, 2)
+        qc1.rx(-np.pi / 2, 3)
+        qc1.cx(0, 1)
+        qc1.rx(np.pi / 2, 2)
+        qc1.rz(np.pi / 4, 3)
+        qc1.cx(0, 3)
+        qc1.rz(np.pi / 4, 0)
+        qc1.rz(np.pi / 2, 1)
+        qc1.rz(np.pi / 4, 2)
+        qc1.rz(np.pi / 2, 3)
+        qc1.rx(-np.pi / 2, 0)
+        qc1.rx(np.pi / 2, 1)
+        qc1.rx(np.pi / 2, 2)
+        qc1.rx(np.pi / 2, 3)
+        qc1.measure(0, 0)
+        qc1.measure(1, 1)
+        qc1.measure(2, 2)
+        qc1.measure(3, 3)
+
+        # Same circuit: with PPR, PPM and CX gates
+        PZ = Pauli("Z")
+        PX = Pauli("X")
+        qc2 = QuantumCircuit(4, 4)
+        qc2.append(PauliProductRotationGate(PZ, np.pi / 4), [0])
+        qc2.cx(1, 2)
+        qc2.append(PauliProductRotationGate(PX, -np.pi / 2), [3])
+        qc2.cx(0, 1)
+        qc2.append(PauliProductRotationGate(PX, np.pi / 2), [2])
+        qc2.append(PauliProductRotationGate(PZ, np.pi / 4), [3])
+        qc2.cx(0, 3)
+        qc2.append(PauliProductRotationGate(PZ, np.pi / 4), [0])
+        qc2.append(PauliProductRotationGate(PZ, np.pi / 2), [1])
+        qc2.append(PauliProductRotationGate(PZ, np.pi / 4), [2])
+        qc2.append(PauliProductRotationGate(PZ, np.pi / 2), [3])
+        qc2.append(PauliProductRotationGate(PX, -np.pi / 2), [0])
+        qc2.append(PauliProductRotationGate(PX, np.pi / 2), [1])
+        qc2.append(PauliProductRotationGate(PX, np.pi / 2), [2])
+        qc2.append(PauliProductRotationGate(PX, np.pi / 2), [3])
+        qc2.append(PauliProductMeasurement(PZ), [0], [0])
+        qc2.append(PauliProductMeasurement(PZ), [1], [1])
+        qc2.append(PauliProductMeasurement(PZ), [2], [2])
+        qc2.append(PauliProductMeasurement(PZ), [3], [3])
+
+        transform = LitinskiTransformation(fix_clifford=True, use_ppr=True)
+        qc1_out = transform(qc1)
+        qc2_out = transform(qc2)
+
+        self.assertEqual(qc1_out, qc2_out)
