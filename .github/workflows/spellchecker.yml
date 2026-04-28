@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   spellcheckreleasenotes:
-    # if: github.repository_owner == 'Qiskit'
+    if: github.repository_owner == 'Qiskit'
     name: Spell check release notes
     runs-on: ubuntu-latest
     steps:
