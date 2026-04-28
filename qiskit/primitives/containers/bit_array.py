@@ -25,6 +25,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 import numpy as np
 from numpy.typing import NDArray
 
+from qiskit import _numpy_compat
 from qiskit.exceptions import QiskitError
 from qiskit.result import Counts, sampled_expectation_value
 
@@ -207,7 +208,11 @@ class BitArray(ShapedMixin):
         Returns:
             A ``numpy.uint64``-array with shape ``(*shape, num_shots)``.
         """
-        return _WEIGHT_LOOKUP[self._array].sum(axis=-1)
+        if _numpy_compat.VERSION_PARTS[0] >= 2:
+            bitcounts = np.bitwise_count(self._array).sum(axis=-1)
+        else:
+            bitcounts = _WEIGHT_LOOKUP[self._array].sum(axis=-1)
+        return bitcounts
 
     @staticmethod
     def from_bool_array(
