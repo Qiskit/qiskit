@@ -655,10 +655,26 @@ class TestLitinskiTransformation(QiskitTestCase):
         num_qubits = 5
         qarg_paulis = [1, 2, 4]
         cliff = random_clifford_circuit(num_qubits, num_gates=20, seed=1234)
-        pauli = random_pauli(len(qarg_paulis), seed=1234)
+        pauli = random_pauli(len(qarg_paulis), seed=5678)
+
+        # pad the original pauli
         p = pauli.to_label()
         p_pad = Pauli(p[0] + "I" + p[1] + p[2] + "I")
         pauli_ev = p_pad.evolve(cliff)
+        # unpad the evolved pauli
+        q = pauli_ev.to_label()
+        phase = 0
+        if q[0] == "-":
+            q = q[1:]
+            phase = 2
+        out_str = ""
+        out_ind = []
+        for i in range(num_qubits):
+            if q[i] != "I":
+                out_str += q[i]
+                out_ind.append(num_qubits - i - 1)
+        out_ev = Pauli(out_str)
+        out_ev.phase = phase
 
         if pp_type == "ppr":
             circuit = QuantumCircuit(num_qubits)
@@ -675,12 +691,67 @@ class TestLitinskiTransformation(QiskitTestCase):
         if pp_type == "ppr":
             circuit_target = QuantumCircuit(num_qubits)
             circuit_target.compose(
-                PauliProductRotationGate(pauli_ev, angle=0.123), range(num_qubits), inplace=True
+                PauliProductRotationGate(out_ev, angle=0.123), out_ind, inplace=True
             )
             circuit_target.compose(cliff, range(num_qubits), inplace=True)
         else:  # pp_type == "ppm"
             circuit_target = QuantumCircuit(num_qubits, 1)
-            circuit_target.append(PauliProductMeasurement(pauli_ev), range(num_qubits), [0])
+            circuit_target.append(PauliProductMeasurement(out_ev), out_ind, [0])
             circuit_target.compose(cliff, range(num_qubits), inplace=True)
 
         self.assertEqual(circuit_out, circuit_target)
+
+    def test_game_of_surface_code_example(self):
+        """Test the circuit from Litinski's paper, "Game of Surface Codes", Figure 4"""
+
+        # Original circuit: only standard gates and Z-measurements
+        qc1 = QuantumCircuit(4, 4)
+        qc1.rz(np.pi / 4, 0)
+        qc1.cx(1, 2)
+        qc1.rx(-np.pi / 2, 3)
+        qc1.cx(0, 1)
+        qc1.rx(np.pi / 2, 2)
+        qc1.rz(np.pi / 4, 3)
+        qc1.cx(0, 3)
+        qc1.rz(np.pi / 4, 0)
+        qc1.rz(np.pi / 2, 1)
+        qc1.rz(np.pi / 4, 2)
+        qc1.rz(np.pi / 2, 3)
+        qc1.rx(-np.pi / 2, 0)
+        qc1.rx(np.pi / 2, 1)
+        qc1.rx(np.pi / 2, 2)
+        qc1.rx(np.pi / 2, 3)
+        qc1.measure(0, 0)
+        qc1.measure(1, 1)
+        qc1.measure(2, 2)
+        qc1.measure(3, 3)
+
+        # Same circuit: with PPR, PPM and CX gates
+        PZ = Pauli("Z")
+        PX = Pauli("X")
+        qc2 = QuantumCircuit(4, 4)
+        qc2.append(PauliProductRotationGate(PZ, np.pi / 4), [0])
+        qc2.cx(1, 2)
+        qc2.append(PauliProductRotationGate(PX, -np.pi / 2), [3])
+        qc2.cx(0, 1)
+        qc2.append(PauliProductRotationGate(PX, np.pi / 2), [2])
+        qc2.append(PauliProductRotationGate(PZ, np.pi / 4), [3])
+        qc2.cx(0, 3)
+        qc2.append(PauliProductRotationGate(PZ, np.pi / 4), [0])
+        qc2.append(PauliProductRotationGate(PZ, np.pi / 2), [1])
+        qc2.append(PauliProductRotationGate(PZ, np.pi / 4), [2])
+        qc2.append(PauliProductRotationGate(PZ, np.pi / 2), [3])
+        qc2.append(PauliProductRotationGate(PX, -np.pi / 2), [0])
+        qc2.append(PauliProductRotationGate(PX, np.pi / 2), [1])
+        qc2.append(PauliProductRotationGate(PX, np.pi / 2), [2])
+        qc2.append(PauliProductRotationGate(PX, np.pi / 2), [3])
+        qc2.append(PauliProductMeasurement(PZ), [0], [0])
+        qc2.append(PauliProductMeasurement(PZ), [1], [1])
+        qc2.append(PauliProductMeasurement(PZ), [2], [2])
+        qc2.append(PauliProductMeasurement(PZ), [3], [3])
+
+        transform = LitinskiTransformation(fix_clifford=True, use_ppr=True)
+        qc1_out = transform(qc1)
+        qc2_out = transform(qc2)
+        
+        self.assertEqual(qc1_out, qc2_out)
