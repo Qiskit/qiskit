@@ -1564,6 +1564,56 @@ class QuantumCircuit:
         return str(self.draw(output="text"))
 
     def __eq__(self, other) -> bool:
+        """Check if this circuit is equal to another circuit.
+
+        Equality is determined by comparing the :class:`.DAGCircuit` representation
+        of both circuits, delegating to :meth:`.DAGCircuit.__eq__`. This means that
+        the insertion order of independent operations does not affect equality, as
+        long as the dependency structure between operations is the same.
+        
+        For example::
+        
+            qc1 = QuantumCircuit(2)
+            qc1.x(0)
+            qc1.x(1)
+        
+            qc2 = QuantumCircuit(2)
+            qc2.x(1)
+            qc2.x(0)
+        
+            qc1 == qc2  # True, because x(0) and x(1) are independent
+        
+        The following are considered when checking equality:
+        
+        * DAG structure (gate names, parameters, and qubit dependencies)
+        * Quantum and classical registers
+        * Global phase (:attr:`global_phase`)
+        * Calibrations (:attr:`calibrations`)
+        * Variables (``Var`` nodes)
+        
+        The following are **not** considered:
+        
+        * Circuit name (:attr:`name`)
+        * Circuit metadata (:attr:`metadata`)
+        
+        .. note::
+        
+            This does **not** check whether two circuits implement the same unitary.
+            Two circuits with different gate structures may still be unitarily equivalent.
+            To check that, use :class:`.Operator`::
+        
+                from qiskit.quantum_info import Operator
+                Operator(qc1) == Operator(qc2)
+        
+        Args:
+            other: The object to compare against.
+        
+        Returns:
+            bool: ``True`` if the circuits are equal, ``False`` otherwise.
+        
+        See Also:
+            :meth:`.DAGCircuit.__eq__`: The underlying equality implementation.
+        """
         if not isinstance(other, QuantumCircuit):
             return False
 
