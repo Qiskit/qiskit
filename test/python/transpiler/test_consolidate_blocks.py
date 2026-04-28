@@ -415,6 +415,18 @@ class TestConsolidateBlocks(QiskitTestCase):
         pm = PassManager([Collect2qBlocks(), ConsolidateBlocks()])
         self.assertEqual(QuantumCircuit(5), pm.run(qc))
 
+    def test_identity_unitary_is_removed_up_to_phase(self):
+        """Test that a 2q identity (up to phase) unitary is removed."""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.rz(2 * np.pi, 1)
+        qc.cx(0, 1)
+        qc.h(0)
+
+        pm = PassManager([Collect2qBlocks(), ConsolidateBlocks()])
+        self.assertEqual(QuantumCircuit(5, global_phase=np.pi), pm.run(qc))
+
     def test_identity_1q_unitary_is_removed(self):
         """Test that a 1q identity unitary is removed without a basis."""
         qc = QuantumCircuit(5)
@@ -424,6 +436,15 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc.h(0)
         pm = PassManager([Collect2qBlocks(), Collect1qRuns(), ConsolidateBlocks()])
         self.assertEqual(QuantumCircuit(5), pm.run(qc))
+
+    def test_identity_1q_unitary_is_removed_up_to_phase(self):
+        """Test that a 1q identity unitary is removed without a basis."""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.rz(2 * np.pi, 0)
+        qc.h(0)
+        pm = PassManager([Collect2qBlocks(), Collect1qRuns(), ConsolidateBlocks()])
+        self.assertEqual(QuantumCircuit(5, global_phase=np.pi), pm.run(qc))
 
     def test_descent_into_control_flow(self):
         """Test consolidation in blocks when control flow op is the same as at top level."""

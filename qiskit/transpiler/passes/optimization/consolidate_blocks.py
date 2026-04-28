@@ -107,6 +107,7 @@ class ConsolidateBlocks(TransformationPass):
         super().__init__()
         self.basis_gates = None
         self.basis_gate_name = None
+        self.approximation_degree = approximation_degree
         # Bypass target if it doesn't contain any basis gates (i.e. it's a _FakeTarget), as this
         # not part of the official target model.
         self.target = target if target is not None and len(target.operation_names) > 0 else None
@@ -170,6 +171,7 @@ class ConsolidateBlocks(TransformationPass):
             blocks=blocks,
             runs=runs,
             qubit_map=qubit_map,
+            approximation_degree=self.approximation_degree,
         )
         dag = self._handle_control_flow_ops(dag, qubit_map)
 
