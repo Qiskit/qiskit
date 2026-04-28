@@ -13,6 +13,8 @@
 """Replace each block of consecutive gates by a single Unitary node."""
 from __future__ import annotations
 
+import typing
+
 from qiskit.synthesis.two_qubit import TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer
 from qiskit.circuit.library.standard_gates import (
     CXGate,
@@ -35,6 +37,11 @@ from qiskit._accelerate.consolidate_blocks import consolidate_blocks
 
 from .collect_1q_runs import Collect1qRuns
 from .collect_2q_blocks import Collect2qBlocks
+
+
+if typing.TYPE_CHECKING:
+    from qiskit.transpiler.target import Target
+    from qiskit.circuit.gate import Gate
 
 KAK_GATE_NAMES = {
     "cx": CXGate(),
@@ -78,11 +85,11 @@ class ConsolidateBlocks(TransformationPass):
 
     def __init__(
         self,
-        kak_basis_gate=None,
-        force_consolidate=False,
-        basis_gates=None,
-        approximation_degree=1.0,
-        target=None,
+        kak_basis_gate: Gate | None = None,
+        force_consolidate: bool = False,
+        basis_gates: list[str] | None = None,
+        approximation_degree: float | None = 1.0,
+        target: Target | None = None,
     ):
         """ConsolidateBlocks initializer.
 
@@ -91,11 +98,11 @@ class ConsolidateBlocks(TransformationPass):
         Otherwise, the basis gate will be :class:`.CXGate`.
 
         Args:
-            kak_basis_gate (Gate): Basis gate for KAK decomposition.
-            force_consolidate (bool): Force block consolidation.
-            basis_gates (List(str)): Basis gates from which to choose a KAK gate.
-            approximation_degree (float): a float between :math:`[0.0, 1.0]`. Lower approximates more.
-            target (Target): The target object for the compilation target backend.
+            kak_basis_gate: Basis gate for KAK decomposition.
+            force_consolidate: Force block consolidation.
+            basis_gates: Basis gates from which to choose a KAK gate.
+            approximation_degree: a float between :math:`[0.0, 1.0]`. Lower approximates more.
+            target: The target object for the compilation target backend.
         """
         super().__init__()
         self.basis_gates = None
