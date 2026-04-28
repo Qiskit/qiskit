@@ -170,7 +170,7 @@ def generate_preset_pass_manager(
             means the maximum approximation. If ``target`` is available, a value of ``None``
             indicates that approximation is allowed up to the reported error rate for an operation
             in the target.
-        seed_transpiler (int): Sets random seed for the stochastic parts of
+        seed_transpiler: Sets random seed for the stochastic parts of
             the transpiler. If it is not specified here it can also be specified via an environment
             variable: ``QISKIT_TRANSPILER_SEED`` or in a user configuration file. The priority
             order is: this argument, then the environment variable, and finally the user
@@ -283,18 +283,18 @@ def generate_preset_pass_manager(
 
 
 def generate_preset_clifford_t_pass_manager(
-    optimization_level=2,
-    target=None,
-    basis_gates=None,
-    coupling_map=None,
-    initial_layout=None,
-    approximation_degree=1.0,
-    seed_transpiler=None,
-    unitary_synthesis_method="default",
-    unitary_synthesis_plugin_config=None,
-    hls_config=None,
-    dt=None,
-    qubits_initially_zero=True,
+    optimization_level: int = 2,
+    target: Target | None = None,
+    basis_gates: list[str] | None = None,
+    coupling_map: CouplingMap | list | None = None,
+    initial_layout: Layout | list[int] = None,
+    approximation_degree: float | None = 1.0,
+    seed_transpiler: int | None = None,
+    unitary_synthesis_method: str = "default",
+    unitary_synthesis_plugin_config: dict | None = None,
+    hls_config: HLSConfig | None = None,
+    dt: float | None = None,
+    qubits_initially_zero: bool = True,
     rz_synthesis_error: float | None = None,
     rz_cache_error: float | None = None,
 ):
@@ -313,7 +313,7 @@ def generate_preset_clifford_t_pass_manager(
     but do not represent a Clifford+T basis, then an error will be raised.
 
     Args:
-        optimization_level (int): The optimization level to generate a
+        optimization_level: The optimization level to generate a
             :class:`~.StagedPassManager` for. By default optimization level 2
             is used if this is not specified. This can be 0, 1, 2, or 3. Higher
             levels generate potentially more optimized circuits, at the expense
@@ -324,30 +324,37 @@ def generate_preset_clifford_t_pass_manager(
                 * 2: heavy optimization
                 * 3: even heavier optimization
 
-        target (Target): The :class:`~.Target` representing a backend compilation
+        target: The :class:`~.Target` representing a backend compilation
             target. The following attributes will be inferred from this
             argument if they are not set: ``coupling_map`` and ``basis_gates``.
-        basis_gates (list): List of basis gate names to unroll to
+        basis_gates: List of basis gate names to unroll to
             (e.g: ``['cx', 's', 'sx', 't', 'tdg']``).
-        coupling_map (CouplingMap or list): Directed graph represented a coupling
+        coupling_map: Directed graph represented a coupling
             map. Multiple formats are supported:
 
             #. ``CouplingMap`` instance
             #. List, must be given as an adjacency matrix, where each entry
                specifies all directed two-qubit interactions supported by backend,
                e.g: ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
-        dt (float): Backend sample time (resolution) in seconds.
+        dt: Backend sample time (resolution) in seconds.
             If ``None`` (default) and a backend is provided, ``backend.dt`` is used.
-        initial_layout (Layout | List[int]): Initial position of virtual qubits on
+        initial_layout: Initial position of virtual qubits on
             physical qubits.
-        approximation_degree (float): Heuristic dial used for circuit approximation
-            (1.0=no approximation, 0.0=maximal approximation).
-        seed_transpiler (int): Sets random seed for the stochastic parts of
-            the transpiler.
-        unitary_synthesis_method (str): The name of the unitary synthesis
+        approximation_degree: Heuristic dial used for circuit approximation, where
+            ``1.0`` means no approximation (up to numerical tolerance) and ``0.0``
+            means the maximum approximation. If ``target`` is available, a value of ``None``
+            indicates that approximation is allowed up to the reported error rate for an operation
+            in the target.
+        seed_transpiler: Sets random seed for the stochastic parts of
+            the transpiler. If it is not specified here it can also be specified via an environment
+            variable: ``QISKIT_TRANSPILER_SEED`` or in a user configuration file. The priority
+            order is: this argument, then the environment variable, and finally the user
+            configuration option. So setting this argument will take precedence over the other
+            methods of setting a seed.
+        unitary_synthesis_method: The name of the unitary synthesis
             method to use. By default ``'default'`` is used. You can see a list of
             installed plugins with :func:`.unitary_synthesis_plugin_names`.
-        unitary_synthesis_plugin_config (dict): An optional configuration dictionary
+        unitary_synthesis_plugin_config: An optional configuration dictionary
             that will be passed directly to the unitary synthesis plugin. By
             default this setting will have no effect as the default unitary
             synthesis method does not take custom configuration. This should
@@ -355,11 +362,11 @@ def generate_preset_clifford_t_pass_manager(
             the ``unitary_synthesis_method`` argument. As this is custom for each
             unitary synthesis plugin refer to the plugin documentation for how
             to use this option.
-        hls_config (HLSConfig): An optional configuration class :class:`~.HLSConfig`
+        hls_config: An optional configuration class :class:`~.HLSConfig`
             that will be passed directly to :class:`~.HighLevelSynthesis` transformation pass.
             This configuration class allows to specify for various high-level objects
             the lists of synthesis algorithms and their parameters.
-        qubits_initially_zero (bool): Indicates whether the input circuit is
+        qubits_initially_zero: Indicates whether the input circuit is
             zero-initialized.
         rz_synthesis_error: Maximum allowed error for the approximate synthesis of
             :math:`RZ(\theta)`.
@@ -367,12 +374,22 @@ def generate_preset_clifford_t_pass_manager(
             result for angles close to :math:`\theta`.
 
     Returns:
-        StagedPassManager: The preset pass manager for the given options
+        StagedPassManager: The preset pass manager for the given options.
 
     Raises:
         TranspilerError: if a basis other than Clifford+T is specified.
         ValueError: if an invalid value for ``optimization_level`` is passed in.
     """
+    config = user_config.get_config()
+    if seed_transpiler is None:
+        if seed := os.getenv("QISKIT_TRANSPILER_SEED", None) is not None:
+            seed_transpiler = int(seed)
+        else:
+            seed_transpiler = config.get("transpiler_seed", None)
+
+    if optimization_level is None:
+        optimization_level = config.get("transpile_optimization_level", 2)
+
     if target is None and basis_gates is None:
         basis_gates = get_clifford_gate_names() + ["t", "tdg"]
 
@@ -530,19 +547,20 @@ def _parse_seed_transpiler(seed_transpiler):
 
 
 def _parse_common_options(
-    backend=None,
-    target=None,
-    basis_gates=None,
-    coupling_map=None,
-    initial_layout=None,
-    approximation_degree=1.0,
-    seed_transpiler=None,
-    unitary_synthesis_method="default",
-    unitary_synthesis_plugin_config=None,
-    hls_config=None,
-    dt=None,
-    qubits_initially_zero=True,
+    backend: Backend | None = None,
+    target: Target | None = None,
+    basis_gates: list[str] | None = None,
+    coupling_map: CouplingMap | list | None = None,
+    initial_layout: Layout | list[int] = None,
+    approximation_degree: float | None = 1.0,
+    seed_transpiler: int | None = None,
+    unitary_synthesis_method: str = "default",
+    unitary_synthesis_plugin_config: dict | None = None,
+    hls_config: HLSConfig | None = None,
+    dt: float | None = None,
+    qubits_initially_zero: bool = True,
 ) -> dict:
+    """Parses options that are used both for standard transpilation and Clifford+T transpilation."""
 
     # If there are no loose constraints => use backend target if available
     _no_loose_constraints = basis_gates is None and coupling_map is None and dt is None
