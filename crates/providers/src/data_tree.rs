@@ -10,8 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::marker::PhantomData;
-
 use hashbrown::HashMap;
 
 /// A path entry used for tracking a path through a [`DataTree`]
@@ -24,84 +22,151 @@ pub enum PathEntry<'a> {
     Key(&'a str),
 }
 
-/// An item stored in a `DataTree`
+/// A struct representing a branch in a [`DataTree`].
 ///
-/// This can either be a Leaf which is a concrete item of type `T` or a subtree.
-#[derive(Debug, Clone, PartialEq)]
-pub enum TreeEntry<'a, T> {
-    Leaf(T),
-    // TODO: Box this to reduce memory consumption
-    Tree(DataTree<'a, T>),
+/// Each branch contains a vec of [`DataTree`] that can also be assigned a
+/// string key for accessing it. Typically you will not create these directly
+/// but instead create them via the [`DataTree`] API.
+#[derive(Debug, Clone)]
+pub struct DataTreeBranch<T> {
+    data: Vec<DataTree<T>>,
+    keys: HashMap<String, usize>,
 }
 
-impl<'a, T> TreeEntry<'a, T> {
-    /// Return true if the entry is a leaf
-    pub fn is_leaf(&self) -> bool {
-        match self {
-            Self::Leaf(_) => true,
-            Self::Tree(_) => false,
+impl<T> DataTreeBranch<T> {
+    /// Construct a new empty [`DataTreeBranch`]
+    pub fn new() -> Self {
+        DataTreeBranch {
+            data: Vec::new(),
+            keys: HashMap::new(),
         }
     }
 
-    /// Consume the entry and return the leaf value otherwise panic
-    pub fn unwrap_leaf(self) -> T {
-        match self {
-            Self::Leaf(data) => data,
-            Self::Tree(_) => panic!("called TreeEntry::unwrap_leaf() on a `Tree` value"),
+    /// Construct a new empty [`DataTreeBranch`] with a set capacity
+    pub fn with_capacity(capacity: usize) -> Self {
+        DataTreeBranch {
+            data: Vec::with_capacity(capacity),
+            keys: HashMap::with_capacity(capacity),
         }
     }
 
-    /// Consume the entry and return the data tree otherwise panic
-    pub fn unwrap_tree(self) -> DataTree<'a, T> {
-        match self {
-            Self::Leaf(_) => panic!("called TreeEntry::unwrap_tree() on a `Leaf` value"),
-            Self::Tree(data) => data,
-        }
-    }
-
-    /// Return a reference to the underlying tree
+    /// Take a path slice and return the entry at the given path
     ///
-    /// This will be None if the `TreeEntry` is a `Leaf`
-    pub fn as_tree_ref(&self) -> Option<&DataTree<'a, T>> {
-        match *self {
-            Self::Leaf(_) => None,
-            Self::Tree(ref tree) => Some(tree),
+    /// This will return `None` if a path can not be found. This includes an
+    /// invalid path, such as a path a leaf node in the middle. An empty path
+    /// will also return `self`.
+    pub fn get_by_path(&self, path: &[PathEntry]) -> Option<&DataTree<T>> {
+        let start = match path[0] {
+            PathEntry::Index(idx) => Some(&self.data[idx]),
+            PathEntry::Key(key) => self.keys.get(key).map(|idx| &self.data[*idx]),
+        }?;
+        match start {
+            DataTree::Leaf(_) => {
+                if path.len() > 1 {
+                    // If there are more components in the path this is an invalid path
+                    None
+                } else {
+                    Some(start)
+                }
+            }
+            DataTree::Branch(inner_tree) => {
+                if path.len() > 1 {
+                    inner_tree.get_by_path(&path[1..])
+                } else {
+                    Some(start)
+                }
+            }
         }
     }
 
-    /// Return a reference to the underlying tree
+    /// Return an iterator over the leaves in the `DataTree`
     ///
-    /// This will be None if the `TreeEntry` is a `Tree`
-    pub fn as_leaf_ref(&self) -> Option<&T> {
-        match *self {
-            Self::Leaf(ref val) => Some(val),
-            Self::Tree(_) => None,
+    /// This method will return an iterator over all leaf nodes in the tree by traversing the tree
+    /// in a DFS order.
+    pub fn iter_path(&self) -> IterDataTree<'_, T> {
+        IterDataTree {
+            tree: None,
+            branch: Some(self),
+            index: 0,
+            inner: None,
+            inner_next: None,
+            path: vec![],
+        }
+    }
+
+    /// The number of items in this `DataTree`. This length is just the number of items in this
+    /// local tree object and will not recurse through the tree to compute the total number of
+    /// leaves. If you want to do that you should use [`DataTree::iter_leaves`].
+    pub fn iter_leaves(&self) -> IterLeaves<'_, T> {
+        IterLeaves {
+            tree: None,
+            branch: Some(self),
+            index: 0,
+            inner: None,
+            inner_next: None,
+        }
+    }
+
+    /// The number of [`DataTree`] in this branch.
+    pub fn len(&self) -> usize {
+        self.data.len()
+    }
+
+    /// Check if there are any [`DataTree`] in this branch.
+    pub fn is_empty(&self) -> bool {
+        self.data.is_empty()
+    }
+
+    /// The number of string keys set on this branch.
+    pub fn num_keys(&self) -> usize {
+        self.keys.len()
+    }
+
+    /// Check if the branch has any string keys set.
+    pub fn has_keys(&self) -> bool {
+        !self.keys.is_empty()
+    }
+}
+
+impl<T> From<DataTree<T>> for DataTreeBranch<T> {
+    fn from(input: DataTree<T>) -> Self {
+        DataTreeBranch {
+            data: vec![input],
+            keys: HashMap::new(),
         }
     }
 }
 
 /// A generic tree that is addressable either by either indices or string keys
 #[derive(Debug, Clone)]
-pub struct DataTree<'a, T> {
-    data: Vec<TreeEntry<'a, T>>,
-    keys: HashMap<String, usize>,
-    _marker: PhantomData<&'a T>,
+pub enum DataTree<T> {
+    Leaf(T),
+    Branch(DataTreeBranch<T>),
 }
 
-impl<'a, T> Default for DataTree<'a, T> {
+impl<T> Default for DataTree<T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'a, T> DataTree<'a, T> {
+impl<T> DataTree<T> {
+    /// Consume the entry and return the leaf value otherwise panic
+    pub fn unwrap_leaf(self) -> T {
+        match self {
+            Self::Leaf(data) => data,
+            Self::Branch(_) => panic!("called TreeEntry::unwrap_leaf() on a `Tree` value"),
+        }
+    }
+
     /// Create a new empty data tree
     pub fn new() -> Self {
-        DataTree {
-            data: Vec::new(),
-            keys: HashMap::new(),
-            _marker: PhantomData,
-        }
+        DataTree::Branch(DataTreeBranch::new())
+    }
+
+    /// Create a new leaf data tree
+    pub fn new_leaf(value: T) -> Self {
+        DataTree::Leaf(value)
     }
 
     /// Create a new empty data tree with an underlying allocation of a given size.
@@ -111,11 +176,7 @@ impl<'a, T> DataTree<'a, T> {
     /// account for nesting in the allocation as each layer in the tree is a separate
     /// `DataTree` object.
     pub fn with_capacity(capacity: usize) -> Self {
-        DataTree {
-            data: Vec::with_capacity(capacity),
-            keys: HashMap::with_capacity(capacity),
-            _marker: PhantomData,
-        }
+        DataTree::Branch(DataTreeBranch::with_capacity(capacity))
     }
 
     /// The number of items in this `DataTree`. This length is just the number of items in this
@@ -133,16 +194,19 @@ impl<'a, T> DataTree<'a, T> {
     /// inner_tree.push_leaf(15);
     ///
     /// let mut tree = DataTree::new();
-    /// tree.insert_tree("x", inner_tree);
+    /// tree.insert_branch("x", inner_tree);
     /// assert_eq!(tree.len(), 1);
     /// ```
     pub fn len(&self) -> usize {
-        self.data.len()
+        match self {
+            Self::Leaf(_) => 1,
+            Self::Branch(branch) => branch.data.len(),
+        }
     }
 
     /// Return whether this `DataTree` has an items in it.
     pub fn is_empty(&self) -> bool {
-        self.data.is_empty()
+        self.len() == 0
     }
 
     /// Take a string key and return the entry at the given key.
@@ -152,7 +216,7 @@ impl<'a, T> DataTree<'a, T> {
     ///
     /// This will return `None` if the string key can not be found. This includes
     /// an invalid path, such as a path containing component or a leaf node in the
-    /// middle.
+    /// middle. An empty string for the path will return `self`.
     ///
     /// # Example
     /// ```rust
@@ -160,28 +224,22 @@ impl<'a, T> DataTree<'a, T> {
     /// let mut inner_tree = DataTree::new();
     /// inner_tree.insert_leaf("y", 10);
     /// let mut tree = DataTree::new();
-    /// tree.insert_tree("x", inner_tree);
-    /// let result = tree.get_by_str_key("x.y").unwrap().as_leaf_ref();
-    /// assert_eq!(*result.unwrap(), 10);
+    /// tree.insert_branch("x", inner_tree);
+    /// let result = tree.get_by_str_key("x.y").unwrap().clone().unwrap_leaf();
+    /// assert_eq!(result, 10);
     /// ```
-    pub fn get_by_str_key(&self, key: &str) -> Option<&TreeEntry<'_, T>> {
+    pub fn get_by_str_key(&self, key: &str) -> Option<&Self> {
+        if key.is_empty() {
+            return Some(self);
+        }
         if key.contains(".") {
-            let mut components = key.split(".");
-            let first = self.get_by_str_key(components.next().unwrap());
-            components.fold(first, |tree, key| match tree {
-                Some(entry) => {
-                    match entry {
-                        // If we encounter a leaf in the accumulated tree than
-                        // that means we have an incorrect path and there is no
-                        // match
-                        TreeEntry::Leaf(_) => None,
-                        TreeEntry::Tree(tree) => tree.get_by_str_key(key),
-                    }
-                }
-                None => None,
-            })
+            let path: Vec<PathEntry> = key.split(".").map(PathEntry::Key).collect();
+            self.get_by_path(&path)
         } else {
-            self.keys.get(key).map(|value| &self.data[*value])
+            match self {
+                Self::Leaf(_) => None,
+                Self::Branch(branch) => branch.keys.get(key).map(|value| &branch.data[*value]),
+            }
         }
     }
 
@@ -189,17 +247,20 @@ impl<'a, T> DataTree<'a, T> {
     ///
     /// This will return `None` if a path can not be found. This includes an
     /// invalid path, such as a path a leaf node in the middle. An empty path
-    /// will also return `None`.
-    pub fn get_by_path(&self, path: &[PathEntry]) -> Option<&TreeEntry<'_, T>> {
+    /// will also return `self`.
+    pub fn get_by_path(&self, path: &[PathEntry]) -> Option<&Self> {
         if path.is_empty() {
-            return None;
+            return Some(self);
         }
+        let Self::Branch(branch) = self else {
+            return None;
+        };
         let start = match path[0] {
-            PathEntry::Index(idx) => Some(&self.data[idx]),
-            PathEntry::Key(key) => self.keys.get(key).map(|idx| &self.data[*idx]),
+            PathEntry::Index(idx) => Some(&branch.data[idx]),
+            PathEntry::Key(key) => branch.keys.get(key).map(|idx| &branch.data[*idx]),
         }?;
         match start {
-            TreeEntry::Leaf(_) => {
+            DataTree::Leaf(_) => {
                 if path.len() > 1 {
                     // If there are more components in the path this is an invalid path
                     None
@@ -207,7 +268,7 @@ impl<'a, T> DataTree<'a, T> {
                     Some(start)
                 }
             }
-            TreeEntry::Tree(inner_tree) => {
+            DataTree::Branch(inner_tree) => {
                 if path.len() > 1 {
                     inner_tree.get_by_path(&path[1..])
                 } else {
@@ -227,18 +288,19 @@ impl<'a, T> DataTree<'a, T> {
     /// let mut inner_tree = DataTree::new();
     /// inner_tree.insert_leaf("y", 10);
     /// let mut tree = DataTree::new();
-    /// tree.insert_tree("x", inner_tree);
+    /// tree.insert_branch("x", inner_tree);
     /// tree.push_leaf(124);
-    /// let Some(result) = tree.get(1).unwrap().as_leaf_ref() else {
-    ///     panic!("Encountered an unexpected Tree");
-    /// };
-    /// assert_eq!(*result, 124);
-    /// let subtree = tree.get(0).unwrap().as_tree_ref().unwrap();
-    /// let subtree_result = subtree.get(0).unwrap().as_leaf_ref();
-    /// assert_eq!(*subtree_result.unwrap(), 10);
+    /// let result = tree.get(1).unwrap().clone().unwrap_leaf();
+    /// assert_eq!(result, 124);
+    /// let subtree = tree.get(0).unwrap();
+    /// let subtree_result = subtree.get(0).unwrap().clone().unwrap_leaf();
+    /// assert_eq!(subtree_result, 10);
     /// ```
-    pub fn get(&self, index: usize) -> Option<&TreeEntry<'_, T>> {
-        self.data.get(index)
+    pub fn get(&self, index: usize) -> Option<&DataTree<T>> {
+        match self {
+            Self::Leaf(_) => panic!("Called get() on a leaf node"),
+            Self::Branch(branch) => branch.data.get(index),
+        }
     }
 
     /// Insert a new leaf node with an associated string key
@@ -252,12 +314,17 @@ impl<'a, T> DataTree<'a, T> {
     /// let mut tree = DataTree::new();
     /// tree.insert_leaf("y", 10);
     /// tree.insert_leaf("y", 1000);
-    /// let result = tree.get_by_str_key("y").unwrap().as_leaf_ref();
-    /// assert_eq!(*result.unwrap(), 1000);
+    /// let result = tree.get_by_str_key("y").unwrap().clone().unwrap_leaf();
+    /// assert_eq!(result, 1000);
     /// ```
     pub fn insert_leaf(&mut self, key: &str, value: T) {
-        self.data.push(TreeEntry::Leaf(value));
-        self.keys.insert(key.to_string(), self.data.len() - 1);
+        match self {
+            Self::Leaf(_) => panic!("Called insert_leaf() on a leaf node"),
+            Self::Branch(branch) => {
+                branch.data.push(Self::Leaf(value));
+                branch.keys.insert(key.to_string(), branch.data.len() - 1);
+            }
+        }
     }
 
     /// Add a new leaf to the tree
@@ -271,7 +338,10 @@ impl<'a, T> DataTree<'a, T> {
     /// assert_eq!(vec![10, 1000], tree.iter_leaves().copied().collect::<Vec<_>>());
     /// ```
     pub fn push_leaf(&mut self, value: T) {
-        self.data.push(TreeEntry::Leaf(value));
+        match self {
+            Self::Leaf(_) => panic!("Called push_leaf() on a leaf_node"),
+            Self::Branch(branch) => branch.data.push(DataTree::Leaf(value)),
+        }
     }
 
     /// Add a subtree to the tree with an associated string key
@@ -287,18 +357,39 @@ impl<'a, T> DataTree<'a, T> {
     /// let mut subtree = DataTree::with_capacity(2);
     /// subtree.push_leaf(123);
     /// subtree.push_leaf(456);
-    /// tree.insert_tree("y", subtree);
-    /// let result = tree.get_by_str_key("y").unwrap().as_tree_ref().unwrap();
+    /// tree.insert_branch("y", subtree);
+    /// let result = tree.get_by_str_key("y").unwrap();
     /// let leaves: Vec<_> = result.iter_leaves().copied().collect();
     /// assert_eq!(leaves, vec![123, 456]);
     /// ```
-    pub fn insert_tree(&mut self, key: &str, value: DataTree<'a, T>) {
-        self.data.push(TreeEntry::Tree(value));
-        self.keys.insert(key.to_string(), self.data.len() - 1);
+    pub fn insert_branch(&mut self, key: &str, value: DataTree<T>) {
+        match self {
+            Self::Leaf(_) => panic!("Called insert_branch() on a leaf_node"),
+            Self::Branch(branch) => {
+                branch.data.push(value);
+                branch.keys.insert(key.to_string(), branch.data.len() - 1);
+            }
+        }
     }
 
-    pub fn push_tree(&mut self, value: DataTree<'a, T>) {
-        self.data.push(TreeEntry::Tree(value));
+    /// Add a new branch to the tree
+    ///
+    /// # Example
+    /// ```rust
+    /// use qiskit_providers::DataTree;
+    /// let mut tree = DataTree::new();
+    /// tree.push_leaf(10);
+    /// let mut subtree = DataTree::with_capacity(2);
+    /// subtree.push_leaf(123);
+    /// subtree.push_leaf(456);
+    /// tree.push_branch(subtree);
+    /// assert_eq!(vec![10, 123, 456], tree.iter_leaves().copied().collect::<Vec<_>>());
+    /// ```
+    pub fn push_branch(&mut self, value: DataTree<T>) {
+        match self {
+            Self::Leaf(_) => panic!("Called insert_branch() on a leaf_node"),
+            Self::Branch(branch) => branch.data.push(value),
+        }
     }
 
     /// Return an iterator over the leaves in the `DataTree`
@@ -316,17 +407,17 @@ impl<'a, T> DataTree<'a, T> {
     /// subsubsubtree.push_leaf(3);
     /// subsubsubtree.push_leaf(4);
     /// let mut subsubtree = DataTree::new();
-    /// subsubtree.push_tree(subsubsubtree);
+    /// subsubtree.push_branch(subsubsubtree);
     /// subsubtree.insert_leaf("b", 5);
     /// let mut subsubtree_prime = DataTree::new();
     /// subsubtree_prime.push_leaf(7);
     /// let mut subtree = DataTree::new();
-    /// subtree.insert_tree("c", subsubtree);
+    /// subtree.insert_branch("c", subsubtree);
     /// subtree.insert_leaf("d", 6);
-    /// subtree.push_tree(subsubtree_prime);
+    /// subtree.push_branch(subsubtree_prime);
     /// let mut tree = DataTree::new();
     /// tree.insert_leaf("a", 0);
-    /// tree.insert_tree("root", subtree);
+    /// tree.insert_branch("root", subtree);
     /// tree.insert_leaf("z", 26);
     /// let leaves: Vec<_> = tree.iter_leaves().copied().collect();
     /// let expected = vec![0, 3, 4, 5, 6, 7, 26];
@@ -334,7 +425,8 @@ impl<'a, T> DataTree<'a, T> {
     /// ```
     pub fn iter_leaves(&self) -> IterLeaves<'_, T> {
         IterLeaves {
-            tree: self,
+            tree: Some(self),
+            branch: None,
             index: 0,
             inner: None,
             inner_next: None,
@@ -354,17 +446,17 @@ impl<'a, T> DataTree<'a, T> {
     /// subsubsubtree.push_leaf(3);
     /// subsubsubtree.push_leaf(4);
     /// let mut subsubtree = DataTree::new();
-    /// subsubtree.push_tree(subsubsubtree);
+    /// subsubtree.push_branch(subsubsubtree);
     /// subsubtree.insert_leaf("b", 5);
     /// let mut subsubtree_prime = DataTree::new();
     /// subsubtree_prime.push_leaf(7);
     /// let mut subtree = DataTree::new();
-    /// subtree.insert_tree("c", subsubtree);
+    /// subtree.insert_branch("c", subsubtree);
     /// subtree.insert_leaf("d", 6);
-    /// subtree.push_tree(subsubtree_prime);
+    /// subtree.push_branch(subsubtree_prime);
     /// let mut tree = DataTree::new();
     /// tree.insert_leaf("a", 0);
-    /// tree.insert_tree("root", subtree);
+    /// tree.insert_branch("root", subtree);
     /// tree.insert_leaf("z", 26);
     /// let result: Vec<_> = tree.iter_path().map(|(a, b)| (a, *b)).collect();
     /// let expected_paths: Vec<Vec<usize>> = vec![
@@ -386,7 +478,8 @@ impl<'a, T> DataTree<'a, T> {
     /// ```
     pub fn iter_path(&self) -> IterDataTree<'_, T> {
         IterDataTree {
-            tree: self,
+            tree: Some(self),
+            branch: None,
             index: 0,
             inner: None,
             inner_next: None,
@@ -396,7 +489,8 @@ impl<'a, T> DataTree<'a, T> {
 }
 
 pub struct IterDataTree<'a, T> {
-    tree: &'a DataTree<'a, T>,
+    tree: Option<&'a DataTree<T>>,
+    branch: Option<&'a DataTreeBranch<T>>,
     index: usize,
     inner: Option<Box<IterDataTree<'a, T>>>,
     inner_next: Option<(Vec<PathEntry<'a>>, &'a T)>,
@@ -407,52 +501,109 @@ impl<'a, T> Iterator for IterDataTree<'a, T> {
     type Item = (Vec<PathEntry<'a>>, &'a T);
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.index >= self.tree.len() {
-            return None;
-        }
-        let entry = &self.tree.data[self.index];
-        match entry {
-            TreeEntry::Leaf(val) => {
-                self.index += 1;
-                let mut out_path = self.path.clone();
-                out_path.push(PathEntry::Index(self.index - 1));
-                Some((out_path, val))
+        if let Some(tree) = self.tree {
+            if let DataTree::Leaf(val) = tree {
+                if self.index == 0 {
+                    self.index += 1;
+                    return Some((vec![], val));
+                } else {
+                    return None;
+                }
             }
-            TreeEntry::Tree(subtree) => match self.inner {
-                Some(ref mut inner) => {
-                    if let Some(val) = inner.next() {
-                        let (return_path, return_val) = self.inner_next.replace(val).unwrap();
-                        Some((return_path, return_val))
+            let DataTree::Branch(branch) = tree else {
+                unreachable!("Must be a branch variant");
+            };
+            if self.index >= branch.data.len() {
+                return None;
+            }
+            let entry = &branch.data[self.index];
+            match entry {
+                DataTree::Leaf(val) => {
+                    self.index += 1;
+                    let mut out_path = self.path.clone();
+                    out_path.push(PathEntry::Index(self.index - 1));
+                    Some((out_path, val))
+                }
+                DataTree::Branch(sub_branch) => {
+                    if let Some(ref mut inner) = self.inner {
+                        if let Some(val) = inner.next() {
+                            let (return_path, return_val) = self.inner_next.replace(val).unwrap();
+                            Some((return_path, return_val))
+                        } else {
+                            self.inner = None;
+                            self.index += 1;
+                            let (return_path, return_val) = self.inner_next.take().unwrap();
+                            self.inner_next = None;
+                            Some((return_path, return_val))
+                        }
                     } else {
-                        self.inner = None;
-                        self.index += 1;
-                        let (return_path, return_val) = self.inner_next.take().unwrap();
-                        self.inner_next = None;
-                        Some((return_path, return_val))
+                        let mut inner = sub_branch.iter_path();
+                        let mut inner_path = self.path.clone();
+                        inner_path.push(PathEntry::Index(self.index));
+                        inner.path = inner_path;
+                        self.inner = Some(Box::new(inner));
+                        let (inner_path, val) = self.inner.as_mut().map(|x| x.next().unwrap())?;
+                        self.inner_next = self.inner.as_mut().and_then(|x| x.next());
+                        if self.inner_next.is_none() {
+                            self.index += 1;
+                            self.inner = None;
+                            self.inner_next = None;
+                        }
+                        Some((inner_path, val))
                     }
                 }
-                None => {
-                    let mut inner = subtree.iter_path();
-                    let mut inner_path = self.path.clone();
-                    inner_path.push(PathEntry::Index(self.index));
-                    inner.path = inner_path;
-                    self.inner = Some(Box::new(inner));
-                    let (inner_path, val) = self.inner.as_mut().map(|x| x.next().unwrap())?;
-                    self.inner_next = self.inner.as_mut().and_then(|x| x.next());
-                    if self.inner_next.is_none() {
-                        self.index += 1;
-                        self.inner = None;
-                        self.inner_next = None;
-                    }
-                    Some((inner_path, val))
+            }
+        } else if let Some(subtree) = self.branch {
+            if self.index >= subtree.data.len() {
+                return None;
+            }
+            let entry = &subtree.data[self.index];
+            match entry {
+                DataTree::Leaf(val) => {
+                    self.index += 1;
+                    let mut out_path = self.path.clone();
+                    out_path.push(PathEntry::Index(self.index - 1));
+                    Some((out_path, val))
                 }
-            },
+                DataTree::Branch(subtree) => match self.inner {
+                    Some(ref mut inner) => {
+                        if let Some(val) = inner.next() {
+                            let (return_path, return_val) = self.inner_next.replace(val).unwrap();
+                            Some((return_path, return_val))
+                        } else {
+                            self.inner = None;
+                            self.index += 1;
+                            let (return_path, return_val) = self.inner_next.take().unwrap();
+                            self.inner_next = None;
+                            Some((return_path, return_val))
+                        }
+                    }
+                    None => {
+                        let mut inner = subtree.iter_path();
+                        let mut inner_path = self.path.clone();
+                        inner_path.push(PathEntry::Index(self.index));
+                        inner.path = inner_path;
+                        self.inner = Some(Box::new(inner));
+                        let (inner_path, val) = self.inner.as_mut().map(|x| x.next().unwrap())?;
+                        self.inner_next = self.inner.as_mut().and_then(|x| x.next());
+                        if self.inner_next.is_none() {
+                            self.index += 1;
+                            self.inner = None;
+                            self.inner_next = None;
+                        }
+                        Some((inner_path, val))
+                    }
+                },
+            }
+        } else {
+            None
         }
     }
 }
 
 pub struct IterLeaves<'a, T> {
-    tree: &'a DataTree<'a, T>,
+    tree: Option<&'a DataTree<T>>,
+    branch: Option<&'a DataTreeBranch<T>>,
     index: usize,
     inner: Option<Box<IterLeaves<'a, T>>>,
     inner_next: Option<&'a T>,
@@ -462,49 +613,112 @@ impl<'a, T: std::fmt::Debug> Iterator for IterLeaves<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.index >= self.tree.len() {
-            return None;
-        }
-        let entry = &self.tree.data[self.index];
-        match entry {
-            TreeEntry::Leaf(val) => {
-                self.index += 1;
-                Some(val)
+        if let Some(tree) = self.tree {
+            if let DataTree::Leaf(val) = tree {
+                if self.index == 0 {
+                    self.index += 1;
+                    return Some(val);
+                } else {
+                    return None;
+                }
             }
-            TreeEntry::Tree(subtree) => match self.inner {
-                Some(ref mut inner) => {
-                    if let Some(val) = inner.next() {
-                        let return_val = self.inner_next;
-                        self.inner_next = Some(val);
-                        return_val
+            let DataTree::Branch(branch) = tree else {
+                unreachable!("Must be a branch variant");
+            };
+            if self.index >= branch.data.len() {
+                return None;
+            }
+            let entry = &branch.data[self.index];
+            match entry {
+                DataTree::Leaf(val) => {
+                    self.index += 1;
+                    Some(val)
+                }
+                DataTree::Branch(sub_branch) => {
+                    if let Some(ref mut inner) = self.inner {
+                        if let Some(val) = inner.next() {
+                            let return_val = self.inner_next.replace(val).unwrap();
+                            Some(return_val)
+                        } else {
+                            self.inner = None;
+                            self.index += 1;
+                            let return_val = self.inner_next.take().unwrap();
+                            self.inner_next = None;
+                            Some(return_val)
+                        }
                     } else {
-                        self.inner = None;
-                        self.index += 1;
-                        let return_val = self.inner_next;
-                        self.inner_next = None;
-                        return_val
+                        let inner = sub_branch.iter_leaves();
+                        self.inner = Some(Box::new(inner));
+                        let val = self.inner.as_mut().map(|x| x.next().unwrap())?;
+                        self.inner_next = self.inner.as_mut().and_then(|x| x.next());
+                        if self.inner_next.is_none() {
+                            self.index += 1;
+                            self.inner = None;
+                            self.inner_next = None;
+                        }
+                        Some(val)
                     }
                 }
-
-                None => {
-                    self.inner = Some(Box::new(subtree.iter_leaves()));
-                    let val = self.inner.as_mut().map(|x| x.next().unwrap());
-                    self.inner_next = self.inner.as_mut().and_then(|x| x.next());
-                    if self.inner_next.is_none() {
-                        self.index += 1;
-                        self.inner = None;
-                        self.inner_next = None;
-                    }
-                    val
+            }
+        } else if let Some(subtree) = self.branch {
+            if self.index >= subtree.data.len() {
+                return None;
+            }
+            let entry = &subtree.data[self.index];
+            match entry {
+                DataTree::Leaf(val) => {
+                    self.index += 1;
+                    Some(val)
                 }
-            },
+                DataTree::Branch(subtree) => match self.inner {
+                    Some(ref mut inner) => {
+                        if let Some(val) = inner.next() {
+                            let return_val = self.inner_next.replace(val).unwrap();
+                            Some(return_val)
+                        } else {
+                            self.inner = None;
+                            self.index += 1;
+                            let return_val = self.inner_next.take().unwrap();
+                            self.inner_next = None;
+                            Some(return_val)
+                        }
+                    }
+                    None => {
+                        let inner = subtree.iter_leaves();
+                        self.inner = Some(Box::new(inner));
+                        let val = self.inner.as_mut().map(|x| x.next().unwrap())?;
+                        self.inner_next = self.inner.as_mut().and_then(|x| x.next());
+                        if self.inner_next.is_none() {
+                            self.index += 1;
+                            self.inner = None;
+                            self.inner_next = None;
+                        }
+                        Some(val)
+                    }
+                },
+            }
+        } else {
+            None
         }
     }
 }
 
-impl<'a, T: PartialEq> PartialEq for DataTree<'a, T> {
+impl<T: PartialEq> PartialEq for DataTree<T> {
     fn eq(&self, other: &DataTree<T>) -> bool {
-        self.data == other.data && self.keys == other.keys
+        match self {
+            Self::Leaf(val) => {
+                let Self::Leaf(other_val) = other else {
+                    return false;
+                };
+                val == other_val
+            }
+            Self::Branch(branch) => {
+                let Self::Branch(other) = other else {
+                    return false;
+                };
+                branch.data == other.data && branch.keys == other.keys
+            }
+        }
     }
 }
 
@@ -536,11 +750,10 @@ mod test {
         let mut inner_tree = DataTree::new();
         inner_tree.insert_leaf("y", 10);
         let mut tree = DataTree::new();
-        tree.insert_tree("x", inner_tree.clone());
+        tree.insert_branch("x", inner_tree.clone());
         tree.insert_leaf("z", 100);
         assert_eq!(None, tree.get_by_str_key("z.y"));
-        let expected = TreeEntry::Tree(inner_tree);
-        assert_eq!(Some(&expected), tree.get_by_str_key("x"));
+        assert_eq!(Some(&inner_tree), tree.get_by_str_key("x"));
     }
 
     #[test]
@@ -553,9 +766,9 @@ mod test {
         inner_inner_tree.push_leaf(3);
         inner_inner_tree.push_leaf(4);
         inner_inner_tree.push_leaf(5);
-        inner_tree.push_tree(inner_inner_tree);
+        inner_tree.push_branch(inner_inner_tree);
         let mut tree = DataTree::new();
-        tree.insert_tree("x", inner_tree.clone());
+        tree.insert_branch("x", inner_tree.clone());
         tree.insert_leaf("z", 100);
         assert_eq!(
             vec![10, 1, 2, 3, 4, 5, 100],
@@ -573,9 +786,9 @@ mod test {
         inner_inner_tree.push_leaf(3);
         inner_inner_tree.push_leaf(4);
         inner_inner_tree.push_leaf(5);
-        inner_tree.push_tree(inner_inner_tree);
+        inner_tree.push_branch(inner_inner_tree);
         let mut tree = DataTree::new();
-        tree.insert_tree("x", inner_tree.clone());
+        tree.insert_branch("x", inner_tree.clone());
         tree.insert_leaf("z", 100);
         let expected_paths = vec![
             vec![PathEntry::Index(0), PathEntry::Index(0)],
@@ -624,18 +837,18 @@ mod test {
         inner_inner_tree.insert_leaf("a", 4);
         inner_inner_tree.push_leaf(5);
         let inner_inner_tree_expected = inner_inner_tree.clone();
-        inner_tree.insert_tree("yyy", inner_inner_tree);
+        inner_tree.insert_branch("yyy", inner_inner_tree);
         let mut tree = DataTree::new();
-        tree.insert_tree("x", inner_tree.clone());
+        tree.insert_branch("x", inner_tree.clone());
         tree.insert_leaf("z", 100);
         let result = tree.get_by_str_key("x.yyy.a");
-        assert_eq!(result, Some(&TreeEntry::Leaf(4)));
-        assert_eq!(tree.get_by_str_key("z"), Some(&TreeEntry::Leaf(100)));
+        assert_eq!(result, Some(&DataTree::Leaf(4)));
+        assert_eq!(tree.get_by_str_key("z"), Some(&DataTree::Leaf(100)));
         assert_eq!(
             tree.get_by_str_key("x.yyy"),
-            Some(&TreeEntry::Tree(inner_inner_tree_expected))
+            Some(&inner_inner_tree_expected),
         );
-        assert_eq!(tree.get_by_str_key("x.yy"), Some(&TreeEntry::Leaf(1)));
+        assert_eq!(tree.get_by_str_key("x.yy"), Some(&DataTree::Leaf(1)));
     }
 
     #[test]
@@ -648,9 +861,9 @@ mod test {
         inner_inner_tree.push_leaf(3);
         inner_inner_tree.insert_leaf("a", 4);
         inner_inner_tree.push_leaf(5);
-        inner_tree.insert_tree("yyy", inner_inner_tree);
+        inner_tree.insert_branch("yyy", inner_inner_tree);
         let mut tree = DataTree::new();
-        tree.insert_tree("x", inner_tree.clone());
+        tree.insert_branch("x", inner_tree.clone());
         tree.insert_leaf("z", 100);
         assert_eq!(None, tree.get_by_str_key("a"));
         assert_eq!(None, tree.get_by_str_key("x.yyyy"));
