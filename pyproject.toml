@@ -300,16 +300,16 @@ before-test = "pip install --only-binary=numpy,scipy numpy scipy -c constraints.
 # specific job override is needed. For example tier 1 platforms locally override
 # the before-build and environment configuration to enable PGO,
 # see: .github/workflows/wheels.yml for the jobs where this is done
-environment = 'RUSTUP_TOOLCHAIN="stable"'
+environment = 'RUSTUP_TOOLCHAIN="stable" QISKIT_BUILD_WITH_MIMALLOC=1'
 
 [tool.cibuildwheel.linux]
 before-all = "yum install -y wget && {package}/tools/install_rust.sh"
-environment = 'PATH="$PATH:$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true" RUSTUP_TOOLCHAIN="stable"'
+environment = 'PATH="$PATH:$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true" RUSTUP_TOOLCHAIN="stable" QISKIT_BUILD_WITH_MIMALLOC=1'
 repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel} && pipx run abi3audit --strict --report {wheel}"
 
 [tool.cibuildwheel.macos]
 repair-wheel-command = "delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel} && pipx run abi3audit --strict --report {wheel}"
-environment = "MACOSX_DEPLOYMENT_TARGET='10.12' RUSTUP_TOOLCHAIN=stable"
+environment = "MACOSX_DEPLOYMENT_TARGET='10.12' RUSTUP_TOOLCHAIN=stable QISKIT_BUILD_WITH_MIMALLOC=1"
 
 [tool.cibuildwheel.windows]
 test-command = "cp -r {project}/test . && stestr --test-path test/python run --abbreviate"

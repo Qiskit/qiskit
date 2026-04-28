@@ -165,16 +165,27 @@ to `build_rust` overrides this default.
 
 ### Compile time options
 
-When building qiskit from source there are options available to control how
-Qiskit is built. Right now the only option is if you set the environment
-variable `QISKIT_NO_CACHE_GATES=1` this will disable runtime caching of
-Python gate objects when accessing them from a `QuantumCircuit` or `DAGCircuit`.
-This makes a tradeoff between runtime performance for Python access and memory
-overhead. Caching gates will result in better runtime for users of Python at
-the cost of increased memory consumption. If you're working with any custom
-transpiler passes written in Python or are otherwise using a workflow that
-repeatedly accesses the `operation` attribute of a `CircuitInstruction` or `op`
-attribute of `DAGOpNode` enabling caching is recommended.
+When building Qiskit from source there are options available to control how
+Qiskit is built. These options are set with the following environment variables:
+
+* `QISKIT_BUILD_WITH_MIMALLOC=1`: this will enable using
+  [mimalloc](https://github.com/microsoft/mimalloc) as the global allocator for
+  Qiskit instead of the default system allocator. This improves the runtime and
+  memory performance of Qiskit but will require having a C compiler installed
+  when building Qiskit.
+* `QISKIT_NO_CACHE_GATES=1`: this will disable runtime caching of
+  Python gate objects when accessing them from a `QuantumCircuit` or `DAGCircuit`.
+  This makes a tradeoff between runtime performance for Python access and memory
+  overhead. Caching gates will result in better runtime for users of Python at
+  the cost of increased memory consumption. If you're working with any custom
+  transpiler passes written in Python or are otherwise using a workflow that
+  repeatedly accesses the `operation` attribute of a `CircuitInstruction` or `op`
+  attribute of `DAGOpNode` enabling caching is recommended.
+
+These environment variables are only valid when building Qiskit the Python package
+with a PEP 517 compatible build tool or calling `setup.py` directly.
+Or as a standalone C library with `make c` (`QISKIT_NO_CACHE_GATES` has no effect
+when building a standalone C library).
 
 ## Issues and pull requests
 
