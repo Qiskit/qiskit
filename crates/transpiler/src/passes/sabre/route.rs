@@ -397,7 +397,7 @@ impl PyRoutingTarget {
     #[staticmethod]
     #[pyo3(name = "from_target")]
     pub(crate) fn from_py_target(target: &PyTarget) -> PyResult<Self> {
-        Self::from_target(target)
+        Self::from_target(&*target.try_read()?)
     }
 
     fn coupling_list(&self) -> Option<Vec<[PhysicalQubit; 2]>> {

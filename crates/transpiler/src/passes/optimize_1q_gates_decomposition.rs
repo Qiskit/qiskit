@@ -62,7 +62,12 @@ pub fn py_run_optimize_1q_gates_decomposition(
     basis_gates: Option<HashSet<String>>,
     global_decomposers: Option<Vec<String>>,
 ) -> PyResult<()> {
-    run_optimize_1q_gates_decomposition(dag, target.map(|v| &**v), basis_gates, global_decomposers)
+    run_optimize_1q_gates_decomposition(
+        dag,
+        target.map(|v| v.try_read()).transpose()?.as_deref(),
+        basis_gates,
+        global_decomposers,
+    )
 }
 
 pub fn run_optimize_1q_gates_decomposition(

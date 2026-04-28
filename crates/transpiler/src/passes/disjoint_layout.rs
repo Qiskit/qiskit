@@ -119,20 +119,21 @@ pub fn py_run_pass_over_connected_components(
         }
         Ok(run_func.call1((dag, py_cmap))?.unbind())
     };
+    let target_borrowed = target.try_read()?;
     let components = {
         let mut borrowed = dag.borrow_mut();
-        distribute_components(borrowed.deref_mut(), target)?
+        distribute_components(borrowed.deref_mut(), &target_borrowed)?
     };
     match components {
         DisjointSplit::NoneNeeded => {
-            let coupling_map: CouplingMap = match build_coupling_map(target) {
+            let coupling_map: CouplingMap = match build_coupling_map(&target_borrowed) {
                 Some(map) => map,
                 None => return Ok(None),
             };
             Ok(Some(vec![func(dag, &coupling_map)?]))
         }
         DisjointSplit::TargetSubset(qubits) => {
-            let coupling_map = build_coupling_map(target).unwrap();
+            let coupling_map = build_coupling_map(&target_borrowed).unwrap();
             let cmap = subgraph(
                 &coupling_map,
                 &qubits.iter().map(|x| NodeIndex::new(x.index())).collect(),
@@ -143,7 +144,7 @@ pub fn py_run_pass_over_connected_components(
             components
                 .into_iter()
                 .map(|component| {
-                    let coupling_map = build_coupling_map(target).unwrap();
+                    let coupling_map = build_coupling_map(&target_borrowed).unwrap();
                     let cmap = subgraph(
                         &coupling_map,
                         &component

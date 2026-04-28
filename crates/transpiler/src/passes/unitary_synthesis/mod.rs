@@ -675,7 +675,8 @@ pub fn py_unitary_synthesis(
     };
     let mut state = UnitarySynthesisState::new(config);
     let mut basis_gates_set: IndexSet<&str, ::ahash::RandomState>;
-    let constraint = match target {
+    let target_borrowed = target.map(|target| target.try_read()).transpose()?;
+    let constraint = match target_borrowed.as_deref() {
         Some(target) => QpuConstraint::Target(target),
         None => {
             basis_gates_set = basis_gates.iter().map(String::as_str).collect();
@@ -719,7 +720,8 @@ pub fn py_synthesize_unitary_matrix(
     };
     let mut state = UnitarySynthesisState::new(config);
     let mut basis_gates_set: IndexSet<&str, ::ahash::RandomState>;
-    let constraint = match target {
+    let target_borrowed = target.map(|target| target.try_read()).transpose()?;
+    let constraint = match target_borrowed.as_deref() {
         Some(target) => QpuConstraint::Target(target),
         None => {
             basis_gates_set = basis_gates.iter().map(String::as_str).collect();

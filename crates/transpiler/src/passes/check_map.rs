@@ -78,9 +78,9 @@ pub fn py_run_check_map(
     target: &PyTarget,
 ) -> PyResult<Option<(String, [u32; 2])>> {
     if dag.has_control_flow() {
-        recurse(dag, target, None)
+        recurse(dag, &*target.try_read()?, None)
     } else {
-        Ok(run_check_map(dag, target)
+        Ok(run_check_map(dag, &*target.try_read()?)
             .map(|(name, qubits)| (name.to_string(), [qubits[0].0, qubits[1].0])))
     }
 }

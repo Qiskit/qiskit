@@ -77,7 +77,14 @@ pub unsafe extern "C" fn qk_target_borrow_from_python(ob: *mut pyo3::ffi::PyObje
     // Python object.
     unsafe {
         let borrowed: *mut PyTarget = crate::py::borrow_mut(::pyo3::Python::assume_attached(), ob);
-        &mut **borrowed
+        &mut *borrowed
+            .as_mut()
+            .map(|target| {
+                target
+                    .try_write()
+                    .expect("Error while unlocking the borrow lock for Target")
+            })
+            .expect("Error borrowing the Target")
     }
 }
 

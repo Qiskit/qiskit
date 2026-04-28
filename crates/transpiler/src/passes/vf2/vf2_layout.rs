@@ -740,7 +740,13 @@ pub fn py_vf2_layout_pass_average(
     strict_direction: bool,
     avg_error_map: Option<&ErrorMap>,
 ) -> PyResult<Vf2PassReturn> {
-    vf2_layout_pass_average(dag, target, config, strict_direction, avg_error_map)
+    vf2_layout_pass_average(
+        dag,
+        &*target.try_read()?,
+        config,
+        strict_direction,
+        avg_error_map,
+    )
 }
 
 pub fn vf2_layout_pass_average(
@@ -816,7 +822,7 @@ pub fn py_vf2_layout_pass_exact(
     target: &PyTarget,
     config: &Vf2PassConfiguration,
 ) -> PyResult<Vf2PassReturn> {
-    vf2_layout_pass_exact(dag, target, config)
+    vf2_layout_pass_exact(dag, &*target.try_read()?, config)
 }
 
 pub fn vf2_layout_pass_exact(

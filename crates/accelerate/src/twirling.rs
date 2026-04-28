@@ -393,7 +393,10 @@ pub(crate) fn twirl_circuit(
                 &mut rng,
                 twirling_mask,
                 custom_gate_twirling_sets.as_ref(),
-                optimizer_target.map(|v| &**v),
+                optimizer_target
+                    .map(|v| v.try_read())
+                    .transpose()?
+                    .as_deref(),
             )
             .map(Into::into)
         })

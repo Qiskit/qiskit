@@ -32,13 +32,15 @@ pub enum Unroll3qError {
 #[pyfunction]
 #[pyo3(name = "unroll_3q_or_more")]
 pub fn py_unroll_3q_or_more(dag: &mut DAGCircuit, target: Option<&PyTarget>) -> PyResult<()> {
-    run_unroll_3q_or_more(dag, target.map(|v| &**v)).map_err(|err| match err {
-        Unroll3qError::NoDefinition(e) => QiskitError::new_err(format!(
-            "Cannot unroll all 3q or more gates. No rule to expand {}",
-            e
-        )),
-        Unroll3qError::SubstitutionError(e) => e,
-    })
+    run_unroll_3q_or_more(dag, target.map(|v| v.try_read()).transpose()?.as_deref()).map_err(
+        |err| match err {
+            Unroll3qError::NoDefinition(e) => QiskitError::new_err(format!(
+                "Cannot unroll all 3q or more gates. No rule to expand {}",
+                e
+            )),
+            Unroll3qError::SubstitutionError(e) => e,
+        },
+    )
 }
 
 pub fn run_unroll_3q_or_more(

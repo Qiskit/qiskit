@@ -237,7 +237,7 @@ fn py_run_consolidate_blocks(
         decomposer,
         basis_gate_name,
         force_consolidate,
-        target.map(|v| &**v),
+        target.map(|v| v.try_read()).transpose()?.as_deref(),
         basis_gates,
         blocks,
         runs,

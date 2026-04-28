@@ -15,6 +15,9 @@ use thiserror::Error;
 /// A collection of the Errors possible in the [Target].
 #[derive(Debug, Error)]
 pub enum TargetError {
+    /// Failed to acquire lock on Target data
+    #[error("Failed to acquire lock on Target data")]
+    RWLock,
     /// An invalid instruction name being queried into the [Target].
     #[error["Provided instruction: '{0}' not in this Target."]]
     InvalidKey(String),
@@ -60,6 +63,9 @@ pub enum TargetError {
 
 impl From<TargetError> for ::pyo3::PyErr {
     fn from(val: TargetError) -> Self {
-        crate::TranspilerError::new_err(val.to_string())
+        match val {
+            TargetError::RWLock => ::pyo3::exceptions::PyRuntimeError::new_err(val.to_string()),
+            _ => crate::TranspilerError::new_err(val.to_string()),
+        }
     }
 }

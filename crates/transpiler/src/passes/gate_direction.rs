@@ -60,7 +60,7 @@ pub fn check_direction_coupling_map(
 #[pyfunction]
 #[pyo3(name = "check_gate_direction_target")]
 pub fn py_check_direction_target(dag: &DAGCircuit, target: &PyTarget) -> PyResult<bool> {
-    check_direction_target(dag, target)
+    check_direction_target(dag, &*target.try_read()?)
 }
 
 /// Check if the two-qubit gates follow the right direction with respect to instructions supported in the given target.
@@ -187,7 +187,7 @@ pub fn fix_direction_coupling_map(
 #[pyfunction]
 #[pyo3(name = "fix_gate_direction_target")]
 pub fn py_fix_direction_target(dag: &mut DAGCircuit, target: &PyTarget) -> PyResult<()> {
-    fix_direction_target(dag, target)
+    fix_direction_target(dag, &*target.try_read()?)
 }
 
 pub fn fix_direction_target(dag: &mut DAGCircuit, target: &Target) -> PyResult<()> {

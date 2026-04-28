@@ -261,7 +261,7 @@ pub fn py_run_constrained_reschedule(
         clbit_write_latency,
         acquire_align,
         pulse_align,
-        target.map(|v| &**v),
+        target.map(|v| v.try_read()).transpose()?.as_deref(),
     )?;
     Ok(node_start_time)
 }

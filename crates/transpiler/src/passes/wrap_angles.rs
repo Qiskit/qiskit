@@ -27,7 +27,7 @@ pub fn py_run_wrap_angles(
     target: &PyTarget,
     bounds_registry: &PyWrapAngleRegistry,
 ) -> PyResult<()> {
-    run_wrap_angles(dag, target, bounds_registry.get_inner())
+    run_wrap_angles(dag, &*target.try_read()?, bounds_registry.get_inner())
 }
 
 pub fn run_wrap_angles(

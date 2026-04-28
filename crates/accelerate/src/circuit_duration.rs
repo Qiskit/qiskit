@@ -27,7 +27,8 @@ use rustworkx_core::petgraph::visit::{EdgeRef, IntoEdgeReferences};
 /// Estimate the duration of a scheduled circuit in seconds
 #[pyfunction]
 pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &PyTarget) -> PyResult<f64> {
-    let dt = target.dt;
+    let target_borrowed = target.try_read()?;
+    let dt = target_borrowed.dt;
 
     let get_duration =
         |edge: <&StableDiGraph<NodeType, Wire> as IntoEdgeReferences>::EdgeRef| -> PyResult<f64> {
@@ -75,7 +76,7 @@ pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &PyTarget) ->
                             return Ok(0.);
                         }
                     }
-                    match target.get_duration(name, &physical_qubits) {
+                    match target_borrowed.get_duration(name, &physical_qubits) {
                         Some(dur) => Ok(dur),
                         None => Err(QiskitError::new_err(format!(
                             "Duration not found for {name} on qubits: {qubits:?}"

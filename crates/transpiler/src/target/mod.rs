@@ -25,8 +25,10 @@ use pyo3::types::{IntoPyDict, PyIterator};
 pub use qargs::{Qargs, QargsRef};
 pub use qubit_properties::QubitProperties;
 
-use std::ops::{Deref, DerefMut};
-use std::{ops::Index, sync::OnceLock};
+use std::{
+    ops::Index,
+    sync::{Arc, OnceLock, RwLock, RwLockReadGuard, RwLockWriteGuard},
+};
 
 use ahash::RandomState;
 use hashbrown::HashMap;
@@ -1417,42 +1419,26 @@ where
 )]
 #[derive(Debug, Clone)]
 pub struct PyTarget {
-    inner: Target,
+    inner: Arc<RwLock<Target>>,
     gate_map: OnceLock<Py<PyDict>>,
     non_global_basis: OnceLock<Py<PyList>>,
     non_global_basis_strict: OnceLock<Py<PyList>>,
 }
 
-impl Deref for PyTarget {
-    type Target = Target;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
+impl PyTarget {
+    /// Try to acquire a read lock on the inner Target
+    pub fn try_read(&self) -> Result<RwLockReadGuard<'_, Target>, TargetError> {
+        self.inner.try_read().map_err(|_| TargetError::RWLock)
     }
-}
 
-impl DerefMut for PyTarget {
-    fn deref_mut(&mut self) -> &mut Self::Target {
+    /// Try to acquire a write lock on the inner Target
+    /// Automatically clears OnceLock caches when acquiring write lock
+    pub fn try_write(&mut self) -> Result<RwLockWriteGuard<'_, Target>, TargetError> {
+        // Clear cached values since we're about to modify the target
         self.gate_map.take();
         self.non_global_basis.take();
         self.non_global_basis_strict.take();
-        &mut self.inner
-    }
-}
-
-impl PyTarget {
-    pub fn from_target(target: Target, py: Python<'_>) -> PyResult<Self> {
-        let gate_map = target
-            .gate_map
-            .iter()
-            .map(|(name, props)| (name.clone(), props.properties.clone()))
-            .into_py_dict(py)?;
-        Ok(Self {
-            inner: target,
-            gate_map: gate_map.unbind().into(),
-            non_global_basis: Default::default(),
-            non_global_basis_strict: Default::default(),
-        })
+        self.inner.try_write().map_err(|_| TargetError::RWLock)
     }
 
     /// Safer way of initializing gate_map.
@@ -1460,14 +1446,34 @@ impl PyTarget {
         if let Some(map) = self.gate_map.get() {
             Ok(map.bind(py))
         } else {
-            let gate_map = self
-                .inner
+            let target = self.try_read()?;
+            let gate_map = target
                 .gate_map
                 .iter()
-                .map(|(name, props)| (name.clone(), props.properties.clone()))
+                .map(|(name, props)| (name.as_str(), props.properties.clone()))
                 .into_py_dict(py)?;
             Ok(self.gate_map.get_or_init(|| gate_map.unbind()).bind(py))
         }
+    }
+
+    /// Creates a [`PyTarget`] from a [`Target`] and initializes its python
+    /// `gate_map`.
+    ///
+    /// This method exists mostly to force the user to think about the cost
+    /// of initializing the [`PyTarget`] from Rust, as it would be easy to
+    /// implement the [`From<Target>`] trait for it.
+    pub fn from_target(target: Target, py: Python<'_>) -> PyResult<Self> {
+        let gate_map = target
+            .gate_map
+            .iter()
+            .map(|(name, props)| (name.clone(), props.properties.clone()))
+            .into_py_dict(py)?;
+        Ok(Self {
+            inner: Arc::new(RwLock::new(target)),
+            gate_map: gate_map.unbind().into(),
+            non_global_basis: Default::default(),
+            non_global_basis_strict: Default::default(),
+        })
     }
 }
 
@@ -1569,45 +1575,53 @@ impl PyTarget {
             target_build = target_build.with_concurrent_measurements(concurrent_measurements)
         }
         Ok(Self {
+            inner: Arc::new(RwLock::new(target_build)),
             gate_map: PyDict::new(py).unbind().into(),
-            inner: target_build,
             non_global_basis: Default::default(),
             non_global_basis_strict: Default::default(),
         })
     }
 
     #[getter]
-    fn get_description(&self) -> Option<&str> {
-        self.inner.description.as_deref()
+    fn get_description(&self) -> PyResult<Option<String>> {
+        let target = self.try_read()?;
+        Ok(target.description.clone())
     }
     #[getter]
-    fn get_num_qubits(&self) -> Option<u32> {
-        self.inner.num_qubits
+    fn get_num_qubits(&self) -> PyResult<Option<u32>> {
+        let target = self.try_read()?;
+        Ok(target.num_qubits)
     }
 
     #[getter]
-    fn get_granularity(&self) -> u32 {
-        self.inner.granularity
+    fn get_granularity(&self) -> PyResult<u32> {
+        let target = self.try_read()?;
+        Ok(target.granularity)
     }
     #[getter]
-    fn get_min_length(&self) -> u32 {
-        self.inner.min_length
+    fn get_min_length(&self) -> PyResult<u32> {
+        let target = self.try_read()?;
+        Ok(target.min_length)
     }
     #[getter]
-    fn get_pulse_alignment(&self) -> u32 {
-        self.inner.pulse_alignment
+    fn get_pulse_alignment(&self) -> PyResult<u32> {
+        let target = self.try_read()?;
+        Ok(target.pulse_alignment)
     }
     #[getter]
-    fn get_acquire_alignment(&self) -> u32 {
-        self.inner.acquire_alignment
+    fn get_acquire_alignment(&self) -> PyResult<u32> {
+        let target = self.try_read()?;
+        Ok(target.acquire_alignment)
     }
     #[getter]
-    fn get_qubit_properties(&self) -> Option<Vec<QubitProperties>> {
-        self.inner.qubit_properties.clone()
+    fn get_qubit_properties(&self) -> PyResult<Option<Vec<QubitProperties>>> {
+        let target = self.try_read()?;
+        Ok(target.qubit_properties.clone())
     }
     #[getter]
-    fn get_concurrent_measurements(&self) -> Option<Vec<Vec<PhysicalQubit>>> {
-        self.inner.concurrent_measurements.clone()
+    fn get_concurrent_measurements(&self) -> PyResult<Option<Vec<Vec<PhysicalQubit>>>> {
+        let target = self.try_read()?;
+        Ok(target.concurrent_measurements.clone())
     }
 
     /// Add a new instruction to the `Target` after it has been processed in python.
@@ -1670,17 +1684,19 @@ impl PyTarget {
                 generate_default_props()
             };
 
-        if self.inner.contains_key(&new_name) {
-            return Err(PyAttributeError::new_err(format!(
-                "Instruction {new_name} is already in the target"
-            )));
+        {
+            let target = self.try_read()?;
+            if target.contains_key(&new_name) {
+                return Err(PyAttributeError::new_err(format!(
+                    "Instruction {new_name} is already in the target"
+                )));
+            }
         }
-        self.inner.inner_add_instruction(
-            &new_name,
-            instruction,
-            properties_extract,
-            angle_bounds,
-        )?;
+
+        let mut target = self.try_write()?;
+        target.inner_add_instruction(&new_name, instruction, properties_extract, angle_bounds)?;
+        drop(target); // Release write lock
+
         let properties = if let Some(properties) = properties {
             properties
         } else {
@@ -1688,6 +1704,7 @@ impl PyTarget {
                 .into_py_dict(py)?
                 .unbind()
         };
+
         self.get_py_gate_map_bound(py)?
             .set_item(new_name, properties)?;
         Ok(())
@@ -1709,13 +1726,17 @@ impl PyTarget {
         qargs: Qargs,
         properties: Option<InstructionProperties>,
     ) -> PyResult<()> {
-        self.inner
+        let mut target = self.try_write()?;
+        target
             .update_instruction_properties(&instruction, &qargs, properties.clone())
             .map_err(|err| PyKeyError::new_err(err.to_string()))?;
+        drop(target); // Release write lock
+
         self.get_py_gate_map_bound(py)?
             .get_item(&instruction)?
             .unwrap()
-            .set_item(&qargs, properties)
+            .set_item(&qargs, properties)?;
+        Ok(())
     }
 
     /// Get the qargs for a given operation name
@@ -1754,7 +1775,7 @@ impl PyTarget {
         py: Python<'py>,
         instruction: &str,
     ) -> PyResult<Bound<'py, PyAny>> {
-        match self.inner.operation_from_name(instruction) {
+        match self.try_read()?.operation_from_name(instruction) {
             Some(op) => op.into_bound_py_any(py),
             None => Err(PyKeyError::new_err(format!(
                 "Instruction {instruction} not in target"
@@ -1778,12 +1799,14 @@ impl PyTarget {
     ///     KeyError: If qargs is not in target
     #[pyo3(name = "operations_for_qargs", signature=(qargs, /))]
     fn operations_for_qargs(&self, py: Python, qargs: Qargs) -> PyResult<Vec<Py<PyAny>>> {
+        let target = self.try_read()?;
         // Move to rust native once Gates are in rust
-        Ok(self
-            .operation_names_for_qargs(qargs)?
+        Ok(target
+            .operation_names_for_qargs(&qargs)
+            .map_err(|e| PyKeyError::new_err(e.to_string()))?
             .into_iter()
             .map(|x| {
-                self.inner.gate_map[x]
+                target.gate_map[x]
                     .instruction
                     .into_pyobject(py)
                     .as_ref()
@@ -1807,9 +1830,10 @@ impl PyTarget {
     /// Raises:
     ///     KeyError: If ``qargs`` is not in target
     #[pyo3(name = "operation_names_for_qargs", signature=(qargs, /))]
-    fn operation_names_for_qargs(&self, qargs: Qargs) -> PyResult<HashSet<&str>> {
-        match self.inner.operation_names_for_qargs(&qargs) {
-            Ok(set) => Ok(set),
+    fn operation_names_for_qargs(&self, qargs: Qargs) -> PyResult<HashSet<String>> {
+        let target = self.try_read()?;
+        match target.operation_names_for_qargs(&qargs) {
+            Ok(set) => Ok(set.into_iter().map(|s| s.to_string()).collect()),
             Err(e) => Err(PyKeyError::new_err(e.to_string())),
         }
     }
@@ -1836,25 +1860,27 @@ impl PyTarget {
         &self,
         py: Python<'_>,
         strict_direction: bool,
-    ) -> PyResult<&Py<PyList>> {
+    ) -> PyResult<Py<PyList>> {
+        let target = self.try_read()?;
         if strict_direction {
             if let Some(list) = self.non_global_basis_strict.get() {
-                Ok(list)
+                Ok(list.clone_ref(py))
             } else {
-                let list = PyList::new(
-                    py,
-                    self.inner.get_non_global_operation_names(strict_direction),
-                )?;
-                Ok(self.non_global_basis_strict.get_or_init(|| list.unbind()))
+                let list =
+                    PyList::new(py, target.get_non_global_operation_names(strict_direction))?;
+                Ok(self
+                    .non_global_basis_strict
+                    .get_or_init(|| list.unbind())
+                    .clone_ref(py))
             }
         } else if let Some(list) = self.non_global_basis.get() {
-            Ok(list)
+            Ok(list.clone_ref(py))
         } else {
-            let list = PyList::new(
-                py,
-                self.inner.get_non_global_operation_names(strict_direction),
-            )?;
-            Ok(self.non_global_basis.get_or_init(|| list.unbind()))
+            let list = PyList::new(py, target.get_non_global_operation_names(strict_direction))?;
+            Ok(self
+                .non_global_basis
+                .get_or_init(|| list.unbind())
+                .clone_ref(py))
         }
     }
 
@@ -1930,15 +1956,16 @@ impl PyTarget {
         parameters: Option<Vec<Param>>,
         check_angle_bounds: bool,
     ) -> PyResult<bool> {
+        let target = self.try_read()?;
         let mut qargs = qargs;
-        let num_qubits = if let Some(num_qubits) = self.inner.num_qubits {
+        let num_qubits = if let Some(num_qubits) = target.num_qubits {
             num_qubits
         } else {
             qargs = Qargs::Global;
             0
         };
         if let Some(operation_class) = operation_class {
-            for (_, obj) in self.inner.gate_map.iter() {
+            for (_, obj) in target.gate_map.iter() {
                 match &obj.instruction {
                     TargetOperation::Variadic(variable) => {
                         if !operation_class.eq(variable)? {
@@ -1981,7 +2008,7 @@ impl PyTarget {
             }
             Ok(false)
         } else if let Some(operation_name) = operation_name {
-            Ok(self.inner.instruction_supported(
+            Ok(target.instruction_supported(
                 &operation_name,
                 &qargs,
                 parameters.as_deref().unwrap_or_default(),
@@ -2026,8 +2053,9 @@ impl PyTarget {
     /// Returns:
     ///     InstructionProperties: The instruction properties for the specified instruction tuple
     fn instruction_properties(&self, index: usize) -> PyResult<Option<InstructionProperties>> {
+        let target = self.try_read()?;
         let mut index_counter = 0;
-        for (_, props_map) in self.inner.gate_map.iter() {
+        for (_, props_map) in target.gate_map.iter() {
             let gate_map_oper = props_map.properties.values();
             for inst_props in gate_map_oper {
                 if index_counter == index {
@@ -2044,7 +2072,8 @@ impl PyTarget {
     // TODO: Add flag for custom tests
     /// Private method for development purposes only
     fn _raw_operation_from_name(&self, py: Python, name: &str) -> PyResult<Py<PyAny>> {
-        if let Some(gate) = self.inner.gate_map.get(name) {
+        let target = self.try_read()?;
+        if let Some(gate) = target.gate_map.get(name) {
             match &gate.instruction {
                 TargetOperation::Normal(normal_operation) => create_py_op(
                     py,
@@ -2063,19 +2092,23 @@ impl PyTarget {
 
     /// The dt attribute.
     #[getter(_dt)]
-    fn get_dt(&self) -> Option<f64> {
-        self.inner.dt
+    fn get_dt(&self) -> PyResult<Option<f64>> {
+        let target = self.try_read()?;
+        Ok(target.dt)
     }
 
     #[setter(_dt)]
-    fn set_dt(&mut self, dt: Option<f64>) {
-        self.inner.dt = dt
+    fn set_dt(&mut self, dt: Option<f64>) -> PyResult<()> {
+        let mut target = self.try_write()?;
+        target.dt = dt;
+        Ok(())
     }
 
     /// The set of qargs in the target.
     #[getter]
     fn qargs(&self, py: Python) -> PyResult<Py<PyAny>> {
-        if let Some(qargs) = self.inner.qargs() {
+        let target = self.try_read()?;
+        if let Some(qargs) = target.qargs() {
             let set = PySet::new(py, qargs)?;
             Ok(set.into_any().unbind())
         } else {
@@ -2092,8 +2125,9 @@ impl PyTarget {
     #[getter]
     #[pyo3(name = "instructions")]
     fn instructions(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
+        let target = self.try_read()?;
         let list = PyList::empty(py);
-        for (inst, qargs) in self.inner._instructions() {
+        for (inst, qargs) in target._instructions() {
             let out_inst = match inst {
                 TargetOperation::Normal(op) => {
                     create_py_op(py, op.op(), op.parameters().cloned(), op.label())?
@@ -2115,39 +2149,42 @@ impl PyTarget {
     #[getter]
     #[pyo3(name = "operations")]
     fn operations(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
-        Ok(PyList::new(py, self.inner.gate_map.values().map(|op| &op.instruction))?.unbind())
+        let target = self.try_read()?;
+        Ok(PyList::new(py, target.gate_map.values().map(|op| &op.instruction))?.unbind())
     }
 
     /// Returns a sorted list of physical qubits.
     #[getter]
     #[pyo3(name = "physical_qubits")]
     fn physical_qubits(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
-        Ok(PyList::new(py, self.inner.physical_qubits())?.unbind())
+        let target = self.try_read()?;
+        Ok(PyList::new(py, target.physical_qubits())?.unbind())
     }
 
     // Magic methods:
 
     fn __len__(&self) -> PyResult<usize> {
-        Ok(self.inner.len())
+        let target = self.try_read()?;
+        Ok(target.len())
     }
 
     fn __getstate__(&self, py: Python<'_>) -> PyResult<Py<PyDict>> {
+        let target = self.try_read()?;
         let result_list = PyDict::new(py);
-        result_list.set_item("description", self.inner.description.clone())?;
-        result_list.set_item("num_qubits", self.inner.num_qubits)?;
-        result_list.set_item("dt", self.inner.dt)?;
-        result_list.set_item("granularity", self.inner.granularity)?;
-        result_list.set_item("min_length", self.inner.min_length)?;
-        result_list.set_item("pulse_alignment", self.inner.pulse_alignment)?;
-        result_list.set_item("acquire_alignment", self.inner.acquire_alignment)?;
-        result_list.set_item("qubit_properties", self.inner.qubit_properties.clone())?;
+        result_list.set_item("description", target.description.clone())?;
+        result_list.set_item("num_qubits", target.num_qubits)?;
+        result_list.set_item("dt", target.dt)?;
+        result_list.set_item("granularity", target.granularity)?;
+        result_list.set_item("min_length", target.min_length)?;
+        result_list.set_item("pulse_alignment", target.pulse_alignment)?;
+        result_list.set_item("acquire_alignment", target.acquire_alignment)?;
+        result_list.set_item("qubit_properties", target.qubit_properties.clone())?;
         result_list.set_item(
             "concurrent_measurements",
-            self.inner.concurrent_measurements.clone(),
+            target.concurrent_measurements.clone(),
         )?;
         let bound_map = self.get_py_gate_map_bound(py)?;
-        let gate_map: Vec<(String, Bound<PyDict>)> = self
-            .inner
+        let gate_map: Vec<(String, Bound<PyDict>)> = target
             .gate_map
             .iter()
             .map(|entry| -> PyResult<_> {
@@ -2166,36 +2203,37 @@ impl PyTarget {
             })
             .collect::<PyResult<_>>()?;
         result_list.set_item("gate_map", gate_map.into_py_dict(py)?)?;
-        result_list.set_item("global_operations", self.inner.global_operations.clone())?;
-        result_list.set_item("qarg_gate_map", self.inner.qarg_gate_map.clone())?;
+        result_list.set_item("global_operations", target.global_operations.clone())?;
+        result_list.set_item("qarg_gate_map", target.qarg_gate_map.clone())?;
         Ok(result_list.unbind())
     }
 
     fn __setstate__(&mut self, state: Bound<PyDict>) -> PyResult<()> {
-        self.inner.description = state
+        let mut target = self.try_write()?;
+        target.description = state
             .get_item("description")?
             .unwrap()
             .extract::<Option<String>>()?;
-        self.inner.num_qubits = state
+        target.num_qubits = state
             .get_item("num_qubits")?
             .unwrap()
             .extract::<Option<u32>>()?;
-        self.inner.dt = state.get_item("dt")?.unwrap().extract::<Option<f64>>()?;
-        self.inner.granularity = state.get_item("granularity")?.unwrap().extract::<u32>()?;
-        self.inner.min_length = state.get_item("min_length")?.unwrap().extract::<u32>()?;
-        self.inner.pulse_alignment = state
+        target.dt = state.get_item("dt")?.unwrap().extract::<Option<f64>>()?;
+        target.granularity = state.get_item("granularity")?.unwrap().extract::<u32>()?;
+        target.min_length = state.get_item("min_length")?.unwrap().extract::<u32>()?;
+        target.pulse_alignment = state
             .get_item("pulse_alignment")?
             .unwrap()
             .extract::<u32>()?;
-        self.inner.acquire_alignment = state
+        target.acquire_alignment = state
             .get_item("acquire_alignment")?
             .unwrap()
             .extract::<u32>()?;
-        self.inner.qubit_properties = state
+        target.qubit_properties = state
             .get_item("qubit_properties")?
             .unwrap()
             .extract::<Option<Vec<QubitProperties>>>()?;
-        self.inner.concurrent_measurements = state
+        target.concurrent_measurements = state
             .get_item("concurrent_measurements")?
             .unwrap()
             .extract::<Option<Vec<Vec<PhysicalQubit>>>>()?;
@@ -2223,22 +2261,20 @@ impl PyTarget {
                 },
             );
         }
-        self.inner.gate_map = gate_map;
-        self.inner.qarg_gate_map = state
+        target.gate_map = gate_map;
+        target.qarg_gate_map = state
             .get_item("qarg_gate_map")?
             .unwrap()
             .extract::<HashMap<Qargs, HashSet<String>>>()?;
-        self.inner.global_operations = state
+        target.global_operations = state
             .get_item("global_operations")?
             .unwrap()
             .extract::<HashMap<u32, HashSet<String>>>()?;
         for (gate, bounds) in bounds_map {
-            self.inner
+            target
                 .add_owned_angle_bound(gate.as_str(), bounds)
                 .map_err(|err| TranspilerError::new_err(err.to_string()))?;
         }
-        // Allow gate map to re-initialize itself during call
-        self.gate_map.take();
         Ok(())
     }
 
@@ -2247,8 +2283,9 @@ impl PyTarget {
     /// Returns:
     ///     bool: This will return ``True`` if there are angle bounds set on any instructions in
     ///     the circuit
-    fn has_angle_bounds(&self) -> bool {
-        self.inner.has_angle_bounds()
+    fn has_angle_bounds(&self) -> PyResult<bool> {
+        let target = self.try_read()?;
+        Ok(target.has_angle_bounds())
     }
 
     /// Check if a specific gate gate has an angle bound set
@@ -2260,8 +2297,9 @@ impl PyTarget {
     ///     bool: This will return ``True`` if the gate is in the target and has angle bounds
     ///     defined. It will return ``False`` if the gate does not have angle bounds defined
     ///     or is not in the target.
-    fn gate_has_angle_bounds(&self, name: &str) -> bool {
-        self.inner.gate_has_angle_bounds(name)
+    fn gate_has_angle_bounds(&self, name: &str) -> PyResult<bool> {
+        let target = self.try_read()?;
+        Ok(target.gate_has_angle_bounds(name))
     }
 
     /// Check that parameters on a specific gate conform to the angle bounds
@@ -2280,7 +2318,8 @@ impl PyTarget {
     ///     TranspilerError: If ``name`` is not in the target or does not
     ///     have angle bounds defined.
     fn supported_angle_bound(&self, name: &str, angles: Vec<f64>) -> PyResult<bool> {
-        Ok(self.inner.supported_angle_bound(name, angles)?)
+        let target = self.try_read()?;
+        Ok(target.supported_angle_bound(name, angles)?)
     }
 
     fn __iter__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyIterator>> {

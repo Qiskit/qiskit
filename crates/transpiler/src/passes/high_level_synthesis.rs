@@ -423,15 +423,17 @@ fn all_instructions_supported(
     match &borrowed_data.target {
         Some(target) => {
             let target = target.borrow(py);
-            if target.num_qubits.is_some() {
+            let target_unlocked = target.try_read()?;
+            if target_unlocked.num_qubits.is_some() {
                 // If we have the target and HighLevelSynthesis runs pre-routing,
                 // we check whether every operation name in op_names is supported
                 // by the target.
                 if borrowed_data.use_physical_indices {
                     return Ok(false);
                 }
-                Ok(op_keys
-                    .all(|name| target.instruction_supported(name, &Qargs::Global, &[], false)))
+                Ok(op_keys.all(|name| {
+                    target_unlocked.instruction_supported(name, &Qargs::Global, &[], false)
+                }))
             } else {
                 // If we do not have the target, we check whether every operation
                 // in op_names is inside the basis gates.
@@ -448,24 +450,25 @@ fn instruction_supported(
     data: &Bound<HighLevelSynthesisData>,
     name: &str,
     qubits: &[Qubit],
-) -> bool {
+) -> PyResult<bool> {
     let borrowed_data = data.borrow();
     match &borrowed_data.target {
         Some(target) => {
             let target = target.borrow(py);
-            if target.num_qubits.is_some() {
+            let target_unlocked = target.try_read()?;
+            if target_unlocked.num_qubits.is_some() {
                 if borrowed_data.use_physical_indices {
                     let physical_qubits: Qargs =
                         qubits.iter().map(|q| PhysicalQubit(q.0)).collect();
-                    target.instruction_supported(name, &physical_qubits, &[], false)
+                    Ok(target_unlocked.instruction_supported(name, &physical_qubits, &[], false))
                 } else {
-                    target.instruction_supported(name, &Qargs::Global, &[], false)
+                    Ok(target_unlocked.instruction_supported(name, &Qargs::Global, &[], false))
                 }
             } else {
-                borrowed_data.device_insts.contains(name)
+                Ok(borrowed_data.device_insts.contains(name))
             }
         }
-        None => borrowed_data.device_insts.contains(name),
+        None => Ok(borrowed_data.device_insts.contains(name)),
     }
 }
 
@@ -475,39 +478,39 @@ fn definitely_skip_op(
     data: &Bound<HighLevelSynthesisData>,
     op: &PackedOperation,
     qubits: &[Qubit],
-) -> bool {
+) -> PyResult<bool> {
     let borrowed_data: PyRef<'_, HighLevelSynthesisData> = data.borrow();
 
     if qubits.len() < borrowed_data.min_qubits {
-        return true;
+        return Ok(true);
     }
 
     if op.directive() {
-        return true;
+        return Ok(true);
     }
 
     if op.try_control_flow().is_some() {
-        return false;
+        return Ok(false);
     }
 
     // If the operation is natively supported, we can skip it.
-    if instruction_supported(py, data, op.name(), qubits) {
-        return true;
+    if instruction_supported(py, data, op.name(), qubits)? {
+        return Ok(true);
     }
 
     // If there are available plugins for this operation, we should try them
     // before checking the equivalence library.
     if borrowed_data.hls_op_names.iter().any(|s| s == op.name()) {
-        return false;
+        return Ok(false);
     }
 
     if let Some(equiv_lib) = &borrowed_data.equivalence_library {
         if equiv_lib.borrow(py).has_entry(op) {
-            return true;
+            return Ok(true);
         }
     }
 
-    false
+    Ok(false)
 }
 
 /// Recursively synthesizes a circuit. This circuit is either the original circuit,
@@ -585,7 +588,7 @@ fn run_on_circuitdata(
         }
 
         // Check if synthesis for this operation can be skipped
-        if definitely_skip_op(py, data, &inst.op, &op_qubits) {
+        if definitely_skip_op(py, data, &inst.op, &op_qubits)? {
             if let Some(cf) = input_circuit.try_view_control_flow(inst) {
                 let blocks: Vec<_> = cf
                     .blocks()
@@ -996,7 +999,7 @@ fn py_synthesize_operation(
     let op: OperationFromPython<Py<PyAny>> = py_op.extract()?;
 
     // Check if the operation can be skipped.
-    if definitely_skip_op(py, data, &op.operation, &input_qubits) {
+    if definitely_skip_op(py, data, &op.operation, &input_qubits)? {
         return Ok(None);
     }
 
@@ -1060,7 +1063,7 @@ pub fn run_high_level_synthesis(
 
     for (_, inst) in dag.op_nodes(false) {
         let qubits = dag.get_qargs(inst.qubits);
-        if !definitely_skip_op(py, data, &inst.op, qubits) {
+        if !definitely_skip_op(py, data, &inst.op, qubits)? {
             fast_path = false;
             break;
         }

@@ -68,7 +68,7 @@ fn py_run_basis_translator(
         dag,
         equiv_lib,
         min_qubits,
-        target.map(|v| &**v),
+        target.map(|v| v.try_read()).transpose()?.as_deref(),
         target_basis_ref,
     )
     .map_err(|e| e.into())

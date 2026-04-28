@@ -255,7 +255,13 @@ pub fn py_remove_identity_equiv(
 
     // Explicitly release GIL because threads may call Python to get
     // the matrix for a PyGate
-    py.detach(|| run_remove_identity_equiv(dag, approx_degree, target.map(|v| &**v)))?;
+    py.detach(|| {
+        run_remove_identity_equiv(
+            dag,
+            approx_degree,
+            target.map(|v| v.try_read()).transpose()?.as_deref(),
+        )
+    })?;
 
     dag.add_global_phase(&old_phase)?;
     Ok(())

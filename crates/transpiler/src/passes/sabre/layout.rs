@@ -54,7 +54,7 @@ pub fn py_sabre_layout_and_routing(
 ) -> PyResult<(DAGCircuit, NLayout, NLayout)> {
     sabre_layout_and_routing(
         dag,
-        target,
+        &*target.try_read()?,
         heuristic,
         max_iterations,
         num_swap_trials,
