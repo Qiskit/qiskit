@@ -753,5 +753,5 @@ class TestLitinskiTransformation(QiskitTestCase):
         transform = LitinskiTransformation(fix_clifford=True, use_ppr=True)
         qc1_out = transform(qc1)
         qc2_out = transform(qc2)
-        
+
         self.assertEqual(qc1_out, qc2_out)
