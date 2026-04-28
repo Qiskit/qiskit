@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use crate::TranspilerError;
-use crate::target::Target;
+use crate::target::{PyTarget, Target};
 use hashbrown::HashSet;
 use pyo3::prelude::*;
 use qiskit_circuit::PhysicalQubit;
@@ -59,6 +59,20 @@ pub fn check_direction_coupling_map(
 ///     true iff all two-qubit gates comply with the target's coupling constraints
 #[pyfunction]
 #[pyo3(name = "check_gate_direction_target")]
+pub fn py_check_direction_target(dag: &DAGCircuit, target: &PyTarget) -> PyResult<bool> {
+    check_direction_target(dag, target)
+}
+
+/// Check if the two-qubit gates follow the right direction with respect to instructions supported in the given target.
+///
+/// # Arguments:
+///
+/// * `dag` - the [`DAGCircuit`] to analyze.
+/// * `target` the [`Target`] against which gate directionality compliance is checked.
+///
+/// # Returns:
+///
+/// `true` iff all two-qubit gates comply with the target's coupling constraints
 pub fn check_direction_target(dag: &DAGCircuit, target: &Target) -> PyResult<bool> {
     let target_check = |inst: &PackedInstruction, op_args: &[Qubit]| -> bool {
         let qargs = [
@@ -172,6 +186,10 @@ pub fn fix_direction_coupling_map(
 ///     the transformed DAGCircuit
 #[pyfunction]
 #[pyo3(name = "fix_gate_direction_target")]
+pub fn py_fix_direction_target(dag: &mut DAGCircuit, target: &PyTarget) -> PyResult<()> {
+    fix_direction_target(dag, target)
+}
+
 pub fn fix_direction_target(dag: &mut DAGCircuit, target: &Target) -> PyResult<()> {
     let target_check = |inst: &PackedInstruction, op_args: &[Qubit]| -> bool {
         let qargs: &[PhysicalQubit] = &[
@@ -491,8 +509,8 @@ fn rzx_replacement_dag(param: &[Param]) -> PyResult<DAGCircuit> {
 
 pub fn gate_direction_mod(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(check_direction_coupling_map))?;
-    m.add_wrapped(wrap_pyfunction!(check_direction_target))?;
+    m.add_wrapped(wrap_pyfunction!(py_check_direction_target))?;
     m.add_wrapped(wrap_pyfunction!(fix_direction_coupling_map))?;
-    m.add_wrapped(wrap_pyfunction!(fix_direction_target))?;
+    m.add_wrapped(wrap_pyfunction!(py_fix_direction_target))?;
     Ok(())
 }

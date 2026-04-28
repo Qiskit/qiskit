@@ -12,7 +12,7 @@
 
 use crate::TranspilerError;
 use crate::passes::schedule_analysis::{NodeDurations, PyNodeDurations};
-use crate::target::Target;
+use crate::target::{PyTarget, Target};
 use ::hashbrown::HashSet;
 use ahash::RandomState;
 use indexmap::IndexMap;
@@ -248,7 +248,7 @@ pub fn py_run_constrained_reschedule(
     clbit_write_latency: u32,
     acquire_align: u32,
     pulse_align: u32,
-    target: Option<&Target>,
+    target: Option<&PyTarget>,
 ) -> PyResult<PyNodeDurations> {
     let NodeDurations::Dt(durations) = &mut *node_start_time else {
         return Err(TranspilerError::new_err(
@@ -261,7 +261,7 @@ pub fn py_run_constrained_reschedule(
         clbit_write_latency,
         acquire_align,
         pulse_align,
-        target,
+        target.map(|v| &**v),
     )?;
     Ok(node_start_time)
 }
