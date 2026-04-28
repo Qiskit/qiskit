@@ -141,21 +141,16 @@ jobs:
   wheels-linux-s390x:
     name: "Wheels / Linux s390x"
     if: (inputs.wheels-linux-s390x == 'default' && inputs.default-action || inputs.wheels-linux-s390x) == 'build'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-s390x
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        name: Install Python
-        with:
-          python-version: ${{ inputs.python-version }}
       - uses: dtolnay/rust-toolchain@stable
-      - uses: docker/setup-qemu-action@v4
-        with:
-          platforms: all
-      - uses: pypa/cibuildwheel@v3.4.0
+      - name: Prepare cibuildwheel
+        run: pip3 install cibuildwheel==3.4.0
+      - name: Run cibuildwheel
+        run: python3 -m cibuildwheel
         env:
-          CIBW_ARCHS_LINUX: s390x
-          CIBW_TEST_SKIP: "cp*"
+          CIBW_BEFORE_TEST: "dnf builddep scipy"
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
@@ -164,21 +159,16 @@ jobs:
   wheels-linux-ppc64le:
     name: "Wheels / Linux ppc64le"
     if: (inputs.wheels-linux-ppc64le == 'default' && inputs.default-action || inputs.wheels-linux-ppc64le) == 'build'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-ppc64le
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        name: Install Python
-        with:
-          python-version: ${{ inputs.python-version }}
       - uses: dtolnay/rust-toolchain@stable
-      - uses: docker/setup-qemu-action@v4
-        with:
-          platforms: all
-      - uses: pypa/cibuildwheel@v3.4.0
+      - name: Prepare cibuildwheel
+        run: pip3 install cibuildwheel==3.4.0
+      - name: Run cibuildwheel
+        run: python3 -m cibuildwheel
         env:
-          CIBW_ARCHS_LINUX: ppc64le
-          CIBW_TEST_SKIP: "cp*"
+          CIBW_BEFORE_TEST: "dnf builddep scipy"
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
