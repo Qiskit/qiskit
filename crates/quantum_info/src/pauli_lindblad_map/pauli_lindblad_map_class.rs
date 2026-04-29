@@ -387,7 +387,7 @@ impl PauliLindbladMap {
     /// Sample sign and Pauli operator pairs from the map.
     /// Note that here the "sign" bool is interpreted as the exponent of (-1)^b.
     #[allow(clippy::type_complexity)]
-    pub fn parity_sample_generators(
+    pub fn parity_sample_with_history(
         &self,
         num_samples: u64,
         seed: Option<u64>,
@@ -428,15 +428,14 @@ impl PauliLindbladMap {
         };
         let mut random_signs = Vec::with_capacity(num_samples as usize);
         let mut random_paulis = QubitSparsePauliList::empty(self.num_qubits());
-        let mut sampled_generators = Vec::with_capacity(num_samples as usize);
-        let mut sampled_signs = Vec::with_capacity(num_samples as usize);
+        let mut pauli_history = Vec::with_capacity(num_samples as usize);
+        let mut signs_history = Vec::with_capacity(num_samples as usize);
 
         for _ in 0..num_samples {
             let mut random_sign = false;
             let mut random_pauli = QubitSparsePauli::identity(self.num_qubits());
-            let mut inner_sampled_generators =
-                vec![false; self.qubit_sparse_pauli_list.num_terms()];
-            let mut inner_sampled_signs = vec![false; self.qubit_sparse_pauli_list.num_terms()];
+            let mut inner_pauli_history = vec![false; self.qubit_sparse_pauli_list.num_terms()];
+            let mut inner_signs_history = vec![false; self.qubit_sparse_pauli_list.num_terms()];
 
             for (((idx, probability), generator), non_negative_rate) in probabilities
                 .iter()
@@ -450,8 +449,8 @@ impl PauliLindbladMap {
                     // if rate is negative, flip random_sign
                     random_sign = random_sign == *non_negative_rate;
                     // keep track of sampled generator
-                    inner_sampled_generators[idx] = true;
-                    inner_sampled_signs[idx] = *non_negative_rate;
+                    inner_pauli_history[idx] = true;
+                    inner_signs_history[idx] = *non_negative_rate;
                 }
             }
 
@@ -459,16 +458,11 @@ impl PauliLindbladMap {
             random_paulis
                 .add_qubit_sparse_pauli(random_pauli.view())
                 .unwrap();
-            sampled_generators.push(inner_sampled_generators);
-            sampled_signs.push(inner_sampled_signs);
+            pauli_history.push(inner_pauli_history);
+            signs_history.push(inner_signs_history);
         }
 
-        (
-            random_signs,
-            random_paulis,
-            sampled_generators,
-            sampled_signs,
-        )
+        (random_signs, random_paulis, pauli_history, signs_history)
     }
 
     /// Reduce the map to its canonical form.
@@ -1601,7 +1595,7 @@ impl PyPauliLindbladMap {
     ) -> PyResult<Bound<'py, PyTuple>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let (signs, paulis, _, _) =
-            py.detach(|| inner.parity_sample_generators(num_samples, seed, None, None));
+            py.detach(|| inner.parity_sample_with_history(num_samples, seed, None, None));
 
         let signs = PyArray1::from_vec(py, signs.iter().map(|b| !b).collect());
         let paulis = paulis.into_pyobject(py).unwrap();
@@ -1654,7 +1648,7 @@ impl PyPauliLindbladMap {
     ) -> PyResult<Bound<'py, PyTuple>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let (signs, paulis, _, _) =
-            py.detach(|| inner.parity_sample_generators(num_samples, seed, scale, local_scale));
+            py.detach(|| inner.parity_sample_with_history(num_samples, seed, scale, local_scale));
 
         let signs = PyArray1::from_vec(py, signs);
         let paulis = paulis.into_pyobject(py).unwrap();
@@ -1675,12 +1669,12 @@ impl PyPauliLindbladMap {
     ///     local_scale (list[float]): Local scale to apply on a term-by-term basis.
     ///
     /// Returns:
-    ///     signs, qubit_sparse_pauli_list, sampled_generators, sampled_signs: The boolean array of
+    ///     signs, qubit_sparse_pauli_list, pauli_history, signs_history: The boolean array of
     ///         signs, the list of qubit sparse paulis, the two dimensional boolean array
     ///         indicating which :meth:`generators` were sampled and the two dimensional boolean
     ///         array indicating their signs.
     #[pyo3(signature = (num_samples, seed=None, scale=None, local_scale=None))]
-    pub fn parity_sample_generators<'py>(
+    pub fn parity_sample_with_history<'py>(
         &self,
         py: Python<'py>,
         num_samples: u64,
@@ -1689,15 +1683,15 @@ impl PyPauliLindbladMap {
         local_scale: Option<Vec<f64>>,
     ) -> PyResult<Bound<'py, PyTuple>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let (signs, paulis, sampled_generators, sampled_signs) =
-            py.detach(|| inner.parity_sample_generators(num_samples, seed, scale, local_scale));
+        let (signs, paulis, pauli_history, signs_history) =
+            py.detach(|| inner.parity_sample_with_history(num_samples, seed, scale, local_scale));
 
         let signs = PyArray1::from_vec(py, signs);
         let paulis = paulis.into_pyobject(py).unwrap();
-        let sampled_generators = PyArray2::from_vec2(py, &sampled_generators).unwrap();
-        let sampled_signs = PyArray2::from_vec2(py, &sampled_signs).unwrap();
+        let pauli_history = PyArray2::from_vec2(py, &pauli_history).unwrap();
+        let signs_history = PyArray2::from_vec2(py, &signs_history).unwrap();
 
-        (signs, paulis, sampled_generators, sampled_signs).into_pyobject(py)
+        (signs, paulis, pauli_history, signs_history).into_pyobject(py)
     }
 
     /// For :class:`.PauliLindbladMap` instances with purely non-negative rates, sample Pauli
@@ -1745,7 +1739,7 @@ impl PyPauliLindbladMap {
         }
 
         let (_, paulis, _, _) =
-            py.detach(|| inner.parity_sample_generators(num_samples, seed, None, None));
+            py.detach(|| inner.parity_sample_with_history(num_samples, seed, None, None));
 
         paulis.into_pyobject(py)
     }

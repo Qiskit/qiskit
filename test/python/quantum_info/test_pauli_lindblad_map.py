@@ -458,7 +458,7 @@ class TestPauliLindbladMap(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "assignment destination is read-only"):
             pauli_lindblad_map.rates[0] = 1.0
 
-    def test_generators(self):
+    def test_with_history(self):
         """Test that generators() method returns the same result as
         get_qubit_sparse_pauli_list_copy()."""
         pauli_lindblad_map = PauliLindbladMap.from_list([("IIXIZ", 2), ("IIZIX", 3)])
@@ -1261,14 +1261,14 @@ class TestPauliLindbladMap(QiskitTestCase):
             "Z": (1 - probs[0]) * (1 - probs[1]),
         }
 
-        signs, qubit_sparse_pauli_list, sampled_generators, sampled_signs = (
-            plm_to_sample.parity_sample_generators(
+        signs, qubit_sparse_pauli_list, sampled_with_history, sampled_signs = (
+            plm_to_sample.parity_sample_with_history(
                 num_samples, seed, scale=scale, local_scale=local_scale
             )
         )
         counts = {"I": 0, "X": 0, "Y": 0, "Z": 0}
         for sign, q, _gens, _signs in zip(
-            signs, qubit_sparse_pauli_list, sampled_generators, sampled_signs
+            signs, qubit_sparse_pauli_list, sampled_with_history, sampled_signs
         ):
             for symbol in counts:
                 if q == QubitSparsePauli(symbol):
