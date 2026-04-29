@@ -1036,13 +1036,7 @@ impl CircuitData {
                 self.param_table.pop(param_uuid)?,
             ));
         }
-        self.assign_parameters_inner(
-            items,
-            None::<
-                fn(&mut PackedInstruction, usize, &Symbol, &Param) -> Result<(), CircuitDataError>,
-            >,
-            None::<fn(&HashMap<usize, Vec<(Symbol, Param)>>) -> Result<(), CircuitDataError>>,
-        )
+        self.assign_parameters_inner(items)
     }
 
     /// Assign a single parameter to a value.
@@ -1057,13 +1051,7 @@ impl CircuitData {
         let Ok(uses) = self.param_table.pop(ParameterUuid::from_symbol(&symbol)) else {
             return Ok(());
         };
-        self.assign_parameters_inner(
-            Some((symbol, value, uses)),
-            None::<
-                fn(&mut PackedInstruction, usize, &Symbol, &Param) -> Result<(), CircuitDataError>,
-            >,
-            None::<fn(&HashMap<usize, Vec<(Symbol, Param)>>) -> Result<(), CircuitDataError>>,
-        )
+        self.assign_parameters_inner(Some((symbol, value, uses)))
     }
 
     /// Returns an immutable view of the Interner used for Qargs
@@ -1197,17 +1185,10 @@ impl CircuitData {
     /// have to keep a mapping of [Block] to all instructions that use it and
     /// add/create an additional block if only some uses are replaced. This is
     /// not a use-case that we currently have.
-    fn assign_parameters_inner<I, T, F, G>(
-        &mut self,
-        iter: I,
-        bind_user_op: Option<F>,
-        bind_definitions: Option<G>,
-    ) -> Result<(), CircuitDataError>
+    fn assign_parameters_inner<I, T>(&mut self, iter: I) -> Result<(), CircuitDataError>
     where
         I: IntoIterator<Item = (Symbol, T, HashSet<ParameterUse>)>,
         T: AsRef<Param> + Clone,
-        F: Fn(&mut PackedInstruction, usize, &Symbol, &Param) -> Result<(), CircuitDataError>,
-        G: Fn(&HashMap<usize, Vec<(Symbol, Param)>>) -> Result<(), CircuitDataError>,
     {
         let inconsistent = || panic!("internal error: parameter table is in an inconsistent state");
         // Bind a single `Parameter` into a `ParameterExpression`.
@@ -1356,18 +1337,103 @@ impl CircuitData {
                             // gates. Technically `StandardInstruction::Delay` could, but in
                             // practice that's not a common path, and it's only supported for
                             // backwards compatibility from before Stretch was introduced.
-                            if let Some(ref bind_fn) = bind_user_op {
-                                bind_fn(
-                                    &mut self.data[instruction],
-                                    parameter,
-                                    &symbol,
-                                    value.as_ref(),
-                                )?;
-                                // Update parameter table after binding
-                                for uuid in uuids.iter() {
-                                    self.param_table.add_use(*uuid, usage)?;
+                            // it in rust without Python that's a mistake and this attach() call
+                            // will panic and point out the error of your ways when this comment is
+                            // read.
+                            Python::attach(|py| -> Result<_, CircuitDataError> {
+                                let validate_parameter_attr = intern!(py, "validate_parameter");
+                                let assign_parameters_attr = intern!(py, "assign_parameters");
+                                let params = self.unpack_blocks_to_circuit_parameters(
+                                    self.data[instruction].params.as_deref(),
+                                );
+                                let op = instruction::create_py_op(
+                                    py,
+                                    self.data[instruction].op.view(),
+                                    params,
+                                    self.data[instruction].label.as_deref().map(String::as_str),
+                                )?
+                                .into_bound(py);
+                                let previous = &mut self.data[instruction];
+                                // All "user" operations (e.g. PyOperation) use Parameters::Param.
+                                let previous_param = &previous.params_view()[parameter];
+                                let new_param = match previous_param {
+                                    Param::Float(_) => inconsistent(),
+                                    Param::ParameterExpression(expr) => {
+                                        let new_param =
+                                            bind_expr(expr, &symbol, value.as_ref(), false)?;
+                                        // Historically, `assign_parameters` called `validate_parameter`
+                                        // only when a `ParameterExpression` became fully bound.  Some
+                                        // "generalised" (or user) gates fail without this, though
+                                        // arguably, that's them indicating they shouldn't be allowed to
+                                        // be parametric.
+                                        //
+                                        // Our `bind_expr` coercion means that a non-parametric
+                                        // `ParameterExpression` after binding would have been coerced
+                                        // to a numeric quantity already, so the match here is
+                                        // definitely parameterized.
+                                        match &new_param {
+                                            Param::ParameterExpression(expr) => {
+                                                match expr.try_to_value(true) {
+                                                    Ok(_) => {
+                                                        // fully bound, validate parameters
+                                                        Param::extract_no_coerce(
+                                                            op.call_method1(
+                                                                validate_parameter_attr,
+                                                                (new_param,),
+                                                            )?
+                                                            .as_borrowed(),
+                                                        )?
+                                                    }
+                                                    Err(_) => new_param, // not bound yet, cannot validate
+                                                }
+                                            }
+                                            new_param => Param::extract_no_coerce(
+                                                op.call_method1(
+                                                    validate_parameter_attr,
+                                                    (new_param,),
+                                                )?
+                                                .as_borrowed(),
+                                            )?,
+                                        }
+                                    }
+                                    Param::Obj(obj) => {
+                                        let obj = obj.bind_borrowed(py);
+                                        if !obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
+                                            inconsistent()
+                                        }
+                                        Param::extract_no_coerce(
+                                            obj.call_method(
+                                                assign_parameters_attr,
+                                                ([(symbol.clone(), value.as_ref().clone_ref(py))]
+                                                    .into_py_dict(py)?,),
+                                                Some(
+                                                    &[("inplace", false), ("flat_input", true)]
+                                                        .into_py_dict(py)?,
+                                                ),
+                                            )?
+                                            .as_borrowed(),
+                                        )?
+                                    }
+                                };
+                                op.getattr(intern!(py, "params"))?
+                                    .set_item(parameter, new_param)?;
+                                let new_op = op.extract::<OperationFromPython<CircuitData>>()?;
+                                previous.op = new_op.operation;
+                                previous.params = new_op.params.map(|params| {
+                                    Box::new(
+                                        params.map_blocks(|_| panic!("unexpected control flow")),
+                                    )
+                                });
+                                previous.label = new_op.label;
+                                #[cfg(feature = "cache_pygates")]
+                                {
+                                    previous.py_op = op.unbind().into();
                                 }
-                            }
+                                for uuid in uuids.iter() {
+                                    self.param_table.add_use(*uuid, usage)?
+                                }
+                                Ok(())
+                            })?;
                         }
                     }
                 }
@@ -1376,9 +1442,60 @@ impl CircuitData {
 
         // handle custom gates, this can only happen in Py-space
         if !user_operations.is_empty() {
-            if let Some(ref bind_defs) = bind_definitions {
-                bind_defs(&user_operations)?;
-            }
+            Python::attach(|py| -> PyResult<()> {
+                let _definition_attr = intern!(py, "_definition");
+                let assign_parameters_attr = intern!(py, "assign_parameters");
+
+                let assign_kwargs = [("inplace", true), ("flat_input", true), ("strict", false)]
+                    .into_py_dict(py)
+                    .unwrap();
+                for (instruction, bindings) in user_operations {
+                    // We only put non-standard gates in `user_operations`, so we're not risking creating a
+                    // previously non-existent Python object.
+                    let instruction = &self.data[instruction];
+                    let definition_cache =
+                        if matches!(instruction.op.view(), OperationRef::Operation(_)) {
+                            // `Operation` instances don't have a `definition` as part of their interfaces, but
+                            // they might be an `AnnotatedOperation`, which is one of our special built-ins.
+                            // This should be handled more completely in the user-customisation interface by a
+                            // delegating method, but that's not the data model we currently have.
+                            let params = self
+                                .unpack_blocks_to_circuit_parameters(instruction.params.as_deref());
+                            let py_op = instruction::create_py_op(
+                                py,
+                                instruction.op.view(),
+                                params,
+                                instruction.label.as_deref().map(String::as_str),
+                            )?
+                            .into_bound(py);
+                            if !py_op.is_instance(ANNOTATED_OPERATION.get_bound(py))? {
+                                continue;
+                            }
+                            py_op
+                                .getattr(intern!(py, "base_op"))?
+                                .getattr(_definition_attr)?
+                        } else {
+                            let params = self
+                                .unpack_blocks_to_circuit_parameters(instruction.params.as_deref());
+                            instruction::create_py_op(
+                                py,
+                                instruction.op.view(),
+                                params,
+                                instruction.label.as_deref().map(String::as_str),
+                            )?
+                            .into_bound(py)
+                            .getattr(_definition_attr)?
+                        };
+                    if !definition_cache.is_none() {
+                        definition_cache.call_method(
+                            assign_parameters_attr,
+                            (bindings.into_py_dict(py)?.into_any().unbind(),),
+                            Some(&assign_kwargs),
+                        )?;
+                    }
+                }
+                Ok(())
+            })?;
         }
         Ok(())
     }
@@ -1619,10 +1736,6 @@ impl CircuitData {
                 .map(|value| Param::Float(*value))
                 .zip(old_table.drain_ordered())
                 .map(|(value, (obj, uses))| (obj, value, uses)),
-            None::<
-                fn(&mut PackedInstruction, usize, &Symbol, &Param) -> Result<(), CircuitDataError>,
-            >,
-            None::<fn(&HashMap<usize, Vec<(Symbol, Param)>>) -> Result<(), CircuitDataError>>,
         )
     }
 
@@ -1639,10 +1752,6 @@ impl CircuitData {
                 .iter()
                 .zip(old_table.drain_ordered())
                 .map(|(value, (symbol, uses))| (symbol, value.clone(), uses)),
-            None::<
-                fn(&mut PackedInstruction, usize, &Symbol, &Param) -> Result<(), CircuitDataError>,
-            >,
-            None::<fn(&HashMap<usize, Vec<(Symbol, Param)>>) -> Result<(), CircuitDataError>>,
         )
     }
 
@@ -2763,32 +2872,7 @@ impl PyCircuitData {
                 items.push((symbol, value.0, uses));
             }
         }
-        let py_circuit_ptr = self as *const PyCircuitData;
-        Ok(self.inner.assign_parameters_inner(
-            items,
-            Some(
-                |instruction: &mut PackedInstruction,
-                 parameter: usize,
-                 symbol: &Symbol,
-                 value: &Param| {
-                    // SAFETY: We're only using the pointer for the duration of this call,
-                    // and assign_parameters_inner doesn't modify PyCircuitData itself
-                    let py_circuit = unsafe { &*py_circuit_ptr };
-                    PyCircuitData::bind_user_operation(
-                        py_circuit,
-                        instruction,
-                        parameter,
-                        symbol,
-                        value,
-                    )
-                },
-            ),
-            Some(|user_operations: &HashMap<usize, Vec<(Symbol, Param)>>| {
-                // SAFETY: Same as above
-                let py_circuit = unsafe { &*py_circuit_ptr };
-                PyCircuitData::bind_gate_definitions(py_circuit, user_operations)
-            }),
-        )?)
+        Ok(self.inner.assign_parameters_inner(items)?)
     }
 
     pub fn clear(&mut self) {
@@ -3184,165 +3268,6 @@ impl PyCircuitData {
 }
 
 impl PyCircuitData {
-    /// Helper function to bind user operations with Python-specific logic.
-    /// This is called from assign_parameters_inner when a user operation needs parameter binding.
-    fn bind_user_operation(
-        py_circuit: &PyCircuitData,
-        instruction: &mut PackedInstruction,
-        parameter: usize,
-        symbol: &Symbol,
-        value: &Param,
-    ) -> Result<(), CircuitDataError> {
-        Python::attach(|py| -> Result<_, CircuitDataError> {
-            let validate_parameter_attr = intern!(py, "validate_parameter");
-            let assign_parameters_attr = intern!(py, "assign_parameters");
-
-            let op = py_circuit.unpack_py_op(py, instruction)?.into_bound(py);
-            // All "user" operations (e.g. PyOperation) use Parameters::Param.
-            let previous_param = &instruction.params_view()[parameter];
-
-            // Helper to bind expression (copied from assign_parameters_inner)
-            let bind_expr =
-                |expr: &ParameterExpression, coerce: bool| -> Result<Param, CircuitDataError> {
-                    let new_expr = match value {
-                        Param::Float(f) => {
-                            let map: HashMap<&Symbol, Value> =
-                                HashMap::from([(symbol, Value::Real(*f))]);
-                            expr.bind(&map, false)?
-                        }
-                        Param::ParameterExpression(e) => {
-                            let map: HashMap<Symbol, ParameterExpression> =
-                                HashMap::from([(symbol.clone(), e.as_ref().clone())]);
-                            expr.subs(&map, false)?
-                        }
-                        Param::Obj(ob) => {
-                            if let Ok(int) = ob.extract::<i64>(py) {
-                                let map: HashMap<&Symbol, Value> =
-                                    HashMap::from([(symbol, Value::Int(int))]);
-                                expr.bind(&map, false)?
-                            } else if let Ok(c) = ob.extract::<Complex64>(py) {
-                                let map: HashMap<&Symbol, Value> =
-                                    HashMap::from([(symbol, Value::Complex(c))]);
-                                expr.bind(&map, false)?
-                            } else {
-                                return Err(PyTypeError::new_err(format!(
-                                    "Cannot assign object ({ob}) object to parameter."
-                                ))
-                                .into());
-                            }
-                        }
-                    };
-                    Ok(Param::from_expr(new_expr, coerce)?)
-                };
-
-            let new_param = match previous_param {
-                Param::Float(_) => {
-                    panic!("internal error: parameter table contains non-parameters")
-                }
-                Param::ParameterExpression(expr) => {
-                    let new_param = bind_expr(expr, false)?;
-                    // Historically, `assign_parameters` called `validate_parameter`
-                    // only when a `ParameterExpression` became fully bound.
-                    match &new_param {
-                        Param::ParameterExpression(expr) => {
-                            match expr.try_to_value(true) {
-                                Ok(_) => {
-                                    // fully bound, validate parameters
-                                    Param::extract_no_coerce(
-                                        op.call_method1(validate_parameter_attr, (new_param,))?
-                                            .as_borrowed(),
-                                    )?
-                                }
-                                Err(_) => new_param, // not bound yet, cannot validate
-                            }
-                        }
-                        new_param => Param::extract_no_coerce(
-                            op.call_method1(validate_parameter_attr, (new_param,))?
-                                .as_borrowed(),
-                        )?,
-                    }
-                }
-                Param::Obj(obj) => {
-                    let obj = obj.bind_borrowed(py);
-                    if !obj.is_instance(QUANTUM_CIRCUIT.get_bound(py))? {
-                        panic!("internal error: parameter table is in an inconsistent state")
-                    }
-                    Param::extract_no_coerce(
-                        obj.call_method(
-                            assign_parameters_attr,
-                            ([(symbol.clone(), value.clone_ref(py))].into_py_dict(py)?,),
-                            Some(&[("inplace", false), ("flat_input", true)].into_py_dict(py)?),
-                        )?
-                        .as_borrowed(),
-                    )?
-                }
-            };
-            op.getattr(intern!(py, "params"))?
-                .set_item(parameter, new_param)?;
-            let new_op = op.extract::<OperationFromPython<CircuitData>>()?;
-            instruction.op = new_op.operation;
-            instruction.params = new_op
-                .params
-                .map(|params| Box::new(params.map_blocks(|_| panic!("unexpected control flow"))));
-            instruction.label = new_op.label;
-            #[cfg(feature = "cache_pygates")]
-            {
-                instruction.py_op = op.unbind().into();
-            }
-            Ok(())
-        })
-    }
-
-    /// Helper function to bind parameters in custom gate definitions.
-    /// This is called from assign_parameters_inner to handle user operations' definitions.
-    fn bind_gate_definitions(
-        py_circuit: &PyCircuitData,
-        user_operations: &HashMap<usize, Vec<(Symbol, Param)>>,
-    ) -> Result<(), CircuitDataError> {
-        Python::attach(|py| -> PyResult<()> {
-            let _definition_attr = intern!(py, "_definition");
-            let assign_parameters_attr = intern!(py, "assign_parameters");
-
-            let assign_kwargs = [("inplace", true), ("flat_input", true), ("strict", false)]
-                .into_py_dict(py)
-                .unwrap();
-            for (instruction, bindings) in user_operations {
-                // We only put non-standard gates in `user_operations`, so we're not risking creating a
-                // previously non-existent Python object.
-                let instruction = &py_circuit.inner.data[*instruction];
-                let definition_cache =
-                    if matches!(instruction.op.view(), OperationRef::Operation(_)) {
-                        // `Operation` instances don't have a `definition` as part of their interfaces, but
-                        // they might be an `AnnotatedOperation`, which is one of our special built-ins.
-                        // This should be handled more completely in the user-customisation interface by a
-                        // delegating method, but that's not the data model we currently have.
-                        let py_op = py_circuit.unpack_py_op(py, instruction)?;
-                        let py_op = py_op.bind(py);
-                        if !py_op.is_instance(ANNOTATED_OPERATION.get_bound(py))? {
-                            continue;
-                        }
-                        py_op
-                            .getattr(intern!(py, "base_op"))?
-                            .getattr(_definition_attr)?
-                    } else {
-                        py_circuit
-                            .unpack_py_op(py, instruction)?
-                            .bind(py)
-                            .getattr(_definition_attr)?
-                    };
-                if !definition_cache.is_none() {
-                    definition_cache.call_method(
-                        assign_parameters_attr,
-                        (bindings.clone().into_py_dict(py)?.into_any().unbind(),),
-                        Some(&assign_kwargs),
-                    )?;
-                }
-            }
-            Ok(())
-        })?;
-        Ok(())
-    }
-
     pub fn pack(&mut self, py: Python, inst: &CircuitInstruction) -> PyResult<PackedInstruction> {
         let qubits = self.inner.qargs_interner.insert_owned(
             self.qubits
