@@ -40,12 +40,10 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_consolidate_blocks(
     force_consolidate: bool,
 ) {
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
-    let target = unsafe {
-        if target.is_null() {
-            None
-        } else {
-            Some(const_ptr_as_ref(target))
-        }
+    let target = if target.is_null() {
+        None
+    } else {
+        Some(unsafe { const_ptr_as_ref(target) })
     };
     let approximation_degree = if approximation_degree.is_nan() {
         1.0
