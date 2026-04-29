@@ -502,6 +502,34 @@ class TestLitinskiTransformation(QiskitTestCase):
         qct = LitinskiTransformation(fix_clifford=False, use_ppr=True)(qc)
         qct.global_phase = 0
 
+        # The original circuit (written only using Clifford gates, PPR and PPM).
+        PPRZ = PauliProductRotationGate(Pauli("Z"), np.pi / 4)
+        PPMZ = PauliProductMeasurement(Pauli("Z"))
+        qc1 = QuantumCircuit(4, 4)
+        qc1.append(PPRZ, [0])
+        qc1.cx(2, 1)
+        qc1.sxdg(3)
+        qc1.cx(1, 0)
+        qc1.sx(2)
+        qc1.append(PPRZ, [3])
+        qc1.cx(3, 0)
+        qc1.append(PPRZ, [0])
+        qc1.s(1)
+        qc1.append(PPRZ, [2])
+        qc1.s(3)
+        qc1.sxdg(0)
+        qc1.sx(1)
+        qc1.sx(2)
+        qc1.sx(3)
+        qc1.append(PPMZ, [0], [0])
+        qc1.append(PPMZ, [1], [1])
+        qc1.append(PPMZ, [2], [2])
+        qc1.append(PPMZ, [3], [3])
+
+        # Apply the Litinski transform with fix_cliffords=False (ignoring the Clifford gates
+        # at the end of the transformed circuit).
+        qct1 = LitinskiTransformation(fix_clifford=False, use_ppr=True)(qc1)
+
         # The transformed circuit (as shown at the bottom-right of the figure).
         expected = QuantumCircuit(4, 4)
         expected.append(PauliProductRotationGate(Pauli("Z"), np.pi / 4), [0])
@@ -514,6 +542,7 @@ class TestLitinskiTransformation(QiskitTestCase):
         expected.append(PauliProductMeasurement(Pauli("XX")), [0, 3], [3])
 
         self.assertEqual(qct, expected)
+        self.assertEqual(qct1, expected)
 
     @data(True, False)
     def test_barrier(self, fix_clifford):
@@ -700,58 +729,3 @@ class TestLitinskiTransformation(QiskitTestCase):
             circuit_target.compose(cliff, range(num_qubits), inplace=True)
 
         self.assertEqual(circuit_out, circuit_target)
-
-    def test_game_of_surface_code_example(self):
-        """Test the circuit from Litinski's paper, "Game of Surface Codes", Figure 4"""
-
-        # Original circuit: only standard gates and Z-measurements
-        qc1 = QuantumCircuit(4, 4)
-        qc1.t(0)
-        qc1.cx(1, 2)
-        qc1.sxdg(3)
-        qc1.cx(0, 1)
-        qc1.sx(2)
-        qc1.t(3)
-        qc1.cx(0, 3)
-        qc1.t(0)
-        qc1.s(1)
-        qc1.t(2)
-        qc1.s(3)
-        qc1.sxdg(0)
-        qc1.sx(1)
-        qc1.sx(2)
-        qc1.sx(3)
-        qc1.measure(0, 0)
-        qc1.measure(1, 1)
-        qc1.measure(2, 2)
-        qc1.measure(3, 3)
-
-        # Same circuit: with PPR, PPM and CX gates
-        PZ = Pauli("Z")
-        qc2 = QuantumCircuit(4, 4)
-        qc2.append(PauliProductRotationGate(PZ, np.pi / 4), [0])
-        qc2.cx(1, 2)
-        qc2.sxdg(3)
-        qc2.cx(0, 1)
-        qc2.sx(2)
-        qc2.append(PauliProductRotationGate(PZ, np.pi / 4), [3])
-        qc2.cx(0, 3)
-        qc2.append(PauliProductRotationGate(PZ, np.pi / 4), [0])
-        qc2.s(1)
-        qc2.append(PauliProductRotationGate(PZ, np.pi / 4), [2])
-        qc2.s(3)
-        qc2.sxdg(0)
-        qc2.sx(1)
-        qc2.sx(2)
-        qc2.sx(3)
-        qc2.append(PauliProductMeasurement(PZ), [0], [0])
-        qc2.append(PauliProductMeasurement(PZ), [1], [1])
-        qc2.append(PauliProductMeasurement(PZ), [2], [2])
-        qc2.append(PauliProductMeasurement(PZ), [3], [3])
-        qc2.global_phase += np.pi / 2
-
-        transform = LitinskiTransformation(fix_clifford=True, use_ppr=True)
-        qc1_out = transform(qc1)
-        qc2_out = transform(qc2)
-
-        self.assertEqual(qc1_out, qc2_out)
