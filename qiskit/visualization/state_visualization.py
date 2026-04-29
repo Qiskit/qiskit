@@ -195,7 +195,7 @@ def plot_bloch_vector(
     cartesian and spherical systems.
 
     Args:
-        bloch (tuple[float]): tuple of three elements where (<x>, <y>, <z>) (Cartesian)
+        bloch (tuple[float, float, float]): tuple of three elements where (<x>, <y>, <z>) (Cartesian)
             or (<r>, <theta>, <phi>) (spherical in radians)
             <theta> is inclination angle from +z direction
             <phi> is azimuth from +x direction
