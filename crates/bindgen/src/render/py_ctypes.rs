@@ -211,10 +211,6 @@ pub struct Type {
 impl Type {
     /// Write this type into an existing string.
     pub fn render(&self, out: &mut String) {
-        if self.num_pointers == 0 {
-            out.push_str(self.base.name());
-            return;
-        }
         for _ in 0..self.num_pointers {
             out.push_str("ctypes.POINTER(");
         }
