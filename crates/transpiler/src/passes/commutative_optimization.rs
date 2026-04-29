@@ -21,12 +21,14 @@ use qiskit_circuit::instruction::Parameters;
 use smallvec::smallvec;
 
 use crate::commutation_checker::{CommutationChecker, try_matrix_with_definition};
-use crate::passes::remove_identity_equiv::{average_gate_fidelity_below_tol, is_identity_equiv};
+use crate::passes::remove_identity_equiv::{
+    MINIMUM_TOL, average_gate_fidelity_below_tol, is_identity_equiv,
+};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, PauliBased, PauliProductRotation, StandardGate, multiply_param,
-    radd_param,
+    Operation, OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation,
+    StandardGate, multiply_param, radd_param,
 };
 use qiskit_circuit::{BlocksMode, Clbit, NoBlocks, Qubit, imports};
 
@@ -104,7 +106,8 @@ static MERGEABLE_ROTATION_GATES: [StandardGate; 12] = [
 /// Computes the canonical representative of a packed instruction, and in particular:
 /// * replaces all types of Z-rotations by RZ-gates,
 /// * replaces all types of X-rotations by RX-gates,
-/// * sorts the qubits for symmetric gates.
+/// * sorts qubits for symmetric gates,
+/// * sorts qubits for [PauliProductRotation] and [PauliProductMeasurement].
 ///
 /// # Arguments:
 ///
@@ -196,6 +199,8 @@ fn canonicalize(
         }
     }
 
+    // Sort qubits for PauliProductRotations: this allows to merge scrambled pauli rotations
+    // and allows a faster commutativity check with other Pauli-based gates.
     if let OperationRef::PauliProductRotation(ppr) = inst.op.view() {
         let qargs = dag.get_qargs(inst.qubits);
         let mut paired = qargs
@@ -229,7 +234,96 @@ fn canonicalize(
         return Some((canonical_instruction, Param::Float(0.)));
     }
 
+    // Sort qubits for PauliProductMeasurements: this allows a faster commutativity check with
+    // other Pauli-based gates.
+    if let OperationRef::PauliProductMeasurement(ppm) = inst.op.view() {
+        let qargs = dag.get_qargs(inst.qubits);
+        let mut paired = qargs
+            .iter()
+            .zip(ppm.z.iter())
+            .zip(ppm.x.iter())
+            .map(|((q, z), x)| (q, z, x))
+            .collect::<Vec<_>>();
+        paired.sort_by_key(|(q, _, _)| **q);
+        let (sorted_qargs, sorted_z, sorted_x) =
+            paired
+                .into_iter()
+                .multiunzip::<(Vec<Qubit>, Vec<bool>, Vec<bool>)>();
+        let sorted_ppm = PauliProductMeasurement {
+            z: sorted_z,
+            x: sorted_x,
+            neg: ppm.neg,
+        };
+
+        let sorted_qubits = dag.add_qargs(&sorted_qargs);
+
+        let canonical_instruction = PackedInstruction {
+            op: PauliBased::PauliProductMeasurement(sorted_ppm).into(),
+            qubits: sorted_qubits,
+            clbits: inst.clbits,
+            params: inst.params.clone(),
+            label: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: std::sync::OnceLock::new(),
+        };
+        return Some((canonical_instruction, Param::Float(0.)));
+    }
+
     None
+}
+
+/// Checks commutation between two pauli-based gates, assuming
+/// * the qubits are sorted by index
+/// * the first instruction is not a PPM
+fn try_commute_pauli_based_with_sorted_qargs(
+    op1: &OperationRef,
+    op2: &OperationRef,
+    qargs1: &[Qubit],
+    qargs2: &[Qubit],
+) -> Option<bool> {
+    // To check whether two Pauli-based gates commute, we extract their Pauli generators and
+    // test them for commutation. While we could also use the commutation checker, we can perform
+    // a more efficient check here because the qubits are already sorted by index.
+    //
+    // Two important notes:
+    // * We do not need to handle the case where both instructions are PPMs writing to the
+    //   same clbit. This is because we do not attempt to merge a PPM with other gates, so
+    //   the first instruction is never a PPM.
+    // * All PPRs equivalent to the identity up to a global phase have already been removed.
+    //   As a result, commutation of Pauli generators is both a necessary and sufficient condition.
+    let (z1, x1, z2, x2) = match (op1, op2) {
+        (OperationRef::PauliProductMeasurement(_), _) => {
+            unreachable!(
+                "The commutative optimization pass does not merge Pauli product measurement instructions. \
+                Thus, the first instruction cannot be a PauliProductMeasurement."
+            );
+        }
+        (OperationRef::PauliProductRotation(pp1), OperationRef::PauliProductRotation(pp2)) => {
+            (&pp1.z, &pp1.x, &pp2.z, &pp2.x)
+        }
+        (OperationRef::PauliProductRotation(pp1), OperationRef::PauliProductMeasurement(pp2)) => {
+            (&pp1.z, &pp1.x, &pp2.z, &pp2.x)
+        }
+        _ => {
+            return None;
+        }
+    };
+
+    let mut parity = false;
+    let (n1, n2) = (qargs1.len(), qargs2.len());
+    let (mut i1, mut i2) = (0, 0);
+    while i1 < n1 && i2 < n2 {
+        match qargs1[i1].cmp(&qargs2[i2]) {
+            std::cmp::Ordering::Less => i1 += 1,
+            std::cmp::Ordering::Greater => i2 += 1,
+            std::cmp::Ordering::Equal => {
+                parity ^= (x1[i1] && z2[i2]) ^ (z1[i1] && x2[i2]);
+                i1 += 1;
+                i2 += 1;
+            }
+        }
+    }
+    Some(!parity)
 }
 
 /// Return `true` if two instructions commute (up to the specified tolerance).
@@ -255,6 +349,13 @@ fn commute(
 
     let op1 = inst1.op.view();
     let op2 = inst2.op.view();
+
+    // For pauli-based gates, we use a more efficient implementation instead of calling
+    // the generic commutation checker, using the fact we have already sorted the qubits by index
+    // during canonicalization.
+    if let Some(val) = try_commute_pauli_based_with_sorted_qargs(&op1, &op2, qargs1, qargs2) {
+        return Ok(val);
+    }
 
     Ok(commutation_checker.commute(
         &op1,
@@ -470,7 +571,8 @@ pub fn run_commutative_optimization(
     approximation_degree: f64,
     matrix_max_num_qubits: u32,
 ) -> PyResult<Option<DAGCircuit>> {
-    let tol = 1e-12_f64.max(1. - approximation_degree);
+    let tol = MINIMUM_TOL.max(1. - approximation_degree);
+    let error_cutoff_fn = |_inst: &PackedInstruction| -> f64 { tol };
 
     // Create output DAG.
     // We will use it to intern qubits of canonicalized instructions.
@@ -490,8 +592,15 @@ pub fn run_commutative_optimization(
         let node_index1 = node_indices[idx1];
         let instr1 = dag[node_index1].unwrap_operation();
 
-        // For now, assume that control-flow operations do not commute with anything.
+        // Right now the control-flow operations cannot be merged with anything.
         if instr1.op.try_control_flow().is_some() {
+            continue;
+        }
+
+        if let Some(phase_update) = is_identity_equiv(instr1, false, Some(0), error_cutoff_fn)? {
+            node_actions[idx1] = NodeAction::Drop;
+            new_global_phase = radd_param(new_global_phase, Param::Float(phase_update));
+            modified = true;
             continue;
         }
 
@@ -507,6 +616,13 @@ pub fn run_commutative_optimization(
                 unreachable!("The current instruction should not be deleted.")
             }
         };
+
+        // Right now we do not merge pauli product measurement instructions with other instructions.
+        // However, we did previously canonicalize them so that we can efficiently check commutation relations
+        // between them and pauli product rotations.
+        if matches!(instr1.op.view(), OperationRef::PauliProductMeasurement(_)) {
+            continue;
+        }
 
         let qargs1: &[Qubit] = new_dag.get_qargs(instr1.qubits);
         let cargs1: &[Clbit] = new_dag.get_cargs(instr1.clbits);

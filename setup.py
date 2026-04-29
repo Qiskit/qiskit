@@ -135,6 +135,9 @@ if os.getenv("QISKIT_NO_CACHE_GATES") == "1":
 else:
     features = ["cache_pygates"]
 
+if os.getenv("QISKIT_BUILD_WITH_MIMALLOC") == "1":
+    features.append("mimalloc")
+
 
 setup(
     rust_extensions=[

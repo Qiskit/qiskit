@@ -34,7 +34,7 @@ use qiskit_util::getenv_use_multiple_threads;
 // if the performance of this pass changes over time.
 const PARALLEL_THRESHOLD: usize = 50_000;
 
-const MINIMUM_TOL: f64 = 1e-12;
+pub const MINIMUM_TOL: f64 = 1e-12;
 
 /// Fidelity-based computation to check whether an operation `G` is equivalent
 /// to identity up to a global phase.
