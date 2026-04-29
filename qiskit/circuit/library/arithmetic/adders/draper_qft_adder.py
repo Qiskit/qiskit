@@ -28,8 +28,8 @@ class DraperQFTAdder(Adder):
     :math:`2^n` (with ``kind="fixed"``) or ordinary addition by adding a carry qubit (with
     ``kind="half"``).
 
-    As an example, a non-fixed_point QFT adder circuit that performs addition on two 2-qubit sized
-    registers is as follows:
+    As an example, a QFT adder circuit that performs an ordinary addition on two 2-qubit
+    sized registers is as follows:
 
     .. code-block:: text
 
@@ -46,8 +46,11 @@ class DraperQFTAdder(Adder):
 
     .. note::
 
-        This realization skips the swap networks in the QFT and inverse QFT
-        blocks, since they cancel each other.
+        The QFT and inverse-QFT blocks in this implementation omit their swap networks,
+        which reverses the qubit order for a more efficient implementation. This affects
+        which qubits the controlled-phase gates act on. This drawing represents how the
+        adder is implemented in Qiskit; it should not be used as instructions for building
+        the circuit manually.
 
     .. seealso::
 
