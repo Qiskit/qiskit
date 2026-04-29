@@ -82,6 +82,10 @@ pub enum CircuitDataError {
     AbsentObject(object_registry::AbsentObject),
     #[error(transparent)]
     AddObjectRegistry(object_registry::AddError),
+    #[error("register name \"{0}\" already exists")]
+    RegisterNameExists(String),
+    #[error("{0} at index {1} exceeds circuit capacity.")]
+    BitExceedsCapacity(String, usize),
     // Explicitly an error returned from calling Python
     #[error(transparent)]
     ErrorFromPython(#[from] PyErr),
@@ -122,6 +126,12 @@ impl From<CircuitDataError> for PyErr {
             CircuitDataError::AddObjectRegistry(e) => e.into(),
             CircuitDataError::ErrorFromPython(e) => e,
             CircuitDataError::ParameterTableError(e) => e.into(),
+            CircuitDataError::RegisterNameExists(name) => {
+                CircuitError::new_err(format!("register name {name} already exists"))
+            }
+            CircuitDataError::BitExceedsCapacity(bit_type, bit_index) => CircuitError::new_err(
+                format!("{bit_type} at index {bit_index} exceds circuit capacity."),
+            ),
             CircuitDataError::VarStretchContainerError(e) => CircuitError::new_err(e.to_string()),
             CircuitDataError::ParameterSliceLenMismatch => PyValueError::new_err(
                 "Mismatching number of values and parameters. For partial binding please pass a mapping of {parameter: value} pairs.",
@@ -403,7 +413,11 @@ impl CircuitData {
     ///
     /// Args:
     ///     bit (:class:`.QuantumRegister`): The register to add.
-    pub fn add_qreg(&mut self, register: QuantumRegister, strict: bool) -> PyResult<()> {
+    pub fn add_qreg(
+        &mut self,
+        register: QuantumRegister,
+        strict: bool,
+    ) -> Result<(), CircuitDataError> {
         self.qregs.add_register(register.clone(), strict)?;
 
         for (index, bit) in register.bits().enumerate() {
@@ -421,9 +435,7 @@ impl CircuitData {
                     bit,
                     BitLocations::new(
                         bit_idx.try_into().map_err(|_| {
-                            CircuitError::new_err(format!(
-                                "Qubit at index {bit_idx} exceeds circuit capacity."
-                            ))
+                            CircuitDataError::BitExceedsCapacity("Qubit".to_string(), bit_idx)
                         })?,
                         [(register.clone(), index)],
                     ),
@@ -437,7 +449,11 @@ impl CircuitData {
     ///
     /// Args:
     ///     bit (:class:`.ClassicalRegister`): The register to add.
-    pub fn add_creg(&mut self, register: ClassicalRegister, strict: bool) -> PyResult<()> {
+    pub fn add_creg(
+        &mut self,
+        register: ClassicalRegister,
+        strict: bool,
+    ) -> Result<(), CircuitDataError> {
         self.cregs.add_register(register.clone(), strict)?;
 
         for (index, bit) in register.bits().enumerate() {
@@ -455,9 +471,7 @@ impl CircuitData {
                     bit,
                     BitLocations::new(
                         bit_idx.try_into().map_err(|_| {
-                            CircuitError::new_err(format!(
-                                "Clbit at index {bit_idx} exceeds circuit capacity."
-                            ))
+                            CircuitDataError::BitExceedsCapacity("Clbit".to_string(), bit_idx)
                         })?,
                         [(register.clone(), index)],
                     ),
@@ -1024,7 +1038,9 @@ impl CircuitData {
         }
         self.assign_parameters_inner(
             items,
-            None::<fn(&mut PackedInstruction, usize, &Symbol, &Param) -> Result<(), CircuitDataError>>,
+            None::<
+                fn(&mut PackedInstruction, usize, &Symbol, &Param) -> Result<(), CircuitDataError>,
+            >,
             None::<fn(&HashMap<usize, Vec<(Symbol, Param)>>) -> Result<(), CircuitDataError>>,
         )
     }
@@ -1043,7 +1059,9 @@ impl CircuitData {
         };
         self.assign_parameters_inner(
             Some((symbol, value, uses)),
-            None::<fn(&mut PackedInstruction, usize, &Symbol, &Param) -> Result<(), CircuitDataError>>,
+            None::<
+                fn(&mut PackedInstruction, usize, &Symbol, &Param) -> Result<(), CircuitDataError>,
+            >,
             None::<fn(&HashMap<usize, Vec<(Symbol, Param)>>) -> Result<(), CircuitDataError>>,
         )
     }
@@ -1339,7 +1357,12 @@ impl CircuitData {
                             // practice that's not a common path, and it's only supported for
                             // backwards compatibility from before Stretch was introduced.
                             if let Some(ref bind_fn) = bind_user_op {
-                                bind_fn(&mut self.data[instruction], parameter, &symbol, value.as_ref())?;
+                                bind_fn(
+                                    &mut self.data[instruction],
+                                    parameter,
+                                    &symbol,
+                                    value.as_ref(),
+                                )?;
                                 // Update parameter table after binding
                                 for uuid in uuids.iter() {
                                     self.param_table.add_use(*uuid, usage)?;
@@ -1519,7 +1542,11 @@ impl CircuitData {
             .any(|inst| inst.op.try_control_flow().is_some())
     }
 
-    pub fn insert(&mut self, mut index: isize, packed: PackedInstruction) -> PyResult<()> {
+    pub fn insert(
+        &mut self,
+        mut index: isize,
+        packed: PackedInstruction,
+    ) -> Result<(), CircuitDataError> {
         // `list.insert` has special-case extra clamping logic for its index argument.
         let index = {
             if index < 0 {
@@ -1578,23 +1605,25 @@ impl CircuitData {
         Ok(())
     }
 
-    pub fn assign_parameters_from_array(&mut self, array: ArrayView1<f64>) -> PyResult<()> {
+    pub fn assign_parameters_from_array(
+        &mut self,
+        array: ArrayView1<f64>,
+    ) -> Result<(), CircuitDataError> {
         if array.len() != self.param_table.num_parameters() {
-            return Err(PyValueError::new_err(concat!(
-                "Mismatching number of values and parameters. For partial binding ",
-                "please pass a dictionary of {parameter: value} pairs."
-            )));
+            return Err(CircuitDataError::ParameterSliceLenMismatch);
         }
         let mut old_table = std::mem::take(&mut self.param_table);
-        Ok(self.assign_parameters_inner(
+        self.assign_parameters_inner(
             array
                 .iter()
                 .map(|value| Param::Float(*value))
                 .zip(old_table.drain_ordered())
                 .map(|(value, (obj, uses))| (obj, value, uses)),
-            None::<fn(&mut PackedInstruction, usize, &Symbol, &Param) -> Result<(), CircuitDataError>>,
+            None::<
+                fn(&mut PackedInstruction, usize, &Symbol, &Param) -> Result<(), CircuitDataError>,
+            >,
             None::<fn(&HashMap<usize, Vec<(Symbol, Param)>>) -> Result<(), CircuitDataError>>,
-        )?)
+        )
     }
 
     pub fn assign_parameters_from_slice(
@@ -1610,7 +1639,9 @@ impl CircuitData {
                 .iter()
                 .zip(old_table.drain_ordered())
                 .map(|(value, (symbol, uses))| (symbol, value.clone(), uses)),
-            None::<fn(&mut PackedInstruction, usize, &Symbol, &Param) -> Result<(), CircuitDataError>>,
+            None::<
+                fn(&mut PackedInstruction, usize, &Symbol, &Param) -> Result<(), CircuitDataError>,
+            >,
             None::<fn(&HashMap<usize, Vec<(Symbol, Param)>>) -> Result<(), CircuitDataError>>,
         )
     }
@@ -1679,7 +1710,7 @@ impl CircuitData {
             .filter(|inst| inst.op.num_qubits() > 1 && !inst.op.directive())
             .count()
     }
-    
+
     pub fn len(&self) -> usize {
         self.data.len()
     }
@@ -2311,7 +2342,7 @@ impl PyCircuitData {
     ///     bit (:class:`.QuantumRegister`): The register to add.
     #[pyo3(signature = (register, *,strict = true))]
     pub fn add_qreg(&mut self, register: QuantumRegister, strict: bool) -> PyResult<()> {
-        self.inner.add_qreg(register, strict)
+        Ok(self.inner.add_qreg(register, strict)?)
     }
 
     /// Registers a :class:`.ClassicalRegister` instance.
@@ -2320,7 +2351,7 @@ impl PyCircuitData {
     ///     bit (:class:`.ClassicalRegister`): The register to add.
     #[pyo3(signature = (register, *,strict = true))]
     pub fn add_creg(&mut self, register: ClassicalRegister, strict: bool) -> PyResult<()> {
-        self.inner.add_creg(register, strict)
+        Ok(self.inner.add_creg(register, strict)?)
     }
 
     /// Registers a :class:`.Clbit` instance.
@@ -2584,7 +2615,7 @@ impl PyCircuitData {
     pub fn insert(&mut self, index: isize, value: PyRef<CircuitInstruction>) -> PyResult<()> {
         let py = value.py();
         let packed = self.pack(py, &value)?;
-        self.inner.insert(index, packed)
+        Ok(self.inner.insert(index, packed)?)
     }
 
     /// Primary entry point for appending an instruction from Python space.
@@ -2708,7 +2739,7 @@ impl PyCircuitData {
             // Fast path for Numpy arrays; in this case we can easily handle them without copying
             // the data across into a Rust-space `Vec` first.
             let array = readonly.as_array();
-            self.inner.assign_parameters_from_array(array)
+            Ok(self.inner.assign_parameters_from_array(array)?)
         } else {
             let values = sequence
                 .try_iter()?
@@ -2717,8 +2748,6 @@ impl PyCircuitData {
             Ok(self.inner.assign_parameters_from_slice(&values)?)
         }
     }
-
-
 
     /// Assign all uses of the circuit parameters as keys `mapping` to their corresponding values.
     ///
@@ -2737,12 +2766,23 @@ impl PyCircuitData {
         let py_circuit_ptr = self as *const PyCircuitData;
         Ok(self.inner.assign_parameters_inner(
             items,
-            Some(|instruction: &mut PackedInstruction, parameter: usize, symbol: &Symbol, value: &Param| {
-                // SAFETY: We're only using the pointer for the duration of this call,
-                // and assign_parameters_inner doesn't modify PyCircuitData itself
-                let py_circuit = unsafe { &*py_circuit_ptr };
-                PyCircuitData::bind_user_operation(py_circuit, instruction, parameter, symbol, value)
-            }),
+            Some(
+                |instruction: &mut PackedInstruction,
+                 parameter: usize,
+                 symbol: &Symbol,
+                 value: &Param| {
+                    // SAFETY: We're only using the pointer for the duration of this call,
+                    // and assign_parameters_inner doesn't modify PyCircuitData itself
+                    let py_circuit = unsafe { &*py_circuit_ptr };
+                    PyCircuitData::bind_user_operation(
+                        py_circuit,
+                        instruction,
+                        parameter,
+                        symbol,
+                        value,
+                    )
+                },
+            ),
             Some(|user_operations: &HashMap<usize, Vec<(Symbol, Param)>>| {
                 // SAFETY: Same as above
                 let py_circuit = unsafe { &*py_circuit_ptr };
@@ -3160,39 +3200,41 @@ impl PyCircuitData {
             let op = py_circuit.unpack_py_op(py, instruction)?.into_bound(py);
             // All "user" operations (e.g. PyOperation) use Parameters::Param.
             let previous_param = &instruction.params_view()[parameter];
-            
+
             // Helper to bind expression (copied from assign_parameters_inner)
-            let bind_expr = |expr: &ParameterExpression, coerce: bool| -> Result<Param, CircuitDataError> {
-                let new_expr = match value {
-                    Param::Float(f) => {
-                        let map: HashMap<&Symbol, Value> = HashMap::from([(symbol, Value::Real(*f))]);
-                        expr.bind(&map, false)?
-                    }
-                    Param::ParameterExpression(e) => {
-                        let map: HashMap<Symbol, ParameterExpression> =
-                            HashMap::from([(symbol.clone(), e.as_ref().clone())]);
-                        expr.subs(&map, false)?
-                    }
-                    Param::Obj(ob) => {
-                        if let Ok(int) = ob.extract::<i64>(py) {
+            let bind_expr =
+                |expr: &ParameterExpression, coerce: bool| -> Result<Param, CircuitDataError> {
+                    let new_expr = match value {
+                        Param::Float(f) => {
                             let map: HashMap<&Symbol, Value> =
-                                HashMap::from([(symbol, Value::Int(int))]);
+                                HashMap::from([(symbol, Value::Real(*f))]);
                             expr.bind(&map, false)?
-                        } else if let Ok(c) = ob.extract::<Complex64>(py) {
-                            let map: HashMap<&Symbol, Value> =
-                                HashMap::from([(symbol, Value::Complex(c))]);
-                            expr.bind(&map, false)?
-                        } else {
-                            return Err(PyTypeError::new_err(format!(
-                                "Cannot assign object ({ob}) object to parameter."
-                            ))
-                            .into());
                         }
-                    }
+                        Param::ParameterExpression(e) => {
+                            let map: HashMap<Symbol, ParameterExpression> =
+                                HashMap::from([(symbol.clone(), e.as_ref().clone())]);
+                            expr.subs(&map, false)?
+                        }
+                        Param::Obj(ob) => {
+                            if let Ok(int) = ob.extract::<i64>(py) {
+                                let map: HashMap<&Symbol, Value> =
+                                    HashMap::from([(symbol, Value::Int(int))]);
+                                expr.bind(&map, false)?
+                            } else if let Ok(c) = ob.extract::<Complex64>(py) {
+                                let map: HashMap<&Symbol, Value> =
+                                    HashMap::from([(symbol, Value::Complex(c))]);
+                                expr.bind(&map, false)?
+                            } else {
+                                return Err(PyTypeError::new_err(format!(
+                                    "Cannot assign object ({ob}) object to parameter."
+                                ))
+                                .into());
+                            }
+                        }
+                    };
+                    Ok(Param::from_expr(new_expr, coerce)?)
                 };
-                Ok(Param::from_expr(new_expr, coerce)?)
-            };
-            
+
             let new_param = match previous_param {
                 Param::Float(_) => {
                     panic!("internal error: parameter table contains non-parameters")
@@ -3207,22 +3249,16 @@ impl PyCircuitData {
                                 Ok(_) => {
                                     // fully bound, validate parameters
                                     Param::extract_no_coerce(
-                                        op.call_method1(
-                                            validate_parameter_attr,
-                                            (new_param,),
-                                        )?
-                                        .as_borrowed(),
+                                        op.call_method1(validate_parameter_attr, (new_param,))?
+                                            .as_borrowed(),
                                     )?
                                 }
                                 Err(_) => new_param, // not bound yet, cannot validate
                             }
                         }
                         new_param => Param::extract_no_coerce(
-                            op.call_method1(
-                                validate_parameter_attr,
-                                (new_param,),
-                            )?
-                            .as_borrowed(),
+                            op.call_method1(validate_parameter_attr, (new_param,))?
+                                .as_borrowed(),
                         )?,
                     }
                 }
@@ -3234,12 +3270,8 @@ impl PyCircuitData {
                     Param::extract_no_coerce(
                         obj.call_method(
                             assign_parameters_attr,
-                            ([(symbol.clone(), value.clone_ref(py))]
-                                .into_py_dict(py)?,),
-                            Some(
-                                &[("inplace", false), ("flat_input", true)]
-                                    .into_py_dict(py)?,
-                            ),
+                            ([(symbol.clone(), value.clone_ref(py))].into_py_dict(py)?,),
+                            Some(&[("inplace", false), ("flat_input", true)].into_py_dict(py)?),
                         )?
                         .as_borrowed(),
                     )?
@@ -3249,11 +3281,9 @@ impl PyCircuitData {
                 .set_item(parameter, new_param)?;
             let new_op = op.extract::<OperationFromPython<CircuitData>>()?;
             instruction.op = new_op.operation;
-            instruction.params = new_op.params.map(|params| {
-                Box::new(
-                    params.map_blocks(|_| panic!("unexpected control flow")),
-                )
-            });
+            instruction.params = new_op
+                .params
+                .map(|params| Box::new(params.map_blocks(|_| panic!("unexpected control flow"))));
             instruction.label = new_op.label;
             #[cfg(feature = "cache_pygates")]
             {
@@ -3295,7 +3325,8 @@ impl PyCircuitData {
                             .getattr(intern!(py, "base_op"))?
                             .getattr(_definition_attr)?
                     } else {
-                        py_circuit.unpack_py_op(py, instruction)?
+                        py_circuit
+                            .unpack_py_op(py, instruction)?
                             .bind(py)
                             .getattr(_definition_attr)?
                     };

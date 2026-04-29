@@ -942,7 +942,9 @@ fn unpack_custom_instruction(
                         None => gate_class_name,
                     };
                 }
-                let params = qpy_data.circuit_data.unpack_blocks_to_circuit_parameters(base_gate.params.as_deref());
+                let params = qpy_data
+                    .circuit_data
+                    .unpack_blocks_to_circuit_parameters(base_gate.params.as_deref());
                 let py_base_gate = create_py_op(
                     py,
                     base_gate.op.view(),
@@ -952,10 +954,7 @@ fn unpack_custom_instruction(
                 let kwargs = PyDict::new(py);
                 kwargs.set_item(intern!(py, "num_ctrl_qubits"), instruction.num_ctrl_qubits)?;
                 kwargs.set_item(intern!(py, "ctrl_state"), instruction.ctrl_state)?;
-                kwargs.set_item(
-                    intern!(py, "base_gate"),
-                    py_base_gate,
-                )?;
+                kwargs.set_item(intern!(py, "base_gate"), py_base_gate)?;
 
                 let controlled_gate_object = imports::CONTROLLED_GATE.get_bound(py).call(
                     (&gate_class_name, custom_instruction.num_qubits, py_params),
@@ -975,7 +974,9 @@ fn unpack_custom_instruction(
                     .0;
                 let base_gate =
                     unpack_instruction(&packed_base_gate, custom_instructions_map, qpy_data)?;
-                let params = qpy_data.circuit_data.unpack_blocks_to_circuit_parameters(base_gate.params.as_deref());
+                let params = qpy_data
+                    .circuit_data
+                    .unpack_blocks_to_circuit_parameters(base_gate.params.as_deref());
                 let py_base_gate = create_py_op(
                     py,
                     base_gate.op.view(),
@@ -983,10 +984,7 @@ fn unpack_custom_instruction(
                     base_gate.label.as_deref().map(String::as_str),
                 )?;
                 let kwargs = PyDict::new(py);
-                kwargs.set_item(
-                    intern!(py, "base_op"),
-                    py_base_gate,
-                )?;
+                kwargs.set_item(intern!(py, "base_op"), py_base_gate)?;
                 kwargs.set_item(intern!(py, "modifiers"), py_params)?;
                 imports::ANNOTATED_OPERATION
                     .get_bound(py)
