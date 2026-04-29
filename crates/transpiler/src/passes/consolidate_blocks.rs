@@ -12,7 +12,7 @@
 
 use super::optimize_1q_gates_decomposition::matmul_1q;
 use hashbrown::{HashMap, HashSet};
-use nalgebra::Matrix2;
+use nalgebra::{Matrix2, Matrix4, U4};
 use ndarray::ArrayView2;
 use ndarray::{Array2, aview2};
 use num_complex::Complex64;
@@ -25,14 +25,16 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::gate_matrix::{
     CH_GATE, CX_GATE, CY_GATE, CZ_GATE, DCX_GATE, ECR_GATE, ISWAP_GATE, ONE_QUBIT_IDENTITY,
-    TWO_QUBIT_IDENTITY,
 };
 use qiskit_circuit::imports::QI_OPERATOR;
 use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::{ArrayType, Operation, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_quantum_info::convert_2q_block_matrix::{blocks_to_matrix, get_matrix_from_inst};
+use qiskit_synthesis::linalg::nalgebra_array_view;
+use qiskit_synthesis::matrix::two_qubit::{
+    blocks_to_matrix, get_1q_matrix_from_inst, get_2q_matrix_from_inst, get_matrix_from_inst,
+};
 use qiskit_synthesis::two_qubit_decompose::RXXEquivalent;
 use qiskit_synthesis::two_qubit_decompose::{
     TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer,
@@ -43,6 +45,29 @@ use smallvec::SmallVec;
 use crate::passes::unitary_synthesis::{PARAM_SET, TWO_QUBIT_BASIS_SET};
 use crate::target::{Qargs, Target};
 use qiskit_circuit::PhysicalQubit;
+
+static IDENTITY_2Q: Matrix4<Complex64> = Matrix4::new(
+    // Row 1
+    Complex64::ONE,
+    Complex64::ZERO,
+    Complex64::ZERO,
+    Complex64::ZERO,
+    // Row 2
+    Complex64::ZERO,
+    Complex64::ONE,
+    Complex64::ZERO,
+    Complex64::ZERO,
+    // Row 3
+    Complex64::ZERO,
+    Complex64::ZERO,
+    Complex64::ONE,
+    Complex64::ZERO,
+    // Row 4
+    Complex64::ZERO,
+    Complex64::ZERO,
+    Complex64::ZERO,
+    Complex64::ONE,
+);
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug)]
@@ -198,7 +223,7 @@ impl PhysQargsMap {
 #[pyo3(name = "consolidate_blocks", signature = (dag, decomposer, basis_gate_name, force_consolidate, target=None, basis_gates=None, blocks=None, runs=None, qubit_map=None))]
 fn py_run_consolidate_blocks(
     dag: &mut DAGCircuit,
-    decomposer: DecomposerType,
+    decomposer: Option<DecomposerType>,
     basis_gate_name: &str,
     force_consolidate: bool,
     target: Option<&Target>,
@@ -207,6 +232,11 @@ fn py_run_consolidate_blocks(
     runs: Option<Vec<Vec<usize>>>,
     qubit_map: Option<Vec<PhysicalQubit>>,
 ) -> PyResult<()> {
+    // If we don't have a decomposer and force consolidate is not set then there is not any
+    // consolidation to do.
+    if decomposer.is_none() && !force_consolidate {
+        return Ok(());
+    }
     // The node indices that enter from `blocks` and `runs` come from Python space, and we can't
     // trust that they come from a correct analysis (or the block/run collection might have been
     // invalidated). Rather than panicking, we should raise Python-space exceptions. We don't have
@@ -266,14 +296,31 @@ fn py_run_consolidate_blocks(
                 phys_qargs.get(dag, inst.qubits),
             ) {
                 all_block_gates.insert(inst_node);
-                let matrix = match get_matrix_from_inst(inst) {
-                    Ok(mat) => mat,
-                    Err(_) => continue,
-                };
-                // TODO: Use Matrix2/ArrayType::OneQ when we're using nalgebra
-                // for consolidation
-                let unitary_gate = UnitaryGate {
-                    array: ArrayType::NDArray(matrix),
+                let num_qubits = inst.op.num_qubits();
+                let unitary_gate = if num_qubits == 1 {
+                    let matrix = match get_1q_matrix_from_inst(inst) {
+                        Ok(mat) => mat,
+                        Err(_) => continue,
+                    };
+                    UnitaryGate {
+                        array: ArrayType::OneQ(matrix),
+                    }
+                } else if num_qubits == 2 {
+                    let matrix = match get_2q_matrix_from_inst(inst) {
+                        Ok(mat) => mat,
+                        Err(_) => continue,
+                    };
+                    UnitaryGate {
+                        array: ArrayType::TwoQ(matrix),
+                    }
+                } else {
+                    let matrix = match get_matrix_from_inst(inst) {
+                        Ok(mat) => mat,
+                        Err(_) => continue,
+                    };
+                    UnitaryGate {
+                        array: ArrayType::NDArray(matrix),
+                    }
                 };
                 dag.substitute_op(
                     inst_node,
@@ -366,30 +413,43 @@ fn py_run_consolidate_blocks(
             ];
             let matrix = blocks_to_matrix(dag, &block, block_index_map).ok();
             if let Some(matrix) = matrix {
-                let num_basis_gates = match decomposer {
-                    DecomposerType::TwoQubitBasis(ref decomp) => {
-                        decomp.num_basis_gates_inner(matrix.view())?
-                    }
-                    DecomposerType::TwoQubitControlledU(ref decomp) => {
-                        decomp.num_basis_gates_inner(matrix.view())?
-                    }
-                };
-
-                if force_consolidate
-                    || num_basis_gates < basis_count
+                let consolidate = if force_consolidate
                     || block.len() > MAX_2Q_DEPTH
                     || (basis_gates.is_some() && outside_basis)
                     || (target.is_some() && outside_basis)
                 {
-                    if approx::abs_diff_eq!(aview2(&TWO_QUBIT_IDENTITY), matrix) {
+                    true
+                } else {
+                    let num_basis_gates = if let Some(ref decomposer) = decomposer {
+                        match decomposer {
+                            DecomposerType::TwoQubitBasis(decomp) => {
+                                decomp.num_basis_gates_inner(nalgebra_array_view::<
+                                    Complex64,
+                                    U4,
+                                    U4,
+                                >(
+                                    matrix.as_view()
+                                ))?
+                            }
+                            DecomposerType::TwoQubitControlledU(decomp) => decomp
+                                .num_basis_gates_inner(nalgebra_array_view::<Complex64, U4, U4>(
+                                    matrix.as_view(),
+                                ))?,
+                        }
+                    } else {
+                        unreachable!("A decomposer is always set unless force_consolidate is true");
+                    };
+                    num_basis_gates < basis_count
+                };
+
+                if consolidate {
+                    if approx::abs_diff_eq!(IDENTITY_2Q, matrix) {
                         for node in block {
                             dag.remove_op_node(node);
                         }
                     } else {
-                        // TODO: Use Matrix4/ArrayType::TwoQ when we're using nalgebra
-                        // for consolidation
                         let unitary_gate = UnitaryGate {
-                            array: ArrayType::NDArray(matrix),
+                            array: ArrayType::TwoQ(matrix),
                         };
                         let qubit_pos_map = block_index_map
                             .into_iter()
@@ -428,12 +488,15 @@ fn py_run_consolidate_blocks(
                     first_qubits,
                 )
             {
-                let matrix = match get_matrix_from_inst(first_inst) {
+                // Runs are necessarily single qubit gates so if it has a matrix then it
+                // must have a single qubit matrix or it's not a run and the blocks handling above
+                // would have covered it
+                let matrix = match get_1q_matrix_from_inst(first_inst) {
                     Ok(mat) => mat,
                     Err(_) => continue,
                 };
                 let unitary_gate = UnitaryGate {
-                    array: ArrayType::NDArray(matrix),
+                    array: ArrayType::OneQ(matrix),
                 };
                 dag.substitute_op(
                     first_inst_node,
@@ -515,19 +578,34 @@ pub fn run_consolidate_blocks(
     target: Option<&Target>,
 ) -> PyResult<()> {
     let approximation_degree = approximation_degree.unwrap_or(1.0);
-    let (decomposer, basis_gate) = get_decomposer_and_basis_gate(target, approximation_degree);
-    py_run_consolidate_blocks(
-        dag,
-        decomposer,
-        basis_gate.name(),
-        force_consolidate,
-        target,
-        None,
-        None,
-        None,
-        // TODO: this doesn't handle the possibility of control-flow operations yet.
-        None,
-    )
+    if force_consolidate {
+        py_run_consolidate_blocks(
+            dag,
+            None,
+            "cx",
+            force_consolidate,
+            target,
+            None,
+            None,
+            None,
+            // TODO: this doesn't handle the possibility of control-flow operations yet.
+            None,
+        )
+    } else {
+        let (decomposer, basis_gate) = get_decomposer_and_basis_gate(target, approximation_degree);
+        py_run_consolidate_blocks(
+            dag,
+            Some(decomposer),
+            basis_gate.name(),
+            force_consolidate,
+            target,
+            None,
+            None,
+            None,
+            // TODO: this doesn't handle the possibility of control-flow operations yet.
+            None,
+        )
+    }
 }
 
 pub fn consolidate_blocks_mod(m: &Bound<PyModule>) -> PyResult<()> {

@@ -57,7 +57,7 @@ impl<T> Parameters<T> {
     #[inline]
     pub fn unwrap_blocks(self) -> Vec<T> {
         match self {
-            Parameters::Params(_) => panic!("expected params, got blocks"),
+            Parameters::Params(_) => panic!("expected blocks, got params"),
             Parameters::Blocks(blocks) => blocks,
         }
     }
@@ -164,6 +164,7 @@ pub trait Instruction {
             OperationRef::StandardGate(g) => g.matrix(self.params_view()),
             OperationRef::Gate(g) => g.matrix(),
             OperationRef::Unitary(u) => u.matrix(),
+            OperationRef::PauliProductRotation(ppr) => ppr.matrix(),
             _ => None,
         }
     }

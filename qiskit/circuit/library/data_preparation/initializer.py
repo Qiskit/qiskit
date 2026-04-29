@@ -23,6 +23,7 @@ from qiskit.circuit import QuantumRegister
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.library.generalized_gates import Isometry
 from .state_preparation import StatePreparation
+from qiskit.circuit.exceptions import CircuitError
 
 if typing.TYPE_CHECKING:
     from qiskit.quantum_info.states.statevector import Statevector
@@ -106,3 +107,10 @@ class Initialize(Instruction):
 
     def broadcast_arguments(self, qargs, cargs):
         return self._stateprep.broadcast_arguments(qargs, cargs)
+
+    def inverse(self, annotated: bool = False):
+        """Raises an error as Initialize cannot be inverted."""
+        raise CircuitError(
+            "Initialize is not unitary thus can not be inverted. "
+            "If you want an invertible state preparation, use StatePreparation instead."
+        )

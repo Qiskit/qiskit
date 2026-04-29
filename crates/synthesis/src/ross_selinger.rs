@@ -66,16 +66,20 @@ where
     Ok(circuit)
 }
 
-#[pyfunction]
-#[pyo3(name = "gridsynth_rz")]
-pub fn py_gridsynth_rz(theta: f64, epsilon: f64) -> PyResult<PyCircuitData> {
+pub fn gridsynth_rz(theta: f64, epsilon: f64) -> PyResult<CircuitData> {
     let res = gridsynth_gates(&mut config_from_theta_epsilon(
         theta, epsilon, 0u64, false, true,
     ));
     let gates_iter = res.gates.chars();
     let phase = if res.global_phase { FRAC_PI_8 } else { 0. };
     let instruction_capacity = res.gates.len();
-    circuit_from_string(gates_iter, phase, instruction_capacity).map(Into::into)
+    circuit_from_string(gates_iter, phase, instruction_capacity)
+}
+
+#[pyfunction]
+#[pyo3(name = "gridsynth_rz")]
+pub fn py_gridsynth_rz(theta: f64, epsilon: f64) -> PyResult<PyCircuitData> {
+    gridsynth_rz(theta, epsilon).map(Into::into)
 }
 
 /// Approximates 1q unitary matrix using Ross-Selinger algorithm

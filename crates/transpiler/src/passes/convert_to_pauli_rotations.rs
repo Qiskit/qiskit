@@ -20,7 +20,7 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, PauliProductMeasurement, PauliProductRotation, StandardGate,
-    add_param, multiply_param, radd_param,
+    StandardInstruction, add_param, multiply_param, radd_param,
 };
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 use qiskit_quantum_info::sparse_observable::BitTerm;
@@ -32,197 +32,193 @@ type GateToPauliRotVec = (Vec<(&'static [BitTerm], Param, &'static [u32])>, Para
 
 /// Map standard gates to a list of equivalent Pauli product rotations and a global phase.
 /// Each element of the list is of the form ((pauli, phase, [qubit indices]), global_phase).
-/// Namely, each standard gate S is written as a product of evolutions:
-/// S = exp(-i*phase_1*pauli_1) * ... * exp(-i*phase_k*pauli_k) * exp(i*global_phase)
-/// but for Pauli rotation gates the convention is to divide the phase by 2.
+/// Namely, each standard gate S is written as a product of Pauli product rotations:
+/// S = R_pauli_1(phase_1) * ... * R_pauli_k(phase_k) * exp(i*global_phase)
 static STANDARD_GATE_SUBSTITUTIONS: [Option<GateToPauliRotType>; 52] = [
     None, // GlobalPhase
     Some((
-        &[
-            (&[BitTerm::Y], FRAC_PI_4, &[0]),
-            (&[BitTerm::X], FRAC_PI_2, &[0]),
-        ],
+        &[(&[BitTerm::Y], FRAC_PI_2, &[0]), (&[BitTerm::X], PI, &[0])],
         FRAC_PI_2,
     )), // H
     None, // I
-    Some((&[(&[BitTerm::X], FRAC_PI_2, &[0])], FRAC_PI_2)), // X
-    Some((&[(&[BitTerm::Y], FRAC_PI_2, &[0])], FRAC_PI_2)), // Y
-    Some((&[(&[BitTerm::Z], FRAC_PI_2, &[0])], FRAC_PI_2)), // Z
-    Some((&[(&[BitTerm::Z], 0.5, &[0])], 0.5)), // Phase
+    Some((&[(&[BitTerm::X], PI, &[0])], FRAC_PI_2)), // X
+    Some((&[(&[BitTerm::Y], PI, &[0])], FRAC_PI_2)), // Y
+    Some((&[(&[BitTerm::Z], PI, &[0])], FRAC_PI_2)), // Z
+    Some((&[(&[BitTerm::Z], 1.0, &[0])], 0.5)), // Phase
     None, // R
-    Some((&[(&[BitTerm::X], 0.5, &[0])], 0.0)), // RX
-    Some((&[(&[BitTerm::Y], 0.5, &[0])], 0.0)), // RY
-    Some((&[(&[BitTerm::Z], 0.5, &[0])], 0.0)), // RZ
-    Some((&[(&[BitTerm::Z], FRAC_PI_4, &[0])], FRAC_PI_4)), // S
-    Some((&[(&[BitTerm::Z], -FRAC_PI_4, &[0])], -FRAC_PI_4)), // Sdg
-    Some((&[(&[BitTerm::X], FRAC_PI_4, &[0])], FRAC_PI_4)), // SX
-    Some((&[(&[BitTerm::X], -FRAC_PI_4, &[0])], -FRAC_PI_4)), // SXdg
-    Some((&[(&[BitTerm::Z], FRAC_PI_8, &[0])], FRAC_PI_8)), // T
-    Some((&[(&[BitTerm::Z], -FRAC_PI_8, &[0])], -FRAC_PI_8)), // Tdg
+    Some((&[(&[BitTerm::X], 1.0, &[0])], 0.0)), // RX
+    Some((&[(&[BitTerm::Y], 1.0, &[0])], 0.0)), // RY
+    Some((&[(&[BitTerm::Z], 1.0, &[0])], 0.0)), // RZ
+    Some((&[(&[BitTerm::Z], FRAC_PI_2, &[0])], FRAC_PI_4)), // S
+    Some((&[(&[BitTerm::Z], -FRAC_PI_2, &[0])], -FRAC_PI_4)), // Sdg
+    Some((&[(&[BitTerm::X], FRAC_PI_2, &[0])], FRAC_PI_4)), // SX
+    Some((&[(&[BitTerm::X], -FRAC_PI_2, &[0])], -FRAC_PI_4)), // SXdg
+    Some((&[(&[BitTerm::Z], FRAC_PI_4, &[0])], FRAC_PI_8)), // T
+    Some((&[(&[BitTerm::Z], -FRAC_PI_4, &[0])], -FRAC_PI_8)), // Tdg
     None, // U
-    Some((&[(&[BitTerm::Z], 0.5, &[0])], 0.5)), // U1
+    Some((&[(&[BitTerm::Z], 1.0, &[0])], 0.5)), // U1
     None, // U2
     None, // U3
     Some((
         &[
-            (&[BitTerm::X], -1.0 * FRAC_PI_4, &[1]),
-            (&[BitTerm::Z], -1.0 * FRAC_PI_8, &[1]),
-            (&[BitTerm::Z, BitTerm::X], FRAC_PI_4, &[0, 1]),
-            (&[BitTerm::Z], -FRAC_PI_4, &[0]),
-            (&[BitTerm::Y], -FRAC_PI_8, &[1]),
+            (&[BitTerm::X], -FRAC_PI_2, &[1]),
+            (&[BitTerm::Z], -FRAC_PI_4, &[1]),
+            (&[BitTerm::Z, BitTerm::X], FRAC_PI_2, &[0, 1]),
+            (&[BitTerm::Z], -FRAC_PI_2, &[0]),
+            (&[BitTerm::Y], -FRAC_PI_4, &[1]),
         ],
         7.0 * FRAC_PI_4,
     )), // CH
     Some((
         &[
-            (&[BitTerm::Z, BitTerm::X], FRAC_PI_4, &[0, 1]),
-            (&[BitTerm::Z], -FRAC_PI_4, &[0]),
-            (&[BitTerm::X], -FRAC_PI_4, &[1]),
+            (&[BitTerm::Z, BitTerm::X], FRAC_PI_2, &[0, 1]),
+            (&[BitTerm::Z], -FRAC_PI_2, &[0]),
+            (&[BitTerm::X], -FRAC_PI_2, &[1]),
         ],
         -FRAC_PI_4,
     )), // CX
     Some((
         &[
-            (&[BitTerm::Z, BitTerm::Y], FRAC_PI_4, &[0, 1]),
-            (&[BitTerm::Z], -FRAC_PI_4, &[0]),
-            (&[BitTerm::Y], -FRAC_PI_4, &[1]),
+            (&[BitTerm::Z, BitTerm::Y], FRAC_PI_2, &[0, 1]),
+            (&[BitTerm::Z], -FRAC_PI_2, &[0]),
+            (&[BitTerm::Y], -FRAC_PI_2, &[1]),
         ],
         -FRAC_PI_4,
     )), // CY
     Some((
         &[
-            (&[BitTerm::Z, BitTerm::Z], FRAC_PI_4, &[0, 1]),
-            (&[BitTerm::Z], -FRAC_PI_4, &[0]),
-            (&[BitTerm::Z], -FRAC_PI_4, &[1]),
+            (&[BitTerm::Z, BitTerm::Z], FRAC_PI_2, &[0, 1]),
+            (&[BitTerm::Z], -FRAC_PI_2, &[0]),
+            (&[BitTerm::Z], -FRAC_PI_2, &[1]),
         ],
         -FRAC_PI_4,
     )), // CZ
     Some((
         &[
-            (&[BitTerm::Z, BitTerm::X], FRAC_PI_4, &[0, 1]),
-            (&[BitTerm::Z], -FRAC_PI_4, &[0]),
-            (&[BitTerm::X], -FRAC_PI_4, &[1]),
-            (&[BitTerm::Z, BitTerm::X], FRAC_PI_4, &[1, 0]),
-            (&[BitTerm::X], -FRAC_PI_4, &[0]),
-            (&[BitTerm::Z], -FRAC_PI_4, &[1]),
+            (&[BitTerm::Z, BitTerm::X], FRAC_PI_2, &[0, 1]),
+            (&[BitTerm::Z], -FRAC_PI_2, &[0]),
+            (&[BitTerm::X], -FRAC_PI_2, &[1]),
+            (&[BitTerm::Z, BitTerm::X], FRAC_PI_2, &[1, 0]),
+            (&[BitTerm::X], -FRAC_PI_2, &[0]),
+            (&[BitTerm::Z], -FRAC_PI_2, &[1]),
         ],
         -FRAC_PI_2,
     )), // DCX
     Some((
         &[
-            (&[BitTerm::Z, BitTerm::X], -1.0 * FRAC_PI_4, &[0, 1]),
-            (&[BitTerm::Y], -FRAC_PI_2, &[0]),
-            (&[BitTerm::Z], FRAC_PI_2, &[1]),
-            (&[BitTerm::Y], FRAC_PI_2, &[1]),
+            (&[BitTerm::Z, BitTerm::X], -FRAC_PI_2, &[0, 1]),
+            (&[BitTerm::Y], -PI, &[0]),
+            (&[BitTerm::Z], PI, &[1]),
+            (&[BitTerm::Y], PI, &[1]),
         ],
         PI,
     )), // ECR
     Some((
         &[
-            (&[BitTerm::X, BitTerm::X], FRAC_PI_4, &[0, 1]),
-            (&[BitTerm::Y, BitTerm::Y], FRAC_PI_4, &[0, 1]),
-            (&[BitTerm::Z, BitTerm::Z], FRAC_PI_4, &[0, 1]),
+            (&[BitTerm::X, BitTerm::X], FRAC_PI_2, &[0, 1]),
+            (&[BitTerm::Y, BitTerm::Y], FRAC_PI_2, &[0, 1]),
+            (&[BitTerm::Z, BitTerm::Z], FRAC_PI_2, &[0, 1]),
         ],
         FRAC_PI_4,
     )), // Swap
     Some((
         &[
-            (&[BitTerm::X, BitTerm::X], -FRAC_PI_4, &[0, 1]),
-            (&[BitTerm::Y, BitTerm::Y], -FRAC_PI_4, &[0, 1]),
+            (&[BitTerm::X, BitTerm::X], -FRAC_PI_2, &[0, 1]),
+            (&[BitTerm::Y, BitTerm::Y], -FRAC_PI_2, &[0, 1]),
         ],
         0.0,
     )), // ISwap
     Some((
         &[
-            (&[BitTerm::Z, BitTerm::Z], -0.25, &[0, 1]),
-            (&[BitTerm::Z], 0.25, &[0]),
-            (&[BitTerm::Z], 0.25, &[1]),
+            (&[BitTerm::Z, BitTerm::Z], -0.5, &[0, 1]),
+            (&[BitTerm::Z], 0.5, &[0]),
+            (&[BitTerm::Z], 0.5, &[1]),
         ],
         0.25,
     )), // CPhase
     Some((
         &[
-            (&[BitTerm::Z, BitTerm::X], -0.25, &[0, 1]),
-            (&[BitTerm::X], 0.25, &[1]),
+            (&[BitTerm::Z, BitTerm::X], -0.5, &[0, 1]),
+            (&[BitTerm::X], 0.5, &[1]),
         ],
         0.0,
     )), // CRX
     Some((
         &[
-            (&[BitTerm::Z, BitTerm::Y], -0.25, &[0, 1]),
-            (&[BitTerm::Y], 0.25, &[1]),
+            (&[BitTerm::Z, BitTerm::Y], -0.5, &[0, 1]),
+            (&[BitTerm::Y], 0.5, &[1]),
         ],
         0.0,
     )), // CRY
     Some((
         &[
-            (&[BitTerm::Z, BitTerm::Z], -0.25, &[0, 1]),
-            (&[BitTerm::Z], 0.25, &[1]),
+            (&[BitTerm::Z, BitTerm::Z], -0.5, &[0, 1]),
+            (&[BitTerm::Z], 0.5, &[1]),
         ],
         0.0,
     )), // CRZ
     Some((
         &[
-            (&[BitTerm::Z, BitTerm::Z], -FRAC_PI_8, &[0, 1]),
-            (&[BitTerm::Z], FRAC_PI_8, &[0]),
-            (&[BitTerm::Z], FRAC_PI_8, &[1]),
+            (&[BitTerm::Z, BitTerm::Z], -FRAC_PI_4, &[0, 1]),
+            (&[BitTerm::Z], FRAC_PI_4, &[0]),
+            (&[BitTerm::Z], FRAC_PI_4, &[1]),
         ],
         FRAC_PI_8,
     )), // CS
     Some((
         &[
-            (&[BitTerm::Z, BitTerm::Z], FRAC_PI_8, &[0, 1]),
-            (&[BitTerm::Z], -FRAC_PI_8, &[0]),
-            (&[BitTerm::Z], -FRAC_PI_8, &[1]),
+            (&[BitTerm::Z, BitTerm::Z], FRAC_PI_4, &[0, 1]),
+            (&[BitTerm::Z], -FRAC_PI_4, &[0]),
+            (&[BitTerm::Z], -FRAC_PI_4, &[1]),
         ],
         -FRAC_PI_8,
     )), // CSdg
     Some((
         &[
-            (&[BitTerm::Z, BitTerm::X], -FRAC_PI_8, &[0, 1]),
-            (&[BitTerm::Z], FRAC_PI_8, &[0]),
-            (&[BitTerm::X], FRAC_PI_8, &[1]),
+            (&[BitTerm::Z, BitTerm::X], -FRAC_PI_4, &[0, 1]),
+            (&[BitTerm::Z], FRAC_PI_4, &[0]),
+            (&[BitTerm::X], FRAC_PI_4, &[1]),
         ],
         FRAC_PI_8,
     )), // CSX
     None, // CU
     Some((
         &[
-            (&[BitTerm::Z, BitTerm::Z], -0.25, &[0, 1]),
-            (&[BitTerm::Z], 0.25, &[0]),
-            (&[BitTerm::Z], 0.25, &[1]),
+            (&[BitTerm::Z, BitTerm::Z], -0.5, &[0, 1]),
+            (&[BitTerm::Z], 0.5, &[0]),
+            (&[BitTerm::Z], 0.5, &[1]),
         ],
         0.25,
     )), // CU1
     None, // CU3
-    Some((&[(&[BitTerm::X, BitTerm::X], 0.5, &[0, 1])], 0.0)), // RXX
-    Some((&[(&[BitTerm::Y, BitTerm::Y], 0.5, &[0, 1])], 0.0)), // RYY
-    Some((&[(&[BitTerm::Z, BitTerm::Z], 0.5, &[0, 1])], 0.0)), // RZZ
-    Some((&[(&[BitTerm::Z, BitTerm::X], 0.5, &[0, 1])], 0.0)), // RZX
+    Some((&[(&[BitTerm::X, BitTerm::X], 1.0, &[0, 1])], 0.0)), // RXX
+    Some((&[(&[BitTerm::Y, BitTerm::Y], 1.0, &[0, 1])], 0.0)), // RYY
+    Some((&[(&[BitTerm::Z, BitTerm::Z], 1.0, &[0, 1])], 0.0)), // RZZ
+    Some((&[(&[BitTerm::Z, BitTerm::X], 1.0, &[0, 1])], 0.0)), // RZX
     None, // XXMinusYY
     None, // XXPlusYY
     Some((
         &[
-            (&[BitTerm::Z, BitTerm::Z, BitTerm::X], FRAC_PI_8, &[0, 1, 2]),
-            (&[BitTerm::Z, BitTerm::Z], -FRAC_PI_8, &[0, 1]),
-            (&[BitTerm::Z, BitTerm::X], -FRAC_PI_8, &[1, 2]),
-            (&[BitTerm::Z, BitTerm::X], -FRAC_PI_8, &[0, 2]),
-            (&[BitTerm::Z], FRAC_PI_8, &[0]),
-            (&[BitTerm::Z], FRAC_PI_8, &[1]),
-            (&[BitTerm::X], FRAC_PI_8, &[2]),
+            (&[BitTerm::Z, BitTerm::Z, BitTerm::X], FRAC_PI_4, &[0, 1, 2]),
+            (&[BitTerm::Z, BitTerm::Z], -FRAC_PI_4, &[0, 1]),
+            (&[BitTerm::Z, BitTerm::X], -FRAC_PI_4, &[1, 2]),
+            (&[BitTerm::Z, BitTerm::X], -FRAC_PI_4, &[0, 2]),
+            (&[BitTerm::Z], FRAC_PI_4, &[0]),
+            (&[BitTerm::Z], FRAC_PI_4, &[1]),
+            (&[BitTerm::X], FRAC_PI_4, &[2]),
         ],
         FRAC_PI_8,
     )),
     // CCX
     Some((
         &[
-            (&[BitTerm::Z, BitTerm::Z, BitTerm::Z], FRAC_PI_8, &[0, 1, 2]),
-            (&[BitTerm::Z, BitTerm::Z], -FRAC_PI_8, &[0, 1]),
-            (&[BitTerm::Z, BitTerm::Z], -FRAC_PI_8, &[1, 2]),
-            (&[BitTerm::Z, BitTerm::Z], -FRAC_PI_8, &[0, 2]),
-            (&[BitTerm::Z], FRAC_PI_8, &[0]),
-            (&[BitTerm::Z], FRAC_PI_8, &[1]),
-            (&[BitTerm::Z], FRAC_PI_8, &[2]),
+            (&[BitTerm::Z, BitTerm::Z, BitTerm::Z], FRAC_PI_4, &[0, 1, 2]),
+            (&[BitTerm::Z, BitTerm::Z], -FRAC_PI_4, &[0, 1]),
+            (&[BitTerm::Z, BitTerm::Z], -FRAC_PI_4, &[1, 2]),
+            (&[BitTerm::Z, BitTerm::Z], -FRAC_PI_4, &[0, 2]),
+            (&[BitTerm::Z], FRAC_PI_4, &[0]),
+            (&[BitTerm::Z], FRAC_PI_4, &[1]),
+            (&[BitTerm::Z], FRAC_PI_4, &[2]),
         ],
         FRAC_PI_8,
     )),
@@ -231,43 +227,43 @@ static STANDARD_GATE_SUBSTITUTIONS: [Option<GateToPauliRotType>; 52] = [
         &[
             (
                 &[BitTerm::Z, BitTerm::X, BitTerm::X],
-                -FRAC_PI_8,
+                -FRAC_PI_4,
                 &[0, 1, 2],
             ),
             (
                 &[BitTerm::Z, BitTerm::Y, BitTerm::Y],
-                -FRAC_PI_8,
+                -FRAC_PI_4,
                 &[0, 1, 2],
             ),
             (
                 &[BitTerm::Z, BitTerm::Z, BitTerm::Z],
-                -FRAC_PI_8,
+                -FRAC_PI_4,
                 &[0, 1, 2],
             ),
-            (&[BitTerm::X, BitTerm::X], FRAC_PI_8, &[1, 2]),
-            (&[BitTerm::Y, BitTerm::Y], FRAC_PI_8, &[1, 2]),
-            (&[BitTerm::Z, BitTerm::Z], FRAC_PI_8, &[1, 2]),
-            (&[BitTerm::Z], FRAC_PI_8, &[0]),
+            (&[BitTerm::X, BitTerm::X], FRAC_PI_4, &[1, 2]),
+            (&[BitTerm::Y, BitTerm::Y], FRAC_PI_4, &[1, 2]),
+            (&[BitTerm::Z, BitTerm::Z], FRAC_PI_4, &[1, 2]),
+            (&[BitTerm::Z], FRAC_PI_4, &[0]),
         ],
         FRAC_PI_8,
     )),
     // CSwap
     Some((
         &[
-            (&[BitTerm::X], -3.0 * FRAC_PI_8, &[2]),
-            (&[BitTerm::Y], -FRAC_PI_4, &[2]),
-            (&[BitTerm::Z, BitTerm::X], FRAC_PI_4, &[1, 2]),
-            (&[BitTerm::Z], -FRAC_PI_4, &[1]),
-            (&[BitTerm::X], -FRAC_PI_4, &[2]),
-            (&[BitTerm::Z], -FRAC_PI_8, &[2]),
-            (&[BitTerm::Z, BitTerm::X], FRAC_PI_4, &[0, 2]),
-            (&[BitTerm::Z], -FRAC_PI_4, &[0]),
-            (&[BitTerm::X], -FRAC_PI_4, &[2]),
-            (&[BitTerm::Z], FRAC_PI_8, &[2]),
-            (&[BitTerm::Z, BitTerm::X], FRAC_PI_4, &[1, 2]),
-            (&[BitTerm::Z], -FRAC_PI_4, &[1]),
+            (&[BitTerm::X], -3.0 * FRAC_PI_4, &[2]),
+            (&[BitTerm::Y], -FRAC_PI_2, &[2]),
+            (&[BitTerm::Z, BitTerm::X], FRAC_PI_2, &[1, 2]),
+            (&[BitTerm::Z], -FRAC_PI_2, &[1]),
+            (&[BitTerm::X], -FRAC_PI_2, &[2]),
+            (&[BitTerm::Z], -FRAC_PI_4, &[2]),
+            (&[BitTerm::Z, BitTerm::X], FRAC_PI_2, &[0, 2]),
+            (&[BitTerm::Z], -FRAC_PI_2, &[0]),
+            (&[BitTerm::X], -FRAC_PI_2, &[2]),
             (&[BitTerm::Z], FRAC_PI_4, &[2]),
-            (&[BitTerm::X], FRAC_PI_8, &[2]),
+            (&[BitTerm::Z, BitTerm::X], FRAC_PI_2, &[1, 2]),
+            (&[BitTerm::Z], -FRAC_PI_2, &[1]),
+            (&[BitTerm::Z], FRAC_PI_2, &[2]),
+            (&[BitTerm::X], FRAC_PI_4, &[2]),
         ],
         5.0 * FRAC_PI_4,
     )),
@@ -280,16 +276,15 @@ static STANDARD_GATE_SUBSTITUTIONS: [Option<GateToPauliRotType>; 52] = [
 /// Map standard gates with more than one parameter to a list of equivalent
 /// Pauli product rotations and a global phase.
 /// Each element of the list is of the form ((pauli, phase, [qubit indices]), global_phase).
-/// Namely, each standard gate S is written as a product of evolutions:
-/// S = exp(-i*phase_1*pauli_1) * ... * exp(-i*phase_k*pauli_k) * exp(i*global_phase)
-/// but for Pauli rotation gates the convention is to divide the phase by 2.
+/// Namely, each standard gate S is written as a product of Pauli product rotations:
+/// S = R_pauli_1(phase_1) * ... * R_pauli_k(phase_k) * exp(i*global_phase)
 fn replace_gate_by_pauli_vec(gate: StandardGate, angles: &[Param]) -> GateToPauliRotVec {
     match gate {
         StandardGate::U | StandardGate::U3 => (
             vec![
-                (&[BitTerm::Z], multiply_param(&angles[2], 0.5), &[0]),
-                (&[BitTerm::Y], multiply_param(&angles[0], 0.5), &[0]),
-                (&[BitTerm::Z], multiply_param(&angles[1], 0.5), &[0]),
+                (&[BitTerm::Z], angles[2].clone(), &[0]),
+                (&[BitTerm::Y], angles[0].clone(), &[0]),
+                (&[BitTerm::Z], angles[1].clone(), &[0]),
             ],
             multiply_param(&radd_param(angles[1].clone(), angles[2].clone()), 0.5),
         ),
@@ -297,23 +292,19 @@ fn replace_gate_by_pauli_vec(gate: StandardGate, angles: &[Param]) -> GateToPaul
             vec![
                 (
                     &[BitTerm::Z],
-                    multiply_param(&add_param(&angles[1], -FRAC_PI_2), -0.5),
+                    multiply_param(&add_param(&angles[1], -FRAC_PI_2), -1.0),
                     &[0],
                 ),
-                (&[BitTerm::Y], multiply_param(&angles[0], 0.5), &[0]),
-                (
-                    &[BitTerm::Z],
-                    multiply_param(&add_param(&angles[1], -FRAC_PI_2), 0.5),
-                    &[0],
-                ),
+                (&[BitTerm::Y], angles[0].clone(), &[0]),
+                (&[BitTerm::Z], add_param(&angles[1], -FRAC_PI_2), &[0]),
             ],
             Param::Float(0.0),
         ),
         StandardGate::U2 => (
             vec![
-                (&[BitTerm::Z], multiply_param(&angles[1], 0.5), &[0]),
-                (&[BitTerm::Y], Param::Float(FRAC_PI_4), &[0]),
-                (&[BitTerm::Z], multiply_param(&angles[0], 0.5), &[0]),
+                (&[BitTerm::Z], angles[1].clone(), &[0]),
+                (&[BitTerm::Y], Param::Float(FRAC_PI_2), &[0]),
+                (&[BitTerm::Z], angles[0].clone(), &[0]),
             ],
             multiply_param(&radd_param(angles[0].clone(), angles[1].clone()), 0.5),
         ),
@@ -322,39 +313,36 @@ fn replace_gate_by_pauli_vec(gate: StandardGate, angles: &[Param]) -> GateToPaul
                 (
                     &[BitTerm::Z],
                     radd_param(
-                        radd_param(
-                            multiply_param(&angles[3], 0.5),
-                            multiply_param(&angles[1], 0.25),
-                        ),
-                        multiply_param(&angles[2], 0.25),
+                        radd_param(angles[3].clone(), multiply_param(&angles[1], 0.5)),
+                        multiply_param(&angles[2], 0.5),
                     ),
                     &[0],
                 ),
                 (
                     &[BitTerm::Z],
                     radd_param(
-                        multiply_param(&angles[2], 0.25),
-                        multiply_param(&angles[1], -0.25),
+                        multiply_param(&angles[2], 0.5),
+                        multiply_param(&angles[1], -0.5),
                     ),
                     &[1],
                 ),
-                (&[BitTerm::Z, BitTerm::X], Param::Float(FRAC_PI_4), &[0, 1]),
-                (&[BitTerm::Z], Param::Float(-FRAC_PI_4), &[0]),
-                (&[BitTerm::X], Param::Float(-FRAC_PI_4), &[1]),
+                (&[BitTerm::Z, BitTerm::X], Param::Float(FRAC_PI_2), &[0, 1]),
+                (&[BitTerm::Z], Param::Float(-FRAC_PI_2), &[0]),
+                (&[BitTerm::X], Param::Float(-FRAC_PI_2), &[1]),
                 (
                     &[BitTerm::Z],
                     radd_param(
-                        multiply_param(&angles[2], -0.25),
-                        multiply_param(&angles[1], -0.25),
+                        multiply_param(&angles[2], -0.5),
+                        multiply_param(&angles[1], -0.5),
                     ),
                     &[1],
                 ),
-                (&[BitTerm::Y], multiply_param(&angles[0], -0.25), &[1]),
-                (&[BitTerm::Z, BitTerm::X], Param::Float(FRAC_PI_4), &[0, 1]),
-                (&[BitTerm::Z], Param::Float(-FRAC_PI_4), &[0]),
-                (&[BitTerm::X], Param::Float(-FRAC_PI_4), &[1]),
-                (&[BitTerm::Y], multiply_param(&angles[0], 0.25), &[1]),
-                (&[BitTerm::Z], multiply_param(&angles[1], 0.5), &[1]),
+                (&[BitTerm::Y], multiply_param(&angles[0], -0.5), &[1]),
+                (&[BitTerm::Z, BitTerm::X], Param::Float(FRAC_PI_2), &[0, 1]),
+                (&[BitTerm::Z], Param::Float(-FRAC_PI_2), &[0]),
+                (&[BitTerm::X], Param::Float(-FRAC_PI_2), &[1]),
+                (&[BitTerm::Y], multiply_param(&angles[0], 0.5), &[1]),
+                (&[BitTerm::Z], angles[1].clone(), &[1]),
             ],
             radd_param(
                 radd_param(
@@ -369,36 +357,36 @@ fn replace_gate_by_pauli_vec(gate: StandardGate, angles: &[Param]) -> GateToPaul
                 (
                     &[BitTerm::Z],
                     radd_param(
-                        multiply_param(&angles[1], 0.25),
-                        multiply_param(&angles[2], 0.25),
+                        multiply_param(&angles[1], 0.5),
+                        multiply_param(&angles[2], 0.5),
                     ),
                     &[0],
                 ),
                 (
                     &[BitTerm::Z],
                     radd_param(
-                        multiply_param(&angles[2], 0.25),
-                        multiply_param(&angles[1], -0.25),
+                        multiply_param(&angles[2], 0.5),
+                        multiply_param(&angles[1], -0.5),
                     ),
                     &[1],
                 ),
-                (&[BitTerm::Z, BitTerm::X], Param::Float(FRAC_PI_4), &[0, 1]),
-                (&[BitTerm::Z], Param::Float(-FRAC_PI_4), &[0]),
-                (&[BitTerm::X], Param::Float(-FRAC_PI_4), &[1]),
+                (&[BitTerm::Z, BitTerm::X], Param::Float(FRAC_PI_2), &[0, 1]),
+                (&[BitTerm::Z], Param::Float(-FRAC_PI_2), &[0]),
+                (&[BitTerm::X], Param::Float(-FRAC_PI_2), &[1]),
                 (
                     &[BitTerm::Z],
                     radd_param(
-                        multiply_param(&angles[2], -0.25),
-                        multiply_param(&angles[1], -0.25),
+                        multiply_param(&angles[2], -0.5),
+                        multiply_param(&angles[1], -0.5),
                     ),
                     &[1],
                 ),
-                (&[BitTerm::Y], multiply_param(&angles[0], -0.25), &[1]),
-                (&[BitTerm::Z, BitTerm::X], Param::Float(FRAC_PI_4), &[0, 1]),
-                (&[BitTerm::Z], Param::Float(-FRAC_PI_4), &[0]),
-                (&[BitTerm::X], Param::Float(-FRAC_PI_4), &[1]),
-                (&[BitTerm::Y], multiply_param(&angles[0], 0.25), &[1]),
-                (&[BitTerm::Z], multiply_param(&angles[1], 0.5), &[1]),
+                (&[BitTerm::Y], multiply_param(&angles[0], -0.5), &[1]),
+                (&[BitTerm::Z, BitTerm::X], Param::Float(FRAC_PI_2), &[0, 1]),
+                (&[BitTerm::Z], Param::Float(-FRAC_PI_2), &[0]),
+                (&[BitTerm::X], Param::Float(-FRAC_PI_2), &[1]),
+                (&[BitTerm::Y], multiply_param(&angles[0], 0.5), &[1]),
+                (&[BitTerm::Z], angles[1].clone(), &[1]),
             ],
             radd_param(
                 multiply_param(&angles[1], 0.25),
@@ -407,35 +395,35 @@ fn replace_gate_by_pauli_vec(gate: StandardGate, angles: &[Param]) -> GateToPaul
         ),
         StandardGate::XXPlusYY => (
             vec![
-                (&[BitTerm::Z], multiply_param(&angles[1], 0.5), &[0]),
+                (&[BitTerm::Z], angles[1].clone(), &[0]),
                 (
                     &[BitTerm::X, BitTerm::X],
-                    multiply_param(&angles[0], 0.25),
+                    multiply_param(&angles[0], 0.5),
                     &[0, 1],
                 ),
                 (
                     &[BitTerm::Y, BitTerm::Y],
-                    multiply_param(&angles[0], 0.25),
+                    multiply_param(&angles[0], 0.5),
                     &[0, 1],
                 ),
-                (&[BitTerm::Z], multiply_param(&angles[1], -0.5), &[0]),
+                (&[BitTerm::Z], multiply_param(&angles[1], -1.0), &[0]),
             ],
             Param::Float(0.0),
         ),
         StandardGate::XXMinusYY => (
             vec![
-                (&[BitTerm::Z], multiply_param(&angles[1], -0.5), &[0]),
+                (&[BitTerm::Z], multiply_param(&angles[1], -1.0), &[0]),
                 (
                     &[BitTerm::X, BitTerm::X],
-                    multiply_param(&angles[0], 0.25),
+                    multiply_param(&angles[0], 0.5),
                     &[0, 1],
                 ),
                 (
                     &[BitTerm::Y, BitTerm::Y],
-                    multiply_param(&angles[0], -0.25),
+                    multiply_param(&angles[0], -0.5),
                     &[0, 1],
                 ),
-                (&[BitTerm::Z], multiply_param(&angles[1], 0.5), &[0]),
+                (&[BitTerm::Z], angles[1].clone(), &[0]),
             ],
             Param::Float(0.0),
         ),
@@ -480,8 +468,8 @@ fn generate_pauli_product_rotation_gate(paulis: &[BitTerm], angle: Param) -> Pau
 /// the pass.
 #[pyfunction]
 #[pyo3(name = "convert_to_pauli_rotations")]
-pub fn py_convert_to_pauli_rotations(dag: &mut DAGCircuit) -> PyResult<DAGCircuit> {
-    let mut new_dag = dag.copy_empty_like(VarsMode::Alike, BlocksMode::Drop)?;
+pub fn py_convert_to_pauli_rotations(dag: &DAGCircuit) -> PyResult<DAGCircuit> {
+    let mut new_dag = dag.copy_empty_like(VarsMode::Alike, BlocksMode::Keep)?;
 
     // Iterate over nodes in the DAG and collect nodes
     let mut global_phase = Param::Float(0.0);
@@ -490,7 +478,13 @@ pub fn py_convert_to_pauli_rotations(dag: &mut DAGCircuit) -> PyResult<DAGCircui
         let NodeType::Operation(inst) = &dag[node_index] else {
             unreachable!("dag.topological_op_nodes only returns Operations");
         };
-        if ["barrier", "reset", "delay"].contains(&inst.op.name()) {
+        if matches!(
+            inst.op.view(),
+            OperationRef::ControlFlow(_)
+                | OperationRef::StandardInstruction(StandardInstruction::Barrier(_))
+                | OperationRef::StandardInstruction(StandardInstruction::Reset)
+                | OperationRef::StandardInstruction(StandardInstruction::Delay(_))
+        ) {
             new_dag.push_back(inst.clone())?;
         } else if inst.op.name() == "measure" {
             let z = vec![true];
@@ -532,8 +526,7 @@ pub fn py_convert_to_pauli_rotations(dag: &mut DAGCircuit) -> PyResult<DAGCircui
                             .iter()
                             .map(|q| original_qubits[*q as usize])
                             .collect();
-                        // factor 2.0 is needed since it's PauliProductRotationGate and not PauliEvolutionGate
-                        let time = multiply_param(&angle, 2.0 * *phase_rescale);
+                        let time = multiply_param(&angle, *phase_rescale);
                         let ppr = generate_pauli_product_rotation_gate(paulis, time.clone());
 
                         new_dag.apply_operation_back(
@@ -579,8 +572,7 @@ pub fn py_convert_to_pauli_rotations(dag: &mut DAGCircuit) -> PyResult<DAGCircui
                         .iter()
                         .map(|q| original_qubits[*q as usize])
                         .collect();
-                    // factor 2.0 is needed since it's PauliProductRotation and not PauliEvolutionGate
-                    let time = multiply_param(&phase_rescale, 2.0);
+                    let time = phase_rescale;
                     let ppr = generate_pauli_product_rotation_gate(paulis, time.clone());
 
                     new_dag.apply_operation_back(

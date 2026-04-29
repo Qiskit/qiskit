@@ -70,6 +70,7 @@ class SwitchCaseOp(ControlFlowOp):
             cases: an ordered iterable of the corresponding value of the ``target`` and the circuit
                 block that should be executed if this is matched.  There is no fall-through between
                 blocks, and the order matters.
+            label: An optional label for identifying the instruction.
         """
 
         from qiskit.circuit import QuantumCircuit

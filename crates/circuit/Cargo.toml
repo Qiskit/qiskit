@@ -13,10 +13,12 @@ doctest = false
 workspace = true
 
 [dependencies]
+qiskit-util = { workspace = true, features = ["py"] }
+qiskit-quantum-info.workspace = true
 rayon.workspace = true
 ahash.workspace = true
 rustworkx-core.workspace = true
-bytemuck.workspace = true
+bytemuck = {workspace = true, features = ["derive"]}
 bitfield-struct.workspace = true
 num-complex.workspace = true
 num-bigint.workspace = true
@@ -28,6 +30,11 @@ uuid.workspace = true
 nom.workspace = true
 nom-unicode.workspace = true
 nom-language.workspace = true
+crossterm = "0.29.0"
+unicode-width = "0.2"
+unicode-segmentation = "1.13"
+lexical-core = "1.0.6"
+lexical-write-float = "1.0.6"
 
 [dependencies.pyo3]
 workspace = true

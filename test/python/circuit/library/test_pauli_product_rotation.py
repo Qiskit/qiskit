@@ -59,6 +59,14 @@ class TestPauliProductRotationGate(QiskitTestCase):
         with self.subTest(msg="matrix"):
             np.testing.assert_allclose(rotation.to_matrix(), Operator(rotation.definition).data)
 
+    @data(1.2, np.pi / 4, 1, -1, 0, Parameter("a"), Parameter("a") + Parameter("b"))
+    def test_append_to_circuit(self, angle):
+        """Test that appending a Pauli product rotation to a circuit does not panic."""
+        pauli = Pauli("XIZZY")
+        rotation = PauliProductRotationGate(pauli, angle)
+        qc = QuantumCircuit(5)
+        qc.append(rotation, [0, 1, 2, 3, 4])
+
     def test_equality(self):
         """Test some equalities."""
         x = Parameter("x")

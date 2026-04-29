@@ -21,9 +21,7 @@
 //! crate. These are public to be passed to qiskit-pyext and are only used
 //! for building Python submodules.
 
-mod alap_schedule_analysis;
 mod apply_layout;
-mod asap_schedule_analysis;
 mod barrier_before_final_measurement;
 mod basis_translator;
 mod check_map;
@@ -31,6 +29,7 @@ mod commutation_analysis;
 mod commutation_cancellation;
 mod commutative_optimization;
 mod consolidate_blocks;
+mod constrained_reschedule;
 mod convert_to_pauli_rotations;
 mod dense_layout;
 mod disjoint_layout;
@@ -47,16 +46,16 @@ mod optimize_clifford_t;
 mod remove_diagonal_gates_before_measure;
 mod remove_identity_equiv;
 pub mod sabre;
+mod schedule_analysis;
 mod split_2q_unitaries;
 mod substitute_pi4_rotations;
-mod unitary_synthesis;
+mod synthesize_rz_rotations;
+pub mod unitary_synthesis;
 mod unroll_3q_or_more;
 pub mod vf2;
 mod wrap_angles;
 
-pub use alap_schedule_analysis::{alap_schedule_analysis_mod, run_alap_schedule_analysis};
 pub use apply_layout::{apply_layout, apply_layout_mod, update_layout};
-pub use asap_schedule_analysis::{asap_schedule_analysis_mod, run_asap_schedule_analysis};
 pub use barrier_before_final_measurement::{
     barrier_before_final_measurements_mod, run_barrier_before_final_measurements,
 };
@@ -66,6 +65,7 @@ pub use commutation_analysis::{analyze_commutations, commutation_analysis_mod};
 pub use commutation_cancellation::{cancel_commutations, commutation_cancellation_mod};
 pub use commutative_optimization::{commutative_optimization_mod, run_commutative_optimization};
 pub use consolidate_blocks::{DecomposerType, consolidate_blocks_mod, run_consolidate_blocks};
+pub use constrained_reschedule::{constrained_reschedule_mod, run_constrained_reschedule};
 pub use convert_to_pauli_rotations::{
     convert_to_pauli_rotations_mod, py_convert_to_pauli_rotations,
 };
@@ -94,8 +94,16 @@ pub use remove_diagonal_gates_before_measure::{
     remove_diagonal_gates_before_measure_mod, run_remove_diagonal_before_measure,
 };
 pub use remove_identity_equiv::{remove_identity_equiv_mod, run_remove_identity_equiv};
+pub use schedule_analysis::alap_schedule_analysis::{
+    alap_schedule_analysis_mod, run_alap_schedule_analysis,
+};
+pub use schedule_analysis::asap_schedule_analysis::{
+    asap_schedule_analysis_mod, run_asap_schedule_analysis,
+};
+pub use schedule_analysis::scheduling_mod;
 pub use split_2q_unitaries::{run_split_2q_unitaries, split_2q_unitaries_mod};
 pub use substitute_pi4_rotations::{py_run_substitute_pi4_rotations, substitute_pi4_rotations_mod};
+pub use synthesize_rz_rotations::{py_run_synthesize_rz_rotations, synthesize_rz_rotations_mod};
 pub use unitary_synthesis::{
     UnitarySynthesisConfig, UnitarySynthesisState, run_unitary_synthesis, unitary_synthesis_mod,
 };

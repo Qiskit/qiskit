@@ -35,8 +35,8 @@ use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict};
 
 use super::{
-    DecompositionDirection2q, QpuConstraint, QpuConstraintKind, UnitarySynthesisConfig,
-    UsePulseOptimizer,
+    Approximation, DecompositionDirection2q, NormalizedFidelity, QpuConstraint, QpuConstraintKind,
+    UnitarySynthesisConfig, UsePulseOptimizer,
 };
 use crate::QiskitError;
 use crate::passes::optimize_clifford_t::CLIFFORD_T_GATE_NAMES;
@@ -52,42 +52,6 @@ use qiskit_synthesis::two_qubit_decompose::{
     RXXEquivalent, TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer, TwoQubitGateSequence,
     TwoQubitWeylDecomposition,
 };
-
-/// The fidelity of the 2q basis gate used in a decomposer.
-///
-/// This is necessarily between 0.0 and 1.0 and we normalise away negative zero, which together are
-/// why it's safe to use with total equality and hashing.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct ApproximationDegree(f64);
-impl ApproximationDegree {
-    pub const EXACT: Self = Self(1.0);
-
-    #[inline]
-    pub fn new(val: f64) -> Option<Self> {
-        // The `abs` is normalising signed zero.
-        (0.0..=1.0).contains(&val).then(|| Self(val.abs()))
-    }
-    /// Get the value.  This is guaranteed to be finite, sign positive and in `[0.0, 1.0]`.
-    #[inline]
-    pub fn get(&self) -> f64 {
-        self.0
-    }
-
-    /// Does this represent approximate synthesis?
-    #[inline]
-    pub fn is_approximate(&self) -> bool {
-        *self != Self::EXACT
-    }
-}
-// `impl Eq` is safe for this float-derived quantity because we only permit the range `[0.0, 1.0]`
-// and forbid negative zero.
-impl Eq for ApproximationDegree {}
-impl hash::Hash for ApproximationDegree {
-    fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        // This is safe because we're in the range `[0.0, 1.0]` and normalised out negative zero.
-        self.0.to_le_bytes().hash(state)
-    }
-}
 
 /// Constructor for a 2q Ising-like decomposer.  This corresponds to
 /// [TwoQubitControlledUDecomposer], and requires gates that are locally equivalent to RXX (and
@@ -215,7 +179,7 @@ impl StaticKakSource {
 struct StaticKakConstructor {
     source: StaticKakSource,
     euler: EulerBasis,
-    approximation: ApproximationDegree,
+    fidelity: NormalizedFidelity,
     use_pulse_optimizer: UsePulseOptimizer,
 }
 impl StaticKakConstructor {
@@ -238,7 +202,7 @@ impl StaticKakConstructor {
             self.source.gate.clone(),
             self.source.params.clone(),
             matrix.view(),
-            self.approximation.get(),
+            self.fidelity.get(),
             self.euler.as_str(),
             self.use_pulse_optimizer.to_py_pulse_optimize(),
         )
@@ -294,7 +258,7 @@ impl Decomposer2qConstructor {
                     .try_build()
                     .map(|decomposer| Decomposer2q::StaticKak {
                         decomposer: Box::new(decomposer),
-                        approximation: constructor.approximation,
+                        fidelity: constructor.fidelity,
                     })
             }
         }
@@ -314,7 +278,7 @@ pub enum Decomposer2q {
     },
     StaticKak {
         decomposer: Box<TwoQubitBasisDecomposer>,
-        approximation: ApproximationDegree,
+        fidelity: NormalizedFidelity,
     },
 }
 impl Decomposer2q {
@@ -331,8 +295,8 @@ impl Decomposer2q {
             }),
             Self::StaticKak {
                 decomposer,
-                approximation,
-            } => decomposer.call_inner(matrix, None, approximation.is_approximate(), None),
+                fidelity,
+            } => decomposer.call_inner(matrix, None, fidelity.get() < 1.0, None),
         }
     }
 }
@@ -630,13 +594,15 @@ fn get_2q_decomposers(
                     gate: kak_gate.into(),
                     params: smallvec![],
                 };
-                let approximation =
-                    ApproximationDegree::new(config.approximation_degree.unwrap_or(1.0))
-                        .unwrap_or(ApproximationDegree::EXACT);
+                let fidelity = config.approximation.synthesis_fidelity(0.0).map_err(|e| {
+                    PyValueError::new_err(format!(
+                        "requested synthesis fidelity is out of range: {e}"
+                    ))
+                })?;
                 let constructor = Decomposer2qConstructor::StaticKak(StaticKakConstructor {
                     source,
                     euler,
-                    approximation,
+                    fidelity,
                     use_pulse_optimizer: config.use_pulse_optimizer,
                 });
                 let flip = choose_flip(direction, &constructor);
@@ -714,11 +680,13 @@ fn get_2q_decomposers(
                     continue;
                 };
                 let fidelity = config
-                    .approximation_degree
-                    .map(|a| a * (1. - candidate.error))
-                    .unwrap_or(1.);
-                let approximation =
-                    ApproximationDegree::new(fidelity).unwrap_or(ApproximationDegree::EXACT);
+                    .approximation
+                    .synthesis_fidelity(candidate.error)
+                    .map_err(|e| {
+                        PyValueError::new_err(format!(
+                            "requested synthesis fidelity is out of range: {e}"
+                        ))
+                    })?;
                 // TODO: the 2q decomposers internally already do everything that's needed to handle
                 // _all_ of the 1q bases simultaneously without further decompositions, but don't
                 // expose that functionality.  This wastes huge amounts of time and needs a fix.
@@ -732,7 +700,7 @@ fn get_2q_decomposers(
                     let constructor = Decomposer2qConstructor::StaticKak(StaticKakConstructor {
                         source,
                         euler,
-                        approximation,
+                        fidelity,
                         use_pulse_optimizer: config.use_pulse_optimizer,
                     });
                     let flip = choose_flip(candidate.direction, &constructor);
@@ -776,8 +744,7 @@ fn get_xx_decomposers(
     // `StandardGate` into a a known strength (or function of strength).
     let embodiments_lookup = imports::XX_EMBODIMENTS.get_bound(py).cast::<PyDict>()?;
     let xx_decomposer_class = imports::XX_DECOMPOSER.get_bound(py);
-    let approximation_degree = config.approximation_degree.unwrap_or(1.);
-    let is_approximate = approximation_degree != 1.;
+    let approximation = config.approximation;
 
     let mut extend_with_flip = |out: &mut Vec<(usize, FlipDirection)>,
                                 candidates: &[Candidate2q],
@@ -805,7 +772,17 @@ fn get_xx_decomposers(
                 embodiment
             };
             embodiments.set_item(strength, embodiment)?;
-            fidelities.set_item(strength, (1.0 - candidate.error) * approximation_degree)?;
+            fidelities.set_item(
+                strength,
+                approximation
+                    .synthesis_fidelity(candidate.error)
+                    .map_err(|e| {
+                        PyValueError::new_err(format!(
+                            "requested synthesis fidelity is out of range: {e}"
+                        ))
+                    })?
+                    .get(),
+            )?;
         }
         if !fidelities.is_truthy()? {
             return Ok(());
@@ -818,7 +795,7 @@ fn get_xx_decomposers(
             ))?;
             let constructor = Decomposer2qConstructor::DiscretePauli(DiscretePauliConstructor {
                 decomposer: ob.unbind(),
-                is_approximate,
+                is_approximate: approximation != Approximation::Exact,
             });
             if let Some(index) = cache.cache(constructor) {
                 out.push((index, flip));

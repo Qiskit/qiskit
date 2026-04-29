@@ -13,5 +13,8 @@ name = "qiskit-bindgen-c"
 
 [dependencies]
 qiskit-bindgen.workspace = true
+qiskit-cext-vtable  = { workspace = true, features = ["python_binding"] }
 anyhow.workspace = true
-clap = { version = "4.5", features = ["derive"] }
+indexmap.workspace = true
+cbindgen.workspace = true
+clap = { version = "4.6", features = ["derive"] }

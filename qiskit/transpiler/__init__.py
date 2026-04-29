@@ -78,6 +78,26 @@ sample transpilation looks like::
     # ... and use it (as many times as you like).
     physical = pm.run(abstract)
 
+For early experiments towards fault tolerance, the function :func:`.generate_preset_pass_manager`
+invokes a specialized transpilation pipeline when the target basis consists of Clifford+T gates,
+see :func:`.clifford_t_pass_manager` for documentation. For example::
+
+    from qiskit.circuit import QuantumCircuit
+    from qiskit.circuit.library import QFTGate
+    from qiskit.transpiler import generate_preset_pass_manager
+    from qiskit.quantum_info import get_clifford_gate_names
+
+    # Any abstract circuit you want:
+    abstract = QuantumCircuit(4)
+    abstract.append(QFTGate(4), [0, 1, 2, 3])
+
+    # Use all Clifford+T basis gates
+    basis_gates = get_clifford_gate_names() + ["t", "tdg"]
+
+    # Create and run the pass manager
+    pm = generate_preset_pass_manager(basis_gates=basis_gates)
+    transpiled = pm.run(abstract)
+
 For most use cases, this is all you need.
 All of Qiskit's transpiler infrastructure is highly extensible and configurable, however.
 The rest of this page details how to harness the low-level capabilities of the transpiler stack.
@@ -747,13 +767,6 @@ At a high level, this starts from the set of gates requested by the circuit, and
 given :class:`.EquivalenceLibrary` (typically the :data:`.SessionEquivalenceLibrary`) to move
 towards the ISA.
 
-For a Clifford+T basis set, the single-qubit rotation gates are approximated using the
-:class:`.UnitarySynthesis` pass. By default (when ``unitary_synthesis_method='default'``),
-this invokes the :class:`.SolovayKitaevDecomposition` algorithm. A custom synthesis
-method may be also specified, and it should either return the synthesized circuit
-in the Clifford+T basis set or return ``None`` in which case the default method would be called as
-fallback.
-
 This is the default translation method.
 
 The optimization level has no effect on this plugin.
@@ -801,12 +814,10 @@ When writing :ref:`stage plugins <transpiler-preset-stage-plugins>`, the entry p
 Built-in ``default`` plugin
 ...........................
 
-This varies significantly depending on the optimization level and whether the basis set is of the
-form Clifford+T.
+This varies significantly depending on the optimization level.
 
 The specifics of this pipeline are subject to change between Qiskit versions. The broad principles
-are described below. First, consider the more common case that the basis set is not of the form
-Clifford+T.
+are described below.
 
 At optimization level 0, the stage is empty.
 
@@ -822,8 +833,6 @@ At optimization level 3, the two-qubit matrix-based resynthesis runs inside the 
 The optimization loop condition also tries multiple runs and chooses the minimum point in the case
 of fluctuating output; this is necessary because matrix-based resynthesis is relatively unstable in
 terms of concrete gates.
-
-For a Clifford+T basis set, two-qubit matrix based resynthesis is not applied.
 
 Optimization level 3 is typically very expensive for large circuits.
 

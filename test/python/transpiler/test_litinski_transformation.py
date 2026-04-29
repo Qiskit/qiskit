@@ -22,6 +22,7 @@ from qiskit.circuit.library import (
     PauliEvolutionGate,
     PauliProductMeasurement,
     PauliProductRotationGate,
+    U1Gate,
 )
 from qiskit.circuit.random import random_clifford_circuit
 from qiskit.compiler import transpile
@@ -179,14 +180,15 @@ class TestLitinskiTransformation(QiskitTestCase):
         qc.rz(0.1, 1)
         qc.tdg(2)
         qc.rz(-0.2, 3)
+        qc.p(0.3, 0)
+        qc.append(U1Gate(-0.5), [0])
 
         qc_litinski = LitinskiTransformation()(qc)
         ops_litinski = qc_litinski.count_ops()
 
         # make sure the transform was applied
-        self.assertNotIn("t", ops_litinski)
-        self.assertNotIn("tdg", ops_litinski)
-        self.assertNotIn("rz", ops_litinski)
+        for z_rot in ["t", "tdg", "rz", "p", "u1"]:
+            self.assertNotIn(z_rot, ops_litinski)
 
         # make sure the result is correct
         self.assertEqual(Operator(qc_litinski), Operator(qc))
@@ -252,6 +254,19 @@ class TestLitinskiTransformation(QiskitTestCase):
         expected = QuantumCircuit(2, global_phase=-np.pi / 8)
         expected.append(PauliProductRotationGate(Pauli("Z"), -np.pi / 4), [0])
 
+        self.assertEqual(qct, expected)
+
+    def test_p(self):
+        """Test the phase gate, ensuring we got the global phase right."""
+        angle = 0.231
+        qc = QuantumCircuit(1)
+        qc.p(angle, 0)
+
+        qct = LitinskiTransformation(use_ppr=True)(qc)
+        self.assertTrue(np.allclose(Operator(qc).data, Operator(qct).data))
+
+        expected = QuantumCircuit(1, global_phase=angle / 2)
+        expected.append(PauliProductRotationGate(Pauli("Z"), angle), [0])
         self.assertEqual(qct, expected)
 
     def test_h_t(self):

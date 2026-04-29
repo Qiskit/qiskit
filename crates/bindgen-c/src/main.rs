@@ -10,20 +10,56 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use clap::Parser;
+mod abi;
+mod lint;
 
-/// Create a distribution of the "regular" C header files.
+use std::path::PathBuf;
+
+use anyhow::anyhow;
+use clap::{Parser, Subcommand};
+
+use crate::abi::SlotsLists;
+
+/// Toolkit for working with and installing the C header files.
 #[derive(Parser, Debug)]
 struct Args {
-    /// Path to the `cext` sources to generate headers for.
-    cext_path: String,
-    /// Where to install the header files to.
-    install_path: String,
+    #[clap(subcommand)]
+    command: Command,
+}
+#[derive(Subcommand, Debug)]
+enum Command {
+    /// Install the header files into a given directory.
+    Install {
+        /// Path to the `cext` sources to generate headers for.
+        #[arg(short, long)]
+        cext_path: PathBuf,
+        /// Where to install the header files to.
+        #[arg(short, long)]
+        output_path: PathBuf,
+    },
+    /// Check for correctness between the slots tables and the list of exported functions for the
+    /// current version of Qiskit.
+    LintSlots {
+        /// Path to the `cext` sources to generate headers for.
+        #[arg(short, long)]
+        cext_path: PathBuf,
+    },
 }
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
-    let bindings = qiskit_bindgen::generate_bindings(&args.cext_path)?;
-    qiskit_bindgen::install_c_headers(&bindings, &args.install_path)?;
-    Ok(())
+    match &args.command {
+        Command::Install {
+            cext_path,
+            output_path,
+        } => {
+            let mut bindings = qiskit_bindgen::generate_bindings(cext_path)?;
+            qiskit_bindgen::install_c_headers(&mut bindings, output_path)?;
+            Ok(())
+        }
+        Command::LintSlots { cext_path } => {
+            let bindings = qiskit_bindgen::generate_bindings(cext_path)?;
+            lint::lint(&bindings, &SlotsLists::ours())?.map_err(|fails| anyhow!(fails.explain()))
+        }
+    }
 }

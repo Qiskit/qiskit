@@ -25,7 +25,7 @@ jobs:
         env:
           QISKIT_BUILD_PROFILE: release
       - name: Run all tests including slow
-        run: stestr run --slowest
+        run: stestr run --slowest --abbreviate
         env:
           RUST_BACKTRACE: 1
           QISKIT_TESTS: "run_slow"

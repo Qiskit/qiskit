@@ -13,6 +13,7 @@
 
 """Circuit transpile function"""
 import logging
+import os
 from time import time
 from typing import Any, TypeVar
 from collections.abc import Callable
@@ -82,6 +83,13 @@ def transpile(
     **coupling_map**             target    coupling_map
     **dt**                       target    dt
     ============================ ========= ========================
+
+    .. note::
+
+        When the target basis consists of Clifford+T gates, this function constructs
+        a specialized Clifford+T transpiler pipeline, see :func:`.clifford_t_pass_manager`
+        for documentation. The arguments that apply to transpiling into continuous basis sets
+        are ignored in this flow.
 
     Args:
         circuits: Circuit(s) to transpile
@@ -153,9 +161,13 @@ def transpile(
             argument.
         dt: Backend sample time (resolution) in seconds.
             If ``None`` (default), ``backend.dt`` is used.
-        approximation_degree (float): heuristic dial used for circuit approximation
-            (1.0=no approximation, 0.0=maximal approximation)
-        seed_transpiler: Sets random seed for the stochastic parts of the transpiler
+        approximation_degree: Heuristic dial used for circuit approximation, where ``1.0`` means
+            no approximation (up to numerical tolerance) and ``0.0`` means the maximum approximation.
+            If ``target`` is available, a value of ``None`` indicates that approximation is allowed up
+            to the reported error rate for an operation in the target.
+        seed_transpiler: Sets a seed for the PRNG used by the stochastic parts of the transpiler.
+            This parameter takes precedence over the ``QISKIT_TRANSPILER_SEED`` environment
+            variable and ``transpiler_seed`` setting in the user configuration file .
         optimization_level: How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
             at the expense of longer transpilation time.
@@ -252,6 +264,13 @@ def transpile(
         # Take optimization level from the configuration or 2 as default.
         config = user_config.get_config()
         optimization_level = config.get("transpile_optimization_level", 2)
+
+    if seed_transpiler is None:
+        if seed := os.getenv("QISKIT_TRANSPILER_SEED", None) is not None:
+            seed_transpiler = int(seed)
+        else:
+            config = user_config.get_config()
+            seed_transpiler = config.get("transpiler_seed", None)
 
     if not ignore_backend_supplied_default_methods:
         if scheduling_method is None and hasattr(backend, "get_scheduling_stage_plugin"):

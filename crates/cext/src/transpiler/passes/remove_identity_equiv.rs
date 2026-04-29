@@ -34,6 +34,11 @@ use qiskit_transpiler::target::Target;
 /// scaling factor for the cutoff fidelity. If the value is ``NAN`` this approximates up
 /// to the fidelity for the gate specified in ``target``.
 ///
+/// This function is multithreaded and will potentially launch a thread pool with threads equal to
+/// the number of CPUs by default. You can tune the number of threads with the
+/// RAYON_NUM_THREADS environment variable. For example, setting RAYON_NUM_THREADS=4 would
+/// limit the thread pool to 4 threads.
+///
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
@@ -95,6 +100,11 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_remove_identity_equivalen
 /// approximate above the floating point precision. For a value < 1 this is used as a
 /// scaling factor for the cutoff fidelity. If the value is ``NAN`` this approximates up
 /// to the fidelity for the gate specified in ``target``.
+///
+/// This function is multithreaded and will potentially launch a thread pool with threads equal to
+/// the number of CPUs by default. You can tune the number of threads with the
+/// RAYON_NUM_THREADS environment variable. For example, setting RAYON_NUM_THREADS=4 would
+/// limit the thread pool to 4 threads.
 ///
 /// # Example
 ///

@@ -685,7 +685,7 @@ fn synth_relative_mcx_n_dirty(num_controls: usize) -> Result<CircuitData, Circui
 ///
 /// A quantum circuit with :math:`n+1` qubits.
 fn increment_1_dirty(n: u32, flag_add: bool) -> PyResult<CircuitData> {
-    if n % 2 == 0 {
+    if n.is_multiple_of(2) {
         return Err(QiskitError::new_err(
             "increment_1_dirty_large requires an odd number of qubits.",
         ));
@@ -905,7 +905,7 @@ pub fn synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
         // The construction described in Fig.8 of the paper works for all values of n and is better than the one
         // in Fig.7 when n<23.
 
-        if (n % 2 == 0) && (n >= 23) {
+        if n.is_multiple_of(2) && (n >= 23) {
             // This implements C^{n-1}(V) in Fig.7.
 
             // These implement U^{n-1}_{+1} and U^{n-1}_{-1} (last qubit is ancilla)
@@ -969,8 +969,8 @@ pub fn synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
 
 #[cfg(all(test, not(miri)))]
 mod test {
+    use crate::matrix::sim::sim_unitary_circuit;
     use approx::abs_diff_eq;
-    use qiskit_quantum_info::unitary_sim::sim_unitary_circuit;
 
     use super::{increment_n_dirty_large, increment_n_dirty_small};
 

@@ -8,28 +8,29 @@ on:
           Python version to currently test
         type: string
         required: true
-
       install-optionals:
         description: >
           Decides whether we install optyional dependencies
         type: boolean
         default: false
-
       runner:
         description: >
           Describes the system this workflow should run on.
         type: string
         required: true
+      mimalloc:
+        description: >
+          Whether to build with mimalloc or not
+        type: boolean
+        default: true
+
 jobs:
   tests-mac:
-    if: github.repository_owner == 'Qiskit'
-    name: ${{ inputs.runner }}-tests-Python-${{ inputs.python-version }}
+    name: ${{ inputs.runner }} - Python ${{ inputs.python-version }}
     runs-on: ${{ inputs.runner }}
     timeout-minutes: 60
     env:
       QISKIT_TEST_CAPTURE_STREAMS: 1
-    strategy:
-      fail-fast: false
     steps:
       - uses: actions/checkout@v6
       - name: Set up Python ${{ inputs.python-version }}
@@ -45,6 +46,9 @@ jobs:
             stestr | "${{ runner.os }}"
             stestr
           path: .stestr
+      - name: Set mimalloc for build
+        if: ${{ inputs.mimalloc }}
+        run: 'echo "QISKIT_BUILD_WITH_MIMALLOC=1" >> $GITHUB_ENV'
       - name: "Install dependencies"
         run: |
           set -e
@@ -69,7 +73,7 @@ jobs:
           python tools/report_numpy_state.py
           export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
           echo "PYTHONHASHSEED=$PYTHONHASHSEED"
-          stestr run --slowest
+          stestr run --slowest --abbreviate
         env:
           QISKIT_PARALLEL: FALSE
           QISKIT_IGNORE_USER_SETTINGS: TRUE

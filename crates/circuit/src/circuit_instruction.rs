@@ -893,7 +893,12 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
                 .to_vec();
 
             let py_angle = get_params()?.get_item(0)?;
-            let angle = Param::extract_no_coerce(py_angle.as_borrowed())?;
+            let angle = Param::extract(py_angle.as_borrowed())?;
+            if matches!(angle, Param::Obj(_)) {
+                return Err(PyTypeError::new_err(
+                    "invalid type for angle in PauliProductRotation",
+                ));
+            }
 
             let pauli_rotation = PauliProductRotation {
                 z: z.to_owned(),
