@@ -161,8 +161,10 @@ def transpile(
             argument.
         dt: Backend sample time (resolution) in seconds.
             If ``None`` (default), ``backend.dt`` is used.
-        approximation_degree (float): heuristic dial used for circuit approximation
-            (1.0=no approximation, 0.0=maximal approximation)
+        approximation_degree: Heuristic dial used for circuit approximation, where ``1.0`` means
+            no approximation (up to numerical tolerance) and ``0.0`` means the maximum approximation.
+            If ``target`` is available, a value of ``None`` indicates that approximation is allowed up
+            to the reported error rate for an operation in the target.
         seed_transpiler: Sets a seed for the PRNG used by the stochastic parts of the transpiler.
             This parameter takes precedence over the ``QISKIT_TRANSPILER_SEED`` environment
             variable and ``transpiler_seed`` setting in the user configuration file .
