@@ -175,6 +175,10 @@ pub fn distribute_components(dag: &mut DAGCircuit, target: &Target) -> PyResult<
         return Ok(DisjointSplit::NoneNeeded);
     }
     if let Some(largest_component) = cmap_components.iter().max_by_key(|x| x.len()) {
+        // The target-subset path runs the full DAG on the restricted component, so it is only
+        // safe when every virtual qubit can fit.  If only the active qubits fit, continue to the
+        // disjoint-component path; Sabre will assign idle virtual qubits after laying out the
+        // active components.
         if largest_component.len() >= dag.num_qubits() {
             return Ok(DisjointSplit::TargetSubset(
                 largest_component
