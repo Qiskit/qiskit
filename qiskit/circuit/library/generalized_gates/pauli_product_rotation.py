@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import typing
+import math
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, CircuitError, Gate
@@ -189,6 +190,6 @@ class PauliProductRotationGate(Gate):
         """
         angle = self.params[0]
         out = self.pauli().to_matrix(sparse=False)
-        out *= -1j * np.sin(angle / 2)
-        np.fill_diagonal(out, out.diagonal() + np.cos(angle / 2))
+        out *= -1j * math.sin(angle / 2)
+        np.fill_diagonal(out, out.diagonal() + math.cos(angle / 2))
         return out
