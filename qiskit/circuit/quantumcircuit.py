@@ -2280,9 +2280,15 @@ class QuantumCircuit:
                 dest.append(other, qargs=qubits, cargs=clbits, copy=copy)
             return None if inplace else dest
 
-        if other.num_qubits > dest.num_qubits or other.num_clbits > dest.num_clbits:
+        if other.num_qubits > dest.num_qubits:
             raise CircuitError(
-                "Trying to compose with another QuantumCircuit which has more 'in' edges."
+                "Cannot compose onto a circuit with fewer qubits "
+                f"({other.num_qubits} > {dest.num_qubits})."
+            )
+        if other.num_clbits > dest.num_clbits:
+            raise CircuitError(
+                "Cannot compose onto a circuit with fewer classical bits "
+                f"({other.num_clbits} > {dest.num_clbits})."
             )
 
         # Maps bits in 'other' to bits in 'dest'.
@@ -4713,16 +4719,18 @@ class QuantumCircuit:
             qubits=circ._data.qubits, reserve=len(circ._data), global_phase=circ.global_phase
         )
 
-        # Re-add old registers
+        # Re-add old registers.  We avoid `add_register` since we already know the registers are
+        # valid, the bits exist, and we don't want to trigger the "modified the quantum registers
+        # with a set layout" warning.
         for qreg in old_qregs:
-            circ.add_register(qreg)
+            circ._data.add_qreg(qreg)
 
         # We must add the clbits first to preserve the original circuit
         # order. This way, add_register never adds clbits and just
         # creates registers that point to them.
         circ.add_bits(clbits_to_add)
         for creg in cregs_to_add:
-            circ.add_register(creg)
+            circ._data.add_creg(creg)
 
         # Set circ instructions to match the new DAG
         for node in new_dag.topological_op_nodes():

@@ -25,6 +25,7 @@ use std::{
 };
 
 use rand::prelude::*;
+use rand::rngs::SysRng;
 use rand_distr::Bernoulli;
 use rand_pcg::Pcg64Mcg;
 
@@ -394,7 +395,7 @@ impl PauliLindbladMap {
     ) -> (Vec<bool>, QubitSparsePauliList) {
         let mut rng = match seed {
             Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-            None => Pcg64Mcg::from_os_rng(),
+            None => Pcg64Mcg::try_from_rng(&mut SysRng).unwrap(),
         };
         let modified_probabilities;
         let modified_non_negative_rates;

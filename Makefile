@@ -14,6 +14,10 @@ ifneq ($(OS), Windows_NT)
 	OS := $(shell uname -s)
 endif
 
+ifeq ($(QISKIT_BUILD_WITH_MIMALLOC), 1)
+	MIMALLOC := --features=mimalloc
+endif
+
 .PHONY: default ruff env lint lint-incr style black test test_randomized pytest pytest_randomized test_ci coverage coverage_erase clean
 
 default: style lint-incr test ;
@@ -135,7 +139,7 @@ fix_cformat:
 # instead.
 .PHONY: build-clib build-clib-release build-clib-dev
 build-clib:
-	cargo rustc -p qiskit-cext --crate-type cdylib ${C_LIB_CARGO_FLAGS} -- ${C_LIB_RUSTC_FLAGS}
+	cargo rustc -p qiskit-cext ${MIMALLOC} --crate-type cdylib ${C_LIB_CARGO_FLAGS} -- ${C_LIB_RUSTC_FLAGS}
 build-clib-release: C_LIB_CARGO_FLAGS=--release
 build-clib-release: build-clib
 build-clib-dev: C_LIB_CARGO_FLAGS=--profile dev
@@ -147,7 +151,7 @@ $(C_DIR_OUT_LIB):
 
 .PHONY: cheader
 cheader:
-	cargo run -p qiskit-bindgen-c -- $(C_DIR_CRATES)/cext $(C_DIR_OUT_INCLUDE)
+	cargo run -p qiskit-bindgen-c -- install -c $(C_DIR_CRATES)/cext -o $(C_DIR_OUT_INCLUDE)
 # `clib` and `clib-dev` are conflicting rules - they both attempt to "install" the
 # shared library into the output `lib` directory, but they differ between release
 # and dev mode.
