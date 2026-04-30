@@ -1,0 +1,28 @@
+---
+name: qiskit-pyo3-ffi
+on:
+  workflow_call:
+    inputs:
+      runner:
+        description: Runner image to use.
+        type: string
+        required: true
+
+jobs:
+  check:
+    name: Checks
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+      - name: Prepare package
+        run: make qiskit-pyo3-ffi
+      - name: Package
+        working-directory: dist/rust/qiskit-pyo3-ffi
+        run: cargo package
+      - name: Lint
+        working-directory: dist/rust/qiskit-pyo3-ffi
+        run: cargo clippy
+      - name: Docs
+        working-directory: dist/rust/qiskit-pyo3-ffi
+        run: cargo doc --no-deps
