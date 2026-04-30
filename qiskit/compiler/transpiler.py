@@ -277,6 +277,14 @@ def transpile(
             scheduling_method = backend.get_scheduling_stage_plugin()
         if translation_method is None and hasattr(backend, "get_translation_stage_plugin"):
             translation_method = backend.get_translation_stage_plugin()
+        if init_method is None and hasattr(backend, "get_init_stage_plugin"):
+            init_method = backend.get_init_stage_plugin()
+        if layout_method is None and hasattr(backend, "get_layout_stage_plugin"):
+            layout_method = backend.get_layout_stage_plugin()
+        if routing_method is None and hasattr(backend, "get_routing_stage_plugin"):
+            routing_method = backend.get_routing_stage_plugin()
+        if optimization_method is None and hasattr(backend, "get_optimization_stage_plugin"):
+            optimization_method = backend.get_optimization_stage_plugin()
 
     output_name = _parse_output_name(output_name, circuits)
     coupling_map = _parse_coupling_map(coupling_map)

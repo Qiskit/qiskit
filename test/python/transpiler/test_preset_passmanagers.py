@@ -44,6 +44,10 @@ from qiskit.transpiler.passes import (
     ALAPScheduleAnalysis,
     PadDynamicalDecoupling,
     RemoveResetInZeroState,
+    RemoveIdentityEquivalent,
+    TrivialLayout,
+    BasicSwap,
+    Optimize1qGates,
 )
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.converters import circuit_to_dag
@@ -81,13 +85,25 @@ def mock_get_passmanager_stage(
         )
         return pm
     elif stage_name == "init":
-        return PassManager([])
+        if plugin_name == "custom_stage_for_test":
+            return PassManager([RemoveIdentityEquivalent()])
+        else:
+            return PassManager([])
     elif stage_name == "routing":
-        return PassManager([])
+        if plugin_name == "custom_stage_for_test":
+            return PassManager([BasicSwap(pm_config.coupling_map)])
+        else:
+            return PassManager([])
     elif stage_name == "optimization":
-        return OptimizationPassManager().pass_manager(pm_config, optimization_level)
+        if plugin_name == "custom_stage_for_test":
+            return PassManager([Optimize1qGates()])
+        else:
+            return OptimizationPassManager().pass_manager(pm_config, optimization_level)
     elif stage_name == "layout":
-        return PassManager([])
+        if plugin_name == "custom_stage_for_test":
+            return PassManager([TrivialLayout(pm_config.coupling_map)])
+        else:
+            return PassManager([])
     else:
         raise RuntimeError("Failure, unexpected stage plugin combo for test")
 
@@ -1381,13 +1397,39 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
                 """Custom post translation stage."""
                 return "custom_stage_for_test"
 
+            def get_init_stage_plugin(self):
+                """Custom init stage."""
+                return "custom_stage_for_test"
+
+            def get_layout_stage_plugin(self):
+                """Custom layout stage."""
+                return "custom_stage_for_test"
+
+            def get_routing_stage_plugin(self):
+                """Custom routing stage."""
+                return "custom_stage_for_test"
+
+            def get_optimization_stage_plugin(self):
+                """Custom optimization stage."""
+                return "custom_stage_for_test"
+
         target = TargetBackend(num_qubits=7, coupling_map=LAGOS_CMAP, seed=42)
         pm = generate_preset_pass_manager(optimization_level, backend=target)
         self.assertIsInstance(pm, PassManager)
 
         pass_list = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
-        self.assertIn("PadDynamicalDecoupling", pass_list)
-        self.assertIn("ALAPScheduleAnalysis", pass_list)
+        expected = [
+            "ContainsInstruction",
+            "ConditionalController",
+            "RemoveIdentityEquivalent",
+            "TrivialLayout",
+            "BasicSwap",
+            "RemoveResetInZeroState",
+            "Optimize1qGates",
+            "ALAPScheduleAnalysis",
+            "PadDynamicalDecoupling",
+        ]
+        self.assertEqual(pass_list, expected)
         post_translation_pass_list = [
             x.__class__.__name__ for x in pm.translation.to_flow_controller().tasks
         ]
