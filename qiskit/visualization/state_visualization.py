@@ -195,8 +195,8 @@ def plot_bloch_vector(
     cartesian and spherical systems.
 
     Args:
-        bloch (list[double]): array of three elements where [<x>, <y>, <z>] (Cartesian)
-            or [<r>, <theta>, <phi>] (spherical in radians)
+        bloch (tuple[float, float, float]): tuple of three elements where (<x>, <y>, <z>) (Cartesian)
+            or (<r>, <theta>, <phi>) (spherical in radians)
             <theta> is inclination angle from +z direction
             <phi> is azimuth from +x direction
         title (str): a string that represents the plot title
@@ -240,10 +240,12 @@ def plot_bloch_vector(
         figsize = (5, 5)
     B = Bloch(axes=ax, font_size=font_size)
     if coord_type == "spherical":
-        r, theta, phi = bloch[0], bloch[1], bloch[2]
-        bloch[0] = r * np.sin(theta) * np.cos(phi)
-        bloch[1] = r * np.sin(theta) * np.sin(phi)
-        bloch[2] = r * np.cos(theta)
+        r, theta, phi = bloch
+        bloch = (
+            r * math.sin(theta) * math.cos(phi),
+            r * math.sin(theta) * math.sin(phi),
+            r * math.cos(theta),
+        )
     B.add_vectors(bloch)
     B.render(title=title)
     if ax is None:
