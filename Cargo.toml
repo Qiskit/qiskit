@@ -43,7 +43,7 @@ uuid = { version = "1.23", features = ["v4", "fast-rng"], default-features = fal
 anyhow = "1.0"
 binrw = "0.15"
 cbindgen = "0.29.2"
-mimalloc = "0.1.48"
+mimalloc = "0.1.50"
 
 # Most of the crates don't need the feature `extension-module`, since only `qiskit-pyext` builds an
 # actual C extension (the feature disables linking in `libpython`, which is forbidden in Python

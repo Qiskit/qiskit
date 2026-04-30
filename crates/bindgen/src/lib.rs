@@ -48,18 +48,31 @@ pub static PYTHON_BINDING_FEATURE: &str = "python_binding";
 pub static PYTHON_BINDING_DEFINE: &str = "QISKIT_C_PYTHON_INTERFACE";
 
 pub static COPYRIGHT: &str = "\
-// This code is part of Qiskit.
-//
-// (C) Copyright IBM 2026
-//
-// This code is licensed under the Apache License, Version 2.0. You may
-// obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
-//
-// Any modifications or derivative works of this code must retain this
-// copyright notice, and modified files need to carry a notice indicating
-// that they have been altered from the originals.
+This code is part of Qiskit.
+
+(C) Copyright IBM 2026
+
+This code is licensed under the Apache License, Version 2.0. You may
+obtain a copy of this license in the LICENSE.txt file in the root directory
+of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
+
+Any modifications or derivative works of this code must retain this
+copyright notice, and modified files need to carry a notice indicating
+that they have been altered from the originals.
 ";
+pub fn copyright_with_line_comments(comment: &str) -> String {
+    use std::fmt::Write;
+
+    let mut out = String::new();
+    for line in COPYRIGHT.lines() {
+        if line.is_empty() {
+            _ = writeln!(out, "{comment}");
+        } else {
+            _ = writeln!(out, "{comment} {line}");
+        }
+    }
+    out
+}
 
 /// Crates that contain definitions of objects that are exposed through the C API.
 pub static QISKIT_PUBLIC_API_CRATES: &[&str] =
@@ -182,7 +195,7 @@ fn get_config() -> anyhow::Result<cbindgen::Config> {
         .map(|&(cfg, def)| (format!("feature = {cfg}"), String::from(def)))
         .collect();
     Ok(cbindgen::Config {
-        header: Some(COPYRIGHT.to_owned()),
+        header: Some(copyright_with_line_comments("//")),
         language: cbindgen::Language::C,
         includes,
         include_version: true,
