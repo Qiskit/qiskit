@@ -175,12 +175,7 @@ pub fn distribute_components(dag: &mut DAGCircuit, target: &Target) -> PyResult<
         return Ok(DisjointSplit::NoneNeeded);
     }
     if let Some(largest_component) = cmap_components.iter().max_by_key(|x| x.len()) {
-        let num_active_qubits = dag
-            .qubit_io_map()
-            .iter()
-            .filter(|[source, target]| dag.dag().find_edge(*source, *target).is_none())
-            .count();
-        if largest_component.len() >= num_active_qubits {
+        if largest_component.len() >= dag.num_qubits() {
             return Ok(DisjointSplit::TargetSubset(
                 largest_component
                     .iter()
@@ -252,7 +247,7 @@ pub fn distribute_components(dag: &mut DAGCircuit, target: &Target) -> PyResult<
             Ok((out_dag, subgraph))
         })
         .collect::<PyResult<Vec<_>>>()?;
-    if out_component_pairs.len() == 1 {
+    if out_component_pairs.len() == 1 && out_component_pairs[0].1.node_count() >= dag.num_qubits() {
         return Ok(DisjointSplit::TargetSubset(
             out_component_pairs[0]
                 .1

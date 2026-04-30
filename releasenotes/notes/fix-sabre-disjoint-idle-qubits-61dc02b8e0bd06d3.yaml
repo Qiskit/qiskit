@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed :class:`.SabreLayout` and ``routing_method="sabre"`` for circuits
+    with idle virtual qubits on disconnected coupling maps. Previously, if the
+    active qubits fit in one connected component but the full circuit required
+    qubits from multiple components, Sabre could run on a too-small target
+    subset and raise a ``pyo3_runtime.PanicException``. See
+    `#15841 <https://github.com/Qiskit/qiskit/issues/15841>`__.
