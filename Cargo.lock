@@ -770,7 +770,7 @@ dependencies = [
  "private-gemm-x86",
  "pulp",
  "rand 0.9.4",
- "rand_distr",
+ "rand_distr 0.5.1",
  "rayon",
  "reborrow",
  "spindle",
@@ -1314,6 +1314,63 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09edd9e8b54e49e587e4f6295a7d29c3ea94d469cb40ab8ca70b288248a81db2"
 
 [[package]]
+name = "lexical-core"
+version = "1.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d8d125a277f807e55a77304455eb7b1cb52f2b18c143b60e766c120bd64a594"
+dependencies = [
+ "lexical-parse-float",
+ "lexical-parse-integer",
+ "lexical-util",
+ "lexical-write-float",
+ "lexical-write-integer",
+]
+
+[[package]]
+name = "lexical-parse-float"
+version = "1.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "52a9f232fbd6f550bc0137dcb5f99ab674071ac2d690ac69704593cb4abbea56"
+dependencies = [
+ "lexical-parse-integer",
+ "lexical-util",
+]
+
+[[package]]
+name = "lexical-parse-integer"
+version = "1.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a7a039f8fb9c19c996cd7b2fcce303c1b2874fe1aca544edc85c4a5f8489b34"
+dependencies = [
+ "lexical-util",
+]
+
+[[package]]
+name = "lexical-util"
+version = "1.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2604dd126bb14f13fb5d1bd6a66155079cb9fa655b37f875b3a742c705dbed17"
+
+[[package]]
+name = "lexical-write-float"
+version = "1.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "50c438c87c013188d415fbabbb1dceb44249ab81664efbd31b14ae55dabb6361"
+dependencies = [
+ "lexical-util",
+ "lexical-write-integer",
+]
+
+[[package]]
+name = "lexical-write-integer"
+version = "1.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "409851a618475d2d5796377cad353802345cba92c867d9fbcde9cf4eac4e14df"
+dependencies = [
+ "lexical-util",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.185"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1324,6 +1381,15 @@ name = "libm"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981"
+
+[[package]]
+name = "libmimalloc-sys"
+version = "0.1.47"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2d1eacfa31c33ec25e873c136ba5669f00f9866d0688bea7be4d3f7e43067df6"
+dependencies = [
+ "cc",
+]
 
 [[package]]
 name = "linux-raw-sys"
@@ -1397,6 +1463,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "488016bfae457b036d996092f6cb448677611ce4449e970ceaf42695203f218a"
 dependencies = [
  "autocfg",
+]
+
+[[package]]
+name = "mimalloc"
+version = "0.1.50"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3627c4272df786b9260cabaa46aec1d59c93ede723d4c3ef646c503816b0640"
+dependencies = [
+ "libmimalloc-sys",
 ]
 
 [[package]]
@@ -2167,9 +2242,9 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-transpiler",
  "qiskit-util",
- "rand 0.9.4",
- "rand_distr",
- "rand_pcg",
+ "rand 0.10.1",
+ "rand_distr 0.6.0",
+ "rand_pcg 0.10.2",
  "rayon",
  "rustworkx-core",
  "smallvec",
@@ -2181,6 +2256,8 @@ version = "2.5.0-dev"
 dependencies = [
  "anyhow",
  "cbindgen",
+ "hashbrown 0.15.5",
+ "regex",
 ]
 
 [[package]]
@@ -2188,8 +2265,11 @@ name = "qiskit-bindgen-c"
 version = "2.5.0-dev"
 dependencies = [
  "anyhow",
+ "cbindgen",
  "clap",
+ "indexmap",
  "qiskit-bindgen",
+ "qiskit-cext-vtable",
 ]
 
 [[package]]
@@ -2200,6 +2280,7 @@ dependencies = [
  "anyhow",
  "hashbrown 0.15.5",
  "indexmap",
+ "mimalloc",
  "nalgebra 0.34.2",
  "ndarray",
  "num-complex",
@@ -2208,8 +2289,8 @@ dependencies = [
  "qiskit-circuit-library",
  "qiskit-quantum-info",
  "qiskit-transpiler",
- "rand 0.9.4",
- "rand_pcg",
+ "rand 0.10.1",
+ "rand_pcg 0.10.2",
  "smallvec",
  "thiserror 2.0.18",
 ]
@@ -2233,6 +2314,8 @@ dependencies = [
  "hashbrown 0.15.5",
  "indexmap",
  "itertools 0.14.0",
+ "lexical-core",
+ "lexical-write-float",
  "nalgebra 0.34.2",
  "ndarray",
  "nom",
@@ -2269,9 +2352,9 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-synthesis",
  "qiskit-util",
- "rand 0.9.4",
- "rand_distr",
- "rand_pcg",
+ "rand 0.10.1",
+ "rand_distr 0.6.0",
+ "rand_pcg 0.10.2",
  "rayon",
  "smallvec",
  "thiserror 2.0.18",
@@ -2279,12 +2362,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "qiskit-providers"
+version = "2.5.0-dev"
+
+[[package]]
 name = "qiskit-pyext"
 version = "2.5.0-dev"
 dependencies = [
  "anyhow",
  "cbindgen",
- "hashbrown 0.15.5",
+ "mimalloc",
  "pyo3",
  "qiskit-accelerate",
  "qiskit-bindgen",
@@ -2368,9 +2455,9 @@ dependencies = [
  "pyo3",
  "qiskit-circuit",
  "qiskit-util",
- "rand 0.9.4",
- "rand_distr",
- "rand_pcg",
+ "rand 0.10.1",
+ "rand_distr 0.6.0",
+ "rand_pcg 0.10.2",
  "rayon",
  "rustworkx-core",
  "thiserror 2.0.18",
@@ -2398,9 +2485,9 @@ dependencies = [
  "qiskit-circuit",
  "qiskit-quantum-info",
  "qiskit-util",
- "rand 0.9.4",
- "rand_distr",
- "rand_pcg",
+ "rand 0.10.1",
+ "rand_distr 0.6.0",
+ "rand_pcg 0.10.2",
  "rayon",
  "rsgridsynth",
  "rstar",
@@ -2431,8 +2518,8 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-synthesis",
  "qiskit-util",
- "rand 0.9.4",
- "rand_pcg",
+ "rand 0.10.1",
+ "rand_pcg 0.10.2",
  "rayon",
  "rayon-cond",
  "rustworkx-core",
@@ -2564,12 +2651,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "rand_distr"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4d431c2703ccf129de4d45253c03f49ebb22b97d6ad79ee3ecfc7e3f4862c1d8"
+dependencies = [
+ "num-traits",
+ "rand 0.10.1",
+]
+
+[[package]]
 name = "rand_pcg"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b48ac3f7ffaab7fac4d2376632268aa5f89abdb55f7ebf8f4d11fffccb2320f7"
 dependencies = [
  "rand_core 0.9.5",
+]
+
+[[package]]
+name = "rand_pcg"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "caa0f4137e1c0a72f4c651489402276c8e8e1cf081f3b0ba156d2cbeef09e86a"
+dependencies = [
+ "rand_core 0.10.1",
 ]
 
 [[package]]
@@ -2772,8 +2878,8 @@ dependencies = [
  "petgraph 0.8.3",
  "priority-queue",
  "rand 0.9.4",
- "rand_distr",
- "rand_pcg",
+ "rand_distr 0.5.1",
+ "rand_pcg 0.9.0",
  "rayon",
  "rayon-cond",
 ]

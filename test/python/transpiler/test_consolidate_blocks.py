@@ -768,6 +768,21 @@ class TestConsolidateBlocks(QiskitTestCase):
         with self.assertRaisesRegex(IndexError, "node index.*was not a valid operation"):
             pass_.run(dag)
 
+    def test_force_consolidate_incomplete_basis(self):
+        """Test force_consolidate works even if the basis doesn't allow selecting a decomposer."""
+        qc = QuantumCircuit(1)
+        qc.rx(0.2, 0)
+
+        pm = PassManager(
+            [
+                Collect1qRuns(),
+                ConsolidateBlocks(basis_gates=["u"], force_consolidate=True),
+            ]
+        )
+
+        out = pm.run(qc)
+        self.assertEqual(set(out.count_ops().keys()), {"unitary"})
+
 
 class TestCollect1qRuns(QiskitTestCase):
     """
