@@ -223,7 +223,7 @@ impl PhysQargsMap {
 #[pyo3(name = "consolidate_blocks", signature = (dag, decomposer, basis_gate_name, force_consolidate, target=None, basis_gates=None, blocks=None, runs=None, qubit_map=None))]
 fn py_run_consolidate_blocks(
     dag: &mut DAGCircuit,
-    decomposer: DecomposerType,
+    decomposer: Option<DecomposerType>,
     basis_gate_name: &str,
     force_consolidate: bool,
     target: Option<&Target>,
@@ -232,6 +232,11 @@ fn py_run_consolidate_blocks(
     runs: Option<Vec<Vec<usize>>>,
     qubit_map: Option<Vec<PhysicalQubit>>,
 ) -> PyResult<()> {
+    // If we don't have a decomposer and force consolidate is not set then there is not any
+    // consolidation to do.
+    if decomposer.is_none() && !force_consolidate {
+        return Ok(());
+    }
     // The node indices that enter from `blocks` and `runs` come from Python space, and we can't
     // trust that they come from a correct analysis (or the block/run collection might have been
     // invalidated). Rather than panicking, we should raise Python-space exceptions. We don't have
@@ -408,22 +413,36 @@ fn py_run_consolidate_blocks(
             ];
             let matrix = blocks_to_matrix(dag, &block, block_index_map).ok();
             if let Some(matrix) = matrix {
-                let num_basis_gates = match decomposer {
-                    DecomposerType::TwoQubitBasis(ref decomp) => decomp.num_basis_gates_inner(
-                        nalgebra_array_view::<Complex64, U4, U4>(matrix.as_view()),
-                    )?,
-                    DecomposerType::TwoQubitControlledU(ref decomp) => decomp
-                        .num_basis_gates_inner(nalgebra_array_view::<Complex64, U4, U4>(
-                            matrix.as_view(),
-                        ))?,
-                };
-
-                if force_consolidate
-                    || num_basis_gates < basis_count
+                let consolidate = if force_consolidate
                     || block.len() > MAX_2Q_DEPTH
                     || (basis_gates.is_some() && outside_basis)
                     || (target.is_some() && outside_basis)
                 {
+                    true
+                } else {
+                    let num_basis_gates = if let Some(ref decomposer) = decomposer {
+                        match decomposer {
+                            DecomposerType::TwoQubitBasis(decomp) => {
+                                decomp.num_basis_gates_inner(nalgebra_array_view::<
+                                    Complex64,
+                                    U4,
+                                    U4,
+                                >(
+                                    matrix.as_view()
+                                ))?
+                            }
+                            DecomposerType::TwoQubitControlledU(decomp) => decomp
+                                .num_basis_gates_inner(nalgebra_array_view::<Complex64, U4, U4>(
+                                    matrix.as_view(),
+                                ))?,
+                        }
+                    } else {
+                        unreachable!("A decomposer is always set unless force_consolidate is true");
+                    };
+                    num_basis_gates < basis_count
+                };
+
+                if consolidate {
                     if approx::abs_diff_eq!(IDENTITY_2Q, matrix) {
                         for node in block {
                             dag.remove_op_node(node);
@@ -559,19 +578,34 @@ pub fn run_consolidate_blocks(
     target: Option<&Target>,
 ) -> PyResult<()> {
     let approximation_degree = approximation_degree.unwrap_or(1.0);
-    let (decomposer, basis_gate) = get_decomposer_and_basis_gate(target, approximation_degree);
-    py_run_consolidate_blocks(
-        dag,
-        decomposer,
-        basis_gate.name(),
-        force_consolidate,
-        target,
-        None,
-        None,
-        None,
-        // TODO: this doesn't handle the possibility of control-flow operations yet.
-        None,
-    )
+    if force_consolidate {
+        py_run_consolidate_blocks(
+            dag,
+            None,
+            "cx",
+            force_consolidate,
+            target,
+            None,
+            None,
+            None,
+            // TODO: this doesn't handle the possibility of control-flow operations yet.
+            None,
+        )
+    } else {
+        let (decomposer, basis_gate) = get_decomposer_and_basis_gate(target, approximation_degree);
+        py_run_consolidate_blocks(
+            dag,
+            Some(decomposer),
+            basis_gate.name(),
+            force_consolidate,
+            target,
+            None,
+            None,
+            None,
+            // TODO: this doesn't handle the possibility of control-flow operations yet.
+            None,
+        )
+    }
 }
 
 pub fn consolidate_blocks_mod(m: &Bound<PyModule>) -> PyResult<()> {

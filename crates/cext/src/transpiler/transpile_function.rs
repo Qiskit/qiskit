@@ -171,7 +171,7 @@ pub struct TranspileOptions {
     /// The seed for the transpiler. If set to a negative number this means no seed will be
     /// set and the RNGs used in the transpiler will be seeded from system entropy.
     seed: i64,
-    /// The approximation degree a heurstic dial where 1.0 means no approximation (up to numerical
+    /// The approximation degree a heuristic dial where 1.0 means no approximation (up to numerical
     /// tolerance) and 0.0 means the maximum approximation. A `NAN` value indicates that
     /// approximation is allowed up to the reported error rate for an operation in the target.
     approximation_degree: f64,
