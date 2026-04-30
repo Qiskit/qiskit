@@ -357,12 +357,13 @@ impl Function {
             }
         }
         out.push_str("]\n");
-        if let Some(ret) = self.ret.as_ref() {
-            out.push_str(&prefix);
-            out.push_str(".restype = ");
-            ret.render(&mut out);
-            out.push('\n');
-        }
+        out.push_str(&prefix);
+        out.push_str(".restype = ");
+        match self.ret.as_ref() {
+            Some(ret) => ret.render(&mut out),
+            None => out.push_str("None"),
+        };
+        out.push('\n');
         // Re-export into main namespace.
         out.push_str(&self.name);
         out.push_str(" = ");
