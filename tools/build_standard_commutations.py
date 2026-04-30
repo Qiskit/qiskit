@@ -4,21 +4,20 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
 """Determines a commutation library over the unparameterizable standard gates, i.e. a dictionary for
-   each pair of parameterizable standard gates and all qubit overlaps that maps to either True or False,
-   depending on the present commutation relation.
+each pair of parameterizable standard gates and all qubit overlaps that maps to either True or False,
+depending on the present commutation relation.
 """
 
-
+import io
 import itertools
 from functools import lru_cache
-from typing import List
 
 import qiskit.circuit.library.standard_gates as stdg
 from qiskit.circuit import CommutationChecker, Gate
@@ -92,7 +91,7 @@ def _get_relative_placement(first_qargs, second_qargs) -> tuple:
     return tuple(qubits_g2.get(q_g0, None) for q_g0 in first_qargs)
 
 
-def _get_unparameterizable_gates() -> List[Gate]:
+def _get_unparameterizable_gates() -> list[Gate]:
     """Retrieve a list of non-parmaterized gates with up to 3 qubits, using the python inspection module
     Return:
         A list of non-parameterized gates to be considered in the commutation library
@@ -103,7 +102,7 @@ def _get_unparameterizable_gates() -> List[Gate]:
     return [g for g in gates if len(g.params) == 0]
 
 
-def _get_rotation_gates() -> List[Gate]:
+def _get_rotation_gates() -> list[Gate]:
     """Retrieve a list of parmaterized gates we know the commutation relations of with up
     to 3 qubits, using the python inspection module
     Return:
@@ -114,11 +113,11 @@ def _get_rotation_gates() -> List[Gate]:
     return [g for g in gates if g.name in SUPPORTED_ROTATIONS]
 
 
-def _generate_commutation_dict(considered_gates: List[Gate] = None) -> dict:
+def _generate_commutation_dict(considered_gates: list[Gate] | None = None) -> dict:
     """Compute the commutation relation of considered gates
 
     Args:
-        considered_gates List[Gate]: a list of gates between which the commutation should be determined
+        considered_gates list[Gate]: a list of gates between which the commutation should be determined
 
     Return:
         A dictionary that includes the commutation relation for each
@@ -206,18 +205,31 @@ def _simplify_commuting_dict(commuting_dict: dict) -> dict:
         commuting_dict (dict): A commutation dictionary with simplified entries
     """
     # Remove relative placement key if commutation is independent of relative placement
-    for ops in commuting_dict.keys():
-        gates_commutations = set(commuting_dict[ops].values())
+    for ops, commuting_gates in commuting_dict.items():
+        gates_commutations = set(commuting_gates.values())
         if len(gates_commutations) == 1:
             commuting_dict[ops] = next(iter(gates_commutations))
 
     return commuting_dict
 
 
-def _dump_commuting_dict_as_python(
-    commutations: dict, file_name: str = "../_standard_gates_commutations.py"
+def format_entry(key, value):
+    """Generate a string for a commutation entry."""
+    with io.StringIO() as buf:
+        buf.write("(smallvec![")
+        for qubit in key:
+            if qubit is None:
+                buf.write("None, ")
+            else:
+                buf.write(f"Some(Qubit({qubit})), ")
+        buf.write(f"], {str(value).lower()})")
+        return buf.getvalue()
+
+
+def _dump_commuting_dict_as_rust(
+    commutations: dict, file_name: str = "../standard_gates_commutations.rs"
 ):
-    """Write commutation dictionary as python object to ./qiskit/circuit/_standard_gates_commutations.py.
+    """Write commutation dictionary as python object to ../standard_gates_commutations.rs.
 
     Args:
         commutations (dict): a dictionary that includes the commutation relation for
@@ -225,21 +237,46 @@ def _dump_commuting_dict_as_python(
 
     """
     with open(file_name, "w") as fp:
-        dir_str = "standard_gates_commutations = {\n"
+        simple_commutations = {}
+        other_commutations = {}
         for k, v in commutations.items():
             if not isinstance(v, dict):
-                # pylint: disable-next=consider-using-f-string
-                dir_str += '    ("{}", "{}"): {},\n'.format(*k, v)
+                simple_commutations[k] = v
             else:
-                # pylint: disable-next=consider-using-f-string
-                dir_str += '    ("{}", "{}"): {{\n'.format(*k)
+                other_commutations[k] = v
+        fp.write("use smallvec::smallvec;\n\n")
+        fp.write("use qiskit_circuit::Qubit;\n")
+        fp.write(
+            "use crate::commutation_checker::{CommutationLibrary, CommutationLibraryEntry};\n\n"
+        )
+        fp.write(f"static SIMPLE_COMMUTE: [([&str; 2], bool); {len(simple_commutations)}] = [\n")
+        for k, v in simple_commutations.items():
+            fp.write(f'    (["{k[0]}", "{k[1]}"], {str(v).lower()}),\n')
+        fp.write("];\n\n")
 
-                for entry_key, entry_val in v.items():
-                    dir_str += f"        {entry_key}: {entry_val},\n"
-
-                dir_str += "    },\n"
-        dir_str += "}\n"
-        fp.write(dir_str.replace("'", ""))
+        fp.write("pub fn get_commutation_library() -> CommutationLibrary {\n")
+        fp.write(
+            "    let mut commutation_library = CommutationLibrary::with_capacity("
+            f"{len(simple_commutations) + len(other_commutations)});\n"
+        )
+        fp.write("     for (key, value) in SIMPLE_COMMUTE {\n")
+        fp.write(
+            "          commutation_library.add_entry(key, CommutationLibraryEntry::Commutes(value));"
+        )
+        fp.write("     }\n")
+        for k, v in other_commutations.items():
+            fp.write("    let commutation_map = [\n")
+            for entry_key, entry_val in v.items():
+                fp.write(f"        {format_entry(entry_key, entry_val)},\n")
+            fp.write("    ]\n")
+            fp.write("    .into_iter()\n")
+            fp.write("    .collect();\n")
+            fp.write(
+                f'    commutation_library.add_entry(["{k[0]}", "{k[1]}"], '
+                "CommutationLibraryEntry::QubitMapping(commutation_map));\n"
+            )
+        fp.write("    commutation_library")
+        fp.write("}\n")
 
 
 if __name__ == "__main__":
@@ -249,4 +286,4 @@ if __name__ == "__main__":
     cgates += _get_rotation_gates()
     commutation_dict = _generate_commutation_dict(considered_gates=cgates)
     commutation_dict = _simplify_commuting_dict(commutation_dict)
-    _dump_commuting_dict_as_python(commutation_dict)
+    _dump_commuting_dict_as_rust(commutation_dict)

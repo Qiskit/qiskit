@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -15,8 +15,8 @@
 import unittest
 
 from qiskit.result import Counts, QuasiDistribution, ProbDistribution, sampled_expectation_value
-from qiskit.quantum_info import Pauli, SparsePauliOp
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.quantum_info import Pauli, SparsePauliOp, SparseObservable
+from test import QiskitTestCase
 
 PROBS = {
     "1000": 0.0022,
@@ -74,6 +74,7 @@ class TestSampledExpval(QiskitTestCase):
             }
         )
         oper = "IZZ"
+        oper_non_diag = "IXZ"
 
         exp1 = sampled_expectation_value(counts, oper)
         self.assertAlmostEqual(exp1, ans)
@@ -84,6 +85,14 @@ class TestSampledExpval(QiskitTestCase):
         spo = SparsePauliOp([oper], coeffs=[1])
         exp3 = sampled_expectation_value(counts, spo)
         self.assertAlmostEqual(exp3, ans)
+
+        so = SparseObservable.from_label(oper)
+        exp4 = sampled_expectation_value(counts, so)
+        self.assertAlmostEqual(exp4, ans)
+
+        so_non_diag = SparseObservable.from_label(oper_non_diag)
+        with self.assertRaisesRegex(ValueError, "Operator string .* contains non-diagonal terms"):
+            _ = sampled_expectation_value(counts, so_non_diag)
 
     def test_asym_ops(self):
         """Test that asymmetric exp values work"""

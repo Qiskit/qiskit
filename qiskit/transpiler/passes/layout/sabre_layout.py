@@ -4,14 +4,13 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Layout selection using the SABRE bidirectional search approach from Li et al.
-"""
+"""Layout selection using the SABRE bidirectional search approach from Li et al."""
 
 import copy
 import logging
@@ -52,7 +51,7 @@ class SabreLayout(TransformationPass):
     circuit so that the layout is applied to the input dag (meaning that the output
     circuit will have ancilla qubits allocated for unused qubits on the coupling map
     and the qubits will be reordered to match the mapped physical qubits) and then
-    routing will be applied (inserting :class:`~.SwapGate`s to account for limited
+    routing will be applied (inserting :class:`~.SwapGate` objects to account for limited
     connectivity). This is unlike most other layout passes which are :class:`~.AnalysisPass`
     objects and just find an initial layout and set that on the property set. This is
     done because by default the pass will run parallel seed trials with different random
@@ -181,7 +180,7 @@ class SabreLayout(TransformationPass):
         self.skip_routing = skip_routing
 
     @property
-    def coupling_map(self):  # pylint: disable=missing-function-docstring
+    def coupling_map(self):
         # This property is not intended to be public API, it just keeps backwards compatibility.
         if self._coupling_map is None:
             self._coupling_map = self.target.build_coupling_map()
@@ -267,7 +266,7 @@ class SabreLayout(TransformationPass):
         heuristic = (
             Heuristic(attempt_limit=10 * self.target.num_qubits)
             .with_basic(1.0, SetScaling.Constant)
-            .with_lookahead(0.5, 20, SetScaling.Size)
+            .with_lookahead([0.5 / self.target.num_qubits], SetScaling.Constant)
             .with_decay(0.001, 5)
         )
         sabre_start = time.perf_counter()
@@ -303,7 +302,13 @@ class SabreLayout(TransformationPass):
             }
             return dag
 
-        ancillas = QuantumRegister(self.target.num_qubits - dag.num_qubits(), "ancilla")
+        ancilla_register_name = "ancilla"
+        ancilla_suffix = 0
+        while ancilla_register_name in dag.qregs:
+            ancilla_register_name = f"{ancilla_register_name}{ancilla_suffix}"
+            ancilla_suffix += 1
+
+        ancillas = QuantumRegister(self.target.num_qubits - dag.num_qubits(), ancilla_register_name)
         virtuals = list(dag.qubits) + list(ancillas)
         initial_layout = Layout({p: virtuals[v] for v, p in initial.layout_mapping()})
         for register in dag.qregs.values():
@@ -319,8 +324,12 @@ class SabreLayout(TransformationPass):
         if (prev_final_layout := self.property_set.get("final_layout", None)) is None:
             self.property_set["final_layout"] = final_layout
         else:
-            self.property_set["final_layout"] = final_layout.compose(
-                prev_final_layout, out_dag.qubits
+            # The "final layout" can be thought of as a "comes from" permutation that you apply at
+            # the end of the circuit to invert the routing.  So if there's an existing one, what we
+            # apply at the end of the circuit needs to set the circuit qubits so they "come from"
+            # the previous one, then those "come from" the one we've just added.
+            self.property_set["final_layout"] = prev_final_layout.compose(
+                final_layout, out_dag.qubits
             )
         return out_dag
 

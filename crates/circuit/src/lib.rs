@@ -4,18 +4,18 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::env;
-
 pub mod annotation;
 pub mod bit;
 pub mod bit_locator;
+mod blocks;
 pub mod circuit_data;
+pub mod circuit_drawer;
 pub mod circuit_instruction;
 pub mod classical;
 pub mod converters;
@@ -26,31 +26,31 @@ pub mod duration;
 pub mod error;
 pub mod gate_matrix;
 pub mod imports;
+pub mod instruction;
 pub mod interner;
 pub mod nlayout;
 pub mod object_registry;
 pub mod operations;
 pub mod packed_instruction;
-pub mod parameter_expression;
+pub mod parameter;
 pub mod parameter_table;
 pub mod register_data;
-pub mod slice;
-pub mod symbol_expr;
-pub mod symbol_parser;
-pub mod util;
-
-pub mod rustworkx_core_vnext;
+pub mod standard_gate;
+pub mod var_stretch_container;
 mod variable_mapper;
+pub mod vf2;
 
-use pyo3::exceptions::PyValueError;
+use bytemuck::AnyBitPattern;
+use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyString, PyTuple};
-use pyo3::PyTypeInfo;
 
-#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
+#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject, AnyBitPattern)]
+#[repr(transparent)]
 pub struct Qubit(pub u32);
 
-#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
+#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject, AnyBitPattern)]
+#[repr(transparent)]
 pub struct Clbit(pub u32);
 
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
@@ -59,28 +59,36 @@ pub struct Var(u32);
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, PartialOrd)]
 pub struct Stretch(u32);
 
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+pub struct Block(u32);
+
+pub use blocks::ControlFlowBlocks;
+pub use circuit_instruction::NoBlocks;
 pub use nlayout::PhysicalQubit;
 pub use nlayout::VirtualQubit;
+pub use packed_instruction::BlockMapper;
 
 macro_rules! impl_circuit_identifier {
     ($type:ident) => {
         impl $type {
+            // The maximum storable index.
+            pub const MAX: Self = Self(u32::MAX);
+
             /// Construct a new identifier from a usize, if you have a u32 you can
             /// construct one directly via [$type()]. This will panic if the `usize`
             /// index exceeds `u32::MAX`.
             #[inline(always)]
-            pub fn new(index: usize) -> Self {
-                $type(index.try_into().unwrap_or_else(|_| {
-                    panic!(
-                        "Index value '{}' exceeds the maximum identifier width!",
-                        index
-                    )
-                }))
+            pub const fn new(index: usize) -> Self {
+                if index <= Self::MAX.index() {
+                    Self(index as u32)
+                } else {
+                    panic!("Index value exceeds the maximum identifier width!")
+                }
             }
 
             /// Convert to a usize.
             #[inline(always)]
-            pub fn index(&self) -> usize {
+            pub const fn index(&self) -> usize {
                 self.0 as usize
             }
         }
@@ -103,20 +111,23 @@ impl_circuit_identifier!(Qubit);
 impl_circuit_identifier!(Clbit);
 impl_circuit_identifier!(Var);
 impl_circuit_identifier!(Stretch);
+impl_circuit_identifier!(Block);
 
 pub struct TupleLikeArg<'py> {
     value: Bound<'py, PyTuple>,
 }
 
-impl<'py> FromPyObject<'py> for TupleLikeArg<'py> {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let value = match ob.downcast::<PySequence>() {
+impl<'a, 'py> FromPyObject<'a, 'py> for TupleLikeArg<'py> {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        let value = match ob.cast::<PySequence>() {
             Ok(seq) => seq.to_tuple()?,
             Err(_) => PyTuple::new(
                 ob.py(),
                 ob.try_iter()?
                     .map(|o| Ok(o?.unbind()))
-                    .collect::<PyResult<Vec<PyObject>>>()?,
+                    .collect::<PyResult<Vec<Py<PyAny>>>>()?,
             )?,
         };
         Ok(TupleLikeArg { value })
@@ -170,9 +181,11 @@ pub enum VarsMode {
     Drop,
 }
 
-impl<'py> FromPyObject<'py> for VarsMode {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        match &*ob.downcast::<PyString>()?.to_string_lossy() {
+impl<'a, 'py> FromPyObject<'a, 'py> for VarsMode {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        match &*ob.cast::<PyString>()?.to_string_lossy() {
             "alike" => Ok(VarsMode::Alike),
             "captures" => Ok(VarsMode::Captures),
             "drop" => Ok(VarsMode::Drop),
@@ -183,17 +196,22 @@ impl<'py> FromPyObject<'py> for VarsMode {
     }
 }
 
-#[inline]
-pub fn getenv_use_multiple_threads() -> bool {
-    let parallel_context = env::var("QISKIT_IN_PARALLEL")
-        .unwrap_or_else(|_| "FALSE".to_string())
-        .to_uppercase()
-        == "TRUE";
-    let force_threads = env::var("QISKIT_FORCE_THREADS")
-        .unwrap_or_else(|_| "FALSE".to_string())
-        .to_uppercase()
-        == "TRUE";
-    !parallel_context || force_threads
+/// The mode to use when handling blocks for operations that create a new [dag_circuit::DAGCircuit]
+/// or [circuit_data::CircuitData] based on an existing one.
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum BlocksMode {
+    Drop,
+    Keep,
+}
+
+/// Simple error type for objects with built-in hard-coded capacity limits.
+#[derive(Clone, Copy, Debug, thiserror::Error)]
+#[error("exceeded allowed runtime capacity")]
+pub struct CapacityError;
+impl From<CapacityError> for PyErr {
+    fn from(val: CapacityError) -> PyErr {
+        PyRuntimeError::new_err(val.to_string())
+    }
 }
 
 pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
@@ -207,31 +225,7 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<bit::PyQuantumRegister>()?;
     m.add_class::<bit::PyAncillaRegister>()?;
 
-    // We need to explicitly add the auto-generated Python subclasses of Duration
-    // to the module so that pickle can find them during deserialization.
-    m.add_class::<duration::Duration>()?;
-    m.add(
-        "Duration_ns",
-        duration::Duration::type_object(m.py()).getattr("ns")?,
-    )?;
-    m.add(
-        "Duration_us",
-        duration::Duration::type_object(m.py()).getattr("us")?,
-    )?;
-    m.add(
-        "Duration_ms",
-        duration::Duration::type_object(m.py()).getattr("ms")?,
-    )?;
-    m.add(
-        "Duration_s",
-        duration::Duration::type_object(m.py()).getattr("s")?,
-    )?;
-    m.add(
-        "Duration_dt",
-        duration::Duration::type_object(m.py()).getattr("dt")?,
-    )?;
-
-    m.add_class::<circuit_data::CircuitData>()?;
+    m.add_class::<circuit_data::PyCircuitData>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
     m.add_class::<dag_circuit::DAGCircuit>()?;
     m.add_class::<dag_node::DAGNode>()?;
@@ -239,9 +233,15 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<dag_node::DAGOutNode>()?;
     m.add_class::<dag_node::DAGOpNode>()?;
     m.add_class::<dag_circuit::PyBitLocations>()?;
+    m.add_class::<duration::Duration>()?;
+    m.add_class::<operations::ControlFlowType>()?;
     m.add_class::<operations::StandardGate>()?;
     m.add_class::<operations::StandardInstructionType>()?;
-    m.add_class::<parameter_expression::ParameterExpression>()?;
+    m.add_class::<parameter::parameter_expression::PyParameterExpression>()?;
+    m.add_class::<parameter::parameter_expression::PyParameter>()?;
+    m.add_class::<parameter::parameter_expression::PyParameterVectorElement>()?;
+    m.add_class::<parameter::parameter_expression::OpCode>()?;
+    m.add_class::<parameter::parameter_expression::OPReplay>()?;
     let classical_mod = PyModule::new(m.py(), "classical")?;
     classical::register_python(&classical_mod)?;
     m.add_submodule(&classical_mod)?;

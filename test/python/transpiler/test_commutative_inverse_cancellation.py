@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -13,7 +13,7 @@
 """Test transpiler pass that cancels inverse gates while exploiting the commutation relations."""
 
 import unittest
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 import numpy as np
 from ddt import data, ddt
@@ -918,6 +918,24 @@ class TestCommutativeInverseCancellation(QiskitTestCase):
         circuit = QuantumCircuit(2)
         circuit.append(initialize, [0, 1])
         circuit.x(1)
+
+        pm = PassManager(CommutativeInverseCancellation())
+        tqc = pm.run(circuit)
+
+        # The pass should run successfully but not reduce anything
+        self.assertEqual(circuit, tqc)
+
+    def test_controlled_state_at_zero(self):
+        """Regression test of #14974.
+
+        Two gates with not-all-ones control-states were wrongly
+        detected to commute, leading to invalid simplification.
+        """
+        circuit = QuantumCircuit(2)
+        circuit.csdg(0, 1, ctrl_state=0)
+        circuit.crx(1, 0, 1, ctrl_state=0)
+        circuit.cs(0, 1, ctrl_state=0)
+        circuit.ry(1, 1)
 
         pm = PassManager(CommutativeInverseCancellation())
         tqc = pm.run(circuit)

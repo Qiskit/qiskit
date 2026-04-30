@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -12,7 +12,6 @@
 
 """iSWAP gate."""
 
-from typing import Optional
 
 import numpy as np
 
@@ -35,7 +34,7 @@ class iSwapGate(SingletonGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.iswap` method.
 
-    **Circuit Symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -43,7 +42,7 @@ class iSwapGate(SingletonGate):
               │
         q_1: ─⨂─
 
-    **Reference Implementation:**
+    Reference implementation:
 
     .. code-block:: text
 
@@ -53,7 +52,7 @@ class iSwapGate(SingletonGate):
         q_1: ┤ S ├─────┤ X ├──■──┤ H ├
              └───┘     └───┘     └───┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -87,15 +86,18 @@ class iSwapGate(SingletonGate):
 
     _standard_gate = StandardGate.ISwap
 
-    def __init__(self, label: Optional[str] = None):
-        """Create new iSwap gate."""
+    def __init__(self, label: str | None = None):
+        """
+        Args:
+            label: An optional label for the gate.
+        """
         super().__init__("iswap", 2, [], label=label)
 
     _singleton_lookup_key = stdlib_singleton_key()
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         #      ┌───┐┌───┐     ┌───┐
@@ -105,7 +107,7 @@ class iSwapGate(SingletonGate):
         #      └───┘     └───┘     └───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.ISwap._get_definition(self.params), add_regs=True, name=self.name
+            StandardGate.ISwap._get_definition(self.params), legacy_qubits=True
         )
 
     def power(self, exponent: float, annotated: bool = False):

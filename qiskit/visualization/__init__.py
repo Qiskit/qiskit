@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -26,6 +26,15 @@ development environment:
 .. code-block:: bash
 
    pip install 'qiskit[visualization]'
+
+.. warning::
+
+    In general, the visualization tooling in Qiskit may call system programs on arbitrary user
+    input, and should only be used on trusted inputs.  The visualization tooling provided in Qiskit
+    is mostly intended for local visualization, and deliberately allows user code injection in
+    several places, such as Graphviz node labels like register names in :meth:`.DAGCircuit.draw`, or
+    LaTeX instruction labels from :attr:`.Instruction.label` in the ``latex`` mode of
+    :meth:`.QuantumCircuit.draw`.
 
 Common Keyword Arguments
 ========================

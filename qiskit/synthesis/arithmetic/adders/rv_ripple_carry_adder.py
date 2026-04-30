@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -77,7 +77,6 @@ def _mcx_ladder(n_mcx: int, alpha: int):
 
 
 def adder_ripple_r25(num_qubits: int) -> QuantumCircuit:
-    # pylint: disable=line-too-long
     r"""The RV ripple carry adder [1].
     Construct an ancilla-free quantum adder circuit with sublinear depth based on the RV ripple-carry
     adder shown in [1]. The implementation has a depth of :math:`O(\log^2 n)` and uses
@@ -119,9 +118,9 @@ def adder_ripple_r25(num_qubits: int) -> QuantumCircuit:
         The quantum circuit implementing the RV ripple carry adder.
 
     Raises:
-        ValueError: If ``num_state_qubits`` is lower than 1.
+        ValueError: If ``num_qubits`` is lower than 1.
 
-    **References:**
+    References:
 
     1. Remaud and Vandaele, Ancilla-free Quantum Adder with Sublinear Depth, 2025.
     `arXiv:2501.16802 <https://arxiv.org/abs/2501.16802>`__

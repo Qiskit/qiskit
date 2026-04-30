@@ -4,13 +4,11 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
-# pylint: disable=missing-function-docstring,missing-class-docstring
 
 
 """
@@ -39,7 +37,7 @@ from qiskit.circuit import Measure, Reset
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.singleton import SingletonGate
 from qiskit.converters import dag_to_circuit, circuit_to_dag
-from test.utils.base import QiskitTestCase  # pylint: disable=wrong-import-order
+from test.utils.base import QiskitTestCase
 
 
 class TestSingleton(QiskitTestCase):
@@ -123,7 +121,7 @@ class TestSingleton(QiskitTestCase):
     def test_control_a_singleton(self):
         singleton_gate = HGate()
         gate = HGate(label="special")
-        ch = gate.control(label="my_ch")
+        ch = gate.control(annotated=False, label="my_ch")
         self.assertEqual(ch.base_gate.label, "special")
         self.assertIsNot(ch.base_gate, singleton_gate)
 
@@ -292,7 +290,7 @@ class TestSingleton(QiskitTestCase):
                 self.n = n
 
             @staticmethod
-            def _singleton_lookup_key(n=0, label=None):  # pylint: disable=arguments-differ
+            def _singleton_lookup_key(n=0, label=None):
                 # This is an atypical usage - in Qiskit standard gates, the `label` being set
                 # not-None should not generate a singleton, so should return a mutable instance.
                 return (n, label)
@@ -331,7 +329,7 @@ class TestSingleton(QiskitTestCase):
                 self.n = n
 
             @staticmethod
-            def _singleton_lookup_key(n=0, label=None):  # pylint: disable=arguments-differ
+            def _singleton_lookup_key(n=0, label=None):
                 return (n, label)
 
         default = Discrete()
@@ -378,7 +376,7 @@ class TestSingleton(QiskitTestCase):
                 self.n = n
 
             @staticmethod
-            def _singleton_lookup_key(n=0, label=None):  # pylint: disable=arguments-differ
+            def _singleton_lookup_key(n=0, label=None):
                 return (n, label)
 
         # Pickle needs the class to be importable.  We want the class to only be instantiated inside
@@ -394,7 +392,7 @@ class TestSingleton(QiskitTestCase):
         mutable = Discrete(3)
 
         with unittest.mock.patch.dict(sys.modules, {dummy_module.__name__: dummy_module}):
-            # The singletons in `additional_singletons` are statics; their lifetimes should be tied
+            # The singletons in `additional_singletons` are static; their lifetimes should be tied
             # to the type object itself, so if we don't delete it, it should be eligible to be
             # reloaded from and produce the exact instances.
             self.assertIs(default, pickle.loads(pickle.dumps(default)))
@@ -487,7 +485,7 @@ class TestSingletonControlledGate(QiskitTestCase):
     def test_control_a_singleton(self):
         singleton_gate = CHGate()
         gate = CHGate(label="special")
-        ch = gate.control(label="my_ch")
+        ch = gate.control(annotated=False, label="my_ch")
         self.assertEqual(ch.base_gate.label, "special")
         self.assertIsNot(ch.base_gate, singleton_gate)
 
@@ -542,20 +540,20 @@ class TestSingletonControlledGate(QiskitTestCase):
 
     def test_inner_gate_label(self):
         inner_gate = HGate(label="my h gate")
-        controlled_gate = inner_gate.control()
+        controlled_gate = inner_gate.control(annotated=False)
         self.assertTrue(controlled_gate.mutable)
         self.assertEqual("my h gate", controlled_gate.base_gate.label)
 
     def test_inner_gate_label_outer_label_too(self):
         inner_gate = HGate(label="my h gate")
-        controlled_gate = inner_gate.control(label="foo")
+        controlled_gate = inner_gate.control(annotated=False, label="foo")
         self.assertTrue(controlled_gate.mutable)
         self.assertEqual("my h gate", controlled_gate.base_gate.label)
         self.assertEqual("foo", controlled_gate.label)
 
     def test_inner_outer_label_pickle(self):
         inner_gate = XGate(label="my h gate")
-        controlled_gate = inner_gate.control(label="foo")
+        controlled_gate = inner_gate.control(annotated=False, label="foo")
         self.assertTrue(controlled_gate.mutable)
         self.assertEqual("my h gate", controlled_gate.base_gate.label)
         self.assertEqual("foo", controlled_gate.label)

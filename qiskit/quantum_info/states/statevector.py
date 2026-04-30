@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -78,7 +78,7 @@ class Statevector(QuantumState, TolerancesMixin):
               with the total number of subsystems given by the length of the list.
 
             * ``Int`` or ``None`` -- the length of the input vector
-              specifies the total dimension of the density matrix. If it is a
+              specifies the total dimension of the state. If it is a
               power of two the state will be initialized as an N-qubit state.
               If it is not a power of two the state will have a single
               d-dimensional subsystem.
@@ -112,6 +112,75 @@ class Statevector(QuantumState, TolerancesMixin):
             elif ndim != 2 or shape[1] != 1:
                 raise QiskitError("Invalid input: not a vector or column-vector.")
         super().__init__(op_shape=OpShape.auto(shape=shape, dims_l=dims, num_qubits_r=0))
+
+    @classmethod
+    def from_circuit(cls, circuit: QuantumCircuit, ignore_set_layout: bool = False) -> Statevector:
+        """Create a Statevector from a quantum circuit.
+
+        Args:
+            circuit (QuantumCircuit): A quantum circuit
+            ignore_set_layout (bool): When set to ``True``, if the input ``circuit``
+                has a layout set, it will be ignored. Defaults to ``False``.
+
+        Returns:
+            The statevector obtained by applying the circuit on the all-zero
+            input state.
+
+        Example:
+            Create a statevector from a transpiled circuit:
+
+            .. plot::
+               :include-source:
+               :nofigs:
+
+                from qiskit import QuantumCircuit, transpile
+                from qiskit.quantum_info import Statevector
+                from qiskit.providers.basic_provider import BasicSimulator
+
+                qc = QuantumCircuit(3)
+                qc.h(0)
+                qc.cx(0, 1)
+                qc.swap(1, 2)
+
+                backend = BasicSimulator()
+                transpiled1 = transpile(qc, backend, optimization_level=0)
+                transpiled2 = transpile(qc, backend, optimization_level=2)
+
+                # Get statevectors accounting for layout changes
+                sv1 = Statevector.from_circuit(transpiled1)
+                sv2 = Statevector.from_circuit(transpiled2)
+
+                # These will be equivalent up to global phase
+                print(sv1.equiv(sv2))  # True
+        """
+
+        from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
+
+        # Handle layout extraction
+        layout = None
+        if not ignore_set_layout:
+            layout = circuit.layout
+        # Create statevector using from_instruction (which iterates through circuit)
+        statevec = cls.from_instruction(circuit)
+
+        # Apply layout permutations if needed (this handles transpiler layout changes)
+        if not ignore_set_layout and layout is not None:
+            layout_indices = layout.final_index_layout()
+            # Apply LSb0 qubit ordering (least-significant-bit is 0)
+            num_qubits = statevec.num_qubits
+            reversed_perm = [
+                num_qubits - 1 - layout_indices[num_qubits - 1 - i] for i in range(num_qubits)
+            ]
+
+            # Use NumPy tensor reordering to apply the permutation efficiently
+            # Reshape to tensor (one dimension per qubit)
+            data_tensor = np.reshape(statevec._data, (2,) * num_qubits)
+            # Apply permutation via transpose
+            permuted_tensor = np.transpose(data_tensor, reversed_perm)
+            # Flatten back to statevector
+            statevec._data = np.reshape(permuted_tensor, -1)
+
+        return statevec
 
     def __array__(self, dtype=None, copy=_numpy_compat.COPY_ONLY_IF_NEEDED):
         dtype = self.data.dtype if dtype is None else dtype
@@ -190,7 +259,7 @@ class Statevector(QuantumState, TolerancesMixin):
                 sv.draw(output='hinton')
 
         """
-        # pylint: disable=cyclic-import
+
         from qiskit.visualization.state_visualization import state_drawer
 
         return state_drawer(self, output=output, **drawer_args)
@@ -198,7 +267,7 @@ class Statevector(QuantumState, TolerancesMixin):
     def _ipython_display_(self):
         out = self.draw()
         if isinstance(out, str):
-            print(out)  # pylint: disable=bad-builtin
+            print(out)  # noqa: T201
         else:
             from IPython.display import display
 
@@ -484,9 +553,6 @@ class Statevector(QuantumState, TolerancesMixin):
         z_mask = np.dot(1 << qubits, pauli.z)
         pauli_phase = (-1j) ** pauli.phase if pauli.phase else 1
 
-        if x_mask + z_mask == 0:
-            return pauli_phase * np.linalg.norm(self.data) ** 2
-
         if x_mask == 0:
             return pauli_phase * expval_pauli_no_x(self.data, self.num_qubits, z_mask)
 
@@ -622,7 +688,7 @@ class Statevector(QuantumState, TolerancesMixin):
 
         Additional Information:
             If all subsystems are reset this will return the ground state
-            on all subsystems. If only a some subsystems are reset this
+            on all subsystems. If only some subsystems are reset this
             function will perform a measurement on those subsystems and
             evolve the subsystems so that the collapsed post-measurement
             states are rotated to the 0-state. The RNG seed for this
@@ -678,11 +744,11 @@ class Statevector(QuantumState, TolerancesMixin):
              - :math:`[1 / \\sqrt{2},  -i / \\sqrt{2}]`
 
         Args:
-            label (string): a eigenstate string ket label (see table for
+            label (string): an eigenstate string ket label (see table for
                             allowed values).
 
         Returns:
-            Statevector: The N-qubit basis state density matrix.
+            Statevector: The N-qubit basis state statevector.
 
         Raises:
             QiskitError: if the label contains invalid characters, or the
@@ -744,7 +810,7 @@ class Statevector(QuantumState, TolerancesMixin):
 
             * ``Int`` -- the integer specifies the total dimension of the
               state. If it is a power of two the state will be initialized
-              as an N-qubit state. If it is not a power of  two the state
+              as an N-qubit state. If it is not a power of two the state
               will have a single d-dimensional subsystem.
         """
         size = np.prod(dims)
@@ -908,7 +974,7 @@ class Statevector(QuantumState, TolerancesMixin):
         # pylint complains about a cyclic import since the following Initialize file
         # imports the StatePreparation, which again requires the Statevector (this file),
         # but as this is a local import, it's not actually an issue and can be ignored
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit.library.data_preparation.initializer import Initialize
 
         mat = Operator._instruction_to_matrix(obj)

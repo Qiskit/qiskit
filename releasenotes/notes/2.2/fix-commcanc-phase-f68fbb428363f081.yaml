@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed several issues in the :class:`.CommutativeCancellation` transpiler pass (and thereby in
+    :func:`.transpile`), where the global phase of the circuit was not updated correctly.
+    In particular, merging an X-gate and an RX-gate introduced a phase mismatch,
+    while removing a Pauli rotation gate with angle of the form
+    :math:`(2 + 4k)\pi`, :math:`k \in \mathbb Z` incorrectly produced a phase shift of :math:`-1`.

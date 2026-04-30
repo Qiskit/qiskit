@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -52,8 +52,6 @@ CF_RIGHT = 2
 
 class TextDrawerEncodingError(VisualizationError):
     """A problem with encoding"""
-
-    pass
 
 
 class DrawElement:
@@ -240,7 +238,7 @@ class MultiBox(DrawElement):
         """In multi-bit elements, the label is centered vertically.
 
         Args:
-            input_length (int): Rhe amount of wires affected.
+            input_length (int): The amount of wires affected.
             order (int): Which middle element is this one?
         """
         if input_length == order == 0:
@@ -714,6 +712,8 @@ class TextDrawing:
         encoding=None,
         with_layout=False,
         expr_len=30,
+        measure_arrows=None,
+        barrier_label_len=16,
     ):
         self.qubits = qubits
         self.clbits = clbits
@@ -733,6 +733,8 @@ class TextDrawing:
         self.reverse_bits = reverse_bits
         self.line_length = line_length
         self.expr_len = expr_len
+        self.barrier_label_len = barrier_label_len
+        self.measure_arrows = measure_arrows
         if vertical_compression not in ["high", "medium", "low"]:
             raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
         self.vertical_compression = vertical_compression
@@ -944,11 +946,10 @@ class TextDrawing:
 
             if bot_line is None:
                 lines.append(top_line)
+            elif self.should_compress(top_line, bot_line):
+                lines.append(TextDrawing.merge_lines(lines.pop(), top_line))
             else:
-                if self.should_compress(top_line, bot_line):
-                    lines.append(TextDrawing.merge_lines(lines.pop(), top_line))
-                else:
-                    lines.append(TextDrawing.merge_lines(lines[-1], top_line, icod="bot"))
+                lines.append(TextDrawing.merge_lines(lines[-1], top_line, icod="bot"))
 
             # MID
             mid_line = ""
@@ -1108,8 +1109,16 @@ class TextDrawing:
         conditional = False
         base_gate = getattr(op, "base_gate", None)
 
-        params = get_param_str(op, "text", ndigits=5)
-        if not isinstance(op, (Measure, SwapGate, Reset)) and not getattr(op, "_directive", False):
+        # For measure_arrows False, put the reg_bit into the params string
+        if isinstance(op, Measure) and not self.measure_arrows:
+            register, _, reg_index = get_bit_reg_index(self._circuit, node.cargs[0])
+            if register is not None:
+                params = f"{register.name}_{reg_index}"
+            else:
+                params = f"{reg_index}"
+        else:
+            params = get_param_str(op, "text", ndigits=5)
+        if not isinstance(op, (SwapGate, Reset)) and not getattr(op, "_directive", False):
             gate_text, ctrl_text, _ = get_gate_ctrl_text(op, "text")
             gate_text = TextDrawing.special_label(op) or gate_text
             gate_text = gate_text + params
@@ -1136,7 +1145,7 @@ class TextDrawing:
                     mod_control = modifier
                     break
 
-        if isinstance(op, Measure):
+        if self.measure_arrows and isinstance(op, Measure):
             gate = MeasureFrom()
             layer.set_qubit(node.qargs[0], gate)
             register, _, reg_index = get_bit_reg_index(self._circuit, node.cargs[0])
@@ -1157,6 +1166,8 @@ class TextDrawing:
             for qubit in node.qargs:
                 if qubit in self.qubits:
                     label = op.label if qubit == top_qubit else ""
+                    if label and len(label) > self.barrier_label_len:
+                        label = label[: self.barrier_label_len] + "..."
                     layer.set_qubit(qubit, Barrier(label))
 
         elif isinstance(op, SwapGate):
@@ -1174,8 +1185,10 @@ class TextDrawing:
             gates = [Bullet(conditional=conditional), Bullet(conditional=conditional)]
             add_connected_gate(node, gates, layer, current_cons, gate_wire_map)
 
-        elif len(node.qargs) == 1 and not node.cargs:
-            # unitary gate
+        elif (len(node.qargs) == 1 and not node.cargs) or (
+            not self.measure_arrows and isinstance(op, Measure)
+        ):
+            # single qubit gate or measure with measure_arrows False
             layer.set_qubit(node.qargs[0], BoxOnQuWire(gate_text, conditional=conditional))
 
         elif isinstance(op, ControlledGate) or mod_control:
@@ -1235,7 +1248,8 @@ class TextDrawing:
             add_connected_gate(node, gates, layer, current_cons, gate_wire_map)
 
         elif len(node.qargs) >= 2 and not node.cargs:
-            layer.set_qu_multibox(node.qargs, gate_text, conditional=conditional)
+            mapped_qargs = [self.qubits[gate_wire_map[q]] for q in node.qargs]
+            layer.set_qu_multibox(mapped_qargs, gate_text, conditional=conditional)
 
         elif node.qargs and node.cargs:
             layer._set_multibox(
@@ -1346,7 +1360,7 @@ class TextDrawing:
 
         if isinstance(node.op, SwitchCaseOp):
             # Create an empty circuit at the head of the circuit_list if a Switch box
-            circuit_list.insert(0, list(node.op.cases_specifier())[0][1].copy_empty_like())
+            circuit_list.insert(0, next(iter(node.op.cases_specifier()))[1].copy_empty_like())
 
         for circ_num, circuit in enumerate(circuit_list):
             # Update the wire_map with the qubits and clbits from the inner circuit
@@ -1834,13 +1848,12 @@ class Layer:
                         affected_bit.connect(wire_char, ["top"])
                     else:
                         affected_bit.connect(wire_char, ["bot", "top"])
+                elif index == 0:
+                    affected_bit.connect(wire_char, ["bot"])
+                elif index == len(affected_bits) - 1:
+                    affected_bit.connect(wire_char, ["top"], label)
                 else:
-                    if index == 0:
-                        affected_bit.connect(wire_char, ["bot"])
-                    elif index == len(affected_bits) - 1:
-                        affected_bit.connect(wire_char, ["top"], label)
-                    else:
-                        affected_bit.connect(wire_char, ["bot", "top"])
+                    affected_bit.connect(wire_char, ["bot", "top"])
 
             if label:
                 for affected_bit in affected_bits:

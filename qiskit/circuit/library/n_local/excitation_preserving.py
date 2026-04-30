@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -62,34 +62,34 @@ def excitation_preserving(
     a simpler pattern.
 
     This trial wave function consists of layers of :math:`Z` rotations with 2-qubit entanglements.
-    The entangling is creating using :math:`XX+YY` rotations and optionally a controlled-phase
+    The entanglement is created using :math:`XX+YY` rotations and optionally a controlled-phase
     gate for the mode ``"fsim"``.
 
     Examples:
 
-        With linear entanglement, this circuit is given by:
+    With linear entanglement, this circuit is given by:
 
-        .. plot::
-            :alt: Circuit diagram output by the previous code.
-            :include-source:
-            :context: close-figs
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
+        :context: close-figs
 
-            from qiskit.circuit.library import excitation_preserving
+        from qiskit.circuit.library import excitation_preserving
 
-            ansatz = excitation_preserving(3, reps=1, insert_barriers=True, entanglement="linear")
-            ansatz.draw("mpl")
+        ansatz = excitation_preserving(3, reps=1, insert_barriers=True, entanglement="linear")
+        ansatz.draw("mpl")
 
-        The entanglement structure can be explicitly specified with the ``entanglement``
-        argument. The ``"fsim"`` mode includes an additional parameterized :class:`.CPhaseGate`
-        in each block:
+    The entanglement structure can be explicitly specified with the ``entanglement``
+    argument. The ``"fsim"`` mode includes an additional parameterized :class:`.CPhaseGate`
+    in each block:
 
-        .. plot::
-            :alt: Circuit diagram output by the previous code.
-            :include-source:
-            :context:
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
+        :context:
 
-            ansatz = excitation_preserving(3, reps=1, mode="fsim", entanglement=[[0, 2]])
-            ansatz.draw("mpl")
+        ansatz = excitation_preserving(3, reps=1, mode="fsim", entanglement=[[0, 2]])
+        ansatz.draw("mpl")
 
     Args:
         num_qubits: The number of qubits.
@@ -164,11 +164,11 @@ class ExcitationPreserving(TwoLocal):
     a simpler pattern.
 
     This trial wave function consists of layers of :math:`Z` rotations with 2-qubit entanglements.
-    The entangling is creating using :math:`XX+YY` rotations and optionally a controlled-phase
+    The entanglement is created using :math:`XX+YY` rotations and optionally a controlled-phase
     gate for the mode ``'fsim'``.
 
     See :class:`~qiskit.circuit.library.RealAmplitudes` for more detail on the possible arguments
-    and options such as skipping unentanglement qubits, which apply here too.
+    and options such as skipping unentangled qubits, which apply here too.
 
     The rotations of the ExcitationPreserving ansatz can be written as
 
@@ -261,6 +261,7 @@ class ExcitationPreserving(TwoLocal):
                 for anything besides visualization its **strongly** recommended
                 to set this flag to ``True`` to avoid a large performance
                 overhead for parameter binding.
+            name: Name of the circuit.
 
         Raises:
             ValueError: If the selected mode is not supported.

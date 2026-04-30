@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -41,6 +41,8 @@ def synth_clifford_bm(clifford: Clifford) -> QuantumCircuit:
            `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
     """
     circuit = QuantumCircuit._from_circuit_data(
-        synth_clifford_bm_inner(clifford.tableau.astype(bool)), add_regs=True, name=str(clifford)
+        synth_clifford_bm_inner(clifford.tableau.astype(bool)),
+        legacy_qubits=True,
+        name=str(clifford),
     )
     return circuit

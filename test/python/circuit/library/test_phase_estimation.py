@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -16,10 +16,10 @@ import unittest
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library import PhaseEstimation, QFT, phase_estimation
+from qiskit.circuit.library import PhaseEstimation, QFT, phase_estimation, RXGate
 from qiskit.quantum_info import Statevector
 from qiskit.compiler import transpile
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestPhaseEstimation(QiskitTestCase):
@@ -243,6 +243,22 @@ class TestPhaseEstimation(QiskitTestCase):
         self.assertNotIn("permutation", transpiled_ops)
         self.assertNotIn("swap", transpiled_ops)
         self.assertNotIn("cx", transpiled_ops)
+
+    def test_phase_estimation_with_gate(self):
+        """Test calling phase_estimation with a Gate instance."""
+        gate = RXGate(3 / 4 * np.pi)  # = exp(2pi i 3/16) -> binary repr is "0011" = 1/8 + 1/16
+        num_eval = 4
+        qpe = phase_estimation(num_eval, gate)
+
+        # check the efficient implementations of the gate are used
+        counts = qpe.count_ops()
+        self.assertEqual(counts.get("crx", 0), num_eval)
+
+        # check the result is correct too
+        eigenstate = QuantumCircuit(1)
+        eigenstate.x(0)
+        eigenstate.h(0)
+        self.assertPhaseEstimationIsCorrect(qpe, eigenstate, "0011")
 
 
 if __name__ == "__main__":

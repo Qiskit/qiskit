@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -16,25 +16,27 @@ use pyo3::prelude::*;
 use hashbrown::HashSet;
 use ndarray::aview2;
 use rand::prelude::*;
+use rand::rngs::SysRng;
 use rand_pcg::Pcg64Mcg;
 use rayon_cond::CondIterator;
 use rustworkx_core::petgraph::graph::NodeIndex;
 
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::nlayout::NLayout;
-use qiskit_circuit::{getenv_use_multiple_threads, PhysicalQubit, VirtualQubit};
+use qiskit_circuit::{BlocksMode, PhysicalQubit, VirtualQubit};
+use qiskit_util::getenv_use_multiple_threads;
 
+use crate::TranspilerError;
+use crate::neighbors::Neighbors;
 use crate::passes::{
     dense_layout,
     disjoint_layout::{self, DisjointSplit},
 };
 use crate::target::{Target, TargetCouplingError};
-use crate::TranspilerError;
 
 use super::dag::SabreDAG;
 use super::heuristic::Heuristic;
-use super::neighbors::Neighbors;
-use super::route::{swap_map, swap_map_trial, RoutingProblem, RoutingResult, RoutingTarget};
+use super::route::{RoutingProblem, RoutingResult, RoutingTarget, swap_map, swap_map_trial};
 
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
@@ -74,8 +76,8 @@ pub fn sabre_layout_and_routing(
             let trivial = NLayout::generate_trivial_layout(num_physical_qubits as u32);
             return Ok((out, trivial.clone(), trivial));
         }
-        Err(e @ TargetCouplingError::MultiQ) => {
-            return Err(TranspilerError::new_err(e.to_string()))
+        Err(e @ TargetCouplingError::MultiQ(_)) => {
+            return Err(TranspilerError::new_err(e.to_string()));
         }
     };
     let mut starting_layouts = (0..num_random_trials)
@@ -84,7 +86,7 @@ pub fn sabre_layout_and_routing(
     let seeds = |count| {
         match seed {
             Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-            None => Pcg64Mcg::from_os_rng(),
+            None => Pcg64Mcg::try_from_rng(&mut SysRng).unwrap(),
         }
         .sample_iter(&rand::distr::StandardUniform)
         .take(count)
@@ -172,6 +174,7 @@ pub fn sabre_layout_and_routing(
                 num_physical_qubits,
                 dag.num_ops() + num_swaps,
                 dag.dag().edge_count() + 2 * num_swaps,
+                BlocksMode::Drop,
             )?;
             let qubit_fn = |q: PhysicalQubit| {
                 subset
@@ -314,7 +317,12 @@ pub fn sabre_layout_and_routing(
                 NLayout::from_physical_to_virtual(initial_physical).expect("all indices are valid");
             if skip_routing {
                 Ok((
-                    dag.physical_empty_like_with_capacity(num_physical_qubits, 0, 0)?,
+                    dag.physical_empty_like_with_capacity(
+                        num_physical_qubits,
+                        0,
+                        0,
+                        BlocksMode::Drop,
+                    )?,
                     initial_layout.clone(),
                     initial_layout,
                 ))
@@ -444,11 +452,7 @@ fn add_heuristic_layouts(
     let num_physical_qubits = problem.target.neighbors.num_qubits();
     // Run a dense layout trial
     starting_layouts.push(compute_dense_starting_layout(
-        // TODO: This actually should be `dag.num_qubits()`, but a side-effect of the previous
-        // Python-space disjoint coupling handling meant that DAGs were being expanded to full
-        // hardware width (of the relevant component) before Sabre was called, so were running in
-        // this configuration instead.  This behaviour is initially kept for RNG compatibility.
-        num_physical_qubits,
+        problem.dag.num_qubits(),
         problem.target,
         run_in_parallel,
     ));
