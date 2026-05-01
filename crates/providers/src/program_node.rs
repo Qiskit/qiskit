@@ -16,10 +16,10 @@ use crate::tensor::{Tensor, TensorType};
 /// A node in a quantum program graph that transforms tensors.
 pub trait ProgramNode {
     /// The name of this program node.
-    fn name(&self) -> &'static str;
+    fn name(&self) -> &str;
 
     /// The namespace this program node belongs to.
-    fn namespace(&self) -> &'static str;
+    fn namespace(&self) -> &str;
 
     /// The namespace and name as one string.
     fn full_name(&self) -> String {

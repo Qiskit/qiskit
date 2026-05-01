@@ -13,7 +13,7 @@
 use crate::data_tree::DataTree;
 use crate::program_node::ProgramNode;
 use crate::tensor::{Tensor, TensorType};
-use std::sync::OnceLock;
+use std::sync::LazyLock;
 
 /// A program node that owns constant data and outputs it unconditionally.
 ///
@@ -58,17 +58,18 @@ fn derive_output_types(data: &DataTree<Tensor>) -> DataTree<TensorType> {
 }
 
 impl ProgramNode for Store {
-    fn name(&self) -> &'static str {
+    fn name(&self) -> &str {
         "store"
     }
 
-    fn namespace(&self) -> &'static str {
+    fn namespace(&self) -> &str {
         "core"
     }
 
     fn input_types(&self) -> &DataTree<TensorType> {
-        static EMPTY: OnceLock<DataTree<TensorType>> = OnceLock::new();
-        EMPTY.get_or_init(DataTree::new)
+        // Stores never have inputs; use a static to avoid per-instance storage
+        static EMPTY: LazyLock<DataTree<TensorType>> = LazyLock::new(DataTree::new);
+        &EMPTY
     }
 
     fn output_types(&self) -> &DataTree<TensorType> {
@@ -115,8 +116,7 @@ mod tests {
     #[test]
     fn test_store_output_types_2d() {
         use ndarray::arr2;
-        let data =
-            DataTree::new_leaf(Tensor::F64(arr2(&[[1.0_f64, 2.0], [3.0, 4.0]]).into_dyn()));
+        let data = DataTree::new_leaf(Tensor::F64(arr2(&[[1.0_f64, 2.0], [3.0, 4.0]]).into_dyn()));
         let store = Store::new(data);
         let DataTree::Leaf(tt) = store.output_types() else {
             panic!("expected leaf output type");
