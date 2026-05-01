@@ -210,14 +210,13 @@ pub struct TensorType {
 impl TensorType {
     /// Return a dimension vector if all sizes are fixed, or `None` if any are named.
     pub fn concrete_shape(&self) -> Option<Vec<usize>> {
-        let mut out = Vec::with_capacity(self.shape.len());
-        for d in &self.shape {
-            match d {
-                Dim::Fixed(n) => out.push(*n),
-                Dim::Named(_) => return None,
-            }
-        }
-        Some(out)
+        self.shape
+            .iter()
+            .map(|d| match d {
+                Dim::Fixed(n) => Some(*n),
+                Dim::Named(_) => None,
+            })
+            .collect()
     }
 }
 
