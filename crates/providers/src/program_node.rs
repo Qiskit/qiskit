@@ -23,7 +23,7 @@ pub trait ProgramNode {
 
     /// The namespace and name as one string.
     fn full_name(&self) -> String {
-        format_args!("{}.{}", self.namespace(), self.name()).to_string()
+        format!("{}.{}", self.namespace(), self.name())
     }
 
     /// The inputs expected at `call` time.
