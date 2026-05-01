@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use ndarray::{ArrayD, IxDyn, Zip};
-use num_complex::Complex;
+use num_complex::{Complex32, Complex64};
 use std::fmt;
 
 /// The possible data types for a Tensor.
@@ -104,9 +104,6 @@ pub enum DTypeLike {
 pub fn promotion(lhs: DType, rhs: DType) -> DType {
     use DType::*;
 
-    // painfully write a lookup table as a nested match statement. to check if it's right,
-    // compare agaist the linked image, or more easily, study the test
-    // test_promotion_against_promotion_dag that tests every input combination.
     match lhs {
         C128 => C128,
 
@@ -223,8 +220,8 @@ impl TensorType {
 /// A tensor of one of the supported dtypes.
 #[derive(Debug, Clone)]
 pub enum Tensor {
-    C64(ArrayD<Complex<f32>>), // complex
-    C128(ArrayD<Complex<f64>>),
+    C64(ArrayD<Complex32>), // complex
+    C128(ArrayD<Complex64>),
     F32(ArrayD<f32>), // real
     F64(ArrayD<f64>),
     I8(ArrayD<i8>), // signed integer
@@ -253,8 +250,8 @@ macro_rules! cast_real {
             DType::I64 => Tensor::I64($arr.mapv(|x: $src| x as i64)),
             DType::F32 => Tensor::F32($arr.mapv(|x: $src| x as f32)),
             DType::F64 => Tensor::F64($arr.mapv(|x: $src| x as f64)),
-            DType::C64 => Tensor::C64($arr.mapv(|x: $src| Complex::new(x as f32, 0.0))),
-            DType::C128 => Tensor::C128($arr.mapv(|x: $src| Complex::new(x as f64, 0.0))),
+            DType::C64 => Tensor::C64($arr.mapv(|x: $src| Complex32::new(x as f32, 0.0))),
+            DType::C128 => Tensor::C128($arr.mapv(|x: $src| Complex64::new(x as f64, 0.0))),
         }
     };
 }
@@ -263,8 +260,8 @@ macro_rules! cast_real {
 macro_rules! cast_complex {
     ($arr:expr, $target:expr) => {
         match $target {
-            DType::C64 => Tensor::C64($arr.mapv(|x| Complex::new(x.re as f32, x.im as f32))),
-            DType::C128 => Tensor::C128($arr.mapv(|x| Complex::new(x.re as f64, x.im as f64))),
+            DType::C64 => Tensor::C64($arr.mapv(|x| Complex32::new(x.re as f32, x.im as f32))),
+            DType::C128 => Tensor::C128($arr.mapv(|x| Complex64::new(x.re as f64, x.im as f64))),
             _ => panic!("cannot cast complex tensor to a real dtype"),
         }
     };
@@ -447,8 +444,8 @@ macro_rules! impl_tensor_from {
     };
 }
 
-impl_tensor_from!(C128, Complex<f64>);
-impl_tensor_from!(C64, Complex<f32>);
+impl_tensor_from!(C128, Complex64);
+impl_tensor_from!(C64, Complex32);
 impl_tensor_from!(F64, f64);
 impl_tensor_from!(F32, f32);
 impl_tensor_from!(I64, i64);
@@ -532,10 +529,10 @@ mod test {
     #[test]
     fn test_promotion_against_promotion_dag() {
         use DType::*;
+        use hashbrown::{HashMap, HashSet};
         use rustworkx_core::dag_algo::lexicographical_topological_sort;
         use rustworkx_core::petgraph::graph::{DiGraph, NodeIndex};
         use rustworkx_core::traversal::descendants;
-        use std::collections::{HashMap, HashSet};
 
         // define a DAG that implements all promotion rules; two DTypes
         // should be promoted to their least common descendent in the DAG
@@ -593,10 +590,10 @@ mod test {
         .unwrap();
 
         let least_common_decendent = move |a: &DType, b: &DType| -> DType {
-            let da: HashSet<_> = descendants(&g, idx[&a]).collect();
-            let db: HashSet<_> = descendants(&g, idx[&b]).collect();
+            let da: HashSet<_> = descendants(&g, idx[a]).collect();
+            let db: HashSet<_> = descendants(&g, idx[b]).collect();
             let common: HashSet<NodeIndex> = da.intersection(&db).copied().collect();
-            let least_idx = order.iter().find(|n| common.contains(n)).unwrap();
+            let least_idx = order.iter().find(|n| common.contains(*n)).unwrap();
             nodes[least_idx.index()]
         };
 
