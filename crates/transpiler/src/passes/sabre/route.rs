@@ -526,7 +526,7 @@ impl State {
                         continue;
                     }
                 }
-                InteractionKind::ControlFlow(blocks) => {
+                InteractionKind::ControlFlow(blocks, _outer_qargs) => {
                     let dag_node_id = *node.indices.first().expect(
                         "if control-flow interactions are included, so are original DAG indices",
                     );
