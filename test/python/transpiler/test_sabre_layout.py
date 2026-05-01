@@ -533,11 +533,16 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         layout_routing_pass = SabreLayout(disjoint, seed=2026_04_30, swap_trials=1, layout_trials=1)
         out = layout_routing_pass(qc)
 
-        self.assertEqual(
+        layout_qubits = list(range(qc.num_qubits))
+        self.assertCountEqual(
             out.layout.initial_index_layout(filter_ancillas=False),
-            out.layout.final_index_layout(filter_ancillas=False),
+            layout_qubits,
         )
-        self.assertEqual(out.layout.routing_permutation(), [0, 1, 2, 3])
+        self.assertCountEqual(
+            out.layout.final_index_layout(filter_ancillas=False),
+            layout_qubits,
+        )
+        self.assertEqual(out.layout.routing_permutation(), layout_qubits)
         cx_qubits = [
             {out.find_bit(qubit).index for qubit in instruction.qubits}
             for instruction in out.data
