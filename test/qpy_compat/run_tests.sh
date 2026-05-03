@@ -82,7 +82,7 @@ for i in "${!symengine_versions[@]}"; do
     symengine_venv="$symengine_venv_prefix$i"
     files_dir="$symengine_files_prefix$i"
     python -m venv "$symengine_venv"
-    "$symengine_venv/bin/pip" install -c "$repo_root/constraints.txt" "$qiskit_dev_wheel" "symengine$specifier"
+    "$symengine_venv/bin/pip" install -c "$repo_root/constraints.txt" packaging "$qiskit_dev_wheel" "symengine$specifier"
     mkdir -p "$files_dir"
     pushd "$files_dir"
     "$symengine_venv/bin/python" -c 'import symengine; print(symengine.__version__)' > "SYMENGINE_VERSION"

@@ -16,6 +16,7 @@ use std::time::Instant;
 use hashbrown::HashMap;
 use indexmap::{IndexMap, IndexSet};
 use rand::prelude::*;
+use rand::rngs::SysRng;
 use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
 use rustworkx_core::petgraph::data::Create;
@@ -143,7 +144,7 @@ impl Vf2PassConfiguration {
             None => {
                 // In Python space, `None` means "seed with OS entropy" because seeding was expected
                 // to be the default.
-                Some(Pcg64Mcg::from_os_rng().next_u64())
+                Some(Pcg64Mcg::try_from_rng(&mut SysRng).unwrap().next_u64())
             }
             Some(-1) => None,
             Some(seed) => {
@@ -316,9 +317,11 @@ struct VirtualInteractions<T> {
 }
 impl<T: Default> VirtualInteractions<T> {
     /// Create a set of virtual interactions from a DAG, and a weighter function for a single
-    /// interaction.  The weighter should return `true` on success, or `false` if no weight could be
-    /// created (indicating a necessary failure of the layout pass).
-    fn from_dag<W>(dag: &DAGCircuit, weighter: W) -> PyResult<Option<Self>>
+    /// interaction.
+    ///
+    /// The weighter should return `true` on success, or `false` if no weight could be created
+    /// (indicating a necessary failure of the layout pass).
+    fn try_from_dag<W>(dag: &DAGCircuit, weighter: W) -> PyResult<Option<Self>>
     where
         W: Fn(&mut T, &PackedInstruction, usize) -> bool,
     {
@@ -335,6 +338,19 @@ impl<T: Default> VirtualInteractions<T> {
                 .filter(|q| !(out.nodes.contains(q) || out.uncoupled.contains_key(q))),
         );
         Ok(Some(out))
+    }
+
+    /// Create a set of virtual interactions from a DAG, and a weighter function for a single
+    /// interaction.
+    fn from_dag<W>(dag: &DAGCircuit, weighter: W) -> PyResult<Self>
+    where
+        W: Fn(&mut T, &PackedInstruction, usize),
+    {
+        Self::try_from_dag(dag, |weight, inst, count| {
+            weighter(weight, inst, count);
+            true
+        })
+        .map(|res| res.expect("weighter is infallible so should always produce interactions"))
     }
 
     /// Add interactions from a given DAG.  Returns `false` if the weighter ever returned `false`.
@@ -658,14 +674,11 @@ where
         max_trials == 0 || trials <= max_trials
     };
     let mut vf2 = vf2.with_call_limit(config.call_limit.0).into_iter();
-    let (mut mapping, _score) = vf2.next()?.expect("error is infallible");
+    let Ok((mut mapping, _score)) = vf2.next()?;
     if can_continue() {
         vf2.call_limit = config.call_limit.1;
-        if let Some((new_mapping, _score)) = vf2
-            .take_while(|_| can_continue())
-            .last()
-            .map(|v| v.expect("error is infallible"))
-        {
+        if let Some(result) = vf2.take_while(|_| can_continue()).last() {
+            let Ok((new_mapping, _)) = result;
             mapping = new_mapping;
         }
     }
@@ -702,12 +715,8 @@ where
     for node in interactions.graph.node_indices() {
         let needle = interactions.graph.node_weight(node)?;
         let haystack = coupling.node_weight(node_map(node))?;
-        score = W::Score::combine(
-            &score,
-            &scorer
-                .score(needle, haystack)
-                .expect("error is infallible")?,
-        );
+        let Ok(partial) = scorer.score(needle, haystack);
+        score = W::Score::combine(&score, &partial?);
     }
     for edge in interactions.graph.edge_references() {
         let needle = edge.weight();
@@ -716,12 +725,8 @@ where
             .edges_connecting(node_map(edge.source()), node_map(edge.target()))
             .next()?
             .weight();
-        score = W::Score::combine(
-            &score,
-            &scorer
-                .score(needle, haystack)
-                .expect("error is infallible")?,
-        );
+        let Ok(partial) = scorer.score(needle, haystack);
+        score = W::Score::combine(&score, &partial?);
     }
     Some(score)
 }
@@ -737,11 +742,8 @@ pub fn vf2_layout_pass_average(
 ) -> PyResult<Vf2PassReturn> {
     let add_interaction = |count: &mut usize, _: &PackedInstruction, repeats: usize| {
         *count += repeats;
-        true
     };
-    let interactions = VirtualInteractions::from_dag(dag, add_interaction)?
-        .expect("weighting function is infallible");
-
+    let interactions = VirtualInteractions::from_dag(dag, add_interaction)?;
     let score =
         |count: &usize, err: &f64| -> Result<f64, Infallible> { Ok(*err * (*count as f64)) };
     let target_error_map = avg_error_map
@@ -819,7 +821,7 @@ pub fn vf2_layout_pass_exact(
             }
             true
         };
-    let Some(mut interactions) = VirtualInteractions::from_dag(dag, add_interaction)? else {
+    let Some(mut interactions) = VirtualInteractions::try_from_dag(dag, add_interaction)? else {
         return Ok(Vf2PassReturn::NoSolution);
     };
 

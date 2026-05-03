@@ -29,7 +29,7 @@ use std::{
 };
 use thiserror::Error;
 
-use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
+use qiskit_util::py::{PySequenceIndex, SequenceIndex};
 
 use crate::imports;
 

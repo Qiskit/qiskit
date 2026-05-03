@@ -2286,17 +2286,19 @@ class TestTranspile(QiskitTestCase):
         # `dt` set.  For that test to work, we need to check that compiling explicitly without
         # errors produces a different layout to transpiling with them, so we can then later check
         # that the "custom dt" transpile matches the "with errors" case.
-
-        tqc_no_error = transpile(qc, coupling_map=coupling_map, seed_transpiler=4242)
+        seed_transpiler = 2025_07_07
+        tqc_no_error = transpile(qc, coupling_map=coupling_map, seed_transpiler=seed_transpiler)
         # transpile with gate errors
-        tqc_no_dt = transpile(qc, backend=backend, seed_transpiler=4242)
-        # confirm that the output layouts are different
+        tqc_no_dt = transpile(qc, backend=backend, seed_transpiler=seed_transpiler)
+        # confirm that the output layouts are different. This can fail spurious if the built-in
+        # layout pass happened to choose the same initial layout that the noise-aware remapping
+        # converges to.  In that case, you can bump the transpiler seed.
         self.assertNotEqual(
             tqc_no_dt.layout.final_index_layout(), tqc_no_error.layout.final_index_layout()
         )
         # now modify dt with gate errors
-        tqc_dt = transpile(qc, backend=backend, seed_transpiler=4242, dt=backend.dt * 2)
-        # confirm that dt doesn't affect layout
+        tqc_dt = transpile(qc, backend=backend, seed_transpiler=seed_transpiler, dt=backend.dt * 2)
+        # confirm that dt doesn't affect layout.
         self.assertEqual(tqc_no_dt.layout.final_index_layout(), tqc_dt.layout.final_index_layout())
 
     @combine(optimization_level=[0, 1, 2, 3], control_flow=[False, True])
@@ -2795,9 +2797,9 @@ class TestPostTranspileIntegration(QiskitTestCase):
         for i in range(5):
             qc.cx(i % qubits, int(i + qubits / 2) % qubits)
 
-        tqc = transpile(qc, backend=backend, seed_transpiler=4242, callback=callback)
+        tqc = transpile(qc, backend=backend, seed_transpiler=2025_07_07, callback=callback)
         self.assertTrue(vf2_post_layout_called)
-        self.assertEqual([1, 3, 4], _get_index_layout(tqc, qubits))
+        self.assertEqual([1, 4, 3], _get_index_layout(tqc, qubits))
 
     @data("sabre", "lookahead", "basic")
     def test_final_layout_combined_correctly(self, routing):

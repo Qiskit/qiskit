@@ -31,7 +31,7 @@ fn _index(transpose: bool, i: usize, j: usize) -> (usize, usize) {
 
 fn _ceil_fraction(numerator: usize, denominator: usize) -> usize {
     let mut fraction = numerator / denominator;
-    if numerator % denominator > 0 {
+    if !numerator.is_multiple_of(denominator) {
         fraction += 1;
     }
     fraction

@@ -19,7 +19,7 @@ def hellinger_distance(dist_p: dict, dist_q: dict) -> float:
     """Computes the Hellinger distance between
     two counts distributions.
 
-    Parameters:
+    Args:
         dist_p (dict): First dict of counts.
         dist_q (dict): Second dict of counts.
 
@@ -65,7 +65,7 @@ def hellinger_fidelity(dist_p: dict, dist_q: dict) -> float:
     :math:`F(Q,P)=\\left(\\sum_{i}\\sqrt{p_{i}q_{i}}\\right)^{2}` that in turn
     is equal to the quantum state fidelity for diagonal density matrices.
 
-    Parameters:
+    Args:
         dist_p (dict): First dict of counts.
         dist_q (dict): Second dict of counts.
 
