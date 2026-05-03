@@ -238,7 +238,7 @@ impl TwoQubitControlledUDecomposer {
     fn weyl_gate(
         &self,
         circ: &mut TwoQubitGateSequence,
-        target_decomposed: TwoQubitWeylDecomposition,
+        target_decomposed: &TwoQubitWeylDecomposition,
         atol: f64,
     ) -> PyResult<()> {
         let circ_a = self.to_rxx_gate(-2.0 * target_decomposed.a)?;
@@ -378,54 +378,30 @@ impl TwoQubitControlledUDecomposer {
         let mut target_1q_basis_list = EulerBasisSet::new();
         target_1q_basis_list.add_basis(self.euler_basis);
 
-        let c1r = nalgebra_array_view::<Complex64, U2, U2>(target_decomposed.K1r.as_view());
-        let c2r = nalgebra_array_view::<Complex64, U2, U2>(target_decomposed.K2r.as_view());
-        let c1l = nalgebra_array_view::<Complex64, U2, U2>(target_decomposed.K1l.as_view());
-        let c2l = nalgebra_array_view::<Complex64, U2, U2>(target_decomposed.K2l.as_view());
-
-        let unitary_c1r =
-            unitary_to_gate_sequence_inner(c1r, &target_1q_basis_list, 0, None, true, None);
-        let unitary_c2r =
-            unitary_to_gate_sequence_inner(c2r, &target_1q_basis_list, 0, None, true, None);
-        let unitary_c1l =
-            unitary_to_gate_sequence_inner(c1l, &target_1q_basis_list, 0, None, true, None);
-        let unitary_c2l =
-            unitary_to_gate_sequence_inner(c2l, &target_1q_basis_list, 0, None, true, None);
+        let c1r = target_decomposed.K1r.as_view();
+        let c2r = target_decomposed.K2r.as_view();
+        let c1l = target_decomposed.K1l.as_view();
+        let c2l = target_decomposed.K2l.as_view();
 
         let mut gates = Vec::with_capacity(59);
         let mut global_phase = target_decomposed.global_phase;
 
-        if let Some(unitary_c2r) = unitary_c2r {
-            global_phase += unitary_c2r.global_phase;
-            for gate in unitary_c2r.gates.into_iter() {
-                gates.push((gate.0.into(), gate.1, smallvec![0]));
-            }
-        }
-        if let Some(unitary_c2l) = unitary_c2l {
-            global_phase += unitary_c2l.global_phase;
-            for gate in unitary_c2l.gates.into_iter() {
-                gates.push((gate.0.into(), gate.1, smallvec![1]));
-            }
-        }
+        self.append_1q_sequence(&mut gates, &mut global_phase, c2r, 0, false);
+        self.append_1q_sequence(&mut gates, &mut global_phase, c2l, 1, false);
+
         let mut gates1 = TwoQubitGateSequence {
             gates,
             global_phase,
         };
-        self.weyl_gate(&mut gates1, target_decomposed, atol.unwrap_or(DEFAULT_ATOL))?;
+        self.weyl_gate(
+            &mut gates1,
+            &target_decomposed,
+            atol.unwrap_or(DEFAULT_ATOL),
+        )?;
         global_phase += gates1.global_phase;
 
-        if let Some(unitary_c1r) = unitary_c1r {
-            global_phase += unitary_c1r.global_phase;
-            for gate in unitary_c1r.gates.into_iter() {
-                gates1.gates.push((gate.0.into(), gate.1, smallvec![0]));
-            }
-        }
-        if let Some(unitary_c1l) = unitary_c1l {
-            global_phase += unitary_c1l.global_phase;
-            for gate in unitary_c1l.gates.into_iter() {
-                gates1.gates.push((gate.0.into(), gate.1, smallvec![1]));
-            }
-        }
+        self.append_1q_sequence(&mut gates1.gates, &mut global_phase, c1r, 0, false);
+        self.append_1q_sequence(&mut gates1.gates, &mut global_phase, c1l, 1, false);
 
         gates1.global_phase = global_phase;
         Ok(gates1)
