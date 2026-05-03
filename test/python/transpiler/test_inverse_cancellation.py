@@ -380,13 +380,27 @@ class TestInverseCancellation(QiskitTestCase):
         self.assertNotIn("tdg", new_circ.count_ops())
 
     def test_default_inverse_pairs_do_not_cancel_on_different_qubits(self):
-        """Test default inverse pairs cancel only when qubits match."""
+        """Reversed default inverse pair must not cancel when qubit order differs.
+
+        Before the fix, ``csdg(0, 1)`` followed by ``cs(1, 0)`` was incorrectly
+        removed by the fast path because the qubit-equality guard did not cover
+        the reversed-pair branch (``a && b || c`` instead of ``a && (b || c)``).
+        """
         qc = QuantumCircuit(2)
         qc.csdg(0, 1)
         qc.cs(1, 0)
         inverse_pass = InverseCancellation()
         new_circ = inverse_pass(qc)
         self.assertEqual(qc, new_circ)
+
+    def test_default_inverse_pairs_cancel_reversed_on_same_qubits(self):
+        """Reversed default inverse pair must cancel when qubit order matches."""
+        qc = QuantumCircuit(2)
+        qc.cs(0, 1)
+        qc.csdg(0, 1)
+        inverse_pass = InverseCancellation()
+        new_circ = inverse_pass(qc)
+        self.assertEqual(new_circ, QuantumCircuit(2))
 
     @ddt.data([HGate(), CXGate(), CZGate(), (TGate(), TdgGate())], None)
     def test_some_inverse_and_cancelled(self, gates_to_cancel):
