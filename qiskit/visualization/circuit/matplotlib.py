@@ -579,11 +579,12 @@ class MatplotlibDrawer:
                             }
                         )
                         for outer, inner in zip(node.cargs, circuit.clbits):
-                            if self._cregbundle and (
-                                (in_reg := get_bit_register(outer_circuit, inner)) is not None
-                            ):
+                            if self._cregbundle:
+                                in_reg = get_bit_register(circuit, inner)
                                 out_reg = get_bit_register(outer_circuit, outer)
-                                flow_wire_map.update({in_reg: wire_map[out_reg]})
+                                inner_key = in_reg if in_reg is not None else inner
+                                outer_key = out_reg if out_reg is not None else outer
+                                flow_wire_map.update({inner_key: wire_map[outer_key]})
                             else:
                                 flow_wire_map.update({inner: wire_map[outer]})
 
@@ -617,6 +618,7 @@ class MatplotlibDrawer:
                         for flow_layer in flow_nodes:
                             for flow_node in flow_layer:
                                 node_data[flow_node].circ_num = circ_num
+                                node_data[flow_node].node_circuit = circuit
 
                         # Add up the width values of the same flow_parent that are not -1
                         # to get the raw_gate_width
@@ -645,7 +647,7 @@ class MatplotlibDrawer:
                 # based on the width of register_bit and puts it into the param_width. If the
                 # register_bit is small enough, the gate will just use the WID width.
                 elif not self._measure_arrows and isinstance(op, Measure):
-                    register, _, reg_index = get_bit_reg_index(outer_circuit, node.cargs[0])
+                    register, _, reg_index = get_bit_reg_index(self._circuit, node.cargs[0])
                     if register is not None:
                         param_text = f"{register.name}_{reg_index}"
                     else:
@@ -802,7 +804,7 @@ class MatplotlibDrawer:
                 for carg in node.cargs:
                     if carg in self._clbits:
                         if self._cregbundle:
-                            register = get_bit_register(outer_circuit, carg)
+                            register = get_bit_register(self._circuit, carg)
                             if register is not None:
                                 c_indxs.append(wire_map[register])
                             else:
@@ -1336,7 +1338,8 @@ class MatplotlibDrawer:
         """Draw the measure symbol and the line to the clbit"""
         qx, qy = node_data[node].q_xy[0]
         cx, cy = node_data[node].c_xy[0]
-        register, _, reg_index = get_bit_reg_index(outer_circuit, node.cargs[0])
+        node_circuit = node_data[node].node_circuit or outer_circuit
+        register, _, reg_index = get_bit_reg_index(node_circuit, node.cargs[0])
 
         # draw gate box
         self._gate(node, node_data, glob_data)
@@ -2079,3 +2082,4 @@ class NodeData:
         self.indexset = ()  # List of indices used for ForLoopOp
         self.jump_values = []  # List of jump values used for SwitchCaseOp
         self.circ_num = 0  # Which block is it in op.blocks
+        self.node_circuit = None  # The circuit this node belongs to (set for flow-op inner nodes)

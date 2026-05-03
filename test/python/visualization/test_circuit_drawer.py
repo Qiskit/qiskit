@@ -288,3 +288,26 @@ class TestCircuitDrawer(QiskitTestCase):
         circuit.draw("latex_source")
         if optionals.HAS_MATPLOTLIB and optionals.HAS_PYLATEX:
             circuit.draw("mpl")
+
+    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "Skipped because matplotlib is not available")
+    def test_mpl_cregbundle_non_builder_control_flow(self):
+        """MPL drawer must not raise when cregbundle=True and control flow uses compose.
+
+        For non-builder (compose-style) control flow the inner block's clbits are different
+        Python objects from the outer circuit's clbits.  The cregbundle wire-map path was
+        incorrectly looking up inner clbits in the outer circuit, causing a CircuitError.
+        Regression test for https://github.com/Qiskit/qiskit/issues/15823.
+        """
+        cell = QuantumCircuit(1, 1)
+        cell.h(0)
+        cell.measure(0, 0)
+        with cell.if_test((cell.clbits[0], 1)):
+            cell.x(0)
+
+        qc = QuantumCircuit(2, 2)
+        for i in range(2):
+            qc.compose(cell, qubits=[i], clbits=[i], inplace=True)
+
+        # Both settings must succeed without raising CircuitError.
+        self.assertIsInstance(qc.draw("mpl", cregbundle=True), figure.Figure)
+        self.assertIsInstance(qc.draw("mpl", cregbundle=False), figure.Figure)

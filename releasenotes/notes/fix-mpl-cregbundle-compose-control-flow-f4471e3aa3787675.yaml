@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed a :exc:`.CircuitError` raised by the Matplotlib circuit drawer when
+    ``cregbundle=True`` and the circuit contains control-flow blocks created via
+    :meth:`.QuantumCircuit.compose` rather than the builder interface.  For
+    compose-style control flow the inner block's classical bits are different
+    Python objects from the outer circuit's bits; the drawer was incorrectly
+    looking them up in the outer circuit.
+    See `#15823 <https://github.com/Qiskit/qiskit/issues/15823>`__.
