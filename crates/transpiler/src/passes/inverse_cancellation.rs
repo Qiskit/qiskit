@@ -265,10 +265,10 @@ fn std_inverse_pairs(dag: &mut DAGCircuit) {
                     unreachable!("Not an op node");
                 };
                 if inst.qubits == next_inst.qubits
-                    && (inst.op.try_standard_gate() == Some(gate_0)
+                    && ((inst.op.try_standard_gate() == Some(gate_0)
                         && next_inst.op.try_standard_gate() == Some(gate_1))
-                    || (inst.op.try_standard_gate() == Some(gate_1)
-                        && next_inst.op.try_standard_gate() == Some(gate_0))
+                        || (inst.op.try_standard_gate() == Some(gate_1)
+                            && next_inst.op.try_standard_gate() == Some(gate_0)))
                 {
                     dag.remove_op_node(nodes[i]);
                     dag.remove_op_node(nodes[i + 1]);

@@ -379,6 +379,15 @@ class TestInverseCancellation(QiskitTestCase):
         self.assertNotIn("t", new_circ.count_ops())
         self.assertNotIn("tdg", new_circ.count_ops())
 
+    def test_default_inverse_pairs_do_not_cancel_on_different_qubits(self):
+        """Test default inverse pairs cancel only when qubits match."""
+        qc = QuantumCircuit(2)
+        qc.csdg(0, 1)
+        qc.cs(1, 0)
+        inverse_pass = InverseCancellation()
+        new_circ = inverse_pass(qc)
+        self.assertEqual(qc, new_circ)
+
     @ddt.data([HGate(), CXGate(), CZGate(), (TGate(), TdgGate())], None)
     def test_some_inverse_and_cancelled(self, gates_to_cancel):
         """Test when there are some but not all pairs to cancel."""

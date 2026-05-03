@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`.InverseCancellation` where default inverse gate
+    pairs in reverse order could be cancelled even when they acted on different
+    qubits.
