@@ -2851,7 +2851,7 @@ class QuantumCircuit:
                 :class:`.CircuitInstruction` with all its context. Objects implementing
                 ``to_instruction`` are also supported, but passing an
                 :class:`~.circuit.Instruction` directly is generally preferred, since that
-                the repeated conversion cost.
+                avoids the repeated conversion cost.
             qargs: specifiers of the :class:`~.circuit.Qubit`\\ s to attach instruction to.
             cargs: specifiers of the :class:`.Clbit`\\ s to attach instruction to.
             copy: if ``True`` (the default), then the incoming ``instruction`` is copied before
@@ -2865,7 +2865,8 @@ class QuantumCircuit:
             were actually added to the circuit.
 
         Raises:
-            CircuitError: if `instruction` is not an instance of :class:`~.circuit.Instruction` or `.to_instruction` does not return an :class:`~.circuit.Instruction`.
+            CircuitError: if the operation passed is not an instance of :class:`~.circuit.Instruction`,
+              or cannot be converted to one by calling ``to_instruction`` on it.
         """
         if isinstance(instruction, CircuitInstruction):
             operation = instruction.operation
