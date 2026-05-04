@@ -2364,6 +2364,9 @@ dependencies = [
 [[package]]
 name = "qiskit-providers"
 version = "2.5.0-dev"
+dependencies = [
+ "hashbrown 0.15.5",
+]
 
 [[package]]
 name = "qiskit-pyext"
