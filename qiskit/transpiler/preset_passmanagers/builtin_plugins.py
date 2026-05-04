@@ -34,6 +34,7 @@ from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.passes import ElidePermutations
 from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
 from qiskit.transpiler.passes import CommutativeOptimization
+from qiskit.transpiler.passes import TwoQubitPeepholeOptimization
 from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import SynthesizeRZRotations
 from qiskit.transpiler.passes import OptimizeCliffordT
@@ -504,18 +505,9 @@ class OptimizationPassManager(PassManagerStagePlugin):
                 loop_check, continue_loop = _optimization_check_fixed_point()
             case 2:
                 pre_loop = [
-                    ConsolidateBlocks(
-                        basis_gates=pass_manager_config.basis_gates,
-                        target=pass_manager_config.target,
+                    TwoQubitPeepholeOptimization(
+                        pass_manager_config.target,
                         approximation_degree=pass_manager_config.approximation_degree,
-                    ),
-                    UnitarySynthesis(
-                        pass_manager_config.basis_gates,
-                        approximation_degree=pass_manager_config.approximation_degree,
-                        coupling_map=pass_manager_config.coupling_map,
-                        method=pass_manager_config.unitary_synthesis_method,
-                        plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
-                        target=pass_manager_config.target,
                     ),
                 ]
                 loop = [
@@ -534,18 +526,9 @@ class OptimizationPassManager(PassManagerStagePlugin):
             case 3:
                 pre_loop = []
                 loop = [
-                    ConsolidateBlocks(
-                        basis_gates=pass_manager_config.basis_gates,
-                        target=pass_manager_config.target,
+                    TwoQubitPeepholeOptimization(
+                        pass_manager_config.target,
                         approximation_degree=pass_manager_config.approximation_degree,
-                    ),
-                    UnitarySynthesis(
-                        pass_manager_config.basis_gates,
-                        approximation_degree=pass_manager_config.approximation_degree,
-                        coupling_map=pass_manager_config.coupling_map,
-                        method=pass_manager_config.unitary_synthesis_method,
-                        plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
-                        target=pass_manager_config.target,
                     ),
                     RemoveIdentityEquivalent(
                         approximation_degree=pass_manager_config.approximation_degree,

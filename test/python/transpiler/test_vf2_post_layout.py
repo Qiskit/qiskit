@@ -567,11 +567,10 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
             coupling_map=YORKTOWN_CMAP,
             seed=self.seed,
         )
-
         qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[1], qr[0])  # qr1 -> qr0
-        tqc = transpile(circuit, backend, layout_method="dense")
+        tqc = transpile(circuit, backend, initial_layout=[1, 0])
         initial_layout = tqc._layout
         dag = circuit_to_dag(tqc)
         pass_ = VF2PostLayout(target=backend.target, seed=self.seed, strict_direction=False)

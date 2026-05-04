@@ -48,10 +48,10 @@ from qiskit.transpiler.passes import (
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import GraphStateGate, UnitaryGate
-from qiskit.quantum_info import random_unitary
+from qiskit.quantum_info import random_unitary, Operator
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.preset_passmanagers import level0, level1, level2, level3
-from qiskit.transpiler.passes import ConsolidateBlocks, GatesInBasis
+from qiskit.transpiler.passes import ConsolidateBlocks, GatesInBasis, TwoQubitPeepholeOptimization
 from qiskit.transpiler.passes.scheduling.alignments.check_durations import InstructionDurationCheck
 from qiskit.transpiler.preset_passmanagers.builtin_plugins import OptimizationPassManager
 from qiskit.transpiler.timing_constraints import TimingConstraints
@@ -291,15 +291,15 @@ class TestPresetPassManager(QiskitTestCase):
         )
         qv_circuit = quantum_volume(3)
         gates_in_basis_true_count = 0
-        consolidate_blocks_count = 0
+        peephole_count = 0
 
         def counting_callback_func(pass_, dag, time, property_set, count):
             nonlocal gates_in_basis_true_count
-            nonlocal consolidate_blocks_count
+            nonlocal peephole_count
             if isinstance(pass_, GatesInBasis) and property_set["all_gates_in_basis"]:
                 gates_in_basis_true_count += 1
-            if isinstance(pass_, ConsolidateBlocks):
-                consolidate_blocks_count += 1
+            if isinstance(pass_, TwoQubitPeepholeOptimization):
+                peephole_count += 1
 
         transpile(
             qv_circuit,
@@ -308,7 +308,7 @@ class TestPresetPassManager(QiskitTestCase):
             callback=counting_callback_func,
             translation_method="synthesis",
         )
-        self.assertEqual(gates_in_basis_true_count + 2, consolidate_blocks_count)
+        self.assertEqual(gates_in_basis_true_count, peephole_count)
 
     @data(0, 1, 2, 3)
     def test_layout_registers_preserved(self, optimization_level):
@@ -1059,7 +1059,7 @@ class TestFinalLayouts(QiskitTestCase):
             [0, 1, 2, 3, 4],
             [5, 6, 10, 0, 11],
             [5, 6, 10, 0, 11],
-            [5, 11, 6, 0, 10],
+            [6, 7, 1, 5, 2],
         ]
         backend = GenericBackendV2(num_qubits=20, coupling_map=TOKYO_CMAP, seed=42)
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
