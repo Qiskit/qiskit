@@ -59,9 +59,8 @@ impl<T> DataTreeBranch<T> {
     /// Take a path slice and return the entry at the given path
     ///
     /// This will return `None` if a path can not be found. This includes an
-    /// invalid path, such as a path a leaf node in the middle. An empty path
-    /// will also return `self`.
-    pub fn get_by_path(&self, path: &[PathEntry]) -> Option<&DataTree<T>> {
+    /// invalid path, such as a path a leaf node in the middle.
+    fn get_by_path(&self, path: &[PathEntry]) -> Option<&DataTree<T>> {
         let start = match path[0] {
             PathEntry::Index(idx) => Some(&self.data[idx]),
             PathEntry::Key(key) => self.keys.get(key).map(|idx| &self.data[*idx]),
@@ -89,7 +88,7 @@ impl<T> DataTreeBranch<T> {
     ///
     /// This method will return an iterator over all leaf nodes in the tree by traversing the tree
     /// in a DFS order.
-    pub fn iter_path(&self) -> IterDataTree<'_, T> {
+    fn iter_path(&self) -> IterDataTree<'_, T> {
         IterDataTree {
             tree: None,
             branch: Some(self),
@@ -103,7 +102,7 @@ impl<T> DataTreeBranch<T> {
     /// The number of items in this `DataTree`. This length is just the number of items in this
     /// local tree object and will not recurse through the tree to compute the total number of
     /// leaves. If you want to do that you should use [`DataTree::iter_leaves`].
-    pub fn iter_leaves(&self) -> IterLeaves<'_, T> {
+    fn iter_leaves(&self) -> IterLeaves<'_, T> {
         IterLeaves {
             tree: None,
             branch: Some(self),
