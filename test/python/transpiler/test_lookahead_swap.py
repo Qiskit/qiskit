@@ -1,10 +1,10 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,14 +14,16 @@
 
 import unittest
 from numpy import pi
+
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.transpiler import CouplingMap, Target
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import CXGate
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeMelbourne
+from test import QiskitTestCase
+
+from ..legacy_cmaps import MELBOURNE_CMAP
 
 
 class TestLookaheadSwap(QiskitTestCase):
@@ -178,7 +180,7 @@ class TestLookaheadSwap(QiskitTestCase):
 
         mapped_dag = LookaheadSwap(coupling_map).run(dag_circuit)
 
-        mapped_barrier_qargs = [set(op.qargs) for op in mapped_dag.named_nodes("barrier")][0]
+        mapped_barrier_qargs = next(set(op.qargs) for op in mapped_dag.named_nodes("barrier"))
 
         self.assertIn(mapped_barrier_qargs, [{qr[0], qr[1]}, {qr[1], qr[2]}])
 
@@ -264,8 +266,7 @@ class TestLookaheadSwap(QiskitTestCase):
         qc.cx(qr[13], qr[1])
         dag = circuit_to_dag(qc)
 
-        cmap = CouplingMap(FakeMelbourne().configuration().coupling_map)
-
+        cmap = CouplingMap(MELBOURNE_CMAP)
         out = LookaheadSwap(cmap, search_depth=4, search_width=4).run(dag)
 
         self.assertIsInstance(out, DAGCircuit)
@@ -290,7 +291,7 @@ class TestLookaheadSwap(QiskitTestCase):
         qc.cx(qr[0], qr[1])
         dag = circuit_to_dag(qc)
 
-        cmap = CouplingMap(FakeMelbourne().configuration().coupling_map)
+        cmap = CouplingMap(MELBOURNE_CMAP)
 
         out = LookaheadSwap(cmap, search_depth=4, search_width=4).run(dag)
 

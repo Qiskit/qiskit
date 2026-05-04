@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -13,9 +13,9 @@
 """Utility functions for handling linear reversible circuits."""
 
 import copy
-from typing import Callable
+from collections.abc import Callable
 import numpy as np
-from qiskit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from . import calc_inverse_matrix, check_invertible_binary_matrix
@@ -26,7 +26,7 @@ def transpose_cx_circ(qc: QuantumCircuit):
     This is done by recursively replacing CX(i, j) with CX(j, i) in all instructions.
 
     Args:
-        qc: a QuantumCircuit containing only CX gates.
+        qc: a :class:`.QuantumCircuit` containing only CX gates.
 
     Returns:
         QuantumCircuit: the transposed circuit.
@@ -50,10 +50,11 @@ def optimize_cx_4_options(function: Callable, mat: np.ndarray, optimize_count: b
     Args:
         function: the synthesis function.
         mat: a binary invertible matrix.
-        optimize_count: True if the number of CX gates in optimize, False if the depth is optimized.
+        optimize_count: True if the number of CX gates is optimized, False if the depth is optimized.
 
     Returns:
-        QuantumCircuit: an optimized QuantumCircuit, has the best depth or CX count of the four options.
+        QuantumCircuit: an optimized :class:`.QuantumCircuit`, has the best depth or CX count of
+            the four options.
 
     Raises:
         QiskitError: if mat is not an invertible matrix.
@@ -106,7 +107,7 @@ def check_lnn_connectivity(qc: QuantumCircuit) -> bool:
     """Check that the synthesized circuit qc fits linear nearest neighbor connectivity.
 
     Args:
-        qc: a QuantumCircuit containing only CX and single qubit gates.
+        qc: a :class:`.QuantumCircuit` containing only CX and single qubit gates.
 
     Returns:
         bool: True if the circuit has linear nearest neighbor connectivity.

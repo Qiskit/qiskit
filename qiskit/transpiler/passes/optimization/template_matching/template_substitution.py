@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -22,6 +22,7 @@ from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.dagcircuit.dagdependency import DAGDependency
 from qiskit.converters.dagdependency_to_dag import dagdependency_to_dag
+from qiskit.utils import optionals as _optionals
 
 
 class SubstitutionConfig:
@@ -323,7 +324,7 @@ class TemplateSubstitution:
             if template is None or self._incr_num_parameters(template):
                 continue
 
-            template_list = range(0, self.template_dag_dep.size())
+            template_list = range(self.template_dag_dep.size())
             template_complement = list(set(template_list) - set(template_sublist))
 
             # If the match obey the rule then it is added to the list.
@@ -360,7 +361,7 @@ class TemplateSubstitution:
             circuit_list = circuit_list + elem.circuit_config + elem.pred_block
 
         # Unmatched gates that are not predecessors of any group of matches.
-        self.unmatched_list = sorted(set(range(0, self.circuit_dag_dep.size())) - set(circuit_list))
+        self.unmatched_list = sorted(set(range(self.circuit_dag_dep.size())) - set(circuit_list))
 
     def run_dag_opt(self):
         """
@@ -371,6 +372,7 @@ class TemplateSubstitution:
         dag_dep_opt = DAGDependency()
 
         dag_dep_opt.name = self.circuit_dag_dep.name
+        dag_dep_opt.global_phase = self.circuit_dag_dep.global_phase
 
         qregs = list(self.circuit_dag_dep.qregs.values())
         cregs = list(self.circuit_dag_dep.cregs.values())
@@ -427,6 +429,9 @@ class TemplateSubstitution:
                     inst = node.op.copy()
                     dag_dep_opt.add_op_node(inst.inverse(), qargs, cargs)
 
+                # Update global phase to account for the template's phase.
+                dag_dep_opt.global_phase -= group.template_dag_dep.global_phase
+
             # Add the unmatched gates.
             for node_id in self.unmatched_list:
                 node = self.circuit_dag_dep.get_node(node_id)
@@ -442,6 +447,7 @@ class TemplateSubstitution:
         self.dag_dep_optimized = dag_dep_opt
         self.dag_optimized = dagdependency_to_dag(dag_dep_opt)
 
+    @_optionals.HAS_SYMPY.require_in_call("Bind parameters in templates")
     def _attempt_bind(self, template_sublist, circuit_sublist):
         """
         Copies the template and attempts to bind any parameters,
@@ -449,7 +455,7 @@ class TemplateSubstitution:
         template_sublist and circuit_sublist match up to the
         assignment of the parameters. For example the template
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌───────────┐                  ┌────────┐
             q_0: ┤ P(-1.0*β) ├──■────────────■──┤0       ├
@@ -459,7 +465,7 @@ class TemplateSubstitution:
 
         should only maximally match once in the circuit
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌───────┐
             q_0: ┤ P(-2) ├──■────────────■────────────────────────────
@@ -494,10 +500,9 @@ class TemplateSubstitution:
                 parameter constraints, returns None.
         """
         import sympy as sym
-        from sympy.parsing.sympy_parser import parse_expr
 
         circuit_params, template_params = [], []
-        # Set of all parameter names that are present in the circuits to be optimised.
+        # Set of all parameter names that are present in the circuits to be optimized.
         circuit_params_set = set()
 
         template_dag_dep = copy.deepcopy(self.template_dag_dep)
@@ -535,6 +540,8 @@ class TemplateSubstitution:
                             t_param_exp = t_param_exp.assign(t_param, new_param)
                 sub_node_params.append(t_param_exp)
                 template_params.append(t_param_exp)
+            if not node.op.mutable:
+                node.op = node.op.to_mutable()
             node.op.params = sub_node_params
 
         for node in template_dag_dep.get_nodes():
@@ -548,16 +555,19 @@ class TemplateSubstitution:
                             )
                 sub_node_params.append(param_exp)
 
+            if not node.op.mutable:
+                node.op = node.op.to_mutable()
             node.op.params = sub_node_params
 
         # Create the fake binding dict and check
-        equations, circ_dict, temp_symbols, sol, fake_bind = [], {}, {}, {}, {}
+        equations, circ_dict, temp_symbols = [], {}, {}
         for circuit_param, template_param in zip(circuit_params, template_params):
             if isinstance(template_param, ParameterExpression):
                 if isinstance(circuit_param, ParameterExpression):
                     circ_param_sym = circuit_param.sympify()
                 else:
-                    circ_param_sym = parse_expr(str(circuit_param))
+                    # if it's not a ParameterExpression we're a float
+                    circ_param_sym = sym.Float(circuit_param)
                 equations.append(sym.Eq(template_param.sympify(), circ_param_sym))
 
                 for param in template_param.parameters:
@@ -565,7 +575,7 @@ class TemplateSubstitution:
 
                 if isinstance(circuit_param, ParameterExpression):
                     for param in circuit_param.parameters:
-                        circ_dict[param] = param.sympify()
+                        circ_dict[param.name] = param
             elif template_param != circuit_param:
                 # Both are numeric parameters, but aren't equal.
                 return None
@@ -573,19 +583,18 @@ class TemplateSubstitution:
         if not temp_symbols:
             return template_dag_dep
 
-        # Check compatibility by solving the resulting equation
-        sym_sol = sym.solve(equations, set(temp_symbols.values()))
-        for key in sym_sol:
-            try:
-                sol[str(key)] = ParameterExpression(circ_dict, sym_sol[key])
-            except TypeError:
-                return None
-
-        if not sol:
+        # Check compatibility by solving the resulting equation.  `dict=True` (surprisingly) forces
+        # the output to always be a list, even if there's exactly one solution.
+        sym_sol = sym.solve(equations, set(temp_symbols.values()), dict=True)
+        if not sym_sol:
+            # No solutions.
             return None
-
-        for key in temp_symbols:
-            fake_bind[key] = sol[str(key)]
+        # If there's multiple solutions, arbitrarily pick the first one.
+        sol = {
+            param.name: ParameterExpression(circ_dict, str(expr))
+            for param, expr in sym_sol[0].items()
+        }
+        fake_bind = {key: sol[key.name] for key in temp_symbols}
 
         for node in template_dag_dep.get_nodes():
             bound_params = []
@@ -599,6 +608,8 @@ class TemplateSubstitution:
                     param_exp = float(param_exp)
                 bound_params.append(param_exp)
 
+            if not node.op.mutable:
+                node.op = node.op.to_mutable()
             node.op.params = bound_params
 
         return template_dag_dep

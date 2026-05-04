@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -13,6 +13,7 @@
 Circuit simulation for the CNOTDihedral class
 """
 
+from __future__ import annotations
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -91,9 +92,7 @@ def _append_circuit(elem, circuit, qargs=None):
         raise QiskitError(f"Cannot apply Instruction: {gate.name}")
     if not isinstance(gate.definition, QuantumCircuit):
         raise QiskitError(
-            "{} instruction definition is {}; expected QuantumCircuit".format(
-                gate.name, type(gate.definition)
-            )
+            f"{gate.name} instruction definition is {type(gate.definition)}; expected QuantumCircuit"
         )
 
     flat_instr = gate.definition

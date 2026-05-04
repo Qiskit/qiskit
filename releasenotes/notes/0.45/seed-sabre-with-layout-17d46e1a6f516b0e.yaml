@@ -1,0 +1,38 @@
+---
+features:
+  - |
+    Added support to the :class:`.SabreLayout` pass to add trials with specified
+    starting layouts. The :class:`.SabreLayout` transpiler pass typically
+    runs multiple layout trials that all start with fully random layouts which
+    then use a routing pass to permute that layout instead of inserting swaps
+    to find a layout which will result in fewer swap gates. This new feature
+    enables running an :class:`.AnalysisPass` prior to :class:`.SabreLayout`
+    which sets the ``"sabre_starting_layout"`` field in the property set
+    to provide the :class:`.SabreLayout` with additional starting layouts
+    to use in its internal trials. For example, if you wanted to run
+    :class:`.DenseLayout` as the starting point for one trial in
+    :class:`.SabreLayout` you would do something like::
+
+        from qiskit.providers.fake_provider import FakeSherbrooke
+        from qiskit.transpiler import AnalysisPass, PassManager
+        from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+        from qiskit.transpiler.passes import DenseLayout
+
+        class SabreDenseLayoutTrial(AnalysisPass):
+
+          def __init__(self, target):
+              self.dense_pass = DenseLayout(target=target)
+              super().__init__()
+
+          def run(self, dag):
+              self.dense_pass.run(dag)
+              self.property_set["sabre_starting_layouts"] = [self.dense_pass.property_set["layout"]]
+
+        backend = FakeSherbrooke()
+        opt_level_1 = generate_preset_pass_manager(1, backend)
+        pre_layout = PassManager([SabreDenseLayoutTrial(backend.target)])
+        opt_level_1.pre_layout = pre_layout
+
+    Then when the ``opt_level_1`` :class:`.StagedPassManager` is run with a circuit the output
+    of the :class:`.DenseLayout` pass will be used for one of the :class:`.SabreLayout` trials
+    in addition to the 5 fully random trials that run by default in optimization level 1.

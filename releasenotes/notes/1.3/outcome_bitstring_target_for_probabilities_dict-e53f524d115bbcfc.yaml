@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    The :class:`.StabilizerState` class now has a new method 
+    :meth:`~.StabilizerState.probabilities_dict_from_bitstring` allowing the 
+    user to pass single bitstring to measure an outcome for. Previouslly the 
+    :meth:`~.StabilizerState.probabilities_dict` would be utilized and would 
+    at worst case calculate (2^n) number of probability calculations (depending
+    on the state), even if a user wanted a single result. With this new method 
+    the user can calculate just the single outcome bitstring value a user passes 
+    to measure the probability for. As the number of qubits increases, the more 
+    prevelant the performance enhancement may be (depending on the state) as only 
+    1 bitstring result is measured.

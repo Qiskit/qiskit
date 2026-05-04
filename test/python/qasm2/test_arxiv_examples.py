@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,7 +14,6 @@
 is a test for each subsection (except the description of 'qelib1.inc') in section 3 of
 https://arxiv.org/abs/1707.03429v2. The examples are copy/pasted from the source files there."""
 
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
 import math
 import os
@@ -25,7 +24,7 @@ import ddt
 from qiskit import qasm2
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister, Qubit
 from qiskit.circuit.library import U1Gate, U3Gate, CU1Gate
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase
 
 from . import gate_builder
 
@@ -33,7 +32,7 @@ from . import gate_builder
 def load(string, *args, **kwargs):
     # We're deliberately not using the context-manager form here because we need to use it in a
     # slightly odd pattern.
-    # pylint: disable=consider-using-with
+
     temp = tempfile.NamedTemporaryFile(mode="w", delete=False)
     try:
         temp.write(string)
@@ -90,8 +89,10 @@ measure q[2] -> c2[0];"""
         qc.h(q[0])
         qc.measure(q[0], c0[0])
         qc.measure(q[1], c1[0])
-        qc.z(q[2]).c_if(c0, 1)
-        qc.x(q[2]).c_if(c1, 1)
+        with qc.if_test((c0, 1)):
+            qc.z(q[2])
+        with qc.if_test((c1, 1)):
+            qc.x(q[2])
         qc.append(post(), [q[2]], [])
         qc.measure(q[2], c2[0])
 
@@ -177,21 +178,32 @@ measure q[3] -> c[3];"""
         qc.barrier(q)
         qc.h(q[0])
         qc.measure(q[0], c[0])
-        qc.append(U1Gate(math.pi / 2).c_if(c, 1), [q[1]])
+        with qc.if_test((c, 1)):
+            qc.append(U1Gate(math.pi / 2), [q[1]])
         qc.h(q[1])
         qc.measure(q[1], c[1])
-        qc.append(U1Gate(math.pi / 4).c_if(c, 1), [q[2]])
-        qc.append(U1Gate(math.pi / 2).c_if(c, 2), [q[2]])
-        qc.append(U1Gate(math.pi / 4 + math.pi / 2).c_if(c, 3), [q[2]])
+        with qc.if_test((c, 1)):
+            qc.append(U1Gate(math.pi / 4), [q[2]])
+        with qc.if_test((c, 2)):
+            qc.append(U1Gate(math.pi / 2), [q[2]])
+        with qc.if_test((c, 3)):
+            qc.append(U1Gate(math.pi / 4 + math.pi / 2), [q[2]])
         qc.h(q[2])
         qc.measure(q[2], c[2])
-        qc.append(U1Gate(math.pi / 8).c_if(c, 1), [q[3]])
-        qc.append(U1Gate(math.pi / 4).c_if(c, 2), [q[3]])
-        qc.append(U1Gate(math.pi / 8 + math.pi / 4).c_if(c, 3), [q[3]])
-        qc.append(U1Gate(math.pi / 2).c_if(c, 4), [q[3]])
-        qc.append(U1Gate(math.pi / 8 + math.pi / 2).c_if(c, 5), [q[3]])
-        qc.append(U1Gate(math.pi / 4 + math.pi / 2).c_if(c, 6), [q[3]])
-        qc.append(U1Gate(math.pi / 8 + math.pi / 4 + math.pi / 2).c_if(c, 7), [q[3]])
+        with qc.if_test((c, 1)):
+            qc.append(U1Gate(math.pi / 8), [q[3]])
+        with qc.if_test((c, 2)):
+            qc.append(U1Gate(math.pi / 4), [q[3]])
+        with qc.if_test((c, 3)):
+            qc.append(U1Gate(math.pi / 8 + math.pi / 4), [q[3]])
+        with qc.if_test((c, 4)):
+            qc.append(U1Gate(math.pi / 2), [q[3]])
+        with qc.if_test((c, 5)):
+            qc.append(U1Gate(math.pi / 8 + math.pi / 2), [q[3]])
+        with qc.if_test((c, 6)):
+            qc.append(U1Gate(math.pi / 4 + math.pi / 2), [q[3]])
+        with qc.if_test((c, 7)):
+            qc.append(U1Gate(math.pi / 8 + math.pi / 4 + math.pi / 2), [q[3]])
         qc.h(q[3])
         qc.measure(q[3], c[3])
 
@@ -236,19 +248,24 @@ measure q[3] -> c3[0];"""
         qc.barrier(q)
         qc.h(q[0])
         qc.measure(q[0], c0[0])
-        qc.append(U1Gate(math.pi / 2).c_if(c0, 1), [q[1]])
+        with qc.if_test((c0, 1)):
+            qc.append(U1Gate(math.pi / 2), [q[1]])
         qc.h(q[1])
         qc.measure(q[1], c1[0])
-        qc.append(U1Gate(math.pi / 4).c_if(c0, 1), [q[2]])
-        qc.append(U1Gate(math.pi / 2).c_if(c1, 1), [q[2]])
+        with qc.if_test((c0, 1)):
+            qc.append(U1Gate(math.pi / 4), [q[2]])
+        with qc.if_test((c1, 1)):
+            qc.append(U1Gate(math.pi / 2), [q[2]])
         qc.h(q[2])
         qc.measure(q[2], c2[0])
-        qc.append(U1Gate(math.pi / 8).c_if(c0, 1), [q[3]])
-        qc.append(U1Gate(math.pi / 4).c_if(c1, 1), [q[3]])
-        qc.append(U1Gate(math.pi / 2).c_if(c2, 1), [q[3]])
+        with qc.if_test((c0, 1)):
+            qc.append(U1Gate(math.pi / 8), [q[3]])
+        with qc.if_test((c1, 1)):
+            qc.append(U1Gate(math.pi / 4), [q[3]])
+        with qc.if_test((c2, 1)):
+            qc.append(U1Gate(math.pi / 2), [q[3]])
         qc.h(q[3])
         qc.measure(q[3], c3[0])
-
         self.assertEqual(parsed, qc)
 
     @ddt.data(qasm2.loads, load)
@@ -442,9 +459,12 @@ measure q -> c;"""
         qc.barrier(q)
         qc.append(syndrome(), [q[0], q[1], q[2], a[0], a[1]])
         qc.measure(a, syn)
-        qc.x(q[0]).c_if(syn, 1)
-        qc.x(q[2]).c_if(syn, 2)
-        qc.x(q[1]).c_if(syn, 3)
+        with qc.if_test((syn, 1)):
+            qc.x(q[0])
+        with qc.if_test((syn, 2)):
+            qc.x(q[2])
+        with qc.if_test((syn, 3)):
+            qc.x(q[1])
         qc.measure(q, c)
 
         self.assertEqual(parsed, qc)

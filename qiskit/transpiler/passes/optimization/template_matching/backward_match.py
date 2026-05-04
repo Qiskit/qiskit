@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -242,7 +242,7 @@ class BackwardMatch:
         Returns:
             bool: True if the same, False otherwise.
         """
-        return node_circuit.op == node_template.op
+        return node_circuit.op.soft_compare(node_template.op)
 
     def _is_same_q_conf(self, node_circuit, node_template, qarg_circuit):
         """
@@ -286,11 +286,10 @@ class BackwardMatch:
                     return False
         # For non controlled gates, the qubits indices for symmetric gates can be compared as sets
         # But for non-symmetric gates the qubits indices have to be compared as lists.
+        elif node_template.op.name in ["rxx", "ryy", "rzz", "swap", "iswap", "ms"]:
+            return set(qarg_circuit) == set(node_template.qindices)
         else:
-            if node_template.op.name in ["rxx", "ryy", "rzz", "swap", "iswap", "ms"]:
-                return set(qarg_circuit) == set(node_template.qindices)
-            else:
-                return qarg_circuit == node_template.qindices
+            return qarg_circuit == node_template.qindices
 
     def _is_same_c_conf(self, node_circuit, node_template, carg_circuit):
         """
@@ -304,15 +303,15 @@ class BackwardMatch:
         """
         if (
             node_circuit.type == "op"
-            and getattr(node_circuit.op, "condition", None)
+            and getattr(node_circuit.op, "_condition", None)
             and node_template.type == "op"
-            and getattr(node_template.op, "condition", None)
+            and getattr(node_template.op, "_condition", None)
         ):
             if set(carg_circuit) != set(node_template.cindices):
                 return False
             if (
-                getattr(node_circuit.op, "condition", None)[1]
-                != getattr(node_template.op, "condition", None)[1]
+                getattr(node_circuit.op, "_condition", None)[1]
+                != getattr(node_template.op, "_condition", None)[1]
             ):
                 return False
         return True
@@ -622,7 +621,7 @@ class BackwardMatch:
                     )
                     self.matching_list.append_scenario(new_matching_scenario)
 
-                # Third option: if blocking the succesors breaks a match, we consider
+                # Third option: if blocking the successors breaks a match, we consider
                 # also the possibility to block all predecessors (push the gate to the left).
                 if broken_matches and all(global_broken):
 

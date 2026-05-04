@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The minimum supported Rust version for building Qiskit from source is now
+    1.70. This has been raised from the previous minimum supported Rust
+    version of 1.64 in the Qiskit 0.45.x and 0.46.0 release series.

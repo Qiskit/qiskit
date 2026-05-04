@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    :class:`.SabreLayout` and :class:`.SabreSwap` will no longer panic when applying the routing
+    result to a circuit that uses :class:`.expr.Var` or :class:`.Stretch` objects in a nested
+    control-flow scope.

@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Enabled performing the :class:`qiskit.transpiler.passes.CommutativeCancellation` pass inside the
+    blocks of :class:`qiskit.circuit.ControlFlowOp`. This pass reorders some commuting gates and
+    reduces resulting pairs of self-inverse gates. Previously, the blocks in control flow operations
+    were skipped by this pass. The new feature operates recursively, that is, it will act on control
+    flow operations inside blocks.

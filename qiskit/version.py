@@ -4,19 +4,17 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-name-in-module,broad-except,cyclic-import
 
-"""Contains the terra version."""
+"""Contains Qiskit version."""
 
 import os
 import subprocess
-from collections.abc import Mapping
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -32,7 +30,7 @@ def _minimal_ext_cmd(cmd):
     env["LANGUAGE"] = "C"
     env["LANG"] = "C"
     env["LC_ALL"] = "C"
-    with subprocess.Popen(
+    with subprocess.Popen(  # noqa: S603  We are calling git with fixed arguments
         cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -73,108 +71,13 @@ def get_version_info():
         return full_version
     try:
         release = _minimal_ext_cmd(["git", "tag", "-l", "--points-at", "HEAD"])
-    except Exception:  # pylint: disable=broad-except
+    except Exception:
         return full_version
     git_revision = git_version()
     if not release:
-        full_version += ".dev0+" + git_revision[:7]
+        full_version += "+" + git_revision[:7]
 
     return full_version
 
 
 __version__ = get_version_info()
-
-
-class QiskitVersion(Mapping):
-    """A lazy loading wrapper to get qiskit versions."""
-
-    __slots__ = ["_version_dict", "_loaded"]
-
-    def __init__(self):
-        self._version_dict = {
-            "qiskit-terra": __version__,
-            "qiskit-aer": None,
-            "qiskit-ignis": None,
-            "qiskit-ibmq-provider": None,
-            "qiskit": None,
-        }
-        self._loaded = False
-
-    def _load_versions(self):
-        from importlib.metadata import version
-
-        try:
-            # TODO: Update to use qiskit_aer instead when we remove the
-            # namespace redirect
-            from qiskit.providers import aer
-
-            self._version_dict["qiskit-aer"] = aer.__version__
-        except Exception:
-            self._version_dict["qiskit-aer"] = None
-        try:
-            from qiskit import ignis
-
-            self._version_dict["qiskit-ignis"] = ignis.__version__
-        except Exception:
-            self._version_dict["qiskit-ignis"] = None
-        try:
-            from qiskit.providers import ibmq
-
-            self._version_dict["qiskit-ibmq-provider"] = ibmq.__version__
-        except Exception:
-            self._version_dict["qiskit-ibmq-provider"] = None
-        try:
-            import qiskit_nature
-
-            self._version_dict["qiskit-nature"] = qiskit_nature.__version__
-        except Exception:
-            self._version_dict["qiskit-nature"] = None
-        try:
-            import qiskit_finance
-
-            self._version_dict["qiskit-finance"] = qiskit_finance.__version__
-        except Exception:
-            self._version_dict["qiskit-finance"] = None
-        try:
-            import qiskit_optimization
-
-            self._version_dict["qiskit-optimization"] = qiskit_optimization.__version__
-        except Exception:
-            self._version_dict["qiskit-optimization"] = None
-        try:
-            import qiskit_machine_learning
-
-            self._version_dict["qiskit-machine-learning"] = qiskit_machine_learning.__version__
-        except Exception:
-            self._version_dict["qiskit-machine-learning"] = None
-        try:
-            self._version_dict["qiskit"] = version("qiskit")
-        except Exception:
-            self._version_dict["qiskit"] = None
-        self._loaded = True
-
-    def __repr__(self):
-        if not self._loaded:
-            self._load_versions()
-        return repr(self._version_dict)
-
-    def __str__(self):
-        if not self._loaded:
-            self._load_versions()
-        return str(self._version_dict)
-
-    def __getitem__(self, key):
-        if not self._loaded:
-            self._load_versions()
-        return self._version_dict[key]
-
-    def __iter__(self):
-        if not self._loaded:
-            self._load_versions()
-        return iter(self._version_dict)
-
-    def __len__(self):
-        return len(self._version_dict)
-
-
-__qiskit_version__ = QiskitVersion()

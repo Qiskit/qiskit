@@ -1,0 +1,6 @@
+---
+upgrade_providers:
+  - |
+    As part of Pulse removal in Qiskit 2.0, pulse support has been removed from
+    :class:`.GenericBackendV2`. This includes the ability to initialize the backend
+    with custom calibrations (``calibrate_instructions`` argument) and pulse channels information.

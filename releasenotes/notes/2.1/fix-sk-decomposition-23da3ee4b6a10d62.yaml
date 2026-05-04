@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixed a problem in the :class:`.SolovayKitaev` transpiler pass where the pass could
+    crash due to encountering a 180 degree rotation in the internal recursion,
+    which was not handled correctly.
+  - |
+    Fixed a problem in the :class:`.SolovayKitaev` transpiler pass where the generated
+    approximation could have a phase that differs by :math:`\pi` from the correct value.
+    This resulted due to the internal :math:`SO(3)` representation, which requires additional
+    handling to obtain the correct sign of the qubit gate matrix.
+    Fixed `#9552 <https://github.com/Qiskit/qiskit-terra/issues/9552>`__

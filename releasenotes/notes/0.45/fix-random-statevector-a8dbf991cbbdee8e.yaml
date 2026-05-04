@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fixes the implementation of :func:`.random_statevector` so that it samples from the uniform distribution.

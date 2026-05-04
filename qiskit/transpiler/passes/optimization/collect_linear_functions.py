@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -27,7 +27,15 @@ class CollectLinearFunctions(CollectAndCollapse):
     """Collect blocks of linear gates (:class:`.CXGate` and :class:`.SwapGate` gates)
     and replaces them by linear functions (:class:`.LinearFunction`)."""
 
-    def __init__(self, do_commutative_analysis=False, split_blocks=True, min_block_size=2):
+    def __init__(
+        self,
+        do_commutative_analysis=False,
+        split_blocks=True,
+        min_block_size=2,
+        split_layers=False,
+        collect_from_back=False,
+        max_block_width=None,
+    ):
         """CollectLinearFunctions initializer.
 
         Args:
@@ -37,6 +45,13 @@ class CollectLinearFunctions(CollectAndCollapse):
                 over disjoint qubit subsets.
             min_block_size (int): specifies the minimum number of gates in the block
                 for the block to be collected.
+            split_layers (bool): if True, splits collected blocks into sub-blocks
+                over disjoint qubit subsets.
+            collect_from_back (bool): specifies if blocks should be collected started
+                from the end of the circuit.
+            max_block_width (int | None): specifies the maximum width of the block
+                (that is, the number of qubits over which the block is defined)
+                for the block to be collected.
         """
 
         collect_function = partial(
@@ -44,6 +59,9 @@ class CollectLinearFunctions(CollectAndCollapse):
             filter_function=_is_linear_gate,
             split_blocks=split_blocks,
             min_block_size=min_block_size,
+            split_layers=split_layers,
+            collect_from_back=collect_from_back,
+            max_block_width=max_block_width,
         )
         collapse_function = partial(
             collapse_to_operation, collapse_function=_collapse_to_linear_function
@@ -58,7 +76,7 @@ class CollectLinearFunctions(CollectAndCollapse):
 
 def _is_linear_gate(node):
     """Specifies whether a node holds a linear gate."""
-    return node.op.name in ("cx", "swap") and getattr(node.op, "condition", None) is None
+    return node.op.name in ("cx", "swap") and getattr(node, "condition", None) is None
 
 
 def _collapse_to_linear_function(circuit):

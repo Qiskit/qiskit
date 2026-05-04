@@ -4,31 +4,13 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-RZX based template for CX - phase - CX
-.. parsed-literal::
-                                                                            »
-q_0: ──■────────────────────────────────────────────■───────────────────────»
-     ┌─┴─┐┌───────┐┌────┐┌───────┐┌────┐┌────────┐┌─┴─┐┌────────┐┌─────────┐»
-q_1: ┤ X ├┤ RZ(ϴ) ├┤ √X ├┤ RZ(π) ├┤ √X ├┤ RZ(3π) ├┤ X ├┤ RZ(-ϴ) ├┤ RZ(π/2) ├»
-     └───┘└───────┘└────┘└───────┘└────┘└────────┘└───┘└────────┘└─────────┘»
-«                                    ┌──────────┐                      »
-«q_0: ───────────────────────────────┤0         ├──────────────────────»
-«     ┌─────────┐┌─────────┐┌───────┐│  RZX(-ϴ) │┌─────────┐┌─────────┐»
-«q_1: ┤ RX(π/2) ├┤ RZ(π/2) ├┤ RX(ϴ) ├┤1         ├┤ RZ(π/2) ├┤ RX(π/2) ├»
-«     └─────────┘└─────────┘└───────┘└──────────┘└─────────┘└─────────┘»
-«
-«q_0: ───────────
-«     ┌─────────┐
-«q_1: ┤ RZ(π/2) ├
-«     └─────────┘
-"""
+
 from __future__ import annotations
 
 import numpy as np
@@ -38,7 +20,26 @@ from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 def rzx_zz1(theta: ParameterValueType | None = None):
-    """Template for CX - RZGate - CX."""
+    """RZX-based template for CX - RZGate - CX.
+
+    .. code-block:: text
+
+                                                                                      »
+          q_0: ──■────────────────────────────────────────────■───────────────────────»
+               ┌─┴─┐┌───────┐┌────┐┌───────┐┌────┐┌────────┐┌─┴─┐┌────────┐┌─────────┐»
+          q_1: ┤ X ├┤ RZ(ϴ) ├┤ √X ├┤ RZ(π) ├┤ √X ├┤ RZ(3π) ├┤ X ├┤ RZ(-ϴ) ├┤ RZ(π/2) ├»
+               └───┘└───────┘└────┘└───────┘└────┘└────────┘└───┘└────────┘└─────────┘»
+          «                                    ┌──────────┐                      »
+          «q_0: ───────────────────────────────┤0         ├──────────────────────»
+          «     ┌─────────┐┌─────────┐┌───────┐│  RZX(-ϴ) │┌─────────┐┌─────────┐»
+          «q_1: ┤ RX(π/2) ├┤ RZ(π/2) ├┤ RX(ϴ) ├┤1         ├┤ RZ(π/2) ├┤ RX(π/2) ├»
+          «     └─────────┘└─────────┘└───────┘└──────────┘└─────────┘└─────────┘»
+          «
+          «q_0: ───────────
+          «     ┌─────────┐
+          «q_1: ┤ RZ(π/2) ├
+          «     └─────────┘
+    """
     if theta is None:
         theta = Parameter("ϴ")
 

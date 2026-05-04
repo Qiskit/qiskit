@@ -1,0 +1,27 @@
+---
+upgrade_pulse:
+  - |
+    Removed deprecated methods in :class:`.InstructionToQobjConverter`
+    and :class:`.QobjToInstructionConverter`. This includes
+
+    * :meth:`.InstructionToQobjConverter.convert_acquire`
+    * :meth:`.InstructionToQobjConverter.convert_bundled_acquires`
+    * :meth:`.InstructionToQobjConverter.convert_set_frequency`
+    * :meth:`.InstructionToQobjConverter.convert_shift_frequency`
+    * :meth:`.InstructionToQobjConverter.convert_set_phase`
+    * :meth:`.InstructionToQobjConverter.convert_shift_phase`
+    * :meth:`.InstructionToQobjConverter.convert_delay`
+    * :meth:`.InstructionToQobjConverter.convert_play`
+    * :meth:`.InstructionToQobjConverter.convert_snapshot`
+    * :meth:`.QobjToInstructionConverter.convert_acquire`
+    * :meth:`.QobjToInstructionConverter.convert_set_phase`
+    * :meth:`.QobjToInstructionConverter.convert_shift_phase`
+    * :meth:`.QobjToInstructionConverter.convert_set_frequency`
+    * :meth:`.QobjToInstructionConverter.convert_shift_frequency`
+    * :meth:`.QobjToInstructionConverter.convert_delay`
+    * :meth:`.QobjToInstructionConverter.bind_pulse`
+    * :meth:`.QobjToInstructionConverter.convert_parametric`
+    * :meth:`.QobjToInstructionConverter.convert_snapshot`
+
+    These public methods are all replaced with protected ones which are implicitly called from
+    the single entry point, i.e. calling the class as like a function.

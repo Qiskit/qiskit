@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    Added utility function :func:`qiskit.transpiler.passes.utils._block_to_matrix` that can 
+    generate a matrix based on a block of operations between two qubits. This function can
+    be used in transpiler passes that work on some decomposed circuits such as :class:`.ConsolidateBlocks`. 
+fixes:
+  - |
+    Reduced overhead of the :class:`.ConsolidateBlocks` pass by performing matrix operations
+    on all two-qubit blocks using :func:`qiskit.transpiler.passes.utils._block_to_matrix` 
+    instead of creating an instance of :class:`.QuantumCircuit` and passing it to an :class:`.Operator`. 
+    The speedup will only be applicable when consolidating two-qubit blocks. Anything higher 
+    than that will still be handled by the :class:`.Operator` class.
+    Check `#8779 <https://github.com/Qiskit/qiskit-terra/issues/8779>`__ for details.

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -37,6 +37,9 @@ The function signature of the generator is restricted to:
         # your code here: create and return drawings related to the gate object.
     ```
 
+If a generator object has the attribute ``accepts_program`` set to ``True``, then the generator will
+be called with an additional keyword argument ``program: QuantumCircuit``.
+
 2. generator.bits
 
 In this stylesheet entry the input data is `types.Bits` and generates timeline objects
@@ -52,6 +55,9 @@ The function signature of the generator is restricted to:
 
         # your code here: create and return drawings related to the bit object.
     ```
+
+If a generator object has the attribute ``accepts_program`` set to ``True``, then the generator will
+be called with an additional keyword argument ``program: QuantumCircuit``.
 
 3. generator.barriers
 
@@ -69,6 +75,9 @@ The function signature of the generator is restricted to:
         # your code here: create and return drawings related to the barrier object.
     ```
 
+If a generator object has the attribute ``accepts_program`` set to ``True``, then the generator will
+be called with an additional keyword argument ``program: QuantumCircuit``.
+
 4. generator.gate_links
 
 In this stylesheet entry the input data is `types.GateLink` and generates barrier objects
@@ -85,23 +94,25 @@ The function signature of the generator is restricted to:
         # your code here: create and return drawings related to the link object.
     ```
 
+If a generator object has the attribute ``accepts_program`` set to ``True``, then the generator will
+be called with an additional keyword argument ``program: QuantumCircuit``.
+
 Arbitrary generator function satisfying the above format can be accepted.
 Returned `ElementaryData` can be arbitrary subclasses that are implemented in
 the plotter API.
 """
 
 import warnings
+from typing import Any
 
-from typing import List, Union, Dict, Any
-
-from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit import Qubit, QuantumCircuit
 from qiskit.visualization.timeline import types, drawings
 
 
 def gen_sched_gate(
     gate: types.ScheduledGate,
-    formatter: Dict[str, Any],
-) -> List[Union[drawings.TextData, drawings.BoxData]]:
+    formatter: dict[str, Any],
+) -> list[drawings.TextData | drawings.BoxData]:
     """Generate time bucket or symbol of scheduled gate.
 
     If gate duration is zero or frame change a symbol is generated instead of time box.
@@ -120,26 +131,18 @@ def gen_sched_gate(
         List of `TextData` or `BoxData` drawings.
     """
     try:
-        unitary = str(gate.operand.to_matrix())
-    except (AttributeError, CircuitError):
-        unitary = "n/a"
-
-    try:
         label = gate.operand.label or "n/a"
     except AttributeError:
         label = "n/a"
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        meta = {
-            "name": gate.operand.name,
-            "label": label,
-            "bits": ", ".join([bit.register.name for bit in gate.bits]),
-            "t0": gate.t0,
-            "duration": gate.duration,
-            "unitary": unitary,
-            "parameters": ", ".join(map(str, gate.operand.params)),
-        }
+    meta = {
+        "name": gate.operand.name,
+        "label": label,
+        "bits": gate.bits,
+        "t0": gate.t0,
+        "duration": gate.duration,
+        "parameters": ", ".join(map(str, gate.operand.params)),
+    }
 
     # find color
     color = formatter["color.gates"].get(gate.operand.name, formatter["color.default_gate"])
@@ -193,8 +196,8 @@ def gen_sched_gate(
 
 
 def gen_full_gate_name(
-    gate: types.ScheduledGate, formatter: Dict[str, Any]
-) -> List[drawings.TextData]:
+    gate: types.ScheduledGate, formatter: dict[str, Any], program: QuantumCircuit | None = None
+) -> list[drawings.TextData]:
     """Generate gate name.
 
     Parameters and associated bits are also shown.
@@ -206,6 +209,7 @@ def gen_full_gate_name(
     Args:
         gate: Gate information source.
         formatter: Dictionary of stylesheet settings.
+        program: Optional program that the bits are a part of.
 
     Returns:
         List of `TextData` drawings.
@@ -234,12 +238,15 @@ def gen_full_gate_name(
     label_latex = rf"{latex_name}"
 
     # bit index
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        if len(gate.bits) > 1:
-            bits_str = ", ".join(map(str, [bit.index for bit in gate.bits]))
-            label_plain += f"[{bits_str}]"
-            label_latex += f"[{bits_str}]"
+    if len(gate.bits) > 1:
+        if program is None:
+            # This is horribly hacky and mostly meaningless, but there's no other distinguisher
+            # available to us if all we have is a `Bit` instance.
+            bits_str = ", ".join(str(id(bit))[-3:] for bit in gate.bits)
+        else:
+            bits_str = ", ".join(f"{program.find_bit(bit).index}" for bit in gate.bits)
+        label_plain += f"[{bits_str}]"
+        label_latex += f"[{bits_str}]"
 
     # parameter list
     params = []
@@ -278,9 +285,12 @@ def gen_full_gate_name(
     return [drawing]
 
 
+gen_full_gate_name.accepts_program = True
+
+
 def gen_short_gate_name(
-    gate: types.ScheduledGate, formatter: Dict[str, Any]
-) -> List[drawings.TextData]:
+    gate: types.ScheduledGate, formatter: dict[str, Any]
+) -> list[drawings.TextData]:
     """Generate gate name.
 
     Only operand name is shown.
@@ -338,7 +348,7 @@ def gen_short_gate_name(
     return [drawing]
 
 
-def gen_timeslot(bit: types.Bits, formatter: Dict[str, Any]) -> List[drawings.BoxData]:
+def gen_timeslot(bit: types.Bits, formatter: dict[str, Any]) -> list[drawings.BoxData]:
     """Generate time slot of associated bit.
 
     Stylesheet:
@@ -369,7 +379,11 @@ def gen_timeslot(bit: types.Bits, formatter: Dict[str, Any]) -> List[drawings.Bo
     return [drawing]
 
 
-def gen_bit_name(bit: types.Bits, formatter: Dict[str, Any]) -> List[drawings.TextData]:
+def gen_bit_name(
+    bit: types.Bits,
+    formatter: dict[str, Any],
+    program: QuantumCircuit | None = None,
+) -> list[drawings.TextData]:
     """Generate bit label.
 
     Stylesheet:
@@ -378,6 +392,7 @@ def gen_bit_name(bit: types.Bits, formatter: Dict[str, Any]) -> List[drawings.Te
     Args:
         bit: Bit object associated to this drawing.
         formatter: Dictionary of stylesheet settings.
+        program: Optional program that the bits are a part of.
 
     Returns:
         List of `TextData` drawings.
@@ -390,12 +405,18 @@ def gen_bit_name(bit: types.Bits, formatter: Dict[str, Any]) -> List[drawings.Te
         "ha": "right",
     }
 
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        label_plain = f"{bit.register.name}"
-        label_latex = r"{{\rm {register}}}_{{{index}}}".format(
-            register=bit.register.prefix, index=bit.index
-        )
+    if program is None:
+        warnings.warn("bits cannot be accurately named without passing a 'program'", stacklevel=2)
+        label_plain = "q" if isinstance(bit, Qubit) else "c"
+        label_latex = rf"{{\rm {label_plain}}}"
+    else:
+        loc = program.find_bit(bit)
+        if loc.registers:
+            label_plain = loc.registers[-1][0].name
+            label_latex = rf"{{\rm {loc.registers[-1][0].prefix}}}_{{{loc.registers[-1][1]}}}"
+        else:
+            label_plain = "q" if isinstance(bit, Qubit) else "c"
+            label_latex = rf"{{\rm {label_plain}}}_{{{loc.index}}}"
 
     drawing = drawings.TextData(
         data_type=types.LabelType.BIT_NAME,
@@ -410,7 +431,10 @@ def gen_bit_name(bit: types.Bits, formatter: Dict[str, Any]) -> List[drawings.Te
     return [drawing]
 
 
-def gen_barrier(barrier: types.Barrier, formatter: Dict[str, Any]) -> List[drawings.LineData]:
+gen_bit_name.accepts_program = True
+
+
+def gen_barrier(barrier: types.Barrier, formatter: dict[str, Any]) -> list[drawings.LineData]:
     """Generate barrier line.
 
     Stylesheet:
@@ -442,7 +466,7 @@ def gen_barrier(barrier: types.Barrier, formatter: Dict[str, Any]) -> List[drawi
     return [drawing]
 
 
-def gen_gate_link(link: types.GateLink, formatter: Dict[str, Any]) -> List[drawings.GateLinkData]:
+def gen_gate_link(link: types.GateLink, formatter: dict[str, Any]) -> list[drawings.GateLinkData]:
     """Generate gate link line.
 
     Line color depends on the operand type.

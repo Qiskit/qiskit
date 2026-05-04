@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    The :class:`.KMSSynthesisLinearFunction` plugin for synthesizing
+    :class:`~qiskit.circuit.library.LinearFunction` objects now accepts
+    two additional options ``use_inverted`` and ``use_transposed``.
+    These option modify the matrix on which the underlying synthesis algorithm runs
+    by possibly inverting and/or transposing it, and then suitably adjust
+    the synthesized circuit. By varying these options, we generally get different
+    synthesized circuits, and in cases may obtain better results than for
+    their default values.
+  - |
+    The :class:`.PMHSynthesisLinearFunction` plugin for synthesizing
+    :class:`~qiskit.circuit.library.LinearFunction` objects now accepts
+    several additional options. The option ``section_size`` is passed to the underlying
+    synthesis method. The options ``use_inverted`` and ``use_transposed``
+    modify the matrix on which the underlying synthesis algorithm runs
+    by possibly inverting and/or transposing it, and then suitably adjust
+    the synthesized circuit. By varying these options, we generally get different
+    synthesized circuits, and in cases may obtain better results than for
+    their default values.

@@ -4,7 +4,7 @@ features:
     A new class, :class:`~qiskit.quantum_info.PauliList`, has been added to
     the :mod:`qiskit.quantum_info` module. This class is used to
     efficiently represent a list of :class:`~qiskit.quantum_info.Pauli`
-    operators. This new class inherets from the same parent class as the
+    operators. This new class inherits from the same parent class as the
     existing :class:`~qiskit.quantum_info.PauliTable` (and therefore can be
     mostly used interchangeably), however it differs from the
     :class:`~qiskit.quantum_info.PauliTable`

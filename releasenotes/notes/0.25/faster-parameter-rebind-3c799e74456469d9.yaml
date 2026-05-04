@@ -1,0 +1,20 @@
+---
+features:
+  - |
+    The performance of :meth:`.QuantumCircuit.assign_parameters` and :meth:`~.QuantumCircuit.bind_parameters`
+    has significantly increased for large circuits with structures typical of applications uses.
+    This includes most circuits based on the :class:`.NLocal` structure, such as
+    :class:`.EfficientSU2`.  See `#10282 <https://github.com/Qiskit/qiskit-terra/issues/10282>`__ for more
+    detail.
+  - |
+    The method :meth:`.QuantumCircuit.assign_parameters` has gained two new keywords arguments: ``flat_input``
+    and ``strict``.  These are advanced options that can be used to speed up the method when passing the
+    parameter bindings as a dictionary; ``flat_input=True`` is a guarantee that the dictionary keys contain
+    only :class:`.Parameter` instances (not :class:`.ParameterVector`\ s), and ``strict=False`` allows the
+    dictionary to contain parameters that are not present in the circuit.  Using these two options can
+    reduce the overhead of input normalisation in this function.
+fixes:
+  - |
+    A parametrized circuit that contains a custom gate whose definition has a parametrized global phase
+    can now successfully bind the parameter in the inner global phase.
+    See `#10283 <https://github.com/Qiskit/qiskit-terra/issues/10283>`__ for more detail.

@@ -5,7 +5,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -49,7 +49,7 @@ def _main():
     failed_files = [x for x in res if x is not None]
     if len(failed_files) > 0:
         for failed_file in failed_files:
-            sys.stderr.write("%s is not in the correct location.\n" % failed_file)
+            sys.stderr.write(f"{failed_file} is not in the correct location.\n")
         sys.exit(1)
     sys.exit(0)
 

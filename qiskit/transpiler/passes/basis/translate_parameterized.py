@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -15,15 +15,13 @@
 from __future__ import annotations
 
 from qiskit.circuit import Instruction, ParameterExpression, Qubit, Clbit
+from qiskit.circuit.equivalence_library import EquivalenceLibrary
 from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
-from qiskit.circuit.equivalence_library import EquivalenceLibrary
 from qiskit.exceptions import QiskitError
-from qiskit.transpiler import Target
-
 from qiskit.transpiler.basepasses import TransformationPass
-
-from .basis_translator import BasisTranslator
+from qiskit.transpiler.passes.basis.basis_translator import BasisTranslator
+from qiskit.transpiler.target import Target
 
 
 class TranslateParameterizedGates(TransformationPass):
@@ -86,7 +84,7 @@ class TranslateParameterizedGates(TransformationPass):
     ) -> None:
         """
         Args:
-            supported_gates: A list of suppported basis gates specified as string. If ``None``,
+            supported_gates: A list of supported basis gates specified as string. If ``None``,
                 a ``target`` must be provided.
             equivalence_library: The equivalence library to translate the gates. Defaults
                 to the equivalence library of all Qiskit standard gates.
@@ -172,6 +170,6 @@ def _instruction_to_dag(op: Instruction) -> DAGCircuit:
     dag = DAGCircuit()
     dag.add_qubits([Qubit() for _ in range(op.num_qubits)])
     dag.add_qubits([Clbit() for _ in range(op.num_clbits)])
-    dag.apply_operation_back(op, dag.qubits, dag.clbits)
+    dag.apply_operation_back(op, dag.qubits, dag.clbits, check=False)
 
     return dag

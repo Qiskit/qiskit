@@ -1,0 +1,5 @@
+---
+features_synthesis:
+  - |
+    :class:`.MCXRecursive` with :math:`k` control qubits and a single clean auxiliary qubit
+    now requires at most :math:`16k-8` CX gates.

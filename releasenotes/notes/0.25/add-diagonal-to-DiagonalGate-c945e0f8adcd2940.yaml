@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed the deserialization of :class:`.DiagonalGate` instances through QPY.
+    See `#10364 <https://github.com/Qiskit/qiskit-terra/issues/10364>`__.

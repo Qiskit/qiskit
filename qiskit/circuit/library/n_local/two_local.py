@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -13,38 +13,18 @@
 """The two-local gate circuit."""
 
 from __future__ import annotations
-from typing import Union, Optional, List, Callable, Any, Sequence
+import typing
+from collections.abc import Callable, Sequence
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit import Gate, Instruction, Parameter
+from qiskit.circuit import Gate, Instruction
+from qiskit.utils.deprecation import deprecate_func
 
 from .n_local import NLocal
-from ..standard_gates import (
-    IGate,
-    XGate,
-    YGate,
-    ZGate,
-    RXGate,
-    RYGate,
-    RZGate,
-    HGate,
-    SGate,
-    SdgGate,
-    TGate,
-    TdgGate,
-    RXXGate,
-    RYYGate,
-    RZXGate,
-    RZZGate,
-    SwapGate,
-    CXGate,
-    CYGate,
-    CZGate,
-    CRXGate,
-    CRYGate,
-    CRZGate,
-    CHGate,
-)
+from ..standard_gates import get_standard_gate_name_mapping
+
+if typing.TYPE_CHECKING:
+    import qiskit
 
 
 class TwoLocal(NLocal):
@@ -59,7 +39,7 @@ class TwoLocal(NLocal):
 
     A set of default entanglement strategies is provided:
 
-    * ``'full'`` entanglement is each qubit is entangled with all the others.
+    * ``'full'`` entanglement is where each qubit is entangled with all the others.
     * ``'linear'`` entanglement is qubit :math:`i` entangled with qubit :math:`i + 1`,
       for all :math:`i \in \{0, 1, ... , n - 2\}`, where :math:`n` is the total number of qubits.
     * ``'reverse_linear'`` entanglement is qubit :math:`i` entangled with qubit :math:`i + 1`,
@@ -97,7 +77,7 @@ class TwoLocal(NLocal):
     Examples:
 
         >>> two = TwoLocal(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
-        >>> print(two)  # decompose the layers into standard gates
+        >>> print(two.decompose())  # decompose the layers into standard gates
              ┌──────────┐ ░            ░ ┌──────────┐ ░            ░ ┌──────────┐
         q_0: ┤ Ry(θ[0]) ├─░───■────────░─┤ Ry(θ[3]) ├─░───■────────░─┤ Ry(θ[6]) ├
              ├──────────┤ ░ ┌─┴─┐      ░ ├──────────┤ ░ ┌─┴─┐      ░ ├──────────┤
@@ -106,10 +86,10 @@ class TwoLocal(NLocal):
         q_2: ┤ Ry(θ[2]) ├─░──────┤ X ├─░─┤ Ry(θ[5]) ├─░──────┤ X ├─░─┤ Ry(θ[8]) ├
              └──────────┘ ░      └───┘ ░ └──────────┘ ░      └───┘ ░ └──────────┘
 
-        >>> two = TwoLocal(3, ['ry','rz'], 'cz', 'full', reps=1, insert_barriers=True)
+        >>> two = TwoLocal(3, ['ry','rz'], 'cz', 'full', reps=1, insert_barriers=True, flatten=True)
         >>> qc = QuantumCircuit(3)
-        >>> qc += two
-        >>> print(qc.decompose().draw())
+        >>> qc &= two
+        >>> print(qc.draw())
              ┌──────────┐┌──────────┐ ░           ░ ┌──────────┐ ┌──────────┐
         q_0: ┤ Ry(θ[0]) ├┤ Rz(θ[3]) ├─░──■──■─────░─┤ Ry(θ[6]) ├─┤ Rz(θ[9]) ├
              ├──────────┤├──────────┤ ░  │  │     ░ ├──────────┤┌┴──────────┤
@@ -119,7 +99,7 @@ class TwoLocal(NLocal):
              └──────────┘└──────────┘ ░           ░ └──────────┘└───────────┘
 
         >>> entangler_map = [[0, 1], [1, 2], [2, 0]]  # circular entanglement for 3 qubits
-        >>> two = TwoLocal(3, 'x', 'crx', entangler_map, reps=1)
+        >>> two = TwoLocal(3, 'x', 'crx', entangler_map, reps=1, flatten=True)
         >>> print(two)  # note: no barriers inserted this time!
                 ┌───┐                             ┌──────────┐┌───┐
         q_0: |0>┤ X ├─────■───────────────────────┤ Rx(θ[2]) ├┤ X ├
@@ -130,9 +110,9 @@ class TwoLocal(NLocal):
                 └───┘            └──────────┘                 └───┘
 
         >>> entangler_map = [[0, 3], [0, 2]]  # entangle the first and last two-way
-        >>> two = TwoLocal(4, [], 'cry', entangler_map, reps=1)
-        >>> circuit = two + two
-        >>> print(circuit.decompose().draw())  # note, that the parameters are the same!
+        >>> two = TwoLocal(4, [], 'cry', entangler_map, reps=1, flatten=True)
+        >>> circuit = two.compose(two)
+        >>> print(circuit.draw())  # note, that the parameters are the same!
         q_0: ─────■───────────■───────────■───────────■──────
                   │           │           │           │
         q_1: ─────┼───────────┼───────────┼───────────┼──────
@@ -144,7 +124,8 @@ class TwoLocal(NLocal):
 
         >>> layer_1 = [(0, 1), (0, 2)]
         >>> layer_2 = [(1, 2)]
-        >>> two = TwoLocal(3, 'x', 'cx', [layer_1, layer_2], reps=2, insert_barriers=True)
+        >>> two = TwoLocal(3, 'x', 'cx', [layer_1, layer_2], reps=2, insert_barriers=True,
+        ... flatten=True)
         >>> print(two)
              ┌───┐ ░            ░ ┌───┐ ░       ░ ┌───┐
         q_0: ┤ X ├─░───■────■───░─┤ X ├─░───────░─┤ X ├
@@ -156,31 +137,46 @@ class TwoLocal(NLocal):
 
     """
 
+    @deprecate_func(
+        since="2.1",
+        additional_msg="Use the function qiskit.circuit.library.n_local instead.",
+        removal_timeline="in Qiskit 3.0",
+    )
     def __init__(
         self,
-        num_qubits: Optional[int] = None,
-        rotation_blocks: Optional[
-            Union[str, List[str], type, List[type], QuantumCircuit, List[QuantumCircuit]]
-        ] = None,
-        entanglement_blocks: Optional[
-            Union[str, List[str], type, List[type], QuantumCircuit, List[QuantumCircuit]]
-        ] = None,
-        entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "full",
+        num_qubits: int | None = None,
+        rotation_blocks: (
+            str
+            | type
+            | qiskit.circuit.Instruction
+            | QuantumCircuit
+            | list[str | type | qiskit.circuit.Instruction | QuantumCircuit]
+            | None
+        ) = None,
+        entanglement_blocks: (
+            str
+            | type
+            | qiskit.circuit.Instruction
+            | QuantumCircuit
+            | list[str | type | qiskit.circuit.Instruction | QuantumCircuit]
+            | None
+        ) = None,
+        entanglement: str | list[list[int]] | Callable[[int], list[int]] = "full",
         reps: int = 3,
         skip_unentangled_qubits: bool = False,
         skip_final_rotation_layer: bool = False,
         parameter_prefix: str = "θ",
         insert_barriers: bool = False,
-        initial_state: Optional[Any] = None,
+        initial_state: QuantumCircuit | None = None,
         name: str = "TwoLocal",
+        flatten: bool | None = None,
     ) -> None:
-        """Construct a new two-local circuit.
-
+        """
         Args:
             num_qubits: The number of qubits of the two-local circuit.
             rotation_blocks: The gates used in the rotation layer. Can be specified via the name of
                 a gate (e.g. ``'ry'``) or the gate type itself (e.g. :class:`.RYGate`).
-                If only one gate is provided, the gate same gate is applied to each qubit.
+                If only one gate is provided, the same gate is applied to each qubit.
                 If a list of gates is provided, all gates are applied to each qubit in the provided
                 order.
                 See the Examples section for more detail.
@@ -208,6 +204,14 @@ class TwoLocal(NLocal):
             insert_barriers: If ``True``, barriers are inserted in between each layer. If ``False``,
                 no barriers are inserted. Defaults to ``False``.
             initial_state: A :class:`.QuantumCircuit` object to prepend to the circuit.
+            name: The name to use for the generated circuit.
+            flatten: Set this to ``True`` to output a flat circuit instead of nesting it inside multiple
+                layers of gate objects. By default currently the contents of
+                the output circuit will be wrapped in nested objects for
+                cleaner visualization. However, if you're using this circuit
+                for anything besides visualization its **strongly** recommended
+                to set this flag to ``True`` to avoid a large performance
+                overhead for parameter binding.
 
         """
         super().__init__(
@@ -222,9 +226,10 @@ class TwoLocal(NLocal):
             initial_state=initial_state,
             parameter_prefix=parameter_prefix,
             name=name,
+            flatten=flatten,
         )
 
-    def _convert_to_block(self, layer: Union[str, type, Gate, QuantumCircuit]) -> QuantumCircuit:
+    def _convert_to_block(self, layer: str | type | Gate | QuantumCircuit) -> QuantumCircuit:
         """For a layer provided as str (e.g. ``'ry'``) or type (e.g. :class:`.RYGate`) this function
          returns the
          according layer type along with the number of parameters (e.g. ``(RYGate, 1)``).
@@ -247,38 +252,7 @@ class TwoLocal(NLocal):
         if isinstance(layer, QuantumCircuit):
             return layer
 
-        # check the list of valid layers
-        # this could be a lot easier if the standard layers would have ``name`` and ``num_params``
-        # as static types, which might be something they should have anyway
-        theta = Parameter("θ")
-        valid_layers = {
-            "ch": CHGate(),
-            "cx": CXGate(),
-            "cy": CYGate(),
-            "cz": CZGate(),
-            "crx": CRXGate(theta),
-            "cry": CRYGate(theta),
-            "crz": CRZGate(theta),
-            "h": HGate(),
-            "i": IGate(),
-            "id": IGate(),
-            "iden": IGate(),
-            "rx": RXGate(theta),
-            "rxx": RXXGate(theta),
-            "ry": RYGate(theta),
-            "ryy": RYYGate(theta),
-            "rz": RZGate(theta),
-            "rzx": RZXGate(theta),
-            "rzz": RZZGate(theta),
-            "s": SGate(),
-            "sdg": SdgGate(),
-            "swap": SwapGate(),
-            "x": XGate(),
-            "y": YGate(),
-            "z": ZGate(),
-            "t": TGate(),
-            "tdg": TdgGate(),
-        }
+        valid_layers = get_standard_gate_name_mapping()
 
         # try to exchange `layer` from a string to a gate instance
         if isinstance(layer, str):

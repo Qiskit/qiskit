@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    A new method, :meth:`~qiskit.dagcircuit.dag.find_bit`, has
+    been added to the :class:`~qiskit.dagcircuit.DagCircuit` class.
+    This is a method to get mapping of Qubit and Clbit to positional index. 
+    The method takes a Bit as input, checks whether it's a Qubit or a Clbit, 
+    and then returns the corresponding BitLocations from the respective index 
+    dictionary (_qubit_indices or _clbit_indices).
+    The BitLocations is a namedtuple which includes the positional index of the 
+    bit in the circuit and a list of registers containing the bit. If the bit 
+    cannot be found or is of an unknown type, it raises a DAGCircuitError.

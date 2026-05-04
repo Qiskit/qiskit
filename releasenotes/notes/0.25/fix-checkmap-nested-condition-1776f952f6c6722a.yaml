@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The :class:`.CheckMap` transpiler pass will no longer spuriously error when dealing with nested
+    conditional structures created by the control-flow builder interface.  See `#10394
+    <https://github.com/Qiskit/qiskit-terra/issues/10394>`__.

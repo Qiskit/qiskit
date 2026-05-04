@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,6 +14,7 @@
 Abstract BaseOperator class.
 """
 
+from __future__ import annotations
 import copy
 from abc import ABC
 
@@ -27,21 +28,26 @@ class BaseOperator(GroupMixin, ABC):
     """Abstract operator base class."""
 
     def __init__(
-        self, input_dims=None, output_dims=None, num_qubits=None, shape=None, op_shape=None
+        self,
+        input_dims: tuple | int | None = None,
+        output_dims: tuple | int | None = None,
+        num_qubits: int | None = None,
+        shape: tuple | None = None,
+        op_shape: OpShape | None = None,
     ):
         """Initialize a BaseOperator shape
 
         Args:
-            input_dims (tuple or int or None): Optional, input dimensions.
-            output_dims (tuple or int or None): Optional, output dimensions.
-            num_qubits (int): Optional, the number of qubits of the operator.
-            shape (tuple): Optional, matrix shape for automatically determining
+            input_dims (tuple or int or None):  input dimensions.
+            output_dims (tuple or int or None):  output dimensions.
+            num_qubits (int):  the number of qubits of the operator.
+            shape (tuple):  matrix shape for automatically determining
                            qubit dimensions.
-            op_shape (OpShape): Optional, an OpShape object for operator dimensions.
+            op_shape (OpShape):  an OpShape object for operator dimensions.
 
         .. note::
 
-            If `op_shape`` is specified it will take precedence over other
+            If ``op_shape`` is specified it will take precedence over other
             kwargs.
         """
         self._qargs = None
@@ -94,10 +100,15 @@ class BaseOperator(GroupMixin, ABC):
 
     @property
     def _output_dim(self):
-        """Return the total input dimension."""
+        """Return the total output dimension."""
         return self._op_shape._dim_l
 
-    def reshape(self, input_dims=None, output_dims=None, num_qubits=None):
+    def reshape(
+        self,
+        input_dims: None | tuple | int = None,
+        output_dims: None | tuple | int = None,
+        num_qubits: None | int = None,
+    ) -> BaseOperator:
         """Return a shallow copy with reshaped input and output subsystem dimensions.
 
         Args:

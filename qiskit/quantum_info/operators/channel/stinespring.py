@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -13,8 +13,12 @@
 Stinespring representation of a Quantum Channel.
 """
 
+from __future__ import annotations
 import copy
+import math
 from numbers import Number
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -28,6 +32,10 @@ from qiskit.quantum_info.operators.channel.choi import Choi
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_stinespring
 from qiskit.quantum_info.operators.mixins import generate_apidocs
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+
+if TYPE_CHECKING:
+    from qiskit import circuit
 
 
 class Stinespring(QuantumChannel):
@@ -59,21 +67,21 @@ class Stinespring(QuantumChannel):
            `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
     """
 
-    def __init__(self, data, input_dims=None, output_dims=None):
+    def __init__(
+        self,
+        data: QuantumCircuit | circuit.instruction.Instruction | BaseOperator | np.ndarray,
+        input_dims: int | tuple | None = None,
+        output_dims: int | tuple | None = None,
+    ):
         """Initialize a quantum channel Stinespring operator.
 
         Args:
-            data (QuantumCircuit or
-                  Instruction or
-                  BaseOperator or
-                  matrix): data to initialize superoperator.
-            input_dims (tuple): the input subsystem dimensions.
-                                [Default: None]
-            output_dims (tuple): the output subsystem dimensions.
-                                 [Default: None]
+            data: data to initialize superoperator.
+            input_dims: the input subsystem dimensions.
+            output_dims: the output subsystem dimensions.
 
         Raises:
-            QiskitError: if input data cannot be initialized as a
+            QiskitError: if input data cannot be initialized as
                          a list of Kraus matrices.
 
         Additional Information:
@@ -118,7 +126,7 @@ class Stinespring(QuantumChannel):
                 # convert it to a SuperOp
                 data = SuperOp._init_instruction(data)
             else:
-                # We use the QuantumChannel init transform to intialize
+                # We use the QuantumChannel init transform to initialize
                 # other objects into a QuantumChannel or Operator object.
                 data = self._init_transformer(data)
             op_shape = data._op_shape
@@ -186,7 +194,9 @@ class Stinespring(QuantumChannel):
         ret._data = (stine[0], stine[1])
         return ret
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(
+        self, other: Stinespring, qargs: list | None = None, front: bool = False
+    ) -> Stinespring:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
         if qargs is not None:
@@ -195,12 +205,12 @@ class Stinespring(QuantumChannel):
         # superoperator to avoid unnecessary representation conversions
         return Stinespring(Kraus(self).compose(other, front=front))
 
-    def tensor(self, other):
+    def tensor(self, other: Stinespring) -> Stinespring:
         if not isinstance(other, Stinespring):
             other = Stinespring(other)
         return self._tensor(self, other)
 
-    def expand(self, other):
+    def expand(self, other: Stinespring) -> Stinespring:
         if not isinstance(other, Stinespring):
             other = Stinespring(other)
         return self._tensor(other, self)
@@ -272,7 +282,7 @@ class Stinespring(QuantumChannel):
             return ret
         # If the number is real we can update the Kraus operators
         # directly
-        num = np.sqrt(other)
+        num = math.sqrt(other)
         stine_l, stine_r = self._data
         stine_l = num * self._data[0]
         stine_r = None

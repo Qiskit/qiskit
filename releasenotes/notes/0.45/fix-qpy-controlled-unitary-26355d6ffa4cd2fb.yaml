@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug in QPY serialization (:mod:`qiskit.qpy`) where controlled unitary gates in
+    a circuit could result would fail to deserialize.  Fixed `#10802
+    <https://github.com/Qiskit/qiskit-terra/issues/10802>`__.

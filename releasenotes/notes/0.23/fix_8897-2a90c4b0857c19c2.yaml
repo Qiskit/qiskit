@@ -2,7 +2,7 @@
 fixes:
   - |
     Fixes issue where :meth:`.Statevector.evolve` and :meth:`.DensityMatrix.evolve`
-    would raise an exeception for nested subsystem evolution for non-qubit
+    would raise an exception for nested subsystem evolution for non-qubit
     subsystems.
     Fixes `issue #8897 <https://github.com/Qiskit/qiskit-terra/issues/8897>`_
   - |

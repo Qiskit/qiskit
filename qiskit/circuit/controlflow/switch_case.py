@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -12,67 +12,82 @@
 
 """Circuit operation representing an ``switch/case`` statement."""
 
-__all__ = ("SwitchCaseOp", "CASE_DEFAULT")
+from __future__ import annotations
+
+__all__ = ("CASE_DEFAULT", "SwitchCaseOp")
 
 import contextlib
-from typing import Union, Iterable, Any, Tuple, Optional, List, Literal
+from typing import Any, Literal, TYPE_CHECKING
+from collections.abc import Iterable
 
-from qiskit.circuit import ClassicalRegister, Clbit, QuantumCircuit
+from qiskit.circuit import ClassicalRegister, Clbit
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.exceptions import CircuitError
+from qiskit._accelerate.circuit import ControlFlowType
 
 from .builder import InstructionPlaceholder, InstructionResources, ControlFlowBuilderBlock
 from .control_flow import ControlFlowOp
-from ._builder_utils import unify_circuit_resources, partition_registers
+from ._builder_utils import unify_circuit_resources, partition_registers, node_resources
+
+if TYPE_CHECKING:
+    from qiskit.circuit import QuantumCircuit
 
 
 class _DefaultCaseType:
-    """The type of the default-case singleton.  This is used instead of just having
-    ``CASE_DEFAULT = object()`` so we can set the pretty-printing properties, which are class-level
-    only."""
+    # Note: Sphinx uses the docstring of this singleton class object as the documentation of the
+    # `CASE_DEFAULT` object.
+
+    """A special object that represents the "default" case of a switch statement.  If you use this
+    as a case target, it must be the last case, and will match anything that wasn't already matched.
+    When using the builder interface of :meth:`.QuantumCircuit.switch`, this can also be accessed as
+    the ``DEFAULT`` attribute of the bound case-builder object."""
 
     def __repr__(self):
         return "<default case>"
 
 
 CASE_DEFAULT = _DefaultCaseType()
-"""A special object that represents the "default" case of a switch statement.  If you use this
-as a case target, it must be the last case, and will match anything that wasn't already matched.
-When using the builder interface of :meth:`.QuantumCircuit.switch`, this can also be accessed as the
-``DEFAULT`` attribute of the bound case-builder object.
-"""
 
 
 class SwitchCaseOp(ControlFlowOp):
     """A circuit operation that executes one particular circuit block based on matching a given
     ``target`` against an ordered list of ``values``.  The special value :data:`.CASE_DEFAULT` can
     be used to represent a default condition.
-
-    This is the low-level interface for creating a switch-case statement; in general, the circuit
-    method :meth:`.QuantumCircuit.switch_case` should be used as a context manager to access the
-    builder interface.  At the low level, you must ensure that all the circuit blocks contain equal
-    numbers of qubits and clbits, and that the order the virtual bits of the containing circuit
-    should be bound is the same for all blocks.  This will likely mean that each circuit block is
-    wider than its natural width, as each block must span the union of all the spaces covered by
-    _any_ of the blocks.
-
-    Args:
-        target: the runtime value to switch on.
-        cases: an ordered iterable of the corresponding value of the ``target`` and the circuit
-            block that should be executed if this is matched.  There is no fall-through between
-            blocks, and the order matters.
     """
+
+    _control_flow_type = ControlFlowType.SwitchCase
 
     def __init__(
         self,
-        target: Union[Clbit, ClassicalRegister],
-        cases: Iterable[Tuple[Any, QuantumCircuit]],
+        target: Clbit | ClassicalRegister | expr.Expr,
+        cases: Iterable[tuple[Any, QuantumCircuit]],
         *,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
-        if not isinstance(target, (Clbit, ClassicalRegister)):
+        """
+        Args:
+            target: the real-time value to switch on.
+            cases: an ordered iterable of the corresponding value of the ``target`` and the circuit
+                block that should be executed if this is matched.  There is no fall-through between
+                blocks, and the order matters.
+            label: An optional label for identifying the instruction.
+        """
+
+        from qiskit.circuit import QuantumCircuit
+
+        if isinstance(target, expr.Expr):
+            if target.type.kind not in (types.Uint, types.Bool):
+                raise CircuitError(
+                    "the switch target must be an expression with type 'Uint(n)' or 'Bool()',"
+                    f" not '{target.type}'"
+                )
+        elif not isinstance(target, (Clbit, ClassicalRegister)):
             raise CircuitError("the switch target must be a classical bit or register")
 
-        target_bits = 1 if isinstance(target, Clbit) else len(target)
+        if isinstance(target, expr.Expr):
+            target_bits = 1 if target.type.kind is types.Bool else target.type.width
+        else:
+            target_bits = 1 if isinstance(target, Clbit) else len(target)
         target_max = (1 << target_bits) - 1
 
         case_ids = set()
@@ -83,8 +98,8 @@ class SwitchCaseOp(ControlFlowOp):
         us more easily track the case of multiple labels pointing to the same circuit object, so
         it's easier for things like `assign_parameters`, which need to touch each circuit object
         exactly once, to function."""
-        self._label_spec: List[Tuple[Union[int, Literal[CASE_DEFAULT]], ...]] = []
-        """List of the normalised jump value specifiers.  This is a list of tuples, where each tuple
+        self._label_spec: list[tuple[int | Literal[CASE_DEFAULT], ...]] = []
+        """List of the normalized jump value specifiers.  This is a list of tuples, where each tuple
         contains the values, and the indexing is the same as the values of `_case_map` and
         `_params`."""
         self._params = []
@@ -127,12 +142,16 @@ class SwitchCaseOp(ControlFlowOp):
     def __eq__(self, other):
         # The general __eq__ will compare the blocks in the right order, so we just need to ensure
         # that all the labels point the right way as well.
-        return super().__eq__(other) and all(
-            set(labels_self) == set(labels_other)
-            for labels_self, labels_other in zip(self._label_spec, other._label_spec)
+        return (
+            super().__eq__(other)
+            and self.target == other.target
+            and all(
+                set(labels_self) == set(labels_other)
+                for labels_self, labels_other in zip(self._label_spec, other._label_spec)
+            )
         )
 
-    def cases_specifier(self) -> Iterable[Tuple[Tuple, QuantumCircuit]]:
+    def cases_specifier(self) -> Iterable[tuple[tuple, QuantumCircuit]]:
         """Return an iterable where each element is a 2-tuple whose first element is a tuple of
         jump values, and whose second is the single circuit block that is associated with those
         values.
@@ -162,17 +181,11 @@ class SwitchCaseOp(ControlFlowOp):
     def blocks(self):
         return tuple(self._params)
 
-    def replace_blocks(self, blocks: Iterable[QuantumCircuit]) -> "SwitchCaseOp":
+    def replace_blocks(self, blocks: Iterable[QuantumCircuit]) -> SwitchCaseOp:
         blocks = tuple(blocks)
         if len(blocks) != len(self._params):
             raise CircuitError(f"needed {len(self._case_map)} blocks but received {len(blocks)}")
         return SwitchCaseOp(self.target, zip(self._label_spec, blocks))
-
-    def c_if(self, classical, val):
-        raise NotImplementedError(
-            "SwitchCaseOp cannot be classically controlled through Instruction.c_if. "
-            "Please nest it in an IfElseOp instead."
-        )
 
 
 class SwitchCasePlaceholder(InstructionPlaceholder):
@@ -191,10 +204,10 @@ class SwitchCasePlaceholder(InstructionPlaceholder):
 
     def __init__(
         self,
-        target: Union[Clbit, ClassicalRegister],
-        cases: List[Tuple[Any, ControlFlowBuilderBlock]],
+        target: Clbit | ClassicalRegister | expr.Expr,
+        cases: list[tuple[Any, ControlFlowBuilderBlock]],
         *,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
         self.__target = target
         self.__cases = cases
@@ -214,12 +227,16 @@ class SwitchCasePlaceholder(InstructionPlaceholder):
         cregs = set()
         if isinstance(self.__target, Clbit):
             clbits.add(self.__target)
-        else:
+        elif isinstance(self.__target, ClassicalRegister):
             clbits.update(self.__target)
             cregs.add(self.__target)
+        else:
+            resources = node_resources(self.__target)
+            clbits.update(resources.clbits)
+            cregs.update(resources.cregs)
         for _, body in self.__cases:
-            qubits |= body.qubits
-            clbits |= body.clbits
+            qubits |= body.qubits()
+            clbits |= body.clbits()
             body_qregs, body_cregs = partition_registers(body.registers)
             qregs |= body_qregs
             cregs |= body_cregs
@@ -251,7 +268,7 @@ class SwitchCasePlaceholder(InstructionPlaceholder):
         else:
             resources = self.__resources
         return (
-            self._copy_mutable_properties(SwitchCaseOp(self.__target, cases, label=self.label)),
+            SwitchCaseOp(self.__target, cases, label=self.label),
             resources,
         )
 
@@ -278,17 +295,27 @@ class SwitchContext:
     def __init__(
         self,
         circuit: QuantumCircuit,
-        target: Union[Clbit, ClassicalRegister],
+        target: Clbit | ClassicalRegister | expr.Expr,
         *,
         in_loop: bool,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
         self.circuit = circuit
-        self.target = target
+        self._target = target
+        if isinstance(target, Clbit):
+            self.target_clbits: tuple[Clbit, ...] = (target,)
+            self.target_cregs: tuple[ClassicalRegister, ...] = ()
+        elif isinstance(target, ClassicalRegister):
+            self.target_clbits = tuple(target)
+            self.target_cregs = (target,)
+        else:
+            resources = node_resources(target)
+            self.target_clbits = resources.clbits
+            self.target_cregs = resources.cregs
         self.in_loop = in_loop
         self.complete = False
         self._op_label = label
-        self._cases: List[Tuple[Tuple[Any, ...], ControlFlowBuilderBlock]] = []
+        self._cases: list[tuple[tuple[Any, ...], ControlFlowBuilderBlock]] = []
         self._label_set = set()
 
     def label_in_use(self, label):
@@ -296,7 +323,7 @@ class SwitchContext:
         return label in self._label_set
 
     def add_case(
-        self, labels: Tuple[Union[int, Literal[CASE_DEFAULT]], ...], block: ControlFlowBuilderBlock
+        self, labels: tuple[int | Literal[CASE_DEFAULT], ...], block: ControlFlowBuilderBlock
     ):
         """Add a sequence of conditions and the single block that should be run if they are
         triggered to the context.  The labels are assumed to have already been validated using
@@ -319,7 +346,7 @@ class SwitchContext:
         # If we're in a loop-builder context, we need to emit a placeholder so that any `break` or
         # `continue`s in any of our cases can be expanded when the loop-builder.  If we're not, we
         # need to emit a concrete instruction immediately.
-        placeholder = SwitchCasePlaceholder(self.target, self._cases, label=self._op_label)
+        placeholder = SwitchCasePlaceholder(self._target, self._cases, label=self._op_label)
         initial_resources = placeholder.placeholder_resources()
         if self.in_loop:
             self.circuit.append(placeholder, initial_resources.qubits, initial_resources.clbits)
@@ -370,14 +397,10 @@ class CaseBuilder:
             if self.switch.label_in_use(value) or value in seen:
                 raise CircuitError(f"duplicate case label: '{value}'")
             seen.add(value)
-        if isinstance(self.switch.target, Clbit):
-            target_clbits = [self.switch.target]
-            target_registers = []
-        else:
-            target_clbits = list(self.switch.target)
-            target_registers = [self.switch.target]
         self.switch.circuit._push_scope(
-            clbits=target_clbits, registers=target_registers, allow_jumps=self.switch.in_loop
+            clbits=self.switch.target_clbits,
+            registers=self.switch.target_cregs,
+            allow_jumps=self.switch.in_loop,
         )
 
         try:

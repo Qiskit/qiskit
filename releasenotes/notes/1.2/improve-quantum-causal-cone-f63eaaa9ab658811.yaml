@@ -1,0 +1,5 @@
+---
+features_circuits:
+  - |
+    Improved performance of the method :meth:`.DAGCircuit.quantum_causal_cone` by not examining
+    the same non-directive node multiple times when reached from different paths.

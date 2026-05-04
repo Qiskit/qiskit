@@ -1,0 +1,28 @@
+---
+features:
+  - |
+    The implementation :class:`~.BackendEstimatorV2` of :class:`~.BaseEstimatorV2` was added.
+    This estimator supports :class:`~.BackendV1` and :class:`~.BackendV2`.
+
+    .. code-block:: python
+
+      import numpy as np
+      from qiskit import transpile
+      from qiskit.circuit.library import IQP
+      from qiskit.primitives import BackendEstimatorV2
+      from qiskit.providers.fake_provider import Fake7QPulseV1
+      from qiskit.quantum_info import SparsePauliOp, random_hermitian
+
+      backend = Fake7QPulseV1()
+      estimator = BackendEstimatorV2(backend=backend)
+      n_qubits = 5
+      mat = np.real(random_hermitian(n_qubits, seed=1234))
+      circuit = IQP(mat)
+      observable = SparsePauliOp("Z" * n_qubits)
+      isa_circuit = transpile(circuit, backend=backend, optimization_level=1)
+      isa_observable = observable.apply_layout(isa_circuit.layout)
+      job = estimator.run([(isa_circuit, isa_observable)], precision=0.01)
+      result = job.result()
+      print(f"> Expectation value: {result[0].data.evs}")
+      print(f"> Standard error: {result[0].data.stds}")
+      print(f"> Metadata: {result[0].metadata}")

@@ -1,0 +1,47 @@
+---
+upgrade_visualization:
+  - |
+    The ``idle_wires`` parameter in all circuit drawers has been extended with a new option, ``"auto"``, which is now
+    the default behavior. If you still want to display wires without instructions, explicitly set ``idle_wires=True``.
+
+    When set to ``"auto"``, the behavior is as follows:
+    - If the circuit has a defined ``.layout`` attribute, ``idle_wires`` is automatically set to ``False`` (hiding idle wires).
+    - Otherwise, ``idle_wires`` remains ``True`` (showing all wires, as previous default).
+
+    Here an example. A circuit without a layout, using ``idle_wires="auto"``:
+
+    .. code-block:: text
+
+      qr_0: ────────
+            ┌───┐┌─┐
+      qr_1: ┤ H ├┤M├
+            └───┘└╥┘
+      cr_0: ══════╬═
+                  ║
+      cr_1: ══════╩═
+
+    Once a layout is applied, ``idle_wires="auto"`` sets ``idle_wires`` to ``False``, hiding idle wires:
+
+    .. code-block:: text
+
+                ┌───┐┌─┐
+      qr_1 -> 1 ┤ H ├┤M├
+                └───┘└╥┘
+          cr_1: ══════╩═
+
+    If you want to display all wires in a laid-out circuit, set ``idle_wires=True`` explicitly:
+
+    .. code-block:: text
+
+           qr_0 -> 0 ────────
+                     ┌───┐┌─┐
+           qr_1 -> 1 ┤ H ├┤M├
+                     └───┘└╥┘
+      ancilla_0 -> 2 ──────╫─
+                           ║
+               cr_0: ══════╬═
+                           ║
+               cr_1: ══════╩═
+
+    As quantum computers scale to more qubits, even small circuits can produce large circuit representations after
+    transpilation. The ``"auto"`` setting helps improve readability by hiding unnecessary wires when possible.

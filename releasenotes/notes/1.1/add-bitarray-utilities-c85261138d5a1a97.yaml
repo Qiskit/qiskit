@@ -1,0 +1,84 @@
+---
+features_primitives:
+  - |
+    Added methods to join multiple :class:`~.BitArray` objects along various axes.
+
+    - :meth:`~.BitArray.concatenate`: join arrays along an existing axis of the arrays.
+    - :meth:`~.BitArray.concatenate_bits`: join arrays along the bit axis.
+    - :meth:`~.BitArray.concatenate_shots`: join arrays along the shots axis.
+
+    .. code-block::
+
+      ba = BitArray.from_samples(['00', '11'])
+      print(ba)
+      # BitArray(<shape=(), num_shots=2, num_bits=2>)
+
+      # reshape the bit array because `concatenate` requires an axis.
+      ba_ = ba.reshape(1, 2)
+      print(ba_)
+      # BitArray(<shape=(1,), num_shots=2, num_bits=2>)
+
+      ba2 = BitArray.concatenate([ba_, ba_])
+      print(ba2.get_bitstrings())
+      # ['00', '11', '00', '11']
+
+      # `concatenate_bits` and `concatenates_shots` do not require any axis.
+
+      ba3 = BitArray.concatenate_bits([ba, ba])
+      print(ba3.get_bitstrings())
+      # ['0000', '1111']
+
+      ba4 = BitArray.concatenate_shots([ba, ba])
+      print(ba4.get_bitstrings())
+      # ['00', '11', '00', '11']
+
+  - |
+    Added methods to generate a subset of :class:`~.BitArray` object by slicing along various axes.
+
+    - :meth:`~.BitArray.__getitem__`: slice the array along an existing axis of the array.
+    - :meth:`~.BitArray.slice_bits`: slice the array along the bit axis.
+    - :meth:`~.BitArray.slice_shots`: slice the array along the shot axis.
+
+    .. code-block::
+
+      ba = BitArray.from_samples(['0000', '0001', '0010', '0011'], 4)
+      print(ba)
+      # BitArray(<shape=(), num_shots=4, num_bits=4>)
+      print(ba.get_bitstrings())
+      # ['0000', '0001', '0010', '0011']
+
+      ba2 = ba.reshape(2, 2)
+      print(ba2)
+      # BitArray(<shape=(2,), num_shots=2, num_bits=2>)
+      print(ba2[0].get_bitstrings())
+      # ['0000', '0001']
+      print(ba2[1].get_bitstrings())
+      # ['0010', '0011']
+
+      ba3 = ba.slice_bits([0, 2])
+      print(ba3.get_bitstrings())
+      # ['00', '01', '00', '01']
+
+      ba4 = ba.slice_shots([0, 2])
+      print(ba3.get_bitstrings())
+      # ['0000', '0010']
+
+  - |
+    Added a method :meth:`~.BitArray.transpose` to transpose a :class:`~.BitArray`.
+
+    .. code-block::
+
+      ba = BitArray.from_samples(['00', '11']).reshape(2, 1, 1)
+      print(ba)
+      # BitArray(<shape=(2, 1), num_shots=1, num_bits=2>)
+      print(ba.transpose())
+      # BitArray(<shape=(1, 2), num_shots=1, num_bits=2>)
+
+  - |
+    Added a method :meth:`~.BitArray.expectation_values` to compute expectation values of diagonal operators.
+
+    .. code-block::
+
+      ba = BitArray.from_samples(['01', '11'])
+      print(ba.expectation_values(["IZ", "ZI", "01"]))
+      # [-1.   0.   0.5]

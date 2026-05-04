@@ -1,10 +1,10 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,16 +14,17 @@
 
 import itertools
 import unittest
-
 import numpy as np
 from scipy.linalg import block_diag
 
-from qiskit import BasicAer, QuantumCircuit, QuantumRegister, execute
-from qiskit.test import QiskitTestCase
-
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.quantum_info import Operator
 from qiskit.compiler import transpile
+from qiskit.circuit.library import UCRXGate, UCRYGate, UCRZGate
+from test import QiskitTestCase
 
+rng = np.random.default_rng(2026_02_05)
 angles_list = [
     [0],
     [0.4],
@@ -31,9 +32,9 @@ angles_list = [
     [0, 0.8],
     [0, 0, 1, 1],
     [0, 1, 0.5, 1],
-    (2 * np.pi * np.random.rand(2**3)).tolist(),
-    (2 * np.pi * np.random.rand(2**4)).tolist(),
-    (2 * np.pi * np.random.rand(2**5)).tolist(),
+    (2 * np.pi * rng.random(2**3)).tolist(),
+    (2 * np.pi * rng.random(2**4)).tolist(),
+    (2 * np.pi * rng.random(2**5)).tolist(),
 ]
 
 rot_axis_list = ["X", "Y", "Z"]
@@ -44,25 +45,24 @@ class TestUCRXYZ(QiskitTestCase):
 
     def test_ucy(self):
         """Test the decomposition of uniformly controlled rotations."""
+        gates = {"X": UCRXGate, "Y": UCRYGate, "Z": UCRZGate}
+
         for angles, rot_axis in itertools.product(angles_list, rot_axis_list):
             with self.subTest(angles=angles, rot_axis=rot_axis):
                 num_contr = int(np.log2(len(angles)))
                 q = QuantumRegister(num_contr + 1)
                 qc = QuantumCircuit(q)
-                if rot_axis == "X":
-                    qc.ucrx(angles, q[1 : num_contr + 1], q[0])
-                elif rot_axis == "Y":
-                    qc.ucry(angles, q[1 : num_contr + 1], q[0])
-                else:
-                    qc.ucrz(angles, q[1 : num_contr + 1], q[0])
+                gate = gates[rot_axis](angles)
+                qc.append(gate, q)
+
                 # Decompose the gate
-                qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"])
+                qc = transpile(
+                    qc, basis_gates=["u1", "u3", "u2", "cx", "id"], seed_transpiler=2026_02_05
+                )
                 # Simulate the decomposed gate
-                simulator = BasicAer.get_backend("unitary_simulator")
-                result = execute(qc, simulator).result()
-                unitary = result.get_unitary(qc)
+                unitary = Operator(qc)
                 unitary_desired = _get_ucr_matrix(angles, rot_axis)
-                self.assertTrue(matrix_equal(unitary_desired, unitary, ignore_phase=True))
+                self.assertTrue(matrix_equal(unitary_desired, unitary))
 
 
 def _get_ucr_matrix(angles, rot_axis):

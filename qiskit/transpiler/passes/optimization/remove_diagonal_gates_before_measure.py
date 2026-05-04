@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -12,23 +12,12 @@
 
 """Remove diagonal gates (including diagonal 2Q gates) before a measurement."""
 
-from qiskit.circuit import Measure
-from qiskit.circuit.library.standard_gates import (
-    RZGate,
-    ZGate,
-    TGate,
-    SGate,
-    TdgGate,
-    SdgGate,
-    U1Gate,
-    CZGate,
-    CRZGate,
-    CU1Gate,
-    RZZGate,
-)
-from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
+
+from qiskit._accelerate.remove_diagonal_gates_before_measure import (
+    remove_diagonal_gates_before_measure,
+)
 
 
 class RemoveDiagonalGatesBeforeMeasure(TransformationPass):
@@ -48,22 +37,5 @@ class RemoveDiagonalGatesBeforeMeasure(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        diagonal_1q_gates = (RZGate, ZGate, TGate, SGate, TdgGate, SdgGate, U1Gate)
-        diagonal_2q_gates = (CZGate, CRZGate, CU1Gate, RZZGate)
-
-        nodes_to_remove = set()
-        for measure in dag.op_nodes(Measure):
-            predecessor = next(dag.quantum_predecessors(measure))
-
-            if isinstance(predecessor, DAGOpNode) and isinstance(predecessor.op, diagonal_1q_gates):
-                nodes_to_remove.add(predecessor)
-
-            if isinstance(predecessor, DAGOpNode) and isinstance(predecessor.op, diagonal_2q_gates):
-                successors = dag.quantum_successors(predecessor)
-                if all(isinstance(s, DAGOpNode) and isinstance(s.op, Measure) for s in successors):
-                    nodes_to_remove.add(predecessor)
-
-        for node_to_remove in nodes_to_remove:
-            dag.remove_op_node(node_to_remove)
-
+        remove_diagonal_gates_before_measure(dag)
         return dag

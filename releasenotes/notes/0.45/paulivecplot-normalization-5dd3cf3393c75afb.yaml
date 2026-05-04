@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed :func:`plot_state_paulivec`, which previously damped the state coefficients by a factor of
+    :math:`2^n`, where :math:`n` is the number of qubits. Now the bar graph correctly displays
+    the coefficients as :math:`\mathrm{Tr}(\sigma\rho)`, where :math:`\rho` is the state to 
+    be plotted and :math:`\sigma` iterates over all possible tensor products of single-qubit Paulis.

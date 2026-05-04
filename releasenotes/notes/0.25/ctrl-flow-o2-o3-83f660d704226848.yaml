@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Control-flow operations are now supported through the transpiler at
+    all optimization levels, including levels 2 and 3 (e.g. calling
+    :func:`.transpile` or :func:`.generate_preset_pass_manager` with
+    keyword argument ``optimization_level=3``).

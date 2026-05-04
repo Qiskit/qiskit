@@ -1,0 +1,57 @@
+---
+features_transpiler:
+  - |
+    Added a new unitary synthesis plugin :class:`.CliffordUnitarySynthesis` that
+    attempts to syntesize a given unitary gate by checking if it can be represented
+    by a Clifford, in which case it returns a circuit implementing this unitary and
+    consisting only of Clifford gates.
+    
+    The plugin is invoked by the :class:`.UnitarySynthesis` transpiler pass
+    when the parameter ``method`` is set to ``"clifford"``.
+
+    In addition, the parameter ``plugin_config`` of :class:`.UnitarySynthesis`
+    can be used to pass the following plugin-specific parameters:
+
+    * min_qubits: the minumum number of qubits to consider (the default value is 1).
+    * max_qubits: the maximum number of qubits to consider (the default value is 3).
+
+    For example::
+
+      import math
+
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.circuit.library import UnitaryGate
+      from qiskit.quantum_info import Operator
+      from qiskit.transpiler.passes import UnitarySynthesis
+
+      # clifford unitary over 2 qubits
+      c2 = QuantumCircuit(2)
+      c2.h(0)
+      c2.rz(math.pi / 4, 1)
+      c2.rz(math.pi / 4, 1)
+      c2.sdg(1)
+      uc2 = UnitaryGate(Operator(c2).data)
+
+      # non-clifford unitary over 2 qubits
+      n2 = QuantumCircuit(2)
+      n2.h(0)
+      n2.rz(math.pi / 4, 1)
+      n2.sdg(1)
+      un2 = UnitaryGate(Operator(n2).data)
+
+      # quantum circuit with two unitary gates
+      qc = QuantumCircuit(3)
+      qc.append(uc2, [2, 1])
+      qc.append(un2, [0, 2])
+
+      transpiled = UnitarySynthesis(method="clifford")(qc)
+
+    Executing the code above resynthesized the first unitary gate into 
+    Clifford gates, while the second gate remains unchanged.
+
+    If we modify the example above as follows::
+
+      config = {"min_qubits": 3}
+      transpiled = UnitarySynthesis(method="clifford", plugin_config=config)(qc)
+
+    then both unitary gates remain unchanged.

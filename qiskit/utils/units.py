@@ -4,22 +4,24 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
 """SI unit utilities"""
+from __future__ import annotations
 
-from typing import Tuple, Optional, Union
+import typing
 
 import numpy as np
 
-from qiskit.circuit.parameterexpression import ParameterExpression
+if typing.TYPE_CHECKING:
+    from qiskit.circuit.parameterexpression import ParameterExpression
 
 
-def apply_prefix(value: Union[float, ParameterExpression], unit: str) -> float:
+def apply_prefix(value: float | ParameterExpression, unit: str) -> float | ParameterExpression:
     """
     Given a SI unit prefix and value, apply the prefix to convert to
     standard SI unit.
@@ -37,7 +39,7 @@ def apply_prefix(value: Union[float, ParameterExpression], unit: str) -> float:
         See https://docs.python.org/3/tutorial/floatingpoint.html for details.
 
     Raises:
-        ValueError: If the ``units`` aren't recognized.
+        ValueError: If the ``unit`` isn't recognized.
     """
     prefactors = {
         "f": -15,
@@ -69,7 +71,7 @@ def apply_prefix(value: Union[float, ParameterExpression], unit: str) -> float:
     return value * pow(10, pow10)
 
 
-def detach_prefix(value: float, decimal: Optional[int] = None) -> Tuple[float, str]:
+def detach_prefix(value: float, decimal: int | None = None) -> tuple[float, str]:
     """
     Given a SI unit value, find the most suitable prefix to scale the value.
 

@@ -1,0 +1,3 @@
+fixes:
+  - |
+    Fix incorrect implemention of `qDRIFT`, negative coefficients of the Hamiltonian are now added back whereas they were always forced to be positive.

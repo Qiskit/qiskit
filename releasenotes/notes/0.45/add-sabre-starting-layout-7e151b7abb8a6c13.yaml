@@ -1,0 +1,37 @@
+---
+features:
+  - |
+    Added a new analysis :class:`.SabrePreLayout` pass that creates a starting
+    layout for :class:`.SabreLayout`, writing the layout into the property set
+    value ``sabre_starting_layouts``.
+
+    The pass works by augmenting the coupling map with more and more "extra" edges
+    until :class:`.VF2Layout` succeeds to find a perfect graph isomorphism.
+    More precisely, the augmented coupling map contains edges between nodes that are
+    within a given distance ``d`` in the original coupling map, and the value of ``d``
+    is increased until an isomorphism is found. The pass also optionally minimizes
+    the number of extra edges involved in the layout until a local minimum is found.
+    This involves removing extra edges and calling :class:`.VF2Layout` to check if
+    an isomorphism still exists.
+
+    Here is an example of calling the :class:`.SabrePreLayout` before :class:`.SabreLayout`::
+
+        import math
+        from qiskit.transpiler import CouplingMap, PassManager
+        from qiskit.circuit.library import EfficientSU2
+        from qiskit.transpiler.passes import SabrePreLayout, SabreLayout
+
+        qc = EfficientSU2(16, entanglement='circular', reps=6, flatten=True)
+        qc.assign_parameters([math.pi / 2] * len(qc.parameters), inplace=True)
+        qc.measure_all()
+
+        coupling_map = CouplingMap.from_heavy_hex(7)
+
+        pm = PassManager(
+            [
+                SabrePreLayout(coupling_map=coupling_map),
+                SabreLayout(coupling_map),
+            ]
+        )
+
+        pm.run(qc)

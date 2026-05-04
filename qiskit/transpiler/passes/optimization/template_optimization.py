@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -57,23 +57,23 @@ class TemplateOptimization(TransformationPass):
             heuristics_backward_param (list[int]): [length, survivor] Those are the parameters for
                 applying heuristics on the backward part of the algorithm. This part of the
                 algorithm creates a tree of matching scenario. This tree grows exponentially. The
-                heuristics evaluates which scenarios have the longest match and keep only those.
+                heuristics evaluate which scenarios have the longest match and keep only those.
                 The length is the interval in the tree for cutting it and survivor is the number
-                of scenarios that are kept. We advice to use l=3 and s=1 to have serious time
+                of scenarios that are kept. We advise to use l=3 and s=1 to have serious time
                 advantage. We remind that the heuristics implies losing a part of the maximal
                 matches. Check reference for more details.
             heuristics_qubits_param (list[int]): [length] The heuristics for the qubit choice make
                 guesses from the dag dependency of the circuit in order to limit the number of
                 qubit configurations to explore. The length is the number of successors or not
                 predecessors that will be explored in the dag dependency of the circuit, each
-                qubits of the nodes are added to the set of authorized qubits. We advice to use
+                qubits of the nodes are added to the set of authorized qubits. We advise to use
                 length=1. Check reference for more details.
             user_cost_dict (Dict[str, int]): quantum cost dictionary passed to TemplateSubstitution
                 to configure its behavior. This will override any default values if None
                 is not given. The key is the name of the gate and the value its quantum cost.
         """
         super().__init__()
-        # If no template is given; the template are set as x-x, cx-cx, ccx-ccx.
+        # If no template is given; the templates are set as x-x, cx-cx, ccx-ccx.
         if template_list is None:
             template_list = [template_nct_2a_1(), template_nct_2a_2(), template_nct_2a_3()]
         self.template_list = template_list
@@ -101,7 +101,7 @@ class TemplateOptimization(TransformationPass):
 
         for template in self.template_list:
             if not isinstance(template, (QuantumCircuit, DAGDependency)):
-                raise TranspilerError("A template is a Quantumciruit or a DAGDependency.")
+                raise TranspilerError("A template is a QuantumCircuit or a DAGDependency.")
 
             if len(template.qubits) > len(circuit_dag_dep.qubits):
                 continue
@@ -117,7 +117,7 @@ class TemplateOptimization(TransformationPass):
 
                 if not comparison:
                     raise TranspilerError(
-                        "A template is a Quantumciruit() that performs the identity."
+                        "A template is a QuantumCircuit() that performs the identity."
                     )
             except TypeError:
                 pass

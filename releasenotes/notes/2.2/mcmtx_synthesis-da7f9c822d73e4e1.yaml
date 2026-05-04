@@ -1,0 +1,6 @@
+---
+features_synthesis:
+  - |
+    Added :func:`.synth_mcmt_xgate` to synthesize the multi-control multi-target gate when 
+    the base gate is :class:`.XGate`. It has a decomposition in linear number of CX gates and `0`
+    ancilla qubits along with the high-level synthesis plugin :class:`.MCMTSynthesisXGate`.

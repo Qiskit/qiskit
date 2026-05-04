@@ -1,0 +1,6 @@
+---
+upgrade_circuits:
+  - |
+    Importing :class:`.Int1`, :class:`.Int2`, :class:`.BooleanFunction`, :func:`.classical_function`
+    from :mod:`qiskit.circuit` is now disabled. Instead, import the objects from the
+    :mod:`qiskit.circuit.classicalfunction` submodule, which requires the ``tweedledum`` package.

@@ -25,7 +25,7 @@ features:
   - |
     Two new transpiler passess, :class:`~qiskit.transpiler.GateDirection` and
     class:`qiskit.transpiler.CheckGateDirection`, were added to the
-    :mod:`qiskit.transpiler.passes` module. These new passes are inteded to
+    :mod:`qiskit.transpiler.passes` module. These new passes are intended to
     be more general replacements for
     :class:`~qiskit.transpiler.passes.CXDirection` and
     :class:`~qiskit.transpiler.passes.CheckCXDirection` (which are both now

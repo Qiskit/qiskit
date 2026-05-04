@@ -22,4 +22,4 @@ upgrade:
     from the right hand side of the operation if the left does not have
     ``__mul__`` defined) implements scalar multiplication (i.e.
     :meth:`qiskit.quantum_info.Operator.multiply`). Previously both methods
-    implemented scalar multiplciation.
+    implemented scalar multiplication.

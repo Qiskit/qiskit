@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug in the conversion of custom pulse instructions to the legacy :mod:`qiskit.qobj` format. The bug was introduced in Qiskit 1.0.0
+    and caused conversion of instructions with custom pulse shapes to raise an error. After the fix, the conversion is
+    carried out correctly, and the custom pulse is converted to :class:`.pulse.Waveform` as it should.
+    Fixed `#11828 <https://github.com/Qiskit/qiskit/issues/11828>`__.

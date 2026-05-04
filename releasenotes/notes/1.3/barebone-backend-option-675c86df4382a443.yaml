@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Added two parameters to :class:`.GenericBackendV2` to exclude error (`noise_info`) and
+    pulse channel information (`pulse_channels`) from the construction of the backend. These parameters
+    are true by default, replicating the initial default behavior of the constructor. A memory-sensitive
+    user may set these options to `False` to reduce the memory overhead by 40x when transpiling on large-
+    scale :class:`.GenericBackendV2`.

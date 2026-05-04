@@ -175,7 +175,7 @@ deprecations:
     The ``add``, ``subtract``, and ``multiply`` methods of the
     :class:`qiskit.quantum_info.Statevector` and 
     :class:`qiskit.quantum_info.DensityMatrix` classes are deprecated and will
-    be removed in a future release. Instead you shoulde use ``+``, ``-``, ``*``
+    be removed in a future release. Instead you should use ``+``, ``-``, ``*``
     binary operators instead.
   - |
     Deprecates :meth:`qiskit.quantum_info.Statevector.to_counts`,

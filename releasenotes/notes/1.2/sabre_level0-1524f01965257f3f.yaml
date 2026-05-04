@@ -1,0 +1,13 @@
+---
+upgrade_transpiler:
+  - |
+    The default routing pass used by optimization level 0 for :func:`.generate_preset_pass_manager`
+    and :func:`.transpile` has been changed from :class:`.StochasticSwap` to :class:`.SabreSwap`.
+    The :class:`.SabreSwap` pass performs exactly the same function but performs better in both
+    runtime and output quality (in number of swap gates and depth) compared to
+    :class:`.StochasticSwap`. For ``optimization_level=0`` this shouldn't matter because it's not
+    expected to run routing for the typical use case of level 0.
+       
+    If you were relying on the previous default routing algorithm for any reason you can use the
+    ``routing_method`` argument for :func:`.transpile` and :func:`.generate_preset_pass_manager`
+    to ``"stochastic"`` to use the :class:`.StochasticSwap` pass.

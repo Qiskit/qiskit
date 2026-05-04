@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    :meth:`.Pauli.evolve` now correctly handles quantum circuits containing ECR gates. Formerly they were not recognized as Clifford gates, and an error was raised.
+  - |
+    Fixed a bug in :meth:`.Pauli.evolve` where evolving by a circuit with a name matching certain Clifford gates ('cx', 'cz', etc) would evolve the Pauli according to the name of the circuit, not by the contents of the circuit. This bug occurred only with the non-default option ``frame='s'``.

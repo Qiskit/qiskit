@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    OpenQASM 2 programs that end in comments with no terminating newline character will now parse
+    successfully.  Fixed `#10770 <https://github.com/Qiskit/qiskit/issues/10770>`__.

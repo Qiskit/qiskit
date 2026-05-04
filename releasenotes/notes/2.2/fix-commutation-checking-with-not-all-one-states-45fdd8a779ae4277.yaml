@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a problem in `~.CommutationChecker`, where standard controlled gates
+    were not handled correctly if they were controlled on something other than
+    the all-ones state.
+    Fixed `#14974 <https://github.com/Qiskit/qiskit/issues/14974>`__

@@ -1,0 +1,8 @@
+---
+
+fixes:
+  - |
+    Fixed a bug where ``qiskit.primitives.containers.estimator_pub.EstimatorPub.coerce()`` and
+    ``qiskit.primitives.containers.sampler_pub.SamplerPub.coerce()``
+    improperly handle the case where the parameter values are a ``BindingsArray`` instance, giving
+    rise to a ``ValueError`` whenever it is attempted.

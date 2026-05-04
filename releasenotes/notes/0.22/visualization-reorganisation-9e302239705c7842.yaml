@@ -2,7 +2,7 @@
 upgrade:
   - |
     The visualization module :mod:`qiskit.visualization` has seen some internal
-    reorganisation.  This should not have affected the public interface, but if
+    reorganization.  This should not have affected the public interface, but if
     you were accessing any internals of the circuit drawers, they may now be in
     different places.  The only parts of the visualization module that are
     considered public are the components that are documented in this online

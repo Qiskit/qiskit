@@ -1,0 +1,4 @@
+---
+features_circuits:
+  - |
+    :class:`.ParameterExpression` now supports the unary ``+`` operator.

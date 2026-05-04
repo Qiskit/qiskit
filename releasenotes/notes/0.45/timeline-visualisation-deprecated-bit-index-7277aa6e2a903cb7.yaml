@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    When defining a custom stylesheet for the pulse timeline drawer :func:`qiskit.visualization.timeline_drawer`,
+    "generator" functions that have the object attribute ``accepts_program`` set to ``True`` will
+    receive an extra keyword argument ``program`` containing the full scheduled
+    :class:`.QuantumCircuit` being drawn.

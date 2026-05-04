@@ -1,0 +1,20 @@
+---
+features_transpiler:
+  - |
+    Added a new pass :class:`.Split2QUnitaries` that iterates over all two-qubit gates or unitaries in a
+    circuit and replaces them with two single-qubit unitaries, if possible without introducing errors, i.e.
+    the two-qubit gate/unitary is actually a (kronecker) product of single-qubit unitaries.
+  - |
+    The passes :class:`.Collect2qBlocks`, :class:`.ConsolidateBlocks` and :class:`.Split2QUnitaries` have been
+    added to the ``init`` stage of the preset pass managers with optimization level 2 and optimization level 3.
+    The modification of the `init` stage should allow for a more efficient routing for quantum circuits that either:
+    
+      * contain two-qubit unitaries/gates that are actually a product of single-qubit gates
+      * contain multiple two-qubit gates in a continuous block of two-qubit gates.
+      
+    In the former case, the routing of the two-qubit gate can simply be skipped as no real interaction
+    between a pair of qubits occurs. In the latter case, the lookahead space of routing algorithms is not
+    'polluted' by superfluous two-qubit gates, i.e. for routing it is sufficient to only consider one single
+    two-qubit gate per continuous block of two-qubit gates. These passes are not run if the pass
+    managers target a :class:`.Target` that has a discrete basis gate set, i.e. all basis gates have are not
+    parameterized.

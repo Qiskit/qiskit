@@ -4,19 +4,19 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
 
-"""Tests for PauliTable utility functions."""
+"""Tests for PauliList utility functions."""
 
 import unittest
 
-from qiskit.test import QiskitTestCase
-from qiskit.quantum_info.operators.symplectic import PauliTable, pauli_basis
+from qiskit.quantum_info import PauliList, pauli_basis
+from test import QiskitTestCase
 
 
 class TestPauliBasis(QiskitTestCase):
@@ -25,13 +25,13 @@ class TestPauliBasis(QiskitTestCase):
     def test_standard_order_1q(self):
         """Test 1-qubit pauli_basis function."""
         labels = ["I", "X", "Y", "Z"]
-        target = PauliTable.from_labels(labels)
+        target = PauliList(labels)
         self.assertEqual(pauli_basis(1), target)
 
     def test_weight_order_1q(self):
         """Test 1-qubit pauli_basis function with weight=True."""
         labels = ["I", "X", "Y", "Z"]
-        target = PauliTable.from_labels(labels)
+        target = PauliList(labels)
         self.assertEqual(pauli_basis(1, weight=True), target)
 
     def test_standard_order_2q(self):
@@ -54,7 +54,7 @@ class TestPauliBasis(QiskitTestCase):
             "ZY",
             "ZZ",
         ]
-        target = PauliTable.from_labels(labels)
+        target = PauliList(labels)
         self.assertEqual(pauli_basis(2), target)
 
     def test_weight_order_2q(self):
@@ -77,7 +77,7 @@ class TestPauliBasis(QiskitTestCase):
             "ZY",
             "ZZ",
         ]
-        target = PauliTable.from_labels(labels)
+        target = PauliList(labels)
         self.assertEqual(pauli_basis(2, weight=True), target)
 
     def test_standard_order_3q(self):
@@ -148,7 +148,7 @@ class TestPauliBasis(QiskitTestCase):
             "ZZY",
             "ZZZ",
         ]
-        target = PauliTable.from_labels(labels)
+        target = PauliList(labels)
         self.assertEqual(pauli_basis(3), target)
 
     def test_weight_order_3q(self):
@@ -219,7 +219,7 @@ class TestPauliBasis(QiskitTestCase):
             "ZZY",
             "ZZZ",
         ]
-        target = PauliTable.from_labels(labels)
+        target = PauliList(labels)
         self.assertEqual(pauli_basis(3, weight=True), target)
 
 

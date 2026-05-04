@@ -1,0 +1,67 @@
+---
+features_transpiler:
+  - |
+    Added a new transpiler pass, :class:`.OptimizeAnnotated`, that optimizes annotated
+    operations on a quantum circuit.
+
+    Consider the following example::
+
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.circuit.annotated_operation import (
+          AnnotatedOperation,
+          InverseModifier,
+          ControlModifier,
+      )
+      from qiskit.circuit.library import CXGate, SwapGate
+      from qiskit.transpiler.passes import OptimizeAnnotated
+
+      # Create a quantum circuit with multiple annotated gates
+      gate1 = AnnotatedOperation(
+          SwapGate(),
+          [InverseModifier(), ControlModifier(2), InverseModifier(), ControlModifier(1)],
+      )
+      gate2 = AnnotatedOperation(
+          SwapGate(),
+          [InverseModifier(), InverseModifier()]
+      )
+      gate3 = AnnotatedOperation(
+          AnnotatedOperation(CXGate(), ControlModifier(2)),
+          ControlModifier(1)
+      )
+      qc = QuantumCircuit(6)
+      qc.append(gate1, [3, 2, 4, 0, 5])
+      qc.append(gate2, [1, 5])
+      qc.append(gate3, [5, 4, 3, 2, 1])
+
+      # Optimize the circuit using OptimizeAnnotated transpiler pass
+      qc_optimized = OptimizeAnnotated()(qc)
+
+      # This is how the optimized circuit should look like
+      gate1_expected = AnnotatedOperation(SwapGate(), ControlModifier(3))
+      gate2_expected = SwapGate()
+      gate3_expected = AnnotatedOperation(CXGate(), ControlModifier(3))
+      qc_expected = QuantumCircuit(6)
+      qc_expected.append(gate1_expected, [3, 2, 4, 0, 5])
+      qc_expected.append(gate2_expected, [1, 5])
+      qc_expected.append(gate3_expected, [5, 4, 3, 2, 1])
+
+      assert qc_optimized == qc_expected
+
+    In the case of ``gate1``, the modifiers of the annotated swap gate are brought
+    into the canonical form: the two :class:`.InverseModifier`\s cancel out, and the two
+    :class:`.ControlModifier`\s are combined. In the case of ``gate2``, all the modifiers
+    get removed and the annotated operation is replaced by its base operation.
+    In the case of ``gate3``, multiple layers of annotations are combined into one.
+
+    The constructor of the :class:`.OptimizeAnnotated` pass accepts optional
+    arguments ``target``, ``equivalence_library``,  ``basis_gates`` and ``recurse``.
+    When ``recurse`` is ``True`` (the default value) and when either ``target``
+    or ``basis_gates`` are specified, the pass recursively descends into the gate's
+    ``definition`` circuits, with the exception of gates that are already supported
+    by the target or that belong to the equivalence library. On the other hand, when
+    neither ``target`` nor ``basis_gates`` are specified,
+    or when ``recurse`` is set to ``False``,
+    the pass synthesizes only the "top-level" annotated operations, i.e. does not
+    recursively descend into the ``definition`` circuits. This behavior is consistent
+    with that of the :class:`.HighLevelSynthesis` transpiler pass, which needs to be called
+    in order to "unroll" the annotated operations into 1-qubit and 2-qubits gates.

@@ -1,0 +1,6 @@
+upgrade_visualization:
+  - |
+    The functions ``qiskit.visualization.state_visualization.num_to_latex_ket`` and
+    ``qiskit.visualization.state_visualization.numbers_to_latex_terms`` have been removed, as they
+    were removed in Qiskit 0.40 (released in 2023-01). For similar functionality, see Sympy's
+    ``nsimplify`` and ``latex`` functions.

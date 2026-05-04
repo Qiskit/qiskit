@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a missing decorator in :class:`.C3SXGate` that made it fail if :meth:`.Gate.to_matrix` was called.
+    The gate matrix is now return as expected.

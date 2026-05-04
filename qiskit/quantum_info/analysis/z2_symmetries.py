@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -17,7 +17,8 @@ from __future__ import annotations
 import itertools
 from collections.abc import Iterable
 from copy import deepcopy
-from typing import Union, cast
+import math
+from typing import cast
 
 import numpy as np
 
@@ -121,7 +122,7 @@ class Z2Symmetries:
             A list of unitaries used to diagonalize the Hamiltonian.
         """
         cliffords = [
-            (SparsePauliOp(pauli_symm) + SparsePauliOp(sq_pauli)) / np.sqrt(2)
+            (SparsePauliOp(pauli_symm) + SparsePauliOp(sq_pauli)) / math.sqrt(2)
             for pauli_symm, sq_pauli in zip(self._symmetries, self._sq_paulis)
         ]
         return cliffords
@@ -320,7 +321,7 @@ class Z2Symmetries:
 
         return operator
 
-    def taper_clifford(self, operator: SparsePauliOp) -> Union[SparsePauliOp, list[SparsePauliOp]]:
+    def taper_clifford(self, operator: SparsePauliOp) -> SparsePauliOp | list[SparsePauliOp]:
         """Operate the second part of the tapering.
         This function assumes that the input operators have already been transformed using
         :meth:`convert_clifford`. The redundant qubits due to the symmetries are dropped and
@@ -334,24 +335,23 @@ class Z2Symmetries:
 
         """
 
-        tapered_ops: Union[SparsePauliOp, list[SparsePauliOp]]
+        tapered_ops: SparsePauliOp | list[SparsePauliOp]
         if self.is_empty():
             tapered_ops = operator
+        # If the operator is zero we still need to taper the operator to reduce its size i.e. the
+        # number of qubits so for example 0*"IIII" could taper to 0*"II" when symmetries remove
+        # two qubits.
+        elif self.tapering_values is None:
+            tapered_ops = [
+                self._taper(operator, list(coeff))
+                for coeff in itertools.product([1, -1], repeat=len(self._sq_list))
+            ]
         else:
-            # If the operator is zero we still need to taper the operator to reduce its size i.e. the
-            # number of qubits so for example 0*"IIII" could taper to 0*"II" when symmetries remove
-            # two qubits.
-            if self.tapering_values is None:
-                tapered_ops = [
-                    self._taper(operator, list(coeff))
-                    for coeff in itertools.product([1, -1], repeat=len(self._sq_list))
-                ]
-            else:
-                tapered_ops = self._taper(operator, self.tapering_values)
+            tapered_ops = self._taper(operator, self.tapering_values)
 
         return tapered_ops
 
-    def taper(self, operator: SparsePauliOp) -> Union[SparsePauliOp, list[SparsePauliOp]]:
+    def taper(self, operator: SparsePauliOp) -> SparsePauliOp | list[SparsePauliOp]:
         """
         Taper an operator based on the z2_symmetries info and sector defined by `tapering_values`.
         Returns operator if the symmetry object is empty.
@@ -394,7 +394,7 @@ class Z2Symmetries:
         spo = spo.chop(self.tol)
         return spo
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other: Z2Symmetries) -> bool:
         """
         Overload `==` operation to evaluate equality between Z2Symmetries.
 
@@ -415,7 +415,7 @@ class Z2Symmetries:
         )
 
 
-def _kernel_f2(matrix_in) -> list[np.ndarray]:
+def _kernel_f2(matrix_in):
     """
     Compute the kernel of a binary matrix on the binary finite field.
 
@@ -439,7 +439,7 @@ def _kernel_f2(matrix_in) -> list[np.ndarray]:
     return kernel
 
 
-def _row_echelon_f2(matrix_in) -> np.ndarray:
+def _row_echelon_f2(matrix_in):
     """
     Compute the row Echelon form of a binary matrix on the binary finite field.
 

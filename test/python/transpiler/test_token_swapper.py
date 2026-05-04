@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -16,7 +16,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,10 +30,11 @@ import itertools
 
 import rustworkx as rx
 from numpy import random
+
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from qiskit.transpiler.passes.routing.algorithms import util
 
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase
 
 
 class TestGeneral(QiskitTestCase):
@@ -66,7 +67,7 @@ class TestGeneral(QiskitTestCase):
         self.assertEqual({i: i for i in range(8)}, permutation)
 
     def test_bug1(self) -> None:
-        """Tests for a bug that occured in happy swap chains of length >2."""
+        """Tests for a bug that occurred in happy swap chains of length >2."""
         graph = rx.PyGraph()
         graph.extend_from_edge_list(
             [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4), (3, 6)]

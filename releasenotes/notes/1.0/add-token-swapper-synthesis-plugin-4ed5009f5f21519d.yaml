@@ -1,0 +1,46 @@
+---
+upgrade:
+  - |
+    Qiskit 1.0 now requires version 0.14.0 of ``rustworkx``. The minimum
+    version requirement was raised to support the new ``token_swapper``
+    :class:`.PermutationGate` synthesis plugin for :class:`.HighLevelSynthesisPlugin`.
+features_transpiler:
+  - |
+    Added a new :class:`.HighLevelSynthesisPlugin` for :class:`.PermutationGate`
+    objects based on Qiskit's token swapper algorithm. To use this plugin,
+    specify ``token_swapper`` when defining high-level-synthesis config.
+
+    This synthesis plugin is able to run before or after the layout is set.
+    When synthesis succeeds, the plugin outputs a quantum circuit consisting only of
+    swap gates. When synthesis does not succeed, the plugin outputs ``None``.
+
+    The following code illustrates how the new plugin can be run::
+
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.circuit.library import PermutationGate
+        from qiskit.transpiler import PassManager, CouplingMap
+        from qiskit.transpiler.passes.synthesis.high_level_synthesis import HighLevelSynthesis, HLSConfig
+
+        # This creates a circuit with a permutation gate.
+        qc = QuantumCircuit(8)
+        perm_gate = PermutationGate([0, 1, 4, 3, 2])
+        qc.append(perm_gate, [3, 4, 5, 6, 7])
+
+        # This defines the coupling map.
+        coupling_map = CouplingMap.from_ring(8)
+
+        # This high-level-synthesis config specifies that we want to use
+        # the "token_swapper" plugin for synthesizing permutation gates,
+        # with the option to use 10 trials.
+        synthesis_config = HLSConfig(permutation=[("token_swapper", {"trials": 10})])
+
+        # This creates the pass manager that runs high-level-synthesis on our circuit.
+        # The option use_qubit_indices=True indicates that synthesis is run after the layout is set,
+        # and hence should preserve the specified coupling map.
+        pm = PassManager(
+            HighLevelSynthesis(
+                synthesis_config, coupling_map=coupling_map, target=None, use_qubit_indices=True
+            )
+        )
+
+        qc_transpiled = pm.run(qc)

@@ -4,14 +4,14 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::prelude::*;
 use pyo3::Python;
+use pyo3::prelude::*;
 
 use crate::error::QASM2ParseError;
 
@@ -23,7 +23,7 @@ mod parse;
 
 /// Information about a custom instruction that Python space is able to construct to pass down to
 /// us.
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct CustomInstruction {
     pub name: String,
@@ -51,19 +51,19 @@ impl CustomInstruction {
 /// The given `callable` must be a Python function that takes `num_params` floats, and returns a
 /// float.  The `name` is the identifier that refers to it in the OpenQASM 2 program.  This cannot
 /// clash with any defined gates.
-#[pyclass()]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct CustomClassical {
     pub name: String,
     pub num_params: usize,
-    pub callable: PyObject,
+    pub callable: Py<PyAny>,
 }
 
 #[pymethods]
 impl CustomClassical {
     #[new]
     #[pyo3(text_signature = "(name, num_params, callable, /)")]
-    fn __new__(name: String, num_params: usize, callable: PyObject) -> Self {
+    fn __new__(name: String, num_params: usize, callable: Py<PyAny>) -> Self {
         Self {
             name,
             num_params,
@@ -123,8 +123,7 @@ fn bytecode_from_file(
 /// An interface to the Rust components of the parser stack, and the types it uses to represent the
 /// output.  The principal entry points for Python are :func:`bytecode_from_string` and
 /// :func:`bytecode_from_file`, which produce iterables of :class:`Bytecode` objects.
-#[pymodule]
-fn _qasm2(py: Python<'_>, module: &PyModule) -> PyResult<()> {
+pub fn qasm2(module: &Bound<PyModule>) -> PyResult<()> {
     module.add_class::<bytecode::OpCode>()?;
     module.add_class::<bytecode::UnaryOpCode>()?;
     module.add_class::<bytecode::BinaryOpCode>()?;
@@ -136,7 +135,6 @@ fn _qasm2(py: Python<'_>, module: &PyModule) -> PyResult<()> {
     module.add_class::<bytecode::ExprCustom>()?;
     module.add_class::<CustomInstruction>()?;
     module.add_class::<CustomClassical>()?;
-    module.add("QASM2ParseError", py.get_type::<error::QASM2ParseError>())?;
     module.add_function(wrap_pyfunction!(bytecode_from_string, module)?)?;
     module.add_function(wrap_pyfunction!(bytecode_from_file, module)?)?;
     Ok(())

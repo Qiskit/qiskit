@@ -5,11 +5,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 
 """Utility to check that slow imports are not used in the default path."""
 
@@ -17,7 +18,7 @@ import subprocess
 import sys
 
 # This is not unused: importing it sets up sys.modules
-import qiskit  # pylint: disable=unused-import
+import qiskit
 
 
 def _main():
@@ -25,10 +26,13 @@ def _main():
         "networkx",
         "sympy",
         "pydot",
+        "pygments",
         "ipywidgets",
+        "scipy.linalg",
+        "scipy.optimize",
         "scipy.stats",
         "matplotlib",
-        "qiskit.providers.aer",
+        "qiskit_aer",
         "qiskit.providers.ibmq",
         "qiskit.ignis",
         "qiskit.aqua",

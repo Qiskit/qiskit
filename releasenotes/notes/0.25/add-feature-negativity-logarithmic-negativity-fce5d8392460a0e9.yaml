@@ -1,0 +1,24 @@
+---
+features:
+  - |
+    Added a new function , :func:`negativity` that adds support for calculating
+    entanglement measures negativity of an quantum state.
+    An illustrative example for using the above function is given below:
+
+    .. code-block:
+      from qiskit.quantum_info.states.densitymatrix import DensityMatrix
+      from qiskit.quantum_info.states.statevector import Statevector
+      from qiskit.quantum_info import negativity
+      import numpy as np
+
+      # Constructing a two-qubit bell state vector
+      state = np.array([0, 1/np.sqrt(2), -1/np.sqrt(2), 0])
+      # Calculating negativity of statevector
+      negv = negativity(Statevector(state), [1])
+
+      # Creating the Density Matrix (DM)
+      rho = DensityMatrix.from_label("10+")
+      # Calculating negativity of DM
+      negv2 = negativity(rho, [0, 1])
+
+

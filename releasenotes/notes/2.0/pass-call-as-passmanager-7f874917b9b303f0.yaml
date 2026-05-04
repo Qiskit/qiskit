@@ -1,0 +1,24 @@
+---
+features_transpiler:
+  - |
+    :meth:`.PassManager.run` now accepts a ``property_set`` argument, which can be set to a
+    :class:`~collections.abc.Mapping`-like object to provide the initial values of the pipeline's
+    :class:`.PropertySet`.  This can be used to recommence a partially applied compilation, or to
+    reuse certain analysis from a prior compilation in a new place.
+upgrade_transpiler:
+  - |
+    The keyword argument ``property_set`` is now reserved in :meth:`.BasePassManager.run`, and
+    cannot be used as a ``kwarg`` that will be forwarded to the subclass's conversion from the
+    front-end representation to the internal representation.
+fixes:
+  - |
+    Calling an :class:`.AnalysisPass` or a :class:`.TransformationPass` like a function (as in
+    ``pass_ = MyPass(); pass_(qc)``) will now respect any requirements that the pass might have.
+    For example, scheduling passes such as :class:`.ALAPScheduleAnalysis` require that
+    :class:`.TimeUnitConversion` runs before them.  Running the pass via a :class:`.PassManager`
+    always respected this requirement, but until this note, it was not respected by calling the
+    pass directly.
+  - |
+    When a :exc:`.TranspilerError` subclass is raised by a pass inside a call to
+    :meth:`.PassManger.run`, the exception will now be propagated through losslessly, rather than
+    becoming a chained exception with an erased type.

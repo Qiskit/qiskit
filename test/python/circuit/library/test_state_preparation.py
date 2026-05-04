@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -21,9 +21,9 @@ from ddt import ddt, data
 
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Statevector, Operator
-from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.library import StatePreparation
+from test import QiskitTestCase
 
 
 @ddt
@@ -98,10 +98,9 @@ class TestStatePreparation(QiskitTestCase):
 
     def test_incompatible_int_state_and_qubit_args(self):
         """Test error raised if number of qubits not compatible with  integer state arg"""
-        # pylint: disable=pointless-statement
         with self.assertRaises(QiskitError):
             stateprep = StatePreparation(5, num_qubits=2)
-            stateprep.definition
+            _ = stateprep.definition
 
     def test_int_state_and_no_qubit_args(self):
         """Test automatic determination of qubit number"""
@@ -113,6 +112,16 @@ class TestStatePreparation(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.append(StatePreparation("01").repeat(2), [0, 1])
         self.assertEqual(qc.decompose().count_ops()["state_preparation"], 2)
+
+    def test_normalize(self):
+        """Test the normalization.
+
+        Regression test of #12984.
+        """
+        qc = QuantumCircuit(1)
+        qc.compose(StatePreparation([1, 1], normalize=True), range(1), inplace=True)
+
+        self.assertTrue(Statevector(qc).equiv(np.array([1, 1]) / np.sqrt(2)))
 
 
 if __name__ == "__main__":

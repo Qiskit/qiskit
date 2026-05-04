@@ -1,0 +1,6 @@
+features_qpy:
+  - |
+    The QPY format has been upgraded to version 16, which includes a new circuit start table
+    which contains the byte offsets of the start of each circuit in a QPY file. This allows
+    for a potentially more efficient loading of circuits from QPY files, in a multi-threaded
+    rust implementation in the future.

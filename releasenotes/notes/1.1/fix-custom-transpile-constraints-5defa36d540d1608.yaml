@@ -1,0 +1,21 @@
+---
+fixes:
+  - |
+    A bug in :func:`.transpile` has been fixed where custom ``instruction_durations``, ``dt`` and ``backend_properties``
+    constraints would be ignored when provided at the same time as a backend of type :class:`.BackendV2`. The behavior
+    after the fix is now independent of whether the provided backend is of type :class:`.BackendV1` or
+    type :class:`.BackendV2`. Similarly, custom ``timing_constraints`` are now overridden by ``target`` inputs
+    but take precedence over :class:`.BackendV1` and :class:`.BackendV2` inputs.
+
+features_transpiler:
+  - |
+    The following analysis passes now accept constraints encoded in a :class:`.Target` thanks to a new ``target`` 
+    input argument:
+    
+      * :class:`.InstructionDurationCheck`
+      * :class:`.ConstrainedReschedule`
+      * :class:`.ValidatePulseGates`
+    
+    The target constraints will have priority over user-provided constraints, for coherence with the rest of 
+    the transpiler pipeline.
+    

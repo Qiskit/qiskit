@@ -1,0 +1,177 @@
+---
+features_primitives:
+  - |
+    Version 2 of the primitives is introduced via a new base class for both the sampler and the
+    estimator, along with new types for their inputs and outputs. The emphasis of this new
+    version is on performing vectorized calls to the primitive ``run()`` methods, so that sweeps
+    over parameter value sets and observables can be efficiently specified. See
+    :class:`~.StatevectorSampler` and :class:`~.StatevectorEstimator` for reference implementations
+    of the V2 primitives.
+
+    Moreover, the estimator has gained a ``precision`` argument in the :meth:`~.BaseEstimatorV2.run`
+    method that specifies the targeted precision of the expectation value estimates. Analogously,
+    the sampler has moved ``shots`` out of the options and into the arguments of the
+    :meth:`~.BaseSamplerV2.run` method. The sampler has also been changed to return the outputs
+    (e.g. bitstrings) from every shot, rather than providing a :class:`~.Counts`\-like return, and
+    also to store data from separate :class:`~.ClassicalRegister`\s . This enables derived classes
+    to implement sampler support for circuits with classical control flow.
+
+    The primitive V2 base classes are:
+
+    * :class:`.BaseSamplerV2`
+    * :class:`.BaseEstimatorV2`
+
+    The new types which are used for inputs and outputs are:
+
+    * :const:`.SamplerPubLike`\: primitive unified bloc (PUB) of sampler inputs; a union type
+      of allowed inputs to a sampler
+    * :const:`.EstimatorPubLike`\: Primitive unified bloc (PUB) of estimator inputs; a union
+      type of allowed inputs to an estimator
+    * :class:`.PubResult`\: the data and metadata resulting from a single PUB's execution
+    * :class:`.DataBin`\: A namespace to hold data from a single PUB's execution
+    * :class:`.BitArray`\: an array-valued collection of bit values in a dense format
+    * :class:`.PrimitiveResult`: an iterable of :class:`.PubResult`\s along with metadata
+
+  - |
+    The reference implementation :class:`~.StatevectorEstimator` of :class:`~.BaseEstimatorV2` was
+    added. As seen in the example below, this estimator (and all V2 estimators) supports providing
+    arrays of observables and/or  arrays of parameter value sets that are attached to particular
+    circuits.
+
+    Each tuple of ``(circuit, observables, <optional> parameter values, <optional> precision)``,
+    called an estimator primitive unified bloc (PUB), produces its own array-based result. The
+    :meth:`~.EstimatorV2.run` method can be given many pubs at once.
+
+    .. code-block:: python
+
+        from qiskit.circuit import Parameter, QuantumCircuit
+        from qiskit.primitives import StatevectorEstimator
+        from qiskit.quantum_info import Pauli, SparsePauliOp
+
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        # Define a circuit with two parameters.
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.ry(Parameter("a"), 0)
+        circuit.rz(Parameter("b"), 0)
+        circuit.cx(0, 1)
+        circuit.h(0)
+
+        # Define a sweep over parameter values, where the second axis is over
+        # the two parameters in the circuit.
+        params = np.vstack([
+            np.linspace(-np.pi, np.pi, 100),
+            np.linspace(-4 * np.pi, 4 * np.pi, 100)
+        ]).T
+
+        # Define three observables. Many formats are supported here including
+        # classes such as qiskit.quantum_info.SparsePauliOp. The inner length-1
+        # lists cause this array of observables to have shape (3, 1), rather
+        # than shape (3,) if they were omitted.
+        observables = [
+            [SparsePauliOp(["XX", "IY"], [0.5, 0.5])],
+            [Pauli("XX")],
+            [Pauli("IY")]
+        ]
+
+        # Instantiate a new statevector simulation based estimator object.
+        estimator = StatevectorEstimator()
+
+        # Estimate the expectation value for all 300 combinations of
+        # observables and parameter values, where the pub result will have
+        # shape (3, 100). This shape is due to our array of parameter
+        # bindings having shape (100,), combined with our array of observables
+        # having shape (3, 1)
+        pub = (circuit, observables, params)
+        job = estimator.run([pub])
+
+        # Extract the result for the 0th pub (this example only has one pub).
+        result = job.result()[0]
+
+        # Error-bar information is also available, but the error is 0
+        # for this StatevectorEstimator.
+        result.data.stds
+
+        # Pull out the array-based expectation value estimate data from the
+        # result and plot a trace for each observable.
+        for idx, pauli in enumerate(observables):
+            plt.plot(result.data.evs[idx], label=pauli)
+        plt.legend()
+
+  - |
+    The reference implementation :class:`~.StatevectorSampler` of :class:`~.BaseSamplerV2` was
+    added. As seen in the example below, this sampler (and all V2 samplers) supports
+    providing arrays of parameter value sets to bind against a single circuit.
+
+    Each tuple of ``(circuit, <optional> parameter values, <optional> shots)``, called a sampler
+    primitive unified bloc (PUB), produces its own array-based result. The :meth:`~.SamplerV2.run`
+    method can be given many pubs at once.
+
+    .. code-block:: python
+
+        from qiskit.circuit import (
+            Parameter, QuantumCircuit, ClassicalRegister, QuantumRegister
+        )
+        from qiskit.primitives import StatevectorSampler
+
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        # Define our circuit registers, including classical registers
+        # called 'alpha' and 'beta'.
+        qreg = QuantumRegister(3)
+        alpha = ClassicalRegister(2, "alpha")
+        beta = ClassicalRegister(1, "beta")
+
+        # Define a quantum circuit with two parameters.
+        circuit = QuantumCircuit(qreg, alpha, beta)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.cx(1, 2)
+        circuit.ry(Parameter("a"), 0)
+        circuit.rz(Parameter("b"), 0)
+        circuit.cx(1, 2)
+        circuit.cx(0, 1)
+        circuit.h(0)
+        circuit.measure([0, 1], alpha)
+        circuit.measure([2], beta)
+
+        # Define a sweep over parameter values, where the second axis is over.
+        # the two parameters in the circuit.
+        params = np.vstack([
+            np.linspace(-np.pi, np.pi, 100),
+            np.linspace(-4 * np.pi, 4 * np.pi, 100)
+        ]).T
+
+        # Instantiate a new statevector simulation based sampler object.
+        sampler = StatevectorSampler()
+
+        # Start a job that will return shots for all 100 parameter value sets.
+        pub = (circuit, params)
+        job = sampler.run([pub], shots=256)
+
+        # Extract the result for the 0th pub (this example only has one pub).
+        result = job.result()[0]
+
+        # There is one BitArray object for each ClassicalRegister in the
+        # circuit. Here, we can see that the BitArray for alpha contains data
+        # for all 100 sweep points, and that it is indeed storing data for 2
+        # bits over 256 shots.
+        assert result.data.alpha.shape == (100,)
+        assert result.data.alpha.num_bits == 2
+        assert result.data.alpha.num_shots == 256
+
+        # We can work directly with a binary array in performant applications.
+        raw = result.data.alpha.array
+
+        # For small registers where it is anticipated to have many counts
+        # associated with the same bitstrings, we can turn the data from,
+        # for example, the 22nd sweep index into a dictionary of counts.
+        counts = result.data.alpha.get_counts(22)
+
+        # Or, convert into a list of bitstrings that preserve shot order.
+        bitstrings = result.data.alpha.get_bitstrings(22)
+        print(bitstrings)

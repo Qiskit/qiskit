@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -13,6 +13,7 @@
 Custom Lazy Iterator class
 """
 
+from __future__ import annotations
 from abc import ABC, abstractmethod
 
 
@@ -26,9 +27,8 @@ class CustomIterator(ABC):
     @abstractmethod
     def __getitem__(self, key):
         """Get next item"""
-        # This method should be overriden for lazy conversion of
+        # This method should be overridden for lazy conversion of
         # iterator only at a given key value
-        pass
 
     def __repr__(self):
         return f"<{type(self.obj)}_iterator at {hex(id(self))}>"

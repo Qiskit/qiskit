@@ -1,0 +1,20 @@
+---
+upgrade_algorithms:
+  - |
+    The ``qiskit.opflow`` module has been removed, following its deprecation in
+    Qiskit 0.44. For more context on the deprecation and
+    detailed migration instructions, you can read the
+    `Opflow Migration Guide <https://qisk.it/opflow_migration>`__.
+
+
+  - |
+    A series of legacy quantum execution utilities have been removed, following their deprecation in Qiskit 0.44.
+    These include the ``qiskit.utils.QuantumInstance`` class, as well the modules:
+
+     - ``qiskit.utils.backend_utils``
+     - ``qiskit.utils.mitigation``
+     - ``qiskit.utils.measurement_error_mitigation``
+     - ``qiskit.utils.run_circuits``
+
+    Their functionality has been superseded by the use of primitives. For more context on the deprecation and
+    detailed migration instructions, you can read the `QuantumInstance Migration Guide <https://qisk.it/qi_migration>`__.

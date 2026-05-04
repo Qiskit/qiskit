@@ -1,0 +1,35 @@
+---
+features:
+  - |
+    Added a new transpiler pass, :class:`.RemoveFinalReset`, which
+    will remove any :class:`.Reset` operation which is the final
+    instruction on a qubit wire.  For example, taking a circuit with
+    final :class:`.Reset`\ s:
+
+    .. plot::
+
+       from qiskit.circuit import QuantumCircuit
+
+       qc = QuantumCircuit(3, 1)
+       qc.reset(0)
+       qc.h(range(3))
+       qc.cx(1, 0)
+       qc.measure(0, 0)
+       qc.reset(range(3))
+       qc.draw("mpl")
+
+    will remove the final resets when the pass is run:
+
+    .. plot::
+       :include-source:
+
+       from qiskit.transpiler.passes import RemoveFinalReset
+       from qiskit.circuit import QuantumCircuit
+
+       qc = QuantumCircuit(3, 1)
+       qc.reset(0)
+       qc.h(range(3))
+       qc.cx(1, 0)
+       qc.measure(0, 0)
+       qc.reset(range(3))
+       RemoveFinalReset()(qc).draw("mpl")

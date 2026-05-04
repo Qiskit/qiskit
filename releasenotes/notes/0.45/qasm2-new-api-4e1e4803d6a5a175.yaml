@@ -1,0 +1,30 @@
+---
+features:
+  - |
+    The OpenQASM 2 module :mod:`qiskit.qasm2` has gained the export functions
+    :func:`~.qasm2.dump` and :func:`~.qasm2.dumps`.  These are used in a very
+    similar manner to the previous :meth:`.QuantumCircuit.qasm`::
+
+      from qiskit import qasm2, QuantumCircuit
+      qc = QuantumCircuit(2, 2)
+      qc.h(0)
+      qc.cx(0, 1)
+      qc.measure([0, 1], [0, 1])
+      print(qasm2.dumps(qc))
+
+    The new functions stem from the same code as :meth:`.QuantumCircuit.qasm`,
+    which will slowly be phased out and replaced with the new paths, to provide
+    a more coherent interface when compared to the OpenQASM 3
+    (:mod:`qiskit.qasm3`) and QPY (:mod:`qiskit.qpy`) modules.  This is
+    particularly important since the method name :meth:`~.QuantumCircuit.qasm`
+    gave no indication of the OpenQASM version, and since it was originally
+    added, Qiskit has gained several serialization modules that could easily
+    become confused.
+deprecations:
+  - |
+    The little-used :class:`.QuantumCircuit` class data attributes
+    :attr:`~.QuantumCircuit.header` and :attr:`~.QuantumCircuit.extension_lib`
+    are deprecated and scheduled for removal.  These respectively held strings
+    of the OpenQASM 2.0 version header statement and ``qelib1.inc`` include
+    statement.  No alternative will be provided; these were mostly intended
+    as internal details.

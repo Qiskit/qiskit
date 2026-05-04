@@ -1,0 +1,7 @@
+---
+deprecations:
+  - |
+    Passing ``None`` as the ``qargs`` or ``cargs`` arguments to :meth:`.DAGCircuit.apply_operation_back`
+    or :meth:`~.DAGCircuit.apply_operation_front` is deprecated and will be removed in Qiskit 1.0.
+    This has been explicitly against the typing documentation for some time, but silently accepted
+    by Qiskit.  Instead, simply pass ``()`` rather than ``None``.

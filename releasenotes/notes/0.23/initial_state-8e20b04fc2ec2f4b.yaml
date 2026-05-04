@@ -3,4 +3,4 @@ upgrade:
   - |
     The ``initial_state`` argument of the :class:`~NLocal` class should be a
     :class:`~.QuantumCircuit`. Passing any other type was deprecated as of Qiskit
-    Terra 0.18.0 (July 2021) and that posibility is now removed.
+    Terra 0.18.0 (July 2021) and that possibility is now removed.

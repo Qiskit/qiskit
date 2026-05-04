@@ -1,0 +1,5 @@
+---
+features_transpiler:
+  - |
+    The :meth:`.synth_cnot_depth_line_kms` pass was ported into rust, with preliminary
+    benchmarks pointing at a factor of 20x speedup.

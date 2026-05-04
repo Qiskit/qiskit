@@ -1,0 +1,5 @@
+---
+features_circuits:
+  - |
+    Adds an equivalence between an :class:`~.circuit.library.XXPlusYYGate` and its decomposition into an :class:`~.circuit.library.RXXGate`
+    followed by an :class:`~.circuit.library.RYYGate` to the equivalence library.

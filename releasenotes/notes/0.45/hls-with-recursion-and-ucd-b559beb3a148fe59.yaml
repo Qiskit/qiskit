@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    The constructor for :class:`.HighLevelSynthesis` transpiler pass now accepts
+    additional arguments ``equivalence_library``, ``basis_gates``, and ``min_qubits``.
+    The pass can now unroll custom definitions similarly to :class:`.UnrollCustomDefinitions`,
+    and as such completely subsumes the functionality of the latter pass.
+    In particular, :class:`.HighLevelSynthesis` is now recursive, fixing an oversight
+    in the initial implementation. Thus, when either ``target`` or ``basis_gates`` are specified,
+    :class:`.HighLevelSynthesis` recursively synthesizes all high-level objects, annotated operations
+    and custom gates in the circuit, leaving only gates that are supported by the target or
+    belong to the equivalence library. This allows to use :class:`.HighLevelSynthesis` as a
+    drop-in replacement for :class:`.UnrollCustomDefinitions`. On the other hand, when neither
+    ``target`` nor ``basis_gates`` are specified, the pass synthesizes only the "top-level"
+    high-level objects and annotated operations, i.e. does not recursively descent into the
+    custom gates ``definition`` field. This is backward-compatible both with
+    :class:`.UnrollCustomDefinitions` (which would not do anything) and with the older
+    behavior of the high level synthesis pass, which allows to use it as an intermediate
+    transform, only synthesizing high-level objects as specified by :class:`~.HLSConfig`.

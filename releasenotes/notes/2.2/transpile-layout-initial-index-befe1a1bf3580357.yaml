@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    :meth:`.TranspileLayout.initial_index_layout` will now correctly handle the ``filter_ancillas=True``
+    argument if the virtual qubits in the :attr:`~.TranspileLayout.initial_layout` were not specified
+    by the constructor in index order.

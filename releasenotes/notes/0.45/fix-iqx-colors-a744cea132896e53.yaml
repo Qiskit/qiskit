@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fix the coloring of the ``"iqx"`` and ``"iqx-dark"`` matplotlib color schemes,
+    which previously drew the :class:`.RZGate`, :class:`.RZZGate`, (multi-)controlled
+    :class:`.PhaseGate`\s and :class:`.iSwapGate` in the wrong color.

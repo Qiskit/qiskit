@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    The performance of :meth:`.SparsePauliOp.to_matrix` has been greatly improved for both dense and
+    sparse forms.  By default, both will now take advantage of threaded parallelism available on
+    your system, subject to the ``RAYON_NUM_THREADS`` environment variable.  You can temporarily
+    force serial execution using the new ``force_serial`` Boolean argument to
+    :meth:`~.SparsePauliOp.to_matrix`.

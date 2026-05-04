@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    :meth:`.Target.has_calibration` has been updated so that it does not raise
+    an exception for an instruction that has been added to the target with
+    ``None`` for its instruction properties. Fixes
+    `#12525 <https://github.com/Qiskit/qiskit/issues/12525>`__.

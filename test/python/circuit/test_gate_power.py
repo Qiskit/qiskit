@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,14 +14,13 @@
 """Test Qiskit's power instruction operation."""
 
 import unittest
-from typing import Type
 
 import numpy as np
 import scipy.linalg
 from ddt import data, ddt, unpack
 
-from qiskit.circuit import Gate, QuantumCircuit
-from qiskit.extensions import (
+from qiskit.circuit import Gate, QuantumCircuit, AnnotatedOperation
+from qiskit.circuit.library import (
     CPhaseGate,
     CSdgGate,
     CSGate,
@@ -45,9 +44,10 @@ from qiskit.extensions import (
     XXPlusYYGate,
     ZGate,
     iSwapGate,
+    SwapGate,
 )
 from qiskit.quantum_info.operators import Operator
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase
 
 
 @ddt
@@ -250,7 +250,7 @@ class TestEfficientGatePowering(QiskitTestCase):
         (iSwapGate(), XXPlusYYGate),
     )
     @unpack
-    def test_efficient_gate_powering(self, gate: Gate, output_gate_type: Type[Gate]):
+    def test_efficient_gate_powering(self, gate: Gate, output_gate_type: type[Gate]):
         """Test efficient gate powering."""
         exponents = (-5, -0.5, -0.1, 0, 0.1, 0.5, 5)
         for exponent in exponents:
@@ -258,6 +258,29 @@ class TestEfficientGatePowering(QiskitTestCase):
             self.assertIsInstance(result, output_gate_type)
             expected = scipy.linalg.fractional_matrix_power(np.array(gate), exponent)
             np.testing.assert_allclose(np.array(result), expected, atol=1e-8)
+
+
+@ddt
+class TestPowerAnnotatedGate(QiskitTestCase):
+    """Test raising gates to power using ``annotated`` argument."""
+
+    def test_s_gate(self):
+        """Test raising SGate to a power. Since SGate has an efficient ``power``
+        method, the result should not be an annotated operation.
+        """
+        result = SGate().power(1.5, annotated=True)
+        self.assertNotIsInstance(result, AnnotatedOperation)
+
+    def test_swap_gate(self):
+        """Test raising SwapGate to a power using different methods."""
+        # SwapGate has no native power method.
+        result1 = SwapGate().power(1.5, annotated=True)
+        self.assertIsInstance(result1, AnnotatedOperation)
+
+        result2 = SwapGate().power(1.5, annotated=False)
+        self.assertIsInstance(result2, UnitaryGate)
+
+        self.assertEqual(Operator(result1), Operator(result2))
 
 
 if __name__ == "__main__":
