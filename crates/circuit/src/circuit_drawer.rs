@@ -19,7 +19,10 @@ use approx;
 use crossterm::terminal;
 use hashbrown::HashSet;
 use itertools::{Itertools, MinMaxResult};
+use lexical_core::ToLexicalWithOptions;
+use lexical_write_float::{self, format::STANDARD};
 use pyo3::prelude::*;
+use std::f64::consts::PI;
 use std::fmt::Debug;
 use std::ops::Index;
 use unicode_segmentation::UnicodeSegmentation;
@@ -60,7 +63,10 @@ pub fn draw_circuit(
             if approx::abs_diff_eq!(*f, 0.) {
                 String::new()
             } else {
-                format!("global phase: {}\n", f)
+                format!(
+                    "global phase: {}\n",
+                    F64UiFormatter::new(5).format_with_pi(*f)
+                )
             }
         }
         Param::ParameterExpression(expr) => {
@@ -669,6 +675,55 @@ impl TextWireElement {
     }
 }
 
+/// A formatter for UI rendering of floating-point numbers
+///
+/// Supports formatting similar to Python's `g` or C printf's `%g` format specifiers
+/// as well as formatting of multiples and fractions of pi.
+///
+/// Example outputs:
+/// ```text
+/// F64UiFormatter::new(4).format(1.23456)        → 1.235
+/// F64UiFormatter::new(4).format(123.456)        → 123.5
+/// F64UiFormatter::new(5).format(12345678.0)     → 1.2346e7
+/// F64UiFormatter::new(5).format(-0.00001234)    → -1.234e-5
+/// F64UiFormatter::new(5).format_with_pi(5π/6)   → 5π/6
+/// ```
+struct F64UiFormatter {
+    buffer: Vec<u8>,
+    options: lexical_write_float::Options,
+}
+
+impl F64UiFormatter {
+    fn new(num_significant_digits: usize) -> Self {
+        let options = lexical_write_float::Options::builder()
+            .max_significant_digits(core::num::NonZeroUsize::new(num_significant_digits))
+            .positive_exponent_break(core::num::NonZeroI32::new(num_significant_digits as i32))
+            .negative_exponent_break(core::num::NonZeroI32::new(
+                -(num_significant_digits as i32) + 1,
+            ))
+            .trim_floats(true)
+            .build_strict();
+
+        F64UiFormatter {
+            buffer: vec![0u8; options.buffer_size_const::<f64, STANDARD>()],
+            options,
+        }
+    }
+
+    /// Formats the input number based on the formatting options.
+    /// This Can be called multiple times, but the internal buffer is overwritten on each call.
+    fn format(&mut self, num: f64) -> &str {
+        let buf = num.to_lexical_with_options::<STANDARD>(&mut self.buffer, &self.options);
+        std::str::from_utf8_mut(buf).expect("Byte representation should be valid")
+    }
+
+    /// Tries to format the string as a multiple or simple fraction of pi if possible,
+    /// otherwise falls back to the simpler [F64UiFormatter::format] logic
+    fn format_with_pi(&mut self, num: f64) -> String {
+        format_float_pi(num).unwrap_or_else(|| self.format(num).to_owned())
+    }
+}
+
 pub const Q_WIRE: char = '─';
 pub const C_WIRE: char = '═';
 pub const TOP_CON: char = '┴';
@@ -731,7 +786,11 @@ impl TextDrawer {
                     StandardInstruction::Delay(delay_unit) => {
                         match instruction.params_view().first().unwrap() {
                             Param::Float(duration) => {
-                                format!("Delay({}[{}])", duration, delay_unit)
+                                format!(
+                                    "Delay({}[{}])",
+                                    F64UiFormatter::new(5).format(*duration),
+                                    delay_unit
+                                )
                             }
                             Param::ParameterExpression(expr) => {
                                 format!("Delay({}[{}])", expr, delay_unit)
@@ -763,7 +822,9 @@ impl TextDrawer {
                         .params_view()
                         .iter()
                         .map(|param| match param {
-                            Param::Float(f) => f.to_string(),
+                            Param::Float(f) => {
+                                F64UiFormatter::new(5).format_with_pi(*f).to_string()
+                            }
                             Param::ParameterExpression(expr) => expr.to_string(),
                             _ => format!("{:?}", param),
                         })
@@ -1200,6 +1261,93 @@ impl TextDrawer {
 
         ret
     }
+}
+
+/// Computes if a number is close to an integer
+/// fraction or multiple of PI and returns the
+/// corresponding string.
+///
+/// Args:
+///     f : Number to check.
+///
+/// Returns:
+///     The string representation of output. None if no Pi formatting is found.  
+pub fn format_float_pi(f: f64) -> Option<String> {
+    const DENOMINATOR: i64 = 16;
+    // epsilon value defines the threshold to detect pi.
+    const EPS: f64 = 1e-9;
+
+    // pi_str is needed to match the output expected according to the format needed
+    let pi_str = "π";
+
+    // f_abs and sign help us working through each steps
+    let f_abs = f.abs();
+    let sign = if f < 0.0 { "-" } else { "" };
+
+    // Detecting 0 before moving on
+    if f_abs < EPS {
+        return Some("0".to_string());
+    }
+
+    // First check is for whole multiples of pi
+    let val = f_abs / PI;
+    let round = val.round();
+    if val >= 1.0 - EPS && (val - round).abs() < EPS {
+        let round = round as usize;
+        return Some(if round == 1 {
+            format!("{}{}", sign, pi_str)
+        } else {
+            format!("{}{}{}", sign, round, pi_str)
+        });
+    }
+
+    // Second is a check for powers of pi
+    if f_abs > PI {
+        if let Some(k) = (2..=4).find(|k| (f_abs - PI.powi(*k)).abs() < EPS) {
+            return Some(format!("{}{}^{}", sign, pi_str, k));
+        }
+    }
+
+    // Third is a check for a number larger than DENOMINATOR * pi, not a
+    // multiple or power of pi, since no fractions will exceed DENOMINATOR * pi
+    if f_abs > (DENOMINATOR as f64 * PI) {
+        return None;
+    }
+
+    // Fourth check is for fractions for 1*pi in the numer and any
+    // number in the denom.
+    let val = PI / f_abs;
+    let round = val.round();
+    if round >= 1.0 && (val - round).abs() < EPS {
+        let d = round as usize;
+        let str_out = format!("{}{}/{}", sign, pi_str, d);
+        return Some(str_out);
+    }
+
+    // Fifth check is for fractions of the form (numer/denom) * pi or (numer/denom) / pi
+    // where 1 <= numer,denom <= DENOMINATOR, which are not covered in the previous checks.
+    // Ex. 15pi/16, 2pi/5, 15pi/2, 16pi/9 or 15/16pi, 2/5pi, 15/2pi, 16/9pi
+    for denom in 1..=DENOMINATOR {
+        for numer in 1..=DENOMINATOR {
+            let up = numer as f64 / denom as f64;
+            let val = up * PI;
+            if (f_abs - val).abs() < EPS {
+                let str_out = format!("{}{}{}/{}", sign, numer, pi_str, denom);
+                return Some(str_out);
+            }
+            let val = up / PI;
+            if (f_abs - val).abs() < EPS {
+                let str_out = match denom {
+                    1 => format!("{}{}/{}", sign, numer, pi_str),
+                    d => format!("{}{}/{}{}", sign, numer, d, pi_str),
+                };
+                return Some(str_out);
+            }
+        }
+    }
+
+    // fall back when no conversion is possible
+    None
 }
 
 #[cfg(test)]
@@ -1999,5 +2147,135 @@ q_1: ┤ Ry(🎩) ├┤1          ├┤ 💶🔉(🎩) ├┤1           ├�
      └────────┘└───────────┘└──────────┘└────────────┘└──────────┘
 ";
         assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[cfg(not(miri))]
+    #[test]
+    fn test_f64_formatting() {
+        let qubits = vec![
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+        ];
+        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.8 * PI)).unwrap();
+
+        circuit
+            .push_standard_gate(StandardGate::RX, &[Param::Float(1.234567)], &[Qubit(0)])
+            .unwrap();
+        circuit
+            .push_standard_gate(StandardGate::RX, &[Param::Float(123.4567)], &[Qubit(0)])
+            .unwrap();
+
+        let expr = ParameterExpression::from_symbol(Symbol::new("ϕ", None, None))
+            .mul(&ParameterExpression::from_f64(1.23456))
+            .unwrap();
+        let param = Param::ParameterExpression(Arc::new(expr));
+        circuit
+            .push_standard_gate(StandardGate::RY, &[param], &[Qubit(0)])
+            .unwrap();
+        circuit
+            .push_standard_gate(StandardGate::RZ, &[Param::Float(123456789f64)], &[Qubit(1)])
+            .unwrap();
+
+        circuit
+            .push_standard_gate(StandardGate::RX, &[Param::Float(0.1234567)], &[Qubit(1)])
+            .unwrap();
+        circuit
+            .push_standard_gate(StandardGate::RX, &[Param::Float(0.0000123456)], &[Qubit(1)])
+            .unwrap();
+        circuit
+            .push_standard_gate(
+                StandardGate::RX,
+                &[Param::Float(2.0 / 3.0 * PI)],
+                &[Qubit(1)],
+            )
+            .unwrap();
+
+        let result = draw_circuit(&circuit, true, true, None).unwrap();
+        let expected = "
+global phase: 4π/5
+      ┌────────────┐ ┌────────────┐ ┌───────────────┐
+q_0: ─┤ Rx(1.2346) ├─┤ Rx(123.46) ├─┤ Ry(1.23456*ϕ) ├────────────
+     ┌┴────────────┴┐├────────────┴┐├───────────────┤┌──────────┐
+q_1: ┤ Rz(1.2346e8) ├┤ Rx(0.12346) ├┤ Rx(1.2346e-5) ├┤ Rx(2π/3) ├
+     └──────────────┘└─────────────┘└───────────────┘└──────────┘
+";
+
+        assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[test]
+    fn test_format_float_pi() {
+        let test_points = [
+            (0.0, Some("0")),
+            (-0.0, Some("0")),
+            (1e-12, Some("0")),
+            (PI, Some("π")),
+            (-PI, Some("-π")),
+            (2.0 * PI, Some("2π")),
+            (3.0 * PI, Some("3π")),
+            (10.0 * PI, Some("10π")),
+            (16.0 * PI, Some("16π")),
+            (-2.0 * PI, Some("-2π")),
+            (-5.0 * PI, Some("-5π")),
+            (PI.powi(2), Some("π^2")),
+            (-PI.powi(2), Some("-π^2")),
+            (PI.powi(3), Some("π^3")),
+            (PI.powi(4), Some("π^4")),
+            (PI / 2.0, Some("π/2")),
+            (PI / 3.0, Some("π/3")),
+            (PI / 4.0, Some("π/4")),
+            (PI / 6.0, Some("π/6")),
+            (-PI / 2.0, Some("-π/2")),
+            (2.0 * PI / 3.0, Some("2π/3")),
+            (3.0 * PI / 4.0, Some("3π/4")),
+            (5.0 * PI / 6.0, Some("5π/6")),
+            (7.0 * PI / 4.0, Some("7π/4")),
+            (15.0 * PI / 16.0, Some("15π/16")),
+            (-2.0 * PI / 3.0, Some("-2π/3")),
+            (1.0 / PI, Some("1/π")),
+            (2.0 / PI, Some("2/π")),
+            (1.0 / (2.0 * PI), Some("1/2π")),
+            (3.0 / (4.0 * PI), Some("3/4π")),
+            (-1.0 / PI, Some("-1/π")),
+            (-1.0 / (2.0 * PI), Some("-1/2π")),
+            (-18.0 / 16.0 * PI, Some("-9π/8")),
+            (60.0 / 44.0 / PI, Some("15/11π")),
+            (17.0 * PI + 1.0, None),
+            (100.0, None),
+            (1.0, None),
+            (2.0, None),
+            (1.5, None),
+            (-7.3, None),
+            (PI + 1e-6, None),
+            (PI - 1e-6, None),
+            (PI / 2.0 + 1e-6, None),
+            (17.0 * PI / 2.0, None),
+            (9.0 / (17.0 * PI), None),
+        ];
+
+        for test in test_points {
+            assert_eq!(format_float_pi(test.0), test.1.map(|s| s.to_string()));
+        }
+    }
+
+    #[test]
+    fn test_f64_ui_formatter() {
+        let test_data_5_sig_digits = [
+            (-1.23, "-1.23"),
+            (1.23456, "1.2346"),
+            (-12.34567, "-12.346"),
+            (123456.78, "123460"),
+            (-0.0001, "-0.0001"),
+            (12.34 * 1_000_000.0, "1.234e7"),
+            (-0.00001, "-1e-5"),
+            (12345678.000001, "1.2346e7"),
+            (15.0 * PI / 16.0, "15π/16"),
+            (-2.0 * PI / 3.0, "-2π/3"),
+        ];
+
+        let mut formatter = F64UiFormatter::new(5);
+        for test in test_data_5_sig_digits {
+            assert_eq!(test.1.to_owned(), formatter.format_with_pi(test.0));
+        }
     }
 }
