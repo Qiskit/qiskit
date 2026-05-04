@@ -281,19 +281,10 @@ def normalize_gates(gates: list[Gate | str]) -> list[Gate]:
     name_to_gate["i"] = IGate()
 
     def normalize(gate: Gate | str) -> Gate:
-        out = None
         if isinstance(gate, Gate):
-            out = gate
-        elif gate in name_to_gate:
-            out = name_to_gate[gate]
-            if not isinstance(out, Gate):
-                raise ValueError(f"Only Gate types are supported, not: {gate}")
-        else:
-            raise ValueError(f"Unsupported gate: {gate}")
-
-        if out.num_qubits != 1:
-            raise ValueError(f"Only single-qubit gates are supported, not: {gate}")
-
-        return out
+            return gate
+        if gate in name_to_gate:
+            return name_to_gate[gate]
+        raise ValueError(f"Unsupported gate: {gate}")
 
     return list(map(normalize, gates))
