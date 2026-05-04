@@ -12,6 +12,7 @@
 
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
+use qiskit_circuit::dag_circuit::DAGCircuitInnerError;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use crate::QiskitError;
@@ -25,7 +26,7 @@ pub enum Unroll3qError {
     #[error("Cannot unroll all 3q or more gates. No rule to expand {0}")]
     NoDefinition(String),
     #[error("Failed to substitute the definition")]
-    SubstitutionError(PyErr),
+    SubstitutionError(#[from] DAGCircuitInnerError),
 }
 
 #[pyfunction]
@@ -36,7 +37,7 @@ pub fn py_unroll_3q_or_more(dag: &mut DAGCircuit, target: Option<&Target>) -> Py
             "Cannot unroll all 3q or more gates. No rule to expand {}",
             e
         )),
-        Unroll3qError::SubstitutionError(e) => e,
+        Unroll3qError::SubstitutionError(e) => e.into(),
     })
 }
 
