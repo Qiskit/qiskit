@@ -105,7 +105,10 @@ pub use schedule_analysis::scheduling_mod;
 pub use split_2q_unitaries::{run_split_2q_unitaries, split_2q_unitaries_mod};
 pub use substitute_pi4_rotations::{py_run_substitute_pi4_rotations, substitute_pi4_rotations_mod};
 pub use synthesize_rz_rotations::{py_run_synthesize_rz_rotations, synthesize_rz_rotations_mod};
-pub use two_qubit_peephole::{two_qubit_peephole_mod, two_qubit_unitary_peephole_optimize};
+pub use two_qubit_peephole::{
+    py_two_qubit_unitary_peephole_optimize, two_qubit_peephole_mod,
+    two_qubit_unitary_peephole_optimize,
+};
 pub use unitary_synthesis::{
     UnitarySynthesisConfig, UnitarySynthesisState, run_unitary_synthesis, unitary_synthesis_mod,
 };

@@ -94,7 +94,18 @@ impl hash::Hash for ContinuousPauliConstructor {
 }
 impl ContinuousPauliConstructor {
     fn try_build(&self) -> PyResult<TwoQubitControlledUDecomposer> {
-        TwoQubitControlledUDecomposer::new_inner(self.source.clone(), self.euler.as_str())
+        match self.source {
+            RXXEquivalent::Standard(gate) => TwoQubitControlledUDecomposer::new_inner(
+                RXXEquivalent::Standard(gate),
+                self.euler.as_str(),
+            ),
+            RXXEquivalent::CustomPython(ref gate) => Python::attach(|py| {
+                TwoQubitControlledUDecomposer::new_inner(
+                    RXXEquivalent::CustomPython(gate.clone_ref(py)),
+                    self.euler.as_str(),
+                )
+            }),
+        }
     }
 }
 
@@ -650,9 +661,15 @@ fn get_2q_decomposers(
                 // _all_ of the 1q bases simultaneously without further decompositions, but don't
                 // expose that functionality.  This wastes huge amounts of time and needs a fix.
                 for euler in euler_bases.get_bases() {
+                    let rxx_copy = match rxx_equivalent {
+                        RXXEquivalent::Standard(gate) => RXXEquivalent::Standard(gate),
+                        RXXEquivalent::CustomPython(ref gate) => {
+                            RXXEquivalent::CustomPython(Python::attach(|py| gate.clone_ref(py)))
+                        }
+                    };
                     let constructor =
                         Decomposer2qConstructor::ContinuousPauli(ContinuousPauliConstructor {
-                            source: rxx_equivalent.clone(),
+                            source: rxx_copy,
                             euler,
                         });
                     let flip = choose_flip(candidate.direction, &constructor);

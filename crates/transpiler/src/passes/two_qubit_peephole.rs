@@ -49,16 +49,43 @@ use thread_local::ThreadLocal;
 
 type MappingIterItem = Option<(TwoQSynthesisResult<f64>, [Qubit; 2])>;
 
-// This is a separate function in case we need to handle any Python synchronization in the future
-// (such as releasing the GIL). For right now this doesn't seem to be necessary, but keeping it
-// separate enables any manipulation of the Py handle in the future.
+/// A python entry-point to the pass function
+///
+/// This function explicitly releases the GIL prior to entering the parallel portion of the pass.
+/// This is necessary because if there are any Python defined and owned objects in the circuit
+/// the pass will need GIL access to interact with that object in parallel.
 #[pyfunction(name = "two_qubit_unitary_peephole_optimize")]
 pub fn py_two_qubit_unitary_peephole_optimize(
+    py: Python,
     dag: &DAGCircuit,
     target: &Target,
     approximation_degree: Option<f64>,
 ) -> PyResult<Option<DAGCircuit>> {
-    two_qubit_unitary_peephole_optimize(dag, target, approximation_degree)
+    let result = py.detach(move || {
+        two_qubit_unitary_peephole_optimize_analysis(dag, target, approximation_degree)
+    })?;
+    let Some(result) = result else {
+        return Ok(None);
+    };
+    two_qubit_unitary_peephole_optimize_apply(dag, result)
+}
+
+/// A non-python entry-point to the pass function.
+///
+/// This function is not safe in the context where Python owned objects are in the circuit.
+/// It will hang/deadlock on the GIL if called in these contexts and should not be used if
+/// there are Python owned objects in the circuit. If you're using this from python you should call
+/// `py_two_qubit_unitary_peephole_optimize` instead.
+pub fn two_qubit_unitary_peephole_optimize(
+    dag: &DAGCircuit,
+    target: &Target,
+    approximation_degree: Option<f64>,
+) -> PyResult<Option<DAGCircuit>> {
+    let result = two_qubit_unitary_peephole_optimize_analysis(dag, target, approximation_degree)?;
+    let Some(result) = result else {
+        return Ok(None);
+    };
+    two_qubit_unitary_peephole_optimize_apply(dag, result)
 }
 
 fn score_sequence(
@@ -79,15 +106,16 @@ fn score_sequence(
     (twoq_gate_count, fidelity, gate_count)
 }
 
-/// This function runs the two qubit unitary peephole optimization pass
-///
-/// It returns None if there is no modifications/optimiations made to the input dag and the pass
-/// function calling this should just return the input dag from the pass.
-pub fn two_qubit_unitary_peephole_optimize(
+struct PeepholeResult {
+    run_mapping: Vec<MappingIterItem>,
+    node_mapping: Vec<usize>,
+}
+
+fn two_qubit_unitary_peephole_optimize_analysis(
     dag: &DAGCircuit,
     target: &Target,
     approximation_degree: Option<f64>,
-) -> PyResult<Option<DAGCircuit>> {
+) -> PyResult<Option<PeepholeResult>> {
     let runs: Vec<Vec<NodeIndex>> = dag.collect_2q_runs().unwrap();
     if runs.is_empty() {
         return Ok(None);
@@ -234,16 +262,29 @@ pub fn two_qubit_unitary_peephole_optimize(
     if !substitution_made.into_inner() {
         return Ok(None);
     }
+    Ok(Some(PeepholeResult {
+        node_mapping: locked_node_mapping.into_inner().unwrap(),
+        run_mapping,
+    }))
+}
+
+/// This function runs the two qubit unitary peephole optimization pass
+///
+/// It returns None if there is no modifications/optimiations made to the input dag and the pass
+/// function calling this should just return the input dag from the pass.
+fn two_qubit_unitary_peephole_optimize_apply(
+    dag: &DAGCircuit,
+    result: PeepholeResult,
+) -> PyResult<Option<DAGCircuit>> {
     // After we've computed all the sequences to execute now serially build up a new dag.
-    let mut processed_runs: Vec<bool> = vec![false; run_mapping.len()];
+    let mut processed_runs: Vec<bool> = vec![false; result.run_mapping.len()];
     let out_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep)?;
     let mut out_dag_builder = out_dag.into_builder();
-    let node_mapping = locked_node_mapping.into_inner().unwrap();
     for node in toposort(dag.dag(), None).unwrap() {
         if !matches!(dag.dag()[node], NodeType::Operation(_)) {
             continue;
         }
-        let run_index = node_mapping[node.index()];
+        let run_index = result.node_mapping[node.index()];
         if run_index != usize::MAX {
             if processed_runs[run_index] {
                 continue;
@@ -260,7 +301,7 @@ pub fn two_qubit_unitary_peephole_optimize(
             // indexing with the vec. This shouldn't be possible to hit the else condition
             // since node mapping will never contain a value for a run_mapping index that
             // is set to None.
-            let Some((result, qargs_virt)) = run_mapping[run_index].as_ref() else {
+            let Some((result, qargs_virt)) = result.run_mapping[run_index].as_ref() else {
                 unreachable!(
                     "node_mapping can't contain a value pointing to an unpoluated run in run_mapping"
                 );
