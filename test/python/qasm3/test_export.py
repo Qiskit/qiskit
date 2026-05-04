@@ -38,7 +38,7 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT
-from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.circuit.library import PauliEvolutionGate, StatePreparation
 from qiskit.qasm3 import (
     Exporter,
     dumps,
@@ -2923,6 +2923,20 @@ class TestQASM3ExporterFailurePaths(QiskitTestCase):
                 disable_constants=True,
                 implicit_defcals=defcals,
             )
+
+    def test_complex_gate_params_raise_error(self):
+        """Complex-valued gate parameters cannot be represented in OpenQASM 3.
+
+        Proves that dumps raises QASM3ExporterError instead of silently emitting
+        invalid QASM like ``state_preparation(0.707, 0.707j) q[0];``.
+        """
+        import numpy as np
+
+        state = np.array([1, 1j]) / np.sqrt(2)
+        qc = QuantumCircuit(1)
+        qc.append(StatePreparation(state), [0])
+        with self.assertRaisesRegex(QASM3ExporterError, "complex-valued gate parameters"):
+            dumps(qc)
 
 
 class TestQASM3ExporterRust(QiskitTestCase):

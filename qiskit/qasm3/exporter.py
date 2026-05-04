@@ -1311,13 +1311,17 @@ class QASM3Builder:
         )
 
     def _build_quantum_call_parameters(self, parameters) -> list[ast.Expression]:
-        parameters = [
-            ast.StringifyAndPray(self._rebind_scoped_parameters(param)) for param in parameters
-        ]
+        rebound = [self._rebind_scoped_parameters(param) for param in parameters]
+        for param in rebound:
+            if isinstance(param, numbers.Complex) and not isinstance(param, numbers.Real):
+                raise QASM3ExporterError(
+                    "complex-valued gate parameters cannot be represented in OpenQASM 3"
+                )
+        wrapped = [ast.StringifyAndPray(param) for param in rebound]
         if not self.disable_constants:
-            for parameter in parameters:
+            for parameter in wrapped:
                 parameter.obj = pi_check(parameter.obj, output="qasm")
-        return parameters
+        return wrapped
 
     def build_defcal_call(self, instruction: CircuitInstruction, defcal: DefcalInstruction):
         """Build a statement associated with a defcal instruction."""
