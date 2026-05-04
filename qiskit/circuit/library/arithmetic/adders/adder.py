@@ -100,6 +100,7 @@ class HalfAdderGate(Gate):
         Args:
             num_state_qubits: The number of qubits in each of the registers.
             name: The name of the circuit.
+            label: An optional label for identifying the instruction.
         """
         if num_state_qubits < 1:
             raise ValueError("Need at least 1 state qubit.")
@@ -155,6 +156,7 @@ class ModularAdderGate(Gate):
         Args:
             num_state_qubits: The number of qubits in each of the registers.
             name: The name of the circuit.
+            label: An optional label for identifying the instruction.
         """
         if num_state_qubits < 1:
             raise ValueError("Need at least 1 state qubit.")
@@ -211,6 +213,7 @@ class FullAdderGate(Gate):
         Args:
             num_state_qubits: The number of qubits in each of the registers.
             name: The name of the circuit.
+            label: An optional label for identifying the instruction.
         """
         if num_state_qubits < 1:
             raise ValueError("Need at least 1 state qubit.")

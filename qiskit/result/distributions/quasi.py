@@ -39,7 +39,7 @@ class QuasiDistribution(dict):
             and the parameter ``ndigits`` can be manipulated with the
             class attribute ``__ndigits__``. The default is ``15``.
 
-        Parameters:
+        Args:
             data (dict): Input quasiprobability data. Where the keys
                 represent a measured classical value and the value is a
                 float for the quasiprobability of that result.
@@ -90,7 +90,7 @@ class QuasiDistribution(dict):
         it to the closest probability distribution as defined by
         the L2-norm.
 
-        Parameters:
+        Args:
             return_distance (bool): Return the L2 distance between distributions.
 
         Returns:
@@ -121,7 +121,7 @@ class QuasiDistribution(dict):
     def binary_probabilities(self, num_bits=None):
         """Build a quasi-probabilities dictionary with binary string keys
 
-        Parameters:
+        Args:
             num_bits (int): number of bits in the binary bitstrings (leading
                 zeros will be padded). If None, a default value will be used.
                 If keys are given as integers or strings with binary or hex prefix,

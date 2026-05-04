@@ -56,7 +56,7 @@ pub(crate) unsafe fn slice_from_ptr<'a, T>(ptr: *const T, len: usize) -> &'a [T]
     unsafe { try_slice_from_ptr(ptr, len) }.expect("caller should ensure a valid pointer")
 }
 
-/// Casts a const pointer to a reference. Panics is the pointer is null or not aligned.
+/// Casts a const pointer to a reference. Panics if the pointer is null or not aligned.
 ///
 /// # Safety
 ///
@@ -68,7 +68,7 @@ pub(crate) unsafe fn const_ptr_as_ref<'a, T>(ptr: *const T) -> &'a T {
     as_ref.unwrap() // we know the pointer is not null, hence we can safely unwrap
 }
 
-/// Casts a mut pointer to a mut reference. Panics is the pointer is null or not aligned.
+/// Casts a mut pointer to a mut reference. Panics if the pointer is null or not aligned.
 ///
 /// # Safety
 ///

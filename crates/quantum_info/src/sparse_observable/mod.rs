@@ -39,9 +39,8 @@ use std::{
 };
 use thiserror::Error;
 
-use qiskit_circuit::{
-    imports::{ImportOnceCell, NUMPY_COPY_ONLY_IF_NEEDED},
-    slice::{PySequenceIndex, SequenceIndex},
+use qiskit_util::py::{
+    ImportOnceCell, PySequenceIndex, SequenceIndex, imports::NUMPY_COPY_ONLY_IF_NEEDED,
 };
 
 static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Pauli");

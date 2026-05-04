@@ -206,7 +206,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         ``coeffs[i]`` is the coefficient of the i-th power of x.
 
         Args:
-            The coefficients of the polynomial.
+            coeffs: The coefficients of the polynomial.
         """
         self._invalidate()
         self._coeffs = coeffs

@@ -21,6 +21,8 @@
 use binrw::Endian;
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexSet;
+use num_bigint::BigUint;
+use num_traits::ToPrimitive;
 use numpy::ToPyArray;
 
 use pyo3::prelude::*;
@@ -31,6 +33,7 @@ use qiskit_circuit::bit::{
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use qiskit_circuit::converters::QuantumCircuitData;
+use qiskit_circuit::duration::Duration;
 use qiskit_circuit::imports;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
@@ -162,10 +165,14 @@ fn pack_condition(
                 serialize_param_register_value(&ParamRegisterValue::Register(reg), qpy_data)?;
             let register_size = bytes.len() as u16;
             let data = formats::ConditionData::Register(bytes);
-            // TODO: this may cause loss of data, but we are constrained by the current qpy format
-            let low_digits = target_value.iter_u64_digits().next().ok_or_else(|| {
-                QpyError::MissingData("Register condition value is missing".to_string())
-            })? as i64;
+            if target_value > BigUint::from(i64::MAX as u64) {
+                return Err(QpyError::InvalidInstruction(format!(
+                    "Register condition value {} exceeds i64::MAX and cannot be serialized in QPY format",
+                    target_value
+                )));
+            }
+            // Handle zero case: iter_u64_digits() returns empty iterator for 0
+            let low_digits = target_value.iter_u64_digits().next().unwrap_or(0) as i64;
             Ok(formats::ConditionPack {
                 register_size,
                 value: low_digits,
@@ -216,6 +223,19 @@ fn pack_instruction_blocks(
         }),
     }
 }
+
+/// extracts instruction blocks from an instruction into a vector of GenericValues
+fn extract_instruction_blocks(
+    inst: &PackedInstruction,
+    qpy_data: &mut QPYWriteData,
+) -> Vec<GenericValue> {
+    inst.blocks_view()
+        .iter()
+        .filter_map(|&block_id| qpy_data.circuit_data.blocks().get(block_id))
+        .map(|block| GenericValue::CircuitData(Box::new(block.clone())))
+        .collect()
+}
+
 /// packs one specific instruction into CircuitInstructionV2Pack, creating a new custom operation if needed
 fn pack_instruction(
     instruction: &PackedInstruction,
@@ -374,6 +394,20 @@ fn pack_pauli_product_rotation(
     })
 }
 
+/// Get Python class names (e.g., "IfElseOp") for a control flow op.
+/// This is for backwards compatibility with old QPY versions, since the
+/// Rust name uses snake_case.
+fn control_flow_class_name(control_flow: &ControlFlow) -> String {
+    String::from(match control_flow {
+        ControlFlow::Box { .. } => "BoxOp",
+        ControlFlow::BreakLoop => "BreakLoopOp",
+        ControlFlow::ContinueLoop => "ContinueLoopOp",
+        ControlFlow::IfElse { .. } => "IfElseOp",
+        ControlFlow::While { .. } => "WhileLoopOp",
+        ControlFlow::ForLoop { .. } => "ForLoopOp",
+        ControlFlow::Switch { .. } => "SwitchCaseOp",
+    })
+}
 fn pack_control_flow_inst(
     control_flow_inst: &ControlFlowInstruction,
     instruction: &PackedInstruction,
@@ -387,16 +421,40 @@ fn pack_control_flow_inst(
             annotations,
         } => {
             packed_annotations = pack_annotations(&annotations, qpy_data)?;
-            let duration_param = match duration {
-                None => GenericValue::Null,
-                Some(box_duration) => match box_duration {
-                    BoxDuration::Duration(duration) => GenericValue::Duration(duration),
-                    BoxDuration::Expr(exp) => GenericValue::Expression(exp),
-                },
-            };
             let mut params = Vec::new();
-            params.push(pack_generic_value(&duration_param, qpy_data)?);
             params.extend(pack_instruction_blocks(instruction, qpy_data)?);
+            match duration {
+                None => {
+                    // we follow the python default
+                    let duration_value_pack = pack_generic_value(&GenericValue::Null, qpy_data)?;
+                    let duration_unit_string = GenericValue::String("dt".to_string());
+                    params.push(duration_value_pack);
+                    params.push(pack_generic_value(&duration_unit_string, qpy_data)?);
+                }
+                Some(box_duration) => match box_duration {
+                    BoxDuration::Duration(duration) => {
+                        let duration_value = match duration {
+                            Duration::dt(v) => GenericValue::Int64(v),
+                            Duration::ps(v)
+                            | Duration::us(v)
+                            | Duration::ns(v)
+                            | Duration::ms(v)
+                            | Duration::s(v) => GenericValue::Float64(v),
+                        };
+                        let duration_unit_string =
+                            GenericValue::String(duration.unit().to_string());
+                        params.push(pack_generic_value(&duration_value.as_le(), qpy_data)?);
+                        params.push(pack_generic_value(&duration_unit_string, qpy_data)?);
+                    }
+                    BoxDuration::Expr(exp) => {
+                        let duration_value_pack =
+                            pack_generic_value(&GenericValue::Expression(exp), qpy_data)?;
+                        let duration_unit_string = GenericValue::String("expr".to_string());
+                        params.push(duration_value_pack);
+                        params.push(pack_generic_value(&duration_unit_string, qpy_data)?);
+                    }
+                },
+            }
             params
         }
         ControlFlow::BreakLoop | ControlFlow::ContinueLoop => Vec::new(),
@@ -424,10 +482,14 @@ fn pack_control_flow_inst(
             pack_instruction_blocks(instruction, qpy_data)?
         }
         ControlFlow::Switch {
-            target,
-            label_spec,
-            cases,
+            target, label_spec, ..
         } => {
+            // we follow the python way of storing switch params
+            // the first param is the target, the next param is the cases specificer
+            // the cases specifier is a list of pairs (tuples)
+            // the second element in each pair is the subcircuit for this case
+            // the first element is the list of the case labels, or a single case label
+            // or the special default case label
             let target_value = match target {
                 SwitchTarget::Bit(clbit) => {
                     GenericValue::Register(ParamRegisterValue::ShareableClbit(clbit))
@@ -437,29 +499,40 @@ fn pack_control_flow_inst(
                     GenericValue::Register(ParamRegisterValue::Register(reg))
                 }
             };
-            let label_spec_value = GenericValue::Tuple(
+            let case_circuits = extract_instruction_blocks(instruction, qpy_data);
+            let cases = GenericValue::Tuple(
                 label_spec
                     .iter()
-                    .map(|label_vec| {
-                        GenericValue::Tuple(
+                    .map(|label_vec| -> Result<GenericValue, QpyError> {
+                        Ok(GenericValue::Tuple(
                             label_vec
                                 .iter()
-                                .map(|label_element| match label_element {
-                                    CaseSpecifier::Default => GenericValue::CaseDefault,
-                                    CaseSpecifier::Uint(val) => GenericValue::BigInt(val.clone()),
+                                .map(|label_element| -> Result<GenericValue, QpyError> {
+                                    match label_element {
+                                        CaseSpecifier::Default => Ok(GenericValue::CaseDefault),
+                                        CaseSpecifier::Uint(val) => Ok(GenericValue::Int64(
+                                            val.to_i64().ok_or_else(|| {
+                                                QpyError::ConversionError(
+                                                    "Case specifier too large".to_string(),
+                                                )
+                                            })?,
+                                        )
+                                        .as_le()),
+                                    }
                                 })
-                                .collect(),
-                        )
+                                .collect::<Result<Vec<GenericValue>, _>>()?,
+                        ))
                     })
-                    .collect::<Vec<_>>(),
+                    .zip(case_circuits)
+                    .map(|(label, circuit)| -> Result<GenericValue, QpyError> {
+                        Ok(GenericValue::Tuple(vec![label?, circuit]))
+                    })
+                    .collect::<Result<Vec<GenericValue>, _>>()?,
             );
-            let cases_value = GenericValue::Int64(cases as i64);
-            let mut params = Vec::new();
-            params.push(pack_generic_value(&target_value, qpy_data)?);
-            params.push(pack_generic_value(&label_spec_value, qpy_data)?);
-            params.push(pack_generic_value(&cases_value, qpy_data)?);
-            params.extend(pack_instruction_blocks(instruction, qpy_data)?);
-            params
+            vec![
+                pack_generic_value(&target_value, qpy_data)?,
+                pack_generic_value(&cases, qpy_data)?,
+            ]
         }
     };
     let annotations_key = if packed_annotations.is_some() {
@@ -474,7 +547,7 @@ fn pack_control_flow_inst(
         extras_key: condition_key | annotations_key,
         num_ctrl_qubits: 0, // standard instructions have no control qubits
         ctrl_state: 0,
-        gate_class_name: control_flow_inst.name().to_string(), // this name is NOT a proper python class name, but we don't instantiate from the python class anymore
+        gate_class_name: control_flow_class_name(&control_flow_inst.control_flow), // need to use the Python class names for backward compatibility
         label: Default::default(),
         condition: packed_condition,
         bit_data: Default::default(),

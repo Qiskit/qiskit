@@ -164,6 +164,7 @@ pub trait Instruction {
             OperationRef::StandardGate(g) => g.matrix(self.params_view()),
             OperationRef::Gate(g) => g.matrix(),
             OperationRef::Unitary(u) => u.matrix(),
+            OperationRef::PauliProductRotation(ppr) => ppr.matrix(),
             _ => None,
         }
     }

@@ -16,8 +16,9 @@ use numpy::IntoPyArray;
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruction};
+use qiskit_quantum_info::unitary_compose;
 
-use crate::{QiskitError, unitary_compose};
+use crate::QiskitError;
 
 // The code is based on top of unitary_compose. For circuits with 13 or more qubits, einsum
 // throws an "index out of bounds" error.
@@ -47,6 +48,7 @@ pub fn sim_unitary_circuit(circuit: &CircuitData) -> Result<Array2<Complex64>, S
     // Product matrix holding the result
     let mut product_mat: Array2<Complex64> =
         Array2::<Complex64>::eye(2_usize.pow(num_qubits as u32)) * global_phase_exp;
+    let mut qubits = Vec::new();
 
     for inst in circuit.data() {
         if !circuit.get_cargs(inst.clbits).is_empty() {
@@ -60,13 +62,14 @@ pub fn sim_unitary_circuit(circuit: &CircuitData) -> Result<Array2<Complex64>, S
             continue;
         }
 
-        let qubits = circuit.get_qargs(inst.qubits);
+        qubits.clear();
+        qubits.extend(circuit.get_qargs(inst.qubits).iter().map(|q| q.index()));
 
         let mat = inst
             .try_matrix()
             .ok_or_else(|| format!("Cannot extract matrix for operation {:?}.", inst.op.name()))?;
 
-        product_mat = unitary_compose::compose(&product_mat.view(), &mat.view(), qubits, false)?;
+        product_mat = unitary_compose::compose(&product_mat.view(), &mat.view(), &qubits, false)?;
     }
 
     Ok(product_mat)
