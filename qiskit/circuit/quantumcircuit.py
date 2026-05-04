@@ -2865,8 +2865,7 @@ class QuantumCircuit:
             were actually added to the circuit.
 
         Raises:
-            CircuitError: if the operation passed cannot be resolved to an
-                :class:`~.circuit.Instruction`.
+            CircuitError: if `instruction` is not an instance of :class:`~.circuit.Instruction` or `.to_instruction` does not return an :class:`~.circuit.Instruction`.
         """
         if isinstance(instruction, CircuitInstruction):
             operation = instruction.operation
