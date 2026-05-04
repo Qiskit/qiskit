@@ -29,6 +29,11 @@ on:
           structures when building Qiskit.
         type: boolean
         default: true
+      mimalloc:
+        description: >
+          Whether to build with mimalloc or not
+        type: boolean
+        default: true
 
 jobs:
   unit-tests:
@@ -61,6 +66,9 @@ jobs:
       - name: Set gate-caching settings for build
         if: ${{ !inputs.qiskit-pycache }}
         run: 'echo "QISKIT_NO_CACHE_GATES=1" >> $GITHUB_ENV'
+      - name: Set mimalloc for build
+        if: ${{ inputs.mimalloc }}
+        run: 'echo "QISKIT_BUILD_WITH_MIMALLOC=1" >> $GITHUB_ENV'
       - name: Install Qiskit from sdist
         if: ${{ inputs.install-from-sdist }}
         run: |
