@@ -10,8 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use indexmap::IndexMap;
 use qiskit_cext_vtable::ExportedFunction;
+use qiskit_util::IndexMap;
 
 pub struct SlotsLists {
     pub slots: IndexMap<String, SlotsList>,

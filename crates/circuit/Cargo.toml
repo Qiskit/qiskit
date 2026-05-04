@@ -53,10 +53,6 @@ features = ["rayon", "approx"]
 workspace = true
 features = ["rayon"]
 
-[dependencies.indexmap]
-workspace = true
-features = ["rayon"]
-
 [dependencies.smallvec]
 workspace = true
 features = ["union", "const_generics"]

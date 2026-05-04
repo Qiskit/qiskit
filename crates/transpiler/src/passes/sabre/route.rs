@@ -22,8 +22,8 @@ use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
 use hashbrown::HashSet;
-use indexmap::IndexMap;
 use ndarray::Array2;
+use qiskit_util::IndexMap;
 use rand::prelude::*;
 use rand::rngs::SysRng;
 use rand_pcg::Pcg64Mcg;
@@ -624,7 +624,7 @@ impl State {
     fn populate_extended_set(&mut self, problem: RoutingProblem) {
         let mut next_visit = self.front_layer.iter_nodes().copied().collect::<Vec<_>>();
         let mut to_visit = Vec::new();
-        let mut decremented: IndexMap<NodeIndex, u32, foldhash::fast::RandomState> =
+        let mut decremented: IndexMap<NodeIndex, u32> =
             IndexMap::with_hasher(foldhash::fast::RandomState::default());
         for layer in self.lookahead_layers.iter_mut() {
             for node in next_visit.drain(..) {

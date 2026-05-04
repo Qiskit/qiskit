@@ -12,27 +12,26 @@
 
 use crate::TranspilerError;
 use crate::passes::schedule_analysis::{NodeDurations, PyNodeDurations, TimeOps};
-use foldhash::fast::RandomState;
 use hashbrown::HashMap;
-use indexmap::IndexMap;
 use pyo3::prelude::*;
 use qiskit_circuit::dag_circuit::{DAGCircuit, Wire};
 use qiskit_circuit::operations::{OperationRef, StandardInstruction};
 use qiskit_circuit::{Clbit, Qubit};
+use qiskit_util::IndexMap;
 use rustworkx_core::petgraph::prelude::NodeIndex;
 
 pub fn run_asap_schedule_analysis<T: TimeOps>(
     dag: &DAGCircuit,
     clbit_write_latency: T,
-    node_durations: &IndexMap<NodeIndex, T, RandomState>,
-) -> PyResult<IndexMap<NodeIndex, T, RandomState>> {
+    node_durations: &IndexMap<NodeIndex, T>,
+) -> PyResult<IndexMap<NodeIndex, T>> {
     if dag.qregs().len() != 1 || !dag.qregs_data().contains_key("q") {
         return Err(TranspilerError::new_err(
             "ASAP schedule runs on physical circuits only",
         ));
     }
 
-    let mut node_start_time: IndexMap<NodeIndex, T, RandomState> = IndexMap::default();
+    let mut node_start_time: IndexMap<NodeIndex, T> = IndexMap::default();
     let mut idle_after: HashMap<Wire, T> = HashMap::new();
 
     let zero = T::zero();
