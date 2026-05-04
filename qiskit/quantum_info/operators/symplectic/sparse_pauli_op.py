@@ -468,8 +468,13 @@ class SparsePauliOp(LinearOp):
         Args:
             atol (float): Optional. Absolute tolerance for checking if
                           coefficients are zero (Default: 1e-8).
-            rtol (float): Optional. relative tolerance for checking if
-                          coefficients are zero (Default: 1e-5).
+            rtol (float): Optional. Accepted for API compatibility but has no
+                          effect on the result. The zero check is performed
+                          with ``numpy.isclose(coeff, 0, atol=atol, rtol=rtol)``,
+                          which reduces to ``|coeff| <= atol`` because the
+                          relative-tolerance term is multiplied by the
+                          (zero) reference value. Use ``atol`` to control
+                          the threshold (Default: 1e-5).
 
         Returns:
             SparsePauliOp: the simplified SparsePauliOp operator.
