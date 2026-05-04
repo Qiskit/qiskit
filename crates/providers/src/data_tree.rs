@@ -823,7 +823,7 @@ mod test {
         let expected_vals = vec![10, 1, 2, 3, 4, 5, 100];
         let expected = expected_paths
             .into_iter()
-            .zip(expected_vals.into_iter())
+            .zip(expected_vals)
             .collect::<Vec<_>>();
         assert_eq!(
             expected,
