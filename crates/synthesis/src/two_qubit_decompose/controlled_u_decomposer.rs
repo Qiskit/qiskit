@@ -15,7 +15,7 @@ use num_complex::Complex64;
 use smallvec::{SmallVec, smallvec};
 use std::f64::consts::FRAC_PI_2;
 
-use nalgebra::{MatrixView2, U2};
+use nalgebra::{Matrix2, MatrixView2, U2};
 use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
 
@@ -31,7 +31,7 @@ use crate::linalg::nalgebra_array_view;
 
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::gate_matrix::{H_GATE, S_GATE, SDG_GATE};
+use qiskit_circuit::gate_matrix::{H_GATE, ONE_QUBIT_IDENTITY, S_GATE, SDG_GATE};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{NoBlocks, Qubit};
@@ -39,6 +39,24 @@ use qiskit_circuit::{NoBlocks, Qubit};
 use super::common::DEFAULT_FIDELITY;
 use super::gate_sequence::{TwoQubitGateSequence, TwoQubitSequenceVec};
 use super::weyl_decomposition::{Specialization, TwoQubitWeylDecomposition};
+
+// ToDo: move to common (also used by basis_decomposer)
+static IMAT: Matrix2<Complex64> = Matrix2::new(
+    ONE_QUBIT_IDENTITY[0][0],
+    ONE_QUBIT_IDENTITY[0][1],
+    ONE_QUBIT_IDENTITY[1][0],
+    ONE_QUBIT_IDENTITY[1][1],
+);
+static HGATE: Matrix2<Complex64> =
+    Matrix2::new(H_GATE[0][0], H_GATE[0][1], H_GATE[1][0], H_GATE[1][1]);
+static SGATE: Matrix2<Complex64> =
+    Matrix2::new(S_GATE[0][0], S_GATE[0][1], S_GATE[1][0], S_GATE[1][1]);
+static SDGGATE: Matrix2<Complex64> = Matrix2::new(
+    SDG_GATE[0][0],
+    SDG_GATE[0][1],
+    SDG_GATE[1][0],
+    SDG_GATE[1][1],
+);
 
 /// invert 1q gate sequence
 fn invert_1q_gate(
@@ -114,14 +132,6 @@ pub struct TwoQubitControlledUDecomposer {
     euler_basis: EulerBasis,
     #[pyo3(get)]
     scale: f64,
-    // u0l: Matrix2<Complex64>,
-    // u0r: Matrix2<Complex64>,
-    // u1l: Matrix2<Complex64>,
-    // u1r: Matrix2<Complex64>,
-    // u2l: Matrix2<Complex64>,
-    // u2r: Matrix2<Complex64>,
-    // u3l: Matrix2<Complex64>,
-    // u3r: Matrix2<Complex64>,
 }
 
 const DEFAULT_ATOL: f64 = 1e-12;
@@ -187,7 +197,10 @@ impl TwoQubitControlledUDecomposer {
     ///      Circuit: Circuit equivalent to an RXXGate.
     ///  Raises:
     ///      QiskitError: If the circuit is not equivalent to an RXXGate.
-    fn to_rxx_gate(&self, angle: f64) -> PyResult<TwoQubitGateSequence> {
+    fn to_rxx_gate(
+        &self,
+        angle: f64,
+    ) -> PyResult<(TwoQubitGateSequence, SmallVec<[Matrix2<Complex64>; 4]>)> {
         // The user-provided RXX equivalent gate may be locally equivalent to the RXX gate
         // but with some scaling in the rotation angle. For example, RXX(angle) has Weyl
         // parameters (angle, 0, 0) for angle in [0, pi/2] but the user provided gate, i.e.
@@ -198,20 +211,30 @@ impl TwoQubitControlledUDecomposer {
         let decomposer_inv =
             TwoQubitWeylDecomposition::new_inner(mat.view(), Some(DEFAULT_FIDELITY), None)?;
 
-        let mut target_1q_basis_list = EulerBasisSet::new();
-        target_1q_basis_list.add_basis(self.euler_basis);
-
         // Express the RXX in terms of the user-provided RXX equivalent gate.
-        let mut gates = Vec::with_capacity(13);
-        let mut global_phase = -decomposer_inv.global_phase;
+        let mut gates = Vec::with_capacity(1);
+        let global_phase = -decomposer_inv.global_phase;
 
-        let decomp_k1r = decomposer_inv.K1r.as_view();
-        let decomp_k2r = decomposer_inv.K2r.as_view();
-        let decomp_k1l = decomposer_inv.K1l.as_view();
-        let decomp_k2l = decomposer_inv.K2l.as_view();
+        let decomp_k1r: Matrix2<Complex64> = decomposer_inv.K1r;
+        let decomp_k2r: Matrix2<Complex64> = decomposer_inv.K2r;
+        let decomp_k1l: Matrix2<Complex64> = decomposer_inv.K1l;
+        let decomp_k2l: Matrix2<Complex64> = decomposer_inv.K2l;
 
-        self.append_1q_sequence(&mut gates, &mut global_phase, decomp_k2r, 0, true);
-        self.append_1q_sequence(&mut gates, &mut global_phase, decomp_k2l, 1, true);
+        // 1-qubit gates before the rxx_op, on qubits 0 and 1 respectively
+        let k2r_inv: Matrix2<Complex64> = decomp_k2r
+            .try_inverse()
+            .expect("matrix k2r is not invertible");
+        let k2l_inv: Matrix2<Complex64> = decomp_k2l
+            .try_inverse()
+            .expect("matrix k2l is not invertible");
+
+        // 1-qubit gates after the rxx_op, on qubits 0 and 1 respectively
+        let k1r_inv: Matrix2<Complex64> = decomp_k1r
+            .try_inverse()
+            .expect("matrix k1r is not invertible");
+        let k1l_inv: Matrix2<Complex64> = decomp_k1l
+            .try_inverse()
+            .expect("matrix k1l is not invertible");
 
         let rxx_op = match &self.rxx_equivalent_gate {
             RXXEquivalent::Standard(gate) => PackedOperation::from_standard_gate(*gate),
@@ -225,13 +248,13 @@ impl TwoQubitControlledUDecomposer {
         };
         gates.push((rxx_op, smallvec![self.scale * angle], smallvec![0, 1]));
 
-        self.append_1q_sequence(&mut gates, &mut global_phase, decomp_k1r, 0, true);
-        self.append_1q_sequence(&mut gates, &mut global_phase, decomp_k1l, 1, true);
-
-        Ok(TwoQubitGateSequence {
-            gates,
-            global_phase,
-        })
+        Ok((
+            TwoQubitGateSequence {
+                gates,
+                global_phase,
+            },
+            smallvec![k2r_inv, k2l_inv, k1r_inv, k1l_inv],
+        ))
     }
 
     /// Appends U_d(a, b, c) to the circuit.
@@ -240,62 +263,84 @@ impl TwoQubitControlledUDecomposer {
         circ: &mut TwoQubitGateSequence,
         target_decomposed: &TwoQubitWeylDecomposition,
         atol: f64,
+        c_mats: SmallVec<[Matrix2<Complex64>; 4]>,
     ) -> PyResult<()> {
-        let circ_a = self.to_rxx_gate(-2.0 * target_decomposed.a)?;
-        circ.gates.extend(circ_a.gates);
-        let mut global_phase = circ_a.global_phase;
-
         let mut target_1q_basis_list = EulerBasisSet::new();
         target_1q_basis_list.add_basis(self.euler_basis);
 
-        let s_decomp = unitary_to_gate_sequence_inner(
-            aview2(&S_GATE),
-            &target_1q_basis_list,
+        // RXX(a)
+        let (circ_a, rxx_mats) = self.to_rxx_gate(-2.0 * target_decomposed.a)?;
+        let mut global_phase = circ_a.global_phase;
+
+        let c2r: Matrix2<Complex64> = c_mats[0]; // before weyl_gate, qubit 0
+        let c2l: Matrix2<Complex64> = c_mats[1]; // before weyl_gate, qubit 1
+        let c1r: Matrix2<Complex64> = c_mats[2]; // after weyl_gate, qubit 0
+        let c1l: Matrix2<Complex64> = c_mats[3]; // after weyl_gate, qubit 1
+
+        let mut rxx_k2r_inv: Matrix2<Complex64> = rxx_mats[0]; // before RXX(a), qubit 0
+        let mut rxx_k2l_inv: Matrix2<Complex64> = rxx_mats[1]; // before RXX(a), qubit 1
+        let rxx_k1r_inv: Matrix2<Complex64> = rxx_mats[2]; // after RXX(a), qubit 0
+        let rxx_k1l_inv: Matrix2<Complex64> = rxx_mats[3]; // after RXX(a), qubit 1
+
+        let mut ryy_k2r_inv: Matrix2<Complex64> = IMAT; // before RXX(b), qubit 0
+        let mut ryy_k2l_inv: Matrix2<Complex64> = IMAT; // before RXX(b), qubit 1
+        let mut ryy_k1r_inv: Matrix2<Complex64> = IMAT; // after RXX(b), qubit 0
+        let mut ryy_k1l_inv: Matrix2<Complex64> = IMAT; // after RXX(b), qubit 1
+
+        let mut rzz_k2r_inv: Matrix2<Complex64> = IMAT; // before RXX(c), qubit 0
+        let mut rzz_k2l_inv: Matrix2<Complex64> = IMAT; // before RXX(c), qubit 1
+        let mut rzz_k1r_inv: Matrix2<Complex64> = IMAT; // after RXX(c), qubit 0
+        let mut rzz_k1l_inv: Matrix2<Complex64> = IMAT; // after RXX(c), qubit 1
+
+        rxx_k2r_inv = c2r * rxx_k2r_inv;
+        rxx_k2l_inv = c2l * rxx_k2l_inv;
+
+        self.append_1q_sequence(
+            &mut circ.gates,
+            &mut global_phase,
+            rxx_k2r_inv.as_view(),
             0,
-            None,
-            true,
-            None,
+            false,
         );
-        let sdg_decomp = unitary_to_gate_sequence_inner(
-            aview2(&SDG_GATE),
-            &target_1q_basis_list,
-            0,
-            None,
-            true,
-            None,
+        self.append_1q_sequence(
+            &mut circ.gates,
+            &mut global_phase,
+            rxx_k2l_inv.as_view(),
+            1,
+            false,
         );
-        let h_decomp = unitary_to_gate_sequence_inner(
-            aview2(&H_GATE),
-            &target_1q_basis_list,
-            0,
-            None,
-            true,
-            None,
-        );
+        circ.gates.extend(circ_a.gates);
 
         // translate RYY(b) into a circuit based on the desired Ctrl-U gate.
         if (target_decomposed.b).abs() > atol {
-            let circ_b = self.to_rxx_gate(-2.0 * target_decomposed.b)?;
+            let (circ_b, ryy_mats) = self.to_rxx_gate(-2.0 * target_decomposed.b)?;
             global_phase += circ_b.global_phase;
-            if let Some(sdg_decomp) = sdg_decomp {
-                global_phase += 2.0 * sdg_decomp.global_phase;
-                for gate in sdg_decomp.gates.into_iter() {
-                    let gate_params = gate.1;
-                    circ.gates
-                        .push((gate.0.into(), gate_params.clone(), smallvec![0]));
-                    circ.gates.push((gate.0.into(), gate_params, smallvec![1]));
-                }
-            }
+
+            ryy_k2r_inv = ryy_mats[0]; // before RXX(b), qubit 0
+            ryy_k2l_inv = ryy_mats[1]; // before RXX(b), qubit 1
+            ryy_k1r_inv = ryy_mats[2]; // after RXX(b), qubit 0
+            ryy_k1l_inv = ryy_mats[3]; // after RXX(b), qubit 1
+
+            ryy_k2r_inv = rxx_k1r_inv * SDGGATE * ryy_k2r_inv; // between RXX(a) and RXX(b), qubit 0
+            ryy_k2l_inv = rxx_k1l_inv * SDGGATE * ryy_k2l_inv; // between RXX(a) and RXX(b), qubit 1
+            ryy_k1r_inv = ryy_k1r_inv * SGATE; // between RXX(b) and RXX(c), qubit 0
+            ryy_k1l_inv = ryy_k1l_inv * SGATE; // between RXX(b) and RXX(c), qubit 1
+
+            self.append_1q_sequence(
+                &mut circ.gates,
+                &mut global_phase,
+                ryy_k2r_inv.as_view(),
+                0,
+                false,
+            );
+            self.append_1q_sequence(
+                &mut circ.gates,
+                &mut global_phase,
+                ryy_k2l_inv.as_view(),
+                1,
+                false,
+            );
             circ.gates.extend(circ_b.gates);
-            if let Some(s_decomp) = s_decomp {
-                global_phase += 2.0 * s_decomp.global_phase;
-                for gate in s_decomp.gates.into_iter() {
-                    let gate_params = gate.1;
-                    circ.gates
-                        .push((gate.0.into(), gate_params.clone(), smallvec![0]));
-                    circ.gates.push((gate.0.into(), gate_params, smallvec![1]));
-                }
-            }
         }
 
         // translate RZZ(c) into a circuit based on the desired Ctrl-U gate.
@@ -307,61 +352,111 @@ impl TwoQubitControlledUDecomposer {
             // circuit if c < 0.
             let mut gamma = -2.0 * target_decomposed.c;
             if gamma <= 0.0 {
-                let circ_c = self.to_rxx_gate(gamma)?;
+                let (circ_c, rzz_mats) = self.to_rxx_gate(gamma)?;
                 global_phase += circ_c.global_phase;
 
-                if let Some(ref h_decomp) = h_decomp {
-                    global_phase += 2.0 * h_decomp.global_phase;
-                    for gate in h_decomp.gates.clone().into_iter() {
-                        let gate_params = gate.1;
-                        circ.gates
-                            .push((gate.0.into(), gate_params.clone(), smallvec![0]));
-                        circ.gates.push((gate.0.into(), gate_params, smallvec![1]));
-                    }
-                }
+                rzz_k2r_inv = rzz_mats[0]; // before RZZ(c), qubit 0
+                rzz_k2l_inv = rzz_mats[1]; // before RZZ(c), qubit 1
+                rzz_k1r_inv = rzz_mats[2]; // after RZZ(c), qubit 0
+                rzz_k1l_inv = rzz_mats[3]; // after RZZ(c), qubit 1
+
+                rzz_k2r_inv = ryy_k1r_inv * HGATE * rzz_k2r_inv; // between RZZ(b) and RZZ(c), qubit 0
+                rzz_k2l_inv = ryy_k1l_inv * HGATE * rzz_k2l_inv; // between RZZ(b) and RZZ(c), qubit 1
+                rzz_k1r_inv = rzz_k1r_inv * HGATE * c1r; // after RZZ(c), qubit 0
+                rzz_k1l_inv = rzz_k1l_inv * HGATE * c1l; // after RZZ(c), qubit 1
+
+                self.append_1q_sequence(
+                    &mut circ.gates,
+                    &mut global_phase,
+                    rzz_k2r_inv.as_view(),
+                    0,
+                    false,
+                );
+                self.append_1q_sequence(
+                    &mut circ.gates,
+                    &mut global_phase,
+                    rzz_k2l_inv.as_view(),
+                    1,
+                    false,
+                );
                 circ.gates.extend(circ_c.gates);
-                if let Some(ref h_decomp) = h_decomp {
-                    global_phase += 2.0 * h_decomp.global_phase;
-                    for gate in h_decomp.gates.clone().into_iter() {
-                        let gate_params = gate.1;
-                        circ.gates
-                            .push((gate.0.into(), gate_params.clone(), smallvec![0]));
-                        circ.gates.push((gate.0.into(), gate_params, smallvec![1]));
-                    }
-                }
+                self.append_1q_sequence(
+                    &mut circ.gates,
+                    &mut global_phase,
+                    rzz_k1r_inv.as_view(),
+                    0,
+                    false,
+                );
+                self.append_1q_sequence(
+                    &mut circ.gates,
+                    &mut global_phase,
+                    rzz_k1l_inv.as_view(),
+                    1,
+                    false,
+                );
             } else {
                 // invert the circuit above
                 gamma *= -1.0;
-                let circ_c = self.to_rxx_gate(gamma)?;
+                let (circ_c, rzz_mats) = self.to_rxx_gate(gamma)?;
                 global_phase -= circ_c.global_phase;
-                if let Some(ref h_decomp) = h_decomp {
-                    global_phase += 2.0 * h_decomp.global_phase;
-                    for gate in h_decomp.gates.clone().into_iter() {
-                        let gate_params = gate.1;
-                        circ.gates
-                            .push((gate.0.into(), gate_params.clone(), smallvec![0]));
-                        circ.gates.push((gate.0.into(), gate_params, smallvec![1]));
-                    }
-                }
+
+                // inverting the 1-qubit matrices
+                rzz_k2r_inv = rzz_mats[2]
+                    .try_inverse()
+                    .expect("matrix k2r is not invertible"); // before RZZ(c), qubit 0
+                rzz_k2l_inv = rzz_mats[3]
+                    .try_inverse()
+                    .expect("matrix k2l is not invertible"); // before RZZ(c), qubit 1
+                rzz_k1r_inv = rzz_mats[0]
+                    .try_inverse()
+                    .expect("matrix k1r is not invertible"); // after RZZ(c), qubit 0
+                rzz_k1l_inv = rzz_mats[1]
+                    .try_inverse()
+                    .expect("matrix k1l is not invertible"); // qfter RZZ(c), qubit 1
+
+                rzz_k2r_inv = ryy_k1r_inv * HGATE * rzz_k2r_inv;
+                rzz_k2l_inv = ryy_k1l_inv * HGATE * rzz_k2l_inv;
+                rzz_k1r_inv = rzz_k1r_inv * HGATE * c1r;
+                rzz_k1l_inv = rzz_k1l_inv * HGATE * c1l;
+
+                self.append_1q_sequence(
+                    &mut circ.gates,
+                    &mut global_phase,
+                    rzz_k2r_inv.as_view(),
+                    0,
+                    false,
+                );
+                self.append_1q_sequence(
+                    &mut circ.gates,
+                    &mut global_phase,
+                    rzz_k2l_inv.as_view(),
+                    0,
+                    false,
+                );
+
                 for gate in circ_c.gates.into_iter().rev() {
                     let (inv_gate_name, inv_gate_params, inv_gate_qubits) =
                         self.invert_2q_gate(gate)?;
                     circ.gates
                         .push((inv_gate_name, inv_gate_params, inv_gate_qubits));
                 }
-                if let Some(ref h_decomp) = h_decomp {
-                    global_phase += 2.0 * h_decomp.global_phase;
-                    for gate in h_decomp.gates.clone().into_iter() {
-                        let gate_params = gate.1;
-                        circ.gates
-                            .push((gate.0.into(), gate_params.clone(), smallvec![0]));
-                        circ.gates.push((gate.0.into(), gate_params, smallvec![1]));
-                    }
-                }
+                self.append_1q_sequence(
+                    &mut circ.gates,
+                    &mut global_phase,
+                    rzz_k1r_inv.as_view(),
+                    0,
+                    false,
+                );
+                self.append_1q_sequence(
+                    &mut circ.gates,
+                    &mut global_phase,
+                    rzz_k1l_inv.as_view(),
+                    0,
+                    false,
+                );
             }
         }
 
-        circ.global_phase = global_phase;
         Ok(())
     }
 
@@ -378,16 +473,17 @@ impl TwoQubitControlledUDecomposer {
         let mut target_1q_basis_list = EulerBasisSet::new();
         target_1q_basis_list.add_basis(self.euler_basis);
 
-        let c1r = target_decomposed.K1r.as_view();
-        let c2r = target_decomposed.K2r.as_view();
-        let c1l = target_decomposed.K1l.as_view();
-        let c2l = target_decomposed.K2l.as_view();
+        let c2r: Matrix2<Complex64> = target_decomposed.K2r; // qubit 0, before weyl_gate
+        let c2l: Matrix2<Complex64> = target_decomposed.K2l; // qubit 1, before weyl_gate
+        let c1r: Matrix2<Complex64> = target_decomposed.K1r; // qubit 0, after weyl_gate
+        let c1l: Matrix2<Complex64> = target_decomposed.K1l; // qubit 1, after weyl_gate
 
-        let mut gates = Vec::with_capacity(59);
+        // Capacity = 5*8 + 3 = 43
+        // 3 2-qubit gates
+        // 8 1-qubit unitaries
+        // max 5 1-qubit gates per 1-qubit unitary
+        let mut gates = Vec::with_capacity(43);
         let mut global_phase = target_decomposed.global_phase;
-
-        self.append_1q_sequence(&mut gates, &mut global_phase, c2r, 0, false);
-        self.append_1q_sequence(&mut gates, &mut global_phase, c2l, 1, false);
 
         let mut gates1 = TwoQubitGateSequence {
             gates,
@@ -397,11 +493,9 @@ impl TwoQubitControlledUDecomposer {
             &mut gates1,
             &target_decomposed,
             atol.unwrap_or(DEFAULT_ATOL),
+            smallvec![c2r, c2l, c1r, c1l],
         )?;
         global_phase += gates1.global_phase;
-
-        self.append_1q_sequence(&mut gates1.gates, &mut global_phase, c1r, 0, false);
-        self.append_1q_sequence(&mut gates1.gates, &mut global_phase, c1l, 1, false);
 
         gates1.global_phase = global_phase;
         Ok(gates1)
@@ -479,6 +573,7 @@ impl TwoQubitControlledUDecomposer {
         })
     }
 
+    // ToDo: move to common (also used by basis_decomposer)
     fn append_1q_sequence(
         &self,
         gates: &mut TwoQubitSequenceVec,
