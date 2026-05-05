@@ -231,7 +231,9 @@ fn two_qubit_unitary_peephole_optimize_analysis(
             }
             // This is done at the end of the map in some attempt to minimize
             // lock contention. If this were serial code it'd make more sense
-            // to do this as part of the iteration building the
+            // to do this as part of the iteration building the 2q unitary that is
+            // already iterating over the nodes. But since that happens at the start
+            // there is a higher chance of contention.
             let mut node_mapping = locked_node_mapping.lock().unwrap();
             for node in node_indices {
                 node_mapping[node.index()] = run_index;
