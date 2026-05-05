@@ -132,69 +132,71 @@ fn two_qubit_unitary_peephole_optimize_analysis(
         ..Default::default()
     };
     let thread_local_states = ThreadLocal::new();
-    let find_best_sequence =
-        |run_index: usize, node_indices: &[NodeIndex]| -> PyResult<MappingIterItem> {
-            let q_virt = node_indices
-                .iter()
-                .find_map(|node_index| {
-                    let inst = dag.dag()[*node_index].unwrap_operation();
-                    let qubits = dag.get_qargs(inst.qubits);
-                    if qubits.len() == 2 {
-                        Some([qubits[0], qubits[1]])
-                    } else {
-                        None
-                    }
-                })
-                .unwrap();
-            let q_phys = q_virt.map(|q| physical_qubits[q.index()]);
-            let matrix = blocks_to_matrix(dag, node_indices, q_virt)?;
-            let synthesis_state: &RefCell<UnitarySynthesisState> = thread_local_states
-                .get_or(|| RefCell::new(UnitarySynthesisState::new(unitary_synthesis_config)));
-
-            let result = synthesize_2q_matrix(
-                nalgebra_array_view::<Complex64, U4, U4>(matrix.as_view()).into(),
-                q_phys,
-                &mut synthesis_state.borrow_mut(),
-                QpuConstraint::Target(target),
-                score_sequence,
-            )?;
-            if result.is_none() {
-                return Ok(None);
-            }
-            let result = result.unwrap();
-            let mut original_fidelity: f64 = 1.;
-            let mut original_2q_count: usize = 0;
-            let original_total_count: usize = node_indices.len();
-            let mut outside_target = false;
-            for node_index in node_indices {
-                let NodeType::Operation(ref inst) = dag.dag()[*node_index] else {
-                    unreachable!("All run nodes will be ops")
-                };
-                let qubits: &[_] = match dag.get_qargs(inst.qubits) {
-                    [q] => &[PhysicalQubit(q.0)],
-                    [q0, q1] => &[PhysicalQubit(q0.0), PhysicalQubit(q1.0)],
-                    _ => panic!("Runs should only contain 1q and 2q gates"),
-                };
+    let find_best_sequence = |run_index: usize,
+                              node_indices: &[NodeIndex]|
+     -> PyResult<MappingIterItem> {
+        let q_virt = node_indices
+            .iter()
+            .find_map(|node_index| {
+                let inst = dag.dag()[*node_index].unwrap_operation();
+                let qubits = dag.get_qargs(inst.qubits);
                 if qubits.len() == 2 {
-                    original_2q_count += 1;
+                    Some([qubits[0], qubits[1]])
+                } else {
+                    None
                 }
-                let name = inst.op.name();
-                let gate_fidelity = match target.get_error(name, qubits) {
-                    Some(err) => 1. - err,
-                    None => {
-                        // If error rate is None this can mean either the gate is not supported
-                        // in the target or the gate is ideal. We need to do a second lookup
-                        // to determine if the gate is supported, and if it isn't we don't need
-                        // to finish scoring because we know we'll use the synthesis output
-                        if !target.instruction_supported(name, qubits, inst.params_view(), true) {
-                            outside_target = true;
-                            break;
-                        }
-                        1.
-                    }
-                };
-                original_fidelity *= gate_fidelity;
+            })
+            .unwrap();
+        let q_phys = q_virt.map(|q| physical_qubits[q.index()]);
+        let matrix = blocks_to_matrix(dag, node_indices, q_virt)?;
+        let synthesis_state: &RefCell<UnitarySynthesisState> = thread_local_states
+            .get_or(|| RefCell::new(UnitarySynthesisState::new(unitary_synthesis_config)));
+
+        let result = synthesize_2q_matrix(
+            nalgebra_array_view::<Complex64, U4, U4>(matrix.as_view()).into(),
+            q_phys,
+            &mut synthesis_state.borrow_mut(),
+            QpuConstraint::Target(target),
+            score_sequence,
+        )?;
+        if result.is_none() {
+            return Ok(None);
+        }
+        let result = result.unwrap();
+        let mut original_fidelity: f64 = 1.;
+        let mut original_2q_count: usize = 0;
+        let original_total_count: usize = node_indices.len();
+        let mut outside_target = false;
+        for node_index in node_indices {
+            let NodeType::Operation(ref inst) = dag.dag()[*node_index] else {
+                unreachable!("All run nodes will be ops")
+            };
+            let qubits: &[_] = match dag.get_qargs(inst.qubits) {
+                [q] => &[PhysicalQubit(q.0)],
+                [q0, q1] => &[PhysicalQubit(q0.0), PhysicalQubit(q1.0)],
+                _ => panic!("Runs should only contain 1q and 2q gates"),
+            };
+            if qubits.len() == 2 {
+                original_2q_count += 1;
             }
+            let name = inst.op.name();
+            let gate_fidelity = match target.get_error(name, qubits) {
+                Some(err) => 1. - err,
+                None => {
+                    // If error rate is None this can mean either the gate is not supported
+                    // in the target or the gate is ideal. We need to do a second lookup
+                    // to determine if the gate is supported, and if it isn't we don't need
+                    // to finish scoring because we know we'll use the synthesis output
+                    if !target.instruction_supported(name, qubits, inst.params_view(), true) {
+                        outside_target = true;
+                        break;
+                    }
+                    1.
+                }
+            };
+            original_fidelity *= gate_fidelity;
+        }
+        let (new_score, original_score) = if !outside_target {
             let original_score = (
                 original_2q_count,
                 1. - original_fidelity,
@@ -224,28 +226,35 @@ fn two_qubit_unitary_peephole_optimize_analysis(
                 }),
                 new_gate_count,
             );
-            // If we are not outside the target and the new score isn't any better just use the
-            // original (this includes a tie).
-            if !outside_target && new_score >= original_score {
-                return Ok(None);
-            }
-            // This is done at the end of the map in some attempt to minimize
-            // lock contention. If this were serial code it'd make more sense
-            // to do this as part of the iteration building the 2q unitary that is
-            // already iterating over the nodes. But since that happens at the start
-            // there is a higher chance of contention.
-            let mut node_mapping = locked_node_mapping.lock().unwrap();
-            for node in node_indices {
-                node_mapping[node.index()] = run_index;
-            }
-            substitution_made.store(true, std::sync::atomic::Ordering::Relaxed);
-            let result = TwoQSynthesisResult {
-                sequence: result.sequence,
-                dir: result.dir,
-                score: result.score.map(|score| score.1),
-            };
-            Ok(Some((result, q_virt)))
+            (new_score, original_score)
+        } else {
+            // If we're outside the target we don't need to score since we're going
+            // to make the substitution to correct the basis gates. So just set to
+            // zeros they won't be read but are needed for the result object.
+            ((0, 0., 0), (0, 0., 0))
         };
+        // If we are not outside the target and the new score isn't any better just use the
+        // original (this includes a tie).
+        if !outside_target && new_score >= original_score {
+            return Ok(None);
+        }
+        // This is done at the end of the map in some attempt to minimize
+        // lock contention. If this were serial code it'd make more sense
+        // to do this as part of the iteration building the 2q unitary that is
+        // already iterating over the nodes. But since that happens at the start
+        // there is a higher chance of contention.
+        let mut node_mapping = locked_node_mapping.lock().unwrap();
+        for node in node_indices {
+            node_mapping[node.index()] = run_index;
+        }
+        substitution_made.store(true, std::sync::atomic::Ordering::Relaxed);
+        let result = TwoQSynthesisResult {
+            sequence: result.sequence,
+            dir: result.dir,
+            score: result.score.map(|score| score.1),
+        };
+        Ok(Some((result, q_virt)))
+    };
 
     let run_mapping: PyResult<Vec<MappingIterItem>> = if getenv_use_multiple_threads() {
         // Build a vec of all the best synthesized two qubit gate sequences from the collected runs.
