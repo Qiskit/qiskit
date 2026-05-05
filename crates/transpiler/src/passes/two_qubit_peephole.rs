@@ -344,13 +344,13 @@ fn two_qubit_unitary_peephole_optimize_apply(
                     ))
                 });
                 out_dag_builder.push_back(PackedInstruction {
-                  op,
-                  qubits,
-                  clbits: Default::default(),
-                  params,
-                  label: None,
-                  #[cfg(feature = "cache_pygates")] // W: code is inactive due to #[cfg] directives: feature …
-                  py_op: OnceLock::new(),
+                    op,
+                    qubits,
+                    clbits: Default::default(),
+                    params,
+                    label: None,
+                    #[cfg(feature = "cache_pygates")]
+                    py_op: OnceLock::new(),
                 })?;
             }
             out_dag_builder.add_global_phase(&Param::Float(result.sequence.global_phase()))?;
