@@ -207,6 +207,19 @@ class TestCircuitToDag(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "does not contain exactly the same"):
             circuit_to_dag(qc, clbit_order=cr[[0, 1, 1]])
 
+    def test_circuit_to_dag_metadata_is_copied(self):
+        """circuit_to_dag should return a DAG with a copy of the metadata, not a reference."""
+        qc = QuantumCircuit(1, metadata={"key": "original"})
+        dag = circuit_to_dag(qc)
+        self.assertIsNot(dag.metadata, qc.metadata)
+        self.assertEqual(dag.metadata, qc.metadata)
+
+    def test_dag_to_circuit_metadata_is_copied(self):
+        """dag_to_circuit should return a circuit with a copy of the metadata, not a reference."""
+        qc = QuantumCircuit(1, metadata={"key": "original"})
+        result = dag_to_circuit(circuit_to_dag(qc))
+        self.assertIsNot(result.metadata, qc.metadata)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
