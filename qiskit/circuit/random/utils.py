@@ -708,8 +708,8 @@ def random_clifford_circuit(num_qubits, num_gates, gates="all", seed=None):
         QuantumCircuit: constructed circuit
     """
 
-    gates_1q = sorted(set(_BASIS_1Q.keys()) - {"v", "w", "id", "iden", "sinv"})
-    gates_2q = sorted(_BASIS_2Q.keys())
+    gates_1q = [gate for gate in _BASIS_1Q if gate not in {"v", "w", "id", "iden", "sinv"}]
+    gates_2q= list(_BASIS_2Q.keys())
 
     if gates == "all":
         if num_qubits == 1:
