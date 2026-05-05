@@ -404,7 +404,7 @@ impl TwoQubitControlledUDecomposer {
                     &mut circ.gates,
                     &mut global_phase,
                     rzz_k2l_inv.as_view(),
-                    0,
+                    1,
                     false,
                 );
 
