@@ -1271,7 +1271,7 @@ impl TextDrawer {
 ///     f : Number to check.
 ///
 /// Returns:
-///     The string representation of output. None if no Pi formatting is found.  
+///     The string representation of output. None if no Pi formatting is found.
 pub fn format_float_pi(f: f64) -> Option<String> {
     const DENOMINATOR: i64 = 16;
     // epsilon value defines the threshold to detect pi.
@@ -1364,6 +1364,9 @@ mod tests {
     };
     use crate::parameter::parameter_expression::ParameterExpression;
     use crate::parameter::symbol_expr::Symbol;
+
+    #[cfg(feature = "cache_pygates")]
+    use std::sync::OnceLock;
 
     fn basic_circuit() -> CircuitData {
         let qreg = QuantumRegister::new_owning("q", 2);
@@ -1471,6 +1474,8 @@ c2_1: ══════════
             clbits: circuit.add_cargs(&[Clbit::new(0)]),
             params: None,
             label: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
         };
         circuit.push(inst).unwrap();
 
@@ -1651,6 +1656,8 @@ q_1: ┤ H ├┤1            ├┤1               ├┤ my_ch ├
             clbits: circuit.cargs_interner().get_default(),
             params: None,
             label: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
         };
         circuit.push(inst).unwrap();
         let inst = PackedInstruction {
@@ -1662,6 +1669,8 @@ q_1: ┤ H ├┤1            ├┤1               ├┤ my_ch ├
             clbits: circuit.cargs_interner().get_default(),
             params: None,
             label: Some(Box::new("my little identity".to_string())),
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
         };
         circuit.push(inst).unwrap();
         let inst = PackedInstruction {
@@ -1673,6 +1682,8 @@ q_1: ┤ H ├┤1            ├┤1               ├┤ my_ch ├
             clbits: circuit.cargs_interner().get_default(),
             params: None,
             label: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
         };
         circuit.push(inst).unwrap();
         let inst = PackedInstruction {
@@ -1684,6 +1695,8 @@ q_1: ┤ H ├┤1            ├┤1               ├┤ my_ch ├
             clbits: circuit.cargs_interner().get_default(),
             params: None,
             label: Some(Box::new("my small identity".to_string())),
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
         };
         circuit.push(inst).unwrap();
         let inst = PackedInstruction {
@@ -1695,6 +1708,8 @@ q_1: ┤ H ├┤1            ├┤1               ├┤ my_ch ├
             clbits: circuit.cargs_interner().get_default(),
             params: None,
             label: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
         };
         circuit.push(inst).unwrap();
         let inst = PackedInstruction {
@@ -1706,6 +1721,8 @@ q_1: ┤ H ├┤1            ├┤1               ├┤ my_ch ├
             clbits: circuit.cargs_interner().get_default(),
             params: None,
             label: Some(Box::new("my medium identity".to_string())),
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
         };
         circuit.push(inst).unwrap();
         let inst = PackedInstruction {
@@ -1717,6 +1734,8 @@ q_1: ┤ H ├┤1            ├┤1               ├┤ my_ch ├
             clbits: circuit.cargs_interner().get_default(),
             params: None,
             label: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
         };
         circuit.push(inst).unwrap();
         let inst = PackedInstruction {
@@ -1728,6 +1747,8 @@ q_1: ┤ H ├┤1            ├┤1               ├┤ my_ch ├
             clbits: circuit.cargs_interner().get_default(),
             params: None,
             label: Some(Box::new("my bigger identity".to_string())),
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
         };
         circuit.push(inst).unwrap();
         let result = draw_circuit(&circuit, false, false, Some(80)).unwrap();
@@ -1975,6 +1996,8 @@ q_1: ┤1         ├┤1            ├┤1         ├
                 clbits: circuit.cargs_interner().get_default(),
                 params: None,
                 label: None,
+                #[cfg(feature = "cache_pygates")]
+                py_op: OnceLock::new(),
             };
             circuit.push(inst).unwrap();
         }
@@ -1993,6 +2016,8 @@ q_1: ┤1         ├┤1            ├┤1         ├
                     clbits: circuit.cargs_interner().get_default(),
                     params: Some(Box::new(Parameters::Params(smallvec![param]))),
                     label: None,
+                    #[cfg(feature = "cache_pygates")]
+                    py_op: OnceLock::new(),
                 };
                 circuit.push(inst).unwrap();
             }
@@ -2005,6 +2030,8 @@ q_1: ┤1         ├┤1            ├┤1         ├
                 clbits: circuit.cargs_interner().get_default(),
                 params: None,
                 label: None,
+                #[cfg(feature = "cache_pygates")]
+                py_op: OnceLock::new(),
             };
             circuit.push(inst).unwrap();
         }
@@ -2015,6 +2042,8 @@ q_1: ┤1         ├┤1            ├┤1         ├
                 clbits: circuit.add_cargs(&[Clbit::new(i)]),
                 params: None,
                 label: None,
+                #[cfg(feature = "cache_pygates")]
+                py_op: OnceLock::new(),
             };
             circuit.push(inst).unwrap();
         }
@@ -2119,7 +2148,7 @@ q_1: ┤1         ├┤1             ├┤1         ├
             Symbol::new("🎩", None, None),
         )));
         circuit
-            .push_standard_gate(StandardGate::RY, &[param.clone()], &[Qubit(1)])
+            .push_standard_gate(StandardGate::RY, std::slice::from_ref(&param), &[Qubit(1)])
             .unwrap();
         circuit
             .push_standard_gate(StandardGate::RXX, &[param], &[Qubit(0), Qubit(1)])
