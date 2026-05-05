@@ -209,8 +209,8 @@ impl From<DAGCircuitInnerError> for PyErr {
             DAGCircuitInnerError::RegistryAbsentObjectQubit(err) => err.into(),
             DAGCircuitInnerError::RegistryAbsentObjectClbit(err) => err.into(),
             DAGCircuitInnerError::Python(err) => err,
-            DAGCircuitInnerError::QubitOutOfRange(_, __)
-            | DAGCircuitInnerError::ClbitOutOfRange(_, __) => {
+            DAGCircuitInnerError::QubitOutOfRange(_idx, _total)
+            | DAGCircuitInnerError::ClbitOutOfRange(_idx, _total) => {
                 PyValueError::new_err(value.to_string())
             }
             DAGCircuitInnerError::NodeNotInGraph(_) => PyIndexError::new_err(value.to_string()),
