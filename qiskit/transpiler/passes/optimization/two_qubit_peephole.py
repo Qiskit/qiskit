@@ -17,6 +17,7 @@ from __future__ import annotations
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.target import Target
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from qiskit.transpiler.passes.utils import control_flow
 from qiskit._accelerate.two_qubit_peephole import two_qubit_unitary_peephole_optimize
 
 
@@ -117,6 +118,7 @@ class TwoQubitPeepholeOptimization(TransformationPass):
         self._target = target
         self._approximation_degree = approximation_degree
 
+    @control_flow.trivial_recurse
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         result = two_qubit_unitary_peephole_optimize(dag, self._target, self._approximation_degree)
         if result is None:
