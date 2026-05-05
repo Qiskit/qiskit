@@ -305,7 +305,7 @@ fn two_qubit_unitary_peephole_optimize_apply(
             // is set to None.
             let Some((result, qargs_virt)) = result.run_mapping[run_index].as_ref() else {
                 unreachable!(
-                    "node_mapping can't contain a value pointing to an unpoluated run in run_mapping"
+                    "node_mapping can't contain a value pointing to an unpopulated run in run_mapping"
                 );
             };
             let order = result.dir.as_indices();
