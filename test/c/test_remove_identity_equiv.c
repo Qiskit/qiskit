@@ -19,7 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 
-int test_remove_identity_equiv_removes_gates(void) {
+static int test_remove_identity_equiv_removes_gates(void) {
     const uint32_t num_qubits = 5;
     QkTarget *target = qk_target_new(num_qubits);
     int result = Ok;

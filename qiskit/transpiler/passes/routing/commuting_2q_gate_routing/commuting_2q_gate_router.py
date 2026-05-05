@@ -279,7 +279,7 @@ class Commuting2qGateRouter(TransformationPass):
 
     @staticmethod
     def _greedy_build_sub_layers(
-        current_layer: dict[tuple[int, int], Gate]
+        current_layer: dict[tuple[int, int], Gate],
     ) -> list[dict[tuple[int, int], Gate]]:
         """The greedy method of building sub-layers of commuting gates."""
         sub_layers = []

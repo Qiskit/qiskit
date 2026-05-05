@@ -18,7 +18,7 @@ jobs:
       RUSTUP_TOOLCHAIN: stable
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         name: Install Python
         with:
@@ -65,7 +65,7 @@ jobs:
           cargo rustc --crate-type cdylib -p qiskit-cext -- -Cinstrument-coverage -Cincremental=false
           mkdir -p dist/c/include/qiskit
           cp target/qiskit.h dist/c/include/.
-          cp crates/cext/include/complex.h dist/c/include/qiskit/.
+          cp -r crates/cext/include/qiskit dist/c/include/
           cmake -S. -Btest/c/build
           cmake --build test/c/build
           ctest -V --test-dir test/c/build
@@ -95,7 +95,7 @@ jobs:
           lcov --add-tracefile python.info --add-tracefile rust.info --output-file coveralls.info
 
       - name: Coveralls
-        uses: coverallsapp/github-action@v2.3.6
+        uses: coverallsapp/github-action@v2.3.7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: coveralls.info

@@ -14,6 +14,8 @@
 # pylint: disable=attribute-defined-outside-init,unsubscriptable-object
 # pylint: disable=unused-wildcard-import,wildcard-import,undefined-variable
 
+from copy import deepcopy
+
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import *
 from qiskit.converters import circuit_to_dag
@@ -96,7 +98,7 @@ class PassBenchmarks:
         self.enlarge_dag = enlarge_pass.run(self.full_ancilla_dag)
         apply_pass = ApplyLayout()
         apply_pass.property_set["layout"] = self.layout
-        self.dag = apply_pass.run(self.enlarge_dag)
+        self.dag = apply_pass.run(deepcopy(self.enlarge_dag))
 
     def time_sabre_swap(self, _, __):
         swap = SabreSwap(self.coupling_map, seed=42)
@@ -222,6 +224,7 @@ class RoutedPassBenchmarks:
         apply_pass = ApplyLayout()
         apply_pass.property_set["layout"] = self.layout
         self.dag = apply_pass.run(self.enlarge_dag)
+        self.routed_dag = SabreSwap(self.coupling_map, seed=42).run(self.dag)
 
     def time_gate_direction(self, _, __):
         GateDirection(self.coupling_map).run(self.routed_dag)

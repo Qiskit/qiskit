@@ -12,39 +12,43 @@
 
 #include "common.h"
 #include <qiskit.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 /**
  * Build the version a string, based on the version numbers.
  */
-char *build_version_string(void) {
-    char suffix[16];
+static char *build_version_string(void) {
+    const size_t suffix_len = 16;
+    char *suffix = calloc(suffix_len, sizeof(char));
     switch (QISKIT_RELEASE_LEVEL) {
     case QISKIT_RELEASE_LEVEL_DEV:
-        sprintf(suffix, "-dev");
+        snprintf(suffix, suffix_len, "-dev");
         break;
     case QISKIT_RELEASE_LEVEL_BETA:
-        sprintf(suffix, "-beta%u", QISKIT_RELEASE_SERIAL);
+        snprintf(suffix, suffix_len, "-beta%u", QISKIT_RELEASE_SERIAL);
         break;
     case QISKIT_RELEASE_LEVEL_RC:
-        sprintf(suffix, "-rc%u", QISKIT_RELEASE_SERIAL);
+        snprintf(suffix, suffix_len, "-rc%u", QISKIT_RELEASE_SERIAL);
         break;
     default:
         // no suffix
         break;
     }
 
-    char *version = calloc(32, sizeof(char));
-    sprintf(version, "%u.%u.%u%s", QISKIT_VERSION_MAJOR, QISKIT_VERSION_MINOR, QISKIT_VERSION_PATCH,
-            suffix);
+    const size_t version_len = 32;
+    char *version = calloc(version_len, sizeof(char));
+    snprintf(version, version_len, "%u.%u.%u%s", QISKIT_VERSION_MAJOR, QISKIT_VERSION_MINOR,
+             QISKIT_VERSION_PATCH, suffix);
+    free(suffix);
     return version;
 }
 
 /**
  * Test the string version.
  */
-int test_version(void) {
+static int test_version(void) {
     char *ref = build_version_string();
     int result;
     if (strcmp(ref, QISKIT_VERSION) == 0)
@@ -61,13 +65,13 @@ int test_version(void) {
 /**
  * Test the version macro and HEX version.
  */
-int test_version_macros(void) {
+static int test_version_macros(void) {
     if (QISKIT_VERSION_MAJOR < 0 || QISKIT_VERSION_MINOR < 0 || QISKIT_VERSION_PATCH < 0) {
         return EqualityError;
     }
     if (QISKIT_GET_VERSION_HEX(QISKIT_VERSION_MAJOR, QISKIT_VERSION_MINOR, QISKIT_VERSION_PATCH,
                                QISKIT_RELEASE_LEVEL, QISKIT_RELEASE_SERIAL) != QISKIT_VERSION_HEX) {
-        fprintf(stderr, "QISKIT_VERSION_NUMERIC does not match QISKIT_VERSION\n");
+        fprintf(stderr, "QISKIT_VERSION_HEX does not match QISKIT_GET_VERSION_HEX\n");
         return EqualityError;
     }
     return Ok;

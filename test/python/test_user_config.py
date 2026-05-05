@@ -157,31 +157,6 @@ class TestUserConfig(QiskitTestCase):
             config.read_config_file()
             self.assertEqual({"num_processes": 31}, config.settings)
 
-    def test_invalid_min_qpy_version(self):
-        test_config = """
-        [default]
-        min_qpy_version = -1
-        """
-        self.addCleanup(os.remove, self.file_path)
-        with open(self.file_path, "w") as file:
-            file.write(test_config)
-            file.flush()
-            config = user_config.UserConfig(self.file_path)
-            self.assertRaises(exceptions.QiskitUserConfigError, config.read_config_file)
-
-    def test_valid_min_qpy_version(self):
-        test_config = """
-        [default]
-        min_qpy_version = 13
-        """
-        self.addCleanup(os.remove, self.file_path)
-        with open(self.file_path, "w") as file:
-            file.write(test_config)
-            file.flush()
-            config = user_config.UserConfig(self.file_path)
-            config.read_config_file()
-            self.assertEqual({"min_qpy_version": 13}, config.settings)
-
     def test_valid_parallel(self):
         test_config = """
         [default]
@@ -240,6 +215,7 @@ class TestUserConfig(QiskitTestCase):
         user_config.set_config("transpile_optimization_level", "3", file_path=self.file_path)
         user_config.set_config("parallel", "false", file_path=self.file_path)
         user_config.set_config("num_processes", "15", file_path=self.file_path)
+        user_config.set_config("min_qpy_version", "10", file_path=self.file_path)
 
         config_settings = None
         with mock.patch.dict(os.environ, {"QISKIT_SETTINGS": self.file_path}, clear=True):
@@ -255,6 +231,7 @@ class TestUserConfig(QiskitTestCase):
                 "transpile_optimization_level": 3,
                 "num_processes": 15,
                 "parallel_enabled": False,
+                "min_qpy_version": 10,
             },
             config_settings,
         )
@@ -283,3 +260,69 @@ class TestUserConfig(QiskitTestCase):
             },
             dict(config.items("default")),
         )
+
+    def test_valid_min_qpy_version(self):
+        """Test parsing a valid integer min_qpy_version."""
+        test_config = """
+        [default]
+        min_qpy_version = 10
+        """
+        self.addCleanup(os.remove, self.file_path)
+        with open(self.file_path, "w") as file:
+            file.write(test_config)
+            file.flush()
+            config = user_config.UserConfig(self.file_path)
+            config.read_config_file()
+        self.assertEqual({"min_qpy_version": 10}, config.settings)
+
+    def test_empty_min_qpy_version(self):
+        """Test that empty min_qpy_version is treated as wrong."""
+        test_config = """
+        [default]
+        min_qpy_version = 
+        """
+        self.addCleanup(os.remove, self.file_path)
+        with open(self.file_path, "w") as file:
+            file.write(test_config)
+            file.flush()
+            config = user_config.UserConfig(self.file_path)
+        self.assertRaises(exceptions.QiskitUserConfigError, config.read_config_file)
+
+    def test_invalid_min_qpy_version_non_integer(self):
+        """Test that non-integer min_qpy_version raises QiskitUserConfigError."""
+        test_config = """
+        [default]
+        min_qpy_version = 2.0
+        """
+        self.addCleanup(os.remove, self.file_path)
+        with open(self.file_path, "w") as file:
+            file.write(test_config)
+            file.flush()
+            config = user_config.UserConfig(self.file_path)
+            self.assertRaises(exceptions.QiskitUserConfigError, config.read_config_file)
+
+    def test_invalid_min_qpy_version_negative(self):
+        """Test that negative min_qpy_version raises QiskitUserConfigError."""
+        test_config = """
+        [default]
+        min_qpy_version = -1
+        """
+        self.addCleanup(os.remove, self.file_path)
+        with open(self.file_path, "w") as file:
+            file.write(test_config)
+            file.flush()
+            config = user_config.UserConfig(self.file_path)
+            self.assertRaises(exceptions.QiskitUserConfigError, config.read_config_file)
+
+    def test_invalid_min_qpy_version_string(self):
+        """Test that non-numeric min_qpy_version raises QiskitUserConfigError."""
+        test_config = """
+        [default]
+        min_qpy_version = abc
+        """
+        self.addCleanup(os.remove, self.file_path)
+        with open(self.file_path, "w") as file:
+            file.write(test_config)
+            file.flush()
+            config = user_config.UserConfig(self.file_path)
+            self.assertRaises(exceptions.QiskitUserConfigError, config.read_config_file)

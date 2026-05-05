@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixed re-use of the same :class:`.ConsolidateBlocks` instance on multiple circuits, including
+    calls to :func:`.transpile` with more than one circuit and no process-based parallelization.  A
+    bug introduced in Qiskit 2.2.2 caused the pass to panic or produce invalid output if the same
+    instance was re-used on differing circuits.
+upgrade:
+  - |
+    :class:`.ConsolidateBlocks` now reads a :class:`.PropertySet` key ``ConsolidateBlocks_qubit_map``
+    on entry.  This key and its value are not public and should not be read or written to by other
+    passes.

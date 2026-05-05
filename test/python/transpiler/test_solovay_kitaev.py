@@ -74,11 +74,16 @@ class TestSolovayKitaev(QiskitTestCase):
     def setUp(self):
         super().setUp()
 
-        self.basic_approx = generate_basic_approximations([HGate(), TGate(), TdgGate()], 3)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            r".* is deprecated as of Qiskit 2\.3\. .* Use the SolovayKitaevDecomposition class",
+        ):
+            self.basic_approx = generate_basic_approximations([HGate(), TGate(), TdgGate()], 3)
         self.default_sk = SolovayKitaev()
 
-    def test_unitary_synthesis(self):
-        """Test the unitary synthesis transpiler pass with Solovay-Kitaev."""
+    @data("default", "sk")
+    def test_unitary_synthesis(self, method):
+        """Test the unitary synthesis transpiler pass with Clifford+T basis set."""
         circuit = QuantumCircuit(2)
         circuit.rx(0.8, 0)
         circuit.cx(0, 1)
@@ -86,7 +91,7 @@ class TestSolovayKitaev(QiskitTestCase):
 
         _1q = Collect1qRuns()
         _cons = ConsolidateBlocks()
-        _synth = UnitarySynthesis(["h", "t", "tdg"], method="sk")
+        _synth = UnitarySynthesis(["h", "t", "tdg"], method=method)
         passes = PassManager([_1q, _cons, _synth])
         compiled = passes.run(circuit)
 
@@ -153,8 +158,17 @@ class TestSolovayKitaev(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.rx(0.8, 0)
 
-        basic_approx = generate_basic_approximations(["h", "t", "s"], 3)
-        sk = SolovayKitaev(3, basic_approx)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            r".* is deprecated as of Qiskit 2\.3\. .* Use the SolovayKitaevDecomposition class",
+        ):
+            basic_approx = generate_basic_approximations(["h", "t", "s"], 3)
+
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            r"basic_approximations in the binary format produced by .* deprecated since Qiskit 2.3 ",
+        ):
+            sk = SolovayKitaev(3, basic_approx)
 
         dag = circuit_to_dag(circuit)
         discretized = dag_to_circuit(sk.run(dag))
@@ -209,9 +223,19 @@ class TestSolovayKitaev(QiskitTestCase):
 
         depth = 4
         basis_gates = ["h", "t", "tdg", "s", "sdg", "z"]
-        gate_approx_library = generate_basic_approximations(basis_gates=basis_gates, depth=depth)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            r".* is deprecated as of Qiskit 2\.3\. .* Use the SolovayKitaevDecomposition class",
+        ):
+            gate_approx_library = generate_basic_approximations(
+                basis_gates=basis_gates, depth=depth
+            )
 
-        skd = SolovayKitaev(recursion_degree=2, basic_approximations=gate_approx_library)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            r"basic_approximations in the binary format produced by .* deprecated since Qiskit 2.3 ",
+        ):
+            skd = SolovayKitaev(recursion_degree=2, basic_approximations=gate_approx_library)
         discretized = skd(circuit)
 
         included_gates = set(discretized.count_ops().keys())
@@ -228,16 +252,24 @@ class TestSolovayKitaev(QiskitTestCase):
             fullpath = os.path.join(tmp_dir, filename)
 
             # dump approximations to file
-            gate_approx_library = generate_basic_approximations(
-                basis_gates=["h", "s", "sdg"], depth=3, filename=fullpath
-            )
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                r".* is deprecated as of Qiskit 2\.3\. .* Use the SolovayKitaevDecomposition class",
+            ):
+                gate_approx_library = generate_basic_approximations(
+                    basis_gates=["h", "s", "sdg"], depth=3, filename=fullpath
+                )
 
             # circuit to decompose and reference decomp
             circuit = QuantumCircuit(1)
             circuit.rx(0.8, 0)
 
             # Run SK pass using gate_approx_library
-            reference = SolovayKitaev(basic_approximations=gate_approx_library)(circuit)
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                r"basic_approximations in the binary format produced by .* deprecated since Qiskit 2.3 ",
+            ):
+                reference = SolovayKitaev(basic_approximations=gate_approx_library)(circuit)
 
             # Run SK pass using stored basis_approximations
             discretized = SolovayKitaev(basic_approximations=fullpath)(circuit)
@@ -276,10 +308,18 @@ class TestSolovayKitaev(QiskitTestCase):
             circuit.rx(0.8, 0)
 
             # Run SK pass using gate_approx_library
-            reference = SolovayKitaev(basic_approximations=approximations)(circuit)
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                r"basic_approximations in the binary format produced by .* deprecated since Qiskit 2.3 ",
+            ):
+                reference = SolovayKitaev(basic_approximations=approximations)(circuit)
 
             # Run SK pass using stored basis_approximations
-            discretized = SolovayKitaev(basic_approximations=fullpath)(circuit)
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                r"basic_approximations in the binary format produced by .* deprecated since Qiskit 2.3 ",
+            ):
+                discretized = SolovayKitaev(basic_approximations=fullpath)(circuit)
 
         # Check that both flows produce the same result
         self.assertEqual(discretized, reference)
@@ -367,7 +407,11 @@ class TestSolovayKitaev(QiskitTestCase):
         Regression test of Qiskit/qiskit-terra#9585.
         """
         basis = ["i", "x", "y", "z", "h", "t", "tdg", "s", "sdg", "sx", "sxdg"]
-        approx = generate_basic_approximations(basis, depth=2)
+        with self.assertWarnsRegex(
+            DeprecationWarning,
+            r".* is deprecated as of Qiskit 2\.3\. .* Use the SolovayKitaevDecomposition class",
+        ):
+            approx = generate_basic_approximations(basis, depth=2)
 
         # This mainly checks that there are no errors in the generation (like
         # in computing the inverse as described in #9585), so a simple check is enough.

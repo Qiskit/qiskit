@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import math
-from typing import Optional, Union
+from typing import Optional
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
@@ -70,7 +70,7 @@ class RYGate(Gate):
         #    └──────────┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.RY._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.RY._get_definition(self.params), legacy_qubits=True
         )
 
     def control(
@@ -80,25 +80,34 @@ class RYGate(Gate):
         ctrl_state: str | int | None = None,
         annotated: bool | None = None,
     ):
-        """Return a (multi-)controlled-RY gate.
+        """Return a controlled version of the RY gate.
+
+        For a single control qubit, the controlled gate is implemented as :class:`.CRYGate`,
+        regardless of the value of ``annotated``.
+
+        For more than one control qubit, the controlled gate is implemented
+        either as :class:`.ControlledGate` when ``annotated`` is ``False``, or
+        as :class:`.AnnotatedOperation` when ``annotated`` is ``True``.
+        When ``annotated`` is ``None``, it is interpreted as ``True`` when the gate has free
+        parameters (in which case the gate cannot be synthesized at the construction time),
+        and as ``False`` otherwise.
 
         Args:
-            num_ctrl_qubits: number of control qubits.
-            label: An optional label for the gate [Default: ``None``]
-            ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate. If ``None``, this is set to ``True`` if
-                the gate contains free parameters and more than one control qubit, in which
-                case it cannot yet be synthesized. Otherwise it is set to ``False``.
+            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
+            annotated: Indicates whether the controlled gate should be implemented as a controlled gate
+                or as an annotated operation.
 
         Returns:
-            ControlledGate: controlled version of this gate.
+            A controlled version of this gate.
         """
         # deliberately capture annotated in [None, False] here
-        if not annotated and num_ctrl_qubits == 1:
-            gate = CRYGate(self.params[0], label=label, ctrl_state=ctrl_state)
-            gate.base_gate.label = self.label
+        if num_ctrl_qubits == 1:
+            gate = CRYGate(
+                self.params[0], label=label, ctrl_state=ctrl_state, _base_label=self.label
+            )
         else:
             gate = super().control(
                 num_ctrl_qubits=num_ctrl_qubits,
@@ -206,8 +215,8 @@ class CRYGate(ControlledGate):
     def __init__(
         self,
         theta: ParameterValueType,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
         *,
         _base_label=None,
     ):
@@ -233,7 +242,7 @@ class CRYGate(ControlledGate):
         #      └─────────┘└───┘└──────────┘└───┘
 
         self.definition = QuantumCircuit._from_circuit_data(
-            StandardGate.CRY._get_definition(self.params), legacy_qubits=True, name=self.name
+            StandardGate.CRY._get_definition(self.params), legacy_qubits=True
         )
 
     def inverse(self, annotated: bool = False):

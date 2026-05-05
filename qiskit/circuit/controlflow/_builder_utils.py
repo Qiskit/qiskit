@@ -91,7 +91,7 @@ def node_resources(node: expr.Expr) -> LegacyResources:
 
 
 def condition_resources(
-    condition: tuple[ClassicalRegister, int] | tuple[Clbit, int] | expr.Expr
+    condition: tuple[ClassicalRegister, int] | tuple[Clbit, int] | expr.Expr,
 ) -> LegacyResources:
     """Get the legacy classical resources (:class:`.Clbit` and :class:`.ClassicalRegister`)
     referenced by a legacy condition or an :class:`~.expr.Expr`."""
@@ -154,7 +154,7 @@ def unify_circuit_resources(circuits: Iterable[QuantumCircuit]) -> Iterable[Quan
 
 
 def _unify_circuit_resources_rebuild(  # pylint: disable=invalid-name  # (it's too long?!)
-    circuits: Tuple[QuantumCircuit, ...]
+    circuits: Tuple[QuantumCircuit, ...],
 ) -> Tuple[QuantumCircuit, QuantumCircuit]:
     """
     Ensure that all the given circuits have all the same qubits and clbits, and that they

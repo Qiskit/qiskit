@@ -15,17 +15,17 @@
 
 use hashbrown::HashMap;
 use num_complex::{Complex64, ComplexFloat};
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 use std::cmp::Ordering;
 use std::f64::consts::PI;
 use std::str::FromStr;
 
+use pyo3::IntoPyObjectExt;
+use pyo3::Python;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString};
 use pyo3::wrap_pyfunction;
-use pyo3::IntoPyObjectExt;
-use pyo3::Python;
 
 use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
@@ -36,7 +36,7 @@ use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
 use qiskit_circuit::util::c64;
-use qiskit_circuit::{impl_intopyobject_for_copy_pyclass, Qubit};
+use qiskit_circuit::{Qubit, impl_intopyobject_for_copy_pyclass};
 
 pub const ANGLE_ZERO_EPSILON: f64 = 1e-12;
 
@@ -605,7 +605,7 @@ pub static EULER_BASIS_NAMES: [EulerBasis; EULER_BASIS_SIZE] = [
 ];
 
 /// A structure containing a set of supported `EulerBasis` for running 1q synthesis
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct EulerBasisSet {
     basis: [bool; EULER_BASIS_SIZE],
     initialized: bool,
@@ -618,6 +618,24 @@ impl EulerBasisSet {
             basis: [false; EULER_BASIS_SIZE],
             initialized: false,
         }
+    }
+
+    /// Get the set of supported bases given a function that marks whether each basis gate (by name)
+    /// is supported.
+    ///
+    /// The `is_supported` function may be called more than once for the same gate name.
+    pub fn from_support(mut is_supported: impl FnMut(&str) -> bool) -> Self {
+        let mut out = Self {
+            basis: EULER_BASES.map(|basis| basis.iter().all(|gate| is_supported(gate))),
+            initialized: true,
+        };
+        if out.basis_supported(EulerBasis::U321) && out.basis_supported(EulerBasis::U3) {
+            out.remove(EulerBasis::U3);
+        }
+        if out.basis_supported(EulerBasis::ZSXX) && out.basis_supported(EulerBasis::ZSX) {
+            out.remove(EulerBasis::ZSX);
+        }
+        out
     }
 
     /// Return true if this has been initialized any basis is supported
@@ -939,7 +957,7 @@ fn params_zyz_inner(mat: ArrayView2<Complex64>) -> [f64; 4] {
     [theta, phi, lam, phase]
 }
 
-fn params_zxz_inner(mat: ArrayView2<Complex64>) -> [f64; 4] {
+pub fn params_zxz_inner(mat: ArrayView2<Complex64>) -> [f64; 4] {
     let [theta, phi, lam, phase] = params_zyz_inner(mat);
     [theta, phi + PI / 2., lam - PI / 2., phase]
 }

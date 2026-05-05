@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING
 from qiskit.circuit import ClassicalRegister, Clbit  # pylint: disable=cyclic-import
 from qiskit.circuit.classical import expr
 from qiskit.circuit.exceptions import CircuitError
+from qiskit._accelerate.circuit import ControlFlowType
 from ._builder_utils import validate_condition, condition_resources
 from .control_flow import ControlFlowOp
 
@@ -33,6 +34,8 @@ class WhileLoopOp(ControlFlowOp):
     The classical bits used in ``condition`` must be a subset of those attached
     to ``body``.
     """
+
+    _control_flow_type = ControlFlowType.WhileLoop
 
     def __init__(
         self,

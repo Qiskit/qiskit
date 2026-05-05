@@ -22,7 +22,7 @@
 /**
  * Test inverse cancellation.
  */
-int test_inverse_cancellation_removes_gates(void) {
+static int test_inverse_cancellation_removes_gates(void) {
     int result = Ok;
 
     QkCircuit *qc = qk_circuit_new(2, 2);

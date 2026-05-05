@@ -18,7 +18,7 @@
 #include <stdio.h>
 #include <string.h>
 
-int test_split_2q_unitaries_no_unitaries(void) {
+static int test_split_2q_unitaries_no_unitaries(void) {
     QkCircuit *qc = qk_circuit_new(5, 0);
     for (uint32_t i = 0; i < qk_circuit_num_qubits(qc) - 1; i++) {
         uint32_t qargs[2] = {i, i + 1};
@@ -56,7 +56,7 @@ cleanup:
     return result;
 }
 
-int test_split_2q_unitaries_x_y_unitary(void) {
+static int test_split_2q_unitaries_x_y_unitary(void) {
     QkCircuit *qc = qk_circuit_new(2, 0);
     QkComplex64 c0 = {0., 0.};
     QkComplex64 neg_im = {0., -1.};
@@ -113,7 +113,7 @@ cleanup:
     return result;
 }
 
-int test_split_2q_unitaries_swap_x_y_unitary(void) {
+static int test_split_2q_unitaries_swap_x_y_unitary(void) {
     QkCircuit *qc = qk_circuit_new(2, 0);
     QkComplex64 c0 = {0., 0.};
     QkComplex64 neg_im = {0., -1.};

@@ -15,7 +15,6 @@ import os
 import subprocess
 import sys
 import tempfile
-import time
 from unittest import mock
 
 from qiskit.utils import local_hardware_info, should_run_in_parallel, parallel_map
@@ -25,7 +24,6 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 def _parfunc(x):
     """Function for testing parallel_map"""
-    time.sleep(1)
     return x
 
 

@@ -11,9 +11,9 @@
 # that they have been altered from the originals.
 
 """
-=======================================================================================================
-Solovay-Kitaev Synthesis Plugin (in :mod:`qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis`)
-=======================================================================================================
+===============================
+Solovay-Kitaev Synthesis Plugin
+===============================
 
 .. autosummary::
    :toctree: ../stubs/
@@ -107,28 +107,47 @@ class SolovayKitaev(TransformationPass):
                └───┘└───┘└───┘
             Error: 2.828408279166474
 
-        For individual basis gate sets, the ``generate_basic_approximations`` function can be used:
+        Individual basis gate sets can be specified in the initializer.
 
         .. plot::
            :include-source:
            :nofigs:
 
-            from qiskit.synthesis import generate_basic_approximations
             from qiskit.transpiler.passes import SolovayKitaev
 
             basis = ["s", "sdg", "t", "tdg", "z", "h"]
-            approx = generate_basic_approximations(basis, depth=3)
 
-            skd = SolovayKitaev(recursion_degree=2, basic_approximations=approx)
+            skd = SolovayKitaev(recursion_degree=2, basis_gates=basis)
+
+        To generate and store basic approximations in between different instances, the
+        :class:`.SolovayKitaevDecomposition` and its
+        :meth:`~.SolovayKitaevDecomposition.save_basic_approximations` method can be used.
+
+        .. code-block:: python
+
+            from qiskit.transpiler.passes import SolovayKitaev
+            from qiskit.synthesis import SolovayKitaevDecomposition
+
+            # generate basic approximations
+            basis = ["s", "sdg", "t", "tdg", "z", "h"]
+            decomp = SolovayKitaevDecomposition(basis_gates=basis, depth=5)
+
+            # store them in a local file
+            fname = "sk_approx.bin"
+            decomp.save_basic_approximations(fname)
+
+            # load them for running Solovay-Kitaev
+            skd = SolovayKitaev(recursion_degree=2, basic_approximations=fname)
+
 
     References:
 
-        [1]: Kitaev, A Yu (1997). Quantum computations: algorithms and error correction.
-             Russian Mathematical Surveys. 52 (6): 1191–1249.
-             `Online <https://iopscience.iop.org/article/10.1070/RM1997v052n06ABEH002155>`_.
+    [1] Kitaev, A Yu (1997). Quantum computations: algorithms and error correction.
+    Russian Mathematical Surveys. 52 (6): 1191–1249.
+    `Online <https://iopscience.iop.org/article/10.1070/RM1997v052n06ABEH002155>`_.
 
-        [2]: Dawson, Christopher M.; Nielsen, Michael A. (2005) The Solovay-Kitaev Algorithm.
-             `arXiv:quant-ph/0505030 <https://arxiv.org/abs/quant-ph/0505030>`_.
+    [2] Dawson, Christopher M.; Nielsen, Michael A. (2005) The Solovay-Kitaev Algorithm.
+    `arXiv:quant-ph/0505030 <https://arxiv.org/abs/quant-ph/0505030>`_.
 
     """
 

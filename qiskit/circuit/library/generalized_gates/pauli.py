@@ -13,6 +13,10 @@
 """
 Simulator command to perform multiple pauli gates in a single pass
 """
+
+from __future__ import annotations
+
+import typing
 from qiskit.circuit.quantumcircuitdata import CircuitInstruction
 from qiskit.circuit.library.standard_gates.x import XGate
 from qiskit.circuit.library.standard_gates.y import YGate
@@ -20,6 +24,9 @@ from qiskit.circuit.library.standard_gates.z import ZGate
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.exceptions import CircuitError
+
+if typing.TYPE_CHECKING:
+    from qiskit.quantum_info import SparseObservable  # pylint: disable=cyclic-import
 
 
 class PauliGate(Gate):
@@ -82,3 +89,9 @@ class PauliGate(Gate):
             raise CircuitError(
                 f"Parameter {parameter} should be a string of 'I', 'X', 'Y', 'Z' characters"
             )
+
+    def _extract_sparse_observable(self) -> SparseObservable:
+        from qiskit.quantum_info import SparseObservable  # pylint: disable=cyclic-import
+
+        # The label was already validated, so we know it only contains IXYZ chars.
+        return SparseObservable(self.params[0])

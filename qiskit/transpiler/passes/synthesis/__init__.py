@@ -17,5 +17,6 @@ from .plugin import high_level_synthesis_plugin_names, unitary_synthesis_plugin_
 from .linear_functions_synthesis import LinearFunctionsToPermutations
 from .high_level_synthesis import HighLevelSynthesis, HLSConfig
 from .solovay_kitaev_synthesis import SolovayKitaev, SolovayKitaevSynthesis
+from .ross_selinger_plugin import RossSelingerSynthesis
 from .clifford_unitary_synth_plugin import CliffordUnitarySynthesis
 from .aqc_plugin import AQCSynthesisPlugin

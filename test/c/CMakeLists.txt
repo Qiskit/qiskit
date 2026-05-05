@@ -3,12 +3,11 @@
 # https://cmake.org/cmake/help/book/mastering-cmake/chapter/Testing%20With%20CMake%20and%20CTest.html
 cmake_minimum_required (VERSION 3.27)
 
-# On GCC and Clang compilers, we fail upon any warnings and CI requires no warnings for these 
-# compilers. 
-# MSVC is not included since compiler warnings differ signficantly. Using the MSVC options /W2 /WX 
-# get close to the below, but might not include additional checks that we require in CI 
-# (and /W3 /WX includes some we do not require). 
-if (NOT MSVC) 
+# Convert warnings into errors. Note that MSVC and GCC/clang do not match here, and CI will
+# require all to pass without errors.
+if (MSVC) 
+    add_compile_options(/W3 /WX)
+else ()
     add_compile_options(-Wall -Wextra -Werror -Wshadow)
 endif ()
 

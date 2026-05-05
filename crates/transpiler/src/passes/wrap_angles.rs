@@ -16,9 +16,9 @@ use rustworkx_core::petgraph::prelude::*;
 
 use crate::angle_bound_registry::{PyWrapAngleRegistry, WrapAngleRegistry};
 use crate::target::Target;
+use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{Operation, Param};
-use qiskit_circuit::PhysicalQubit;
 
 #[pyfunction]
 #[pyo3(name = "wrap_angles")]
@@ -69,7 +69,7 @@ pub fn run_wrap_angles(
             let new_dag =
                 bounds_registry.substitute_angle_bounds(inst.op.name(), &params, &qargs)?;
             if let Some(new_dag) = new_dag {
-                dag.substitute_node_with_dag(node, &new_dag, None, None, None)?;
+                dag.substitute_node_with_dag(node, &new_dag, None, None, None, None)?;
             }
         }
     }

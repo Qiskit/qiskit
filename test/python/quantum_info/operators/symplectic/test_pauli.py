@@ -36,9 +36,25 @@ from qiskit.circuit.library import (
     SdgGate,
     SGate,
     SwapGate,
+    iSwapGate,
     XGate,
     YGate,
     ZGate,
+    SXGate,
+    SXdgGate,
+    RXGate,
+    RYGate,
+    RZGate,
+    CPhaseGate,
+    CRXGate,
+    CRYGate,
+    CRZGate,
+    RXXGate,
+    RYYGate,
+    RZZGate,
+    RZXGate,
+    XXMinusYYGate,
+    XXPlusYYGate,
 )
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.compiler.transpiler import transpile
@@ -392,7 +408,22 @@ class TestPauli(QiskitTestCase):
 
     @data(
         *it.product(
-            (IGate(), XGate(), YGate(), ZGate(), HGate(), SGate(), SdgGate()),
+            (
+                IGate(),
+                XGate(),
+                YGate(),
+                ZGate(),
+                HGate(),
+                SGate(),
+                SdgGate(),
+                SXGate(),
+                SXdgGate(),
+                RXGate(theta=np.pi / 2),
+                RYGate(theta=np.pi / 2),
+                RZGate(phi=np.pi / 2),
+                RZGate(phi=17 * np.pi / 2),
+                RXGate(theta=-5 * np.pi / 2),
+            ),
             pauli_group_labels(1, False),
         )
     )
@@ -412,7 +443,27 @@ class TestPauli(QiskitTestCase):
 
     @data(
         *it.product(
-            (CXGate(), CYGate(), CZGate(), SwapGate(), ECRGate()), pauli_group_labels(2, False)
+            (
+                CXGate(),
+                CYGate(),
+                CZGate(),
+                SwapGate(),
+                iSwapGate(),
+                ECRGate(),
+                CPhaseGate(theta=np.pi),
+                CRXGate(theta=np.pi),
+                CRYGate(theta=np.pi),
+                CRZGate(theta=np.pi),
+                RXXGate(theta=np.pi / 2),
+                RYYGate(theta=np.pi / 2),
+                RZZGate(theta=np.pi / 2),
+                RZXGate(theta=np.pi / 2),
+                XXMinusYYGate(theta=np.pi),
+                XXPlusYYGate(theta=-np.pi),
+                RZZGate(theta=7 * np.pi / 2),
+                RXXGate(theta=-15 * np.pi / 2),
+            ),
+            pauli_group_labels(2, False),
         )
     )
     @unpack

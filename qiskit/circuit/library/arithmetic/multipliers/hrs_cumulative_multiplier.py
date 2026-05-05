@@ -132,7 +132,7 @@ class HRSCumulativeMultiplier(Multiplier):
             else:
                 num_adder_qubits = num_state_qubits - excess_qubits + 1
                 adder_for_current_step = CDKMRippleCarryAdder(num_adder_qubits, kind="fixed")
-            controlled_adder = adder_for_current_step.to_gate().control(1)
+            controlled_adder = adder_for_current_step.to_gate().control(1, annotated=False)
             qr_list = (
                 [qr_a[i]]
                 + qr_b[:num_adder_qubits]

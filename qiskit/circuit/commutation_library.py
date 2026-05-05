@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Provides a commutation checker that caches the determined commutation results during this session """
+"""Provides a commutation checker that caches the determined commutation results during this session"""
 
 from qiskit.circuit import CommutationChecker
 

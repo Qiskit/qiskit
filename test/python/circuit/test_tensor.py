@@ -240,7 +240,7 @@ class TestCircuitCompose(QiskitTestCase):
             larger = QuantumCircuit(4)
             larger.h(range(3))
             larger.append(sub.to_instruction(), [3, 2, 1])
-            larger.append(sub.control(), [0, 1, 2, 3])
+            larger.append(sub.control(annotated=False), [0, 1, 2, 3])
 
             circuit = larger.tensor(larger)
             operator = Operator(larger).tensor(Operator(larger))

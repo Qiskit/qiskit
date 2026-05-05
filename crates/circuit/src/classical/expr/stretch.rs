@@ -15,7 +15,7 @@ use crate::classical::types::Type;
 use crate::imports::UUID;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyTuple};
-use pyo3::{intern, IntoPyObjectExt};
+use pyo3::{IntoPyObjectExt, intern};
 use uuid::Uuid;
 
 /// A stretch variable.
@@ -35,8 +35,10 @@ impl<'py> IntoPyObject<'py> for Stretch {
     }
 }
 
-impl<'py> FromPyObject<'py> for Stretch {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for Stretch {
+    type Error = <PyStretch as FromPyObject<'a, 'py>>::Error;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let PyStretch(s) = ob.extract()?;
         Ok(s)
     }

@@ -102,8 +102,13 @@ where
 
 impl<B, R> BitLocator<B, R>
 where
-    B: Debug + Clone + Hash + Eq + for<'py> IntoPyObject<'py> + for<'py> FromPyObject<'py>,
-    R: Register + Debug + Clone + for<'py> IntoPyObject<'py> + for<'py> FromPyObject<'py>,
+    B: Debug
+        + Clone
+        + Hash
+        + Eq
+        + for<'py> IntoPyObject<'py>
+        + for<'a, 'py> FromPyObject<'a, 'py, Error: Into<PyErr>>,
+    R: Register + Debug + Clone + for<'py> IntoPyObject<'py> + for<'a, 'py> FromPyObject<'a, 'py>,
 {
     /// Get or create the cached Python dictionary that represents this.
     pub fn cached(&self, py: Python) -> &Py<PyDict> {
@@ -121,7 +126,10 @@ where
     pub fn from_py_dict(dict: &Bound<PyDict>) -> PyResult<Self> {
         let mut locator = Self::new();
         for (key, value) in dict {
-            locator.insert(key.extract()?, value.extract()?);
+            locator.insert(
+                key.extract().map_err(Into::<PyErr>::into)?,
+                value.extract()?,
+            );
         }
         Ok(locator)
     }

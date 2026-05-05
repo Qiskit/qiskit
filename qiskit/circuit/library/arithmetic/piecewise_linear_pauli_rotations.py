@@ -277,7 +277,10 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
                         offset=self.mapped_offsets[i],
                         basis=self.basis,
                     )
-                circuit.append(lin_r.to_gate().control(), qr_compare[:] + qr_state[:] + qr_target)
+                circuit.append(
+                    lin_r.to_gate().control(annotated=False),
+                    qr_compare[:] + qr_state[:] + qr_target,
+                )
 
                 # uncompute comparator
                 circuit.append(comp.to_gate(), qr[:] + qr_helper[: comp.num_ancillas])
@@ -336,7 +339,7 @@ class PiecewiseLinearPauliRotationsGate(Gate):
         super().__init__("PwLinPauliRot", num_state_qubits + 1 + num_compare_bits, [], label=label)
 
     def _define(self):
-        circuit = QuantumCircuit(self.num_qubits, name=self.name)
+        circuit = QuantumCircuit(self.num_qubits)
 
         if len(self.breakpoints) == 1:
             qr_state = circuit.qubits[: self.num_qubits - 1]
@@ -386,7 +389,9 @@ class PiecewiseLinearPauliRotationsGate(Gate):
                     offset=mapped_offsets[i],
                     basis=self.basis,
                 )
-                circuit.append(lin_r.control(), qr_compare[:] + qr_state[:] + qr_target)
+                circuit.append(
+                    lin_r.control(annotated=False), qr_compare[:] + qr_state[:] + qr_target
+                )
 
                 # uncompute comparator (which is its self-inverse)
                 circuit.append(comp, qr[:])

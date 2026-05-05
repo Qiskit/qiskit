@@ -17,8 +17,8 @@ use num_bigint::BigUint;
 use num_complex::Complex64;
 use numpy::IntoPyArray;
 use numpy::{PyReadonlyArray1, PyReadonlyArray2, PyReadonlyArray3};
-use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
+use pyo3::prelude::*;
 use qiskit_circuit::getenv_use_multiple_threads;
 use rayon::prelude::*;
 

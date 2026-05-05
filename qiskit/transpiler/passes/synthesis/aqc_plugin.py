@@ -10,9 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-==============================================================================
-AQC Synthesis Plugin (in :mod:`qiskit.transpiler.passes.synthesis.aqc_plugin`)
-==============================================================================
+====================
+AQC Synthesis Plugin
+====================
 
 .. autosummary::
    :toctree: ../stubs/

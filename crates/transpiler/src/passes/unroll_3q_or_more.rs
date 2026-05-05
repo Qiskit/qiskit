@@ -14,8 +14,8 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
-use crate::target::Target;
 use crate::QiskitError;
+use crate::target::Target;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::Operation;
 use thiserror::Error;
@@ -48,7 +48,7 @@ pub fn run_unroll_3q_or_more(
         .op_nodes(false)
         .filter_map(
             |(idx, inst)| -> Option<Result<(NodeIndex, DAGCircuit), Unroll3qError>> {
-                if inst.op.num_qubits() < 3 || inst.op.control_flow() {
+                if inst.op.num_qubits() < 3 || inst.op.try_control_flow().is_some() {
                     return None;
                 }
                 if let Some(target) = target {
@@ -56,10 +56,10 @@ pub fn run_unroll_3q_or_more(
                         return None;
                     }
                 }
-                let definition = match inst.op.definition(inst.params_view()) {
+                let definition = match inst.try_definition() {
                     Some(def) => def,
                     None => {
-                        return Some(Err(Unroll3qError::NoDefinition(inst.op.name().to_string())))
+                        return Some(Err(Unroll3qError::NoDefinition(inst.op.name().to_string())));
                     }
                 };
                 let mut decomp_dag =
@@ -76,7 +76,7 @@ pub fn run_unroll_3q_or_more(
         )
         .collect();
     for (idx, decomp_dag) in remove_list? {
-        dag.substitute_node_with_dag(idx, &decomp_dag, None, None, None)
+        dag.substitute_node_with_dag(idx, &decomp_dag, None, None, None, None)
             .map_err(Unroll3qError::SubstitutionError)?;
     }
     Ok(())

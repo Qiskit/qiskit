@@ -22,19 +22,19 @@ use rustworkx_core::petgraph::graph::NodeIndex;
 
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::nlayout::NLayout;
-use qiskit_circuit::{getenv_use_multiple_threads, PhysicalQubit, VirtualQubit};
+use qiskit_circuit::{BlocksMode, PhysicalQubit, VirtualQubit, getenv_use_multiple_threads};
 
+use crate::TranspilerError;
+use crate::neighbors::Neighbors;
 use crate::passes::{
     dense_layout,
     disjoint_layout::{self, DisjointSplit},
 };
 use crate::target::{Target, TargetCouplingError};
-use crate::TranspilerError;
 
 use super::dag::SabreDAG;
 use super::heuristic::Heuristic;
-use super::neighbors::Neighbors;
-use super::route::{swap_map, swap_map_trial, RoutingProblem, RoutingResult, RoutingTarget};
+use super::route::{RoutingProblem, RoutingResult, RoutingTarget, swap_map, swap_map_trial};
 
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
@@ -75,7 +75,7 @@ pub fn sabre_layout_and_routing(
             return Ok((out, trivial.clone(), trivial));
         }
         Err(e @ TargetCouplingError::MultiQ(_)) => {
-            return Err(TranspilerError::new_err(e.to_string()))
+            return Err(TranspilerError::new_err(e.to_string()));
         }
     };
     let mut starting_layouts = (0..num_random_trials)
@@ -172,6 +172,7 @@ pub fn sabre_layout_and_routing(
                 num_physical_qubits,
                 dag.num_ops() + num_swaps,
                 dag.dag().edge_count() + 2 * num_swaps,
+                BlocksMode::Drop,
             )?;
             let qubit_fn = |q: PhysicalQubit| {
                 subset
@@ -314,7 +315,12 @@ pub fn sabre_layout_and_routing(
                 NLayout::from_physical_to_virtual(initial_physical).expect("all indices are valid");
             if skip_routing {
                 Ok((
-                    dag.physical_empty_like_with_capacity(num_physical_qubits, 0, 0)?,
+                    dag.physical_empty_like_with_capacity(
+                        num_physical_qubits,
+                        0,
+                        0,
+                        BlocksMode::Drop,
+                    )?,
                     initial_layout.clone(),
                     initial_layout,
                 ))

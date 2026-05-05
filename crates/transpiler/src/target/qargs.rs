@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use indexmap::Equivalent;
-use pyo3::{prelude::*, types::PyTuple, IntoPyObject};
+use pyo3::{IntoPyObject, prelude::*, types::PyTuple};
 use smallvec::SmallVec;
 
 use qiskit_circuit::PhysicalQubit;
@@ -99,8 +99,10 @@ impl<'py> IntoPyObject<'py> for &Qargs {
     }
 }
 
-impl<'py> FromPyObject<'py> for Qargs {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for Qargs {
+    type Error = <TargetQargs as FromPyObject<'a, 'py>>::Error;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let qargs: Option<TargetQargs> = ob.extract()?;
         match qargs {
             Some(qargs) => Ok(Self::Concrete(qargs)),

@@ -30,6 +30,7 @@ from qiskit.circuit.library import (
     RZGate,
     RZZGate,
 )
+from qiskit.circuit.classical import expr
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.measures import process_fidelity
@@ -691,3 +692,78 @@ class TestConsolidateBlocks(QiskitTestCase):
             expected = QuantumCircuit(2)
             expected.unitary(np.asarray(RZZGate(angle)), [0, 1])
             self.assertEqual(res, expected)
+
+    def test_collection_inside_control_flow(self):
+        """Test that we handle consolidation based on the physical qubits, not the local indices."""
+        num_qubits = 3
+        target = Target(num_qubits=num_qubits)
+        target.add_instruction(CXGate(), {(i, i + 1): None for i in range(num_qubits - 1)})
+
+        # If the block's numbering system is used, this would always be inside the basis and so
+        # would not consolidate.
+        block = QuantumCircuit(2)
+        block.cx(0, 1)
+
+        # We'll add this block to the main circuit with qubits (1, 2) flipped, so the first if is
+        # still in-basis and the second is still out of basis.
+        outer = QuantumCircuit(3)
+        outer.if_test(expr.lift(True), block, [0, 2], [])
+        outer.if_test(expr.lift(True), block, [0, 1], [])
+
+        qc = QuantumCircuit(num_qubits)
+        # In basis.
+        qc.if_test(expr.lift(True), block, [0, 1], [])
+        # Out of basis.
+        qc.if_test(expr.lift(True), block, [0, 2], [])
+        # Use a different node order, so the first nested block is in basis and the second is out.
+        qc.if_test(expr.lift(True), outer, [0, 2, 1], [])
+
+        out = ConsolidateBlocks(target=target)(qc)
+        # First should be unchanged.
+        self.assertEqual(out.data[0].operation.blocks[0], block)
+        # Second should be a unitary.
+        self.assertEqual(out.data[1].operation.blocks[0].data[0].name, "unitary")
+
+        actual_outer = out.data[2].operation.blocks[0]
+        self.assertEqual(actual_outer.data[0].operation.blocks[0], block)
+        self.assertEqual(actual_outer.data[1].operation.blocks[0].data[0].name, "unitary")
+
+    def test_pass_reuse(self):
+        """Test that the pass can be used more than once on different circuits."""
+        # It matters that these have different numbers of qubits.
+        hadamard = QuantumCircuit(1, 1)
+        hadamard.h(0)
+        hadamard.measure(0, 0)
+        bell = QuantumCircuit(2, 2)
+        bell.h(0)
+        bell.cx(0, 1)
+        bell.measure([0, 1], [0, 1])
+
+        def make_pass():
+            return ConsolidateBlocks(force_consolidate=True)
+
+        shared = make_pass()
+        self.assertEqual(shared(hadamard), make_pass()(hadamard))
+        self.assertEqual(shared(bell), make_pass()(bell))
+
+    def test_invalid_python_data_does_not_panic(self):
+        """If a user feeds in invalid/old data, Rust space shouldn't panic."""
+        # It doesn't really matter _what_ the failure mode is, just that we should return a regular
+        # Python `Exception` and not panic.
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+        dag = circuit_to_dag(qc)
+        not_an_op_node = dag.input_map[qc.qubits[0]]
+
+        pass_ = ConsolidateBlocks()
+        pass_.property_set["run_list"] = [[not_an_op_node]]
+        with self.assertRaisesRegex(IndexError, "node index.*was not a valid operation"):
+            pass_.run(dag)
+        pass_.property_set.pop("run_list", None)
+
+        pass_.property_set["block_list"] = [[not_an_op_node]]
+        with self.assertRaisesRegex(IndexError, "node index.*was not a valid operation"):
+            pass_.run(dag)

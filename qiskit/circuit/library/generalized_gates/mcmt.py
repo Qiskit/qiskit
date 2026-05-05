@@ -292,20 +292,38 @@ class MCMTGate(ControlledGate):
 
         return base_gate
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None, annotated=False):
-        """Return the controlled version of the MCMT circuit."""
-        if not annotated:
-            ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
-            new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
+        annotated: bool | None = None,
+    ):
+        """Return a controlled version of the MCMT gate.
 
-            gate = MCMTGate(
-                self.base_gate,
-                self.num_ctrl_qubits + num_ctrl_qubits,
-                self.num_target_qubits,
-                ctrl_state=new_ctrl_state,
-            )
-        else:
-            gate = super().control(num_ctrl_qubits, label, ctrl_state, annotated=annotated)
+        The controlled gate is implemented as :class:`.MCMTGate`, regardless of the
+        value of ``annotated``.
+
+        Args:
+            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
+            annotated: Ignored.
+
+        Returns:
+            A controlled version of this gate.
+        """
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+
+        gate = MCMTGate(
+            self.base_gate,
+            self.num_ctrl_qubits + num_ctrl_qubits,
+            self.num_target_qubits,
+            ctrl_state=new_ctrl_state,
+            label=label,
+        )
 
         return gate
 

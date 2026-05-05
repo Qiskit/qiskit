@@ -529,7 +529,7 @@ def generate_translation_passmanager(
             # in basis_gates. The BasisTranslator will do the conversion if possible (and provide
             # a helpful error message otherwise).
             BasisTranslator(sel, extended_basis_gates, None),
-            # The next step is to resynthesize blocks of consecutive 1q-gates into ["h", "t", "tdg"].
+            # The next step is to resynthesize blocks of consecutive 1q-gates into Clifford+T.
             # Use Collect1qRuns and ConsolidateBlocks passes to replace such blocks by 1q "unitary"
             # gates.
             Collect1qRuns(),
@@ -542,18 +542,22 @@ def generate_translation_passmanager(
             # We use the "clifford" unitary synthesis plugin to replace single-qubit
             # unitary gates that can be represented as Cliffords by Clifford gates.
             UnitarySynthesis(method="clifford", plugin_config={"max_qubits": 1}),
-            # We use the Solovay-Kitaev decomposition via the plugin mechanism for "sk"
-            # UnitarySynthesisPlugin.
+            # We decompose single-qubit unitary gates using the UnitarySynthesisPlugin interface.
+            # By default it's the "default" method (which currently calls the Solovay-Kitaev
+            # decomposition). If a custom ``unitary_synthesis_method`` method is specified, it should
+            # either return the synthesized circuit in the Clifford+T basis set, or ``None``
+            # in which case the default method would be called as fallback.
             UnitarySynthesis(
-                basis_gates=["h", "t", "tdg"],
+                basis_gates=basis_gates,
                 approximation_degree=approximation_degree,
                 coupling_map=coupling_map,
                 plugin_config=unitary_synthesis_plugin_config,
-                method="sk",
+                method=unitary_synthesis_method,
                 min_qubits=1,
                 target=None,
+                fallback_on_default=True,
             ),
-            # Finally, we use BasisTranslator to translate ["h", "t", "tdg"] to the actually
+            # Finally, we use BasisTranslator to translate Clifford+T circuit to the actually
             # specified set of basis gates.
             BasisTranslator(sel, basis_gates, target),
         ]
@@ -728,6 +732,7 @@ def get_vf2_limits(
     optimization_level: int,
     layout_method: Optional[str] = None,
     initial_layout: Optional[Layout] = None,
+    exact_match: bool = False,
 ) -> VF2Limits:
     """Get the VF2 limits for VF2-based layout passes.
 
@@ -739,13 +744,20 @@ def get_vf2_limits(
     if layout_method is None and initial_layout is None:
         if optimization_level in {1, 2}:
             limits = VF2Limits(
-                int(5e4),  # Set call limit to ~100ms with rustworkx 0.10.2
-                2500,  # Limits layout scoring to < 600ms on ~400 qubit devices
+                50_000,  # Set call limit to ~100ms with rustworkx 0.10.2
+                2_500,  # Limits layout scoring to < 600ms on ~400 qubit devices
             )
         elif optimization_level == 3:
             limits = VF2Limits(
-                int(3e7),  # Set call limit to ~60 sec with rustworkx 0.10.2
-                250000,  # Limits layout scoring to < 60 sec on ~400 qubit devices
+                30_000_000,  # Set call limit to ~60 sec with rustworkx 0.10.2
+                250_000,  # Limits layout scoring to < 60 sec on ~400 qubit devices
+            )
+        # In Qiskit 2.2, strict mode still includes heavy Python usage for the semantics and
+        # scoring, so we dial the limits way down.
+        if exact_match:
+            limits = VF2Limits(
+                ((limits.call_limit // 100) or 1) if limits.call_limit is not None else None,
+                ((limits.max_trials // 100) or 1) if limits.max_trials is not None else None,
             )
     return limits
 

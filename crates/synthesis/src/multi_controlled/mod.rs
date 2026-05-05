@@ -24,13 +24,17 @@ fn py_synth_mcx_n_dirty_i15(
     relative_phase: bool,
     action_only: bool,
 ) -> PyResult<CircuitData> {
-    synth_mcx_n_dirty_i15(num_controls, relative_phase, action_only)
+    Ok(synth_mcx_n_dirty_i15(
+        num_controls,
+        relative_phase,
+        action_only,
+    )?)
 }
 
 #[pyfunction]
 #[pyo3(name="synth_mcx_noaux_v24", signature = (num_controls))]
 fn py_synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<CircuitData> {
-    synth_mcx_noaux_v24(py, num_controls)
+    Ok(synth_mcx_noaux_v24(py, num_controls)?)
 }
 
 #[pyfunction]

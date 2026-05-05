@@ -14,16 +14,16 @@ use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, PI};
 
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
-use pyo3::{pyfunction, wrap_pyfunction, Bound, PyResult};
+use pyo3::{Bound, PyResult, pyfunction, wrap_pyfunction};
 
 use indexmap::IndexMap;
-use smallvec::{smallvec, SmallVec};
+use smallvec::{SmallVec, smallvec};
 
 use super::analyze_commutations;
 use crate::commutation_checker::CommutationChecker;
+use qiskit_circuit::Qubit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
-use qiskit_circuit::Qubit;
 use qiskit_synthesis::QiskitError;
 
 const _CUTOFF_PRECISION: f64 = 1e-5;
@@ -106,11 +106,7 @@ pub fn cancel_commutations(
                 }
             } else {
                 |gate_name: &str, angle: f64| -> f64 {
-                    if gate_name == "rz" {
-                        -angle / 2.
-                    } else {
-                        0.
-                    }
+                    if gate_name == "rz" { -angle / 2. } else { 0. }
                 }
             }
         }
@@ -238,10 +234,12 @@ pub fn cancel_commutations(
                     let (node_angle, phase_shift) = if ROTATION_GATES.contains(&node_op_name) {
                         let node_angle = match node_op.params_view().first() {
                             Some(Param::Float(f)) => *f,
-                            _ => return Err(QiskitError::new_err(format!(
-                                "Rotational gate with parameter expression encountered in cancellation {:?}",
-                                node_op.op
-                            )))
+                            _ => {
+                                return Err(QiskitError::new_err(format!(
+                                    "Rotational gate with parameter expression encountered in cancellation {:?}",
+                                    node_op.op
+                                )));
+                            }
                         };
                         let phase_shift = z_phase_shift(node_op_name, node_angle);
                         Ok((node_angle, phase_shift))

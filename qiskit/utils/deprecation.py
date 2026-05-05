@@ -217,10 +217,11 @@ def _maybe_warn_and_rename_kwarg(
     category: Type[Warning],
     predicate: Callable[[Any], bool] | None,
 ) -> None:
-    # In Python 3.10+, we should set `zip(strict=False)` (the default). That is, we want to
-    # stop iterating once `args` is done, since some args may have not been explicitly passed as
-    # positional args.
-    arg_names_to_values = {name: val for val, name in zip(args, original_func_co_varnames)}
+    # We want to stop iterating once `args` is done, since some args may have not been explicitly
+    # passed as positional args.
+    arg_names_to_values = {
+        name: val for val, name in zip(args, original_func_co_varnames, strict=False)
+    }
     arg_names_to_values.update(kwargs)
 
     if old_arg_name not in arg_names_to_values:

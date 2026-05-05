@@ -123,7 +123,7 @@ class TestSingleton(QiskitTestCase):
     def test_control_a_singleton(self):
         singleton_gate = HGate()
         gate = HGate(label="special")
-        ch = gate.control(label="my_ch")
+        ch = gate.control(annotated=False, label="my_ch")
         self.assertEqual(ch.base_gate.label, "special")
         self.assertIsNot(ch.base_gate, singleton_gate)
 
@@ -487,7 +487,7 @@ class TestSingletonControlledGate(QiskitTestCase):
     def test_control_a_singleton(self):
         singleton_gate = CHGate()
         gate = CHGate(label="special")
-        ch = gate.control(label="my_ch")
+        ch = gate.control(annotated=False, label="my_ch")
         self.assertEqual(ch.base_gate.label, "special")
         self.assertIsNot(ch.base_gate, singleton_gate)
 
@@ -542,20 +542,20 @@ class TestSingletonControlledGate(QiskitTestCase):
 
     def test_inner_gate_label(self):
         inner_gate = HGate(label="my h gate")
-        controlled_gate = inner_gate.control()
+        controlled_gate = inner_gate.control(annotated=False)
         self.assertTrue(controlled_gate.mutable)
         self.assertEqual("my h gate", controlled_gate.base_gate.label)
 
     def test_inner_gate_label_outer_label_too(self):
         inner_gate = HGate(label="my h gate")
-        controlled_gate = inner_gate.control(label="foo")
+        controlled_gate = inner_gate.control(annotated=False, label="foo")
         self.assertTrue(controlled_gate.mutable)
         self.assertEqual("my h gate", controlled_gate.base_gate.label)
         self.assertEqual("foo", controlled_gate.label)
 
     def test_inner_outer_label_pickle(self):
         inner_gate = XGate(label="my h gate")
-        controlled_gate = inner_gate.control(label="foo")
+        controlled_gate = inner_gate.control(annotated=False, label="foo")
         self.assertTrue(controlled_gate.mutable)
         self.assertEqual("my h gate", controlled_gate.base_gate.label)
         self.assertEqual("foo", controlled_gate.label)

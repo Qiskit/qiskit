@@ -119,7 +119,7 @@ class ExactReciprocalGate(Gate):
 
         if self.neg_vals:
             circuit.append(
-                UCRYGate([-theta for theta in angles]).control(),
+                UCRYGate([-theta for theta in angles]).control(annotated=False),
                 [qr_state[-1]] + [qr_flag[0]] + qr_state[:-1],
             )
             angles_neg = [0.0]
@@ -131,7 +131,8 @@ class ExactReciprocalGate(Gate):
                 else:
                     angles_neg.append(0.0)
             circuit.append(
-                UCRYGate(angles_neg).control(), [qr_state[-1]] + [qr_flag[0]] + qr_state[:-1]
+                UCRYGate(angles_neg).control(annotated=False),
+                [qr_state[-1]] + [qr_flag[0]] + qr_state[:-1],
             )
 
         self.definition = circuit

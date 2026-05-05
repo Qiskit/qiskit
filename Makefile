@@ -47,10 +47,10 @@ ruff:
 	ruff qiskit test tools setup.py
 
 style:
-	black --check qiskit test tools setup.py
+	black --check qiskit test tools setup.py docs/conf.py
 
 black:
-	black qiskit test tools setup.py
+	black qiskit test tools setup.py docs/conf.py
 
 # Use the -s (starting directory) flag for "unittest discover" is necessary,
 # otherwise the QuantumCircuit header will be modified during the discovery.
@@ -133,7 +133,8 @@ $(C_LIBQISKIT): $(C_DIR_LIB)  $(C_LIB_CARGO_PATH)
 
 $(C_QISKIT_H): $(C_DIR_INCLUDE) $(C_LIB_CARGO_PATH)
 	cp target/qiskit.h $(C_DIR_INCLUDE)/qiskit.h
-	cp crates/cext/include/complex.h $(C_DIR_INCLUDE)/qiskit/complex.h
+	rm -rf $(C_DIR_INCLUDE)/qiskit
+	cp -r crates/cext/include/qiskit $(C_DIR_INCLUDE)/
 
 .PHONY: c cheader
 cheader: $(C_QISKIT_H)
@@ -144,8 +145,8 @@ ctest: $(C_DIR_INCLUDE)
 ifndef SKIP_BUILD
 	cargo rustc --crate-type cdylib -p qiskit-cext
 	cp target/qiskit.h $(C_DIR_INCLUDE)/qiskit.h
-	cp crates/cext/include/complex.h $(C_DIR_INCLUDE)/qiskit/complex.h
-endif
+	rm -rf $(C_DIR_INCLUDE)/qiskit
+	cp -r crates/cext/include/qiskit $(C_DIR_INCLUDE)/
 
 	# -S specifically specifies the source path to be the current folder
 	# -B specifically specifies the build path to be inside test/c/build

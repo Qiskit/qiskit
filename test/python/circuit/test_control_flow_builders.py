@@ -2101,37 +2101,37 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         with self.subTest("passed and used"):
             circuit = QuantumCircuit(1, 1)
-            with circuit.for_loop((0, 0.5 * math.pi), parameter) as received_parameter:
+            with circuit.for_loop((0, 1), parameter) as received_parameter:
                 circuit.rx(received_parameter, 0)
             self.assertIs(parameter, received_parameter)
             instruction = circuit.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             _, bound_parameter, _ = instruction.params
-            self.assertIs(bound_parameter, parameter)
+            self.assertEqual(bound_parameter, parameter)
 
         with self.subTest("passed and unused"):
             circuit = QuantumCircuit(1, 1)
-            with circuit.for_loop((0, 0.5 * math.pi), parameter) as received_parameter:
+            with circuit.for_loop((0, 1), parameter) as received_parameter:
                 circuit.x(0)
             self.assertIs(parameter, received_parameter)
             instruction = circuit.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             _, bound_parameter, _ = instruction.params
-            self.assertIs(parameter, received_parameter)
+            self.assertEqual(parameter, received_parameter)
 
         with self.subTest("generated and used"):
             circuit = QuantumCircuit(1, 1)
-            with circuit.for_loop((0, 0.5 * math.pi)) as received_parameter:
+            with circuit.for_loop((0, 1)) as received_parameter:
                 circuit.rx(received_parameter, 0)
             self.assertIsInstance(received_parameter, Parameter)
             instruction = circuit.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             _, bound_parameter, _ = instruction.params
-            self.assertIs(bound_parameter, received_parameter)
+            self.assertEqual(bound_parameter, received_parameter)
 
         with self.subTest("generated and used in deferred-build if"):
             circuit = QuantumCircuit(1, 1)
-            with circuit.for_loop((0, 0.5 * math.pi)) as received_parameter:
+            with circuit.for_loop((0, 1)) as received_parameter:
                 with circuit.if_test((0, 0)):
                     circuit.rx(received_parameter, 0)
                     circuit.break_loop()
@@ -2139,11 +2139,11 @@ class TestControlFlowBuilders(QiskitTestCase):
             instruction = circuit.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             _, bound_parameter, _ = instruction.params
-            self.assertIs(bound_parameter, received_parameter)
+            self.assertEqual(bound_parameter, received_parameter)
 
         with self.subTest("generated and used in deferred-build else"):
             circuit = QuantumCircuit(1, 1)
-            with circuit.for_loop((0, 0.5 * math.pi)) as received_parameter:
+            with circuit.for_loop((0, 1)) as received_parameter:
                 with circuit.if_test((0, 0)) as else_:
                     pass
                 with else_:
@@ -2153,7 +2153,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             instruction = circuit.data[-1].operation
             self.assertIsInstance(instruction, ForLoopOp)
             _, bound_parameter, _ = instruction.params
-            self.assertIs(bound_parameter, received_parameter)
+            self.assertEqual(bound_parameter, received_parameter)
 
     def test_for_does_not_bind_generated_parameter_if_unused(self):
         """Test that the ``for`` manager does not bind a generated parameter into the resulting

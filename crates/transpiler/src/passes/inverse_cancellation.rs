@@ -16,21 +16,24 @@ use indexmap::IndexMap;
 use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
+use qiskit_circuit::NoBlocks;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::instruction::Instruction;
 use qiskit_circuit::operations::{Operation, OperationRef, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 
-fn gate_eq(gate_a: &PackedInstruction, gate_b: &OperationFromPython) -> PyResult<bool> {
+fn gate_eq(gate_a: &PackedInstruction, gate_b: &OperationFromPython<NoBlocks>) -> PyResult<bool> {
     if gate_a.op.name() != gate_b.operation.name() {
         return Ok(false);
     }
     let a_params = gate_a.params_view();
-    if a_params.len() != gate_b.params.len() {
+    let b_params = gate_b.params_view();
+    if a_params.len() != b_params.len() {
         return Ok(false);
     }
     let mut param_eq = true;
-    for (a, b) in a_params.iter().zip(&gate_b.params) {
+    for (a, b) in a_params.iter().zip(b_params) {
         if !a.is_close(b, 1e-10)? {
             param_eq = false;
             break;
@@ -43,7 +46,7 @@ fn run_on_self_inverse(
     dag: &mut DAGCircuit,
     op_counts: &IndexMap<String, usize, RandomState>,
     self_inverse_gate_names: HashSet<String>,
-    self_inverse_gates: Vec<OperationFromPython>,
+    self_inverse_gates: Vec<OperationFromPython<NoBlocks>>,
 ) -> PyResult<()> {
     if !self_inverse_gate_names
         .iter()
@@ -107,7 +110,7 @@ fn run_on_inverse_pairs(
     dag: &mut DAGCircuit,
     op_counts: &IndexMap<String, usize, RandomState>,
     inverse_gate_names: HashSet<String>,
-    inverse_gates: Vec<[OperationFromPython; 2]>,
+    inverse_gates: Vec<[OperationFromPython<NoBlocks>; 2]>,
 ) -> PyResult<()> {
     if !inverse_gate_names
         .iter()
@@ -287,10 +290,9 @@ pub fn run_inverse_cancellation_standard_gates(dag: &mut DAGCircuit) {
 #[pyfunction]
 #[pyo3(name = "inverse_cancellation")]
 pub fn py_run_inverse_cancellation(
-    py: Python,
     dag: &mut DAGCircuit,
-    inverse_gates: Vec<[OperationFromPython; 2]>,
-    self_inverse_gates: Vec<OperationFromPython>,
+    inverse_gates: Vec<[OperationFromPython<NoBlocks>; 2]>,
+    self_inverse_gates: Vec<OperationFromPython<NoBlocks>>,
     inverse_gate_names: HashSet<String>,
     self_inverse_gate_names: HashSet<String>,
     run_defaults: bool,
@@ -298,7 +300,7 @@ pub fn py_run_inverse_cancellation(
     if self_inverse_gate_names.is_empty() && inverse_gate_names.is_empty() {
         return Ok(());
     }
-    let op_counts = dag.count_ops(py, true)?;
+    let op_counts = dag.count_ops(true)?;
     if !self_inverse_gate_names.is_empty() {
         run_on_self_inverse(dag, &op_counts, self_inverse_gate_names, self_inverse_gates)?;
     }

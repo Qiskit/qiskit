@@ -14,7 +14,7 @@ use crate::classical::expr::{Expr, ExprKind, PyExpr};
 use crate::classical::types::Type;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
-use pyo3::{intern, IntoPyObjectExt};
+use pyo3::{IntoPyObjectExt, intern};
 
 /// An indexing expression.
 #[derive(Clone, Debug, PartialEq)]
@@ -35,8 +35,10 @@ impl<'py> IntoPyObject<'py> for Index {
     }
 }
 
-impl<'py> FromPyObject<'py> for Index {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for Index {
+    type Error = <PyIndex as FromPyObject<'a, 'py>>::Error;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let PyIndex(i) = ob.extract()?;
         Ok(i)
     }

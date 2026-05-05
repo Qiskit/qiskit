@@ -148,7 +148,7 @@ class GraphStateGate(Gate):
 
     def _define(self):
         adjacency_matrix = self.adjacency_matrix
-        circuit = QuantumCircuit(self.num_qubits, name=self.name)
+        circuit = QuantumCircuit(self.num_qubits)
         circuit.h(range(self.num_qubits))
         for i in range(self.num_qubits):
             for j in range(i + 1, self.num_qubits):

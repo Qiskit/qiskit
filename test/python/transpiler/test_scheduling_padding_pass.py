@@ -18,6 +18,7 @@ from ddt import ddt, data
 from qiskit import QuantumCircuit
 from qiskit.circuit import Measure
 from qiskit.circuit.library import CXGate, HGate
+from qiskit.transpiler import PropertySet
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.passes import (
     ASAPScheduleAnalysis,
@@ -125,6 +126,22 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         expected.delay(1000, 0)
 
         self.assertEqual(expected, scheduled)
+
+    @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis)
+    def test_empty_circuit(self, schedule_pass):
+        """An empty cirucit is trivially scheduled, so we should succeed without error."""
+        target = Target(num_qubits=4)
+        target.add_instruction(
+            CXGate(), {(i, i + 1): InstructionProperties(duration=1e-3) for i in range(3)}
+        )
+        target.add_instruction(
+            Measure(), {(i,): InstructionProperties(duration=1e-3) for i in range(4)}
+        )
+        qc = QuantumCircuit(4, 4)
+        property_set = PropertySet()
+        pass_ = schedule_pass(target=target)
+        pass_(qc, property_set=property_set)
+        self.assertEqual(property_set["node_start_time"], {})
 
     @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis)
     def test_shorter_measure_after_measure(self, schedule_pass):

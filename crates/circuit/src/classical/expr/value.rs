@@ -13,16 +13,17 @@
 use crate::classical::expr::{ExprKind, PyExpr};
 use crate::classical::types::Type;
 use crate::duration::Duration;
+use num_bigint::BigUint;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
-use pyo3::{intern, IntoPyObjectExt};
+use pyo3::{IntoPyObjectExt, intern};
 
 /// A single scalar value expression.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Duration(Duration),
     Float { raw: f64, ty: Type },
-    Uint { raw: u64, ty: Type },
+    Uint { raw: BigUint, ty: Type },
 }
 
 impl<'py> IntoPyObject<'py> for Value {
@@ -35,8 +36,10 @@ impl<'py> IntoPyObject<'py> for Value {
     }
 }
 
-impl<'py> FromPyObject<'py> for Value {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for Value {
+    type Error = <PyValue as FromPyObject<'a, 'py>>::Error;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let PyValue(v) = ob.extract()?;
         Ok(v)
     }
@@ -52,7 +55,7 @@ impl PyValue {
     #[new]
     #[pyo3(text_signature = "(value, type)")]
     fn new(py: Python, value: Bound<PyAny>, ty: Type) -> PyResult<Py<Self>> {
-        let value = if let Ok(raw) = value.extract::<u64>() {
+        let value = if let Ok(raw) = value.extract::<BigUint>() {
             Value::Uint { raw, ty }
         } else if let Ok(raw) = value.extract::<f64>() {
             Value::Float { raw, ty }
@@ -64,7 +67,7 @@ impl PyValue {
 
     #[getter]
     fn get_value(&self, py: Python) -> PyResult<Py<PyAny>> {
-        match self.0 {
+        match &self.0 {
             Value::Duration(d) => d.into_py_any(py),
             Value::Float { raw, .. } => raw.into_py_any(py),
             Value::Uint { raw, .. } => raw.into_py_any(py),

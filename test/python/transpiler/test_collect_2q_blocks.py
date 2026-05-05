@@ -95,7 +95,6 @@ class TestCollect2qBlocks(QiskitTestCase):
         dag_nodes = [node for node in dag.topological_op_nodes() if node.name in good_names]
 
         # we have to convert them to sets as the ordering can be different
-        # but equivalent between python 3.5 and 3.7
         # there is no implied topology in a block, so this isn't an issue
         dag_nodes = [set(dag_nodes[:4]), set(dag_nodes[4:])]
         pass_nodes = [set(bl) for bl in pass_.property_set["block_list"]]

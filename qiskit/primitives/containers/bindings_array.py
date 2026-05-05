@@ -71,18 +71,21 @@ class BindingsArray(ShapedMixin):
        :include-source:
        :nofigs:
 
-        # 0-d array (i.e. only one binding)
-        BindingsArray({"a": 4, ("b", "c"): [5, 6]})
+       import numpy as np
+       from qiskit.primitives import BindingsArray
 
-        # single array, last index is parameters
-        parameters = tuple(f"a{idx}" for idx in range(100))
-        BindingsArray({parameters: np.ones((10, 10, 100))})
+       # 0-d array (i.e. only one binding)
+       BindingsArray({"a": 4, ("b", "c"): [5, 6]})
 
-        # multiple arrays, where each last index is parameters. notice that it's smart enough to
-        # figure out that a missing last dimension corresponds to a single parameter.
-        BindingsArray(
-            {("c", "a"): np.zeros((10, 10, 2)), "b": np.ones((10, 10))}
-        )
+       # single array, last index is parameters
+       parameters = tuple(f"a{idx}" for idx in range(100))
+       BindingsArray({parameters: np.ones((10, 10, 100))})
+
+       # multiple arrays, where each last index is parameters. notice that it's smart enough to
+       # figure out that a missing last dimension corresponds to a single parameter.
+       BindingsArray(
+           {("c", "a"): np.zeros((10, 10, 2)), "b": np.ones((10, 10))}
+       )
     """
 
     def __init__(
@@ -112,7 +115,7 @@ class BindingsArray(ShapedMixin):
             ValueError: If all inputs are ``None``.
             ValueError: If the shape cannot be automatically inferred from the arrays, or if there
                 is some inconsistency in the shape of the given arrays.
-            TypeError: If some of the vaules can't be cast to a float type.
+            TypeError: If some of the values can't be cast to a float type.
         """
         super().__init__()
 

@@ -286,7 +286,7 @@ MCMT Synthesis
    MCMTSynthesisXGate
    MCMTSynthesisDefault
 
-   
+
 Integer comparators
 '''''''''''''''''''
 
@@ -299,8 +299,8 @@ Integer comparators
       - Auxiliary qubits
     * - ``"twos"``
       - :class:`~.IntComparatorSynthesis2s`
-      - use addition with two's complement 
-      - ``n - 1`` clean 
+      - use addition with two's complement
+      - ``n - 1`` clean
     * - ``"noaux"``
       - :class:`~.IntComparatorSynthesisNoAux`
       - flip the target controlled on all :math:`O(2^l)` allowed integer values
@@ -317,7 +317,7 @@ Integer comparators
    IntComparatorSynthesisNoAux
    IntComparatorSynthesisDefault
 
-   
+
 Sums
 ''''
 
@@ -351,7 +351,7 @@ Pauli Evolution Synthesis
       - Targeted connectivity
     * - ``"rustiq"``
       - :class:`~.PauliEvolutionSynthesisRustiq`
-      - use the synthesis method from `Rustiq circuit synthesis library 
+      - use the synthesis method from `Rustiq circuit synthesis library
         <https://github.com/smartiel/rustiq-core>`_
       - all-to-all
     * - ``"default"``
@@ -1587,7 +1587,9 @@ class MCMTSynthesisNoAux(HighLevelSynthesisPlugin):
             # no broadcasting needed (makes for better circuit diagrams)
             circuit = QuantumCircuit(high_level_object.num_qubits)
             circuit.append(
-                base_gate.control(high_level_object.num_ctrl_qubits, ctrl_state=ctrl_state),
+                base_gate.control(
+                    high_level_object.num_ctrl_qubits, ctrl_state=ctrl_state, annotated=False
+                ),
                 circuit.qubits,
             )
 
@@ -1596,7 +1598,9 @@ class MCMTSynthesisNoAux(HighLevelSynthesisPlugin):
             for i in range(high_level_object.num_target_qubits):
                 base.append(base_gate, [i], [])
 
-            circuit = base.control(high_level_object.num_ctrl_qubits, ctrl_state=ctrl_state)
+            circuit = base.control(
+                high_level_object.num_ctrl_qubits, ctrl_state=ctrl_state, annotated=False
+            )
 
         return circuit.decompose()
 

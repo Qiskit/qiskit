@@ -15,7 +15,7 @@ use crate::classical::types::Type;
 use crate::imports;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
-use pyo3::{intern, IntoPyObjectExt};
+use pyo3::{IntoPyObjectExt, intern};
 
 /// A binary expression.
 #[derive(Clone, Debug, PartialEq)]
@@ -66,6 +66,12 @@ unsafe impl ::bytemuck::CheckedBitPattern for BinaryOp {
     }
 }
 
+impl BinaryOp {
+    pub fn from_u8(value: u8) -> PyResult<BinaryOp> {
+        Ok(bytemuck::checked::cast::<u8, BinaryOp>(value))
+    }
+}
+
 impl<'py> IntoPyObject<'py> for Binary {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
@@ -76,8 +82,10 @@ impl<'py> IntoPyObject<'py> for Binary {
     }
 }
 
-impl<'py> FromPyObject<'py> for Binary {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for Binary {
+    type Error = <PyBinary as FromPyObject<'a, 'py>>::Error;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let PyBinary(b) = ob.extract()?;
         Ok(b)
     }
@@ -93,8 +101,10 @@ impl<'py> IntoPyObject<'py> for BinaryOp {
     }
 }
 
-impl<'py> FromPyObject<'py> for BinaryOp {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'a, 'py> FromPyObject<'a, 'py> for BinaryOp {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         let value = ob.getattr(intern!(ob.py(), "value"))?;
         Ok(bytemuck::checked::cast(value.extract::<u8>()?))
     }

@@ -14,8 +14,8 @@ use num_complex::Complex64;
 use std::f64::consts::FRAC_1_SQRT_2;
 
 use crate::util::{
-    c64, GateArray0Q, GateArray1Q, GateArray2Q, GateArray3Q, GateArray4Q, C_M_ONE, C_ONE, C_ZERO,
-    IM, M_IM,
+    C_M_ONE, C_ONE, C_ZERO, GateArray0Q, GateArray1Q, GateArray2Q, GateArray3Q, GateArray4Q, IM,
+    M_IM, c64,
 };
 
 pub static ONE_QUBIT_IDENTITY: GateArray1Q = [[C_ONE, C_ZERO], [C_ZERO, C_ONE]];

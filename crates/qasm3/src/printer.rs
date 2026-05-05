@@ -18,10 +18,10 @@ use crate::ast::{
     Alias, Assignment, Barrier, Binary, BinaryOp, BitArray, BooleanLiteral, Cast,
     ClassicalDeclaration, ClassicalType, Constant, Delay, DurationLiteral, Expression, Float,
     GateCall, Header, Identifier, IdentifierOrSubscripted, Include, Index, IndexSet, Int,
-    IntegerLiteral, Node, Parameter, Program, ProgramBlock, QuantumBlock, QuantumDeclaration,
+    IntegerLiteral, Node, OP, Parameter, Program, ProgramBlock, QuantumBlock, QuantumDeclaration,
     QuantumGateDefinition, QuantumGateModifier, QuantumGateModifierName, QuantumGateSignature,
     QuantumInstruction, QuantumMeasurement, QuantumMeasurementAssignment, Range, Reset, Statement,
-    SubscriptedIdentifier, Uint, Unary, UnaryOp, Version, OP,
+    SubscriptedIdentifier, Uint, Unary, UnaryOp, Version,
 };
 
 #[derive(Debug)]

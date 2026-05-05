@@ -18,6 +18,7 @@ import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils.deprecation import deprecate_arg
 from .annotated_operation import AnnotatedOperation, ControlModifier, PowerModifier
 from .instruction import Instruction
 
@@ -101,6 +102,21 @@ class Gate(Instruction):
         gate.params = self.params
         return gate
 
+    @deprecate_arg(
+        name="annotated",
+        since="2.3",
+        additional_msg=(
+            "The method Gate.control() no longer accepts `annotated=None`. The new default is "
+            "`annotated=True`, which represents the controlled gate as an `AnnotatedOperation` "
+            "(unless a dedicated controlled-gate class already exists). You can explicitly set "
+            "`annotated=False` to preserve the previous behavior. However, using `annotated=True` "
+            "is recommended, as it defers construction of the controlled circuit to transpiler, "
+            "and furthermore enables additional controlled-gate optimizations (typically leading "
+            "to higher-quality circuits)."
+        ),
+        predicate=lambda my_arg: my_arg is None,
+        removal_timeline="in Qiskit 3.0",
+    )
     def control(
         self,
         num_ctrl_qubits: int = 1,
@@ -110,27 +126,23 @@ class Gate(Instruction):
     ):
         """Return the controlled version of itself.
 
-        Implemented either as a controlled gate (ref. :class:`.ControlledGate`)
-        or as an annotated operation (ref. :class:`.AnnotatedOperation`).
+        The controlled gate is implemented as :class:`.ControlledGate` when ``annotated``
+        is ``False``, and as :class:`.AnnotatedOperation` when ``annotated`` is ``True``.
 
         Args:
-            num_ctrl_qubits: number of controls to add to gate (default: ``1``)
-            label: optional gate label. Ignored if implemented as an annotated
-                operation.
-            ctrl_state: the control state in decimal or as a bitstring
-                (e.g. ``'111'``). If ``None``, use ``2**num_ctrl_qubits-1``.
-            annotated: indicates whether the controlled gate is implemented
-                as an annotated gate. If ``None``, this is set to ``False``
-                if the controlled gate can directly be constructed, and otherwise
-                set to ``True``. This allows defering the construction process in case the
-                synthesis of the controlled gate requires more information (e.g.
-                values of unbound parameters).
+            num_ctrl_qubits: Number of controls to add. Defauls to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+                Ignored if the controlled gate is implemented as an annotated operation.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``.
+            annotated: Indicates whether the controlled gate should be implemented as a controlled gate
+                or as an annotated operation. If ``None``, treated as ``False``.
 
         Returns:
-            Controlled version of the given operation.
+            A controlled version of this gate.
 
         Raises:
-            QiskitError: unrecognized mode or invalid ctrl_state
+            QiskitError: invalid ``ctrl_state``.
         """
         if not annotated:  # captures both None and False
             # pylint: disable=cyclic-import
