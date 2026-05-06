@@ -484,20 +484,28 @@ def _optimization_check_minimum_point(prefix: str):
 def _optimization_check_changed_flag():
     """Loop condition based on per-pass changed flags.
 
-    Each optimization pass sets property_set["_opt_pass_changed"] = True if it
-    modified the DAG. The loop continues only if at least one pass made a change.
-    The reset pass clears the flag at the start of each iteration.
+    Two flags control loop continuation:
+    - _opt_pass_changed: Set when multi-qubit gates are cancelled/removed.
+      Always triggers re-iteration (new 2Q patterns may appear).
+    - _opt_1q_consolidated: Set when CommutativeCancellation merges rotations.
+      Triggers one more iteration so Optimize1qGatesDecomposition can benefit
+      from shortened 1Q runs. Only fires once (consolidation is idempotent).
+
+    The reset pass clears both flags at the start of each iteration.
     """
     from qiskit.transpiler.basepasses import AnalysisPass
 
     class _ResetChangedFlag(AnalysisPass):
-        """Reset the _opt_pass_changed flag at the start of each loop iteration."""
+        """Reset optimization flags at the start of each loop iteration."""
 
         def run(self, dag):
             self.property_set["_opt_pass_changed"] = False
+            self.property_set["_opt_1q_consolidated"] = False
 
     def check(property_set):
-        return property_set.get("_opt_pass_changed", False)
+        return property_set.get("_opt_pass_changed", False) or property_set.get(
+            "_opt_1q_consolidated", False
+        )
 
     return (_ResetChangedFlag(), check)
 
