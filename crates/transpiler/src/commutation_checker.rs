@@ -318,9 +318,6 @@ pub struct CommutationChecker {
     library: CommutationLibrary,
     #[pyo3(get)]
     gates: Option<HashSet<String>>,
-    // scratch_map is used as a temporary workspace to avoid repeated allocations
-    // when computing commutation relations between pauli-based gates.
-    scratch_map: HashMap<usize, usize>,
 }
 
 #[pymethods]
@@ -431,7 +428,6 @@ impl CommutationChecker {
         CommutationChecker {
             library: library.unwrap_or(CommutationLibrary { library: None }),
             gates,
-            scratch_map: HashMap::new(),
         }
     }
 
@@ -522,20 +518,21 @@ impl CommutationChecker {
             OperationRef::PauliProductMeasurement(ppm2),
         ) = (op1, op2)
         {
+            let mut qarg_map: Vec<usize> = vec![usize::MAX; qargs1.len()];
             if cargs1 == cargs2 {
                 if (ppm1.neg != ppm2.neg) || (qargs1.len() != qargs2.len()) {
                     return Ok(false);
                 }
                 // Mark all qubit indices in qargs1
-                self.scratch_map.clear();
                 for (i, &q) in qargs1.iter().enumerate() {
-                    self.scratch_map.insert(q.index(), i);
+                    qarg_map[q.index()] = i;
                 }
                 // Check that every qubit index in qargs2 is marked and has the same z,x values.
                 for (j, &q) in qargs2.iter().enumerate() {
-                    let Some(&i) = self.scratch_map.get(&q.index()) else {
+                    let i = qarg_map[q.index()];
+                    if i == usize::MAX {
                         return Ok(false);
-                    };
+                    }
                     if ppm1.z[i] != ppm2.z[j] || ppm1.x[i] != ppm2.x[j] {
                         return Ok(false);
                     }
@@ -559,13 +556,14 @@ impl CommutationChecker {
             try_pauli_generator_for_pauli_based(op1),
             try_pauli_generator_for_pauli_based(op2),
         ) {
-            self.scratch_map.clear();
+            let mut qarg_map = vec![usize::MAX; qargs1.len()];
             for (i, &q) in qargs1.iter().enumerate() {
-                self.scratch_map.insert(q.index(), i);
+                qarg_map[q.index()] = i;
             }
             let mut parity = false;
             for (j, &q) in qargs2.iter().enumerate() {
-                if let Some(&i) = self.scratch_map.get(&q.index()) {
+                let i = qarg_map[q.index()];
+                if i != usize::MAX {
                     parity ^= (x1[i] && z2[j]) ^ (z1[i] && x2[j]);
                 }
             }
@@ -1030,7 +1028,6 @@ pub fn get_standard_commutation_checker() -> CommutationChecker {
     CommutationChecker {
         library,
         gates: None,
-        scratch_map: HashMap::new(),
     }
 }
 
