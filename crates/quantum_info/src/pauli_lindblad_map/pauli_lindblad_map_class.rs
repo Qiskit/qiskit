@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use hashbrown::HashSet;
-use numpy::{PyArray1, PyArrayMethods, ToPyArray};
+use numpy::{PyArray1, PyArray2, PyArrayMethods, ToPyArray};
 use pyo3::{
     IntoPyObjectExt, PyErr,
     exceptions::{PyTypeError, PyValueError},
@@ -386,13 +386,19 @@ impl PauliLindbladMap {
 
     /// Sample sign and Pauli operator pairs from the map.
     /// Note that here the "sign" bool is interpreted as the exponent of (-1)^b.
-    pub fn parity_sample(
+    #[allow(clippy::type_complexity)]
+    pub fn parity_sample_with_history(
         &self,
         num_samples: u64,
         seed: Option<u64>,
         scale: Option<f64>,
         local_scale: Option<Vec<f64>>,
-    ) -> (Vec<bool>, QubitSparsePauliList) {
+    ) -> (
+        Vec<bool>,
+        QubitSparsePauliList,
+        Vec<Vec<bool>>,
+        Vec<Vec<bool>>,
+    ) {
         let mut rng = match seed {
             Some(seed) => Pcg64Mcg::seed_from_u64(seed),
             None => Pcg64Mcg::try_from_rng(&mut SysRng).unwrap(),
@@ -422,13 +428,18 @@ impl PauliLindbladMap {
         };
         let mut random_signs = Vec::with_capacity(num_samples as usize);
         let mut random_paulis = QubitSparsePauliList::empty(self.num_qubits());
+        let mut pauli_history = Vec::with_capacity(num_samples as usize);
+        let mut signs_history = Vec::with_capacity(num_samples as usize);
 
         for _ in 0..num_samples {
             let mut random_sign = false;
             let mut random_pauli = QubitSparsePauli::identity(self.num_qubits());
+            let mut inner_pauli_history = vec![false; self.qubit_sparse_pauli_list.num_terms()];
+            let mut inner_signs_history = vec![false; self.qubit_sparse_pauli_list.num_terms()];
 
-            for ((probability, generator), non_negative_rate) in probabilities
+            for (((idx, probability), generator), non_negative_rate) in probabilities
                 .iter()
+                .enumerate()
                 .zip(self.qubit_sparse_pauli_list.iter())
                 .zip(non_negative_rates.iter())
             {
@@ -437,6 +448,9 @@ impl PauliLindbladMap {
                     random_pauli = random_pauli.compose(&generator.to_term()).unwrap();
                     // if rate is negative, flip random_sign
                     random_sign = random_sign == *non_negative_rate;
+                    // keep track of sampled generator
+                    inner_pauli_history[idx] = true;
+                    inner_signs_history[idx] = *non_negative_rate;
                 }
             }
 
@@ -444,9 +458,11 @@ impl PauliLindbladMap {
             random_paulis
                 .add_qubit_sparse_pauli(random_pauli.view())
                 .unwrap();
+            pauli_history.push(inner_pauli_history);
+            signs_history.push(inner_signs_history);
         }
 
-        (random_signs, random_paulis)
+        (random_signs, random_paulis, pauli_history, signs_history)
     }
 
     /// Reduce the map to its canonical form.
@@ -1578,7 +1594,8 @@ impl PyPauliLindbladMap {
         seed: Option<u64>,
     ) -> PyResult<Bound<'py, PyTuple>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let (signs, paulis) = py.detach(|| inner.parity_sample(num_samples, seed, None, None));
+        let (signs, paulis, _, _) =
+            py.detach(|| inner.parity_sample_with_history(num_samples, seed, None, None));
 
         let signs = PyArray1::from_vec(py, signs.iter().map(|b| !b).collect());
         let paulis = paulis.into_pyobject(py).unwrap();
@@ -1630,13 +1647,51 @@ impl PyPauliLindbladMap {
         local_scale: Option<Vec<f64>>,
     ) -> PyResult<Bound<'py, PyTuple>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let (signs, paulis) =
-            py.detach(|| inner.parity_sample(num_samples, seed, scale, local_scale));
+        let (signs, paulis, _, _) =
+            py.detach(|| inner.parity_sample_with_history(num_samples, seed, scale, local_scale));
 
         let signs = PyArray1::from_vec(py, signs);
         let paulis = paulis.into_pyobject(py).unwrap();
 
         (signs, paulis).into_pyobject(py)
+    }
+
+    /// Sample sign and Pauli operator pairs from the map, preserving the sampled generators.
+    ///
+    /// This method is identical to :meth:`parity_sample` except for also returning the information
+    /// which :meth:`generators` were actually sampled to yield the final Pauli operator and sign.
+    ///
+    ///
+    /// Args:
+    ///     num_samples (int): Number of samples to draw.
+    ///     seed (int): Random seed.
+    ///     scale (float): Scale to apply to all rates.
+    ///     local_scale (list[float]): Local scale to apply on a term-by-term basis.
+    ///
+    /// Returns:
+    ///     signs, qubit_sparse_pauli_list, pauli_history, signs_history: The boolean array of
+    ///         signs, the list of qubit sparse paulis, the two dimensional boolean array
+    ///         indicating which :meth:`generators` were sampled and the two dimensional boolean
+    ///         array indicating their signs.
+    #[pyo3(signature = (num_samples, seed=None, scale=None, local_scale=None))]
+    pub fn parity_sample_with_history<'py>(
+        &self,
+        py: Python<'py>,
+        num_samples: u64,
+        seed: Option<u64>,
+        scale: Option<f64>,
+        local_scale: Option<Vec<f64>>,
+    ) -> PyResult<Bound<'py, PyTuple>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let (signs, paulis, pauli_history, signs_history) =
+            py.detach(|| inner.parity_sample_with_history(num_samples, seed, scale, local_scale));
+
+        let signs = PyArray1::from_vec(py, signs);
+        let paulis = paulis.into_pyobject(py).unwrap();
+        let pauli_history = PyArray2::from_vec2(py, &pauli_history).unwrap();
+        let signs_history = PyArray2::from_vec2(py, &signs_history).unwrap();
+
+        (signs, paulis, pauli_history, signs_history).into_pyobject(py)
     }
 
     /// For :class:`.PauliLindbladMap` instances with purely non-negative rates, sample Pauli
@@ -1683,7 +1738,8 @@ impl PyPauliLindbladMap {
             }
         }
 
-        let (_, paulis) = py.detach(|| inner.parity_sample(num_samples, seed, None, None));
+        let (_, paulis, _, _) =
+            py.detach(|| inner.parity_sample_with_history(num_samples, seed, None, None));
 
         paulis.into_pyobject(py)
     }

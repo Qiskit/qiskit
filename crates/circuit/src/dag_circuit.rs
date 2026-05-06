@@ -14,7 +14,7 @@ use std::cmp::Ordering;
 use std::hash::Hash;
 use std::sync::Arc;
 
-use ahash::RandomState;
+use foldhash::fast::RandomState;
 use smallvec::SmallVec;
 
 use crate::bit::{
@@ -672,13 +672,13 @@ impl DAGCircuit {
             RegisterData::from_mapping(dict_state.get_item("qregs")?.unwrap().extract::<IndexMap<
                 String,
                 QuantumRegister,
-                ::ahash::RandomState,
+                ::foldhash::fast::RandomState,
             >>()?);
         self.cregs =
             RegisterData::from_mapping(dict_state.get_item("cregs")?.unwrap().extract::<IndexMap<
                 String,
                 ClassicalRegister,
-                ::ahash::RandomState,
+                ::foldhash::fast::RandomState,
             >>()?);
         self.global_phase = dict_state.get_item("global_phase")?.unwrap().extract()?;
         self.op_names = dict_state.get_item("op_name")?.unwrap().extract()?;
@@ -5806,7 +5806,7 @@ impl DAGCircuit {
         };
         // Put the new node in-between the previously "last" nodes on each wire
         // and the terminal map.
-        let termini: IndexSet<NodeIndex, ::ahash::RandomState> = self
+        let termini: IndexSet<NodeIndex, ::foldhash::fast::RandomState> = self
             .qargs_interner
             .get(qubits_id)
             .iter()
@@ -5862,7 +5862,7 @@ impl DAGCircuit {
     ) -> PyResult<(Vec<Clbit>, Option<Vec<Var>>)> {
         let (all_clbits, vars): (Vec<Clbit>, Option<Vec<Var>>) = {
             if self.may_have_additional_wires(instr) {
-                let mut clbits: IndexSet<Clbit, ::ahash::RandomState> =
+                let mut clbits: IndexSet<Clbit, ::foldhash::fast::RandomState> =
                     IndexSet::from_iter(self.cargs_interner.get(instr.clbits).iter().copied());
                 let (additional_clbits, additional_vars) =
                     Python::attach(|py| self.additional_wires(py, instr))?;
