@@ -457,23 +457,23 @@ impl TwoQubitControlledUDecomposer {
         // 3 2-qubit gates
         // 8 1-qubit unitaries
         // max 5 1-qubit gates per 1-qubit unitary
-        let mut gates = Vec::with_capacity(43);
+        let gates = Vec::with_capacity(43);
         let mut global_phase = target_decomposed.global_phase;
 
-        let mut gates1 = TwoQubitGateSequence {
+        let mut weyl_gates = TwoQubitGateSequence {
             gates,
             global_phase,
         };
         self.weyl_gate(
-            &mut gates1,
+            &mut weyl_gates,
             &target_decomposed,
             atol.unwrap_or(DEFAULT_ATOL),
             smallvec![c2r, c2l, c1r, c1l],
         )?;
-        global_phase += gates1.global_phase;
+        global_phase += weyl_gates.global_phase;
+        weyl_gates.global_phase = global_phase;
 
-        gates1.global_phase = global_phase;
-        Ok(gates1)
+        Ok(weyl_gates)
     }
 
     /// Initialize the KAK decomposition.
