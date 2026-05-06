@@ -31,26 +31,13 @@ use crate::linalg::nalgebra_array_view;
 
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::gate_matrix::{H_GATE, S_GATE, SDG_GATE};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{NoBlocks, Qubit};
 
-use super::common::DEFAULT_FIDELITY;
+use super::common::{DEFAULT_FIDELITY, HGATE, SDGGATE, SGATE};
 use super::gate_sequence::{TwoQubitGateSequence, TwoQubitSequenceVec};
 use super::weyl_decomposition::{Specialization, TwoQubitWeylDecomposition};
-
-// ToDo: move to common (also used by basis_decomposer)
-static HGATE: Matrix2<Complex64> =
-    Matrix2::new(H_GATE[0][0], H_GATE[0][1], H_GATE[1][0], H_GATE[1][1]);
-static SGATE: Matrix2<Complex64> =
-    Matrix2::new(S_GATE[0][0], S_GATE[0][1], S_GATE[1][0], S_GATE[1][1]);
-static SDGGATE: Matrix2<Complex64> = Matrix2::new(
-    SDG_GATE[0][0],
-    SDG_GATE[0][1],
-    SDG_GATE[1][0],
-    SDG_GATE[1][1],
-);
 
 /// invert 1q gate sequence
 fn invert_1q_gate(
