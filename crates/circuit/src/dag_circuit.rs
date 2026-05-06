@@ -14,7 +14,7 @@ use std::cmp::Ordering;
 use std::hash::Hash;
 use std::sync::Arc;
 
-use ahash::RandomState;
+use foldhash::fast::RandomState;
 use smallvec::SmallVec;
 
 use crate::bit::{
@@ -672,13 +672,13 @@ impl DAGCircuit {
             RegisterData::from_mapping(dict_state.get_item("qregs")?.unwrap().extract::<IndexMap<
                 String,
                 QuantumRegister,
-                ::ahash::RandomState,
+                ::foldhash::fast::RandomState,
             >>()?);
         self.cregs =
             RegisterData::from_mapping(dict_state.get_item("cregs")?.unwrap().extract::<IndexMap<
                 String,
                 ClassicalRegister,
-                ::ahash::RandomState,
+                ::foldhash::fast::RandomState,
             >>()?);
         self.global_phase = dict_state.get_item("global_phase")?.unwrap().extract()?;
         self.op_names = dict_state.get_item("op_name")?.unwrap().extract()?;
@@ -914,15 +914,8 @@ impl DAGCircuit {
     /// Args:
     ///     angle (float, :class:`.ParameterExpression`): The phase angle.
     #[setter(global_phase)]
-    pub fn set_global_phase_param(&mut self, angle: Param) -> PyResult<()> {
-        match angle {
-            Param::Float(angle) => self.set_global_phase_f64(angle),
-            Param::ParameterExpression(angle) => {
-                self.global_phase = Param::ParameterExpression(angle);
-            }
-            Param::Obj(_) => return Err(PyTypeError::new_err("Invalid type for global phase")),
-        }
-        Ok(())
+    pub fn set_global_phase(&mut self, angle: Param) -> PyResult<()> {
+        self.set_global_phase_param(angle).map(|_| ())
     }
 
     /// Remove all operation nodes with the given name.
@@ -5816,7 +5809,7 @@ impl DAGCircuit {
         };
         // Put the new node in-between the previously "last" nodes on each wire
         // and the terminal map.
-        let termini: IndexSet<NodeIndex, ::ahash::RandomState> = self
+        let termini: IndexSet<NodeIndex, ::foldhash::fast::RandomState> = self
             .qargs_interner
             .get(qubits_id)
             .iter()
@@ -5872,7 +5865,7 @@ impl DAGCircuit {
     ) -> PyResult<(Vec<Clbit>, Option<Vec<Var>>)> {
         let (all_clbits, vars): (Vec<Clbit>, Option<Vec<Var>>) = {
             if self.may_have_additional_wires(instr) {
-                let mut clbits: IndexSet<Clbit, ::ahash::RandomState> =
+                let mut clbits: IndexSet<Clbit, ::foldhash::fast::RandomState> =
                     IndexSet::from_iter(self.cargs_interner.get(instr.clbits).iter().copied());
                 let (additional_clbits, additional_vars) =
                     Python::attach(|py| self.additional_wires(py, instr))?;
@@ -6233,12 +6226,30 @@ impl DAGCircuit {
         Ok((in_node, out_node))
     }
 
-    /// Set the global phase to a float value.
+    /// Set the global phase to a float value.  Returns the old phase.
     ///
     /// Unlike the general [set_global_phase_param], this is infallible.
     #[inline]
-    pub fn set_global_phase_f64(&mut self, angle: f64) {
-        self.global_phase = Param::Float(angle.rem_euclid(::std::f64::consts::TAU));
+    pub fn set_global_phase_f64(&mut self, angle: f64) -> Param {
+        std::mem::replace(
+            &mut self.global_phase,
+            Param::Float(angle.rem_euclid(::std::f64::consts::TAU)),
+        )
+    }
+
+    /// Set the global phase to a general [Param].  Returns the old phase.
+    ///
+    /// Unlike the general [set_global_phase_param], this is infallible.
+    #[inline]
+    pub fn set_global_phase_param(&mut self, angle: Param) -> PyResult<Param> {
+        match angle {
+            Param::Float(angle) => Ok(self.set_global_phase_f64(angle)),
+            Param::ParameterExpression(angle) => Ok(std::mem::replace(
+                &mut self.global_phase,
+                Param::ParameterExpression(angle),
+            )),
+            Param::Obj(_) => Err(PyTypeError::new_err("Invalid type for global phase")),
+        }
     }
 
     /// Get the nodes on a given wire as a non-allocating iterator
@@ -6381,8 +6392,7 @@ impl DAGCircuit {
                         op_node
                             .instruction
                             .qubits
-                            .extract::<Vec<ShareableQubit>>(py)?
-                            .into_iter(),
+                            .extract::<Vec<ShareableQubit>>(py)?,
                     )?
                     .collect(),
             );
@@ -6392,8 +6402,7 @@ impl DAGCircuit {
                         op_node
                             .instruction
                             .clbits
-                            .extract::<Vec<ShareableClbit>>(py)?
-                            .into_iter(),
+                            .extract::<Vec<ShareableClbit>>(py)?,
                     )?
                     .collect(),
             );
@@ -7290,14 +7299,13 @@ impl DAGCircuit {
 
     pub fn add_global_phase(&mut self, value: &Param) -> PyResult<()> {
         match value {
-            Param::Obj(_) => {
-                return Err(PyTypeError::new_err(
-                    "Invalid parameter type, only float and parameter expression are supported",
-                ));
-            }
-            _ => self.set_global_phase_param(add_global_phase(&self.global_phase, value))?,
+            Param::Obj(_) => Err(PyTypeError::new_err(
+                "Invalid parameter type, only float and parameter expression are supported",
+            )),
+            _ => self
+                .set_global_phase_param(add_global_phase(&self.global_phase, value))
+                .map(|_| ()),
         }
-        Ok(())
     }
 
     /// Return the op name counts in the circuit

@@ -34,7 +34,7 @@ import setuptools_rust.build
 find_cargo_artifacts_orig = setuptools_rust.build._find_cargo_artifacts
 install_extension_orig = setuptools_rust.build.build_rust.install_extension
 out_dir = None
-generated_files = {"include": "qiskit.capi"}
+generated_files = {"include": "qiskit.capi", "_ctypes.py": "qiskit.capi"}
 
 
 @functools.wraps(find_cargo_artifacts_orig)
@@ -134,6 +134,9 @@ if os.getenv("QISKIT_NO_CACHE_GATES") == "1":
     features = []
 else:
     features = ["cache_pygates"]
+
+if os.getenv("QISKIT_BUILD_WITH_MIMALLOC") == "1":
+    features.append("mimalloc")
 
 
 setup(
