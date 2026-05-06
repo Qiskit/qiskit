@@ -14,6 +14,7 @@ use crate::clifford::Clifford;
 use fixedbitset::FixedBitSet;
 use rand::{RngExt, SeedableRng};
 use rand_pcg::Pcg64Mcg;
+use thiserror::Error;
 
 /// A dense Pauli operator class.
 #[derive(Clone, Debug, PartialEq)]
@@ -25,6 +26,15 @@ pub struct DensePauli {
     /// xz-phase
     pub xz_phase: u8,
 }
+
+#[derive(Error, Debug)]
+pub enum DensePauliError {
+    #[error("`DensePauli::commute` requires both Paulis to have the same length")]
+    DifferentLengthsCommute,
+    #[error("`DensePauli::compose` requires both Paulis to have the same length")]
+    DifferentLengthsCompose,
+}
+
 
 impl DensePauli {
     /// Return the identity Pauli operator on ``num_qubits`` qubits.
@@ -290,13 +300,15 @@ impl DensePauli {
         (pauli_x_sparse, pauli_z_sparse, out_indices, phase)
     }
 
-    /// Return whether two Paulis commute.
+    /// Return `true` if `self` and `other` commute.
     ///
-    /// Panics
+    /// This method **does not check** that the two Paulis act on the same
+    /// number of qubits. Calling it with mismatched lengths results in an
+    /// **undefined logical behavior**.
     ///
-    /// This function will panic if the two Paulis are of different length.
-    pub fn commutes(&self, other: &DensePauli) -> bool {
-        debug_assert!(self.num_qubits() == other.num_qubits());
+    /// See [`DensePauli::commutes`] for a safe version that validates input
+    /// lengths.
+    pub fn commutes_unchecked(&self, other: &DensePauli) -> bool {
         let num_qubits = self.num_qubits();
         let mut parity = false;
         for i in 0..num_qubits {
@@ -304,6 +316,29 @@ impl DensePauli {
         }
         !parity
     }
+
+    /// Return `true` if `self` and `other` commute.
+    ///
+    /// This method checks that both Paulis act on the same number of qubits.
+    /// If they do not, an error is returned.
+    /// 
+    /// See [`DensePauli::commutes_unchecked`] for a faster version without
+    /// input validation.
+    /// 
+    /// # Errors
+    ///
+    /// Returns [`DensePauliError::DifferentLengthsCommute`] if the two Paulis
+    /// have different lengths.
+    pub fn commutes(&self, other: &DensePauli) -> Result<bool, DensePauliError> {
+        if self.num_qubits() != other.num_qubits() {
+            return Err(DensePauliError::DifferentLengthsCommute)
+        }
+        Ok(self.commutes_unchecked(other))
+    }
+
+
+
+
 
     /// Compose ``self`` and ``other``, returning the result as a new Pauli.
     ///
@@ -339,7 +374,7 @@ impl DensePauli {
     /// Panics
     ///
     /// This function will panic if the two Paulis are of different length.
-    pub fn compose_with(&mut self, other: &DensePauli) {
+    pub fn compose_with_unchecked(&mut self, other: &DensePauli) {
         debug_assert!(self.num_qubits() == other.num_qubits());
         let num_qubits = self.num_qubits();
         self.xz_phase += other.xz_phase;
@@ -353,7 +388,41 @@ impl DensePauli {
         self.pauli_z ^= &other.pauli_z;
         self.xz_phase &= 3u8;
     }
+
+    pub fn compose_with3(&mut self, other: &DensePauli) {
+        debug_assert!(self.num_qubits() == other.num_qubits());
+        self.pauli_x ^= &other.pauli_x;
+        self.pauli_z ^= &other.pauli_z;
+
+        let num_qubits = self.num_qubits();
+        self.xz_phase += other.xz_phase;
+        for i in 0..num_qubits {
+            if self.pauli_x[i] & other.pauli_z[i] {
+                self.xz_phase += 2;
+            }
+        }
+
+        self.xz_phase &= 3u8;
+
+    }
+
+
+
+
+     pub fn compose_with(&mut self, other: &DensePauli) -> Result<(), DensePauliError> {
+        
+        if self.num_qubits() != other.num_qubits() {
+            return Err(DensePauliError::DifferentLengthsCompose);
+        }
+        self.compose_with_unchecked(other);
+
+        Ok(())
+    }
 }
+
+
+
+
 
 /// Evolve a Pauli :math:`P` by a Clifford :math:`C`, using the Heisenberg picture,
 /// namely compute :math:`C^\dagger P C`.
@@ -383,7 +452,7 @@ pub fn evolve_pauli_by_clifford(pauli: &DensePauli, cliff: &Clifford) -> DensePa
             let evolved_pauli = cliff.evolve_single_qubit_pauli_dense(pz, px, qbit);
 
             // compose the ouput evolved dense paulies
-            out_pauli.compose_with(&evolved_pauli);
+            out_pauli.compose_with_unchecked(&evolved_pauli);
         }
     }
 
@@ -394,6 +463,8 @@ pub fn evolve_pauli_by_clifford(pauli: &DensePauli, cliff: &Clifford) -> DensePa
 
 #[cfg(test)]
 mod tests {
+    use std::time::Instant;
+
     use fixedbitset::FixedBitSet;
 
     use crate::clifford::Clifford;
@@ -455,8 +526,8 @@ mod tests {
     fn assert_commute(p_label: &str, q_label: &str, expected: bool) {
         let p = DensePauli::from_label(p_label);
         let q = DensePauli::from_label(q_label);
-        let computed_pq = p.commutes(&q);
-        let computed_qp = p.commutes(&q);
+        let computed_pq = p.commutes_unchecked(&q);
+        let computed_qp = p.commutes_unchecked(&q);
         assert_eq!(computed_pq, expected);
         assert_eq!(computed_qp, expected);
     }
@@ -498,11 +569,11 @@ mod tests {
     #[test]
     fn test_compose_with() {
         let mut p = DensePauli::identity(3);
-        p.compose_with(&DensePauli::from_label("iXYZ"));
+        p.compose_with_unchecked(&DensePauli::from_label("iXYZ"));
         assert_eq!(p, DensePauli::from_label("iXYZ"));
-        p.compose_with(&DensePauli::from_label("ZII"));
+        p.compose_with_unchecked(&DensePauli::from_label("ZII"));
         assert_eq!(p, DensePauli::from_label("-YYZ"));
-        p.compose_with(&DensePauli::from_label("-YYZ"));
+        p.compose_with_unchecked(&DensePauli::from_label("-YYZ"));
         assert_eq!(p, DensePauli::from_label("III"));
     }
 
@@ -607,4 +678,73 @@ mod tests {
         assert_evolve("-iXY", &cliff, "-iIY");
         assert_evolve("II", &cliff, "II");
     }
+
+
+    #[test]
+    fn test_timings() {
+        // for nq in (0..10).chain([100, 1000, 10000, 100000]) {
+        //     let paulis: Vec<DensePauli> = (0..=10000).map(|i| DensePauli::from_random(nq, i as u64)).collect();
+
+
+
+        //     let start = Instant::now();
+        //     for _ in 0..100 {
+        //         for i in 0..10000 {
+        //              let _ = paulis[i].commutes(&paulis[i+1]).unwrap();
+
+        //         }
+        //     }
+        //     let duration = start.elapsed();
+
+
+        //     let start = Instant::now();
+        //     for _ in 0..100 {
+        //         for i in 0..10000 {
+        //             let _ = paulis[i].commutes_unchecked(&paulis[i+1]);
+        //         }
+        //     }
+        //     let duration2 = start.elapsed();
+
+        //     println!("nq = {:?}, commutation1 {:?}, commutation2 {:?}", nq, duration, duration2);
+        // }
+
+        for nq in (0..10).chain([100, 1000, 10000]) {
+            let paulis: Vec<DensePauli> = (0..10000).map(|i| DensePauli::from_random(nq, i as u64)).collect();
+
+            let start = Instant::now();
+            for _ in 0..100 {
+                let mut p = DensePauli::identity(nq);
+                for i in 0..10000 {
+                    p.compose_with_unchecked(&paulis[i]);
+                }
+            }
+            let duration = start.elapsed();
+
+
+            let start = Instant::now();
+            for _ in 0..100 {
+                let mut p = DensePauli::identity(nq);
+                for i in 0..10000 {
+                    p.compose_with(&paulis[i]).unwrap();
+                }
+            }
+            let duration2 = start.elapsed();
+
+
+
+            let start = Instant::now();
+            for _ in 0..100 {
+                let mut p = DensePauli::identity(nq);
+                for i in 0..10000 {
+                    p.compose_with3(&paulis[i]);
+                }
+            }
+            let duration3 = start.elapsed();
+
+            println!("nq = {:?}, composition1 {:?}, composition2 {:?}, composition3 {:?}", nq, duration, duration2, duration3);
+        }
+    }
+
 }
+
+
