@@ -8125,10 +8125,24 @@ impl<'a> Iterator for NodesOnWireIter<'a> {
     type Item = NodeIndex;
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        // If the wire is empty there are the input and output nodes which is the minimum
-        // If the dag is all on a single wire we would have all the operations + the 2 io
-        // nodes.
-        (2, Some(self.dag.num_ops() + 2))
+        match self.next_node.map(|n| &self.dag[n]) {
+            // If the wire is empty there are the input and output nodes which is the minimum
+            // If the dag is all on a single wire we would have all the operations + the 2 io
+            // nodes.
+            Some(NodeType::QubitIn(_) | NodeType::ClbitIn(_) | NodeType::VarIn(_)) => {
+                (2, Some(self.dag.num_ops() + 2))
+            }
+            // If the iterator is on the output node for the next there is only 1 node left
+            Some(NodeType::QubitOut(_) | NodeType::ClbitOut(_) | NodeType::VarOut(_)) => {
+                (1, Some(1))
+            }
+            // If there is an operation the minimum is 2 for the operation and then the output node
+            // while the maximum is num_ops + 1 if the next node is the first operation node and all
+            // the nodes are on a single wire + the output node
+            Some(NodeType::Operation(_)) => (2, Some(self.dag.num_ops() + 1)),
+            // If next is none we've finished iterating.
+            None => (0, Some(0)),
+        }
     }
 
     fn next(&mut self) -> Option<Self::Item> {
