@@ -8133,18 +8133,9 @@ impl<'a> Iterator for NodesOnWireIter<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let out_node = self.next_node?;
-        self.next_node = self
-            .dag
-            .dag
-            .edges_directed(out_node, Outgoing)
-            .filter_map(|e: EdgeReference<'a, Wire>| {
-                if e.weight() == &self.wire {
-                    Some(e.target())
-                } else {
-                    None
-                }
-            })
-            .next();
+        self.next_node = self.dag.dag.edges_directed(out_node, Outgoing).find_map(
+            |e: EdgeReference<'a, Wire>| (e.weight() == &self.wire).then_some(e.target()),
+        );
         Some(out_node)
     }
 }
