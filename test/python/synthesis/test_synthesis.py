@@ -1458,6 +1458,17 @@ class TestTwoQubitControlledUDecompose(CheckDecompositions):
         circ = decomposer(unitary)
         self.assertEqual(Operator(unitary), Operator(circ))
 
+        # bound on the number of 2-qubit gates
+        num2q = circ.size(filter_function=lambda x: x.operation.num_qubits == 2)
+        self.assertLessEqual(num2q, 3)
+
+        # bound on the number of 1-qubit gates
+        self.assertLessEqual(circ.count_ops().get("u", 0), 8)
+        self.assertLessEqual(circ.count_ops().get("sx", 0), 14)
+        self.assertLessEqual(circ.count_ops().get("rx", 0), 14)
+        self.assertLessEqual(circ.count_ops().get("ry", 0), 8)
+        self.assertLessEqual(circ.count_ops().get("rz", 0), 22)
+
     def test_not_rxx_equivalent(self):
         """Test that an exception is raised if the gate is not equivalent to an RXXGate"""
         gate = SwapGate
