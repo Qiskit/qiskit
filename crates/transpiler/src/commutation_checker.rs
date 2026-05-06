@@ -518,18 +518,21 @@ impl CommutationChecker {
             OperationRef::PauliProductMeasurement(ppm2),
         ) = (op1, op2)
         {
-            let mut qarg_map: Vec<usize> = vec![usize::MAX; qargs1.len()];
             if cargs1 == cargs2 {
                 if (ppm1.neg != ppm2.neg) || (qargs1.len() != qargs2.len()) {
                     return Ok(false);
                 }
                 // Mark all qubit indices in qargs1
-                for (i, &q) in qargs1.iter().enumerate() {
-                    qarg_map[q.index()] = i;
-                }
+                let qarg_map = qargs1
+                    .iter()
+                    .enumerate()
+                    .map(|(i, q)| (q.index(), i))
+                    .collect::<HashMap<_, _>>();
                 // Check that every qubit index in qargs2 is marked and has the same z,x values.
                 for (j, &q) in qargs2.iter().enumerate() {
-                    let i = qarg_map[q.index()];
+                    let Some(&i) = qarg_map.get(&q.index()) else {
+                        return Ok(false);
+                    };
                     if i == usize::MAX {
                         return Ok(false);
                     }
@@ -556,14 +559,14 @@ impl CommutationChecker {
             try_pauli_generator_for_pauli_based(op1),
             try_pauli_generator_for_pauli_based(op2),
         ) {
-            let mut qarg_map = vec![usize::MAX; qargs1.len()];
-            for (i, &q) in qargs1.iter().enumerate() {
-                qarg_map[q.index()] = i;
-            }
+            let qarg_map = qargs1
+                .iter()
+                .enumerate()
+                .map(|(i, q)| (q.index(), i))
+                .collect::<HashMap<_, _>>();
             let mut parity = false;
             for (j, &q) in qargs2.iter().enumerate() {
-                let i = qarg_map[q.index()];
-                if i != usize::MAX {
+                if let Some(&i) = qarg_map.get(&q.index()) {
                     parity ^= (x1[i] && z2[j]) ^ (z1[i] && x2[j]);
                 }
             }
