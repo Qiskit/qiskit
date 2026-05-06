@@ -2432,7 +2432,7 @@ q_1: ┤ Rz(1.2346e8) ├┤ Rx(0.12346) ├┤ Rx(1.2346e-5) ├┤ Rx(2π/3) �
                 })
                 .into(),
                 None,
-                &(0..11).map(|q| Qubit(q)).collect::<Vec<Qubit>>(),
+                &(0..11).map(Qubit).collect::<Vec<Qubit>>(),
                 &[],
             )
             .unwrap();
