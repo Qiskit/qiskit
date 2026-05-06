@@ -31,7 +31,7 @@ use crate::linalg::nalgebra_array_view;
 
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::gate_matrix::{H_GATE, ONE_QUBIT_IDENTITY, S_GATE, SDG_GATE};
+use qiskit_circuit::gate_matrix::{H_GATE, S_GATE, SDG_GATE};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{NoBlocks, Qubit};
@@ -41,12 +41,6 @@ use super::gate_sequence::{TwoQubitGateSequence, TwoQubitSequenceVec};
 use super::weyl_decomposition::{Specialization, TwoQubitWeylDecomposition};
 
 // ToDo: move to common (also used by basis_decomposer)
-static IMAT: Matrix2<Complex64> = Matrix2::new(
-    ONE_QUBIT_IDENTITY[0][0],
-    ONE_QUBIT_IDENTITY[0][1],
-    ONE_QUBIT_IDENTITY[1][0],
-    ONE_QUBIT_IDENTITY[1][1],
-);
 static HGATE: Matrix2<Complex64> =
     Matrix2::new(H_GATE[0][0], H_GATE[0][1], H_GATE[1][0], H_GATE[1][1]);
 static SGATE: Matrix2<Complex64> =
@@ -282,16 +276,17 @@ impl TwoQubitControlledUDecomposer {
         let rxx_k1r_inv = rxx_mats[2]; // after RXX(a), qubit 0
         let rxx_k1l_inv = rxx_mats[3]; // after RXX(a), qubit 1
 
-        let mut ryy_k2r_inv = IMAT; // before RXX(b), qubit 0
-        let mut ryy_k2l_inv = IMAT; // before RXX(b), qubit 1
-        let mut ryy_k1r_inv = IMAT; // after RXX(b), qubit 0
-        let mut ryy_k1l_inv = IMAT; // after RXX(b), qubit 1
+        let mut ryy_k2r_inv: Matrix2<Complex64>; // before RYY(b), qubit 0
+        let mut ryy_k2l_inv: Matrix2<Complex64>; // before RYY(b), qubit 1
+        let mut ryy_k1r_inv: Matrix2<Complex64>; // after RYY(b), qubit 0
+        let mut ryy_k1l_inv: Matrix2<Complex64>; // after RYY(b), qubit 1
 
-        let mut rzz_k2r_inv = IMAT; // before RXX(c), qubit 0
-        let mut rzz_k2l_inv = IMAT; // before RXX(c), qubit 1
-        let mut rzz_k1r_inv = IMAT; // after RXX(c), qubit 0
-        let mut rzz_k1l_inv = IMAT; // after RXX(c), qubit 1
+        let mut rzz_k2r_inv: Matrix2<Complex64>; // before RZZ(c), qubit 0
+        let mut rzz_k2l_inv: Matrix2<Complex64>; // before RZZ(c), qubit 1
+        let mut rzz_k1r_inv: Matrix2<Complex64>; // after RZZ(c), qubit 0
+        let mut rzz_k1l_inv: Matrix2<Complex64>; // after RZZ(c), qubit 1
 
+        // before the weyl_gate
         c2r = rxx_k2r_inv * c2r;
         c2l = rxx_k2l_inv * c2l;
 
@@ -304,15 +299,15 @@ impl TwoQubitControlledUDecomposer {
             let (circ_b, ryy_mats) = self.to_rxx_gate(-2.0 * target_decomposed.b)?;
             global_phase += circ_b.global_phase;
 
-            ryy_k2r_inv = ryy_mats[0]; // before RXX(b), qubit 0
-            ryy_k2l_inv = ryy_mats[1]; // before RXX(b), qubit 1
-            ryy_k1r_inv = ryy_mats[2]; // after RXX(b), qubit 0
-            ryy_k1l_inv = ryy_mats[3]; // after RXX(b), qubit 1
+            ryy_k2r_inv = ryy_mats[0]; // before RYY(b), qubit 0
+            ryy_k2l_inv = ryy_mats[1]; // before RYY(b), qubit 1
+            ryy_k1r_inv = ryy_mats[2]; // after RYY(b), qubit 0
+            ryy_k1l_inv = ryy_mats[3]; // after RYY(b), qubit 1
 
-            ryy_k2r_inv = ryy_k2r_inv * SDGGATE * rxx_k1r_inv; // between RXX(a) and RXX(b), qubit 0
-            ryy_k2l_inv = ryy_k2l_inv * SDGGATE * rxx_k1l_inv; // between RXX(a) and RXX(b), qubit 1
-            ryy_k1r_inv = SGATE * ryy_k1r_inv; // between RXX(b) and RXX(c), qubit 0
-            ryy_k1l_inv = SGATE * ryy_k1l_inv; // between RXX(b) and RXX(c), qubit 1
+            ryy_k2r_inv = ryy_k2r_inv * SDGGATE * rxx_k1r_inv; // between RXX(a) and RYY(b), qubit 0
+            ryy_k2l_inv = ryy_k2l_inv * SDGGATE * rxx_k1l_inv; // between RXX(a) and RYY(b), qubit 1
+            ryy_k1r_inv = SGATE * ryy_k1r_inv; // between RYY(b) and RZZ(c), qubit 0
+            ryy_k1l_inv = SGATE * ryy_k1l_inv; // between RYY(b) and RZZ(c), qubit 1
 
             self.append_1q_sequence(
                 &mut circ.gates,
@@ -352,8 +347,8 @@ impl TwoQubitControlledUDecomposer {
                 rzz_k1r_inv = rzz_mats[2]; // after RZZ(c), qubit 0
                 rzz_k1l_inv = rzz_mats[3]; // after RZZ(c), qubit 1
 
-                rzz_k2r_inv = rzz_k2r_inv * HGATE * ryy_k1r_inv; // between RZZ(b) and RZZ(c), qubit 0
-                rzz_k2l_inv = rzz_k2l_inv * HGATE * ryy_k1l_inv; // between RZZ(b) and RZZ(c), qubit 1
+                rzz_k2r_inv = rzz_k2r_inv * HGATE * ryy_k1r_inv; // between RYY(b) and RZZ(c), qubit 0
+                rzz_k2l_inv = rzz_k2l_inv * HGATE * ryy_k1l_inv; // between RYY(b) and RZZ(c), qubit 1
                 rzz_k1r_inv = HGATE * rzz_k1r_inv; // after RZZ(c), qubit 0
                 rzz_k1l_inv = HGATE * rzz_k1l_inv; // after RZZ(c), qubit 1
 
@@ -392,8 +387,8 @@ impl TwoQubitControlledUDecomposer {
                     .try_inverse()
                     .expect("matrix k1l is not invertible"); // qfter RZZ(c), qubit 1
 
-                rzz_k2r_inv = rzz_k2r_inv * HGATE * ryy_k1r_inv; // between RZZ(b) and RZZ(c), qubit 0
-                rzz_k2l_inv = rzz_k2l_inv * HGATE * ryy_k1l_inv; // between RZZ(b) and RZZ(c), qubit 1
+                rzz_k2r_inv = rzz_k2r_inv * HGATE * ryy_k1r_inv; // between RYY(b) and RZZ(c), qubit 0
+                rzz_k2l_inv = rzz_k2l_inv * HGATE * ryy_k1l_inv; // between RYY(b) and RZZ(c), qubit 1
                 rzz_k1r_inv = HGATE * rzz_k1r_inv; // after RZZ(c), qubit 0
                 rzz_k1l_inv = HGATE * rzz_k1l_inv; // after RZZ(c), qubit 1
 
@@ -425,8 +420,9 @@ impl TwoQubitControlledUDecomposer {
             rzz_k1l_inv = ryy_k1l_inv;
         }
 
-        c1r = c1r * rzz_k1r_inv;
-        c1l = c1l * rzz_k1l_inv;
+        // after the weyl_gate
+        c1r *= rzz_k1r_inv;
+        c1l *= rzz_k1l_inv;
 
         self.append_1q_sequence(&mut circ.gates, &mut global_phase, c1r.as_view(), 0, false);
         self.append_1q_sequence(&mut circ.gates, &mut global_phase, c1l.as_view(), 1, false);
