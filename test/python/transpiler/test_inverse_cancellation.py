@@ -15,6 +15,7 @@ Testing InverseCancellation
 """
 
 import unittest
+import itertools
 import numpy as np
 
 import ddt
@@ -747,20 +748,17 @@ class TestCXCancellation(QiskitTestCase):
 
         CS/CSdg should cancel if they are on the same set of qubits, irrespective of the order.
         """
-        gates = [CSGate(), CSdgGate()]
-
         # We're testing CS and CSdg in every possible combination and qubit order.
         # All should cancel.
-        for i in [0, 1]:
-            for j in [0, 1]:
-                for gate_idx in [0, 1]:
-                    with self.subTest(i=i, j=j, gate_idx=gate_idx):
-                        qc = QuantumCircuit(2)
-                        qc.append(gates[gate_idx], [i, (i + 1) % 2])
-                        qc.append(gates[(gate_idx + 1) % 2], [j, (j + 1) % 2])
+        for qargs in itertools.product([(0, 1), (1, 0)], repeat=2):
+            for gates in itertools.permutations([CSGate(), CSdgGate()]):
+                qc = QuantumCircuit(2)
+                qc.append(gates[0], qargs[0])
+                qc.append(gates[1], qargs[1])
 
-                        tqc = InverseCancellation()(qc)
-                        self.assertEqual(tqc.count_ops(), {})
+                with self.subTest(gates=gates, qargs=qargs):
+                    tqc = InverseCancellation()(qc)
+                    self.assertEqual(tqc.count_ops(), {})
 
         # sanity check: verify that CS-CSdg doesn't globally get cancelled
         with self.subTest(msg="sanity check"):

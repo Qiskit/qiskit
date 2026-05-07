@@ -174,17 +174,32 @@ static SELF_INVERSE_GATES_FOR_CANCELLATION: [StandardGate; 15] = [
     StandardGate::C3X,
 ];
 
-// Inverse cancellation pairs, plus a static array indicating
-// whether the gates are symmetric and the qubit order does not matter.
-// For CS-CSdg, for example, the qubit order is irrelevant since the
-// gates are symmetric.
-static INVERSE_PAIRS_FOR_CANCELLATION: [[StandardGate; 2]; 4] = [
-    [StandardGate::T, StandardGate::Tdg],
-    [StandardGate::S, StandardGate::Sdg],
-    [StandardGate::SX, StandardGate::SXdg],
-    [StandardGate::CS, StandardGate::CSdg],
+// Inverse cancellation pairs. We store pairs, plus additional info
+// if the gates are symmetric and cancel irrespective of qubit order.
+struct InversePair {
+    gates: [StandardGate; 2],
+    symmetric: bool,
+}
+static INVERSE_PAIRS_FOR_CANCELLATION: [InversePair; 4] = [
+    // for 1-q gates, the symmetric flag does not matter -- it is slightly more efficient
+    // to set it to `false` in this case to avoid more involved qubit equality checks
+    InversePair {
+        gates: [StandardGate::T, StandardGate::Tdg],
+        symmetric: false,
+    },
+    InversePair {
+        gates: [StandardGate::S, StandardGate::Sdg],
+        symmetric: false,
+    },
+    InversePair {
+        gates: [StandardGate::SX, StandardGate::SXdg],
+        symmetric: false,
+    },
+    InversePair {
+        gates: [StandardGate::CS, StandardGate::CSdg],
+        symmetric: true,
+    },
 ];
-static INVERSE_PAIRS_SYMMETRIC: [bool; 4] = [false, false, false, true];
 
 fn std_self_inverse(dag: &mut DAGCircuit) {
     if !SELF_INVERSE_GATES_FOR_CANCELLATION
@@ -240,22 +255,22 @@ fn std_self_inverse(dag: &mut DAGCircuit) {
 }
 
 fn std_inverse_pairs(dag: &mut DAGCircuit) {
-    if !INVERSE_PAIRS_FOR_CANCELLATION.iter().any(|gate| {
-        dag.get_op_counts().contains_key(gate[0].name())
-            && dag.get_op_counts().contains_key(gate[1].name())
+    if !INVERSE_PAIRS_FOR_CANCELLATION.iter().any(|pair| {
+        dag.get_op_counts().contains_key(pair.gates[0].name())
+            && dag.get_op_counts().contains_key(pair.gates[1].name())
     }) {
         return;
     }
     // Handle inverse pairs
-    for (pair_idx, [gate_0, gate_1]) in INVERSE_PAIRS_FOR_CANCELLATION.iter().enumerate() {
-        if !dag.get_op_counts().contains_key(gate_0.name())
-            || !dag.get_op_counts().contains_key(gate_1.name())
+    for pair in INVERSE_PAIRS_FOR_CANCELLATION.iter() {
+        if !dag.get_op_counts().contains_key(pair.gates[0].name())
+            || !dag.get_op_counts().contains_key(pair.gates[1].name())
         {
             continue;
         }
         let filter = |inst: &PackedInstruction| -> bool {
             match inst.op.view() {
-                OperationRef::StandardGate(gate) => gate == *gate_0 || gate == *gate_1,
+                OperationRef::StandardGate(gate) => gate == pair.gates[0] || gate == pair.gates[1],
                 _ => false,
             }
         };
@@ -271,7 +286,7 @@ fn std_inverse_pairs(dag: &mut DAGCircuit) {
                 };
 
                 // For symmetric gates, check if the qubits match irrespective of the order
-                let qubits_match = if INVERSE_PAIRS_SYMMETRIC[pair_idx] {
+                let qubits_match = if pair.symmetric {
                     let inst_qubits = dag.get_qargs(inst.qubits);
                     let next_inst_qubits = dag.get_qargs(next_inst.qubits);
 
@@ -284,10 +299,10 @@ fn std_inverse_pairs(dag: &mut DAGCircuit) {
                     inst.qubits == next_inst.qubits
                 };
                 if qubits_match
-                    && ((inst.op.try_standard_gate() == Some(*gate_0)
-                        && next_inst.op.try_standard_gate() == Some(*gate_1))
-                        || (inst.op.try_standard_gate() == Some(*gate_1)
-                            && next_inst.op.try_standard_gate() == Some(*gate_0)))
+                    && ((inst.op.try_standard_gate() == Some(pair.gates[0])
+                        && next_inst.op.try_standard_gate() == Some(pair.gates[1]))
+                        || (inst.op.try_standard_gate() == Some(pair.gates[1])
+                            && next_inst.op.try_standard_gate() == Some(pair.gates[0])))
                 {
                     dag.remove_op_node(nodes[i]);
                     dag.remove_op_node(nodes[i + 1]);
