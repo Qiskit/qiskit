@@ -174,12 +174,17 @@ static SELF_INVERSE_GATES_FOR_CANCELLATION: [StandardGate; 15] = [
     StandardGate::C3X,
 ];
 
+// Inverse cancellation pairs, plus a static array indicating
+// whether the gates are symmetric and the qubit order does not matter.
+// For CS-CSdg, for example, the qubit order is irrelevant since the
+// gates are symmetric.
 static INVERSE_PAIRS_FOR_CANCELLATION: [[StandardGate; 2]; 4] = [
     [StandardGate::T, StandardGate::Tdg],
     [StandardGate::S, StandardGate::Sdg],
     [StandardGate::SX, StandardGate::SXdg],
     [StandardGate::CS, StandardGate::CSdg],
 ];
+static INVERSE_PAIRS_SYMMETRIC: [bool; 4] = [false, false, false, true];
 
 fn std_self_inverse(dag: &mut DAGCircuit) {
     if !SELF_INVERSE_GATES_FOR_CANCELLATION
@@ -242,7 +247,7 @@ fn std_inverse_pairs(dag: &mut DAGCircuit) {
         return;
     }
     // Handle inverse pairs
-    for [gate_0, gate_1] in INVERSE_PAIRS_FOR_CANCELLATION {
+    for (pair_idx, [gate_0, gate_1]) in INVERSE_PAIRS_FOR_CANCELLATION.iter().enumerate() {
         if !dag.get_op_counts().contains_key(gate_0.name())
             || !dag.get_op_counts().contains_key(gate_1.name())
         {
@@ -250,7 +255,7 @@ fn std_inverse_pairs(dag: &mut DAGCircuit) {
         }
         let filter = |inst: &PackedInstruction| -> bool {
             match inst.op.view() {
-                OperationRef::StandardGate(gate) => gate == gate_0 || gate == gate_1,
+                OperationRef::StandardGate(gate) => gate == *gate_0 || gate == *gate_1,
                 _ => false,
             }
         };
@@ -264,11 +269,25 @@ fn std_inverse_pairs(dag: &mut DAGCircuit) {
                 let NodeType::Operation(next_inst) = &dag[nodes[i + 1]] else {
                     unreachable!("Not an op node");
                 };
-                if inst.qubits == next_inst.qubits
-                    && (inst.op.try_standard_gate() == Some(gate_0)
-                        && next_inst.op.try_standard_gate() == Some(gate_1))
-                    || (inst.op.try_standard_gate() == Some(gate_1)
-                        && next_inst.op.try_standard_gate() == Some(gate_0))
+
+                // For symmetric gates, check if the qubits match irrespective of the order
+                let qubits_match = if INVERSE_PAIRS_SYMMETRIC[pair_idx] {
+                    let inst_qubits = dag.get_qargs(inst.qubits);
+                    let next_inst_qubits = dag.get_qargs(next_inst.qubits);
+
+                    // We know that we have only 2-qubit gates here, so we perform a brief
+                    // check based on the slice, without converting to a set. We also do not
+                    // have to check the size matches, since we later check that the gates match,
+                    // hence we know the number of qubits matches.
+                    inst_qubits.iter().all(|q| next_inst_qubits.contains(q))
+                } else {
+                    inst.qubits == next_inst.qubits
+                };
+                if qubits_match
+                    && ((inst.op.try_standard_gate() == Some(*gate_0)
+                        && next_inst.op.try_standard_gate() == Some(*gate_1))
+                        || (inst.op.try_standard_gate() == Some(*gate_1)
+                            && next_inst.op.try_standard_gate() == Some(*gate_0)))
                 {
                     dag.remove_op_node(nodes[i]);
                     dag.remove_op_node(nodes[i + 1]);

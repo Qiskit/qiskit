@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`.InverseCancellation` where pairs of symmetric gates
+    (such as :class:`.CSGate` and :class:`.CSdgGate`) were not correctly cancelled
+    if their qubit arguments were the same but in different order. Symmetric
+    gates should get cancelled irrespective of the qubit order.
+
+    Fixed `#15855 <https://github.com/Qiskit/qiskit/issues/15855>`__.
