@@ -1,0 +1,8 @@
+---
+features_quantum_info:
+  - |
+    Introduces the :class:`.PhasedQubitSparsePauli` and :class:`.PhasedQubitSparsePauliList`
+    classes. These classes represent, respectively, a single Pauli operator and a list of Pauli
+    operators stored in qubit-sparse format. These classes are very similar to
+    :class:`.QubitSparsePauli` and :class:`.QubitSparsePauliList`, except they additionally contain
+    phase information. 

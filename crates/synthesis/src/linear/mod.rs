@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -12,8 +12,8 @@
 
 use crate::QiskitError;
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2, PyReadwriteArray2};
-use pyo3::prelude::*;
 use pyo3::IntoPyObjectExt;
+use pyo3::prelude::*;
 
 pub mod lnn;
 mod pmh;
@@ -38,7 +38,7 @@ fn gauss_elimination_with_perm(
     mut mat: PyReadwriteArray2<bool>,
     ncols: Option<usize>,
     full_elim: Option<bool>,
-) -> PyResult<PyObject> {
+) -> PyResult<Py<PyAny>> {
     let matmut = mat.as_array_mut();
     let perm = utils::gauss_elimination_with_perm_inner(matmut, ncols, full_elim);
     perm.into_py_any(py)
@@ -71,7 +71,7 @@ fn gauss_elimination(
 ///     mat: a boolean matrix after gaussian elimination
 /// Returns:
 ///     rank: the rank of the matrix
-fn compute_rank_after_gauss_elim(py: Python, mat: PyReadonlyArray2<bool>) -> PyResult<PyObject> {
+fn compute_rank_after_gauss_elim(py: Python, mat: PyReadonlyArray2<bool>) -> PyResult<Py<PyAny>> {
     let view = mat.as_array();
     let rank = utils::compute_rank_after_gauss_elim_inner(view);
     rank.into_py_any(py)
@@ -84,7 +84,7 @@ fn compute_rank_after_gauss_elim(py: Python, mat: PyReadonlyArray2<bool>) -> PyR
 ///     mat: a boolean matrix
 /// Returns:
 ///     rank: the rank of the matrix
-fn compute_rank(py: Python, mat: PyReadonlyArray2<bool>) -> PyResult<PyObject> {
+fn compute_rank(py: Python, mat: PyReadonlyArray2<bool>) -> PyResult<Py<PyAny>> {
     let rank = utils::compute_rank_inner(mat.as_array());
     rank.into_py_any(py)
 }

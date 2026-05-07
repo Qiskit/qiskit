@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -28,6 +28,7 @@ from qiskit._accelerate.synthesis.multi_controlled import (
     c4x as c4x_rs,
     synth_mcx_n_dirty_i15 as synth_mcx_n_dirty_i15_rs,
     synth_mcx_noaux_v24 as synth_mcx_noaux_v24_rs,
+    synth_mcx_noaux_hp24 as synth_mcx_noaux_hp24_rs,
 )
 
 
@@ -40,9 +41,9 @@ def synth_mcx_n_dirty_i15(
     Synthesize a multi-controlled X gate with :math:`k` controls based on the paper
     by Iten et al. [1].
 
-    For :math:`k\ge 4` the method uses :math:`k - 2` dirty ancillary qubits, producing a circuit
-    with :math:`2 * k - 1` qubits and at most :math:`8 * k - 6` CX gates. For :math:`k\le 3`
-    explicit efficient circuits are used instead.
+    For :math:`k\ge 4`, the method uses :math:`k - 2` dirty ancillary qubits, producing a circuit
+    with :math:`2 * k - 1` qubits and at most :math:`8 * k - 6` CX gates. For :math:`k\le 3`,
+    explicitly constructed efficient circuits that require no ancillary qubits are used instead.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -56,20 +57,53 @@ def synth_mcx_n_dirty_i15(
     Returns:
         The synthesized quantum circuit.
 
+    Raises:
+        QiskitError: if ``num_ctrl_qubits`` is illegal.
+
     References:
         1. Iten et. al., *Quantum Circuits for Isometries*, Phys. Rev. A 93, 032318 (2016),
-           `arXiv:1501.06911 <http://arxiv.org/abs/1501.06911>`_
+           `arXiv:1501.06911 <https://arxiv.org/abs/1501.06911>`_
     """
+    if num_ctrl_qubits < 0:
+        raise QiskitError(
+            "synth_mcx_n_dirty_i15 cannot be called with a negative number of control qubits."
+        )
+
     return QuantumCircuit._from_circuit_data(
         synth_mcx_n_dirty_i15_rs(num_ctrl_qubits, relative_phase, action_only)
     )
 
 
+def _synth_mcx_special_cases(num_ctrl_qubits: int) -> QuantumCircuit:
+    """Internal function that produces default MCX circuits when num_ctrl_qubits is 0, 1, or 2."""
+    if num_ctrl_qubits == 0:
+        qc = QuantumCircuit(1)
+        qc.x(0)
+        return qc
+
+    elif num_ctrl_qubits == 1:
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        return qc
+
+    elif num_ctrl_qubits == 2:
+        qc = QuantumCircuit(3)
+        qc.ccx(0, 1, 2)
+        return qc
+
+    else:
+        raise QiskitError(
+            "_synth_mcx_special_cases should be called with only 0, 1, or 2 controls."
+        )
+
+
 def synth_mcx_n_clean_m15(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
-    Synthesize a multi-controlled X gate with :math:`k` controls using :math:`k - 2`
+    Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`k - 2`
     clean ancillary qubits with producing a circuit with :math:`2 * k - 1` qubits
     and at most :math:`6 * k - 6` CX gates, by Maslov [1].
+    For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
+    (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -77,14 +111,24 @@ def synth_mcx_n_clean_m15(num_ctrl_qubits: int) -> QuantumCircuit:
     Returns:
         The synthesized quantum circuit.
 
+    Raises:
+        QiskitError: if ``num_ctrl_qubits`` is illegal.
+
     References:
         1. Maslov., Phys. Rev. A 93, 022311 (2016),
            `arXiv:1508.03273 <https://arxiv.org/pdf/1508.03273>`_
     """
+    if num_ctrl_qubits < 0:
+        raise QiskitError(
+            "synth_mcx_n_clean_m15 cannot be called with a negative number of control qubits."
+        )
+
+    if num_ctrl_qubits <= 2:
+        return _synth_mcx_special_cases(num_ctrl_qubits)
 
     num_qubits = 2 * num_ctrl_qubits - 1
     q = QuantumRegister(num_qubits, name="q")
-    qc = QuantumCircuit(q, name="mcx_vchain")
+    qc = QuantumCircuit(q)
     q_controls = q[:num_ctrl_qubits]
     q_target = q[num_ctrl_qubits]
     q_ancillas = q[num_ctrl_qubits + 1 :]
@@ -110,9 +154,11 @@ def synth_mcx_n_clean_m15(num_ctrl_qubits: int) -> QuantumCircuit:
 
 def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
-    Synthesize a multi-controlled X gate with :math:`k` controls using a single
+    Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using a single
     clean ancillary qubit producing a circuit with :math:`k + 2` qubits and at most
     :math:`16 * k - 24` CX gates, by [1], [2].
+    For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
+    (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -120,12 +166,22 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
     Returns:
         The synthesized quantum circuit.
 
+    Raises:
+        QiskitError: if ``num_ctrl_qubits`` is illegal.
+
     References:
         1. Barenco et. al., *Elementary gates for quantum computation*, Phys.Rev. A52 3457 (1995),
            `arXiv:quant-ph/9503016 <https://arxiv.org/abs/quant-ph/9503016>`_
         2. Iten et. al., *Quantum Circuits for Isometries*, Phys. Rev. A 93, 032318 (2016),
-           `arXiv:1501.06911 <http://arxiv.org/abs/1501.06911>`_
+           `arXiv:1501.06911 <https://arxiv.org/abs/1501.06911>`_
     """
+    if num_ctrl_qubits < 0:
+        raise QiskitError(
+            "synth_mcx_1_clean_b95 cannot be called with a negative number of control qubits."
+        )
+
+    if num_ctrl_qubits <= 2:
+        return _synth_mcx_special_cases(num_ctrl_qubits)
 
     if num_ctrl_qubits == 3:
         return synth_c3x()
@@ -135,14 +191,14 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
 
     num_qubits = num_ctrl_qubits + 2
     q = QuantumRegister(num_qubits, name="q")
-    qc = QuantumCircuit(q, name="mcx_recursive")
+    qc = QuantumCircuit(q)
 
     num_ctrl_qubits = len(q) - 1
     q_ancilla = q[-1]
     q_target = q[-2]
     middle = ceil(num_ctrl_qubits / 2)
 
-    # The contruction involving 4 MCX gates is described in Lemma 7.3 of [1], and also
+    # The construction involving 4 MCX gates is described in Lemma 7.3 of [1], and also
     # appears as Lemma 9 in [2]. The optimization that the first and third MCX gates
     # can be synthesized up to relative phase follows from Lemma 7 in [2], as a diagonal
     # gate following the first MCX gate commutes with the second MCX gate, and
@@ -168,23 +224,36 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
 
 def synth_mcx_gray_code(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
-    Synthesize a multi-controlled X gate with :math:`k` controls using the Gray code.
+    Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using the Gray code.
 
     Produces a quantum circuit with :math:`k + 1` qubits. This method
     produces exponentially many CX gates and should be used only for small
     values of :math:`k`.
+    For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
+    (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
 
+    Raises:
+        QiskitError: if ``num_ctrl_qubits`` is illegal.
+
     Returns:
         The synthesized quantum circuit.
     """
+    if num_ctrl_qubits < 0:
+        raise QiskitError(
+            "synth_mcx_gray_code cannot be called with a negative number of control qubits."
+        )
+
+    if num_ctrl_qubits <= 2:
+        return _synth_mcx_special_cases(num_ctrl_qubits)
+
     from qiskit.circuit.library.standard_gates.u3 import _gray_code_chain
 
     num_qubits = num_ctrl_qubits + 1
     q = QuantumRegister(num_qubits, name="q")
-    qc = QuantumCircuit(q, name="mcx_gray")
+    qc = QuantumCircuit(q)
     qc._append(HGate(), [q[-1]], [])
     scaled_lam = np.pi / (2 ** (num_ctrl_qubits - 1))
     bottom_gate = CU1Gate(scaled_lam)
@@ -212,18 +281,57 @@ def synth_mcx_noaux_v24(num_ctrl_qubits: int) -> QuantumCircuit:
     Returns:
         The synthesized quantum circuit.
 
+    Raises:
+        QiskitError: if ``num_ctrl_qubits`` is illegal.
+
     References:
         1. Vale et. al., *Circuit Decomposition of Multicontrolled Special Unitary
            Single-Qubit Gates*, IEEE TCAD 43(3) (2024),
            `arXiv:2302.06377 <https://arxiv.org/abs/2302.06377>`_
     """
+    if num_ctrl_qubits < 0:
+        raise QiskitError(
+            "synth_mcx_noaux_v24 cannot be called with a negative number of control qubits."
+        )
+
     circ = QuantumCircuit._from_circuit_data(synth_mcx_noaux_v24_rs(num_ctrl_qubits))
+    return circ
+
+
+def synth_mcx_noaux_hp24(num_ctrl_qubits: int) -> QuantumCircuit:
+    r"""
+    Synthesize a multi-controlled X gate with :math:`k` controls based on
+    the work by Huang and Palsberg.
+
+    Produces a quantum circuit with :math:`k + 1` qubits. The number of CX-gates
+    is linear in :math:`k`.
+
+    Args:
+        num_ctrl_qubits: The number of control qubits.
+
+    Returns:
+        The synthesized quantum circuit.
+
+    Raises:
+        QiskitError: if ``num_ctrl_qubits`` is illegal.
+
+    References:
+        1. Huang and Palsberg, *Compiling Conditional Quantum Gates without Using
+           Helper Qubits*, PLDI (2024),
+           <https://dl.acm.org/doi/10.1145/3656436>`_
+    """
+    if num_ctrl_qubits < 0:
+        raise QiskitError(
+            "synth_mcx_noaux_hp24 cannot be called with a negative number of control qubits."
+        )
+
+    circ = QuantumCircuit._from_circuit_data(synth_mcx_noaux_hp24_rs(num_ctrl_qubits))
     return circ
 
 
 def _n_parallel_ccx_x(n: int, apply_x: bool = True) -> QuantumCircuit:
     r"""
-    Construct a quantum circuit for creating n-condionally clean ancillae using 3n qubits. This
+    Construct a quantum circuit for creating n-conditionally clean ancillae using 3n qubits. This
     implements Fig. 4a of [1]. The circuit applies n relative CCX (RCCX) gates . If apply_x is True,
     each RCCX gate is preceded by an X gate on the target qubit. The order of returned qubits is
     qr_a, qr_b, qr_target.
@@ -307,8 +415,10 @@ def _linear_depth_ladder_ops(num_ladder_qubits: int) -> tuple[QuantumCircuit, li
 
 def synth_mcx_1_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit:
     r"""
-    Synthesize a multi-controlled X gate with :math:`k` controls using :math:`1` ancillary qubit as
+    Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`1` ancillary qubit as
     described in Sec. 5 of [1].
+    For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
+    (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -318,15 +428,19 @@ def synth_mcx_1_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
         The synthesized quantum circuit.
 
     Raises:
-        QiskitError: If num_ctrl_qubits <= 2.
+        QiskitError: if ``num_ctrl_qubits`` is illegal.
 
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
     """
+    if num_ctrl_qubits < 0:
+        raise QiskitError(
+            "synth_mcx_1_kg24 cannot be called with a negative number of control qubits."
+        )
 
     if num_ctrl_qubits <= 2:
-        raise QiskitError("kg24 synthesis requires at least 3 control qubits. Use CCX directly.")
+        return _synth_mcx_special_cases(num_ctrl_qubits)
 
     q_controls = QuantumRegister(num_ctrl_qubits, name="ctrl")
     q_target = QuantumRegister(1, name="targ")
@@ -356,9 +470,11 @@ def synth_mcx_1_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
 
 def synth_mcx_1_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
-    Synthesize a multi-controlled X gate with :math:`k` controls using :math:`1` clean ancillary qubit
-    producing a circuit with :math:`2k-3` Toffoli gates and depth :math:`O(k)` as described in
-    Sec. 5.1 of [1].
+    Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`1` clean
+    ancillary qubit producing a circuit with :math:`2k-3` Toffoli gates or :math:`6k-6`
+    CX gates and depth :math:`O(k)` as described in Sec. 5.1 of [1].
+    For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
+    (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -367,21 +483,31 @@ def synth_mcx_1_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
         The synthesized quantum circuit.
 
     Raises:
-        QiskitError: If num_ctrl_qubits <= 2.
+        QiskitError: if ``num_ctrl_qubits`` is illegal.
 
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
     """
+
+    if num_ctrl_qubits < 0:
+        raise QiskitError(
+            "synth_mcx_1_clean_kg24 cannot be called with a negative number of control qubits."
+        )
+
+    if num_ctrl_qubits <= 2:
+        return _synth_mcx_special_cases(num_ctrl_qubits)
 
     return synth_mcx_1_kg24(num_ctrl_qubits, clean=True)
 
 
 def synth_mcx_1_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
-    Synthesize a multi-controlled X gate with :math:`k` controls using :math:`1` dirty ancillary qubit
-    producing a circuit with :math:`4k-8` Toffoli gates and depth :math:`O(k)` as described in
-    Sec. 5.3 of [1].
+    Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`1` dirty
+    ancillary qubit producing a circuit with :math:`4k-8` Toffoli gates or :math:`12k-18`
+    CX gates and depth :math:`O(k)` as described in Sec. 5.3 of [1].
+    For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
+    (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -390,12 +516,19 @@ def synth_mcx_1_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
         The synthesized quantum circuit.
 
     Raises:
-        QiskitError: If num_ctrl_qubits <= 2.
+        QiskitError: if ``num_ctrl_qubits`` is illegal.
 
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
     """
+    if num_ctrl_qubits < 0:
+        raise QiskitError(
+            "synth_mcx_1_dirty_kg24 cannot be called with a negative number of control qubits."
+        )
+
+    if num_ctrl_qubits <= 2:
+        return _synth_mcx_special_cases(num_ctrl_qubits)
 
     return synth_mcx_1_kg24(num_ctrl_qubits, clean=False)
 
@@ -404,7 +537,7 @@ def _build_logn_depth_ccx_ladder(
     ancilla_idx: int, ctrls: list[int], skip_cond_clean: bool = False
 ) -> tuple[QuantumCircuit, list[int]]:
     r"""
-    Helper function to build a log-depth ladder compose of CCX and X gates as shown in Fig. 4b of [1].
+    Helper function to build a log-depth ladder composed of CCX and X gates as shown in Fig. 4b of [1].
 
     Args:
         ancilla_idx: Index of the ancillary qubit.
@@ -446,9 +579,8 @@ def _build_logn_depth_ccx_ladder(
                 )
             if ccx_t != [ancilla_idx]:
                 qc.compose(_n_parallel_ccx_x(ccx_n), ccx_x + ccx_y + ccx_t, inplace=True)
-            else:
-                if not skip_cond_clean:
-                    qc.rccx(ccx_x[0], ccx_y[0], ccx_t[0])  # # create conditionally clean ancilla
+            elif not skip_cond_clean:
+                qc.rccx(ccx_x[0], ccx_y[0], ccx_t[0])  # # create conditionally clean ancilla
 
             new_anc += nxt_batch[st:]  #                     # newly created cond. clean ancilla
             nxt_batch = ccx_t + nxt_batch[:st]
@@ -464,8 +596,10 @@ def _build_logn_depth_ccx_ladder(
 
 def synth_mcx_2_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit:
     r"""
-    Synthesize a multi-controlled X gate with :math:`k` controls using :math:`2` ancillary qubits.
+    Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`2` ancillary qubits.
     as described in Sec. 5 of [1].
+    For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
+    (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -475,15 +609,20 @@ def synth_mcx_2_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
         The synthesized quantum circuit.
 
     Raises:
-        QiskitError: If num_ctrl_qubits <= 2.
+        QiskitError: if ``num_ctrl_qubits`` is illegal.
 
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
     """
 
+    if num_ctrl_qubits < 0:
+        raise QiskitError(
+            "synth_mcx_2_kg24 cannot be called with a negative number of control qubits."
+        )
+
     if num_ctrl_qubits <= 2:
-        raise QiskitError("kg24 synthesis requires at least 3 control qubits. Use CCX directly.")
+        return _synth_mcx_special_cases(num_ctrl_qubits)
 
     q_control = QuantumRegister(num_ctrl_qubits, name="ctrl")
     q_target = QuantumRegister(1, name="targ")
@@ -529,9 +668,11 @@ def synth_mcx_2_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
 
 def synth_mcx_2_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
-    Synthesize a multi-controlled X gate with :math:`k` controls using :math:`2` clean ancillary qubits
-    producing a circuit with :math:`2k-3` Toffoli gates and depth :math:`O(\log(k))` as described in
-    Sec. 5.2 of [1].
+    Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`2` clean
+    ancillary qubits producing a circuit with :math:`2k-3` Toffoli gates or :math:`6k-6`
+    CX gates and depth :math:`O(\log(k))` as described in Sec. 5.2 of [1].
+    For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
+    (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -540,21 +681,31 @@ def synth_mcx_2_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
         The synthesized quantum circuit.
 
     Raises:
-        QiskitError: If num_ctrl_qubits <= 2.
+        QiskitError: if ``num_ctrl_qubits`` is illegal.
 
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
     """
+
+    if num_ctrl_qubits < 0:
+        raise QiskitError(
+            "synth_mcx_2_clean_kg24 cannot be called with a negative number of control qubits."
+        )
+
+    if num_ctrl_qubits <= 2:
+        return _synth_mcx_special_cases(num_ctrl_qubits)
 
     return synth_mcx_2_kg24(num_ctrl_qubits, clean=True)
 
 
 def synth_mcx_2_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
-    Synthesize a multi-controlled X gate with :math:`k` controls using :math:`2` dirty ancillary qubits
-    producing a circuit with :math:`4k-8` Toffoli gates and depth :math:`O(\log(k))` as described in
-    Sec. 5.4 of [1].
+    Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`2` dirty
+    ancillary qubits producing a circuit with :math:`4k-8` Toffoli gates or :math:`12k-18` CX
+    gates and depth :math:`O(\log(k))` as described in Sec. 5.4 of [1].
+    For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
+    (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -563,12 +714,19 @@ def synth_mcx_2_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
         The synthesized quantum circuit.
 
     Raises:
-        QiskitError: If num_ctrl_qubits <= 2.
+        QiskitError: if ``num_ctrl_qubits`` is illegal.
 
     References:
         1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
         `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
     """
+    if num_ctrl_qubits < 0:
+        raise QiskitError(
+            "synth_mcx_2_dirty_kg24 cannot be called with a negative number of control qubits."
+        )
+
+    if num_ctrl_qubits <= 2:
+        return _synth_mcx_special_cases(num_ctrl_qubits)
 
     return synth_mcx_2_kg24(num_ctrl_qubits, clean=False)
 

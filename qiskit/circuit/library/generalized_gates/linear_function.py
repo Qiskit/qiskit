@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -19,7 +19,7 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library.generalized_gates.permutation import PermutationGate
 from qiskit.utils.deprecation import deprecate_func
 
-# pylint: disable=cyclic-import
+
 from qiskit.quantum_info import Clifford
 
 
@@ -36,7 +36,9 @@ class LinearFunction(Gate):
     For efficiency, the internal n x n matrix is stored in the format expected
     by cnot_synth, which is the big-endian (and not the little-endian) bit-ordering convention.
 
-    **Example:** the circuit
+    Example:
+     
+    The circuit
 
     .. code-block:: text
 
@@ -57,7 +59,7 @@ class LinearFunction(Gate):
             \end{pmatrix}
 
 
-    **References:**
+    References:
 
     [1] Ketan N. Patel, Igor L. Markov, and John P. Hayes,
     Optimal synthesis of linear reversible circuits,
@@ -77,8 +79,7 @@ class LinearFunction(Gate):
         ),
         validate_input: bool = False,
     ) -> None:
-        """Create a new linear function.
-
+        """
         Args:
             linear: data from which a linear function can be constructed. It can be either a
                 nxn matrix (describing the linear transformation), a permutation (which is a

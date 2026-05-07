@@ -4,14 +4,14 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
 """
-Optimize the synthesis of an n-qubit circuit contains only CX gates for
+Optimize the synthesis of an n-qubit circuit containing only CX gates for
 linear nearest neighbor (LNN) connectivity.
 The depth of the circuit is bounded by 5*n, while the gate count is approximately 2.5*n^2
 
@@ -58,4 +58,4 @@ def synth_cnot_depth_line_kms(mat: np.ndarray[bool]) -> QuantumCircuit:
     circuit_data = fast_kms(mat)
 
     # construct circuit from the data
-    return QuantumCircuit._from_circuit_data(circuit_data, add_regs=True)
+    return QuantumCircuit._from_circuit_data(circuit_data, legacy_qubits=True)

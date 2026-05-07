@@ -4,15 +4,14 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=too-many-return-statements
 
-"""Check if number close to values of PI
-"""
+
+"""Check if number close to values of PI"""
 
 import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -48,7 +47,7 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
     """
     if isinstance(inpt, ParameterExpression):
         param_str = str(inpt)
-        values = inpt._symbol_expr.values()
+        values = inpt._values()
         for val in values:
             pi = pi_check(abs(float(val)), eps=eps, output=output, ndigits=ndigits)
             try:
@@ -56,7 +55,9 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
             except (ValueError, TypeError):
                 import qiskit._accelerate.circuit
 
-                sym_str = str(qiskit._accelerate.circuit.ParameterExpression.Value(abs(val)))
+                # we need to match the precise string representation of the pi-value,
+                # therefore we use _Value instead of just str(abs(val))
+                sym_str = str(qiskit._accelerate.circuit.ParameterExpression._Value(abs(val)))
                 param_str = param_str.replace(sym_str, pi)
         return param_str
     elif isinstance(inpt, str):
@@ -86,11 +87,10 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
                 val = int(abs(round(val)))
                 if abs(val) == 1:
                     str_out = f"{neg_str}{pi}"
+                elif output == "qasm":
+                    str_out = f"{neg_str}{val}*{pi}"
                 else:
-                    if output == "qasm":
-                        str_out = f"{neg_str}{val}*{pi}"
-                    else:
-                        str_out = f"{neg_str}{val}{pi}"
+                    str_out = f"{neg_str}{val}{pi}"
                 return str_out
 
         # Second is a check for powers of pi

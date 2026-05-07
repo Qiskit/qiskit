@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -207,7 +207,9 @@ mod interned_map {
 /// assert_eq!(interner.get(key), &[0, 1, 2, 3, 4]);
 /// ```
 #[derive(Default)]
-pub struct Interner<T: ?Sized + ToOwned>(IndexSet<<T as ToOwned>::Owned, ::ahash::RandomState>);
+pub struct Interner<T: ?Sized + ToOwned>(
+    IndexSet<<T as ToOwned>::Owned, ::foldhash::fast::RandomState>,
+);
 
 // `Clone` and `Debug` can't use the derivation mechanism because the values that are actually
 // stored are of type `<T as ToOwned>::Owned`, which the derive system doesn't reason about.
@@ -286,7 +288,8 @@ where
     /// Note that the default item of the interner is always allocated and given a key immediately,
     /// which will use one slot of the capacity.
     pub fn with_capacity(capacity: usize) -> Self {
-        let mut set = IndexSet::with_capacity_and_hasher(capacity, ::ahash::RandomState::new());
+        let mut set =
+            IndexSet::with_capacity_and_hasher(capacity, ::foldhash::fast::RandomState::default());
         set.insert(Default::default());
         Self(set)
     }
@@ -475,6 +478,35 @@ where
         let mut out = InternedMap::new();
         self.merge_map_using(other, map_fn, &mut out);
         out
+    }
+
+    /// Rewrite all the interned values in `self` inplace, maintaining validity of all existing
+    /// [Interned] keys (just with mapped values).
+    ///
+    /// The `map_fn` will be called exactly once for each of the non-default values; the default
+    /// value will not be passed to the `map_fn`, as it is a requirement of the type that the
+    /// default key matches the default value.
+    ///
+    /// # Panics
+    ///
+    /// If the `map_fn` returns two equal values for non-equal inputs; if this happened, we wouldn't
+    /// have the same number of keys in the output.
+    pub fn map_inplace(
+        &mut self,
+        mut map_fn: impl FnMut(<T as ToOwned>::Owned) -> <T as ToOwned>::Owned,
+    ) {
+        // This isn't a one-at-a-time operation because we might have a collision, where a new
+        // value with an early key is equal to an old value with a later key.  That will be resolved
+        // by the end, but if we try to go one-at-a-time, we'll mess up the key order.  We can still
+        // re-use the allocation of the interner, though.
+        let mut values = self.0.drain(..).collect::<Vec<_>>().into_iter();
+        self.0
+            .insert(values.next().expect("must have at least the default key"));
+        for (i, value) in values.enumerate() {
+            let expected = i as u32 + 1;
+            let actual = self.insert_owned(map_fn(value)).index;
+            assert!(actual == expected, "mapping returned a duplicate key");
+        }
     }
 }
 

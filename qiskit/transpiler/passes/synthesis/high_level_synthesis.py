@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -25,6 +25,7 @@ from qiskit.circuit.operation import Operation
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit import EquivalenceLibrary
+from qiskit.transpiler.optimization_metric import OptimizationMetric
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
@@ -108,8 +109,9 @@ class HLSConfig:
                 all the specified methods will be considered, and the best synthesized circuit,
                 according to ``plugin_evaluation_fn`` will be chosen.
             plugin_evaluation_fn: a callable that evaluates the quality of the synthesized
-                quantum circuit; a smaller value means a better circuit. If ``None``, the
-                quality of the circuit its size (i.e. the number of gates that it contains).
+                quantum circuit in the case that ``plugin_selection="sequential"``;
+                a smaller value means a better circuit. If ``None``, the
+                quality of the circuit is its size (i.e. the number of gates that it contains).
             kwargs: a dictionary mapping higher-level-objects to lists of synthesis methods.
         """
         self.use_default_on_unspecified = use_default_on_unspecified
@@ -197,29 +199,32 @@ class HighLevelSynthesis(TransformationPass):
         basis_gates: list[str] | None = None,
         min_qubits: int = 0,
         qubits_initially_zero: bool = True,
+        optimization_metric: OptimizationMetric = OptimizationMetric.COUNT_2Q,
     ):
         r"""
         HighLevelSynthesis initializer.
 
         Args:
-            hls_config: Optional, the high-level-synthesis config that specifies synthesis methods
+            hls_config:  the high-level-synthesis config that specifies synthesis methods
                 and parameters for various high-level-objects in the circuit. If it is not specified,
                 the default synthesis methods and parameters will be used.
-            coupling_map: Optional, directed graph represented as a coupling map.
-            target: Optional, the backend target to use for this pass. If it is specified,
+            coupling_map:  directed graph represented as a coupling map.
+            target:  the backend target to use for this pass. If it is specified,
                 it will be used instead of the coupling map.
             use_qubit_indices: a flag indicating whether this synthesis pass is running before or after
                 the layout is set, that is, whether the qubit indices of higher-level-objects correspond
                 to qubit indices on the target backend.
             equivalence_library: The equivalence library used (instructions in this library will not
                 be unrolled by this pass).
-            basis_gates: Optional, target basis names to unroll to, e.g. `['u3', 'cx']`.
+            basis_gates:  target basis names to unroll to, e.g. `['u3', 'cx']`.
                 Ignored if ``target`` is also specified.
             min_qubits: The minimum number of qubits for operations in the input
                 dag to translate.
             qubits_initially_zero: Indicates whether the qubits are initially in the state
                 :math:`|0\rangle`. This allows the high-level-synthesis to use clean auxiliary qubits
                 (i.e. in the zero state) to synthesize an operation.
+            optimization_metric:  Specifies the optimization criterion used by the default synthesis
+                methods for high-level-objects (when available).
         """
         super().__init__()
 
@@ -259,6 +264,7 @@ class HighLevelSynthesis(TransformationPass):
             use_physical_indices=use_qubit_indices,
             min_qubits=min_qubits,
             unroll_definitions=unroll_definitions,
+            optimize_clifford_t=optimization_metric == OptimizationMetric.COUNT_T,
         )
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
@@ -376,6 +382,10 @@ def _synthesize_op_using_plugins(
         plugin_args["qubit_tracker"] = tracker
         plugin_args["num_clean_ancillas"] = num_clean_ancillas
         plugin_args["num_dirty_ancillas"] = num_dirty_ancillas
+        if data.optimize_clifford_t:
+            plugin_args["optimization_metric"] = OptimizationMetric.COUNT_T
+        else:
+            plugin_args["optimization_metric"] = OptimizationMetric.COUNT_2Q
 
         qubits = input_qubits if data.use_physical_indices else None
 

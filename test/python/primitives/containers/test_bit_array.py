@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -698,7 +698,7 @@ class BitArrayTestCase(QiskitTestCase):
             expval = ba.expectation_values(op)
             # both 0 and 1 appear 5 times
             self.assertEqual(expval.shape, ba.shape)
-            np.testing.assert_allclose(expval, np.zeros((ba.shape)))
+            np.testing.assert_allclose(expval, np.zeros(ba.shape))
 
             expval = ba.expectation_values(op2)
             self.assertEqual(expval.shape, ba.shape)
@@ -730,17 +730,17 @@ class BitArrayTestCase(QiskitTestCase):
         with self.subTest("Pauli"):
             expval = ba.expectation_values(pauli)
             self.assertEqual(expval.shape, ba.shape)
-            np.testing.assert_allclose(expval, np.zeros((ba.shape)))
+            np.testing.assert_allclose(expval, np.zeros(ba.shape))
 
         with self.subTest("SparsePauliOp"):
             expval = ba.expectation_values(sp_op)
             self.assertEqual(expval.shape, ba.shape)
-            np.testing.assert_allclose(expval, np.zeros((ba.shape)))
+            np.testing.assert_allclose(expval, np.zeros(ba.shape))
 
             expval = ba.expectation_values(sp_op2)
             # 6th bit are all 0
             self.assertEqual(expval.shape, ba.shape)
-            np.testing.assert_allclose(expval, np.ones((ba.shape)))
+            np.testing.assert_allclose(expval, np.ones(ba.shape))
 
         with self.subTest("ObservableArray"):
             obs = ["Z", "0", "1"]

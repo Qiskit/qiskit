@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -33,15 +33,17 @@ from qiskit.synthesis.arithmetic import (
     adder_ripple_v95,
     adder_ripple_r25,
     adder_qft_d00,
+    adder_modular_v17,
 )
 from qiskit.transpiler.passes import HLSConfig, HighLevelSynthesis
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 ADDERS = {
     "vbe": adder_ripple_v95,
     "cdkm": adder_ripple_c04,
     "rv": adder_ripple_r25,
     "draper": adder_qft_d00,
+    "vrg": adder_modular_v17,
 }
 
 ADDER_CIRCUITS = {
@@ -151,6 +153,9 @@ class TestAdder(QiskitTestCase):
         (1, "vbe", "fixed"),
         (2, "vbe", "fixed"),
         (4, "vbe", "fixed"),
+        (1, "vrg", "fixed"),
+        (3, "vrg", "fixed"),
+        (5, "vrg", "fixed"),
     )
     @unpack
     def test_summation(self, num_state_qubits, adder, kind):
@@ -158,12 +163,15 @@ class TestAdder(QiskitTestCase):
         for use_function in [True, False]:
             with self.subTest(use_function=use_function):
                 if use_function:
-                    if adder == "rv":  # no kind for this. we still need kind for the test result
+                    if adder in [
+                        "rv",
+                        "vrg",
+                    ]:  # no kind for this. we still need kind for the test result
                         circuit = ADDERS[adder](num_state_qubits)
                     else:
                         circuit = ADDERS[adder](num_state_qubits, kind)
                 else:
-                    if adder == "rv":  # no adder circuit for this
+                    if adder in ["rv", "vrg"]:  # no adder circuit for this
                         continue
                     with self.assertWarns(DeprecationWarning):
                         circuit = ADDER_CIRCUITS[adder](num_state_qubits, kind)
@@ -175,6 +183,7 @@ class TestAdder(QiskitTestCase):
         adder_ripple_v95,
         adder_ripple_r25,
         adder_qft_d00,
+        adder_modular_v17,
     )
     def test_raises_on_wrong_num_bits(self, adder):
         """Test an error is raised for a bad number of qubits."""
@@ -194,7 +203,10 @@ class TestAdder(QiskitTestCase):
 
         # all gates with the plugins we check
         modes = {
-            "ModularAdder": (ModularAdderGate, ["ripple_c04", "ripple_v95", "qft_d00"]),
+            "ModularAdder": (
+                ModularAdderGate,
+                ["ripple_c04", "ripple_v95", "qft_d00", "modular_v17"],
+            ),
             "HalfAdder": (HalfAdderGate, ["ripple_c04", "ripple_v95", "ripple_r25", "qft_d00"]),
             "FullAdder": (FullAdderGate, ["ripple_c04", "ripple_v95"]),
         }
@@ -205,6 +217,7 @@ class TestAdder(QiskitTestCase):
             "ripple_v95": "Carry",
             "ripple_r25": "ccx",
             "qft_d00": "cp",
+            "modular_v17": "rccx",
         }
 
         num_state_qubits = 3
@@ -310,22 +323,14 @@ class TestAdder(QiskitTestCase):
             synth = hls(circuit)
             ops = set(synth.count_ops().keys())
             self.assertTrue("cp" in ops)
-        with self.subTest(name="ModularAdder_also_use_qft_d00"):
+        with self.subTest(name="ModularAdder_use_v17"):
             adder = ModularAdderGate(6)
             circuit = QuantumCircuit(12)
             circuit.append(adder, range(12))
             hls = HighLevelSynthesis()
             synth = hls(circuit)
             ops = set(synth.count_ops().keys())
-            self.assertTrue("cp" in ops)
-        with self.subTest(name="ModularAdder_use_ripple_c04"):
-            adder = ModularAdderGate(6)
-            circuit = QuantumCircuit(16)
-            circuit.append(adder, range(12))
-            hls = HighLevelSynthesis()
-            synth = hls(circuit)
-            ops = set(synth.count_ops().keys())
-            self.assertTrue("MAJ" in ops)
+            self.assertTrue("rccx" in ops)
 
 
 if __name__ == "__main__":

@@ -4,15 +4,13 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
 """An analysis pass to find evolution gates in which the Paulis commute."""
-
-from typing import Tuple
 
 import numpy as np
 
@@ -27,18 +25,18 @@ from qiskit.transpiler.passes.routing.commuting_2q_gate_routing.commuting_2q_blo
 
 
 class FindCommutingPauliEvolutions(TransformationPass):
-    """Finds :class:`.PauliEvolutionGate`s where the operators, that are evolved, all commute."""
+    """Finds :class:`.PauliEvolutionGate` objects where the operators, that are evolved, all commute."""
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
-        """Check for :class:`.PauliEvolutionGate`s where the summands all commute.
+        """Check for :class:`.PauliEvolutionGate` objects where the summands all commute.
 
         Args:
-            The DAG circuit in which to look for the commuting evolutions.
+            dag: The DAG circuit in which to look for the commuting evolutions.
 
         Returns:
-            The dag in which :class:`.PauliEvolutionGate`s made of commuting two-qubit Paulis
+            The dag in which :class:`.PauliEvolutionGate` objects made of commuting two-qubit Paulis
             have been replaced with :class:`.Commuting2qBlocks`` gate instructions. These gates
-            contain nodes of two-qubit :class:`.PauliEvolutionGate`s.
+            contain nodes of two-qubit :class:`.PauliEvolutionGate` objects.
         """
 
         for node in dag.op_nodes():
@@ -95,7 +93,7 @@ class FindCommutingPauliEvolutions(TransformationPass):
         return len(commuting_subparts) == 1
 
     @staticmethod
-    def _pauli_to_edge(pauli: Pauli) -> Tuple[int, ...]:
+    def _pauli_to_edge(pauli: Pauli) -> tuple[int, ...]:
         """Convert a pauli to an edge.
 
         Args:

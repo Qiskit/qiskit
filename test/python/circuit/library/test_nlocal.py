@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -52,7 +52,7 @@ from qiskit.exceptions import QiskitError
 from qiskit._accelerate.circuit_library import get_entangler_map as fast_entangler_map
 from qiskit._accelerate.circuit_library import Block
 
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class Gato(Gate):
@@ -269,6 +269,8 @@ class TestNLocal(QiskitTestCase):
             nlocal = NLocal(1, entanglement_blocks=circuit, reps=1)
         nlocal.assign_parameters(params, inplace=True)
 
+        nlocal = circuit.assign_parameters(params)
+
         param_set = {p for p in params if isinstance(p, ParameterExpression)}
         with self.subTest(msg="Test the parameters of the non-transpiled circuit"):
             # check the parameters of the final circuit
@@ -277,7 +279,7 @@ class TestNLocal(QiskitTestCase):
         with self.subTest(msg="Test the parameters of the transpiled circuit"):
             basis_gates = ["id", "u1", "u2", "u3", "cx"]
             transpiled_circuit = transpile(nlocal, basis_gates=basis_gates)
-            self.assertEqual(transpiled_circuit.parameters, param_set)
+            self.assertEqual(set(transpiled_circuit.parameters), param_set)
 
     def test_repetetive_parameter_setting(self):
         """Test alternate setting of parameters and circuit construction."""

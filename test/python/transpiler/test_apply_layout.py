@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -22,7 +22,7 @@ from qiskit.transpiler.passes import ApplyLayout, SetLayout
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler import PassManager, CouplingMap
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 from ..legacy_cmaps import YORKTOWN_CMAP
 
@@ -166,16 +166,16 @@ class TestApplyLayout(QiskitTestCase):
                 first_layout_circ.qubits[4]: 3,
             }
         )
-        out_pass(first_layout_circ)
+        out_pass.run(circuit_to_dag(first_layout_circ))
         self.assertEqual(
             out_pass.property_set["final_layout"],
             Layout(
                 {
                     first_layout_circ.qubits[0]: 0,
-                    first_layout_circ.qubits[2]: 1,
-                    first_layout_circ.qubits[4]: 4,
                     first_layout_circ.qubits[1]: 3,
+                    first_layout_circ.qubits[2]: 1,
                     first_layout_circ.qubits[3]: 2,
+                    first_layout_circ.qubits[4]: 4,
                 }
             ),
         )

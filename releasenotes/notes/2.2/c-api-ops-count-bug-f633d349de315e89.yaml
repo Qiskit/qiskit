@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed memory leakage issues during the creation of
+    a :c:struct:`QkOpCounts` instance and during any calls to
+    :c:func:`qk_opcounts_clear` whenever an empty instance is passed.

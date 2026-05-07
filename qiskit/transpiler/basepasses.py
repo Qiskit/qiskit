@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -129,10 +129,10 @@ class BasePass(GenericPass, metaclass=MetaPass):
                 be used (if set).
 
         Returns:
-            If on transformation pass, the resulting QuantumCircuit.
+            If a transformation pass, the resulting QuantumCircuit.
             If analysis pass, the input circuit.
         """
-        from qiskit.transpiler import PassManager  # pylint: disable=cyclic-import
+        from qiskit.transpiler import PassManager
 
         pm = PassManager([self])
         # Previous versions of the `__call__` function would not construct a `PassManager`, but just
@@ -151,18 +151,18 @@ class BasePass(GenericPass, metaclass=MetaPass):
         return out
 
 
-class AnalysisPass(BasePass):  # pylint: disable=abstract-method
+class AnalysisPass(BasePass):
     """An analysis pass: change property set, not DAG."""
 
 
-class TransformationPass(BasePass):  # pylint: disable=abstract-method
+class TransformationPass(BasePass):
     """A transformation pass: change DAG, not property set."""
 
     def execute(
         self,
         passmanager_ir: PassManagerIR,
         state: PassManagerState,
-        callback: Callable = None,
+        callback: Callable | None = None,
     ) -> tuple[PassManagerIR, PassManagerState]:
         new_dag, state = super().execute(
             passmanager_ir=passmanager_ir,
