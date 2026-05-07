@@ -17,11 +17,11 @@ use rustworkx_core::petgraph::prelude::*;
 use rustworkx_core::petgraph::visit::NodeIndexable;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
-use qiskit_circuit::getenv_use_multiple_threads;
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::StandardInstruction;
 use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_util::getenv_use_multiple_threads;
 
 /// Run the RemoveDiagonalGatesBeforeMeasure pass on `dag`.
 /// Args:
@@ -93,7 +93,7 @@ pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) {
             .into_par_iter()
             .filter_map(|index| {
                 let node_index = NodeIndex::new(index);
-                if let Some(NodeType::Operation(ref inst)) = dag.dag().node_weight(node_index) {
+                if let Some(NodeType::Operation(inst)) = dag.dag().node_weight(node_index) {
                     process_node(node_index, inst)
                 } else {
                     None
