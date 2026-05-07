@@ -194,17 +194,17 @@ impl TwoQubitControlledUDecomposer {
         if !is_inv_rxx {
             // 1-qubit gates before the rxx_op, on qubits 0 and 1 respectively
             if !k2r.try_inverse_mut() {
-                panic!("matrix k2r is not invertible");
+                panic!("TwoQubitWeylDecomposition failed. Matrix K2r is not unitary");
             }
             if !k2l.try_inverse_mut() {
-                panic!("matrix k2l is not invertible");
+                panic!("TwoQubitWeylDecomposition failed. Matrix K2l is not unitary");
             }
             // 1-qubit gates after the rxx_op, on qubits 0 and 1 respectively
             if !k1r.try_inverse_mut() {
-                panic!("matrix k1r is not invertible");
+                panic!("TwoQubitWeylDecomposition failed. Matrix K1R is not unitary");
             }
             if !k1l.try_inverse_mut() {
-                panic!("matrix k1l is not invertible");
+                panic!("TwoQubitWeylDecomposition failed. Matrix K1l is not unitary");
             }
             k_mats = [k2r, k2l, k1r, k1l];
         }
