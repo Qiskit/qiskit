@@ -1472,7 +1472,7 @@ class TestTwoQubitControlledUDecompose(CheckDecompositions):
     @combine(gate=[RXXGate, RYYGate, RZZGate, RZXGate, CPhaseGate, CRZGate, CRXGate, CRYGate])
     def test_one_controlled_u_gate_in_unitary(self, gate):
         """Verify a unitary with one controlled-u gate for different gates in the decomposition"""
-        unitary = RZZGate(0.3).to_matrix()
+        unitary = RZZGate(-0.3).to_matrix()
 
         decomposer = TwoQubitControlledUDecomposer(gate, euler_basis="U")
         circ = decomposer(unitary)
@@ -1484,6 +1484,8 @@ class TestTwoQubitControlledUDecompose(CheckDecompositions):
 
         # bound on the number of 1-qubit gates
         self.assertLessEqual(circ.count_ops().get("u", 0), 4)
+        if gate(0.1).name == "rzz":
+            self.assertEqual(circ.size(), 1)
 
     def test_not_rxx_equivalent(self):
         """Test that an exception is raised if the gate is not equivalent to an RXXGate"""
