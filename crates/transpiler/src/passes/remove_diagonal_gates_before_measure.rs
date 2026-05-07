@@ -14,6 +14,7 @@
 use pyo3::prelude::*;
 use rayon::prelude::*;
 use rustworkx_core::petgraph::prelude::*;
+use rustworkx_core::petgraph::visit::NodeIndexable;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::getenv_use_multiple_threads;
@@ -88,12 +89,12 @@ pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) {
     };
 
     let nodes_to_remove: Vec<NodeIndex> = if run_in_parallel && dag.num_ops() >= 50_000 {
-        let node_indices = dag.dag().node_indices().collect::<Vec<_>>();
-        node_indices
+        (0..dag.dag().node_bound())
             .into_par_iter()
             .filter_map(|index| {
-                if let NodeType::Operation(ref inst) = dag.dag()[index] {
-                    process_node(index, inst)
+                let node_index = NodeIndex::new(index);
+                if let Some(NodeType::Operation(ref inst)) = dag.dag().node_weight(node_index) {
+                    process_node(node_index, inst)
                 } else {
                     None
                 }
