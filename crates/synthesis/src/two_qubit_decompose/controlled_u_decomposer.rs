@@ -183,30 +183,32 @@ impl TwoQubitControlledUDecomposer {
         // Express the RXX in terms of the user-provided RXX equivalent gate.
         let global_phase = -decomposer_inv.global_phase;
 
-        let mut k1r = decomposer_inv.K1r;
-        let mut k2r = decomposer_inv.K2r;
-        let mut k1l = decomposer_inv.K1l;
-        let mut k2l = decomposer_inv.K2l;
+        let k1r = decomposer_inv.K1r;
+        let k2r = decomposer_inv.K2r;
+        let k1l = decomposer_inv.K1l;
+        let k2l = decomposer_inv.K2l;
 
         // the k matrices where RXX is inverted
         let mut k_mats = [k1r, k1l, k2r, k2l];
 
         if !is_inv_rxx {
             // 1-qubit gates before the rxx_op, on qubits 0 and 1 respectively
-            if !k2r.try_inverse_mut() {
+            if !k_mats[2].try_inverse_mut() {
                 panic!("TwoQubitWeylDecomposition failed. Matrix K2r is not unitary");
             }
-            if !k2l.try_inverse_mut() {
+            if !k_mats[3].try_inverse_mut() {
                 panic!("TwoQubitWeylDecomposition failed. Matrix K2l is not unitary");
             }
             // 1-qubit gates after the rxx_op, on qubits 0 and 1 respectively
-            if !k1r.try_inverse_mut() {
+            if !k_mats[0].try_inverse_mut() {
                 panic!("TwoQubitWeylDecomposition failed. Matrix K1R is not unitary");
             }
-            if !k1l.try_inverse_mut() {
+            if !k_mats[1].try_inverse_mut() {
                 panic!("TwoQubitWeylDecomposition failed. Matrix K1l is not unitary");
             }
-            k_mats = [k2r, k2l, k1r, k1l];
+            // k_mats = [k2r_inv, k2l_inv, k1r_inv, k1l_inv];
+            k_mats.swap(0, 2);
+            k_mats.swap(1, 3);
         }
         let rxx_op = match &self.rxx_equivalent_gate {
             RXXEquivalent::Standard(gate) => PackedOperation::from_standard_gate(*gate),
