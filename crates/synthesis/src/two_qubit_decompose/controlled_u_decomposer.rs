@@ -39,6 +39,8 @@ use super::common::{DEFAULT_FIDELITY, HGATE, SDGGATE, SGATE};
 use super::gate_sequence::{TwoQubitGateSequence, TwoQubitSequenceVec};
 use super::weyl_decomposition::{Specialization, TwoQubitWeylDecomposition};
 
+type TwoQubitGateType = (PackedOperation, SmallVec<[f64; 3]>, SmallVec<[u8; 2]>);
+
 #[derive(Clone, Debug, FromPyObject)]
 pub enum RXXEquivalent {
     Standard(StandardGate),
@@ -156,14 +158,16 @@ impl TwoQubitControlledUDecomposer {
     ///      angle: Rotation angle (in this case one of the Weyl parameters a, b, or c)
     ///      is_inv_rxx: Whether the RXX equivalent gate should be inverted or not
     ///  Returns:
-    ///      Circuit: Circuit equivalent to an RXXGate.
+    ///      out_gate: An equivalent gate to an RXXGate (or its inverse)
+    ///      global_phase: The global phase of the equivalent circuit
+    ///      k_mats: Four 1-qubit gates in the equivalent circuit
     ///  Raises:
     ///      QiskitError: If the circuit is not equivalent to an RXXGate.
     fn to_rxx_gate(
         &self,
         angle: f64,
         is_inv_rxx: bool,
-    ) -> PyResult<(TwoQubitGateSequence, [Matrix2<Complex64>; 4])> {
+    ) -> PyResult<(TwoQubitGateType, f64, [Matrix2<Complex64>; 4])> {
         // The user-provided RXX equivalent gate may be locally equivalent to the RXX gate
         // but with some scaling in the rotation angle. For example, RXX(angle) has Weyl
         // parameters (angle, 0, 0) for angle in [0, pi/2] but the user provided gate, i.e.
@@ -175,8 +179,6 @@ impl TwoQubitControlledUDecomposer {
             TwoQubitWeylDecomposition::new_inner(mat.view(), Some(DEFAULT_FIDELITY), None)?;
 
         // Express the RXX in terms of the user-provided RXX equivalent gate.
-        let mut gates = Vec::with_capacity(1);
-        let mut gates_inv = Vec::with_capacity(1);
         let global_phase = -decomposer_inv.global_phase;
 
         let mut k1r = decomposer_inv.K1r;
@@ -214,25 +216,16 @@ impl TwoQubitControlledUDecomposer {
                 })?
             }
         };
-        gates.push((rxx_op, smallvec![self.scale * angle], smallvec![0, 1]));
+        let mut out_gate = (rxx_op, smallvec![self.scale * angle], smallvec![0, 1]);
 
         if is_inv_rxx {
             // invert the rxx_op
-            for gate in gates.into_iter().rev() {
-                let (inv_gate_name, inv_gate_params, inv_gate_qubits) =
-                    self.invert_2q_gate(gate)?;
-                gates_inv.push((inv_gate_name, inv_gate_params, inv_gate_qubits));
-            }
-            gates = gates_inv;
+            let (inv_gate_name, inv_gate_params, inv_gate_qubits) =
+                self.invert_2q_gate(out_gate)?;
+            out_gate = (inv_gate_name, inv_gate_params, inv_gate_qubits);
         }
 
-        Ok((
-            TwoQubitGateSequence {
-                gates,
-                global_phase,
-            },
-            k_mats,
-        ))
+        Ok((out_gate, global_phase, k_mats))
     }
 
     /// Appends U_d(a, b, c) to the circuit.
@@ -245,8 +238,9 @@ impl TwoQubitControlledUDecomposer {
         target_1q_basis_list: EulerBasisSet,
     ) -> PyResult<()> {
         // RXX(a)
-        let (circ_a, rxx_mats) = self.to_rxx_gate(-2.0 * target_decomposed.a, false)?;
-        let mut global_phase = circ_a.global_phase;
+        let (circ_a, global_phase_a, rxx_mats) =
+            self.to_rxx_gate(-2.0 * target_decomposed.a, false)?;
+        let mut global_phase = global_phase_a;
 
         let mut c2r = c_mats[0]; // before weyl_gate, qubit 0
         let mut c2l = c_mats[1]; // before weyl_gate, qubit 1
@@ -286,12 +280,13 @@ impl TwoQubitControlledUDecomposer {
             1,
             target_1q_basis_list,
         );
-        circ.gates.extend(circ_a.gates);
+        circ.gates.push(circ_a);
 
         // translate RYY(b) into a circuit based on the desired Ctrl-U gate.
         if (target_decomposed.b).abs() > atol {
-            let (circ_b, ryy_mats) = self.to_rxx_gate(-2.0 * target_decomposed.b, false)?;
-            global_phase += circ_b.global_phase;
+            let (circ_b, global_phase_b, ryy_mats) =
+                self.to_rxx_gate(-2.0 * target_decomposed.b, false)?;
+            global_phase += global_phase_b;
 
             ryy_k2r = ryy_mats[0]; // before RYY(b), qubit 0
             ryy_k2l = ryy_mats[1]; // before RYY(b), qubit 1
@@ -317,7 +312,7 @@ impl TwoQubitControlledUDecomposer {
                 1,
                 target_1q_basis_list,
             );
-            circ.gates.extend(circ_b.gates);
+            circ.gates.push(circ_b);
         } else {
             // no circ_b
             ryy_k1r = rxx_k1r;
@@ -333,8 +328,8 @@ impl TwoQubitControlledUDecomposer {
             // circuit if c < 0.
             let mut gamma = -2.0 * target_decomposed.c;
             if gamma <= 0.0 {
-                let (circ_c, rzz_mats) = self.to_rxx_gate(gamma, false)?;
-                global_phase += circ_c.global_phase;
+                let (circ_c, global_phase_c, rzz_mats) = self.to_rxx_gate(gamma, false)?;
+                global_phase += global_phase_c;
 
                 rzz_k2r = rzz_mats[0]; // before RZZ(c), qubit 0
                 rzz_k2l = rzz_mats[1]; // before RZZ(c), qubit 1
@@ -360,13 +355,13 @@ impl TwoQubitControlledUDecomposer {
                     1,
                     target_1q_basis_list,
                 );
-                circ.gates.extend(circ_c.gates);
+                circ.gates.push(circ_c);
             } else {
                 // invert the circuit above
                 gamma *= -1.0;
                 // the inverted 2-qubit RXX gate
-                let (circ_c, rzz_mats) = self.to_rxx_gate(gamma, true)?;
-                global_phase -= circ_c.global_phase;
+                let (circ_c, global_phase_c, rzz_mats) = self.to_rxx_gate(gamma, true)?;
+                global_phase -= global_phase_c;
 
                 // the inverted 1-qubit matrices
                 rzz_k2r = rzz_mats[0]; // before RZZ(c), qubit 0
@@ -393,7 +388,7 @@ impl TwoQubitControlledUDecomposer {
                     1,
                     target_1q_basis_list,
                 );
-                circ.gates.extend(circ_c.gates);
+                circ.gates.push(circ_c);
             }
         } else {
             // no circ_c
