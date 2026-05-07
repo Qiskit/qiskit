@@ -142,9 +142,13 @@ pub fn analyze_commutations(
             .par_iter_mut()
             .zip(node_indices.par_iter_mut())
             .enumerate()
-            .for_each(|(qubit, (local_commutation_set, local_indices))| {
-                evaluate_qubit(qubit, local_commutation_set, local_indices).unwrap();
-            });
+            .map(
+                |(qubit, (local_commutation_set, local_indices))| -> PyResult<()> {
+                    evaluate_qubit(qubit, local_commutation_set, local_indices)?;
+                    Ok(())
+                },
+            )
+            .collect::<PyResult<()>>()?;
         Ok((commutation_set, node_indices))
     } else {
         for qubit in 0..dag.num_qubits() {
