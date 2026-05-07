@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed :class:`.ConstrainedReschedule` raising a :class:`.TranspilerError`
+    when rescheduling a circuit containing a :class:`.Barrier`.
