@@ -2640,99 +2640,62 @@ cr: 3/══════╩══════════╩══════�
         assert_eq!(result, expected.trim_start_matches("\n"));
     }
 
-    #[test]
-    fn test_cphase_two_qubits() {
-        let qubits = vec![
-            ShareableQubit::new_anonymous(),
-            ShareableQubit::new_anonymous(),
-        ];
+    fn assert_cphase_case(
+        num_qubits: usize,
+        mergewires: bool,
+        expected: &str,
+        build: impl FnOnce(&mut CircuitData),
+    ) {
+        let qubits = (0..num_qubits)
+            .map(|_| ShareableQubit::new_anonymous())
+            .collect();
         let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
 
-        circuit
-            .push_standard_gate(
-                StandardGate::CPhase,
-                &[Param::Float(0.5)],
-                &[Qubit(0), Qubit(1)],
-            )
-            .unwrap();
+        build(&mut circuit);
 
-        let result = draw_circuit(&circuit, false, true, Some(100)).unwrap();
-        println!("{result}");
-        let expected = "
-q_0: ─■───────
-      │P(0.5)
-q_1: ─■───────
-";
+        let result = draw_circuit(&circuit, false, mergewires, Some(100)).unwrap();
         assert_eq!(result, expected);
     }
 
     #[test]
+    fn test_cphase_two_qubits() {
+        assert_cphase_case(2, true, "
+q_0: ─■───────
+      │P(0.5)
+q_1: ─■───────
+", |circuit| {
+            circuit
+                .push_standard_gate(
+                    StandardGate::CPhase,
+                    &[Param::Float(0.5)],
+                    &[Qubit(0), Qubit(1)],
+                )
+                .unwrap();
+        });
+    }
+
+    #[test]
     fn test_cphase_three_qubits_reversed_order() {
-        let qubits = vec![
-            ShareableQubit::new_anonymous(),
-            ShareableQubit::new_anonymous(),
-            ShareableQubit::new_anonymous(),
-        ];
-        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
-
-        circuit
-            .push_standard_gate(
-                StandardGate::CPhase,
-                &[Param::Float(0.5)],
-                &[Qubit(2), Qubit(0)],
-            )
-            .unwrap();
-
-        let result = draw_circuit(&circuit, false, true, Some(100)).unwrap();
-        let expected = "
+        assert_cphase_case(3, true, "
 q_0: ─■───────
       │P(0.5)
 q_1: ─┼───────
       │
 q_2: ─■───────
-";
-        assert_eq!(result, expected);
+", |circuit| {
+            circuit
+                .push_standard_gate(
+                    StandardGate::CPhase,
+                    &[Param::Float(0.5)],
+                    &[Qubit(2), Qubit(0)],
+                )
+                .unwrap();
+        });
     }
 
     #[test]
     fn test_cphase_complex_mixed_gates() {
-        let qubits = vec![
-            ShareableQubit::new_anonymous(),
-            ShareableQubit::new_anonymous(),
-            ShareableQubit::new_anonymous(),
-            ShareableQubit::new_anonymous(),
-        ];
-        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
-
-        circuit
-            .push_standard_gate(StandardGate::CX, &[], &[Qubit(0), Qubit(3)])
-            .unwrap();
-        circuit
-            .push_standard_gate(
-                StandardGate::CPhase,
-                &[Param::Float(0.5)],
-                &[Qubit(3), Qubit(1)],
-            )
-            .unwrap();
-        circuit
-            .push_standard_gate(StandardGate::CZ, &[], &[Qubit(0), Qubit(2)])
-            .unwrap();
-        circuit
-            .push_standard_gate(StandardGate::Swap, &[], &[Qubit(1), Qubit(2)])
-            .unwrap();
-        circuit
-            .push_standard_gate(StandardGate::CX, &[], &[Qubit(2), Qubit(3)])
-            .unwrap();
-        circuit
-            .push_standard_gate(
-                StandardGate::CPhase,
-                &[Param::Float(1.25)],
-                &[Qubit(0), Qubit(1)],
-            )
-            .unwrap();
-
-        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
-        let expected = "
+        assert_cphase_case(4, false, "
 q_0: ──■─────────────■──────■────────
        │             │      │P(1.25)
        │             │      │
@@ -2744,7 +2707,33 @@ q_2: ──┼───┼───────┤ Z ├─X─────■�
      ┌─┴─┐ │                 ┌─┴─┐
 q_3: ┤ X ├─■─────────────────┤ X ├───
      └───┘                   └───┘
-";
-        assert_eq!(result, expected);
+", |circuit| {
+            circuit
+                .push_standard_gate(StandardGate::CX, &[], &[Qubit(0), Qubit(3)])
+                .unwrap();
+            circuit
+                .push_standard_gate(
+                    StandardGate::CPhase,
+                    &[Param::Float(0.5)],
+                    &[Qubit(3), Qubit(1)],
+                )
+                .unwrap();
+            circuit
+                .push_standard_gate(StandardGate::CZ, &[], &[Qubit(0), Qubit(2)])
+                .unwrap();
+            circuit
+                .push_standard_gate(StandardGate::Swap, &[], &[Qubit(1), Qubit(2)])
+                .unwrap();
+            circuit
+                .push_standard_gate(StandardGate::CX, &[], &[Qubit(2), Qubit(3)])
+                .unwrap();
+            circuit
+                .push_standard_gate(
+                    StandardGate::CPhase,
+                    &[Param::Float(1.25)],
+                    &[Qubit(0), Qubit(1)],
+                )
+                .unwrap();
+        });
     }
 }
