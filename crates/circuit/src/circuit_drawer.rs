@@ -210,6 +210,7 @@ impl WireInputElement<'_> {
 #[derive(Clone, Debug, Copy)]
 enum OnWireElement<'a> {
     Control(&'a PackedInstruction),
+    CPhaseEndpoint(&'a PackedInstruction),
     Swap(&'a PackedInstruction),
     Barrier,
     Reset,
@@ -261,6 +262,20 @@ impl<'a> VisualizationLayer<'a> {
         self.0[idx] = VisualizationElement::Input(input);
     }
 
+    fn add_vertical_lines(
+        &mut self,
+        minima: usize,
+        maxima: usize,
+        exclude_qargs: &[Qubit],
+        inst: &'a PackedInstruction,
+    ) {
+        let vertical_lines =
+            (minima..=maxima).filter(|idx| !exclude_qargs.iter().any(|q| q.index() == *idx));
+        for vline in vertical_lines {
+            self.0[vline] = VisualizationElement::VerticalLine(inst);
+        }
+    }
+
     /// Adds the required visualization elements to represent the given instruction
     fn add_instruction(
         &mut self,
@@ -298,15 +313,6 @@ impl<'a> VisualizationLayer<'a> {
     fn add_controls(&mut self, inst: &'a PackedInstruction, controls: &Vec<usize>) {
         for control in controls {
             self.0[*control] = VisualizationElement::DirectOnWire(OnWireElement::Control(inst));
-        }
-    }
-
-    fn add_vertical_lines<I>(&mut self, vertical_lines: I, inst: &'a PackedInstruction)
-    where
-        I: Iterator<Item = usize>,
-    {
-        for vline in vertical_lines {
-            self.0[vline] = VisualizationElement::VerticalLine(inst);
         }
     }
 
@@ -377,8 +383,7 @@ impl<'a> VisualizationLayer<'a> {
             | StandardGate::CCX
             | StandardGate::CCZ
             | StandardGate::C3X
-            | StandardGate::C3SX
-            | StandardGate::CPhase => {
+            | StandardGate::C3SX => {
                 self.0[qargs.last().unwrap().index()] =
                     VisualizationElement::Boxed(BoxedElement::Single(inst));
                 if gate.num_ctrl_qubits() > 0 {
@@ -392,9 +397,14 @@ impl<'a> VisualizationLayer<'a> {
                     );
                 }
 
-                let vert_lines = (minima..=maxima)
-                    .filter(|idx| !(qargs.iter().map(|q| q.0 as usize)).contains(idx));
-                self.add_vertical_lines(vert_lines, inst);
+                self.add_vertical_lines(minima, maxima, qargs, inst);
+            }
+            StandardGate::CPhase => {
+                for q in qargs {
+                    self.0[q.index()] =
+                        VisualizationElement::DirectOnWire(OnWireElement::CPhaseEndpoint(inst));
+                }
+                self.add_vertical_lines(minima, maxima, qargs, inst);
             }
             StandardGate::GlobalPhase => {}
             StandardGate::Swap | StandardGate::CSwap => {
@@ -408,9 +418,7 @@ impl<'a> VisualizationLayer<'a> {
                     self.0[qubit] = VisualizationElement::DirectOnWire(OnWireElement::Swap(inst));
                 }
 
-                let vert_lines = (minima..=maxima)
-                    .filter(|idx| !(qargs.iter().map(|q| q.0 as usize)).contains(idx));
-                self.add_vertical_lines(vert_lines, inst);
+                self.add_vertical_lines(minima, maxima, qargs, inst);
             }
         }
     }
@@ -450,7 +458,7 @@ impl<'a> VisualizationLayer<'a> {
                         .expect("Measure should have a clbit arg")
                         .index()];
                 }
-                self.add_vertical_lines(minima + 1..=maxima, inst);
+                self.add_vertical_lines(minima + 1, maxima, &[], inst);
             }
             StandardInstruction::Delay(_) => {
                 for q in qargs {
@@ -506,7 +514,7 @@ impl<'a> VisualizationLayer<'a> {
                 .expect("PauliProductMeasurement should have a clbit arg")
                 .index()];
         }
-        self.add_vertical_lines(minima + 1..=maxima, inst);
+        self.add_vertical_lines(minima + 1, maxima, &[], inst);
     }
 }
 
@@ -649,6 +657,7 @@ impl Debug for VisualizationMatrix<'_> {
                         OnWireElement::Control(_) => "■",
                         OnWireElement::Reset => "|0>",
                         OnWireElement::Swap(_) => "x",
+                        OnWireElement::CPhaseEndpoint(_) => "■",
                     },
                     VisualizationElement::Boxed(_) => "[ ]",
                 };
@@ -1132,11 +1141,50 @@ impl TextDrawer {
                     OnWireElement::Reset => {
                         ("   ".to_string(), "|0>".to_string(), "   ".to_string())
                     }
+                    OnWireElement::CPhaseEndpoint(inst) => {
+                        let qargs = circuit.get_qargs(inst.qubits);
+                        let (minima, maxima) = get_instruction_range(qargs, &[], 0);
+                        // q_0: ─■───────
+                        //       │P(0.5)
+                        // q_1: ─┼───────
+                        //       │
+                        // q_2: ─■───────
+                        // We add 3 to the overall label width to account for the " |" on the left of the label
+                        // and the trailing space on the right.
+                        let label = Self::get_label(inst);
+                        let width = label.width() + 3;
+                        let right_pad = label.width() + 1;
+
+                        (
+                            if wire_idx == maxima {
+                                format!(" {}{}", CONNECTING_WIRE, " ".repeat(width - 2))
+                            } else {
+                                " ".repeat(width)
+                            },
+                            format!(
+                                "{}{}{}",
+                                Q_WIRE,
+                                BULLET,
+                                Q_WIRE.to_string().repeat(right_pad)
+                            ),
+                            if wire_idx == minima {
+                                format!(" {}{}{}", CONNECTING_WIRE, label, " ".repeat(1))
+                            } else {
+                                " ".repeat(width)
+                            },
+                        )
+                    }
                 };
 
-                top = format!(" {} ", wire_top);
-                mid = format!("{}{}{}", Q_WIRE, wire_symbol, Q_WIRE);
-                bot = format!(" {} ", wire_bot);
+                if matches!(on_wire, OnWireElement::CPhaseEndpoint(_)) {
+                    top = wire_top;
+                    mid = wire_symbol;
+                    bot = wire_bot;
+                } else {
+                    top = format!(" {} ", wire_top);
+                    mid = format!("{}{}{}", Q_WIRE, wire_symbol, Q_WIRE);
+                    bot = format!(" {} ", wire_bot);
+                }
             }
             VisualizationElement::Input(input) => {
                 let input_name = input.get_name(circuit).unwrap_or_else(|| match input {
@@ -1188,16 +1236,37 @@ impl TextDrawer {
                         .to_string();
                     }
                 } else {
-                    top = CONNECTING_WIRE.to_string();
-                    bot = CONNECTING_WIRE.to_string();
-                    mid = {
-                        if wire_idx < circuit.num_qubits() {
-                            Q_Q_CROSSED_WIRE
-                        } else {
-                            Q_CL_CROSSED_WIRE
+                    if inst.op.try_standard_gate() == Some(StandardGate::CPhase) {
+                        // Match the endpoint width so the connector rows stay aligned with the
+                        // label row produced by OnWireElement::CPhaseEndpoint.
+                        // refer to the comment in OnWireElement::CPhaseEndpoint for more details.
+                        let label = Self::get_label(inst);
+                        let right_pad = label.width() + 1;
+
+                        top = format!(" {}{}", CONNECTING_WIRE, " ".repeat(right_pad));
+                        mid = format!(
+                            "{}{}{}",
+                            Q_WIRE,
+                            if wire_idx < circuit.num_qubits() {
+                                Q_Q_CROSSED_WIRE
+                            } else {
+                                Q_CL_CROSSED_WIRE
+                            },
+                            Q_WIRE.to_string().repeat(right_pad)
+                        );
+                        bot = top.clone();
+                    } else {
+                        top = CONNECTING_WIRE.to_string();
+                        bot = CONNECTING_WIRE.to_string();
+                        mid = {
+                            if wire_idx < circuit.num_qubits() {
+                                Q_Q_CROSSED_WIRE
+                            } else {
+                                Q_CL_CROSSED_WIRE
+                            }
                         }
+                        .to_string();
                     }
-                    .to_string();
                 }
             }
             VisualizationElement::Empty => {
@@ -1913,11 +1982,11 @@ q_4: ─────────────────────────
 «q_1: ┤ Z ├┤0 Dcx ├───X────┤0 Iswap ├┤ Rx(3.141) ├──────■──────────┤ S ├───────■───»
 «     └───┘│      │        │        │└───────────┘      │          └───┘       │   »
 «          │      │┌──────┐│        │             ┌─────┴─────┐             ┌──┴──┐»
-«q_2: ──■──┤1     ├┤0 Ecr ├┤1       ├──────■──────┤ Ry(3.141) ├──────■──────┤ Sdg ├»
-«       │  └──────┘│      │└────────┘      │      └───────────┘      │      └─────┘»
-«     ┌─┴─┐        │      │          ┌─────┴─────┐             ┌─────┴─────┐       »
-«q_3: ┤ Y ├────────┤1     ├──────────┤ P(3.141)  ├─────────────┤ Rz(3.141) ├───────»
-«     └───┘        └──────┘          └───────────┘             └───────────┘       »
+«q_2: ──■──┤1     ├┤0 Ecr ├┤1       ├──■──────────┤ Ry(3.141) ├──────■──────┤ Sdg ├»
+«       │  └──────┘│      │└────────┘  │P(3.141)  └───────────┘      │      └─────┘»
+«     ┌─┴─┐        │      │            │                       ┌─────┴─────┐       »
+«q_3: ┤ Y ├────────┤1     ├────────────■───────────────────────┤ Rz(3.141) ├───────»
+«     └───┘        └──────┘                                    └───────────┘       »
 «                                                                                  »
 «q_4: ─────────────────────────────────────────────────────────────────────────────»
 «                                                                                  »
@@ -2569,5 +2638,113 @@ cr: 3/══════╩══════════╩══════�
 ";
 
         assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[test]
+    fn test_cphase_two_qubits() {
+        let qubits = vec![
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+        ];
+        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
+
+        circuit
+            .push_standard_gate(
+                StandardGate::CPhase,
+                &[Param::Float(0.5)],
+                &[Qubit(0), Qubit(1)],
+            )
+            .unwrap();
+
+        let result = draw_circuit(&circuit, false, true, Some(100)).unwrap();
+        println!("{result}");
+        let expected = "
+q_0: ─■───────
+      │P(0.5)
+q_1: ─■───────
+";
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_cphase_three_qubits_reversed_order() {
+        let qubits = vec![
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+        ];
+        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
+
+        circuit
+            .push_standard_gate(
+                StandardGate::CPhase,
+                &[Param::Float(0.5)],
+                &[Qubit(2), Qubit(0)],
+            )
+            .unwrap();
+
+        let result = draw_circuit(&circuit, false, true, Some(100)).unwrap();
+        let expected = "
+q_0: ─■───────
+      │P(0.5)
+q_1: ─┼───────
+      │
+q_2: ─■───────
+";
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_cphase_complex_mixed_gates() {
+        let qubits = vec![
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+        ];
+        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
+
+        circuit
+            .push_standard_gate(StandardGate::CX, &[], &[Qubit(0), Qubit(3)])
+            .unwrap();
+        circuit
+            .push_standard_gate(
+                StandardGate::CPhase,
+                &[Param::Float(0.5)],
+                &[Qubit(3), Qubit(1)],
+            )
+            .unwrap();
+        circuit
+            .push_standard_gate(StandardGate::CZ, &[], &[Qubit(0), Qubit(2)])
+            .unwrap();
+        circuit
+            .push_standard_gate(StandardGate::Swap, &[], &[Qubit(1), Qubit(2)])
+            .unwrap();
+        circuit
+            .push_standard_gate(StandardGate::CX, &[], &[Qubit(2), Qubit(3)])
+            .unwrap();
+        circuit
+            .push_standard_gate(
+                StandardGate::CPhase,
+                &[Param::Float(1.25)],
+                &[Qubit(0), Qubit(1)],
+            )
+            .unwrap();
+
+        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        let expected = "
+q_0: ──■─────────────■──────■────────
+       │             │      │P(1.25)
+       │             │      │
+q_1: ──┼───■─────────┼───X──■────────
+       │   │P(0.5)   │   │
+       │   │       ┌─┴─┐ │
+q_2: ──┼───┼───────┤ Z ├─X─────■─────
+       │   │       └───┘       │
+     ┌─┴─┐ │                 ┌─┴─┐
+q_3: ┤ X ├─■─────────────────┤ X ├───
+     └───┘                   └───┘
+";
+        assert_eq!(result, expected);
     }
 }
