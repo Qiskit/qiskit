@@ -1,6 +1,6 @@
 ---
 fixes:
   - |
-    Fixed a bug in :class:`.InverseCancellation` where default inverse gate
-    pairs in reverse order could be cancelled even when they acted on different
-    qubits.
+    Fixed :class:`.InverseCancellation` so the default :class:`.CSGate` and
+    :class:`.CSdgGate` inverse pair is cancelled consistently when the two
+    gates act on the same qubits in opposite order.

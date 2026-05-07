@@ -248,9 +248,7 @@ fn std_inverse_pairs(dag: &mut DAGCircuit) {
         {
             continue;
         }
-        // Some inverse pairs (CS/CSdg) are symmetric in their qubit order, so
-        // a reversed-qargs occurrence of the partner still cancels.
-        let pair_symmetric_2q = matches!(gate_0, StandardGate::CS);
+        let pair_symmetric_2q = matches!([gate_0, gate_1], [StandardGate::CS, StandardGate::CSdg]);
         let filter = |inst: &PackedInstruction| -> bool {
             match inst.op.view() {
                 OperationRef::StandardGate(gate) => gate == gate_0 || gate == gate_1,
@@ -267,10 +265,10 @@ fn std_inverse_pairs(dag: &mut DAGCircuit) {
                 let NodeType::Operation(next_inst) = &dag[nodes[i + 1]] else {
                     unreachable!("Not an op node");
                 };
-                let pair_match = (inst.op.try_standard_gate() == Some(gate_0)
-                    && next_inst.op.try_standard_gate() == Some(gate_1))
-                    || (inst.op.try_standard_gate() == Some(gate_1)
-                        && next_inst.op.try_standard_gate() == Some(gate_0));
+                let inst_gate = inst.op.try_standard_gate();
+                let next_gate = next_inst.op.try_standard_gate();
+                let pair_match = (inst_gate == Some(gate_0) && next_gate == Some(gate_1))
+                    || (inst_gate == Some(gate_1) && next_gate == Some(gate_0));
                 let qargs_match = inst.qubits == next_inst.qubits
                     || (pair_symmetric_2q && {
                         let a = dag.get_qargs(inst.qubits);

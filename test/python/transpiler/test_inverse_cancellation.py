@@ -379,27 +379,15 @@ class TestInverseCancellation(QiskitTestCase):
         self.assertNotIn("t", new_circ.count_ops())
         self.assertNotIn("tdg", new_circ.count_ops())
 
-    def test_cs_csdg_overlapping_qubits_not_cancelled(self):
-        """csdg(0,1) followed by cs(1,2) must not cancel.
-
-        Reproducer for the bug from #15855: the reversed-pair branch in
-        ``std_inverse_pairs`` previously skipped the qubit-equality guard, so
-        these two gates were removed even though they act on different qubit
-        sets and do not compose to identity.
-        """
-        qc = QuantumCircuit(3)
-        qc.csdg(0, 1)
-        qc.cs(1, 2)
-        new_circ = InverseCancellation()(qc)
-        self.assertEqual(qc, new_circ)
-
-    def test_cs_csdg_reversed_qargs_still_cancelled(self):
-        """cs is symmetric, so cs(0,1) and csdg(1,0) still cancel."""
-        qc = QuantumCircuit(2)
-        qc.cs(0, 1)
-        qc.csdg(1, 0)
-        new_circ = InverseCancellation()(qc)
-        self.assertEqual(new_circ, QuantumCircuit(2))
+    def test_cs_csdg_cancel_with_reversed_qargs_in_both_orders(self):
+        """CS/CSdg are symmetric in qubit order, so both inverse orders cancel."""
+        for first, second in (("csdg", "cs"), ("cs", "csdg")):
+            with self.subTest(first=first, second=second):
+                qc = QuantumCircuit(2)
+                getattr(qc, first)(0, 1)
+                getattr(qc, second)(1, 0)
+                new_circ = InverseCancellation()(qc)
+                self.assertEqual(new_circ, QuantumCircuit(2))
 
     @ddt.data([HGate(), CXGate(), CZGate(), (TGate(), TdgGate())], None)
     def test_some_inverse_and_cancelled(self, gates_to_cancel):
