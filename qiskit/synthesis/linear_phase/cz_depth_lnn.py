@@ -39,7 +39,7 @@ def synth_cz_depth_line_mr(mat: np.ndarray) -> QuantumCircuit:
     (:class:`.SGate`, :class:`.SdgGate` or :class:`.ZGate`).
 
     Args:
-        mat: an square upper-diagonal matrix of `bool` representing the CZ circuit.
+        mat: a square upper-diagonal matrix of `bool` representing the CZ circuit.
             ``mat[i][j]=1 for i<j`` represents a ``cz(i,j)`` gate.  Only the upper triangle is read
             from; the diagonal and lower triangle have no effect.
 
