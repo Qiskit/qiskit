@@ -154,6 +154,7 @@ impl TwoQubitControlledUDecomposer {
     ///  RXX equivalent gate as the two-qubit unitary.
     ///  Args:
     ///      angle: Rotation angle (in this case one of the Weyl parameters a, b, or c)
+    ///      inv_rxx: Whether the RXX equivalent gate should be inverted or not
     ///  Returns:
     ///      Circuit: Circuit equivalent to an RXXGate.
     ///  Raises:
@@ -161,7 +162,8 @@ impl TwoQubitControlledUDecomposer {
     fn to_rxx_gate(
         &self,
         angle: f64,
-    ) -> PyResult<(TwoQubitGateSequence, SmallVec<[Matrix2<Complex64>; 4]>)> {
+        inv_rxx: bool,
+    ) -> PyResult<(TwoQubitGateSequence, [Matrix2<Complex64>; 4])> {
         // The user-provided RXX equivalent gate may be locally equivalent to the RXX gate
         // but with some scaling in the rotation angle. For example, RXX(angle) has Weyl
         // parameters (angle, 0, 0) for angle in [0, pi/2] but the user provided gate, i.e.
@@ -181,19 +183,25 @@ impl TwoQubitControlledUDecomposer {
         let mut k1l = decomposer_inv.K1l;
         let mut k2l = decomposer_inv.K2l;
 
-        // 1-qubit gates before the rxx_op, on qubits 0 and 1 respectively
-        if !k2r.try_inverse_mut() {
-            panic!("matrix k2r is not invertible");
-        }
-        if !k2l.try_inverse_mut() {
-            panic!("matrix k2l is not invertible");
-        }
-        // 1-qubit gates after the rxx_op, on qubits 0 and 1 respectively
-        if !k1r.try_inverse_mut() {
-            panic!("matrix k1r is not invertible");
-        }
-        if !k1l.try_inverse_mut() {
-            panic!("matrix k1l is not invertible");
+        // the k matrices where RXX is inverted
+        let mut k_mats = [k1r, k1l, k2r, k2l];
+
+        if !inv_rxx {
+            // 1-qubit gates before the rxx_op, on qubits 0 and 1 respectively
+            if !k2r.try_inverse_mut() {
+                panic!("matrix k2r is not invertible");
+            }
+            if !k2l.try_inverse_mut() {
+                panic!("matrix k2l is not invertible");
+            }
+            // 1-qubit gates after the rxx_op, on qubits 0 and 1 respectively
+            if !k1r.try_inverse_mut() {
+                panic!("matrix k1r is not invertible");
+            }
+            if !k1l.try_inverse_mut() {
+                panic!("matrix k1l is not invertible");
+            }
+            k_mats = [k2r, k2l, k1r, k1l];
         }
         let rxx_op = match &self.rxx_equivalent_gate {
             RXXEquivalent::Standard(gate) => PackedOperation::from_standard_gate(*gate),
@@ -212,7 +220,7 @@ impl TwoQubitControlledUDecomposer {
                 gates,
                 global_phase,
             },
-            smallvec![k2r, k2l, k1r, k1l],
+            k_mats,
         ))
     }
 
@@ -222,13 +230,13 @@ impl TwoQubitControlledUDecomposer {
         circ: &mut TwoQubitGateSequence,
         target_decomposed: &TwoQubitWeylDecomposition,
         atol: f64,
-        c_mats: SmallVec<[Matrix2<Complex64>; 4]>,
+        c_mats: [Matrix2<Complex64>; 4],
     ) -> PyResult<()> {
         let mut target_1q_basis_list = EulerBasisSet::new();
         target_1q_basis_list.add_basis(self.euler_basis);
 
         // RXX(a)
-        let (circ_a, rxx_mats) = self.to_rxx_gate(-2.0 * target_decomposed.a)?;
+        let (circ_a, rxx_mats) = self.to_rxx_gate(-2.0 * target_decomposed.a, false)?;
         let mut global_phase = circ_a.global_phase;
 
         let mut c2r = c_mats[0]; // before weyl_gate, qubit 0
@@ -261,7 +269,7 @@ impl TwoQubitControlledUDecomposer {
 
         // translate RYY(b) into a circuit based on the desired Ctrl-U gate.
         if (target_decomposed.b).abs() > atol {
-            let (circ_b, ryy_mats) = self.to_rxx_gate(-2.0 * target_decomposed.b)?;
+            let (circ_b, ryy_mats) = self.to_rxx_gate(-2.0 * target_decomposed.b, false)?;
             global_phase += circ_b.global_phase;
 
             ryy_k2r = ryy_mats[0]; // before RYY(b), qubit 0
@@ -292,7 +300,7 @@ impl TwoQubitControlledUDecomposer {
             // circuit if c < 0.
             let mut gamma = -2.0 * target_decomposed.c;
             if gamma <= 0.0 {
-                let (circ_c, rzz_mats) = self.to_rxx_gate(gamma)?;
+                let (circ_c, rzz_mats) = self.to_rxx_gate(gamma, false)?;
                 global_phase += circ_c.global_phase;
 
                 rzz_k2r = rzz_mats[0]; // before RZZ(c), qubit 0
@@ -311,22 +319,14 @@ impl TwoQubitControlledUDecomposer {
             } else {
                 // invert the circuit above
                 gamma *= -1.0;
-                let (circ_c, rzz_mats) = self.to_rxx_gate(gamma)?;
+                let (circ_c, rzz_mats) = self.to_rxx_gate(gamma, true)?;
                 global_phase -= circ_c.global_phase;
 
-                // inverting the 1-qubit matrices
-                rzz_k2r = rzz_mats[2]
-                    .try_inverse()
-                    .expect("matrix k2r is not invertible"); // before RZZ(c), qubit 0
-                rzz_k2l = rzz_mats[3]
-                    .try_inverse()
-                    .expect("matrix k2l is not invertible"); // before RZZ(c), qubit 1
-                rzz_k1r = rzz_mats[0]
-                    .try_inverse()
-                    .expect("matrix k1r is not invertible"); // after RZZ(c), qubit 0
-                rzz_k1l = rzz_mats[1]
-                    .try_inverse()
-                    .expect("matrix k1l is not invertible"); // qfter RZZ(c), qubit 1
+                // taking the inverted 1-qubit matrices
+                rzz_k2r = rzz_mats[0]; // before RZZ(c), qubit 0
+                rzz_k2l = rzz_mats[1]; // before RZZ(c), qubit 1
+                rzz_k1r = rzz_mats[2]; // after RZZ(c), qubit 0
+                rzz_k1l = rzz_mats[3]; // after RZZ(c), qubit 1
 
                 rzz_k2r = rzz_k2r * HGATE * ryy_k1r; // between RYY(b) and RZZ(c), qubit 0
                 rzz_k2l = rzz_k2l * HGATE * ryy_k1l; // between RYY(b) and RZZ(c), qubit 1
@@ -393,7 +393,7 @@ impl TwoQubitControlledUDecomposer {
             &mut weyl_gates,
             &target_decomposed,
             atol.unwrap_or(DEFAULT_ATOL),
-            smallvec![c2r, c2l, c1r, c1l],
+            [c2r, c2l, c1r, c1l],
         )?;
         global_phase += weyl_gates.global_phase;
         weyl_gates.global_phase = global_phase;
