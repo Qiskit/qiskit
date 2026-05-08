@@ -22,6 +22,12 @@ use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::StandardInstruction;
 use qiskit_util::getenv_use_multiple_threads;
 
+// This value was determined experimentally by looking for the runtime
+// crossover point between running serially and running in parallel. You can
+// see the analysis of this at:
+// https://github.com/Qiskit/qiskit/pull/14723#issuecomment-4410093594
+const PARALLEL_THRESHOLD: usize = 50_000;
+
 /// Run the RemoveDiagonalGatesBeforeMeasure pass on `dag`.
 /// Args:
 ///     dag (DAGCircuit): the DAG to be optimized.
@@ -78,7 +84,8 @@ pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) {
         }
     };
 
-    let nodes_to_remove: Vec<NodeIndex> = if run_in_parallel && dag.num_ops() >= 50_000 {
+    let nodes_to_remove: Vec<NodeIndex> = if run_in_parallel && dag.num_ops() >= PARALLEL_THRESHOLD
+    {
         (0..dag.dag().node_bound())
             .into_par_iter()
             .filter_map(|index| process_node(NodeIndex::new(index)))
