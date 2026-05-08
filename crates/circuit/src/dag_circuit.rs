@@ -1547,14 +1547,17 @@ impl DAGCircuit {
                     .map(|s| s.extract())
                     .collect::<PyResult<HashSet<String>>>()?;
                 for wire in wires {
-                    let nodes_found = self.nodes_on_wire(wire, true).into_iter().any(|node| {
-                        let weight = self.dag.node_weight(node).unwrap();
-                        if let NodeType::Operation(packed) = weight {
-                            !ignore_set.contains(packed.op.name())
-                        } else {
-                            false
-                        }
-                    });
+                    let nodes_found = self
+                        .nodes_on_wire(wire)
+                        .filter(|node| matches!(self.dag[*node], NodeType::Operation(_)))
+                        .any(|node| {
+                            let weight = self.dag.node_weight(node).unwrap();
+                            if let NodeType::Operation(packed) = weight {
+                                !ignore_set.contains(packed.op.name())
+                            } else {
+                                false
+                            }
+                        });
 
                     if !nodes_found {
                         result.push(match wire {
@@ -4160,8 +4163,8 @@ impl DAGCircuit {
         })?;
 
         let nodes = self
-            .nodes_on_wire(wire, only_ops)
-            .into_iter()
+            .nodes_on_wire(wire)
+            .filter(|node| !only_ops || matches!(self.dag[*node], NodeType::Operation(_)))
             .map(|n| self.get_node(py, n))
             .collect::<PyResult<Vec<_>>>()?;
         Ok(PyTuple::new(py, nodes)?.into_any().try_iter()?.unbind())
@@ -6249,33 +6252,20 @@ impl DAGCircuit {
         }
     }
 
-    /// Get the nodes on the given wire.
+    /// Get the nodes on a given wire as a non-allocating iterator
     ///
-    /// Note: result is empty if the wire is not in the DAG.
-    pub fn nodes_on_wire(&self, wire: Wire, only_ops: bool) -> Vec<NodeIndex> {
-        let mut nodes = Vec::new();
-        let mut current_node = match wire {
-            Wire::Qubit(qubit) => self.qubit_io_map.get(qubit.index()).map(|x| x[0]),
-            Wire::Clbit(clbit) => self.clbit_io_map.get(clbit.index()).map(|x| x[0]),
-            Wire::Var(var) => self.var_io_map.get(var.index()).map(|x| x[0]),
+    /// This will panic if the wire is not in the circuit
+    pub fn nodes_on_wire(&self, wire: Wire) -> impl Iterator<Item = NodeIndex> {
+        let start_node = match wire {
+            Wire::Qubit(qubit) => self.qubit_io_map[qubit.index()][0],
+            Wire::Clbit(clbit) => self.clbit_io_map[clbit.index()][0],
+            Wire::Var(var) => self.var_io_map[var.index()][0],
         };
-
-        while let Some(node) = current_node {
-            if only_ops {
-                let node_weight = self.dag.node_weight(node).unwrap();
-                if let NodeType::Operation(_) = node_weight {
-                    nodes.push(node);
-                }
-            } else {
-                nodes.push(node);
-            }
-
-            let edges = self.dag.edges_directed(node, Outgoing);
-            current_node = edges
-                .into_iter()
-                .find_map(|edge| (*edge.weight() == wire).then_some(edge.target()));
+        NodesOnWireIter {
+            dag: self,
+            wire,
+            next_node: Some(start_node),
         }
-        nodes
     }
 
     fn remove_idle_wire(&mut self, wire: Wire) {
@@ -8122,6 +8112,45 @@ impl DAGCircuit {
             self.add_wire(Wire::Var(Var::new(var_idx)))?;
         }
         Ok(())
+    }
+}
+
+struct NodesOnWireIter<'a> {
+    dag: &'a DAGCircuit,
+    wire: Wire,
+    next_node: Option<NodeIndex>,
+}
+
+impl<'a> Iterator for NodesOnWireIter<'a> {
+    type Item = NodeIndex;
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        match self.next_node.map(|n| &self.dag[n]) {
+            // If the wire is empty there are the input and output nodes which is the minimum
+            // If the dag is all on a single wire we would have all the operations + the 2 io
+            // nodes.
+            Some(NodeType::QubitIn(_) | NodeType::ClbitIn(_) | NodeType::VarIn(_)) => {
+                (2, Some(self.dag.num_ops() + 2))
+            }
+            // If the iterator is on the output node for the next there is only 1 node left
+            Some(NodeType::QubitOut(_) | NodeType::ClbitOut(_) | NodeType::VarOut(_)) => {
+                (1, Some(1))
+            }
+            // If there is an operation the minimum is 2 for the operation and then the output node
+            // while the maximum is num_ops + 1 if the next node is the first operation node and all
+            // the nodes are on a single wire + the output node
+            Some(NodeType::Operation(_)) => (2, Some(self.dag.num_ops() + 1)),
+            // If next is none we've finished iterating.
+            None => (0, Some(0)),
+        }
+    }
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let out_node = self.next_node?;
+        self.next_node = self.dag.dag.edges_directed(out_node, Outgoing).find_map(
+            |e: EdgeReference<'a, Wire>| (e.weight() == &self.wire).then_some(e.target()),
+        );
+        Some(out_node)
     }
 }
 
