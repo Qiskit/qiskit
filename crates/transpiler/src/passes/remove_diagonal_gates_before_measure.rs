@@ -20,7 +20,6 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::OperationRef;
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit::operations::StandardInstruction;
-use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_util::getenv_use_multiple_threads;
 
 /// Run the RemoveDiagonalGatesBeforeMeasure pass on `dag`.
@@ -35,74 +34,58 @@ pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) {
         return;
     }
     let run_in_parallel = getenv_use_multiple_threads();
-
-    let process_node = |index: NodeIndex, inst: &PackedInstruction| {
-        if matches!(
+    let is_measure = |index: NodeIndex| -> bool {
+        let Some(NodeType::Operation(inst)) = dag.dag().node_weight(index) else {
+            return false;
+        };
+        matches!(
             inst.op.view(),
             OperationRef::StandardInstruction(StandardInstruction::Measure)
-        ) {
-            let predecessor = (dag.quantum_predecessors(index))
-                .next()
-                .expect("index is an operation node, so it must have a predecessor.");
-
-            let NodeType::Operation(ref pred_inst) = dag[predecessor] else {
-                return None;
-            };
-            if let Some(gate) = pred_inst.op.try_standard_gate() {
-                match gate {
-                    StandardGate::RZ
-                    | StandardGate::Z
-                    | StandardGate::T
-                    | StandardGate::S
-                    | StandardGate::Tdg
-                    | StandardGate::Sdg
-                    | StandardGate::U1
-                    | StandardGate::Phase => return Some(predecessor),
-                    StandardGate::CZ
-                    | StandardGate::CRZ
-                    | StandardGate::CU1
-                    | StandardGate::RZZ
-                    | StandardGate::CPhase
-                    | StandardGate::CS
-                    | StandardGate::CSdg
-                    | StandardGate::CCZ => {
-                        let mut successors = dag.quantum_successors(predecessor);
-                        if successors.all(|s| {
-                            let node_s = &dag.dag()[s];
-                            if let NodeType::Operation(inst_s) = node_s {
-                                matches!(
-                                    inst_s.op.view(),
-                                    OperationRef::StandardInstruction(StandardInstruction::Measure)
-                                )
-                            } else {
-                                false
-                            }
-                        }) {
-                            return Some(predecessor);
-                        }
-                    }
-                    _ => return None,
-                }
-            }
+        )
+    };
+    let process_node = |index: NodeIndex| -> Option<NodeIndex> {
+        if !is_measure(index) {
+            return None;
         }
-        None
+        let predecessor = dag
+            .quantum_predecessors(index)
+            .next()
+            .expect("index is an operation node, so it must have a predecessor.");
+        let NodeType::Operation(ref pred_inst) = dag[predecessor] else {
+            return None;
+        };
+        match pred_inst.op.try_standard_gate()? {
+            StandardGate::RZ
+            | StandardGate::Z
+            | StandardGate::T
+            | StandardGate::S
+            | StandardGate::Tdg
+            | StandardGate::Sdg
+            | StandardGate::U1
+            | StandardGate::Phase => Some(predecessor),
+            StandardGate::CZ
+            | StandardGate::CRZ
+            | StandardGate::CU1
+            | StandardGate::RZZ
+            | StandardGate::CPhase
+            | StandardGate::CS
+            | StandardGate::CSdg
+            | StandardGate::CCZ => dag
+                .quantum_successors(index)
+                .all(is_measure)
+                .then_some(predecessor),
+            _ => None,
+        }
     };
 
     let nodes_to_remove: Vec<NodeIndex> = if run_in_parallel && dag.num_ops() >= 50_000 {
         (0..dag.dag().node_bound())
             .into_par_iter()
-            .filter_map(|index| {
-                let node_index = NodeIndex::new(index);
-                if let Some(NodeType::Operation(inst)) = dag.dag().node_weight(node_index) {
-                    process_node(node_index, inst)
-                } else {
-                    None
-                }
-            })
+            .filter_map(|index| process_node(NodeIndex::new(index)))
             .collect()
     } else {
         dag.op_nodes(false)
-            .filter_map(|x| process_node(x.0, x.1))
+            .filter_map(|(index, _)| process_node(index))
             .collect()
     };
 
