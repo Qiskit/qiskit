@@ -130,15 +130,14 @@ class ConsolidateBlocks(TransformationPass):
                     basis_fidelity=approximation_degree or 1.0,
                 )
                 self.basis_gate_name = next(iter(kak_gates))
-            elif force_consolidate:
-                # if we haven't found a decomposer but consolidation is forced,
-                # pick a default
-                self.decomposer = TwoQubitBasisDecomposer(CXGate())
-                self.basis_gate_name = "cx"
             else:
                 self.decomposer = None
-        else:
+                self.basis_gate_name = "cx"
+        elif not force_consolidate:
             self.decomposer = TwoQubitBasisDecomposer(CXGate())
+            self.basis_gate_name = "cx"
+        else:
+            self.decomposer = None
             self.basis_gate_name = "cx"
 
     def run(self, dag):
@@ -147,7 +146,7 @@ class ConsolidateBlocks(TransformationPass):
         Iterate over each block and replace it with an equivalent Unitary
         on the same wires.
         """
-        if self.decomposer is None:
+        if not self.force_consolidate and self.decomposer is None:
             return dag
 
         blocks = self.property_set["block_list"]
@@ -160,9 +159,13 @@ class ConsolidateBlocks(TransformationPass):
         qubit_map = self.property_set.get(self._QUBIT_MAP_KEY, None)
         if qubit_map is None:
             qubit_map = list(range(dag.num_qubits()))
+        if self.decomposer is not None:
+            decomposer = self.decomposer._inner_decomposer
+        else:
+            decomposer = None
         consolidate_blocks(
             dag,
-            self.decomposer._inner_decomposer,
+            decomposer,
             self.basis_gate_name,
             self.force_consolidate,
             target=self.target,

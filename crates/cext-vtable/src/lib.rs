@@ -12,7 +12,7 @@
 
 mod impl_;
 
-pub use crate::impl_::ExportedFunctions;
+pub use crate::impl_::{ExportedFunction, ExportedFunctions};
 
 // =================================================================================================
 // WARNING
