@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -48,8 +48,8 @@ pub fn py_filter_op_nodes(
 #[pyfunction]
 pub fn filter_labeled_op(dag: &mut DAGCircuit, label: String) {
     let predicate = |node: &PackedInstruction| -> bool {
-        match node.label() {
-            Some(inst_label) => inst_label != label,
+        match node.label.as_deref() {
+            Some(inst_label) => inst_label != &label,
             None => false,
         }
     };

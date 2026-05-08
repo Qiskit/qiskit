@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -47,7 +47,7 @@ class VBERippleCarryAdder(Adder):
     *Carry_dg* correspond to the inverse of the *Carry* gate. Note that
     in this implementation the input register qubits are ordered as all qubits from
     the first input register, followed by all qubits from the second input register.
-    This is different ordering as compared to Figure 2 in [1], which leads to a different
+    This is a different ordering as compared to Figure 2 in [1], which leads to a different
     drawing of the circuit.
 
     .. seealso::

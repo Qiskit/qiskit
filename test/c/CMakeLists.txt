@@ -1,7 +1,26 @@
 # This file is inspired by the description of handling a larger number of tests
 # provided here:
 # https://cmake.org/cmake/help/book/mastering-cmake/chapter/Testing%20With%20CMake%20and%20CTest.html
-cmake_minimum_required (VERSION 3.27)
+cmake_minimum_required (VERSION 3.20)
+
+# Since we only use CMake to scaffold `ctest`, we just have the whole
+# configuration here.
+project (qiskit-test)
+# These variables need to be fed into the file during the build.
+# "Setting" them empty here is for documentation purposes.
+set (
+    QISKIT_INCLUDE_PATH
+    CACHE FILEPATH "path to the generated Qiskit include root"
+)
+set (
+    CARGO_LIB_DIR
+    CACHE FILEPATH "path to the `target/<profile>` directory where the Qiskit library is built"
+)
+
+
+enable_testing ()
+include_directories (${QISKIT_INCLUDE_PATH})
+find_library (qiskit qiskit_cext PATHS ${CARGO_LIB_DIR} REQUIRED)
 
 # Convert warnings into errors. Note that MSVC and GCC/clang do not match here, and CI will
 # require all to pass without errors.
@@ -23,7 +42,7 @@ file (
 
 # The following creates a test driver program which gathers all discovered test
 # files into a single executable. This has the benefit that a single test
-# executable is built and run rather than invididual ones for every individual
+# executable is built and run rather than individual ones for every individual
 # test file.
 create_test_sourcelist (source_files test_driver.c ${discovered_tests})
 

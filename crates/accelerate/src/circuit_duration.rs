@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -41,7 +41,7 @@ pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &Target) -> P
 
                     if let OperationRef::StandardInstruction(op) = inst.op.view() {
                         if let StandardInstruction::Delay(unit) = op {
-                            let dur = &inst.params.as_ref().unwrap()[0];
+                            let dur = &inst.params_view()[0];
                             return if unit == DelayUnit::DT {
                                 if let Some(dt) = dt {
                                     match dur {

@@ -1,0 +1,7 @@
+---
+upgrade_circuits:
+  - |
+    The names of the circuits produced as definitions of standard circuit library gates are now set to ``None``.
+    Previously, these circuits had the same name as the gate, making it very easy to construct
+    opaque gates with names matching a standard gate. This violates a common assumption in Qiskit,
+    where standard gate names should be unique.

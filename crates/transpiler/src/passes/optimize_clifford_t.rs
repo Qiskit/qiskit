@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -16,14 +16,13 @@ use std::f64::consts::PI;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
+use qiskit_circuit::packed_instruction::PackedInstruction;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
-
-use crate::TranspilerError;
 
 // The Clifford+T optimization pass only applies to circuits with Clifford+T/Tdg gates.
 // We return a transpiler error when the circuit contains gates outide of the following
 // list:
-const CLIFFORD_T_GATE_NAMES: &[&str; 18] = &[
+pub static CLIFFORD_T_GATE_NAMES: [&str; 18] = [
     "id", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg", "cx", "cz", "cy", "swap", "iswap", "ecr",
     "dcx", "t", "tdg",
 ];
@@ -100,7 +99,7 @@ impl Clifford1q {
                 self.append_clifford_gate(StandardGate::Z);
                 self.w = (self.w + 6) % 8;
             }
-            _ => unreachable!("should not be here"),
+            _ => unreachable!("should not be here, gate = {:?}", gate),
         }
     }
 
@@ -147,7 +146,7 @@ impl Clifford1q {
                 self.prepend_clifford_gate(StandardGate::X);
                 self.w = (self.w + 6) % 8;
             }
-            _ => unreachable!("should not be here"),
+            _ => unreachable!("should not be here, gate = {:?}", gate),
         }
     }
 
@@ -175,12 +174,37 @@ impl Clifford1q {
 fn optimize_clifford_t_1q(
     dag: &DAGCircuit,
     raw_run: &[NodeIndex],
+    basis_gates: Option<&[StandardGate]>,
 ) -> Option<(Vec<StandardGate>, f64)> {
     let mut is_reduced = false; // was any reduction applied?
     let mut clifford1q = Clifford1q::identity(); // current 1q-clifford operator
     let mut rotations: Vec<(Pauli1q, bool)> = Vec::new(); // current list of rotations
     let mut global_phase: f64 = 0.; // current adjustment to the global phase
     let num_nodes = raw_run.len();
+
+    let apply_ty = if basis_gates.is_some_and(|gates| !gates.contains(&StandardGate::SX)) {
+        |(sequence, flip): (&mut Vec<StandardGate>, bool)| {
+            sequence.push(StandardGate::S);
+            sequence.push(StandardGate::H);
+            sequence.push(if flip {
+                StandardGate::Tdg
+            } else {
+                StandardGate::T
+            });
+            sequence.push(StandardGate::H);
+            sequence.push(StandardGate::Sdg);
+        }
+    } else {
+        |(sequence, flip): (&mut Vec<StandardGate>, bool)| {
+            sequence.push(StandardGate::SX);
+            sequence.push(if flip {
+                StandardGate::Tdg
+            } else {
+                StandardGate::T
+            });
+            sequence.push(StandardGate::SXdg);
+        }
+    };
 
     for idx in 0..num_nodes {
         let cur_node = &dag[raw_run[idx]];
@@ -278,15 +302,11 @@ fn optimize_clifford_t_1q(
                 global_phase += PI / 8.;
             }
             (Pauli1q::Y, false) => {
-                optimized_sequence.push(StandardGate::SX);
-                optimized_sequence.push(StandardGate::T);
-                optimized_sequence.push(StandardGate::SXdg);
+                apply_ty((&mut optimized_sequence, false));
                 global_phase -= PI / 8.;
             }
             (Pauli1q::Y, true) => {
-                optimized_sequence.push(StandardGate::SX);
-                optimized_sequence.push(StandardGate::Tdg);
-                optimized_sequence.push(StandardGate::SXdg);
+                apply_ty((&mut optimized_sequence, true));
                 global_phase += PI / 8.;
             }
             (Pauli1q::Z, false) => {
@@ -307,34 +327,42 @@ fn optimize_clifford_t_1q(
     }
     global_phase += phase_update;
 
-    is_reduced.then_some((optimized_sequence, global_phase))
+    // Either we have fewer T-gates, or the number of T-gates remains the same
+    // but we have fewer Clifford gates (as the total number of gates is the number
+    // of T-gates + the number of Clifford gates).
+    (is_reduced || optimized_sequence.len() < raw_run.len())
+        .then_some((optimized_sequence, global_phase))
 }
 
 #[pyfunction]
-#[pyo3(name = "optimize_clifford_t")]
-pub fn run_optimize_clifford_t(dag: &mut DAGCircuit) -> PyResult<()> {
-    let op_counts = dag.get_op_counts();
+#[pyo3(name = "optimize_clifford_t", signature = (dag, basis_gates=None))]
+pub fn run_optimize_clifford_t(
+    dag: &mut DAGCircuit,
+    basis_gates: Option<Vec<StandardGate>>,
+) -> PyResult<()> {
+    let filter = |inst: &PackedInstruction| -> bool {
+        matches!(
+            inst.op.view(),
+            OperationRef::StandardGate(
+                StandardGate::I
+                    | StandardGate::X
+                    | StandardGate::Y
+                    | StandardGate::Z
+                    | StandardGate::H
+                    | StandardGate::S
+                    | StandardGate::Sdg
+                    | StandardGate::SX
+                    | StandardGate::SXdg
+                    | StandardGate::T
+                    | StandardGate::Tdg
+            )
+        )
+    };
 
-    // Stop the pass if there are unsupported gates.
-    if !op_counts
-        .keys()
-        .all(|k| CLIFFORD_T_GATE_NAMES.contains(&k.as_str()))
-    {
-        let unsupported: Vec<_> = op_counts
-            .keys()
-            .filter(|k| !CLIFFORD_T_GATE_NAMES.contains(&k.as_str()))
-            .collect();
-
-        return Err(TranspilerError::new_err(format!(
-            "Unable to run Clifford+T optimization as the circuit contains gates not supported by the pass: {:?}",
-            unsupported
-        )));
-    }
-
-    let runs: Vec<Vec<NodeIndex>> = dag.collect_1q_runs().unwrap().collect();
+    let runs: Vec<Vec<NodeIndex>> = dag.collect_runs_by(filter).collect();
 
     for raw_run in runs {
-        let optimized_sequence = optimize_clifford_t_1q(dag, &raw_run);
+        let optimized_sequence = optimize_clifford_t_1q(dag, &raw_run, basis_gates.as_deref());
         match optimized_sequence {
             Some((optimized_sequence, global_phase_update)) => {
                 for gate in optimized_sequence {

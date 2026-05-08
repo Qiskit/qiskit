@@ -1,0 +1,7 @@
+---
+features_c:
+  - |
+    Add function :c:func:`qk_target_instruction_supported` to check the compatibility of any gate
+    or instruction with the instance of :c:type:`QkTarget`. This check is performed based
+    on the provided instruction's name, qargs, and parameters. For more information on how it works
+    read the examples listed in the documentation for :c:func:`qk_target_instruction_supported`.

@@ -9,7 +9,8 @@ QkVF2LayoutConfiguration
 
    typedef struct QkVF2LayoutConfiguration QkVF2LayoutConfiguration
 
-The :c:func:`qk_transpiler_pass_standalone_vf2_layout` function takes this object as its configuration.
+The configuration for the VF2 layout passes.  This is an encapsulated configuration to allow for
+changes in the API over time; you create and mutate this using the constructor and setters below.
 
 .. doxygengroup:: QkVF2LayoutConfiguration
    :members:
