@@ -1158,8 +1158,6 @@ fn pack_custom_instruction(
                     }
                 }
             }
-            // TODO: Separate the handling of these two as gate also contains matrix definiton
-            // And we don't currently serialize gate matrices.
             OperationRef::CustomOperation(op) => {
                 if let Some(definition) = op.definition(operation.params_view()) {
                     has_definition = true;
