@@ -2163,14 +2163,15 @@ mod test_custom_gates {
 
     // Exclude this test from miri as it uses pointers without provenance
     // when extracting the view of the `CustomGate`.
-    #[cfg(not(miri))]
     #[test]
     fn try_add_to_circuit() {
+        use crate::packed_instruction::PackedOperation;
+
         let mut circuit = CircuitData::with_capacity(1, 0, 1, 0.0.into())
             .expect("Circuit with small capacity should be built.");
-
+        let as_operation = PackedOperation::from_custom_operation(Box::new(CustomH));
         circuit
-            .push_custom_operation(CustomH, &[], &[Qubit(0)], &[])
+            .push_packed_operation(as_operation, None, &[Qubit(0)], &[])
             .expect("Instruction should be added to the circuit.");
 
         // Retrieve operation
