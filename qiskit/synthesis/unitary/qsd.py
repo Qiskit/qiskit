@@ -31,7 +31,35 @@ from qiskit.circuit.library.generalized_gates.uc_pauli_rot import UCPauliRotGate
 from qiskit._accelerate.two_qubit_decompose import two_qubit_decompose_up_to_diagonal
 from qiskit._accelerate import qsd
 
+from qiskit.utils import deprecate_arg
 
+
+@deprecate_arg(
+    "opt_a1",
+    since="2.5.0",
+    additional_msg="Optimization is applied automatically when appropriate.",
+)
+@deprecate_arg(
+    "opt_a2",
+    since="2.5.0",
+    additional_msg="Optimization is applied automatically when appropriate.",
+)
+@deprecate_arg(
+    "decomposer_1q",
+    since="2.5.0",
+    predicate=lambda x: callable(x) and not isinstance(x, OneQubitEulerDecomposer),
+    deprecation_description="The argument `decomposer_1q` in :func:`.qs_decomposition` only "
+    "accept instances of :class:`.OneQubitEulerDecomposer`.",
+    removal_timeline="Accepting any other callable wont longer be supported from 3.0.0 on.",
+)
+@deprecate_arg(
+    "decomposer_2q",
+    since="2.5.0",
+    predicate=lambda x: callable(x) and not isinstance(x, TwoQubitBasisDecomposer),
+    deprecation_description="The argument `decomposer_2q` in :func:`.qs_decomposition` only "
+    "accept instances of :class:`.TwoQubitBasisDecomposer`.",
+    removal_timeline="Accepting any other callable wont longer be supported from 3.0.0 on.",
+)
 def qs_decomposition(
     mat: np.ndarray,
     opt_a1: bool | None = None,
