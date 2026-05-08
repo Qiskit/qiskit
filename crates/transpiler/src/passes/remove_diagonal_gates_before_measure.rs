@@ -76,10 +76,20 @@ pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) {
             | StandardGate::CPhase
             | StandardGate::CS
             | StandardGate::CSdg
-            | StandardGate::CCZ => dag
-                .quantum_successors(predecessor)
-                .all(is_measure)
-                .then_some(predecessor),
+            | StandardGate::CCZ => {
+                let mut successors = dag.quantum_successors(predecessor);
+                let Some(succ) = successors.next() else {
+                    unreachable!("All op nodes must have a successor");
+                };
+                // For de-duplication only add a multi-qubit gate if the
+                // first successor is the measurement we're tracking
+                if succ != index {
+                    None
+                } else {
+                    successors.all(is_measure).then_some(predecessor)
+                }
+            }
+
             _ => None,
         }
     };
@@ -97,9 +107,7 @@ pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) {
     };
 
     for node in nodes_to_remove {
-        if dag.dag().node_weight(node).is_some() {
-            dag.remove_op_node(node);
-        }
+        dag.remove_op_node(node);
     }
 }
 
