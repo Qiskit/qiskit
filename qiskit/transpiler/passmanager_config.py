@@ -167,11 +167,8 @@ class PassManagerConfig:
         )
 
 
-class PassManagerCliffordTConfig(PassManagerConfig):
+class PassManagerCliffordTConfig:
     """Pass Manager Configuration for Clifford+T transpilation."""
-
-    # This subclasses PassManagerConfig since we want to use the default
-    # stages for layout, routing and scheduling.
 
     def __init__(
         self,
@@ -229,17 +226,70 @@ class PassManagerCliffordTConfig(PassManagerConfig):
         self.rz_synthesis_error = rz_synthesis_error
         self.rz_cache_error = rz_cache_error
 
-        super().__init__(
-            initial_layout=initial_layout,
-            basis_gates=basis_gates,
-            coupling_map=coupling_map,
-            instruction_durations=instruction_durations,
-            approximation_degree=approximation_degree,
-            seed_transpiler=seed_transpiler,
-            timing_constraints=timing_constraints,
-            unitary_synthesis_method=unitary_synthesis_method,
-            unitary_synthesis_plugin_config=unitary_synthesis_plugin_config,
-            target=target,
-            hls_config=hls_config,
-            qubits_initially_zero=qubits_initially_zero,
+        self.initial_layout = initial_layout
+        self.basis_gates = basis_gates
+        self.coupling_map = coupling_map
+        self.instruction_durations = instruction_durations
+        self.approximation_degree = approximation_degree
+        self.seed_transpiler = seed_transpiler
+        self.timing_constraints = timing_constraints
+        self.unitary_synthesis_method = unitary_synthesis_method
+        self.unitary_synthesis_plugin_config = unitary_synthesis_plugin_config
+        self.target = target
+        self.hls_config = hls_config
+        self.qubits_initially_zero = qubits_initially_zero
+
+    def _to_legacy_config(self) -> PassManagerConfig:
+        """
+        Returns PassManagerConfig created from PassManagerCliffordTConfig,
+        using default values for stage methods.
+
+        This is only used when calling default layout, routing and scheduling
+        plugins from the CliffordT compilation pipeline.
+        """
+        return PassManagerConfig(
+            initial_layout=self.initial_layout,
+            basis_gates=self.basis_gates,
+            coupling_map=self.coupling_map,
+            layout_method=None,
+            routing_method=None,
+            translation_method=None,
+            scheduling_method=None,
+            instruction_durations=self.instruction_durations,
+            approximation_degree=self.approximation_degree,
+            seed_transpiler=self.seed_transpiler,
+            timing_constraints=self.timing_constraints,
+            unitary_synthesis_method=self.unitary_synthesis_method,
+            unitary_synthesis_plugin_config=self.unitary_synthesis_plugin_config,
+            target=self.target,
+            hls_config=self.hls_config,
+            init_method="default",
+            optimization_method="default",
+            qubits_initially_zero=self.qubits_initially_zero,
+        )
+
+    @classmethod
+    def _from_legacy_config(cls, pass_manager_config: PassManagerConfig):
+        """
+        Returns PassManagerCliffordTConfig created from PassManagerConfig,
+        using default values for RZ-synthesis options.
+
+        This is only used when calling legacy Clifford+T synthesis pipeline
+        from `generate_preset_pass_manager` or `transpile`.
+        """
+        return PassManagerCliffordTConfig(
+            rz_synthesis_error=None,
+            rz_cache_error=None,
+            initial_layout=pass_manager_config.initial_layout,
+            basis_gates=pass_manager_config.basis_gates,
+            coupling_map=pass_manager_config.coupling_map,
+            instruction_durations=pass_manager_config.instruction_durations,
+            approximation_degree=pass_manager_config.approximation_degree,
+            seed_transpiler=pass_manager_config.seed_transpiler,
+            timing_constraints=pass_manager_config.timing_constraints,
+            unitary_synthesis_method=pass_manager_config.unitary_synthesis_method,
+            unitary_synthesis_plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
+            target=pass_manager_config.target,
+            hls_config=pass_manager_config.hls_config,
+            qubits_initially_zero=pass_manager_config.qubits_initially_zero,
         )

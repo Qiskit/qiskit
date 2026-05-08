@@ -1116,7 +1116,7 @@ class OptimizeCliffordRZPassManager(PassManagerCliffordTStagePlugin):
 
         match optimization_level:
             case 0:
-                return None
+                return PassManager()
             case 1:
                 pre_loop = []
                 loop = [

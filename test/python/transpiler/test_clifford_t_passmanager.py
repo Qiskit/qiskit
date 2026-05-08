@@ -12,6 +12,8 @@
 
 """Test Clifford+T transpilation pipeline"""
 
+import unittest
+
 import numpy as np
 from ddt import ddt, data
 
@@ -26,9 +28,12 @@ from qiskit.circuit.library import (
     MultiplierGate,
     ModularAdderGate,
 )
+
+from qiskit.transpiler.preset_passmanagers.plugin import PassManagerStagePluginManager
+
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.utils import CheckGateDirection
-from qiskit.transpiler.passes import SynthesizeRZRotations
 from qiskit.transpiler.preset_passmanagers import (
     generate_preset_pass_manager,
     generate_preset_clifford_t_pass_manager,
@@ -37,8 +42,32 @@ from qiskit.transpiler import CouplingMap, Target
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info import get_clifford_gate_names
 from qiskit.synthesis import gridsynth_rz
+from qiskit.transpiler.preset_passmanagers import clifford_t_pass_manager
+from qiskit.dagcircuit import DAGCircuit
+
+from qiskit.transpiler import PassManager
+
 
 from test import QiskitTestCase
+
+
+_original_get_passmanager_stage = PassManagerStagePluginManager.get_passmanager_stage
+
+
+class CustomTransformationPass(TransformationPass):
+    def run(self, dag: DAGCircuit) -> DAGCircuit:
+        return dag
+
+
+def mock_get_passmanager_stage(
+    self, stage_name, plugin_name, pm_config, optimization_level
+) -> PassManager:
+    """Mock function for get_passmanager_stage."""
+    if plugin_name == "custom":
+        return PassManager([CustomTransformationPass()])
+    return _original_get_passmanager_stage(
+        self, stage_name, plugin_name, pm_config, optimization_level
+    )
 
 
 @ddt
@@ -487,7 +516,7 @@ class TestCliffordTPassManager(QiskitTestCase):
                 basis_gates=basis_gates, optimization_level=0
             )
 
-    def test_preset_pass_manager_with_clifford_t(self):
+    def test_legacy_pass_manager_with_clifford_t(self):
         """Test that calling generate_preset_pass_manager with Clifford+T
         gates also works as expected.
         """
@@ -539,6 +568,70 @@ class TestCliffordTPassManager(QiskitTestCase):
         self.assertEqual(transpiled_basis_gates, transpiled_target)
         self.assertEqual(transpiled_basis_gates, transpiled_neither)
         self.assertEqual(transpiled_basis_gates, transpiled_both)
+
+    @unittest.mock.patch.object(
+        PassManagerStagePluginManager,
+        "get_passmanager_stage",
+        new=mock_get_passmanager_stage,
+    )
+    def test_custom_stage_plugins_legacy(self):
+        """
+        Test that in the legacy Clifford+T pipeline (called from `generate_preset_pass_manager`)
+        we can specify custom stage plugins.
+        """
+        basis_gates = ["cx", "h", "t"]
+        coupling_map = CouplingMap.from_line(3)
+        with self.subTest("no custom methods"):
+            pm = generate_preset_pass_manager(optimization_level=1, basis_gates=basis_gates)
+            passes = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
+            self.assertNotIn("CustomTransformationPass", passes)
+
+        with self.subTest("custom init method"):
+            pm = generate_preset_pass_manager(
+                optimization_level=1, basis_gates=basis_gates, init_method="custom"
+            )
+            passes = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
+            self.assertIn("CustomTransformationPass", passes)
+
+        with self.subTest("custom layout method"):
+            pm = generate_preset_pass_manager(
+                optimization_level=1,
+                basis_gates=basis_gates,
+                coupling_map=coupling_map,
+                layout_method="custom",
+            )
+            passes = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
+            self.assertIn("CustomTransformationPass", passes)
+
+        with self.subTest("custom routing method"):
+            pm = generate_preset_pass_manager(
+                optimization_level=1,
+                basis_gates=basis_gates,
+                coupling_map=coupling_map,
+                routing_method="custom",
+            )
+            passes = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
+            self.assertIn("CustomTransformationPass", passes)
+
+        with self.subTest("custom translation method"):
+            pm = generate_preset_pass_manager(
+                optimization_level=1, basis_gates=basis_gates, translation_method="custom"
+            )
+            passes = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
+            self.assertIn("CustomTransformationPass", passes)
+
+        with self.subTest("custom optimization method"):
+            pm = generate_preset_pass_manager(
+                optimization_level=1, basis_gates=basis_gates, optimization_method="custom"
+            )
+            passes = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
+            self.assertIn("CustomTransformationPass", passes)
+        with self.subTest("custom scheduling method"):
+            pm = generate_preset_pass_manager(
+                optimization_level=1, basis_gates=basis_gates, scheduling_method="custom"
+            )
+            passes = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
+            self.assertIn("CustomTransformationPass", passes)
 
 
 def _get_t_count(qc):

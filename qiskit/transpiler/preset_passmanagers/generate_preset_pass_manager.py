@@ -31,8 +31,9 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passmanager_config import PassManagerConfig, PassManagerCliffordTConfig
-from qiskit.transpiler.preset_passmanagers.clifford_t_pass_manager import (
+from qiskit.transpiler.preset_passmanagers.clifford_t import (
     clifford_t_pass_manager,
+    clifford_t_pass_manager_legacy,
 )
 from qiskit.transpiler.preset_passmanagers.common import is_clifford_t_basis
 from qiskit.transpiler.target import Target, _FakeTarget
@@ -255,12 +256,12 @@ def generate_preset_pass_manager(
         "optimization_method": optimization_method,
     }
 
-    if is_clifford_t_basis(common_options["basis_gates"], common_options["target"]):
-        pm_config = PassManagerCliffordTConfig(**common_options)
-        pm = clifford_t_pass_manager(pm_config, optimization_level=optimization_level)
-        return pm
-
     pm_options = common_options | specific_options
+
+    if is_clifford_t_basis(pm_options["basis_gates"], pm_options["target"]):
+        pm_config = PassManagerConfig(**pm_options)
+        pm = clifford_t_pass_manager_legacy(pm_config, optimization_level=optimization_level)
+        return pm
 
     if backend is not None:
         pm_options["_skip_target"] = _skip_target
