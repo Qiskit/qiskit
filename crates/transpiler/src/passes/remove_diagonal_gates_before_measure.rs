@@ -71,7 +71,7 @@ pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) {
             | StandardGate::CS
             | StandardGate::CSdg
             | StandardGate::CCZ => dag
-                .quantum_successors(index)
+                .quantum_successors(predecessor)
                 .all(is_measure)
                 .then_some(predecessor),
             _ => None,
