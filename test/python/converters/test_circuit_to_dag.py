@@ -210,7 +210,7 @@ class TestCircuitToDag(QiskitTestCase):
     def test_circuit_to_dag_metadata_is_copied(self):
         """circuit_to_dag should return a DAG with a copy of the metadata, not a reference."""
         qc = QuantumCircuit(1, metadata={"key": "original"})
-        dag = circuit_to_dag(qc,)
+        dag = circuit_to_dag(qc, copy_operations=True)
         self.assertIsNot(dag.metadata, qc.metadata)
         self.assertEqual(dag.metadata, qc.metadata)
 
@@ -219,6 +219,7 @@ class TestCircuitToDag(QiskitTestCase):
         qc = QuantumCircuit(1, metadata={"key": "original"})
         result = dag_to_circuit(circuit_to_dag(qc, copy_operations=True))
         self.assertIsNot(result.metadata, qc.metadata)
+        self.assertEqual(result.metadata, qc.metadata)
 
 
 if __name__ == "__main__":
