@@ -95,7 +95,7 @@ jobs:
       - name: Build Binary
         run: |
           # Compile Qiskit C API with PGO profile enabled
-          export C_LIB_RUSTC_FLAGS="--Cprofile-generate=/tmp/pgo-data"
+          export C_LIB_RUSTC_FLAGS="-Cprofile-generate=/tmp/pgo-data"
           make c \
             C_DIR_OUT="${{ env.C_DIR_OUT }}"
 
@@ -118,7 +118,7 @@ jobs:
 
           # Re-compile Qiskit C API with merged PGO data
           make cclean
-          export C_LIB_RUSTC_FLAGS="-Cprogile-use=merged.profdata"
+          export C_LIB_RUSTC_FLAGS="-Cprofile-use=merged.profdata"
           make c \
             C_DIR_OUT="${{ env.C_DIR_OUT }}"
 
