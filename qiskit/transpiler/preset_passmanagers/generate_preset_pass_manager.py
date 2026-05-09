@@ -296,10 +296,9 @@ def generate_preset_clifford_t_pass_manager(
     hls_config: HLSConfig | None = None,
     dt: float | None = None,
     qubits_initially_zero: bool = True,
-    rz_synthesis_error: float | None = None,
-    rz_cache_error: float | None = None,
+    rz_synthesis_config: dict | None = None,
 ):
-    r"""Generate a Clifford+T :class:`~.PassManager`
+    """Generate a Clifford+T :class:`~.PassManager`
 
     This function provides a fast and convenient way to construct a preset pass manager for
     Clifford+T compilation. We recommend using this function instead of :func:`~.transpile` or
@@ -369,10 +368,9 @@ def generate_preset_clifford_t_pass_manager(
             the lists of synthesis algorithms and their parameters.
         qubits_initially_zero: Indicates whether the input circuit is
             zero-initialized.
-        rz_synthesis_error: Maximum allowed error for the approximate synthesis of
-            :math:`RZ(\theta)`.
-        rz_cache_error: Maximum allowed error when reusing a cached synthesis
-            result for angles close to :math:`\theta`.
+        rz_synthesis_config: An optional configuration class to use for
+            :class:`~qiskit.transpiler.passes.SynthesizeRZRotations` pass.
+            Specifies how to synthesize RZ rotations in the circuit.
 
     Returns:
         StagedPassManager: The preset pass manager for the given options.
@@ -408,8 +406,7 @@ def generate_preset_clifford_t_pass_manager(
         qubits_initially_zero=qubits_initially_zero,
     )
     specific_options = {
-        "rz_synthesis_error": rz_synthesis_error,
-        "rz_cache_error": rz_cache_error,
+        "rz_synthesis_config": rz_synthesis_config,
     }
     pm_options = common_options | specific_options
 

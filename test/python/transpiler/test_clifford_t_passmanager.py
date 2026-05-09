@@ -17,7 +17,7 @@ import unittest
 import numpy as np
 from ddt import ddt, data
 
-from qiskit import transpile
+from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import (
@@ -29,24 +29,18 @@ from qiskit.circuit.library import (
     ModularAdderGate,
 )
 
+from qiskit.transpiler import PassManager, TransformationPass, CouplingMap, Target, TranspilerError
+from qiskit.transpiler.passes import SynthesizeRZRotations, CheckGateDirection
 from qiskit.transpiler.preset_passmanagers.plugin import PassManagerStagePluginManager
-
-from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes.utils import CheckGateDirection
 from qiskit.transpiler.preset_passmanagers import (
     generate_preset_pass_manager,
     generate_preset_clifford_t_pass_manager,
 )
-from qiskit.transpiler import CouplingMap, Target
+
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info import get_clifford_gate_names
 from qiskit.synthesis import gridsynth_rz
-from qiskit.transpiler.preset_passmanagers import clifford_t_pass_manager
 from qiskit.dagcircuit import DAGCircuit
-
-from qiskit.transpiler import PassManager
-
 
 from test import QiskitTestCase
 
@@ -632,6 +626,46 @@ class TestCliffordTPassManager(QiskitTestCase):
             )
             passes = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
             self.assertIn("CustomTransformationPass", passes)
+
+    def test_rz_config_is_passed(self):
+        """
+        Test that `generate_preset_clifford_t_pass_manager` option `rz_synthesis_config`
+        is passed correctly to the `SynthesizeRZRotations` transpiler pass.
+        """
+
+        qc = QuantumCircuit(1)
+        theta = 2.3456
+        qc.rz(theta, 0)
+
+        basis_gates = ["cx", "h", "t"]
+        rz_synthesis_config = {
+            "rz_synthesis_error": 1e-4,
+            "rz_cache_error": 1e-5,
+        }
+
+        pm = generate_preset_clifford_t_pass_manager(
+            rz_synthesis_config=rz_synthesis_config,
+            basis_gates=basis_gates,
+        )
+
+        # Save the original SynthesizeRZRotations.run method,
+        # and create a mock method that calls the original method, but also
+        # records the values of synthesis_error and cache_error.
+        original_run = SynthesizeRZRotations.run
+        run_calls = []
+
+        def mock_run(self, dag):
+            run_calls.append([self.synthesis_error, self.cache_error])
+            original_run(self, dag)
+
+        with unittest.mock.patch.object(SynthesizeRZRotations, "run", new=mock_run):
+            pm = generate_preset_clifford_t_pass_manager(
+                rz_synthesis_config=rz_synthesis_config,
+                basis_gates=basis_gates,
+            )
+            _ = pm.run(qc)
+        self.assertEqual(len(run_calls), 1)
+        self.assertEqual(run_calls[0], [1e-4, 1e-5])
 
 
 def _get_t_count(qc):

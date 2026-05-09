@@ -47,6 +47,7 @@ from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePluginManager,
     PassManagerCliffordTStagePlugin,
 )
+from qiskit.transpiler.passmanager_config import PassManagerCliffordTConfig
 from qiskit.transpiler.passes.optimization import (
     Optimize1qGatesDecomposition,
     CommutativeCancellation,
@@ -967,7 +968,9 @@ class CliffordTInitPassManager(PassManagerCliffordTStagePlugin):
     # In theory, we could leave larger-qubit Clifford gates in-place, provided we do not have
     # the layout + routing stages, and the rest of the passes know how to handle larger-qubit
     # Clifford gates.
-    def pass_manager(self, pass_manager_config, optimization_level=None):
+    def pass_manager(
+        self, pass_manager_config: PassManagerCliffordTConfig, optimization_level: int | None = None
+    ):
         optimization_metric = OptimizationMetric.COUNT_T
         clifford_rz_gates = get_clifford_gate_names() + ["t", "tdg", "rz"]
 
@@ -1074,7 +1077,9 @@ class TranslateToCliffordRZPassManager(PassManagerCliffordTStagePlugin):
     Clifford+T transpilation stage, which translates circuits into Clifford+RZ+T basis set.
     """
 
-    def pass_manager(self, pass_manager_config, optimization_level=None):
+    def pass_manager(
+        self, pass_manager_config: PassManagerCliffordTConfig, optimization_level: int | None = None
+    ):
         clifford_rz_gates = get_clifford_gate_names() + ["t", "tdg", "rz"]
         translate = PassManager(
             [
@@ -1109,7 +1114,9 @@ class OptimizeCliffordRZPassManager(PassManagerCliffordTStagePlugin):
     Clifford+T transpilation stage, which optimizes Clifford+RZ+T circuits.
     """
 
-    def pass_manager(self, pass_manager_config, optimization_level=None):
+    def pass_manager(
+        self, pass_manager_config: PassManagerCliffordTConfig, optimization_level: int | None = None
+    ):
         """Build pass manager for optimization stage."""
 
         clifford_rz_gates = get_clifford_gate_names() + ["t", "tdg", "rz"]
@@ -1189,8 +1196,12 @@ class TranslateToCliffordTPassManager(PassManagerCliffordTStagePlugin):
     into Clifford+T circuits.
     """
 
-    def pass_manager(self, pass_manager_config, optimization_level=None):
-
+    def pass_manager(
+        self, pass_manager_config: PassManagerCliffordTConfig, optimization_level: int | None = None
+    ):
+        rz_config = pass_manager_config.rz_synthesis_config
+        rz_synthesis_error = rz_config.get("rz_synthesis_error") if rz_config is not None else None
+        rz_cache_error = rz_config.get("rz_cache_error") if rz_config is not None else None
         rz_to_t_translation = PassManager(
             [
                 SubstitutePi4Rotations(
@@ -1198,8 +1209,8 @@ class TranslateToCliffordTPassManager(PassManagerCliffordTStagePlugin):
                 ),
                 SynthesizeRZRotations(
                     approximation_degree=pass_manager_config.approximation_degree or 1.0,
-                    synthesis_error=pass_manager_config.rz_synthesis_error,
-                    cache_error=pass_manager_config.rz_synthesis_error,
+                    synthesis_error=rz_synthesis_error,
+                    cache_error=rz_cache_error,
                 ),
             ]
         )
@@ -1211,7 +1222,9 @@ class OptimizeCliffordTPassManager(PassManagerCliffordTStagePlugin):
     Clifford+T transpilation stage, which optimizes Clifford+T circuits.
     """
 
-    def pass_manager(self, pass_manager_config, optimization_level=None):
+    def pass_manager(
+        self, pass_manager_config: PassManagerCliffordTConfig, optimization_level: int | None = None
+    ):
         basis_gates = pass_manager_config.basis_gates
         target = pass_manager_config.target
 

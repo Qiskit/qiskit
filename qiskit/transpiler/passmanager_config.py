@@ -184,10 +184,9 @@ class PassManagerCliffordTConfig:
         target: Target | None = None,
         hls_config: HLSConfig | None = None,
         qubits_initially_zero: bool = True,
-        rz_synthesis_error: float | None = None,
-        rz_cache_error: float | None = None,
+        rz_synthesis_config: dict | None = None,
     ):
-        r"""
+        """
 
         Args:
             initial_layout: Initial position of virtual qubits on
@@ -218,14 +217,10 @@ class PassManagerCliffordTConfig:
                 Specifies how to synthesize various high-level objects.
             qubits_initially_zero: Indicates whether the input circuit is
                 zero-initialized.
-            rz_synthesis_error: Maximum allowed error for the approximate synthesis of
-                :math:`RZ(\theta)`.
-            rz_cache_error: Maximum allowed error when reusing a cached synthesis
-                result for angles close to :math:`\theta`.
+            rz_synthesis_config: An optional configuration class to use for
+                :class:`~qiskit.transpiler.passes.SynthesizeRZRotations` pass.
+                Specifies how to synthesize RZ rotations in the circuit.
         """
-        self.rz_synthesis_error = rz_synthesis_error
-        self.rz_cache_error = rz_cache_error
-
         self.initial_layout = initial_layout
         self.basis_gates = basis_gates
         self.coupling_map = coupling_map
@@ -238,6 +233,7 @@ class PassManagerCliffordTConfig:
         self.target = target
         self.hls_config = hls_config
         self.qubits_initially_zero = qubits_initially_zero
+        self.rz_synthesis_config = rz_synthesis_config
 
     def _to_legacy_config(self) -> PassManagerConfig:
         """
@@ -278,8 +274,6 @@ class PassManagerCliffordTConfig:
         from `generate_preset_pass_manager` or `transpile`.
         """
         return PassManagerCliffordTConfig(
-            rz_synthesis_error=None,
-            rz_cache_error=None,
             initial_layout=pass_manager_config.initial_layout,
             basis_gates=pass_manager_config.basis_gates,
             coupling_map=pass_manager_config.coupling_map,
@@ -292,4 +286,5 @@ class PassManagerCliffordTConfig:
             target=pass_manager_config.target,
             hls_config=pass_manager_config.hls_config,
             qubits_initially_zero=pass_manager_config.qubits_initially_zero,
+            rz_synthesis_config=None,
         )
