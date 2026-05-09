@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 pub mod render;
+pub mod simple_ir;
 
 use std::fs;
 use std::io::Write;

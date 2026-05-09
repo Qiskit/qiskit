@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 #![allow(clippy::too_many_arguments)]
 
-use ahash::RandomState;
+use foldhash::fast::RandomState;
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexSet;
 use ndarray::prelude::*;
