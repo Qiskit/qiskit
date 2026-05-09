@@ -40,13 +40,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for QuantumCircuitData<'py> {
         Ok(QuantumCircuitData {
             data: data_borrowed.borrow().inner.clone(),
             name: ob.getattr(intern!(py, "name"))?.extract()?,
-            metadata: ob.getattr(intern!(py, "metadata")).ok().and_then(|m| {
-                if m.is_none() {
-                    None
-                } else {
-                    m.call_method0(intern!(py, "copy")).ok()
-                }
-            }),
+            metadata: ob.getattr(intern!(py, "metadata")).ok(),
             transpile_layout: ob.getattr(intern!(py, "layout")).ok(),
         })
     }
