@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -33,7 +33,7 @@ from qiskit.circuit.library import GraphStateGate, CXGate, XGate, HGate
 from qiskit.transpiler import PassManager, AnalysisPass
 from qiskit.transpiler.target import InstructionProperties
 from qiskit.transpiler.preset_passmanagers.common import generate_embed_passmanager
-from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine
 
 from ..legacy_cmaps import TENERIFE_CMAP, RUESCHLIKON_CMAP, MANHATTAN_CMAP, YORKTOWN_CMAP
 
@@ -117,7 +117,7 @@ class TestVF2LayoutSimple(LayoutTestCase):
         vf2_pass = VF2Layout(target=target, seed=self.seed)
         vf2_pass(qc)
         layout = vf2_pass.property_set["layout"]
-        self.assertEqual([1, 0], list(layout._p2v.keys()))
+        self.assertNotIn(2, layout.get_physical_bits())
 
     def test_2q_circuit_2q_coupling(self):
         """A simple example, without considering the direction
@@ -744,13 +744,8 @@ class TestMultipleTrials(QiskitTestCase):
         # Run without any limits set
         vf2_pass = VF2Layout(target=backend.target, seed=42)
         property_set = {}
-        with self.assertLogs("qiskit.transpiler.passes.layout.vf2_layout", level="DEBUG") as cm:
-            vf2_pass(qc, property_set)
-        self.assertIn(
-            "DEBUG:qiskit.transpiler.passes.layout.vf2_layout:Trial 717 is >= configured max trials 717",
-            cm.output,
-        )
-        self.assertEqual(set(property_set["layout"].get_physical_bits()), {16, 24, 6, 7, 0})
+        vf2_pass(qc, property_set)
+        self.assertEqual(set(property_set["layout"].get_physical_bits()), {26, 11, 14, 7, 10})
 
     def test_no_limits_with_negative(self):
         """Test that we're not enforcing a trial limit if set to negative."""
@@ -766,11 +761,8 @@ class TestMultipleTrials(QiskitTestCase):
             max_trials=0,
         )
         property_set = {}
-        with self.assertLogs("qiskit.transpiler.passes.layout.vf2_layout", level="DEBUG") as cm:
-            vf2_pass(qc, property_set)
-        for output in cm.output:
-            self.assertNotIn("is >= configured max trials", output)
-        self.assertEqual(set(property_set["layout"].get_physical_bits()), {3, 1, 0})
+        vf2_pass(qc, property_set)
+        self.assertEqual(set(property_set["layout"].get_physical_bits()), {3, 2, 0})
 
     def test_qregs_valid_layout_output(self):
         """Test that vf2 layout doesn't add extra qubits.

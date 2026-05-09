@@ -4,20 +4,18 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use qiskit_circuit::{
-    circuit_data::CircuitData, converters::dag_to_circuit, dag_circuit::DAGCircuit,
-};
+use qiskit_circuit::{circuit_data::CircuitData, dag_circuit::DAGCircuit};
 use qiskit_transpiler::{passes::run_consolidate_blocks, target::Target};
 
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Run the ConsolidateBlocks pass on a circuit.
 ///
 /// ConsolidateBlocks is a transpiler pass that consolidates consecutive blocks of
@@ -34,8 +32,7 @@ use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit`` and
 /// if ``target`` is not a valid pointer to a ``QkTarget``.
-#[no_mangle]
-#[cfg(feature = "cbinding")]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_consolidate_blocks(
     circuit: *mut CircuitData,
     target: *const Target,
@@ -67,7 +64,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_consolidate_blocks(
     )
     .expect("Error running the consolidate blocks pass.");
 
-    let result_circuit = dag_to_circuit(&circ_as_dag, true)
+    let result_circuit = CircuitData::from_dag_ref(&circ_as_dag)
         .expect("Error while converting from DAGCircuit to CircuitData.");
     *circuit = result_circuit;
 }

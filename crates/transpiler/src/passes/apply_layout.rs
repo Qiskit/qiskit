@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -97,6 +97,7 @@ pub fn apply_layout(
         final_permutation,
         virtual_qubits,
         cur_layout.num_input_qubits(),
+        cur_layout.input_registers().to_vec(),
     );
 }
 
@@ -173,9 +174,11 @@ fn py_apply_layout<'py>(
         )));
     }
     match permutation.as_ref().map(Vec::len) {
-        Some(len) if len != dag.num_qubits() => return Err(PyValueError::new_err(format!(
-            "Given permutation has difference number of qubits ({len}) than the DAG ({num_dag_qubits})"
-        ))),
+        Some(len) if len != dag.num_qubits() => {
+            return Err(PyValueError::new_err(format!(
+                "Given permutation has difference number of qubits ({len}) than the DAG ({num_dag_qubits})"
+            )));
+        }
         _ => (),
     }
     if physical_from_virtual.len() != dag.num_qubits() {
@@ -202,7 +205,7 @@ fn py_apply_layout<'py>(
     }
 
     // TODO: while Rust-space and Python-space `TranspileLayout` are two different objects, Python
-    // gets the short end of the "unnecessary conversion" stick, and we have to make a new object ot
+    // gets the short end of the "unnecessary conversion" stick, and we have to make a new object to
     // return to Python.  We don't accept the Python-space object into this function because it
     // can't represent the state of "initial layout is not yet applied", so we may as well just make
     // it ourselves.
@@ -213,6 +216,7 @@ fn py_apply_layout<'py>(
         // We had to take `num_virtual_qubits` by value because the DAG might already have been
         // expanded with ancillas in the legacy mode.
         num_virtual_qubits,
+        dag.qregs().to_vec(),
     );
     apply_layout(dag, &mut cur_layout, num_physical_qubits, |v| {
         physical_from_virtual[v.index()]

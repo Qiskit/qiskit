@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -12,14 +12,14 @@
 
 use hashbrown::HashMap;
 
+use pyo3::Python;
 use pyo3::exceptions::PyKeyError;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
-use pyo3::Python;
 
 use crate::TranspilerError;
-use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::PhysicalQubit;
+use qiskit_circuit::dag_circuit::DAGCircuit;
 
 #[derive(Clone)]
 pub(crate) enum CallbackType {
@@ -32,7 +32,13 @@ impl CallbackType {
         match self {
             Self::Python(inner) => {
                 let qubits: Vec<usize> = qubits.iter().map(|x| x.index()).collect();
-                Python::attach(|py| inner.bind(py).call1((angles, qubits))?.extract())
+                Python::attach(|py| {
+                    inner
+                        .bind(py)
+                        .call1((angles, qubits))?
+                        .extract()
+                        .map_err(PyErr::from)
+                })
             }
             Self::Native(inner) => Ok(inner(angles, qubits)),
         }
@@ -125,10 +131,9 @@ impl WrapAngleRegistry {
         angles: &[f64],
         qubits: &[PhysicalQubit],
     ) -> PyResult<Option<DAGCircuit>> {
-        if let Some(callback) = self.registry.get(name) {
-            Some(callback.call(angles, qubits)).transpose()
-        } else {
-            Err(PyKeyError::new_err("Name: {} not in registry"))
+        match self.registry.get(name) {
+            Some(callback) => Some(callback.call(angles, qubits)).transpose(),
+            None => Err(PyKeyError::new_err("Name: {} not in registry")),
         }
     }
 }

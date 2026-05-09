@@ -1,0 +1,5 @@
+---
+features_quantum_info:
+  - |
+    Several of the :mod:`~qiskit.quantum_info` "predicates" functions, such as
+    :func:`.is_identity_matrix`, were optimized to avoid unnecessary matrix allocations.

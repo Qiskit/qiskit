@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -13,7 +13,7 @@
 use crate::classical::expr::{Binary, Cast, Index, Stretch, Unary, Value, Var};
 use crate::classical::types::Type;
 use pyo3::prelude::*;
-use pyo3::{intern, IntoPyObjectExt};
+use pyo3::{IntoPyObjectExt, intern};
 
 /// A classical expression.
 ///
@@ -395,7 +395,8 @@ impl From<Box<Index>> for Expr {
     subclass,
     frozen,
     name = "Expr",
-    module = "qiskit._accelerate.circuit.classical.expr"
+    module = "qiskit._accelerate.circuit.classical.expr",
+    skip_from_py_object
 )]
 #[derive(PartialEq, Clone, Copy, Debug, Hash)]
 pub struct PyExpr(pub ExprKind); // ExprKind is used for fast extraction from Python
@@ -453,9 +454,11 @@ impl<'py> IntoPyObject<'py> for Expr {
     }
 }
 
-impl<'py> FromPyObject<'py> for Expr {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let expr: PyRef<'_, PyExpr> = ob.downcast()?.borrow();
+impl<'a, 'py> FromPyObject<'a, 'py> for Expr {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        let expr: PyRef<'_, PyExpr> = ob.cast()?.borrow();
         match expr.0 {
             ExprKind::Unary => Ok(Expr::Unary(Box::new(ob.extract()?))),
             ExprKind::Binary => Ok(Expr::Binary(Box::new(ob.extract()?))),
@@ -477,6 +480,7 @@ mod tests {
     };
     use crate::classical::types::Type;
     use crate::duration::Duration;
+    use num_bigint::BigUint;
     use pyo3::PyResult;
     use uuid::Uuid;
 
@@ -724,7 +728,7 @@ mod tests {
             }
             .into(),
             right: Value::Uint {
-                raw: 1,
+                raw: BigUint::from(1u8),
                 ty: Type::Bool,
             }
             .into(),
@@ -759,7 +763,7 @@ mod tests {
                 ty: Type::Uint(3),
             }),
             Expr::Value(Value::Uint {
-                raw: 3,
+                raw: BigUint::from(3u8),
                 ty: Type::Uint(2),
             }),
             Expr::Cast(
@@ -789,7 +793,7 @@ mod tests {
                 Binary {
                     op: BinaryOp::BitAnd,
                     left: Expr::Value(Value::Uint {
-                        raw: 5,
+                        raw: BigUint::from(5u8),
                         ty: Type::Uint(3),
                     }),
                     right: Expr::Var(Var::Register {
@@ -808,7 +812,7 @@ mod tests {
                         Binary {
                             op: BinaryOp::Less,
                             left: Expr::Value(Value::Uint {
-                                raw: 2,
+                                raw: BigUint::from(2u8),
                                 ty: Type::Uint(3),
                             }),
                             right: Expr::Var(Var::Register {
@@ -835,11 +839,11 @@ mod tests {
                         Binary {
                             op: BinaryOp::ShiftRight,
                             left: Expr::Value(Value::Uint {
-                                raw: 255,
+                                raw: BigUint::from(255u8),
                                 ty: Type::Uint(8),
                             }),
                             right: Expr::Value(Value::Uint {
-                                raw: 3,
+                                raw: BigUint::from(3u8),
                                 ty: Type::Uint(8),
                             }),
                             ty: Type::Uint(8),
@@ -848,7 +852,7 @@ mod tests {
                         .into(),
                     ),
                     right: Expr::Value(Value::Uint {
-                        raw: 3,
+                        raw: BigUint::from(3u8),
                         ty: Type::Uint(8),
                     }),
                     ty: Type::Uint(8),
@@ -864,7 +868,7 @@ mod tests {
                         ty: Type::Uint(8),
                     }),
                     index: Expr::Value(Value::Uint {
-                        raw: 0,
+                        raw: BigUint::from(0u8),
                         ty: Type::Uint(8),
                     }),
                     ty: Type::Uint(1),
@@ -920,7 +924,7 @@ mod tests {
             let (left, right, out_ty) = match op {
                 BinaryOp::LogicAnd | BinaryOp::LogicOr => (
                     Expr::Value(Value::Uint {
-                        raw: 1,
+                        raw: BigUint::from(1u8),
                         ty: Type::Bool,
                     }),
                     Expr::Var(Var::Bit {
@@ -930,7 +934,7 @@ mod tests {
                 ),
                 _ => (
                     Expr::Value(Value::Uint {
-                        raw: 5,
+                        raw: BigUint::from(5u8),
                         ty: Type::Uint(3),
                     }),
                     Expr::Var(Var::Register {
@@ -996,7 +1000,7 @@ mod tests {
                             Binary {
                                 op: BinaryOp::Less,
                                 left: Expr::Value(Value::Uint {
-                                    raw: 5,
+                                    raw: BigUint::from(5u8),
                                     ty: Type::Uint(3),
                                 }),
                                 right: Expr::Var(Var::Register {
@@ -1032,7 +1036,7 @@ mod tests {
                             Binary {
                                 op: BinaryOp::Less,
                                 left: Expr::Value(Value::Uint {
-                                    raw: 5,
+                                    raw: BigUint::from(5u8),
                                     ty: Type::Uint(3),
                                 }),
                                 right: Expr::Var(Var::Register {

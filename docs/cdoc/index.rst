@@ -31,6 +31,16 @@ Quantum Circuit
    qk-circuit
    qk-quantum-register
    qk-classical-register
+   qk-param
+
+Circuit Library
++++++++++++++++
+
+.. toctree::
+   :maxdepth: 1
+
+   qk-circuit-library
+
 
 -------------------
 Quantum information
@@ -61,12 +71,14 @@ results transpiling circuits from Python via the C API.
 .. toctree::
    :maxdepth: 1
 
+   qk-dag
    qk-transpiler
    qk-target
    qk-target-entry
+   qk-neighbors
    qk-transpile-layout
    qk-transpiler-passes
-   qk-vf2-layout-result
+   qk-vf2-layout
    qk-sabre-layout-options
 
 
@@ -77,4 +89,5 @@ Utilities
 .. toctree::
    :maxdepth: 1
 
+   config
    version

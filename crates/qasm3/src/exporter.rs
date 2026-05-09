@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -25,8 +25,8 @@ use std::io::Write;
 use crate::printer::BasicPrinter;
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexMap;
-use pyo3::prelude::*;
 use pyo3::Python;
+use pyo3::prelude::*;
 use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
@@ -293,10 +293,9 @@ impl SymbolTable {
     }
 
     fn contains_name(&self, name: &str) -> bool {
-        if let Some(symbols) = self.symbols.last() {
-            symbols.contains_key(name)
-        } else {
-            false
+        match self.symbols.last() {
+            Some(symbols) => symbols.contains_key(name),
+            None => false,
         }
     }
 
@@ -739,7 +738,7 @@ impl<'a> QASM3Builder {
         self.register_basis_gates();
         let header = self.build_header();
 
-        self.hoist_global_params()?;
+        self.hoist_global_params();
         let classical_decls = self.hoist_classical_bits()?;
         let qubit_decls = self.build_qubit_decls()?;
         let main_stmts = self.build_top_level_stmts()?;
@@ -792,28 +791,18 @@ impl<'a> QASM3Builder {
         }
     }
 
-    fn hoist_global_params(&mut self) -> ExporterResult<()> {
-        Python::attach(|py| {
-            for param in self.circuit_scope.circuit_data.get_parameters(py)? {
-                let raw_name: String = match param.getattr("name") {
-                    Ok(attr) => match attr.extract() {
-                        Ok(name) => name,
-                        Err(err) => return Err(QASM3ExporterError::PyErr(err)),
-                    },
-                    Err(err) => return Err(QASM3ExporterError::PyErr(err)),
-                };
-                let identifier = Identifier {
-                    string: raw_name.clone(),
-                };
-                let _ = self.symbol_table.bind(&raw_name);
-                self.global_io_decls.push(IODeclaration {
-                    modifier: IOModifier::Input,
-                    type_: ClassicalType::Float(Float::Double),
-                    identifier,
-                });
-            }
-            Ok(())
-        })
+    fn hoist_global_params(&mut self) {
+        for param in self.circuit_scope.circuit_data.parameters() {
+            let identifier = Identifier {
+                string: param.name().to_string(),
+            };
+            let _ = self.symbol_table.bind(param.name());
+            self.global_io_decls.push(IODeclaration {
+                modifier: IOModifier::Input,
+                type_: ClassicalType::Float(Float::Double),
+                identifier,
+            });
+        }
     }
 
     fn hoist_classical_bits(&mut self) -> ExporterResult<Vec<Statement>> {
@@ -1034,7 +1023,7 @@ impl<'a> QASM3Builder {
     ) -> ExporterResult<()> {
         let name = instruction.op.name();
 
-        if instruction.op.control_flow() {
+        if instruction.op.try_control_flow().is_some() {
             Err(QASM3ExporterError::Error(format!(
                 "Control flow {name} is not supported"
             )))
@@ -1189,13 +1178,12 @@ impl<'a> QASM3Builder {
         let param = &instr.params_view()[0];
         let duration: f64 = Python::attach(|py| match param {
             Param::Float(val) => *val,
-            Param::ParameterExpression(p) => {
-                if let Ok(symbol_expr::Value::Real(val)) = p.try_to_value(true) {
-                    val
-                } else {
+            Param::ParameterExpression(p) => match p.try_to_value(true) {
+                Ok(symbol_expr::Value::Real(val)) => val,
+                _ => {
                     panic!("Failed to parse parameter value")
                 }
-            }
+            },
             Param::Obj(obj) => {
                 let py_obj = obj.bind(py);
                 let py_str = py_obj.str().expect("Failed to call str() on Parameter");
@@ -1315,7 +1303,7 @@ impl<'a> QASM3Builder {
     #[allow(dead_code)]
     fn define_gate(&mut self, instr: &PackedInstruction) -> ExporterResult<()> {
         let operation = &instr.op;
-        let params: Vec<Param> = (0..instr.params_view().len())
+        let params: Vec<Param> = (0..instr.op.num_params())
             .map(|i| {
                 let name = format!("{}_{}", self._gate_param_prefix, i);
                 // TODO this need to be achievable more easily
@@ -1325,7 +1313,7 @@ impl<'a> QASM3Builder {
                 Param::ParameterExpression(Arc::new(expr))
             })
             .collect();
-        if let Some(instruction) = operation.definition(&params) {
+        if let Some(instruction) = instr.try_definition() {
             let params_def = params
                 .iter()
                 .enumerate()

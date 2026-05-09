@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -92,18 +92,18 @@ def _encode_replay_entry(inst, file_obj, version, r_side=False):
             entry = struct.pack(
                 formats.PARAM_EXPR_ELEM_V13_PACK,
                 255,
-                "s".encode("utf8"),
+                b"s",
                 b"\x00",
-                "n".encode("utf8"),
+                b"n",
                 b"\x00",
             )
         else:
             entry = struct.pack(
                 formats.PARAM_EXPR_ELEM_V13_PACK,
                 255,
-                "n".encode("utf8"),
+                b"n",
                 b"\x00",
-                "s".encode("utf8"),
+                b"s",
                 b"\x00",
             )
         file_obj.write(entry)
@@ -112,18 +112,18 @@ def _encode_replay_entry(inst, file_obj, version, r_side=False):
             entry = struct.pack(
                 formats.PARAM_EXPR_ELEM_V13_PACK,
                 255,
-                "e".encode("utf8"),
+                b"e",
                 b"\x00",
-                "n".encode("utf8"),
+                b"n",
                 b"\x00",
             )
         else:
             entry = struct.pack(
                 formats.PARAM_EXPR_ELEM_V13_PACK,
                 255,
-                "n".encode("utf8"),
+                b"n",
                 b"\x00",
-                "e".encode("utf8"),
+                b"e",
                 b"\x00",
             )
         file_obj.write(entry)
@@ -147,9 +147,9 @@ def _encode_replay_subs(subs, file_obj, version):
     entry = struct.pack(
         formats.PARAM_EXPR_ELEM_V13_PACK,
         subs.op,
-        "u".encode("utf8"),
+        b"u",
         struct.pack("!QQ", len(data), 0),
-        "n".encode("utf8"),
+        b"n",
         b"\x00",
     )
     file_obj.write(entry)
@@ -205,7 +205,7 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
 
         # serialize value
         value_key = symbol_key
-        value_data = bytes()
+        value_data = b""
 
         elem_header = struct.pack(
             formats.PARAM_EXPR_MAP_ELEM_V3_PACK,
@@ -241,7 +241,7 @@ def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
 
 
 class _ExprWriter(expr.ExprVisitor[None]):
-    __slots__ = ("file_obj", "clbit_indices", "standalone_var_indices", "version")
+    __slots__ = ("clbit_indices", "file_obj", "standalone_var_indices", "version")
 
     def __init__(self, file_obj, clbit_indices, standalone_var_indices, version):
         self.file_obj = file_obj
@@ -463,7 +463,7 @@ def _read_parameter_vec(file_obj, vectors):
         vectors[root_uuid] = (ParameterVector(name, data.vector_size), set())
     vector = vectors[root_uuid][0]
 
-    if vector[data.index].uuid != root_uuid:
+    if vector[data.index].uuid != uuid.UUID(bytes=data.uuid):
         vectors[root_uuid][1].add(data.index)
         vector._params[data.index] = ParameterVectorElement(
             vector, data.index, uuid=uuid.UUID(int=root_uuid_int + data.index)
@@ -680,25 +680,12 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
         if expression_data.OP_CODE == 255:
             continue
         method_str = op_code_to_method(expression_data.OP_CODE)
-        if expression_data.OP_CODE in {0, 1, 2, 3, 4, 13, 15, 18, 19, 20}:
+        if expression_data.OP_CODE in (0, 1, 2, 3, 4, 13, 15, 18, 19, 20):
             rhs = stack.pop()
             lhs = stack.pop()
-            # Reverse ops for commutative ops, which are add, mul (0 and 2 respectively)
-            # op codes 13 and 15 can never be reversed and 18, 19, 20
-            # are the reversed versions of non-commutative operations
-            # so 1, 3, 4 and 18, 19, 20 handle this explicitly.
-            if (
-                not isinstance(lhs, ParameterExpression)
-                and isinstance(rhs, ParameterExpression)
-                and expression_data.OP_CODE in {0, 2}
-            ):
-                if expression_data.OP_CODE == 0:
-                    method_str = "__radd__"
-                elif expression_data.OP_CODE == 2:
-                    method_str = "__rmul__"
-                stack.append(getattr(rhs, method_str)(lhs))
-            else:
-                stack.append(getattr(lhs, method_str)(rhs))
+            if not isinstance(lhs, ParameterExpression):
+                lhs = ParameterExpression._Value(lhs)
+            stack.append(getattr(lhs, method_str)(rhs))
         else:
             lhs = stack.pop()
             stack.append(getattr(lhs, method_str)())
@@ -713,7 +700,7 @@ def _read_expr(
     cregs: collections.abc.Mapping[str, ClassicalRegister],
     standalone_vars: collections.abc.Sequence[expr.Var],
 ) -> expr.Expr:
-    # pylint: disable=too-many-return-statements
+
     type_key = file_obj.read(formats.EXPRESSION_DISCRIMINATOR_SIZE)
     type_ = _read_expr_type(file_obj)
     if type_key == type_keys.Expression.VAR:
@@ -1087,7 +1074,6 @@ def loads_value(
     Raises:
         QpyError: Serializer for given format is not ready.
     """
-    # pylint: disable=too-many-return-statements
 
     if isinstance(type_key, bytes):
         type_key = type_keys.Value(type_key)
