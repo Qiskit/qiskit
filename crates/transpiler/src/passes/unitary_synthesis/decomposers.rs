@@ -310,7 +310,7 @@ impl Decomposer2q {
 /// This exists mostly just to attach methods to and to shorten a bunch of type signatures.
 #[derive(Clone, Debug, Default)]
 struct Decomposer2qCacheInner(
-    IndexMap<Decomposer2qConstructor, Option<Decomposer2q>, ::ahash::RandomState>,
+    IndexMap<Decomposer2qConstructor, Option<Decomposer2q>, ::foldhash::fast::RandomState>,
 );
 impl Decomposer2qCacheInner {
     /// Get a decomposer by known-good index.

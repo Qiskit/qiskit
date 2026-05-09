@@ -290,7 +290,7 @@ impl Clifford {
 
     /// Evolving the single-qubit Pauli-Z with Z on qubit qbit.
     /// Returns the evolved Pauli in the a sparse ZX format: (sign, z, x, indices).
-    pub fn get_inverse_z(&self, qbit: usize) -> (bool, Vec<bool>, Vec<bool>, Vec<usize>) {
+    pub fn get_inverse_z(&self, qbit: usize) -> (bool, Vec<bool>, Vec<bool>, Vec<u32>) {
         let mut z = Vec::with_capacity(self.num_qubits);
         let mut x = Vec::with_capacity(self.num_qubits);
         let mut indices = Vec::with_capacity(self.num_qubits);
@@ -303,7 +303,7 @@ impl Clifford {
             if z_bit || x_bit {
                 z.push(z_bit);
                 x.push(x_bit);
-                indices.push(i);
+                indices.push(i as u32);
                 if x_bit {
                     pauli_indices.push(i);
                 }

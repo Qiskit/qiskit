@@ -14,6 +14,7 @@
 """Test Qiskit's QuantumCircuit class."""
 import copy
 import pickle
+import warnings
 from itertools import combinations
 
 import numpy as np
@@ -37,7 +38,7 @@ from qiskit.circuit import AncillaQubit, AncillaRegister, Qubit
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.quantum_info import Operator
-from qiskit.transpiler import Layout, CouplingMap
+from qiskit.transpiler import Layout, CouplingMap, passes
 from test import QiskitTestCase
 
 
@@ -1057,6 +1058,28 @@ class TestCircuitOperations(QiskitTestCase):
         )
         qc.remove_final_measurements(inplace=True)
         self.assertEqual(qc.assign_parameters({a: 1}), expected)
+
+    def test_remove_final_measurement_with_layout(self):
+        def apply_layout(qc):
+            layout = Layout(dict(zip(qc.qubits, [1, 0])))
+            return passes.ApplyLayout()(qc, property_set={"layout": layout})
+
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure([0, 1], [0, 1])
+        qc = apply_layout(qc)
+
+        expected = QuantumCircuit(2)
+        expected.h(0)
+        expected.cx(0, 1)
+        expected = apply_layout(expected)
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error", module=r"(qiskit|test)")
+            self.assertEqual(qc.remove_final_measurements(inplace=False), expected)
+            qc.remove_final_measurements(inplace=True)
+            self.assertEqual(qc, expected)
 
     def test_reverse(self):
         """Test reverse method reverses but does not invert."""

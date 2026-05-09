@@ -15,6 +15,7 @@ use num_complex::Complex64;
 use smallvec::{SmallVec, smallvec};
 use std::f64::consts::FRAC_PI_2;
 
+use nalgebra::U2;
 use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
 
@@ -26,6 +27,7 @@ use crate::QiskitError;
 use crate::euler_one_qubit_decomposer::{
     EulerBasis, EulerBasisSet, unitary_to_gate_sequence_inner,
 };
+use crate::linalg::nalgebra_array_view;
 
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
@@ -195,10 +197,10 @@ impl TwoQubitControlledUDecomposer {
         let mut gates = Vec::with_capacity(13);
         let mut global_phase = -decomposer_inv.global_phase;
 
-        let decomp_k1r = decomposer_inv.K1r.view();
-        let decomp_k2r = decomposer_inv.K2r.view();
-        let decomp_k1l = decomposer_inv.K1l.view();
-        let decomp_k2l = decomposer_inv.K2l.view();
+        let decomp_k1r = nalgebra_array_view::<Complex64, U2, U2>(decomposer_inv.K1r.as_view());
+        let decomp_k2r = nalgebra_array_view::<Complex64, U2, U2>(decomposer_inv.K2r.as_view());
+        let decomp_k1l = nalgebra_array_view::<Complex64, U2, U2>(decomposer_inv.K1l.as_view());
+        let decomp_k2l = nalgebra_array_view::<Complex64, U2, U2>(decomposer_inv.K2l.as_view());
 
         let unitary_k1r =
             unitary_to_gate_sequence_inner(decomp_k1r, &target_1q_basis_list, 0, None, true, None);
@@ -400,10 +402,10 @@ impl TwoQubitControlledUDecomposer {
         let mut target_1q_basis_list = EulerBasisSet::new();
         target_1q_basis_list.add_basis(self.euler_basis);
 
-        let c1r = target_decomposed.K1r.view();
-        let c2r = target_decomposed.K2r.view();
-        let c1l = target_decomposed.K1l.view();
-        let c2l = target_decomposed.K2l.view();
+        let c1r = nalgebra_array_view::<Complex64, U2, U2>(target_decomposed.K1r.as_view());
+        let c2r = nalgebra_array_view::<Complex64, U2, U2>(target_decomposed.K2r.as_view());
+        let c1l = nalgebra_array_view::<Complex64, U2, U2>(target_decomposed.K1l.as_view());
+        let c2l = nalgebra_array_view::<Complex64, U2, U2>(target_decomposed.K2l.as_view());
 
         let unitary_c1r =
             unitary_to_gate_sequence_inner(c1r, &target_1q_basis_list, 0, None, true, None);

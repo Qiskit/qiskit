@@ -1169,14 +1169,25 @@ static int test_circuit_draw(void) {
     for (uint8_t gate = 0; gate <= QkGate_RC3X; ++gate) {
         qk_circuit_gate(circuit, gate, &qubits[gate % 8], params);
     }
+
     qk_circuit_barrier(circuit, qubits, 10);
     qk_circuit_delay(circuit, 3, 100.0, QkDelayUnit_NS);
     qk_circuit_measure(circuit, 0, 0);
+    qk_circuit_reset(circuit, 0);
+
     QkComplex64 c0 = {0, 0};
     QkComplex64 c1 = {1, 0};
     QkComplex64 unitary[2 * 2] = {c0, c1, c1, c0};
     qk_circuit_unitary(circuit, unitary, (uint32_t[]){5}, 1, true);
-    qk_circuit_reset(circuit, 0);
+
+    bool z[4] = {false, false, true, true};
+    bool x[4] = {false, true, true, false};
+    QkParam *angle = qk_param_from_double(1.0);
+    QkPauliProductRotation ppr = {z, x, 4, angle};
+    qk_circuit_pauli_product_rotation(circuit, &ppr, qubits);
+
+    QkPauliProductMeasurement ppm = {z, x, 4, true};
+    qk_circuit_pauli_product_measurement(circuit, &ppm, qubits, 0);
 
     QkCircuitDrawerConfig config = {false, true, 80};
 

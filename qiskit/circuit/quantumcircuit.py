@@ -82,7 +82,6 @@ if typing.TYPE_CHECKING:
     from qiskit.quantum_info.operators.base_operator import BaseOperator
     from qiskit.quantum_info.states.statevector import Statevector
 
-
 # The following types are not marked private to avoid leaking this "private/public" abstraction out
 # into the documentation.  They are not imported by circuit.__init__, nor are they meant to be.
 
@@ -2280,9 +2279,15 @@ class QuantumCircuit:
                 dest.append(other, qargs=qubits, cargs=clbits, copy=copy)
             return None if inplace else dest
 
-        if other.num_qubits > dest.num_qubits or other.num_clbits > dest.num_clbits:
+        if other.num_qubits > dest.num_qubits:
             raise CircuitError(
-                "Trying to compose with another QuantumCircuit which has more 'in' edges."
+                "Cannot compose onto a circuit with fewer qubits "
+                f"({other.num_qubits} > {dest.num_qubits})."
+            )
+        if other.num_clbits > dest.num_clbits:
+            raise CircuitError(
+                "Cannot compose onto a circuit with fewer classical bits "
+                f"({other.num_clbits} > {dest.num_clbits})."
             )
 
         # Maps bits in 'other' to bits in 'dest'.
@@ -2843,7 +2848,10 @@ class QuantumCircuit:
 
         Args:
             instruction: :class:`~.circuit.Instruction` instance to append, or a
-                :class:`.CircuitInstruction` with all its context.
+                :class:`.CircuitInstruction` with all its context. Objects implementing
+                ``to_instruction`` are also supported, but passing an
+                :class:`~.circuit.Instruction` directly is generally preferred, since that
+                avoids the repeated conversion cost.
             qargs: specifiers of the :class:`~.circuit.Qubit`\\ s to attach instruction to.
             cargs: specifiers of the :class:`.Clbit`\\ s to attach instruction to.
             copy: if ``True`` (the default), then the incoming ``instruction`` is copied before
@@ -2857,7 +2865,8 @@ class QuantumCircuit:
             were actually added to the circuit.
 
         Raises:
-            CircuitError: if the operation passed is not an instance of :class:`~.circuit.Instruction` .
+            CircuitError: if the operation passed is not an instance of :class:`~.circuit.Instruction`,
+              or cannot be converted to one by calling ``to_instruction`` on it.
         """
         if isinstance(instruction, CircuitInstruction):
             operation = instruction.operation
@@ -4713,16 +4722,18 @@ class QuantumCircuit:
             qubits=circ._data.qubits, reserve=len(circ._data), global_phase=circ.global_phase
         )
 
-        # Re-add old registers
+        # Re-add old registers.  We avoid `add_register` since we already know the registers are
+        # valid, the bits exist, and we don't want to trigger the "modified the quantum registers
+        # with a set layout" warning.
         for qreg in old_qregs:
-            circ.add_register(qreg)
+            circ._data.add_qreg(qreg)
 
         # We must add the clbits first to preserve the original circuit
         # order. This way, add_register never adds clbits and just
         # creates registers that point to them.
         circ.add_bits(clbits_to_add)
         for creg in cregs_to_add:
-            circ.add_register(creg)
+            circ._data.add_creg(creg)
 
         # Set circ instructions to match the new DAG
         for node in new_dag.topological_op_nodes():

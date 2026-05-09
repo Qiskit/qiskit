@@ -1,0 +1,18 @@
+[package]
+name = "qiskit-providers"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+name = "qiskit_providers"
+
+[dependencies]
+
+[dependencies.hashbrown]
+workspace = true
+features = ["rayon", "serde"]
+
+[lints]
+workspace = true
