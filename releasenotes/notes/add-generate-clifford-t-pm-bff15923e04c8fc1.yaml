@@ -6,13 +6,23 @@ features_transpiler:
     We recommend using this function instead of :func:`~.transpile` or
     :func:`~.generate_preset_pass_manager` with a Clifford+T basis, as it exposes
     arguments specifically tailored for Clifford+T compilations. In particular, it supports
-    arguments ``rz_synthesis_error`` and ``rz_cache_error`` which control synthesis of
-    RZ-rotations into Clifford+T basis.
+    argument ``rz_synthesis_config`` which controls synthesis of RZ-rotations into Clifford+T
+    basis.
 
     For example::
 
         from qiskit.transpiler.preset_passmanagers import generate_preset_clifford_t_pass_manager
 
-        # Generate a level 3 pass manager
+        # Specifies how to synthesize RZ rotations in the circuit.
+        rz_synthesis_config = {
+            "rz_synthesis_error": 1e-4,
+            "rz_cache_error": 1e-5,
+        }
+
+        # Generate a level 3 Clifford+T pass manager
         basis_gates = ["cx", "s", "sdg", "h", "t", "tdg"]
-        pass_manager = generate_preset_clifford_t_pass_manager(basis_gates=basis_gates, optimization_level=3)
+        pm = generate_preset_clifford_t_pass_manager(
+            rz_synthesis_config=rz_synthesis_config,
+            basis_gates=basis_gates,
+            optimization_level=3
+        )
