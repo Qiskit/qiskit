@@ -67,6 +67,8 @@ _QUBIT_PROPERTIES = {
     "frequency": (5e9, 5.5e9),
 }
 
+_BI_DIRECTIONAL_GATES = {"cz", "cp", "cu1", "cs", "csdg", "rzz", "rxx", "ryy"}
+
 
 class GenericBackendV2(BackendV2):
     """Generic :class:`~.BackendV2` implementation with a configurable constructor. This class will
@@ -300,9 +302,10 @@ class GenericBackendV2(BackendV2):
             except TypeError:
                 qargs = (qarg,)
 
-            # If the coupling map has a bi-directional edge, for 'cz' instructions the durations
-            # and error-rates for both the combinations of a given pair of qubits should be the same.
-            if self._has_bi_dir_edge and instruction.name == "cz":
+            # If the coupling map has a bi-directional edge, for bi-directional instructions the
+            # durations and error-rates for both the combinations of a given pair of qubits
+            # should be the same.
+            if self._has_bi_dir_edge and instruction.name in _BI_DIRECTIONAL_GATES:
                 qargs_rev = qargs[::-1]
                 if qargs_rev in props:
                     props.update({qargs: props[qargs_rev]})
