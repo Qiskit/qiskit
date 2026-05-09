@@ -48,7 +48,7 @@ This would be a particular problem for defining the circuit object and using it 
 
 ### Binaries
 
-* `qiskit-bindgen-c` is a toolkit for working with the code generation tooling around C header files
+* `qiskit-bindgen-cli` is a toolkit for working with the code generation tooling around C header files
   and vtables, including linting them for consistency.  See the crate's `README` for more.
 
 ## Developer notes
