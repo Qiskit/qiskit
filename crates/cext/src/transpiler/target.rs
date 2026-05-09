@@ -497,7 +497,7 @@ impl From<StandardOperation> for PackedOperation {
 pub struct TargetEntry {
     operation: StandardOperation,
     params: Option<SmallVec<[Param; 3]>>,
-    map: IndexMap<Qargs, Option<InstructionProperties>, ahash::RandomState>,
+    map: IndexMap<Qargs, Option<InstructionProperties>, foldhash::fast::RandomState>,
     name: Option<String>,
 }
 

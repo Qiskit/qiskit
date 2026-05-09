@@ -12,7 +12,7 @@
 
 use crate::TranspilerError;
 use crate::passes::schedule_analysis::{NodeDurations, PyNodeDurations, TimeOps};
-use ahash::RandomState;
+use foldhash::fast::RandomState;
 use hashbrown::HashMap;
 use indexmap::IndexMap;
 use pyo3::prelude::*;
