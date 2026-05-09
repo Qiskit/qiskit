@@ -68,7 +68,8 @@ def dag_to_circuit(dag, copy_operations=True):
         name=name,
         global_phase=dag.global_phase,
     )
-    circuit.metadata = dag.metadata.copy() if dag.metadata else {}
+    metadata = dag.metadata or {}
+    circuit.metadata = metadata.copy() if copy_operations else metadata
     circuit._data = circuit_data
     circuit._duration = dag._duration
     circuit._unit = dag._unit
