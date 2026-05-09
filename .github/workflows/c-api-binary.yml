@@ -5,7 +5,7 @@ on:
       - "*"
 jobs:
   c-api-binary-linux:
-    runs-on: ubuntu-22.04
+    runs-on: quay.io/pypa/manylinux2014_x86_64
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
