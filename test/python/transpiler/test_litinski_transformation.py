@@ -574,7 +574,6 @@ class TestLitinskiTransformation(QiskitTestCase):
         qc.measure(1, 1)
         qc.measure(2, 2)
         qc.measure(3, 3)
-        print(qc)
 
         # Apply the Litinski transform with fix_cliffords=False (ignoring the Clifford gates
         # at the end of the transformed circuit).
