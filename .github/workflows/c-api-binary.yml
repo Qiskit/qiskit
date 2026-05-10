@@ -68,6 +68,12 @@ jobs:
           tar czf ${{ env.QISKIT_CEXT_DIR }}.tar.gz ${{ env.QISKIT_CEXT_DIR }}
       - name: Release
         run: |
+          # Install gh-cli
+          dnf install -y dnf5-plugins
+          dnf config-manager addrepo --from-repofile=https://cli.github.com/packages/rpm/gh-cli.repo
+          dnf install -y gh --repo gh-cli
+
+          # Compress pre-built binaries
           TARFILE="${{ env.QISKIT_CEXT_DIR }}.tar.gz"
 
           if [[ ! -f "$TARFILE" ]];
@@ -76,6 +82,7 @@ jobs:
             exit 1
           fi
 
+          # Attach tarfile to release
           gh release upload \
             --repo ${{ github.repository }} \
             ${{ github.ref_name }} \
