@@ -23,7 +23,7 @@ jobs:
           echo "C_DIR_OUT: $C_DIR_OUT"
       - name: Build Binary
         run: |
-          dnf install -y python3.11 python3.11-pip
+          dnf install -y python3.11 python3.11-pip python3.11-devel
           export LD_LIBRARY_PATH="$(python3.11 -c 'import sys; print(sys.base_prefix)')/lib:$LD_LIBRARY_PATH"
           echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
 
