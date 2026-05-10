@@ -46,6 +46,7 @@ from .level3 import level_3_pass_manager
 
 if typing.TYPE_CHECKING:
     from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
+    from qiskit.transpiler.passmanager import StagedPassManager
 
 
 OVER_3Q_GATES = ["ccx", "ccz", "cswap", "rccx", "c3x", "c3sx", "rc3x"]
@@ -297,10 +298,10 @@ def generate_preset_clifford_t_pass_manager(
     dt: float | None = None,
     qubits_initially_zero: bool = True,
     rz_synthesis_config: dict | None = None,
-):
-    """Generate a Clifford+T :class:`~.PassManager`
+) -> StagedPassManager:
+    """Generate a preset Clifford+T :class:`~.StagedPassManager`
 
-    This function provides a fast and convenient way to construct a preset pass manager for
+    This function provides a convenient way to construct a preset pass manager for
     Clifford+T compilation. We recommend using this function instead of :func:`~.transpile` or
     :func:`~.generate_preset_pass_manager` with a Clifford+T basis, as it exposes
     arguments specifically tailored for Clifford+T compilations.
@@ -324,11 +325,12 @@ def generate_preset_clifford_t_pass_manager(
                 * 2: heavy optimization
                 * 3: even heavier optimization
 
-        target: The :class:`~.Target` representing a backend compilation
+        target: The :class:`~.Target` representing a compilation
             target. The following attributes will be inferred from this
             argument if they are not set: ``coupling_map`` and ``basis_gates``.
-        basis_gates: List of basis gate names to unroll to
-            (e.g: ``['cx', 's', 'sx', 't', 'tdg']``).
+        basis_gates: List of basis gate names to unroll to (e.g: ``['cx', 's', 'sx', 't', 'tdg']``).
+            If both ``target`` and ``basis_gates`` are ``None``, ``basis_gates`` will be set
+            to all of the standard Clifford gates together with ``'t'`` and ``'tdg'``.
         coupling_map: Directed graph represented a coupling
             map. Multiple formats are supported:
 
@@ -336,8 +338,8 @@ def generate_preset_clifford_t_pass_manager(
             #. List, must be given as an adjacency matrix, where each entry
                specifies all directed two-qubit interactions supported by backend,
                e.g: ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
-        dt: Backend sample time (resolution) in seconds.
-            If ``None`` (default) and a backend is provided, ``backend.dt`` is used.
+        dt: Target sample time (resolution) in seconds.
+            If ``None`` (default) and a target is provided, ``target.dt`` is used.
         initial_layout: Initial position of virtual qubits on
             physical qubits.
         approximation_degree: Heuristic dial used for circuit approximation, where

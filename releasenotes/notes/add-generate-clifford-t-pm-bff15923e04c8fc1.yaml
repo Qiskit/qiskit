@@ -2,24 +2,35 @@
 features_transpiler:
   - |
     Added a new function :func:`~.generate_preset_clifford_t_pass_manager`, which provides
-    a fast and convenient way to construct a preset pass manager for Clifford+T compilation.
+    a convenient way to construct a preset pass manager for Clifford+T compilation.
     We recommend using this function instead of :func:`~.transpile` or
     :func:`~.generate_preset_pass_manager` with a Clifford+T basis, as it exposes
     arguments specifically tailored for Clifford+T compilations. In particular, it supports
     argument ``rz_synthesis_config`` which controls synthesis of RZ-rotations into Clifford+T
     basis.
 
-    For example::
+    The following example shows how to generate a Clifford+T pass manager with
+    default values for the optimization level, Clifford+T basis gates and RZ-synthesis
+    options::
 
-        from qiskit.transpiler.preset_passmanagers import generate_preset_clifford_t_pass_manager
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.transpiler import generate_preset_clifford_t_pass_manager
 
-        # Specifies how to synthesize RZ rotations in the circuit.
+        qc = QuantumCircuit(1)
+        qc.rz(2.3579, 0)
+
+        pm = generate_preset_clifford_t_pass_manager()
+        qct = pm.run(qc)
+        print(qct.count_ops())
+
+    The following example demonstrates how different options can be provided for
+    greater control::
+
         rz_synthesis_config = {
             "rz_synthesis_error": 1e-4,
             "rz_cache_error": 1e-5,
         }
 
-        # Generate a level 3 Clifford+T pass manager
         basis_gates = ["cx", "s", "sdg", "h", "t", "tdg"]
         pm = generate_preset_clifford_t_pass_manager(
             rz_synthesis_config=rz_synthesis_config,
