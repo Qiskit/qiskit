@@ -291,7 +291,7 @@ impl Clifford {
     /// with an angle that is an integer multiple of pi/2
     pub fn append_rz(&mut self, qubit: usize, multiple: usize) {
         match multiple {
-            0 => {},
+            0 => {}
             1 => self.append_s(qubit),
             2 => self.append_z(qubit),
             3 => self.append_sdg(qubit),
@@ -302,7 +302,7 @@ impl Clifford {
     /// with an angle that is an integer multiple of pi/2
     pub fn append_rx(&mut self, qubit: usize, multiple: usize) {
         match multiple {
-            0 => {},
+            0 => {}
             1 => self.append_sx(qubit),
             2 => self.append_x(qubit),
             3 => self.append_sxdg(qubit),
@@ -313,7 +313,7 @@ impl Clifford {
     /// with an angle that is an integer multiple of pi/2
     pub fn append_ry(&mut self, qubit: usize, multiple: usize) {
         match multiple {
-            0 => {},
+            0 => {}
             1 => {
                 self.append_z(qubit);
                 self.append_h(qubit)
