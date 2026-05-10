@@ -69,6 +69,7 @@ jobs:
       - name: Release
         run: |
           # Install gh-cli
+          dnf upgrade -y
           dnf install -y 'dnf-command(config-manager)'
           dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
           dnf install -y gh --repo gh-cli
