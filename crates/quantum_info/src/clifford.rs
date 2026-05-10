@@ -287,6 +287,45 @@ impl Clifford {
             &mut self.scratch,
         );
     }
+    /// Modifies the tableau in-place by appending RZ-gate,
+    /// with an angle that is an integer multiple of pi/2
+    pub fn append_rz(&mut self, qubit: usize, multiple: usize) {
+        match multiple {
+            0 => {},
+            1 => self.append_s(qubit),
+            2 => self.append_z(qubit),
+            3 => self.append_sdg(qubit),
+            _ => unreachable!("RZ is only applicable for multiples of pi/2 rotations."),
+        }
+    }
+    /// Modifies the tableau in-place by appending RX-gate,
+    /// with an angle that is an integer multiple of pi/2
+    pub fn append_rx(&mut self, qubit: usize, multiple: usize) {
+        match multiple {
+            0 => {},
+            1 => self.append_sx(qubit),
+            2 => self.append_x(qubit),
+            3 => self.append_sxdg(qubit),
+            _ => unreachable!("RX is only applicable for multiples of pi/2 rotations."),
+        }
+    }
+    /// Modifies the tableau in-place by appending RY-gate,
+    /// with an angle that is an integer multiple of pi/2
+    pub fn append_ry(&mut self, qubit: usize, multiple: usize) {
+        match multiple {
+            0 => {},
+            1 => {
+                self.append_z(qubit);
+                self.append_h(qubit)
+            }
+            2 => self.append_y(qubit),
+            3 => {
+                self.append_h(qubit);
+                self.append_z(qubit)
+            }
+            _ => unreachable!("RY is only applicable for multiples of pi/2 rotations."),
+        }
+    }
 
     /// Evolving a single qubit pauli on qubit qbit by the Clifford.
     /// The pauli (X, Y or Z) is given as (pauli_z, pauli_x)
