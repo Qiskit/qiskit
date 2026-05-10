@@ -48,7 +48,7 @@ mod remove_identity_equiv;
 pub mod sabre;
 mod schedule_analysis;
 mod split_2q_unitaries;
-mod substitute_pi4_rotations;
+pub mod substitute_pi4_rotations; // ToDo: make only the relevant function public
 mod synthesize_rz_rotations;
 pub mod unitary_synthesis;
 mod unroll_3q_or_more;
