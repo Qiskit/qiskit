@@ -69,7 +69,7 @@ fn compare_params(params1: &[Param], params2: &[Param]) -> PyResult<bool> {
 
 /// List of symmetric gates, that is the gate remains the same under all
 /// permutations of its arguments.
-static SYMMETRIC_GATES: [StandardGate; 13] = [
+static SYMMETRIC_GATES: [StandardGate; 12] = [
     StandardGate::CZ,
     StandardGate::Swap,
     StandardGate::ISwap,
@@ -81,7 +81,6 @@ static SYMMETRIC_GATES: [StandardGate; 13] = [
     StandardGate::RYY,
     StandardGate::RZZ,
     StandardGate::XXMinusYY,
-    StandardGate::XXPlusYY,
     StandardGate::CCZ,
 ];
 
