@@ -69,8 +69,8 @@ jobs:
       - name: Release
         run: |
           # Install gh-cli
-          dnf install -y dnf5-plugins
-          dnf config-manager addrepo --from-repofile=https://cli.github.com/packages/rpm/gh-cli.repo
+          dnf install -y 'dnf-command(config-manager)'
+          dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
           dnf install -y gh --repo gh-cli
 
           # Compress pre-built binaries
