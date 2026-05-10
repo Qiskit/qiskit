@@ -7,7 +7,7 @@ jobs:
   c-api-binary-linux:
     runs-on: ubuntu-latest
     container:
-      image: quay.io/pypa/manylinux2014_x86_64
+      image: quay.io/pypa/manylinux_2_28
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
@@ -57,9 +57,8 @@ jobs:
         run: |
           make ctest \
             SKIP_BUILD=1 \
-            C_DIR_TEST="${{ env.C_DIR_OUT }}" \
-            C_DIR_TEST_INCLUDE="${{ env.C_DIR_OUT }}/include" \
-            C_DIR_TEST_LIB="${{ env.C_DIR_OUT }}/lib"
+            C_DIR_OUT_INCLUDE="${{ env.C_DIR_OUT }}/include" \
+            C_DIR_OUT_LIB="${{ env.C_DIR_OUT }}/lib"
       - name: Archive Binaries
         run: |
           tar czf ${{ env.QISKIT_CEXT_DIR }}.tar.gz ${{ env.QISKIT_CEXT_DIR }}
@@ -130,8 +129,8 @@ jobs:
         run: |
           make ctest \
             SKIP_BUILD=1 \
-            C_DIR_TEST_INCLUDE="${{ env.C_DIR_OUT }}/include" \
-            C_DIR_TEST_LIB="${{ env.C_DIR_OUT }}/lib" \
+            C_DIR_OUT_INCLUDE="${{ env.C_DIR_OUT }}/include" \
+            C_DIR_OUT_LIB="${{ env.C_DIR_OUT }}/lib"
       - name: Archive Binaries
         run: |
           # macos requires the dylib name to be changed separately
