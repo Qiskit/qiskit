@@ -22,6 +22,7 @@ use qiskit_circuit::operations::{
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 
+use super::substitute_pi4_rotations::is_angle_close_to_multiple_of_pi_k;
 use crate::TranspilerError;
 use num_complex::Complex64;
 use qiskit_quantum_info::clifford::Clifford;
@@ -77,6 +78,8 @@ static HANDLED_INSTRUCTION_NAMES: [&str; 10] = [
     "pauli_product_measurement",
 ];
 
+const MINIMUM_TOL: f64 = 1e-12; // ToDo: add approxination_degree to the pass?
+
 #[pyfunction]
 #[pyo3(signature = (dag, fix_clifford=true, insert_barrier=false, use_ppr=false))]
 pub fn run_litinski_transformation(
@@ -86,6 +89,7 @@ pub fn run_litinski_transformation(
     use_ppr: bool,
 ) -> PyResult<Option<DAGCircuit>> {
     let op_counts = dag.get_op_counts();
+    let tol = MINIMUM_TOL;
 
     // Skip the pass if there are no rotation gates.
     if op_counts
@@ -261,6 +265,7 @@ pub fn run_litinski_transformation(
                 | OperationRef::StandardGate(StandardGate::RY)
                 | OperationRef::StandardGate(StandardGate::Phase)
                 | OperationRef::StandardGate(StandardGate::U1) => {
+                    let mut is_clifford = false; // indicates if we have a pi/2 rotation gate which is a clifford
                     // Convert T and Tdg gates to RZ rotations
                     let (pauli_z, pauli_x, angle, phase_update) = match inst.op.view() {
                         OperationRef::StandardGate(StandardGate::T) => (
@@ -277,19 +282,83 @@ pub fn run_litinski_transformation(
                         ),
                         OperationRef::StandardGate(StandardGate::RZ) => {
                             let param = &inst.params_view()[0];
+                            if let Param::Float(angle) = param {
+                                if let Some(mut multiple) = is_angle_close_to_multiple_of_pi_k(
+                                    StandardGate::RZ,
+                                    2,
+                                    *angle,
+                                    tol,
+                                ) {
+                                    is_clifford = true;
+                                    multiple %= 4;
+                                    if fix_clifford {
+                                        clifford_ops.push(inst);
+                                    }
+                                    clifford
+                                        .append_rz(dag.get_qargs(inst.qubits)[0].index(), multiple)
+                                }
+                            }
                             (true, false, param.clone(), Param::Float(0.))
                         }
                         OperationRef::StandardGate(StandardGate::Phase)
                         | OperationRef::StandardGate(StandardGate::U1) => {
                             let param = &inst.params_view()[0];
+                            if let Param::Float(angle) = param {
+                                if let Some(mut multiple) = is_angle_close_to_multiple_of_pi_k(
+                                    StandardGate::RZ,
+                                    2,
+                                    *angle,
+                                    tol,
+                                ) {
+                                    is_clifford = true;
+                                    multiple %= 4;
+                                    if fix_clifford {
+                                        clifford_ops.push(inst);
+                                    }
+                                    clifford
+                                        .append_rz(dag.get_qargs(inst.qubits)[0].index(), multiple)
+                                }
+                            }
                             (true, false, param.clone(), multiply_param(param, 0.5))
                         }
                         OperationRef::StandardGate(StandardGate::RX) => {
                             let param = &inst.params_view()[0];
+                            if let Param::Float(angle) = param {
+                                if let Some(mut multiple) = is_angle_close_to_multiple_of_pi_k(
+                                    StandardGate::RX,
+                                    2,
+                                    *angle,
+                                    tol,
+                                ) {
+                                    is_clifford = true;
+                                    multiple %= 4;
+                                    if fix_clifford {
+                                        clifford_ops.push(inst);
+                                    }
+                                    clifford
+                                        .append_rx(dag.get_qargs(inst.qubits)[0].index(), multiple)
+                                }
+                            }
                             (false, true, param.clone(), Param::Float(0.))
                         }
                         OperationRef::StandardGate(StandardGate::RY) => {
                             let param = &inst.params_view()[0];
+                            if let Param::Float(angle) = param {
+                                if let Some(mut multiple) = is_angle_close_to_multiple_of_pi_k(
+                                    StandardGate::RY,
+                                    2,
+                                    *angle,
+                                    tol,
+                                ) {
+                                    is_clifford = true;
+                                    multiple %= 4;
+                                    if fix_clifford {
+                                        clifford_ops.push(inst);
+                                    }
+                                    clifford
+                                        .append_ry(dag.get_qargs(inst.qubits)[0].index(), multiple)
+                                }
+                            }
                             (true, true, param.clone(), Param::Float(0.))
                         }
                         _ => {
@@ -298,65 +367,68 @@ pub fn run_litinski_transformation(
                             );
                         }
                     };
-                    global_phase_update = radd_param(global_phase_update, phase_update);
+                    if !is_clifford {
+                        // rotation gate is non-clifford
+                        global_phase_update = radd_param(global_phase_update, phase_update);
 
-                    // Evolving the single qubit pauli (X, Y or Z) by the Clifford.
-                    // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
-                    // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
-                    let (sign, z, x, indices) = clifford.evolve_single_qubit_pauli(
-                        pauli_z,
-                        pauli_x,
-                        dag.get_qargs(inst.qubits)[0].index(),
-                    );
-                    qargs.clear();
-                    qargs.extend(bytemuck::cast_slice(&indices));
+                        // Evolving the single qubit pauli (X, Y or Z) by the Clifford.
+                        // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
+                        // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
+                        let (sign, z, x, indices) = clifford.evolve_single_qubit_pauli(
+                            pauli_z,
+                            pauli_x,
+                            dag.get_qargs(inst.qubits)[0].index(),
+                        );
+                        qargs.clear();
+                        qargs.extend(bytemuck::cast_slice(&indices));
 
-                    // In the legacy path, we add PauliEvolutionGate as rotation gates, otherwise
-                    // we add PauliProductRotation. The new path should not call Python at any
-                    // point.
-                    let (packed_op, param) = if use_ppr {
-                        let angle = if sign {
-                            multiply_param(&angle, -1.0)
+                        // In the legacy path, we add PauliEvolutionGate as rotation gates, otherwise
+                        // we add PauliProductRotation. The new path should not call Python at any
+                        // point.
+                        let (packed_op, param) = if use_ppr {
+                            let angle = if sign {
+                                multiply_param(&angle, -1.0)
+                            } else {
+                                angle
+                            };
+                            let ppr = PauliProductRotation {
+                                z,
+                                x,
+                                angle: angle.clone(),
+                            };
+                            (PauliBased::PauliProductRotation(ppr).into(), angle)
                         } else {
-                            angle
+                            let time = if sign {
+                                multiply_param(&angle, -0.5)
+                            } else {
+                                multiply_param(&angle, 0.5)
+                            };
+                            let obs = sparse_obs_from_zx(&z, &x);
+                            let py_gate = Python::attach(|py| -> PyResult<_> {
+                                let py_evo = PAULI_EVOLUTION_GATE
+                                    .get_bound(py)
+                                    .call1((obs, time.clone()))?;
+                                Ok(PyOperationTypes::Gate(PyInstruction {
+                                    qubits: qargs.len() as u32,
+                                    clbits: 0,
+                                    params: 1,
+                                    op_name: "PauliEvolution".to_string(),
+                                    instruction: py_evo.into(),
+                                }))
+                            })?;
+                            (py_gate.into(), time)
                         };
-                        let ppr = PauliProductRotation {
-                            z,
-                            x,
-                            angle: angle.clone(),
-                        };
-                        (PauliBased::PauliProductRotation(ppr).into(), angle)
-                    } else {
-                        let time = if sign {
-                            multiply_param(&angle, -0.5)
-                        } else {
-                            multiply_param(&angle, 0.5)
-                        };
-                        let obs = sparse_obs_from_zx(&z, &x);
-                        let py_gate = Python::attach(|py| -> PyResult<_> {
-                            let py_evo = PAULI_EVOLUTION_GATE
-                                .get_bound(py)
-                                .call1((obs, time.clone()))?;
-                            Ok(PyOperationTypes::Gate(PyInstruction {
-                                qubits: qargs.len() as u32,
-                                clbits: 0,
-                                params: 1,
-                                op_name: "PauliEvolution".to_string(),
-                                instruction: py_evo.into(),
-                            }))
-                        })?;
-                        (py_gate.into(), time)
-                    };
 
-                    new_dag.apply_operation_back(
-                        packed_op,
-                        &qargs,
-                        &[],
-                        Some(Parameters::Params(smallvec![param])),
-                        None,
-                        #[cfg(feature = "cache_pygates")]
-                        None,
-                    )?;
+                        new_dag.apply_operation_back(
+                            packed_op,
+                            &qargs,
+                            &[],
+                            Some(Parameters::Params(smallvec![param])),
+                            None,
+                            #[cfg(feature = "cache_pygates")]
+                            None,
+                        )?;
+                    }
                 }
                 OperationRef::PauliProductRotation(rotation) => {
                     // Evolve a PPR(z, x, angle) by a Clifford:
