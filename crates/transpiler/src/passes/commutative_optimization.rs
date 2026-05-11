@@ -102,6 +102,35 @@ static MERGEABLE_ROTATION_GATES: [StandardGate; 12] = [
     StandardGate::CU1,
 ];
 
+/// Check if `inst` is symmetric for some special values of its parameters,
+/// taking tolerance into account.
+fn is_special_symmetric(inst: &PackedInstruction, tol: f64) -> bool {
+    // For now, this only handles the standard XXPlusYY gate.
+    if let OperationRef::StandardGate(StandardGate::XXPlusYY) = inst.op.view() {
+        // From the matrix representation, applying XXPlusYY(theta, beta) on reversed qubits [q2, q1]
+        // is the same as applying XXPlusYY(theta, -beta) on [q1, q2].
+        // The direct computation for the average gate fidelity between XXPlusYY(theta, beta) and
+        // XXPlusYY(theta, -beta) gives the following: 1/5 + 4/5 [1-sin^(theta/2) sin^2(beta)]^2.
+        match inst.params_view() {
+            [Param::Float(theta), Param::Float(beta)] => {
+                // If both theta and beta are floating-point, we can evaluate the above condition
+                // directly.
+                let x = (1.0 - (theta / 2.0).sin().powf(2.0) * beta.sin().powf(2.0)).powf(2.0);
+                return x > 1.0 - 5. / 4. * tol;
+            }
+            [Param::ParameterExpression(_theta), Param::Float(beta)] => {
+                // If theta is parametric, we take the estimate that works for all theta.
+                let x = (1.0 - beta.sin().powf(2.0)).powf(2.0);
+                return x > 1.0 - 5. / 4. * tol;
+            }
+            _ => {
+                return false;
+            }
+        }
+    }
+    false
+}
+
 /// Computes the canonical representative of a packed instruction, and in particular:
 /// * replaces all types of Z-rotations by RZ-gates,
 /// * replaces all types of X-rotations by RX-gates,
@@ -121,6 +150,7 @@ static MERGEABLE_ROTATION_GATES: [StandardGate; 12] = [
 fn canonicalize(
     dag: &mut DAGCircuit,
     inst: &PackedInstruction,
+    tol: f64,
 ) -> Option<(PackedInstruction, Param)> {
     // ToDo: possibly consider other rotations as well (e.g. CS -> CRZ).
     let rotation = match inst.op.view() {

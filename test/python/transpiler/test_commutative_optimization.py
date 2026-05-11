@@ -167,6 +167,8 @@ class TestCommutativeOptimization(QiskitTestCase):
         RXXGate(0.4),
         RYYGate(0.4),
         RZZGate(0.4),
+        XXPlusYYGate(0.4, 0.0),
+        XXPlusYYGate(0.4, np.pi),
         XXMinusYYGate(0.4, 0.2),
     )
     def test_symmetric_gates_cancel(self, symmetric_gate):
@@ -191,6 +193,16 @@ class TestCommutativeOptimization(QiskitTestCase):
         qct = CommutativeOptimization()(qc)
 
         self.assertEqual(qct, qc)
+
+    def test_symmetric_xxplusyy_gates_cancel(self):
+        """Test for cancellation XXPlusYY gates with parametric values of theta."""
+        symmetric_gate = XXPlusYYGate(Parameter("t"), np.pi)
+        qc = QuantumCircuit(2)
+        qc.append(symmetric_gate, [0, 1])
+        qc.append(symmetric_gate.inverse(), [1, 0])  # note reversed order of qubits
+        qct = CommutativeOptimization()(qc)
+        expected = QuantumCircuit(2)
+        self.assertEqual(qct, expected)
 
     def test_symmetric_iswap_gates_cancel(self):
         """Test that iSwap gates cancel."""
