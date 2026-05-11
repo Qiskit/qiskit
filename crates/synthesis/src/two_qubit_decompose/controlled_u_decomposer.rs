@@ -39,12 +39,12 @@ use super::common::{DEFAULT_FIDELITY, HGATE, SDGGATE, SGATE};
 use super::gate_sequence::{TwoQubitGateSequence, TwoQubitSequenceVec};
 use super::weyl_decomposition::{Specialization, TwoQubitWeylDecomposition};
 
-type TwoQubitUnitary = (
-    PackedOperation,
-    SmallVec<[f64; 3]>,
-    f64,
-    [Matrix2<Complex64>; 4],
-);
+struct TwoQubitUnitary {
+    op: PackedOperation,
+    params: SmallVec<[f64; 3]>,
+    global_phase: f64,
+    one_qubit_components: [Matrix2<Complex64>; 4],
+}
 
 #[derive(Clone, Debug, FromPyObject)]
 pub enum RXXEquivalent {
@@ -243,7 +243,12 @@ impl TwoQubitControlledUDecomposer {
             out_gate_params = inv_gate_params;
         }
 
-        Ok((out_gate_name, out_gate_params, global_phase, k_mats))
+        Ok(TwoQubitUnitary {
+            op: out_gate_name,
+            params: out_gate_params,
+            global_phase,
+            one_qubit_components: k_mats,
+        })
     }
 
     /// Appends U_d(a, b, c) to the circuit.
@@ -255,11 +260,11 @@ impl TwoQubitControlledUDecomposer {
     /// q_1: ┤ c2l ├┤1      ├┤ c1l ├
     ///      └─────┘└───────┘└─────┘
     /// The Weyl gate can be decomposed into the following product of 2-qubit gates
-    ///      ┌─────────┐┌─────────┐        
+    ///      ┌─────────┐┌─────────┐
     /// q_0: ┤0        ├┤0        ├─■──────
     ///      │  Rxx(a) ││  Ryy(b) │ │ZZ(c)
     /// q_1: ┤1        ├┤1        ├─■──────
-    ///      └─────────┘└─────────┘       
+    ///      └─────────┘└─────────┘
     /// RYY(b) is decomposed as
     ///      ┌─────┐┌─────────┐┌───┐
     /// q_0: ┤ Sdg ├┤0        ├┤ S ├
@@ -300,8 +305,12 @@ impl TwoQubitControlledUDecomposer {
         target_1q_basis_list: EulerBasisSet,
     ) -> PyResult<()> {
         // RXX(a)
-        let (circ_a_name, circ_a_params, global_phase_a, rxx_mats) =
-            self.to_rxx_gate(-2.0 * target_decomposed.a, false)?;
+        let TwoQubitUnitary {
+            op: circ_a_name,
+            params: circ_a_params,
+            global_phase: global_phase_a,
+            one_qubit_components: rxx_mats,
+        } = self.to_rxx_gate(-2.0 * target_decomposed.a, false)?;
         let mut global_phase = global_phase_a;
 
         let mut c2r = c_mats[0]; // before weyl_gate, qubit 0
@@ -347,8 +356,12 @@ impl TwoQubitControlledUDecomposer {
 
         // translate RYY(b) into a circuit based on the desired Ctrl-U gate.
         if (target_decomposed.b).abs() > atol {
-            let (circ_b_name, circ_b_params, global_phase_b, ryy_mats) =
-                self.to_rxx_gate(-2.0 * target_decomposed.b, false)?;
+            let TwoQubitUnitary {
+                op: circ_b_name,
+                params: circ_b_params,
+                global_phase: global_phase_b,
+                one_qubit_components: ryy_mats,
+            } = self.to_rxx_gate(-2.0 * target_decomposed.b, false)?;
             global_phase += global_phase_b;
 
             ryy_k2r = ryy_mats[0]; // before RXX(b), qubit 0
@@ -392,8 +405,12 @@ impl TwoQubitControlledUDecomposer {
             // circuit if c < 0.
             let mut gamma = -2.0 * target_decomposed.c;
             if gamma <= 0.0 {
-                let (circ_c_name, circ_c_params, global_phase_c, rzz_mats) =
-                    self.to_rxx_gate(gamma, false)?;
+                let TwoQubitUnitary {
+                    op: circ_c_name,
+                    params: circ_c_params,
+                    global_phase: global_phase_c,
+                    one_qubit_components: rzz_mats,
+                } = self.to_rxx_gate(gamma, false)?;
                 global_phase += global_phase_c;
 
                 rzz_k2r = rzz_mats[0]; // before RXX(c), qubit 0
@@ -426,8 +443,12 @@ impl TwoQubitControlledUDecomposer {
                 // invert the circuit above
                 gamma *= -1.0;
                 // the inverted 2-qubit RXX gate
-                let (circ_c_name, circ_c_params, global_phase_c, rzz_mats) =
-                    self.to_rxx_gate(gamma, true)?;
+                let TwoQubitUnitary {
+                    op: circ_c_name,
+                    params: circ_c_params,
+                    global_phase: global_phase_c,
+                    one_qubit_components: rzz_mats,
+                } = self.to_rxx_gate(gamma, true)?;
                 global_phase -= global_phase_c;
 
                 // the inverted 1-qubit matrices
