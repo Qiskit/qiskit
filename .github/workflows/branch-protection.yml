@@ -106,6 +106,7 @@ jobs:
             install-optionals: true
             install-from-sdist: false
             qiskit-pycache: false
+            mimalloc: false
           - id: "Python newest"
             python: ${{ needs.config.outputs.python-new }}
             install-optionals: false
@@ -127,6 +128,7 @@ jobs:
           - id: "Python oldest"
             python: ${{ needs.config.outputs.python-old }}
             install-optionals: true
+            mimalloc: false
           - id: "Python newest"
             python: ${{ needs.config.outputs.python-new }}
             install-optionals: false
@@ -146,6 +148,7 @@ jobs:
           - id: "Python oldest"
             python: ${{ needs.config.outputs.python-old }}
             install-optionals: true
+            mimalloc: false
           - id: "Python newest"
             python: ${{ needs.config.outputs.python-new }}
             install-optionals: false

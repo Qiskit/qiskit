@@ -15,6 +15,8 @@
 import cmath
 import math
 import unittest
+import pickle
+import copy
 
 from test import combine
 from test import QiskitTestCase
@@ -491,6 +493,16 @@ class TestParameterExpression(QiskitTestCase):
                 result = expr.gradient(param)
                 self.assertIsInstance(result, (int, float, complex))
                 self.assertEqual(result, expected)
+
+    @ddt.idata(operand for operand in operands if isinstance(operand, ParameterExpression))
+    def test_pickle_roundtrip(self, expr):
+        pickled = pickle.loads(pickle.dumps(expr))
+        copied = copy.copy(expr)
+        deep_copied = copy.deepcopy(expr)
+        self.assertEqual([expr] * 3, [pickled, copied, deep_copied])
+        self.assertEqual(
+            [expr.parameters] * 3, [pickled.parameters, copied.parameters, deep_copied.parameters]
+        )
 
     @unittest.skipUnless(HAS_SYMPY, "Sympy is required for this test")
     def test_sympify_all_ops(self):

@@ -13,8 +13,13 @@
 """
 Preset pass manager generation function
 """
+from __future__ import annotations
+
 import copy
+import os
 import warnings
+import typing
+
 
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES, get_control_flow_name_mapping
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
@@ -25,38 +30,45 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
+from qiskit.transpiler.preset_passmanagers.clifford_t_pass_manager import (
+    clifford_t_pass_manager,
+)
 from qiskit.transpiler.preset_passmanagers.common import is_clifford_t_basis
 from qiskit.transpiler.target import Target, _FakeTarget
+from qiskit import user_config
 
 from .level0 import level_0_pass_manager
 from .level1 import level_1_pass_manager
 from .level2 import level_2_pass_manager
 from .level3 import level_3_pass_manager
 
+if typing.TYPE_CHECKING:
+    from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
+
 
 OVER_3Q_GATES = ["ccx", "ccz", "cswap", "rccx", "c3x", "c3sx", "rc3x"]
 
 
 def generate_preset_pass_manager(
-    optimization_level=2,
-    backend=None,
-    target=None,
-    basis_gates=None,
-    coupling_map=None,
-    initial_layout=None,
-    layout_method=None,
-    routing_method=None,
-    translation_method=None,
-    scheduling_method=None,
-    approximation_degree=1.0,
-    seed_transpiler=None,
-    unitary_synthesis_method="default",
-    unitary_synthesis_plugin_config=None,
-    hls_config=None,
-    init_method=None,
-    optimization_method=None,
-    dt=None,
-    qubits_initially_zero=True,
+    optimization_level: int = 2,
+    backend: Backend | None = None,
+    target: Target | None = None,
+    basis_gates: list[str] | None = None,
+    coupling_map: CouplingMap | list | None = None,
+    initial_layout: Layout | list[int] = None,
+    layout_method: str | None = None,
+    routing_method: str | None = None,
+    translation_method: str | None = None,
+    scheduling_method: str | None = None,
+    approximation_degree: float | None = 1.0,
+    seed_transpiler: int | None = None,
+    unitary_synthesis_method: str = "default",
+    unitary_synthesis_plugin_config: dict | None = None,
+    hls_config: HLSConfig | None = None,
+    init_method: str | None = None,
+    optimization_method: str | None = None,
+    dt: float | None = None,
+    qubits_initially_zero: bool = True,
     *,
     _skip_target=False,
 ):
@@ -88,8 +100,15 @@ def generate_preset_pass_manager(
     **dt**                       target    dt
     ============================ ========= ========================
 
+    .. note::
+
+        When the target basis consists of Clifford+T gates, this function constructs
+        a specialized Clifford+T transpiler pipeline, see :func:`.clifford_t_pass_manager`
+        for documentation. The arguments that apply to transpiling into continuous basis sets
+        are ignored in this flow.
+
     Args:
-        optimization_level (int): The optimization level to generate a
+        optimization_level: The optimization level to generate a
             :class:`~.StagedPassManager` for. By default optimization level 2
             is used if this is not specified. This can be 0, 1, 2, or 3. Higher
             levels generate potentially more optimized circuits, at the expense
@@ -100,35 +119,33 @@ def generate_preset_pass_manager(
                 * 2: heavy optimization
                 * 3: even heavier optimization
 
-        backend (Backend): An optional backend object which can be used as the
+        backend: An optional backend object which can be used as the
             source of the default values for the ``basis_gates``,
             ``coupling_map``, and ``target``. If any of those other arguments
             are specified in addition to ``backend`` they will take precedence
             over the value contained in the backend.
-        target (Target): The :class:`~.Target` representing a backend compilation
+        target: The :class:`~.Target` representing a backend compilation
             target. The following attributes will be inferred from this
             argument if they are not set: ``coupling_map`` and ``basis_gates``.
-        basis_gates (list): List of basis gate names to unroll to
+        basis_gates: List of basis gate names to unroll to
             (e.g: ``['u1', 'u2', 'u3', 'cx']``).
-        coupling_map (CouplingMap or list): Directed graph represented a coupling
+        coupling_map: Directed graph represented a coupling
             map. Multiple formats are supported:
 
             #. ``CouplingMap`` instance
             #. List, must be given as an adjacency matrix, where each entry
                specifies all directed two-qubit interactions supported by backend,
                e.g: ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
-        dt (float): Backend sample time (resolution) in seconds.
-            If ``None`` (default) and a backend is provided, ``backend.dt`` is used.
-        initial_layout (Layout | List[int]): Initial position of virtual qubits on
+        initial_layout: Initial position of virtual qubits on
             physical qubits.
-        layout_method (str): The :class:`~.Pass` to use for choosing initial qubit
+        layout_method: The :class:`~.Pass` to use for choosing initial qubit
             placement. Valid choices are ``'trivial'``, ``'dense'``,
             and ``'sabre'``, representing :class:`~.TrivialLayout`, :class:`~.DenseLayout` and
             :class:`~.SabreLayout` respectively. This can also
             be the external plugin name to use for the ``layout`` stage of the output
             :class:`~.StagedPassManager`. You can see a list of installed plugins by using
             :func:`~.list_stage_plugins` with ``"layout"`` for the ``stage_name`` argument.
-        routing_method (str): The pass to use for routing qubits on the
+        routing_method: The pass to use for routing qubits on the
             architecture. Valid choices are ``'basic'``, ``'lookahead'``,
             ``'sabre'``, and ``'none'`` representing :class:`~.BasicSwap`,
             :class:`~.LookaheadSwap`, :class:`~.SabreSwap`, and
@@ -136,25 +153,32 @@ def generate_preset_pass_manager(
             name to use for the ``routing`` stage of the output :class:`~.StagedPassManager`.
             You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
             ``"routing"`` for the ``stage_name`` argument.
-        translation_method (str): The method to use for translating gates to
+        translation_method: The method to use for translating gates to
             basis gates. Valid choices ``'translator'``, ``'synthesis'`` representing
             :class:`~.BasisTranslator`, and :class:`~.UnitarySynthesis` respectively. This can
             also be the external plugin name to use for the ``translation`` stage of the output
             :class:`~.StagedPassManager`. You can see a list of installed plugins by using
             :func:`~.list_stage_plugins` with ``"translation"`` for the ``stage_name`` argument.
-        scheduling_method (str): The pass to use for scheduling instructions. Valid choices
+        scheduling_method: The pass to use for scheduling instructions. Valid choices
             are ``'alap'`` and ``'asap'``. This can also be the external plugin name to use
             for the ``scheduling`` stage of the output :class:`~.StagedPassManager`. You can
             see a list of installed plugins by using :func:`~.list_stage_plugins` with
             ``"scheduling"`` for the ``stage_name`` argument.
-        approximation_degree (float): Heuristic dial used for circuit approximation
-            (1.0=no approximation, 0.0=maximal approximation).
+        approximation_degree: Heuristic dial used for circuit approximation, where
+            ``1.0`` means no approximation (up to numerical tolerance) and ``0.0``
+            means the maximum approximation. If ``target`` is available, a value of ``None``
+            indicates that approximation is allowed up to the reported error rate for an operation
+            in the target.
         seed_transpiler (int): Sets random seed for the stochastic parts of
-            the transpiler.
+            the transpiler. If it is not specified here it can also be specified via an environment
+            variable: ``QISKIT_TRANSPILER_SEED`` or in a user configuration file. The priority
+            order is: this argument, then the environment variable, and finally the user
+            configuration option. So setting this argument will take precedence over the other
+            methods of setting a seed.
         unitary_synthesis_method (str): The name of the unitary synthesis
             method to use. By default ``'default'`` is used. You can see a list of
             installed plugins with :func:`.unitary_synthesis_plugin_names`.
-        unitary_synthesis_plugin_config (dict): An optional configuration dictionary
+        unitary_synthesis_plugin_config: An optional configuration dictionary
             that will be passed directly to the unitary synthesis plugin. By
             default this setting will have no effect as the default unitary
             synthesis method does not take custom configuration. This should
@@ -162,22 +186,24 @@ def generate_preset_pass_manager(
             the ``unitary_synthesis_method`` argument. As this is custom for each
             unitary synthesis plugin refer to the plugin documentation for how
             to use this option.
-        hls_config (HLSConfig): An optional configuration class :class:`~.HLSConfig`
+        hls_config: An optional configuration class :class:`~.HLSConfig`
             that will be passed directly to :class:`~.HighLevelSynthesis` transformation pass.
             This configuration class allows to specify for various high-level objects
             the lists of synthesis algorithms and their parameters.
-        init_method (str): The plugin name to use for the ``init`` stage of
+        init_method: The plugin name to use for the ``init`` stage of
             the output :class:`~.StagedPassManager`. By default an external
             plugin is not used. You can see a list of installed plugins by
             using :func:`~.list_stage_plugins` with ``"init"`` for the stage
             name argument.
-        optimization_method (str): The plugin name to use for the
+        optimization_method: The plugin name to use for the
             ``optimization`` stage of the output
             :class:`~.StagedPassManager`. By default an external
             plugin is not used. You can see a list of installed plugins by
             using :func:`~.list_stage_plugins` with ``"optimization"`` for the
             ``stage_name`` argument.
-        qubits_initially_zero (bool): Indicates whether the input circuit is
+        dt: Backend sample time (resolution) in seconds.
+            If ``None`` (default) and a backend is provided, ``backend.dt`` is used.
+        qubits_initially_zero: Indicates whether the input circuit is
                 zero-initialized.
 
     Returns:
@@ -186,16 +212,23 @@ def generate_preset_pass_manager(
     Raises:
         ValueError: if an invalid value for ``optimization_level`` is passed in.
     """
+    config = user_config.get_config()
+
+    if seed_transpiler is None:
+        if seed := os.getenv("QISKIT_TRANSPILER_SEED", None) is not None:
+            seed_transpiler = int(seed)
+        else:
+            seed_transpiler = config.get("transpiler_seed", None)
 
     # Handle positional arguments for target and backend. This enables the usage
     # pattern `generate_preset_pass_manager(backend.target)` to generate a default
     # pass manager for a given target.
     if isinstance(optimization_level, Target):
-        target = optimization_level
-        optimization_level = 2
+        target, optimization_level = optimization_level, None
     elif isinstance(optimization_level, Backend):
-        backend = optimization_level
-        optimization_level = 2
+        backend, optimization_level = optimization_level, None
+    if optimization_level is None:
+        optimization_level = config.get("transpile_optimization_level", 2)
 
     # If there are no loose constraints => use backend target if available
     _no_loose_constraints = basis_gates is None and coupling_map is None and dt is None
@@ -302,11 +335,10 @@ def generate_preset_pass_manager(
     else:
         pm_config = PassManagerConfig(**pm_options)
 
-    pm_config._is_clifford_t = is_clifford_t_basis(
-        basis_gates=pm_config.basis_gates, target=pm_config.target
-    )
+    if is_clifford_t_basis(basis_gates=pm_config.basis_gates, target=pm_config.target):
+        pm = clifford_t_pass_manager(pm_config, optimization_level=optimization_level)
 
-    if optimization_level == 0:
+    elif optimization_level == 0:
         pm = level_0_pass_manager(pm_config)
     elif optimization_level == 1:
         pm = level_1_pass_manager(pm_config)
@@ -316,6 +348,7 @@ def generate_preset_pass_manager(
         pm = level_3_pass_manager(pm_config)
     else:
         raise ValueError(f"Invalid optimization level {optimization_level}")
+
     return pm
 
 

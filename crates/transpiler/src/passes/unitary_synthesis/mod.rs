@@ -14,7 +14,7 @@ mod decomposers;
 
 use hashbrown::HashSet;
 use indexmap::IndexSet;
-use nalgebra::{DMatrix, Matrix2};
+use nalgebra::Matrix2;
 use ndarray::prelude::*;
 use num_complex::Complex64;
 use std::hash;
@@ -114,7 +114,7 @@ impl Approximation {
 pub enum QpuConstraint<'a> {
     Target(&'a Target),
     Loose {
-        basis_gates: &'a IndexSet<&'a str, ::ahash::RandomState>,
+        basis_gates: &'a IndexSet<&'a str, ::foldhash::fast::RandomState>,
         coupling: &'a HashSet<[PhysicalQubit; 2]>,
     },
 }
@@ -409,9 +409,7 @@ fn synthesize_matrix_onto(
                     return Ok(false);
                 }
             }
-            let unitary =
-                DMatrix::from_fn(1 << num_qubits, 1 << num_qubits, |i, j| unitary[[i, j]]);
-            let circuit = quantum_shannon_decomposition(&unitary, None, None, None, None)?;
+            let circuit = quantum_shannon_decomposition(unitary.view(), None, None, None, None)?;
             let map = out.merge_qargs(circuit.qargs_interner(), |q| Some(qubits_local[q.index()]));
             out.add_global_phase(circuit.global_phase())?;
             for inst in circuit.data() {
@@ -676,7 +674,7 @@ pub fn py_unitary_synthesis(
         run_python_decomposers: true,
     };
     let mut state = UnitarySynthesisState::new(config);
-    let mut basis_gates_set: IndexSet<&str, ::ahash::RandomState>;
+    let mut basis_gates_set: IndexSet<&str, ::foldhash::fast::RandomState>;
     let constraint = match target {
         Some(target) => QpuConstraint::Target(target),
         None => {
@@ -720,7 +718,7 @@ pub fn py_synthesize_unitary_matrix(
         run_python_decomposers: true,
     };
     let mut state = UnitarySynthesisState::new(config);
-    let mut basis_gates_set: IndexSet<&str, ::ahash::RandomState>;
+    let mut basis_gates_set: IndexSet<&str, ::foldhash::fast::RandomState>;
     let constraint = match target {
         Some(target) => QpuConstraint::Target(target),
         None => {

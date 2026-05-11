@@ -226,6 +226,7 @@ class Commuting2qGateRouter(TransformationPass):
         """A helper function to track the movement of virtual qubits through the swaps.
 
         Args:
+            dag: The dag the pass is being run on.
             j: The index of decision variable j (i.e. virtual qubit).
             k: The index of decision variable k (i.e. virtual qubit).
             layout: The current layout that takes into account previous swap gates.
@@ -377,6 +378,7 @@ class Commuting2qGateRouter(TransformationPass):
         """Check if the swap strategy can create the required connectivity.
 
         Args:
+            dag: The dag to check edges from.
             node: The dag node for which to check if the swap strategy provides enough connectivity.
             swap_strategy: The swap strategy that is being used.
 

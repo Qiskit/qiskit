@@ -12,69 +12,85 @@
 
 """Pass Manager Configuration class."""
 
+from __future__ import annotations
+
+import typing
+
+if typing.TYPE_CHECKING:
+    from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
+    from qiskit.transpiler import Target, CouplingMap, Layout
+    from qiskit.transpiler.timing_constraints import TimingConstraints
+    from .instruction_durations import InstructionDurations
+
 
 class PassManagerConfig:
     """Pass Manager Configuration."""
 
     def __init__(
         self,
-        initial_layout=None,
-        basis_gates=None,
-        coupling_map=None,
-        layout_method=None,
-        routing_method=None,
-        translation_method=None,
-        scheduling_method=None,
-        instruction_durations=None,
-        approximation_degree=None,
-        seed_transpiler=None,
-        timing_constraints=None,
-        unitary_synthesis_method="default",
-        unitary_synthesis_plugin_config=None,
-        target=None,
-        hls_config=None,
-        init_method=None,
-        optimization_method=None,
-        qubits_initially_zero=True,
+        initial_layout: Layout | None = None,
+        basis_gates: list[str] | None = None,
+        coupling_map: CouplingMap | None = None,
+        layout_method: str | None = None,
+        routing_method: str | None = None,
+        translation_method: str | None = None,
+        scheduling_method: str | None = None,
+        instruction_durations: InstructionDurations | None = None,
+        approximation_degree: float | None = None,
+        seed_transpiler: int | None = None,
+        timing_constraints: TimingConstraints | None = None,
+        unitary_synthesis_method: str = "default",
+        unitary_synthesis_plugin_config: dict | None = None,
+        target: Target | None = None,
+        hls_config: HLSConfig | None = None,
+        init_method: str | None = None,
+        optimization_method: str | None = None,
+        qubits_initially_zero: bool = True,
     ):
         """Initialize a PassManagerConfig object
 
         Args:
-            initial_layout (Layout): Initial position of virtual qubits on
+            initial_layout: Initial position of virtual qubits on
                 physical qubits.
-            basis_gates (list): List of basis gate names to unroll to.
-            coupling_map (CouplingMap): Directed graph representing a coupling
+            basis_gates: List of basis gate names to unroll to.
+            coupling_map: Directed graph representing a coupling
                 map.
-            layout_method (str): the pass to use for choosing initial qubit
+            layout_method: the pass to use for choosing initial qubit
                 placement. This will be the plugin name if an external layout stage
                 plugin is being used.
-            routing_method (str): the pass to use for routing qubits on the
+            routing_method: the pass to use for routing qubits on the
                 architecture. This will be a plugin name if an external routing stage
                 plugin is being used.
-            translation_method (str): the pass to use for translating gates to
+            translation_method: the pass to use for translating gates to
                 basis_gates. This will be a plugin name if an external translation stage
                 plugin is being used.
-            scheduling_method (str): the pass to use for scheduling instructions. This will
+            scheduling_method: the pass to use for scheduling instructions. This will
                 be a plugin name if an external scheduling stage plugin is being used.
-            instruction_durations (InstructionDurations): Dictionary of duration
+            instruction_durations: Dictionary of duration
                 (in dt) for each instruction.
-            approximation_degree (float): heuristic dial used for circuit approximation
-                (1.0=no approximation, 0.0=maximal approximation)
-            seed_transpiler (int): Sets random seed for the stochastic parts of
+            approximation_degree: Heuristic dial used for circuit approximation, where
+                ``1.0`` means no approximation (up to numerical tolerance) and ``0.0``
+                means the maximum approximation. If ``target`` is available, a value of ``None``
+                indicates that approximation is allowed up to the reported error rate for an operation
+                in the target.
+            seed_transpiler: Sets random seed for the stochastic parts of
                 the transpiler.
-            timing_constraints (TimingConstraints): Hardware time alignment restrictions.
-            unitary_synthesis_method (str): The string method to use for the
+            timing_constraints: Hardware time alignment restrictions.
+            unitary_synthesis_method: The string method to use for the
                 :class:`~qiskit.transpiler.passes.UnitarySynthesis` pass. Will
                 search installed plugins for a valid method. You can see a list of
                 installed plugins with :func:`.unitary_synthesis_plugin_names`.
-            target (Target): The backend target
-            hls_config (HLSConfig): An optional configuration class to use for
+            unitary_synthesis_plugin_config: The configuration dictionary that will
+                be passed to the specified unitary synthesis plugin. Refer to
+                the plugin documentation for how to use this.
+            target: The backend target
+            hls_config: An optional configuration class to use for
                 :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
                 Specifies how to synthesize various high-level objects.
-            init_method (str): The plugin name for the init stage plugin to use
-            optimization_method (str): The plugin name for the optimization stage plugin
+            init_method: The plugin name for the init stage plugin to use
+            optimization_method: The plugin name for the optimization stage plugin
                 to use.
-            qubits_initially_zero (bool): Indicates whether the input circuit is
+            qubits_initially_zero: Indicates whether the input circuit is
                 zero-initialized.
         """
         self.initial_layout = initial_layout
@@ -95,9 +111,6 @@ class PassManagerConfig:
         self.target = target
         self.hls_config = hls_config
         self.qubits_initially_zero = qubits_initially_zero
-        # Stores whether the basis gates are Clifford+T,
-        # in which case we use stage manager plugins adapted to Clifford+T.
-        self._is_clifford_t = False
 
     @classmethod
     def from_backend(cls, backend, _skip_target=False, **pass_manager_options):

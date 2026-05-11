@@ -15,6 +15,7 @@
 import numpy as np
 from ddt import ddt, data
 
+from qiskit import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import (
@@ -30,6 +31,7 @@ from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler import CouplingMap
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info import get_clifford_gate_names
+from qiskit.synthesis import gridsynth_rz
 
 from test import QiskitTestCase
 
@@ -82,7 +84,7 @@ class TestCliffordTPassManager(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_rx(self, optimization_level):
         """Clifford+T transpilation of a circuit with a single-qubit rotation gate,
-        requiring the usage of the Solovay-Kitaev decomposition.
+        requiring approximate synthesis of RZ rotations.
         """
         qc = QuantumCircuit(1)
         qc.rx(0.8, 0)
@@ -112,9 +114,28 @@ class TestCliffordTPassManager(QiskitTestCase):
         self.assertEqual(_get_t_count(transpiled), 0)
 
     @data(0, 1, 2, 3)
-    def test_rx_pi4(self, optimization_level):
+    def test_rx_pi4_all_cliffords(self, optimization_level):
         """Clifford+T transpilation of a circuit with a single-qubit rotation gate
-        with a "nice" angle.
+        with a T-like angle and all Clifford gates in the basis set.
+        """
+        qc = QuantumCircuit(1)
+        qc.rx(np.pi / 4, 0)
+
+        basis_gates = get_clifford_gate_names() + ["t", "tdg"]
+        pm = generate_preset_pass_manager(
+            basis_gates=basis_gates, optimization_level=optimization_level
+        )
+        transpiled = pm.run(qc)
+        transpiled_ops = transpiled.count_ops()
+        self.assertLessEqual(set(transpiled_ops), set(basis_gates))
+
+        # We should have exactly 1 T-gate.
+        self.assertEqual(_get_t_count(transpiled), 1)
+
+    @data(0, 1, 2, 3)
+    def test_rx_pi4_some_cliffords(self, optimization_level):
+        """Clifford+T transpilation of a circuit with a single-qubit rotation gate
+        with a T-like angle and only some Clifford gates in the basis set.
         """
         qc = QuantumCircuit(1)
         qc.rx(np.pi / 4, 0)
@@ -124,13 +145,16 @@ class TestCliffordTPassManager(QiskitTestCase):
             basis_gates=basis_gates, optimization_level=optimization_level
         )
         transpiled = pm.run(qc)
-        self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
-        self.assertEqual(transpiled.count_ops(), {"h": 2, "t": 1})
+        transpiled_ops = transpiled.count_ops()
+
+        # All the gates should be within the specified basis set.
+        self.assertLessEqual(set(transpiled_ops), set(basis_gates))
+        self.assertEqual(transpiled_ops, {"h": 2, "t": 1})
 
     @data(0, 1, 2, 3)
     def test_qft(self, optimization_level):
-        """Clifford+T transpilation of a more complex circuit, requiring the usage of the
-        Solovay-Kitaev decomposition.
+        """Clifford+T transpilation of a more complex circuit, requiring approximate
+        synthesis of RZ rotations.
         """
         qc = QuantumCircuit(4)
         qc.append(QFTGate(4), [0, 1, 2, 3])
@@ -246,7 +270,8 @@ class TestCliffordTPassManager(QiskitTestCase):
 
         self.assertEqual(transpiled, expected)
 
-    def test_gate_direction_remapped(self):
+    @data(0, 1, 2, 3)
+    def test_gate_direction_remapped(self, optimization_level):
         """Test that gate directions are correct."""
         qc = QuantumCircuit(2)
         qc.cx(0, 1)
@@ -255,7 +280,9 @@ class TestCliffordTPassManager(QiskitTestCase):
         coupling_map = CouplingMap([[1, 0]])
 
         pm = generate_preset_pass_manager(
-            basis_gates=basis_gates, coupling_map=coupling_map, optimization_level=0
+            basis_gates=basis_gates,
+            coupling_map=coupling_map,
+            optimization_level=optimization_level,
         )
 
         transpiled = pm.run(qc)
@@ -379,6 +406,70 @@ class TestCliffordTPassManager(QiskitTestCase):
         t_count = _get_t_count(transpiled)
         expected_t_count = {1: 0, 2: 8, 3: 16, 4: 24, 5: 32, 6: 40, 7: 48}
         self.assertLessEqual(t_count, expected_t_count[n])
+
+    def test_single_z_rotation(self):
+        """Test a single RZ rotation is transpiled with expected overhead."""
+        angle = 0.1
+        circuit = QuantumCircuit(1)
+        circuit.rz(angle, 0)
+
+        # get the expected reference count
+        reference = gridsynth_rz(angle, epsilon=0.5e-12)
+        t_threshold = _get_t_count(reference)
+
+        basis_gates = get_clifford_gate_names() + ["t", "tdg"]
+        with self.subTest(basis_gates=basis_gates):
+            pm = generate_preset_pass_manager(basis_gates=basis_gates)
+            disc = pm.run(circuit)
+            self.assertLessEqual(_get_t_count(disc), t_threshold)
+
+        basis_gates = ["t", "h", "s", "cx"]
+        with self.subTest(basis_gates=basis_gates):
+            pm = generate_preset_pass_manager(basis_gates=basis_gates)
+            disc = pm.run(circuit)
+            self.assertLessEqual(_get_t_count(disc), t_threshold)
+
+        basis_gates = ["t", "h", "cx"]
+        with self.subTest(basis_gates=basis_gates):
+            # gridsynth produces only S, X, T, H (and global phase)
+            s_overhead = 2 * reference.count_ops().get("s", 0)
+            x_overhead = 4 * reference.count_ops().get("x", 0)
+
+            pm = generate_preset_pass_manager(basis_gates=basis_gates)
+            disc = pm.run(circuit)
+            self.assertLessEqual(_get_t_count(disc), t_threshold + s_overhead + x_overhead)
+
+    @data("diag", "cliff", "collect")
+    def test_sequence_collection(self, sequence_kind):
+        """Test Clifford+T friendly sequences are not collected into unitaries."""
+        qc = QuantumCircuit(2)
+        qc.t(1)
+
+        if sequence_kind == "cliff":
+            qc.h(1)
+            qc.y(1)
+            qc.sx(1)
+        elif sequence_kind == "diag":
+            qc.rz(0.1, 1)
+            qc.z(1)
+            qc.sdg(1)
+            qc.tdg(1)
+        else:
+            qc.ry(0.4, 1)
+
+        has_unitary = [False]
+
+        def check_for_unitary(**kwargs):
+            name = kwargs["pass_"].__class__.__name__
+            if name == "ConsolidateBlocks":
+                ops = kwargs["dag"].count_ops()
+                has_unitary[0] = "unitary" in ops.keys()
+
+        basis_gates = get_clifford_gate_names() + ["t", "tdg"]
+        _ = transpile(qc, basis_gates=basis_gates, callback=check_for_unitary)
+
+        expect_unitary = sequence_kind == "collect"
+        self.assertEqual(expect_unitary, has_unitary[0])
 
 
 def _get_t_count(qc):

@@ -23,7 +23,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
+use qiskit_util::py::{PySequenceIndex, SequenceIndex};
 
 use super::qubit_sparse_pauli::{
     ArithmeticError, CoherenceError, InnerReadError, InnerWriteError, LabelError, Pauli,

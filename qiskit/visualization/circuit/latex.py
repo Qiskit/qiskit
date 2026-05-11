@@ -63,6 +63,7 @@ class QCircuitImage:
         cregbundle=None,
         with_layout=False,
         circuit=None,
+        barrier_label_len=16,
     ):
         """QCircuitImage initializer.
 
@@ -77,7 +78,10 @@ class QCircuitImage:
                circuit. Defaults to True.
             initial_state (bool): Optional. Adds |0> in the beginning of the line. Default: `False`.
             cregbundle (bool): Optional. If set True bundle classical registers.
+            with_layout (bool): Optional. If set to True display the layout in the circuit.
             circuit (QuantumCircuit): the circuit that's being displayed
+            barrier_label_len (int): Optional. The number of characters to display for
+               barrier labels. If this number is exceeded, the string will be truncated.
         Raises:
             ImportError: If pylatexenc is not installed
         """
@@ -85,6 +89,7 @@ class QCircuitImage:
         self._circuit = circuit
         self._qubits = qubits
         self._clbits = clbits
+        self._barrier_label_len = barrier_label_len
 
         # list of lists corresponding to layers of the circuit
         self._nodes = nodes
@@ -575,7 +580,10 @@ class QCircuitImage:
             self._latex[pos][col - 1] += " \\barrier[0em]{" + str(last - first) + "}"
             if node.op.label is not None:
                 pos = indexes[0]
-                label = node.op.label.replace(" ", "\\,")
+                label = node.op.label
+                if len(label) > self._barrier_label_len:
+                    label = label[: self._barrier_label_len] + "..."
+                label = label.replace(" ", "\\,")  # \, is a LaTeX thin space
                 self._latex[pos][col] = f"\\cds{{0}}{{^{{\\mathrm{{{label}}}}}}}"
 
     def _add_controls(self, wire_list, ctrlqargs, ctrl_state, col):

@@ -713,6 +713,7 @@ class TextDrawing:
         with_layout=False,
         expr_len=30,
         measure_arrows=None,
+        barrier_label_len=16,
     ):
         self.qubits = qubits
         self.clbits = clbits
@@ -732,6 +733,7 @@ class TextDrawing:
         self.reverse_bits = reverse_bits
         self.line_length = line_length
         self.expr_len = expr_len
+        self.barrier_label_len = barrier_label_len
         self.measure_arrows = measure_arrows
         if vertical_compression not in ["high", "medium", "low"]:
             raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
@@ -1164,6 +1166,8 @@ class TextDrawing:
             for qubit in node.qargs:
                 if qubit in self.qubits:
                     label = op.label if qubit == top_qubit else ""
+                    if label and len(label) > self.barrier_label_len:
+                        label = label[: self.barrier_label_len] + "..."
                     layer.set_qubit(qubit, Barrier(label))
 
         elif isinstance(op, SwapGate):
