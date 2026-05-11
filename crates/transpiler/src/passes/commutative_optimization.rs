@@ -208,7 +208,7 @@ fn canonicalize(
     }
 
     if let OperationRef::StandardGate(standard_gate) = inst.op.view() {
-        if SYMMETRIC_GATES.contains(&standard_gate) {
+        if SYMMETRIC_GATES.contains(&standard_gate) || is_special_symmetric(inst, tol) {
             let qargs = dag.get_qargs(inst.qubits);
             if !qargs.is_sorted() {
                 let mut sorted_qargs = qargs.to_vec();
@@ -633,7 +633,7 @@ pub fn run_commutative_optimization(
             continue;
         }
 
-        if let Some((new_instruction, phase_update)) = canonicalize(&mut new_dag, instr1) {
+        if let Some((new_instruction, phase_update)) = canonicalize(&mut new_dag, instr1, tol) {
             node_actions[idx1] = NodeAction::Canonical(new_instruction, phase_update);
         }
 
