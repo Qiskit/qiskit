@@ -250,9 +250,7 @@ impl DensePauli {
         }
 
         match group_phase {
-            0 => {
-                s = String::from("") + &s;
-            }
+            0 => {}
             1 => {
                 s = String::from("i") + &s;
             }
@@ -682,7 +680,8 @@ mod tests {
     fn test_evolve_2_qubits() {
         use ndarray::Array2;
 
-        // Random Clifford created from Python (with seed=1234).
+        // The assertions below were generated using the Clifford class in python, where the
+        // Clifford below was generated via ``random_clifford(2, seed=1234)``.
         let cliff = Clifford::from_array(
             Array2::from(vec![
                 [false, true, false, true, false],

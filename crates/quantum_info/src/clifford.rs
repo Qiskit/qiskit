@@ -321,8 +321,7 @@ impl Clifford {
         (phase, z, x, indices)
     }
 
-    /// Evolve a Pauli with a single non-identity term (either X, Y, or Z on qubit `qbit`)
-    /// by the given Clifford.
+    /// Evolve a Pauli with at most one non-identity term (on qubit `qbit`) by the given Clifford.
     /// The non-identity Pauli term is represented as a pair `(pauli_z, pauli_x)` of boolean values.
     ///
     /// Return the evolved Pauli as (dense) Pauli.
@@ -333,6 +332,10 @@ impl Clifford {
         qbit: usize,
     ) -> DensePauli {
         let num_qubits = self.num_qubits;
+        if !pauli_z && !pauli_x {
+            // C^\dagger I C = I.
+            return DensePauli::identity(num_qubits);
+        }
         let mut z = FixedBitSet::with_capacity(num_qubits);
         let mut x = FixedBitSet::with_capacity(num_qubits);
         let mut pauli_indices = Vec::<usize>::with_capacity(2 * num_qubits);
@@ -356,7 +359,7 @@ impl Clifford {
                     self.tableau[qbit + num_qubits][i + num_qubits]
                         ^ self.tableau[qbit][i + num_qubits],
                 ),
-                _ => unreachable!("This is only called for RX/RZ/RY gates."),
+                _ => unreachable!("The case "),
             };
             z.set(i, z_bit);
             x.set(i, x_bit);
