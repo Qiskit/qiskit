@@ -151,7 +151,7 @@ $(C_DIR_OUT_LIB):
 
 .PHONY: cheader
 cheader:
-	cargo run -p qiskit-bindgen-c -- install -c $(C_DIR_CRATES)/cext -o $(C_DIR_OUT_INCLUDE)
+	cargo run -p qiskit-bindgen-cli -- install -c $(C_DIR_CRATES)/cext -o $(C_DIR_OUT_INCLUDE)
 # `clib` and `clib-dev` are conflicting rules - they both attempt to "install" the
 # shared library into the output `lib` directory, but they differ between release
 # and dev mode.
