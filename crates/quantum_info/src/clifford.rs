@@ -374,9 +374,9 @@ impl Clifford {
         let evolved_pauli_phase =
             (pauli_y_count + 2 * (phase_sign as u8) + 3 * ((pauli_x & pauli_z) as u8)) & 3;
         DensePauli {
-            pauli_x: x,
             pauli_z: z,
-            xz_phase: evolved_pauli_phase,
+            pauli_x: x,
+            zx_phase: evolved_pauli_phase,
         }
     }
 }

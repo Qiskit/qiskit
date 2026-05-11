@@ -19,16 +19,22 @@ use thiserror::Error;
 /// A dense Pauli operator class.
 #[derive(Clone, Debug, PartialEq)]
 pub struct DensePauli {
-    /// x-component
-    pub pauli_x: FixedBitSet,
     /// z-component
     pub pauli_z: FixedBitSet,
-    /// xz-phase
-    pub xz_phase: u8,
+    /// x-component
+    pub pauli_x: FixedBitSet,
+    /// zx-phase
+    pub zx_phase: u8,
 }
 
 #[derive(Error, Debug)]
 pub enum DensePauliError {
+    #[error(
+        "`DensePauli::from_sparse_bool` requires `z`, `x` and `incices` to have the same length"
+    )]
+    InvalidSparseInput,
+    #[error("`DensePauli::from_label` requires a valid label")]
+    InvalidLabel,
     #[error("`DensePauli::commute` requires both Paulis to have the same length")]
     DifferentLengthsCommute,
     #[error("`DensePauli::compose` requires both Paulis to have the same length")]
@@ -42,13 +48,13 @@ pub enum DensePauliError {
 impl DensePauli {
     /// Return the identity Pauli operator on ``num_qubits`` qubits.
     pub fn identity(num_qubits: usize) -> Self {
-        let pauli_x = FixedBitSet::with_capacity(num_qubits);
         let pauli_z = FixedBitSet::with_capacity(num_qubits);
-        let xz_phase = 0u8;
+        let pauli_x = FixedBitSet::with_capacity(num_qubits);
+        let zx_phase = 0u8;
         DensePauli {
-            pauli_x,
             pauli_z,
-            xz_phase,
+            pauli_x,
+            zx_phase,
         }
     }
 
@@ -62,51 +68,46 @@ impl DensePauli {
     /// * `indices`: Qubit indices corresponding to `x` and `z`.
     /// * `phase`: The phase of the Pauli operator, encoded modulo 4.
     /// * `is_group_phase`: If `true`, `phase` is interpreted as a group phase
-    ///   and is converted to the internal XZ-phase representation.
+    ///   and is converted to the internal ZX-phase representation.
     ///
-    /// # Panics:
+    /// # Errors
     ///
-    /// This function will panic if `x`, `z` or `indices` do not all have the same
-    /// length.
+    /// Returns [`DensePauliError::InvalidSparseInput`] if
+    /// `z`, `x` or `indices` do not all have the same length.
     pub fn from_sparse_bool(
         num_qubits: usize,
-        x: &[bool],
         z: &[bool],
+        x: &[bool],
         indices: &[u32],
         phase: u8,
         is_group_phase: bool,
-    ) -> Self {
-        debug_assert!(
-            x.len() == indices.len(),
-            "x and indices must have the same length"
-        );
-        debug_assert!(
-            z.len() == indices.len(),
-            "z and indices must have the same length"
-        );
+    ) -> Result<Self, DensePauliError> {
+        if (z.len() != indices.len()) || (x.len() != indices.len()) {
+            return Err(DensePauliError::InvalidSparseInput);
+        }
 
-        let mut pauli_x = FixedBitSet::with_capacity(num_qubits);
         let mut pauli_z = FixedBitSet::with_capacity(num_qubits);
+        let mut pauli_x = FixedBitSet::with_capacity(num_qubits);
         let mut num_ys = 0;
 
         for (i, &q) in indices.iter().enumerate() {
-            pauli_x.set(q as usize, x[i]);
             pauli_z.set(q as usize, z[i]);
+            pauli_x.set(q as usize, x[i]);
             if x[i] & z[i] {
                 num_ys += 1;
             }
         }
 
-        let xz_phase = if is_group_phase {
+        let zx_phase = if is_group_phase {
             (phase + num_ys) & 3
         } else {
             phase
         };
-        DensePauli {
-            pauli_x,
+        Ok(DensePauli {
             pauli_z,
-            xz_phase,
-        }
+            pauli_x,
+            zx_phase,
+        })
     }
 
     /// Construct a dense Pauli operator from a string label.
@@ -116,61 +117,61 @@ impl DensePauli {
     /// * `label`: A Pauli label string consisting of an optional minus sign, followed by
     ///   an optional `i` factor, followed by a sequence of `'I'`, `'X'`, `'Y'`, or `'Z'` characters.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// This function will panic if the label is invalid.
+    /// Returns [`DensePauliError::InvalidLabel`] if the label is invalid.
     ///
     /// .. note::
     ///
     ///     In Qiskit convention, the label is represented right-to-left,
     ///     for example "-iXIZY" is interpreted as `'X'` on qubit `3`, followed by `'I'` on qubit `2`,
     ///     followed by `'Z'` on qubit `1`, and finally by `'Y'` on qubit `0`.
-    pub fn from_label(label: &str) -> Self {
+    pub fn from_label(label: &str) -> Result<Self, DensePauliError> {
         let mut s = label;
-        let mut xz_phase = 0u8;
+        let mut zx_phase = 0u8;
         if let Some(r) = s.strip_prefix('-') {
             s = r;
-            xz_phase += 2;
+            zx_phase += 2;
         }
         if let Some(r) = s.strip_prefix('i') {
             s = r;
-            xz_phase += 1;
+            zx_phase += 1;
         }
 
         let num_qubits = s.len();
-        let mut pauli_x = FixedBitSet::with_capacity(num_qubits);
         let mut pauli_z = FixedBitSet::with_capacity(num_qubits);
+        let mut pauli_x = FixedBitSet::with_capacity(num_qubits);
 
         for (i, c) in s.chars().rev().enumerate() {
             match c {
                 'I' => {
-                    pauli_x.set(i, false);
                     pauli_z.set(i, false);
+                    pauli_x.set(i, false);
                 }
                 'X' => {
-                    pauli_x.set(i, true);
                     pauli_z.set(i, false);
+                    pauli_x.set(i, true);
                 }
                 'Z' => {
-                    pauli_x.set(i, false);
                     pauli_z.set(i, true);
+                    pauli_x.set(i, false);
                 }
                 'Y' => {
-                    pauli_x.set(i, true);
                     pauli_z.set(i, true);
-                    xz_phase = xz_phase.wrapping_add(1) & 3;
+                    pauli_x.set(i, true);
+                    zx_phase = zx_phase.wrapping_add(1) & 3;
                 }
                 _ => {
-                    panic!("Incorrect label");
+                    return Err(DensePauliError::InvalidLabel);
                 }
             }
         }
 
-        DensePauli {
-            pauli_x,
+        Ok(DensePauli {
             pauli_z,
-            xz_phase,
-        }
+            pauli_x,
+            zx_phase,
+        })
     }
 
     /// Construct a random dense Pauli operator on ``num_qubits`` qubits.
@@ -181,23 +182,23 @@ impl DensePauli {
     /// * `seed`: Random seed used for generation.
     pub fn from_random(num_qubits: usize, seed: u64) -> Self {
         let mut rng = Pcg64Mcg::seed_from_u64(seed);
-        let mut pauli_x = FixedBitSet::with_capacity(num_qubits);
         let mut pauli_z = FixedBitSet::with_capacity(num_qubits);
+        let mut pauli_x = FixedBitSet::with_capacity(num_qubits);
 
-        for i in 0..num_qubits {
-            let val = rng.random_bool(0.5);
-            pauli_x.set(i, val);
-        }
         for i in 0..num_qubits {
             let val = rng.random_bool(0.5);
             pauli_z.set(i, val);
         }
-        let xz_phase = rng.random::<u8>() & 3;
+        for i in 0..num_qubits {
+            let val = rng.random_bool(0.5);
+            pauli_x.set(i, val);
+        }
+        let zx_phase = rng.random::<u8>() & 3;
 
         DensePauli {
-            pauli_x,
             pauli_z,
-            xz_phase,
+            pauli_x,
+            zx_phase,
         }
     }
 
@@ -229,16 +230,16 @@ impl DensePauli {
         let mut s: String = Default::default();
         let n = self.num_qubits();
 
-        let mut group_phase = self.xz_phase;
+        let mut group_phase = self.zx_phase;
         for i in (0..n).rev() {
-            match (self.pauli_x[i], self.pauli_z[i]) {
+            match (self.pauli_z[i], self.pauli_x[i]) {
                 (false, false) => {
                     s.push('I');
                 }
-                (false, true) => {
+                (true, false) => {
                     s.push('Z');
                 }
-                (true, false) => {
+                (false, true) => {
                     s.push('X');
                 }
                 (true, true) => {
@@ -275,7 +276,7 @@ impl DensePauli {
     /// # Arguments
     ///
     /// * `is_group_phase`: If `true`, the returned phase is a group phase. Otherwise,
-    ///   it is the XZ-phase.
+    ///   it is the ZX-phase.
     ///
     /// # Returns
     ///
@@ -283,24 +284,24 @@ impl DensePauli {
     /// are sorted.
     pub fn to_sparse_bool(&self, is_group_phase: bool) -> (Vec<bool>, Vec<bool>, Vec<u32>, u8) {
         let num_qubits = self.num_qubits();
-        let mut pauli_x_sparse: Vec<bool> = Vec::with_capacity(num_qubits);
         let mut pauli_z_sparse: Vec<bool> = Vec::with_capacity(num_qubits);
+        let mut pauli_x_sparse: Vec<bool> = Vec::with_capacity(num_qubits);
         let mut out_indices: Vec<u32> = Vec::with_capacity(num_qubits);
 
         for i in 0..num_qubits {
             if self.pauli_x[i] || self.pauli_z[i] {
-                pauli_x_sparse.push(self.pauli_x[i]);
                 pauli_z_sparse.push(self.pauli_z[i]);
+                pauli_x_sparse.push(self.pauli_x[i]);
                 out_indices.push(i as u32);
             }
         }
         let phase = if is_group_phase {
-            self.xz_phase.wrapping_sub(self.count_y()) & 3
+            self.zx_phase.wrapping_sub(self.count_y()) & 3
         } else {
-            self.xz_phase
+            self.zx_phase
         };
 
-        (pauli_x_sparse, pauli_z_sparse, out_indices, phase)
+        (pauli_z_sparse, pauli_x_sparse, out_indices, phase)
     }
 
     /// Return `true` if `self` and `other` commute.
@@ -357,16 +358,16 @@ impl DensePauli {
         // note: on my MacOS this function is surprisingly *slower* than compose_with,
         // so best to always call compose_with method instead of this one.
         let num_qubits = self.num_qubits();
-        self.xz_phase += other.xz_phase;
+        self.zx_phase += other.zx_phase;
         for i in 0..num_qubits {
             if self.pauli_x[i] & other.pauli_z[i] {
-                self.xz_phase += 2;
+                self.zx_phase += 2;
             }
         }
 
-        self.pauli_x ^= &other.pauli_x;
         self.pauli_z ^= &other.pauli_z;
-        self.xz_phase &= 3u8;
+        self.pauli_x ^= &other.pauli_x;
+        self.zx_phase &= 3u8;
     }
 
     /// Compose ``self`` and ``other``, modifying the current Pauli in-place.
@@ -404,19 +405,20 @@ impl DensePauli {
     /// lengths.
     #[inline(always)]
     pub fn compose_unchecked(&self, other: &DensePauli) -> DensePauli {
-        let mut xz_phase = self.xz_phase + other.xz_phase;
+        let mut zx_phase = self.zx_phase + other.zx_phase;
         let num_qubits = self.num_qubits();
         for i in 0..num_qubits {
             if self.pauli_x[i] && other.pauli_z[i] {
-                xz_phase += 2;
+                zx_phase += 2;
             }
         }
-        let pauli_x = &self.pauli_x ^ &other.pauli_x;
+
         let pauli_z = &self.pauli_z ^ &other.pauli_z;
+        let pauli_x = &self.pauli_x ^ &other.pauli_x;
         DensePauli {
-            pauli_x,
             pauli_z,
-            xz_phase: xz_phase & 3u8,
+            pauli_x,
+            zx_phase: zx_phase & 3u8,
         }
     }
 
@@ -478,8 +480,8 @@ pub fn evolve_pauli_by_clifford(
         }
     }
 
-    out_pauli.xz_phase += pauli.xz_phase;
-    out_pauli.xz_phase &= 3;
+    out_pauli.zx_phase += pauli.zx_phase;
+    out_pauli.zx_phase &= 3;
     Ok(out_pauli)
 }
 
@@ -490,6 +492,10 @@ mod tests {
     use crate::clifford::Clifford;
     use crate::dense_pauli::{DensePauli, evolve_pauli_by_clifford};
 
+    fn pauli_from_label(label: &str) -> DensePauli {
+        DensePauli::from_label(label).unwrap()
+    }
+
     #[test]
     fn test_identity() {
         let num_qubits = 3;
@@ -498,26 +504,27 @@ mod tests {
         assert_eq!(pauli.count_y(), 0);
         assert_eq!(pauli.pauli_x, FixedBitSet::with_capacity(num_qubits));
         assert_eq!(pauli.pauli_z, FixedBitSet::with_capacity(num_qubits));
-        assert_eq!(pauli.xz_phase, 0);
+        assert_eq!(pauli.zx_phase, 0);
     }
 
     #[test]
     fn test_from_sparse_bool_and_back() {
         let pauli =
-            DensePauli::from_sparse_bool(3, &[true, false], &[true, true], &[1, 2], 2, true);
+            DensePauli::from_sparse_bool(3, &[true, true], &[true, false], &[1, 2], 2, true)
+                .unwrap();
         let mut expected_x = FixedBitSet::with_capacity(3);
         expected_x.set(1, true);
         let mut expected_z = FixedBitSet::with_capacity(3);
         expected_z.set(1, true);
         expected_z.set(2, true);
-        let expected_xz_phase = 3;
+        let expected_zx_phase = 3;
         assert_eq!(pauli.num_qubits(), 3);
         assert_eq!(pauli.count_y(), 1);
         assert_eq!(pauli.pauli_x, expected_x);
         assert_eq!(pauli.pauli_z, expected_z);
-        assert_eq!(pauli.xz_phase, expected_xz_phase);
+        assert_eq!(pauli.zx_phase, expected_zx_phase);
 
-        let (x, z, indices, phase) = pauli.to_sparse_bool(true);
+        let (z, x, indices, phase) = pauli.to_sparse_bool(true);
         assert_eq!(x, vec![true, false]);
         assert_eq!(z, vec![true, true]);
         assert_eq!(indices, vec![1, 2]);
@@ -526,17 +533,17 @@ mod tests {
 
     #[test]
     fn test_from_label_and_back() {
-        let pauli = DensePauli::from_label("-iXZ");
+        let pauli = pauli_from_label("-iXZ");
         let mut expected_x = FixedBitSet::with_capacity(2);
         expected_x.set(1, true);
         let mut expected_z = FixedBitSet::with_capacity(2);
         expected_z.set(0, true);
-        let expected_xz_phase = 3;
+        let expected_zx_phase = 3;
         assert_eq!(pauli.num_qubits(), 2);
         assert_eq!(pauli.count_y(), 0);
         assert_eq!(pauli.pauli_x, expected_x);
         assert_eq!(pauli.pauli_z, expected_z);
-        assert_eq!(pauli.xz_phase, expected_xz_phase);
+        assert_eq!(pauli.zx_phase, expected_zx_phase);
 
         let pauli_label = pauli.to_label();
         assert_eq!(pauli_label, String::from("-iXZ"));
@@ -544,8 +551,8 @@ mod tests {
 
     /// Assert that commuting two Paulis P and Q gives the expected result.
     fn assert_commute(p_label: &str, q_label: &str, expected: bool) {
-        let p = DensePauli::from_label(p_label);
-        let q = DensePauli::from_label(q_label);
+        let p = pauli_from_label(p_label);
+        let q = pauli_from_label(q_label);
         let computed_pq = p.commutes_unchecked(&q);
         let computed_qp = p.commutes_unchecked(&q);
         assert_eq!(computed_pq, expected);
@@ -564,9 +571,9 @@ mod tests {
 
     /// Assert that multiplying Paulis P and Q gives the expected result.
     fn assert_multiply(p_label: &str, q_label: &str, expected_label: &str) {
-        let p = DensePauli::from_label(p_label);
-        let q = DensePauli::from_label(q_label);
-        let expected = DensePauli::from_label(expected_label);
+        let p = pauli_from_label(p_label);
+        let q = pauli_from_label(q_label);
+        let expected = pauli_from_label(expected_label);
         let computed = q.compose_unchecked(&p);
         assert_eq!(computed, expected);
     }
@@ -589,19 +596,19 @@ mod tests {
     #[test]
     fn test_compose_with() {
         let mut p = DensePauli::identity(3);
-        p.compose_with_unchecked(&DensePauli::from_label("iXYZ"));
-        assert_eq!(p, DensePauli::from_label("iXYZ"));
-        p.compose_with_unchecked(&DensePauli::from_label("ZII"));
-        assert_eq!(p, DensePauli::from_label("-YYZ"));
-        p.compose_with_unchecked(&DensePauli::from_label("-YYZ"));
-        assert_eq!(p, DensePauli::from_label("III"));
+        p.compose_with_unchecked(&pauli_from_label("iXYZ"));
+        assert_eq!(p, pauli_from_label("iXYZ"));
+        p.compose_with_unchecked(&pauli_from_label("ZII"));
+        assert_eq!(p, pauli_from_label("-YYZ"));
+        p.compose_with_unchecked(&pauli_from_label("-YYZ"));
+        assert_eq!(p, pauli_from_label("III"));
     }
 
     /// Assert that evolving P under Cliff gives the expected result.
     fn assert_evolve(p_label: &str, cliff: &Clifford, expected_label: &str) {
-        let p = DensePauli::from_label(p_label);
+        let p = pauli_from_label(p_label);
         let computed = evolve_pauli_by_clifford(&p, cliff).unwrap();
-        let expected = DensePauli::from_label(expected_label);
+        let expected = pauli_from_label(expected_label);
         assert_eq!(computed, expected);
     }
 
