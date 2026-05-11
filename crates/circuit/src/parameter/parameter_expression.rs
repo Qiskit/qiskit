@@ -36,6 +36,8 @@ use crate::parameter::symbol_parser::parse_expression;
 
 use super::symbol_expr::{SYMEXPR_EPSILON, Symbol, Value};
 
+use crate::parameter::vector::PyVectorExpression;
+
 /// Errors for dealing with parameters and parameter expressions.
 #[derive(Error, Debug)]
 pub enum ParameterError {
@@ -1405,6 +1407,8 @@ impl PyParameterExpression {
                 Ok(result) => PyParameterExpression::from(result).into_bound_py_any(py),
                 Err(e) => Err(PyErr::from(e)),
             }
+        } else if let Ok(rhs) = PyVectorExpression::extract_coerce(rhs.as_borrowed()) {
+            PyVectorExpression::from(rhs.inner._rmul_par(&self.inner)).into_bound_py_any(py)
         } else {
             PyNotImplemented::get(py).into_bound_py_any(py)
         }

@@ -42,6 +42,7 @@ pub mod var_stretch_container;
 mod variable_mapper;
 pub mod vf2;
 
+
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyString, PyTuple};
@@ -254,9 +255,10 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<parameter::parameter_expression::PyParameterExpression>()?;
     m.add_class::<parameter::parameter_expression::PyParameter>()?;
     m.add_class::<parameter::parameter_expression::PyParameterVectorElement>()?;
+    m.add_class::<parameter::vector::PyVectorExpression>()?;
+    m.add_class::<parameter::matrix::PyMatrixExpression>()?;
     m.add_class::<parameter::parameter_expression::OpCode>()?;
     m.add_class::<parameter::parameter_expression::OPReplay>()?;
-    m.add_class::<parameter::vector_nalgebra::PyVectorExpression>()?;
     let classical_mod = PyModule::new(m.py(), "classical")?;
     classical::register_python(&classical_mod)?;
     m.add_submodule(&classical_mod)?;

@@ -1407,7 +1407,7 @@ from .store import Store
 from .parameter import Parameter
 from .parametervector import ParameterVector, ParameterVectorElement
 from .parameterexpression import ParameterExpression
-from .vectorexpression import VectorExpression
+from .vectorexpression import VectorExpression, MatrixExpression
 from .quantumcircuitdata import CircuitInstruction
 from .equivalence import EquivalenceLibrary
 from . import library

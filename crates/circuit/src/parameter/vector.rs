@@ -10,21 +10,25 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::cmp;
+use numpy::PyArrayMethods;
+use numpy::array::PyArray1;
 use std::ops::{Index, IndexMut};
 use std::fmt;
 
-
+use hashbrown::HashMap;
 
 use ndarray::{Array0, Array1, ArrayView0, Axis};
-use ndarray::linalg::Dot;
+//use ndarray::linalg::Dot;
 use ndarray::Zip;
 use ndarray::parallel::prelude::*;
 
-use crate::parameter::parameter_expression::{ParameterExpression, PyParameterExpression};
-use pyo3::types::{PyString};
 
-use pyo3::prelude::*;
+use crate::parameter::symbol_expr::SymbolExpr;
+use crate::parameter::parameter_expression::{ParameterExpression, PyParameterExpression};
+use super::symbol_expr::Value;
+use pyo3::types::{PyString, PyNotImplemented};
+
+use pyo3::{IntoPyObjectExt, prelude::*};
 
 
 
@@ -39,7 +43,7 @@ pub struct VectorExpression {
 impl Default for VectorExpression {
     fn default() -> Self {
         Self {
-            elements: Array1::<ParameterExpression>::default((0)),
+            elements: Array1::<ParameterExpression>::default(0),
         }
     }
 }
@@ -60,9 +64,7 @@ impl IndexMut<usize> for VectorExpression {
 
 impl fmt::Display for VectorExpression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let n = self.dim();
-        write!(f, "[")?;
-        self.elements.iter().enumerate().try_for_each(|(i, p)| if i == n - 1 {write!(f, "{}]", p)} else {write!(f, "{}, ", p)})
+        write!(f, "{}",self.elements)
     }
 }
 
@@ -70,7 +72,7 @@ impl VectorExpression {
     /// Initialize a vector with its size and initial values
     pub fn new(ndim: usize, value: f64) -> Self {
         Self {
-            elements: Array1::<ParameterExpression>::from_elem((ndim), ParameterExpression::from_f64(value)),
+            elements: Array1::<ParameterExpression>::from_elem(ndim, ParameterExpression::from_f64(value)),
         }
     }
 
@@ -159,6 +161,13 @@ impl VectorExpression {
         self.elements.par_map_inplace(|l| *l = &*l * rhs);
     }
 
+    /// multiply a scalar to a vector
+    pub fn _rmul_par(&self, rhs: &ParameterExpression) -> Self {
+        Self {
+            elements: Zip::from(&self.elements).par_map_collect(|l| rhs*l),
+        }
+    }
+
     /// divide a vector by a scalar
     pub fn _div(&self, rhs: &ParameterExpression) -> Self {
         let rhs = Array0::from_elem((), rhs.clone());
@@ -178,6 +187,14 @@ impl VectorExpression {
             elements: Zip::from(&self.elements).par_map_collect(|l| l / rhs),
         }
     }
+
+    /// divide a vector by a scalar
+    pub fn _rdiv_par(&self, rhs: &ParameterExpression) -> Self {
+        Self {
+            elements: Zip::from(&self.elements).par_map_collect(|l| rhs / l),
+        }
+    }
+
     /// divide a vector by a scalar and assign
     pub fn _div_assign_par(&mut self, rhs: &ParameterExpression) {
         self.elements.par_map_inplace(|l| *l = &*l / rhs);
@@ -185,7 +202,8 @@ impl VectorExpression {
 
     /// calculate dot product
     pub fn dot(&self, rhs: &VectorExpression) -> ParameterExpression {
-        self.elements.dot(&rhs.elements)
+        // self.elements.dot(&rhs.elements)
+        self.elements.iter().zip(rhs.elements.iter()).fold(ParameterExpression::from_f64(0.0f64), |sum, (l, r)| sum + l * r)
     }
     /// calculate dot product
     pub fn dot_par(&self, rhs: &VectorExpression) -> ParameterExpression {
@@ -207,6 +225,51 @@ pub struct PyVectorExpression {
     pub inner: VectorExpression,
 }
 
+impl From<VectorExpression> for PyVectorExpression {
+    fn from(value: VectorExpression) -> Self {
+        Self { inner: value }
+    }
+}
+
+impl PyVectorExpression {
+    /// Attempt to extract a `PyVectorExpression` from a bound `PyAny`.
+    ///
+    /// This will try to coerce to the strictest data type:
+    ///
+    /// # Arguments:
+    ///
+    /// * ob - The bound `PyAny` to extract from.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(PyVectorExpression)` - The extracted expression.
+    /// * `Err(PyResult)` - An error if extraction to all above types failed.
+    pub fn extract_coerce(ob: Borrowed<PyAny>) -> PyResult<PyVectorExpression> {
+        if let Ok(vector) = ob.cast::<PyArray1<i64>>() {
+            let vector = vector.try_readonly()?;
+            Ok(VectorExpression{ elements : vector.as_array().iter().map(|v| ParameterExpression::new(
+                        SymbolExpr::Value(Value::from(*v)), HashMap::new())).collect()}.into())
+        } else if let Ok(vector) = ob.cast::<PyArray1<f64>>() {
+            let vector = vector.try_readonly()?;
+            Ok(VectorExpression{ elements : vector.as_array().iter().map(|v| ParameterExpression::from_f64(*v)).collect()}.into())
+        } else if let Ok(vector) = ob.cast::<PyArray1<Py<PyAny>>>() {
+            let vector  = vector.try_readonly()?;
+            let vector = vector.as_array();
+            if let Ok(elems) = vector.iter().map(|e|
+                match PyParameterExpression::extract_coerce(e.bind_borrowed(ob.py())) {
+                    Ok(e) => Ok(e.inner),
+                    Err(e) => Err(e),
+                }
+            ).collect() {
+                Ok(VectorExpression{ elements : elems}.into())
+            } else {
+                ob.extract::<PyVectorExpression>().map_err(Into::into)
+            }
+        } else {
+            ob.extract::<PyVectorExpression>().map_err(Into::into)
+        }
+    }
+}
 
 #[pymethods]
 impl PyVectorExpression {
@@ -260,12 +323,91 @@ impl PyVectorExpression {
         }
     }
 
-    pub fn __add__(&self, rhs: &Self) -> PyResult<Self> {
-        Ok(Self {inner: self.inner._add(&rhs.inner)})
+    pub fn __add__<'py>(&self, rhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
+        let py = rhs.py();
+        if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
+            PyVectorExpression::from(self.inner._add_par(&rhs.inner)).into_bound_py_any(py)
+        } else {
+            PyNotImplemented::get(py).into_bound_py_any(py)
+        }
     }
 
-    pub fn __sub__(&self, rhs: &Self) -> PyResult<Self> {
-        Ok(Self {inner: self.inner._sub(&rhs.inner)})
+    pub fn __radd__<'py>(&self, rhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
+        let py = rhs.py();
+        if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
+            PyVectorExpression::from(rhs.inner._add_par(&self.inner)).into_bound_py_any(py)
+        } else {
+            PyNotImplemented::get(py).into_bound_py_any(py)
+        }
+    }
+
+    pub fn __sub__<'py>(&self, rhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
+        let py = rhs.py();
+        if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
+            PyVectorExpression::from(self.inner._sub_par(&rhs.inner)).into_bound_py_any(py)
+        } else {
+            PyNotImplemented::get(py).into_bound_py_any(py)
+        }
+    }
+
+    pub fn __rsub__<'py>(&self, rhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
+        let py = rhs.py();
+        if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
+            PyVectorExpression::from(rhs.inner._sub_par(&self.inner)).into_bound_py_any(py)
+        } else {
+            PyNotImplemented::get(py).into_bound_py_any(py)
+        }
+    }
+
+    pub fn __mul__<'py>(&self, rhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
+        let py = rhs.py();
+        if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
+            // return dot product if rhs is a vector
+            PyParameterExpression::from(rhs.inner.dot_par(&self.inner)).into_bound_py_any(py)
+        } else if let Ok(rhs) = PyParameterExpression::extract_coerce(rhs.as_borrowed()) {
+            PyVectorExpression::from(self.inner._mul_par(&rhs.inner)).into_bound_py_any(py)
+        } else {
+            PyNotImplemented::get(py).into_bound_py_any(py)
+        }
+    }
+
+    pub fn __rmul__<'py>(&self, rhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
+        let py = rhs.py();
+        if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
+            // return dot product if rhs is a vector
+            PyParameterExpression::from(rhs.inner.dot_par(&self.inner)).into_bound_py_any(py)
+        } else if let Ok(rhs) = PyParameterExpression::extract_coerce(rhs.as_borrowed()) {
+            PyVectorExpression::from(self.inner._rmul_par(&rhs.inner)).into_bound_py_any(py)
+        } else {
+            PyNotImplemented::get(py).into_bound_py_any(py)
+        }
+    }
+
+    pub fn __truediv__<'py>(&self, rhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
+        let py = rhs.py();
+        if let Ok(rhs) = PyParameterExpression::extract_coerce(rhs.as_borrowed()) {
+            PyVectorExpression::from(self.inner._div_par(&rhs.inner)).into_bound_py_any(py)
+        } else {
+            PyNotImplemented::get(py).into_bound_py_any(py)
+        }
+    }
+
+    pub fn __rtruediv__<'py>(&self, rhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
+        let py = rhs.py();
+        if let Ok(rhs) = PyParameterExpression::extract_coerce(rhs.as_borrowed()) {
+            PyVectorExpression::from(self.inner._rdiv_par(&rhs.inner)).into_bound_py_any(py)
+        } else {
+            PyNotImplemented::get(py).into_bound_py_any(py)
+        }
+    }
+
+    pub fn dot<'py>(&self, rhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
+        let py = rhs.py();
+        if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
+            PyParameterExpression::from(rhs.inner.dot_par(&self.inner)).into_bound_py_any(py)
+        } else {
+            PyNotImplemented::get(py).into_bound_py_any(py)
+        }
     }
 
 }
