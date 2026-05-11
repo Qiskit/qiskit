@@ -22,7 +22,8 @@ use qiskit_circuit::operations::{
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 
-use super::substitute_pi4_rotations::is_angle_close_to_multiple_of_pi_k;
+use super::remove_identity_equiv::average_gate_fidelity_below_tol; // ToDo: move a shared file?
+use super::substitute_pi4_rotations::is_angle_close_to_multiple_of_pi_k; // ToDo: move a shared file?
 use crate::TranspilerError;
 use num_complex::Complex64;
 use qiskit_quantum_info::clifford::Clifford;
@@ -30,7 +31,7 @@ use qiskit_quantum_info::dense_pauli::{Pauli, evolve_pauli_by_clifford, pad_paul
 use qiskit_quantum_info::sparse_observable::{BitTerm, SparseObservable};
 
 use smallvec::smallvec;
-use std::f64::consts::{FRAC_PI_4, FRAC_PI_8};
+use std::f64::consts::{FRAC_PI_4, FRAC_PI_8, PI};
 
 // List of gate/instruction names supported by the pass: the pass raises an error if the circuit
 // contains instruction with names outside of this list.
@@ -91,7 +92,7 @@ pub fn run_litinski_transformation(
     let op_counts = dag.get_op_counts();
     let tol = MINIMUM_TOL;
 
-    // Skip the pass if there are no rotation gates.
+    // Skip the pass if there are no rotation gates, PPR or PPM.
     if op_counts
         .keys()
         .all(|k| !HANDLED_INSTRUCTION_NAMES.contains(&k.as_str()))
@@ -114,6 +115,7 @@ pub fn run_litinski_transformation(
             unsupported
         )));
     }
+    // this may not be accurate since non-clifford gates with pi/2 angles are treated as cliffords
     let non_clifford_handled_count: usize = HANDLED_INSTRUCTION_NAMES
         .iter()
         .filter_map(|name| op_counts.get(*name))
@@ -265,7 +267,7 @@ pub fn run_litinski_transformation(
                 | OperationRef::StandardGate(StandardGate::RY)
                 | OperationRef::StandardGate(StandardGate::Phase)
                 | OperationRef::StandardGate(StandardGate::U1) => {
-                    let mut is_clifford = false; // indicates if we have a pi/2 rotation gate which is a clifford
+                    let mut is_clifford = false; // indicates if it is a pi/2 rotation gate which is a clifford
                     // Convert T and Tdg gates to RZ rotations
                     let (pauli_z, pauli_x, angle, phase_update) = match inst.op.view() {
                         OperationRef::StandardGate(StandardGate::T) => (
@@ -440,43 +442,61 @@ pub fn run_litinski_transformation(
                     let in_z = &rotation.z;
                     let in_x = &rotation.x;
                     let angle = &rotation.angle;
-                    let pauli_in = Pauli {
-                        pauli_z: in_z.to_vec(),
-                        pauli_x: in_x.to_vec(),
-                        pauli_phase: 0,
-                    };
                     let qargs_in = dag.get_qargs(inst.qubits);
                     let indices_in: Vec<u32> = (0..qargs_in.len())
                         .map(|i| qargs_in[i].index() as u32)
                         .collect();
-                    let pauli_padded = pad_pauli(&pauli_in, indices_in, num_qubits);
-                    let pauli_out = evolve_pauli_by_clifford(&pauli_padded, &clifford);
-                    let (pauli_unpadded, indices_out) = unpad_pauli(&pauli_out);
-                    let out_z = pauli_unpadded.pauli_z;
-                    let out_x = pauli_unpadded.pauli_x;
-                    let out_sign = if pauli_unpadded.pauli_phase == 0 {
-                        1.0
-                    } else {
-                        -1.0
-                    };
-                    let angle = multiply_param(angle, out_sign);
-                    let ppr = PauliProductRotation {
-                        z: out_z,
-                        x: out_x,
-                        angle: angle.clone(),
-                    };
-                    qargs.clear();
-                    qargs.extend(bytemuck::cast_slice(&indices_out));
+                    let mut is_clifford = false;
 
-                    new_dag.apply_operation_back(
-                        PauliBased::PauliProductRotation(ppr).into(),
-                        &qargs,
-                        &[],
-                        Some(Parameters::Params(smallvec![angle])),
-                        None,
-                        #[cfg(feature = "cache_pygates")]
-                        None,
-                    )?;
+                    if let Param::Float(angle) = angle {
+                        // PPR has pi/2 angle, and so is a clifford
+                        if let Some(mut multiple) =
+                            is_ppr_angle_close_to_multiple_of_pi2(in_z, in_x, *angle, tol)
+                        {
+                            is_clifford = true;
+                            multiple %= 4;
+                            if fix_clifford {
+                                clifford_ops.push(inst);
+                            }
+                            clifford.append_ppr(in_z, in_x, &indices_in, multiple)
+                        }
+                    }
+                    if !is_clifford {
+                        // PPR is not clifford
+                        let pauli_in = Pauli {
+                            pauli_z: in_z.to_vec(),
+                            pauli_x: in_x.to_vec(),
+                            pauli_phase: 0,
+                        };
+                        let pauli_padded = pad_pauli(&pauli_in, indices_in, num_qubits);
+                        let pauli_out = evolve_pauli_by_clifford(&pauli_padded, &clifford);
+                        let (pauli_unpadded, indices_out) = unpad_pauli(&pauli_out);
+                        let out_z = pauli_unpadded.pauli_z;
+                        let out_x = pauli_unpadded.pauli_x;
+                        let out_sign = if pauli_unpadded.pauli_phase == 0 {
+                            1.0
+                        } else {
+                            -1.0
+                        };
+                        let angle = multiply_param(angle, out_sign);
+                        let ppr = PauliProductRotation {
+                            z: out_z,
+                            x: out_x,
+                            angle: angle.clone(),
+                        };
+                        qargs.clear();
+                        qargs.extend(bytemuck::cast_slice(&indices_out));
+
+                        new_dag.apply_operation_back(
+                            PauliBased::PauliProductRotation(ppr).into(),
+                            &qargs,
+                            &[],
+                            Some(Parameters::Params(smallvec![angle])),
+                            None,
+                            #[cfg(feature = "cache_pygates")]
+                            None,
+                        )?;
+                    }
                 }
                 OperationRef::StandardInstruction(StandardInstruction::Measure) => {
                     // Evolve a measurement in the Z-basis by a Clifford.
@@ -613,6 +633,35 @@ fn non_identity_zx_to_bitterm(z: bool, x: bool) -> BitTerm {
         (false, true) => BitTerm::X,
         (true, true) => BitTerm::Y,
         (true, false) => BitTerm::Z,
+    }
+}
+
+/// For a given angle, if it is a multiple of PI/2, calculate the multiple mod (8),
+/// Otherwise, return `None`.
+/// I.e, if the angle is a multiple m of PI/2 then it returns m, where 0 <= m < 8.
+fn is_ppr_angle_close_to_multiple_of_pi2(
+    z: &[bool],
+    x: &[bool],
+    angle: f64,
+    tol: f64,
+) -> Option<usize> {
+    let closest_ratio = 2.0 * angle / PI;
+    let closest_integer = closest_ratio.round();
+    let closest_angle = closest_integer * PI / 2.0;
+    let theta = angle - closest_angle;
+
+    let ppr = PauliProductRotation {
+        z: z.to_vec(),
+        x: x.to_vec(),
+        angle: Param::Float(theta),
+    };
+    let (tr_over_dim, dim) = ppr
+        .rotation_trace_and_dim()
+        .expect("Since only supported rotation gates are given, the result is not None");
+    if average_gate_fidelity_below_tol(tr_over_dim, dim, tol).is_some() {
+        Some((closest_integer as i64).rem_euclid(8) as usize)
+    } else {
+        None
     }
 }
 
