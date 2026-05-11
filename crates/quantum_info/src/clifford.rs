@@ -326,6 +326,51 @@ impl Clifford {
             _ => unreachable!("RY is only applicable for multiples of pi/2 rotations."),
         }
     }
+    /// Modifies the tableau in-place by appending PPR gate,
+    /// with an angle that is an integer multiple of pi/2
+    pub fn append_ppr(
+        &mut self,
+        pauli_z: &[bool],
+        pauli_x: &[bool],
+        indices: &[u32],
+        multiple: usize,
+    ) {
+        for qubit in 0..indices.len() {
+            match (pauli_z[qubit], pauli_x[qubit]) {
+                (true, false) => {}                                      // pauli Z on qubit
+                (true, true) => self.append_sx(indices[qubit] as usize), // pauli Y on qubit
+                (false, true) => self.append_h(indices[qubit] as usize), // pauli X on qubit
+                (false, false) => {} // pauli I on qubit (shouldn't get it since pauli is sparse)
+            }
+        }
+
+        if indices.len() > 1 {
+            for ind in (0..indices.len() - 1).rev() {
+                self.append_cx(indices[ind + 1] as usize, indices[ind] as usize);
+            }
+        }
+        match multiple {
+            0 => {}
+            1 => self.append_s(indices[0] as usize),
+            2 => self.append_z(indices[0] as usize),
+            3 => self.append_sdg(indices[0] as usize),
+            _ => unreachable!("PPR is only applicable for multiples of pi/2 rotations."),
+        }
+        if indices.len() > 1 {
+            for ind in 0..indices.len() - 1 {
+                self.append_cx(indices[ind + 1] as usize, indices[ind] as usize);
+            }
+        }
+
+        for qubit in 0..indices.len() {
+            match (pauli_z[qubit], pauli_x[qubit]) {
+                (true, false) => {}                                        // pauli Z on qubit
+                (true, true) => self.append_sxdg(indices[qubit] as usize), // pauli Y on qubit
+                (false, true) => self.append_h(indices[qubit] as usize),   // pauli X on qubit
+                (false, false) => {} // pauli I on qubit (shouldn't get it since pauli is sparse)
+            }
+        }
+    }
 
     /// Evolving a single qubit pauli on qubit qbit by the Clifford.
     /// The pauli (X, Y or Z) is given as (pauli_z, pauli_x)
