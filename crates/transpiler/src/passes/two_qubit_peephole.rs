@@ -14,7 +14,6 @@ use std::cell::RefCell;
 use std::sync::Mutex;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
-use std::sync::atomic::AtomicBool;
 
 use nalgebra::U4;
 use num_complex::Complex64;
@@ -122,7 +121,6 @@ fn two_qubit_unitary_peephole_optimize_analysis(
     }
     let node_mapping: Vec<usize> = vec![usize::MAX; dag.dag().node_bound()];
     let locked_node_mapping = Mutex::new(node_mapping);
-    let substitution_made = AtomicBool::new(false);
     let physical_qubits = (0..dag.num_qubits() as u32)
         .map(PhysicalQubit::new)
         .collect::<Vec<_>>();
@@ -247,7 +245,6 @@ fn two_qubit_unitary_peephole_optimize_analysis(
         for node in node_indices {
             node_mapping[node.index()] = run_index;
         }
-        substitution_made.store(true, std::sync::atomic::Ordering::Relaxed);
         let result = TwoQSynthesisResult {
             sequence: result.sequence,
             dir: result.dir,
@@ -259,24 +256,25 @@ fn two_qubit_unitary_peephole_optimize_analysis(
     let run_mapping: PyResult<Vec<MappingIterItem>> = if getenv_use_multiple_threads() {
         // Build a vec of all the best synthesized two qubit gate sequences from the collected runs.
         // This is done in parallel
-        runs.par_iter()
+        runs.into_par_iter()
             .enumerate()
             .map(|(index, sequence)| find_best_sequence(index, sequence.as_slice()))
             .collect()
     } else {
-        runs.iter()
+        runs.into_iter()
             .enumerate()
             .map(|(index, sequence)| find_best_sequence(index, sequence.as_slice()))
             .collect()
     };
     let run_mapping = run_mapping?;
-    if !substitution_made.into_inner() {
-        return Ok(None);
+    if run_mapping.iter().any(|run| run.is_some()) {
+        Ok(Some(PeepholeResult {
+            node_mapping: locked_node_mapping.into_inner().unwrap(),
+            run_mapping,
+        }))
+    } else {
+        Ok(None)
     }
-    Ok(Some(PeepholeResult {
-        node_mapping: locked_node_mapping.into_inner().unwrap(),
-        run_mapping,
-    }))
 }
 
 /// This function runs the two qubit unitary peephole optimization pass
