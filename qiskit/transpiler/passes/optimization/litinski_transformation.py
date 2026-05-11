@@ -21,10 +21,17 @@ from qiskit._accelerate.litinski_transformation import run_litinski_transformati
 class LitinskiTransformation(TransformationPass):
     r"""Applies Litinski transform to a circuit.
 
-    The transform applies to a circuit containing Clifford, single-qubit :math:`R_Z`-rotation gates
-    (including :math:`T` and :math:`T^\dagger`), and standard :math:`Z`-measurements, and moves
-    Clifford gates to the end of the circuit. In the process, it transforms :math:`R_Z`-rotations to
+    The transform applies to a circuit containing Clifford, single-qubit :math:`R_Z`-rotation,
+    :math:`R_X`-rotation and :math:`R_Y`-rotation gates,
+    (including :math:`T` and :math:`T^\dagger`), Pauli product rotations,
+    and standard :math:`Z`-measurements. The transform moves
+    Clifford gates to the end of the circuit. In the process, it transforms :math:`R_Z`-rotations,
+    :math:`R_X`-rotation and :math:`R_Y`-rotation gates to
     Pauli product rotations, and :math:`Z`-measurements to Pauli product measurements.
+
+    The list of supported rotations is:
+
+    ``["t", "tdg", "rz", "p", "u1", "rx", "ry", "pauli_product_rotation"]``
 
     The pass supports all of the Clifford gates in the list returned by
     :func:`.get_clifford_gate_names`:
@@ -32,9 +39,9 @@ class LitinskiTransformation(TransformationPass):
     ``["id", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg", "cx", "cz", "cy",
     "swap","iswap", "ecr", "dcx"]``
 
-    The list of supported :math:`R_Z`-rotations is:
+    As well as the rotation gates above with angles that are integral multiples of :math:`pi/2`
+    (which are also Clifford).
 
-    ``["t", "tdg", "rz", "p", "u1"]``
 
     Example:
 
