@@ -592,6 +592,52 @@ class TestLitinskiTransformation(QiskitTestCase):
 
         self.assertEqual(qct, expected)
 
+    def test_on_circuits_with_ppr_ppm(self):
+        """Test the Litinski transformation pass on a more complex with Clifford gates,
+        T gates and Z-measures.
+        """
+        # This is the example from Figure 4 in the paper "A Game of Surface Codes" by Litinski.
+        # with PPR and PPM gates
+
+        # The original circuit (as shown at the top-left of the figure).
+        qc = QuantumCircuit(4, 4)
+        qc.append(PauliProductRotationGate(Pauli("Z"), np.pi / 4), [0])
+        qc.cx(2, 1)
+        qc.append(PauliProductRotationGate(Pauli("X"), -np.pi / 2), [3])
+        qc.cx(1, 0)
+        qc.append(PauliProductRotationGate(Pauli("X"), np.pi / 2), [2])
+        qc.append(PauliProductRotationGate(Pauli("Z"), np.pi / 4), [3])
+        qc.cx(3, 0)
+        qc.append(PauliProductRotationGate(Pauli("Z"), np.pi / 4), [0])
+        qc.append(PauliProductRotationGate(Pauli("Z"), np.pi / 2), [1])
+        qc.append(PauliProductRotationGate(Pauli("Z"), np.pi / 4), [2])
+        qc.append(PauliProductRotationGate(Pauli("Z"), np.pi / 2), [3])
+        qc.append(PauliProductRotationGate(Pauli("X"), -np.pi / 2), [0])
+        qc.append(PauliProductRotationGate(Pauli("X"), np.pi / 2), [1])
+        qc.append(PauliProductRotationGate(Pauli("X"), np.pi / 2), [2])
+        qc.append(PauliProductRotationGate(Pauli("X"), np.pi / 2), [3])
+        qc.append(PauliProductMeasurement(Pauli("Z")), [0], [0])
+        qc.append(PauliProductMeasurement(Pauli("Z")), [1], [1])
+        qc.append(PauliProductMeasurement(Pauli("Z")), [2], [2])
+        qc.append(PauliProductMeasurement(Pauli("Z")), [3], [3])
+
+        # Apply the Litinski transform with fix_cliffords=False (ignoring the Clifford gates
+        # at the end of the transformed circuit).
+        qct = LitinskiTransformation(fix_clifford=False, use_ppr=True)(qc)
+
+        # The transformed circuit (as shown at the bottom-right of the figure).
+        expected = QuantumCircuit(4, 4)
+        expected.append(PauliProductRotationGate(Pauli("Z"), np.pi / 4), [0])
+        expected.append(PauliProductRotationGate(Pauli("YX"), np.pi / 4), [1, 2])
+        expected.append(PauliProductRotationGate(Pauli("Y"), -np.pi / 4), [3])
+        expected.append(PauliProductRotationGate(Pauli("YZZZ"), -np.pi / 4), [0, 1, 2, 3])
+        expected.append(PauliProductMeasurement(Pauli("YZZY")), [0, 1, 2, 3], [0])
+        expected.append(PauliProductMeasurement(Pauli("XX")), [0, 1], [1])
+        expected.append(PauliProductMeasurement(Pauli("-Z")), [2], [2])
+        expected.append(PauliProductMeasurement(Pauli("XX")), [0, 3], [3])
+
+        self.assertEqual(qct, expected)
+
     @data(True, False)
     def test_barrier(self, fix_clifford):
         """Test adding a barrier."""
@@ -777,3 +823,19 @@ class TestLitinskiTransformation(QiskitTestCase):
             circuit_target.compose(cliff, range(num_qubits), inplace=True)
 
         self.assertEqual(circuit_out, circuit_target)
+
+    def test_litinski_with_clifford_ppr_pi2_angle(self):
+        """Test that LitinskiTransformation is does not change the gates for Clifford and PPR input with pi/2 angle"""
+        num_qubits = 5
+        cliff = random_clifford_circuit(num_qubits, num_gates=20, seed=1234)
+
+        circuit = QuantumCircuit(num_qubits)
+        circuit.compose(
+            PauliProductRotationGate(Pauli("XZYI"), -np.pi / 2), [0, 1, 2, 4], inplace=True
+        )
+        circuit.compose(cliff, range(num_qubits), inplace=True)
+        circuit.compose(PauliProductRotationGate(Pauli("XYZ"), np.pi / 2), [1, 2, 4], inplace=True)
+
+        transform = LitinskiTransformation(fix_clifford=True, use_ppr=True)
+        circuit_out = transform(circuit)
+        self.assertEqual(circuit_out, circuit)
