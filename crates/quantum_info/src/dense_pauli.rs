@@ -17,6 +17,11 @@ use rand_pcg::Pcg64Mcg;
 use thiserror::Error;
 
 /// A dense Pauli operator class.
+///
+/// The `zx_phase` is a common bookkeeping convention that allows for faster Pauli
+/// commutation and composition checks. This `zx_phase` and the group phase
+/// (that is, the actual algebraic coefficient :math:`i^q` in front of the operator)
+/// are related as `zx phase = (group phase + number of Y-terms) modulo 4`.
 #[derive(Clone, Debug, PartialEq)]
 pub struct DensePauli {
     /// z-component
@@ -261,7 +266,7 @@ impl DensePauli {
                 s = String::from("-i") + &s;
             }
             _ => {
-                panic!("we should never get this")
+                unreachable!("The group phase is always kept reduced modulo 4.")
             }
         }
 

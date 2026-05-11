@@ -359,7 +359,9 @@ impl Clifford {
                     self.tableau[qbit + num_qubits][i + num_qubits]
                         ^ self.tableau[qbit][i + num_qubits],
                 ),
-                _ => unreachable!("The case "),
+                _ => unreachable!(
+                    "The case that both pauli_z and pauli_x are false has already been handled."
+                ),
             };
             z.set(i, z_bit);
             x.set(i, x_bit);
