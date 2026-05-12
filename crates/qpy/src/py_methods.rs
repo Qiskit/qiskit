@@ -14,6 +14,7 @@
 use binrw::Endian;
 use numpy::Complex64;
 use pyo3::IntoPyObjectExt;
+use pyo3::exceptions::PyTypeError;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyComplex, PyDict, PyFloat, PyInt, PyList, PyString, PyTuple};
@@ -332,11 +333,9 @@ pub(crate) fn gate_class_name(op: &PackedOperation) -> Result<String, QpyError> 
                 Ok(String::from(PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME))
             }
             OperationRef::ControlFlow(inst) => Ok(inst.name().to_string()),
-            OperationRef::CustomOperation(operation) => operation
-                .py_type(py)?
-                .getattr(intern!(py, "__class__"))?
-                .getattr(intern!(py, "__name__"))?
-                .extract::<String>(),
+            OperationRef::CustomOperation(_) => Err(PyTypeError::new_err(
+                "Custom gates from rust are not classes.",
+            )),
         }?;
         Ok(name)
     })

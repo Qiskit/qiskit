@@ -28,6 +28,7 @@ use hashbrown::HashMap;
 use nalgebra::{Matrix2, Matrix4};
 use ndarray::{Array2, CowArray, Ix2};
 use num_complex::Complex64;
+use pyo3::exceptions::PyNotImplementedError;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyType};
 use smallvec::SmallVec;
@@ -704,8 +705,10 @@ impl PackedOperation {
                     .cast::<PyType>()?
                     .is_subclass(py_type);
             }
-            OperationRef::CustomOperation(custom) => {
-                return custom.py_type(py)?.is_subclass(py_type);
+            OperationRef::CustomOperation(_) => {
+                return Err(PyNotImplementedError::new_err(
+                    "Custom operations from Rust cannot be checked by instance",
+                ));
             }
             OperationRef::PauliProductRotation(_) => {
                 return PAULI_PRODUCT_ROTATION_GATE

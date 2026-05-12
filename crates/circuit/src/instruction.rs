@@ -14,6 +14,7 @@ use crate::circuit_data::CircuitData;
 use crate::operations::{OperationRef, Param};
 use ndarray::Array2;
 use num_complex::Complex64;
+use pyo3::exceptions::PyNotImplementedError;
 use pyo3::prelude::*;
 use smallvec::SmallVec;
 
@@ -192,8 +193,8 @@ pub fn create_py_op(
         OperationRef::Instruction(instruction) => Ok(instruction.instruction.clone_ref(py)),
         OperationRef::Operation(operation) => Ok(operation.instruction.clone_ref(py)),
         OperationRef::Unitary(unitary) => unitary.create_py_op(py, label),
-        OperationRef::CustomOperation(custom_gate) => custom_gate
-            .create_py_op(py, params.map(|p| p.unwrap_params()))
-            .map(|op| op.unbind()),
+        OperationRef::CustomOperation(_) => Err(PyNotImplementedError::new_err(
+            "Custom operations from Rust cannot be exposed to Python",
+        )),
     }
 }

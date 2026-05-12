@@ -15,6 +15,7 @@ use hashbrown::HashSet;
 use ndarray::prelude::*;
 use pyo3::Bound;
 use pyo3::IntoPyObjectExt;
+use pyo3::exceptions::PyNotImplementedError;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 use qiskit_circuit::bit::ShareableQubit;
@@ -961,9 +962,11 @@ fn synthesize_op_using_plugins(
         OperationRef::PauliProductRotation(rotation) => {
             rotation.create_py_op(py, label)?.into_any()
         }
-        OperationRef::CustomOperation(custom_gate) => custom_gate
-            .create_py_op(py, Some(params.iter().cloned().collect()))?
-            .unbind(),
+        OperationRef::CustomOperation(_) => {
+            return Err(PyNotImplementedError::new_err(
+                "Custom Operations from Rust cannot be exposed to Python.",
+            ));
+        }
     };
 
     let res = HLS_SYNTHESIZE_OP_USING_PLUGINS

@@ -38,7 +38,7 @@ use num_complex::{Complex64, c64};
 use smallvec::SmallVec;
 
 use numpy::{PyArray1, PyReadonlyArray2, ToPyArray};
-use pyo3::exceptions::{PyNotImplementedError, PyValueError};
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyTuple};
 use pyo3::{IntoPyObjectExt, Python, intern};
@@ -1906,24 +1906,6 @@ pub trait CustomOperation: Operation + Any + Debug + Send + Sync {
     /// If the instance is a gate, checks if it contains any control Qubits.
     fn is_controlled_gate(&self) -> bool {
         self.num_ctrl_qubits().is_some()
-    }
-
-    /// Creates python instance of this operation.
-    fn create_py_op<'py>(
-        &self,
-        _py: Python<'py>,
-        _params: Option<SmallVec<[Param; 3]>>,
-    ) -> PyResult<Bound<'py, PyAny>> {
-        Err(PyNotImplementedError::new_err(
-            "Rust native operations cannot be exposed to Python yet.",
-        ))
-    }
-
-    /// Returns the python type linked to this operation.
-    fn py_type<'py>(&self, _py: Python<'py>) -> PyResult<&Bound<'py, pyo3::types::PyType>> {
-        Err(PyNotImplementedError::new_err(
-            "Rust native operations cannot be exposed to Python yet.",
-        ))
     }
 
     /// Dynamic clone function to clone the original operation type.
