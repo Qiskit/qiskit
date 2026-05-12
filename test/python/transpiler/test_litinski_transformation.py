@@ -155,10 +155,18 @@ class TestLitinskiTransformation(QiskitTestCase):
         qc = transpile(qc, basis_gates=["cx", "rz", "sx"])
 
         # apply Litinski's transform
-        qc_litinski = LitinskiTransformation()(qc)
+        qc_litinski = LitinskiTransformation(use_ppr=True)(qc)
+        qc_litinski_no_fix = LitinskiTransformation(fix_clifford=False, use_ppr=True)(qc)
 
         # make sure the transform was applied
-        # self.assertNotIn("rz", qc_litinski.count_ops()) # ToDo: can we replace it by another check?
+        self.assertEqual(
+            set(qc_litinski_no_fix.count_ops().keys()), set(["pauli_product_rotation"])
+        )
+        self.assertEqual(
+            qc_litinski_no_fix.count_ops()["pauli_product_rotation"],
+            qc_litinski.count_ops()["pauli_product_rotation"],
+        )
+
         # make sure the result is correct
         self.assertEqual(Operator(qc_litinski), Operator(qc))
 
