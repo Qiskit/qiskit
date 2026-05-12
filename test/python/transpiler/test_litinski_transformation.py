@@ -831,7 +831,7 @@ class TestLitinskiTransformation(QiskitTestCase):
 
         circuit = QuantumCircuit(num_qubits)
         circuit.compose(
-            PauliProductRotationGate(Pauli("XZYI"), -np.pi / 2), [0, 1, 2, 4], inplace=True
+            PauliProductRotationGate(Pauli("XZYY"), -np.pi / 2), [0, 1, 2, 4], inplace=True
         )
         circuit.compose(cliff, range(num_qubits), inplace=True)
         circuit.compose(PauliProductRotationGate(Pauli("XYZ"), np.pi / 2), [1, 2, 4], inplace=True)
@@ -839,3 +839,19 @@ class TestLitinskiTransformation(QiskitTestCase):
         transform = LitinskiTransformation(fix_clifford=True, use_ppr=True)
         circuit_out = transform(circuit)
         self.assertEqual(circuit_out, circuit)
+
+    def test_litinski_with_ppr(self):
+        """Test that LitinskiTransformation is correct for PPR gates with and w/o pi/2 angles"""
+        num_qubits = 5
+        cliff = random_clifford_circuit(num_qubits, num_gates=20, seed=1234)
+
+        circuit = QuantumCircuit(num_qubits)
+        circuit.compose(
+            PauliProductRotationGate(Pauli("ZYXY"), -np.pi / 2), [0, 1, 2, 4], inplace=True
+        )
+        circuit.compose(cliff, range(num_qubits), inplace=True)
+        circuit.compose(PauliProductRotationGate(Pauli("XYZ"), 0.123), [1, 2, 4], inplace=True)
+
+        transform = LitinskiTransformation(fix_clifford=True, use_ppr=True)
+        circuit_out = transform(circuit)
+        self.assertEqual(Operator(circuit_out), Operator(circuit))
