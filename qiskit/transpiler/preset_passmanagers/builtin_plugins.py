@@ -1032,7 +1032,8 @@ class CliffordTInitPassManager(PassManagerCliffordTStagePlugin):
                 pass_manager_config.qubits_initially_zero,
                 optimization_metric,
             )
-            init.append(ElidePermutations())
+            if not pass_manager_config._routing_disabled:
+                init.append(ElidePermutations())
             init.append(
                 [
                     RemoveDiagonalGatesBeforeMeasure(),
@@ -1058,7 +1059,7 @@ class CliffordTInitPassManager(PassManagerCliffordTStagePlugin):
             # error rates in the target. However, in the init stage we don't yet know the target
             # qubits being used to figure out the fidelity so just use the default fidelity parameter
             # in this case.
-            split_2q_unitaries_swap = True
+            split_2q_unitaries_swap = not pass_manager_config._routing_disabled
             if pass_manager_config.approximation_degree is not None:
                 init.append(
                     Split2QUnitaries(

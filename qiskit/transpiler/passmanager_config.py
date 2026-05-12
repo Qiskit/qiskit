@@ -185,6 +185,8 @@ class PassManagerCliffordTConfig:
         hls_config: HLSConfig | None = None,
         qubits_initially_zero: bool = True,
         rz_synthesis_config: dict | None = None,
+        *,
+        _routing_disabled: bool = False,
     ):
         """
 
@@ -234,6 +236,10 @@ class PassManagerCliffordTConfig:
         self.hls_config = hls_config
         self.qubits_initially_zero = qubits_initially_zero
         self.rz_synthesis_config = rz_synthesis_config
+
+        # _routing_disabled is needed for disabling routing when CliffordT pipeline
+        # is called from generate_preset_pass_manager with routing_method="none".
+        self._routing_disabled = _routing_disabled
 
     def _to_legacy_config(self) -> PassManagerConfig:
         """
@@ -287,4 +293,5 @@ class PassManagerCliffordTConfig:
             hls_config=pass_manager_config.hls_config,
             qubits_initially_zero=pass_manager_config.qubits_initially_zero,
             rz_synthesis_config=None,
+            _routing_disabled=pass_manager_config.routing_method == "none",
         )
