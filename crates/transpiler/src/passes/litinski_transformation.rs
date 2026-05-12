@@ -79,7 +79,7 @@ static HANDLED_INSTRUCTION_NAMES: [&str; 10] = [
     "pauli_product_measurement",
 ];
 
-const MINIMUM_TOL: f64 = 1e-12; // ToDo: add approxination_degree to the pass?
+const MINIMUM_TOL: f64 = 1e-12; // ToDo: add approximation_degree to the pass?
 
 #[pyfunction]
 #[pyo3(signature = (dag, fix_clifford=true, insert_barrier=false, use_ppr=false))]
@@ -92,7 +92,7 @@ pub fn run_litinski_transformation(
     let op_counts = dag.get_op_counts();
     let tol = MINIMUM_TOL;
 
-    // Skip the pass if there are no rotation gates, PPR or PPM.
+    // Skip the pass if there are no rotation or measurement gates, including PPRs and PPMs.
     if op_counts
         .keys()
         .all(|k| !HANDLED_INSTRUCTION_NAMES.contains(&k.as_str()))
