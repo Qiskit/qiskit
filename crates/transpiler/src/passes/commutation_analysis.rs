@@ -31,6 +31,10 @@ type NodeIndices = Vec<IndexMap<NodeIndex, usize, ::foldhash::fast::RandomState>
 // the maximum number of qubits we check commutativity for
 const MAX_NUM_QUBITS: u32 = 3;
 
+// This value was found experimentally by testing the scaling. For more details see:
+// https://github.com/Qiskit/qiskit/pull/16171#issuecomment-4432863092
+const PARALLEL_THRESHOLD: usize = 3000;
+
 /// Compute the commutation sets for a given DAG.
 ///
 /// We return two HashMaps:
@@ -137,7 +141,7 @@ pub fn analyze_commutations(
             Ok(())
         };
 
-    if qiskit_util::getenv_use_multiple_threads() {
+    if qiskit_util::getenv_use_multiple_threads() && dag.num_ops() >= PARALLEL_THRESHOLD {
         commutation_set
             .par_iter_mut()
             .zip(node_indices.par_iter_mut())
