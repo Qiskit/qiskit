@@ -526,6 +526,20 @@ impl QubitSparsePauliList {
             }
         }
     }
+
+    // Check if the elements of `self` commute with the elements of `other`.
+    pub fn commutes(&self, other: &QubitSparsePauliList) -> Result<Array2<bool>, ArithmeticError> {
+        if self.num_qubits != other.num_qubits {
+            return Err(ArithmeticError::MismatchedQubits {
+                left: self.num_qubits,
+                right: other.num_qubits,
+            });
+        }
+
+        Ok(Array2::from_shape_fn((self.num_terms(), other.num_terms()), |(i, j)| {
+            self.term(i).to_term().commutes(&other.term(j).to_term()).unwrap()
+        }))
+    }
 }
 
 type RawParts = (Vec<Pauli>, Vec<u32>, Vec<usize>);
@@ -1465,7 +1479,7 @@ impl PyQubitSparsePauli {
         self.compose(other)
     }
 
-    /// Check if `self`` commutes with another qubit sparse pauli.
+    /// Check if `self`` commutes with another qubit sparse Pauli.
     ///
     /// Args:
     ///     other (QubitSparsePauli): the qubit sparse Pauli to check for commutation with.
@@ -2102,6 +2116,17 @@ impl PyQubitSparsePauliList {
             }
         }
         Ok(out.into_pyarray(py).unbind())
+    }
+
+    /// Check if the elements of `self`` commute with another qubit sparse Pauli list.
+    ///
+    /// Args:
+    ///     other (QubitSparsePauliList): the qubit sparse Pauli list to check for commutation with.
+    #[pyo3(signature = (other))]
+    fn commutes(&self, py: Python, other: &PyQubitSparsePauliList) -> PyResult<Py<PyArray2<bool>>> {
+        let slf_inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
+        Ok(slf_inner.commutes(&other_inner)?.into_pyarray(py).unbind())
     }
 
     /// Return a :class:`~.quantum_info.PauliList` representing the same phaseless list of Paulis.
