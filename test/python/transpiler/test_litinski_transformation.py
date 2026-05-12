@@ -837,7 +837,7 @@ class TestLitinskiTransformation(QiskitTestCase):
 
         circuit = QuantumCircuit(num_qubits)
         circuit.compose(
-            PauliProductRotationGate(Pauli("XZYY"), -np.pi / 2), [0, 1, 2, 4], inplace=True
+            PauliProductRotationGate(Pauli("XZIY"), -np.pi / 2), [0, 1, 2, 4], inplace=True
         )
         circuit.compose(cliff, range(num_qubits), inplace=True)
         circuit.compose(PauliProductRotationGate(Pauli("XYZ"), np.pi / 2), [1, 2, 4], inplace=True)
@@ -847,15 +847,28 @@ class TestLitinskiTransformation(QiskitTestCase):
         self.assertEqual(circuit_out, circuit)
 
     def test_litinski_with_ppr(self):
-        """Test that LitinskiTransformation is correct for PPR gates with and w/o pi/2 angles"""
+        """Test that LitinskiTransformation is correct for Clifford gates and PPR gates
+        with and without pi/2 angles"""
         num_qubits = 5
-        cliff = random_clifford_circuit(num_qubits, num_gates=20, seed=1234)
+        cliff1 = random_clifford_circuit(num_qubits, num_gates=10, seed=1234)
+        cliff2 = random_clifford_circuit(num_qubits, num_gates=10, seed=2345)
+        cliff3 = random_clifford_circuit(num_qubits, num_gates=10, seed=3456)
 
         circuit = QuantumCircuit(num_qubits)
         circuit.compose(
-            PauliProductRotationGate(Pauli("ZYXY"), -np.pi / 2), [0, 1, 2, 4], inplace=True
+            PauliProductRotationGate(Pauli("ZXIY"), -np.pi / 2), [0, 1, 2, 4], inplace=True
         )
-        circuit.compose(cliff, range(num_qubits), inplace=True)
+        circuit.compose(cliff1, range(num_qubits), inplace=True)
+        circuit.compose(
+            PauliProductRotationGate(Pauli("IYZ"), 3 * np.pi / 2), [2, 3, 4], inplace=True
+        )
+        circuit.compose(cliff2, range(num_qubits), inplace=True)
+        circuit.compose(PauliProductRotationGate(Pauli("ZYY"), 0.456), [0, 1, 2], inplace=True)
+
+        circuit.compose(
+            PauliProductRotationGate(Pauli("XXYI"), 5 * np.pi / 2), [1, 2, 3, 4], inplace=True
+        )
+        circuit.compose(cliff3, range(num_qubits), inplace=True)
         circuit.compose(PauliProductRotationGate(Pauli("XYZ"), 0.123), [1, 2, 4], inplace=True)
 
         transform = LitinskiTransformation(fix_clifford=True, use_ppr=True)

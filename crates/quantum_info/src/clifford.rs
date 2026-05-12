@@ -9,6 +9,7 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
+use itertools::Itertools;
 use std::fmt;
 
 use fixedbitset::FixedBitSet;
@@ -340,39 +341,52 @@ impl Clifford {
     ) {
         let multiple = multiple.rem_euclid(4);
 
-        for qubit in 0..indices.len() {
-            match (pauli_z[qubit], pauli_x[qubit]) {
-                (true, false) => {}                                      // pauli Z on qubit
-                (true, true) => self.append_sx(indices[qubit] as usize), // pauli Y on qubit
-                (false, true) => self.append_h(indices[qubit] as usize), // pauli X on qubit
-                (false, false) => {} // pauli I on qubit (shouldn't get it since pauli is sparse)
+        // remove pauli I terms
+        let (new_z, new_x, new_indices): (Vec<bool>, Vec<bool>, Vec<u32>) = pauli_z
+            .iter()
+            .zip(pauli_x)
+            .zip(indices)
+            .filter(|&((&z, &x), _)| z || x)
+            .map(|((&z, &x), &i)| (z, x, i))
+            .multiunzip();
+
+        // initial H or SX gates (in case of pauli X or pauli Y respectively)
+        for qubit in 0..new_indices.len() {
+            match (new_z[qubit], new_x[qubit]) {
+                (true, false) => {}                                          // pauli Z on qubit
+                (true, true) => self.append_sx(new_indices[qubit] as usize), // pauli Y on qubit
+                (false, true) => self.append_h(new_indices[qubit] as usize), // pauli X on qubit
+                (false, false) => unreachable!("Pauli I terms were removed from PPR."), // pauli I on qubit (shouldn't get it since pauli is sparse)
             }
         }
 
-        if indices.len() > 1 {
-            for ind in (0..indices.len() - 1).rev() {
-                self.append_cx(indices[ind + 1] as usize, indices[ind] as usize);
+        // CX ladder
+        if new_indices.len() > 1 {
+            for ind in (0..new_indices.len() - 1).rev() {
+                self.append_cx(new_indices[ind + 1] as usize, new_indices[ind] as usize);
             }
         }
+        // internal RZ gate
         match multiple {
             0 => {}
-            1 => self.append_s(indices[0] as usize),
-            2 => self.append_z(indices[0] as usize),
-            3 => self.append_sdg(indices[0] as usize),
+            1 => self.append_s(new_indices[0] as usize),
+            2 => self.append_z(new_indices[0] as usize),
+            3 => self.append_sdg(new_indices[0] as usize),
             _ => unreachable!("PPR is only applicable for multiples of pi/2 rotations."),
         }
-        if indices.len() > 1 {
-            for ind in 0..indices.len() - 1 {
-                self.append_cx(indices[ind + 1] as usize, indices[ind] as usize);
+        // CX ladder
+        if new_indices.len() > 1 {
+            for ind in 0..new_indices.len() - 1 {
+                self.append_cx(new_indices[ind + 1] as usize, new_indices[ind] as usize);
             }
         }
-
-        for qubit in 0..indices.len() {
-            match (pauli_z[qubit], pauli_x[qubit]) {
-                (true, false) => {}                                        // pauli Z on qubit
-                (true, true) => self.append_sxdg(indices[qubit] as usize), // pauli Y on qubit
-                (false, true) => self.append_h(indices[qubit] as usize),   // pauli X on qubit
-                (false, false) => {} // pauli I on qubit (shouldn't get it since pauli is sparse)
+        // final H or SXdg gates (in case of pauli X or pauli Y respectively)
+        for qubit in 0..new_indices.len() {
+            match (new_z[qubit], new_x[qubit]) {
+                (true, false) => {}                                            // pauli Z on qubit
+                (true, true) => self.append_sxdg(new_indices[qubit] as usize), // pauli Y on qubit
+                (false, true) => self.append_h(new_indices[qubit] as usize),   // pauli X on qubit
+                (false, false) => unreachable!("Pauli I terms were removed from PPR."), // pauli I on qubit (shouldn't get it since pauli is sparse)
             }
         }
     }
