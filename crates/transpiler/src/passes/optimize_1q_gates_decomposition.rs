@@ -24,8 +24,8 @@ use rayon::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
-use qiskit_util::getenv_use_multiple_threads;
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
+use qiskit_util::getenv_use_multiple_threads;
 
 use crate::target::{Target, TargetOperation};
 use qiskit_circuit::instruction::Instruction;
