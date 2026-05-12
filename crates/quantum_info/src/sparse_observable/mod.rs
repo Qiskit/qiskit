@@ -39,9 +39,8 @@ use std::{
 };
 use thiserror::Error;
 
-use qiskit_circuit::{
-    imports::{ImportOnceCell, NUMPY_COPY_ONLY_IF_NEEDED},
-    slice::{PySequenceIndex, SequenceIndex},
+use qiskit_util::py::{
+    ImportOnceCell, PySequenceIndex, SequenceIndex, imports::NUMPY_COPY_ONLY_IF_NEEDED,
 };
 
 static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Pauli");
@@ -3663,7 +3662,7 @@ impl PySparseObservable {
             let order = order
                 .try_iter()?
                 .map(|obj| obj.and_then(|obj| obj.extract::<u32>()))
-                .collect::<PyResult<IndexSet<u32, ::ahash::RandomState>>>()?;
+                .collect::<PyResult<IndexSet<u32, ::foldhash::fast::RandomState>>>()?;
             if order.len() != in_length {
                 return Err(PyValueError::new_err("duplicate indices in qargs"));
             }

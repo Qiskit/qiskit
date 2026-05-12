@@ -372,6 +372,7 @@ class TemplateSubstitution:
         dag_dep_opt = DAGDependency()
 
         dag_dep_opt.name = self.circuit_dag_dep.name
+        dag_dep_opt.global_phase = self.circuit_dag_dep.global_phase
 
         qregs = list(self.circuit_dag_dep.qregs.values())
         cregs = list(self.circuit_dag_dep.cregs.values())
@@ -427,6 +428,9 @@ class TemplateSubstitution:
                     node = group.template_dag_dep.get_node(index)
                     inst = node.op.copy()
                     dag_dep_opt.add_op_node(inst.inverse(), qargs, cargs)
+
+                # Update global phase to account for the template's phase.
+                dag_dep_opt.global_phase -= group.template_dag_dep.global_phase
 
             # Add the unmatched gates.
             for node_id in self.unmatched_list:
