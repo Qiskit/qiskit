@@ -285,14 +285,13 @@ pub fn run_litinski_transformation(
                         OperationRef::StandardGate(StandardGate::RZ) => {
                             let param = &inst.params_view()[0];
                             if let Param::Float(angle) = param {
-                                if let Some(mut multiple) = is_angle_close_to_multiple_of_pi_k(
+                                if let Some(multiple) = is_angle_close_to_multiple_of_pi_k(
                                     StandardGate::RZ,
                                     2,
                                     *angle,
                                     tol,
                                 ) {
                                     is_clifford = true;
-                                    multiple %= 4;
                                     if fix_clifford {
                                         clifford_ops.push(inst);
                                     }
@@ -306,14 +305,13 @@ pub fn run_litinski_transformation(
                         | OperationRef::StandardGate(StandardGate::U1) => {
                             let param = &inst.params_view()[0];
                             if let Param::Float(angle) = param {
-                                if let Some(mut multiple) = is_angle_close_to_multiple_of_pi_k(
+                                if let Some(multiple) = is_angle_close_to_multiple_of_pi_k(
                                     StandardGate::RZ,
                                     2,
                                     *angle,
                                     tol,
                                 ) {
                                     is_clifford = true;
-                                    multiple %= 4;
                                     if fix_clifford {
                                         clifford_ops.push(inst);
                                     }
@@ -326,14 +324,13 @@ pub fn run_litinski_transformation(
                         OperationRef::StandardGate(StandardGate::RX) => {
                             let param = &inst.params_view()[0];
                             if let Param::Float(angle) = param {
-                                if let Some(mut multiple) = is_angle_close_to_multiple_of_pi_k(
+                                if let Some(multiple) = is_angle_close_to_multiple_of_pi_k(
                                     StandardGate::RX,
                                     2,
                                     *angle,
                                     tol,
                                 ) {
                                     is_clifford = true;
-                                    multiple %= 4;
                                     if fix_clifford {
                                         clifford_ops.push(inst);
                                     }
@@ -346,14 +343,13 @@ pub fn run_litinski_transformation(
                         OperationRef::StandardGate(StandardGate::RY) => {
                             let param = &inst.params_view()[0];
                             if let Param::Float(angle) = param {
-                                if let Some(mut multiple) = is_angle_close_to_multiple_of_pi_k(
+                                if let Some(multiple) = is_angle_close_to_multiple_of_pi_k(
                                     StandardGate::RY,
                                     2,
                                     *angle,
                                     tol,
                                 ) {
                                     is_clifford = true;
-                                    multiple %= 4;
                                     if fix_clifford {
                                         clifford_ops.push(inst);
                                     }
@@ -450,11 +446,10 @@ pub fn run_litinski_transformation(
 
                     if let Param::Float(angle) = angle {
                         // PPR has pi/2 angle, and so is a clifford
-                        if let Some(mut multiple) =
+                        if let Some(multiple) =
                             is_ppr_angle_close_to_multiple_of_pi2(in_z, in_x, *angle, tol)
                         {
                             is_clifford = true;
-                            multiple %= 4;
                             if fix_clifford {
                                 clifford_ops.push(inst);
                             }

@@ -290,6 +290,7 @@ impl Clifford {
     /// Modifies the tableau in-place by appending RZ-gate,
     /// with an angle that is an integer multiple of pi/2
     pub fn append_rz(&mut self, qubit: usize, multiple: usize) {
+        let multiple = multiple.rem_euclid(4);
         match multiple {
             0 => {}
             1 => self.append_s(qubit),
@@ -301,6 +302,7 @@ impl Clifford {
     /// Modifies the tableau in-place by appending RX-gate,
     /// with an angle that is an integer multiple of pi/2
     pub fn append_rx(&mut self, qubit: usize, multiple: usize) {
+        let multiple = multiple.rem_euclid(4);
         match multiple {
             0 => {}
             1 => self.append_sx(qubit),
@@ -312,6 +314,7 @@ impl Clifford {
     /// Modifies the tableau in-place by appending RY-gate,
     /// with an angle that is an integer multiple of pi/2
     pub fn append_ry(&mut self, qubit: usize, multiple: usize) {
+        let multiple = multiple.rem_euclid(4);
         match multiple {
             0 => {}
             1 => {
@@ -335,6 +338,8 @@ impl Clifford {
         indices: &[u32],
         multiple: usize,
     ) {
+        let multiple = multiple.rem_euclid(4);
+
         for qubit in 0..indices.len() {
             match (pauli_z[qubit], pauli_x[qubit]) {
                 (true, false) => {}                                      // pauli Z on qubit
