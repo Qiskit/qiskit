@@ -142,6 +142,8 @@ fn is_special_symmetric(inst: &PackedInstruction, tol: f64) -> bool {
 /// * `dag` - The output [DAGCircuit]. We use its `qargs_interner` to store sorted
 ///   qubits for symmetric gates.
 /// * `inst` - The instruction to canonicalize.
+/// * `tol` - The tolerance used for fidelity computations (for instance, checking
+///   whether a gate is symmetric within the specified tolerance).
 ///
 /// # Returns:
 ///
