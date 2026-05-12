@@ -159,9 +159,7 @@ class TestLitinskiTransformation(QiskitTestCase):
         qc_litinski_no_fix = LitinskiTransformation(fix_clifford=False, use_ppr=True)(qc)
 
         # make sure the transform was applied
-        self.assertEqual(
-            set(qc_litinski_no_fix.count_ops().keys()), set(["pauli_product_rotation"])
-        )
+        self.assertEqual(list(qc_litinski_no_fix.count_ops().keys()), ["pauli_product_rotation"])
         self.assertEqual(
             qc_litinski_no_fix.count_ops()["pauli_product_rotation"],
             qc_litinski.count_ops()["pauli_product_rotation"],
