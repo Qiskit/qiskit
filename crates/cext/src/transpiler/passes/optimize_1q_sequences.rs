@@ -22,6 +22,12 @@ use qiskit_transpiler::{
 ///
 /// \qk_deprecated{2.4.0|use :c:func:`qk_transpiler_pass_standalone_optimize_1q_sequences` instead.}
 ///
+/// This function is multithreaded and will potentially launch a thread pool
+/// with threads equal to the number of CPUs by default. You can tune the
+/// number of threads with the ``RAYON_NUM_THREADS`` environment variable.
+/// For example, setting ``RAYON_NUM_THREADS=4`` would limit the thread pool
+/// to 4 threads.
+///
 /// @param circuit A pointer to the ``QkCircuit`` object to transform.
 /// @param target A pointer to the ``QkTarget`` object or a null pointer.
 /// In the case a null pointer is provided and gate errors are unknown
@@ -50,6 +56,13 @@ pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_sequences(
 /// Runs the Optimize1qGatesDecomposition pass in standalone mode on a circuit.
 ///
 /// Refer to the ``qk_transpiler_pass_optimize_1q_sequences`` function for more details about the pass.
+///
+/// This function is multithreaded and will potentially launch a thread pool
+/// with threads equal to the number of CPUs by default. You can tune the
+/// number of threads with the ``RAYON_NUM_THREADS`` environment variable.
+/// For example, setting ``RAYON_NUM_THREADS=4`` would limit the thread pool
+/// to 4 threads.
+///
 ///
 /// @param circuit A pointer to the ``QkCircuit`` object to transform.
 /// @param target A pointer to the ``QkTarget`` object or a null pointer.
@@ -106,6 +119,12 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_optimize_1q_sequences(
 ///
 /// The error is the combined multiplication of the errors of individual gates on the
 /// qubit it operates on.
+///
+/// This function is multithreaded and will potentially launch a thread pool
+/// with threads equal to the number of CPUs by default. You can tune the
+/// number of threads with the ``RAYON_NUM_THREADS`` environment variable.
+/// For example, setting ``RAYON_NUM_THREADS=4`` would limit the thread pool
+/// to 4 threads.
 ///
 /// @param dag A pointer to the ``QkDag`` object to transform.
 /// @param target A pointer to the ``QkTarget`` object or a null pointer.

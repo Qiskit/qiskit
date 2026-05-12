@@ -67,6 +67,12 @@ class Optimize1qGatesDecomposition(TransformationPass):
      - whether the original chain amounts to identity: replace with null
 
      Error is computed as a multiplication of the errors of individual gates on that qubit.
+
+    This class is multithreaded and will potentially launch a thread pool
+    with threads equal to the number of CPUs by default. You can tune the
+    number of threads with the ``RAYON_NUM_THREADS`` environment variable.
+    For example, setting ``RAYON_NUM_THREADS=4`` would limit the thread pool
+    to 4 threads.
     """
 
     def __init__(self, basis=None, target=None):
