@@ -122,16 +122,15 @@ class TestPhaseOracleAndGate(QiskitTestCase):
         1 -2 -3 0
         -1 2 3 0
         """
-        filename = tempfile.mkstemp(suffix=".dimacs")[1]
-        self.addCleanup(os.remove, filename)
-        with open(filename, "w") as file:
+        with tempfile.NamedTemporaryFile("wt", suffix=".dimacs", delete=False) as file:
             file.write(input_3sat_instance)
+        self.addCleanup(os.remove, file.name)
         for use_gate in [True, False]:
             if use_gate:
-                oracle = PhaseOracleGate.from_dimacs_file(filename)
+                oracle = PhaseOracleGate.from_dimacs_file(file.name)
             else:
                 with self.assertWarns(DeprecationWarning):
-                    oracle = PhaseOracle.from_dimacs_file(filename)
+                    oracle = PhaseOracle.from_dimacs_file(file.name)
             self.assertEqual(oracle.num_qubits, 3)
 
 
@@ -216,11 +215,10 @@ class TestBitFlipOracleGate(QiskitTestCase):
         1 -2 -3 0
         -1 2 3 0
         """
-        filename = tempfile.mkstemp(suffix=".dimacs")[1]
-        self.addCleanup(os.remove, filename)
-        with open(filename, "w") as file:
+        with tempfile.NamedTemporaryFile("wt", suffix=".dimacs", delete=False) as file:
             file.write(input_3sat_instance)
-        oracle = BitFlipOracleGate.from_dimacs_file(filename)
+        self.addCleanup(os.remove, file.name)
+        oracle = BitFlipOracleGate.from_dimacs_file(file.name)
         self.assertEqual(oracle.num_qubits, 4)
 
 
