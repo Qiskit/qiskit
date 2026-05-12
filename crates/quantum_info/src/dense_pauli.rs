@@ -35,15 +35,13 @@ pub struct DensePauli {
 #[derive(Error, Debug)]
 pub enum DensePauliError {
     #[error(
-        "`DensePauli::from_sparse_bool` requires `z`, `x` and `incices` to have the same length"
+        "`DensePauli::from_sparse_bool` requires `z`, `x` and `indices` to have the same length"
     )]
     InvalidSparseInput,
-    #[error("`DensePauli::from_label` requires a valid label")]
-    InvalidLabel,
-    #[error("`DensePauli::commute` requires both Paulis to have the same length")]
-    DifferentLengthsCommute,
-    #[error("`DensePauli::compose` requires both Paulis to have the same length")]
-    DifferentLengthsCompose,
+    #[error("Invalid Pauli label: {0}")]
+    InvalidLabel(String),
+    #[error("Both Paulis are required to have the same length")]
+    DifferentLengths,
     #[error(
         "Evolving `DensePauli` under a `Clifford` requires both to have the same number of qubits."
     )]
@@ -136,11 +134,11 @@ impl DensePauli {
         let mut zx_phase = 0u8;
         if let Some(r) = s.strip_prefix('-') {
             s = r;
-            zx_phase += 2;
+            zx_phase = (zx_phase + 2) & 3;
         }
         if let Some(r) = s.strip_prefix('i') {
             s = r;
-            zx_phase += 1;
+            zx_phase = (zx_phase + 1) & 3;
         }
 
         let num_qubits = s.len();
@@ -164,10 +162,10 @@ impl DensePauli {
                 'Y' => {
                     pauli_z.set(i, true);
                     pauli_x.set(i, true);
-                    zx_phase = zx_phase.wrapping_add(1) & 3;
+                    zx_phase = (zx_phase + 1) & 3;
                 }
                 _ => {
-                    return Err(DensePauliError::InvalidLabel);
+                    return Err(DensePauliError::InvalidLabel(label.to_string()));
                 }
             }
         }
@@ -335,20 +333,20 @@ impl DensePauli {
     ///
     /// # Errors
     ///
-    /// Returns [`DensePauliError::DifferentLengthsCommute`] if the two Paulis
+    /// Returns [`DensePauliError::DifferentLengths`] if the two Paulis
     /// have different lengths.
     #[inline(always)]
     pub fn commutes(&self, other: &DensePauli) -> Result<bool, DensePauliError> {
         if self.num_qubits() != other.num_qubits() {
-            return Err(DensePauliError::DifferentLengthsCommute);
+            return Err(DensePauliError::DifferentLengths);
         }
         Ok(self.commutes_unchecked(other))
     }
 
     /// Compose ``self`` and ``other``, modifying the current Pauli in-place.
     ///
-    /// As a transformation, composing two Paulis ``P`` and ``Q`` means first applying
-    /// ``P`` and then applying ``Q``. As a Pauli, this is the same as ``P * Q``.
+    /// Computing ``self.compose_with_unchecked(other)`` is equivalent to
+    /// computing ``other * self``.
     ///
     /// This method **does not check** that the two Paulis act on the same
     /// number of qubits. Calling it with mismatched lengths results in an
@@ -358,47 +356,42 @@ impl DensePauli {
     /// lengths.
     #[inline(always)]
     pub fn compose_with_unchecked(&mut self, other: &DensePauli) {
-        // note: on my MacOS this function is surprisingly *slower* than compose_with,
-        // so best to always call compose_with method instead of this one.
         let num_qubits = self.num_qubits();
-        self.zx_phase += other.zx_phase;
+        self.zx_phase = (self.zx_phase + other.zx_phase) & 3;
         for i in 0..num_qubits {
             if self.pauli_x[i] & other.pauli_z[i] {
-                self.zx_phase += 2;
+                self.zx_phase = (self.zx_phase + 2) & 3;
             }
         }
-
         self.pauli_z ^= &other.pauli_z;
         self.pauli_x ^= &other.pauli_x;
-        self.zx_phase &= 3u8;
     }
 
     /// Compose ``self`` and ``other``, modifying the current Pauli in-place.
     ///
-    /// As a transformation, composing two Paulis ``P`` and ``Q`` means first applying
-    /// ``P`` and then applying ``Q``. As a Pauli, this is the same as ``P * Q``.
+    /// Computing ``self.compose_with(other)`` is equivalent to computing
+    /// ``other * self``.
     ///
     /// This method checks that both Paulis act on the same number of qubits.
     /// If they do not, an error is returned.
     ///
     /// # Errors
     ///
-    /// Returns [`DensePauliError::DifferentLengthsCompose`] if the two Paulis
+    /// Returns [`DensePauliError::DifferentLengths`] if the two Paulis
     /// have different lengths.
     #[inline(always)]
     pub fn compose_with(&mut self, other: &DensePauli) -> Result<(), DensePauliError> {
         if self.num_qubits() != other.num_qubits() {
-            return Err(DensePauliError::DifferentLengthsCompose);
+            return Err(DensePauliError::DifferentLengths);
         }
         self.compose_with_unchecked(other);
-
         Ok(())
     }
 
     /// Compose ``self`` and ``other``, returning the result in a new Pauli.
     ///
-    /// As a transformation, composing two Paulis ``P`` and ``Q`` means first applying
-    /// ``P`` and then applying ``Q``. As a Pauli, this is the same as ``P * Q``.
+    /// Computing ``self.compose_unchecked(other)`` is equivalent to computing
+    /// ``other * self``.
     ///
     /// This method **does not check** that the two Paulis act on the same
     /// number of qubits. Calling it with mismatched lengths results in an
@@ -408,11 +401,11 @@ impl DensePauli {
     /// lengths.
     #[inline(always)]
     pub fn compose_unchecked(&self, other: &DensePauli) -> DensePauli {
-        let mut zx_phase = self.zx_phase + other.zx_phase;
+        let mut zx_phase = (self.zx_phase + other.zx_phase) & 3;
         let num_qubits = self.num_qubits();
         for i in 0..num_qubits {
             if self.pauli_x[i] && other.pauli_z[i] {
-                zx_phase += 2;
+                zx_phase = (zx_phase + 2) & 3;
             }
         }
 
@@ -421,26 +414,25 @@ impl DensePauli {
         DensePauli {
             pauli_z,
             pauli_x,
-            zx_phase: zx_phase & 3u8,
+            zx_phase,
         }
     }
 
     /// Compose ``self`` and ``other``, returning the result in a new Pauli.
     ///
-    /// As a transformation, composing two Paulis ``P`` and ``Q`` means first applying
-    /// ``P`` and then applying ``Q``. As a Pauli, this is the same as ``P * Q``.
+    /// Computing ``self.compose(other)`` is equivalent to computing ``other * self``.
     ///
     /// This method checks that both Paulis act on the same number of qubits.
     /// If they do not, an error is returned.
     ///
     /// # Errors
     ///
-    /// Returns [`DensePauliError::DifferentLengthsCompose`] if the two Paulis
+    /// Returns [`DensePauliError::DifferentLengths`] if the two Paulis
     /// have different lengths.
     #[inline(always)]
     pub fn compose(&self, other: &DensePauli) -> Result<DensePauli, DensePauliError> {
         if self.num_qubits() != other.num_qubits() {
-            return Err(DensePauliError::DifferentLengthsCommute);
+            return Err(DensePauliError::DifferentLengths);
         }
         Ok(self.compose_unchecked(other))
     }
@@ -483,8 +475,7 @@ pub fn evolve_pauli_by_clifford(
         }
     }
 
-    out_pauli.zx_phase += pauli.zx_phase;
-    out_pauli.zx_phase &= 3;
+    out_pauli.zx_phase = (out_pauli.zx_phase + pauli.zx_phase) & 3;
     Ok(out_pauli)
 }
 
@@ -493,7 +484,7 @@ mod tests {
     use fixedbitset::FixedBitSet;
 
     use crate::clifford::Clifford;
-    use crate::dense_pauli::{DensePauli, evolve_pauli_by_clifford};
+    use crate::dense_pauli::{DensePauli, DensePauliError, evolve_pauli_by_clifford};
 
     fn pauli_from_label(label: &str) -> DensePauli {
         DensePauli::from_label(label).unwrap()
@@ -550,6 +541,12 @@ mod tests {
 
         let pauli_label = pauli.to_label();
         assert_eq!(pauli_label, String::from("-iXZ"));
+    }
+
+    #[test]
+    fn test_invalid_label() {
+        let result = DensePauli::from_label("XI-Z");
+        assert!(matches!(result, Err(DensePauliError::InvalidLabel(_))));
     }
 
     /// Assert that commuting two Paulis P and Q gives the expected result.
