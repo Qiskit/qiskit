@@ -565,14 +565,19 @@ impl MinPointState {
             true
         } else if (new_depth, new_size) > (self.best_depth, self.best_size) {
             self.count += 1;
-            true
+            // Limit to 5 iterations without improvement
+            // and back track to previous best
+            self.count < 5
         } else if (new_depth, new_size) < (self.best_depth, self.best_size) {
             self.count = 1;
             self.best_depth = new_depth;
             self.best_size = new_size;
+            self.best_dag = dag.clone();
             true
         } else {
-            (new_depth, new_size) != (self.best_depth, self.best_size)
+            // When depth and size are unchanged, we reach a fixed point
+            // and can stop the optimization loop
+            false
         }
     }
 }
@@ -846,5 +851,116 @@ mod tests {
             }
             assert!(result.1.output_permutation().is_some());
         }
+    }
+
+    #[test]
+    fn test_update_best_dag() {
+        let circuit1 = CircuitData::from_packed_operations(
+            1,
+            1,
+            vec![Ok((
+                StandardGate::H.into(),
+                smallvec![],
+                vec![Qubit(0)],
+                vec![],
+            ))],
+            Param::Float(0.),
+        )
+        .unwrap();
+
+        let dag1 = DAGCircuit::from_circuit_data(&circuit1, false, None, None, None, None).unwrap();
+        let circuit2 = CircuitData::from_packed_operations(1, 1, vec![], Param::Float(0.)).unwrap();
+        let dag2 = DAGCircuit::from_circuit_data(&circuit2, false, None, None, None, None).unwrap();
+
+        let mut state = MinPointState::new(&dag1);
+        assert!(state.update_with(&dag1));
+        assert_eq!(state.count, 0);
+        assert!(state.update_with(&dag2));
+        assert_eq!(state.count, 1);
+        assert_eq!(
+            state.best_dag.depth(false).unwrap(),
+            dag2.depth(false).unwrap()
+        );
+        assert_eq!(
+            state.best_dag.size(false).unwrap(),
+            dag2.size(false).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_backtrack_limit_stops_loop() {
+        let circuit1 = CircuitData::from_packed_operations(1, 1, vec![], Param::Float(0.)).unwrap();
+        let dag1 = DAGCircuit::from_circuit_data(&circuit1, false, None, None, None, None).unwrap();
+        let circuit2 = CircuitData::from_packed_operations(
+            1,
+            1,
+            vec![Ok((
+                StandardGate::H.into(),
+                smallvec![],
+                vec![Qubit(0)],
+                vec![],
+            ))],
+            Param::Float(0.),
+        )
+        .unwrap();
+
+        let dag2 = DAGCircuit::from_circuit_data(&circuit2, false, None, None, None, None).unwrap();
+        let mut state = MinPointState::new(&dag1);
+
+        state.update_with(&dag1);
+        for i in 0..5 {
+            let continue_loop = state.update_with(&dag2);
+            if i < 4 {
+                assert!(continue_loop);
+            } else {
+                assert!(!continue_loop);
+            }
+        }
+    }
+
+    #[test]
+    fn test_backtrack_resets_on_improvement() {
+        let circuit1 = CircuitData::from_packed_operations(
+            1,
+            1,
+            vec![
+                Ok((StandardGate::H.into(), smallvec![], vec![Qubit(0)], vec![])),
+                Ok((StandardGate::H.into(), smallvec![], vec![Qubit(0)], vec![])),
+            ],
+            Param::Float(0.),
+        )
+        .unwrap();
+        let dag_worst =
+            DAGCircuit::from_circuit_data(&circuit1, false, None, None, None, None).unwrap();
+        let circuit2 = CircuitData::from_packed_operations(
+            1,
+            1,
+            vec![Ok((
+                StandardGate::H.into(),
+                smallvec![],
+                vec![Qubit(0)],
+                vec![],
+            ))],
+            Param::Float(0.),
+        )
+        .unwrap();
+        let dag_better =
+            DAGCircuit::from_circuit_data(&circuit2, false, None, None, None, None).unwrap();
+        let circuit3 = CircuitData::from_packed_operations(1, 1, vec![], Param::Float(0.)).unwrap();
+        let dag_best =
+            DAGCircuit::from_circuit_data(&circuit3, false, None, None, None, None).unwrap();
+        let mut state = MinPointState::new(&dag_worst);
+
+        state.update_with(&dag_worst);
+        state.update_with(&dag_better);
+        for _i in 0..3 {
+            state.update_with(&dag_worst);
+        }
+        state.update_with(&dag_best);
+        assert_eq!(state.count, 1);
+        // After updating to the dag_best the state tracked dag should
+        // be empty
+        assert_eq!(state.best_dag.depth(false).unwrap(), 0);
+        assert_eq!(state.best_dag.size(false).unwrap(), 0);
     }
 }
