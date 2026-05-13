@@ -14,8 +14,14 @@ use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
+#[cfg(feature = "python_binding")]
+use qiskit_transpiler::passes::py_two_qubit_unitary_peephole_optimize;
+#[cfg(not(feature = "python_binding"))]
 use qiskit_transpiler::passes::two_qubit_unitary_peephole_optimize;
 use qiskit_transpiler::target::Target;
+
+#[cfg(feature = "python_binding")]
+use pyo3::Python;
 
 /// @ingroup QkTranspilerPassesStandalone
 /// Run the TwoQubitPeepholeOptimization transpiler pass.
@@ -91,6 +97,10 @@ use qiskit_transpiler::target::Target;
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
+/// When calling this function in a Python binding context it is required that the thread calling
+/// this function has the GIL acquired. This function will assume it has access to the GIL when
+/// called when the "python_binding" feature. If this feature is disabled there is no Python
+/// interaction.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_two_qubit_peephole_optimization(
     circuit: *mut CircuitData,
@@ -109,7 +119,18 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_two_qubit_peephole_optimi
     } else {
         Some(approximation_degree)
     };
-    let out_dag = match two_qubit_unitary_peephole_optimize(&dag, target.into(), approximation) {
+    // SAFETY: Per documentation when running from a Python context it is required that the calling
+    // thread has the GIL handle when calling this method.
+    #[cfg(feature = "python_binding")]
+    let out_dag = unsafe {
+        let py = Python::assume_attached();
+        match py_two_qubit_unitary_peephole_optimize(py, &dag, target, approximation) {
+            Ok(dag) => dag,
+            Err(e) => panic!("{}", e),
+        }
+    };
+    #[cfg(not(feature = "python_binding"))]
+    let out_dag = match two_qubit_unitary_peephole_optimize(&dag, target, approximation) {
         Ok(dag) => dag,
         Err(e) => panic!("{}", e),
     };
@@ -193,6 +214,10 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_two_qubit_peephole_optimi
 /// # Safety
 ///
 /// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
+/// When calling this function in a Python binding context it is required that the thread calling
+/// this function has the GIL acquired. This function will assume it has access to the GIL when
+/// called when the "python_binding" feature. If this feature is disabled there is no Python
+/// interaction.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_transpiler_pass_two_qubit_peephole_optimization(
     dag: *mut DAGCircuit,
@@ -207,6 +232,17 @@ pub unsafe extern "C" fn qk_transpiler_pass_two_qubit_peephole_optimization(
     } else {
         Some(approximation_degree)
     };
+    // SAFETY: Per documentation when running from a Python context it is required that the calling
+    // thread has the GIL handle when calling this method.
+    #[cfg(feature = "python_binding")]
+    let out_dag = unsafe {
+        let py = Python::assume_attached();
+        match py_two_qubit_unitary_peephole_optimize(py, &dag, target, approximation) {
+            Ok(dag) => dag,
+            Err(e) => panic!("{}", e),
+        }
+    };
+    #[cfg(not(feature = "python_binding"))]
     let out_dag = match two_qubit_unitary_peephole_optimize(&dag, target.into(), approximation) {
         Ok(dag) => dag,
         Err(e) => panic!("{}", e),
