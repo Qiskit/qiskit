@@ -137,7 +137,14 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
         if frac[0].shape[0]:
             numer = int(frac[1][0]) + 1
             denom = int(frac[0][0]) + 1
-            if output == "latex":
+            if numer == 1:
+                if output == "latex":
+                    str_out = f"\\frac{{{neg_str}{pi}}}{{{denom}}}"
+                elif output == "qasm":
+                    str_out = f"{neg_str}{pi}/{denom}"
+                else:
+                    str_out = f"{neg_str}{pi}/{denom}"
+            elif output == "latex":
                 str_out = f"\\frac{{{neg_str}{numer}{pi}}}{{{denom}}}"
             elif output == "qasm":
                 str_out = f"{neg_str}{numer}*{pi}/{denom}"
