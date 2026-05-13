@@ -12,6 +12,7 @@
 
 #include "common.h"
 #include <complex.h>
+#include <math.h>
 #include <qiskit.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -94,6 +95,40 @@ cleanup:
 }
 
 /**
+ * Test running two qubit peephole standalone with NAN approximation_degree
+ */
+static int test_peephole_standalone_nan_approximation_degree(void) {
+    const uint32_t num_qubits = 5;
+    QkTarget *target = qk_target_new(num_qubits);
+    int result = Ok;
+    result = build_unitary_target(target, num_qubits);
+    if (result != Ok) {
+        goto cleanup;
+    }
+    QkCircuit *qc = qk_circuit_new(2, 0);
+    uint32_t forward[2] = {0, 1};
+    uint32_t reverse[2] = {1, 0};
+    for (int i = 0; i < 100; i++) {
+        if (i % 2) {
+            qk_circuit_gate(qc, QkGate_CX, forward, NULL);
+        } else {
+            qk_circuit_gate(qc, QkGate_CX, reverse, NULL);
+        }
+    }
+    qk_transpiler_pass_standalone_2q_peephole_optimization(qc, target, NAN);
+    size_t num_instructions = qk_circuit_num_instructions(qc);
+    if (num_instructions != 14) {
+        printf("Circuit not simplified as expected\n");
+        result = EqualityError;
+    }
+    qk_circuit_free(qc);
+
+cleanup:
+    qk_target_free(target);
+    return result;
+}
+
+/**
  * Test running two qubit peephole
  */
 static int test_peephole(void) {
@@ -131,10 +166,50 @@ cleanup:
     return result;
 }
 
+/**
+ * Test running two qubit peephole with NAN approximation_degree
+ */
+static int test_peephole_nan_approximation_degree(void) {
+    const uint32_t num_qubits = 5;
+    QkTarget *target = qk_target_new(num_qubits);
+    int result = Ok;
+    result = build_unitary_target(target, num_qubits);
+    if (result != Ok) {
+        goto cleanup;
+    }
+    QkCircuit *qc = qk_circuit_new(2, 0);
+    uint32_t forward[2] = {0, 1};
+    uint32_t reverse[2] = {1, 0};
+    for (int i = 0; i < 100; i++) {
+        if (i % 2) {
+            qk_circuit_gate(qc, QkGate_CX, forward, NULL);
+        } else {
+            qk_circuit_gate(qc, QkGate_CX, reverse, NULL);
+        }
+    }
+    QkDag *dag = qk_circuit_to_dag(qc);
+    qk_circuit_free(qc);
+    qk_transpiler_pass_2q_peephole_optimization(dag, target, NAN);
+    QkCircuit *out_circuit = qk_dag_to_circuit(dag);
+    qk_dag_free(dag);
+    size_t num_instructions = qk_circuit_num_instructions(out_circuit);
+    if (num_instructions != 14) {
+        printf("Circuit not simplified as expected\n");
+        result = EqualityError;
+    }
+    qk_circuit_free(out_circuit);
+
+cleanup:
+    qk_target_free(target);
+    return result;
+}
+
 int test_two_qubit_peephole(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_peephole_standalone);
+    num_failed += RUN_TEST(test_peephole_standalone_nan_approximation_degree);
     num_failed += RUN_TEST(test_peephole);
+    num_failed += RUN_TEST(test_peephole_nan_approximation_degree);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
