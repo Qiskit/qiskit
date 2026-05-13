@@ -26,35 +26,10 @@ use pyo3::Python;
 /// @ingroup QkTranspilerPassesStandalone
 /// Run the TwoQubitPeepholeOptimization transpiler pass.
 ///
-/// This transpiler pass is designed to perform two qubit unitary peephole
-/// optimization. This pass finds all the 2 qubit blocks in the circuit,
-/// computes the unitary of that block, and then synthesizes that unitary.
-/// If the synthesized two qubit unitary is "better" than the original
-/// subcircuit that subcircuit is used to replace the original. The heuristic
-/// used to determine if it's better first looks at the two qubit gate count
-/// in the circuit, and prefers the synthesis with fewer two qubit gates, if
-/// the two qubit gate counts are the same then it looks at the estimated
-/// fidelity of the circuit and picks the subcircuit with higher estimated
-/// fidelity, and finally if needed it picks the subcircuit with the fewest
-/// total gates.
+/// Refer to the :c:func:`qk_transpiler_pass_2q_peephole_optimization` function documentation
+/// for the pass details.
 ///
-/// In case the target is overcomplete the pass will try all the
-/// decomposers supported for all the gates supported on a given qubit.
-/// The decomposition that has the best expected performance using the above
-/// heuristic will be selected and used to replace the block.
-///
-/// This pass is designed to be run on a physical circuit and the details of
-/// operations on a given qubit is assumed to be the hardware qubit from the
-/// target. However, the output of the pass might not use hardware operations,
-/// specifically single qubit gates might be emitted outside the target's supported
-/// operations, typically only if a parameterized gate supported by the
-/// :class:`.TwoQubitControlledUDecomposer` is used for synthesis. As such if running
-/// this pass in a physical optimization stage (such as :ref:`transpiler-preset-stage-optimization`)
-/// this should be paired with passes such as :class:`.BasisTranslator` and/or
-/// :class:`.Optimize1qGatesDecomposition` to ensure that these errant single qubit
-/// gates are replaced with hardware supported operations prior to exiting the stage.
-///
-/// This pass is multithreaded, and will perform the analysis in parallel
+/// This function is multithreaded, and will perform the analysis in parallel
 /// and use all the cores available on your local system. You can refer to
 /// the `configuration guide <https://docs.quantum.ibm.com/guides/configure-qiskit-local>`__
 /// for details on how to control the threading behavior for Qiskit more broadly
@@ -71,27 +46,29 @@ use pyo3::Python;
 /// # Example
 ///
 /// ```c
-///     QkTarget *target = qk_target_new(2);
-///     uint32_t current_num_qubits = qk_target_num_qubits(target);
-///     QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
-///     for (uint32_t i = 0; i < current_num_qubits - 1; i++) {
-///         uint32_t qargs[2] = {i, i + 1};
-///         double inst_error = 0.0090393 * (current_num_qubits - i);
-///         double inst_duration = 0.020039;
-///         qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
+/// QkTarget *target = qk_target_new(2);
+/// uint32_t current_num_qubits = qk_target_num_qubits(target);
+/// QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+/// for (uint32_t i = 0; i < current_num_qubits - 1; i++) {
+///     uint32_t qargs[2] = {i, i + 1};
+///     double inst_error = 0.0090393 * (current_num_qubits - i);
+///     double inst_duration = 0.020039;
+///     qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
+/// }
+/// QkExitCode result_cx = qk_target_add_instruction(target, cx_entry);
+/// QkCircuit *qc = qk_circuit_new(2, 0);
+/// uint32_t forward[2] = {0, 1};
+/// uint32_t reverse[2] = {1, 0};
+/// for (int i = 0; i < 10; i++) {
+///     if (i % 2) {
+///         qk_circuit_gate(qc, QkGate_CX, forward, NULL);
+///     } else {
+///         qk_circuit_gate(QkGate_CX, reverse, NULL);
 ///     }
-///     QkExitCode result_cx = qk_target_add_instruction(target, cx_entry);
-///     QkCircuit *qc = qk_circuit_new(2, 0);
-///     uint32_t forward[2] = {0, 1};
-///     uint32_t reverse[2] = {1, 0};
-///     for (int i = 0; i < 10; i++) {
-///         if (i % 2) {
-///             qk_circuit_gate(qc, QkGate_CX, forward, NULL);
-///         } else {
-///             qk_circuit_gate(QkGate_CX, reverse, NULL);
-///         }
-///     }
-///     qk_transpiler_pass_standalone_2q_peephole_optimization(qc, target, 1.0);
+/// }
+/// qk_transpiler_pass_standalone_2q_peephole_optimization(qc, target, 1.0);
+/// qk_circuit_free(qc)
+/// qk_target_free(target);
 /// ```
 ///
 /// # Safety
@@ -187,28 +164,32 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_2q_peephole_optimization(
 /// # Example
 ///
 /// ```c
-///     QkTarget *target = qk_target_new(2);
-///     uint32_t current_num_qubits = qk_target_num_qubits(target);
-///     QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
-///     for (uint32_t i = 0; i < current_num_qubits - 1; i++) {
-///         uint32_t qargs[2] = {i, i + 1};
-///         double inst_error = 0.0090393 * (current_num_qubits - i);
-///         double inst_duration = 0.020039;
-///         qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
+/// QkTarget *target = qk_target_new(2);
+/// uint32_t current_num_qubits = qk_target_num_qubits(target);
+/// QkTargetEntry *cx_entry = qk_target_entry_new(QkGate_CX);
+/// for (uint32_t i = 0; i < current_num_qubits - 1; i++) {
+///     uint32_t qargs[2] = {i, i + 1};
+///     double inst_error = 0.0090393 * (current_num_qubits - i);
+///     double inst_duration = 0.020039;
+///     qk_target_entry_add_property(cx_entry, qargs, 2, inst_duration, inst_error);
+/// }
+/// QkExitCode result_cx = qk_target_add_instruction(target, cx_entry);
+/// QkCircuit *qc = qk_circuit_new(2, 0);
+/// uint32_t forward[2] = {0, 1};
+/// uint32_t reverse[2] = {1, 0};
+/// for (int i = 0; i < 10; i++) {
+///     if (i % 2) {
+///         qk_circuit_gate(qc, QkGate_CX, forward, NULL);
+///     } else {
+///         qk_circuit_gate(QkGate_CX, reverse, NULL);
 ///     }
-///     QkExitCode result_cx = qk_target_add_instruction(target, cx_entry);
-///     QkCircuit *qc = qk_circuit_new(2, 0);
-///     uint32_t forward[2] = {0, 1};
-///     uint32_t reverse[2] = {1, 0};
-///     for (int i = 0; i < 10; i++) {
-///         if (i % 2) {
-///             qk_circuit_gate(qc, QkGate_CX, forward, NULL);
-///         } else {
-///             qk_circuit_gate(QkGate_CX, reverse, NULL);
-///         }
-///     }
-///     QkDag *dag = qk_circuit_to_dag(qc);
-///     qk_transpiler_pass_2q_peephole_optimization(dag, target, 1.0);
+/// }
+/// QkDag *dag = qk_circuit_to_dag(qc);
+/// qk_circuit_free(qc);
+///
+/// qk_transpiler_pass_2q_peephole_optimization(dag, target, 1.0);
+/// qk_dag_free(dag);
+/// qk_target_free(target);
 /// ```
 ///
 /// # Safety
