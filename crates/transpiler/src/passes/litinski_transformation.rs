@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use itertools::Itertools;
 use pyo3::prelude::*;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
@@ -429,11 +430,7 @@ pub fn run_litinski_transformation(
                     }
                 }
                 OperationRef::PauliProductRotation(rotation) => {
-                    // Evolve a PPR(z, x, angle) by a Clifford:
-                    // First, pad the pauli so that it will have the size of the Clifford
-                    // Second, evolve P=Pauli(z, x, 0) by a Clifford to obtain P'
-                    // Third, compute: new_angle = (+/-1) * angle depending on P.pauli_phase
-                    // The output is PPR(P', new_angle)
+                    // Synthesize PPR
 
                     let in_z = &rotation.z;
                     let in_x = &rotation.x;
@@ -458,29 +455,56 @@ pub fn run_litinski_transformation(
                     }
                     if !is_clifford {
                         // PPR is not clifford
-                        let pauli_in = Pauli {
-                            pauli_z: in_z.to_vec(),
-                            pauli_x: in_x.to_vec(),
-                            pauli_phase: 0,
-                        };
-                        let pauli_padded = pad_pauli(&pauli_in, indices_in, num_qubits);
-                        let pauli_out = evolve_pauli_by_clifford(&pauli_padded, &clifford);
-                        let (pauli_unpadded, indices_out) = unpad_pauli(&pauli_out);
-                        let out_z = pauli_unpadded.pauli_z;
-                        let out_x = pauli_unpadded.pauli_x;
-                        let out_sign = if pauli_unpadded.pauli_phase == 0 {
-                            1.0
-                        } else {
-                            -1.0
-                        };
+                        // remove pauli I terms
+                        let (new_z, new_x, new_indices): (Vec<bool>, Vec<bool>, Vec<u32>) = in_z
+                            .iter()
+                            .zip(in_x)
+                            .zip(&indices_in)
+                            .filter(|&((&z, &x), _)| z || x)
+                            .map(|((&z, &x), &i)| (z, x, i))
+                            .multiunzip();
+
+                        // initial H or SX gates (in case of pauli X or pauli Y respectively)
+                        for qubit in 0..new_indices.len() {
+                            match (new_z[qubit], new_x[qubit]) {
+                                (true, false) => {} // pauli Z on qubit
+                                (true, true) => clifford.append_sx(new_indices[qubit] as usize), // pauli Y on qubit
+                                (false, true) => clifford.append_h(new_indices[qubit] as usize), // pauli X on qubit
+                                (false, false) => {
+                                    unreachable!("Pauli I terms were removed from PPR.")
+                                } // pauli I on qubit (shouldn't get it since pauli is sparse)
+                            }
+                        }
+
+                        // CX ladder
+                        if new_indices.len() > 1 {
+                            for ind in (0..new_indices.len() - 1).rev() {
+                                clifford.append_cx(
+                                    new_indices[ind + 1] as usize,
+                                    new_indices[ind] as usize,
+                                );
+                            }
+                        }
+                        // internal RZ gate
+                        // Evolving RZ by the Clifford.
+                        // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
+                        // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
+                        let (sign, z, x, indices) = clifford.evolve_single_qubit_pauli(
+                            true,
+                            false,
+                            new_indices[0] as usize,
+                        );
+                        let out_sign = if sign { -1.0 } else { 1.0 };
                         let angle = multiply_param(angle, out_sign);
+                        qargs.clear();
+                        qargs.extend(bytemuck::cast_slice(&indices));
                         let ppr = PauliProductRotation {
-                            z: out_z,
-                            x: out_x,
+                            z,
+                            x,
                             angle: angle.clone(),
                         };
                         qargs.clear();
-                        qargs.extend(bytemuck::cast_slice(&indices_out));
+                        qargs.extend(bytemuck::cast_slice(&indices));
 
                         new_dag.apply_operation_back(
                             PauliBased::PauliProductRotation(ppr).into(),
@@ -491,6 +515,27 @@ pub fn run_litinski_transformation(
                             #[cfg(feature = "cache_pygates")]
                             None,
                         )?;
+
+                        // CX ladder
+                        if new_indices.len() > 1 {
+                            for ind in 0..new_indices.len() - 1 {
+                                clifford.append_cx(
+                                    new_indices[ind + 1] as usize,
+                                    new_indices[ind] as usize,
+                                );
+                            }
+                        }
+                        // final H or SXdg gates (in case of pauli X or pauli Y respectively)
+                        for qubit in 0..new_indices.len() {
+                            match (new_z[qubit], new_x[qubit]) {
+                                (true, false) => {} // pauli Z on qubit
+                                (true, true) => clifford.append_sxdg(new_indices[qubit] as usize), // pauli Y on qubit
+                                (false, true) => clifford.append_h(new_indices[qubit] as usize), // pauli X on qubit
+                                (false, false) => {
+                                    unreachable!("Pauli I terms were removed from PPR.")
+                                } // pauli I on qubit (shouldn't get it since pauli is sparse)
+                            }
+                        }
                     }
                 }
                 OperationRef::StandardInstruction(StandardInstruction::Measure) => {
