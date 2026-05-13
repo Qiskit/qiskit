@@ -39,59 +39,6 @@ pub struct QPYFileHeader {
     pub type_key: ValueType,
 }
 
-/// The entire serialized QPY file with all its components
-#[binrw]
-#[brw(big)]
-#[derive(Debug)]
-pub struct QPYFile {
-    #[brw(magic = b"QISKIT")]
-    pub qpy_version: u8,
-    pub qiskit_version: (u8, u8, u8),
-    #[bw(calc = circuits.len() as u64)]
-    pub num_programs: u64,
-    /// Symbolic encoding type (for parameter expressions)
-    pub symbolic_encoding: SymbolicEncoding,
-    pub type_key: ValueType,
-    #[br(temp)]
-    #[br(if(qpy_version >= 16))]
-    #[br(count = num_programs)]
-    #[bw(calc = Vec::new())]
-    _circuit_table: Vec<u64>,
-    #[br(count = num_programs, args { inner: (qpy_version as u32,) })]
-    pub circuits: Vec<QPYCircuit>,
-}
-
-/// A QPY file in the style of version 17 for backwards compatibility
-/// Contains an explicit offset table for the circuits
-/// that was relevant for the python implementation and is now obsolete
-#[binwrite]
-#[brw(big)]
-#[derive(Debug)]
-pub struct QPY17File {
-    #[br(magic = b"QISKIT")]
-    #[bw(magic = b"QISKIT")]
-    pub qpy_version: u8,
-    pub qiskit_version: (u8, u8, u8),
-    #[bw(calc = circuits.len() as u64)]
-    pub num_programs: u64,
-    /// Symbolic encoding type (for parameter expressions)
-    pub symbolic_encoding: SymbolicEncoding,
-    pub type_key: ValueType,
-    // each entry in the circuit table should encode the exact offset
-    // of the circuit in the binary file. This should be computed
-    // during conversion from QPYFile to QPY17File
-    #[br(count = num_programs)]
-    pub circuit_table: Vec<u64>,
-    // We store the already serialized circuits since they should correspond exactly
-    // to the values in circuit_table, so the conversion method which creates circuit_table
-    // should also be responsible for serializing the circuits
-    #[br(count = num_programs)]
-    pub circuits: Vec<Bytes>,
-}
-// This is a number of bytes used up to and not including cirucit_table, needed for the offset
-// computation. Since the QPY17 format will not change, we use a constant.
-pub const QPY17_HEADER_SIZE: usize = 6 + 1 + 3 + 8 + 1 + 1;
-
 // the main file structure:
 // 1) Header: Contains the global data such as name, number of qubits etc.
 // 2) Standalone vars: Contains the qiskit_circuit::Var elements used in expressions
