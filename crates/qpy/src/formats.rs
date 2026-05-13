@@ -23,6 +23,22 @@ use qiskit_circuit::classical::expr::Expr;
 use std::io::{Read, Seek, Write};
 use std::marker::PhantomData;
 
+/// The QPY file header
+/// This is up-to-date with all the header data found in QPY13.
+/// Earlier versions were missing the `symbolic_encoding` and `type_key` fields
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct QPYFileHeader {
+    #[brw(magic = b"QISKIT")]
+    pub qpy_version: u8,
+    pub qiskit_version: (u8, u8, u8),
+    pub num_programs: u64,
+    /// Symbolic encoding type (for parameter expressions)
+    pub symbolic_encoding: SymbolicEncoding,
+    pub type_key: ValueType,
+}
+
 /// The entire serialized QPY file with all its components
 #[binrw]
 #[brw(big)]

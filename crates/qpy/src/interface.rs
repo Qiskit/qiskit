@@ -16,6 +16,7 @@
 // quantum circuits to/from QPY format. It handles the complete file structure
 // including headers, circuit tables, and multiple circuits.
 
+use binrw::{BinRead, Endian, VecArgs};
 use pyo3::PyResult;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
@@ -26,10 +27,11 @@ use crate::bytes::Bytes;
 use crate::circuit_reader::unpack_circuit;
 use crate::circuit_writer::pack_circuit;
 use crate::error::QpyError;
-use crate::formats;
-use crate::formats::{QPY17File, QPYFile};
-use crate::value::{SymbolicEncoding, ValueType, deserialize, serialize};
+use crate::formats::{self, QPYCircuit};
+use crate::formats::{QPY17File, QPYFile, QPYFileHeader};
+use crate::value::{SymbolicEncoding, ValueType, deserialize, deserialize_with_args, serialize};
 
+use std::io::{Cursor, Seek};
 // parse the qiskit version
 const fn parse_version() -> (u8, u8, u8) {
     let version_str = env!("CARGO_PKG_VERSION");
@@ -127,36 +129,109 @@ pub fn py_dump_qpy(
     Ok(())
 }
 
+// reads the offset table and splits the raw bytes into circuits accordingly
+pub fn read_raw_circuits(
+    cursor: &mut Cursor<&[u8]>,
+    num_programs: usize,
+) -> Result<Vec<Bytes>, QpyError> {
+    let circuit_table = Vec::<u64>::read_options(
+        cursor,
+        Endian::Big,
+        VecArgs {
+            count: num_programs,
+            inner: (),
+        },
+    )?;
+
+    // Read circuits using offset differences to determine sizes
+    let mut circuits = Vec::with_capacity(num_programs);
+
+    for i in 0..num_programs {
+        let size = if i + 1 < circuit_table.len() {
+            (circuit_table[i + 1] - circuit_table[i]) as usize
+        } else {
+            // Last circuit: read remaining bytes
+            let current_pos = cursor.stream_position()?;
+            let end_pos = cursor.seek(std::io::SeekFrom::End(0))?;
+            cursor.seek(std::io::SeekFrom::Start(current_pos))?;
+            (end_pos - current_pos) as usize
+        };
+
+        let circuit = Bytes::read_options(
+            cursor,
+            Endian::Big,
+            VecArgs::<Vec<u8>> {
+                count: size,
+                inner: Vec::new(),
+            },
+        )?;
+        circuits.push(circuit);
+    }
+    Ok(circuits)
+}
+
 pub fn load_qpy(
     py: Python,
     data: &Bytes,
     metadata_deserializer: Option<&Bound<PyAny>>,
     annotation_factories: &Bound<PyDict>,
-) -> PyResult<Vec<Py<PyAny>>> {
+) -> Result<Vec<Py<PyAny>>, QpyError> {
     // Deserialize the QPY17File structure using BinRead
-    let (qpy_file, _) = deserialize::<QPYFile>(data)?;
-
+    let (qpy_file_header, header_size) = deserialize::<QPYFileHeader>(data)?;
     // Verify the type key is for circuits
-    if qpy_file.type_key != ValueType::Circuit {
-        return Err(PyValueError::new_err(format!(
+    if qpy_file_header.type_key != ValueType::Circuit {
+        Err(PyValueError::new_err(format!(
             "Invalid payload format data kind '{}'",
-            qpy_file.type_key
-        )));
+            qpy_file_header.type_key
+        )))?;
     }
-    let use_symengine = matches!(qpy_file.symbolic_encoding, SymbolicEncoding::Symengine);
-    let mut circuits = Vec::with_capacity(qpy_file.circuits.len());
-    for packed_circuit in &qpy_file.circuits {
-        let circuit = unpack_circuit(
-            py,
-            packed_circuit,
-            qpy_file.qpy_version as u32,
-            metadata_deserializer,
-            use_symengine,
-            annotation_factories,
+    let num_programs = qpy_file_header.num_programs as usize;
+    let use_symengine = matches!(
+        qpy_file_header.symbolic_encoding,
+        SymbolicEncoding::Symengine
+    );
+    let mut circuits = vec![py.None(); num_programs];
+    let mut cursor = Cursor::new(data as &[u8]);
+    cursor.seek(std::io::SeekFrom::Start(header_size as u64))?;
+    if qpy_file_header.qpy_version >= 16 {
+        // let qpy_raw_circuits = QPYFileRawCircuits::read_options(&mut cursor, Endian::Big, (qpy_file_header.num_programs, ))?;
+        let qpy_raw_circuits = read_raw_circuits(&mut cursor, num_programs)?;
+        for (index, raw_circuit) in qpy_raw_circuits.iter().enumerate() {
+            let (packed_circuit, _) = deserialize_with_args::<QPYCircuit, (u32,)>(
+                raw_circuit,
+                (qpy_file_header.qpy_version as u32,),
+            )?;
+            circuits[index] = unpack_circuit(
+                py,
+                &packed_circuit,
+                qpy_file_header.qpy_version as u32,
+                metadata_deserializer,
+                use_symengine,
+                annotation_factories,
+            )?;
+        }
+    } else {
+        // QPY version < 16, no offset table
+        // let packed_qpy_circuits = QPYFileCircuits::read_options(&mut cursor, Endian::Big, (qpy_file_header.num_programs, )).unwrap();
+        let packed_qpy_circuits = Vec::<QPYCircuit>::read_options(
+            &mut cursor,
+            Endian::Big,
+            VecArgs {
+                count: num_programs,
+                inner: (qpy_file_header.qpy_version as u32,),
+            },
         )?;
-        circuits.push(circuit);
+        for (index, packed_circuit) in packed_qpy_circuits.iter().enumerate() {
+            circuits[index] = unpack_circuit(
+                py,
+                packed_circuit,
+                qpy_file_header.qpy_version as u32,
+                metadata_deserializer,
+                use_symengine,
+                annotation_factories,
+            )?;
+        }
     }
-
     Ok(circuits)
 }
 
@@ -168,7 +243,7 @@ pub fn py_load_qpy(
     file_obj: &Bound<PyAny>,
     metadata_deserializer: Option<Bound<PyAny>>,
     annotation_factories: Option<Bound<PyDict>>,
-) -> PyResult<Vec<Py<PyAny>>> {
+) -> Result<Vec<Py<PyAny>>, QpyError> {
     let annotation_factories = annotation_factories.unwrap_or(PyDict::new(py));
 
     // Read all data from file object
