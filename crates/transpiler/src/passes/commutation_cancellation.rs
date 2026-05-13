@@ -22,7 +22,7 @@ use smallvec::{SmallVec, smallvec};
 use super::analyze_commutations;
 use crate::commutation_checker::CommutationChecker;
 use qiskit_circuit::Qubit;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_synthesis::QiskitError;
 
@@ -129,7 +129,8 @@ pub fn cancel_commutations(
 
     (0..dag.num_qubits() as u32).for_each(|qubit| {
         let wire = Qubit(qubit);
-        if let Some(wire_commutation_set) = commutation_set.get(&Wire::Qubit(wire)) {
+        let wire_commutation_set = &commutation_set[qubit as usize];
+        if !wire_commutation_set.is_empty() {
             for (com_set_idx, com_set) in wire_commutation_set.iter().enumerate() {
                 if let Some(&nd) = com_set.first() {
                     if !matches!(dag[nd], NodeType::Operation(_)) {
@@ -192,8 +193,8 @@ pub fn cancel_commutations(
                                     gate: GateOrRotation::Gate(op_gate),
                                     qubits: smallvec![wire, second_qarg],
                                     com_set_index: com_set_idx,
-                                    second_index: node_indices
-                                        .get(&(*node, Wire::Qubit(second_qarg)))
+                                    second_index: node_indices[second_qarg.index()]
+                                        .get(node)
                                         .copied(),
                                 })
                                 .or_insert_with(Vec::new)
