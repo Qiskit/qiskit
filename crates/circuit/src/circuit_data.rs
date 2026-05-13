@@ -984,12 +984,12 @@ impl CircuitData {
     pub fn pack(&mut self, py: Python, inst: &CircuitInstruction) -> PyResult<PackedInstruction> {
         let qubits = self.qargs_interner.insert_owned(
             self.qubits
-                .map_objects(inst.qubits.extract::<Vec<ShareableQubit>>(py)?.into_iter())?
+                .map_objects(inst.qubits.extract::<Vec<ShareableQubit>>(py)?)?
                 .collect(),
         );
         let clbits = self.cargs_interner.insert_owned(
             self.clbits
-                .map_objects(inst.clbits.extract::<Vec<ShareableClbit>>(py)?.into_iter())?
+                .map_objects(inst.clbits.extract::<Vec<ShareableClbit>>(py)?)?
                 .collect(),
         );
         let params = self.extract_blocks_from_circuit_parameters(inst.params.as_ref());
@@ -1751,8 +1751,9 @@ impl CircuitData {
     ///
     /// # Returns
     /// An IndexMap containing the operation names as keys and their respective counts as values.
-    pub fn count_ops(&self) -> IndexMap<&str, usize, ::ahash::RandomState> {
-        let mut ops_count: IndexMap<&str, usize, ::ahash::RandomState> = IndexMap::default();
+    pub fn count_ops(&self) -> IndexMap<&str, usize, ::foldhash::fast::RandomState> {
+        let mut ops_count: IndexMap<&str, usize, ::foldhash::fast::RandomState> =
+            IndexMap::default();
         for instruction in &self.data {
             *ops_count.entry(instruction.op.name()).or_insert(0) += 1;
         }
@@ -2897,7 +2898,7 @@ impl PyCircuitData {
     ///
     /// # Returns
     /// An IndexMap containing the operation names as keys and their respective counts as values.
-    pub fn count_ops(&self) -> IndexMap<&str, usize, ::ahash::RandomState> {
+    pub fn count_ops(&self) -> IndexMap<&str, usize, ::foldhash::fast::RandomState> {
         self.inner.count_ops()
     }
 
