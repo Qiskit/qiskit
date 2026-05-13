@@ -28,7 +28,6 @@ use super::substitute_pi4_rotations::is_angle_close_to_multiple_of_pi_k; // ToDo
 use crate::TranspilerError;
 use num_complex::Complex64;
 use qiskit_quantum_info::clifford::Clifford;
-use qiskit_quantum_info::dense_pauli::{Pauli, evolve_pauli_by_clifford, pad_pauli, unpad_pauli};
 use qiskit_quantum_info::sparse_observable::{BitTerm, SparseObservable};
 
 use smallvec::smallvec;
@@ -565,37 +564,60 @@ pub fn run_litinski_transformation(
                     )?;
                 }
                 OperationRef::PauliProductMeasurement(pp_meas) => {
-                    // Evolve a PPM(z, x, neg) by a Clifford:
-                    // First, pad the pauli so that it will have the size of the Clifford
-                    // Second, evolve P=Pauli(z, x, neg) by a Clifford to obtain P'
-                    // The output is PPM(P', P'.pauli_phase)
-
+                    // update PPM to use synthesis code
                     let in_z = &pp_meas.z;
                     let in_x = &pp_meas.x;
-                    let neg = pp_meas.neg;
-                    let in_phase = if neg { 2u8 } else { 0u8 };
-                    let pauli_in = Pauli {
-                        pauli_z: in_z.to_vec(),
-                        pauli_x: in_x.to_vec(),
-                        pauli_phase: in_phase,
-                    };
+                    // let neg = pp_meas.neg;
                     let qargs_in = dag.get_qargs(inst.qubits);
                     let indices_in: Vec<u32> = (0..qargs_in.len())
                         .map(|i| qargs_in[i].index() as u32)
                         .collect();
-                    let pauli_padded = pad_pauli(&pauli_in, indices_in, num_qubits);
-                    let pauli_out = evolve_pauli_by_clifford(&pauli_padded, &clifford);
-                    let (pauli_unpadded, indices_out) = unpad_pauli(&pauli_out);
-                    let out_z = pauli_unpadded.pauli_z;
-                    let out_x = pauli_unpadded.pauli_x;
-                    let out_neg = pauli_unpadded.pauli_phase != 0;
+
+                    let (new_z, new_x, new_indices): (Vec<bool>, Vec<bool>, Vec<u32>) = in_z
+                        .iter()
+                        .zip(in_x)
+                        .zip(&indices_in)
+                        .filter(|&((&z, &x), _)| z || x)
+                        .map(|((&z, &x), &i)| (z, x, i))
+                        .multiunzip();
+
+                    // initial H or SX gates (in case of pauli X or pauli Y respectively)
+                    for qubit in 0..new_indices.len() {
+                        match (new_z[qubit], new_x[qubit]) {
+                            (true, false) => {} // pauli Z on qubit
+                            (true, true) => clifford.append_sx(new_indices[qubit] as usize), // pauli Y on qubit
+                            (false, true) => clifford.append_h(new_indices[qubit] as usize), // pauli X on qubit
+                            (false, false) => {
+                                unreachable!("Pauli I terms were removed from PPR.")
+                            } // pauli I on qubit (shouldn't get it since pauli is sparse)
+                        }
+                    }
+
+                    // CX ladder
+                    if new_indices.len() > 1 {
+                        for ind in (0..new_indices.len() - 1).rev() {
+                            clifford.append_cx(
+                                new_indices[ind + 1] as usize,
+                                new_indices[ind] as usize,
+                            );
+                        }
+                    }
+                    // Evolve a measurement in the Z-basis by a Clifford.
+                    // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
+                    // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
+                    let (sign, z, x, indices) = clifford.evolve_single_qubit_pauli(
+                        true,
+                        false,
+                        new_indices[0] as usize,
+                    );
+
                     let ppm = PauliProductMeasurement {
-                        z: out_z,
-                        x: out_x,
-                        neg: out_neg,
+                        z,
+                        x,
+                        neg: sign,
                     };
                     qargs.clear();
-                    qargs.extend(bytemuck::cast_slice(&indices_out));
+                    qargs.extend(bytemuck::cast_slice(&indices));
 
                     let ppm_clbits = dag.get_cargs(inst.clbits);
 
@@ -608,6 +630,26 @@ pub fn run_litinski_transformation(
                         #[cfg(feature = "cache_pygates")]
                         None,
                     )?;
+                        // CX ladder
+                        if new_indices.len() > 1 {
+                            for ind in 0..new_indices.len() - 1 {
+                                clifford.append_cx(
+                                    new_indices[ind + 1] as usize,
+                                    new_indices[ind] as usize,
+                                );
+                            }
+                        }
+                        // final H or SXdg gates (in case of pauli X or pauli Y respectively)
+                        for qubit in 0..new_indices.len() {
+                            match (new_z[qubit], new_x[qubit]) {
+                                (true, false) => {} // pauli Z on qubit
+                                (true, true) => clifford.append_sxdg(new_indices[qubit] as usize), // pauli Y on qubit
+                                (false, true) => clifford.append_h(new_indices[qubit] as usize), // pauli X on qubit
+                                (false, false) => {
+                                    unreachable!("Pauli I terms were removed from PPR.")
+                                } // pauli I on qubit (shouldn't get it since pauli is sparse)
+                            }
+                        }
                 }
                 _ => unreachable!(
                     "We cannot have unsupported names at this step of Litinski Transformation: {}",
