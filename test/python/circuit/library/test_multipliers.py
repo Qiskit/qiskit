@@ -154,6 +154,14 @@ class TestMultiplier(QiskitTestCase):
             with self.assertWarns(DeprecationWarning):
                 _ = multiplier(num_state_qubits, num_result_qubits)
 
+    def test_multiplier_gate_decompose_with_reduced_result_register(self):
+        """Test decompose respects a multiplier gate's configured result width."""
+        multiplier = MultiplierGate(1, 1)
+        circuit = QuantumCircuit(multiplier.num_qubits)
+        circuit.append(multiplier, range(multiplier.num_qubits))
+
+        self.assertEqual(circuit.decompose().num_qubits, multiplier.num_qubits)
+
     def test_modular_cumulative_multiplier_custom_adder(self):
         """Test an error is raised when a custom adder is used with modular cumulative multiplier."""
         with self.assertRaises(NotImplementedError):
