@@ -91,7 +91,7 @@ use pyo3::Python;
 ///             qk_circuit_gate(QkGate_CX, reverse, NULL);
 ///         }
 ///     }
-///     qk_transpiler_pass_standalone_two_qubit_peephole_optimization(qc, target, 1.0);
+///     qk_transpiler_pass_standalone_2q_peephole_optimization(qc, target, 1.0);
 /// ```
 ///
 /// # Safety
@@ -102,7 +102,7 @@ use pyo3::Python;
 /// called when the "python_binding" feature. If this feature is disabled there is no Python
 /// interaction.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_transpiler_pass_standalone_two_qubit_peephole_optimization(
+pub unsafe extern "C" fn qk_transpiler_pass_standalone_2q_peephole_optimization(
     circuit: *mut CircuitData,
     target: *const Target,
     approximation_degree: f64,
@@ -208,7 +208,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_two_qubit_peephole_optimi
 ///         }
 ///     }
 ///     QkDag *dag = qk_circuit_to_dag(qc);
-///     qk_transpiler_pass_two_qubit_peephole_optimization(dag, target, 1.0);
+///     qk_transpiler_pass_2q_peephole_optimization(dag, target, 1.0);
 /// ```
 ///
 /// # Safety
@@ -219,7 +219,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_two_qubit_peephole_optimi
 /// called when the "python_binding" feature. If this feature is disabled there is no Python
 /// interaction.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_transpiler_pass_two_qubit_peephole_optimization(
+pub unsafe extern "C" fn qk_transpiler_pass_2q_peephole_optimization(
     dag: *mut DAGCircuit,
     target: *const Target,
     approximation_degree: f64,
@@ -243,7 +243,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_two_qubit_peephole_optimization(
         }
     };
     #[cfg(not(feature = "python_binding"))]
-    let out_dag = match two_qubit_unitary_peephole_optimize(&dag, target.into(), approximation) {
+    let out_dag = match two_qubit_unitary_peephole_optimize(dag, target, approximation) {
         Ok(dag) => dag,
         Err(e) => panic!("{}", e),
     };
@@ -351,7 +351,7 @@ mod tests {
             )
             .unwrap();
         unsafe {
-            qk_transpiler_pass_standalone_two_qubit_peephole_optimization(&mut qc, &target, 1.0);
+            qk_transpiler_pass_standalone_2q_peephole_optimization(&mut qc, &target, 1.0);
         };
         let mut gate_names = qc.count_ops().keys().copied().collect::<Vec<_>>();
         gate_names.sort();

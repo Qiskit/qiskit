@@ -80,7 +80,7 @@ static int test_peephole_standalone(void) {
             qk_circuit_gate(qc, QkGate_CX, reverse, NULL);
         }
     }
-    qk_transpiler_pass_standalone_two_qubit_peephole_optimization(qc, target, 1.0);
+    qk_transpiler_pass_standalone_2q_peephole_optimization(qc, target, 1.0);
     size_t num_instructions = qk_circuit_num_instructions(qc);
     if (num_instructions != 14) {
         printf("Circuit not simplified as expected\n");
@@ -116,7 +116,7 @@ static int test_peephole(void) {
     }
     QkDag *dag = qk_circuit_to_dag(qc);
     qk_circuit_free(qc);
-    qk_transpiler_pass_two_qubit_peephole_optimization(dag, target, 1.0);
+    qk_transpiler_pass_2q_peephole_optimization(dag, target, 1.0);
     QkCircuit *out_circuit = qk_dag_to_circuit(dag);
     qk_dag_free(dag);
     size_t num_instructions = qk_circuit_num_instructions(out_circuit);
