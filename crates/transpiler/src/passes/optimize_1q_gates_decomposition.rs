@@ -35,8 +35,6 @@ use qiskit_synthesis::euler_one_qubit_decomposer::{
     unitary_to_gate_sequence_inner,
 };
 
-const PARALLEL_THRESHOLD: usize = 25_000;
-
 fn compute_error_term_from_target(gate: &str, target: &Target, qubit: PhysicalQubit) -> f64 {
     1. - target.get_error(gate, &[qubit]).unwrap_or(0.)
 }
@@ -411,7 +409,7 @@ pub fn run_optimize_1q_gates_decomposition(
                 Ok(None)
             }
         };
-    if getenv_use_multiple_threads() && runs.len() > PARALLEL_THRESHOLD {
+    if getenv_use_multiple_threads() {
         let sequences = runs
             .par_iter()
             .map(|raw_run| process_run(raw_run, dag))
