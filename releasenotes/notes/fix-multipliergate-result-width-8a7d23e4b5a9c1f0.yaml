@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed :class:`.MultiplierGate` so that its synthesized definition preserves
+    the configured result-register width. Previously, decomposing a multiplier
+    gate with a reduced result width could produce a definition with too many
+    qubits.
