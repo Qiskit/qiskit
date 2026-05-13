@@ -19,9 +19,9 @@ use crate::imports::{
 use crate::instruction::Parameters;
 use crate::interner::Interned;
 use crate::operations::{
-    BoxedCustomOperation, ControlFlow, ControlFlowInstruction, CustomOperation,
-    CustomOperationKind, Operation, OperationRef, Param, PauliBased, PyOperationTypes,
-    PythonOperation, StandardGate, StandardInstruction, UnitaryGate,
+    BoxedCustomOperation, ControlFlow, ControlFlowInstruction, CustomOperation, Operation,
+    OperationRef, Param, PauliBased, PyOperationTypes, PythonOperation, StandardGate,
+    StandardInstruction, UnitaryGate,
 };
 use crate::{Block, Clbit, Qubit};
 use hashbrown::HashMap;
@@ -546,7 +546,7 @@ impl PackedOperation {
             PackedOperationType::StandardGate => true,
             PackedOperationType::Custom => {
                 let opaque: &BoxedCustomOperation = self.try_into().unwrap();
-                matches!(opaque.kind(), CustomOperationKind::Gate)
+                opaque.is_unitary()
             }
             PackedOperationType::PyOperationTypes => {
                 let op: &PyOperationTypes = self.try_into().unwrap();

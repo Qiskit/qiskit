@@ -1845,16 +1845,6 @@ impl PartialEq for PauliProductMeasurement {
 
 impl Eq for PauliProductMeasurement {}
 
-/// Describes the kind of operation associated with this type.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(u8)]
-pub enum CustomOperationKind {
-    /// A unitary operation in the circuit.
-    Gate,
-    /// A non-unitary operation in the circuit.
-    Instruction,
-}
-
 /// Trait that implements common methods found in operations that, in conjunction with
 /// the [Operation] trait, allows a struct to operate in a circuit.
 ///
@@ -1914,8 +1904,8 @@ pub trait CustomOperation: Operation + Any + Debug + Send + Sync {
     /// trickle down to just calling the implementor's `Clone::clone()` method.
     fn clone_dyn(&self) -> Box<dyn CustomOperation>;
 
-    /// Returns the kind of operation associated with this type.
-    fn kind(&self) -> CustomOperationKind;
+    /// Returns whether the operation is based on a unitary matrix.
+    fn is_unitary(&self) -> bool;
 }
 
 impl dyn CustomOperation + 'static {
@@ -2020,9 +2010,7 @@ mod test_custom_gates {
     use crate::Qubit;
     use crate::circuit_data::CircuitData;
     use crate::gate_matrix::H_GATE;
-    use crate::operations::{
-        CustomOperation, CustomOperationKind, Operation, OperationRef, Param, StandardGate,
-    };
+    use crate::operations::{CustomOperation, Operation, OperationRef, Param, StandardGate};
     use ndarray::aview2;
     use smallvec::smallvec;
     use std::f64::consts::PI;
@@ -2068,8 +2056,8 @@ mod test_custom_gates {
             params.is_empty().then_some(aview2(&H_GATE).to_owned())
         }
 
-        fn kind(&self) -> CustomOperationKind {
-            CustomOperationKind::Gate
+        fn is_unitary(&self) -> bool {
+            true
         }
     }
 

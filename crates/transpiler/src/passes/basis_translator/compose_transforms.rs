@@ -203,7 +203,7 @@ impl CustomOperation for CustomDummy {
         Box::new(self.clone())
     }
 
-    fn kind(&self) -> qiskit_circuit::operations::CustomOperationKind {
-        qiskit_circuit::operations::CustomOperationKind::Gate
+    fn is_unitary(&self) -> bool {
+        true
     }
 }
