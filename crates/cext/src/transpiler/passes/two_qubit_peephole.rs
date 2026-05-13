@@ -218,7 +218,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_2q_peephole_optimization(
     #[cfg(feature = "python_binding")]
     let out_dag = unsafe {
         let py = Python::assume_attached();
-        match py_two_qubit_unitary_peephole_optimize(py, &dag, target, approximation) {
+        match py_two_qubit_unitary_peephole_optimize(py, dag, target, approximation) {
             Ok(dag) => dag,
             Err(e) => panic!("{}", e),
         }
