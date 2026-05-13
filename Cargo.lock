@@ -2313,6 +2313,7 @@ name = "qiskit-circuit"
 version = "2.5.0-dev"
 dependencies = [
  "ahash 0.8.12",
+ "anyhow",
  "approx",
  "bitfield-struct",
  "bytemuck",
