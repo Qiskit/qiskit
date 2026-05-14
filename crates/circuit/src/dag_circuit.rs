@@ -134,9 +134,7 @@ pub enum DAGCircuitInnerError {
     #[error(transparent)]
     RegistryAddError(#[from] crate::object_registry::AddError),
     #[error(transparent)]
-    RegistryAbsentObjectQubit(#[from] crate::object_registry::AbsentObject<ShareableQubit>),
-    #[error(transparent)]
-    RegistryAbsentObjectClbit(#[from] crate::object_registry::AbsentObject<ShareableClbit>),
+    RegistryAbsentObject(crate::object_registry::AbsentObject),
     #[error(
         "{ty} '{name}' to be inlined is not in the base DAG. If you wanted it to be automatically added, use `inline_captures=False`.",
         ty = (if *is_var {"Variable"} else {"Stretch"})
@@ -166,12 +164,17 @@ pub enum DAGCircuitInnerError {
     Python(PyErr),
 }
 
+impl<T: Debug> From<crate::object_registry::AbsentObject<T>> for DAGCircuitInnerError {
+    fn from(val: crate::object_registry::AbsentObject<T>) -> Self {
+        Self::RegistryAbsentObject(val.erase_type())
+    }
+}
+
 impl From<DAGCircuitInnerError> for PyErr {
     fn from(value: DAGCircuitInnerError) -> Self {
         match value {
             DAGCircuitInnerError::RegistryAddError(err) => err.into(),
-            DAGCircuitInnerError::RegistryAbsentObjectQubit(err) => err.into(),
-            DAGCircuitInnerError::RegistryAbsentObjectClbit(err) => err.into(),
+            DAGCircuitInnerError::RegistryAbsentObject(err) => err.into(),
             DAGCircuitInnerError::Python(err) => err,
             DAGCircuitInnerError::WireOutOfRange(_) => PyValueError::new_err(value.to_string()),
             DAGCircuitInnerError::NodeNotInGraph(_) => PyIndexError::new_err(value.to_string()),
