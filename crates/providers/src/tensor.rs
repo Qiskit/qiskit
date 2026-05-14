@@ -113,10 +113,10 @@ pub enum DTypeLike {
 ///
 /// This function implements the same promotion rules as NumPy, modulo that we don't
 /// need to contend with the arbitrary precision types for each type kind, and that
-/// we omit F16 entirely because it's ustable in rust:
+/// we omit F16 entirely because it's unstable in Rust:
 /// https://numpy.org/doc/stable/reference/arrays.promotion.html#numerical-promotion
 /// In short, if you view the linked diagram as a DAG, this function hard-codes the
-/// least-common-descendent algorithm.
+/// least-common-descendant algorithm.
 pub fn promotion(lhs: DType, rhs: DType) -> DType {
     use DType::*;
 
@@ -594,6 +594,22 @@ impl std::ops::Rem for Tensor {
 mod test {
     use super::*;
 
+    const ALL_DTYPES: [DType; 13] = [
+        DType::Bit,
+        DType::U8,
+        DType::U16,
+        DType::U32,
+        DType::U64,
+        DType::I8,
+        DType::I16,
+        DType::I32,
+        DType::I64,
+        DType::F32,
+        DType::F64,
+        DType::C64,
+        DType::C128,
+    ];
+
     #[test]
     fn test_promotion_against_promotion_dag() {
         use DType::*;
@@ -603,15 +619,11 @@ mod test {
         use rustworkx_core::traversal::descendants;
 
         // define a DAG that implements all promotion rules; two DTypes
-        // should be promoted to their least common descendent in the DAG
+        // should be promoted to their least common descendant in the DAG
         let mut g: DiGraph<DType, ()> = DiGraph::new();
         let mut idx: HashMap<DType, NodeIndex> = HashMap::new();
 
-        let nodes = [
-            Bit, U8, U16, U32, U64, I8, I16, I32, I64, F32, F64, C64, C128,
-        ];
-
-        for &dtype in &nodes {
+        for &dtype in &ALL_DTYPES {
             idx.insert(dtype, g.add_node(dtype));
         }
 
@@ -656,19 +668,19 @@ mod test {
         )
         .unwrap();
 
-        let least_common_decendent = move |a: &DType, b: &DType| -> DType {
+        let least_common_descendant = move |a: &DType, b: &DType| -> DType {
             let da: HashSet<_> = descendants(&g, idx[a]).collect();
             let db: HashSet<_> = descendants(&g, idx[b]).collect();
             let common: HashSet<NodeIndex> = da.intersection(&db).copied().collect();
             let least_idx = order.iter().find(|n| common.contains(*n)).unwrap();
-            nodes[least_idx.index()]
+            ALL_DTYPES[least_idx.index()]
         };
 
-        for &a in &nodes {
-            for &b in &nodes {
+        for &a in &ALL_DTYPES {
+            for &b in &ALL_DTYPES {
                 assert_eq!(
                     promotion(a, b),
-                    least_common_decendent(&a, &b),
+                    least_common_descendant(&a, &b),
                     "For promotion ({a}, {b})"
                 )
             }
@@ -677,25 +689,15 @@ mod test {
 
     #[test]
     fn test_promotion_idempotence() {
-        use DType::*;
-        let nodes = [
-            Bit, U8, U16, U32, U64, I8, I16, I32, I64, F32, F64, C64, C128,
-        ];
-
-        for &a in &nodes {
+        for &a in &ALL_DTYPES {
             assert_eq!(promotion(a, a), a, "For promotion ({a}, {a})")
         }
     }
 
     #[test]
     fn test_promotion_commutativity() {
-        use DType::*;
-        let nodes = [
-            Bit, U8, U16, U32, U64, I8, I16, I32, I64, F32, F64, C64, C128,
-        ];
-
-        for &a in &nodes {
-            for &b in &nodes {
+        for &a in &ALL_DTYPES {
+            for &b in &ALL_DTYPES {
                 assert_eq!(promotion(a, b), promotion(b, a), "For promotion ({a}, {b})")
             }
         }
@@ -1366,8 +1368,10 @@ mod test {
 
     #[test]
     fn test_cast_dispatch() {
-        // The Bit→all-targets loop catches any wrong target arm in cast_real!.
-        // C64→C128 covers the only cast_complex! arm not exercised elsewhere.
+        // Loop every real-source dtype against every target to cover every arm
+        // of `cast_real!`. The complex-source arms are covered by
+        // `test_cast_complex_to_complex` and the explicit `C64 -> C128` check
+        // below.
         let mut fails: Vec<String> = vec![];
 
         let all_targets = [
