@@ -16,4 +16,5 @@
 
 use crate::declare_fn;
 
+// This is just an example of what the generated file produces.
 declare_fn!(crate::QK_FFI_CIRCUIT[0]; qk_api_version() -> u32);

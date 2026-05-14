@@ -109,6 +109,9 @@ unsafe impl Sync for VTablePtr {}
 
 static CAPI_MODULE_NAME: &str = "qiskit._accelerate.capi";
 
+// `qk_import` stores the vtable pointers from each of the corresponding `PyCapsule`s of the C API
+// into these statics, then the `declare_fn!` macro is used (in the generated `ffi` module) to wrap
+// each entry in an inline Rust function that accesses it.
 static QK_FFI_CIRCUIT: OnceLock<VTablePtr> = OnceLock::new();
 static QK_FFI_TRANSPILE: OnceLock<VTablePtr> = OnceLock::new();
 static QK_FFI_QI: OnceLock<VTablePtr> = OnceLock::new();
