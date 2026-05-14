@@ -654,7 +654,6 @@ mod test {
             false,
             None,
         )
-        .ok()
         .unwrap();
 
         let least_common_decendent = move |a: &DType, b: &DType| -> DType {
