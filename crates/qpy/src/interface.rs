@@ -28,9 +28,7 @@ use crate::circuit_reader::unpack_circuit;
 use crate::circuit_writer::pack_circuit;
 use crate::error::QpyError;
 use crate::formats::{QPYCircuit, QPYFileHeader};
-use crate::value::{
-    ProgramType, SymbolicEncoding, deserialize, deserialize_with_args, serialize,
-};
+use crate::value::{ProgramType, SymbolicEncoding, deserialize, deserialize_with_args, serialize};
 
 use std::io::{Cursor, Seek};
 // parse the qiskit version
