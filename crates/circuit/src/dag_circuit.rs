@@ -117,7 +117,13 @@ pub enum DAGCircuitInnerError {
     WireNotInCircuit(Wire),
     #[error("Duplicate wire {0:?}")]
     DuplicateWire(Wire),
-    #[error("Register {0:?} not found in circuit")]
+    #[error(
+        "{ty} not in circuit. {0}",
+        ty = match .0 {
+            RegisterRef::Quantum(_) => "qreg",
+            RegisterRef::Classical(_) => "creg",
+        }
+    )]
     RegisterNotInCircuit(RegisterRef),
     #[error(transparent)]
     WireOutOfRange(anyhow::Error),
@@ -132,16 +138,17 @@ pub enum DAGCircuitInnerError {
     #[error(transparent)]
     RegistryAbsentObjectClbit(#[from] crate::object_registry::AbsentObject<ShareableClbit>),
     #[error(
-        "Variable/Stretch '{0}' to be inlined is not in the base DAG. If you wanted it to be automatically added, use `inline_captures=False`."
+        "{ty} '{name}' to be inlined is not in the base DAG. If you wanted it to be automatically added, use `inline_captures=False`.",
+        ty = (if *is_var {"Variable"} else {"Stretch"})
     )]
-    VariableNotInlined(String),
+    VariableNotInlined { name: String, is_var: bool },
     #[error("Wire '{0:?}' not in self")]
     MissingWire(ConcreteWire),
+    #[error("Specified node {} is not in this graph", .0.index())]
+    NodeNotInGraph(NodeIndex),
     /// Errors that don't have anything that needs to be tracked. Only a message.
     #[error(transparent)]
     General(#[from] anyhow::Error),
-    #[error("Specified node {} is not in this graph", .0.index())]
-    NodeNotInGraph(NodeIndex),
     #[error(transparent)]
     VarStretchContainer(#[from] VarStretchContainerError),
     #[error("Wire {0:?} not found in output map")]
@@ -188,6 +195,15 @@ pub enum ConcreteWire {
 pub enum RegisterRef {
     Quantum(QuantumRegister),
     Classical(ClassicalRegister),
+}
+
+impl std::fmt::Display for RegisterRef {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RegisterRef::Quantum(quantum_register) => quantum_register.fmt(f),
+            RegisterRef::Classical(classical_register) => classical_register.fmt(f),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -7899,14 +7915,18 @@ impl DAGCircuit {
                     let expr::Var::Standalone { name, .. } = var else {
                         panic!("var capture not standalone");
                     };
-                    return Err(DAGCircuitInnerError::VariableNotInlined(name.clone()));
+                    return Err(DAGCircuitInnerError::VariableNotInlined {
+                        name: name.clone(),
+                        is_var: true,
+                    });
                 }
             }
             for stretch in other.vars_stretches.iter_stretches(StretchType::Capture) {
                 if self.vars_stretches.stretches().find(stretch).is_none() {
-                    return Err(
-                        DAGCircuitInnerError::VariableNotInlined(stretch.name.clone()),
-                    );
+                    return Err(DAGCircuitInnerError::VariableNotInlined {
+                        name: stretch.name.clone(),
+                        is_var: false,
+                    });
                 }
             }
         } else {
