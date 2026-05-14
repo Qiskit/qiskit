@@ -11,5 +11,5 @@
 // that they have been altered from the originals.
 
 mod data_tree;
-
+pub mod tensor;
 pub use data_tree::{DataTree, PathEntry};
