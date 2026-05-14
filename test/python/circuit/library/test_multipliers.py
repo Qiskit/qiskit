@@ -185,6 +185,30 @@ class TestMultiplier(QiskitTestCase):
                 ops = set(synth.count_ops().keys())
                 self.assertIn(expected_op, ops)
 
+    @data(
+        (1, 1),
+        (2, 2),
+        (2, 3),
+        (3, 3),
+        (3, 4),
+        (3, 5),
+    )
+    @unpack
+    def test_multiplier_gate_decompose_with_custom_result_qubits(
+        self, num_state_qubits, num_result_qubits
+    ):
+        """Test that MultiplierGate.decompose() works with non-default num_result_qubits.
+
+        Regression test for https://github.com/Qiskit/qiskit/issues/16168.
+        """
+        gate = MultiplierGate(num_state_qubits, num_result_qubits)
+        self.assertEqual(gate.num_qubits, 2 * num_state_qubits + num_result_qubits)
+
+        # This should not raise -- previously it failed because _define() did not
+        # forward num_result_qubits to the synthesis function.
+        decomposed = gate.definition
+        self.assertEqual(decomposed.num_qubits, gate.num_qubits)
+
 
 if __name__ == "__main__":
     unittest.main()
