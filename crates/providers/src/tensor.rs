@@ -666,4 +666,402 @@ mod test {
             None
         );
     }
+
+    // -----------------------------------------------------------------------
+    // Construction, dtype, shape
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_from_slice() {
+        let t = Tensor::from(&[1.0f64, 2.0, 3.0][..]);
+        assert_eq!(t.dtype(), DType::F64);
+        assert_eq!(t.shape(), &[3]);
+
+        let t = Tensor::from(&[1i32, -2, 3][..]);
+        assert_eq!(t.dtype(), DType::I32);
+        assert_eq!(t.shape(), &[3]);
+
+        let t = Tensor::from(&[10u8, 20, 30][..]);
+        assert_eq!(t.dtype(), DType::U8);
+        assert_eq!(t.shape(), &[3]);
+
+        let t = Tensor::from(&[Complex64::new(1.0, 2.0), Complex64::new(3.0, 4.0)][..]);
+        assert_eq!(t.dtype(), DType::C128);
+        assert_eq!(t.shape(), &[2]);
+    }
+
+    #[test]
+    fn test_from_array() {
+        let t = Tensor::from([0.5f32, 1.5, 2.5]);
+        assert_eq!(t.dtype(), DType::F32);
+        assert_eq!(t.shape(), &[3]);
+
+        let t = Tensor::from([1i64, 2, 3, 4]);
+        assert_eq!(t.dtype(), DType::I64);
+        assert_eq!(t.shape(), &[4]);
+    }
+
+    #[test]
+    fn test_from_arrayd() {
+        let arr = ndarray::Array::from_shape_vec(IxDyn(&[2, 3]), vec![1.0f64; 6]).unwrap();
+        let t = Tensor::from(arr);
+        assert_eq!(t.dtype(), DType::F64);
+        assert_eq!(t.shape(), &[2, 3]);
+
+        let arr = ndarray::Array::from_shape_vec(IxDyn(&[4, 1, 2]), vec![0u32; 8]).unwrap();
+        let t = Tensor::from(arr);
+        assert_eq!(t.dtype(), DType::U32);
+        assert_eq!(t.shape(), &[4, 1, 2]);
+    }
+
+    #[test]
+    fn test_tensor_type() {
+        let t = Tensor::from([1.0f64, 2.0, 3.0]);
+        let tt = t.tensor_type();
+        assert!(
+            matches!(tt.dtype, DTypeLike::Concrete(DType::F64)),
+            "expected Concrete(F64)"
+        );
+        assert_eq!(tt.shape, vec![Dim::Fixed(3)]);
+        assert!(!tt.broadcastable);
+
+        let arr = ndarray::Array::from_shape_vec(IxDyn(&[2, 4]), vec![0i16; 8]).unwrap();
+        let t = Tensor::from(arr);
+        let tt = t.tensor_type();
+        assert!(
+            matches!(tt.dtype, DTypeLike::Concrete(DType::I16)),
+            "expected Concrete(I16)"
+        );
+        assert_eq!(tt.shape, vec![Dim::Fixed(2), Dim::Fixed(4)]);
+    }
+
+    // -----------------------------------------------------------------------
+    // cast
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_cast_identity() {
+        let t = Tensor::from([1.0f64, 2.0, 3.0]);
+        let t2 = t.cast(DType::F64);
+        assert_eq!(t2.dtype(), DType::F64);
+        if let Tensor::F64(a) = t2 {
+            assert_eq!(a.as_slice().unwrap(), &[1.0f64, 2.0, 3.0]);
+        } else {
+            panic!("expected F64 tensor");
+        }
+    }
+
+    #[test]
+    fn test_cast_real_widening() {
+        let t = Tensor::from([1i8, 2, 3]);
+        let t2 = t.cast(DType::I64);
+        assert_eq!(t2.dtype(), DType::I64);
+        if let Tensor::I64(a) = t2 {
+            assert_eq!(a.as_slice().unwrap(), &[1i64, 2, 3]);
+        } else {
+            panic!("expected I64 tensor");
+        }
+
+        let t = Tensor::from([1.0f32, 2.0]);
+        let t2 = t.cast(DType::F64);
+        assert_eq!(t2.dtype(), DType::F64);
+        if let Tensor::F64(a) = t2 {
+            assert!(approx::abs_diff_eq!(a[0], 1.0f64, epsilon = 1e-6));
+            assert!(approx::abs_diff_eq!(a[1], 2.0f64, epsilon = 1e-6));
+        } else {
+            panic!("expected F64 tensor");
+        }
+    }
+
+    #[test]
+    fn test_cast_real_to_complex() {
+        let t = Tensor::from([3.0f64, 4.0]);
+        let t2 = t.cast(DType::C128);
+        assert_eq!(t2.dtype(), DType::C128);
+        if let Tensor::C128(a) = t2 {
+            assert!(approx::abs_diff_eq!(a[0].re, 3.0f64, epsilon = 1e-12));
+            assert!(approx::abs_diff_eq!(a[0].im, 0.0f64, epsilon = 1e-12));
+            assert!(approx::abs_diff_eq!(a[1].re, 4.0f64, epsilon = 1e-12));
+        } else {
+            panic!("expected C128 tensor");
+        }
+    }
+
+    #[test]
+    fn test_cast_complex_to_complex() {
+        let t = Tensor::from([Complex64::new(1.0, -1.0), Complex64::new(0.5, 2.0)]);
+        let t2 = t.cast(DType::C64);
+        assert_eq!(t2.dtype(), DType::C64);
+        if let Tensor::C64(a) = t2 {
+            assert!(approx::abs_diff_eq!(a[0].re, 1.0f32, epsilon = 1e-5));
+            assert!(approx::abs_diff_eq!(a[0].im, -1.0f32, epsilon = 1e-5));
+        } else {
+            panic!("expected C64 tensor");
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "cannot cast complex")]
+    fn test_cast_complex_to_real_panics() {
+        let t = Tensor::from([Complex64::new(1.0, 2.0)]);
+        let _ = t.cast(DType::F64);
+    }
+
+    // -----------------------------------------------------------------------
+    // pow
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_pow_float() {
+        let base = Tensor::from([4.0f64, 9.0, 16.0]);
+        let exp = Tensor::from([0.5f64, 0.5, 0.5]);
+        let result = base.pow(&exp);
+        assert_eq!(result.dtype(), DType::F64);
+        if let Tensor::F64(a) = result {
+            assert!(approx::abs_diff_eq!(a[0], 2.0f64, epsilon = 1e-12));
+            assert!(approx::abs_diff_eq!(a[1], 3.0f64, epsilon = 1e-12));
+            assert!(approx::abs_diff_eq!(a[2], 4.0f64, epsilon = 1e-12));
+        } else {
+            panic!("expected F64 tensor");
+        }
+    }
+
+    #[test]
+    fn test_pow_int() {
+        let base = Tensor::from([2i32, 3, 4]);
+        let exp = Tensor::from([3i32, 2, 1]);
+        let result = base.pow(&exp);
+        assert_eq!(result.dtype(), DType::I32);
+        if let Tensor::I32(a) = result {
+            assert_eq!(a.as_slice().unwrap(), &[8i32, 9, 4]);
+        } else {
+            panic!("expected I32 tensor");
+        }
+    }
+
+    #[test]
+    fn test_pow_broadcast() {
+        // shape [3] ^ shape [1] -> shape [3]
+        let base = Tensor::from([2.0f64, 3.0, 4.0]);
+        let exp = Tensor::from([2.0f64]);
+        let result = base.pow(&exp);
+        assert_eq!(result.shape(), &[3]);
+        if let Tensor::F64(a) = result {
+            assert!(approx::abs_diff_eq!(a[0], 4.0f64, epsilon = 1e-12));
+            assert!(approx::abs_diff_eq!(a[1], 9.0f64, epsilon = 1e-12));
+            assert!(approx::abs_diff_eq!(a[2], 16.0f64, epsilon = 1e-12));
+        } else {
+            panic!("expected F64 tensor");
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Arithmetic operators
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_add() {
+        let a = Tensor::from([1.0f64, 2.0, 3.0]);
+        let b = Tensor::from([4.0f64, 5.0, 6.0]);
+        let c = &a + &b;
+        assert_eq!(c.dtype(), DType::F64);
+        if let Tensor::F64(arr) = c {
+            assert_eq!(arr.as_slice().unwrap(), &[5.0f64, 7.0, 9.0]);
+        } else {
+            panic!("expected F64 tensor");
+        }
+    }
+
+    #[test]
+    fn test_sub() {
+        let a = Tensor::from([10.0f64, 5.0, 3.0]);
+        let b = Tensor::from([1.0f64, 2.0, 3.0]);
+        let c = &a - &b;
+        assert_eq!(c.dtype(), DType::F64);
+        if let Tensor::F64(arr) = c {
+            assert_eq!(arr.as_slice().unwrap(), &[9.0f64, 3.0, 0.0]);
+        } else {
+            panic!("expected F64 tensor");
+        }
+    }
+
+    #[test]
+    fn test_mul() {
+        let a = Tensor::from([2.0f64, 3.0, 4.0]);
+        let b = Tensor::from([5.0f64, 6.0, 7.0]);
+        let c = &a * &b;
+        assert_eq!(c.dtype(), DType::F64);
+        if let Tensor::F64(arr) = c {
+            assert_eq!(arr.as_slice().unwrap(), &[10.0f64, 18.0, 28.0]);
+        } else {
+            panic!("expected F64 tensor");
+        }
+    }
+
+    #[test]
+    fn test_div() {
+        let a = Tensor::from([6.0f64, 9.0, 12.0]);
+        let b = Tensor::from([2.0f64, 3.0, 4.0]);
+        let c = &a / &b;
+        assert_eq!(c.dtype(), DType::F64);
+        if let Tensor::F64(arr) = c {
+            assert_eq!(arr.as_slice().unwrap(), &[3.0f64, 3.0, 3.0]);
+        } else {
+            panic!("expected F64 tensor");
+        }
+    }
+
+    #[test]
+    fn test_rem() {
+        let a = Tensor::from([7i32, 10, 13]);
+        let b = Tensor::from([3i32, 4, 5]);
+        let c = &a % &b;
+        assert_eq!(c.dtype(), DType::I32);
+        if let Tensor::I32(arr) = c {
+            assert_eq!(arr.as_slice().unwrap(), &[1i32, 2, 3]);
+        } else {
+            panic!("expected I32 tensor");
+        }
+    }
+
+    #[test]
+    fn test_arithmetic_complex() {
+        let a = Tensor::from([Complex64::new(1.0, 2.0), Complex64::new(3.0, 4.0)]);
+        let b = Tensor::from([Complex64::new(5.0, 6.0), Complex64::new(7.0, 8.0)]);
+        let sum = &a + &b;
+        assert_eq!(sum.dtype(), DType::C128);
+        if let Tensor::C128(arr) = &sum {
+            assert!(approx::abs_diff_eq!(arr[0].re, 6.0f64, epsilon = 1e-12));
+            assert!(approx::abs_diff_eq!(arr[0].im, 8.0f64, epsilon = 1e-12));
+        } else {
+            panic!("expected C128 tensor");
+        }
+
+        let prod = &a * &b;
+        assert_eq!(prod.dtype(), DType::C128);
+        if let Tensor::C128(arr) = prod {
+            // (1+2i)(5+6i) = 5+6i+10i+12i^2 = 5+16i-12 = -7+16i
+            assert!(approx::abs_diff_eq!(arr[0].re, -7.0f64, epsilon = 1e-12));
+            assert!(approx::abs_diff_eq!(arr[0].im, 16.0f64, epsilon = 1e-12));
+        } else {
+            panic!("expected C128 tensor");
+        }
+    }
+
+    #[test]
+    fn test_arithmetic_owned() {
+        let a = Tensor::from([1.0f64, 2.0]);
+        let b = Tensor::from([3.0f64, 4.0]);
+        let c = a + b; // owned Tensor + Tensor path
+        assert_eq!(c.dtype(), DType::F64);
+        if let Tensor::F64(arr) = c {
+            assert_eq!(arr.as_slice().unwrap(), &[4.0f64, 6.0]);
+        } else {
+            panic!("expected F64 tensor");
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "type mismatch")]
+    fn test_arithmetic_type_mismatch_panics() {
+        let a = Tensor::from([1.0f64, 2.0]);
+        let b = Tensor::from([1i32, 2]);
+        let _ = &a + &b;
+    }
+
+    // -----------------------------------------------------------------------
+    // Broadcasting
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_arithmetic_broadcast() {
+        // shape [2,3] + shape [3] -> shape [2,3]
+        let a_data = ndarray::Array::from_shape_vec(IxDyn(&[2, 3]), vec![1.0f64; 6]).unwrap();
+        let b_data = ndarray::Array::from_shape_vec(IxDyn(&[3]), vec![1.0f64, 2.0, 3.0]).unwrap();
+        let a = Tensor::from(a_data);
+        let b = Tensor::from(b_data);
+        let c = &a + &b;
+        assert_eq!(c.shape(), &[2, 3]);
+        if let Tensor::F64(arr) = c {
+            // row 0: [2.0, 3.0, 4.0], row 1: [2.0, 3.0, 4.0]
+            assert!(approx::abs_diff_eq!(arr[[0, 0]], 2.0f64, epsilon = 1e-12));
+            assert!(approx::abs_diff_eq!(arr[[0, 2]], 4.0f64, epsilon = 1e-12));
+            assert!(approx::abs_diff_eq!(arr[[1, 1]], 3.0f64, epsilon = 1e-12));
+        } else {
+            panic!("expected F64 tensor");
+        }
+    }
+
+    #[test]
+    fn test_broadcast_scalar() {
+        // shape [4] * shape [1] -> shape [4]
+        let a = Tensor::from([1.0f64, 2.0, 3.0, 4.0]);
+        let b = Tensor::from([10.0f64]);
+        let c = &a * &b;
+        assert_eq!(c.shape(), &[4]);
+        if let Tensor::F64(arr) = c {
+            assert_eq!(arr.as_slice().unwrap(), &[10.0f64, 20.0, 30.0, 40.0]);
+        } else {
+            panic!("expected F64 tensor");
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "not broadcast-compatible")]
+    fn test_broadcast_incompatible_panics() {
+        let a = Tensor::from([1.0f64, 2.0, 3.0]);
+        let b = Tensor::from([1.0f64, 2.0, 3.0, 4.0]);
+        let _ = a.pow(&b);
+    }
+
+    // -----------------------------------------------------------------------
+    // Display & conversion helpers
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_dtype_display() {
+        use DType::*;
+        let cases = [
+            (C128, "C128"),
+            (C64, "C64"),
+            (F64, "F64"),
+            (F32, "F32"),
+            (I64, "I64"),
+            (I32, "I32"),
+            (I16, "I16"),
+            (I8, "I8"),
+            (U64, "U64"),
+            (U32, "U32"),
+            (U16, "U16"),
+            (U8, "U8"),
+            (Bit, "Bit"),
+        ];
+        let mut fails = vec![];
+        for (dtype, expected) in cases {
+            let got = format!("{dtype}");
+            if got != expected {
+                fails.push((dtype, expected, got));
+            }
+        }
+        assert_eq!(fails, [], "DType Display mismatches: {fails:?}");
+    }
+
+    #[test]
+    fn test_dtype_var_from() {
+        let v = DTypeVar::from("x");
+        assert_eq!(v.name, "x");
+
+        let v = DTypeVar::from(String::from("alpha"));
+        assert_eq!(v.name, "alpha");
+    }
+
+    #[test]
+    fn test_dtype_promotion_from() {
+        let args = vec![
+            DTypeLike::Concrete(DType::F32),
+            DTypeLike::Concrete(DType::I16),
+        ];
+        let p = DTypePromotion::from(args);
+        assert_eq!(p.args.len(), 2);
+    }
 }

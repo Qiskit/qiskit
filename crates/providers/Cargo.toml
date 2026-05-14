@@ -12,6 +12,10 @@ name = "qiskit_providers"
 rustworkx-core.workspace = true
 num-complex.workspace = true
 
+[dependencies.approx]
+workspace = true
+features = ["num-complex"]
+
 [dependencies.hashbrown]
 workspace = true
 features = ["rayon", "serde"]
