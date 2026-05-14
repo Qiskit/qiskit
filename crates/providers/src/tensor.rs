@@ -13,6 +13,22 @@
 use ndarray::{ArrayD, IxDyn, Zip};
 use num_complex::{Complex32, Complex64};
 use std::fmt;
+use thiserror::Error;
+
+/// Errors returned by [`Tensor`] operations.
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+pub enum TensorError {
+    /// The two operand tensors have different dtypes or a dtype that does not support the op.
+    #[error("dtype mismatch in Tensor::{op}: lhs={lhs}, rhs={rhs}")]
+    DTypeMismatch {
+        op: &'static str,
+        lhs: DType,
+        rhs: DType,
+    },
+    /// The two operand shapes are not broadcast-compatible.
+    #[error("shapes {lhs:?} and {rhs:?} are not broadcast-compatible")]
+    ShapeMismatch { lhs: Vec<usize>, rhs: Vec<usize> },
+}
 
 /// The possible data types for a Tensor.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -267,44 +283,54 @@ macro_rules! cast_complex {
     };
 }
 
+/// Compute the NumPy-style broadcast shape for two operand shapes, or
+/// return [`TensorError::ShapeMismatch`] if they are not broadcast-compatible.
+fn broadcast_shape(a: &[usize], b: &[usize]) -> Result<Vec<usize>, TensorError> {
+    let ndim = a.len().max(b.len());
+    (0..ndim)
+        .map(|i| {
+            let dim_a = if i >= ndim - a.len() {
+                a[i - (ndim - a.len())]
+            } else {
+                1
+            };
+            let dim_b = if i >= ndim - b.len() {
+                b[i - (ndim - b.len())]
+            } else {
+                1
+            };
+            match (dim_a, dim_b) {
+                (x, y) if x == y => Ok(x),
+                (1, y) => Ok(y),
+                (x, 1) => Ok(x),
+                _ => Err(TensorError::ShapeMismatch {
+                    lhs: a.to_vec(),
+                    rhs: b.to_vec(),
+                }),
+            }
+        })
+        .collect()
+}
+
 /// Element-wise binary operation on two arrays with NumPy-style broadcasting.
 ///
 /// Unlike ndarray's built-in arithmetic operators which handle broadcasting automatically,
-/// this helper is needed for operations without a Rust operator (e.g. `pow`).
-fn broadcast_elementwise<T, F>(a: &ArrayD<T>, b: &ArrayD<T>, op: F) -> ArrayD<T>
+/// this helper is needed for operations without a Rust operator (e.g. `pow`). Returns
+/// [`TensorError::ShapeMismatch`] if the operand shapes are not broadcast-compatible.
+fn broadcast_elementwise<T, F>(
+    a: &ArrayD<T>,
+    b: &ArrayD<T>,
+    op: F,
+) -> Result<ArrayD<T>, TensorError>
 where
     T: Clone,
     F: Fn(&T, &T) -> T,
 {
-    let ndim = a.ndim().max(b.ndim());
-    let out_shape: Vec<usize> = (0..ndim)
-        .map(|i| {
-            let d_a = if i >= ndim - a.ndim() {
-                a.shape()[i - (ndim - a.ndim())]
-            } else {
-                1
-            };
-            let d_b = if i >= ndim - b.ndim() {
-                b.shape()[i - (ndim - b.ndim())]
-            } else {
-                1
-            };
-            match (d_a, d_b) {
-                (x, y) if x == y => x,
-                (1, y) => y,
-                (x, 1) => x,
-                _ => panic!(
-                    "shapes {:?} and {:?} are not broadcast-compatible",
-                    a.shape(),
-                    b.shape()
-                ),
-            }
-        })
-        .collect();
+    let out_shape = broadcast_shape(a.shape(), b.shape())?;
     let out_ix = IxDyn(&out_shape);
     let a_bc = a.broadcast(out_ix.clone()).expect("broadcast failed");
     let b_bc = b.broadcast(out_ix).expect("broadcast failed");
-    Zip::from(a_bc).and(b_bc).map_collect(op)
+    Ok(Zip::from(a_bc).and(b_bc).map_collect(op))
 }
 
 impl Tensor {
@@ -358,46 +384,52 @@ impl Tensor {
     /// Element-wise power with NumPy-style broadcasting.
     ///
     /// For integer types the exponent is cast to `u32`; negative integer exponents
-    /// are not supported.
-    pub fn pow(&self, rhs: &Tensor) -> Tensor {
+    /// are not supported. Returns [`TensorError::DTypeMismatch`] if the operands have
+    /// different dtypes (or a dtype that does not support `pow`), and
+    /// [`TensorError::ShapeMismatch`] if the shapes are not broadcast-compatible.
+    pub fn pow(&self, rhs: &Tensor) -> Result<Tensor, TensorError> {
         match (self, rhs) {
             (Tensor::F32(a), Tensor::F32(b)) => {
-                Tensor::F32(broadcast_elementwise(a, b, |&x, &y| x.powf(y)))
+                broadcast_elementwise(a, b, |&x, &y| x.powf(y)).map(Tensor::F32)
             }
             (Tensor::F64(a), Tensor::F64(b)) => {
-                Tensor::F64(broadcast_elementwise(a, b, |&x, &y| x.powf(y)))
+                broadcast_elementwise(a, b, |&x, &y| x.powf(y)).map(Tensor::F64)
             }
             (Tensor::C64(a), Tensor::C64(b)) => {
-                Tensor::C64(broadcast_elementwise(a, b, |&x, &y| x.powc(y)))
+                broadcast_elementwise(a, b, |&x, &y| x.powc(y)).map(Tensor::C64)
             }
             (Tensor::C128(a), Tensor::C128(b)) => {
-                Tensor::C128(broadcast_elementwise(a, b, |&x, &y| x.powc(y)))
+                broadcast_elementwise(a, b, |&x, &y| x.powc(y)).map(Tensor::C128)
             }
             (Tensor::I8(a), Tensor::I8(b)) => {
-                Tensor::I8(broadcast_elementwise(a, b, |&x, &y| x.pow(y as u32)))
+                broadcast_elementwise(a, b, |&x, &y| x.pow(y as u32)).map(Tensor::I8)
             }
             (Tensor::I16(a), Tensor::I16(b)) => {
-                Tensor::I16(broadcast_elementwise(a, b, |&x, &y| x.pow(y as u32)))
+                broadcast_elementwise(a, b, |&x, &y| x.pow(y as u32)).map(Tensor::I16)
             }
             (Tensor::I32(a), Tensor::I32(b)) => {
-                Tensor::I32(broadcast_elementwise(a, b, |&x, &y| x.pow(y as u32)))
+                broadcast_elementwise(a, b, |&x, &y| x.pow(y as u32)).map(Tensor::I32)
             }
             (Tensor::I64(a), Tensor::I64(b)) => {
-                Tensor::I64(broadcast_elementwise(a, b, |&x, &y| x.pow(y as u32)))
+                broadcast_elementwise(a, b, |&x, &y| x.pow(y as u32)).map(Tensor::I64)
             }
             (Tensor::U8(a), Tensor::U8(b)) => {
-                Tensor::U8(broadcast_elementwise(a, b, |&x, &y| x.pow(y as u32)))
+                broadcast_elementwise(a, b, |&x, &y| x.pow(y as u32)).map(Tensor::U8)
             }
             (Tensor::U16(a), Tensor::U16(b)) => {
-                Tensor::U16(broadcast_elementwise(a, b, |&x, &y| x.pow(y as u32)))
+                broadcast_elementwise(a, b, |&x, &y| x.pow(y as u32)).map(Tensor::U16)
             }
             (Tensor::U32(a), Tensor::U32(b)) => {
-                Tensor::U32(broadcast_elementwise(a, b, |&x, &y| x.pow(y)))
+                broadcast_elementwise(a, b, |&x, &y| x.pow(y)).map(Tensor::U32)
             }
             (Tensor::U64(a), Tensor::U64(b)) => {
-                Tensor::U64(broadcast_elementwise(a, b, |&x, &y| x.pow(y as u32)))
+                broadcast_elementwise(a, b, |&x, &y| x.pow(y as u32)).map(Tensor::U64)
             }
-            _ => panic!("type mismatch in Tensor::pow"),
+            _ => Err(TensorError::DTypeMismatch {
+                op: "pow",
+                lhs: self.dtype(),
+                rhs: rhs.dtype(),
+            }),
         }
     }
 
@@ -457,27 +489,49 @@ impl_tensor_from!(U32, u32);
 impl_tensor_from!(U16, u16);
 impl_tensor_from!(U8, u8); // u8 → U8; Bit requires explicit construction
 
-/// Implement a standard Rust binary operator trait for `Tensor` and `&Tensor`.
+/// Define a fallible element-wise binary method on [`Tensor`] (e.g. `add_tensor`),
+/// plus the corresponding [`std::ops`] trait impls that unwrap the `Result`.
+///
+/// The operand shapes are pre-validated with [`broadcast_shape`] so that the underlying
+/// ndarray operator (which broadcasts but panics on shape mismatch) cannot panic.
 macro_rules! impl_tensor_binop {
-    ($trait:ident, $method:ident, $op:tt) => {
+    ($trait:ident, $method:ident, $tensor_method:ident, $op:tt, $op_name:literal) => {
+        impl Tensor {
+            #[doc = concat!(
+                "Element-wise `",
+                $op_name,
+                "` with NumPy-style broadcasting.\n\n",
+                "Returns [`TensorError::DTypeMismatch`] if the operand dtypes differ ",
+                "(or do not support this op), and [`TensorError::ShapeMismatch`] if ",
+                "the shapes are not broadcast-compatible."
+            )]
+            pub fn $tensor_method(&self, rhs: &Tensor) -> Result<Tensor, TensorError> {
+                broadcast_shape(self.shape(), rhs.shape())?;
+                match (self, rhs) {
+                    (Tensor::C128(a), Tensor::C128(b)) => Ok(Tensor::C128(a $op b)),
+                    (Tensor::C64(a), Tensor::C64(b)) => Ok(Tensor::C64(a $op b)),
+                    (Tensor::F64(a), Tensor::F64(b)) => Ok(Tensor::F64(a $op b)),
+                    (Tensor::F32(a), Tensor::F32(b)) => Ok(Tensor::F32(a $op b)),
+                    (Tensor::I64(a), Tensor::I64(b)) => Ok(Tensor::I64(a $op b)),
+                    (Tensor::I32(a), Tensor::I32(b)) => Ok(Tensor::I32(a $op b)),
+                    (Tensor::I16(a), Tensor::I16(b)) => Ok(Tensor::I16(a $op b)),
+                    (Tensor::I8(a), Tensor::I8(b)) => Ok(Tensor::I8(a $op b)),
+                    (Tensor::U64(a), Tensor::U64(b)) => Ok(Tensor::U64(a $op b)),
+                    (Tensor::U32(a), Tensor::U32(b)) => Ok(Tensor::U32(a $op b)),
+                    (Tensor::U16(a), Tensor::U16(b)) => Ok(Tensor::U16(a $op b)),
+                    (Tensor::U8(a), Tensor::U8(b)) => Ok(Tensor::U8(a $op b)),
+                    _ => Err(TensorError::DTypeMismatch {
+                        op: $op_name,
+                        lhs: self.dtype(),
+                        rhs: rhs.dtype(),
+                    }),
+                }
+            }
+        }
         impl std::ops::$trait for &Tensor {
             type Output = Tensor;
             fn $method(self, rhs: Self) -> Tensor {
-                match (self, rhs) {
-                    (Tensor::C128(a), Tensor::C128(b)) => Tensor::C128(a $op b),
-                    (Tensor::C64(a), Tensor::C64(b)) => Tensor::C64(a $op b),
-                    (Tensor::F64(a), Tensor::F64(b)) => Tensor::F64(a $op b),
-                    (Tensor::F32(a), Tensor::F32(b)) => Tensor::F32(a $op b),
-                    (Tensor::I64(a), Tensor::I64(b)) => Tensor::I64(a $op b),
-                    (Tensor::I32(a), Tensor::I32(b)) => Tensor::I32(a $op b),
-                    (Tensor::I16(a), Tensor::I16(b)) => Tensor::I16(a $op b),
-                    (Tensor::I8(a), Tensor::I8(b)) => Tensor::I8(a $op b),
-                    (Tensor::U64(a), Tensor::U64(b)) => Tensor::U64(a $op b),
-                    (Tensor::U32(a), Tensor::U32(b)) => Tensor::U32(a $op b),
-                    (Tensor::U16(a), Tensor::U16(b)) => Tensor::U16(a $op b),
-                    (Tensor::U8(a), Tensor::U8(b)) => Tensor::U8(a $op b),
-                    _ => panic!("type mismatch in Tensor::{}", stringify!($method)),
-                }
+                self.$tensor_method(rhs).unwrap_or_else(|e| panic!("{e}"))
             }
         }
         impl std::ops::$trait for Tensor {
@@ -487,40 +541,54 @@ macro_rules! impl_tensor_binop {
     };
 }
 
-/// Like [`impl_tensor_binop!`], but omits complex variants for ops that don't support them
-/// (e.g. `Rem`, which `num_complex` does not implement).
-macro_rules! impl_tensor_binop_real {
-    ($trait:ident, $method:ident, $op:tt) => {
-        impl std::ops::$trait for &Tensor {
-            type Output = Tensor;
-            fn $method(self, rhs: Self) -> Tensor {
-                match (self, rhs) {
-                    (Tensor::F64(a), Tensor::F64(b)) => Tensor::F64(a $op b),
-                    (Tensor::F32(a), Tensor::F32(b)) => Tensor::F32(a $op b),
-                    (Tensor::I64(a), Tensor::I64(b)) => Tensor::I64(a $op b),
-                    (Tensor::I32(a), Tensor::I32(b)) => Tensor::I32(a $op b),
-                    (Tensor::I16(a), Tensor::I16(b)) => Tensor::I16(a $op b),
-                    (Tensor::I8(a), Tensor::I8(b)) => Tensor::I8(a $op b),
-                    (Tensor::U64(a), Tensor::U64(b)) => Tensor::U64(a $op b),
-                    (Tensor::U32(a), Tensor::U32(b)) => Tensor::U32(a $op b),
-                    (Tensor::U16(a), Tensor::U16(b)) => Tensor::U16(a $op b),
-                    (Tensor::U8(a), Tensor::U8(b)) => Tensor::U8(a $op b),
-                    _ => panic!("type mismatch or unsupported dtype in Tensor::{}", stringify!($method)),
-                }
-            }
+impl_tensor_binop!(Add, add, add_tensor, +, "add");
+impl_tensor_binop!(Sub, sub, sub_tensor, -, "sub");
+impl_tensor_binop!(Mul, mul, mul_tensor, *, "mul");
+impl_tensor_binop!(Div, div, div_tensor, /, "div");
+
+// `Rem` is hand-written rather than going through `impl_tensor_binop!` because
+// `num_complex` does not implement `%`, so the complex variants must be omitted.
+impl Tensor {
+    /// Element-wise `%` with NumPy-style broadcasting (real dtypes only).
+    ///
+    /// Returns [`TensorError::DTypeMismatch`] if the operand dtypes differ or are
+    /// not supported by this op (e.g. complex), and [`TensorError::ShapeMismatch`]
+    /// if the shapes are not broadcast-compatible.
+    pub fn rem_tensor(&self, rhs: &Tensor) -> Result<Tensor, TensorError> {
+        broadcast_shape(self.shape(), rhs.shape())?;
+        match (self, rhs) {
+            (Tensor::F64(a), Tensor::F64(b)) => Ok(Tensor::F64(a % b)),
+            (Tensor::F32(a), Tensor::F32(b)) => Ok(Tensor::F32(a % b)),
+            (Tensor::I64(a), Tensor::I64(b)) => Ok(Tensor::I64(a % b)),
+            (Tensor::I32(a), Tensor::I32(b)) => Ok(Tensor::I32(a % b)),
+            (Tensor::I16(a), Tensor::I16(b)) => Ok(Tensor::I16(a % b)),
+            (Tensor::I8(a), Tensor::I8(b)) => Ok(Tensor::I8(a % b)),
+            (Tensor::U64(a), Tensor::U64(b)) => Ok(Tensor::U64(a % b)),
+            (Tensor::U32(a), Tensor::U32(b)) => Ok(Tensor::U32(a % b)),
+            (Tensor::U16(a), Tensor::U16(b)) => Ok(Tensor::U16(a % b)),
+            (Tensor::U8(a), Tensor::U8(b)) => Ok(Tensor::U8(a % b)),
+            _ => Err(TensorError::DTypeMismatch {
+                op: "rem",
+                lhs: self.dtype(),
+                rhs: rhs.dtype(),
+            }),
         }
-        impl std::ops::$trait for Tensor {
-            type Output = Tensor;
-            fn $method(self, rhs: Self) -> Tensor { &self $op &rhs }
-        }
-    };
+    }
 }
 
-impl_tensor_binop!(Add, add, +);
-impl_tensor_binop!(Sub, sub, -);
-impl_tensor_binop!(Mul, mul, *);
-impl_tensor_binop!(Div, div, /);
-impl_tensor_binop_real!(Rem, rem, %);
+impl std::ops::Rem for &Tensor {
+    type Output = Tensor;
+    fn rem(self, rhs: Self) -> Tensor {
+        self.rem_tensor(rhs).unwrap_or_else(|e| panic!("{e}"))
+    }
+}
+
+impl std::ops::Rem for Tensor {
+    type Output = Tensor;
+    fn rem(self, rhs: Self) -> Tensor {
+        &self % &rhs
+    }
+}
 
 #[cfg(test)]
 mod test {
@@ -815,7 +883,7 @@ mod test {
     fn test_pow_float() {
         let base = Tensor::from([4.0f64, 9.0, 16.0]);
         let exp = Tensor::from([0.5f64, 0.5, 0.5]);
-        let result = base.pow(&exp);
+        let result = base.pow(&exp).unwrap();
         assert_eq!(result.dtype(), DType::F64);
         if let Tensor::F64(a) = result {
             assert!(approx::abs_diff_eq!(a[0], 2.0f64, epsilon = 1e-12));
@@ -830,7 +898,7 @@ mod test {
     fn test_pow_int() {
         let base = Tensor::from([2i32, 3, 4]);
         let exp = Tensor::from([3i32, 2, 1]);
-        let result = base.pow(&exp);
+        let result = base.pow(&exp).unwrap();
         assert_eq!(result.dtype(), DType::I32);
         if let Tensor::I32(a) = result {
             assert_eq!(a.as_slice().unwrap(), &[8i32, 9, 4]);
@@ -844,7 +912,7 @@ mod test {
         // shape [3] ^ shape [1] -> shape [3]
         let base = Tensor::from([2.0f64, 3.0, 4.0]);
         let exp = Tensor::from([2.0f64]);
-        let result = base.pow(&exp);
+        let result = base.pow(&exp).unwrap();
         assert_eq!(result.shape(), &[3]);
         if let Tensor::F64(a) = result {
             assert!(approx::abs_diff_eq!(a[0], 4.0f64, epsilon = 1e-12));
@@ -962,11 +1030,55 @@ mod test {
     }
 
     #[test]
-    #[should_panic(expected = "type mismatch")]
+    #[should_panic(expected = "dtype mismatch")]
     fn test_arithmetic_type_mismatch_panics() {
         let a = Tensor::from([1.0f64, 2.0]);
         let b = Tensor::from([1i32, 2]);
         let _ = &a + &b;
+    }
+
+    #[test]
+    fn test_add_tensor_dtype_mismatch_returns_err() {
+        let a = Tensor::from([1.0f64, 2.0]);
+        let b = Tensor::from([1i32, 2]);
+        let err = a.add_tensor(&b).unwrap_err();
+        assert!(matches!(
+            err,
+            TensorError::DTypeMismatch {
+                op: "add",
+                lhs: DType::F64,
+                rhs: DType::I32
+            }
+        ));
+    }
+
+    #[test]
+    fn test_add_tensor_shape_mismatch_returns_err() {
+        let a = Tensor::from([1.0f64, 2.0, 3.0]);
+        let b = Tensor::from([1.0f64, 2.0, 3.0, 4.0]);
+        let err = a.add_tensor(&b).unwrap_err();
+        match err {
+            TensorError::ShapeMismatch { lhs, rhs } => {
+                assert_eq!(lhs, vec![3]);
+                assert_eq!(rhs, vec![4]);
+            }
+            _ => panic!("expected ShapeMismatch, got {err:?}"),
+        }
+    }
+
+    #[test]
+    fn test_pow_dtype_mismatch_returns_err() {
+        let base = Tensor::from([1.0f64, 2.0]);
+        let exp = Tensor::from([1i32, 2]);
+        let err = base.pow(&exp).unwrap_err();
+        assert!(matches!(
+            err,
+            TensorError::DTypeMismatch {
+                op: "pow",
+                lhs: DType::F64,
+                rhs: DType::I32
+            }
+        ));
     }
 
     // -----------------------------------------------------------------------
@@ -1007,11 +1119,25 @@ mod test {
     }
 
     #[test]
-    #[should_panic(expected = "not broadcast-compatible")]
-    fn test_broadcast_incompatible_panics() {
+    fn test_pow_shape_mismatch_returns_err() {
         let a = Tensor::from([1.0f64, 2.0, 3.0]);
         let b = Tensor::from([1.0f64, 2.0, 3.0, 4.0]);
-        let _ = a.pow(&b);
+        let err = a.pow(&b).unwrap_err();
+        match err {
+            TensorError::ShapeMismatch { lhs, rhs } => {
+                assert_eq!(lhs, vec![3]);
+                assert_eq!(rhs, vec![4]);
+            }
+            _ => panic!("expected ShapeMismatch, got {err:?}"),
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "not broadcast-compatible")]
+    fn test_op_panics_on_shape_mismatch() {
+        let a = Tensor::from([1.0f64, 2.0, 3.0]);
+        let b = Tensor::from([1.0f64, 2.0, 3.0, 4.0]);
+        let _ = &a + &b;
     }
 
     // -----------------------------------------------------------------------
@@ -1063,5 +1189,188 @@ mod test {
         ];
         let p = DTypePromotion::from(args);
         assert_eq!(p.args.len(), 2);
+    }
+
+    // -----------------------------------------------------------------------
+    // Per-dtype binop, pow, and cast dispatch coverage
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_binops_dtype_dispatch() {
+        // One representative per "kind" (signed int, unsigned int, float, complex)
+        // is sufficient: each dtype goes through identical macro-generated code.
+        let mut fails: Vec<String> = vec![];
+
+        // I64 — signed int, all five binops.
+        let a = Tensor::from([6_i64, 4]);
+        let b = Tensor::from([3_i64, 2]);
+        for (op_name, got, want) in [
+            ("add", &a + &b, [9_i64, 6]),
+            ("sub", &a - &b, [3, 2]),
+            ("mul", &a * &b, [18, 8]),
+            ("div", &a / &b, [2, 2]),
+            ("rem", &a % &b, [0, 0]),
+        ] {
+            if let Tensor::I64(arr) = got {
+                if arr.as_slice().unwrap() != want {
+                    fails.push(format!("I64 {op_name}: got {arr:?}, want {want:?}"));
+                }
+            } else {
+                fails.push(format!("I64 {op_name}: wrong variant"));
+            }
+        }
+
+        // U64 — unsigned int, all five binops.
+        let a = Tensor::from([6_u64, 4]);
+        let b = Tensor::from([3_u64, 2]);
+        for (op_name, got, want) in [
+            ("add", &a + &b, [9_u64, 6]),
+            ("sub", &a - &b, [3, 2]),
+            ("mul", &a * &b, [18, 8]),
+            ("div", &a / &b, [2, 2]),
+            ("rem", &a % &b, [0, 0]),
+        ] {
+            if let Tensor::U64(arr) = got {
+                if arr.as_slice().unwrap() != want {
+                    fails.push(format!("U64 {op_name}: got {arr:?}, want {want:?}"));
+                }
+            } else {
+                fails.push(format!("U64 {op_name}: wrong variant"));
+            }
+        }
+
+        // F64 — float, all five binops.
+        let a = Tensor::from([6.0_f64, 4.0]);
+        let b = Tensor::from([3.0_f64, 2.0]);
+        for (op_name, got, want) in [
+            ("add", &a + &b, [9.0_f64, 6.0]),
+            ("sub", &a - &b, [3.0, 2.0]),
+            ("mul", &a * &b, [18.0, 8.0]),
+            ("div", &a / &b, [2.0, 2.0]),
+            ("rem", &a % &b, [0.0, 0.0]),
+        ] {
+            if let Tensor::F64(arr) = got {
+                if arr.as_slice().unwrap() != want {
+                    fails.push(format!("F64 {op_name}: got {arr:?}, want {want:?}"));
+                }
+            } else {
+                fails.push(format!("F64 {op_name}: wrong variant"));
+            }
+        }
+
+        // C128 — complex, no rem (covered by test_rem_complex_returns_err).
+        let c = |re: f64| Complex64::new(re, 0.0);
+        let a = Tensor::from([c(6.0), c(4.0)]);
+        let b = Tensor::from([c(3.0), c(2.0)]);
+        for (op_name, got, want) in [
+            ("add", &a + &b, [c(9.0), c(6.0)]),
+            ("sub", &a - &b, [c(3.0), c(2.0)]),
+            ("mul", &a * &b, [c(18.0), c(8.0)]),
+            ("div", &a / &b, [c(2.0), c(2.0)]),
+        ] {
+            if let Tensor::C128(arr) = got {
+                if arr.as_slice().unwrap() != want {
+                    fails.push(format!("C128 {op_name}: got {arr:?}, want {want:?}"));
+                }
+            } else {
+                fails.push(format!("C128 {op_name}: wrong variant"));
+            }
+        }
+
+        assert_eq!(fails, Vec::<String>::new(), "binop failures: {fails:?}");
+    }
+
+    #[test]
+    fn test_rem_complex_returns_err() {
+        // C128 % C128 is unsupported (`num_complex` has no Rem impl), so
+        // rem_tensor must report DTypeMismatch with op="rem" rather than panic.
+        let a = Tensor::from([Complex64::new(1.0, 0.0)]);
+        let b = Tensor::from([Complex64::new(1.0, 0.0)]);
+        let err = a.rem_tensor(&b).unwrap_err();
+        assert!(matches!(
+            err,
+            TensorError::DTypeMismatch {
+                op: "rem",
+                lhs: DType::C128,
+                rhs: DType::C128
+            }
+        ));
+    }
+
+    #[test]
+    fn test_pow_dtype_dispatch() {
+        // The other macro-generated arms are covered by test_pow_int (I32) and
+        // test_pow_float (F64).  These two rows hit the unique branches: U32's
+        // `x.pow(y)` arm (uses `y` directly rather than `y as u32`), and
+        // Complex::powc via C64.
+
+        // U32 — special-case branch.
+        let base = Tensor::from([2_u32, 3, 4]);
+        let exp = Tensor::from([3_u32, 2, 1]);
+        if let Tensor::U32(arr) = base.pow(&exp).unwrap() {
+            assert_eq!(arr.as_slice().unwrap(), &[8_u32, 9, 4]);
+        } else {
+            panic!("U32 pow returned wrong variant");
+        }
+
+        // C64 — Complex::powc.
+        let c = |re: f32| Complex32::new(re, 0.0);
+        let base = Tensor::from([c(2.0), c(3.0)]);
+        let exp = Tensor::from([c(3.0), c(2.0)]);
+        if let Tensor::C64(arr) = base.pow(&exp).unwrap() {
+            assert!(approx::abs_diff_eq!(arr[0].re, 8.0_f32, epsilon = 1e-4));
+            assert!(approx::abs_diff_eq!(arr[1].re, 9.0_f32, epsilon = 1e-4));
+        } else {
+            panic!("C64 pow returned wrong variant");
+        }
+    }
+
+    #[test]
+    fn test_cast_dispatch() {
+        // The Bit→all-targets loop catches any wrong target arm in cast_real!.
+        // C64→C128 covers the only cast_complex! arm not exercised elsewhere.
+        let mut fails: Vec<String> = vec![];
+
+        let all_targets = [
+            DType::Bit,
+            DType::U8,
+            DType::U16,
+            DType::U32,
+            DType::U64,
+            DType::I8,
+            DType::I16,
+            DType::I32,
+            DType::I64,
+            DType::F32,
+            DType::F64,
+            DType::C64,
+            DType::C128,
+        ];
+        let bit_src = Tensor::Bit(ndarray::ArrayD::from_elem(IxDyn(&[2]), 1u8));
+        for target in all_targets {
+            let casted = bit_src.clone().cast(target);
+            if casted.dtype() != target {
+                fails.push(format!("Bit -> {target}: dtype was {}", casted.dtype()));
+            }
+        }
+
+        // C64 -> C128.
+        let c64_src = Tensor::from([Complex32::new(1.0, 2.0)]);
+        let casted = c64_src.cast(DType::C128);
+        assert_eq!(casted.dtype(), DType::C128);
+        if let Tensor::C128(arr) = casted {
+            assert!(approx::abs_diff_eq!(arr[0].re, 1.0_f64, epsilon = 1e-6));
+            assert!(approx::abs_diff_eq!(arr[0].im, 2.0_f64, epsilon = 1e-6));
+        }
+
+        // Spot-check a numeric value (Bit(1) -> F64 -> 1.0).
+        let bit_to_f64 = Tensor::Bit(ndarray::ArrayD::from_elem(IxDyn(&[2]), 1u8)).cast(DType::F64);
+        if let Tensor::F64(arr) = bit_to_f64 {
+            assert_eq!(arr.as_slice().unwrap(), &[1.0_f64, 1.0]);
+        } else {
+            fails.push("Bit -> F64 produced wrong variant".into());
+        }
+
+        assert_eq!(fails, Vec::<String>::new(), "cast failures: {fails:?}");
     }
 }

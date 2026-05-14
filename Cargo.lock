@@ -2370,6 +2370,7 @@ dependencies = [
  "ndarray",
  "num-complex",
  "rustworkx-core",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
