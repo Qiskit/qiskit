@@ -1188,13 +1188,13 @@ impl CircuitData {
         &self.cregs
     }
 
-    /// Returns an immutable view of the qubit locations of the [DAGCircuit]
+    /// Returns an immutable view of the qubit locations of the [CircuitData]
     #[inline(always)]
     pub fn qubit_indices(&self) -> &BitLocator<ShareableQubit, QuantumRegister> {
         &self.qubit_indices
     }
 
-    /// Returns an immutable view of the clbit locations of the [DAGCircuit]
+    /// Returns an immutable view of the clbit locations of the [CircuitData]
     #[inline(always)]
     pub fn clbit_indices(&self) -> &BitLocator<ShareableClbit, ClassicalRegister> {
         &self.clbit_indices

@@ -12,6 +12,7 @@
 
 #include "common.h"
 #include <complex.h>
+#include <inttypes.h>
 #include <math.h>
 #include <qiskit.h>
 #include <stdbool.h>
@@ -1480,6 +1481,243 @@ static int test_estimate_fidelity_non_physical(void) {
     return result;
 }
 
+/*
+ * Test iteration, name and bit queries
+ */
+static int test_basic_register_queries(void) {
+    int result = Ok;
+
+    QkCircuit *circuit = qk_circuit_new(0, 0);
+
+    QkQuantumRegister *qr1 = qk_quantum_register_new(1, "QR1");
+    QkQuantumRegister *qr2 = qk_quantum_register_new(2, "QR2");
+    qk_circuit_add_quantum_register(circuit, qr1);
+    qk_circuit_add_quantum_register(circuit, qr2);
+
+    QkClassicalRegister *cr1 = qk_classical_register_new(3, "CR1");
+    qk_circuit_add_classical_register(circuit, cr1);
+
+    size_t num_qregs = qk_circuit_num_quantum_registers(circuit);
+    if (num_qregs != 2) {
+        printf("Expected 2 quantum registers, got %zu\n", num_qregs);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    const char *expected_names[2] = {"QR1", "QR2"};
+    size_t expected_bits[2] = {1, 2};
+    char *name = NULL;
+    for (size_t qreg_idx = 0; qreg_idx < num_qregs; qreg_idx++) {
+        const QkQuantumRegister *qr_retrieved = qk_circuit_get_quantum_register(circuit, qreg_idx);
+        name = qk_quantum_register_name(qr_retrieved);
+
+        if (strcmp(name, expected_names[qreg_idx]) != 0) {
+            printf("Expected quantum register name %s, got '%s'\n", expected_names[qreg_idx], name);
+            result = EqualityError;
+            goto name_cleanup;
+        }
+
+        size_t num_bits = qk_quantum_register_num_bits(qr_retrieved);
+        if (num_bits != expected_bits[qreg_idx]) {
+            printf("Expected quantum register size %zu, got %zu\n", expected_bits[qreg_idx],
+                   num_bits);
+            result = EqualityError;
+            goto name_cleanup;
+        }
+        free(name);
+    }
+
+    size_t num_cregs = qk_circuit_num_classical_registers(circuit);
+    if (num_cregs != 1) {
+        printf("Expected 1 classical register, got %zu\n", num_cregs);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    const QkClassicalRegister *cr1_retrieved = qk_circuit_get_classical_register(circuit, 0);
+    name = qk_classical_register_name(cr1_retrieved);
+    size_t cr1_size = qk_classical_register_num_bits(cr1_retrieved);
+
+    if (strcmp(name, "CR1") != 0) {
+        printf("Expected classical register name 'CR1', got '%s'\n", name);
+        result = EqualityError;
+        goto name_cleanup;
+    }
+
+    if (cr1_size != 3) {
+        printf("Expected classical register size 3, got %zu\n", cr1_size);
+        result = EqualityError;
+        goto name_cleanup;
+    }
+
+name_cleanup:
+    if (name != NULL) {
+        free(name);
+    }
+cleanup:
+    qk_quantum_register_free(qr1);
+    qk_quantum_register_free(qr2);
+    qk_classical_register_free(cr1);
+    qk_circuit_free(circuit);
+    return result;
+}
+
+/*
+ * Test extraction of circuit bit mappings
+ */
+static int test_register_bits(void) {
+    int result = Ok;
+
+    QkCircuit *circuit = qk_circuit_new(1, 2);
+
+    QkQuantumRegister *qr1 = qk_quantum_register_new(3, "QR1");
+    qk_circuit_add_quantum_register(circuit, qr1);
+
+    size_t qr1_num_bits = qk_quantum_register_num_bits(qr1);
+    if (qr1_num_bits != 3) {
+        printf("Expected QR1 to have 3 bits, got %zu\n", qr1_num_bits);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    int64_t *bit_indices = malloc(qr1_num_bits * sizeof(int64_t));
+    qk_quantum_register_circuit_bits(qr1, circuit, bit_indices);
+
+    for (size_t bit = 0; bit < qr1_num_bits; bit++) {
+        if (bit_indices[bit] < 0) {
+            printf("Expected QR1 bit %zu to be in circuit, got index %" PRId64 "\n", bit,
+                   bit_indices[bit]);
+            result = EqualityError;
+            goto clean_bit_indices;
+        }
+        // Positions should be 1, 2, 3, since the circuit has an anonymous qubit
+        if (bit_indices[bit] != (int64_t)bit + 1) {
+            printf("Expected QR1 bit %zu to have circuit index %zu, got %" PRId64 "\n", bit,
+                   bit + 1, bit_indices[bit]);
+            result = EqualityError;
+            goto clean_bit_indices;
+        }
+    }
+
+    QkQuantumRegister *qr2 = qk_quantum_register_new(2, "QR2");
+    int64_t reg_circuit_bits[2];
+    qk_quantum_register_circuit_bits(qr2, circuit, reg_circuit_bits);
+
+    for (size_t bit = 0; bit < 2; bit++) {
+        if (reg_circuit_bits[bit] >= 0) {
+            printf("Expected QR2 bit %zu to NOT be in circuit, got %" PRId64 "\n", bit,
+                   reg_circuit_bits[bit]);
+            result = EqualityError;
+            goto cleanup_qr2;
+        }
+    }
+
+    QkClassicalRegister *cr1 = qk_classical_register_new(2, "CR1");
+    qk_circuit_add_classical_register(circuit, cr1);
+    qk_classical_register_circuit_bits(cr1, circuit, reg_circuit_bits);
+
+    // Positions should be 2, 3, since the circuit has two anonymous clbits
+    for (size_t bit = 0; bit < 2; bit++) {
+        if (reg_circuit_bits[bit] != (int64_t)bit + 2) {
+            printf("Expected CR1 bit %zu to have circuit index %zu, got %" PRId64 "\n", bit,
+                   bit + 2, reg_circuit_bits[bit]);
+            result = EqualityError;
+            goto cleanup_cr1;
+        }
+    }
+
+    QkClassicalRegister *cr2 = qk_classical_register_new(1, "cr2");
+    qk_classical_register_circuit_bits(cr2, circuit, reg_circuit_bits);
+
+    if (reg_circuit_bits[0] >= 0) {
+        printf("Expected CR2 bit 0 to NOT be in circuit, got %" PRId64 "\n", reg_circuit_bits[0]);
+        result = EqualityError;
+    }
+
+    qk_classical_register_free(cr2);
+cleanup_cr1:
+    qk_classical_register_free(cr1);
+cleanup_qr2:
+    qk_quantum_register_free(qr2);
+clean_bit_indices:
+    free(bit_indices);
+cleanup:
+    qk_quantum_register_free(qr1);
+    qk_circuit_free(circuit);
+    return result;
+}
+
+/*
+ * Test register ownership queries for circuit bits
+ */
+static int test_owning_registers(void) {
+    int result = Ok;
+
+    QkCircuit *circuit = qk_circuit_new(1, 1);
+    QkQuantumRegister *qr1 = qk_quantum_register_new(1, "QR1");
+    qk_circuit_add_quantum_register(circuit, qr1);
+    qk_quantum_register_free(qr1);
+
+    QkClassicalRegister *cr1 = qk_classical_register_new(1, "CR1");
+    qk_circuit_add_classical_register(circuit, cr1);
+    qk_classical_register_free(cr1);
+
+    QkQuantumRegister *owning_qreg = qk_circuit_qubit_owning_register(circuit, 0);
+    if (owning_qreg != NULL) {
+        printf("Expected NULL for anonymous qubit 0, but got a register\n");
+        result = EqualityError;
+        goto owning_qreg_cleanup;
+    }
+
+    owning_qreg = qk_circuit_qubit_owning_register(circuit, 1);
+    if (owning_qreg == NULL) {
+        printf("Expected QR1 for qubit 1, but got NULL\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // Verify it's the correct register by checking the name
+    char *name = qk_quantum_register_name(owning_qreg);
+    if (strcmp(name, "QR1") != 0) {
+        printf("Expected register name 'QR1' for qubit 1, but got '%s'\n", name);
+        result = EqualityError;
+        qk_str_free(name);
+        goto owning_qreg_cleanup;
+    }
+    qk_str_free(name);
+
+    // Test anonymous clbits (should return NULL)
+    QkClassicalRegister *owning_creg = qk_circuit_clbit_owning_register(circuit, 0);
+    if (owning_creg != NULL) {
+        printf("Expected NULL for anonymous clbit 0, but got a register\n");
+        result = EqualityError;
+        qk_classical_register_free(owning_creg);
+        goto owning_qreg_cleanup;
+    }
+
+    owning_creg = qk_circuit_clbit_owning_register(circuit, 1);
+    if (owning_creg == NULL) {
+        printf("Expected CR1 for clbit 1, but got NULL\n");
+        result = EqualityError;
+        goto owning_qreg_cleanup;
+    }
+
+    // Verify it's the correct register by checking the name
+    name = qk_classical_register_name(owning_creg);
+    if (strcmp(name, "CR1") != 0) {
+        printf("Expected register name 'CR1' for clbit 1, but got '%s'\n", name);
+        result = EqualityError;
+    }
+
+    qk_str_free(name);
+    qk_classical_register_free(owning_creg);
+owning_qreg_cleanup:
+    qk_quantum_register_free(owning_qreg);
+cleanup:
+    qk_circuit_free(circuit);
+    return result;
+}
+
 int test_circuit(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
@@ -1510,6 +1748,9 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_pbc_instructions);
     num_failed += RUN_TEST(test_estimate_fidelity);
     num_failed += RUN_TEST(test_estimate_fidelity_non_physical);
+    num_failed += RUN_TEST(test_basic_register_queries);
+    num_failed += RUN_TEST(test_register_bits);
+    num_failed += RUN_TEST(test_owning_registers);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
