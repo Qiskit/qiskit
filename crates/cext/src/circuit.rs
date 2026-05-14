@@ -14,6 +14,7 @@ use std::ffi::{CStr, CString, c_char};
 use std::ptr;
 
 use crate::circuit_library::pbc::{CPauliProductMeasurement, CPauliProductRotation};
+use crate::control_flow::CControlFlowInstruction;
 use crate::dag::COperationKind;
 use crate::exit_codes::ExitCode;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
@@ -2678,6 +2679,107 @@ pub unsafe extern "C" fn qk_circuit_estimate_fidelity(
     // SAFETY: Per documentation, the pointer is to valid data.
     let target = unsafe { const_ptr_as_ref(target) };
     estimate_fidelity(circuit, target).unwrap_or(f64::NAN)
+}
+
+/// @ingroup QkCircuit
+/// Get a control flow instruction from a circuit at the specified index.
+///
+/// This function returns a pointer to a ``QkControlFlowInstruction`` structure, which holds
+/// information about a control flow instruction at the specified index. The instruction at
+/// ``inst_idx`` must be a control flow instruction (if-else, for-loop, while-loop, switch, or box).
+///
+/// @param circuit A pointer to the circuit containing the control flow instruction.
+/// @param inst_idx The index of the instruction in the circuit's instruction list.
+/// @param parent_cf A pointer to the enclosing control flow instruction, or ``NULL`` if this
+/// instruction is at the top level of the circuit. This is used to compute the correct qubit
+/// and clbit mappings relative to the top-level circuit.
+///
+/// @return A pointer to a newly allocated ``QkControlFlowInstruction`` object.
+///
+/// # Example
+/// ```c
+///     QkCircuit *circuit = ...; // Assume circuit contains a control flow instruction at index 0
+///     QkControlFlowInstruction *cf_inst = qk_circuit_get_control_flow_instruction(circuit, 0, NULL);
+///     QkControlFlowKind kind = qk_control_flow_kind(cf_inst);
+///     qk_control_flow_instruction_free(cf_inst);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid pointer to a ``QkCircuit`` object,
+/// or if ``inst_idx`` is not a valid index within the circuit's instruction list, or if the
+/// instruction at ``inst_idx`` is not a control flow instruction. If ``parent_cf`` is not null,
+/// it must be a valid pointer to a ``QkControlFlowInstruction``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_get_control_flow_instruction(
+    circuit: *const CircuitData,
+    inst_idx: usize,
+    parent_cf: *const CControlFlowInstruction,
+) -> *mut CControlFlowInstruction {
+    // SAFETY: Per documentation, circuit is a valid pointer to a QkCircuit object.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+
+    let inst = &circuit.data()[inst_idx];
+
+    // Mapping is done already here, since we need the circuit context
+    let (qubit_map, clbit_map) = if parent_cf.is_null() {
+        (
+            // No enclosing block, use the trivial mapping
+            circuit
+                .get_qargs(inst.qubits)
+                .iter()
+                .map(|q| q.index() as u32)
+                .collect(),
+            circuit
+                .get_cargs(inst.clbits)
+                .iter()
+                .map(|c| c.index() as u32)
+                .collect(),
+        )
+    } else {
+        // SAFETY: Per documentation, parent_cf is a valid pointer to a QkControlFlowInstruction.
+        let parent_cf = unsafe { const_ptr_as_ref(parent_cf) };
+        (
+            circuit
+                .get_qargs(inst.qubits)
+                .iter()
+                .map(|q| parent_cf.qubit_map[q.index()])
+                .collect(),
+            circuit
+                .get_cargs(inst.clbits)
+                .iter()
+                .map(|c| parent_cf.clbit_map[c.index()])
+                .collect(),
+        )
+    };
+
+    // Per documentation, we assume that this is a control flow instruction
+    Box::into_raw(Box::new(CControlFlowInstruction::new(
+        circuit, inst_idx, qubit_map, clbit_map,
+    )))
+}
+
+/// @ingroup QkCircuit
+/// Free a `QkControlFlowInstruction` object.
+///
+/// @param cf_inst A pointer to the control flow instruction to free.
+///
+/// # Example
+/// ```c
+///     QkCircuit *circuit = ...; // Assume circuit contains a control flow instruction at index 0
+///     QkControlFlowInstruction *cf_inst = qk_circuit_get_control_flow_instruction(circuit, 0, NULL);
+///     qk_control_flow_instruction_free(cf_inst);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``cf_inst`` is not a valid pointer that was returned by
+/// ``qk_circuit_get_control_flow_instruction``, or if this function is called more than
+/// once on the same pointer.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_control_flow_instruction_free(cf_inst: *mut CControlFlowInstruction) {
+    // SAFETY: Per documentation, cf_inst is a valid pointer to a QkControlFlowInstruction
+    unsafe { drop(Box::from_raw(cf_inst)) };
 }
 
 #[cfg(test)]

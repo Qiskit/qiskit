@@ -114,6 +114,16 @@ pub static EXPORT_RENAME: &[(&str, &str)] = &[
     ("CDurationInfo", "DurationInfo"),
     ("CDurationValue", "DurationValue"),
     ("CValueType", "ValueType"),
+    // Control flow types
+    ("CControlFlowInstruction", "ControlFlowInstruction"),
+    ("CControlFlowKind", "ControlFlowKind"),
+    ("CConditionType", "ConditionType"),
+    ("CConditionBitInfo", "ConditionBitInfo"),
+    ("CConditionRegInfo", "ConditionRegInfo"),
+    ("CBoxDurationKind", "BoxDurationKind"),
+    ("CSwitchCaseLabels", "SwitchCaseLabels"),
+    ("CSymbolType", "SymbolType"),
+    ("CSymbolInfo", "SymbolInfo"),
 ];
 pub static EXPORT_VERBATIM: &[&str] = &["PyObject"];
 
