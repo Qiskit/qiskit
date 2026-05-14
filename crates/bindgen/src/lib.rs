@@ -195,7 +195,6 @@ fn get_config() -> anyhow::Result<cbindgen::Config> {
         prefix: Some(EXPORT_PREFIX.into()),
         rename,
         renaming_overrides_prefixing: true,
-        exclude: vec!["inner_build_test_expression".to_string()],
         ..Default::default()
     };
     let function = cbindgen::FunctionConfig {

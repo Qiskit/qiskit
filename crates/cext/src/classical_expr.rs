@@ -1,8 +1,8 @@
-use std::{ptr, str::FromStr};
+use std::{ffi::CStr, ptr, str::FromStr};
 
-use qiskit_circuit::{classical::{expr::{Binary, BinaryOp, Expr, Stretch, UnaryOp, Value, Var}, types::Type}, duration::Duration};
+use qiskit_circuit::{classical::{expr::{Binary, BinaryOp, Cast, Expr, Stretch, Unary, Index, UnaryOp, Value, Var}, types::Type}, duration::Duration};
 use uuid::Uuid;
-use crate::pointers::const_ptr_as_ref;
+use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 use num_bigint::BigUint;
 use std::ffi::{c_char, CString};
 use num_traits::ToPrimitive;
@@ -506,32 +506,143 @@ pub unsafe extern "C" fn qk_stretch_as_expr(stretch: *const Stretch) -> *mut Exp
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn inner_build_test_expression() -> *mut Expr {
-    let var = Expr::Var(Var::Standalone {
-                    uuid: Uuid::new_v4().as_u128(),
-                    name: "a".to_owned(),
-                    ty: Type::Uint(8),
-                });
+pub unsafe extern "C" fn qk_var_new(name: *const c_char, type_info: *const CExprTypeInfo) -> *mut Var {
+    let name = unsafe {
+        CStr::from_ptr(name)
+            .to_str()
+            .expect("Invalid UTF-8 character")
+            .to_string()
+    };
 
-    let three = Expr::Value(Value::Uint { raw: BigUint::from_str("3").unwrap(), ty: Type::Uint(8) });
-    
-    let add = Expr::Binary(Box::new(Binary {
-        op: BinaryOp::Add,
-        left: var,
-        right: three,
-        ty: Type::Uint(8),
-        constant: false,
-    }));
-    
-    let five = Expr::Value(Value::Uint { raw: BigUint::from_str("5").unwrap(), ty: Type::Uint(8) });
+    let type_info = unsafe {const_ptr_as_ref(type_info)} ;
 
-    let lt = Expr::Binary(Box::new(Binary {
-        op: BinaryOp::LessEqual,
-        left: add,
-        right: five,
-        ty: Type::Uint(8),
-        constant: false,
-    }));
-
-    Box::into_raw(Box::new(lt))
+    let var = Var::Standalone { uuid: Uuid::new_v4().as_u128(), name, ty: type_info.to_type() };
+    Box::into_raw(Box::new(var))
 }
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_var_free(var: *mut Var) {
+    let var = unsafe { mut_ptr_as_ref(var) };
+
+    drop( unsafe{ Box::from_raw(var) } );
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_stretch_new(name: *const c_char) -> *mut Stretch {
+    let name = unsafe {
+        CStr::from_ptr(name)
+            .to_str()
+            .expect("Invalid UTF-8 character")
+            .to_string()
+    };
+
+    let stretch = Stretch {
+        uuid: Uuid::new_v4().as_u128(),
+        name,
+    };
+    
+    Box::into_raw(Box::new(stretch))
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_stretch_free(stretch: *mut Stretch) {
+    drop(unsafe { Box::from_raw(stretch) });
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_value_new_duration(duration: *const CDurationInfo) -> *mut Value {
+    let duration = unsafe { const_ptr_as_ref(duration) };
+
+    Box::into_raw(Box::new(Value::Duration(duration.to_duration())))
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_value_new_float(val: f64) -> *mut Value {
+    Box::into_raw(Box::new(Value::Float { raw: val, ty: Type::Float }))
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_value_new_uint(val: u64, width: u16) -> *mut Value {
+    Box::into_raw(Box::new(Value::Uint { raw: BigUint::from(val), ty: Type::Uint(width) }))
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_value_free(value: *mut Value) {
+    drop( unsafe{Box::from_raw(value) } );
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_value_as_expr(value: *const Value) -> *mut Expr {
+    let value = unsafe { const_ptr_as_ref(value) };
+
+    Box::into_raw(Box::new(Expr::Value(value.clone())))
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_expr_binary_new(op: CBinaryOpType, left: *const Expr, right: *const Expr, type_info: *const CExprTypeInfo) -> *mut Expr {
+    let left = unsafe { const_ptr_as_ref(left) };
+    let right = unsafe { const_ptr_as_ref(right) };
+    let type_info = unsafe { const_ptr_as_ref(type_info) };
+
+    let binary = Binary{
+        op: op.to_binary_op(),
+        left: left.clone(),
+        right: right.clone(),
+        ty: type_info.to_type(),
+        constant: left.is_const() && right.is_const(),    
+        };
+
+    Box::into_raw(Box::new(Expr::Binary(Box::new(binary))))
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_expr_unary_new(op: CUnaryOpType, operand: *const Expr, type_info: *const CExprTypeInfo,) -> *mut Expr {
+    let operand = unsafe { const_ptr_as_ref(operand) };
+    let type_info = unsafe { const_ptr_as_ref(type_info) };
+
+    let unary = Unary {
+        op: op.to_unary_op(),
+        operand: operand.clone(),
+        ty: type_info.to_type(),
+        constant: operand.is_const(),
+    };
+
+    Box::into_raw(Box::new(Expr::Unary(Box::new(unary))))
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_expr_cast_new(operand: *const Expr, type_info: *const CExprTypeInfo) -> *mut Expr { 
+    let operand = unsafe { const_ptr_as_ref(operand) };
+    let type_info = unsafe { const_ptr_as_ref(type_info) };
+
+    let cast = Cast {
+        operand: operand.clone(),
+        ty: type_info.to_type(),
+        constant: operand.is_const(),
+        implicit: false, // TODO: should this be exposed? or should we add qk_expr_cast_implicit_new?
+    };
+
+    Box::into_raw(Box::new(Expr::Cast(Box::new(cast))))
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_expr_index_new(target: *const Expr, index: *const Expr, type_info: *const CExprTypeInfo) -> *mut Expr { 
+    let target = unsafe { const_ptr_as_ref(target) };
+    let index = unsafe { const_ptr_as_ref(index) };
+    let type_info = unsafe { const_ptr_as_ref(type_info) };
+
+    let index_obj = Index {
+        target: target.clone(),
+        index: index.clone(),
+        ty: type_info.to_type(),
+        constant: target.is_const() && index.is_const(),
+    };
+
+    Box::into_raw(Box::new(Expr::Index(Box::new(index_obj))))
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_expr_free(expr: *mut Expr) {
+    drop( unsafe{Box::from_raw(expr)});
+}
+
