@@ -204,6 +204,43 @@ pub unsafe extern "C" fn qk_classical_register_new(
     Box::into_raw(Box::new(reg))
 }
 
+// Returns the owning register given a circuit qubit index
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_classical_register_from_bit(
+    circuit: *const CircuitData,
+    clbit: usize,
+) -> *const ClassicalRegister {
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+
+    let shareable_clbit = circuit
+        .clbits()
+        .get(Clbit::new(clbit))
+        .expect("TODO");
+
+    let Some(bit_locations) = circuit.clbit_indices().get(shareable_clbit) else {
+        panic!("TODO")
+    };
+
+    let creg = bit_locations.registers().first().expect("TODO");
+    &creg.0 as *const ClassicalRegister
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_classical_register_name(creg: *const ClassicalRegister) -> *mut c_char {
+    let creg = unsafe { const_ptr_as_ref(creg) };
+
+    CString::new(creg.name())
+        .expect("TODO")
+        .into_raw()
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_classical_register_num_bits(creg: *const ClassicalRegister) -> usize {
+    let creg = unsafe { const_ptr_as_ref(creg) };
+
+    creg.len()
+}
+
 /// @ingroup QkCircuit
 /// Add a quantum register to a given quantum circuit
 ///

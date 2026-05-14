@@ -165,9 +165,19 @@ pub struct Function<T> {
     pub ret: Option<Type<T>>,
 }
 
+/// A union to declare. Unions cannot be opaque.
+#[derive(Clone, Debug)]
+pub struct Union<T> {
+    /// The export name of the union.
+    pub name: String,
+    /// The fields.
+    pub fields: Vec<StructField<T>>,
+}
+
 #[derive(Clone, Debug)]
 pub struct Items<T> {
     pub enums: Vec<Enum>,
     pub structs: Vec<Struct<T>>,
     pub functions: Vec<Function<T>>,
+    pub unions: Vec<Union<T>>,
 }

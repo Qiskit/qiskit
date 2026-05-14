@@ -98,7 +98,23 @@ pub static EXPORT_RENAME: &[(&str, &str)] = &[
     ("DAGCircuit", "Dag"),
     ("SparseObservable", "Obs"),
     ("StandardGate", "Gate"),
+    // Classical expression types
+    ("Expr", "ExprNode"),
+    ("CExprNodeKind", "ExprNodeKind"),
+    ("CBinaryExprInfo", "BinaryExprInfo"),
+    ("CBinaryExprOp", "BinaryExprOp"),
+    ("CUnaryExprInfo", "UnaryExprInfo"),
+    ("CUnaryOp", "UnaryOp"),
+    ("CCastExprInfo", "CastExprInfo"),
+    ("CIndexExprInfo", "IndexExprInfo"),
+    ("CExprType", "ExprType"),
+    ("CExprTypeInfo", "ExprTypeInfo"),
+    ("CDurationType", "DurationType"),
+    ("CDurationInfo", "DurationInfo"),
+    ("CDurationValue", "DurationValue"),
+    ("CValueType", "ValueType"),
 ];
+
 pub static EXPORT_VERBATIM: &[&str] = &["PyObject"];
 
 // Defined in `qiskit/attributes.h`.
@@ -179,6 +195,7 @@ fn get_config() -> anyhow::Result<cbindgen::Config> {
         prefix: Some(EXPORT_PREFIX.into()),
         rename,
         renaming_overrides_prefixing: true,
+        exclude: vec!["inner_build_test_expression".to_string()],
         ..Default::default()
     };
     let function = cbindgen::FunctionConfig {

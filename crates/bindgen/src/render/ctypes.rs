@@ -71,7 +71,7 @@ impl Primitive {
             Self::I8 => "ctypes.c_int8",
             Self::U8 => "ctypes.c_uint8",
             Self::I16 => "ctypes.c_int16",
-            Self::U16 => "ctypes.c_uin16",
+            Self::U16 => "ctypes.c_uint16",
             Self::I32 => "ctypes.c_int32",
             Self::U32 => "ctypes.c_uint32",
             Self::I64 => "ctypes.c_int64",
@@ -248,6 +248,26 @@ mod parse {
         })
     }
 
+    pub fn r#union(
+        val: &ir::Union,
+        mut override_fn: impl FnMut(&str) -> Option<Primitive>,
+    ) -> anyhow::Result<simple_ir::Union<Primitive>> {
+        let fields = val
+            .fields
+            .iter()
+            .map(|field| -> anyhow::Result<_> {
+                Ok(simple_ir::StructField {
+                    name: field.name.clone(),
+                    ty: r#type(&field.ty, &mut override_fn)?,
+                })
+            })
+            .collect::<anyhow::Result<_>>()?;
+        Ok(simple_ir::Union {
+            name: val.export_name.clone(),
+            fields,
+        })
+    }
+
     /// Extract all objects from a set of `cbindgen::Bindings`, adding them to ourselves.
     ///
     /// This fails if the bindings contain any unsupported constructs.
@@ -276,9 +296,11 @@ mod parse {
                 ir::ItemContainer::Struct(item) => items
                     .structs
                     .push(r#struct(item, |path| overrides.get(path).copied())?),
+                ir::ItemContainer::Union(item) => items
+                    .unions
+                    .push(r#union(item, |path| overrides.get(path).copied())?),
                 ir::ItemContainer::Constant(_)
                 | ir::ItemContainer::Static(_)
-                | ir::ItemContainer::Union(_)
                 | ir::ItemContainer::Typedef(_) => {
                     bail!("unhandled item: {item:?}");
                 }
@@ -384,6 +406,22 @@ mod export {
         out
     }
 
+    /// Get a string representing the declaration of this `union`` as a Python `ctypes.Union`.
+    pub fn r#union(val: &simple_ir::Union<Primitive>) -> String {
+        let mut out = format!("\nclass {}(ctypes.Union):\n", &val.name);
+        out.push_str("    _fields_ = [\n");
+
+        for simple_ir::StructField { name, ty } in &val.fields {
+            out.push_str("        (\"");
+            out.push_str(name);
+            out.push_str("\", ");
+            render_type(ty, &mut out);
+            out.push_str("),\n");
+        }
+        out.push_str("    ]");
+        out
+    }
+
     /// Export this complete set of objects, subject to the given configuration.
     ///
     /// This includes an `__all__`, a suitable set of `import` statements, a `PyDLL`, and then all
@@ -431,6 +469,9 @@ mod export {
         writeln!(out)?;
         for item in &items.enums {
             writeln!(out, "{}", r#enum(item))?;
+        }
+        for item in &items.unions {
+            writeln!(out, "{}", r#union(item))?;
         }
         for item in &items.structs {
             writeln!(out, "{}", r#struct(item))?;
@@ -480,6 +521,7 @@ impl Items {
             enums: vec![],
             structs: vec![complex],
             functions: vec![],
+            unions: vec![],
         }
     }
 
