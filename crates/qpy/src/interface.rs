@@ -28,7 +28,9 @@ use crate::circuit_reader::unpack_circuit;
 use crate::circuit_writer::pack_circuit;
 use crate::error::QpyError;
 use crate::formats::{QPYCircuit, QPYFileHeader};
-use crate::value::{SymbolicEncoding, ValueType, deserialize, deserialize_with_args, serialize};
+use crate::value::{
+    ProgramType, SymbolicEncoding, deserialize, deserialize_with_args, serialize,
+};
 
 use std::io::{Cursor, Seek};
 // parse the qiskit version
@@ -98,7 +100,7 @@ pub fn dump_qpy(
         qiskit_version: QISKIT_VERSION,
         num_programs: serialized_circuits.len() as u64,
         symbolic_encoding,
-        type_key: ValueType::Circuit, //for now, no other value type is used
+        type_key: ProgramType::Circuit, //for now, no other value type is used
     };
     let serialized_qpy_header = serialize(&qpy_header)?;
 
@@ -202,11 +204,16 @@ pub fn load_qpy(
 ) -> Result<Vec<Py<PyAny>>, QpyError> {
     let (qpy_file_header, header_size) = deserialize::<QPYFileHeader>(data)?;
     // Verify the type key is for circuits
-    if qpy_file_header.type_key != ValueType::Circuit {
-        Err(PyValueError::new_err(format!(
+    if qpy_file_header.type_key == ProgramType::Schedule {
+        return Err(QpyError::PayloadTypeError(
+            "Payloads of type `Schedule` cannot be loaded as of Qiskit 2.0. \nUse an earlier version of Qiskit if you want to load `Schedule` payloads.".to_string()
+        ));
+    }
+    if qpy_file_header.type_key != ProgramType::Circuit {
+        return Err(QpyError::PayloadTypeError(format!(
             "Invalid payload format data kind '{}'",
             qpy_file_header.type_key
-        )))?;
+        )));
     }
     let num_programs = qpy_file_header.num_programs as usize;
     let qpy_version = qpy_file_header.qpy_version as u32;

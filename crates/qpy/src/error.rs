@@ -136,6 +136,10 @@ pub enum QpyError {
     #[error("annotation-handling error: {0}")]
     AnnotationError(String),
 
+    /// The qpy file payload is of an incorrect type
+    #[error("{0}")]
+    PayloadTypeError(String),
+
     /// Python error that occurred during a Python call
     #[error("Python error: {0}")]
     PythonError(#[from] PyErr),

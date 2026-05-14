@@ -203,6 +203,26 @@ pub enum ModifierType {
     Power = b'p',
 }
 
+// the schedule type is obsolete but needed for backwards compatibility.
+#[binrw]
+#[brw(repr = u8)]
+#[repr(u8)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum ProgramType {
+    Circuit = b'q',
+    Schedule = b's',
+}
+
+impl std::fmt::Display for ProgramType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            ProgramType::Circuit => "circuit",
+            ProgramType::Schedule => "schedule",
+        };
+        write!(f, "{}", name)
+    }
+}
+
 // The types of nodes inside Expressions (not to be confused with ParameterExpressions)
 #[binrw]
 #[derive(Debug)]

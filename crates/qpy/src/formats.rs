@@ -16,7 +16,7 @@ use crate::expr::{read_expression, write_expression};
 use crate::params::ParameterType;
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, ModifierType,
-    QPYReadData, QPYWriteData, RegisterType, SymbolicEncoding, ValueType,
+    ProgramType, QPYReadData, QPYWriteData, RegisterType, SymbolicEncoding, ValueType,
 };
 use binrw::{BinRead, BinResult, BinWrite, Endian, binread, binrw, binwrite};
 use qiskit_circuit::classical::expr::Expr;
@@ -36,7 +36,7 @@ pub struct QPYFileHeader {
     pub num_programs: u64,
     /// Symbolic encoding type (for parameter expressions)
     pub symbolic_encoding: SymbolicEncoding,
-    pub type_key: ValueType,
+    pub type_key: ProgramType,
 }
 
 // the main file structure:
