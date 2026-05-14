@@ -14,13 +14,13 @@ use hashbrown::hash_map::Entry;
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexSet;
 use num_complex::Complex64;
+use num_traits::Zero;
 use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError};
-use pyo3::types::{IntoPyDict, PyComplex, PyFloat, PyInt, PyNotImplemented, PySet, PyString};
+use pyo3::types::{IntoPyDict, PyComplex, PyFloat, PyInt, PySet, PyString};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use std::sync::Arc;
 use thiserror::Error;
 use uuid::Uuid;
-use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign, Neg};
-use num_traits::Zero;
 
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;
@@ -36,8 +36,6 @@ use crate::parameter::symbol_expr::SymbolExpr;
 use crate::parameter::symbol_parser::parse_expression;
 
 use super::symbol_expr::{SYMEXPR_EPSILON, Symbol, Value};
-
-use crate::parameter::vector::PyVectorExpression;
 
 /// Errors for dealing with parameters and parameter expressions.
 #[derive(Error, Debug)]
@@ -737,7 +735,6 @@ impl ParameterExpression {
     }
 }
 
-
 impl Add for ParameterExpression {
     type Output = ParameterExpression;
     fn add(self, rhs: Self) -> ParameterExpression {
@@ -883,7 +880,6 @@ impl Zero for ParameterExpression {
         }
     }
 }
-
 
 /// A parameter expression.
 ///
@@ -1436,17 +1432,13 @@ impl PyParameterExpression {
         }
     }
 
-    pub fn __mul__<'py>(&self, rhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
-        let py = rhs.py();
+    pub fn __mul__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
         if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
-            match (&self.inner).mul(&rhs.inner) {
-                Ok(result) => PyParameterExpression::from(result).into_bound_py_any(py),
-                Err(e) => Err(PyErr::from(e)),
-            }
-        } else if let Ok(rhs) = PyVectorExpression::extract_coerce(rhs.as_borrowed()) {
-            PyVectorExpression::from(rhs.inner._rmul_par(&self.inner)).into_bound_py_any(py)
+            Ok((&self.inner).mul(&rhs.inner)?.into())
         } else {
-            PyNotImplemented::get(py).into_bound_py_any(py)
+            Err(pyo3::exceptions::PyTypeError::new_err(
+                "Unsupported data type for __mul__",
+            ))
         }
     }
 

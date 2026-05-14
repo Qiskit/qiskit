@@ -12,25 +12,19 @@
 
 use numpy::PyArrayMethods;
 use numpy::array::PyArray1;
-use std::ops::{Index, IndexMut};
 use std::fmt;
+use std::ops::{Index, IndexMut};
 
 use hashbrown::HashMap;
 
-use ndarray::{Array0, Array1, ArrayView0, Axis};
-//use ndarray::linalg::Dot;
-use ndarray::Zip;
-use ndarray::parallel::prelude::*;
+use ndarray::{Array0, Array1, ArrayView0, Axis, Zip};
 
-
-use crate::parameter::symbol_expr::SymbolExpr;
-use crate::parameter::parameter_expression::{ParameterExpression, PyParameterExpression};
 use super::symbol_expr::Value;
-use pyo3::types::{PyString, PyNotImplemented};
+use crate::parameter::parameter_expression::{ParameterExpression, PyParameterExpression};
+use crate::parameter::symbol_expr::SymbolExpr;
+use pyo3::types::{PyNotImplemented, PyString};
 
 use pyo3::{IntoPyObjectExt, prelude::*};
-
-
 
 /// A vector of parameter expression.
 ///
@@ -48,7 +42,6 @@ impl Default for VectorExpression {
     }
 }
 
-
 impl Index<usize> for VectorExpression {
     type Output = ParameterExpression;
     fn index(&self, index: usize) -> &Self::Output {
@@ -64,7 +57,7 @@ impl IndexMut<usize> for VectorExpression {
 
 impl fmt::Display for VectorExpression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}",self.elements)
+        write!(f, "{}", self.elements)
     }
 }
 
@@ -72,7 +65,10 @@ impl VectorExpression {
     /// Initialize a vector with its size and initial values
     pub fn new(ndim: usize, value: f64) -> Self {
         Self {
-            elements: Array1::<ParameterExpression>::from_elem(ndim, ParameterExpression::from_f64(value)),
+            elements: Array1::<ParameterExpression>::from_elem(
+                ndim,
+                ParameterExpression::from_f64(value),
+            ),
         }
     }
 
@@ -107,12 +103,16 @@ impl VectorExpression {
     /// add vectors
     pub fn _add_par(&self, rhs: &VectorExpression) -> Self {
         Self {
-            elements: Zip::from(&self.elements).and(&rhs.elements).par_map_collect(|l, r| l + r),
+            elements: Zip::from(&self.elements)
+                .and(&rhs.elements)
+                .par_map_collect(|l, r| l + r),
         }
     }
     /// add and assign vectors
     pub fn _add_assign_par(&mut self, rhs: &VectorExpression) {
-        Zip::from(&mut self.elements).and(&rhs.elements).par_for_each(|l, r| *l = &*l + r);
+        Zip::from(&mut self.elements)
+            .and(&rhs.elements)
+            .par_for_each(|l, r| *l = &*l + r);
     }
 
     /// sub vectors
@@ -129,12 +129,16 @@ impl VectorExpression {
     /// sub vectors
     pub fn _sub_par(&self, rhs: &VectorExpression) -> Self {
         Self {
-            elements: Zip::from(&self.elements).and(&rhs.elements).par_map_collect(|l, r| l - r),
+            elements: Zip::from(&self.elements)
+                .and(&rhs.elements)
+                .par_map_collect(|l, r| l - r),
         }
     }
     /// add and assign vectors
     pub fn _sub_assign_par(&mut self, rhs: &VectorExpression) {
-        Zip::from(&mut self.elements).and(&rhs.elements).par_for_each(|l, r| *l = &*l - r);
+        Zip::from(&mut self.elements)
+            .and(&rhs.elements)
+            .par_for_each(|l, r| *l = &*l - r);
     }
 
     /// multiply a scalar to a vector
@@ -164,7 +168,7 @@ impl VectorExpression {
     /// multiply a scalar to a vector
     pub fn _rmul_par(&self, rhs: &ParameterExpression) -> Self {
         Self {
-            elements: Zip::from(&self.elements).par_map_collect(|l| rhs*l),
+            elements: Zip::from(&self.elements).par_map_collect(|l| rhs * l),
         }
     }
 
@@ -203,16 +207,22 @@ impl VectorExpression {
     /// calculate dot product
     pub fn dot(&self, rhs: &VectorExpression) -> ParameterExpression {
         // self.elements.dot(&rhs.elements)
-        self.elements.iter().zip(rhs.elements.iter()).fold(ParameterExpression::from_f64(0.0f64), |sum, (l, r)| sum + l * r)
+        self.elements
+            .iter()
+            .zip(rhs.elements.iter())
+            .fold(ParameterExpression::from_f64(0.0f64), |sum, (l, r)| {
+                sum + l * r
+            })
     }
     /// calculate dot product
     pub fn dot_par(&self, rhs: &VectorExpression) -> ParameterExpression {
-        Zip::from(&self.elements).and(&rhs.elements).par_fold(||ParameterExpression::from_f64(0.0f64), |sum, l, r| sum + l * r, |sum, t| sum + t)
+        Zip::from(&self.elements).and(&rhs.elements).par_fold(
+            || ParameterExpression::from_f64(0.0f64),
+            |sum, l, r| sum + l * r,
+            |sum, t| sum + t,
+        )
     }
-
 }
-
-
 
 #[pyclass(
     subclass,
@@ -247,21 +257,41 @@ impl PyVectorExpression {
     pub fn extract_coerce(ob: Borrowed<PyAny>) -> PyResult<PyVectorExpression> {
         if let Ok(vector) = ob.cast::<PyArray1<i64>>() {
             let vector = vector.try_readonly()?;
-            Ok(VectorExpression{ elements : vector.as_array().iter().map(|v| ParameterExpression::new(
-                        SymbolExpr::Value(Value::from(*v)), HashMap::new())).collect()}.into())
+            Ok(VectorExpression {
+                elements: vector
+                    .as_array()
+                    .iter()
+                    .map(|v| {
+                        ParameterExpression::new(SymbolExpr::Value(Value::from(*v)), HashMap::new())
+                    })
+                    .collect(),
+            }
+            .into())
         } else if let Ok(vector) = ob.cast::<PyArray1<f64>>() {
             let vector = vector.try_readonly()?;
-            Ok(VectorExpression{ elements : vector.as_array().iter().map(|v| ParameterExpression::from_f64(*v)).collect()}.into())
+            Ok(VectorExpression {
+                elements: vector
+                    .as_array()
+                    .iter()
+                    .map(|v| ParameterExpression::from_f64(*v))
+                    .collect(),
+            }
+            .into())
         } else if let Ok(vector) = ob.cast::<PyArray1<Py<PyAny>>>() {
-            let vector  = vector.try_readonly()?;
+            // extract vector from np.array of ParameterExpression
+            let vector = vector.try_readonly()?;
             let vector = vector.as_array();
-            if let Ok(elems) = vector.iter().map(|e|
-                match PyParameterExpression::extract_coerce(e.bind_borrowed(ob.py())) {
-                    Ok(e) => Ok(e.inner),
-                    Err(e) => Err(e),
-                }
-            ).collect() {
-                Ok(VectorExpression{ elements : elems}.into())
+            if let Ok(elems) = vector
+                .iter()
+                .map(
+                    |e| match PyParameterExpression::extract_coerce(e.bind_borrowed(ob.py())) {
+                        Ok(e) => Ok(e.inner),
+                        Err(e) => Err(e),
+                    },
+                )
+                .collect()
+            {
+                Ok(VectorExpression { elements: elems }.into())
             } else {
                 ob.extract::<PyVectorExpression>().map_err(Into::into)
             }
@@ -275,15 +305,14 @@ impl PyVectorExpression {
 impl PyVectorExpression {
     #[new]
     #[pyo3(signature = (ndim=1, value=0.0f64))]
-    pub fn py_new(
-        ndim: usize,
-        value: Option<f64>,
-    ) -> PyResult<Self> {
+    pub fn py_new(ndim: usize, value: Option<f64>) -> PyResult<Self> {
         let value = match value {
             Some(v) => v,
             None => 0.0f64,
         };
-        Ok(Self{ inner: VectorExpression::new(ndim, value) })
+        Ok(Self {
+            inner: VectorExpression::new(ndim, value),
+        })
     }
 
     /// return size of the vector
@@ -303,22 +332,28 @@ impl PyVectorExpression {
 
     pub fn __getitem__(&self, index: usize) -> PyResult<PyParameterExpression> {
         if index >= self.inner.dim() {
-            Err(pyo3::exceptions::PyIndexError::new_err(" VectorExpression::__getitem__ : Error index out of bounds"))
+            Err(pyo3::exceptions::PyIndexError::new_err(
+                " VectorExpression::__getitem__ : Error index out of bounds",
+            ))
         } else {
-            Ok(PyParameterExpression{inner: self.inner.elements[index].clone()})
+            Ok(PyParameterExpression {
+                inner: self.inner.elements[index].clone(),
+            })
         }
     }
 
     pub fn __setitem__(&mut self, index: usize, value: &Bound<PyAny>) -> PyResult<()> {
         if index >= self.inner.dim() {
-            Err(pyo3::exceptions::PyIndexError::new_err(" VectorExpression__setitem__ : Error index out of bounds"))
+            Err(pyo3::exceptions::PyIndexError::new_err(
+                " VectorExpression__setitem__ : Error index out of bounds",
+            ))
         } else {
             match PyParameterExpression::extract_coerce(value.as_borrowed()) {
                 Ok(value) => {
                     self.inner.elements[index] = value.inner;
                     Ok(())
                 }
-                Err(err) => Err(err)
+                Err(err) => Err(err),
             }
         }
     }
@@ -409,7 +444,4 @@ impl PyVectorExpression {
             PyNotImplemented::get(py).into_bound_py_any(py)
         }
     }
-
 }
-
-
