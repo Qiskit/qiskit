@@ -26,7 +26,8 @@ pub static FUNCTIONS_CIRCUIT: ExportedFunctions =
         .add_child(5, &circuit::FUNCTIONS)
         .add_child(105, &dag::FUNCTIONS)
         .add_child(205, &param::FUNCTIONS)
-        .add_child(255, &circuit_library::FUNCTIONS);
+        .add_child(255, &circuit_library::FUNCTIONS)
+        .add_child(305, &classical_expr::FUNCTIONS);
 pub static FUNCTIONS_QI: ExportedFunctions =
     ExportedFunctions::empty().add_child(0, &sparse_observable::FUNCTIONS);
 pub use transpiler::FUNCTIONS as FUNCTIONS_TRANSPILE;
@@ -423,4 +424,31 @@ mod transpiler {
         .add_child(50, &TRANSPILE_STATE)
         .add_child(150, &target::FUNCTIONS)
         .add_child(250, &passes::FUNCTIONS);
+}
+
+mod classical_expr {
+    use crate::impl_::prelude::*;
+    #[cfg(feature = "addr")]
+    use qiskit_cext::classical_expr::*;
+
+    pub static FUNCTIONS: ExportedFunctions = ExportedFunctions::leaves(50, || {
+        vec![
+            export_fn!(qk_expr_node_kind),
+            export_fn!(qk_expr_binary_info),
+            export_fn!(qk_expr_unary_info),
+            export_fn!(qk_expr_cast_info),
+            export_fn!(qk_expr_index_info),
+            export_fn!(qk_expr_as_value),
+            export_fn!(qk_expr_as_var),
+            export_fn!(qk_expr_as_stretch),
+            export_fn!(qk_value_type),
+            export_fn!(qk_value_duration_info),
+            export_fn!(qk_value_float),
+            export_fn!(qk_value_uint),
+            export_fn!(qk_value_bool),
+            export_fn!(qk_var_name),
+            export_fn!(qk_var_type_info),
+            export_fn!(qk_stretch_name),
+        ]
+    });
 }
