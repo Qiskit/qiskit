@@ -25,7 +25,7 @@ jobs:
         run: cargo clippy -- -D warnings
       - name: Format
         working-directory: dist/rust/qiskit-pyo3-ffi
-        run: cargo fmt
+        run: cargo fmt --check
       - name: Docs
         working-directory: dist/rust/qiskit-pyo3-ffi
         run: cargo doc --no-deps
