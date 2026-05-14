@@ -1197,93 +1197,78 @@ mod test {
 
     #[test]
     fn test_binops_dtype_dispatch() {
-        // One representative per "kind" (signed int, unsigned int, float, complex)
-        // is sufficient: each dtype goes through identical macro-generated code.
         let mut fails: Vec<String> = vec![];
 
-        // I64 — signed int, all five binops.
-        let a = Tensor::from([6_i64, 4]);
-        let b = Tensor::from([3_i64, 2]);
-        for (op_name, got, want) in [
-            ("add", &a + &b, [9_i64, 6]),
-            ("sub", &a - &b, [3, 2]),
-            ("mul", &a * &b, [18, 8]),
-            ("div", &a / &b, [2, 2]),
-            ("rem", &a % &b, [0, 0]),
-        ] {
-            if let Tensor::I64(arr) = got {
-                if arr.as_slice().unwrap() != want {
-                    fails.push(format!("I64 {op_name}: got {arr:?}, want {want:?}"));
+        // Check Add/Sub/Mul/Div/Rem with all real dtypes
+        macro_rules! check_real {
+            ($variant:ident, $t:ty) => {{
+                let a = Tensor::from([6 as $t, 4 as $t]);
+                let b = Tensor::from([3 as $t, 2 as $t]);
+                for (op_name, got, want) in [
+                    ("add", &a + &b, [9 as $t, 6 as $t]),
+                    ("sub", &a - &b, [3 as $t, 2 as $t]),
+                    ("mul", &a * &b, [18 as $t, 8 as $t]),
+                    ("div", &a / &b, [2 as $t, 2 as $t]),
+                    ("rem", &a % &b, [0 as $t, 0 as $t]),
+                ] {
+                    if let Tensor::$variant(arr) = got {
+                        if arr.as_slice().unwrap() != want {
+                            fails.push(format!(
+                                "{} {op_name}: got {arr:?}, want {want:?}",
+                                stringify!($variant),
+                            ));
+                        }
+                    } else {
+                        fails.push(format!("{} {op_name}: wrong variant", stringify!($variant)));
+                    }
                 }
-            } else {
-                fails.push(format!("I64 {op_name}: wrong variant"));
-            }
+            }};
         }
+        check_real!(I8, i8);
+        check_real!(I16, i16);
+        check_real!(I32, i32);
+        check_real!(I64, i64);
+        check_real!(U8, u8);
+        check_real!(U16, u16);
+        check_real!(U32, u32);
+        check_real!(U64, u64);
+        check_real!(F32, f32);
+        check_real!(F64, f64);
 
-        // U64 — unsigned int, all five binops.
-        let a = Tensor::from([6_u64, 4]);
-        let b = Tensor::from([3_u64, 2]);
-        for (op_name, got, want) in [
-            ("add", &a + &b, [9_u64, 6]),
-            ("sub", &a - &b, [3, 2]),
-            ("mul", &a * &b, [18, 8]),
-            ("div", &a / &b, [2, 2]),
-            ("rem", &a % &b, [0, 0]),
-        ] {
-            if let Tensor::U64(arr) = got {
-                if arr.as_slice().unwrap() != want {
-                    fails.push(format!("U64 {op_name}: got {arr:?}, want {want:?}"));
+        // Check the same ops, but not Rem, with complex dtypes
+        macro_rules! check_complex {
+            ($variant:ident, $ctor:ident, $t:ty) => {{
+                let c = |re: $t| $ctor::new(re, 0.0);
+                let a = Tensor::from([c(6.0), c(4.0)]);
+                let b = Tensor::from([c(3.0), c(2.0)]);
+                for (op_name, got, want) in [
+                    ("add", &a + &b, [c(9.0), c(6.0)]),
+                    ("sub", &a - &b, [c(3.0), c(2.0)]),
+                    ("mul", &a * &b, [c(18.0), c(8.0)]),
+                    ("div", &a / &b, [c(2.0), c(2.0)]),
+                ] {
+                    if let Tensor::$variant(arr) = got {
+                        if arr.as_slice().unwrap() != want {
+                            fails.push(format!(
+                                "{} {op_name}: got {arr:?}, want {want:?}",
+                                stringify!($variant),
+                            ));
+                        }
+                    } else {
+                        fails.push(format!("{} {op_name}: wrong variant", stringify!($variant)));
+                    }
                 }
-            } else {
-                fails.push(format!("U64 {op_name}: wrong variant"));
-            }
+            }};
         }
-
-        // F64 — float, all five binops.
-        let a = Tensor::from([6.0_f64, 4.0]);
-        let b = Tensor::from([3.0_f64, 2.0]);
-        for (op_name, got, want) in [
-            ("add", &a + &b, [9.0_f64, 6.0]),
-            ("sub", &a - &b, [3.0, 2.0]),
-            ("mul", &a * &b, [18.0, 8.0]),
-            ("div", &a / &b, [2.0, 2.0]),
-            ("rem", &a % &b, [0.0, 0.0]),
-        ] {
-            if let Tensor::F64(arr) = got {
-                if arr.as_slice().unwrap() != want {
-                    fails.push(format!("F64 {op_name}: got {arr:?}, want {want:?}"));
-                }
-            } else {
-                fails.push(format!("F64 {op_name}: wrong variant"));
-            }
-        }
-
-        // C128 — complex, no rem (covered by test_rem_complex_returns_err).
-        let c = |re: f64| Complex64::new(re, 0.0);
-        let a = Tensor::from([c(6.0), c(4.0)]);
-        let b = Tensor::from([c(3.0), c(2.0)]);
-        for (op_name, got, want) in [
-            ("add", &a + &b, [c(9.0), c(6.0)]),
-            ("sub", &a - &b, [c(3.0), c(2.0)]),
-            ("mul", &a * &b, [c(18.0), c(8.0)]),
-            ("div", &a / &b, [c(2.0), c(2.0)]),
-        ] {
-            if let Tensor::C128(arr) = got {
-                if arr.as_slice().unwrap() != want {
-                    fails.push(format!("C128 {op_name}: got {arr:?}, want {want:?}"));
-                }
-            } else {
-                fails.push(format!("C128 {op_name}: wrong variant"));
-            }
-        }
+        check_complex!(C64, Complex32, f32);
+        check_complex!(C128, Complex64, f64);
 
         assert_eq!(fails, Vec::<String>::new(), "binop failures: {fails:?}");
     }
 
     #[test]
     fn test_rem_complex_returns_err() {
-        // C128 % C128 is unsupported (`num_complex` has no Rem impl), so
-        // rem_tensor must report DTypeMismatch with op="rem" rather than panic.
+        // C128 % C128 is unsupported
         let a = Tensor::from([Complex64::new(1.0, 0.0)]);
         let b = Tensor::from([Complex64::new(1.0, 0.0)]);
         let err = a.rem_tensor(&b).unwrap_err();
@@ -1299,30 +1284,85 @@ mod test {
 
     #[test]
     fn test_pow_dtype_dispatch() {
-        // The other macro-generated arms are covered by test_pow_int (I32) and
-        // test_pow_float (F64).  These two rows hit the unique branches: U32's
-        // `x.pow(y)` arm (uses `y` directly rather than `y as u32`), and
-        // Complex::powc via C64.
+        let mut fails: Vec<String> = vec![];
 
-        // U32 — special-case branch.
-        let base = Tensor::from([2_u32, 3, 4]);
-        let exp = Tensor::from([3_u32, 2, 1]);
-        if let Tensor::U32(arr) = base.pow(&exp).unwrap() {
-            assert_eq!(arr.as_slice().unwrap(), &[8_u32, 9, 4]);
-        } else {
-            panic!("U32 pow returned wrong variant");
+        macro_rules! check_int {
+            ($variant:ident, $t:ty) => {{
+                let base = Tensor::from([2 as $t, 3 as $t]);
+                let exp = Tensor::from([3 as $t, 2 as $t]);
+                match base.pow(&exp).unwrap() {
+                    Tensor::$variant(arr) => {
+                        if arr.as_slice().unwrap() != [8 as $t, 9 as $t] {
+                            fails.push(format!("{} pow: got {arr:?}", stringify!($variant)));
+                        }
+                    }
+                    other => fails.push(format!(
+                        "{} pow: wrong variant {}",
+                        stringify!($variant),
+                        other.dtype()
+                    )),
+                }
+            }};
         }
+        check_int!(I8, i8);
+        check_int!(I16, i16);
+        check_int!(I32, i32);
+        check_int!(I64, i64);
+        check_int!(U8, u8);
+        check_int!(U16, u16);
+        check_int!(U32, u32);
+        check_int!(U64, u64);
 
-        // C64 — Complex::powc.
-        let c = |re: f32| Complex32::new(re, 0.0);
-        let base = Tensor::from([c(2.0), c(3.0)]);
-        let exp = Tensor::from([c(3.0), c(2.0)]);
-        if let Tensor::C64(arr) = base.pow(&exp).unwrap() {
-            assert!(approx::abs_diff_eq!(arr[0].re, 8.0_f32, epsilon = 1e-4));
-            assert!(approx::abs_diff_eq!(arr[1].re, 9.0_f32, epsilon = 1e-4));
-        } else {
-            panic!("C64 pow returned wrong variant");
+        macro_rules! check_float {
+            ($variant:ident, $t:ty, $eps:expr) => {{
+                let base = Tensor::from([2.0 as $t, 3.0 as $t]);
+                let exp = Tensor::from([3.0 as $t, 2.0 as $t]);
+                match base.pow(&exp).unwrap() {
+                    Tensor::$variant(arr) => {
+                        if !approx::abs_diff_eq!(arr[0], 8.0 as $t, epsilon = $eps)
+                            || !approx::abs_diff_eq!(arr[1], 9.0 as $t, epsilon = $eps)
+                        {
+                            fails.push(format!("{} pow: got {arr:?}", stringify!($variant)));
+                        }
+                    }
+                    other => fails.push(format!(
+                        "{} pow: wrong variant {}",
+                        stringify!($variant),
+                        other.dtype()
+                    )),
+                }
+            }};
         }
+        check_float!(F32, f32, 1e-4);
+        check_float!(F64, f64, 1e-10);
+
+        macro_rules! check_complex {
+            ($variant:ident, $ctor:ident, $t:ty, $eps:expr) => {{
+                let c = |re: $t| $ctor::new(re, 0.0);
+                let base = Tensor::from([c(2.0), c(3.0)]);
+                let exp = Tensor::from([c(3.0), c(2.0)]);
+                match base.pow(&exp).unwrap() {
+                    Tensor::$variant(arr) => {
+                        if !approx::abs_diff_eq!(arr[0].re, 8.0 as $t, epsilon = $eps)
+                            || !approx::abs_diff_eq!(arr[1].re, 9.0 as $t, epsilon = $eps)
+                            || !approx::abs_diff_eq!(arr[0].im, 0.0 as $t, epsilon = $eps)
+                            || !approx::abs_diff_eq!(arr[1].im, 0.0 as $t, epsilon = $eps)
+                        {
+                            fails.push(format!("{} pow: got {arr:?}", stringify!($variant)));
+                        }
+                    }
+                    other => fails.push(format!(
+                        "{} pow: wrong variant {}",
+                        stringify!($variant),
+                        other.dtype()
+                    )),
+                }
+            }};
+        }
+        check_complex!(C64, Complex32, f32, 1e-4);
+        check_complex!(C128, Complex64, f64, 1e-10);
+
+        assert_eq!(fails, Vec::<String>::new(), "pow failures: {fails:?}");
     }
 
     #[test]
@@ -1348,21 +1388,29 @@ mod test {
         ];
         let sources = [
             Tensor::Bit(ndarray::ArrayD::from_elem(IxDyn(&[2]), 1u8)),
+            Tensor::U8(ndarray::ArrayD::from_elem(IxDyn(&[2]), 1u8)),
             Tensor::U16(ndarray::ArrayD::from_elem(IxDyn(&[2]), 1u16)),
             Tensor::U32(ndarray::ArrayD::from_elem(IxDyn(&[2]), 1u32)),
             Tensor::U64(ndarray::ArrayD::from_elem(IxDyn(&[2]), 1u64)),
+            Tensor::I8(ndarray::ArrayD::from_elem(IxDyn(&[2]), 1i8)),
             Tensor::I16(ndarray::ArrayD::from_elem(IxDyn(&[2]), 1i16)),
             Tensor::I32(ndarray::ArrayD::from_elem(IxDyn(&[2]), 1i32)),
             Tensor::I64(ndarray::ArrayD::from_elem(IxDyn(&[2]), 1i64)),
+            Tensor::F32(ndarray::ArrayD::from_elem(IxDyn(&[2]), 1.0f32)),
+            Tensor::F64(ndarray::ArrayD::from_elem(IxDyn(&[2]), 1.0f64)),
         ];
-        for bit_src in sources {
+        for src in sources {
+            let src_dtype = src.dtype();
             for target in all_targets {
-                let casted = bit_src.clone().cast(target);
+                let casted = src.clone().cast(target);
                 if casted.dtype() != target {
-                    fails.push(format!("Bit -> {target}: dtype was {}", casted.dtype()));
-               }
-           }
-       }
+                    fails.push(format!(
+                        "{src_dtype} -> {target}: dtype was {}",
+                        casted.dtype()
+                    ));
+                }
+            }
+        }
 
         // C64 -> C128.
         let c64_src = Tensor::from([Complex32::new(1.0, 2.0)]);
