@@ -82,7 +82,7 @@ impl VectorExpression {
         if size >= self.elements.len() {
             let a = Array0::from_elem((), ParameterExpression::from_f64(0.0f64));
             for _ in self.elements.len()..size {
-                self.elements.push(Axis(0), ArrayView0::from(&a));
+                let _ = self.elements.push(Axis(0), ArrayView0::from(&a));
             }
         } else {
             self.elements = self.elements.slice(ndarray::s![0..size]).to_owned();
@@ -306,12 +306,8 @@ impl PyVectorExpression {
     #[new]
     #[pyo3(signature = (ndim=1, value=0.0f64))]
     pub fn py_new(ndim: usize, value: Option<f64>) -> PyResult<Self> {
-        let value = match value {
-            Some(v) => v,
-            None => 0.0f64,
-        };
         Ok(Self {
-            inner: VectorExpression::new(ndim, value),
+            inner: VectorExpression::new(ndim, value.unwrap_or(0.0f64)),
         })
     }
 
