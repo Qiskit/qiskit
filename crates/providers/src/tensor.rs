@@ -1346,13 +1346,23 @@ mod test {
             DType::C64,
             DType::C128,
         ];
-        let bit_src = Tensor::Bit(ndarray::ArrayD::from_elem(IxDyn(&[2]), 1u8));
-        for target in all_targets {
-            let casted = bit_src.clone().cast(target);
-            if casted.dtype() != target {
-                fails.push(format!("Bit -> {target}: dtype was {}", casted.dtype()));
-            }
-        }
+        let sources = [
+            Tensor::Bit(ndarray::ArrayD::from_elem(IxDyn(&[2]), 1u8)),
+            Tensor::U16(ndarray::ArrayD::from_elem(IxDyn(&[2]), 1u16)),
+            Tensor::U32(ndarray::ArrayD::from_elem(IxDyn(&[2]), 1u32)),
+            Tensor::U64(ndarray::ArrayD::from_elem(IxDyn(&[2]), 1u64)),
+            Tensor::I16(ndarray::ArrayD::from_elem(IxDyn(&[2]), 1i16)),
+            Tensor::I32(ndarray::ArrayD::from_elem(IxDyn(&[2]), 1i32)),
+            Tensor::I64(ndarray::ArrayD::from_elem(IxDyn(&[2]), 1i64)),
+        ];
+        for bit_src in sources {
+            for target in all_targets {
+                let casted = bit_src.clone().cast(target);
+                if casted.dtype() != target {
+                    fails.push(format!("Bit -> {target}: dtype was {}", casted.dtype()));
+               }
+           }
+       }
 
         // C64 -> C128.
         let c64_src = Tensor::from([Complex32::new(1.0, 2.0)]);
