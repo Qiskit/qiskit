@@ -16,4 +16,3 @@ VectorExpression Class to enable creating vector expressions of Parameters.
 import qiskit._accelerate.circuit
 
 VectorExpression = qiskit._accelerate.circuit.VectorExpression
-MatrixExpression = qiskit._accelerate.circuit.MatrixExpression

@@ -363,10 +363,10 @@ impl PyVectorExpression {
         }
     }
 
-    pub fn __radd__<'py>(&self, rhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
-        let py = rhs.py();
-        if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
-            PyVectorExpression::from(rhs.inner._add_par(&self.inner)).into_bound_py_any(py)
+    pub fn __radd__<'py>(&self, lhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
+        let py = lhs.py();
+        if let Ok(lhs) = Self::extract_coerce(lhs.as_borrowed()) {
+            PyVectorExpression::from(lhs.inner._add_par(&self.inner)).into_bound_py_any(py)
         } else {
             PyNotImplemented::get(py).into_bound_py_any(py)
         }
@@ -381,10 +381,10 @@ impl PyVectorExpression {
         }
     }
 
-    pub fn __rsub__<'py>(&self, rhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
-        let py = rhs.py();
-        if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
-            PyVectorExpression::from(rhs.inner._sub_par(&self.inner)).into_bound_py_any(py)
+    pub fn __rsub__<'py>(&self, lhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
+        let py = lhs.py();
+        if let Ok(lhs) = Self::extract_coerce(lhs.as_borrowed()) {
+            PyVectorExpression::from(lhs.inner._sub_par(&self.inner)).into_bound_py_any(py)
         } else {
             PyNotImplemented::get(py).into_bound_py_any(py)
         }
@@ -402,13 +402,13 @@ impl PyVectorExpression {
         }
     }
 
-    pub fn __rmul__<'py>(&self, rhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
-        let py = rhs.py();
-        if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
+    pub fn __rmul__<'py>(&self, lhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
+        let py = lhs.py();
+        if let Ok(lhs) = Self::extract_coerce(lhs.as_borrowed()) {
             // return dot product if rhs is a vector
-            PyParameterExpression::from(rhs.inner.dot_par(&self.inner)).into_bound_py_any(py)
-        } else if let Ok(rhs) = PyParameterExpression::extract_coerce(rhs.as_borrowed()) {
-            PyVectorExpression::from(self.inner._rmul_par(&rhs.inner)).into_bound_py_any(py)
+            PyParameterExpression::from(lhs.inner.dot_par(&self.inner)).into_bound_py_any(py)
+        } else if let Ok(lhs) = PyParameterExpression::extract_coerce(lhs.as_borrowed()) {
+            PyVectorExpression::from(self.inner._rmul_par(&lhs.inner)).into_bound_py_any(py)
         } else {
             PyNotImplemented::get(py).into_bound_py_any(py)
         }
@@ -423,10 +423,10 @@ impl PyVectorExpression {
         }
     }
 
-    pub fn __rtruediv__<'py>(&self, rhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
-        let py = rhs.py();
-        if let Ok(rhs) = PyParameterExpression::extract_coerce(rhs.as_borrowed()) {
-            PyVectorExpression::from(self.inner._rdiv_par(&rhs.inner)).into_bound_py_any(py)
+    pub fn __rtruediv__<'py>(&self, lhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
+        let py = lhs.py();
+        if let Ok(lhs) = PyParameterExpression::extract_coerce(lhs.as_borrowed()) {
+            PyVectorExpression::from(self.inner._rdiv_par(&lhs.inner)).into_bound_py_any(py)
         } else {
             PyNotImplemented::get(py).into_bound_py_any(py)
         }
