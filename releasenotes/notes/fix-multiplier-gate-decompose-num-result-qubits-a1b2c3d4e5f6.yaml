@@ -5,9 +5,4 @@ fixes:
     :meth:`~.MultiplierGate.decompose` (or accessing the ``definition``)
     would fail with a qubit-count mismatch when ``num_result_qubits``
     was set to a value smaller than the default ``2 * num_state_qubits``.
-    The internal ``_define()`` method was not forwarding the
-    ``num_result_qubits`` parameter to the synthesis function
-    :func:`~qiskit.synthesis.arithmetic.multiplier_qft_r17`, causing it
-    to always produce a circuit with ``2 * num_state_qubits`` result
-    qubits regardless of the gate's actual configuration.
     Fixes `#16168 <https://github.com/Qiskit/qiskit/issues/16168>`_.
