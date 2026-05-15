@@ -30,3 +30,7 @@ install:
 	cp dist/c/include/qiskit.h $(INCLUDE_DIR)
 	cp -r dist/c/include/qiskit/ $(INCLUDE_DIR)
 	cp dist/c/lib/libqiskit.so $(LIB_DIR)
+uninstall:
+	rm -f $(INCLUDE_DIR)/qiskit.h
+	rm -rf $(INCLUDE_DIR)/qiskit/
+	rm -rf $(LIB_DIR)/libqiskit.so
