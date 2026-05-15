@@ -37,17 +37,23 @@ pub enum InteractionKind {
     /// the Sabre version and the DAG representation of the block, so we can reconstruct things
     /// later.  When control-flow ops are represented with native DAGs, we won't need to store the
     /// temporary.
-    ControlFlow(Box<[(SabreDAG, DAGCircuit)]>),
+   ControlFlow(Box<[(SabreDAG, DAGCircuit)]>, Box<[VirtualQubit]>),
 }
 impl InteractionKind {
-    fn from_control_flow(cf: ControlFlowView<DAGCircuit>) -> Result<Self, SabreDAGError> {
-        let blocks: Box<[_]> = cf
-            .blocks()
-            .into_iter()
-            .map(|dag| Ok((SabreDAG::from_dag(dag)?, dag.clone())))
-            .collect::<Result<_, SabreDAGError>>()?;
-        Ok(Self::ControlFlow(blocks))
-    }
+   fn from_control_flow(
+    cf: ControlFlowView<DAGCircuit>,
+    outer_qargs: &[Qubit],
+) -> Result<Self, SabreDAGError> {
+    let blocks: Box<[_]> = cf
+        .blocks()
+        .into_iter()
+        .map(|dag| Ok((SabreDAG::from_dag(dag)?, dag.clone())))
+        .collect::<Result<_, SabreDAGError>>()?;
+    let outer_virtual: Box<[VirtualQubit]> = outer_qargs
+        .iter()
+        .map(|q| VirtualQubit::new(q.0))
+        .collect();
+    Ok(Self::ControlFlow(blocks, outer_virtual))}
 
     fn from_op(op: &PackedOperation, qargs: &[Qubit]) -> Result<Self, SabreDAGError> {
         if op.directive() {
@@ -159,7 +165,7 @@ impl SabreDAG {
                 panic!("op nodes should always be of type `Operation`");
             };
             let kind = if let Some(cf) = dag.try_view_control_flow(inst) {
-                InteractionKind::from_control_flow(cf)?
+                InteractionKind::from_control_flow(cf, dag.get_qargs(inst.qubits))?
             } else {
                 InteractionKind::from_op(&inst.op, dag.get_qargs(inst.qubits))?
             };
@@ -234,7 +240,9 @@ impl SabreDAG {
         for node in self.dag.node_weights() {
             let kind = match &node.kind {
                 InteractionKind::Synchronize | InteractionKind::TwoQ(_) => node.kind.clone(),
-                InteractionKind::ControlFlow(_) => InteractionKind::Synchronize,
+               InteractionKind::ControlFlow(blocks, outer_qargs) => {
+                extract_dominant_interaction_with_mapping(blocks, outer_qargs)
+                },
             };
             // `NodeWeights` guarantees that the weights come out in index order, so the new indexes
             // must match those in `self`.
@@ -259,4 +267,34 @@ impl SabreDAG {
         out_dag.first_layer = out_dag.dag.externals(Direction::Incoming).collect();
         out_dag
     }
+}
+
+
+fn extract_dominant_interaction_with_mapping(
+    blocks: &[(SabreDAG, DAGCircuit)],
+    outer_qargs: &[VirtualQubit],
+) -> InteractionKind { 
+    let mut pair_counts: hashbrown::HashMap<[u32; 2], usize> =
+        hashbrown::HashMap::new();
+    let mut best: Option<([VirtualQubit; 2], usize)> = None;
+
+    for (sabre_block, _) in blocks.iter() {
+        for node in sabre_block.dag.node_weights() {
+            if let InteractionKind::TwoQ([a, b]) = &node.kind { 
+                let outer_a = outer_qargs.get(a.0 as usize).copied();
+                let outer_b = outer_qargs.get(b.0 as usize).copied();
+                if let (Some(oa), Some(ob)) = (outer_a, outer_b) {
+                    let mut key = [oa.0, ob.0];
+                    key.sort_unstable();
+                    let count = pair_counts.entry(key).or_insert(0);
+                    *count += 1;
+                    if best.map_or(true, |(_, c)| *count > c) {
+                        best = Some(([oa, ob], *count));
+                    }
+                }
+            }
+        }
+    }
+    best.map(|([a, b], _)| InteractionKind::TwoQ([a, b]))
+        .unwrap_or(InteractionKind::Synchronize)
 }
