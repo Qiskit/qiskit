@@ -1446,13 +1446,15 @@ impl PyParameterExpression {
         }
     }
 
-    pub fn __mul__(&self, rhs: &Bound<PyAny>) -> PyResult<Self> {
+    pub fn __mul__<'py>(&self, rhs: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyAny>> {
+        let py = rhs.py();
         if let Ok(rhs) = Self::extract_coerce(rhs.as_borrowed()) {
-            Ok(self.inner._mul(&rhs.inner)?.into())
+            match self.inner._mul(&rhs.inner) {
+                Ok(result) => PyParameterExpression::from(result).into_bound_py_any(py),
+                Err(e) => Err(PyErr::from(e)),
+            }
         } else {
-            Err(pyo3::exceptions::PyTypeError::new_err(
-                "Unsupported data type for __mul__",
-            ))
+            PyNotImplemented::get(py).into_bound_py_any(py)
         }
     }
 
