@@ -39,6 +39,7 @@ Operators
    PauliList
    pauli_basis
    get_clifford_gate_names
+   operator_schmidt_decomposition
 
 .. _quantum_info_states:
 
@@ -143,6 +144,7 @@ from .operators import (
     double_commutator,
     pauli_basis,
     get_clifford_gate_names,
+    operator_schmidt_decomposition,
 )
 from .operators.channel import PTM, Chi, Choi, Kraus, Stinespring, SuperOp
 from .operators.dihedral import CNOTDihedral
