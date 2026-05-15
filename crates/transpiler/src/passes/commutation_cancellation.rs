@@ -34,15 +34,22 @@ static VAR_Z_MAP: [(&str, StandardGate); 3] = [
     ("p", StandardGate::Phase),
     ("u1", StandardGate::U1),
 ];
-static Z_ROTATIONS: [StandardGate; 6] = [
+static Z_ROTATIONS: [StandardGate; 8] = [
     StandardGate::Phase,
     StandardGate::Z,
     StandardGate::U1,
     StandardGate::RZ,
     StandardGate::T,
+    StandardGate::Tdg,
     StandardGate::S,
+    StandardGate::Sdg,
 ];
-static X_ROTATIONS: [StandardGate; 2] = [StandardGate::X, StandardGate::RX];
+static X_ROTATIONS: [StandardGate; 4] = [
+    StandardGate::X,
+    StandardGate::RX,
+    StandardGate::SX,
+    StandardGate::SXdg,
+];
 static SUPPORTED_GATES: [StandardGate; 5] = [
     StandardGate::CX,
     StandardGate::CY,
@@ -92,6 +99,8 @@ pub fn cancel_commutations(
                     .map(|(_, gate)| gate)
             })
         });
+    let sx_supported = dag.get_op_counts().contains_key("sx") || basis.iter().any(|x| x == "sx");
+    let x_supported = dag.get_op_counts().contains_key("x") || basis.iter().any(|x| x == "x");
 
     // RZ and P/U1 have a phase difference of angle/2, which we need to account for
     let z_phase_shift = match z_var_gate {
@@ -247,9 +256,13 @@ pub fn cancel_commutations(
                     } else {
                         match node_op_name {
                             "t" => Ok((FRAC_PI_4, z_phase_shift("p", FRAC_PI_4))),
+                            "tdg" => Ok((-FRAC_PI_4, -z_phase_shift("p", FRAC_PI_4))),
                             "s" => Ok((FRAC_PI_2, z_phase_shift("p", FRAC_PI_2))),
+                            "sdg" => Ok((-FRAC_PI_2, -z_phase_shift("p", FRAC_PI_2))),
                             "z" => Ok((PI, z_phase_shift("p", PI))),
                             "x" => Ok((PI, FRAC_PI_2)),
+                            "sx" => Ok((FRAC_PI_2, FRAC_PI_4)),
+                            "sxdg" => Ok((-FRAC_PI_2, -FRAC_PI_4)),
                             _ => Err(PyRuntimeError::new_err(format!(
                                 "Angle for operation {node_op_name} is not defined"
                             ))),
@@ -261,7 +274,17 @@ pub fn cancel_commutations(
 
                 let new_op = match cancel_key.gate {
                     GateOrRotation::ZRotation => z_var_gate.unwrap(),
-                    GateOrRotation::XRotation => &StandardGate::RX,
+                    GateOrRotation::XRotation => {
+                        if x_supported && total_angle.rem_euclid(PI) < _CUTOFF_PRECISION {
+                            &StandardGate::X
+                        } else if sx_supported
+                            && total_angle.rem_euclid(FRAC_PI_2) < _CUTOFF_PRECISION
+                        {
+                            &StandardGate::SX
+                        } else {
+                            &StandardGate::RX
+                        }
+                    }
                     _ => unreachable!(),
                 };
 
@@ -276,7 +299,16 @@ pub fn cancel_commutations(
                     total_phase -= PI;
                 } else {
                     // any other is not the identity and we add the gate
-                    dag.insert_1q_on_incoming_qubit((*new_op, &[total_angle]), cancel_set[0]);
+                    if new_op == &StandardGate::X {
+                        dag.insert_1q_on_incoming_qubit((*new_op, &[]), cancel_set[0]);
+                    } else if new_op == &StandardGate::SX {
+                        let gate_counts = ((total_angle / FRAC_PI_2) as u64) % 4;
+                        for _ in 0..gate_counts {
+                            dag.insert_1q_on_incoming_qubit((*new_op, &[]), cancel_set[0]);
+                        }
+                    } else {
+                        dag.insert_1q_on_incoming_qubit((*new_op, &[total_angle]), cancel_set[0]);
+                    }
                 }
 
                 dag.add_global_phase(&Param::Float(total_phase))?;
