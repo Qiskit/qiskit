@@ -57,3 +57,11 @@ class TimingConstraints:
                 raise TranspilerError(
                     f"Timing constraint {key} should be nonzero integer. Not {value}."
                 )
+    
+    # Return True if the TimingConstraints object is None or empty
+    def is_empty(self):
+        return self.granularity == 1 and self.min_length == 1 and self.pulse_alignment == 1 and self.acquire_alignment == 1
+    
+    # Return True if the TimingConstraints object is not None or empty
+    def is_not_empty(self):
+        return not self.is_none_or_empty()
