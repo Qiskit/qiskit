@@ -15,6 +15,9 @@ use crate::program_node::ProgramNode;
 use crate::tensor::{Tensor, TensorType};
 use std::sync::LazyLock;
 
+// An empty data tree is the input for all store nodes.
+static EMPTY_DATA_TREE: LazyLock<DataTree<TensorType>> = LazyLock::new(DataTree::new);
+
 /// A program node that owns constant data and outputs it unconditionally.
 ///
 /// `Store` takes no inputs; its `call()` always returns the data it was constructed with.
@@ -67,9 +70,7 @@ impl ProgramNode for Store {
     }
 
     fn input_types(&self) -> &DataTree<TensorType> {
-        // Stores never have inputs; use a static to avoid per-instance storage
-        static EMPTY: LazyLock<DataTree<TensorType>> = LazyLock::new(DataTree::new);
-        &EMPTY
+        &EMPTY_DATA_TREE
     }
 
     fn output_types(&self) -> &DataTree<TensorType> {
