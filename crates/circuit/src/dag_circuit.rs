@@ -1730,17 +1730,18 @@ impl DAGCircuit {
     ///     DAGCircuitError: if an unknown :class:`.ControlFlowOp` is present in a call with
     ///         ``recurse=True``, or any control flow is present in a non-recursive call.
     #[pyo3(signature= (*, recurse=false))]
-    pub fn size(&self, recurse: bool) -> PyResult<usize> {
+    pub fn size(&self, recurse: bool) -> Result<usize, DAGCircuitInnerError> {
         let mut length = self.num_ops();
         if !self.has_control_flow() {
             return Ok(length);
         }
         if !recurse {
-            return Err(DAGCircuitError::new_err(concat!(
+            return Err(anyhow!(concat!(
                 "Size with control flow is ambiguous.",
                 " You may use `recurse=True` to get a result",
                 " but see this method's documentation for the meaning of this."
-            )));
+            ))
+            .into());
         }
 
         // Handle recursively.
@@ -1787,7 +1788,7 @@ impl DAGCircuit {
     ///     DAGCircuitError: if unknown control flow is present in a recursive call, or any control
     ///         flow is present in a non-recursive call.
     #[pyo3(signature= (*, recurse=false))]
-    pub fn depth(&self, recurse: bool) -> PyResult<usize> {
+    pub fn depth(&self, recurse: bool) -> Result<usize, DAGCircuitInnerError> {
         if self.qubits.is_empty() && self.clbits.is_empty() && self.num_vars() == 0 {
             return Ok(0);
         }
@@ -1795,15 +1796,16 @@ impl DAGCircuit {
             let weight_fn = |_| -> Result<usize, Infallible> { Ok(1) };
             return match rustworkx_core::dag_algo::longest_path(&self.dag, weight_fn).unwrap() {
                 Some(res) => Ok(res.1 - 1),
-                None => Err(DAGCircuitError::new_err("not a DAG")),
+                None => Err(anyhow!("not a DAG").into()),
             };
         }
         if !recurse {
-            return Err(DAGCircuitError::new_err(concat!(
+            return Err(anyhow!(concat!(
                 "Depth with control flow is ambiguous.",
                 " You may use `recurse=True` to get a result",
                 " but see this method's documentation for the meaning of this."
-            )));
+            ))
+            .into());
         }
         // Handle recursively.
         let mut node_lookup: HashMap<NodeIndex, usize> = HashMap::new();
@@ -1833,7 +1835,7 @@ impl DAGCircuit {
         };
         match rustworkx_core::dag_algo::longest_path(&self.dag, weight_fn).unwrap() {
             Some(res) => Ok(res.1 - 1),
-            None => Err(DAGCircuitError::new_err("not a DAG")),
+            None => Err(anyhow!("not a DAG").into()),
         }
     }
 
