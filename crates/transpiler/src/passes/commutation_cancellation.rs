@@ -21,6 +21,7 @@ use smallvec::{SmallVec, smallvec};
 
 use super::analyze_commutations;
 use crate::commutation_checker::CommutationChecker;
+use approx::abs_diff_eq;
 use qiskit_circuit::Qubit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
@@ -275,11 +276,9 @@ pub fn cancel_commutations(
                 let new_op = match cancel_key.gate {
                     GateOrRotation::ZRotation => z_var_gate.unwrap(),
                     GateOrRotation::XRotation => {
-                        if x_supported && total_angle.rem_euclid(PI) < _CUTOFF_PRECISION {
+                        if x_supported && is_multiple_of_pi_k(total_angle, 1.) {
                             &StandardGate::X
-                        } else if sx_supported
-                            && total_angle.rem_euclid(FRAC_PI_2) < _CUTOFF_PRECISION
-                        {
+                        } else if sx_supported && is_multiple_of_pi_k(total_angle, 2.) {
                             &StandardGate::SX
                         } else {
                             &StandardGate::RX
@@ -288,13 +287,10 @@ pub fn cancel_commutations(
                     _ => unreachable!(),
                 };
 
-                let pi_multiple = total_angle / PI;
-
-                let mod4 = pi_multiple.rem_euclid(4.);
-                if mod4 < _CUTOFF_PRECISION || (4. - mod4) < _CUTOFF_PRECISION {
+                if is_multiple_of_pi_k(total_angle, 0.25) {
                     // if the angle is close to a 4-pi multiple (from above or below), then the
                     // operator is equal to the identity
-                } else if (mod4 - 2.).abs() < _CUTOFF_PRECISION {
+                } else if is_multiple_of_pi_k(total_angle, 0.5) {
                     // a 2-pi multiple has a phase of pi: RX(2pi) = RZ(2pi) = -I = I exp(i pi)
                     total_phase -= PI;
                 } else {
@@ -321,6 +317,13 @@ pub fn cancel_commutations(
     }
 
     Ok(())
+}
+
+fn is_multiple_of_pi_k(angle: f64, k: f64) -> bool {
+    let modulo = angle * k / PI;
+    let remainder = modulo.rem_euclid(1.0);
+    abs_diff_eq!(remainder, 0., epsilon = _CUTOFF_PRECISION)
+        || abs_diff_eq!(remainder, 1., epsilon = _CUTOFF_PRECISION)
 }
 
 pub fn commutation_cancellation_mod(m: &Bound<PyModule>) -> PyResult<()> {
