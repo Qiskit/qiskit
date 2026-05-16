@@ -536,9 +536,15 @@ impl QubitSparsePauliList {
             });
         }
 
-        Ok(Array2::from_shape_fn((self.num_terms(), other.num_terms()), |(i, j)| {
-            self.term(i).to_term().commutes(&other.term(j).to_term()).unwrap()
-        }))
+        Ok(Array2::from_shape_fn(
+            (self.num_terms(), other.num_terms()),
+            |(i, j)| {
+                self.term(i)
+                    .to_term()
+                    .commutes(&other.term(j).to_term())
+                    .unwrap()
+            },
+        ))
     }
 }
 
@@ -850,7 +856,7 @@ impl QubitSparsePauli {
         }
     }
 
-    // Check if `self` commutes with `other`
+    // Check if `self` commutes with `other`.
     pub fn commutes(&self, other: &QubitSparsePauli) -> Result<bool, ArithmeticError> {
         if self.num_qubits != other.num_qubits {
             return Err(ArithmeticError::MismatchedQubits {
