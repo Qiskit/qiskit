@@ -19,13 +19,13 @@ endif
 check:
 	@if [ ! -d "$(INCLUDE_DIR)" ]; then \
 		echo "INCLUDE_DIR=$(INCLUDE_DIR) does not exist, cannot install qiskit-c-api. "; \
-		echo "To use a custom include directory, run `make install INCLUDE_DIR=\"</path/to/include/dir>\"`"
+		echo "To use a custom include directory, run `make install INCLUDE_DIR=\"</path/to/include/dir>\"`" \
 		echo "Exiting..."; \
 		exit 1; \
 	fi
 	@if [ ! -d "$(LIB_DIR)" ]; then \
 		echo "LIB_DIR=$(LIB_DIR) does not exist, cannot install qiskit-c-api. Exiting..."; \
-		echo "To use a custom lib directory, run `make install LIB_DIR=\"</path/to/lib/dir>\"`"
+		echo "To use a custom lib directory, run `make install LIB_DIR=\"</path/to/lib/dir>\"`" \
 		exit 1; \
 	fi
 install: check
