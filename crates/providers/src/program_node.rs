@@ -15,6 +15,8 @@ use crate::tensor::{Tensor, TensorType};
 
 /// A node in a quantum program graph that transforms tensors.
 pub trait ProgramNode {
+    type CallError;
+
     /// The name of this program node.
     fn name(&self) -> &str;
 
@@ -26,16 +28,15 @@ pub trait ProgramNode {
         format!("{}.{}", self.namespace(), self.name())
     }
 
-    /// The inputs expected at `call` time.
+    /// The inputs expected at call time.
     fn input_types(&self) -> &DataTree<TensorType>;
 
-    /// The outputs promised on `call` return.
+    /// The outputs promised on call return.
     fn output_types(&self) -> &DataTree<TensorType>;
 
     /// Whether this program node implements the call method.
     fn implements_call(&self) -> bool;
 
     /// The action of this program node.
-    type CallError;
     fn call(&self, args: &DataTree<Tensor>) -> Result<DataTree<Tensor>, Self::CallError>;
 }

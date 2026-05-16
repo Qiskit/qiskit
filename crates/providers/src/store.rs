@@ -61,6 +61,8 @@ fn derive_output_types(data: &DataTree<Tensor>) -> DataTree<TensorType> {
 }
 
 impl ProgramNode for Store {
+    type CallError = std::convert::Infallible;
+
     fn name(&self) -> &str {
         "store"
     }
@@ -81,7 +83,7 @@ impl ProgramNode for Store {
         true
     }
 
-    fn call(&self, _args: &DataTree<Tensor>) -> anyhow::Result<DataTree<Tensor>> {
+    fn call(&self, _args: &DataTree<Tensor>) -> Result<DataTree<Tensor>, Self::CallError> {
         Ok(self.data.clone())
     }
 }
