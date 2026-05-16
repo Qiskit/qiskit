@@ -13,10 +13,7 @@
 # just --summary produces a space-separated list of targets
 JUST_RECIPES := $(shell just --summary 2>/dev/null)
 
-.PHONY: default $(JUST_RECIPES)
-
-default:
-	@just
+.PHONY: $(JUST_RECIPES)
 
 # Forward any recognized recipe to just
 $(JUST_RECIPES):
