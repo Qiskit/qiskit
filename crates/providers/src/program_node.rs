@@ -36,5 +36,6 @@ pub trait ProgramNode {
     fn implements_call(&self) -> bool;
 
     /// The action of this program node.
-    fn call(&self, args: &DataTree<Tensor>) -> anyhow::Result<DataTree<Tensor>>;
+    type CallError;
+    fn call(&self, args: &DataTree<Tensor>) -> Result<DataTree<Tensor>, Self::CallError>;
 }
