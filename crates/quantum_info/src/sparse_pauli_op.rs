@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ahash::RandomState;
+use foldhash::fast::RandomState;
 use pyo3::Python;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
@@ -337,7 +337,7 @@ impl MatrixCompressedPaulis {
         let mut hash_table =
             IndexMap::<(u64, u64), Complex64, RandomState>::with_capacity_and_hasher(
                 self.coeffs.len(),
-                RandomState::new(),
+                RandomState::default(),
             );
         for (key, coeff) in self
             .x_like

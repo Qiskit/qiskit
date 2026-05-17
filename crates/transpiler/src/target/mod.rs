@@ -25,7 +25,7 @@ pub use qubit_properties::QubitProperties;
 
 use std::{ops::Index, sync::OnceLock};
 
-use ahash::RandomState;
+use foldhash::fast::RandomState;
 use hashbrown::HashMap;
 use hashbrown::HashSet;
 use indexmap::IndexMap;
