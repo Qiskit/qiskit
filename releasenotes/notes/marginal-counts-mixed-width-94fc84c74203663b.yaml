@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed :func:`~.marginal_counts` and :func:`~.marginal_distribution` when a
+    :class:`~.Counts` object created from hexadecimal keys has mixed-width
+    bitstrings because ``memory_slots`` was not supplied. These functions now
+    infer the classical-bit width from the longest key and treat shorter keys as
+    left-zero-padded while marginalizing.

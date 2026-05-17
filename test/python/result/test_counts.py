@@ -44,12 +44,26 @@ class TestCounts(unittest.TestCase):
         result = utils.marginal_counts(counts_obj, [0, 1])
         self.assertEqual(expected, result)
 
+    def test_marginal_counts_mixed_width_hex_without_memory_slots(self):
+        counts_obj = counts.Counts({"0x0": 50, "0x3": 30})
+        expected = {"0": 50, "1": 30}
+
+        self.assertEqual(expected, utils.marginal_counts(counts_obj, [0]))
+        self.assertEqual(expected, utils.marginal_counts(counts_obj, [1]))
+
     def test_marginal_distribution(self):
         raw_counts = {"0x0": 4, "0x1": 7, "0x2": 10, "0x6": 5, "0x9": 11, "0xD": 9, "0xE": 8}
         expected = {"00": 4, "01": 27, "10": 23}
         counts_obj = counts.Counts(raw_counts, creg_sizes=[["c0", 4]], memory_slots=4)
         result = utils.marginal_distribution(counts_obj, [0, 1])
         self.assertEqual(expected, result)
+
+    def test_marginal_distribution_mixed_width_hex_without_memory_slots(self):
+        counts_obj = counts.Counts({"0x0": 50, "0x3": 30})
+        expected = {"0": 50, "1": 30}
+
+        self.assertEqual(expected, utils.marginal_distribution(counts_obj, [0]))
+        self.assertEqual(expected, utils.marginal_distribution(counts_obj, [1]))
 
     def test_marginal_distribution_numpy_indices(self):
         raw_counts = {"0x0": 4, "0x1": 7, "0x2": 10, "0x6": 5, "0x9": 11, "0xD": 9, "0xE": 8}

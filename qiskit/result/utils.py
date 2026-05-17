@@ -245,15 +245,18 @@ def marginal_distribution(
 
 def _marginalize(counts, indices=None):
     """Get the marginal counts for the given set of indices"""
-    num_clbits = len(next(iter(counts)).replace(" ", ""))
+    counts = [(_remove_space_underscore(key), val) for key, val in counts.items()]
+    num_clbits = max(len(key) for key, _ in counts)
     # Check if we do not need to marginalize and if so, trim
     # whitespace and '_' and return
-    if (indices is None) or set(range(num_clbits)) == set(indices):
+    if indices is None:
         ret = {}
-        for key, val in counts.items():
-            key = _remove_space_underscore(key)
+        for key, val in counts:
             ret[key] = val
         return ret
+
+    if set(range(num_clbits)) == set(indices):
+        return {key.zfill(num_clbits): val for key, val in counts}
 
     if not indices or not set(indices).issubset(set(range(num_clbits))):
         raise QiskitError(f"indices must be in range [0, {num_clbits - 1}].")
@@ -264,8 +267,9 @@ def _marginalize(counts, indices=None):
 
     # Build the return list
     new_counts = Counter()
-    for key, val in counts.items():
-        new_key = "".join([_remove_space_underscore(key)[-idx - 1] for idx in indices])
+    for key, val in counts:
+        key = key.zfill(num_clbits)
+        new_key = "".join([key[-idx - 1] for idx in indices])
         new_counts[new_key] += val
     return dict(new_counts)
 

@@ -27,38 +27,43 @@ fn marginalize<T: std::ops::AddAssign + Copy>(
     indices: Option<Vec<usize>>,
 ) -> HashMap<String, T> {
     let mut out_counts: HashMap<String, T> = HashMap::with_capacity(counts.len());
-    let clbit_size = counts.keys().next().unwrap().replace(['_', ' '], "").len();
-    let all_indices: Vec<usize> = (0..clbit_size).collect();
-    counts
+    let counts: Vec<(String, T)> = counts
         .iter()
         .map(|(k, v)| (k.replace(['_', ' '], ""), *v))
-        .for_each(|(k, v)| match &indices {
-            Some(indices) => {
-                if all_indices == *indices {
-                    out_counts.insert(k, v);
-                } else {
-                    let key_arr = k.as_bytes();
-                    let new_key: String = indices
-                        .iter()
-                        .map(|bit| {
-                            let index = clbit_size - *bit - 1;
-                            match key_arr.get(index) {
-                                Some(bit) => *bit as char,
-                                None => '0',
-                            }
-                        })
-                        .rev()
-                        .collect();
-                    out_counts
-                        .entry(new_key)
-                        .and_modify(|e| *e += v)
-                        .or_insert(v);
-                }
+        .collect();
+    let clbit_size = counts.iter().map(|(k, _)| k.len()).max().unwrap();
+    let all_indices: Vec<usize> = (0..clbit_size).collect();
+    counts.iter().for_each(|(k, v)| match &indices {
+        Some(indices) => {
+            if all_indices == *indices {
+                out_counts.insert(format!("{k:0>clbit_size$}"), *v);
+            } else {
+                let key_arr = k.as_bytes();
+                let offset = clbit_size.saturating_sub(key_arr.len());
+                let new_key: String = indices
+                    .iter()
+                    .map(|bit| {
+                        let index = clbit_size - *bit - 1;
+                        if index < offset {
+                            return '0';
+                        }
+                        match key_arr.get(index - offset) {
+                            Some(bit) => *bit as char,
+                            None => '0',
+                        }
+                    })
+                    .rev()
+                    .collect();
+                out_counts
+                    .entry(new_key)
+                    .and_modify(|e| *e += *v)
+                    .or_insert(*v);
             }
-            None => {
-                out_counts.insert(k, v);
-            }
-        });
+        }
+        None => {
+            out_counts.insert(k.clone(), *v);
+        }
+    });
     out_counts
 }
 
