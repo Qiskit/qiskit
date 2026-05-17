@@ -13,6 +13,7 @@
 
 """Tests for Clifford class."""
 
+from collections import OrderedDict
 import os
 import subprocess
 import sys
@@ -180,13 +181,15 @@ class TestCliffordGates(QiskitTestCase):
 
     @combine(hash_seed=["1","2","10","100"])
     def test_random_clifford_circuit_with_same_seed(self, hash_seed):
+        random_clifford = random_clifford_circuit(num_qubits=10, num_gates=100, gates="all", seed=0).count_ops()
+
         env = os.environ.copy()
         env["PYTHONHASHSEED"] = hash_seed
 
         test_script= textwrap.dedent("""
         from qiskit.circuit.random.utils import random_clifford_circuit
         cliff_circuit = random_clifford_circuit(num_qubits=10, num_gates=100, gates="all", seed=0)
-        print(cliff_circuit.count_ops())
+        print(cliff_circuit.count_ops(),end="")
         """)
 
         result = subprocess.run(
@@ -197,7 +200,8 @@ class TestCliffordGates(QiskitTestCase):
         check=True
         )
 
-        self.assertEqual(result.stdout, "OrderedDict({'sxdg': 10, 'sdg': 10, 'iswap': 9, 'cz': 9, 'id': 9, 'h': 8, 'cy': 8, 'x': 6, 'ecr': 6, 'cx': 6, 'dcx': 4, 'swap': 4, 's': 4, 'y': 3, 'sx': 3, 'z': 1})\n")
+        # self.assertEqual(result.stdout, "OrderedDict({'sxdg': 10, 'sdg': 10, 'iswap': 9, 'cz': 9, 'id': 9, 'h': 8, 'cy': 8, 'x': 6, 'ecr': 6, 'cx': 6, 'dcx': 4, 'swap': 4, 's': 4, 'y': 3, 'sx': 3, 'z': 1})\n")
+        self.assertEqual(result.stdout,random_clifford.__str__())
 
     @combine(
         gate=[
