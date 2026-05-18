@@ -1038,6 +1038,7 @@ impl TextDrawer {
                         let qargs = circuit.get_qargs(inst.qubits);
                         let (minima, maxima) = get_instruction_range(qargs, &[], 0);
                         let mid_idx = (minima + maxima) / 2;
+                        let total_wire = maxima - minima + 1;
                         let input_idx = qargs.iter().position(|&x| x.index() == wire_idx);
                         let qarg_inputs_len = (qargs.len() as f64).log10().ceil() as usize;
 
@@ -1045,7 +1046,9 @@ impl TextDrawer {
                             "{:<in_len$}{}{:^label_len$}",
                             input_idx.map_or("".to_string(), |q| q.to_string()),
                             Self::try_pauli_term(input_idx, inst), // in case it's a PPR/PPM gate
-                            (mid_idx == wire_idx).then_some(label).unwrap_or_default(),
+                            (mid_idx == wire_idx && (total_wire & 1 == 1)) // if total wires are even, add label to bottom instead
+                                .then_some(label.clone())
+                                .unwrap_or_default(),
                             in_len = qarg_inputs_len,
                             label_len = label_len,
                         );
@@ -1070,7 +1073,18 @@ impl TextDrawer {
                             )
                         };
                         mid = format!("{}{}{}", Q_LEFT_CON, mid_section, Q_RIGHT_CON);
-                        bot = if wire_idx == maxima {
+                        // Fix vertical alignment for even wire multi box
+                        bot = if mid_idx == wire_idx && (total_wire & 1 == 0) {
+                            format!(
+                                "{}{:<in_len$}{}{:^label_len$}{}",
+                                CONNECTING_WIRE,
+                                "",
+                                " ".repeat(Self::try_pauli_term(input_idx, inst).width()), // in case it's a PPR/PPM gate
+                                Some(label).unwrap_or_default(),
+                                CONNECTING_WIRE,
+                                in_len = qarg_inputs_len
+                            )
+                        } else if wire_idx == maxima {
                             format!(
                                 "{}{}{}{}{}",
                                 BOT_LEFT_BOX,
