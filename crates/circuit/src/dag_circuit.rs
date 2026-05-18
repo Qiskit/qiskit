@@ -125,8 +125,14 @@ pub enum DAGError {
         }
     )]
     RegisterNotInCircuit(RegisterRef),
-    #[error(transparent)]
-    WireOutOfRange(anyhow::Error),
+    #[error("{message}", message = {
+        match .0 {
+            Wire::Qubit(qubit) => format!("Qubit index {} is out of range. This DAGCircuit currently has only {} qubits.", qubit.index(), .1),
+            Wire::Clbit(clbit) => format!("Clbit index {} is out of range. This DAGCircuit currently has only {} clbits.", clbit.index(), .1),
+            Wire::Var(var) => format!("Var index {} is out of range. This DAGCircuit currently has only {} vars.", var.index(), .1),
+        }
+    })]
+    WireOutOfRange(Wire, usize),
     #[error(
         "Invalid parameter type for global phase, only float and parameter expression are supported"
     )]
@@ -180,7 +186,7 @@ impl From<DAGError> for PyErr {
             DAGError::RegistryAddError(err) => err.into(),
             DAGError::RegistryAbsentObject(err) => err.into(),
             DAGError::Python(err) => err,
-            DAGError::WireOutOfRange(_) => PyValueError::new_err(value.to_string()),
+            DAGError::WireOutOfRange(_, _total) => PyValueError::new_err(value.to_string()),
             DAGError::NodeNotInGraph(_) => PyIndexError::new_err(value.to_string()),
             DAGError::ObjGlobalPhase => PyTypeError::new_err(value.to_string()),
             DAGError::Circuit(err) => err.into(),
@@ -6053,11 +6059,10 @@ impl DAGCircuit {
         // Check that all qargs are within an acceptable range
         qargs.iter().try_for_each(|qarg| {
             if qarg.index() >= self.num_qubits() {
-                return Err(DAGError::WireOutOfRange(anyhow!(
-                    "Qubit index {} is out of range. This DAGCircuit currently has only {} qubits.",
-                    qarg.0,
-                    self.num_qubits()
-                )));
+                return Err(DAGError::WireOutOfRange(
+                    Wire::Qubit(*qarg),
+                    self.num_qubits(),
+                ));
             }
             Ok(())
         })?;
@@ -6065,11 +6070,10 @@ impl DAGCircuit {
         // Check that all cargs are within an acceptable range
         cargs.iter().try_for_each(|carg| {
             if carg.index() >= self.num_clbits() {
-                return Err(DAGError::WireOutOfRange(anyhow!(
-                    "Clbit index {} is out of range. This DAGCircuit currently has only {} clbits.",
-                    carg.0,
-                    self.num_clbits()
-                )));
+                return Err(DAGError::WireOutOfRange(
+                    Wire::Clbit(*carg),
+                    self.num_clbits(),
+                ));
             }
             Ok(())
         })?;
