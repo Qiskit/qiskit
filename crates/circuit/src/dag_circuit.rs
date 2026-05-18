@@ -157,11 +157,15 @@ pub enum DAGError {
     RegisterData(#[from] RegisterAlreadyExists),
     #[error(transparent)]
     Circuit(#[from] crate::circuit_data::CircuitDataError),
-    #[error(transparent)]
-    Infallible(#[from] Infallible),
     // For special Python cases.
     #[error(transparent)]
     Python(PyErr),
+}
+
+impl From<Infallible> for DAGError {
+    fn from(value: Infallible) -> Self {
+        match value {}
+    }
 }
 
 impl<T: Debug> From<crate::object_registry::AbsentObject<T>> for DAGError {
