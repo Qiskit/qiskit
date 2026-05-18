@@ -15,7 +15,7 @@
 This library is the core component of Qiskit, which contains the building blocks for creating and working with quantum circuits, quantum operators, and primitive functions (Sampler and Estimator).
 It also contains a transpiler that supports optimizing quantum circuits, and a quantum information toolbox for creating advanced operators.
 
-Qiskit provides two public APIs: a Python API and a C API. The Python API is the primary interface and prior to Qiskit 2.0.0 was the only public API available
+Qiskit provides two public APIs: a Python API and a C API. The Python API is the primary interface and prior to Qiskit 2.0 was the only public API available
 for Qiskit. The C API is designed to provide direct access to Qiskit's internal data model (which is written in Rust). The C API can be consumed as either a
 shared library (`libqiskit.so`) for standalone use, or from its embedding in the `qiskit` Python package [for writing Python extension modules](https://quantum.cloud.ibm.com/docs/guides/c-extension-for-python).
 
