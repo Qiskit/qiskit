@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -77,7 +77,7 @@ class Delay(Instruction):
 
     @property
     def unit(self):
-        """The unit for the duration of the delay in :attr`.params`"""
+        """The unit for the duration of the delay in :attr:`.params`"""
         return self._unit
 
     @unit.setter
@@ -114,7 +114,6 @@ class Delay(Instruction):
         """Return the official string representing the delay."""
         return f"{self.__class__.__name__}(duration={self.params[0]}[unit={self.unit}])"
 
-    # pylint: disable=too-many-return-statements
     def validate_parameter(self, parameter):
         """Delay parameter (i.e. duration) must be Expr, int, float or ParameterExpression."""
         if isinstance(parameter, int):

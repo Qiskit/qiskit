@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -15,7 +15,8 @@
 from __future__ import annotations
 
 import warnings
-from typing import Iterable, Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING
+from collections.abc import Iterable
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
@@ -37,9 +38,9 @@ class ForLoopOp(ControlFlowOp):
     def __init__(
         self,
         indexset: Iterable[int],
-        loop_parameter: Union[Parameter, None],
+        loop_parameter: Parameter | None,
         body: QuantumCircuit,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
         """
         Args:
@@ -61,7 +62,7 @@ class ForLoopOp(ControlFlowOp):
 
     @params.setter
     def params(self, parameters):
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         indexset, loop_parameter, body = parameters
@@ -162,9 +163,9 @@ class ForLoopContext:
     __slots__ = (
         "_circuit",
         "_generate_loop_parameter",
-        "_loop_parameter",
         "_indexset",
         "_label",
+        "_loop_parameter",
         "_used",
     )
 
@@ -172,9 +173,9 @@ class ForLoopContext:
         self,
         circuit: QuantumCircuit,
         indexset: Iterable[int],
-        loop_parameter: Optional[Parameter] = None,
+        loop_parameter: Parameter | None = None,
         *,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
         self._circuit = circuit
         self._generate_loop_parameter = loop_parameter is None

@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -16,6 +16,7 @@ use std::time::Instant;
 use hashbrown::HashMap;
 use indexmap::{IndexMap, IndexSet};
 use rand::prelude::*;
+use rand::rngs::SysRng;
 use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
 use rustworkx_core::petgraph::data::Create;
@@ -35,7 +36,7 @@ use crate::target::{Qargs, QargsRef, Target, TargetOperation};
 
 create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
 
-#[pyclass(name = "VF2PassConfiguration")]
+#[pyclass(name = "VF2PassConfiguration", skip_from_py_object)]
 #[derive(Clone, Debug)]
 pub struct Vf2PassConfiguration {
     /// The maximum numbers of times VF2 is allowed to extend the mapping (before, after) the first
@@ -136,14 +137,14 @@ impl Vf2PassConfiguration {
             }
             None => (None, None),
         };
-        // In the leagcy API, negative `max_trials` means unbounded (which we represent as 0) and
+        // In the legacy API, negative `max_trials` means unbounded (which we represent as 0) and
         // `None` means "choose some values based on the size of the graph structures".
         let max_trials = max_trials.map(|value| value.try_into().unwrap_or(0));
         let shuffle_seed = match shuffle_seed {
             None => {
                 // In Python space, `None` means "seed with OS entropy" because seeding was expected
                 // to be the default.
-                Some(Pcg64Mcg::from_os_rng().next_u64())
+                Some(Pcg64Mcg::try_from_rng(&mut SysRng).unwrap().next_u64())
             }
             Some(-1) => None,
             Some(seed) => {
@@ -316,9 +317,11 @@ struct VirtualInteractions<T> {
 }
 impl<T: Default> VirtualInteractions<T> {
     /// Create a set of virtual interactions from a DAG, and a weighter function for a single
-    /// interaction.  The weighter should return `true` on success, or `false` if no weight could be
-    /// created (indicating a necessary failure of the layout pass).
-    fn from_dag<W>(dag: &DAGCircuit, weighter: W) -> PyResult<Option<Self>>
+    /// interaction.
+    ///
+    /// The weighter should return `true` on success, or `false` if no weight could be created
+    /// (indicating a necessary failure of the layout pass).
+    fn try_from_dag<W>(dag: &DAGCircuit, weighter: W) -> PyResult<Option<Self>>
     where
         W: Fn(&mut T, &PackedInstruction, usize) -> bool,
     {
@@ -335,6 +338,19 @@ impl<T: Default> VirtualInteractions<T> {
                 .filter(|q| !(out.nodes.contains(q) || out.uncoupled.contains_key(q))),
         );
         Ok(Some(out))
+    }
+
+    /// Create a set of virtual interactions from a DAG, and a weighter function for a single
+    /// interaction.
+    fn from_dag<W>(dag: &DAGCircuit, weighter: W) -> PyResult<Self>
+    where
+        W: Fn(&mut T, &PackedInstruction, usize),
+    {
+        Self::try_from_dag(dag, |weight, inst, count| {
+            weighter(weight, inst, count);
+            true
+        })
+        .map(|res| res.expect("weighter is infallible so should always produce interactions"))
     }
 
     /// Add interactions from a given DAG.  Returns `false` if the weighter ever returned `false`.
@@ -621,7 +637,7 @@ fn map_free_qubits(
 fn minimize_vf2<N, H, NG, HG, NO, HO, NS, ES>(
     vf2: vf2::Vf2<N, H, NG, HG, NO, HO, NS, ES>,
     config: &Vf2PassConfiguration,
-) -> Option<IndexMap<N::NodeId, H::NodeId, ::ahash::RandomState>>
+) -> Option<IndexMap<N::NodeId, H::NodeId, ::foldhash::fast::RandomState>>
 where
     N: vf2::alias::IntoVf2Graph,
     H: vf2::alias::IntoVf2Graph<EdgeType = N::EdgeType>,
@@ -658,14 +674,11 @@ where
         max_trials == 0 || trials <= max_trials
     };
     let mut vf2 = vf2.with_call_limit(config.call_limit.0).into_iter();
-    let (mut mapping, _score) = vf2.next()?.expect("error is infallible");
+    let Ok((mut mapping, _score)) = vf2.next()?;
     if can_continue() {
         vf2.call_limit = config.call_limit.1;
-        if let Some((new_mapping, _score)) = vf2
-            .take_while(|_| can_continue())
-            .last()
-            .map(|v| v.expect("error is infallible"))
-        {
+        if let Some(result) = vf2.take_while(|_| can_continue()).last() {
+            let Ok((new_mapping, _)) = result;
             mapping = new_mapping;
         }
     }
@@ -702,12 +715,8 @@ where
     for node in interactions.graph.node_indices() {
         let needle = interactions.graph.node_weight(node)?;
         let haystack = coupling.node_weight(node_map(node))?;
-        score = W::Score::combine(
-            &score,
-            &scorer
-                .score(needle, haystack)
-                .expect("error is infallible")?,
-        );
+        let Ok(partial) = scorer.score(needle, haystack);
+        score = W::Score::combine(&score, &partial?);
     }
     for edge in interactions.graph.edge_references() {
         let needle = edge.weight();
@@ -716,12 +725,8 @@ where
             .edges_connecting(node_map(edge.source()), node_map(edge.target()))
             .next()?
             .weight();
-        score = W::Score::combine(
-            &score,
-            &scorer
-                .score(needle, haystack)
-                .expect("error is infallible")?,
-        );
+        let Ok(partial) = scorer.score(needle, haystack);
+        score = W::Score::combine(&score, &partial?);
     }
     Some(score)
 }
@@ -733,21 +738,22 @@ pub fn vf2_layout_pass_average(
     target: &Target,
     config: &Vf2PassConfiguration,
     strict_direction: bool,
-    avg_error_map: Option<ErrorMap>,
+    avg_error_map: Option<&ErrorMap>,
 ) -> PyResult<Vf2PassReturn> {
     let add_interaction = |count: &mut usize, _: &PackedInstruction, repeats: usize| {
         *count += repeats;
-        true
     };
-    let interactions = VirtualInteractions::from_dag(dag, add_interaction)?
-        .expect("weighting function is infallible");
-
+    let interactions = VirtualInteractions::from_dag(dag, add_interaction)?;
     let score =
         |count: &usize, err: &f64| -> Result<f64, Infallible> { Ok(*err * (*count as f64)) };
-    let Some(avg_error_map) = avg_error_map.or_else(|| build_average_error_map(target)) else {
+    let target_error_map = avg_error_map
+        .is_none()
+        .then(|| build_average_error_map(target))
+        .flatten();
+    let Some(avg_error_map) = avg_error_map.or(target_error_map.as_ref()) else {
         return Ok(Vf2PassReturn::NoSolution);
     };
-    let Some(mut coupling_graph) = build_average_coupling_map(target, &avg_error_map) else {
+    let Some(mut coupling_graph) = build_average_coupling_map(target, avg_error_map) else {
         return Ok(Vf2PassReturn::NoSolution);
     };
     if !strict_direction {
@@ -787,7 +793,7 @@ pub fn vf2_layout_pass_average(
         .iter()
         .map(|(k, v)| (interactions.nodes[k.index()], coupling_qubits[v.index()]))
         .collect();
-    match map_free_qubits(num_physical_qubits, interactions, mapping, &avg_error_map) {
+    match map_free_qubits(num_physical_qubits, interactions, mapping, avg_error_map) {
         Some(mapping) => Ok(Vf2PassReturn::Solution(mapping)),
         None => Ok(Vf2PassReturn::NoSolution),
     }
@@ -815,7 +821,7 @@ pub fn vf2_layout_pass_exact(
             }
             true
         };
-    let Some(mut interactions) = VirtualInteractions::from_dag(dag, add_interaction)? else {
+    let Some(mut interactions) = VirtualInteractions::try_from_dag(dag, add_interaction)? else {
         return Ok(Vf2PassReturn::NoSolution);
     };
 
@@ -866,10 +872,24 @@ pub fn vf2_layout_pass_exact(
         }
     };
     // Remap node indices back to virtual/physical qubits.
-    let mapping = mapping
+    // Keep track of which PhysicalQubits are left idle.
+    let mut coupling_indices: Vec<bool> = vec![true; coupling_qubits.len()];
+    let mut mapping: HashMap<VirtualQubit, PhysicalQubit> = mapping
         .iter()
-        .map(|(k, v)| (interactions.nodes[k.index()], coupling_qubits[v.index()]))
+        .map(|(k, v)| {
+            coupling_indices[v.index()] = false;
+            (interactions.nodes[k.index()], coupling_qubits[v.index()])
+        })
         .collect();
+    // Use the idle virtual qubits and map them to the idle physical ones.
+    mapping.extend(
+        interactions.idle.iter().copied().zip(
+            coupling_indices
+                .iter()
+                .enumerate()
+                .filter_map(|(idx, val)| val.then_some(coupling_qubits[idx])),
+        ),
+    );
     Ok(Vf2PassReturn::Solution(mapping))
 }
 

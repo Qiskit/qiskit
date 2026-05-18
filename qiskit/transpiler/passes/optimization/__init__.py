@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -44,3 +44,4 @@ from .optimize_clifford_t import OptimizeCliffordT
 from .litinski_transformation import LitinskiTransformation
 from .light_cone import LightCone
 from .substitute_pi4_rotations import SubstitutePi4Rotations
+from .convert_to_pauli_rotations import ConvertToPauliRotations

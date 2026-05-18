@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -22,7 +22,7 @@ use smallvec::{SmallVec, smallvec};
 use super::analyze_commutations;
 use crate::commutation_checker::CommutationChecker;
 use qiskit_circuit::Qubit;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_synthesis::QiskitError;
 
@@ -125,11 +125,12 @@ pub fn cancel_commutations(
     */
     let (commutation_set, node_indices) =
         analyze_commutations(dag, commutation_checker, approximation_degree)?;
-    let mut cancellation_sets = IndexMap::with_hasher(::ahash::RandomState::new());
+    let mut cancellation_sets = IndexMap::with_hasher(::foldhash::fast::RandomState::default());
 
     (0..dag.num_qubits() as u32).for_each(|qubit| {
         let wire = Qubit(qubit);
-        if let Some(wire_commutation_set) = commutation_set.get(&Wire::Qubit(wire)) {
+        let wire_commutation_set = &commutation_set[qubit as usize];
+        if !wire_commutation_set.is_empty() {
             for (com_set_idx, com_set) in wire_commutation_set.iter().enumerate() {
                 if let Some(&nd) = com_set.first() {
                     if !matches!(dag[nd], NodeType::Operation(_)) {
@@ -192,8 +193,8 @@ pub fn cancel_commutations(
                                     gate: GateOrRotation::Gate(op_gate),
                                     qubits: smallvec![wire, second_qarg],
                                     com_set_index: com_set_idx,
-                                    second_index: node_indices
-                                        .get(&(*node, Wire::Qubit(second_qarg)))
+                                    second_index: node_indices[second_qarg.index()]
+                                        .get(node)
                                         .copied(),
                                 })
                                 .or_insert_with(Vec::new)

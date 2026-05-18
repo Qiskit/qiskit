@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -17,7 +17,6 @@ import numpy as np
 
 from ddt import ddt, data
 
-from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import (
     RZGate,
@@ -40,7 +39,7 @@ from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import UnitarySynthesis, Collect1qRuns, ConsolidateBlocks
 from qiskit.transpiler.passes.synthesis import RossSelingerSynthesis
 
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 # Set of single-qubit Clifford gates
@@ -183,21 +182,19 @@ class TestRossSelingerPlugin(QiskitTestCase):
 
     def test_plugin_config(self):
         """Test the plugin configs are propagated correctly."""
-        qc = QuantumCircuit(1)
-        qc.rx(1.0, 0)
+        circuit = QuantumCircuit(1)
+        circuit.rx(1.0, 0)
+
+        unitary = Operator(circuit).data
+        plugin = RossSelingerSynthesis()
 
         epsilons = [1e-6, 1e-8, 1e-10]
         t_expected = [62, 81, 105]
 
         for eps, t_expect in zip(epsilons, t_expected):
             with self.subTest(eps=eps, t_expect=t_expect):
-                transpiled = transpile(
-                    qc,
-                    basis_gates=["cx", "h", "s", "t"],
-                    unitary_synthesis_method="gridsynth",
-                    unitary_synthesis_plugin_config={"epsilon": eps},
-                )
-                t_count = transpiled.count_ops().get("t", 0)
+                compiled_dag = plugin.run(unitary, method="gridsynth", config={"epsilon": eps})
+                t_count = compiled_dag.count_ops().get("t", 0)
                 self.assertLessEqual(t_count, t_expect)
 
 

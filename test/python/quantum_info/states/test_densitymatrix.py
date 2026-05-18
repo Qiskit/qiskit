@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -26,7 +26,7 @@ from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.random import random_density_matrix, random_pauli, random_unitary
 from qiskit.quantum_info.states import DensityMatrix, Statevector
 from qiskit.utils import optionals
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 logger = logging.getLogger(__name__)
@@ -691,22 +691,9 @@ class TestDensityMatrix(QiskitTestCase):
 
         self.assertDictEqual(
             state.probabilities_dict(),
-            {
-                s: p
-                for s in [
-                    "110",
-                    "111",
-                    "112",
-                    "120",
-                    "121",
-                    "311",
-                    "312",
-                    "320",
-                    "321",
-                    "322",
-                    "330",
-                ]
-            },
+            dict.fromkeys(
+                ["110", "111", "112", "120", "121", "311", "312", "320", "321", "322", "330"], p
+            ),
         )
 
         # differences due to rounding

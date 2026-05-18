@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -84,6 +84,7 @@ from qiskit.circuit.library import (
     UnitaryGate,
     MCMTGate,
     CCZGate,
+    Isometry,
 )
 from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.circuit.library.standard_gates as allGates
@@ -91,8 +92,8 @@ from qiskit.synthesis.multi_controlled.multi_control_rotation_gates import _mcsu
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
-from test import combine  # pylint: disable=wrong-import-order
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine
+from test import QiskitTestCase
 
 from .gate_utils import _get_free_params
 
@@ -650,6 +651,36 @@ class TestControlledGate(QiskitTestCase):
             with self.subTest(msg=f"control state = {ctrl_state}"):
                 self.assertTrue(matrix_equal(simulated, expected))
 
+    def test_append_mcrx_with_0_controls(self):
+        """Test appending mcrx with 0 controls."""
+        qc = QuantumCircuit(1)
+        qc.mcrx(0.1, [], 0)
+        self.assertEqual(Operator(qc), Operator(RXGate(0.1)))
+
+    def test_append_mcry_with_0_controls(self):
+        """Test appending mcry with 0 controls."""
+        qc = QuantumCircuit(1)
+        qc.mcry(0.1, [], 0)
+        self.assertEqual(Operator(qc), Operator(RYGate(0.1)))
+
+    def test_append_mcrz_with_0_controls(self):
+        """Test appending mcrz with 0 controls."""
+        qc = QuantumCircuit(1)
+        qc.mcrz(0.1, [], 0)
+        self.assertEqual(Operator(qc), Operator(RZGate(0.1)))
+
+    def test_append_mcp_with_0_controls(self):
+        """Test appending mcp with 0 controls."""
+        qc = QuantumCircuit(1)
+        qc.mcp(0.1, [], 0)
+        self.assertEqual(Operator(qc), Operator(PhaseGate(0.1)))
+
+    def test_append_mcx_with_0_controls(self):
+        """Test appending mcx with 0 controls."""
+        qc = QuantumCircuit(1)
+        qc.mcx([], 0)
+        self.assertEqual(Operator(qc), Operator(XGate()))
+
     @combine(num_controls=[1, 2, 4], use_basis_gates=[True, False])
     def test_multi_controlled_y_rotation_matrix_basic_mode(self, num_controls, use_basis_gates):
         """Test the multi controlled Y rotation using the mode 'basic'.
@@ -900,6 +931,46 @@ class TestControlledGate(QiskitTestCase):
         test_op = Operator(cgate)
         cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
         self.assertTrue(matrix_equal(cop_mat, test_op.data, atol=1e-8))
+
+    def test_qsd_failed_matrix(self):
+        """Test that even if the rust code for qs_decomposition panic,
+        one can still use Isometry for the unitary calculation."""
+        umat = QuantumCircuit(4)
+        base_mat = np.array(
+            [
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+                [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+                [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+                [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+                [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            ]
+        )
+        # check decomposition of original matrix
+        umat.append(UnitaryGate(base_mat), range(4))
+        test_u_op = Operator(umat)
+        isom = Isometry(base_mat, 0, 0).definition
+        self.assertTrue(matrix_equal(base_mat, test_u_op.data, atol=1e-8))
+        self.assertTrue(matrix_equal(base_mat, Operator(isom).data, atol=1e-8))
+
+        # check decomposition of controlled matrix
+        cop_mat = _compute_control_matrix(base_mat, 1)
+        ugate = umat.to_gate()
+        cgate = ugate.control()
+        test_ctrl_op = Operator(cgate)
+        isom_ctrl = Isometry(cop_mat, 0, 0).definition
+        self.assertTrue(matrix_equal(cop_mat, test_ctrl_op.data, atol=1e-8))
+        self.assertTrue(matrix_equal(cop_mat, Operator(isom_ctrl).data, atol=1e-8))
 
     @combine(num_ctrl_qubits=[1, 2, 3], ctrl_state=[0, None])
     def test_open_controlled_unitary_z(self, num_ctrl_qubits, ctrl_state):
@@ -1373,7 +1444,7 @@ class TestControlledGate(QiskitTestCase):
         # is just some high number to make sure we unwrap any controlled and custom gates.
         self.assertEqual(set(assigned.decompose(reps=3).parameters), set())
 
-    @data(-1, 0, 1.4, "1", 4, 10)
+    @data(-1, 1.4, "1", 4, 10)
     def test_improper_num_ctrl_qubits(self, num_ctrl_qubits):
         """
         Test improperly specified num_ctrl_qubits.
@@ -1381,8 +1452,22 @@ class TestControlledGate(QiskitTestCase):
         num_qubits = 4
         with self.assertRaises(CircuitError):
             ControlledGate(
-                name="cgate", num_qubits=num_qubits, params=[], num_ctrl_qubits=num_ctrl_qubits
+                name="cgate",
+                num_qubits=num_qubits,
+                params=[],
+                num_ctrl_qubits=num_ctrl_qubits,
+                base_gate=XGate(),
             )
+
+    @data((-1, CircuitError), (1.4, CircuitError), ("1", TypeError))
+    @unpack
+    def test_improper_num_ctrl_qubits_in_control(self, num_ctrl_qubits, error):
+        """
+        Test improperly specified num_ctrl_qubits.
+        """
+
+        with self.assertRaises(error):
+            _ = XGate().control(num_ctrl_qubits=num_ctrl_qubits)
 
     def test_improper_num_ctrl_qubits_base_gate(self):
         """Test that the allowed number of control qubits takes the base gate into account."""
@@ -1562,7 +1647,7 @@ class TestOpenControlledToMatrix(QiskitTestCase):
     def test_open_controlled_to_matrix(self, gate_class, ctrl_state):
         """Test open controlled to_matrix."""
         if gate_class in {SingletonControlledGate, _SingletonControlledGateOverrides}:
-            self.skipTest("SingletonGateClass isn't intended for direct initalization")
+            self.skipTest("SingletonGateClass isn't intended for direct initialization")
 
         if gate_class is MCMTGate:
             # parameters are (base_gate, num_controls, num_targets)

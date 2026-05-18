@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -13,6 +13,7 @@
 use hashbrown::HashMap;
 use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::PyValueError;
+use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::cmp::PartialOrd;
 use std::convert::From;
@@ -123,12 +124,17 @@ impl Symbol {
         &self.name
     }
 
+    pub fn fullname(&self) -> Cow<'_, str> {
+        self.index
+            .map(|i| Cow::Owned(format!("{}[{}]", &self.name, i)))
+            .unwrap_or(Cow::Borrowed(&self.name))
+    }
+
     pub fn repr(&self, with_uuid: bool) -> String {
-        match (self.index, with_uuid) {
-            (Some(i), true) => format!("{}[{}]_{}", self.name, i, self.uuid.as_u128()),
-            (Some(i), false) => format!("{}[{}]", self.name, i),
-            (None, true) => format!("{}_{}", self.name, self.uuid.as_u128()),
-            (None, false) => self.name.clone(),
+        if with_uuid {
+            format!("{}_{}", self.fullname(), self.uuid.as_u128())
+        } else {
+            self.fullname().into_owned()
         }
     }
     pub fn is_vector_element(&self) -> bool {
@@ -3335,7 +3341,7 @@ impl Value {
     // convert sympy compatible format
     pub fn sympify(&self) -> SymbolExpr {
         match self {
-            // imaginary number is comverted to value * symbol 'I'
+            // imaginary number is converted to value * symbol 'I'
             Value::Complex(c) => _add(
                 SymbolExpr::Value(Value::Real(c.re)),
                 _mul(

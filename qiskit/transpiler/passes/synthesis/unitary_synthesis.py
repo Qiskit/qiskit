@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -56,16 +56,16 @@ class UnitarySynthesis(TransformationPass):
 
     def __init__(
         self,
-        basis_gates: list[str] = None,
+        basis_gates: list[str] | None = None,
         approximation_degree: float | None = 1.0,
-        coupling_map: CouplingMap = None,
+        coupling_map: CouplingMap | None = None,
         pulse_optimize: bool | None = None,
         natural_direction: bool | None = None,
         synth_gates: list[str] | None = None,
         method: str = "default",
         min_qubits: int = 0,
-        plugin_config: dict = None,
-        target: Target = None,
+        plugin_config: dict | None = None,
+        target: Target | None = None,
         fallback_on_default: bool = False,
     ):
         """Synthesize unitaries over some basis gates.
@@ -76,24 +76,24 @@ class UnitarySynthesis(TransformationPass):
         ``approximation_degree``.
 
         Args:
-            basis_gates (list[str]): List of gate names to target. If this is
+            basis_gates: List of gate names to target. If this is
                 not specified the ``target`` argument must be used. If both this
                 and the ``target`` are specified the value of ``target`` will
                 be used and this will be ignored.
-            approximation_degree (float): heuristic dial used for circuit approximation
+            approximation_degree: Heuristic dial used for circuit approximation
                 (1.0=no approximation, 0.0=maximal approximation). Approximation can
                 make the synthesized circuit cheaper at the cost of straying from
-                the original unitary. If None, approximation is done based on gate fidelities.
-            coupling_map (CouplingMap): the coupling map of the target
+                the original unitary. If ``None``, approximation is done based on gate fidelities.
+            coupling_map: The coupling map of the target
                 in case synthesis is done on a physical circuit. The
                 directionality of the coupling_map will be taken into
                 account if ``pulse_optimize`` is ``True``/``None`` and ``natural_direction``
                 is ``True``/``None``.
-            pulse_optimize (bool): Whether to optimize pulses during
+            pulse_optimize: Whether to optimize pulses during
                 synthesis. A value of ``None`` will attempt it but fall
                 back if it does not succeed. A value of ``True`` will raise
                 an error if pulse-optimized synthesis does not succeed.
-            natural_direction (bool): Whether to apply synthesis considering
+            natural_direction: Whether to apply synthesis considering
                 directionality of 2-qubit gates. Only applies when
                 ``pulse_optimize`` is ``True`` or ``None``. The natural direction is
                 determined by first checking to see whether the
@@ -105,11 +105,11 @@ class UnitarySynthesis(TransformationPass):
                 determined, raises :class:`.TranspilerError`. If set to None, no
                 exception will be raised if a natural direction can
                 not be determined.
-            synth_gates (list[str]): List of gates to synthesize. If None and
+            synth_gates: List of gates to synthesize. If None and
                 ``pulse_optimize`` is False or None, default to
                 ``['unitary']``. If ``None`` and ``pulse_optimize == True``,
                 default to ``['unitary', 'swap']``
-            method (str): The unitary synthesis method plugin to use.
+            method: The unitary synthesis method plugin to use.
             min_qubits: The minimum number of qubits in the unitary to synthesize. If this is set
                 and the unitary is less than the specified number of qubits it will not be
                 synthesized.
@@ -121,7 +121,7 @@ class UnitarySynthesis(TransformationPass):
             target: The optional :class:`~.Target` for the target device the pass
                 is compiling for. If specified this will supersede the values
                 set for ``basis_gates`` and ``coupling_map``.
-            fallback_on_default: specifies whether the default synthesis method should be used
+            fallback_on_default: Specifies whether the default synthesis method should be used
                 in the case that a non-default synthesis ``method`` is specified but is either
                 unable to synthesize the operation or the synthesized circuit does not conform
                 to the target.
@@ -152,11 +152,10 @@ class UnitarySynthesis(TransformationPass):
             self._basis_gates = set(target.operation_names)
         if synth_gates:
             self._synth_gates = synth_gates
+        elif pulse_optimize:
+            self._synth_gates = ["unitary", "swap"]
         else:
-            if pulse_optimize:
-                self._synth_gates = ["unitary", "swap"]
-            else:
-                self._synth_gates = ["unitary"]
+            self._synth_gates = ["unitary"]
 
         self._synth_gates = set(self._synth_gates) - self._basis_gates
 
@@ -219,7 +218,7 @@ class UnitarySynthesis(TransformationPass):
         # Handle approximation degree as a special case for backwards compatibility, it's
         # not part of the plugin interface and only something needed for the default
         # pass.
-        # pylint: disable=attribute-defined-outside-init
+
         default_method._approximation_degree = self._approximation_degree
 
         qubit_indices = (
@@ -319,7 +318,7 @@ class UnitarySynthesis(TransformationPass):
                 )
 
                 # In the case that a non-default method was used and the option fallback_on_default
-                # is set, check whether the unitary was successfull synthesized: the returned
+                # is set, check whether the unitary was successfully synthesized: the returned
                 # circuit is not ``None``. If not, we fall back on running the default plugin.
                 if (not use_default_method) and self._fallback_on_default and (synth_dag is None):
                     synth_dag = self._run_plugin_synthesis(

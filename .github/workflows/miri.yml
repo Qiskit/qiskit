@@ -1,18 +1,17 @@
+---
 name: Miri
 on:
-  push:
-  pull_request:
-concurrency:
-  group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.workflow }}
-  # Only cancel in PR mode.  In push mode, don't cancel so we don't see spurious test "failures",
-  # and we get coverage reports on Coveralls for every push.
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  workflow_call:
+    inputs:
+      runner:
+        description: Runner image to use.
+        type: string
+        required: true
 
 jobs:
   miri:
-    if: github.repository_owner == 'Qiskit'
     name: Miri
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner }}
     env:
       RUSTUP_TOOLCHAIN: nightly-2025-08-11
 
@@ -22,7 +21,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain:  nightly-2025-08-11
+          toolchain: ${{ env.RUSTUP_TOOLCHAIN }}
           components: miri
 
       - name: Prepare Miri

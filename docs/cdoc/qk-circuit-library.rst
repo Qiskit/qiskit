@@ -1,8 +1,18 @@
 ===============
-Cirucit Library
+Circuit Library
 ===============
 
-The Qiskit circuit library contains functions for building commonly used quantum circuits.
+The Qiskit circuit library contains functions and higher-level building blocks for 
+building commonly used quantum circuits.
+
+Data types
+==========
+
+.. doxygenstruct:: QkPauliProductRotation
+   :members:
+
+.. doxygenstruct:: QkPauliProductMeasurement
+   :members:
 
 Functions
 =========

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -110,17 +110,7 @@ class LightCone(TransformationPass):
                 # Check commutation with all previous operations
                 commutes_bool = True
                 for op in lightcone_operations:
-                    max_num_qubits = max(len(op[1]), len(node.qargs))
-                    if max_num_qubits > 10:
-                        warnings.warn(
-                            "LightCone pass is checking commutation of"
-                            f"operators of size {max_num_qubits}."
-                            "This operation can be slow.",
-                            category=RuntimeWarning,
-                        )
-                    commute_bool = scc.commute(
-                        op[0], op[1], [], node.op, node.qargs, [], max_num_qubits=max_num_qubits
-                    )
+                    commute_bool = scc.commute(op[0], op[1], [], node.op, node.qargs, [])
                     if not commute_bool:
                         # If the current node does not commute, update the light-cone
                         lightcone_qubits.update(node.qargs)

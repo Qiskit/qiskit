@@ -1,30 +1,29 @@
 name: QPY
 
 on:
-  push:
-    branches:
-      - 'main'
-      - 'stable/*'
-  pull_request:
-  merge_group:
-concurrency:
-  group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.workflow }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  workflow_call:
+    inputs:
+      python-version:
+        description: Python version to test.
+        type: string
+        required: true
+      runner: 
+        description: Runner image to use.
+        type: string
+        required: true
 
 jobs:
   backward_compat:
-    if: github.repository_owner == 'Qiskit'
-    name: Backwards compatibility
-    runs-on: ubuntu-latest
+    # The main name is set in the calling workflow.
+    name: Test
+    runs-on: ${{ inputs.runner }}
 
     steps:
       - uses: actions/checkout@v6
 
       - uses: actions/setup-python@v6
-        # This version needs to be large enough to support Qiskit on `main`, and old enough to
-        # support the oldest version of Symengine we test against.
         with:
-          python-version: '3.10'
+          python-version: ${{ inputs.python-version }}
 
       - uses: dtolnay/rust-toolchain@stable
 

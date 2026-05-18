@@ -6,7 +6,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -82,7 +82,7 @@ for i in "${!symengine_versions[@]}"; do
     symengine_venv="$symengine_venv_prefix$i"
     files_dir="$symengine_files_prefix$i"
     python -m venv "$symengine_venv"
-    "$symengine_venv/bin/pip" install -c "$repo_root/constraints.txt" "$qiskit_dev_wheel" "symengine$specifier"
+    "$symengine_venv/bin/pip" install -c "$repo_root/constraints.txt" packaging "$qiskit_dev_wheel" "symengine$specifier"
     mkdir -p "$files_dir"
     pushd "$files_dir"
     "$symengine_venv/bin/python" -c 'import symengine; print(symengine.__version__)' > "SYMENGINE_VERSION"

@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -175,7 +175,7 @@ pub fn run_split_2q_unitaries(
             inst.params.as_deref().cloned(),
             inst.label.as_ref().map(|x| x.to_string()),
             #[cfg(feature = "cache_pygates")]
-            inst.py_op.get().map(|x| x.clone()),
+            inst.py_op.get().cloned(),
         )?;
     }
     Ok(Some((new_dag.build(), mapping)))

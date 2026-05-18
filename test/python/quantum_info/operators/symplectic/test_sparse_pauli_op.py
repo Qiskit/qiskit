@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -1205,7 +1205,9 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         self.assertListEqual(sorted(output_labels), sorted(input_labels))
         # checking that every coeffs are grouped according to sparse_pauli_list group
         paulis_coeff_dict = dict(
-            sum([list(zip(group.paulis.to_labels(), group.coeffs)) for group in groups], [])
+            sum(  # noqa: RUF017
+                [list(zip(group.paulis.to_labels(), group.coeffs)) for group in groups], []
+            )
         )
         self.assertDictEqual(dict(zip(input_labels, coeffs)), paulis_coeff_dict)
 
