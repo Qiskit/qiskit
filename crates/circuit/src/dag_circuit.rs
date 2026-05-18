@@ -7888,7 +7888,7 @@ impl DAGCircuit {
                     return Err(format!(
                         "Clbits parameter has {} clbits, expected {}",
                         clbits.len(),
-                        other.qubits.len(),
+                        other.clbits.len(),
                     )
                     .into());
                 }
