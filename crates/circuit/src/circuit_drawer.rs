@@ -2205,8 +2205,8 @@ c2: 2/══════════
         let result = draw_circuit(&circuit, false, false, Some(100), 0).unwrap();
         let expected = "
      ┌─────────┐┌────────────┐┌─────────┐
-q_0: ┤0 Rxx(a) ├┤0 my_rxx(a) ├┤0 Rzx(2) ├
-     │         ││            ││         │
+q_0: ┤0        ├┤0           ├┤0        ├
+     │  Rxx(a) ││  my_rxx(a) ││  Rzx(2) │
      │         ││            ││         │
 q_1: ┤1        ├┤1           ├┤1        ├
      └─────────┘└────────────┘└─────────┘
