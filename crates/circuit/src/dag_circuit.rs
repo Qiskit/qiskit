@@ -15,7 +15,6 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::sync::Arc;
 
-use anyhow::anyhow;
 use foldhash::fast::RandomState;
 use smallvec::SmallVec;
 
@@ -151,8 +150,8 @@ pub enum DAGError {
     #[error("Specified node {} is not in this graph", .0.index())]
     NodeNotInGraph(NodeIndex),
     /// Errors that don't have anything that needs to be tracked. Only a message.
-    #[error(transparent)]
-    General(#[from] anyhow::Error),
+    #[error("{0}")]
+    General(String),
     #[error(transparent)]
     VarStretchContainer(#[from] VarStretchContainerError),
     #[error("Wire {0:?} not found in output map")]
@@ -171,6 +170,12 @@ pub enum DAGError {
 impl From<Infallible> for DAGError {
     fn from(value: Infallible) -> Self {
         match value {}
+    }
+}
+
+impl From<String> for DAGError {
+    fn from(value: String) -> Self {
+        DAGError::General(value)
     }
 }
 
@@ -1744,12 +1749,14 @@ impl DAGCircuit {
             return Ok(length);
         }
         if !recurse {
-            return Err(anyhow!(concat!(
-                "Size with control flow is ambiguous.",
-                " You may use `recurse=True` to get a result",
-                " but see this method's documentation for the meaning of this."
-            ))
-            .into());
+            return Err(DAGError::General(
+                concat!(
+                    "Size with control flow is ambiguous.",
+                    " You may use `recurse=True` to get a result",
+                    " but see this method's documentation for the meaning of this."
+                )
+                .into(),
+            ));
         }
 
         // Handle recursively.
@@ -1804,16 +1811,18 @@ impl DAGCircuit {
             let weight_fn = |_| -> Result<usize, Infallible> { Ok(1) };
             return match rustworkx_core::dag_algo::longest_path(&self.dag, weight_fn).unwrap() {
                 Some(res) => Ok(res.1 - 1),
-                None => Err(anyhow!("not a DAG").into()),
+                None => Err(DAGError::General("not a DAG".into())),
             };
         }
         if !recurse {
-            return Err(anyhow!(concat!(
-                "Depth with control flow is ambiguous.",
-                " You may use `recurse=True` to get a result",
-                " but see this method's documentation for the meaning of this."
-            ))
-            .into());
+            return Err(DAGError::General(
+                concat!(
+                    "Depth with control flow is ambiguous.",
+                    " You may use `recurse=True` to get a result",
+                    " but see this method's documentation for the meaning of this."
+                )
+                .into(),
+            ));
         }
         // Handle recursively.
         let mut node_lookup: HashMap<NodeIndex, usize> = HashMap::new();
@@ -1843,7 +1852,7 @@ impl DAGCircuit {
         };
         match rustworkx_core::dag_algo::longest_path(&self.dag, weight_fn).unwrap() {
             Some(res) => Ok(res.1 - 1),
-            None => Err(anyhow!("not a DAG").into()),
+            None => Err(DAGError::General("not a DAG".into())),
         }
     }
 
@@ -6320,7 +6329,7 @@ impl DAGCircuit {
         let (in_node, out_node) = match wire {
             Wire::Qubit(qubit) => {
                 if qubit.index() < self.qubit_io_map.len() {
-                    return Err(anyhow!("Wire {qubit:?} already exists in circuit").into());
+                    return Err(format!("Wire {qubit:?} already exists in circuit").into());
                 }
                 let in_node = self.dag.add_node(NodeType::QubitIn(qubit));
                 let out_node = self.dag.add_node(NodeType::QubitOut(qubit));
@@ -6329,7 +6338,7 @@ impl DAGCircuit {
             }
             Wire::Clbit(clbit) => {
                 if clbit.index() < self.clbit_io_map.len() {
-                    return Err(anyhow!("Wire {clbit:?} already exists in circuit").into());
+                    return Err(format!("Wire {clbit:?} already exists in circuit").into());
                 }
                 let in_node = self.dag.add_node(NodeType::ClbitIn(clbit));
                 let out_node = self.dag.add_node(NodeType::ClbitOut(clbit));
@@ -6338,7 +6347,7 @@ impl DAGCircuit {
             }
             Wire::Var(var) => {
                 if var.index() < self.var_io_map.len() {
-                    return Err(anyhow!("Wire {var:?} already exists in circuit").into());
+                    return Err(format!("Wire {var:?} already exists in circuit").into());
                 }
                 let in_node = self.dag.add_node(NodeType::VarIn(var));
                 let out_node = self.dag.add_node(NodeType::VarOut(var));
@@ -6728,7 +6737,7 @@ impl DAGCircuit {
 
         let node = match &self.dag[node_index] {
             NodeType::Operation(op) => op.clone(),
-            _ => return Err(anyhow!("Expected op-node for node {node_index:?}").into()),
+            _ => return Err(format!("Expected op-node for node {node_index:?}").into()),
         };
 
         let qubit_map = match qubit_map {
@@ -6737,7 +6746,7 @@ impl DAGCircuit {
                 let node_qubits = self.qargs_interner.get(node.qubits);
                 let other_qubits = (0..other.num_qubits()).map(Qubit::new);
                 if node_qubits.len() != other_qubits.len() {
-                    return Err(anyhow!(
+                    return Err(format!(
                         "Replacement DAG has {} qubits, expected {}",
                         other_qubits.len(),
                         node_qubits.len()
@@ -6754,7 +6763,7 @@ impl DAGCircuit {
                 let node_clbits = self.cargs_interner.get(node.clbits);
                 let other_clbits = (0..other.num_clbits()).map(Clbit::new);
                 if node_clbits.len() != other_clbits.len() {
-                    return Err(anyhow!(
+                    return Err(format!(
                         "Replacement DAG has {} clbits, expected {}",
                         other_clbits.len(),
                         node_clbits.len()
@@ -7712,10 +7721,12 @@ impl DAGCircuit {
         let mut block_cargs: HashSet<Clbit> = HashSet::new();
         for nd in block_ids {
             let NodeType::Operation(instr) = self.dag.node_weight(*nd).ok_or_else(|| {
-                DAGError::General(anyhow!("Node in 'node_block' not found in DAG."))
+                DAGError::General("Node in 'node_block' not found in DAG.".to_string())
             })?
             else {
-                return Err(anyhow!("Nodes in 'node_block' must be of type 'DAGOpNode'.").into());
+                return Err("Nodes in 'node_block' must be of type 'DAGOpNode'."
+                    .to_string()
+                    .into());
             };
             block_qargs.extend(self.qargs_interner.get(instr.qubits));
             block_cargs.extend(self.cargs_interner.get(instr.clbits));
@@ -7740,7 +7751,7 @@ impl DAGCircuit {
         block_cargs.sort_by_key(|c| clbit_pos_map[c]);
 
         if op.num_qubits() as usize != block_qargs.len() {
-            return Err(anyhow!(
+            return Err(format!(
                 "Number of qubits in the replacement operation ({}) is not equal to the number of qubits in the block ({})!",
                 op.num_qubits(),
                 block_qargs.len()
@@ -7788,7 +7799,8 @@ impl DAGCircuit {
                     }
                     Err(match e {
                         ContractError::DAGWouldCycle => {
-                            anyhow!("Replacing the specified node block would introduce a cycle")
+                            "Replacing the specified node block would introduce a cycle"
+                                .to_string()
                                 .into()
                         }
                     })
@@ -7810,18 +7822,18 @@ impl DAGCircuit {
     ) -> Result<(), DAGError> {
         if other.qubits.len() > self.qubits.len() || other.clbits.len() > self.clbits.len() {
             if other.qubits.len() > self.qubits.len() {
-                return Err(anyhow!(dag_compose_width_error(
+                return Err(dag_compose_width_error(
                     "qubits",
                     other.qubits.len(),
                     self.qubits.len(),
-                ))
+                )
                 .into());
             }
-            return Err(anyhow!(dag_compose_width_error(
+            return Err(dag_compose_width_error(
                 "classical bits",
                 other.clbits.len(),
                 self.clbits.len(),
-            ))
+            )
             .into());
         }
 
@@ -7835,7 +7847,7 @@ impl DAGCircuit {
                 .collect(),
             Some(qubits) => {
                 if qubits.len() != other.qubits.len() {
-                    return Err(anyhow!(
+                    return Err(format!(
                         "Qubits parameter has {} qubits, expected {}",
                         qubits.len(),
                         other.qubits.len(),
@@ -7869,7 +7881,7 @@ impl DAGCircuit {
                 .collect(),
             Some(clbits) => {
                 if clbits.len() != other.clbits.len() {
-                    return Err(anyhow!(
+                    return Err(format!(
                         "Clbits parameter has {} clbits, expected {}",
                         clbits.len(),
                         other.qubits.len(),
@@ -8097,7 +8109,7 @@ impl DAGCircuit {
         if old_packed.op.num_qubits() != new_op.num_qubits()
             || old_packed.op.num_clbits() != new_op.num_clbits()
         {
-            return Err(anyhow!(
+            return Err(format!(
                 "Cannot replace node of width ({} qubits, {} clbits) with operation of mismatched width ({} qubits, {} clbits)",
                 old_packed.op.num_qubits(),
                 old_packed.op.num_clbits(),

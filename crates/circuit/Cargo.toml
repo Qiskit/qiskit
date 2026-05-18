@@ -36,7 +36,6 @@ ahash = "0.8.12"
 unicode-segmentation = "1.13"
 lexical-core = "1.0.6"
 lexical-write-float = "1.0.6"
-anyhow.workspace = true
 
 [dependencies.pyo3]
 workspace = true
