@@ -17,8 +17,7 @@ It also contains a transpiler that supports optimizing quantum circuits, and a q
 
 Qiskit provides two public APIs: a Python API and a C API. The Python API is the primary interface and prior to Qiskit 2.0.0 was the only public API available
 for Qiskit. The C API is designed to provide direct access to Qiskit's internal data model (which is written in Rust). The C API can be consumed as either a
-standalone shared library (`libqiskit.so`) or embedded as part of the Python package (for consumption in Python extensions, see the
-[documentation](https://quantum.cloud.ibm.com/docs/guides/c-extension-for-python) on this for more details on using Qiskit from a compiled extension).
+shared library (`libqiskit.so`) for standalone use, or from its embedding in the `qiskit` Python package [for writing Python extension modules](https://quantum.cloud.ibm.com/docs/guides/c-extension-for-python).
 
 For more details on how to use Qiskit, refer to the documentation located here:
 
