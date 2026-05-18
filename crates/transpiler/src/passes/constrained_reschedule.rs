@@ -43,6 +43,16 @@ fn get_next_gate(dag: &DAGCircuit, node_index: NodeIndex) -> impl Iterator<Item 
         .filter(|&idx| matches!(dag[idx], NodeType::Operation(_)))
 }
 
+/// Returns true if the operation is a measure or reset, whether stored as a Rust
+/// StandardInstruction or as a Python-level Instruction.
+fn is_measure_or_reset(op_view: &OperationRef<'_>) -> bool {
+    matches!(
+        op_view,
+        OperationRef::StandardInstruction(StandardInstruction::Measure)
+            | OperationRef::StandardInstruction(StandardInstruction::Reset)
+    ) || matches!(op_view.name(), "measure" | "reset")
+}
+
 /// Update the start time of the current node to satisfy alignment constraints.
 /// Immediate successors are pushed back to avoid overlap and will be processed later.
 ///
@@ -74,19 +84,21 @@ fn push_node_back(
     };
 
     let op_view = op.op.view();
-    let alignment = match op_view {
-        OperationRef::Gate(_) | OperationRef::StandardGate(_) => Some(pulse_align),
-        OperationRef::StandardInstruction(StandardInstruction::Reset)
-        | OperationRef::StandardInstruction(StandardInstruction::Measure) => Some(acquire_align),
-        OperationRef::StandardInstruction(StandardInstruction::Delay(_)) => None,
-        _ => {
-            if !op_view.directive() {
-                None
-            } else {
-                return Err(TranspilerError::new_err(format!(
-                    "Unknown operation type for '{}'.",
-                    op_view.name()
-                )));
+    let alignment = if is_measure_or_reset(&op_view) {
+        Some(acquire_align)
+    } else {
+        match op_view {
+            OperationRef::Gate(_) | OperationRef::StandardGate(_) => Some(pulse_align),
+            OperationRef::StandardInstruction(StandardInstruction::Delay(_)) => None,
+            _ => {
+                if op_view.directive() {
+                    return Err(TranspilerError::new_err(format!(
+                        "Unknown operation type for '{}'.",
+                        op_view.name()
+                    )));
+                } else {
+                    None
+                }
             }
         }
     };
@@ -109,7 +121,25 @@ fn push_node_back(
             .or_insert(this_t0);
     }
 
-    let new_t1q = if let Some(target) = target {
+    let new_t1q = if matches!(
+        op_view,
+        OperationRef::StandardInstruction(StandardInstruction::Delay(_))
+    ) {
+        // Delay is not in the target gate table, so always read the duration
+        // from the instruction parameter regardless of whether target is present.
+        let params = op.params_view();
+        let param = params
+            .first()
+            .ok_or_else(|| PyValueError::new_err("Delay instruction missing duration parameter"))?;
+        let duration = match param {
+            Param::Obj(val) => Python::attach(|py| val.bind(py).extract::<u64>()),
+            Param::Float(f) => Ok(*f as u64),
+            _ => Err(TranspilerError::new_err(
+                "The provided Delay duration is not in terms of dt.",
+            )),
+        }?;
+        this_t0 + duration
+    } else if let Some(target) = target {
         let qargs: Vec<PhysicalQubit> = dag
             .qargs_interner()
             .get(op.qubits)
@@ -118,26 +148,6 @@ fn push_node_back(
             .collect();
         let duration = target.get_duration(op.op.name(), &qargs).unwrap_or(0.0);
         this_t0 + duration as u64
-    } else if matches!(
-        op_view,
-        OperationRef::StandardInstruction(StandardInstruction::Delay(_))
-    ) {
-        let params = op.params_view();
-        let param = params
-            .first()
-            .ok_or_else(|| PyValueError::new_err("Delay instruction missing duration parameter"))?;
-        let duration = match param {
-            Param::Obj(val) => {
-                // Try to extract as different numeric types
-                Python::attach(|py| val.bind(py).extract::<u64>())
-            }
-            Param::Float(f) => Ok(*f as u64),
-            _ => Err(TranspilerError::new_err(
-                "The provided Delay duration is not in terms of dt.",
-            )),
-        }?;
-
-        this_t0 + duration
     } else {
         this_t0
     };
@@ -150,11 +160,7 @@ fn push_node_back(
         .collect();
 
     // Handle classical bits based on operation type
-    let (new_t1c, this_clbits) = if matches!(
-        op_view,
-        OperationRef::StandardInstruction(StandardInstruction::Measure)
-            | OperationRef::StandardInstruction(StandardInstruction::Reset)
-    ) {
+    let (new_t1c, this_clbits) = if is_measure_or_reset(&op_view) {
         // creg access ends at the end of instruction
         let new_t1c = Some(new_t1q);
         let this_clbits: HashSet<_> = dag
@@ -188,11 +194,7 @@ fn push_node_back(
             .collect();
 
         let next_op_view = next_node.op.view();
-        let (next_t0c, next_clbits) = if matches!(
-            next_op_view,
-            OperationRef::StandardInstruction(StandardInstruction::Measure)
-                | OperationRef::StandardInstruction(StandardInstruction::Reset)
-        ) {
+        let (next_t0c, next_clbits) = if is_measure_or_reset(&next_op_view) {
             // creg access starts after write latency
             let next_t0c = Some(next_t0q + clbit_write_latency as u64);
             let next_clbits: HashSet<_> = dag
@@ -208,7 +210,7 @@ fn push_node_back(
 
         // Compute overlap if there is qubits overlap
         let qreg_overlap = if !this_qubits.is_disjoint(&next_qubits) {
-            new_t1q - next_t0q
+            new_t1q.saturating_sub(next_t0q)
         } else {
             0
         };
@@ -219,7 +221,7 @@ fn push_node_back(
             && !this_clbits.is_disjoint(&next_clbits)
         {
             if let (Some(t1c), Some(t0c)) = (new_t1c, next_t0c) {
-                t1c - t0c
+                t1c.saturating_sub(t0c)
             } else {
                 0
             }
@@ -292,8 +294,8 @@ pub fn run_constrained_reschedule(
             node_index,
             node_start_time,
             clbit_write_latency,
-            acquire_align,
             pulse_align,
+            acquire_align,
             target,
         )?;
     }
