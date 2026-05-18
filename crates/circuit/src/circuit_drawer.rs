@@ -984,11 +984,18 @@ impl TextDrawer {
                     BoxedElement::Single(inst) => {
                         let mut top_con = Q_WIRE;
                         let mut bot_con = Q_WIRE;
-                        let mut label = format!(
-                            "{} {} ",
-                            Self::try_pauli_term(Some(0), inst), // in case it's a PPR/PPM gate
-                            Self::get_label(inst)
-                        );
+                        let mut label = if matches!(
+                            inst.op.view(),
+                            OperationRef::StandardInstruction(StandardInstruction::Measure)
+                        ) {
+                            format!("{}", Self::get_label(inst)) // Make Measure box thinner
+                        } else {
+                            format!(
+                                "{} {} ",
+                                Self::try_pauli_term(Some(0), inst), // in case it's a PPR/PPM gate
+                                Self::get_label(inst)
+                            )
+                        };
                         if let Some(gate) = inst.op.try_standard_gate() {
                             if gate.is_controlled_gate() {
                                 let qargs = circuit.get_qargs(inst.qubits);
@@ -1009,14 +1016,6 @@ impl TextDrawer {
                                 | OperationRef::PauliProductMeasurement(_)
                         ) {
                             bot_con = C_BOT_CON;
-
-                            // Make the measure instruction box thinner
-                            if matches!(
-                                inst.op.view(),
-                                OperationRef::StandardInstruction(StandardInstruction::Measure)
-                            ) {
-                                label = format!("{}", Self::get_label(inst));
-                            }
                         }
 
                         let label_len = label.width();
