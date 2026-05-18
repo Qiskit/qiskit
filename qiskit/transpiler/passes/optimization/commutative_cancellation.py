@@ -32,6 +32,13 @@ class CommutativeCancellation(TransformationPass):
     the commutation relations in the circuit. Gates considered include::
 
         H, X, Y, Z, CX, CY, CZ
+
+
+    This pass is multithreaded and will potentially launch a thread pool
+    with threads equal to the number of CPUs by default. You can tune the
+    number of threads with the ``RAYON_NUM_THREADS`` environment variable.
+    For example, setting ``RAYON_NUM_THREADS=4`` would limit the thread pool
+    to 4 threads.
     """
 
     def __init__(self, basis_gates=None, target=None):

@@ -10,13 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use anyhow::{anyhow, bail};
-use cbindgen::bindgen::ir::{self, Item};
-use hashbrown::HashMap;
-use regex::Regex;
-use std::sync::LazyLock;
+use crate::simple_ir;
+use anyhow::anyhow;
+use cbindgen::bindgen::ir;
 
-static VOID: ir::Type = ir::Type::Primitive(ir::PrimitiveType::Void);
+pub const REQUIRED_IMPORTS: &[&str] = &["ctypes", "enum"];
 
 /// Numeric primitive types that are representable by `ctypes`.
 #[derive(Clone, Copy, Debug)]
@@ -150,84 +148,29 @@ impl Primitive {
             } => Ok(Self::from_cbindgen_intkind(*kind, *signed)),
         }
     }
-
-    pub fn try_from_cbindgen_reprtype(ty: &ir::ReprType) -> anyhow::Result<Self> {
-        // Ok, just bear with me here: `cbindgen` doesn't make these fields `pub`, but it _does_
-        // make the struct impl `Debug`...
-        static REPR_KIND_DEBUG: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r#"ReprType \{ kind: ([^,]+), signed: (\w+) \}"#).unwrap());
-        let repr = format!("{ty:?}");
-        let Some(captures) = REPR_KIND_DEBUG.captures(&repr) else {
-            bail!("failed to parse `ReprKind` debug format: did the `cbindgen` version change?");
-        };
-        let kind = match captures.get(1).unwrap().as_str() {
-            "Short" => ir::IntKind::Short,
-            "Int" => ir::IntKind::Int,
-            "Long" => ir::IntKind::Long,
-            "LongLong" => ir::IntKind::LongLong,
-            "SizeT" => ir::IntKind::SizeT,
-            "Size" => ir::IntKind::Size,
-            "B8" => ir::IntKind::B8,
-            "B16" => ir::IntKind::B16,
-            "B32" => ir::IntKind::B32,
-            "B64" => ir::IntKind::B64,
-            bad => bail!("unhandled `IntKind`: {bad}"),
-        };
-        let signed = match captures.get(2).unwrap().as_str() {
-            "false" => false,
-            "true" => true,
-            bad => bail!("unhandled `bool`: {bad}"),
-        };
-        Ok(Self::from_cbindgen_intkind(kind, signed))
-    }
 }
 
-/// The base type of a potentially pointer-indirected type.
-#[derive(Clone, Debug)]
-pub enum TypeKind {
-    Builtin(Primitive),
-    Custom(String),
-}
-impl TypeKind {
-    pub fn name(&self) -> &str {
-        match self {
-            Self::Builtin(primitive) => primitive.qualname(),
-            Self::Custom(name) => name,
-        }
-    }
-}
+mod parse {
+    use super::Primitive;
+    use crate::simple_ir::{self, PtrKind, TypeKind};
+    use anyhow::bail;
+    use cbindgen::bindgen::ir;
+    use hashbrown::HashMap;
 
-/// A single type for input/output of a `ctypes` function.
-///
-/// This is version of the type system that is simplified down to the subset that we are able to
-/// handle in output.
-#[derive(Clone, Debug)]
-pub struct Type {
-    /// How many levels of pointer indirection before we get to the type.
-    pub num_pointers: u8,
-    /// The base type.
-    pub base: TypeKind,
-}
-impl Type {
-    /// Write this type into an existing string.
-    pub fn render(&self, out: &mut String) {
-        for _ in 0..self.num_pointers {
-            out.push_str("ctypes.POINTER(");
-        }
-        out.push_str(self.base.name());
-        for _ in 0..self.num_pointers {
-            out.push(')');
-        }
-    }
+    static VOID: ir::Type = ir::Type::Primitive(ir::PrimitiveType::Void);
 
-    pub fn try_from_cbindgen(
+    pub fn r#type(
         mut ty: &ir::Type,
         mut override_fn: impl FnMut(&str) -> Option<Primitive>,
-    ) -> anyhow::Result<Self> {
-        let mut num_pointers = 0;
+    ) -> anyhow::Result<simple_ir::Type<Primitive>> {
+        let mut ptrs = Vec::new();
         let base = loop {
             match ty {
-                ir::Type::Ptr { ty: inner, .. } => {
+                ir::Type::Ptr {
+                    ty: inner,
+                    is_const,
+                    ..
+                } => {
                     // ctypes special-cases void pointers to avoid needing a standalone `void`, and of
                     // course `PyObject *` is handled specially.
                     if **inner == VOID {
@@ -236,7 +179,11 @@ impl Type {
                     if matches!(&**inner, ir::Type::Path(p) if p.name() == "PyObject") {
                         break TypeKind::Builtin(Primitive::PyObject);
                     }
-                    num_pointers += 1;
+                    ptrs.push(if *is_const {
+                        PtrKind::Const
+                    } else {
+                        PtrKind::Mut
+                    });
                     ty = inner;
                 }
                 ir::Type::Path(p) => {
@@ -254,77 +201,13 @@ impl Type {
                 ir::Type::FuncPtr { .. } => bail!("funcptrs not yet handled"),
             }
         };
-        Ok(Self { num_pointers, base })
-    }
-}
-
-/// Representation of a Qiskit-native `enum`.
-///
-/// We export a corresponding `class <Name>(enum.Enum)` to Python with a named attribute for each of
-/// the variants for ease of use in Python space, but in actual function interfaces we have to use
-/// the raw `ctypes` backing type to get the ABI correct.
-#[derive(Clone, Debug)]
-pub struct Enum {
-    /// The export name of the enum.
-    pub name: String,
-    /// The `ctypes` primitive type used for each of the enumeration's variants.
-    pub ty: Primitive,
-    /// Tuples of `(name, literal)` for each of the variants.
-    pub variants: Vec<(String, String)>,
-}
-impl Enum {
-    pub fn try_from_cbindgen(val: &ir::Enum) -> anyhow::Result<Self> {
-        let Some(reprtype) = val.repr.ty.as_ref() else {
-            bail!("repr type of {} must be a fixed integer-like", val.name())
-        };
-        let ty = Primitive::try_from_cbindgen_reprtype(reprtype)?;
-        let variants = val
-            .variants
-            .iter()
-            .map(|variant| -> anyhow::Result<_> {
-                let Some(ir::Literal::Expr(discriminant)) = &variant.discriminant else {
-                    bail!("unhandled discriminant: {:?}", &variant.discriminant);
-                };
-                Ok((variant.name.clone(), discriminant.clone()))
-            })
-            .collect::<anyhow::Result<Vec<_>>>()?;
-        Ok(Self {
-            name: val.export_name.clone(),
-            ty,
-            variants,
-        })
+        Ok(simple_ir::Type { ptrs, base })
     }
 
-    /// Get a string that declares this `Enum` as a Python class.
-    pub fn declare(&self) -> String {
-        let mut out = format!("\nclass {}(enum.Enum):", self.name);
-        if self.variants.is_empty() {
-            out.push_str("\n    pass");
-            return out;
-        }
-        let constructor = self.ty.qualname();
-        for (name, value) in &self.variants {
-            out.push_str(&format!("\n    {} = {}({})", name, constructor, value));
-        }
-        out
-    }
-}
-
-/// A single C API function.
-#[derive(Clone, Debug)]
-pub struct Function {
-    /// The exported name of the function.
-    pub name: String,
-    /// Individual argument types.
-    pub args: Vec<Type>,
-    /// The return type (if not `void`).
-    pub ret: Option<Type>,
-}
-impl Function {
-    pub fn try_from_cbindgen(
+    pub fn function(
         func: &ir::Function,
         mut override_fn: impl FnMut(&str) -> Option<Primitive>,
-    ) -> anyhow::Result<Self> {
+    ) -> anyhow::Result<simple_ir::Function<Primitive>> {
         let name = func.path.name().to_owned();
         let args = func
             .args
@@ -333,137 +216,66 @@ impl Function {
                 if arg.array_length.is_some() {
                     bail!("function array arguments not handled yet");
                 }
-                Type::try_from_cbindgen(&arg.ty, &mut override_fn)
+                Ok(simple_ir::FunctionArg {
+                    name: arg.name.clone(),
+                    ty: r#type(&arg.ty, &mut override_fn)?,
+                })
             })
             .collect::<anyhow::Result<Vec<_>>>()?;
         let ret = (func.ret != VOID)
-            .then(|| Type::try_from_cbindgen(&func.ret, override_fn))
+            .then(|| r#type(&func.ret, override_fn))
             .transpose()?;
-        Ok(Self { name, args, ret })
+        Ok(simple_ir::Function { name, args, ret })
     }
 
-    /// Declare the argument and return types of this function.
-    ///
-    /// If `dllname` name is given, we assume the function is an attribute on an object with that
-    /// name.
-    pub fn declare(&self, dllname: &str) -> String {
-        let prefix = format!("{}.{}", dllname, &self.name);
-        let mut out = format!("\n{}.argtypes = [", &prefix);
-        if let Some((first, rest)) = self.args.split_first() {
-            first.render(&mut out);
-            for arg in rest {
-                out.push_str(", ");
-                arg.render(&mut out);
-            }
-        }
-        out.push_str("]\n");
-        out.push_str(&prefix);
-        out.push_str(".restype = ");
-        match self.ret.as_ref() {
-            Some(ret) => ret.render(&mut out),
-            None => out.push_str("None"),
-        };
-        out.push('\n');
-        // Re-export into main namespace.
-        out.push_str(&self.name);
-        out.push_str(" = ");
-        out.push_str(&prefix);
-        out
-    }
-}
-
-/// A struct to declare, either opaque or fully specified
-#[derive(Clone, Debug)]
-pub struct Struct {
-    /// The export name of the structure.
-    pub name: String,
-    /// The fields.  If `None`, this is an opaque `struct` that cannot be directly constructed.
-    pub fields: Option<Vec<(String, Type)>>,
-}
-impl Struct {
-    pub fn try_from_cbindgen(
+    pub fn r#struct(
         val: &ir::Struct,
         mut override_fn: impl FnMut(&str) -> Option<Primitive>,
-    ) -> anyhow::Result<Self> {
+    ) -> anyhow::Result<simple_ir::Struct<Primitive>> {
         let fields = val
             .fields
             .iter()
             .map(|field| -> anyhow::Result<_> {
-                Ok((
-                    field.name.clone(),
-                    Type::try_from_cbindgen(&field.ty, &mut override_fn)?,
-                ))
+                Ok(simple_ir::StructField {
+                    name: field.name.clone(),
+                    ty: r#type(&field.ty, &mut override_fn)?,
+                })
             })
             .collect::<anyhow::Result<_>>()?;
-        Ok(Self {
+        Ok(simple_ir::Struct {
             name: val.export_name.clone(),
             fields: Some(fields),
         })
     }
 
-    /// Create a new opaque structure.
-    pub fn opaque(name: String) -> Self {
-        Self { name, fields: None }
-    }
-
-    /// Get a string representing the declaration of this `struct` as a Python `ctypes.Structure`.
-    pub fn declare(&self) -> String {
-        // TODO: this doesn't handle the case of (mutually) recursive `struct` definitions; we
-        // assume that all the `_fields_` will refer to fully defined `ctypes` objects.
-        let mut out = format!("\nclass {}(ctypes.Structure):\n", &self.name);
-        let Some(fields) = self.fields.as_ref() else {
-            out.push_str("    pass\n");
-            return out;
-        };
-        out.push_str("    _fields_ = [\n");
-        for (name, ty) in fields {
-            out.push_str("        (\"");
-            out.push_str(name);
-            out.push_str("\", ");
-            ty.render(&mut out);
-            out.push_str("),\n");
-        }
-        out.push_str("    ]");
-        out
-    }
-}
-
-/// All of the items to export to a `ctypes` file.
-#[derive(Clone, Debug, Default)]
-pub struct Items {
-    pub enums: Vec<Enum>,
-    pub structs: Vec<Struct>,
-    pub functions: Vec<Function>,
-}
-impl Items {
-    /// Imports that are needed for our own declarations to work.
-    pub const REQUIRED_IMPORTS: &[&str] = &["ctypes", "enum"];
-
     /// Extract all objects from a set of `cbindgen::Bindings`, adding them to ourselves.
     ///
     /// This fails if the bindings contain any unsupported constructs.
-    pub fn add_from_cbindgen(&mut self, bindings: &cbindgen::Bindings) -> anyhow::Result<()> {
-        let mut overrides = self
+    pub fn add_items(
+        items: &mut simple_ir::Items<Primitive>,
+        bindings: &cbindgen::Bindings,
+    ) -> anyhow::Result<()> {
+        let constructor =
+            |repr: &simple_ir::ReprType| Primitive::from_cbindgen_intkind(repr.kind, repr.signed);
+        let mut overrides = items
             .enums
             .iter()
-            .map(|val| (val.name.clone(), val.ty))
+            .map(|val| (val.name.clone(), constructor(&val.repr)))
             .collect::<HashMap<_, _>>();
 
         for item in bindings.items.iter() {
             match item {
                 ir::ItemContainer::Enum(item) => {
-                    let val = Enum::try_from_cbindgen(item)?;
-                    overrides.insert(val.name.clone(), val.ty);
-                    self.enums.push(val);
+                    let val = simple_ir::Enum::try_from_cbindgen(item)?;
+                    overrides.insert(val.name.clone(), constructor(&val.repr));
+                    items.enums.push(val);
                 }
-                ir::ItemContainer::OpaqueItem(item) => {
-                    self.structs.push(Struct::opaque(item.export_name.clone()))
-                }
-                ir::ItemContainer::Struct(item) => {
-                    self.structs.push(Struct::try_from_cbindgen(item, |path| {
-                        overrides.get(path).copied()
-                    })?)
-                }
+                ir::ItemContainer::OpaqueItem(item) => items
+                    .structs
+                    .push(simple_ir::Struct::opaque(item.export_name.clone())),
+                ir::ItemContainer::Struct(item) => items
+                    .structs
+                    .push(r#struct(item, |path| overrides.get(path).copied())?),
                 ir::ItemContainer::Constant(_)
                 | ir::ItemContainer::Static(_)
                 | ir::ItemContainer::Union(_)
@@ -474,20 +286,113 @@ impl Items {
         }
 
         for func in &bindings.functions {
-            self.functions
-                .push(Function::try_from_cbindgen(func, |path| {
-                    overrides.get(path).copied()
-                })?);
+            items
+                .functions
+                .push(function(func, |path| overrides.get(path).copied())?);
         }
 
         Ok(())
+    }
+}
+
+mod export {
+    use super::Primitive;
+    use crate::simple_ir::{self, TypeKind};
+
+    /// Write this type into an existing string.
+    fn render_type(ty: &simple_ir::Type<Primitive>, out: &mut String) {
+        let name = match &ty.base {
+            TypeKind::Builtin(p) => p.qualname(),
+            TypeKind::Custom(c) => c.as_str(),
+        };
+        for _ in &ty.ptrs {
+            out.push_str("ctypes.POINTER(");
+        }
+        out.push_str(name);
+        for _ in &ty.ptrs {
+            out.push(')');
+        }
+    }
+
+    /// Get a string that declares this `Enum` as a Python class.
+    ///
+    /// We export a corresponding `class <Name>(enum.Enum)` to Python with a named attribute for each of
+    /// the variants for ease of use in Python space, but in actual function interfaces we have to use
+    /// the raw `ctypes` backing type to get the ABI correct.
+    pub fn r#enum(val: &simple_ir::Enum) -> String {
+        let mut out = format!("\nclass {}(enum.Enum):", &val.name);
+        if val.variants.is_empty() {
+            out.push_str("\n    pass");
+            return out;
+        }
+        let ctypes_repr = Primitive::from_cbindgen_intkind(val.repr.kind, val.repr.signed);
+        let constructor = ctypes_repr.qualname();
+        for simple_ir::EnumVariant { name, value } in &val.variants {
+            out.push_str(&format!("\n    {} = {}({})", name, constructor, value));
+        }
+        out
+    }
+
+    /// Declare the argument and return types of this function.
+    ///
+    /// If `dllname` name is given, we assume the function is an attribute on an object with that
+    /// name.
+    pub fn function(val: &simple_ir::Function<Primitive>, dllname: &str) -> String {
+        let prefix = format!("{}.{}", dllname, &val.name);
+        let mut out = format!("\n{}.argtypes = [", &prefix);
+        if let Some((first, rest)) = val.args.split_first() {
+            render_type(&first.ty, &mut out);
+            for arg in rest {
+                out.push_str(", ");
+                render_type(&arg.ty, &mut out);
+            }
+        }
+        out.push_str("]\n");
+        out.push_str(&prefix);
+        out.push_str(".restype = ");
+        match val.ret.as_ref() {
+            Some(ret) => render_type(ret, &mut out),
+            None => out.push_str("None"),
+        }
+        out.push('\n');
+
+        // Re-export into main namespace.
+        out.push_str(&val.name);
+        out.push_str(" = ");
+        out.push_str(&prefix);
+        out
+    }
+
+    /// Get a string representing the declaration of this `struct` as a Python `ctypes.Structure`.
+    pub fn r#struct(val: &simple_ir::Struct<Primitive>) -> String {
+        // TODO: this doesn't handle the case of (mutually) recursive `struct` definitions; we
+        // assume that all the `_fields_` will refer to fully defined `ctypes` objects.
+        let mut out = format!("\nclass {}(ctypes.Structure):\n", &val.name);
+        let Some(fields) = val.fields.as_ref() else {
+            out.push_str("    pass\n");
+            return out;
+        };
+        out.push_str("    _fields_ = [\n");
+        for simple_ir::StructField { name, ty } in fields {
+            out.push_str("        (\"");
+            out.push_str(name);
+            out.push_str("\", ");
+            render_type(ty, &mut out);
+            out.push_str("),\n");
+        }
+        out.push_str("    ]");
+        out
     }
 
     /// Export this complete set of objects, subject to the given configuration.
     ///
     /// This includes an `__all__`, a suitable set of `import` statements, a `PyDLL`, and then all
     /// the objects to declare.
-    pub fn export(&self, config: &Config, mut out: impl std::io::Write) -> anyhow::Result<()> {
+    pub fn items(
+        items: &simple_ir::Items<Primitive>,
+        config: &super::Config,
+        mut out: impl std::io::Write,
+    ) -> anyhow::Result<()> {
         if let Some(header) = config.header.as_deref() {
             writeln!(out, "{}", header)?;
         }
@@ -495,23 +400,23 @@ impl Items {
 
         writeln!(out, "__all__ = [")?;
         writeln!(out, "    \"{}\",", &config.dll.name)?;
-        for val in &self.enums {
+        for val in &items.enums {
             writeln!(out, "    \"{}\",", &val.name)?;
         }
-        for val in &self.structs {
+        for val in &items.structs {
             writeln!(out, "    \"{}\",", &val.name)?;
         }
-        for val in &self.functions {
+        for val in &items.functions {
             writeln!(out, "    \"{}\",", &val.name)?;
         }
         writeln!(out, "]")?;
         writeln!(out)?;
 
-        for import in Self::REQUIRED_IMPORTS {
+        for import in super::REQUIRED_IMPORTS {
             writeln!(out, "import {import}")?;
         }
         for import in &config.imports {
-            if !Self::REQUIRED_IMPORTS.contains(&import.as_str()) {
+            if !super::REQUIRED_IMPORTS.contains(&import.as_str()) {
                 writeln!(out, "import {import}")?;
             }
         }
@@ -524,14 +429,14 @@ impl Items {
         )?;
 
         writeln!(out)?;
-        for item in &self.enums {
-            writeln!(out, "{}", item.declare())?;
+        for item in &items.enums {
+            writeln!(out, "{}", r#enum(item))?;
         }
-        for item in &self.structs {
-            writeln!(out, "{}", item.declare())?;
+        for item in &items.structs {
+            writeln!(out, "{}", r#struct(item))?;
         }
-        for item in &self.functions {
-            writeln!(out, "{}", item.declare(&config.dll.name))?;
+        for item in &items.functions {
+            writeln!(out, "{}", function(item, &config.dll.name))?;
         }
 
         Ok(())
@@ -555,4 +460,34 @@ pub struct Config {
     /// Any additional imports to define, such as those needed for the [`DllDeclaration::expr`].
     pub imports: Vec<String>,
     pub dll: DllDeclaration,
+}
+
+pub type Items = simple_ir::Items<Primitive>;
+impl Items {
+    pub fn implicit() -> Self {
+        let field = |name: &str| simple_ir::StructField {
+            name: name.to_owned(),
+            ty: simple_ir::Type {
+                ptrs: Vec::new(),
+                base: simple_ir::TypeKind::Builtin(Primitive::Double),
+            },
+        };
+        let complex = simple_ir::Struct {
+            name: "QkComplex64".to_owned(),
+            fields: Some(vec![field("re"), field("im")]),
+        };
+        Items {
+            enums: vec![],
+            structs: vec![complex],
+            functions: vec![],
+        }
+    }
+
+    pub fn add_from_cbindgen(&mut self, bindings: &cbindgen::Bindings) -> anyhow::Result<()> {
+        parse::add_items(self, bindings)
+    }
+
+    pub fn export(&self, config: &Config, out: impl std::io::Write) -> anyhow::Result<()> {
+        export::items(self, config, out)
+    }
 }

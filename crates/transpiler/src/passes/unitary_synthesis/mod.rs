@@ -114,7 +114,7 @@ impl Approximation {
 pub enum QpuConstraint<'a> {
     Target(&'a Target),
     Loose {
-        basis_gates: &'a IndexSet<&'a str, ::ahash::RandomState>,
+        basis_gates: &'a IndexSet<&'a str, ::foldhash::fast::RandomState>,
         coupling: &'a HashSet<[PhysicalQubit; 2]>,
     },
 }
@@ -674,7 +674,7 @@ pub fn py_unitary_synthesis(
         run_python_decomposers: true,
     };
     let mut state = UnitarySynthesisState::new(config);
-    let mut basis_gates_set: IndexSet<&str, ::ahash::RandomState>;
+    let mut basis_gates_set: IndexSet<&str, ::foldhash::fast::RandomState>;
     let constraint = match target {
         Some(target) => QpuConstraint::Target(target),
         None => {
@@ -718,7 +718,7 @@ pub fn py_synthesize_unitary_matrix(
         run_python_decomposers: true,
     };
     let mut state = UnitarySynthesisState::new(config);
-    let mut basis_gates_set: IndexSet<&str, ::ahash::RandomState>;
+    let mut basis_gates_set: IndexSet<&str, ::foldhash::fast::RandomState>;
     let constraint = match target {
         Some(target) => QpuConstraint::Target(target),
         None => {
