@@ -51,7 +51,7 @@ make c
 Which will compile the C library and put the `dist/c` directory in the root of the repository which will contain the shared library and C headers for
 library.
 
-You can refer to the [documentation](https://quantum.cloud.ibm.com/docs/en/guides/install-c-api) on installing the C API for more details and how to
+You can refer to the [documentation](https://quantum.cloud.ibm.com/docs/guides/install-c-api) on installing the C API for more details and how to
 use the built library.
 
 ## Create your first quantum program in Qiskit
