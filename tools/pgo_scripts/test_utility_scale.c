@@ -9,10 +9,9 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
-#include <stdio.h>
-#include <stdint.h>
 #include <qiskit.h>
-
+#include <stdint.h>
+#include <stdio.h>
 
 QkCircuit *ghz(int n, int layers) {
     QkCircuit *qc = qk_circuit_new(n, n);
@@ -31,16 +30,14 @@ QkCircuit *ghz(int n, int layers) {
 }
 
 QkObs *create_observable(int num_qubits) {
-    uint64_t num_terms = 2;  // we have 2 terms: |01><01|, -1 * |+-><+-|
-    uint64_t num_bits = 4; // we have 4 non-identity bits: 0, 1, +, -
+    uint64_t num_terms = 2; // we have 2 terms: |01><01|, -1 * |+-><+-|
+    uint64_t num_bits = 4;  // we have 4 non-identity bits: 0, 1, +, -
     QkComplex64 coeffs = {1, -1};
     QkBitTerm bits[4] = {QkBitTerm_Zero, QkBitTerm_One, QkBitTerm_Plus, QkBitTerm_Minus};
 
-    uint32_t indices[4] = {0, 1, 98, 99};  // <-- e.g. {1, 0, 99, 98} would be invalid
+    uint32_t indices[4] = {0, 1, 98, 99}; // <-- e.g. {1, 0, 99, 98} would be invalid
     size_t boundaries[3] = {0, 2, 4};
-    QkObs *obs = qk_obs_new(
-        num_qubits, num_terms, num_bits, &coeffs, bits, indices, boundaries
-    );
+    QkObs *obs = qk_obs_new(num_qubits, num_terms, num_bits, &coeffs, bits, indices, boundaries);
     return obs;
 }
 
@@ -102,7 +99,6 @@ QkTarget *create_target(int num_qubits) {
     return target;
 }
 
-
 int num_gates(QkCircuit *qc) {
     int total_num_gates = 0;
     QkOpCounts counts = qk_circuit_count_ops(qc);
@@ -112,7 +108,6 @@ int num_gates(QkCircuit *qc) {
     qk_opcounts_clear(&counts);
     return total_num_gates;
 }
-
 
 int main(int argc, char *argv[]) {
     uint32_t num_qubits = 200;
