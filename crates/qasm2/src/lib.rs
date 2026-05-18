@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::Python;
 use pyo3::prelude::*;
 
 use crate::error::QASM2ParseError;
@@ -18,8 +17,11 @@ use crate::error::QASM2ParseError;
 mod bytecode;
 mod error;
 mod expr;
+mod ext;
 mod lex;
 mod parse;
+
+pub use self::ext::*;
 
 /// Information about a custom instruction that Python space is able to construct to pass down to
 /// us.
@@ -71,6 +73,7 @@ impl CustomClassical {
         }
     }
 }
+
 
 /// Create a bytecode iterable from a string containing an OpenQASM 2 program.  The iterable will
 /// lex and parse the source lazily; evaluating OpenQASM 2 statements as required, without loading
