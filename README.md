@@ -56,7 +56,8 @@ use the built library.
 
 ## Create your first quantum program in Qiskit
 
-Now that Qiskit is installed, it's time to begin working with Qiskit. The essential parts of a quantum program are:
+Now that Qiskit is installed, it's time to begin working with Qiskit. We will use the Python interface to demonstrate creating a quantum program.
+The essential parts of a quantum program are:
 1. Define and build a quantum circuit that represents the quantum state
 2. Define the classical output by measurements or a set of observable operators
 3. Depending on the output, use the Sampler primitive to sample outcomes or the Estimator primitive to estimate expectation values.
