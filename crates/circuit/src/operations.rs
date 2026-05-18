@@ -1909,8 +1909,6 @@ pub trait CustomOperation: Operation + Any + Debug + Send + Sync {
 }
 
 impl dyn CustomOperation + 'static {
-    // Trait implementation needs to be repeated here from Any as upcasting
-    // is stabilized in Rust 1.86+ and we barely missed the cutoff.
     /// Casts a reference to a CustomOperation to its original type if the correct
     /// type is specified.
     pub fn downcast_ref<T: CustomOperation + 'static>(&self) -> Option<&T> {
