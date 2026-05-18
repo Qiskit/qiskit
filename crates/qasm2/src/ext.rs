@@ -12,30 +12,6 @@
 
 use pyo3::prelude::*;
 
-/// Information about a custom instruction that Python space is able to construct to pass down to
-/// us.
-#[pyclass]
-#[derive(Clone)]
-pub struct CustomInstruction {
-    pub name: String,
-    pub num_params: usize,
-    pub num_qubits: usize,
-    pub builtin: bool,
-}
-
-#[pymethods]
-impl CustomInstruction {
-    #[new]
-    fn __new__(name: String, num_params: usize, num_qubits: usize, builtin: bool) -> Self {
-        Self {
-            name,
-            num_params,
-            num_qubits,
-            builtin,
-        }
-    }
-}
-
 #[derive(Clone, Copy, Debug)]
 pub enum ClassicalBuiltinExt {
     Asin,
@@ -96,7 +72,7 @@ impl ClassicalCallableExt {
 /// The given `callable` must be a Python function that takes `num_params` floats, and returns a
 /// float.  The `name` is the identifier that refers to it in the OpenQASM 2 program.  This cannot
 /// clash with any defined gates.
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct CustomClassical {
     pub name: String,
