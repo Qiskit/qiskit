@@ -50,7 +50,7 @@ from qiskit.utils import deprecate_arg
     predicate=lambda x: callable(x) and not isinstance(x, OneQubitEulerDecomposer),
     deprecation_description="The argument `decomposer_1q` in :func:`.qs_decomposition` only "
     "accept instances of :class:`.OneQubitEulerDecomposer`.",
-    removal_timeline="Accepting any other callable wont longer be supported from 3.0.0 on.",
+    removal_timeline="Accepting any other callable will no longer be supported from 3.0.0 on.",
 )
 @deprecate_arg(
     "decomposer_2q",
@@ -58,7 +58,7 @@ from qiskit.utils import deprecate_arg
     predicate=lambda x: callable(x) and not isinstance(x, TwoQubitBasisDecomposer),
     deprecation_description="The argument `decomposer_2q` in :func:`.qs_decomposition` only "
     "accept instances of :class:`.TwoQubitBasisDecomposer`.",
-    removal_timeline="Accepting any other callable wont longer be supported from 3.0.0 on.",
+    removal_timeline="Accepting any other callable will no longer be supported from 3.0.0 on.",
 )
 def qs_decomposition(
     mat: np.ndarray,
