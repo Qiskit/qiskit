@@ -119,11 +119,11 @@ pub enum DAGError {
     #[error(
         "{ty} not in circuit. {0}",
         ty = match .0 {
-            RegisterRef::Quantum(_) => "qreg",
-            RegisterRef::Classical(_) => "creg",
+            RegisterType::Quantum(_) => "qreg",
+            RegisterType::Classical(_) => "creg",
         }
     )]
-    RegisterNotInCircuit(RegisterRef),
+    RegisterNotInCircuit(RegisterType),
     #[error("{message}", message = {
         match .0 {
             Wire::Qubit(qubit) => format!("Qubit index {} is out of range. This DAGCircuit currently has only {} qubits.", qubit.index(), .1),
@@ -146,7 +146,7 @@ pub enum DAGError {
     )]
     VariableNotInlined { name: String, is_var: bool },
     #[error("Wire '{0:?}' not in self")]
-    MissingWire(ConcreteWire),
+    MissingWire(ShareableWire),
     #[error("Specified node {} is not in this graph", .0.index())]
     NodeNotInGraph(NodeIndex),
     /// Errors that don't have anything that needs to be tracked. Only a message.
@@ -155,7 +155,7 @@ pub enum DAGError {
     #[error(transparent)]
     VarStretchContainer(#[from] VarStretchContainerError),
     #[error("Wire {0:?} not found in output map")]
-    WireNotInOutput(ConcreteWire),
+    WireNotInOutput(ShareableWire),
     #[error("No register with '{0:?}' to map this expression onto.")]
     RejectNewRegister(Vec<ShareableClbit>),
     #[error(transparent)]
@@ -202,7 +202,7 @@ impl From<DAGError> for PyErr {
 
 /// Enumeration to capture concrete wires
 #[derive(Debug)]
-pub enum ConcreteWire {
+pub enum ShareableWire {
     Qubit(ShareableQubit),
     Clbit(ShareableClbit),
     Var(Var),
@@ -210,16 +210,16 @@ pub enum ConcreteWire {
 
 /// Enumeration to capture all possible registers.
 #[derive(Debug)]
-pub enum RegisterRef {
+pub enum RegisterType {
     Quantum(QuantumRegister),
     Classical(ClassicalRegister),
 }
 
-impl std::fmt::Display for RegisterRef {
+impl std::fmt::Display for RegisterType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RegisterRef::Quantum(quantum_register) => quantum_register.fmt(f),
-            RegisterRef::Classical(classical_register) => classical_register.fmt(f),
+            RegisterType::Quantum(quantum_register) => quantum_register.fmt(f),
+            RegisterType::Classical(classical_register) => classical_register.fmt(f),
         }
     }
 }
@@ -5479,11 +5479,11 @@ impl DAGCircuit {
         for qregs in qregs.into_iter() {
             if let Some(reg) = self.qregs.get(qregs.name()) {
                 if reg != &qregs {
-                    return Err(DAGError::RegisterNotInCircuit(RegisterRef::Quantum(qregs)));
+                    return Err(DAGError::RegisterNotInCircuit(RegisterType::Quantum(qregs)));
                 }
                 valid_regs.push(qregs);
             } else {
-                return Err(DAGError::RegisterNotInCircuit(RegisterRef::Quantum(qregs)));
+                return Err(DAGError::RegisterNotInCircuit(RegisterType::Quantum(qregs)));
             }
         }
 
@@ -5611,11 +5611,15 @@ impl DAGCircuit {
         for creg in cregs {
             if let Some(reg) = self.cregs.get(creg.name()) {
                 if reg != &creg {
-                    return Err(DAGError::RegisterNotInCircuit(RegisterRef::Classical(creg)));
+                    return Err(DAGError::RegisterNotInCircuit(RegisterType::Classical(
+                        creg,
+                    )));
                 }
                 valid_regs.push(creg);
             } else {
-                return Err(DAGError::RegisterNotInCircuit(RegisterRef::Classical(creg)));
+                return Err(DAGError::RegisterNotInCircuit(RegisterType::Classical(
+                    creg,
+                )));
             }
         }
 
@@ -7204,7 +7208,7 @@ impl DAGCircuit {
     fn check_op_addition(&self, inst: &PackedInstruction) -> Result<(), DAGError> {
         for b in self.qargs_interner.get(inst.qubits) {
             if self.qubit_io_map.len() - 1 < b.index() {
-                return Err(DAGError::WireNotInOutput(ConcreteWire::Qubit(
+                return Err(DAGError::WireNotInOutput(ShareableWire::Qubit(
                     self.qubits.get(*b).cloned().unwrap(),
                 )));
             }
@@ -7212,7 +7216,7 @@ impl DAGCircuit {
 
         for b in self.cargs_interner.get(inst.clbits) {
             if !self.clbit_io_map.len() - 1 < b.index() {
-                return Err(DAGError::WireNotInOutput(ConcreteWire::Clbit(
+                return Err(DAGError::WireNotInOutput(ShareableWire::Clbit(
                     self.clbits.get(*b).cloned().unwrap(),
                 )));
             }
@@ -7222,14 +7226,14 @@ impl DAGCircuit {
             let (clbits, vars) = self.additional_wires(inst)?;
             for b in clbits {
                 if !self.clbit_io_map.len() - 1 < b.index() {
-                    return Err(DAGError::WireNotInOutput(ConcreteWire::Clbit(
+                    return Err(DAGError::WireNotInOutput(ShareableWire::Clbit(
                         self.clbits.get(b).cloned().unwrap(),
                     )));
                 }
             }
             for v in vars {
                 if !self.var_io_map.len() - 1 < v.index() {
-                    return Err(DAGError::WireNotInOutput(ConcreteWire::Var(v)));
+                    return Err(DAGError::WireNotInOutput(ShareableWire::Var(v)));
                 }
             }
         }
@@ -7975,7 +7979,7 @@ impl DAGCircuit {
                     if wire_in_dag.is_none()
                         || (self.qubit_io_map.len() - 1 < wire_in_dag.unwrap().index())
                     {
-                        return Err(DAGError::MissingWire(ConcreteWire::Qubit(m_wire.clone())));
+                        return Err(DAGError::MissingWire(ShareableWire::Qubit(m_wire.clone())));
                     }
                 }
                 NodeType::ClbitIn(c) => {
@@ -7985,7 +7989,7 @@ impl DAGCircuit {
                     if wire_in_dag.is_none()
                         || self.clbit_io_map.len() - 1 < wire_in_dag.unwrap().index()
                     {
-                        return Err(DAGError::MissingWire(ConcreteWire::Clbit(m_wire.clone())));
+                        return Err(DAGError::MissingWire(ShareableWire::Clbit(m_wire.clone())));
                     }
                 }
                 NodeType::Operation(inst) => {
