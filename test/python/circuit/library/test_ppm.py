@@ -28,7 +28,7 @@ from qiskit.transpiler.passes import (
     ResetAfterMeasureSimplification,
     BarrierBeforeFinalMeasurements,
 )
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

@@ -14,10 +14,11 @@
 
 from __future__ import annotations
 
-from typing import Optional, Union, Iterable, TYPE_CHECKING
+from typing import TYPE_CHECKING
+from collections.abc import Iterable
 import itertools
 
-from qiskit.circuit import ClassicalRegister, Clbit  # pylint: disable=cyclic-import
+from qiskit.circuit import ClassicalRegister, Clbit
 from qiskit.circuit.classical import expr
 from qiskit.circuit.instructionset import InstructionSet
 from qiskit.circuit.exceptions import CircuitError
@@ -70,11 +71,11 @@ class IfElseOp(ControlFlowOp):
                 ``Clbit`` to be compared to either a ``bool`` or an ``int``.
             true_body: A program to be executed if ``condition`` evaluates
                 to true.
-            false_body: A optional program to be executed if ``condition``
+            false_body: An optional program to be executed if ``condition``
                 evaluates to false.
             label: An optional label for identifying the instruction.
         """
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         # Type checking generally left to @params.setter, but required here for
@@ -107,7 +108,7 @@ class IfElseOp(ControlFlowOp):
 
     @params.setter
     def params(self, parameters):
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         true_body, false_body = parameters
@@ -150,7 +151,7 @@ class IfElseOp(ControlFlowOp):
         else:
             return (self.params[0], self.params[1])
 
-    def replace_blocks(self, blocks: Iterable[QuantumCircuit]) -> "IfElseOp":
+    def replace_blocks(self, blocks: Iterable[QuantumCircuit]) -> IfElseOp:
         """Replace blocks and return new instruction.
 
         Args:
@@ -187,7 +188,7 @@ class IfElsePlaceholder(InstructionPlaceholder):
         true_block: ControlFlowBuilderBlock,
         false_block: ControlFlowBuilderBlock | None = None,
         *,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
         """
         Args:
@@ -200,7 +201,7 @@ class IfElsePlaceholder(InstructionPlaceholder):
         """
         # These are protected names because we're not trying to clash with parent attributes.
         self.__true_block = true_block
-        self.__false_block: Optional[ControlFlowBuilderBlock] = false_block
+        self.__false_block: ControlFlowBuilderBlock | None = false_block
         self.__resources = self._calculate_placeholder_resources()
         super().__init__(
             "if_else", len(self.__resources.qubits), len(self.__resources.clbits), [], label=label
@@ -208,7 +209,7 @@ class IfElsePlaceholder(InstructionPlaceholder):
         # Set the condition after super().__init__() has initialized it to None.
         self._condition = validate_condition(condition)
 
-    def with_false_block(self, false_block: ControlFlowBuilderBlock) -> "IfElsePlaceholder":
+    def with_false_block(self, false_block: ControlFlowBuilderBlock) -> IfElsePlaceholder:
         """Return a new placeholder instruction, with the false block set to the given value,
         updating the bits used by both it and the true body, if necessary.
 
@@ -328,7 +329,7 @@ class IfContext:
         Terra.
     """
 
-    __slots__ = ("_circuit", "_condition", "_in_loop", "_label", "_depth", "_appended")
+    __slots__ = ("_appended", "_circuit", "_condition", "_depth", "_in_loop", "_label")
 
     def __init__(
         self,
@@ -360,7 +361,7 @@ class IfContext:
         return self._condition
 
     @property
-    def appended_instructions(self) -> Union[InstructionSet, None]:
+    def appended_instructions(self) -> InstructionSet | None:
         """Get the instruction set that was created when this block finished.  If the block has not
         yet finished, then this will be ``None``."""
         return self._appended_instructions
@@ -435,7 +436,7 @@ class ElseContext:
         Terra.
     """
 
-    __slots__ = ("_if_instruction", "_if_registers", "_if_context", "_used")
+    __slots__ = ("_if_context", "_if_instruction", "_if_registers", "_used")
 
     def __init__(self, if_context: IfContext):
         # We want to avoid doing any processing until we're actually used, because the `if` block

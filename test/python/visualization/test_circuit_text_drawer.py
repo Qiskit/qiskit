@@ -13,7 +13,7 @@
 """circuit_drawer with output="text" draws a circuit in ascii art"""
 
 # Sometimes we want to test long-lined output.
-# pylint: disable=line-too-long
+
 
 import pathlib
 import os
@@ -64,7 +64,7 @@ from qiskit.circuit.library import (
     UCGate,
 )
 from qiskit.transpiler.passes import ApplyLayout
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
 from ..legacy_cmaps import YORKTOWN_CMAP
@@ -181,7 +181,6 @@ class TestTextDrawerElement(QiskitTestCase):
 
 
 class TestTextDrawerGatesInCircuit(QiskitTestCase):
-    # pylint: disable=possibly-used-before-assignment
     """Gate by gate checks in different settings."""
 
     def test_text_measure_cregbundle(self):
@@ -1274,6 +1273,42 @@ q_4: ───────────────────────┤   
         circuit.x(1)
         circuit.barrier(label="End Y/X")
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
+
+    def test_text_barrier_label_truncation(self):
+        """Barrier labels longer than barrier_label_len are truncated"""
+        expected_truncated = "\n".join(
+            [
+                "      ░  aaaaaaaaa... ",
+                "q_0: ─░───────░───────",
+                "      ░       ░       ",
+                "q_1: ─░───────░───────",
+                "      ░       ░       ",
+            ]
+        )
+        circuit = QuantumCircuit(2)
+        circuit.barrier()
+        circuit.barrier(label="a" * 20)
+        self.assertEqual(
+            str(circuit_drawer(circuit, output="text", barrier_label_len=9)), expected_truncated
+        )
+
+    def test_text_barrier_label_no_truncation(self):
+        """Barrier labels shorter than barrier_label_len are unchanged"""
+        expected = "\n".join(
+            [
+                "      ░  short ",
+                "q_0: ─░────░───",
+                "      ░    ░   ",
+                "q_1: ─░────░───",
+                "      ░    ░   ",
+            ]
+        )
+        circuit = QuantumCircuit(2)
+        circuit.barrier()
+        circuit.barrier(label="short")
+        self.assertEqual(
+            str(circuit_drawer(circuit, output="text", barrier_label_len=30)), expected
+        )
 
     def test_text_barrier_label_reversed_bits(self):
         """Show barrier label with reversed bits"""
@@ -4396,21 +4431,21 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
         """Test that the gates inside ControlFlowOps land on correct qubits when transpiled"""
         expected = "\n".join(
             [
-                "                                                                  ",
-                "     qr_1 -> 0 ───────────────────────────────────────────────────",
-                "                                                                  ",
-                "ancilla_0 -> 1 ───────────────────────────────────────────────────",
-                "               ┌────── ┌────────┐┌────── ┌───┐ ───────┐  ───────┐ ",
-                "     qr_0 -> 2 ┤ If-0  ┤ Rz(-π) ├┤ If-1  ┤ X ├  End-1 ├─  End-0 ├─",
-                "               └──╥─── └────────┘└──╥─── └───┘ ───────┘  ───────┘ ",
-                "ancilla_1 -> 3 ───╫─────────────────╫─────────────────────────────",
-                "                  ║                 ║                             ",
-                "ancilla_2 -> 4 ───╫─────────────────╫─────────────────────────────",
-                "                  ║                 ║                             ",
-                "         cr_0: ═══o═════════════════╬═════════════════════════════",
-                "                  ║                 ║                             ",
-                "         cr_1: ═══■═════════════════■═════════════════════════════",
-                "                 0x2                                              ",
+                "                                                                 ",
+                "     qr_1 -> 0 ──────────────────────────────────────────────────",
+                "                                                                 ",
+                "ancilla_0 -> 1 ──────────────────────────────────────────────────",
+                "               ┌────── ┌───────┐┌────── ┌───┐ ───────┐  ───────┐ ",
+                "     qr_0 -> 2 ┤ If-0  ┤ Rz(π) ├┤ If-1  ┤ X ├  End-1 ├─  End-0 ├─",
+                "               └──╥─── └───────┘└──╥─── └───┘ ───────┘  ───────┘ ",
+                "ancilla_1 -> 3 ───╫────────────────╫─────────────────────────────",
+                "                  ║                ║                             ",
+                "ancilla_2 -> 4 ───╫────────────────╫─────────────────────────────",
+                "                  ║                ║                             ",
+                "         cr_0: ═══o════════════════╬═════════════════════════════",
+                "                  ║                ║                             ",
+                "         cr_1: ═══■════════════════■═════════════════════════════",
+                "                 0x2                                             ",
             ]
         )
 

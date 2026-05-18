@@ -30,7 +30,7 @@ from qiskit.circuit.library import (
 )
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Operator
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

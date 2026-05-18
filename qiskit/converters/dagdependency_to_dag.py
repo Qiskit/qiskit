@@ -18,7 +18,7 @@ def dagdependency_to_dag(dagdependency):
     """Build a ``DAGCircuit`` object from a ``DAGDependency``.
 
     Args:
-        dag dependency (DAGDependency): the input dag.
+        dagdependency (DAGDependency): the input dag.
 
     Return:
         DAGCircuit: the DAG representing the input circuit.

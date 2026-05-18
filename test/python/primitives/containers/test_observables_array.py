@@ -24,7 +24,7 @@ from qiskit.primitives.containers.observables_array import (
     ObservablesArray,
     object_array,
 )
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt.ddt

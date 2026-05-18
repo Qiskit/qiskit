@@ -33,7 +33,7 @@ from qiskit.circuit.library import GraphStateGate, CXGate, XGate, HGate
 from qiskit.transpiler import PassManager, AnalysisPass
 from qiskit.transpiler.target import InstructionProperties
 from qiskit.transpiler.preset_passmanagers.common import generate_embed_passmanager
-from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine
 
 from ..legacy_cmaps import TENERIFE_CMAP, RUESCHLIKON_CMAP, MANHATTAN_CMAP, YORKTOWN_CMAP
 

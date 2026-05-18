@@ -32,7 +32,7 @@ from qiskit.circuit.library import (
     PiecewiseChebyshevGate,
 )
 from qiskit.quantum_info import Statevector
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt
@@ -318,7 +318,7 @@ class TestFunctionalPauliRotations(QiskitTestCase):
 
         with self.subTest(msg="pw poly"):
 
-            def target(x):  # pylint: disable=function-redefined
+            def target(x):
                 if hasattr(x, "__len__"):  # support single-value inputs and arrays
                     return np.array([target(xi) for xi in x])
 

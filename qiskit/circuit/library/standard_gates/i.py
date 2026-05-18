@@ -12,7 +12,7 @@
 
 """Identity gate."""
 
-from typing import Optional
+
 from qiskit.circuit.singleton import SingletonGate, stdlib_singleton_key
 from qiskit.circuit._utils import with_gate_array
 from qiskit._accelerate.circuit import StandardGate
@@ -49,7 +49,7 @@ class IGate(SingletonGate):
 
     _standard_gate = StandardGate.I
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: str | None = None):
         """
         Args:
             label: An optional label for the gate.

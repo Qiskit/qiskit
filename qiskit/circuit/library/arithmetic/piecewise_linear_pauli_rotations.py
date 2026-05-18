@@ -98,7 +98,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
 
     @property
     def slopes(self) -> list[float] | np.ndarray:
-        """The breakpoints of the piecewise linear function.
+        """The slopes of the piecewise linear function.
 
         The function is linear in the intervals ``[point_i, point_{i+1}]`` where the last
         point implicitly is ``2**(num_state_qubits + 1)``.
@@ -117,7 +117,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
 
     @property
     def offsets(self) -> list[float] | np.ndarray:
-        """The breakpoints of the piecewise linear function.
+        """The offsets of the piecewise linear function.
 
         The function is linear in the intervals ``[point_i, point_{i+1}]`` where the last
         point implicitly is ``2**(num_state_qubits + 1)``.

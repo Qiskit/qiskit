@@ -37,10 +37,10 @@ def object_array(
 
     Args:
         arr: An array-like input.
-        order: Optional, the order of the returned array (C, F, A, K). If None
+        order:  the order of the returned array (C, F, A, K). If None
                the default NumPy ordering of C is used.
         copy: If True make a copy of the input if it is already an array.
-        list_types: Optional, a sequence of types to treat as lists of array
+        list_types:  a sequence of types to treat as lists of array
             element objects when inferring the array shape from the input.
 
     Returns:

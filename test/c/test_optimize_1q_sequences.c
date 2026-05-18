@@ -20,6 +20,9 @@
 #include <stdio.h>
 #include <string.h>
 
+typedef int (*optimize_h_gates_fn)(QkTarget *, char **, uint32_t *, size_t);
+typedef int (*optimize_identity_target_fn)(QkTarget *);
+
 /// @brief Generates a typical target where u1 is cheaper than u2 is cheaper than u3.
 /// @return The generated target instance.
 static QkTarget *get_u1_u2_u3_target(void) {
@@ -133,8 +136,8 @@ static bool compare_gate_counts(QkOpCounts *counts, char **gates, uint32_t *freq
  *
  * Transpile: 0:--[H]-[H]-[H]--
  */
-static int inner_optimize_h_gates(QkTarget *target, char **gates, uint32_t *freq,
-                                  size_t num_gates) {
+static int standalone_inner_optimize_h_gates(QkTarget *target, char **gates, uint32_t *freq,
+                                             size_t num_gates) {
     int result = Ok;
     // Build circuit
     QkCircuit *circuit = qk_circuit_new(1, 0);
@@ -155,7 +158,7 @@ static int inner_optimize_h_gates(QkTarget *target, char **gates, uint32_t *freq
     return result;
 }
 
-static int test_optimize_h_gates(void) {
+static int run_optimize_h_gates(optimize_h_gates_fn optimize_fn) {
     int num_failed = 0;
     QkTarget *targets[5] = {
         get_u1_u2_u3_target(), get_rz_rx_target(),           get_rz_sx_target(),
@@ -183,14 +186,18 @@ static int test_optimize_h_gates(void) {
     char *names[5] = {"u1_u2_u3", "rz_rx", "rz_sx", "rz_ry_u", "rz_ry_u_noerror"};
     printf("Optimize h gates tests.\n");
     for (int idx = 0; idx < 5; idx++) {
-        int result = inner_optimize_h_gates(targets[idx], gates[idx], freq[idx], num_gates[idx]);
+        int result = optimize_fn(targets[idx], gates[idx], freq[idx], num_gates[idx]);
         printf("--- Run with %-21s: %s \n", names[idx], (bool)result ? "Fail" : "Ok");
         num_failed += result;
     }
     return num_failed;
 }
 
-static int inner_optimize_identity_target(QkTarget *target) {
+static int test_standalone_optimize_h_gates(void) {
+    return run_optimize_h_gates(standalone_inner_optimize_h_gates);
+}
+
+static int standalone_inner_optimize_identity_target(QkTarget *target) {
     int result = Ok;
     // Build circuit
     QkCircuit *circuit = qk_circuit_new(1, 0);
@@ -211,10 +218,7 @@ static int inner_optimize_identity_target(QkTarget *target) {
     return result;
 }
 
-/**
- * Transpile: qr:--[RY(θ), RY(-θ)]-- to null.
- */
-static int test_optimize_identity_target(void) {
+static int run_optimize_identity_target(optimize_identity_target_fn optimize_fn) {
     int num_failed = 0;
     QkTarget *targets[4] = {
         get_u1_u2_u3_target(),
@@ -230,7 +234,7 @@ static int test_optimize_identity_target(void) {
     };
     printf("Optimize identities with target tests.\n");
     for (int idx = 0; idx < 4; idx++) {
-        int result = inner_optimize_identity_target(targets[idx]);
+        int result = optimize_fn(targets[idx]);
         printf("--- Run with %-21s: %s \n", names[idx], (bool)result ? "Fail" : "Ok");
         num_failed += result;
     }
@@ -238,9 +242,16 @@ static int test_optimize_identity_target(void) {
 }
 
 /**
+ * Transpile: qr:--[RY(θ), RY(-θ)]-- to null.
+ */
+static int test_standalone_optimize_identity_target(void) {
+    return run_optimize_identity_target(standalone_inner_optimize_identity_target);
+}
+
+/**
  * Test identity run is removed for no target specified.
  */
-static int test_optimize_identity_no_target(void) {
+static int test_standalone_optimize_identity_no_target(void) {
     int result = Ok;
     // Build circuit
     QkCircuit *circuit = qk_circuit_new(1, 0);
@@ -263,7 +274,7 @@ static int test_optimize_identity_no_target(void) {
 /**
  * U is shorter than RZ-RY-RZ or RY-RZ-RY so use it when no error given.
  */
-static int test_optimize_error_over_target_3(void) {
+static int test_standalone_optimize_error_over_target_3(void) {
     int result = Ok;
     // Build circuit
     QkCircuit *circuit = qk_circuit_new(1, 0);
@@ -289,8 +300,158 @@ cleanup:
     return result;
 }
 
+/**
+ * Test running pass on chains of h gates.
+ *
+ * Transpile: 0:--[H]-[H]-[H]--
+ */
+static int inner_optimize_h_gates(QkTarget *target, char **gates, uint32_t *freq,
+                                  size_t num_gates) {
+    int result = Ok;
+    // Build DAG
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(1, "qr");
+    qk_dag_add_quantum_register(dag, qr);
+    uint32_t qubits[1] = {0};
+    for (int iter = 0; iter < 3; iter++) {
+        qk_dag_apply_gate(dag, QkGate_H, qubits, NULL, false);
+    }
+
+    // Run transpiler pass
+    qk_transpiler_pass_optimize_1q_sequences(dag, target);
+
+    // Compare ops via the DAG interface
+    size_t num_ops = qk_dag_num_op_nodes(dag);
+    uint32_t *ops = malloc(num_ops * sizeof(uint32_t));
+    qk_dag_topological_op_nodes(dag, ops);
+    uint32_t *actual_freq = malloc(num_gates * sizeof(uint32_t));
+    memset(actual_freq, 0, num_gates * sizeof(uint32_t));
+    QkCircuitInstruction inst;
+    for (size_t i = 0; i < num_ops; i++) {
+        qk_dag_get_instruction(dag, ops[i], &inst);
+        for (size_t g = 0; g < num_gates; g++) {
+            if (strcmp(inst.name, gates[g]) == 0) {
+                actual_freq[g]++;
+            }
+        }
+        qk_circuit_instruction_clear(&inst);
+    }
+    if (memcmp(actual_freq, freq, num_gates * sizeof(uint32_t))) {
+        result = EqualityError;
+    }
+
+    free(ops);
+    free(actual_freq);
+    qk_dag_free(dag);
+    qk_quantum_register_free(qr);
+    qk_target_free(target);
+    return result;
+}
+
+static int inner_optimize_identity_target(QkTarget *target) {
+    int result = Ok;
+    // Build circuit
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(1, "qr");
+    qk_dag_add_quantum_register(dag, qr);
+    uint32_t qubits[1] = {0};
+    double params_pos[1] = {3.14 / 7.};
+    double params_neg[1] = {-3.14 / 7.};
+    qk_dag_apply_gate(dag, QkGate_RY, qubits, params_pos, false);
+    qk_dag_apply_gate(dag, QkGate_RY, qubits, params_neg, false);
+
+    // Run transpiler pass
+    qk_transpiler_pass_optimize_1q_sequences(dag, target);
+    if (qk_dag_num_op_nodes(dag) != 0) {
+        result = EqualityError;
+    }
+
+    qk_dag_free(dag);
+    qk_quantum_register_free(qr);
+    qk_target_free(target);
+    return result;
+}
+
+static int test_optimize_h_gates(void) { return run_optimize_h_gates(inner_optimize_h_gates); }
+
+/**
+ * Transpile: qr:--[RY(θ), RY(-θ)]-- to null.
+ */
+static int test_optimize_identity_target(void) {
+    return run_optimize_identity_target(inner_optimize_identity_target);
+}
+
+/**
+ * Test identity run is removed for no target specified.
+ */
+static int test_optimize_identity_no_target(void) {
+    int result = Ok;
+    // Build DAG
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(1, "qr");
+    qk_dag_add_quantum_register(dag, qr);
+    uint32_t qubits[1] = {0};
+    for (int iter = 0; iter < 2; iter++) {
+        qk_dag_apply_gate(dag, QkGate_H, qubits, NULL, false);
+    }
+
+    // Run transpiler pass
+    qk_transpiler_pass_optimize_1q_sequences(dag, NULL);
+
+    if (qk_dag_num_op_nodes(dag) != 0) {
+        result = EqualityError;
+    }
+
+    qk_dag_free(dag);
+    qk_quantum_register_free(qr);
+    return result;
+}
+
+/**
+ * U is shorter than RZ-RY-RZ or RY-RZ-RY so use it when no error given.
+ */
+static int test_optimize_error_over_target_3(void) {
+    int result = Ok;
+    // Build DAG
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(1, "qr");
+    qk_dag_add_quantum_register(dag, qr);
+    uint32_t qubits[1] = {0};
+    double params[3] = {3.14 / 7., 3.14 / 4., 3.14 / 3.};
+    qk_dag_apply_gate(dag, QkGate_U, qubits, params, false);
+    QkTarget *target = get_rz_ry_u_noerror_target();
+    // Run transpiler pass
+    qk_transpiler_pass_optimize_1q_sequences(dag, target);
+
+    size_t num_ops = qk_dag_num_op_nodes(dag);
+    if (num_ops != 1) {
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    uint32_t *ops = malloc(num_ops * sizeof(uint32_t));
+    qk_dag_topological_op_nodes(dag, ops);
+    QkCircuitInstruction inst;
+    qk_dag_get_instruction(dag, ops[0], &inst);
+    if (strcmp(inst.name, "u")) {
+        result = EqualityError;
+    }
+    qk_circuit_instruction_clear(&inst);
+    free(ops);
+
+cleanup:
+    qk_target_free(target);
+    qk_dag_free(dag);
+    qk_quantum_register_free(qr);
+    return result;
+}
+
 int test_optimize_1q_sequences(void) {
     int num_failed = 0;
+    num_failed += RUN_TEST(test_standalone_optimize_h_gates);
+    num_failed += RUN_TEST(test_standalone_optimize_identity_target);
+    num_failed += RUN_TEST(test_standalone_optimize_identity_no_target);
+    num_failed += RUN_TEST(test_standalone_optimize_error_over_target_3);
     num_failed += RUN_TEST(test_optimize_h_gates);
     num_failed += RUN_TEST(test_optimize_identity_target);
     num_failed += RUN_TEST(test_optimize_identity_no_target);

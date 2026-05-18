@@ -43,7 +43,7 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
     """Test the Substitute Pi4-Rotations optimization pass."""
 
     @combine(
-        multiple=[*range(0, 16), 23, 42, -5, -8, -17, -22, -35],
+        multiple=[*range(16), 23, 42, -5, -8, -17, -22, -35],
         gate=[RXGate, RYGate, RZGate, PhaseGate, U1Gate, RZZGate, RXXGate, RZXGate, RYYGate],
         global_phase=[0, 1.0, -2.0],
         approximation_degree=[1, 0.99999],
@@ -77,7 +77,7 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
                 self.assertLessEqual(qct.size(), 7)
 
     @combine(
-        multiple=[*range(0, 8), 23, 42, -5, -8, -17, -22, -35],
+        multiple=[*range(8), 23, 42, -5, -8, -17, -22, -35],
         gate=[CPhaseGate, CU1Gate, CRZGate, CRXGate, CRYGate],
         global_phase=[0, 1.0, -2.0],
         approximation_degree=[1, 0.99999],
@@ -108,7 +108,7 @@ class TestSubstitutePi4Rotations(QiskitTestCase):
             self.assertLessEqual(qct.size(), 4)
 
     @combine(
-        multiple=[*range(0, 16)],
+        multiple=[*range(16)],
         eps=[0.001, -0.001],
         gate=[
             RXGate,

@@ -13,9 +13,10 @@
 """Test QASM3 exporter."""
 
 # We can't really help how long the lines output by the exporter are in some cases.
-# pylint: disable=line-too-long,invalid-name
+
 
 from io import StringIO
+from io import BytesIO
 from math import pi
 import re
 import warnings
@@ -50,8 +51,9 @@ from qiskit.qasm3 import (
 from qiskit.qasm3.exporter import QASM3Builder
 from qiskit.qasm3.printer import BasicPrinter
 from qiskit.qasm3.exceptions import QASM3ImporterError
+from qiskit import qpy
 from qiskit.quantum_info import Pauli
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 # Custom instruction for defcal testing
@@ -961,7 +963,7 @@ c[1] = measure q[1];
                 "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 f"qubit[2] {qr_name};",
-                f"for {parameter.name} in {{0, 3, 4}} {{",
+                f"for int {parameter.name} in {{0, 3, 4}} {{",
                 f"  rx({parameter.name}) {qr_name}[1];",
                 "  break;",
                 "  continue;",
@@ -1000,10 +1002,10 @@ c[1] = measure q[1];
                 "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 f"qubit[2] {qr_name};",
-                f"for {outer_parameter.name} in [0:3] {{",
+                f"for int {outer_parameter.name} in [0:3] {{",
                 f"  h {qr_name}[0];",
                 f"  rz({outer_parameter.name}) {qr_name}[1];",
-                f"  for {inner_parameter.name} in [1:2:4] {{",
+                f"  for int {inner_parameter.name} in [1:2:4] {{",
                 # Note the reversed bit order.
                 f"    rz({inner_parameter.name}) {qr_name}[1];",
                 f"    rz({outer_parameter.name}) {qr_name}[0];",
@@ -1049,10 +1051,10 @@ c[1] = measure q[1];
                 # This next line will be missing until gh-7280 is fixed.
                 f"input float[64] {regular_parameter.name};",
                 f"qubit[2] {qr_name};",
-                f"for {outer_parameter.name} in [0:3] {{",
+                f"for int {outer_parameter.name} in [0:3] {{",
                 f"  h {qr_name}[0];",
                 f"  h {qr_name}[1];",
-                f"  for {inner_parameter.name} in [1:2:4] {{",
+                f"  for int {inner_parameter.name} in [1:2:4] {{",
                 # Note the reversed bit order.
                 f"    h {qr_name}[1];",
                 f"    rx({regular_parameter.name}) {qr_name}[0];",
@@ -1080,7 +1082,7 @@ c[1] = measure q[1];
                 "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 f"qubit[2] {qr_name};",
-                "for _ in {0, 3, 4} {",
+                "for int _ in {0, 3, 4} {",
                 f"  h {qr_name}[1];",
                 "}",
                 "",
@@ -1446,7 +1448,7 @@ box[a] {
                 "  rx(0.5) _gate_q_0;",
                 "}",
                 "qubit[1] q;",
-                "for b in [0:1] {",
+                "for int b in [0:1] {",
                 "  custom q[0];",
                 "}",
                 "",
@@ -3392,9 +3394,21 @@ class TestQASM3ExporterRust(QiskitTestCase):
         )
         self.assertEqual(dumps_experimental(qc, allow_aliasing=True), expected_qasm)
 
+    def test_delay_qpy_roundtrip(self):
+        qc = QuantumCircuit(1)
+        qc.delay(1, 0)
+        no_qpy = dumps_experimental(qc)
+
+        with BytesIO() as buf:
+            qpy.dump(qc, buf)
+            buf.seek(0)
+            qpy_roundtrip = qpy.load(buf)[0]
+
+        with_qpy = dumps_experimental(qpy_roundtrip)
+        self.assertEqual(no_qpy, with_qpy)
+
     def test_annotations(self):
         """Test that the annotation-serialisation framework works."""
-        # pylint: disable=missing-class-docstring,missing-function-docstring
         assert_in = self.assertIn
         assert_equal = self.assertEqual
 
@@ -3432,7 +3446,7 @@ class TestQASM3ExporterRust(QiskitTestCase):
             def load(self, namespace, payload):
                 raise NotImplementedError("unused in test")
 
-            def dump(self, annotation):  # pylint: disable=redefined-outer-name
+            def dump(self, annotation):
                 base, sub = annotation.namespace.split(".", 1)
                 assert_equal(base, "my")
                 assert_in(sub, ("int", "str"))
@@ -3446,7 +3460,7 @@ class TestQASM3ExporterRust(QiskitTestCase):
             def load(self, namespace, payload):
                 raise NotImplementedError("unused in test")
 
-            def dump(self, annotation):  # pylint: disable=redefined-outer-name
+            def dump(self, annotation):
                 if annotation.namespace == "static.global":
                     nonlocal skip_triggered
                     skip_triggered = True
@@ -3458,7 +3472,7 @@ class TestQASM3ExporterRust(QiskitTestCase):
             def load(self, namespace, payload):
                 raise NotImplementedError("unused in test")
 
-            def dump(self, annotation):  # pylint: disable=redefined-outer-name
+            def dump(self, annotation):
                 # This is registered as the global handler, but should only be called when handling
                 # `static.global`.
                 assert_equal(annotation.namespace, "static.global")

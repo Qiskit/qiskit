@@ -22,7 +22,7 @@ from qiskit.circuit import Instruction
 from qiskit.circuit.library.standard_gates.h import HGate
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.converters.circuit_to_dagdependency_v2 import _circuit_to_dagdependency_v2
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 try:
     import rustworkx as rx

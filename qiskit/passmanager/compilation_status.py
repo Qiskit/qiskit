@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A property set dictionary that shared among optimization passes."""
+"""A property set dictionary that is shared among optimization passes."""
 
 
 from dataclasses import dataclass, field
@@ -56,7 +56,7 @@ class WorkflowStatus:
 class PassManagerState:
     """A portable container object that pass manager tasks communicate through generator.
 
-    This object can contain every information about the running pass manager workflow,
+    This object can contain all information about the running pass manager workflow,
     except for the IR object being optimized.
     The data structure consists of two elements; one for the status of the
     workflow itself, and another one for the additional information about the IR

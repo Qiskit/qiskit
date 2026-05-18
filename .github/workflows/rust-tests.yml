@@ -16,11 +16,10 @@ on:
         required: true
 jobs:
   unit-tests:
-    name: Tests-Rust-${{ inputs.python-version }}
-    runs-on: ${{ inputs.runner }}
+    # The main name is set in the calling workflow.
+    name: ${{ inputs.runner }}
     timeout-minutes: 60
-    strategy:
-      fail-fast: false
+    runs-on: ${{ inputs.runner }}
     steps:
       - uses: actions/checkout@v6
       - name: Set up Python ${{ inputs.python-version }}
@@ -36,10 +35,9 @@ jobs:
               popd
           done
       - name: Install Qiskit directly
-        run: |
-          set -e
-          python -m pip install -c constraints.txt -e .
+        run: python -m pip install -c constraints.txt -e .
       - name: Run Rust Tests
         run: |
+          set -e
           python tools/report_numpy_state.py
           python tools/run_cargo_test.py

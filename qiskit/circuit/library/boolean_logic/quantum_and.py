@@ -70,6 +70,7 @@ class AND(QuantumCircuit):
                 into an additional result qubit.
             flags: A list of +1/0/-1 marking negations or omissions of qubits.
             mcx_mode: The mode to be used to implement the multi-controlled X gate.
+
         """
         self.num_variable_qubits = num_variable_qubits
         self.flags = flags
@@ -180,7 +181,6 @@ class AndGate(Gate):
 
         self.definition = circuit
 
-    # pylint: disable=unused-argument
     def inverse(self, annotated: bool = False):
         r"""Return inverted AND gate (itself).
 

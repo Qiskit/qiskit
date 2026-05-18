@@ -10,15 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-class-docstring,missing-function-docstring
-# pylint: disable=missing-module-docstring
 
 import copy
 import pickle
 
 from qiskit.providers import Options
 from qiskit.result.models import MeasLevel
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestOptions(QiskitTestCase):

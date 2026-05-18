@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """Tests for Operator matrix linear operator class."""
 
@@ -41,7 +40,7 @@ from qiskit.utils import optionals
 
 from qiskit._accelerate import unitary_sim
 
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 logger = logging.getLogger(__name__)
 

@@ -104,7 +104,7 @@ def _mcsu2_real_diagonal(
             `arXiv:2302.06377 (2023) <https://arxiv.org/abs/2302.06377>`__
 
     """
-    # pylint: disable=cyclic-import
+
     from qiskit.circuit.library.standard_gates import RXGate, RYGate, RZGate
     from qiskit.circuit.library.generalized_gates import UnitaryGate
     from qiskit.quantum_info.operators.predicates import is_unitary_matrix
@@ -130,7 +130,9 @@ def _mcsu2_real_diagonal(
             raise QiskitError(f"The unitary must be a 2x2 matrix, but has shape {unitary.shape}.")
 
         if not is_unitary_matrix(unitary):
-            raise QiskitError(f"The unitary in must be an unitary matrix, but is {unitary}.")
+            raise QiskitError(
+                f"The unitary for the input gate must be a unitary matrix, but is {unitary}."
+            )
 
         if not np.isclose(1.0, np.linalg.det(unitary)):
             raise QiskitError(

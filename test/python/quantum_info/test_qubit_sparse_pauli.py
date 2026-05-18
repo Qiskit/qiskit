@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
 import copy
 import pickle
@@ -25,7 +24,7 @@ from qiskit.circuit import Measure, Parameter, library, QuantumCircuit
 from qiskit.quantum_info import QubitSparsePauli, QubitSparsePauliList, Pauli, PauliList
 from qiskit.transpiler import Target
 
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 def single_cases():

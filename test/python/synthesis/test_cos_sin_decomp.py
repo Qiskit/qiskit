@@ -22,8 +22,8 @@ from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.circuit._utils import _compute_control_matrix
 from qiskit._accelerate.cos_sin_decomp import cossin
 
-from test import combine  # pylint: disable=wrong-import-order
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine
+from test import QiskitTestCase
 
 
 @ddt

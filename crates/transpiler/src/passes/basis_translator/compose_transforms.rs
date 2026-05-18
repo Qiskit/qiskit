@@ -42,14 +42,20 @@ static STD_INST_SET: [&str; 4] = ["barrier", "delay", "measure", "reset"];
 
 pub(super) fn compose_transforms<'a>(
     basis_transforms: &'a [(GateIdentifier, BasisTransformIn)],
-    source_basis: &'a IndexSet<GateIdentifier, ahash::RandomState>,
+    source_basis: &'a IndexSet<GateIdentifier, foldhash::fast::RandomState>,
     source_dag: &'a DAGCircuit,
-) -> Result<IndexMap<GateIdentifier, BasisTransformOut, ahash::RandomState>, BasisTranslatorError> {
-    let mut gate_param_counts: IndexMap<GateIdentifier, usize, ahash::RandomState> =
+) -> Result<
+    IndexMap<GateIdentifier, BasisTransformOut, foldhash::fast::RandomState>,
+    BasisTranslatorError,
+> {
+    let mut gate_param_counts: IndexMap<GateIdentifier, usize, foldhash::fast::RandomState> =
         IndexMap::default();
     get_gates_num_params(source_dag, &mut gate_param_counts);
-    let mut mapped_instructions: IndexMap<GateIdentifier, BasisTransformOut, ahash::RandomState> =
-        IndexMap::with_hasher(ahash::RandomState::default());
+    let mut mapped_instructions: IndexMap<
+        GateIdentifier,
+        BasisTransformOut,
+        foldhash::fast::RandomState,
+    > = IndexMap::with_hasher(foldhash::fast::RandomState::default());
 
     for (gate_name, gate_num_qubits) in source_basis.iter().cloned() {
         let num_params = gate_param_counts[&(gate_name.clone(), gate_num_qubits)];
@@ -118,7 +124,7 @@ pub(super) fn compose_transforms<'a>(
                 })
                 .collect::<Vec<_>>();
             for (node, params) in nodes_to_replace {
-                let param_mapping: IndexMap<ParameterUuid, Param, ahash::RandomState> =
+                let param_mapping: IndexMap<ParameterUuid, Param, foldhash::fast::RandomState> =
                     equiv_params
                         .iter()
                         .map(|x| match x {
@@ -190,7 +196,7 @@ fn name_to_packed_operation(name: &str, num_qubits: u32) -> Option<PackedOperati
 /// number of parameters it contains currently.
 fn get_gates_num_params(
     dag: &DAGCircuit,
-    example_gates: &mut IndexMap<GateIdentifier, usize, ahash::RandomState>,
+    example_gates: &mut IndexMap<GateIdentifier, usize, foldhash::fast::RandomState>,
 ) {
     for (_, inst) in dag.op_nodes(true) {
         if let Some(control_flow) = dag.try_view_control_flow(inst) {

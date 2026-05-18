@@ -17,7 +17,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import PauliTwoDesign
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestPauliTwoDesign(QiskitTestCase):

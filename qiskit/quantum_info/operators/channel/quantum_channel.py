@@ -121,7 +121,7 @@ class QuantumChannel(LinearOp):
             :class:`~qiskit.quantum_info.SuperOp` representation,
             ie. for a channel :math:`\mathcal{E}`, the SuperOp of
             the transpose channel :math:`\mathcal{{E}}^T` is
-            :math:`S_{mathcal{E}^T} = S_{\mathcal{E}}^T`.
+            :math:`S_{\mathcal{E}^T} = S_{\mathcal{E}}^T`.
         """
 
     def adjoint(self) -> Self:
@@ -320,7 +320,6 @@ class QuantumChannel(LinearOp):
             QiskitError: if the quantum channel dimension does not match the
                          specified quantum state subsystem dimensions.
         """
-        pass
 
     @classmethod
     def _init_transformer(cls, data):

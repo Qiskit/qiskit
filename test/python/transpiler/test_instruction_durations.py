@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-function-docstring
 
 """Test InstructionDurations class."""
 
@@ -18,7 +17,7 @@ from qiskit.circuit import Delay, Parameter
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestInstructionDurationsClass(QiskitTestCase):
@@ -50,7 +49,7 @@ class TestInstructionDurationsClass(QiskitTestCase):
             try:
                 if props.gate_length(gate.gate, 0):
                     return gate.gate
-            except Exception:  # pylint: disable=broad-except
+            except Exception:
                 pass
         raise ValueError("Unable to find a gate with gate length.")
 

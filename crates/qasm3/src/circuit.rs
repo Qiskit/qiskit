@@ -66,7 +66,8 @@ register_type!(PyClassicalRegister);
     module = "qiskit._accelerate.qasm3",
     frozen,
     name = "CustomGate",
-    get_all
+    get_all,
+    from_py_object
 )]
 #[derive(Clone, Debug)]
 pub struct PyGate {

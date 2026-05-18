@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-class-docstring,missing-function-docstring
-# pylint: disable=attribute-defined-outside-init
 
 """Module for estimating quantum volume.
 See arXiv:1811.12926 [quant-ph]"""

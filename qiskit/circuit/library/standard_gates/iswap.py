@@ -12,7 +12,6 @@
 
 """iSWAP gate."""
 
-from typing import Optional
 
 import numpy as np
 
@@ -87,7 +86,7 @@ class iSwapGate(SingletonGate):
 
     _standard_gate = StandardGate.ISwap
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: str | None = None):
         """
         Args:
             label: An optional label for the gate.
@@ -98,7 +97,7 @@ class iSwapGate(SingletonGate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         #      ┌───┐┌───┐     ┌───┐

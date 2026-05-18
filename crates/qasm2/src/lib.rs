@@ -23,7 +23,7 @@ mod parse;
 
 /// Information about a custom instruction that Python space is able to construct to pass down to
 /// us.
-#[pyclass]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct CustomInstruction {
     pub name: String,
@@ -51,7 +51,7 @@ impl CustomInstruction {
 /// The given `callable` must be a Python function that takes `num_params` floats, and returns a
 /// float.  The `name` is the identifier that refers to it in the OpenQASM 2 program.  This cannot
 /// clash with any defined gates.
-#[pyclass()]
+#[pyclass(from_py_object)]
 #[derive(Clone)]
 pub struct CustomClassical {
     pub name: String,

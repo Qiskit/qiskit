@@ -57,7 +57,7 @@ class PolytopeData:
 
 def polytope_has_element(polytope, point):
     """
-    Tests whether `polytope` contains `point.
+    Tests whether `polytope` contains `point`.
     """
     return all(
         -EPSILON <= inequality[0] + sum(x * y for x, y in zip(point, inequality[1:]))
@@ -245,7 +245,7 @@ A = np.array(
         [-1, -1, 0],  # pi/2 ≥ a + b
         [-1, -1, -1],  # strength
         [1, -1, -1],  # slant
-        [0, 0, -1],  # frustrum
+        [0, 0, -1],  # frustum
     ]
 )
 A1 = A.reshape(-1, 1, 3)  # pylint:disable=too-many-function-args

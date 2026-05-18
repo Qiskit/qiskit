@@ -49,7 +49,7 @@ def random_cnotdihedral(num_qubits, seed=None):
 
     # Random affine function
     # Random invertible binary matrix
-    from qiskit.synthesis.linear import (  # pylint: disable=cyclic-import
+    from qiskit.synthesis.linear import (
         random_invertible_binary_matrix,
     )
 

@@ -24,7 +24,7 @@ from qiskit.transpiler import CouplingMap
 from qiskit.utils import optionals
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
-from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine
 
 
 BACKENDS = []

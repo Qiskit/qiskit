@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """Tests for Operator matrix linear operator class."""
 
@@ -21,7 +20,7 @@ import numpy as np
 
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 logger = logging.getLogger(__name__)
 

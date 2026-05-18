@@ -216,7 +216,7 @@ using the :class:`CustomGate` object:
 .. autoclass:: CustomGate
     :members:
 
-In ``custom_gates`` is not given, Qiskit will attempt to use its standard-library gate objects for
+If ``custom_gates`` is not given, Qiskit will attempt to use its standard-library gate objects for
 the gates defined in OpenQASM 3 standard library file ``stdgates.inc``.  This sequence of gates is
 available on this module, if you wish to build on top of it:
 
@@ -333,7 +333,7 @@ def load(
         The ``annotation_handlers`` argument.  This requires ``qiskit_qasm3_import>=0.6.0``.
     """
 
-    with open(filename, "r") as fptr:
+    with open(filename) as fptr:
         program = fptr.read()
     return loads(program, num_qubits=num_qubits, annotation_handlers=annotation_handlers)
 

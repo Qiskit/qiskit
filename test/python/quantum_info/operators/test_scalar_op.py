@@ -18,8 +18,8 @@ import numpy as np
 from ddt import ddt
 
 from qiskit.quantum_info.operators import Operator, ScalarOp
-from test import combine  # pylint: disable=wrong-import-order
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine
+from test import QiskitTestCase
 
 
 class ScalarOpTestCase(QiskitTestCase):

@@ -16,12 +16,12 @@ use crate::commutation_checker::CommutationChecker;
 use crate::commutation_checker::get_standard_commutation_checker;
 use crate::equivalence::EquivalenceLibrary;
 use crate::passes::sabre::route::PyRoutingTarget;
+use crate::passes::unitary_synthesis;
 use crate::passes::*;
 use crate::standard_equivalence_library::generate_standard_equivalence_library;
 use crate::target::Target;
 use crate::transpile_layout::TranspileLayout;
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::converters::dag_to_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::nlayout::NLayout;
 use qiskit_circuit::{PhysicalQubit, Qubit, VirtualQubit};
@@ -33,6 +33,15 @@ pub enum OptimizationLevel {
     Level1 = 1,
     Level2 = 2,
     Level3 = 3,
+}
+
+/// The source of the initial layout found when running [`layout_stage`].
+/// This is typically used to control whether `VF2PostLayout` is run during
+/// the [`routing_stage`]
+pub enum LayoutSource {
+    Trivial,
+    VF2,
+    Sabre,
 }
 
 impl From<u8> for OptimizationLevel {
@@ -118,7 +127,8 @@ pub fn layout_stage(
     seed: Option<u64>,
     sabre_heuristic: &sabre::Heuristic,
     transpile_layout: &mut TranspileLayout,
-) -> Result<()> {
+) -> Result<LayoutSource> {
+    let mut layout_source = LayoutSource::Sabre;
     let vf2_config = match optimization_level {
         OptimizationLevel::Level0 => vf2::Vf2PassConfiguration::default_abstract(), // Not used.
         OptimizationLevel::Level1 | OptimizationLevel::Level2 => vf2::Vf2PassConfiguration {
@@ -147,12 +157,14 @@ pub fn layout_stage(
         // constraints in the target and returns None if the circuit conforms to the undirected
         // connectivity constraints
         if run_check_map(dag, target).is_none() {
+            layout_source = LayoutSource::Trivial;
             apply_layout(dag, transpile_layout, target.num_qubits.unwrap(), |x| {
                 PhysicalQubit(x.0)
             });
         } else if let vf2::Vf2PassReturn::Solution(layout) =
             vf2_layout_pass_average(dag, target, &vf2_config, false, None)?
         {
+            layout_source = LayoutSource::VF2;
             apply_layout(dag, transpile_layout, target.num_qubits.unwrap(), |x| {
                 layout[&x]
             });
@@ -176,6 +188,7 @@ pub fn layout_stage(
         if let vf2::Vf2PassReturn::Solution(layout) =
             vf2_layout_pass_average(dag, target, &vf2_config, false, None)?
         {
+            layout_source = LayoutSource::VF2;
             apply_layout(dag, transpile_layout, target.num_qubits.unwrap(), |x| {
                 layout[&x]
             });
@@ -198,6 +211,7 @@ pub fn layout_stage(
     } else if let vf2::Vf2PassReturn::Solution(layout) =
         vf2_layout_pass_average(dag, target, &vf2_config, false, None)?
     {
+        layout_source = LayoutSource::VF2;
         apply_layout(dag, transpile_layout, target.num_qubits.unwrap(), |x| {
             layout[&x]
         });
@@ -217,7 +231,7 @@ pub fn layout_stage(
         *transpile_layout =
             layout_from_sabre_result(dag, initial_layout, &final_layout, transpile_layout);
     }
-    Ok(())
+    Ok(layout_source)
 }
 
 #[inline]
@@ -228,6 +242,7 @@ pub fn routing_stage(
     seed: Option<u64>,
     sabre_heuristic: &sabre::Heuristic,
     transpile_layout: &mut TranspileLayout,
+    layout_source: LayoutSource,
 ) -> Result<()> {
     if optimization_level == OptimizationLevel::Level0 {
         let routing_target = PyRoutingTarget::from_target(target)?;
@@ -251,6 +266,32 @@ pub fn routing_stage(
             let routing_permutation =
                 TranspileLayout::permutation_from_layouts(initial_layout, &final_layout);
             transpile_layout.add_permutation_inside(|q| routing_permutation[q.index()]);
+        }
+    } else if !matches!(layout_source, LayoutSource::VF2 | LayoutSource::Trivial) {
+        let vf2_config = match optimization_level {
+            OptimizationLevel::Level0 => vf2::Vf2PassConfiguration::default_abstract(), // Not used.
+            OptimizationLevel::Level1 | OptimizationLevel::Level2 => vf2::Vf2PassConfiguration {
+                call_limit: (Some(5_000_000), Some(10_000)),
+                time_limit: None,
+                max_trials: None,
+                shuffle_seed: None,
+                score_initial_layout: true,
+            },
+            OptimizationLevel::Level3 => vf2::Vf2PassConfiguration {
+                call_limit: (Some(30_000_000), Some(100_000)),
+                time_limit: None,
+                max_trials: None,
+                shuffle_seed: None,
+                score_initial_layout: true,
+            },
+        };
+
+        if let vf2::Vf2PassReturn::Solution(layout) =
+            vf2_layout_pass_average(dag, target, &vf2_config, false, None)?
+        {
+            update_layout(dag, transpile_layout, |x| {
+                Qubit(layout[&VirtualQubit(x.0)].0)
+            });
         }
     }
     Ok(())
@@ -290,6 +331,7 @@ pub fn translation_stage(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 #[inline]
 pub fn optimization_stage(
     dag: &mut DAGCircuit,
@@ -299,6 +341,7 @@ pub fn optimization_stage(
     synthesis_state: &mut UnitarySynthesisState,
     commutation_checker: &mut CommutationChecker,
     equivalence_library: &mut EquivalenceLibrary,
+    transpile_layout: &mut TranspileLayout,
 ) -> Result<()> {
     let mut depth: Option<usize> = None;
     let mut size: Option<usize> = None;
@@ -368,6 +411,31 @@ pub fn optimization_stage(
             continue_loop = min_state.update_with(dag);
         }
         *dag = min_state.best_dag;
+        let vf2_config = match optimization_level {
+            OptimizationLevel::Level0 => vf2::Vf2PassConfiguration::default_concrete(), // Not used.
+            OptimizationLevel::Level1 | OptimizationLevel::Level2 => vf2::Vf2PassConfiguration {
+                call_limit: (Some(5_000_000), Some(10_000)),
+                time_limit: None,
+                max_trials: None,
+                shuffle_seed: None,
+                score_initial_layout: true,
+            },
+            OptimizationLevel::Level3 => vf2::Vf2PassConfiguration {
+                call_limit: (Some(30_000_000), Some(100_000)),
+                time_limit: None,
+                max_trials: None,
+                shuffle_seed: None,
+                score_initial_layout: true,
+            },
+        };
+
+        if let vf2::Vf2PassReturn::Solution(layout) =
+            vf2_layout_pass_exact(dag, target, &vf2_config)?
+        {
+            update_layout(dag, transpile_layout, |x| {
+                Qubit(layout[&VirtualQubit(x.0)].0)
+            });
+        }
     }
     Ok(())
 }
@@ -382,7 +450,10 @@ pub fn get_sabre_heuristic(target: &Target) -> Result<sabre::Heuristic> {
         1e-10,
     )
     .with_basic(1.0, sabre::SetScaling::Constant)
-    .with_lookahead(0.5, 20, sabre::SetScaling::Size)
+    .with_lookahead(
+        vec![0.5 / target.num_qubits.unwrap_or(20) as f64],
+        sabre::SetScaling::Constant,
+    )
     .with_decay(0.001, 5)?)
 }
 
@@ -402,7 +473,9 @@ pub fn transpile(
     let mut equivalence_library = generate_standard_equivalence_library();
     let sabre_heuristic = get_sabre_heuristic(target)?;
     let mut synthesis_state = UnitarySynthesisState::new(UnitarySynthesisConfig {
-        approximation_degree,
+        approximation: unitary_synthesis::Approximation::from_py_approximation_degree(
+            approximation_degree,
+        ),
         run_python_decomposers: false,
         ..Default::default()
     });
@@ -426,7 +499,7 @@ pub fn transpile(
         &mut commutation_checker,
     )?;
     // layout stage
-    layout_stage(
+    let layout_source = layout_stage(
         &mut dag,
         target,
         optimization_level,
@@ -442,6 +515,7 @@ pub fn transpile(
         seed,
         &sabre_heuristic,
         &mut transpile_layout,
+        layout_source,
     )?;
     // Translation Stage
     translation_stage(
@@ -459,8 +533,9 @@ pub fn transpile(
         &mut synthesis_state,
         &mut commutation_checker,
         &mut equivalence_library,
+        &mut transpile_layout,
     )?;
-    Ok((dag_to_circuit(&dag, false)?, transpile_layout))
+    Ok((CircuitData::from_dag_ref(&dag)?, transpile_layout))
 }
 
 struct MinPointState {
@@ -490,14 +565,19 @@ impl MinPointState {
             true
         } else if (new_depth, new_size) > (self.best_depth, self.best_size) {
             self.count += 1;
-            true
+            // Limit to 5 iterations without improvement
+            // and back track to previous best
+            self.count < 5
         } else if (new_depth, new_size) < (self.best_depth, self.best_size) {
             self.count = 1;
             self.best_depth = new_depth;
             self.best_size = new_size;
+            self.best_dag = dag.clone();
             true
         } else {
-            (new_depth, new_size) != (self.best_depth, self.best_size)
+            // When depth and size are unchanged, we reach a fixed point
+            // and can stop the optimization loop
+            false
         }
     }
 }
@@ -742,7 +822,13 @@ mod tests {
         )
         .unwrap();
         for opt_level in 0..=3 {
-            let result = match transpile(&qc, &target, opt_level.into(), Some(1.0), Some(42)) {
+            let result = match transpile(
+                &qc,
+                &target,
+                opt_level.into(),
+                Some(1.0),
+                Some(2_025_120_142),
+            ) {
                 Ok(res) => res,
                 Err(e) => panic!("Error: {}", e.backtrace()),
             };
@@ -765,5 +851,116 @@ mod tests {
             }
             assert!(result.1.output_permutation().is_some());
         }
+    }
+
+    #[test]
+    fn test_update_best_dag() {
+        let circuit1 = CircuitData::from_packed_operations(
+            1,
+            1,
+            vec![Ok((
+                StandardGate::H.into(),
+                smallvec![],
+                vec![Qubit(0)],
+                vec![],
+            ))],
+            Param::Float(0.),
+        )
+        .unwrap();
+
+        let dag1 = DAGCircuit::from_circuit_data(&circuit1, false, None, None, None, None).unwrap();
+        let circuit2 = CircuitData::from_packed_operations(1, 1, vec![], Param::Float(0.)).unwrap();
+        let dag2 = DAGCircuit::from_circuit_data(&circuit2, false, None, None, None, None).unwrap();
+
+        let mut state = MinPointState::new(&dag1);
+        assert!(state.update_with(&dag1));
+        assert_eq!(state.count, 0);
+        assert!(state.update_with(&dag2));
+        assert_eq!(state.count, 1);
+        assert_eq!(
+            state.best_dag.depth(false).unwrap(),
+            dag2.depth(false).unwrap()
+        );
+        assert_eq!(
+            state.best_dag.size(false).unwrap(),
+            dag2.size(false).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_backtrack_limit_stops_loop() {
+        let circuit1 = CircuitData::from_packed_operations(1, 1, vec![], Param::Float(0.)).unwrap();
+        let dag1 = DAGCircuit::from_circuit_data(&circuit1, false, None, None, None, None).unwrap();
+        let circuit2 = CircuitData::from_packed_operations(
+            1,
+            1,
+            vec![Ok((
+                StandardGate::H.into(),
+                smallvec![],
+                vec![Qubit(0)],
+                vec![],
+            ))],
+            Param::Float(0.),
+        )
+        .unwrap();
+
+        let dag2 = DAGCircuit::from_circuit_data(&circuit2, false, None, None, None, None).unwrap();
+        let mut state = MinPointState::new(&dag1);
+
+        state.update_with(&dag1);
+        for i in 0..5 {
+            let continue_loop = state.update_with(&dag2);
+            if i < 4 {
+                assert!(continue_loop);
+            } else {
+                assert!(!continue_loop);
+            }
+        }
+    }
+
+    #[test]
+    fn test_backtrack_resets_on_improvement() {
+        let circuit1 = CircuitData::from_packed_operations(
+            1,
+            1,
+            vec![
+                Ok((StandardGate::H.into(), smallvec![], vec![Qubit(0)], vec![])),
+                Ok((StandardGate::H.into(), smallvec![], vec![Qubit(0)], vec![])),
+            ],
+            Param::Float(0.),
+        )
+        .unwrap();
+        let dag_worst =
+            DAGCircuit::from_circuit_data(&circuit1, false, None, None, None, None).unwrap();
+        let circuit2 = CircuitData::from_packed_operations(
+            1,
+            1,
+            vec![Ok((
+                StandardGate::H.into(),
+                smallvec![],
+                vec![Qubit(0)],
+                vec![],
+            ))],
+            Param::Float(0.),
+        )
+        .unwrap();
+        let dag_better =
+            DAGCircuit::from_circuit_data(&circuit2, false, None, None, None, None).unwrap();
+        let circuit3 = CircuitData::from_packed_operations(1, 1, vec![], Param::Float(0.)).unwrap();
+        let dag_best =
+            DAGCircuit::from_circuit_data(&circuit3, false, None, None, None, None).unwrap();
+        let mut state = MinPointState::new(&dag_worst);
+
+        state.update_with(&dag_worst);
+        state.update_with(&dag_better);
+        for _i in 0..3 {
+            state.update_with(&dag_worst);
+        }
+        state.update_with(&dag_best);
+        assert_eq!(state.count, 1);
+        // After updating to the dag_best the state tracked dag should
+        // be empty
+        assert_eq!(state.best_dag.depth(false).unwrap(), 0);
+        assert_eq!(state.best_dag.size(false).unwrap(), 0);
     }
 }

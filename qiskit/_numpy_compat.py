@@ -53,7 +53,7 @@ _VERSION_PATTERN = r"""
 """
 
 VERSION = np.lib.NumpyVersion(np.__version__)
-VERSION_PARTS: typing.Tuple[int, ...]
+VERSION_PARTS: tuple[int, ...]
 """The numeric parts of the Numpy release version, e.g. ``(2, 0, 0)``.  Does not include pre- or
 post-release markers (e.g. ``rc1``)."""
 if match := re.fullmatch(_VERSION_PATTERN, np.__version__, flags=re.VERBOSE | re.IGNORECASE):

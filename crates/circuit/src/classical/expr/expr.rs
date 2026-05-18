@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::error::Error;
+
 use crate::classical::expr::{Binary, Cast, Index, Stretch, Unary, Value, Var};
 use crate::classical::types::Type;
 use pyo3::prelude::*;
@@ -140,16 +142,18 @@ impl Expr {
     }
 
     /// Visits all nodes by mutable reference, in a post-order traversal.
-    pub fn visit_mut<F>(&mut self, mut visitor: F) -> PyResult<()>
+    pub fn visit_mut<F, E>(&mut self, mut visitor: F) -> Result<(), E>
     where
-        F: FnMut(ExprRefMut) -> PyResult<()>,
+        F: FnMut(ExprRefMut) -> Result<(), E>,
+        E: Error,
     {
         self.visit_mut_impl(&mut visitor)
     }
 
-    fn visit_mut_impl<F>(&mut self, visitor: &mut F) -> PyResult<()>
+    fn visit_mut_impl<F, E>(&mut self, visitor: &mut F) -> Result<(), E>
     where
-        F: FnMut(ExprRefMut) -> PyResult<()>,
+        F: FnMut(ExprRefMut) -> Result<(), E>,
+        E: Error,
     {
         match self {
             Expr::Unary(u) => u.operand.visit_mut_impl(visitor)?,
@@ -395,7 +399,8 @@ impl From<Box<Index>> for Expr {
     subclass,
     frozen,
     name = "Expr",
-    module = "qiskit._accelerate.circuit.classical.expr"
+    module = "qiskit._accelerate.circuit.classical.expr",
+    skip_from_py_object
 )]
 #[derive(PartialEq, Clone, Copy, Debug, Hash)]
 pub struct PyExpr(pub ExprKind); // ExprKind is used for fast extraction from Python
@@ -480,7 +485,7 @@ mod tests {
     use crate::classical::types::Type;
     use crate::duration::Duration;
     use num_bigint::BigUint;
-    use pyo3::PyResult;
+    use pyo3::{PyErr, PyResult};
     use uuid::Uuid;
 
     #[test]
@@ -703,7 +708,7 @@ mod tests {
 
         expr.visit_mut(|x| {
             assert!(order.next().unwrap()(&x));
-            Ok(())
+            Ok::<_, PyErr>(())
         })?;
 
         assert!(order.next().is_none());
@@ -739,7 +744,7 @@ mod tests {
         expr.visit_mut(|x| match x {
             ExprRefMut::Var(Var::Standalone { name, .. }) => {
                 *name = "updated".to_string();
-                Ok(())
+                Ok::<_, PyErr>(())
             }
             _ => Ok(()),
         })?;

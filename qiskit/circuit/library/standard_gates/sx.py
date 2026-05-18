@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import Optional
+
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from qiskit._accelerate.circuit import StandardGate
@@ -65,7 +65,7 @@ class SXGate(SingletonGate):
 
     _standard_gate = StandardGate.SX
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: str | None = None):
         """
         Args:
             label: An optional label for the gate.
@@ -76,7 +76,7 @@ class SXGate(SingletonGate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         # global phase: π/4
@@ -177,7 +177,7 @@ class SXdgGate(SingletonGate):
 
     _standard_gate = StandardGate.SXdg
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: str | None = None):
         """Create new SXdg gate."""
         super().__init__("sxdg", 1, [], label=label)
 
@@ -185,7 +185,7 @@ class SXdgGate(SingletonGate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         # global phase: 7π/4
@@ -297,7 +297,7 @@ class CSXGate(SingletonControlledGate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         # q_0: ───────■───────

@@ -43,7 +43,7 @@ class TolerancesMeta(ABCMeta):
     @atol.setter
     def atol(cls, value):
         """Set default absolute tolerance parameter for float comparisons."""
-        cls._check_value(value, "atol")  # pylint: disable=no-value-for-parameter
+        cls._check_value(value, "atol")
         cls._ATOL_DEFAULT = value
 
     @property
@@ -54,7 +54,7 @@ class TolerancesMeta(ABCMeta):
     @rtol.setter
     def rtol(cls, value):
         """Set default relative tolerance parameter for float comparisons."""
-        cls._check_value(value, "rtol")  # pylint: disable=no-value-for-parameter
+        cls._check_value(value, "rtol")
         cls._RTOL_DEFAULT = value
 
 

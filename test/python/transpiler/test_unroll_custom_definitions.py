@@ -21,7 +21,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler import Target
 from qiskit.circuit.library import CXGate, U3Gate, UGate
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestGate(Gate):

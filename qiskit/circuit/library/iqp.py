@@ -76,7 +76,7 @@ class IQP(QuantumCircuit):
             interactions: input n-by-n symmetric matrix.
 
         Raises:
-            CircuitError: if the inputs is not as symmetric matrix.
+            CircuitError: if the input is not a symmetric matrix.
         """
         circuit = iqp(interactions)
         super().__init__(*circuit.qregs, name=circuit.name)

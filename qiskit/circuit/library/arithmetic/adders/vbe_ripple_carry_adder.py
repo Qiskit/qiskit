@@ -47,7 +47,7 @@ class VBERippleCarryAdder(Adder):
     *Carry_dg* correspond to the inverse of the *Carry* gate. Note that
     in this implementation the input register qubits are ordered as all qubits from
     the first input register, followed by all qubits from the second input register.
-    This is different ordering as compared to Figure 2 in [1], which leads to a different
+    This is a different ordering as compared to Figure 2 in [1], which leads to a different
     drawing of the circuit.
 
     .. seealso::

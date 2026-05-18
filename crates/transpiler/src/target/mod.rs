@@ -25,7 +25,7 @@ pub use qubit_properties::QubitProperties;
 
 use std::{ops::Index, sync::OnceLock};
 
-use ahash::RandomState;
+use foldhash::fast::RandomState;
 use hashbrown::HashMap;
 use hashbrown::HashSet;
 use indexmap::IndexMap;
@@ -197,7 +197,8 @@ memory.
     mapping,
     subclass,
     name = "BaseTarget",
-    module = "qiskit._accelerate.target"
+    module = "qiskit._accelerate.target",
+    skip_from_py_object
 )]
 #[derive(Clone, Debug)]
 pub struct Target {

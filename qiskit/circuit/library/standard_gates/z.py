@@ -14,7 +14,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
 
 import numpy
 
@@ -76,7 +75,7 @@ class ZGate(SingletonGate):
 
     _standard_gate = StandardGate.Z
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: str | None = None):
         """
         Args:
             label: An optional label for the gate.
@@ -87,7 +86,7 @@ class ZGate(SingletonGate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         #    ┌──────┐
@@ -109,7 +108,7 @@ class ZGate(SingletonGate):
 
         For a single control qubit, the controlled gate is implemented as a
         :class:`.CZGate`. For two control qubits, the controlled gate is implemented
-        as a :class:`.CCZGate`. In these cases, the the value of ``annotated`` is ignored.
+        as a :class:`.CCZGate`. In these cases, the value of ``annotated`` is ignored.
 
         For three or more control qubits, the controlled gate is implemented
         as either :class:`.ControlledGate` when ``annotated`` is ``False``, and
@@ -219,7 +218,7 @@ class CZGate(SingletonControlledGate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         # q_0: ───────■───────
@@ -355,7 +354,7 @@ class CCZGate(SingletonControlledGate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         # q_0: ───────■───────

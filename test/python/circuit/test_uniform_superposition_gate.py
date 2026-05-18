@@ -35,7 +35,7 @@ class TestUniformSuperposition(QiskitTestCase):
     @data(2, 3, 5)
     def test_uniform_superposition_gate(self, num_superpos_states):
         """Test Uniform Superposition Gate"""
-        n = int(math.ceil(math.log2(num_superpos_states)))
+        n = math.ceil(math.log2(num_superpos_states))
         desired_sv = (1 / np.sqrt(num_superpos_states)) * np.array(
             [1.0] * num_superpos_states + [0.0] * (2**n - num_superpos_states)
         )
@@ -46,7 +46,7 @@ class TestUniformSuperposition(QiskitTestCase):
     @data(2, 3, 5, 13)
     def test_inverse_uniform_superposition_gate(self, num_superpos_states):
         """Test Inverse Uniform Superposition Gate"""
-        n = int(math.ceil(math.log2(num_superpos_states)))
+        n = math.ceil(math.log2(num_superpos_states))
         gate = UniformSuperpositionGate(num_superpos_states, n)
         qc = QuantumCircuit(n)
         qc.append(gate, list(range(n)))
@@ -74,7 +74,7 @@ class TestUniformSuperposition(QiskitTestCase):
     def test_extra_qubits(self, num_superpos_states):
         """Tests for cases where n >= log2(num_superpos_states)"""
         num_extra_qubits = 2
-        n = int(math.ceil(math.log2(num_superpos_states))) + num_extra_qubits
+        n = math.ceil(math.log2(num_superpos_states)) + num_extra_qubits
         desired_sv = (1 / np.sqrt(num_superpos_states)) * np.array(
             [1.0] * num_superpos_states + [0.0] * (2**n - num_superpos_states)
         )
@@ -85,7 +85,7 @@ class TestUniformSuperposition(QiskitTestCase):
     @data(2, 3, 5)
     def test_no_qubit_args(self, num_superpos_states):
         """Test Uniform Superposition Gate without passing the number of qubits as an argument"""
-        n = int(math.ceil(math.log2(num_superpos_states)))
+        n = math.ceil(math.log2(num_superpos_states))
         desired_sv = (1 / np.sqrt(num_superpos_states)) * np.array(
             [1.0] * num_superpos_states + [0.0] * (2**n - num_superpos_states)
         )

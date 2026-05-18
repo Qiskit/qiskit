@@ -17,7 +17,9 @@ use std::sync::OnceLock;
 use crate::TupleLikeArg;
 use crate::circuit_data::CircuitData;
 use crate::circuit_instruction::{CircuitInstruction, OperationFromPython, extract_params};
-use crate::operations::{Operation, OperationRef, Param, PyOperationTypes, PythonOperation};
+use crate::operations::{
+    Operation, OperationRef, Param, PauliBased, PyOperationTypes, PythonOperation,
+};
 
 use ahash::AHasher;
 use approx::relative_eq;
@@ -34,7 +36,7 @@ use pyo3::types::PyTuple;
 use pyo3::{PyResult, intern};
 
 /// Parent class for DAGOpNode, DAGInNode, and DAGOutNode.
-#[pyclass(module = "qiskit._accelerate.circuit", subclass)]
+#[pyclass(module = "qiskit._accelerate.circuit", subclass, skip_from_py_object)]
 #[derive(Clone, Debug)]
 pub struct DAGNode {
     pub node: Option<NodeIndex>,
@@ -267,7 +269,12 @@ impl DAGOpNode {
                 OperationRef::StandardGate(gate) => gate.into(),
                 OperationRef::StandardInstruction(instruction) => instruction.into(),
                 OperationRef::Unitary(unitary) => unitary.clone().into(),
-                OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
+                OperationRef::PauliProductMeasurement(ppm) => {
+                    PauliBased::PauliProductMeasurement(ppm.clone()).into()
+                }
+                OperationRef::PauliProductRotation(rotation) => {
+                    PauliBased::PauliProductRotation(rotation.clone()).into()
+                }
             };
             #[cfg(feature = "cache_pygates")]
             {
@@ -320,7 +327,12 @@ impl DAGOpNode {
                     OperationRef::StandardGate(gate) => gate.into(),
                     OperationRef::StandardInstruction(instruction) => instruction.into(),
                     OperationRef::Unitary(unitary) => unitary.clone().into(),
-                    OperationRef::PauliProductMeasurement(ppm) => ppm.clone().into(),
+                    OperationRef::PauliProductMeasurement(ppm) => {
+                        PauliBased::PauliProductMeasurement(ppm.clone()).into()
+                    }
+                    OperationRef::PauliProductRotation(rotation) => {
+                        PauliBased::PauliProductRotation(rotation.clone()).into()
+                    }
                 }
             } else {
                 self.instruction.operation.clone()

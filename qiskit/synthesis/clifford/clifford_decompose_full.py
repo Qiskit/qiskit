@@ -31,7 +31,7 @@ def synth_clifford_full(clifford: Clifford, method: str | None = None) -> Quantu
 
     Args:
         clifford: A Clifford operator.
-        method: Optional, a synthesis method (``'AG'`` or ``'greedy'``).
+        method:  a synthesis method (``'AG'`` or ``'greedy'``).
              If set this overrides optimal decomposition for :math:`N \leq 3` qubits.
 
     Returns:

@@ -15,5 +15,5 @@ Module for the primary interface to the circuit drawers.
 """
 
 # Temporary import from 0.22.0 to be deprecated in future
-# pylint: disable=unused-import
+
 from .circuit.circuit_visualization import circuit_drawer

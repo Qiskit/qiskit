@@ -19,7 +19,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, ParameterVector
 from qiskit.circuit.library import QuadraticForm, QuadraticFormGate
 from qiskit.quantum_info import Statevector
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

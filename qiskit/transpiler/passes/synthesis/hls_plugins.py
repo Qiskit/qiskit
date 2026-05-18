@@ -511,6 +511,7 @@ Multiplier Synthesis
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 import warnings
 import numpy as np
 import rustworkx as rx
@@ -604,6 +605,9 @@ from qiskit.transpiler.optimization_metric import OptimizationMetric
 
 from qiskit._accelerate.high_level_synthesis import synthesize_operation, HighLevelSynthesisData
 from .plugin import HighLevelSynthesisPlugin
+
+if TYPE_CHECKING:
+    from qiskit.circuit.quantumcircuitdata import CircuitInstruction
 
 
 class DefaultSynthesisClifford(HighLevelSynthesisPlugin):
@@ -2352,7 +2356,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
                         ctrl_state=modifier.ctrl_state,
                         annotated=False,
                     )
-                    controlled_qubits = list(range(0, modifier.num_ctrl_qubits))
+                    controlled_qubits = list(range(modifier.num_ctrl_qubits))
                     controlled_circuit.append(controlled_op, controlled_qubits)
                 for inst in circuit:
                     inst_op = inst.operation
@@ -2363,7 +2367,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
                         ctrl_state=modifier.ctrl_state,
                         annotated=False,
                     )
-                    controlled_qubits = list(range(0, modifier.num_ctrl_qubits)) + [
+                    controlled_qubits = list(range(modifier.num_ctrl_qubits)) + [
                         modifier.num_ctrl_qubits + circuit.find_bit(q).index for q in inst_qubits
                     ]
                     controlled_circuit.append(controlled_op, controlled_qubits)
@@ -2421,7 +2425,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
         return AnnotatedOperation(cur, canonical_modifiers)
 
     @staticmethod
-    def _are_inverse_ops(inst1: "CircuitInstruction", inst2: "CircuitInstruction"):
+    def _are_inverse_ops(inst1: CircuitInstruction, inst2: CircuitInstruction):
         """A very naive function that checks whether two circuit instructions are inverse of
         each other. The main use-case covered is a ``QFTGate`` and its inverse, represented as
         an ``AnnotatedOperation`` with a single ``InverseModifier``.
@@ -2482,7 +2486,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
 
         front_circuit = circuit.copy_empty_like()
         front_circuit.global_phase = 0
-        for i in range(0, idx):
+        for i in range(idx):
             front_circuit.append(circuit[i])
         middle_circuit = circuit.copy_empty_like()  # inherits the global phase
         for i in range(idx, ridx + 1):

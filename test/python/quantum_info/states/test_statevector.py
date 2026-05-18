@@ -32,7 +32,7 @@ from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.visualization.state_visualization import state_to_latex
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 logger = logging.getLogger(__name__)
 
@@ -818,22 +818,9 @@ class TestStatevector(QiskitTestCase):
 
         self.assertDictEqual(
             state.probabilities_dict(),
-            {
-                s: p
-                for s in [
-                    "110",
-                    "111",
-                    "112",
-                    "120",
-                    "121",
-                    "311",
-                    "312",
-                    "320",
-                    "321",
-                    "322",
-                    "330",
-                ]
-            },
+            dict.fromkeys(
+                ["110", "111", "112", "120", "121", "311", "312", "320", "321", "322", "330"], p
+            ),
         )
 
         # differences due to rounding

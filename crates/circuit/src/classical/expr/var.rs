@@ -77,7 +77,15 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Var {
 /// :meth:`.QuantumCircuit.add_var`.
 ///
 /// Variables are immutable after construction, so they can be used as dictionary keys."""
-#[pyclass(eq, hash, frozen, extends = PyExpr, name = "Var", module = "qiskit._accelerate.circuit.classical.expr")]
+#[pyclass(
+    eq,
+    hash,
+    frozen,
+    extends = PyExpr,
+    name = "Var",
+    module = "qiskit._accelerate.circuit.classical.expr",
+    from_py_object
+)]
 #[derive(PartialEq, Clone, Debug, Hash)]
 pub struct PyVar(Var);
 

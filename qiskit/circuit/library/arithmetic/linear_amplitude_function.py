@@ -63,7 +63,7 @@ class LinearAmplitudeFunction(QuantumCircuit):
 
         f(x) = \sum_{i=1}^m 1_{[p_{i-1}, p_i]}(x) (\alpha_i x + \beta_i)
 
-    where :math:`1_{[a, b]}` is an indication function that is 1 if the argument is in the interval
+    where :math:`1_{[a, b]}` is an indicator function that is 1 if the argument is in the interval
     :math:`[a, b]` and otherwise 0. The breakpoints :math:`p_i` can be specified by the
     ``breakpoints`` argument.
 
@@ -106,6 +106,7 @@ class LinearAmplitudeFunction(QuantumCircuit):
             breakpoints: The breakpoints if the function is piecewise linear. If None, the function
                 is not piecewise.
             name: Name of the circuit.
+
         """
 
         if not hasattr(slope, "__len__"):
@@ -116,9 +117,8 @@ class LinearAmplitudeFunction(QuantumCircuit):
         # ensure that the breakpoints include the first point of the domain
         if breakpoints is None:
             breakpoints = [domain[0]]
-        else:
-            if not np.isclose(breakpoints[0], domain[0]):
-                breakpoints = [domain[0]] + breakpoints
+        elif not np.isclose(breakpoints[0], domain[0]):
+            breakpoints = [domain[0]] + breakpoints
 
         _check_sizes_match(slope, offset, breakpoints)
         _check_sorted_and_in_range(breakpoints, domain)
@@ -221,7 +221,7 @@ class LinearAmplitudeFunctionGate(Gate):
 
         f(x) = \sum_{i=1}^m 1_{[p_{i-1}, p_i]}(x) (\alpha_i x + \beta_i)
 
-    where :math:`1_{[a, b]}` is an indication function that is 1 if the argument is in the interval
+    where :math:`1_{[a, b]}` is an indicator function that is 1 if the argument is in the interval
     :math:`[a, b]` and otherwise 0. The breakpoints :math:`p_i` can be specified by the
     ``breakpoints`` argument.
 
@@ -270,9 +270,8 @@ class LinearAmplitudeFunctionGate(Gate):
         # ensure that the breakpoints include the first point of the domain
         if breakpoints is None:
             breakpoints = [domain[0]]
-        else:
-            if not np.isclose(breakpoints[0], domain[0]):
-                breakpoints = [domain[0]] + breakpoints
+        elif not np.isclose(breakpoints[0], domain[0]):
+            breakpoints = [domain[0]] + breakpoints
 
         _check_sizes_match(slope, offset, breakpoints)
         _check_sorted_and_in_range(breakpoints, domain)

@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-function-docstring
 
 """Tests class with methods for comparing the outputs of visualization tools with expected ones.
 Useful for refactoring purposes."""
@@ -21,7 +20,7 @@ from filecmp import cmp as cmpfile
 from shutil import copyfile
 
 from qiskit.utils import optionals as _optionals
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 if _optionals.HAS_MATPLOTLIB:
     import matplotlib

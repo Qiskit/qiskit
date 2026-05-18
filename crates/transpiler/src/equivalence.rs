@@ -27,7 +27,7 @@ use std::{error::Error, fmt::Display};
 
 use exceptions::CircuitError;
 
-use ahash::RandomState;
+use foldhash::fast::RandomState;
 use indexmap::{IndexMap, IndexSet};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyString};
@@ -38,13 +38,14 @@ use rustworkx_core::petgraph::{
 };
 
 use qiskit_circuit::NoBlocks;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::imports::{ImportOnceCell, QUANTUM_CIRCUIT};
+use qiskit_circuit::imports::QUANTUM_CIRCUIT;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::{Operation, OperationRef};
 use qiskit_circuit::packed_instruction::PackedOperation;
+use qiskit_util::py::ImportOnceCell;
 
 use crate::standard_equivalence_library::generate_standard_equivalence_library;
 
@@ -56,7 +57,12 @@ pub static PYDIGRAPH: ImportOnceCell = ImportOnceCell::new("rustworkx", "PyDiGra
 
 // Custom Structs
 
-#[pyclass(frozen, sequence, module = "qiskit._accelerate.equivalence")]
+#[pyclass(
+    frozen,
+    sequence,
+    module = "qiskit._accelerate.equivalence",
+    from_py_object
+)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Key {
     #[pyo3(get)]
@@ -127,7 +133,12 @@ impl Display for Key {
     }
 }
 
-#[pyclass(frozen, sequence, module = "qiskit._accelerate.equivalence")]
+#[pyclass(
+    frozen,
+    sequence,
+    module = "qiskit._accelerate.equivalence",
+    from_py_object
+)]
 #[derive(Debug, Clone)]
 pub struct Equivalence {
     #[pyo3(get)]
@@ -183,7 +194,12 @@ impl Display for Equivalence {
     }
 }
 
-#[pyclass(frozen, sequence, module = "qiskit._accelerate.equivalence")]
+#[pyclass(
+    frozen,
+    sequence,
+    module = "qiskit._accelerate.equivalence",
+    from_py_object
+)]
 #[derive(Debug, Clone)]
 pub struct NodeData {
     #[pyo3(get)]
@@ -227,7 +243,12 @@ impl Display for NodeData {
     }
 }
 
-#[pyclass(frozen, sequence, module = "qiskit._accelerate.equivalence")]
+#[pyclass(
+    frozen,
+    sequence,
+    module = "qiskit._accelerate.equivalence",
+    from_py_object
+)]
 #[derive(Debug, Clone)]
 pub struct EdgeData {
     #[pyo3(get)]
@@ -338,10 +359,8 @@ impl<'a, 'py> FromPyObject<'a, 'py> for CircuitFromPython {
 
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         if ob.is_instance(QUANTUM_CIRCUIT.get_bound(ob.py()))? {
-            let data: Bound<PyAny> = ob.getattr("_data")?;
-            let data_downcast: Bound<CircuitData> = data.cast_into()?;
-            let data_extract: CircuitData = data_downcast.extract()?;
-            Ok(Self(data_extract))
+            let data = ob.getattr("_data")?.cast_into::<PyCircuitData>()?;
+            Ok(Self(data.borrow().inner.clone()))
         } else {
             Err(PyTypeError::new_err(
                 "Provided object was not an instance of QuantumCircuit",
@@ -359,7 +378,8 @@ type KTIType = IndexMap<Key, NodeIndex, RandomState>;
 #[pyclass(
     subclass,
     name = "BaseEquivalenceLibrary",
-    module = "qiskit._accelerate.equivalence"
+    module = "qiskit._accelerate.equivalence",
+    skip_from_py_object
 )]
 #[derive(Debug, Clone)]
 pub struct EquivalenceLibrary {
@@ -592,7 +612,7 @@ impl EquivalenceLibrary {
         slf.key_to_node_index = state
             .get_item("key_to_node_index")?
             .unwrap()
-            .extract::<IndexMap<Key, usize, ::ahash::RandomState>>()?
+            .extract::<IndexMap<Key, usize, ::foldhash::fast::RandomState>>()?
             .into_iter()
             .map(|(key, val)| (key, NodeIndex::new(val)))
             .collect();
@@ -773,7 +793,7 @@ fn raise_if_shape_mismatch(
 
 fn rebind_equiv(equiv: Equivalence, query_params: &[Param]) -> PyResult<CircuitData> {
     let (equiv_params, mut equiv_circuit) = (equiv.params, equiv.circuit);
-    let param_mapping: PyResult<IndexMap<ParameterUuid, &Param, ::ahash::RandomState>> =
+    let param_mapping: PyResult<IndexMap<ParameterUuid, &Param, ::foldhash::fast::RandomState>> =
         equiv_params
             .iter()
             .zip(query_params.iter())

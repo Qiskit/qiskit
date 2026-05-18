@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass
-from typing import Iterable
+from collections.abc import Iterable
 
 import numpy as np
 from numpy.typing import NDArray
@@ -254,7 +254,7 @@ def _samples_to_packed_array(
 def _final_measurement_mapping(circuit: QuantumCircuit) -> dict[tuple[ClassicalRegister, int], int]:
     """Return the final measurement mapping for the circuit.
 
-    Parameters:
+    Args:
         circuit: Input quantum circuit.
 
     Returns:

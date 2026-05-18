@@ -77,7 +77,7 @@ Filtering warnings
 Python has built-in mechanisms to filter warnings, described in the documentation of the
 :mod:`warnings` module.  You can use these subclasses in your warning filters from within Python to
 silence warnings you are not interested in.  For example, if you are knowingly using experimental
-features and are comfortable that they make break in later versions, you can silence
+features and are comfortable that they may break in later versions, you can silence
 :exc:`ExperimentalWarning` like this::
 
     import warnings
@@ -85,8 +85,6 @@ features and are comfortable that they make break in later versions, you can sil
 
     warnings.filterwarnings("ignore", category=ExperimentalWarning)
 """
-
-from typing import Optional
 
 
 class QiskitError(Exception):
@@ -112,7 +110,7 @@ class MissingOptionalLibraryError(QiskitError, ImportError):
     """Raised when an optional library is missing."""
 
     def __init__(
-        self, libname: str, name: str, pip_install: Optional[str] = None, msg: Optional[str] = None
+        self, libname: str, name: str, pip_install: str | None = None, msg: str | None = None
     ) -> None:
         """Set the error message.
         Args:

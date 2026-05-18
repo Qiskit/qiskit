@@ -15,7 +15,6 @@ A generic InverseCancellation pass for any set of gate-inverse pairs.
 """
 from __future__ import annotations
 
-from typing import List, Tuple, Union
 
 from qiskit.circuit import Gate
 from qiskit.dagcircuit import DAGCircuit
@@ -35,7 +34,7 @@ class InverseCancellation(TransformationPass):
 
     def __init__(
         self,
-        gates_to_cancel: List[Union[Gate, Tuple[Gate, Gate]]] | None = None,
+        gates_to_cancel: list[Gate | tuple[Gate, Gate]] | None = None,
         run_default: bool = False,
     ):
         """Initialize InverseCancellation pass.

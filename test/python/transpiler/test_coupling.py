@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring
 
 import unittest
 
@@ -20,7 +19,7 @@ import rustworkx as rx
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.exceptions import CouplingError
 from qiskit.utils import optionals
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 from ..visualization.visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 from ..legacy_cmaps import RUESCHLIKON_CMAP

@@ -14,7 +14,7 @@ N-Qubit Sparse Pauli Operator class.
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from collections.abc import Mapping, Sequence, Iterable
 from numbers import Number
@@ -680,7 +680,7 @@ class SparsePauliOp(LinearOp):
         than ``1e-17`` will be reduced to ``1 X`` whereas :meth:`.SparsePauliOp.simplify` would
         return ``1+1e-17j X``.
 
-        If a both the real and imaginary part of a coefficient is 0 after chopping, the
+        If both the real and imaginary part of a coefficient is 0 after chopping, the
         corresponding Pauli is removed from the operator.
 
         Args:
@@ -753,7 +753,7 @@ class SparsePauliOp(LinearOp):
     def from_operator(
         obj: Operator, atol: float | None = None, rtol: float | None = None
     ) -> SparsePauliOp:
-        """Construct from an Operator objector.
+        """Construct from an Operator object.
 
         Note that the cost of this construction is exponential in general because the number of
         possible Pauli terms in the decomposition is exponential in the number of qubits.
@@ -798,7 +798,10 @@ class SparsePauliOp(LinearOp):
 
     @staticmethod
     def from_list(
-        obj: Iterable[tuple[str, complex]], dtype: type | None = None, *, num_qubits: int = None
+        obj: Iterable[tuple[str, complex]],
+        dtype: type | None = None,
+        *,
+        num_qubits: int | None = None,
     ) -> SparsePauliOp:
         """Construct from a list of Pauli strings and coefficients.
 
@@ -1205,7 +1208,7 @@ class SparsePauliOp(LinearOp):
         return None if inplace else bound
 
     def apply_layout(
-        self, layout: TranspileLayout | List[int] | None, num_qubits: int | None = None
+        self, layout: TranspileLayout | list[int] | None, num_qubits: int | None = None
     ) -> SparsePauliOp:
         """Apply a transpiler layout to this :class:`~.SparsePauliOp`
 

@@ -25,7 +25,7 @@ from qiskit.circuit.annotated_operation import (
 )
 from qiskit.circuit.library import SGate, SdgGate, UGate, RXGate
 from qiskit.quantum_info import Operator
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestAnnotatedOperationClass(QiskitTestCase):

@@ -117,10 +117,10 @@ def dump(circuit: QuantumCircuit, filename_or_stream: os.PathLike | io.TextIOBas
         QASM2ExportError: if the circuit cannot be represented by OpenQASM 2.
     """
     if isinstance(filename_or_stream, io.TextIOBase):
-        print(dumps(circuit), file=filename_or_stream)  # pylint: disable=bad-builtin
+        print(dumps(circuit), file=filename_or_stream)
         return
     with open(filename_or_stream, "w") as stream:
-        print(dumps(circuit), file=stream)  # pylint: disable=bad-builtin
+        print(dumps(circuit), file=stream)
 
 
 def dumps(circuit: QuantumCircuit, /) -> str:
@@ -364,7 +364,7 @@ def _define_custom_operation(operation, gates_to_define):
 
     if operation.num_qubits == 0:
         raise QASM2ExportError(
-            f"OpenQASM 2 cannot represent '{operation.name}, which acts on zero qubits."
+            f"OpenQASM 2 cannot represent '{operation.name}', which acts on zero qubits."
         )
     if operation.num_clbits != 0:
         raise QASM2ExportError(

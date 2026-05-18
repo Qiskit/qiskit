@@ -10,9 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::IntoPyObjectExt;
-use pyo3::PyTypeInfo;
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
+use pyo3::types::PyTuple;
 
 /// A length of time used to express circuit timing.
 ///
@@ -30,7 +30,7 @@ use pyo3::prelude::*;
 ///          raise ValueError("expected dt or seconds")
 ///
 /// You can also use :meth:`value` and :meth:`unit` to get the information separately.
-#[pyclass(eq, module = "qiskit._accelerate.circuit")]
+#[pyclass(eq, module = "qiskit._accelerate.circuit", from_py_object)]
 #[derive(PartialEq, Clone, Copy, Debug)]
 #[allow(non_camel_case_types)]
 pub enum Duration {
@@ -44,6 +44,19 @@ pub enum Duration {
 
 #[pymethods]
 impl Duration {
+    #[new]
+    fn py_new(unit: &str, value: Bound<PyAny>) -> PyResult<Self> {
+        match unit {
+            "dt" => value.extract().map(Self::dt),
+            "ps" => value.extract().map(Self::ps),
+            "ns" => value.extract().map(Self::ns),
+            "us" => value.extract().map(Self::us),
+            "ms" => value.extract().map(Self::ms),
+            "s" => value.extract().map(Self::s),
+            _ => Err(PyValueError::new_err(format!("unknown unit: {unit}"))),
+        }
+    }
+
     /// The corresponding ``unit`` of the duration.
     pub fn unit(&self) -> &'static str {
         match self {
@@ -61,14 +74,20 @@ impl Duration {
     /// This will be a Python ``int`` if the :meth:`~Duration.unit` is ``"dt"``,
     /// else a ``float``.
     #[pyo3(name = "value")]
-    pub fn py_value(&self, py: Python) -> PyResult<Py<PyAny>> {
-        match self {
-            Duration::dt(v) => v.into_py_any(py),
+    pub fn py_value<'py>(&self, py: Python<'py>) -> Bound<'py, PyAny> {
+        match *self {
+            Duration::dt(v) => {
+                let Ok(v) = v.into_pyobject(py);
+                v.into_any()
+            }
             Duration::ps(v)
             | Duration::us(v)
             | Duration::ns(v)
             | Duration::ms(v)
-            | Duration::s(v) => v.into_py_any(py),
+            | Duration::s(v) => {
+                let Ok(v) = v.into_pyobject(py);
+                v.into_any()
+            }
         }
     }
 
@@ -83,11 +102,7 @@ impl Duration {
         }
     }
 
-    fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
-        (
-            Duration::type_object(py).getattr(self.unit())?,
-            (self.py_value(py)?,),
-        )
-            .into_py_any(py)
+    fn __reduce__<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+        (py.get_type::<Duration>(), (self.unit(), self.py_value(py))).into_pyobject(py)
     }
 }

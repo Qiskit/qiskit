@@ -19,7 +19,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import GraphState, GraphStateGate
 from qiskit.quantum_info import Clifford, Operator
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestGraphStateLibrary(QiskitTestCase):

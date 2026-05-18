@@ -253,7 +253,7 @@ class BasicSimulator(BackendV2):
         Args:
             qubit: index indicating the qubit to measure
 
-        Return:
+        Returns:
             pair (outcome, probability) where outcome is '0' or '1' and
             probability is the probability of the returned outcome.
         """
@@ -338,9 +338,9 @@ class BasicSimulator(BackendV2):
         """Apply a reset instruction to a qubit.
 
         Args:
-            qubit: the qubit being rest
+            qubit: the qubit being reset
 
-        This is done by doing a simulating a measurement
+        This is done by simulating a measurement
         outcome and projecting onto the outcome state while
         renormalizing.
         """
@@ -701,7 +701,7 @@ class BasicSimulator(BackendV2):
                 # Check if single qubit gate
                 elif operation.name in SINGLE_QUBIT_GATES:
                     params = getattr(operation, "params", None)
-                    qubit = [circuit.find_bit(bit).index for bit in operation.qubits][0]
+                    qubit = next(circuit.find_bit(bit).index for bit in operation.qubits)
                     gate = single_gate_matrix(operation.name, params)
                     self._add_unitary(gate, [qubit])
                 elif operation.name in TWO_QUBIT_GATES_WITH_PARAMETERS:
@@ -736,8 +736,8 @@ class BasicSimulator(BackendV2):
                     pass
                 # Check if measure
                 elif operation.name == "measure":
-                    qubit = [circuit.find_bit(bit).index for bit in operation.qubits][0]
-                    cmembit = [circuit.find_bit(bit).index for bit in operation.clbits][0]
+                    qubit = next(circuit.find_bit(bit).index for bit in operation.qubits)
+                    cmembit = next(circuit.find_bit(bit).index for bit in operation.clbits)
                     if self._sample_measure:
                         # If sampling measurements record the qubit and cmembit
                         # for this measurement for later sampling

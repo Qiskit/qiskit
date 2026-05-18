@@ -37,7 +37,7 @@ from qiskit.transpiler.passes.routing.commuting_2q_gate_routing import (
     FindCommutingPauliEvolutions,
     Commuting2qGateRouter,
 )
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

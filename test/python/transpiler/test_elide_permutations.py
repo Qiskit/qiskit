@@ -24,7 +24,7 @@ from qiskit.quantum_info import Operator
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestElidePermutations(QiskitTestCase):

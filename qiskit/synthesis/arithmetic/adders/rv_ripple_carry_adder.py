@@ -77,7 +77,6 @@ def _mcx_ladder(n_mcx: int, alpha: int):
 
 
 def adder_ripple_r25(num_qubits: int) -> QuantumCircuit:
-    # pylint: disable=line-too-long
     r"""The RV ripple carry adder [1].
     Construct an ancilla-free quantum adder circuit with sublinear depth based on the RV ripple-carry
     adder shown in [1]. The implementation has a depth of :math:`O(\log^2 n)` and uses

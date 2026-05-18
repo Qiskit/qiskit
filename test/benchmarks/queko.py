@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member,invalid-name,missing-docstring,no-name-in-module
-# pylint: disable=attribute-defined-outside-init,unsubscriptable-object
 
 import os
 
@@ -24,7 +22,6 @@ class QUEKOTranspilerBench:
     param_names = ["optimization level", "routing/layout method"]
     timeout = 600
 
-    # pylint: disable=unused-argument
     def setup(self, optimization_level, routing_method):
         self.rochester_coupling_map = [
             [0, 5],

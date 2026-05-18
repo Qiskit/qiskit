@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-function-docstring
 
 """Test delay instruction for quantum circuits."""
 import copy
@@ -23,7 +22,7 @@ from qiskit.circuit import Parameter, ParameterVector
 from qiskit.circuit import QuantumCircuit, CircuitInstruction
 from qiskit.circuit.classical import expr
 from qiskit.circuit.exceptions import CircuitError
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestDelayClass(QiskitTestCase):

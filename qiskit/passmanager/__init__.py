@@ -82,8 +82,8 @@ Examples
 ========
 
 We look into a toy optimization task, namely, preparing a row of numbers
-and remove a digit if the number is five.
-Such task might be easily done by converting the input numbers into string.
+and removing a digit if the number is five.
+Such a task might be easily done by converting the input numbers into string.
 We use the pass manager framework here, putting the efficiency aside for
 a moment to learn how to build a custom Qiskit compiler.
 
@@ -127,7 +127,7 @@ Next, we implement a pass that removes a digit when the number is five.
     task = RemoveFive()
 
 Finally, we instantiate a pass manager and schedule the task with it.
-Running the pass manager with random row of numbers returns
+Running the pass manager with a random row of numbers returns
 new numbers that don't contain five.
 
 .. plot::
@@ -205,7 +205,7 @@ values, which have more than six digits.
 
 With the pass manager framework, a developer can flexibly customize
 the optimization task by combining multiple passes and flow controllers.
-See details for following class API documentations.
+See details in the following class API documentation.
 
 
 Interface

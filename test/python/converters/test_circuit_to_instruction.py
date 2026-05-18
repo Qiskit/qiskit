@@ -24,7 +24,7 @@ from qiskit.circuit import Parameter
 from qiskit.circuit.classical import expr, types
 from qiskit.quantum_info import Operator
 from qiskit.exceptions import QiskitError
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestCircuitToInstruction(QiskitTestCase):

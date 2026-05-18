@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-function-docstring
 
 """Tests the layout object"""
 
@@ -18,7 +17,7 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
 from qiskit.transpiler.layout import Layout, TranspileLayout
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.compiler import transpile
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TranspileLayoutTest(QiskitTestCase):

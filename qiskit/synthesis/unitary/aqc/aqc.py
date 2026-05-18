@@ -52,7 +52,7 @@ class Minimizer(Protocol):
     def __call__(
         self,
         fun: Callable[[np.ndarray], float],
-        x0: np.ndarray,  # pylint: disable=invalid-name
+        x0: np.ndarray,
         jac: Callable[[np.ndarray], np.ndarray] | None = None,
         bounds: list[tuple[float, float]] | None = None,
     ) -> scipy.optimize.OptimizeResult:
@@ -71,7 +71,7 @@ class Minimizer(Protocol):
         Returns:
              The SciPy minimization result object.
         """
-        ...  # pylint: disable=unnecessary-ellipsis
+        ...
 
 
 class AQC:

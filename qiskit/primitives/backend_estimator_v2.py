@@ -276,7 +276,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
         pub_dict = defaultdict(list)
         # consolidate pubs with the same number of shots
         for i, pub in enumerate(pubs):
-            shots = int(math.ceil(1.0 / pub.precision**2))
+            shots = math.ceil(1.0 / pub.precision**2)
             pub_dict[shots].append(i)
 
         results = [None] * len(pubs)

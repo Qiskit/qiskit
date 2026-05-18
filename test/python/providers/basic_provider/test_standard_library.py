@@ -10,14 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-function-docstring, missing-module-docstring
 
 import unittest
 
 from qiskit import QuantumCircuit
 from qiskit.providers.basic_provider import BasicSimulator
 import qiskit.circuit.library.standard_gates as lib
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestStandardGates(QiskitTestCase):

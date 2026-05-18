@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
 import io
 import os
@@ -23,7 +22,7 @@ from math import pi
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, qasm2
 from qiskit.circuit import Parameter, Qubit, Clbit, Gate, library as lib
 from qiskit.circuit.classical import expr
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 # Regex pattern to match valid OpenQASM identifiers
 VALID_QASM2_IDENTIFIER = re.compile("[a-z][a-zA-Z_0-9]*")
@@ -385,7 +384,7 @@ custom q\[0\];""",
         self.assertEqual(Operator(qc), Operator(qasm2.loads(qasm_str)))
 
     def test_mcx_gate(self):
-        # pylint: disable=line-too-long
+
         qc = QuantumCircuit(4)
         qc.mcx([0, 1, 2], 3)
 
@@ -399,7 +398,7 @@ mcx q[0],q[1],q[2],q[3];"""
         self.assertEqual(qasm2.dumps(qc), expected_qasm)
 
     def test_mcx_gate_variants(self):
-        # pylint: disable=line-too-long
+
         n = 5
         qc = QuantumCircuit(2 * n - 1)
         with self.assertWarns(DeprecationWarning):
@@ -829,7 +828,7 @@ class TestDumpStream(QiskitTestCase):
             os.chdir(tmpdir)
             try:
                 qasm2.dump(qc, "myfile.qasm")
-                with open("myfile.qasm", "r") as fptr:
+                with open("myfile.qasm") as fptr:
                     written = fptr.read()
             finally:
                 os.chdir(prevdir)
@@ -847,7 +846,7 @@ class TestDumpStream(QiskitTestCase):
             os.chdir(tmpdir)
             try:
                 qasm2.dump(qc, pathlib.Path(".") / "myfile.qasm")
-                with open("myfile.qasm", "r") as fptr:
+                with open("myfile.qasm") as fptr:
                     written = fptr.read()
             finally:
                 os.chdir(prevdir)

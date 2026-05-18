@@ -47,7 +47,7 @@ def synth_permutation_depth_lnn_kms(pattern: list[int] | np.ndarray[int]) -> Qua
     # In Qiskit, the permutation pattern [2, 4, 3, 0, 1] means that
     # the permutation that maps qubit 2 to position 0, 4 to 1, 3 to 2, 0 to 3, and 1 to 4.
     # In the permutation synthesis code below the notation is opposite:
-    # [2, 4, 3, 0, 1] means that 0 maps to 2, 1 to 3, 2 to 3, 3 to 0, and 4 to 1.
+    # [2, 4, 3, 0, 1] means that 0 maps to 2, 1 to 4, 2 to 3, 3 to 0, and 4 to 1.
     # This is why we invert the pattern.
     return QuantumCircuit._from_circuit_data(
         _synth_permutation_depth_lnn_kms(pattern), legacy_qubits=True

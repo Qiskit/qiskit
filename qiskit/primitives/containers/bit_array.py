@@ -19,7 +19,8 @@ from __future__ import annotations
 from collections import defaultdict
 from functools import partial
 from itertools import chain, repeat
-from typing import Callable, Iterable, Literal, Mapping, Sequence
+from typing import Literal
+from collections.abc import Callable, Iterable, Mapping, Sequence
 
 import numpy as np
 from numpy.typing import NDArray
@@ -110,7 +111,7 @@ class BitArray(ShapedMixin):
         # second last dimension is shots, last dimension is packed bits
         self._shape = self._array.shape[:-2]
 
-    def _prepare_broadcastable(self, other: "BitArray") -> tuple[NDArray[np.uint8], ...]:
+    def _prepare_broadcastable(self, other: BitArray) -> tuple[NDArray[np.uint8], ...]:
         """Validation and broadcasting of two bit arrays before element-wise binary operation."""
         if self.num_bits != other.num_bits:
             raise ValueError(f"'num_bits' must match in {self} and {other}.")
@@ -122,10 +123,10 @@ class BitArray(ShapedMixin):
             raise ValueError(f"{self} and {other} are not compatible for this operation.") from ex
         return np.broadcast_to(self.array, shape), np.broadcast_to(other.array, shape)
 
-    def __and__(self, other: "BitArray") -> "BitArray":
+    def __and__(self, other: BitArray) -> BitArray:
         return BitArray(np.bitwise_and(*self._prepare_broadcastable(other)), self.num_bits)
 
-    def __eq__(self, other: "BitArray") -> bool:
+    def __eq__(self, other: BitArray) -> bool:
         if (n := self.num_bits) != other.num_bits:
             return False
         arrs = [self._array, other._array]
@@ -135,13 +136,13 @@ class BitArray(ShapedMixin):
             arrs = [np.bitwise_and(arr, mask) for arr in arrs]
         return np.array_equal(*arrs, equal_nan=False)
 
-    def __invert__(self) -> "BitArray":
+    def __invert__(self) -> BitArray:
         return BitArray(np.bitwise_not(self._array), self.num_bits)
 
-    def __or__(self, other: "BitArray") -> "BitArray":
+    def __or__(self, other: BitArray) -> BitArray:
         return BitArray(np.bitwise_or(*self._prepare_broadcastable(other)), self.num_bits)
 
-    def __xor__(self, other: "BitArray") -> "BitArray":
+    def __xor__(self, other: BitArray) -> BitArray:
         return BitArray(np.bitwise_xor(*self._prepare_broadcastable(other)), self.num_bits)
 
     def __repr__(self):
@@ -211,7 +212,7 @@ class BitArray(ShapedMixin):
     @staticmethod
     def from_bool_array(
         array: NDArray[np.bool_], order: Literal["big", "little"] = "big"
-    ) -> "BitArray":
+    ) -> BitArray:
         """Construct a new bit array from an array of bools.
 
         Args:
@@ -248,7 +249,7 @@ class BitArray(ShapedMixin):
     def from_counts(
         counts: Mapping[str | int, int] | Iterable[Mapping[str | int, int]],
         num_bits: int | None = None,
-    ) -> "BitArray":
+    ) -> BitArray:
         """Construct a new bit array from one or more ``Counts``-like objects.
 
         The ``counts`` can have keys that are (uniformly) integers, hexstrings, or bitstrings.
@@ -290,7 +291,7 @@ class BitArray(ShapedMixin):
     @staticmethod
     def from_samples(
         samples: Iterable[str] | Iterable[int], num_bits: int | None = None
-    ) -> "BitArray":
+    ) -> BitArray:
         """Construct a new bit array from an iterable of bitstrings, hexstrings, or integers.
 
         All samples are assumed to be integers if the first one is. Strings are all assumed to be
@@ -399,7 +400,7 @@ class BitArray(ShapedMixin):
         arr = self._array.reshape(-1, self._array.shape[-1]) if loc is None else self._array[loc]
         return [converter(shot_row.tobytes()) for shot_row in arr]
 
-    def reshape(self, *shape: ShapeInput) -> "BitArray":
+    def reshape(self, *shape: ShapeInput) -> BitArray:
         """Return a new reshaped bit array.
 
         The :attr:`~num_shots` axis is either included or excluded from the reshaping procedure
@@ -427,7 +428,7 @@ class BitArray(ShapedMixin):
             raise ValueError("Cannot change the size of the array.")
         return BitArray(self._array.reshape(shape), self.num_bits)
 
-    def transpose(self, *axes) -> "BitArray":
+    def transpose(self, *axes) -> BitArray:
         """Return a bit array with axes transposed.
 
         Args:
@@ -457,7 +458,7 @@ class BitArray(ShapedMixin):
         axes = tuple(i if i >= 0 else self.ndim + i for i in axes) + (-2, -1)
         return BitArray(self._array.transpose(axes), self.num_bits)
 
-    def slice_bits(self, indices: int | Sequence[int]) -> "BitArray":
+    def slice_bits(self, indices: int | Sequence[int]) -> BitArray:
         """Return a bit array sliced along the bit axis of some indices of interest.
 
         .. note::
@@ -494,7 +495,7 @@ class BitArray(ShapedMixin):
         arr, num_bits = _pack(arr)
         return BitArray(arr, num_bits)
 
-    def slice_shots(self, indices: int | Sequence[int]) -> "BitArray":
+    def slice_shots(self, indices: int | Sequence[int]) -> BitArray:
         """Return a bit array sliced along the shots axis of some indices of interest.
 
         Args:

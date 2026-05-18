@@ -15,7 +15,8 @@
 
 import functools
 import os
-from typing import Union, Callable, Type, Iterable
+from typing import Union
+from collections.abc import Callable, Iterable
 import unittest
 
 from qiskit.utils import wrap_method
@@ -41,8 +42,8 @@ def slow_test(func):
 
 
 def enforce_subclasses_call(
-    methods: Union[str, Iterable[str]], attr: str = "_enforce_subclasses_call_cache"
-) -> Callable[[Type], Type]:
+    methods: str | Iterable[str], attr: str = "_enforce_subclasses_call_cache"
+) -> Callable[[type], type]:
     """Class decorator which enforces that if any subclasses define on of the ``methods``, they must
     call ``super().<method>()`` or face a ``ValueError`` at runtime.
 

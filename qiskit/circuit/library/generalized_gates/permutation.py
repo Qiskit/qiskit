@@ -91,7 +91,6 @@ class Permutation(QuantumCircuit):
 
         super().__init__(num_qubits, name=name)
 
-        # pylint: disable=cyclic-import
         from qiskit.synthesis.permutation import synth_permutation_basic
 
         circuit = synth_permutation_basic(pattern)
@@ -186,13 +185,12 @@ class PermutationGate(Gate):
     def inverse(self, annotated: bool = False) -> PermutationGate:
         """Returns the inverse of the permutation."""
 
-        # pylint: disable=cyclic-import
         from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
 
         return PermutationGate(pattern=_inverse_pattern(self.pattern))
 
     def _qasm_decomposition(self):
-        # pylint: disable=cyclic-import
+
         from qiskit.synthesis.permutation import synth_permutation_basic
 
         name = f"permutation__{'_'.join(str(n) for n in self.pattern)}_"

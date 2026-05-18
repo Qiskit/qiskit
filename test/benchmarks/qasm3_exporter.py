@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring
-# pylint: disable=attribute-defined-outside-init
 
 from qiskit.circuit import Parameter
 from qiskit import QuantumCircuit

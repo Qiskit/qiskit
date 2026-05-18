@@ -47,7 +47,13 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Cast {
 
 /// A cast from one type to another, implied by the use of an expression in a different
 /// context.
-#[pyclass(eq, extends = PyExpr, name = "Cast", module = "qiskit._accelerate.circuit.classical.expr")]
+#[pyclass(
+    eq,
+    extends = PyExpr,
+    name = "Cast",
+    module = "qiskit._accelerate.circuit.classical.expr",
+    from_py_object
+)]
 #[derive(PartialEq, Clone, Debug)]
 pub struct PyCast(Cast);
 

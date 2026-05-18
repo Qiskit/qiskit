@@ -29,7 +29,7 @@ use pyo3::types::{PyAny, PyDict, PyModule};
 
 use oq3_semantics::syntax_to_semantics::parse_source_string;
 use pyo3::pybacked::PyBackedStr;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::PyCircuitData;
 
 use crate::error::QASM3ImporterError;
 
@@ -203,7 +203,7 @@ pub fn dumps(
             options.indent = val.extract::<String>()?;
         }
     }
-    let circuit_data = circuit.getattr("_data")?.cast::<CircuitData>()?.borrow();
+    let circuit_data = circuit.getattr("_data")?.cast::<PyCircuitData>()?.borrow();
 
     let islayout = !circuit.getattr("layout")?.is_none();
 
@@ -251,7 +251,7 @@ pub fn dump(
             options.indent = val.extract::<String>()?;
         }
     }
-    let circuit_data = circuit.getattr("_data")?.cast::<CircuitData>()?.borrow();
+    let circuit_data = circuit.getattr("_data")?.cast::<PyCircuitData>()?.borrow();
 
     let islayout = !circuit.getattr("layout")?.is_none();
 

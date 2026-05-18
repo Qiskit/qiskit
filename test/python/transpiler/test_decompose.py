@@ -20,7 +20,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import HGate, CCXGate
 from qiskit.quantum_info.operators import Operator, Clifford
 
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestDecompose(QiskitTestCase):

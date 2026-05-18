@@ -17,7 +17,7 @@ from numpy import array, float32, float64, int32, int64
 
 from qiskit.circuit.random import random_circuit
 from qiskit.primitives.base import validation_v1
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

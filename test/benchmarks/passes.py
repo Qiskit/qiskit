@@ -10,12 +10,38 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member,invalid-name,missing-docstring,no-name-in-module
-# pylint: disable=attribute-defined-outside-init,unsubscriptable-object
-# pylint: disable=unused-wildcard-import,wildcard-import,undefined-variable
-
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as SEL
-from qiskit.transpiler.passes import *
+from qiskit.transpiler.passes import (
+    CollectMultiQBlocks,
+    Collect2qBlocks,
+    CommutationAnalysis,
+    CommutativeCancellation,
+    Optimize1qGatesDecomposition,
+    Optimize1qGatesSimpleCommutation,
+    BasisTranslator,
+    Depth,
+    Size,
+    Width,
+    CountOps,
+    CountOpsLongestPath,
+    NumTensorFactors,
+    ResourceEstimation,
+    InverseCancellation,
+    DAGLongestPath,
+    MergeAdjacentBarriers,
+    Decompose,
+    Unroll3qOrMore,
+    OptimizeSwapBeforeMeasure,
+    BarrierBeforeFinalMeasurements,
+    RemoveDiagonalGatesBeforeMeasure,
+    RemoveFinalMeasurements,
+    ContainsInstruction,
+    GatesInBasis,
+    RemoveBarriers,
+    LitinskiTransformation,
+    ConsolidateBlocks,
+    RemoveResetInZeroState,
+)
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import CXGate
 from qiskit.transpiler import Target
@@ -198,11 +224,8 @@ class LitinskiTransformationPassBenchmarks:
     params = (circuit_names, num_qubits)
     param_names = ["circuit_name", "n_qubits"]
     slow_tests = {
-        ("qft", 512),
-        ("qaoa", 256),
         ("qaoa", 512),
         ("grover", 512),
-        ("multiplier", 256),
         ("multiplier", 512),
     }
     timeout = 300
@@ -227,5 +250,5 @@ class LitinskiTransformationPassBenchmarks:
         self.dag = circuit_to_dag(transpiled)
 
     def time_litinski_transformation(self, _, __):
-        _pass = LitinskiTransformation()
+        _pass = LitinskiTransformation(use_ppr=True)
         _pass.run(self.dag)

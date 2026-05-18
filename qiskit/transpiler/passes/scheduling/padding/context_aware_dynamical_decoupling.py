@@ -224,7 +224,8 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
 
             # update node start times
             for node_id, start_time in zip(node_ids, delay.start_times):
-                self.property_set["node_start_time"][id_map[node_id]] = start_time
+                # Start times represent a list of times in dt times, so cast to 'int' when needed
+                self.property_set["node_start_time"][id_map[node_id]] = int(start_time)
 
         return dag
 
@@ -299,7 +300,7 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
         wires = sorted(neighbors.union(merged_delay.indices))
         subgraph = self._coupling_map.graph.subgraph(list(wires)).to_undirected()
         glob2loc = dict(zip(wires, subgraph.node_indices()))
-        preset_coloring = {index: None for index in subgraph.node_indices()}
+        preset_coloring = dict.fromkeys(subgraph.node_indices())
 
         # find the neighbor wires and check if ctrl/tgt spectator
         for wire in neighbors:

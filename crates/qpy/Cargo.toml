@@ -16,14 +16,16 @@ workspace = true
 indexmap.workspace = true
 hashbrown.workspace = true
 oq3_semantics = "0.7.0"
-ahash.workspace = true
+foldhash.workspace = true
 qiskit-circuit.workspace = true
 qiskit-quantum-info.workspace = true
 num-bigint.workspace = true
 num-complex.workspace = true
+num-traits.workspace = true
 bytemuck.workspace = true
-binrw = "0.15"
+binrw.workspace = true
 uuid = {version = "1", features = ["v4"]}
+thiserror.workspace = true
 
 [dependencies.smallvec]
 workspace = true

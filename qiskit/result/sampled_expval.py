@@ -9,7 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=cyclic-import
+
 
 """Routines for computing expectation values from sampled distributions"""
 
@@ -42,7 +42,7 @@ def sampled_expectation_value(
 
     Note that passing a raw dict requires bit-string keys.
 
-    Parameters:
+    Args:
         dist: Input sampled distribution.
         oper: The operator for the observable.
 

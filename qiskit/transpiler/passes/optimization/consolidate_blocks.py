@@ -13,6 +13,8 @@
 """Replace each block of consecutive gates by a single Unitary node."""
 from __future__ import annotations
 
+import typing
+
 from qiskit.synthesis.two_qubit import TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer
 from qiskit.circuit.library.standard_gates import (
     CXGate,
@@ -35,6 +37,11 @@ from qiskit._accelerate.consolidate_blocks import consolidate_blocks
 
 from .collect_1q_runs import Collect1qRuns
 from .collect_2q_blocks import Collect2qBlocks
+
+
+if typing.TYPE_CHECKING:
+    from qiskit.transpiler.target import Target
+    from qiskit.circuit.gate import Gate
 
 KAK_GATE_NAMES = {
     "cx": CXGate(),
@@ -78,11 +85,11 @@ class ConsolidateBlocks(TransformationPass):
 
     def __init__(
         self,
-        kak_basis_gate=None,
-        force_consolidate=False,
-        basis_gates=None,
-        approximation_degree=1.0,
-        target=None,
+        kak_basis_gate: Gate | None = None,
+        force_consolidate: bool = False,
+        basis_gates: list[str] | None = None,
+        approximation_degree: float | None = 1.0,
+        target: Target | None = None,
     ):
         """ConsolidateBlocks initializer.
 
@@ -91,11 +98,11 @@ class ConsolidateBlocks(TransformationPass):
         Otherwise, the basis gate will be :class:`.CXGate`.
 
         Args:
-            kak_basis_gate (Gate): Basis gate for KAK decomposition.
-            force_consolidate (bool): Force block consolidation.
-            basis_gates (List(str)): Basis gates from which to choose a KAK gate.
-            approximation_degree (float): a float between :math:`[0.0, 1.0]`. Lower approximates more.
-            target (Target): The target object for the compilation target backend.
+            kak_basis_gate: Basis gate for KAK decomposition.
+            force_consolidate: Force block consolidation.
+            basis_gates: Basis gates from which to choose a KAK gate.
+            approximation_degree: a float between :math:`[0.0, 1.0]`. Lower approximates more.
+            target: The target object for the compilation target backend.
         """
         super().__init__()
         self.basis_gates = None
@@ -114,18 +121,23 @@ class ConsolidateBlocks(TransformationPass):
             kak_param_gates = KAK_GATE_PARAM_NAMES.keys() & (basis_gates or [])
             if kak_param_gates:
                 self.decomposer = TwoQubitControlledUDecomposer(
-                    KAK_GATE_PARAM_NAMES[list(kak_param_gates)[0]]
+                    KAK_GATE_PARAM_NAMES[next(iter(kak_param_gates))]
                 )
-                self.basis_gate_name = list(kak_param_gates)[0]
+                self.basis_gate_name = next(iter(kak_param_gates))
             elif kak_gates:
                 self.decomposer = TwoQubitBasisDecomposer(
-                    KAK_GATE_NAMES[list(kak_gates)[0]], basis_fidelity=approximation_degree or 1.0
+                    KAK_GATE_NAMES[next(iter(kak_gates))],
+                    basis_fidelity=approximation_degree or 1.0,
                 )
-                self.basis_gate_name = list(kak_gates)[0]
+                self.basis_gate_name = next(iter(kak_gates))
             else:
                 self.decomposer = None
-        else:
+                self.basis_gate_name = "cx"
+        elif not force_consolidate:
             self.decomposer = TwoQubitBasisDecomposer(CXGate())
+            self.basis_gate_name = "cx"
+        else:
+            self.decomposer = None
             self.basis_gate_name = "cx"
 
     def run(self, dag):
@@ -134,7 +146,7 @@ class ConsolidateBlocks(TransformationPass):
         Iterate over each block and replace it with an equivalent Unitary
         on the same wires.
         """
-        if self.decomposer is None:
+        if not self.force_consolidate and self.decomposer is None:
             return dag
 
         blocks = self.property_set["block_list"]
@@ -147,9 +159,13 @@ class ConsolidateBlocks(TransformationPass):
         qubit_map = self.property_set.get(self._QUBIT_MAP_KEY, None)
         if qubit_map is None:
             qubit_map = list(range(dag.num_qubits()))
+        if self.decomposer is not None:
+            decomposer = self.decomposer._inner_decomposer
+        else:
+            decomposer = None
         consolidate_blocks(
             dag,
-            self.decomposer._inner_decomposer,
+            decomposer,
             self.basis_gate_name,
             self.force_consolidate,
             target=self.target,

@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
+
 """Tests for Clifford class."""
 
 import unittest
@@ -64,8 +64,8 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
     _prepend_operation,
 )
 from qiskit.synthesis.linear import random_invertible_binary_matrix
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
-from test import combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
+from test import combine
 
 
 @ddt

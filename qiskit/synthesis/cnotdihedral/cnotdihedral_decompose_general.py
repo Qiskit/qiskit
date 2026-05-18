@@ -84,7 +84,7 @@ def synth_cnotdihedral_general(elem: CNOTDihedral) -> QuantumCircuit:
     ):
         raise QiskitError("Cannot do Gauss elimination on linear part.")
 
-    # Initialize new_elem to an identity CNOTDihderal element
+    # Initialize new_elem to an identity CNOTDihedral element
     new_elem = elem_cpy.copy()
     new_elem.poly.weight_0 = 0
     new_elem.poly.weight_1 = np.zeros(num_qubits, dtype=np.int8)

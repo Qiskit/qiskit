@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from numbers import Real
 from collections.abc import Mapping
-from typing import Tuple, Union
+
 
 import numpy as np
 
@@ -199,12 +199,12 @@ class EstimatorPub(ShapedMixin):
             )
 
 
-EstimatorPubLike = Union[
-    EstimatorPub,
-    Tuple[QuantumCircuit, ObservablesArrayLike],
-    Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike],
-    Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike, Real],
-]
+EstimatorPubLike = (
+    EstimatorPub
+    | tuple[QuantumCircuit, ObservablesArrayLike]
+    | tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike]
+    | tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike, Real]
+)
 """A Pub (Primitive Unified Bloc) for an Estimator primitive.
 
 A fully specified estimator pub is a tuple ``(circuit, observables, parameter_values, precision)``.

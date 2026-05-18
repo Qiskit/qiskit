@@ -170,7 +170,6 @@ def _read_alignment_context(file_obj, version) -> None:
     )
 
 
-# pylint: disable=too-many-return-statements
 def _loads_operand(type_key, data_bytes, version):
     if type_key == type_keys.ScheduleOperand.WAVEFORM:
         return common.data_from_binary(data_bytes, _read_waveform, version=version)

@@ -12,7 +12,7 @@
 
 """Utility functions for handling binary matrices."""
 
-# pylint: disable=unused-import
+
 from qiskit._accelerate.synthesis.linear import (
     gauss_elimination,
     gauss_elimination_with_perm,

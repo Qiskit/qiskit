@@ -35,7 +35,7 @@ from qiskit.transpiler.passes import (
 )
 from qiskit.providers.fake_provider import GenericBackendV2
 
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class Mock127q(GenericBackendV2):
@@ -227,12 +227,11 @@ class TestContextAwareDD(QiskitTestCase):
                     else:
                         # other gate (CZ) has no specific behavior, use target-specific sequence
                         order = 0
-                else:  # top gate has no specific behavior
-                    if bottom in ["cx", "ecr"]:
-                        # use ctrl-specific sequence
-                        order = 1
-                    else:  # both gates do not have special behavior, use 0
-                        order = 0
+                elif bottom in ["cx", "ecr"]:
+                    # use ctrl-specific sequence
+                    order = 1
+                else:  # both gates do not have special behavior, use 0
+                    order = 0
 
                 # construct circuit with specified gates
                 circuit = QuantumCircuit(5)
@@ -543,7 +542,7 @@ class TestContextAwareDD(QiskitTestCase):
         target = backend.target
 
         snake = (
-            list(range(0, 14))[::-1]
+            list(range(14))[::-1]
             + [14]
             + list(range(18, 33))
             + [36]
