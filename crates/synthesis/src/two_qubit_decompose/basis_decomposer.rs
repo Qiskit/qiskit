@@ -25,7 +25,7 @@ use numpy::{IntoPyArray, ToPyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
-use super::common::{DEFAULT_FIDELITY, IPZ, TraceToFidelity, rx_matrix, rz_matrix};
+use super::common::{DEFAULT_FIDELITY, HGATE, IPZ, TraceToFidelity, rx_matrix, rz_matrix};
 use super::gate_sequence::{TwoQubitGateSequence, TwoQubitSequenceVec};
 use super::weyl_decomposition::{__num_basis_gates, _num_basis_gates, TwoQubitWeylDecomposition};
 
@@ -41,7 +41,7 @@ use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::gate_matrix::{CX_GATE, H_GATE, ONE_QUBIT_IDENTITY};
+use qiskit_circuit::gate_matrix::{CX_GATE, ONE_QUBIT_IDENTITY};
 use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -55,9 +55,6 @@ use qiskit_util::complex::{C_M_ONE, C_ONE, IM, M_IM, c64};
 // and are just used to create a QuantumCircuit or DAGCircuit when we return to
 // Python space.
 const TWO_QUBIT_SEQUENCE_DEFAULT_CAPACITY: usize = 21;
-
-static HGATE: Matrix2<Complex64> =
-    Matrix2::new(H_GATE[0][0], H_GATE[0][1], H_GATE[1][0], H_GATE[1][1]);
 
 static K12R: Matrix2<Complex64> = Matrix2::new(
     c64(0., FRAC_1_SQRT_2),

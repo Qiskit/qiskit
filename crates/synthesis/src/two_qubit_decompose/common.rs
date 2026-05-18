@@ -19,6 +19,7 @@ use numpy::{IntoPyArray, PyArray2, PyReadonlyArray1, PyReadonlyArray2};
 use pyo3::prelude::*;
 
 use crate::linalg::ndarray_to_faer;
+use qiskit_circuit::gate_matrix::{H_GATE, S_GATE, SDG_GATE};
 use qiskit_util::alias::GateArray2Q;
 use qiskit_util::complex::{C_M_ONE, C_ONE, C_ZERO, IM, M_IM, c64};
 pub(super) const DEFAULT_FIDELITY: f64 = 1.0 - 1.0e-9;
@@ -231,3 +232,14 @@ pub(super) fn ndarray_to_matrix2<T: Copy>(view: ArrayView2<T>) -> Matrix2<T> {
 pub(super) fn ndarray_to_matrix4(view: ArrayView2<Complex64>) -> Matrix4<Complex64> {
     Matrix4::from_row_iterator(view.iter().copied())
 }
+
+pub static HGATE: Matrix2<Complex64> =
+    Matrix2::new(H_GATE[0][0], H_GATE[0][1], H_GATE[1][0], H_GATE[1][1]);
+pub static SGATE: Matrix2<Complex64> =
+    Matrix2::new(S_GATE[0][0], S_GATE[0][1], S_GATE[1][0], S_GATE[1][1]);
+pub static SDGGATE: Matrix2<Complex64> = Matrix2::new(
+    SDG_GATE[0][0],
+    SDG_GATE[0][1],
+    SDG_GATE[1][0],
+    SDG_GATE[1][1],
+);
