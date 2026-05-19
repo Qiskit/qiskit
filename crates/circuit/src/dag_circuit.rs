@@ -109,9 +109,9 @@ pub use rustworkx_core::petgraph::stable_graph::NodeIndex;
 #[derive(Debug, thiserror::Error)]
 pub enum DAGError {
     #[error("qubits not idle: {0:?}")]
-    QubitsNotIdle(Vec<Qubit>),
+    QubitsNotIdle(Vec<ShareableQubit>),
     #[error("clbits not idle: {0:?}")]
-    ClbitsNotIdle(Vec<Clbit>),
+    ClbitsNotIdle(Vec<ShareableClbit>),
     #[error("Wire {0:?} not found in circuit")]
     WireNotInCircuit(Wire),
     #[error("Duplicate wire {0:?}")]
@@ -5382,7 +5382,12 @@ impl DAGCircuit {
         let mut busy_bits = Vec::new();
         for bit in qubits.iter() {
             if !self.is_wire_idle(Wire::Qubit(*bit)) {
-                busy_bits.push(*bit);
+                busy_bits.push(
+                    self.qubits
+                        .get(*bit)
+                        .cloned()
+                        .expect("Qubit index should exist."),
+                );
             }
         }
 
@@ -5510,7 +5515,12 @@ impl DAGCircuit {
         let mut busy_bits = Vec::new();
         for bit in clbits.iter() {
             if !self.is_wire_idle(Wire::Clbit(*bit)) {
-                busy_bits.push(*bit);
+                busy_bits.push(
+                    self.clbits
+                        .get(*bit)
+                        .cloned()
+                        .expect("Clbit index should exist."),
+                );
             }
         }
 
