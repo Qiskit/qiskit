@@ -101,8 +101,8 @@ static int test_scaled_add(void) {
 
     // construct the expected observable: coeff * Id
     QkObs *expected = qk_obs_identity(100);
-    QkBitTerm bit_terms[] = {};
-    uint32_t indices[] = {};
+    QkBitTerm bit_terms[0] = {};
+    uint32_t indices[0] = {};
     QkObsTerm term = {factor, 0, bit_terms, indices, 100};
     qk_obs_add_term(expected, &term);
 
@@ -128,8 +128,8 @@ static int test_scaled_add_inplace(void) {
 
     // construct the expected observable: coeff * Id
     QkObs *expected = qk_obs_identity(100);
-    QkBitTerm bit_terms[] = {};
-    uint32_t indices[] = {};
+    QkBitTerm bit_terms[0] = {};
+    uint32_t indices[0] = {};
     QkObsTerm term = {factor, 0, bit_terms, indices, 100};
     qk_obs_add_term(expected, &term);
 
@@ -277,8 +277,8 @@ static int test_mult(void) {
 
         // construct the expected observable: coeff * Id
         QkObs *expected = qk_obs_zero(100);
-        QkBitTerm bit_terms[] = {};
-        uint32_t indices[] = {};
+        QkBitTerm bit_terms[0] = {};
+        uint32_t indices[0] = {};
         QkObsTerm term = {coeffs[i], 0, bit_terms, indices, 100};
         qk_obs_add_term(expected, &term);
 
@@ -311,8 +311,8 @@ static int test_mult_inplace(void) {
 
         // construct the expected observable: coeff * Id
         QkObs *expected = qk_obs_zero(100);
-        QkBitTerm bit_terms[] = {};
-        uint32_t indices[] = {};
+        QkBitTerm bit_terms[0] = {};
+        uint32_t indices[0] = {};
         QkObsTerm term = {coeffs[i], 0, bit_terms, indices, 100};
         qk_obs_add_term(expected, &term);
 
@@ -344,8 +344,8 @@ static int test_canonicalize(void) {
 
     // construct the expected observable: 2 * Id
     QkObs *expected = qk_obs_zero(100);
-    QkBitTerm bit_terms[] = {};
-    uint32_t indices[] = {};
+    QkBitTerm bit_terms[0] = {};
+    uint32_t indices[0] = {};
     QkComplex64 coeff = {2.0, 0.0};
     QkObsTerm term = {coeff, 0, bit_terms, indices, 100};
     qk_obs_add_term(expected, &term);
@@ -715,7 +715,7 @@ static int test_boundaries(void) {
     // indices = [0, 1, 2]
     // bit_terms = [X, Y, Z]
     // boundaries = [0, 0, 3]
-    size_t expected[] = {0, 0, 3};
+    size_t expected[3] = {0, 0, 3};
 
     for (size_t i = 0; i < num_terms + 1; i++) {
         if (boundaries[i] != expected[i]) {
