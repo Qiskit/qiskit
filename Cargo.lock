@@ -2409,7 +2409,6 @@ dependencies = [
  "hashbrown 0.15.5",
  "num-bigint",
  "pyo3",
- "qiskit-circuit",
 ]
 
 [[package]]
@@ -2441,7 +2440,6 @@ dependencies = [
  "num-complex",
  "num-traits",
  "numpy",
- "oq3_semantics",
  "pyo3",
  "qiskit-circuit",
  "qiskit-quantum-info",

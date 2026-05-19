@@ -16,4 +16,3 @@ workspace = true
 num-bigint.workspace = true
 hashbrown.workspace = true
 pyo3.workspace = true
-qiskit-circuit.workspace = true
