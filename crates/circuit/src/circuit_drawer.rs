@@ -1080,7 +1080,7 @@ impl TextDrawer {
                                 CONNECTING_WIRE,
                                 "",
                                 " ".repeat(Self::try_pauli_term(input_idx, inst).width()), // in case it's a PPR/PPM gate
-                                Some(label).unwrap_or_default(),
+                                label,
                                 CONNECTING_WIRE,
                                 in_len = qarg_inputs_len
                             )
