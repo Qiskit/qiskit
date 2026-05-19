@@ -17,6 +17,7 @@ use qiskit_circuit::BlocksMode;
 use qiskit_circuit::Qubit;
 use qiskit_circuit::VarsMode;
 use qiskit_circuit::operations::Operation;
+use rustworkx_core::petgraph::algo::toposort;
 use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, PI};
 
 use crate::gate_metrics::rotation_trace_and_dim;
@@ -1078,7 +1079,7 @@ fn rotation_to_pi_div(gate: StandardGate) -> usize {
 #[pyfunction]
 #[pyo3(name = "substitute_pi4_rotations")]
 pub fn py_run_substitute_pi4_rotations(
-    dag: &DAGCircuit,
+    dag: &mut DAGCircuit,
     approximation_degree: f64,
 ) -> PyResult<Option<DAGCircuit>> {
     // Skip the pass if there are no rotation gates.
@@ -1098,9 +1099,10 @@ pub fn py_run_substitute_pi4_rotations(
     let tol = MINIMUM_TOL.max(1.0 - approximation_degree);
     let mut global_phase_update: f64 = 0.;
 
-    for node_index in dag.topological_op_nodes(false) {
+    // TODO make this iter over op_nodes and modify in place
+    for node_index in toposort(dag.dag(), None).expect("DAG has no cycles") {
         let NodeType::Operation(inst) = &dag[node_index] else {
-            unreachable!("dag.topological_op_nodes only returns Operations");
+            continue;
         };
         let gate = if let OperationRef::StandardGate(gate) = inst.op.view() {
             gate
@@ -1124,30 +1126,33 @@ pub fn py_run_substitute_pi4_rotations(
         let k = rotation_to_pi_div(gate);
         let num_qubits = gate.num_qubits();
 
-        if let Some(multiple) = is_angle_close_to_multiple_of_pi_k(gate, k, angle, tol) {
-            let (sequence, phase_update) = if num_qubits == 2 {
-                let (sequence, phase_update) = replace_2q_rotation_by_discrete(gate, multiple);
-                (sequence.to_vec(), phase_update)
-            } else {
-                // num_qubits == 1
-                let (new_gate, phase_update) = replace_1q_rotation_by_discrete(gate, multiple);
+        let original_qubits = dag.get_qargs(inst.qubits);
+        let mut push_gate = |(gate, qubits): (StandardGate, &[u32])| -> PyResult<()> {
+            let updated_qubits: Vec<Qubit> = qubits
+                .iter()
+                .map(|q| original_qubits[*q as usize])
+                .collect();
+            let new_qubits = new_dag.add_qargs(&updated_qubits);
+            new_dag.push_back(PackedInstruction::from_standard_gate(
+                gate, None, new_qubits,
+            ))?;
+            Ok(())
+        };
 
-                let qubit: &[u32] = &[0];
-                let sequence = new_gate.iter().map(|g| (*g, qubit)).collect();
-                (sequence, phase_update)
-            };
-            for (new_gate, qubits) in sequence {
-                let original_qubits = dag.get_qargs(inst.qubits);
-                let updated_qubits: Vec<Qubit> = qubits
-                    .iter()
-                    .map(|q| original_qubits[*q as usize])
-                    .collect();
-                let new_qubits = new_dag.add_qargs(&updated_qubits);
-                new_dag.push_back(PackedInstruction::from_standard_gate(
-                    new_gate, None, new_qubits,
-                ))?;
+        if let Some(multiple) = is_angle_close_to_multiple_of_pi_k(gate, k, angle, tol) {
+            if num_qubits == 2 {
+                let (sequence, phase_update) = replace_2q_rotation_by_discrete(gate, multiple);
+                for (gate, qubits) in sequence {
+                    push_gate((*gate, qubits))?;
+                }
+                global_phase_update += phase_update;
+            } else {
+                let (sequence, phase_update) = replace_1q_rotation_by_discrete(gate, multiple);
+                for gate in sequence {
+                    push_gate((*gate, &[0]))?;
+                }
+                global_phase_update += phase_update;
             }
-            global_phase_update += phase_update;
         } else {
             new_dag.push_back(inst.clone())?;
         }
