@@ -58,9 +58,7 @@ def clifford_t_pass_manager(
 
         These stages are still experimental and subject to change. In particular,
         they are not yet exposed as transpiler stage plugins (unlike the stages
-        for continuous basis sets). In addition, the fields of ``pass_manager_config``
-        that apply for transpiling into continuous basis set are ignored by this
-        pass manager.
+        for continuous basis sets).
 
     Args:
         pass_manager_config: Configuration of the pass manager.
