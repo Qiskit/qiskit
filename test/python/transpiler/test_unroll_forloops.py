@@ -88,6 +88,27 @@ class TestUnrollForLoops(QiskitTestCase):
 
         self.assertEqual(result, expected)
 
+    def test_preserves_builder_body_global_phase(self):
+        """Check global phase from a builder-created body is accumulated once per iteration."""
+        indexset = range(3)
+
+        circuit = QuantumCircuit(1)
+        with circuit.for_loop(indexset):
+            circuit.global_phase = math.pi / 7
+            circuit.x(0)
+
+        body = QuantumCircuit(1, global_phase=math.pi / 7)
+        body.x(0)
+        expected = QuantumCircuit(1)
+        for _ in indexset:
+            expected.compose(body, inplace=True)
+
+        passmanager = PassManager()
+        passmanager.append(UnrollForLoops())
+        result = passmanager.run(circuit)
+
+        self.assertEqual(result, expected)
+
     def test_nested_forloop(self):
         """Test unrolls only one level of nested for-loops"""
         circuit = QuantumCircuit(1)
