@@ -33,7 +33,6 @@ pub enum BlockOperation {
 impl BlockOperation {
     pub fn assign_parameters(
         &self,
-        py: Python,
         params: &[&Param],
     ) -> PyResult<(PackedOperation, SmallVec<[Param; 3]>)> {
         match self {
@@ -41,7 +40,7 @@ impl BlockOperation {
                 (*gate).into(),
                 SmallVec::from_iter(params.iter().map(|&p| p.clone())),
             )),
-            Self::PyCustom { builder } => {
+            Self::PyCustom { builder } => Python::attach(|py| {
                 // the builder returns a Python operation plus the bound parameters
                 let py_params = PyList::new(py, params.iter().map(|&p| p.clone()))?.into_any();
 
@@ -56,7 +55,7 @@ impl BlockOperation {
                     .collect::<PyResult<SmallVec<[Param; 3]>>>()?;
 
                 Ok((operation.operation, bound_params))
-            }
+            }),
         }
     }
 }
