@@ -23,9 +23,12 @@ use qiskit_circuit::operations::{Param, StandardInstruction};
 use qiskit_circuit::{Clbit, Qubit};
 
 use itertools::izip;
+use thiserror::Error;
 
 use super::blocks::{Block, Entanglement, LayerEntanglement};
-use super::parameter_ledger::{LayerParameters, LayerType, ParameterLedger};
+use super::parameter_ledger::{
+    LayerParameters, LayerType, LedgerBuilder, ParameterLedgerError, PyParameterLedgerBuilder,
+};
 
 type Instruction = (
     PackedOperation,
@@ -51,7 +54,6 @@ type Instruction = (
 ///
 /// An iterator for the rotation instructions.
 fn rotation_layer<'a>(
-    py: Python<'a>,
     num_qubits: u32,
     rotation_blocks: &'a [&'a Block],
     parameters: Vec<Vec<Vec<&'a Param>>>,
@@ -72,7 +74,7 @@ fn rotation_layer<'a>(
                 .map(move |(start_idx, params)| {
                     let (bound_op, bound_params) = block
                         .operation
-                        .assign_parameters(py, &params)
+                        .assign_parameters(&params)
                         .expect("Failed to rebind");
                     Ok((
                         bound_op,
@@ -104,7 +106,6 @@ fn rotation_layer<'a>(
 ///
 /// An iterator for the entanglement instructions.
 fn entanglement_layer<'a>(
-    py: Python<'a>,
     entanglement: &'a LayerEntanglement,
     entanglement_blocks: &'a [&'a Block],
     parameters: LayerParameters<'a>,
@@ -117,7 +118,7 @@ fn entanglement_layer<'a>(
             .map(move |(indices, params)| {
                 let (bound_op, bound_params) = block
                     .operation
-                    .assign_parameters(py, &params)
+                    .assign_parameters(&params)
                     .expect("Failed to rebind");
                 Ok((
                     bound_op,
@@ -157,7 +158,7 @@ fn entanglement_layer<'a>(
 /// An N-local circuit.
 #[allow(clippy::too_many_arguments)]
 pub fn n_local(
-    py: Python,
+    parameter_ledger_builder: impl LedgerBuilder,
     num_qubits: u32,
     rotation_blocks: &[&Block],
     entanglement_blocks: &[&Block],
@@ -167,11 +168,10 @@ pub fn n_local(
     parameter_prefix: &String,
     skip_final_rotation_layer: bool,
     skip_unentangled_qubits: bool,
-) -> PyResult<PyCircuitData> {
+) -> Result<CircuitData, MultiLocalError> {
     // Construct the parameter ledger, which will define all free parameters and provide
     // access to them, given an index for a layer and the current gate to implement.
-    let ledger = ParameterLedger::from_nlocal(
-        py,
+    let ledger = match parameter_ledger_builder.from_nlocal(
         num_qubits,
         reps,
         entanglement,
@@ -179,7 +179,14 @@ pub fn n_local(
         entanglement_blocks,
         skip_final_rotation_layer,
         parameter_prefix,
-    )?;
+    ) {
+        Ok(ledger) => ledger,
+        Err(err) => match err {
+            ParameterLedgerError::PyParameterVectorError(err) => {
+                return Err(MultiLocalError::PyParameterLedgerCreationError(err));
+            }
+        },
+    };
 
     // Compute the qubits that are skipped in the rotation layer. If this is set,
     // we skip qubits that do not appear in any of the entanglement layers.
@@ -197,7 +204,6 @@ pub fn n_local(
 
     let packed_insts = (0..reps).flat_map(|layer| {
         rotation_layer(
-            py,
             num_qubits,
             rotation_blocks,
             ledger.get_parameters(LayerType::Rotation, layer),
@@ -205,7 +211,6 @@ pub fn n_local(
         )
         .chain(maybe_barrier.get())
         .chain(entanglement_layer(
-            py,
             entanglement.get_layer(layer),
             entanglement_blocks,
             ledger.get_parameters(LayerType::Entangle, layer),
@@ -214,7 +219,6 @@ pub fn n_local(
     });
     if !skip_final_rotation_layer {
         let packed_insts = packed_insts.chain(rotation_layer(
-            py,
             num_qubits,
             rotation_blocks,
             ledger.get_parameters(LayerType::Rotation, reps),
@@ -262,8 +266,8 @@ pub fn py_n_local(
     // circuit layer.
     let entanglement = Entanglement::from_py(num_qubits, reps, entanglement, &entanglement_blocks)?;
 
-    n_local(
-        py,
+    Ok(n_local(
+        PyParameterLedgerBuilder,
         num_qubits,
         &rotation_blocks,
         &entanglement_blocks,
@@ -273,7 +277,8 @@ pub fn py_n_local(
         &parameter_prefix,
         skip_final_rotation_layer,
         skip_unentangled_qubits,
-    )
+    )?
+    .into())
 }
 
 /// A convenient struct to optionally yield barriers to inject in-between circuit layers.
@@ -309,6 +314,25 @@ impl MaybeBarrier {
         match &self.barrier {
             None => Box::new(std::iter::empty()),
             Some(inst) => Box::new(std::iter::once(Ok(inst.clone()))),
+        }
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum MultiLocalError {
+    /// A general error when trying to build the parameter ledger
+    #[error["Failed creating parameter ledger"]]
+    PyParameterLedgerCreationError(#[from] PyErr),
+
+    /// A general error when trying to create the circuit from n_local
+    #[error["Failed creating circuit data"]]
+    CircuitCreationError(#[from] CircuitDataError),
+}
+impl From<MultiLocalError> for PyErr {
+    fn from(value: MultiLocalError) -> Self {
+        match value {
+            MultiLocalError::PyParameterLedgerCreationError(err) => err,
+            MultiLocalError::CircuitCreationError(err) => err.into(),
         }
     }
 }
