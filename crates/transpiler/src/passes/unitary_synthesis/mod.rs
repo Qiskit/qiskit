@@ -507,6 +507,10 @@ pub struct TwoQSynthesisResult<S> {
 /// `sequence` - The synthesis sequence
 /// `constraint` - The qpu constraints used for the synthesis, typically just a Target
 /// `qargs_phys` - The qpu qargs the unitary is run on
+///
+/// # Returns
+///
+/// The computed fidelity estimate of the synthesis output sequence
 #[inline]
 pub(crate) fn fidelity_2q_sequence(
     dir: &Direction2q,
@@ -550,6 +554,14 @@ pub(crate) fn fidelity_2q_sequence(
 ///   the context around it. It is expected to return a fidelity score to compare that synthesis output
 ///   against other decomposers. The synthesis output with the maximum score is selected and is
 ///   what is returned by the `synthesize_2q_matrix`.
+///
+/// # Returns
+///
+/// When the return is `Ok` this returns an Option<TwoQSynthesisResult>, when the return is None
+/// this indicates that synthesis failed or is not necessary. The `Some` case will return a
+/// `TwoQSynthesisResult` representing the "best" output synthesis from the available decomposers
+/// determined by `fidelity_calculation`. This function returns an Error if the internal
+/// decomposition errors and it returns the directly from the decomposer.
 pub(crate) fn synthesize_2q_matrix<F, S>(
     mut unitary: CowArray<Complex64, Ix2>,
     qargs_phys: [PhysicalQubit; 2],
