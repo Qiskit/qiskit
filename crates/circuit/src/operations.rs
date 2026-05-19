@@ -1867,17 +1867,21 @@ impl<Op: PartialEq + CustomOperation> ComparableOp for Op {
 /// Unlike [Operation] alone, this trait focuses on the specific functions that are
 /// typically available for the two main Qiskit operation types: Gate and Instruction.
 ///
-/// To classify an operation, you must implement the [CustomOperation::kind] method,
-/// which returns a [CustomOperationKind] object with two variants:
-/// - [CustomOperationKind::Gate]: For unitary instructions.
+/// To classify an operation, you must implement the [`CustomOperation::is_unitary`] method,
+/// which returns a [`bool`] object with two variants:
+/// - [`true`]: For unitary instructions.
 ///     - In addition to this, the implementor should define required methods for
 ///       the `Gate` to function properly:
-///       - [CustomOperation::matrix]
-///       - [CustomOperation::num_ctrl_qubits]
-///       - [CustomOperation::is_controlled_gate]
-/// - [CustomOperationKind::Instruction]: For non-unitary instruction.
+///       - [`CustomOperation::matrix`]
+///       - [`CustomOperation::num_ctrl_qubits`]
+///       - [`CustomOperation::is_controlled_gate`]
+/// - [`false`]: For non-unitary instruction.
 ///
-/// Implementors must also define [CustomOperation::clone_dyn] as a way to clone the
+/// If an operation does not implement [`PartialEq`], users should implement [`ComparableOp`]
+/// to implement a way of comparing a dynamic [`CustomOperation`] object to another by
+/// by instance and attributes that cannot be accessed purely by the trait.
+///
+/// Implementors must also define [`CustomOperation::clone_dyn`] as a way to clone the
 /// original object using its implementation of [Clone] once it is dynamically
 /// dispatched.
 pub trait CustomOperation: Operation + Any + Debug + Send + Sync + ComparableOp {
