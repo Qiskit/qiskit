@@ -144,7 +144,7 @@ fn two_qubit_unitary_peephole_optimize_analysis(
                     None
                 }
             })
-            .unwrap();
+            .expect("runs contain at least one 2q op");
         let q_phys = q_virt.map(|q| physical_qubits[q.index()]);
         let matrix = blocks_to_matrix(dag, node_indices, q_virt)?;
         let synthesis_state: &RefCell<UnitarySynthesisState> = thread_local_states
@@ -157,10 +157,9 @@ fn two_qubit_unitary_peephole_optimize_analysis(
             QpuConstraint::Target(target),
             score_sequence,
         )?;
-        if result.is_none() {
+        let Some(result) = result else {
             return Ok(None);
-        }
-        let result = result.unwrap();
+        };
         let mut original_fidelity: f64 = 1.;
         let mut original_2q_count: usize = 0;
         let original_total_count: usize = node_indices.len();
@@ -289,7 +288,7 @@ fn two_qubit_unitary_peephole_optimize_apply(
     let mut processed_runs: Vec<bool> = vec![false; result.run_mapping.len()];
     let out_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep)?;
     let mut out_dag_builder = out_dag.into_builder();
-    for node in toposort(dag.dag(), None).unwrap() {
+    for node in toposort(dag.dag(), None).expect("DAG has no cycles") {
         if !matches!(dag.dag()[node], NodeType::Operation(_)) {
             continue;
         }
