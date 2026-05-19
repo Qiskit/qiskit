@@ -2372,7 +2372,6 @@ dependencies = [
 name = "qiskit-providers"
 version = "2.5.0-dev"
 dependencies = [
- "anyhow",
  "approx",
  "hashbrown 0.15.5",
  "ndarray",
