@@ -169,7 +169,7 @@ fn get_gates_num_params(
 }
 
 /// Dummy gate used exclusively for the Basis Translator as a placeholder.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 struct CustomDummy {
     name: String,
     num_qubits: u32,
