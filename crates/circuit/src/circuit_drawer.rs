@@ -988,7 +988,7 @@ impl TextDrawer {
                             inst.op.view(),
                             OperationRef::StandardInstruction(StandardInstruction::Measure)
                         ) {
-                            format!("{}", Self::get_label(inst)) // Skip space padding around the label to make Measure box thinner
+                            Self::get_label(inst).to_string() // Skip space padding around the label to make Measure box thinner
                         } else {
                             format!(
                                 "{} {} ",
