@@ -19,7 +19,6 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library.generalized_gates.permutation import PermutationGate
 from qiskit.utils.deprecation import deprecate_func
 
-
 from qiskit.quantum_info import Clifford
 
 
@@ -149,6 +148,19 @@ class LinearFunction(Gate):
         super().__init__(
             name="linear_function", num_qubits=len(linear), params=[linear, original_circuit]
         )
+
+    def inverse(self, annotated: bool = False) -> LinearFunction:
+        """Returns the inverse of this linear function.
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.LinearFunction`.
+        """
+        from qiskit.synthesis.linear import calc_inverse_matrix
+
+        return LinearFunction(linear=calc_inverse_matrix(self.linear))
 
     @staticmethod
     def _circuit_to_mat(qc: QuantumCircuit):
