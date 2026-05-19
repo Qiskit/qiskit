@@ -1048,7 +1048,11 @@ class CliffordTInitPassManager(PassManagerCliffordTStagePlugin):
             )
             init.append(
                 CommutativeOptimization(
-                    approximation_degree=pass_manager_config.approximation_degree or 1.0
+                    approximation_degree=(
+                        pass_manager_config.approximation_degree
+                        if pass_manager_config.approximation_degree is not None
+                        else 1.0
+                    )
                 )
             )
 
@@ -1172,7 +1176,11 @@ class OptimizeCliffordRZPassManager(PassManagerCliffordTStagePlugin):
                         target=pass_manager_config.target,
                     ),
                     CommutativeOptimization(
-                        approximation_degree=pass_manager_config.approximation_degree or 1.0
+                        approximation_degree=(
+                            pass_manager_config.approximation_degree
+                            if pass_manager_config.approximation_degree is not None
+                            else 1.0
+                        )
                     ),
                     ContractIdleWiresInControlFlow(),
                 ]
@@ -1206,10 +1214,18 @@ class TranslateToCliffordTPassManager(PassManagerCliffordTStagePlugin):
         rz_to_t_translation = PassManager(
             [
                 SubstitutePi4Rotations(
-                    approximation_degree=pass_manager_config.approximation_degree or 1.0
+                    approximation_degree=(
+                        pass_manager_config.approximation_degree
+                        if pass_manager_config.approximation_degree is not None
+                        else 1.0
+                    )
                 ),
                 SynthesizeRZRotations(
-                    approximation_degree=pass_manager_config.approximation_degree or 1.0,
+                    approximation_degree=(
+                        pass_manager_config.approximation_degree
+                        if pass_manager_config.approximation_degree is not None
+                        else 1.0
+                    ),
                     synthesis_error=rz_synthesis_error,
                     cache_error=rz_cache_error,
                 ),
@@ -1266,10 +1282,18 @@ class OptimizeCliffordTPassManager(PassManagerCliffordTStagePlugin):
                 loop = [
                     OptimizeCliffordT(basis_gates=basis_gates),
                     CommutativeOptimization(
-                        approximation_degree=pass_manager_config.approximation_degree or 1.0
+                        approximation_degree=(
+                            pass_manager_config.approximation_degree
+                            if pass_manager_config.approximation_degree is not None
+                            else 1.0
+                        )
                     ),
                     SubstitutePi4Rotations(
-                        approximation_degree=pass_manager_config.approximation_degree or 1.0
+                        approximation_degree=(
+                            pass_manager_config.approximation_degree
+                            if pass_manager_config.approximation_degree is not None
+                            else 1.0
+                        )
                     ),
                     ContractIdleWiresInControlFlow(),
                 ]
