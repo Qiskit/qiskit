@@ -55,7 +55,7 @@ from qiskit.transpiler.passes.optimization import (
     ContractIdleWiresInControlFlow,
 )
 from qiskit.transpiler.optimization_metric import OptimizationMetric
-from qiskit.transpiler.passes import Depth, Size, FixedPoint, MinimumPoint
+from qiskit.transpiler.passes import Depth, Size, FixedPoint, MinimumPoint, CountT
 from qiskit.transpiler.passes.utils.gates_basis import GatesInBasis
 from qiskit.transpiler.passes.synthesis.unitary_synthesis import UnitarySynthesis
 from qiskit.passmanager.flow_controllers import ConditionalController, DoWhileController
@@ -470,6 +470,14 @@ def _optimization_check_fixed_point():
         return not (property_set["depth_fixed_point"] and property_set["size_fixed_point"])
 
     setup = [Size(recurse=True), Depth(recurse=True), FixedPoint("size"), FixedPoint("depth")]
+    return (setup, check)
+
+
+def _optimization_check_fixed_point_clifford_t():
+    def check(property_set):
+        return not (property_set["t_count_fixed_point"] and property_set["size_fixed_point"])
+
+    setup = [Size(recurse=True), CountT(recurse=True), FixedPoint("size"), FixedPoint("t_count")]
     return (setup, check)
 
 
@@ -1258,7 +1266,8 @@ class OptimizeCliffordTPassManager(PassManagerStagePlugin):
                     ),
                     ContractIdleWiresInControlFlow(),
                 ]
-                loop_check, continue_loop = _optimization_check_fixed_point()
+                # loop_check, continue_loop = _optimization_check_fixed_point()
+                loop_check, continue_loop = _optimization_check_fixed_point_clifford_t()
                 post_loop = translate_to_target
             case bad:
                 raise TranspilerError(f"Invalid optimization_level: {bad}")

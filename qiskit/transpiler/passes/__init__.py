@@ -255,6 +255,7 @@ from .optimization import TemplateOptimization
 
 # circuit analysis
 from .analysis import CountOps
+from .analysis import CountT
 from .analysis import CountOpsLongestPath
 from .analysis import DAGLongestPath
 from .analysis import Depth

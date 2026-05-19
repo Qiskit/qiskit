@@ -40,3 +40,24 @@ class CountOps(AnalysisPass):
     def run(self, dag: DAGCircuit) -> None:
         """Run the CountOps pass on ``dag``."""
         self.property_set["count_ops"] = dag.count_ops(recurse=self.recurse)
+
+
+class CountT(AnalysisPass):
+    """Count the T and :math:`T^\dagger` operation in a DAG circuit.
+
+    The result is saved in ``property_set["t_count"]`` as an integer.
+    """
+
+    def __init__(self, *, recurse: bool = True) -> None:
+        """
+        Args:
+            recurse: If ``True`` (default), recursively count operations
+                inside control-flow blocks.
+        """
+        super().__init__()
+        self.recurse = recurse
+
+    def run(self, dag: DAGCircuit) -> None:
+        """Run the CountOps pass on ``dag``."""
+        ops = dag.count_ops(recurse=self.recurse)
+        self.property_set["t_count"] = ops.get("t", 0) + ops.get("tdg", 0)
