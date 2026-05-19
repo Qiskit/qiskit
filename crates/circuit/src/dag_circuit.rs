@@ -1811,7 +1811,7 @@ impl DAGCircuit {
             let weight_fn = |_| -> Result<usize, Infallible> { Ok(1) };
             return match rustworkx_core::dag_algo::longest_path(&self.dag, weight_fn).unwrap() {
                 Some(res) => Ok(res.1 - 1),
-                None => Err(DAGError::General("not a DAG".into())),
+                None => panic!("not a DAG"),
             };
         }
         if !recurse {
@@ -1852,7 +1852,7 @@ impl DAGCircuit {
         };
         match rustworkx_core::dag_algo::longest_path(&self.dag, weight_fn).unwrap() {
             Some(res) => Ok(res.1 - 1),
-            None => Err(DAGError::General("not a DAG".into())),
+            None => panic!("not a DAG"),
         }
     }
 
@@ -3740,7 +3740,7 @@ impl DAGCircuit {
         let weight_fn = |_| -> Result<usize, Infallible> { Ok(1) };
         match rustworkx_core::dag_algo::longest_path(&self.dag, weight_fn).unwrap() {
             Some(res) => res.0,
-            None => return Err(DAGCircuitError::new_err("not a DAG")),
+            None => panic!("not a DAG"),
         }
         .into_iter()
         .map(|node_index| self.get_node(py, node_index))
@@ -4319,7 +4319,7 @@ impl DAGCircuit {
         let longest_path =
             match rustworkx_core::dag_algo::longest_path(&self.dag, weight_fn).unwrap() {
                 Some(res) => res.0,
-                None => return Err(DAGCircuitError::new_err("not a DAG")),
+                None => panic!("not a DAG"),
             };
         // Allocate for worst case where all operations are unique
         let mut op_counts: HashMap<&str, usize> = HashMap::with_capacity(longest_path.len() - 2);
