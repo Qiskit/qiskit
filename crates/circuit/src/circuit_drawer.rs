@@ -1045,7 +1045,11 @@ impl TextDrawer {
                             "{:<in_len$}{}{:^label_len$}",
                             input_idx.map_or("".to_string(), |q| q.to_string()),
                             Self::try_pauli_term(input_idx, inst), // in case it's a PPR/PPM gate
-                            (mid_idx == wire_idx).then_some(label).unwrap_or_default(),
+                            if mid_idx == wire_idx {
+                                label
+                            } else {
+                                Default::default()
+                            },
                             in_len = qarg_inputs_len,
                             label_len = label_len,
                         );
