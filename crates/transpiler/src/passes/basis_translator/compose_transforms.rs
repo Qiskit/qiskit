@@ -199,10 +199,6 @@ impl Operation for CustomDummy {
 }
 
 impl CustomOperation for CustomDummy {
-    fn clone_dyn(&self) -> Box<dyn CustomOperation> {
-        Box::new(self.clone())
-    }
-
     fn is_unitary(&self) -> bool {
         true
     }

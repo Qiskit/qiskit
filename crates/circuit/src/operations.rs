@@ -24,7 +24,7 @@ use crate::bit::{ClassicalRegister, ShareableClbit};
 use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::classical::expr;
 use crate::duration::Duration;
-use crate::operations::custom_traits::ComparableOp;
+use crate::operations::custom_traits::{ClonableOp, ComparableOp};
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::{
     ParameterExpression, PyParameter, PyParameterExpression,
@@ -1847,7 +1847,8 @@ impl PartialEq for PauliProductMeasurement {
 impl Eq for PauliProductMeasurement {}
 
 /// Private module with especific traits that allow for the implementation
-/// of non dyn-compatible traits for [`CustomOperation`]. Namely [`PartialEq`].
+/// of non dyn-compatible traits for [`CustomOperation`]. Namely [`PartialEq`]
+/// and [`Clone`].
 mod custom_traits {
     use crate::operations::CustomOperation;
 
@@ -1857,7 +1858,7 @@ mod custom_traits {
     #[diagnostic::on_unimplemented(
         message = "PartialEq is required to correctly implement CustomOperation on {Self}.",
         label = "This type needs an implementation of PartialEq",
-        note = "Consider annotating {Self} with `#[derive(PartialEq]`"
+        note = "Consider annotating {Self} with `#[derive(PartialEq)]`"
     )]
     pub trait ComparableOp {
         fn rich_eq(&self, other: &dyn CustomOperation) -> bool;
@@ -1869,6 +1870,24 @@ mod custom_traits {
                 return false;
             };
             self.eq(other)
+        }
+    }
+
+    /// A trait which implements dynamically cloning [`CustomOperation`] dyn objects.
+    /// If the operation implements [`Clone`], this trait will be automatically implemented.
+    /// Otherwise, the user is responsible for implementing [`Clone`].
+    #[diagnostic::on_unimplemented(
+        message = "Clone is required to correctly implement CustomOperation on {Self}.",
+        label = "This type needs an implementation of Clone",
+        note = "Consider annotating {Self} with `#[derive(Clone)]`"
+    )]
+    pub trait ClonableOp {
+        fn clone_dyn(&self) -> Box<dyn CustomOperation>;
+    }
+
+    impl<Op: Clone + CustomOperation> ClonableOp for Op {
+        fn clone_dyn(&self) -> Box<dyn CustomOperation> {
+            Box::new(self.clone())
         }
     }
 }
@@ -1895,7 +1914,9 @@ mod custom_traits {
 /// Implementors must also define [`CustomOperation::clone_dyn`] as a way to clone the
 /// original object using its implementation of [Clone] once it is dynamically
 /// dispatched.
-pub trait CustomOperation: Operation + Any + Debug + Send + Sync + ComparableOp {
+pub trait CustomOperation:
+    Operation + Any + Debug + Send + Sync + ComparableOp + ClonableOp
+{
     /// Return the custom label assigned to this instruction.
     fn label(&self) -> Option<&str> {
         None
@@ -1929,12 +1950,6 @@ pub trait CustomOperation: Operation + Any + Debug + Send + Sync + ComparableOp 
         self.num_ctrl_qubits().is_some()
     }
 
-    /// Dynamic clone function to clone the original operation type.
-    ///
-    /// As long as the enclosed type `T: Clone`, this implementation will
-    /// trickle down to just calling the implementor's `Clone::clone()` method.
-    fn clone_dyn(&self) -> Box<dyn CustomOperation>;
-
     /// Returns whether the operation is based on a unitary matrix.
     fn is_unitary(&self) -> bool;
 }
@@ -1942,6 +1957,20 @@ pub trait CustomOperation: Operation + Any + Debug + Send + Sync + ComparableOp 
 impl PartialEq for dyn CustomOperation {
     fn eq(&self, other: &Self) -> bool {
         ComparableOp::rich_eq(self, other)
+    }
+}
+
+impl Clone for Box<dyn CustomOperation> {
+    fn clone(&self) -> Self {
+        self.clone_dyn()
+    }
+}
+
+impl ToOwned for dyn CustomOperation {
+    type Owned = Box<dyn CustomOperation>;
+
+    fn to_owned(&self) -> Self::Owned {
+        self.clone_dyn()
     }
 }
 
@@ -1986,8 +2015,7 @@ impl Clone for BoxedCustomOperation {
 
 impl<T: CustomOperation> From<T> for BoxedCustomOperation {
     fn from(value: T) -> Self {
-        let op = Box::new(value);
-        Self(op)
+        Self(value.clone_dyn())
     }
 }
 
@@ -2075,9 +2103,6 @@ mod test_custom_gates {
     }
 
     impl CustomOperation for CustomH {
-        fn clone_dyn(&self) -> Box<dyn CustomOperation> {
-            Box::new(self.clone())
-        }
         fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
             CircuitData::from_standard_gates(
                 1,
