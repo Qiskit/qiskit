@@ -728,7 +728,7 @@ def is_clifford_t_basis(basis_gates=None, target=None) -> bool:
     else:
         basis = set()
 
-    if (basis_gates is None) or (("t" not in basis_gates) and ("tdg" not in basis_gates)):
+    if (basis is None) or (("t" not in basis) and ("tdg" not in basis)):
         return False
 
     return basis.issubset(_CLIFFORD_T_BASIS)
