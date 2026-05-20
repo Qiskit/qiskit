@@ -529,7 +529,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         """Test calling generate_preset_clifford_t_pass_manager with various values
         of the arguments ``target`` and ``basis_gates``.
         """
-        gate = ModularAdderGate(7)
+        gate = ModularAdderGate(4)
         qc = QuantumCircuit(gate.num_qubits)
         qc.append(gate, qc.qubits)
 
