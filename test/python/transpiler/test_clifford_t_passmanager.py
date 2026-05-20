@@ -623,6 +623,32 @@ class TestCliffordTPassManager(QiskitTestCase):
             passes = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
             self.assertIn("CustomTransformationPass", passes)
 
+    def test_legacy_pass_manager_with_routing_disabled(self):
+        """
+        Test that in the legacy Clifford+T pipeline, routing is disabled exactly when
+        `routing_method="none"`. In other words, passes that can modify the final layout
+        (such as `ElidePermutations`) do not run.
+        """
+        basis_gates = ["cx", "h", "t"]
+        coupling_map = CouplingMap.from_line(3)
+
+        with self.subTest("routing is enabled"):
+            pm = generate_preset_pass_manager(
+                optimization_level=2, basis_gates=basis_gates, coupling_map=coupling_map
+            )
+            passes = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
+            self.assertIn("ElidePermutations", passes)
+
+        with self.subTest("routing is disabled"):
+            pm = generate_preset_pass_manager(
+                optimization_level=2,
+                basis_gates=basis_gates,
+                coupling_map=coupling_map,
+                routing_method="none",
+            )
+            passes = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
+            self.assertNotIn("ElidePermutations", passes)
+
     @data(
         (1e-4, 1e-5),
         (1e-7, 1e-2),
