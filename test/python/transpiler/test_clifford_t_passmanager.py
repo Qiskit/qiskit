@@ -27,6 +27,7 @@ from qiskit.circuit.library import (
     MCXGate,
     MultiplierGate,
     ModularAdderGate,
+    UnitaryGate,
 )
 
 from qiskit.transpiler import PassManager, TransformationPass, CouplingMap, Target, TranspilerError
@@ -38,7 +39,7 @@ from qiskit.transpiler.preset_passmanagers import (
 )
 
 from qiskit.providers.fake_provider import GenericBackendV2
-from qiskit.quantum_info import get_clifford_gate_names
+from qiskit.quantum_info import get_clifford_gate_names, Operator
 from qiskit.synthesis import gridsynth_rz
 from qiskit.dagcircuit import DAGCircuit
 
@@ -506,6 +507,27 @@ class TestCliffordTPassManager(QiskitTestCase):
                 basis_gates=basis_gates, optimization_level=0
             )
 
+    def test_incomplete_basis_sets(self):
+        """
+        Test that compiling into incomplete Clifford+T basis sets
+        succeeds provided that the translation exists.
+        """
+        with self.subTest("Only T-gate"):
+            basis_gates = ["t"]
+            pm = generate_preset_pass_manager(basis_gates=basis_gates)
+            qc = QuantumCircuit(2)
+            qc.s(0)
+            transpiled = pm.run(qc)
+            self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
+
+        with self.subTest("Only CX-gate"):
+            basis_gates = ["cx"]
+            pm = generate_preset_pass_manager(basis_gates=basis_gates)
+            qc = QuantumCircuit(2)
+            qc.swap(0, 1)
+            transpiled = pm.run(qc)
+            self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
+
     def test_legacy_pass_manager_with_clifford_t(self):
         """Test that calling generate_preset_pass_manager with Clifford+T
         gates also works as expected.
@@ -759,6 +781,40 @@ class TestCliffordTPassManager(QiskitTestCase):
         qct = pm.run(qc)
         used_qubits = {qct.find_bit(q).index for q in qct[0].qubits}
         self.assertEqual(used_qubits, {2, 3})
+
+    def test_circuit_with_unitaries(self):
+        """
+        Test that `generate_preset_clifford_t_pass_manager` handles circuits with unitaries.
+        """
+        # 1q unitary
+        qc1 = QuantumCircuit(1)
+        qc1.rx(0.2, 0)
+        u1 = UnitaryGate(Operator(qc1))
+
+        # 2q unitary
+        qc2 = QuantumCircuit(2)
+        qc2.rx(0.3, 0)
+        qc2.cx(0, 1)
+        u2 = UnitaryGate(Operator(qc2))
+
+        # 3q unitary
+        qc3 = QuantumCircuit(3)
+        qc3.rx(0.3, 0)
+        qc3.cx(0, 1)
+        qc3.cx(1, 2)
+        u3 = UnitaryGate(Operator(qc3))
+
+        qc = QuantumCircuit(3)
+        qc.append(u1, [0])
+        qc.append(u2, [1, 2])
+        qc.append(u3, [2, 0, 1])
+
+        pm = generate_preset_clifford_t_pass_manager()
+
+        transpiled = pm.run(qc)
+
+        basis_gates = get_clifford_gate_names() + ["t", "tdg"]
+        self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
 
 
 def _get_t_count(qc):
