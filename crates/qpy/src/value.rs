@@ -15,7 +15,7 @@ use std::sync::Arc;
 
 use binrw::meta::{ReadEndian, WriteEndian};
 use binrw::{BinRead, BinWrite, Endian, binrw};
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashMap;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 
@@ -126,7 +126,7 @@ pub struct QPYReadData<'a> {
     pub use_symengine: bool,
     pub standalone_vars: HashMap<u16, qiskit_circuit::Var>,
     pub standalone_stretches: HashMap<u16, qiskit_circuit::Stretch>,
-    pub vectors: HashMap<Uuid, (Py<PyAny>, HashSet<u32>)>, // Parameter expression vectors, which are a python-only elements for now
+    pub vectors: HashMap<Uuid, Py<PyAny>>, // Parameter expression vectors, which are a python-only elements for now
     pub annotation_handler: AnnotationHandler<'a>,
 }
 
