@@ -68,7 +68,7 @@ impl ProgramNode for Store {
     }
 
     fn namespace(&self) -> &str {
-        "core"
+        "qiskit"
     }
 
     fn input_types(&self) -> &DataTree<TensorType> {
@@ -136,8 +136,8 @@ mod tests {
 
         assert!(store.input_types().is_empty());
         assert_eq!(store.name(), "store");
-        assert_eq!(store.namespace(), "core");
-        assert_eq!(store.full_name(), "core.store");
+        assert_eq!(store.namespace(), "qiskit");
+        assert_eq!(store.full_name(), "qiskit.store");
 
         let out_types = store.output_types();
         let DataTree::Leaf(tt_a) = out_types.get_by_str_key("a").unwrap() else {
