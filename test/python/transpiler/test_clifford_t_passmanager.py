@@ -650,14 +650,17 @@ class TestCliffordTPassManager(QiskitTestCase):
             self.assertNotIn("ElidePermutations", passes)
 
     @data(
-        (1e-4, 1e-5),
-        (1e-7, 1e-2),
+        (1 - 1e-8, 1e-4, 1e-5),
+        (1 - 1e-9, 1e-7, 1e-2),
+        (1 - 1e-9, 1e-7, None),
+        (1 - 1e-9, None, 1e-7),
+        (None, 1e-7, 1e-2),
     )
     @unpack
-    def test_rz_config_is_passed(self, synthesis_error, cache_error):
+    def test_rz_config_is_passed(self, approximation_degree, synthesis_error, cache_error):
         """
-        Test that `generate_preset_clifford_t_pass_manager` option `rz_synthesis_config`
-        is passed correctly to the `SynthesizeRZRotations` transpiler pass.
+        Test that the options `rz_synthesis_config` and `approximation_degree` are passed correctly
+        to the `SynthesizeRZRotations` transpiler pass.
         """
 
         qc = QuantumCircuit(1)
@@ -682,17 +685,80 @@ class TestCliffordTPassManager(QiskitTestCase):
         run_calls = []
 
         def mock_run(self, dag):
-            run_calls.append([self.synthesis_error, self.cache_error])
+            run_calls.append([self.approximation_degree, self.synthesis_error, self.cache_error])
             original_run(self, dag)
 
         with unittest.mock.patch.object(SynthesizeRZRotations, "run", new=mock_run):
             pm = generate_preset_clifford_t_pass_manager(
                 rz_synthesis_config=rz_synthesis_config,
                 basis_gates=basis_gates,
+                approximation_degree=approximation_degree,
             )
             _ = pm.run(qc)
         self.assertEqual(len(run_calls), 1)
-        self.assertEqual(run_calls[0], [synthesis_error, cache_error])
+        expected_approximation_degree = (
+            approximation_degree if approximation_degree is not None else 1.0
+        )
+        self.assertEqual(
+            run_calls[0], [expected_approximation_degree, synthesis_error, cache_error]
+        )
+
+    def test_initial_layout(self):
+        """Test argument `initial_layout`."""
+
+        qc = QuantumCircuit(2)
+        qc.t(0)
+
+        basis_gates = ["t"]
+
+        with self.subTest("initial layout is [0, 1]"):
+            pm = generate_preset_clifford_t_pass_manager(
+                basis_gates=basis_gates, optimization_level=1, initial_layout=[0, 1]
+            )
+            qct = pm.run(qc)
+            used_qubit = qct[0].qubits[0]
+            self.assertEqual(qct.find_bit(used_qubit).index, 0)
+
+        with self.subTest("initial layout is [1, 0]"):
+            pm = generate_preset_clifford_t_pass_manager(
+                basis_gates=basis_gates, optimization_level=1, initial_layout=[1, 0]
+            )
+            qct = pm.run(qc)
+            used_qubit = qct[0].qubits[0]
+            self.assertEqual(qct.find_bit(used_qubit).index, 1)
+
+    def test_optimization_level(self):
+        """Test argument `optimization_level`."""
+        qc = QuantumCircuit(2)
+        qc.t(0)
+        qc.tdg(0)
+        basis_gates = ["t", "tdg"]
+        with self.subTest("optimization level is 0"):
+            pm = generate_preset_clifford_t_pass_manager(
+                basis_gates=basis_gates, optimization_level=0
+            )
+            qct = pm.run(qc)
+            self.assertEqual(qct, qc)
+        with self.subTest("optimization level is 3"):
+            pm = generate_preset_clifford_t_pass_manager(
+                basis_gates=basis_gates, optimization_level=3
+            )
+            qct = pm.run(qc)
+            expected = QuantumCircuit(2)
+            self.assertEqual(qct, expected)
+
+    def test_coupling_map(self):
+        """Test argument `coupling_map`."""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        basis_gates = {"cx", "t"}
+        coupling_map = [[2, 3]]
+        pm = generate_preset_clifford_t_pass_manager(
+            basis_gates=basis_gates, coupling_map=coupling_map
+        )
+        qct = pm.run(qc)
+        used_qubits = set(qct.find_bit(q).index for q in qct[0].qubits)
+        self.assertEqual(used_qubits, {2, 3})
 
 
 def _get_t_count(qc):
