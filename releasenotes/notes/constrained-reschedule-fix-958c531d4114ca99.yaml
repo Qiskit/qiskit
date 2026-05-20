@@ -1,0 +1,14 @@
+---
+fixes:
+  - |
+    Fixed three bugs in the Rust port of :class:`.ConstrainedReschedule`
+    that caused incorrect ``node_start_time`` values when a :class:`.Target` was
+    provided. First, the :class:`.Delay` duration was read from the target
+    gate table (where it is absent) instead of the instruction parameter,
+    producing a zero duration and corrupting successor start times via unsigned
+    integer underflow. Second, the ``pulse_align`` and ``acquire_align``
+    arguments were passed in the wrong order to the inner scheduling function,
+    so :class:`.Measure` and :class:`.Reset` operations were never shifted to
+    the correct acquire-alignment boundary. Third, the qubit- and clbit-overlap
+    calculations used plain subtraction on unsigned integers, which wrapped to a
+    large value when there was no real overlap; changed to saturating subtraction.
