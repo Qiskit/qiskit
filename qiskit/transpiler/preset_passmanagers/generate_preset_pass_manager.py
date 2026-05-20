@@ -299,7 +299,7 @@ def generate_preset_clifford_t_pass_manager(
     qubits_initially_zero: bool = True,
     rz_synthesis_config: dict | None = None,
 ) -> StagedPassManager:
-    """Generate a preset Clifford+T :class:`~.StagedPassManager`
+    """Generate a preset Clifford+T :class:`~.StagedPassManager`.
 
     This function provides a convenient way to construct a preset pass manager for
     Clifford+T compilation. We recommend using this function instead of :func:`~.transpile` or
@@ -318,13 +318,7 @@ def generate_preset_clifford_t_pass_manager(
             :class:`~.StagedPassManager` for. By default optimization level 2
             is used if this is not specified. This can be 0, 1, 2, or 3. Higher
             levels generate potentially more optimized circuits, at the expense
-            of longer transpilation time:
-
-                * 0: no optimization
-                * 1: light optimization
-                * 2: heavy optimization
-                * 3: even heavier optimization
-
+            of potentially longer transpilation time.
         target: The :class:`~.Target` representing a compilation
             target. The following attributes will be inferred from this
             argument if they are not set: ``coupling_map`` and ``basis_gates``.

@@ -1488,6 +1488,7 @@ Pass Manager Definition
    StagedPassManager
    PassManager
    PassManagerConfig
+   PassManagerCliffordTConfig
    generate_preset_pass_manager
    generate_preset_clifford_t_pass_manager
 

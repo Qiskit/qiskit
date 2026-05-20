@@ -757,7 +757,7 @@ class TestCliffordTPassManager(QiskitTestCase):
             basis_gates=basis_gates, coupling_map=coupling_map
         )
         qct = pm.run(qc)
-        used_qubits = set(qct.find_bit(q).index for q in qct[0].qubits)
+        used_qubits = {qct.find_bit(q).index for q in qct[0].qubits}
         self.assertEqual(used_qubits, {2, 3})
 
 
