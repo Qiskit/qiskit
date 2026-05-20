@@ -15,7 +15,7 @@
 import unittest
 
 import numpy as np
-from ddt import ddt, data
+from ddt import ddt, data, unpack
 
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
@@ -623,7 +623,12 @@ class TestCliffordTPassManager(QiskitTestCase):
             passes = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
             self.assertIn("CustomTransformationPass", passes)
 
-    def test_rz_config_is_passed(self):
+    @data(
+        (1e-4, 1e-5),
+        (1e-7, 1e-2),
+    )
+    @unpack
+    def test_rz_config_is_passed(self, synthesis_error, cache_error):
         """
         Test that `generate_preset_clifford_t_pass_manager` option `rz_synthesis_config`
         is passed correctly to the `SynthesizeRZRotations` transpiler pass.
@@ -635,8 +640,8 @@ class TestCliffordTPassManager(QiskitTestCase):
 
         basis_gates = ["cx", "h", "t"]
         rz_synthesis_config = {
-            "rz_synthesis_error": 1e-4,
-            "rz_cache_error": 1e-5,
+            "rz_synthesis_error": synthesis_error,
+            "rz_cache_error": cache_error,
         }
 
         pm = generate_preset_clifford_t_pass_manager(
@@ -661,7 +666,7 @@ class TestCliffordTPassManager(QiskitTestCase):
             )
             _ = pm.run(qc)
         self.assertEqual(len(run_calls), 1)
-        self.assertEqual(run_calls[0], [1e-4, 1e-5])
+        self.assertEqual(run_calls[0], [synthesis_error, cache_error])
 
 
 def _get_t_count(qc):
