@@ -2263,6 +2263,7 @@ dependencies = [
  "anyhow",
  "cbindgen",
  "hashbrown 0.15.5",
+ "qiskit-cext-vtable",
  "regex",
 ]
 

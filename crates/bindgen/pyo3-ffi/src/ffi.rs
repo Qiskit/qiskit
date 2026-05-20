@@ -10,6 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-pub mod c;
-pub mod ctypes;
-pub mod rust;
+// This is a dummy file that's overwritten by the crate-generation script.  It's just here as a base
+// test that the macro works, and to suppress clippy/rust-analyzer warnings while editing the
+// template crate.
+
+use crate::declare_fn;
+
+// This is just an example of what the generated file produces.
+declare_fn!(crate::QK_FFI_CIRCUIT[0]; qk_api_version() -> u32);
