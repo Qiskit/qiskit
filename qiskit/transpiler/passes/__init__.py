@@ -126,6 +126,7 @@ Circuit Analysis
    CountOpsLongestPath
    DAGLongestPath
    Depth
+   GateCount
    NumTensorFactors
    ResourceEstimation
    Size
@@ -255,7 +256,7 @@ from .optimization import TemplateOptimization
 
 # circuit analysis
 from .analysis import CountOps
-from .analysis import CountT
+from .analysis import GateCount
 from .analysis import CountOpsLongestPath
 from .analysis import DAGLongestPath
 from .analysis import Depth

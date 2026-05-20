@@ -16,7 +16,7 @@ from .resource_estimation import ResourceEstimation
 from .depth import Depth
 from .width import Width
 from .size import Size
-from .count_ops import CountOps, CountT
+from .count_ops import CountOps, GateCount
 from .count_ops_longest_path import CountOpsLongestPath
 from .num_tensor_factors import NumTensorFactors
 from .num_qubits import NumQubits

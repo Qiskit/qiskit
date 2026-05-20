@@ -1,0 +1,8 @@
+---
+performance:
+  - Improved the performance of optimization levels 1, 2 and 3 for compiling to Clifford+T
+    basis gates, in particular for very deep circuits.  Previously the depth of the circuit has
+    been used as indicator of whether a fixed point in the optimization stages has been reached,
+    which has been replaced by the RZ and T counts (depending on the optimization stage).
+    This is not only significantly faster, but also reflects the target metric better.
+
