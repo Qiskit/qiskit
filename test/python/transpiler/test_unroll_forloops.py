@@ -82,9 +82,7 @@ class TestUnrollForLoops(QiskitTestCase):
         for _ in indexset:
             expected.compose(body, inplace=True)
 
-        passmanager = PassManager()
-        passmanager.append(UnrollForLoops())
-        result = passmanager.run(circuit)
+        result = UnrollForLoops()(circuit)
 
         self.assertEqual(result, expected)
 
@@ -103,9 +101,7 @@ class TestUnrollForLoops(QiskitTestCase):
         for _ in indexset:
             expected.compose(body, inplace=True)
 
-        passmanager = PassManager()
-        passmanager.append(UnrollForLoops())
-        result = passmanager.run(circuit)
+        result = UnrollForLoops()(circuit)
 
         self.assertEqual(result, expected)
 
