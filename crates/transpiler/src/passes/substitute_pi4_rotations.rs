@@ -1096,45 +1096,31 @@ pub fn py_run_substitute_pi4_rotations(
     let tol = MINIMUM_TOL.max(1.0 - approximation_degree);
     let mut global_phase_update: f64 = 0.;
 
-    // TODO make this iter over op_nodes and modify in place
-    for node_index in toposort(dag.dag(), None).expect("DAG has no cycles") {
+    // We collect into a Vec here since we need to iterate over the node_indices while modifying
+    // the DAG. So we can't keep a const ref (in dag.op_nodes()) while borrowing mutable later.
+    let nodes = dag.op_node_indices(false).collect::<Vec<_>>();
+    for node_index in nodes {
         let NodeType::Operation(inst) = &dag[node_index] else {
-            continue;
+            unreachable!();
         };
         let gate = if let OperationRef::StandardGate(gate) = inst.op.view() {
             gate
         } else {
-            // new_dag.push_back(inst.clone())?;
             continue;
         };
 
         if gate.num_params() != 1 {
-            // new_dag.push_back(inst.clone())?;
             continue;
         }
 
         let angle = if let Param::Float(angle) = inst.params_view()[0] {
             angle
         } else {
-            // new_dag.push_back(inst.clone())?;
             continue;
         };
 
         let k = rotation_to_pi_div(gate);
         let num_qubits = gate.num_qubits();
-
-        // let original_qubits = dag.get_qargs(inst.qubits);
-        // let mut push_gate = |(gate, qubits): (StandardGate, &[u32])| -> PyResult<()> {
-        //     let updated_qubits: Vec<Qubit> = qubits
-        //         .iter()
-        //         .map(|q| original_qubits[*q as usize])
-        //         .collect();
-        //     let new_qubits = new_dag.add_qargs(&updated_qubits);
-        //     new_dag.push_back(PackedInstruction::from_standard_gate(
-        //         gate, None, new_qubits,
-        //     ))?;
-        //     Ok(())
-        // };
 
         if let Some(multiple) = is_angle_close_to_multiple_of_pi_k(gate, k, angle, tol) {
             if num_qubits == 2 {
