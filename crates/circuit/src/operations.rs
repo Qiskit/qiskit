@@ -24,6 +24,7 @@ use crate::bit::{ClassicalRegister, ShareableClbit};
 use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::classical::expr;
 use crate::duration::Duration;
+use crate::operations::custom_traits::ComparableOp;
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::{
     ParameterExpression, PyParameter, PyParameterExpression,
@@ -1845,19 +1846,30 @@ impl PartialEq for PauliProductMeasurement {
 
 impl Eq for PauliProductMeasurement {}
 
-/// A trait which implements comparisons between [`CustomOperation`] instances.
-/// If the operation implements [`PartialEq`], this trait will be automatically implemented.
-/// Otherwise, the user is responsible for implementing this trait.
-pub trait ComparableOp {
-    fn rich_eq(&self, other: &dyn CustomOperation) -> bool;
-}
+/// Private module with especific traits that allow for the implementation
+/// of non dyn-compatible traits for [`CustomOperation`]. Namely [`PartialEq`].
+mod custom_traits {
+    use crate::operations::CustomOperation;
 
-impl<Op: PartialEq + CustomOperation> ComparableOp for Op {
-    fn rich_eq(&self, other: &dyn CustomOperation) -> bool {
-        let Some(other) = other.downcast_ref() else {
-            return false;
-        };
-        self.eq(other)
+    /// A trait which implements comparisons between [`CustomOperation`] instances.
+    /// If the operation implements [`PartialEq`], this trait will be automatically implemented.
+    /// Otherwise, the user is responsible for implementing this trait.
+    #[diagnostic::on_unimplemented(
+        message = "PartialEq is required to correctly implement CustomOperation on {Self}.",
+        label = "This type needs an implementation of PartialEq",
+        note = "Consider annotating {Self} with `#[derive(PartialEq]`"
+    )]
+    pub trait ComparableOp {
+        fn rich_eq(&self, other: &dyn CustomOperation) -> bool;
+    }
+
+    impl<Op: PartialEq + CustomOperation> ComparableOp for Op {
+        fn rich_eq(&self, other: &dyn CustomOperation) -> bool {
+            let Some(other) = other.downcast_ref() else {
+                return false;
+            };
+            self.eq(other)
+        }
     }
 }
 
@@ -1877,9 +1889,8 @@ impl<Op: PartialEq + CustomOperation> ComparableOp for Op {
 ///       - [`CustomOperation::is_controlled_gate`]
 /// - [`false`]: For non-unitary instruction.
 ///
-/// If an operation does not implement [`PartialEq`], users should implement [`ComparableOp`]
-/// to implement a way of comparing a dynamic [`CustomOperation`] object to another by
-/// by instance and attributes that cannot be accessed purely by the trait.
+/// This trait has an implicit requirement to [`PartialEq`] to allow for comparison
+/// between opaque gates.
 ///
 /// Implementors must also define [`CustomOperation::clone_dyn`] as a way to clone the
 /// original object using its implementation of [Clone] once it is dynamically
@@ -1926,27 +1937,11 @@ pub trait CustomOperation: Operation + Any + Debug + Send + Sync + ComparableOp 
 
     /// Returns whether the operation is based on a unitary matrix.
     fn is_unitary(&self) -> bool;
+}
 
-    /// Makes a shallow comparison between two gates based on their attributes.
-    fn shallow_eq(&self, other: &dyn CustomOperation) -> bool {
-        self.type_id() == other.type_id()
-            && self.is_unitary() == other.is_unitary()
-            && self.name() == other.name()
-            && self.num_qubits() == other.num_qubits()
-            && self.num_clbits() == other.num_clbits()
-            && self.num_params() == other.num_params()
-            && self.label() == other.label()
-            && self.is_controlled_gate() == other.is_controlled_gate()
-            && self.directive() == other.directive()
-    }
-
-    /// Makes a rich comparison between two gates based on whether the gate's
-    /// implementation of [`PartialEq`]
-    fn rich_eq(&self, other: &dyn CustomOperation) -> bool {
-        if self.shallow_eq(other) {
-            return ComparableOp::rich_eq(self, other);
-        }
-        false
+impl PartialEq for dyn CustomOperation {
+    fn eq(&self, other: &Self) -> bool {
+        ComparableOp::rich_eq(self, other)
     }
 }
 
@@ -2110,8 +2105,6 @@ mod test_custom_gates {
             .downcast_ref::<CustomH>()
             .expect("Should downcast to an H gate");
 
-        assert!(CustomH.rich_eq(gate));
-        assert!(CustomH.shallow_eq(gate));
         assert_eq!(
             gate.name(),
             "h",
