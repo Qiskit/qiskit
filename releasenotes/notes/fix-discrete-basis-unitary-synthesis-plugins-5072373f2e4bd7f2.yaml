@@ -1,0 +1,14 @@
+---
+fixes:
+  - |
+    Fixed an issue with :func:`.transpile`, which ignored the ``"unitary_synthesis_method"``
+    and the plugin configuration for discrete basis gate sets.
+    This affected workflows where the unitary synthesis method was set to ``"sk"`` or
+    ``"gridsynth"`` in combination with a Clifford+T basis gate set.
+
+    Note that if ``"gridsynth"`` is being used, it is signficantly more performant to simply call
+    :func:`.transpile` with a discrete basis gate set and using the ``approximation_degree`` to
+    pass the synthesis accuracy, instead of using the unitary synthesis plugins.
+
+    Fixed `#16038 <https://github.com/Qiskit/qiskit/issues/16038>`__.
+

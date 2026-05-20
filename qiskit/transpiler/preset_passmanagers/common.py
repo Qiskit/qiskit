@@ -480,34 +480,112 @@ def generate_translation_passmanager(
     if basis_gates is None and target is None:
         return PassManager([])
 
+    is_clifford_t = is_clifford_t_basis(basis_gates, target)
+
     if method == "translator":
         translator = BasisTranslator(sel, basis_gates, target)
+
+        if is_clifford_t:
+            # The list of extended basis gates consists of the specified Clifford+T basis gates and
+            # additionally the 1q-gate "u".
+            # We set target=None to make sure extended_basis_gates is not overwritten by the target.
+            extended_basis_gates = list(basis_gates) + ["u"]
+
+            unroll = [
+                # Use the UnitarySynthesis pass to unroll 1-qubit and 2-qubit gates named "unitary" into
+                # extended_basis_gates.
+                UnitarySynthesis(
+                    basis_gates=extended_basis_gates,
+                    approximation_degree=approximation_degree,
+                    coupling_map=coupling_map,
+                    plugin_config=unitary_synthesis_plugin_config,
+                    method=unitary_synthesis_method,
+                    target=None,
+                ),
+                # Use the HighLevelSynthesis pass to unroll all the remaining 1q and 2q custom
+                # gates into extended_basis_gates + the gates in the equivalence library.
+                # We set target=None to make sure extended_basis_gates is not overwritten by the target.
+                HighLevelSynthesis(
+                    hls_config=hls_config,
+                    coupling_map=coupling_map,
+                    target=None,
+                    use_qubit_indices=True,
+                    equivalence_library=sel,
+                    basis_gates=extended_basis_gates,
+                    qubits_initially_zero=qubits_initially_zero,
+                    optimization_metric=OptimizationMetric.COUNT_T,
+                ),
+                # Use the BasisTranslator pass to translate all the gates into extended_basis_gates.
+                # In other words, this translates the gates in the equivalence library that are not
+                # in extended_basis_gates to gates in extended_basis_gates only.
+                # Note that we do not want to make any assumptions on which Clifford gates are present
+                # in basis_gates. The BasisTranslator will do the conversion if possible (and provide
+                # a helpful error message otherwise).
+                BasisTranslator(sel, extended_basis_gates, None),
+                # The next step is to resynthesize blocks of consecutive 1q-gates into Clifford+T.
+                # Use Collect1qRuns and ConsolidateBlocks passes to replace such blocks by 1q "unitary"
+                # gates.
+                Collect1qRuns(),
+                ConsolidateBlocks(
+                    basis_gates=None,
+                    target=None,
+                    approximation_degree=approximation_degree,
+                    force_consolidate=True,
+                ),
+                # We use the "clifford" unitary synthesis plugin to replace single-qubit
+                # unitary gates that can be represented as Cliffords by Clifford gates.
+                UnitarySynthesis(method="clifford", plugin_config={"max_qubits": 1}),
+                # We decompose single-qubit unitary gates using the UnitarySynthesisPlugin interface.
+                # By default it's the "default" method (which currently calls the Solovay-Kitaev
+                # decomposition). If a custom ``unitary_synthesis_method`` method is specified, it should
+                # either return the synthesized circuit in the Clifford+T basis set, or ``None``
+                # in which case the default method would be called as fallback.
+                UnitarySynthesis(
+                    basis_gates=basis_gates,
+                    approximation_degree=approximation_degree,
+                    coupling_map=coupling_map,
+                    plugin_config=unitary_synthesis_plugin_config,
+                    method=unitary_synthesis_method,
+                    min_qubits=1,
+                    target=None,
+                    fallback_on_default=True,
+                ),
+                # Finally, we use BasisTranslator to translate Clifford+T circuit to the actually
+                # specified set of basis gates.
+                translator,
+            ]
+        else:
+            unroll = [
+                # Use unitary synthesis for basis aware decomposition of
+                # UnitaryGates before custom unrolling
+                UnitarySynthesis(
+                    basis_gates,
+                    approximation_degree=approximation_degree,
+                    coupling_map=coupling_map,
+                    plugin_config=unitary_synthesis_plugin_config,
+                    method=unitary_synthesis_method,
+                    target=target,
+                ),
+                HighLevelSynthesis(
+                    hls_config=hls_config,
+                    coupling_map=coupling_map,
+                    target=target,
+                    use_qubit_indices=True,
+                    equivalence_library=sel,
+                    basis_gates=basis_gates,
+                    qubits_initially_zero=qubits_initially_zero,
+                ),
+                translator,
+            ]
+
+        fix_1q = [translator]
+
+    elif method == "synthesis":
+        extended_basis_gates = basis_gates + ["u"] if is_clifford_t else basis_gates
+        hls_target = None if is_clifford_t else target
+
         unroll = [
             # Use unitary synthesis for basis aware decomposition of
-            # UnitaryGates before custom unrolling
-            UnitarySynthesis(
-                basis_gates,
-                approximation_degree=approximation_degree,
-                coupling_map=coupling_map,
-                plugin_config=unitary_synthesis_plugin_config,
-                method=unitary_synthesis_method,
-                target=target,
-            ),
-            HighLevelSynthesis(
-                hls_config=hls_config,
-                coupling_map=coupling_map,
-                target=target,
-                use_qubit_indices=True,
-                equivalence_library=sel,
-                basis_gates=basis_gates,
-                qubits_initially_zero=qubits_initially_zero,
-            ),
-            translator,
-        ]
-        fix_1q = [translator]
-    elif method == "synthesis":
-        unroll = [
-            # # Use unitary synthesis for basis aware decomposition of
             # UnitaryGates > 2q before collection
             UnitarySynthesis(
                 basis_gates,
@@ -521,9 +599,9 @@ def generate_translation_passmanager(
             HighLevelSynthesis(
                 hls_config=hls_config,
                 coupling_map=coupling_map,
-                target=target,
+                target=hls_target,
                 use_qubit_indices=True,
-                basis_gates=basis_gates,
+                basis_gates=extended_basis_gates,
                 min_qubits=3,
                 qubits_initially_zero=qubits_initially_zero,
             ),
@@ -531,7 +609,10 @@ def generate_translation_passmanager(
             Collect2qBlocks(),
             Collect1qRuns(),
             ConsolidateBlocks(
-                basis_gates=basis_gates, target=target, approximation_degree=approximation_degree
+                basis_gates=extended_basis_gates,
+                target=None,
+                approximation_degree=approximation_degree,
+                force_consolidate=True,
             ),
             UnitarySynthesis(
                 basis_gates=basis_gates,
@@ -540,6 +621,7 @@ def generate_translation_passmanager(
                 plugin_config=unitary_synthesis_plugin_config,
                 method=unitary_synthesis_method,
                 target=target,
+                fallback_on_default=True,
             ),
             HighLevelSynthesis(
                 hls_config=hls_config,

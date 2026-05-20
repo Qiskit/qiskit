@@ -17,6 +17,7 @@ import numpy as np
 
 from ddt import ddt, data
 
+from qiskit.compiler import transpile
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import (
     RZGate,
@@ -185,16 +186,21 @@ class TestRossSelingerPlugin(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.rx(1.0, 0)
 
-        unitary = Operator(circuit).data
-        plugin = RossSelingerSynthesis()
-
         epsilons = [1e-6, 1e-8, 1e-10]
         t_expected = [62, 81, 105]
 
         for eps, t_expect in zip(epsilons, t_expected):
             with self.subTest(eps=eps, t_expect=t_expect):
-                compiled_dag = plugin.run(unitary, method="gridsynth", config={"epsilon": eps})
-                t_count = compiled_dag.count_ops().get("t", 0)
+
+                compiled_dag = transpile(
+                    circuit,
+                    basis_gates=get_clifford_gate_names() + ["t", "tdg"],
+                    translation_method="synthesis",
+                    unitary_synthesis_method="gridsynth",
+                    unitary_synthesis_plugin_config={"epsilon": eps},
+                )
+                ops = compiled_dag.count_ops()
+                t_count = ops.get("t", 0) + ops.get("tdg", 0)
                 self.assertLessEqual(t_count, t_expect)
 
 

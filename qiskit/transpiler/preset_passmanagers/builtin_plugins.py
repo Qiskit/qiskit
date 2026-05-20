@@ -83,7 +83,10 @@ class DefaultInitPassManager(PassManagerStagePlugin):
     """Plugin class for default init stage."""
 
     def pass_manager(self, pass_manager_config, optimization_level=None):
-        optimization_metric = OptimizationMetric.COUNT_2Q
+        if pass_manager_config._is_clifford_t:
+            optimization_metric = OptimizationMetric.COUNT_T
+        else:
+            optimization_metric = OptimizationMetric.COUNT_2Q
 
         if optimization_level == 0:
             init = None
@@ -158,7 +161,11 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 ]
             )
             init.append(CommutativeCancellation())
-            init.append(ConsolidateBlocks())
+
+            # We do not want to consolidate blocks for a Clifford+T basis set,
+            # since this involves resynthesizing 2-qubit unitaries.
+            if not pass_manager_config._is_clifford_t:
+                init.append(ConsolidateBlocks())
 
             # If approximation degree is None that indicates a request to approximate up to the
             # error rates in the target. However, in the init stage we don't yet know the target
@@ -488,6 +495,11 @@ class OptimizationPassManager(PassManagerStagePlugin):
         """Build pass manager for optimization stage."""
 
         # Use the dedicated plugin for the Clifford+T basis when appropriate.
+        if pass_manager_config._is_clifford_t:
+            return OptimizeCliffordTPassManager().pass_manager(
+                pass_manager_config, optimization_level
+            )
+
         match optimization_level:
             case 0:
                 return None
@@ -1192,6 +1204,7 @@ class TranslateToCliffordTPassManager(PassManagerStagePlugin):
     """
 
     def pass_manager(self, pass_manager_config, optimization_level=None):
+        pass_manager_config.translation_method
         rz_to_t_translation = PassManager(
             [
                 SubstitutePi4Rotations(
