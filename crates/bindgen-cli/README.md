@@ -1,10 +1,10 @@
-# `qiskit-bindgen-c`
+# `qiskit-bindgen-cli`
 
 A toolkit binary for working with the generated header files from the C API.
 
 You can run this either by doing
 ```bash
-cargo run -p qiskit-bindgen-c
+cargo run -p qiskit-bindgen-cli
 ```
 
 Running the command without arguments will print out its help message, which explains what the
@@ -18,19 +18,29 @@ This is in a separate crate to avoid pulling in unnecessary dependencies to `bin
 Use the `install` subcommand, such as
 
 ```bash
-cargo run -p qiskit-bindgen-c -- install -c crates/cext -o dist/c/include
+cargo run -p qiskit-bindgen-cli -- install -c crates/cext -o dist/c/include
 ```
 
 The `-c` (`--cext-path`) argument specifies the location of the `cext` crate source tree for the
 internal calls to `cbindgen`.  The `-o` (`--output-path`) argument specifies where to place the
 files.
 
+
+## Produce the `qiskit-pyo3-ffi` crate for distribution
+
+Use the `generate-pyo3` subcommand, such as
+
+```bash
+cargo run -p qiskit-bindgen-cli -- generate-pyo3 -c crates/cext -o dist/rust/qiskit-pyo3-ffi
+```
+
+
 ## Linting the current vtable slots
 
 Use the `lint-slots` subcommand, such as
 
 ```bash
-cargo run -p qiskit-bindgen-c -- lint-slots -c crates/cext
+cargo run -p qiskit-bindgen-cli -- lint-slots -c crates/cext
 ```
 
 This checks various coherence properties between the declared `extern "C"` functions in
