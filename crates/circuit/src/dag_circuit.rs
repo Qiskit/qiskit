@@ -8130,7 +8130,9 @@ impl DAGCircuit {
             .copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep)
             .unwrap();
         let mut builder = new_dag.into_builder();
-        for node in petgraph::algo::toposort(&self.dag, None).unwrap() {
+        for node in
+            petgraph::algo::toposort(&self.dag, None).expect("DAGCircuit can't have a cycle")
+        {
             if let NodeType::Operation(ref inst) = self.dag[node] {
                 callback(&mut builder, inst)?;
             }

@@ -491,7 +491,8 @@ fn replace_node(
         });
     }
     if params_view.is_empty() {
-        for inner_index in toposort(target_dag.dag(), None).unwrap() {
+        for inner_index in toposort(target_dag.dag(), None).expect("DAGCircuit can't have a cycle")
+        {
             let NodeType::Operation(ref inner_node) = target_dag[inner_index] else {
                 continue;
             };
@@ -570,7 +571,8 @@ fn replace_node(
                     _ => None,
                 }),
         );
-        for inner_index in toposort(target_dag.dag(), None).unwrap() {
+        for inner_index in toposort(target_dag.dag(), None).expect("DAGCircuit can't have a cycle")
+        {
             let NodeType::Operation(ref inner_node) = target_dag[inner_index] else {
                 continue;
             };

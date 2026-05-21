@@ -475,7 +475,7 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
             new_dag.set_global_phase_f64(0.);
             let old_qubits = dag.qubits();
             let mut block_map = BlockMapper::new();
-            for index in toposort(dag.dag(), None).unwrap() {
+            for index in toposort(dag.dag(), None).expect("DAGCircuit can't have a cycle") {
                 let NodeType::Operation(ref node) = dag.dag()[index] else {
                     continue;
                 };
