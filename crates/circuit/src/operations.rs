@@ -2528,14 +2528,11 @@ mod test_custom_operations {
         let control_boxed: Box<dyn CustomOperation> = Box::new(Controlled);
 
         // Check if downcasting to the right type works
-        assert!(matches!(
-            measure_boxed.downcast_ref::<Measure2>(),
-            Some(&Measure2)
-        ));
-        assert!(matches!(
+        assert_eq!(measure_boxed.downcast_ref::<Measure2>(), Some(&Measure2));
+        assert_eq!(
             control_boxed.downcast_ref::<Controlled>(),
             Some(&Controlled)
-        ));
+        );
 
         // Check if downcasting to the wrong type doesn't work
         assert!(measure_boxed.downcast_ref::<Controlled>().is_none());
@@ -2552,7 +2549,11 @@ mod test_custom_operations {
             panic!("Matrix should exist");
         };
         // Compare matrices
-        assert!(approx::abs_diff_eq!(matrix, aview2(&rz_gate(PI / 4.0))));
+        assert!(approx::abs_diff_eq!(
+            matrix,
+            aview2(&rz_gate(PI / 4.0)),
+            epsilon = 1e-12
+        ));
 
         // Compare null case
         assert_eq!(labeled_rz.matrix(&[]), None,);
