@@ -2263,6 +2263,7 @@ dependencies = [
  "anyhow",
  "cbindgen",
  "hashbrown 0.15.5",
+ "qiskit-cext-vtable",
  "regex",
 ]
 
@@ -2372,7 +2373,12 @@ dependencies = [
 name = "qiskit-providers"
 version = "2.5.0-dev"
 dependencies = [
+ "approx",
  "hashbrown 0.15.5",
+ "ndarray",
+ "num-complex",
+ "rustworkx-core",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
@@ -2404,7 +2410,6 @@ dependencies = [
  "hashbrown 0.15.5",
  "num-bigint",
  "pyo3",
- "qiskit-circuit",
 ]
 
 [[package]]
@@ -2436,7 +2441,6 @@ dependencies = [
  "num-complex",
  "num-traits",
  "numpy",
- "oq3_semantics",
  "pyo3",
  "qiskit-circuit",
  "qiskit-quantum-info",
