@@ -18,9 +18,25 @@ Circuit Library (:mod:`qiskit.circuit.library`)
 
 .. currentmodule:: qiskit.circuit.library
 
-The circuit library is a collection of valuable circuits and building blocks. We call these valuable
-for different reasons. For instance, they can be used as building blocks for algorithms, serve as
-benchmarks, or they are circuits conjectured to be difficult to simulate classically.
+The circuit library is a collection of quantum circuits that serve as algorithmic building blocks,
+benchmarking tools, and examples that are conjectured to be hard to simulate classically.
+The goal is to provide circuits that are well-defined, widely applicable, and easy to reuse across
+different workflows.
+
+The criteria for a circuit in the library are:
+
+Well-defined
+   The circuit has a clear structure or a mathematical action, supported by a paper or
+   reference.
+
+Widely used and relevant
+   The circuit is a canonical or best-known choice for a well-defined task, is a standard reference
+   or common baseline, or is historically foundational to a substantial subfield of quantum
+   computing.
+
+Standalone
+   The circuit is self-contained, meaning it can be generated efficiently without new
+   external dependencies.
 
 Elements in the circuit library are either :class:`.QuantumCircuit`\ s or
 :class:`~.circuit.Instruction`\ s, allowing them to be easily investigated or plugged into other
@@ -125,7 +141,6 @@ Structural operations
 
       ansatz = real_amplitudes(5, entanglement="pairwise")
       ansatz.draw("mpl")
-
 
 .. _standard-gates:
 

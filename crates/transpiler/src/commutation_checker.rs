@@ -16,7 +16,6 @@ use ndarray::linalg::kron;
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
 use qiskit_circuit::object_registry::PyObjectAsKey;
-use qiskit_circuit::operations::PauliProductMeasurement;
 use qiskit_circuit::standard_gate::standard_generators::standard_gate_exponent;
 use qiskit_quantum_info::sparse_observable::{PySparseObservable, SparseObservable};
 use smallvec::SmallVec;
@@ -227,18 +226,6 @@ fn try_extract_op_from_ppm(
     Some(out.compose_map(&local, |i| qubits[i as usize].0))
 }
 
-/// Given a pauli product measurement, returns its generator (represented as a sparse observable)
-/// and the sign (representing the pauli phase).
-fn observable_generator_from_ppm(
-    ppm: &PauliProductMeasurement,
-    qubits: &[Qubit],
-    num_qubits: u32,
-) -> (SparseObservable, bool) {
-    let local = xz_to_observable(&ppm.x, &ppm.z);
-    let out = SparseObservable::identity(num_qubits);
-    (out.compose_map(&local, |i| qubits[i as usize].0), ppm.neg)
-}
-
 fn try_extract_op_from_ppr(
     operation: &OperationRef,
     qubits: &[Qubit],
@@ -253,7 +240,8 @@ fn try_extract_op_from_ppr(
     Some(out.compose_map(&local, |i| qubits[i as usize].0))
 }
 
-fn try_pauli_generator(
+/// Attempt to extract generator of a Pauli-based gate in the form of a sparse observable.
+fn try_sparse_observable_generator_for_pauli_based(
     operation: &OperationRef,
     qubits: &[Qubit],
     num_qubits: u32,
@@ -267,7 +255,8 @@ fn try_pauli_generator(
     }
 }
 
-fn try_standard_gate_generator(
+/// Attemp to extract generator of a standard gate in the form of a sparse observable.
+fn try_sparse_observable_generator_for_standard_gate(
     operation: &OperationRef,
     params: &[Param],
     qubits: &[Qubit],
@@ -280,6 +269,18 @@ fn try_standard_gate_generator(
         }
     }
     None
+}
+
+/// Attempt to extract generator of a Pauli-based gate in the form of a single Pauli.
+/// When successful, return the generator in the (Z, X) form.
+pub fn try_pauli_generator_for_pauli_based<'a>(
+    operation: &'a OperationRef,
+) -> Option<(&'a Vec<bool>, &'a Vec<bool>)> {
+    match operation {
+        OperationRef::PauliProductRotation(ppr) => Some((&ppr.z, &ppr.x)),
+        OperationRef::PauliProductMeasurement(ppm) => Some((&ppm.z, &ppm.x)),
+        _ => None,
+    }
 }
 
 fn get_bits_from_py<T>(
@@ -333,7 +334,7 @@ impl CommutationChecker {
 
     #[pyo3(signature=(op1, op2, max_num_qubits=None, approximation_degree=1., matrix_max_num_qubits=3))]
     fn commute_nodes(
-        &mut self,
+        &self,
         py: Python,
         op1: &DAGOpNode,
         op2: &DAGOpNode,
@@ -432,7 +433,7 @@ impl CommutationChecker {
 
     #[allow(clippy::too_many_arguments)]
     pub fn commute<T>(
-        &mut self,
+        &self,
         op1: &OperationRef,
         params1: Option<&Parameters<T>>,
         qargs1: &[Qubit],
@@ -511,35 +512,86 @@ impl CommutationChecker {
 
         // Special handling for commutativity of two pauli product measurements in the case they write to
         // the same classical bit. In this case, it's generally incorrect to interchange them, so we only
-        // do this if they have the same generators (represented as sparse observables + signs).
+        // do this if they have the same pauli generators.
         if let (
             OperationRef::PauliProductMeasurement(ppm1),
             OperationRef::PauliProductMeasurement(ppm2),
         ) = (op1, op2)
         {
             if cargs1 == cargs2 {
-                let size = qargs1.iter().chain(qargs2.iter()).max().unwrap().0 + 1;
-                let pauli1 = observable_generator_from_ppm(ppm1, qargs1, size);
-                let pauli2 = observable_generator_from_ppm(ppm2, qargs2, size);
-                return Ok(pauli1 == pauli2);
+                if (ppm1.neg != ppm2.neg) || (qargs1.len() != qargs2.len()) {
+                    return Ok(false);
+                }
+                // Mark all qubit indices in qargs1
+                let qarg_map = qargs1
+                    .iter()
+                    .enumerate()
+                    .map(|(i, q)| (q.index(), i))
+                    .collect::<HashMap<_, _>>();
+                // Check that every qubit index in qargs2 is marked and has the same z,x values.
+                for (j, &q) in qargs2.iter().enumerate() {
+                    let Some(&i) = qarg_map.get(&q.index()) else {
+                        return Ok(false);
+                    };
+                    if i == usize::MAX {
+                        return Ok(false);
+                    }
+                    if ppm1.z[i] != ppm2.z[j] || ppm1.x[i] != ppm2.x[j] {
+                        return Ok(false);
+                    }
+                }
+                return Ok(true);
             }
+        }
+
+        // Sort the arguments, such that `op2` always is the larger one.
+        let reversed = (op1.num_qubits(), op1.name().len(), op1.name())
+            > (op2.num_qubits(), op2.name().len(), op2.name());
+
+        let (op1, op2, params1, params2, qargs1, qargs2) = if reversed {
+            (op2, op1, params2, params1, qargs2, qargs1)
+        } else {
+            (op1, op2, params1, params2, qargs1, qargs2)
+        };
+
+        // Handle commutations using Pauli-based generators.
+        if let (Some((z1, x1)), Some((z2, x2))) = (
+            try_pauli_generator_for_pauli_based(op1),
+            try_pauli_generator_for_pauli_based(op2),
+        ) {
+            let qarg_map = qargs1
+                .iter()
+                .enumerate()
+                .map(|(i, q)| (q.index(), i))
+                .collect::<HashMap<_, _>>();
+            let mut parity = false;
+            for (j, &q) in qargs2.iter().enumerate() {
+                if let Some(&i) = qarg_map.get(&q.index()) {
+                    parity ^= (x1[i] && z2[j]) ^ (z1[i] && x2[j]);
+                }
+            }
+            return Ok(!parity);
         }
 
         // Handle commutations between Pauli-based gates among themselves, and with standard gates
         // TODO Support trivial commutations of standard gates with identities in the Paulis
         let size = qargs1.iter().chain(qargs2.iter()).max().unwrap().0 + 1;
-        let maybe_pauli1 = try_pauli_generator(op1, qargs1, size);
-        let maybe_pauli2 = try_pauli_generator(op2, qargs2, size);
+        let maybe_pauli1 = try_sparse_observable_generator_for_pauli_based(op1, qargs1, size);
+        let maybe_pauli2 = try_sparse_observable_generator_for_pauli_based(op2, qargs2, size);
 
         match (maybe_pauli1, maybe_pauli2) {
             (None, None) => (), // No gate is Pauli-based, continue
             (None, Some(pauli2)) => {
-                if let Some(pauli1) = try_standard_gate_generator(op1, params1, qargs1, size) {
+                if let Some(pauli1) =
+                    try_sparse_observable_generator_for_standard_gate(op1, params1, qargs1, size)
+                {
                     return Ok(pauli1.commutes(&pauli2, tol));
                 }
             }
             (Some(pauli1), None) => {
-                if let Some(pauli2) = try_standard_gate_generator(op2, params2, qargs2, size) {
+                if let Some(pauli2) =
+                    try_sparse_observable_generator_for_standard_gate(op2, params2, qargs2, size)
+                {
                     return Ok(pauli1.commutes(&pauli2, tol));
                 }
             }
@@ -551,47 +603,21 @@ impl CommutationChecker {
             return Ok(false);
         }
 
-        // Sort the arguments, such that `second_op` always is the larger one.
-        let reversed = if op1.num_qubits() != op2.num_qubits() {
-            op1.num_qubits() > op2.num_qubits()
-        } else {
-            (op1.name().len(), op1.name()) >= (op2.name().len(), op2.name())
-        };
-        let (first_params, second_params) = if reversed {
-            (params2, params1)
-        } else {
-            (params1, params2)
-        };
-        let (first_op, second_op) = if reversed { (op2, op1) } else { (op1, op2) };
-        let (first_qargs, second_qargs) = if reversed {
-            (qargs2, qargs1)
-        } else {
-            (qargs1, qargs2)
-        };
-
         // Query commutation library
-        let relative_placement = get_relative_placement(first_qargs, second_qargs);
+        let relative_placement = get_relative_placement(qargs1, qargs2);
         if let Some(is_commuting) =
             self.library
-                .check_commutation_entries(first_op, second_op, &relative_placement)
+                .check_commutation_entries(op1, op2, &relative_placement)
         {
             return Ok(is_commuting);
         }
 
-        if second_qargs.len() > matrix_max_num_qubits as usize {
+        if qargs2.len() > matrix_max_num_qubits as usize {
             return Ok(false);
         }
 
         // Perform matrix multiplication to determine commutation
-        let is_commuting = self.commute_matmul(
-            first_op,
-            first_params,
-            first_qargs,
-            second_op,
-            second_params,
-            second_qargs,
-            tol,
-        )?;
+        let is_commuting = self.commute_matmul(op1, params1, qargs1, op2, params2, qargs2, tol)?;
 
         Ok(is_commuting)
     }
@@ -775,6 +801,7 @@ pub fn try_matrix_with_definition(
 ) -> Option<Array2<Complex64>> {
     match operation {
         OperationRef::StandardGate(gate) => gate.matrix(params),
+        OperationRef::PauliProductRotation(ppr) => ppr.matrix(),
         OperationRef::Unitary(unitary) => unitary.matrix(),
         OperationRef::Gate(gate) => Python::attach(|py| -> Option<_> {
             if let Some(matrix) = gate.matrix() {

@@ -14,7 +14,7 @@ use std::cmp::Ordering;
 use std::hash::Hash;
 use std::sync::Arc;
 
-use ahash::RandomState;
+use foldhash::fast::RandomState;
 use smallvec::SmallVec;
 
 use crate::bit::{
@@ -672,13 +672,13 @@ impl DAGCircuit {
             RegisterData::from_mapping(dict_state.get_item("qregs")?.unwrap().extract::<IndexMap<
                 String,
                 QuantumRegister,
-                ::ahash::RandomState,
+                ::foldhash::fast::RandomState,
             >>()?);
         self.cregs =
             RegisterData::from_mapping(dict_state.get_item("cregs")?.unwrap().extract::<IndexMap<
                 String,
                 ClassicalRegister,
-                ::ahash::RandomState,
+                ::foldhash::fast::RandomState,
             >>()?);
         self.global_phase = dict_state.get_item("global_phase")?.unwrap().extract()?;
         self.op_names = dict_state.get_item("op_name")?.unwrap().extract()?;
@@ -914,15 +914,8 @@ impl DAGCircuit {
     /// Args:
     ///     angle (float, :class:`.ParameterExpression`): The phase angle.
     #[setter(global_phase)]
-    pub fn set_global_phase_param(&mut self, angle: Param) -> PyResult<()> {
-        match angle {
-            Param::Float(angle) => self.set_global_phase_f64(angle),
-            Param::ParameterExpression(angle) => {
-                self.global_phase = Param::ParameterExpression(angle);
-            }
-            Param::Obj(_) => return Err(PyTypeError::new_err("Invalid type for global phase")),
-        }
-        Ok(())
+    pub fn set_global_phase(&mut self, angle: Param) -> PyResult<()> {
+        self.set_global_phase_param(angle).map(|_| ())
     }
 
     /// Remove all operation nodes with the given name.
@@ -1554,14 +1547,17 @@ impl DAGCircuit {
                     .map(|s| s.extract())
                     .collect::<PyResult<HashSet<String>>>()?;
                 for wire in wires {
-                    let nodes_found = self.nodes_on_wire(wire, true).into_iter().any(|node| {
-                        let weight = self.dag.node_weight(node).unwrap();
-                        if let NodeType::Operation(packed) = weight {
-                            !ignore_set.contains(packed.op.name())
-                        } else {
-                            false
-                        }
-                    });
+                    let nodes_found = self
+                        .nodes_on_wire(wire)
+                        .filter(|node| matches!(self.dag[*node], NodeType::Operation(_)))
+                        .any(|node| {
+                            let weight = self.dag.node_weight(node).unwrap();
+                            if let NodeType::Operation(packed) = weight {
+                                !ignore_set.contains(packed.op.name())
+                            } else {
+                                false
+                            }
+                        });
 
                     if !nodes_found {
                         result.push(match wire {
@@ -4167,8 +4163,8 @@ impl DAGCircuit {
         })?;
 
         let nodes = self
-            .nodes_on_wire(wire, only_ops)
-            .into_iter()
+            .nodes_on_wire(wire)
+            .filter(|node| !only_ops || matches!(self.dag[*node], NodeType::Operation(_)))
             .map(|n| self.get_node(py, n))
             .collect::<PyResult<Vec<_>>>()?;
         Ok(PyTuple::new(py, nodes)?.into_any().try_iter()?.unbind())
@@ -5813,7 +5809,7 @@ impl DAGCircuit {
         };
         // Put the new node in-between the previously "last" nodes on each wire
         // and the terminal map.
-        let termini: IndexSet<NodeIndex, ::ahash::RandomState> = self
+        let termini: IndexSet<NodeIndex, ::foldhash::fast::RandomState> = self
             .qargs_interner
             .get(qubits_id)
             .iter()
@@ -5869,7 +5865,7 @@ impl DAGCircuit {
     ) -> PyResult<(Vec<Clbit>, Option<Vec<Var>>)> {
         let (all_clbits, vars): (Vec<Clbit>, Option<Vec<Var>>) = {
             if self.may_have_additional_wires(instr) {
-                let mut clbits: IndexSet<Clbit, ::ahash::RandomState> =
+                let mut clbits: IndexSet<Clbit, ::foldhash::fast::RandomState> =
                     IndexSet::from_iter(self.cargs_interner.get(instr.clbits).iter().copied());
                 let (additional_clbits, additional_vars) =
                     Python::attach(|py| self.additional_wires(py, instr))?;
@@ -6230,41 +6226,46 @@ impl DAGCircuit {
         Ok((in_node, out_node))
     }
 
-    /// Set the global phase to a float value.
+    /// Set the global phase to a float value.  Returns the old phase.
     ///
     /// Unlike the general [set_global_phase_param], this is infallible.
     #[inline]
-    pub fn set_global_phase_f64(&mut self, angle: f64) {
-        self.global_phase = Param::Float(angle.rem_euclid(::std::f64::consts::TAU));
+    pub fn set_global_phase_f64(&mut self, angle: f64) -> Param {
+        std::mem::replace(
+            &mut self.global_phase,
+            Param::Float(angle.rem_euclid(::std::f64::consts::TAU)),
+        )
     }
 
-    /// Get the nodes on the given wire.
+    /// Set the global phase to a general [Param].  Returns the old phase.
     ///
-    /// Note: result is empty if the wire is not in the DAG.
-    pub fn nodes_on_wire(&self, wire: Wire, only_ops: bool) -> Vec<NodeIndex> {
-        let mut nodes = Vec::new();
-        let mut current_node = match wire {
-            Wire::Qubit(qubit) => self.qubit_io_map.get(qubit.index()).map(|x| x[0]),
-            Wire::Clbit(clbit) => self.clbit_io_map.get(clbit.index()).map(|x| x[0]),
-            Wire::Var(var) => self.var_io_map.get(var.index()).map(|x| x[0]),
-        };
-
-        while let Some(node) = current_node {
-            if only_ops {
-                let node_weight = self.dag.node_weight(node).unwrap();
-                if let NodeType::Operation(_) = node_weight {
-                    nodes.push(node);
-                }
-            } else {
-                nodes.push(node);
-            }
-
-            let edges = self.dag.edges_directed(node, Outgoing);
-            current_node = edges
-                .into_iter()
-                .find_map(|edge| (*edge.weight() == wire).then_some(edge.target()));
+    /// Unlike the general [set_global_phase_param], this is infallible.
+    #[inline]
+    pub fn set_global_phase_param(&mut self, angle: Param) -> PyResult<Param> {
+        match angle {
+            Param::Float(angle) => Ok(self.set_global_phase_f64(angle)),
+            Param::ParameterExpression(angle) => Ok(std::mem::replace(
+                &mut self.global_phase,
+                Param::ParameterExpression(angle),
+            )),
+            Param::Obj(_) => Err(PyTypeError::new_err("Invalid type for global phase")),
         }
-        nodes
+    }
+
+    /// Get the nodes on a given wire as a non-allocating iterator
+    ///
+    /// This will panic if the wire is not in the circuit
+    pub fn nodes_on_wire(&self, wire: Wire) -> impl Iterator<Item = NodeIndex> {
+        let start_node = match wire {
+            Wire::Qubit(qubit) => self.qubit_io_map[qubit.index()][0],
+            Wire::Clbit(clbit) => self.clbit_io_map[clbit.index()][0],
+            Wire::Var(var) => self.var_io_map[var.index()][0],
+        };
+        NodesOnWireIter {
+            dag: self,
+            wire,
+            next_node: Some(start_node),
+        }
     }
 
     fn remove_idle_wire(&mut self, wire: Wire) {
@@ -6391,8 +6392,7 @@ impl DAGCircuit {
                         op_node
                             .instruction
                             .qubits
-                            .extract::<Vec<ShareableQubit>>(py)?
-                            .into_iter(),
+                            .extract::<Vec<ShareableQubit>>(py)?,
                     )?
                     .collect(),
             );
@@ -6402,8 +6402,7 @@ impl DAGCircuit {
                         op_node
                             .instruction
                             .clbits
-                            .extract::<Vec<ShareableClbit>>(py)?
-                            .into_iter(),
+                            .extract::<Vec<ShareableClbit>>(py)?,
                     )?
                     .collect(),
             );
@@ -7300,14 +7299,13 @@ impl DAGCircuit {
 
     pub fn add_global_phase(&mut self, value: &Param) -> PyResult<()> {
         match value {
-            Param::Obj(_) => {
-                return Err(PyTypeError::new_err(
-                    "Invalid parameter type, only float and parameter expression are supported",
-                ));
-            }
-            _ => self.set_global_phase_param(add_global_phase(&self.global_phase, value))?,
+            Param::Obj(_) => Err(PyTypeError::new_err(
+                "Invalid parameter type, only float and parameter expression are supported",
+            )),
+            _ => self
+                .set_global_phase_param(add_global_phase(&self.global_phase, value))
+                .map(|_| ()),
         }
-        Ok(())
     }
 
     /// Return the op name counts in the circuit
@@ -8114,6 +8112,45 @@ impl DAGCircuit {
             self.add_wire(Wire::Var(Var::new(var_idx)))?;
         }
         Ok(())
+    }
+}
+
+struct NodesOnWireIter<'a> {
+    dag: &'a DAGCircuit,
+    wire: Wire,
+    next_node: Option<NodeIndex>,
+}
+
+impl<'a> Iterator for NodesOnWireIter<'a> {
+    type Item = NodeIndex;
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        match self.next_node.map(|n| &self.dag[n]) {
+            // If the wire is empty there are the input and output nodes which is the minimum
+            // If the dag is all on a single wire we would have all the operations + the 2 io
+            // nodes.
+            Some(NodeType::QubitIn(_) | NodeType::ClbitIn(_) | NodeType::VarIn(_)) => {
+                (2, Some(self.dag.num_ops() + 2))
+            }
+            // If the iterator is on the output node for the next there is only 1 node left
+            Some(NodeType::QubitOut(_) | NodeType::ClbitOut(_) | NodeType::VarOut(_)) => {
+                (1, Some(1))
+            }
+            // If there is an operation the minimum is 2 for the operation and then the output node
+            // while the maximum is num_ops + 1 if the next node is the first operation node and all
+            // the nodes are on a single wire + the output node
+            Some(NodeType::Operation(_)) => (2, Some(self.dag.num_ops() + 1)),
+            // If next is none we've finished iterating.
+            None => (0, Some(0)),
+        }
+    }
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let out_node = self.next_node?;
+        self.next_node = self.dag.dag.edges_directed(out_node, Outgoing).find_map(
+            |e: EdgeReference<'a, Wire>| (e.weight() == &self.wire).then_some(e.target()),
+        );
+        Some(out_node)
     }
 }
 
