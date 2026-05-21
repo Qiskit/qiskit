@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-function-docstring
-
 """
 Tests for the TwoQubitPeepholeOptimization transpiler pass.
 """
@@ -63,9 +61,9 @@ from qiskit.circuit import Measure
 from qiskit.circuit.controlflow import IfElseOp
 from qiskit.circuit import Parameter, Gate
 
-from test import combine  # pylint: disable=wrong-import-order
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
-from test.python.providers.fake_mumbai_v2 import (  # pylint: disable=wrong-import-order
+from test import combine
+from test import QiskitTestCase
+from test.python.providers.fake_mumbai_v2 import (
     FakeMumbaiFractionalCX,
 )
 from ..legacy_cmaps import YORKTOWN_CMAP
