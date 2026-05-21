@@ -29,13 +29,31 @@ class ParameterVector:
     index.
 
     This class fulfills the :class:`collections.abc.Sequence` interface.
+
+    .. note::
+        This class does not implement regular equality, but has historically been allowed to be used
+        as a dictionary key for :meth:`.QuantumCircuit.assign_parameters`.  The class is mutable via
+        :meth:`resize`, so it generally cannot implement regular equality; for two
+        :class:`.ParameterVector` objects to compare equal, they must be literally the same Python
+        instance.
+
+        This restriction does not apply to the individual :class:`.ParameterVectorElement`
+        instances; these must only match on name, index and UUID.
     """
 
     __slots__ = ("_name", "_params", "_root_uuid")
 
-    def __init__(self, name, length=0):
+    def __init__(self, name: str, length: int = 0, uuid: UUID | None = None):
+        """
+        Args:
+            name: the base name of the vector
+            length: the number of elements in the vector
+            uuid: (optional) the root UUID to use for the vector.  This can be used to create a new
+                vector whose elements will compare equal to a previous vector (such as in a
+                deserialization process).
+        """
         self._name = name
-        self._root_uuid = uuid4()
+        self._root_uuid = uuid or uuid4()
         root_uuid_int = self._root_uuid.int
         self._params = [
             ParameterVectorElement(self, i, UUID(int=root_uuid_int + i)) for i in range(length)
@@ -52,6 +70,11 @@ class ParameterVector:
 
         It is not safe to mutate this list."""
         return self._params
+
+    @property
+    def uuid(self) -> UUID:
+        """Get the root UUID of this vector."""
+        return self._root_uuid
 
     def index(self, value):
         """Find the index of a :class:`ParameterVectorElement` within the list.
