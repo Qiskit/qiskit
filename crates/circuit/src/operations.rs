@@ -181,8 +181,7 @@ impl Param {
                     if coerce_to_float {
                         Ok(Self::Float(i as f64)) // coerce integer to float
                     } else {
-                        // Int is not a param type and only comes from Python so dump it in
-                        // there until we support DT unit delay from C
+                        // Int is not a `Param` variant; store as a Python object.
                         Python::attach(|py| Ok(Self::Obj(i.into_py_any(py)?)))
                     }
                 }

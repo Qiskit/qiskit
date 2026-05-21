@@ -1909,6 +1909,8 @@ pub enum CDelayUnit {
     NS = 3,
     /// Picoseconds.
     PS = 4,
+    /// QPU clock cycles.
+    DT = 5,
 }
 
 impl From<CDelayUnit> for DelayUnit {
@@ -1919,6 +1921,7 @@ impl From<CDelayUnit> for DelayUnit {
             CDelayUnit::US => DelayUnit::US,
             CDelayUnit::NS => DelayUnit::NS,
             CDelayUnit::PS => DelayUnit::PS,
+            CDelayUnit::DT => DelayUnit::DT,
         }
     }
 }
@@ -1956,6 +1959,46 @@ pub unsafe extern "C" fn qk_circuit_delay(
 
     let duration_param: Param = duration.into();
     let delay_instruction = StandardInstruction::Delay(delay_unit_variant);
+
+    let params = Parameters::Params(smallvec![duration_param]);
+    circuit
+        .push_packed_operation(
+            PackedOperation::from_standard_instruction(delay_instruction),
+            Some(params),
+            &[Qubit(qubit)],
+            &[],
+        )
+        .unwrap();
+
+    ExitCode::Success
+}
+
+/// @ingroup QkCircuit
+/// Append a delay instruction with unit ``dt`` to the circuit.
+///
+/// The duration is stored internally as a floating-point value; values larger
+/// than ``2^53`` lose precision.
+///
+/// @param circuit A pointer to the circuit to add the delay to.
+/// @param qubit The ``uint32_t`` index of the qubit to apply the delay to.
+/// @param duration The duration of the delay in clock cycles.
+///
+/// @return An exit code.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_delay_dt(
+    circuit: *mut CircuitData,
+    qubit: u32,
+    duration: u64,
+) -> ExitCode {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+
+    let duration_param: Param = (duration as f64).into();
+    let delay_instruction = StandardInstruction::Delay(DelayUnit::DT);
 
     let params = Parameters::Params(smallvec![duration_param]);
     circuit

@@ -12,6 +12,7 @@
 
 
 """Test delay instruction for quantum circuits."""
+
 import copy
 import pickle
 
@@ -39,6 +40,13 @@ class TestDelayClass(QiskitTestCase):
         self.assertEqual(qc.data[2].operation.unit, "s")
         self.assertEqual(qc.data[3].operation.unit, "ns")
         self.assertEqual(qc.data[4].operation.unit, "dt")
+
+    def test_dt_duration_stays_int_after_circuit_roundtrip(self):
+        qc = QuantumCircuit(1)
+        qc.delay(100, 0, unit="dt")
+        duration = qc.data[0].operation.duration
+        self.assertIsInstance(duration, int)
+        self.assertEqual(duration, 100)
 
     def test_fail_if_non_integer_duration_with_dt_unit_is_supplied(self):
         qc = QuantumCircuit(1)

@@ -1023,14 +1023,11 @@ pub fn extract_params<T: CircuitBlock>(
             match &i {
                 StandardInstruction::Barrier(_) => None,
                 StandardInstruction::Delay(_) => {
-                    // If the delay's duration is a Python int, we preserve it rather than
-                    // coercing it to a float (e.g. when unit is 'dt').
-                    Some(Parameters::Params(
-                        params
-                            .try_iter()?
-                            .map(|p| Param::extract_no_coerce(p?.as_borrowed()))
-                            .collect::<PyResult<_>>()?,
-                    ))
+                    // Coerce the duration to `Param::Float`. Python `int` durations (used for
+                    // the 'dt' unit) round-trip back to `int` on the Python side via
+                    // `Delay.validate_parameter`.
+                    let params: SmallVec<[Param; 3]> = params.extract()?;
+                    Some(Parameters::Params(params))
                 }
                 StandardInstruction::Measure => None,
                 StandardInstruction::Reset => None,

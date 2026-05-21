@@ -1,0 +1,13 @@
+---
+features_c:
+  - |
+    Added support for ``dt``-unit delays to the C API. The ``QkDelayUnit`` enum
+    now includes ``QkDelayUnit_DT``, and a new function
+    ``qk_circuit_delay_dt(circuit, qubit, duration)`` constructs a delay whose
+    duration is given in integer clock cycles (``uint64_t``).
+fixes:
+  - |
+    Fixed a crash where reading a ``QkCircuit`` containing a ``Delay`` with
+    unit ``"dt"`` (built from Python) via the C API would panic. The integer
+    duration is now stored as a floating-point value internally, so the
+    instruction is readable by the C-API instruction-readback path.

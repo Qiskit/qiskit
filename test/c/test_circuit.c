@@ -1153,6 +1153,28 @@ static int test_delay_instruction(void) {
         goto cleanup;
     }
 
+    QkExitCode delay_dt_code = qk_circuit_delay_dt(qc, 1, 100);
+    if (delay_dt_code != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    // Read back the dt-delay and verify the duration.
+    QkCircuitInstruction inst;
+    qk_circuit_get_instruction(qc, 1, &inst);
+    if (inst.num_params != 1) {
+        printf("Expected 1 parameter in dt-delay, got %u\n", inst.num_params);
+        result = EqualityError;
+        qk_circuit_instruction_clear(&inst);
+        goto cleanup;
+    }
+    double duration = qk_param_as_real(inst.params[0]);
+    if (fabs(duration - 100.0) > 1e-10) {
+        printf("Unexpected dt-delay duration: %f\n", duration);
+        result = EqualityError;
+    }
+    qk_circuit_instruction_clear(&inst);
+
 cleanup:
     qk_circuit_free(qc);
     return result;
