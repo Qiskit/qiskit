@@ -14,12 +14,13 @@ use num_complex::ComplexFloat;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use qiskit_circuit::bit::ShareableQubit;
+use qiskit_circuit::dag_circuit::NodeIndex;
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, PI};
 
 use crate::gate_metrics::rotation_trace_and_dim;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 
@@ -1095,37 +1096,31 @@ pub fn py_run_substitute_pi4_rotations(
     let tol = MINIMUM_TOL.max(1.0 - approximation_degree);
     let mut global_phase_update: f64 = 0.;
 
-    // We collect into a Vec here since we need to iterate over the node_indices while modifying
-    // the DAG. So we can't keep a const ref (in dag.op_nodes()) while borrowing mutable later.
-    let nodes = dag.op_node_indices(false).collect::<Vec<_>>();
-    for node_index in nodes {
-        let NodeType::Operation(inst) = &dag[node_index] else {
-            unreachable!();
-        };
-        let gate = if let OperationRef::StandardGate(gate) = inst.op.view() {
-            gate
-        } else {
-            continue;
-        };
+    // We first collect all nodes that need changing and store their pi/4 multiple. Then
+    // we iterate over the DAG to apply these changes.
+    let nodes_to_replace: Vec<(NodeIndex, StandardGate, usize)> = dag
+        .op_nodes(false)
+        .filter_map(|(node_index, inst)| {
+            let OperationRef::StandardGate(gate) = inst.op.view() else {
+                return None;
+            };
 
-        if gate.num_params() != 1 {
-            continue;
-        }
+            if gate.num_params() != 1 {
+                return None;
+            };
 
-        let angle = if let Param::Float(angle) = inst.params_view()[0] {
-            angle
-        } else {
-            continue;
-        };
+            let Param::Float(angle) = inst.params_view()[0] else {
+                return None;
+            };
 
-        let k = rotation_to_pi_div(gate);
-        let num_qubits = gate.num_qubits();
+            let k = rotation_to_pi_div(gate);
+            let multiple = is_angle_close_to_multiple_of_pi_k(gate, k, angle, tol)?;
+            Some((node_index, gate, multiple))
+        })
+        .collect();
 
-        let Some(multiple) = is_angle_close_to_multiple_of_pi_k(gate, k, angle, tol) else {
-            continue;
-        };
-
-        match num_qubits {
+    for (node_index, gate, multiple) in nodes_to_replace {
+        match gate.num_qubits() {
             1 => {
                 let (sequence, phase_update) = replace_1q_rotation_by_discrete(gate, multiple);
                 let num_gates = sequence.len();
