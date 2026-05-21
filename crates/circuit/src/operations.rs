@@ -2598,7 +2598,7 @@ mod test_custom_operations {
         let ops: [&dyn CustomOperation; 5] = [&h, &rz, &reversible, &meas, &opaque];
         let params: [_; 5] = [
             None,
-            Some(Parameters::Params(smallvec![Param::from(3.14)])),
+            Some(Parameters::Params(smallvec![Param::from(PI)])),
             None,
             None,
             None,
