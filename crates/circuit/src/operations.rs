@@ -1904,12 +1904,8 @@ mod custom_traits {
 ///       - [`CustomOperation::is_controlled_gate`]
 /// - [`false`]: For non-unitary instruction.
 ///
-/// This trait has an implicit requirement to [`PartialEq`] to allow for comparison
-/// between opaque gates.
-///
-/// Implementors must also define [`CustomOperation::clone_dyn`] as a way to clone the
-/// original object using its implementation of [Clone] once it is dynamically
-/// dispatched.
+/// This trait has an implicit requirement to [`PartialEq`] and [`Clone`] to allow for
+/// comparison between opaque gates and dynamic cloning.
 pub trait CustomOperation:
     Operation + Any + Debug + Send + Sync + ComparableOp + ClonableOp
 {
