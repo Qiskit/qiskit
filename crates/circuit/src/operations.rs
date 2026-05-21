@@ -2069,15 +2069,18 @@ mod test {
 }
 
 #[cfg(test)]
-mod test_custom_gates {
-    use crate::Qubit;
+mod test_custom_operations {
     use crate::circuit_data::CircuitData;
-    use crate::gate_matrix::H_GATE;
+    use crate::gate_matrix::{H_GATE, rz_gate};
+    use crate::instruction::Parameters;
     use crate::operations::{CustomOperation, Operation, OperationRef, Param, StandardGate};
+    use crate::packed_instruction::PackedOperation;
+    use crate::{Clbit, Qubit};
     use ndarray::aview2;
     use smallvec::smallvec;
     use std::f64::consts::PI;
 
+    /// HGate-like implementor
     #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
     struct CustomH;
     impl Operation for CustomH {
@@ -2121,6 +2124,220 @@ mod test_custom_gates {
         }
     }
 
+    /// Parameterized Z gate
+    #[derive(Debug, Clone, PartialEq, Default)]
+    struct ParametrizedAndLabeled {
+        label: Option<String>,
+    }
+
+    impl ParametrizedAndLabeled {
+        pub fn new<T: Into<String>>(label: Option<T>) -> Self {
+            Self {
+                label: label.map(Into::into),
+            }
+        }
+    }
+
+    impl Operation for ParametrizedAndLabeled {
+        fn name(&self) -> &str {
+            "custom_rz"
+        }
+
+        fn num_qubits(&self) -> u32 {
+            1
+        }
+
+        fn num_clbits(&self) -> u32 {
+            0
+        }
+
+        fn num_params(&self) -> u32 {
+            1
+        }
+
+        fn directive(&self) -> bool {
+            false
+        }
+    }
+
+    impl CustomOperation for ParametrizedAndLabeled {
+        fn is_unitary(&self) -> bool {
+            true
+        }
+
+        fn matrix(&self, params: &[Param]) -> Option<ndarray::Array2<numpy::Complex64>> {
+            match params {
+                [Param::Float(theta)] => Some(aview2(&rz_gate(*theta)).to_owned()),
+                _ => None,
+            }
+        }
+
+        fn definition(&self, params: &[Param]) -> Option<CircuitData> {
+            match params {
+                [Param::Float(theta)] => CircuitData::from_standard_gates(
+                    1,
+                    [(
+                        StandardGate::RZ,
+                        smallvec![(*theta).into()],
+                        smallvec![Qubit(0)],
+                    )],
+                    0.0.into(),
+                )
+                .ok(),
+                _ => None,
+            }
+        }
+
+        fn label(&self) -> Option<&str> {
+            self.label.as_deref()
+        }
+    }
+
+    /// Custom controlled gate
+    #[derive(Debug, Copy, Clone, PartialEq)]
+    struct Controlled;
+
+    impl Operation for Controlled {
+        fn name(&self) -> &str {
+            "controlled"
+        }
+
+        fn num_qubits(&self) -> u32 {
+            1
+        }
+
+        fn num_clbits(&self) -> u32 {
+            0
+        }
+
+        fn num_params(&self) -> u32 {
+            0
+        }
+
+        fn directive(&self) -> bool {
+            false
+        }
+    }
+
+    impl CustomOperation for Controlled {
+        fn is_unitary(&self) -> bool {
+            false
+        }
+
+        fn num_ctrl_qubits(&self) -> Option<std::num::NonZero<u32>> {
+            std::num::NonZero::new(1)
+        }
+    }
+    /// Custom implementation of measure
+    #[derive(Debug, Copy, Clone, PartialEq)]
+    struct Measure2;
+
+    impl Operation for Measure2 {
+        fn name(&self) -> &str {
+            "measure"
+        }
+
+        fn num_qubits(&self) -> u32 {
+            2
+        }
+
+        fn num_clbits(&self) -> u32 {
+            2
+        }
+
+        fn num_params(&self) -> u32 {
+            0
+        }
+
+        fn directive(&self) -> bool {
+            false
+        }
+    }
+
+    impl CustomOperation for Measure2 {
+        fn is_unitary(&self) -> bool {
+            false
+        }
+    }
+
+    /// Operation that can be reversed
+    #[derive(Debug, Copy, Clone, PartialEq)]
+    struct Reversible;
+    impl Operation for Reversible {
+        fn name(&self) -> &str {
+            "rev"
+        }
+
+        fn num_qubits(&self) -> u32 {
+            1
+        }
+
+        fn num_clbits(&self) -> u32 {
+            0
+        }
+
+        fn num_params(&self) -> u32 {
+            0
+        }
+
+        fn directive(&self) -> bool {
+            false
+        }
+    }
+    impl CustomOperation for Reversible {
+        fn is_unitary(&self) -> bool {
+            false
+        }
+
+        fn inverse(
+            &self,
+            params: &[Param],
+        ) -> Option<(
+            crate::packed_instruction::PackedOperation,
+            smallvec::SmallVec<[Param; 3]>,
+        )> {
+            match params {
+                [] => Some((
+                    PackedOperation::from_custom_operation(Box::new(Self)),
+                    smallvec![],
+                )),
+                _ => None,
+            }
+        }
+    }
+
+    /// Fully opaque gate with no matrix
+    #[derive(Debug, Clone, PartialEq)]
+    struct OpaqueGate;
+
+    impl Operation for OpaqueGate {
+        fn name(&self) -> &str {
+            "foo"
+        }
+
+        fn num_qubits(&self) -> u32 {
+            1
+        }
+
+        fn num_clbits(&self) -> u32 {
+            0
+        }
+
+        fn num_params(&self) -> u32 {
+            0
+        }
+
+        fn directive(&self) -> bool {
+            false
+        }
+    }
+
+    impl CustomOperation for OpaqueGate {
+        fn is_unitary(&self) -> bool {
+            true
+        }
+    }
+
     #[test]
     fn try_custom_h_gate() {
         let gate: Box<dyn CustomOperation> = Box::new(CustomH);
@@ -2154,6 +2371,9 @@ mod test_custom_gates {
             "Gate labels did not match, expected 'None' obtained '{:?}'",
             gate.label()
         );
+
+        assert!(gate.is_unitary());
+
         let matrix_res = gate.matrix(&[]);
         let matrix_exp = Some(aview2(&H_GATE));
         assert_eq!(
@@ -2191,12 +2411,8 @@ mod test_custom_gates {
         );
     }
 
-    // Exclude this test from miri as it uses pointers without provenance
-    // when extracting the view of the `CustomGate`.
     #[test]
     fn try_add_to_circuit() {
-        use crate::packed_instruction::PackedOperation;
-
         let mut circuit = CircuitData::with_capacity(1, 0, 1, 0.0.into())
             .expect("Circuit with small capacity should be built.");
         let as_operation = PackedOperation::from_custom_operation(Box::new(CustomH));
@@ -2215,6 +2431,230 @@ mod test_custom_gates {
             panic!("Gate should be a custom gate of type CustomH");
         };
 
-        assert_eq!(gate_as_h.downcast_ref::<CustomH>(), Some(downcast_gate))
+        // Check that the retreived gate is still valid.
+        assert_eq!(gate_as_h.num_qubits(), 1);
+        assert!(gate_as_h.is_unitary());
+        assert_eq!(gate_as_h.matrix(&[]), Some(aview2(&H_GATE).to_owned()));
+
+        // Final instance equality check.
+        assert_eq!(Some(&CustomH), Some(downcast_gate))
+    }
+
+    // Test a custom gate with varying labels.
+    #[test]
+    fn test_custom_gate_with_label() {
+        let no_label = ParametrizedAndLabeled::default();
+        let labeled = ParametrizedAndLabeled::new(Some("label"));
+
+        // Make into boxed
+        let boxed_no_label: Box<dyn CustomOperation> = Box::new(no_label.clone());
+        let boxed_labeled: Box<dyn CustomOperation> = Box::new(labeled.clone());
+
+        assert_ne!(&boxed_labeled, &boxed_no_label);
+        assert_eq!(boxed_labeled.label(), labeled.label());
+        assert_eq!(boxed_no_label.label(), no_label.label());
+
+        // Try adding to circuit
+        let mut circuit =
+            CircuitData::with_capacity(2, 0, 2, 0.0.into()).expect("Empty circuit should work");
+        circuit
+            .push_packed_operation(
+                PackedOperation::from_custom_operation(boxed_no_label),
+                None,
+                &[Qubit(0)],
+                &[],
+            )
+            .expect("Operation should be added successfully");
+        circuit
+            .push_packed_operation(
+                PackedOperation::from_custom_operation(boxed_labeled),
+                None,
+                &[Qubit(0)],
+                &[],
+            )
+            .expect("Operation should be added successfully");
+
+        // Test roundtrip
+        let ops_ordered: [&dyn CustomOperation; 2] = [&no_label, &labeled];
+        for (idx, op) in circuit.data().iter().enumerate() {
+            let OperationRef::CustomOperation(op_ref) = op.op.view() else {
+                panic!("Incorrect operation variant found in circuit!");
+            };
+            assert_eq!(op_ref, ops_ordered[idx]);
+        }
+    }
+
+    /// Test comparison between custom operations
+    #[test]
+    fn test_gate_equality() {
+        let custom_h = CustomH;
+        let custom_h_as_dyn: Box<dyn CustomOperation> = Box::new(CustomH);
+        let labeled = ParametrizedAndLabeled::new(Some("fee"));
+        let labeled_fee = ParametrizedAndLabeled::new(Some("fee"));
+        let labeled_fi = ParametrizedAndLabeled::new(Some("fi"));
+
+        // identicals as opaques
+        assert_eq!(&custom_h as &dyn CustomOperation, custom_h_as_dyn.as_ref());
+        // two identicals
+        assert_eq!(labeled, labeled_fee);
+        // two non-identical
+        assert_ne!(labeled, labeled_fi);
+        // two different instances
+        assert_ne!(
+            custom_h_as_dyn.as_ref(),
+            &labeled_fi as &dyn CustomOperation
+        );
+    }
+
+    // Test dynamic cloning of operations with data within.
+    #[test]
+    fn test_clone_dyn() {
+        let labeled_fee = ParametrizedAndLabeled::new(Some("fee"));
+        let labeled_fi = ParametrizedAndLabeled::new(Some("fi"));
+
+        // Try cloning as dyn refs using `ToOwned`
+        let cloned_fee: Box<dyn CustomOperation> =
+            (&labeled_fee as &dyn CustomOperation).to_owned();
+        let cloned_fi: Box<dyn CustomOperation> = (&labeled_fi as &dyn CustomOperation).to_owned();
+
+        assert_eq!(cloned_fee.as_ref(), &labeled_fee as &dyn CustomOperation);
+        assert_eq!(cloned_fi.as_ref(), &labeled_fi as &dyn CustomOperation);
+
+        // Check if label data is still the same.
+        assert_eq!(cloned_fee.label(), labeled_fee.label());
+        assert_eq!(cloned_fi.label(), labeled_fi.label());
+    }
+
+    // Test downcasting
+    #[test]
+    fn test_downcast() {
+        let measure_boxed: Box<dyn CustomOperation> = Box::new(Measure2);
+        let control_boxed: Box<dyn CustomOperation> = Box::new(Controlled);
+
+        // Check if downcasting to the right type works
+        assert!(matches!(
+            measure_boxed.downcast_ref::<Measure2>(),
+            Some(&Measure2)
+        ));
+        assert!(matches!(
+            control_boxed.downcast_ref::<Controlled>(),
+            Some(&Controlled)
+        ));
+
+        // Check if downcasting to the wrong type doesn't work
+        assert!(measure_boxed.downcast_ref::<Controlled>().is_none());
+        assert!(control_boxed.downcast_ref::<Measure2>().is_none());
+    }
+
+    // Test parametrized matrix
+    #[test]
+    fn parameterized_gate_matrix() {
+        let labeled_rz = ParametrizedAndLabeled::new(Some("rz"));
+        let theta: Param = (PI / 4.0).into();
+
+        // Compare matrices
+        assert_eq!(
+            labeled_rz.matrix(&[theta]),
+            Some(aview2(&rz_gate(PI / 4.0)).to_owned())
+        );
+
+        // Compare null case
+        assert_eq!(labeled_rz.matrix(&[]), None,);
+    }
+
+    // Test inversed gate
+    #[test]
+    fn test_inverse() {
+        let reversible = Reversible;
+
+        // Retrieve the reverse, should be itself
+        let Some((reversed, params)) = reversible.inverse(&[]) else {
+            panic!("A reverse was not obtained")
+        };
+
+        // Parameters should be empty
+        assert!(params.is_empty());
+
+        let OperationRef::CustomOperation(roundtrip) = reversed.view() else {
+            panic!("Obtained operation is not custom")
+        };
+
+        // Compare matrices
+        assert_eq!(roundtrip.downcast_ref::<Reversible>(), Some(&Reversible));
+
+        // Try with invalid params
+        assert!(roundtrip.inverse(&[0.0.into()]).is_none());
+    }
+
+    // Adds all custom instructions to a Circuit
+    #[test]
+    fn test_multiple_custom_ops_in_circuit() {
+        let h = CustomH;
+        let rz = ParametrizedAndLabeled::new(Some("rz"));
+        let reversible = Reversible;
+        let meas = Measure2;
+        let opaque = OpaqueGate;
+
+        let ops: [&dyn CustomOperation; 5] = [&h, &rz, &reversible, &meas, &opaque];
+        let params: [_; 5] = [
+            None,
+            Some(Parameters::Params(smallvec![Param::from(3.14)])),
+            None,
+            None,
+            None,
+        ];
+
+        let mut circuit = CircuitData::with_capacity(2, 2, 5, 0.0.into())
+            .expect("Circuit creation should succeed.");
+        for (op, params) in ops.iter().zip(params) {
+            let qubits: Vec<Qubit> = (0..op.num_qubits()).map(Qubit).collect();
+            let clbits: Vec<Clbit> = (0..op.num_clbits()).map(Clbit).collect();
+            circuit
+                .push_packed_operation(
+                    PackedOperation::from_custom_operation((*op).to_owned()),
+                    params,
+                    &qubits,
+                    &clbits,
+                )
+                .expect("Operation should be added to circuit.");
+        }
+
+        for (idx, op) in (0..circuit.len())
+            .map(|idx| &circuit.data()[idx])
+            .enumerate()
+        {
+            let OperationRef::CustomOperation(comparison) = op.op.view() else {
+                panic!("Non-custom operation found")
+            };
+
+            // Check that each instance is the same.
+            assert_eq!(comparison, ops[idx]);
+        }
+    }
+
+    // Tests that `OperationRef` delegates each function call correctly for
+    // the `Operation` trait when it refers to a custom operation.
+    #[test]
+    fn test_operation_ref_delegates_correctly() {
+        let h = CustomH;
+        let rz = ParametrizedAndLabeled::new(Some("rz"));
+        let reversible = Reversible;
+        let meas = Measure2;
+        let opaque = OpaqueGate;
+
+        let ops: [&dyn CustomOperation; 5] = [&h, &rz, &reversible, &meas, &opaque];
+        let packed_ops: Vec<PackedOperation> = ops
+            .iter()
+            .map(|op| PackedOperation::from_custom_operation((*op).to_owned()))
+            .collect();
+
+        for (op, packed) in ops.iter().zip(&packed_ops) {
+            let view = packed.view();
+            assert_eq!(op.name(), view.name());
+            assert_eq!(op.num_qubits(), view.num_qubits());
+            assert_eq!(op.num_clbits(), view.num_clbits());
+            assert_eq!(op.num_params(), view.num_params());
+            assert_eq!(op.directive(), view.directive());
+        }
     }
 }
