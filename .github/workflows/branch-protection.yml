@@ -213,6 +213,7 @@ jobs:
     needs: config
     runs-on: ${{ needs.config.outputs.runner-linux-x86_64 }}
     steps:
+      - uses: dtolnay/rust-toolchain@stable
       - uses: Qiskit/qiskit-neko@main
         with:
           test_selection: "terra"
