@@ -99,6 +99,7 @@ Optimizations
    Split2QUnitaries
    SubstitutePi4Rotations
    TemplateOptimization
+   TwoQubitPeepholeOptimization
 
 Scheduling
 =============
@@ -252,6 +253,7 @@ from .optimization import ResetAfterMeasureSimplification
 from .optimization import Split2QUnitaries
 from .optimization import SubstitutePi4Rotations
 from .optimization import TemplateOptimization
+from .optimization import TwoQubitPeepholeOptimization
 
 # circuit analysis
 from .analysis import CountOps

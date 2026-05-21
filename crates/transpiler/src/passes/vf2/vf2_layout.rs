@@ -16,6 +16,7 @@ use std::time::Instant;
 use hashbrown::HashMap;
 use indexmap::{IndexMap, IndexSet};
 use rand::prelude::*;
+use rand::rngs::SysRng;
 use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
 use rustworkx_core::petgraph::data::Create;
@@ -143,7 +144,7 @@ impl Vf2PassConfiguration {
             None => {
                 // In Python space, `None` means "seed with OS entropy" because seeding was expected
                 // to be the default.
-                Some(Pcg64Mcg::from_os_rng().next_u64())
+                Some(Pcg64Mcg::try_from_rng(&mut SysRng).unwrap().next_u64())
             }
             Some(-1) => None,
             Some(seed) => {
@@ -636,7 +637,7 @@ fn map_free_qubits(
 fn minimize_vf2<N, H, NG, HG, NO, HO, NS, ES>(
     vf2: vf2::Vf2<N, H, NG, HG, NO, HO, NS, ES>,
     config: &Vf2PassConfiguration,
-) -> Option<IndexMap<N::NodeId, H::NodeId, ::ahash::RandomState>>
+) -> Option<IndexMap<N::NodeId, H::NodeId, ::foldhash::fast::RandomState>>
 where
     N: vf2::alias::IntoVf2Graph,
     H: vf2::alias::IntoVf2Graph<EdgeType = N::EdgeType>,

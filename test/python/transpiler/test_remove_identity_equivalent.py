@@ -15,7 +15,7 @@
 import ddt
 import numpy as np
 
-from qiskit.circuit import Parameter, QuantumCircuit, QuantumRegister, Gate
+from qiskit.circuit import Parameter, QuantumCircuit, QuantumRegister, Gate, ParameterVector
 from qiskit.circuit.library import (
     CPhaseGate,
     RXGate,
@@ -212,6 +212,16 @@ class TestRemoveIdentityEquivalent(QiskitTestCase):
         qc.append(GlobalPhaseGate(theta), [])
         transpiled = RemoveIdentityEquivalent()(qc)
         self.assertEqual(qc, transpiled)
+
+    def test_no_panic_on_parametervector_phase(self):
+        """Regression test for gh-16053."""
+        pv = ParameterVector("v", 1)
+        qc = QuantumCircuit(1, global_phase=pv[0])
+        qc.rz(0.0, 0)
+        qc = RemoveIdentityEquivalent()(qc)
+
+        expected = QuantumCircuit(1, global_phase=pv[0])
+        self.assertEqual(qc, expected)
 
     def test_pauli_evo_equals_stdgate(self):
         """Test the Pauli evolution gate is consistent with std gates."""

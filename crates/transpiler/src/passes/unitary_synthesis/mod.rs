@@ -23,7 +23,9 @@ use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
 use pyo3::{intern, wrap_pyfunction};
 
-use self::decomposers::{Decomposer2q, DecomposerCache, Direction2q, FlipDirection};
+pub(crate) use self::decomposers::Direction2q;
+
+use self::decomposers::{Decomposer2q, DecomposerCache, FlipDirection};
 use crate::QiskitError;
 use crate::target::Target;
 use qiskit_circuit::bit::QuantumRegister;
@@ -114,7 +116,7 @@ impl Approximation {
 pub enum QpuConstraint<'a> {
     Target(&'a Target),
     Loose {
-        basis_gates: &'a IndexSet<&'a str, ::ahash::RandomState>,
+        basis_gates: &'a IndexSet<&'a str, ::foldhash::fast::RandomState>,
         coupling: &'a HashSet<[PhysicalQubit; 2]>,
     },
 }
@@ -486,14 +488,91 @@ fn synthesize_1q_matrix_onto(
     Ok(true)
 }
 
-fn synthesize_2q_matrix_onto(
-    out: &mut DAGCircuitBuilder,
+#[derive(Debug)]
+pub struct TwoQSynthesisResult<S> {
+    pub sequence: TwoQubitGateSequence,
+    pub dir: Direction2q,
+    pub score: Option<S>,
+}
+
+/// Estimate the fidelity of a synthesized two qubit unitary synthesis output
+///
+/// The estimated fidelity is computed by taking the error rate from the target
+/// and computing the product of the fidelities of each gate in the circuit. In
+/// the absence of error rates (either QpuConstraint doesn't have a target or
+/// the target contains no error rates) then a fidelity of 1 is returned.
+///
+/// # Args
+/// `dir` - The direction of the synthesis (forward or reverse)
+/// `sequence` - The synthesis sequence
+/// `constraint` - The qpu constraints used for the synthesis, typically just a Target
+/// `qargs_phys` - The qpu qargs the unitary is run on
+///
+/// # Returns
+///
+/// The computed fidelity estimate of the synthesis output sequence
+#[inline]
+pub(crate) fn fidelity_2q_sequence(
+    dir: &Direction2q,
+    sequence: &TwoQubitGateSequence,
+    constraint: &QpuConstraint,
+    qargs_phys: [PhysicalQubit; 2],
+) -> f64 {
+    let QpuConstraint::Target(target) = &constraint else {
+        return 1.;
+    };
+    let order = dir.as_indices();
+    let phys = [qargs_phys[order[0] as usize], qargs_phys[order[1] as usize]];
+    sequence
+        .gates()
+        .iter()
+        .map(|(op, _, qubits)| {
+            let qargs: &[_] = match *qubits.as_slice() {
+                [q] => &[phys[q as usize]],
+                [q1, q2] => &[phys[q1 as usize], phys[q2 as usize]],
+                _ => panic!("sequences should only contain 1q and 2q gates"),
+            };
+            // TODO: this does not handle the possibility of a 2q decomposer (like the
+            // XXDecomposer) using specialised instructions whose operation names do not match
+            // their target key.
+            1. - target.get_error(op.name(), qargs).unwrap_or(0.)
+        })
+        .product()
+}
+
+/// Synthesize a given two qubit unitary matrix into a gate sequence.
+///
+/// For overcomplete targets this will run all compatible decomposers and pick the output synthesis
+/// with the highest estimated fidelity.
+///
+/// # Args
+/// `unitary` - The unitary to synthesize
+/// `qargs_phys` - The physical qubits the unitary is being applied to
+/// `state` - The internal state of the pass, this includes the configured synthesizers
+/// `constraint` - The qpu constraints used for the synthesis, typically just a Target
+/// `fidelity_calculation` - A callable that is called with a two qubit synthesis output sequence and
+///   the context around it. It is expected to return a fidelity score to compare that synthesis output
+///   against other decomposers. The synthesis output with the maximum score is selected and is
+///   what is returned by the `synthesize_2q_matrix`.
+///
+/// # Returns
+///
+/// When the return is `Ok` this returns an Option<TwoQSynthesisResult>, when the return is None
+/// this indicates that synthesis failed or is not necessary. The `Some` case will return a
+/// `TwoQSynthesisResult` representing the "best" output synthesis from the available decomposers
+/// determined by `fidelity_calculation`. This function returns an Error if the internal
+/// decomposition errors and it returns the directly from the decomposer.
+pub(crate) fn synthesize_2q_matrix<F, S>(
     mut unitary: CowArray<Complex64, Ix2>,
     qargs_phys: [PhysicalQubit; 2],
-    qargs_virt: [Qubit; 2],
     state: &mut UnitarySynthesisState,
     constraint: QpuConstraint,
-) -> PyResult<bool> {
+    mut fidelity_calculation: F,
+) -> PyResult<Option<TwoQSynthesisResult<S>>>
+where
+    F: FnMut(&Direction2q, &TwoQubitGateSequence, &QpuConstraint, [PhysicalQubit; 2]) -> S,
+    S: PartialOrd,
+{
     let decomposer_cache = &mut state.cache;
     let config = &state.config;
 
@@ -546,31 +625,7 @@ fn synthesize_2q_matrix_onto(
         // inconsistent; either it should be an error in _all_ circumstances if synthesis fails or
         // in _none_.  It's tricky to recreate the pre-Qiskit-2.4 behaviour bug-for-bug in the new
         // refactor because of how the split between decomposer construction and use works now.
-        return Ok(false);
-    };
-
-    let fidelity = |pair: &(Direction2q, TwoQubitGateSequence)| -> f64 {
-        let QpuConstraint::Target(target) = &constraint else {
-            return 1.;
-        };
-        let (dir, sequence) = pair;
-        let order = dir.as_indices();
-        let phys = [qargs_phys[order[0] as usize], qargs_phys[order[1] as usize]];
-        sequence
-            .gates()
-            .iter()
-            .map(|(op, _, qubits)| {
-                let qargs: &[_] = match *qubits.as_slice() {
-                    [q] => &[phys[q as usize]],
-                    [q1, q2] => &[phys[q1 as usize], phys[q2 as usize]],
-                    _ => panic!("sequences should only contain 1q and 2q gates"),
-                };
-                // TODO: this does not handle the possibility of a 2q decomposer (like the
-                // XXDecomposer) using specialised instructions whose operation names do not match
-                // their target key.
-                1. - target.get_error(op.name(), qargs).unwrap_or(0.)
-            })
-            .product()
+        return Ok(None);
     };
 
     // We only need to calculate the best score if there's more than one sequence.
@@ -578,8 +633,10 @@ fn synthesize_2q_matrix_onto(
     let mut best_pair = first;
     for sequence in sequences {
         let sequence = sequence?;
-        let prev_fidelity = best_fidelity.unwrap_or_else(|| fidelity(&best_pair));
-        let this_fidelity = fidelity(&sequence);
+        let prev_fidelity = best_fidelity.unwrap_or_else(|| {
+            fidelity_calculation(&best_pair.0, &best_pair.1, &constraint, qargs_phys)
+        });
+        let this_fidelity = fidelity_calculation(&sequence.0, &sequence.1, &constraint, qargs_phys);
         if this_fidelity > prev_fidelity {
             best_fidelity = Some(this_fidelity);
             best_pair = sequence;
@@ -587,10 +644,28 @@ fn synthesize_2q_matrix_onto(
             best_fidelity = Some(prev_fidelity);
         }
     }
+    Ok(Some(TwoQSynthesisResult {
+        sequence: best_pair.1,
+        dir: best_pair.0,
+        score: best_fidelity,
+    }))
+}
 
+fn synthesize_2q_matrix_onto(
+    out: &mut DAGCircuitBuilder,
+    unitary: CowArray<Complex64, Ix2>,
+    qargs_phys: [PhysicalQubit; 2],
+    qargs_virt: [Qubit; 2],
+    state: &mut UnitarySynthesisState,
+    constraint: QpuConstraint,
+) -> PyResult<bool> {
+    let Some(result) =
+        synthesize_2q_matrix(unitary, qargs_phys, state, constraint, fidelity_2q_sequence)?
+    else {
+        return Ok(false);
+    };
     // ... now apply the best sequence.
-    let (dir, sequence) = best_pair;
-    let order = dir.as_indices();
+    let order = result.dir.as_indices();
     let out_qargs = [qargs_virt[order[0] as usize], qargs_virt[order[1] as usize]];
     let qubit_keys = [
         out.insert_qargs(&[out_qargs[0]]),
@@ -598,8 +673,8 @@ fn synthesize_2q_matrix_onto(
         out.insert_qargs(&[out_qargs[0], out_qargs[1]]),
         out.insert_qargs(&[out_qargs[1], out_qargs[0]]),
     ];
-    out.add_global_phase(&Param::Float(sequence.global_phase()))?;
-    for (gate, params, qubits) in sequence.gates() {
+    out.add_global_phase(&Param::Float(result.sequence.global_phase()))?;
+    for (gate, params, qubits) in result.sequence.gates() {
         let qubits = match qubits.as_slice() {
             [0] => qubit_keys[0],
             [1] => qubit_keys[1],
@@ -674,7 +749,7 @@ pub fn py_unitary_synthesis(
         run_python_decomposers: true,
     };
     let mut state = UnitarySynthesisState::new(config);
-    let mut basis_gates_set: IndexSet<&str, ::ahash::RandomState>;
+    let mut basis_gates_set: IndexSet<&str, ::foldhash::fast::RandomState>;
     let constraint = match target {
         Some(target) => QpuConstraint::Target(target),
         None => {
@@ -718,7 +793,7 @@ pub fn py_synthesize_unitary_matrix(
         run_python_decomposers: true,
     };
     let mut state = UnitarySynthesisState::new(config);
-    let mut basis_gates_set: IndexSet<&str, ::ahash::RandomState>;
+    let mut basis_gates_set: IndexSet<&str, ::foldhash::fast::RandomState>;
     let constraint = match target {
         Some(target) => QpuConstraint::Target(target),
         None => {
