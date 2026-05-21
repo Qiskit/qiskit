@@ -2552,11 +2552,11 @@ mod test_custom_operations {
         let labeled_rz = ParametrizedAndLabeled::new(Some("rz"));
         let theta: Param = (PI / 4.0).into();
 
+        let Some(matrix) = labeled_rz.matrix(&[theta]) else {
+            panic!("Matrix should exist");
+        };
         // Compare matrices
-        assert_eq!(
-            labeled_rz.matrix(&[theta]),
-            Some(aview2(&rz_gate(PI / 4.0)).to_owned())
-        );
+        assert!(approx::abs_diff_eq!(matrix, aview2(&rz_gate(PI / 4.0))));
 
         // Compare null case
         assert_eq!(labeled_rz.matrix(&[]), None,);
