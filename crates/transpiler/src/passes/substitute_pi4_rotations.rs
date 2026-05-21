@@ -13,10 +13,9 @@
 use num_complex::ComplexFloat;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
-use qiskit_circuit::Qubit;
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::operations::Operation;
-use rustworkx_core::petgraph::algo::toposort;
+use qiskit_circuit::packed_instruction::PackedOperation;
 use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, PI};
 
 use crate::gate_metrics::rotation_trace_and_dim;
@@ -1122,8 +1121,31 @@ pub fn py_run_substitute_pi4_rotations(
         let k = rotation_to_pi_div(gate);
         let num_qubits = gate.num_qubits();
 
-        if let Some(multiple) = is_angle_close_to_multiple_of_pi_k(gate, k, angle, tol) {
-            if num_qubits == 2 {
+        let Some(multiple) = is_angle_close_to_multiple_of_pi_k(gate, k, angle, tol) else {
+            continue;
+        };
+
+        match num_qubits {
+            1 => {
+                let (sequence, phase_update) = replace_1q_rotation_by_discrete(gate, multiple);
+                let num_gates = sequence.len();
+                if num_gates == 0 {
+                    // in the special case that we have a 0-length sequence, remove the gate
+                    dag.remove_1q_sequence(&[node_index]);
+                } else {
+                    // add all gates except the last one, and then substitute the existing op
+                    // for the very last gate
+                    for gate in sequence[..num_gates - 1].iter() {
+                        dag.insert_1q_on_incoming_qubit((*gate, &[]), node_index);
+                    }
+                    let last_op = PackedOperation::from_standard_gate(
+                        *sequence.last().expect("sequence has at least 1 element"),
+                    );
+                    dag.substitute_op(node_index, last_op, None, None)?;
+                }
+                global_phase_update += phase_update;
+            }
+            2 => {
                 let (sequence, phase_update) = replace_2q_rotation_by_discrete(gate, multiple);
                 let mut local_dag =
                     DAGCircuit::with_capacity(2, 0, None, Some(sequence.len()), None, None);
@@ -1131,20 +1153,17 @@ pub fn py_run_substitute_pi4_rotations(
                 local_dag.add_qubit_unchecked(ShareableQubit::new_anonymous())?;
 
                 for (gate, qubits) in sequence {
-                    let qargs = qubits.iter().map(|index| Qubit(*index)).collect::<Vec<_>>();
-                    let interned = local_dag.add_qargs(&qargs);
+                    let qargs = ::bytemuck::cast_slice(qubits);
+                    let interned = local_dag.add_qargs(qargs);
                     let packed = PackedInstruction::from_standard_gate(*gate, None, interned);
                     local_dag.push_back(packed)?;
                 }
                 dag.substitute_node_with_dag(node_index, &local_dag, None, None, None, None)?;
                 global_phase_update += phase_update;
-            } else {
-                let (sequence, phase_update) = replace_1q_rotation_by_discrete(gate, multiple);
-                for gate in sequence {
-                    dag.insert_1q_on_incoming_qubit((*gate, &[]), node_index);
-                }
-                dag.remove_1q_sequence(&[node_index]);
-                global_phase_update += phase_update;
+            }
+            _ => {
+                // There's no standard rotation gates with more than 2 qubits.
+                continue;
             }
         };
     }
