@@ -704,7 +704,7 @@ def get_vf2_limits(
 
 # Clifford+T basis, consisting of Clifford+T gate names + additional instruction names
 # that are a part of every basis
-_CLIFFORD_T_BASIS = set(_CLIFFORD_GATE_NAMES).union(
+CLIFFORD_T_BASIS = set(_CLIFFORD_GATE_NAMES).union(
     {"t", "tdg", "delay", "barrier", "reset", "measure"}.union(CONTROL_FLOW_OP_NAMES)
 )
 
@@ -728,7 +728,7 @@ def is_clifford_t_basis(basis_gates=None, target=None) -> bool:
     else:
         basis = set()
 
-    if (basis is None) or (("t" not in basis) and ("tdg" not in basis)):
+    if ("t" not in basis) and ("tdg" not in basis):
         return False
 
-    return basis.issubset(_CLIFFORD_T_BASIS)
+    return basis.issubset(CLIFFORD_T_BASIS)

@@ -35,7 +35,7 @@ from qiskit.transpiler.preset_passmanagers.clifford_t import (
     clifford_t_pass_manager,
     clifford_t_pass_manager_legacy,
 )
-from qiskit.transpiler.preset_passmanagers.common import is_clifford_t_basis, _CLIFFORD_T_BASIS
+from qiskit.transpiler.preset_passmanagers.common import is_clifford_t_basis, CLIFFORD_T_BASIS
 from qiskit.transpiler.target import Target, _FakeTarget
 from qiskit import user_config
 
@@ -411,14 +411,14 @@ def generate_preset_clifford_t_pass_manager(
     # Check that the gates in the basis are a subset of Clifford+T gates.
     # (This is slightly different from is_clifford_t_basis since we do not
     # require that either T or T^\dagger must be in the basis).
-    if pm_config is not None:
+    if pm_config.target is not None:
         basis = set(pm_config.target.operation_names)
     elif pm_config.basis_gates is not None:
         basis = set(pm_config.basis_gates)
     else:
         basis = set()
 
-    if not basis.issubset(_CLIFFORD_T_BASIS):
+    if not basis.issubset(CLIFFORD_T_BASIS):
         raise TranspilerError(
             "generate_preset_clifford_t_pass_manager can only be used with Clifford+T basis"
         )
