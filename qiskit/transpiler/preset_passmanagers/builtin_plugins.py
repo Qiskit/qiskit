@@ -1134,11 +1134,9 @@ class OptimizeCliffordRZPassManager(PassManagerStagePlugin):
                     # we keep the run intact if it is only diagonals or only cliffords,
                     # meaning we collect if it's non-diag and non-clifford
                     contains_non_diag = any(
-                        node.op.name not in {"rz", "t", "tdg", "s", "sdg", "z"} for node in run
+                        node.name not in {"rz", "t", "tdg", "s", "sdg", "z"} for node in run
                     )
-                    contains_non_clifford = any(
-                        node.op.name not in clifford_t_gates for node in run
-                    )
+                    contains_non_clifford = any(node.name not in clifford_t_gates for node in run)
                     return contains_non_clifford and contains_non_diag
 
                 pre_loop = [

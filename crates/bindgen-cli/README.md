@@ -25,6 +25,16 @@ The `-c` (`--cext-path`) argument specifies the location of the `cext` crate sou
 internal calls to `cbindgen`.  The `-o` (`--output-path`) argument specifies where to place the
 files.
 
+
+## Produce the `qiskit-pyo3-ffi` crate for distribution
+
+Use the `generate-pyo3` subcommand, such as
+
+```bash
+cargo run -p qiskit-bindgen-cli -- generate-pyo3 -c crates/cext -o dist/rust/qiskit-pyo3-ffi
+```
+
+
 ## Linting the current vtable slots
 
 Use the `lint-slots` subcommand, such as

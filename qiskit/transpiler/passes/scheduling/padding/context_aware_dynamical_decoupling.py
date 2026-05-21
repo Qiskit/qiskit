@@ -261,7 +261,7 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
             )
             for node, start_time in self.property_set["node_start_time"].items()
             if (
-                node.op.name == "delay"
+                node.name == "delay"
                 and not is_after_reset(node)
                 and self._duration(node, qubit_map) > self._min_duration
             )

@@ -184,6 +184,11 @@ ctest: cheader build-clib-dev
 ccoverage: C_LIB_RUSTC_FLAGS=-Cinstrument-coverage
 ccoverage: ctest
 
+.PHONY: qiskit-pyo3-ffi
+qiskit-pyo3-ffi:
+	rm -rf dist/rust/qiskit-pyo3-ffi
+	cargo run -p qiskit-bindgen-cli -- generate-pyo3 --cext-path crates/cext --output-path dist/rust/qiskit-pyo3-ffi
+
 .PHONY: cclean
 cclean:
 	rm -rf $(C_DIR_OUT) $(C_DIR_TEST_BUILD) $(C_INCLUDE_FILES_ABS_GENERATED)
