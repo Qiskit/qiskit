@@ -16,6 +16,7 @@
 
 
 from io import StringIO
+from io import BytesIO
 from math import pi
 import re
 import warnings
@@ -50,6 +51,7 @@ from qiskit.qasm3 import (
 from qiskit.qasm3.exporter import QASM3Builder
 from qiskit.qasm3.printer import BasicPrinter
 from qiskit.qasm3.exceptions import QASM3ImporterError
+from qiskit import qpy
 from qiskit.quantum_info import Pauli
 from test import QiskitTestCase
 
@@ -3391,6 +3393,19 @@ class TestQASM3ExporterRust(QiskitTestCase):
             ]
         )
         self.assertEqual(dumps_experimental(qc, allow_aliasing=True), expected_qasm)
+
+    def test_delay_qpy_roundtrip(self):
+        qc = QuantumCircuit(1)
+        qc.delay(1, 0)
+        no_qpy = dumps_experimental(qc)
+
+        with BytesIO() as buf:
+            qpy.dump(qc, buf)
+            buf.seek(0)
+            qpy_roundtrip = qpy.load(buf)[0]
+
+        with_qpy = dumps_experimental(qpy_roundtrip)
+        self.assertEqual(no_qpy, with_qpy)
 
     def test_annotations(self):
         """Test that the annotation-serialisation framework works."""

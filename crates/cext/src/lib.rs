@@ -25,6 +25,13 @@ pub mod transpiler;
 
 pub use exit_codes::ExitCode;
 
+#[cfg(feature = "mimalloc")]
+use mimalloc::MiMalloc;
+
+#[cfg(feature = "mimalloc")]
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
+
 /// Get the C API version of the loaded library.
 ///
 /// If you are dynamically linking against Qiskit, in either a stand-alone or Python-extension
