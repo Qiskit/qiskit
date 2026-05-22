@@ -885,7 +885,7 @@ impl CircuitData {
         match parameters {
             Parameters::Params(params) => {
                 for (index, param) in params.iter().enumerate() {
-                    if matches!(param, Param::Float(_)) {
+                    if matches!(param, Param::Float(_) | Param::Int(_)) {
                         continue;
                     }
                     let usage = ParameterUse::Index {
@@ -922,7 +922,7 @@ impl CircuitData {
         match parameters {
             Parameters::Params(params) => {
                 for (index, param) in params.iter().enumerate() {
-                    if matches!(param, Param::Float(_)) {
+                    if matches!(param, Param::Float(_) | Param::Int(_)) {
                         continue;
                     }
                     let usage = ParameterUse::Index {
@@ -956,7 +956,7 @@ impl CircuitData {
         for inst_index in 0..self.len() {
             self.track_instruction_parameters(inst_index)?;
         }
-        if matches!(self.global_phase, Param::Float(_)) {
+        if matches!(self.global_phase, Param::Float(_) | Param::Int(_)) {
             return Ok(());
         }
         for symbol in self.global_phase.iter_parameters()? {
@@ -1210,32 +1210,27 @@ impl CircuitData {
                     let map: HashMap<&Symbol, Value> = HashMap::from([(symbol, Value::Real(*f))]);
                     expr.bind(&map, false)?
                 }
+                Param::Int(i) => {
+                    let map: HashMap<&Symbol, Value> = HashMap::from([(symbol, Value::Int(*i))]);
+                    expr.bind(&map, false)?
+                }
                 Param::ParameterExpression(e) => {
                     let map: HashMap<Symbol, ParameterExpression> =
                         HashMap::from([(symbol.clone(), e.as_ref().clone())]);
                     expr.subs(&map, false)?
                 }
-                Param::Obj(ob) => {
-                    Python::attach(|py| -> Result<_, CircuitDataError> {
-                        // The integer handling is only needed to support the case where an int is
-                        // passed in directly instead of a float. This will be handled when we add
-                        // int to the param enum to support dt target.
-                        if let Ok(int) = ob.extract::<i64>(py) {
-                            let map: HashMap<&Symbol, Value> =
-                                HashMap::from([(symbol, Value::Int(int))]);
-                            Ok(expr.bind(&map, false)?)
-                        } else if let Ok(c) = ob.extract::<Complex64>(py) {
-                            let map: HashMap<&Symbol, Value> =
-                                HashMap::from([(symbol, Value::Complex(c))]);
-                            Ok(expr.bind(&map, false)?)
-                        } else {
-                            Err(PyTypeError::new_err(format!(
-                                "Cannot assign object ({ob}) object to parameter."
-                            ))
-                            .into())
-                        }
-                    })?
-                }
+                Param::Obj(ob) => Python::attach(|py| -> Result<_, CircuitDataError> {
+                    if let Ok(c) = ob.extract::<Complex64>(py) {
+                        let map: HashMap<&Symbol, Value> =
+                            HashMap::from([(symbol, Value::Complex(c))]);
+                        Ok(expr.bind(&map, false)?)
+                    } else {
+                        Err(PyTypeError::new_err(format!(
+                            "Cannot assign object ({ob}) object to parameter."
+                        ))
+                        .into())
+                    }
+                })?,
             };
             // Param::from_expr() only errors in the python path when calling Python
             Ok(Param::from_expr(new_expr, coerce)?)
@@ -1360,6 +1355,7 @@ impl CircuitData {
                                 let previous_param = &previous.params_view()[parameter];
                                 let new_param = match previous_param {
                                     Param::Float(_) => inconsistent(),
+                                    Param::Int(_) => inconsistent(),
                                     Param::ParameterExpression(expr) => {
                                         let new_param =
                                             bind_expr(expr, &symbol, value.as_ref(), false)?;
@@ -1784,6 +1780,10 @@ impl CircuitData {
         match &angle {
             Param::Float(angle) => {
                 self.set_global_phase_f64(*angle);
+                Ok(())
+            }
+            Param::Int(angle) => {
+                self.set_global_phase_f64(*angle as f64);
                 Ok(())
             }
             Param::ParameterExpression(expr) => {

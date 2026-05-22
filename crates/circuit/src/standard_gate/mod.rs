@@ -317,6 +317,15 @@ impl StandardGate {
     }
 
     pub fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
+        // Promote Param::Int to Param::Float so the existing pattern matches work.
+        let promoted: SmallVec<[Param; 4]> = params
+            .iter()
+            .map(|p| match p {
+                Param::Int(i) => Param::Float(*i as f64),
+                _ => p.clone(),
+            })
+            .collect();
+        let params = promoted.as_slice();
         match self {
             Self::GlobalPhase => match params {
                 [Param::Float(theta)] => {
@@ -551,6 +560,15 @@ impl StandardGate {
     }
 
     pub fn definition(&self, params: &[Param]) -> Option<CircuitData> {
+        // Promote Param::Int to Param::Float so the existing pattern matches work.
+        let promoted: SmallVec<[Param; 4]> = params
+            .iter()
+            .map(|p| match p {
+                Param::Int(i) => Param::Float(*i as f64),
+                _ => p.clone(),
+            })
+            .collect();
+        let params = promoted.as_slice();
         match self {
             Self::GlobalPhase => Some(
                 CircuitData::from_standard_gates(0, [], params[0].clone())
@@ -1588,6 +1606,15 @@ impl StandardGate {
     }
 
     pub fn matrix_as_static_1q(&self, params: &[Param]) -> Option<[[Complex64; 2]; 2]> {
+        // Promote Param::Int to Param::Float so the existing pattern matches work.
+        let promoted: SmallVec<[Param; 4]> = params
+            .iter()
+            .map(|p| match p {
+                Param::Int(i) => Param::Float(*i as f64),
+                _ => p.clone(),
+            })
+            .collect();
+        let params = promoted.as_slice();
         match self {
             Self::GlobalPhase => None,
             Self::H => match params {
@@ -1709,6 +1736,15 @@ impl StandardGate {
     }
 
     pub fn matrix_as_static_2q(&self, params: &[Param]) -> Option<[[Complex64; 4]; 4]> {
+        // Promote Param::Int to Param::Float so the existing pattern matches work.
+        let promoted: SmallVec<[Param; 4]> = params
+            .iter()
+            .map(|p| match p {
+                Param::Int(i) => Param::Float(*i as f64),
+                _ => p.clone(),
+            })
+            .collect();
+        let params = promoted.as_slice();
         match self {
             Self::GlobalPhase => None,
             Self::H => None,

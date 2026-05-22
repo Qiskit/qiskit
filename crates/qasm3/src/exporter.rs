@@ -1178,8 +1178,10 @@ impl<'a> QASM3Builder {
         let param = &instr.params_view()[0];
         let duration: f64 = Python::attach(|py| match param {
             Param::Float(val) => *val,
+            Param::Int(val) => *val as f64,
             Param::ParameterExpression(p) => match p.try_to_value(true) {
                 Ok(symbol_expr::Value::Real(val)) => val,
+                Ok(symbol_expr::Value::Int(val)) => val as f64,
                 _ => {
                     panic!("Failed to parse parameter value")
                 }
@@ -1261,6 +1263,9 @@ impl<'a> QASM3Builder {
                     .iter()
                     .map(|param| match param {
                         Param::Float(val) => Expression::Parameter(Parameter {
+                            obj: val.to_string(),
+                        }),
+                        Param::Int(val) => Expression::Parameter(Parameter {
                             obj: val.to_string(),
                         }),
                         Param::ParameterExpression(p) => {

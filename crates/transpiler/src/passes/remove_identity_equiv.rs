@@ -97,7 +97,7 @@ where
                 return Ok(Some(0.));
             }
             StandardGate::GlobalPhase => {
-                if let Param::Float(angle) = inst.params_view()[0] {
+                if let Some(angle) = inst.params_view()[0].try_float() {
                     return Ok(Some(angle));
                 } else {
                     // We cannot get here since we skip parameterized gates,
@@ -119,7 +119,7 @@ where
             | StandardGate::CRZ
             | StandardGate::CU1
             | StandardGate::CPhase => {
-                if let Param::Float(angle) = inst.params_view()[0] {
+                if let Some(angle) = inst.params_view()[0].try_float() {
                     let (tr_over_dim, dim) = rotation_trace_and_dim(gate, angle).expect(
                         "Since only supported rotation gates are given, the result is not None",
                     );

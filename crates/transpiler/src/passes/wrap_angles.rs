@@ -18,7 +18,7 @@ use crate::angle_bound_registry::{PyWrapAngleRegistry, WrapAngleRegistry};
 use crate::target::Target;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::operations::{Operation, Param};
+use qiskit_circuit::operations::Operation;
 
 #[pyfunction]
 #[pyo3(name = "wrap_angles")]
@@ -53,12 +53,7 @@ pub fn run_wrap_angles(
         let params: Vec<_> = inst
             .params_view()
             .iter()
-            .map(|param| {
-                let Param::Float(param) = param else {
-                    unreachable!()
-                };
-                *param
-            })
+            .map(|param| param.try_float().expect("only numeric params reach here"))
             .collect();
         if !target.gate_supported_angle_bound(inst.op.name(), &params) {
             let qargs: Vec<_> = dag

@@ -1810,15 +1810,16 @@ impl DAGCircuit {
                 }
             };
 
-            let phase_eq = match [
-                normalize_param(&slf.global_phase)?,
-                normalize_param(&other.global_phase)?,
-            ] {
-                [Param::Float(self_phase), Param::Float(other_phase)] => {
-                    Ok(phase_is_close(self_phase, other_phase))
-                }
-                _ => slf.global_phase.eq(&other.global_phase),
-            }?;
+            let phase_eq = {
+                let self_norm = normalize_param(&slf.global_phase)?;
+                let other_norm = normalize_param(&other.global_phase)?;
+                match (self_norm.try_float(), other_norm.try_float()) {
+                    (Some(self_phase), Some(other_phase)) => {
+                        Ok(phase_is_close(self_phase, other_phase))
+                    }
+                    _ => slf.global_phase.eq(&other.global_phase),
+                }?
+            };
             if !phase_eq {
                 return Ok(false);
             }
@@ -2544,6 +2545,7 @@ impl DAGCircuit {
         let param_eq = |left: &Param, right: &Param| -> PyResult<bool> {
             match (left, right) {
                 (Param::Float(a), Param::Float(b)) => Ok(a.total_cmp(b) == Ordering::Equal),
+                (Param::Int(a), Param::Int(b)) => Ok(a == b),
                 (Param::ParameterExpression(a), Param::ParameterExpression(b)) => Ok(a.eq(b)),
                 (Param::Obj(a), Param::Obj(b)) => Python::attach(|py| a.bind(py).eq(b.bind(py))),
                 _ => Ok(false),
@@ -6244,6 +6246,7 @@ impl DAGCircuit {
     pub fn set_global_phase_param(&mut self, angle: Param) -> PyResult<Param> {
         match angle {
             Param::Float(angle) => Ok(self.set_global_phase_f64(angle)),
+            Param::Int(angle) => Ok(self.set_global_phase_f64(angle as f64)),
             Param::ParameterExpression(angle) => Ok(std::mem::replace(
                 &mut self.global_phase,
                 Param::ParameterExpression(angle),
@@ -8437,7 +8440,16 @@ impl ::std::ops::Index<NodeIndex> for DAGCircuit {
 /// does not handle the full possibility of parameter values.
 /// TODO replace/merge this with add_param/radd_param
 pub(crate) fn add_global_phase(phase: &Param, other: &Param) -> Param {
-    match [phase, other] {
+    // Promote any Param::Int into Param::Float for the purposes of adding a global phase.
+    let promote = |p: &Param| -> Param {
+        match p {
+            Param::Int(i) => Param::Float(*i as f64),
+            other => other.clone(),
+        }
+    };
+    let phase = promote(phase);
+    let other = promote(other);
+    match [&phase, &other] {
         [Param::Float(a), Param::Float(b)] => Param::Float(a + b),
         [Param::Float(a), Param::ParameterExpression(b)] => {
             Param::ParameterExpression(Arc::new(b.add(&ParameterExpression::from_f64(*a)).unwrap()))

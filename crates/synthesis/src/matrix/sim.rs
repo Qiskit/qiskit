@@ -15,7 +15,7 @@ use num_complex::Complex64;
 use numpy::IntoPyArray;
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
-use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardInstruction};
+use qiskit_circuit::operations::{Operation, OperationRef, StandardInstruction};
 use qiskit_quantum_info::unitary_compose;
 
 use crate::QiskitError;
@@ -39,8 +39,8 @@ pub fn sim_unitary_circuit(circuit: &CircuitData) -> Result<Array2<Complex64>, S
     }
 
     // e^{i * global_phase}
-    let global_phase_exp: Complex64 = if let Param::Float(p) = circuit.global_phase() {
-        Complex64::new(0., *p).exp()
+    let global_phase_exp: Complex64 = if let Some(p) = circuit.global_phase().try_float() {
+        Complex64::new(0., p).exp()
     } else {
         return Err("Cannot simulate circuit involving non-float global phase.".to_string());
     };

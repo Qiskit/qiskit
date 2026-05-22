@@ -830,28 +830,29 @@ impl TextDrawer {
 
     fn get_label(instruction: &PackedInstruction) -> String {
         match instruction.op.view() {
-            OperationRef::StandardInstruction(std_instruction) => {
-                match std_instruction {
-                    StandardInstruction::Measure => "M".to_string(),
-                    StandardInstruction::Reset => "|0>".to_string(),
-                    StandardInstruction::Barrier(_) => BARRIER.to_string(),
-                    StandardInstruction::Delay(delay_unit) => {
-                        match instruction.params_view().first().unwrap() {
-                            Param::Float(duration) => {
-                                format!(
-                                    "Delay({}[{}])",
-                                    F64UiFormatter::new(5).format(*duration),
-                                    delay_unit
-                                )
-                            }
-                            Param::ParameterExpression(expr) => {
-                                format!("Delay({}[{}])", expr, delay_unit)
-                            }
-                            Param::Obj(obj) => format!("Delay({:?}[{}])", obj, delay_unit), // TODO: extract the int
+            OperationRef::StandardInstruction(std_instruction) => match std_instruction {
+                StandardInstruction::Measure => "M".to_string(),
+                StandardInstruction::Reset => "|0>".to_string(),
+                StandardInstruction::Barrier(_) => BARRIER.to_string(),
+                StandardInstruction::Delay(delay_unit) => {
+                    match instruction.params_view().first().unwrap() {
+                        Param::Float(duration) => {
+                            format!(
+                                "Delay({}[{}])",
+                                F64UiFormatter::new(5).format(*duration),
+                                delay_unit
+                            )
                         }
+                        Param::Int(duration) => {
+                            format!("Delay({}[{}])", duration, delay_unit)
+                        }
+                        Param::ParameterExpression(expr) => {
+                            format!("Delay({}[{}])", expr, delay_unit)
+                        }
+                        Param::Obj(obj) => format!("Delay({:?}[{}])", obj, delay_unit),
                     }
                 }
-            }
+            },
             OperationRef::StandardGate(standard_gate) => {
                 static STANDARD_GATE_LABELS: [&str; crate::operations::STANDARD_GATE_SIZE] = [
                     "", "H", "I", "X", "Y", "Z", "P", "R", "Rx", "Ry", "Rz", "S", "Sdg", "√X",
@@ -892,6 +893,7 @@ impl TextDrawer {
                 .unwrap_or("Unitary".to_string()),
             OperationRef::PauliProductRotation(ppr) => match &ppr.angle {
                 Param::Float(f) => format!("PPR({})", F64UiFormatter::new(5).format_with_pi(*f)),
+                Param::Int(i) => format!("PPR({})", i),
                 Param::ParameterExpression(e) => format!("PPR({})", e),
                 Param::Obj(o) => format!("PPR({:?})", o),
             },

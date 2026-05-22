@@ -143,7 +143,7 @@ pub fn py_run_synthesize_rz_rotations(
         .op_nodes(false)
         .filter_map(|(node_index, inst)| {
             if let OperationRef::StandardGate(StandardGate::RZ) = inst.op.view() {
-                if let Param::Float(angle) = inst.params_view()[0] {
+                if let Some(angle) = inst.params_view()[0].try_float() {
                     let (interval_index, canonical_angle) = canonicalize_angle(angle);
                     Some((node_index, canonical_angle, interval_index))
                 } else {

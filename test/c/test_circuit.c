@@ -1146,12 +1146,42 @@ static int test_delay_instruction(void) {
     int result = Ok;
 
     QkExitCode delay_s_code;
+    QkCircuitInstruction inst;
 
     delay_s_code = qk_circuit_delay(qc, 0, 0.001, QkDelayUnit_S);
     if (delay_s_code != QkExitCode_Success) {
         result = RuntimeError;
         goto cleanup;
     }
+
+    // Append a dt-unit delay with an integer duration. Reading it back via
+    // qk_circuit_get_instruction must not panic and must round-trip the integer
+    // duration through qk_param_as_int.
+    QkExitCode delay_dt_code = qk_circuit_delay_dt(qc, 1, 100);
+    if (delay_dt_code != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    qk_circuit_get_instruction(qc, 1, &inst);
+    if (inst.num_params != 1) {
+        result = EqualityError;
+        qk_circuit_instruction_clear(&inst);
+        goto cleanup;
+    }
+    int64_t duration_int = qk_param_as_int(inst.params[0]);
+    if (duration_int != 100) {
+        result = EqualityError;
+        qk_circuit_instruction_clear(&inst);
+        goto cleanup;
+    }
+    double duration_real = qk_param_as_real(inst.params[0]);
+    if (duration_real != 100.0) {
+        result = EqualityError;
+        qk_circuit_instruction_clear(&inst);
+        goto cleanup;
+    }
+    qk_circuit_instruction_clear(&inst);
 
 cleanup:
     qk_circuit_free(qc);

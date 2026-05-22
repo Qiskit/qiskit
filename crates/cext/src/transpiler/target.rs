@@ -1455,7 +1455,7 @@ pub unsafe extern "C" fn qk_target_op_get(
                     .params_view()
                     .iter()
                     .map(|param| match param {
-                        Param::Float(_) | Param::ParameterExpression(_) => {
+                        Param::Float(_) | Param::Int(_) | Param::ParameterExpression(_) => {
                             std::ptr::from_ref(param)
                         }
                         Param::Obj(_) => panic!("Objects are not supported in the C API."),

@@ -59,6 +59,7 @@ pub fn standard_gate_exponent(gate: StandardGate, params: &[Param]) -> Option<Sp
         .iter()
         .map(|p| match p {
             Param::Float(f) => *f,
+            Param::Int(i) => *i as f64,
             Param::ParameterExpression(_) => 1.0,
             Param::Obj(_) => panic!("StandardGate does not have Param::Obj parameters"),
         })

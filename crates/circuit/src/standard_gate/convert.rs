@@ -15,6 +15,7 @@ use crate::operations::{Operation, Param};
 use qiskit_quantum_info::versor_u2::{VersorSU2, VersorU2, VersorU2Error};
 
 use nalgebra::{Quaternion, Unit};
+use smallvec::SmallVec;
 use std::f64::consts::{FRAC_1_SQRT_2, FRAC_PI_2, FRAC_PI_4, FRAC_PI_8};
 
 const COS_FRAC_PI_8: f64 = 0.9238795325112867;
@@ -23,6 +24,15 @@ const SIN_FRAC_PI_8: f64 = 0.3826834323650898;
 /// Conversion logic of `StandardGate::versor_u2`.
 pub fn versor_u2(gate: StandardGate, params: &[Param]) -> Result<VersorU2, VersorU2Error> {
     debug_assert_eq!(params.len(), gate.num_params() as usize);
+    // Promote Param::Int to Param::Float so the existing pattern matches work.
+    let promoted: SmallVec<[Param; 4]> = params
+        .iter()
+        .map(|p| match p {
+            Param::Int(i) => Param::Float(*i as f64),
+            _ => p.clone(),
+        })
+        .collect();
+    let params = promoted.as_slice();
     match gate {
         StandardGate::GlobalPhase => {
             let &[Param::Float(phase)] = params else {

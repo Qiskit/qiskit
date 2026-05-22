@@ -1114,7 +1114,7 @@ pub fn py_run_substitute_pi4_rotations(
             continue;
         }
 
-        let angle = if let Param::Float(angle) = inst.params_view()[0] {
+        let angle = if let Some(angle) = inst.params_view()[0].try_float() {
             angle
         } else {
             new_dag.push_back(inst.clone())?;

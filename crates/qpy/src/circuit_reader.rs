@@ -293,6 +293,7 @@ pub fn instruction_values_to_params(
             .map(|value| -> Result<_, QpyError> {
                 match value {
                     GenericValue::Float64(float) => Ok(Param::Float(float)),
+                    GenericValue::Int64(int) => Ok(Param::Int(int)),
                     GenericValue::ParameterExpression(exp) => Ok(Param::ParameterExpression(exp)),
                     GenericValue::ParameterExpressionSymbol(symbol) => {
                         Ok(Param::ParameterExpression(Arc::new(

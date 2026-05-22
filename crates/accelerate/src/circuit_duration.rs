@@ -46,6 +46,7 @@ pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &Target) -> P
                                 if let Some(dt) = dt {
                                     match dur {
                                         Param::Float(val) => Ok(val * dt),
+                                        Param::Int(val) => Ok((*val as f64) * dt),
                                         Param::Obj(val) => Python::attach(|py| {
                                             let dur_float: f64 = val.extract(py)?;
                                             Ok(dur_float * dt)

@@ -192,6 +192,15 @@ impl DAGOpNode {
                         [Param::Float(float_a), Param::Float(float_b)] => {
                             relative_eq!(float_a, float_b, max_relative = 1e-10)
                         }
+                        [Param::Int(int_a), Param::Int(int_b)] => int_a == int_b,
+                        [Param::Float(float_a), Param::Int(int_b)] => {
+                            let int_b = *int_b as f64;
+                            relative_eq!(float_a, &int_b, max_relative = 1e-10)
+                        }
+                        [Param::Int(int_a), Param::Float(float_b)] => {
+                            let int_a = *int_a as f64;
+                            relative_eq!(&int_a, float_b, max_relative = 1e-10)
+                        }
                         [
                             Param::ParameterExpression(param_a),
                             Param::ParameterExpression(param_b),

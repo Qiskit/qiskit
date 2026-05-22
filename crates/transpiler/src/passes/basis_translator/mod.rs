@@ -684,7 +684,7 @@ fn replace_node(
                 dag.add_global_phase(&param)
                     .map_err(|e| BasisTranslatorError::BasisDAGCircuitError(e.to_string()))
             }
-            Param::Float(_) => dag
+            Param::Float(_) | Param::Int(_) => dag
                 .add_global_phase(target_dag.global_phase())
                 .map_err(|e| BasisTranslatorError::BasisDAGCircuitError(e.to_string())),
             Param::Obj(_) => Ok(()),
@@ -707,6 +707,9 @@ fn param_expr_assignment(
             }
             Param::Float(val) => {
                 bind_map.insert(key, Value::Real(*val));
+            }
+            Param::Int(val) => {
+                bind_map.insert(key, Value::Int(*val));
             }
             Param::Obj(val) => {
                 let val = Python::attach(|py| val.extract::<Value>(py))

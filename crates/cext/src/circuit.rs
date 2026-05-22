@@ -1088,7 +1088,7 @@ impl CInstruction {
     /// allocations.
     ///
     /// Panics if the operation name contains a nul, or if the instruction has non-numeric
-    /// parameters (not [Param::Float] or [Param::ParameterExpression]).
+    /// parameters (not [Param::Float], [Param::Int], or [Param::ParameterExpression]).
     pub(crate) fn from_packed_instruction_with_numeric(
         packed: &PackedInstruction,
         qargs_interner: &Interner<[Qubit]>,
@@ -1103,7 +1103,7 @@ impl CInstruction {
             .params_view()
             .iter()
             .map(|p| match p {
-                Param::Float(_) | Param::ParameterExpression(_) => {
+                Param::Float(_) | Param::Int(_) | Param::ParameterExpression(_) => {
                     Some(Box::into_raw(Box::new(p.clone())))
                 }
                 _ => None,
@@ -1909,6 +1909,8 @@ pub enum CDelayUnit {
     NS = 3,
     /// Picoseconds.
     PS = 4,
+    /// Backend-native discrete time-step.
+    DT = 5,
 }
 
 impl From<CDelayUnit> for DelayUnit {
@@ -1919,6 +1921,7 @@ impl From<CDelayUnit> for DelayUnit {
             CDelayUnit::US => DelayUnit::US,
             CDelayUnit::NS => DelayUnit::NS,
             CDelayUnit::PS => DelayUnit::PS,
+            CDelayUnit::DT => DelayUnit::DT,
         }
     }
 }
@@ -1956,6 +1959,56 @@ pub unsafe extern "C" fn qk_circuit_delay(
 
     let duration_param: Param = duration.into();
     let delay_instruction = StandardInstruction::Delay(delay_unit_variant);
+
+    let params = Parameters::Params(smallvec![duration_param]);
+    circuit
+        .push_packed_operation(
+            PackedOperation::from_standard_instruction(delay_instruction),
+            Some(params),
+            &[Qubit(qubit)],
+            &[],
+        )
+        .unwrap();
+
+    ExitCode::Success
+}
+
+/// @ingroup QkCircuit
+/// Append a dt-unit delay instruction to the circuit with an integer duration.
+///
+/// Unlike ``qk_circuit_delay`` which takes a floating-point duration, this entry point
+/// accepts a 64-bit unsigned integer count of backend-native discrete time-steps and
+/// always uses the ``QkDelayUnit_DT`` unit. The duration is stored internally as a
+/// signed integer parameter.
+///
+/// @param circuit A pointer to the circuit to add the delay to.
+/// @param qubit The ``uint32_t`` index of the qubit to apply the delay to.
+/// @param duration The duration of the delay in dt units.
+///
+/// @return An exit code.
+///
+/// # Example
+/// ```c
+///     QkCircuit *qc = qk_circuit_new(1, 0);
+///     qk_circuit_delay_dt(qc, 0, 100);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_delay_dt(
+    circuit: *mut CircuitData,
+    qubit: u32,
+    duration: u64,
+) -> ExitCode {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+
+    // Cast u64 to i64 for the Param::Int variant. Durations exceeding i64::MAX are
+    // unrealistic for any real circuit so a saturating cast is sufficient.
+    let duration_param = Param::Int(duration as i64);
+    let delay_instruction = StandardInstruction::Delay(DelayUnit::DT);
 
     let params = Parameters::Params(smallvec![duration_param]);
     circuit

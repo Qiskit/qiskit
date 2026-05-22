@@ -1407,14 +1407,13 @@ impl Target {
                 }
                 if check_angle_bounds
                     && self.has_angle_bounds()
-                    && parameters.iter().all(|x| matches!(x, Param::Float(_)))
+                    && parameters
+                        .iter()
+                        .all(|x| matches!(x, Param::Float(_) | Param::Int(_)))
                 {
                     let params: Vec<f64> = parameters
                         .iter()
-                        .map(|x| {
-                            let Param::Float(val) = x else { unreachable!() };
-                            *val
-                        })
+                        .map(|x| x.try_float().expect("checked above"))
                         .collect();
                     if self.angle_bounds.contains_key(operation_name)
                         && !self.gate_supported_angle_bound(operation_name, &params)
@@ -1542,11 +1541,9 @@ impl Target {
         let num_params = match operation {
             TargetOperation::Normal(op) => {
                 let params = op.params_view();
-                if params
-                    .iter()
-                    .zip(bounds)
-                    .any(|(param, bound)| bound.is_some() && matches!(param, Param::Float(_)))
-                {
+                if params.iter().zip(bounds).any(|(param, bound)| {
+                    bound.is_some() && matches!(param, Param::Float(_) | Param::Int(_))
+                }) {
                     return Err(TargetError::InvalidKey(
                         "Angle bound set on a fixed value".to_string(),
                     ));
@@ -1661,7 +1658,18 @@ fn check_obj_params(parameters: &[Param], obj: &NormalOperation) -> bool {
                     return false;
                 }
             }
+            (Param::Int(p1), Param::Int(p2)) => {
+                if p1 != p2 {
+                    return false;
+                }
+            }
+            (Param::Float(p1), Param::Int(p2)) | (Param::Int(p2), Param::Float(p1)) => {
+                if *p1 != (*p2 as f64) {
+                    return false;
+                }
+            }
             (&Param::ParameterExpression(_), Param::Float(_)) => return false,
+            (&Param::ParameterExpression(_), Param::Int(_)) => return false,
             (&Param::ParameterExpression(_), Param::Obj(_)) => return false,
             _ => continue,
         }

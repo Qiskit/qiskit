@@ -622,6 +622,16 @@ pub(crate) fn pack_param_obj(
                 data: val.to_be_bytes().into(),
             },
         },
+        Param::Int(val) => match endian {
+            Endian::Little => formats::GenericDataPack {
+                type_key: ValueType::Integer,
+                data: val.to_le_bytes().into(),
+            },
+            Endian::Big => formats::GenericDataPack {
+                type_key: ValueType::Integer,
+                data: val.to_be_bytes().into(),
+            },
+        },
         Param::ParameterExpression(exp) => pack_param_expression(exp, qpy_data)?,
         Param::Obj(py_object) => {
             Python::attach(|py| py_pack_param(py_object.bind(py), qpy_data, endian))?
@@ -632,6 +642,7 @@ pub(crate) fn pack_param_obj(
 pub(crate) fn generic_value_to_param(value: &GenericValue) -> Result<Param, QpyError> {
     match value {
         GenericValue::Float64(float_val) => Ok(Param::Float(*float_val)),
+        GenericValue::Int64(int_val) => Ok(Param::Int(*int_val)),
         GenericValue::ParameterExpressionSymbol(symbol) => {
             let parameter_expression = ParameterExpression::from_symbol(symbol.clone());
             Ok(Param::ParameterExpression(Arc::new(parameter_expression)))

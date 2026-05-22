@@ -876,7 +876,7 @@ fn map_rotation<'a>(
             // If the rotation angle is below the tolerance, the gate is assumed to
             // commute with everything, and we simply return the operation with the flag that
             // it commutes trivially.
-            if let Param::Float(angle) = params[0] {
+            if let Some(angle) = params[0].try_float() {
                 let (tr_over_dim, dim) = gate_metrics::rotation_trace_and_dim(*gate, angle)
                     .expect("All rotation should be covered at this point");
                 let gate_fidelity = tr_over_dim.abs().powi(2);

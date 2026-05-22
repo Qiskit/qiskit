@@ -308,6 +308,14 @@ impl ParameterExpression {
         }
     }
 
+    /// Initialize from an i64.
+    pub fn from_i64(value: i64) -> Self {
+        Self {
+            expr: SymbolExpr::Value(Value::Int(value)),
+            name_map: HashMap::new(),
+        }
+    }
+
     /// Load from a sequence of [OPReplay]s. Used in serialization.
     pub fn from_qpy(replay: &[OPReplay]) -> Result<Self, ParameterError> {
         // the stack contains the latest lhs and rhs values
