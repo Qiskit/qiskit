@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Ensure no subtraction panic happens via underflow in `py_run_constrained_reschedule`
+    See `https://github.com/Qiskit/qiskit/issues/16231`
+
