@@ -954,10 +954,22 @@ def test_method2(self):
 
 ## Using dependencies
 
-We distinguish between "requirements" and "optional dependencies" in qiskit.
-A requirement is a package that is absolutely necessary for core functionality in qiskit, such as Numpy or Scipy.
+We distinguish between "requirements" and "optional dependencies" in Qiskit.
+A requirement is a package that is absolutely necessary for core functionality in Qiskit, such as NumPy or SciPy.
 An optional dependency is a package that is used for specialized functionality, which might not be needed by all users.
 If a new feature has a new dependency, it is almost certainly optional.
+
+
+### Version support policy
+
+For Python-space dependencies, Qiskit follows [the scientific-computing standard SPEC 0](https://scientific-python.org/specs/spec-0000/).
+In short: Qiskit will require versions of NumPy and SciPy that are at least two years old.
+For packages not covered by SPEC 0, the requirements must be satisfiable with published binary artifacts from PyPI for the oldest supported Python version, but the two-year limit does not apply.
+
+Python dependencies that are optional at runtime, only used during the build, or only used during the development process are not constrained.
+Qiskit supports all versions of CPython that are not end of life, which is wider than the minimum SPEC 0 support.
+
+Rust dependencies are not constrained, other than by the platform support requirements and minimum supported Rust version of the repository.
 
 ### Adding a requirement
 
