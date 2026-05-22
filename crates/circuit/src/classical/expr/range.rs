@@ -66,30 +66,50 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Range {
     }
 }
 
+/// Errors when materializing constant range bounds without calling Python.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum MaterializeError {
+    NonConstant,
+    NonConstantBound,
+    InvalidType,
+    Overflow,
+    ZeroStep,
+}
+
+impl MaterializeError {
+    fn into_pyerr(self) -> PyErr {
+        match self {
+            Self::NonConstant => PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                "cannot materialize a non-constant Range",
+            ),
+            Self::NonConstantBound => PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                "cannot materialize a non-constant Range bound",
+            ),
+            Self::InvalidType => PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                "Range values must be of unsigned integer type",
+            ),
+            Self::Overflow => PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                "Range value is too large to materialize",
+            ),
+            Self::ZeroStep => {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>("Range step must not be zero")
+            }
+        }
+    }
+}
+
 /// Extract a constant unsigned integer from an expression, peeling implicit casts.
-fn extract_const_uint(expr: &Expr) -> PyResult<isize> {
+fn extract_const_uint(expr: &Expr) -> Result<isize, MaterializeError> {
     match expr {
         Expr::Value(Value::Uint { raw, ty }) => {
             if !matches!(ty, Type::Uint(_)) {
-                return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
-                    "Range values must be of unsigned integer type",
-                ));
+                return Err(MaterializeError::InvalidType);
             }
-            let value: u64 = raw.try_into().map_err(|_| {
-                PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                    "Range value is too large to materialize",
-                )
-            })?;
-            isize::try_from(value).map_err(|_| {
-                PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                    "Range value is too large to materialize",
-                )
-            })
+            let value: u64 = raw.try_into().map_err(|_| MaterializeError::Overflow)?;
+            isize::try_from(value).map_err(|_| MaterializeError::Overflow)
         }
         Expr::Cast(cast) if cast.constant => extract_const_uint(&cast.operand),
-        _ => Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-            "cannot materialize a non-constant Range bound",
-        )),
+        _ => Err(MaterializeError::NonConstantBound),
     }
 }
 
@@ -109,23 +129,27 @@ impl Range {
         false
     }
 
-    /// Materialize a constant range as a Python ``range`` object.
-    ///
-    /// Uses Python ``range`` semantics (exclusive ``stop``).
-    pub fn values<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyRange>> {
+    /// Materialize constant range bounds to integers (exclusive ``stop`` semantics).
+    fn try_materialize_bounds(&self) -> Result<(isize, isize, isize), MaterializeError> {
         if !self.constant {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                "cannot materialize a non-constant Range",
-            ));
+            return Err(MaterializeError::NonConstant);
         }
         let start = extract_const_uint(&self.start)?;
         let stop = extract_const_uint(&self.stop)?;
         let step = extract_const_uint(&self.step)?;
         if step == 0 {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                "Range step must not be zero",
-            ));
+            return Err(MaterializeError::ZeroStep);
         }
+        Ok((start, stop, step))
+    }
+
+    /// Materialize a constant range as a Python ``range`` object.
+    ///
+    /// Uses Python ``range`` semantics (exclusive ``stop``).
+    pub fn values<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyRange>> {
+        let (start, stop, step) = self
+            .try_materialize_bounds()
+            .map_err(MaterializeError::into_pyerr)?;
         PyRange::new_with_step(py, start, stop, step)
     }
 }
@@ -431,117 +455,146 @@ impl PyRangeExpr {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::classical::expr::var::Var;
-    use pyo3::types::PyRangeMethods;
+    use crate::classical::expr::Var;
+    use uuid::Uuid;
 
-    fn make_const_range(start: u64, stop: u64, step: u64) -> Range {
+    #[test]
+    fn test_materialize_bounds() {
         let ty = Type::Uint(8);
-        Range {
+        let range = Range {
             start: Value::Uint {
-                raw: BigUint::from(start),
+                raw: BigUint::from(0u64),
                 ty,
             }
             .into(),
             stop: Value::Uint {
-                raw: BigUint::from(stop),
+                raw: BigUint::from(5u64),
                 ty,
             }
             .into(),
             step: Value::Uint {
-                raw: BigUint::from(step),
+                raw: BigUint::from(1u64),
                 ty,
             }
             .into(),
             ty,
             constant: true,
-        }
+        };
+        assert_eq!(range.try_materialize_bounds().unwrap(), (0, 5, 1));
     }
 
     #[test]
-    fn values_constant_range() {
-        Python::attach(|py| {
-            let range = make_const_range(0, 5, 1);
-            let py_range = range.values(py).unwrap();
-            assert_eq!(py_range.start().unwrap(), 0);
-            assert_eq!(py_range.stop().unwrap(), 5);
-            assert_eq!(py_range.step().unwrap(), 1);
-        });
-    }
-
-    #[test]
-    fn values_constant_range_with_step() {
-        Python::attach(|py| {
-            let range = make_const_range(0, 10, 2);
-            let py_range = range.values(py).unwrap();
-            assert_eq!(py_range.start().unwrap(), 0);
-            assert_eq!(py_range.stop().unwrap(), 10);
-            assert_eq!(py_range.step().unwrap(), 2);
-        });
-    }
-
-    #[test]
-    fn values_constant_range_with_cast() {
-        Python::attach(|py| {
-            let ty8 = Type::Uint(8);
-            let ty32 = Type::Uint(32);
-            let start = Value::Uint {
-                raw: BigUint::from(5u64),
-                ty: ty8,
+    fn test_materialize_bounds_with_step() {
+        let ty = Type::Uint(8);
+        let range = Range {
+            start: Value::Uint {
+                raw: BigUint::from(0u64),
+                ty,
             }
-            .into();
-            let stop = Value::Uint {
+            .into(),
+            stop: Value::Uint {
                 raw: BigUint::from(10u64),
-                ty: ty32,
+                ty,
             }
-            .into();
-            let range = Range {
-                start: Expr::Cast(Box::new(Cast {
-                    operand: start,
-                    ty: ty32,
-                    constant: true,
-                    implicit: true,
-                })),
-                stop,
-                step: Value::Uint {
-                    raw: BigUint::from(2u64),
-                    ty: ty32,
-                }
-                .into(),
+            .into(),
+            step: Value::Uint {
+                raw: BigUint::from(2u64),
+                ty,
+            }
+            .into(),
+            ty,
+            constant: true,
+        };
+        assert_eq!(range.try_materialize_bounds().unwrap(), (0, 10, 2));
+    }
+
+    #[test]
+    fn test_materialize_bounds_with_cast() {
+        let ty8 = Type::Uint(8);
+        let ty32 = Type::Uint(32);
+        let start = Value::Uint {
+            raw: BigUint::from(5u64),
+            ty: ty8,
+        }
+        .into();
+        let stop = Value::Uint {
+            raw: BigUint::from(10u64),
+            ty: ty32,
+        }
+        .into();
+        let range = Range {
+            start: Expr::Cast(Box::new(Cast {
+                operand: start,
                 ty: ty32,
                 constant: true,
-            };
-            let py_range = range.values(py).unwrap();
-            assert_eq!(py_range.start().unwrap(), 5);
-            assert_eq!(py_range.stop().unwrap(), 10);
-            assert_eq!(py_range.step().unwrap(), 2);
-        });
+                implicit: true,
+            })),
+            stop,
+            step: Value::Uint {
+                raw: BigUint::from(2u64),
+                ty: ty32,
+            }
+            .into(),
+            ty: ty32,
+            constant: true,
+        };
+        assert_eq!(range.try_materialize_bounds().unwrap(), (5, 10, 2));
     }
 
     #[test]
-    fn values_non_constant_raises() {
-        Python::attach(|py| {
-            let ty = Type::Uint(8);
-            let range = Range {
-                start: Var::Standalone {
-                    name: "start".to_string(),
-                    ty,
-                    uuid: 0,
-                }
-                .into(),
-                stop: Value::Uint {
-                    raw: BigUint::from(10u64),
-                    ty,
-                }
-                .into(),
-                step: Value::Uint {
-                    raw: BigUint::from(1u64),
-                    ty,
-                }
-                .into(),
+    fn test_materialize_non_constant() {
+        let ty = Type::Uint(8);
+        let range = Range {
+            start: Var::Standalone {
+                uuid: Uuid::new_v4().as_u128(),
+                name: "start".to_string(),
                 ty,
-                constant: false,
-            };
-            assert!(range.values(py).is_err());
-        });
+            }
+            .into(),
+            stop: Value::Uint {
+                raw: BigUint::from(10u64),
+                ty,
+            }
+            .into(),
+            step: Value::Uint {
+                raw: BigUint::from(1u64),
+                ty,
+            }
+            .into(),
+            ty,
+            constant: false,
+        };
+        assert_eq!(
+            range.try_materialize_bounds(),
+            Err(MaterializeError::NonConstant)
+        );
+    }
+
+    #[test]
+    fn test_materialize_zero_step() {
+        let ty = Type::Uint(8);
+        let range = Range {
+            start: Value::Uint {
+                raw: BigUint::from(0u64),
+                ty,
+            }
+            .into(),
+            stop: Value::Uint {
+                raw: BigUint::from(5u64),
+                ty,
+            }
+            .into(),
+            step: Value::Uint {
+                raw: BigUint::from(0u64),
+                ty,
+            }
+            .into(),
+            ty,
+            constant: true,
+        };
+        assert_eq!(
+            range.try_materialize_bounds(),
+            Err(MaterializeError::ZeroStep)
+        );
     }
 }
