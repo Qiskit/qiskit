@@ -2305,13 +2305,13 @@ impl DAGCircuit {
                                         StandardInstruction::Barrier(n2),
                                     ] => n1 == n2,
                                     [
-                                        StandardInstruction::Delay(unit1),
-                                        StandardInstruction::Delay(unit2),
-                                    ] => {
-                                        let duration1 = &inst1.params_view()[0];
-                                        let duration2 = &inst2.params_view()[0];
-                                        unit1 == unit2 && duration1.is_close(duration2, 1e-10)?
-                                    }
+                                        StandardInstruction::Delay(handle1),
+                                        StandardInstruction::Delay(handle2),
+                                    ] => handle1.with(|unit1, dur1| {
+                                        handle2.with(|unit2, dur2| {
+                                            unit1 == unit2 && dur1.is_close(dur2, 1e-10)
+                                        })
+                                    }),
                                     [
                                         StandardInstruction::Measure,
                                         StandardInstruction::Measure,

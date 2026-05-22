@@ -21,7 +21,6 @@ use pyo3::prelude::*;
 use pyo3::{Bound, PyResult, pyfunction, wrap_pyfunction};
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
-use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::{Operation, OperationRef, StandardInstruction};
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
@@ -118,24 +117,20 @@ fn push_node_back(
             .collect();
         let duration = target.get_duration(op.op.name(), &qargs).unwrap_or(0.0);
         this_t0 + duration as u64
-    } else if matches!(
-        op_view,
-        OperationRef::StandardInstruction(StandardInstruction::Delay(_))
-    ) {
-        let params = op.params_view();
-        let param = params
-            .first()
-            .ok_or_else(|| PyValueError::new_err("Delay instruction missing duration parameter"))?;
-        let duration = match param {
-            Param::Obj(val) => {
-                // Try to extract as different numeric types
-                Python::attach(|py| val.bind(py).extract::<u64>())
+    } else if let OperationRef::StandardInstruction(StandardInstruction::Delay(handle)) = &op_view {
+        // Pull the dt-sample duration directly from the delay arena.
+        let duration = handle.with(|_unit, data| -> Result<u64, PyErr> {
+            use qiskit_circuit::delay_arena::DelayDuration;
+            match data {
+                DelayDuration::Int(i) => u64::try_from(*i).map_err(|_| {
+                    TranspilerError::new_err("The provided Delay duration is not in terms of dt.")
+                }),
+                DelayDuration::Float(f) => Ok(*f as u64),
+                DelayDuration::Expr(_) | DelayDuration::PyObj(_) => Err(TranspilerError::new_err(
+                    "The provided Delay duration is not in terms of dt.",
+                )),
             }
-            Param::Float(f) => Ok(*f as u64),
-            _ => Err(TranspilerError::new_err(
-                "The provided Delay duration is not in terms of dt.",
-            )),
-        }?;
+        })?;
 
         this_t0 + duration
     } else {

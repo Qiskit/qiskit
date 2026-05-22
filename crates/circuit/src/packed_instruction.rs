@@ -280,6 +280,7 @@ mod standard_gate {
 
 /// A private module to encapsulate the encoding of [StandardInstruction].
 mod standard_instruction {
+    use crate::delay_arena::DelayHandle;
     use crate::operations::{StandardInstruction, StandardInstructionType};
     use crate::packed_instruction::{PackedOperation, PackedOperationType};
     use bitfield_struct::bitfield;
@@ -289,7 +290,7 @@ mod standard_instruction {
     /// NOTE: this _looks_ like a named struct, but the `bitfield` attribute macro
     /// turns it into a transparent wrapper around a `u64`.
     #[bitfield(u64)]
-    struct StandardInstructionBits {
+    pub(super) struct StandardInstructionBits {
         #[bits(3)]
         discriminant: u8,
         #[bits(5)]
@@ -298,6 +299,8 @@ mod standard_instruction {
         standard_instruction: u8,
         #[bits(16)]
         _pad1: u32,
+        /// 32-bit variant payload: number of qubits for `Barrier`, raw delay-arena
+        /// index for `Delay` (see [`DelayHandle`]), or unused for `Measure`/`Reset`.
         #[bits(32)]
         payload: u32,
     }
@@ -311,9 +314,12 @@ mod standard_instruction {
                     StandardInstruction::Barrier(bits) => packed
                         .with_standard_instruction(bytemuck::cast(StandardInstructionType::Barrier))
                         .with_payload(bits),
-                    StandardInstruction::Delay(unit) => packed
+                    StandardInstruction::Delay(handle) => packed
                         .with_standard_instruction(bytemuck::cast(StandardInstructionType::Delay))
-                        .with_payload(unit as u32),
+                        // Consume the handle into a raw index without dropping its rc unit;
+                        // the unit is now owned by the packed bitfield.  The matching `Drop`
+                        // for `PackedOperation` releases it (see `packed_instruction.rs`).
+                        .with_payload(handle.forget_into_index()),
                     StandardInstruction::Measure => packed.with_standard_instruction(
                         bytemuck::cast(StandardInstructionType::Measure),
                     ),
@@ -339,9 +345,13 @@ mod standard_instruction {
                         StandardInstructionType::Barrier => {
                             StandardInstruction::Barrier(bits.payload())
                         }
-                        StandardInstructionType::Delay => StandardInstruction::Delay(
-                            bytemuck::checked::cast(bits.payload() as u8),
-                        ),
+                        StandardInstructionType::Delay => {
+                            // Produce an owned handle (rc++) so the returned
+                            // `StandardInstruction` is independent of `value`'s lifetime.
+                            StandardInstruction::Delay(DelayHandle::clone_from_index(
+                                bits.payload(),
+                            ))
+                        }
                         StandardInstructionType::Measure => StandardInstruction::Measure,
                         StandardInstructionType::Reset => StandardInstruction::Reset,
                     })
@@ -349,6 +359,15 @@ mod standard_instruction {
                 _ => Err("not a standard instruction!"),
             }
         }
+    }
+
+    /// Read the raw `(StandardInstructionType, payload)` from a packed operation
+    /// without producing a `StandardInstruction`.  Useful in the `Drop` path where
+    /// we need the discriminant + payload but cannot afford to clone the handle.
+    pub(super) fn raw_payload(value: &PackedOperation) -> (StandardInstructionType, u32) {
+        let bits = StandardInstructionBits::from_bits(value.0.as_u64());
+        let ty: StandardInstructionType = bytemuck::checked::cast(bits.standard_instruction());
+        (ty, bits.payload())
     }
 }
 
@@ -769,9 +788,24 @@ impl Clone for PackedOperation {
 
 impl Drop for PackedOperation {
     fn drop(&mut self) {
+        use crate::delay_arena::DelayHandle;
+        use crate::operations::StandardInstructionType;
         use crate::packed_instruction::pointer::PackablePointer;
+        use crate::packed_instruction::standard_instruction::raw_payload;
         match self.discriminant() {
-            PackedOperationType::StandardGate | PackedOperationType::StandardInstruction => (),
+            PackedOperationType::StandardGate => (),
+            PackedOperationType::StandardInstruction => {
+                // Most standard instruction variants own no heap state, but `Delay`
+                // carries an rc unit on the global delay arena (see `delay_arena`).
+                let (ty, payload) = raw_payload(self);
+                if let StandardInstructionType::Delay = ty {
+                    // SAFETY: this `PackedOperation` was constructed by encoding a
+                    // `DelayHandle` via `forget_into_index`, which transferred one rc
+                    // unit to the bitfield.  We are about to be dropped, so we
+                    // release exactly that unit, once.
+                    unsafe { DelayHandle::release_by_index(payload) };
+                }
+            }
             PackedOperationType::PyOperationTypes => PyOperationTypes::drop_packed(self),
             PackedOperationType::UnitaryGate => UnitaryGate::drop_packed(self),
             PackedOperationType::PauliBased => PauliBased::drop_packed(self),

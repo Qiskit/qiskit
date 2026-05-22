@@ -30,7 +30,7 @@ use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::{self, ObjectRegistry};
 use crate::operations::{
     ControlFlow, ControlFlowView, Operation, OperationRef, Param, PauliBased, PyOperationTypes,
-    PythonOperation, StandardGate,
+    PythonOperation, StandardGate, StandardInstruction,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::{ParameterError, ParameterExpression};
@@ -879,6 +879,24 @@ impl CircuitData {
         instruction_index: usize,
     ) -> Result<(), CircuitDataError> {
         let instr = &self.data[instruction_index];
+        // Delay instructions store their duration off the params list, in the global
+        // delay arena.  Track parameters on the duration explicitly here.
+        if let OperationRef::StandardInstruction(StandardInstruction::Delay(handle)) =
+            instr.op.view()
+        {
+            handle.with(|_unit, data| -> Result<(), CircuitDataError> {
+                if let crate::delay_arena::DelayDuration::Expr(expr) = data {
+                    let usage = ParameterUse::DelayDuration {
+                        instruction: instruction_index,
+                    };
+                    for symbol in expr.iter_symbols() {
+                        self.param_table.track(symbol, Some(usage))?;
+                    }
+                }
+                Ok(())
+            })?;
+            return Ok(());
+        }
         let Some(parameters) = self.data[instruction_index].params.as_deref() else {
             return Ok(());
         };
@@ -916,6 +934,23 @@ impl CircuitData {
         instruction_index: usize,
     ) -> Result<(), CircuitDataError> {
         let instr = &self.data[instruction_index];
+        // Mirror `track_instruction_parameters`'s Delay branch.
+        if let OperationRef::StandardInstruction(StandardInstruction::Delay(handle)) =
+            instr.op.view()
+        {
+            handle.with(|_unit, data| -> Result<(), CircuitDataError> {
+                if let crate::delay_arena::DelayDuration::Expr(expr) = data {
+                    let usage = ParameterUse::DelayDuration {
+                        instruction: instruction_index,
+                    };
+                    for symbol in expr.iter_symbols() {
+                        self.param_table.untrack(symbol, usage)?;
+                    }
+                }
+                Ok(())
+            })?;
+            return Ok(());
+        }
         let Some(parameters) = self.data[instruction_index].params.as_deref() else {
             return Ok(());
         };
@@ -1436,6 +1471,94 @@ impl CircuitData {
                                 }
                                 Ok(())
                             })?;
+                        }
+                    }
+                    ParameterUse::DelayDuration { instruction } => {
+                        // Substitute `symbol -> value` inside the Delay's duration
+                        // expression, validate against the Python `Delay`'s rules
+                        // (e.g. `dt` durations must be non-negative integers), allocate
+                        // a fresh `DelayHandle` for the result, and replace the
+                        // instruction's `PackedOperation`.  The old operation drops,
+                        // releasing one rc unit on the previous arena slot.
+                        let previous_op = &self.data[instruction].op;
+                        let OperationRef::StandardInstruction(StandardInstruction::Delay(handle)) =
+                            previous_op.view()
+                        else {
+                            inconsistent()
+                        };
+                        let (unit, new_data) = handle.with(|unit, data| -> Result<_, CircuitDataError> {
+                            let crate::delay_arena::DelayDuration::Expr(expr) = data else {
+                                inconsistent()
+                            };
+                            // Reuse `bind_expr`'s machinery, then re-classify the
+                            // result back into a `DelayDuration`.  We pass
+                            // `coerce=false` so an integer assignment to a `dt`
+                            // delay survives as `Param::Obj` (carrying an int).
+                            let bound = bind_expr(expr, &symbol, value.as_ref(), false)?;
+                            // Run the Python-side validator to catch unit-specific
+                            // constraints (e.g. negative or fractional `dt`
+                            // durations).  Construct a fresh `Delay(duration, unit)`
+                            // — its constructor invokes `validate_parameter`.
+                            let validated_data = Python::attach(|py| -> PyResult<_> {
+                                let delay_cls = crate::imports::DELAY.get_bound(py);
+                                let validated_dur =
+                                    match &bound {
+                                        Param::Float(f) => f.into_py_any(py)?,
+                                        Param::ParameterExpression(e) => {
+                                            crate::parameter::parameter_expression::PyParameterExpression::from(e.as_ref().clone())
+                                                .coerce_into_py(py)?
+                                        }
+                                        Param::Obj(obj) => obj.clone_ref(py),
+                                    };
+                                let validated_delay = delay_cls
+                                    .call1((validated_dur, unit.to_string()))?;
+                                let validated_dur = validated_delay
+                                    .getattr(intern!(py, "duration"))?;
+                                // Re-classify the validated Python value back into a
+                                // `DelayDuration`.  This handles the case where the
+                                // validator coerced (e.g.) a fully-bound expression
+                                // down to an `int`.
+                                crate::circuit_instruction::extract_delay_duration(
+                                    validated_dur.as_borrowed(),
+                                )
+                            })?;
+                            Ok((unit, validated_data))
+                        })?;
+                        let new_handle = crate::delay_arena::DelayHandle::new(unit, new_data);
+                        let previous = &mut self.data[instruction];
+                        previous.op = PackedOperation::from_standard_instruction(
+                            StandardInstruction::Delay(new_handle),
+                        );
+                        #[cfg(feature = "cache_pygates")]
+                        {
+                            previous.py_op.take();
+                        }
+                        // Re-track any unbound symbols that survived in the new
+                        // expression — note that bind_expr may collapse to a value,
+                        // in which case there are no symbols to add a use for.
+                        for uuid in uuids.iter() {
+                            // Only re-add the uuid if its symbol still appears in
+                            // the duration; the `track` above already pre-recorded
+                            // the symbol as known but with no usages.
+                            let new_op = &self.data[instruction].op;
+                            if let OperationRef::StandardInstruction(StandardInstruction::Delay(
+                                h,
+                            )) = new_op.view()
+                            {
+                                let still_used = h.with(|_unit, data| {
+                                    if let crate::delay_arena::DelayDuration::Expr(expr) = data {
+                                        expr.iter_symbols().any(|s| {
+                                            crate::parameter_table::ParameterUuid::from_symbol(s)
+                                                == *uuid
+                                        })
+                                    } else {
+                                        false
+                                    }
+                                });
+                                if still_used {
+                                    self.param_table.add_use(*uuid, usage)?;
+                                }
+                            }
                         }
                     }
                 }

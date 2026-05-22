@@ -306,7 +306,14 @@ fn pack_standard_instruction(
     instruction: &PackedInstruction,
     qpy_data: &mut QPYWriteData,
 ) -> Result<formats::CircuitInstructionV2Pack, QpyError> {
-    let params = pack_instruction_params(instruction, qpy_data)?;
+    // For Delay instructions, the duration lives in the global delay arena rather
+    // than the params list (see `qiskit_circuit::delay_arena`).  Synthesize a
+    // duration param at the QPY boundary so the format is unchanged.
+    let params = if let StandardInstruction::Delay(handle) = inst {
+        pack_delay_params(handle, qpy_data)?
+    } else {
+        pack_instruction_params(instruction, qpy_data)?
+    };
     Ok(formats::CircuitInstructionV2Pack {
         num_qargs: inst.num_qubits(),
         num_cargs: inst.num_clbits(),
@@ -319,6 +326,29 @@ fn pack_standard_instruction(
         bit_data: Default::default(),
         params,
         annotations: None,
+    })
+}
+
+/// Pack a delay's duration into a single QPY param value, classifying by the
+/// arena's typed `DelayDuration` variant rather than going through `Param`.  This
+/// ensures `dt`-unit integer durations survive the round trip as ints.
+fn pack_delay_params(
+    handle: &qiskit_circuit::delay_arena::DelayHandle,
+    qpy_data: &mut QPYWriteData,
+) -> Result<Vec<formats::GenericDataPack>, QpyError> {
+    use qiskit_circuit::delay_arena::DelayDuration;
+    use qiskit_circuit::operations::Param;
+
+    handle.with(|_unit, data| {
+        let param = match data {
+            DelayDuration::Int(i) => Python::attach(|py| -> Result<Param, QpyError> {
+                Ok(Param::Obj(pyo3::IntoPyObjectExt::into_py_any(*i, py)?))
+            })?,
+            DelayDuration::Float(f) => Param::Float(*f),
+            DelayDuration::Expr(expr) => Param::ParameterExpression(expr.clone()),
+            DelayDuration::PyObj(obj) => Python::attach(|py| Param::Obj(obj.clone_ref(py))),
+        };
+        Ok(vec![pack_param_obj(&param, qpy_data, Endian::Little)?])
     })
 }
 

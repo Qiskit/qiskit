@@ -21,6 +21,7 @@ use std::{fmt, vec};
 use crate::bit::{ClassicalRegister, ShareableClbit};
 use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::classical::expr;
+use crate::delay_arena::{DelayDuration, DelayHandle};
 use crate::duration::Duration;
 use crate::packed_instruction::PackedInstruction;
 use crate::parameter::parameter_expression::{
@@ -1069,12 +1070,32 @@ impl FromStr for StandardInstructionType {
     }
 }
 
-#[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
+/// A "standard" (Rust-native) instruction.
+///
+/// Note: this enum is *not* `Copy` because the `Delay` arm carries a
+/// reference-counted [`DelayHandle`] into the global delay arena.  Cloning a
+/// `StandardInstruction` therefore involves an atomic refcount bump on the slot
+/// when it is a `Delay`.  See `delay_arena` for details.
+#[derive(Clone, Debug)]
 pub enum StandardInstruction {
     Barrier(u32),
-    Delay(DelayUnit),
+    Delay(DelayHandle),
     Measure,
     Reset,
+}
+
+impl PartialEq for StandardInstruction {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Barrier(a), Self::Barrier(b)) => a == b,
+            (Self::Measure, Self::Measure) => true,
+            (Self::Reset, Self::Reset) => true,
+            (Self::Delay(a), Self::Delay(b)) => a.with(|a_unit, a_data| {
+                b.with(|b_unit, b_data| a_unit == b_unit && a_data == b_data)
+            }),
+            _ => false,
+        }
+    }
 }
 
 // This must be kept up-to-date with `StandardInstruction` when adding or removing
@@ -1113,10 +1134,11 @@ impl Operation for StandardInstruction {
     }
 
     fn num_params(&self) -> u32 {
-        match self {
-            StandardInstruction::Delay(_) => 1,
-            _ => 0,
-        }
+        // Delay's duration is now stored in the delay arena (see `delay_arena`)
+        // rather than the params list, so all standard instructions have 0 params
+        // from the Rust side.  The Python `.params` accessor synthesizes a one-element
+        // list at the boundary; see `circuit_instruction.rs`.
+        0
     }
 
     fn directive(&self) -> bool {
@@ -1136,7 +1158,8 @@ impl StandardInstruction {
         params: Option<SmallVec<[Param; 3]>>,
         label: Option<&str>,
     ) -> PyResult<Py<PyAny>> {
-        let mut params = params.into_iter().flatten();
+        // Note: for Delay, `params` is unused — the duration lives in the delay arena.
+        let _ = params;
         let kwargs = label
             .map(|label| [("label", label.into_py_any(py)?)].into_py_dict(py))
             .transpose()?;
@@ -1144,11 +1167,22 @@ impl StandardInstruction {
             StandardInstruction::Barrier(num_qubits) => imports::BARRIER
                 .get_bound(py)
                 .call((num_qubits,), kwargs.as_ref())?,
-            StandardInstruction::Delay(unit) => {
-                let duration = params.next().unwrap();
+            StandardInstruction::Delay(handle) => {
+                let (duration_obj, unit_str) = handle.with(|unit, data| -> PyResult<_> {
+                    let duration = match data {
+                        DelayDuration::Int(i) => i.into_py_any(py)?,
+                        DelayDuration::Float(f) => f.into_py_any(py)?,
+                        DelayDuration::Expr(expr) => {
+                            let py_expr = PyParameterExpression::from(expr.as_ref().clone());
+                            py_expr.coerce_into_py(py)?
+                        }
+                        DelayDuration::PyObj(obj) => obj.clone_ref(py),
+                    };
+                    Ok((duration, unit.to_string()))
+                })?;
                 imports::DELAY
                     .get_bound(py)
-                    .call1((duration.into_py_any(py)?, unit.to_string()))?
+                    .call1((duration_obj, unit_str))?
             }
             StandardInstruction::Measure => {
                 imports::MEASURE.get_bound(py).call((), kwargs.as_ref())?

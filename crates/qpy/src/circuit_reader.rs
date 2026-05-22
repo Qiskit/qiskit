@@ -107,42 +107,65 @@ pub enum InstructionType {
 
 fn deserialize_standard_instruction(
     instruction: &formats::CircuitInstructionV2Pack,
-) -> Option<StandardInstruction> {
-    match instruction.gate_class_name.as_str() {
+    qpy_data: &mut QPYReadData,
+) -> Result<Option<StandardInstruction>, QpyError> {
+    Ok(match instruction.gate_class_name.as_str() {
         "Barrier" => Some(StandardInstruction::Barrier(instruction.num_qargs)),
         "Measure" => Some(StandardInstruction::Measure),
         "Reset" => Some(StandardInstruction::Reset),
-        // TODO it seems currently delays are not treated correctly, and the unit is not stored
-        // even in Python QPY. We need to fix the writer to correctly store the delay unit as second parameter
+        // TODO: the existing QPY format does not encode the delay unit as a separate
+        // field — the writer's behavior pre-dates this PR.  The new in-memory
+        // representation moves the duration off the `Param` list and into the global
+        // delay arena, which we must now populate even for legacy QPY payloads.
+        // For now we apply the same heuristic the previous reader used (DT for
+        // numeric, EXPR for symbolic), and read the duration from params[0].
         "Delay" => {
+            use qiskit_circuit::delay_arena::{DelayDuration, DelayHandle};
+            use qiskit_circuit::operations::DelayUnit;
+
             let unit = if !instruction.params.is_empty() {
-                if instruction.params.len() >= 2 {
-                    // both duration and unit params; extract the unit param
-                    // TODO: for now returning default value; this should be fixed as part of the fix mentioned above
-                    qiskit_circuit::operations::DelayUnit::DT
+                if [
+                    ValueType::Expression,
+                    ValueType::ParameterExpression,
+                    ValueType::Parameter,
+                    ValueType::ParameterVector,
+                ]
+                .contains(&instruction.params[0].type_key)
+                {
+                    DelayUnit::EXPR
                 } else {
-                    // only duration; check whether it's an expression
-                    if [
-                        ValueType::Expression,
-                        ValueType::ParameterExpression,
-                        ValueType::Parameter,
-                        ValueType::ParameterVector,
-                    ]
-                    .contains(&instruction.params[0].type_key)
-                    {
-                        qiskit_circuit::operations::DelayUnit::EXPR
-                    } else {
-                        qiskit_circuit::operations::DelayUnit::DT
-                    }
+                    DelayUnit::DT
                 }
             } else {
-                // default case
-                qiskit_circuit::operations::DelayUnit::DT
+                DelayUnit::DT
             };
-            Some(StandardInstruction::Delay(unit))
+            let data = if instruction.params.is_empty() {
+                DelayDuration::Int(0)
+            } else {
+                let value = unpack_generic_value(&instruction.params[0], qpy_data, Endian::Little)?;
+                match value {
+                    GenericValue::Int64(i) => DelayDuration::Int(i),
+                    GenericValue::Float64(f) => DelayDuration::Float(f),
+                    GenericValue::ParameterExpression(exp) => DelayDuration::Expr(exp),
+                    GenericValue::ParameterExpressionSymbol(symbol) => {
+                        DelayDuration::Expr(Arc::new(ParameterExpression::from_symbol(symbol)))
+                    }
+                    GenericValue::ParameterExpressionVectorSymbol(symbol) => {
+                        DelayDuration::Expr(Arc::new(ParameterExpression::from_symbol(symbol)))
+                    }
+                    // Anything else (notably classical `expr::Expr` durations under
+                    // the `expr` unit) round-trips as an opaque Python object.
+                    other => Python::attach(|py| -> Result<_, QpyError> {
+                        let py_obj = py_convert_from_generic_value(&other)?;
+                        let _ = py;
+                        Ok(DelayDuration::PyObj(py_obj))
+                    })?,
+                }
+            };
+            Some(StandardInstruction::Delay(DelayHandle::new(unit, data)))
         }
         _ => None,
-    }
+    })
 }
 
 fn unpack_condition(
@@ -405,16 +428,23 @@ fn unpack_standard_instruction(
     instruction: &formats::CircuitInstructionV2Pack,
     qpy_data: &mut QPYReadData,
 ) -> Result<(PackedOperation, Vec<GenericValue>), QpyError> {
-    let op = if let Some(std_instruction) = deserialize_standard_instruction(instruction) {
-        // TODO: can we avoid this call? {
-        PackedOperation::from_standard_instruction(std_instruction)
+    let std_instruction =
+        deserialize_standard_instruction(instruction, qpy_data)?.ok_or_else(|| {
+            QpyError::InvalidInstruction(format!(
+                "Unrecognized standard gate {}",
+                instruction.gate_class_name
+            ))
+        })?;
+    let is_delay = matches!(std_instruction, StandardInstruction::Delay(_));
+    let op = PackedOperation::from_standard_instruction(std_instruction);
+    // For delays, the duration has already been consumed into the `DelayHandle`
+    // inside `deserialize_standard_instruction`, so we drop the QPY-supplied
+    // params here.
+    let param_values = if is_delay {
+        Vec::new()
     } else {
-        return Err(QpyError::InvalidInstruction(format!(
-            "Unrecognized standard gate {}",
-            instruction.gate_class_name
-        )));
+        get_instruction_values(instruction, qpy_data, Endian::Little)?
     };
-    let param_values = get_instruction_values(instruction, qpy_data, Endian::Little)?;
     Ok((op, param_values))
 }
 

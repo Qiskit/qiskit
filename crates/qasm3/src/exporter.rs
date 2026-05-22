@@ -1168,34 +1168,35 @@ impl<'a> QASM3Builder {
 
     fn build_delay(&self, instr: &PackedInstruction) -> ExporterResult<Delay> {
         let standard_instr = instr.op.standard_instruction();
-        let delay_unit = if let StandardInstruction::Delay(delay) = standard_instr {
-            delay
-        } else {
+        let StandardInstruction::Delay(handle) = standard_instr else {
             return Err(QASM3ExporterError::Error(
                 "Expected Delay instruction, but got wrong instruction".to_string(),
             ));
         };
-        let param = &instr.params_view()[0];
-        let duration: f64 = Python::attach(|py| match param {
-            Param::Float(val) => *val,
-            Param::ParameterExpression(p) => match p.try_to_value(true) {
-                Ok(symbol_expr::Value::Real(val)) => val,
-                _ => {
-                    panic!("Failed to parse parameter value")
-                }
-            },
-            Param::Obj(obj) => {
-                let py_obj = obj.bind(py);
-                let py_str = py_obj.str().expect("Failed to call str() on Parameter");
-                let name = py_str
-                    .str()
-                    .expect("Failed to convert PyString to &str")
-                    .to_string();
-                match name.parse::<f64>() {
-                    Ok(val) => val,
-                    Err(_) => panic!("Failed to parse parameter value"),
-                }
-            }
+        // Pull the unit + numeric duration from the delay arena.
+        let (delay_unit, duration) = handle.with(|unit, data| {
+            let value: f64 = match data {
+                qiskit_circuit::delay_arena::DelayDuration::Int(i) => *i as f64,
+                qiskit_circuit::delay_arena::DelayDuration::Float(f) => *f,
+                qiskit_circuit::delay_arena::DelayDuration::Expr(p) => match p.try_to_value(true) {
+                    Ok(symbol_expr::Value::Real(val)) => val,
+                    Ok(symbol_expr::Value::Int(i)) => i as f64,
+                    _ => panic!("Failed to parse parameter value"),
+                },
+                qiskit_circuit::delay_arena::DelayDuration::PyObj(obj) => Python::attach(|py| {
+                    let py_str = obj
+                        .bind(py)
+                        .str()
+                        .expect("Failed to call str() on Delay duration");
+                    let s = py_str
+                        .str()
+                        .expect("Failed to convert PyString to &str")
+                        .to_string();
+                    s.parse::<f64>()
+                        .unwrap_or_else(|_| panic!("Failed to parse parameter value"))
+                }),
+            };
+            (unit, value)
         });
 
         let mut map = HashMap::new();

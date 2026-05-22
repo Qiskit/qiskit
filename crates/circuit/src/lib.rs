@@ -21,6 +21,7 @@ pub mod classical;
 pub mod converters;
 pub mod dag_circuit;
 pub mod dag_node;
+pub mod delay_arena;
 mod dot_utils;
 pub mod duration;
 pub mod error;

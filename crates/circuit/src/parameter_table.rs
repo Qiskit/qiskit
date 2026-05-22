@@ -53,8 +53,18 @@ impl From<ParameterTableError> for PyErr {
 /// A single use of a symbolic parameter.
 #[derive(Clone, Copy, Hash, PartialEq, Eq, Debug)]
 pub enum ParameterUse {
-    Index { instruction: usize, parameter: u32 },
+    Index {
+        instruction: usize,
+        parameter: u32,
+    },
     GlobalPhase,
+    /// A symbol appearing in a `Delay` instruction's duration.  The duration lives
+    /// in the global delay arena rather than the params list (see `delay_arena`),
+    /// so it gets its own variant: there is no `parameter` index — every Delay has
+    /// at most one symbolic duration.
+    DelayDuration {
+        instruction: usize,
+    },
 }
 
 /// Tracked data tied to each parameter's UUID in the table.
@@ -329,6 +339,11 @@ impl ParameterTable {
                     instruction,
                     parameter,
                 } => out.add((*instruction, *parameter))?,
+                ParameterUse::DelayDuration { instruction } => {
+                    // Mirror the `Index` shape but use Python `None` for the parameter
+                    // slot, since delay durations have no parameter index.
+                    out.add((*instruction, py.None()))?
+                }
             }
         }
         Ok(out.unbind())

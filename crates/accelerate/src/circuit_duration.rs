@@ -14,7 +14,7 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
-use qiskit_circuit::operations::{DelayUnit, Operation, OperationRef, Param, StandardInstruction};
+use qiskit_circuit::operations::{DelayUnit, Operation, OperationRef, StandardInstruction};
 
 use qiskit_transpiler::target::Target;
 
@@ -40,37 +40,39 @@ pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &Target) -> P
                         qubits.iter().map(|x| PhysicalQubit::new(x.0)).collect();
 
                     if let OperationRef::StandardInstruction(op) = inst.op.view() {
-                        if let StandardInstruction::Delay(unit) = op {
-                            let dur = &inst.params_view()[0];
-                            return if unit == DelayUnit::DT {
-                                if let Some(dt) = dt {
-                                    match dur {
-                                        Param::Float(val) => Ok(val * dt),
-                                        Param::Obj(val) => Python::attach(|py| {
-                                            let dur_float: f64 = val.extract(py)?;
-                                            Ok(dur_float * dt)
-                                        }),
-                                        Param::ParameterExpression(_) => Err(QiskitError::new_err(
-                                            "Circuit contains parameterized delays, can't compute a duration estimate with this circuit",
+                        if let StandardInstruction::Delay(handle) = op {
+                            return handle.with(|unit, data| -> PyResult<f64> {
+                                use qiskit_circuit::delay_arena::DelayDuration;
+                                if unit == DelayUnit::DT {
+                                    if let Some(dt) = dt {
+                                        match data {
+                                            DelayDuration::Int(i) => Ok(*i as f64 * dt),
+                                            DelayDuration::Float(f) => Ok(f * dt),
+                                            DelayDuration::Expr(_) | DelayDuration::PyObj(_) => {
+                                                Err(QiskitError::new_err(
+                                                    "Circuit contains parameterized delays, can't compute a duration estimate with this circuit",
+                                                ))
+                                            }
+                                        }
+                                    } else {
+                                        Err(QiskitError::new_err(
+                                            "Circuit contains delays in dt but the target doesn't specify dt",
+                                        ))
+                                    }
+                                } else if unit == DelayUnit::S {
+                                    match data {
+                                        DelayDuration::Float(f) => Ok(*f),
+                                        DelayDuration::Int(i) => Ok(*i as f64),
+                                        _ => Err(QiskitError::new_err(
+                                            "Invalid type for parameter value for delay in circuit",
                                         )),
                                     }
                                 } else {
                                     Err(QiskitError::new_err(
-                                        "Circuit contains delays in dt but the target doesn't specify dt",
+                                        "Circuit contains delays in units other then seconds or dt, the circuit is not scheduled.",
                                     ))
                                 }
-                            } else if unit == DelayUnit::S {
-                                match dur {
-                                    Param::Float(val) => Ok(*val),
-                                    _ => Err(QiskitError::new_err(
-                                        "Invalid type for parameter value for delay in circuit",
-                                    )),
-                                }
-                            } else {
-                                Err(QiskitError::new_err(
-                                    "Circuit contains delays in units other then seconds or dt, the circuit is not scheduled.",
-                                ))
-                            };
+                            });
                         } else if let StandardInstruction::Barrier(_) = op {
                             return Ok(0.);
                         }

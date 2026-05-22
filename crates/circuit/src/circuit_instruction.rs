@@ -24,16 +24,18 @@ use pyo3::{PyResult, intern};
 
 use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::dag_circuit::DAGCircuit;
+use crate::delay_arena::{DelayDuration, DelayHandle};
 use crate::duration::Duration;
 use crate::imports::{CONTROLLED_GATE, GATE, INSTRUCTION, OPERATION, WARNINGS_WARN};
 use crate::instruction::{Instruction, Parameters, create_py_op};
 use crate::operations::{
-    ArrayType, BoxDuration, ControlFlow, ControlFlowInstruction, ControlFlowType, Operation,
-    OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation, PyInstruction,
-    PyOperationTypes, StandardGate, StandardInstruction, StandardInstructionType, UnitaryGate,
+    ArrayType, BoxDuration, ControlFlow, ControlFlowInstruction, ControlFlowType, DelayUnit,
+    Operation, OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation,
+    PyInstruction, PyOperationTypes, StandardGate, StandardInstruction, StandardInstructionType,
+    UnitaryGate,
 };
 use crate::packed_instruction::PackedOperation;
-use crate::parameter::parameter_expression::ParameterExpression;
+use crate::parameter::parameter_expression::{ParameterExpression, PyParameterExpression};
 use nalgebra::{Dyn, MatrixView2, MatrixView4};
 use num_complex::Complex64;
 use smallvec::{SmallVec, smallvec};
@@ -703,8 +705,13 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
                     StandardInstruction::Barrier(num_qubits)
                 }
                 StandardInstructionType::Delay => {
-                    let unit = ob.getattr(intern!(py, "unit"))?.extract()?;
-                    StandardInstruction::Delay(unit)
+                    // The duration lives in the global delay arena rather than on the
+                    // params list (see `delay_arena`).  Read both unit and duration
+                    // here so the resulting `DelayHandle` is fully populated.
+                    let unit: DelayUnit = ob.getattr(intern!(py, "unit"))?.extract()?;
+                    let duration_obj = ob.getattr(intern!(py, "duration"))?;
+                    let duration = extract_delay_duration(duration_obj.as_borrowed())?;
+                    StandardInstruction::Delay(DelayHandle::new(unit, duration))
                 }
                 StandardInstructionType::Measure => StandardInstruction::Measure,
                 StandardInstructionType::Reset => StandardInstruction::Reset,
@@ -975,6 +982,53 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
     }
 }
 
+/// Classify a Python-space delay duration value into a [`DelayDuration`].
+///
+/// This mirrors what `qiskit.circuit.delay.Delay.validate_parameter` produces:
+/// non-negative ints (only valid for `dt`), floats (for time units), or a
+/// `ParameterExpression`.  We do not re-validate against the unit here — the
+/// Python `Delay` constructor has already done that — we just classify.
+pub(crate) fn extract_delay_duration(ob: Borrowed<PyAny>) -> PyResult<DelayDuration> {
+    let py = ob.py();
+    // Bool is a subclass of int in Python; reject it explicitly to avoid `True == 1`
+    // surprises.  `ParameterExpression` is checked before `int`/`float` because the
+    // numeric extractors would not match a parameter object.
+    if ob.is_instance_of::<pyo3::types::PyBool>() {
+        return Err(PyTypeError::new_err(
+            "Delay duration must be int, float, or ParameterExpression",
+        ));
+    }
+    if let Ok(py_expr) = PyParameterExpression::extract_coerce(ob) {
+        // `extract_coerce` accepts plain ints/floats too, so we have to disambiguate
+        // by inspecting the inner expression.  An expression that is a fully-bound
+        // value collapses to Int/Float here; anything else is a true symbolic Expr.
+        let inner = py_expr.inner;
+        if let Ok(value) = inner.try_to_value(true) {
+            return match value {
+                crate::parameter::symbol_expr::Value::Int(i) => Ok(DelayDuration::Int(i)),
+                crate::parameter::symbol_expr::Value::Real(f) => Ok(DelayDuration::Float(f)),
+                crate::parameter::symbol_expr::Value::Complex(_) => Err(PyTypeError::new_err(
+                    "Delay duration must be a real number or ParameterExpression",
+                )),
+            };
+        }
+        return Ok(DelayDuration::Expr(std::sync::Arc::new(inner)));
+    }
+    // Fall back to plain numeric extraction.  Prefer int over float so a Python `int`
+    // is preserved as `DelayDuration::Int` (this is what the rejected previous attempt
+    // got wrong by coercing through `Param::Float`).
+    let _ = py;
+    if let Ok(i) = ob.extract::<i64>() {
+        return Ok(DelayDuration::Int(i));
+    }
+    if let Ok(f) = ob.extract::<f64>() {
+        return Ok(DelayDuration::Float(f));
+    }
+    // Anything else (e.g. a classical `expr.Expr` for a Box-style duration) is held
+    // opaquely and round-tripped through Python.
+    Ok(DelayDuration::PyObj(ob.to_owned().unbind()))
+}
+
 /// Extracts a Python-space params list into an optional [Parameters] list, given
 /// the corresponding operation reference.
 pub fn extract_params<T: CircuitBlock>(
@@ -1022,16 +1076,11 @@ pub fn extract_params<T: CircuitBlock>(
         OperationRef::StandardInstruction(i) => {
             match &i {
                 StandardInstruction::Barrier(_) => None,
-                StandardInstruction::Delay(_) => {
-                    // If the delay's duration is a Python int, we preserve it rather than
-                    // coercing it to a float (e.g. when unit is 'dt').
-                    Some(Parameters::Params(
-                        params
-                            .try_iter()?
-                            .map(|p| Param::extract_no_coerce(p?.as_borrowed()))
-                            .collect::<PyResult<_>>()?,
-                    ))
-                }
+                // Delay's duration is stored in the global delay arena, not as a
+                // Param.  The `.params` boundary on the Python side synthesizes a
+                // single-element list from the handle on read; see
+                // `synthesize_delay_params` and `Delay`'s Python class.
+                StandardInstruction::Delay(_) => None,
                 StandardInstruction::Measure => None,
                 StandardInstruction::Reset => None,
             }

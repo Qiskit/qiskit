@@ -177,7 +177,10 @@ fn name_to_packed_operation(name: &str, num_qubits: u32) -> Option<PackedOperati
     } else if STD_INST_SET.contains(&name) {
         let inst = match name {
             "barrier" => StandardInstruction::Barrier(num_qubits),
-            "delay" => StandardInstruction::Delay(qiskit_circuit::operations::DelayUnit::DT),
+            "delay" => StandardInstruction::Delay(qiskit_circuit::delay_arena::DelayHandle::new(
+                qiskit_circuit::operations::DelayUnit::DT,
+                qiskit_circuit::delay_arena::DelayDuration::Int(0),
+            )),
             "measure" => StandardInstruction::Measure,
             "reset" => StandardInstruction::Reset,
             _ => unreachable!(),

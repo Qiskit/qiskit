@@ -1909,29 +1909,41 @@ pub enum CDelayUnit {
     NS = 3,
     /// Picoseconds.
     PS = 4,
+    /// Number of dt sample periods.  Use [`qk_circuit_delay_dt`] to construct dt
+    /// delays from C; the duration is an integer number of samples in that case
+    /// rather than a `double`.
+    DT = 5,
 }
 
-impl From<CDelayUnit> for DelayUnit {
-    fn from(value: CDelayUnit) -> Self {
-        match value {
+impl TryFrom<CDelayUnit> for DelayUnit {
+    type Error = ExitCode;
+    fn try_from(value: CDelayUnit) -> Result<Self, Self::Error> {
+        Ok(match value {
             CDelayUnit::S => DelayUnit::S,
             CDelayUnit::MS => DelayUnit::MS,
             CDelayUnit::US => DelayUnit::US,
             CDelayUnit::NS => DelayUnit::NS,
             CDelayUnit::PS => DelayUnit::PS,
-        }
+            CDelayUnit::DT => DelayUnit::DT,
+        })
     }
 }
 
 /// @ingroup QkCircuit
 /// Append a delay instruction to the circuit.
 ///
+/// For ``dt`` durations, use ``qk_circuit_delay_dt`` instead — that function takes an
+/// ``int64_t`` duration to preserve the integer-vs-float distinction the Python
+/// data model enforces.
+///
 /// @param circuit A pointer to the circuit to add the delay to.
 /// @param qubit The ``uint32_t`` index of the qubit to apply the delay to.
 /// @param duration The duration of the delay.
-/// @param unit An enum representing the unit of the duration.
+/// @param unit An enum representing the unit of the duration.  Must not be
+///     ``QkDelayUnit_DT``; use ``qk_circuit_delay_dt`` for that.
 ///
-/// @return An exit code.
+/// @return An exit code.  ``QkExitCode_CInputError`` if ``unit`` is
+///     ``QkDelayUnit_DT``.
 ///
 /// # Example
 /// ```c
@@ -1949,25 +1961,188 @@ pub unsafe extern "C" fn qk_circuit_delay(
     duration: f64,
     unit: CDelayUnit,
 ) -> ExitCode {
+    if matches!(unit, CDelayUnit::DT) {
+        return ExitCode::CInputError;
+    }
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
 
-    let delay_unit_variant = unit.into();
+    let delay_unit_variant: DelayUnit = match unit.try_into() {
+        Ok(u) => u,
+        Err(e) => return e,
+    };
 
-    let duration_param: Param = duration.into();
-    let delay_instruction = StandardInstruction::Delay(delay_unit_variant);
+    let handle = qiskit_circuit::delay_arena::DelayHandle::new(
+        delay_unit_variant,
+        qiskit_circuit::delay_arena::DelayDuration::Float(duration),
+    );
+    let delay_instruction = StandardInstruction::Delay(handle);
 
-    let params = Parameters::Params(smallvec![duration_param]);
     circuit
         .push_packed_operation(
             PackedOperation::from_standard_instruction(delay_instruction),
-            Some(params),
+            None,
             &[Qubit(qubit)],
             &[],
         )
         .unwrap();
 
     ExitCode::Success
+}
+
+/// @ingroup QkCircuit
+/// Append a ``dt``-unit delay instruction to the circuit.
+///
+/// The ``dt`` unit measures duration in integer numbers of the backend's sample
+/// period.  The Python data model rejects non-integer (and negative) ``dt``
+/// durations; this function returns ``QkExitCode_CInputError`` for negative
+/// values to mirror that contract.
+///
+/// @param circuit A pointer to the circuit to add the delay to.
+/// @param qubit The ``uint32_t`` index of the qubit to apply the delay to.
+/// @param duration The duration of the delay, in dt samples.  Must be non-negative.
+///
+/// @return An exit code.
+///
+/// # Example
+/// ```c
+///     QkCircuit *qc = qk_circuit_new(1, 0);
+///     qk_circuit_delay_dt(qc, 0, 100);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_delay_dt(
+    circuit: *mut CircuitData,
+    qubit: u32,
+    duration: i64,
+) -> ExitCode {
+    if duration < 0 {
+        return ExitCode::CInputError;
+    }
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+
+    let handle = qiskit_circuit::delay_arena::DelayHandle::new(
+        DelayUnit::DT,
+        qiskit_circuit::delay_arena::DelayDuration::Int(duration),
+    );
+    let delay_instruction = StandardInstruction::Delay(handle);
+
+    circuit
+        .push_packed_operation(
+            PackedOperation::from_standard_instruction(delay_instruction),
+            None,
+            &[Qubit(qubit)],
+            &[],
+        )
+        .unwrap();
+
+    ExitCode::Success
+}
+
+/// @ingroup QkCircuit
+///
+/// Tag identifying which payload field of [`QkDelayDuration`] is populated.
+#[repr(u8)]
+pub enum CDelayDurationKind {
+    /// `value_int` is populated.
+    Int = 0,
+    /// `value_float` is populated.
+    Float = 1,
+    /// The duration is symbolic; no scalar value is exposed.
+    Expr = 2,
+}
+
+/// @ingroup QkCircuit
+/// Read back the unit and duration of a delay instruction in the circuit.
+///
+/// On success, ``unit_out``, ``kind_out``, and one of ``value_int_out`` /
+/// ``value_float_out`` (depending on ``kind_out``) are populated.  When
+/// ``kind_out`` is ``QkDelayDurationKind_Expr`` neither ``value_int_out`` nor
+/// ``value_float_out`` is written; symbolic delay durations are not exposed
+/// through this accessor.
+///
+/// @param circuit A pointer to the circuit.
+/// @param index The instruction index in the circuit.
+/// @param unit_out Output pointer for the unit.
+/// @param kind_out Output pointer for the duration kind discriminator.
+/// @param value_int_out Output pointer for the duration value when the kind is
+///     ``Int``.  May be NULL only if the caller already knows the kind cannot be
+///     ``Int``.
+/// @param value_float_out Output pointer for the duration value when the kind is
+///     ``Float``.  May be NULL only if the caller already knows the kind cannot
+///     be ``Float``.
+///
+/// @return ``QkExitCode_Success`` if the instruction is a delay; otherwise an
+///     error code.
+///
+/// # Safety
+///
+/// All output pointers must be non-NULL when the corresponding kind is
+/// produced.  The circuit pointer must be valid and aligned.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_get_delay(
+    circuit: *const CircuitData,
+    index: usize,
+    unit_out: *mut CDelayUnit,
+    kind_out: *mut CDelayDurationKind,
+    value_int_out: *mut i64,
+    value_float_out: *mut f64,
+) -> ExitCode {
+    // SAFETY: per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+    let Some(inst) = circuit.data().get(index) else {
+        return ExitCode::IndexError;
+    };
+    let qiskit_circuit::operations::OperationRef::StandardInstruction(StandardInstruction::Delay(
+        handle,
+    )) = inst.op.view()
+    else {
+        return ExitCode::CInputError;
+    };
+    handle.with(|unit, data| {
+        let c_unit = match unit {
+            DelayUnit::S => CDelayUnit::S,
+            DelayUnit::MS => CDelayUnit::MS,
+            DelayUnit::US => CDelayUnit::US,
+            DelayUnit::NS => CDelayUnit::NS,
+            DelayUnit::PS => CDelayUnit::PS,
+            DelayUnit::DT => CDelayUnit::DT,
+            DelayUnit::EXPR => {
+                // EXPR-unit delays correspond to classical-Expr durations; we
+                // surface the kind as Expr and don't expose a scalar.  We still
+                // need to write *something* into `unit_out`, but there is no
+                // matching `CDelayUnit` variant — fall back to `S` and rely on
+                // `kind_out == Expr` to signal "no scalar".
+                // SAFETY: caller-supplied pointers are valid per docs.
+                unsafe {
+                    *unit_out = CDelayUnit::S;
+                    *kind_out = CDelayDurationKind::Expr;
+                }
+                return ExitCode::Success;
+            }
+        };
+        // SAFETY: caller-supplied pointer is valid per docs.
+        unsafe { *unit_out = c_unit };
+        match data {
+            qiskit_circuit::delay_arena::DelayDuration::Int(i) => unsafe {
+                *kind_out = CDelayDurationKind::Int;
+                *value_int_out = *i;
+            },
+            qiskit_circuit::delay_arena::DelayDuration::Float(f) => unsafe {
+                *kind_out = CDelayDurationKind::Float;
+                *value_float_out = *f;
+            },
+            qiskit_circuit::delay_arena::DelayDuration::Expr(_)
+            | qiskit_circuit::delay_arena::DelayDuration::PyObj(_) => unsafe {
+                *kind_out = CDelayDurationKind::Expr;
+            },
+        };
+        ExitCode::Success
+    })
 }
 
 /// The configuration options for the ``qk_circuit_draw`` function.

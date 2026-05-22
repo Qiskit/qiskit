@@ -1153,6 +1153,66 @@ static int test_delay_instruction(void) {
         goto cleanup;
     }
 
+    // qk_circuit_delay must reject the DT unit; use qk_circuit_delay_dt instead.
+    if (qk_circuit_delay(qc, 0, 100.0, QkDelayUnit_DT) != QkExitCode_CInputError) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    // qk_circuit_delay_dt accepts non-negative integer durations.
+    if (qk_circuit_delay_dt(qc, 0, 100) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    // and rejects negative durations to mirror the Python validator.
+    if (qk_circuit_delay_dt(qc, 0, -1) != QkExitCode_CInputError) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    // Read back the dt-unit delay we just added at index 1.
+    QkDelayUnit unit_out;
+    QkCDelayDurationKind kind_out;
+    int64_t value_int_out = 0;
+    double value_float_out = 0.0;
+    if (qk_circuit_get_delay(qc, 1, &unit_out, &kind_out, &value_int_out, &value_float_out)
+        != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+    if (unit_out != QkDelayUnit_DT) {
+        result = EqualityError;
+        goto cleanup;
+    }
+    if (kind_out != QkCDelayDurationKind_Int) {
+        result = EqualityError;
+        goto cleanup;
+    }
+    if (value_int_out != 100) {
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // And the s-unit delay at index 0.
+    if (qk_circuit_get_delay(qc, 0, &unit_out, &kind_out, &value_int_out, &value_float_out)
+        != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+    if (unit_out != QkDelayUnit_S) {
+        result = EqualityError;
+        goto cleanup;
+    }
+    if (kind_out != QkCDelayDurationKind_Float) {
+        result = EqualityError;
+        goto cleanup;
+    }
+    if (value_float_out != 0.001) {
+        result = EqualityError;
+        goto cleanup;
+    }
+
 cleanup:
     qk_circuit_free(qc);
     return result;

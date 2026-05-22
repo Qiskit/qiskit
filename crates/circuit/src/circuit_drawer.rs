@@ -12,6 +12,7 @@
 
 use crate::bit::{ClassicalRegister, ShareableClbit, ShareableQubit};
 use crate::circuit_data::CircuitData;
+use crate::delay_arena::DelayDuration;
 use crate::operations::{Operation, OperationRef, Param, StandardGate, StandardInstruction};
 use crate::packed_instruction::PackedInstruction;
 use crate::{Clbit, Qubit};
@@ -830,28 +831,21 @@ impl TextDrawer {
 
     fn get_label(instruction: &PackedInstruction) -> String {
         match instruction.op.view() {
-            OperationRef::StandardInstruction(std_instruction) => {
-                match std_instruction {
-                    StandardInstruction::Measure => "M".to_string(),
-                    StandardInstruction::Reset => "|0>".to_string(),
-                    StandardInstruction::Barrier(_) => BARRIER.to_string(),
-                    StandardInstruction::Delay(delay_unit) => {
-                        match instruction.params_view().first().unwrap() {
-                            Param::Float(duration) => {
-                                format!(
-                                    "Delay({}[{}])",
-                                    F64UiFormatter::new(5).format(*duration),
-                                    delay_unit
-                                )
-                            }
-                            Param::ParameterExpression(expr) => {
-                                format!("Delay({}[{}])", expr, delay_unit)
-                            }
-                            Param::Obj(obj) => format!("Delay({:?}[{}])", obj, delay_unit), // TODO: extract the int
-                        }
+            OperationRef::StandardInstruction(std_instruction) => match std_instruction {
+                StandardInstruction::Measure => "M".to_string(),
+                StandardInstruction::Reset => "|0>".to_string(),
+                StandardInstruction::Barrier(_) => BARRIER.to_string(),
+                StandardInstruction::Delay(handle) => handle.with(|unit, data| match data {
+                    DelayDuration::Int(i) => format!("Delay({i}[{unit}])"),
+                    DelayDuration::Float(f) => {
+                        format!("Delay({}[{}])", F64UiFormatter::new(5).format(*f), unit)
                     }
-                }
-            }
+                    DelayDuration::Expr(expr) => format!("Delay({}[{}])", expr, unit),
+                    DelayDuration::PyObj(obj) => {
+                        format!("Delay({:?}[{}])", obj, unit)
+                    }
+                }),
+            },
             OperationRef::StandardGate(standard_gate) => {
                 static STANDARD_GATE_LABELS: [&str; crate::operations::STANDARD_GATE_SIZE] = [
                     "", "H", "I", "X", "Y", "Z", "P", "R", "Rx", "Ry", "Rz", "S", "Sdg", "√X",
@@ -1506,13 +1500,11 @@ pub fn format_float_pi(f: f64) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use ndarray::Array2;
-    use smallvec::smallvec;
     use std::f64::consts::PI;
     use std::sync::Arc;
 
     use super::*;
     use crate::bit::{ClassicalRegister, QuantumRegister, ShareableClbit, ShareableQubit};
-    use crate::instruction::Parameters;
     use crate::operations::{
         ArrayType, DelayUnit, PauliBased, PauliProductMeasurement, PauliProductRotation,
         STANDARD_GATE_SIZE, StandardInstruction, UnitaryGate,
@@ -2164,12 +2156,15 @@ q_1: ┤1        ├┤1           ├┤1        ├
                 DelayUnit::MS,
                 DelayUnit::S,
             ] {
-                let param = Param::Float(2.1);
+                let handle = crate::delay_arena::DelayHandle::new(
+                    unit,
+                    crate::delay_arena::DelayDuration::Float(2.1),
+                );
                 let inst = PackedInstruction {
-                    op: StandardInstruction::Delay(unit).into(),
+                    op: StandardInstruction::Delay(handle).into(),
                     qubits: circuit.add_qargs(&[Qubit::new(i)]),
                     clbits: circuit.cargs_interner().get_default(),
-                    params: Some(Box::new(Parameters::Params(smallvec![param]))),
+                    params: None,
                     label: None,
                     #[cfg(feature = "cache_pygates")]
                     py_op: OnceLock::new(),
