@@ -1021,9 +1021,7 @@ pub unsafe extern "C" fn qk_dag_op_node_kind(dag: *const DAGCircuit, node: u32) 
         OperationRef::PauliProductMeasurement(_) => COperationKind::PauliProductMeasurement,
         OperationRef::PauliProductRotation(_) => COperationKind::PauliProductRotation,
         OperationRef::ControlFlow(_) => COperationKind::ControlFlow,
-        OperationRef::Gate(_) | OperationRef::Instruction(_) | OperationRef::Operation(_) => {
-            COperationKind::Unknown
-        }
+        OperationRef::PyCustom(_) => COperationKind::Unknown,
     }
 }
 

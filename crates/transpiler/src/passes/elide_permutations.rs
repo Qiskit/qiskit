@@ -49,7 +49,7 @@ pub fn run_elide_permutations(dag: &DAGCircuit) -> PyResult<Option<(DAGCircuit, 
                     let index1 = qargs[1].index();
                     mapping.swap(index0, index1);
                 }
-                OperationRef::Gate(gate) if gate.name() == "permutation" => {
+                OperationRef::PyCustom(gate) if gate.name() == "permutation" => {
                     Python::attach(|py| -> PyResult<()> {
                         let params = inst.params_view();
                         if let Param::Obj(ref pyobj) = params[0] {
