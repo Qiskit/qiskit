@@ -95,6 +95,7 @@ mod circuit {
             export_fn!(qk_classical_register_borrow_from_python, feature = "python_binding"),
             export_fn!(qk_classical_register_convert_from_python, feature = "python_binding"),
             export_fn!(qk_circuit_draw),
+            export_fn!(qk_circuit_delay_dt),
         ]
     });
 }
@@ -200,6 +201,8 @@ mod param {
             export_fn!(qk_param_conjugate),
             export_fn!(qk_param_equal),
             export_fn!(qk_param_as_real),
+            export_fn!(qk_param_from_int),
+            export_fn!(qk_param_as_int),
         ]
     });
 }
