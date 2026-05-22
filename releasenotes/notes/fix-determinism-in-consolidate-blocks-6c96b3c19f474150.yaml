@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a problem in :class:`.ConsolidateBlocks` where basis gate selection was not always
+    deterministic, which could lead to different transpiled circuits across runs.

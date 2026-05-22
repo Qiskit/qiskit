@@ -117,19 +117,21 @@ class ConsolidateBlocks(TransformationPass):
             self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
             self.basis_gate_name = kak_basis_gate.name
         elif basis_gates is not None:
-            kak_gates = KAK_GATE_NAMES.keys() & (basis_gates or [])
-            kak_param_gates = KAK_GATE_PARAM_NAMES.keys() & (basis_gates or [])
-            if kak_param_gates:
+            kak_gate = next((gate for gate in KAK_GATE_NAMES if gate in basis_gates), None)
+            kak_param_gate = next(
+                (gate for gate in KAK_GATE_PARAM_NAMES if gate in basis_gates), None
+            )
+            if kak_param_gate is not None:
                 self.decomposer = TwoQubitControlledUDecomposer(
-                    KAK_GATE_PARAM_NAMES[next(iter(kak_param_gates))]
+                    KAK_GATE_PARAM_NAMES[kak_param_gate]
                 )
-                self.basis_gate_name = next(iter(kak_param_gates))
-            elif kak_gates:
+                self.basis_gate_name = kak_param_gate
+            elif kak_gate is not None:
                 self.decomposer = TwoQubitBasisDecomposer(
-                    KAK_GATE_NAMES[next(iter(kak_gates))],
+                    KAK_GATE_NAMES[kak_gate],
                     basis_fidelity=approximation_degree or 1.0,
                 )
-                self.basis_gate_name = next(iter(kak_gates))
+                self.basis_gate_name = kak_gate
             else:
                 self.decomposer = None
                 self.basis_gate_name = "cx"
