@@ -28,6 +28,7 @@ community in this goal.
   * [Release Cycle](#release-cycle)
 * [Adding deprecation warnings](#adding-deprecation-warnings)
 * [Using dependencies](#using-dependencies)
+  * [Version support policy](#version-support-policy)
   * [Adding a requirement](#adding-a-requirement)
   * [Adding an optional dependency](#adding-an-optional-dependency)
   * [Checking for optionals](#checking-for-optionals)
@@ -976,7 +977,7 @@ Rust dependencies are not constrained, other than by the platform support requir
 Any new requirement must have broad system support; it needs to be supported on all the Python versions and operating systems that qiskit supports.
 It also cannot impose many version restrictions on other packages.
 Users often install qiskit into virtual environments with many different packages in, and we need to ensure that neither we, nor any of our requirements, conflict with their other packages.
-When adding a new requirement, you must add it to [`requirements.txt`](requirements.txt) with as loose a constraint on the allowed versions as possible.
+When adding a new requirement, you must add it to [`requirements.txt`](requirements.txt) following the [version-support policy](#version-support-policy).
 
 ### Adding an optional dependency
 
@@ -984,7 +985,6 @@ New features can also use optional dependencies, which might be used only in ver
 These are not required to use the rest of the package, and so should not be added to `requirements.txt`.
 Instead, if several optional dependencies are grouped together to provide one feature, you can consider adding an "extra" to the package metadata, such as the `visualization` extra that installs Matplotlib and Seaborn (amongst others).
 To do this, modify the [`setup.py`](setup.py) file, adding another entry in the `extras_require` keyword argument to `setup()` at the bottom of the file.
-You do not need to be quite as accepting of all versions here, but it is still a good idea to be as permissive as you possibly can be.
 You should also add a new "tester" to [`qiskit.utils.optionals`](qiskit/utils/optionals.py), for use in the next section.
 
 ### Checking for optionals
