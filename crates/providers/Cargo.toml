@@ -9,6 +9,13 @@ license.workspace = true
 name = "qiskit_providers"
 
 [dependencies]
+rustworkx-core.workspace = true
+num-complex.workspace = true
+thiserror.workspace = true
+
+[dependencies.approx]
+workspace = true
+features = ["num-complex"]
 
 [dependencies.hashbrown]
 workspace = true
@@ -16,3 +23,7 @@ features = ["rayon", "serde"]
 
 [lints]
 workspace = true
+
+[dependencies.ndarray]
+workspace = true
+features = ["rayon", "approx"]

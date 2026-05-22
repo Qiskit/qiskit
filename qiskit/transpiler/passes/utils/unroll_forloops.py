@@ -86,6 +86,7 @@ class UnrollForLoops(TransformationPass):
                 continue
 
             unrolled_dag = circuit_to_dag(body).copy_empty_like()
+            unrolled_dag.global_phase = 0
             for index_value in indexset:
                 bound_body = (
                     body.assign_parameters({loop_param: index_value}) if loop_param else body

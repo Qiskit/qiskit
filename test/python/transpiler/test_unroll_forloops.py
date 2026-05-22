@@ -12,6 +12,7 @@
 
 """Test the UnrollForLoops pass"""
 
+import math
 import unittest
 
 from qiskit.circuit import QuantumCircuit, Parameter, QuantumRegister, ClassicalRegister
@@ -67,6 +68,42 @@ class TestUnrollForLoops(QiskitTestCase):
         passmanager = PassManager()
         passmanager.append(UnrollForLoops())
         result = passmanager.run(circuit)
+
+        self.assertEqual(result, expected)
+
+    def test_preserves_body_global_phase(self):
+        """Check that body global phase is accumulated once per loop iteration."""
+        indexset = range(3)
+        body = QuantumCircuit(1, global_phase=math.pi / 7)
+        body.x(0)
+
+        circuit = QuantumCircuit(1)
+        circuit.for_loop(indexset, None, body, [0], [])
+
+        expected = QuantumCircuit(1)
+        for _ in indexset:
+            expected.compose(body, inplace=True)
+
+        result = UnrollForLoops()(circuit)
+
+        self.assertEqual(result, expected)
+
+    def test_preserves_builder_body_global_phase(self):
+        """Check global phase from a builder-created body is accumulated once per iteration."""
+        indexset = range(3)
+
+        circuit = QuantumCircuit(1)
+        with circuit.for_loop(indexset):
+            circuit.global_phase = math.pi / 7
+            circuit.x(0)
+
+        body = QuantumCircuit(1, global_phase=math.pi / 7)
+        body.x(0)
+        expected = QuantumCircuit(1)
+        for _ in indexset:
+            expected.compose(body, inplace=True)
+
+        result = UnrollForLoops()(circuit)
 
         self.assertEqual(result, expected)
 
