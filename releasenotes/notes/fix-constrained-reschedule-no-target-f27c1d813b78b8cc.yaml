@@ -1,10 +1,6 @@
 ---
 fixes:
   - |
-    Fixed :class:`.ConstrainedReschedule` raising
-    ``AttributeError("'ConstrainedReschedule' object has no attribute 'target'")``
-    when constructed without a ``target=`` argument (the alignment-only path
-    that the pass's docstring still advertises).  ``self.target`` is now
-    initialised unconditionally in the constructor, so the pass works for both
-    the alignment-only and the :class:`.Target`-based call patterns.  See
+    :class:`.ConstrainedReschedule` will no longer raise :exc:`AttributeError`
+    if the optional ``target`` argument is not provided.  See
     `#16245 <https://github.com/Qiskit/qiskit/issues/16245>`__.
