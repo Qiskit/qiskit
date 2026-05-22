@@ -172,6 +172,7 @@ class Commuting2qGateRouter(TransformationPass):
 
         # Used to keep track of nodes that do not decompose using swap strategies.
         accumulator = new_dag.copy_empty_like()
+        accumulator.global_phase = 0
 
         for node in dag.topological_op_nodes():
             if isinstance(node.op, Commuting2qBlock):
@@ -218,7 +219,9 @@ class Commuting2qGateRouter(TransformationPass):
         new_dag.compose(accumulator, qubits=order_bits)
 
         # Re-initialize the node accumulator
-        return new_dag.copy_empty_like()
+        accumulator = new_dag.copy_empty_like()
+        accumulator.global_phase = 0
+        return accumulator
 
     def _position_in_cmap(self, dag: DAGCircuit, j: int, k: int, layout: Layout) -> tuple[int, ...]:
         """A helper function to track the movement of virtual qubits through the swaps.

@@ -1488,7 +1488,9 @@ Pass Manager Definition
    StagedPassManager
    PassManager
    PassManagerConfig
+   PassManagerCliffordTConfig
    generate_preset_pass_manager
+   generate_preset_clifford_t_pass_manager
 
 Layout and Topology
 -------------------
@@ -1552,7 +1554,7 @@ from qiskit.providers.backend import QubitProperties
 from qiskit._accelerate.angle_bound_registry import WrapAngleRegistry
 
 from .passmanager import PassManager, StagedPassManager
-from .passmanager_config import PassManagerConfig
+from .passmanager_config import PassManagerConfig, PassManagerCliffordTConfig
 from .exceptions import (
     TranspilerError,
     TranspilerAccessError,
@@ -1565,7 +1567,10 @@ from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap
 from .layout import Layout, TranspileLayout
 from .instruction_durations import InstructionDurations
-from .preset_passmanagers import generate_preset_pass_manager
+from .preset_passmanagers import (
+    generate_preset_pass_manager,
+    generate_preset_clifford_t_pass_manager,
+)
 from .target import Target
 from .target import InstructionProperties
 from .optimization_metric import OptimizationMetric
@@ -1586,6 +1591,7 @@ __all__ = [
     "LayoutError",
     "OptimizationMetric",
     "PassManager",
+    "PassManagerCliffordTConfig",
     "PassManagerConfig",
     "PropertySet",
     "QubitProperties",
@@ -1596,6 +1602,7 @@ __all__ = [
     "TranspilerAccessError",
     "TranspilerError",
     "WrapAngleRegistry",
+    "generate_preset_clifford_t_pass_manager",
     "generate_preset_pass_manager",
     "passes",
     "preset_passmanagers",

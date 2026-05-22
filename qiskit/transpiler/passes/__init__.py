@@ -99,6 +99,7 @@ Optimizations
    Split2QUnitaries
    SubstitutePi4Rotations
    TemplateOptimization
+   TwoQubitPeepholeOptimization
 
 Scheduling
 =============
