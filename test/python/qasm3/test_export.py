@@ -3394,6 +3394,29 @@ class TestQASM3ExporterRust(QiskitTestCase):
         )
         self.assertEqual(dumps_experimental(qc, allow_aliasing=True), expected_qasm)
 
+    def test_delay_units(self):
+        """Each delay unit should round-trip through ``dumps_experimental`` with the
+        correct label and a numerically correct value.  OpenQASM 3 has no ``ps``
+        unit, so picoseconds are emitted as nanoseconds (1 ps = 0.001 ns)."""
+        cases = [
+            ("ns", 1, "delay[1ns]"),
+            ("us", 1, "delay[1us]"),
+            ("ms", 1, "delay[1ms]"),
+            ("s", 1, "delay[1s]"),
+            ("dt", 1, "delay[1dt]"),
+            ("ps", 1, "delay[0.001ns]"),
+            ("ps", 2, "delay[0.002ns]"),
+        ]
+        for unit, value, expected_literal in cases:
+            with self.subTest(unit=unit, value=value):
+                qc = QuantumCircuit(1)
+                qc.delay(value, 0, unit=unit)
+                out = dumps_experimental(qc)
+                delay_line = next(
+                    line for line in out.splitlines() if line.lstrip().startswith("delay")
+                )
+                self.assertIn(expected_literal, delay_line)
+
     def test_delay_qpy_roundtrip(self):
         qc = QuantumCircuit(1)
         qc.delay(1, 0)
