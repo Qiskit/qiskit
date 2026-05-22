@@ -27,7 +27,11 @@ fn marginalize<T: std::ops::AddAssign + Copy>(
     indices: Option<Vec<usize>>,
 ) -> HashMap<String, T> {
     let mut out_counts: HashMap<String, T> = HashMap::with_capacity(counts.len());
-    let clbit_size = counts.keys().next().unwrap().replace(['_', ' '], "").len();
+    let clbit_size = counts
+        .keys()
+        .map(|key| key.replace(['_', ' '], "").len())
+        .max()
+        .unwrap_or(0);
     let all_indices: Vec<usize> = (0..clbit_size).collect();
     counts
         .iter()
@@ -37,6 +41,12 @@ fn marginalize<T: std::ops::AddAssign + Copy>(
                 if all_indices == *indices {
                     out_counts.insert(k, v);
                 } else {
+                    let k = if k.len() < clbit_size {
+                        format!("{:0>width$}", k, width = clbit_size)
+                    } else {
+                        k
+                    };
+
                     let key_arr = k.as_bytes();
                     let new_key: String = indices
                         .iter()
@@ -56,7 +66,7 @@ fn marginalize<T: std::ops::AddAssign + Copy>(
                 }
             }
             None => {
-                out_counts.insert(k, v);
+                out_counts.entry(k).and_modify(|e| *e += v).or_insert(v);
             }
         });
     out_counts

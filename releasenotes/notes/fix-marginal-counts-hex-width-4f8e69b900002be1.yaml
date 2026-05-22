@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed :func:`.marginal_counts` and :func:`.marginal_distribution` so
+    mixed-width count keys, such as those produced from hexadecimal
+    :class:`.Counts` inputs without explicit ``memory_slots``, are normalized
+    consistently before marginalization. This prevents returning unmarginalized
+    results for inputs such as ``Counts({"0x0": 50, "0x3": 30})``. See
+    `#16190 <https://github.com/Qiskit/qiskit/issues/16190>`__.

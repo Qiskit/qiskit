@@ -221,7 +221,7 @@ def marginal_distribution(
         QiskitError: If any value in ``indices`` is invalid or the ``counts`` dict
         is invalid.
     """
-    num_clbits = len(max(counts.keys()).replace(" ", ""))
+    num_clbits = _max_count_width(counts)
     if indices is not None and (len(indices) == 0 or not set(indices).issubset(range(num_clbits))):
         raise QiskitError(f"indices must be in range [0, {num_clbits - 1}].")
 
@@ -243,12 +243,23 @@ def marginal_distribution(
     return res
 
 
+def _max_count_width(counts):
+    """Return the maximum bitstring width among count keys, ignoring separators."""
+    return max(len(_remove_space_underscore(key)) for key in counts)
+
+
+def _normalize_count_key(key, width):
+    """Remove separators and left-pad a count key to the requested width."""
+    return _remove_space_underscore(key).zfill(width)
+
+
 def _marginalize(counts, indices=None):
-    """Get the marginal counts for the given set of indices"""
-    num_clbits = len(next(iter(counts)).replace(" ", ""))
+    """Get the marginal counts for the given set of indices."""
+    num_clbits = _max_count_width(counts)
+
     # Check if we do not need to marginalize and if so, trim
-    # whitespace and '_' and return
-    if (indices is None) or set(range(num_clbits)) == set(indices):
+    # whitespace and '_' and return.
+    if indices is None:
         ret = {}
         for key, val in counts.items():
             key = _remove_space_underscore(key)
@@ -258,24 +269,34 @@ def _marginalize(counts, indices=None):
     if not indices or not set(indices).issubset(set(range(num_clbits))):
         raise QiskitError(f"indices must be in range [0, {num_clbits - 1}].")
 
-    # Sort the indices to keep in descending order
-    # Since bitstrings have qubit-0 as least significant bit
+    all_indices = set(range(num_clbits))
+
+    # Sort the indices to keep in descending order.
+    # Since bitstrings have qubit-0 as least significant bit.
     indices = sorted(indices, reverse=True)
 
-    # Build the return list
+    # Build the return list.
     new_counts = Counter()
     for key, val in counts.items():
-        new_key = "".join([_remove_space_underscore(key)[-idx - 1] for idx in indices])
+        key = _normalize_count_key(key, num_clbits)
+
+        if set(indices) == all_indices:
+            new_key = key
+        else:
+            new_key = "".join([key[-idx - 1] for idx in indices])
+
         new_counts[new_key] += val
+
     return dict(new_counts)
 
 
 def _format_marginal(counts, marg_counts, indices):
     """Take the output of marginalize and add placeholders for
-    multiple cregs and non-indices."""
+    multiple cregs and non-indices.
+    """
     format_counts = {}
-    counts_template = next(iter(counts))
-    counts_len = len(counts_template.replace(" ", ""))
+    counts_template = max(counts, key=lambda key: len(_remove_space_underscore(key)))
+    counts_len = len(_remove_space_underscore(counts_template))
     indices_rev = sorted(indices, reverse=True)
 
     for count in marg_counts:
@@ -283,13 +304,16 @@ def _format_marginal(counts, marg_counts, indices):
         count_bits = "".join(
             [index_dict[index] if index in index_dict else "_" for index in range(counts_len)]
         )[::-1]
+
         for index, bit in enumerate(counts_template):
             if bit == " ":
                 count_bits = count_bits[:index] + " " + count_bits[index:]
+
         format_counts[count_bits] = marg_counts[count]
+
     return format_counts
 
 
 def _remove_space_underscore(bitstring):
-    """Removes all spaces and underscores from bitstring"""
+    """Removes all spaces and underscores from bitstring."""
     return bitstring.replace(" ", "").replace("_", "")

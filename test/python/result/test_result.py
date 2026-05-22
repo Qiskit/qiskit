@@ -14,6 +14,8 @@
 
 import numpy as np
 
+
+from qiskit.result import Counts
 from qiskit.result import models
 from qiskit.result import marginal_counts
 from qiskit.result import marginal_distribution
@@ -59,6 +61,41 @@ class TestResultOperations(QiskitTestCase):
         result = Result(results=[exp_result], **self.base_result_args)
 
         self.assertEqual(result.get_counts(0), no_header_processed_counts)
+
+    def test_marginal_counts_hex_without_memory_slots(self):
+        """Hex Counts without memory_slots are padded for marginalization."""
+        counts = Counts({"0x0": 50, "0x3": 30})
+
+        self.assertEqual(counts, {"0": 50, "11": 30})
+        self.assertEqual(marginal_counts(counts, indices=[0]), {"0": 50, "1": 30})
+
+    def test_marginal_counts_hex_without_memory_slots_aggregates_after_padding(self):
+        """Short hex outcomes should be left-zero-padded before marginalization."""
+        counts = Counts({"0x0": 50, "0x2": 30})
+
+        self.assertEqual(marginal_counts(counts, indices=[0]), {"0": 80})
+
+    def test_marginal_counts_hex_without_memory_slots_all_indices(self):
+        """Keeping all inferred bits should normalize mixed-width keys."""
+        counts = Counts({"0x0": 50, "0x3": 30})
+
+        self.assertEqual(marginal_counts(counts, indices=[0, 1]), {"00": 50, "11": 30})
+
+    def test_marginal_counts_hex_without_memory_slots_format_marginal(self):
+        """format_marginal should use the inferred maximum width."""
+        counts = Counts({"0x0": 50, "0x3": 30})
+
+        self.assertEqual(
+            marginal_counts(counts, indices=[1], format_marginal=True),
+            {"0_": 50, "1_": 30},
+        )
+
+    def test_marginal_distribution_mixed_width_keys(self):
+        """The accelerated marginal_distribution path should infer width from all keys."""
+        self.assertEqual(
+            marginal_distribution({"0": 0.5, "11": 0.5}, [0]),
+            {"0": 0.5, "1": 0.5},
+        )
 
     def test_counts_header(self):
         """Test that counts are extracted properly with header."""
