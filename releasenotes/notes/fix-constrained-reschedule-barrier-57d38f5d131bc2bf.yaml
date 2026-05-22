@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixed :class:`.ConstrainedReschedule` raising
+    ``TranspilerError("Unknown operation type for 'barrier'.")`` when a
+    circuit contained any compiler directive such as :meth:`.QuantumCircuit.barrier`.
+    The Rust port of the pass in Qiskit 2.4 inverted the branch that handled
+    directives, so the directive case raised an error while unknown non-directive
+    operations were silently treated as having no alignment.  The behaviour now
+    matches the original Python implementation: directives are still visited so
+    that successor overlap is computed, but no alignment is enforced on them.
+    See `#16135 <https://github.com/Qiskit/qiskit/issues/16135>`__.

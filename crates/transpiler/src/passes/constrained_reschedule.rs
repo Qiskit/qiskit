@@ -80,7 +80,10 @@ fn push_node_back(
         | OperationRef::StandardInstruction(StandardInstruction::Measure) => Some(acquire_align),
         OperationRef::StandardInstruction(StandardInstruction::Delay(_)) => None,
         _ => {
-            if !op_view.directive() {
+            if op_view.directive() {
+                // Compiler directives (e.g. `barrier`) have no hardware duration and
+                // therefore no alignment to enforce; they should still be visited so
+                // that successor overlap is computed, but skip the alignment step.
                 None
             } else {
                 return Err(TranspilerError::new_err(format!(
