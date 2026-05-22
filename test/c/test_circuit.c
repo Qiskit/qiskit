@@ -1176,8 +1176,8 @@ static int test_delay_instruction(void) {
     QkCDelayDurationKind kind_out;
     int64_t value_int_out = 0;
     double value_float_out = 0.0;
-    if (qk_circuit_get_delay(qc, 1, &unit_out, &kind_out, &value_int_out, &value_float_out)
-        != QkExitCode_Success) {
+    if (qk_circuit_get_delay(qc, 1, &unit_out, &kind_out, &value_int_out, &value_float_out) !=
+        QkExitCode_Success) {
         result = RuntimeError;
         goto cleanup;
     }
@@ -1195,8 +1195,8 @@ static int test_delay_instruction(void) {
     }
 
     // And the s-unit delay at index 0.
-    if (qk_circuit_get_delay(qc, 0, &unit_out, &kind_out, &value_int_out, &value_float_out)
-        != QkExitCode_Success) {
+    if (qk_circuit_get_delay(qc, 0, &unit_out, &kind_out, &value_int_out, &value_float_out) !=
+        QkExitCode_Success) {
         result = RuntimeError;
         goto cleanup;
     }
