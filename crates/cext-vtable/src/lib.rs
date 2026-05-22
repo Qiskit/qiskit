@@ -80,6 +80,8 @@ mod circuit {
             export_fn!(qk_circuit_instruction_clear),
             export_fn!(qk_opcounts_clear),
             export_fn!(qk_circuit_delay),
+            export_fn!(qk_circuit_delay_dt),
+            export_fn!(qk_circuit_get_delay),
             export_fn!(qk_circuit_to_dag),
             export_fn!(qk_circuit_copy_empty_like),
             export_fn!(qk_circuit_num_param_symbols),
