@@ -25,6 +25,8 @@ from qiskit.quantum_info.operators import Operator, Stinespring
 from .dihedral.random import random_cnotdihedral
 from .symplectic.random import random_clifford, random_pauli, random_pauli_list
 
+__all__ = ["random_clifford", "random_cnotdihedral", "random_pauli", "random_pauli_list"]
+
 DEFAULT_RNG = default_rng()
 
 
@@ -151,6 +153,3 @@ def random_quantum_channel(
 
     # Truncate columns to produce an isometry
     return Stinespring(unitary[:, :d_in], input_dims=input_dims, output_dims=output_dims)
-
-
-__all__ = ["random_clifford", "random_cnotdihedral", "random_pauli", "random_pauli_list"]

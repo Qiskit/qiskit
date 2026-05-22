@@ -1387,15 +1387,12 @@ from qiskit._accelerate.circuit import (
 )
 
 from .exceptions import CircuitError
-from . import _utils  # noqa: F401
 from .quantumcircuit import QuantumCircuit
 from .gate import Gate
 
 
-from . import annotation
 from .annotation import Annotation
 from .controlledgate import ControlledGate
-from . import singleton
 from .instruction import Instruction
 from .instructionset import InstructionSet
 from .operation import Operation
@@ -1413,11 +1410,12 @@ from . import library
 from .equivalence_library import StandardEquivalenceLibrary, SessionEquivalenceLibrary
 from .commutation_checker import CommutationChecker
 
-from . import controlflow
 from .controlflow import *
 
 from .annotated_operation import AnnotatedOperation, InverseModifier, ControlModifier, PowerModifier
 from .twirling import pauli_twirl_2q_gates
+
+from . import annotation, singleton, classical, random, controlflow
 
 __all__ = [
     "AncillaQubit",
@@ -1456,8 +1454,10 @@ __all__ = [
     "StandardEquivalenceLibrary",
     "Store",
     "annotation",
+    "classical",
     "library",
     "pauli_twirl_2q_gates",
+    "random",
     "singleton",
 ]
 __all__ += controlflow.__all__

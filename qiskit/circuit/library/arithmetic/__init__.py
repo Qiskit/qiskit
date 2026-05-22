@@ -12,7 +12,6 @@
 
 """The arithmetic circuit library."""
 
-from . import adders, multipliers
 
 from .functional_pauli_rotations import FunctionalPauliRotations
 from .integer_comparator import IntegerComparator, IntegerComparatorGate
@@ -33,6 +32,8 @@ from .piecewise_chebyshev import PiecewiseChebyshev, PiecewiseChebyshevGate
 from .exact_reciprocal import ExactReciprocal, ExactReciprocalGate
 from .adders import *
 from .multipliers import *
+
+from . import adders, multipliers
 
 __all__ = [
     "ExactReciprocal",

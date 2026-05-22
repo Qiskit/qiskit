@@ -23,6 +23,16 @@ from .multiply import MultiplyMixin
 from .tolerances import TolerancesMixin
 
 
+__all__ = [
+    "AdjointMixin",
+    "GroupMixin",
+    "LinearMixin",
+    "MultiplyMixin",
+    "TolerancesMixin",
+    "getdoc",
+]
+
+
 def generate_apidocs(cls):
     """Decorator to format API docstrings for classes using Mixins.
 
@@ -50,13 +60,3 @@ def generate_apidocs(cls):
     _replace_name(MultiplyMixin, ("_multiply",))
     _replace_name(LinearMixin, ("_add",))
     return cls
-
-
-__all__ = [
-    "AdjointMixin",
-    "GroupMixin",
-    "LinearMixin",
-    "MultiplyMixin",
-    "TolerancesMixin",
-    "getdoc",
-]

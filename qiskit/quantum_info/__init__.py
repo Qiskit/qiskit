@@ -128,21 +128,11 @@ from qiskit._accelerate.pauli_lindblad_map import (
 )
 from qiskit._accelerate.sparse_observable import SparseObservable
 
-from . import analysis, operators, states
+from . import analysis, operators, states, random
 from .analysis import *
 from .operators import *
 from .states import *
-from .random import (
-    random_clifford,
-    random_cnotdihedral,
-    random_density_matrix,
-    random_hermitian,
-    random_pauli,
-    random_pauli_list,
-    random_quantum_channel,
-    random_statevector,
-    random_unitary,
-)
+from .random import *
 from .quaternion import Quaternion
 
 __all__ = [
@@ -153,16 +143,8 @@ __all__ = [
     "QubitSparsePauli",
     "QubitSparsePauliList",
     "SparseObservable",
-    "random_clifford",
-    "random_cnotdihedral",
-    "random_density_matrix",
-    "random_hermitian",
-    "random_pauli",
-    "random_pauli_list",
-    "random_quantum_channel",
-    "random_statevector",
-    "random_unitary",
 ]
 __all__ += analysis.__all__
 __all__ += operators.__all__
 __all__ += states.__all__
+__all__ += random.__all__

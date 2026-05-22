@@ -1546,6 +1546,9 @@ from qiskit.passmanager import (
 )
 from qiskit.passmanager.compilation_status import PropertySet
 
+# import QubitProperties here to provide convenience alias for building a full target
+from qiskit.providers.backend import QubitProperties
+
 from qiskit._accelerate.angle_bound_registry import WrapAngleRegistry
 
 from .passmanager import PassManager, StagedPassManager
@@ -1565,8 +1568,9 @@ from .instruction_durations import InstructionDurations
 from .preset_passmanagers import generate_preset_pass_manager
 from .target import Target
 from .target import InstructionProperties
-from .target import QubitProperties
 from .optimization_metric import OptimizationMetric
+
+from . import passes, preset_passmanagers
 
 __all__ = [
     "AnalysisPass",
@@ -1593,4 +1597,6 @@ __all__ = [
     "TranspilerError",
     "WrapAngleRegistry",
     "generate_preset_pass_manager",
+    "passes",
+    "preset_passmanagers",
 ]

@@ -888,17 +888,6 @@ Template circuits with :class:`~qiskit.circuit.library.RZXGate`.
 
 """
 
-from . import (
-    standard_gates,
-    templates,
-    generalized_gates,
-    boolean_logic,
-    basis_change,
-    arithmetic,
-    n_local as mod_n_local,  # avoid conflict with the function called `n_local`
-    data_preparation,
-)
-
 from .standard_gates import *
 from .templates import *
 from ..barrier import Barrier
@@ -912,6 +901,7 @@ from .hamiltonian_gate import HamiltonianGate
 from .boolean_logic import *
 from .basis_change import *
 from .arithmetic import *
+from . import n_local as mod_n_local  # avoid conflict with the function called `n_local`
 from .n_local import *
 from .data_preparation import *
 from .quantum_volume import QuantumVolume, quantum_volume
@@ -924,6 +914,16 @@ from .grover_operator import GroverOperator, grover_operator
 from .phase_oracle import PhaseOracle, PhaseOracleGate
 from .bit_flip_oracle import BitFlipOracleGate
 from .overlap import UnitaryOverlap, unitary_overlap
+
+from . import (
+    standard_gates,
+    templates,
+    generalized_gates,
+    boolean_logic,
+    basis_change,
+    arithmetic,
+    data_preparation,
+)
 
 __all__ = [
     "IQP",

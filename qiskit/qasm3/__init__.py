@@ -243,7 +243,14 @@ from .exceptions import QASM3Error, QASM3ExporterError, QASM3ImporterError
 from .experimental import ExperimentalFeatures
 from .exporter import Exporter, DefcalInstruction
 
-__all__ = ["DefcalInstruction", "ExperimentalFeatures", "QASM3Error", "QASM3ExporterError"]
+__all__ = [
+    "CustomGate",
+    "DefcalInstruction",
+    "ExperimentalFeatures",
+    "QASM3Error",
+    "QASM3ExporterError",
+    "QASM3ImporterError",
+]
 
 if typing.TYPE_CHECKING:
     from qiskit.circuit import annotation, QuantumCircuit

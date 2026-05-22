@@ -178,20 +178,6 @@ Integer comparators
 
 """
 
-from . import (
-    evolution,
-    permutation,
-    linear,
-    linear_phase,
-    clifford,
-    cnotdihedral,
-    stabilizer,
-    discrete_basis,
-    qft,
-    two_qubit,
-    multi_controlled,
-    arithmetic,
-)
 
 from .evolution import *
 from .permutation import *
@@ -209,10 +195,37 @@ from .two_qubit import *
 from .multi_controlled import *
 from .arithmetic import *
 
+from . import (
+    evolution,
+    permutation,
+    linear,
+    linear_phase,
+    clifford,
+    cnotdihedral,
+    stabilizer,
+    discrete_basis,
+    qft,
+    two_qubit,
+    multi_controlled,
+    arithmetic,
+)
+
 __all__ = [
     "OneQubitEulerDecomposer",
     "aqc",
+    "arithmetic",
+    "clifford",
+    "cnotdihedral",
+    "discrete_basis",
+    "evolution",
+    "linear",
+    "linear_phase",
+    "multi_controlled",
+    "permutation",
+    "qft",
     "qs_decomposition",
+    "stabilizer",
+    "two_qubit",
 ]
 __all__ += evolution.__all__
 __all__ += permutation.__all__

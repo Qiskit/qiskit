@@ -17,7 +17,7 @@
 # yet it existed for a long time and several packages rely on this import path.
 # Since it also mirrors the API-documented ``qiskit.circuit.random``, we keep
 # the re-export available here.
-# ruff: disable[F401]
+
 from qiskit.quantum_info.operators.random import (
     random_clifford,
     random_cnotdihedral,
@@ -29,4 +29,14 @@ from qiskit.quantum_info.operators.random import (
 )
 from qiskit.quantum_info.states.random import random_density_matrix, random_statevector
 
-# ruff: enable[F401]
+__all__ = [
+    "random_clifford",
+    "random_cnotdihedral",
+    "random_density_matrix",
+    "random_hermitian",
+    "random_pauli",
+    "random_pauli_list",
+    "random_quantum_channel",
+    "random_statevector",
+    "random_unitary",
+]

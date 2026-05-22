@@ -29,9 +29,6 @@ from .mcx_synthesis import (
     synth_c4x,
 )
 
-# ruff: noqa: F401
-from .multi_control_rotation_gates import _apply_cu, _apply_mcu_graycode, _mcsu2_real_diagonal
-
 __all__ = [
     "synth_c3x",
     "synth_c4x",
