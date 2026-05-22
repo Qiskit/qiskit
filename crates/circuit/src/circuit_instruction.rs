@@ -212,6 +212,24 @@ impl CircuitInstruction {
 
     #[getter]
     pub fn get_params(&self, py: Python) -> PyResult<Py<PyAny>> {
+        // `Delay.params` keeps lying about being a one-element list at the Python
+        // boundary even though the Rust storage is empty (the duration lives in
+        // the global delay arena).  Synthesize the list here on read.
+        if let OperationRef::StandardInstruction(StandardInstruction::Delay(handle)) =
+            self.operation.view()
+        {
+            return handle.with(|_unit, data| -> PyResult<Py<PyAny>> {
+                let duration = match data {
+                    DelayDuration::Int(i) => i.into_py_any(py)?,
+                    DelayDuration::Float(f) => f.into_py_any(py)?,
+                    DelayDuration::Expr(expr) => {
+                        PyParameterExpression::from(expr.as_ref().clone()).coerce_into_py(py)?
+                    }
+                    DelayDuration::PyObj(obj) => obj.clone_ref(py),
+                };
+                Ok(PyList::new(py, [duration])?.into_any().unbind())
+            });
+        }
         if self.params.is_none() {
             return Ok(PyList::empty(py).into_any().unbind());
         };
