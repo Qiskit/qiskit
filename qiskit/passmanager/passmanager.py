@@ -17,20 +17,21 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
 from itertools import chain
-from typing import Any
+from typing import Any, Generic
 
 import dill
 
 from qiskit.utils.parallel import parallel_map, should_run_in_parallel
-from .base_tasks import Task, PassManagerIR
+from .base_tasks import Task, IR
 from .exceptions import PassManagerError
 from .flow_controllers import FlowControllerLinear
 from .compilation_status import PropertySet, WorkflowStatus, PassManagerState
+from .optimization_pm import OptimizationPassManager
 
 logger = logging.getLogger(__name__)
 
 
-class BasePassManager(ABC):
+class BasePassManager(OptimizationPassManager[IR], ABC, Generic[IR]):
     """Pass manager base class."""
 
     def __init__(
@@ -45,7 +46,7 @@ class BasePassManager(ABC):
             max_iteration: The maximum number of iterations the schedule will be looped if the
                 condition is not met.
         """
-        self._tasks = []
+        super().__init__([])
         self.max_iteration = max_iteration
         # This empty property set never gets used; it gets overridden at the completion of a
         # workflow run.
@@ -53,25 +54,6 @@ class BasePassManager(ABC):
 
         if tasks:
             self.append(tasks)
-
-    def append(
-        self,
-        tasks: Task | list[Task],
-    ) -> None:
-        """Append tasks to the schedule of passes.
-
-        Args:
-            tasks: A set of pass manager tasks to be added to schedule.
-
-        Raises:
-            TypeError: When any element of tasks is not a subclass of passmanager Task.
-        """
-        if isinstance(tasks, Task):
-            tasks = [tasks]
-        if any(not isinstance(t, Task) for t in tasks):
-            raise TypeError("Added tasks are not all valid pass manager task types.")
-
-        self._tasks.append(tasks)
 
     def replace(
         self,
@@ -138,7 +120,7 @@ class BasePassManager(ABC):
         self,
         input_program: Any,
         **kwargs,
-    ) -> PassManagerIR:
+    ) -> IR:
         """Convert input program into pass manager IR.
 
         Args:
@@ -152,7 +134,7 @@ class BasePassManager(ABC):
     @abstractmethod
     def _passmanager_backend(
         self,
-        passmanager_ir: PassManagerIR,
+        passmanager_ir: IR,
         in_program: Any,
         **kwargs,
     ) -> Any:
