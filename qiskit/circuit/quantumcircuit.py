@@ -7235,12 +7235,19 @@ class QuantumCircuit:
                     qc.break_loop()
 
         Args:
-            indexset (Iterable[int]): A collection of integers to loop over.  Always necessary.
-            loop_parameter (Optional[Parameter]): The parameter used within ``body`` to which
-                the values from ``indexset`` will be assigned.  In the context-manager form, if this
-                argument is not supplied, then a loop parameter will be allocated for you and
-                returned as the value of the ``with`` statement.  This will only be bound into the
-                circuit if it is used within the body.
+            indexset (Iterable[int] | range | expr.Range): A collection of integers to loop
+                over, a Python :class:`range`, or a classical :class:`~.expr.Range`.
+                Constant :class:`~.expr.Range` bounds can be unrolled by
+                :class:`~qiskit.transpiler.passes.UnrollForLoops`; non-constant bounds are
+                for runtime execution or OpenQASM 3 export. A non-constant
+                :class:`~.expr.Range` cannot be paired with a loop :class:`~.Parameter` that
+                appears in the loop body (see :class:`~.ForLoopOp`).
+            loop_parameter (Optional[Parameter]): The compile-time parameter used within
+                ``body`` to which the values from ``indexset`` will be assigned when the loop
+                is unrolled.  In the context-manager form, if this argument is not supplied,
+                then a loop parameter will be allocated for you and returned as the value of
+                the ``with`` statement.  This will only be bound into the circuit if it is used
+                within the body.
 
                 If this argument is ``None`` in the manual form of this method, ``body`` will be
                 repeated once for each of the items in ``indexset`` but their values will be

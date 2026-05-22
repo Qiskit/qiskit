@@ -169,6 +169,40 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         with self.assertRaisesRegex(CircuitError, r"to be of type QuantumCircuit"):
             _ = ForLoopOp(indexset, loop_parameter, RXGate(loop_parameter))
 
+    def test_for_loop_non_constant_expr_range_with_parameter_raises(self):
+        """Non-constant expr.Range cannot use a loop Parameter in the body."""
+        qc = QuantumCircuit(1)
+        start_var = qc.add_var("start", expr.lift(0, types.Uint(8)))
+        stop_var = qc.add_var("stop", expr.lift(10, types.Uint(10)))
+        range_expr = expr.Range(start_var, stop_var)
+        loop_parameter = Parameter("i")
+        body = QuantumCircuit(1)
+        body.rx(loop_parameter, 0)
+        with self.assertRaisesRegex(CircuitError, r"non-constant expr\.Range"):
+            ForLoopOp(range_expr, loop_parameter, body)
+
+    def test_for_loop_non_constant_expr_range_context_manager_raises(self):
+        """Context-manager for-loop rejects non-constant expr.Range with used Parameter."""
+        qc = QuantumCircuit(1)
+        start_var = qc.add_var("start", expr.lift(0, types.Uint(8)))
+        stop_var = qc.add_var("stop", expr.lift(10, types.Uint(10)))
+        range_expr = expr.Range(start_var, stop_var)
+        with self.assertRaisesRegex(CircuitError, r"non-constant expr\.Range"):
+            with qc.for_loop(range_expr) as i:
+                qc.rx(i, 0)
+
+    def test_for_loop_non_constant_expr_range_without_parameter(self):
+        """Non-constant expr.Range without a loop parameter is allowed."""
+        qc = QuantumCircuit(1)
+        start_var = qc.add_var("start", expr.lift(0, types.Uint(8)))
+        stop_var = qc.add_var("stop", expr.lift(10, types.Uint(10)))
+        range_expr = expr.Range(start_var, stop_var)
+        body = QuantumCircuit(1)
+        body.h(0)
+        op = ForLoopOp(range_expr, None, body)
+        self.assertEqual(op.params[0], range_expr)
+        self.assertIsNone(op.params[1])
+
     def test_for_loop_invalid_params_setter(self):
         """Verify we catch invalid param settings for ForLoopOp."""
         body = QuantumCircuit(3, 1)
@@ -193,6 +227,13 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
 
         with self.assertRaisesRegex(CircuitError, r"to be either of type Parameter or None"):
             _ = ForLoopOp(indexset, "foo", body)
+
+        qc_vars = QuantumCircuit(1)
+        start_var = qc_vars.add_var("start", expr.lift(0, types.Uint(8)))
+        stop_var = qc_vars.add_var("stop", expr.lift(10, types.Uint(10)))
+        non_const_range = expr.Range(start_var, stop_var)
+        with self.assertRaisesRegex(CircuitError, r"non-constant expr\.Range"):
+            op.params = [non_const_range, loop_parameter, body]
 
     @idata(CONDITION_PARAMETRISATION)
     def test_if_else_instantiation_with_else(self, condition):

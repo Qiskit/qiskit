@@ -1,22 +1,86 @@
 ---
 features_circuits:
   - |
-    Added a new :class:`qiskit.circuit.classical.expr.Range` class that enables the specification
-    of dynamic ranges in classical expressions. 
-    This class allows users to define ranges with start, stop and step parameters, allowing more flexible and dynamic for-loop statements.
-    At the moment, :class:`~qiskit.circuit.classical.expr.Range` class can only be used in for-loops,
-    The index set of the :class:`qiskit.circuit.ForLoop` can now be of type `qiskit.circuit.classical.expr.Range`,
-    on top of the existing `List[int]`.
-  
+    Added a new :class:`~qiskit.circuit.classical.expr.Range` class for specifying
+    loop bounds as classical expressions in :class:`~qiskit.circuit.ForLoopOp`.
+    The ``indexset`` of a for-loop may now be a Python :class:`range`, an iterable
+    of integers, or an :class:`~qiskit.circuit.classical.expr.Range` in addition
+    to the existing tuple/list forms.
+
+    **Compile-time vs runtime bounds.** A :class:`~qiskit.circuit.classical.expr.Range`
+    whose ``start``, ``stop``, and ``step`` are all constant (for example built
+    with :func:`~qiskit.circuit.classical.expr.lift`) behaves like a Python
+    :class:`range` at transpile time: :meth:`~qiskit.circuit.classical.expr.Range.values`
+    materializes it to a built-in :class:`range`, and
+    :class:`~qiskit.transpiler.passes.UnrollForLoops` can unroll the loop and bind
+    a compile-time :class:`~qiskit.circuit.Parameter` into the body via
+    :meth:`~qiskit.circuit.QuantumCircuit.assign_parameters`, as with historical
+    Qiskit for-loops.
+
+    A **non-constant** :class:`~qiskit.circuit.classical.expr.Range` (for example
+    one whose bounds involve classical :class:`~qiskit.circuit.classical.expr.Var`
+    nodes) is intended for **runtime** execution or OpenQASM 3 export: loop bounds
+    are only known when the circuit runs. Such loops are left unchanged by
+    :class:`~qiskit.transpiler.passes.UnrollForLoops` by default; pass
+    ``strict=True`` to raise :class:`~qiskit.transpiler.exceptions.TranspilerError`
+    instead.
+
+    **Loop parameters.** Qiskit for-loops have historically exposed the loop index
+    as a compile-time :class:`~qiskit.circuit.Parameter`. That remains the supported
+    model for parameterized gate angles. Pairing a non-constant
+    :class:`~qiskit.circuit.classical.expr.Range` with a ``loop_parameter`` that
+    appears in the loop body now raises :class:`~qiskit.circuit.exceptions.CircuitError`
+    at construction time, because those indices cannot be bound at transpile time.
+    Parameterless loops (or loops whose auto-generated parameter is unused and
+    stripped) remain valid with runtime bounds. Support for a real-time classical
+    :class:`~qiskit.circuit.classical.expr.Var` as the loop index is left for
+    future work.
+
+features_transpiler:
+  - |
+    :class:`~qiskit.transpiler.passes.UnrollForLoops` now supports
+    :class:`~qiskit.circuit.ForLoopOp` instructions whose ``indexset`` is a
+    **constant** :class:`~qiskit.circuit.classical.expr.Range`. The pass calls
+    :meth:`~qiskit.circuit.classical.expr.Range.values` to materialize the bounds
+    to a Python :class:`range`, then unrolls and binds any compile-time
+    :class:`~qiskit.circuit.Parameter` loop variable with
+    :meth:`~qiskit.circuit.QuantumCircuit.assign_parameters`, matching the
+    existing behavior for Python :class:`range` and tuple indexsets.
+
+    **Non-constant** :class:`~qiskit.circuit.classical.expr.Range` indexsets are
+    skipped by default (the :class:`~qiskit.circuit.ForLoopOp` is preserved for
+    runtime backends or later passes). A new keyword argument ``strict=False``
+    (default) controls this: with ``strict=True``, the pass raises
+    :class:`~qiskit.transpiler.exceptions.TranspilerError` instead of skipping.
+    The existing ``max_target_depth`` check now applies correctly to constant
+    :class:`~qiskit.circuit.classical.expr.Range` loops after materialization.
+
 features_qasm:
   - |
-    The :class:`qiskit.qasm3.ast.ForLoopStatement` class now has a new parameter `type_` that is used to specify the type of the index set of the for-loop. 
-    If not specified the type, an error will be raised. 
-    This follows the latest standard OpenQASM 3 specification (https://openqasm.com/language/classical.html#for-loops).
-    The `qiskit.qasm3.exporter.QASM3Exporter` class has also been updated to export `qiskit.circuit.classical.expr.Range` objects to a format that is compatible with the latest standard OpenQASM 3 specification.
-    Furthermore, the type of the index set of the `qiskit.circuit.ForLoop` expression is now correctly exported to OpenQASM 3, as per the latest specification.
+    The :class:`~qiskit.qasm3.ast.ForLoopStatement` class now has a new parameter
+    ``type_`` that specifies the type of the for-loop index set, following the
+    OpenQASM 3 specification
+    (https://openqasm.com/language/classical.html#for-loops).
+    The :class:`~qiskit.qasm3.Exporter` exports constant and non-constant
+    :class:`~qiskit.circuit.classical.expr.Range` indexsets as OpenQASM 3 range
+    expressions (with Python ``range``-like exclusive ``stop`` semantics for
+    :class:`~qiskit.circuit.classical.expr.Range`, distinct from the conversion
+    applied to built-in Python :class:`range` objects).
 
 upgrade_qasm:
   - |
-    Creating a :class:`qiskit.qasm3.ast.ForLoopStatement` object without specifying the `type_` parameter will now raise an error.
-    This follows the latest standard OpenQASM 3 specification (https://openqasm.com/language/classical.html#for-loops).
+    Creating a :class:`~qiskit.qasm3.ast.ForLoopStatement` object without
+    specifying the ``type_`` parameter will now raise an error.
+    This follows the latest standard OpenQASM 3 specification
+    (https://openqasm.com/language/classical.html#for-loops).
+
+upgrade_circuits:
+  - |
+    Constructing a :class:`~qiskit.circuit.ForLoopOp` (including via
+    :meth:`~qiskit.circuit.QuantumCircuit.for_loop`) with a non-constant
+    :class:`~qiskit.circuit.classical.expr.Range` indexset and a ``loop_parameter``
+    that is used in the loop body will now raise
+    :class:`~qiskit.circuit.exceptions.CircuitError`. Use a constant
+    :class:`~qiskit.circuit.classical.expr.Range` or Python :class:`range` if you
+    need compile-time unrolling and :class:`~qiskit.circuit.Parameter` binding;
+    omit the loop parameter if you only need runtime or export semantics.

@@ -29,10 +29,38 @@ if TYPE_CHECKING:
     from qiskit.circuit import QuantumCircuit
 
 
+def _validate_for_loop_params(indexset, loop_parameter, body) -> None:
+    """Reject non-constant ``expr.Range`` indexsets paired with a used loop ``Parameter``."""
+    if (
+        isinstance(indexset, Range)
+        and not indexset.const
+        and loop_parameter is not None
+        and loop_parameter in body.parameters
+    ):
+        raise CircuitError(
+            "Cannot use a loop_parameter with a non-constant expr.Range indexset: "
+            "loop indices are only known at runtime and cannot be bound to a "
+            "compile-time Parameter. Use a constant expr.Range (or Python range) "
+            "for transpiler unrolling, or omit the loop_parameter."
+        )
+
+
 class ForLoopOp(ControlFlowOp):
     """A circuit operation which repeatedly executes a subcircuit
     (``body``) parameterized by a parameter ``loop_parameter`` through
     the set of integer values provided in ``indexset``.
+
+    The ``indexset`` may be a Python :class:`range`, an iterable of integers
+    (stored as a tuple), or a classical :class:`~.expr.Range` expression.
+    A constant :class:`~.expr.Range` can be unrolled by
+    :class:`~qiskit.transpiler.passes.UnrollForLoops`; a non-constant
+    :class:`~.expr.Range` is intended for runtime execution or OpenQASM 3 export.
+
+    The ``loop_parameter`` must be a :class:`~.Parameter` (or ``None``). It
+    binds into gate parameters at transpile time when the loop is unrolled.
+    A non-constant :class:`~.expr.Range` cannot be paired with a
+    ``loop_parameter`` that appears in ``body``; doing so raises
+    :class:`~.CircuitError`.
     """
 
     _control_flow_type = ControlFlowType.ForLoop
@@ -46,11 +74,20 @@ class ForLoopOp(ControlFlowOp):
     ):
         """
         Args:
-            indexset: A collection of integers to loop over.
+            indexset: A collection of integers to loop over, as a Python
+                :class:`range`, an iterable of integers, or a classical
+                :class:`~.expr.Range`.
             loop_parameter: The placeholder parameterizing ``body`` to which
-                the values from ``indexset`` will be assigned.
+                the values from ``indexset`` will be assigned when the loop is
+                unrolled. Must be ``None`` or a :class:`~.Parameter`. Cannot be
+                used with a non-constant :class:`~.expr.Range` when the
+                parameter appears in ``body``.
             body: The loop body to be repeatedly executed.
             label: An optional label for identifying the instruction.
+
+        Raises:
+            CircuitError: if ``loop_parameter`` is used with a non-constant
+                :class:`~.expr.Range` indexset.
         """
         num_qubits = body.num_qubits
         num_clbits = body.num_clbits
@@ -105,6 +142,8 @@ class ForLoopOp(ControlFlowOp):
                 stacklevel=2,
             )
 
+        _validate_for_loop_params(indexset, loop_parameter, body)
+
         # Consume indexset into a tuple unless it was provided as a range.
         # Preserve ranges so that they can be exported as OpenQASM 3 ranges.
         indexset = indexset if isinstance(indexset, (range, Range)) else tuple(indexset)
@@ -126,9 +165,13 @@ class ForLoopContext:
 
     Within the block, a lot of the bookkeeping is done for you; you do not need to keep track of
     which qubits and clbits you are using, for example, and a loop parameter will be allocated for
-    you, if you do not supply one yourself.  All normal methods of accessing the qubits on the
-    underlying :obj:`~QuantumCircuit` will work correctly, and resolve into correct accesses within
-    the interior block.
+    you, if you do not supply one yourself.  The loop variable is a compile-time
+    :class:`~.Parameter`, not a classical :class:`~.expr.Var`.  All normal methods of accessing the
+    qubits on the underlying :obj:`~QuantumCircuit` will work correctly, and resolve into correct
+    accesses within the interior block.
+
+    A non-constant classical :class:`~.expr.Range` indexset cannot be used with a loop
+    :class:`~.Parameter` that appears in the loop body; see :class:`ForLoopOp`.
 
     You generally should never need to instantiate this object directly.  Instead, use
     :obj:`.QuantumCircuit.for_loop` in its context-manager form, i.e. by not supplying a ``body`` or

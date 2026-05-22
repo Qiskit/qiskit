@@ -15,7 +15,9 @@
 import unittest
 
 from qiskit.circuit import QuantumCircuit, Parameter, QuantumRegister, ClassicalRegister
+from qiskit.circuit.classical import expr, types
 from qiskit.transpiler import PassManager
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.utils.unroll_forloops import UnrollForLoops
 from test import QiskitTestCase
 
@@ -144,6 +146,92 @@ class TestUnrollForLoops(QiskitTestCase):
         passmanager.append(UnrollForLoops(max_target_depth=2))
         result = passmanager.run(circuit)
 
+        self.assertEqual(result, circuit)
+
+    def test_unroll_constant_expr_range(self):
+        """Constant expr.Range unrolls like a Python range (reviewer use case)."""
+        range_expr = expr.Range(expr.lift(0, types.Uint(8)), expr.lift(5, types.Uint(8)))
+        circuit = QuantumCircuit(1, 1)
+        with circuit.for_loop(range_expr):
+            circuit.h(0)
+            circuit.measure(0, 0)
+
+        expected = QuantumCircuit(1, 1)
+        for _ in range(5):
+            expected.h(0)
+            expected.measure(0, 0)
+
+        passmanager = PassManager()
+        passmanager.append(UnrollForLoops())
+        result = passmanager.run(circuit)
+        self.assertEqual(result, expected)
+
+    def test_unroll_constant_expr_range_with_parameter(self):
+        """Constant expr.Range with Parameter in body unrolls and binds."""
+        loop_parameter = Parameter("foo")
+        indexset = expr.Range(
+            expr.lift(0, types.Uint(8)), expr.lift(10, types.Uint(8)), expr.lift(2, types.Uint(8))
+        )
+        body = QuantumCircuit(3, 1)
+        body.rx(loop_parameter, [0, 1, 2])
+
+        qreg, creg = QuantumRegister(5, "q"), ClassicalRegister(2, "c")
+        circuit = QuantumCircuit(qreg, creg)
+        circuit.for_loop(indexset, loop_parameter, body, [1, 2, 3], [1])
+
+        expected = QuantumCircuit(qreg, creg)
+        for index_loop in indexset.values():
+            expected.rx(index_loop, [1, 2, 3])
+
+        passmanager = PassManager()
+        passmanager.append(UnrollForLoops())
+        result = passmanager.run(circuit)
+        self.assertEqual(result, expected)
+
+    def test_skip_non_constant_expr_range(self):
+        """Non-constant expr.Range is left unchanged when strict is False."""
+        qc = QuantumCircuit(1)
+        start_var = qc.add_var("start", expr.lift(0, types.Uint(8)))
+        stop_var = qc.add_var("stop", expr.lift(10, types.Uint(10)))
+        range_expr = expr.Range(start_var, stop_var)
+        with qc.for_loop(range_expr):
+            qc.h(0)
+
+        passmanager = PassManager()
+        passmanager.append(UnrollForLoops(strict=False))
+        result = passmanager.run(qc)
+        self.assertEqual(result, qc)
+
+    def test_strict_raises_non_constant_expr_range(self):
+        """Non-constant expr.Range raises with strict=True."""
+        qc = QuantumCircuit(1)
+        start_var = qc.add_var("start", expr.lift(0, types.Uint(8)))
+        stop_var = qc.add_var("stop", expr.lift(10, types.Uint(10)))
+        range_expr = expr.Range(start_var, stop_var)
+        with qc.for_loop(range_expr):
+            qc.h(0)
+
+        passmanager = PassManager()
+        passmanager.append(UnrollForLoops(strict=True))
+        with self.assertRaises(TranspilerError):
+            passmanager.run(qc)
+
+    def test_max_target_depth_constant_expr_range(self):
+        """max_target_depth applies after materializing constant expr.Range."""
+        loop_parameter = Parameter("foo")
+        indexset = expr.Range(
+            expr.lift(0, types.Uint(8)), expr.lift(10, types.Uint(8)), expr.lift(2, types.Uint(8))
+        )
+        body = QuantumCircuit(3, 1)
+        body.rx(loop_parameter, [0, 1, 2])
+
+        qreg, creg = QuantumRegister(5, "q"), ClassicalRegister(2, "c")
+        circuit = QuantumCircuit(qreg, creg)
+        circuit.for_loop(indexset, loop_parameter, body, [1, 2, 3], [1])
+
+        passmanager = PassManager()
+        passmanager.append(UnrollForLoops(max_target_depth=2))
+        result = passmanager.run(circuit)
         self.assertEqual(result, circuit)
 
 

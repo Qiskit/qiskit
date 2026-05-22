@@ -73,6 +73,32 @@ class TestRange(QiskitTestCase):
         self.assertEqual(range_expr.type, types.Uint(8))
         self.assertTrue(range_expr.const)
 
+    def test_values_constant(self):
+        """Constant Range materializes to a Python range."""
+        range_expr = expr.Range(expr.lift(0, types.Uint(8)), expr.lift(5, types.Uint(8)))
+        self.assertEqual(range_expr.values(), range(5))
+
+    def test_values_constant_with_step(self):
+        """Constant Range with step materializes correctly."""
+        range_expr = expr.Range(
+            expr.lift(0, types.Uint(8)), expr.lift(10, types.Uint(8)), expr.lift(2, types.Uint(8))
+        )
+        self.assertEqual(range_expr.values(), range(0, 10, 2))
+
+    def test_values_constant_with_cast(self):
+        """Constant Range with implicit casts materializes correctly."""
+        start = expr.lift(5, types.Uint(8))
+        stop = expr.lift(10, types.Uint(16))
+        range_expr = expr.Range(start, stop, expr.lift(2, types.Uint(32)))
+        self.assertEqual(range_expr.values(), range(5, 10, 2))
+
+    def test_values_non_constant_raises(self):
+        """Non-constant Range cannot be materialized."""
+        cr = ClassicalRegister(8, "c")
+        range_expr = expr.Range(expr.lift(cr), expr.lift(10, types.Uint(8)))
+        with self.assertRaisesRegex(ValueError, r"non-constant Range"):
+            range_expr.values()
+
     @ddt.data(
         # Wrong start, correct stop, no step
         {

@@ -14,16 +14,30 @@
 
 from qiskit.circuit import ForLoopOp, ContinueLoopOp, BreakLoopOp, IfElseOp
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.converters import circuit_to_dag
+from qiskit.circuit.classical.expr import Range
 
 
 class UnrollForLoops(TransformationPass):
-    """``UnrollForLoops`` transpilation pass unrolls for-loops when possible."""
+    """``UnrollForLoops`` transpilation pass unrolls for-loops when possible.
 
-    def __init__(self, max_target_depth=-1):
+    This pass unrolls :class:`~.ForLoopOp` instructions whose ``indexset`` is a
+    Python :class:`range`, a tuple of integers, or a **constant**
+    :class:`~.expr.Range` (materialized via :meth:`~.expr.Range.values`).
+    Non-constant :class:`~.expr.Range` indexsets are skipped by default because
+    loop bounds are only known at runtime; set ``strict=True`` to raise instead.
+    """
+
+    def __init__(self, max_target_depth=-1, *, strict=False):
         """Things like ``for x in {0, 3, 4} {rx(x) qr[1];}`` will turn into
         ``rx(0) qr[1]; rx(3) qr[1]; rx(4) qr[1];``.
+
+        Constant :class:`~.expr.Range` indexsets are materialized to a Python
+        :class:`range` and unrolled the same way. Non-constant
+        :class:`~.expr.Range` indexsets are left unchanged unless ``strict`` is
+        set.
 
         .. note::
             The ``UnrollForLoops`` unrolls only one level of block depth. No inner loop will
@@ -32,9 +46,13 @@ class UnrollForLoops(TransformationPass):
         Args:
             max_target_depth (int): Optional. Checks if the unrolled block is over a particular
                 subcircuit depth. To disable the check, use ``-1`` (Default).
+            strict (bool): If ``True``, raise :class:`~.TranspilerError` when a
+                :class:`~.ForLoopOp` uses a non-constant :class:`~.expr.Range`
+                indexset. If ``False`` (default), skip such loops.
         """
         super().__init__()
         self.max_target_depth = max_target_depth
+        self.strict = strict
 
     @control_flow.trivial_recurse
     def run(self, dag):
@@ -48,6 +66,16 @@ class UnrollForLoops(TransformationPass):
         """
         for forloop_op in dag.op_nodes(ForLoopOp):
             (indexset, loop_param, body) = forloop_op.op.params
+
+            if isinstance(indexset, Range):
+                if not indexset.const:
+                    if self.strict:
+                        raise TranspilerError(
+                            "Cannot unroll for_loop: indexset is a non-constant "
+                            "expr.Range whose bounds are only known at runtime."
+                        )
+                    continue
+                indexset = indexset.values()
 
             # skip unrolling if it results in bigger than max_target_depth
             if 0 < self.max_target_depth < len(indexset) * body.depth():

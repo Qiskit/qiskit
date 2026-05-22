@@ -15,7 +15,7 @@ use crate::classical::expr::{Expr, ExprKind, PyExpr, Value};
 use crate::classical::types::Type;
 use num_bigint::BigUint;
 use pyo3::prelude::*;
-use pyo3::types::{PyAny, PyTuple};
+use pyo3::types::{PyAny, PyRange, PyTuple};
 use pyo3::{IntoPyObjectExt, intern};
 use std::boxed::Box;
 
@@ -66,6 +66,33 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Range {
     }
 }
 
+/// Extract a constant unsigned integer from an expression, peeling implicit casts.
+fn extract_const_uint(expr: &Expr) -> PyResult<isize> {
+    match expr {
+        Expr::Value(Value::Uint { raw, ty }) => {
+            if !matches!(ty, Type::Uint(_)) {
+                return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+                    "Range values must be of unsigned integer type",
+                ));
+            }
+            let value: u64 = raw.try_into().map_err(|_| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                    "Range value is too large to materialize",
+                )
+            })?;
+            isize::try_from(value).map_err(|_| {
+                PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                    "Range value is too large to materialize",
+                )
+            })
+        }
+        Expr::Cast(cast) if cast.constant => extract_const_uint(&cast.operand),
+        _ => Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+            "cannot materialize a non-constant Range bound",
+        )),
+    }
+}
+
 impl Range {
     /// Returns the length of the range.
     ///
@@ -80,6 +107,26 @@ impl Range {
     /// determined statically for dynamic ranges.
     pub fn is_empty(&self) -> bool {
         false
+    }
+
+    /// Materialize a constant range as a Python ``range`` object.
+    ///
+    /// Uses Python ``range`` semantics (exclusive ``stop``).
+    pub fn values<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyRange>> {
+        if !self.constant {
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                "cannot materialize a non-constant Range",
+            ));
+        }
+        let start = extract_const_uint(&self.start)?;
+        let stop = extract_const_uint(&self.stop)?;
+        let step = extract_const_uint(&self.step)?;
+        if step == 0 {
+            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                "Range step must not be zero",
+            ));
+        }
+        PyRange::new_with_step(py, start, stop, step)
     }
 }
 
@@ -312,6 +359,11 @@ impl PyRangeExpr {
         self.0.is_empty()
     }
 
+    /// Return a Python :class:`range` with the same bounds (constant ranges only).
+    fn values<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        Ok(self.0.values(py)?.into_any())
+    }
+
     fn accept<'py>(
         slf: PyRef<'py, Self>,
         visitor: &Bound<'py, PyAny>,
@@ -373,5 +425,123 @@ impl PyRangeExpr {
             ),
         )
             .into_pyobject(py)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::classical::expr::var::Var;
+    use pyo3::types::PyRangeMethods;
+
+    fn make_const_range(start: u64, stop: u64, step: u64) -> Range {
+        let ty = Type::Uint(8);
+        Range {
+            start: Value::Uint {
+                raw: BigUint::from(start),
+                ty,
+            }
+            .into(),
+            stop: Value::Uint {
+                raw: BigUint::from(stop),
+                ty,
+            }
+            .into(),
+            step: Value::Uint {
+                raw: BigUint::from(step),
+                ty,
+            }
+            .into(),
+            ty,
+            constant: true,
+        }
+    }
+
+    #[test]
+    fn values_constant_range() {
+        Python::attach(|py| {
+            let range = make_const_range(0, 5, 1);
+            let py_range = range.values(py).unwrap();
+            assert_eq!(py_range.start().unwrap(), 0);
+            assert_eq!(py_range.stop().unwrap(), 5);
+            assert_eq!(py_range.step().unwrap(), 1);
+        });
+    }
+
+    #[test]
+    fn values_constant_range_with_step() {
+        Python::attach(|py| {
+            let range = make_const_range(0, 10, 2);
+            let py_range = range.values(py).unwrap();
+            assert_eq!(py_range.start().unwrap(), 0);
+            assert_eq!(py_range.stop().unwrap(), 10);
+            assert_eq!(py_range.step().unwrap(), 2);
+        });
+    }
+
+    #[test]
+    fn values_constant_range_with_cast() {
+        Python::attach(|py| {
+            let ty8 = Type::Uint(8);
+            let ty32 = Type::Uint(32);
+            let start = Value::Uint {
+                raw: BigUint::from(5u64),
+                ty: ty8,
+            }
+            .into();
+            let stop = Value::Uint {
+                raw: BigUint::from(10u64),
+                ty: ty32,
+            }
+            .into();
+            let range = Range {
+                start: Expr::Cast(Box::new(Cast {
+                    operand: start,
+                    ty: ty32,
+                    constant: true,
+                    implicit: true,
+                })),
+                stop,
+                step: Value::Uint {
+                    raw: BigUint::from(2u64),
+                    ty: ty32,
+                }
+                .into(),
+                ty: ty32,
+                constant: true,
+            };
+            let py_range = range.values(py).unwrap();
+            assert_eq!(py_range.start().unwrap(), 5);
+            assert_eq!(py_range.stop().unwrap(), 10);
+            assert_eq!(py_range.step().unwrap(), 2);
+        });
+    }
+
+    #[test]
+    fn values_non_constant_raises() {
+        Python::attach(|py| {
+            let ty = Type::Uint(8);
+            let range = Range {
+                start: Var::Standalone {
+                    name: "start".to_string(),
+                    ty,
+                    uuid: 0,
+                }
+                .into(),
+                stop: Value::Uint {
+                    raw: BigUint::from(10u64),
+                    ty,
+                }
+                .into(),
+                step: Value::Uint {
+                    raw: BigUint::from(1u64),
+                    ty,
+                }
+                .into(),
+                ty,
+                constant: false,
+            };
+            assert!(range.values(py).is_err());
+        });
     }
 }

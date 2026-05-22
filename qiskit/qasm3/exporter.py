@@ -1212,7 +1212,12 @@ class QASM3Builder:
         return ast.WhileLoopStatement(condition, loop_body)
 
     def build_for_loop(self, instruction: CircuitInstruction) -> ast.ForLoopStatement:
-        """Build a :obj:`.ForLoopOp` into a :obj:`.ast.ForLoopStatement`."""
+        """Build a :obj:`.ForLoopOp` into a :obj:`.ast.ForLoopStatement`.
+
+        The ``indexset`` may be a Python :class:`range` (converted to an inclusive
+        OpenQASM 3 range), a tuple of integers, or a classical :class:`~.expr.Range`
+        exported as an OpenQASM 3 range expression without materialization.
+        """
         indexset, loop_parameter, loop_circuit = instruction.operation.params
         with self.new_scope(loop_circuit, instruction.qubits, instruction.clbits):
             name = "_" if loop_parameter is None else loop_parameter.name
