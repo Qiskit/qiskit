@@ -1,6 +1,6 @@
 // This code is part of Qiskit.
 //
-// (C) Copyright IBM 2025
+// (C) Copyright IBM 2026
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -56,40 +56,65 @@ fn get_instr(angle: String, qubit_idx: usize) -> Option<Instruction> {
     })
 }
 
-/// This function is an implementation of the `GraySynth` algorithm which is a heuristic
-/// algorithm described in detail in section 4 of [1] for synthesizing small parity networks.
-/// It is inspired by Gray codes. Given a set of binary strings :math:`S`
-/// (called ``cnots`` bellow), the algorithm synthesizes a parity network for :math:`S` by
-/// repeatedly choosing an index :math:`i` to expand and then effectively recursing on
-/// the co-factors :math:`S_0` and :math:`S_1`, consisting of the strings :math:`y \in S`,
-/// with :math:`y_i = 0` or :math:`1` respectively. As a subset :math:`S` is recursively expanded,
-/// ``cx`` gates are applied so that a designated target bit contains the
-/// (partial) parity :math:`\chi_y(x)` where :math:`y_i = 1` if and only if :math:`y'_i = 1` for all
-/// :math:`y' \in S`. If :math:`S` contains a single element :math:`\{y'\}`, then :math:`y = y'`,
-/// and the target bit contains the value :math:`\chi_{y'}(x)` as desired.
-/// Notably, rather than uncomputing this sequence of ``cx`` (CNOT) gates when a subset :math:`S`
-/// is finished being synthesized, the algorithm maintains the invariant that the remaining
-/// parities to be computed are expressed over the current state of bits. This allows the algorithm
-/// to avoid the 'backtracking' inherent in uncomputing-based methods.
-/// References:
-///        1. Matthew Amy, Parsiad Azimzadeh, and Michele Mosca.
-///           *On the controlled-NOT complexity of controlled-NOT–phase circuits.*,
-///           Quantum Science and Technology 4.1 (2018): 015002.
-///           `arXiv:1712.01859 <https://arxiv.org/abs/1712.01859>`_
+// A vector in `F_2^n`, packed into 64-bit "word" for fast bitwise work.
+// Bits are stored LSB-first within each `u64` bit 0 lives in the lowest
+// bit of/ word 0, bit 1 in the next-lowest of word 0, … bit 64 in the
+// lowest bit of word 1, and so on.
+// We compare `Parity` values word-by-word, so two `Parity`s with different
+// word counts compare unequal even if their logical bits are the same.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct Parity {
+    word_u64: Vec<u64>,
+}
+
+impl Parity {
+    // Construct an all-zero parity with enough storage for at least `n` bits.
+    #[inline]
+    fn zeros(n: usize) -> Self {
+        Parity {
+            word_u64: vec![0u64; n.div_ceil(64)],
+        }
+    }
+
+    // Read bit `i` as a `bool`.
+    #[inline]
+    fn get(&self, i: usize) -> bool {
+        (self.word_u64[i / 64] >> (i % 64)) & 1 == 1
+    }
+
+    // Set bit `i` to 1.
+    #[inline]
+    fn set(&mut self, i: usize) {
+        self.word_u64[i / 64] |= 1u64 << (i % 64);
+    }
+
+    // Is this the zero vector?
+    fn is_zero(&self) -> bool {
+        self.word_u64.iter().all(|&w| w == 0)
+    }
+}
+
+// A frame on the algorithm's explicit stack: `(S, I, target)`.
+type Data = (Parity, String);
+type Frame = (Vec<Data>, Vec<usize>, Option<usize>);
+
+/// Implements `GraySynth` algorithm by Amy, Azimzadeh, and Mosca, described in the paper
+///`arXiv:1712.01859 <https://arxiv.org/abs/1712.01859>`_
 #[pyfunction]
-#[pyo3(signature = (binary_string, angles, section_size=2))]
+#[pyo3(signature = (cnots, angles, section_size=2))]
 pub fn synth_cnot_phase_aam(
-    binary_string: PyReadonlyArray2<bool>,
+    cnots: PyReadonlyArray2<bool>,
     angles: &Bound<PyList>,
     section_size: Option<i64>,
 ) -> PyResult<PyCircuitData> {
     // converting to Option<usize>
     let section_size: Option<usize> =
-        section_size.and_then(|num| if num >= 0 { Some(num as usize) } else { None });
-    let binary_string = binary_string.as_array().to_owned();
-    let num_qubits = binary_string.nrows();
+        section_size.and_then(|num| if num > 0 { Some(num as usize) } else { None });
+    let cnots = cnots.as_array().to_owned();
+    let num_qubits = cnots.nrows();
+    let num_parities = cnots.ncols();
 
-    let mut angles = angles
+    let angles = angles
         .iter()
         .filter_map(|data| {
             data.extract::<String>()
@@ -98,312 +123,253 @@ pub fn synth_cnot_phase_aam(
         })
         .collect::<Vec<String>>();
 
-    let mut state: Array2<bool> = Array2::from_shape_fn((num_qubits, num_qubits), |(i, j)| i == j);
+    let mut s: Vec<Data> = Vec::with_capacity(num_qubits);
 
-    let mut binary_str_cpy = binary_string.clone();
-    let num_qubits_range = (0..num_qubits).collect::<Vec<usize>>();
-    let mut data_stack = vec![(binary_string.clone(), num_qubits_range.clone(), num_qubits)];
-    let mut bin_str_ = binary_string;
-    let mut qubits_range_ = num_qubits_range;
-    let mut qubits_ = num_qubits;
-
-    // The aim is to keep the instructions as iterables
-    // Below variables are keeping the state of iteration in
-    // `std::iter::from_fn`
-    let mut keep_iterating: bool = true;
-    let mut cx_gate_done: bool = false;
-    let mut phase_loop_on: bool = false;
-    let mut phase_done: bool = false;
-    let mut cx_phase_done: bool = false;
-    let mut qubit_idx: usize = 0;
-    let mut index: usize = 0;
-    let mut pmh_init_done: bool = false;
-    let mut synth_pmh_iter: Option<Box<dyn Iterator<Item = Instruction>>> = None;
-
-    // The instructions are stored as iterables in the variable.
-    let cx_phase_iter = std::iter::from_fn(move || {
-        // For now, the `gate_instr` stores `None`, but as soon as
-        // it gets any instruction, the current loop breaks, and
-        // the variable is returned to be stored in `cx_phase_iter`
-        // as an iterable.
-        let mut gate_instr: Option<Instruction> = None;
-
-        // This while loop corresponds to the first block of code where
-        // different phases are applied to the qubits.
-        // The variable `phase_done` is a bool switch which is initially
-        // set to `false`, so that this while loop gets executed, different
-        // phases are applied to the qubits, and then `phase_done` is set
-        // to `true` indicating the phases have been applied to the qubits, so
-        // the control doesn't enter the while loop again in the execution.
-        while !phase_done {
-            let bin_str_subset_ = binary_str_cpy.column(index);
-            index += 1;
-            let target_state = state.row(qubit_idx);
-
-            if bin_str_subset_ == target_state {
-                index -= 1;
-                binary_str_cpy.remove_index(numpy::ndarray::Axis(1), index);
-                let angle = angles.remove(index);
-                // instruction applied on the `qubit_idx`
-                // according to the `angle` passed.
-                gate_instr = get_instr(angle, qubit_idx);
-                // as soon, as `gate_instr` gets an instruction, the
-                // loop is broken, so that `gate_instr` returns the
-                // instruction as iterable to `cx_phase_iter`.
-                break;
+    for j in 0..num_parities {
+        let mut p = Parity::zeros(num_qubits);
+        for i in 0..num_qubits {
+            if cnots[[i, j]] {
+                p.set(i);
             }
-            if index == binary_str_cpy.ncols() {
-                qubit_idx += 1;
-                index = 0;
-            }
-            if qubit_idx == num_qubits {
-                phase_done = true;
-                index = 0;
-                qubit_idx = 0;
-            }
-        } // end phase applying loop
+        }
+        if !p.is_zero() && !angles[j].is_empty() {
+            s.push((p, angles[j].clone()));
+        }
+    }
 
-        // This while loop corresponds to the second block of code
-        // where CNOT gate with different phases are applied to the qubits.
-        // After the first block is executed `phase_done` is set to true,
-        // similarly, `cx_phase_done` is a bool variable indicating if the
-        // second block of code which applies CNOTs is complete.
-        'outer_loop: while phase_done && !cx_phase_done {
-            // Wherever, `gate_instr` gets any instruciton, to return
-            // the instruction, the loop has to be broken prematurely,
-            // and, the control again strats from line after `std::iter::from_fn`
-            // the variable `phase_loop_on` indicates that the loop has been
-            // broken prematurely, so that the code blocks which are supposed
-            // to get executed after the completion of the loop are not executed.
-            if !phase_loop_on && data_stack.is_empty() {
-                // If `data_stack` is empty, this marks successfull
-                // application of CNOTs, so `cx_phase_done` is set to indicate
-                // the second code block applying CNOTs is complete, and, thus
-                // the loop gets broken finally.
-                cx_phase_done = true;
-                break 'outer_loop;
-            }
-            if !phase_loop_on {
-                (bin_str_, qubits_range_, qubits_) = data_stack.pop().unwrap();
-            }
-            if !phase_loop_on && bin_str_.is_empty() {
-                continue 'outer_loop;
-            }
+    let mut tranx_matrix = Array2::<bool>::default((num_qubits, num_qubits));
+    for k in 0..num_qubits {
+        tranx_matrix[[k, k]] = true;
+    }
 
-            // For every qubit less than `num_qubits`, the condition that all
-            // bits of the row corresponding to `qubit_idx` in `bin_str_` is true
-            // is checked, even if the condition is fulfilled once, the varibale
-            // `keep_iterating` is set, so that after `qubit_idx` reaches `num_qubits`.
-            // The entire loop runs at-least once more.
-            while keep_iterating && (qubits_ < num_qubits) {
-                if !phase_loop_on {
-                    keep_iterating = false;
-                }
-                while qubit_idx < num_qubits {
-                    if (qubit_idx != qubits_) && !bin_str_.row(qubit_idx).into_iter().any(|&b| !b) {
-                        // To return the `cx` gate stored in `gate_instr` the loop has to be
-                        // broke prematurely, the bool `cx_gate_done` indicates that `cx` has been
-                        // applied for this particular iteration of loop, so that, when the control
-                        // comes back again at this spot, furthur contents of the loop is executed,
-                        // and no more `cx` is applied now for this iteration of loop.
-                        if !cx_gate_done && !phase_loop_on {
-                            keep_iterating = true;
-                            cx_gate_done = true;
-                            gate_instr = Some((
-                                StandardGate::CX,
-                                smallvec![],
-                                smallvec![Qubit((qubit_idx) as u32), Qubit(qubits_ as u32)],
-                            ));
-                            index = 0;
-                            phase_loop_on = true;
-                            for col_idx in 0..state.ncols() {
-                                state[(qubits_, col_idx)] ^= state[(qubit_idx, col_idx)];
-                            }
-                            // `gate_instr` contains `cx` gate now, and the loop has to
-                            // be borken prematurely to return this gate.
-                            break 'outer_loop;
-                        }
+    let mut circuit: Vec<Instruction> = Vec::new();
 
-                        cx_gate_done = false;
+    // Number of 64-bit word we need to store one n-bit parity.
+    let word_u64_per = num_qubits.div_ceil(64);
 
-                        // This while loop is to apply the phases to qubits after the
-                        // `cx` has been applied, again the bool `phase_loop_on` is merely
-                        // an indication that the loop is supposed to break prematurely
-                        // and whenever the control returns to this block of code it keep
-                        // on applying phase until `phase_loop_on` is set to false, which
-                        // indicates that all the phases associated to this iteration of loop
-                        // has been applied.
-                        while phase_loop_on {
-                            if index == binary_str_cpy.ncols() {
-                                phase_loop_on = false;
-                                break;
-                            }
-                            let bin_str_subset_ = binary_str_cpy.column(index);
-                            index += 1;
-                            let target_state = state.row(qubits_);
-                            if bin_str_subset_ == target_state {
-                                index -= 1;
-                                binary_str_cpy.remove_index(numpy::ndarray::Axis(1), index);
-                                let angle = angles.remove(index);
-                                gate_instr = get_instr(angle, qubits_);
-                                // loop has to be broken, to return the instruction stored in
-                                // `gate_instr`.
-                                break 'outer_loop;
-                            }
-                        }
+    // `common` will hold the bitwise AND of all parities in the current S.
+    // Bit `k` of `common` is 1 iff every y ∈ S has bit k set, that is, bit
+    // k is shared by all remaining parities.
+    let mut common: Vec<u64> = vec![0u64; word_u64_per];
 
-                        data_stack.push((bin_str_.clone(), qubits_range_.clone(), qubits_));
-                        let mut uniq_ele_dat_stack = vec![];
+    // `counts[k]` will hold the number of parities in the current S whose
+    // bit k is 1. Used to pick the best split bit.
+    let mut counts: Vec<usize> = vec![0usize; num_qubits];
 
-                        for data in data_stack.iter() {
-                            if !uniq_ele_dat_stack.contains(data) {
-                                let dat_ = (*data).clone();
-                                uniq_ele_dat_stack.push(dat_);
-                            }
-                        }
-                        data_stack = uniq_ele_dat_stack;
+    // We pre-allocate space for ~2n+4 frames — enough to avoid most
+    // reallocations: the recursion tree has depth ≤ n, and each level
+    // pushes two children.
+    let mut stack: Vec<Frame> = Vec::with_capacity(2 * num_qubits + 4);
+    stack.push((s, (0..num_qubits).collect(), None));
 
-                        for data in &mut data_stack {
-                            let (temp_bin_str_, _, _) = data;
-                            if temp_bin_str_.is_empty() {
-                                continue;
-                            }
-
-                            for idx in 0..temp_bin_str_.row(qubit_idx).len() {
-                                temp_bin_str_[(qubit_idx, idx)] ^= temp_bin_str_[(qubits_, idx)];
-                            }
-                        }
-
-                        (bin_str_, qubits_range_, qubits_) = data_stack.pop().unwrap();
-                    } // end of if qubits_ < num_qubits ...
-                    qubit_idx += 1;
-                } // end of while check qubit_idx < num_qubits ...
-                qubit_idx = 0;
-            } // end of while keep iterating ...
-            keep_iterating = true;
-
-            if qubits_range_.is_empty() {
-                continue 'outer_loop;
-            }
-
-            let bin_str_max_0_1: Vec<usize> = bin_str_
-                .axis_iter(numpy::ndarray::Axis(0))
-                .map(|row| {
-                    std::cmp::max(
-                        row.iter().filter(|&&x| !x).count(),
-                        row.into_iter().filter(|&&x| x).count(),
-                    )
-                })
-                .collect();
-
-            let bin_str_mx_qbt_rng: Vec<usize> = qubits_range_
-                .iter()
-                .map(|&q_idx| bin_str_max_0_1[q_idx])
-                .collect();
-
-            let argmax_ = bin_str_mx_qbt_rng
-                .into_iter()
-                .enumerate()
-                .max_by(|(_, x), (_, y)| x.cmp(y))
-                .map(|(idx, _)| idx)
-                .unwrap();
-
-            let argmax_qubit_idx = qubits_range_[argmax_];
-
-            let mut bin_str_subset_0_t = vec![];
-            let mut bin_str_subset_1_t = vec![];
-
-            let mut bin_str_subset_0_t_shape = (0_usize, bin_str_.column(0).len());
-            let mut bin_str_subset_1_t_shape = (0_usize, 0_usize);
-            bin_str_subset_1_t_shape.1 = bin_str_subset_0_t_shape.1;
-            for cols in bin_str_.columns() {
-                if !cols[argmax_qubit_idx] {
-                    bin_str_subset_0_t_shape.0 += 1;
-                    bin_str_subset_0_t.append(&mut cols.to_vec());
-                } else {
-                    bin_str_subset_1_t_shape.0 += 1;
-                    bin_str_subset_1_t.append(&mut cols.to_vec());
-                }
-            }
-
-            let bin_str_subset_0 = Array2::from_shape_vec(
-                (bin_str_subset_0_t_shape.0, bin_str_subset_0_t_shape.1),
-                bin_str_subset_0_t,
-            )
-            .unwrap()
-            .reversed_axes();
-            let bin_str_subset_1 = Array2::from_shape_vec(
-                (bin_str_subset_1_t_shape.0, bin_str_subset_1_t_shape.1),
-                bin_str_subset_1_t,
-            )
-            .unwrap()
-            .reversed_axes();
-
-            if qubits_ == num_qubits {
-                data_stack.push((
-                    bin_str_subset_1,
-                    qubits_range_
-                        .clone()
-                        .into_iter()
-                        .filter(|&x| x != argmax_qubit_idx)
-                        .collect(),
-                    argmax_qubit_idx,
-                ));
-            } else {
-                data_stack.push((
-                    bin_str_subset_1,
-                    qubits_range_
-                        .clone()
-                        .into_iter()
-                        .filter(|&x| x != argmax_qubit_idx)
-                        .collect(),
-                    qubits_,
-                ));
-            }
-            data_stack.push((
-                bin_str_subset_0,
-                qubits_range_
-                    .clone()
-                    .into_iter()
-                    .filter(|&x| x != argmax_qubit_idx)
-                    .collect(),
-                qubits_,
-            ));
-        } // end 'outer_loop
-
-        // After the phases are applied, then `cx` with phases are applied,
-        // now, this is the third block of code which corresponds to appending
-        // the output of `synth_pmh` to the iterables stored in `cx_phase_iter`.
-        // The bool `pmh_init_done` indicates if the output of `synth_pmh` has been
-        // obtained. Since, the size of output from `synth_pmh` depends on the
-        // contents of `state` left after applying phases and CNOTs, so the memory
-        // required to store the output of `synth_pmh` is not known at compile
-        // time, that's why this output which is an iterable has to be stored on the heap!
-        if phase_done && cx_phase_done && !pmh_init_done {
-            synth_pmh_iter = Some(Box::new(synth_pmh(state.clone(), section_size).rev()));
-            // Once, the output has been stored on the heap, setting this
-            // bool makes sure the control doesn't enter this if block again.
-            pmh_init_done = true;
+    while let Some((mut s, indices, target_opt)) = stack.pop() {
+        // Skip empty branches.
+        if s.is_empty() {
+            continue;
         }
 
-        // Now, that the output of `synth_pmh` has been stored
-        // in `synth_pmh_iter` on the heap, now, all we have to do
-        // is to keep calling `next()`, and returning to `cx_phase_iter`.
-        // When `next()` yeilds `None` the same is passed to `cx_phase_iter`
-        // and that marks the completion of the whole `std::iter::from_fn` logic!
-        if pmh_init_done {
-            if let Some(ref mut data) = synth_pmh_iter {
-                gate_instr = data.next();
-            } else {
-                gate_instr = None;
+        // While every remaining y ∈ S shares a `1` in some bit other than
+        // the target, we can emit ONE CNOT to fold that bit into the
+        // target. Each such CNOT advances every parity in S simultaneously.
+        if let Some(t) = target_opt {
+            // Pre-compute (word-index, bit-mask) for the target once.
+            let t_word_u64 = t / 64;
+            let t_mask = 1u64 << (t % 64);
+
+            loop {
+                // AND all parities in S into `common`. Seed with the first
+                // parity's word, then AND in the rest. `copy_from_slice`
+                // copies a slice into another slice
+                common.copy_from_slice(&s[0].0.word_u64);
+
+                // This is an optimization step, where we track whether
+                // `common` still has any 1-bit. If it collapses to
+                // all-zero, we can stop applying AND because further
+                // AND would leave it zero.
+                let mut any_nonzero = common.iter().any(|&w| w != 0);
+
+                // `s.iter().skip(1)` walks `s` starting from index 1; we've
+                // already used `s[0]` for the seed.
+                for (y, _) in s.iter().skip(1) {
+                    if !any_nonzero {
+                        break;
+                    }
+
+                    // Re-evaluate `any_nonzero` while ANDing, so we don't
+                    // need a separate pass.
+                    any_nonzero = false;
+                    for (idx, common_val) in common.iter_mut().enumerate().take(word_u64_per) {
+                        *common_val &= y.word_u64[idx];
+                        if *common_val != 0 {
+                            any_nonzero = true;
+                        }
+                    }
+                }
+
+                // We never want to pick j == t because it will cause control and
+                // target qubit for CNOT to be the same.
+                // Clearing bit t guarantees the next step won't pick it.
+                common[t_word_u64] &= !t_mask;
+
+                // `Option<usize>` represents "either a found index or
+                // nothing." Starts as None.
+                let mut found: Option<usize> = None;
+
+                // `.enumerate()` yields `(word_index, &word_value)` pairs.
+                for (wor, &w) in common.iter().enumerate() {
+                    if w != 0 {
+                        // `trailing_zeros()` returns the number of trailing zero bits that is
+                        // the position of the lowest set bit. This is typically a single
+                        // hardware instruction
+                        let j = wor * 64 + (w.trailing_zeros() as usize);
+
+                        // Guard against picking a bit past `n` the top word may have unused
+                        // high bits if n is not a multiple of 64.
+                        if j < num_qubits {
+                            found = Some(j);
+                            break;
+                        }
+                    }
+                }
+
+                match found {
+                    Some(j) => {
+                        // Emit the CNOT (control = j, target = t).
+                        circuit.push((
+                            StandardGate::CX,
+                            smallvec![],
+                            smallvec![Qubit(j as u32), Qubit(t as u32)],
+                        ));
+
+                        // In the paper, Lemma 4.1 says After CNOT(j,t), every parity in every
+                        // frame on the stack AND in our local `s` must be updated by
+                        // y_j = y_j XOR y_t.
+                        //
+                        // Note: at this point `s` has been moved OUT of the stack.
+                        // So `stack` and `s` are disjoint we have to update each separately.
+                        apply_row_op_stack(&mut stack, t, j);
+                        apply_row_op_set(&mut s, t, j);
+
+                        for i in 0..num_qubits {
+                            let bit_c = tranx_matrix[[j, i]];
+                            tranx_matrix[[t, i]] ^= bit_c;
+                        }
+                    }
+                    None => break, // No shared 1-bit anywhere means we are done.
+                }
             }
         }
 
-        gate_instr
-    });
+        if indices.is_empty() {
+            if let Some(t) = target_opt {
+                for (_, angle) in &s {
+                    circuit.push(get_instr(angle.clone(), t).unwrap());
+                }
+            }
+            continue;
+        }
 
-    Ok(
-        CircuitData::from_standard_gates(num_qubits as u32, cx_phase_iter, Param::Float(0.0))?
-            .into(),
-    )
+        // We want j ∈ indices maximizing the larger half:
+        //     j = argmax_{j ∈ indices} max(|{y : y_j = 0}|, |{y : y_j = 1}|)
+        // Equivalently: pick the most lopsided bit.
+        // Reset `counts` to zero without reallocating.
+        for c in counts.iter_mut() {
+            *c = 0;
+        }
+
+        // Count how many parities have each bit set.
+        // We iterate over *set bits only*, by repeatedly stripping the
+        // lowest set bit with `w &= w - 1`. This is asymptotically faster
+        // than checking each bit position one-by-one when parities are
+        // sparse (few `1`s).
+        for (y, _) in &s {
+            for (wor, &word) in y.word_u64.iter().enumerate() {
+                let mut w = word;
+                let base = wor * 64;
+                while w != 0 {
+                    let b = w.trailing_zeros() as usize;
+                    let idx = base + b;
+                    if idx < num_qubits {
+                        counts[idx] += 1;
+                    }
+                    // Strip the lowest set bit. Classical bit-twiddling
+                    // identity: `w & (w - 1)` clears the lowest 1 of `w`.
+                    w &= w - 1;
+                }
+            }
+        }
+
+        let total = s.len();
+
+        let (mut best_j, mut best_max) = (indices[0], 0usize);
+        for &cand in &indices {
+            let ones = counts[cand];
+            let m = if ones > total - ones {
+                ones
+            } else {
+                total - ones
+            };
+            if m > best_max {
+                best_max = m;
+                best_j = cand;
+            }
+        }
+        let j = best_j;
+
+        let mut s0: Vec<Data> = Vec::with_capacity(s.len());
+        let mut s1: Vec<Data> = Vec::with_capacity(s.len());
+        for (y, a) in s {
+            if y.get(j) {
+                s1.push((y, a));
+            } else {
+                s0.push((y, a));
+            }
+        }
+
+        let new_indices: Vec<usize> = indices.iter().copied().filter(|&i| i != j).collect();
+
+        // Push S_1 first, then S_0, so S_0 ends up on TOP of the stack and
+        // is processed first — matching the paper's recursion order.
+        let s1_target = if target_opt.is_none() {
+            Some(j)
+        } else {
+            target_opt
+        };
+
+        if !s1.is_empty() {
+            stack.push((s1, new_indices.clone(), s1_target));
+        }
+        if !s0.is_empty() {
+            stack.push((s0, new_indices, target_opt));
+        }
+    }
+
+    circuit.extend(synth_pmh(tranx_matrix, section_size).rev());
+
+    Ok(CircuitData::from_standard_gates(num_qubits as u32, circuit, Param::Float(0.0))?.into())
+}
+
+/// Apply  y_j = y_j XOR y_t  to every parity in every frame on the stack.
+#[inline]
+fn apply_row_op_stack(stack: &mut [Frame], control: usize, target: usize) {
+    for frame in stack.iter_mut() {
+        apply_row_op_set(&mut frame.0, control, target);
+    }
+}
+
+/// Apply  y_j = y_j XOR y_t  to every parity in the given slice.
+#[inline]
+fn apply_row_op_set(s: &mut [Data], i: usize, j: usize) {
+    // Pre-compute word indices and masks once saves doing `i / 64`
+    // and `1 << (i % 64)` for every parity in the slice.
+    let i_word = i / 64;
+    let i_mask = 1u64 << (i % 64);
+    let j_word = j / 64;
+    let j_mask = 1u64 << (j % 64);
+
+    for (y, _) in s.iter_mut() {
+        if (y.word_u64[i_word] & i_mask) != 0 {
+            y.word_u64[j_word] ^= j_mask;
+        }
+    }
 }
