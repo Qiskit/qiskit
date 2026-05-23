@@ -254,6 +254,8 @@ include as long as each plugin has a unique name.
 Using Plugins
 =============
 
+.. _unitary-synth-plugin:
+
 Unitary Synthesis Plugins
 -------------------------
 
