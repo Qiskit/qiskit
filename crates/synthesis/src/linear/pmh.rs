@@ -151,13 +151,11 @@ fn lower_cnot_synth(
 #[pyo3(signature = (matrix, section_size=None))]
 pub fn synth_cnot_count_full_pmh(
     matrix: PyReadonlyArray2<bool>,
-    section_size: Option<i64>,
+    section_size: Option<usize>,
 ) -> PyResult<PyCircuitData> {
     let arrayview = matrix.as_array();
     let mat: Array2<bool> = arrayview.to_owned();
     let num_qubits = mat.nrows();
-    let section_size: Option<usize> =
-        section_size.and_then(|num| if num >= 0 { Some(num as usize) } else { None });
 
     let instructions = synth_pmh(mat, section_size);
     Ok(

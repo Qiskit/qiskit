@@ -105,11 +105,9 @@ type Frame = (Vec<Data>, Vec<usize>, Option<usize>);
 pub fn synth_cnot_phase_aam(
     cnots: PyReadonlyArray2<bool>,
     angles: &Bound<PyList>,
-    section_size: Option<i64>,
+    section_size: Option<usize>,
 ) -> PyResult<PyCircuitData> {
     // converting to Option<usize>
-    let section_size: Option<usize> =
-        section_size.and_then(|num| if num > 0 { Some(num as usize) } else { None });
     let cnots = cnots.as_array().to_owned();
     let num_qubits = cnots.nrows();
     let num_parities = cnots.ncols();
