@@ -100,6 +100,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_unitary_synthesis(
         &physical_qubits,
         &mut synthesis_state,
         target.into(),
+        false,
     ) {
         Ok(dag) => dag,
         Err(e) => panic!("{}", e),
