@@ -330,26 +330,8 @@ impl Clifford {
             _ => unreachable!("RY is only applicable for multiples of pi/2 rotations."),
         }
     }
-    /// Modifies the tableau in-place by appending PPR gate,
-    /// with an angle that is an integer multiple of pi/2
-    pub fn append_ppr(
-        &mut self,
-        pauli_z: &[bool],
-        pauli_x: &[bool],
-        indices: &[u32],
-        multiple: usize,
-    ) {
-        let multiple = multiple.rem_euclid(4);
-
-        // remove pauli I terms
-        let (new_z, new_x, new_indices): (Vec<bool>, Vec<bool>, Vec<u32>) = pauli_z
-            .iter()
-            .zip(pauli_x)
-            .zip(indices)
-            .filter(|&((&z, &x), _)| z || x)
-            .map(|((&z, &x), &i)| (z, x, i))
-            .multiunzip();
-
+    /// Modifies the tableau in-place by appending the initial part of a PPR gate
+    pub fn append_initial_part_ppr(&mut self, new_z: &[bool], new_x: &[bool], new_indices: &[u32]) {
         // initial H or SX gates (in case of pauli X or pauli Y respectively)
         for qubit in 0..new_indices.len() {
             match (new_z[qubit], new_x[qubit]) {
@@ -366,14 +348,10 @@ impl Clifford {
                 self.append_cx(new_indices[ind + 1] as usize, new_indices[ind] as usize);
             }
         }
-        // internal RZ gate
-        match multiple {
-            0 => {}
-            1 => self.append_s(new_indices[0] as usize),
-            2 => self.append_z(new_indices[0] as usize),
-            3 => self.append_sdg(new_indices[0] as usize),
-            _ => unreachable!("PPR is only applicable for multiples of pi/2 rotations."),
-        }
+    }
+
+    /// Modifies the tableau in-place by appending the initial part of a PPR gate
+    pub fn append_final_part_ppr(&mut self, new_z: &[bool], new_x: &[bool], new_indices: &[u32]) {
         // CX ladder
         if new_indices.len() > 1 {
             for ind in 0..new_indices.len() - 1 {
@@ -389,6 +367,33 @@ impl Clifford {
                 (false, false) => unreachable!("Pauli I terms were removed from PPR."), // pauli I on qubit (shouldn't get it since pauli is sparse)
             }
         }
+    }
+
+    /// Modifies the tableau in-place by appending PPR gate,
+    /// with an angle that is an integer multiple of pi/2
+    pub fn append_ppr(
+        &mut self,
+        pauli_z: &[bool],
+        pauli_x: &[bool],
+        indices: &[u32],
+        multiple: usize,
+    ) {
+        let multiple = multiple.rem_euclid(4);
+
+        let (new_z, new_x, new_indices) = remove_id_terms_from_pauli(pauli_z, pauli_x, indices);
+
+        self.append_initial_part_ppr(&new_z, &new_x, &new_indices);
+
+        // internal RZ gate
+        match multiple {
+            0 => {}
+            1 => self.append_s(new_indices[0] as usize),
+            2 => self.append_z(new_indices[0] as usize),
+            3 => self.append_sdg(new_indices[0] as usize),
+            _ => unreachable!("PPR is only applicable for multiples of pi/2 rotations."),
+        }
+
+        self.append_final_part_ppr(&new_z, &new_x, &new_indices);
     }
 
     /// Evolving a single qubit pauli on qubit qbit by the Clifford.
@@ -498,4 +503,21 @@ impl fmt::Debug for Clifford {
         writeln!(f)?;
         Ok(())
     }
+}
+
+pub fn remove_id_terms_from_pauli(
+    pauli_z: &[bool],
+    pauli_x: &[bool],
+    indices: &[u32],
+) -> (Vec<bool>, Vec<bool>, Vec<u32>) {
+    // remove pauli I terms
+    let (new_z, new_x, new_indices): (Vec<bool>, Vec<bool>, Vec<u32>) = pauli_z
+        .iter()
+        .zip(pauli_x)
+        .zip(indices)
+        .filter(|&((&z, &x), _)| z || x)
+        .map(|((&z, &x), &i)| (z, x, i))
+        .multiunzip();
+
+    (new_z, new_x, new_indices)
 }
