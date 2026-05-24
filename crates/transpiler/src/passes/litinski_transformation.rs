@@ -23,8 +23,8 @@ use qiskit_circuit::operations::{
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 
-use super::remove_identity_equiv::average_gate_fidelity_below_tol; // ToDo: move a shared file?
-use super::substitute_pi4_rotations::is_angle_close_to_multiple_of_pi_k; // ToDo: move a shared file?
+use super::remove_identity_equiv::average_gate_fidelity_below_tol; // ToDo: move a shared file
+use super::substitute_pi4_rotations::is_angle_close_to_multiple_of_pi_k; // ToDo: move a shared file
 use crate::TranspilerError;
 use num_complex::Complex64;
 use qiskit_quantum_info::clifford::Clifford;
@@ -115,7 +115,8 @@ pub fn run_litinski_transformation(
             unsupported
         )));
     }
-    // this may not be accurate since non-clifford gates with pi/2 angles are treated as cliffords
+    // note that this count may not be accurate since non-clifford gates with pi/2 angles
+    // are treated as cliffords by this pass
     let non_clifford_handled_count: usize = HANDLED_INSTRUCTION_NAMES
         .iter()
         .filter_map(|name| op_counts.get(*name))
