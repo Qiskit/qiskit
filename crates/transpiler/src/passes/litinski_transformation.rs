@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use itertools::Itertools;
 use pyo3::prelude::*;
 
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
@@ -27,7 +26,7 @@ use super::remove_identity_equiv::average_gate_fidelity_below_tol; // ToDo: move
 use super::substitute_pi4_rotations::is_angle_close_to_multiple_of_pi_k; // ToDo: move a shared file
 use crate::TranspilerError;
 use num_complex::Complex64;
-use qiskit_quantum_info::clifford::Clifford;
+use qiskit_quantum_info::clifford::{Clifford, remove_id_terms_from_pauli};
 use qiskit_quantum_info::sparse_observable::{BitTerm, SparseObservable};
 
 use smallvec::smallvec;
@@ -456,35 +455,11 @@ pub fn run_litinski_transformation(
                     if !is_clifford {
                         // PPR is not clifford
                         // remove pauli I terms
-                        let (new_z, new_x, new_indices): (Vec<bool>, Vec<bool>, Vec<u32>) = in_z
-                            .iter()
-                            .zip(in_x)
-                            .zip(&indices_in)
-                            .filter(|&((&z, &x), _)| z || x)
-                            .map(|((&z, &x), &i)| (z, x, i))
-                            .multiunzip();
+                        let (new_z, new_x, new_indices) =
+                            remove_id_terms_from_pauli(in_z, in_x, &indices_in);
 
-                        // initial H or SX gates (in case of pauli X or pauli Y respectively)
-                        for qubit in 0..new_indices.len() {
-                            match (new_z[qubit], new_x[qubit]) {
-                                (true, false) => {} // pauli Z on qubit
-                                (true, true) => clifford.append_sx(new_indices[qubit] as usize), // pauli Y on qubit
-                                (false, true) => clifford.append_h(new_indices[qubit] as usize), // pauli X on qubit
-                                (false, false) => {
-                                    unreachable!("Pauli I terms were removed from PPR.")
-                                } // pauli I on qubit (shouldn't get it since pauli is sparse)
-                            }
-                        }
+                        clifford.append_initial_part_ppr(&new_z, &new_x, &new_indices);
 
-                        // CX ladder
-                        if new_indices.len() > 1 {
-                            for ind in (0..new_indices.len() - 1).rev() {
-                                clifford.append_cx(
-                                    new_indices[ind + 1] as usize,
-                                    new_indices[ind] as usize,
-                                );
-                            }
-                        }
                         // internal RZ gate
                         // Evolving RZ by the Clifford.
                         // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
@@ -516,26 +491,7 @@ pub fn run_litinski_transformation(
                             None,
                         )?;
 
-                        // CX ladder
-                        if new_indices.len() > 1 {
-                            for ind in 0..new_indices.len() - 1 {
-                                clifford.append_cx(
-                                    new_indices[ind + 1] as usize,
-                                    new_indices[ind] as usize,
-                                );
-                            }
-                        }
-                        // final H or SXdg gates (in case of pauli X or pauli Y respectively)
-                        for qubit in 0..new_indices.len() {
-                            match (new_z[qubit], new_x[qubit]) {
-                                (true, false) => {} // pauli Z on qubit
-                                (true, true) => clifford.append_sxdg(new_indices[qubit] as usize), // pauli Y on qubit
-                                (false, true) => clifford.append_h(new_indices[qubit] as usize), // pauli X on qubit
-                                (false, false) => {
-                                    unreachable!("Pauli I terms were removed from PPR.")
-                                } // pauli I on qubit (shouldn't get it since pauli is sparse)
-                            }
-                        }
+                        clifford.append_final_part_ppr(&new_z, &new_x, &new_indices);
                     }
                 }
                 OperationRef::StandardInstruction(StandardInstruction::Measure) => {
@@ -574,35 +530,11 @@ pub fn run_litinski_transformation(
                         .map(|i| qargs_in[i].index() as u32)
                         .collect();
 
-                    let (new_z, new_x, new_indices): (Vec<bool>, Vec<bool>, Vec<u32>) = in_z
-                        .iter()
-                        .zip(in_x)
-                        .zip(&indices_in)
-                        .filter(|&((&z, &x), _)| z || x)
-                        .map(|((&z, &x), &i)| (z, x, i))
-                        .multiunzip();
+                    let (new_z, new_x, new_indices) =
+                        remove_id_terms_from_pauli(in_z, in_x, &indices_in);
 
-                    // initial H or SX gates (in case of pauli X or pauli Y respectively)
-                    for qubit in 0..new_indices.len() {
-                        match (new_z[qubit], new_x[qubit]) {
-                            (true, false) => {} // pauli Z on qubit
-                            (true, true) => clifford.append_sx(new_indices[qubit] as usize), // pauli Y on qubit
-                            (false, true) => clifford.append_h(new_indices[qubit] as usize), // pauli X on qubit
-                            (false, false) => {
-                                unreachable!("Pauli I terms were removed from PPR.")
-                            } // pauli I on qubit (shouldn't get it since pauli is sparse)
-                        }
-                    }
+                    clifford.append_initial_part_ppr(&new_z, &new_x, &new_indices);
 
-                    // CX ladder
-                    if new_indices.len() > 1 {
-                        for ind in (0..new_indices.len() - 1).rev() {
-                            clifford.append_cx(
-                                new_indices[ind + 1] as usize,
-                                new_indices[ind] as usize,
-                            );
-                        }
-                    }
                     // Evolve a measurement in the Z-basis by a Clifford.
                     // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
                     // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
@@ -624,26 +556,7 @@ pub fn run_litinski_transformation(
                         #[cfg(feature = "cache_pygates")]
                         None,
                     )?;
-                    // CX ladder
-                    if new_indices.len() > 1 {
-                        for ind in 0..new_indices.len() - 1 {
-                            clifford.append_cx(
-                                new_indices[ind + 1] as usize,
-                                new_indices[ind] as usize,
-                            );
-                        }
-                    }
-                    // final H or SXdg gates (in case of pauli X or pauli Y respectively)
-                    for qubit in 0..new_indices.len() {
-                        match (new_z[qubit], new_x[qubit]) {
-                            (true, false) => {} // pauli Z on qubit
-                            (true, true) => clifford.append_sxdg(new_indices[qubit] as usize), // pauli Y on qubit
-                            (false, true) => clifford.append_h(new_indices[qubit] as usize), // pauli X on qubit
-                            (false, false) => {
-                                unreachable!("Pauli I terms were removed from PPR.")
-                            } // pauli I on qubit (shouldn't get it since pauli is sparse)
-                        }
-                    }
+                    clifford.append_final_part_ppr(&new_z, &new_x, &new_indices);
                 }
                 _ => unreachable!(
                     "We cannot have unsupported names at this step of Litinski Transformation: {}",
