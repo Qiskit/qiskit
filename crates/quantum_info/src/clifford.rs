@@ -15,6 +15,14 @@ use std::fmt;
 use fixedbitset::FixedBitSet;
 use ndarray::{Array2, ArrayView2};
 
+// 1-qubit Paulis
+#[derive(Clone, Copy, PartialEq)]
+pub enum Pauli1q {
+    X,
+    Y,
+    Z,
+}
+
 /// Symplectic matrix.
 pub struct SymplecticMatrix {
     /// Number of qubits.
@@ -350,7 +358,7 @@ impl Clifford {
         }
     }
 
-    /// Modifies the tableau in-place by appending the initial part of a PPR gate
+    /// Modifies the tableau in-place by appending the final part of a PPR gate
     pub fn append_final_part_ppr(&mut self, new_z: &[bool], new_x: &[bool], new_indices: &[u32]) {
         // CX ladder
         if new_indices.len() > 1 {
@@ -401,8 +409,7 @@ impl Clifford {
     /// Returns the evolved Pauli in the a sparse ZX format: (sign, z, x, indices).
     pub fn evolve_single_qubit_pauli(
         &self,
-        pauli_z: bool,
-        pauli_x: bool,
+        pauli: Pauli1q,
         qbit: usize,
     ) -> (bool, Vec<bool>, Vec<bool>, Vec<u32>) {
         let mut z = Vec::with_capacity(self.num_qubits);
@@ -412,24 +419,20 @@ impl Clifford {
         // Compute the y-count to avoid recomputing it later
         let mut pauli_y_count: u32 = 0;
         for i in 0..self.num_qubits {
-            let (z_bit, x_bit) = match (pauli_z, pauli_x) {
-                (true, false) => (
-                    // pauli Z
+            let (z_bit, x_bit) = match pauli {
+                Pauli1q::Z => (
                     self.tableau[qbit][i],
                     self.tableau[qbit][i + self.num_qubits],
                 ),
-                (false, true) => (
-                    // pauli X
+                Pauli1q::X => (
                     self.tableau[qbit + self.num_qubits][i],
                     self.tableau[qbit + self.num_qubits][i + self.num_qubits],
                 ),
-                (true, true) => (
-                    // pauli Y
+                Pauli1q::Y => (
                     self.tableau[qbit + self.num_qubits][i] ^ self.tableau[qbit][i],
                     self.tableau[qbit + self.num_qubits][i + self.num_qubits]
                         ^ self.tableau[qbit][i + self.num_qubits],
                 ),
-                _ => unreachable!("This is only called for RX/RZ/RY gates."),
             };
             if z_bit || x_bit {
                 z.push(z_bit);

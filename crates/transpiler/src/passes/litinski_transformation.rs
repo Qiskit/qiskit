@@ -26,7 +26,7 @@ use super::remove_identity_equiv::average_gate_fidelity_below_tol; // ToDo: move
 use super::substitute_pi4_rotations::is_angle_close_to_multiple_of_pi_k; // ToDo: move a shared file
 use crate::TranspilerError;
 use num_complex::Complex64;
-use qiskit_quantum_info::clifford::{Clifford, remove_id_terms_from_pauli};
+use qiskit_quantum_info::clifford::{Clifford, Pauli1q, remove_id_terms_from_pauli};
 use qiskit_quantum_info::sparse_observable::{BitTerm, SparseObservable};
 
 use smallvec::smallvec;
@@ -269,16 +269,12 @@ pub fn run_litinski_transformation(
                 | OperationRef::StandardGate(StandardGate::U1) => {
                     let mut is_clifford = false; // indicates if it is a pi/2 rotation gate which is a clifford
                     // Convert T and Tdg gates to RZ rotations
-                    let (pauli_z, pauli_x, angle, phase_update) = match inst.op.view() {
-                        OperationRef::StandardGate(StandardGate::T) => (
-                            true,
-                            false,
-                            Param::Float(FRAC_PI_4),
-                            Param::Float(FRAC_PI_8),
-                        ),
+                    let (pauli, angle, phase_update) = match inst.op.view() {
+                        OperationRef::StandardGate(StandardGate::T) => {
+                            (Pauli1q::Z, Param::Float(FRAC_PI_4), Param::Float(FRAC_PI_8))
+                        }
                         OperationRef::StandardGate(StandardGate::Tdg) => (
-                            true,
-                            false,
+                            Pauli1q::Z,
                             Param::Float(-FRAC_PI_4),
                             Param::Float(-FRAC_PI_8),
                         ),
@@ -299,7 +295,7 @@ pub fn run_litinski_transformation(
                                         .append_rz(dag.get_qargs(inst.qubits)[0].index(), multiple)
                                 }
                             }
-                            (true, false, param.clone(), Param::Float(0.))
+                            (Pauli1q::Z, param.clone(), Param::Float(0.))
                         }
                         OperationRef::StandardGate(StandardGate::Phase)
                         | OperationRef::StandardGate(StandardGate::U1) => {
@@ -319,7 +315,7 @@ pub fn run_litinski_transformation(
                                         .append_rz(dag.get_qargs(inst.qubits)[0].index(), multiple)
                                 }
                             }
-                            (true, false, param.clone(), multiply_param(param, 0.5))
+                            (Pauli1q::Z, param.clone(), multiply_param(param, 0.5))
                         }
                         OperationRef::StandardGate(StandardGate::RX) => {
                             let param = &inst.params_view()[0];
@@ -338,7 +334,7 @@ pub fn run_litinski_transformation(
                                         .append_rx(dag.get_qargs(inst.qubits)[0].index(), multiple)
                                 }
                             }
-                            (false, true, param.clone(), Param::Float(0.))
+                            (Pauli1q::X, param.clone(), Param::Float(0.))
                         }
                         OperationRef::StandardGate(StandardGate::RY) => {
                             let param = &inst.params_view()[0];
@@ -357,7 +353,7 @@ pub fn run_litinski_transformation(
                                         .append_ry(dag.get_qargs(inst.qubits)[0].index(), multiple)
                                 }
                             }
-                            (true, true, param.clone(), Param::Float(0.))
+                            (Pauli1q::Y, param.clone(), Param::Float(0.))
                         }
                         _ => {
                             unreachable!(
@@ -373,8 +369,7 @@ pub fn run_litinski_transformation(
                         // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
                         // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
                         let (sign, z, x, indices) = clifford.evolve_single_qubit_pauli(
-                            pauli_z,
-                            pauli_x,
+                            pauli,
                             dag.get_qargs(inst.qubits)[0].index(),
                         );
                         qargs.clear();
@@ -464,11 +459,8 @@ pub fn run_litinski_transformation(
                         // Evolving RZ by the Clifford.
                         // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
                         // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
-                        let (sign, z, x, indices) = clifford.evolve_single_qubit_pauli(
-                            true,
-                            false,
-                            new_indices[0] as usize,
-                        );
+                        let (sign, z, x, indices) =
+                            clifford.evolve_single_qubit_pauli(Pauli1q::Z, new_indices[0] as usize);
                         let out_sign = if sign { -1.0 } else { 1.0 };
                         let angle = multiply_param(angle, out_sign);
                         qargs.clear();
@@ -499,8 +491,7 @@ pub fn run_litinski_transformation(
                     // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
                     // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
                     let (sign, z, x, indices) = clifford.evolve_single_qubit_pauli(
-                        true,
-                        false,
+                        Pauli1q::Z,
                         dag.get_qargs(inst.qubits)[0].index(),
                     );
                     qargs.clear();
@@ -539,7 +530,7 @@ pub fn run_litinski_transformation(
                     // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
                     // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
                     let (sign, z, x, indices) =
-                        clifford.evolve_single_qubit_pauli(true, false, new_indices[0] as usize);
+                        clifford.evolve_single_qubit_pauli(Pauli1q::Z, new_indices[0] as usize);
 
                     let ppm = PauliProductMeasurement { z, x, neg: sign };
                     qargs.clear();
