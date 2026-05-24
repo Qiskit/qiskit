@@ -493,21 +493,6 @@ fn compute_phase_product_pauli(
     (((ifact % 4) >> 1) != 0) ^ phase
 }
 
-impl fmt::Debug for Clifford {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f)?;
-        writeln!(f, "Tableau:")?;
-        for i in 0..2 * self.num_qubits {
-            for j in 0..2 * self.num_qubits + 1 {
-                write!(f, "{} ", self.tableau[j][i] as u8)?;
-            }
-            writeln!(f)?;
-        }
-        writeln!(f)?;
-        Ok(())
-    }
-}
-
 /// Remove I terms from a sparse Pauli list and their corresponsing indices
 /// For example, if the input Pauli it "XIYZ" on qubits [1, 2, 4, 7]
 /// then the output is "XYZ" on qubits [1, 4, 7]
@@ -525,4 +510,19 @@ pub fn remove_id_terms_from_pauli(
         .multiunzip();
 
     (new_z, new_x, new_indices)
+}
+
+impl fmt::Debug for Clifford {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f)?;
+        writeln!(f, "Tableau:")?;
+        for i in 0..2 * self.num_qubits {
+            for j in 0..2 * self.num_qubits + 1 {
+                write!(f, "{} ", self.tableau[j][i] as u8)?;
+            }
+            writeln!(f)?;
+        }
+        writeln!(f)?;
+        Ok(())
+    }
 }
