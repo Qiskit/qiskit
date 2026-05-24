@@ -353,7 +353,6 @@ mod transpiler {
 
         static FUNCTIONS_PASSES: ExportedFunctions = ExportedFunctions::leaves(50, || {
             vec![
-                export_fn!(basis_translator::qk_transpiler_pass_basis_translator),
                 export_fn!(elide_permutations::qk_transpiler_pass_elide_permutations),
                 export_fn!(gate_direction::qk_transpiler_pass_check_gate_direction),
                 export_fn!(gate_direction::qk_transpiler_pass_gate_direction),
@@ -361,6 +360,7 @@ mod transpiler {
                 export_fn!(remove_diagonal_gates_before_measure::qk_transpiler_pass_remove_diagonal_gates_before_measure),
                 export_fn!(remove_identity_equiv::qk_transpiler_pass_remove_identity_equivalent),
                 export_fn!(split_2q_unitaries::qk_transpiler_pass_split_2q_unitaries),
+                export_fn!(basis_translator::qk_transpiler_pass_basis_translator),
             ]
         });
         static FUNCTIONS_STANDALONE: ExportedFunctions = ExportedFunctions::leaves(50, || {
