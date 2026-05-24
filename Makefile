@@ -18,9 +18,9 @@ ifeq ($(QISKIT_BUILD_WITH_MIMALLOC), 1)
 	MIMALLOC := --features=mimalloc
 endif
 
-.PHONY: default ruff env lint lint-incr style black test test_randomized pytest pytest_randomized test_ci coverage coverage_erase clean
+.PHONY: default env lint style black test test_randomized pytest pytest_randomized test_ci coverage coverage_erase clean
 
-default: style lint-incr test ;
+default: style lint test ;
 
 # Dependencies need to be installed on the Anaconda virtual environment.
 env:
@@ -37,15 +37,6 @@ lint:
 	tools/find_optional_imports.py
 	tools/find_stray_release_notes.py
 	tools/verify_images.py
-
-lint-incr:
-	ruff check qiskit test tools setup.py
-	tools/verify_headers.py qiskit test tools
-	tools/find_optional_imports.py
-	tools/verify_images.py
-
-ruff:
-	ruff qiskit test tools setup.py
 
 style:
 	black --check qiskit test tools setup.py docs/conf.py

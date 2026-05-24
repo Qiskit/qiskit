@@ -102,6 +102,7 @@ pub fn circuit_to_dag(
         qubit_indices,
         clbit_indices,
     )
+    .map_err(Into::into)
 }
 
 /// Convert a :class:`.DAGCircuit` to a :class:`.PyCircuitData`.
