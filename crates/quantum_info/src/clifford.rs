@@ -508,12 +508,14 @@ impl fmt::Debug for Clifford {
     }
 }
 
+/// Remove I terms from a sparse Pauli list and their corresponsing indices
+/// For example, if the input Pauli it "XIYZ" on qubits [1, 2, 4, 7]
+/// then the output is "XYZ" on qubits [1, 4, 7]
 pub fn remove_id_terms_from_pauli(
     pauli_z: &[bool],
     pauli_x: &[bool],
     indices: &[u32],
 ) -> (Vec<bool>, Vec<bool>, Vec<u32>) {
-    // remove pauli I terms
     let (new_z, new_x, new_indices): (Vec<bool>, Vec<bool>, Vec<u32>) = pauli_z
         .iter()
         .zip(pauli_x)
