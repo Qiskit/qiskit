@@ -515,7 +515,7 @@ pub fn run_litinski_transformation(
                     // update PPM to use synthesis code
                     let in_z = &pp_meas.z;
                     let in_x = &pp_meas.x;
-                    // let neg = pp_meas.neg;
+
                     let qargs_in = dag.get_qargs(inst.qubits);
                     let indices_in: Vec<u32> = (0..qargs_in.len())
                         .map(|i| qargs_in[i].index() as u32)
