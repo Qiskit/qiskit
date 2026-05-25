@@ -339,7 +339,7 @@ impl Clifford {
         }
     }
     /// Modifies the tableau in-place by appending the initial part of a PPR gate
-    pub fn append_initial_part_ppr(&mut self, new_z: &[bool], new_x: &[bool], new_indices: &[u32]) {
+    fn append_initial_part_ppr(&mut self, new_z: &[bool], new_x: &[bool], new_indices: &[u32]) {
         // initial H or SX gates (in case of pauli X or pauli Y respectively)
         for qubit in 0..new_indices.len() {
             match (new_z[qubit], new_x[qubit]) {
@@ -359,7 +359,7 @@ impl Clifford {
     }
 
     /// Modifies the tableau in-place by appending the final part of a PPR gate
-    pub fn append_final_part_ppr(&mut self, new_z: &[bool], new_x: &[bool], new_indices: &[u32]) {
+    fn append_final_part_ppr(&mut self, new_z: &[bool], new_x: &[bool], new_indices: &[u32]) {
         // CX ladder
         if new_indices.len() > 1 {
             for ind in 0..new_indices.len() - 1 {
@@ -402,6 +402,32 @@ impl Clifford {
         }
 
         self.append_final_part_ppr(&new_z, &new_x, &new_indices);
+    }
+
+    /// Modifies the tableau in-place by evolving a PPR / PPM gate.
+    /// This is done by appending PPR/PPM initial and final gates,
+    /// and evolving the internal RZ gate
+    pub fn evolve_ppr_ppm(
+        &mut self,
+        in_z: &[bool],
+        in_x: &[bool],
+        indices_in: &[u32],
+    ) -> (bool, Vec<bool>, Vec<bool>, Vec<u32>) {
+        // remove pauli I terms
+        let (new_z, new_x, new_indices) = remove_id_terms_from_pauli(in_z, in_x, indices_in);
+
+        self.append_initial_part_ppr(&new_z, &new_x, &new_indices);
+
+        // internal RZ gate
+        // Evolving RZ by the Clifford.
+        // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
+        // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
+        let (sign, z, x, indices) =
+            self.evolve_single_qubit_pauli(Pauli1q::Z, new_indices[0] as usize);
+
+        self.append_final_part_ppr(&new_z, &new_x, &new_indices);
+
+        (sign, z, x, indices)
     }
 
     /// Evolving a single qubit pauli on qubit qbit by the Clifford.
@@ -496,7 +522,7 @@ fn compute_phase_product_pauli(
 /// Remove I terms from a sparse Pauli list and their corresponsing indices
 /// For example, if the input Pauli it "XIYZ" on qubits [1, 2, 4, 7]
 /// then the output is "XYZ" on qubits [1, 4, 7]
-pub fn remove_id_terms_from_pauli(
+fn remove_id_terms_from_pauli(
     pauli_z: &[bool],
     pauli_x: &[bool],
     indices: &[u32],

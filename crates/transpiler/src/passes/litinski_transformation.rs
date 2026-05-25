@@ -26,7 +26,7 @@ use super::remove_identity_equiv::average_gate_fidelity_below_tol; // ToDo: move
 use super::substitute_pi4_rotations::is_angle_close_to_multiple_of_pi_k; // ToDo: move a shared file
 use crate::TranspilerError;
 use num_complex::Complex64;
-use qiskit_quantum_info::clifford::{Clifford, Pauli1q, remove_id_terms_from_pauli};
+use qiskit_quantum_info::clifford::{Clifford, Pauli1q};
 use qiskit_quantum_info::sparse_observable::{BitTerm, SparseObservable};
 
 use smallvec::smallvec;
@@ -449,20 +449,8 @@ pub fn run_litinski_transformation(
                     }
                     if !is_clifford {
                         // PPR is not clifford
-                        // remove pauli I terms
-                        let (new_z, new_x, new_indices) =
-                            remove_id_terms_from_pauli(in_z, in_x, &indices_in);
-
-                        clifford.append_initial_part_ppr(&new_z, &new_x, &new_indices);
-
-                        // internal RZ gate
-                        // Evolving RZ by the Clifford.
-                        // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
-                        // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
                         let (sign, z, x, indices) =
-                            clifford.evolve_single_qubit_pauli(Pauli1q::Z, new_indices[0] as usize);
-
-                        clifford.append_final_part_ppr(&new_z, &new_x, &new_indices);
+                            clifford.evolve_ppr_ppm(in_z, in_x, &indices_in);
 
                         let out_sign = if sign { -1.0 } else { 1.0 };
                         let angle = multiply_param(angle, out_sign);
@@ -522,19 +510,7 @@ pub fn run_litinski_transformation(
                         .map(|i| qargs_in[i].index() as u32)
                         .collect();
 
-                    let (new_z, new_x, new_indices) =
-                        remove_id_terms_from_pauli(in_z, in_x, &indices_in);
-
-                    clifford.append_initial_part_ppr(&new_z, &new_x, &new_indices);
-
-                    // Evolve a measurement in the Z-basis by a Clifford.
-                    // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
-                    // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
-                    let (sign, z, x, indices) =
-                        clifford.evolve_single_qubit_pauli(Pauli1q::Z, new_indices[0] as usize);
-
-                    clifford.append_final_part_ppr(&new_z, &new_x, &new_indices);
-
+                    let (sign, z, x, indices) = clifford.evolve_ppr_ppm(in_z, in_x, &indices_in);
                     let ppm = PauliProductMeasurement { z, x, neg: sign };
                     qargs.clear();
                     qargs.extend(bytemuck::cast_slice(&indices));
@@ -587,6 +563,7 @@ pub fn run_litinski_transformation(
     Ok(Some(new_dag.build()))
 }
 
+/// Helper functions
 fn sparse_obs_from_zx(z: &[bool], x: &[bool]) -> SparseObservable {
     let bit_terms: Vec<BitTerm> = z
         .iter()
