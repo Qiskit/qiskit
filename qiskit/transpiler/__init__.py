@@ -1489,8 +1489,10 @@ Pass Manager Definition
    PassManager
    PassManagerConfig
    PassManagerCliffordTConfig
+   PassManagerPBCConfig
    generate_preset_pass_manager
    generate_preset_clifford_t_pass_manager
+   generate_preset_pbc_pass_manager
 
 Layout and Topology
 -------------------
@@ -1551,7 +1553,7 @@ from qiskit.passmanager.compilation_status import PropertySet
 from qiskit._accelerate.angle_bound_registry import WrapAngleRegistry
 
 from .passmanager import PassManager, StagedPassManager
-from .passmanager_config import PassManagerConfig, PassManagerCliffordTConfig
+from .passmanager_config import PassManagerConfig, PassManagerCliffordTConfig, PassManagerPBCConfig
 from .exceptions import (
     TranspilerError,
     TranspilerAccessError,
@@ -1567,6 +1569,7 @@ from .instruction_durations import InstructionDurations
 from .preset_passmanagers import (
     generate_preset_pass_manager,
     generate_preset_clifford_t_pass_manager,
+    generate_preset_pbc_pass_manager,
 )
 from .target import Target
 from .target import InstructionProperties

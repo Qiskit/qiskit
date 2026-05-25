@@ -46,8 +46,9 @@ from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePlugin,
     PassManagerStagePluginManager,
     PassManagerCliffordTStagePlugin,
+    PassManagerPBCStagePlugin,
 )
-from qiskit.transpiler.passmanager_config import PassManagerCliffordTConfig
+from qiskit.transpiler.passmanager_config import PassManagerCliffordTConfig, PassManagerPBCConfig
 from qiskit.transpiler.passes.optimization import (
     Optimize1qGatesDecomposition,
     CommutativeCancellation,
@@ -55,6 +56,7 @@ from qiskit.transpiler.passes.optimization import (
     InverseCancellation,
     RemoveIdentityEquivalent,
     ContractIdleWiresInControlFlow,
+    ConvertToPauliRotations,
 )
 from qiskit.transpiler.optimization_metric import OptimizationMetric
 from qiskit.transpiler.passes import Depth, Size, FixedPoint, MinimumPoint
@@ -64,6 +66,8 @@ from qiskit.passmanager.flow_controllers import ConditionalController, DoWhileCo
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+from qiskit.circuit.library import get_standard_gate_name_mapping
+from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import get_clifford_gate_names
 from qiskit.utils import default_num_processes
 from qiskit import user_config
@@ -1305,3 +1309,123 @@ class OptimizeCliffordTPassManager(PassManagerCliffordTStagePlugin):
         optimization.append(DoWhileController(loop + loop_check, do_while=continue_loop))
         optimization.append(post_loop)
         return optimization
+
+
+class PBCUnrollPassManager(PassManagerPBCStagePlugin):
+    """
+    PBC transpilation stage, which decomposes circuit instruction into standard gates and instructions.
+    """
+
+    def pass_manager(
+        self, pass_manager_config: PassManagerPBCConfig, optimization_level: int | None = None
+    ):
+        # Choose all standard gates that are handled by the translation to PBC stage.
+        unsupported_gates = ["c3sx", "rcccx"]
+        basis_gates = [
+            gate for gate in get_standard_gate_name_mapping() if gate not in unsupported_gates
+        ] + list(CONTROL_FLOW_OP_NAMES)
+
+        pm = PassManager(
+            [
+                UnitarySynthesis(
+                    basis_gates,
+                    target=None,
+                    min_qubits=1,
+                    approximation_degree=pass_manager_config.approximation_degree,
+                    method=pass_manager_config.unitary_synthesis_method,
+                    plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
+                ),
+                HighLevelSynthesis(
+                    hls_config=pass_manager_config.hls_config,
+                    coupling_map=None,
+                    target=None,
+                    use_qubit_indices=False,
+                    equivalence_library=sel,
+                    basis_gates=basis_gates,
+                    min_qubits=1,
+                    qubits_initially_zero=pass_manager_config.qubits_initially_zero,
+                    optimization_metric=OptimizationMetric.COUNT_T,
+                ),
+                BasisTranslator(sel, basis_gates, target=None, min_qubits=1),
+            ]
+        )
+        return pm
+
+
+class PBCOptimizePassManager(PassManagerPBCStagePlugin):
+    """
+    PBC transpilation stage, which optimizes circuits with standard gates and instructions.
+    """
+
+    def pass_manager(
+        self, pass_manager_config: PassManagerPBCConfig, optimization_level: int | None = None
+    ):
+        match optimization_level:
+            case 0 | 1:
+                pm = PassManager([])
+            case 2 | 3:
+                pm = PassManager(
+                    [
+                        RemoveIdentityEquivalent(
+                            approximation_degree=pass_manager_config.approximation_degree,
+                            target=None,
+                        ),
+                        CommutativeOptimization(
+                            approximation_degree=(
+                                pass_manager_config.approximation_degree
+                                if pass_manager_config.approximation_degree is not None
+                                else 1.0
+                            )
+                        ),
+                    ]
+                )
+            case bad:
+                raise TranspilerError(f"Invalid optimization_level: {bad}")
+
+        return pm
+
+
+class PBCTranslateToPBCPassManager(PassManagerPBCStagePlugin):
+    """
+    PBC transpilation stage, which translates circuits with standard gates and instructions
+    into Pauli-based circuits.
+    """
+
+    def pass_manager(
+        self, pass_manager_config: PassManagerPBCConfig, optimization_level: int | None = None
+    ):
+        pm = PassManager(
+            [
+                ConvertToPauliRotations(),
+            ]
+        )
+        return pm
+
+
+class PBCOptimizePBCPassManager(PassManagerPBCStagePlugin):
+    """
+    PBC transpilation stage, which optimizes Pauli-based circuits.
+    """
+
+    def pass_manager(
+        self, pass_manager_config: PassManagerPBCConfig, optimization_level: int | None = None
+    ):
+        match optimization_level:
+            case 0 | 1:
+                pm = PassManager([])
+            case 2 | 3:
+                pm = PassManager(
+                    [
+                        CommutativeOptimization(
+                            approximation_degree=(
+                                pass_manager_config.approximation_degree
+                                if pass_manager_config.approximation_degree is not None
+                                else 1.0
+                            )
+                        ),
+                    ]
+                )
+            case bad:
+                raise TranspilerError(f"Invalid optimization_level: {bad}")
+
+        return pm

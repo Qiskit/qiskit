@@ -295,3 +295,44 @@ class PassManagerCliffordTConfig:
             rz_synthesis_config=None,
             _routing_disabled=pass_manager_config.routing_method == "none",
         )
+
+
+class PassManagerPBCConfig:
+    """Pass Manager Configuration for PBC transpilation."""
+
+    def __init__(
+        self,
+        approximation_degree: float | None = None,
+        seed_transpiler: int | None = None,
+        unitary_synthesis_method: str = "default",
+        unitary_synthesis_plugin_config: dict | None = None,
+        hls_config: HLSConfig | None = None,
+        qubits_initially_zero: bool = True,
+    ):
+        """
+        Args:
+            approximation_degree: Heuristic dial used for circuit approximation, where
+                ``1.0`` means no approximation (up to numerical tolerance) and ``0.0``
+                means the maximum approximation. The value of ``None`` is treated
+                as ``1.0``.
+            seed_transpiler: Sets random seed for the stochastic parts of
+                the transpiler.
+            unitary_synthesis_method: The string method to use for the
+                :class:`~qiskit.transpiler.passes.UnitarySynthesis` pass. Will
+                search installed plugins for a valid method. You can see a list of
+                installed plugins with :func:`.unitary_synthesis_plugin_names`.
+            unitary_synthesis_plugin_config: The configuration dictionary that will
+                be passed to the specified unitary synthesis plugin. Refer to
+                the plugin documentation for how to use this.
+            hls_config: An optional configuration class to use for
+                :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
+                Specifies how to synthesize various high-level objects.
+            qubits_initially_zero: Indicates whether the input circuit is
+                zero-initialized.
+        """
+        self.approximation_degree = approximation_degree
+        self.seed_transpiler = seed_transpiler
+        self.unitary_synthesis_method = unitary_synthesis_method
+        self.unitary_synthesis_plugin_config = unitary_synthesis_plugin_config
+        self.hls_config = hls_config
+        self.qubits_initially_zero = qubits_initially_zero
