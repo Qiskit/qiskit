@@ -81,6 +81,7 @@ class LitinskiTransformation(TransformationPass):
         fix_clifford: bool = True,
         insert_barrier: bool = False,
         use_ppr: bool | None = None,
+        approximation_degree: float = 1.0,
     ):
         """
         Args:
@@ -94,10 +95,14 @@ class LitinskiTransformation(TransformationPass):
             use_ppr: If ``True``, use :class:`.PauliProductRotationGate` to represent
                 the Pauli rotation gates. This is encouraged to improve performance using a fully
                 Rust-backed path. If ``False`` or ``None``, use :class:`.PauliEvolutionGate`.
+            approximation_degree: Used in the tolerance computations,
+                to check how much a PPR or a rotation gate is close to a Clifford.
+                This gives the threshold for the average gate fidelity.
         """
         super().__init__()
         self.fix_clifford = fix_clifford
         self.insert_barrier = insert_barrier
+        self.approximation_degree = approximation_degree
 
         # In Qiskit v2.4 the default is to keep using PauliEvolutionGate as rotation gates, but
         # come v2.5 we can start to warn that in v3.0 the default will be changed to PPR gates
@@ -119,7 +124,7 @@ class LitinskiTransformation(TransformationPass):
             TranspilerError: If the circuit contains gates not supported by the pass.
         """
         new_dag = run_litinski_transformation(
-            dag, self.fix_clifford, self.insert_barrier, self.use_ppr
+            dag, self.fix_clifford, self.insert_barrier, self.use_ppr, self.approximation_degree
         )
 
         # If the pass did not do anything, the result is None

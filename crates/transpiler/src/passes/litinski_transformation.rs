@@ -81,15 +81,16 @@ static HANDLED_INSTRUCTION_NAMES: [&str; 10] = [
 const MINIMUM_TOL: f64 = 1e-12; // ToDo: add approximation_degree to the pass?
 
 #[pyfunction]
-#[pyo3(signature = (dag, fix_clifford=true, insert_barrier=false, use_ppr=false))]
+#[pyo3(signature = (dag, fix_clifford=true, insert_barrier=false, use_ppr=false, approximation_degree=1.0))]
 pub fn run_litinski_transformation(
     dag: &DAGCircuit,
     fix_clifford: bool,
     insert_barrier: bool,
     use_ppr: bool,
+    approximation_degree: f64,
 ) -> PyResult<Option<DAGCircuit>> {
     let op_counts = dag.get_op_counts();
-    let tol = MINIMUM_TOL;
+    let tol = MINIMUM_TOL.max(1.0 - approximation_degree);
 
     // Skip the pass if there are no rotation or measurement gates, including PPRs and PPMs.
     if op_counts
