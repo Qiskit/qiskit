@@ -123,26 +123,49 @@ class TestLitinskiTransformation(QiskitTestCase):
         self.assertEqual(qct.count_ops(), {ppr_name: 3})
 
     @data(True, False)
-    def test_parametric_rz_gates(self, use_ppr):
+    def test_parametric_rz_rx_ry_gates(self, use_ppr):
         """Test circuit with parameterized RZ-rotation gates."""
         alpha = Parameter("alpha")
         beta = Parameter("beta")
+        gamma = Parameter("gamma")
 
         qc = QuantumCircuit(4)
         qc.h(0)
         qc.cx(0, 1)
         qc.rz(alpha, 0)
         qc.cx(0, 2)
-        qc.rz(beta, 1)
+        qc.rx(beta, 1)
         qc.s(2)
         qc.rz(0.1, 1)
+        qc.ry(gamma, 1)
 
         qct = LitinskiTransformation(use_ppr=use_ppr)(qc)
         ppr_name = "pauli_product_rotation" if use_ppr else "PauliEvolution"
-        self.assertEqual(qct.count_ops(), {ppr_name: 3, "cx": 2, "h": 1, "s": 1})
+        self.assertEqual(qct.count_ops(), {ppr_name: 4, "cx": 2, "h": 1, "s": 1})
 
-        qc_bound = qc.assign_parameters([0.123, -1.234])
-        qct_bound = qct.assign_parameters([0.123, -1.234])
+        qc_bound = qc.assign_parameters([0.123, -1.234, 0.567])
+        qct_bound = qct.assign_parameters([0.123, -1.234, 0.567])
+        self.assertEqual(Operator(qct_bound), Operator(qc_bound))
+
+    def test_parametric_ppr_gates(self):
+        """Test circuit with parameterized PPR rotation gates."""
+        alpha = Parameter("alpha")
+        beta = Parameter("beta")
+
+        qc = QuantumCircuit(4)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.compose(PauliProductRotationGate(Pauli("ZXY"), alpha), [0, 1, 3], inplace=True)
+        qc.cx(0, 2)
+        qc.compose(PauliProductRotationGate(Pauli("YIX"), beta), [0, 2, 3], inplace=True)
+        qc.s(2)
+        qc.rz(0.1, 1)
+
+        qct = LitinskiTransformation(use_ppr=True)(qc)
+        self.assertEqual(qct.count_ops(), {"pauli_product_rotation": 3, "cx": 2, "h": 1, "s": 1})
+
+        qc_bound = qc.assign_parameters([0.123, -1.567])
+        qct_bound = qct.assign_parameters([0.123, -1.567])
         self.assertEqual(Operator(qct_bound), Operator(qc_bound))
 
     @data(2, 3, 4, 5, 6, 7, 8)
