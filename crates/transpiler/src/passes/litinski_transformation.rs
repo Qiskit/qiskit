@@ -449,6 +449,7 @@ pub fn run_litinski_transformation(
                     }
                     if !is_clifford {
                         // PPR is not clifford
+                        // Evolve PPR by the clifford
                         let (sign, z, x, indices) =
                             clifford.evolve_ppr_ppm(in_z, in_x, &indices_in);
 
@@ -501,7 +502,7 @@ pub fn run_litinski_transformation(
                     )?;
                 }
                 OperationRef::PauliProductMeasurement(pp_meas) => {
-                    // update PPM to use synthesis code
+                    // Evolve PPM by the clifford
                     let in_z = &pp_meas.z;
                     let in_x = &pp_meas.x;
 

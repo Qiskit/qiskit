@@ -404,9 +404,9 @@ impl Clifford {
         self.append_final_part_ppr(&new_z, &new_x, &new_indices);
     }
 
-    /// Modifies the tableau in-place by evolving a PPR / PPM gate.
-    /// This is done by appending PPR/PPM initial and final gates,
-    /// and evolving the internal RZ gate
+    /// Evolving a PPR / PPM gate by the Clifford.
+    /// This is done by appending PPR (PPM) initial and final gates to the Clifford tableau in-place,
+    /// and evolving the internal RZ gate.
     pub fn evolve_ppr_ppm(
         &mut self,
         in_z: &[bool],
