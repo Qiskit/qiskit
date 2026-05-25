@@ -353,6 +353,7 @@ mod transpiler {
 
         static FUNCTIONS_PASSES: ExportedFunctions = ExportedFunctions::leaves(50, || {
             vec![
+                export_fn!(basis_translator::qk_transpiler_pass_basis_translator),
                 export_fn!(elide_permutations::qk_transpiler_pass_elide_permutations),
                 export_fn!(gate_direction::qk_transpiler_pass_check_gate_direction),
                 export_fn!(gate_direction::qk_transpiler_pass_gate_direction),

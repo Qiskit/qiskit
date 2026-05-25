@@ -181,3 +181,13 @@ pub struct Items<T> {
     pub functions: Vec<Function<T>>,
     pub unions: Vec<Union<T>>,
 }
+impl<T> Default for Items<T> {
+    fn default() -> Self {
+        Self {
+            enums: Default::default(),
+            structs: Default::default(),
+            functions: Default::default(),
+            unions: Default::default(),
+        }
+    }
+}
