@@ -461,6 +461,9 @@ pub fn run_litinski_transformation(
                         // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
                         let (sign, z, x, indices) =
                             clifford.evolve_single_qubit_pauli(Pauli1q::Z, new_indices[0] as usize);
+
+                        clifford.append_final_part_ppr(&new_z, &new_x, &new_indices);
+
                         let out_sign = if sign { -1.0 } else { 1.0 };
                         let angle = multiply_param(angle, out_sign);
                         qargs.clear();
@@ -482,8 +485,6 @@ pub fn run_litinski_transformation(
                             #[cfg(feature = "cache_pygates")]
                             None,
                         )?;
-
-                        clifford.append_final_part_ppr(&new_z, &new_x, &new_indices);
                     }
                 }
                 OperationRef::StandardInstruction(StandardInstruction::Measure) => {
@@ -532,6 +533,8 @@ pub fn run_litinski_transformation(
                     let (sign, z, x, indices) =
                         clifford.evolve_single_qubit_pauli(Pauli1q::Z, new_indices[0] as usize);
 
+                    clifford.append_final_part_ppr(&new_z, &new_x, &new_indices);
+
                     let ppm = PauliProductMeasurement { z, x, neg: sign };
                     qargs.clear();
                     qargs.extend(bytemuck::cast_slice(&indices));
@@ -547,7 +550,6 @@ pub fn run_litinski_transformation(
                         #[cfg(feature = "cache_pygates")]
                         None,
                     )?;
-                    clifford.append_final_part_ppr(&new_z, &new_x, &new_indices);
                 }
                 _ => unreachable!(
                     "We cannot have unsupported names at this step of Litinski Transformation: {}",
