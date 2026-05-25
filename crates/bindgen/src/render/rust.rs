@@ -404,7 +404,6 @@ pub struct {name} {{"
         let name = &val.name;
         let mut out = format!(
             "
-#[derive(Debug)]
 #[repr(C)]
 pub union {name} {{"
         );
@@ -416,6 +415,19 @@ pub union {name} {{"
             out.push(',');
         }
         out.push_str("\n}");
+
+        // Add a custom dummy Debug implementation since unions cannot derive the Debug trait, but
+        // we still want (possibly transitively) containing structs to derive Debug themselves.
+        out.push_str(&format!(
+            "
+impl ::core::fmt::Debug for {} {{
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {{
+        f.debug_struct(\"{}\").finish_non_exhaustive()
+    }}
+}}\n",
+            name, name
+        ));
+
         out
     }
 
