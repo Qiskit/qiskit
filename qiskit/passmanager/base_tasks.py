@@ -30,8 +30,20 @@ IR_OUT = TypeVar("IR_OUT")
 class Task(ABC, Generic[IR, IR_OUT]):
     """An interface of the pass manager task.
 
-    The task takes a Qiskit IR, and outputs new Qiskit IR after some operation on it.
-    A task can rely on the :class:`.PropertySet` to communicate intermediate data among tasks.
+    A task takes an IR as input, performs an operation on it and returns another IR.
+    The task obtains a context in form of a :class:`.PassManagerState`, which contains
+    context information on the current compilation in the :class:`.PropertySet`, and the
+    task can set a :class:`.WorkflowStatus`.
+
+    The task is expected to call an optionally provided callback after each atomic
+    operation. The signature is
+
+    .. code-block:: python
+
+        def callback(task: Task, ir: IR, property_set: PropertySet, running_time: float, count: int):
+            ...
+
+    where ``count`` is the number of tasks executed up to this point.
     """
 
     @abstractmethod
@@ -41,15 +53,15 @@ class Task(ABC, Generic[IR, IR_OUT]):
         state: PassManagerState,
         callback: Callable[[Task, IR_OUT, PropertySet, float, int], None] | None = None,
     ) -> tuple[IR_OUT, PassManagerState]:
-        """Execute optimization task for input Qiskit IR.
+        """Execute the task.
 
         Args:
-            passmanager_ir: Qiskit IR to optimize.
+            passmanager_ir: The input program.
             state: State associated with workflow execution by the pass manager itself.
-            callback: A callback function which is called per execution of optimization task.
+            callback: A callback function which is called per execution of task.
 
         Returns:
-            Optimized Qiskit IR and state of the workflow.
+            The program after the task execution, with the new context state.
         """
 
 

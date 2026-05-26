@@ -17,13 +17,17 @@ from typing import Generic, TypeVar
 
 from .base_tasks import Task, IR, Callback, PassManagerState, PropertySet
 from .exceptions import PassManagerError
-from .flow_controllers import FlowControllerLinear
 
 
 class OptimizationPassManager(Task[IR, IR], Generic[IR]):
     """Execute a series of tasks, remaining in a single IR."""
 
     def __init__(self, tasks: Iterable[Task[IR, IR]] | None) -> None:
+        """
+        Args:
+            tasks: The tasks to run in the pass manager. These must preserve the IR as in- and
+                outputs.
+        """
         if tasks is None:
             tasks = []
 
@@ -36,16 +40,39 @@ class OptimizationPassManager(Task[IR, IR], Generic[IR]):
             passmanager_ir = task.execute(passmanager_ir, state, callback)
         return super().execute(passmanager_ir, state, callback)
 
-    def run(self, in_programs: IR | Iterable[IR]) -> IR | Iterable[IR]:
-        state = PassManagerState()
+    def run(
+        self,
+        in_programs: IR | Iterable[IR],
+        callback: Callback[IR] | None = None,
+        *,
+        property_set: PropertySet | None = None,
+    ) -> IR | Iterable[IR]:
+        """Run the pass manager on a set of input programs.
+
+        This is a convenience entry point to :meth:`run`, which allows to handle an iterable
+        of input programs and creates a :class:`.PassManagerState` passed to the tasks.
+
+        Args:
+            in_programs: The programs to run the pass manager on.
+            callback: A callback passed to each individual task.
+            property_set: An optional property set to pass into the pass manager.
+
+        Returns:
+            The output programs.
+        """
+        if property_set is None:
+            property_set = PropertySet()
+
+        state = PassManagerState(property_set=property_set)
 
         if isinstance(in_programs, IR):
-            return self.execute(in_programs, state, None)
+            return self.execute(in_programs, state, callback)
 
         return list(map(self.run, in_programs))
 
     @property
     def tasks(self) -> list[Task[IR, IR]]:
+        """The tasks run in the pass manager."""
         return self._tasks
 
     def append(
@@ -65,21 +92,20 @@ class OptimizationPassManager(Task[IR, IR], Generic[IR]):
         if any(not isinstance(t, Task) for t in tasks):
             raise TypeError("Added tasks are not all valid pass manager task types.")
 
-        self._tasks.append(tasks)
+        self._tasks.extend(tasks)
 
     def replace(
         self,
         index: int,
         tasks: Task[IR, IR] | Iterable[Task[IR, IR]],
     ) -> None:
-        """Replace a particular pass in the scheduler.
+        """Replace a particular task in the pass manager.
 
         Args:
-            index: Task index to replace, based on the position in :meth:`tasks`
-            tasks: A set of pass manager tasks to be added to schedule.
+            index: Task index to replace, based on the position in :attr:`tasks`.
+            tasks: A task (or set of tasks) to replace the existing task with.
 
         Raises:
-            TypeError: When any element of tasks is not a subclass of passmanager Task.
             PassManagerError: If the index is not found.
         """
         try:
@@ -88,10 +114,10 @@ class OptimizationPassManager(Task[IR, IR], Generic[IR]):
             raise PassManagerError(f"Index to replace {index} does not exist") from ex
 
     def remove(self, index: int) -> None:
-        """Removes a particular pass in the scheduler.
+        """Removes a particular task in the pass manager.
 
         Args:
-            index: Pass index to remove, based on the position in :meth:`passes`.
+            index: Task index to remove, based on the position in :attr:`tasks`.
 
         Raises:
             PassManagerError: If the index is not found.
