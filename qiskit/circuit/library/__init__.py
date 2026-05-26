@@ -850,6 +850,7 @@ https://dx.doi.org/10.1145/1278349.1278355
 .. autofunction:: template_nct_9d_10
 .. currentmodule:: qiskit.circuit.library
 
+   
 Clifford template circuits
 --------------------------
 
@@ -885,6 +886,15 @@ Template circuits with :class:`~qiskit.circuit.library.RZXGate`.
 .. autofunction:: rzx_zz1
 .. autofunction:: rzx_zz2
 .. autofunction:: rzx_zz3
+
+Template library
+--------------------------
+
+Existing Template circuits.
+
+.. autosummary::
+   :toctree: ../stubs/
+   TemplateLibrary
 
 """
 
@@ -1009,3 +1019,4 @@ from .phase_oracle import PhaseOracle, PhaseOracleGate
 from .bit_flip_oracle import BitFlipOracleGate
 from .overlap import UnitaryOverlap, unitary_overlap
 from .standard_gates import get_standard_gate_name_mapping
+from .standard_gates.templates import TemplateLibrary

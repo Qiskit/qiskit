@@ -667,8 +667,16 @@ designed to be resolved at compile time.  These are characterized by the use of 
 .. autosummary::
     :toctree: ../stubs/
 
-    Parameter
-    ParameterExpression
+   Gate
+   ControlledGate
+   Delay
+   Instruction
+   InstructionSet
+   Operation
+   EquivalenceLibrary
+   TemplateLibrary
+   Parameter
+   ParameterExpression
 
 The main way that this differs from the :class:`expr.Var` variables used in real-time classical
 computation is that :class:`ParameterExpression` is a symbolic representation of a mathematical

@@ -14,7 +14,6 @@
 
 import unittest
 from inspect import getmembers, isfunction
-from ddt import ddt
 
 import numpy as np
 
@@ -24,8 +23,9 @@ import qiskit.circuit.library.templates as templib
 from test import combine
 from test import QiskitTestCase
 
+from qiskit.circuit.library.standard_gates import TemplateLibrary
 
-@ddt
+
 class TestTemplates(QiskitTestCase):
     """Tests for the circuit templates."""
 
@@ -35,7 +35,8 @@ class TestTemplates(QiskitTestCase):
         if isinstance(circuit, QuantumCircuit):
             circuit.assign_parameters(dict.fromkeys(circuit.parameters, 0.2), inplace=True)
 
-    @combine(template_circuit=circuits)
+    template_circuit = circuits
+
     def test_template(self, template_circuit):
         """Test that all templates are exactly equal to the identity (including global phase).
 
