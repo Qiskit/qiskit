@@ -575,12 +575,7 @@ fn synthesize_matrix(
         [] => Ok(Some(SynthesisOutput::Phase(unitary[[0, 0]].arg()))),
         [q_virt] => {
             let q_phys = qubits_phys[q_virt.index()];
-            Ok(Some(synthesize_1q_matrix(
-                unitary.view(),
-                q_phys,
-                state,
-                constraint,
-            )?))
+            synthesize_1q_matrix(unitary.view(), q_phys, state, constraint)
         }
         [q1_virt, q2_virt] => {
             let q_virt = [q1_virt, q2_virt];
@@ -764,12 +759,12 @@ fn synthesize_1q_matrix(
     qubit_phys: PhysicalQubit,
     state: &mut UnitarySynthesisState,
     constraint: QpuConstraint,
-) -> PyResult<SynthesisOutput> {
+) -> PyResult<Option<SynthesisOutput>> {
     if let Some(sk) = state.cache.try_solovay_kitaev(qubit_phys, constraint) {
         let circuit = sk
             .synthesize_matrix(&Matrix2::from_fn(|i, j| unitary[[i, j]]), 5)
             .expect("hardcoded standard gates should not include parametric gates");
-        Ok(SynthesisOutput::OneQSK(circuit))
+        Ok(Some(SynthesisOutput::OneQSK(circuit)))
     } else {
         let sequence = unitary_to_gate_sequence_inner(
             unitary,
@@ -780,9 +775,9 @@ fn synthesize_1q_matrix(
             None,
         );
         let Some(sequence) = sequence else {
-            panic!();
+            return Ok(None);
         };
-        Ok(SynthesisOutput::OneQ(sequence))
+        Ok(Some(SynthesisOutput::OneQ(sequence)))
     }
 }
 
