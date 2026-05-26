@@ -269,101 +269,73 @@ pub fn run_litinski_transformation(
                 | OperationRef::StandardGate(StandardGate::Phase)
                 | OperationRef::StandardGate(StandardGate::U1) => {
                     let mut is_clifford = false; // indicates if it is a pi/2 rotation gate which is a clifford
-                    // Convert T and Tdg gates to RZ rotations
-                    let (pauli, angle, phase_update) = match inst.op.view() {
-                        OperationRef::StandardGate(StandardGate::T) => {
-                            (Pauli1q::Z, Param::Float(FRAC_PI_4), Param::Float(FRAC_PI_8))
+                    let qubit = dag.get_qargs(inst.qubits)[0].index();
+                    let param = inst.params_view();
+
+                    // closure to process the rotation gates 
+                    let mut process_rot_gate = |gate: StandardGate,
+                                                pauli: Pauli1q|
+                     -> Option<(Pauli1q, Param)> {
+                        if let Param::Float(angle) = param[0] {
+                            if let Some(multiple) =
+                                is_angle_close_to_multiple_of_pi_k(gate, 2, angle, tol)
+                            {
+                                is_clifford = true;
+                                match gate {
+                                    StandardGate::RZ | StandardGate::Phase | StandardGate::U1 => {
+                                        clifford.append_rz(qubit, multiple)
+                                    }
+                                    StandardGate::RX => clifford.append_rx(qubit, multiple),
+                                    StandardGate::RY => clifford.append_ry(qubit, multiple),
+                                    _ => unreachable!(
+                                        "We cannot have gates other than RZ/RX/RY/P/U1 at this point."
+                                    ),
+                                }
+                                return None;
+                            }
                         }
+                        Some((pauli, param[0].clone()))
+                    };
+
+                    // Convert T and Tdg gates to RZ rotations
+                    let (result, phase_update) = match inst.op.view() {
+                        OperationRef::StandardGate(StandardGate::T) => (
+                            Some((Pauli1q::Z, Param::Float(FRAC_PI_4))),
+                            Param::Float(FRAC_PI_8),
+                        ),
                         OperationRef::StandardGate(StandardGate::Tdg) => (
-                            Pauli1q::Z,
-                            Param::Float(-FRAC_PI_4),
+                            Some((Pauli1q::Z, Param::Float(-FRAC_PI_4))),
                             Param::Float(-FRAC_PI_8),
                         ),
-                        OperationRef::StandardGate(StandardGate::RZ) => {
-                            let param = &inst.params_view()[0];
-                            if let Param::Float(angle) = param {
-                                if let Some(multiple) = is_angle_close_to_multiple_of_pi_k(
-                                    StandardGate::RZ,
-                                    2,
-                                    *angle,
-                                    tol,
-                                ) {
-                                    is_clifford = true;
-                                    if fix_clifford {
-                                        clifford_ops.push(inst);
-                                    }
-                                    clifford
-                                        .append_rz(dag.get_qargs(inst.qubits)[0].index(), multiple)
-                                }
-                            }
-                            (Pauli1q::Z, param.clone(), Param::Float(0.))
-                        }
+                        OperationRef::StandardGate(StandardGate::RZ) => (
+                            process_rot_gate(StandardGate::RZ, Pauli1q::Z),
+                            Param::Float(0.),
+                        ),
                         OperationRef::StandardGate(StandardGate::Phase)
-                        | OperationRef::StandardGate(StandardGate::U1) => {
-                            let param = &inst.params_view()[0];
-                            if let Param::Float(angle) = param {
-                                if let Some(multiple) = is_angle_close_to_multiple_of_pi_k(
-                                    StandardGate::RZ,
-                                    2,
-                                    *angle,
-                                    tol,
-                                ) {
-                                    is_clifford = true;
-                                    if fix_clifford {
-                                        clifford_ops.push(inst);
-                                    }
-                                    clifford
-                                        .append_rz(dag.get_qargs(inst.qubits)[0].index(), multiple)
-                                }
-                            }
-                            (Pauli1q::Z, param.clone(), multiply_param(param, 0.5))
-                        }
-                        OperationRef::StandardGate(StandardGate::RX) => {
-                            let param = &inst.params_view()[0];
-                            if let Param::Float(angle) = param {
-                                if let Some(multiple) = is_angle_close_to_multiple_of_pi_k(
-                                    StandardGate::RX,
-                                    2,
-                                    *angle,
-                                    tol,
-                                ) {
-                                    is_clifford = true;
-                                    if fix_clifford {
-                                        clifford_ops.push(inst);
-                                    }
-                                    clifford
-                                        .append_rx(dag.get_qargs(inst.qubits)[0].index(), multiple)
-                                }
-                            }
-                            (Pauli1q::X, param.clone(), Param::Float(0.))
-                        }
-                        OperationRef::StandardGate(StandardGate::RY) => {
-                            let param = &inst.params_view()[0];
-                            if let Param::Float(angle) = param {
-                                if let Some(multiple) = is_angle_close_to_multiple_of_pi_k(
-                                    StandardGate::RY,
-                                    2,
-                                    *angle,
-                                    tol,
-                                ) {
-                                    is_clifford = true;
-                                    if fix_clifford {
-                                        clifford_ops.push(inst);
-                                    }
-                                    clifford
-                                        .append_ry(dag.get_qargs(inst.qubits)[0].index(), multiple)
-                                }
-                            }
-                            (Pauli1q::Y, param.clone(), Param::Float(0.))
-                        }
+                        | OperationRef::StandardGate(StandardGate::U1) => (
+                            process_rot_gate(StandardGate::RZ, Pauli1q::Z),
+                            multiply_param(&param[0], 0.5),
+                        ),
+                        OperationRef::StandardGate(StandardGate::RX) => (
+                            process_rot_gate(StandardGate::RX, Pauli1q::X),
+                            Param::Float(0.),
+                        ),
+                        OperationRef::StandardGate(StandardGate::RY) => (
+                            process_rot_gate(StandardGate::RY, Pauli1q::Y),
+                            Param::Float(0.),
+                        ),
                         _ => {
                             unreachable!(
                                 "We cannot have gates other than T/Tdg/RZ/RX/RY/P/U1 at this point."
                             );
                         }
                     };
-                    if !is_clifford {
-                        // rotation gate is non-clifford
+                    if is_clifford & fix_clifford {
+                        clifford_ops.push(inst);
+                    }
+
+                    // rotation gate is non-clifford
+                    if let Some((pauli, angle)) = result {
                         global_phase_update = radd_param(global_phase_update, phase_update);
 
                         // Evolving the single qubit pauli (X, Y or Z) by the Clifford.
