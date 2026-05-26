@@ -567,16 +567,16 @@ fn non_identity_zx_to_bitterm(z: bool, x: bool) -> BitTerm {
     }
 }
 
-/// For a given angle, if it is a multiple of PI/2, calculate the multiple mod (8),
+/// For a given angle, if it is a multiple of PI/2, calculate the multiple mod (4),
 /// Otherwise, return `None`.
-/// I.e, if the angle is a multiple m of PI/2 then it returns m, where 0 <= m < 8.
+/// I.e, if the angle is a multiple m of PI/2 then it returns m, where 0 <= m < 4.
 fn is_ppr_angle_close_to_multiple_of_pi2(
     z: &[bool],
     x: &[bool],
     angle: f64,
     tol: f64,
 ) -> Option<usize> {
-    let closest_ratio = 2.0 * angle / PI;
+    let closest_ratio = angle / PI;
     let closest_integer = closest_ratio.round();
     let closest_angle = closest_integer * PI / 2.0;
     let theta = angle - closest_angle;
@@ -590,7 +590,7 @@ fn is_ppr_angle_close_to_multiple_of_pi2(
         .rotation_trace_and_dim()
         .expect("Since only supported rotation gates are given, the result is not None");
     if average_gate_fidelity_below_tol(tr_over_dim, dim, tol).is_some() {
-        Some((closest_integer as i64).rem_euclid(8) as usize)
+        Some((closest_integer as i64).rem_euclid(4) as usize)
     } else {
         None
     }
