@@ -2899,7 +2899,8 @@ class QuantumCircuit:
             is_parameter = False
             for param in params:
                 is_parameter = is_parameter or isinstance(param, ParameterExpression)
-                if isinstance(param, expr.Expr):
+                # Control flow ops have a different validation for classical expressions
+                if isinstance(param, expr.Expr) and not isinstance(operation, ControlFlowOp):
                     param = _validate_expr(circuit_scope, param)
             if copy and is_parameter:
                 operation = _copy.deepcopy(operation)
@@ -4491,7 +4492,7 @@ class QuantumCircuit:
         rvalue = expr.lift(rvalue, rvalue_type)
         return self.append(Store(lvalue, rvalue), (), (), copy=False)
 
-    def measure(self, qubit: QubitSpecifier, cbit: ClbitSpecifier) -> InstructionSet:
+    def measure(self, qubit: QubitSpecifier, cbit: ClbitSpecifier | expr.Var) -> InstructionSet:
         r"""Measure a quantum bit (``qubit``) in the Z basis into a classical bit (``cbit``).
 
         When a quantum state is measured, a qubit is projected in the computational (Pauli Z) basis
@@ -4499,9 +4500,17 @@ class QuantumCircuit:
         indicates the result
         of that projection as a ``0`` or a ``1`` respectively. This operation is non-reversible.
 
+        If ``cbit`` is an :class:`.expr.Var` of :class:`.types.Uint` type or an
+        :class:`.expr.Index` expression, the measurement is performed in two steps: first the qubit
+        is measured into a temporary :class:`.Clbit` (added to the circuit on first use), then the
+        result is stored into the given expression via :meth:`store`.  This allows the measurement
+        target to be a runtime-indexed location such as ``c[i]`` where ``i`` is a loop variable.
+
         Args:
             qubit: qubit(s) to measure.
-            cbit: classical bit(s) to place the measurement result(s) in.
+            cbit: classical bit(s) to place the measurement result(s) in,
+            or a :class:`.expr.Var` of :class:`.types.Uint` type indexing
+            the target clbit.
 
         Returns:
             qiskit.circuit.InstructionSet: handle to the added instructions.
@@ -4581,7 +4590,38 @@ class QuantumCircuit:
         """
         from .measure import Measure
 
+        if isinstance(cbit, expr.Expr):
+            return self._measure_into_expression(qubit, cbit)
         return self.append(Measure(), [qubit], [cbit], copy=False)
+
+    def _measure_into_expression(self, qubit: QubitSpecifier, exp: expr.Expr) -> InstructionSet:
+        """Measure ``qubit`` and store the result in the cbit indexed by ``expr``.
+        This adds two operations:
+        1. Measuring to a temporary classical bit (added to the circuit if not already present)
+        2. Storing the result of the measurement into the cbit indexed by ``expr``.
+        Args:
+            qubit: the qubit to measure.
+            expr: the expression that indexes the cbit that should store the result of the measurement.
+        Returns:
+            qiskit.circuit.InstructionSet: handle to the added ``store`` instructions.
+        """
+        from .measure import Measure
+
+        if isinstance(exp, (expr.Var, expr.Value)) and exp.type.kind is types.Uint:
+            if not self.cregs:
+                raise CircuitError(
+                    "Cannot use a Var as a classical bit index when the circuit has no "
+                    "classical registers."
+                )
+            bit_exp = expr.index(self.cregs[0], exp)
+            # TODO: This is not the optimal way to manage the temp measurement bit
+            if not hasattr(self, "_measure_var_tmp_clbit"):
+                tmp = Clbit()
+                self.add_bits([tmp])
+                self._measure_var_tmp_clbit = tmp  # type: ignore[attr-defined]
+            tmp_clbit = self._measure_var_tmp_clbit  # type: ignore[attr-defined]
+            self.append(Measure(), [qubit], [tmp_clbit], copy=False)
+            return self.store(bit_exp, expr.lift(tmp_clbit))
 
     def measure_active(self, inplace: bool = True) -> QuantumCircuit | None:
         """Adds measurement to all non-idle qubits. Creates a new ClassicalRegister with
@@ -7188,28 +7228,38 @@ class QuantumCircuit:
     def for_loop(
         self,
         indexset: Iterable[int],
-        loop_parameter: Parameter | None,
+        loop_parameter: Parameter | expr.Var | None,
         body: None,
         qubits: None,
         clbits: None,
         *,
         label: str | None,
+        as_var: bool = False,
     ) -> ForLoopContext: ...
 
     @typing.overload
     def for_loop(
         self,
         indexset: Iterable[int],
-        loop_parameter: Parameter | None,
+        loop_parameter: Parameter | expr.Var | None,
         body: QuantumCircuit,
         qubits: Sequence[QubitSpecifier],
         clbits: Sequence[ClbitSpecifier],
         *,
         label: str | None,
+        as_var: bool = False,
     ) -> InstructionSet: ...
 
     def for_loop(
-        self, indexset, loop_parameter=None, body=None, qubits=None, clbits=None, *, label=None
+        self,
+        indexset,
+        loop_parameter=None,
+        body=None,
+        qubits=None,
+        clbits=None,
+        *,
+        label=None,
+        as_var=False,
     ):
         """Create a ``for`` loop on this circuit.
 
@@ -7252,6 +7302,10 @@ class QuantumCircuit:
             clbits (Optional[Sequence[ClbitSpecifier]]): The circuit clbits over which the loop body
                 should be run.  Omit this to use the context-manager mode.
             label (Optional[str]): The string label of the instruction in the circuit.
+            as_var (bol): If ``True``, the loop variable will be an :class:`.expr.Var` runtime
+                variable (of :class:`.types.Uint` type) rather than a compile-time
+                :class:`.Parameter`. Only valid in the context-manager form.
+                Defaults to ``False``.
 
         Returns:
             InstructionSet or ForLoopContext: depending on the call signature, either a context
@@ -7266,7 +7320,7 @@ class QuantumCircuit:
                 raise CircuitError(
                     "When using 'for_loop' as a context manager, you cannot pass qubits or clbits."
                 )
-            return ForLoopContext(self, indexset, loop_parameter, label=label)
+            return ForLoopContext(self, indexset, loop_parameter, label=label, as_var=as_var)
         elif qubits is None or clbits is None:
             raise CircuitError(
                 "When using 'for_loop' with a body, you must pass qubits and clbits."
