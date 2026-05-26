@@ -250,6 +250,14 @@ __all__ = [
     "QASM3Error",
     "QASM3ExporterError",
     "QASM3ImporterError",
+    "dump",
+    "dump_experimental",
+    "dumps",
+    "dumps_experimental",
+    "load",
+    "load_experimental",
+    "loads",
+    "loads_experimental",
 ]
 
 if typing.TYPE_CHECKING:

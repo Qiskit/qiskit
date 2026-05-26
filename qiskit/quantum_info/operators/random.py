@@ -25,7 +25,15 @@ from qiskit.quantum_info.operators import Operator, Stinespring
 from .dihedral.random import random_cnotdihedral
 from .symplectic.random import random_clifford, random_pauli, random_pauli_list
 
-__all__ = ["random_clifford", "random_cnotdihedral", "random_pauli", "random_pauli_list"]
+__all__ = [
+    "random_clifford",
+    "random_cnotdihedral",
+    "random_hermitian",
+    "random_pauli",
+    "random_pauli_list",
+    "random_quantum_channel",
+    "random_unitary",
+]
 
 DEFAULT_RNG = default_rng()
 

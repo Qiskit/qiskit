@@ -183,6 +183,7 @@ from . import (
     quantum_info,
     result,
     synthesis,
+    transpiler,
     utils,
     visualization,
 )
@@ -215,6 +216,7 @@ __all__ = [
     "result",
     "synthesis",
     "transpile",
+    "transpiler",
     "utils",
     "visualization",
 ]
