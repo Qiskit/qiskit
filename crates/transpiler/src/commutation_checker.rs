@@ -15,6 +15,7 @@ use ndarray::Array2;
 use ndarray::linalg::kron;
 use num_complex::Complex64;
 use num_complex::ComplexFloat;
+use qiskit_circuit::dag_circuit::DAGError;
 use qiskit_circuit::object_registry::PyObjectAsKey;
 use qiskit_circuit::standard_gate::standard_generators::standard_gate_exponent;
 use qiskit_quantum_info::sparse_observable::{PySparseObservable, SparseObservable};
@@ -54,6 +55,8 @@ pub enum CommutationError {
     HashingNaN,
     #[error("Invalid hash type: parameterized")]
     HashingParameter,
+    #[error(transparent)]
+    DAGCircuit(#[from] DAGError),
 }
 
 impl From<CommutationError> for PyErr {
@@ -63,6 +66,7 @@ impl From<CommutationError> for PyErr {
             CommutationError::HashingParameter | CommutationError::FirstInstructionTooLarge => {
                 QiskitError::new_err(value.to_string())
             }
+            CommutationError::DAGCircuit(err) => err.into(),
             _ => PyRuntimeError::new_err(value.to_string()),
         }
     }
