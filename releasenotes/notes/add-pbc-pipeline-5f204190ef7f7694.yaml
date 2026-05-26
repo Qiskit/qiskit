@@ -1,5 +1,12 @@
 ---
 features_transpiler:
+  _ |
+    Added equivalences for the standard gates :class:`.C3SXGate` and :class:`.RC3XGate` to
+    the equivalence library.
+  _ |
+    Extended the :class:`.ConvertToPauliRotations` transpiler pass to support circuits
+    containing :class:`.PauliProductRotationGate` and :class:`.PauliProductMeasurement` objects.
+    These operations are unmodified during conversion. 
   - |
     Added a new function :func:`~.generate_preset_pbc_pass_manager`, which provides
     a way to construct a preset pass manager for compilation into PBC (Pauli Based

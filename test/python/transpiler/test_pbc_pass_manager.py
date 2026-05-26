@@ -39,8 +39,9 @@ from qiskit.circuit.library import (
 )
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.transpiler import TranspilerError
+from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.preset_passmanagers import generate_preset_pbc_pass_manager
-from qiskit.transpiler.passes import HLSConfig
+from qiskit.transpiler.passes import HLSConfig, LitinskiTransformation
 from qiskit.quantum_info import Operator, Pauli
 from qiskit.converters import circuit_to_dag
 
@@ -198,6 +199,19 @@ class TestPBCPassManager(QiskitTestCase):
             set(transpiled.count_ops()), {"pauli_product_rotation", "pauli_product_measurement"}
         )
 
+    @data(0, 1, 2, 3)
+    def test_pprs_and_ppms_pass_through(self, optimization_level):
+        """Test that PBC pipeline does not change Pauli product rotation
+        and measurements that are already in the circuit.
+        """
+        qc = QuantumCircuit(4, 2)
+        qc.append(PauliProductRotationGate(Pauli("XYZ"), 0.1), [1, 2, 3])
+        qc.append(PauliProductMeasurement(Pauli("-XZ")), [1, 2], [1])
+
+        pm = generate_preset_pbc_pass_manager(optimization_level=optimization_level)
+        transpiled = pm.run(qc)
+        self.assertEqual(qc, transpiled)
+
     @data(
         RXGate(0.1),
         RYGate(-0.3),
@@ -339,3 +353,23 @@ class TestPBCPassManager(QiskitTestCase):
         self.assertEqual(set(ops1), {"pauli_product_rotation"})
         self.assertEqual(set(ops2), {"pauli_product_rotation"})
         self.assertNotEqual(ops1, ops2)
+
+    def test_redefine_translation_stage(self):
+        """Test that one is able to redefine individual stages of the PBC pipeline."""
+        pm = generate_preset_pbc_pass_manager()
+
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.rz(0.1, 2)
+
+        # Run standard pass manager
+        qct1 = pm.run(qc)
+        self.assertEqual(qct1.count_ops(), {"pauli_product_rotation": 9})
+
+        # Modify the translation stage to run LitinskiTransformation instead
+        # ConvertToPauliRotations
+        pm.pbc_translation = PassManager([LitinskiTransformation(use_ppr=True)])
+        qct2 = pm.run(qc)
+        self.assertEqual(qct2.count_ops(), {"pauli_product_rotation": 1, "h": 1, "cx": 2})

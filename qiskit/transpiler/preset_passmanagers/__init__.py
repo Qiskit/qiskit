@@ -46,10 +46,6 @@ Low-level preset pass manager generation
 
 .. autofunction:: clifford_t_pass_manager
 
-.. rubric:: Pauli-Based Computation
-
-.. autofunction:: pbc_pass_manager
-
 ..
     `generate_preset_pass_manager` is not documented here because it's documented to be at the root
     of `qiskit.transpiler`.

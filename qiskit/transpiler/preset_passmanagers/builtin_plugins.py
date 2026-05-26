@@ -1319,12 +1319,11 @@ class PBCUnrollPassManager(PassManagerPBCStagePlugin):
     def pass_manager(
         self, pass_manager_config: PassManagerPBCConfig, optimization_level: int | None = None
     ):
-        # Choose all standard gates that are handled by the translation to PBC stage.
-        unsupported_gates = ["c3sx", "rcccx"]
-        basis_gates = [
-            gate for gate in get_standard_gate_name_mapping() if gate not in unsupported_gates
-        ] + list(CONTROL_FLOW_OP_NAMES)
-
+        basis_gates = (
+            list(get_standard_gate_name_mapping())
+            + list(CONTROL_FLOW_OP_NAMES)
+            + ["pauli_product_rotation", "pauli_product_measurement"]
+        )
         pm = PassManager(
             [
                 UnitarySynthesis(
@@ -1346,7 +1345,6 @@ class PBCUnrollPassManager(PassManagerPBCStagePlugin):
                     qubits_initially_zero=pass_manager_config.qubits_initially_zero,
                     optimization_metric=OptimizationMetric.COUNT_T,
                 ),
-                BasisTranslator(sel, basis_gates, target=None, min_qubits=1),
             ]
         )
         return pm
@@ -1394,8 +1392,20 @@ class PBCTranslateToPBCPassManager(PassManagerPBCStagePlugin):
     def pass_manager(
         self, pass_manager_config: PassManagerPBCConfig, optimization_level: int | None = None
     ):
+        # Use BasisTranslator to translate standard gates into gates supported by ConvertToPauliRotations
+        unsupported_gates = ["c3sx", "rcccx"]
+        supported_gates = [
+            gate for gate in get_standard_gate_name_mapping() if gate not in unsupported_gates
+        ]
+        basis_gates = (
+            supported_gates
+            + list(CONTROL_FLOW_OP_NAMES)
+            + ["pauli_product_rotation", "pauli_product_measurement"]
+        )
+
         pm = PassManager(
             [
+                BasisTranslator(sel, basis_gates, target=None, min_qubits=1),
                 ConvertToPauliRotations(),
             ]
         )

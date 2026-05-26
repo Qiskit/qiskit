@@ -33,10 +33,11 @@ def pbc_pass_manager(
     This function is invoked by :func:`.generate_preset_pbc_pass_manager`.
     It generates a specialized transpilation pipeline consisting of the following stages:
 
-    * Unrolling: Decompose circuit instruction into standard gates and instructions.
-    * Optimization: Optimize circuits with standard gates and instructions.
-    * PBC translation: Translate circuits with standard gates and instructions
-      into Pauli-based circuits.
+    * Unrolling: Decompose circuit instructions into a basis consisting of
+      standard gates and instructions, pauli product rotations and measurements, and
+      control-flow operations.
+    * Optimization: Optimize unrolled circuits.
+    * PBC translation: Translate unrolled circuits with into Pauli-based circuits.
     * PBC optimization: Optimize Pauli-based circuits.
 
     Args:

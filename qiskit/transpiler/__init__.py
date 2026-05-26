@@ -1489,7 +1489,6 @@ Pass Manager Definition
    PassManager
    PassManagerConfig
    PassManagerCliffordTConfig
-   PassManagerPBCConfig
    generate_preset_pass_manager
    generate_preset_clifford_t_pass_manager
    generate_preset_pbc_pass_manager
@@ -1553,7 +1552,7 @@ from qiskit.passmanager.compilation_status import PropertySet
 from qiskit._accelerate.angle_bound_registry import WrapAngleRegistry
 
 from .passmanager import PassManager, StagedPassManager
-from .passmanager_config import PassManagerConfig, PassManagerCliffordTConfig, PassManagerPBCConfig
+from .passmanager_config import PassManagerConfig, PassManagerCliffordTConfig
 from .exceptions import (
     TranspilerError,
     TranspilerAccessError,
