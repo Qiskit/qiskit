@@ -322,7 +322,7 @@ pub unsafe extern "C" fn qk_circuit_num_qubits(circuit: *const CircuitData) -> u
 ///
 /// @param circuit A pointer to the circuit.
 ///
-/// @return The number of qubits the circuit is defined on.
+/// @return The number of clbits the circuit is defined on.
 ///
 /// # Example
 /// ```c
@@ -379,6 +379,31 @@ pub unsafe extern "C" fn qk_circuit_num_param_symbols(circuit: *const CircuitDat
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
     circuit.num_parameters()
+}
+
+/// @ingroup QkCircuit
+/// Get the global phase of the circuit if it is a float.
+///
+/// @param circuit A pointer to the circuit.
+///
+/// @return The global phase of the circuit.
+///
+/// # Example
+/// ```c
+///     QkCircuit *qc = qk_circuit_new(100, 100);
+///     QkParam *phase = qk_circuit_global_phase(qc);
+///     qk_param_free(phase); // must free the QkParam when done using it to avoid memory leaks
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_global_phase(circuit: *const CircuitData) -> *mut Param {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+
+    Box::into_raw(Box::new(circuit.global_phase().clone()))
 }
 
 /// @ingroup QkCircuit

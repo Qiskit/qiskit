@@ -198,6 +198,34 @@ pub unsafe extern "C" fn qk_dag_num_op_nodes(dag: *const DAGCircuit) -> usize {
     dag.num_ops()
 }
 
+/// @ingroup QkDag
+/// Get the global phase of the DAG if it is a float.
+///
+/// @param dag A pointer to the DAG.
+///
+/// @return The global phase of the DAG.
+///
+/// # Example
+/// ```c
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(24, "my_register");
+/// qk_dag_add_quantum_register(dag, qr);
+/// QkParam *global_phase = qk_dag_global_phase(dag);
+/// qk_param_free(global_phase);
+/// qk_quantum_register_free(qr);
+/// qk_dag_free(dag);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_dag_global_phase(dag: *const DAGCircuit) -> *mut Param {
+    // SAFETY: Per documentation, the pointer is to valid data.
+    let dag = unsafe { const_ptr_as_ref(dag) };
+    Box::into_raw(Box::new(dag.global_phase().clone()))
+}
+
 /// The type of node in a ``QkDag``.
 ///
 /// Operation nodes represent an applied instruction. The rest of the nodes are
