@@ -183,14 +183,7 @@ def _substitute_circuit(circuit: QuantumCircuit, subs: dict) -> QuantumCircuit:
                 _substitute(indexset, subs) if isinstance(indexset, _expr.Range) else indexset
             )
             new_body = _substitute_circuit(body, subs)
-            if new_indexset is indexset and new_body is body:
-                new_op = op
-            elif new_indexset is indexset:
-                # Reuse ``params[1]`` from the original op so compile-time Parameters keep
-                # object identity (see ``Parameter.__deepcopy__`` invariants).
-                new_op = op.replace_blocks([new_body])
-            else:
-                new_op = ForLoopOp(new_indexset, loop_param, new_body, label=op.label)
+            new_op = ForLoopOp(new_indexset, loop_param, new_body, label=op.label)
         else:
             new_op = op
 

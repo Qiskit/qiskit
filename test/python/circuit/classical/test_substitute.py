@@ -169,6 +169,10 @@ class TestSubstituteVarInCircuit(QiskitTestCase):
         ``range`` must pass through untouched.  This test additionally proves that taking
         that guarded branch does not skip recursion into the body — a captured Var used
         in a body ``Store`` is still substituted.
+
+        Compile-time :class:`~.Parameter` loop variables are preserved by name only;
+        object identity with the caller's original instance is not guaranteed (consistent
+        with :meth:`~.QuantumCircuit.append` deepcopy behavior for parameterized ops).
         """
         captured = expr.Var.new("flag", types.Uint(8))
         loop_param = Parameter("i")
@@ -186,7 +190,8 @@ class TestSubstituteVarInCircuit(QiskitTestCase):
 
         for_loop = next(inst.operation for inst in result.data if inst.operation.name == "for_loop")
         self.assertEqual(for_loop.params[0], range(4))
-        self.assertIs(for_loop.params[1], loop_param)
+        self.assertIsInstance(for_loop.params[1], Parameter)
+        self.assertEqual(for_loop.params[1].name, loop_param.name)
         body_stores = [
             inst.operation.rvalue
             for inst in for_loop.params[2].data
