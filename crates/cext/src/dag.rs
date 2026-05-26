@@ -226,6 +226,36 @@ pub unsafe extern "C" fn qk_dag_global_phase(dag: *const DAGCircuit) -> *mut Par
     Box::into_raw(Box::new(dag.global_phase().clone()))
 }
 
+/// @ingroup QkDag
+/// Set the global phase of the DAG if it is a float.
+///
+/// @param dag A pointer to the DAG.
+/// @param phase A pointer to the global phase to set.
+///
+/// # Example
+/// ```c
+///     QkDag *dag = qk_dag_new();
+///     QkParam *new_global_phase = qk_param_from_double(1.23);
+///     qk_dag_set_global_phase(dag, new_global_phase);
+///     qk_param_free(new_global_phase);
+///     qk_dag_free(dag);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag`` and
+/// if ``phase`` is not a valid, non-null pointer to a ``QkParam``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_dag_set_global_phase(
+    dag: *mut DAGCircuit,
+    phase: *const Param)
+{
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let dag = unsafe { mut_ptr_as_ref(dag) };
+    let phase = unsafe { const_ptr_as_ref(phase) };
+    dag.set_global_phase_param(phase.clone()).expect("Unable to set global phase");
+}
+
 /// The type of node in a ``QkDag``.
 ///
 /// Operation nodes represent an applied instruction. The rest of the nodes are

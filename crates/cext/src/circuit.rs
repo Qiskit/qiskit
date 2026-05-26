@@ -392,7 +392,8 @@ pub unsafe extern "C" fn qk_circuit_num_param_symbols(circuit: *const CircuitDat
 /// ```c
 ///     QkCircuit *qc = qk_circuit_new(100, 100);
 ///     QkParam *phase = qk_circuit_global_phase(qc);
-///     qk_param_free(phase); // must free the QkParam when done using it to avoid memory leaks
+///     qk_param_free(phase);
+///     qk_circuit_free(qc);
 /// ```
 ///
 /// # Safety
@@ -404,6 +405,36 @@ pub unsafe extern "C" fn qk_circuit_global_phase(circuit: *const CircuitData) ->
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
     Box::into_raw(Box::new(circuit.global_phase().clone()))
+}
+
+/// @ingroup QkCircuit
+/// Set the global phase of the circuit if it is a float.
+///
+/// @param circuit A pointer to the circuit.
+/// @param phase A pointer to the global phase to set.
+///
+/// # Example
+/// ```c
+///     QkCircuit *qc = qk_circuit_new(100, 100);
+///     QkParam *new_global_phase = qk_param_from_double(1.23);
+///     qk_circuit_set_global_phase(qc, new_global_phase);
+///     qk_param_free(new_global_phase);
+///     qk_circuit_free(qc);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit`` and
+/// if ``phase`` is not a valid, non-null pointer to a ``QkParam``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_set_global_phase(
+    circuit: *mut CircuitData,
+    phase: *const Param)
+{
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+    let phase = unsafe { const_ptr_as_ref(phase) };
+    circuit.set_global_phase_param(phase.clone()).expect("Unable to set global phase");
 }
 
 /// @ingroup QkCircuit
