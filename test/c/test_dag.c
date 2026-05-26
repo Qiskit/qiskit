@@ -1206,14 +1206,13 @@ static int test_dag_replace_qubitless_block_with_unitary(void) {
     qk_dag_add_quantum_register(dag, qr);
 
     qk_dag_apply_gate(dag, QkGate_H, (uint32_t[]){1}, NULL, false);
-    uint32_t idx =
-        qk_dag_apply_gate(dag, QkGate_GlobalPhase, (uint32_t[]){}, (double[]){0.0}, false);
+    uint32_t idx = qk_dag_apply_gate(dag, QkGate_GlobalPhase, NULL, (double[]){0.0}, false);
     qk_dag_apply_gate(dag, QkGate_CX, (uint32_t[]){0, 1}, NULL, false);
 
     // Replace the global phase gate by a 0-qubit unitary gate
     static const QkComplex64 identity_mat[1] = {{1, 0}};
-    uint32_t new_node_idx = qk_dag_replace_block_with_unitary(
-        dag, 1, (uint32_t[]){idx}, identity_mat, 0, (uint32_t[]){}, false);
+    uint32_t new_node_idx =
+        qk_dag_replace_block_with_unitary(dag, 1, (uint32_t[]){idx}, identity_mat, 0, NULL, false);
 
     // The resulting DAG should have 3 operations
     size_t num_ops = qk_dag_num_op_nodes(dag);
