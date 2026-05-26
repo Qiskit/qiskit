@@ -984,11 +984,18 @@ impl TextDrawer {
                     BoxedElement::Single(inst) => {
                         let mut top_con = Q_WIRE;
                         let mut bot_con = Q_WIRE;
-                        let mut label = format!(
-                            "{} {} ",
-                            Self::try_pauli_term(Some(0), inst), // in case it's a PPR/PPM gate
-                            Self::get_label(inst)
-                        );
+                        let mut label = if matches!(
+                            inst.op.view(),
+                            OperationRef::StandardInstruction(StandardInstruction::Measure)
+                        ) {
+                            Self::get_label(inst).to_string() // Skip space padding around the label to make Measure box thinner
+                        } else {
+                            format!(
+                                "{} {} ",
+                                Self::try_pauli_term(Some(0), inst), // in case it's a PPR/PPM gate
+                                Self::get_label(inst)
+                            )
+                        };
                         if let Some(gate) = inst.op.try_standard_gate() {
                             if gate.is_controlled_gate() {
                                 let qargs = circuit.get_qargs(inst.qubits);
@@ -1640,11 +1647,11 @@ c2_1: ══════════
 
         let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
         let expected = "
-   ┌───┐┌───┐
-q: ┤ H ├┤ M ├
-   └───┘└─╥─┘
-          ║
-c: ═══════╩══
+   ┌───┐┌─┐
+q: ┤ H ├┤M├
+   └───┘└╥┘
+         ║
+c: ══════╩═
 ";
         assert_eq!(result, expected.trim_start_matches("\n"));
     }
@@ -2233,29 +2240,29 @@ c_2: ═════════════════════════
                                                                                                          »
 c_3: ════════════════════════════════════════════════════════════════════════════════════════════════════»
                                                                                                          »
-«      ░  ░ ┌───┐
-«q_0: ─░──░─┤ M ├───────────────
-«      ░  ░ └─╥─┘
-«      ░  ░   ║  ┌───┐
-«q_1: ─░──░───╫──┤ M ├──────────
-«      ░  ░   ║  └─╥─┘
-«      ░  ░   ║    ║  ┌───┐
-«q_2: ─░──░───╫────╫──┤ M ├─────
-«      ░  ░   ║    ║  └─╥─┘
-«         ░   ║    ║    ║  ┌───┐
-«q_3: ────░───╫────╫────╫──┤ M ├
-«         ░   ║    ║    ║  └─╥─┘
-«             ║    ║    ║    ║
-«c_0: ════════╩════╬════╬════╬══
-«                  ║    ║    ║
-«                  ║    ║    ║
-«c_1: ═════════════╩════╬════╬══
-«                       ║    ║
-«                       ║    ║
-«c_2: ══════════════════╩════╬══
-«                            ║
-«                            ║
-«c_3: ═══════════════════════╩══
+«      ░  ░ ┌─┐
+«q_0: ─░──░─┤M├─────────
+«      ░  ░ └╥┘
+«      ░  ░  ║ ┌─┐
+«q_1: ─░──░──╫─┤M├──────
+«      ░  ░  ║ └╥┘
+«      ░  ░  ║  ║ ┌─┐
+«q_2: ─░──░──╫──╫─┤M├───
+«      ░  ░  ║  ║ └╥┘
+«         ░  ║  ║  ║ ┌─┐
+«q_3: ────░──╫──╫──╫─┤M├
+«         ░  ║  ║  ║ └╥┘
+«            ║  ║  ║  ║
+«c_0: ═══════╩══╬══╬══╬═
+«               ║  ║  ║
+«               ║  ║  ║
+«c_1: ══════════╩══╬══╬═
+«                  ║  ║
+«                  ║  ║
+«c_2: ═════════════╩══╬═
+«                     ║
+«                     ║
+«c_3: ════════════════╩═
 «
 ";
         assert_eq!(result, expected.trim_start_matches("\n"));

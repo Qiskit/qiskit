@@ -5338,7 +5338,7 @@ class QuantumCircuit:
         """
 
         from .library.standard_gates.rx import RXGate
-        from qiskit.synthesis.multi_controlled import (
+        from qiskit.synthesis.multi_controlled.multi_control_rotation_gates import (
             _apply_cu,
             _apply_mcu_graycode,
             _mcsu2_real_diagonal,
@@ -5406,7 +5406,7 @@ class QuantumCircuit:
         """
 
         from .library.standard_gates.ry import RYGate
-        from qiskit.synthesis.multi_controlled import (
+        from qiskit.synthesis.multi_controlled.multi_control_rotation_gates import (
             _apply_cu,
             _apply_mcu_graycode,
             _mcsu2_real_diagonal,
@@ -5506,7 +5506,9 @@ class QuantumCircuit:
         """
 
         from .library.standard_gates.rz import CRZGate, RZGate
-        from qiskit.synthesis.multi_controlled import _mcsu2_real_diagonal
+        from qiskit.synthesis.multi_controlled.multi_control_rotation_gates import (
+            _mcsu2_real_diagonal,
+        )
 
         control_qubits = self._qbit_argument_conversion(q_controls)
         target_qubit = self._qbit_argument_conversion(q_target)

@@ -21,9 +21,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states import StabilizerState
-from qiskit.synthesis.linear.linear_matrix_utils import (
-    calc_inverse_matrix,
-)
+from qiskit.synthesis.linear import calc_inverse_matrix
 from qiskit.synthesis.linear_phase import synth_cz_depth_line_mr
 from qiskit.synthesis.clifford.clifford_decompose_layers import (
     _default_cz_synth_func,
