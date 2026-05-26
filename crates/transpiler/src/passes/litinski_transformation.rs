@@ -428,8 +428,6 @@ pub fn run_litinski_transformation(
 
                         let out_sign = if sign { -1.0 } else { 1.0 };
                         let angle = multiply_param(angle, out_sign);
-                        qargs.clear();
-                        qargs.extend(bytemuck::cast_slice(&indices));
                         let ppr = PauliProductRotation {
                             z,
                             x,
