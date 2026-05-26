@@ -18,7 +18,7 @@ use smallvec::smallvec;
 use crate::exit_codes::ExitCode;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeIndex, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, NodeIndex, NodeType};
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     ArrayType, Operation, OperationRef, Param, StandardGate, StandardInstruction, UnitaryGate,
@@ -248,12 +248,18 @@ pub unsafe extern "C" fn qk_dag_global_phase(dag: *const DAGCircuit) -> *mut Par
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_dag_set_global_phase(
     dag: *mut DAGCircuit,
-    phase: *const Param)
-{
+    phase: *const Param,
+) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let dag = unsafe { mut_ptr_as_ref(dag) };
     let phase = unsafe { const_ptr_as_ref(phase) };
-    dag.set_global_phase_param(phase.clone()).expect("Unable to set global phase");
+    // dag.set_global_phase_param(phase.clone())
+    //     .expect("Unable to set global phase");
+    match dag.set_global_phase_param(phase.clone()) {
+        Ok(_) => ExitCode::Success,
+        Err(DAGError::ObjGlobalPhase) => ExitCode::ParameterError,
+        Err(_) => ExitCode::DagError,
+    }
 }
 
 /// The type of node in a ``QkDag``.

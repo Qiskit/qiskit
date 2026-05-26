@@ -1246,6 +1246,57 @@ cleanup:
     qk_circuit_free(qc);
     return result;
 }
+
+static int test_circuit_global_phase(void) {
+    int result = Ok;
+
+    QkCircuit *qc = qk_circuit_new(2, 0);
+
+    // Default global phase should be 0.0
+    QkParam *out_phase = qk_circuit_global_phase(qc);
+    double out_phase_val = qk_param_as_real(out_phase);
+    qk_param_free(out_phase);
+    if (out_phase_val != 0.0) {
+        printf("Expected 0.0 for global phase, found %f\n", out_phase_val);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // Numeric global phase parameter
+    QkParam *theta = qk_param_from_double(1.23);
+    qk_circuit_set_global_phase(qc, theta);
+    qk_param_free(theta);
+
+    out_phase = qk_circuit_global_phase(qc);
+    out_phase_val = qk_param_as_real(out_phase);
+    qk_param_free(out_phase);
+
+    if (out_phase_val != 1.23) {
+        printf("Expected 1.23 for global phase, found %f\n", out_phase_val);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // Symbolic global phase parameter
+    theta = qk_param_new_symbol("theta");
+    if (qk_circuit_set_global_phase(qc, theta) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+    qk_param_free(theta);
+
+    size_t num_symbols = qk_circuit_num_param_symbols(qc);
+    if (num_symbols != 1) {
+        printf("Expected 1 symbol, found %zu\n", num_symbols);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+cleanup:
+    qk_circuit_free(qc);
+    return result;
+}
+
 /**
  * Test circuit to dag conversion.
  */
@@ -1408,6 +1459,7 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_get_instruction_params);
     num_failed += RUN_TEST(test_instruction_params_ownership);
     num_failed += RUN_TEST(test_parameterized_circuit);
+    num_failed += RUN_TEST(test_circuit_global_phase);
     num_failed += RUN_TEST(test_circuit_to_dag);
     num_failed += RUN_TEST(test_pbc_instructions);
 

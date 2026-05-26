@@ -429,12 +429,19 @@ pub unsafe extern "C" fn qk_circuit_global_phase(circuit: *const CircuitData) ->
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_set_global_phase(
     circuit: *mut CircuitData,
-    phase: *const Param)
-{
+    phase: *const Param,
+) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
     let phase = unsafe { const_ptr_as_ref(phase) };
-    circuit.set_global_phase_param(phase.clone()).expect("Unable to set global phase");
+
+    match circuit.set_global_phase_param(phase.clone()) {
+        Ok(()) => ExitCode::Success,
+        Err(CircuitDataError::ParameterTableError(ParameterTableError::NameConflict(_))) => {
+            ExitCode::ParameterNameConflict
+        }
+        Err(_) => ExitCode::ParameterError,
+    }
 }
 
 /// @ingroup QkCircuit
