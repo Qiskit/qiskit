@@ -22,8 +22,8 @@ use qiskit_circuit::operations::{
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 
-use super::remove_identity_equiv::average_gate_fidelity_below_tol; // ToDo: move a shared file
-use super::substitute_pi4_rotations::is_angle_close_to_multiple_of_pi_k; // ToDo: move a shared file
+use super::remove_identity_equiv::average_gate_fidelity_below_tol; // ToDo: move to a shared file
+use super::substitute_pi4_rotations::is_angle_close_to_multiple_of_pi_k; // ToDo: move to a shared file
 use crate::TranspilerError;
 use num_complex::Complex64;
 use qiskit_quantum_info::clifford::{Clifford, Pauli1q};
@@ -78,7 +78,7 @@ static HANDLED_INSTRUCTION_NAMES: [&str; 10] = [
     "pauli_product_measurement",
 ];
 
-const MINIMUM_TOL: f64 = 1e-12; // ToDo: add approximation_degree to the pass?
+const MINIMUM_TOL: f64 = 1e-12;
 
 #[pyfunction]
 #[pyo3(signature = (dag, fix_clifford=true, insert_barrier=false, use_ppr=false, approximation_degree=1.0))]
@@ -272,7 +272,7 @@ pub fn run_litinski_transformation(
                     let qubit = dag.get_qargs(inst.qubits)[0].index();
                     let param = inst.params_view();
 
-                    // closure to process the rotation gates 
+                    // closure to process the rotation gates
                     let mut process_rot_gate = |gate: StandardGate,
                                                 pauli: Pauli1q|
                      -> Option<(Pauli1q, Param)> {
