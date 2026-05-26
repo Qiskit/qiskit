@@ -636,17 +636,17 @@ fn apply_matrix_result_onto(
                 })?;
             }
         }
-        SynthesisOutput::OneQSK(mut circuit) => {
+        SynthesisOutput::OneQSK(circuit) => {
             let qubits = out.insert_qargs(qubits_virt);
             let clbits = out.insert_cargs(&[]);
-            for inst in circuit.drain() {
+            out.add_global_phase(circuit.global_phase())?;
+            for inst in circuit.into_data_iter() {
                 out.push_back(PackedInstruction {
                     qubits,
                     clbits,
                     ..inst
                 })?;
             }
-            out.add_global_phase(circuit.global_phase())?;
         }
         SynthesisOutput::TwoQ(result) => {
             // ... now apply the best sequence.
@@ -700,10 +700,10 @@ fn apply_matrix_result_onto(
                 })?;
             }
         }
-        SynthesisOutput::Qsd(mut circuit) => {
+        SynthesisOutput::Qsd(circuit) => {
             let map = out.merge_qargs(circuit.qargs_interner(), |q| Some(qubits_virt[q.index()]));
             out.add_global_phase(circuit.global_phase())?;
-            for inst in circuit.drain() {
+            for inst in circuit.into_data_iter() {
                 out.push_back(PackedInstruction {
                     qubits: map[inst.qubits],
                     ..inst
@@ -745,11 +745,10 @@ fn synthesize_matrix_onto(
                     return Ok(false);
                 }
             }
-            let mut circuit =
-                quantum_shannon_decomposition(unitary.view(), None, None, None, None)?;
+            let circuit = quantum_shannon_decomposition(unitary.view(), None, None, None, None)?;
             let map = out.merge_qargs(circuit.qargs_interner(), |q| Some(qubits_local[q.index()]));
             out.add_global_phase(circuit.global_phase())?;
-            for inst in circuit.drain() {
+            for inst in circuit.into_data_iter() {
                 out.push_back(PackedInstruction {
                     qubits: map[inst.qubits],
                     ..inst
@@ -801,19 +800,19 @@ fn synthesize_1q_matrix_onto(
     // which would allow us to remove all the "ignored" non-Clifford+T instructions.
     // If the qubit permits only known discrete-basis instructions, we'll do SK synthesis...
     if let Some(sk) = state.cache.try_solovay_kitaev(qubit_phys, constraint) {
-        let mut circuit = sk
+        let circuit = sk
             .synthesize_matrix(&Matrix2::from_fn(|i, j| unitary[[i, j]]), 5)
             .expect("hardcoded standard gates should not include parametric gates");
         let qubits = out.insert_qargs(&[qubit_virt]);
         let clbits = out.insert_cargs(&[]);
-        for inst in circuit.drain() {
+        out.add_global_phase(circuit.global_phase())?;
+        for inst in circuit.into_data_iter() {
             out.push_back(PackedInstruction {
                 qubits,
                 clbits,
                 ..inst
             })?;
         }
-        out.add_global_phase(circuit.global_phase())?;
         return Ok(true);
     };
     // ... otherwise, we do continuous Euler-angle synthesis.

@@ -1521,14 +1521,6 @@ impl CircuitData {
         &self.data
     }
 
-    /// Drain all the instructions from this circuit data
-    ///
-    /// This will return an iterator of owned `PackedInstruction` and they will be removed from the
-    /// circuit
-    pub fn drain(&mut self) -> impl Iterator<Item = PackedInstruction> {
-        self.data.drain(..)
-    }
-
     /// Consume the CircuitData and create an iterator of the [`PackedInstruction`] objects in the
     /// circuit.
     pub fn into_data_iter(self) -> impl ExactSizeIterator<Item = PackedInstruction> {
