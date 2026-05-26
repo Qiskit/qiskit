@@ -38,9 +38,7 @@ pub enum Split2QUnitariesError {
 impl From<Split2QUnitariesError> for PyErr {
     fn from(value: Split2QUnitariesError) -> Self {
         match value {
-            Split2QUnitariesError::DAGCircuit(dag_error) => {
-                dag_error.into()
-            }
+            Split2QUnitariesError::DAGCircuit(dag_error) => dag_error.into(),
             Split2QUnitariesError::WeylDecomposition(py_err) => py_err,
         }
     }
@@ -73,7 +71,8 @@ pub fn run_split_2q_unitaries(
             let qubits: [Qubit; 2] = [temp[0], temp[1]];
             let matrix = unitary_gate.matrix_view();
             let decomp =
-                TwoQubitWeylDecomposition::new_inner(matrix, Some(requested_fidelity), None).map_err(Split2QUnitariesError::WeylDecomposition)?;
+                TwoQubitWeylDecomposition::new_inner(matrix, Some(requested_fidelity), None)
+                    .map_err(Split2QUnitariesError::WeylDecomposition)?;
             if matches!(decomp.specialization, Specialization::SWAPEquiv) {
                 has_swaps = true;
             }
@@ -132,7 +131,8 @@ pub fn run_split_2q_unitaries(
                     unitary_gate.matrix_view(),
                     Some(requested_fidelity),
                     None,
-                ).map_err(Split2QUnitariesError::WeylDecomposition)?;
+                )
+                .map_err(Split2QUnitariesError::WeylDecomposition)?;
                 if matches!(decomp.specialization, Specialization::SWAPEquiv) {
                     let k1r_arr = decomp.k1r_view();
                     let k1r_mat: Matrix2<Complex64> = [
