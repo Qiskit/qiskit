@@ -104,7 +104,9 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_unitary_synthesis(
         Ok(dag) => dag,
         Err(e) => panic!("{}", e),
     };
-    *circuit = CircuitData::from_dag_ref(&out_dag).unwrap();
+    if let Some(out_dag) = out_dag {
+        *circuit = CircuitData::from_dag_ref(&out_dag).unwrap();
+    }
 }
 
 #[cfg(all(test, not(miri)))]
