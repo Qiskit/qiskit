@@ -298,6 +298,7 @@ impl Clifford {
     }
     /// Modifies the tableau in-place by appending RZ-gate,
     /// with an angle that is an integer multiple of pi/2
+    /// so RZ is necessarily a Clifford gate
     pub fn append_rz(&mut self, qubit: usize, multiple: usize) {
         let multiple = multiple.rem_euclid(4);
         match multiple {
@@ -305,11 +306,12 @@ impl Clifford {
             1 => self.append_s(qubit),
             2 => self.append_z(qubit),
             3 => self.append_sdg(qubit),
-            _ => unreachable!("RZ is only applicable for multiples of pi/2 rotations."),
+            _ => unreachable!("Multiple should be in 0..4"),
         }
     }
     /// Modifies the tableau in-place by appending RX-gate,
     /// with an angle that is an integer multiple of pi/2
+    /// so RX is necessarily a Clifford gate
     pub fn append_rx(&mut self, qubit: usize, multiple: usize) {
         let multiple = multiple.rem_euclid(4);
         match multiple {
@@ -317,11 +319,12 @@ impl Clifford {
             1 => self.append_sx(qubit),
             2 => self.append_x(qubit),
             3 => self.append_sxdg(qubit),
-            _ => unreachable!("RX is only applicable for multiples of pi/2 rotations."),
+            _ => unreachable!("Multiple should be in 0..4"),
         }
     }
     /// Modifies the tableau in-place by appending RY-gate,
     /// with an angle that is an integer multiple of pi/2
+    /// so RY is necessarily a Clifford gate
     pub fn append_ry(&mut self, qubit: usize, multiple: usize) {
         let multiple = multiple.rem_euclid(4);
         match multiple {
@@ -335,18 +338,29 @@ impl Clifford {
                 self.append_h(qubit);
                 self.append_z(qubit)
             }
-            _ => unreachable!("RY is only applicable for multiples of pi/2 rotations."),
+            _ => unreachable!("Multiple should be in 0..4"),
         }
     }
-    /// Modifies the tableau in-place by appending the initial part of a PPR gate
-    fn append_initial_part_ppr(&mut self, new_z: &[bool], new_x: &[bool], new_indices: &[u32]) {
+    /// Applies the initial basis transformation for a Pauli Product Rotation,
+    /// and modifies the tableau in-place.
+    ///
+    /// For each qubit in the Pauli string:
+    /// - Z basis: no transformation needed
+    /// - X basis: apply H gate
+    /// - Y basis: apply SX gate
+    ///
+    /// Then applies a CX ladder to entangle the qubits, preparing for the
+    /// central rotation on the first qubit.
+    ///
+    /// Note: this function assumes that the Pauli is sparse with no "I" terms
+    fn _append_initial_part_ppr(&mut self, new_z: &[bool], new_x: &[bool], new_indices: &[u32]) {
         // initial H or SX gates (in case of pauli X or pauli Y respectively)
         for qubit in 0..new_indices.len() {
             match (new_z[qubit], new_x[qubit]) {
                 (true, false) => {}                                          // pauli Z on qubit
                 (true, true) => self.append_sx(new_indices[qubit] as usize), // pauli Y on qubit
                 (false, true) => self.append_h(new_indices[qubit] as usize), // pauli X on qubit
-                (false, false) => unreachable!("Pauli I terms were removed from PPR."), // pauli I on qubit (shouldn't get it since pauli is sparse)
+                (false, false) => panic!("Pauli I terms were removed from PPR."), // pauli I on qubit (shouldn't get it since pauli is sparse)
             }
         }
 
@@ -358,8 +372,18 @@ impl Clifford {
         }
     }
 
-    /// Modifies the tableau in-place by appending the final part of a PPR gate
-    fn append_final_part_ppr(&mut self, new_z: &[bool], new_x: &[bool], new_indices: &[u32]) {
+    /// Applies the final basis transformation for a Pauli Product Rotation,
+    /// and modifies the tableau in-place.
+    ///
+    /// First, applies a reversed CX ladder to disentangle the qubits.
+    ///
+    /// Then, for each qubit in the Pauli string:
+    /// - Z basis: no transformation needed
+    /// - X basis: apply H gate
+    /// - Y basis: apply SXdg gate
+    ///
+    /// Note: this function assumes that the Pauli is sparse with no "I" terms
+    fn _append_final_part_ppr(&mut self, new_z: &[bool], new_x: &[bool], new_indices: &[u32]) {
         // CX ladder
         if new_indices.len() > 1 {
             for ind in 0..new_indices.len() - 1 {
@@ -372,13 +396,14 @@ impl Clifford {
                 (true, false) => {}                                            // pauli Z on qubit
                 (true, true) => self.append_sxdg(new_indices[qubit] as usize), // pauli Y on qubit
                 (false, true) => self.append_h(new_indices[qubit] as usize),   // pauli X on qubit
-                (false, false) => unreachable!("Pauli I terms were removed from PPR."), // pauli I on qubit (shouldn't get it since pauli is sparse)
+                (false, false) => panic!("Pauli I terms were removed from PPR."), // pauli I on qubit (shouldn't get it since pauli is sparse)
             }
         }
     }
 
     /// Modifies the tableau in-place by appending PPR gate,
     /// with an angle that is an integer multiple of pi/2
+    /// so PPR is necessarily a Clifford gate
     pub fn append_ppr(
         &mut self,
         pauli_z: &[bool],
@@ -390,7 +415,7 @@ impl Clifford {
 
         let (new_z, new_x, new_indices) = remove_id_terms_from_pauli(pauli_z, pauli_x, indices);
 
-        self.append_initial_part_ppr(&new_z, &new_x, &new_indices);
+        self._append_initial_part_ppr(&new_z, &new_x, &new_indices);
 
         // internal RZ gate
         match multiple {
@@ -398,10 +423,10 @@ impl Clifford {
             1 => self.append_s(new_indices[0] as usize),
             2 => self.append_z(new_indices[0] as usize),
             3 => self.append_sdg(new_indices[0] as usize),
-            _ => unreachable!("PPR is only applicable for multiples of pi/2 rotations."),
+            _ => unreachable!("Multiple should be in 0..4"),
         }
 
-        self.append_final_part_ppr(&new_z, &new_x, &new_indices);
+        self._append_final_part_ppr(&new_z, &new_x, &new_indices);
     }
 
     /// Evolving a PPR / PPM gate by the Clifford.
@@ -416,7 +441,7 @@ impl Clifford {
         // remove pauli I terms
         let (new_z, new_x, new_indices) = remove_id_terms_from_pauli(in_z, in_x, indices_in);
 
-        self.append_initial_part_ppr(&new_z, &new_x, &new_indices);
+        self._append_initial_part_ppr(&new_z, &new_x, &new_indices);
 
         // internal RZ gate
         // Evolving RZ by the Clifford.
@@ -425,7 +450,7 @@ impl Clifford {
         let (sign, z, x, indices) =
             self.evolve_single_qubit_pauli(Pauli1q::Z, new_indices[0] as usize);
 
-        self.append_final_part_ppr(&new_z, &new_x, &new_indices);
+        self._append_final_part_ppr(&new_z, &new_x, &new_indices);
 
         (sign, z, x, indices)
     }
