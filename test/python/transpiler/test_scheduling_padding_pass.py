@@ -23,7 +23,9 @@ from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.passes import (
     ASAPScheduleAnalysis,
     ALAPScheduleAnalysis,
+    ConstrainedReschedule,
     PadDelay,
+    TimeUnitConversion,
 )
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
@@ -366,6 +368,83 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         scheduled = pm.run(qc)
 
         self.assertEqual(qc, scheduled)
+
+
+class TestConstrainedReschedule(QiskitTestCase):
+    """Tests for ConstrainedReschedule."""
+
+    def _make_target(self, x_duration, measure_duration, acquire_alignment, pulse_alignment=1):
+        """Build a minimal Target with given durations and alignment constraints."""
+        from qiskit.circuit.library import XGate
+        from qiskit.circuit import Measure
+
+        target = Target(
+            dt=1,
+            acquire_alignment=acquire_alignment,
+            pulse_alignment=pulse_alignment,
+        )
+        target.add_instruction(XGate(), {(0,): InstructionProperties(duration=x_duration)})
+        target.add_instruction(Measure(), {(0,): InstructionProperties(duration=measure_duration)})
+        return target
+
+    def test_delay_duration_respected_with_target(self):
+        """Regression test for #16186: ConstrainedReschedule must read Delay duration from the
+        instruction parameter, not the target, because Delay is not in the target gate table.
+
+        Circuit: X(0) -> Delay(100 dt, 0) -> Measure(0)
+        With X duration=160 dt, acquire_alignment=16:
+          ALAP yields  x=0, delay=160, measure=260.
+          ConstrainedReschedule should push measure to 272 (next multiple of 16 above 260).
+        Before the fix, the Rust port returned measure=160 due to Delay duration being read as 0.
+        """
+        target = self._make_target(
+            x_duration=160, measure_duration=800, acquire_alignment=16
+        )
+
+        qc = QuantumCircuit(1, 1)
+        qc.x(0)
+        qc.delay(100, 0, unit="dt")
+        qc.measure(0, 0)
+
+        pm = PassManager(
+            [
+                TimeUnitConversion(target.durations()),
+                ALAPScheduleAnalysis(target.durations()),
+                ConstrainedReschedule(target=target),
+            ]
+        )
+        pm.run(qc)
+
+        times = {n.op.name: t for n, t in pm.property_set["node_start_time"].items()}
+        self.assertEqual(times["x"], 0)
+        self.assertEqual(times["delay"], 160)
+        # 260 is not a multiple of 16; next multiple is 272.
+        self.assertEqual(times["measure"], 272)
+
+    def test_already_aligned_measure_unchanged(self):
+        """When the delay already ends on an alignment boundary, measure must not be shifted."""
+        target = self._make_target(
+            x_duration=160, measure_duration=800, acquire_alignment=16
+        )
+
+        qc = QuantumCircuit(1, 1)
+        qc.x(0)
+        qc.delay(96, 0, unit="dt")  # 160 + 96 = 256, which is 16*16 — already aligned
+        qc.measure(0, 0)
+
+        pm = PassManager(
+            [
+                TimeUnitConversion(target.durations()),
+                ALAPScheduleAnalysis(target.durations()),
+                ConstrainedReschedule(target=target),
+            ]
+        )
+        pm.run(qc)
+
+        times = {n.op.name: t for n, t in pm.property_set["node_start_time"].items()}
+        self.assertEqual(times["x"], 0)
+        self.assertEqual(times["delay"], 160)
+        self.assertEqual(times["measure"], 256)
 
 
 if __name__ == "__main__":
