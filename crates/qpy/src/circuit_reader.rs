@@ -43,7 +43,7 @@ use qiskit_circuit::operations::{
     BoxDuration, CaseSpecifier, Condition, StandardInstructionType, SwitchTarget,
 };
 use qiskit_circuit::operations::{
-    ControlFlow, ControlFlowInstruction, ControlFlowType, Param, PauliProductMeasurement,
+    ControlFlow, ControlFlowInstruction, ControlFlowType, LoopVar, Param, PauliProductMeasurement,
     StandardInstruction,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
@@ -574,7 +574,8 @@ fn unpack_control_flow(
             }
             let collection = unpack_for_collection(&collection_value_pack)?;
             let loop_param = match loop_param_value_pack {
-                GenericValue::ParameterExpressionSymbol(symbol) => Some(symbol),
+                GenericValue::ParameterExpressionSymbol(symbol) => Some(LoopVar::Compile(symbol)),
+                GenericValue::LoopVariable(var) => Some(LoopVar::Runtime(var)),
                 _ => None,
             };
             ControlFlow::ForLoop {

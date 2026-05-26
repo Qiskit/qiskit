@@ -2116,8 +2116,12 @@ impl DAGCircuit {
                                     if collection_a != collection_b {
                                         return Ok(false);
                                     }
+                                    use crate::operations::LoopVar;
                                     match (loop_param_a, loop_param_b) {
-                                        (Some(loop_param_a), Some(loop_param_b)) => {
+                                        (
+                                            Some(LoopVar::Compile(loop_param_a)),
+                                            Some(LoopVar::Compile(loop_param_b)),
+                                        ) => {
                                             // Until we have a way to assign parameters in a DAG, we need
                                             // to convert a for loop's body DAG back to a circuit.
                                             let sentinel = PARAMETER
@@ -2181,6 +2185,19 @@ impl DAGCircuit {
                                                 None,
                                             )?;
                                             block_eq(&body_a, &body_b)
+                                        }
+                                        (
+                                            Some(LoopVar::Runtime(var_a)),
+                                            Some(LoopVar::Runtime(var_b)),
+                                        ) => {
+                                            // Runtime loop variables live in the body as declared
+                                            // vars and aren't substituted at compile time, so we
+                                            // just check they're the same Var and the bodies
+                                            // structurally match.
+                                            if var_a != var_b {
+                                                return Ok(false);
+                                            }
+                                            block_eq(body_a, body_b)
                                         }
                                         (None, None) => block_eq(body_a, body_b),
                                         _ => Ok(false),

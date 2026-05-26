@@ -153,6 +153,7 @@ pub enum ValueType {
     Expression = b'x',
     Modifier = b'm',
     Circuit = b'q',
+    LoopVariable = b'w',
 }
 
 pub(crate) fn type_name(type_key: &ValueType) -> String {
@@ -174,6 +175,7 @@ pub(crate) fn type_name(type_key: &ValueType) -> String {
         ValueType::Expression => "expression",
         ValueType::Modifier => "modifier",
         ValueType::Circuit => "circuit",
+        ValueType::LoopVariable => "loop variable",
     })
 }
 
@@ -211,7 +213,7 @@ pub enum ExpressionType {
 #[binrw]
 #[brw(repr = u8)]
 #[repr(u8)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ExpressionVarDeclaration {
     Input = b'I',
     Capture = b'C',
@@ -317,6 +319,7 @@ pub enum GenericValue {
     Modifier(Py<PyAny>),
     Circuit(Py<PyAny>), // currently we have no rust class corresponding to a circuit, only to the inner CircuitData
     CircuitData(Box<CircuitData>),
+    LoopVariable(Var),
 }
 
 // we want to be able to extract the value relatively painlessly;
@@ -524,6 +527,19 @@ pub(crate) fn load_value(
                 Ok(GenericValue::Circuit(circuit))
             })
         }
+        ValueType::LoopVariable => {
+            if qpy_data.version < 17 {
+                return Err(QpyError::UnsupportedFeatureForVersion {
+                    feature: "ForLoop runtime loop variable".to_string(),
+                    version: 17,
+                    min_version: qpy_data.version,
+                });
+            }
+            Ok(GenericValue::LoopVariable(unpack_loop_variable(
+                bytes,
+                qpy_data.version,
+            )?))
+        }
     }
 }
 
@@ -632,6 +648,19 @@ pub(crate) fn serialize_generic_value(
             ValueType::Register,
             serialize_param_register_value(param_register_value, qpy_data)?,
         ),
+        GenericValue::LoopVariable(var) => {
+            if qpy_data.version < 17 {
+                return Err(QpyError::UnsupportedFeatureForVersion {
+                    feature: "ForLoop runtime loop variable".to_string(),
+                    version: 17,
+                    min_version: qpy_data.version,
+                });
+            }
+            (
+                ValueType::LoopVariable,
+                pack_loop_variable(var, qpy_data.version)?,
+            )
+        }
     })
 }
 
@@ -824,6 +853,58 @@ pub(crate) fn pack_standalone_var(
             "attempted to pack as standalone var the non-standalone var {:?}",
             var
         ))),
+    }
+}
+
+pub(crate) fn unpack_loop_variable(bytes: &Bytes, version: u32) -> Result<Var, QpyError> {
+    let (packed_var, _) = deserialize::<formats::ExpressionVarDeclarationPack>(bytes)?;
+    if packed_var.usage != ExpressionVarDeclaration::Local {
+        return Err(QpyError::InvalidExpression(format!(
+            "loop variable declaration has unexpected usage {:?}",
+            packed_var.usage
+        )));
+    }
+    let ty = unpack_expression_type(packed_var.exp_type, version)?;
+    let uuid = u128::from_be_bytes(packed_var.uuid_bytes);
+    Ok(Var::Standalone {
+        uuid,
+        name: packed_var.name,
+        ty,
+    })
+}
+
+pub(crate) fn pack_loop_variable(var: &Var, version: u32) -> Result<Bytes, QpyError> {
+    let mut uuid = 0;
+    let packed_var = pack_standalone_var(var, ExpressionVarDeclaration::Local, version, &mut uuid)?;
+    serialize(&packed_var)
+}
+
+fn unpack_expression_type(exp_type: ExpressionType, version: u32) -> Result<Type, QpyError> {
+    match exp_type {
+        ExpressionType::Bool => Ok(Type::Bool),
+        ExpressionType::Duration => {
+            if version >= 14 {
+                Ok(Type::Duration)
+            } else {
+                Err(QpyError::UnsupportedFeatureForVersion {
+                    feature: "duration-typed expressions".to_string(),
+                    version: 14,
+                    min_version: version,
+                })
+            }
+        }
+        ExpressionType::Float => {
+            if version >= 14 {
+                Ok(Type::Float)
+            } else {
+                Err(QpyError::UnsupportedFeatureForVersion {
+                    feature: "float-typed expressions".to_string(),
+                    version: 14,
+                    min_version: version,
+                })
+            }
+        }
+        ExpressionType::Uint(width) => Ok(Type::Uint(width.try_into()?)),
     }
 }
 

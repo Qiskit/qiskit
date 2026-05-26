@@ -2007,9 +2007,16 @@ fn for_each_symbol_use_in_control_flow(
                 instruction: instruction_index,
                 parameter: 2,
             };
+            // The compile-time loop variant (Parameter) shadows any same-named parameter
+            // in the body — skip it from parameter tracking. The runtime loop variant
+            // (expr::Var) is in a different namespace from gate parameters entirely, so
+            // no per-symbol filtering is required for it here.
+            let loop_param_symbol = match loop_param {
+                Some(crate::operations::LoopVar::Compile(sym)) => Some(sym),
+                _ => None,
+            };
             for symbol in body.parameters() {
-                // Skip the loop variable itself — it is runtime-bound.
-                if loop_param.as_ref() == Some(&symbol) {
+                if loop_param_symbol == Some(symbol) {
                     continue;
                 }
                 action(symbol, usage)?;

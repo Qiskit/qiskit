@@ -2894,11 +2894,18 @@ class QuantumCircuit:
 
         circuit_scope = self._current_scope()
 
-        # Make copy of parameterized gate instances
+        # Make copy of parameterized gate instances.
+        # For a :class:`.ForLoopOp`, the ``loop_parameter`` (``params[1]``) is a Var that
+        # is declared inside the loop body — not in the outer scope — so it must not be
+        # validated against the outer scope. ``params[2]`` (the body) is a QuantumCircuit,
+        # not an ``expr.Expr``, so it never triggers the inner check below.
+        is_for_loop = isinstance(operation, ForLoopOp)
         if params := getattr(operation, "params", ()):
             is_parameter = False
-            for param in params:
+            for idx, param in enumerate(params):
                 is_parameter = is_parameter or isinstance(param, ParameterExpression)
+                if is_for_loop and idx == 1:
+                    continue
                 if isinstance(param, expr.Expr):
                     param = _validate_expr(circuit_scope, param)
             if copy and is_parameter:
@@ -7188,7 +7195,7 @@ class QuantumCircuit:
     def for_loop(
         self,
         indexset: Iterable[int] | expr.Range,
-        loop_parameter: Parameter | None,
+        loop_parameter: Parameter | expr.Var | None,
         body: None,
         qubits: None,
         clbits: None,
@@ -7200,7 +7207,7 @@ class QuantumCircuit:
     def for_loop(
         self,
         indexset: Iterable[int] | expr.Range,
-        loop_parameter: Parameter | None,
+        loop_parameter: Parameter | expr.Var | None,
         body: QuantumCircuit,
         qubits: Sequence[QubitSpecifier],
         clbits: Sequence[ClbitSpecifier],
@@ -7236,18 +7243,21 @@ class QuantumCircuit:
 
         Args:
             indexset (Iterable[int] | range | expr.Range): A collection of integers to loop
-                over, a Python :class:`range`, or a classical :class:`~.expr.Range`.
-                Constant :class:`~.expr.Range` bounds can be unrolled by
-                :class:`~qiskit.transpiler.passes.UnrollForLoops`; non-constant bounds are
-                for runtime execution or OpenQASM 3 export. A non-constant
-                :class:`~.expr.Range` cannot be paired with a loop :class:`~.Parameter` that
-                appears in the loop body (see :class:`~.ForLoopOp`).
-            loop_parameter (Optional[Parameter]): The compile-time parameter used within
-                ``body`` to which the values from ``indexset`` will be assigned when the loop
-                is unrolled.  In the context-manager form, if this argument is not supplied,
-                then a loop parameter will be allocated for you and returned as the value of
-                the ``with`` statement.  This will only be bound into the circuit if it is used
-                within the body.
+                over, a Python :class:`range`, or a classical :class:`~.expr.Range`. A Python
+                :class:`range` or integer list is a compile-time index set; an
+                :class:`~.expr.Range` is a real-time index set (its bounds may be runtime
+                expressions). Both can be unrolled by
+                :class:`~qiskit.transpiler.passes.UnrollForLoops` when the bounds are constant.
+                See :class:`~.ForLoopOp` for the full compatibility table with ``loop_parameter``.
+            loop_parameter (Optional[Parameter | expr.Var]): The placeholder bound to each
+                ``indexset`` value inside ``body``. For a Python :class:`range`/integer list,
+                this must be a :class:`~.Parameter` (or ``None``); for an :class:`~.expr.Range`,
+                this must be an :class:`~.expr.Var` (or ``None``). In the context-manager form,
+                if this argument is not supplied a loop variable is auto-allocated whose type
+                follows the ``indexset`` (:class:`~.Parameter` for ``range``/list,
+                :class:`~.expr.Var` for :class:`~.expr.Range`) and returned as the value of the
+                ``with`` statement; an auto-generated loop variable that the body never
+                references is dropped.
 
                 If this argument is ``None`` in the manual form of this method, ``body`` will be
                 repeated once for each of the items in ``indexset`` but their values will be

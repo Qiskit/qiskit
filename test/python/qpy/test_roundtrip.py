@@ -188,6 +188,199 @@ class TestQPYRoundtrip(QiskitTestCase):
         self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
 
     @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
+    def test_for_loop_with_var_loop_parameter(self, version, write_with, read_with):
+        """For-loop expr.Var loop parameters round-trip faithfully in QPY v17+."""
+        qc = QuantumCircuit(1)
+        target = qc.add_var("target", expr.lift(0, types.Uint(8)))
+        range_expr = expr.Range(
+            expr.lift(0, types.Uint(8)), expr.lift(6, types.Uint(8)), expr.lift(2, types.Uint(8))
+        )
+        with qc.for_loop(range_expr) as loop_var:
+            qc.store(target, loop_var)
+
+        if version >= 17:
+            self.assert_roundtrip_equal(
+                qc, version=version, read_with=read_with, write_with=write_with
+            )
+            qpy_file = io.BytesIO()
+            write_circuit(
+                qpy_file,
+                qc,
+                version=version,
+                use_rust=write_with == "Rust",
+            )
+            qpy_file.seek(0)
+            loaded = read_circuit(
+                qpy_file,
+                version=version,
+                use_rust=read_with == "Rust",
+            )
+            from qiskit.qasm3 import dumps
+
+            loop_var = next(
+                inst.operation.params[1]
+                for inst in loaded.data
+                if inst.operation.name == "for_loop"
+            )
+            self.assertIn(f"for uint[8] {loop_var.name} in", dumps(loaded))
+            return
+
+        qpy_file = io.BytesIO()
+        if write_with == "Python":
+            write_circuit(
+                qpy_file,
+                qc,
+                version=version,
+                use_rust=False,
+            )
+        else:
+            write_circuit(
+                qpy_file,
+                qc,
+                version=version,
+                use_rust=True,
+            )
+        qpy_file.seek(0)
+        loaded = read_circuit(
+            qpy_file,
+            version=version,
+            use_rust=read_with == "Rust",
+        )
+
+        original_for_loop = next(
+            inst.operation for inst in qc.data if inst.operation.name == "for_loop"
+        )
+        loaded_for_loop = next(
+            inst.operation for inst in loaded.data if inst.operation.name == "for_loop"
+        )
+        self.assertEqual(original_for_loop.params[0], loaded_for_loop.params[0])
+        self.assertIsInstance(original_for_loop.params[1], expr.Var)
+        self.assertIsNone(loaded_for_loop.params[1])
+
+    @all_qpy_combinations(17)
+    def test_for_loop_with_explicit_unused_var_loop_parameter(self, version, write_with, read_with):
+        """Explicit loop Vars are preserved even when unused in the body."""
+        loop_var = expr.Var.new("i", types.Uint(8))
+        qc = QuantumCircuit(1)
+        range_expr = expr.Range(
+            expr.lift(0, types.Uint(8)), expr.lift(4, types.Uint(8)), expr.lift(1, types.Uint(8))
+        )
+        with qc.for_loop(range_expr, loop_var):
+            qc.h(0)
+        self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
+
+    @all_qpy_combinations(17)
+    def test_for_loop_with_dynamic_range_and_var_loop_parameter(
+        self, version, write_with, read_with
+    ):
+        """Dynamic expr.Range for-loops with loop Vars round-trip in QPY v17+."""
+        qc = QuantumCircuit(1)
+        start_var = qc.add_var("start", expr.lift(0, types.Uint(8)))
+        stop_var = qc.add_var("stop", expr.lift(6, types.Uint(8)))
+        target = qc.add_var("target", expr.lift(0, types.Uint(8)))
+        range_expr = expr.Range(start_var, stop_var)
+        with qc.for_loop(range_expr) as loop_var:
+            qc.store(target, expr.Cast(loop_var, types.Uint(8)))
+        self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
+
+    def test_for_loop_with_var_loop_parameter_v16_regression(self):
+        """QPY v16 and below still drop runtime loop variables from the param slot."""
+        qc = QuantumCircuit(1)
+        target = qc.add_var("target", expr.lift(0, types.Uint(8)))
+        range_expr = expr.Range(
+            expr.lift(0, types.Uint(8)), expr.lift(6, types.Uint(8)), expr.lift(2, types.Uint(8))
+        )
+        with qc.for_loop(range_expr) as loop_var:
+            qc.store(target, loop_var)
+
+        qpy_file = io.BytesIO()
+        write_circuit(qpy_file, qc, version=16, use_rust=False)
+        qpy_file.seek(0)
+        loaded = read_circuit(qpy_file, version=16, use_rust=False)
+
+        loaded_for_loop = next(
+            inst.operation for inst in loaded.data if inst.operation.name == "for_loop"
+        )
+        self.assertIsNone(loaded_for_loop.params[1])
+        self.assertIsInstance(loop_var, expr.Var)
+
+    def test_for_loop_v16_body_remains_coherent_after_loop_var_dropped(self):
+        """At QPY v16 the loop Var is dropped from param[1] but the body is still valid.
+
+        The body has its own standalone-var section that includes the loop Var as a
+        declared variable, so Store instructions that reference it deserialise correctly
+        and the Var can be resolved inside the body scope.
+        """
+        qc = QuantumCircuit(1)
+        target = qc.add_var("target", expr.lift(0, types.Uint(8)))
+        range_expr = expr.Range(expr.lift(0, types.Uint(8)), expr.lift(4, types.Uint(8)))
+        with qc.for_loop(range_expr) as loop_var:
+            qc.store(target, loop_var)
+
+        qpy_file = io.BytesIO()
+        write_circuit(qpy_file, qc, version=16, use_rust=False)
+        qpy_file.seek(0)
+        loaded = read_circuit(qpy_file, version=16, use_rust=False)
+
+        loaded_for_loop = next(
+            inst.operation for inst in loaded.data if inst.operation.name == "for_loop"
+        )
+        self.assertIsNone(loaded_for_loop.params[1])
+        body = loaded_for_loop.params[2]
+        body_stores = [inst.operation for inst in body.data if inst.operation.name == "store"]
+        self.assertEqual(len(body_stores), 1)
+        self.assertIsInstance(body_stores[0].rvalue, expr.Var)
+        # The Var referenced in the Store must be declared somewhere in the body scope.
+        self.assertIn(body_stores[0].rvalue, set(body.iter_vars()))
+
+    def test_for_loop_dynamic_range_v16_preserves_indexset_drops_loop_var(self):
+        """Dynamic expr.Range (Var-bounded) indexset survives a v16 round-trip.
+
+        expr.Range is serialised as a Value.EXPRESSION (existing type key) at all
+        versions, so the Var-bounded bounds are preserved even at v16.  Only the loop
+        Var in param[1] is dropped (NULL), which is the documented lossy behaviour.
+        """
+        qc = QuantumCircuit(1)
+        start_var = qc.add_var("start", expr.lift(0, types.Uint(8)))
+        stop_var = qc.add_var("stop", expr.lift(6, types.Uint(8)))
+        target = qc.add_var("target", expr.lift(0, types.Uint(8)))
+        range_expr = expr.Range(start_var, stop_var)
+        with qc.for_loop(range_expr) as loop_var:
+            qc.store(target, expr.Cast(loop_var, types.Uint(8)))
+
+        qpy_file = io.BytesIO()
+        write_circuit(qpy_file, qc, version=16, use_rust=False)
+        qpy_file.seek(0)
+        loaded = read_circuit(qpy_file, version=16, use_rust=False)
+
+        loaded_for_loop = next(
+            inst.operation for inst in loaded.data if inst.operation.name == "for_loop"
+        )
+        # Var-bounded indexset is preserved end-to-end.
+        self.assertEqual(loaded_for_loop.params[0], range_expr)
+        # Loop Var dropped at v16 — documented lossy behaviour.
+        self.assertIsNone(loaded_for_loop.params[1])
+
+    @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
+    def test_for_loop_with_expr_range_and_none_loop_parameter(self, version, write_with, read_with):
+        """ForLoopOp with expr.Range indexset and explicit None loop parameter round-trips.
+
+        When the user opts out of a loop variable (param[1] is None), the ForLoopOp
+        still serialises and deserialises correctly across all supported QPY versions.
+        This exercises the NULL param path for ForLoopOp param[1] with an expr.Range
+        indexset, distinct from the LOOP_VARIABLE path and the Python-range NULL path.
+        """
+        qc = QuantumCircuit(1)
+        range_expr = expr.Range(expr.lift(0, types.Uint(8)), expr.lift(4, types.Uint(8)))
+        # Explicit None: no loop variable requested.
+        from qiskit.circuit.controlflow import ForLoopOp
+
+        body = QuantumCircuit(1)
+        body.h(0)
+        qc.append(ForLoopOp(range_expr, None, body), [0])
+        self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
+
+    @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
     def test_evolutiongate(self, version, write_with, read_with):
         """Test loading a circuit with evolution gate works."""
         synthesis = LieTrotter(reps=2)

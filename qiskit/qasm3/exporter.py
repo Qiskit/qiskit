@@ -526,6 +526,10 @@ class SymbolTable:
                 return out
         raise KeyError(f"'{variable}' is not defined in the current context")
 
+    def is_variable_registered(self, variable: object) -> bool:
+        """Whether this Qiskit object is already registered in any live scope."""
+        return any(variable in scope for scope in self.objects)
+
     def register_gate_without_definition(self, name: str, gate: Gate | None) -> ast.Identifier:
         """Register a gate that does not require an OQ3 definition.
 
@@ -1045,6 +1049,11 @@ class QASM3Builder:
 
         In addition to everything literally in the circuit's ``data`` field, this also includes
         declarations for any local :class:`.expr.Var` nodes.
+
+        A declared :class:`~.expr.Var` that is already registered in the symbol table is skipped
+        here. This naturally handles the case where the variable is the loop variable of an
+        enclosing :class:`~.ForLoopOp` — the ``for`` statement already declared it in the
+        header (e.g. ``for uint i in ...``).
         """
 
         # We forward-declare all local variables uninitialised at the top of their scope. It would
@@ -1060,6 +1069,7 @@ class QASM3Builder:
                 self.symbols.register_variable(var.name, var, allow_rename=True),
             )
             for var in self.scope.circuit.iter_declared_vars()
+            if not self.symbols.is_variable_registered(var)
         ]
 
         for stretch in self.scope.circuit.iter_declared_stretches():

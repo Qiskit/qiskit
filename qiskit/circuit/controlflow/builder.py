@@ -347,6 +347,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         "_stretches_local",
         "_vars_capture",
         "_vars_local",
+        "_vars_pending",
         "global_phase",
         "registers",
     )
@@ -391,6 +392,10 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         self.global_phase = 0.0
         self._vars_local = {}
         self._vars_capture = {}
+        # `_vars_pending` holds loop variables that should only be promoted to declared
+        # local vars if the user actually references them inside the body (mirrors the
+        # capture-on-use lazy promotion of `_vars_capture`).
+        self._vars_pending = {}
         self._stretches_local = {}
         self._stretches_capture = {}
         self._allow_jumps = allow_jumps
@@ -497,6 +502,25 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
             raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
         self._vars_local[var.name] = var
 
+    def add_pending_loop_var(self, var: expr.Var):
+        """Register a loop variable that should only become a declared local var on first use.
+
+        This mirrors how `_vars_capture` is populated lazily by :meth:`use_var`: the variable
+        is in scope for resolution, but only emitted into the built body if actually referenced
+        in a classical expression. Used by :class:`ForLoopContext` when auto-generating a loop
+        :class:`~.expr.Var` so that an unused auto-generated variable is dropped, matching the
+        existing behavior for auto-generated :class:`~.Parameter` loop variables.
+        """
+        if self._built:
+            raise CircuitError("Cannot add resources after the scope has been built.")
+        if (previous := self._stretches_local.get(var.name)) is not None:
+            raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
+        if (previous := self._vars_local.get(var.name)) is not None:
+            raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
+        if var.name in self._vars_capture or var.name in self._stretches_capture:
+            raise CircuitError(f"cannot add '{var}' as its name shadows an outer-scope variable")
+        self._vars_pending[var.name] = var
+
     def add_stretch(self, stretch: expr.Stretch):
         if self._built:
             raise CircuitError("Cannot add resources after the scope has been built.")
@@ -523,6 +547,8 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
             return None
         if (out := self._vars_local.get(name)) is not None:
             return out
+        if (out := self._vars_pending.get(name)) is not None:
+            return out
         return self._parent.get_var(name)
 
     def get_stretch(self, name: str):
@@ -539,6 +565,14 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
             if local == var:
                 return
             raise CircuitError(f"cannot use '{var}' which is shadowed by the local '{local}'")
+        if (pending := self._vars_pending.get(var.name)) is not None:
+            if pending == var:
+                # First use of a pending loop variable: promote to declared local so it
+                # appears in the built body's declared vars.
+                self._vars_local[var.name] = var
+                del self._vars_pending[var.name]
+                return
+            raise CircuitError(f"cannot use '{var}' which is shadowed by the local '{pending}'")
         if self._vars_capture.get(var.name) == var:
             return
         if self._parent.get_var(var.name) != var:

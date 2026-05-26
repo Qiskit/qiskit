@@ -238,6 +238,8 @@ __all__ = [
     "shift_right",
     "structurally_equivalent",
     "sub",
+    "substitute_var_in_circuit",
+    "substitute_var_in_expr",
 ]
 
 from .expr import Expr, Var, Value, Cast, Unary, Binary, Index, Stretch, Range
@@ -268,3 +270,4 @@ from .constructors import (
     lift_legacy_condition,
     negate,
 )
+from .substitute import substitute_var_in_expr, substitute_var_in_circuit

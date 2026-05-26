@@ -509,6 +509,16 @@ the number of bytes by the size of each element.
  * The indices elements are of type `"!I"`.
  * The boundaries elements are of type `"!Q"`.
 
+New LOOP_VARIABLE instruction parameter type
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A new instruction-parameter value type ``LOOP_VARIABLE`` (type key ``w``) is supported
+for the second parameter of :class:`.ForLoopOp` when it is a standalone real-time
+variable. The payload reuses the ``EXPR_VAR_DECLARATION`` wire format (UUID, usage,
+type, and name) used for circuit-scope standalone variables, but the declaration is
+written directly in the instruction parameter slot rather than in the circuit header
+variable table. QPY format versions below 17 continue to emit ``Null`` for this slot.
+
 .. _qpy_version_16:
 
 Version 16

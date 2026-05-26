@@ -169,8 +169,8 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         with self.assertRaisesRegex(CircuitError, r"to be of type QuantumCircuit"):
             _ = ForLoopOp(indexset, loop_parameter, RXGate(loop_parameter))
 
-    def test_for_loop_non_constant_expr_range_with_parameter_raises(self):
-        """Non-constant expr.Range cannot use a loop Parameter in the body."""
+    def test_for_loop_expr_range_with_parameter_raises(self):
+        """An ``expr.Range`` indexset cannot be paired with a compile-time ``Parameter``."""
         qc = QuantumCircuit(1)
         start_var = qc.add_var("start", expr.lift(0, types.Uint(8)))
         stop_var = qc.add_var("stop", expr.lift(10, types.Uint(10)))
@@ -178,18 +178,16 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         loop_parameter = Parameter("i")
         body = QuantumCircuit(1)
         body.rx(loop_parameter, 0)
-        with self.assertRaisesRegex(CircuitError, r"non-constant expr\.Range"):
+        with self.assertRaisesRegex(CircuitError, r"compile-time Parameter"):
             ForLoopOp(range_expr, loop_parameter, body)
 
-    def test_for_loop_non_constant_expr_range_context_manager_raises(self):
-        """Context-manager for-loop rejects non-constant expr.Range with used Parameter."""
-        qc = QuantumCircuit(1)
-        start_var = qc.add_var("start", expr.lift(0, types.Uint(8)))
-        stop_var = qc.add_var("stop", expr.lift(10, types.Uint(10)))
-        range_expr = expr.Range(start_var, stop_var)
-        with self.assertRaisesRegex(CircuitError, r"non-constant expr\.Range"):
-            with qc.for_loop(range_expr) as i:
-                qc.rx(i, 0)
+    def test_for_loop_python_range_with_var_raises(self):
+        """A Python ``range``/integer list cannot be paired with an ``expr.Var``."""
+        var = expr.Var.new("i", types.Uint(8))
+        body = QuantumCircuit(1)
+        body.h(0)
+        with self.assertRaisesRegex(CircuitError, r"expr\.Var as a loop variable"):
+            ForLoopOp(range(5), var, body)
 
     def test_for_loop_non_constant_expr_range_without_parameter(self):
         """Non-constant expr.Range without a loop parameter is allowed."""
@@ -202,6 +200,49 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         op = ForLoopOp(range_expr, None, body)
         self.assertEqual(op.params[0], range_expr)
         self.assertIsNone(op.params[1])
+
+    def test_for_loop_with_var_loop_variable_explicit(self):
+        """A ForLoopOp built manually with an expr.Var loop variable is valid and the
+        Var appears as a declared variable of the body."""
+        i = expr.Var.new("i", types.Uint(8))
+        body = QuantumCircuit(1)
+        body.add_uninitialized_var(i)
+        body.h(0)
+        op = ForLoopOp(expr.Range(0, 4), i, body)
+        self.assertEqual(op.params[1], i)
+        self.assertIn(i, list(op.params[2].iter_declared_vars()))
+
+    def test_for_loop_context_manager_auto_generates_var_for_expr_range(self):
+        """The for-loop context manager auto-generates an expr.Var whose type matches
+        the Range, and drops it from the ForLoopOp if the user never references it."""
+        qc = QuantumCircuit(1)
+        # Unused: the auto-generated Var should be dropped to None.
+        with qc.for_loop(expr.Range(0, 5)):
+            qc.h(0)
+        self.assertIsNone(qc.data[-1].operation.params[1])
+
+        # Used inside the body via a Store: the auto-generated Var is kept.
+        qc2 = QuantumCircuit(1)
+        target = qc2.add_var("target", expr.lift(0, types.Uint(8)))
+        with qc2.for_loop(expr.Range(0, 5)) as i:
+            qc2.store(target, expr.Cast(i, types.Uint(8)))
+        loop_var = qc2.data[-1].operation.params[1]
+        self.assertIsInstance(loop_var, expr.Var)
+        # Auto-generated Var's type follows the Range's type (Uint(64) for the default
+        # Python ints).
+        self.assertEqual(loop_var.type, expr.Range(0, 5).type)
+        # The Var is a declared var of the body.
+        self.assertIn(loop_var, list(qc2.data[-1].operation.params[2].iter_declared_vars()))
+
+    def test_for_loop_context_manager_keeps_explicit_var(self):
+        """An explicitly-supplied Var is kept on the ForLoopOp even if the user
+        never references it inside the body, matching the explicit-Parameter behavior."""
+        i = expr.Var.new("i", types.Uint(8))
+        qc = QuantumCircuit(1)
+        with qc.for_loop(expr.Range(0, 5), i):
+            qc.h(0)
+        self.assertEqual(qc.data[-1].operation.params[1], i)
+        self.assertIn(i, list(qc.data[-1].operation.params[2].iter_declared_vars()))
 
     def test_for_loop_invalid_params_setter(self):
         """Verify we catch invalid param settings for ForLoopOp."""
@@ -225,14 +266,16 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         ):
             op.params = [indexset, loop_parameter, bad_body]
 
-        with self.assertRaisesRegex(CircuitError, r"to be either of type Parameter or None"):
+        with self.assertRaisesRegex(
+            CircuitError, r"to be either of type Parameter, expr\.Var, or None"
+        ):
             _ = ForLoopOp(indexset, "foo", body)
 
         qc_vars = QuantumCircuit(1)
         start_var = qc_vars.add_var("start", expr.lift(0, types.Uint(8)))
         stop_var = qc_vars.add_var("stop", expr.lift(10, types.Uint(10)))
         non_const_range = expr.Range(start_var, stop_var)
-        with self.assertRaisesRegex(CircuitError, r"non-constant expr\.Range"):
+        with self.assertRaisesRegex(CircuitError, r"compile-time Parameter"):
             op.params = [non_const_range, loop_parameter, body]
 
     @idata(CONDITION_PARAMETRISATION)
@@ -866,6 +909,21 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         self.assertNotIn(theta, qc.parameters)
         with self.assertRaisesRegex(CircuitError, r"not present in the circuit"):
             qc.assign_parameters({theta: math.pi / 2}, inplace=False)
+
+    def test_for_loop_var_loop_parameter_not_in_outer_vars(self):
+        """A ForLoopOp's expr.Var loop variable must NOT appear in the outer circuit's vars."""
+        loop_var = expr.Var.new("i", types.Uint(8))
+        body = QuantumCircuit(1)
+        body.add_uninitialized_var(loop_var)
+        body.store(loop_var, expr.lift(0, types.Uint(8)))
+
+        qc = QuantumCircuit(1)
+        qc.append(ForLoopOp(expr.Range(0, 3), loop_var, body), [0])
+
+        self.assertNotIn(loop_var, qc.iter_vars())
+        for_loop = qc.data[0].operation
+        self.assertEqual(for_loop.params[1], loop_var)
+        self.assertIn(loop_var, list(for_loop.params[2].iter_declared_vars()))
 
     @idata(CONDITION_PARAMETRISATION)
     def test_appending_if_else_op(self, condition):

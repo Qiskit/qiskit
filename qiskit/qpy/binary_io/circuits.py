@@ -326,6 +326,10 @@ def _loads_instruction_parameter(
         param = struct.unpack("<d", data_bytes)[0]
     elif type_key == type_keys.Value.REGISTER:
         param = _loads_register_param(data_bytes.decode(common.ENCODE), circuit, registers)
+    elif type_key == type_keys.Value.LOOP_VARIABLE:
+        if version < 17:
+            raise UnsupportedFeatureForVersion("ForLoop runtime loop variable", 17, version)
+        param = common.data_from_binary(data_bytes, value._read_loop_variable, version=version)
     else:
         clbits = circuit.clbits if circuit is not None else ()
         param = value.loads_value(
@@ -1094,15 +1098,31 @@ def _write_instruction(
         )
         file_obj.write(instruction_arg_raw)
     # Encode instruction params
-    for param in instruction_params:
-        type_key, data_bytes = _dumps_instruction_parameter(
-            param,
-            index_map,
-            use_symengine,
-            version=version,
-            standalone_var_indices=standalone_var_indices,
-            annotation_factories=annotation_state.factories,
-        )
+    is_for_loop = isinstance(instruction.operation, controlflow.ForLoopOp)
+    for param_index, param in enumerate(instruction_params):
+        # ForLoopOp param[1] with an expr.Var is a real-time loop index.  The
+        # `param.standalone` check is always True here by construction: ForLoopOp
+        # validation rejects non-standalone (bit-backed) Vars as loop parameters.
+        # v17+ serialises it with LOOP_VARIABLE; older versions silently drop it to
+        # NULL (lossy by design — the loop body retains its own Var declaration).
+        if is_for_loop and param_index == 1 and isinstance(param, expr.Var) and param.standalone:
+            if version >= 17:
+                type_key = type_keys.Value.LOOP_VARIABLE
+                data_bytes = common.data_to_binary(
+                    param, value._write_loop_variable, version=version
+                )
+            else:
+                type_key = type_keys.Value.NULL
+                data_bytes = b""
+        else:
+            type_key, data_bytes = _dumps_instruction_parameter(
+                param,
+                index_map,
+                use_symengine,
+                version=version,
+                standalone_var_indices=standalone_var_indices,
+                annotation_factories=annotation_state.factories,
+            )
         common.write_generic_typed_data(file_obj, type_key, data_bytes)
     if annotations:
         if version < 15:

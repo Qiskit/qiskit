@@ -17,7 +17,9 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.converters import circuit_to_dag
-from qiskit.circuit.classical.expr import Range
+from qiskit.circuit.classical import expr as _expr
+from qiskit.circuit.classical.expr import Range, Var
+from qiskit.circuit.classical.expr.substitute import substitute_var_in_circuit
 
 
 class UnrollForLoops(TransformationPass):
@@ -28,6 +30,11 @@ class UnrollForLoops(TransformationPass):
     :class:`~.expr.Range` (materialized via :meth:`~.expr.Range.values`).
     Non-constant :class:`~.expr.Range` indexsets are skipped by default because
     loop bounds are only known at runtime; set ``strict=True`` to raise instead.
+
+    For constant :class:`~.expr.Range` indexsets paired with an :class:`~.expr.Var`
+    loop variable, each iteration substitutes the :class:`~.expr.Var` with the
+    iteration value (an :class:`~.expr.Value`) in every classical expression in
+    the body via :func:`~.expr.substitute_var_in_circuit`.
     """
 
     def __init__(self, max_target_depth=-1, *, strict=False):
@@ -85,16 +92,49 @@ class UnrollForLoops(TransformationPass):
             if _body_contains_continue_or_break(body):
                 continue
 
-            unrolled_dag = circuit_to_dag(body).copy_empty_like()
+            # Start the unrolled DAG empty of variables, then add back only the body's
+            # captured variables. ``vars_mode="captures"`` would also re-export the body's
+            # declared variables (which include a Var loop variable that we are about to
+            # substitute away on every iteration), so it's not what we want here.
+            body_dag = circuit_to_dag(body)
+            unrolled_dag = body_dag.copy_empty_like(vars_mode="drop")
+            for captured in body_dag.iter_captured_vars():
+                unrolled_dag.add_captured_var(captured)
             unrolled_dag.global_phase = 0
+            var_type = loop_param.type if isinstance(loop_param, Var) else None
             for index_value in indexset:
-                bound_body = (
-                    body.assign_parameters({loop_param: index_value}) if loop_param else body
-                )
-                unrolled_dag.compose(circuit_to_dag(bound_body), inplace=True)
-            dag.substitute_node_with_dag(forloop_op, unrolled_dag)
+                bound_body = _bind_loop_param(body, loop_param, index_value, var_type)
+                # ``inline_captures=True``: each iteration's body shares the body's captured
+                # variables with the outer (now-unrolled) DAG, so composing repeated copies
+                # doesn't try to re-declare the same captures.
+                unrolled_dag.compose(circuit_to_dag(bound_body), inplace=True, inline_captures=True)
+            # ``substitute_node_with_dag`` infers the wire mapping from ``input_dag.wires`` by
+            # default, which includes any classical :class:`~.expr.Var` wires. The wire-count
+            # check then mismatches the for-loop op (which carries no Var in its qargs/cargs).
+            # Pass the qubit+clbit wires of the body explicitly so the check sees only those;
+            # any vars in the unrolled DAG are matched by identity to the outer DAG's vars.
+            explicit_wires = list(body.qubits) + list(body.clbits)
+            dag.substitute_node_with_dag(forloop_op, unrolled_dag, wires=explicit_wires)
 
         return dag
+
+
+def _bind_loop_param(body, loop_param, index_value, var_type):
+    """Produce a copy of ``body`` with ``loop_param`` bound to ``index_value``.
+
+    Dispatches on the loop variable type:
+        * ``None``: no binding needed — the body is repeated as-is.
+        * :class:`~.Parameter`: substitute via :meth:`~.QuantumCircuit.assign_parameters`.
+        * :class:`~.expr.Var`: substitute via :func:`~.expr.substitute_var_in_circuit`,
+          replacing every occurrence of the Var in classical expressions with an
+          :class:`~.expr.Value` literal of the Var's type.
+    """
+    if loop_param is None:
+        return body
+    if isinstance(loop_param, Var):
+        replacement = _expr.lift(index_value, type=var_type)
+        return substitute_var_in_circuit(body, {loop_param: replacement})
+    return body.assign_parameters({loop_param: index_value})
 
 
 def _body_contains_continue_or_break(circuit):

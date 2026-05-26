@@ -268,12 +268,28 @@ class TestRange(QiskitTestCase):
         # Check that the ForLoop instruction exists
         instruction = qc.data[0]
         self.assertEqual(instruction.operation.name, "for_loop")
+        # Unused auto-generated loop variable is dropped.
+        self.assertIsNone(instruction.operation.params[1])
 
         # Check that the Range parameters are correctly stored
         self.assertIsInstance(range_expr, expr.Range)
         self.assertEqual(range_expr.start, expr.lift(0, types.Uint(8)))
         self.assertEqual(range_expr.stop, expr.lift(5, types.Uint(8)))
         self.assertEqual(range_expr.step, expr.lift(1, types.Uint(8)))
+
+    def test_range_in_forloop_auto_generates_var_when_used(self):
+        """Using the loop variable in the body keeps an auto-generated expr.Var."""
+        qc = QuantumCircuit(1, 1)
+        target = qc.add_var("target", expr.lift(0, types.Uint(8)))
+        range_expr = expr.Range(expr.lift(0, types.Uint(8)), expr.lift(5, types.Uint(8)))
+
+        with qc.for_loop(range_expr) as loop_var:
+            qc.store(target, loop_var)
+
+        for_loop = next(inst.operation for inst in qc.data if inst.operation.name == "for_loop")
+        self.assertIsInstance(for_loop.params[1], expr.Var)
+        self.assertEqual(for_loop.params[1].type, range_expr.type)
+        self.assertIn(for_loop.params[1], list(for_loop.params[2].iter_declared_vars()))
 
     def test_range_in_forloop_with_step(self):
         """Test that Range with step can be used in ForLoop."""
