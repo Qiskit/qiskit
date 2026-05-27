@@ -431,7 +431,7 @@ class TestVF2PostLayout(QiskitTestCase):
             {
                 (0, 1): InstructionProperties(error=-1e-15),
                 (1, 2): InstructionProperties(error=1 + 1e-15),
-                (2, 0): InstructionProperties(error=1e-5),
+                (2, 0): InstructionProperties(error=1e-3),
             },
         )
 
@@ -440,10 +440,7 @@ class TestVF2PostLayout(QiskitTestCase):
         # One qubit deliberately doesn't have any instructions so we test the zero-weighted path
         # with all the types of clipped error too.
         qc = QuantumCircuit(3)
-        qc.cx(1, 0)
         qc.cx(2, 1)
-        qc.cx(2, 1)
-        qc.cx(0, 2)
         qc.cx(0, 2)
         qc.cx(0, 2)
         qc.sx(1)
@@ -460,7 +457,7 @@ class TestVF2PostLayout(QiskitTestCase):
         # If not `strict_direction`, then we can align the really high-cost 1q and 2q physical parts
         # with the least used virtual ones.  If `strict_direction`, then we can only align one, and
         # it's better to align the 2q.
-        expected = [0, 2, 1] if strict_direction else [1, 2, 0]
+        expected = [2, 1, 0] if strict_direction else [1, 2, 0]
         self.assertEqual(qc.layout.initial_index_layout(), expected)
 
 
