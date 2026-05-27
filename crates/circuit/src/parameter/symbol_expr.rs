@@ -1042,7 +1042,7 @@ impl SymbolExpr {
                         rhs: r_rhs,
                     } => {
                         if let (
-                            BinaryOp::Mul | BinaryOp::Div,
+                            BinaryOp::Mul,
                             SymbolExpr::Value(v),
                             SymbolExpr::Symbol(s),
                         ) = (op, r_lhs.as_ref(), r_rhs.as_ref())
@@ -1215,7 +1215,7 @@ impl SymbolExpr {
                         }
                     } else if let SymbolExpr::Symbol(r) = rhs {
                         if let (
-                            BinaryOp::Mul | BinaryOp::Div,
+                            BinaryOp::Mul,
                             SymbolExpr::Value(v),
                             SymbolExpr::Symbol(s),
                         ) = (op, l_lhs.as_ref(), l_rhs.as_ref())
@@ -1400,7 +1400,7 @@ impl SymbolExpr {
                         rhs: r_rhs,
                     } => {
                         if let (
-                            BinaryOp::Mul | BinaryOp::Div,
+                            BinaryOp::Mul,
                             SymbolExpr::Value(v),
                             SymbolExpr::Symbol(s),
                         ) = (op, r_lhs.as_ref(), r_rhs.as_ref())
@@ -1576,7 +1576,7 @@ impl SymbolExpr {
                         }
                     } else if let SymbolExpr::Symbol(r) = rhs {
                         if let (
-                            BinaryOp::Mul | BinaryOp::Div,
+                            BinaryOp::Mul,
                             SymbolExpr::Value(v),
                             SymbolExpr::Symbol(s),
                         ) = (op, l_lhs.as_ref(), l_rhs.as_ref())
