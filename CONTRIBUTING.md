@@ -965,7 +965,7 @@ If a new feature has a new dependency, it is almost certainly optional.
 
 For Python-space dependencies, Qiskit follows [the scientific-computing standard SPEC 0](https://scientific-python.org/specs/spec-0000/).
 In short: Qiskit will require versions of NumPy and SciPy that are at least two years old.
-For packages not covered by SPEC 0, the requirements must be satisfiable with published binary artifacts from PyPI for the oldest supported Python version, but the two-year limit does not apply.
+For packages not covered by SPEC 0, the requirements must be satisfiable with published binary artifacts from PyPI for all supported Python versions on [all platforms with tier 1 and tier 2 support](https://quantum.cloud.ibm.com/docs/guides/install-qiskit#operating-system-support).
 
 Python dependencies that are optional at runtime, only used during the build, or only used during the development process are not constrained.
 Qiskit supports all versions of CPython that are not end of life, which is wider than the minimum SPEC 0 support.
