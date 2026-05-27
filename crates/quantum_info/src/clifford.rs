@@ -418,12 +418,14 @@ impl Clifford {
         self._append_initial_part_ppr(&new_z, &new_x, &new_indices);
 
         // internal RZ gate
-        match multiple {
-            0 => {}
-            1 => self.append_s(new_indices[0] as usize),
-            2 => self.append_z(new_indices[0] as usize),
-            3 => self.append_sdg(new_indices[0] as usize),
-            _ => unreachable!("Multiple should be in 0..4"),
+        if let Some(&idx) = new_indices.get(0) {
+            match multiple {
+                0 => {}
+                1 => self.append_s(idx as usize),
+                2 => self.append_z(idx as usize),
+                3 => self.append_sdg(idx as usize),
+                _ => unreachable!("Multiple should be in 0..4"),
+            }
         }
 
         self._append_final_part_ppr(&new_z, &new_x, &new_indices);
@@ -441,18 +443,20 @@ impl Clifford {
         // remove pauli I terms
         let (new_z, new_x, new_indices) = remove_id_terms_from_pauli(in_z, in_x, indices_in);
 
-        self._append_initial_part_ppr(&new_z, &new_x, &new_indices);
+        if let Some(&idx) = new_indices.get(0) {
+            self._append_initial_part_ppr(&new_z, &new_x, &new_indices);
 
-        // internal RZ gate
-        // Evolving RZ by the Clifford.
-        // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
-        // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
-        let (sign, z, x, indices) =
-            self.evolve_single_qubit_pauli(Pauli1q::Z, new_indices[0] as usize);
+            // internal RZ gate
+            // Evolving RZ by the Clifford.
+            // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
+            // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
+            let (sign, z, x, indices) = self.evolve_single_qubit_pauli(Pauli1q::Z, idx as usize);
 
-        self._append_final_part_ppr(&new_z, &new_x, &new_indices);
+            self._append_final_part_ppr(&new_z, &new_x, &new_indices);
 
-        (sign, z, x, indices)
+            return (sign, z, x, indices);
+        }
+        (false, in_z.to_vec(), in_x.to_vec(), indices_in.to_vec())
     }
 
     /// Evolving a single qubit pauli on qubit qbit by the Clifford.
