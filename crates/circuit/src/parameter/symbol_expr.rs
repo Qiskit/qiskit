@@ -544,25 +544,35 @@ impl SymbolExpr {
                         if !rhs.has_symbol(param) {
                             Ok(SymbolExpr::Value(Value::Real(0.0)))
                         } else {
+                            // (a^g(x))' = ln(a) * a^g(x) * g'(x)
                             Ok(_mul(
-                                SymbolExpr::Binary {
-                                    op: BinaryOp::Pow,
-                                    lhs: Arc::new(lhs.as_ref().clone()),
-                                    rhs: Arc::new(rhs.as_ref().clone()),
-                                },
-                                SymbolExpr::Unary {
-                                    op: UnaryOp::Log,
-                                    expr: Arc::new(lhs.as_ref().clone()),
-                                },
+                                _mul(
+                                    SymbolExpr::Binary {
+                                        op: BinaryOp::Pow,
+                                        lhs: Arc::new(lhs.as_ref().clone()),
+                                        rhs: Arc::new(rhs.as_ref().clone()),
+                                    },
+                                    SymbolExpr::Unary {
+                                        op: UnaryOp::Log,
+                                        expr: Arc::new(lhs.as_ref().clone()),
+                                    },
+                                ),
+                                rhs.derivative(param)?,
                             ))
                         }
                     } else if !rhs.has_symbol(param) {
-                        Ok(rhs.as_ref()
-                            * &SymbolExpr::Binary {
-                                op: BinaryOp::Pow,
-                                lhs: Arc::new(lhs.as_ref().clone()),
-                                rhs: Arc::new(rhs.as_ref() - &SymbolExpr::Value(Value::Real(1.0))),
-                            })
+                        // (g(x)^n)' = n*g(x)^(n-1) * g'(x)
+                        Ok(_mul(
+                            rhs.as_ref()
+                                * &SymbolExpr::Binary {
+                                    op: BinaryOp::Pow,
+                                    lhs: Arc::new(lhs.as_ref().clone()),
+                                    rhs: Arc::new(
+                                        rhs.as_ref() - &SymbolExpr::Value(Value::Real(1.0)),
+                                    ),
+                                },
+                            lhs.derivative(param)?,
+                        ))
                     } else {
                         let new_expr = SymbolExpr::Unary {
                             op: UnaryOp::Exp,

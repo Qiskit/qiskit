@@ -719,3 +719,29 @@ class TestParameterExpression(QiskitTestCase):
         expected3 = (2 / 5) / (3 * 7)
 
         self.assertAlmostEqual(actual3, expected3, places=10)
+
+    def test_gradient_composite_base_constant_exponent_bug(self):
+        """Test gradient of composite base with constant exponent.
+
+        Regression test for bug where d/dp (f(p))^n was incorrectly computed.
+        The correct derivative is: n * (f(p))^(n-1) * f'(p)
+        """
+        import math
+
+        p = Parameter("p")
+
+        # Case: d/dp (2p)^3 = 3 * (2p)^2 * 2 = 6 * (2p)^2
+        expr = (2 * p) ** 3
+        gradient = expr.gradient(p)
+        actual = float(gradient.bind({p: 2}))
+        expected = 3 * (2 * 2) ** 2 * 2  # 3 * 16 * 2 = 96
+
+        self.assertAlmostEqual(actual, expected, places=10)
+
+        # Case: d/dp 2^(3p) = 2^(3p) * ln(2) * 3
+        expr = 2 ** (3 * p)
+        gradient = expr.gradient(p)
+        actual = float(gradient.bind({p: 1}))
+        expected = (2**3) * math.log(2) * 3  # 8 * ln(2) * 3
+
+        self.assertAlmostEqual(actual, expected, places=10)
