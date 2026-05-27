@@ -20,7 +20,6 @@ import importlib.metadata
 import importlib.util
 import os
 import sys
-import warnings
 
 try:
     importlib.metadata.version("qiskit-terra")
@@ -160,7 +159,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit import user_config as _user_config
 
 import qiskit.circuit.measure
-import qiskit.circuit.reset
+import qiskit.circuit.reset  # noqa: F401
 
 _config = _user_config.get_config()
 
@@ -168,6 +167,26 @@ from qiskit.compiler import transpile
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from .version import __version__
 
+from . import (
+    capi,
+    circuit,
+    compiler,
+    converters,
+    exceptions,
+    dagcircuit,
+    passmanager,
+    primitives,
+    providers,
+    qasm2,
+    qasm3,
+    qpy,
+    quantum_info,
+    result,
+    synthesis,
+    transpiler,
+    utils,
+    visualization,
+)
 
 # The Qiskit repo root is documented manually in `docs/apidoc/root.rst`.  Make sure that all
 # re-exports in `__all__` and any functions/objects defined in-line in this file and intended to be
@@ -179,6 +198,25 @@ __all__ = [
     "QiskitError",
     "QuantumCircuit",
     "QuantumRegister",
+    "__version__",
+    "capi",
+    "circuit",
+    "compiler",
+    "converters",
+    "dagcircuit",
+    "exceptions",
     "generate_preset_pass_manager",
+    "passmanager",
+    "primitives",
+    "providers",
+    "qasm2",
+    "qasm3",
+    "qpy",
+    "quantum_info",
+    "result",
+    "synthesis",
     "transpile",
+    "transpiler",
+    "utils",
+    "visualization",
 ]

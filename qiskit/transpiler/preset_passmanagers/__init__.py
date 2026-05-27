@@ -86,6 +86,8 @@ from .level2 import level_2_pass_manager
 from .level3 import level_3_pass_manager
 from .clifford_t import clifford_t_pass_manager
 
+from . import plugin
+
 
 __all__ = [
     "clifford_t_pass_manager",
@@ -103,4 +105,5 @@ __all__ = [
     "level_1_pass_manager",
     "level_2_pass_manager",
     "level_3_pass_manager",
+    "plugin",
 ]
