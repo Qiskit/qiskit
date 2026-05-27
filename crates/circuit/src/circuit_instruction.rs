@@ -595,6 +595,7 @@ impl CircuitBlock for CircuitData {
 impl CircuitBlock for DAGCircuit {
     fn extract_py_block(ob: Bound<PyCircuitData>) -> PyResult<Self> {
         Self::from_circuit_data(&ob.borrow().inner, false, None, None, None, None)
+            .map_err(Into::into)
     }
 }
 impl CircuitBlock for NoBlocks {
