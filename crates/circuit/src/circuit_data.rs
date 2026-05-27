@@ -652,7 +652,7 @@ impl CircuitData {
         Ok(out)
     }
 
-    /// Clone a new [PyCircuitData] from a [DAGCircuit], but applying a Python deepcopy
+    /// Clone a new [CircuitData] from a [DAGCircuit], but applying a Python deepcopy
     ///
     /// This is the logical equivalent of Python's `dag_to_circuit`.
     pub fn from_dag_ref_deepcopy(py: Python, dag: &DAGCircuit) -> Result<Self, CircuitDataError> {
