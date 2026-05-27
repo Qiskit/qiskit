@@ -2381,16 +2381,6 @@ impl SymbolExpr {
         }
     }
 
-    /// pow with heuristic optimization
-    fn pow_opt(&self, rhs: &SymbolExpr) -> Option<SymbolExpr> {
-        if self.is_zero() || rhs.is_one() {
-            return Some(self.clone());
-        } else if rhs.is_zero() {
-            return Some(SymbolExpr::Value(Value::Int(1)));
-        }
-        None
-    }
-
     /// optimization for neg
     fn neg_opt(&self) -> Option<SymbolExpr> {
         match self {
