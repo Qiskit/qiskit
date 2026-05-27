@@ -23,7 +23,7 @@ from ddt import ddt, data
 
 from qiskit import transpile, generate_preset_pass_manager
 from qiskit.providers.fake_provider import GenericBackendV2
-from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister, ParameterVector
 from qiskit.circuit.library import quantum_volume
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -469,6 +469,35 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
         self.assertTrue(
             set(out.count_ops()).issubset(set(get_clifford_gate_names()).union({"t", "tdg"}))
         )
+
+    @data(
+        ["u3", "cx"],
+        ["u1", "u2", "u3", "cx"],
+        ["ry", "rz", "rxx"],
+        ["rx", "rz", "rzz"],
+        ["rx", "rz", "iswap"],
+        ["u3", "rx", "rz", "cz", "iswap"],
+        ["rx", "rz", "cz", "rzz"],
+    )
+    def test_no_panic_on_parametervector_phase(self, basis):
+        pv = ParameterVector("v", 2)
+        synth_pass = UnitarySynthesis(basis)
+        for i in range(2, 5):
+            with self.subTest(width=i):
+                qc = QuantumCircuit(i, global_phase=pv[0])
+                qc.rz(pv[1], range(i))
+                for j in range(i):
+                    if i - 1 == j:
+                        continue
+                    qc.h(i - 1)
+                    qc.x(j)
+                    qc.rzx(math.pi / 4, i - 1, j)
+                    qc.x(j)
+                consolidated = ConsolidateBlocks(basis_gates=basis)(qc)
+                result = synth_pass(consolidated)
+                qc.assign_parameters([math.pi, -math.pi], inplace=True)
+                result.assign_parameters([math.pi, -math.pi], inplace=True)
+                self.assertEqual(Operator(result), Operator(qc))
 
 
 @ddt
