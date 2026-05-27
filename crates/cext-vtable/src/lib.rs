@@ -97,6 +97,7 @@ mod circuit {
             export_fn!(qk_circuit_draw),
             export_fn!(qk_circuit_global_phase),
             export_fn!(qk_circuit_set_global_phase),
+            export_fn!(qk_circuit_estimate_fidelity),
         ]
     });
 }
