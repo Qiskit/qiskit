@@ -78,6 +78,12 @@ static HANDLED_INSTRUCTION_NAMES: [&str; 10] = [
     "pauli_product_measurement",
 ];
 
+// List of clifford gate names.
+static CLIFFORD_GATE_NAMES: [&str; 16] = [
+    "id", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg", "cx", "cz", "cy", "swap", "iswap", "ecr",
+    "dcx",
+];
+
 const MINIMUM_TOL: f64 = 1e-12;
 
 #[pyfunction]
@@ -143,124 +149,65 @@ pub fn run_litinski_transformation(
         // Convert T and Tdg gates to RZ rotations.
         if let NodeType::Operation(inst) = &dag[node_index] {
             let name = inst.op.name();
+            let mut is_clifford = false; // indicates if it is a pi/2 rotation gate which is a clifford
+            if CLIFFORD_GATE_NAMES.contains(&name) {
+                is_clifford = true;
+            }
 
             match inst.op.view() {
-                OperationRef::StandardGate(StandardGate::I) => {
-                    if fix_clifford {
-                        clifford_ops.push(inst);
-                    }
-                }
+                OperationRef::StandardGate(StandardGate::I) => {}
                 OperationRef::StandardGate(StandardGate::X) => {
-                    if fix_clifford {
-                        clifford_ops.push(inst);
-                    }
                     clifford.append_x(dag.get_qargs(inst.qubits)[0].index())
                 }
                 OperationRef::StandardGate(StandardGate::Y) => {
-                    if fix_clifford {
-                        clifford_ops.push(inst);
-                    }
                     clifford.append_y(dag.get_qargs(inst.qubits)[0].index())
                 }
                 OperationRef::StandardGate(StandardGate::Z) => {
-                    if fix_clifford {
-                        clifford_ops.push(inst);
-                    }
                     clifford.append_z(dag.get_qargs(inst.qubits)[0].index())
                 }
                 OperationRef::StandardGate(StandardGate::H) => {
-                    if fix_clifford {
-                        clifford_ops.push(inst);
-                    }
                     clifford.append_h(dag.get_qargs(inst.qubits)[0].index())
                 }
                 OperationRef::StandardGate(StandardGate::S) => {
-                    if fix_clifford {
-                        clifford_ops.push(inst);
-                    }
                     clifford.append_s(dag.get_qargs(inst.qubits)[0].index())
                 }
                 OperationRef::StandardGate(StandardGate::Sdg) => {
-                    if fix_clifford {
-                        clifford_ops.push(inst);
-                    }
                     clifford.append_sdg(dag.get_qargs(inst.qubits)[0].index())
                 }
                 OperationRef::StandardGate(StandardGate::SX) => {
-                    if fix_clifford {
-                        clifford_ops.push(inst);
-                    }
                     clifford.append_sx(dag.get_qargs(inst.qubits)[0].index())
                 }
                 OperationRef::StandardGate(StandardGate::SXdg) => {
-                    if fix_clifford {
-                        clifford_ops.push(inst);
-                    }
                     clifford.append_sxdg(dag.get_qargs(inst.qubits)[0].index())
                 }
-                OperationRef::StandardGate(StandardGate::CX) => {
-                    if fix_clifford {
-                        clifford_ops.push(inst);
-                    }
-                    clifford.append_cx(
-                        dag.get_qargs(inst.qubits)[0].index(),
-                        dag.get_qargs(inst.qubits)[1].index(),
-                    )
-                }
-                OperationRef::StandardGate(StandardGate::CZ) => {
-                    if fix_clifford {
-                        clifford_ops.push(inst);
-                    }
-                    clifford.append_cz(
-                        dag.get_qargs(inst.qubits)[0].index(),
-                        dag.get_qargs(inst.qubits)[1].index(),
-                    )
-                }
-                OperationRef::StandardGate(StandardGate::CY) => {
-                    if fix_clifford {
-                        clifford_ops.push(inst);
-                    }
-                    clifford.append_cy(
-                        dag.get_qargs(inst.qubits)[0].index(),
-                        dag.get_qargs(inst.qubits)[1].index(),
-                    )
-                }
-                OperationRef::StandardGate(StandardGate::Swap) => {
-                    if fix_clifford {
-                        clifford_ops.push(inst);
-                    }
-                    clifford.append_swap(
-                        dag.get_qargs(inst.qubits)[0].index(),
-                        dag.get_qargs(inst.qubits)[1].index(),
-                    )
-                }
-                OperationRef::StandardGate(StandardGate::ISwap) => {
-                    if fix_clifford {
-                        clifford_ops.push(inst);
-                    }
-                    clifford.append_iswap(
-                        dag.get_qargs(inst.qubits)[0].index(),
-                        dag.get_qargs(inst.qubits)[1].index(),
-                    )
-                }
-                OperationRef::StandardGate(StandardGate::ECR) => {
-                    if fix_clifford {
-                        clifford_ops.push(inst);
-                    }
-                    clifford.append_ecr(
-                        dag.get_qargs(inst.qubits)[0].index(),
-                        dag.get_qargs(inst.qubits)[1].index(),
-                    )
-                }
-                OperationRef::StandardGate(StandardGate::DCX) => {
-                    if fix_clifford {
-                        clifford_ops.push(inst);
-                    }
-                    clifford.append_dcx(
-                        dag.get_qargs(inst.qubits)[0].index(),
-                        dag.get_qargs(inst.qubits)[1].index(),
-                    )
-                }
+                OperationRef::StandardGate(StandardGate::CX) => clifford.append_cx(
+                    dag.get_qargs(inst.qubits)[0].index(),
+                    dag.get_qargs(inst.qubits)[1].index(),
+                ),
+                OperationRef::StandardGate(StandardGate::CZ) => clifford.append_cz(
+                    dag.get_qargs(inst.qubits)[0].index(),
+                    dag.get_qargs(inst.qubits)[1].index(),
+                ),
+                OperationRef::StandardGate(StandardGate::CY) => clifford.append_cy(
+                    dag.get_qargs(inst.qubits)[0].index(),
+                    dag.get_qargs(inst.qubits)[1].index(),
+                ),
+                OperationRef::StandardGate(StandardGate::Swap) => clifford.append_swap(
+                    dag.get_qargs(inst.qubits)[0].index(),
+                    dag.get_qargs(inst.qubits)[1].index(),
+                ),
+                OperationRef::StandardGate(StandardGate::ISwap) => clifford.append_iswap(
+                    dag.get_qargs(inst.qubits)[0].index(),
+                    dag.get_qargs(inst.qubits)[1].index(),
+                ),
+                OperationRef::StandardGate(StandardGate::ECR) => clifford.append_ecr(
+                    dag.get_qargs(inst.qubits)[0].index(),
+                    dag.get_qargs(inst.qubits)[1].index(),
+                ),
+                OperationRef::StandardGate(StandardGate::DCX) => clifford.append_dcx(
+                    dag.get_qargs(inst.qubits)[0].index(),
+                    dag.get_qargs(inst.qubits)[1].index(),
+                ),
                 OperationRef::StandardGate(StandardGate::T)
                 | OperationRef::StandardGate(StandardGate::Tdg)
                 | OperationRef::StandardGate(StandardGate::RZ)
@@ -268,7 +215,6 @@ pub fn run_litinski_transformation(
                 | OperationRef::StandardGate(StandardGate::RY)
                 | OperationRef::StandardGate(StandardGate::Phase)
                 | OperationRef::StandardGate(StandardGate::U1) => {
-                    let mut is_clifford = false; // indicates if it is a pi/2 rotation gate which is a clifford
                     let qubit = dag.get_qargs(inst.qubits)[0].index();
                     let param = inst.params_view();
 
@@ -330,9 +276,6 @@ pub fn run_litinski_transformation(
                             );
                         }
                     };
-                    if is_clifford & fix_clifford {
-                        clifford_ops.push(inst);
-                    }
 
                     // rotation gate is non-clifford
                     if let Some((pauli, angle)) = result {
@@ -503,6 +446,9 @@ pub fn run_litinski_transformation(
                     "We cannot have unsupported names at this step of Litinski Transformation: {}",
                     name
                 ),
+            }
+            if is_clifford & fix_clifford {
+                clifford_ops.push(inst);
             }
         }
     }
