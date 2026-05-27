@@ -418,7 +418,9 @@ impl CircuitData {
         register: QuantumRegister,
         strict: bool,
     ) -> Result<(), CircuitDataError> {
-        self.qregs.add_register(register.clone(), strict)?;
+        self.qregs
+            .add_register(register.clone(), strict)
+            .map_err(|err| CircuitDataError::RegisterNameExists(err.to_string()))?;
 
         for (index, bit) in register.bits().enumerate() {
             if let Some(entry) = self.qubit_indices.get_mut(&bit) {
@@ -454,7 +456,9 @@ impl CircuitData {
         register: ClassicalRegister,
         strict: bool,
     ) -> Result<(), CircuitDataError> {
-        self.cregs.add_register(register.clone(), strict)?;
+        self.cregs
+            .add_register(register.clone(), strict)
+            .map_err(|err| CircuitDataError::RegisterNameExists(err.to_string()))?;
 
         for (index, bit) in register.bits().enumerate() {
             if let Some(entry) = self.clbit_indices.get_mut(&bit) {

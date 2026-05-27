@@ -17,7 +17,7 @@ use hashbrown::HashMap;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyList};
 
-use crate::{bit::Register, circuit_data::CircuitDataError};
+use crate::{bit::Register, circuit_data::CircuitError};
 
 /// Error thrown when adding a register using strict mode
 /// and it's already present.
