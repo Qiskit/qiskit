@@ -91,7 +91,7 @@ part of the C API library object.
 from pathlib import Path
 
 from . import _ctypes
-from ._ctypes import *  # noqa: F403 (the names are auto-generated and in `__all__`).
+from ._ctypes import *
 import qiskit._accelerate
 
 __all__ = ["get_include", "get_lib"]

@@ -18,7 +18,7 @@ use smallvec::smallvec;
 use crate::exit_codes::ExitCode;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeIndex, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, NodeIndex, NodeType};
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     ArrayType, Operation, OperationRef, Param, StandardGate, StandardInstruction, UnitaryGate,
@@ -196,6 +196,84 @@ pub unsafe extern "C" fn qk_dag_num_op_nodes(dag: *const DAGCircuit) -> usize {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
     dag.num_ops()
+}
+
+/// @ingroup QkDag
+/// Get the global phase of the DAG.
+///
+/// This function returns a copy of the DAG's global phase
+/// and the value must be freed via :c:func:`qk_param_free`
+/// after usage.
+///
+/// @param dag A pointer to the DAG.
+///
+/// @return The global phase of the DAG.
+///
+/// # Example
+/// ```c
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(24, "my_register");
+/// qk_dag_add_quantum_register(dag, qr);
+/// QkParam *global_phase = qk_dag_global_phase(dag);
+/// qk_param_free(global_phase);
+/// qk_quantum_register_free(qr);
+/// qk_dag_free(dag);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_dag_global_phase(dag: *const DAGCircuit) -> *mut Param {
+    // SAFETY: Per documentation, the pointer is to valid data.
+    let dag = unsafe { const_ptr_as_ref(dag) };
+    Box::into_raw(Box::new(dag.global_phase().clone()))
+}
+
+/// @ingroup QkDag
+/// Set the global phase of the DAG.
+///
+/// This function copies the new global phase upon setting it,
+/// so the caller retains ownership of the ``QkParam`` phase,
+/// and the value of the phase must be freed via :c:func:`qk_param_free`
+/// after setting.
+///
+/// @param dag A pointer to the DAG.
+/// @param phase A pointer to the global phase to set.
+///
+/// @return ``QkExitCode_Success`` upon successful setting of the global phase. Upon failure,
+///     ``QkExitCode_ParameterError`` describes generic failures when attempting to
+///     track the parameter symbols such as invalid parameter values.
+///     Otherwise, ``QkExitCode_DagError`` indicates a DAG-specific cause of the failure.
+///
+/// # Example
+/// ```c
+/// QkDag *dag = qk_dag_new();
+/// QkParam *new_global_phase = qk_param_from_double(1.23);
+/// qk_dag_set_global_phase(dag, new_global_phase);
+/// qk_param_free(new_global_phase);
+/// qk_dag_free(dag);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag`` and
+/// if ``phase`` is not a valid, non-null pointer to a ``QkParam``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_dag_set_global_phase(
+    dag: *mut DAGCircuit,
+    phase: *const Param,
+) -> ExitCode {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let dag = unsafe { mut_ptr_as_ref(dag) };
+    let phase = unsafe { const_ptr_as_ref(phase) };
+    // dag.set_global_phase_param(phase.clone())
+    //     .expect("Unable to set global phase");
+    match dag.set_global_phase_param(phase.clone()) {
+        Ok(_) => ExitCode::Success,
+        Err(DAGError::ObjGlobalPhase) => ExitCode::ParameterError,
+        Err(_) => ExitCode::DagError,
+    }
 }
 
 /// The type of node in a ``QkDag``.
