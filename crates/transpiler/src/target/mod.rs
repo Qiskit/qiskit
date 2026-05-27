@@ -30,6 +30,7 @@ use hashbrown::HashMap;
 use hashbrown::HashSet;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use pulp::Simd;
 use pyo3::{
     IntoPyObjectExt,
     exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError},
@@ -42,7 +43,7 @@ use smallvec::SmallVec;
 use thiserror::Error;
 
 use qiskit_circuit::PhysicalQubit;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::instruction::{Instruction, Parameters, create_py_op};
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
@@ -1678,10 +1679,69 @@ where
     obj.eq(other.into_bound_py_any(py)?)
 }
 
+#[pulp::with_simd(fast_product = pulp::Arch::new())]
+#[inline(always)]
+fn fast_product_with_simd<S: Simd>(simd: S, values: &[f64]) -> f64 {
+    let (head, tail) = S::as_simd_f64s(values);
+    let product: f64 = head
+        .iter()
+        .fold(1., |acc, chunk| acc * simd.reduce_product_f64s(*chunk));
+    product * tail.iter().product::<f64>()
+}
+
+/// Estimate the fidelity of a circuit by taking the product of the error rates
+///
+/// It is assumed that calling this function the circuit is already physical (already transpiled)
+/// such that the qubits for each gate correspond to the physical qubits in the target.
+///
+/// Args:
+///     circuit: The circuit to estimate the fidelity of
+///     target: The target the circuit will be run on
+///
+/// Returns:
+///     The estimated fidelity. If any operation can't be found in the target it will return None.
+#[pyfunction(name = "estimate_fidelity")]
+pub fn py_estimate_fidelity(circuit: &PyCircuitData, target: &Target) -> Option<f64> {
+    estimate_fidelity(circuit, target)
+}
+
+/// Estimate the fidelity of a circuit by taking the product of the error rates
+///
+/// It is assumed that calling this function the circuit is already physical (already transpiled)
+/// such that the qubits for each gate correspond to the physical qubits in the target.
+///
+/// # Args
+///
+/// `circuit`: The circuit to estimate the fidelity of
+/// `target`: The target the circuit will be run on
+///
+/// # Returns
+///
+/// The estimated fidelity. If any operation can't be found in the target it will return None.
+pub fn estimate_fidelity(circuit: &CircuitData, target: &Target) -> Option<f64> {
+    let errors: Option<Vec<f64>> = circuit
+        .data()
+        .iter()
+        .filter(|inst| !inst.op.directive())
+        .map(|inst| {
+            let qubits = circuit.get_qargs(inst.qubits);
+            // SAFETY: The base type of Qubit and PhysicalQubit are both u32
+            // so they are memory compatible. The transmute call lets us treat
+            // Qubit qargs as PhysicalQubit qargs directly. This function as documented as
+            // assuming that the circuit is physical so the qubit index is a physical qubit on the
+            // target
+            let physical_qubits: &[PhysicalQubit] = unsafe { std::mem::transmute(qubits) };
+            target.get_error(inst.op.name(), physical_qubits)
+        })
+        .collect();
+    errors.map(|errors| 1. - fast_product(&errors))
+}
+
 pub fn target(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<InstructionProperties>()?;
     m.add_class::<Target>()?;
     m.add_class::<QubitProperties>()?;
+    m.add_wrapped(wrap_pyfunction!(py_estimate_fidelity))?;
     Ok(())
 }
 

@@ -2527,6 +2527,7 @@ dependencies = [
  "ndarray",
  "num-complex",
  "numpy",
+ "pulp",
  "pyo3",
  "qiskit-circuit",
  "qiskit-quantum-info",

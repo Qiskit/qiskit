@@ -49,7 +49,7 @@ workspace = true
 features = ["rayon", "serde"]
 
 [dependencies.pulp]
-version = "0.22.2"
+workspace = true
 features = ["macro"]
 
 [dev-dependencies]
