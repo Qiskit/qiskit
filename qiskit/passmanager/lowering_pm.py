@@ -13,44 +13,86 @@
 """A pass manager designed for lowering from one IR to another."""
 
 from collections.abc import Iterable
-from typing import Generic, TypeVar
+from typing import Generic
 
-from .base_tasks import Task, IR, IR_OUT, Callback, PassManagerState, PropertySet
+from .compilation_status import WorkflowStatus, PropertySet
+from .base_tasks import Task, IR, IR_OUT, Callback, PassManagerState
 from .optimization_pm import OptimizationPassManager
-from .exceptions import PassManagerError
-from .flow_controllers import FlowControllerLinear
 
 
 class LoweringPassManager(Task[IR, IR_OUT], Generic[IR, IR_OUT]):
-    """Execute a series of tasks, remaining in a single IR."""
+    """Execute a lowering task, with optional pre- and post-lowering tasks."""
 
     def __init__(
         self,
         lowering: Task[IR, IR_OUT],
         *,
-        pre: Iterable[Task[IR, IR]] | None,
-        post: Iterable[Task[IR_OUT, IR_OUT]] | None,
+        pre: Iterable[Task[IR, IR]] | None = None,
+        post: Iterable[Task[IR_OUT, IR_OUT]] | None = None,
     ) -> None:
         self._lowering = lowering
         self._pre = OptimizationPassManager(pre)
         self._post = OptimizationPassManager(post)
+
+    @property
+    def pre_lowering(self) -> OptimizationPassManager[IR]:
+        """The pre-lowering tasks. These preserve the input IR.
+
+        This is accessed and manipulated as :class:`.OptimizationPassManager`.
+        """
+        return self._pre
+
+    @property
+    def post_lowering(self) -> OptimizationPassManager[IR_OUT]:
+        """The post-lowering tasks. These preserve output IR.
+
+        This is accessed and manipulated as :class:`.OptimizationPassManager`.
+        """
+        return self._post
+
+    @property
+    def lowering(self) -> Task[IR, IR_OUT]:
+        """The lowering task."""
+        return self._lowering
 
     def execute(
         self,
         passmanager_ir: IR,
         state: PassManagerState,
         callback: Callback[IR | IR_OUT] | None = None,
-    ) -> IR_OUT:
-        passmanager_ir = self._pre.execute(passmanager_ir, state, callback)
-        passmanager_ir = self._lowering.execute(passmanager_ir, state, callback)
-        passmanager_ir = self._post.execute(passmanager_ir, state, callback)
+    ) -> tuple[IR_OUT, PassManagerState]:
+        passmanager_ir, state = self.pre_lowering.execute(passmanager_ir, state, callback)
+        passmanager_ir, state = self.lowering.execute(passmanager_ir, state, callback)
+        passmanager_ir, state = self.post_lowering.execute(passmanager_ir, state, callback)
 
-        return passmanager_ir
+        return passmanager_ir, state
 
-    def run(self, in_programs: IR | Iterable[IR]) -> IR_OUT | Iterable[IR_OUT]:
-        state = PassManagerState()
+    def run(
+        self,
+        in_programs: IR | Iterable[IR],
+        callback: Callback[IR] | None = None,
+        *,
+        property_set: PropertySet | None = None,
+    ) -> IR_OUT | Iterable[IR_OUT]:
+        """Run the pass manager on a set of input programs.
 
-        if isinstance(in_programs, IR):
-            return self.execute(in_programs, state, None)
+        This is a convenience entry point to :meth:`run`, which allows to handle an iterable
+        of input programs and creates a :class:`.PassManagerState` passed to the tasks.
 
-        return list(map(self.run, in_programs))
+        Args:
+            in_programs: The programs to run the pass manager on.
+            callback: A callback passed to each individual task.
+            property_set: An optional property set to pass into the pass manager.
+
+        Returns:
+            The output programs.
+        """
+        if property_set is None:
+            property_set = PropertySet()
+
+        state = PassManagerState(property_set=property_set, workflow_status=WorkflowStatus())
+
+        if isinstance(in_programs, Iterable):
+            return list(map(self.run, in_programs))
+
+        return self.execute(in_programs, state, callback)[0]

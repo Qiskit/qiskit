@@ -18,6 +18,7 @@ import time
 from abc import ABC, abstractmethod
 
 from qiskit.circuit import QuantumCircuit, Barrier
+from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager.compilation_status import PassManagerState, PropertySet
 from qiskit.passmanager.base_tasks import Task, IR, IR_OUT, Callback
@@ -78,6 +79,16 @@ class CircuitAnalysis(BaseTask[QuantumCircuit, QuantumCircuit]):
         return passmanager_ir
 
 
+class CircuitToDAG(BaseTask[QuantumCircuit, DAGCircuit]):
+    """A lowering task from circuit to DAG."""
+
+    def __init__(self):
+        super().__init__(QuantumCircuit)
+
+    def run(self, passmanager_ir, property_set):
+        return circuit_to_dag(passmanager_ir)
+
+
 class CircuitRemoveBarriers(BaseTask[QuantumCircuit, QuantumCircuit]):
     """Remove all barriers."""
 
@@ -126,6 +137,40 @@ class DAGRemoveBarriers(BaseTask[DAGCircuit, DAGCircuit]):
 
         property_set["removed_barriers"] = count
         return out
+
+
+class DAGNoOp(BaseTask[DAGCircuit, DAGCircuit]):
+    """A dummy task preserving ``DAGCircuit`` as IR."""
+
+    def __init__(self):
+        super().__init__(DAGCircuit)
+
+    def run(self, passmanager_ir, property_set):
+        return passmanager_ir
+
+
+class DAGRemoveIdentity(BaseTask[DAGCircuit, DAGCircuit]):
+    """A task removing (close to) identity gates on a DAG."""
+
+    def __init__(self):
+        super().__init__(DAGCircuit)
+        self._pass = RemoveIdentityEquivalent()
+
+    def run(self, passmanager_ir, property_set):
+        return self._pass.run(passmanager_ir)
+
+
+class RecordOrder(BaseTask[QuantumCircuit, QuantumCircuit]):
+    """A task that appends a label to a shared list to record execution order."""
+
+    def __init__(self, log: list, label: str):
+        super().__init__(QuantumCircuit)
+        self.log = log
+        self.label = label
+
+    def run(self, passmanager_ir, property_set):
+        self.log.append(self.label)
+        return passmanager_ir
 
 
 class RequireKey(BaseTask[QuantumCircuit, QuantumCircuit]):
