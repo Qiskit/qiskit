@@ -11,5 +11,10 @@
 // that they have been altered from the originals.
 
 mod data_tree;
+mod program_node;
+mod store;
+pub mod tensor;
 
 pub use data_tree::{DataTree, PathEntry};
+pub use program_node::ProgramNode;
+pub use store::Store;
