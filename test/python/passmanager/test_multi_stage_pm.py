@@ -29,7 +29,7 @@ from .tasks import (
     CircuitToDAG,
     DAGNoOp,
     DAGRemoveIdentity,
-    RequirePropertySet,
+    RequireKey,
 )
 
 
@@ -268,9 +268,7 @@ class TestMultiStagePM(QiskitTestCase):
 
     def test_initial_property_set(self):
         """Test that a pre-populated property set is visible to tasks."""
-        pm = MultiStagePassManager(
-            circuit_opt=OptimizationPassManager([RequirePropertySet("seed")])
-        )
+        pm = MultiStagePassManager(circuit_opt=OptimizationPassManager([RequireKey("seed")]))
         initial = {"seed": 42}
         circuit = QuantumCircuit(1)
 
