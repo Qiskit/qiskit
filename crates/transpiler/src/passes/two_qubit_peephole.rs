@@ -62,10 +62,25 @@ pub enum HeuristicPriority {
 /// scoring is trying to maximize so we use negative counts and i64. The
 /// comparison score is minimizing the gate counts so it uses usize which is
 /// the natural type of the counts.
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum BestSynthesisHeuristicScore {
     GatePriority(i64, f64, i64),
     FidelityPriority(f64, i64, i64),
+}
+
+impl PartialOrd for BestSynthesisHeuristicScore {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match [self, other] {
+            [Self::GatePriority(a, b, c), Self::GatePriority(d, e, f)] => {
+                (a, b, c).partial_cmp(&(d, e, f))
+            }
+            [
+                Self::FidelityPriority(a, b, c),
+                Self::FidelityPriority(d, e, f),
+            ] => (a, b, c).partial_cmp(&(d, e, f)),
+            _ => None,
+        }
+    }
 }
 
 /// Score used to compare the original sequence to the best synthesis output
@@ -74,10 +89,25 @@ enum BestSynthesisHeuristicScore {
 /// used here because we are doing a minimum comparison for this comparison
 /// while [`BestSynthesisHeuristicScore`] is doing a maxmimum comparison and
 /// needs a negative gate count to work.
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum ComparisonScore {
     GatePriority(usize, f64, usize),
     FidelityPriority(f64, usize, usize),
+}
+
+impl PartialOrd for ComparisonScore {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match [self, other] {
+            [Self::GatePriority(a, b, c), Self::GatePriority(d, e, f)] => {
+                (a, b, c).partial_cmp(&(d, e, f))
+            }
+            [
+                Self::FidelityPriority(a, b, c),
+                Self::FidelityPriority(d, e, f),
+            ] => (a, b, c).partial_cmp(&(d, e, f)),
+            _ => None,
+        }
+    }
 }
 
 impl BestSynthesisHeuristicScore {
