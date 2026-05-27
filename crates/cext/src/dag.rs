@@ -199,7 +199,11 @@ pub unsafe extern "C" fn qk_dag_num_op_nodes(dag: *const DAGCircuit) -> usize {
 }
 
 /// @ingroup QkDag
-/// Get the global phase of the DAG if it is a float.
+/// Get the global phase of the DAG.
+/// 
+/// This function returns a copy of the DAG's global phase 
+/// and the value must be freed via :c:func:`qk_free_param`
+/// after usage.
 ///
 /// @param dag A pointer to the DAG.
 ///
@@ -227,18 +231,28 @@ pub unsafe extern "C" fn qk_dag_global_phase(dag: *const DAGCircuit) -> *mut Par
 }
 
 /// @ingroup QkDag
-/// Set the global phase of the DAG if it is a float.
+/// Set the global phase of the DAG.
+/// 
+/// This function copies the new global phase upon setting it,
+/// so the caller retains ownership of the ``QkParam`` phase,
+/// and the value of the phase must be freed via :c:func:`qk_free_param`
+/// after setting.
 ///
 /// @param dag A pointer to the DAG.
 /// @param phase A pointer to the global phase to set.
 ///
+/// @return ``QkExitCode_Success`` upon successful setting of the global phase. Upon failure,
+///     ``QkExitCode_ParameterError`` describes generic failures when attempting to
+///     track the parameter symbols such as invalid parameter values.
+///     Otherwise, ``QkExitCode_DagError`` indicates a DAG-specific cause of the failure.
+/// 
 /// # Example
 /// ```c
-///     QkDag *dag = qk_dag_new();
-///     QkParam *new_global_phase = qk_param_from_double(1.23);
-///     qk_dag_set_global_phase(dag, new_global_phase);
-///     qk_param_free(new_global_phase);
-///     qk_dag_free(dag);
+/// QkDag *dag = qk_dag_new();
+/// QkParam *new_global_phase = qk_param_from_double(1.23);
+/// qk_dag_set_global_phase(dag, new_global_phase);
+/// qk_param_free(new_global_phase);
+/// qk_dag_free(dag);
 /// ```
 ///
 /// # Safety

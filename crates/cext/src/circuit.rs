@@ -382,7 +382,11 @@ pub unsafe extern "C" fn qk_circuit_num_param_symbols(circuit: *const CircuitDat
 }
 
 /// @ingroup QkCircuit
-/// Get the global phase of the circuit if it is a float.
+/// Get the global phase of the circuit.
+/// 
+/// This function returns a copy of the circuit's global phase 
+/// and the value must be freed via :c:func:`qk_free_param`
+/// after usage.
 ///
 /// @param circuit A pointer to the circuit.
 ///
@@ -390,10 +394,10 @@ pub unsafe extern "C" fn qk_circuit_num_param_symbols(circuit: *const CircuitDat
 ///
 /// # Example
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(100, 100);
-///     QkParam *phase = qk_circuit_global_phase(qc);
-///     qk_param_free(phase);
-///     qk_circuit_free(qc);
+/// QkCircuit *qc = qk_circuit_new(100, 100);
+/// QkParam *phase = qk_circuit_global_phase(qc);
+/// qk_param_free(phase);
+/// qk_circuit_free(qc);
 /// ```
 ///
 /// # Safety
@@ -408,18 +412,28 @@ pub unsafe extern "C" fn qk_circuit_global_phase(circuit: *const CircuitData) ->
 }
 
 /// @ingroup QkCircuit
-/// Set the global phase of the circuit if it is a float.
+/// Set the global phase of the circuit.
+/// 
+/// This function copies the new global phase upon setting it,
+/// so the caller retains ownership of the ``QkParam`` phase,
+/// and the value of the phase must be freed via :c:func:`qk_free_param`
+/// after setting.
 ///
 /// @param circuit A pointer to the circuit.
 /// @param phase A pointer to the global phase to set.
 ///
+/// @return ``QkExitCode_Success`` upon successful setting of the global phase. Upon failure,
+///     ``QkExitCode_ParameterNameConflict`` indicates that a new parameter symbol has a name
+///     conflict with an existing one. ``QkExitCode_ParameterError`` describes other generic
+///     failures when attempting to track the parameter symbols.
+/// 
 /// # Example
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(100, 100);
-///     QkParam *new_global_phase = qk_param_from_double(1.23);
-///     qk_circuit_set_global_phase(qc, new_global_phase);
-///     qk_param_free(new_global_phase);
-///     qk_circuit_free(qc);
+/// QkCircuit *qc = qk_circuit_new(100, 100);
+/// QkParam *new_global_phase = qk_param_from_double(1.23);
+/// qk_circuit_set_global_phase(qc, new_global_phase);
+/// qk_param_free(new_global_phase);
+/// qk_circuit_free(qc);
 /// ```
 ///
 /// # Safety

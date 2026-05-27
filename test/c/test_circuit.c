@@ -1281,6 +1281,7 @@ static int test_circuit_global_phase(void) {
     theta = qk_param_new_symbol("theta");
     if (qk_circuit_set_global_phase(qc, theta) != QkExitCode_Success) {
         result = RuntimeError;
+        qk_param_free(theta);
         goto cleanup;
     }
     qk_param_free(theta);
