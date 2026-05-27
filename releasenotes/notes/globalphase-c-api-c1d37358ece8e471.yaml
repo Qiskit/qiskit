@@ -1,6 +1,6 @@
 features_c:
   - |
-    The C API now exposes the global phase of both Circuits DAGs, allowing the user to retrieve it in and set it. This is done via the C API's `QkParam`, meaning numeric as well as symbolic parameters are permitted. Importantly, the user retains ownership of the parameters, meaning the phase values must be freed via :c:func:`qk_free_param` after usage both when retrieving and when setting the phase.
+    The C API now exposes the global phase of both Circuits and DAGs, allowing the user to retrieve it and set it. This is done via the C API's `QkParam`, meaning numeric as well as symbolic parameters are permitted. Importantly, the user retains ownership of the parameters, meaning the phase values must be freed via :c:func:`qk_free_param` after usage both when retrieving and when setting the phase.
 
     .. code-block:: c
         QkCircuit *qc = qk_circuit_new(2, 0);
