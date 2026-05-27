@@ -17,7 +17,7 @@ import math
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Gate
-from qiskit.circuit.library import RXGate, RYGate, RZGate, UnitaryGate, CXGate
+from qiskit.circuit.library import RXGate, RYGate, RZGate, UnitaryGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
