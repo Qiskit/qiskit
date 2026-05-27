@@ -11,6 +11,7 @@ features_c:
     when retrieving and when setting the phase.
 
     .. code-block:: c
+
         QkCircuit *qc = qk_circuit_new(2, 0);
         
         QkParam *out_phase = qk_circuit_global_phase(qc);
