@@ -179,13 +179,13 @@ class ForLoopContext:
     _generated_loop_vars = 0
 
     __slots__ = (
+        "_as_var",
         "_circuit",
         "_generate_loop_parameter",
         "_indexset",
         "_label",
         "_loop_parameter",
         "_used",
-        "_as_var",
     )
 
     def __init__(
@@ -238,15 +238,14 @@ class ForLoopContext:
             # TODO: we want to have `loop_parameter = self._loop_parameter`
             # For this we need to add support in the Rust level for CircuitInstruction
             loop_parameter = None
+        # We always bind the loop parameter if the user gave it to us, even if it isn't actually
+        # used, because they requested we do that by giving us a parameter.  However, if they asked
+        # us to auto-generate a parameter, then we only add it if they actually used it, to avoid
+        # using unnecessary resources.
+        elif self._generate_loop_parameter and self._loop_parameter not in body.parameters:
+            loop_parameter = None
         else:
-            # We always bind the loop parameter if the user gave it to us, even if it isn't actually
-            # used, because they requested we do that by giving us a parameter.  However, if they asked
-            # us to auto-generate a parameter, then we only add it if they actually used it, to avoid
-            # using unnecessary resources.
-            if self._generate_loop_parameter and self._loop_parameter not in body.parameters:
-                loop_parameter = None
-            else:
-                loop_parameter = self._loop_parameter
+            loop_parameter = self._loop_parameter
 
         self._circuit.append(
             ForLoopOp(self._indexset, loop_parameter, body, label=self._label),

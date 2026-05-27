@@ -4601,7 +4601,7 @@ class QuantumCircuit:
         2. Storing the result of the measurement into the cbit indexed by ``expr``.
         Args:
             qubit: the qubit to measure.
-            expr: the expression that indexes the cbit that should store the result of the measurement.
+            exp: the expression that indexes the cbit that should store the result of the measurement.
         Returns:
             qiskit.circuit.InstructionSet: handle to the added ``store`` instructions.
         """

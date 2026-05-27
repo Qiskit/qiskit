@@ -191,7 +191,7 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         ):
             op.params = [indexset, loop_parameter, bad_body]
 
-        with self.assertRaisesRegex(CircuitError, r"to be either of type Parameter or None"):
+        with self.assertRaisesRegex(CircuitError, r"to be either of type Parameter, Var or None"):
             _ = ForLoopOp(indexset, "foo", body)
 
     @idata(CONDITION_PARAMETRISATION)
