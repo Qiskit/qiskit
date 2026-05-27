@@ -15,7 +15,8 @@
 from collections.abc import Iterable
 from typing import Generic, TypeVar
 
-from .base_tasks import Task, IR, Callback, PassManagerState, PropertySet
+from .compilation_status import WorkflowStatus, PropertySet
+from .base_tasks import Task, IR, Callback, PassManagerState
 from .exceptions import PassManagerError
 
 
@@ -35,10 +36,10 @@ class OptimizationPassManager(Task[IR, IR], Generic[IR]):
 
     def execute(
         self, passmanager_ir: IR, state: PassManagerState, callback: Callback[IR] | None = None
-    ) -> IR:
+    ) -> tuple[IR, PassManagerState]:
         for task in self._tasks:
-            passmanager_ir = task.execute(passmanager_ir, state, callback)
-        return super().execute(passmanager_ir, state, callback)
+            passmanager_ir, state = task.execute(passmanager_ir, state, callback)
+        return passmanager_ir, state
 
     def run(
         self,
@@ -63,12 +64,12 @@ class OptimizationPassManager(Task[IR, IR], Generic[IR]):
         if property_set is None:
             property_set = PropertySet()
 
-        state = PassManagerState(property_set=property_set)
+        state = PassManagerState(property_set=property_set, workflow_status=WorkflowStatus())
 
-        if isinstance(in_programs, IR):
-            return self.execute(in_programs, state, callback)
+        if isinstance(in_programs, Iterable):
+            return list(map(self.run, in_programs))
 
-        return list(map(self.run, in_programs))
+        return self.execute(in_programs, state, callback)[0]
 
     @property
     def tasks(self) -> list[Task[IR, IR]]:
