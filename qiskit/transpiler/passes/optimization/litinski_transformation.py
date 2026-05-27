@@ -54,6 +54,7 @@ class LitinskiTransformation(TransformationPass):
         from qiskit import generate_preset_pass_manager
         from qiskit.circuit import QuantumCircuit
         from qiskit.circuit.library import PauliProductMeasurement, PauliProductRotationGate
+        from qiskit.quantum_info import Pauli
         from qiskit.transpiler.passes import LitinskiTransformation
 
         litinski = LitinskiTransformation(fix_clifford=False, use_ppr=True)
