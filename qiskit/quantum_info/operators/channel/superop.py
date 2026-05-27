@@ -34,8 +34,6 @@ from qiskit.quantum_info.operators.operator import Operator
 
 if TYPE_CHECKING:
     from qiskit import circuit
-    from qiskit.quantum_info.states.densitymatrix import DensityMatrix
-    from qiskit.quantum_info.states.statevector import Statevector
 
 
 class SuperOp(QuantumChannel):
