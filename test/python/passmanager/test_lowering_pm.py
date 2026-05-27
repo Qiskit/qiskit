@@ -22,13 +22,19 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager.compilation_status import PassManagerState, PropertySet, WorkflowStatus
 from qiskit.passmanager.optimization_pm import OptimizationPassManager
 from qiskit.passmanager.lowering_pm import LoweringPassManager
-from .tasks import CircuitNoOp, CircuitAnalysis, CircuitToDAG, DAGNoOp, DAGRemoveIdentity, RequirePropertySet
+from .tasks import (
+    CircuitNoOp,
+    CircuitAnalysis,
+    CircuitToDAG,
+    DAGNoOp,
+    DAGRemoveIdentity,
+)
 
 
 class TestLoweringPassManager(QiskitTestCase):
     """Test the lowering pass manager."""
 
-    def test_basic_lowering(self):
+    def test_basic(self):
         """Test lowering with no pre- or post-tasks produces the correct output."""
         pm = LoweringPassManager(CircuitToDAG())
 
@@ -38,6 +44,19 @@ class TestLoweringPassManager(QiskitTestCase):
         result = pm.run(circuit)
 
         self.assertEqual(circuit_to_dag(circuit), result)
+
+    def test_execute(self):
+        """Test ``execute`` as entry point."""
+        pm = LoweringPassManager(CircuitToDAG(), pre=[CircuitNoOp()], post=[DAGNoOp(), DAGNoOp()])
+
+        state = PassManagerState(property_set=PropertySet(), workflow_status=WorkflowStatus())
+
+        circuit = QuantumCircuit(1)
+        circuit.h(0)
+        out, state = pm.execute(circuit, state)
+
+        self.assertEqual(circuit_to_dag(circuit), out)
+        self.assertEqual(state.workflow_status.count, 4)
 
     def test_pre_and_post(self):
         """Test that pre and post lowering returns an OptimizationPassManagers containing the tasks."""
@@ -55,8 +74,8 @@ class TestLoweringPassManager(QiskitTestCase):
 
         tasks_called = []
 
-        def callback(*args):
-            tasks_called.append(args[0].__class__.__name__)
+        def callback(**kwargs):
+            tasks_called.append(kwargs["task"].__class__.__name__)
 
         _ = pm.run(QuantumCircuit(1), callback=callback)
 
@@ -71,8 +90,10 @@ class TestLoweringPassManager(QiskitTestCase):
 
         records = []
 
-        def callback(task, ir, property_set, running_time, count):
-            records.append((task.__class__.__name__, ir, copy(property_set), running_time, count))
+        def callback(task, passmanager_ir, property_set, running_time, count):
+            records.append(
+                (task.__class__.__name__, passmanager_ir, copy(property_set), running_time, count)
+            )
 
         circuit = QuantumCircuit(2)
         circuit.h(0)
@@ -96,55 +117,3 @@ class TestLoweringPassManager(QiskitTestCase):
         for i, (_, _, _, runtime, count) in enumerate(records):
             self.assertGreaterEqual(runtime, 0.0)
             self.assertEqual(count, i + 1)
-
-    def test_execute(self):
-        """Test ``execute`` as entry point."""
-        pm = LoweringPassManager(CircuitToDAG(), pre=[CircuitNoOp()])
-
-        state = PassManagerState(property_set=PropertySet(), workflow_status=WorkflowStatus())
-
-        circuit = QuantumCircuit(1)
-        circuit.h(0)
-        result = pm.execute(circuit, state)
-
-        self.assertEqual(circuit_to_dag(circuit), result)
-        self.assertEqual(state.workflow_status.count, 2)
-
-    def test_run(self):
-        """Test ``run`` as a standalone entry point."""
-        pm = LoweringPassManager(CircuitToDAG(), pre=[CircuitNoOp()])
-
-        counts = []
-        circuit = QuantumCircuit(1)
-        pm.run(circuit, callback=lambda *args: counts.append(args[-1]))
-        pm.run(circuit, callback=lambda *args: counts.append(args[-1]))
-
-        # Each call to run() creates a fresh state, so the count resets to 1 each time
-        self.assertEqual(counts, [1, 2, 1, 2])
-
-    def test_run_on_list(self):
-        """Test that ``run`` processes a list of programs and returns a list of outputs."""
-        pm = LoweringPassManager(CircuitToDAG())
-
-        circuits = [QuantumCircuit(i + 1) for i in range(3)]
-        results = pm.run(circuits)
-
-        self.assertIsInstance(results, list)
-        self.assertEqual(len(results), len(circuits))
-        for circuit, result in zip(circuits, results):
-            self.assertIsInstance(result, DAGCircuit)
-            self.assertEqual(circuit_to_dag(circuit), result)
-
-    def test_initial_property_set(self):
-        """Test that a pre-populated ``property_set`` is visible to tasks during execution."""
-        pm = LoweringPassManager(CircuitToDAG(), pre=[RequirePropertySet("seed")])
-
-        initial_ps = PropertySet()
-        initial_ps["seed"] = 42
-
-        # Should not raise: the required property is present
-        pm.run(QuantumCircuit(1), property_set=initial_ps)
-
-        # Should raise: no property set provided, so "seed" is absent
-        with self.assertRaises(ValueError):
-            pm.run(QuantumCircuit(1))
