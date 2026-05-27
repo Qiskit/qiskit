@@ -60,8 +60,6 @@ mod circuit {
             export_fn!(qk_circuit_copy),
             export_fn!(qk_circuit_num_qubits),
             export_fn!(qk_circuit_num_clbits),
-            export_fn!(qk_circuit_global_phase),
-            export_fn!(qk_circuit_set_global_phase),
             export_fn!(qk_circuit_free),
             export_fn!(qk_circuit_gate),
             export_fn!(qk_gate_num_qubits),
@@ -97,6 +95,8 @@ mod circuit {
             export_fn!(qk_classical_register_borrow_from_python, feature = "python_binding"),
             export_fn!(qk_classical_register_convert_from_python, feature = "python_binding"),
             export_fn!(qk_circuit_draw),
+            export_fn!(qk_circuit_global_phase),
+            export_fn!(qk_circuit_set_global_phase),
         ]
     });
 }
@@ -131,8 +131,6 @@ mod dag {
             export_fn!(qk_dag_num_qubits),
             export_fn!(qk_dag_num_clbits),
             export_fn!(qk_dag_num_op_nodes),
-            export_fn!(qk_dag_global_phase),
-            export_fn!(qk_dag_set_global_phase),
             export_fn!(qk_dag_node_type),
             export_fn!(qk_dag_qubit_in_node),
             export_fn!(qk_dag_qubit_out_node),
@@ -167,6 +165,8 @@ mod dag {
             export_fn!(qk_dag_convert_from_python, feature = "python_binding"),
             export_fn!(qk_dag_replace_block_with_unitary),
             export_fn!(qk_dag_substitute_node_with_unitary),
+            export_fn!(qk_dag_global_phase),
+            export_fn!(qk_dag_set_global_phase),
         ]
     });
 }
