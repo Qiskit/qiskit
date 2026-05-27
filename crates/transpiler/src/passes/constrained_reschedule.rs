@@ -80,7 +80,7 @@ fn push_node_back(
         | OperationRef::StandardInstruction(StandardInstruction::Measure) => Some(acquire_align),
         OperationRef::StandardInstruction(StandardInstruction::Delay(_)) => None,
         _ => {
-            if !op_view.directive() {
+            if op_view.directive() {
                 None
             } else {
                 return Err(TranspilerError::new_err(format!(
