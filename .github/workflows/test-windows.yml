@@ -8,18 +8,21 @@ on:
           Python version to currently test
         type: string
         required: true
-
       runner:
         description: >
           Describes the system this workflow should run on.
         type: string
         required: true
-
       install-optionals:
         description: >
           Decides whether we install optyional dependencies
         type: boolean
         default: false
+      mimalloc:
+        description: >
+          Whether to build with mimalloc or not
+        type: boolean
+        default: true
 jobs:
   test-windows:
     name: ${{ inputs.runner }} - Python ${{ inputs.python-version }}
@@ -42,6 +45,9 @@ jobs:
             stestr | "${{ runner.os }}"
             stestr
           path: .stestr
+      - name: Set mimalloc for build
+        if: ${{ inputs.mimalloc }}
+        run: 'echo "QISKIT_BUILD_WITH_MIMALLOC=1" >> $GITHUB_ENV'
       - name: Install dependencies
         run: |
           python -m venv test-job

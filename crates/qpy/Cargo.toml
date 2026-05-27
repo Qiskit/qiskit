@@ -15,8 +15,7 @@ workspace = true
 [dependencies]
 indexmap.workspace = true
 hashbrown.workspace = true
-oq3_semantics = "0.7.0"
-ahash.workspace = true
+foldhash.workspace = true
 qiskit-circuit.workspace = true
 qiskit-quantum-info.workspace = true
 num-bigint.workspace = true

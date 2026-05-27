@@ -739,20 +739,43 @@ impl CircuitData {
         // use the global phase setter to ensure parameters are registered
         // in the parameter table
         res.set_global_phase_param(global_phase)?;
-
-        if num_qubits > 0 {
-            for _i in 0..num_qubits {
-                let bit = ShareableQubit::new_anonymous();
-                res.add_qubit(bit, true)?;
-            }
-        }
-        if num_clbits > 0 {
-            for _i in 0..num_clbits {
-                let bit = ShareableClbit::new_anonymous();
-                res.add_clbit(bit, true)?;
-            }
-        }
+        res.add_anonymous_qubits(num_qubits)
+            .expect("cannot represent a too-large count");
+        res.add_anonymous_clbits(num_clbits)
+            .expect("cannot represent a too-large count");
         Ok(res)
+    }
+
+    /// Add multiple new anonymous qubits.
+    ///
+    /// This can only fail due to circuit capacity issues, since new anonymous qubits are guaranteed
+    /// to be unique.
+    pub fn add_anonymous_qubits(&mut self, num: u32) -> Result<(), CapacityError> {
+        if self.qubits.len() > (u32::MAX - num) as usize {
+            return Err(CapacityError);
+        }
+        for bit in ShareableQubit::iter_anonymous(num) {
+            let index = self.qubits.add_unique_within_capacity(bit.clone());
+            self.qubit_indices
+                .insert(bit, BitLocations::new(index.0, []));
+        }
+        Ok(())
+    }
+
+    /// Add multiple new anonymous clbits.
+    ///
+    /// This can only fail due to circuit capacity issues, since new anonymous qubits are guaranteed
+    /// to be unique.
+    pub fn add_anonymous_clbits(&mut self, num: u32) -> Result<(), CapacityError> {
+        if self.clbits.len() > (u32::MAX - num) as usize {
+            return Err(CapacityError);
+        }
+        for bit in ShareableClbit::iter_anonymous(num) {
+            let index = self.clbits.add_unique_within_capacity(bit.clone());
+            self.clbit_indices
+                .insert(bit, BitLocations::new(index.0, []));
+        }
+        Ok(())
     }
 
     /// Modify `self` to mark its qubits as physical.
@@ -1751,8 +1774,9 @@ impl CircuitData {
     ///
     /// # Returns
     /// An IndexMap containing the operation names as keys and their respective counts as values.
-    pub fn count_ops(&self) -> IndexMap<&str, usize, ::ahash::RandomState> {
-        let mut ops_count: IndexMap<&str, usize, ::ahash::RandomState> = IndexMap::default();
+    pub fn count_ops(&self) -> IndexMap<&str, usize, ::foldhash::fast::RandomState> {
+        let mut ops_count: IndexMap<&str, usize, ::foldhash::fast::RandomState> =
+            IndexMap::default();
         for instruction in &self.data {
             *ops_count.entry(instruction.op.name()).or_insert(0) += 1;
         }
@@ -2897,7 +2921,7 @@ impl PyCircuitData {
     ///
     /// # Returns
     /// An IndexMap containing the operation names as keys and their respective counts as values.
-    pub fn count_ops(&self) -> IndexMap<&str, usize, ::ahash::RandomState> {
+    pub fn count_ops(&self) -> IndexMap<&str, usize, ::foldhash::fast::RandomState> {
         self.inner.count_ops()
     }
 

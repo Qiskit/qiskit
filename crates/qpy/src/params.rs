@@ -12,6 +12,7 @@
 use binrw::Endian;
 use num_complex::Complex64;
 use pyo3::prelude::*;
+use pyo3::types::IntoPyDict;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::parameter::parameter_expression::{
@@ -451,6 +452,7 @@ pub(crate) fn unpack_parameter_expression(
                             item.item_type,
                             &item.item_bytes,
                             qpy_data,
+                            Endian::Big,
                         )?)?;
                         Ok((sym, replacement))
                     })
@@ -545,33 +547,26 @@ pub(crate) fn unpack_parameter_vector(
             Some(value) => value,
             None => Python::attach(|py| -> Result<_, QpyError> {
                 // we use python-space to create a new parameter vector
+                let py_uuid = {
+                    let kwargs = [("int", root_uuid_int)].into_py_dict(py)?;
+                    py.import("uuid")?
+                        .getattr("UUID")?
+                        .call((), Some(&kwargs))?
+                };
                 let vector = imports::PARAMETER_VECTOR
                     .get_bound(py)
-                    .call1((name.clone(), parameter_vector_pack.vector_size))?
+                    .call1((name.clone(), parameter_vector_pack.vector_size, py_uuid))?
                     .unbind();
-                qpy_data.vectors.insert(root_uuid, (vector, Vec::new()));
+                qpy_data
+                    .vectors
+                    .insert(root_uuid, (vector, Default::default()));
                 qpy_data.vectors.get_mut(&root_uuid).ok_or_else(|| {
                     QpyError::MissingData("Parameter vector creation failed".to_string())
                 })
             })?,
         };
         let vector = vector_data.0.bind(py);
-        let vector_name = vector.getattr("name")?.extract::<String>()?;
-        let vector_element = vector.get_item(index)?.extract::<Symbol>()?;
-        if vector_element.uuid != uuid {
-            // we need to create a new parameter vector element and hack it into the vector
-            vector_data.1.push(index);
-            // let param_vector_element = PyParameterVectorElement::py_new(py, vector, index, parameter_vector_pack.uuid)
-            let param_vector_element = Symbol::py_new(
-                &vector_name,
-                Some(uuid.as_u128()),
-                Some(index),
-                Some(vector.clone().unbind()),
-            )?;
-            vector
-                .getattr("_params")?
-                .set_item(index, param_vector_element)?;
-        }
+        vector_data.1.insert(index);
         Ok(vector.clone().unbind())
     })?;
 
@@ -628,14 +623,7 @@ pub(crate) fn pack_param_obj(
     })
 }
 
-pub(crate) fn generic_value_to_param(
-    value: &GenericValue,
-    endian: Endian,
-) -> Result<Param, QpyError> {
-    let value = match endian {
-        Endian::Big => value,
-        Endian::Little => &value.as_le(),
-    };
+pub(crate) fn generic_value_to_param(value: &GenericValue) -> Result<Param, QpyError> {
     match value {
         GenericValue::Float64(float_val) => Ok(Param::Float(*float_val)),
         GenericValue::ParameterExpressionSymbol(symbol) => {

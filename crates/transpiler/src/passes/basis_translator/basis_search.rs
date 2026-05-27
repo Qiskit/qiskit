@@ -33,22 +33,22 @@ type BasisTransforms = Vec<(GateIdentifier, BasisTransformIn)>;
 /// basis` are reached.
 pub(crate) fn basis_search(
     equiv_lib: &mut EquivalenceLibrary,
-    source_basis: &IndexSet<GateIdentifier, ahash::RandomState>,
-    target_basis: &IndexSet<&str, ahash::RandomState>,
+    source_basis: &IndexSet<GateIdentifier, foldhash::fast::RandomState>,
+    target_basis: &IndexSet<&str, foldhash::fast::RandomState>,
 ) -> Option<BasisTransforms> {
     // Build the visitor attributes:
-    let mut num_gates_remaining_for_rule: IndexMap<usize, usize, ahash::RandomState> =
+    let mut num_gates_remaining_for_rule: IndexMap<usize, usize, foldhash::fast::RandomState> =
         IndexMap::default();
-    let predecessors: RefCell<IndexMap<GateIdentifier, Equivalence, ahash::RandomState>> =
+    let predecessors: RefCell<IndexMap<GateIdentifier, Equivalence, foldhash::fast::RandomState>> =
         RefCell::new(IndexMap::default());
-    let opt_cost_map: RefCell<IndexMap<GateIdentifier, u32, ahash::RandomState>> =
+    let opt_cost_map: RefCell<IndexMap<GateIdentifier, u32, foldhash::fast::RandomState>> =
         RefCell::new(IndexMap::default());
     let mut basis_transforms: Vec<(GateIdentifier, BasisTransformIn)> = vec![];
 
     // Initialize visitor attributes:
     initialize_num_gates_remain_for_rule(equiv_lib.graph(), &mut num_gates_remaining_for_rule);
 
-    let mut source_basis_remain: IndexSet<Key, ahash::RandomState> = source_basis
+    let mut source_basis_remain: IndexSet<Key, foldhash::fast::RandomState> = source_basis
         .iter()
         .filter_map(|(gate_name, gate_num_qubits)| {
             if !target_basis.contains(gate_name.as_str()) {
@@ -180,7 +180,7 @@ pub(crate) fn basis_search(
 
 fn initialize_num_gates_remain_for_rule(
     graph: &StableDiGraph<NodeData, Option<EdgeData>>,
-    source: &mut IndexMap<usize, usize, ahash::RandomState>,
+    source: &mut IndexMap<usize, usize, foldhash::fast::RandomState>,
 ) {
     let mut save_index = usize::MAX;
     // When iterating over the edges, ignore any none-valued ones by calling `flatten`
