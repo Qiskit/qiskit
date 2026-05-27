@@ -1,7 +1,8 @@
 ---
 features_transpiler:
-  - Extend the :class:`.LitinskiTransformation` pass to work on arbitrary rotations,
-    in particular, to :math:`R_X`-rotation and :math:`R_Y`-rotation gates, 
-    as well as :class:`.PauliProductRotationGates`.
-    In addition, rotation gates and :class:`.PauliProductRotationGates` with angles 
-    that are integral multiples of :math:`pi/2` are treated as Clifford gates.
+  - Extend the :class:`.LitinskiTransformation` pass to work on single-qubit rotations,
+    namely to :math:`R_X`-rotation and :math:`R_Y`-rotation gates,
+    as well as :class:`.PauliProductRotationGates` and :class:`.PauliProductMeasurement`.
+  - Single-qubit rotation gates and :class:`.PauliProductRotationGates` with angles
+    that are integral multiples of :math:`pi/2` are now treated as Clifford gates
+    by the :class:`.LitinskiTransformation` pass.
