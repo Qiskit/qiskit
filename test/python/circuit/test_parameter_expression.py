@@ -622,58 +622,100 @@ class TestParameterExpression(QiskitTestCase):
 
     def test_division_with_addition_bug(self):
         """Test that (v / p) + p evaluates correctly when bound.
-        
+
         Regression test for bug where (v / p) + p was incorrectly evaluated.
         """
         from qiskit import QuantumCircuit
-        
+
         p = Parameter("p")
-        
+
         # Case 1: (v / p) + p
         qc1 = QuantumCircuit(1)
         qc1.rx((2 / p) + p, 0)
-        
+
         bound1 = qc1.assign_parameters({p: 3})
         actual1 = float(bound1.data[0].operation.params[0])
         expected1 = (2 / 3) + 3
-        
+
         self.assertAlmostEqual(actual1, expected1, places=10)
-        
+
         # Case 2: p + (v / p)
         qc2 = QuantumCircuit(1)
         qc2.rx(p + (2 / p), 0)
-        
+
         bound2 = qc2.assign_parameters({p: 3})
         actual2 = float(bound2.data[0].operation.params[0])
         expected2 = 3 + (2 / 3)
-        
+
         self.assertAlmostEqual(actual2, expected2, places=10)
 
     def test_division_with_subtraction_bug(self):
         """Test that (v / p) - p and p - (v / p) evaluate correctly when bound.
-        
+
         Regression test for bug where (v / p) - p and p - (v / p) were incorrectly evaluated.
         """
         from qiskit import QuantumCircuit
-        
+
         p = Parameter("p")
-        
+
         # Case 3: (v / p) - p
         qc3 = QuantumCircuit(1)
         qc3.rx((3 / p) - p, 0)
-        
+
         bound3 = qc3.assign_parameters({p: 5})
         actual3 = float(bound3.data[0].operation.params[0])
         expected3 = (3 / 5) - 5
-        
+
         self.assertAlmostEqual(actual3, expected3, places=10)
-        
+
         # Case 4: p - (v / p)
         qc4 = QuantumCircuit(1)
         qc4.rx(p - (2 / p), 0)
-        
+
         bound4 = qc4.assign_parameters({p: 3})
         actual4 = float(bound4.data[0].operation.params[0])
         expected4 = 3 - (2 / 3)
-        
+
         self.assertAlmostEqual(actual4, expected4, places=10)
+
+    def test_nested_division_bug(self):
+        """Test that nested division expressions evaluate correctly when bound.
+
+        Regression test for bug where expressions like (a / x) / (b / y) were incorrectly evaluated.
+        """
+        from qiskit import QuantumCircuit
+
+        x = Parameter("x")
+        y = Parameter("y")
+        p = Parameter("p")
+        q = Parameter("q")
+
+        # Case 1: (a / x) / (b / y)
+        qc1 = QuantumCircuit(1)
+        qc1.rx((2 / x) / (3 / y), 0)
+
+        bound1 = qc1.assign_parameters({x: 5, y: 7})
+        actual1 = float(bound1.data[0].operation.params[0])
+        expected1 = (2 / 5) / (3 / 7)
+
+        self.assertAlmostEqual(actual1, expected1, places=10)
+
+        # Case 2: (a * p) / (b / q)
+        qc2 = QuantumCircuit(1)
+        qc2.rx((2 * p) / (3 / q), 0)
+
+        bound2 = qc2.assign_parameters({p: 5, q: 7})
+        actual2 = float(bound2.data[0].operation.params[0])
+        expected2 = (2 * 5) / (3 / 7)
+
+        self.assertAlmostEqual(actual2, expected2, places=10)
+
+        # Case 3: (a / p) / (b * q)
+        qc3 = QuantumCircuit(1)
+        qc3.rx((2 / p) / (3 * q), 0)
+
+        bound3 = qc3.assign_parameters({p: 5, q: 7})
+        actual3 = float(bound3.data[0].operation.params[0])
+        expected3 = (2 / 5) / (3 * 7)
+
+        self.assertAlmostEqual(actual3, expected3, places=10)
