@@ -37,6 +37,8 @@ enum Command {
         #[arg(short, long)]
         output_path: PathBuf,
     },
+    /// Print out a representation of all the slots in use.
+    ShowSlots,
     /// Check for correctness between the slots tables and the list of exported functions for the
     /// current version of Qiskit.
     LintSlots {
@@ -63,6 +65,11 @@ fn main() -> anyhow::Result<()> {
         } => {
             let mut bindings = qiskit_bindgen::generate_bindings(cext_path)?;
             qiskit_bindgen::install_c_headers(&mut bindings, output_path)?;
+            Ok(())
+        }
+        #[allow(clippy::print_stdout)]
+        Command::ShowSlots => {
+            println!("{}", SlotsLists::ours());
             Ok(())
         }
         Command::LintSlots { cext_path } => {
