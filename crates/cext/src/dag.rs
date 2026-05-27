@@ -202,7 +202,7 @@ pub unsafe extern "C" fn qk_dag_num_op_nodes(dag: *const DAGCircuit) -> usize {
 /// Get the global phase of the DAG.
 ///
 /// This function returns a copy of the DAG's global phase
-/// and the value must be freed via :c:func:`qk_free_param`
+/// and the value must be freed via :c:func:`qk_param_free`
 /// after usage.
 ///
 /// @param dag A pointer to the DAG.
@@ -235,7 +235,7 @@ pub unsafe extern "C" fn qk_dag_global_phase(dag: *const DAGCircuit) -> *mut Par
 ///
 /// This function copies the new global phase upon setting it,
 /// so the caller retains ownership of the ``QkParam`` phase,
-/// and the value of the phase must be freed via :c:func:`qk_free_param`
+/// and the value of the phase must be freed via :c:func:`qk_param_free`
 /// after setting.
 ///
 /// @param dag A pointer to the DAG.

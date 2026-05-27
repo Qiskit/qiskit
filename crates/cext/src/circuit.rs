@@ -385,7 +385,7 @@ pub unsafe extern "C" fn qk_circuit_num_param_symbols(circuit: *const CircuitDat
 /// Get the global phase of the circuit.
 ///
 /// This function returns a copy of the circuit's global phase
-/// and the value must be freed via :c:func:`qk_free_param`
+/// and the value must be freed via :c:func:`qk_param_free`
 /// after usage.
 ///
 /// @param circuit A pointer to the circuit.
@@ -416,7 +416,7 @@ pub unsafe extern "C" fn qk_circuit_global_phase(circuit: *const CircuitData) ->
 ///
 /// This function copies the new global phase upon setting it,
 /// so the caller retains ownership of the ``QkParam`` phase,
-/// and the value of the phase must be freed via :c:func:`qk_free_param`
+/// and the value of the phase must be freed via :c:func:`qk_param_free`
 /// after setting.
 ///
 /// @param circuit A pointer to the circuit.
