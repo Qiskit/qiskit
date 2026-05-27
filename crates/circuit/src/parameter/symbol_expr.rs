@@ -1150,12 +1150,6 @@ impl SymbolExpr {
                                                 None => Some(_div(t, l_rhs.as_ref().clone())),
                                             };
                                         }
-                                        (BinaryOp::Pow, BinaryOp::Pow) => {
-                                            return match t.pow_opt(l_rhs) {
-                                                Some(e) => Some(e),
-                                                None => Some(_pow(t, l_rhs.as_ref().clone())),
-                                            };
-                                        }
                                         (_, _) => (),
                                     }
                                 }
@@ -1507,12 +1501,6 @@ impl SymbolExpr {
                                             return match t.div_opt(l_rhs, recursive) {
                                                 Some(e) => Some(e),
                                                 None => Some(_div(t, l_rhs.as_ref().clone())),
-                                            };
-                                        }
-                                        (BinaryOp::Pow, BinaryOp::Pow) => {
-                                            return match t.pow_opt(l_rhs) {
-                                                Some(e) => Some(e),
-                                                None => Some(_pow(t, l_rhs.as_ref().clone())),
                                             };
                                         }
                                         (_, _) => (),

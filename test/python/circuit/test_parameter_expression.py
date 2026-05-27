@@ -745,3 +745,34 @@ class TestParameterExpression(QiskitTestCase):
         expected = (2**3) * math.log(2) * 3  # 8 * ln(2) * 3
 
         self.assertAlmostEqual(actual, expected, places=10)
+
+    def test_power_expression_with_addition_subtraction_bug(self):
+        """Test that theta**2 + phi**2 and theta**2 - phi**2 evaluate correctly.
+
+        Regression test for bug where power expressions combined with addition/subtraction
+        were incorrectly evaluated when parameters are bound.
+        """
+        from qiskit import QuantumCircuit
+
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+
+        # Subtraction case: theta**2 - phi**2
+        qc_sub = QuantumCircuit(1)
+        qc_sub.rx(theta**2 - phi**2, 0)
+
+        actual_sub = qc_sub.assign_parameters({theta: 5, phi: 3})
+        expected_sub_value = 5**2 - 3**2  # 25 - 9 = 16
+        actual_sub_value = float(actual_sub.data[0].operation.params[0])
+
+        self.assertAlmostEqual(actual_sub_value, expected_sub_value, places=10)
+
+        # Addition case: theta**2 + phi**2
+        qc_add = QuantumCircuit(1)
+        qc_add.rx(theta**2 + phi**2, 0)
+
+        actual_add = qc_add.assign_parameters({theta: 5, phi: 3})
+        expected_add_value = 5**2 + 3**2  # 25 + 9 = 34
+        actual_add_value = float(actual_add.data[0].operation.params[0])
+
+        self.assertAlmostEqual(actual_add_value, expected_add_value, places=10)
