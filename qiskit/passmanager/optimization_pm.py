@@ -13,7 +13,7 @@
 """A pass manager designed for optimization within a single IR."""
 
 from collections.abc import Iterable
-from typing import Generic, TypeVar
+from typing import Generic
 
 from .compilation_status import WorkflowStatus, PropertySet
 from .base_tasks import Task, IR, Callback, PassManagerState

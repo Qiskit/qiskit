@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag
-from qiskit.passmanager.flow_controllers import ConditionalController, DoWhileController
+from qiskit.passmanager.flow_controllers import ConditionalController
 from qiskit.passmanager.compilation_status import PassManagerState, PropertySet, WorkflowStatus
 from qiskit.passmanager.exceptions import PassManagerError
 from qiskit.passmanager.optimization_pm import OptimizationPassManager

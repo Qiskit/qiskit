@@ -11,11 +11,12 @@
 # that they have been altered from the originals.
 
 """Base transpiler passes."""
+
 from __future__ import annotations
 
 import abc
 from abc import abstractmethod
-from collections.abc import Callable, Hashable, Iterable
+from collections.abc import Hashable, Iterable
 from inspect import signature
 
 from qiskit.circuit import QuantumCircuit
