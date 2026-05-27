@@ -824,6 +824,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
 
 [[package]]
+name = "foldhash"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
+
+[[package]]
 name = "gemm"
 version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1163,7 +1169,7 @@ checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
 dependencies = [
  "allocator-api2",
  "equivalent",
- "foldhash",
+ "foldhash 0.1.5",
  "rayon",
  "serde",
 ]
@@ -1384,9 +1390,9 @@ checksum = "b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981"
 
 [[package]]
 name = "libmimalloc-sys"
-version = "0.1.47"
+version = "0.1.49"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d1eacfa31c33ec25e873c136ba5669f00f9866d0688bea7be4d3f7e43067df6"
+checksum = "6a45a52f43e1c16f667ccfe4dd8c85b7f7c204fd5e3bf46c5b0db9a5c3c0b8e9"
 dependencies = [
  "cc",
 ]
@@ -1467,9 +1473,9 @@ dependencies = [
 
 [[package]]
 name = "mimalloc"
-version = "0.1.50"
+version = "0.1.52"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3627c4272df786b9260cabaa46aec1d59c93ede723d4c3ef646c503816b0640"
+checksum = "2d4139bb28d14ad1facf21d5eb8825051b326e172d216b39f6d31df53cc97862"
 dependencies = [
  "libmimalloc-sys",
 ]
@@ -2257,11 +2263,12 @@ dependencies = [
  "anyhow",
  "cbindgen",
  "hashbrown 0.15.5",
+ "qiskit-cext-vtable",
  "regex",
 ]
 
 [[package]]
-name = "qiskit-bindgen-c"
+name = "qiskit-bindgen-cli"
 version = "2.5.0-dev"
 dependencies = [
  "anyhow",
@@ -2276,8 +2283,8 @@ dependencies = [
 name = "qiskit-cext"
 version = "2.5.0-dev"
 dependencies = [
- "ahash 0.8.12",
  "anyhow",
+ "foldhash 0.2.0",
  "hashbrown 0.15.5",
  "indexmap",
  "mimalloc",
@@ -2311,6 +2318,7 @@ dependencies = [
  "bitfield-struct",
  "bytemuck",
  "crossterm",
+ "foldhash 0.2.0",
  "hashbrown 0.15.5",
  "indexmap",
  "itertools 0.14.0",
@@ -2364,6 +2372,14 @@ dependencies = [
 [[package]]
 name = "qiskit-providers"
 version = "2.5.0-dev"
+dependencies = [
+ "approx",
+ "hashbrown 0.15.5",
+ "ndarray",
+ "num-complex",
+ "rustworkx-core",
+ "thiserror 2.0.18",
+]
 
 [[package]]
 name = "qiskit-pyext"
@@ -2394,14 +2410,13 @@ dependencies = [
  "hashbrown 0.15.5",
  "num-bigint",
  "pyo3",
- "qiskit-circuit",
 ]
 
 [[package]]
 name = "qiskit-qasm3"
 version = "2.5.0-dev"
 dependencies = [
- "ahash 0.8.12",
+ "foldhash 0.2.0",
  "hashbrown 0.15.5",
  "indexmap",
  "lazy_static",
@@ -2417,16 +2432,15 @@ dependencies = [
 name = "qiskit-qpy"
 version = "2.5.0-dev"
 dependencies = [
- "ahash 0.8.12",
  "binrw",
  "bytemuck",
+ "foldhash 0.2.0",
  "hashbrown 0.15.5",
  "indexmap",
  "num-bigint",
  "num-complex",
  "num-traits",
  "numpy",
- "oq3_semantics",
  "pyo3",
  "qiskit-circuit",
  "qiskit-quantum-info",
@@ -2439,10 +2453,10 @@ dependencies = [
 name = "qiskit-quantum-info"
 version = "2.5.0-dev"
 dependencies = [
- "ahash 0.8.12",
  "approx",
  "bytemuck",
  "fixedbitset 0.5.7",
+ "foldhash 0.2.0",
  "hashbrown 0.15.5",
  "indexmap",
  "itertools 0.14.0",
@@ -2467,12 +2481,12 @@ dependencies = [
 name = "qiskit-synthesis"
 version = "2.5.0-dev"
 dependencies = [
- "ahash 0.8.12",
  "approx",
  "binrw",
  "bytemuck",
  "faer",
  "fixedbitset 0.5.7",
+ "foldhash 0.2.0",
  "hashbrown 0.15.5",
  "indexmap",
  "itertools 0.14.0",
@@ -2501,11 +2515,11 @@ dependencies = [
 name = "qiskit-transpiler"
 version = "2.5.0-dev"
 dependencies = [
- "ahash 0.8.12",
  "anyhow",
  "approx",
  "bytemuck",
  "fixedbitset 0.5.7",
+ "foldhash 0.2.0",
  "hashbrown 0.15.5",
  "indexmap",
  "itertools 0.14.0",
@@ -2525,6 +2539,7 @@ dependencies = [
  "rustworkx-core",
  "smallvec",
  "thiserror 2.0.18",
+ "thread_local",
  "uuid",
 ]
 
@@ -2803,9 +2818,9 @@ dependencies = [
 
 [[package]]
 name = "rstar"
-version = "0.12.2"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "421400d13ccfd26dfa5858199c30a5d76f9c54e0dba7575273025b43c5175dbb"
+checksum = "5912b862fa5ffb462607bfd1e35036c458c537921f508c8235a83d5f3987edfe"
 dependencies = [
  "heapless",
  "num-traits",
@@ -2870,7 +2885,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aaeee6f84153fd6f62507fc22bfe9499c8485075b44186dcbb918166ef75116f"
 dependencies = [
  "fixedbitset 0.5.7",
- "foldhash",
+ "foldhash 0.1.5",
  "hashbrown 0.15.5",
  "indexmap",
  "ndarray",

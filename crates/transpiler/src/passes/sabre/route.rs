@@ -212,7 +212,7 @@ impl RoutingResult<'_> {
                 None,
                 dag.insert_qargs(&[Qubit(map_fn(swap[1]).0), Qubit(map_fn(swap[0]).0)]),
             );
-            dag.push_back(swap)
+            dag.push_back(swap).map_err(Into::into)
         };
         // The size here is pretty arbitrary, providing it can fit at least 2q operations in.
         let mut apply_scratch = Vec::with_capacity(4);
@@ -228,7 +228,7 @@ impl RoutingResult<'_> {
                 qubits: dag.insert_qargs(&apply_scratch),
                 ..inst.clone()
             };
-            dag.push_back(new_inst)
+            dag.push_back(new_inst).map_err(Into::into)
         };
 
         let mut dag = dag.into_builder();
@@ -624,8 +624,8 @@ impl State {
     fn populate_extended_set(&mut self, problem: RoutingProblem) {
         let mut next_visit = self.front_layer.iter_nodes().copied().collect::<Vec<_>>();
         let mut to_visit = Vec::new();
-        let mut decremented: IndexMap<NodeIndex, u32, ahash::RandomState> =
-            IndexMap::with_hasher(ahash::RandomState::default());
+        let mut decremented: IndexMap<NodeIndex, u32, foldhash::fast::RandomState> =
+            IndexMap::with_hasher(foldhash::fast::RandomState::default());
         for layer in self.lookahead_layers.iter_mut() {
             for node in next_visit.drain(..) {
                 for edge in problem.sabre.dag.edges_directed(node, Direction::Outgoing) {

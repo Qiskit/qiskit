@@ -202,9 +202,9 @@ def plot_bloch_vector(
         title (str): a string that represents the plot title
         ax (matplotlib.axes.Axes): An Axes to use for rendering the bloch
             sphere
-        figsize (tuple): Figure size in inches. Has no effect is passing ``ax``.
-        coord_type (str): a string that specifies coordinate type for bloch
-            (Cartesian or spherical), default is Cartesian
+        figsize (tuple): Figure size in inches. Has no effect if passing ``ax``.
+        coord_type (Literal["cartesian", "spherical"]): Either ``"cartesian"`` or ``"spherical"``
+            depending on whether the input is given in Cartesian or spherical coordinates.
         font_size (float): Font size.
 
     Returns:
