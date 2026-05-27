@@ -15,7 +15,6 @@
 For each QPY format version, output all the qiskit versions supporting loading from that QPY version
 """
 
-import packaging.version
 from qpy_version_utils import fetch_installable_qiskit_versions
 
 # Minimum Qiskit minor series that can read each supported QPY format version.
