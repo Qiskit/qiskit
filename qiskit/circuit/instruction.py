@@ -565,15 +565,15 @@ class CustomInstruction(Instruction):
     """Custom Instruction originating from Rust"""
 
     # Native instance of the instruction originating from Rust
-    _native_instrucion = None
+    _native_operation = None
 
     def __init__(self, native_inst):
-        self._native_instrucion = native_inst
+        self._native_operation = native_inst
         super().__init__(
-            self._native_instrucion.name,
-            self._native_instrucion.num_qubits,
-            self._native_instrucion.num_clbits,
-            self._native_instrucion.params,
-            self._native_instrucion.label,
+            self._native_operation.name,
+            self._native_operation.num_qubits,
+            self._native_operation.num_clbits,
+            self._native_operation.params,
+            self._native_operation.label,
         )
-        self.definition = self._native_instrucion.definition
+        self.definition = self._native_operation.definition

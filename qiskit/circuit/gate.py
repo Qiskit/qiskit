@@ -283,19 +283,19 @@ class CustomGate(Gate):
     """Custom Unitary Gate originating from Rust"""
 
     # Native instance of the gate originating from Rust
-    _native_gate = None
+    _native_operation = None
 
     def __init__(self, native_gate):
-        self._native_gate = native_gate
+        self._native_operation = native_gate
         super().__init__(
-            self._native_gate.name,
-            self._native_gate.num_qubits,
-            self._native_gate.params,
-            self._native_gate.label,
+            self._native_operation.name,
+            self._native_operation.num_qubits,
+            self._native_operation.params,
+            self._native_operation.label,
         )
         self.definition = (
-            None if self._native_gate.definition is None else self._native_gate.definition
+            None if self._native_operation.definition is None else self._native_operation.definition
         )
 
     def __array__(self, dtype=complex):
-        return self._native_gate.__array__(dtype)
+        return self._native_operation.__array__(dtype)

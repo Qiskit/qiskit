@@ -2019,6 +2019,18 @@ impl dyn CustomOperation + 'static {
         let self_as_any: &dyn Any = self;
         self_as_any.downcast_ref()
     }
+
+    // Creates an enclosed view of a [`CustomOperation`] to be exposed
+    // to Python.
+    pub fn create_py_op_view(
+        &self,
+        py: Python,
+        params: Option<SmallVec<[Param; 3]>>,
+    ) -> PyResult<Py<PyAny>> {
+        PyCustomOperation::new(self.to_owned(), params)
+            .into_py_op(py)
+            .map(|op| op.unbind())
+    }
 }
 
 /// Internal representation of a custom operation within a Circuit.
@@ -2070,8 +2082,8 @@ impl From<Box<dyn CustomOperation>> for BoxedCustomOperation {
 )]
 #[derive(Debug, Clone)]
 pub struct PyCustomOperation {
-    inner: Box<dyn CustomOperation>,
-    parameters: Option<SmallVec<[Param; 3]>>,
+    pub inner: Box<dyn CustomOperation>,
+    pub parameters: Option<SmallVec<[Param; 3]>>,
 }
 
 #[pymethods]
@@ -2252,6 +2264,7 @@ mod test {
 #[cfg(test)]
 mod test_custom_operations {
     use crate::circuit_data::CircuitData;
+    use crate::circuit_instruction::OperationFromPython;
     use crate::gate_matrix::{H_GATE, rz_gate};
     use crate::instruction::Parameters;
     use crate::operations::{CustomOperation, Operation, OperationRef, Param, StandardGate};
@@ -2698,12 +2711,13 @@ mod test_custom_operations {
         let mut circuit = CircuitData::with_capacity(1, 0, 1, 0.0.into())
             .expect("Circuit with small capacity should be built.");
 
-        let gate = Box::new(ParametrizedAndLabeled::new(Some("custom_rz")));
+        let gate: Box<dyn CustomOperation> =
+            Box::new(ParametrizedAndLabeled::new(Some("custom_rz")));
 
         // Try downcasting
         circuit
             .push_packed_operation(
-                PackedOperation::from_custom_operation(gate),
+                PackedOperation::from_custom_operation(gate.clone()),
                 Some(crate::instruction::Parameters::Params(smallvec![PI.into()])),
                 &[Qubit(0)],
                 &[],
@@ -2723,33 +2737,51 @@ mod test_custom_operations {
         let retrieved_h_gate = &circuit.data()[1];
 
         let OperationRef::CustomOperation(gate_as_rx) = retrieved_gate.op.view() else {
-            panic!("Gate should be a custom gate of type CustomH");
+            panic!("Gate should be a custom gate of type ParametrizedAndLabeled");
         };
 
-        if gate_as_rx.downcast_ref::<CustomH>().is_some() {
-            panic!("Gate should not be a custom gate of type CustomH");
+        let OperationRef::CustomOperation(gate_as_h) = retrieved_h_gate.op.view() else {
+            panic!("Gate should be a custom gate of type CustomH");
         };
 
         let Some(_) = gate_as_rx.downcast_ref::<ParametrizedAndLabeled>() else {
             panic!("Gate should be a custom gate of type ParametrizedAndLabeled");
         };
 
+        if gate_as_rx.downcast_ref::<CustomH>().is_some() {
+            panic!("Gate should not be a custom gate of type CustomH");
+        };
+
+        let gates: [&dyn CustomOperation; 2] = [gate_as_rx, gate_as_h];
+
         // Try Python:
         Python::attach(|py| -> PyResult<()> {
-            let unpacked_operation = circuit.unpack_py_op(py, retrieved_gate)?.into_bound(py);
-            println!("{}", unpacked_operation.repr()?);
-            println!("{}", unpacked_operation.call_method0("to_matrix")?.repr()?);
-            println!("{}", unpacked_operation.getattr("params")?.repr()?);
-            println!("{}", unpacked_operation.getattr("definition")?.repr()?);
+            for (idx, inst) in circuit.data().iter().enumerate() {
+                let unpacked_operation = circuit.unpack_py_op(py, inst)?.into_bound(py);
 
-            let unpacked_operation_h = circuit.unpack_py_op(py, retrieved_h_gate)?.into_bound(py);
-            println!("{}", unpacked_operation_h.repr()?);
-            println!(
-                "{}",
-                unpacked_operation_h.call_method0("to_matrix")?.repr()?
-            );
-            println!("{}", unpacked_operation_h.getattr("params")?.repr()?);
-            println!("{}", unpacked_operation_h.getattr("definition")?.repr()?);
+                println!("{}", unpacked_operation.repr()?);
+                println!("{}", unpacked_operation.call_method0("to_matrix")?.repr()?);
+                println!("{}", unpacked_operation.getattr("params")?.repr()?);
+                println!("{}", unpacked_operation.getattr("definition")?.repr()?);
+
+                // Try roundtrip
+                let roundtrip = unpacked_operation.extract::<OperationFromPython<CircuitData>>()?;
+                let OperationRef::CustomOperation(roundtrip_native) = roundtrip.operation.view()
+                else {
+                    panic!(
+                        "Retreived operation is not an instance of CustomOperation: '{:?}'",
+                        roundtrip.operation.view()
+                    );
+                };
+
+                println!("{:?}", roundtrip.operation.view());
+                assert_eq!(gates[idx], roundtrip_native);
+                assert_eq!(gates[idx].is_unitary(), roundtrip_native.is_unitary());
+                assert_eq!(
+                    gates[idx].label(),
+                    roundtrip.label.as_deref().map(|x| x.as_str())
+                );
+            }
             Ok(())
         })
         .expect("Something went wrong on the Python side.");
