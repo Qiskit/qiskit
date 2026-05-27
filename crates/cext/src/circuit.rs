@@ -383,8 +383,8 @@ pub unsafe extern "C" fn qk_circuit_num_param_symbols(circuit: *const CircuitDat
 
 /// @ingroup QkCircuit
 /// Get the global phase of the circuit.
-/// 
-/// This function returns a copy of the circuit's global phase 
+///
+/// This function returns a copy of the circuit's global phase
 /// and the value must be freed via :c:func:`qk_free_param`
 /// after usage.
 ///
@@ -413,7 +413,7 @@ pub unsafe extern "C" fn qk_circuit_global_phase(circuit: *const CircuitData) ->
 
 /// @ingroup QkCircuit
 /// Set the global phase of the circuit.
-/// 
+///
 /// This function copies the new global phase upon setting it,
 /// so the caller retains ownership of the ``QkParam`` phase,
 /// and the value of the phase must be freed via :c:func:`qk_free_param`
@@ -426,7 +426,7 @@ pub unsafe extern "C" fn qk_circuit_global_phase(circuit: *const CircuitData) ->
 ///     ``QkExitCode_ParameterNameConflict`` indicates that a new parameter symbol has a name
 ///     conflict with an existing one. ``QkExitCode_ParameterError`` describes other generic
 ///     failures when attempting to track the parameter symbols.
-/// 
+///
 /// # Example
 /// ```c
 /// QkCircuit *qc = qk_circuit_new(100, 100);

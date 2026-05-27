@@ -200,8 +200,8 @@ pub unsafe extern "C" fn qk_dag_num_op_nodes(dag: *const DAGCircuit) -> usize {
 
 /// @ingroup QkDag
 /// Get the global phase of the DAG.
-/// 
-/// This function returns a copy of the DAG's global phase 
+///
+/// This function returns a copy of the DAG's global phase
 /// and the value must be freed via :c:func:`qk_free_param`
 /// after usage.
 ///
@@ -232,7 +232,7 @@ pub unsafe extern "C" fn qk_dag_global_phase(dag: *const DAGCircuit) -> *mut Par
 
 /// @ingroup QkDag
 /// Set the global phase of the DAG.
-/// 
+///
 /// This function copies the new global phase upon setting it,
 /// so the caller retains ownership of the ``QkParam`` phase,
 /// and the value of the phase must be freed via :c:func:`qk_free_param`
@@ -245,7 +245,7 @@ pub unsafe extern "C" fn qk_dag_global_phase(dag: *const DAGCircuit) -> *mut Par
 ///     ``QkExitCode_ParameterError`` describes generic failures when attempting to
 ///     track the parameter symbols such as invalid parameter values.
 ///     Otherwise, ``QkExitCode_DagError`` indicates a DAG-specific cause of the failure.
-/// 
+///
 /// # Example
 /// ```c
 /// QkDag *dag = qk_dag_new();
