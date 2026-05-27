@@ -18,7 +18,7 @@ use hashbrown::HashMap;
 use indexmap::IndexMap;
 use pyo3::prelude::*;
 use qiskit_circuit::dag_circuit::{DAGCircuit, Wire};
-use qiskit_circuit::operations::{OperationRef, StandardInstruction};
+use qiskit_circuit::operations::{OperationRef, PyInstruction, PyOpKind, StandardInstruction};
 use qiskit_circuit::{Clbit, Qubit};
 use rustworkx_core::petgraph::prelude::NodeIndex;
 
@@ -73,8 +73,10 @@ pub fn run_alap_schedule_analysis<T: TimeOps>(
         let op_view = op.op.view();
         let is_gate_or_delay = matches!(
             op_view,
-            OperationRef::Gate(_)
-                | OperationRef::StandardGate(_)
+            OperationRef::PyCustom(PyInstruction {
+                kind: PyOpKind::Gate,
+                ..
+            }) | OperationRef::StandardGate(_)
                 | OperationRef::StandardInstruction(StandardInstruction::Delay(_))
         );
 
