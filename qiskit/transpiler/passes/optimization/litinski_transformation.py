@@ -24,8 +24,10 @@ class LitinskiTransformation(TransformationPass):
     The transform applies to a circuit containing Clifford, single-qubit :math:`R_Z`-rotation,
     :math:`R_X`-rotation and :math:`R_Y`-rotation gates,
     (including :math:`T` and :math:`T^\dagger`), Pauli product rotations, Pauli product measurements,
-    and standard :math:`Z`-measurements. The transform moves
-    Clifford gates to the end of the circuit. In the process, it transforms :math:`R_Z`-rotations,
+    and standard :math:`Z`-measurements.
+    The transform moves Clifford gates to the end of the circuit, inlcuding single-qubit rotation gates,
+    Pauli product rotations and Pauli product measurements, whose angle is a multiple of :math:`\pi/2`.
+    In the process, it transforms :math:`R_Z`-rotations,
     :math:`R_X`-rotation and :math:`R_Y`-rotation gates to
     Pauli product rotations, and :math:`Z`-measurements to Pauli product measurements.
 
@@ -39,8 +41,8 @@ class LitinskiTransformation(TransformationPass):
     ``["id", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg", "cx", "cz", "cy",
     "swap","iswap", "ecr", "dcx"]``
 
-    As well as the rotation gates above with angles that are integral multiples of :math:`pi/2`
-    (which are also Clifford).
+    In addition, the rotation gates above with angles that are integral multiples of :math:`pi/2`
+    within the given tolerance are also considered Clifford.
 
 
     Example:
@@ -64,8 +66,11 @@ class LitinskiTransformation(TransformationPass):
         qc.rz(1.23, 0)
         qc.cx(0, 1)
         qc.t(1)
+        qc.compose(PauliProductRotationGate(Pauli("XY"), 0.456), [1, 2], inplace=True)
         qc.cx(1, 2)
+        qc.append(PauliProductMeasurement(Pauli("ZX")), [0, 1], [0])
         qc.measure(2, 0)
+
 
         pbc = pm.run(qc)
 
