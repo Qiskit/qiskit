@@ -113,6 +113,7 @@ impl Clifford {
     }
 
     /// Modifies the tableau in-place by appending S-gate
+    #[inline]
     pub fn append_s(&mut self, qubit: usize) {
         self.scratch.clone_from(&self.tableau[qubit]);
         self.scratch &= &self.tableau[qubit + self.num_qubits];
@@ -122,6 +123,7 @@ impl Clifford {
     }
 
     /// Modifies the tableau in-place by appending Sdg-gate
+    #[inline]
     pub fn append_sdg(&mut self, qubit: usize) {
         let x = &self.tableau[qubit];
         self.scratch
@@ -134,6 +136,7 @@ impl Clifford {
     }
 
     /// Modifies the tableau in-place by appending SX-gate
+    #[inline]
     pub fn append_sx(&mut self, qubit: usize) {
         let x = &self.tableau[qubit];
         let z = &self.tableau[qubit + self.num_qubits];
@@ -146,6 +149,7 @@ impl Clifford {
     }
 
     /// Modifies the tableau in-place by appending SXDG-gate
+    #[inline]
     pub fn append_sxdg(&mut self, qubit: usize) {
         self.scratch.clone_from(&self.tableau[qubit]);
         self.scratch &= &self.tableau[qubit + self.num_qubits];
@@ -155,6 +159,7 @@ impl Clifford {
     }
 
     /// Modifies the tableau in-place by appending H-gate
+    #[inline]
     pub fn append_h(&mut self, qubit: usize) {
         let x = &self.tableau[qubit];
         let z = &self.tableau[qubit + self.num_qubits];
@@ -165,6 +170,7 @@ impl Clifford {
     }
 
     /// Modifies the tableau in-place by appending SWAP-gate
+    #[inline]
     pub fn append_swap(&mut self, qubit0: usize, qubit1: usize) {
         self.tableau.swap(qubit0, qubit1);
         self.tableau
@@ -172,6 +178,7 @@ impl Clifford {
     }
 
     /// Modifies the tableau in-place by appending CX-gate
+    #[inline]
     pub fn append_cx(&mut self, qubit0: usize, qubit1: usize) {
         let x0 = &self.tableau[qubit0];
         let z0 = &self.tableau[qubit0 + self.num_qubits];
@@ -197,6 +204,7 @@ impl Clifford {
     }
 
     /// Modifies the tableau in-place by appending CZ-gate
+    #[inline]
     pub fn append_cz(&mut self, qubit0: usize, qubit1: usize) {
         let x0 = &self.tableau[qubit0];
         let z0 = &self.tableau[qubit0 + self.num_qubits];
@@ -224,6 +232,7 @@ impl Clifford {
 
     /// Modifies the tableau in-place by appending CY-gate
     /// (todo: rewrite using native tableau manipulations)
+    #[inline]
     pub fn append_cy(&mut self, qubit0: usize, qubit1: usize) {
         self.append_sdg(qubit1);
         self.append_cx(qubit0, qubit1);
@@ -231,18 +240,21 @@ impl Clifford {
     }
 
     /// Modifies the tableau in-place by appending X-gate
+    #[inline]
     pub fn append_x(&mut self, qubit: usize) {
         let (lhs, rhs) = self.tableau.split_at_mut(qubit + self.num_qubits + 1);
         *rhs.last_mut().unwrap() ^= lhs.last().unwrap();
     }
 
     /// Modifies the tableau in-place by appending Z-gate
+    #[inline]
     pub fn append_z(&mut self, qubit: usize) {
         let (lhs, rhs) = self.tableau.split_at_mut(qubit + 1);
         *rhs.last_mut().unwrap() ^= lhs.last().unwrap();
     }
 
     /// Modifies the tableau in-place by appending Y-gate
+    #[inline]
     pub fn append_y(&mut self, qubit: usize) {
         self.scratch.clone_from(&self.tableau[qubit]);
         self.scratch ^= &self.tableau[qubit + self.num_qubits];
@@ -251,6 +263,7 @@ impl Clifford {
 
     /// Modifies the tableau in-place by appending iSWAP-gate
     /// (todo: rewrite using native tableau manipulations)
+    #[inline]
     pub fn append_iswap(&mut self, qubit0: usize, qubit1: usize) {
         self.append_s(qubit0);
         self.append_s(qubit1);
@@ -262,6 +275,7 @@ impl Clifford {
 
     /// Modifies the tableau in-place by appending ECR-gate
     /// (todo: rewrite using native tableau manipulations)
+    #[inline]
     pub fn append_ecr(&mut self, qubit0: usize, qubit1: usize) {
         self.append_s(qubit0);
         self.append_sx(qubit1);
@@ -271,6 +285,7 @@ impl Clifford {
 
     /// Modifies the tableau in-place by appending DCX-gate
     /// (todo: rewrite using native tableau manipulations)
+    #[inline]
     pub fn append_dcx(&mut self, qubit0: usize, qubit1: usize) {
         self.append_cx(qubit0, qubit1);
         self.append_cx(qubit1, qubit0);
@@ -278,6 +293,7 @@ impl Clifford {
 
     /// Modifies the tableau in-place by appending V-gate.
     /// This is equivalent to an Sdg gate followed by an H gate.
+    #[inline]
     pub fn append_v(&mut self, qubit: usize) {
         self.scratch.clone_from(&self.tableau[qubit]);
         self.scratch ^= &self.tableau[qubit + self.num_qubits];
@@ -287,6 +303,7 @@ impl Clifford {
 
     /// Modifies the tableau in-place by appending W-gate.
     /// This is equivalent to two V gates.
+    #[inline]
     pub fn append_w(&mut self, qubit: usize) {
         self.scratch.clone_from(&self.tableau[qubit]);
         self.scratch ^= &self.tableau[qubit + self.num_qubits];
@@ -299,6 +316,7 @@ impl Clifford {
     /// Modifies the tableau in-place by appending RZ-gate,
     /// with an angle that is an integer multiple of pi/2
     /// so RZ is necessarily a Clifford gate
+    #[inline]
     pub fn append_rz(&mut self, qubit: usize, multiple: usize) {
         let multiple = multiple.rem_euclid(4);
         match multiple {
@@ -312,6 +330,7 @@ impl Clifford {
     /// Modifies the tableau in-place by appending RX-gate,
     /// with an angle that is an integer multiple of pi/2
     /// so RX is necessarily a Clifford gate
+    #[inline]
     pub fn append_rx(&mut self, qubit: usize, multiple: usize) {
         let multiple = multiple.rem_euclid(4);
         match multiple {
@@ -325,6 +344,7 @@ impl Clifford {
     /// Modifies the tableau in-place by appending RY-gate,
     /// with an angle that is an integer multiple of pi/2
     /// so RY is necessarily a Clifford gate
+    #[inline]
     pub fn append_ry(&mut self, qubit: usize, multiple: usize) {
         let multiple = multiple.rem_euclid(4);
         match multiple {
@@ -353,6 +373,7 @@ impl Clifford {
     /// central rotation on the first qubit.
     ///
     /// Note: this function assumes that the Pauli is sparse with no "I" terms
+    #[inline]
     fn _append_initial_part_ppr(&mut self, new_z: &[bool], new_x: &[bool], new_indices: &[u32]) {
         // initial H or SX gates (in case of pauli X or pauli Y respectively)
         for qubit in 0..new_indices.len() {
@@ -383,6 +404,7 @@ impl Clifford {
     /// - Y basis: apply SXdg gate
     ///
     /// Note: this function assumes that the Pauli is sparse with no "I" terms
+    #[inline]
     fn _append_final_part_ppr(&mut self, new_z: &[bool], new_x: &[bool], new_indices: &[u32]) {
         // CX ladder
         if new_indices.len() > 1 {
@@ -418,7 +440,7 @@ impl Clifford {
         self._append_initial_part_ppr(&new_z, &new_x, &new_indices);
 
         // internal RZ gate
-        if let Some(&idx) = new_indices.get(0) {
+        if let Some(&idx) = new_indices.first() {
             match multiple {
                 0 => {}
                 1 => self.append_s(idx as usize),
@@ -443,7 +465,7 @@ impl Clifford {
         // remove pauli I terms
         let (new_z, new_x, new_indices) = remove_id_terms_from_pauli(in_z, in_x, indices_in);
 
-        if let Some(&idx) = new_indices.get(0) {
+        if let Some(&idx) = new_indices.first() {
             self._append_initial_part_ppr(&new_z, &new_x, &new_indices);
 
             // internal RZ gate
