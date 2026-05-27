@@ -2303,24 +2303,17 @@ impl SymbolExpr {
                                         SymbolExpr::Value(lv / rv),
                                         _div(l_rhs.as_ref().clone(), r_rhs.as_ref().clone()),
                                     )),
-                                    (BinaryOp::Mul, BinaryOp::Div) => Some(_div(
-                                        _mul(
-                                            _mul(l_lhs.as_ref().clone(), l_rhs.as_ref().clone()),
-                                            r_rhs.as_ref().clone(),
-                                        ),
-                                        r_lhs.as_ref().clone(),
+                                    (BinaryOp::Mul, BinaryOp::Div) => Some(_mul(
+                                        SymbolExpr::Value(lv / rv),
+                                        _mul(r_rhs.as_ref().clone(), l_rhs.as_ref().clone()),
                                     )),
                                     (BinaryOp::Div, BinaryOp::Mul) => Some(_div(
-                                        l_lhs.as_ref().clone(),
-                                        _mul(
-                                            _mul(l_rhs.as_ref().clone(), r_lhs.as_ref().clone()),
-                                            r_rhs.as_ref().clone(),
-                                        ),
+                                        SymbolExpr::Value(lv / rv),
+                                        _mul(r_rhs.as_ref().clone(), l_rhs.as_ref().clone()),
                                     )),
-                                    (BinaryOp::Div, BinaryOp::Div) => Some(_div(
-                                        _mul(l_lhs.as_ref().clone(), r_rhs.as_ref().clone()),
-                                        // SymbolExpr::Value(lv / rv),
-                                        _mul(l_rhs.as_ref().clone(), SymbolExpr::Value(*rv)),
+                                    (BinaryOp::Div, BinaryOp::Div) => Some(_mul(
+                                        SymbolExpr::Value(lv / rv),
+                                        _div(r_rhs.as_ref().clone(), l_rhs.as_ref().clone()),
                                     )),
                                     (_, _) => None,
                                 },
