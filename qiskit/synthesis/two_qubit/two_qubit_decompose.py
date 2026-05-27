@@ -56,7 +56,7 @@ from qiskit.utils import deprecate_func
 from qiskit._accelerate import two_qubit_decompose
 
 if TYPE_CHECKING:
-    from qiskit.dagcircuit import DAGCircuit, DAGOpNode
+    from qiskit.dagcircuit import DAGCircuit
 
 logger = logging.getLogger(__name__)
 
