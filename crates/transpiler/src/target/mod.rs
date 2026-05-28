@@ -30,7 +30,6 @@ use hashbrown::HashMap;
 use hashbrown::HashSet;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use pulp::Simd;
 use pyo3::{
     IntoPyObjectExt,
     exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError},
@@ -1679,16 +1678,6 @@ where
     obj.eq(other.into_bound_py_any(py)?)
 }
 
-#[pulp::with_simd(fast_product = pulp::Arch::new())]
-#[inline(always)]
-fn fast_product_with_simd<S: Simd>(simd: S, values: &[f64]) -> f64 {
-    let (head, tail) = S::as_simd_f64s(values);
-    let product: f64 = head
-        .iter()
-        .fold(1., |acc, chunk| acc * simd.reduce_product_f64s(*chunk));
-    product * tail.iter().product::<f64>()
-}
-
 /// Estimate the fidelity of a circuit by taking the product of the error rates
 ///
 /// It is assumed that calling this function the circuit is already physical (already transpiled)
@@ -1719,7 +1708,7 @@ pub fn py_estimate_fidelity(circuit: &PyCircuitData, target: &Target) -> Option<
 ///
 /// The estimated fidelity. If any operation can't be found in the target it will return None.
 pub fn estimate_fidelity(circuit: &CircuitData, target: &Target) -> Option<f64> {
-    let errors: Option<Vec<f64>> = circuit
+    circuit
         .data()
         .iter()
         .filter(|inst| !inst.op.directive())
@@ -1735,8 +1724,7 @@ pub fn estimate_fidelity(circuit: &CircuitData, target: &Target) -> Option<f64> 
             let error = props.error.unwrap_or(0.);
             Some(1. - error)
         })
-        .collect();
-    errors.map(|errors| fast_product(&errors))
+        .product()
 }
 
 pub fn target(m: &Bound<PyModule>) -> PyResult<()> {

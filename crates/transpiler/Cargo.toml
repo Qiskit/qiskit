@@ -33,10 +33,6 @@ fixedbitset.workspace = true
 anyhow.workspace = true
 thread_local = "1.1"
 
-[dependencies.pulp]
-workspace = true
-features = ["macro"]
-
 [dependencies.uuid]
 workspace = true
 features = ["v4", "fast-rng"]
