@@ -505,10 +505,10 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
     def add_pending_loop_var(self, var: expr.Var):
         """Register a loop variable that should only become a declared local var on first use.
 
-        This mirrors how `_vars_capture` is populated lazily by :meth:`use_var`: the variable
+        This mirrors how `_vars_capture` is populated lazily by `use_var` the variable
         is in scope for resolution, but only emitted into the built body if actually referenced
-        in a classical expression. Used by :class:`ForLoopContext` when auto-generating a loop
-        :class:`~.expr.Var` so that an unused auto-generated variable is dropped, matching the
+        in a classical expression. Used by `ForLoopContext` when auto-generating a loop
+        `~.expr.Var so that an unused auto-generated variable is dropped, matching the
         existing behavior for auto-generated :class:`~.Parameter` loop variables.
         """
         if self._built:
