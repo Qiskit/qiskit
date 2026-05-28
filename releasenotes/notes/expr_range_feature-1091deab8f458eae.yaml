@@ -71,7 +71,7 @@ features_circuits:
 
 features_transpiler:
   - |
-    :class:`~qiskit.transpiler.passes.UnrollForLoops` now supports
+    The transpiler pass :class:`~qiskit.transpiler.passes.UnrollForLoops` now supports
     :class:`~qiskit.circuit.ForLoopOp` instructions whose ``indexset`` is a
     **constant** :class:`~qiskit.circuit.classical.expr.Range`. The pass calls
     :meth:`~qiskit.circuit.classical.expr.Range.values` to materialize the bounds
