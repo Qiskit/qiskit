@@ -979,6 +979,15 @@ def generate_delay_stretch():
     stretch_expr.delay(expr.sub(Duration.ns(3.14159), stretch), 0)
     return [stretch_expr]
 
+def generate_pauli_product_measurement():
+    """Circuits that contain a Pauli Product Measurement gate"""
+    from qiskit.circuit.library import PauliProductMeasurement
+    from qiskit.quantum_info import Pauli
+
+    ppm = PauliProductMeasurement(Pauli("ZXY"))
+    qc = QuantumCircuit(ppm.num_qubits, ppm.num_clbits)
+    qc.append(ppm, range(ppm.num_qubits), range(ppm.num_clbits))
+    return [qc]
 
 def generate_circuits(
     generating_version, current_version, load_context=False, qpy_version=None, forward_tests=False
@@ -1063,6 +1072,10 @@ def generate_circuits(
         output_circuits["v14_expr.qpy"] = generate_v14_expr()
         output_circuits["box.qpy"] = generate_box()
         output_circuits["delay_stretch.qpy"] = generate_delay_stretch()
+    
+    if generating_version.release >= (2, 3, 0) and current_version.release >= (2, 3, 0):
+        output_circuits["ppm.qpy"] = generate_pauli_product_measurement()
+
     return output_circuits
 
 
