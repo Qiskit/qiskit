@@ -1731,10 +1731,12 @@ pub fn estimate_fidelity(circuit: &CircuitData, target: &Target) -> Option<f64> 
             // assuming that the circuit is physical so the qubit index is a physical qubit on the
             // target
             let physical_qubits: &[PhysicalQubit] = unsafe { std::mem::transmute(qubits) };
-            target.get_error(inst.op.name(), physical_qubits)
+            let props = target.get_instruction_properties(inst.op.name(), physical_qubits)?;
+            let error = props.error.unwrap_or(0.);
+            Some(1. - error)
         })
         .collect();
-    errors.map(|errors| 1. - fast_product(&errors))
+    errors.map(|errors| fast_product(&errors))
 }
 
 pub fn target(m: &Bound<PyModule>) -> PyResult<()> {
