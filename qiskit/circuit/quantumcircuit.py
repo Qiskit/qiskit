@@ -7748,20 +7748,22 @@ class QuantumCircuit:
         return dur / prefix_dict[unit]
 
     def estimate_fidelity(self, target) -> float | None:
-        """Estimate the fidelity of a physical circuit
+        """Estimate the fidelity of a physical circuit.
 
         This function will compute the product of the error rates for each
         gate in the circuit to estimate the fidelity of the circuit:
 
-        ..math:: 1 - \\prod ^g error(g)
-          :label: error product
+        ..math::
+          :label: estimated circuit fidelity
+          
+          \\prod_{g \\in \\text{gates}} \\bigl(1 - \\operatorname{error}(g)\\bigr)
 
-        where $error(g)$ is the error rate in the target for the instruction $g$ from the circuit
+        where :math:`\\operatorname{error}(g)` is the error rate in the target for the instruction :math:`g` from the circuit
         in the target. If the circuit is not physical, meaning any instruction in the circuit (as
         in operation and qargs) is not found in the target, this will return ``None``. This method is not
         intended to compute a realistic simulation of the fidelity of execution on real hardware. It is
         designed to provide an estimate of how the transpiler would work with the fidelity for various
-        heuristics in it's operation. It is typically only useful for comparing different compilation
+        heuristics in its operation. It is typically only useful for comparing different compilation
         outputs against each other to estimate which one would produce a better quality execution on
         hardware.
 

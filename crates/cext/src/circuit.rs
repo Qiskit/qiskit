@@ -2266,11 +2266,11 @@ pub unsafe extern "C" fn qk_circuit_copy_empty_like(
 ///
 /// This function will compute the product of the error rates for each
 /// gate in the circuit to estimate the fidelity of the circuit. This method is not
-///  intended to compute a realistic simulation of the fidelity of execution on real hardware. It is
-///  designed to provide an estimate of how the transpiler would work with the fidelity for various
-///  heuristics in it's operation. It is typically only useful for comparing different compilation
-///  outputs against each other to estimate which one would produce a better quality execution on
-///  hardware.
+/// intended to compute a realistic simulation of the fidelity of execution on real hardware. It is
+/// designed to provide an estimate of how the transpiler would work with the fidelity for various
+/// heuristics in its operation. It is typically only useful for comparing different compilation
+/// outputs against each other to estimate which one would produce a better quality execution on
+/// hardware.
 ///
 /// @param circuit A pointer to the circuit to copy.
 /// @param target A pointer to the target that the circuit will be executed on. This is
