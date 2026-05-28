@@ -335,9 +335,21 @@ fn pack_pauli_product_measurement(
     // since we won't recreate this gate via python, it's not important to verify the python name is identical to the one we use here
     // so we simply hard-code it instead of going through python
     let gate_class_name = String::from(PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME);
-    let z_values = GenericValue::Tuple(ppm.z.iter().cloned().map(GenericValue::Bool).collect());
-    let x_values = GenericValue::Tuple(ppm.x.iter().cloned().map(GenericValue::Bool).collect());
-    let neg_value = GenericValue::Bool(ppm.neg);
+    let z_values = GenericValue::Tuple(
+        ppm.z
+            .iter()
+            .cloned()
+            .map(|val| GenericValue::Int64(i64::from(val)))
+            .collect(),
+    );
+    let x_values = GenericValue::Tuple(
+        ppm.x
+            .iter()
+            .cloned()
+            .map(|val| GenericValue::Int64(i64::from(val)))
+            .collect(),
+    );
+    let neg_value = GenericValue::Int64(i64::from(ppm.neg));
     let params = vec![
         pack_generic_value(&z_values, qpy_data)?,
         pack_generic_value(&x_values, qpy_data)?,
@@ -366,10 +378,22 @@ fn pack_pauli_product_rotation(
     // since we won't recreate this gate via python, it's not important to verify the python name is identical to the one we use here
     // so we simply hard-code it instead of going through python
     let gate_class_name = String::from(PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME);
-    let z_values =
-        GenericValue::Tuple(rotation.z.iter().cloned().map(GenericValue::Bool).collect());
-    let x_values =
-        GenericValue::Tuple(rotation.x.iter().cloned().map(GenericValue::Bool).collect());
+    let z_values = GenericValue::Tuple(
+        rotation
+            .z
+            .iter()
+            .cloned()
+            .map(|val| GenericValue::Int64(i64::from(val)))
+            .collect(),
+    );
+    let x_values = GenericValue::Tuple(
+        rotation
+            .x
+            .iter()
+            .cloned()
+            .map(|val| GenericValue::Int64(i64::from(val)))
+            .collect(),
+    );
     let params = vec![
         pack_generic_value(&z_values, qpy_data)?,
         pack_generic_value(&x_values, qpy_data)?,

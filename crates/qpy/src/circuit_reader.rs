@@ -427,27 +427,44 @@ fn unpack_pauli_product_measurement(
             "Pauli Product Measurement should have exactly 3 parameters".to_string(),
         ));
     }
-    let z = unpack_generic_value(&instruction.params[0], qpy_data, Endian::Little)?
-        .as_typed::<Vec<bool>>()
-        .ok_or_else(|| {
-            QpyError::InvalidParameter(
-                "Pauli product measurement z parameter should be a boolean vector".to_string(),
-            )
-        })?;
-    let x = unpack_generic_value(&instruction.params[1], qpy_data, Endian::Little)?
-        .as_typed::<Vec<bool>>()
-        .ok_or_else(|| {
-            QpyError::InvalidParameter(
-                "Pauli product measurement x parameter should be a boolean vector".to_string(),
-            )
-        })?;
-    let neg = unpack_generic_value(&instruction.params[2], qpy_data, Endian::Little)?
-        .as_typed::<bool>()
-        .ok_or_else(|| {
-            QpyError::InvalidParameter(
-                "Pauli product measurement neg parameter should be a boolean".to_string(),
-            )
-        })?;
+    let z_values = unpack_generic_value(&instruction.params[0], qpy_data, Endian::Big)?;
+    let z: Vec<bool> = z_values
+    .to_vec()
+    .and_then(|values| {
+        values
+            .into_iter()
+            .map(|val| val.as_typed::<bool>())
+            .collect::<Option<Vec<bool>>>()
+    })
+    .ok_or_else(|| {
+        QpyError::InvalidParameter(format!(
+            "Pauli product measurement z parameter should be a boolean or integer vector, but got {:?}",
+            z_values
+        ))
+    })?;
+
+    let x_values = unpack_generic_value(&instruction.params[1], qpy_data, Endian::Big)?;
+    let x: Vec<bool> = x_values
+    .to_vec()
+    .and_then(|values| {
+        values
+            .into_iter()
+            .map(|val| val.as_typed::<bool>())
+            .collect::<Option<Vec<bool>>>()
+    })
+    .ok_or_else(|| {
+        QpyError::InvalidParameter(format!(
+            "Pauli product measurement x parameter should be a boolean or integer vector, but got {:?}",
+            x_values
+        ))
+    })?;
+    let neg_value = unpack_generic_value(&instruction.params[2], qpy_data, Endian::Big)?;
+    let neg = neg_value.as_typed::<bool>().ok_or_else(|| {
+        QpyError::InvalidParameter(format!(
+            "Pauli product measurement neg parameter should be a boolean or integer, but got {:?}",
+            neg_value
+        ))
+    })?;
     let ppm = PauliProductMeasurement { z, x, neg };
     let pbc = Box::new(PauliBased::PauliProductMeasurement(ppm));
     let op = PackedOperation::from_pauli_based(pbc);
