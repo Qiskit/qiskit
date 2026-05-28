@@ -40,7 +40,7 @@ create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
 
 #[derive(Debug, thiserror::Error)]
 pub enum DisjointLayoutError {
-    #[error("")]
+    #[error("Encountered >2 qubit instruction")]
     MultiQEncountered,
     #[error(
         "A connected component of the DAGCircuit is too large for any of the connected components in the coupling map."
