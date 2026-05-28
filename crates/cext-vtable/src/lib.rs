@@ -95,6 +95,8 @@ mod circuit {
             export_fn!(qk_classical_register_borrow_from_python, feature = "python_binding"),
             export_fn!(qk_classical_register_convert_from_python, feature = "python_binding"),
             export_fn!(qk_circuit_draw),
+            export_fn!(qk_circuit_global_phase),
+            export_fn!(qk_circuit_set_global_phase),
         ]
     });
 }
@@ -163,6 +165,8 @@ mod dag {
             export_fn!(qk_dag_convert_from_python, feature = "python_binding"),
             export_fn!(qk_dag_replace_block_with_unitary),
             export_fn!(qk_dag_substitute_node_with_unitary),
+            export_fn!(qk_dag_global_phase),
+            export_fn!(qk_dag_set_global_phase),
         ]
     });
 }
@@ -353,7 +357,6 @@ mod transpiler {
 
         static FUNCTIONS_PASSES: ExportedFunctions = ExportedFunctions::leaves(50, || {
             vec![
-                export_fn!(basis_translator::qk_transpiler_pass_basis_translator),
                 export_fn!(elide_permutations::qk_transpiler_pass_elide_permutations),
                 export_fn!(gate_direction::qk_transpiler_pass_check_gate_direction),
                 export_fn!(gate_direction::qk_transpiler_pass_gate_direction),
