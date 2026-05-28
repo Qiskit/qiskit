@@ -21,13 +21,14 @@ use rand_pcg::Pcg64Mcg;
 use rayon_cond::CondIterator;
 use rustworkx_core::petgraph::graph::NodeIndex;
 
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError};
 use qiskit_circuit::nlayout::NLayout;
 use qiskit_circuit::{BlocksMode, PhysicalQubit, VirtualQubit};
 use qiskit_util::getenv_use_multiple_threads;
 
 use crate::TranspilerError;
 use crate::neighbors::Neighbors;
+use crate::passes::disjoint_layout::DisjointLayoutError;
 use crate::passes::{
     dense_layout,
     disjoint_layout::{self, DisjointSplit},
@@ -38,10 +39,48 @@ use super::dag::SabreDAG;
 use super::heuristic::Heuristic;
 use super::route::{RoutingProblem, RoutingResult, RoutingTarget, swap_map, swap_map_trial};
 
+/// Possible errors from Sabre Layout and routing
+#[derive(Debug, thiserror::Error)]
+pub enum SabreLayoutError {
+    #[error("given 'Target' was not initialized with a qubit count")]
+    TargetNoNumQubit,
+    #[error("partial layouts contained out-of-range physical qubits")]
+    LayoutQubitsOutOfRange,
+    #[error("A custom starting layout assigned virtual qubit {} \
+            to physical qubit {}, which could not be satisfied on \
+            this disjoint QPU.  This might be a bug in Qiskit, or \
+            a bug in a custom transpiler pass that set the partial \
+            layout trials for SabreLayout.", .0.index(), .1.index())]
+    LayoutVirtualToPhys(VirtualQubit, PhysicalQubit),
+    #[error(transparent)]
+    TargetCouplingError(#[from] TargetCouplingError),
+    #[error(transparent)]
+    DisjointLayout(#[from] DisjointLayoutError),
+    #[error(transparent)]
+    DAGCircuit(#[from] DAGError),
+}
+
+impl From<SabreLayoutError> for PyErr {
+    fn from(value: SabreLayoutError) -> Self {
+        match value {
+            SabreLayoutError::TargetNoNumQubit
+            | SabreLayoutError::LayoutQubitsOutOfRange
+            | SabreLayoutError::TargetCouplingError(_) => {
+                TranspilerError::new_err(value.to_string())
+            }
+            SabreLayoutError::DisjointLayout(disjoint_layout_error) => disjoint_layout_error.into(),
+            SabreLayoutError::DAGCircuit(dagerror) => dagerror.into(),
+            SabreLayoutError::LayoutVirtualToPhys(_virtual_qubit, _physical_qubit) => {
+                PyValueError::new_err(value.to_string())
+            }
+        }
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
 #[pyo3(signature = (dag, target, heuristic, max_iterations, num_swap_trials, num_random_trials, seed=None, partial_layouts=vec![], skip_routing=false))]
-pub fn sabre_layout_and_routing(
+pub fn py_sabre_layout_and_routing(
     dag: &mut DAGCircuit,
     target: &Target,
     heuristic: &Heuristic,
@@ -52,10 +91,34 @@ pub fn sabre_layout_and_routing(
     partial_layouts: Vec<Vec<Option<PhysicalQubit>>>,
     skip_routing: bool,
 ) -> PyResult<(DAGCircuit, NLayout, NLayout)> {
+    sabre_layout_and_routing(
+        dag,
+        target,
+        heuristic,
+        max_iterations,
+        num_swap_trials,
+        num_random_trials,
+        seed,
+        partial_layouts,
+        skip_routing,
+    )
+    .map_err(Into::into)
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn sabre_layout_and_routing(
+    dag: &mut DAGCircuit,
+    target: &Target,
+    heuristic: &Heuristic,
+    max_iterations: usize,
+    num_swap_trials: usize,
+    num_random_trials: usize,
+    seed: Option<u64>,
+    partial_layouts: Vec<Vec<Option<PhysicalQubit>>>,
+    skip_routing: bool,
+) -> Result<(DAGCircuit, NLayout, NLayout), SabreLayoutError> {
     let Some(num_physical_qubits) = target.num_qubits else {
-        return Err(TranspilerError::new_err(
-            "given 'Target' was not initialized with a qubit count",
-        ));
+        return Err(SabreLayoutError::TargetNoNumQubit);
     };
     let num_physical_qubits = num_physical_qubits as usize;
     if partial_layouts
@@ -63,9 +126,7 @@ pub fn sabre_layout_and_routing(
         .flatten()
         .any(|q| q.is_some_and(|q| q.index() >= num_physical_qubits))
     {
-        return Err(TranspilerError::new_err(
-            "partial layouts contained out-of-range physical qubits",
-        ));
+        return Err(SabreLayoutError::LayoutQubitsOutOfRange);
     }
     let allow_parallel = getenv_use_multiple_threads();
     let coupling = match target.coupling_graph() {
@@ -77,7 +138,7 @@ pub fn sabre_layout_and_routing(
             return Ok((out, trivial.clone(), trivial));
         }
         Err(e @ TargetCouplingError::MultiQ(_)) => {
-            return Err(TranspilerError::new_err(e.to_string()));
+            return Err(e.into());
         }
     };
     let mut starting_layouts = (0..num_random_trials)
@@ -233,15 +294,7 @@ pub fn sabre_layout_and_routing(
                                 } else {
                                     // TODO: this handling sucks, but it's better than panicking
                                     // later in Sabre routing when nothing makes any sense.
-                                    Err(PyValueError::new_err(format!(
-                                        "A custom starting layout assigned virtual qubit {} \
-                                        to physical qubit {}, which could not be satisfied on \
-                                        this disjoint QPU.  This might be a bug in Qiskit, or \
-                                        a bug in a custom transpiler pass that set the partial \
-                                        layout trials for SabreLayout.",
-                                        v.index(),
-                                        p.index(),
-                                    )))
+                                    Err(SabreLayoutError::LayoutVirtualToPhys(*v, p))
                                 }
                             })
                             .transpose()
@@ -250,7 +303,7 @@ pub fn sabre_layout_and_routing(
                         .virtual_qubits
                         .iter()
                         .map(assigned_physical)
-                        .collect::<PyResult<Vec<_>>>()?;
+                        .collect::<Result<Vec<_>, SabreLayoutError>>()?;
                     starting_layouts.push(mapped_partial);
                 }
                 add_heuristic_layouts(&mut starting_layouts, sub_problem, allow_parallel);
