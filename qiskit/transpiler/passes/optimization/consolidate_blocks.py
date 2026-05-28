@@ -44,8 +44,8 @@ if typing.TYPE_CHECKING:
     from qiskit.circuit.gate import Gate
 
 KAK_GATE_NAMES = {
-    "cx": CXGate(),
     "cz": CZGate(),
+    "cx": CXGate(),
     "iswap": iSwapGate(),
     "ecr": ECRGate(),
 }
