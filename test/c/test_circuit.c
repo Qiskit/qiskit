@@ -1449,8 +1449,9 @@ static int test_estimate_fidelity(void) {
     qk_target_entry_add_property(entry, (uint32_t[]){0}, 1, 0.5, 0.5);
     qk_target_add_instruction(target, entry);
     double fidelity = qk_circuit_estimate_fidelity(qc, target);
-    if (fidelity != (1. - 0.5 * 0.5 * 0.5)) {
-        printf("Expected 0.875 fidelity got %f instead\n", fidelity);
+    double expected = pow(0.5, 3);
+    if (fidelity != expected) {
+        printf("Expected %f fidelity got %f instead\n", expected, fidelity);
         result = EqualityError;
     }
     qk_target_free(target);

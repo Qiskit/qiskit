@@ -1793,8 +1793,9 @@ class TestCircuitOperations(QiskitTestCase):
         qc.x(0)
         qc.x(0)
         qc.x(0)
+        expected = 0.5**3
         fidelity = qc.estimate_fidelity(target)
-        self.assertEqual(fidelity, 0.875)
+        self.assertEqual(fidelity, expected)
 
     def test_estimate_fidelity_with_barrier(self):
         target = Target(num_qubits=1)
@@ -1807,7 +1808,8 @@ class TestCircuitOperations(QiskitTestCase):
         qc.x(0)
         qc.barrier(0)
         fidelity = qc.estimate_fidelity(target)
-        self.assertEqual(fidelity, 0.875)
+        expected = 0.5**3
+        self.assertEqual(fidelity, expected)
 
     def test_estimate_fidelity_non_physical(self):
         target = Target(num_qubits=1)
