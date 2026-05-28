@@ -1714,15 +1714,40 @@ pub fn estimate_fidelity(circuit: &CircuitData, target: &Target) -> Option<f64> 
         .filter(|inst| !inst.op.directive())
         .map(|inst| {
             let qubits = circuit.get_qargs(inst.qubits);
+            let gate_name = inst.op.name();
             // SAFETY: The base type of Qubit and PhysicalQubit are both u32
             // so they are memory compatible. The transmute call lets us treat
             // Qubit qargs as PhysicalQubit qargs directly. This function as documented as
             // assuming that the circuit is physical so the qubit index is a physical qubit on the
             // target
             let physical_qubits: &[PhysicalQubit] = unsafe { std::mem::transmute(qubits) };
-            let props = target.get_instruction_properties(inst.op.name(), physical_qubits)?;
-            let error = props.error.unwrap_or(0.);
-            Some(1. - error)
+            match target.get_instruction_properties(gate_name, physical_qubits) {
+                Some(props) => Some(1. - props.error.unwrap_or(0.)),
+                None => {
+                    // If there is no instruction properties this either is because either the instruction
+                    // isn't supported or it is global and ideal. Check if it's supported then
+                    // treat as ideal, otherwise invalidate the fidelity because the instruction
+                    // isn't supported.
+                    if target.instruction_supported(
+                        gate_name,
+                        physical_qubits,
+                        inst.params_view(),
+                        true,
+                    ) {
+                        // Check that there aren't any instruction properties for a global entry
+                        // (which applies to all valid qargs) otherwise treat as ideal.
+                        if let Some(props) =
+                            target.get_instruction_properties(gate_name, &Qargs::Global)
+                        {
+                            Some(1. - props.error.unwrap_or(0.))
+                        } else {
+                            Some(1.)
+                        }
+                    } else {
+                        None
+                    }
+                }
+            }
         })
         .product()
 }

@@ -30,7 +30,7 @@ from qiskit.circuit.controlflow.switch_case import SwitchCaseOp
 from qiskit.circuit.controlflow.while_loop import WhileLoopOp
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.controlflow import IfElseOp
-from qiskit.circuit.library import CXGate, HGate, XGate, YGate
+from qiskit.circuit.library import CXGate, HGate, XGate, YGate, ZGate, SXGate
 from qiskit.circuit.library.standard_gates import SGate
 from qiskit.circuit.quantumcircuit import BitLocations
 from qiskit.circuit.quantumcircuitdata import CircuitInstruction
@@ -1832,6 +1832,21 @@ class TestCircuitOperations(QiskitTestCase):
             qc.x(0)
         with self.assertRaises(CircuitError):
             qc.estimate_fidelity(target)
+
+    def test_estimate_fidelity_with_ideal_gates(self):
+        target = Target(num_qubits=1)
+        target.add_instruction(XGate(), {(0,): InstructionProperties(error=0.25)})
+        target.add_instruction(YGate(), {(0,): InstructionProperties(error=None)})
+        target.add_instruction(ZGate())
+        target.add_instruction(SXGate(), {None: InstructionProperties(error=0.1)})
+        qc = QuantumCircuit(1)
+        qc.x(0)
+        qc.y(0)
+        qc.z(0)
+        qc.sx(0)
+        expected = 0.75 * 0.9
+        fidelity = qc.estimate_fidelity(target)
+        self.assertEqual(fidelity, expected)
 
 
 class TestCircuitPrivateOperations(QiskitTestCase):
