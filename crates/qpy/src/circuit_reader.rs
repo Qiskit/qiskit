@@ -447,12 +447,25 @@ fn unpack_pauli_product_measurement(
         ))
     })?;
     let neg_value = unpack_generic_value(&instruction.params[2], qpy_data, Endian::Big)?;
-    let neg = neg_value.as_typed::<bool>().ok_or_else(|| {
-        QpyError::InvalidParameter(format!(
-            "Pauli product measurement neg parameter should be a boolean or integer, but got {:?}",
-            neg_value
-        ))
-    })?;
+    let neg = match neg_value {
+        GenericValue::NumpyObject(bytes) => {
+            let npy = NpyFile::new(Cursor::new(&bytes.0))?;
+            let values: Vec<i64> = npy.into_vec()?;
+            let value = *values.first().ok_or_else(|| {
+                QpyError::InvalidParameter(format!(
+                    "Pauli product measurement phase parameter should be a is invalid, got {:?}",
+                    values
+                ))
+            })?;
+            value != 0
+        }
+        _ => neg_value.as_typed::<bool>().ok_or_else(|| {
+                QpyError::InvalidParameter(format!(
+                    "Pauli product measurement neg parameter should be a boolean or integer, but got {:?}",
+                    neg_value
+                ))
+            })?
+    };
     let ppm = PauliProductMeasurement { z, x, neg };
     let pbc = Box::new(PauliBased::PauliProductMeasurement(ppm));
     let op = PackedOperation::from_pauli_based(pbc);

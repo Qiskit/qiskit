@@ -44,6 +44,7 @@ use crate::params::{
 };
 use crate::py_methods::{py_pack_modifier, py_unpack_modifier};
 
+use npyz::NpyFile;
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use std::fmt::Debug;
@@ -373,6 +374,13 @@ impl GenericValue {
                 .iter()
                 .map(|val| val.as_typed::<bool>())
                 .collect::<Option<Vec<bool>>>(),
+            GenericValue::NumpyObject(bytes) => {
+                let npy = NpyFile::new(Cursor::new(&bytes.0)).ok()?;
+                if npy.shape().len() != 1 {
+                    return None;
+                }
+                npy.into_vec().ok()
+            }
             _ => None,
         }
     }
