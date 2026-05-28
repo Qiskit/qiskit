@@ -11,11 +11,9 @@
 // that they have been altered from the originals.
 
 use hashbrown::HashMap;
-use pyo3::prelude::*;
 use rustworkx_core::petgraph::prelude::*;
-use thiserror::Error;
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, NodeType, Wire};
 use qiskit_circuit::operations::ControlFlowView;
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -40,16 +38,16 @@ pub enum InteractionKind {
     ControlFlow(Box<[(SabreDAG, DAGCircuit)]>),
 }
 impl InteractionKind {
-    fn from_control_flow(cf: ControlFlowView<DAGCircuit>) -> Result<Self, SabreDAGError> {
+    fn from_control_flow(cf: ControlFlowView<DAGCircuit>) -> Result<Self, DAGError> {
         let blocks: Box<[_]> = cf
             .blocks()
             .into_iter()
             .map(|dag| Ok((SabreDAG::from_dag(dag)?, dag.clone())))
-            .collect::<Result<_, SabreDAGError>>()?;
+            .collect::<Result<_, DAGError>>()?;
         Ok(Self::ControlFlow(blocks))
     }
 
-    fn from_op(op: &PackedOperation, qargs: &[Qubit]) -> Result<Self, SabreDAGError> {
+    fn from_op(op: &PackedOperation, qargs: &[Qubit]) -> Result<Self, DAGError> {
         if op.directive() {
             return Ok(Self::Synchronize);
         }
@@ -85,19 +83,6 @@ impl SabreNode {
     }
 }
 
-#[derive(Error, Debug)]
-pub enum SabreDAGError {
-    #[error("Python error: {0}")]
-    Python(#[from] PyErr),
-}
-impl From<SabreDAGError> for PyErr {
-    fn from(err: SabreDAGError) -> PyErr {
-        match err {
-            SabreDAGError::Python(err) => err,
-        }
-    }
-}
-
 /// A DAG representation of the logical circuit to be routed.
 ///
 /// This interaction representation retains only information about routing necessities; when
@@ -121,7 +106,7 @@ pub struct SabreDAG {
 }
 
 impl SabreDAG {
-    pub fn from_dag(dag: &DAGCircuit) -> Result<Self, SabreDAGError> {
+    pub fn from_dag(dag: &DAGCircuit) -> Result<Self, DAGError> {
         // The `NodeIndex` here is into `dag`.
         let mut initial = Vec::<NodeIndex>::new();
         let mut sabre = DiGraph::new();
