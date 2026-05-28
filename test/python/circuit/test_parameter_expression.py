@@ -776,3 +776,105 @@ class TestParameterExpression(QiskitTestCase):
         actual_add_value = float(actual_add.data[0].operation.params[0])
 
         self.assertAlmostEqual(actual_add_value, expected_add_value, places=10)
+
+    def test_conjugate_gradient_bug(self):
+        """Test that gradient of conjugate expression is computed correctly.
+
+        Regression test for bug where d/dp conj(f(p)) returned 1.0 instead of
+        the actual derivative f'(p) (assuming real parameters, conj is identity).
+        """
+        import math
+
+        p = Parameter("p")
+        q = Parameter("q")
+
+        # d/dp conj(q) should be 0 (q does not depend on p)
+        expr = q.conjugate()
+        gradient = expr.gradient(p)
+        actual = (
+            float(gradient.bind({p: 1, q: 2})) if hasattr(gradient, "bind") else float(gradient)
+        )
+        self.assertAlmostEqual(actual, 0.0, places=10)
+
+        # d/dp conj(p) should be 1 (conj is identity for real p)
+        expr = p.conjugate()
+        gradient = expr.gradient(p)
+        actual = float(gradient.bind({p: 1})) if hasattr(gradient, "bind") else float(gradient)
+        self.assertAlmostEqual(actual, 1.0, places=10)
+
+        # d/dp conj(2*p + 3) should be 2
+        expr = (2 * p + 3).conjugate()
+        gradient = expr.gradient(p)
+        actual = float(gradient.bind({p: 5})) if hasattr(gradient, "bind") else float(gradient)
+        self.assertAlmostEqual(actual, 2.0, places=10)
+
+        # d/dp (conj(p) + conj(q)) should be 1 (only first term depends on p)
+        expr = p.conjugate() + q.conjugate()
+        gradient = expr.gradient(p)
+        actual = (
+            float(gradient.bind({p: 1, q: 2})) if hasattr(gradient, "bind") else float(gradient)
+        )
+        self.assertAlmostEqual(actual, 1.0, places=10)
+
+    def test_mul_expand_rhs_div_bug(self):
+        """Test that multiplication distributes correctly over division.
+
+        Regression test for bug where expand((A+B)*(p/q)) incorrectly computed
+        (A+B)*p*q instead of (A*p + B*p)/q.
+        """
+        import math
+
+        a = Parameter("a")
+        b = Parameter("b")
+        p = Parameter("p")
+        q = Parameter("q")
+
+        vals = {a: 2, b: 3, p: 5, q: 7}
+
+        # (a+b)*(p/q) should give a*p/q + b*p/q
+        expr = (a + b) * (p / q)
+        expected = float((a * p / q + b * p / q).bind(vals))
+        actual = float(expr.bind(vals))
+        self.assertAlmostEqual(actual, expected, places=10)
+
+        # sin((a+b)*(p/q)) - sin(a*p*q + b*p*q) must NOT be zero
+        # (the bug caused these to incorrectly simplify to 0)
+        wrong = (a * p * q + b * p * q).sin()
+        combined = expr.sin() - wrong
+        combined_val = float(combined.bind(vals))
+        expected_val = math.sin(float(expr.bind(vals))) - math.sin(
+            float((a * p * q + b * p * q).bind(vals))
+        )
+        self.assertAlmostEqual(combined_val, expected_val, places=10)
+        self.assertNotAlmostEqual(combined_val, 0.0, places=5)
+
+    def test_mul_expand_self_div_bug(self):
+        """Test that (A/b)*v expands correctly to A*v/b.
+
+        Regression test for bug where mul_expand((A/b)*v) incorrectly computed
+        A/(v*b) instead of A*v/b.
+        """
+        import math
+
+        p = Parameter("p")
+        q = Parameter("q")
+        a = Parameter("a")
+
+        vals = {p: 1, q: 2, a: 1}
+
+        # ((2.0*p + 2.0*q)/a) * 6.0 = 12*(p+q)/a
+        # ((p + q)/a) * 3.0 = 3*(p+q)/a
+        # These are different; their sins must NOT simplify to 0
+        e1 = ((2.0 * p + 2.0 * q) / a) * 6.0
+        e2 = ((p + q) / a) * 3.0
+
+        e1_val = float(e1.bind(vals))
+        e2_val = float(e2.bind(vals))
+        self.assertAlmostEqual(e1_val, 36.0, places=10)
+        self.assertAlmostEqual(e2_val, 9.0, places=10)
+
+        combined = e1.sin() - e2.sin()
+        combined_val = float(combined.bind(vals))
+        expected_val = math.sin(e1_val) - math.sin(e2_val)
+        self.assertAlmostEqual(combined_val, expected_val, places=10)
+        self.assertNotAlmostEqual(combined_val, 0.0, places=5)

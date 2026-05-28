@@ -526,7 +526,7 @@ impl SymbolExpr {
                     }
                     UnaryOp::Conj => {
                         // we assume real parameters, hence Conj acts as identity
-                        Ok(SymbolExpr::Value(Value::Real(1.0)))
+                        Ok(expr_d)
                     }
                 }
             }
@@ -2022,13 +2022,13 @@ impl SymbolExpr {
             }
             if let BinaryOp::Div = &rop {
                 return match self.mul_expand(r_lhs) {
-                    Some(e) => match e.mul_expand(r_rhs) {
+                    Some(e) => match e.div_expand(r_rhs) {
                         Some(ee) => Some(ee),
-                        None => Some(_mul(e, r_rhs.as_ref().clone())),
+                        None => Some(_div(e, r_rhs.as_ref().clone())),
                     },
                     None => self
                         .div_expand(r_rhs)
-                        .map(|e| _div(e, r_lhs.as_ref().clone())),
+                        .map(|e| _mul(e, r_lhs.as_ref().clone())),
                 };
             }
         }
@@ -2119,8 +2119,11 @@ impl SymbolExpr {
                         None => None,
                     },
                 },
-                BinaryOp::Div => match l_lhs.div_expand(rhs) {
-                    Some(e) => Some(_div(e, l_rhs.as_ref().clone())),
+                BinaryOp::Div => match l_lhs.mul_expand(rhs) {
+                    Some(e) => match e.div_expand(l_rhs) {
+                        Some(ee) => Some(ee),
+                        None => Some(_div(e, l_rhs.as_ref().clone())),
+                    },
                     None => l_rhs
                         .div_expand(rhs)
                         .map(|e| _div(l_lhs.as_ref().clone(), e)),
