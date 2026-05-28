@@ -71,3 +71,14 @@ generated documentation. The available "rules" within the list are:
   export a function in more than one vtable).
 
 You can specify more than one attribute by separating them with commas.
+
+
+## Viewing the concrete vtable
+
+Use the `show-slots` command, such as
+
+```bash
+cargo run -p qiskit-bindgen-cli -- show-slots
+```
+
+This prints out a complete listing of the exported slots in terms of the function names.
