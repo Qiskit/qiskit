@@ -12,6 +12,8 @@
 
 use super::blocks::{Block, Entanglement};
 use pyo3::prelude::*;
+use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
+use qiskit_circuit::parameter::symbol_expr::{Symbol, SymbolExpr};
 use qiskit_circuit::{imports, operations::Param};
 use thiserror::Error;
 
@@ -42,7 +44,7 @@ pub(super) type LayerParameters<'a> = Vec<BlockParameters<'a>>; // parameter in 
 ///     let params_in_that_layer: LayerParameters =
 ///         ledger.get_parameter(LayerType::Rotation, layer);
 ///
-pub(super) struct ParameterLedger {
+pub struct ParameterLedger {
     parameter_vector: Vec<Param>, // all parameters
     rotation_indices: Vec<usize>, // indices where rotation blocks start
     entangle_indices: Vec<usize>,
@@ -182,7 +184,14 @@ impl LedgerBuilder for ParameterLedgerBuilder {
         parameter_prefix: &String,
         num_parameters: usize,
     ) -> Result<Vec<Param>, ParameterLedgerError> {
-        Ok(Vec::with_capacity(num_parameters))
+        Ok((0..num_parameters)
+            .map(|_| {
+                Param::ParameterExpression(
+                    ParameterExpression::from_symbol(Symbol::new(parameter_prefix, None, None))
+                        .into(),
+                )
+            })
+            .collect())
     }
 }
 
