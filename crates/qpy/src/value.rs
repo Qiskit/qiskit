@@ -42,9 +42,7 @@ use crate::params::{
     pack_parameter_expression, pack_parameter_vector, pack_symbol, unpack_parameter_expression,
     unpack_parameter_vector, unpack_symbol,
 };
-use crate::py_methods::{
-    py_deserialize_numpy_object, py_pack_modifier, py_serialize_numpy_object, py_unpack_modifier,
-};
+use crate::py_methods::{py_pack_modifier, py_unpack_modifier};
 
 use num_bigint::BigUint;
 use num_complex::Complex64;
@@ -305,7 +303,7 @@ pub enum GenericValue {
     Register(ParamRegisterValue), // This is not the full register data; rather, it's the name stored inside instructions, or a clbit address
     Range(PyRange),
     Tuple(Vec<GenericValue>),
-    NumpyObject(Py<PyAny>), // currently we store the python object without converting it to rust space
+    NumpyObject(Bytes),
     ParameterExpressionSymbol(Symbol),
     ParameterExpressionVectorSymbol(Symbol),
     ParameterExpression(Arc<ParameterExpression>),
@@ -365,6 +363,16 @@ impl GenericValue {
     pub(crate) fn to_vec(&self) -> Option<Vec<GenericValue>> {
         match self {
             GenericValue::Tuple(elements) => Some(elements.clone()),
+            _ => None,
+        }
+    }
+    // boolean vectors are tricky since there are several ways to encode them
+    pub(crate) fn to_boolean_vec(&self) -> Option<Vec<bool>> {
+        match self {
+            GenericValue::Tuple(elements) => elements
+                .iter()
+                .map(|val| val.as_typed::<bool>())
+                .collect::<Option<Vec<bool>>>(),
             _ => None,
         }
     }
@@ -490,8 +498,8 @@ pub(crate) fn load_value(
             Ok(GenericValue::Tuple(values))
         }
         ValueType::NumpyObject => {
-            let py_object = py_deserialize_numpy_object(bytes)?;
-            Ok(GenericValue::NumpyObject(py_object))
+            // let py_object = py_deserialize_numpy_object(bytes)?;
+            Ok(GenericValue::NumpyObject(bytes.clone()))
         }
         ValueType::Modifier => {
             let (modifier_pack, _) = deserialize::<formats::ModifierPack>(bytes)?;
@@ -605,9 +613,7 @@ pub(crate) fn serialize_generic_value(
             let serialized_circuit = serialize(&packed_circuit)?;
             Ok((ValueType::Circuit, serialized_circuit))
         })?,
-        GenericValue::NumpyObject(py_obj) => {
-            (ValueType::NumpyObject, py_serialize_numpy_object(py_obj)?)
-        }
+        GenericValue::NumpyObject(bytes) => (ValueType::NumpyObject, bytes.clone()),
         GenericValue::Range(py_range) => {
             let start = py_range.start as i64;
             let stop = py_range.stop as i64;

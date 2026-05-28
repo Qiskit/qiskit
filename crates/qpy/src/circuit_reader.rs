@@ -23,7 +23,7 @@ use binrw::Endian;
 use hashbrown::HashMap;
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use numpy::{IntoPyArray, PyReadonlyArray2};
+use numpy::IntoPyArray;
 use pyo3::IntoPyObjectExt;
 use pyo3::intern;
 use pyo3::prelude::*;
@@ -78,6 +78,10 @@ use crate::value::{
     QPYReadData, RegisterType, ValueType, deserialize_with_args, load_param_register_value,
     load_value, unpack_duration_value, unpack_generic_value,
 };
+
+use ndarray::Array2;
+use npyz::NpyFile;
+use std::io::Cursor;
 
 // This is a helper struct, designed to pass data within methods
 // It is not meant to be serialized, so it's not in formats.rs
@@ -428,15 +432,7 @@ fn unpack_pauli_product_measurement(
         ));
     }
     let z_values = unpack_generic_value(&instruction.params[0], qpy_data, Endian::Big)?;
-    let z: Vec<bool> = z_values
-    .to_vec()
-    .and_then(|values| {
-        values
-            .into_iter()
-            .map(|val| val.as_typed::<bool>())
-            .collect::<Option<Vec<bool>>>()
-    })
-    .ok_or_else(|| {
+    let z: Vec<bool> = z_values.to_boolean_vec().ok_or_else(|| {
         QpyError::InvalidParameter(format!(
             "Pauli product measurement z parameter should be a boolean or integer vector, but got {:?}",
             z_values
@@ -444,15 +440,7 @@ fn unpack_pauli_product_measurement(
     })?;
 
     let x_values = unpack_generic_value(&instruction.params[1], qpy_data, Endian::Big)?;
-    let x: Vec<bool> = x_values
-    .to_vec()
-    .and_then(|values| {
-        values
-            .into_iter()
-            .map(|val| val.as_typed::<bool>())
-            .collect::<Option<Vec<bool>>>()
-    })
-    .ok_or_else(|| {
+    let x: Vec<bool> = x_values.to_boolean_vec().ok_or_else(|| {
         QpyError::InvalidParameter(format!(
             "Pauli product measurement x parameter should be a boolean or integer vector, but got {:?}",
             x_values
@@ -481,20 +469,18 @@ fn unpack_pauli_product_rotation(
             "No matrix for unitary op".to_string(),
         ));
     }
-    let z = unpack_generic_value(&instruction.params[0], qpy_data, Endian::Little)?
-        .as_typed::<Vec<bool>>()
-        .ok_or_else(|| {
-            QpyError::InvalidParameter(
-                "Pauli product measurement z parameter should be a boolean vector".to_string(),
-            )
-        })?;
-    let x = unpack_generic_value(&instruction.params[1], qpy_data, Endian::Little)?
-        .as_typed::<Vec<bool>>()
-        .ok_or_else(|| {
-            QpyError::InvalidParameter(
-                "Pauli product measurement x parameter should be a boolean vector".to_string(),
-            )
-        })?;
+    let z_values = unpack_generic_value(&instruction.params[0], qpy_data, Endian::Big)?;
+    let z = z_values.to_boolean_vec().ok_or_else(|| {
+        QpyError::InvalidParameter(
+            "Pauli product measurement z parameter should be a boolean vector".to_string(),
+        )
+    })?;
+    let x_values = unpack_generic_value(&instruction.params[1], qpy_data, Endian::Big)?;
+    let x = x_values.to_boolean_vec().ok_or_else(|| {
+        QpyError::InvalidParameter(
+            "Pauli product measurement x parameter should be a boolean vector".to_string(),
+        )
+    })?;
     let angle_value = unpack_generic_value(&instruction.params[2], qpy_data, Endian::Little)?;
     let angle = generic_value_to_param(&angle_value)?;
     let rotation = PauliProductRotation { z, x, angle };
@@ -508,17 +494,29 @@ fn unpack_unitary(
     instruction: &formats::CircuitInstructionV2Pack,
     qpy_data: &mut QPYReadData,
 ) -> Result<(PackedOperation, Vec<GenericValue>), QpyError> {
-    let GenericValue::NumpyObject(py_matrix) =
+    let GenericValue::NumpyObject(bytes) =
         unpack_generic_value(&instruction.params[0], qpy_data, Endian::Little)?
     else {
         return Err(QpyError::InvalidParameter(
             "No matrix for unitary op".to_string(),
         ));
     };
-    let matrix = Python::attach(|py| -> PyResult<_> {
-        let extracted_matrix = py_matrix.extract::<PyReadonlyArray2<Complex64>>(py)?;
-        Ok(extracted_matrix.as_array().to_owned())
-    })?;
+    let npy = NpyFile::new(Cursor::new(bytes.0))?;
+    let shape = npy.shape().to_vec();
+
+    if shape.len() != 2 {
+        return Err(QpyError::InvalidParameter(
+            "Invalid matrix for unitary op".to_string(),
+        ));
+    }
+
+    let rows = shape[0];
+    let cols = shape[1];
+
+    let data: Vec<Complex64> = npy.into_vec()?;
+
+    let matrix = Array2::from_shape_vec((rows as usize, cols as usize), data)
+        .map_err(|_| QpyError::InvalidParameter("Invalid matrix for unitary op".to_string()))?;
     let array = ArrayType::NDArray(matrix); // TODO: use 1 and 2 qubit matrices whenever possible
     let unitary = UnitaryGate { array };
     let op = PackedOperation::from_unitary(Box::new(unitary));
