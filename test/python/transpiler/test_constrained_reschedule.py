@@ -16,7 +16,11 @@ import unittest
 
 from qiskit import QuantumCircuit
 from qiskit.transpiler import InstructionDurations
-from qiskit.transpiler.passes import ASAPScheduleAnalysis, ConstrainedReschedule
+from qiskit.transpiler.passes import (
+    ASAPScheduleAnalysis,
+    ConstrainedReschedule,
+    ALAPScheduleAnalysis,
+)
 from qiskit.transpiler.passmanager import PassManager
 
 from test import QiskitTestCase
