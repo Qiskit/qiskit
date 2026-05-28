@@ -16,7 +16,7 @@ from collections.abc import Iterable
 from typing import Generic
 
 from .compilation_status import WorkflowStatus, PropertySet
-from .base_tasks import Task, IR, IR_OUT, Callback, PassManagerState
+from .base_tasks import AnalysisTask, Task, IR, IR_OUT, Callback, PassManagerState
 from .optimization_pm import OptimizationPassManager
 
 
@@ -27,8 +27,8 @@ class LoweringPassManager(Task[IR, IR_OUT], Generic[IR, IR_OUT]):
         self,
         lowering: Task[IR, IR_OUT],
         *,
-        pre: Iterable[Task[IR, IR]] | None = None,
-        post: Iterable[Task[IR_OUT, IR_OUT]] | None = None,
+        pre: Iterable[Task[IR, IR] | AnalysisTask[IR]] | None = None,
+        post: Iterable[Task[IR_OUT, IR_OUT] | AnalysisTask[IR_OUT]] | None = None,
     ) -> None:
         self._lowering = lowering
         self._pre = OptimizationPassManager(pre)

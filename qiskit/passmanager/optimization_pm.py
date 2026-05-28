@@ -16,14 +16,14 @@ from collections.abc import Iterable
 from typing import Generic
 
 from .compilation_status import WorkflowStatus, PropertySet
-from .base_tasks import Task, IR, Callback, PassManagerState
+from .base_tasks import AnalysisTask, Task, IR, Callback, PassManagerState
 from .exceptions import PassManagerError
 
 
 class OptimizationPassManager(Task[IR, IR], Generic[IR]):
     """Execute a series of tasks, remaining in a single IR."""
 
-    def __init__(self, tasks: Iterable[Task[IR, IR]] | None) -> None:
+    def __init__(self, tasks: Iterable[Task[IR, IR] | AnalysisTask[IR]] | None) -> None:
         """
         Args:
             tasks: The tasks to run in the pass manager. These must preserve the IR as in- and
@@ -38,7 +38,15 @@ class OptimizationPassManager(Task[IR, IR], Generic[IR]):
         self, passmanager_ir: IR, state: PassManagerState, callback: Callback[IR] | None = None
     ) -> tuple[IR, PassManagerState]:
         for task in self._tasks:
-            passmanager_ir, state = task.execute(passmanager_ir, state, callback)
+            # TODO The instance check here is not for free, and it would be more performant
+            # to have AnalysisTask.execute just return the passmanager_ir unchanged too
+            # -- at the cost of an interface that does not clarify that the analysis should not
+            # change the IR.
+            if isinstance(task, AnalysisTask):
+                state = task.execute(passmanager_ir, state, callback)
+            else:
+                passmanager_ir, state = task.execute(passmanager_ir, state, callback)
+
         return passmanager_ir, state
 
     def run(
@@ -72,13 +80,13 @@ class OptimizationPassManager(Task[IR, IR], Generic[IR]):
         return self.execute(in_programs, state, callback)[0]
 
     @property
-    def tasks(self) -> list[Task[IR, IR]]:
+    def tasks(self) -> list[Task[IR, IR] | AnalysisTask[IR]]:
         """The tasks run in the pass manager."""
         return self._tasks
 
     def append(
         self,
-        tasks: Task[IR, IR] | Iterable[Task[IR, IR]],
+        tasks: Task[IR, IR] | AnalysisTask[IR] | Iterable[Task[IR, IR] | AnalysisTask[IR]],
     ) -> None:
         """Append tasks to the schedule of passes.
 
@@ -88,9 +96,9 @@ class OptimizationPassManager(Task[IR, IR], Generic[IR]):
         Raises:
             TypeError: When any element of tasks is not a subclass of passmanager Task.
         """
-        if isinstance(tasks, Task):
+        if not isinstance(tasks, Iterable):
             tasks = [tasks]
-        if any(not isinstance(t, Task) for t in tasks):
+        if any(not isinstance(t, (Task, AnalysisTask)) for t in tasks):
             raise TypeError("Added tasks are not all valid pass manager task types.")
 
         self._tasks.extend(tasks)
@@ -98,7 +106,7 @@ class OptimizationPassManager(Task[IR, IR], Generic[IR]):
     def replace(
         self,
         index: int,
-        tasks: Task[IR, IR] | Iterable[Task[IR, IR]],
+        tasks: Task[IR, IR] | AnalysisTask[IR] | Iterable[Task[IR, IR] | AnalysisTask[IR]],
     ) -> None:
         """Replace a particular task in the pass manager.
 

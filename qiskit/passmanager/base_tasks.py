@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Base classes for the Qiskit passmanager optimization tasks."""
+
 from __future__ import annotations
 
 import logging
@@ -40,7 +41,13 @@ class Task(ABC, Generic[IR, IR_OUT]):
 
     .. code-block:: python
 
-        def callback(task: Task, ir: IR, property_set: PropertySet, running_time: float, count: int):
+        def callback(
+            task: Task,
+            passmanager_ir: IR_OUT,
+            property_set: PropertySet,
+            running_time: float,
+            count: int
+        ):
             ...
 
     where ``count`` is the number of tasks executed up to this point.
@@ -65,8 +72,53 @@ class Task(ABC, Generic[IR, IR_OUT]):
         """
 
 
+class AnalysisTask(ABC, Generic[IR]):
+    """An interface of the pass manager analysis task.
+
+    An analysis task takes an IR as input and performs an analysis on it.
+    The task obtains a context in form of a :class:`.PassManagerState`, which contains
+    a :class:`.PropertySet` to store the analyzed data.
+
+    The analysis task is expected to call an optionally provided callback after each atomic
+    operation. The signature is
+
+    .. code-block:: python
+
+        def callback(
+            task: AnalysisTask,
+            passmanager_ir: IR,
+            property_set: PropertySet,
+            running_time: float,
+            count: int
+        ):
+            ...
+
+    where ``count`` is the number of tasks executed up to this point.
+    """
+
+    @abstractmethod
+    def execute(
+        self,
+        passmanager_ir: IR,
+        state: PassManagerState,
+        callback: Callable[[AnalysisTask, IR, PropertySet, float, int], None] | None = None,
+    ) -> PassManagerState:
+        """Execute the analysis task.
+
+        Args:
+            passmanager_ir: The input program.
+            state: State associated with workflow execution by the pass manager itself.
+            callback: A callback function which is called per execution of task.
+
+        Returns:
+            The new context state.
+        """
+
+
 # We can only define this type alias after Task has been defined.
-Callback: TypeAlias = Callable[[Task, IR_OUT, PropertySet, float, int], None]
+Callback: TypeAlias = Callable[
+    [Task[Any, IR] | AnalysisTask[IR], IR, PropertySet, float, int], None
+]
 
 
 class GenericPass(Task[IR, IR_OUT], ABC, Generic[IR, IR_OUT]):

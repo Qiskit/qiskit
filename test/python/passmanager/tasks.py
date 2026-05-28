@@ -21,7 +21,7 @@ from qiskit.circuit import QuantumCircuit, Barrier
 from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager.compilation_status import PassManagerState, PropertySet
-from qiskit.passmanager.base_tasks import Task, IR, IR_OUT, Callback
+from qiskit.passmanager.base_tasks import AnalysisTask, Task, IR, IR_OUT, Callback
 from qiskit.transpiler.passes import RemoveIdentityEquivalent
 
 
@@ -58,6 +58,39 @@ class BaseTask(Task[IR, IR_OUT], ABC, Generic[IR, IR_OUT]):
     def run(self, passmanager_ir: IR, property_set: PropertySet | None = None) -> IR_OUT: ...
 
 
+class BaseAnalysisTask(AnalysisTask[IR], ABC, Generic[IR]):
+    """A simple base class for tasks, which implements callback info and input type checking."""
+
+    def __init__(self, in_type: type):
+        self.in_type = in_type
+
+    def execute(
+        self, passmanager_ir: IR, state: PassManagerState, callback: Callback[IR] | None = None
+    ) -> PassManagerState:
+        if not isinstance(passmanager_ir, self.in_type):
+            raise TypeError(f"expected {self.in_type.__name__}")
+
+        start = time.time()
+        self.run(passmanager_ir, state.property_set)
+        runtime = time.time() - start
+
+        state.workflow_status.count += 1
+        state.workflow_status.completed_passes.add(self)
+        if callback is not None:
+            callback(
+                task=self,
+                passmanager_ir=passmanager_ir,
+                property_set=state.property_set,
+                running_time=runtime,
+                count=state.workflow_status.count,
+            )
+
+        return state
+
+    @abstractmethod
+    def run(self, passmanager_ir: IR, property_set: PropertySet) -> None: ...
+
+
 class CircuitNoOp(BaseTask[QuantumCircuit, QuantumCircuit]):
     """A dummy task preserving ``QuantumCircuit`` as IR."""
 
@@ -68,7 +101,7 @@ class CircuitNoOp(BaseTask[QuantumCircuit, QuantumCircuit]):
         return passmanager_ir
 
 
-class CircuitAnalysis(BaseTask[QuantumCircuit, QuantumCircuit]):
+class CircuitAnalysis(BaseAnalysisTask[QuantumCircuit]):
     """A task counting the number of operations and storing them in the property set."""
 
     def __init__(self):
@@ -76,7 +109,6 @@ class CircuitAnalysis(BaseTask[QuantumCircuit, QuantumCircuit]):
 
     def run(self, passmanager_ir, property_set):
         property_set["ops"] = passmanager_ir.count_ops()
-        return passmanager_ir
 
 
 class CircuitToDAG(BaseTask[QuantumCircuit, DAGCircuit]):
@@ -160,7 +192,7 @@ class DAGRemoveIdentity(BaseTask[DAGCircuit, DAGCircuit]):
         return self._pass.run(passmanager_ir)
 
 
-class RecordOrder(BaseTask[QuantumCircuit, QuantumCircuit]):
+class RecordOrder(BaseAnalysisTask[QuantumCircuit]):
     """A task that appends a label to a shared list to record execution order."""
 
     def __init__(self, log: list, label: str):
@@ -170,10 +202,9 @@ class RecordOrder(BaseTask[QuantumCircuit, QuantumCircuit]):
 
     def run(self, passmanager_ir, property_set):
         self.log.append(self.label)
-        return passmanager_ir
 
 
-class RequireKey(BaseTask[QuantumCircuit, QuantumCircuit]):
+class RequireKey(BaseAnalysisTask[QuantumCircuit]):
     """A task that raises if a required key is absent from the property set."""
 
     def __init__(self, key: str):
@@ -183,4 +214,3 @@ class RequireKey(BaseTask[QuantumCircuit, QuantumCircuit]):
     def run(self, passmanager_ir, property_set):
         if self.key not in property_set:
             raise ValueError(f"Required property ({self.key}) is not set.")
-        return passmanager_ir
