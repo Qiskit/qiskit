@@ -70,5 +70,6 @@ class TestConstrainedReschedule(QiskitTestCase):
         # This just needs to run without erroring out. The test will fail if there is an underflow error.
         pm.run(qc)
 
+
 if __name__ == "__main__":
     unittest.main()
