@@ -322,7 +322,7 @@ pub unsafe extern "C" fn qk_circuit_num_qubits(circuit: *const CircuitData) -> u
 ///
 /// @param circuit A pointer to the circuit.
 ///
-/// @return The number of qubits the circuit is defined on.
+/// @return The number of clbits the circuit is defined on.
 ///
 /// # Example
 /// ```c
@@ -379,6 +379,83 @@ pub unsafe extern "C" fn qk_circuit_num_param_symbols(circuit: *const CircuitDat
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
     circuit.num_parameters()
+}
+
+/// @ingroup QkCircuit
+/// Get the global phase of the circuit.
+///
+/// This function returns a copy of the circuit's global phase
+/// and the value must be freed via :c:func:`qk_param_free`
+/// after usage.
+///
+/// @param circuit A pointer to the circuit.
+///
+/// @return The global phase of the circuit.
+///
+/// # Example
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(100, 100);
+/// QkParam *phase = qk_circuit_global_phase(qc);
+/// qk_param_free(phase);
+/// qk_circuit_free(qc);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_global_phase(circuit: *const CircuitData) -> *mut Param {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+
+    Box::into_raw(Box::new(circuit.global_phase().clone()))
+}
+
+/// @ingroup QkCircuit
+/// Set the global phase of the circuit.
+///
+/// This function copies the new global phase upon setting it,
+/// so the caller retains ownership of the ``QkParam`` phase,
+/// and the value of the phase must be freed via :c:func:`qk_param_free`
+/// after setting.
+///
+/// @param circuit A pointer to the circuit.
+/// @param phase A pointer to the global phase to set.
+///
+/// @return ``QkExitCode_Success`` upon successful setting of the global phase. Upon failure,
+///     ``QkExitCode_ParameterNameConflict`` indicates that a new parameter symbol has a name
+///     conflict with an existing one. ``QkExitCode_ParameterError`` describes other generic
+///     failures when attempting to track the parameter symbols.
+///
+/// # Example
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(100, 100);
+/// QkParam *new_global_phase = qk_param_from_double(1.23);
+/// qk_circuit_set_global_phase(qc, new_global_phase);
+/// qk_param_free(new_global_phase);
+/// qk_circuit_free(qc);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit`` and
+/// if ``phase`` is not a valid, non-null pointer to a ``QkParam``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_set_global_phase(
+    circuit: *mut CircuitData,
+    phase: *const Param,
+) -> ExitCode {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+    let phase = unsafe { const_ptr_as_ref(phase) };
+
+    match circuit.set_global_phase_param(phase.clone()) {
+        Ok(()) => ExitCode::Success,
+        Err(CircuitDataError::ParameterTableError(ParameterTableError::NameConflict(_))) => {
+            ExitCode::ParameterNameConflict
+        }
+        Err(_) => ExitCode::ParameterError,
+    }
 }
 
 /// @ingroup QkCircuit
@@ -983,9 +1060,7 @@ pub unsafe extern "C" fn qk_circuit_instruction_kind(
         OperationRef::PauliProductMeasurement(_) => COperationKind::PauliProductMeasurement,
         OperationRef::PauliProductRotation(_) => COperationKind::PauliProductRotation,
         OperationRef::ControlFlow(_) => COperationKind::ControlFlow,
-        OperationRef::Gate(_) | OperationRef::Instruction(_) | OperationRef::Operation(_) => {
-            COperationKind::Unknown
-        }
+        OperationRef::PyCustom(_) => COperationKind::Unknown,
     }
 }
 

@@ -28,7 +28,7 @@ from qiskit.circuit.random import random_clifford_circuit
 from qiskit.compiler import transpile
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import LitinskiTransformation
-from qiskit.quantum_info import Operator, Pauli, SparseObservable
+from qiskit.quantum_info import Operator, Pauli
 from test import QiskitTestCase
 
 

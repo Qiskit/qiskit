@@ -308,6 +308,33 @@ impl<T> DataTree<T> {
         }
     }
 
+    /// Iterate over direct children, yielding `(optional_key, child)` pairs in index order.
+    ///
+    /// # Example
+    /// ```rust
+    /// use qiskit_providers::DataTree;
+    /// let mut tree = DataTree::new();
+    /// tree.push_leaf(10);        // unnamed
+    /// tree.insert_leaf("b", 20); // named
+    /// tree.push_leaf(30);        // unnamed
+    /// let children: Vec<_> = tree.iter_children().collect();
+    /// assert_eq!(children[0], (None, &DataTree::Leaf(10)));
+    /// assert_eq!(children[1], (Some("b"), &DataTree::Leaf(20)));
+    /// assert_eq!(children[2], (None, &DataTree::Leaf(30)));
+    /// ```
+    pub fn iter_children(&self) -> impl Iterator<Item = (Option<&str>, &DataTree<T>)> + '_ {
+        let branch = match self {
+            Self::Branch(branch) => branch,
+            Self::Leaf(_) => panic!("called iter_children() on a leaf node"),
+        };
+        let rev: HashMap<usize, &str> = branch.keys.iter().map(|(k, &v)| (v, k.as_str())).collect();
+        branch
+            .data
+            .iter()
+            .enumerate()
+            .map(move |(i, child)| (rev.get(&i).copied(), child))
+    }
+
     /// Insert a new leaf node with an associated string key
     ///
     /// If a key is provided that is already in the tree the new value will be associated with
