@@ -78,7 +78,7 @@ impl From<SabreLayoutError> for PyErr {
 }
 
 #[allow(clippy::too_many_arguments)]
-#[pyfunction]
+#[pyfunction(name = "sabre_layout_and_routing")]
 #[pyo3(signature = (dag, target, heuristic, max_iterations, num_swap_trials, num_random_trials, seed=None, partial_layouts=vec![], skip_routing=false))]
 pub fn py_sabre_layout_and_routing(
     dag: &mut DAGCircuit,
