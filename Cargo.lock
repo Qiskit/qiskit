@@ -241,9 +241,9 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "cbindgen"
-version = "0.29.2"
+version = "0.29.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "befbfd072a8e81c02f8c507aefce431fe5e7d051f83d48a23ffc9b9fe5a11799"
+checksum = "c95537b45400390270fae69ac098d057c8f5399001cde9d04f700c105ddfff2d"
 dependencies = [
  "clap",
  "heck",
