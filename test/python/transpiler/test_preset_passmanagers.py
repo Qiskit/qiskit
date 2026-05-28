@@ -356,29 +356,35 @@ class TestPresetPassManager(QiskitTestCase):
 class TestTranspileLevels(QiskitTestCase):
     """Test transpiler on fake backend"""
 
+    BACKEND_CONFIGS = {
+        "bogota": (5, BOGOTA_CMAP),
+        "tokyo": (20, TOKYO_CMAP),
+        "none": None,
+    }
+
+    @staticmethod
+    def _backend_from_name(name):
+        config = TestTranspileLevels.BACKEND_CONFIGS[name]
+        if config is None:
+            return None
+        num_qubits, coupling_map = config
+        return GenericBackendV2(
+            num_qubits=num_qubits,
+            coupling_map=coupling_map,
+            basis_gates=["id", "u1", "u2", "u3", "cx"],
+            seed=42,
+        )
+
     @combine(
         circuit=[emptycircuit, circuit_2532],
         level=[0, 1, 2, 3],
-        backend=[
-            GenericBackendV2(
-                num_qubits=5,
-                coupling_map=BOGOTA_CMAP,
-                basis_gates=["id", "u1", "u2", "u3", "cx"],
-                seed=42,
-            ),
-            GenericBackendV2(
-                num_qubits=20,
-                coupling_map=TOKYO_CMAP,
-                basis_gates=["id", "u1", "u2", "u3", "cx"],
-                seed=42,
-            ),
-            None,
-        ],
+        backend=BACKEND_CONFIGS,
         dsc="Transpiler {circuit.__name__} on {backend} backend at level {level}",
         name="{circuit.__name__}_{backend}_level{level}",
     )
     def test(self, circuit, level, backend):
         """All the levels with all the backends"""
+        backend = self._backend_from_name(backend)
         result = transpile(circuit(), backend=backend, optimization_level=level, seed_transpiler=42)
         self.assertIsInstance(result, QuantumCircuit)
 

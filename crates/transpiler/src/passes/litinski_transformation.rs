@@ -17,7 +17,7 @@ use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation,
-    PyInstruction, PyOperationTypes, StandardGate, StandardInstruction, multiply_param, radd_param,
+    PyInstruction, PyOpKind, StandardGate, StandardInstruction, multiply_param, radd_param,
 };
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
