@@ -240,7 +240,7 @@ pub fn n_local(
 #[pyo3(signature = (num_qubits, rotation_blocks, entanglement_blocks, entanglement, reps, insert_barriers, parameter_prefix, skip_final_rotation_layer, skip_unentangled_qubits))]
 #[allow(clippy::too_many_arguments)]
 pub fn py_n_local(
-    py: Python,
+    _py: Python,
     num_qubits: u32,
     rotation_blocks: Vec<PyRef<Block>>,
     entanglement_blocks: Vec<PyRef<Block>>,
