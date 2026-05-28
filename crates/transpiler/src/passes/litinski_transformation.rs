@@ -317,13 +317,14 @@ pub fn run_litinski_transformation(
                                 let py_evo = PAULI_EVOLUTION_GATE
                                     .get_bound(py)
                                     .call1((obs, time.clone()))?;
-                                Ok(PyOperationTypes::Gate(PyInstruction {
-                                    qubits: qargs.len() as u32,
+                                Ok(PyInstruction {
+                                    qubits: indices.len() as u32,
                                     clbits: 0,
                                     params: 1,
                                     op_name: "PauliEvolution".to_string(),
-                                    instruction: py_evo.into(),
-                                }))
+                                    ob: py_evo.into(),
+                                    kind: PyOpKind::Gate,
+                                })
                             })?;
                             (py_gate.into(), time)
                         };
