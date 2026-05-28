@@ -25,7 +25,7 @@ use std::sync::Arc;
 use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
 use qiskit_circuit::classical;
 use qiskit_circuit::imports;
-use qiskit_circuit::operations::{Operation, OperationRef, PyRange};
+use qiskit_circuit::operations::{Operation, OperationRef, PyInstruction, PyOpKind, PyRange};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::{
     PyParameter, PyParameterExpression, PyParameterVectorElement,
@@ -52,13 +52,11 @@ fn is_python_gate(
     python_gate: &Bound<PyAny>,
 ) -> Result<bool, QpyError> {
     match op.view() {
-        OperationRef::Gate(pygate) => {
-            if pygate.instruction.bind(py).is_instance(python_gate)? {
-                Ok(true)
-            } else {
-                Ok(false)
-            }
-        }
+        OperationRef::PyCustom(PyInstruction {
+            kind: PyOpKind::Gate,
+            ob,
+            ..
+        }) => ob.bind(py).is_instance(python_gate).map_err(QpyError::from),
         _ => Ok(false),
     }
 }
@@ -160,23 +158,6 @@ pub(crate) fn serialize_metadata(
                 .extract::<String>()?
                 .into())
         }
-    }
-}
-
-// helper method to extract attribute from a py_object
-pub(crate) fn getattr_or_none<'py>(
-    py_object: &'py Bound<'py, PyAny>,
-    name: &str,
-) -> Option<Bound<'py, PyAny>> {
-    match py_object.getattr(name) {
-        Ok(val) => {
-            if val.is_none() {
-                None
-            } else {
-                Some(val)
-            }
-        }
-        Err(_) => None,
     }
 }
 
@@ -299,46 +280,28 @@ pub(crate) fn py_pack_pauli_evolution_gate(
 }
 
 pub(crate) fn gate_class_name(op: &PackedOperation) -> Result<String, QpyError> {
-    Python::attach(|py| {
-        let name = match op.view() {
-            // getting __name__ for standard gates and instructions should
-            // eventually be replaced with a Rust-side mapping
-            OperationRef::StandardGate(gate) => Ok(imports::get_std_gate_class_name(&gate)),
-            OperationRef::StandardInstruction(inst) => {
-                Ok(standard_instruction_class_name(&inst).to_string())
-            }
-            OperationRef::Gate(pygate) => pygate
-                .instruction
-                .bind(py)
-                .getattr(intern!(py, "__class__"))?
-                .getattr(intern!(py, "__name__"))?
-                .extract::<String>(),
-            OperationRef::Instruction(pyinst) => pyinst
-                .instruction
-                .bind(py)
-                .getattr(intern!(py, "__class__"))?
-                .getattr(intern!(py, "__name__"))?
-                .extract::<String>(),
-            OperationRef::Unitary(_) => Ok(UNITARY_GATE_CLASS_NAME.to_string()),
-            OperationRef::Operation(py_op) => py_op
-                .instruction
-                .bind(py)
-                .getattr(intern!(py, "__class__"))?
-                .getattr(intern!(py, "__name__"))?
-                .extract::<String>(),
-            OperationRef::PauliProductMeasurement(_) => {
-                Ok(String::from(PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME))
-            }
-            OperationRef::PauliProductRotation(_) => {
-                Ok(String::from(PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME))
-            }
-            OperationRef::ControlFlow(inst) => Ok(inst.name().to_string()),
-            OperationRef::CustomOperation(_) => Err(PyTypeError::new_err(
-                "Custom gates from rust are not classes.",
-            )),
-        }?;
-        Ok(name)
-    })
+    match op.view() {
+        // getting __name__ for standard gates and instructions should
+        // eventually be replaced with a Rust-side mapping
+        OperationRef::StandardGate(gate) => Ok(imports::get_std_gate_class_name(&gate)),
+        OperationRef::StandardInstruction(inst) => {
+            Ok(standard_instruction_class_name(&inst).to_string())
+        }
+        OperationRef::PyCustom(inst) => {
+            Python::attach(|py| inst.class_name(py).map_err(QpyError::from))
+        }
+        OperationRef::Unitary(_) => Ok(UNITARY_GATE_CLASS_NAME.to_string()),
+        OperationRef::PauliProductMeasurement(_) => {
+            Ok(String::from(PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME))
+        }
+        OperationRef::PauliProductRotation(_) => {
+            Ok(String::from(PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME))
+        }
+        OperationRef::ControlFlow(inst) => Ok(inst.name().to_string()),
+        OperationRef::CustomOperation(_) => {
+            Err(PyTypeError::new_err("Custom gates from rust are not classes.").into())
+        }
+    }
 }
 
 pub(crate) fn py_get_type_key(py_object: &Bound<PyAny>) -> Result<ValueType, QpyError> {
