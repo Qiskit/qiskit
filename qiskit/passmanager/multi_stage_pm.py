@@ -12,7 +12,6 @@
 
 """A multi-staged pass manager supporting multiple IRs."""
 
-import typing
 from typing import Generic, Any
 from collections.abc import Iterable
 
@@ -56,37 +55,7 @@ class MultiStagePassManager(Task[IR, IR_OUT], Generic[IR, IR_OUT]):
     ) -> tuple[IR_OUT, PassManagerState]:
         for stage in self.stages:
             pm = getattr(self, stage)
-
-            # try dynamically verifying the IR types
-            # ir_in_type = None
-            # ir_out_type = None
-            # if (ir_types := try_determine_ir_types(pm)) is not None:
-            #     ir_in_type, ir_out_type = ir_types
-            # elif len(pm.tasks) > 0:
-            #     if (first_task_types := try_determine_ir_types(pm.tasks[0])) is not None:
-            #         ir_in_type, _ = first_task_types
-            #     if (last_task_types := try_determine_ir_types(pm.tasks[-1])) is not None:
-            #         _, ir_out_type = last_task_types
-
-            # print("-- IN", ir_in_type)
-            # print("-- OUT", ir_out_type)
-            # if ir_in_type is not None:
-            #     if not isinstance(passmanager_ir, ir_in_type):
-            #         raise PassManagerError(
-            #             f"Incompatible IR input type {type(passmanager_ir)}. "
-            #             f"Stage {stage} expected {ir_in_type} as input type."
-            #         )
-
             passmanager_ir, stage = pm.execute(passmanager_ir, state, callback)
-            # print("ir:", passmanager_ir)
-
-            # # verify the output type is correct
-            # if ir_out_type is not None:
-            #     if not isinstance(passmanager_ir, ir_out_type):
-            #         raise PassManagerError(
-            #             f"Incompatible IR output type {type(passmanager_ir)}. "
-            #             f"Stage {stage} promised to produce {ir_out_type} as output type."
-            #         )
 
         return passmanager_ir, state
 
@@ -119,44 +88,3 @@ class MultiStagePassManager(Task[IR, IR_OUT], Generic[IR, IR_OUT]):
             return list(map(self.run, in_programs))
 
         return self.execute(in_programs, state, callback)[0]
-
-
-def try_determine_ir_types(task: Task) -> tuple[type, type] | None:
-    """This function attempts to determine the IR types in a Task.
-
-    This is based on typing.get_args and Type.__orig_bases__ or attribute.
-    From Python 3.12 onwards we could use the API-documented ``get_original_bases``:
-    https://docs.python.org/3/library/types.html#types.get_original_bases.
-    """
-    if (bases := getattr(task.__class__, "__orig_bases__", None)) is None:
-        # could not determine the type
-        return None
-
-    task_base = None
-    for base in bases:
-        if typing.get_origin(base) is Task:
-            task_base = base
-            break
-
-        # No ``Task`` is in the bases, meaning that either the input instance is invalid since
-        # it doesn't derive from Task, or it doesn't derive from a Task with explicit Generics.
-        # Either way, we cannot determine the IR types from this.
-        return None
-
-    types = typing.get_args(task_base)
-
-    if len(types) != 2:
-        # Failed to get the expected number of args. Task should have exactly 2 generic types.
-        return None
-
-    types = tuple(map(filter_type_var, types))
-    if types[0] is None and types[1] is None:
-        return None
-
-    return types
-
-
-def filter_type_var(the_type):
-    if isinstance(the_type, typing.TypeVar):
-        return None
-    return the_type
