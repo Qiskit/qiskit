@@ -2271,6 +2271,7 @@ mod test_custom_operations {
     use crate::packed_instruction::PackedOperation;
     use crate::{Clbit, Qubit};
     use ndarray::aview2;
+    use numpy::{Complex64, PyArray2, PyArrayMethods};
     use pyo3::prelude::*;
     use smallvec::smallvec;
     use std::f64::consts::PI;
@@ -2706,7 +2707,7 @@ mod test_custom_operations {
     }
 
     #[test]
-    // #[cfg(not(miri))]
+    #[cfg(not(miri))]
     fn try_python_custom_gate() {
         let mut circuit = CircuitData::with_capacity(1, 0, 1, 0.0.into())
             .expect("Circuit with small capacity should be built.");
@@ -2759,10 +2760,41 @@ mod test_custom_operations {
             for (idx, inst) in circuit.data().iter().enumerate() {
                 let unpacked_operation = circuit.unpack_py_op(py, inst)?.into_bound(py);
 
-                println!("{}", unpacked_operation.repr()?);
-                println!("{}", unpacked_operation.call_method0("to_matrix")?.repr()?);
-                println!("{}", unpacked_operation.getattr("params")?.repr()?);
-                println!("{}", unpacked_operation.getattr("definition")?.repr()?);
+                // Compare repr
+                assert_eq!(
+                    format!(
+                        "Instruction(name='{}', num_qubits={}, num_clbits={}, params={:?})",
+                        gates[idx].name(),
+                        gates[idx].num_qubits(),
+                        gates[idx].num_clbits(),
+                        inst.params_view()
+                            .iter()
+                            .filter_map(|params| params.try_float())
+                            .collect::<Vec<_>>(),
+                    ),
+                    unpacked_operation.repr()?.to_string()
+                );
+
+                // Compare python matrix
+                let orig_matrix = gates[idx]
+                    .matrix(inst.params_view())
+                    .expect("The provided parameters should generate the matrix");
+                let retrieved_array = unpacked_operation
+                    .call_method0("to_matrix")?
+                    .cast_into::<PyArray2<Complex64>>()?;
+                let retrieved_matrix = retrieved_array.to_owned_array();
+                assert!(approx::abs_diff_eq!(
+                    orig_matrix,
+                    retrieved_matrix,
+                    epsilon = 1e-12
+                ));
+
+                // Compare params
+                assert!(
+                    unpacked_operation
+                        .getattr("params")?
+                        .eq(inst.params_view().into_pyobject(py)?)?
+                );
 
                 // Try roundtrip
                 let roundtrip = unpacked_operation.extract::<OperationFromPython<CircuitData>>()?;
@@ -2774,7 +2806,6 @@ mod test_custom_operations {
                     );
                 };
 
-                println!("{:?}", roundtrip.operation.view());
                 assert_eq!(gates[idx], roundtrip_native);
                 assert_eq!(gates[idx].is_unitary(), roundtrip_native.is_unitary());
                 assert_eq!(
