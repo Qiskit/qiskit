@@ -783,8 +783,6 @@ class TestParameterExpression(QiskitTestCase):
         Regression test for bug where d/dp conj(f(p)) returned 1.0 instead of
         the actual derivative f'(p) (assuming real parameters, conj is identity).
         """
-        import math
-
         p = Parameter("p")
         q = Parameter("q")
 
