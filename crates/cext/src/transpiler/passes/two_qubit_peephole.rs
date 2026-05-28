@@ -138,7 +138,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_2q_peephole_optimization(
 /// for details on how to control the threading behavior for Qiskit more broadly
 /// which will also control this pass
 ///
-/// @param circuit A pointer to the circuit to run TwoQubitPeepholeOptimization on
+/// @param dag A pointer to the dag circuit to run TwoQubitPeepholeOptimization on
 /// @param target A pointer to the target to run TwoQubitPeepholeOptimization with
 /// @param approximation_degree heuristic dial used for circuit approximation
 ///        (1.0=no approximation, 0.0=maximal approximation). Approximation can
