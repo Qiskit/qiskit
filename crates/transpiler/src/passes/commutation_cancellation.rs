@@ -235,6 +235,9 @@ pub fn cancel_commutations(
             ) {
                 let mut total_angle: f64 = 0.0;
                 let mut total_phase: f64 = 0.0;
+                let mut rx_gates: bool = false;
+                let mut x_gates: usize = 0;
+                let mut sx_gates: usize = 0;
                 for current_node in cancel_set {
                     let node_op = match &dag[*current_node] {
                         NodeType::Operation(instr) => instr,
@@ -253,6 +256,9 @@ pub fn cancel_commutations(
                             }
                         };
                         let phase_shift = z_phase_shift(node_op_name, node_angle);
+                        if node_op.op.try_standard_gate() == Some(StandardGate::RX) {
+                            rx_gates = true;
+                        }
                         Ok((node_angle, phase_shift))
                     } else {
                         match node_op_name {
@@ -261,8 +267,14 @@ pub fn cancel_commutations(
                             "s" => Ok((FRAC_PI_2, z_phase_shift("p", FRAC_PI_2))),
                             "sdg" => Ok((-FRAC_PI_2, -z_phase_shift("p", FRAC_PI_2))),
                             "z" => Ok((PI, z_phase_shift("p", PI))),
-                            "x" => Ok((PI, FRAC_PI_2)),
-                            "sx" => Ok((FRAC_PI_2, FRAC_PI_4)),
+                            "x" => {
+                                x_gates += 1;
+                                Ok((PI, FRAC_PI_2))
+                            }
+                            "sx" => {
+                                sx_gates += 1;
+                                Ok((FRAC_PI_2, FRAC_PI_4))
+                            }
                             "sxdg" => Ok((-FRAC_PI_2, -FRAC_PI_4)),
                             _ => Err(PyRuntimeError::new_err(format!(
                                 "Angle for operation {node_op_name} is not defined"
@@ -272,7 +284,6 @@ pub fn cancel_commutations(
                     total_angle += node_angle;
                     total_phase += phase_shift;
                 }
-
                 let new_op = match cancel_key.gate {
                     GateOrRotation::ZRotation => z_var_gate.unwrap(),
                     GateOrRotation::XRotation => {
@@ -297,8 +308,24 @@ pub fn cancel_commutations(
                     // any other is not the identity and we add the gate
                     if new_op == &StandardGate::X {
                         dag.insert_1q_on_incoming_qubit((*new_op, &[]), cancel_set[0]);
+                        // Total phase is in terms of RX which has a global
+                        // phase difference from X. If we have rx gates we need to
+                        // account for phase adjustment, and then undo the phase adjustment done for
+                        // x and sx
+                        if rx_gates {
+                            total_phase -= FRAC_PI_2;
+                        }
+                        if x_gates != 0 {
+                            total_phase -= FRAC_PI_2 * x_gates as f64;
+                        }
                     } else if new_op == &StandardGate::SX {
                         let gate_counts = ((total_angle / FRAC_PI_2) as u64) % 4;
+                        if rx_gates {
+                            total_phase -= FRAC_PI_4 * gate_counts as f64;
+                        }
+                        if sx_gates != 0 {
+                            total_phase -= FRAC_PI_4 * sx_gates as f64;
+                        }
                         for _ in 0..gate_counts {
                             dag.insert_1q_on_incoming_qubit((*new_op, &[]), cancel_set[0]);
                         }
