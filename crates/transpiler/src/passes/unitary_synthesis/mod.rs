@@ -17,6 +17,7 @@ use indexmap::IndexSet;
 use nalgebra::Matrix2;
 use ndarray::prelude::*;
 use num_complex::Complex64;
+use pyo3::exceptions::PyValueError;
 use std::hash;
 
 use numpy::PyReadonlyArray2;
@@ -29,17 +30,58 @@ use self::decomposers::{Decomposer2q, DecomposerCache, FlipDirection};
 use crate::QiskitError;
 use crate::target::Target;
 use qiskit_circuit::bit::QuantumRegister;
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, DAGError};
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{BlocksMode, PhysicalQubit, Qubit, VarsMode};
 use qiskit_synthesis::euler_one_qubit_decomposer::unitary_to_gate_sequence_inner;
-use qiskit_synthesis::qsd::quantum_shannon_decomposition;
+use qiskit_synthesis::qsd::{QSDError, quantum_shannon_decomposition};
 use qiskit_synthesis::two_qubit_decompose::TwoQubitGateSequence;
 
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
+
+/// Errors that can be thrown by UnitarySynthesis
+#[derive(Debug, thiserror::Error)]
+pub enum UnitarySynthesisError {
+    #[error(
+        "No preferred direction of gate on qubits {0:?} could be determined from coupling map or gate lengths / gate errors."
+    )]
+    NoPreferredDirection([PhysicalQubit; 2]),
+    #[error("requested synthesis fidelity is out of range: {0}")]
+    SynthesisFidelityOutOfRange(f64),
+    #[error(transparent)]
+    QSD(#[from] QSDError),
+    #[error(transparent)]
+    DAGCircuit(#[from] DAGError),
+    // TODO: Remove once XXDecomposer is in Rust.
+    #[error(transparent)]
+    XXDecomposer(PyErr),
+    // TODO: Replace with Rust native versions of errors for Decomposer2q
+    #[error(transparent)]
+    Decomposer2q(PyErr),
+    #[error(transparent)]
+    PyGate(PyErr),
+}
+
+impl From<UnitarySynthesisError> for PyErr {
+    fn from(value: UnitarySynthesisError) -> Self {
+        match value {
+            UnitarySynthesisError::NoPreferredDirection(_) => {
+                QiskitError::new_err(value.to_string())
+            }
+            UnitarySynthesisError::SynthesisFidelityOutOfRange(_) => {
+                PyValueError::new_err(value.to_string())
+            }
+            UnitarySynthesisError::DAGCircuit(error) => error.into(),
+            UnitarySynthesisError::XXDecomposer(py_err) => py_err,
+            UnitarySynthesisError::QSD(qsderror) => qsderror.into(),
+            UnitarySynthesisError::Decomposer2q(py_err) => py_err,
+            UnitarySynthesisError::PyGate(py_err) => py_err,
+        }
+    }
+}
 
 /// The fidelity of the 2q basis gate used in a decomposer.
 ///
@@ -309,14 +351,14 @@ pub fn run_unitary_synthesis(
     qubit_indices: &[PhysicalQubit],
     state: &mut UnitarySynthesisState,
     constraint: QpuConstraint,
-) -> PyResult<Option<DAGCircuit>> {
+) -> Result<Option<DAGCircuit>, UnitarySynthesisError> {
     // This method is the actual distribution logic of unitary synthesis, but there are several
     // paths through it that return `Ok(false)`, meaning "no error and no synthesis needed", so the
     // caller is responsible for propagating the old instruction through to wherever is necessary.
     let synthesize_onto = |out: &mut DAGCircuitBuilder,
                            state: &mut UnitarySynthesisState,
                            inst: &PackedInstruction|
-     -> PyResult<bool> {
+     -> Result<bool, UnitarySynthesisError> {
         if !(synth_gates.contains(inst.op.name()) && inst.op.num_qubits() >= min_qubits as u32) {
             return Ok(false);
         }
@@ -381,7 +423,7 @@ pub fn run_unitary_synthesis(
                     }
                 })
             })
-            .collect::<PyResult<_>>()?;
+            .collect::<Result<_, UnitarySynthesisError>>()?;
         out.push_back(PackedInstruction::from_control_flow(
             inst.op.control_flow().clone(),
             blocks,
@@ -401,7 +443,7 @@ fn synthesize_matrix_onto(
     qubits_local: &[Qubit],
     state: &mut UnitarySynthesisState,
     constraint: QpuConstraint,
-) -> PyResult<bool> {
+) -> Result<bool, UnitarySynthesisError> {
     let num_qubits = qubits_local.len();
     debug_assert_eq!(unitary.shape(), &[1 << num_qubits, 1 << num_qubits]);
     match *qubits_local {
@@ -445,7 +487,7 @@ fn synthesize_1q_matrix_onto(
     qubit_virt: Qubit,
     state: &mut UnitarySynthesisState,
     constraint: QpuConstraint,
-) -> PyResult<bool> {
+) -> Result<bool, UnitarySynthesisError> {
     // TODO: we possibly want to invert this logic and do Euler synthesis if possible, and SK only
     // if we have to.  If nothing else, it simplifies the logic of `try_solovay_kitaev` - instead of
     // "is this _only_ Clifford+T?" it can become "does this permit a Clifford+T decomposition",
@@ -581,7 +623,7 @@ pub(crate) fn synthesize_2q_matrix<F, S>(
     state: &mut UnitarySynthesisState,
     constraint: QpuConstraint,
     mut fidelity_calculation: F,
-) -> PyResult<Option<TwoQSynthesisResult<S>>>
+) -> Result<Option<TwoQSynthesisResult<S>>, UnitarySynthesisError>
 where
     F: FnMut(&Direction2q, &TwoQubitGateSequence, &QpuConstraint, [PhysicalQubit; 2]) -> S,
     S: PartialOrd,
@@ -601,14 +643,15 @@ where
     };
     let mut sequences = decomposer_cache
         .get_2q(qargs_phys, config, constraint)?
-        .map(|(decomposer, flip)| -> PyResult<_> {
+        .map(|(decomposer, flip)| -> Result<_, UnitarySynthesisError> {
             match flip {
                 FlipDirection::No => single_decomposition(decomposer, Direction2q::Forwards)
                     .map(|seq| (Direction2q::Forwards, seq)),
                 FlipDirection::Yes => single_decomposition(decomposer, Direction2q::Backwards)
                     .map(|seq| (Direction2q::Backwards, seq)),
                 FlipDirection::Ensure(dir) => {
-                    let normal = single_decomposition(decomposer, Direction2q::Forwards)?;
+                    let normal = single_decomposition(decomposer, Direction2q::Forwards)
+                        .map_err(UnitarySynthesisError::Decomposer2q)?;
                     if normal
                         .gates()
                         .iter()
@@ -626,6 +669,7 @@ where
                     }
                 }
             }
+            .map_err(UnitarySynthesisError::Decomposer2q)
         });
 
     let Some(first) = sequences.next().transpose()? else {
@@ -671,7 +715,7 @@ fn synthesize_2q_matrix_onto(
     qargs_virt: [Qubit; 2],
     state: &mut UnitarySynthesisState,
     constraint: QpuConstraint,
-) -> PyResult<bool> {
+) -> Result<bool, UnitarySynthesisError> {
     let Some(result) =
         synthesize_2q_matrix(unitary, qargs_phys, state, constraint, fidelity_2q_sequence)?
     else {
@@ -701,7 +745,8 @@ fn synthesize_2q_matrix_onto(
                 let inst = inst.py_copy(py)?;
                 inst.ob.setattr(py, intern!(py, "params"), params)?;
                 Ok(inst.into())
-            })?,
+            })
+            .map_err(UnitarySynthesisError::PyGate)?,
             _ => panic!("internal logic error: decomposed sequence contains a non-gate"),
         };
         let params = (!params.is_empty()).then(|| {
@@ -779,6 +824,7 @@ pub fn py_unitary_synthesis(
         &mut state,
         constraint,
     )
+    .map_err(Into::into)
 }
 
 #[allow(clippy::too_many_arguments)]
