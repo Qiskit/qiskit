@@ -31,7 +31,10 @@ rand.workspace = true
 rand_pcg.workspace = true
 anyhow.workspace = true
 mimalloc = { workspace = true, optional = true}
+getrandom-v2 = { version = "0.2", package = "getrandom" }
+getrandom-v3 = { version = "0.3", package = "getrandom" }
 
 [features]
 python_binding = ["dep:pyo3"]
 cache_pygates = ["qiskit-circuit/cache_pygates", "qiskit-transpiler/cache_pygates"]
+wasm_js = ["getrandom-v3/wasm_js", "getrandom-v2/js"]
