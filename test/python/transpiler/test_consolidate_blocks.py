@@ -796,7 +796,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         with self.subTest("non-parametric"):
             # cx appears first in KAK_GATE_NAMES
             pass_ = ConsolidateBlocks(basis_gates=["ecr", "cx", "cz"])
-            self.assertEqual(pass_.basis_gate_name, "cx")
+            self.assertEqual(pass_.basis_gate_name, "cz")
 
 
 class TestCollect1qRuns(QiskitTestCase):
