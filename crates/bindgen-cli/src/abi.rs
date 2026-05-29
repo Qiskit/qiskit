@@ -112,10 +112,10 @@ impl SlotsLists {
         }
     }
 
-    /// Parse a slots list out of a file.
+    /// Parse a slots list out of a string.
     ///
-    /// The expected format of the file is a literal output of our own `Display` implementaiton,
-    /// which in turn is the same as a call to `qiskit-bindgen-c show-slots`.
+    /// The expected format of the string is a literal output of our own `Display` implementation,
+    /// which in turn is the same as a call to `qiskit-bindgen-cli show-slots`.
     pub fn try_parse(val: &str) -> anyhow::Result<Self> {
         // This isn't fancy or trying to cleanly recover - we're mostly just expected the input to
         // be correct already.
