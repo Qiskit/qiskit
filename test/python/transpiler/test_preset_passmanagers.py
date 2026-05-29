@@ -48,10 +48,10 @@ from qiskit.transpiler.passes import (
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import GraphStateGate, UnitaryGate
-from qiskit.quantum_info import random_unitary, Operator
+from qiskit.quantum_info import random_unitary
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.preset_passmanagers import level0, level1, level2, level3
-from qiskit.transpiler.passes import ConsolidateBlocks, GatesInBasis, TwoQubitPeepholeOptimization
+from qiskit.transpiler.passes import GatesInBasis, TwoQubitPeepholeOptimization
 from qiskit.transpiler.passes.scheduling.alignments.check_durations import InstructionDurationCheck
 from qiskit.transpiler.preset_passmanagers.builtin_plugins import OptimizationPassManager
 from qiskit.transpiler.timing_constraints import TimingConstraints
