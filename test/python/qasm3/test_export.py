@@ -3407,6 +3407,23 @@ class TestQASM3ExporterRust(QiskitTestCase):
         with_qpy = dumps_experimental(qpy_roundtrip)
         self.assertEqual(no_qpy, with_qpy)
 
+    def test_delay_units(self):
+        """Test duration-unit serialization in the experimental exporter."""
+        qc = QuantumCircuit(1)
+        qc.delay(1, 0, unit="ms")
+        qc.delay(1, 0, unit="ps")
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                "qubit[1] q;",
+                "delay[1ms] q[0];",
+                "delay[0.001ns] q[0];",
+                "",
+            ]
+        )
+        self.assertEqual(dumps_experimental(qc), expected_qasm)
+
     def test_annotations(self):
         """Test that the annotation-serialisation framework works."""
         assert_in = self.assertIn
