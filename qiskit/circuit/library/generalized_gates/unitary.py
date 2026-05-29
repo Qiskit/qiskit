@@ -212,7 +212,7 @@ class UnitaryGate(Gate):
             try:
                 # The Rust code for Quantum Shannon Decomposition may return QiskitError
                 # when linear algebra methods (e.g. Schur decomposition) fail.
-                cmat_def = qs_decomposition(cmat, opt_a1=True, opt_a2=False)
+                cmat_def = qs_decomposition(cmat)
             except QiskitError:
                 cmat_def = None
 
