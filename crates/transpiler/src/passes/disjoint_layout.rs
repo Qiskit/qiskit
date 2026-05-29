@@ -18,6 +18,7 @@ use pyo3::create_exception;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
+use qiskit_circuit::dag_circuit::DAGError;
 use rustworkx_core::connectivity::connected_components;
 use rustworkx_core::petgraph::EdgeType;
 use rustworkx_core::petgraph::prelude::*;
@@ -36,6 +37,30 @@ use qiskit_circuit::{
 use qiskit_util::py::ImportOnceCell;
 
 create_exception!(qiskit, MultiQEncountered, pyo3::exceptions::PyException);
+
+#[derive(Debug, thiserror::Error)]
+pub enum DisjointLayoutError {
+    #[error("Encountered >2 qubit instruction")]
+    MultiQEncountered,
+    #[error(
+        "A connected component of the DAGCircuit is too large for any of the connected components in the coupling map."
+    )]
+    MismatchedComponentSize,
+    #[error(transparent)]
+    DAGCircuit(#[from] DAGError),
+}
+
+impl From<DisjointLayoutError> for PyErr {
+    fn from(value: DisjointLayoutError) -> Self {
+        match value {
+            DisjointLayoutError::MultiQEncountered => MultiQEncountered::new_err(value.to_string()),
+            DisjointLayoutError::MismatchedComponentSize => {
+                TranspilerError::new_err(value.to_string())
+            }
+            DisjointLayoutError::DAGCircuit(dagerror) => dagerror.into(),
+        }
+    }
+}
 
 static COUPLING_MAP: ImportOnceCell =
     ImportOnceCell::new("qiskit.transpiler.coupling", "CouplingMap");
@@ -86,7 +111,7 @@ fn subgraph(graph: &CouplingMap, node_set: &HashSet<NodeIndex>) -> CouplingMap {
 }
 
 #[pyfunction(name = "run_pass_over_connected_components")]
-pub fn py_run_pass_over_connected_components(
+fn py_run_pass_over_connected_components(
     dag: Bound<DAGCircuit>,
     target: &Target,
     run_func: Bound<PyAny>,
@@ -159,7 +184,10 @@ pub fn py_run_pass_over_connected_components(
     }
 }
 
-pub fn distribute_components(dag: &mut DAGCircuit, target: &Target) -> PyResult<DisjointSplit> {
+pub fn distribute_components(
+    dag: &mut DAGCircuit,
+    target: &Target,
+) -> Result<DisjointSplit, DisjointLayoutError> {
     let coupling_map: CouplingMap = match build_coupling_map(target) {
         Some(map) => map,
         None => return Ok(DisjointSplit::NoneNeeded),
@@ -167,10 +195,7 @@ pub fn distribute_components(dag: &mut DAGCircuit, target: &Target) -> PyResult<
     let cmap_components = connected_components(&coupling_map);
     if cmap_components.len() == 1 {
         if dag.num_qubits() > cmap_components[0].len() {
-            return Err(TranspilerError::new_err(concat!(
-                "A connected component of the DAGCircuit is too large for any of the connected ",
-                "components in the coupling map."
-            )));
+            return Err(DisjointLayoutError::MismatchedComponentSize);
         }
         return Ok(DisjointSplit::NoneNeeded);
     }
@@ -251,7 +276,7 @@ pub fn distribute_components(dag: &mut DAGCircuit, target: &Target) -> PyResult<
             let subgraph = subgraph(&coupling_map, &cmap_components[cmap_index]);
             Ok((out_dag, subgraph))
         })
-        .collect::<PyResult<Vec<_>>>()?;
+        .collect::<Result<Vec<_>, DAGError>>()?;
     if out_component_pairs.len() == 1 {
         return Ok(DisjointSplit::TargetSubset(
             out_component_pairs[0]
@@ -288,7 +313,7 @@ pub fn distribute_components(dag: &mut DAGCircuit, target: &Target) -> PyResult<
 fn map_components(
     dag_components: &[DAGCircuit],
     cmap_components: &[HashSet<NodeIndex>],
-) -> PyResult<Vec<Vec<usize>>> {
+) -> Result<Vec<Vec<usize>>, DisjointLayoutError> {
     let mut free_qubits: Vec<usize> = cmap_components.iter().map(|g| g.len()).collect();
     let mut out_mapping = vec![Vec::new(); cmap_components.len()];
     let mut dag_qubits: Vec<(usize, usize)> = dag_components
@@ -312,9 +337,7 @@ fn map_components(
             }
         }
         if !found {
-            return Err(TranspilerError::new_err(
-                "A connected component of the DAGCircuit is too large for any of the connected components in the coupling map",
-            ));
+            return Err(DisjointLayoutError::MismatchedComponentSize);
         }
     }
     Ok(out_mapping)
@@ -361,7 +384,9 @@ struct InteractionGraphData<Ty: EdgeType> {
     reverse_im_graph_node_map: Vec<Option<Qubit>>,
 }
 
-fn generate_directed_interaction(dag: &DAGCircuit) -> PyResult<InteractionGraphData<Directed>> {
+fn generate_directed_interaction(
+    dag: &DAGCircuit,
+) -> Result<InteractionGraphData<Directed>, DisjointLayoutError> {
     let mut im_graph_node_map: Vec<Option<NodeIndex>> = vec![None; dag.num_qubits()];
     let mut reverse_im_graph_node_map: Vec<Option<Qubit>> = vec![None; dag.num_qubits()];
     let wire_map: Vec<Qubit> = (0..dag.num_qubits()).map(Qubit::new).collect();
@@ -385,7 +410,7 @@ fn build_interaction_graph<Ty: EdgeType>(
     im_graph: &mut Graph<(), (), Ty>,
     im_graph_node_map: &mut [Option<NodeIndex>],
     reverse_im_graph_node_map: &mut [Option<Qubit>],
-) -> PyResult<()> {
+) -> Result<(), DisjointLayoutError> {
     for (_, inst) in dag.op_nodes(false) {
         if let Some(control_flow) = dag.try_view_control_flow(inst) {
             for block in control_flow.blocks() {
@@ -444,13 +469,13 @@ fn build_interaction_graph<Ty: EdgeType>(
             }
         }
         if len_args > 2 {
-            return Err(MultiQEncountered::new_err(""));
+            return Err(DisjointLayoutError::MultiQEncountered);
         }
     }
     Ok(())
 }
 
-fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
+fn separate_dag(dag: &mut DAGCircuit) -> Result<Vec<DAGCircuit>, DisjointLayoutError> {
     split_barriers(dag)?;
     let im_graph_data = generate_directed_interaction(dag)?;
     let connected_components = connected_components(&im_graph_data.im_graph);
@@ -464,9 +489,9 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
         })
         .collect();
     let qubits: HashSet<Qubit> = (0..dag.num_qubits()).map(Qubit::new).collect();
-    let decomposed_dags: PyResult<Vec<DAGCircuit>> = component_qubits
+    let decomposed_dags: Result<Vec<DAGCircuit>, DAGError> = component_qubits
         .into_iter()
-        .map(|dag_qubits| -> PyResult<DAGCircuit> {
+        .map(|dag_qubits| -> Result<DAGCircuit, DAGError> {
             let mut new_dag = dag.copy_empty_like(VarsMode::Alike, BlocksMode::Drop)?;
             let qubits_to_revmove: Vec<Qubit> = qubits.difference(&dag_qubits).copied().collect();
 
@@ -517,11 +542,11 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
         })
         .collect();
     combine_barriers(dag, false)?;
-    decomposed_dags
+    decomposed_dags.map_err(Into::into)
 }
 
 #[pyfunction]
-pub fn combine_barriers(dag: &mut DAGCircuit, retain_uuid: bool) -> PyResult<()> {
+pub fn combine_barriers(dag: &mut DAGCircuit, retain_uuid: bool) -> Result<(), DAGError> {
     let mut uuid_map: HashMap<String, NodeIndex> = HashMap::new();
     let barrier_nodes: Vec<NodeIndex> = dag
         .op_nodes(true)
@@ -575,7 +600,7 @@ pub fn combine_barriers(dag: &mut DAGCircuit, retain_uuid: bool) -> PyResult<()>
     Ok(())
 }
 
-fn split_barriers(dag: &mut DAGCircuit) -> PyResult<()> {
+fn split_barriers(dag: &mut DAGCircuit) -> Result<(), DAGError> {
     for (_index, inst) in dag.op_nodes(true) {
         let OperationRef::StandardInstruction(StandardInstruction::Barrier(num_qubits)) =
             inst.op.view()
