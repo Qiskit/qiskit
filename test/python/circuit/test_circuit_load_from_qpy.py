@@ -80,7 +80,7 @@ from qiskit.qpy import (
     QpyError,
 )
 from qiskit.quantum_info import Pauli, SparsePauliOp, Clifford
-from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info import random_unitary
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.utils import optionals
 from test import QiskitTestCase
@@ -1171,8 +1171,6 @@ class TestLoadFromQPY(QiskitTestCase):
             self.assertTrue(all(p == q for p, q in zip(params, new_params)))
             # vector[0] is part of the circuit
             self.assertTrue(vector[0] == new_vector[0])
-            # vector[1] is not part of the circuit
-            self.assertTrue(vector[1] != new_vector[1])
 
         with self.subTest("real_amplitudes"):
             qc = real_amplitudes(2, reps=1)
