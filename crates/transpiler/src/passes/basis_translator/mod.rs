@@ -264,7 +264,7 @@ fn extract_basis_target(
         // and 1q operations in the same manner)
         let physical_qargs: PhysicalQargs = qargs
             .iter()
-            .map(|x| PhysicalQubit(qarg_mapping(x).0))
+            .map(|x| PhysicalQubit(qarg_mapping(x)))
             .collect();
         let physical_qargs_as_set: AhashIndexSet<PhysicalQubit> =
             AhashIndexSet::from_iter(physical_qargs.iter().copied());
@@ -414,10 +414,10 @@ fn apply_translation(
         let node_qarg_as_physical: Qargs = if let Some(qarg_mapping) = qarg_mapping {
             node_qarg
                 .iter()
-                .map(|x| PhysicalQubit(qarg_mapping[x].0))
+                .map(|x| PhysicalQubit(qarg_mapping[x]))
                 .collect()
         } else {
-            node_qarg.iter().map(|x| PhysicalQubit(x.0)).collect()
+            node_qarg.iter().copied().map(PhysicalQubit).collect()
         };
         if qargs_with_non_global_operation.contains_key(&node_qarg_as_physical)
             && qargs_with_non_global_operation[&node_qarg_as_physical].contains(node_obj.op.name())
@@ -444,10 +444,10 @@ fn apply_translation(
         let unique_qargs: PhysicalQargs = if let Some(qarg_mapping) = qarg_mapping {
             qubit_set
                 .iter()
-                .map(|x| PhysicalQubit(qarg_mapping[x].0))
+                .map(|x| PhysicalQubit(qarg_mapping[x]))
                 .collect()
         } else {
-            qubit_set.iter().map(|x| PhysicalQubit(x.0)).collect()
+            qubit_set.iter().copied().map(PhysicalQubit).collect()
         };
         if extra_inst_map.contains_key(&unique_qargs) {
             replace_node(

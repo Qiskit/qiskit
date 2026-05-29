@@ -166,10 +166,9 @@ fn two_qubit_unitary_peephole_optimize_analysis(
             let NodeType::Operation(ref inst) = dag.dag()[*node_index] else {
                 unreachable!("All run nodes will be ops")
             };
-            let qubits: &[_] = match dag.get_qargs(inst.qubits) {
-                [q] => &[PhysicalQubit(q.0)],
-                [q0, q1] => &[PhysicalQubit(q0.0), PhysicalQubit(q1.0)],
-                _ => panic!("Runs should only contain 1q and 2q gates"),
+            let qubits = PhysicalQubit::lift_slice(dag.get_qargs(inst.qubits));
+            if !(1..=2).contains(&qubits.len()) {
+                panic!("Runs should only contain 1q and 2q gates");
             };
             if qubits.len() == 2 {
                 original_2q_count += 1;

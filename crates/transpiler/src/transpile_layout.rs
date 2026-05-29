@@ -456,11 +456,11 @@ impl TranspileLayout {
             .expect("it only makes sense to call this function when the layout is set");
         // These are logically physical qubits, but we want to be able to assign it directly.
         let mut physical_permutation = vec![Qubit::MAX; self.num_output_qubits() as usize];
-        for virt in (0..self.num_input_qubits()).map(VirtualQubit) {
+        for virt in (0..self.num_input_qubits()).map(VirtualQubit::new) {
             let phys = virt.to_phys(initial);
             physical_permutation[phys.index()] = permutation(virt).to_phys(initial).into();
         }
-        for ancilla in (self.num_input_qubits()..self.num_output_qubits()).map(VirtualQubit) {
+        for ancilla in (self.num_input_qubits()..self.num_output_qubits()).map(VirtualQubit::new) {
             physical_permutation[ancilla.to_phys(initial).index()] =
                 ancilla.to_phys(initial).into();
         }

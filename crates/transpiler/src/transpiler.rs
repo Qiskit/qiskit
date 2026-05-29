@@ -291,9 +291,7 @@ pub fn routing_stage(
         if let vf2::Vf2PassReturn::Solution(layout) =
             vf2_layout_pass_average(dag, target, &vf2_config, false, None)?
         {
-            update_layout(dag, transpile_layout, |x| {
-                Qubit(layout[&VirtualQubit(x.0)].0)
-            });
+            update_layout(dag, transpile_layout, |x| layout[&VirtualQubit(x)].0);
         }
     }
     Ok(())
@@ -440,9 +438,7 @@ pub fn optimization_stage(
         if let vf2::Vf2PassReturn::Solution(layout) =
             vf2_layout_pass_exact(dag, target, &vf2_config)?
         {
-            update_layout(dag, transpile_layout, |x| {
-                Qubit(layout[&VirtualQubit(x.0)].0)
-            });
+            update_layout(dag, transpile_layout, |x| layout[&VirtualQubit(x)].0);
         }
     }
     Ok(())
@@ -604,8 +600,7 @@ fn layout_from_sabre_result(
         dag.qregs().to_vec(),
     );
     if let Some(old_permutation) = old_transpile_layout.output_permutation() {
-        new_transpile_layout
-            .add_permutation_outside(|q| VirtualQubit(old_permutation[q.index()].0));
+        new_transpile_layout.add_permutation_outside(|q| VirtualQubit(old_permutation[q.index()]));
     }
     new_transpile_layout
 }

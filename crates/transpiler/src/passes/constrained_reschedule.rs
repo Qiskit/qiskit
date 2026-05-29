@@ -115,12 +115,7 @@ fn push_node_back(
     }
 
     let new_t1q = if let Some(target) = target {
-        let qargs: Vec<PhysicalQubit> = dag
-            .qargs_interner()
-            .get(op.qubits)
-            .iter()
-            .map(|q| PhysicalQubit(q.index() as u32))
-            .collect();
+        let qargs = PhysicalQubit::lift_slice(dag.get_qargs(op.qubits)).to_vec();
         let duration = target.get_duration(op.op.name(), &qargs).unwrap_or(0.0);
         this_t0 + duration as u64
     } else if matches!(

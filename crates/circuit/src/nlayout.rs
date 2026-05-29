@@ -24,7 +24,6 @@ use hashbrown::HashMap;
 /// overhead, so we just allow conversion to and from any valid `PyLong`.
 macro_rules! qubit_newtype {
     ($id: ident) => {
-        #[repr(transparent)]
         #[derive(
             Debug,
             Clone,
@@ -34,41 +33,52 @@ macro_rules! qubit_newtype {
             PartialOrd,
             Ord,
             Hash,
-            Default,
-            IntoPyObject,
-            IntoPyObjectRef,
+            bytemuck::Zeroable,
+            bytemuck::Pod,
         )]
-        pub struct $id(pub u32);
+        #[repr(transparent)]
+        pub struct $id(pub $crate::Qubit);
 
         impl $id {
+            /// The zero index.
+            pub const ZERO: Self = $id($crate::Qubit::ZERO);
             /// The maximum storable index.
-            pub const MAX: Self = $id($crate::Qubit::MAX.index() as _);
+            pub const MAX: Self = $id($crate::Qubit::MAX);
 
             #[inline]
             pub fn new(val: u32) -> Self {
-                Self(val)
-            }
-            #[inline]
-            pub fn index(&self) -> usize {
-                self.0 as usize
+                Self($crate::Qubit(val))
             }
 
-            /// Specialise a slice of `Qubit` values into a slice of this type's values.
-            pub fn lift_slice(slice: &[$crate::Qubit]) -> &[$id] {
-                // SAFETY: `Qubit` and this type share the exact same set of valid bit patterns and
-                // alignments.
-                unsafe { ::std::slice::from_raw_parts(slice.as_ptr() as *const $id, slice.len()) }
+            /// Specialize a slice of `Qubit` values into a slice of this type's values.
+            ///
+            /// You can also just use `bytemuck::cast_slice`.
+            #[inline]
+            pub fn lift_slice(slice: &[$crate::Qubit]) -> &[Self] {
+                ::bytemuck::cast_slice(slice)
             }
         }
-
         impl From<$id> for $crate::Qubit {
             fn from(val: $id) -> Self {
-                $crate::Qubit(val.0)
+                val.0
             }
         }
         impl From<$crate::Qubit> for $id {
             fn from(val: $crate::Qubit) -> Self {
-                Self(val.0)
+                Self(val)
+            }
+        }
+
+        impl ::std::ops::Deref for $id {
+            type Target = $crate::Qubit;
+            fn deref(&self) -> &Self::Target {
+                &self.0
+            }
+        }
+        // We implement `Default` mostly just for `petgraph`'s `IndexType`.
+        impl Default for $id {
+            fn default() -> Self {
+                Self($crate::Qubit(0))
             }
         }
 
@@ -77,6 +87,24 @@ macro_rules! qubit_newtype {
 
             fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
                 ob.extract().map(Self)
+            }
+        }
+        impl<'py> ::pyo3::IntoPyObject<'py> for $id {
+            type Target = <usize as IntoPyObject<'py>>::Target;
+            type Output = <usize as IntoPyObject<'py>>::Output;
+            type Error = <usize as IntoPyObject<'py>>::Error;
+
+            fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+                self.index().into_pyobject(py)
+            }
+        }
+        impl<'a, 'py> ::pyo3::IntoPyObject<'py> for &'a $id {
+            type Target = <usize as IntoPyObject<'py>>::Target;
+            type Output = <usize as IntoPyObject<'py>>::Output;
+            type Error = <usize as IntoPyObject<'py>>::Error;
+
+            fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+                self.index().into_pyobject(py)
             }
         }
 
@@ -97,7 +125,7 @@ macro_rules! qubit_newtype {
                 Self::new(x as u32)
             }
             fn index(&self) -> usize {
-                self.0 as usize
+                self.0.index()
             }
             fn max() -> Self {
                 Self::MAX
@@ -150,8 +178,8 @@ impl NLayout {
         physical_qubits: usize,
     ) -> Self {
         let mut res = NLayout {
-            virt_to_phys: vec![PhysicalQubit(u32::MAX); virtual_qubits],
-            phys_to_virt: vec![VirtualQubit(u32::MAX); physical_qubits],
+            virt_to_phys: vec![PhysicalQubit::MAX; virtual_qubits],
+            phys_to_virt: vec![VirtualQubit::MAX; physical_qubits],
         };
         for (virt, phys) in qubit_indices {
             res.virt_to_phys[virt.index()] = phys;
@@ -219,16 +247,16 @@ impl NLayout {
     #[staticmethod]
     pub fn generate_trivial_layout(num_qubits: u32) -> Self {
         NLayout {
-            virt_to_phys: (0..num_qubits).map(PhysicalQubit).collect(),
-            phys_to_virt: (0..num_qubits).map(VirtualQubit).collect(),
+            virt_to_phys: (0..num_qubits).map(PhysicalQubit::new).collect(),
+            phys_to_virt: (0..num_qubits).map(VirtualQubit::new).collect(),
         }
     }
 
     #[staticmethod]
     pub fn from_virtual_to_physical(virt_to_phys: Vec<PhysicalQubit>) -> PyResult<Self> {
-        let mut phys_to_virt = vec![VirtualQubit(u32::MAX); virt_to_phys.len()];
+        let mut phys_to_virt = vec![VirtualQubit::MAX; virt_to_phys.len()];
         for (virt, phys) in virt_to_phys.iter().enumerate() {
-            phys_to_virt[phys.index()] = VirtualQubit(virt.try_into()?);
+            phys_to_virt[phys.index()] = VirtualQubit::new(virt.try_into()?);
         }
         Ok(NLayout {
             virt_to_phys,
@@ -238,9 +266,9 @@ impl NLayout {
 
     #[staticmethod]
     pub fn from_physical_to_virtual(phys_to_virt: Vec<VirtualQubit>) -> PyResult<Self> {
-        let mut virt_to_phys = vec![PhysicalQubit(u32::MAX); phys_to_virt.len()];
+        let mut virt_to_phys = vec![PhysicalQubit::MAX; phys_to_virt.len()];
         for (phys, virt) in phys_to_virt.iter().enumerate() {
-            virt_to_phys[virt.index()] = PhysicalQubit(phys.try_into()?);
+            virt_to_phys[virt.index()] = PhysicalQubit::new(phys.try_into()?);
         }
         Ok(NLayout {
             virt_to_phys,

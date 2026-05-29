@@ -92,7 +92,7 @@ pub unsafe extern "C" fn qk_vf2_layout_result_map_virtual_qubit(
         // It's undefined behaviour to pass a qubit that's out of range, so it's not our problem
         // that we can't tell if this is valid.
         Vf2PassReturn::NoImprovement => qubit,
-        Vf2PassReturn::Solution(mapping) => mapping[&VirtualQubit::new(qubit)].0,
+        Vf2PassReturn::Solution(mapping) => mapping[&VirtualQubit::new(qubit)].value(),
     }
 }
 

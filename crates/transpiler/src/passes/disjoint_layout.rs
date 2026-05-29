@@ -184,7 +184,7 @@ pub fn distribute_components(dag: &mut DAGCircuit, target: &Target) -> PyResult<
             return Ok(DisjointSplit::TargetSubset(
                 largest_component
                     .iter()
-                    .map(|x| PhysicalQubit(x.index() as u32))
+                    .map(|x| PhysicalQubit::new(x.index() as u32))
                     .collect(),
             ));
         }

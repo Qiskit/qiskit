@@ -15,9 +15,9 @@ use rand::prelude::*;
 use rand::rngs::SysRng;
 use rand_pcg::Pcg64Mcg;
 
+use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::{PhysicalQubit, Qubit};
 use qiskit_transpiler::passes::sabre::heuristic;
 use qiskit_transpiler::passes::sabre::sabre_layout_and_routing;
 use qiskit_transpiler::target::Target;
@@ -149,12 +149,11 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_sabre_layout(
     let num_input_qubits = circuit.num_qubits() as u32;
     *circuit = out_circuit;
     let out_permutation = (0..result.num_qubits() as u32)
-        .map(|ref q| {
-            Qubit(
-                final_layout
-                    .virtual_to_physical(initial_layout.physical_to_virtual(PhysicalQubit(*q)))
-                    .0,
-            )
+        .map(|q| {
+            PhysicalQubit::new(q)
+                .to_virt(&initial_layout)
+                .to_phys(&final_layout)
+                .0
         })
         .collect();
 

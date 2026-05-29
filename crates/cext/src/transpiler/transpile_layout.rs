@@ -112,7 +112,7 @@ pub unsafe extern "C" fn qk_transpile_layout_initial_layout(
             out_slice
                 .iter_mut()
                 .zip(out_initial_layout.iter())
-                .for_each(|(dest, src)| *dest = src.0);
+                .for_each(|(dest, src)| *dest = src.value());
         };
         true
     } else {
@@ -217,7 +217,7 @@ pub unsafe extern "C" fn qk_transpile_layout_final_layout(
         out_slice
             .iter_mut()
             .zip(result.iter())
-            .for_each(|(dest, src)| *dest = src.0);
+            .for_each(|(dest, src)| *dest = src.value());
     }
 }
 
