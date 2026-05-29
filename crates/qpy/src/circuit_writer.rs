@@ -20,10 +20,10 @@
 // `write` method into a `Cursor` buffer, but there might be exceptions.
 use binrw::Endian;
 use hashbrown::{HashMap, HashSet};
-use indexmap::IndexSet;
 use num_bigint::BigUint;
 use num_traits::ToPrimitive;
 use numpy::ToPyArray;
+use qiskit_util::IndexSet;
 
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict, PyTuple};
@@ -632,7 +632,7 @@ fn pack_quantum_registers(circuit_data: &CircuitData) -> Vec<formats::RegisterV4
     // let mut registers_to_pack: IndexSet<QuantumRegister> =
     //     circuit_data.qregs().iter().cloned().collect();
     let mut in_circ_lookup: HashSet<QuantumRegister> = HashSet::new();
-    let mut registers_to_pack: IndexSet<QuantumRegister> = IndexSet::new();
+    let mut registers_to_pack: IndexSet<QuantumRegister> = IndexSet::default();
     circuit_data.qregs().iter().for_each(|qreg| {
         in_circ_lookup.insert(qreg.clone());
         registers_to_pack.insert(qreg.clone());
