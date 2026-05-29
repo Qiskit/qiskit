@@ -855,16 +855,12 @@ class TestSubstituteVars(QiskitTestCase):
         )
         # Body: body_var is replaced by the literal 3.
         body_stores = [
-            inst.operation.rvalue
-            for inst in new.blocks[0].data
-            if inst.operation.name == "store"
+            inst.operation.rvalue for inst in new.blocks[0].data if inst.operation.name == "store"
         ]
         self.assertIn(replacement, body_stores)
         # The original body is not mutated.
         original_body_stores = [
-            inst.operation.rvalue
-            for inst in op.blocks[0].data
-            if inst.operation.name == "store"
+            inst.operation.rvalue for inst in op.blocks[0].data if inst.operation.name == "store"
         ]
         self.assertIn(body_var, original_body_stores)
 
