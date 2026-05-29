@@ -14,7 +14,9 @@ use std::error::Error;
 
 use crate::classical::expr::{Binary, Cast, Index, Range, Stretch, Unary, Value, Var};
 use crate::classical::types::Type;
+use hashbrown::HashMap;
 use pyo3::prelude::*;
+use pyo3::types::PyDict;
 use pyo3::{IntoPyObjectExt, intern};
 
 /// A classical expression.
@@ -183,6 +185,77 @@ impl Expr {
             }
         }
         visitor(self.as_mut())
+    }
+
+    /// Return a copy of this expression with every [Var] present in `subs` replaced by its
+    /// mapped [Expr].
+    ///
+    /// The rewrite is purely structural: the [Type] of each node is preserved from the
+    /// original tree and is not re-inferred.  The `constant`-ness of rebuilt nodes is
+    /// recomputed from the (possibly substituted) children, matching the Python expression
+    /// constructors.  [Var] nodes absent from `subs`, and nodes that contain no [Var]s, are
+    /// returned unchanged.
+    pub fn substitute(&self, subs: &HashMap<Var, Expr>) -> Expr {
+        match self {
+            Expr::Var(v) => subs.get(v).cloned().unwrap_or_else(|| self.clone()),
+            Expr::Value(_) | Expr::Stretch(_) => self.clone(),
+            Expr::Unary(u) => {
+                let operand = u.operand.substitute(subs);
+                let constant = operand.is_const();
+                Expr::Unary(Box::new(Unary {
+                    op: u.op,
+                    operand,
+                    ty: u.ty,
+                    constant,
+                }))
+            }
+            Expr::Binary(b) => {
+                let left = b.left.substitute(subs);
+                let right = b.right.substitute(subs);
+                let constant = left.is_const() && right.is_const();
+                Expr::Binary(Box::new(Binary {
+                    op: b.op,
+                    left,
+                    right,
+                    ty: b.ty,
+                    constant,
+                }))
+            }
+            Expr::Cast(c) => {
+                let operand = c.operand.substitute(subs);
+                let constant = operand.is_const();
+                Expr::Cast(Box::new(Cast {
+                    operand,
+                    ty: c.ty,
+                    constant,
+                    implicit: c.implicit,
+                }))
+            }
+            Expr::Index(i) => {
+                let target = i.target.substitute(subs);
+                let index = i.index.substitute(subs);
+                let constant = target.is_const() && index.is_const();
+                Expr::Index(Box::new(Index {
+                    target,
+                    index,
+                    ty: i.ty,
+                    constant,
+                }))
+            }
+            Expr::Range(r) => {
+                let start = r.start.substitute(subs);
+                let stop = r.stop.substitute(subs);
+                let step = r.step.substitute(subs);
+                let constant = start.is_const() && stop.is_const() && step.is_const();
+                Expr::Range(Box::new(Range {
+                    start,
+                    stop,
+                    step,
+                    ty: r.ty,
+                    constant,
+                }))
+            }
+        }
     }
 
     /// Do these two expressions have exactly the same tree structure?
@@ -458,6 +531,33 @@ impl PyExpr {
     ) -> PyResult<Bound<'py, PyAny>> {
         visitor.call_method1(intern!(visitor.py(), "visit_generic"), (slf,))
     }
+
+    /// Return a copy of this expression with classical :class:`Var` nodes substituted.
+    ///
+    /// Every :class:`Var` that appears as a key in ``subs`` is replaced by its mapped
+    /// :class:`Expr`; other variables (and nodes that contain none) are returned unchanged.
+    /// The rewrite is purely structural: node types are preserved from the original tree and
+    /// are not re-inferred.
+    ///
+    /// Args:
+    ///     subs: a mapping of :class:`Var` to the replacement :class:`Expr`.
+    ///
+    /// Returns:
+    ///     A new expression tree with the substitutions applied.
+    fn substitute<'py>(
+        slf: &Bound<'py, Self>,
+        subs: &Bound<'py, PyDict>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let expr: Expr = slf.extract()?;
+        if subs.is_empty() {
+            return expr.into_bound_py_any(slf.py());
+        }
+        let mut map: HashMap<Var, Expr> = HashMap::with_capacity(subs.len());
+        for (key, value) in subs.iter() {
+            map.insert(key.extract()?, value.extract()?);
+        }
+        expr.substitute(&map).into_bound_py_any(slf.py())
+    }
 }
 
 /// The expression's kind, used internally during Python instance extraction to avoid
@@ -521,9 +621,56 @@ mod tests {
     };
     use crate::classical::types::Type;
     use crate::duration::Duration;
+    use hashbrown::HashMap;
     use num_bigint::BigUint;
     use pyo3::{PyErr, PyResult};
     use uuid::Uuid;
+
+    #[test]
+    fn test_substitute() {
+        let make_var = |name: &str| Var::Standalone {
+            uuid: Uuid::new_v4().as_u128(),
+            name: name.to_string(),
+            ty: Type::Bool,
+        };
+        let a = make_var("a");
+        let b = make_var("b");
+
+        // `a & (~a)` -- `a` appears twice, at different depths.
+        let expr: Expr = Binary {
+            op: BinaryOp::BitAnd,
+            left: a.clone().into(),
+            right: Unary {
+                op: UnaryOp::BitNot,
+                operand: a.clone().into(),
+                ty: Type::Bool,
+                constant: false,
+            }
+            .into(),
+            ty: Type::Bool,
+            constant: false,
+        }
+        .into();
+
+        // Substituting `a -> b` replaces every occurrence, including the nested one.
+        let mut subs = HashMap::new();
+        subs.insert(a.clone(), Expr::Var(b.clone()));
+        let out = expr.substitute(&subs);
+        let vars: Vec<&Var> = out.vars().collect();
+        assert_eq!(vars.len(), 2);
+        assert!(vars.iter().all(|v| **v == b));
+
+        // Substituting a variable that is absent leaves the tree unchanged.
+        let mut absent = HashMap::new();
+        absent.insert(make_var("c"), Expr::Var(b.clone()));
+        assert_eq!(expr.substitute(&absent), expr);
+
+        // Substituting a `Var` with a constant `Expr` recomputes `constant`-ness.
+        assert!(!expr.is_const());
+        let mut to_const = HashMap::new();
+        to_const.insert(a.clone(), Value::Duration(Duration::dt(1)).into());
+        assert!(expr.substitute(&to_const).is_const());
+    }
 
     #[test]
     fn test_vars() {

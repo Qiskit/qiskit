@@ -16,12 +16,12 @@ from __future__ import annotations
 
 import warnings
 from typing import TYPE_CHECKING
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
 from qiskit._accelerate.circuit import ControlFlowType
-from qiskit.circuit.classical.expr import Range, Var
+from qiskit.circuit.classical.expr import Expr, Range, Var
 from .control_flow import ControlFlowOp
 
 
@@ -43,40 +43,6 @@ def _validate_for_loop_params(indexset, loop_parameter, body) -> None:
             "Cannot use an expr.Var as a loop variable with a Python range or integer list "
             "indexset. Use a Parameter instead, or use an expr.Range for runtime execution."
         )
-
-
-def _is_loop_variable_referenced(loop_parameter, body) -> bool:
-    """Return whether ``loop_parameter`` is referenced inside ``body``.
-
-    A single boundary helper between the two kinds of loop variable Qiskit supports:
-    a compile-time :class:`~.Parameter` appears in :attr:`.QuantumCircuit.parameters`,
-    a real-time :class:`~.expr.Var` appears as a declared/input variable of the body.
-    The rest of the for-loop machinery treats ``loop_parameter`` uniformly.
-    """
-    if loop_parameter is None:
-        return False
-    if isinstance(loop_parameter, Var):
-        return body.has_var(loop_parameter)
-    return loop_parameter in body.parameters
-
-
-def _register_loop_variable_in_scope(loop_parameter, scope, *, lazy: bool) -> None:
-    """Make ``loop_parameter`` resolvable inside the body scope, if it needs to be.
-
-    A :class:`~.Parameter` is automatically tracked through gate parameter expressions and
-    needs no scope registration. A real-time :class:`~.expr.Var` is registered in the
-    classical-variable scope so :meth:`._BuildScope.use_var` resolves it inside the body:
-
-    * ``lazy=True``: defer until first use; an auto-generated Var that the user never
-      references is dropped, matching the existing :class:`~.Parameter` behavior.
-    * ``lazy=False``: register eagerly as a declared local, matching an explicit user-supplied
-      Var (which is kept even if unused, again matching the explicit-Parameter case).
-    """
-    if isinstance(loop_parameter, Var):
-        if lazy:
-            scope.add_pending_loop_var(loop_parameter)
-        else:
-            scope.add_uninitialized_var(loop_parameter)
 
 
 class ForLoopOp(ControlFlowOp):
@@ -197,6 +163,32 @@ class ForLoopOp(ControlFlowOp):
         (body,) = blocks
         return ForLoopOp(self.params[0], self.params[1], body, label=self.label)
 
+    def substitute(self, substitutions: Mapping[Var, Expr]) -> ForLoopOp:
+        """Return a new :class:`ForLoopOp` with classical :class:`~.expr.Var` nodes replaced.
+
+        The substitution is applied to the ``indexset`` when it is an :class:`~.expr.Range`
+        (a Python :class:`range`/integer-list indexset has no variables and is left unchanged)
+        and recursively to the loop body via :meth:`.QuantumCircuit.substitute_vars`.  The
+        ``loop_parameter`` itself is left untouched: it is bound by the loop rather than
+        substituted away.
+
+        Args:
+            substitutions: mapping from :class:`~.expr.Var` to the replacement
+                :class:`~.expr.Expr`.
+
+        Returns:
+            A new :class:`ForLoopOp` with the substitutions applied.
+        """
+        indexset, loop_parameter, body = self.params
+        if isinstance(indexset, Range):
+            indexset = indexset.substitute(substitutions)
+        return ForLoopOp(
+            indexset,
+            loop_parameter,
+            body.substitute_vars(substitutions, strict=False),
+            label=self.label,
+        )
+
 
 class ForLoopContext:
     """A context manager for building up ``for`` loops onto circuits in a natural order, without
@@ -285,11 +277,11 @@ class ForLoopContext:
             # auto-generated variable that the body never references is dropped in __exit__.
             self._loop_parameter = self._make_loop_variable()
             type(self)._generated_loop_parameters += 1
-            _register_loop_variable_in_scope(self._loop_parameter, scope, lazy=True)
+            self._register_loop_variable_in_scope(scope, lazy=True)
         else:
             # Explicit user-supplied loop variable: register eagerly so it is always kept,
             # mirroring how an explicit Parameter is kept even if unused.
-            _register_loop_variable_in_scope(self._loop_parameter, scope, lazy=False)
+            self._register_loop_variable_in_scope(scope, lazy=False)
         return self._loop_parameter
 
     def _make_loop_variable(self):
@@ -298,6 +290,38 @@ class ForLoopContext:
         if isinstance(self._indexset, Range):
             return Var.new(name, self._indexset.type)
         return Parameter(name)
+
+    def _register_loop_variable_in_scope(self, scope, *, lazy: bool) -> None:
+        """Make ``self._loop_parameter`` resolvable inside the body scope, if it needs to be.
+
+        A :class:`~.Parameter` is automatically tracked through gate parameter expressions and
+        needs no scope registration. A real-time :class:`~.expr.Var` is registered in the
+        classical-variable scope so :meth:`._BuildScope.use_var` resolves it inside the body:
+
+        * ``lazy=True``: defer until first use; an auto-generated Var that the user never
+          references is dropped, matching the existing :class:`~.Parameter` behavior.
+        * ``lazy=False``: register eagerly as a declared local, matching an explicit user-supplied
+          Var (which is kept even if unused, again matching the explicit-Parameter case).
+        """
+        if isinstance(self._loop_parameter, Var):
+            if lazy:
+                scope.add_pending_loop_var(self._loop_parameter)
+            else:
+                scope.add_uninitialized_var(self._loop_parameter)
+
+    def _is_loop_variable_referenced(self, body) -> bool:
+        """Return whether ``self._loop_parameter`` is referenced inside ``body``.
+
+        A single boundary helper between the two kinds of loop variable Qiskit supports:
+        a compile-time :class:`~.Parameter` appears in :attr:`.QuantumCircuit.parameters`,
+        a real-time :class:`~.expr.Var` appears as a declared/input variable of the body.
+        The rest of the for-loop machinery treats ``loop_parameter`` uniformly.
+        """
+        if self._loop_parameter is None:
+            return False
+        if isinstance(self._loop_parameter, Var):
+            return body.has_var(self._loop_parameter)
+        return self._loop_parameter in body.parameters
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
@@ -312,9 +336,7 @@ class ForLoopContext:
         # We always bind the loop variable if the user supplied it explicitly, even if unused.
         # For an auto-generated loop variable, we only keep it if the user actually referenced it
         # inside the body, to avoid leaving stray dangling resources.
-        if self._generate_loop_parameter and not _is_loop_variable_referenced(
-            self._loop_parameter, body
-        ):
+        if self._generate_loop_parameter and not self._is_loop_variable_referenced(body):
             loop_parameter = None
         else:
             loop_parameter = self._loop_parameter

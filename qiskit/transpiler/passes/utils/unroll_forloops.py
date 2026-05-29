@@ -19,7 +19,6 @@ from qiskit.transpiler.passes.utils import control_flow
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.classical import expr as _expr
 from qiskit.circuit.classical.expr import Range, Var
-from qiskit.circuit.classical.expr.substitute import substitute_var_in_circuit
 
 
 class UnrollForLoops(TransformationPass):
@@ -34,7 +33,7 @@ class UnrollForLoops(TransformationPass):
     For constant :class:`~.expr.Range` indexsets paired with an :class:`~.expr.Var`
     loop variable, each iteration substitutes the :class:`~.expr.Var` with the
     iteration value (an :class:`~.expr.Value`) in every classical expression in
-    the body via :func:`~.expr.substitute_var_in_circuit`.
+    the body via :meth:`~.QuantumCircuit.substitute_vars`.
     """
 
     def __init__(self, max_target_depth=-1, *, strict=False):
@@ -125,7 +124,7 @@ def _bind_loop_param(body, loop_param, index_value, var_type):
     Dispatches on the loop variable type:
         * ``None``: no binding needed — the body is repeated as-is.
         * :class:`~.Parameter`: substitute via :meth:`~.QuantumCircuit.assign_parameters`.
-        * :class:`~.expr.Var`: substitute via :func:`~.expr.substitute_var_in_circuit`,
+        * :class:`~.expr.Var`: substitute via :meth:`~.QuantumCircuit.substitute_vars`,
           replacing every occurrence of the Var in classical expressions with an
           :class:`~.expr.Value` literal of the Var's type.
     """
@@ -133,7 +132,7 @@ def _bind_loop_param(body, loop_param, index_value, var_type):
         return body
     if isinstance(loop_param, Var):
         replacement = _expr.lift(index_value, type=var_type)
-        return substitute_var_in_circuit(body, {loop_param: replacement})
+        return body.substitute_vars({loop_param: replacement})
     return body.assign_parameters({loop_param: index_value})
 
 
