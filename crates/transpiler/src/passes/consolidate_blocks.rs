@@ -651,11 +651,11 @@ mod test_consolidate_blocks {
                 None,
                 Some(IndexMap::from_iter([
                     (
-                        Qargs::Concrete(smallvec![PhysicalQubit(0)]).to_owned(),
+                        Qargs::Concrete(smallvec![PhysicalQubit::new(0)]).to_owned(),
                         None,
                     ),
                     (
-                        Qargs::Concrete(smallvec![PhysicalQubit(1)]).to_owned(),
+                        Qargs::Concrete(smallvec![PhysicalQubit::new(1)]).to_owned(),
                         None,
                     ),
                 ])),
@@ -668,11 +668,11 @@ mod test_consolidate_blocks {
                 None,
                 Some(IndexMap::from_iter([
                     (
-                        Qargs::Concrete(smallvec![PhysicalQubit(0), PhysicalQubit(1)]).to_owned(),
+                        Qargs::Concrete(smallvec![PhysicalQubit::new(0), PhysicalQubit::new(1)]),
                         None,
                     ),
                     (
-                        Qargs::Concrete(smallvec![PhysicalQubit(1), PhysicalQubit(0)]).to_owned(),
+                        Qargs::Concrete(smallvec![PhysicalQubit::new(1), PhysicalQubit::new(0)]),
                         None,
                     ),
                 ])),

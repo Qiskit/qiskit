@@ -472,7 +472,7 @@ mod test {
 
     #[test]
     fn from_parts_catches_errors() {
-        let lift = |idx: Vec<u32>| idx.into_iter().map(PhysicalQubit).collect::<Vec<_>>();
+        let lift = |idx: Vec<u32>| idx.into_iter().map(PhysicalQubit::new).collect::<Vec<_>>();
         // Partition doesn't start from zero.
         assert_eq!(
             Neighbors::from_parts(lift(vec![1, 0]), vec![1, 2, 2]),

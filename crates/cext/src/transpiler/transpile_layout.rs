@@ -348,16 +348,16 @@ mod test {
     #[test]
     fn test_final_layout() {
         let initial_layout_vec = vec![
-            PhysicalQubit(9),
-            PhysicalQubit(4),
-            PhysicalQubit(0),
-            PhysicalQubit(1),
-            PhysicalQubit(2),
-            PhysicalQubit(3),
-            PhysicalQubit(5),
-            PhysicalQubit(6),
-            PhysicalQubit(7),
-            PhysicalQubit(8),
+            PhysicalQubit::new(9),
+            PhysicalQubit::new(4),
+            PhysicalQubit::new(0),
+            PhysicalQubit::new(1),
+            PhysicalQubit::new(2),
+            PhysicalQubit::new(3),
+            PhysicalQubit::new(5),
+            PhysicalQubit::new(6),
+            PhysicalQubit::new(7),
+            PhysicalQubit::new(8),
         ];
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
         let routing_permutation = vec![
@@ -381,27 +381,33 @@ mod test {
             vec![],
         );
         let result = layout.final_index_layout(true);
-        let expected = vec![PhysicalQubit(3), PhysicalQubit(5), PhysicalQubit(2)];
+        let expected = vec![
+            PhysicalQubit::new(3),
+            PhysicalQubit::new(5),
+            PhysicalQubit::new(2),
+        ];
         assert_eq!(expected, result);
         let mut result = vec![u32::MAX; layout.num_input_qubits() as usize];
         unsafe { qk_transpile_layout_final_layout(&layout, true, result.as_mut_ptr()) };
-        let expected = expected.into_iter().map(|x| x.0).collect::<Vec<_>>();
-        assert_eq!(expected.as_slice(), result.as_slice());
+        assert_eq!(
+            expected.as_slice(),
+            bytemuck::cast_slice::<_, PhysicalQubit>(&result)
+        );
     }
 
     #[test]
     fn test_final_layout_no_filter() {
         let initial_layout_vec = vec![
-            PhysicalQubit(9),
-            PhysicalQubit(4),
-            PhysicalQubit(0),
-            PhysicalQubit(1),
-            PhysicalQubit(2),
-            PhysicalQubit(3),
-            PhysicalQubit(5),
-            PhysicalQubit(6),
-            PhysicalQubit(7),
-            PhysicalQubit(8),
+            PhysicalQubit::new(9),
+            PhysicalQubit::new(4),
+            PhysicalQubit::new(0),
+            PhysicalQubit::new(1),
+            PhysicalQubit::new(2),
+            PhysicalQubit::new(3),
+            PhysicalQubit::new(5),
+            PhysicalQubit::new(6),
+            PhysicalQubit::new(7),
+            PhysicalQubit::new(8),
         ];
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
         let routing_permutation = vec![
@@ -426,37 +432,39 @@ mod test {
         );
         let result = layout.final_index_layout(false);
         let expected = vec![
-            PhysicalQubit(3),
-            PhysicalQubit(5),
-            PhysicalQubit(2),
-            PhysicalQubit(0),
-            PhysicalQubit(1),
-            PhysicalQubit(4),
-            PhysicalQubit(6),
-            PhysicalQubit(7),
-            PhysicalQubit(8),
-            PhysicalQubit(9),
+            PhysicalQubit::new(3),
+            PhysicalQubit::new(5),
+            PhysicalQubit::new(2),
+            PhysicalQubit::new(0),
+            PhysicalQubit::new(1),
+            PhysicalQubit::new(4),
+            PhysicalQubit::new(6),
+            PhysicalQubit::new(7),
+            PhysicalQubit::new(8),
+            PhysicalQubit::new(9),
         ];
         assert_eq!(expected, result);
         let mut result = vec![u32::MAX; layout.num_output_qubits() as usize];
         unsafe { qk_transpile_layout_final_layout(&layout, false, result.as_mut_ptr()) };
-        let expected = expected.into_iter().map(|x| x.0).collect::<Vec<_>>();
-        assert_eq!(expected.as_slice(), result.as_slice());
+        assert_eq!(
+            expected.as_slice(),
+            bytemuck::cast_slice::<_, PhysicalQubit>(&result)
+        );
     }
 
     #[test]
     fn test_initial_layout() {
         let initial_layout_vec = vec![
-            PhysicalQubit(9),
-            PhysicalQubit(4),
-            PhysicalQubit(0),
-            PhysicalQubit(1),
-            PhysicalQubit(2),
-            PhysicalQubit(3),
-            PhysicalQubit(5),
-            PhysicalQubit(6),
-            PhysicalQubit(7),
-            PhysicalQubit(8),
+            PhysicalQubit::new(9),
+            PhysicalQubit::new(4),
+            PhysicalQubit::new(0),
+            PhysicalQubit::new(1),
+            PhysicalQubit::new(2),
+            PhysicalQubit::new(3),
+            PhysicalQubit::new(5),
+            PhysicalQubit::new(6),
+            PhysicalQubit::new(7),
+            PhysicalQubit::new(8),
         ];
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
         let routing_permutation = vec![
@@ -479,30 +487,34 @@ mod test {
             3,
             vec![],
         );
-        let expected: Vec<u32> = [PhysicalQubit(9), PhysicalQubit(4), PhysicalQubit(0)]
-            .into_iter()
-            .map(|x| x.0)
-            .collect();
+        let expected = vec![
+            PhysicalQubit::new(9),
+            PhysicalQubit::new(4),
+            PhysicalQubit::new(0),
+        ];
         let mut result: Vec<u32> = vec![u32::MAX; layout.num_input_qubits() as usize];
         assert!(unsafe { qk_transpile_layout_initial_layout(&layout, true, result.as_mut_ptr()) });
-        assert_eq!(expected.as_slice(), result.as_slice());
+        assert_eq!(
+            expected.as_slice(),
+            bytemuck::cast_slice::<_, PhysicalQubit>(&result)
+        );
     }
 
     #[test]
     fn test_initial_layout_no_filter() {
         let initial_layout_vec = vec![
-            PhysicalQubit(9),
-            PhysicalQubit(4),
-            PhysicalQubit(0),
-            PhysicalQubit(1),
-            PhysicalQubit(2),
-            PhysicalQubit(3),
-            PhysicalQubit(5),
-            PhysicalQubit(6),
-            PhysicalQubit(7),
-            PhysicalQubit(8),
+            PhysicalQubit::new(9),
+            PhysicalQubit::new(4),
+            PhysicalQubit::new(0),
+            PhysicalQubit::new(1),
+            PhysicalQubit::new(2),
+            PhysicalQubit::new(3),
+            PhysicalQubit::new(5),
+            PhysicalQubit::new(6),
+            PhysicalQubit::new(7),
+            PhysicalQubit::new(8),
         ];
-        let expected: Vec<u32> = initial_layout_vec.iter().map(|x| x.0).collect();
+        let expected = initial_layout_vec.clone();
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
         let routing_permutation = vec![
             Qubit(2),
@@ -526,7 +538,10 @@ mod test {
         );
         let mut result: Vec<u32> = vec![u32::MAX; layout.num_output_qubits() as usize];
         assert!(unsafe { qk_transpile_layout_initial_layout(&layout, false, result.as_mut_ptr()) });
-        assert_eq!(expected.as_slice(), result.as_slice());
+        assert_eq!(
+            expected.as_slice(),
+            bytemuck::cast_slice::<_, PhysicalQubit>(&result)
+        );
     }
 
     #[test]
@@ -540,16 +555,16 @@ mod test {
     #[test]
     fn test_output_permutation() {
         let initial_layout_vec = vec![
-            PhysicalQubit(9),
-            PhysicalQubit(4),
-            PhysicalQubit(0),
-            PhysicalQubit(1),
-            PhysicalQubit(2),
-            PhysicalQubit(3),
-            PhysicalQubit(5),
-            PhysicalQubit(6),
-            PhysicalQubit(7),
-            PhysicalQubit(8),
+            PhysicalQubit::new(9),
+            PhysicalQubit::new(4),
+            PhysicalQubit::new(0),
+            PhysicalQubit::new(1),
+            PhysicalQubit::new(2),
+            PhysicalQubit::new(3),
+            PhysicalQubit::new(5),
+            PhysicalQubit::new(6),
+            PhysicalQubit::new(7),
+            PhysicalQubit::new(8),
         ];
         let initial_layout = NLayout::from_virtual_to_physical(initial_layout_vec).unwrap();
         let routing_permutation = vec![
@@ -564,7 +579,7 @@ mod test {
             Qubit(9),
             Qubit(3),
         ];
-        let expected = routing_permutation.iter().map(|x| x.0).collect::<Vec<_>>();
+        let expected = routing_permutation.clone();
         let input_qubits = vec![ShareableQubit::new_anonymous(); 10];
         let layout = TranspileLayout::new(
             Some(initial_layout),
@@ -575,7 +590,10 @@ mod test {
         );
         let mut result: Vec<u32> = vec![u32::MAX; layout.num_output_qubits() as usize];
         assert!(unsafe { qk_transpile_layout_output_permutation(&layout, result.as_mut_ptr()) });
-        assert_eq!(expected.as_slice(), result.as_slice());
+        assert_eq!(
+            expected.as_slice(),
+            bytemuck::cast_slice::<_, Qubit>(&result)
+        );
     }
 
     #[test]

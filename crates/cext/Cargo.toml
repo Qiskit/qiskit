@@ -32,6 +32,9 @@ rand_pcg.workspace = true
 anyhow.workspace = true
 mimalloc = { workspace = true, optional = true}
 
+[dev-dependencies]
+bytemuck.workspace = true
+
 [features]
 python_binding = ["dep:pyo3"]
 cache_pygates = ["qiskit-circuit/cache_pygates", "qiskit-transpiler/cache_pygates"]

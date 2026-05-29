@@ -636,7 +636,7 @@ mod tests {
         let props = (0..5)
             .map(|i| {
                 (
-                    [PhysicalQubit(i)].into(),
+                    [PhysicalQubit::new(i)].into(),
                     Some(InstructionProperties::new(
                         Some(i as f64 * 1.2e-6),
                         Some(i as f64 * 2.3e-5),
@@ -650,7 +650,7 @@ mod tests {
         let props = (0..5)
             .map(|i| {
                 (
-                    [PhysicalQubit(i)].into(),
+                    [PhysicalQubit::new(i)].into(),
                     Some(InstructionProperties::new(
                         Some(i as f64 * 1.2e-4),
                         Some(i as f64 * 2.3e-3),
@@ -664,7 +664,7 @@ mod tests {
         let props = (1..5)
             .map(|i| {
                 (
-                    [PhysicalQubit(0), PhysicalQubit(i)].into(),
+                    [PhysicalQubit::new(0), PhysicalQubit::new(i)].into(),
                     Some(InstructionProperties::new(
                         Some(i as f64 * 2.4e-6),
                         Some(i as f64 * 6.2e-4),
@@ -721,7 +721,7 @@ mod tests {
                             .0
                             .get_qargs(inst.qubits)
                             .iter()
-                            .map(|x| PhysicalQubit(x.0))
+                            .map(|x| PhysicalQubit::new(x.0))
                             .collect::<Vec<_>>(),
                     );
                 } else if inst.op.num_clbits() == 1 {
@@ -838,14 +838,8 @@ mod tests {
             for inst in result.0.data() {
                 if inst.op.num_qubits() == 2 {
                     assert_eq!("ecr", inst.op.name());
-                    target.contains_qargs(
-                        &result
-                            .0
-                            .get_qargs(inst.qubits)
-                            .iter()
-                            .map(|x| PhysicalQubit(x.0))
-                            .collect::<Vec<_>>(),
-                    );
+                    target
+                        .contains_qargs(PhysicalQubit::lift_slice(result.0.get_qargs(inst.qubits)));
                 } else if inst.op.num_clbits() == 1 {
                     assert_eq!("measure", inst.op.name());
                 } else {

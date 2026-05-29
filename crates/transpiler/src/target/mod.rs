@@ -1774,7 +1774,7 @@ mod test {
 
     #[test]
     fn test_add_invalid_qargs_insruction() {
-        let qargs: SmallVec<[PhysicalQubit; 2]> = (0..4).map(PhysicalQubit).collect();
+        let qargs: SmallVec<[PhysicalQubit; 2]> = (0..4).map(PhysicalQubit::new).collect();
         let inst_prop: Option<InstructionProperties> = None;
 
         let mut target = Target::default();
@@ -1820,7 +1820,7 @@ mod test {
             let num_qubits = gate.num_qubits();
             let num_params = gate.num_params();
 
-            let qargs: Qargs = (0..num_qubits).map(PhysicalQubit).collect();
+            let qargs: Qargs = (0..num_qubits).map(PhysicalQubit::new).collect();
             let params: SmallVec<[Param; 3]> = (0..num_params)
                 .map(|val| Param::from(PI / (val as f64)))
                 .collect();
@@ -1843,7 +1843,7 @@ mod test {
     #[test]
     fn test_update_inst_properties() {
         let mut test_target = Target::default();
-        let qargs: Qargs = (0..2).map(PhysicalQubit).collect();
+        let qargs: Qargs = (0..2).map(PhysicalQubit::new).collect();
         // Add instruction with None as property
         let result = test_target.add_instruction(
             StandardGate::CX.into(),
@@ -1877,7 +1877,7 @@ mod test {
     #[test]
     fn test_update_inst_properties_invalid_inst() {
         let mut test_target = Target::default();
-        let qargs: SmallVec<[PhysicalQubit; 2]> = (0..2).map(PhysicalQubit).collect();
+        let qargs: SmallVec<[PhysicalQubit; 2]> = (0..2).map(PhysicalQubit::new).collect();
         // Add instruction with None as property
         let result = test_target.add_instruction(
             StandardGate::CX.into(),
