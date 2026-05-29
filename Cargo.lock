@@ -241,9 +241,9 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "cbindgen"
-version = "0.29.2"
+version = "0.29.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "befbfd072a8e81c02f8c507aefce431fe5e7d051f83d48a23ffc9b9fe5a11799"
+checksum = "c95537b45400390270fae69ac098d057c8f5399001cde9d04f700c105ddfff2d"
 dependencies = [
  "clap",
  "heck",
@@ -1390,9 +1390,9 @@ checksum = "b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981"
 
 [[package]]
 name = "libmimalloc-sys"
-version = "0.1.47"
+version = "0.1.49"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d1eacfa31c33ec25e873c136ba5669f00f9866d0688bea7be4d3f7e43067df6"
+checksum = "6a45a52f43e1c16f667ccfe4dd8c85b7f7c204fd5e3bf46c5b0db9a5c3c0b8e9"
 dependencies = [
  "cc",
 ]
@@ -1473,9 +1473,9 @@ dependencies = [
 
 [[package]]
 name = "mimalloc"
-version = "0.1.50"
+version = "0.1.52"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3627c4272df786b9260cabaa46aec1d59c93ede723d4c3ef646c503816b0640"
+checksum = "2d4139bb28d14ad1facf21d5eb8825051b326e172d216b39f6d31df53cc97862"
 dependencies = [
  "libmimalloc-sys",
 ]
@@ -2263,6 +2263,7 @@ dependencies = [
  "anyhow",
  "cbindgen",
  "hashbrown 0.15.5",
+ "qiskit-cext-vtable",
  "regex",
 ]
 
@@ -2372,7 +2373,12 @@ dependencies = [
 name = "qiskit-providers"
 version = "2.5.0-dev"
 dependencies = [
+ "approx",
  "hashbrown 0.15.5",
+ "ndarray",
+ "num-complex",
+ "rustworkx-core",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
@@ -2404,7 +2410,6 @@ dependencies = [
  "hashbrown 0.15.5",
  "num-bigint",
  "pyo3",
- "qiskit-circuit",
 ]
 
 [[package]]
@@ -2436,7 +2441,6 @@ dependencies = [
  "num-complex",
  "num-traits",
  "numpy",
- "oq3_semantics",
  "pyo3",
  "qiskit-circuit",
  "qiskit-quantum-info",
@@ -2535,6 +2539,7 @@ dependencies = [
  "rustworkx-core",
  "smallvec",
  "thiserror 2.0.18",
+ "thread_local",
  "uuid",
 ]
 
@@ -2813,9 +2818,9 @@ dependencies = [
 
 [[package]]
 name = "rstar"
-version = "0.12.2"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "421400d13ccfd26dfa5858199c30a5d76f9c54e0dba7575273025b43c5175dbb"
+checksum = "5912b862fa5ffb462607bfd1e35036c458c537921f508c8235a83d5f3987edfe"
 dependencies = [
  "heapless",
  "num-traits",

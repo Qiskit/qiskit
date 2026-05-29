@@ -18,20 +18,23 @@ from __future__ import annotations
 from collections.abc import Callable
 import scipy
 import numpy as np
-from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
+
+from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import CXGate, UCPauliRotGate, UnitaryGate
 from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
 from qiskit.synthesis.two_qubit import (
     TwoQubitBasisDecomposer,
     two_qubit_decompose,
 )
 from qiskit.synthesis.one_qubit import one_qubit_decompose
+from qiskit.quantum_info import Operator
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
-from qiskit.circuit.library.standard_gates import CXGate
-from qiskit.circuit.library.generalized_gates.uc_pauli_rot import UCPauliRotGate, _EPS
 from qiskit._accelerate.two_qubit_decompose import two_qubit_decompose_up_to_diagonal
 from qiskit._accelerate import qsd
 
 from qiskit.utils import deprecate_arg
+
+_EPS = 1e-10
 
 
 @deprecate_arg(
@@ -166,9 +169,6 @@ def qs_decomposition(
     if dim == 4:
         if decomposer_2q is None:
             if opt_a2 and _depth > 0:
-                from qiskit.circuit.library.generalized_gates.unitary import (
-                    UnitaryGate,
-                )
 
                 def decomp_2q(mat):
                     ugate = UnitaryGate(mat)
@@ -401,9 +401,6 @@ def _apply_a2(circ):
     diagonal gate and a two cx unitary and reduces overall ``cx`` count by
     4^(n-2) - 1. This optimization should not be done if the original unitary is controlled.
     """
-    from qiskit.quantum_info import Operator
-    from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
-
     from qiskit.transpiler.passes.synthesis import HighLevelSynthesis
 
     decomposer = two_qubit_decompose_up_to_diagonal

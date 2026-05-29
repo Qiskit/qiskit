@@ -21,8 +21,9 @@ use pyo3::prelude::*;
 use pyo3::{Bound, PyResult, pyfunction, wrap_pyfunction};
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
-use qiskit_circuit::operations::Param;
-use qiskit_circuit::operations::{Operation, OperationRef, StandardInstruction};
+use qiskit_circuit::operations::{
+    Operation, OperationRef, Param, PyInstruction, PyOpKind, StandardInstruction,
+};
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 /// Returns the immediate successor operation nodes of a given node in the DAG.
@@ -75,12 +76,16 @@ fn push_node_back(
 
     let op_view = op.op.view();
     let alignment = match op_view {
-        OperationRef::Gate(_) | OperationRef::StandardGate(_) => Some(pulse_align),
+        OperationRef::StandardGate(_)
+        | OperationRef::PyCustom(PyInstruction {
+            kind: PyOpKind::Gate,
+            ..
+        }) => Some(pulse_align),
         OperationRef::StandardInstruction(StandardInstruction::Reset)
         | OperationRef::StandardInstruction(StandardInstruction::Measure) => Some(acquire_align),
         OperationRef::StandardInstruction(StandardInstruction::Delay(_)) => None,
         _ => {
-            if !op_view.directive() {
+            if op_view.directive() {
                 None
             } else {
                 return Err(TranspilerError::new_err(format!(

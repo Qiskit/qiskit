@@ -37,12 +37,22 @@ enum Command {
         #[arg(short, long)]
         output_path: PathBuf,
     },
+    /// Print out a representation of all the slots in use.
+    ShowSlots,
     /// Check for correctness between the slots tables and the list of exported functions for the
     /// current version of Qiskit.
     LintSlots {
         /// Path to the `cext` sources to generate headers for.
         #[arg(short, long)]
         cext_path: PathBuf,
+    },
+    GeneratePyo3 {
+        /// Path to the `cext` sources to generate headers for.
+        #[arg(short, long)]
+        cext_path: PathBuf,
+        /// Path to write the output crate.
+        #[arg(short, long)]
+        output_path: PathBuf,
     },
 }
 
@@ -57,9 +67,22 @@ fn main() -> anyhow::Result<()> {
             qiskit_bindgen::install_c_headers(&mut bindings, output_path)?;
             Ok(())
         }
+        #[allow(clippy::print_stdout)]
+        Command::ShowSlots => {
+            println!("{}", SlotsLists::ours());
+            Ok(())
+        }
         Command::LintSlots { cext_path } => {
             let bindings = qiskit_bindgen::generate_bindings(cext_path)?;
             lint::lint(&bindings, &SlotsLists::ours())?.map_err(|fails| anyhow!(fails.explain()))
+        }
+        Command::GeneratePyo3 {
+            cext_path,
+            output_path,
+        } => {
+            let bindings = qiskit_bindgen::generate_bindings(cext_path)?;
+            qiskit_bindgen::install_rust_pyo3_ffi(&bindings, output_path)?;
+            Ok(())
         }
     }
 }

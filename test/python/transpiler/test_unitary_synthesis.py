@@ -29,7 +29,7 @@ from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.quantum_info.operators import Operator
-from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info import random_unitary
 from qiskit.quantum_info import get_clifford_gate_names
 from qiskit.transpiler import PassManager, CouplingMap, Target, InstructionProperties
 from qiskit.exceptions import QiskitError

@@ -363,6 +363,61 @@ cleanup:
     return result;
 }
 
+static int test_dag_global_phase(void) {
+    int result = Ok;
+
+    QkDag *dag = qk_dag_new();
+
+    QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
+    qk_dag_add_quantum_register(dag, qr);
+
+    // Default global phase should be 0.0
+    QkParam *out_phase = qk_dag_global_phase(dag);
+    double out_phase_val = qk_param_as_real(out_phase);
+    qk_param_free(out_phase);
+    if (out_phase_val != 0.0) {
+        printf("Expected 0.0 for global phase, found %f\n", out_phase_val);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // Numeric global phase parameter
+    QkParam *theta = qk_param_from_double(1.23);
+    qk_dag_set_global_phase(dag, theta);
+    qk_param_free(theta);
+
+    out_phase = qk_dag_global_phase(dag);
+    out_phase_val = qk_param_as_real(out_phase);
+    qk_param_free(out_phase);
+
+    if (out_phase_val != 1.23) {
+        printf("Expected 1.23 for global phase, found %f\n", out_phase_val);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // Symbolic global phase parameter
+    theta = qk_param_new_symbol("theta");
+    if (qk_dag_set_global_phase(dag, theta) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+    qk_param_free(theta);
+
+    QkCircuit *qc = qk_dag_to_circuit(dag);
+    size_t num_symbols = qk_circuit_num_param_symbols(qc);
+    qk_circuit_free(qc);
+    if (num_symbols != 1) {
+        printf("Expected 1 symbol, found %zu\n", num_symbols);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+cleanup:
+    qk_dag_free(dag);
+    return result;
+}
+
 static int test_dag_get_instruction(void) {
     int result = Ok;
     QkDag *dag = qk_dag_new();
@@ -1206,14 +1261,13 @@ static int test_dag_replace_qubitless_block_with_unitary(void) {
     qk_dag_add_quantum_register(dag, qr);
 
     qk_dag_apply_gate(dag, QkGate_H, (uint32_t[]){1}, NULL, false);
-    uint32_t idx =
-        qk_dag_apply_gate(dag, QkGate_GlobalPhase, (uint32_t[]){}, (double[]){0.0}, false);
+    uint32_t idx = qk_dag_apply_gate(dag, QkGate_GlobalPhase, NULL, (double[]){0.0}, false);
     qk_dag_apply_gate(dag, QkGate_CX, (uint32_t[]){0, 1}, NULL, false);
 
     // Replace the global phase gate by a 0-qubit unitary gate
     static const QkComplex64 identity_mat[1] = {{1, 0}};
-    uint32_t new_node_idx = qk_dag_replace_block_with_unitary(
-        dag, 1, (uint32_t[]){idx}, identity_mat, 0, (uint32_t[]){}, false);
+    uint32_t new_node_idx =
+        qk_dag_replace_block_with_unitary(dag, 1, (uint32_t[]){idx}, identity_mat, 0, NULL, false);
 
     // The resulting DAG should have 3 operations
     size_t num_ops = qk_dag_num_op_nodes(dag);
@@ -1330,6 +1384,7 @@ int test_dag(void) {
     num_failed += RUN_TEST(test_dag_apply_gate);
     num_failed += RUN_TEST(test_dag_node_type);
     num_failed += RUN_TEST(test_dag_endpoint_node_value);
+    num_failed += RUN_TEST(test_dag_global_phase);
     num_failed += RUN_TEST(test_op_node_bits_explicit);
     num_failed += RUN_TEST(test_dag_get_instruction);
     num_failed += RUN_TEST(test_dag_topological_op_nodes);
