@@ -23,7 +23,7 @@ from qiskit.quantum_info import Operator, get_clifford_gate_names
 from qiskit.synthesis import gridsynth_rz
 from qiskit.transpiler.passes.synthesis import SynthesizeRZRotations
 
-from test import QiskitTestCase, combine
+from test import QiskitTestCase
 
 
 @ddt

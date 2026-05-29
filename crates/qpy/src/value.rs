@@ -15,7 +15,7 @@ use std::sync::Arc;
 
 use binrw::meta::{ReadEndian, WriteEndian};
 use binrw::{BinRead, BinWrite, Endian, binrw};
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 
@@ -25,7 +25,7 @@ use qiskit_circuit::classical::expr::{Expr, Stretch, Var};
 use qiskit_circuit::classical::types::Type;
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::duration::Duration;
-use qiskit_circuit::operations::{ForCollection, OperationRef, PyRange};
+use qiskit_circuit::operations::{ForCollection, OperationRef, PyInstruction, PyOpKind, PyRange};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
@@ -126,7 +126,7 @@ pub struct QPYReadData<'a> {
     pub use_symengine: bool,
     pub standalone_vars: HashMap<u16, qiskit_circuit::Var>,
     pub standalone_stretches: HashMap<u16, qiskit_circuit::Stretch>,
-    pub vectors: HashMap<Uuid, (Py<PyAny>, Vec<u32>)>, // Parameter expression vectors, which are a python-only elements for now
+    pub vectors: HashMap<Uuid, (Py<PyAny>, HashSet<u32>)>, // Parameter expression vectors, which are a python-only elements for now
     pub annotation_handler: AnnotationHandler<'a>,
 }
 
@@ -730,31 +730,30 @@ pub(crate) fn get_circuit_type_key(
         | OperationRef::PauliProductRotation(_)
         | OperationRef::Unitary(_) => Ok(CircuitInstructionType::Gate),
         OperationRef::StandardInstruction(_)
-        | OperationRef::Instruction(_)
         | OperationRef::ControlFlow(_)
         | OperationRef::PauliProductMeasurement(_) => Ok(CircuitInstructionType::Instruction),
-        OperationRef::Gate(pygate) => Python::attach(|py| {
-            let gate = pygate.instruction.bind(py);
-            if gate.is_instance(imports::PAULI_EVOLUTION_GATE.get_bound(py))? {
-                Ok(CircuitInstructionType::PauliEvolutionGate)
-            } else if gate.is_instance(imports::CONTROLLED_GATE.get_bound(py))? {
-                Ok(CircuitInstructionType::ControlledGate)
-            } else {
-                Ok(CircuitInstructionType::Gate)
-            }
-        }),
-        OperationRef::Operation(operation) => Python::attach(|py| {
-            if operation
-                .instruction
-                .bind(py)
-                .is_instance(imports::ANNOTATED_OPERATION.get_bound(py))?
-            {
-                Ok(CircuitInstructionType::AnnotatedOperation)
-            } else {
-                Err(QpyError::InvalidInstruction(format!(
-                    "Unable to determine circuit type key for {:?}",
-                    operation
-                )))
+        OperationRef::PyCustom(PyInstruction { kind, ob, .. }) => Python::attach(|py| {
+            let ob = ob.bind(py);
+            match kind {
+                PyOpKind::Instruction => Ok(CircuitInstructionType::Instruction),
+                PyOpKind::Gate => {
+                    if ob.is_instance(imports::PAULI_EVOLUTION_GATE.get_bound(py))? {
+                        Ok(CircuitInstructionType::PauliEvolutionGate)
+                    } else if ob.is_instance(imports::CONTROLLED_GATE.get_bound(py))? {
+                        Ok(CircuitInstructionType::ControlledGate)
+                    } else {
+                        Ok(CircuitInstructionType::Gate)
+                    }
+                }
+                PyOpKind::Operation => {
+                    if ob.is_instance(imports::ANNOTATED_OPERATION.get_bound(py))? {
+                        Ok(CircuitInstructionType::AnnotatedOperation)
+                    } else {
+                        Err(QpyError::InvalidInstruction(format!(
+                            "Unable to determine circuit type key for {ob:?}"
+                        )))
+                    }
+                }
             }
         }),
     }
