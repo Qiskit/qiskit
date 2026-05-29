@@ -220,6 +220,7 @@ Base classes
    BasePassManager
    BaseController
    GenericPass
+   OptimizationPassManager
 
 Flow controllers
 ----------------
@@ -256,6 +257,7 @@ from .flow_controllers import (
 from .base_tasks import GenericPass, BaseController
 from .compilation_status import PropertySet, WorkflowStatus, PassManagerState
 from .exceptions import PassManagerError
+from .optimization_pm import OptimizationPassManager
 
 __all__ = [
     "BaseController",
@@ -264,6 +266,7 @@ __all__ = [
     "DoWhileController",
     "FlowControllerLinear",
     "GenericPass",
+    "OptimizationPassManager",
     "PassManagerError",
     "PassManagerState",
     "PropertySet",

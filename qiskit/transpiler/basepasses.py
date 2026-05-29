@@ -162,7 +162,7 @@ class TransformationPass(BasePass):
     def execute(
         self,
         passmanager_ir: DAGCircuit,
-        state: DAGCircuit,
+        state: PassManagerState,
         callback: Callback[DAGCircuit] | None = None,
     ) -> tuple[DAGCircuit, PassManagerState]:
         new_dag, state = super().execute(

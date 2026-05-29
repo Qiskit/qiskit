@@ -13,14 +13,13 @@
 """A pass manager designed for optimization within a single IR."""
 
 from collections.abc import Iterable
-from typing import Generic
 
 from .compilation_status import WorkflowStatus, PropertySet
 from .base_tasks import Task, IR, Callback, PassManagerState
 from .exceptions import PassManagerError
 
 
-class OptimizationPassManager(Task[IR, IR], Generic[IR]):
+class OptimizationPassManager(Task[IR, IR]):
     """Execute a series of tasks, remaining in a single IR."""
 
     def __init__(self, tasks: Iterable[Task[IR, IR]] | None) -> None:
@@ -93,6 +92,15 @@ class OptimizationPassManager(Task[IR, IR], Generic[IR]):
         if any(not isinstance(t, Task) for t in tasks):
             raise TypeError("Added tasks are not all valid pass manager task types.")
 
+        # TODO This is a breaking change, as it is. Before append([p1, p2]) would append
+        # as a "group" and we'd flatten upon execution again. That means that something like
+        #   pm = PassManager()
+        #   pm.append([p1, p2])
+        #   pm.remove(0)
+        # would remove *both* passes whereas now it just removes p1. There's no test for this
+        # clearly, but it's a breaking change.
+        # I'm not sure what the reason for this nesting is, but if there's a good reason we could
+        # also use the flattening and the FlowControllerLinear.
         self._tasks.extend(tasks)
 
     def replace(

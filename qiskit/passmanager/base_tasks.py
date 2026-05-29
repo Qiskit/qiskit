@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Base classes for the Qiskit passmanager optimization tasks."""
+
 from __future__ import annotations
 
 import logging
@@ -69,7 +70,7 @@ class Task(ABC, Generic[IR, IR_OUT]):
 Callback: TypeAlias = Callable[[Task, IR_OUT, PropertySet, float, int], None]
 
 
-class GenericPass(Task[IR, IR_OUT], ABC, Generic[IR, IR_OUT]):
+class GenericPass(Task[IR, IR_OUT], ABC):
     """Base class of a single pass manager task.
 
     A pass instance can read and write to the provided :class:`.PropertySet`,
@@ -167,7 +168,7 @@ class GenericPass(Task[IR, IR_OUT], ABC, Generic[IR, IR_OUT]):
         """
 
 
-class BaseController(Task[IR, IR_OUT], ABC, Generic[IR, IR_OUT]):
+class BaseController(Task[IR, IR_OUT], ABC):
     """Base class of controller.
 
     A controller is built with a collection of pass manager tasks,
@@ -216,7 +217,7 @@ class BaseController(Task[IR, IR_OUT], ABC, Generic[IR, IR_OUT]):
         self,
         passmanager_ir: IR,
         state: PassManagerState,
-        callback: Callable | None = None,
+        callback: Callback[Any] | None = None,
     ) -> tuple[IR_OUT, PassManagerState]:
         # Overriding this method is not safe.
         # Pass subclass must keep current implementation.

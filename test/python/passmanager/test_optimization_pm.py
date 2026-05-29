@@ -177,12 +177,9 @@ class TestOptimizationPassManager(QiskitTestCase):
 
     def test_remove(self):
         """Test removing."""
-        noop = CircuitNoOp()
-        barriers = CircuitRemoveBarriers()
-
-        pm = OptimizationPassManager([barriers])
-        pm.replace(0, noop)
-        self.assertEqual(noop, pm.tasks[0])
+        pm = OptimizationPassManager([CircuitNoOp()])
+        pm.remove(0)
+        self.assertEqual(0, len(pm.tasks))
 
     def test_remove_out_of_bounds(self):
         """Test removing out of bounds fails."""
@@ -336,3 +333,6 @@ class TestOptimizationPassManager(QiskitTestCase):
         self.assertEqual(2, state.property_set["removed_barriers"])
         # we run DAGRemoveBarriers, plus all passes inside generate_preset_clifford_t
         self.assertGreater(state.workflow_status.count, 2)
+
+    # def test_while_loop(self):
+    #     """Test a while loop and setting the max. number of iterations."""
