@@ -138,10 +138,11 @@ class PassManagerConfig:
             res.instruction_durations = backend.instruction_durations
         if res.target is None and not _skip_target:
             res.target = backend.target
-        if res.scheduling_method is None and hasattr(backend, "get_scheduling_stage_plugin"):
-            res.scheduling_method = backend.get_scheduling_stage_plugin()
-        if res.translation_method is None and hasattr(backend, "get_translation_stage_plugin"):
-            res.translation_method = backend.get_translation_stage_plugin()
+        stages = ["init", "layout", "routing", "translation", "optimization", "scheduling"]
+        for stage in stages:
+            if getattr(res, f"{stage}_method", None) is None:
+                if plugin_meth := getattr(backend, f"get_{stage}_stage_plugin", None):
+                    setattr(res, f"{stage}_method", plugin_meth())
         return res
 
     def __str__(self):

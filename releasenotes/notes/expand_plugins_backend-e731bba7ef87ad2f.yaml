@@ -1,0 +1,11 @@
+---
+features_providers:
+  - Implementations of the :class:`.BackendV2` abstract class can now define the optional
+    methods ``get_init_stage_plugin``, ``get_layout_stage_plugin``,
+    ``get_routing_stage_plugin``, and ``get_optimization_stage_plugin`` which can be used
+    to specify alternative default plugins to use when invoking the transpiler for that
+    backend. When defined these methods should return the name of the plugin
+    to use by default when running the corresponding :ref:`transpiler-preset` stages when
+    targeting this backend object. These methods work in the same as the existing :class:`.BackendV2` methods
+    ``get_translation_stage_plugin`` and ``get_scheduling_stage_plugin`` but for the other
+    stages of the :ref:`transpiler-preset`.
