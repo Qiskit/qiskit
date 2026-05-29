@@ -1,5 +1,5 @@
 ---
 fixes:
   - |
-    Fixed :meth:`.BitArray.bitcount` so it ignores unused padding bits in the
+    Fixed :meth:`.BitArray.bitcount` so that it ignores unused padding bits in the
     packed byte storage.
