@@ -829,6 +829,79 @@ class TestSubstituteVars(QiskitTestCase):
         new = store.substitute({a: a, b: expr.lift(5, types.Uint(8))})
         self.assertEqual(new.rvalue, expr.lift(5, types.Uint(8)))
 
+    def test_op_substitute_while_loop_rewrites_condition_and_body(self):
+        """:meth:`WhileLoopOp.substitute` rewrites an expr condition and recurses into the body."""
+        cond_var = expr.Var.new("c", types.Uint(8))
+        body_var = expr.Var.new("v", types.Uint(8))
+
+        body = QuantumCircuit(1)
+        body.add_capture(cond_var)
+        body.add_uninitialized_var(body_var)
+        sink = body.add_var("sink", expr.lift(0, types.Uint(8)))
+        body.store(sink, body_var)
+
+        op = WhileLoopOp(
+            expr.equal(cond_var, expr.lift(0, types.Uint(8))),
+            body,
+        )
+
+        replacement = expr.lift(3, types.Uint(8))
+        new = op.substitute({body_var: replacement})
+
+        # Condition: cond_var is not in the substitution map, so it is unchanged.
+        self.assertEqual(
+            new.condition,
+            expr.equal(cond_var, expr.lift(0, types.Uint(8))),
+        )
+        # Body: body_var is replaced by the literal 3.
+        body_stores = [
+            inst.operation.rvalue
+            for inst in new.blocks[0].data
+            if inst.operation.name == "store"
+        ]
+        self.assertIn(replacement, body_stores)
+        # The original body is not mutated.
+        original_body_stores = [
+            inst.operation.rvalue
+            for inst in op.blocks[0].data
+            if inst.operation.name == "store"
+        ]
+        self.assertIn(body_var, original_body_stores)
+
+    def test_op_substitute_while_loop_rewrites_condition_var(self):
+        """:meth:`WhileLoopOp.substitute` rewrites a Var that appears in the condition."""
+        cond_var = expr.Var.new("c", types.Uint(8))
+        body = QuantumCircuit(1)
+        body.add_capture(cond_var)
+
+        op = WhileLoopOp(expr.equal(cond_var, expr.lift(0, types.Uint(8))), body)
+
+        new_cond_var = expr.Var.new("d", types.Uint(8))
+        new = op.substitute({cond_var: new_cond_var})
+
+        self.assertEqual(
+            new.condition,
+            expr.equal(new_cond_var, expr.lift(0, types.Uint(8))),
+        )
+
+    def test_op_substitute_while_loop_legacy_tuple_condition_unchanged(self):
+        """:meth:`WhileLoopOp.substitute` leaves a legacy two-tuple condition untouched.
+
+        A legacy condition is a ``(Clbit, bool)`` or ``(ClassicalRegister, int)`` two-tuple
+        rather than an :class:`~.expr.Expr`.  It carries no :class:`~.expr.Var` nodes so the
+        substitution map has nothing to apply to it.
+        """
+        cr = ClassicalRegister(1, "cr")
+        body = QuantumCircuit(1)
+        body.add_register(cr)
+        op = WhileLoopOp((cr[0], True), body)
+
+        # The tuple condition has no expr.Var nodes; substitution must not touch it.
+        some_var = expr.Var.new("x", types.Bool())
+        new = op.substitute({some_var: expr.lift(True)})
+
+        self.assertEqual(new.condition, (cr[0], True))
+
     def test_op_substitute_for_loop_keeps_loop_parameter(self):
         """:meth:`ForLoopOp.substitute` rewrites the Range indexset but not the loop var."""
         stop = expr.Var.new("n", types.Uint(8))
