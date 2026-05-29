@@ -10,7 +10,7 @@ QkBitTerm
 
    enum QkBitTerm
 
-An enum that to represent each of the single-qubit alphabet terms enumerated below.
+An enum that represents each of the single-qubit alphabet terms enumerated below.
 
 Values
 ------
