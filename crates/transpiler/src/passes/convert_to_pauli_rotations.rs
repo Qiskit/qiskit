@@ -484,6 +484,8 @@ pub fn py_convert_to_pauli_rotations(dag: &DAGCircuit) -> PyResult<DAGCircuit> {
                 | OperationRef::StandardInstruction(StandardInstruction::Barrier(_))
                 | OperationRef::StandardInstruction(StandardInstruction::Reset)
                 | OperationRef::StandardInstruction(StandardInstruction::Delay(_))
+                | OperationRef::PauliProductRotation(_)
+                | OperationRef::PauliProductMeasurement(_)
         ) {
             new_dag.push_back(inst.clone())?;
         } else if inst.op.name() == "measure" {
