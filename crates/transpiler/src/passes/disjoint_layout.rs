@@ -53,7 +53,7 @@ pub enum DisjointLayoutError {
 impl From<DisjointLayoutError> for PyErr {
     fn from(value: DisjointLayoutError) -> Self {
         match value {
-            DisjointLayoutError::MultiQEncountered => MultiQEncountered::new_err(""),
+            DisjointLayoutError::MultiQEncountered => MultiQEncountered::new_err(value.to_string()),
             DisjointLayoutError::MismatchedComponentSize => {
                 TranspilerError::new_err(value.to_string())
             }
