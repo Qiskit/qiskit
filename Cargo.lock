@@ -2275,6 +2275,7 @@ dependencies = [
  "cbindgen",
  "clap",
  "indexmap",
+ "itertools 0.14.0",
  "qiskit-bindgen",
  "qiskit-cext-vtable",
 ]
