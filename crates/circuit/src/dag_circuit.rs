@@ -110,12 +110,6 @@ pub use rustworkx_core::petgraph::stable_graph::NodeIndex;
 #[error("Wire {0:?} already exists in circuit")]
 pub struct DuplicateWireError(Wire);
 
-impl From<DuplicateWireError> for DAGError {
-    fn from(value: DuplicateWireError) -> Self {
-        Self::DuplicateWire(value)
-    }
-}
-
 impl From<DuplicateWireError> for PyErr {
     fn from(value: DuplicateWireError) -> Self {
         DAGCircuitError::new_err(value.to_string())
@@ -133,7 +127,7 @@ pub enum DAGError {
     #[error("Wire {0:?} not found in circuit")]
     WireNotInCircuit(Wire),
     #[error(transparent)]
-    DuplicateWire(DuplicateWireError),
+    DuplicateWire(#[from] DuplicateWireError),
     #[error(
         "{ty} not in circuit. {0}",
         ty = match .0 {
