@@ -20,9 +20,13 @@ use qiskit_circuit_library::parameter_ledger::ParameterLedgerBuilder;
 use std::ffi::{CStr, c_char};
 
 // Opaque structs for FFI compatibility
+#[derive(Debug, Clone)]
 pub struct QubitConnection(Vec<u32>);
+
 pub struct BlockQubitConnection(Vec<QubitConnection>);
+
 pub struct LayerEntanglement(Vec<BlockQubitConnection>);
+
 pub struct Entanglement(Vec<LayerEntanglement>);
 
 #[repr(C)]
@@ -112,21 +116,91 @@ pub unsafe extern "C" fn qk_n_local(
     }
 }
 
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_get_entanglement_layers_quantity(
+    entanglement: *const Entanglement,
+) -> usize {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let entanglement = unsafe { const_ptr_as_ref(entanglement) };
+    entanglement.0.len()
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_get_entanglement_layer_blocks_quantity(
+    entanglement: *const Entanglement,
+    layer_index: usize,
+) -> usize {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let entanglement = unsafe { const_ptr_as_ref(entanglement) };
+    entanglement.0[layer_index].0.len()
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_get_entanglement_qubit_connections_quantity(
+    entanglement: *const Entanglement,
+    layer_index: usize,
+    block_index: usize,
+) -> usize {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let entanglement = unsafe { const_ptr_as_ref(entanglement) };
+    entanglement.0[layer_index].0[block_index].0.len()
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_get_entanglement_qubit_connections(
+    entanglement: *const Entanglement,
+    layer_index: usize,
+    block_index: usize,
+    connection_index: usize,
+) -> *mut QubitConnection {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let entanglement = unsafe { const_ptr_as_ref(entanglement) };
+    Box::into_raw(Box::new(
+        entanglement.0[layer_index].0[block_index].0[connection_index].clone(),
+    ))
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_qubit_connection_new(
+    num_qubits: usize,
+    qubit_connections: *const u32,
+) -> *mut QubitConnection {
+    // SAFETY: per documentation, `qubit_connections` is aligned and and points to a valid
+    // aligned block of memory valid for `qubit_connections_size` writes of `u32`s
+    let qubits: Vec<u32> =
+        unsafe { ::std::slice::from_raw_parts(qubit_connections, num_qubits).to_vec() };
+    Box::into_raw(Box::new(QubitConnection(qubits)))
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_qubit_connection_equal(
+    c1: *const QubitConnection,
+    c2: *const QubitConnection,
+) -> bool {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let c1 = unsafe { const_ptr_as_ref(c1) };
+
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let c2 = unsafe { const_ptr_as_ref(c2) };
+
+    c1.0.eq(&c2.0)
+}
+
 /// @ingroup QkCircuitLibrary
 /// Generate an entanglement following the provided strategies.
 ///
 /// @param num_qubits The number of qubits of the circuit
-/// @param reps Specifies how often the rotation blocks and entanglement blocks are repeated.
+/// @param reps Specifies how often the entanglement blocks are repeated.
 /// @param entanglement_strategy List of strings describing an entanglement strategy for each layer.
 /// @param entanglement_strategy_size Length of the entanglement strategy list provided
 /// @param entanglement_blocks The blocks used in the entanglement layers.
 /// @param entanglement_blocks_size Length of the list of entanglement blocks provided
 ///
 ///
-///
 /// # Safety
 ///
 /// Behavior is undefined ``entanglement_strategy`` is not a valid, non-null pointer to a ``QkEntanglementStrategy`` array.
+/// Behavior is undefined ``entanglement_blocks`` is not a valid, non-null pointer to a ``StandardGate`` array.
 ///
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_get_entanglement_with_multiple_strategy(
@@ -173,7 +247,7 @@ pub unsafe extern "C" fn qk_get_entanglement_with_multiple_strategy(
 /// Generate an entanglement following the provided strategies.
 ///
 /// @param num_qubits The number of qubits of the circuit
-/// @param reps Specifies how often the rotation blocks and entanglement blocks are repeated.
+/// @param reps Specifies how often the entanglement blocks are repeated.
 /// @param entanglement_strategy The entanglement strategy to apply for each layer.
 /// @param entanglement_blocks The blocks used in the entanglement layers.
 /// @param entanglement_blocks_size Length of the list of entanglement blocks provided.
