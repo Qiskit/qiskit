@@ -68,11 +68,13 @@ class TestConstrainedReschedule(QiskitTestCase):
         pm = PassManager(
             [
                 ALAPScheduleAnalysis(durations),
-                ConstrainedReschedule(acquire_alignment=16, pulse_alignment=1),
+                ConstrainedReschedule(acquire_alignment=16, pulse_alignment=16),
             ]
         )
-        # This just needs to run without erroring out. The test will fail if there is an underflow error.
-        pm.run(qc)
+        _ = pm.run(qc)
+        for node, start_time in pm.property_set["node_start_time"].items():
+            if node.op.name == "measure":
+                self.assertEqual(0, start_time % 16)
 
 
 if __name__ == "__main__":
