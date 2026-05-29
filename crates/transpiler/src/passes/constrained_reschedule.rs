@@ -19,8 +19,9 @@ use pyo3::prelude::*;
 use pyo3::{Bound, PyResult, pyfunction, wrap_pyfunction};
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
-use qiskit_circuit::operations::Param;
-use qiskit_circuit::operations::{Operation, OperationRef, StandardInstruction};
+use qiskit_circuit::operations::{
+    Operation, OperationRef, Param, PyInstruction, PyOpKind, StandardInstruction,
+};
 use qiskit_util::IndexMap;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
@@ -74,12 +75,16 @@ fn push_node_back(
 
     let op_view = op.op.view();
     let alignment = match op_view {
-        OperationRef::Gate(_) | OperationRef::StandardGate(_) => Some(pulse_align),
+        OperationRef::StandardGate(_)
+        | OperationRef::PyCustom(PyInstruction {
+            kind: PyOpKind::Gate,
+            ..
+        }) => Some(pulse_align),
         OperationRef::StandardInstruction(StandardInstruction::Reset)
         | OperationRef::StandardInstruction(StandardInstruction::Measure) => Some(acquire_align),
         OperationRef::StandardInstruction(StandardInstruction::Delay(_)) => None,
         _ => {
-            if !op_view.directive() {
+            if op_view.directive() {
                 None
             } else {
                 return Err(TranspilerError::new_err(format!(
@@ -207,7 +212,7 @@ fn push_node_back(
 
         // Compute overlap if there is qubits overlap
         let qreg_overlap = if !this_qubits.is_disjoint(&next_qubits) {
-            new_t1q - next_t0q
+            new_t1q.saturating_sub(next_t0q)
         } else {
             0
         };
@@ -218,7 +223,7 @@ fn push_node_back(
             && !this_clbits.is_disjoint(&next_clbits)
         {
             if let (Some(t1c), Some(t0c)) = (new_t1c, next_t0c) {
-                t1c - t0c
+                t1c.saturating_sub(t0c)
             } else {
                 0
             }

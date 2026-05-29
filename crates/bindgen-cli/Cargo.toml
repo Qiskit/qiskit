@@ -16,5 +16,6 @@ qiskit-bindgen.workspace = true
 qiskit-cext-vtable  = { workspace = true, features = ["python_binding"] }
 anyhow.workspace = true
 qiskit-util.workspace = true
+itertools.workspace = true
 cbindgen.workspace = true
 clap = { version = "4.6", features = ["derive"] }

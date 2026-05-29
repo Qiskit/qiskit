@@ -154,8 +154,6 @@ class Statevector(QuantumState, TolerancesMixin):
                 print(sv1.equiv(sv2))  # True
         """
 
-        from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
-
         # Handle layout extraction
         layout = None
         if not ignore_set_layout:

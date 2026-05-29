@@ -212,7 +212,7 @@ impl RoutingResult<'_> {
                 None,
                 dag.insert_qargs(&[Qubit(map_fn(swap[1]).0), Qubit(map_fn(swap[0]).0)]),
             );
-            dag.push_back(swap)
+            dag.push_back(swap).map_err(Into::into)
         };
         // The size here is pretty arbitrary, providing it can fit at least 2q operations in.
         let mut apply_scratch = Vec::with_capacity(4);
@@ -228,7 +228,7 @@ impl RoutingResult<'_> {
                 qubits: dag.insert_qargs(&apply_scratch),
                 ..inst.clone()
             };
-            dag.push_back(new_inst)
+            dag.push_back(new_inst).map_err(Into::into)
         };
 
         let mut dag = dag.into_builder();

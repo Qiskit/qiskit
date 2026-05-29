@@ -19,7 +19,7 @@ use qiskit_util::IndexMap;
 use rayon::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
-use crate::commutation_checker::CommutationChecker;
+use crate::commutation_checker::{CommutationChecker, CommutationError};
 use qiskit_circuit::Qubit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
 
@@ -54,14 +54,14 @@ pub fn analyze_commutations(
     dag: &mut DAGCircuit,
     commutation_checker: &CommutationChecker,
     approximation_degree: f64,
-) -> PyResult<(CommutationSet, NodeIndices)> {
+) -> Result<(CommutationSet, NodeIndices), CommutationError> {
     let mut commutation_set = vec![vec![]; dag.num_qubits()];
     let mut node_indices: NodeIndices = vec![IndexMap::default(); dag.num_qubits()];
 
     let evaluate_qubit = |qubit: usize,
                           commutation_entry: &mut Vec<Vec<NodeIndex>>,
                           node_indices: &mut IndexMap<NodeIndex, usize>|
-     -> PyResult<()> {
+     -> Result<(), CommutationError> {
         let wire = Wire::Qubit(Qubit(qubit as u32));
 
         for current_gate_idx in dag.nodes_on_wire(wire) {
@@ -140,12 +140,12 @@ pub fn analyze_commutations(
             .zip(node_indices.par_iter_mut())
             .enumerate()
             .map(
-                |(qubit, (local_commutation_set, local_indices))| -> PyResult<()> {
+                |(qubit, (local_commutation_set, local_indices))| -> Result<(), CommutationError> {
                     evaluate_qubit(qubit, local_commutation_set, local_indices)?;
                     Ok(())
                 },
             )
-            .collect::<PyResult<()>>()?;
+            .collect::<Result<(), CommutationError>>()?;
         Ok((commutation_set, node_indices))
     } else {
         for qubit in 0..dag.num_qubits() {

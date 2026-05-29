@@ -446,11 +446,19 @@ impl<T> VirtualInteractions<T> {
     }
 }
 
+/// Calculate a safe version of `-ln(1 - e)`, where the result is guaranteed to be finite.
+///
+/// This treats `nan` as `0.0`, and clamps errors to the `[0.0, 1.0]` interval.  An error of `1.0`
+/// should arguably have an infinite cost, but we use `f64::MAX` instead so the score is guaranteed
+/// to be finite, and safe to multiply by any other floating-point value.
 fn neg_log_fidelity(error: f64) -> f64 {
     if error.is_nan() || error <= 0. {
         0.0
     } else if error >= 1. {
-        f64::INFINITY
+        // Logically this would be cleaner as `INFINITY`, but it's better to allow the downstream
+        // scoring to rely on this value being finite, so we don't have to branch in inner-loop
+        // scoring code.
+        f64::MAX
     } else {
         -((-error).ln_1p())
     }
