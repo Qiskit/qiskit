@@ -343,7 +343,7 @@ pub fn run_unitary_synthesis(
     }
 
     let mut out = dag
-        .copy_empty_like(VarsMode::Alike, BlocksMode::Drop)?
+        .copy_empty_like(VarsMode::Alike, BlocksMode::Drop)
         .into_builder();
     for node in dag.topological_op_nodes(false) {
         let inst = dag[node].unwrap_operation();

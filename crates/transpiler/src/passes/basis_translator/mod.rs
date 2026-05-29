@@ -331,13 +331,7 @@ fn apply_translation(
     qargs_with_non_global_operation: &AhashIndexMap<Qargs, AhashIndexSet<&str>>,
     qarg_mapping: Option<&HashMap<Qubit, Qubit>>,
 ) -> Result<DAGCircuit, BasisTranslatorError> {
-    let out_dag = dag
-        .copy_empty_like(VarsMode::Alike, BlocksMode::Keep)
-        .map_err(|_| {
-            BasisTranslatorError::BasisDAGCircuitError(
-                "Error copying DAGCircuit instance".to_string(),
-            )
-        })?;
+    let out_dag = dag.copy_empty_like(VarsMode::Alike, BlocksMode::Keep);
     let mut out_dag_builder = out_dag.into_builder();
     for node in dag.topological_op_nodes(false) {
         let node_obj = dag[node].unwrap_operation();

@@ -104,6 +104,18 @@ static SEMANTIC_EQ_SYMMETRIC: [&str; 4] = ["barrier", "swap", "break_loop", "con
 
 pub use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
+/// An error indicating that an input would result in an invalid dag with
+/// duplicate wires or that the input that takes wires contains duplicates
+#[derive(Debug, thiserror::Error)]
+#[error("Wire {0:?} already exists in circuit")]
+pub struct DuplicateWireError(Wire);
+
+impl From<DuplicateWireError> for PyErr {
+    fn from(value: DuplicateWireError) -> Self {
+        DAGCircuitError::new_err(value.to_string())
+    }
+}
+
 /// Possible errors that can be received from any operation on the
 /// [`DAGCircuit`]
 #[derive(Debug, thiserror::Error)]
@@ -114,8 +126,8 @@ pub enum DAGError {
     ClbitsNotIdle(Vec<ShareableClbit>),
     #[error("Wire {0:?} not found in circuit")]
     WireNotInCircuit(Wire),
-    #[error("Duplicate wire {0:?}")]
-    DuplicateWire(Wire),
+    #[error(transparent)]
+    DuplicateWire(#[from] DuplicateWireError),
     #[error(
         "{ty} not in circuit. {0}",
         ty = match .0 {
@@ -1320,9 +1332,8 @@ impl DAGCircuit {
     //
     // You likely want `copy_empty_like_with_same_capacity`.
     #[pyo3(name = "copy_empty_like", signature = (*, vars_mode=VarsMode::Alike))]
-    pub fn py_copy_empty_like(&self, vars_mode: VarsMode) -> PyResult<Self> {
+    pub fn py_copy_empty_like(&self, vars_mode: VarsMode) -> Self {
         self.copy_empty_like_with_capacity(0, 0, vars_mode, BlocksMode::Drop)
-            .map_err(Into::into)
     }
 
     /// Put ``self`` into the canonical physical form, with the given number of qubits.
@@ -3290,7 +3301,7 @@ impl DAGCircuit {
         let dags = PyList::empty(py);
 
         for comp_nodes in connected_components.iter() {
-            let mut new_dag = self.copy_empty_like(vars_mode, BlocksMode::Drop)?;
+            let mut new_dag = self.copy_empty_like(vars_mode, BlocksMode::Drop);
             new_dag.global_phase = Param::Float(0.);
 
             // A map from nodes in the this DAGCircuit to nodes in the new dag. Used for adding edges
@@ -4069,7 +4080,7 @@ impl DAGCircuit {
                 return Ok(PyIterator::from_object(&layer_list)?.into());
             }
 
-            let mut new_layer = self.copy_empty_like(vars_mode, BlocksMode::Drop)?;
+            let mut new_layer = self.copy_empty_like(vars_mode, BlocksMode::Drop);
             let mut block_map = BlockMapper::new();
             let data: Vec<_> = op_nodes
                 .iter()
@@ -4111,7 +4122,7 @@ impl DAGCircuit {
                 Some(NodeType::Operation(node)) => node,
                 _ => unreachable!("A non-operation node was obtained from topological_op_nodes."),
             };
-            let mut new_layer = self.copy_empty_like(vars_mode, BlocksMode::Drop)?;
+            let mut new_layer = self.copy_empty_like(vars_mode, BlocksMode::Drop);
             let mut block_map = BlockMapper::new();
 
             // Save the support of the operation we add to the layer
@@ -5046,11 +5057,7 @@ impl DAGCircuit {
     /// `Interned<[Qubit]>` and `Interned<[Clbit]>` keys from `self` are valid in the output DAG.
     ///
     /// This does not include any pre-allocated capacity.
-    pub fn copy_empty_like(
-        &self,
-        vars_mode: VarsMode,
-        blocks_mode: BlocksMode,
-    ) -> Result<Self, DAGError> {
+    pub fn copy_empty_like(&self, vars_mode: VarsMode, blocks_mode: BlocksMode) -> Self {
         self.copy_empty_like_with_capacity(0, 0, vars_mode, blocks_mode)
     }
 
@@ -5063,7 +5070,7 @@ impl DAGCircuit {
         &self,
         vars_mode: VarsMode,
         blocks_mode: BlocksMode,
-    ) -> Result<Self, DAGError> {
+    ) -> Self {
         self.copy_empty_like_with_capacity(
             self.dag.node_count().saturating_sub(2 * self.width()),
             self.dag.edge_count(),
@@ -5083,24 +5090,26 @@ impl DAGCircuit {
         num_edges: usize,
         vars_mode: VarsMode,
         blocks_mode: BlocksMode,
-    ) -> Result<Self, DAGError> {
+    ) -> Self {
         let mut out = self.qubitless_empty_like_with_capacity(
             self.num_qubits(),
             num_ops,
             num_edges,
             vars_mode,
             blocks_mode,
-        )?;
+        );
         for bit in self.qubits.objects() {
-            out.add_qubit_unchecked(bit.clone())?;
+            out.add_qubit_unchecked(bit.clone())
+                .expect("There are no duplicate qubits in a valid dag");
         }
         for reg in self.qregs.registers() {
-            out.add_qreg(reg.clone())?;
+            out.add_qreg(reg.clone())
+                .expect("There are no duplicate qubits/qregs in a valid dag");
         }
         // `copy_empty_like` has historically made a strong assumption that the exact same qargs
         // will be used in the output.  Some Qiskit functions rely on this undocumented behaviour.
         out.qargs_interner.clone_from(&self.qargs_interner);
-        Ok(out)
+        out
     }
 
     /// Create an empty DAG with the canonical "physical" register of the correct length, with all
@@ -5127,7 +5136,7 @@ impl DAGCircuit {
             num_edges,
             VarsMode::Alike,
             blocks_mode,
-        )?;
+        );
         out.add_qreg(QuantumRegister::new_owning("q", num_qubits as u32))?;
         Ok(out)
     }
@@ -5155,7 +5164,7 @@ impl DAGCircuit {
         num_edges: usize,
         vars_mode: VarsMode,
         blocks_mode: BlocksMode,
-    ) -> Result<Self, DAGError> {
+    ) -> Self {
         let (num_vars, num_stretches) = match vars_mode {
             VarsMode::Drop => (0, 0),
             _ => (self.num_vars(), self.num_stretches()),
@@ -5178,10 +5187,14 @@ impl DAGCircuit {
         target_dag.cargs_interner = self.cargs_interner.clone();
 
         for bit in self.clbits.objects() {
-            target_dag.add_clbit_unchecked(bit.clone())?;
+            target_dag
+                .add_clbit_unchecked(bit.clone())
+                .expect("Duplicate clbits not possible in a valid DAG");
         }
         for reg in self.cregs.registers() {
-            target_dag.add_creg(reg.clone())?;
+            target_dag
+                .add_creg(reg.clone())
+                .expect("Duplicate creg/clbits not possible in a valid DAG");
         }
         match vars_mode {
             VarsMode::Alike => {
@@ -5192,11 +5205,13 @@ impl DAGCircuit {
             }
             VarsMode::Drop => {}
         }
-        target_dag.add_var_wires(target_dag.vars_stretches.vars().len())?;
+        target_dag
+            .add_var_wires(target_dag.vars_stretches.vars().len())
+            .expect("Duplicate vars not possible in a valid DAG");
         if blocks_mode == BlocksMode::Keep {
             target_dag.blocks = self.blocks.clone();
         }
-        Ok(target_dag)
+        target_dag
     }
 
     /// Modify `self` to mark its qubits as physical.
@@ -6334,11 +6349,11 @@ impl DAGCircuit {
     ///
     /// Raises:
     ///     DAGCircuitError: if trying to add duplicate wire
-    fn add_wire(&mut self, wire: Wire) -> Result<(NodeIndex, NodeIndex), DAGError> {
+    fn add_wire(&mut self, wire: Wire) -> Result<(NodeIndex, NodeIndex), DuplicateWireError> {
         let (in_node, out_node) = match wire {
             Wire::Qubit(qubit) => {
                 if qubit.index() < self.qubit_io_map.len() {
-                    return Err(format!("Wire {qubit:?} already exists in circuit").into());
+                    return Err(DuplicateWireError(wire));
                 }
                 let in_node = self.dag.add_node(NodeType::QubitIn(qubit));
                 let out_node = self.dag.add_node(NodeType::QubitOut(qubit));
@@ -6347,7 +6362,7 @@ impl DAGCircuit {
             }
             Wire::Clbit(clbit) => {
                 if clbit.index() < self.clbit_io_map.len() {
-                    return Err(format!("Wire {clbit:?} already exists in circuit").into());
+                    return Err(DuplicateWireError(wire));
                 }
                 let in_node = self.dag.add_node(NodeType::ClbitIn(clbit));
                 let out_node = self.dag.add_node(NodeType::ClbitOut(clbit));
@@ -6356,7 +6371,7 @@ impl DAGCircuit {
             }
             Wire::Var(var) => {
                 if var.index() < self.var_io_map.len() {
-                    return Err(format!("Wire {var:?} already exists in circuit").into());
+                    return Err(DuplicateWireError(wire));
                 }
                 let in_node = self.dag.add_node(NodeType::VarIn(var));
                 let out_node = self.dag.add_node(NodeType::VarOut(var));
@@ -6420,7 +6435,10 @@ impl DAGCircuit {
         self.dag.remove_node(out_node);
     }
 
-    pub fn add_qubit_unchecked(&mut self, bit: ShareableQubit) -> Result<Qubit, DAGError> {
+    pub fn add_qubit_unchecked(
+        &mut self,
+        bit: ShareableQubit,
+    ) -> Result<Qubit, DuplicateWireError> {
         let qubit = self.qubits.add_unique_within_capacity(bit.clone());
         self.qubit_locations
             .insert(bit, BitLocations::new((self.qubits.len() - 1) as u32, []));
@@ -6428,7 +6446,10 @@ impl DAGCircuit {
         Ok(qubit)
     }
 
-    pub fn add_clbit_unchecked(&mut self, bit: ShareableClbit) -> Result<Clbit, DAGError> {
+    pub fn add_clbit_unchecked(
+        &mut self,
+        bit: ShareableClbit,
+    ) -> Result<Clbit, DuplicateWireError> {
         let clbit = self.clbits.add_unique_within_capacity(bit.clone());
         self.clbit_locations
             .insert(bit, BitLocations::new((self.clbits.len() - 1) as u32, []));
@@ -7588,7 +7609,7 @@ impl DAGCircuit {
                             .ok_or_else(|| DAGError::WireNotInCircuit(qubit.into()))?;
 
                         if new_dag.qubits.find(shareable_qubit).is_some() {
-                            return Err(DAGError::DuplicateWire(qubit.into()));
+                            return Err(DuplicateWireError(qubit.into()).into());
                         }
                         let qubit_index = qc_data.qubits().find(shareable_qubit).unwrap();
                         ordered_vec[qubit_index.index()] =
@@ -7623,7 +7644,7 @@ impl DAGCircuit {
                             .ok_or_else(|| DAGError::WireNotInCircuit(clbit.into()))?;
 
                         if new_dag.clbits.find(shareable_clbit).is_some() {
-                            return Err(DAGError::DuplicateWire(clbit.into()));
+                            return Err(DuplicateWireError(clbit.into()).into());
                         };
                         let clbit_index = qc_data.clbits().find(shareable_clbit).unwrap();
                         ordered_vec[clbit_index.index()] =
