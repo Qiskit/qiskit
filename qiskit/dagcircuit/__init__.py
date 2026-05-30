@@ -17,6 +17,42 @@ DAG Circuits (:mod:`qiskit.dagcircuit`)
 
 .. currentmodule:: qiskit.dagcircuit
 
+This module provides the directed acyclic graph (DAG) representation of quantum circuits.
+A :class:`~qiskit.dagcircuit.DAGCircuit` represents the operations and dependencies within
+a quantum circuit as a graph. This format is primarily used by the Qiskit transpiler
+to analyze, route, and optimize quantum circuits.
+
+In a DAG circuit, nodes represent operations (gates, measurements, resets) or input/output
+wires, while directed edges represent the flow of quantum or classical data between these nodes.
+The edges ensure that dependencies are strictly preserved during any transformations.
+
+Using the DAG representation
+============================
+
+You can convert between a :class:`~qiskit.circuit.QuantumCircuit` and a
+:class:`~qiskit.dagcircuit.DAGCircuit` using the converter functions provided in
+:mod:`qiskit.converters`.
+
+.. code-block:: python
+
+    from qiskit import QuantumCircuit
+    from qiskit.converters import circuit_to_dag, dag_to_circuit
+
+    # Create a circuit
+    qc = QuantumCircuit(2)
+    qc.h(0)
+    qc.cx(0, 1)
+
+    # Convert to DAG
+    dag = circuit_to_dag(qc)
+
+    # Explore the nodes
+    for node in dag.op_nodes():
+        print(node.name)
+
+    # Convert back to QuantumCircuit
+    optimized_qc = dag_to_circuit(dag)
+
 Circuits as Directed Acyclic Graphs
 ===================================
 
@@ -47,6 +83,7 @@ Utilities
    BlockCollector
    BlockSplitter
 """
+
 from .collect_blocks import BlockCollapser, BlockCollector, BlockSplitter
 from .dagcircuit import DAGCircuit
 from .dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
