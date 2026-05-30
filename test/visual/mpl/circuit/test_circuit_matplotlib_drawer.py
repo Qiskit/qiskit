@@ -47,7 +47,7 @@ from qiskit.circuit.annotated_operation import (
 from qiskit.circuit import Parameter, Qubit, Clbit, IfElseOp, SwitchCaseOp
 from qiskit.circuit.classical import expr, types
 from qiskit.quantum_info import random_clifford
-from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info import random_unitary
 from qiskit.utils import optionals
 from test.visual import VisualTestUtilities
 from test import QiskitTestCase
@@ -1246,7 +1246,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         """Test that long barrier labels are truncated"""
         circuit = QuantumCircuit(2)
         circuit.barrier()
-        circuit.barrier(label="a" * 20)
+        circuit.barrier(label="a" * 10)
+        circuit.barrier(label="b" * 1000)
 
         fname = "barrier_label_truncation.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname, barrier_label_len=9)

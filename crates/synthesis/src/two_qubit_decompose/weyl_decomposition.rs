@@ -9,16 +9,16 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
+
 use approx::abs_diff_eq;
 use num_complex::{Complex, Complex64, ComplexFloat};
 use smallvec::SmallVec;
-use std::f64::consts::PI;
+use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, PI, TAU};
 use std::ops::Deref;
 
 use faer::Side::Lower;
 use faer::{Mat, MatRef, Scale, prelude::*};
-use ndarray::Zip;
-use ndarray::linalg::kron;
+use nalgebra::{Matrix2, Matrix4, MatrixView4, U2, Vector4};
 use ndarray::prelude::*;
 use numpy::ToPyArray;
 use numpy::{IntoPyArray, PyArrayLike2, PyReadonlyArray2};
@@ -29,45 +29,58 @@ use pyo3::pybacked::PyBackedStr;
 
 use crate::QiskitError;
 use crate::euler_one_qubit_decomposer::{
-    ANGLE_ZERO_EPSILON, EulerBasis, EulerBasisSet, angles_from_unitary, det_one_qubit,
+    ANGLE_ZERO_EPSILON, EulerBasis, EulerBasisSet, angles_from_unitary,
     unitary_to_gate_sequence_inner,
 };
-use crate::linalg::{faer_to_ndarray, ndarray_to_faer};
+use crate::linalg::{nalgebra_array_view, ndarray_to_faer};
 
 use rand::prelude::*;
 use rand_distr::StandardNormal;
 use rand_pcg::Pcg64Mcg;
 
-use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
-use qiskit_circuit::gate_matrix::ONE_QUBIT_IDENTITY;
-use qiskit_circuit::operations::{Param, StandardGate};
-use qiskit_circuit::util::{C_M_ONE, C_ONE, C_ZERO, GateArray1Q, GateArray2Q, IM, M_IM, c64};
-use qiskit_circuit::{Qubit, impl_intopyobject_for_copy_pyclass};
-
 use super::common::{
-    DEFAULT_FIDELITY, TraceToFidelity, closest_partial_swap, rx_matrix, ry_matrix, rz_matrix,
-    transpose_conjugate,
+    DEFAULT_FIDELITY, IPX, IPY, IPZ, TraceToFidelity, closest_partial_swap, ndarray_to_matrix2,
+    ndarray_to_matrix4, rx_matrix, ry_matrix, rz_matrix,
 };
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
+use qiskit_circuit::operations::{Param, StandardGate};
+use qiskit_circuit::{Qubit, impl_intopyobject_for_copy_pyclass};
+use qiskit_util::complex::{C_M_ONE, C_ONE, C_ZERO, IM, M_IM, c64};
 
-const PI2: f64 = PI / 2.;
-const PI4: f64 = PI / 4.;
-const PI32: f64 = 3.0 * PI2;
-const TWO_PI: f64 = 2.0 * PI;
+const PI32: f64 = 3.0 * FRAC_PI_2;
 const C1: c64 = c64 { re: 1.0, im: 0.0 };
 
-static B_NON_NORMALIZED: GateArray2Q = [
-    [C_ONE, IM, C_ZERO, C_ZERO],
-    [C_ZERO, C_ZERO, IM, C_ONE],
-    [C_ZERO, C_ZERO, IM, C_M_ONE],
-    [C_ONE, M_IM, C_ZERO, C_ZERO],
-];
+// constant matrices
+static B_NON_NORMALIZED: Matrix4<Complex64> = Matrix4::new(
+    C_ONE, IM, C_ZERO, C_ZERO, C_ZERO, C_ZERO, IM, C_ONE, C_ZERO, C_ZERO, IM, C_M_ONE, C_ONE, M_IM,
+    C_ZERO, C_ZERO,
+);
 
-static B_NON_NORMALIZED_DAGGER: GateArray2Q = [
-    [c64(0.5, 0.), C_ZERO, C_ZERO, c64(0.5, 0.)],
-    [c64(0., -0.5), C_ZERO, C_ZERO, c64(0., 0.5)],
-    [C_ZERO, c64(0., -0.5), c64(0., -0.5), C_ZERO],
-    [C_ZERO, c64(0.5, 0.), c64(-0.5, 0.), C_ZERO],
-];
+static B_NON_NORMALIZED_DAGGER: Matrix4<Complex64> = Matrix4::new(
+    c64(0.5, 0.),
+    C_ZERO,
+    C_ZERO,
+    c64(0.5, 0.),
+    c64(0., -0.5),
+    C_ZERO,
+    C_ZERO,
+    c64(0., 0.5),
+    C_ZERO,
+    c64(0., -0.5),
+    c64(0., -0.5),
+    C_ZERO,
+    C_ZERO,
+    c64(0.5, 0.),
+    c64(-0.5, 0.),
+    C_ZERO,
+);
+
+static ONEQ_IDENTITY: Matrix2<Complex64> = Matrix2::new(
+    Complex64::ONE,
+    Complex64::ZERO,
+    Complex64::ZERO,
+    Complex64::ONE,
+);
 
 enum MagicBasisTransform {
     Into,
@@ -75,20 +88,21 @@ enum MagicBasisTransform {
 }
 
 fn magic_basis_transform(
-    unitary: ArrayView2<Complex64>,
+    unitary: MatrixView4<Complex64>,
     direction: MagicBasisTransform,
-) -> Array2<Complex64> {
-    let _b_nonnormalized = aview2(&B_NON_NORMALIZED);
-    let _b_nonnormalized_dagger = aview2(&B_NON_NORMALIZED_DAGGER);
+) -> Matrix4<Complex64> {
     match direction {
-        MagicBasisTransform::OutOf => _b_nonnormalized_dagger.dot(&unitary).dot(&_b_nonnormalized),
-        MagicBasisTransform::Into => _b_nonnormalized.dot(&unitary).dot(&_b_nonnormalized_dagger),
+        MagicBasisTransform::OutOf => B_NON_NORMALIZED_DAGGER * unitary * B_NON_NORMALIZED,
+        MagicBasisTransform::Into => B_NON_NORMALIZED * unitary * B_NON_NORMALIZED_DAGGER,
     }
 }
 
 fn transform_from_magic_basis(u: Mat<c64>) -> Mat<c64> {
-    let unitary: ArrayView2<Complex64> = faer_to_ndarray(u.as_ref());
-    ndarray_to_faer(magic_basis_transform(unitary, MagicBasisTransform::OutOf).view()).to_owned()
+    let unitary: Matrix4<Complex64> = Matrix4::from_fn(|i, j| u[(i, j)]);
+    matrixview4_to_faer(
+        magic_basis_transform(unitary.as_view(), MagicBasisTransform::OutOf).as_view(),
+    )
+    .to_owned()
 }
 
 /// Return indices that sort partially ordered data.
@@ -101,32 +115,37 @@ fn arg_sort<T: PartialOrd>(data: &[T]) -> Vec<usize> {
 }
 
 fn decompose_two_qubit_product_gate(
-    special_unitary: ArrayView2<Complex64>,
-) -> PyResult<(Array2<Complex64>, Array2<Complex64>, f64)> {
-    let mut r: Array2<Complex64> = special_unitary.slice(s![..2, ..2]).to_owned();
-    let mut det_r = det_one_qubit(r.view());
+    special_unitary: MatrixView4<Complex64>,
+) -> PyResult<(Matrix2<Complex64>, Matrix2<Complex64>, f64)> {
+    let mut r: Matrix2<Complex64> = special_unitary
+        .view((0, 0), (2, 2))
+        .fixed_resize(Complex64::new(f64::NAN, f64::NAN));
+    let mut det_r = r.determinant();
     if det_r.abs() < 0.1 {
-        r = special_unitary.slice(s![2.., ..2]).to_owned();
-        det_r = det_one_qubit(r.view());
+        r = special_unitary
+            .view((2, 0), (2, 2))
+            .fixed_resize(Complex64::new(f64::NAN, f64::NAN));
+        det_r = r.determinant();
     }
     if det_r.abs() < 0.1 {
         return Err(QiskitError::new_err(
             "decompose_two_qubit_product_gate: unable to decompose: detR < 0.1",
         ));
     }
-    r.mapv_inplace(|x| x / det_r.sqrt());
-    let r_t_conj: Array2<Complex64> = transpose_conjugate(r.view());
-    let eye = aview2(&ONE_QUBIT_IDENTITY);
-    let mut temp = kron(&eye, &r_t_conj);
-    temp = special_unitary.dot(&temp);
-    let mut l = temp.slice(s![..;2, ..;2]).to_owned();
-    let det_l = det_one_qubit(l.view());
+    r /= det_r.sqrt();
+    let r_t_conj: Matrix2<Complex64> = r.adjoint();
+    let mut temp = ONEQ_IDENTITY.kronecker(&r_t_conj);
+    temp = special_unitary * temp;
+    let mut l: Matrix2<Complex64> = temp
+        .view_with_steps((0, 0), (2, 2), (1, 1))
+        .fixed_resize(Complex64::new(f64::NAN, f64::NAN));
+    let det_l = l.determinant();
     if det_l.abs() < 0.9 {
         return Err(QiskitError::new_err(
             "decompose_two_qubit_product_gate: unable to decompose: detL < 0.9",
         ));
     }
-    l.mapv_inplace(|x| x / det_l.sqrt());
+    l /= det_l.sqrt();
     let phase = det_l.arg() / 2.;
 
     Ok((l, r, phase))
@@ -145,10 +164,11 @@ pub fn py_decompose_two_qubit_product_gate(
     special_unitary: PyArrayLike2<Complex64, numpy::AllowTypeChange>,
 ) -> PyResult<(Py<PyAny>, Py<PyAny>, f64)> {
     let view = special_unitary.as_array();
-    let (l, r, phase) = decompose_two_qubit_product_gate(view)?;
+    let mat = ndarray_to_matrix4(view);
+    let (l, r, phase) = decompose_two_qubit_product_gate(mat.as_view())?;
     Ok((
-        l.into_pyarray(py).into_any().unbind(),
-        r.into_pyarray(py).into_any().unbind(),
+        l.to_pyarray(py).into_any().unbind(),
+        r.to_pyarray(py).into_any().unbind(),
         phase,
     ))
 }
@@ -185,37 +205,37 @@ fn __weyl_coordinates(unitary: MatRef<c64>) -> PyResult<[f64; 3]> {
         .collect();
     let cstemp: Vec<f64> = cs
         .iter()
-        .map(|x| x.rem_euclid(PI2))
-        .map(|x| x.min(PI2 - x))
+        .map(|x| x.rem_euclid(FRAC_PI_2))
+        .map(|x| x.min(FRAC_PI_2 - x))
         .collect();
     let mut order = arg_sort(&cstemp);
     (order[0], order[1], order[2]) = (order[1], order[2], order[0]);
     (cs[0], cs[1], cs[2]) = (cs[order[0]], cs[order[1]], cs[order[2]]);
 
     // Flip into Weyl chamber
-    if cs[0] > PI2 {
+    if cs[0] > FRAC_PI_2 {
         cs[0] -= PI32;
     }
-    if cs[1] > PI2 {
+    if cs[1] > FRAC_PI_2 {
         cs[1] -= PI32;
     }
     let mut conjs = 0;
-    if cs[0] > PI4 {
-        cs[0] = PI2 - cs[0];
+    if cs[0] > FRAC_PI_4 {
+        cs[0] = FRAC_PI_2 - cs[0];
         conjs += 1;
     }
-    if cs[1] > PI4 {
-        cs[1] = PI2 - cs[1];
+    if cs[1] > FRAC_PI_4 {
+        cs[1] = FRAC_PI_2 - cs[1];
         conjs += 1;
     }
-    if cs[2] > PI2 {
+    if cs[2] > FRAC_PI_2 {
         cs[2] -= PI32;
     }
     if conjs == 1 {
-        cs[2] = PI2 - cs[2];
+        cs[2] = FRAC_PI_2 - cs[2];
     }
-    if cs[2] > PI4 {
-        cs[2] -= PI2;
+    if cs[2] > FRAC_PI_4 {
+        cs[2] -= FRAC_PI_2;
     }
     Ok([cs[1], cs[0], cs[2]])
 }
@@ -243,8 +263,8 @@ pub(super) fn __num_basis_gates(
             4.0 * (a.sin() * b.sin() * c.sin()),
         ),
         c64::new(
-            4.0 * (PI4 - a).cos() * (basis_b - b).cos() * c.cos(),
-            4.0 * (PI4 - a).sin() * (basis_b - b).sin() * c.sin(),
+            4.0 * (FRAC_PI_4 - a).cos() * (basis_b - b).cos() * c.cos(),
+            4.0 * (FRAC_PI_4 - a).sin() * (basis_b - b).sin() * c.sin(),
         ),
         c64::new(4.0 * c.cos(), 0.0),
         c64::new(4.0, 0.0),
@@ -324,6 +344,29 @@ impl Specialization {
     }
 }
 
+/// Convert a MatrixView4 as a MatRef without copies.
+#[inline]
+fn matrixview4_to_faer<T: nalgebra::Scalar + Copy>(mat: MatrixView4<T>) -> MatRef<T> {
+    let nrows = mat.nrows();
+    let ncols = mat.ncols();
+    let strides = mat.strides();
+    let ptr = mat.as_ptr();
+
+    // SAFETY: We know the array is a 2d array from nalgebra and we get the pointer and memory layout
+    // description from nalgebra and can be assumed to be valid since the constraints on
+    // `MatRef::From_raw_parts()`
+    // should be be met for a valid nalgebra matrix.
+    unsafe {
+        faer::MatRef::from_raw_parts(
+            ptr,
+            nrows,
+            ncols,
+            strides.0.try_into().unwrap(),
+            strides.1.try_into().unwrap(),
+        )
+    }
+}
+
 #[derive(Clone, Debug)]
 #[allow(non_snake_case)]
 #[pyclass(
@@ -340,10 +383,10 @@ pub struct TwoQubitWeylDecomposition {
     pub(super) c: f64,
     #[pyo3(get)]
     pub global_phase: f64,
-    pub(super) K1l: Array2<Complex64>,
-    pub(super) K2l: Array2<Complex64>,
-    pub(super) K1r: Array2<Complex64>,
-    pub(super) K2r: Array2<Complex64>,
+    pub(super) K1l: Matrix2<Complex64>,
+    pub(super) K2l: Matrix2<Complex64>,
+    pub(super) K1r: Matrix2<Complex64>,
+    pub(super) K2r: Matrix2<Complex64>,
     #[pyo3(get)]
     pub specialization: Specialization,
     default_euler_basis: EulerBasis,
@@ -351,7 +394,7 @@ pub struct TwoQubitWeylDecomposition {
     requested_fidelity: Option<f64>,
     #[pyo3(get)]
     calculated_fidelity: f64,
-    pub(super) unitary_matrix: Array2<Complex64>,
+    pub(super) unitary_matrix: Matrix4<Complex64>,
 }
 
 impl TwoQubitWeylDecomposition {
@@ -366,19 +409,19 @@ impl TwoQubitWeylDecomposition {
     }
 
     pub fn k1l_view(&self) -> ArrayView2<'_, Complex64> {
-        self.K1l.view()
+        nalgebra_array_view::<Complex64, U2, U2>(self.K1l.as_view())
     }
 
     pub fn k2l_view(&self) -> ArrayView2<'_, Complex64> {
-        self.K2l.view()
+        nalgebra_array_view::<Complex64, U2, U2>(self.K2l.as_view())
     }
 
     pub fn k1r_view(&self) -> ArrayView2<'_, Complex64> {
-        self.K1r.view()
+        nalgebra_array_view::<Complex64, U2, U2>(self.K1r.as_view())
     }
 
     pub fn k2r_view(&self) -> ArrayView2<'_, Complex64> {
-        self.K2r.view()
+        nalgebra_array_view::<Complex64, U2, U2>(self.K2r.as_view())
     }
 
     fn weyl_gate(
@@ -393,10 +436,10 @@ impl TwoQubitWeylDecomposition {
                 sequence.push_standard_gate(StandardGate::Swap, &[], &[Qubit(0), Qubit(1)])?;
                 sequence.push_standard_gate(
                     StandardGate::RZZ,
-                    &[Param::Float((PI4 - self.c) * 2.)],
+                    &[Param::Float((FRAC_PI_4 - self.c) * 2.)],
                     &[Qubit(0), Qubit(1)],
                 )?;
-                *global_phase += PI4
+                *global_phase += FRAC_PI_4
             }
             Specialization::SWAPEquiv => {
                 sequence.push_standard_gate(StandardGate::Swap, &[], &[Qubit(0), Qubit(1)])?;
@@ -433,24 +476,17 @@ impl TwoQubitWeylDecomposition {
     /// data structures
     pub fn new_inner(
         unitary_matrix: ArrayView2<Complex64>,
-
         fidelity: Option<f64>,
         _specialization: Option<Specialization>,
     ) -> PyResult<Self> {
-        let ipz: ArrayView2<Complex64> = aview2(&IPZ);
-        let ipy: ArrayView2<Complex64> = aview2(&IPY);
-        let ipx: ArrayView2<Complex64> = aview2(&IPX);
-
-        let mut u = unitary_matrix.to_owned();
-        let unitary_matrix = unitary_matrix.to_owned();
-        let det_u = ndarray_to_faer(u.view()).determinant();
+        let mut u = ndarray_to_matrix4(unitary_matrix);
+        let det_u = u.determinant();
         let det_pow = det_u.powf(-0.25);
-        u.mapv_inplace(|x| x * det_pow);
+        u *= det_pow;
         let mut global_phase = det_u.arg() / 4.;
-        let u_p = magic_basis_transform(u.view(), MagicBasisTransform::OutOf);
-        let m2 = u_p.t().dot(&u_p);
+        let u_p = magic_basis_transform(u.as_view(), MagicBasisTransform::OutOf);
+        let m2 = u_p.transpose() * u_p;
         let default_euler_basis = EulerBasis::ZYZ;
-
         // M2 is a symmetric complex matrix. We need to decompose it as M2 = P D P^T where
         // P ∈ SO(4), D is diagonal with unit-magnitude elements.
         //
@@ -465,8 +501,8 @@ impl TwoQubitWeylDecomposition {
         // deterministic; the value is not important.
         let mut state = Pcg64Mcg::seed_from_u64(2023);
         let mut found = false;
-        let mut d: Array1<Complex64> = Array1::zeros(0);
-        let mut p: Array2<Complex64> = Array2::zeros((0, 0));
+        let mut d: Vector4<Complex64> = Vector4::zeros();
+        let mut p: Matrix4<Complex64> = Matrix4::zeros();
         for i in 0..100 {
             let rand_a: f64;
             let rand_b: f64;
@@ -482,24 +518,18 @@ impl TwoQubitWeylDecomposition {
                 rand_a = state.sample(StandardNormal);
                 rand_b = state.sample(StandardNormal);
             }
-            let m2_real = m2.mapv(|val| rand_a * val.re + rand_b * val.im);
-            let p_inner = faer_to_ndarray(
-                ndarray_to_faer(m2_real.view())
-                    .self_adjoint_eigen(Lower)
-                    .map_err(|e| QiskitError::new_err(format!("{e:?}")))?
-                    .U(),
-            )
-            .mapv(Complex64::from);
-            let d_inner = p_inner.t().dot(&m2).dot(&p_inner).diag().to_owned();
-            let mut diag_d: Array2<Complex64> = Array2::zeros((4, 4));
-            diag_d
-                .diag_mut()
-                .iter_mut()
-                .enumerate()
-                .for_each(|(index, x)| *x = d_inner[index]);
+            let m2_real = m2.map(|val| rand_a * val.re + rand_b * val.im);
+            let temp = matrixview4_to_faer(m2_real.as_view())
+                .self_adjoint_eigen(Lower)
+                .map_err(|e| QiskitError::new_err(format!("{e:?}")))?;
+            let res = temp.U();
+            let p_inner: Matrix4<Complex64> =
+                Matrix4::from_fn(|i, j| Complex64::new(res[(i, j)], 0.));
+            let d_inner: Vector4<Complex64> = (p_inner.transpose() * m2 * p_inner).diagonal();
+            let diag_d: Matrix4<Complex64> = Matrix4::from_diagonal(&d_inner);
 
-            let compare = p_inner.dot(&diag_d).dot(&p_inner.t());
-            found = abs_diff_eq!(compare.view(), m2, epsilon = 1.0e-13);
+            let compare = p_inner * diag_d * p_inner.transpose();
+            found = abs_diff_eq!(compare, m2, epsilon = 1.0e-13);
             if found {
                 p = p_inner;
                 d = d_inner;
@@ -513,92 +543,104 @@ impl TwoQubitWeylDecomposition {
         }
         let mut d = -d.map(|x| x.arg() / 2.);
         d[3] = -d[0] - d[1] - d[2];
-        let mut cs: SmallVec<[f64; 3]> = (0..3)
-            .map(|i| ((d[i] + d[3]) / 2.0).rem_euclid(TWO_PI))
-            .collect();
+        let mut cs: [f64; 3] = [
+            ((d[0] + d[3]) / 2.0).rem_euclid(TAU),
+            ((d[1] + d[3]) / 2.0).rem_euclid(TAU),
+            ((d[2] + d[3]) / 2.0).rem_euclid(TAU),
+        ];
         let cstemp: SmallVec<[f64; 3]> = cs
             .iter()
-            .map(|x| x.rem_euclid(PI2))
-            .map(|x| x.min(PI2 - x))
+            .map(|x| x.rem_euclid(FRAC_PI_2))
+            .map(|x| x.min(FRAC_PI_2 - x))
             .collect();
         let mut order = arg_sort(&cstemp);
         (order[0], order[1], order[2]) = (order[1], order[2], order[0]);
         (cs[0], cs[1], cs[2]) = (cs[order[0]], cs[order[1]], cs[order[2]]);
         (d[0], d[1], d[2]) = (d[order[0]], d[order[1]], d[order[2]]);
-        let mut p_orig = p.clone();
+        let mut p_orig = p;
+
+        // Swap columns based on permutation order
         for (i, item) in order.iter().enumerate().take(3) {
-            let slice_a = p.slice_mut(s![.., i]);
-            let slice_b = p_orig.slice_mut(s![.., *item]);
-            Zip::from(slice_a).and(slice_b).for_each(::std::mem::swap);
+            let mut column_a = p.column_mut(i);
+            let mut column_b = p_orig.column_mut(*item);
+            column_a
+                .iter_mut()
+                .zip(column_b.iter_mut())
+                .for_each(|(a, b)| std::mem::swap(a, b));
         }
-        if ndarray_to_faer(p.view()).determinant().re < 0. {
-            p.slice_mut(s![.., -1]).mapv_inplace(|x| -x);
+        // If determinant has a negative real
+        if p.determinant().re < 0. {
+            p.column_mut(3).iter_mut().for_each(|x| *x = -*x);
         }
-        let mut temp: Array2<Complex64> = Array2::zeros((4, 4));
-        temp.diag_mut()
-            .iter_mut()
-            .enumerate()
-            .for_each(|(index, x)| *x = (IM * d[index]).exp());
-        let k1 = magic_basis_transform(u_p.dot(&p).dot(&temp).view(), MagicBasisTransform::Into);
-        let k2 = magic_basis_transform(p.t(), MagicBasisTransform::Into);
+        let mut temp: Matrix4<Complex64> = Matrix4::zeros();
+        for i in 0..4 {
+            let val = (IM * d[i]).exp();
+            // SAFETY: All indices are in bounds of the array
+            unsafe {
+                *temp.get_unchecked_mut((i, i)) = val;
+            }
+        }
+
+        let k1 = magic_basis_transform((u_p * p * temp).as_view(), MagicBasisTransform::Into);
+        let k2 = magic_basis_transform(p.transpose().as_view(), MagicBasisTransform::Into);
 
         #[allow(non_snake_case)]
-        let (mut K1l, mut K1r, phase_l) = decompose_two_qubit_product_gate(k1.view())?;
+        let (mut K1l, mut K1r, phase_l) = decompose_two_qubit_product_gate(k1.as_view())?;
         #[allow(non_snake_case)]
-        let (K2l, mut K2r, phase_r) = decompose_two_qubit_product_gate(k2.view())?;
+        let (K2l, mut K2r, phase_r) = decompose_two_qubit_product_gate(k2.as_view())?;
         global_phase += phase_l + phase_r;
 
         // Flip into Weyl chamber
-        if cs[0] > PI2 {
+        if cs[0] > FRAC_PI_2 {
             cs[0] -= PI32;
-            K1l = K1l.dot(&ipy);
-            K1r = K1r.dot(&ipy);
-            global_phase += PI2;
+            K1l *= IPY;
+            K1r *= IPY;
+            global_phase += FRAC_PI_2;
         }
-        if cs[1] > PI2 {
+        if cs[1] > FRAC_PI_2 {
             cs[1] -= PI32;
-            K1l = K1l.dot(&ipx);
-            K1r = K1r.dot(&ipx);
-            global_phase += PI2;
+            K1l *= IPX;
+            K1r *= IPX;
+            global_phase += FRAC_PI_2;
         }
         let mut conjs = 0;
-        if cs[0] > PI4 {
-            cs[0] = PI2 - cs[0];
-            K1l = K1l.dot(&ipy);
-            K2r = ipy.dot(&K2r);
+        if cs[0] > FRAC_PI_4 {
+            cs[0] = FRAC_PI_2 - cs[0];
+            K1l *= IPY;
+            K2r = IPY * K2r;
             conjs += 1;
-            global_phase -= PI2;
+            global_phase -= FRAC_PI_2;
         }
-        if cs[1] > PI4 {
-            cs[1] = PI2 - cs[1];
-            K1l = K1l.dot(&ipx);
-            K2r = ipx.dot(&K2r);
+        if cs[1] > FRAC_PI_4 {
+            cs[1] = FRAC_PI_2 - cs[1];
+            K1l *= IPX;
+            K2r = IPX * K2r;
             conjs += 1;
-            global_phase += PI2;
+            global_phase += FRAC_PI_2;
             if conjs == 1 {
                 global_phase -= PI;
             }
         }
-        if cs[2] > PI2 {
+        if cs[2] > FRAC_PI_2 {
             cs[2] -= PI32;
-            K1l = K1l.dot(&ipz);
-            K1r = K1r.dot(&ipz);
-            global_phase += PI2;
+            K1l *= IPZ;
+            K1r *= IPZ;
+            global_phase += FRAC_PI_2;
             if conjs == 1 {
                 global_phase -= PI;
             }
         }
         if conjs == 1 {
-            cs[2] = PI2 - cs[2];
-            K1l = K1l.dot(&ipz);
-            K2r = ipz.dot(&K2r);
-            global_phase += PI2;
+            cs[2] = FRAC_PI_2 - cs[2];
+            K1l *= IPZ;
+            K2r = IPZ * K2r;
+            global_phase += FRAC_PI_2;
         }
-        if cs[2] > PI4 {
-            cs[2] -= PI2;
-            K1l = K1l.dot(&ipz);
-            K1r = K1r.dot(&ipz);
-            global_phase -= PI2;
+        if cs[2] > FRAC_PI_4 {
+            cs[2] -= FRAC_PI_2;
+            K1l *= IPZ;
+            K1r *= IPZ;
+            global_phase -= FRAC_PI_2;
         }
         let [a, b, c] = [cs[1], cs[0], cs[2]];
         let is_close = |ap: f64, bp: f64, cp: f64| -> bool {
@@ -624,7 +666,9 @@ impl TwoQubitWeylDecomposition {
             None => {
                 if is_close(0., 0., 0.) {
                     Specialization::IdEquiv
-                } else if is_close(PI4, PI4, PI4) || is_close(PI4, PI4, -PI4) {
+                } else if is_close(FRAC_PI_4, FRAC_PI_4, FRAC_PI_4)
+                    || is_close(FRAC_PI_4, FRAC_PI_4, -FRAC_PI_4)
+                {
                     Specialization::SWAPEquiv
                 } else if is_close(closest_abc, closest_abc, closest_abc) {
                     Specialization::PartialSWAPEquiv
@@ -632,7 +676,7 @@ impl TwoQubitWeylDecomposition {
                     Specialization::PartialSWAPFlipEquiv
                 } else if is_close(a, 0., 0.) {
                     Specialization::ControlledEquiv
-                } else if is_close(PI4, PI4, c) {
+                } else if is_close(FRAC_PI_4, FRAC_PI_4, c) {
                     Specialization::MirrorControlledEquiv
                 } else if is_close((a + b) / 2., (a + b) / 2., c) {
                     Specialization::fSimaabEquiv
@@ -658,7 +702,7 @@ impl TwoQubitWeylDecomposition {
             default_euler_basis,
             requested_fidelity: fidelity,
             calculated_fidelity: -1.0,
-            unitary_matrix,
+            unitary_matrix: ndarray_to_matrix4(unitary_matrix),
         };
         let mut specialized: TwoQubitWeylDecomposition = match specialization {
             // :math:`U \sim U_d(0,0,0) \sim Id`
@@ -670,10 +714,10 @@ impl TwoQubitWeylDecomposition {
                 a: 0.,
                 b: 0.,
                 c: 0.,
-                K1l: general.K1l.dot(&general.K2l),
-                K1r: general.K1r.dot(&general.K2r),
-                K2l: Array2::eye(2),
-                K2r: Array2::eye(2),
+                K1l: general.K1l * general.K2l,
+                K1r: general.K1r * general.K2r,
+                K2l: Matrix2::identity(),
+                K2r: Matrix2::identity(),
                 ..general
             },
             // :math:`U \sim U_d(\pi/4, \pi/4, \pi/4) \sim U(\pi/4, \pi/4, -\pi/4) \sim \text{SWAP}`
@@ -684,27 +728,27 @@ impl TwoQubitWeylDecomposition {
                 if c > 0. {
                     TwoQubitWeylDecomposition {
                         specialization,
-                        a: PI4,
-                        b: PI4,
-                        c: PI4,
-                        K1l: general.K1l.dot(&general.K2r),
-                        K1r: general.K1r.dot(&general.K2l),
-                        K2l: Array2::eye(2),
-                        K2r: Array2::eye(2),
+                        a: FRAC_PI_4,
+                        b: FRAC_PI_4,
+                        c: FRAC_PI_4,
+                        K1l: general.K1l * general.K2r,
+                        K1r: general.K1r * general.K2l,
+                        K2l: Matrix2::identity(),
+                        K2r: Matrix2::identity(),
                         ..general
                     }
                 } else {
                     flipped_from_original = true;
                     TwoQubitWeylDecomposition {
                         specialization,
-                        a: PI4,
-                        b: PI4,
-                        c: PI4,
-                        global_phase: global_phase + PI2,
-                        K1l: general.K1l.dot(&ipz).dot(&general.K2r),
-                        K1r: general.K1r.dot(&ipz).dot(&general.K2l),
-                        K2l: Array2::eye(2),
-                        K2r: Array2::eye(2),
+                        a: FRAC_PI_4,
+                        b: FRAC_PI_4,
+                        c: FRAC_PI_4,
+                        global_phase: global_phase + FRAC_PI_2,
+                        K1l: general.K1l * IPZ * general.K2r,
+                        K1r: general.K1r * IPZ * general.K2l,
+                        K2l: Matrix2::identity(),
+                        K2r: Matrix2::identity(),
                         ..general
                     }
                 }
@@ -716,17 +760,16 @@ impl TwoQubitWeylDecomposition {
             // :math:`K2_l = Id`.
             Specialization::PartialSWAPEquiv => {
                 let closest = closest_partial_swap(a, b, c);
-                let mut k2l_dag = general.K2l.t().to_owned();
-                k2l_dag.view_mut().mapv_inplace(|x| x.conj());
+                let k2l_dag = general.K2l.adjoint();
                 TwoQubitWeylDecomposition {
                     specialization,
                     a: closest,
                     b: closest,
                     c: closest,
-                    K1l: general.K1l.dot(&general.K2l),
-                    K1r: general.K1r.dot(&general.K2l),
-                    K2r: k2l_dag.dot(&general.K2r),
-                    K2l: Array2::eye(2),
+                    K1l: general.K1l * general.K2l,
+                    K1r: general.K1r * general.K2l,
+                    K2r: k2l_dag * general.K2r,
+                    K2l: Matrix2::identity(),
                     ..general
                 }
             }
@@ -740,17 +783,16 @@ impl TwoQubitWeylDecomposition {
             // :math:`K2_l = Id`
             Specialization::PartialSWAPFlipEquiv => {
                 let closest = closest_partial_swap(a, b, -c);
-                let mut k2l_dag = general.K2l.t().to_owned();
-                k2l_dag.mapv_inplace(|x| x.conj());
+                let k2l_dag = general.K2l.adjoint();
                 TwoQubitWeylDecomposition {
                     specialization,
                     a: closest,
                     b: closest,
                     c: -closest,
-                    K1l: general.K1l.dot(&general.K2l),
-                    K1r: general.K1r.dot(&ipz).dot(&general.K2l).dot(&ipz),
-                    K2r: ipz.dot(&k2l_dag).dot(&ipz).dot(&general.K2r),
-                    K2l: Array2::eye(2),
+                    K1l: general.K1l * general.K2l,
+                    K1r: general.K1r * IPZ * general.K2l * IPZ,
+                    K2r: IPZ * k2l_dag * IPZ * general.K2r,
+                    K2l: Matrix2::identity(),
                     ..general
                 }
             }
@@ -762,20 +804,24 @@ impl TwoQubitWeylDecomposition {
             //      :math:`K2_r = Ry(\theta_r) Rx(\lambda_r)` .
             Specialization::ControlledEquiv => {
                 let euler_basis = EulerBasis::XYX;
-                let [k2ltheta, k2lphi, k2llambda, k2lphase] =
-                    angles_from_unitary(general.K2l.view(), euler_basis);
-                let [k2rtheta, k2rphi, k2rlambda, k2rphase] =
-                    angles_from_unitary(general.K2r.view(), euler_basis);
+                let [k2ltheta, k2lphi, k2llambda, k2lphase] = angles_from_unitary(
+                    nalgebra_array_view::<Complex64, U2, U2>(general.K2l.as_view()),
+                    euler_basis,
+                );
+                let [k2rtheta, k2rphi, k2rlambda, k2rphase] = angles_from_unitary(
+                    nalgebra_array_view::<Complex64, U2, U2>(general.K2r.as_view()),
+                    euler_basis,
+                );
                 TwoQubitWeylDecomposition {
                     specialization,
                     a,
                     b: 0.,
                     c: 0.,
                     global_phase: global_phase + k2lphase + k2rphase,
-                    K1l: general.K1l.dot(&rx_matrix(k2lphi)),
-                    K1r: general.K1r.dot(&rx_matrix(k2rphi)),
-                    K2l: ry_matrix(k2ltheta).dot(&rx_matrix(k2llambda)),
-                    K2r: ry_matrix(k2rtheta).dot(&rx_matrix(k2rlambda)),
+                    K1l: general.K1l * rx_matrix(k2lphi),
+                    K1r: general.K1r * rx_matrix(k2rphi),
+                    K2l: ry_matrix(k2ltheta) * rx_matrix(k2llambda),
+                    K2r: ry_matrix(k2rtheta) * rx_matrix(k2rlambda),
                     default_euler_basis: euler_basis,
                     ..general
                 }
@@ -786,20 +832,24 @@ impl TwoQubitWeylDecomposition {
             //
             // :math:`K2_l = Ry(\theta_l)\cdot Rz(\lambda_l)` , :math:`K2_r = Ry(\theta_r)\cdot Rz(\lambda_r)`
             Specialization::MirrorControlledEquiv => {
-                let [k2ltheta, k2lphi, k2llambda, k2lphase] =
-                    angles_from_unitary(general.K2l.view(), EulerBasis::ZYZ);
-                let [k2rtheta, k2rphi, k2rlambda, k2rphase] =
-                    angles_from_unitary(general.K2r.view(), EulerBasis::ZYZ);
+                let [k2ltheta, k2lphi, k2llambda, k2lphase] = angles_from_unitary(
+                    nalgebra_array_view::<Complex64, U2, U2>(general.K2l.as_view()),
+                    EulerBasis::ZYZ,
+                );
+                let [k2rtheta, k2rphi, k2rlambda, k2rphase] = angles_from_unitary(
+                    nalgebra_array_view::<Complex64, U2, U2>(general.K2r.as_view()),
+                    EulerBasis::ZYZ,
+                );
                 TwoQubitWeylDecomposition {
                     specialization,
-                    a: PI4,
-                    b: PI4,
+                    a: FRAC_PI_4,
+                    b: FRAC_PI_4,
                     c,
                     global_phase: global_phase + k2lphase + k2rphase,
-                    K1l: general.K1l.dot(&rz_matrix(k2rphi)),
-                    K1r: general.K1r.dot(&rz_matrix(k2lphi)),
-                    K2l: ry_matrix(k2ltheta).dot(&rz_matrix(k2llambda)),
-                    K2r: ry_matrix(k2rtheta).dot(&rz_matrix(k2rlambda)),
+                    K1l: general.K1l * rz_matrix(k2rphi),
+                    K1r: general.K1r * rz_matrix(k2lphi),
+                    K2l: ry_matrix(k2ltheta) * rz_matrix(k2llambda),
+                    K2r: ry_matrix(k2rtheta) * rz_matrix(k2rlambda),
                     ..general
                 }
             }
@@ -809,18 +859,20 @@ impl TwoQubitWeylDecomposition {
             //
             // :math:`K2_l = Ry(\theta_l)\cdot Rz(\lambda_l)`.
             Specialization::fSimaabEquiv => {
-                let [k2ltheta, k2lphi, k2llambda, k2lphase] =
-                    angles_from_unitary(general.K2l.view(), EulerBasis::ZYZ);
+                let [k2ltheta, k2lphi, k2llambda, k2lphase] = angles_from_unitary(
+                    nalgebra_array_view::<Complex64, U2, U2>(general.K2l.as_view()),
+                    EulerBasis::ZYZ,
+                );
                 TwoQubitWeylDecomposition {
                     specialization,
                     a: (a + b) / 2.,
                     b: (a + b) / 2.,
                     c,
                     global_phase: global_phase + k2lphase,
-                    K1r: general.K1r.dot(&rz_matrix(k2lphi)),
-                    K1l: general.K1l.dot(&rz_matrix(k2lphi)),
-                    K2l: ry_matrix(k2ltheta).dot(&rz_matrix(k2llambda)),
-                    K2r: rz_matrix(-k2lphi).dot(&general.K2r),
+                    K1r: general.K1r * rz_matrix(k2lphi),
+                    K1l: general.K1l * rz_matrix(k2lphi),
+                    K2l: ry_matrix(k2ltheta) * rz_matrix(k2llambda),
+                    K2r: rz_matrix(-k2lphi) * general.K2r,
                     ..general
                 }
             }
@@ -831,18 +883,20 @@ impl TwoQubitWeylDecomposition {
             // :math:`K2_l = Ry(\theta_l)Rx(\lambda_l)`
             Specialization::fSimabbEquiv => {
                 let euler_basis = EulerBasis::XYX;
-                let [k2ltheta, k2lphi, k2llambda, k2lphase] =
-                    angles_from_unitary(general.K2l.view(), euler_basis);
+                let [k2ltheta, k2lphi, k2llambda, k2lphase] = angles_from_unitary(
+                    nalgebra_array_view::<Complex64, U2, U2>(general.K2l.as_view()),
+                    euler_basis,
+                );
                 TwoQubitWeylDecomposition {
                     specialization,
                     a,
                     b: (b + c) / 2.,
                     c: (b + c) / 2.,
                     global_phase: global_phase + k2lphase,
-                    K1r: general.K1r.dot(&rx_matrix(k2lphi)),
-                    K1l: general.K1l.dot(&rx_matrix(k2lphi)),
-                    K2l: ry_matrix(k2ltheta).dot(&rx_matrix(k2llambda)),
-                    K2r: rx_matrix(-k2lphi).dot(&general.K2r),
+                    K1r: general.K1r * rx_matrix(k2lphi),
+                    K1l: general.K1l * rx_matrix(k2lphi),
+                    K2l: ry_matrix(k2ltheta) * rx_matrix(k2llambda),
+                    K2r: rx_matrix(-k2lphi) * general.K2r,
                     default_euler_basis: euler_basis,
                     ..general
                 }
@@ -854,18 +908,20 @@ impl TwoQubitWeylDecomposition {
             // :math:`K2_l = Ry(\theta_l)Rx(\lambda_l)`
             Specialization::fSimabmbEquiv => {
                 let euler_basis = EulerBasis::XYX;
-                let [k2ltheta, k2lphi, k2llambda, k2lphase] =
-                    angles_from_unitary(general.K2l.view(), euler_basis);
+                let [k2ltheta, k2lphi, k2llambda, k2lphase] = angles_from_unitary(
+                    nalgebra_array_view::<Complex64, U2, U2>(general.K2l.as_view()),
+                    euler_basis,
+                );
                 TwoQubitWeylDecomposition {
                     specialization,
                     a,
                     b: (b - c) / 2.,
                     c: -((b - c) / 2.),
                     global_phase: global_phase + k2lphase,
-                    K1l: general.K1l.dot(&rx_matrix(k2lphi)),
-                    K1r: general.K1r.dot(&ipz).dot(&rx_matrix(k2lphi)).dot(&ipz),
-                    K2l: ry_matrix(k2ltheta).dot(&rx_matrix(k2llambda)),
-                    K2r: ipz.dot(&rx_matrix(-k2lphi)).dot(&ipz).dot(&general.K2r),
+                    K1l: general.K1l * rx_matrix(k2lphi),
+                    K1r: general.K1r * IPZ * rx_matrix(k2lphi) * IPZ,
+                    K2l: ry_matrix(k2ltheta) * rx_matrix(k2llambda),
+                    K2r: IPZ * rx_matrix(-k2lphi) * IPZ * general.K2r,
                     default_euler_basis: euler_basis,
                     ..general
                 }
@@ -879,7 +935,7 @@ impl TwoQubitWeylDecomposition {
 
         let tr = if flipped_from_original {
             let [da, db, dc] = [
-                PI2 - a - specialized.a,
+                FRAC_PI_2 - a - specialized.a,
                 b - specialized.b,
                 -c - specialized.c,
             ];
@@ -908,10 +964,6 @@ impl TwoQubitWeylDecomposition {
     }
 }
 
-static IPZ: GateArray1Q = [[IM, C_ZERO], [C_ZERO, M_IM]];
-static IPY: GateArray1Q = [[C_ZERO, C_ONE], [C_M_ONE, C_ZERO]];
-static IPX: GateArray1Q = [[C_ZERO, IM], [IM, C_ZERO]];
-
 #[pymethods]
 impl TwoQubitWeylDecomposition {
     #[staticmethod]
@@ -930,15 +982,15 @@ impl TwoQubitWeylDecomposition {
             b,
             c,
             global_phase,
-            K1l: matrices[0].as_array().to_owned(),
-            K1r: matrices[1].as_array().to_owned(),
-            K2l: matrices[2].as_array().to_owned(),
-            K2r: matrices[3].as_array().to_owned(),
+            K1l: ndarray_to_matrix2(matrices[0].as_array()),
+            K1r: ndarray_to_matrix2(matrices[1].as_array()),
+            K2l: ndarray_to_matrix2(matrices[2].as_array()),
+            K2r: ndarray_to_matrix2(matrices[3].as_array()),
             specialization,
             default_euler_basis,
             calculated_fidelity,
             requested_fidelity,
-            unitary_matrix: matrices[4].as_array().to_owned(),
+            unitary_matrix: ndarray_to_matrix4(matrices[4].as_array()),
         }
     }
 
@@ -1020,7 +1072,7 @@ impl TwoQubitWeylDecomposition {
         let mut global_phase: f64 = self.global_phase;
 
         let c2r = unitary_to_gate_sequence_inner(
-            self.K2r.view(),
+            nalgebra_array_view::<Complex64, U2, U2>(self.K2r.as_view()),
             &target_1q_basis_list,
             0,
             None,
@@ -1037,7 +1089,7 @@ impl TwoQubitWeylDecomposition {
         }
         global_phase += c2r.global_phase;
         let c2l = unitary_to_gate_sequence_inner(
-            self.K2l.view(),
+            nalgebra_array_view::<Complex64, U2, U2>(self.K2l.as_view()),
             &target_1q_basis_list,
             1,
             None,
@@ -1060,7 +1112,7 @@ impl TwoQubitWeylDecomposition {
             &mut global_phase,
         )?;
         let c1r = unitary_to_gate_sequence_inner(
-            self.K1r.view(),
+            nalgebra_array_view::<Complex64, U2, U2>(self.K1r.as_view()),
             &target_1q_basis_list,
             0,
             None,
@@ -1077,7 +1129,7 @@ impl TwoQubitWeylDecomposition {
         }
         global_phase += c2r.global_phase;
         let c1l = unitary_to_gate_sequence_inner(
-            self.K1l.view(),
+            nalgebra_array_view::<Complex64, U2, U2>(self.K1l.as_view()),
             &target_1q_basis_list,
             1,
             None,

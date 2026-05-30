@@ -6,7 +6,7 @@
 [![Downloads](https://img.shields.io/pypi/dm/qiskit.svg)](https://pypi.org/project/qiskit/)
 [![Coverage Status](https://coveralls.io/repos/github/Qiskit/qiskit/badge.svg?branch=main)](https://coveralls.io/github/Qiskit/qiskit?branch=main)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/qiskit)
-[![Minimum rustc 1.85](https://img.shields.io/badge/rustc-1.85+-blue.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
+[![Minimum rustc 1.87](https://img.shields.io/badge/rustc-1.87+-blue.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
 [![Downloads](https://static.pepy.tech/badge/qiskit)](https://pepy.tech/project/qiskit)<!--- long-description-skip-end -->
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2583252.svg)](https://doi.org/10.5281/zenodo.2583252)
 
@@ -15,6 +15,10 @@
 This library is the core component of Qiskit, which contains the building blocks for creating and working with quantum circuits, quantum operators, and primitive functions (Sampler and Estimator).
 It also contains a transpiler that supports optimizing quantum circuits, and a quantum information toolbox for creating advanced operators.
 
+Qiskit provides two public APIs: a Python API and a C API. The Python API is the primary interface and prior to Qiskit 2.0 was the only public API available
+for Qiskit. The C API is designed to provide direct access to Qiskit's internal data model (which is written in Rust). The C API can be consumed as either a
+shared library (`libqiskit.so`) for standalone use, or from its embedding in the `qiskit` Python package [for writing Python extension modules](https://quantum.cloud.ibm.com/docs/guides/c-extension-for-python).
+
 For more details on how to use Qiskit, refer to the documentation located here:
 
 <https://quantum.cloud.ibm.com/docs/>
@@ -22,7 +26,9 @@ For more details on how to use Qiskit, refer to the documentation located here:
 
 ## Installation
 
-We encourage installing Qiskit via ``pip``:
+### Python
+
+For running Qiskit on Python we recommend installing Qiskit via ``pip``:
 
 ```bash
 pip install qiskit
@@ -32,9 +38,26 @@ Pip will handle all dependencies automatically and you will always install the l
 
 To install from source, follow the instructions in the [documentation](https://quantum.cloud.ibm.com/docs/guides/install-qiskit-source).
 
+### Standalone C library
+
+To install Qiskit as a standalone C library the only option is currently to build Qiskit from source. This requires having the
+[Rust](https://rust-lang.org/) compiler installed. To simplify building having [GNU Make](https://www.gnu.org/software/make/) installed
+is recommended. With these requirements installed you can run:
+
+```bash
+make c
+```
+
+Which will compile the C library and put the `dist/c` directory in the root of the repository which will contain the shared library and C headers for
+library.
+
+You can refer to the [documentation](https://quantum.cloud.ibm.com/docs/guides/install-c-api) on installing the C API for more details and how to
+use the built library.
+
 ## Create your first quantum program in Qiskit
 
-Now that Qiskit is installed, it's time to begin working with Qiskit. The essential parts of a quantum program are:
+Now that Qiskit is installed, it's time to begin working with Qiskit. We will use the Python interface to demonstrate creating a quantum program.
+The essential parts of a quantum program are:
 1. Define and build a quantum circuit that represents the quantum state
 2. Define the classical output by measurements or a set of observable operators
 3. Depending on the output, use the Sampler primitive to sample outcomes or the Estimator primitive to estimate expectation values.

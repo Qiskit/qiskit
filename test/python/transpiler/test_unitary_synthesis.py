@@ -29,7 +29,7 @@ from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.quantum_info.operators import Operator
-from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info import random_unitary
 from qiskit.quantum_info import get_clifford_gate_names
 from qiskit.transpiler import PassManager, CouplingMap, Target, InstructionProperties
 from qiskit.exceptions import QiskitError
@@ -886,7 +886,7 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
         target.add_instruction(UGate(Parameter("theta"), Parameter("phi"), Parameter("lam")))
         target.add_instruction(CXGate())
         mat = scipy.stats.ortho_group.rvs(2**num_qubits)
-        qc = qs_decomposition(mat, opt_a1=True, opt_a2=False)
+        qc = qs_decomposition(mat)
         qc_transpiled = transpile(qc, target=target, optimization_level=opt)
         self.assertTrue(np.allclose(mat, Operator(qc_transpiled).data))
 
@@ -1117,6 +1117,30 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
         )
         self.assertEqual(from_exact.count_ops()["cx"], 3)
         self.assertNotIn("cx", pass_approximate(qc).count_ops())
+
+    def test_problematic_unitary(self):
+        """Test on a circuit with a special unitary matrix that caused problems for
+        Quantum Shannon Decomposition based on nalgebra.
+
+        Based on regression test of #15870.
+        """
+        unitary_matrix = np.array(
+            [
+                [0j, 0j, 0j, 0j, 0j, 0j, 0j, (1 + 0j)],
+                [0j, 0j, 0j, 0j, 0j, 0j, (1 + 0j), 0j],
+                [0j, 0j, 0j, 0j, 0j, (1 + 0j), 0j, 0j],
+                [0j, (1 + 0j), 0j, 0j, 0j, 0j, 0j, 0j],
+                [0j, 0j, 0j, 0j, (1 + 0j), 0j, 0j, 0j],
+                [0j, 0j, (1 + 0j), 0j, 0j, 0j, 0j, 0j],
+                [0j, 0j, 0j, (1 + 0j), 0j, 0j, 0j, 0j],
+                [(1 + 0j), 0j, 0j, 0j, 0j, 0j, 0j, 0j],
+            ]
+        )
+
+        circuit = QuantumCircuit(3)
+        circuit.unitary(unitary_matrix, list(range(3)))
+
+        _ = UnitarySynthesis(basis_gates=["cx", "u"])(circuit)
 
 
 if __name__ == "__main__":

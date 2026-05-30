@@ -51,7 +51,7 @@ from qiskit.circuit.library import GraphStateGate, UnitaryGate
 from qiskit.quantum_info import random_unitary
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.preset_passmanagers import level0, level1, level2, level3
-from qiskit.transpiler.passes import ConsolidateBlocks, GatesInBasis
+from qiskit.transpiler.passes import GatesInBasis, TwoQubitPeepholeOptimization
 from qiskit.transpiler.passes.scheduling.alignments.check_durations import InstructionDurationCheck
 from qiskit.transpiler.preset_passmanagers.builtin_plugins import OptimizationPassManager
 from qiskit.transpiler.timing_constraints import TimingConstraints
@@ -291,15 +291,15 @@ class TestPresetPassManager(QiskitTestCase):
         )
         qv_circuit = quantum_volume(3)
         gates_in_basis_true_count = 0
-        consolidate_blocks_count = 0
+        peephole_count = 0
 
         def counting_callback_func(pass_, dag, time, property_set, count):
             nonlocal gates_in_basis_true_count
-            nonlocal consolidate_blocks_count
+            nonlocal peephole_count
             if isinstance(pass_, GatesInBasis) and property_set["all_gates_in_basis"]:
                 gates_in_basis_true_count += 1
-            if isinstance(pass_, ConsolidateBlocks):
-                consolidate_blocks_count += 1
+            if isinstance(pass_, TwoQubitPeepholeOptimization):
+                peephole_count += 1
 
         transpile(
             qv_circuit,
@@ -308,7 +308,7 @@ class TestPresetPassManager(QiskitTestCase):
             callback=counting_callback_func,
             translation_method="synthesis",
         )
-        self.assertEqual(gates_in_basis_true_count + 2, consolidate_blocks_count)
+        self.assertEqual(gates_in_basis_true_count, peephole_count)
 
     @data(0, 1, 2, 3)
     def test_layout_registers_preserved(self, optimization_level):
@@ -356,29 +356,35 @@ class TestPresetPassManager(QiskitTestCase):
 class TestTranspileLevels(QiskitTestCase):
     """Test transpiler on fake backend"""
 
+    BACKEND_CONFIGS = {
+        "bogota": (5, BOGOTA_CMAP),
+        "tokyo": (20, TOKYO_CMAP),
+        "none": None,
+    }
+
+    @staticmethod
+    def _backend_from_name(name):
+        config = TestTranspileLevels.BACKEND_CONFIGS[name]
+        if config is None:
+            return None
+        num_qubits, coupling_map = config
+        return GenericBackendV2(
+            num_qubits=num_qubits,
+            coupling_map=coupling_map,
+            basis_gates=["id", "u1", "u2", "u3", "cx"],
+            seed=42,
+        )
+
     @combine(
         circuit=[emptycircuit, circuit_2532],
         level=[0, 1, 2, 3],
-        backend=[
-            GenericBackendV2(
-                num_qubits=5,
-                coupling_map=BOGOTA_CMAP,
-                basis_gates=["id", "u1", "u2", "u3", "cx"],
-                seed=42,
-            ),
-            GenericBackendV2(
-                num_qubits=20,
-                coupling_map=TOKYO_CMAP,
-                basis_gates=["id", "u1", "u2", "u3", "cx"],
-                seed=42,
-            ),
-            None,
-        ],
+        backend=BACKEND_CONFIGS,
         dsc="Transpiler {circuit.__name__} on {backend} backend at level {level}",
         name="{circuit.__name__}_{backend}_level{level}",
     )
     def test(self, circuit, level, backend):
         """All the levels with all the backends"""
+        backend = self._backend_from_name(backend)
         result = transpile(circuit(), backend=backend, optimization_level=level, seed_transpiler=42)
         self.assertIsInstance(result, QuantumCircuit)
 
@@ -1057,9 +1063,9 @@ class TestFinalLayouts(QiskitTestCase):
                     qc.cx(qubit_control, qubit_target)
         expected_layouts = [
             [0, 1, 2, 3, 4],
-            [5, 6, 10, 11, 0],
-            [5, 6, 0, 11, 10],
-            [5, 6, 0, 10, 11],
+            [5, 6, 10, 0, 11],
+            [5, 6, 10, 0, 11],
+            [6, 7, 1, 5, 2],
         ]
         backend = GenericBackendV2(num_qubits=20, coupling_map=TOKYO_CMAP, seed=42)
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)

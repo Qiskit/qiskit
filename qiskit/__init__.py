@@ -20,7 +20,6 @@ import importlib.metadata
 import importlib.util
 import os
 import sys
-import warnings
 
 try:
     importlib.metadata.version("qiskit-terra")
@@ -93,6 +92,7 @@ sys.modules["qiskit._accelerate.sabre"] = _accelerate.sabre
 sys.modules["qiskit._accelerate.sampled_exp_val"] = _accelerate.sampled_exp_val
 sys.modules["qiskit._accelerate.sparse_observable"] = _accelerate.sparse_observable
 sys.modules["qiskit._accelerate.scheduling"] = _accelerate.scheduling
+sys.modules["qiskit._accelerate.standard_generators"] = _accelerate.standard_generators
 sys.modules["qiskit._accelerate.sparse_pauli_op"] = _accelerate.sparse_pauli_op
 sys.modules["qiskit._accelerate.elide_permutations"] = _accelerate.elide_permutations
 sys.modules["qiskit._accelerate.target"] = _accelerate.target
@@ -127,6 +127,7 @@ sys.modules["qiskit._accelerate.instruction_duration_check"] = (
 sys.modules["qiskit._accelerate.inverse_cancellation"] = _accelerate.inverse_cancellation
 sys.modules["qiskit._accelerate.check_map"] = _accelerate.check_map
 sys.modules["qiskit._accelerate.filter_op_nodes"] = _accelerate.filter_op_nodes
+sys.modules["qiskit._accelerate.two_qubit_peephole"] = _accelerate.two_qubit_peephole
 sys.modules["qiskit._accelerate.twirling"] = _accelerate.twirling
 sys.modules["qiskit._accelerate.high_level_synthesis"] = _accelerate.high_level_synthesis
 sys.modules["qiskit._accelerate.remove_identity_equiv"] = _accelerate.remove_identity_equiv
@@ -158,7 +159,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit import user_config as _user_config
 
 import qiskit.circuit.measure
-import qiskit.circuit.reset
+import qiskit.circuit.reset  # noqa: F401
 
 _config = _user_config.get_config()
 
@@ -166,6 +167,26 @@ from qiskit.compiler import transpile
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from .version import __version__
 
+from . import (
+    capi,
+    circuit,
+    compiler,
+    converters,
+    exceptions,
+    dagcircuit,
+    passmanager,
+    primitives,
+    providers,
+    qasm2,
+    qasm3,
+    qpy,
+    quantum_info,
+    result,
+    synthesis,
+    transpiler,
+    utils,
+    visualization,
+)
 
 # The Qiskit repo root is documented manually in `docs/apidoc/root.rst`.  Make sure that all
 # re-exports in `__all__` and any functions/objects defined in-line in this file and intended to be
@@ -177,6 +198,25 @@ __all__ = [
     "QiskitError",
     "QuantumCircuit",
     "QuantumRegister",
+    "__version__",
+    "capi",
+    "circuit",
+    "compiler",
+    "converters",
+    "dagcircuit",
+    "exceptions",
     "generate_preset_pass_manager",
+    "passmanager",
+    "primitives",
+    "providers",
+    "qasm2",
+    "qasm3",
+    "qpy",
+    "quantum_info",
+    "result",
+    "synthesis",
     "transpile",
+    "transpiler",
+    "utils",
+    "visualization",
 ]

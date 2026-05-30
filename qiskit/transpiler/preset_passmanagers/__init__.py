@@ -75,12 +75,18 @@ from .common import (
     generate_translation_passmanager,
     generate_scheduling,
 )
-from .generate_preset_pass_manager import generate_preset_pass_manager
+from .generate_preset_pass_manager import (
+    generate_preset_clifford_t_pass_manager,
+    generate_preset_pass_manager,
+)
+
 from .level0 import level_0_pass_manager
 from .level1 import level_1_pass_manager
 from .level2 import level_2_pass_manager
 from .level3 import level_3_pass_manager
-from .clifford_t_pass_manager import clifford_t_pass_manager
+from .clifford_t import clifford_t_pass_manager
+
+from . import plugin
 
 
 __all__ = [
@@ -89,6 +95,7 @@ __all__ = [
     "generate_embed_passmanager",
     "generate_error_on_control_flow",
     "generate_pre_op_passmanager",
+    "generate_preset_clifford_t_pass_manager",
     "generate_preset_pass_manager",
     "generate_routing_passmanager",
     "generate_scheduling",
@@ -98,4 +105,5 @@ __all__ = [
     "level_1_pass_manager",
     "level_2_pass_manager",
     "level_3_pass_manager",
+    "plugin",
 ]

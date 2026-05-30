@@ -7,7 +7,7 @@ on:
         description: Python version to test.
         type: string
         required: true
-      runner: 
+      runner:
         description: Runner image to use.
         type: string
         required: true

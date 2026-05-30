@@ -12,7 +12,6 @@
 
 use super::errors::BasisTranslatorError;
 use hashbrown::HashMap;
-use indexmap::{IndexMap, IndexSet};
 use pyo3::prelude::*;
 use qiskit_circuit::bit::QuantumRegister;
 use qiskit_circuit::circuit_data::CircuitData;
@@ -29,6 +28,7 @@ use qiskit_circuit::{
     dag_circuit::DAGCircuit,
     operations::{Operation, Param},
 };
+use qiskit_util::{IndexMap, IndexSet};
 use smallvec::SmallVec;
 use std::sync::OnceLock;
 
@@ -42,14 +42,12 @@ static STD_INST_SET: [&str; 4] = ["barrier", "delay", "measure", "reset"];
 
 pub(super) fn compose_transforms<'a>(
     basis_transforms: &'a [(GateIdentifier, BasisTransformIn)],
-    source_basis: &'a IndexSet<GateIdentifier, ahash::RandomState>,
+    source_basis: &'a IndexSet<GateIdentifier>,
     source_dag: &'a DAGCircuit,
-) -> Result<IndexMap<GateIdentifier, BasisTransformOut, ahash::RandomState>, BasisTranslatorError> {
-    let mut gate_param_counts: IndexMap<GateIdentifier, usize, ahash::RandomState> =
-        IndexMap::default();
+) -> Result<IndexMap<GateIdentifier, BasisTransformOut>, BasisTranslatorError> {
+    let mut gate_param_counts: IndexMap<GateIdentifier, usize> = IndexMap::default();
     get_gates_num_params(source_dag, &mut gate_param_counts);
-    let mut mapped_instructions: IndexMap<GateIdentifier, BasisTransformOut, ahash::RandomState> =
-        IndexMap::with_hasher(ahash::RandomState::default());
+    let mut mapped_instructions: IndexMap<GateIdentifier, BasisTransformOut> = IndexMap::default();
 
     for (gate_name, gate_num_qubits) in source_basis.iter().cloned() {
         let num_params = gate_param_counts[&(gate_name.clone(), gate_num_qubits)];
@@ -118,18 +116,17 @@ pub(super) fn compose_transforms<'a>(
                 })
                 .collect::<Vec<_>>();
             for (node, params) in nodes_to_replace {
-                let param_mapping: IndexMap<ParameterUuid, Param, ahash::RandomState> =
-                    equiv_params
-                        .iter()
-                        .map(|x| match x {
-                            Param::ParameterExpression(parameter_expression) => {
-                                let symbol = parameter_expression.try_to_symbol().unwrap();
-                                ParameterUuid::from_symbol(&symbol)
-                            }
-                            _ => unreachable!("A non parameter-expression has snuck in"),
-                        })
-                        .zip(params)
-                        .collect();
+                let param_mapping: IndexMap<ParameterUuid, Param> = equiv_params
+                    .iter()
+                    .map(|x| match x {
+                        Param::ParameterExpression(parameter_expression) => {
+                            let symbol = parameter_expression.try_to_symbol().unwrap();
+                            ParameterUuid::from_symbol(&symbol)
+                        }
+                        _ => unreachable!("A non parameter-expression has snuck in"),
+                    })
+                    .zip(params)
+                    .collect();
                 let mut replacement = equiv.clone();
                 replacement
                     .assign_parameters_from_mapping(param_mapping)
@@ -188,10 +185,7 @@ fn name_to_packed_operation(name: &str, num_qubits: u32) -> Option<PackedOperati
 ///
 /// Gets the identifier of a gate instance (name, number of qubits) mapped to the
 /// number of parameters it contains currently.
-fn get_gates_num_params(
-    dag: &DAGCircuit,
-    example_gates: &mut IndexMap<GateIdentifier, usize, ahash::RandomState>,
-) {
+fn get_gates_num_params(dag: &DAGCircuit, example_gates: &mut IndexMap<GateIdentifier, usize>) {
     for (_, inst) in dag.op_nodes(true) {
         if let Some(control_flow) = dag.try_view_control_flow(inst) {
             example_gates.insert(

@@ -28,6 +28,7 @@ community in this goal.
   * [Release Cycle](#release-cycle)
 * [Adding deprecation warnings](#adding-deprecation-warnings)
 * [Using dependencies](#using-dependencies)
+  * [Version support policy](#version-support-policy)
   * [Adding a requirement](#adding-a-requirement)
   * [Adding an optional dependency](#adding-an-optional-dependency)
   * [Checking for optionals](#checking-for-optionals)
@@ -165,16 +166,27 @@ to `build_rust` overrides this default.
 
 ### Compile time options
 
-When building qiskit from source there are options available to control how
-Qiskit is built. Right now the only option is if you set the environment
-variable `QISKIT_NO_CACHE_GATES=1` this will disable runtime caching of
-Python gate objects when accessing them from a `QuantumCircuit` or `DAGCircuit`.
-This makes a tradeoff between runtime performance for Python access and memory
-overhead. Caching gates will result in better runtime for users of Python at
-the cost of increased memory consumption. If you're working with any custom
-transpiler passes written in Python or are otherwise using a workflow that
-repeatedly accesses the `operation` attribute of a `CircuitInstruction` or `op`
-attribute of `DAGOpNode` enabling caching is recommended.
+When building Qiskit from source there are options available to control how
+Qiskit is built. These options are set with the following environment variables:
+
+* `QISKIT_BUILD_WITH_MIMALLOC=1`: this will enable using
+  [mimalloc](https://github.com/microsoft/mimalloc) as the global allocator for
+  Qiskit instead of the default system allocator. This improves the runtime and
+  memory performance of Qiskit but will require having a C compiler installed
+  when building Qiskit.
+* `QISKIT_NO_CACHE_GATES=1`: this will disable runtime caching of
+  Python gate objects when accessing them from a `QuantumCircuit` or `DAGCircuit`.
+  This makes a tradeoff between runtime performance for Python access and memory
+  overhead. Caching gates will result in better runtime for users of Python at
+  the cost of increased memory consumption. If you're working with any custom
+  transpiler passes written in Python or are otherwise using a workflow that
+  repeatedly accesses the `operation` attribute of a `CircuitInstruction` or `op`
+  attribute of `DAGOpNode` enabling caching is recommended.
+
+These environment variables are only valid when building Qiskit the Python package
+with a PEP 517 compatible build tool or calling `setup.py` directly.
+Or as a standalone C library with `make c` (`QISKIT_NO_CACHE_GATES` has no effect
+when building a standalone C library).
 
 ## Issues and pull requests
 
@@ -943,17 +955,29 @@ def test_method2(self):
 
 ## Using dependencies
 
-We distinguish between "requirements" and "optional dependencies" in qiskit.
-A requirement is a package that is absolutely necessary for core functionality in qiskit, such as Numpy or Scipy.
+We distinguish between "requirements" and "optional dependencies" in Qiskit.
+A requirement is a package that is absolutely necessary for core functionality in Qiskit, such as NumPy or SciPy.
 An optional dependency is a package that is used for specialized functionality, which might not be needed by all users.
 If a new feature has a new dependency, it is almost certainly optional.
+
+
+### Version support policy
+
+For Python-space dependencies, Qiskit follows [the scientific-computing standard SPEC 0](https://scientific-python.org/specs/spec-0000/).
+In short: Qiskit will require versions of NumPy and SciPy that are at least two years old.
+For packages not covered by SPEC 0, the requirements must be satisfiable with published binary artifacts from PyPI for all supported Python versions on [all platforms with tier 1 and tier 2 support](https://quantum.cloud.ibm.com/docs/guides/install-qiskit#operating-system-support).
+
+Python dependencies that are optional at runtime, only used during the build, or only used during the development process are not constrained.
+Qiskit supports all versions of CPython that are not end of life, which is wider than the minimum SPEC 0 support.
+
+Rust dependencies are not constrained, other than by the platform support requirements and minimum supported Rust version of the repository.
 
 ### Adding a requirement
 
 Any new requirement must have broad system support; it needs to be supported on all the Python versions and operating systems that qiskit supports.
 It also cannot impose many version restrictions on other packages.
 Users often install qiskit into virtual environments with many different packages in, and we need to ensure that neither we, nor any of our requirements, conflict with their other packages.
-When adding a new requirement, you must add it to [`requirements.txt`](requirements.txt) with as loose a constraint on the allowed versions as possible.
+When adding a new requirement, you must add it to [`requirements.txt`](requirements.txt) following the [version-support policy](#version-support-policy).
 
 ### Adding an optional dependency
 
@@ -961,7 +985,6 @@ New features can also use optional dependencies, which might be used only in ver
 These are not required to use the rest of the package, and so should not be added to `requirements.txt`.
 Instead, if several optional dependencies are grouped together to provide one feature, you can consider adding an "extra" to the package metadata, such as the `visualization` extra that installs Matplotlib and Seaborn (amongst others).
 To do this, modify the [`setup.py`](setup.py) file, adding another entry in the `extras_require` keyword argument to `setup()` at the bottom of the file.
-You do not need to be quite as accepting of all versions here, but it is still a good idea to be as permissive as you possibly can be.
 You should also add a new "tester" to [`qiskit.utils.optionals`](qiskit/utils/optionals.py), for use in the next section.
 
 ### Checking for optionals
