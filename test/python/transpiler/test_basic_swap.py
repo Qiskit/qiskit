@@ -408,6 +408,23 @@ class TestBasicSwap(QiskitTestCase):
         self.assertIsInstance(fake_pm.property_set["final_layout"], Layout)
         self.assertEqual(fake_pm.property_set["final_layout"], real_pm.property_set["final_layout"])
 
+    def test_preserves_global_phase(self):
+        """Test that the global phase of the circuit is preserved."""
+        coupling = CouplingMap.from_line(3)
+
+        qr = QuantumRegister(3, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.global_phase = 0.5
+        circuit.h(qr[0])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[1], qr[2])
+
+        dag = circuit_to_dag(circuit)
+        pass_ = BasicSwap(coupling)
+        after = pass_.run(dag)
+
+        self.assertEqual(after.global_phase, 0.5)
+
 
 if __name__ == "__main__":
     unittest.main()

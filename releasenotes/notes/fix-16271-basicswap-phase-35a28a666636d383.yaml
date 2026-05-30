@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed an issue where :class:`~qiskit.transpiler.passes.BasicSwap` would silently inflate the
+    ``global_phase`` of the input circuit by repeatedly adding the initial global phase during layer composition.
+    See `#16271 <https://github.com/Qiskit/qiskit/issues/16271>`__ for details.

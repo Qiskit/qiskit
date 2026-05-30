@@ -125,6 +125,7 @@ class BasicSwap(TransformationPass):
                 current_layout, dag.qubits
             )
 
+        new_dag.global_phase = dag.global_phase
         return new_dag
 
     def _fake_run(self, dag):
