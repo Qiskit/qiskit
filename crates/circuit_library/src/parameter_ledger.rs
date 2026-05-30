@@ -13,7 +13,7 @@
 use super::blocks::{Block, Entanglement};
 use pyo3::prelude::*;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
-use qiskit_circuit::parameter::symbol_expr::{Symbol, SymbolExpr};
+use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::{imports, operations::Param};
 use thiserror::Error;
 
