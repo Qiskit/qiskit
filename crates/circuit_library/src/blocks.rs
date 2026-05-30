@@ -68,16 +68,6 @@ pub struct Block {
     pub num_parameters: usize,
 }
 
-impl Block {
-    fn from_gate(gate: &StandardGate) -> Self {
-        Self {
-            operation: BlockOperation::Standard { gate: gate.copy() },
-            num_parameters: gate.get_num_params() as usize,
-            num_qubits: gate.get_num_qubits(),
-        }
-    }
-}
-
 #[pymethods]
 impl Block {
     #[staticmethod]
