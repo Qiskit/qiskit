@@ -18,8 +18,8 @@ use basis_search::basis_search;
 use compose_transforms::compose_transforms;
 use errors::BasisTranslatorError;
 use hashbrown::{HashMap, HashSet};
-use indexmap::{IndexMap, IndexSet};
 use pyo3::prelude::*;
+use qiskit_util::{IndexMap, IndexSet};
 
 mod basis_search;
 mod compose_transforms;
@@ -42,8 +42,8 @@ use crate::target::Qargs;
 use crate::target::QargsRef;
 use crate::target::Target;
 
-type AhashIndexMap<K, V> = IndexMap<K, V, foldhash::fast::RandomState>;
-type AhashIndexSet<O> = IndexSet<O, foldhash::fast::RandomState>;
+type AhashIndexMap<K, V> = IndexMap<K, V>;
+type AhashIndexSet<O> = IndexSet<O>;
 type InstMap = AhashIndexMap<GateIdentifier, BasisTransformOut>;
 type ExtraInstructionMap<'a> = AhashIndexMap<&'a PhysicalQargs, InstMap>;
 type PhysicalQargs = SmallVec<[PhysicalQubit; 2]>;
@@ -331,13 +331,7 @@ fn apply_translation(
     qargs_with_non_global_operation: &AhashIndexMap<Qargs, AhashIndexSet<&str>>,
     qarg_mapping: Option<&HashMap<Qubit, Qubit>>,
 ) -> Result<DAGCircuit, BasisTranslatorError> {
-    let out_dag = dag
-        .copy_empty_like(VarsMode::Alike, BlocksMode::Keep)
-        .map_err(|_| {
-            BasisTranslatorError::BasisDAGCircuitError(
-                "Error copying DAGCircuit instance".to_string(),
-            )
-        })?;
+    let out_dag = dag.copy_empty_like(VarsMode::Alike, BlocksMode::Keep);
     let mut out_dag_builder = out_dag.into_builder();
     for node in dag.topological_op_nodes(false) {
         let node_obj = dag[node].unwrap_operation();

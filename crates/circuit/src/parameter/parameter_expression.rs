@@ -12,10 +12,10 @@
 
 use hashbrown::hash_map::Entry;
 use hashbrown::{HashMap, HashSet};
-use indexmap::IndexSet;
 use num_complex::Complex64;
 use pyo3::exceptions::{PyRuntimeError, PyTypeError, PyValueError, PyZeroDivisionError};
 use pyo3::types::{IntoPyDict, PyComplex, PyFloat, PyInt, PyNotImplemented, PySet, PyString};
+use qiskit_util::IndexSet;
 use std::sync::Arc;
 use thiserror::Error;
 use uuid::Uuid;
@@ -135,8 +135,7 @@ impl fmt::Display for ParameterExpression {
 impl ParameterExpression {
     pub fn qpy_replay(&self) -> Vec<OPReplay> {
         let mut replay = Vec::new();
-        let mut unused: IndexSet<_, foldhash::fast::RandomState> =
-            self.name_map.values().cloned().collect();
+        let mut unused: IndexSet<_> = self.name_map.values().cloned().collect();
         // The recursive inner `qpy_replay_inner` assumes it starts from a containing operation, so
         // fails to build a complete replay in the case it starts from a single symbol or value.
         match &self.expr {
@@ -2078,7 +2077,7 @@ fn qpy_replay_inner(
     expr: &ParameterExpression,
     name_map: &HashMap<String, Symbol>,
     replay: &mut Vec<OPReplay>,
-    unused: &mut IndexSet<Symbol, foldhash::fast::RandomState>,
+    unused: &mut IndexSet<Symbol>,
 ) {
     match &expr.expr {
         // This function is written under the assumption that the top-level expression involves an
