@@ -70,6 +70,18 @@ class TestCircuitToDagCanonical(QiskitTestCase):
         circuit_out = dagdependency_to_circuit(dag_dependency)
         self.assertEqual(circuit_out.metadata, meta_dict)
 
+    def test_global_phase(self):
+        """Test circuit global phase is preserved through conversion."""
+        import math
+        qr = QuantumRegister(2)
+        circuit_in = QuantumCircuit(qr, global_phase=math.pi / 2)
+        circuit_in.h(qr[0])
+        circuit_in.cx(qr[0], qr[1])
+        dag_dependency = circuit_to_dagdependency(circuit_in)
+        self.assertEqual(dag_dependency.global_phase, math.pi / 2)
+        circuit_out = dagdependency_to_circuit(dag_dependency)
+        self.assertEqual(circuit_out.global_phase, math.pi / 2)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
