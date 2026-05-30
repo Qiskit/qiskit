@@ -17,15 +17,15 @@ BitArray
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from functools import partial
 from itertools import chain, repeat
-from typing import Literal
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from typing import Any, Literal
 
 import numpy as np
 from numpy.typing import NDArray
 
-from qiskit.exceptions import QiskitError
+from qiskit.exceptions import MissingOptionalLibraryError, QiskitError
 from qiskit.result import Counts, sampled_expectation_value
 
 from .observables_array import ObservablesArray, ObservablesArrayLike
@@ -384,6 +384,54 @@ class BitArray(ShapedMixin):
         """
         converter = partial(self._bytes_to_int, mask=2**self.num_bits - 1)
         return self._get_counts(loc=loc, converter=converter)
+
+    def get_counts_list(
+        self, loc: int | tuple[int, ...] | None = None
+    ) -> list[dict[str, int | str]]:
+        """Return counts as a list of records.
+
+        Each record contains the integer value, bitstring, and count for one observed outcome.
+        Records are ordered by the first appearance of each outcome in the shot data.
+
+        Args:
+            loc: Which entry of this array to return a list for. If ``None``, counts from
+                all positions in this array are unioned together.
+
+        Returns:
+            A list of dictionaries with keys ``"bit_int"``, ``"bitstring"``, and ``"count"``.
+        """
+        return [
+            {
+                "bit_int": bit_int,
+                "bitstring": bin(bit_int)[2:].zfill(self.num_bits),
+                "count": count,
+            }
+            for bit_int, count in self.get_int_counts(loc).items()
+        ]
+
+    def get_counts_dataframe(self, loc: int | tuple[int, ...] | None = None) -> Any:
+        """Return counts as a pandas DataFrame.
+
+        Args:
+            loc: Which entry of this array to return a DataFrame for. If ``None``, counts from
+                all positions in this array are unioned together.
+
+        Returns:
+            A pandas DataFrame with columns ``"bit_int"``, ``"bitstring"``, and ``"count"``.
+
+        Raises:
+            MissingOptionalLibraryError: If pandas is not installed.
+        """
+        try:
+            import pandas as pd
+        except ImportError as ex:
+            raise MissingOptionalLibraryError(
+                "pandas",
+                "BitArray.get_counts_dataframe",
+                pip_install="pip install pandas",
+            ) from ex
+
+        return pd.DataFrame(self.get_counts_list(loc), columns=["bit_int", "bitstring", "count"])
 
     def get_bitstrings(self, loc: int | tuple[int, ...] | None = None) -> list[str]:
         """Return a list of bitstrings.

@@ -12,12 +12,17 @@
 
 """Unit tests for BitArray."""
 
+import importlib.util
+import unittest
 from itertools import product
+from unittest import mock
+
 from test import QiskitTestCase
 
 import ddt
 import numpy as np
 
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.primitives.containers import BitArray
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.result import Counts
@@ -108,6 +113,63 @@ class BitArrayTestCase(QiskitTestCase):
 
         # test that providing no location takes the union over all shots
         self.assertEqual(bit_array.get_int_counts(), {val1: 2, val2: 1, val3: 1, val4: 2})
+
+    def test_get_counts_list(self):
+        """Test conversion to a list of counts records."""
+        bit_array = BitArray(
+            u_8([[[3, 5], [3, 5], [234, 100]], [[0, 1], [1, 0], [1, 0]]]),
+            num_bits=15,
+        )
+        bs1 = "0000011" + "00000101"
+        bs2 = "1101010" + "01100100"
+        bs3 = "0000000" + "00000001"
+        bs4 = "0000001" + "00000000"
+
+        self.assertEqual(
+            bit_array.get_counts_list(0),
+            [
+                {"bit_int": (3 << 8) + 5, "bitstring": bs1, "count": 2},
+                {"bit_int": ((234 & 127) << 8) + 100, "bitstring": bs2, "count": 1},
+            ],
+        )
+        self.assertEqual(
+            bit_array.get_counts_list(1),
+            [
+                {"bit_int": 1, "bitstring": bs3, "count": 1},
+                {"bit_int": 1 << 8, "bitstring": bs4, "count": 2},
+            ],
+        )
+        self.assertEqual(
+            bit_array.get_counts_list(),
+            [
+                {"bit_int": (3 << 8) + 5, "bitstring": bs1, "count": 2},
+                {"bit_int": ((234 & 127) << 8) + 100, "bitstring": bs2, "count": 1},
+                {"bit_int": 1, "bitstring": bs3, "count": 1},
+                {"bit_int": 1 << 8, "bitstring": bs4, "count": 2},
+            ],
+        )
+
+    @unittest.skipIf(importlib.util.find_spec("pandas") is None, "pandas not available")
+    def test_get_counts_dataframe(self):
+        """Test conversion to a pandas DataFrame."""
+        bit_array = BitArray.from_samples(["10", "01", "10", "11"], num_bits=2)
+
+        frame = bit_array.get_counts_dataframe()
+
+        self.assertEqual(list(frame.columns), ["bit_int", "bitstring", "count"])
+        self.assertEqual(frame.to_dict("records"), bit_array.get_counts_list())
+
+        empty_frame = bit_array.postselect([0, 1], [0, 0]).get_counts_dataframe()
+        self.assertEqual(list(empty_frame.columns), ["bit_int", "bitstring", "count"])
+        self.assertEqual(empty_frame.to_dict("records"), [])
+
+    def test_get_counts_dataframe_without_pandas(self):
+        """Test conversion to a pandas DataFrame raises if pandas is missing."""
+        bit_array = BitArray.from_samples(["0"], num_bits=1)
+
+        with mock.patch.dict("sys.modules", {"pandas": None}):
+            with self.assertRaises(MissingOptionalLibraryError):
+                bit_array.get_counts_dataframe()
 
     def test_get_bitstrings(self):
         """Test conversion to bitstrings."""

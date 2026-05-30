@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Added :meth:`.BitArray.get_counts_list` and
+    :meth:`.BitArray.get_counts_dataframe` for converting sampled shot counts into
+    tabular records with ``bit_int``, ``bitstring``, and ``count`` fields.
