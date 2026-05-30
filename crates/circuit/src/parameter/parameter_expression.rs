@@ -1827,7 +1827,7 @@ impl PyParameterVectorElement {
 }
 
 /// Try to extract a Uuid from a Python object, which could be a Python UUID or int.
-fn uuid_from_py(py: Python<'_>, uuid: Option<Py<PyAny>>) -> PyResult<Option<Uuid>> {
+pub(crate) fn uuid_from_py(py: Python<'_>, uuid: Option<Py<PyAny>>) -> PyResult<Option<Uuid>> {
     if let Some(val) = uuid {
         // construct from u128
         let as_u128 = if let Ok(as_u128) = val.extract::<u128>(py) {
@@ -1846,7 +1846,7 @@ fn uuid_from_py(py: Python<'_>, uuid: Option<Py<PyAny>>) -> PyResult<Option<Uuid
 }
 
 /// Convert a Rust Uuid object to a Python UUID object.
-fn uuid_to_py(py: Python<'_>, uuid: Uuid) -> PyResult<Py<PyAny>> {
+pub(crate) fn uuid_to_py(py: Python<'_>, uuid: Uuid) -> PyResult<Py<PyAny>> {
     let uuid = uuid.as_u128();
     let kwargs = [("int", uuid)].into_py_dict(py)?;
     Ok(UUID.get_bound(py).call((), Some(&kwargs))?.unbind())
