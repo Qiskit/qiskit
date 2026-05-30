@@ -13,6 +13,7 @@
 """Test for the converter dag dependency to circuit and circuit to dag
 dependency."""
 
+import math
 import unittest
 
 from qiskit.converters.dagdependency_to_circuit import dagdependency_to_circuit
@@ -72,7 +73,6 @@ class TestCircuitToDagCanonical(QiskitTestCase):
 
     def test_global_phase(self):
         """Test circuit global phase is preserved through conversion."""
-        import math
         qr = QuantumRegister(2)
         circuit_in = QuantumCircuit(qr, global_phase=math.pi / 2)
         circuit_in.h(qr[0])

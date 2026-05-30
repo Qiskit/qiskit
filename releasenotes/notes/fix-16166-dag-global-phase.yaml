@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Preserves ``global_phase`` when converting ``DAGDependency`` back into ``QuantumCircuit`` in ``qiskit.converters.dagdependency_to_circuit``.
