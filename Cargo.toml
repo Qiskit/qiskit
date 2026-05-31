@@ -42,7 +42,7 @@ num-traits = "0.2"
 uuid = { version = "1.23", features = ["v4", "fast-rng"], default-features = false }
 anyhow = "1.0"
 binrw = "0.15"
-cbindgen = "0.29.2"
+cbindgen = "0.29.3"
 mimalloc = "0.1.52"
 npyz = {version = "0.9.1", features = ["complex"]}
 
