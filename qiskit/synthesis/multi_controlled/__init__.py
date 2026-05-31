@@ -12,8 +12,8 @@
 
 """Module containing multi-controlled circuits synthesis"""
 
+from .gray_code import generate_gray_code, gray_code_chain
 from .mcmt_vchain import synth_mcmt_vchain
-from .mcmt_xgate import synth_mcmt_xgate
 from .mcx_synthesis import (
     synth_mcx_1_clean_kg24,
     synth_mcx_1_dirty_kg24,
@@ -28,8 +28,11 @@ from .mcx_synthesis import (
     synth_c3x,
     synth_c4x,
 )
+from .mcmt_xgate import synth_mcmt_xgate
 
 __all__ = [
+    "generate_gray_code",
+    "gray_code_chain",
     "synth_c3x",
     "synth_c4x",
     "synth_mcmt_vchain",

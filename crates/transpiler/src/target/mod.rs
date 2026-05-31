@@ -25,10 +25,8 @@ pub use qubit_properties::QubitProperties;
 
 use std::{ops::Index, sync::OnceLock};
 
-use foldhash::fast::RandomState;
 use hashbrown::HashMap;
 use hashbrown::HashSet;
-use indexmap::IndexMap;
 use itertools::Itertools;
 use pyo3::{
     IntoPyObjectExt,
@@ -37,6 +35,7 @@ use pyo3::{
     pyclass,
     types::{PyDict, PyList, PySet},
 };
+use qiskit_util::IndexMap;
 use rustworkx_core::petgraph::prelude::*;
 use smallvec::SmallVec;
 use thiserror::Error;
@@ -52,8 +51,8 @@ use crate::TranspilerError;
 use bounds::AngleBound;
 
 // Custom types
-type GateMap = IndexMap<String, PropsMap, RandomState>;
-type PropsMap = IndexMap<Qargs, Option<InstructionProperties>, RandomState>;
+type GateMap = IndexMap<String, PropsMap>;
+type PropsMap = IndexMap<Qargs, Option<InstructionProperties>>;
 
 /// Represents a Qiskit `Gate` object or a Variadic instruction.
 /// Keeps a reference to its Python instance for caching purposes.
@@ -221,9 +220,9 @@ pub struct Target {
     pub concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
     gate_map: GateMap,
     #[pyo3(get)]
-    _gate_name_map: IndexMap<String, TargetOperation, RandomState>,
-    global_operations: IndexMap<u32, HashSet<String>, RandomState>,
-    qarg_gate_map: IndexMap<Qargs, HashSet<String>, RandomState>,
+    _gate_name_map: IndexMap<String, TargetOperation>,
+    global_operations: IndexMap<u32, HashSet<String>>,
+    qarg_gate_map: IndexMap<Qargs, HashSet<String>>,
     angle_bounds: HashMap<String, AngleBound>,
 }
 
@@ -837,11 +836,11 @@ impl Target {
         self._gate_name_map = state
             .get_item("gate_name_map")?
             .unwrap()
-            .extract::<IndexMap<String, TargetOperation, RandomState>>()?;
+            .extract::<IndexMap<String, TargetOperation>>()?;
         self.global_operations = state
             .get_item("global_operations")?
             .unwrap()
-            .extract::<IndexMap<u32, HashSet<String>, RandomState>>()?;
+            .extract::<IndexMap<u32, HashSet<String>>>()?;
         self.qarg_gate_map = IndexMap::from_iter(
             state
                 .get_item("qarg_gate_map")?
@@ -1052,7 +1051,7 @@ impl Target {
     /// use qiskit_transpiler::target::{Target, InstructionProperties, Qargs};
     /// use qiskit_circuit::operations::StandardGate;
     /// use qiskit_circuit::PhysicalQubit;
-    /// use indexmap::IndexMap;
+    /// use qiskit_util::IndexMap;
     ///
     /// let mut target = Target::default();
     /// target.add_instruction(
@@ -1203,7 +1202,7 @@ impl Target {
             }
         }
         let mut incomplete_basis_gates: Vec<&str> = Vec::new();
-        let mut size_dict: IndexMap<u32, u32, RandomState> = IndexMap::default();
+        let mut size_dict: IndexMap<u32, u32> = IndexMap::default();
         *size_dict
             .entry(1)
             .or_insert(self.num_qubits.unwrap_or_default()) = self.num_qubits.unwrap_or_default();

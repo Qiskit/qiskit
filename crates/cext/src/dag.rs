@@ -1099,9 +1099,7 @@ pub unsafe extern "C" fn qk_dag_op_node_kind(dag: *const DAGCircuit, node: u32) 
         OperationRef::PauliProductMeasurement(_) => COperationKind::PauliProductMeasurement,
         OperationRef::PauliProductRotation(_) => COperationKind::PauliProductRotation,
         OperationRef::ControlFlow(_) => COperationKind::ControlFlow,
-        OperationRef::Gate(_) | OperationRef::Instruction(_) | OperationRef::Operation(_) => {
-            COperationKind::Unknown
-        }
+        OperationRef::PyCustom(_) => COperationKind::Unknown,
     }
 }
 
@@ -1323,7 +1321,7 @@ pub unsafe extern "C" fn qk_dag_get_instruction(
 /// // rqr_1: ──┼──┤ Y ├
 /// //        ┌─┴─┐└───┘
 /// // rqr_2: ┤ X ├─────
-/// //        └───┘     
+/// //        └───┘
 /// QkDag *dag_right = qk_dag_new();
 /// QkQuantumRegister *rqr = qk_quantum_register_new(3, "rqr");
 /// qk_dag_add_quantum_register(dag_right, rqr);
@@ -1332,7 +1330,7 @@ pub unsafe extern "C" fn qk_dag_get_instruction(
 /// qk_dag_apply_gate(dag_right, QkGate_Y, (uint32_t[]){1}, NULL, false);
 ///
 /// // Build the following dag
-/// //          ┌───┐   
+/// //          ┌───┐
 /// // lqr_0: ──┤ H ├───
 /// //        ┌─┴───┴──┐
 /// // lqr_1: ┤ P(0.1) ├
@@ -1346,13 +1344,13 @@ pub unsafe extern "C" fn qk_dag_get_instruction(
 ///
 /// // Compose left circuit onto right circuit
 /// // Should result in circuit
-/// //             ┌───┐          
+/// //             ┌───┐
 /// // rqr_0: ──■──┤ H ├──────────
 /// //          │  ├───┤┌────────┐
 /// // rqr_1: ──┼──┤ Y ├┤ P(0.1) ├
 /// //        ┌─┴─┐└───┘└────────┘
 /// // rqr_2: ┤ X ├───────────────
-/// //        └───┘               
+/// //        └───┘
 /// qk_dag_compose(dag_right, dag_left, NULL, NULL);
 ///
 /// // Clean up after you're done
@@ -1662,9 +1660,7 @@ pub unsafe extern "C" fn qk_dag_copy_empty_like(
     let vars_mode = vars_mode.into();
     let blocks_mode = blocks_mode.into();
 
-    let copied_dag = dag
-        .copy_empty_like_with_capacity(0, 0, vars_mode, blocks_mode)
-        .expect("Failed to copy the DAG.");
+    let copied_dag = dag.copy_empty_like_with_capacity(0, 0, vars_mode, blocks_mode);
     Box::into_raw(Box::new(copied_dag))
 }
 
