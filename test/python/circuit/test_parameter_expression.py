@@ -23,6 +23,7 @@ from test import QiskitTestCase
 
 import ddt
 
+from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter, ParameterVector, ParameterExpression
 from qiskit.utils.optionals import HAS_SYMPY
 
@@ -620,13 +621,13 @@ class TestParameterExpression(QiskitTestCase):
         expected_sub = 2 - sympy.Symbol("a")
         self.assertEqual(sympy_sub, expected_sub)
 
-    def test_division_with_addition_bug(self):
+    def test_division_with_addition(self):
         """Test that (v / p) + p evaluates correctly when bound.
 
         Regression test for bug where (v / p) + p was incorrectly evaluated.
-        """
-        from qiskit import QuantumCircuit
 
+        See https://github.com/Qiskit/qiskit/issues/16263
+        """
         p = Parameter("p")
 
         # Case 1: (v / p) + p
@@ -649,42 +650,42 @@ class TestParameterExpression(QiskitTestCase):
 
         self.assertAlmostEqual(actual2, expected2, places=10)
 
-    def test_division_with_subtraction_bug(self):
+    def test_division_with_subtraction(self):
         """Test that (v / p) - p and p - (v / p) evaluate correctly when bound.
 
         Regression test for bug where (v / p) - p and p - (v / p) were incorrectly evaluated.
-        """
-        from qiskit import QuantumCircuit
 
+        See https://github.com/Qiskit/qiskit/issues/16263
+        """
         p = Parameter("p")
 
-        # Case 3: (v / p) - p
-        qc3 = QuantumCircuit(1)
-        qc3.rx((3 / p) - p, 0)
+        # Case 1: (v / p) - p
+        qc1 = QuantumCircuit(1)
+        qc1.rx((3 / p) - p, 0)
 
-        bound3 = qc3.assign_parameters({p: 5})
-        actual3 = float(bound3.data[0].operation.params[0])
-        expected3 = (3 / 5) - 5
+        bound1 = qc1.assign_parameters({p: 5})
+        actual1 = float(bound1.data[0].operation.params[0])
+        expected1 = (3 / 5) - 5
 
-        self.assertAlmostEqual(actual3, expected3, places=10)
+        self.assertAlmostEqual(actual1, expected1, places=10)
 
-        # Case 4: p - (v / p)
-        qc4 = QuantumCircuit(1)
-        qc4.rx(p - (2 / p), 0)
+        # Case 2: p - (v / p)
+        qc2 = QuantumCircuit(1)
+        qc2.rx(p - (2 / p), 0)
 
-        bound4 = qc4.assign_parameters({p: 3})
-        actual4 = float(bound4.data[0].operation.params[0])
-        expected4 = 3 - (2 / 3)
+        bound2 = qc2.assign_parameters({p: 3})
+        actual2 = float(bound2.data[0].operation.params[0])
+        expected2 = 3 - (2 / 3)
 
-        self.assertAlmostEqual(actual4, expected4, places=10)
+        self.assertAlmostEqual(actual2, expected2, places=10)
 
-    def test_nested_division_bug(self):
+    def test_nested_division(self):
         """Test that nested division expressions evaluate correctly when bound.
 
         Regression test for bug where expressions like (a / x) / (b / y) were incorrectly evaluated.
-        """
-        from qiskit import QuantumCircuit
 
+        See https://github.com/Qiskit/qiskit/issues/16262
+        """
         x = Parameter("x")
         y = Parameter("y")
         p = Parameter("p")
@@ -720,14 +721,14 @@ class TestParameterExpression(QiskitTestCase):
 
         self.assertAlmostEqual(actual3, expected3, places=10)
 
-    def test_gradient_composite_base_constant_exponent_bug(self):
+    def test_gradient_composite_base_constant_exponent(self):
         """Test gradient of composite base with constant exponent.
 
         Regression test for bug where d/dp (f(p))^n was incorrectly computed.
         The correct derivative is: n * (f(p))^(n-1) * f'(p)
-        """
-        import math
 
+        See https://github.com/Qiskit/qiskit/issues/16260
+        """
         p = Parameter("p")
 
         # Case: d/dp (2p)^3 = 3 * (2p)^2 * 2 = 6 * (2p)^2
@@ -746,14 +747,13 @@ class TestParameterExpression(QiskitTestCase):
 
         self.assertAlmostEqual(actual, expected, places=10)
 
-    def test_power_expression_with_addition_subtraction_bug(self):
+    def test_power_expression_with_addition_subtraction(self):
         """Test that theta**2 + phi**2 and theta**2 - phi**2 evaluate correctly.
 
         Regression test for bug where power expressions combined with addition/subtraction
         were incorrectly evaluated when parameters are bound.
+        See https://github.com/Qiskit/qiskit/issues/16259
         """
-        from qiskit import QuantumCircuit
-
         theta = Parameter("theta")
         phi = Parameter("phi")
 
@@ -777,7 +777,7 @@ class TestParameterExpression(QiskitTestCase):
 
         self.assertAlmostEqual(actual_add_value, expected_add_value, places=10)
 
-    def test_conjugate_gradient_bug(self):
+    def test_conjugate_gradient(self):
         """Test that gradient of conjugate expression is computed correctly.
 
         Regression test for bug where d/dp conj(f(p)) returned 1.0 instead of
@@ -814,13 +814,12 @@ class TestParameterExpression(QiskitTestCase):
         )
         self.assertAlmostEqual(actual, 1.0, places=10)
 
-    def test_mul_expand_rhs_div_bug(self):
+    def test_mul_expand_rhs_div(self):
         """Test that multiplication distributes correctly over division.
 
         Regression test for bug where expand((A+B)*(p/q)) incorrectly computed
         (A+B)*p*q instead of (A*p + B*p)/q.
         """
-        import math
 
         a = Parameter("a")
         b = Parameter("b")
@@ -844,16 +843,14 @@ class TestParameterExpression(QiskitTestCase):
             float((a * p * q + b * p * q).bind(vals))
         )
         self.assertAlmostEqual(combined_val, expected_val, places=10)
-        self.assertNotAlmostEqual(combined_val, 0.0, places=5)
+        self.assertNotAlmostEqual(combined_val, 0.0, places=10)
 
-    def test_mul_expand_self_div_bug(self):
+    def test_mul_expand_self_div(self):
         """Test that (A/b)*v expands correctly to A*v/b.
 
         Regression test for bug where mul_expand((A/b)*v) incorrectly computed
         A/(v*b) instead of A*v/b.
         """
-        import math
-
         p = Parameter("p")
         q = Parameter("q")
         a = Parameter("a")
@@ -875,4 +872,4 @@ class TestParameterExpression(QiskitTestCase):
         combined_val = float(combined.bind(vals))
         expected_val = math.sin(e1_val) - math.sin(e2_val)
         self.assertAlmostEqual(combined_val, expected_val, places=10)
-        self.assertNotAlmostEqual(combined_val, 0.0, places=5)
+        self.assertNotAlmostEqual(combined_val, 0.0, places=10)
