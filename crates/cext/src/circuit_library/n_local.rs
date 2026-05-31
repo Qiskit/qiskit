@@ -290,6 +290,69 @@ pub unsafe extern "C" fn qk_get_entanglement_with_strategy(
     )))
 }
 
+/// @ingroup QkCircuitLibrary
+/// Free the ``QkQubitConnection``.
+///
+/// @param qubit_connection A pointer to the ``QkQubitConnection`` to free.
+///
+/// # Example
+///
+/// ```c
+/// QkQubitConnection *qconn = qk_qubit_connection_new((uint32_t[2]){0, 1}, 2);
+/// qk_qubit_connection_free(qconn);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``qubit_connection`` is not either null or a valid pointer to a ``QubitConnection``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_qubit_connection_free(qubit_connection: *mut QubitConnection) {
+    if !qubit_connection.is_null() {
+        if !qubit_connection.is_aligned() {
+            panic!("Attempted to free a non-aligned pointer.")
+        }
+
+        // SAFETY: We have verified the pointer is non-null and aligned, so it should be
+        // readable by Box.
+        unsafe {
+            let _ = Box::from_raw(qubit_connection);
+        }
+    }
+}
+
+/// @ingroup QkCircuitLibrary
+/// Free the ``QkEntanglement``.
+///
+/// @param entanglement A pointer to the ``QkEntanglement`` to free.
+///
+/// # Example
+///
+/// ```c
+/// QkGate rotation_blocks[1] = {QkGate_H};
+/// QkGate entanglement_blocks[1] = {QkGate_CRX};
+/// QkEntanglement *entanglement = qk_get_entanglement_with_strategy(
+///     num_qubits, reps, QkEntanglementStrategy_Linear, entanglement_blocks, 1);
+/// qk_entanglement_free(entanglement);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``entanglement`` is not either null or a valid pointer to a ``QkEntanglement``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_entanglement_free(entanglement: *mut Entanglement) {
+    if !entanglement.is_null() {
+        if !entanglement.is_aligned() {
+            panic!("Attempted to free a non-aligned pointer.")
+        }
+
+        // SAFETY: We have verified the pointer is non-null and aligned, so it should be
+        // readable by Box.
+        unsafe {
+            let _ = Box::from_raw(entanglement);
+        }
+    }
+}
+
 fn get_entanglement_with_strategy(
     num_qubits: u32,
     entanglement_blocks: &[&StandardGate],
