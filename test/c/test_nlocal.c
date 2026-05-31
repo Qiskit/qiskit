@@ -109,10 +109,48 @@ static int test_entanglement_by_strategy(void) {
     return result;
 }
 
+static int test_pairwise_entanglement(void) {
+    int result = Ok;
+    int reps = 1;
+
+    QkGate entanglement_blocks[1] = {QkGate_CX};
+    QkEntanglement *entanglement = qk_get_entanglement_with_strategy(
+        5, reps, QkEntanglementStrategy_Pairwise, entanglement_blocks, 1);
+
+    if (qk_get_entanglement_layers_quantity(entanglement) != (size_t)reps) {
+        result = EqualityError;
+    }
+
+    if (qk_get_entanglement_layer_blocks_quantity(entanglement, 0) != (size_t)1) {
+        result = EqualityError;
+    }
+
+    if (qk_get_entanglement_qubit_connections_quantity(entanglement, 0, 0) != 4) {
+        result = EqualityError;
+    }
+
+    uint32_t expected_connections_pairwise[4][2] = {{0, 1}, {2, 3}, {1, 2}, {3, 4}};
+
+    for (size_t i = 0; i < 4; i++) {
+        uint32_t *connections = expected_connections_pairwise[i];
+        QkQubitConnection *expected_connection = qk_qubit_connection_new(2, connections);
+        QkQubitConnection *connection =
+            qk_get_entanglement_qubit_connections(entanglement, 0, 0, i);
+
+        if (!qk_qubit_connection_equal(connection, expected_connection)) {
+            result = EqualityError;
+            break;
+        }
+    }
+
+    return result;
+}
+
 int test_nlocal(void) {
     int num_failed = 0;
 
     num_failed += RUN_TEST(test_entanglement_by_strategy);
+    num_failed += RUN_TEST(test_pairwise_entanglement);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests (n_local): %i\n", num_failed);
