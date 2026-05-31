@@ -2446,7 +2446,6 @@ dependencies = [
  "binrw",
  "bytemuck",
  "hashbrown 0.15.5",
- "indexmap",
  "ndarray",
  "npyz 0.9.1",
  "num-bigint",
