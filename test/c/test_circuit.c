@@ -1493,9 +1493,12 @@ static int test_basic_register_queries(void) {
     QkQuantumRegister *qr2 = qk_quantum_register_new(2, "QR2");
     qk_circuit_add_quantum_register(circuit, qr1);
     qk_circuit_add_quantum_register(circuit, qr2);
+    qk_quantum_register_free(qr1);
+    qk_quantum_register_free(qr2);
 
     QkClassicalRegister *cr1 = qk_classical_register_new(3, "CR1");
     qk_circuit_add_classical_register(circuit, cr1);
+    qk_classical_register_free(cr1);
 
     size_t num_qregs = qk_circuit_num_quantum_registers(circuit);
     if (num_qregs != 2) {
@@ -1524,7 +1527,8 @@ static int test_basic_register_queries(void) {
             result = EqualityError;
             goto name_cleanup;
         }
-        free(name);
+        qk_str_free(name);
+        name = NULL;
     }
 
     size_t num_cregs = qk_circuit_num_classical_registers(circuit);
@@ -1552,12 +1556,9 @@ static int test_basic_register_queries(void) {
 
 name_cleanup:
     if (name != NULL) {
-        free(name);
+        qk_str_free(name);
     }
 cleanup:
-    qk_quantum_register_free(qr1);
-    qk_quantum_register_free(qr2);
-    qk_classical_register_free(cr1);
     qk_circuit_free(circuit);
     return result;
 }
