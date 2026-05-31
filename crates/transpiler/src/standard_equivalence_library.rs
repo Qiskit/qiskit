@@ -3202,7 +3202,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while adding H gate equivalence");
+    .expect("Error while adding C3SX gate equivalence");
 
     // RC3X
     create_standard_equivalence(
@@ -3231,7 +3231,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
         0.0,
         &mut equiv,
     )
-    .expect("Error while adding H gate equivalence");
+    .expect("Error while adding RC3X gate equivalence");
 
     equiv
 }

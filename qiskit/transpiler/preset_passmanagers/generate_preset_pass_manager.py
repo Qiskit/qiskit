@@ -714,7 +714,7 @@ def generate_preset_pbc_pass_manager(
             zero-initialized.
 
     Returns:
-        StagedPassManager: The preset pass manager for the given options.
+        The preset pass manager for the given options.
 
     Raises:
         TranspilerError: if an invalid value for ``optimization_level`` is passed in.
