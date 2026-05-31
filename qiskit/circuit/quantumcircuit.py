@@ -3050,11 +3050,11 @@ class QuantumCircuit:
                 # and need to retrieve it.
                 my_param_again = qc.get_parameter("my_param")
 
-                assert my_param is my_param_again
+                assert my_param == my_param_again
 
             Get a variable from a circuit by name, returning some default if it is not present::
 
-                assert qc.get_parameter("my_param", None) is my_param
+                assert qc.get_parameter("my_param", None) == my_param
                 assert qc.get_parameter("unknown_param", None) is None
 
         See also:
@@ -3126,11 +3126,11 @@ class QuantumCircuit:
                 # need to retrieve it.
                 my_var_again = qc.get_var("my_var")
 
-                assert my_var is my_var_again
+                assert my_var == my_var_again
 
             Get a variable from a circuit by name, returning some default if it is not present::
 
-                assert qc.get_var("my_var", None) is my_var
+                assert qc.get_var("my_var", None) == my_var
                 assert qc.get_var("unknown_variable", None) is None
 
         See also:
@@ -3198,11 +3198,11 @@ class QuantumCircuit:
                 # need to retrieve it.
                 my_stretch_again = qc.get_stretch("my_stretch")
 
-                assert my_stretch is my_stretch_again
+                assert my_stretch == my_stretch_again
 
             Get a variable from a circuit by name, returning some default if it is not present::
 
-                assert qc.get_stretch("my_stretch", None) is my_stretch
+                assert qc.get_stretch("my_stretch", None) == my_stretch
                 assert qc.get_stretch("unknown_stretch", None) is None
         """
         if (out := self._current_scope().get_stretch(name)) is not None:
