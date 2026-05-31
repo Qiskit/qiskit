@@ -468,10 +468,7 @@ impl Clifford {
         if let Some(&idx) = new_indices.first() {
             self._append_initial_part_ppr(&new_z, &new_x, &new_indices);
 
-            // internal RZ gate
             // Evolving RZ by the Clifford.
-            // Returns the evolved Pauli in the sparse format: (sign, pauli z, pauli x, indices),
-            // where signs `true` and `false` correspond to coefficients `-1` and `+1` respectively.
             let (sign, z, x, indices) = self.evolve_single_qubit_pauli(Pauli1q::Z, idx as usize);
 
             self._append_final_part_ppr(&new_z, &new_x, &new_indices);
@@ -571,7 +568,7 @@ fn compute_phase_product_pauli(
 }
 
 /// Remove I terms from a sparse Pauli list and their corresponsing indices
-/// For example, if the input Pauli it "XIYZ" on qubits [1, 2, 4, 7]
+/// For example, if the input Pauli is "XIYZ" (read left-to-right) on qubits [1, 2, 4, 7]
 /// then the output is "XYZ" on qubits [1, 4, 7]
 fn remove_id_terms_from_pauli(
     pauli_z: &[bool],
