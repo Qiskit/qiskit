@@ -3138,7 +3138,7 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
     )
     .expect("Error while adding XX_MINUS_YY gate equivalence");
 
-    // C3SGate
+    // C3SXGate
     create_standard_equivalence(
         StandardGate::C3SX,
         &[],
