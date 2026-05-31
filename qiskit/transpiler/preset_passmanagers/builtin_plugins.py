@@ -1342,8 +1342,15 @@ class PBCOptimizePassManager(PassManagerPBCStagePlugin):
         self, pass_manager_config: PassManagerPBCConfig, optimization_level: int | None = None
     ):
         match optimization_level:
-            case 0 | 1:
+            case 0:
                 pm = PassManager([])
+            case 1:
+                pm = PassManager(
+                    [
+                        InverseCancellation(),
+                        ContractIdleWiresInControlFlow(),
+                    ]
+                )
             case 2 | 3:
                 pm = PassManager(
                     [
@@ -1358,6 +1365,7 @@ class PBCOptimizePassManager(PassManagerPBCStagePlugin):
                                 else 1.0
                             )
                         ),
+                        ContractIdleWiresInControlFlow(),
                     ]
                 )
             case bad:
