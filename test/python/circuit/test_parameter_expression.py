@@ -873,3 +873,98 @@ class TestParameterExpression(QiskitTestCase):
         expected_val = math.sin(e1_val) - math.sin(e2_val)
         self.assertAlmostEqual(combined_val, expected_val, places=10)
         self.assertNotAlmostEqual(combined_val, 0.0, places=10)
+
+    def test_chain_rule_gradient(self):
+        """Test that the chain rule is correctly applied for all function applications.
+
+        Each sub-test uses a non-trivial inner function g(p) = 2*p + 1 (with g'(p) = 2)
+        so that a bug which drops the inner derivative would produce the wrong answer.
+        For arcsin/arccos, h(p) = 0.1*p + 0.1 is used to keep values in (-1, 1).
+        """
+        p = Parameter("p")
+        val = 0.5  # evaluation point
+
+        # g(p) = 2p + 1,  g'(p) = 2,  g(0.5) = 2.0
+        g = 2 * p + 1
+        gval = 2 * val + 1  # 2.0
+
+        with self.subTest("neg"):
+            # d/dp (-(2p+1)) = -2
+            gradient = (-g).gradient(p)
+            expected = -2.0
+            self.assertAlmostEqual(gradient, expected, places=10)
+
+        with self.subTest("abs"):
+            # d/dp |g(p)| = g(p)/|g(p)| * g'(p)
+            gradient = abs(g).gradient(p)
+            expected = (gval / abs(gval)) * 2
+            actual = gradient.bind({p: val})
+            self.assertAlmostEqual(actual, expected, places=10)
+
+        with self.subTest("exp"):
+            # d/dp exp(g(p)) = exp(g(p)) * 2
+            gradient = g.exp().gradient(p)
+            actual = gradient.bind({p: val})
+            self.assertAlmostEqual(actual, math.exp(gval) * 2, places=10)
+
+        with self.subTest("log"):
+            # d/dp log(g(p)) = 2 / g(p)
+            gradient = g.log().gradient(p)
+            actual = gradient.bind({p: val})
+            self.assertAlmostEqual(actual, 2 / gval, places=10)
+
+        with self.subTest("pow_negative_integer_exponent"):
+            # d/dp g(p)^(-2) = -2 * g(p)^(-3) * 2
+            gradient = (g**-2).gradient(p)
+            expected = -2 * gval**-3 * 2
+            actual = gradient.bind({p: val})
+            self.assertAlmostEqual(actual, expected, places=10)
+
+        with self.subTest("pow_float_exponent"):
+            # d/dp g(p)^0.5 = 0.5 * g(p)^(-0.5) * 2
+            gradient = (g**0.5).gradient(p)
+            expected = 0.5 * gval**-0.5 * 2
+            actual = gradient.bind({p: val})
+            self.assertAlmostEqual(actual, expected, places=10)
+
+        with self.subTest("sin"):
+            # d/dp sin(g(p)) = cos(g(p)) * 2
+            gradient = g.sin().gradient(p)
+            actual = gradient.bind({p: val})
+            self.assertAlmostEqual(actual, math.cos(gval) * 2, places=10)
+
+        with self.subTest("cos"):
+            # d/dp cos(g(p)) = -sin(g(p)) * 2
+            gradient = g.cos().gradient(p)
+            actual = gradient.bind({p: val})
+            self.assertAlmostEqual(actual, -math.sin(gval) * 2, places=10)
+
+        with self.subTest("tan"):
+            # d/dp tan(g(p)) = 2 / cos(g(p))^2
+            gradient = g.tan().gradient(p)
+            actual = gradient.bind({p: val})
+            self.assertAlmostEqual(actual, 2 / math.cos(gval) ** 2, places=10)
+
+        # h(p) = 0.1p + 0.1,  h'(p) = 0.1,  h(0.5) = 0.15  (safe for arcsin/arccos)
+        h = 0.1 * p + 0.1
+        hval = 0.1 * val + 0.1  # 0.15
+
+        with self.subTest("arcsin"):
+            # d/dp arcsin(h(p)) = 0.1 / sqrt(1 - h(p)^2)
+            gradient = h.arcsin().gradient(p)
+            expected = 0.1 / math.sqrt(1 - hval**2)
+            actual = gradient.bind({p: val})
+            self.assertAlmostEqual(actual, expected, places=10)
+
+        with self.subTest("arccos"):
+            # d/dp arccos(h(p)) = -0.1 / sqrt(1 - h(p)^2)
+            gradient = h.arccos().gradient(p)
+            expected = -0.1 / math.sqrt(1 - hval**2)
+            actual = gradient.bind({p: val})
+            self.assertAlmostEqual(actual, expected, places=10)
+
+        with self.subTest("arctan"):
+            # d/dp arctan(g(p)) = 2 / (1 + g(p)^2)
+            gradient = g.arctan().gradient(p)
+            actual = gradient.bind({p: val})
+            self.assertAlmostEqual(actual, 2 / (1 + gval**2), places=10)
