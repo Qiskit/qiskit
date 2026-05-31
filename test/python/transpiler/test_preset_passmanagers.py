@@ -12,9 +12,11 @@
 
 """Tests preset pass manager API"""
 
+import os
 import unittest
 
 
+from qiskit.transpiler.passes.layout.sabre_layout import SabreLayout
 from test import combine
 from ddt import ddt, data
 
@@ -1567,6 +1569,32 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
             ValueError, "Expected non-negative integer as seed for transpiler."
         ):
             generate_preset_pass_manager(seed_transpiler=0.1)
+
+    def test_parse_seed_transpiler_from_env_var(self):
+        """Test that the envoronment variable QISKIT_TRANSPILER_SEED is passed to the transpiler."""
+        qc = QuantumCircuit(3)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.cx(2, 0)
+
+        # Save the original SabreLayout.run method, and create a mock method that calls the original method,
+        # but also records the value for seed.
+        original_run = SabreLayout.run
+        run_calls = []
+
+        def mock_run(self, dag):
+            run_calls.append(self.seed)
+            original_run(self, dag)
+
+        with unittest.mock.patch.dict(os.environ, {"QISKIT_TRANSPILER_SEED": "42"}):
+            with unittest.mock.patch.object(SabreLayout, "run", new=mock_run):
+                pm = generate_preset_pass_manager(
+                    optimization_level=1, coupling_map=CouplingMap.from_line(3)
+                )
+                _ = pm.run(qc)
+
+        self.assertEqual(len(run_calls), 1)
+        self.assertEqual(run_calls[0], 42)
 
     @combine(
         optimization_level=[0, 1, 2, 3],
