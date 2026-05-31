@@ -52,12 +52,16 @@ pub unsafe extern "C" fn qk_n_local(
     insert_barriers: bool,
     skip_final_rotation_layer: bool,
 ) -> *mut CircuitData {
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let parameter_prefix = unsafe {
-        CStr::from_ptr(parameter_prefix)
-            .to_str()
-            .expect("Invalid UTF-8 character")
-            .to_string()
+    let parameter_prefix = if parameter_prefix.is_null() {
+        "θ".to_string()
+    } else {
+        // SAFETY: Per documentation, the pointer is non-null and aligned.
+        unsafe {
+            CStr::from_ptr(parameter_prefix)
+                .to_str()
+                .expect("Invalid UTF-8 character")
+                .to_string()
+        }
     };
 
     // SAFETY: per documentation, `rotation_blocks` is aligned and and points to a valid
@@ -105,7 +109,7 @@ pub unsafe extern "C" fn qk_n_local(
         &rotation_blocks.iter().collect::<Vec<&Block>>(),
         &entanglement_blocks.iter().collect::<Vec<&Block>>(),
         &entanglement,
-        reps as usize,
+        reps,
         insert_barriers,
         &parameter_prefix,
         skip_final_rotation_layer,
@@ -191,7 +195,7 @@ pub unsafe extern "C" fn qk_qubit_connection_equal(
 ///
 /// @param num_qubits The number of qubits of the circuit
 /// @param reps Specifies how often the entanglement blocks are repeated.
-/// @param entanglement_strategy List of strings describing an entanglement strategy for each layer.
+/// @param entanglement_strategy List of enum items describing an entanglement strategy for each layer.
 /// @param entanglement_strategy_size Length of the entanglement strategy list provided
 /// @param entanglement_blocks The blocks used in the entanglement layers.
 /// @param entanglement_blocks_size Length of the list of entanglement blocks provided
