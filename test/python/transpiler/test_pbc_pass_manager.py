@@ -33,7 +33,10 @@ from qiskit.circuit.library import (
     TdgGate,
     RXXGate,
     RZZGate,
+    RYYGate,
     RZXGate,
+    PhaseGate,
+    U1Gate,
     PauliProductRotationGate,
     PauliProductMeasurement,
 )
@@ -218,7 +221,6 @@ class TestPBCPassManager(QiskitTestCase):
         RZGate(Parameter("theta")),
         XGate(),
         YGate(),
-        YGate(),
         ZGate(),
         SXGate(),
         SXdgGate(),
@@ -229,6 +231,9 @@ class TestPBCPassManager(QiskitTestCase):
         RXXGate(0.2),
         RZXGate(Parameter("alpha")),
         RZZGate(-0.3),
+        RYYGate(0.2),
+        PhaseGate(0.2),
+        U1Gate(-1.2),
     )
     def test_ppr_like_gates(self, gate):
         """Test that PBC pipeline converts each PPR-like rotation to a single PPRs."""

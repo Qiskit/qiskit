@@ -1606,6 +1606,7 @@ __all__ = [
     "WrapAngleRegistry",
     "generate_preset_clifford_t_pass_manager",
     "generate_preset_pass_manager",
+    "generate_preset_pbc_pass_manager",
     "passes",
     "preset_passmanagers",
 ]

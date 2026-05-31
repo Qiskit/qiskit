@@ -108,5 +108,6 @@ __all__ = [
     "level_1_pass_manager",
     "level_2_pass_manager",
     "level_3_pass_manager",
+    "pbc_pass_manager",
     "plugin",
 ]
