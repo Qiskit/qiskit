@@ -256,7 +256,7 @@ mod parse {
         bindings: &cbindgen::Bindings,
     ) -> anyhow::Result<()> {
         let constructor =
-            |repr: &simple_ir::ReprType| Primitive::from_cbindgen_intkind(repr.kind, repr.signed);
+            |repr: &ir::ReprType| Primitive::from_cbindgen_intkind(repr.kind, repr.signed);
         let mut overrides = items
             .enums
             .iter()
