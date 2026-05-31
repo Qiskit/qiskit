@@ -124,13 +124,13 @@ pub extern "C" fn qk_obs_identity(num_qubits: u32) -> *mut SparseObservable {
 ///    uint32_t num_qubits = 100;
 ///    uint64_t num_terms = 2;  // we have 2 terms: |01><01|, -1 * |+-><+-|
 ///    uint64_t num_bits = 4; // we have 4 non-identity bits: 0, 1, +, -
-///    QkComplex64 coeffs = {1, -1};
+///    QkComplex64 coeffs[] = {{1, 0}, {-1, 0}};
 ///    QkBitTerm bits[4] = {QkBitTerm_Zero, QkBitTerm_One, QkBitTerm_Plus, QkBitTerm_Minus};
 ///
 ///    uint32_t indices[4] = {0, 1, 98, 99};  // <-- e.g. {1, 0, 99, 98} would be invalid
 ///    size_t boundaries[3] = {0, 2, 4};
 ///    QkObs *obs = qk_obs_new(
-///        num_qubits, num_terms, num_bits, &coeffs, bits, indices, boundaries
+///        num_qubits, num_terms, num_bits, coeffs, bits, indices, boundaries
 ///    );
 /// ```
 ///
@@ -1016,8 +1016,32 @@ pub unsafe extern "C" fn qk_obs_equal(
 pub unsafe extern "C" fn qk_obs_str(obs: *const SparseObservable) -> *mut c_char {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let obs = unsafe { const_ptr_as_ref(obs) };
-    let string: String = format!("{obs:?}");
-    CString::new(string).unwrap().into_raw()
+
+    let num_terms = obs.num_terms();
+    let num_qubits = obs.num_qubits();
+
+    let str_num_terms = format!(
+        "{} term{}",
+        num_terms,
+        if num_terms == 1 { "" } else { "s" }
+    );
+    let str_num_qubits = format!(
+        "{} qubit{}",
+        num_qubits,
+        if num_qubits == 1 { "" } else { "s" }
+    );
+
+    let str_terms = if num_terms == 0 {
+            "0.0".to_owned()
+        } else {
+            obs.iter()
+                .map(SparseTermView::to_sparse_str)
+                .collect::<Vec<_>>()
+                .join(" + ")
+        };
+
+    let obs_str = format!("<SparseObservable with {str_num_terms} on {str_num_qubits}: {str_terms}>");
+    CString::new(obs_str).unwrap().into_raw()
 }
 
 /// @ingroup QkObs
