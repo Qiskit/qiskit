@@ -4,6 +4,6 @@ features_transpiler:
     :math:`R_X` and :math:`R_Y` rotation gates,
     as well as :class:`.PauliProductRotationGate` and :class:`.PauliProductMeasurement`
     operations.
-  - Single-qubit rotation gates and :class:`.PauliProductRotationGates` with angles
-    that are integer multiples of :math:`pi/2`, up to the specified approximation, are now
+  - Single-qubit rotation gates and :class:`.PauliProductRotationGate` with angles
+    that are integer multiples of :math:`\pi/2`, up to the specified approximation, are now
     recognized as Clifford gates by the :class:`.LitinskiTransformation` pass.

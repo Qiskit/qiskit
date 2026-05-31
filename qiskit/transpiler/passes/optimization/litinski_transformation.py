@@ -41,7 +41,7 @@ class LitinskiTransformation(TransformationPass):
     ``["id", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg", "cx", "cz", "cy",
     "swap","iswap", "ecr", "dcx"]``
 
-    In addition, the rotation gates above with angles that are integral multiples of :math:`pi/2`
+    In addition, the rotation gates above with angles that are integral multiples of :math:`\pi/2`
     within the given tolerance are also considered Clifford.
 
 
