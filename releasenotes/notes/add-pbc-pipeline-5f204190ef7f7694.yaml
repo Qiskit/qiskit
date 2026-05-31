@@ -18,6 +18,7 @@ features_transpiler:
         qc = QuantumCircuit(2, 1)
         qc.h(0)
         qc.cx(0, 1)
+        qc.t(1)
         qc.measure(0, 0)
 
         pm = generate_preset_pbc_pass_manager()
