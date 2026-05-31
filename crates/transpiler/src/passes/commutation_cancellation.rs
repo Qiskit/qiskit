@@ -16,7 +16,7 @@ use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::{Bound, PyResult, pyfunction, wrap_pyfunction};
 
-use indexmap::IndexMap;
+use qiskit_util::IndexMap;
 use smallvec::{SmallVec, smallvec};
 
 use super::analyze_commutations;
