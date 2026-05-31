@@ -65,6 +65,7 @@ from qiskit.circuit.library import (
     HGate,
     UnitaryGate,
     UGate,
+    SwapGate,
     XXPlusYYGate,
     XXMinusYYGate,
     PauliEvolutionGate,
@@ -679,6 +680,12 @@ class TestCommutationChecker(QiskitTestCase):
         expect = pauli_type != "measure"  # False for measure, else True
         with self.subTest(other="z_unitary"):
             self.assertEqual(expect, scc.commute(z_pauli, [0], clbit, z_unitary, [0], []))
+
+    @data(CRXGate, CRYGate, CRZGate)
+    def test_controlled_rotation(self, gate_cls):
+        """Test that controlled rotation do not commute with swap."""
+        cr = gate_cls(0.2)
+        self.assertEqual(scc.commute(SwapGate(), [0, 1], [], cr, [0, 1], []), False)
 
 
 def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
