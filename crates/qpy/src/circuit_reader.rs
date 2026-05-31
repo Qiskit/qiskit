@@ -66,10 +66,10 @@ use crate::formats;
 use crate::formats::ConditionData;
 use crate::formats::QPYCircuit;
 use crate::params::generic_value_to_param;
-use crate::py_methods::py_convert_from_generic_value;
 use crate::py_methods::{
     PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME,
-    UNITARY_GATE_CLASS_NAME, get_python_gate_class,
+    UNITARY_GATE_CLASS_NAME, get_python_gate_class, py_convert_from_generic_value,
+    py_deserialize_numpy_object,
 };
 use crate::value::ParamRegisterValue;
 use crate::value::unpack_for_collection;
@@ -1202,9 +1202,10 @@ fn deserialize_pauli_evolution_gate(
                     Endian::Big,
                 )?;
                 if let GenericValue::NumpyObject(op_raw_data) = data {
+                    let np_array = py_deserialize_numpy_object(&op_raw_data)?;
                     Ok(imports::SPARSE_PAULI_OP
                         .get_bound(py)
-                        .call_method1("from_list", (op_raw_data,))?
+                        .call_method1("from_list", (np_array,))?
                         .unbind())
                 } else {
                     Err(QpyError::InvalidParameter(
@@ -1214,6 +1215,7 @@ fn deserialize_pauli_evolution_gate(
             }
         })
         .collect::<Result<_, QpyError>>()?;
+
     let py_operators = if packed_data.standalone_op != 0 {
         operators[0].clone()
     } else {
