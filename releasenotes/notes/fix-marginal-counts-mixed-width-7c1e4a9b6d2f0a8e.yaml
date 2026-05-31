@@ -1,0 +1,20 @@
+---
+fixes:
+  - |
+    Fixed :func:`.marginal_counts` (and :meth:`.Counts` marginalization) silently
+    returning an incorrect result when the input :class:`.Counts` had keys of
+    differing widths. This happens, for example, when a :class:`.Counts` object is
+    constructed from hexadecimal keys without specifying ``memory_slots``, in which
+    case each key is rendered with the minimum number of bits::
+
+        from qiskit.result import Counts, marginal_counts
+
+        counts = Counts({"0x0": 50, "0x3": 30})  # -> {"0": 50, "11": 30}
+        marginal_counts(counts, indices=[0])
+
+    Previously the number of classical bits was inferred from the first key only,
+    so the marginalization could take an early-return path and hand back the
+    counts unchanged. The bit width is now inferred from the widest key and
+    shorter keys are zero-padded before marginalizing, producing the correct
+    ``{"0": 50, "1": 30}``.
+    Fixed `#16190 <https://github.com/Qiskit/qiskit/issues/16190>`__.

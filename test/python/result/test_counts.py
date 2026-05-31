@@ -44,6 +44,15 @@ class TestCounts(unittest.TestCase):
         result = utils.marginal_counts(counts_obj, [0, 1])
         self.assertEqual(expected, result)
 
+    def test_marginal_counts_mixed_width_keys(self):
+        # ``Counts`` built from hex keys without ``memory_slots`` render each key with the minimum
+        # number of bits, producing keys of different widths. ``marginal_counts`` used to infer the
+        # bit width from the first key only and silently return the wrong result. See gh-16190.
+        counts_obj = counts.Counts({"0x0": 50, "0x3": 30})
+        self.assertEqual({"0": 50, "11": 30}, counts_obj)
+        result = utils.marginal_counts(counts_obj, indices=[0])
+        self.assertEqual({"0": 50, "1": 30}, result)
+
     def test_marginal_distribution(self):
         raw_counts = {"0x0": 4, "0x1": 7, "0x2": 10, "0x6": 5, "0x9": 11, "0xD": 9, "0xE": 8}
         expected = {"00": 4, "01": 27, "10": 23}

@@ -245,7 +245,13 @@ def marginal_distribution(
 
 def _marginalize(counts, indices=None):
     """Get the marginal counts for the given set of indices"""
-    num_clbits = len(next(iter(counts)).replace(" ", ""))
+    if not counts:
+        return {}
+    # ``Counts`` built from hex/int keys without ``memory_slots`` render each key with the minimum
+    # number of bits, so the keys can have different widths (e.g. ``{"0": 50, "11": 30}``). Infer the
+    # width from the widest key; shorter keys are simply missing leading (more-significant) zeros,
+    # since qubit-0 is the least-significant (right-most) bit.
+    num_clbits = max(len(_remove_space_underscore(key)) for key in counts)
     # Check if we do not need to marginalize and if so, trim
     # whitespace and '_' and return
     if (indices is None) or set(range(num_clbits)) == set(indices):
@@ -265,7 +271,9 @@ def _marginalize(counts, indices=None):
     # Build the return list
     new_counts = Counter()
     for key, val in counts.items():
-        new_key = "".join([_remove_space_underscore(key)[-idx - 1] for idx in indices])
+        # Left-pad with zeros so every key is ``num_clbits`` wide before indexing into it.
+        key = _remove_space_underscore(key).zfill(num_clbits)
+        new_key = "".join([key[-idx - 1] for idx in indices])
         new_counts[new_key] += val
     return dict(new_counts)
 
