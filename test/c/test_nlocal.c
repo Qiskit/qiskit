@@ -64,6 +64,7 @@ static int test_nlocal_circuit_creation(void) {
 
     int result = (compare_circuits(qc, expected)) ? Ok : EqualityError;
 
+    qk_entanglement_free(entanglement);
     qk_circuit_free(qc);
     qk_circuit_free(expected);
 
@@ -99,6 +100,7 @@ static int test_parameter_prefix(void) {
         }
     }
 
+    qk_entanglement_free(entanglement);
     qk_circuit_instruction_clear(&inst);
     qk_circuit_free(qc);
 
@@ -195,6 +197,7 @@ static int test_entanglement_by_strategy(void) {
                 }
             }
         }
+        qk_entanglement_free(entanglement);
     }
     return result;
 }
@@ -229,8 +232,13 @@ static int test_pairwise_entanglement_strategy(void) {
 
         if (!qk_qubit_connection_equal(connection, expected_connection)) {
             result = EqualityError;
+            qk_qubit_connection_free(expected_connection);
+            qk_qubit_connection_free(connection);
             break;
         }
+
+        qk_qubit_connection_free(expected_connection);
+        qk_qubit_connection_free(connection);
     }
 
     return result;
