@@ -1,6 +1,6 @@
 // This code is part of Qiskit.
 //
-// (C) Copyright IBM 2025.
+// (C) Copyright IBM 2026.
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,6 +14,96 @@
 #include <math.h>
 #include <qiskit.h>
 #include <string.h>
+
+static int test_nlocal_circuit_creation(void) {
+    size_t num_qubits = 5;
+    int reps = 2;
+
+    QkCircuit *expected = qk_circuit_new(num_qubits, 0);
+
+    // Add first rotation layer for X Gate
+    for (size_t i = 0; i < num_qubits; i++) {
+        qk_circuit_gate(expected, QkGate_X, (uint32_t[1]){i}, NULL);
+    }
+
+    qk_circuit_barrier(expected, (uint32_t[5]){0, 1, 2, 3, 4}, 5);
+
+    // Add first entanglement layer for CCX Gate
+    for (size_t i = 0; i < 3; i++) {
+        qk_circuit_gate(expected, QkGate_CCX, (uint32_t[3]){i, i + 1, i + 2}, NULL);
+    }
+
+    qk_circuit_barrier(expected, (uint32_t[5]){0, 1, 2, 3, 4}, 5);
+
+    // Add second rotation layer for X Gate
+    for (size_t i = 0; i < num_qubits; i++) {
+        qk_circuit_gate(expected, QkGate_X, (uint32_t[1]){i}, NULL);
+    }
+
+    qk_circuit_barrier(expected, (uint32_t[5]){0, 1, 2, 3, 4}, 5);
+
+    // Add second entanglement layer for CCX Gate
+    for (size_t i = 0; i < 3; i++) {
+        qk_circuit_gate(expected, QkGate_CCX, (uint32_t[3]){i, i + 1, i + 2}, NULL);
+    }
+    qk_circuit_barrier(expected, (uint32_t[5]){0, 1, 2, 3, 4}, 5);
+
+    // Add final rotation layer for X Gate
+    for (size_t i = 0; i < num_qubits; i++) {
+        qk_circuit_gate(expected, QkGate_X, (uint32_t[1]){i}, NULL);
+    }
+
+    QkGate entanglement_blocks[1] = {QkGate_CCX};
+    QkGate rotation_blocks[1] = {QkGate_X};
+
+    QkEntanglement *entanglement = qk_get_entanglement_with_strategy(
+        num_qubits, reps, QkEntanglementStrategy_Linear, entanglement_blocks, 1);
+
+    QkCircuit *qc = qk_n_local(rotation_blocks, 1, entanglement_blocks, 1, entanglement, num_qubits,
+                               reps, NULL, true, false);
+
+    int result = (compare_circuits(qc, expected)) ? Ok : EqualityError;
+
+    qk_circuit_free(qc);
+    qk_circuit_free(expected);
+
+    return result;
+}
+
+static int test_parameter_prefix(void) {
+    int result = Ok;
+    size_t num_qubits = 2;
+    int reps = 1;
+
+    QkGate rotation_blocks[1] = {QkGate_H};
+    QkGate entanglement_blocks[1] = {QkGate_CRX};
+    QkEntanglement *entanglement = qk_get_entanglement_with_strategy(
+        num_qubits, reps, QkEntanglementStrategy_Linear, entanglement_blocks, 1);
+
+    char *prefix = "myprefix";
+
+    QkCircuit *qc = qk_n_local(rotation_blocks, 1, entanglement_blocks, 1, entanglement, num_qubits,
+                               reps, prefix, false, true);
+
+    QkCircuitInstruction inst;
+    for (size_t i = 0; i < qk_circuit_num_instructions(qc); i++) {
+        qk_circuit_get_instruction(qc, i, &inst);
+        if (strstr(inst.name, "crx") != NULL) {
+            char *parameter_str = qk_param_str(inst.params[0]);
+            if (strcmp(parameter_str, "myprefix[0]") != 0) {
+                result = EqualityError;
+                qk_str_free(parameter_str);
+                break;
+            }
+            qk_str_free(parameter_str);
+        }
+    }
+
+    qk_circuit_instruction_clear(&inst);
+    qk_circuit_free(qc);
+
+    return result;
+}
 
 /**
  * Test setting the entanglement of the layers by entanglement strategy
@@ -109,7 +199,7 @@ static int test_entanglement_by_strategy(void) {
     return result;
 }
 
-static int test_pairwise_entanglement(void) {
+static int test_pairwise_entanglement_strategy(void) {
     int result = Ok;
     int reps = 1;
 
@@ -149,8 +239,10 @@ static int test_pairwise_entanglement(void) {
 int test_nlocal(void) {
     int num_failed = 0;
 
+    num_failed += RUN_TEST(test_nlocal_circuit_creation);
+    num_failed += RUN_TEST(test_parameter_prefix);
     num_failed += RUN_TEST(test_entanglement_by_strategy);
-    num_failed += RUN_TEST(test_pairwise_entanglement);
+    num_failed += RUN_TEST(test_pairwise_entanglement_strategy);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests (n_local): %i\n", num_failed);

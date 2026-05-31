@@ -185,10 +185,14 @@ impl LedgerBuilder for ParameterLedgerBuilder {
         num_parameters: usize,
     ) -> Result<Vec<Param>, ParameterLedgerError> {
         Ok((0..num_parameters)
-            .map(|_| {
+            .map(|i| {
                 Param::ParameterExpression(
-                    ParameterExpression::from_symbol(Symbol::new(parameter_prefix, None, None))
-                        .into(),
+                    ParameterExpression::from_symbol(Symbol::new(
+                        &format!("{}[{}]", parameter_prefix, i),
+                        None,
+                        None,
+                    ))
+                    .into(),
                 )
             })
             .collect())
