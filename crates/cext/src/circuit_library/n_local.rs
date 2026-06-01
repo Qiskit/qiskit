@@ -46,18 +46,18 @@ pub enum EntanglementStrategy {
     /// number of qubits.
     ReverseLinear = 2,
     /// Entanglement shifted-circular-alternating. It's a generalized and modified
-    /// version of the proposed circuit 14 in 
+    /// version of the proposed circuit 14 in
     /// [Sim et al.](https://arxiv.org/abs/1905.10876)
     /// It consists of circular entanglement where the "long" entanglement connecting
     /// the first with the last qubit is shifted by one each block.  
-    /// Furthermore the role of control and target qubits are swapped every block 
+    /// Furthermore the role of control and target qubits are swapped every block
     /// (therefore alternating).
     Sca = 3,
     /// Entanglement that behaves the same as linear entanglement but with an additional
     /// entanglement of the first and last qubit before the linear part.
     Circular = 4,
     /// Entanglement where one layer contains a qubit \f$i\f$ entangled with
-    /// qubit \f$i + 1\f$, for all even values of \f$i\f$, and then a second layer 
+    /// qubit \f$i + 1\f$, for all even values of \f$i\f$, and then a second layer
     /// where a qubit \f$i\f$ is entangled with qubit \f$i + 1\f$, for all odd values of
     /// \f$i\f$.
     Pairwise = 5,
@@ -137,20 +137,20 @@ pub enum EntanglementStrategy {
 /// qk_entanglement_free(entanglement);
 /// qk_circuit_free(qc);
 /// ```
-/// 
+///
 /// If an entanglement layer contains multiple blocks, then the entanglement can be
 /// given as list of entanglement strategies for each block.
 /// ```c
 /// size_t num_qubits = 2;
 /// int reps = 2;
-/// 
+///
 /// QkGate rotation_blocks[2] = {QkGate_H, QkGate_X};
 /// QkGate entanglement_blocks[2] = {QkGate_CCX, QkGate_CSwap};
-/// 
+///
 /// // linear for CCX and reverse linear for CSwap
 /// QkEntanglementStrategy strategies[2] = {QkEntanglementStrategy_Linear,
 ///                                         QkEntanglementStrategy_ReverseLinear};
-/// 
+///
 /// QkEntanglement *entanglement = qk_get_entanglement_with_multiple_strategy(
 ///     num_qubits, reps, strategies, 2, entanglement_blocks, 2);
 /// QkCircuit *qc = qk_n_local(rotation_blocks, 2, entanglement_blocks, 2,
@@ -160,7 +160,7 @@ pub enum EntanglementStrategy {
 /// qk_entanglement_free(entanglement);
 /// qk_circuit_free(qc);
 /// ```
-/// 
+///
 /// # Safety
 ///
 /// Behavior is undefined if ``entanglement`` is not either null
@@ -254,7 +254,7 @@ pub unsafe extern "C" fn qk_n_local(
 }
 
 /// @ingroup QkCircuitLibrary
-/// Construct a new ``QkQubitConnection`` representing the entanglement between 
+/// Construct a new ``QkQubitConnection`` representing the entanglement between
 /// qubits where a multi-qubit gate acts on.
 ///
 /// @param num_qubits The size of the qubits connections array.
@@ -270,7 +270,7 @@ pub unsafe extern "C" fn qk_n_local(
 ///
 /// # Safety
 ///
-/// Behavior is undefined ``qubit_connections`` is not a valid, 
+/// Behavior is undefined ``qubit_connections`` is not a valid,
 /// non-null pointer to a ``uint32_t`` array.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_qubit_connection_new(
@@ -333,7 +333,7 @@ pub unsafe extern "C" fn qk_qubit_connection_equal(
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``qubit_connection`` is not 
+/// Behavior is undefined if ``qubit_connection`` is not
 /// either null or a valid pointer to a ``QubitConnection``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_qubit_connection_free(qubit_connection: *mut QubitConnection) {
@@ -368,7 +368,7 @@ pub unsafe extern "C" fn qk_qubit_connection_free(qubit_connection: *mut QubitCo
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``entanglement`` is not 
+/// Behavior is undefined if ``entanglement`` is not
 /// either null or a valid pointer to a ``QkEntanglement``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_entanglement_free(entanglement: *mut Entanglement) {
@@ -409,7 +409,7 @@ pub unsafe extern "C" fn qk_entanglement_free(entanglement: *mut Entanglement) {
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``entanglement`` is not 
+/// Behavior is undefined if ``entanglement`` is not
 /// either null or a valid pointer to a ``QkEntanglement``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_get_entanglement_layers_quantity(
@@ -445,7 +445,7 @@ pub unsafe extern "C" fn qk_get_entanglement_layers_quantity(
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``entanglement`` is not 
+/// Behavior is undefined if ``entanglement`` is not
 /// either null or a valid pointer to a ``QkEntanglement``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_get_entanglement_layer_blocks_quantity(
@@ -458,7 +458,7 @@ pub unsafe extern "C" fn qk_get_entanglement_layer_blocks_quantity(
 }
 
 /// @ingroup QkCircuitLibrary
-/// Obtain the ``QkQubitConnection`` count on a given layer 
+/// Obtain the ``QkQubitConnection`` count on a given layer
 /// and block in the provided ``QkEntanglement``.
 ///
 /// @param entanglement A pointer to the ``QkEntanglement`` object.
@@ -484,7 +484,7 @@ pub unsafe extern "C" fn qk_get_entanglement_layer_blocks_quantity(
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``entanglement`` is not 
+/// Behavior is undefined if ``entanglement`` is not
 /// either null or a valid pointer to a ``QkEntanglement``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_get_entanglement_qubit_connections_quantity(
@@ -498,13 +498,13 @@ pub unsafe extern "C" fn qk_get_entanglement_qubit_connections_quantity(
 }
 
 /// @ingroup QkCircuitLibrary
-/// Obtain the ``QkQubitConnection`` object at a given 
+/// Obtain the ``QkQubitConnection`` object at a given
 /// layer and block in the provided ``QkEntanglement``.
 ///
 /// @param entanglement A pointer to the ``QkEntanglement`` object.
 /// @param layer_index The layer index where the ``QkQubitConnection`` object exists.
 /// @param block_index The block index in the layer where the ``QkQubitConnection`` object exists.
-/// @param connection_index The ``QkQubitConnection`` object index where 
+/// @param connection_index The ``QkQubitConnection`` object index where
 /// the multi-qubit gate acts on.
 ///
 /// @return A pointer to the obtained ``QkQubitConnection``.
@@ -527,7 +527,7 @@ pub unsafe extern "C" fn qk_get_entanglement_qubit_connections_quantity(
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``entanglement`` is not 
+/// Behavior is undefined if ``entanglement`` is not
 /// either null or a valid pointer to a ``QkEntanglement``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_get_entanglement_qubit_connections(
@@ -548,7 +548,7 @@ pub unsafe extern "C" fn qk_get_entanglement_qubit_connections(
 ///
 /// @param num_qubits The number of qubits of the circuit
 /// @param reps Specifies how often the entanglement blocks are repeated.
-/// @param entanglement_strategy List of enum items describing an entanglement 
+/// @param entanglement_strategy List of enum items describing an entanglement
 ///   strategy for each layer.
 /// @param entanglement_strategy_size Length of the entanglement strategy list provided
 /// @param entanglement_blocks The blocks used in the entanglement layers.
@@ -558,9 +558,9 @@ pub unsafe extern "C" fn qk_get_entanglement_qubit_connections(
 ///
 /// # Safety
 ///
-/// Behavior is undefined ``entanglement_strategy`` is not a valid, 
+/// Behavior is undefined ``entanglement_strategy`` is not a valid,
 /// non-null pointer to a ``QkEntanglementStrategy`` array.
-/// Behavior is undefined ``entanglement_blocks`` is not a valid, 
+/// Behavior is undefined ``entanglement_blocks`` is not a valid,
 /// non-null pointer to a ``StandardGate`` array.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_get_entanglement_with_multiple_strategy(
@@ -616,7 +616,7 @@ pub unsafe extern "C" fn qk_get_entanglement_with_multiple_strategy(
 ///
 /// # Safety
 ///
-/// Behavior is undefined ``entanglement_blocks`` is not a valid, 
+/// Behavior is undefined ``entanglement_blocks`` is not a valid,
 /// non-null pointer to a ``QkGate`` array.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_get_entanglement_with_strategy(
