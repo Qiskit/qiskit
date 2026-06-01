@@ -1,6 +1,5 @@
 features_c:
   - |
-<<<<<<< HEAD
     The C API now exposes the global phase of both :c:struct:`QkCircuit`
     and :c:struct:`QkDag` objects. It can be retrieved via 
     :c:func:`qk_circuit_global_phase` and set via :c:func:`qk_circuit_set_global_phase`
@@ -13,7 +12,6 @@ features_c:
 
     .. code-block:: c
 
->>>>>>> main
         QkCircuit *qc = qk_circuit_new(2, 0);
         
         QkParam *out_phase = qk_circuit_global_phase(qc);
