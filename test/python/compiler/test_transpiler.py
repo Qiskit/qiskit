@@ -89,7 +89,6 @@ from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.options import Options
 from qiskit.quantum_info import Operator, random_unitary
-from qiskit.transpiler.passes.layout.sabre_layout import SabreLayout
 from qiskit.utils import should_run_in_parallel
 from qiskit.transpiler import CouplingMap, Layout, PassManager, passes
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
@@ -98,6 +97,7 @@ from qiskit.transpiler.passes import (
     GateDirection,
     VF2PostLayout,
     WrapAngles,
+    SabreLayout,
 )
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
@@ -2394,7 +2394,7 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(together_circuits, own_circuits)
 
     def test_parse_seed_transpiler_from_env_var(self):
-        """Test that the envoronment variable QISKIT_TRANSPILER_SEED is passed to the transpiler."""
+        """Test that the environment variable QISKIT_TRANSPILER_SEED is passed to the transpiler."""
         qc = QuantumCircuit(3)
         qc.cx(0, 1)
         qc.cx(1, 2)

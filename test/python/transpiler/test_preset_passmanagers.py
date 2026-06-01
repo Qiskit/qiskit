@@ -16,7 +16,6 @@ import os
 import unittest
 
 
-from qiskit.transpiler.passes.layout.sabre_layout import SabreLayout
 from test import combine
 from ddt import ddt, data
 
@@ -46,6 +45,7 @@ from qiskit.transpiler.passes import (
     ALAPScheduleAnalysis,
     PadDynamicalDecoupling,
     RemoveResetInZeroState,
+    SabreLayout,
 )
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.converters import circuit_to_dag
@@ -1571,7 +1571,7 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
             generate_preset_pass_manager(seed_transpiler=0.1)
 
     def test_parse_seed_transpiler_from_env_var(self):
-        """Test that the envoronment variable QISKIT_TRANSPILER_SEED is passed to the transpiler."""
+        """Test that the environment variable QISKIT_TRANSPILER_SEED is passed to the transpiler."""
         qc = QuantumCircuit(3)
         qc.cx(0, 1)
         qc.cx(1, 2)
