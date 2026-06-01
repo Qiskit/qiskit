@@ -27,8 +27,9 @@ use crate::pointers::mut_ptr_as_ref;
 /// @param circuit A pointer to the circuit on which to run the pass.
 /// @param fix_clifford If ``true``, leave the Clifford gates at the end of the circuit. If
 ///   ``false`` they are omitted.
-/// @param approximation_degree The degree to approximate for the equivalence check.
-/// This is a floating point value between 0 and 1.
+/// @param approximation_degree The degree to approximate for the equivalence check,
+///   used, for example, to determine if a rotation gate implements a Clifford.
+///   This is a floating point value between 0 (max. approximation) and 1 (no approximation).
 ///
 /// # Safety
 ///
