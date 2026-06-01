@@ -79,7 +79,7 @@ use crate::value::{
     load_value, unpack_duration_value, unpack_generic_value,
 };
 
-use ndarray::Array2;
+use ndarray::{Array2, ShapeBuilder};
 use npyz::NpyFile;
 use std::io::Cursor;
 
@@ -523,14 +523,16 @@ fn unpack_unitary(
         ));
     }
 
-    let rows = shape[0];
-    let cols = shape[1];
+    let rows = shape[0] as usize;
+    let cols = shape[1] as usize;
+    let order = npy.order();
 
     let data: Vec<Complex64> = npy.into_vec()?;
 
-    let matrix = Array2::from_shape_vec((rows as usize, cols as usize), data)
+    let true_shape = (rows, cols).set_f(order == npyz::Order::Fortran);
+    let matrix = Array2::from_shape_vec(true_shape, data)
         .map_err(|_| QpyError::InvalidParameter("Invalid matrix for unitary op".to_string()))?;
-    let array = ArrayType::NDArray(matrix); // TODO: use 1 and 2 qubit matrices whenever possible
+    let array = ArrayType::NDArray(matrix);
     let unitary = UnitaryGate { array };
     let op = PackedOperation::from_unitary(Box::new(unitary));
     let param_values = Vec::new();
