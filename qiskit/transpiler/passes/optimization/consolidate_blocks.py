@@ -71,7 +71,7 @@ class ConsolidateBlocks(TransformationPass):
     the analysis of the input :class:`.DAGCircuit` to find all the two qubit blocks in the circuit
     and then determine based on an internal heuristic whether that block should be consolidated to
     a :class:`.UnitaryGate` or not. However if either ``block_list`` or ``run_list`` are set in the
-    property set then this pass will not do its own analysis of the dag.
+    property set then this pass will not do its own analysis of the DAG.
 
     There are two legacy modes of operation for this pass based on whether either ``block_list`` or
     ``run_list`` is set in the property set when this pass is run. ``block_list`` should contain a
