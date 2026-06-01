@@ -994,13 +994,14 @@ pub unsafe extern "C" fn qk_obs_equal(
 ///
 /// @param obs A pointer to the ``QkObs`` to get the string for.
 ///
-/// @return A pointer to a nul-terminated char array of the string representation for ``obs``
+/// @return A pointer to a null-terminated char array of the string representation for ``obs``
 ///
 /// # Example
 /// ```c
 ///     QkObs *obs = qk_obs_identity(100);
 ///     char *string = qk_obs_str(obs);
 ///     qk_str_free(string);
+///     qk_obs_free(obs);
 /// ```
 ///
 /// # Safety
@@ -1074,7 +1075,7 @@ pub unsafe extern "C" fn qk_str_free(string: *mut c_char) {
 ///
 /// @param term A pointer to the term.
 ///
-/// @return The function exit code. This is ``>0`` if reading the term failed.
+/// @return A pointer to a null-terminated char array of the string representation for ``term``
 ///
 /// # Example
 /// ```c
@@ -1083,6 +1084,7 @@ pub unsafe extern "C" fn qk_str_free(string: *mut c_char) {
 ///     qk_obs_term(obs, 0, &term);
 ///     char *string = qk_obsterm_str(&term);
 ///     qk_str_free(string);
+///     qk_obs_free(obs);
 /// ```
 ///
 /// # Safety
