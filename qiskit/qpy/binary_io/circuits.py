@@ -327,8 +327,8 @@ def _loads_instruction_parameter(
     elif type_key == type_keys.Value.REGISTER:
         param = _loads_register_param(data_bytes.decode(common.ENCODE), circuit, registers)
     elif type_key == type_keys.Value.LOOP_VARIABLE:
-        if version < 17:
-            raise UnsupportedFeatureForVersion("ForLoop runtime loop variable", 17, version)
+        if version < 18:
+            raise UnsupportedFeatureForVersion("ForLoop runtime loop variable", 18, version)
         param = common.data_from_binary(data_bytes, value._read_loop_variable, version=version)
     else:
         clbits = circuit.clbits if circuit is not None else ()
@@ -1103,10 +1103,10 @@ def _write_instruction(
         # ForLoopOp param[1] with an expr.Var is a real-time loop index.  The
         # `param.standalone` check is always True here by construction: ForLoopOp
         # validation rejects non-standalone (bit-backed) Vars as loop parameters.
-        # v17+ serialises it with LOOP_VARIABLE; older versions silently drop it to
+        # v18+ serialises it with LOOP_VARIABLE; older versions silently drop it to
         # NULL (lossy by design — the loop body retains its own Var declaration).
         if is_for_loop and param_index == 1 and isinstance(param, expr.Var) and param.standalone:
-            if version >= 17:
+            if version >= 18:
                 type_key = type_keys.Value.LOOP_VARIABLE
                 data_bytes = common.data_to_binary(
                     param, value._write_loop_variable, version=version

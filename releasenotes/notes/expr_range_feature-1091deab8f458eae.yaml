@@ -119,8 +119,10 @@ features_qpy:
     :class:`~qiskit.circuit.ForLoopOp` instructions. A new ``LOOP_VARIABLE``
     instruction-parameter type (type key ``w``) carries the variable declaration
     in the ForLoop parameter slot using the existing ``EXPR_VAR_DECLARATION`` wire
-    format. QPY format versions below 17 continue to emit ``Null`` for this slot,
-    so older target versions remain lossy by design.
+    format. QPY format version 18 is required to serialize or deserialize these
+    features; older target versions raise :exc:`~qiskit.qpy.UnsupportedFeatureForVersion`
+    when dumping circuits that use them, and emit ``Null`` for the loop-variable
+    slot when the indexset does not require v18.
 
 features_qasm:
   - |

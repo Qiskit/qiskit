@@ -245,6 +245,16 @@ pub(crate) fn write_expression<W: Write + Seek>(
             write_expression(&binary_node.right, writer, endian, (qpy_data,))?;
         }
         Expr::Range(range_node) => {
+            if qpy_data.version < 18 {
+                return Err(to_binrw_error(
+                    writer,
+                    QpyError::UnsupportedFeatureForVersion {
+                        feature: "classical expr.Range".to_string(),
+                        version: 18,
+                        min_version: qpy_data.version,
+                    },
+                ));
+            }
             ExpressionElementPack::Range(pack_expression_type(&range_node.ty)).write_options(
                 writer,
                 endian,
@@ -343,6 +353,16 @@ pub(crate) fn read_expression<R: Read + Seek>(
             })))
         }
         ExpressionElementPack::Range(range_type_pack) => {
+            if qpy_data.version < 18 {
+                return Err(to_binrw_error(
+                    reader,
+                    QpyError::UnsupportedFeatureForVersion {
+                        feature: "classical expr.Range".to_string(),
+                        version: 18,
+                        min_version: qpy_data.version,
+                    },
+                ));
+            }
             let start = read_expression(reader, endian, (qpy_data,))?;
             let stop = read_expression(reader, endian, (qpy_data,))?;
             let step = read_expression(reader, endian, (qpy_data,))?;

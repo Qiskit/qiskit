@@ -369,6 +369,10 @@ class _ExprWriter(expr.ExprVisitor[None]):
         node.index.accept(self)
 
     def visit_range(self, node, /):
+        if self.version < 18:
+            raise exceptions.UnsupportedFeatureForVersion(
+                "classical expr.Range", required=18, target=self.version
+            )
         self.file_obj.write(type_keys.Expression.RANGE)
         self._write_expr_type(node.type)
         node.start.accept(self)
@@ -701,6 +705,8 @@ def _read_expr(
     clbits: collections.abc.Sequence[Clbit],
     cregs: collections.abc.Mapping[str, ClassicalRegister],
     standalone_vars: collections.abc.Sequence[expr.Var],
+    *,
+    version: int,
 ) -> expr.Expr:
 
     type_key = file_obj.read(formats.EXPRESSION_DISCRIMINATOR_SIZE)
@@ -769,7 +775,9 @@ def _read_expr(
             struct.unpack(formats.EXPRESSION_CAST_PACK, file_obj.read(formats.EXPRESSION_CAST_SIZE))
         )
         return expr.Cast(
-            _read_expr(file_obj, clbits, cregs, standalone_vars), type_, implicit=payload.implicit
+            _read_expr(file_obj, clbits, cregs, standalone_vars, version=version),
+            type_,
+            implicit=payload.implicit,
         )
     if type_key == type_keys.Expression.UNARY:
         payload = formats.EXPRESSION_UNARY._make(
@@ -779,7 +787,7 @@ def _read_expr(
         )
         return expr.Unary(
             expr.Unary.Op(payload.opcode),
-            _read_expr(file_obj, clbits, cregs, standalone_vars),
+            _read_expr(file_obj, clbits, cregs, standalone_vars, version=version),
             type_,
         )
     if type_key == type_keys.Expression.BINARY:
@@ -790,21 +798,25 @@ def _read_expr(
         )
         return expr.Binary(
             expr.Binary.Op(payload.opcode),
-            _read_expr(file_obj, clbits, cregs, standalone_vars),
-            _read_expr(file_obj, clbits, cregs, standalone_vars),
+            _read_expr(file_obj, clbits, cregs, standalone_vars, version=version),
+            _read_expr(file_obj, clbits, cregs, standalone_vars, version=version),
             type_,
         )
     if type_key == type_keys.Expression.INDEX:
         return expr.Index(
-            _read_expr(file_obj, clbits, cregs, standalone_vars),
-            _read_expr(file_obj, clbits, cregs, standalone_vars),
+            _read_expr(file_obj, clbits, cregs, standalone_vars, version=version),
+            _read_expr(file_obj, clbits, cregs, standalone_vars, version=version),
             type_,
         )
     if type_key == type_keys.Expression.RANGE:
+        if version < 18:
+            raise exceptions.UnsupportedFeatureForVersion(
+                "classical expr.Range", required=18, target=version
+            )
         return expr.Range(
-            _read_expr(file_obj, clbits, cregs, standalone_vars),
-            _read_expr(file_obj, clbits, cregs, standalone_vars),
-            _read_expr(file_obj, clbits, cregs, standalone_vars),
+            _read_expr(file_obj, clbits, cregs, standalone_vars, version=version),
+            _read_expr(file_obj, clbits, cregs, standalone_vars, version=version),
+            _read_expr(file_obj, clbits, cregs, standalone_vars, version=version),
             type_,
         )
     raise exceptions.QpyError(f"Invalid classical-expression Expr key '{type_key}'")
@@ -1045,9 +1057,9 @@ def dumps_value(
             version=version,
         )
     elif type_key == type_keys.Value.LOOP_VARIABLE:
-        if version < 17:
+        if version < 18:
             raise exceptions.UnsupportedFeatureForVersion(
-                "ForLoop runtime loop variable", required=17, target=version
+                "ForLoop runtime loop variable", required=18, target=version
             )
         binary_data = common.data_to_binary(obj, _write_loop_variable, version=version)
     else:
@@ -1164,11 +1176,12 @@ def loads_value(
             clbits=clbits,
             cregs=cregs or {},
             standalone_vars=standalone_vars,
+            version=version,
         )
     if type_key == type_keys.Value.LOOP_VARIABLE:
-        if version < 17:
+        if version < 18:
             raise exceptions.UnsupportedFeatureForVersion(
-                "ForLoop runtime loop variable", required=17, target=version
+                "ForLoop runtime loop variable", required=18, target=version
             )
         return common.data_from_binary(binary_data, _read_loop_variable, version=version)
 

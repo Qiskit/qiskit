@@ -528,10 +528,10 @@ pub(crate) fn load_value(
             })
         }
         ValueType::LoopVariable => {
-            if qpy_data.version < 17 {
+            if qpy_data.version < 18 {
                 return Err(QpyError::UnsupportedFeatureForVersion {
                     feature: "ForLoop runtime loop variable".to_string(),
-                    version: 17,
+                    version: 18,
                     min_version: qpy_data.version,
                 });
             }
@@ -633,6 +633,13 @@ pub(crate) fn serialize_generic_value(
             (ValueType::Range, serialize(&range_pack)?)
         }
         GenericValue::RangeExpr(range_expr) => {
+            if qpy_data.version < 18 {
+                return Err(QpyError::UnsupportedFeatureForVersion {
+                    feature: "classical expr.Range".to_string(),
+                    version: 18,
+                    min_version: qpy_data.version,
+                });
+            }
             // Serialize Range expression as an Expression
             let expr = Expr::Range(Box::new(range_expr.clone()));
             (
@@ -649,10 +656,10 @@ pub(crate) fn serialize_generic_value(
             serialize_param_register_value(param_register_value, qpy_data)?,
         ),
         GenericValue::LoopVariable(var) => {
-            if qpy_data.version < 17 {
+            if qpy_data.version < 18 {
                 return Err(QpyError::UnsupportedFeatureForVersion {
                     feature: "ForLoop runtime loop variable".to_string(),
-                    version: 17,
+                    version: 18,
                     min_version: qpy_data.version,
                 });
             }

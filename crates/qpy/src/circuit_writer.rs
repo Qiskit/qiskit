@@ -501,7 +501,7 @@ fn pack_control_flow_inst(
                 None => GenericValue::Null,
                 Some(LoopVar::Compile(symbol)) => GenericValue::ParameterExpressionSymbol(symbol),
                 Some(LoopVar::Runtime(var)) => {
-                    if qpy_data.version >= 17 {
+                    if qpy_data.version >= 18 {
                         validate_loop_var_in_body(instruction, &var, qpy_data)?;
                         GenericValue::LoopVariable(var)
                     } else {
