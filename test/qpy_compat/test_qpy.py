@@ -1075,7 +1075,12 @@ def generate_circuits(
         output_circuits["box.qpy"] = generate_box()
         output_circuits["delay_stretch.qpy"] = generate_delay_stretch()
 
-    if generating_version.release >= (2, 3, 0) and current_version.release >= (2, 3, 0):
+    # The Pauli Product Measurement gate was added in 2.3.0, but a bug in 2.4 prevents it from being read correctly
+    if (
+        generating_version.release >= (2, 3, 0)
+        and current_version.release >= (2, 3, 0)
+        and current_version.release[1] != 4
+    ):
         output_circuits["ppm.qpy"] = generate_pauli_product_measurement()
 
     return output_circuits
