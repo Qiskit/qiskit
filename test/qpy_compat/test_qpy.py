@@ -1079,7 +1079,7 @@ def generate_circuits(
     if (
         generating_version.release >= (2, 3, 0)
         and current_version.release >= (2, 3, 0)
-        and current_version.release[1] != 4
+        and (not forward_tests or current_version.release[1] != 4)
     ):
         output_circuits["ppm.qpy"] = generate_pauli_product_measurement()
 
