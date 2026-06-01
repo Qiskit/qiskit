@@ -38,7 +38,6 @@ from qiskit.circuit import (
 from qiskit.circuit.controlflow import condition_resources
 from qiskit.circuit.classical import expr
 from qiskit.circuit.annotated_operation import _canonicalize_modifiers, ControlModifier
-from qiskit.circuit.library import Initialize
 from qiskit.circuit.library.standard_gates import (
     SwapGate,
     RZZGate,
@@ -466,8 +465,6 @@ class MatplotlibDrawer:
                     and not any(isinstance(param, QuantumCircuit) for param in op.params)
                 ):
                     param_text = get_param_str(op, "mpl", ndigits=3)
-                    if isinstance(op, Initialize):
-                        param_text = f"$[{param_text.replace('$', '')}]$"
                     node_data[node].param_text = param_text
                     raw_param_width = self._get_text_width(
                         param_text, glob_data, fontsize=self._style["sfs"], param=True
