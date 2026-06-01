@@ -699,10 +699,10 @@ fn get_block_qubit_connections_with_strategy(
             num_qubits,
             gate.get_num_qubits(),
             entanglement_strategy,
-            if offset.is_some() { offset.unwrap() } else { 0 },
+            offset.unwrap_or(0),
         )
         .unwrap()
-        .map(|connections| QubitConnection(connections))
+        .map(QubitConnection)
         .collect(),
     )
 }
