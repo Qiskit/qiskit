@@ -80,7 +80,7 @@ from qiskit.qpy import (
     QpyError,
 )
 from qiskit.quantum_info import Pauli, SparsePauliOp, Clifford
-from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info import random_unitary
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.utils import optionals
 from test import QiskitTestCase
