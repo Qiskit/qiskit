@@ -41,12 +41,12 @@ use rustworkx_core::petgraph::prelude::*;
 use smallvec::SmallVec;
 use thiserror::Error;
 
+use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::instruction::{Instruction, Parameters, create_py_op};
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::{PhysicalQubit, Qubit};
 
 use crate::TranspilerError;
 use bounds::AngleBound;
@@ -1720,8 +1720,7 @@ pub fn estimate_fidelity(circuit: &CircuitData, target: &Target) -> Option<f64> 
             // Qubit qargs as PhysicalQubit qargs directly. This function as documented as
             // assuming that the circuit is physical so the qubit index is a physical qubit on the
             // target
-            let physical_qubits: &[PhysicalQubit] =
-                unsafe { std::mem::transmute::<&[Qubit], &[PhysicalQubit]>(qubits) };
+            let physical_qubits: &[PhysicalQubit] = PhysicalQubit::lift_slice(qubits);
             match target.get_instruction_properties(gate_name, physical_qubits) {
                 Some(props) => Some(1. - props.error.unwrap_or(0.)),
                 None => {
