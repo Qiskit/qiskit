@@ -399,11 +399,21 @@ macro_rules! impl_from_generic {
     };
 }
 
-impl_from_generic!(bool, Bool);
 impl_from_generic!(i64, Int64);
 impl_from_generic!(f64, Float64);
 impl_from_generic!(Complex64, Complex64);
 // we do not implement Symbol extraction, since it is ambiguous - a symbol can be a Parameter or a ParameterVector
+
+// booleans are stored as i64 in current QPY, we should be able to convert from them
+impl FromGenericValue for bool {
+    fn from_generic(value: &GenericValue) -> Option<Self> {
+        match value {
+            GenericValue::Bool(val) => Some(*val),
+            GenericValue::Int64(val) => Some(*val != 0),
+            _ => None,
+        }
+    }
+}
 
 // Extracting tuples is a little more trick; we'll use macro for the easy case of Vec<T> for a specific T
 impl<T: FromGenericValue> FromGenericValue for Vec<T> {
