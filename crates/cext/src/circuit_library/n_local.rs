@@ -33,18 +33,18 @@ pub struct LayerEntanglement(Vec<BlockQubitConnection>);
 pub struct Entanglement(Vec<LayerEntanglement>);
 
 /// Enum representing all the possible strategies for n_local entanglement blocks.
-#[repr(C)]
+#[repr(u8)]
 pub enum EntanglementStrategy {
     /// Entanglement where each qubit is entangled with all the others.
-    Full,
+    Full = 0,
     /// Entanglement where qubit \f$i\f$ is entangled with qubit \f$i + 1\f$
     /// for all \f$i \in \{0, 1, ... , n - 2\}\f$ where \f$n\f$ is the total
     /// number of qubits.
-    Linear,
+    Linear = 1,
     /// Entanglement where qubit \f$i\f$ is entangled with qubit \f$i + 1\f$
     /// for all \f$i \in \{n-2, n-3, ... , 1, 0\}\f$ where \f$n\f$ is the total
     /// number of qubits.
-    ReverseLinear,
+    ReverseLinear = 2,
     /// Entanglement shifted-circular-alternating. It's a generalized and modified
     /// version of the proposed circuit 14 in 
     /// [Sim et al.](https://arxiv.org/abs/1905.10876)
@@ -52,15 +52,15 @@ pub enum EntanglementStrategy {
     /// the first with the last qubit is shifted by one each block.  
     /// Furthermore the role of control and target qubits are swapped every block 
     /// (therefore alternating).
-    Sca,
+    Sca = 3,
     /// Entanglement that behaves the same as linear entanglement but with an additional
     /// entanglement of the first and last qubit before the linear part.
-    Circular,
+    Circular = 4,
     /// Entanglement where one layer contains a qubit \f$i\f$ entangled with
     /// qubit \f$i + 1\f$, for all even values of \f$i\f$, and then a second layer 
     /// where a qubit \f$i\f$ is entangled with qubit \f$i + 1\f$, for all odd values of
     /// \f$i\f$.
-    Pairwise,
+    Pairwise = 5,
 }
 
 /// @ingroup QkCircuitLibrary
