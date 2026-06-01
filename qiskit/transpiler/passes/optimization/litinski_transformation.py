@@ -31,10 +31,6 @@ class LitinskiTransformation(TransformationPass):
     :math:`R_X`-rotation and :math:`R_Y`-rotation gates to
     Pauli product rotations, and :math:`Z`-measurements to Pauli product measurements.
 
-    The list of supported rotations is:
-
-    ``["t", "tdg", "rz", "p", "u1", "rx", "ry", "pauli_product_rotation"]``
-
     The pass supports all of the Clifford gates in the list returned by
     :func:`.get_clifford_gate_names`:
 
@@ -68,7 +64,7 @@ class LitinskiTransformation(TransformationPass):
         qc.rz(1.23, 0)
         qc.cx(0, 1)
         qc.t(1)
-        qc.compose(PauliProductRotationGate(Pauli("XY"), 0.456), [1, 2], inplace=True)
+        qc.append(PauliProductRotationGate(Pauli("XY"), 0.456), [1, 2])
         qc.cx(1, 2)
         qc.append(PauliProductMeasurement(Pauli("ZX")), [0, 1], [0])
         qc.measure(2, 0)
