@@ -241,10 +241,25 @@ class TestQPYRoundtrip(QiskitTestCase):
         with qc.for_loop(range_expr, loop_var):
             qc.h(0)
         self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
-        loaded_for_loop = next(
-            inst.operation for inst in qc.data if inst.operation.name == "for_loop"
+        qpy_file = io.BytesIO()
+        write_circuit(
+            qpy_file,
+            qc,
+            version=version,
+            use_rust=write_with == "Rust",
         )
-        self.assertIs(loaded_for_loop.params[1], loop_var)
+        qpy_file.seek(0)
+        loaded = read_circuit(
+            qpy_file,
+            version=version,
+            use_rust=read_with == "Rust",
+        )
+        loaded_for_loop = next(
+            inst.operation for inst in loaded.data if inst.operation.name == "for_loop"
+        )
+        loop_param = loaded_for_loop.params[1]
+        self.assertEqual(loop_param, loop_var)
+        self.assertEqual(loop_param.name, "i")
 
     @all_qpy_combinations(18)
     def test_for_loop_with_dynamic_range_and_var_loop_parameter(
