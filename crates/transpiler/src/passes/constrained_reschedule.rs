@@ -14,8 +14,6 @@ use crate::TranspilerError;
 use crate::passes::schedule_analysis::{NodeDurations, PyNodeDurations};
 use crate::target::Target;
 use ::hashbrown::HashSet;
-use foldhash::fast::RandomState;
-use indexmap::IndexMap;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::{Bound, PyResult, pyfunction, wrap_pyfunction};
@@ -24,6 +22,7 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, PyInstruction, PyOpKind, StandardInstruction,
 };
+use qiskit_util::IndexMap;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 /// Returns the immediate successor operation nodes of a given node in the DAG.
@@ -64,7 +63,7 @@ fn get_next_gate(dag: &DAGCircuit, node_index: NodeIndex) -> impl Iterator<Item 
 fn push_node_back(
     dag: &DAGCircuit,
     node_index: NodeIndex,
-    node_start_time: &mut IndexMap<NodeIndex<u32>, u64, RandomState>,
+    node_start_time: &mut IndexMap<NodeIndex<u32>, u64>,
     clbit_write_latency: u32,
     pulse_align: u32,
     acquire_align: u32,
@@ -213,7 +212,7 @@ fn push_node_back(
 
         // Compute overlap if there is qubits overlap
         let qreg_overlap = if !this_qubits.is_disjoint(&next_qubits) {
-            new_t1q - next_t0q
+            new_t1q.saturating_sub(next_t0q)
         } else {
             0
         };
@@ -224,7 +223,7 @@ fn push_node_back(
             && !this_clbits.is_disjoint(&next_clbits)
         {
             if let (Some(t1c), Some(t0c)) = (new_t1c, next_t0c) {
-                t1c - t0c
+                t1c.saturating_sub(t0c)
             } else {
                 0
             }
@@ -273,7 +272,7 @@ pub fn py_run_constrained_reschedule(
 
 pub fn run_constrained_reschedule(
     dag: &DAGCircuit,
-    node_start_time: &mut IndexMap<NodeIndex<u32>, u64, RandomState>,
+    node_start_time: &mut IndexMap<NodeIndex<u32>, u64>,
     clbit_write_latency: u32,
     acquire_align: u32,
     pulse_align: u32,

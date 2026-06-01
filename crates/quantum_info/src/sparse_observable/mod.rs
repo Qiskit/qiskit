@@ -13,7 +13,6 @@
 mod lookup;
 
 use hashbrown::HashSet;
-use indexmap::IndexSet;
 use itertools::Itertools;
 use lookup::conjugate_bitterm;
 use ndarray::Array2;
@@ -31,6 +30,7 @@ use pyo3::{
     sync::PyOnceLock,
     types::{IntoPyDict, PyList, PyString, PyTuple, PyType},
 };
+use qiskit_util::IndexSet;
 use std::{
     cmp::Ordering,
     collections::btree_map,
@@ -3662,7 +3662,7 @@ impl PySparseObservable {
             let order = order
                 .try_iter()?
                 .map(|obj| obj.and_then(|obj| obj.extract::<u32>()))
-                .collect::<PyResult<IndexSet<u32, ::foldhash::fast::RandomState>>>()?;
+                .collect::<PyResult<IndexSet<u32>>>()?;
             if order.len() != in_length {
                 return Err(PyValueError::new_err("duplicate indices in qargs"));
             }
