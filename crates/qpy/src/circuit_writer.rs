@@ -335,26 +335,22 @@ fn pack_pauli_product_measurement(
     // since we won't recreate this gate via python, it's not important to verify the python name is identical to the one we use here
     // so we simply hard-code it instead of going through python
     let gate_class_name = String::from(PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME);
-    let z_values = GenericValue::Tuple(
-        ppm.z
-            .iter()
-            .cloned()
-            .map(|val| GenericValue::Int64(i64::from(val)))
-            .collect(),
-    );
-    let x_values = GenericValue::Tuple(
-        ppm.x
-            .iter()
-            .cloned()
-            .map(|val| GenericValue::Int64(i64::from(val)))
-            .collect(),
-    );
-    let neg_value = GenericValue::Int64(i64::from(ppm.neg));
-    let params = vec![
-        pack_generic_value(&z_values, qpy_data)?,
-        pack_generic_value(&x_values, qpy_data)?,
-        pack_generic_value(&neg_value, qpy_data)?,
-    ];
+    // Write z and x as numpy bool arrays (NumpyObject / type key 'n') so that Qiskit 2.4's
+    // Python QPY reader can load them — its `loads_value` has no handler for type key 't'
+    // (Tuple).  This also matches what the Python QPY writer produced via `_to_pauli_data()`.
+    // The phase must use Pauli's phase convention: 0 = +1, 2 = -1 (not a raw bool 0/1).
+    // TODO: revisit when QPY version 18 defines a clean format for this gate.
+    let params = Python::attach(|py| -> Result<_, QpyError> {
+        let z_array = ppm.z.to_pyarray(py);
+        let x_array = ppm.x.to_pyarray(py);
+        // Pauli phase: 0 means +1, 2 means -1 (i.e. neg)
+        let phase: i64 = if ppm.neg { 2 } else { 0 };
+        Ok(vec![
+            py_pack_param(&z_array, qpy_data, Endian::Big)?,
+            py_pack_param(&x_array, qpy_data, Endian::Big)?,
+            pack_generic_value(&GenericValue::Int64(phase), qpy_data)?,
+        ])
+    })?;
     Ok(formats::CircuitInstructionV2Pack {
         num_qargs: instruction.op.num_qubits(),
         num_cargs: instruction.op.num_clbits(),
@@ -374,31 +370,19 @@ fn pack_pauli_product_rotation(
     rotation: &PauliProductRotation,
     instruction: &PackedInstruction,
     qpy_data: &QPYWriteData,
-) -> PyResult<formats::CircuitInstructionV2Pack> {
+) -> Result<formats::CircuitInstructionV2Pack, QpyError> {
     // since we won't recreate this gate via python, it's not important to verify the python name is identical to the one we use here
     // so we simply hard-code it instead of going through python
     let gate_class_name = String::from(PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME);
-    let z_values = GenericValue::Tuple(
-        rotation
-            .z
-            .iter()
-            .cloned()
-            .map(|val| GenericValue::Int64(i64::from(val)))
-            .collect(),
-    );
-    let x_values = GenericValue::Tuple(
-        rotation
-            .x
-            .iter()
-            .cloned()
-            .map(|val| GenericValue::Int64(i64::from(val)))
-            .collect(),
-    );
-    let params = vec![
-        pack_generic_value(&z_values, qpy_data)?,
-        pack_generic_value(&x_values, qpy_data)?,
-        pack_param_obj(&rotation.angle, qpy_data, Endian::Little)?,
-    ];
+    let params = Python::attach(|py| -> Result<_, QpyError> {
+        let z_array = rotation.z.to_pyarray(py);
+        let x_array = rotation.x.to_pyarray(py);
+        Ok(vec![
+            py_pack_param(&z_array, qpy_data, Endian::Big)?,
+            py_pack_param(&x_array, qpy_data, Endian::Big)?,
+            pack_param_obj(&rotation.angle, qpy_data, Endian::Little)?,
+        ])
+    })?;
     Ok(formats::CircuitInstructionV2Pack {
         num_qargs: instruction.op.num_qubits(),
         num_cargs: 0,
