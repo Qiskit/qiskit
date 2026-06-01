@@ -84,7 +84,7 @@ class ConsolidateBlocks(TransformationPass):
     was potentially set by the :class:`.Collect1qRuns` transpiler pass.
     This functionality for "runs" has been mostly superseded by the :class:`.Optimize1qGatesDecomposition`
     transpiler pass and that should typically be used instead for a more thorough and performant
-    method of simplifying single qubit runs..
+    method of simplifying single qubit runs.
 
     This pass reads the :class:`.PropertySet` key ``ConsolidateBlocks_qubit_map`` which it uses to
     communicate with recursive worker instances of itself for control-flow operations.  The key
