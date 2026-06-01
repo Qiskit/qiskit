@@ -812,9 +812,7 @@ static int test_obs_str(void) {
 
     uint32_t indices[4] = {0, 1, 98, 99};
     size_t boundaries[3] = {0, 2, 4};
-    QkObs *obs = qk_obs_new(
-        num_qubits, num_terms, num_bits, &coeffs[0], bits, indices, boundaries
-    );
+    QkObs *obs = qk_obs_new(num_qubits, num_terms, num_bits, coeffs, bits, indices, boundaries);
     char *string = qk_obs_str(obs);
     char *expected = "<QkObs with 2 terms on 100 qubits: (1+2j)(Y_1 X_0) + (-1+0j)(-_99 +_98)>";
     int result = strcmp(string, expected);
