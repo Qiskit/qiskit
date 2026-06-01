@@ -165,13 +165,13 @@ pub fn n_local(
     entanglement: &Entanglement,
     reps: usize,
     insert_barriers: bool,
-    parameter_prefix: &String,
+    parameter_prefix: &str,
     skip_final_rotation_layer: bool,
     skip_unentangled_qubits: bool,
 ) -> Result<CircuitData, MultiLocalError> {
     // Construct the parameter ledger, which will define all free parameters and provide
     // access to them, given an index for a layer and the current gate to implement.
-    let ledger = match parameter_ledger_builder.from_nlocal(
+    let ledger = match parameter_ledger_builder.build_from_nlocal(
         num_qubits,
         reps,
         entanglement,
@@ -224,15 +224,19 @@ pub fn n_local(
             ledger.get_parameters(LayerType::Rotation, reps),
             &skipped_qubits,
         ));
-        Ok(
-            CircuitData::from_packed_operations(num_qubits, 0, packed_insts, Param::Float(0.0))?
-                .into(),
-        )
+        Ok(CircuitData::from_packed_operations(
+            num_qubits,
+            0,
+            packed_insts,
+            Param::Float(0.0),
+        )?)
     } else {
-        Ok(
-            CircuitData::from_packed_operations(num_qubits, 0, packed_insts, Param::Float(0.0))?
-                .into(),
-        )
+        Ok(CircuitData::from_packed_operations(
+            num_qubits,
+            0,
+            packed_insts,
+            Param::Float(0.0),
+        )?)
     }
 }
 
