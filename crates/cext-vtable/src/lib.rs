@@ -114,6 +114,17 @@ mod circuit_library {
             export_fn!(suzuki_trotter::qk_circuit_library_suzuki_trotter),
             export_fn!(pbc::qk_pauli_product_rotation_clear),
             export_fn!(pbc::qk_pauli_product_measurement_clear),
+            export_fn!(n_local::qk_n_local),
+            export_fn!(n_local::qk_qubit_connection_new),
+            export_fn!(n_local::qk_qubit_connection_equal),
+            export_fn!(n_local::qk_qubit_connection_free),
+            export_fn!(n_local::qk_entanglement_free),
+            export_fn!(n_local::qk_get_entanglement_layers_quantity),
+            export_fn!(n_local::qk_get_entanglement_layer_blocks_quantity),
+            export_fn!(n_local::qk_get_entanglement_qubit_connections_quantity),
+            export_fn!(n_local::qk_get_entanglement_qubit_connections),
+            export_fn!(n_local::qk_get_entanglement_with_multiple_strategy),
+            export_fn!(n_local::qk_get_entanglement_with_strategy),
         ]
     });
 }
