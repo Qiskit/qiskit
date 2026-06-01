@@ -116,6 +116,7 @@ pub enum EntanglementStrategy {
 /// @param parameter_prefix The prefix used for the default parameters generated.
 /// @param insert_barriers If ``true``, barriers are inserted in between each layer. If ``false``,
 ///   no barriers are inserted.
+/// @param skip_final_rotation_layer Whether a final rotation layer is added to the circuit.
 ///
 /// @return A pointer to the generated circuit.
 ///

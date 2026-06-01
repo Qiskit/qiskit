@@ -167,7 +167,7 @@ static int test_entanglement_by_strategy(void) {
         {3, 4, 0}, {4, 0, 1}, {0, 1, 2}, {1, 2, 3}, {2, 3, 4}};
     uint32_t expected_connections_sca[5][3] = {{0}};
 
-    for (size_t strategy = 0; strategy < 5; strategy++) {
+    for (QkEntanglementStrategy strategy = 0; strategy < 5; strategy++) {
 
         QkEntanglement *entanglement =
             qk_get_entanglement_with_strategy(5, reps, strategy, entanglement_blocks, 1);
