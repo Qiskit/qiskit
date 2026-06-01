@@ -288,16 +288,16 @@ class TestPBCPassManager(QiskitTestCase):
         pm1 = generate_preset_pbc_pass_manager(seed_transpiler=0, hls_config=config1)
         qct1 = pm1.run(qc)
         ops1 = qct1.count_ops()
+        self.assertEqual(set(ops1), {"pauli_product_rotation"})
 
         config2 = HLSConfig(mcx=["1_dirty_kg24"])
         pm2 = generate_preset_pbc_pass_manager(seed_transpiler=0, hls_config=config2)
         qct2 = pm2.run(qc)
         ops2 = qct2.count_ops()
+        self.assertEqual(set(ops2), {"pauli_product_rotation"})
 
         # Specifying two different configs leads to different circuits
-        self.assertEqual(set(ops1), {"pauli_product_rotation"})
-        self.assertEqual(set(ops2), {"pauli_product_rotation"})
-        self.assertNotEqual(ops1, ops2)
+        self.assertNotEqual(qct1, qct2)
 
     def test_qubits_initially_zero(self):
         """Test that PBC pipeline takes test_qubits_initially_zero into account."""
@@ -312,17 +312,17 @@ class TestPBCPassManager(QiskitTestCase):
         )
         qct1 = pm1.run(qc)
         ops1 = qct1.count_ops()
+        self.assertEqual(set(ops1), {"pauli_product_rotation"})
 
         pm2 = generate_preset_pbc_pass_manager(
             seed_transpiler=0, hls_config=config, qubits_initially_zero=True
         )
         qct2 = pm2.run(qc)
         ops2 = qct2.count_ops()
+        self.assertEqual(set(ops2), {"pauli_product_rotation"})
 
         # Specifying different values for qubits_initially_zero leads  to different circuits
-        self.assertEqual(set(ops1), {"pauli_product_rotation"})
-        self.assertEqual(set(ops2), {"pauli_product_rotation"})
-        self.assertNotEqual(ops1, ops2)
+        self.assertNotEqual(qct1, qct2)
 
     def test_unitary_synthesis_method(self):
         """Test that PBC pipeline takes unitary_synthesis_method into account."""
@@ -345,6 +345,7 @@ class TestPBCPassManager(QiskitTestCase):
         )
         qct1 = pm1.run(qc)
         ops1 = qct1.count_ops()
+        self.assertEqual(set(ops1), {"pauli_product_rotation"})
 
         pm2 = generate_preset_pbc_pass_manager(
             seed_transpiler=0,
@@ -353,11 +354,10 @@ class TestPBCPassManager(QiskitTestCase):
         )
         qct2 = pm2.run(qc)
         ops2 = qct2.count_ops()
+        self.assertEqual(set(ops2), {"pauli_product_rotation"})
 
         # Specifying different configs leads  to different circuits
-        self.assertEqual(set(ops1), {"pauli_product_rotation"})
-        self.assertEqual(set(ops2), {"pauli_product_rotation"})
-        self.assertNotEqual(ops1, ops2)
+        self.assertNotEqual(qct1, qct2)
 
     def test_redefine_translation_stage(self):
         """Test that one is able to redefine individual stages of the PBC pipeline."""
