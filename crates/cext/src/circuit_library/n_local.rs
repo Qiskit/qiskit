@@ -328,6 +328,7 @@ pub unsafe extern "C" fn qk_qubit_connection_free(qubit_connection: *mut QubitCo
 /// # Example
 ///
 /// ```c
+/// int reps = 1;
 /// QkGate rotation_blocks[1] = {QkGate_H};
 /// QkGate entanglement_blocks[1] = {QkGate_CRX};
 /// QkEntanglement *entanglement = qk_get_entanglement_with_strategy(
@@ -361,12 +362,11 @@ fn get_entanglement_with_strategy(
 ) -> Entanglement {
     Entanglement(
         (0..reps)
-            .zip(entanglement_strategy)
-            .map(|(layer, strategy)| {
+            .map(|layer| {
                 get_layer_entanglement_with_strategy(
                     num_qubits,
-                    &entanglement_blocks,
-                    strategy,
+                    entanglement_blocks,
+                    entanglement_strategy,
                     layer,
                 )
             })
@@ -377,18 +377,19 @@ fn get_entanglement_with_strategy(
 fn get_layer_entanglement_with_strategy(
     num_qubits: u32,
     entanglement_blocks: &[&StandardGate],
-    entanglement_strategy: &str,
+    entanglement_strategy: &[&str],
     layer_index: usize,
 ) -> LayerEntanglement {
     LayerEntanglement(
         entanglement_blocks
             .iter()
-            .map(|gate| {
+            .zip(entanglement_strategy.iter())
+            .map(|(gate, &strategy)| {
                 get_block_qubit_connections_with_strategy(
                     num_qubits,
                     gate,
-                    entanglement_strategy,
-                    (entanglement_strategy == "sca").then_some(layer_index),
+                    strategy,
+                    (strategy == "sca").then_some(layer_index),
                 )
             })
             .collect(),
