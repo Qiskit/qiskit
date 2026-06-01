@@ -132,6 +132,7 @@ pub extern "C" fn qk_obs_identity(num_qubits: u32) -> *mut SparseObservable {
 ///    QkObs *obs = qk_obs_new(
 ///        num_qubits, num_terms, num_bits, coeffs, bits, indices, boundaries
 ///    );
+///    qk_obs_free(obs);
 /// ```
 ///
 /// # Safety
@@ -1032,15 +1033,15 @@ pub unsafe extern "C" fn qk_obs_str(obs: *const SparseObservable) -> *mut c_char
     );
 
     let str_terms = if num_terms == 0 {
-            "0.0".to_owned()
-        } else {
-            obs.iter()
-                .map(SparseTermView::to_sparse_str)
-                .collect::<Vec<_>>()
-                .join(" + ")
-        };
+        "0.0".to_owned()
+    } else {
+        obs.iter()
+            .map(SparseTermView::to_sparse_str)
+            .collect::<Vec<_>>()
+            .join(" + ")
+    };
 
-    let obs_str = format!("<SparseObservable with {str_num_terms} on {str_num_qubits}: {str_terms}>");
+    let obs_str = format!("<QkObs with {str_num_terms} on {str_num_qubits}: {str_terms}>");
     CString::new(obs_str).unwrap().into_raw()
 }
 
@@ -1099,7 +1100,13 @@ pub unsafe extern "C" fn qk_obsterm_str(term: *const CSparseTerm) -> *mut c_char
     let term = unsafe { const_ptr_as_ref(term) };
 
     let view: SparseTermView = term.try_into().unwrap();
-    let string: String = format!("{view:?}");
+
+    let string: String = format!(
+        "<QkObsTerm on {} qubit{}: {}>",
+        view.num_qubits,
+        if view.num_qubits == 1 { "" } else { "s" },
+        view.to_sparse_str()
+    );
     CString::new(string).unwrap().into_raw()
 }
 
