@@ -19,7 +19,7 @@ from .base_tasks import Task, IR, Callback, PassManagerState
 from .exceptions import PassManagerError
 
 
-class OptimizationPassManager(Task[IR, IR]):
+class PreservingPassManager(Task[IR, IR]):
     """Execute a series of tasks, remaining in a single IR."""
 
     def __init__(self, tasks: Iterable[Task[IR, IR]] | None) -> None:

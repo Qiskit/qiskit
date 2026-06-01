@@ -22,7 +22,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.passmanager.flow_controllers import ConditionalController
 from qiskit.passmanager.compilation_status import PassManagerState, PropertySet, WorkflowStatus
 from qiskit.passmanager.exceptions import PassManagerError
-from qiskit.passmanager.optimization_pm import OptimizationPassManager
+from qiskit.passmanager.preserving_pm import PreservingPassManager
 from qiskit.transpiler import generate_preset_clifford_t_pass_manager
 import qiskit.transpiler.passes as dag_passes
 from .tasks import (
@@ -35,25 +35,25 @@ from .tasks import (
 )
 
 
-class TestOptimizationPassManager(QiskitTestCase):
+class TestPreservingPassManager(QiskitTestCase):
     """Test the optimization pass manager."""
 
     def setUp(self):
         super().setUp()
-        self.circuit_pm = OptimizationPassManager(
+        self.circuit_pm = PreservingPassManager(
             [CircuitNoOp(), CircuitRemoveBarriers(), CircuitRemoveIdentity(), CircuitAnalysis()]
         )
 
     def test_no_tasks(self):
         """Test that empty task lists."""
         with self.subTest("None"):
-            self.assertEqual([], OptimizationPassManager(None).tasks)
+            self.assertEqual([], PreservingPassManager(None).tasks)
 
         with self.subTest("empty list"):
-            self.assertEqual([], OptimizationPassManager([]).tasks)
+            self.assertEqual([], PreservingPassManager([]).tasks)
 
         with self.subTest("empty iter"):
-            self.assertEqual([], OptimizationPassManager(iter([])).tasks)
+            self.assertEqual([], PreservingPassManager(iter([])).tasks)
 
     def test_run(self):
         """Test running an optimization PM."""
@@ -105,7 +105,7 @@ class TestOptimizationPassManager(QiskitTestCase):
 
     def test_run_initial_property_set(self):
         """Test that a pre-populated property_set passed to run is visible to tasks."""
-        pm = OptimizationPassManager([RequireKey("clean_socks")])
+        pm = PreservingPassManager([RequireKey("clean_socks")])
 
         circuit = QuantumCircuit()
         with self.subTest("valid property set"):
@@ -140,12 +140,12 @@ class TestOptimizationPassManager(QiskitTestCase):
     def test_tasks(self):
         """Test that the tasks property returns the current task list."""
         tasks = [CircuitNoOp(), CircuitNoOp()]
-        pm = OptimizationPassManager(tasks)
+        pm = PreservingPassManager(tasks)
         self.assertEqual(pm.tasks, tasks)
 
     def test_append_tasks(self):
         """Test appending tasks."""
-        pm = OptimizationPassManager([])
+        pm = PreservingPassManager([])
 
         noop = CircuitNoOp()
         pm.append(noop)
@@ -156,7 +156,7 @@ class TestOptimizationPassManager(QiskitTestCase):
 
     def test_append_invalid_type(self):
         """Test that appending a non-Task object raises TypeError."""
-        pm = OptimizationPassManager([])
+        pm = PreservingPassManager([])
         with self.assertRaises(TypeError):
             pm.append("not tonight, mate")
 
@@ -165,25 +165,25 @@ class TestOptimizationPassManager(QiskitTestCase):
         noop = CircuitNoOp()
         barriers = CircuitRemoveBarriers()
 
-        pm = OptimizationPassManager([barriers])
+        pm = PreservingPassManager([barriers])
         pm.replace(0, noop)
         self.assertEqual(noop, pm.tasks[0])
 
     def test_replace_out_of_bounds(self):
         """Test that replace with an out-of-bounds index raises PassManagerError."""
-        pm = OptimizationPassManager([])
+        pm = PreservingPassManager([])
         with self.assertRaises(PassManagerError):
             pm.replace(42, CircuitNoOp())
 
     def test_remove(self):
         """Test removing."""
-        pm = OptimizationPassManager([CircuitNoOp()])
+        pm = PreservingPassManager([CircuitNoOp()])
         pm.remove(0)
         self.assertEqual(0, len(pm.tasks))
 
     def test_remove_out_of_bounds(self):
         """Test removing out of bounds fails."""
-        pm = OptimizationPassManager([])
+        pm = PreservingPassManager([])
         with self.assertRaises(PassManagerError):
             pm.remove(0)
 
@@ -245,9 +245,9 @@ class TestOptimizationPassManager(QiskitTestCase):
         self.assertEqual(out, final)
 
     def test_nested_as_task(self):
-        """Test that an OptimizationPassManager can itself be used as a task inside another one."""
-        inner = OptimizationPassManager([CircuitNoOp()] * 10)
-        outer = OptimizationPassManager([CircuitNoOp(), inner])
+        """Test that an PreservingPassManager can itself be used as a task inside another one."""
+        inner = PreservingPassManager([CircuitNoOp()] * 10)
+        outer = PreservingPassManager([CircuitNoOp(), inner])
 
         state = PassManagerState(workflow_status=WorkflowStatus(), property_set=PropertySet())
         _, state = outer.execute(QuantumCircuit(), state)
@@ -262,7 +262,7 @@ class TestOptimizationPassManager(QiskitTestCase):
                 raise RuntimeError("Required `ops` property is missing")
             return "barrier" in ops
 
-        pm = OptimizationPassManager(
+        pm = PreservingPassManager(
             [CircuitAnalysis(), ConditionalController(CircuitRemoveBarriers(), if_has_barrier)]
         )
 
@@ -287,7 +287,7 @@ class TestOptimizationPassManager(QiskitTestCase):
 
     def test_dag_optimization(self):
         """Test compatibility with existing passes on the DAG."""
-        pm = OptimizationPassManager(
+        pm = PreservingPassManager(
             [
                 dag_passes.Collect2qBlocks(),
                 dag_passes.ConsolidateBlocks(),
@@ -311,7 +311,7 @@ class TestOptimizationPassManager(QiskitTestCase):
 
     def test_generate_preset_as_task(self):
         """Test using a generate preset PM as task."""
-        pm = OptimizationPassManager(
+        pm = PreservingPassManager(
             [
                 DAGRemoveBarriers(),
                 generate_preset_clifford_t_pass_manager(basis_gates=["t", "h", "cx"]),

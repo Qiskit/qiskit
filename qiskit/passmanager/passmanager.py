@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Manager for a set of Passes and their scheduling during transpilation."""
+
 from __future__ import annotations
 
 import logging
@@ -26,12 +27,12 @@ from .base_tasks import Task, IR
 from .exceptions import PassManagerError
 from .flow_controllers import FlowControllerLinear
 from .compilation_status import PropertySet, WorkflowStatus, PassManagerState
-from .optimization_pm import OptimizationPassManager
+from .preserving_pm import PreservingPassManager
 
 logger = logging.getLogger(__name__)
 
 
-class BasePassManager(OptimizationPassManager[IR], ABC, Generic[IR]):
+class BasePassManager(PreservingPassManager[IR], ABC, Generic[IR]):
     """Pass manager base class."""
 
     def __init__(
