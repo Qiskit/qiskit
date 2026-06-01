@@ -77,16 +77,15 @@ from .common import (
 )
 from .generate_preset_pass_manager import (
     generate_preset_clifford_t_pass_manager,
-    generate_preset_pbc_pass_manager,
     generate_preset_pass_manager,
 )
+from .pbc import generate_preset_pbc_pass_manager
 
 from .level0 import level_0_pass_manager
 from .level1 import level_1_pass_manager
 from .level2 import level_2_pass_manager
 from .level3 import level_3_pass_manager
 from .clifford_t import clifford_t_pass_manager
-from .pbc import pbc_pass_manager
 
 from . import plugin
 
@@ -108,6 +107,5 @@ __all__ = [
     "level_1_pass_manager",
     "level_2_pass_manager",
     "level_3_pass_manager",
-    "pbc_pass_manager",
     "plugin",
 ]
