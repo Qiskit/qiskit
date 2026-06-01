@@ -20,12 +20,12 @@ from qiskit import user_config
 
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passmanager import StagedPassManager
-from qiskit.transpiler.preset_passmanagers.pbc.pbc_plugins import (
+from qiskit.transpiler.preset_passmanagers.pbc.plugins import (
     PassManagerPBCConfig,
-    PBCUnrollPassManager,
-    PBCOptimizePassManager,
-    PBCTranslateToPBCPassManager,
-    PBCOptimizePBCPassManager,
+    UnrollPassManager,
+    OptimizePassManager,
+    TranslateToPBCPassManager,
+    OptimizePBCPassManager,
 )
 from qiskit.transpiler.preset_passmanagers.generate_preset_pass_manager import (
     _parse_approximation_degree,
@@ -65,16 +65,16 @@ def pbc_pass_manager(
     if optimization_level not in [0, 1, 2, 3]:
         raise TranspilerError(f"Invalid optimization level {optimization_level}")
 
-    unrolling = PBCUnrollPassManager().pass_manager(
+    unrolling = UnrollPassManager().pass_manager(
         pass_manager_config, optimization_level=optimization_level
     )
-    optimization = PBCOptimizePassManager().pass_manager(
+    optimization = OptimizePassManager().pass_manager(
         pass_manager_config, optimization_level=optimization_level
     )
-    pbc_translation = PBCTranslateToPBCPassManager().pass_manager(
+    pbc_translation = TranslateToPBCPassManager().pass_manager(
         pass_manager_config, optimization_level=optimization_level
     )
-    pbc_optimization = PBCOptimizePBCPassManager().pass_manager(
+    pbc_optimization = OptimizePBCPassManager().pass_manager(
         pass_manager_config, optimization_level=optimization_level
     )
 

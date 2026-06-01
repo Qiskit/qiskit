@@ -107,7 +107,7 @@ class PassManagerPBCStagePlugin(abc.ABC):
         """
 
 
-class PBCUnrollPassManager(PassManagerPBCStagePlugin):
+class UnrollPassManager(PassManagerPBCStagePlugin):
     """
     PBC transpilation stage, which decomposes circuit instruction into standard gates and instructions.
     """
@@ -146,7 +146,7 @@ class PBCUnrollPassManager(PassManagerPBCStagePlugin):
         return pm
 
 
-class PBCOptimizePassManager(PassManagerPBCStagePlugin):
+class OptimizePassManager(PassManagerPBCStagePlugin):
     """
     PBC transpilation stage, which optimizes circuits with standard gates and instructions.
     """
@@ -187,7 +187,7 @@ class PBCOptimizePassManager(PassManagerPBCStagePlugin):
         return pm
 
 
-class PBCTranslateToPBCPassManager(PassManagerPBCStagePlugin):
+class TranslateToPBCPassManager(PassManagerPBCStagePlugin):
     """
     PBC transpilation stage, which translates circuits with standard gates and instructions
     into Pauli-based circuits.
@@ -216,7 +216,7 @@ class PBCTranslateToPBCPassManager(PassManagerPBCStagePlugin):
         return pm
 
 
-class PBCOptimizePBCPassManager(PassManagerPBCStagePlugin):
+class OptimizePBCPassManager(PassManagerPBCStagePlugin):
     """
     PBC transpilation stage, which optimizes Pauli-based circuits.
     """

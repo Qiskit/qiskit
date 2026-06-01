@@ -12,18 +12,18 @@
 
 """Transpilation into PBC (Pauli Based Computation)."""
 
-from .pbc_plugins import (
-    PBCUnrollPassManager,
-    PBCOptimizePassManager,
-    PBCTranslateToPBCPassManager,
-    PBCOptimizePBCPassManager,
+from .plugins import (
+    UnrollPassManager,
+    OptimizePassManager,
+    TranslateToPBCPassManager,
+    OptimizePBCPassManager,
 )
-from .pbc_pass_manager import generate_preset_pbc_pass_manager
+from .pass_manager import generate_preset_pbc_pass_manager
 
 __all__ = [
-    "PBCOptimizePBCPassManager",
-    "PBCOptimizePassManager",
-    "PBCTranslateToPBCPassManager",
-    "PBCUnrollPassManager",
+    "OptimizePBCPassManager",
+    "OptimizePassManager",
+    "TranslateToPBCPassManager",
+    "UnrollPassManager",
     "generate_preset_pbc_pass_manager",
 ]
