@@ -16,40 +16,40 @@
 #include <string.h>
 
 static int test_nlocal_circuit_creation(void) {
-    size_t num_qubits = 5;
+    uint32_t num_qubits = 5;
     int reps = 2;
 
     QkCircuit *expected = qk_circuit_new(num_qubits, 0);
 
     // Add first rotation layer for X Gate
-    for (size_t i = 0; i < num_qubits; i++) {
+    for (uint32_t i = 0; i < num_qubits; i++) {
         qk_circuit_gate(expected, QkGate_X, (uint32_t[1]){i}, NULL);
     }
 
     qk_circuit_barrier(expected, (uint32_t[5]){0, 1, 2, 3, 4}, 5);
 
     // Add first entanglement layer for CCX Gate
-    for (size_t i = 0; i < 3; i++) {
+    for (uint32_t i = 0; i < 3; i++) {
         qk_circuit_gate(expected, QkGate_CCX, (uint32_t[3]){i, i + 1, i + 2}, NULL);
     }
 
     qk_circuit_barrier(expected, (uint32_t[5]){0, 1, 2, 3, 4}, 5);
 
     // Add second rotation layer for X Gate
-    for (size_t i = 0; i < num_qubits; i++) {
+    for (uint32_t i = 0; i < num_qubits; i++) {
         qk_circuit_gate(expected, QkGate_X, (uint32_t[1]){i}, NULL);
     }
 
     qk_circuit_barrier(expected, (uint32_t[5]){0, 1, 2, 3, 4}, 5);
 
     // Add second entanglement layer for CCX Gate
-    for (size_t i = 0; i < 3; i++) {
+    for (uint32_t i = 0; i < 3; i++) {
         qk_circuit_gate(expected, QkGate_CCX, (uint32_t[3]){i, i + 1, i + 2}, NULL);
     }
     qk_circuit_barrier(expected, (uint32_t[5]){0, 1, 2, 3, 4}, 5);
 
     // Add final rotation layer for X Gate
-    for (size_t i = 0; i < num_qubits; i++) {
+    for (uint32_t i = 0; i < num_qubits; i++) {
         qk_circuit_gate(expected, QkGate_X, (uint32_t[1]){i}, NULL);
     }
 
@@ -73,7 +73,7 @@ static int test_nlocal_circuit_creation(void) {
 
 static int test_parameter_prefix(void) {
     int result = Ok;
-    size_t num_qubits = 2;
+    uint32_t num_qubits = 2;
     int reps = 2;
 
     QkGate rotation_blocks[1] = {QkGate_H};
@@ -204,7 +204,7 @@ static int test_entanglement_by_strategy(void) {
                 expected_connections_length = 5;
                 for (size_t k = 0; k < expected_connections_length; k++) {
                     int offset = ((int)k) - ((int)i);
-                    int ind = offset >= 0 ? offset : expected_connections_length + offset;
+                    int ind = offset >= 0 ? offset : ((int)expected_connections_length) + offset;
                     for (size_t m = 0; m < 3; m++) {
                         expected_connections_sca[k][m] =
                             expected_connections_circular[ind][i % 2 == 1 ? 2 - m : m];
