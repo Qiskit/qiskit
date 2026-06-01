@@ -167,6 +167,8 @@ static int test_entanglement_by_strategy(void) {
         {3, 4, 0}, {4, 0, 1}, {0, 1, 2}, {1, 2, 3}, {2, 3, 4}};
     uint32_t expected_connections_sca[5][3] = {{0}};
 
+    uint32_t(*expected_connections)[3] = NULL;
+    uint32_t expected_connections_length;
     for (QkEntanglementStrategy strategy = 0; strategy < 5; strategy++) {
 
         QkEntanglement *entanglement =
@@ -185,8 +187,6 @@ static int test_entanglement_by_strategy(void) {
             if (break_loop)
                 break;
 
-            uint32_t (*expected_connections)[3] = NULL;
-            uint32_t expected_connections_length;
             switch (strategy) {
             case QkEntanglementStrategy_Full:
                 expected_connections = expected_connections_full;
