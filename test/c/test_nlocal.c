@@ -113,13 +113,12 @@ static int test_entanglement_by_multiple_strategy(void) {
     int reps = 1;
     int num_qubits = 5;
 
-    QkGate entanglement_blocks[2] = {QkGate_CCX, QkGate_CSwap};
-
-    QkEntanglementStrategy strategies[2] = {QkEntanglementStrategy_Linear,
-                                            QkEntanglementStrategy_ReverseLinear};
-
     uint32_t expected_connections[6][3] = {{0, 1, 2}, {1, 2, 3}, {2, 3, 4},
                                            {2, 3, 4}, {1, 2, 3}, {0, 1, 2}};
+
+    QkGate entanglement_blocks[2] = {QkGate_CCX, QkGate_CSwap};
+    QkEntanglementStrategy strategies[2] = {QkEntanglementStrategy_Linear,
+                                            QkEntanglementStrategy_ReverseLinear};
 
     QkEntanglement *entanglement = qk_get_entanglement_with_multiple_strategy(
         num_qubits, reps, strategies, 2, entanglement_blocks, 2);
