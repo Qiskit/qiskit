@@ -37,9 +37,9 @@ use qiskit_circuit::duration::Duration;
 use qiskit_circuit::imports;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
-    ArrayType, BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction,
-    Operation, OperationRef, Param, PauliProductMeasurement, PauliProductRotation, PyInstruction,
-    PyOpKind, StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
+    BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction, Operation,
+    OperationRef, Param, PauliProductMeasurement, PauliProductRotation, PyInstruction, PyOpKind,
+    StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
@@ -582,14 +582,14 @@ fn pack_unitary_gate(
     // unitary gates are special since they are uniquely determined by a matrix, which is not
     // a "parameter", strictly speaking, but is treated as such when serializing
 
+    let matrix = unitary_gate.matrix().ok_or_else(|| {
+        QpyError::InvalidParameter("Could not read matrix for unitary gate".to_string())
+    })?;
+
     // until we change the QPY version or verify we get the exact same result,
     // we translate the matrix to numpy and then serialize it like python does
     let params = Python::attach(|py| -> Result<_, QpyError> {
-        let out_array = match &unitary_gate.array {
-            ArrayType::NDArray(arr) => arr.to_pyarray(py),
-            ArrayType::OneQ(arr) => arr.to_pyarray(py),
-            ArrayType::TwoQ(arr) => arr.to_pyarray(py),
-        };
+        let out_array = matrix.to_pyarray(py);
         Ok(vec![py_pack_param(&out_array, qpy_data, Endian::Little)?])
     })?;
     // since we won't recreate this gate via python, it's not important to verify the python name is identical to the one we use here
