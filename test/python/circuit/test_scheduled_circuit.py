@@ -157,8 +157,13 @@ class TestScheduledCircuit(QiskitTestCase):
             qc, backend=self.backend_with_dt, scheduling_method="alap", layout_method="trivial"
         )
         target_durations = self.backend_with_dt.target.durations()
+        # The longest path output is 3 sx gates 1 cx(1,) and two delays for
+        # alignment
+        cx_duration = target_durations.get("cx", (1, 0))
+        sx_duration = target_durations.get("sx", (0,))
+        expected_duration = sx_duration * 3 + cx_duration + 270 + 15
         with self.assertWarns(DeprecationWarning):
-            self.assertEqual(scheduled.duration, target_durations.get("cx", (0, 1)) + 450)
+            self.assertEqual(scheduled.duration, expected_duration)
 
     def test_transpile_circuit_with_custom_instruction(self):
         """See: https://github.com/Qiskit/qiskit-terra/issues/5154"""
@@ -239,8 +244,11 @@ class TestScheduledCircuit(QiskitTestCase):
             qc, backend=self.backend_with_dt, scheduling_method="alap", layout_method="trivial"
         )
         target_durations = self.backend_with_dt.target.durations()
+        cx_duration = target_durations.get("cx", (1, 0))
+        sx_duration = target_durations.get("sx", (0,))
+        expected_duration = cx_duration + 3 * sx_duration + 320 + 15
         with self.assertWarns(DeprecationWarning):
-            self.assertEqual(scheduled.duration, target_durations.get("cx", (0, 1)) + 500)
+            self.assertEqual(scheduled.duration, expected_duration)
 
     def test_per_qubit_durations(self):
         """Test target with custom instruction_durations"""

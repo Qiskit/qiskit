@@ -10,8 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use indexmap::IndexMap;
 use ndarray::prelude::*;
+use qiskit_util::IndexMap;
 use rustworkx_core::petgraph::prelude::*;
 
 use qiskit_circuit::PhysicalQubit;
@@ -33,7 +33,7 @@ use super::vec_map::VecMap;
 #[derive(Clone, Debug)]
 pub struct Layer {
     /// Map of the (index to the) node to the qubits it acts on.
-    nodes: IndexMap<NodeIndex, [PhysicalQubit; 2], ::foldhash::fast::RandomState>,
+    nodes: IndexMap<NodeIndex, [PhysicalQubit; 2]>,
     /// Map of each qubit to the node that acts on it and the other qubit that node acts on, if this
     /// qubit is active (otherwise `None`).
     qubits: VecMap<PhysicalQubit, Option<(NodeIndex, PhysicalQubit)>>,
@@ -73,7 +73,7 @@ impl Layer {
 
     /// Remove a node from the layer.
     pub fn remove(&mut self, index: &NodeIndex) {
-        // The actual order in the indexmap doesn't matter as long as it's reproducible.
+        // The actual order in the qiskit_util doesn't matter as long as it's reproducible.
         // Swap-remove is more efficient than a full shift-remove.
         let [a, b] = self
             .nodes
