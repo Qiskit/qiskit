@@ -7755,7 +7755,7 @@ class QuantumCircuit:
 
         ..math::
           :label: estimated circuit fidelity
-          
+
           \\prod_{g \\in \\text{gates}} \\bigl(1 - \\operatorname{error}(g)\\bigr)
 
         where :math:`\\operatorname{error}(g)` is the error rate in the target for the instruction :math:`g` from the circuit

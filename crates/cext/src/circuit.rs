@@ -2262,7 +2262,7 @@ pub unsafe extern "C" fn qk_circuit_copy_empty_like(
 }
 
 /// @ingroup QkCircuit
-/// Estimate the fidelity of a physical circuit
+/// Estimate the fidelity of a physical circuit.
 ///
 /// This function will compute the product of the error rates for each
 /// gate in the circuit to estimate the fidelity of the circuit. This method is not
@@ -2272,17 +2272,17 @@ pub unsafe extern "C" fn qk_circuit_copy_empty_like(
 /// outputs against each other to estimate which one would produce a better quality execution on
 /// hardware.
 ///
-/// @param circuit A pointer to the circuit to copy.
+/// @param circuit A pointer to the circuit to estimate the fidelity of.
 /// @param target A pointer to the target that the circuit will be executed on. This is
-///     used to get the error rates for the instructions in the circuit. This function will
-///     return NaN if the circuit is not physical.
+///     used to get the error rates for the instructions in the circuit.
 ///
-/// @return The computed fidelity of the circuit.
+/// @return The computed fidelity of the circuit. This will return NaN if the circuit is not
+///     physical, meaning there are instructions in `circuit` not supported by `target`.
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``circuit`` and ``target`` are not a valid, non-null pointer to a
-/// ``QkCircuit`` .
+/// Behavior is undefined if `circuit` and `target` are not a valid, non-null pointer to a
+/// `QkCircuit` and `QkTarget` respectively.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_estimate_fidelity(
     circuit: *const CircuitData,
