@@ -95,7 +95,7 @@ impl ParameterLedger {
 
 pub trait LedgerBuilder {
     fn build_parameter_vector(
-        parameter_prefix: &String,
+        parameter_prefix: &str,
         num_parameters: usize,
     ) -> Result<Vec<Param>, ParameterLedgerError>;
 
@@ -103,7 +103,7 @@ pub trait LedgerBuilder {
     /// ``ParameterVector`` of adequate size and compute all required indices to access
     /// parameter of a specific layer.
     #[allow(clippy::too_many_arguments)]
-    fn from_nlocal(
+    fn build_from_nlocal(
         &self,
         num_qubits: u32,
         reps: usize,
@@ -111,7 +111,7 @@ pub trait LedgerBuilder {
         rotation_blocks: &[&Block],
         entanglement_blocks: &[&Block],
         skip_final_rotation_layer: bool,
-        parameter_prefix: &String,
+        parameter_prefix: &str,
     ) -> Result<ParameterLedger, ParameterLedgerError> {
         // if we keep the final layer (i.e. skip=false), add parameters on the final layer
         let final_layer_rep = match skip_final_rotation_layer {
@@ -181,7 +181,7 @@ pub struct ParameterLedgerBuilder;
 
 impl LedgerBuilder for ParameterLedgerBuilder {
     fn build_parameter_vector(
-        parameter_prefix: &String,
+        parameter_prefix: &str,
         num_parameters: usize,
     ) -> Result<Vec<Param>, ParameterLedgerError> {
         Ok((0..num_parameters)
@@ -203,7 +203,7 @@ pub struct PyParameterLedgerBuilder;
 
 impl LedgerBuilder for PyParameterLedgerBuilder {
     fn build_parameter_vector(
-        parameter_prefix: &String,
+        parameter_prefix: &str,
         num_parameters: usize,
     ) -> Result<Vec<Param>, ParameterLedgerError> {
         // generate a ParameterVector Python-side, containing all parameters, and then
