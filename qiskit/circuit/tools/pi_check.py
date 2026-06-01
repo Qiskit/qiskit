@@ -18,6 +18,8 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.exceptions import QiskitError
 
 MAX_FRAC = 16
+# Max denominator k for pi/k in the fourth check (2-digit denominators; see pi_check).
+MAX_PI_FRAC = 99
 N, D = np.meshgrid(np.arange(1, MAX_FRAC + 1), np.arange(1, MAX_FRAC + 1))
 FRAC_MESH = N / D * np.pi
 RECIP_MESH = N / D / np.pi
@@ -124,9 +126,8 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
         val = np.pi / single_inpt
         denom = int(abs(round(val)))
         if denom >= 1:
-            reciprocal_close = abs(abs(val) - denom) < eps
             angle_close = abs(abs(single_inpt) - np.pi / denom) < eps
-            if reciprocal_close or (angle_close and denom <= MAX_FRAC):
+            if angle_close and denom <= MAX_PI_FRAC:
                 if output == "latex":
                     str_out = f"\\frac{{{neg_str}{pi}}}{{{denom}}}"
                 else:
