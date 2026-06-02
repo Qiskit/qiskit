@@ -53,6 +53,7 @@ jobs:
       - miri
       - qpy
       - neko
+      - pyo3-ffi
     # This job needs to trigger even if its predecessors failed and return the same status.  By
     # default, GitHub Actions will "skip" the job if a requirement failed, but that counts as a
     # "success" state, which is not acceptable for a branch-protection rule.  We don't use `always`
@@ -82,6 +83,13 @@ jobs:
     uses: ./.github/workflows/lint.yml
     with:
       python-version: ${{ needs.config.outputs.python-old }}
+      runner: ${{ needs.config.outputs.runner-linux-x86_64 }}
+
+  pyo3-ffi:
+    name: pyo3-ffi
+    needs: config
+    uses: ./.github/workflows/pyo3-ffi.yml
+    with:
       runner: ${{ needs.config.outputs.runner-linux-x86_64 }}
 
   test-linux:
