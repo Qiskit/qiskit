@@ -18,8 +18,8 @@ use basis_search::basis_search;
 use compose_transforms::compose_transforms;
 use errors::BasisTranslatorError;
 use hashbrown::{HashMap, HashSet};
-use indexmap::{IndexMap, IndexSet};
 use pyo3::prelude::*;
+use qiskit_util::{IndexMap, IndexSet};
 use rustworkx_core::petgraph::algo::toposort;
 
 mod basis_search;
@@ -45,8 +45,8 @@ use crate::target::Qargs;
 use crate::target::QargsRef;
 use crate::target::Target;
 
-type AhashIndexMap<K, V> = IndexMap<K, V, foldhash::fast::RandomState>;
-type AhashIndexSet<O> = IndexSet<O, foldhash::fast::RandomState>;
+type AhashIndexMap<K, V> = IndexMap<K, V>;
+type AhashIndexSet<O> = IndexSet<O>;
 type InstMap = AhashIndexMap<GateIdentifier, BasisTransformOut>;
 type ExtraInstructionMap<'a> = AhashIndexMap<&'a PhysicalQargs, InstMap>;
 type PhysicalQargs = SmallVec<[PhysicalQubit; 2]>;

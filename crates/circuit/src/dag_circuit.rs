@@ -51,8 +51,8 @@ use crate::{
 use qiskit_util::py::{PySequenceIndex, SequenceIndex};
 
 use hashbrown::{HashMap, HashSet};
-use indexmap::{IndexMap, IndexSet};
 use itertools::{EitherOrBoth, Itertools};
+use qiskit_util::{IndexMap, IndexSet};
 
 use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::{
@@ -383,7 +383,7 @@ pub struct DAGCircuit {
     var_io_map: Vec<[NodeIndex; 2]>,
 
     /// Operation kind to count
-    op_names: IndexMap<String, usize, RandomState>,
+    op_names: IndexMap<String, usize>,
 }
 
 #[derive(Clone, Debug)]
@@ -800,18 +800,18 @@ impl DAGCircuit {
         let dict_state = state.cast_bound::<PyDict>(py)?;
         self.name = dict_state.get_item("name")?.unwrap().extract()?;
         self.metadata = dict_state.get_item("metadata")?.unwrap().extract()?;
-        self.qregs =
-            RegisterData::from_mapping(dict_state.get_item("qregs")?.unwrap().extract::<IndexMap<
-                String,
-                QuantumRegister,
-                ::foldhash::fast::RandomState,
-            >>()?);
-        self.cregs =
-            RegisterData::from_mapping(dict_state.get_item("cregs")?.unwrap().extract::<IndexMap<
-                String,
-                ClassicalRegister,
-                ::foldhash::fast::RandomState,
-            >>()?);
+        self.qregs = RegisterData::from_mapping(
+            dict_state
+                .get_item("qregs")?
+                .unwrap()
+                .extract::<IndexMap<String, QuantumRegister>>()?,
+        );
+        self.cregs = RegisterData::from_mapping(
+            dict_state
+                .get_item("cregs")?
+                .unwrap()
+                .extract::<IndexMap<String, ClassicalRegister>>()?,
+        );
         self.global_phase = dict_state.get_item("global_phase")?.unwrap().extract()?;
         self.op_names = dict_state.get_item("op_name")?.unwrap().extract()?;
         let binding = dict_state.get_item("qubits")?.unwrap();
@@ -5966,7 +5966,7 @@ impl DAGCircuit {
         };
         // Put the new node in-between the previously "last" nodes on each wire
         // and the terminal map.
-        let termini: IndexSet<NodeIndex, ::foldhash::fast::RandomState> = self
+        let termini: IndexSet<NodeIndex> = self
             .qargs_interner
             .get(qubits_id)
             .iter()
@@ -6022,7 +6022,7 @@ impl DAGCircuit {
     ) -> PyResult<(Vec<Clbit>, Option<Vec<Var>>)> {
         let (all_clbits, vars): (Vec<Clbit>, Option<Vec<Var>>) = {
             if self.may_have_additional_wires(instr) {
-                let mut clbits: IndexSet<Clbit, ::foldhash::fast::RandomState> =
+                let mut clbits: IndexSet<Clbit> =
                     IndexSet::from_iter(self.cargs_interner.get(instr.clbits).iter().copied());
                 let (additional_clbits, additional_vars) =
                     Python::attach(|py| self.additional_wires(py, instr))?;
@@ -6760,7 +6760,7 @@ impl DAGCircuit {
         clbit_map: Option<&HashMap<Clbit, Clbit>>,
         var_map: Option<&HashMap<expr::Var, expr::Var>>,
         block_map: Option<&HashMap<Block, Block>>,
-    ) -> Result<IndexMap<NodeIndex, NodeIndex, RandomState>, DAGError> {
+    ) -> Result<IndexMap<NodeIndex, NodeIndex>, DAGError> {
         if self.dag.node_weight(node_index).is_none() {
             return Err(DAGError::NodeNotInGraph(node_index));
         }
@@ -6928,7 +6928,7 @@ impl DAGCircuit {
         clbit_map: &HashMap<Clbit, Clbit>,
         var_map: &HashMap<expr::Var, expr::Var>,
         block_map: &HashMap<Block, Block>,
-    ) -> Result<IndexMap<NodeIndex, NodeIndex, RandomState>, DAGError> {
+    ) -> Result<IndexMap<NodeIndex, NodeIndex>, DAGError> {
         if self.dag.node_weight(node).is_none() {
             return Err(DAGError::NodeNotInGraph(node));
         }
@@ -7015,7 +7015,7 @@ impl DAGCircuit {
         let reverse_var_map: HashMap<&expr::Var, &expr::Var> =
             var_map.iter().map(|(x, y)| (y, x)).collect();
         // Copy nodes from other to self
-        let mut out_map: IndexMap<NodeIndex, NodeIndex, RandomState> =
+        let mut out_map: IndexMap<NodeIndex, NodeIndex> =
             IndexMap::with_capacity_and_hasher(other.dag.node_count(), RandomState::default());
         for old_index in other.dag.node_indices() {
             if !node_filter(old_index) {
@@ -7465,16 +7465,13 @@ impl DAGCircuit {
     /// Args:
     ///     py: The python token necessary for control flow recursion
     ///     recurse: Whether to recurse into control flow ops or not
-    pub fn count_ops(
-        &self,
-        recurse: bool,
-    ) -> Result<IndexMap<String, usize, RandomState>, DAGError> {
+    pub fn count_ops(&self, recurse: bool) -> Result<IndexMap<String, usize>, DAGError> {
         if !recurse || !self.has_control_flow() {
             Ok(self.op_names.clone())
         } else {
             fn inner(
                 dag: &DAGCircuit,
-                counts: &mut IndexMap<String, usize, RandomState>,
+                counts: &mut IndexMap<String, usize>,
             ) -> Result<(), DAGError> {
                 for (key, value) in dag.op_names.iter() {
                     counts
@@ -7505,7 +7502,7 @@ impl DAGCircuit {
     /// and it returns a reference instead of an owned copy. If you don't need to work with
     /// control flow or ownership of the counts this is a more efficient alternative to
     /// `DAGCircuit::count_ops(py, false)`
-    pub fn get_op_counts(&self) -> &IndexMap<String, usize, RandomState> {
+    pub fn get_op_counts(&self) -> &IndexMap<String, usize> {
         &self.op_names
     }
 
@@ -8261,8 +8258,7 @@ impl DAGCircuit {
     where
         F: FnMut(&mut DAGCircuitBuilder, &PackedInstruction) -> Result<(), E>,
     {
-        let new_dag = self
-            .copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep);
+        let new_dag = self.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep);
         let mut builder = new_dag.into_builder();
         for node in
             petgraph::algo::toposort(&self.dag, None).expect("DAGCircuit can't have a cycle")
@@ -8621,7 +8617,7 @@ pub(crate) fn add_global_phase(phase: &Param, other: &Param) -> Param {
 /// is separate to allow safe borrow checking of instructions that are in-place in the DAG.
 fn track_instruction(
     inst: &PackedInstruction,
-    op_names: &mut IndexMap<String, usize, RandomState>,
+    op_names: &mut IndexMap<String, usize>,
     blocks: &mut ControlFlowBlocks<DAGCircuit>,
 ) {
     let name = inst.op.name();
@@ -8643,7 +8639,7 @@ fn track_instruction(
 /// is separate to allow safe borrow checking of instructions that are in-place in the DAG.
 fn untrack_instruction(
     inst: &PackedInstruction,
-    op_names: &mut IndexMap<String, usize, RandomState>,
+    op_names: &mut IndexMap<String, usize>,
     blocks: &mut ControlFlowBlocks<DAGCircuit>,
 ) {
     let name = inst.op.name();
