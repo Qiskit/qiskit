@@ -981,16 +981,13 @@ def generate_delay_stretch():
 
 
 def generate_pauli_product_measurement():
-    """Circuits that contain a Pauli Product Measurement/Rotation gates"""
+    """Circuits that contain a Pauli Product Measurement gates"""
     from qiskit.circuit.library import PauliProductMeasurement
-    from qiskit.circuit.library import PauliProductRotationGate
     from qiskit.quantum_info import Pauli
 
     ppm = PauliProductMeasurement(Pauli("ZXY"))
-    ppr = PauliProductRotationGate(Pauli("XYZ"), angle=1.2)
     qc = QuantumCircuit(ppm.num_qubits, ppm.num_clbits)
     qc.append(ppm, range(ppm.num_qubits), range(ppm.num_clbits))
-    qc.append(ppr, range(ppr.num_qubits), range(ppr.num_clbits))
     return [qc]
 
 

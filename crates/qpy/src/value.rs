@@ -515,9 +515,7 @@ pub(crate) fn load_value(
             let values = unpack_generic_value_sequence(elements_pack, qpy_data, endian)?;
             Ok(GenericValue::Tuple(values))
         }
-        ValueType::NumpyObject => {
-            Ok(GenericValue::NumpyObject(bytes.clone()))
-        }
+        ValueType::NumpyObject => Ok(GenericValue::NumpyObject(bytes.clone())),
         ValueType::Modifier => {
             let (modifier_pack, _) = deserialize::<formats::ModifierPack>(bytes)?;
             let values = py_unpack_modifier(&modifier_pack)?;
