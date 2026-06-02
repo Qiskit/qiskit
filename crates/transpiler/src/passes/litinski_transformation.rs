@@ -546,15 +546,17 @@ fn is_ppr_angle_close_to_multiple_of_pi2(
     let closest_angle = closest_integer * PI / 2.0;
     let theta = angle - closest_angle;
 
-    let ppr = PauliProductRotation {
-        z: z.to_vec(),
-        x: x.to_vec(),
-        angle: Param::Float(theta),
+    // direct calculation of dim and tr_over_dim
+    let num_qubits = z.iter().zip(x.iter()).filter(|(z, x)| **z || **x).count();
+    let dim = 2u32.pow(num_qubits as u32);
+    let tr_over_dim = if num_qubits == 0 {
+        // This is an identity Pauli rotation.
+        (Complex64::new(0.0, -theta / 2.)).exp()
+    } else {
+        Complex64::new((theta / 2.).cos(), 0.)
     };
-    let (tr_over_dim, dim) = ppr
-        .rotation_trace_and_dim()
-        .expect("Since only supported rotation gates are given, the result is not None");
-    if average_gate_fidelity_below_tol(tr_over_dim, dim, tol).is_some() {
+
+    if average_gate_fidelity_below_tol(tr_over_dim, dim.into(), tol).is_some() {
         Some((closest_integer as i64).rem_euclid(4) as usize)
     } else {
         None
