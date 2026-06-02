@@ -997,8 +997,8 @@ def generate_pauli_product_rotation():
     from qiskit.quantum_info import Pauli
 
     ppr = PauliProductRotationGate(Pauli("ZXY"), angle=1.2)
-    qc = QuantumCircuit(ppr.num_qubits, ppr.num_clbits)
-    qc.append(ppr, range(ppr.num_qubits), range(ppr.num_clbits))
+    qc = QuantumCircuit(ppr.num_qubits)
+    qc.append(ppr, range(ppr.num_qubits))
     return [qc]
 
 
