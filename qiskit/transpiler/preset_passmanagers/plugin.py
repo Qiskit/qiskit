@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -103,37 +103,38 @@ and falls back to using :class:`~.TrivialLayout` if
     from qiskit.transpiler import PassManager
     from qiskit.transpiler.passes import VF2Layout, TrivialLayout
     from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
+    from qiskit.passmanager import ConditionalController
 
 
     def _vf2_match_not_found(property_set):
-        return property_set["layout"] is None or (
-            property_set["VF2Layout_stop_reason"] is not None
-            and property_set["VF2Layout_stop_reason"] is not VF2LayoutStopReason.SOLUTION_FOUND
+        return property_set.get("layout") is None or (
+            property_set.get("VF2Layout_stop_reason") is not None
+            and property_set.get("VF2Layout_stop_reason")
+            is not VF2LayoutStopReason.SOLUTION_FOUND
+        )
 
 
     class VF2LayoutPlugin(PassManagerStagePlugin):
-
         def pass_manager(self, pass_manager_config, optimization_level):
             layout_pm = PassManager(
                 [
                     VF2Layout(
                         coupling_map=pass_manager_config.coupling_map,
-                        properties=pass_manager_config.backend_properties,
-                        max_trials=optimization_level * 10 + 1
-                        target=pass_manager_config.target
-                    )
+                        max_trials=optimization_level * 10 + 1,
+                        target=pass_manager_config.target,
+                    ),
+                    ConditionalController(
+                        TrivialLayout(pass_manager_config.coupling_map),
+                        condition=_vf2_match_not_found,
+                    ),
                 ]
-            )
-            layout_pm.append(
-                TrivialLayout(pass_manager_config.coupling_map),
-                condition=_vf2_match_not_found,
             )
             layout_pm += common.generate_embed_passmanager(pass_manager_config.coupling_map)
             return layout_pm
 
 The second step is to expose the :class:`~.PassManagerStagePlugin`
 subclass as a setuptools entry point in the package metadata. This can be done
-an ``entry-points`` table in ``pyproject.toml`` for the plugin package with the necessary entry
+in an ``entry-points`` table in ``pyproject.toml`` for the plugin package with the necessary entry
 points under the appropriate namespace for the stage your plugin is for. You can see the list of
 stages, entry points, and expectations from the stage in :ref:`stage_table`.  For example,
 continuing from the example plugin above:
@@ -161,13 +162,12 @@ Plugin API
 """
 
 import abc
-from typing import List, Optional, Dict
 
 import stevedore
 
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passmanager_config import PassManagerConfig
+from qiskit.transpiler.passmanager_config import PassManagerCliffordTConfig, PassManagerConfig
 
 
 class PassManagerStagePlugin(abc.ABC):
@@ -182,8 +182,8 @@ class PassManagerStagePlugin(abc.ABC):
 
     @abc.abstractmethod
     def pass_manager(
-        self, pass_manager_config: PassManagerConfig, optimization_level: Optional[int] = None
-    ) -> PassManager:
+        self, pass_manager_config: PassManagerConfig, optimization_level: int | None = None
+    ) -> PassManager | None:
         """This method is designed to return a :class:`~.PassManager` for the stage this implements
 
         Args:
@@ -194,8 +194,39 @@ class PassManagerStagePlugin(abc.ABC):
                 should be used to set values for any tunable parameters to trade off runtime
                 for potential optimization. Valid values should be ``0``, ``1``, ``2``, or ``3``
                 and the higher the number the more optimization is expected.
+
+        Returns:
+            the :class:`.PassManager` to run, or ``None`` if nothing is needed for this
+            configuration (for example, an optimization plugin might return ``None`` at
+            ``optimization_level=0``).
         """
-        pass
+
+
+class PassManagerCliffordTStagePlugin(abc.ABC):
+    """A ``PassManagerCliffordTStagePlugin`` is a plugin interface object for using
+    custom stages in :func:`~.generate_preset_clifford_t_pass_manager`.
+    """
+
+    @abc.abstractmethod
+    def pass_manager(
+        self, pass_manager_config: PassManagerCliffordTConfig, optimization_level: int | None = None
+    ) -> PassManager | None:
+        """This method is designed to return a :class:`~.PassManager` for the stage this implements
+
+        Args:
+            pass_manager_config: A configuration object that defines all the target device
+                specifications and any user specified options to :func:`~.transpile` or
+                :func:`~.generate_preset_pass_manager`
+            optimization_level: The optimization level of the transpilation, if set this
+                should be used to set values for any tunable parameters to trade off runtime
+                for potential optimization. Valid values should be ``0``, ``1``, ``2``, or ``3``
+                and the higher the number the more optimization is expected.
+
+        Returns:
+            the :class:`.PassManager` to run, or ``None`` if nothing is needed for this
+            configuration (for example, an optimization plugin might return ``None`` at
+            ``optimization_level=0``).
+        """
 
 
 class PassManagerStagePluginManager:
@@ -228,7 +259,7 @@ class PassManagerStagePluginManager:
         plugin_name: str,
         pm_config: PassManagerConfig,
         optimization_level=None,
-    ) -> PassManager:
+    ) -> PassManager | None:
         """Get a stage"""
         if stage_name == "init":
             return self._build_pm(
@@ -263,7 +294,7 @@ class PassManagerStagePluginManager:
         stage_name: str,
         plugin_name: str,
         pm_config: PassManagerConfig,
-        optimization_level: Optional[int] = None,
+        optimization_level: int | None = None,
     ):
         if plugin_name not in stage_obj:
             raise TranspilerError(f"Invalid plugin name {plugin_name} for stage {stage_name}")
@@ -271,7 +302,7 @@ class PassManagerStagePluginManager:
         return plugin_obj.obj.pass_manager(pm_config, optimization_level)
 
 
-def list_stage_plugins(stage_name: str) -> List[str]:
+def list_stage_plugins(stage_name: str) -> list[str]:
     """Get a list of installed plugins for a stage.
 
     Args:
@@ -300,7 +331,7 @@ def list_stage_plugins(stage_name: str) -> List[str]:
         raise TranspilerError(f"Invalid stage name: {stage_name}")
 
 
-def passmanager_stage_plugins(stage: str) -> Dict[str, PassManagerStagePlugin]:
+def passmanager_stage_plugins(stage: str) -> dict[str, PassManagerStagePlugin]:
     """Return a dict with, for each stage name, the class type of the plugin.
 
     This function is useful for getting more information about a plugin:

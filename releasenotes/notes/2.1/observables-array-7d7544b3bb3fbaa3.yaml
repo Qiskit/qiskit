@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Incorporated the :class:`.SparseObservable` class with the :class:`.ObservablesArray` class.
+    * There is no change in behavior of existing methods of :class:`.ObservablesArray`, except for the method :meth:`~.ObservablesArray.coerce_observable`, whose return type is changed to `SparseObservable`.
+    * The new method :meth:`~.ObservablesArray.apply_layout` performs an `apply_layout` operation on each observable in the array.
+    * The new method :meth:`~.ObservablesArray.equivalent` returns `True` if two arrays store equivalent observables.
+    * The new methods :meth:`~.ObservablesArray.get_sparse_observable` and :meth:`~.ObservablesArray.sparse_observables_array` return information about the contents of the array.
+    * Estimator pubs can now be defined using :class:`SparseObservable` objects, in addition to the existing options of `str`, `Pauli`, `SparsePauliOp`, and `Mapping[Union[str, Pauli], float]`. However projective observables are not yet supported when executing circuits. Projective observables are `0, 1, +, -, r, l`. Currently only Pauli's are supported: `I, X, Y, Z`.

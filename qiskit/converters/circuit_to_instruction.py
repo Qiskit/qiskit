@@ -4,18 +4,17 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
 """Helper function for converting a circuit to an instruction."""
-from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit import QuantumRegister
+from qiskit.circuit import ClassicalRegister
 
 
 def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None, label=None):
@@ -60,7 +59,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
             circ.rz(0.5, q[1])
             circuit_to_instruction(circ)
     """
-    # pylint: disable=cyclic-import
+
     from qiskit.circuit.quantumcircuit import QuantumCircuit
 
     if circuit.num_input_vars:
@@ -84,7 +83,8 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
             "Circuits with internal variables cannot yet be converted to instructions."
             " You may be able to use `QuantumCircuit.compose` to inline this circuit into another."
         )
-    if CONTROL_FLOW_OP_NAMES.intersection(circuit.count_ops()):
+
+    if circuit.has_control_flow_op():
         raise QiskitError(
             "Circuits with control flow operations cannot be converted to an instruction."
         )
@@ -127,8 +127,12 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
     data = target._data.copy()
     data.replace_bits(qubits=qreg, clbits=creg)
 
-    qc = QuantumCircuit(*regs, name=out_instruction.name)
+    qc = QuantumCircuit(name=out_instruction.name)
     qc._data = data
+
+    # Re-add the registers.
+    for reg in regs:
+        qc.add_register(reg)
 
     if circuit.global_phase:
         qc.global_phase = circuit.global_phase

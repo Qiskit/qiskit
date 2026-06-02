@@ -4,18 +4,18 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tests for the DropNegligible transpiler pass."""
+"""Tests for the RemoveIdentityEquivalent transpiler pass."""
 
 import ddt
 import numpy as np
 
-from qiskit.circuit import Parameter, QuantumCircuit, QuantumRegister, Gate
+from qiskit.circuit import Parameter, QuantumCircuit, QuantumRegister, Gate, ParameterVector
 from qiskit.circuit.library import (
     CPhaseGate,
     RXGate,
@@ -28,19 +28,21 @@ from qiskit.circuit.library import (
     XXPlusYYGate,
     GlobalPhaseGate,
     UnitaryGate,
+    PauliProductRotationGate,
+    PauliEvolutionGate,
 )
-from qiskit.quantum_info import Operator
+from qiskit.quantum_info import Operator, Pauli
 from qiskit.transpiler.passes import RemoveIdentityEquivalent
 from qiskit.transpiler.target import Target, InstructionProperties
 
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt.ddt
-class TestDropNegligible(QiskitTestCase):
-    """Test the DropNegligible pass."""
+class TestRemoveIdentityEquivalent(QiskitTestCase):
+    """Test the RemoveIdentityEquivalent pass."""
 
-    def test_drops_negligible_gates(self):
+    def test_remove_identity_equiv_pass(self):
         """Test that negligible gates are dropped."""
         qubits = QuantumRegister(2)
         circuit = QuantumCircuit(qubits)
@@ -188,6 +190,10 @@ class TestDropNegligible(QiskitTestCase):
         UnitaryGate(np.array([[np.exp(1j * np.pi / 4), 0], [0, np.exp(1j * np.pi / 4)]])),
         GlobalPhaseGate(0),
         GlobalPhaseGate(np.pi / 4),
+        UnitaryGate(np.exp(-0.123j) * np.eye(2)),
+        UnitaryGate(np.exp(-0.123j) * np.eye(4)),
+        UnitaryGate(np.exp(-0.123j) * np.eye(8)),
+        PauliProductRotationGate(Pauli("XYIZ"), 0),
     )
     def test_remove_identity_up_to_global_phase(self, gate):
         """Test that gates equivalent to identity up to a global phase are removed from the circuit,
@@ -206,3 +212,45 @@ class TestDropNegligible(QiskitTestCase):
         qc.append(GlobalPhaseGate(theta), [])
         transpiled = RemoveIdentityEquivalent()(qc)
         self.assertEqual(qc, transpiled)
+
+    def test_no_panic_on_parametervector_phase(self):
+        """Regression test for gh-16053."""
+        pv = ParameterVector("v", 1)
+        qc = QuantumCircuit(1, global_phase=pv[0])
+        qc.rz(0.0, 0)
+        qc = RemoveIdentityEquivalent()(qc)
+
+        expected = QuantumCircuit(1, global_phase=pv[0])
+        self.assertEqual(qc, expected)
+
+    def test_pauli_evo_equals_stdgate(self):
+        """Test the Pauli evolution gate is consistent with std gates."""
+
+        def get_rz(angle):
+            qc = QuantumCircuit(1)
+            qc.rz(angle, 0)
+            return qc
+
+        def get_paulievo(angle, n):
+            evo = PauliEvolutionGate(Pauli("Z" + (n - 1) * "I"), time=angle / 2)
+            qc = QuantumCircuit(evo.num_qubits)
+            qc.append(evo, qc.qubits)
+            return qc
+
+        pass_ = RemoveIdentityEquivalent()
+
+        # It is important to cover a small enough grid around the threshold where we
+        # start removing gates, to ensure all cases are handled consistently. That
+        # threshold can be calculated by inverting the avg. gate fidelity with the
+        # default tol of 1e-12, coming out at an angle of roughly 3.5e-06.
+        for angle in np.linspace(1e-5, 1e-6, num=25):
+            # number of expected instructions
+            rz = get_rz(angle)
+            expected = pass_(rz).count_ops().get("rz", 0)
+
+            # check the number matches for different `n`
+            for n in [1, 10]:
+                with self.subTest(n=n):
+                    evo = get_paulievo(angle, n)
+                    num_inst = pass_(evo).count_ops().get("PauliEvolution", 0)
+                    self.assertEqual(expected, num_inst)

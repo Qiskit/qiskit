@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -17,20 +17,21 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Callable
 
-from qiskit.dagcircuit import DAGDepNode
-
 from qiskit.circuit import QuantumCircuit, CircuitInstruction, ClassicalRegister, Bit
 from qiskit.circuit.controlflow import condition_resources
-from . import DAGOpNode, DAGCircuit, DAGDependency
+from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit.dagdependency import DAGDependency
+from qiskit.dagcircuit.dagnode import DAGOpNode
+from qiskit.dagcircuit.dagdepnode import DAGDepNode
 from .exceptions import DAGCircuitError
 
 
 class BlockCollector:
-    """This class implements various strategies of dividing a DAG (direct acyclic graph)
+    """This class implements various strategies of dividing a DAG (directed acyclic graph)
     into blocks of nodes that satisfy certain criteria. It works both with the
     :class:`~qiskit.dagcircuit.DAGCircuit` and
     :class:`~qiskit.dagcircuit.DAGDependency` representations of a DAG, where
-    DagDependency takes into account commutativity between nodes.
+    the latter takes into account commutativity between nodes.
 
     Collecting nodes from DAGDependency generally leads to more optimal results, but is
     slower, as it requires to construct a DAGDependency beforehand. Thus, DAGCircuit should
@@ -101,17 +102,14 @@ class BlockCollector:
                 return [pred for pred in self.dag.successors(node) if isinstance(pred, DAGOpNode)]
             else:
                 return [pred for pred in self.dag.predecessors(node) if isinstance(pred, DAGOpNode)]
+        elif self._collect_from_back:
+            return [
+                self.dag.get_node(pred_id) for pred_id in self.dag.direct_successors(node.node_id)
+            ]
         else:
-            if self._collect_from_back:
-                return [
-                    self.dag.get_node(pred_id)
-                    for pred_id in self.dag.direct_successors(node.node_id)
-                ]
-            else:
-                return [
-                    self.dag.get_node(pred_id)
-                    for pred_id in self.dag.direct_predecessors(node.node_id)
-                ]
+            return [
+                self.dag.get_node(pred_id) for pred_id in self.dag.direct_predecessors(node.node_id)
+            ]
 
     def _direct_succs(self, node):
         """Returns direct successors of a node. This function takes into account the
@@ -123,17 +121,14 @@ class BlockCollector:
                 return [succ for succ in self.dag.predecessors(node) if isinstance(succ, DAGOpNode)]
             else:
                 return [succ for succ in self.dag.successors(node) if isinstance(succ, DAGOpNode)]
+        elif self._collect_from_back:
+            return [
+                self.dag.get_node(succ_id) for succ_id in self.dag.direct_predecessors(node.node_id)
+            ]
         else:
-            if self._collect_from_back:
-                return [
-                    self.dag.get_node(succ_id)
-                    for succ_id in self.dag.direct_predecessors(node.node_id)
-                ]
-            else:
-                return [
-                    self.dag.get_node(succ_id)
-                    for succ_id in self.dag.direct_successors(node.node_id)
-                ]
+            return [
+                self.dag.get_node(succ_id) for succ_id in self.dag.direct_successors(node.node_id)
+            ]
 
     def _have_uncollected_nodes(self):
         """Returns whether there are uncollected (pending) nodes"""
@@ -206,7 +201,7 @@ class BlockCollector:
         qubit subsets. The option ``split_layers`` allows to split collected blocks
         into layers of non-overlapping instructions. The option ``min_block_size``
         specifies the minimum number of gates in the block for the block to be collected.
-        The option ``max_block_width`` specificies the maximum number of qubits over
+        The option ``max_block_width`` specifies the maximum number of qubits over
         which a block can be defined.
 
         By default, blocks are collected in the direction from the inputs towards the outputs
@@ -338,15 +333,18 @@ def split_block_into_layers(block: list[DAGOpNode | DAGDepNode]):
 
 class BlockCollapser:
     """This class implements various strategies of consolidating blocks of nodes
-     in a DAG (direct acyclic graph). It works both with the
-    :class:`~qiskit.dagcircuit.DAGCircuit` and
-    :class:`~qiskit.dagcircuit.DAGDependency` DAG representations.
+    in a DAG (directed acyclic graph). It works both with
+    the :class:`~qiskit.dagcircuit.DAGCircuit`
+    and :class:`~qiskit.dagcircuit.DAGDependency` DAG representations.
     """
 
     def __init__(self, dag):
         """
         Args:
             dag (Union[DAGCircuit, DAGDependency]): The input DAG.
+
+        Raises:
+            DAGCircuitError: the input object is not a DAG.
         """
 
         self.dag = dag

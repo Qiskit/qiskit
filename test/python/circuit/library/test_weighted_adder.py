@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -22,7 +22,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import WeightedAdder, WeightedSumGate
 from qiskit.quantum_info import Statevector
 from qiskit.transpiler.passes import HighLevelSynthesis
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt
@@ -72,7 +72,8 @@ class TestWeightedAdder(QiskitTestCase):
                 num_ancillas = adder.num_sum_qubits - 1
                 num_ancillas += int(adder.num_sum_qubits > 2)
             else:
-                adder = WeightedAdder(len(weights), weights)
+                with self.assertWarns(DeprecationWarning):
+                    adder = WeightedAdder(len(weights), weights)
                 num_ancillas = None
 
             with self.subTest(use_gate=use_gate):
@@ -91,7 +92,8 @@ class TestWeightedAdder(QiskitTestCase):
 
     def test_mutability(self):
         """Test the mutability of the weighted adder."""
-        adder = WeightedAdder()
+        with self.assertWarns(DeprecationWarning):
+            adder = WeightedAdder()
 
         with self.subTest(msg="missing number of state qubits"):
             with self.assertRaises(AttributeError):

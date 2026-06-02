@@ -4,13 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
 import copy
 import itertools
@@ -27,7 +26,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import SparseObservable, SparsePauliOp, Pauli, PauliList
 from qiskit.transpiler import Target
 
-from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine
 
 
 def single_cases():
@@ -62,7 +61,7 @@ def lnn_target(num_qubits):
 
 
 class AllowRightArithmetic:
-    """Some type that implements only the right-hand-sided arithmatic operations, and allows
+    """Some type that implements only the right-hand-sided arithmetic operations, and allows
     `SparseObservable` to pass through them.
 
     The purpose of this is to detect that `SparseObservable` is correctly delegating binary
@@ -241,6 +240,10 @@ class TestSparseObservable(QiskitTestCase):
             "1": SparseObservable.BitTerm.ONE,
         }
         self.assertEqual({label: SparseObservable.BitTerm[label] for label in labels}, labels)
+        # The `label` property returns known values.
+        self.assertEqual(
+            {bit_term.label: bit_term for bit_term in SparseObservable.BitTerm}, labels
+        )
 
     @ddt.idata(single_cases())
     def test_pickle(self, observable):
@@ -1327,7 +1330,6 @@ class TestSparseObservable(QiskitTestCase):
             )
 
         # We deliberately have the arguments flipped when appropriate, here.
-        # pylint: disable=arguments-out-of-order
 
         left_initial = left.copy()
         right_initial = right.copy()
@@ -2164,6 +2166,372 @@ class TestSparseObservable(QiskitTestCase):
 
         reconstructed = SparseObservable.from_sparse_list(obs.to_sparse_list(), obs.num_qubits)
         self.assertEqual(obs.simplify(), reconstructed.simplify())
+
+    def test_sparse_term_bit_labels(self):
+        """Test getting the bit labels of a SparseTerm."""
+
+        obs = SparseObservable("IXYZ+r0-l1")
+        term = obs[0]
+        indices = term.indices
+        labels = term.bit_labels()
+
+        label_dict = dict(zip(indices, labels))
+        expected = dict(enumerate("1l-0r+ZYX"))
+
+        for i, label in expected.items():
+            self.assertEqual(label, label_dict[i])
+
+        reconstructed = SparseObservable.from_sparse_list([(labels, indices, 1)], obs.num_qubits)
+        self.assertEqual(obs, reconstructed)
+
+    @combine(first=SparseObservable.BitTerm, second=SparseObservable.BitTerm)
+    def test_compose_single_qubit(self, first, second):
+        first = SparseObservable.from_label(first.label)
+        second = SparseObservable.from_label(second.label)
+        self.assertEqual(
+            SparsePauliOp.from_sparse_observable(first.compose(second)).simplify().sort(),
+            SparsePauliOp.from_sparse_observable(first)
+            .compose(SparsePauliOp.from_sparse_observable(second))
+            .simplify()
+            .sort(),
+        )
+
+    @ddt.idata(SparseObservable.BitTerm)
+    def test_compose_single_qubit_identity(self, term):
+        ident = SparseObservable.identity(1)
+        single_term = SparseObservable(term.label)
+        self.assertEqual(ident.compose(single_term), single_term)
+        self.assertEqual(single_term.compose(ident), single_term)
+
+        num_qubits = 5
+        big_ident = SparseObservable.identity(num_qubits)
+        for i in range(num_qubits):
+            big_term = SparseObservable.from_sparse_list(
+                [(term.label, (i,), 2.0)], num_qubits=num_qubits
+            )
+            self.assertEqual(big_ident.compose(big_term), big_term)
+            self.assertEqual(big_term.compose(big_ident), big_term)
+
+    def test_compose_with_zero_operator(self):
+        zero_10 = SparseObservable.zero(10)
+        self.assertEqual(zero_10.compose(SparseObservable("IIX+rIIZ01")), zero_10)
+        self.assertEqual(SparseObservable("ZXYII+-01l").compose(zero_10), zero_10)
+
+        zero_0 = SparseObservable.zero(0)
+        self.assertEqual(zero_0.compose(zero_0), zero_0)
+        self.assertEqual(zero_0.compose(SparseObservable.identity(0)), zero_0)
+        self.assertEqual(SparseObservable.identity(0).compose(zero_0), zero_0)
+
+    def test_compose_multiplies_identity_coefficients(self):
+        a, b = 1.5j, -1.25 + 3j
+        ident = SparseObservable.identity(5)
+        self.assertEqual((a * ident).compose(b * ident), a * b * ident)
+
+    def test_compose_term_expansion(self):
+        left = SparseObservable("+-rl01")
+        right = SparseObservable("YZZXXY")
+        self.assertEqual(
+            SparsePauliOp.from_sparse_observable(left.compose(right)).simplify().sort(),
+            SparsePauliOp.from_sparse_observable(left)
+            .compose(SparsePauliOp.from_sparse_observable(right))
+            .simplify()
+            .sort(),
+        )
+
+    def test_compose_expands_sums(self):
+        one = SparseObservable.from_list([("IIXIZ", 1.5), ("IY+II", 2j)])
+        two = SparseObservable.from_list([("I+ZIr", -0.25), ("01rl+", 0.75j)])
+        op_one = SparsePauliOp.from_sparse_observable(one)
+        op_two = SparsePauliOp.from_sparse_observable(two)
+        self.assertEqual(
+            SparsePauliOp.from_sparse_observable(one.compose(two)).simplify().sort(),
+            op_one.compose(op_two).simplify().sort(),
+        )
+        self.assertEqual(
+            SparsePauliOp.from_sparse_observable(two.compose(one)).simplify().sort(),
+            op_two.compose(op_one).simplify().sort(),
+        )
+
+    def test_compose_coerces(self):
+        base = SparseObservable("IXYZ")
+        label = "rl+-"
+        self.assertEqual(base.compose(label), base.compose(SparseObservable(label)))
+        self.assertEqual(base.compose(label, front=True), SparseObservable(label).compose(base))
+
+    def test_compose_scalar_observable(self):
+        """Edge-case test where one operand is 0q."""
+        a, b = 1.5, -0.25j
+        scalar = SparseObservable.identity(0)
+        self.assertEqual((a * scalar).compose(b * scalar), a * b * scalar)
+        self.assertEqual((a * scalar).compose(b * scalar, front=True), a * b * scalar)
+        self.assertEqual((a * scalar).compose(b * scalar, qargs=[]), a * b * scalar)
+        self.assertEqual((a * scalar).compose(b * scalar, qargs=[], front=True), a * b * scalar)
+
+    def test_compose_scalar_observable_onto_nonscalar(self):
+        a = -1.5
+        scalar = a * SparseObservable.identity(0)
+        base = SparseObservable.from_list([("IXY+l", 0.75), ("ZXYII", -0.5j)])
+        self.assertEqual(base.compose(scalar, qargs=[]), a * base)
+        self.assertEqual(base.compose(scalar, front=True, qargs=[]), a * base)
+
+    def test_compose_front(self):
+        one = SparseObservable.from_list([("IIXIZ", 1.5), ("IY+II", 2j)])
+        two = SparseObservable.from_list([("I+ZIr", -0.25), ("01rl+", 0.75j)])
+        self.assertEqual(one.compose(two, front=True), two.compose(one))
+
+    def test_compose_front_qargs(self):
+        qargs = [4, 3, 8]
+        one = SparseObservable.from_sparse_list(
+            [("XYZ", (4, 2, 1), 2.5), ("+-rl01", (9, 7, 5, 3, 2, 1), 1.25j)], num_qubits=10
+        )
+        two = SparseObservable.from_list([("X+Z", -0.5), ("01l", 0.25j)])
+        self.assertEqual(
+            one.compose(two, front=True, qargs=qargs),
+            two.apply_layout(qargs, num_qubits=10).compose(one),
+        )
+
+    def test_compose_qargs(self):
+        qargs = [4, 3, 8]
+        one = SparseObservable.from_sparse_list(
+            [("XYZ", (4, 2, 1), 2.5), ("+-rl01", (9, 7, 5, 3, 2, 1), 1.25j)], num_qubits=10
+        )
+        two = SparseObservable.from_list([("X+Z", -0.5), ("01l", 0.25j)])
+        self.assertEqual(
+            one.compose(two, qargs=qargs),
+            one.compose(two.apply_layout(qargs, num_qubits=10)),
+        )
+
+    def test_compose_coercion_failure(self):
+        with self.assertRaisesRegex(TypeError, "unknown type for compose"):
+            SparseObservable.identity(5).compose(None)
+        with self.assertRaisesRegex(TypeError, "unknown type for compose"):
+            SparseObservable.identity(5).compose(...)
+
+    def test_compose_failure_qubit_mismatch(self):
+        with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits"):
+            SparseObservable.identity(5).compose(SparseObservable.identity(8))
+        with self.assertRaisesRegex(ValueError, "mismatched numbers of qubits"):
+            SparseObservable.identity(7).compose(SparseObservable.identity(2))
+
+    def test_compose_qargs_failure_wrong_length(self):
+        with self.assertRaisesRegex(ValueError, "input qargs has length"):
+            SparseObservable.identity(5).compose(SparseObservable.identity(2), qargs=[0, 1, 2])
+        with self.assertRaisesRegex(ValueError, "input qargs has length"):
+            SparseObservable.identity(5).compose(SparseObservable.identity(2), qargs=[0])
+
+    def test_compose_qargs_failure_out_of_bounds(self):
+        with self.assertRaisesRegex(ValueError, "qargs contains out-of-range qubits"):
+            SparseObservable.identity(5).compose("XYZ", qargs=[0, 1, 5])
+        with self.assertRaisesRegex(ValueError, "qargs contains out-of-range qubits"):
+            SparseObservable.identity(5).compose("XYZ", qargs=[9, 1, 0])
+
+    def test_compose_qargs_failure_duplicates(self):
+        with self.assertRaisesRegex(ValueError, "duplicate indices in qargs"):
+            SparseObservable.identity(5).compose("XX", qargs=[0, 0])
+        with self.assertRaisesRegex(ValueError, "duplicate indices in qargs"):
+            SparseObservable.identity(5).compose("XYZX", qargs=[0, 1, 2, 0])
+        with self.assertRaisesRegex(ValueError, "duplicate indices in qargs"):
+            SparseObservable.identity(5).compose("XYZX", qargs=[0, 1, 1, 0])
+
+    @ddt.data("X", "Y", "Z", "I")
+    def test_pauli_evolve_single_qubit(self, pauli_label):
+        """
+        Test that double conjugation of Q with P == Q evolved by P for
+        single-qubit Pauli operators P and all Q.
+        """
+        p = Pauli(pauli_label)
+
+        for q_label in ["+", "-", "r", "l", "0", "1", "I", "X", "Y", "Z"]:
+            q = SparseObservable.from_label(q_label)
+
+            # Convert Pauli to SparseObservable for composition
+            p_obs = SparseObservable.from_label(pauli_label)
+            result = p_obs.adjoint().compose(q).compose(p_obs).simplify()
+            expected = q.evolve(p)
+
+            # These could and should be replaced with :meth:`SparseObservable.matrix`
+            # once relevant PR #15022 is merged.
+            ma = SparsePauliOp.from_sparse_observable(result).to_matrix()
+            mb = SparsePauliOp.from_sparse_observable(expected).to_matrix()
+
+            np.testing.assert_allclose(ma, mb, atol=1e-10, rtol=0)
+
+    def test_evolve_multi_qubit_pauli(self):
+        """Test multi-qubit evolution with mixed observable and all Pauli operators."""
+        obs = SparseObservable.from_list([("XY0I", 1.0), ("Z+rI", 0.5)])
+        pauli = Pauli("IXYZ")
+
+        # Expected result computed manually:
+        # "XY0I" evolved by "IXYZ":
+        #   I (qubit 0) by Z -> I
+        #   0 (qubit 1) by Y -> 1
+        #   Y (qubit 2) by X -> -Y
+        #   X (qubit 3) by I -> X
+        # Result: "XY1" with coeff 1.0
+        #
+        # "Z+rI" evolved by "IXYZ":
+        #   I (qubit 0) by Z -> I
+        #   r (qubit 1) by Y -> r
+        #   + (qubit 2) by X -> +
+        #   Z (qubit 3) by I -> Z
+        # Result: "Z+r" with coeff 0.5
+
+        expected = SparseObservable.from_list([("XY1I", -1.0), ("Z+rI", 0.5)])
+        result = obs.evolve(pauli)
+        self.assertEqual(result, expected)
+
+    def test_evolve_qargs_subset(self):
+        """Test evolving a subset of qubits."""
+        obs = SparseObservable("XYZI")
+        pauli = Pauli("YY")
+        result = obs.evolve(pauli, qargs=[0, 1])
+
+        # X evolved by Y is -X, Y evolved by Y is Y
+        expected = SparseObservable.from_list([("XYZI", -1.0)])
+        self.assertEqual(result, expected)
+
+    def test_evolve_qargs_non_contiguous(self):
+        """Test evolving non-contiguous qubits."""
+        obs = SparseObservable.from_sparse_list([("XYZ", (0, 2, 4), 1.0)], num_qubits=5)
+        pauli = Pauli("YZ")
+        result = obs.evolve(pauli, qargs=[0, 4])
+
+        # Z@0 by X is -X, Y@4 by Z is -Z
+        expected = SparseObservable.from_sparse_list([("XYZ", (0, 2, 4), 1.0)], num_qubits=5)
+        self.assertEqual(result, expected)
+
+    def test_evolve_qargs_pauli_with_coeff(self):
+        """Test evolution with Pauli operator with coefficient."""
+        obs = SparseObservable("XYZ")
+        pauli = -1j * Pauli("X")
+        result = obs.evolve(pauli, qargs=[1])
+        # With coefficient -1j: (1j) * (-XYZ) * (-1j) = -XYZ
+        expected = -obs
+        self.assertEqual(result, expected)
+
+    def test_evolve_identity_with_coeff(self):
+        """Test evolution with identity Pauli with coefficient (scalar)."""
+        # There won't really be any change as Pauli Type objects only support
+        # normalized coeffs. This test is just to check that the conditional
+        # branch when encountered with a 0 qubit Scalar works.
+        obs = SparseObservable.from_list([("XYZ", 1.0), ("ZXY", 0.5)])
+        # Identity Pauli (0-qubit) with coefficient 1j
+        pauli = 1j * Pauli("")
+        result = obs.evolve(pauli, qargs=[])
+        # With coefficient 1j: (-1j) * O * (1j) = 1 × O = O
+        expected = obs
+        self.assertEqual(result, expected)
+
+    def test_evolve_qargs_wrong_length(self):
+        """Test qargs length must match operator size."""
+        obs = SparseObservable("XYZI")
+        pauli = Pauli("XX")
+
+        with self.assertRaisesRegex(
+            ValueError, r"qargs has length 3, but operator has 2 qubit\(s\)"
+        ):
+            obs.evolve(pauli, qargs=[0, 1, 2])
+
+        with self.assertRaisesRegex(
+            ValueError, r"qargs has length 1, but operator has 2 qubit\(s\)"
+        ):
+            obs.evolve(pauli, qargs=[0])
+
+    def test_evolve_qargs_out_of_range(self):
+        """Test qargs must be valid qubit indices."""
+        obs = SparseObservable("XYZ")
+        pauli = Pauli("X")
+
+        with self.assertRaisesRegex(ValueError, "qargs contains out-of-range qubits"):
+            obs.evolve(pauli, qargs=[3])
+
+    def test_evolve_qargs_duplicates(self):
+        """Test qargs cannot have duplicates."""
+        obs = SparseObservable("XYZX")
+        pauli = Pauli("XX")
+
+        with self.assertRaisesRegex(ValueError, "duplicate indices in qargs"):
+            obs.evolve(pauli, qargs=[0, 0])
+
+    def test_evolve_type_error(self):
+        """Test that non-Pauli types raise TypeError."""
+        obs = SparseObservable("XYZ")
+
+        # Test with SparseObservable
+        with self.assertRaisesRegex(TypeError, "evolve only accepts Pauli instances"):
+            obs.evolve(SparseObservable("XYZ"))
+
+        # Test with SparsePauliOp
+        with self.assertRaisesRegex(TypeError, "evolve only accepts Pauli instances"):
+            obs.evolve(SparsePauliOp.from_list([("X", 1.0)]))
+
+        # Test with string
+        with self.assertRaisesRegex(TypeError, "evolve only accepts Pauli instances"):
+            obs.evolve("XYZ")
+
+    def test_evolve_qubit_mismatch_no_qargs(self):
+        """Test mismatched qubits fails without qargs."""
+        obs = SparseObservable.identity(3)
+        pauli = Pauli("IIIII")
+        with self.assertRaisesRegex(ValueError, r"mismatched numbers of qubits: 3, 5"):
+            obs.evolve(pauli)
+
+    def test_evolve_qargs_with_sums(self):
+        """Test qargs evolution with sum observables."""
+        obs = SparseObservable.from_list([("XYZ", 1.0), ("ZXY", 0.5)])
+        pauli = Pauli("Z")
+
+        result = obs.evolve(pauli, qargs=[1])
+
+        # Each term evolved independently
+        term1 = SparseObservable.from_list([("XYZ", -1.0)])
+        term2 = SparseObservable.from_list([("ZXY", -0.5)])
+        expected = term1 + term2
+
+        self.assertEqual(result, expected.simplify())
+
+    @ddt.data(
+        ("Y", "Y", True),
+        ("Y", "Z", False),
+        ("XX", "ZZ", True),
+        ("0XX", "0ZZ", True),
+        ("1XX", "0ZZ", True),
+        ("+XX", "0ZZ", False),
+    )
+    @ddt.unpack
+    def test_commute_single(self, p1, p2, expected):
+        """Test commutation"""
+        op1 = SparseObservable(p1)
+        op2 = SparseObservable(p2)
+        self.assertEqual(op1.commutes(op2), expected)
+
+    def test_commute_sums(self):
+        """Test commutation for sums of Paulis."""
+        xz = SparseObservable.from_sparse_list([("X", [0], 1), ("Z", [0], 1)], num_qubits=3)
+        zx = SparseObservable.from_sparse_list([("Z", [0], 1), ("X", [0], 1)], num_qubits=3)
+        self.assertTrue(xz.commutes(zx))
+
+        x = SparseObservable.from_sparse_list([("X", [0], 1)], num_qubits=3)
+        self.assertFalse(xz.commutes(x))
+
+        y = SparseObservable.from_sparse_list([("Y", [2], 1)], num_qubits=3)
+        self.assertTrue(xz.commutes(y))
+
+        n = 10
+        x_pairs = SparseObservable.from_sparse_list(
+            [("XX", [i, i + 1], 1) for i in range(n - 1)], num_qubits=n
+        )
+        z_pairs = SparseObservable.from_sparse_list(
+            [("ZZ", [i, i + 1], 1) for i in range(n - 1)], num_qubits=n
+        )
+        self.assertTrue(x_pairs.commutes(x_pairs))
+        self.assertFalse(z_pairs.commutes(x_pairs))
+
+        xxyy = SparseObservable.from_sparse_list(
+            [("XX", [0, 1], 1), ("YY", [0, 1], 1)], num_qubits=2
+        )
+        zz = SparseObservable.from_sparse_list([("ZZ", [0, 1], 1)], num_qubits=2)
+        self.assertTrue(zz.commutes(xxyy))
 
 
 def canonicalize_term(pauli, indices, coeff):

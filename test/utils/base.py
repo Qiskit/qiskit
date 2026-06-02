@@ -4,17 +4,16 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """Base TestCases for the unit tests.
 
-Implementors of unit tests for Qiskit should subclass
+Implementers of unit tests for Qiskit should subclass
 ``QiskitTestCase`` in order to take advantage of utility functions (for example,
 the environment variables for customizing different options), and the
 decorators in the ``decorators`` package.
@@ -59,8 +58,6 @@ else:
 
     class BaseTestCase(unittest.TestCase):
         """Base test class."""
-
-        pass
 
 
 @enforce_subclasses_call(["setUp", "setUpClass", "tearDown", "tearDownClass"])
@@ -126,81 +123,6 @@ class QiskitTestCase(BaseTestCase):
             module=r"seaborn(\..*)?",
         )
 
-        # Safe to remove once https://github.com/Qiskit/qiskit-aer/pull/2179 is in a release version
-        # of Aer.
-        warnings.filterwarnings(
-            "ignore",  # If "default", it floods the CI output
-            category=DeprecationWarning,
-            message="Treating CircuitInstruction as an iterable is deprecated",
-            module=r"qiskit_aer(\.[a-zA-Z0-9_]+)*",
-        )
-
-        # Safe to remove once https://github.com/Qiskit/qiskit-aer/issues/2197 is in a release version
-        # of Aer.
-        warnings.filterwarnings(
-            "ignore",  # If "default", it floods the CI output
-            category=DeprecationWarning,
-            message=r".*qiskit\.providers\.models.*",
-            module=r"qiskit_aer(\.[a-zA-Z0-9_]+)*",
-        )
-
-        # Safe to remove once https://github.com/Qiskit/qiskit-aer/issues/2065 is in a release version
-        # of Aer.
-        warnings.filterwarnings(
-            "ignore",  # If "default", it floods the CI output
-            category=DeprecationWarning,
-            message=r".*The `Qobj` class and related functionality.*",
-            module=r"qiskit_aer",
-        )
-
-        # Safe to remove once https://github.com/Qiskit/qiskit-aer/pull/2184 is in a release version
-        # of Aer.
-        warnings.filterwarnings(
-            "ignore",  # If "default", it floods the CI output
-            category=DeprecationWarning,
-            message=r".*The abstract Provider and ProviderV1 classes are deprecated.*",
-            module="qiskit_aer",
-        )
-
-        # Remove these two filters in Qiskit 2.0.0 when we remove unit and duration
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message=r".*The property.*qiskit.*duration.*",
-        )
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message=r".*The property.*qiskit.*unit.*",
-        )
-
-        warnings.filterwarnings(
-            "default",
-            category=DeprecationWarning,
-            message=r".*The property.*condition.*is deprecated.*",
-            module="qiskit_aer",
-        )
-
-        # Remove with the condition attribute in 2.0:
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message=r".*The property.*condition.*is deprecated.*",
-            module="qiskit.visualization",
-        )
-        warnings.filterwarnings(
-            "ignore",
-            category=DeprecationWarning,
-            message=r".*The property.*condition_bits.*is deprecated.*",
-            module="qiskit.transpiler.passes.scheduling",
-        )
-
-        allow_DeprecationWarning_message = [
-            r"The property ``qiskit\.circuit\.bit\.Bit\.(register|index)`` is deprecated.*",
-        ]
-        for msg in allow_DeprecationWarning_message:
-            warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__setup_called = False
@@ -228,12 +150,6 @@ class QiskitTestCase(BaseTestCase):
                 "call the base tearDown."
             )
         self.__teardown_called = True
-
-        # Reset the default providers, as in practice they acts as a singleton
-        # due to importing the instances from the top-level qiskit namespace.
-        from qiskit.providers.basic_provider import BasicProvider
-
-        BasicProvider()._backends = BasicProvider()._verify_backends()
 
     def assertQuantumCircuitEqual(self, qc1, qc2, msg=None):
         """Extra assertion method to give a better error message when two circuits are unequal."""

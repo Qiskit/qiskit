@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    :class:`.Optimize1qGatesDecomposition` will now raise a :exc:`.TranspilerError` instead of a
+    Rust-space panic when attempting to run on a circuit that is too large for the :class:`.Target`.

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,16 +14,17 @@
 
 from __future__ import annotations
 
-from typing import Union, Optional, List
+
 import math
 from collections.abc import Sequence
 
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ParameterExpression, Gate, CircuitError
+from qiskit.utils.deprecation import deprecate_func
 from ..basis_change import QFT, QFTGate
 
-_ValueType = Union[int, float, np.integer, np.floating, ParameterExpression]
+_ValueType = int | float | np.integer | np.floating | ParameterExpression
 
 
 class QuadraticForm(QuantumCircuit):
@@ -59,19 +60,23 @@ class QuadraticForm(QuantumCircuit):
     The implementation of this circuit is discussed in [1], Fig. 6.
 
     References:
-        [1]: Gilliam et al., Grover Adaptive Search for Constrained Polynomial Binary Optimization.
-             `arXiv:1912.04088 <https://arxiv.org/pdf/1912.04088.pdf>`_
+
+    [1] Gilliam et al., Grover Adaptive Search for Constrained Polynomial Binary Optimization.
+    `arXiv:1912.04088 <https://arxiv.org/pdf/1912.04088.pdf>`_
 
     """
 
+    @deprecate_func(
+        since="2.1",
+        additional_msg="Use the QuadraticFormGate instead.",
+        removal_timeline="Qiskit 3.0",
+    )
     def __init__(
         self,
-        num_result_qubits: Optional[int] = None,
-        quadratic: Optional[
-            Union[np.ndarray, List[List[Union[float, ParameterExpression]]]]
-        ] = None,
-        linear: Optional[Union[np.ndarray, List[Union[float, ParameterExpression]]]] = None,
-        offset: Optional[Union[float, ParameterExpression]] = None,
+        num_result_qubits: int | None = None,
+        quadratic: np.ndarray | list[list[float | ParameterExpression]] | None = None,
+        linear: np.ndarray | list[float | ParameterExpression] | None = None,
+        offset: float | ParameterExpression | None = None,
         little_endian: bool = True,
     ) -> None:
         r"""
@@ -170,8 +175,8 @@ class QuadraticForm(QuantumCircuit):
 
     @staticmethod
     def required_result_qubits(
-        quadratic: Union[np.ndarray, List[List[float]]],
-        linear: Union[np.ndarray, List[float]],
+        quadratic: np.ndarray | list[list[float]],
+        linear: np.ndarray | list[float],
         offset: float,
     ) -> int:
         """Get the number of required result qubits.
@@ -221,8 +226,9 @@ class QuadraticFormGate(Gate):
     The implementation of this circuit is discussed in [1], Fig. 6.
 
     References:
-        [1]: Gilliam et al., Grover Adaptive Search for Constrained Polynomial Binary Optimization.
-             `arXiv:1912.04088 <https://arxiv.org/pdf/1912.04088.pdf>`_
+
+    [1] Gilliam et al., Grover Adaptive Search for Constrained Polynomial Binary Optimization.
+    `arXiv:1912.04088 <https://arxiv.org/pdf/1912.04088.pdf>`_
 
     """
 

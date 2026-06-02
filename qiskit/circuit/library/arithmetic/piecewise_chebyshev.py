@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -13,7 +13,8 @@
 """Piecewise polynomial Chebyshev approximation to a given f(x)."""
 
 from __future__ import annotations
-from typing import Callable
+import warnings
+from collections.abc import Callable
 import numpy as np
 from numpy.polynomial.chebyshev import Chebyshev
 
@@ -39,29 +40,30 @@ class PiecewiseChebyshev(BlueprintCircuit):
 
     Examples:
 
-        .. plot::
-           :alt: Circuit diagram output by the previous code.
-           :include-source:
+    .. plot::
+        :alt: Circuit diagram output by the previous code.
+        :include-source:
 
-            import numpy as np
-            from qiskit import QuantumCircuit
-            from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
-            f_x, degree, breakpoints, num_state_qubits = lambda x: np.arcsin(1 / x), 2, [2, 4], 2
-            pw_approximation = PiecewiseChebyshev(f_x, degree, breakpoints, num_state_qubits)
-            pw_approximation._build()
-            qc = QuantumCircuit(pw_approximation.num_qubits)
-            qc.h(list(range(num_state_qubits)))
-            qc.append(pw_approximation.to_instruction(), qc.qubits)
-            qc.draw(output='mpl')
+        import numpy as np
+        from qiskit import QuantumCircuit
+        from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
+        f_x, degree, breakpoints, num_state_qubits = lambda x: np.arcsin(1 / x), 2, [2, 4], 2
+        pw_approximation = PiecewiseChebyshev(f_x, degree, breakpoints, num_state_qubits)
+        pw_approximation._build()
+        qc = QuantumCircuit(pw_approximation.num_qubits)
+        qc.h(list(range(num_state_qubits)))
+        qc.append(pw_approximation.to_instruction(), qc.qubits)
+        qc.draw(output='mpl')
 
     References:
 
-        [1]: Haener, T., Roetteler, M., & Svore, K. M. (2018).
-             Optimizing Quantum Circuits for Arithmetic.
-             `arXiv:1805.12445 <http://arxiv.org/abs/1805.12445>`_
-        [2]: Carrera Vazquez, A., Hiptmair, H., & Woerner, S. (2022).
-             Enhancing the Quantum Linear Systems Algorithm Using Richardson Extrapolation.
-             `ACM Transactions on Quantum Computing 3, 1, Article 2 <https://doi.org/10.1145/3490631>`_
+    [1] Haener, T., Roetteler, M., & Svore, K. M. (2018).
+    Optimizing Quantum Circuits for Arithmetic.
+    `arXiv:1805.12445 <https://arxiv.org/abs/1805.12445>`_
+
+    [2] Carrera Vazquez, A., Hiptmair, H., & Woerner, S. (2022).
+    Enhancing the Quantum Linear Systems Algorithm Using Richardson Extrapolation.
+    `ACM Transactions on Quantum Computing 3, 1, Article 2 <https://doi.org/10.1145/3490631>`_
     """
 
     def __init__(
@@ -190,7 +192,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
         """
         breakpoints = self._breakpoints
 
-        # it the state qubits are set ensure that the breakpoints match beginning and end
+        # if the state qubits are set ensure that the breakpoints match beginning and end
         if self.num_state_qubits is not None:
             num_states = 2**self.num_state_qubits
 
@@ -245,7 +247,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
 
         # Calculate the polynomials
         polynomials = []
-        for i in range(0, num_intervals - 1):
+        for i in range(num_intervals - 1):
             # Calculate the polynomial approximating the function on the current interval
             try:
                 # If the function is constant don't call Chebyshev (not necessary and gives errors)
@@ -286,7 +288,7 @@ class PiecewiseChebyshev(BlueprintCircuit):
         changes.
 
         Args:
-            polynomials: The new breakpoints for the piecewise approximation.
+            polynomials: The new polynomials for the piecewise approximation.
         """
         if self._polynomials is None or polynomials != self._polynomials:
             self._invalidate()
@@ -338,16 +340,19 @@ class PiecewiseChebyshev(BlueprintCircuit):
                 self.add_register(qr_ancilla)
 
     def _build(self):
-        """Build the circuit if not already build. The operation is considered successful
+        """Build the circuit if not already built. The operation is considered successful
         when q_objective is :math:`|1>`"""
         if self._is_built:
             return
 
         super()._build()
 
-        poly_r = PiecewisePolynomialPauliRotations(
-            self.num_state_qubits, self.breakpoints, self.polynomials, name=self.name
-        )
+        # the class itself is deprecated, no need to raise additional warnings during runtime
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, module="qiskit")
+            poly_r = PiecewisePolynomialPauliRotations(
+                self.num_state_qubits, self.breakpoints, self.polynomials, name=self.name
+            )
 
         # Apply polynomial approximation
         self.append(poly_r.to_gate(), self.qubits)
@@ -383,12 +388,13 @@ class PiecewiseChebyshevGate(Gate):
 
     References:
 
-        [1]: Haener, T., Roetteler, M., & Svore, K. M. (2018).
-             Optimizing Quantum Circuits for Arithmetic.
-             `arXiv:1805.12445 <http://arxiv.org/abs/1805.12445>`_
-        [2]: Carrera Vazquez, A., Hiptmair, H., & Woerner, S. (2022).
-             Enhancing the Quantum Linear Systems Algorithm Using Richardson Extrapolation.
-             `ACM Transactions on Quantum Computing 3, 1, Article 2 <https://doi.org/10.1145/3490631>`_
+    [1] Haener, T., Roetteler, M., & Svore, K. M. (2018).
+    Optimizing Quantum Circuits for Arithmetic.
+    `arXiv:1805.12445 <https://arxiv.org/abs/1805.12445>`_
+
+    [2] Carrera Vazquez, A., Hiptmair, H., & Woerner, S. (2022).
+    Enhancing the Quantum Linear Systems Algorithm Using Richardson Extrapolation.
+    `ACM Transactions on Quantum Computing 3, 1, Article 2 <https://doi.org/10.1145/3490631>`_
     """
 
     def __init__(
@@ -460,7 +466,7 @@ class PiecewiseChebyshevGate(Gate):
 
         # Calculate the polynomials
         polynomials = []
-        for i in range(0, num_intervals - 1):
+        for i in range(num_intervals - 1):
             # Calculate the polynomial approximating the function on the current interval
             try:
                 # If the function is constant don't call Chebyshev (not necessary and gives errors)

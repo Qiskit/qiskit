@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -18,6 +18,8 @@ from qiskit._accelerate.converters import dag_to_circuit as dag_to_circuit_rs
 
 def dag_to_circuit(dag, copy_operations=True):
     """Build a ``QuantumCircuit`` object from a ``DAGCircuit``.
+
+    This is also accessible as :meth:`.DAGCircuit.to_circuit`.
 
     Args:
         dag (DAGCircuit): the input dag.
@@ -65,16 +67,9 @@ def dag_to_circuit(dag, copy_operations=True):
         *dag.cregs.values(),
         name=name,
         global_phase=dag.global_phase,
-        inputs=dag.iter_input_vars(),
-        captures=dag.iter_captured_vars(),
     )
-    for var in dag.iter_declared_vars():
-        circuit.add_uninitialized_var(var)
-    circuit.metadata = dag.metadata
-    circuit._calibrations_prop = dag._calibrations_prop
-
+    circuit.metadata = dag.metadata or {}
     circuit._data = circuit_data
-
-    circuit._duration = dag.duration
-    circuit._unit = dag.unit
+    circuit._duration = dag._duration
+    circuit._unit = dag._unit
     return circuit

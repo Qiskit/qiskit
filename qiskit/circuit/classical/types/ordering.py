@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -15,18 +15,18 @@
 from __future__ import annotations
 
 __all__ = [
+    "CastKind",
     "Ordering",
+    "cast_kind",
+    "greater",
     "is_subtype",
     "is_supertype",
     "order",
-    "greater",
-    "CastKind",
-    "cast_kind",
 ]
 
 import enum
 
-from .types import Type, Bool, Float, Uint
+from .types import Type, Bool, Duration, Float, Uint
 
 
 # While the type system is simple, it's overkill to represent the complete partial ordering graph of
@@ -67,6 +67,7 @@ _ORDERERS = {
     (Bool, Bool): lambda _a, _b, /: Ordering.EQUAL,
     (Uint, Uint): _order_uint_uint,
     (Float, Float): lambda _a, _b, /: Ordering.EQUAL,
+    (Duration, Duration): lambda _a, _b, /: Ordering.EQUAL,
 }
 
 
@@ -172,7 +173,7 @@ class CastKind(enum.Enum):
     ``implicit==True`` is the minimum required to specify this."""
     LOSSLESS = enum.auto()
     """The 'from' type can be cast to the 'to' type explicitly, and the cast will be lossless.  This
-    requires a :class:`~.expr.Cast`` node with ``implicit=False``, but there's no danger from
+    requires a :class:`~.expr.Cast` node with ``implicit=False``, but there's no danger from
     inserting one."""
     DANGEROUS = enum.auto()
     """The 'from' type has a defined cast to the 'to' type, but depending on the value, it may lose
@@ -199,6 +200,7 @@ _ALLOWED_CASTS = {
     (Float, Float): lambda _a, _b, /: CastKind.EQUAL,
     (Float, Uint): lambda _a, _b, /: CastKind.DANGEROUS,
     (Float, Bool): lambda _a, _b, /: CastKind.DANGEROUS,
+    (Duration, Duration): lambda _a, _b, /: CastKind.EQUAL,
 }
 
 

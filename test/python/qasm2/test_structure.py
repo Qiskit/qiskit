@@ -4,13 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
 import io
 import math
@@ -35,7 +34,7 @@ from qiskit.circuit import (
     library as lib,
 )
 from qiskit.quantum_info import Operator
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 from . import gate_builder
 
@@ -1731,7 +1730,7 @@ class TestCustomClassical(QiskitTestCase):
         self.assertEqual(parsed, qc)
 
     def test_use_in_gate_definition(self):
-        # pylint: disable=invalid-name
+
         program = """
             gate my_gate(a, b) q {
                 U(f(a, b), g(f(b, f(b, a))), b) q;
@@ -1740,8 +1739,13 @@ class TestCustomClassical(QiskitTestCase):
             my_gate(0.5, 0.25) q[0];
             my_gate(0.25, 0.5) q[0];
         """
-        f = lambda x, y: x - y
-        g = lambda x: 2 * x
+
+        def f(x, y):
+            return x - y
+
+        def g(x):
+            return 2 * x
+
         parsed = qiskit.qasm2.loads(
             program,
             custom_classical=[
@@ -1836,3 +1840,19 @@ class TestStrict(QiskitTestCase):
         qc = QuantumCircuit(QuantumRegister(1, "q"))
         qc.h(0)
         self.assertEqual(parsed, qc)
+
+    def test_unitary_qasm(self):
+        """Test that UnitaryGate can be loaded by OQ2 correctly."""
+        qc = QuantumCircuit(1)
+        qc.unitary([[1, 0], [0, 1]], 0)
+        qasm = """
+            OPENQASM 2.0;
+            include "qelib1.inc";
+            gate unitary q0 { U(0,0,0) q0; }
+            qreg q[1];
+            unitary q[0];
+        """
+        parsed = qiskit.qasm2.loads(qasm)
+        self.assertIsInstance(parsed, QuantumCircuit)
+        self.assertIsInstance(parsed.data[0].operation, qiskit.qasm2.parse._DefinedGate)
+        self.assertEqual(Operator.from_circuit(parsed), Operator.from_circuit(qc))

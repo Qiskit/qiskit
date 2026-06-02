@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -12,7 +12,8 @@
 
 """Durations of instructions, one of transpiler configurations."""
 from __future__ import annotations
-from typing import Optional, List, Tuple, Union, Iterable
+
+from collections.abc import Iterable
 
 import qiskit.circuit
 from qiskit.circuit import Barrier, Delay, Instruction, ParameterExpression
@@ -36,7 +37,7 @@ class InstructionDurations:
     """
 
     def __init__(
-        self, instruction_durations: "InstructionDurationsType" | None = None, dt: float = None
+        self, instruction_durations: InstructionDurationsType | None = None, dt: float | None = None
     ):
         self.duration_by_name: dict[str, tuple[float, str]] = {}
         self.duration_by_name_qubits: dict[tuple[str, tuple[int, ...]], tuple[float, str]] = {}
@@ -74,32 +75,14 @@ class InstructionDurations:
 
         Raises:
             TranspilerError: If dt and dtm is different in the backend.
+            TypeError: If the backend is the wrong type
         """
         # All durations in seconds in gate_length
         if isinstance(backend, BackendV2):
             return backend.target.durations()
+        raise TypeError("Unsupported backend type: {backend}")
 
-        instruction_durations = []
-        backend_properties = backend.properties()
-        if hasattr(backend_properties, "_gates"):
-            for gate, insts in backend_properties._gates.items():
-                for qubits, props in insts.items():
-                    if "gate_length" in props:
-                        gate_length = props["gate_length"][0]  # Throw away datetime at index 1
-                        instruction_durations.append((gate, qubits, gate_length, "s"))
-            for q, props in backend.properties()._qubits.items():
-                if "readout_length" in props:
-                    readout_length = props["readout_length"][0]  # Throw away datetime at index 1
-                    instruction_durations.append(("measure", [q], readout_length, "s"))
-
-        try:
-            dt = backend.configuration().dt
-        except AttributeError:
-            dt = None
-
-        return cls(instruction_durations, dt=dt)
-
-    def update(self, inst_durations: "InstructionDurationsType" | None, dt: float = None):
+    def update(self, inst_durations: InstructionDurationsType | None, dt: float | None = None):
         """Update self with inst_durations (inst_durations overwrite self).
 
         Args:
@@ -271,11 +254,11 @@ class InstructionDurations:
         return units_used
 
 
-InstructionDurationsType = Union[
-    List[Tuple[str, Optional[Iterable[int]], float, Optional[Iterable[float]], str]],
-    List[Tuple[str, Optional[Iterable[int]], float, Optional[Iterable[float]]]],
-    List[Tuple[str, Optional[Iterable[int]], float, str]],
-    List[Tuple[str, Optional[Iterable[int]], float]],
-    InstructionDurations,
-]
+InstructionDurationsType = (
+    list[tuple[str, Iterable[int] | None, float, Iterable[float] | None, str]]
+    | list[tuple[str, Iterable[int] | None, float, Iterable[float] | None]]
+    | list[tuple[str, Iterable[int] | None, float, str]]
+    | list[tuple[str, Iterable[int] | None, float]]
+    | InstructionDurations
+)
 """List of tuples representing (instruction name, qubits indices, parameters, duration)."""

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,42 +14,7 @@
 
 from uuid import uuid4, UUID
 
-from .parameter import Parameter
-
-
-class ParameterVectorElement(Parameter):
-    """An element of a :class:`ParameterVector`.
-
-    .. note::
-        There is very little reason to ever construct this class directly.  Objects of this type are
-        automatically constructed efficiently as part of creating a :class:`ParameterVector`.
-    """
-
-    ___slots__ = ("_vector", "_index")
-
-    def __init__(self, vector, index, uuid=None):
-        super().__init__(f"{vector.name}[{index}]", uuid=uuid)
-        self._vector = vector
-        self._index = index
-
-    @property
-    def index(self):
-        """Get the index of this element in the parent vector."""
-        return self._index
-
-    @property
-    def vector(self):
-        """Get the parent vector instance."""
-        return self._vector
-
-    def __getstate__(self):
-        return super().__getstate__() + (self._vector, self._index)
-
-    def __setstate__(self, state):
-        *super_state, vector, index = state
-        super().__setstate__(super_state)
-        self._vector = vector
-        self._index = index
+from qiskit._accelerate.circuit import ParameterVectorElement
 
 
 class ParameterVector:
@@ -63,14 +28,32 @@ class ParameterVector:
     The elements of a vector are sorted by the name of the vector, then the numeric value of their
     index.
 
-    This class fulfill the :class:`collections.abc.Sequence` interface.
+    This class fulfills the :class:`collections.abc.Sequence` interface.
+
+    .. note::
+        This class does not implement regular equality, but has historically been allowed to be used
+        as a dictionary key for :meth:`.QuantumCircuit.assign_parameters`.  The class is mutable via
+        :meth:`resize`, so it generally cannot implement regular equality; for two
+        :class:`.ParameterVector` objects to compare equal, they must be literally the same Python
+        instance.
+
+        This restriction does not apply to the individual :class:`.ParameterVectorElement`
+        instances; these must only match on name, index and UUID.
     """
 
     __slots__ = ("_name", "_params", "_root_uuid")
 
-    def __init__(self, name, length=0):
+    def __init__(self, name: str, length: int = 0, uuid: UUID | None = None):
+        """
+        Args:
+            name: the base name of the vector
+            length: the number of elements in the vector
+            uuid: (optional) the root UUID to use for the vector.  This can be used to create a new
+                vector whose elements will compare equal to a previous vector (such as in a
+                deserialization process).
+        """
         self._name = name
-        self._root_uuid = uuid4()
+        self._root_uuid = uuid or uuid4()
         root_uuid_int = self._root_uuid.int
         self._params = [
             ParameterVectorElement(self, i, UUID(int=root_uuid_int + i)) for i in range(length)
@@ -87,6 +70,11 @@ class ParameterVector:
 
         It is not safe to mutate this list."""
         return self._params
+
+    @property
+    def uuid(self) -> UUID:
+        """Get the root UUID of this vector."""
+        return self._root_uuid
 
     def index(self, value):
         """Find the index of a :class:`ParameterVectorElement` within the list.
@@ -107,7 +95,18 @@ class ParameterVector:
         return f"{self.name}, {[str(item) for item in self.params]}"
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(name={repr(self.name)}, length={len(self)})"
+        return f"{self.__class__.__name__}(name={self.name!r}, length={len(self)})"
+
+    def __getnewargs__(self):
+        return (self._name, len(self._params))
+
+    def __getstate__(self):
+        params = [p.__getstate__() for p in self._params]
+        return (self._name, params, self._root_uuid)
+
+    def __setstate__(self, state):
+        self._name, params, self._root_uuid = state
+        self._params = [ParameterVectorElement(*p) for p in params]
 
     def resize(self, length):
         """Resize the parameter vector.  If necessary, new elements are generated.
@@ -123,8 +122,8 @@ class ParameterVector:
         >>> from qiskit.circuit import ParameterVector
         >>> pv = ParameterVector("theta", 20)
         >>> elt_19 = pv[19]
-        >>> rv.resize(10)
-        >>> rv.resize(20)
+        >>> pv.resize(10)
+        >>> pv.resize(20)
         >>> pv[19] == elt_19
         True
         """

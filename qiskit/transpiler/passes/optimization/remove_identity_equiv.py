@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -32,11 +32,16 @@ class RemoveIdentityEquivalent(TransformationPass):
 
     .. math::
 
-        \bar{F} = \frac{1 + F_{\text{process}}}{1 + d},\ 
+        \bar{F} = \frac{1 + d F_{\text{process}}}{1 + d},\
 
         F_{\text{process}} = \frac{|\mathrm{Tr}(G)|^2}{d^2}
 
     where :math:`d = 2^n` is the dimension of the gate for :math:`n` qubits.
+
+    This function is multithreaded and will potentially launch a thread pool with threads
+    equal to the number of CPUs by default. You can tune the number of threads with the
+    ``RAYON_NUM_THREADS`` environment variable. For example, setting ``RAYON_NUM_THREADS=4``
+    would limit the thread pool to 4 threads.
     """
 
     def __init__(
@@ -47,9 +52,11 @@ class RemoveIdentityEquivalent(TransformationPass):
         Args:
             approximation_degree: The degree to approximate for the equivalence check. This can be a
                 floating point value between 0 and 1, or ``None``. If the value is 1 this does not
-                approximate above floating point precision. For a value < 1 this is used as a scaling
-                factor for the cutoff fidelity. If the value is ``None`` this approximates up to the
-                fidelity for the gate specified in ``target``.
+                approximate above the floating point precision. For a value < 1 this is used as a
+                scaling factor for the cutoff fidelity. If the value is ``None`` this approximates up
+                to the fidelity for the gate specified in ``target``. In case no ``target`` is set
+                we approximate up to ``16 * machine_eps`` as default to account for accumulations
+                on few-qubit systems.
 
             target: If ``approximation_degree`` is set to ``None`` and a :class:`.Target` is provided
                 for this field the tolerance for determining whether an operation is equivalent to

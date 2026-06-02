@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -17,7 +17,7 @@ from ddt import ddt, data, unpack
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Qubit, Clbit, AncillaRegister
 from qiskit.circuit.exceptions import CircuitError
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt
@@ -165,3 +165,52 @@ class TestQuantumCircuitFindBit(QiskitTestCase):
                 self.assertEqual(
                     qc.find_bit(bit), (circ_idx, [(reg2, idx), (even_reg, circ_idx // 2)])
                 )
+
+
+class TestQuantumCircuitBitLocations(QiskitTestCase):
+    """Test cases for BitLocations in the QuantumCircuit."""
+
+    def test_bit_indexable(self):
+        """Tests whether a BitLocations instance can be indexed correctly"""
+        qc = QuantumCircuit(5)
+        # Retrieve the register this circuit contains
+        reg = qc.qregs[0]
+
+        # Check that all bits are localizable and that the `BitLocations` instance
+        # can be indexed.
+        for index, bit in enumerate(qc.qubits):
+            location = qc.find_bit(bit)
+            # Test index by integer
+            self.assertEqual(
+                location[1],
+                [
+                    (reg, index),
+                ],
+            )
+            self.assertEqual(location[0], index)
+            self.assertEqual(
+                location[-1],
+                [
+                    (reg, index),
+                ],
+            )
+            self.assertEqual(location[-2], index)
+
+            # Test index by slice positive range
+            self.assertEqual(location[0:], tuple(location))
+            self.assertEqual(location[0:9], tuple(location))
+
+            # Test index by slice negative range
+            self.assertEqual(location[::-1], tuple(reversed(location)))
+            self.assertEqual(location[-1::], (location[-1],))
+            self.assertEqual(location[-1:1], ())
+
+            # Test invalid indices
+            with self.assertRaisesRegex(IndexError, "out of range"):
+                return location[2]
+            with self.assertRaisesRegex(IndexError, "out of range"):
+                return location[-3]
+            with self.assertRaisesRegex(IndexError, "out of range"):
+                return location[-999999999]
+            with self.assertRaisesRegex(IndexError, "out of range"):
+                return location[999999999]

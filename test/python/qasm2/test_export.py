@@ -4,13 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
 import io
 import os
@@ -22,7 +21,8 @@ from math import pi
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, qasm2
 from qiskit.circuit import Parameter, Qubit, Clbit, Gate, library as lib
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.circuit.classical import expr
+from test import QiskitTestCase
 
 # Regex pattern to match valid OpenQASM identifiers
 VALID_QASM2_IDENTIFIER = re.compile("[a-z][a-zA-Z_0-9]*")
@@ -44,6 +44,12 @@ class TestQASM2Export(QiskitTestCase):
         qc.barrier(qr2)
         qc.cx(qr2[1], qr1[0])
         qc.h(qr2[1])
+        with qc.if_test((cr, 0)):
+            qc.x(qr2[1])
+        with qc.if_test((cr, 1)):
+            qc.y(qr1[0])
+        with qc.if_test((cr, 2)):
+            qc.z(qr1[0])
         qc.barrier(qr1, qr2)
         qc.measure(qr1[0], cr[0])
         qc.measure(qr2[0], cr[1])
@@ -62,6 +68,9 @@ cx qr1[0],qr2[1];
 barrier qr2[0],qr2[1];
 cx qr2[1],qr1[0];
 h qr2[1];
+if (cr == 0) x qr2[1];
+if (cr == 1) y qr1[0];
+if (cr == 2) z qr1[0];
 barrier qr1[0],qr2[0],qr2[1];
 measure qr1[0] -> cr[0];
 measure qr2[0] -> cr[1];
@@ -272,7 +281,7 @@ ccz q[0],q[1],q[2];"""
         expected = """\
 OPENQASM 2.0;
 include "qelib1.inc";
-gate cs q0,q1 { p(pi/4) q0; cx q0,q1; p(-pi/4) q1; cx q0,q1; p(pi/4) q1; }
+gate cs q0,q1 { t q0; cx q0,q1; tdg q1; cx q0,q1; t q1; }
 qreg q[2];
 cs q[0],q[1];"""
         self.assertEqual(qasm, expected)
@@ -285,7 +294,7 @@ cs q[0],q[1];"""
         expected = """\
 OPENQASM 2.0;
 include "qelib1.inc";
-gate csdg q0,q1 { p(-pi/4) q0; cx q0,q1; p(pi/4) q1; cx q0,q1; p(-pi/4) q1; }
+gate csdg q0,q1 { tdg q0; cx q0,q1; t q1; cx q0,q1; tdg q1; }
 qreg q[2];
 csdg q[0],q[1];"""
         self.assertEqual(qasm, expected)
@@ -314,8 +323,7 @@ rzx(pi/2) q[1],q[0];"""
         expected = """\
 OPENQASM 2.0;
 include "qelib1.inc";
-gate rzx(param0) q0,q1 { h q1; cx q0,q1; rz(param0) q1; cx q0,q1; h q1; }
-gate ecr q0,q1 { rzx(pi/4) q0,q1; x q0; rzx(-pi/4) q0,q1; }
+gate ecr q0,q1 { s q0; sx q1; cx q0,q1; x q0; }
 qreg q[2];
 ecr q[0],q[1];
 ecr q[1],q[0];"""
@@ -376,6 +384,7 @@ custom q\[0\];""",
         self.assertEqual(Operator(qc), Operator(qasm2.loads(qasm_str)))
 
     def test_mcx_gate(self):
+
         qc = QuantumCircuit(4)
         qc.mcx([0, 1, 2], 3)
 
@@ -389,26 +398,26 @@ mcx q[0],q[1],q[2],q[3];"""
         self.assertEqual(qasm2.dumps(qc), expected_qasm)
 
     def test_mcx_gate_variants(self):
+
         n = 5
         qc = QuantumCircuit(2 * n - 1)
-        qc.append(lib.MCXGrayCode(n), range(n + 1))
-        qc.append(lib.MCXRecursive(n), range(n + 2))
-        qc.append(lib.MCXVChain(n), range(2 * n - 1))
-        mcx_vchain_id = id(qc.data[-1].operation)
+        with self.assertWarns(DeprecationWarning):
+            gray = lib.MCXGrayCode(n)
+            recursive = lib.MCXRecursive(n)
+            vchain = lib.MCXVChain(n)
+        qc.append(gray, range(n + 1))
+        qc.append(recursive, range(n + 2))
+        qc.append(vchain, range(2 * n - 1))
 
-        # qasm output doesn't support parameterized gate yet.
-        # param0 for "gate mcuq(param0) is not used inside the definition
-        expected_qasm = f"""OPENQASM 2.0;
+        expected_qasm = """OPENQASM 2.0;
 include "qelib1.inc";
-gate mcu1(param0) q0,q1,q2,q3,q4,q5 {{ cu1(pi/16) q4,q5; cx q4,q3; cu1(-pi/16) q3,q5; cx q4,q3; cu1(pi/16) q3,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; }}
-gate mcx_gray q0,q1,q2,q3,q4,q5 {{ h q5; mcu1(pi) q0,q1,q2,q3,q4,q5; h q5; }}
-gate mcx_vchain q0,q1,q2,q3,q4 {{ h q3; p(pi/8) q0; p(pi/8) q1; p(pi/8) q2; p(pi/8) q3; cx q0,q1; p(-pi/8) q1; cx q0,q1; cx q1,q2; p(-pi/8) q2; cx q0,q2; p(pi/8) q2; cx q1,q2; p(-pi/8) q2; cx q0,q2; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; h q3; }}
-gate mcx_recursive q0,q1,q2,q3,q4,q5,q6 {{ mcx_vchain q0,q1,q2,q6,q3; mcx_vchain q3,q4,q6,q5,q0; mcx_vchain q0,q1,q2,q6,q3; mcx_vchain q3,q4,q6,q5,q0; }}
-gate mcx_vchain_{mcx_vchain_id} q0,q1,q2,q3,q4,q5,q6,q7,q8 {{ rccx q0,q1,q6; rccx q2,q6,q7; rccx q3,q7,q8; ccx q4,q8,q5; rccx q3,q7,q8; rccx q2,q6,q7; rccx q0,q1,q6; }}
+gate mcx_gray q0,q1,q2,q3,q4,q5 { h q5; cu1(pi/16) q4,q5; cx q4,q3; cu1(-pi/16) q3,q5; cx q4,q3; cu1(pi/16) q3,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; h q5; }
+gate mcx_recursive q0,q1,q2,q3,q4,q5,q6 { h q6; t q6; cx q2,q6; tdg q6; cx q3,q6; h q3; t q3; cx q1,q3; tdg q3; cx q0,q3; t q3; cx q1,q3; tdg q3; h q3; cx q3,q6; t q6; cx q2,q6; tdg q6; h q6; h q3; t q3; cx q1,q3; tdg q3; cx q0,q3; t q3; cx q1,q3; tdg q3; h q3; h q5; p(pi/8) q3; p(pi/8) q4; p(pi/8) q6; p(pi/8) q5; cx q3,q4; p(-pi/8) q4; cx q3,q4; cx q4,q6; p(-pi/8) q6; cx q3,q6; p(pi/8) q6; cx q4,q6; p(-pi/8) q6; cx q3,q6; cx q6,q5; p(-pi/8) q5; cx q4,q5; p(pi/8) q5; cx q6,q5; p(-pi/8) q5; cx q3,q5; p(pi/8) q5; cx q6,q5; p(-pi/8) q5; cx q4,q5; p(pi/8) q5; cx q6,q5; p(-pi/8) q5; cx q3,q5; h q5; h q3; t q3; cx q1,q3; tdg q3; cx q0,q3; t q3; cx q1,q3; tdg q3; h q3; h q6; t q6; cx q2,q6; tdg q6; cx q3,q6; h q3; t q3; cx q1,q3; tdg q3; cx q0,q3; t q3; cx q1,q3; tdg q3; h q3; cx q3,q6; t q6; cx q2,q6; tdg q6; h q6; h q5; p(pi/8) q3; p(pi/8) q4; p(pi/8) q6; p(pi/8) q5; cx q3,q4; p(-pi/8) q4; cx q3,q4; cx q4,q6; p(-pi/8) q6; cx q3,q6; p(pi/8) q6; cx q4,q6; p(-pi/8) q6; cx q3,q6; cx q6,q5; p(-pi/8) q5; cx q4,q5; p(pi/8) q5; cx q6,q5; p(-pi/8) q5; cx q3,q5; p(pi/8) q5; cx q6,q5; p(-pi/8) q5; cx q4,q5; p(pi/8) q5; cx q6,q5; p(-pi/8) q5; cx q3,q5; h q5; }
+gate mcx_vchain q0,q1,q2,q3,q4,q5,q6,q7,q8 { rccx q0,q1,q6; rccx q2,q6,q7; rccx q3,q7,q8; ccx q4,q8,q5; rccx q3,q7,q8; rccx q2,q6,q7; rccx q0,q1,q6; }
 qreg q[9];
 mcx_gray q[0],q[1],q[2],q[3],q[4],q[5];
 mcx_recursive q[0],q[1],q[2],q[3],q[4],q[5],q[6];
-mcx_vchain_{mcx_vchain_id} q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8];"""
+mcx_vchain q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8];"""
 
         self.assertEqual(qasm2.dumps(qc), expected_qasm)
 
@@ -819,7 +828,7 @@ class TestDumpStream(QiskitTestCase):
             os.chdir(tmpdir)
             try:
                 qasm2.dump(qc, "myfile.qasm")
-                with open("myfile.qasm", "r") as fptr:
+                with open("myfile.qasm") as fptr:
                     written = fptr.read()
             finally:
                 os.chdir(prevdir)
@@ -837,7 +846,7 @@ class TestDumpStream(QiskitTestCase):
             os.chdir(tmpdir)
             try:
                 qasm2.dump(qc, pathlib.Path(".") / "myfile.qasm")
-                with open("myfile.qasm", "r") as fptr:
+                with open("myfile.qasm") as fptr:
                     written = fptr.read()
             finally:
                 os.chdir(prevdir)
@@ -853,6 +862,128 @@ class TestDumpStream(QiskitTestCase):
             qasm2.dump(qc, stream)
             written = stream.getvalue()
         self.assertEqual(qasm2.loads(written), qc)
+
+    def test_measure_can_be_conditioned(self):
+        qr = QuantumRegister(1, "qr")
+        cr = ClassicalRegister(1, "cr")
+        qc = QuantumCircuit(qr, cr)
+        with qc.if_test((cr, 0)):
+            qc.measure(0, 0)
+        expected = """\
+OPENQASM 2.0;
+include "qelib1.inc";
+qreg qr[1];
+creg cr[1];
+if (cr == 0) measure qr[0] -> cr[0];"""
+        self.assertEqual(qasm2.dumps(qc), expected)
+
+    def test_reset_can_be_conditioned(self):
+        qr = QuantumRegister(1, "qr")
+        cr = ClassicalRegister(1, "cr")
+        qc = QuantumCircuit(qr, cr)
+        with qc.if_test((cr, 0)):
+            qc.reset(0)
+        expected = """\
+OPENQASM 2.0;
+include "qelib1.inc";
+qreg qr[1];
+creg cr[1];
+if (cr == 0) reset qr[0];"""
+        self.assertEqual(qasm2.dumps(qc), expected)
+
+    def test_escaped_register_name_works_in_conditional(self):
+        qr = QuantumRegister(1, "qr")
+        # This is an invalid register name in OpenQASM 2 because it collides with a keyword.
+        cr = ClassicalRegister(1, "measure")
+        qc = QuantumCircuit(qr, cr)
+        with qc.if_test((cr, 0)):
+            qc.x(0)
+        expected = r"""OPENQASM 2\.0;
+include "qelib1\.inc";
+qreg qr\[1\];
+creg (\w+)\[1\];
+if \(\1 == 0\) x qr\[0\];"""
+        match = re.fullmatch(expected, qasm2.dumps(qc), flags=re.MULTILINE)
+        self.assertIsNotNone(match)
+        self.assertNotEqual(match.group(0), "measure")
+
+    def test_while_loop_fails(self):
+        qc = QuantumCircuit(1, 1)
+        with qc.while_loop((qc.cregs[0], 0)):
+            qc.x(0)
+        with self.assertRaisesRegex(
+            qasm2.QASM2ExportError, "does not support control-flow constructs"
+        ):
+            qasm2.dumps(qc)
+
+    def test_for_loop_fails(self):
+        qc = QuantumCircuit(1)
+        with qc.for_loop(range(3)):
+            qc.x(0)
+        with self.assertRaisesRegex(
+            qasm2.QASM2ExportError, "does not support control-flow constructs"
+        ):
+            qasm2.dumps(qc)
+
+    def test_switch_case_fails(self):
+        qc = QuantumCircuit(1, 2)
+        with qc.switch(qc.cregs[0]) as case:
+            with case(0):
+                qc.x(0)
+            with case(1):
+                qc.z(0)
+            with case(case.DEFAULT):
+                qc.h(0)
+        with self.assertRaisesRegex(
+            qasm2.QASM2ExportError, "does not support control-flow constructs"
+        ):
+            qasm2.dumps(qc)
+
+    def test_else_fails(self):
+        qc = QuantumCircuit(1, 2)
+        with qc.if_test((qc.cregs[0], 0)) as else_:
+            qc.x(0)
+        with else_:
+            qc.z(0)
+        with self.assertRaisesRegex(qasm2.QASM2ExportError, "does not support 'else' statements"):
+            qasm2.dumps(qc)
+
+    def test_compound_if_fails(self):
+        # This test could be relaxed in the future by unrolling the `if` into multiple statements.
+        qc = QuantumCircuit(1, 1)
+        with qc.if_test((qc.cregs[0], 0)):
+            qc.x(0)
+            qc.z(0)
+        with self.assertRaisesRegex(qasm2.QASM2ExportError, "only supports conditionals on single"):
+            qasm2.dumps(qc)
+
+    def test_bit_condition_fails(self):
+        qc = QuantumCircuit(1, 2)
+        with qc.if_test((qc.clbits[0], False)):
+            qc.x(0)
+        with self.assertRaisesRegex(qasm2.QASM2ExportError, "only supports register-equality"):
+            qasm2.dumps(qc)
+
+    def test_expr_condition_fails(self):
+        qc = QuantumCircuit(1)
+        with qc.if_test(expr.lift(True)):
+            qc.x(0)
+        with self.assertRaisesRegex(qasm2.QASM2ExportError, "only supports register-equality"):
+            qasm2.dumps(qc)
+
+    def test_conditional_barrier_fails(self):
+        qc = QuantumCircuit(1, 1)
+        with qc.if_test((qc.cregs[0], 0)):
+            qc.barrier()
+        with self.assertRaisesRegex(qasm2.QASM2ExportError, "barriers cannot be conditional"):
+            qasm2.dumps(qc)
+
+    def test_nested_if_fails(self):
+        qc = QuantumCircuit(1, 1)
+        with qc.if_test((qc.cregs[0], 0)), qc.if_test((qc.cregs[0], 1)):
+            qc.x(0)
+        with self.assertRaisesRegex(qasm2.QASM2ExportError, "does not support nested conditionals"):
+            qasm2.dumps(qc)
 
 
 if __name__ == "__main__":

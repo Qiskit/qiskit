@@ -1,0 +1,6 @@
+# Exclude benchmark qasm and reference text:
+test/benchmarks/qasm/** linguist-generated
+test/python/visualization/references/*.tex linguist-generated
+test/python/visualization/references/*.txt linguist-generated
+# Mark qasm libs as qasm not c++
+*.inc linguist-language=OpenQASM

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -25,7 +25,7 @@ class RVGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.rv` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -33,7 +33,7 @@ class RVGate(Gate):
         q_0: ┤ RV(v_x,v_y,v_z) ├
              └─────────────────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -60,7 +60,7 @@ class RVGate(Gate):
             basis: basis (see
                 :class:`~qiskit.synthesis.one_qubit.one_qubit_decompose.OneQubitEulerDecomposer`)
         """
-        # pylint: disable=cyclic-import
+
         from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
 
         super().__init__("rv", 1, [v_x, v_y, v_z])

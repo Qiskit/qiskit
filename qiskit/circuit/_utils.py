@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -82,7 +82,8 @@ def _ctrl_state_to_int(ctrl_state, num_ctrl_qubits):
     ctrl_state_std = None
     if isinstance(ctrl_state, str):
         try:
-            assert len(ctrl_state) == num_ctrl_qubits
+            if len(ctrl_state) != num_ctrl_qubits:
+                CircuitError("Invalid number of ctrl qubits for given ctrl state")
             ctrl_state = int(ctrl_state, 2)
         except ValueError as ex:
             raise CircuitError("invalid control bit string: " + ctrl_state) from ex
@@ -96,7 +97,7 @@ def _ctrl_state_to_int(ctrl_state, num_ctrl_qubits):
     elif ctrl_state is None:
         ctrl_state_std = 2**num_ctrl_qubits - 1
     else:
-        raise CircuitError(f"invalid control state specification: {repr(ctrl_state)}")
+        raise CircuitError(f"invalid control state specification: {ctrl_state!r}")
     return ctrl_state_std
 
 

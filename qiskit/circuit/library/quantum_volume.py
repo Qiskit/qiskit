@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,12 +14,12 @@
 
 from __future__ import annotations
 
-from typing import Optional, Union
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit, CircuitInstruction
 from qiskit.circuit.library.generalized_gates import PermutationGate, UnitaryGate
 from qiskit._accelerate.circuit_library import quantum_volume as qv_rs
+from qiskit.utils.deprecation import deprecate_func
 
 
 class QuantumVolume(QuantumCircuit):
@@ -32,7 +32,7 @@ class QuantumVolume(QuantumCircuit):
     elements of SU(4) applied between corresponding pairs
     of qubits in a random bipartition.
 
-    **Reference Circuit:**
+    Reference Circuit:
 
     .. plot::
        :alt: Diagram illustrating the previously described circuit.
@@ -41,7 +41,7 @@ class QuantumVolume(QuantumCircuit):
        circuit = QuantumVolume(5, 6, seed=10)
        circuit.draw('mpl')
 
-    **Expanded Circuit:**
+    Expanded Circuit:
 
     .. plot::
        :alt: Diagram illustrating the previously described circuit.
@@ -51,24 +51,28 @@ class QuantumVolume(QuantumCircuit):
        circuit = QuantumVolume(5, 6, seed=10, classical_permutation=False)
        _generate_circuit_library_visualization(circuit.decompose())
 
-    **References:**
+    References:
 
     [1] A. Cross et al. Validating quantum computers using
     randomized model circuits, Phys. Rev. A 100, 032328 (2019).
-    [`arXiv:1811.12926 <https://arxiv.org/abs/1811.12926>`_]
+    `arXiv:1811.12926 <https://arxiv.org/abs/1811.12926>`__
     """
 
+    @deprecate_func(
+        since="2.2",
+        additional_msg="Use the function qiskit.circuit.library.quantum_volume instead.",
+        removal_timeline="in Qiskit 3.0",
+    )
     def __init__(
         self,
         num_qubits: int,
-        depth: Optional[int] = None,
-        seed: Optional[Union[int, np.random.Generator]] = None,
+        depth: int | None = None,
+        seed: int | np.random.Generator | None = None,
         classical_permutation: bool = True,
         *,
         flatten: bool = False,
     ) -> None:
-        """Create quantum volume model circuit of size num_qubits x depth.
-
+        """
         Args:
             num_qubits: number of active qubits in model circuit.
             depth: layers of SU(4) operations in model circuit.
@@ -78,6 +82,7 @@ class QuantumVolume(QuantumCircuit):
             flatten: If ``False`` (the default), construct a circuit that contains a single
                 instruction, which in turn has the actual volume structure.  If ``True``, construct
                 the volume structure directly.
+
         """
         import scipy.stats
 
@@ -149,7 +154,16 @@ def quantum_volume(
     environment variable. For example, setting ``RAYON_NUM_THREADS=4`` would limit the thread pool
     to 4 threads.
 
-    **Reference Circuit:**
+    Args:
+        num_qubits: The number qubits to use for the generated circuit.
+        depth: The number of layers for the generated circuit. If this
+            is not specified it will default to ``num_qubits`` layers.
+        seed: An optional RNG seed used for generating the random SU(4)
+            matrices used in the output circuit. This can be either an
+            integer or a numpy generator. If an integer is specified it must
+            be an value between 0 and 2**64 - 1.
+
+    Reference Circuit:
 
     .. plot::
        :alt: Diagram illustrating the previously described circuit.
@@ -158,13 +172,14 @@ def quantum_volume(
        circuit = quantum_volume(5, 6, seed=10)
        circuit.draw('mpl')
 
-    **References:**
+    References:
 
     [1] A. Cross et al. Validating quantum computers using
     randomized model circuits, Phys. Rev. A 100, 032328 (2019).
     `arXiv:1811.12926 <https://arxiv.org/abs/1811.12926>`__
     """
     if isinstance(seed, np.random.Generator):
-        seed = seed.integers(0, dtype=np.uint64)
+        max_value = np.iinfo(np.int64).max
+        seed = seed.integers(max_value, dtype=np.int64)
     depth = depth or num_qubits
     return QuantumCircuit._from_circuit_data(qv_rs(num_qubits, depth, seed))

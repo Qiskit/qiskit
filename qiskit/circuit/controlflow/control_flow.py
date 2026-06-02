@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -82,3 +82,13 @@ class ControlFlowOp(Instruction, ABC):
                 if var not in seen:
                     seen.add(var)
                     yield var
+
+    def iter_captured_stretches(self) -> typing.Iterable[expr.Stretch]:
+        """Get an iterator over the unique captured stretch variables in all blocks of this
+        construct."""
+        seen = set()
+        for block in self.blocks:
+            for stretch in block.iter_captured_stretches():
+                if stretch not in seen:
+                    seen.add(stretch)
+                    yield stretch

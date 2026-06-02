@@ -4,17 +4,13 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
 from __future__ import annotations
-
-# pylint: disable=invalid-name,missing-function-docstring
-
-"""Sphinx documentation builder."""
 
 import datetime
 import doctest
@@ -24,15 +20,19 @@ import os
 import re
 from pathlib import Path
 
+import qiskit
+
+# pylint: disable=invalid-name,missing-function-docstring,missing-module-docstring
+
 
 project = "Qiskit"
 project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"
 author = "Qiskit Development Team"
 
 # The short X.Y version
-version = "2.0"
+version = ".".join(qiskit.__version__.split(".")[:2])
 # The full version, including alpha/beta/rc tags
-release = "2.0.0"
+release = qiskit.__version__
 
 language = "en"
 
@@ -49,7 +49,12 @@ extensions = [
     "matplotlib.sphinxext.plot_directive",
     "reno.sphinxext",
     "sphinxcontrib.katex",
+    "breathe",
 ]
+
+breathe_projects = {"qiskit": "xml/"}
+breathe_default_project = "qiskit"
+breathe_domain_by_extension = {"h": "c"}
 
 templates_path = ["_templates"]
 
@@ -80,7 +85,7 @@ modindex_common_prefix = ["qiskit."]
 
 intersphinx_mapping = {
     "rustworkx": ("https://www.rustworkx.org/", None),
-    "qiskit-ibm-runtime": ("https://docs.quantum.ibm.com/api/qiskit-ibm-runtime/", None),
+    "qiskit-ibm-runtime": ("https://quantum.cloud.ibm.com/docs/api/qiskit-ibm-runtime/", None),
     "qiskit-aer": ("https://qiskit.github.io/qiskit-aer/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
@@ -111,6 +116,12 @@ autodoc_default_options = {
 # Move type hints from signatures to the parameter descriptions (except in overload cases, where
 # that's not possible).
 autodoc_typehints = "description"
+# Tell Sphinx it does not need to attempt to parse `# type:` comments for type hints.  We don't use
+# them for documentation, and having this set causes Sphinx to use a custom static-analysis checker
+# to find type hints, which (as of Sphinx 9.1.0, at least) is not as reliable at finding type hints
+# inherited from parent classes.
+autodoc_use_type_comments = False
+# Pull class documentation from both the class docstring and the `__init__`.
 autoclass_content = "both"
 # Some type hints are too long to be understandable. So, we set up aliases to be used instead.
 autodoc_type_aliases = {

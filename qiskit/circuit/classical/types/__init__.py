@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -34,21 +34,19 @@ heap-allocating a new version of the same thing.  Where possible, the class cons
 singleton instances to facilitate this.
 
 The :class:`Bool` type represents :class:`.Clbit` and the literals ``True`` and ``False``, the
-:class:`Uint` type represents :class:`.ClassicalRegister` and Python integers, and the
-:class:`Float` type represents Python floats.
+:class:`Uint` type represents :class:`.ClassicalRegister` and Python integers, the :class:`Float`
+type represents Python floats, and the :class:`Duration` type represents a duration for use in
+timing-aware circuit operations.
 
 .. autoclass:: Bool
 .. autoclass:: Uint
 .. autoclass:: Float
-
-Note that :class:`Uint` defines a family of types parametrized by their width; it is not one single
-type, which may be slightly different to the 'classical' programming languages you are used to.
-
+.. autoclass:: Duration
 
 Working with types
 ==================
 
-There are some additional functions on these types documented in the subsequent sections. 
+There are some additional functions on these types documented in the subsequent sections.
 These are mostly expected to be used only in manipulations of the expression tree;
 users who are building expressions using the
 :ref:`user-facing construction interface <circuit-classical-expressions-expr-construction>` should
@@ -97,18 +95,19 @@ direction, and must be done explicitly.
 """
 
 __all__ = [
-    "Type",
     "Bool",
+    "CastKind",
+    "Duration",
     "Float",
-    "Uint",
     "Ordering",
-    "order",
+    "Type",
+    "Uint",
+    "cast_kind",
+    "greater",
     "is_subtype",
     "is_supertype",
-    "greater",
-    "CastKind",
-    "cast_kind",
+    "order",
 ]
 
-from .types import Type, Bool, Float, Uint
+from .types import Type, Bool, Duration, Float, Uint
 from .ordering import Ordering, order, is_subtype, is_supertype, greater, CastKind, cast_kind

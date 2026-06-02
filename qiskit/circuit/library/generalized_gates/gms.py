@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -20,7 +20,7 @@ from collections.abc import Sequence
 
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.library.standard_gates import RXXGate
 from qiskit.circuit.gate import Gate
@@ -30,7 +30,7 @@ from qiskit.utils.deprecation import deprecate_func
 class GMS(QuantumCircuit):
     r"""Global Mølmer–Sørensen gate.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -42,7 +42,7 @@ class GMS(QuantumCircuit):
         q_2: ┤2          ├
              └───────────┘
 
-    **Expanded Circuit:**
+    Expanded Circuit:
 
     .. plot::
        :alt: Diagram illustrating the previously described circuit.
@@ -67,7 +67,7 @@ class GMS(QuantumCircuit):
         GMS(\chi_{12}, \chi_{13}, ..., \chi_{n-1 n}) =
         exp(-i \sum_{i=1}^{n} \sum_{j=i+1}^{n} X{\otimes}X \frac{\chi_{ij}}{2})
 
-    **References:**
+    References:
 
     [1] Sørensen, A. and Mølmer, K., Multi-particle entanglement of hot trapped ions.
     Physical Review Letters. 82 (9): 1835–1838.
@@ -78,15 +78,19 @@ class GMS(QuantumCircuit):
     `arXiv:1707.06356 <https://arxiv.org/abs/1707.06356>`_
     """
 
-    @deprecate_func(since="1.3", additional_msg="Use the MSGate instead.", pending=True)
+    @deprecate_func(
+        since="2.1",
+        additional_msg="Use the MSGate instead.",
+        removal_timeline="in Qiskit 3.0",
+    )
     def __init__(self, num_qubits: int, theta: list[list[float]] | np.ndarray) -> None:
-        """Create a new Global Mølmer–Sørensen (GMS) gate.
-
+        """
         Args:
             num_qubits: width of gate.
             theta: a num_qubits x num_qubits symmetric matrix of
                 interaction angles for each qubit pair. The upper
                 triangle is considered.
+
         """
         super().__init__(num_qubits, name="gms")
         if not isinstance(theta, list):
@@ -125,7 +129,7 @@ class MSGate(Gate):
         print(Operator(gate))
 
 
-    **References:**
+    References:
 
     [1] Sørensen, A. and Mølmer, K., Multi-particle entanglement of hot trapped ions.
     Physical Review Letters. 82 (9): 1835–1838.
@@ -155,7 +159,7 @@ class MSGate(Gate):
     def _define(self):
         thetas = self.params[0]
         q = QuantumRegister(self.num_qubits, name="q")
-        qc = QuantumCircuit(q, name=self.name)
+        qc = QuantumCircuit(q)
         for i in range(self.num_qubits):
             for j in range(i + 1, self.num_qubits):
                 # if theta is just a single angle, use that, otherwise use the correct index
@@ -166,7 +170,7 @@ class MSGate(Gate):
 
     def validate_parameter(self, parameter):
         if isinstance(parameter, Sequence):
-            # pylint: disable=super-with-arguments
+
             return [
                 [super(MSGate, self).validate_parameter(theta) for theta in row]
                 for row in parameter

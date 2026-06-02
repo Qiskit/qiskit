@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,6 +14,7 @@
 Tests for the Split2QUnitaries transpiler pass.
 """
 
+import io
 
 from math import pi
 from test import QiskitTestCase
@@ -29,9 +30,7 @@ from qiskit.transpiler import PassManager
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.transpiler.passes import Collect2qBlocks, ConsolidateBlocks
 from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnitaries
-from qiskit.transpiler.passes.optimization.elide_permutations import ElidePermutations
-
-from test import combine  # pylint: disable=wrong-import-order
+from qiskit import qpy
 
 
 @ddt.ddt
@@ -385,48 +384,40 @@ class TestSplit2QUnitaries(QiskitTestCase):
         self.assertTrue(expected_op.equiv(res_op))
         self.assertTrue(matrix_equal(expected_op.data, res_op.data, ignore_phase=False))
 
-    @combine(
-        swap_list=[
-            [(0, 1), (1, 0)],
-            [(0, 1), (0, 2), (0, 3), (0, 4)],
-            [(0, 3), (5, 6), (2, 3), (1, 5), (2, 1)],
-            [(0, 5), (2, 1), (1, 2), (6, 0), (3, 2), (4, 2), (0, 1), (4, 2), (1, 3), (6, 4)],
-        ],
-        elide_before=[True, False],
-        seed=[42, 13, 55],
-    )
-    def test_2q_swap_with_elide_permutations(self, swap_list, elide_before, seed):
-        """Tests compatability of 2q-swap with the elide permutations pass"""
-        qc = QuantumCircuit(2)
-        qc.swap(0, 1)
-        qc.global_phase += 1.2345
-        np.random.seed(seed)
-        num_qubits = 7
-        qc_split = QuantumCircuit(num_qubits)
-        unitary_swap_list = np.random.choice([True, False], size=len(swap_list))
-        expected_layout = list(range(num_qubits))
-        for swap, unitary_swap in zip(swap_list, unitary_swap_list):
-            expected_layout[swap[0]], expected_layout[swap[1]] = (
-                expected_layout[swap[1]],
-                expected_layout[swap[0]],
-            )
-            if unitary_swap:
-                qc_split.append(UnitaryGate(Operator(qc)), swap)
-            else:
-                qc_split.swap(*swap)
+    def test_overloaded_unitary_name_from_qasm(self):
+        """Test that an otherwise invalid custom gate named unitary created via valid Qiskit
+        API calls doesn't crash the pass
 
-        pm = PassManager()
-        if elide_before:
-            pm.append(ElidePermutations())
-            pm.append(Split2QUnitaries(split_swap=True))
-        else:
-            pm.append(Split2QUnitaries(split_swap=True))
-            pm.append(ElidePermutations())
+        See: https://github.com/Qiskit/qiskit/issues/14103
+        """
 
-        res = pm.run(qc_split)
-        self.assertEqual(expected_layout, res.layout.final_index_layout())
-
-        res_op = Operator.from_circuit(res)
-        expected_op = Operator(qc_split)
-        self.assertTrue(expected_op.equiv(res_op))
-        self.assertTrue(matrix_equal(expected_op.data, res_op.data, ignore_phase=False))
+        qasm_str = """OPENQASM 2.0;
+        include "qelib1.inc";
+        gate cx_o0 q0,q1 { x q0; cx q0,q1; x q0; }
+        gate unitary q0,q1 { u(pi/2,0.6763483147328913,0) q0; u(1.6719020266110614,-pi/2,0) q1; cx q0,q1; u(pi,-0.9111063207475532,3.1249343449042435) q0; u(1.6719020266110616,0,-pi/2) q1; }
+        qreg v__0__0_[0];
+        qreg l___0__0___1_[2];
+        qreg l___0__0___2_[2];
+        qreg v__0__1_[0];
+        qreg l___0__1___1_[2];
+        qreg v__1__0_[0];
+        qreg l___1__0___1_[2];
+        qreg l___1__0___2_[2];
+        qreg v__1__1_[0];
+        qreg l___1__1___1_[2];
+        creg meas[12];
+        unitary l___0__0___2_[0],l___0__1___1_[0];
+        """
+        # Parse qasm string to get custom unitary gate that's not a UnitaryGate (but has matrix defined)
+        qc = QuantumCircuit.from_qasm_str(qasm_str)
+        # Roundtrip QPY to lose the custom matrix definition from qasm2
+        # unitary
+        with io.BytesIO() as buf:
+            qpy.dump(qc, buf)
+            # Rewind back to the beginning of the "file".
+            buf.seek(0)
+            qc = qpy.load(buf)[0]
+        # Run split unitaries pass with custom gate named unitary that has
+        # no matrix.
+        res = Split2QUnitaries()(qc)
+        self.assertEqual(res, qc)

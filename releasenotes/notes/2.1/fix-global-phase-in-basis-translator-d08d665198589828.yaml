@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a problem in :class:`.BasisTranslator` transpiler pass, where the global
+    phase of the DAG was not updated correctly. 
+    Fixed `#14074 <https://github.com/Qiskit/qiskit/issues/14074>`__.

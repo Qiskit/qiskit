@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -22,7 +22,7 @@ from qiskit import QuantumCircuit
 from qiskit.circuit.library import XGate, RZGate, CSwapGate, SwapGate
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.quantum_info import Statevector
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @unittest.skipUnless(optionals.HAS_Z3, "z3-solver needs to be installed to run these tests")
@@ -194,7 +194,7 @@ class TestHoareOptimizer(QiskitTestCase):
         # «q_4: ───────────────
         circuit = QuantumCircuit(5)
         circuit.h(0)
-        for i in range(0, 3):
+        for i in range(3):
             circuit.cx(i, i + 1)
             circuit.cx(i + 1, i)
             circuit.cx(i, i + 1)
@@ -216,7 +216,7 @@ class TestHoareOptimizer(QiskitTestCase):
         #                                         └───┘
         expected = QuantumCircuit(5)
         expected.h(0)
-        for i in range(0, 3):
+        for i in range(3):
             expected.cx(i, i + 1)
             expected.cx(i + 1, i)
         expected.cx(3, 4)
@@ -260,7 +260,7 @@ class TestHoareOptimizer(QiskitTestCase):
         # «q_4: ───────────────
         circuit = QuantumCircuit(5)
         circuit.h(0)
-        for i in range(0, 3):
+        for i in range(3):
             circuit.cx(i, i + 1)
             circuit.cx(i + 1, i)
             circuit.cx(i, i + 1)
@@ -282,7 +282,7 @@ class TestHoareOptimizer(QiskitTestCase):
         #                          └───┘
         expected = QuantumCircuit(5)
         expected.h(0)
-        for i in range(0, 4):
+        for i in range(4):
             expected.cx(i, i + 1)
 
         stv = Statevector.from_label("0" * circuit.num_qubits)
@@ -445,7 +445,7 @@ class TestHoareOptimizer(QiskitTestCase):
         circuit.ccx(6, 3, 2)
         circuit.ccx(2, 3, 5)
         circuit.ccx(6, 5, 4)
-        circuit.append(XGate().control(3), [4, 5, 6, 7], [])
+        circuit.append(XGate().control(3, annotated=False), [4, 5, 6, 7], [])
         for i in range(1, -1, -1):
             circuit.ccx(i * 2, i * 2 + 1, i * 2 + 3)
         circuit.cx(3, 5)
@@ -614,12 +614,12 @@ class TestHoareOptimizer(QiskitTestCase):
         """The is_identity function determines whether a pair of gates
         forms the identity, when ignoring control qubits.
         """
-        seq = [DAGOpNode(op=XGate().control()), DAGOpNode(op=XGate().control(2))]
+        seq = [DAGOpNode(op=XGate().control()), DAGOpNode(op=XGate().control(2, annotated=False))]
         self.assertTrue(HoareOptimizer()._is_identity(seq))
 
         seq = [
-            DAGOpNode(op=RZGate(-pi / 2).control()),
-            DAGOpNode(op=RZGate(pi / 2).control(2)),
+            DAGOpNode(op=RZGate(-pi / 2).control(annotated=False)),
+            DAGOpNode(op=RZGate(pi / 2).control(2, annotated=False)),
         ]
         self.assertTrue(HoareOptimizer()._is_identity(seq))
 

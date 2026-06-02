@@ -1,20 +1,25 @@
 ---
-name: Tests
+name: C API Tests
 on:
-  push:
-    branches: [ main, 'stable/*' ]
-  pull_request:
-    branches: [ main, 'stable/*' ]
-  merge_group:
+  workflow_call:
+    inputs:
+      python-version:
+        description: Python version to test.
+        type: string
+        required: true
+      runner: 
+        description: Runner image to use.
+        type: string
+        required: true
 
 jobs:
   tests:
-    if: github.repository_owner == 'Qiskit'
-    name: linux-tests-c
-    runs-on: ubuntu-latest
+    name: ${{ inputs.runner }}
+    runs-on: ${{ inputs.runner }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: cargo install cbindgen
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ inputs.python-version }}
       - name: Run tests
         run: make ctest

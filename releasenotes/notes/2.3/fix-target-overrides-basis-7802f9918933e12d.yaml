@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`.UnitarySynthesis` transpiler pass, when it is called
+    with a non-default synthesis plugin (specified via ``method``) that supports
+    ``basis_gates`` but not ``target``. The pass now correctly passes the basis
+    gates from the ``target`` to the plugin.

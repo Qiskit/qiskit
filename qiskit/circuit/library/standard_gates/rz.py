@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -15,10 +15,9 @@
 from __future__ import annotations
 
 from cmath import exp
-from typing import Optional, Union
+
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit._accelerate.circuit import StandardGate
 
@@ -32,7 +31,7 @@ class RZGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.rz` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -40,7 +39,7 @@ class RZGate(Gate):
         q_0: ┤ Rz(φ) ├
              └───────┘
 
-    **Matrix Representation:**
+    Matrix representation:
 
     .. math::
 
@@ -63,28 +62,29 @@ class RZGate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    _standard_gate = StandardGate.RZGate
+    _standard_gate = StandardGate.RZ
 
-    def __init__(self, phi: ParameterValueType, label: Optional[str] = None):
-        """Create new RZ gate."""
+    def __init__(self, phi: ParameterValueType, label: str | None = None):
+        """
+        Args:
+            phi: The rotation angle.
+            label: An optional label for the gate.
+        """
         super().__init__("rz", 1, [phi], label=label)
 
     def _define(self):
-        """
-        gate rz(phi) a { u1(phi) a; }
-        """
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u1 import U1Gate
+        """Default definition"""
 
-        q = QuantumRegister(1, "q")
-        theta = self.params[0]
-        qc = QuantumCircuit(q, name=self.name, global_phase=-theta / 2)
-        rules = [(U1Gate(theta), [q[0]], [])]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
+        from qiskit.circuit import QuantumCircuit
 
-        self.definition = qc
+        # global phase: -0.5*φ
+        #    ┌──────┐
+        # q: ┤ P(φ) ├
+        #    └──────┘
+
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.RZ._get_definition(self.params), legacy_qubits=True
+        )
 
     def control(
         self,
@@ -93,25 +93,33 @@ class RZGate(Gate):
         ctrl_state: str | int | None = None,
         annotated: bool | None = None,
     ):
-        """Return a (multi-)controlled-RZ gate.
+        """Return a controlled version of the RZ gate.
+
+        For a single control qubit, the controlled gate is implemented as :class:`.CRZGate`,
+        regardless of the value of `annotated`.
+
+        For more than one control qubit, the controlled gate is implemented
+        either as :class:`.ControlledGate` when ``annotated`` is ``False``, or
+        as :class:`.AnnotatedOperation` when ``annotated`` is ``True``.
+        When ``annotated`` is ``None``, it is interpreted as ``True`` when the gate has free
+        parameters (in which case the gate cannot be synthesized at the construction time),
+        and as ``False`` otherwise.
 
         Args:
-            num_ctrl_qubits: number of control qubits.
-            label: An optional label for the gate [Default: ``None``]
-            ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
-            annotated: indicates whether the controlled gate should be implemented
-                as an annotated gate. If ``None``, this is set to ``True`` if
-                the gate contains free parameters and more than one control qubit, in which
-                case it cannot yet be synthesized. Otherwise it is set to ``False``.
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
+            annotated: Indicates whether the controlled gate should be implemented as a controlled gate
+                or as an annotated operation.
 
         Returns:
-            ControlledGate: controlled version of this gate.
+            A controlled version of this gate.
         """
-        # deliberately capture annotated in [None, False] here
-        if not annotated and num_ctrl_qubits == 1:
-            gate = CRZGate(self.params[0], label=label, ctrl_state=ctrl_state)
-            gate.base_gate.label = self.label
+        if num_ctrl_qubits == 1:
+            gate = CRZGate(
+                self.params[0], label=label, ctrl_state=ctrl_state, _base_label=self.label
+            )
         else:
             gate = super().control(
                 num_ctrl_qubits=num_ctrl_qubits,
@@ -165,7 +173,7 @@ class CRZGate(ControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.crz` method.
 
-    **Circuit symbol:**
+    Circuit symbol:
 
     .. code-block:: text
 
@@ -174,7 +182,7 @@ class CRZGate(ControlledGate):
         q_1: ┤ Rz(θ) ├
              └───────┘
 
-    **Matrix representation:**
+    Matrix representation:
 
     .. math::
 
@@ -221,13 +229,13 @@ class CRZGate(ControlledGate):
         phase difference.
     """
 
-    _standard_gate = StandardGate.CRZGate
+    _standard_gate = StandardGate.CRZ
 
     def __init__(
         self,
         theta: ParameterValueType,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
         *,
         _base_label=None,
     ):
@@ -243,32 +251,18 @@ class CRZGate(ControlledGate):
         )
 
     def _define(self):
-        """
-        gate crz(lambda) a,b
-        { rz(lambda/2) b; cx a,b;
-          rz(-lambda/2) b; cx a,b;
-        }
-        """
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .x import CXGate
+        """Default definition"""
+
+        from qiskit.circuit import QuantumCircuit
 
         # q_0: ─────────────■────────────────■──
         #      ┌─────────┐┌─┴─┐┌──────────┐┌─┴─┐
-        # q_1: ┤ Rz(λ/2) ├┤ X ├┤ Rz(-λ/2) ├┤ X ├
+        # q_1: ┤ Rz(θ/2) ├┤ X ├┤ Rz(-θ/2) ├┤ X ├
         #      └─────────┘└───┘└──────────┘└───┘
-        q = QuantumRegister(2, "q")
-        qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (RZGate(self.params[0] / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (RZGate(-self.params[0] / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-        ]
-        for instr, qargs, cargs in rules:
-            qc._append(instr, qargs, cargs)
 
-        self.definition = qc
+        self.definition = QuantumCircuit._from_circuit_data(
+            StandardGate.CRZ._get_definition(self.params), legacy_qubits=True
+        )
 
     def inverse(self, annotated: bool = False):
         """Return inverse CRZ gate (i.e. with the negative rotation angle).

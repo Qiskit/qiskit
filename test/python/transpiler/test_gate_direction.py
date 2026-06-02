@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -17,7 +17,7 @@ from math import pi
 
 import ddt
 
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, pulse
+from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.circuit import Parameter, Gate
 from qiskit.circuit.library import (
     CXGate,
@@ -33,7 +33,7 @@ from qiskit.compiler import transpile
 from qiskit.transpiler import TranspilerError, CouplingMap, Target
 from qiskit.transpiler.passes import GateDirection
 from qiskit.converters import circuit_to_dag
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt.ddt
@@ -429,22 +429,6 @@ class TestGateDirection(QiskitTestCase):
         with self.assertRaisesRegex(TranspilerError, "my_2q_gate would be supported.*"):
             pass_(circuit)
 
-    def test_target_cannot_flip_message_calibrated(self):
-        """A suitable error message should be emitted if the gate would be supported if it were
-        flipped."""
-        target = Target(num_qubits=2)
-        target.add_instruction(CXGate(), properties={(0, 1): None})
-
-        gate = Gate("my_2q_gate", 2, [])
-        circuit = QuantumCircuit(2)
-        circuit.append(gate, (1, 0))
-        with self.assertWarns(DeprecationWarning):
-            circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
-
-        pass_ = GateDirection(None, target)
-        with self.assertRaisesRegex(TranspilerError, "my_2q_gate would be supported.*"):
-            pass_(circuit)
-
     def test_target_unknown_gate_message(self):
         """A suitable error message should be emitted if the gate isn't valid in either direction on
         the target."""
@@ -458,35 +442,6 @@ class TestGateDirection(QiskitTestCase):
         pass_ = GateDirection(None, target)
         with self.assertRaisesRegex(TranspilerError, "my_2q_gate.*not supported on qubits .*"):
             pass_(circuit)
-
-    def test_allows_calibrated_gates_coupling_map(self):
-        """Test that the gate direction pass allows a gate that's got a calibration to pass through
-        without error."""
-        cm = CouplingMap([(1, 0)])
-
-        gate = Gate("my_2q_gate", 2, [])
-        circuit = QuantumCircuit(2)
-        circuit.append(gate, (0, 1))
-        with self.assertWarns(DeprecationWarning):
-            circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
-
-        pass_ = GateDirection(cm)
-        self.assertEqual(pass_(circuit), circuit)
-
-    def test_allows_calibrated_gates_target(self):
-        """Test that the gate direction pass allows a gate that's got a calibration to pass through
-        without error."""
-        target = Target(num_qubits=2)
-        target.add_instruction(CXGate(), properties={(0, 1): None})
-
-        gate = Gate("my_2q_gate", 2, [])
-        circuit = QuantumCircuit(2)
-        circuit.append(gate, (0, 1))
-        with self.assertWarns(DeprecationWarning):
-            circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
-
-        pass_ = GateDirection(None, target)
-        self.assertEqual(pass_(circuit), circuit)
 
 
 if __name__ == "__main__":

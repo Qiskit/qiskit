@@ -1,20 +1,31 @@
 # `qiskit-cext`
 
 This crate contains the bindings for Qiskit's C API.
+This crate is responsible for the C API symbols only; the header files needed to access it are
+created by `qiskit-bindgen` by parsing the source of this crate.
+
+If you add a new `pub extern "C" fn` in this crate, you will also need to give it a slot
+in `qiskit-cext-vtable`.
 
 ## Building the library
 
-The C bindings are compiled into a shared library, which can be built along with the header file
-by running
+The default build mode of `qiskit-cext` is as an `rlib` so that it can be included in `qiskit-pyext`
+and re-exposed through there.
+
+To build the library in standalone mode for distribution and direct use by other C programs, you
+need to build the crate as a `cdylib` instead.  The easiest way to do that, which will also produce
+a complete "distribution" directory in `<repo>/dist/c`, along with the header files, is to run
 ```bash
 make c
 ```
-in the root of the repository. The header file, `qiskit.h`, is generated using
-[cbindgen](https://github.com/mozilla/cbindgen) and stored in `dist/c/include`.
-Similarly, the `libqiskit` shared library is stored in `dist/c/lib`.
 
-You can ask Make to build only the header file with `make cheader`, or only the
-shared-object library with `make clib`.
+To build only the library object (which is what this crate is actually responsible for), you can use
+the subrecipe
+```bash
+make clib
+```
+
+## Example C usage
 
 The following example uses the header to build a 100-qubit observable:
 ```c
@@ -51,14 +62,12 @@ Refer to the C API documentation for more information and examples.
 
 The above program can be compiled by including the header and linking to the `qiskit` library, which
 are located in the standard directory configuration whose root is `dist/c`.
-
 ```bash
 make c
-QISKIT_ROOT=/path/to/qiskit/dist/c
-gcc -I$QISKIT_ROOT/include program.c -lqiskit -L$QISKIT_ROOT/lib
+gcc program.c -I<repo>/dist/c/include -lqiskit -L<repo>/dist/c/lib
 ```
 
-For which the example program will output
+The example program will then output
 ```bash
 ./a.out
 ```
