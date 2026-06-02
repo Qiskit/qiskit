@@ -27,4 +27,4 @@ jobs:
     with:
       python-version: ${{ needs.config.outputs.python-old }}
       runner: ${{ needs.config.outputs.runner-linux-x86_64 }}
-      only-update-caches: true
+      only-update-cache: true
