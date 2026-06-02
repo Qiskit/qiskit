@@ -80,7 +80,7 @@ class TestVirtualPermutationLayouts(QiskitTestCase):
         self.assertEqual(expected_op, res_op)
 
     def test_all_combinations_of_split2q_swap_and_elide(self):
-        """Test all possible combinations of passes the set or update virtual_permutation_layout."""
+        """Test all possible combinations of passes that set or update virtual_permutation_layout."""
         ucirc = QuantumCircuit(2)
         ucirc.swap(0, 1)
         ucirc.global_phase += 1.2345
