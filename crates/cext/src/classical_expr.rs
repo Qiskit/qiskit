@@ -348,19 +348,27 @@ impl From<&Duration> for CDurationType {
 }
 
 /// A union to hold either system time units (dt) as an integer or real time as a float.
-/// Part of the `QkDurationInfo` struct.
+///
+/// This union is part of the `QkDurationInfo` struct and should not be used directly.
 #[repr(C)]
 pub union CDurationValue {
-    /// System time units
+    /// System time units (active when `ty` in `QkDurationInfo` is `QkDurationType_Dt`)
     dt: i64,
-    /// Real time value
+    /// Real time value (active for all other duration types)
     time: f64,
 }
 
 /// The complete representation of a duration value.
+///
+/// The `ty` field acts as a discriminant that determines which field of the `value` union is active.
+///
+/// When initialized from C, it is the user's responsibility to ensure that:
+/// - When `ty` is `QkDurationType_Dt`, the duration is stored as an integer in `value.dt`.
+/// - For all other duration types the duration is stored as a floating-point value in `value.time`.
+///
 #[repr(C)]
 pub struct CDurationInfo {
-    /// The duration unit type
+    /// The duration unit type (discriminant for the union)
     pub ty: CDurationType,
     /// The duration value
     pub value: CDurationValue,
@@ -400,6 +408,7 @@ impl From<&Duration> for CDurationInfo {
 impl CDurationInfo {
     pub fn to_duration(&self) -> Duration {
         match self.ty {
+            // SAFETY: Per documentation, ty must correctly discriminate the union.
             CDurationType::Dt => Duration::dt(unsafe { self.value.dt }),
             CDurationType::Ps => Duration::ps(unsafe { self.value.time }),
             CDurationType::Ns => Duration::ns(unsafe { self.value.time }),
