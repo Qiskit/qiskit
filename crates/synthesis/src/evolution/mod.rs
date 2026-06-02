@@ -77,4 +77,4 @@ pub fn evolution(m: &Bound<PyModule>) -> PyResult<()> {
     Ok(())
 }
 
-pub mod suzuki_trotter;
+pub mod trotterization;
