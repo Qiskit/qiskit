@@ -9,7 +9,7 @@ issues:
     instances whose elements have disconnected :attr:`.Parameter.uuid`
     attributes, which cannot be completely round-tripped.  Prior to this version of Qiskit, QPY
     would emit a warning if it detected an implicit :class:`.ParameterVector` that had not been
-    completely reconstructed.  QPY will no longer warn in this situtation.
+    completely reconstructed.  QPY will no longer warn in this situation.
 
     In order to observe the dangerous behavior, all the following are required:
 
