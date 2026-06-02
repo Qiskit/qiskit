@@ -62,6 +62,7 @@ from qiskit.circuit.library import (
     UnitaryGate,
     HamiltonianGate,
     UCGate,
+    StatePreparation,
 )
 from qiskit.transpiler.passes import ApplyLayout
 from test import QiskitTestCase
@@ -2330,6 +2331,22 @@ class TestTextNonRational(QiskitTestCase):
         circuit = QuantumCircuit(2)
         circuit.initialize(ket, [0, 1])
         self.assertEqual(circuit.draw(output="text", initial_state=True).single_string(), expected)
+
+    def test_text_state_preparation_hides_params(self):
+        """StatePreparation does not render expanded statevector params."""
+        expected = "\n".join(
+            [
+                "     ┌────────────────────┐",
+                "q_0: ┤0                   ├",
+                "     │  State Preparation │",
+                "q_1: ┤1                   ├",
+                "     └────────────────────┘",
+            ]
+        )
+        ket = numpy.array([0.5 + 0.1 * 1j, 0, 0, 0.8602325267042626 * 1j])
+        circuit = QuantumCircuit(2)
+        circuit.append(StatePreparation(ket), [0, 1])
+        self.assertEqual(circuit.draw(output="text").single_string(), expected)
 
 
 class TestTextInstructionWithBothWires(QiskitTestCase):
