@@ -282,8 +282,9 @@ pub fn cancel_commutations(
                 } else if cancel_key.gate == GateOrRotation::ZRotation {
                     let z_gate = z_var_gate.unwrap();
                     dag.insert_1q_on_incoming_qubit((*z_gate, &[total_angle]), cancel_set[0]);
-                } else { // cancel_gate.key is either ZRotation or XRotation in this block so this
-                         // else is an XRotation.
+                } else {
+                    // cancel_gate.key is either ZRotation or XRotation in this block it is an
+                    // XRotation.
                     if x_supported && is_multiple_of_pi(total_angle, 1.) {
                         let num_x = (total_angle / PI).round();
                         total_phase -= FRAC_PI_2 * num_x;
