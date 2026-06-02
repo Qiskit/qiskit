@@ -20,7 +20,7 @@ from qiskit.exceptions import QiskitError
 MAX_FRAC = 16
 # Max denominator k for pi/k in the fourth check (2-digit denominators).
 # The different threshold compared to MAX_FRAC is historic, since previous versions
-# of Qiskit used a slightly different, inconsistent check that led to higher fractions 
+# of Qiskit used a slightly different, inconsistent check that led to higher fractions
 # being detected.
 MAX_PI_FRAC = 99
 N, D = np.meshgrid(np.arange(1, MAX_FRAC + 1), np.arange(1, MAX_FRAC + 1))
