@@ -516,7 +516,6 @@ pub(crate) fn load_value(
             Ok(GenericValue::Tuple(values))
         }
         ValueType::NumpyObject => {
-            // let py_object = py_deserialize_numpy_object(bytes)?;
             Ok(GenericValue::NumpyObject(bytes.clone()))
         }
         ValueType::Modifier => {
