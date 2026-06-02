@@ -1,10 +1,6 @@
 name: QPY
 
 on:
-  # Unlike most branch-protection jobs, we want to re-run this on `push` to ensure the cache is
-  # populated in a scope that's reachable by later PRs and the merge queue.
-  push:
-    branches: ["main", "stable/*"]
   workflow_call:
     inputs:
       python-version:
@@ -15,6 +11,10 @@ on:
         description: Runner image to use.
         type: string
         required: true
+      only-update-cache:
+        description: Only run the test suite if we need to regenerate the cached files.
+        type: boolean
+        default: false
 
 jobs:
   backward_compat:
@@ -45,7 +45,4 @@ jobs:
         run: ./run_tests.sh
         env:
           QISKIT_IGNORE_USER_SETTINGS: TRUE
-        # We _usually_ don't want to waste CI resources running this job on `push` if nothing's
-        # changed, since branch protection just did it, but if there's a cache miss then we want to
-        # populate it for later PRs.
-        if: (github.event_name != 'push') || (steps.cache.outputs.cache-hit != 'true')
+        if: (!inputs.only-update-cache) || (steps.cache.outputs.cache-hit != 'true')
