@@ -204,12 +204,126 @@ cleanup:
     return result;
 }
 
+static int test_peephole_overcomplete_target(void) {
+    int result = Ok;
+    uint32_t num_qubits = 10;
+    QkTarget *target = qk_target_new(num_qubits);
+    // Create a target with cz and rzz connectivity in a line.
+    QkExitCode result_x = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X));
+    if (result_x != QkExitCode_Success) {
+        printf("Unexpected error occurred when adding a global X gate.\n");
+        return RuntimeError;
+    }
+    QkExitCode result_sx = qk_target_add_instruction(target, qk_target_entry_new(QkGate_SX));
+    if (result_sx != QkExitCode_Success) {
+        printf("Unexpected error occurred when adding a global SX gate.\n");
+        return RuntimeError;
+    }
+
+    QkExitCode result_rz = qk_target_add_instruction(target, qk_target_entry_new(QkGate_RZ));
+    if (result_rz != QkExitCode_Success) {
+        printf("Unexpected error occurred when adding a global RZ gate.\n");
+        return RuntimeError;
+    }
+
+    QkExitCode result_rx = qk_target_add_instruction(target, qk_target_entry_new(QkGate_RX));
+    if (result_rx != QkExitCode_Success) {
+        printf("Unexpected error occurred when adding a global RZ gate.\n");
+        return RuntimeError;
+    }
+
+    QkTargetEntry *cz_entry = qk_target_entry_new(QkGate_CZ);
+    QkTargetEntry *rzz_entry = qk_target_entry_new(QkGate_RZX);
+    for (uint32_t i = 0; i < num_qubits - 1; i++) {
+        uint32_t qargs[2] = {i, i + 1};
+        double cz_inst_error = 0.0090393 * (num_qubits - i);
+        double rzz_inst_error = 0.0010393 * (num_qubits - i);
+        double inst_duration = 0.020039;
+
+        QkExitCode result_cz_props =
+            qk_target_entry_add_property(cz_entry, qargs, 2, inst_duration, cz_inst_error);
+        QkExitCode result_rzz_props =
+            qk_target_entry_add_property(cz_entry, qargs, 2, inst_duration, rzz_inst_error);
+        if (result_cz_props != QkExitCode_Success) {
+            printf("Unexpected error occurred when adding property to a CZ gate entry.\n");
+            result = RuntimeError;
+            goto target_cleanup;
+        }
+        if (result_rzz_props != QkExitCode_Success) {
+            printf("Unexpected error occurred when adding property to a RZZ gate entry.\n");
+            result = RuntimeError;
+            goto target_cleanup;
+        }
+    }
+    QkExitCode result_cz = qk_target_add_instruction(target, cz_entry);
+    if (result_cz != QkExitCode_Success) {
+        printf("Unexpected error occurred when adding a CZ gate.\n");
+        result = RuntimeError;
+        goto target_cleanup;
+    }
+    QkExitCode result_rzz = qk_target_add_instruction(target, rzz_entry);
+    if (result_rzz != QkExitCode_Success) {
+        printf("Unexpected error occurred when adding a CZ gate.\n");
+        result = RuntimeError;
+        goto target_cleanup;
+    }
+
+    QkCircuit *qc = qk_circuit_new(num_qubits, 0);
+    for (uint32_t source = 0; source < num_qubits - 1; source++) {
+        uint32_t forward[2] = {source, source + 1};
+        uint32_t reverse[2] = {source + 1, source};
+        for (int i = 0; i < 100; i++) {
+            if (i % 2) {
+                qk_circuit_gate(qc, QkGate_CX, forward, NULL);
+            } else {
+                qk_circuit_gate(qc, QkGate_CX, reverse, NULL);
+            }
+        }
+    }
+    qk_transpiler_pass_standalone_2q_peephole_optimization(qc, target, 1.0);
+    QkOpCounts op_counts = qk_circuit_count_ops(qc);
+    size_t num_instructions = qk_circuit_num_instructions(qc);
+    if (num_instructions != 135) {
+        printf("Circuit not simplified as expected 135 instructions, got: %ld\n", num_instructions);
+        result = EqualityError;
+        goto cleanup;
+    }
+    if (op_counts.len != 3) {
+        char *circuit_drawing = qk_circuit_draw(qc, NULL);
+        printf("More than 3 types of gates in circuit, it should only contain RX, RZ, and RZX but "
+               "the circuit is: %s\n",
+               circuit_drawing);
+        qk_str_free(circuit_drawing);
+        result = EqualityError;
+        goto cleanup;
+    }
+    for (uint32_t i = 0; i < op_counts.len; i++) {
+        int rz_gate = strcmp(op_counts.data[i].name, "rz");
+        int rx_gate = strcmp(op_counts.data[i].name, "rx");
+        int rzx_gate = strcmp(op_counts.data[i].name, "rzx");
+        if (rzx_gate && rx_gate && rz_gate) {
+            printf("Gate type of %s found in the circuit which isn't expected\n",
+                   op_counts.data[i].name);
+            result = EqualityError;
+            goto cleanup;
+        }
+    }
+
+cleanup:
+    qk_opcounts_clear(&op_counts);
+    qk_circuit_free(qc);
+target_cleanup:
+    qk_target_free(target);
+    return result;
+}
+
 int test_two_qubit_peephole(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_peephole_standalone);
     num_failed += RUN_TEST(test_peephole_standalone_nan_approximation_degree);
     num_failed += RUN_TEST(test_peephole);
     num_failed += RUN_TEST(test_peephole_nan_approximation_degree);
+    num_failed += RUN_TEST(test_peephole_overcomplete_target);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
