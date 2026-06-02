@@ -9,7 +9,6 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
-use itertools::Itertools;
 use std::fmt;
 
 use fixedbitset::FixedBitSet;
@@ -306,7 +305,7 @@ impl Clifford {
             1 => self.append_s(qubit),
             2 => self.append_z(qubit),
             3 => self.append_sdg(qubit),
-            _ => unreachable!("Multiple should be in 0..4"),
+            _ => unreachable!("Multiple should be an integer."),
         }
     }
     /// Modifies the tableau in-place by appending RX-gate,
@@ -319,7 +318,7 @@ impl Clifford {
             1 => self.append_sx(qubit),
             2 => self.append_x(qubit),
             3 => self.append_sxdg(qubit),
-            _ => unreachable!("Multiple should be in 0..4"),
+            _ => unreachable!("Multiple should be an integer."),
         }
     }
     /// Modifies the tableau in-place by appending RY-gate,
@@ -338,7 +337,7 @@ impl Clifford {
                 self.append_h(qubit);
                 self.append_z(qubit)
             }
-            _ => unreachable!("Multiple should be in 0..4"),
+            _ => unreachable!("Multiple should be an integer."),
         }
     }
     /// Applies the initial basis transformation for a Pauli Product Rotation,
@@ -351,23 +350,28 @@ impl Clifford {
     ///
     /// Then applies a CX ladder to entangle the qubits, preparing for the
     /// central rotation on the first qubit.
-    ///
-    /// Note: this function assumes that the Pauli is sparse with no "I" terms
-    fn _append_initial_part_ppr(&mut self, new_z: &[bool], new_x: &[bool], new_indices: &[u32]) {
+    fn _append_initial_part_ppr(
+        &mut self,
+        z: &[bool],
+        x: &[bool],
+        indices: &[u32],
+        active_indices: &[usize],
+    ) {
         // initial H or SX gates (in case of pauli X or pauli Y respectively)
-        for qubit in 0..new_indices.len() {
-            match (new_z[qubit], new_x[qubit]) {
-                (true, false) => {}                                          // pauli Z on qubit
-                (true, true) => self.append_sx(new_indices[qubit] as usize), // pauli Y on qubit
-                (false, true) => self.append_h(new_indices[qubit] as usize), // pauli X on qubit
-                (false, false) => panic!("Pauli I terms were removed from PPR."), // pauli I on qubit (shouldn't get it since pauli is sparse)
+        for &qubit in active_indices {
+            match (z[qubit], x[qubit]) {
+                (true, false) => {}                                      // pauli Z on qubit
+                (true, true) => self.append_sx(indices[qubit] as usize), // pauli Y on qubit
+                (false, true) => self.append_h(indices[qubit] as usize), // pauli X on qubit
+                (false, false) => panic!("Pauli I terms are ignored."),  // pauli I on qubit
             }
         }
 
         // CX ladder
-        if new_indices.len() > 1 {
-            for ind in (0..new_indices.len() - 1).rev() {
-                self.append_cx(new_indices[ind + 1] as usize, new_indices[ind] as usize);
+        if active_indices.len() > 1 {
+            for w in active_indices.windows(2).rev() {
+                let (a, b) = (w[0], w[1]);
+                self.append_cx(indices[b] as usize, indices[a] as usize);
             }
         }
     }
@@ -381,22 +385,28 @@ impl Clifford {
     /// - Z basis: no transformation needed
     /// - X basis: apply H gate
     /// - Y basis: apply SXdg gate
-    ///
-    /// Note: this function assumes that the Pauli is sparse with no "I" terms
-    fn _append_final_part_ppr(&mut self, new_z: &[bool], new_x: &[bool], new_indices: &[u32]) {
+    fn _append_final_part_ppr(
+        &mut self,
+        z: &[bool],
+        x: &[bool],
+        indices: &[u32],
+        active_indices: &[usize],
+    ) {
         // CX ladder
-        if new_indices.len() > 1 {
-            for ind in 0..new_indices.len() - 1 {
-                self.append_cx(new_indices[ind + 1] as usize, new_indices[ind] as usize);
+        if active_indices.len() > 1 {
+            for w in active_indices.windows(2) {
+                let (a, b) = (w[0], w[1]);
+                self.append_cx(indices[b] as usize, indices[a] as usize);
             }
         }
+
         // final H or SXdg gates (in case of pauli X or pauli Y respectively)
-        for qubit in 0..new_indices.len() {
-            match (new_z[qubit], new_x[qubit]) {
-                (true, false) => {}                                            // pauli Z on qubit
-                (true, true) => self.append_sxdg(new_indices[qubit] as usize), // pauli Y on qubit
-                (false, true) => self.append_h(new_indices[qubit] as usize),   // pauli X on qubit
-                (false, false) => panic!("Pauli I terms were removed from PPR."), // pauli I on qubit (shouldn't get it since pauli is sparse)
+        for &qubit in active_indices {
+            match (z[qubit], x[qubit]) {
+                (true, false) => {}                                        // pauli Z on qubit
+                (true, true) => self.append_sxdg(indices[qubit] as usize), // pauli Y on qubit
+                (false, true) => self.append_h(indices[qubit] as usize),   // pauli X on qubit
+                (false, false) => panic!("Pauli I terms were ignored."),   // pauli I on qubit
             }
         }
     }
@@ -413,16 +423,24 @@ impl Clifford {
     ) {
         let multiple = multiple.rem_euclid(4);
 
-        let (new_z, new_x, new_indices) = remove_id_terms_from_pauli(pauli_z, pauli_x, indices);
+        // Ignore I terms from a sparse Pauli list and indicate their corresponsing indices
+        // For example, if the input Pauli is "XIYZ" (read left-to-right) on qubits [1, 2, 4, 7]
+        // then the output is "XYZ" on qubits [1, 4, 7]
+        let active_indices: Vec<usize> = pauli_z
+            .iter()
+            .zip(pauli_x)
+            .enumerate()
+            .filter_map(|(i, (&z, &x))| (z || x).then_some(i))
+            .collect();
 
-        self._append_initial_part_ppr(&new_z, &new_x, &new_indices);
+        self._append_initial_part_ppr(pauli_z, pauli_x, indices, &active_indices);
 
         // internal RZ gate
-        if let Some(&idx) = new_indices.first() {
-            self.append_rz(idx as usize, multiple);
+        if let Some(&idx) = active_indices.first() {
+            self.append_rz(indices[idx] as usize, multiple);
         }
 
-        self._append_final_part_ppr(&new_z, &new_x, &new_indices);
+        self._append_final_part_ppr(pauli_z, pauli_x, indices, &active_indices);
     }
 
     /// Evolving a (dense) Pauli gate by the Clifford.
@@ -434,16 +452,25 @@ impl Clifford {
         in_x: &[bool],
         indices_in: &[u32],
     ) -> (bool, Vec<bool>, Vec<bool>, Vec<u32>) {
-        // remove pauli I terms
-        let (new_z, new_x, new_indices) = remove_id_terms_from_pauli(in_z, in_x, indices_in);
+        // Ignore I terms from a sparse Pauli list and indicate their corresponsing indices
+        // For example, if the input Pauli is "XIYZ" (read left-to-right) on qubits [1, 2, 4, 7]
+        // then the output is "XYZ" on qubits [1, 4, 7]
 
-        if let Some(&idx) = new_indices.first() {
-            self._append_initial_part_ppr(&new_z, &new_x, &new_indices);
+        let active_indices: Vec<usize> = in_z
+            .iter()
+            .zip(in_x)
+            .enumerate()
+            .filter_map(|(i, (&z, &x))| (z || x).then_some(i))
+            .collect();
+
+        if let Some(&idx) = active_indices.first() {
+            self._append_initial_part_ppr(in_z, in_x, indices_in, &active_indices);
 
             // Evolving RZ by the Clifford.
-            let (sign, z, x, indices) = self.evolve_single_qubit_pauli(Pauli1q::Z, idx as usize);
+            let (sign, z, x, indices) =
+                self.evolve_single_qubit_pauli(Pauli1q::Z, indices_in[idx] as usize);
 
-            self._append_final_part_ppr(&new_z, &new_x, &new_indices);
+            self._append_final_part_ppr(in_z, in_x, indices_in, &active_indices);
 
             return (sign, z, x, indices);
         }
@@ -537,25 +564,6 @@ fn compute_phase_product_pauli(
         }
     }
     (((ifact % 4) >> 1) != 0) ^ phase
-}
-
-/// Remove I terms from a sparse Pauli list and their corresponsing indices
-/// For example, if the input Pauli is "XIYZ" (read left-to-right) on qubits [1, 2, 4, 7]
-/// then the output is "XYZ" on qubits [1, 4, 7]
-fn remove_id_terms_from_pauli(
-    pauli_z: &[bool],
-    pauli_x: &[bool],
-    indices: &[u32],
-) -> (Vec<bool>, Vec<bool>, Vec<u32>) {
-    let (new_z, new_x, new_indices): (Vec<bool>, Vec<bool>, Vec<u32>) = pauli_z
-        .iter()
-        .zip(pauli_x)
-        .zip(indices)
-        .filter(|&((&z, &x), _)| z || x)
-        .map(|((&z, &x), &i)| (z, x, i))
-        .multiunzip();
-
-    (new_z, new_x, new_indices)
 }
 
 impl fmt::Debug for Clifford {
