@@ -13,6 +13,8 @@
 """Replace each block of consecutive gates by a single Unitary node."""
 from __future__ import annotations
 
+import typing
+
 from qiskit.synthesis.two_qubit import TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer
 from qiskit.circuit.library.standard_gates import (
     CXGate,
@@ -35,6 +37,11 @@ from qiskit._accelerate.consolidate_blocks import consolidate_blocks
 
 from .collect_1q_runs import Collect1qRuns
 from .collect_2q_blocks import Collect2qBlocks
+
+
+if typing.TYPE_CHECKING:
+    from qiskit.transpiler.target import Target
+    from qiskit.circuit.gate import Gate
 
 KAK_GATE_NAMES = {
     "cx": CXGate(),
@@ -59,30 +66,42 @@ class ConsolidateBlocks(TransformationPass):
     """Replace each block of consecutive gates by a single Unitary node.
 
     Pass to consolidate sequences of uninterrupted gates acting on
-    the same qubits into a Unitary node, to be resynthesized later,
-    to a potentially more optimal subcircuit.
+    the same qubits into a :class:`.UnitaryGate` node, to be resynthesized later,
+    to a potentially more optimal subcircuit. The typical mode of operation of this pass is to run
+    the analysis of the input :class:`.DAGCircuit` to find all the two qubit blocks in the circuit
+    and then determine based on an internal heuristic whether that block should be consolidated to
+    a :class:`.UnitaryGate` or not. However if either ``block_list`` or ``run_list`` are set in the
+    property set then this pass will not do its own analysis of the DAG.
+
+    There are two legacy modes of operation for this pass based on whether either ``block_list`` or
+    ``run_list`` is set in the property set when this pass is run. ``block_list`` should contain a
+    list of lists of node indices where each inner list represents a collection of blocks to be
+    potentially consolidated into a :class:`.UnitaryGate`. These blocks can be any number of qubits
+    but in previous Qiskit releases' preset pass managers it was typically two and set by the
+    :class:`.Collect2qBlocks` pass. There is a also the :class:`.CollectMultiQBlocks` transpiler pass
+    which will set ``blocks_list`` with blocks found for an arbitrary number of qubits. The other property
+    set key ``run_list`` is a list of lists of "runs" which are single qubit blocks to consolidate. This
+    was potentially set by the :class:`.Collect1qRuns` transpiler pass.
+    This functionality for "runs" has been mostly superseded by the :class:`.Optimize1qGatesDecomposition`
+    transpiler pass and that should typically be used instead for a more thorough and performant
+    method of simplifying single qubit runs.
 
     This pass reads the :class:`.PropertySet` key ``ConsolidateBlocks_qubit_map`` which it uses to
     communicate with recursive worker instances of itself for control-flow operations.  The key
     should never be observable in a user-facing :class:`.PassManager` pipeline (it is only set in
     internal :class:`.PassManager` instances), but the pass may return incorrect results or error if
     another pass sets this key.
-
-    Notes:
-        This pass assumes that the 'blocks_list' property that it reads is
-        given such that blocks are in topological order. The blocks are
-        collected by a previous pass, such as `Collect2qBlocks`.
     """
 
     _QUBIT_MAP_KEY = "ConsolidateBlocks_qubit_map"
 
     def __init__(
         self,
-        kak_basis_gate=None,
-        force_consolidate=False,
-        basis_gates=None,
-        approximation_degree=1.0,
-        target=None,
+        kak_basis_gate: Gate | None = None,
+        force_consolidate: bool = False,
+        basis_gates: list[str] | None = None,
+        approximation_degree: float | None = 1.0,
+        target: Target | None = None,
     ):
         """ConsolidateBlocks initializer.
 
@@ -91,11 +110,11 @@ class ConsolidateBlocks(TransformationPass):
         Otherwise, the basis gate will be :class:`.CXGate`.
 
         Args:
-            kak_basis_gate (Gate): Basis gate for KAK decomposition.
-            force_consolidate (bool): Force block consolidation.
-            basis_gates (List(str)): Basis gates from which to choose a KAK gate.
-            approximation_degree (float): a float between :math:`[0.0, 1.0]`. Lower approximates more.
-            target (Target): The target object for the compilation target backend.
+            kak_basis_gate: Basis gate for KAK decomposition.
+            force_consolidate: Force block consolidation.
+            basis_gates: Basis gates from which to choose a KAK gate.
+            approximation_degree: a float between :math:`[0.0, 1.0]`. Lower approximates more.
+            target: The target object for the compilation target backend.
         """
         super().__init__()
         self.basis_gates = None
@@ -125,8 +144,12 @@ class ConsolidateBlocks(TransformationPass):
                 self.basis_gate_name = next(iter(kak_gates))
             else:
                 self.decomposer = None
-        else:
+                self.basis_gate_name = "cx"
+        elif not force_consolidate:
             self.decomposer = TwoQubitBasisDecomposer(CXGate())
+            self.basis_gate_name = "cx"
+        else:
+            self.decomposer = None
             self.basis_gate_name = "cx"
 
     def run(self, dag):
@@ -135,7 +158,7 @@ class ConsolidateBlocks(TransformationPass):
         Iterate over each block and replace it with an equivalent Unitary
         on the same wires.
         """
-        if self.decomposer is None:
+        if not self.force_consolidate and self.decomposer is None:
             return dag
 
         blocks = self.property_set["block_list"]
@@ -148,9 +171,13 @@ class ConsolidateBlocks(TransformationPass):
         qubit_map = self.property_set.get(self._QUBIT_MAP_KEY, None)
         if qubit_map is None:
             qubit_map = list(range(dag.num_qubits()))
+        if self.decomposer is not None:
+            decomposer = self.decomposer._inner_decomposer
+        else:
+            decomposer = None
         consolidate_blocks(
             dag,
-            self.decomposer._inner_decomposer,
+            decomposer,
             self.basis_gate_name,
             self.force_consolidate,
             target=self.target,

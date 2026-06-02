@@ -29,6 +29,7 @@ mod commutation_analysis;
 mod commutation_cancellation;
 mod commutative_optimization;
 mod consolidate_blocks;
+mod constrained_reschedule;
 mod convert_to_pauli_rotations;
 mod dense_layout;
 mod disjoint_layout;
@@ -49,6 +50,7 @@ mod schedule_analysis;
 mod split_2q_unitaries;
 mod substitute_pi4_rotations;
 mod synthesize_rz_rotations;
+mod two_qubit_peephole;
 pub mod unitary_synthesis;
 mod unroll_3q_or_more;
 pub mod vf2;
@@ -64,6 +66,7 @@ pub use commutation_analysis::{analyze_commutations, commutation_analysis_mod};
 pub use commutation_cancellation::{cancel_commutations, commutation_cancellation_mod};
 pub use commutative_optimization::{commutative_optimization_mod, run_commutative_optimization};
 pub use consolidate_blocks::{DecomposerType, consolidate_blocks_mod, run_consolidate_blocks};
+pub use constrained_reschedule::{constrained_reschedule_mod, run_constrained_reschedule};
 pub use convert_to_pauli_rotations::{
     convert_to_pauli_rotations_mod, py_convert_to_pauli_rotations,
 };
@@ -102,6 +105,10 @@ pub use schedule_analysis::scheduling_mod;
 pub use split_2q_unitaries::{run_split_2q_unitaries, split_2q_unitaries_mod};
 pub use substitute_pi4_rotations::{py_run_substitute_pi4_rotations, substitute_pi4_rotations_mod};
 pub use synthesize_rz_rotations::{py_run_synthesize_rz_rotations, synthesize_rz_rotations_mod};
+pub use two_qubit_peephole::{
+    py_two_qubit_unitary_peephole_optimize, two_qubit_peephole_mod,
+    two_qubit_unitary_peephole_optimize,
+};
 pub use unitary_synthesis::{
     UnitarySynthesisConfig, UnitarySynthesisState, run_unitary_synthesis, unitary_synthesis_mod,
 };

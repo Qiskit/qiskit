@@ -34,7 +34,7 @@ class LitinskiTransformation(TransformationPass):
 
     The list of supported :math:`R_Z`-rotations is:
 
-    ``["t", "tdg", "rz"]``
+    ``["t", "tdg", "rz", "p", "u1"]``
 
     Example:
 

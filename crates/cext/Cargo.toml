@@ -21,8 +21,7 @@ qiskit-circuit.workspace = true
 qiskit-circuit-library.workspace = true
 qiskit-transpiler.workspace = true
 pyo3 = { workspace = true, optional = true }
-indexmap.workspace = true
-ahash.workspace = true
+qiskit-util.workspace = true
 smallvec.workspace = true
 ndarray.workspace = true
 nalgebra.workspace = true
@@ -30,6 +29,7 @@ hashbrown.workspace = true
 rand.workspace = true
 rand_pcg.workspace = true
 anyhow.workspace = true
+mimalloc = { workspace = true, optional = true}
 
 [features]
 python_binding = ["dep:pyo3"]

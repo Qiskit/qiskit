@@ -75,6 +75,7 @@ def circuit_drawer(
     wire_order: list[int] | None = None,
     expr_len: int = 30,
     measure_arrows: bool | None = None,
+    barrier_label_len: int = 16,
 ):
     r"""Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
@@ -187,6 +188,9 @@ def circuit_drawer(
             instead place the name of the bit or register in the measure box.
             Default is ``True`` unless the user config file (usually ``~/.qiskit/settings.conf``)
             has an alternative value set. For example, ``circuit_measure_arrows = False``.
+        barrier_label_len: The number of characters to display for
+            :class:`.Barrier` labels in the output circuit. If this number is exceeded,
+            the string will be truncated at that number and '...' added to the end.
 
     Returns:
         :class:`.TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
@@ -219,6 +223,7 @@ def circuit_drawer(
     """
     image = None
     expr_len = max(expr_len, 0)
+    barrier_label_len = max(barrier_label_len, 0)
     config = user_config.get_config()
     # Get default from config file else use text
     default_output = "text"
@@ -324,6 +329,7 @@ def circuit_drawer(
             cregbundle=cregbundle,
             wire_order=complete_wire_order,
             expr_len=expr_len,
+            barrier_label_len=barrier_label_len,
             measure_arrows=measure_arrows,
         )
     elif output == "latex":
@@ -340,6 +346,7 @@ def circuit_drawer(
             initial_state=initial_state,
             cregbundle=cregbundle,
             wire_order=complete_wire_order,
+            barrier_label_len=barrier_label_len,
         )
     elif output == "latex_source":
         return _generate_latex_source(
@@ -355,6 +362,7 @@ def circuit_drawer(
             initial_state=initial_state,
             cregbundle=cregbundle,
             wire_order=complete_wire_order,
+            barrier_label_len=barrier_label_len,
         )
     elif output == "mpl":
         image = _matplotlib_circuit_drawer(
@@ -374,6 +382,7 @@ def circuit_drawer(
             wire_order=complete_wire_order,
             expr_len=expr_len,
             measure_arrows=measure_arrows,
+            barrier_label_len=barrier_label_len,
         )
     else:
         raise VisualizationError(
@@ -406,6 +415,7 @@ def _text_circuit_drawer(
     wire_order=None,
     expr_len=30,
     measure_arrows=True,
+    barrier_label_len=16,
 ):
     """Draws a circuit using ascii art.
 
@@ -441,6 +451,8 @@ def _text_circuit_drawer(
         measure_arrows: If True, draw an arrow from each measure box down to the classical bit
             or register where the measure value is placed. If False, do not draw arrow, but
             instead place the name of the bit or register in the measure box.
+        barrier_label_len (int): Optional. The number of characters to display for
+            :class:`.Barrier` labels. If this number is exceeded, the string will be truncated.
 
     Returns:
         TextDrawing: An instance that, when printed, draws the circuit in ascii art.
@@ -467,6 +479,7 @@ def _text_circuit_drawer(
         encoding=encoding,
         with_layout=with_layout,
         expr_len=expr_len,
+        barrier_label_len=barrier_label_len,
         measure_arrows=measure_arrows,
     )
     text_drawing.plotbarriers = plot_barriers
@@ -499,6 +512,7 @@ def _latex_circuit_drawer(
     initial_state=False,
     cregbundle=None,
     wire_order=None,
+    barrier_label_len=16,
 ):
     """Draw a quantum circuit based on latex (Qcircuit package)
 
@@ -525,6 +539,8 @@ def _latex_circuit_drawer(
         wire_order (list): Optional. A list of integers used to reorder the display
             of the bits. The list must have an entry for every bit with the bits
             in the range 0 to (num_qubits + num_clbits).
+        barrier_label_len (int): Optional. The number of characters to display for
+            :class:`.Barrier` labels. If this number is exceeded, the string will be truncated.
 
     Returns:
         PIL.Image: an in-memory representation of the circuit diagram
@@ -552,6 +568,7 @@ def _latex_circuit_drawer(
             initial_state=initial_state,
             cregbundle=cregbundle,
             wire_order=wire_order,
+            barrier_label_len=barrier_label_len,
         )
 
         try:
@@ -618,6 +635,7 @@ def _generate_latex_source(
     initial_state=False,
     cregbundle=None,
     wire_order=None,
+    barrier_label_len=16,
 ):
     """Convert QuantumCircuit to LaTeX string.
 
@@ -641,6 +659,8 @@ def _generate_latex_source(
         wire_order (list): Optional. A list of integers used to reorder the display
             of the bits. The list must have an entry for every bit with the bits
             in the range 0 to (num_qubits + num_clbits).
+        barrier_label_len (int): Optional. The number of characters to display for
+            :class:`.Barrier` labels. If this number is exceeded, the string will be truncated.
 
     Returns:
         str: Latex string appropriate for writing to file.
@@ -664,6 +684,7 @@ def _generate_latex_source(
         cregbundle=cregbundle,
         with_layout=with_layout,
         circuit=circuit,
+        barrier_label_len=barrier_label_len,
     )
     latex = qcimg.latex()
     if filename:
@@ -695,6 +716,7 @@ def _matplotlib_circuit_drawer(
     wire_order=None,
     expr_len=30,
     measure_arrows=None,
+    barrier_label_len=16,
 ):
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
@@ -732,6 +754,8 @@ def _matplotlib_circuit_drawer(
         measure_arrows: If True, draw an arrow from each measure box down to the classical bit
             or register where the measure value is placed. If False, do not draw arrow, but
             instead place the name of the bit or register in the measure box.
+        barrier_label_len (int): Optional. The number of characters to display for
+            :class:`.Barrier` labels. If this number is exceeded, the string will be truncated.
 
     Returns:
         matplotlib.figure: a matplotlib figure object for the circuit diagram
@@ -764,6 +788,7 @@ def _matplotlib_circuit_drawer(
         cregbundle=cregbundle,
         with_layout=with_layout,
         expr_len=expr_len,
+        barrier_label_len=barrier_label_len,
         measure_arrows=measure_arrows,
     )
     return qcd.draw(filename)

@@ -33,7 +33,7 @@ import logging
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Gate
-from qiskit.circuit.library.standard_gates import (
+from qiskit.circuit.library import (
     CXGate,
     U3Gate,
     U2Gate,
@@ -48,15 +48,15 @@ from qiskit.circuit.library.standard_gates import (
     RGate,
 )
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.operators import Operator
+from qiskit.quantum_info import Operator
 from qiskit.synthesis.one_qubit.one_qubit_decompose import (
     DEFAULT_ATOL,
 )
-from qiskit.utils.deprecation import deprecate_func
+from qiskit.utils import deprecate_func
 from qiskit._accelerate import two_qubit_decompose
 
 if TYPE_CHECKING:
-    from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGOpNode
+    from qiskit.dagcircuit import DAGCircuit
 
 logger = logging.getLogger(__name__)
 
@@ -299,7 +299,7 @@ class TwoQubitControlledUDecomposer:
         self.scale = self._inner_decomposer.scale
         self.euler_basis = euler_basis
 
-    def __call__(
+    def __call__(  # noqa: D417 TODO: Add support for the undocumented arguments
         self, unitary: Operator | np.ndarray, approximate=False, use_dag=False, *, atol=DEFAULT_ATOL
     ) -> QuantumCircuit:
         """Returns the Weyl decomposition in circuit form.

@@ -110,7 +110,10 @@ impl<'a> AnnotationHandler<'a> {
                     }
                 }
             }
-            Ok((0, Bytes(Vec::new())))
+            Err(QpyError::AnnotationError(format!(
+                "No configured annotation serializer could handle {}",
+                annotation.bind(py).repr()?,
+            )))
         })
     }
 

@@ -4,8 +4,8 @@ on:
     branches:
       - main
     tags:
-      # Only match non-prerelease tags.
-      - "[0-9]+.[0-9]+.[0-9]"
+      # Run on all tags.
+      - "*"
   workflow_dispatch:
 
 jobs:

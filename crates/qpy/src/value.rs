@@ -15,7 +15,7 @@ use std::sync::Arc;
 
 use binrw::meta::{ReadEndian, WriteEndian};
 use binrw::{BinRead, BinWrite, Endian, binrw};
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 
@@ -25,7 +25,7 @@ use qiskit_circuit::classical::expr::{Expr, Stretch, Var};
 use qiskit_circuit::classical::types::Type;
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::duration::Duration;
-use qiskit_circuit::operations::{ForCollection, OperationRef, PyRange};
+use qiskit_circuit::operations::{ForCollection, OperationRef, PyInstruction, PyOpKind, PyRange};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
@@ -126,7 +126,7 @@ pub struct QPYReadData<'a> {
     pub use_symengine: bool,
     pub standalone_vars: HashMap<u16, qiskit_circuit::Var>,
     pub standalone_stretches: HashMap<u16, qiskit_circuit::Stretch>,
-    pub vectors: HashMap<Uuid, (Py<PyAny>, Vec<u32>)>, // Parameter expression vectors, which are a python-only elements for now
+    pub vectors: HashMap<Uuid, (Py<PyAny>, HashSet<u32>)>, // Parameter expression vectors, which are a python-only elements for now
     pub annotation_handler: AnnotationHandler<'a>,
 }
 
@@ -355,6 +355,19 @@ impl GenericValue {
             _ => None,
         }
     }
+    // return the inner GenericValue slice when the GenericData is a Tuple
+    pub(crate) fn as_slice(&self) -> Option<&[GenericValue]> {
+        match self {
+            GenericValue::Tuple(elements) => Some(elements),
+            _ => None,
+        }
+    }
+    pub(crate) fn to_vec(&self) -> Option<Vec<GenericValue>> {
+        match self {
+            GenericValue::Tuple(elements) => Some(elements.clone()),
+            _ => None,
+        }
+    }
 }
 
 macro_rules! impl_from_generic {
@@ -392,10 +405,25 @@ impl<T: FromGenericValue> FromGenericValue for Vec<T> {
     }
 }
 
+/// Load a bytes array value of a specified type
+///
+/// # Args
+///
+/// * `type_key` - The type of the data
+/// * `bytes` - The raw data as a u8 array
+/// * `qpy_data` - QPY reader metadata
+/// * `endian` - The endianess of the data used only for reading
+///   `ValueType::Integer` and `ValueType::Float` primitive types
+///   (this applies recursively for `ValueType::Tuple` too). All other
+///   data is big endian per the QPY format documentation. The use of
+///   little endian data for floats and integers in instruction parameter
+///   contexts only is an oversight/mistake in the QPY implementation for
+///   format versions <=17. All data is supposed to be network byte order.
 pub(crate) fn load_value(
     type_key: ValueType,
     bytes: &Bytes,
     qpy_data: &mut QPYReadData,
+    endian: Endian,
 ) -> Result<GenericValue, QpyError> {
     match type_key {
         ValueType::Bool => {
@@ -404,15 +432,21 @@ pub(crate) fn load_value(
         }
         ValueType::Integer => {
             // a little tricky since this can be either i64 or biguint
-            let result = bytes.try_into();
-            if let Ok(value) = result {
-                Ok(GenericValue::Int64(value))
+            if bytes.len() <= 8 {
+                let mut bytes_array: [u8; 8] = [0; 8];
+                for (idx, byte) in bytes.iter().enumerate() {
+                    bytes_array[idx] = *byte;
+                }
+                match endian {
+                    Endian::Little => Ok(GenericValue::Int64(i64::from_le_bytes(bytes_array))),
+                    Endian::Big => Ok(GenericValue::Int64(i64::from_be_bytes(bytes_array))),
+                }
             } else {
                 load_biguint_value(bytes)
             }
         }
         ValueType::Float => {
-            let value: f64 = bytes.try_into()?;
+            let value: f64 = bytes.try_to_f64(endian)?;
             Ok(GenericValue::Float64(value))
         }
         ValueType::Complex => {
@@ -452,7 +486,7 @@ pub(crate) fn load_value(
         }
         ValueType::Tuple => {
             let (elements_pack, _) = deserialize::<GenericDataSequencePack>(bytes)?;
-            let values = unpack_generic_value_sequence(elements_pack, qpy_data)?;
+            let values = unpack_generic_value_sequence(elements_pack, qpy_data, endian)?;
             Ok(GenericValue::Tuple(values))
         }
         ValueType::NumpyObject => {
@@ -606,8 +640,9 @@ pub(crate) fn pack_generic_value(
 pub(crate) fn unpack_generic_value(
     value_pack: &GenericDataPack,
     qpy_data: &mut QPYReadData,
+    endian: Endian,
 ) -> Result<GenericValue, QpyError> {
-    let result = load_value(value_pack.type_key, &value_pack.data, qpy_data)?;
+    let result = load_value(value_pack.type_key, &value_pack.data, qpy_data, endian)?;
     Ok(result)
 }
 
@@ -623,7 +658,7 @@ pub(crate) fn unpack_duration_value(
             let duration = unpack_duration(deserialize::<DurationPack>(&value_pack.data)?.0);
             Ok(GenericValue::Duration(duration))
         }
-        _ => unpack_generic_value(value_pack, qpy_data), // fallback (duration can also be expression)
+        _ => unpack_generic_value(value_pack, qpy_data, Endian::Little), // fallback (duration can also be expression)
     }
 }
 
@@ -631,7 +666,7 @@ pub(crate) fn pack_for_collection(value: &ForCollection) -> GenericValue {
     match value {
         ForCollection::List(vec) => GenericValue::Tuple(
             vec.iter()
-                .map(|&val| GenericValue::Int64(val as i64))
+                .map(|&val| GenericValue::Int64(val as i64).as_le())
                 .collect(),
         ),
         ForCollection::PyRange(py_range) => GenericValue::Range(*py_range),
@@ -677,11 +712,12 @@ pub(crate) fn pack_generic_value_sequence(
 pub(crate) fn unpack_generic_value_sequence(
     value_seqeunce_pack: GenericDataSequencePack,
     qpy_data: &mut QPYReadData,
+    endian: Endian,
 ) -> Result<Vec<GenericValue>, QpyError> {
     value_seqeunce_pack
         .elements
         .iter()
-        .map(|data_pack| unpack_generic_value(data_pack, qpy_data))
+        .map(|data_pack| unpack_generic_value(data_pack, qpy_data, endian))
         .collect()
 }
 
@@ -694,31 +730,30 @@ pub(crate) fn get_circuit_type_key(
         | OperationRef::PauliProductRotation(_)
         | OperationRef::Unitary(_) => Ok(CircuitInstructionType::Gate),
         OperationRef::StandardInstruction(_)
-        | OperationRef::Instruction(_)
         | OperationRef::ControlFlow(_)
         | OperationRef::PauliProductMeasurement(_) => Ok(CircuitInstructionType::Instruction),
-        OperationRef::Gate(pygate) => Python::attach(|py| {
-            let gate = pygate.instruction.bind(py);
-            if gate.is_instance(imports::PAULI_EVOLUTION_GATE.get_bound(py))? {
-                Ok(CircuitInstructionType::PauliEvolutionGate)
-            } else if gate.is_instance(imports::CONTROLLED_GATE.get_bound(py))? {
-                Ok(CircuitInstructionType::ControlledGate)
-            } else {
-                Ok(CircuitInstructionType::Gate)
-            }
-        }),
-        OperationRef::Operation(operation) => Python::attach(|py| {
-            if operation
-                .instruction
-                .bind(py)
-                .is_instance(imports::ANNOTATED_OPERATION.get_bound(py))?
-            {
-                Ok(CircuitInstructionType::AnnotatedOperation)
-            } else {
-                Err(QpyError::InvalidInstruction(format!(
-                    "Unable to determine circuit type key for {:?}",
-                    operation
-                )))
+        OperationRef::PyCustom(PyInstruction { kind, ob, .. }) => Python::attach(|py| {
+            let ob = ob.bind(py);
+            match kind {
+                PyOpKind::Instruction => Ok(CircuitInstructionType::Instruction),
+                PyOpKind::Gate => {
+                    if ob.is_instance(imports::PAULI_EVOLUTION_GATE.get_bound(py))? {
+                        Ok(CircuitInstructionType::PauliEvolutionGate)
+                    } else if ob.is_instance(imports::CONTROLLED_GATE.get_bound(py))? {
+                        Ok(CircuitInstructionType::ControlledGate)
+                    } else {
+                        Ok(CircuitInstructionType::Gate)
+                    }
+                }
+                PyOpKind::Operation => {
+                    if ob.is_instance(imports::ANNOTATED_OPERATION.get_bound(py))? {
+                        Ok(CircuitInstructionType::AnnotatedOperation)
+                    } else {
+                        Err(QpyError::InvalidInstruction(format!(
+                            "Unable to determine circuit type key for {ob:?}"
+                        )))
+                    }
+                }
             }
         }),
     }

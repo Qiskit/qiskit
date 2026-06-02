@@ -13,11 +13,11 @@
 pub mod alap_schedule_analysis;
 pub mod asap_schedule_analysis;
 
-use std::ops::{Add, Deref, Sub};
+use std::ops::{
+    Add, AddAssign, Deref, DerefMut, Div, DivAssign, Mul, MulAssign, Rem, RemAssign, Sub, SubAssign,
+};
 
-use ahash::RandomState;
 use hashbrown::HashMap;
-use indexmap::IndexMap;
 use pyo3::{
     IntoPyObjectExt,
     exceptions::{PyKeyError, PyTypeError},
@@ -28,11 +28,43 @@ use qiskit_circuit::{
     dag_circuit::DAGCircuit,
     dag_node::{DAGNode, DAGOpNode},
 };
+use qiskit_util::IndexMap;
 use rustworkx_core::petgraph::graph::NodeIndex;
 
 use crate::TranspilerError;
 
-pub trait TimeOps: Copy + PartialOrd + Add<Output = Self> + Sub<Output = Self> {
+pub trait Number:
+    Copy
+    + Add<Output = Self>
+    + Sub<Output = Self>
+    + Mul<Output = Self>
+    + Div<Output = Self>
+    + Rem<Output = Self>
+    + AddAssign
+    + SubAssign
+    + MulAssign
+    + DivAssign
+    + RemAssign
+{
+}
+
+impl<
+    T: Copy
+        + Add<Output = Self>
+        + Sub<Output = Self>
+        + Mul<Output = Self>
+        + Div<Output = Self>
+        + Rem<Output = Self>
+        + AddAssign
+        + SubAssign
+        + MulAssign
+        + DivAssign
+        + RemAssign,
+> Number for T
+{
+}
+
+pub trait TimeOps: Copy + PartialOrd + Number {
     fn zero() -> Self;
     fn max<'a>(a: &'a Self, b: &'a Self) -> &'a Self;
 }
@@ -74,6 +106,12 @@ impl Deref for PyNodeDurations {
 
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+
+impl DerefMut for PyNodeDurations {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 
@@ -364,8 +402,8 @@ impl PyNodeDurations {
 /// representing by an `f64`.
 #[derive(Debug, Clone, PartialEq)]
 pub enum NodeDurations {
-    Dt(IndexMap<NodeIndex<u32>, u64, RandomState>),
-    Seconds(IndexMap<NodeIndex<u32>, f64, RandomState>),
+    Dt(IndexMap<NodeIndex<u32>, u64>),
+    Seconds(IndexMap<NodeIndex<u32>, f64>),
 }
 
 impl NodeDurations {
@@ -385,14 +423,14 @@ impl NodeDurations {
     }
 }
 
-impl From<IndexMap<NodeIndex<u32>, u64, RandomState>> for NodeDurations {
-    fn from(value: IndexMap<NodeIndex<u32>, u64, RandomState>) -> Self {
+impl From<IndexMap<NodeIndex<u32>, u64>> for NodeDurations {
+    fn from(value: IndexMap<NodeIndex<u32>, u64>) -> Self {
         Self::Dt(value)
     }
 }
 
-impl From<IndexMap<NodeIndex<u32>, f64, RandomState>> for NodeDurations {
-    fn from(value: IndexMap<NodeIndex<u32>, f64, RandomState>) -> Self {
+impl From<IndexMap<NodeIndex<u32>, f64>> for NodeDurations {
+    fn from(value: IndexMap<NodeIndex<u32>, f64>) -> Self {
         Self::Seconds(value)
     }
 }

@@ -15,6 +15,13 @@ pub use qiskit_cext::*;
 
 mod capi;
 
+#[cfg(feature = "mimalloc")]
+use mimalloc::MiMalloc;
+
+#[cfg(feature = "mimalloc")]
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
+
 #[inline(always)]
 #[doc(hidden)]
 fn add_submodule<F>(m: &Bound<PyModule>, constructor: F, name: &str) -> PyResult<()>
@@ -45,6 +52,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::commutation_checker::commutation_checker, "commutation_checker")?;
     add_submodule(m, ::qiskit_transpiler::passes::commutative_optimization_mod, "commutative_optimization")?;
     add_submodule(m, ::qiskit_transpiler::passes::consolidate_blocks_mod, "consolidate_blocks")?;
+    add_submodule(m, ::qiskit_transpiler::passes::constrained_reschedule_mod, "constrained_reschedule")?;
     add_submodule(m, ::qiskit_synthesis::linalg::cos_sin_decomp::cos_sin_decomp, "cos_sin_decomp")?;
     add_submodule(m, ::qiskit_transpiler::passes::dense_layout_mod, "dense_layout")?;
     add_submodule(m, ::qiskit_transpiler::equivalence::equivalence, "equivalence")?;
@@ -60,6 +68,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::passes::inverse_cancellation_mod, "inverse_cancellation")?;
     add_submodule(m, ::qiskit_accelerate::isometry::isometry, "isometry")?;
     add_submodule(m, ::qiskit_circuit::nlayout::nlayout, "nlayout")?;
+    add_submodule(m, ::qiskit_circuit::standard_gate::standard_generators::standard_generators, "standard_generators")?;
     add_submodule(m, ::qiskit_accelerate::optimize_1q_gates::optimize_1q_gates, "optimize_1q_gates")?;
     add_submodule(m, ::qiskit_transpiler::passes::optimize_1q_gates_decomposition_mod, "optimize_1q_gates_decomposition")?;
     add_submodule(m, ::qiskit_accelerate::pauli_exp_val::pauli_expval, "pauli_expval")?;
@@ -67,13 +76,18 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::passes::high_level_synthesis_mod, "high_level_synthesis")?;
     add_submodule(m, ::qiskit_transpiler::passes::remove_diagonal_gates_before_measure_mod, "remove_diagonal_gates_before_measure")?;
     add_submodule(m, ::qiskit_transpiler::passes::remove_identity_equiv_mod, "remove_identity_equiv")?;
+    add_submodule(
+        m,
+        ::qiskit_transpiler::passes::two_qubit_peephole_mod,
+        "two_qubit_peephole",
+    )?;
     add_submodule(m, ::qiskit_accelerate::results::results, "results")?;
     add_submodule(m, ::qiskit_transpiler::passes::sabre::sabre, "sabre")?;
     add_submodule(m, ::qiskit_accelerate::sampled_exp_val::sampled_exp_val, "sampled_exp_val")?;
     add_submodule(m, ::qiskit_quantum_info::sparse_observable::sparse_observable, "sparse_observable")?;
     add_submodule(m, ::qiskit_quantum_info::sparse_pauli_op::sparse_pauli_op, "sparse_pauli_op")?;
     add_submodule(m, ::qiskit_transpiler::passes::scheduling_mod, "scheduling")?;
-    add_submodule(m, ::qiskit_quantum_info::unitary_sim::unitary_sim, "unitary_sim")?;
+    add_submodule(m, ::qiskit_synthesis::matrix::sim::unitary_sim, "unitary_sim")?;
     add_submodule(m, ::qiskit_transpiler::passes::split_2q_unitaries_mod, "split_2q_unitaries")?;
     add_submodule(m, ::qiskit_synthesis::synthesis, "synthesis")?;
     add_submodule(m, ::qiskit_transpiler::target::target, "target")?;

@@ -99,7 +99,7 @@ pub fn run_split_2q_unitaries(
     // We have swap-like unitaries, so we create a new DAG in a manner similar to
     // The Elide Permutations pass, while also splitting the unitaries to 1-qubit gates
     let mut mapping: Vec<usize> = (0..dag.num_qubits()).collect();
-    let new_dag = dag.copy_empty_like(VarsMode::Alike, BlocksMode::Keep)?;
+    let new_dag = dag.copy_empty_like(VarsMode::Alike, BlocksMode::Keep);
     let mut new_dag = new_dag.into_builder();
     for node in dag.topological_op_nodes(false) {
         let NodeType::Operation(inst) = &dag.dag()[node] else {
@@ -175,7 +175,7 @@ pub fn run_split_2q_unitaries(
             inst.params.as_deref().cloned(),
             inst.label.as_ref().map(|x| x.to_string()),
             #[cfg(feature = "cache_pygates")]
-            inst.py_op.get().map(|x| x.clone()),
+            inst.py_op.get().cloned(),
         )?;
     }
     Ok(Some((new_dag.build(), mapping)))

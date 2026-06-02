@@ -47,7 +47,9 @@ def plot_state_hinton(state, title="", figsize=None, ax_real=None, ax_imag=None,
         state (Statevector or DensityMatrix or ndarray): An N-qubit quantum state.
         title (str): a string that represents the plot title
         figsize (tuple): Figure size in inches.
-        filename (str): file path to save image to.
+        filename (str | None): The optional file path to save image to. If not specified
+            no file is created for the visualization. If this is set the return
+            from this function will be ``None``.
         ax_real (matplotlib.axes.Axes): An optional Axes object to be used for
             the visualization output. If none is specified a new matplotlib
             Figure will be created and used. If this is specified without an
@@ -193,16 +195,16 @@ def plot_bloch_vector(
     cartesian and spherical systems.
 
     Args:
-        bloch (list[double]): array of three elements where [<x>, <y>, <z>] (Cartesian)
-            or [<r>, <theta>, <phi>] (spherical in radians)
+        bloch (tuple[float, float, float]): tuple of three elements where (<x>, <y>, <z>) (Cartesian)
+            or (<r>, <theta>, <phi>) (spherical in radians)
             <theta> is inclination angle from +z direction
             <phi> is azimuth from +x direction
         title (str): a string that represents the plot title
         ax (matplotlib.axes.Axes): An Axes to use for rendering the bloch
             sphere
-        figsize (tuple): Figure size in inches. Has no effect is passing ``ax``.
-        coord_type (str): a string that specifies coordinate type for bloch
-            (Cartesian or spherical), default is Cartesian
+        figsize (tuple): Figure size in inches. Has no effect if passing ``ax``.
+        coord_type (Literal["cartesian", "spherical"]): Either ``"cartesian"`` or ``"spherical"``
+            depending on whether the input is given in Cartesian or spherical coordinates.
         font_size (float): Font size.
 
     Returns:
@@ -238,10 +240,12 @@ def plot_bloch_vector(
         figsize = (5, 5)
     B = Bloch(axes=ax, font_size=font_size)
     if coord_type == "spherical":
-        r, theta, phi = bloch[0], bloch[1], bloch[2]
-        bloch[0] = r * np.sin(theta) * np.cos(phi)
-        bloch[1] = r * np.sin(theta) * np.sin(phi)
-        bloch[2] = r * np.cos(theta)
+        r, theta, phi = bloch
+        bloch = (
+            r * math.sin(theta) * math.cos(phi),
+            r * math.sin(theta) * math.sin(phi),
+            r * math.cos(theta),
+        )
     B.add_vectors(bloch)
     B.render(title=title)
     if ax is None:
@@ -281,6 +285,9 @@ def plot_bloch_multivector(
         title_font_size (float): Font size for the title.
         title_pad (float): Padding for the title (suptitle ``y`` position is ``0.98``
         and the image height will be extended by ``1 + title_pad/100``).
+        filename (str | None): The optional file path to save image to. If not specified
+            no file is created for the visualization. If this is set the return
+            from this function will be ``None``.
 
     Returns:
         :class:`matplotlib:matplotlib.figure.Figure` :
@@ -403,6 +410,9 @@ def plot_state_city(
             ax_real only the imaginary component plot will be generated.
             Additionally, if specified there will be no returned Figure since
             it is redundant.
+        filename (str | None): The optional file path to save image to. If not specified
+            no file is created for the visualization. If this is set the return
+            from this function will be ``None``.
 
     Returns:
         :class:`matplotlib:matplotlib.figure.Figure` :
@@ -642,6 +652,9 @@ def plot_state_paulivec(state, title="", figsize=None, color=None, ax=None, *, f
             the visualization output. If none is specified a new matplotlib
             Figure will be created and used. Additionally, if specified there
             will be no returned Figure since it is redundant.
+        filename (str | None): The optional file path to save image to. If not specified
+            no file is created for the visualization. If this is set the return
+            from this function will be ``None``.
 
     Returns:
          :class:`matplotlib:matplotlib.figure.Figure` :
@@ -826,6 +839,10 @@ def plot_state_qsphere(
             show the phase for each basis state.
         use_degrees (bool): An optional boolean indicating whether to use
             radians or degrees for the phase values in the plot.
+        filename (str | None): The optional file path to save image to. If not specified
+            no file is created for the visualization. If this is set the return
+            from this function will be ``None``.
+
 
     Returns:
         :class:`matplotlib:matplotlib.figure.Figure` :
@@ -1437,6 +1454,7 @@ def state_drawer(state, output=None, **drawer_args):
     **paulivec**: Matplotlib figure, rendering of statevector using `plot_state_paulivec()`.
 
     Args:
+        state: State to be drawn
         output (str): Select the output method to use for drawing the
             circuit. Valid choices are ``text``, ``latex``, ``latex_source``,
             ``qsphere``, ``hinton``, ``bloch``, ``city`` or ``paulivec``.

@@ -77,9 +77,10 @@ from qiskit.qpy import (
     UnsupportedFeatureForVersion,
     QPY_COMPATIBILITY_VERSION,
     QPY_VERSION,
+    QpyError,
 )
 from qiskit.quantum_info import Pauli, SparsePauliOp, Clifford
-from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info import random_unitary
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.utils import optionals
 from test import QiskitTestCase
@@ -364,6 +365,23 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
         self.assertDeprecatedBitProperties(qc, new_circuit)
+
+    def test_degenerate_parameter_expression(self):
+        """Test a circuit with a parameter expression that simplifies to 0."""
+        x = Parameter("x")
+        y_vec = ParameterVector("y", 2)
+        z = Parameter("z")
+        cases = [0 * x, 0 * x + 2, 0 * x + z, x - x, 0 * y_vec[0], 0 * (x + y_vec[1])]
+        for case in cases:
+            qc = QuantumCircuit(1)
+            qc.rz(case, 0)
+            qpy_file = io.BytesIO()
+            dump(qc, qpy_file)
+            qpy_file.seek(0)
+            new_circuit = load(qpy_file)[0]
+            self.assertEqual(qc, new_circuit)
+            # should still have the same parameters even if they are not used
+            self.assertEqual(qc.parameters, new_circuit.parameters)
 
     def test_string_parameter(self):
         """Test a PauliGate instruction that has string parameters."""
@@ -1153,8 +1171,6 @@ class TestLoadFromQPY(QiskitTestCase):
             self.assertTrue(all(p == q for p, q in zip(params, new_params)))
             # vector[0] is part of the circuit
             self.assertTrue(vector[0] == new_vector[0])
-            # vector[1] is not part of the circuit
-            self.assertTrue(vector[1] != new_vector[1])
 
         with self.subTest("real_amplitudes"):
             qc = real_amplitudes(2, reps=1)
@@ -1774,7 +1790,7 @@ class TestLoadFromQPY(QiskitTestCase):
                         ),
                     ),
                 ),
-                expr.logic_not(loose),
+                expr.greater(expr.negate(expr.cast(loose, types.Float())), 1.5),
             ),
             outer.copy(),
             [1],
@@ -1864,7 +1880,7 @@ class TestLoadFromQPY(QiskitTestCase):
                         ),
                     ),
                 ),
-                expr.logic_not(loose),
+                expr.greater(expr.negate(expr.cast(loose, types.Float())), 1.5),
             ),
             [(False, outer.copy())],
             [1],
@@ -2100,6 +2116,34 @@ class TestLoadFromQPY(QiskitTestCase):
         for old, new in zip(old_if_else.blocks, new_if_else.blocks):
             self.assertMinimalVarEqual(old, new)
             self.assertDeprecatedBitProperties(old, new)
+
+    def test_register_condition(self):
+        """Test that using register condition passes as long as the register index is not too large"""
+        n_qubits = 2
+        cr0 = ClassicalRegister(n_qubits)
+        cr1 = ClassicalRegister(n_qubits)
+        qr = QuantumRegister(n_qubits)
+        qc = QuantumCircuit(qr, cr0, cr1)
+        qc.x(qr)
+        qc.measure(qr, cr0)
+        with qc.if_test((cr0, 0)):
+            qc.x(qr)
+        qc.measure(qr, cr1)
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_qc = load(fptr)[0]
+            self.assertEqual(qc, new_qc)
+
+        qc = QuantumCircuit(qr, cr0, cr1)
+        qc.x(qr)
+        qc.measure(qr, cr0)
+        with qc.if_test((cr0, 7342574385754343653453453453533935345)):
+            qc.x(qr)
+        qc.measure(qr, cr1)
+        with self.assertRaisesRegex(QpyError, "exceeds i64::MAX"):
+            with io.BytesIO() as fptr:
+                dump(qc, fptr)
 
     def test_load_empty_vars_while(self):
         """Test loading circuit with vars in while closures."""

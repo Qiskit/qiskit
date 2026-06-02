@@ -82,7 +82,6 @@ if typing.TYPE_CHECKING:
     from qiskit.quantum_info.operators.base_operator import BaseOperator
     from qiskit.quantum_info.states.statevector import Statevector
 
-
 # The following types are not marked private to avoid leaking this "private/public" abstraction out
 # into the documentation.  They are not imported by circuit.__init__, nor are they meant to be.
 
@@ -2280,9 +2279,15 @@ class QuantumCircuit:
                 dest.append(other, qargs=qubits, cargs=clbits, copy=copy)
             return None if inplace else dest
 
-        if other.num_qubits > dest.num_qubits or other.num_clbits > dest.num_clbits:
+        if other.num_qubits > dest.num_qubits:
             raise CircuitError(
-                "Trying to compose with another QuantumCircuit which has more 'in' edges."
+                "Cannot compose onto a circuit with fewer qubits "
+                f"({other.num_qubits} > {dest.num_qubits})."
+            )
+        if other.num_clbits > dest.num_clbits:
+            raise CircuitError(
+                "Cannot compose onto a circuit with fewer classical bits "
+                f"({other.num_clbits} > {dest.num_clbits})."
             )
 
         # Maps bits in 'other' to bits in 'dest'.
@@ -2412,9 +2417,7 @@ class QuantumCircuit:
             new_clbits=mapped_clbits,
         )
         if append_existing:
-            dest._current_scope().extend(
-                append_existing, qubits=mapped_qubits, clbits=mapped_clbits
-            )
+            dest._current_scope().extend(append_existing)
 
         return None if inplace else dest
 
@@ -2845,7 +2848,10 @@ class QuantumCircuit:
 
         Args:
             instruction: :class:`~.circuit.Instruction` instance to append, or a
-                :class:`.CircuitInstruction` with all its context.
+                :class:`.CircuitInstruction` with all its context. Objects implementing
+                ``to_instruction`` are also supported, but passing an
+                :class:`~.circuit.Instruction` directly is generally preferred, since that
+                avoids the repeated conversion cost.
             qargs: specifiers of the :class:`~.circuit.Qubit`\\ s to attach instruction to.
             cargs: specifiers of the :class:`.Clbit`\\ s to attach instruction to.
             copy: if ``True`` (the default), then the incoming ``instruction`` is copied before
@@ -2859,7 +2865,8 @@ class QuantumCircuit:
             were actually added to the circuit.
 
         Raises:
-            CircuitError: if the operation passed is not an instance of :class:`~.circuit.Instruction` .
+            CircuitError: if the operation passed is not an instance of :class:`~.circuit.Instruction`,
+              or cannot be converted to one by calling ``to_instruction`` on it.
         """
         if isinstance(instruction, CircuitInstruction):
             operation = instruction.operation
@@ -3052,11 +3059,11 @@ class QuantumCircuit:
                 # and need to retrieve it.
                 my_param_again = qc.get_parameter("my_param")
 
-                assert my_param is my_param_again
+                assert my_param == my_param_again
 
             Get a variable from a circuit by name, returning some default if it is not present::
 
-                assert qc.get_parameter("my_param", None) is my_param
+                assert qc.get_parameter("my_param", None) == my_param
                 assert qc.get_parameter("unknown_param", None) is None
 
         See also:
@@ -3128,11 +3135,11 @@ class QuantumCircuit:
                 # need to retrieve it.
                 my_var_again = qc.get_var("my_var")
 
-                assert my_var is my_var_again
+                assert my_var == my_var_again
 
             Get a variable from a circuit by name, returning some default if it is not present::
 
-                assert qc.get_var("my_var", None) is my_var
+                assert qc.get_var("my_var", None) == my_var
                 assert qc.get_var("unknown_variable", None) is None
 
         See also:
@@ -3200,11 +3207,11 @@ class QuantumCircuit:
                 # need to retrieve it.
                 my_stretch_again = qc.get_stretch("my_stretch")
 
-                assert my_stretch is my_stretch_again
+                assert my_stretch == my_stretch_again
 
             Get a variable from a circuit by name, returning some default if it is not present::
 
-                assert qc.get_stretch("my_stretch", None) is my_stretch
+                assert qc.get_stretch("my_stretch", None) == my_stretch
                 assert qc.get_stretch("unknown_stretch", None) is None
         """
         if (out := self._current_scope().get_stretch(name)) is not None:
@@ -3892,6 +3899,7 @@ class QuantumCircuit:
         wire_order: list[int] | None = None,
         expr_len: int = 30,
         measure_arrows: bool | None = None,
+        barrier_label_len: int = 16,
     ):
         r"""Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
@@ -4003,6 +4011,9 @@ class QuantumCircuit:
                 instead place the name of the bit or register in the measure box.
                 Default is ``True`` unless the user config file (usually ``~/.qiskit/settings.conf``)
                 has an alternative value set. For example, ``circuit_measure_arrows = False``.
+            barrier_label_len: The number of characters to display for
+                :class:`.Barrier` labels in the output circuit. If this number is exceeded,
+                the string will be truncated at that number and '...' added to the end.
 
         Returns:
             :class:`.TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
@@ -4054,6 +4065,7 @@ class QuantumCircuit:
             cregbundle=cregbundle,
             wire_order=wire_order,
             expr_len=expr_len,
+            barrier_label_len=barrier_label_len,
             measure_arrows=measure_arrows,
         )
 
@@ -4245,7 +4257,7 @@ class QuantumCircuit:
         Returns:
             list(tuple): list of (instruction, qargs, cargs).
         """
-        return [match for match in self._data if match.operation.name == name]
+        return [match for match in self._data if match.name == name]
 
     def num_connected_components(self, unitary_only: bool = False) -> int:
         """How many non-entangled subcircuits can the circuit be factored to.
@@ -4710,16 +4722,18 @@ class QuantumCircuit:
             qubits=circ._data.qubits, reserve=len(circ._data), global_phase=circ.global_phase
         )
 
-        # Re-add old registers
+        # Re-add old registers.  We avoid `add_register` since we already know the registers are
+        # valid, the bits exist, and we don't want to trigger the "modified the quantum registers
+        # with a set layout" warning.
         for qreg in old_qregs:
-            circ.add_register(qreg)
+            circ._data.add_qreg(qreg)
 
         # We must add the clbits first to preserve the original circuit
         # order. This way, add_register never adds clbits and just
         # creates registers that point to them.
         circ.add_bits(clbits_to_add)
         for creg in cregs_to_add:
-            circ.add_register(creg)
+            circ._data.add_creg(creg)
 
         # Set circ instructions to match the new DAG
         for node in new_dag.topological_op_nodes():
@@ -5324,7 +5338,7 @@ class QuantumCircuit:
         """
 
         from .library.standard_gates.rx import RXGate
-        from qiskit.synthesis.multi_controlled import (
+        from qiskit.synthesis.multi_controlled.multi_control_rotation_gates import (
             _apply_cu,
             _apply_mcu_graycode,
             _mcsu2_real_diagonal,
@@ -5392,7 +5406,7 @@ class QuantumCircuit:
         """
 
         from .library.standard_gates.ry import RYGate
-        from qiskit.synthesis.multi_controlled import (
+        from qiskit.synthesis.multi_controlled.multi_control_rotation_gates import (
             _apply_cu,
             _apply_mcu_graycode,
             _mcsu2_real_diagonal,
@@ -5492,7 +5506,9 @@ class QuantumCircuit:
         """
 
         from .library.standard_gates.rz import CRZGate, RZGate
-        from qiskit.synthesis.multi_controlled import _mcsu2_real_diagonal
+        from qiskit.synthesis.multi_controlled.multi_control_rotation_gates import (
+            _mcsu2_real_diagonal,
+        )
 
         control_qubits = self._qbit_argument_conversion(q_controls)
         target_qubit = self._qbit_argument_conversion(q_target)
@@ -5854,7 +5870,8 @@ class QuantumCircuit:
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
-            qubit1, qubit2: The qubits to apply the gate to.
+            qubit1: The first qubit to apply the gate to.
+            qubit2: The second qubit to apply the gate to.
 
         Returns:
             A handle to the instructions created.
@@ -5967,7 +5984,8 @@ class QuantumCircuit:
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
-            qubit1, qubit2: The qubits to apply the gate to.
+            qubit1: The first qubit to apply the gate to.
+            qubit2: The second qubit to apply the gate to.
 
         Returns:
             A handle to the instructions created.
@@ -5984,7 +6002,8 @@ class QuantumCircuit:
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
-            qubit1, qubit2: The qubits to apply the gate to.
+            qubit1: The first qubit to apply the gate to.
+            qubit2: The second qubit to apply the gate to.
 
         Returns:
             A handle to the instructions created.
@@ -6911,6 +6930,7 @@ class QuantumCircuit:
         Args:
             qubits: Any qubits that this scope should automatically use.
             clbits: Any clbits that this scope should automatically use.
+            registers: Any registers that this scope should automatically use.
             allow_jumps: Whether this scope allows jumps to be used within it.
             forbidden_message: If given, all attempts to add instructions to this scope will raise a
                 :exc:`.CircuitError` with this message.
