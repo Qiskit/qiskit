@@ -1550,35 +1550,6 @@ pub(crate) fn unpack_circuit(
         let inst = unpack_instruction(instruction, &custom_instructions, &mut qpy_data)?;
         qpy_data.circuit_data.push(inst)?;
     }
-    for (vector, initialized_params) in qpy_data.vectors.values() {
-        let vector_length = vector
-            .bind(py)
-            .call_method0("__len__")?
-            .extract::<usize>()?;
-        let missing_indices: Vec<u64> = (0..vector_length as u64)
-            .filter(|x| !initialized_params.contains(&(*x as u32)))
-            .collect();
-        if initialized_params.len() != vector_length {
-            let msg = format!(
-                "The ParameterVector: '{:}' is not fully identical to its \
-                pre-serialization state. Elements {:} \
-                in the ParameterVector will be not equal to the pre-serialized ParameterVector \
-                as they weren't used in the circuit: {:}",
-                vector.getattr(py, "name")?.extract::<String>(py)?,
-                missing_indices
-                    .iter()
-                    .map(|index| index.to_string())
-                    .collect::<Vec<_>>()
-                    .join(", "),
-                packed_circuit.header.circuit_name
-            );
-            imports::WARNINGS_WARN.get_bound(py).call1((
-                msg,
-                imports::BUILTIN_USER_WARNING.get_bound(py),
-                1,
-            ))?;
-        }
-    }
     // since we don't have a rust QuantumCircuit, and the metadata and custom layouts are also in python
     // this pythonic part is unavoidable
     let unpacked_layout = unpack_layout(py, &packed_circuit.layout, &circuit_data)?;
