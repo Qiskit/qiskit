@@ -18,7 +18,6 @@ import io
 
 from math import pi
 from test import QiskitTestCase
-import ddt
 import numpy as np
 
 from qiskit import QuantumCircuit, QuantumRegister, transpile
@@ -33,7 +32,6 @@ from qiskit.transpiler.passes.optimization.split_2q_unitaries import Split2QUnit
 from qiskit import qpy
 
 
-@ddt.ddt
 class TestSplit2QUnitaries(QiskitTestCase):
     """
     Tests to verify that splitting two-qubit unitaries into two single-qubit unitaries works correctly.
