@@ -45,7 +45,7 @@ class TestVirtualPermutationLayouts(QiskitTestCase):
         seed=[42, 13, 55],
     )
     def test_split2q_and_elide(self, swap_list, elide_before, seed):
-        """Tests that  of 2q-swap with the elide permutations pass"""
+        """Tests that 2q-swap with the elide permutations pass"""
         qc = QuantumCircuit(2)
         qc.swap(0, 1)
         qc.global_phase += 1.2345
