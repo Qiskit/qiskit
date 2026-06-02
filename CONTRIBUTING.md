@@ -95,7 +95,7 @@ You then install Qiskit in editable mode using:
 pip install -e .
 ```
 
-Changes to Python packages will need be picked up automatically.
+Changes to Python packages will be picked up automatically.
 Changes to Rust files will require a recompilation; see "Installing Qiskit from source" below.
 
 You can easily install all the standard developer dependencies for in-place testing, documentation-building,
@@ -795,10 +795,10 @@ You can check that your local modifications conform to the style rules by
 running `tox -elint` which will run `black` and  `ruff` to check the
 local code formatting and lint. If black returns a code formatting error you can
 run `tox -eblack` to automatically update the code formatting to conform to the
-style. However, if `ruff`  return any error you will have to fix these issues by
+style. However, if `ruff` returns any error you will have to fix these issues by
 manually updating your code. Sometimes `ruff` will be able to fix failures with
 the `--fix` flag. In these cases the output will tell you how many errors can be
-automatically fixed
+automatically fixed.
 
 Because they are so fast, it is sometimes convenient to run the tools `black` and `ruff` separately
 rather than via `tox`.  You can install all the lint dependencies using the `lint` or `dev`
@@ -905,7 +905,7 @@ https://github.com/Qiskit/qiskit/milestone/23).
 After the proposal freeze a release review period will begin, during this time
 release candidate PRs will be reviewed as we finalize the feature set and merge
 the last PRs for the release. Following the review period a release candidate will be
-tagged and published. This release candidate is pre-release that enables users and
+tagged and published. This release candidate is a pre-release that enables users and
 developers to test the release ahead of time. When the pre-release is tagged the release
 automation will publish the pre-release to PyPI (but only get installed on user request),
 create the `stable/*` branch, and generate a pre-release changelog/release page. At
@@ -994,5 +994,5 @@ can update your local repository's configuration with:
 git config blame.ignoreRevsFile .git-blame-ignore-revs
 ```
 
-which will update your local repositories configuration to use the ignore list
+which will update your local repository's configuration to use the ignore list
 by default.
