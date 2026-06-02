@@ -764,7 +764,7 @@ dependencies = [
  "generativity",
  "libm",
  "nano-gemm",
- "npyz",
+ "npyz 0.8.4",
  "num-complex",
  "num-traits",
  "private-gemm-x86",
@@ -1703,6 +1703,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "npyz"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0a01a88a1d2f89d362475ad16f34de3994f7c86b12259236f5d33537b040bcd4"
+dependencies = [
+ "byteorder",
+ "num-bigint",
+ "num-complex",
+ "py_literal",
+]
+
+[[package]]
 name = "nu-ansi-term"
 version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2434,6 +2446,8 @@ dependencies = [
  "binrw",
  "bytemuck",
  "hashbrown 0.15.5",
+ "ndarray",
+ "npyz 0.9.1",
  "num-bigint",
  "num-complex",
  "num-traits",
