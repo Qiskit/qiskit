@@ -235,9 +235,6 @@ pub fn cancel_commutations(
             ) {
                 let mut total_angle: f64 = 0.0;
                 let mut total_phase: f64 = 0.0;
-                let mut rx_gates: bool = false;
-                let mut x_gates: usize = 0;
-                let mut sx_gates: usize = 0;
                 for current_node in cancel_set {
                     let node_op = match &dag[*current_node] {
                         NodeType::Operation(instr) => instr,
@@ -256,9 +253,6 @@ pub fn cancel_commutations(
                             }
                         };
                         let phase_shift = z_phase_shift(node_op_name, node_angle);
-                        if node_op.op.try_standard_gate() == Some(StandardGate::RX) {
-                            rx_gates = true;
-                        }
                         Ok((node_angle, phase_shift))
                     } else {
                         match node_op_name {
@@ -267,14 +261,8 @@ pub fn cancel_commutations(
                             "s" => Ok((FRAC_PI_2, z_phase_shift("p", FRAC_PI_2))),
                             "sdg" => Ok((-FRAC_PI_2, -z_phase_shift("p", FRAC_PI_2))),
                             "z" => Ok((PI, z_phase_shift("p", PI))),
-                            "x" => {
-                                x_gates += 1;
-                                Ok((PI, FRAC_PI_2))
-                            }
-                            "sx" => {
-                                sx_gates += 1;
-                                Ok((FRAC_PI_2, FRAC_PI_4))
-                            }
+                            "x" => Ok((PI, FRAC_PI_2)),
+                            "sx" => Ok((FRAC_PI_2, FRAC_PI_4)),
                             "sxdg" => Ok((-FRAC_PI_2, -FRAC_PI_4)),
                             _ => Err(PyRuntimeError::new_err(format!(
                                 "Angle for operation {node_op_name} is not defined"
@@ -284,53 +272,33 @@ pub fn cancel_commutations(
                     total_angle += node_angle;
                     total_phase += phase_shift;
                 }
-                let new_op = match cancel_key.gate {
-                    GateOrRotation::ZRotation => z_var_gate.unwrap(),
-                    GateOrRotation::XRotation => {
-                        if x_supported && is_multiple_of_pi_k(total_angle, 1.) {
-                            &StandardGate::X
-                        } else if sx_supported && is_multiple_of_pi_k(total_angle, 2.) {
-                            &StandardGate::SX
-                        } else {
-                            &StandardGate::RX
-                        }
-                    }
-                    _ => unreachable!(),
-                };
 
-                if is_multiple_of_pi_k(total_angle, 0.25) {
+                if is_multiple_of_pi(total_angle, 4.) {
                     // if the angle is close to a 4-pi multiple (from above or below), then the
                     // operator is equal to the identity
-                } else if is_multiple_of_pi_k(total_angle, 0.5) {
+                } else if is_multiple_of_pi(total_angle, 2.) {
                     // a 2-pi multiple has a phase of pi: RX(2pi) = RZ(2pi) = -I = I exp(i pi)
                     total_phase -= PI;
-                } else {
-                    // any other is not the identity and we add the gate
-                    if new_op == &StandardGate::X {
-                        dag.insert_1q_on_incoming_qubit((*new_op, &[]), cancel_set[0]);
-                        // Total phase is in terms of RX which has a global
-                        // phase difference from X. If we have rx gates we need to
-                        // account for phase adjustment, and then undo the phase adjustment done for
-                        // x and sx
-                        if rx_gates {
-                            total_phase -= FRAC_PI_2;
-                        }
-                        if x_gates != 0 {
-                            total_phase -= FRAC_PI_2 * x_gates as f64;
-                        }
-                    } else if new_op == &StandardGate::SX {
-                        let gate_counts = ((total_angle / FRAC_PI_2) as u64) % 4;
-                        if rx_gates {
-                            total_phase -= FRAC_PI_4 * gate_counts as f64;
-                        }
-                        if sx_gates != 0 {
-                            total_phase -= FRAC_PI_4 * sx_gates as f64;
-                        }
-                        for _ in 0..gate_counts {
-                            dag.insert_1q_on_incoming_qubit((*new_op, &[]), cancel_set[0]);
+                } else if cancel_key.gate == GateOrRotation::ZRotation {
+                    let z_gate = z_var_gate.unwrap();
+                    dag.insert_1q_on_incoming_qubit((*z_gate, &[total_angle]), cancel_set[0]);
+                } else { // cancel_gate.key is either ZRotation or XRotation in this block so this
+                         // else is an XRotation.
+                    if x_supported && is_multiple_of_pi(total_angle, 1.) {
+                        let num_x = (total_angle / PI).round();
+                        total_phase -= FRAC_PI_2 * num_x;
+                        dag.insert_1q_on_incoming_qubit((StandardGate::X, &[]), cancel_set[0]);
+                    } else if sx_supported && is_multiple_of_pi(total_angle, 0.5) {
+                        let num_sx = (total_angle / FRAC_PI_2).round();
+                        total_phase -= FRAC_PI_4 * num_sx;
+                        for _ in 0..(num_sx as i64) % 4 {
+                            dag.insert_1q_on_incoming_qubit((StandardGate::SX, &[]), cancel_set[0]);
                         }
                     } else {
-                        dag.insert_1q_on_incoming_qubit((*new_op, &[total_angle]), cancel_set[0]);
+                        dag.insert_1q_on_incoming_qubit(
+                            (StandardGate::RX, &[total_angle]),
+                            cancel_set[0],
+                        );
                     }
                 }
 
@@ -346,8 +314,9 @@ pub fn cancel_commutations(
     Ok(())
 }
 
-fn is_multiple_of_pi_k(angle: f64, k: f64) -> bool {
-    let modulo = angle * k / PI;
+/// Checks if angle is an integer multiple of ``factor * PI``.
+fn is_multiple_of_pi(angle: f64, factor: f64) -> bool {
+    let modulo = angle / (factor * PI);
     let remainder = modulo.rem_euclid(1.0);
     abs_diff_eq!(remainder, 0., epsilon = _CUTOFF_PRECISION)
         || abs_diff_eq!(remainder, 1., epsilon = _CUTOFF_PRECISION)
