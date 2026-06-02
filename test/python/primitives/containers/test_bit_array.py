@@ -177,6 +177,9 @@ class BitArrayTestCase(QiskitTestCase):
     @ddt.data(1, 7, 9, 13)
     def test_bitcount_ignores_padding_bits(self, num_bits):
         """Test bitcount only counts logical bits."""
+        ba = BitArray.from_samples([0], num_bits)
+        self.assertEqual(ba.bitcount().tolist(), [0])
+
         ba = ~BitArray.from_samples([0], num_bits)
         np.testing.assert_array_equal(ba.bitcount(), ba.to_bool_array().sum(axis=-1))
         self.assertEqual(ba.bitcount().tolist(), [num_bits])
