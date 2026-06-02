@@ -573,15 +573,29 @@ impl<T> DataTree<T> {
     /// Returns [`ArityMismatch`] if `values.len()` does not equal the leaf
     /// count of `self`.
     pub fn unflatten<U>(&self, values: Vec<U>) -> Result<DataTree<U>, ArityMismatch> {
-        let expected = self.iter_leaves().count();
-        if values.len() != expected {
-            return Err(ArityMismatch {
-                expected,
-                actual: values.len(),
-            });
-        }
+        let actual = values.len();
         let mut iter = values.into_iter();
-        Ok(unflatten_helper(self, &mut iter))
+        match unflatten_helper(self, &mut iter) {
+            Ok(result) => {
+                let left_over = iter.len(); // ExactSizeIterator, O(1)
+                if left_over == 0 {
+                    Ok(result)
+                } else {
+                    Err(ArityMismatch {
+                        expected: actual - left_over,
+                        actual,
+                    })
+                }
+            }
+            Err(()) => {
+                // The Iterator was exhausted mid-walk, rewalk the tree to find
+                // out how many we should have expected.
+                Err(ArityMismatch {
+                    expected: self.iter_leaves().count(),
+                    actual,
+                })
+            }
+        }
     }
 
     /// Walk `data` lockstep with `self`'s structure, returning `data`'s leaves
@@ -846,16 +860,16 @@ fn map_leaves_helper<T, U>(tree: &DataTree<T>, f: &mut impl FnMut(&T) -> U) -> D
     }
 }
 
-fn unflatten_helper<T, U>(template: &DataTree<T>, iter: &mut std::vec::IntoIter<U>) -> DataTree<U> {
+fn unflatten_helper<T, U>(
+    template: &DataTree<T>,
+    iter: &mut std::vec::IntoIter<U>,
+) -> Result<DataTree<U>, ()> {
     match template {
-        DataTree::Leaf(_) => DataTree::new_leaf(
-            iter.next()
-                .expect("unflatten: fewer values than template leaves"),
-        ),
+        DataTree::Leaf(_) => Ok(DataTree::new_leaf(iter.next().ok_or(())?)),
         DataTree::Branch(_) => {
             let mut result = DataTree::with_capacity(template.len());
             for (key, child) in template.iter_children() {
-                let subtree = unflatten_helper(child, iter);
+                let subtree = unflatten_helper(child, iter)?;
                 match (key, subtree) {
                     (Some(k), DataTree::Leaf(v)) => result.insert_leaf(k, v),
                     (Some(k), sub @ DataTree::Branch(_)) => result.insert_branch(k, sub),
@@ -863,7 +877,7 @@ fn unflatten_helper<T, U>(template: &DataTree<T>, iter: &mut std::vec::IntoIter<
                     (None, sub @ DataTree::Branch(_)) => result.push_branch(sub),
                 }
             }
-            result
+            Ok(result)
         }
     }
 }
