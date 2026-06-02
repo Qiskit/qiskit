@@ -4,3 +4,4 @@ fixes:
     :class:`.PauliProductMeasurement` and :class:`.PauliProductRotation`
     where the paulis were treated incorrectly, breaking compatibility with
     previous qiskit versions.
+    See `#16099 <https://github.com/Qiskit/qiskit/issues/16099>`__.
