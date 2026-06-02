@@ -20,7 +20,7 @@ set (
 
 enable_testing ()
 include_directories (${QISKIT_INCLUDE_PATH})
-find_library (qiskit NAMES qiskit qiskit_cext PATHS ${CARGO_LIB_DIR} REQUIRED)
+find_library (qiskit NAMES qiskit_cext qiskit PATHS ${CARGO_LIB_DIR} REQUIRED)
 
 # Convert warnings into errors. Note that MSVC and GCC/clang do not match here, and CI will
 # require all to pass without errors.
