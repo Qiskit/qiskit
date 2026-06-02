@@ -12,14 +12,54 @@
 
 use hashbrown::HashSet;
 use itertools::Itertools;
+use num_complex::Complex64;
 use qiskit_quantum_info::sparse_observable::SparseTermView;
 use qiskit_util::IndexMap;
+use rand::prelude::*;
 use rustworkx_core::coloring::{ColoringStrategy, greedy_node_color_with_coloring_strategy};
 use rustworkx_core::petgraph::graph::NodeIndex;
 use rustworkx_core::petgraph::{Graph, Undirected};
 use std::convert::Infallible;
+use thiserror::Error;
 
-pub fn evolution(order: u32, num_paulis: usize) -> Vec<(usize, f64)> {
+pub fn qdrift_evolution(
+    time: f64,
+    reps: u32,
+    coeffs_iter: impl Iterator<Item = Complex64>,
+) -> Result<Vec<(usize, f64)>, TrotterizationError> {
+    let mut rng = rand::rng();
+    let mut lambd = 0.0;
+
+    match coeffs_iter
+        .enumerate()
+        .map(|(i, coeff)| match real_or_fail(&coeff) {
+            Ok(real_coeff) => Ok({
+                lambd += real_coeff;
+                (i, real_coeff, real_coeff.abs())
+            }),
+            Err(err) => Err(err),
+        })
+        .collect::<Result<Vec<_>, _>>()
+    {
+        Ok(coeffs) => {
+            let num_gates = (2.0 * lambd.powi(2) * time.powi(2) * reps as f64).ceil() as usize;
+            match coeffs.choose_multiple_weighted(&mut rng, num_gates, |item| (item.2 / lambd)) {
+                Ok(coeffs) => Ok(coeffs
+                    .map(|(i, real_coeff, _)| {
+                        (
+                            *i,
+                            real_coeff.signum() * (2.0 * lambd / (num_gates as f64) * time),
+                        )
+                    })
+                    .collect()),
+                Err(_) => Err(TrotterizationError::SampleError),
+            }
+        }
+        Err(err) => Err(err),
+    }
+}
+
+pub fn suzuki_evolution(order: u32, num_paulis: usize) -> Vec<(usize, f64)> {
     match order {
         1 => (0..num_paulis).map(|i| (i, 1.)).collect(),
         2 => (0..num_paulis - 1)
@@ -29,7 +69,7 @@ pub fn evolution(order: u32, num_paulis: usize) -> Vec<(usize, f64)> {
             .collect(),
         _ => {
             let reduction = 1.0 / (4.0 - 4_f64.powf(1.0 / (order as f64 - 1.0)));
-            let mut outer = evolution(order - 2, num_paulis);
+            let mut outer = suzuki_evolution(order - 2, num_paulis);
             let outer_len = outer.len();
             outer.iter_mut().for_each(|p| {
                 p.1 *= reduction;
@@ -38,7 +78,7 @@ pub fn evolution(order: u32, num_paulis: usize) -> Vec<(usize, f64)> {
                 outer.into_iter().cycle().take(outer_len * 2).collect();
             let mut outer_r = outer.clone();
 
-            let mut inner = evolution(order - 2, num_paulis);
+            let mut inner = suzuki_evolution(order - 2, num_paulis);
             inner.iter_mut().for_each(|p| {
                 p.1 *= 1.0 - 4.0 * reduction;
             });
@@ -100,4 +140,24 @@ pub fn reorder_terms<'a>(
 
         Err(_) => Err("Unexpected error when coloring Pauli sparse terms"),
     }
+}
+
+/// Internal helper to extract real part of a complex number,
+/// returning an error if imaginary part is non-zero.
+fn real_or_fail(z: &Complex64) -> Result<f64, TrotterizationError> {
+    if z.im.abs() > 1e-12 {
+        return Err(TrotterizationError::RealOrFail(z.im.abs()));
+    }
+    Ok(z.re)
+}
+
+#[derive(Debug, Error)]
+pub enum TrotterizationError {
+    /// Complex value obtained from real approximation
+    #[error["Encountered complex value {0}, but expected real."]]
+    RealOrFail(f64),
+
+    /// Complex value obtained from real approximation
+    #[error["Couldn't sample terms"]]
+    SampleError,
 }

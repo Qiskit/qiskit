@@ -15,7 +15,7 @@ use qiskit_circuit::operations::{Param, StandardInstruction, multiply_param, rad
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 use qiskit_quantum_info::sparse_observable::SparseObservable;
-use qiskit_synthesis::evolution::suzuki_trotter::{evolution, reorder_terms};
+use qiskit_synthesis::evolution::trotterization::{suzuki_evolution, reorder_terms};
 use qiskit_synthesis::pauli_evolution::sparse_term_evolution;
 use smallvec::{SmallVec, smallvec};
 use thiserror::Error;
@@ -54,7 +54,7 @@ pub fn suzuki_trotter_evolution(
     };
 
     // execute evolution
-    let evo: Vec<(usize, f64)> = evolution(order, terms.len());
+    let evo: Vec<(usize, f64)> = suzuki_evolution(order, terms.len());
 
     // convert terms into instructions for circuit creation
     let repetitions = evo.len() as u32 * reps;
