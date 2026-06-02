@@ -1,0 +1,6 @@
+fixes:
+  - |
+    Fixed an issue with the serialization to QPY of 
+    :class:`.PauliProductMeasurement` and :class:`.PauliProductRotation`
+    where the paulis were treated incorrectly, breaking compatibility with
+    previous qiskit versions.

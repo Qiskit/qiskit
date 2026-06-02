@@ -335,11 +335,6 @@ fn pack_pauli_product_measurement(
     // since we won't recreate this gate via python, it's not important to verify the python name is identical to the one we use here
     // so we simply hard-code it instead of going through python
     let gate_class_name = String::from(PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME);
-    // Write z and x as numpy bool arrays (NumpyObject / type key 'n') so that Qiskit 2.4's
-    // Python QPY reader can load them — its `loads_value` has no handler for type key 't'
-    // (Tuple).  This also matches what the Python QPY writer produced via `_to_pauli_data()`.
-    // The phase must use Pauli's phase convention: 0 = +1, 2 = -1 (not a raw bool 0/1).
-    // TODO: revisit when QPY version 18 defines a clean format for this gate.
     let params = Python::attach(|py| -> Result<_, QpyError> {
         let z_array = ppm.z.to_pyarray(py);
         let x_array = ppm.x.to_pyarray(py);
