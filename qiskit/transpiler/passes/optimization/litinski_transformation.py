@@ -23,8 +23,8 @@ class LitinskiTransformation(TransformationPass):
 
     The transform applies to a circuit containing Clifford, single-qubit :math:`R_Z`-rotation,
     :math:`R_X`-rotation and :math:`R_Y`-rotation gates,
-    (including :math:`T` and :math:`T^\dagger`), Pauli product rotations, Pauli product measurements,
-    and standard :math:`Z`-measurements.
+    (including :math:`Phase`, :math:`T` and :math:`T^\dagger`), Pauli product rotations,
+    Pauli product measurements, and standard :math:`Z`-measurements.
     The transform moves Clifford gates to the end of the circuit, including single-qubit rotation gates,
     Pauli product rotations and Pauli product measurements, whose angle is a multiple of :math:`\pi/2`.
     In the process, it transforms :math:`R_Z`-rotations,
