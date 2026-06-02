@@ -1,15 +1,8 @@
 ---
 fixes:
   - |
-    Fixed two bugs in :func:`.qasm3.dumps_experimental` (and :func:`.qasm3.dump_experimental`)
-    affecting :class:`.Delay` serialization:
-
-    * Delays specified with ``unit="ms"`` were emitted with the ``us`` unit suffix instead
-      of ``ms``, causing the serialized duration to read as 1000 times smaller than
-      intended.
-    * Delays specified with ``unit="ps"`` were converted to nanoseconds by multiplying the
-      value by 1000 instead of dividing, so the serialized duration was a factor of 10\ :sup:`6`
-      larger than intended.  Picoseconds are still emitted as nanoseconds, since OpenQASM 3
-      has no picosecond literal, but the numeric value is now correct (1 ps = 0.001 ns).
-
-    See `#16097 <https://github.com/Qiskit/qiskit/issues/16097>`__.
+    Fixed :func:`.qasm3.dump` and :func:`~.qasm3.dumps` incorrectly outputting a ``us`` suffix
+    for delays specified in ``ms``.
+  - |
+    Fixed the conversion to ``ns`` in :func:`.qasm3.dump` and :func:`~.qasm3.dumps`
+    when outputting delays specified in ``ps``.
