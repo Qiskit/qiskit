@@ -4509,8 +4509,7 @@ class QuantumCircuit:
         Args:
             qubit: qubit(s) to measure.
             cbit: classical bit(s) to place the measurement result(s) in,
-            or a :class:`.expr.Var` of :class:`.types.Uint` type indexing
-            the target clbit.
+                or a :class:`.expr.Var` of :class:`.types.Uint` type indexing the target clbit.
 
         Returns:
             qiskit.circuit.InstructionSet: handle to the added instructions.
