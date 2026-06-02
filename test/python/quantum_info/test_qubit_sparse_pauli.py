@@ -1234,6 +1234,7 @@ class TestQubitSparsePauliList(QiskitTestCase):
         np.testing.assert_array_equal(p0.commutes(p1), expected, strict=True)
         np.testing.assert_array_equal(p1.commutes(p0), expected.T, strict=True)
 
+    def test_commutes_empty(self):
         p0 = QubitSparsePauliList.from_sparse_list([], num_qubits=3)
         p1 = QubitSparsePauliList.from_list(["ZZZ"])
         expected = np.empty((0, 1), dtype=np.bool_)
