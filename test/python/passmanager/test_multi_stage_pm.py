@@ -18,7 +18,7 @@ from copy import copy
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag
-from qiskit.passmanager.optimization_pm import OptimizationPassManager
+from qiskit.passmanager.preserving_pm import PreservingPassManager
 from qiskit.passmanager.lowering_pm import LoweringPassManager
 from qiskit.passmanager.multi_stage_pm import MultiStagePassManager
 from qiskit.transpiler import generate_preset_pass_manager, CouplingMap
@@ -88,9 +88,9 @@ class TestMultiStagePM(QiskitTestCase):
 
     def test_stage_names(self):
         """Test getting the stage names."""
-        opt1 = OptimizationPassManager([CircuitNoOp()])
+        opt1 = PreservingPassManager([CircuitNoOp()])
         lower = LoweringPassManager(CircuitToDAG())
-        opt2 = OptimizationPassManager([DAGNoOp()])
+        opt2 = PreservingPassManager([DAGNoOp()])
 
         staged_pm = MultiStagePassManager(first=opt1, lower=lower, last=opt2)
         expected = ("first", "lower", "last")
@@ -104,11 +104,11 @@ class TestMultiStagePM(QiskitTestCase):
 
     def test_multi_ir(self):
         """Test changing the IR in the pipeline."""
-        pauli = OptimizationPassManager([RemovePauliIdentities()])
+        pauli = PreservingPassManager([RemovePauliIdentities()])
         pauli_to_circuit = LoweringPassManager(PauliToCircuit())
-        circuit = OptimizationPassManager([CircuitNoOp()])
+        circuit = PreservingPassManager([CircuitNoOp()])
         qc_to_dag = LoweringPassManager(CircuitToDAG())  # "circuit_to_dag" is reserved
-        dag = OptimizationPassManager([DAGNoOp()])
+        dag = PreservingPassManager([DAGNoOp()])
 
         staged_pm = MultiStagePassManager(
             pauli=pauli,
@@ -135,9 +135,9 @@ class TestMultiStagePM(QiskitTestCase):
     def test_generate_preset_pm_compatibility(self):
         """Check the existing pipeline can be a stage."""
 
-        pauli = OptimizationPassManager([RemovePauliIdentities()])
+        pauli = PreservingPassManager([RemovePauliIdentities()])
         pauli_to_circuit = LoweringPassManager(PauliToCircuit())
-        circuit = OptimizationPassManager([CircuitNoOp()])
+        circuit = PreservingPassManager([CircuitNoOp()])
         qc_to_dag = LoweringPassManager(CircuitToDAG())  # "circuit_to_dag" is reserved
         dag = generate_preset_pass_manager(
             coupling_map=CouplingMap.from_line(10), basis_gates=["sx", "x", "rz", "cx"]
@@ -167,8 +167,8 @@ class TestMultiStagePM(QiskitTestCase):
         This can be set up by the user since we cannot generally validate the types
         are correct.
         """
-        opt1 = OptimizationPassManager([CircuitNoOp()])
-        opt2 = OptimizationPassManager([DAGNoOp()])
+        opt1 = PreservingPassManager([CircuitNoOp()])
+        opt2 = PreservingPassManager([DAGNoOp()])
 
         invalid_staged_pm = MultiStagePassManager(opt1=opt1, opt2=opt2)
         input_program = QuantumCircuit(1)
@@ -179,10 +179,10 @@ class TestMultiStagePM(QiskitTestCase):
 
     def test_stage_replacement(self):
         """Test replacing stages."""
-        circuit_noop = OptimizationPassManager([CircuitNoOp()])
+        circuit_noop = PreservingPassManager([CircuitNoOp()])
         lower = LoweringPassManager(CircuitToDAG())
-        dag_noop = OptimizationPassManager([DAGNoOp()])
-        remove_iden = OptimizationPassManager([DAGRemoveIdentity()])
+        dag_noop = PreservingPassManager([DAGNoOp()])
+        remove_iden = PreservingPassManager([DAGRemoveIdentity()])
 
         staged_pm = MultiStagePassManager(
             circuit_opt=circuit_noop, circuit_to_dag=lower, dag_opt=dag_noop
@@ -204,9 +204,9 @@ class TestMultiStagePM(QiskitTestCase):
 
     def test_callback(self):
         """Test the callback works."""
-        circuit = OptimizationPassManager([CircuitNoOp(), CircuitAnalysis()])
+        circuit = PreservingPassManager([CircuitNoOp(), CircuitAnalysis()])
         lower = LoweringPassManager(CircuitToDAG())
-        dag = OptimizationPassManager([DAGRemoveIdentity()])
+        dag = PreservingPassManager([DAGRemoveIdentity()])
 
         staged_pm = MultiStagePassManager(circuit=circuit, circuit_to_dag=lower, dag=dag)
 
@@ -259,7 +259,7 @@ class TestMultiStagePM(QiskitTestCase):
 
     def test_single_stage(self):
         """Test a pipeline with a single stage."""
-        pm = MultiStagePassManager(circuit_opt=OptimizationPassManager([CircuitNoOp()]))
+        pm = MultiStagePassManager(circuit_opt=PreservingPassManager([CircuitNoOp()]))
 
         circuit = QuantumCircuit(2)
         circuit.h(0)
@@ -268,7 +268,7 @@ class TestMultiStagePM(QiskitTestCase):
 
     def test_initial_property_set(self):
         """Test that a pre-populated property set is visible to tasks."""
-        pm = MultiStagePassManager(circuit_opt=OptimizationPassManager([RequireKey("seed")]))
+        pm = MultiStagePassManager(circuit_opt=PreservingPassManager([RequireKey("seed")]))
         initial = {"seed": 42}
         circuit = QuantumCircuit(1)
 

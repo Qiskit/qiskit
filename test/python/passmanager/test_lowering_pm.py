@@ -20,7 +20,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager.compilation_status import PassManagerState, PropertySet, WorkflowStatus
-from qiskit.passmanager.optimization_pm import OptimizationPassManager
+from qiskit.passmanager.preserving_pm import PreservingPassManager
 from qiskit.passmanager.lowering_pm import LoweringPassManager
 from .tasks import (
     CircuitNoOp,
@@ -59,17 +59,17 @@ class TestLoweringPassManager(QiskitTestCase):
         self.assertEqual(state.workflow_status.count, 4)
 
     def test_pre_and_post(self):
-        """Test that pre and post lowering returns an OptimizationPassManagers containing the tasks."""
+        """Test that pre and post lowering returns an PreservingPassManagers containing the tasks."""
         pre = CircuitNoOp()
         post = DAGNoOp()
         pm = LoweringPassManager(CircuitToDAG(), pre=[pre], post=[post])
 
         with self.subTest("pre_lowering property"):
-            self.assertIsInstance(pm.pre_lowering, OptimizationPassManager)
+            self.assertIsInstance(pm.pre_lowering, PreservingPassManager)
             self.assertIn(pre, pm.pre_lowering.tasks)
 
         with self.subTest("post_lowering property"):
-            self.assertIsInstance(pm.post_lowering, OptimizationPassManager)
+            self.assertIsInstance(pm.post_lowering, PreservingPassManager)
             self.assertIn(post, pm.post_lowering.tasks)
 
         tasks_called = []

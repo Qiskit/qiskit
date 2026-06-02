@@ -17,7 +17,7 @@ from collections.abc import Iterable
 
 from .compilation_status import WorkflowStatus, PropertySet
 from .base_tasks import Task, IR, IR_OUT, PassManagerState, Callback
-from .optimization_pm import OptimizationPassManager
+from .preserving_pm import PreservingPassManager
 from .lowering_pm import LoweringPassManager
 
 
@@ -25,7 +25,7 @@ class MultiStagePassManager(Task[IR, IR_OUT], Generic[IR, IR_OUT]):
     """A multi-staged pass manager supporting multiple IRs."""
 
     def __init__(
-        self, **stages: dict[str, OptimizationPassManager[Any] | LoweringPassManager[Any, Any]]
+        self, **stages: dict[str, PreservingPassManager[Any] | LoweringPassManager[Any, Any]]
     ):
         """
         Args:

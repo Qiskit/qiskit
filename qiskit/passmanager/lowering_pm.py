@@ -17,7 +17,7 @@ from typing import Generic
 
 from .compilation_status import WorkflowStatus, PropertySet
 from .base_tasks import Task, IR, IR_OUT, Callback, PassManagerState
-from .optimization_pm import OptimizationPassManager
+from .preserving_pm import PreservingPassManager
 
 
 class LoweringPassManager(Task[IR, IR_OUT], Generic[IR, IR_OUT]):
@@ -31,22 +31,22 @@ class LoweringPassManager(Task[IR, IR_OUT], Generic[IR, IR_OUT]):
         post: Iterable[Task[IR_OUT, IR_OUT]] | None = None,
     ) -> None:
         self._lowering = lowering
-        self._pre = OptimizationPassManager(pre)
-        self._post = OptimizationPassManager(post)
+        self._pre = PreservingPassManager(pre)
+        self._post = PreservingPassManager(post)
 
     @property
-    def pre_lowering(self) -> OptimizationPassManager[IR]:
+    def pre_lowering(self) -> PreservingPassManager[IR]:
         """The pre-lowering tasks. These preserve the input IR.
 
-        This is accessed and manipulated as :class:`.OptimizationPassManager`.
+        This is accessed and manipulated as :class:`.PreservingPassManager`.
         """
         return self._pre
 
     @property
-    def post_lowering(self) -> OptimizationPassManager[IR_OUT]:
+    def post_lowering(self) -> PreservingPassManager[IR_OUT]:
         """The post-lowering tasks. These preserve output IR.
 
-        This is accessed and manipulated as :class:`.OptimizationPassManager`.
+        This is accessed and manipulated as :class:`.PreservingPassManager`.
         """
         return self._post
 
