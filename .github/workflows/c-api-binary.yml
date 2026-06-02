@@ -53,10 +53,8 @@ jobs:
           make cclean
           export C_LIB_RUSTC_FLAGS="-Cprofile-use=merged.profdata"
           make c \
-            C_DIR_OUT="${{ env.C_DIR_OUT }}"
-
-          # Move C API Binary Installation Makefile into binary
-          mv tools/c_api_binary/* "${{ env.QISKIT_CEXT_DIR }}"
+            C_DIR_OUT="${{ env.C_DIR_OUT }}" \
+            QISKIT_BUILD_WITH_MIMALLOC="1"
       - name: Validate Binaries
         run: |
           make ctest \
@@ -134,10 +132,8 @@ jobs:
           make cclean
           export C_LIB_RUSTC_FLAGS="-Cprofile-use=merged.profdata"
           make c \
-            C_DIR_OUT="${{ env.C_DIR_OUT }}"
-
-          # Move C API Binary Installation Makefile into binary
-          mv tools/c_api_binary/* "${{ env.QISKIT_CEXT_DIR }}"
+            C_DIR_OUT="${{ env.C_DIR_OUT }}" \
+            QISKIT_BUILD_WITH_MIMALLOC="1"
       - name: Validate Binaries
         run: |
           make ctest \
