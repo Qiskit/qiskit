@@ -241,9 +241,9 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "cbindgen"
-version = "0.29.2"
+version = "0.29.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "befbfd072a8e81c02f8c507aefce431fe5e7d051f83d48a23ffc9b9fe5a11799"
+checksum = "c95537b45400390270fae69ac098d057c8f5399001cde9d04f700c105ddfff2d"
 dependencies = [
  "clap",
  "heck",
@@ -764,7 +764,7 @@ dependencies = [
  "generativity",
  "libm",
  "nano-gemm",
- "npyz",
+ "npyz 0.8.4",
  "num-complex",
  "num-traits",
  "private-gemm-x86",
@@ -1703,6 +1703,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "npyz"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0a01a88a1d2f89d362475ad16f34de3994f7c86b12259236f5d33537b040bcd4"
+dependencies = [
+ "byteorder",
+ "num-bigint",
+ "num-complex",
+ "py_literal",
+]
+
+[[package]]
 name = "nu-ansi-term"
 version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2274,9 +2286,10 @@ dependencies = [
  "anyhow",
  "cbindgen",
  "clap",
- "indexmap",
+ "itertools 0.14.0",
  "qiskit-bindgen",
  "qiskit-cext-vtable",
+ "qiskit-util",
 ]
 
 [[package]]
@@ -2284,9 +2297,7 @@ name = "qiskit-cext"
 version = "2.5.0-dev"
 dependencies = [
  "anyhow",
- "foldhash 0.2.0",
  "hashbrown 0.15.5",
- "indexmap",
  "mimalloc",
  "nalgebra 0.34.2",
  "ndarray",
@@ -2296,6 +2307,7 @@ dependencies = [
  "qiskit-circuit-library",
  "qiskit-quantum-info",
  "qiskit-transpiler",
+ "qiskit-util",
  "rand 0.10.1",
  "rand_pcg 0.10.2",
  "smallvec",
@@ -2320,7 +2332,6 @@ dependencies = [
  "crossterm",
  "foldhash 0.2.0",
  "hashbrown 0.15.5",
- "indexmap",
  "itertools 0.14.0",
  "lexical-core",
  "lexical-write-float",
@@ -2418,12 +2429,12 @@ version = "2.5.0-dev"
 dependencies = [
  "foldhash 0.2.0",
  "hashbrown 0.15.5",
- "indexmap",
  "lazy_static",
  "oq3_semantics",
  "oq3_syntax",
  "pyo3",
  "qiskit-circuit",
+ "qiskit-util",
  "regex",
  "thiserror 2.0.18",
 ]
@@ -2434,9 +2445,9 @@ version = "2.5.0-dev"
 dependencies = [
  "binrw",
  "bytemuck",
- "foldhash 0.2.0",
  "hashbrown 0.15.5",
- "indexmap",
+ "ndarray",
+ "npyz 0.9.1",
  "num-bigint",
  "num-complex",
  "num-traits",
@@ -2444,6 +2455,7 @@ dependencies = [
  "pyo3",
  "qiskit-circuit",
  "qiskit-quantum-info",
+ "qiskit-util",
  "smallvec",
  "thiserror 2.0.18",
  "uuid",
@@ -2458,7 +2470,6 @@ dependencies = [
  "fixedbitset 0.5.7",
  "foldhash 0.2.0",
  "hashbrown 0.15.5",
- "indexmap",
  "itertools 0.14.0",
  "nalgebra 0.34.2",
  "ndarray",
@@ -2486,9 +2497,7 @@ dependencies = [
  "bytemuck",
  "faer",
  "fixedbitset 0.5.7",
- "foldhash 0.2.0",
  "hashbrown 0.15.5",
- "indexmap",
  "itertools 0.14.0",
  "nalgebra 0.34.2",
  "ndarray",
@@ -2547,6 +2556,8 @@ dependencies = [
 name = "qiskit-util"
 version = "2.5.0-dev"
 dependencies = [
+ "foldhash 0.2.0",
+ "indexmap",
  "num-complex",
  "pyo3",
  "thiserror 2.0.18",

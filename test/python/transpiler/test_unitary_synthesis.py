@@ -915,7 +915,7 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
         target.add_instruction(UGate(Parameter("theta"), Parameter("phi"), Parameter("lam")))
         target.add_instruction(CXGate())
         mat = scipy.stats.ortho_group.rvs(2**num_qubits)
-        qc = qs_decomposition(mat, opt_a1=True, opt_a2=False)
+        qc = qs_decomposition(mat)
         qc_transpiled = transpile(qc, target=target, optimization_level=opt)
         self.assertTrue(np.allclose(mat, Operator(qc_transpiled).data))
 
