@@ -1311,8 +1311,6 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         self.assertIsNotNone(transpiled)
 
     def test_for_loop_with_var_measurement(self):
-        from qiskit.providers.basic_provider.basic_simulator import BasicSimulator
-
         """Test loop control flow with Var index and measurement using that index"""
         qc = QuantumCircuit(1, 5)
         qc.x(0)
