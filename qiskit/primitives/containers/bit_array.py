@@ -25,15 +25,11 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 import numpy as np
 from numpy.typing import NDArray
 
-from qiskit import _numpy_compat
 from qiskit.exceptions import QiskitError
 from qiskit.result import Counts, sampled_expectation_value
 
 from .observables_array import ObservablesArray, ObservablesArrayLike
 from .shape import ShapedMixin, ShapeInput, shape_tuple
-
-# this lookup table tells you how many bits are 1 in each uint8 value
-_WEIGHT_LOOKUP = np.unpackbits(np.arange(256, dtype=np.uint8).reshape(-1, 1), axis=1).sum(axis=1)
 
 
 def _min_num_bytes(num_bits: int) -> int:
@@ -208,11 +204,7 @@ class BitArray(ShapedMixin):
         Returns:
             A ``numpy.uint64``-array with shape ``(*shape, num_shots)``.
         """
-        if _numpy_compat.VERSION_PARTS[0] >= 2:
-            bitcounts = np.bitwise_count(self._array).sum(axis=-1)
-        else:
-            bitcounts = _WEIGHT_LOOKUP[self._array].sum(axis=-1)
-        return bitcounts
+        return np.bitwise_count(self._array).sum(axis=-1)
 
     @staticmethod
     def from_bool_array(
