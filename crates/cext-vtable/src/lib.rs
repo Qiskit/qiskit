@@ -433,7 +433,7 @@ mod classical_expr {
 
     pub static FUNCTIONS: ExportedFunctions = ExportedFunctions::leaves(50, || {
         vec![
-            export_fn!(qk_expr_node_kind),
+            export_fn!(qk_expr_kind),
             export_fn!(qk_expr_binary_info),
             export_fn!(qk_expr_unary_info),
             export_fn!(qk_expr_cast_info),

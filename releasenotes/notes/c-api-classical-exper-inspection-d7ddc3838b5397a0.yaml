@@ -8,7 +8,7 @@ features_c:
     
     The new functions are:
     
-    * :c:func:`qk_expr_node_kind`
+    * :c:func:`qk_expr_kind`
     * :c:func:`qk_expr_binary_info`
     * :c:func:`qk_expr_unary_info`
     * :c:func:`qk_expr_cast_info`

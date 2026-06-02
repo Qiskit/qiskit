@@ -428,14 +428,14 @@ impl CDurationInfo {
 ///
 /// # Example
 /// ```c
-/// QKExprNodeKind kind = qk_expr_node_kind(expr);
+/// QKExprNodeKind kind = qk_expr_kind(expr);
 /// ```
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``expr`` is not a valid, non-null pointer to a ``QkExprNode``.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_expr_node_kind(expr: *const Expr) -> CExprNodeKind {
+pub unsafe extern "C" fn qk_expr_kind(expr: *const Expr) -> CExprNodeKind {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let expr = unsafe { const_ptr_as_ref(expr) };
 

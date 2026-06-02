@@ -25,7 +25,7 @@
 // These are used for generating classical expressions for testing. They are non-public C API
 // functions which should be removed once we have C API for generating classical expressions.
 QkExprNode *inner_test_expression_structs();
-QkExprNode *inner_test_unary_expr_ops(QkBinaryOpType);
+QkExprNode *inner_test_unary_expr_ops(QkUnaryOpType);
 QkExprNode *inner_test_binary_expr_ops(QkBinaryOpType);
 QkExprNode *inner_test_expr_kinds_and_types(QkExprNodeKind, QkExprTypeInfo);
 QkExprNode *inner_test_value(QkExprType, bool, QkDurationInfo, double, uint64_t);
@@ -52,7 +52,7 @@ static int test_expr_info_structs(void) {
 
     int result = Ok;
 
-    QkExprNodeKind kind = qk_expr_node_kind(expr);
+    QkExprNodeKind kind = qk_expr_kind(expr);
     if (kind != QkExprNodeKind_Index) {
         printf("Expected Index node, got %d\n", kind);
         result = EqualityError;
@@ -60,14 +60,14 @@ static int test_expr_info_structs(void) {
     }
 
     QkIndexExprInfo index_info = qk_expr_index_info(expr);
-    QkExprNodeKind target_kind = qk_expr_node_kind(index_info.target);
+    QkExprNodeKind target_kind = qk_expr_kind(index_info.target);
     if (target_kind != QkExprNodeKind_Var) {
         printf("Expected Var node for target, got %d\n", target_kind);
         result = EqualityError;
         goto cleanup;
     }
 
-    QkExprNodeKind index_kind = qk_expr_node_kind(index_info.index);
+    QkExprNodeKind index_kind = qk_expr_kind(index_info.index);
     if (index_kind != QkExprNodeKind_Cast) {
         printf("Expected Cast node for index, got %d\n", index_kind);
         result = EqualityError;
@@ -82,7 +82,7 @@ static int test_expr_info_structs(void) {
         goto cleanup;
     }
 
-    QkExprNodeKind cast_operand_kind = qk_expr_node_kind(cast_info.operand);
+    QkExprNodeKind cast_operand_kind = qk_expr_kind(cast_info.operand);
     if (cast_operand_kind != QkExprNodeKind_Unary) {
         printf("Expected Unary node for cast operand, got %d\n", cast_operand_kind);
         result = EqualityError;
@@ -96,7 +96,7 @@ static int test_expr_info_structs(void) {
         goto cleanup;
     }
 
-    QkExprNodeKind unary_operand_kind = qk_expr_node_kind(unary_info.operand);
+    QkExprNodeKind unary_operand_kind = qk_expr_kind(unary_info.operand);
     if (unary_operand_kind != QkExprNodeKind_Binary) {
         printf("Expected Binary node for unary operand, got %d\n", unary_operand_kind);
         result = EqualityError;
@@ -110,14 +110,14 @@ static int test_expr_info_structs(void) {
         goto cleanup;
     }
 
-    QkExprNodeKind left_kind = qk_expr_node_kind(binary_info.left);
+    QkExprNodeKind left_kind = qk_expr_kind(binary_info.left);
     if (left_kind != QkExprNodeKind_Var) {
         printf("Expected Var node for left operand, got %d\n", left_kind);
         result = EqualityError;
         goto cleanup;
     }
 
-    QkExprNodeKind right_kind = qk_expr_node_kind(binary_info.right);
+    QkExprNodeKind right_kind = qk_expr_kind(binary_info.right);
     if (right_kind != QkExprNodeKind_Value) {
         printf("Expected Value node for right operand, got %d\n", right_kind);
         result = EqualityError;
@@ -142,7 +142,7 @@ static int test_op_types_roundtrip(void) {
 
         expr = inner_test_unary_expr_ops(expected_op);
 
-        QkExprNodeKind kind = qk_expr_node_kind(expr);
+        QkExprNodeKind kind = qk_expr_kind(expr);
         if (kind != QkExprNodeKind_Unary) {
             printf("Expected Unary expression node, got %d\n", kind);
             result = EqualityError;
@@ -164,7 +164,7 @@ static int test_op_types_roundtrip(void) {
 
         expr = inner_test_binary_expr_ops(expected_op);
 
-        QkExprNodeKind kind = qk_expr_node_kind(expr);
+        QkExprNodeKind kind = qk_expr_kind(expr);
         if (kind != QkExprNodeKind_Binary) {
             printf("Expected Binary expression node, got %d\n", kind);
             result = EqualityError;
@@ -207,7 +207,7 @@ static int test_expr_kind_and_type(void) {
 
             expr = inner_test_expr_kinds_and_types(kind, type_info);
 
-            QkExprNodeKind result_kind = qk_expr_node_kind(expr);
+            QkExprNodeKind result_kind = qk_expr_kind(expr);
             if (result_kind != kind) {
                 printf("Kind mismatch: expected %d, got %d\n", kind, result_kind);
                 result = EqualityError;
@@ -279,7 +279,7 @@ static int test_expr_var(void) {
         QkExprTypeInfo type_info = {ty, ty == QkExprType_Uint ? 8 : 0};
 
         expr = inner_test_expr_kinds_and_types(QkExprNodeKind_Var, type_info);
-        QkExprNodeKind kind = qk_expr_node_kind(expr);
+        QkExprNodeKind kind = qk_expr_kind(expr);
         if (kind != QkExprNodeKind_Var) {
             printf("Expected Var node, got %d\n", kind);
             result = EqualityError;
@@ -345,7 +345,7 @@ static int test_expr_stretch(void) {
 
         expr = inner_test_expr_kinds_and_types(QkExprNodeKind_Stretch, type_info);
 
-        QkExprNodeKind kind = qk_expr_node_kind(expr);
+        QkExprNodeKind kind = qk_expr_kind(expr);
         if (kind != QkExprNodeKind_Stretch) {
             printf("Expected Stretch node, got %d\n", kind);
             result = EqualityError;
@@ -397,7 +397,7 @@ static int test_expr_value(void) {
     for (uint8_t ty = QkExprType_Bool; ty <= QkExprType_Uint; ty++) {
         expr = inner_test_value((QkExprType)ty, true, duration_info, 3.14, 12345);
 
-        QkExprNodeKind kind = qk_expr_node_kind(expr);
+        QkExprNodeKind kind = qk_expr_kind(expr);
         if (kind != QkExprNodeKind_Value) {
             printf("Expected Value node for Bool, got %d\n", kind);
             result = EqualityError;
