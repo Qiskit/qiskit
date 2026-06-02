@@ -13,7 +13,8 @@
 mod abi;
 mod lint;
 
-use std::path::PathBuf;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 use anyhow::anyhow;
 use clap::{Parser, Subcommand};
@@ -54,6 +55,17 @@ enum Command {
         #[arg(short, long)]
         output_path: PathBuf,
     },
+    /// Check that the semantic version constraints are upheld between two sets of slots.
+    ///
+    /// This does not check the function-pointer types of any given symbol, only the names and
+    /// offsets.
+    CheckAbi {
+        /// An filepath to an export of a previous Qiskit version's slots.
+        old: PathBuf,
+        /// If givne, a filepath to an export of a newer Qiskit version's slots.  If not given,
+        /// compare against the current vtable definitions.
+        new: Option<PathBuf>,
+    },
 }
 
 fn main() -> anyhow::Result<()> {
@@ -83,6 +95,21 @@ fn main() -> anyhow::Result<()> {
             let bindings = qiskit_bindgen::generate_bindings(cext_path)?;
             qiskit_bindgen::install_rust_pyo3_ffi(&bindings, output_path)?;
             Ok(())
+        }
+        Command::CheckAbi { old, new } => {
+            let load = |path: &Path| SlotsLists::try_parse(&fs::read_to_string(path)?);
+            let old = load(old)?;
+            let new = new
+                .as_deref()
+                .map(load)
+                .transpose()?
+                .unwrap_or_else(SlotsLists::ours);
+            let changes = abi::check(&old, &new)?;
+            if changes.is_allowed() {
+                Ok(())
+            } else {
+                Err(anyhow!(changes.explain()))
+            }
         }
     }
 }

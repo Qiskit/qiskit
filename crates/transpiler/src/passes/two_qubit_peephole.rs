@@ -283,7 +283,7 @@ fn two_qubit_unitary_peephole_optimize_apply(
 ) -> PyResult<Option<DAGCircuit>> {
     // After we've computed all the sequences to execute now serially build up a new dag.
     let mut processed_runs: Vec<bool> = vec![false; result.run_mapping.len()];
-    let out_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep)?;
+    let out_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep);
     let mut out_dag_builder = out_dag.into_builder();
     for node in toposort(dag.dag(), None).expect("DAG has no cycles") {
         if !matches!(dag.dag()[node], NodeType::Operation(_)) {

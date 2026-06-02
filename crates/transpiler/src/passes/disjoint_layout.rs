@@ -467,7 +467,7 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
     let decomposed_dags: PyResult<Vec<DAGCircuit>> = component_qubits
         .into_iter()
         .map(|dag_qubits| -> PyResult<DAGCircuit> {
-            let mut new_dag = dag.copy_empty_like(VarsMode::Alike, BlocksMode::Drop)?;
+            let mut new_dag = dag.copy_empty_like(VarsMode::Alike, BlocksMode::Drop);
             let qubits_to_revmove: Vec<Qubit> = qubits.difference(&dag_qubits).copied().collect();
 
             new_dag.remove_qubits(qubits_to_revmove)?;

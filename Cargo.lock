@@ -2274,9 +2274,10 @@ dependencies = [
  "anyhow",
  "cbindgen",
  "clap",
- "indexmap",
+ "itertools 0.14.0",
  "qiskit-bindgen",
  "qiskit-cext-vtable",
+ "qiskit-util",
 ]
 
 [[package]]
@@ -2285,9 +2286,7 @@ version = "2.5.0-dev"
 dependencies = [
  "anyhow",
  "bytemuck",
- "foldhash 0.2.0",
  "hashbrown 0.15.5",
- "indexmap",
  "mimalloc",
  "nalgebra 0.34.2",
  "ndarray",
@@ -2297,6 +2296,7 @@ dependencies = [
  "qiskit-circuit-library",
  "qiskit-quantum-info",
  "qiskit-transpiler",
+ "qiskit-util",
  "rand 0.10.1",
  "rand_pcg 0.10.2",
  "smallvec",
@@ -2321,7 +2321,6 @@ dependencies = [
  "crossterm",
  "foldhash 0.2.0",
  "hashbrown 0.15.5",
- "indexmap",
  "itertools 0.14.0",
  "lexical-core",
  "lexical-write-float",
@@ -2419,12 +2418,12 @@ version = "2.5.0-dev"
 dependencies = [
  "foldhash 0.2.0",
  "hashbrown 0.15.5",
- "indexmap",
  "lazy_static",
  "oq3_semantics",
  "oq3_syntax",
  "pyo3",
  "qiskit-circuit",
+ "qiskit-util",
  "regex",
  "thiserror 2.0.18",
 ]
@@ -2435,9 +2434,7 @@ version = "2.5.0-dev"
 dependencies = [
  "binrw",
  "bytemuck",
- "foldhash 0.2.0",
  "hashbrown 0.15.5",
- "indexmap",
  "num-bigint",
  "num-complex",
  "num-traits",
@@ -2445,6 +2442,7 @@ dependencies = [
  "pyo3",
  "qiskit-circuit",
  "qiskit-quantum-info",
+ "qiskit-util",
  "smallvec",
  "thiserror 2.0.18",
  "uuid",
@@ -2459,7 +2457,6 @@ dependencies = [
  "fixedbitset 0.5.7",
  "foldhash 0.2.0",
  "hashbrown 0.15.5",
- "indexmap",
  "itertools 0.14.0",
  "nalgebra 0.34.2",
  "ndarray",
@@ -2487,9 +2484,7 @@ dependencies = [
  "bytemuck",
  "faer",
  "fixedbitset 0.5.7",
- "foldhash 0.2.0",
  "hashbrown 0.15.5",
- "indexmap",
  "itertools 0.14.0",
  "nalgebra 0.34.2",
  "ndarray",
@@ -2548,6 +2543,8 @@ dependencies = [
 name = "qiskit-util"
 version = "2.5.0-dev"
 dependencies = [
+ "foldhash 0.2.0",
+ "indexmap",
  "num-complex",
  "pyo3",
  "thiserror 2.0.18",
@@ -3340,9 +3337,9 @@ checksum = "7df058c713841ad818f1dc5d3fd88063241cc61f49f5fbea4b951e8cf5a8d71d"
 
 [[package]]
 name = "unicode-segmentation"
-version = "1.13.2"
+version = "1.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9629274872b2bfaf8d66f5f15725007f635594914870f65218920345aa11aa8c"
+checksum = "c6f5d3c3b1bf09027a88a6bc961fc00497d651009560b5463668dc81b0fa87a8"
 
 [[package]]
 name = "unicode-width"
@@ -3370,9 +3367,9 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.23.1"
+version = "1.23.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddd74a9687298c6858e9b88ec8935ec45d22e8fd5e6394fa1bd4e99a87789c76"
+checksum = "d258b83ceec21034727ecee8c382cfa6c3e133699b0742c64571814fb420c9f7"
 dependencies = [
  "getrandom 0.4.2",
  "js-sys",
