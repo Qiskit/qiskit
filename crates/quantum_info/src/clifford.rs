@@ -421,8 +421,6 @@ impl Clifford {
         indices: &[u32],
         multiple: usize,
     ) {
-        let multiple = multiple.rem_euclid(4);
-
         // Ignore I terms from a sparse Pauli list and indicate their corresponsing indices
         // For example, if the input Pauli is "XIYZ" (read left-to-right) on qubits [1, 2, 4, 7]
         // then the output is "XYZ" on qubits [1, 4, 7]
