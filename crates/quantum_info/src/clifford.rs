@@ -350,15 +350,18 @@ impl Clifford {
     ///
     /// Then applies a CX ladder to entangle the qubits, preparing for the
     /// central rotation on the first qubit.
-    fn _append_initial_part_ppr(
+    fn _append_initial_part_ppr<I>(
         &mut self,
         z: &[bool],
         x: &[bool],
         indices: &[u32],
-        active_indices: &[usize],
-    ) {
+        active_indices: I,
+    ) where
+        I: IntoIterator<Item = usize> + Clone,
+        I::IntoIter: DoubleEndedIterator + Clone,
+    {
         // initial H or SX gates (in case of pauli X or pauli Y respectively)
-        for &qubit in active_indices {
+        for qubit in active_indices.clone() {
             match (z[qubit], x[qubit]) {
                 (true, false) => {}                                      // pauli Z on qubit
                 (true, true) => self.append_sx(indices[qubit] as usize), // pauli Y on qubit
@@ -367,11 +370,12 @@ impl Clifford {
             }
         }
 
-        // CX ladder
-        if active_indices.len() > 1 {
-            for w in active_indices.windows(2).rev() {
-                let (a, b) = (w[0], w[1]);
-                self.append_cx(indices[b] as usize, indices[a] as usize);
+        // CX ladder (reverse order)
+        let mut iter = active_indices.into_iter().rev();
+        if let Some(mut prev) = iter.next() {
+            for qubit in iter {
+                self.append_cx(indices[prev] as usize, indices[qubit] as usize);
+                prev = qubit;
             }
         }
     }
@@ -385,23 +389,26 @@ impl Clifford {
     /// - Z basis: no transformation needed
     /// - X basis: apply H gate
     /// - Y basis: apply SXdg gate
-    fn _append_final_part_ppr(
+    fn _append_final_part_ppr<I>(
         &mut self,
         z: &[bool],
         x: &[bool],
         indices: &[u32],
-        active_indices: &[usize],
-    ) {
+        active_indices: I,
+    ) where
+        I: IntoIterator<Item = usize> + Clone,
+    {
+        let mut iter = active_indices.clone().into_iter();
         // CX ladder
-        if active_indices.len() > 1 {
-            for w in active_indices.windows(2) {
-                let (a, b) = (w[0], w[1]);
-                self.append_cx(indices[b] as usize, indices[a] as usize);
+        if let Some(mut prev) = iter.next() {
+            for qubit in iter {
+                self.append_cx(indices[qubit] as usize, indices[prev] as usize);
+                prev = qubit;
             }
         }
 
         // final H or SXdg gates (in case of pauli X or pauli Y respectively)
-        for &qubit in active_indices {
+        for qubit in active_indices {
             match (z[qubit], x[qubit]) {
                 (true, false) => {}                                        // pauli Z on qubit
                 (true, true) => self.append_sxdg(indices[qubit] as usize), // pauli Y on qubit
@@ -424,21 +431,22 @@ impl Clifford {
         // Ignore I terms from a sparse Pauli list and indicate their corresponsing indices
         // For example, if the input Pauli is "XIYZ" (read left-to-right) on qubits [1, 2, 4, 7]
         // then the output is "XYZ" on qubits [1, 4, 7]
-        let active_indices: Vec<usize> = pauli_z
-            .iter()
-            .zip(pauli_x)
-            .enumerate()
-            .filter_map(|(i, (&z, &x))| (z || x).then_some(i))
-            .collect();
+        let active_indices = || {
+            pauli_z
+                .iter()
+                .zip(pauli_x)
+                .enumerate()
+                .filter_map(|(i, (&z, &x))| (z || x).then_some(i))
+        };
 
-        self._append_initial_part_ppr(pauli_z, pauli_x, indices, &active_indices);
+        self._append_initial_part_ppr(pauli_z, pauli_x, indices, active_indices());
 
         // internal RZ gate
-        if let Some(&idx) = active_indices.first() {
+        if let Some(idx) = active_indices().next() {
             self.append_rz(indices[idx] as usize, multiple);
         }
 
-        self._append_final_part_ppr(pauli_z, pauli_x, indices, &active_indices);
+        self._append_final_part_ppr(pauli_z, pauli_x, indices, active_indices());
     }
 
     /// Evolving a (dense) Pauli gate by the Clifford.
@@ -453,22 +461,21 @@ impl Clifford {
         // Ignore I terms from a sparse Pauli list and indicate their corresponsing indices
         // For example, if the input Pauli is "XIYZ" (read left-to-right) on qubits [1, 2, 4, 7]
         // then the output is "XYZ" on qubits [1, 4, 7]
+        let active_indices = || {
+            in_z.iter()
+                .zip(in_x)
+                .enumerate()
+                .filter_map(|(i, (&z, &x))| (z || x).then_some(i))
+        };
 
-        let active_indices: Vec<usize> = in_z
-            .iter()
-            .zip(in_x)
-            .enumerate()
-            .filter_map(|(i, (&z, &x))| (z || x).then_some(i))
-            .collect();
-
-        if let Some(&idx) = active_indices.first() {
-            self._append_initial_part_ppr(in_z, in_x, indices_in, &active_indices);
+        if let Some(idx) = active_indices().next() {
+            self._append_initial_part_ppr(in_z, in_x, indices_in, active_indices());
 
             // Evolving RZ by the Clifford.
             let (sign, z, x, indices) =
                 self.evolve_single_qubit_pauli(Pauli1q::Z, indices_in[idx] as usize);
 
-            self._append_final_part_ppr(in_z, in_x, indices_in, &active_indices);
+            self._append_final_part_ppr(in_z, in_x, indices_in, active_indices());
 
             return (sign, z, x, indices);
         }
