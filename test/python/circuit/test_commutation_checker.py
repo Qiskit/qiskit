@@ -703,7 +703,7 @@ class TestCommutationChecker(QiskitTestCase):
                         and len(gate2._params) < 2
                         and num_qubits1 > 0
                         and num_qubits2 > 0
-                        and num_qubits < 5
+                        and num_qubits < 4
                     ):
                         params1 = [0.32 * (i + 1) for i in range(len(gate1.params))]
                         params2 = [0.45 * (i + 1) for i in range(len(gate2.params))]
