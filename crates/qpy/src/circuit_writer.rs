@@ -37,11 +37,11 @@ use qiskit_circuit::duration::Duration;
 use qiskit_circuit::imports;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
-    BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction, CustomOperation,
-    Operation, OperationRef, Param, PauliProductMeasurement, PauliProductRotation, PyInstruction,
-    PyOpKind, StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
+    BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction, Operation,
+    OperationRef, Param, PauliProductMeasurement, PauliProductRotation, PyInstruction, PyOpKind,
+    StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
 };
-use qiskit_circuit::packed_instruction::PackedInstruction;
+use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
@@ -88,7 +88,7 @@ fn pack_instructions(
 ) -> Result<
     (
         Vec<formats::CircuitInstructionV2Pack>,
-        HashMap<String, PackedInstruction>,
+        HashMap<String, PackedOperation>,
     ),
     QpyError,
 > {
@@ -185,10 +185,10 @@ fn pack_condition(
 // straightforward packing of the instruction parameters for the general cases
 // where no additional handling is required
 fn pack_instruction_params(
-    params: &[Param],
+    inst: &PackedInstruction,
     qpy_data: &mut QPYWriteData,
 ) -> Result<Vec<formats::GenericDataPack>, QpyError> {
-    params
+    inst.params_view()
         .iter()
         .map(|x| pack_param_obj(x, qpy_data, Endian::Little))
         .collect::<Result<_, QpyError>>()
@@ -224,29 +224,6 @@ fn pack_instruction_blocks(
     }
 }
 
-/// For Custom Rust-Native Operations.
-fn pack_custom_operation(
-    op: &dyn CustomOperation,
-    params: &[Param],
-    qpy_data: &mut QPYWriteData,
-) -> Result<formats::CircuitInstructionV2Pack, QpyError> {
-    let params = pack_instruction_params(params, qpy_data)?;
-    let num_ctrl_qubits: u32 = op.num_ctrl_qubits().map(Into::into).unwrap_or_default();
-    Ok(formats::CircuitInstructionV2Pack {
-        num_qargs: op.num_qubits(),
-        num_cargs: op.num_clbits(),
-        extras_key: 0, // Using default value of zero since no annotations/conditions are available.
-        num_ctrl_qubits,
-        ctrl_state: (1 << num_ctrl_qubits) - 1, // default control state: all 1s
-        gate_class_name: Default::default(),    // TODO: Use a class name.
-        label: op.label().unwrap_or_default().to_string(),
-        condition: Default::default(),
-        bit_data: Default::default(),
-        params,
-        annotations: None,
-    })
-}
-
 /// extracts instruction blocks from an instruction into a vector of GenericValues
 fn extract_instruction_blocks(
     inst: &PackedInstruction,
@@ -262,7 +239,7 @@ fn extract_instruction_blocks(
 /// packs one specific instruction into CircuitInstructionV2Pack, creating a new custom operation if needed
 fn pack_instruction(
     instruction: &PackedInstruction,
-    custom_operations: &mut HashMap<String, PackedInstruction>,
+    custom_operations: &mut HashMap<String, PackedOperation>,
     new_custom_operations: &mut Vec<String>,
     qpy_data: &mut QPYWriteData,
 ) -> Result<formats::CircuitInstructionV2Pack, QpyError> {
@@ -282,8 +259,10 @@ fn pack_instruction(
         OperationRef::ControlFlow(control_flow_inst) => {
             pack_control_flow_inst(control_flow_inst, instruction, qpy_data)?
         }
-        OperationRef::CustomOperation(op) => {
-            pack_custom_operation(op, instruction.params_view(), qpy_data)?
+        OperationRef::CustomOperation(_) => {
+            return Err(QpyError::SerializationError(
+                "compiled custom operations are not yet supported in QPY".to_owned(),
+            ));
         }
     };
 
@@ -297,7 +276,7 @@ fn pack_instruction(
     {
         instruction_pack.gate_class_name = new_name.clone();
         new_custom_operations.push(new_name.clone());
-        custom_operations.insert(new_name.clone(), instruction.clone());
+        custom_operations.insert(new_name.clone(), instruction.op.clone());
     };
     Ok(instruction_pack)
 }
@@ -307,7 +286,7 @@ fn pack_standard_gate(
     instruction: &PackedInstruction,
     qpy_data: &mut QPYWriteData,
 ) -> Result<formats::CircuitInstructionV2Pack, QpyError> {
-    let params = pack_instruction_params(instruction.params_view(), qpy_data)?;
+    let params = pack_instruction_params(instruction, qpy_data)?;
     Ok(formats::CircuitInstructionV2Pack {
         num_qargs: gate.num_qubits(),
         num_cargs: gate.num_clbits(),
@@ -328,7 +307,7 @@ fn pack_standard_instruction(
     instruction: &PackedInstruction,
     qpy_data: &mut QPYWriteData,
 ) -> Result<formats::CircuitInstructionV2Pack, QpyError> {
-    let params = pack_instruction_params(instruction.params_view(), qpy_data)?;
+    let params = pack_instruction_params(instruction, qpy_data)?;
     Ok(formats::CircuitInstructionV2Pack {
         num_qargs: inst.num_qubits(),
         num_cargs: inst.num_clbits(),
@@ -580,7 +559,6 @@ fn pack_control_flow_inst(
         annotations: packed_annotations,
     })
 }
-
 fn pack_unitary_gate(
     unitary_gate: &UnitaryGate,
     qpy_data: &QPYWriteData,
@@ -622,9 +600,7 @@ fn pack_py_instruction(
     qpy_data: &mut QPYWriteData,
 ) -> Result<formats::CircuitInstructionV2Pack, QpyError> {
     let params = match py_inst.kind {
-        PyOpKind::Gate | PyOpKind::Instruction => {
-            pack_instruction_params(instruction.params_view(), qpy_data)?
-        }
+        PyOpKind::Gate | PyOpKind::Instruction => pack_instruction_params(instruction, qpy_data)?,
         PyOpKind::Operation => Python::attach(|py| -> Result<_, QpyError> {
             let py_op_object = py_inst.ob.bind(py);
             if py_op_object.is_instance(imports::CLIFFORD.get_bound(py))? {
@@ -637,7 +613,7 @@ fn pack_py_instruction(
                     .map(|modifier| py_pack_param(&modifier?, qpy_data, Endian::Little))
                     .collect::<Result<_, QpyError>>()
             } else {
-                pack_instruction_params(instruction.params_view(), qpy_data)
+                pack_instruction_params(instruction, qpy_data)
             }
         })?,
     };
@@ -973,7 +949,7 @@ fn pack_transpile_layout(
 }
 
 fn pack_custom_instructions(
-    custom_instructions_hash: &mut HashMap<String, PackedInstruction>,
+    custom_instructions_hash: &mut HashMap<String, PackedOperation>,
     qpy_data: &mut QPYWriteData,
 ) -> Result<formats::CustomCircuitInstructionsPack, QpyError> {
     let mut custom_instructions: Vec<formats::CustomCircuitInstructionDefPack> = Vec::new();
@@ -1021,21 +997,21 @@ fn pack_extra_registers(
 fn pack_custom_instruction(
     py: Python,
     name: &String,
-    custom_instructions_hash: &mut HashMap<String, PackedInstruction>,
+    custom_instructions_hash: &mut HashMap<String, PackedOperation>,
     new_instructions_list: &mut Vec<String>,
     qpy_data: &mut QPYWriteData,
 ) -> Result<formats::CustomCircuitInstructionDefPack, QpyError> {
     let operation = custom_instructions_hash.get(name).ok_or_else(|| {
         QpyError::ConversionError(format!("Could not find operation data for {}", name))
     })?;
-    let OperationRef::PyCustom(inst) = operation.op.view() else {
+    let OperationRef::PyCustom(inst) = operation.view() else {
         return Err(QpyError::SerializationError(format!(
             "internal logic error: {} was not a `PyCustom` variant: {:?}",
             name,
-            operation.op.view()
+            operation.view()
         )));
     };
-    let gate_type = get_circuit_type_key(&operation.op)?;
+    let gate_type = get_circuit_type_key(operation)?;
     let mut num_ctrl_qubits = 0;
     let mut ctrl_state = 0;
     let mut base_gate: Bound<PyAny> = py.None().bind(py).clone();
@@ -1083,8 +1059,8 @@ fn pack_custom_instruction(
             })
             .transpose()?,
     };
-    let num_qubits = operation.op.num_qubits();
-    let num_clbits = operation.op.num_clbits();
+    let num_qubits = operation.num_qubits();
+    let num_clbits = operation.num_clbits();
     if !base_gate.is_none() {
         let op_parts = base_gate.extract::<OperationFromPython<CircuitData>>()?;
         let instruction = CircuitInstruction {
