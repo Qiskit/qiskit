@@ -199,7 +199,7 @@ lint = [
 # Dependencies to run the test suite.  This group needs to be installable on all Python versions
 # that Qiskit supports.
 test = [
-    "stestr>=2.0",
+    "stestr>=3.2.0",
     "ddt>=1.2.0",
     "coverage>=4.4.0",
     "threadpoolctl",  # More detail from Numpy/Scipy BLAS-usage reports.
