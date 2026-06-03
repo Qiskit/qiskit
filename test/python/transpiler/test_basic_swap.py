@@ -424,6 +424,23 @@ class TestBasicSwap(QiskitTestCase):
 
         self.assertEqual(after.global_phase, dag.global_phase)
 
+    def test_preserves_global_phase_when_swaps_inserted(self):
+        """The global phase is preserved when routing inserts swaps."""
+        coupling = CouplingMap.from_line(3)
+
+        qr = QuantumRegister(3, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.global_phase = 0.5
+        circuit.cx(qr[0], qr[2])
+
+        dag = circuit_to_dag(circuit)
+        pass_ = BasicSwap(coupling)
+        after = pass_.run(dag)
+
+        self.assertEqual(after.global_phase, dag.global_phase)
+        self.assertEqual(after.count_ops().get("swap", 0), 1)
+        self.assertIsInstance(pass_.property_set["final_layout"], Layout)
+
 
 if __name__ == "__main__":
     unittest.main()
