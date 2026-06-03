@@ -46,7 +46,6 @@ else:
         )
 
 from . import _accelerate
-import qiskit._numpy_compat
 
 # Globally define compiled submodules. The normal import mechanism will not find compiled submodules
 # in _accelerate because it relies on file paths, but PyO3 generates only one shared library file.
