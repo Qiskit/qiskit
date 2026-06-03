@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an issue where :class:`~qiskit.transpiler.passes.BasicSwap` could
+    inflate the input circuit ``global_phase`` while rebuilding the output DAG
+    from serial layers. See `#16271
+    <https://github.com/Qiskit/qiskit/issues/16271>`__.
