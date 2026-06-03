@@ -246,6 +246,47 @@ class TestCommutativeCancellation(QiskitTestCase):
             self.assertNotIn("sx", op_counts)
             self.assertNotIn("x", op_counts)
 
+    @combine(
+        basis_gates=[["rz", "sx", "x"], ["u1", "sx"], ["p", "sx"]],
+        circuit_gate=["t", "tdg", "s", "sdg", "rz", "z"],
+        name="basis_gates={basis_gates}_circuit_gate={circuit_gate}",
+    )
+    def test_zgate_accumulation(self, basis_gates, circuit_gate):
+        circuit = QuantumCircuit(2)
+        if circuit_gate == "t":
+            circuit.t(0)
+            circuit.t(0)
+            circuit.t(0)
+            circuit.t(0)
+        elif circuit_gate == "tdg":
+            circuit.tdg(0)
+            circuit.tdg(0)
+            circuit.tdg(0)
+            circuit.tdg(0)
+        elif circuit_gate == "s":
+            circuit.s(0)
+            circuit.s(0)
+        elif circuit_gate == "sdg":
+            circuit.sdg(0)
+            circuit.sdg(0)
+        elif circuit_gate == "rz":
+            circuit.rz(np.pi / 2, 0)
+            circuit.rz(np.pi / 2, 0)
+        else:
+            circuit.z(0)
+            circuit.z(0)
+            circuit.z(0)
+        commuter_pass = CommutativeCancellation(basis_gates=basis_gates)
+        result = commuter_pass(circuit)
+        op_counts = result.count_ops()
+        self.assertEqual(Operator(circuit), Operator(result))
+        if "rz" in basis_gates or circuit_gate == "rz":
+            self.assertEqual(op_counts, {"rz": 1})
+        elif "u1" in basis_gates:
+            self.assertEqual(op_counts, {"u1": 1})
+        else:
+            self.assertEqual(op_counts, {"p": 1})
+
     def test_2_alternating_cnots(self):
         """A simple circuit where nothing should be cancelled.
 
