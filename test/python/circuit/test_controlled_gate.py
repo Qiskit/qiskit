@@ -1114,6 +1114,14 @@ class TestControlledGate(QiskitTestCase):
         ref_circuit.append(ccx, [qreg[0], qreg[1], qreg[2]])
         self.assertEqual(qc, ref_circuit)
 
+    def test_ccx_label_parameter(self):
+        """To check that labels are forwarded to CCX gates."""
+        qreg = QuantumRegister(3)
+        qc = QuantumCircuit(qreg)
+        qc.ccx(qreg[0], qreg[1], qreg[2], label="my_ccx", ctrl_state=0)
+
+        self.assertEqual(qc.data[0].operation.label, "my_ccx")
+
     @data((4, [0, 1, 2], 3, "010"), (4, [2, 1, 3], 0, 2))
     @unpack
     def test_multi_control_x_ctrl_state_parameter(

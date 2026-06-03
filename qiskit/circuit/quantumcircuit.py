@@ -6284,6 +6284,7 @@ class QuantumCircuit:
         control_qubit1: QubitSpecifier,
         control_qubit2: QubitSpecifier,
         target_qubit: QubitSpecifier,
+        label: str | None = None,
         ctrl_state: str | int | None = None,
     ) -> InstructionSet:
         r"""Apply :class:`~qiskit.circuit.library.CCXGate`.
@@ -6294,6 +6295,7 @@ class QuantumCircuit:
             control_qubit1: The qubit(s) used as the first control.
             control_qubit2: The qubit(s) used as the second control.
             target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
             ctrl_state:
                 The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling
                 on the '1' state.
@@ -6307,12 +6309,13 @@ class QuantumCircuit:
                 StandardGate.CCX,
                 [control_qubit1, control_qubit2, target_qubit],
                 (),
+                label=label,
             )
 
         from .library.standard_gates.x import CCXGate
 
         return self.append(
-            CCXGate(ctrl_state=ctrl_state),
+            CCXGate(label=label, ctrl_state=ctrl_state),
             [control_qubit1, control_qubit2, target_qubit],
             [],
             copy=False,
