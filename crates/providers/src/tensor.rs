@@ -238,10 +238,11 @@ impl TensorType {
 
 /// A tensor of one of the supported dtypes.
 ///
-/// Each variant wraps a reference-counted dynamic ndarray ([`ArcArray`]) so that
-/// [`Tensor::clone`] is a cheap atomic refcount bump rather than a deep buffer
-/// copy. Mutating the underlying buffer in place (via ndarray methods that
-/// require `DataMut`) clones-on-write when the buffer is shared.
+/// Each variant wraps a reference-counted dynamic ndarray ([`ArcArray`]).
+///
+/// This allows [`Tensor::clone`] to cause a refcount bump rather than a copy of
+/// underlying data. Note that mutating the underlying buffer in place (via ndarray
+/// methods that require `DataMut`) clones-on-write when the buffer is shared.
 #[derive(Debug, Clone)]
 pub enum Tensor {
     C64(ArcArrayD<Complex32>), // complex
