@@ -226,7 +226,10 @@ mod test {
         .unwrap();
         let mut line: IndexMap<_, _> = Default::default();
         for qubit in 0..num_qubits - 1 {
-            line.insert(Qargs::from([qubit, qubit + 1].map(PhysicalQubit)), None);
+            line.insert(
+                Qargs::from([qubit, qubit + 1].map(PhysicalQubit::new)),
+                None,
+            );
         }
         target
             .add_instruction(StandardGate::CZ.into(), None, None, Some(line))

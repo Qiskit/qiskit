@@ -61,11 +61,7 @@ pub fn run_wrap_angles(
             })
             .collect();
         if !target.gate_supported_angle_bound(inst.op.name(), &params) {
-            let qargs: Vec<_> = dag
-                .get_qargs(inst.qubits)
-                .iter()
-                .map(|x| PhysicalQubit(x.0))
-                .collect();
+            let qargs = PhysicalQubit::lift_slice(dag.get_qargs(inst.qubits)).to_vec();
             let new_dag =
                 bounds_registry.substitute_angle_bounds(inst.op.name(), &params, &qargs)?;
             if let Some(new_dag) = new_dag {

@@ -22,24 +22,16 @@ use crate::target::Target;
 fn recurse(
     dag: &DAGCircuit,
     target: &Target,
-    wire_map: Option<&[Qubit]>,
-) -> PyResult<Option<(String, [u32; 2])>> {
-    let check_qubits = |qubits: &[Qubit]| -> bool {
+    wire_map: Option<&[PhysicalQubit]>,
+) -> PyResult<Option<(String, [PhysicalQubit; 2])>> {
+    let map_qubits = |qubits: [Qubit; 2]| -> [PhysicalQubit; 2] {
         match wire_map {
-            Some(wire_map) => {
-                let mapped_bits = [
-                    PhysicalQubit(wire_map[qubits[0].index()].0),
-                    PhysicalQubit(wire_map[qubits[1].index()].0),
-                ];
-                target.contains_qargs(&mapped_bits)
-                    || target.contains_qargs(&[mapped_bits[1], mapped_bits[0]])
-            }
-            None => {
-                target.contains_qargs(&[PhysicalQubit(qubits[0].0), PhysicalQubit(qubits[1].0)])
-                    || target
-                        .contains_qargs(&[PhysicalQubit(qubits[1].0), PhysicalQubit(qubits[0].0)])
-            }
+            Some(map) => [map[qubits[0].index()], map[qubits[1].index()]],
+            None => ::bytemuck::cast(qubits),
         }
+    };
+    let check_qubits = |qubits: [PhysicalQubit; 2]| -> bool {
+        target.contains_qargs(&qubits) || target.contains_qargs(&[qubits[1], qubits[0]])
     };
 
     for (_, inst) in dag.op_nodes(false) {
@@ -49,10 +41,9 @@ fn recurse(
                 let wire_map = (0..block.num_qubits())
                     .map(|inner| {
                         let outer = qubits[inner];
-                        match wire_map {
-                            Some(wire_map) => wire_map[outer.index()],
-                            None => outer,
-                        }
+                        wire_map
+                            .map(|map| map[outer.index()])
+                            .unwrap_or(PhysicalQubit(outer))
                     })
                     .collect::<Vec<_>>();
 
@@ -61,11 +52,11 @@ fn recurse(
                     return Ok(res);
                 }
             }
-        } else if qubits.len() == 2 && !check_qubits(qubits) {
-            return Ok(Some((
-                inst.op.name().to_string(),
-                [qubits[0].0, qubits[1].0],
-            )));
+        } else if let &[a, b] = qubits {
+            let mapped = map_qubits([a, b]);
+            if !check_qubits(mapped) {
+                return Ok(Some((inst.op.name().to_string(), mapped)));
+            }
         }
     }
     Ok(None)
@@ -73,12 +64,15 @@ fn recurse(
 
 #[pyfunction]
 #[pyo3(name = "check_map")]
-pub fn py_run_check_map(dag: &DAGCircuit, target: &Target) -> PyResult<Option<(String, [u32; 2])>> {
+pub fn py_run_check_map(
+    dag: &DAGCircuit,
+    target: &Target,
+) -> PyResult<Option<(String, [PhysicalQubit; 2])>> {
     if dag.has_control_flow() {
         recurse(dag, target, None)
     } else {
         Ok(run_check_map(dag, target)
-            .map(|(name, qubits)| (name.to_string(), [qubits[0].0, qubits[1].0])))
+            .map(|(name, qubits)| (name.to_string(), [qubits[0], qubits[1]])))
     }
 }
 

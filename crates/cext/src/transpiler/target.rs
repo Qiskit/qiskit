@@ -1614,7 +1614,7 @@ unsafe fn parse_qargs(qargs: *const u32, num_qubits: u32) -> Qargs {
         // SAFETY: Per the documentation qargs points to an array of num_qubits elements
         unsafe {
             (0..num_qubits)
-                .map(|idx| PhysicalQubit(*qargs.wrapping_add(idx as usize)))
+                .map(|idx| PhysicalQubit::new(*qargs.wrapping_add(idx as usize)))
                 .collect()
         }
     }

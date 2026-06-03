@@ -291,9 +291,7 @@ pub fn routing_stage(
         if let vf2::Vf2PassReturn::Solution(layout) =
             vf2_layout_pass_average(dag, target, &vf2_config, false, None)?
         {
-            update_layout(dag, transpile_layout, |x| {
-                Qubit(layout[&VirtualQubit(x.0)].0)
-            });
+            update_layout(dag, transpile_layout, |x| layout[&VirtualQubit(x)].0);
         }
     }
     Ok(())
@@ -440,9 +438,7 @@ pub fn optimization_stage(
         if let vf2::Vf2PassReturn::Solution(layout) =
             vf2_layout_pass_exact(dag, target, &vf2_config)?
         {
-            update_layout(dag, transpile_layout, |x| {
-                Qubit(layout[&VirtualQubit(x.0)].0)
-            });
+            update_layout(dag, transpile_layout, |x| layout[&VirtualQubit(x)].0);
         }
     }
     Ok(())
@@ -604,8 +600,7 @@ fn layout_from_sabre_result(
         dag.qregs().to_vec(),
     );
     if let Some(old_permutation) = old_transpile_layout.output_permutation() {
-        new_transpile_layout
-            .add_permutation_outside(|q| VirtualQubit(old_permutation[q.index()].0));
+        new_transpile_layout.add_permutation_outside(|q| VirtualQubit(old_permutation[q.index()]));
     }
     new_transpile_layout
 }
@@ -641,7 +636,7 @@ mod tests {
         let props = (0..5)
             .map(|i| {
                 (
-                    [PhysicalQubit(i)].into(),
+                    [PhysicalQubit::new(i)].into(),
                     Some(InstructionProperties::new(
                         Some(i as f64 * 1.2e-6),
                         Some(i as f64 * 2.3e-5),
@@ -655,7 +650,7 @@ mod tests {
         let props = (0..5)
             .map(|i| {
                 (
-                    [PhysicalQubit(i)].into(),
+                    [PhysicalQubit::new(i)].into(),
                     Some(InstructionProperties::new(
                         Some(i as f64 * 1.2e-4),
                         Some(i as f64 * 2.3e-3),
@@ -669,7 +664,7 @@ mod tests {
         let props = (1..5)
             .map(|i| {
                 (
-                    [PhysicalQubit(0), PhysicalQubit(i)].into(),
+                    [PhysicalQubit::new(0), PhysicalQubit::new(i)].into(),
                     Some(InstructionProperties::new(
                         Some(i as f64 * 2.4e-6),
                         Some(i as f64 * 6.2e-4),
@@ -726,7 +721,7 @@ mod tests {
                             .0
                             .get_qargs(inst.qubits)
                             .iter()
-                            .map(|x| PhysicalQubit(x.0))
+                            .map(|x| PhysicalQubit::new(x.0))
                             .collect::<Vec<_>>(),
                     );
                 } else if inst.op.num_clbits() == 1 {
@@ -843,14 +838,8 @@ mod tests {
             for inst in result.0.data() {
                 if inst.op.num_qubits() == 2 {
                     assert_eq!("ecr", inst.op.name());
-                    target.contains_qargs(
-                        &result
-                            .0
-                            .get_qargs(inst.qubits)
-                            .iter()
-                            .map(|x| PhysicalQubit(x.0))
-                            .collect::<Vec<_>>(),
-                    );
+                    target
+                        .contains_qargs(PhysicalQubit::lift_slice(result.0.get_qargs(inst.qubits)));
                 } else if inst.op.num_clbits() == 1 {
                     assert_eq!("measure", inst.op.name());
                 } else {

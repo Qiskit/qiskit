@@ -210,7 +210,7 @@ impl RoutingResult<'_> {
             let swap = PackedInstruction::from_standard_gate(
                 StandardGate::Swap,
                 None,
-                dag.insert_qargs(&[Qubit(map_fn(swap[1]).0), Qubit(map_fn(swap[0]).0)]),
+                dag.insert_qargs(&[map_fn(swap[1]).0, map_fn(swap[0]).0]),
             );
             dag.push_back(swap).map_err(Into::into)
         };
@@ -222,7 +222,7 @@ impl RoutingResult<'_> {
          -> PyResult<NodeIndex> {
             apply_scratch.clear();
             for qubit in self.problem.dag.get_qargs(inst.qubits) {
-                apply_scratch.push(Qubit(map_fn(VirtualQubit(qubit.0).to_phys(layout)).0));
+                apply_scratch.push(map_fn(VirtualQubit(*qubit).to_phys(layout)).0);
             }
             let new_inst = PackedInstruction {
                 qubits: dag.insert_qargs(&apply_scratch),
@@ -270,7 +270,7 @@ impl RoutingResult<'_> {
                         .dag
                         .get_qargs(inst.qubits)
                         .iter()
-                        .map(|q| VirtualQubit(q.index() as u32))
+                        .map(|q| VirtualQubit(*q))
                         .collect::<HashSet<_>>();
                     // Collect lists of the qargs that will remain, and the idle qubits that need to
                     // be removed from the DAG, then remove the idle ones.
@@ -289,7 +289,7 @@ impl RoutingResult<'_> {
                                 .iter()
                                 .any(|dag| !dag.is_wire_idle(Wire::Qubit(qubit)))
                         {
-                            qargs.push(Qubit(map_fn(phys).0));
+                            qargs.push(map_fn(phys).0);
                         } else {
                             idle.push(qubit);
                         }

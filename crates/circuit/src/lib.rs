@@ -40,16 +40,39 @@ pub mod var_stretch_container;
 mod variable_mapper;
 pub mod vf2;
 
-use bytemuck::AnyBitPattern;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyString, PyTuple};
 
-#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject, AnyBitPattern)]
+#[derive(
+    Copy,
+    Clone,
+    Debug,
+    Hash,
+    Ord,
+    PartialOrd,
+    Eq,
+    PartialEq,
+    FromPyObject,
+    bytemuck::Zeroable,
+    bytemuck::Pod,
+)]
 #[repr(transparent)]
 pub struct Qubit(pub u32);
 
-#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject, AnyBitPattern)]
+#[derive(
+    Copy,
+    Clone,
+    Debug,
+    Hash,
+    Ord,
+    PartialOrd,
+    Eq,
+    PartialEq,
+    FromPyObject,
+    bytemuck::Zeroable,
+    bytemuck::Pod,
+)]
 #[repr(transparent)]
 pub struct Clbit(pub u32);
 
@@ -71,6 +94,8 @@ pub use packed_instruction::BlockMapper;
 macro_rules! impl_circuit_identifier {
     ($type:ident) => {
         impl $type {
+            // The zero index.
+            pub const ZERO: Self = Self(0);
             // The maximum storable index.
             pub const MAX: Self = Self(u32::MAX);
 
@@ -86,6 +111,13 @@ macro_rules! impl_circuit_identifier {
                 }
             }
 
+            /// Get as its native integer type.
+            ///
+            /// This is mostly called by dereference by wrapping types.
+            #[inline(always)]
+            pub const fn value(&self) -> u32 {
+                self.0
+            }
             /// Convert to a usize.
             #[inline(always)]
             pub const fn index(&self) -> usize {

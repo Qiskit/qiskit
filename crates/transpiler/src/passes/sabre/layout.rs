@@ -98,14 +98,14 @@ pub fn sabre_layout_and_routing(
         mut qubit_fn: impl FnMut(PhysicalQubit) -> PhysicalQubit,
     ) -> NLayout {
         debug_assert!(layout.num_qubits() <= num_qubits as usize);
-        let max = VirtualQubit(u32::MAX);
+        let max = VirtualQubit::MAX;
         let mut virtuals = vec![max; num_qubits as usize];
         for (virt, phys) in layout.iter_virtual() {
             virtuals[qubit_fn(phys).index()] = virt;
         }
         let first_ancilla = layout.num_qubits() as u32;
         for (offset, virt) in virtuals.iter_mut().filter(|virt| **virt == max).enumerate() {
-            *virt = VirtualQubit(first_ancilla + offset as u32);
+            *virt = VirtualQubit::new(first_ancilla + offset as u32);
         }
         NLayout::from_physical_to_virtual(virtuals).expect("all indices are valid")
     }
@@ -403,7 +403,7 @@ fn layout_trial<'a>(
         let ancillas = &mut virt_to_phys[first_ancilla..];
         ancillas.sort_unstable_by_key(|q| q.index());
         for (offset, phys) in ancillas.iter().enumerate() {
-            phys_to_virt[phys.index()] = VirtualQubit((first_ancilla + offset) as u32);
+            phys_to_virt[phys.index()] = VirtualQubit::new((first_ancilla + offset) as u32);
         }
         NLayout::from_vecs_unchecked(virt_to_phys, phys_to_virt)
     };

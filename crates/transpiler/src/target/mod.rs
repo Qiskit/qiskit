@@ -545,11 +545,11 @@ impl Target {
         check_angle_bounds: bool,
     ) -> PyResult<bool> {
         let mut qargs = qargs;
-        let num_qubits = if let Some(num_qubits) = self.num_qubits {
-            num_qubits
+        let max_qubit = if let Some(num_qubits) = self.num_qubits {
+            PhysicalQubit::new(num_qubits)
         } else {
             qargs = Qargs::Global;
-            0
+            PhysicalQubit::new(0)
         };
         if let Some(operation_class) = operation_class {
             for (op_name, obj) in self._gate_name_map.iter() {
@@ -560,7 +560,7 @@ impl Target {
                         }
                         // If no qargs operation class is supported
                         if let Qargs::Concrete(qargs) = &qargs {
-                            return Ok(qargs.iter().all(|qarg| qarg.0 <= num_qubits));
+                            return Ok(qargs.iter().all(|qarg| *qarg <= max_qubit));
                         } else {
                             return Ok(true);
                         }
@@ -586,12 +586,12 @@ impl Target {
                                         let qubit_comparison =
                                             self._gate_name_map[op_name].num_qubits();
                                         return Ok(qubit_comparison == qargs_as_vec.len() as u32
-                                            && qargs_as_vec.iter().all(|x| x.0 < num_qubits));
+                                            && qargs_as_vec.iter().all(|x| *x < max_qubit));
                                     }
                                 } else {
                                     let qubit_comparison = obj.num_qubits();
                                     return Ok(qubit_comparison == qargs_as_vec.len() as u32
-                                        && qargs_as_vec.iter().all(|x| x.0 < num_qubits));
+                                        && qargs_as_vec.iter().all(|x| *x < max_qubit));
                                 }
                             } else {
                                 return Ok(true);
@@ -1007,15 +1007,20 @@ impl Target {
                                 arguments: format!("{qarg:?}"),
                             });
                         }
-                        self.num_qubits =
-                            Some(self.num_qubits.unwrap_or_default().max(
-                                qarg_slice.iter().fold(
-                                    0,
-                                    |acc, x| {
-                                        if acc > x.0 { acc } else { x.0 }
-                                    },
-                                ) + 1,
-                            ));
+                        self.num_qubits = Some(
+                            self.num_qubits.unwrap_or_default().max(
+                                qarg_slice
+                                    .iter()
+                                    .fold(
+                                        PhysicalQubit::ZERO,
+                                        |acc, &x| {
+                                            if acc > x { acc } else { x }
+                                        },
+                                    )
+                                    .value()
+                                    + 1,
+                            ),
+                        );
                     }
                     if let Some(value) = self.qarg_gate_map.get_mut(&qarg.as_ref()) {
                         value.insert(name.to_string());
@@ -1168,7 +1173,7 @@ impl Target {
 
     /// Get an iterator over the indices of all physical qubits of the target
     pub fn physical_qubits(&self) -> impl ExactSizeIterator<Item = PhysicalQubit> + use<> {
-        (0..self.num_qubits.unwrap_or_default()).map(PhysicalQubit)
+        (0..self.num_qubits.unwrap_or_default()).map(PhysicalQubit::new)
     }
 
     /// Get all non_global operation names.
@@ -1257,7 +1262,7 @@ impl Target {
         if let QargsRef::Concrete(qargs) = qargs {
             if qargs
                 .iter()
-                .any(|x| !(0..self.num_qubits.unwrap_or_default()).contains(&x.0))
+                .any(|x| !(0..self.num_qubits.unwrap_or_default()).contains(&x.value()))
             {
                 return Err(TargetError::QargsWithoutInstruction(format!("{qargs:?}")));
             }
@@ -1373,7 +1378,7 @@ impl Target {
                     TargetOperation::Variadic(_) => {
                         return match qargs {
                             QargsRef::Concrete(qargs) => {
-                                qargs.iter().all(|qarg| qarg.0 <= num_qubits)
+                                qargs.iter().all(|qarg| qarg.value() <= num_qubits)
                             }
                             QargsRef::Global => true,
                         };
@@ -1433,12 +1438,12 @@ impl Target {
             {
                 match obj {
                     TargetOperation::Variadic(_) => {
-                        return qargs_as_vec.iter().all(|qarg| qarg.0 <= num_qubits);
+                        return qargs_as_vec.iter().all(|qarg| qarg.value() <= num_qubits);
                     }
                     TargetOperation::Normal(obj) => {
                         let qubit_comparison = obj.operation.num_qubits();
                         return qubit_comparison == qargs_as_vec.len() as u32
-                            && qargs_as_vec.iter().all(|qarg| qarg.0 < num_qubits);
+                            && qargs_as_vec.iter().all(|qarg| qarg.value() < num_qubits);
                     }
                 }
             }
@@ -1768,7 +1773,7 @@ mod test {
 
     #[test]
     fn test_add_invalid_qargs_insruction() {
-        let qargs: SmallVec<[PhysicalQubit; 2]> = (0..4).map(PhysicalQubit).collect();
+        let qargs: SmallVec<[PhysicalQubit; 2]> = (0..4).map(PhysicalQubit::new).collect();
         let inst_prop: Option<InstructionProperties> = None;
 
         let mut target = Target::default();
@@ -1814,7 +1819,7 @@ mod test {
             let num_qubits = gate.num_qubits();
             let num_params = gate.num_params();
 
-            let qargs: Qargs = (0..num_qubits).map(PhysicalQubit).collect();
+            let qargs: Qargs = (0..num_qubits).map(PhysicalQubit::new).collect();
             let params: SmallVec<[Param; 3]> = (0..num_params)
                 .map(|val| Param::from(PI / (val as f64)))
                 .collect();
@@ -1837,7 +1842,7 @@ mod test {
     #[test]
     fn test_update_inst_properties() {
         let mut test_target = Target::default();
-        let qargs: Qargs = (0..2).map(PhysicalQubit).collect();
+        let qargs: Qargs = (0..2).map(PhysicalQubit::new).collect();
         // Add instruction with None as property
         let result = test_target.add_instruction(
             StandardGate::CX.into(),
@@ -1871,7 +1876,7 @@ mod test {
     #[test]
     fn test_update_inst_properties_invalid_inst() {
         let mut test_target = Target::default();
-        let qargs: SmallVec<[PhysicalQubit; 2]> = (0..2).map(PhysicalQubit).collect();
+        let qargs: SmallVec<[PhysicalQubit; 2]> = (0..2).map(PhysicalQubit::new).collect();
         // Add instruction with None as property
         let result = test_target.add_instruction(
             StandardGate::CX.into(),

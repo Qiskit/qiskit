@@ -38,7 +38,6 @@ use crate::TranspilerError;
 use crate::equivalence::EquivalenceLibrary;
 use crate::target::Qargs;
 use crate::target::Target;
-use qiskit_circuit::PhysicalQubit;
 use qiskit_synthesis::euler_one_qubit_decomposer::EulerBasis;
 use qiskit_synthesis::euler_one_qubit_decomposer::angles_from_unitary;
 use qiskit_synthesis::qsd::quantum_shannon_decomposition;
@@ -456,7 +455,7 @@ fn instruction_supported(
             if target.num_qubits.is_some() {
                 if borrowed_data.use_physical_indices {
                     let physical_qubits: Qargs =
-                        qubits.iter().map(|q| PhysicalQubit(q.0)).collect();
+                        ::bytemuck::cast_slice(qubits).iter().copied().collect();
                     target.instruction_supported(name, &physical_qubits, &[], false)
                 } else {
                     target.instruction_supported(name, &Qargs::Global, &[], false)

@@ -325,8 +325,8 @@ impl<T: Default> VirtualInteractions<T> {
     where
         W: Fn(&mut T, &PackedInstruction, usize) -> bool,
     {
-        let id_qubit_map = (0..dag.num_qubits())
-            .map(|q| VirtualQubit(q as u32))
+        let id_qubit_map = (0..dag.num_qubits() as u32)
+            .map(VirtualQubit::new)
             .collect::<Vec<_>>();
         let mut out = Self::default();
         if !out.add_interactions_from(dag, &id_qubit_map, 1, &weighter)? {
@@ -334,7 +334,7 @@ impl<T: Default> VirtualInteractions<T> {
         }
         out.idle.extend(
             (0..dag.num_qubits() as u32)
-                .map(VirtualQubit)
+                .map(VirtualQubit::new)
                 .filter(|q| !(out.nodes.contains(q) || out.uncoupled.contains_key(q))),
         );
         Ok(Some(out))
