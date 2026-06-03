@@ -20,7 +20,7 @@ use qiskit_quantum_info::sparse_observable::SparseObservable;
 /// Implements the QDrift Trotterization method, which selects Hamiltonian terms
 /// randomly with probability proportional to their absolute coefficients.
 /// This implementation follows the method introduced by Earl Campbell [1].
-/// 
+///
 /// @param op Pointer to a valid ``QkObs`` containing the sum of the Pauli terms.
 /// @param reps The number of times to repeat the Trotterization circuit.
 /// @param time Evolution time t in exp(-i t H). May be positive, negative, or zero.
@@ -30,7 +30,7 @@ use qiskit_quantum_info::sparse_observable::SparseObservable;
 ///   potentially yield a shallower evolution circuit. Not relevant
 ///   when synthesizing an observable with a single term.
 /// @param insert_barriers  Whether to insert barriers between the terms evolutions.
-/// 
+///
 /// @return A pointer to the generated circuit.
 ///
 /// # Example
@@ -45,7 +45,7 @@ use qiskit_quantum_info::sparse_observable::SparseObservable;
 /// QkObsTerm term2 = {(QkComplex64){1.0, 0.0}, 1, op2_bits, (uint32_t[1]){0}, 1};
 /// qk_obs_add_term(obs, &term2);
 ///
-/// // Passing zero as value for the seed for auto generating a seed value 
+/// // Passing zero as value for the seed for auto generating a seed value
 /// QkCircuit *qc = qk_qdrift(obs, 1, 0.5, 0, true, false);
 ///
 /// qk_obs_free(obs);
