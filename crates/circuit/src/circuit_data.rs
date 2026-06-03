@@ -1,4 +1,3 @@
-// NEW FILE
 // This code is part of Qiskit.
 //
 // (C) Copyright IBM 2023, 2024
@@ -37,7 +36,7 @@ use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::{ParameterError, ParameterExpression};
 use crate::parameter::symbol_expr::{Symbol, Value};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
-use crate::register_data::RegisterData;
+use crate::register_data::{RegisterData, RegisterAlreadyExists};
 use crate::var_stretch_container::{
     StretchType, VarStretchContainer, VarStretchContainerError, VarType,
 };
@@ -82,8 +81,8 @@ pub enum CircuitDataError {
     AbsentObject(object_registry::AbsentObject),
     #[error(transparent)]
     AddObjectRegistry(object_registry::AddError),
-    #[error("register name \"{0}\" already exists")]
-    RegisterNameExists(String),
+    #[error(transparent)]
+    RegisterNameExists(#[from] RegisterAlreadyExists),
     #[error("{0} at index {1} exceeds circuit capacity.")]
     BitExceedsCapacity(String, usize),
     // Explicitly an error returned from calling Python
@@ -1363,7 +1362,7 @@ impl CircuitData {
                             // Rust that accept a `Param::ParameterExpression` which aren't standard
                             // gates. Technically `StandardInstruction::Delay` could, but in
                             // practice that's not a common path, and it's only supported for
-                            // backwards compatibility from before Stretch was introduced.
+                            // backwards compatibility from before Stretch was introduced. If we did
                             // it in rust without Python that's a mistake and this attach() call
                             // will panic and point out the error of your ways when this comment is
                             // read.
