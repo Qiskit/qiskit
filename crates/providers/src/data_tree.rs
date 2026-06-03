@@ -580,19 +580,9 @@ impl<T> DataTree<T> {
     /// Consume this tree, yielding owned leaf values in DFS order. Mirrors
     /// [`iter_leaves`](Self::iter_leaves) for the consuming case.
     pub fn into_leaves(self) -> impl Iterator<Item = T> {
-        fn inner<T>(tree: DataTree<T>, out: &mut Vec<T>) {
-            match tree {
-                DataTree::Leaf(value) => out.push(value),
-                DataTree::Branch(branch) => {
-                    for child in branch.data {
-                        inner(child, out);
-                    }
-                }
-            }
+        IntoLeaves {
+            stack: vec![vec![self].into_iter()],
         }
-        let mut out = Vec::new();
-        inner(self, &mut out);
-        out.into_iter()
     }
 
     /// Build a tree with the same shape as `self`, taking leaf values from
@@ -802,6 +792,31 @@ impl<'a, T> Iterator for IterDataTree<'a, T> {
             }
         } else {
             None
+        }
+    }
+}
+
+struct IntoLeaves<T> {
+    /// DFS stack of child iterators, one frame per nesting level. Each frame
+    /// is the remaining children of a branch node. The top of the stack is
+    /// the current branch being consumed; pushing descends into a sub-branch,
+    /// popping backtracks to the parent.
+    stack: Vec<std::vec::IntoIter<DataTree<T>>>,
+}
+
+impl<T> Iterator for IntoLeaves<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<T> {
+        loop {
+            let top = self.stack.last_mut()?;
+            match top.next() {
+                None => {
+                    self.stack.pop();
+                }
+                Some(DataTree::Leaf(v)) => return Some(v),
+                Some(DataTree::Branch(b)) => self.stack.push(b.data.into_iter()),
+            }
         }
     }
 }
