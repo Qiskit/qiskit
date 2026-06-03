@@ -6337,6 +6337,7 @@ class QuantumCircuit:
         ancilla_qubits: QubitSpecifier | Sequence[QubitSpecifier] | None = None,
         mode: str | None = None,
         ctrl_state: str | int | None = None,
+        label: str | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.MCXGate`.
 
@@ -6355,9 +6356,11 @@ class QuantumCircuit:
             target_qubit: The qubit(s) targeted by the gate.
             ancilla_qubits: The qubits used as the ancillae, if the mode requires them.
             mode: The choice of mode, explained further above.
+            label: The string label of the gate in the circuit.
             ctrl_state:
                 The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling
                 on the '1' state.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
@@ -6385,16 +6388,18 @@ class QuantumCircuit:
             _ = self._qbit_argument_conversion(ancilla_qubits)
 
         if mode is None:
-            gate = MCXGate(num_ctrl_qubits, ctrl_state=ctrl_state)
+            gate = MCXGate(num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
         elif mode in available_implementations:
             if mode == "noancilla":
-                gate = MCXGate(num_ctrl_qubits, ctrl_state=ctrl_state)
+                gate = MCXGate(num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
             elif mode in ["recursion", "advanced"]:
-                gate = MCXRecursive(num_ctrl_qubits, ctrl_state=ctrl_state)
+                gate = MCXRecursive(num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
             elif mode in ["v-chain", "basic"]:
-                gate = MCXVChain(num_ctrl_qubits, False, ctrl_state=ctrl_state)
+                gate = MCXVChain(num_ctrl_qubits, False, label=label, ctrl_state=ctrl_state)
             elif mode in ["v-chain-dirty", "basic-dirty-ancilla"]:
-                gate = MCXVChain(num_ctrl_qubits, dirty_ancillas=True, ctrl_state=ctrl_state)
+                gate = MCXVChain(
+                    num_ctrl_qubits, dirty_ancillas=True, label=label, ctrl_state=ctrl_state
+                )
             else:
                 raise ValueError("unreachable.")
             # else is unreachable, we exhausted all options

@@ -1139,6 +1139,14 @@ class TestControlledGate(QiskitTestCase):
 
         self.assertEqual(operator_qc, operator_qc1)
 
+    def test_multi_control_x_label_parameter(self):
+        """To check that labels are forwarded to MCX gates."""
+        qc = QuantumCircuit(4)
+        qc.mcx([0, 1, 2], 3, label="my_mcx")
+
+        self.assertEqual(len(qc.data), 1)
+        self.assertEqual(qc.data[0].operation.label, "my_mcx")
+
     @data((4, 0.2, [0, 1, 2], 3, "010"), (4, 0.6, [2, 1, 3], 0, 0))
     @unpack
     def test_multi_control_p_ctrl_state_parameter(
