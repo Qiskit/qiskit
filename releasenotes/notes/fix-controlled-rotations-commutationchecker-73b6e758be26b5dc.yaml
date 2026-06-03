@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fix the :class:`.CommutationChecker` transpiler pass for controlled-rotation gates 
+    :class:`.CRXGate`, :class:`.CRYGate` and :class:`.CRZGate`.
+
+    See `#16164 <https://github.com/Qiskit/qiskit/issues/16164>`__.
