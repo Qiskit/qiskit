@@ -1841,7 +1841,6 @@ pub unsafe extern "C" fn qk_circuit_inst_pauli_product_measurement(
     ExitCode::Success
 }
 
-
 /// @ingroup QkCircuit
 /// Clear the data in circuit instruction object.
 ///
