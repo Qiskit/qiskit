@@ -36,7 +36,7 @@ use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::{ParameterError, ParameterExpression};
 use crate::parameter::symbol_expr::{Symbol, Value};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
-use crate::register_data::{RegisterData, RegisterAlreadyExists};
+use crate::register_data::{RegisterAlreadyExists, RegisterData};
 use crate::var_stretch_container::{
     StretchType, VarStretchContainer, VarStretchContainerError, VarType,
 };
@@ -419,7 +419,7 @@ impl CircuitData {
     ) -> Result<(), CircuitDataError> {
         self.qregs
             .add_register(register.clone(), strict)
-            .map_err(|err| CircuitDataError::RegisterNameExists(err.to_string()))?;
+            .map_err(|err| CircuitDataError::RegisterNameExists(err))?;
 
         for (index, bit) in register.bits().enumerate() {
             if let Some(entry) = self.qubit_indices.get_mut(&bit) {
@@ -457,7 +457,7 @@ impl CircuitData {
     ) -> Result<(), CircuitDataError> {
         self.cregs
             .add_register(register.clone(), strict)
-            .map_err(|err| CircuitDataError::RegisterNameExists(err.to_string()))?;
+            .map_err(|err| CircuitDataError::RegisterNameExists(err))?;
 
         for (index, bit) in register.bits().enumerate() {
             if let Some(entry) = self.clbit_indices.get_mut(&bit) {
