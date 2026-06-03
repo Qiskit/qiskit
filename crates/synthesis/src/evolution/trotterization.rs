@@ -15,27 +15,34 @@ use itertools::Itertools;
 use num_complex::Complex64;
 use qiskit_quantum_info::sparse_observable::SparseTermView;
 use qiskit_util::IndexMap;
+use rand::distr::weighted::{Error as DistroError, WeightedIndex};
 use rand::prelude::*;
+use rand::rngs::SysRng;
+use rand_pcg::Pcg64Mcg;
 use rustworkx_core::coloring::{ColoringStrategy, greedy_node_color_with_coloring_strategy};
 use rustworkx_core::petgraph::graph::NodeIndex;
 use rustworkx_core::petgraph::{Graph, Undirected};
 use std::convert::Infallible;
 use thiserror::Error;
 
-pub fn qdrift_evolution(
+pub fn qdrift_evolution<'a>(
     time: f64,
     reps: u32,
-    coeffs_iter: impl Iterator<Item = Complex64>,
+    seed: Option<u64>,
+    coeffs_iter: impl Iterator<Item = &'a Complex64>,
 ) -> Result<Vec<(usize, f64)>, TrotterizationError> {
-    let mut rng = rand::rng();
+    let mut rng = match seed {
+        Some(seed) => Pcg64Mcg::seed_from_u64(seed),
+        None => Pcg64Mcg::try_from_rng(&mut SysRng).unwrap(),
+    };
     let mut lambd = 0.0;
 
     match coeffs_iter
         .enumerate()
-        .map(|(i, coeff)| match real_or_fail(&coeff) {
+        .map(|(i, coeff)| match real_or_fail(coeff) {
             Ok(real_coeff) => Ok({
                 lambd += real_coeff;
-                (i, real_coeff, real_coeff.abs())
+                (i, real_coeff)
             }),
             Err(err) => Err(err),
         })
@@ -43,16 +50,19 @@ pub fn qdrift_evolution(
     {
         Ok(coeffs) => {
             let num_gates = (2.0 * lambd.powi(2) * time.powi(2) * reps as f64).ceil() as usize;
-            match coeffs.choose_multiple_weighted(&mut rng, num_gates, |item| (item.2 / lambd)) {
-                Ok(coeffs) => Ok(coeffs
-                    .map(|(i, real_coeff, _)| {
-                        (
-                            *i,
-                            real_coeff.signum() * (2.0 * lambd / (num_gates as f64) * time),
-                        )
-                    })
-                    .collect()),
-                Err(_) => Err(TrotterizationError::SampleError),
+            match WeightedIndex::new(coeffs.iter().map(|(_, coeff)| coeff.abs() / lambd)) {
+                Ok(distr) => Ok({
+                    (0..num_gates)
+                        .map(|_| {
+                            let (index, coeff) = coeffs[distr.sample(&mut rng)];
+                            (
+                                index,
+                                coeff.signum() * (2.0 * lambd / (num_gates as f64) * time),
+                            )
+                        })
+                        .collect()
+                }),
+                Err(err) => Err(TrotterizationError::DistributionError(err)),
             }
         }
         Err(err) => Err(err),
@@ -157,7 +167,7 @@ pub enum TrotterizationError {
     #[error["Encountered complex value {0}, but expected real."]]
     RealOrFail(f64),
 
-    /// Complex value obtained from real approximation
-    #[error["Couldn't sample terms"]]
-    SampleError,
+    /// Couldn't generate weighted distribution
+    #[error["Failed creating weight distribution"]]
+    DistributionError(#[from] DistroError),
 }
