@@ -1164,6 +1164,31 @@ class TestControlledGate(QiskitTestCase):
 
         self.assertEqual(operator_qc, operator_qc1)
 
+    def test_multi_control_p_label_parameter(self):
+        """To check that labels are forwarded to MCPhase gates."""
+        qc = QuantumCircuit(4)
+        qc.mcp(0.2, [0, 1, 2], 3, label="my_mcp")
+
+        self.assertEqual(len(qc.data), 1)
+        self.assertEqual(qc.data[0].operation.label, "my_mcp")
+
+    def test_cswap_label_parameter(self):
+        """To check that cswap forwards labels."""
+        qc = QuantumCircuit(3)
+        qc.cswap(0, 1, 2, label="my_cswap")
+
+        self.assertEqual(len(qc.data), 1)
+        self.assertEqual(qc.data[0].operation.label, "my_cswap")
+
+    def test_relative_phase_toffoli_label_parameter(self):
+        """rccx and rcccx should accept and preserve labels."""
+        qc = QuantumCircuit(4)
+        qc.rccx(0, 1, 2, label="my_rccx")
+        qc.rcccx(0, 1, 2, 3, label="my_rcccx")
+
+        self.assertEqual(qc.data[0].operation.label, "my_rccx")
+        self.assertEqual(qc.data[1].operation.label, "my_rcccx")
+
     @data((4, 0.2, [0, 1, 2], 3, "000"), (3, 0.6, [0, 1], 2, 1))
     @unpack
     def test_open_control_mcphase_ctrl_state_parameter(

@@ -5293,6 +5293,7 @@ class QuantumCircuit:
         lam: ParameterValueType,
         control_qubits: Sequence[QubitSpecifier],
         target_qubit: QubitSpecifier,
+        label: str | None = None,
         ctrl_state: str | int | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.MCPhaseGate`.
@@ -5303,6 +5304,7 @@ class QuantumCircuit:
             lam: The angle of the rotation.
             control_qubits: The qubits used as the controls.
             target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
             ctrl_state:
                 The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling
                 on the '1' state.
@@ -5314,7 +5316,7 @@ class QuantumCircuit:
 
         num_ctrl_qubits = len(control_qubits)
         return self.append(
-            MCPhaseGate(lam, num_ctrl_qubits, ctrl_state=ctrl_state),
+            MCPhaseGate(lam, num_ctrl_qubits, label=label, ctrl_state=ctrl_state),
             control_qubits[:] + [target_qubit],
             [],
             copy=False,
@@ -5588,6 +5590,7 @@ class QuantumCircuit:
         control_qubit1: QubitSpecifier,
         control_qubit2: QubitSpecifier,
         target_qubit: QubitSpecifier,
+        label: str | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.RCCXGate`.
 
@@ -5597,12 +5600,13 @@ class QuantumCircuit:
             control_qubit1: The qubit(s) used as the first control.
             control_qubit2: The qubit(s) used as the second control.
             target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         return self._append_standard_gate(
-            StandardGate.RCCX, [control_qubit1, control_qubit2, target_qubit], ()
+            StandardGate.RCCX, [control_qubit1, control_qubit2, target_qubit], (), label=label
         )
 
     def rcccx(
@@ -5611,6 +5615,7 @@ class QuantumCircuit:
         control_qubit2: QubitSpecifier,
         control_qubit3: QubitSpecifier,
         target_qubit: QubitSpecifier,
+        label: str | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.RC3XGate`.
 
@@ -5621,7 +5626,7 @@ class QuantumCircuit:
             control_qubit2: The qubit(s) used as the second control.
             control_qubit3: The qubit(s) used as the third control.
             target_qubit: The qubit(s) targeted by the gate.
-
+            label: The string label of the gate in the circuit.
         Returns:
             A handle to the instructions created.
         """
@@ -5629,6 +5634,7 @@ class QuantumCircuit:
             StandardGate.RC3X,
             [control_qubit1, control_qubit2, control_qubit3, target_qubit],
             (),
+            label=label,
         )
 
     def rx(
