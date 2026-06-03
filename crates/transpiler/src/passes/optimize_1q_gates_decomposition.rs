@@ -241,74 +241,71 @@ impl Optimize1qGatesDecompositionState {
     ) -> EulerBasisSet {
         if self.global {
             let mut target_basis_set = EulerBasisSet::new();
-            match target {
-                Some(_target) => {
-                    EULER_BASES
-                        .iter()
-                        .enumerate()
-                        .filter_map(|(idx, gates)| {
-                            if !gates.iter().all(|gate| {
-                                let BasisGatesPerQubit::Gates(gates) =
-                                    self.basis_gates_per_qubit[0].get().unwrap()
-                                else {
-                                    unreachable!("The target path always provides a hash set");
-                                };
-                                gates.contains(*gate)
-                            }) {
-                                return None;
-                            }
-                            let basis = EULER_BASIS_NAMES[idx];
-                            Some(basis)
-                        })
-                        .for_each(|basis| target_basis_set.add_basis(basis));
-                    if target_basis_set.basis_supported(EulerBasis::U3)
-                        && target_basis_set.basis_supported(EulerBasis::U321)
-                    {
-                        target_basis_set.remove(EulerBasis::U3);
-                    }
-                    if target_basis_set.basis_supported(EulerBasis::ZSX)
-                        && target_basis_set.basis_supported(EulerBasis::ZSXX)
-                    {
-                        target_basis_set.remove(EulerBasis::ZSX);
-                    }
-                }
-                None => {
-                    match &global_decomposers {
-                        Some(bases) => {
-                            for basis in bases.iter() {
-                                target_basis_set.add_basis(
-                                    EulerBasis::__new__(basis).expect("a valid basis string"),
-                                )
-                            }
+            if target.is_some() {
+                EULER_BASES
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(idx, gates)| {
+                        if !gates.iter().all(|gate| {
+                            let BasisGatesPerQubit::Gates(gates) =
+                                self.basis_gates_per_qubit[0].get().unwrap()
+                            else {
+                                unreachable!("The target path always provides a hash set");
+                            };
+                            gates.contains(*gate)
+                        }) {
+                            return None;
                         }
-                        None => match self.basis_gates_per_qubit[0].get().unwrap() {
-                            BasisGatesPerQubit::Gates(gates) => EULER_BASES
-                                .iter()
-                                .enumerate()
-                                .filter_map(|(idx, basis_gates)| {
-                                    if !gates
-                                        .iter()
-                                        .all(|gate| basis_gates.as_ref().contains(&gate.as_str()))
-                                    {
-                                        return None;
-                                    }
-                                    let basis = EULER_BASIS_NAMES[idx];
-                                    Some(basis)
-                                })
-                                .for_each(|basis| target_basis_set.add_basis(basis)),
-                            BasisGatesPerQubit::All => target_basis_set.support_all(),
-                        },
+                        let basis = EULER_BASIS_NAMES[idx];
+                        Some(basis)
+                    })
+                    .for_each(|basis| target_basis_set.add_basis(basis));
+                if target_basis_set.basis_supported(EulerBasis::U3)
+                    && target_basis_set.basis_supported(EulerBasis::U321)
+                {
+                    target_basis_set.remove(EulerBasis::U3);
+                }
+                if target_basis_set.basis_supported(EulerBasis::ZSX)
+                    && target_basis_set.basis_supported(EulerBasis::ZSXX)
+                {
+                    target_basis_set.remove(EulerBasis::ZSX);
+                }
+            } else {
+                match &global_decomposers {
+                    Some(bases) => {
+                        for basis in bases.iter() {
+                            target_basis_set.add_basis(
+                                EulerBasis::__new__(basis).expect("a valid basis string"),
+                            )
+                        }
                     }
-                    if target_basis_set.basis_supported(EulerBasis::U3)
-                        && target_basis_set.basis_supported(EulerBasis::U321)
-                    {
-                        target_basis_set.remove(EulerBasis::U3);
-                    }
-                    if target_basis_set.basis_supported(EulerBasis::ZSX)
-                        && target_basis_set.basis_supported(EulerBasis::ZSXX)
-                    {
-                        target_basis_set.remove(EulerBasis::ZSX);
-                    }
+                    None => match self.basis_gates_per_qubit[0].get().unwrap() {
+                        BasisGatesPerQubit::Gates(gates) => EULER_BASES
+                            .iter()
+                            .enumerate()
+                            .filter_map(|(idx, basis_gates)| {
+                                if !gates
+                                    .iter()
+                                    .all(|gate| basis_gates.as_ref().contains(&gate.as_str()))
+                                {
+                                    return None;
+                                }
+                                let basis = EULER_BASIS_NAMES[idx];
+                                Some(basis)
+                            })
+                            .for_each(|basis| target_basis_set.add_basis(basis)),
+                        BasisGatesPerQubit::All => target_basis_set.support_all(),
+                    },
+                }
+                if target_basis_set.basis_supported(EulerBasis::U3)
+                    && target_basis_set.basis_supported(EulerBasis::U321)
+                {
+                    target_basis_set.remove(EulerBasis::U3);
+                }
+                if target_basis_set.basis_supported(EulerBasis::ZSX)
+                    && target_basis_set.basis_supported(EulerBasis::ZSXX)
+                {
+                    target_basis_set.remove(EulerBasis::ZSX);
                 }
             }
             target_basis_set
