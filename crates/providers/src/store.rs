@@ -65,7 +65,7 @@ impl ProgramNode for Store {
     }
 
     fn call_flat(&self, _args: &[Tensor]) -> Result<Vec<Tensor>, Self::CallError> {
-        Ok(self.leaves.clone())
+        Ok(self.leaves.to_vec())
     }
 }
 

@@ -577,7 +577,7 @@ impl<T> DataTree<T> {
         let mut iter = values.into_iter();
         match unflatten_helper(self, &mut iter) {
             Ok(result) => {
-                let left_over = iter.len(); // ExactSizeIterator, O(1)
+                let left_over = iter.len();
                 if left_over == 0 {
                     Ok(result)
                 } else {
@@ -886,19 +886,13 @@ fn unflatten_helper<T, U>(
 /// as `""`. Used only to format error messages, so the per-leaf allocation is
 /// fine.
 fn dotted_path(path: &[PathEntry<'_>]) -> String {
-    let mut out = String::new();
-    let mut first = true;
-    for entry in path {
-        if !first {
-            out.push('.');
-        }
-        match entry {
-            PathEntry::Index(i) => out.push_str(&i.to_string()),
-            PathEntry::Key(k) => out.push_str(k),
-        }
-        first = false;
-    }
-    out
+    path.iter()
+        .map(|e| match e {
+            PathEntry::Index(i) => i.to_string(),
+            PathEntry::Key(k) => k.to_string(),
+        })
+        .collect::<Vec<_>>()
+        .join(".")
 }
 
 fn flatten_against_helper<'a, T, U: Clone>(
