@@ -1277,7 +1277,7 @@ pub(crate) fn pack_circuit(
     circuit: &mut QuantumCircuitData,
     metadata_serializer: Option<&Bound<PyAny>>,
     _use_symengine: bool,
-    version: u32,
+    version: u8,
     annotation_factories: &Bound<PyDict>,
 ) -> Result<formats::QPYCircuit, QpyError> {
     let annotation_handler = AnnotationHandler::new(annotation_factories);
@@ -1330,7 +1330,7 @@ pub(crate) fn py_write_circuit(
     circuit: &Bound<PyAny>,
     metadata_serializer: &Bound<PyAny>,
     use_symengine: bool,
-    version: u32,
+    version: u8,
     annotation_factories: &Bound<PyDict>,
 ) -> PyResult<usize> {
     let packed_circuit = pack_circuit(

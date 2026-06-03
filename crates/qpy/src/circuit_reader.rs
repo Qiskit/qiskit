@@ -1117,7 +1117,7 @@ fn deserialize_pauli_evolution_gate(
     let json = py.import("json")?;
     let evo_synth_library = py.import("qiskit.synthesis.evolution")?;
     let (packed_data, _) =
-        deserialize_with_args::<formats::PauliEvolutionDefPack, (u32,)>(data, (qpy_data.version,))?;
+        deserialize_with_args::<formats::PauliEvolutionDefPack, (u8,)>(data, (qpy_data.version,))?;
     // operators as stored as a numpy dump that can be loaded into Python's SparsePauliOp.from_list
     let operators: Vec<Py<PyAny>> = packed_data
         .pauli_data
@@ -1267,7 +1267,7 @@ fn read_custom_instructions(
             } else {
                 Some(unpack_circuit(
                     py,
-                    &deserialize_with_args::<QPYCircuit, (u32,)>(
+                    &deserialize_with_args::<QPYCircuit, (u8,)>(
                         &operation.data,
                         (qpy_data.version,),
                     )?
@@ -1475,7 +1475,7 @@ fn add_registers_and_bits(
 pub(crate) fn unpack_circuit(
     py: Python,
     packed_circuit: &QPYCircuit,
-    version: u32,
+    version: u8,
     metadata_deserializer: Option<&Bound<PyAny>>,
     use_symengine: bool,
     annotation_factories: &Bound<PyDict>,
@@ -1569,7 +1569,7 @@ pub(crate) fn unpack_circuit(
 pub(crate) fn py_read_circuit(
     py: Python,
     file_obj: &Bound<PyAny>,
-    version: u32,
+    version: u8,
     metadata_deserializer: &Bound<PyAny>,
     use_symengine: bool,
     annotation_factories: &Bound<PyDict>,
@@ -1584,7 +1584,7 @@ pub(crate) fn py_read_circuit(
         })?
         .as_bytes();
     let (packed_circuit, bytes_read) =
-        deserialize_with_args::<formats::QPYCircuit, (u32,)>(serialized_circuit, (version,))?;
+        deserialize_with_args::<formats::QPYCircuit, (u8,)>(serialized_circuit, (version,))?;
     let unpacked_circuit = unpack_circuit(
         py,
         &packed_circuit,

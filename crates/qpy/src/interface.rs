@@ -18,7 +18,6 @@
 
 use binrw::{BinRead, Endian, VecArgs};
 use pyo3::PyResult;
-use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict};
 use qiskit_circuit::converters::QuantumCircuitData;
@@ -73,9 +72,11 @@ pub fn dump_qpy(
     annotation_factories: Bound<PyDict>,
 ) -> Result<Bytes, QpyError> {
     if qpy_version < 17 {
-        Err(PyValueError::new_err(
-            "Rust QPY only supports QPY version 17 and above",
-        ))?;
+        Err(QpyError::UnsupportedFeatureForVersion {
+            feature: "Rust QPY".to_string(),
+            version: qpy_version,
+            min_version: 17,
+        })?;
     }
     let serialized_circuits: Vec<Bytes> = circuits
         .iter_mut()
@@ -84,7 +85,7 @@ pub fn dump_qpy(
                 circuit,
                 metadata_serializer.as_ref(),
                 use_symengine,
-                qpy_version as u32,
+                qpy_version,
                 &annotation_factories,
             )?)
         })
@@ -131,7 +132,6 @@ pub fn dump_qpy(
 
 #[pyfunction]
 #[pyo3(name = "dump")]
-#[pyo3(signature = (programs, file_obj, metadata_serializer, use_symengine, version, annotation_factories))]
 pub fn py_dump_qpy(
     py: Python,
     programs: &Bound<PyAny>,
@@ -214,7 +214,6 @@ pub fn load_qpy(
         )));
     }
     let num_programs = qpy_file_header.num_programs as usize;
-    let qpy_version = qpy_file_header.qpy_version as u32;
     let use_symengine = matches!(
         qpy_file_header.symbolic_encoding,
         SymbolicEncoding::Symengine
@@ -222,15 +221,17 @@ pub fn load_qpy(
     let mut circuits = vec![py.None(); num_programs];
     let mut cursor = Cursor::new(data as &[u8]);
     cursor.seek(std::io::SeekFrom::Start(header_size as u64))?;
-    if qpy_version >= 16 {
+    if qpy_file_header.qpy_version >= 16 {
         let qpy_raw_circuits = read_raw_circuits(&mut cursor, num_programs)?;
         for (index, raw_circuit) in qpy_raw_circuits.iter().enumerate() {
-            let (packed_circuit, _) =
-                deserialize_with_args::<QPYCircuit, (u32,)>(raw_circuit, (qpy_version,))?;
+            let (packed_circuit, _) = deserialize_with_args::<QPYCircuit, (u8,)>(
+                raw_circuit,
+                (qpy_file_header.qpy_version,),
+            )?;
             circuits[index] = unpack_circuit(
                 py,
                 &packed_circuit,
-                qpy_version,
+                qpy_file_header.qpy_version,
                 metadata_deserializer,
                 use_symengine,
                 annotation_factories,
@@ -243,14 +244,14 @@ pub fn load_qpy(
             Endian::Big,
             VecArgs {
                 count: num_programs,
-                inner: (qpy_version,),
+                inner: (qpy_file_header.qpy_version,),
             },
         )?;
         for (index, packed_circuit) in packed_qpy_circuits.iter().enumerate() {
             circuits[index] = unpack_circuit(
                 py,
                 packed_circuit,
-                qpy_version,
+                qpy_file_header.qpy_version,
                 metadata_deserializer,
                 use_symengine,
                 annotation_factories,
@@ -262,7 +263,6 @@ pub fn load_qpy(
 
 #[pyfunction]
 #[pyo3(name = "load")]
-#[pyo3(signature = (file_obj, metadata_deserializer, annotation_factories))]
 pub fn py_load_qpy(
     py: Python,
     file_obj: &Bound<PyAny>,

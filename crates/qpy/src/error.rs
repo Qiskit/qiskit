@@ -36,8 +36,8 @@ pub enum QpyError {
     )]
     UnsupportedFeatureForVersion {
         feature: String,
-        version: u32,
-        min_version: u32,
+        version: u8,
+        min_version: u8,
     },
 
     /// Failure to cast a python object into a specific type

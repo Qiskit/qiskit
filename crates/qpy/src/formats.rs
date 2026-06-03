@@ -26,6 +26,14 @@ use std::marker::PhantomData;
 /// The QPY file header
 /// This is up-to-date with all the header data found in QPY13.
 /// Earlier versions were missing the `symbolic_encoding` and `type_key` fields
+/// The file header contains:
+/// 1) Every QPY file begins with "QISKIT" (in binary)
+/// 2) The QPY version.
+/// 3) The Qiskit version used to create the QPY file (major, minor, patch)
+/// 4) The number of programs in the file
+/// 5) The symbolic encoding type (for parameter expressions)
+/// 6) The type of the programs stored in the file (a "program" is currently just a circuit; scheule is obsolete)
+
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
@@ -39,7 +47,7 @@ pub struct QPYFileHeader {
     pub type_key: ProgramType,
 }
 
-// the main file structure:
+// the main circuit data structure:
 // 1) Header: Contains the global data such as name, number of qubits etc.
 // 2) Standalone vars: Contains the qiskit_circuit::Var elements used in expressions
 // 3) Annotation Headers: The annotation-related global data.
@@ -50,7 +58,7 @@ pub struct QPYFileHeader {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[brw(import (version: u32))]
+#[brw(import (version: u8))]
 pub struct QPYCircuit {
     pub header: CircuitHeaderV12Pack,
     #[br(count = header.num_vars)]
@@ -429,7 +437,7 @@ pub struct GenericDataSequencePack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[br(import (version: u32))]
+#[br(import (version: u8))]
 pub struct PauliEvolutionDefPack {
     #[bw(calc = pauli_data.len() as u64)]
     pub operator_size: u64,
@@ -470,7 +478,7 @@ pub enum PauliDataPackV16 {
 
 #[binrw]
 #[derive(Debug)]
-#[br(import(version: u32))]
+#[br(import(version: u8))]
 pub enum PauliDataPack {
     #[br(pre_assert(version <= 16))]
     V16(PauliDataPackV16),
@@ -972,7 +980,7 @@ pub struct AnnotationHeaderStaticPack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[brw(import(version: u32))]
+#[brw(import(version: u8))]
 pub struct CalibrationsPack {
     #[bw(calc = calibrations.len() as u16)]
     pub num_cals: u16,
@@ -983,7 +991,7 @@ pub struct CalibrationsPack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[brw(import(version: u32))]
+#[brw(import(version: u8))]
 pub struct CalibrationDefPack {
     #[bw(calc = name.len() as u16)]
     pub name_size: u16,
@@ -1006,7 +1014,7 @@ pub struct CalibrationDefPack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[brw(import(version: u32))] // should not work for version < 5 but we do not support it yet
+#[brw(import(version: u8))] // should not work for version < 5 but we do not support it yet
 pub struct ScheduleBlockPack {
     #[bw(calc = name.len() as u16)]
     pub name_size: u16,
@@ -1042,7 +1050,7 @@ pub struct AlignmentContextPack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[brw(import(version: u32))]
+#[brw(import(version: u8))]
 pub struct ScheduleBlockElementPack {
     pub element_type: u8,
     #[br(if(element_type == b's'), args(version,))]
