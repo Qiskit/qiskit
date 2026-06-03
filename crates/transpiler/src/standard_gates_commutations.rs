@@ -752,7 +752,7 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
         (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(1)), None,], false),
@@ -766,7 +766,7 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
         (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(1)), None,], true),
@@ -3299,7 +3299,7 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
         (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(1)), None,], false),
@@ -3313,7 +3313,7 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
         (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(1)), None,], false),
@@ -3327,7 +3327,7 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
         (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(1)), None,], true),
@@ -4144,7 +4144,7 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
         (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(1)), None,], false),
@@ -4172,7 +4172,7 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
         (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(1)), None,], true),
@@ -4386,9 +4386,9 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], true),
+        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(1)), None,], false),
         (smallvec![None, Some(Qubit(0)),], true),
         (smallvec![None, Some(Qubit(1)),], false),
@@ -4400,9 +4400,9 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], true),
+        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(1)), None,], false),
         (smallvec![None, Some(Qubit(0)),], true),
         (smallvec![None, Some(Qubit(1)),], false),
@@ -6667,9 +6667,9 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], true),
+        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(1)), None,], false),
         (smallvec![None, Some(Qubit(0)),], true),
         (smallvec![None, Some(Qubit(1)),], false),
@@ -6681,9 +6681,9 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], true),
+        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(1)), None,], false),
         (smallvec![None, Some(Qubit(0)),], true),
         (smallvec![None, Some(Qubit(1)),], false),
@@ -7601,16 +7601,16 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
-        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
+        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], false),
         (smallvec![Some(Qubit(0)), Some(Qubit(3)),], true),
         (smallvec![Some(Qubit(0)), None,], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(2)),], true),
+        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
+        (smallvec![Some(Qubit(1)), Some(Qubit(2)),], false),
         (smallvec![Some(Qubit(1)), Some(Qubit(3)),], true),
         (smallvec![Some(Qubit(1)), None,], true),
-        (smallvec![Some(Qubit(2)), Some(Qubit(0)),], true),
-        (smallvec![Some(Qubit(2)), Some(Qubit(1)),], true),
+        (smallvec![Some(Qubit(2)), Some(Qubit(0)),], false),
+        (smallvec![Some(Qubit(2)), Some(Qubit(1)),], false),
         (smallvec![Some(Qubit(2)), Some(Qubit(3)),], true),
         (smallvec![Some(Qubit(2)), None,], true),
         (smallvec![Some(Qubit(3)), Some(Qubit(0)),], false),
@@ -7629,10 +7629,10 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
         (smallvec![Some(Qubit(0)), Some(Qubit(2)),], true),
         (smallvec![Some(Qubit(0)), None,], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], true),
+        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(1)), Some(Qubit(2)),], true),
         (smallvec![Some(Qubit(1)), None,], true),
         (smallvec![Some(Qubit(2)), Some(Qubit(0)),], false),
@@ -7649,8 +7649,8 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
-        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
+        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
         (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(1)), Some(Qubit(2)),], false),
@@ -7683,14 +7683,14 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
-        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
+        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(2)),], true),
+        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
+        (smallvec![Some(Qubit(1)), Some(Qubit(2)),], false),
         (smallvec![Some(Qubit(1)), None,], true),
-        (smallvec![Some(Qubit(2)), Some(Qubit(0)),], true),
-        (smallvec![Some(Qubit(2)), Some(Qubit(1)),], true),
+        (smallvec![Some(Qubit(2)), Some(Qubit(0)),], false),
+        (smallvec![Some(Qubit(2)), Some(Qubit(1)),], false),
         (smallvec![Some(Qubit(2)), None,], true),
         (smallvec![None, Some(Qubit(0)),], false),
         (smallvec![None, Some(Qubit(1)),], false),
@@ -7703,8 +7703,8 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
-        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
+        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
         (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(1)), Some(Qubit(2)),], false),
@@ -7723,13 +7723,13 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
-        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], true),
-        (smallvec![Some(Qubit(0)), Some(Qubit(3)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
+        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], false),
+        (smallvec![Some(Qubit(0)), Some(Qubit(3)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(2)),], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(3)),], true),
+        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
+        (smallvec![Some(Qubit(1)), Some(Qubit(2)),], false),
+        (smallvec![Some(Qubit(1)), Some(Qubit(3)),], false),
         (smallvec![Some(Qubit(1)), None,], true),
         (smallvec![Some(Qubit(2)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(2)), Some(Qubit(1)),], false),
@@ -7765,9 +7765,9 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], true),
+        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(1)), None,], true),
         (smallvec![None, Some(Qubit(0)),], false),
         (smallvec![None, Some(Qubit(1)),], false),
@@ -7863,17 +7863,17 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
-        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], true),
-        (smallvec![Some(Qubit(0)), Some(Qubit(3)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
+        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], false),
+        (smallvec![Some(Qubit(0)), Some(Qubit(3)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(2)),], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(3)),], true),
+        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
+        (smallvec![Some(Qubit(1)), Some(Qubit(2)),], false),
+        (smallvec![Some(Qubit(1)), Some(Qubit(3)),], false),
         (smallvec![Some(Qubit(1)), None,], true),
-        (smallvec![Some(Qubit(2)), Some(Qubit(0)),], true),
-        (smallvec![Some(Qubit(2)), Some(Qubit(1)),], true),
-        (smallvec![Some(Qubit(2)), Some(Qubit(3)),], true),
+        (smallvec![Some(Qubit(2)), Some(Qubit(0)),], false),
+        (smallvec![Some(Qubit(2)), Some(Qubit(1)),], false),
+        (smallvec![Some(Qubit(2)), Some(Qubit(3)),], false),
         (smallvec![Some(Qubit(2)), None,], true),
         (smallvec![Some(Qubit(3)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(3)), Some(Qubit(1)),], false),
@@ -7891,11 +7891,11 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
-        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
+        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(2)),], true),
+        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
+        (smallvec![Some(Qubit(1)), Some(Qubit(2)),], false),
         (smallvec![Some(Qubit(1)), None,], true),
         (smallvec![Some(Qubit(2)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(2)), Some(Qubit(1)),], false),
@@ -7911,8 +7911,8 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
-        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
+        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
         (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(1)), Some(Qubit(2)),], false),
@@ -7931,7 +7931,7 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
         (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(1)), None,], false),
@@ -7945,14 +7945,14 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
-        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
+        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(2)),], true),
+        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
+        (smallvec![Some(Qubit(1)), Some(Qubit(2)),], false),
         (smallvec![Some(Qubit(1)), None,], true),
-        (smallvec![Some(Qubit(2)), Some(Qubit(0)),], true),
-        (smallvec![Some(Qubit(2)), Some(Qubit(1)),], true),
+        (smallvec![Some(Qubit(2)), Some(Qubit(0)),], false),
+        (smallvec![Some(Qubit(2)), Some(Qubit(1)),], false),
         (smallvec![Some(Qubit(2)), None,], true),
         (smallvec![None, Some(Qubit(0)),], false),
         (smallvec![None, Some(Qubit(1)),], false),
@@ -7965,11 +7965,11 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
-        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
+        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
         (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
-        (smallvec![Some(Qubit(1)), Some(Qubit(2)),], false),
+        (smallvec![Some(Qubit(1)), Some(Qubit(2)),], true),
         (smallvec![Some(Qubit(1)), None,], true),
         (smallvec![Some(Qubit(2)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(2)), Some(Qubit(1)),], false),
@@ -7985,17 +7985,17 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
-        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], true),
-        (smallvec![Some(Qubit(0)), Some(Qubit(3)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
+        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], false),
+        (smallvec![Some(Qubit(0)), Some(Qubit(3)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(2)),], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(3)),], true),
+        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
+        (smallvec![Some(Qubit(1)), Some(Qubit(2)),], false),
+        (smallvec![Some(Qubit(1)), Some(Qubit(3)),], false),
         (smallvec![Some(Qubit(1)), None,], true),
         (smallvec![Some(Qubit(2)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(2)), Some(Qubit(1)),], false),
-        (smallvec![Some(Qubit(2)), Some(Qubit(3)),], false),
+        (smallvec![Some(Qubit(2)), Some(Qubit(3)),], true),
         (smallvec![Some(Qubit(2)), None,], true),
         (smallvec![Some(Qubit(3)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(3)), Some(Qubit(1)),], false),
@@ -8013,9 +8013,9 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], true),
+        (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(1)), None,], true),
         (smallvec![None, Some(Qubit(0)),], false),
         (smallvec![None, Some(Qubit(1)),], false),
@@ -8099,15 +8099,15 @@ pub fn get_commutation_library() -> CommutationLibrary {
     let commutation_map = [
         (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
         (smallvec![Some(Qubit(0)), Some(Qubit(2)),], true),
-        (smallvec![Some(Qubit(0)), Some(Qubit(3)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(3)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
         (smallvec![Some(Qubit(1)), Some(Qubit(0)),], true),
         (smallvec![Some(Qubit(1)), Some(Qubit(2)),], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(3)),], true),
+        (smallvec![Some(Qubit(1)), Some(Qubit(3)),], false),
         (smallvec![Some(Qubit(1)), None,], true),
         (smallvec![Some(Qubit(2)), Some(Qubit(0)),], true),
         (smallvec![Some(Qubit(2)), Some(Qubit(1)),], true),
-        (smallvec![Some(Qubit(2)), Some(Qubit(3)),], true),
+        (smallvec![Some(Qubit(2)), Some(Qubit(3)),], false),
         (smallvec![Some(Qubit(2)), None,], true),
         (smallvec![Some(Qubit(3)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(3)), Some(Qubit(1)),], false),
@@ -8126,10 +8126,10 @@ pub fn get_commutation_library() -> CommutationLibrary {
     );
     let commutation_map = [
         (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
-        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
         (smallvec![Some(Qubit(1)), Some(Qubit(0)),], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(2)),], true),
+        (smallvec![Some(Qubit(1)), Some(Qubit(2)),], false),
         (smallvec![Some(Qubit(1)), None,], true),
         (smallvec![Some(Qubit(2)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(2)), Some(Qubit(1)),], false),
@@ -8145,8 +8145,8 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
-        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
+        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
         (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(1)), Some(Qubit(2)),], false),
@@ -8165,7 +8165,7 @@ pub fn get_commutation_library() -> CommutationLibrary {
         CommutationLibraryEntry::QubitMapping(commutation_map),
     );
     let commutation_map = [
-        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(1)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
         (smallvec![Some(Qubit(1)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(1)), None,], false),
@@ -8180,10 +8180,10 @@ pub fn get_commutation_library() -> CommutationLibrary {
     );
     let commutation_map = [
         (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
-        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(2)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
         (smallvec![Some(Qubit(1)), Some(Qubit(0)),], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(2)),], true),
+        (smallvec![Some(Qubit(1)), Some(Qubit(2)),], false),
         (smallvec![Some(Qubit(1)), None,], true),
         (smallvec![Some(Qubit(2)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(2)), Some(Qubit(1)),], false),
@@ -8201,15 +8201,15 @@ pub fn get_commutation_library() -> CommutationLibrary {
     let commutation_map = [
         (smallvec![Some(Qubit(0)), Some(Qubit(1)),], true),
         (smallvec![Some(Qubit(0)), Some(Qubit(2)),], true),
-        (smallvec![Some(Qubit(0)), Some(Qubit(3)),], true),
+        (smallvec![Some(Qubit(0)), Some(Qubit(3)),], false),
         (smallvec![Some(Qubit(0)), None,], true),
         (smallvec![Some(Qubit(1)), Some(Qubit(0)),], true),
         (smallvec![Some(Qubit(1)), Some(Qubit(2)),], true),
-        (smallvec![Some(Qubit(1)), Some(Qubit(3)),], true),
+        (smallvec![Some(Qubit(1)), Some(Qubit(3)),], false),
         (smallvec![Some(Qubit(1)), None,], true),
         (smallvec![Some(Qubit(2)), Some(Qubit(0)),], true),
         (smallvec![Some(Qubit(2)), Some(Qubit(1)),], true),
-        (smallvec![Some(Qubit(2)), Some(Qubit(3)),], true),
+        (smallvec![Some(Qubit(2)), Some(Qubit(3)),], false),
         (smallvec![Some(Qubit(2)), None,], true),
         (smallvec![Some(Qubit(3)), Some(Qubit(0)),], false),
         (smallvec![Some(Qubit(3)), Some(Qubit(1)),], false),
