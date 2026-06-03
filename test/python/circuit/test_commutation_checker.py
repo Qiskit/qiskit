@@ -687,6 +687,46 @@ class TestCommutationChecker(QiskitTestCase):
         cr = gate_cls(0.2)
         self.assertEqual(scc.commute(SwapGate(), [0, 1], [], cr, [0, 1], []), False)
 
+    def test_standard_gate_commutations(self):
+        """Test that the standard_gate_commutations.rs tables are correct"""
+        # check all pairs of standard gates
+        for name1, gate1 in get_standard_gate_name_mapping().items():
+            for name2, gate2 in get_standard_gate_name_mapping().items():
+                if gate1._standard_gate and gate2._standard_gate:
+                    num_qubits1 = gate1.num_qubits
+                    num_qubits2 = gate2.num_qubits
+                    num_qubits = num_qubits1 + num_qubits2 - 1
+                    # check only gates with 0 or 1 parameters
+                    # we also limit the number of qubits so that the test won't take too long
+                    if (
+                        len(gate1._params) < 2
+                        and len(gate2._params) < 2
+                        and num_qubits1 > 0
+                        and num_qubits2 > 0
+                        and num_qubits < 5
+                    ):
+                        params1 = [0.32 * (i + 1) for i in range(len(gate1.params))]
+                        params2 = [0.45 * (i + 1) for i in range(len(gate2.params))]
+                        subsets1 = list(itertools.permutations(range(num_qubits), num_qubits1))
+                        subsets2 = list(itertools.permutations(range(num_qubits), num_qubits2))
+                        for qubits1 in subsets1:
+                            for qubits2 in subsets2:
+                                gatep1 = gate1.base_class(*params1)
+                                gatep2 = gate2.base_class(*params2)
+                                scc_res = scc.commute(
+                                    gatep1, list(qubits1), [], gatep2, list(qubits2), []
+                                )
+                                qc1 = QuantumCircuit(num_qubits)
+                                qc1.append(gatep1, qubits1)
+                                qc1.append(gatep2, qubits2)
+                                qc2 = QuantumCircuit(num_qubits)
+                                qc2.append(gatep2, qubits2)
+                                qc2.append(gatep1, qubits1)
+                                if scc_res:
+                                    self.assertEqual(Operator(qc1), Operator(qc2))
+                                else:
+                                    self.assertNotEqual(Operator(qc1), Operator(qc2))
+
 
 def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
     """Build a Pauli-based gate off a Pauli string.
