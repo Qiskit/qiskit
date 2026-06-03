@@ -797,10 +797,8 @@ impl<'a, T> Iterator for IterDataTree<'a, T> {
 }
 
 struct IntoLeaves<T> {
-    /// DFS stack of child iterators, one frame per nesting level. Each frame
-    /// is the remaining children of a branch node. The top of the stack is
-    /// the current branch being consumed; pushing descends into a sub-branch,
-    /// popping backtracks to the parent.
+    /// DFS stack of child iterators, one frame per nesting level.
+    /// Each frame is the remaining children of a branch node.
     stack: Vec<std::vec::IntoIter<DataTree<T>>>,
 }
 
