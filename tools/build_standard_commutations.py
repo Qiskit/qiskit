@@ -21,7 +21,8 @@ from functools import lru_cache
 
 import qiskit.circuit.library.standard_gates as stdg
 from qiskit.circuit import CommutationChecker, Gate
-from qiskit.circuit.library import PauliGate, CRXGate, CRYGate, CRZGate
+from qiskit.circuit.library import PauliGate, PauliEvolutionGate
+from qiskit.quantum_info import SparsePauliOp
 from qiskit.dagcircuit import DAGOpNode
 
 SUPPORTED_ROTATIONS = {
@@ -29,10 +30,9 @@ SUPPORTED_ROTATIONS = {
     "ryy": PauliGate("YY"),
     "rzz": PauliGate("ZZ"),
     "rzx": PauliGate("XZ"),
-    "crx": CRXGate(0.2),
-    "cry": CRYGate(0.3),
-    "crz": CRZGate(0.4),
-}
+    "crx": PauliEvolutionGate(-SparsePauliOp("XZ") + SparsePauliOp("XI"), time=1),
+    "cry": PauliEvolutionGate(-SparsePauliOp("YZ") + SparsePauliOp("YI"), time=1),
+    "crz": PauliEvolutionGate(-SparsePauliOp("ZZ") + SparsePauliOp("ZI"), time=1),}
 
 
 @lru_cache(maxsize=10**3)
