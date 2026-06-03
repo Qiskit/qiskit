@@ -28,6 +28,7 @@ community in this goal.
   * [Release Cycle](#release-cycle)
 * [Adding deprecation warnings](#adding-deprecation-warnings)
 * [Using dependencies](#using-dependencies)
+  * [Version support policy](#version-support-policy)
   * [Adding a requirement](#adding-a-requirement)
   * [Adding an optional dependency](#adding-an-optional-dependency)
   * [Checking for optionals](#checking-for-optionals)
@@ -95,7 +96,7 @@ You then install Qiskit in editable mode using:
 pip install -e .
 ```
 
-Changes to Python packages will need be picked up automatically.
+Changes to Python packages will be picked up automatically.
 Changes to Rust files will require a recompilation; see "Installing Qiskit from source" below.
 
 You can easily install all the standard developer dependencies for in-place testing, documentation-building,
@@ -806,10 +807,10 @@ You can check that your local modifications conform to the style rules by
 running `tox -elint` which will run `black` and  `ruff` to check the
 local code formatting and lint. If black returns a code formatting error you can
 run `tox -eblack` to automatically update the code formatting to conform to the
-style. However, if `ruff`  return any error you will have to fix these issues by
+style. However, if `ruff` returns any error you will have to fix these issues by
 manually updating your code. Sometimes `ruff` will be able to fix failures with
 the `--fix` flag. In these cases the output will tell you how many errors can be
-automatically fixed
+automatically fixed.
 
 Because they are so fast, it is sometimes convenient to run the tools `black` and `ruff` separately
 rather than via `tox`.  You can install all the lint dependencies using the `lint` or `dev`
@@ -916,7 +917,7 @@ https://github.com/Qiskit/qiskit/milestone/23).
 After the proposal freeze a release review period will begin, during this time
 release candidate PRs will be reviewed as we finalize the feature set and merge
 the last PRs for the release. Following the review period a release candidate will be
-tagged and published. This release candidate is pre-release that enables users and
+tagged and published. This release candidate is a pre-release that enables users and
 developers to test the release ahead of time. When the pre-release is tagged the release
 automation will publish the pre-release to PyPI (but only get installed on user request),
 create the `stable/*` branch, and generate a pre-release changelog/release page. At
@@ -954,17 +955,29 @@ def test_method2(self):
 
 ## Using dependencies
 
-We distinguish between "requirements" and "optional dependencies" in qiskit.
-A requirement is a package that is absolutely necessary for core functionality in qiskit, such as Numpy or Scipy.
+We distinguish between "requirements" and "optional dependencies" in Qiskit.
+A requirement is a package that is absolutely necessary for core functionality in Qiskit, such as NumPy or SciPy.
 An optional dependency is a package that is used for specialized functionality, which might not be needed by all users.
 If a new feature has a new dependency, it is almost certainly optional.
+
+
+### Version support policy
+
+For Python-space dependencies, Qiskit follows [the scientific-computing standard SPEC 0](https://scientific-python.org/specs/spec-0000/).
+In short: Qiskit will require versions of NumPy and SciPy that are at least two years old.
+For packages not covered by SPEC 0, the requirements must be satisfiable with published binary artifacts from PyPI for all supported Python versions on [all platforms with tier 1 and tier 2 support](https://quantum.cloud.ibm.com/docs/guides/install-qiskit#operating-system-support).
+
+Python dependencies that are optional at runtime, only used during the build, or only used during the development process are not constrained.
+Qiskit supports all versions of CPython that are not end of life, which is wider than the minimum SPEC 0 support.
+
+Rust dependencies are not constrained, other than by the platform support requirements and minimum supported Rust version of the repository.
 
 ### Adding a requirement
 
 Any new requirement must have broad system support; it needs to be supported on all the Python versions and operating systems that qiskit supports.
 It also cannot impose many version restrictions on other packages.
 Users often install qiskit into virtual environments with many different packages in, and we need to ensure that neither we, nor any of our requirements, conflict with their other packages.
-When adding a new requirement, you must add it to [`requirements.txt`](requirements.txt) with as loose a constraint on the allowed versions as possible.
+When adding a new requirement, you must add it to [`requirements.txt`](requirements.txt) following the [version-support policy](#version-support-policy).
 
 ### Adding an optional dependency
 
@@ -972,7 +985,6 @@ New features can also use optional dependencies, which might be used only in ver
 These are not required to use the rest of the package, and so should not be added to `requirements.txt`.
 Instead, if several optional dependencies are grouped together to provide one feature, you can consider adding an "extra" to the package metadata, such as the `visualization` extra that installs Matplotlib and Seaborn (amongst others).
 To do this, modify the [`setup.py`](setup.py) file, adding another entry in the `extras_require` keyword argument to `setup()` at the bottom of the file.
-You do not need to be quite as accepting of all versions here, but it is still a good idea to be as permissive as you possibly can be.
 You should also add a new "tester" to [`qiskit.utils.optionals`](qiskit/utils/optionals.py), for use in the next section.
 
 ### Checking for optionals
@@ -1005,5 +1017,5 @@ can update your local repository's configuration with:
 git config blame.ignoreRevsFile .git-blame-ignore-revs
 ```
 
-which will update your local repositories configuration to use the ignore list
+which will update your local repository's configuration to use the ignore list
 by default.
