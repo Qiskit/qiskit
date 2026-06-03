@@ -162,7 +162,6 @@ pub(crate) fn serialize_metadata(
     }
 }
 
-<<<<<<< HEAD
 // helper method to extract attribute from a py_object
 pub(crate) fn getattr_or_none<'py>(
     py_object: &'py Bound<'py, PyAny>,
@@ -180,10 +179,7 @@ pub(crate) fn getattr_or_none<'py>(
     }
 }
 
-pub(crate) fn py_serialize_numpy_object(py_object: &Py<PyAny>) -> Result<Bytes, QpyError> {
-=======
 pub(crate) fn py_serialize_numpy_object(py_object: &Bound<PyAny>) -> Result<Bytes, QpyError> {
->>>>>>> 19fc5b6db (QPY: Pauli Product Measurement/Rotation parameter fix (#16294))
     Python::attach(|py| -> Result<Bytes, QpyError> {
         let np = py.import("numpy")?;
         let io = py.import("io")?;
