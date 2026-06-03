@@ -536,9 +536,9 @@ impl PackedOperation {
         }
     }
 
-    /// Does this [PackedOperation] represent an explicit gate?
+    /// Does this [PackedOperation] potentially implement the gate-like matrix methods?
     ///
-    /// This can be either a [StandardGate] or a gate inside a [PyInstruction].
+    /// This can be either a [StandardGate], or inside a Python/Rust custom operation.
     #[inline]
     pub fn is_gate(&self) -> bool {
         match self.discriminant() {
