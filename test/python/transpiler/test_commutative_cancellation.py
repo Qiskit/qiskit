@@ -214,7 +214,7 @@ class TestCommutativeCancellation(QiskitTestCase):
 
     @combine(
         basis_gates=[["rz", "sx", "x"], ["rz", "sx"], ["rz", "rx"]],
-        circuit_gate=["x", "rx"],
+        circuit_gate=["x", "rx", "sx"],
         name="basis_gates={basis_gates}_circuit_gate={circuit_gate}",
     )
     def test_xgate_accumulation(self, basis_gates, circuit_gate):
@@ -222,11 +222,13 @@ class TestCommutativeCancellation(QiskitTestCase):
         if circuit_gate == "rx":
             circuit.rx(np.pi / 2, 0)
             circuit.rx(np.pi / 2, 0)
+        elif circuit_gate == "sx":
+            circuit.sx(0)
+            circuit.sx(0)
         else:
             circuit.x(0)
             circuit.x(0)
             circuit.x(0)
-
         commuter_pass = CommutativeCancellation(basis_gates=basis_gates)
         result = commuter_pass(circuit)
         op_counts = result.count_ops()
@@ -235,7 +237,7 @@ class TestCommutativeCancellation(QiskitTestCase):
             self.assertEqual(op_counts.get("x", 0), 1)
             self.assertNotIn("sx", op_counts)
             self.assertNotIn("rx", op_counts)
-        elif "sx" in basis_gates:
+        elif "sx" in basis_gates or "sx" == circuit_gate:
             self.assertEqual(op_counts.get("sx", 0), 2)
             self.assertNotIn("x", op_counts)
             self.assertNotIn("rx", op_counts)
