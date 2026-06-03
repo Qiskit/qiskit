@@ -37,13 +37,8 @@ use qiskit_circuit::duration::Duration;
 use qiskit_circuit::imports;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
-<<<<<<< HEAD
-    ArrayType, BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction,
-    Operation, OperationRef, Param, PauliProductMeasurement, PauliProductRotation, PyInstruction,
-=======
     BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction, Operation,
     OperationRef, Param, PauliProductMeasurement, PauliProductRotation, PyInstruction, PyOpKind,
->>>>>>> 19fc5b6db (QPY: Pauli Product Measurement/Rotation parameter fix (#16294))
     StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
