@@ -16,6 +16,7 @@ use std::sync::OnceLock;
 use hashbrown::HashSet;
 use num_complex::Complex64;
 
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
@@ -58,16 +59,56 @@ fn compute_error_from_target_one_qubit_sequence(
     }
 }
 
+#[derive(Clone, Debug)]
+enum BasisGatesPerQubit {
+    All,
+    Gates(HashSet<String>),
+}
+
+impl<'a, 'py> FromPyObject<'a, 'py> for BasisGatesPerQubit {
+    type Error = PyErr;
+    fn extract(obj: Borrowed<'a, 'py, PyAny>) -> PyResult<Self> {
+        if let Ok(value) = obj.extract::<&str>() {
+            if value == "All" {
+                Ok(Self::All)
+            } else {
+                Err(PyValueError::new_err(format!(
+                    "Value {obj:?} is not a valid value for a basis gates per qubit"
+                )))
+            }
+        } else if let Ok(gates) = obj.extract::<HashSet<String>>() {
+            Ok(Self::Gates(gates))
+        } else {
+            Err(PyValueError::new_err(format!(
+                "Value {obj:?} is not a valid value for a basis gates per qubit"
+            )))
+        }
+    }
+}
+
+impl<'py> IntoPyObject<'py> for BasisGatesPerQubit {
+    type Target = PyAny;
+    type Output = Bound<'py, PyAny>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        match self {
+            Self::All => Ok("All".into_pyobject(py)?.into_any()),
+            Self::Gates(gates) => Ok(gates.clone().into_pyobject(py)?.into_any()),
+        }
+    }
+}
+
 #[pyclass(module = "qiskit._accelerate.optimize_1q_gates_decomposition")]
 pub struct Optimize1qGatesDecompositionState {
     target_basis_per_qubit: Vec<OnceLock<EulerBasisSet>>,
-    basis_gates_per_qubit: Vec<OnceLock<Option<HashSet<String>>>>,
+    basis_gates_per_qubit: Vec<OnceLock<BasisGatesPerQubit>>,
     global: bool,
 }
 
 type Optimize1qGatesDecompositionStatePickle = (
     Vec<Option<Vec<String>>>,
-    Vec<Option<Option<HashSet<String>>>>,
+    Vec<Option<BasisGatesPerQubit>>,
     bool,
 );
 
@@ -114,13 +155,12 @@ impl Optimize1qGatesDecompositionState {
         self.basis_gates_per_qubit = state
             .1
             .into_iter()
-            .map(|gates| match gates {
-                Some(gates) => {
-                    let out_list = OnceLock::new();
-                    out_list.set(gates).expect("Qubit already populated");
-                    out_list
+            .map(|x| {
+                let locked = OnceLock::new();
+                if let Some(x) = x {
+                    locked.set(x).expect("basis gates not set");
                 }
-                None => OnceLock::new(),
+                locked
             })
             .collect();
         self.global = state.2;
@@ -208,12 +248,12 @@ impl Optimize1qGatesDecompositionState {
                         .enumerate()
                         .filter_map(|(idx, gates)| {
                             if !gates.iter().all(|gate| {
-                                self.basis_gates_per_qubit[0]
-                                    .get()
-                                    .unwrap()
-                                    .as_ref()
-                                    .expect("the target path always provides a hash set")
-                                    .contains(*gate)
+                                let BasisGatesPerQubit::Gates(gates) =
+                                    self.basis_gates_per_qubit[0].get().unwrap()
+                                else {
+                                    unreachable!("The target path always provides a hash set");
+                                };
+                                gates.contains(*gate)
                             }) {
                                 return None;
                             }
@@ -242,7 +282,7 @@ impl Optimize1qGatesDecompositionState {
                             }
                         }
                         None => match self.basis_gates_per_qubit[0].get().unwrap() {
-                            Some(gates) => EULER_BASES
+                            BasisGatesPerQubit::Gates(gates) => EULER_BASES
                                 .iter()
                                 .enumerate()
                                 .filter_map(|(idx, basis_gates)| {
@@ -256,7 +296,7 @@ impl Optimize1qGatesDecompositionState {
                                     Some(basis)
                                 })
                                 .for_each(|basis| target_basis_set.add_basis(basis)),
-                            None => target_basis_set.support_all(),
+                            BasisGatesPerQubit::All => target_basis_set.support_all(),
                         },
                     }
                     if target_basis_set.basis_supported(EulerBasis::U3)
@@ -279,13 +319,12 @@ impl Optimize1qGatesDecompositionState {
                 .enumerate()
                 .filter_map(|(idx, gates)| {
                     if !gates.iter().all(|gate| {
-                        self.basis_gates_per_qubit[qubit.index()]
-                            .get()
-                            .as_ref()
-                            .unwrap()
-                            .as_ref()
-                            .expect("the target path always provides a hash set")
-                            .contains(*gate)
+                        let BasisGatesPerQubit::Gates(gates) =
+                            self.basis_gates_per_qubit[qubit.index()].get().unwrap()
+                        else {
+                            unreachable!("the target path always provides a hash set")
+                        };
+                        gates.contains(*gate)
                     }) {
                         return None;
                     }
@@ -331,11 +370,18 @@ pub fn run_optimize_1q_gates_decomposition(
             };
             let basis_gates = if state.global {
                 state.basis_gates_per_qubit[0].get_or_init(|| {
-                    state.get_basis_set(PhysicalQubit::new(0), target, basis_gates.as_ref())
+                    match state.get_basis_set(PhysicalQubit::new(0), target, basis_gates.as_ref()) {
+                        Some(x) => BasisGatesPerQubit::Gates(x),
+                        None => BasisGatesPerQubit::All,
+                    }
                 })
             } else {
-                state.basis_gates_per_qubit[qubit.index()]
-                    .get_or_init(|| state.get_basis_set(qubit, target, basis_gates.as_ref()))
+                state.basis_gates_per_qubit[qubit.index()].get_or_init(|| {
+                    match state.get_basis_set(qubit, target, basis_gates.as_ref()) {
+                        Some(x) => BasisGatesPerQubit::Gates(x),
+                        None => BasisGatesPerQubit::All,
+                    }
+                })
             };
             let target_basis_set = if state.global {
                 state.target_basis_per_qubit[0].get_or_init(|| {
@@ -388,7 +434,7 @@ pub fn run_optimize_1q_gates_decomposition(
             let new_error = compute_error_from_target_one_qubit_sequence(&sequence, qubit, target);
 
             let mut outside_basis = false;
-            if let Some(basis) = basis_gates {
+            if let BasisGatesPerQubit::Gates(basis) = basis_gates {
                 for node in raw_run {
                     if let NodeType::Operation(inst) = &dag[*node] {
                         if !basis.contains(inst.op.name()) {
