@@ -2117,30 +2117,32 @@ mod test_custom_operations {
     use smallvec::smallvec;
     use std::f64::consts::PI;
 
+    macro_rules! impl_static_operation {
+        ($ty:ident; $name:expr, $qubits:expr, $clbits:expr, $params:expr, $directive:expr) => {
+            impl $crate::operations::Operation for $ty {
+                fn name(&self) -> &str {
+                    $name
+                }
+                fn num_qubits(&self) -> u32 {
+                    $qubits
+                }
+                fn num_clbits(&self) -> u32 {
+                    $clbits
+                }
+                fn num_params(&self) -> u32 {
+                    $params
+                }
+                fn directive(&self) -> bool {
+                    $directive
+                }
+            }
+        };
+    }
+
     /// HGate-like implementor
     #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
     struct CustomH;
-    impl Operation for CustomH {
-        fn name(&self) -> &str {
-            "h"
-        }
-
-        fn num_qubits(&self) -> u32 {
-            1
-        }
-
-        fn num_clbits(&self) -> u32 {
-            0
-        }
-
-        fn num_params(&self) -> u32 {
-            0
-        }
-
-        fn directive(&self) -> bool {
-            false
-        }
-    }
+    impl_static_operation!(CustomH; "h", 1, 0, 0, false);
 
     impl CustomOperation for CustomH {
         fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
@@ -2166,7 +2168,7 @@ mod test_custom_operations {
     struct ParametrizedAndLabeled {
         label: Option<String>,
     }
-
+    impl_static_operation!(ParametrizedAndLabeled; "custom_rz", 1, 0, 1, false);
     impl ParametrizedAndLabeled {
         pub fn new<T: Into<String>>(label: Option<T>) -> Self {
             Self {
@@ -2174,29 +2176,6 @@ mod test_custom_operations {
             }
         }
     }
-
-    impl Operation for ParametrizedAndLabeled {
-        fn name(&self) -> &str {
-            "custom_rz"
-        }
-
-        fn num_qubits(&self) -> u32 {
-            1
-        }
-
-        fn num_clbits(&self) -> u32 {
-            0
-        }
-
-        fn num_params(&self) -> u32 {
-            1
-        }
-
-        fn directive(&self) -> bool {
-            false
-        }
-    }
-
     impl CustomOperation for ParametrizedAndLabeled {
         fn is_unitary(&self) -> bool {
             true
@@ -2233,29 +2212,7 @@ mod test_custom_operations {
     /// Custom controlled gate
     #[derive(Debug, Copy, Clone, PartialEq)]
     struct Controlled;
-
-    impl Operation for Controlled {
-        fn name(&self) -> &str {
-            "controlled"
-        }
-
-        fn num_qubits(&self) -> u32 {
-            1
-        }
-
-        fn num_clbits(&self) -> u32 {
-            0
-        }
-
-        fn num_params(&self) -> u32 {
-            0
-        }
-
-        fn directive(&self) -> bool {
-            false
-        }
-    }
-
+    impl_static_operation!(Controlled; "controlled", 1, 0, 0, false);
     impl CustomOperation for Controlled {
         fn is_unitary(&self) -> bool {
             false
@@ -2268,29 +2225,7 @@ mod test_custom_operations {
     /// Custom implementation of measure
     #[derive(Debug, Copy, Clone, PartialEq)]
     struct Measure2;
-
-    impl Operation for Measure2 {
-        fn name(&self) -> &str {
-            "measure"
-        }
-
-        fn num_qubits(&self) -> u32 {
-            2
-        }
-
-        fn num_clbits(&self) -> u32 {
-            2
-        }
-
-        fn num_params(&self) -> u32 {
-            0
-        }
-
-        fn directive(&self) -> bool {
-            false
-        }
-    }
-
+    impl_static_operation!(Measure2; "measure", 2, 2, 0, false);
     impl CustomOperation for Measure2 {
         fn is_unitary(&self) -> bool {
             false
@@ -2300,27 +2235,7 @@ mod test_custom_operations {
     /// Operation that can be reversed
     #[derive(Debug, Copy, Clone, PartialEq)]
     struct Reversible;
-    impl Operation for Reversible {
-        fn name(&self) -> &str {
-            "rev"
-        }
-
-        fn num_qubits(&self) -> u32 {
-            1
-        }
-
-        fn num_clbits(&self) -> u32 {
-            0
-        }
-
-        fn num_params(&self) -> u32 {
-            0
-        }
-
-        fn directive(&self) -> bool {
-            false
-        }
-    }
+    impl_static_operation!(Reversible; "rev", 1, 0, 0, false);
     impl CustomOperation for Reversible {
         fn is_unitary(&self) -> bool {
             false
@@ -2346,29 +2261,7 @@ mod test_custom_operations {
     /// Fully opaque gate with no matrix
     #[derive(Debug, Clone, PartialEq)]
     struct OpaqueGate;
-
-    impl Operation for OpaqueGate {
-        fn name(&self) -> &str {
-            "foo"
-        }
-
-        fn num_qubits(&self) -> u32 {
-            1
-        }
-
-        fn num_clbits(&self) -> u32 {
-            0
-        }
-
-        fn num_params(&self) -> u32 {
-            0
-        }
-
-        fn directive(&self) -> bool {
-            false
-        }
-    }
-
+    impl_static_operation!(OpaqueGate; "foo", 1, 0, 0, false);
     impl CustomOperation for OpaqueGate {
         fn is_unitary(&self) -> bool {
             true
