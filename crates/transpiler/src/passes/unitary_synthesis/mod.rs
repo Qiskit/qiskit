@@ -13,10 +13,10 @@
 mod decomposers;
 
 use hashbrown::HashSet;
-use indexmap::IndexSet;
 use nalgebra::Matrix2;
 use ndarray::prelude::*;
 use num_complex::Complex64;
+use qiskit_util::IndexSet;
 use std::hash;
 
 use numpy::PyReadonlyArray2;
@@ -31,9 +31,7 @@ use crate::target::Target;
 use qiskit_circuit::bit::QuantumRegister;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder};
 use qiskit_circuit::instruction::Parameters;
-use qiskit_circuit::operations::{
-    Operation, OperationRef, Param, PyOperationTypes, PythonOperation, StandardGate,
-};
+use qiskit_circuit::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{BlocksMode, PhysicalQubit, Qubit, VarsMode};
 use qiskit_synthesis::euler_one_qubit_decomposer::unitary_to_gate_sequence_inner;
@@ -116,7 +114,7 @@ impl Approximation {
 pub enum QpuConstraint<'a> {
     Target(&'a Target),
     Loose {
-        basis_gates: &'a IndexSet<&'a str, ::foldhash::fast::RandomState>,
+        basis_gates: &'a IndexSet<&'a str>,
         coupling: &'a HashSet<[PhysicalQubit; 2]>,
     },
 }
@@ -345,7 +343,7 @@ pub fn run_unitary_synthesis(
     }
 
     let mut out = dag
-        .copy_empty_like(VarsMode::Alike, BlocksMode::Drop)?
+        .copy_empty_like(VarsMode::Alike, BlocksMode::Drop)
         .into_builder();
     for node in dag.topological_op_nodes(false) {
         let inst = dag[node].unwrap_operation();
@@ -699,13 +697,10 @@ fn synthesize_2q_matrix_onto(
         };
         let op = match gate.view() {
             OperationRef::StandardGate(gate) => PackedOperation::from(gate),
-            OperationRef::Gate(py_gate) => Python::attach(|py| -> PyResult<_> {
-                let gate = py_gate.py_copy(py)?;
-                gate.instruction
-                    .setattr(py, intern!(py, "params"), params)?;
-                Ok(PackedOperation::from(Box::new(PyOperationTypes::Gate(
-                    gate,
-                ))))
+            OperationRef::PyCustom(inst) => Python::attach(|py| -> PyResult<_> {
+                let inst = inst.py_copy(py)?;
+                inst.ob.setattr(py, intern!(py, "params"), params)?;
+                Ok(inst.into())
             })?,
             _ => panic!("internal logic error: decomposed sequence contains a non-gate"),
         };
@@ -764,7 +759,7 @@ pub fn py_unitary_synthesis(
         run_python_decomposers: true,
     };
     let mut state = UnitarySynthesisState::new(config);
-    let mut basis_gates_set: IndexSet<&str, ::foldhash::fast::RandomState>;
+    let mut basis_gates_set: IndexSet<&str>;
     let constraint = match target {
         Some(target) => QpuConstraint::Target(target),
         None => {
@@ -808,7 +803,7 @@ pub fn py_synthesize_unitary_matrix(
         run_python_decomposers: true,
     };
     let mut state = UnitarySynthesisState::new(config);
-    let mut basis_gates_set: IndexSet<&str, ::foldhash::fast::RandomState>;
+    let mut basis_gates_set: IndexSet<&str>;
     let constraint = match target {
         Some(target) => QpuConstraint::Target(target),
         None => {
