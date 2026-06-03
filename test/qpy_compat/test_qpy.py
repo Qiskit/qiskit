@@ -976,10 +976,6 @@ def generate_delay_stretch():
     stretch_expr.delay(expr.sub(Duration.ns(3.14159), stretch), 0)
     return [stretch_expr]
 
-
-<<<<<<< HEAD
-def generate_circuits(generating_version, current_version, load_context=False):
-=======
 def generate_pauli_product_measurement():
     """Circuits that contain a Pauli Product Measurement gate"""
     from qiskit.circuit.library import PauliProductMeasurement
@@ -1005,7 +1001,6 @@ def generate_pauli_product_rotation():
 def generate_circuits(
     generating_version, current_version, load_context=False, qpy_version=None, forward_tests=False
 ):
->>>>>>> 19fc5b6db (QPY: Pauli Product Measurement/Rotation parameter fix (#16294))
     """Generate reference circuits.
 
     If load_context is True, avoid generating Pulse-based reference
