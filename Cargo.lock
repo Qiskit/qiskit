@@ -2212,12 +2212,9 @@ dependencies = [
  "binrw",
  "bytemuck",
  "hashbrown 0.15.5",
-<<<<<<< HEAD
  "indexmap",
-=======
  "ndarray",
  "npyz 0.9.1",
->>>>>>> 19fc5b6db (QPY: Pauli Product Measurement/Rotation parameter fix (#16294))
  "num-bigint",
  "num-complex",
  "num-traits",
