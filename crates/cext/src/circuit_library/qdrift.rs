@@ -19,105 +19,61 @@ use qiskit_quantum_info::sparse_observable::SparseObservable;
 ///
 /// Implements the QDrift Trotterization method, which selects Hamiltonian terms
 /// randomly with probability proportional to their absolute coefficients.
-///
 /// This implementation follows the method introduced by Earl Campbell [1].
+/// 
+/// @param op Pointer to a valid ``QkObs`` containing the sum of the Pauli terms.
+/// @param reps The number of times to repeat the Trotterization circuit.
+/// @param time Evolution time t in exp(-i t H). May be positive, negative, or zero.
+/// @param seed An optional seed for reproducibility of the random sampling process.
+///   For default value it should be passed zero.
+/// @param preserve_order If ``false``, allows reordering the terms of the operator to
+///   potentially yield a shallower evolution circuit. Not relevant
+///   when synthesizing an observable with a single term.
+/// @param insert_barriers  Whether to insert barriers between the terms evolutions.
+/// 
+/// @return A pointer to the generated circuit.
 ///
-/// @param obs
-/// Pointer to a valid QkObs. Requirements:
-/// - All coefficients c_j must be real (imaginary parts numerically zero).
-/// - Terms must be Pauli operators only (no projectors).
-///   Projectors can be computationally inefficient: a term containing n
-///   projectors may expand to 2^n Pauli terms. If your observable contains
-///   projectors, consider decomposing it into Pauli terms first.
+/// # Example
+/// ```c
+/// // 1-qubit observable H = X + Y
+/// QkObs *obs = qk_obs_zero(1);
 ///
-/// @param reps
-/// Number of outer repetitions (independent segments). Must be strictly
-/// positive. A value of reps == 0 is rejected with a non-success ExitCode.
+/// QkBitTerm op1_bits[1] = {QkBitTerm_X};
+/// QkObsTerm term1 = {(QkComplex64){1.0, 0.0}, 1, op1_bits, (uint32_t[1]){0}, 1};
+/// qk_obs_add_term(obs, &term1);
+/// QkBitTerm op2_bits[1] = {QkBitTerm_Y};
+/// QkObsTerm term2 = {(QkComplex64){1.0, 0.0}, 1, op2_bits, (uint32_t[1]){0}, 1};
+/// qk_obs_add_term(obs, &term2);
 ///
-/// @param time
-/// Evolution time t in exp(-i t H). May be positive, negative, or zero.
-/// The target gate count scales quadratically in |t|.
+/// // Passing zero as value for the seed for auto generating a seed value 
+/// QkCircuit *qc = qk_qdrift(obs, 1, 0.5, 0, true, false);
 ///
-/// @param[out] out
-/// Output parameter. On success, *out is set to a newly allocated circuit.
-/// On failure, *out is set to NULL.
+/// qk_obs_free(obs);
+/// qk_circuit_free(qc);
+/// ```
 ///
-/// @return
-/// ExitCode::Success on success. Otherwise a non-success ExitCode if:
-/// - obs is NULL or otherwise invalid (e.g. contains projectors),
-/// - reps is zero,
-/// - the observable contains non-real coefficients,
-/// - an internal allocation or conversion fails.
-///
-/// @details
-/// Behavior and guarantees:
-/// - Gate count scaling: for lambda = sum_j |c_j|, the target gate count is
-///   N = ceil(2 * lambda^2 * t^2 * reps).
-/// - Identity terms: pure-identity Hamiltonians (e.g. H = I) produce circuits
-///   with no nontrivial instructions and a global phase equal to the
-///   analytically expected value (e.g. -t for H = I).
-/// - Stochasticity: repeated calls with identical inputs may produce different
-///   gate sequences, but share the same distribution over term types and the
-///   same expected gate count.
-///
-/// @warning
 /// # Safety
-/// Safety assumptions:
-/// - obs must be a valid pointer managed by the Qiskit C API.
-/// - out must be a valid writable pointer to a QkCircuit* location.
-///  
-/// Violating these conditions may cause undefined behavior.
+/// Behavior is undefined ``op`` is not a valid, non-null pointer to a ``QkObs``.
 ///
-/// @par Example
-/// @code{.c}
-/// // 2-qubit observable H = XI + ZZ
-/// // QkObs *obs = qk_obs_zero(2);
-///
-/// // Term 1: X on qubit 1 (XI).
-/// QkBitTerm bit_term_1[1] = { QkBitTerm_X };
-/// QkComplex64 coeff_1 = { 1, 0 };
-/// uint32_t indices_1[1] = { 1 };
-/// QkObsTerm term_1 = { coeff_1, 1, bit_term_1, indices_1, 2 };
-/// code = qk_obs_add_term(obs, &term_1);
-///
-/// // Term 2: ZZ on qubits {0,1}.
-/// QkBitTerm bit_term_2[2] = { QkBitTerm_Z, QkBitTerm_Z };
-/// QkComplex64 coeff_2 = { 1, 0 };
-/// uint32_t indices_2[2] = { 0, 1 };
-/// QkObsTerm term_2 = { coeff_2, 2, bit_term_2, indices_2, 2 };
-/// code = qk_obs_add_term(obs, &term_2);
-///
-/// QkCircuit *circ = NULL;
-/// code = qk_qdrift(obs, 1, 0.5, &circ);
-/// @endcode
-///
-/// @par References
-/// - [1] E. Campbell, "A random compiler for fast Hamiltonian simulation",
-///   Phys. Rev. Lett. 123, 070503 (2019).
-///   https://arxiv.org/abs/1811.08017
-///
+/// # References
+/// [1] E. Campbell, "A random compiler for fast Hamiltonian simulation",
+/// Phys. Rev. Lett. 123, 070503 (2019).
+/// [arXiv:quant-ph/1811.08017](https://arxiv.org/abs/1811.08017)
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_qdrift(
-    obs: *const SparseObservable, // H in e^{-i t H}
-    reps: usize,                  // n in e^{-it/n H}^n
-    time: f64,                    // evolution time e in e^{-i t H}
+    op: *const SparseObservable, // H in e^{-i t H}
+    reps: usize,                 // n in e^{-it/n H}^n
+    time: f64,                   // evolution time e in e^{-i t H}
     seed: u64,
     preserve_order: bool,
     insert_barriers: bool,
 ) -> *mut CircuitData {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let obs = unsafe { const_ptr_as_ref(obs) };
+    let op = unsafe { const_ptr_as_ref(op) };
 
     let seed = if seed == 0 { None } else { Some(seed) };
 
-    match qdrift_evolution(
-        obs,
-        time,
-        reps as u32,
-        seed,
-        preserve_order,
-        insert_barriers,
-    ) {
+    match qdrift_evolution(op, time, reps as u32, seed, preserve_order, insert_barriers) {
         Ok(circuit) => Box::into_raw(Box::new(circuit)),
         Err(_) => std::ptr::null_mut(),
     }
