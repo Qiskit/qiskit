@@ -690,12 +690,12 @@ class TestCommutationChecker(QiskitTestCase):
     def test_standard_gate_commutations(self):
         """Test that the standard_gate_commutations.rs tables are correct"""
         # check all pairs of standard gates
-        for name1, gate1 in get_standard_gate_name_mapping().items():
-            for name2, gate2 in get_standard_gate_name_mapping().items():
+        for _, gate1 in get_standard_gate_name_mapping().items():
+            for _, gate2 in get_standard_gate_name_mapping().items():
                 if gate1._standard_gate and gate2._standard_gate:
                     num_qubits1 = gate1.num_qubits
                     num_qubits2 = gate2.num_qubits
-                    num_qubits = num_qubits1 + num_qubits2 - 1
+                    num_qubits = min(num_qubits1 + num_qubits2 - 1, 3)
                     # check only gates with 0 or 1 parameters
                     # we also limit the number of qubits so that the test won't take too long
                     if (
@@ -703,7 +703,6 @@ class TestCommutationChecker(QiskitTestCase):
                         and len(gate2._params) < 2
                         and num_qubits1 > 0
                         and num_qubits2 > 0
-                        and num_qubits < 4
                     ):
                         params1 = [0.32 * (i + 1) for i in range(len(gate1.params))]
                         params2 = [0.45 * (i + 1) for i in range(len(gate2.params))]
