@@ -2,16 +2,27 @@
 features_c:
   - |
     Introduced a new feature in the C API circuit library to synthesize QDRIFT
-    circuits. The function `qk_circuit_library_qdrift` allows users to create
+    circuits. The function `qk_qdrift` allows users to create
     quantum circuits that approximate the time evolution under a given sparse
-    observable using the QDRIFT algorithm. For example.. code-block:: c
+    observable using the QDRIFT algorithm. For example: 
+    
+    .. code-block:: C
 
-        #include <qiskit.h>
-        // Create a sparse observable representing the Hamiltonian
-        QkObs *obs = qk_obs_zero(2); // 2-qubit observable
-        // Add terms to the observable (e.g., Pauli strings with coefficients)
-        QkBitTerm bit_term[2] = {QkBitTerm_Z, QkBitTerm_Z};
-        QkComplex64 coeff = {1, 0};
-        uint32_t indices[2] = {0, 1};
-        QkObsTerm term_2 = {coeff, 2, bit_term, indices, 2};
-        code = qk_obs_add_term(obs, &term_2);
+      #include <qiskit.h>
+      // Create the observable 
+      QkObs *obs = qk_obs_zero(1);
+      
+      // Add the pauli terms
+      QkBitTerm op1_bits[1] = {QkBitTerm_X};
+      QkObsTerm term1 = {(QkComplex64){1.0, 0.0}, 1, op1_bits, (uint32_t[1]){0}, 1};
+      qk_obs_add_term(obs, &term1);
+      QkBitTerm op2_bits[1] = {QkBitTerm_Y};
+      QkObsTerm term2 = {(QkComplex64){1.0, 0.0}, 1, op2_bits, (uint32_t[1]){0}, 1};
+      qk_obs_add_term(obs, &term2);
+
+      // Passing zero as value for the seed for auto generating a seed value 
+      QkCircuit *qc = qk_qdrift(obs, 1, 0.5, 0, true, false);
+      
+      // Free the objects
+      qk_obs_free(obs);
+      qk_circuit_free(qc);
