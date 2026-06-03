@@ -267,7 +267,14 @@ class TwoQubitWeylDecomposition:
 class TwoQubitControlledUDecomposer:
     r"""Decompose two-qubit unitary in terms of a desired
     :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}`
-    gate that is locally equivalent to an :class:`.RXXGate`."""
+    gate that is locally equivalent to an :class:`.RXXGate`.
+    
+    This decomposer synthesizes a general two-qubit unitary using at most 8 single-qubit
+    unitary gates (in the general case where 3 2-qubit gates are needed),
+    along with up to 3 instances of the target 2-qubit gate. The reduction to 8 
+    single-qubit unitaries is achieved by multiplying the adjacent 1-qubit unitary
+    matrices between the 2-qubit gates.
+    """
 
     def __init__(self, rxx_equivalent_gate: type[Gate], euler_basis: str = "ZXZ"):
         r"""Initialize the KAK decomposition.
