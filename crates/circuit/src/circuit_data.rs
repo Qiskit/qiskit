@@ -419,7 +419,7 @@ impl CircuitData {
     ) -> Result<(), CircuitDataError> {
         self.qregs
             .add_register(register.clone(), strict)
-            .map_err(|err| CircuitDataError::RegisterNameExists(err))?;
+            .map_err(CircuitDataError::RegisterNameExists)?;
 
         for (index, bit) in register.bits().enumerate() {
             if let Some(entry) = self.qubit_indices.get_mut(&bit) {
@@ -457,8 +457,7 @@ impl CircuitData {
     ) -> Result<(), CircuitDataError> {
         self.cregs
             .add_register(register.clone(), strict)
-            .map_err(|err| CircuitDataError::RegisterNameExists(err))?;
-
+            .map_err(CircuitDataError::RegisterNameExists)?;
         for (index, bit) in register.bits().enumerate() {
             if let Some(entry) = self.clbit_indices.get_mut(&bit) {
                 entry.add_register(register.clone(), index);
