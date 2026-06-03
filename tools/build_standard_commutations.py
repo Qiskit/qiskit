@@ -32,7 +32,8 @@ SUPPORTED_ROTATIONS = {
     "rzx": PauliGate("XZ"),
     "crx": PauliEvolutionGate(-SparsePauliOp("XZ") + SparsePauliOp("XI"), time=1),
     "cry": PauliEvolutionGate(-SparsePauliOp("YZ") + SparsePauliOp("YI"), time=1),
-    "crz": PauliEvolutionGate(-SparsePauliOp("ZZ") + SparsePauliOp("ZI"), time=1),}
+    "crz": PauliEvolutionGate(-SparsePauliOp("ZZ") + SparsePauliOp("ZI"), time=1),
+}
 
 
 @lru_cache(maxsize=10**3)
