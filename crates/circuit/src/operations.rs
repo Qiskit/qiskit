@@ -2277,68 +2277,26 @@ mod test_custom_operations {
             .downcast_ref::<CustomH>()
             .expect("Should downcast to an H gate");
 
-        assert_eq!(
-            gate.name(),
-            "h",
-            "Gate names did not match, expected 'H' obtained '{}'",
-            gate.name()
-        );
-        assert_eq!(
-            gate.num_qubits(),
-            1,
-            "The number of qubits of gate did not match, expected '1' obtained '{}'",
-            gate.num_qubits()
-        );
-        assert_eq!(
-            gate.num_params(),
-            0,
-            "The number of parameters of gate did not match, expected '0' obtained '{}'",
-            gate.num_params()
-        );
-        assert_eq!(
-            gate.label(),
-            None,
-            "Gate labels did not match, expected 'None' obtained '{:?}'",
-            gate.label()
-        );
+        assert_eq!(gate.name(), "h");
+        assert_eq!(gate.num_qubits(), 1);
+        assert_eq!(gate.num_params(), 0);
+        assert_eq!(gate.label(), None);
 
         assert!(gate.is_unitary());
 
         let matrix_res = gate.matrix(&[]);
         let matrix_exp = Some(aview2(&H_GATE));
-        assert_eq!(
-            matrix_res.as_ref().map(|mat| mat.view()),
-            matrix_exp,
-            "Gate matrix did not match, expected {:?} obtained '{:?}'",
-            matrix_exp,
-            matrix_res,
-        );
+        assert_eq!(matrix_res.as_ref().map(|mat| mat.view()), matrix_exp);
 
         let matrix_res = gate.matrix(&[Param::Float(PI)]);
         let matrix_exp = None;
-        assert_eq!(
-            matrix_res, matrix_exp,
-            "Gate matrix did not match, expected {:?} obtained '{:?}'",
-            matrix_exp, matrix_res
-        );
+        assert_eq!(matrix_res, matrix_exp,);
 
         let circuit = gate.definition(&[]).expect("Circuit should exist.");
-        assert_eq!(
-            circuit.len(),
-            1,
-            "Definition length mismatch, expected {} got {}.",
-            1,
-            circuit.len()
-        );
+        assert_eq!(circuit.len(), 1);
 
         let hgate = circuit.iter().next().expect("Should be H gate");
-        assert_eq!(
-            hgate.op.standard_gate(),
-            StandardGate::H,
-            "Definition length mismatch, expected {:?} got {:?}.",
-            hgate.op.standard_gate(),
-            StandardGate::H
-        );
+        assert_eq!(hgate.op.standard_gate(), StandardGate::H);
     }
 
     #[test]
