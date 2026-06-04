@@ -46,6 +46,39 @@ from test import QiskitTestCase
 class TestCircuitOperations(QiskitTestCase):
     """QuantumCircuit Operations tests."""
 
+    @data(
+        ("h", (0,)),
+        ("id", (0,)),
+        ("p", (0.2, 0)),
+        ("r", (0.2, 0.3, 0)),
+        ("rxx", (0.2, 0, 1)),
+        ("ryy", (0.2, 0, 1)),
+        ("rz", (0.2, 0)),
+        ("rzx", (0.2, 0, 1)),
+        ("rzz", (0.2, 0, 1)),
+        ("ecr", (0, 1)),
+        ("s", (0,)),
+        ("sdg", (0,)),
+        ("swap", (0, 1)),
+        ("iswap", (0, 1)),
+        ("sx", (0,)),
+        ("sxdg", (0,)),
+        ("t", (0,)),
+        ("tdg", (0,)),
+        ("u", (0.2, 0.3, 0.4, 0)),
+        ("dcx", (0, 1)),
+        ("y", (0,)),
+        ("z", (0,)),
+    )
+    def test_quantum_circuit_standard_gate_label(self, method_and_args):
+        """Test QuantumCircuit standard-gate helpers accept labels."""
+        method, args = method_and_args
+        qc = QuantumCircuit(2)
+
+        getattr(qc, method)(*args, label="a gate label")
+
+        self.assertEqual(qc.data[-1].operation.label, "a gate label")
+
     @data(0, 1, -1, -2)
     def test_append_resolves_integers(self, index):
         """Test that integer arguments to append are correctly resolved."""
