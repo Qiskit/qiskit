@@ -700,7 +700,8 @@ class TestCommutationChecker(QiskitTestCase):
             ):
                 for _, gate2 in get_standard_gate_name_mapping().items():
                     num_qubits2 = gate2.num_qubits
-                    num_qubits = min(num_qubits1 + num_qubits2 - 1, 3)
+                    num_qubits = num_qubits1 + num_qubits2 - 1
+                    num_qubits = num_qubits if num_qubits < 3 else 3
                     if (
                         gate2._standard_gate
                         and len(gate2._params) < 2
