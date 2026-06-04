@@ -275,7 +275,7 @@ static int test_qdrift_seed_auto_generation(void) {
     int result = Ok;
 
     int reps = 1000;
-    int time = 1.0;
+    double time = 1.0;
 
     QkObs *obs = qk_obs_zero(1);
 
