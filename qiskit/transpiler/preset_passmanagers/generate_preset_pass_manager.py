@@ -30,7 +30,10 @@ from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.layout import Layout
-from qiskit.transpiler.passmanager_config import PassManagerConfig, PassManagerCliffordTConfig
+from qiskit.transpiler.passmanager_config import (
+    PassManagerConfig,
+    PassManagerCliffordTConfig,
+)
 from qiskit.transpiler.preset_passmanagers.clifford_t import (
     clifford_t_pass_manager,
     clifford_t_pass_manager_legacy,
