@@ -268,12 +268,92 @@ class TwoQubitControlledUDecomposer:
     r"""Decompose two-qubit unitary in terms of a desired
     :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}`
     gate that is locally equivalent to an :class:`.RXXGate`.
-    
+
     This decomposer synthesizes a general two-qubit unitary using at most 8 single-qubit
-    unitary gates (in the general case where 3 2-qubit gates are needed),
-    along with up to 3 instances of the target 2-qubit gate. The reduction to 8 
-    single-qubit unitaries is achieved by multiplying the adjacent 1-qubit unitary
-    matrices between the 2-qubit gates.
+    unitary gates (in the general case where 3 2-qubit gates are needed), along with up to
+    3 instances of the target 2-qubit gate. The reduction to 8 single-qubit unitaries is
+    achieved by multiplying the adjacent 1-qubit unitary matrices between the 2-qubit gates.
+
+    The synthesis algorithm proceeds as follows:
+
+    **Step 1.** Given a general :math:`4 \times 4` unitary :math:`U`, find the KAK decomposition:
+
+    .. math::
+
+        U = (c_2^r \otimes c_2^l) \cdot W \cdot (c_1^r \otimes c_1^l)
+
+    where :math:`W` is a Weyl (canonical) gate and :math:`c_1^r, c_1^l, c_2^r, c_2^l \in SU(2)`.
+    This yields 4 single-qubit unitary gates:
+
+    .. parsed-literal::
+
+             ┌─────┐┌───────┐┌─────┐
+        q_0: ┤ c2r ├┤0      ├┤ c1r ├
+             ├─────┤│  Weyl │├─────┤
+        q_1: ┤ c2l ├┤1      ├┤ c1l ├
+             └─────┘└───────┘└─────┘
+
+    **Step 2.** Write the Weyl gate :math:`W` as:
+
+    .. math::
+
+        W = R_{XX}(a) \cdot R_{YY}(b) \cdot R_{ZZ}(c)
+
+    .. parsed-literal::
+
+             ┌─────────┐┌─────────┐
+        q_0: ┤0        ├┤0        ├─■──────
+             │  Rxx(a) ││  Ryy(b) │ │ZZ(c)
+        q_1: ┤1        ├┤1        ├─■──────
+             └─────────┘└─────────┘
+
+    **Step 3.** Rewrite :math:`R_{YY}` and :math:`R_{ZZ}` in terms of :math:`R_{XX}`:
+
+    .. math::
+
+        R_{YY}(b) = (S^\dagger \otimes S^\dagger) \cdot R_{XX}(b) \cdot (S \otimes S)
+
+        R_{ZZ}(c) = (H \otimes H) \cdot R_{XX}(c) \cdot (H \otimes H)
+
+    .. parsed-literal::
+
+             ┌─────┐┌─────────┐┌───┐
+        q_0: ┤ Sdg ├┤0        ├┤ S ├
+             ├─────┤│  Rxx(b) │├───┤
+        q_1: ┤ Sdg ├┤1        ├┤ S ├
+             └─────┘└─────────┘└───┘
+
+             ┌───┐┌─────────┐┌───┐
+        q_0: ┤ H ├┤0        ├┤ H ├
+             ├───┤│  Rxx(c) │├───┤
+        q_1: ┤ H ├┤1        ├┤ H ├
+             └───┘└─────────┘└───┘
+
+    **Step 4.** Replace each :math:`R_{XX}` with the target gate ``Equiv``
+    (which is locally equivalent to :class:`.RXXGate`):
+
+    .. math::
+
+        R_{XX}(\theta) = (k_2^r \otimes k_2^l) \cdot \text{Equiv} \cdot (k_1^r \otimes k_1^l)
+
+    .. parsed-literal::
+
+             ┌─────┐┌────────┐┌─────┐
+        q_0: ┤ k2r ├┤0       ├┤ k1r ├
+             ├─────┤│  Equiv │├─────┤
+        q_1: ┤ k2l ├┤1       ├┤ k1l ├
+             └─────┘└────────┘└─────┘
+
+    Finally, all adjacent single-qubit unitaries between the 2-qubit gates are merged,
+    reducing the total from 24 to at most 8 single-qubit gates:
+
+    .. parsed-literal::
+
+             ┌──────┐┌───────────┐┌──────┐┌───────────┐┌──────┐┌───────────┐┌──────┐
+        q_0: ┤ U1_r ├┤0          ├┤ U2_r ├┤0          ├┤ U3_r ├┤0          ├┤ U4_r ├
+             ├──────┤│  Equiv(a) │├──────┤│  Equiv(b) │├──────┤│  Equiv(c) │├──────┤
+        q_1: ┤ U1_l ├┤1          ├┤ U2_l ├┤1          ├┤ U3_l ├┤1          ├┤ U4_l ├
+             └──────┘└───────────┘└──────┘└───────────┘└──────┘└───────────┘└──────┘
     """
 
     def __init__(self, rxx_equivalent_gate: type[Gate], euler_basis: str = "ZXZ"):
