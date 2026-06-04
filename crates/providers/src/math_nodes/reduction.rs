@@ -59,7 +59,7 @@ impl ProgramNode for Mean {
         "mean"
     }
     fn namespace(&self) -> &'static str {
-        "math"
+        "qiskit"
     }
     fn input_types(&self) -> &DataTree<TensorType> {
         &INPUT_TYPES
@@ -123,7 +123,7 @@ impl ProgramNode for Variance {
         "variance"
     }
     fn namespace(&self) -> &'static str {
-        "math"
+        "qiskit"
     }
     fn input_types(&self) -> &DataTree<TensorType> {
         &INPUT_TYPES
@@ -192,7 +192,7 @@ impl ProgramNode for Std {
         "std"
     }
     fn namespace(&self) -> &'static str {
-        "math"
+        "qiskit"
     }
     fn input_types(&self) -> &DataTree<TensorType> {
         &INPUT_TYPES

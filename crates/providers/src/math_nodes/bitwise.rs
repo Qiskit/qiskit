@@ -71,7 +71,7 @@ macro_rules! bitwise_binary_node {
                 $node_name
             }
             fn namespace(&self) -> &'static str {
-                "math"
+                "qiskit"
             }
             fn input_types(&self) -> &DataTree<TensorType> {
                 &INPUT_TYPES
@@ -111,7 +111,7 @@ impl ProgramNode for BitwiseNot {
         "bitwise_not"
     }
     fn namespace(&self) -> &'static str {
-        "math"
+        "qiskit"
     }
     fn input_types(&self) -> &DataTree<TensorType> {
         &LEAF_TYPE
@@ -154,7 +154,7 @@ impl ProgramNode for Parity {
         "parity"
     }
     fn namespace(&self) -> &'static str {
-        "math"
+        "qiskit"
     }
     fn input_types(&self) -> &DataTree<TensorType> {
         &LEAF_TYPE

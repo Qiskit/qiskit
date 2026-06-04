@@ -62,7 +62,7 @@ macro_rules! elementwise_binary_node {
                 $node_name
             }
             fn namespace(&self) -> &'static str {
-                "math"
+                "qiskit"
             }
             fn input_types(&self) -> &DataTree<TensorType> {
                 &INPUT_TYPES
