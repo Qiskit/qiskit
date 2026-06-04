@@ -284,7 +284,7 @@ static int test_peephole_overcomplete_target(void) {
     QkOpCounts op_counts = qk_circuit_count_ops(qc);
     size_t num_instructions = qk_circuit_num_instructions(qc);
     if (num_instructions != 135) {
-        printf("Circuit not simplified as expected 135 instructions, got: %ld\n", num_instructions);
+        printf("Circuit not simplified as expected 135 instructions, got: %zu\n", num_instructions);
         result = EqualityError;
         goto cleanup;
     }
