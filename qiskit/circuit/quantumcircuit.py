@@ -5294,6 +5294,7 @@ class QuantumCircuit:
         control_qubits: Sequence[QubitSpecifier],
         target_qubit: QubitSpecifier,
         ctrl_state: str | int | None = None,
+        label: str | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.MCPhaseGate`.
 
@@ -5306,6 +5307,7 @@ class QuantumCircuit:
             ctrl_state:
                 The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling
                 on the '1' state.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
@@ -5314,7 +5316,7 @@ class QuantumCircuit:
 
         num_ctrl_qubits = len(control_qubits)
         return self.append(
-            MCPhaseGate(lam, num_ctrl_qubits, ctrl_state=ctrl_state),
+            MCPhaseGate(lam, num_ctrl_qubits, label=label, ctrl_state=ctrl_state),
             control_qubits[:] + [target_qubit],
             [],
             copy=False,
@@ -5588,6 +5590,7 @@ class QuantumCircuit:
         control_qubit1: QubitSpecifier,
         control_qubit2: QubitSpecifier,
         target_qubit: QubitSpecifier,
+        label: str | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.RCCXGate`.
 
@@ -5597,12 +5600,16 @@ class QuantumCircuit:
             control_qubit1: The qubit(s) used as the first control.
             control_qubit2: The qubit(s) used as the second control.
             target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         return self._append_standard_gate(
-            StandardGate.RCCX, [control_qubit1, control_qubit2, target_qubit], ()
+            StandardGate.RCCX,
+            [control_qubit1, control_qubit2, target_qubit],
+            (),
+            label=label,
         )
 
     def rcccx(
@@ -5611,6 +5618,7 @@ class QuantumCircuit:
         control_qubit2: QubitSpecifier,
         control_qubit3: QubitSpecifier,
         target_qubit: QubitSpecifier,
+        label: str | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.RC3XGate`.
 
@@ -5621,6 +5629,7 @@ class QuantumCircuit:
             control_qubit2: The qubit(s) used as the second control.
             control_qubit3: The qubit(s) used as the third control.
             target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
@@ -5629,6 +5638,7 @@ class QuantumCircuit:
             StandardGate.RC3X,
             [control_qubit1, control_qubit2, control_qubit3, target_qubit],
             (),
+            label=label,
         )
 
     def rx(
@@ -6285,6 +6295,7 @@ class QuantumCircuit:
         control_qubit2: QubitSpecifier,
         target_qubit: QubitSpecifier,
         ctrl_state: str | int | None = None,
+        label: str | None = None,
     ) -> InstructionSet:
         r"""Apply :class:`~qiskit.circuit.library.CCXGate`.
 
@@ -6297,6 +6308,7 @@ class QuantumCircuit:
             ctrl_state:
                 The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling
                 on the '1' state.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
@@ -6307,12 +6319,13 @@ class QuantumCircuit:
                 StandardGate.CCX,
                 [control_qubit1, control_qubit2, target_qubit],
                 (),
+                label=label,
             )
 
         from .library.standard_gates.x import CCXGate
 
         return self.append(
-            CCXGate(ctrl_state=ctrl_state),
+            CCXGate(label=label, ctrl_state=ctrl_state),
             [control_qubit1, control_qubit2, target_qubit],
             [],
             copy=False,
@@ -6334,6 +6347,7 @@ class QuantumCircuit:
         ancilla_qubits: QubitSpecifier | Sequence[QubitSpecifier] | None = None,
         mode: str | None = None,
         ctrl_state: str | int | None = None,
+        label: str | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.MCXGate`.
 
@@ -6355,6 +6369,7 @@ class QuantumCircuit:
             ctrl_state:
                 The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling
                 on the '1' state.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
@@ -6382,16 +6397,18 @@ class QuantumCircuit:
             _ = self._qbit_argument_conversion(ancilla_qubits)
 
         if mode is None:
-            gate = MCXGate(num_ctrl_qubits, ctrl_state=ctrl_state)
+            gate = MCXGate(num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
         elif mode in available_implementations:
             if mode == "noancilla":
-                gate = MCXGate(num_ctrl_qubits, ctrl_state=ctrl_state)
+                gate = MCXGate(num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
             elif mode in ["recursion", "advanced"]:
-                gate = MCXRecursive(num_ctrl_qubits, ctrl_state=ctrl_state)
+                gate = MCXRecursive(num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
             elif mode in ["v-chain", "basic"]:
-                gate = MCXVChain(num_ctrl_qubits, False, ctrl_state=ctrl_state)
+                gate = MCXVChain(num_ctrl_qubits, False, label=label, ctrl_state=ctrl_state)
             elif mode in ["v-chain-dirty", "basic-dirty-ancilla"]:
-                gate = MCXVChain(num_ctrl_qubits, dirty_ancillas=True, ctrl_state=ctrl_state)
+                gate = MCXVChain(
+                    num_ctrl_qubits, dirty_ancillas=True, label=label, ctrl_state=ctrl_state
+                )
             else:
                 raise ValueError("unreachable.")
             # else is unreachable, we exhausted all options
