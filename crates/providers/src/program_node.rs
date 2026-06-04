@@ -52,7 +52,7 @@ pub enum CallInputError {
         actual: DType,
     },
 
-    #[error("expected {expected} flat inputs, got {actual}")]
+    #[error("expected {expected} total inputs, got {actual}")]
     WrongArity { expected: usize, actual: usize },
 }
 
