@@ -356,7 +356,7 @@ static int test_qdrift_multiple_terms_manual(void) {
     QkObsTerm term2 = {(QkComplex64){1.0, 0.0}, 3, bits2, (uint32_t[3]){0, 1, 2}, num_qubits};
     qk_obs_add_term(obs, &term2);
 
-    QkCircuit *qc = qk_qdrift(obs, reps, time, 1, false, false);
+    QkCircuit *qc = qk_qdrift(obs, reps, time, 1, true, false);
 
     int result = (compare_circuits(qc, expected)) ? Ok : EqualityError;
 
@@ -367,9 +367,10 @@ static int test_qdrift_multiple_terms_manual(void) {
     return result;
 }
 
-// TEST insert_barriers
-
 static int test_qdrift_reorder(void) {
+    int result = Ok;
+
+    // Case for preserve_order = false
     QkCircuit *expected = qk_circuit_new(1, 0);
     qk_circuit_gate(expected, QkGate_RX, (uint32_t[1]){0}, (double[1]){0.65});
     qk_circuit_gate(expected, QkGate_RY, (uint32_t[1]){0}, (double[1]){0.65});
@@ -385,17 +386,49 @@ static int test_qdrift_reorder(void) {
     QkObsTerm term2 = {(QkComplex64){1.0, 0.0}, 1, op2_bits, (uint32_t[1]){0}, 1};
     qk_obs_add_term(obs, &term2);
 
-    QkCircuit *qc = qk_qdrift(obs, 1, 0.65, 6, false, false);
+    QkCircuit *qc = qk_qdrift(obs, 1, 0.65, 13, false, false);
 
-    int result = (compare_circuits(qc, expected)) ? Ok : EqualityError;
+    if (!compare_circuits(qc, expected))
+        result = EqualityError;
 
     qk_obs_free(obs);
     qk_circuit_free(qc);
+    qk_circuit_free(expected);
+
+    if (result != Ok)
+        return result;
+
+    // Case for preserve_order = true
+    QkCircuit *expected2 = qk_circuit_new(1, 0);
+    qk_circuit_gate(expected2, QkGate_RY, (uint32_t[1]){0}, (double[1]){0.65});
+    qk_circuit_gate(expected2, QkGate_RX, (uint32_t[1]){0}, (double[1]){0.65});
+    qk_circuit_gate(expected2, QkGate_RY, (uint32_t[1]){0}, (double[1]){0.65});
+    qk_circuit_gate(expected2, QkGate_RY, (uint32_t[1]){0}, (double[1]){0.65});
+
+    QkObs *obs2 = qk_obs_zero(1);
+
+    QkBitTerm op12_bits[1] = {QkBitTerm_X};
+    QkObsTerm term21 = {(QkComplex64){1.0, 0.0}, 1, op12_bits, (uint32_t[1]){0}, 1};
+    qk_obs_add_term(obs2, &term21);
+    QkBitTerm op22_bits[1] = {QkBitTerm_Y};
+    QkObsTerm term22 = {(QkComplex64){1.0, 0.0}, 1, op22_bits, (uint32_t[1]){0}, 1};
+    qk_obs_add_term(obs2, &term22);
+
+    QkCircuit *qc2 = qk_qdrift(obs2, 1, 0.65, 13, true, false);
+
+    if (!compare_circuits(qc2, expected2))
+        result = EqualityError;
+
+    qk_obs_free(obs2);
+    qk_circuit_free(qc2);
+    qk_circuit_free(expected2);
     return result;
 }
 
-static int test_qdrift_single_gate_manual(void) {
+static int test_qdrift_insert_barrier(void) {
     QkCircuit *expected = qk_circuit_new(1, 0);
+    qk_circuit_gate(expected, QkGate_RX, (uint32_t[1]){0}, (double[1]){2 * 0.238});
+    qk_circuit_barrier(expected, (uint32_t[1]){0}, 1);
     qk_circuit_gate(expected, QkGate_RX, (uint32_t[1]){0}, (double[1]){2 * 0.238});
 
     QkObs *obs = qk_obs_zero(1);
@@ -404,7 +437,11 @@ static int test_qdrift_single_gate_manual(void) {
     QkObsTerm term1 = {(QkComplex64){1.0, 0.0}, 1, op1_bits, (uint32_t[1]){0}, 1};
     qk_obs_add_term(obs, &term1);
 
-    QkCircuit *qc = qk_qdrift(obs, 2, 0.238, 1, true, false);
+    QkBitTerm op2_bits[1] = {QkBitTerm_X};
+    QkObsTerm term2 = {(QkComplex64){1.0, 0.0}, 1, op2_bits, (uint32_t[1]){0}, 1};
+    qk_obs_add_term(obs, &term2);
+
+    QkCircuit *qc = qk_qdrift(obs, 3, 0.238, 1, true, true);
 
     int result = (compare_circuits(qc, expected)) ? Ok : EqualityError;
 
@@ -423,7 +460,7 @@ int test_qdrift(void) {
     num_failed += RUN_TEST(test_qdrift_seed_auto_generation);
     num_failed += RUN_TEST(test_qdrift_multiple_terms_manual);
     num_failed += RUN_TEST(test_qdrift_reorder);
-    num_failed += RUN_TEST(test_qdrift_single_gate_manual);
+    num_failed += RUN_TEST(test_qdrift_insert_barrier);
 
     fflush(stderr);
     fprintf(stderr, "=== QDRIFT: Number of failed subtests: %i\n", num_failed);
