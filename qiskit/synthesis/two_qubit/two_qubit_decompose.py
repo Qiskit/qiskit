@@ -265,26 +265,98 @@ class TwoQubitWeylDecomposition:
 
 
 class TwoQubitControlledUDecomposer:
-    r"""Decompose two-qubit unitary in terms of a desired
-    :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}`
-    gate that is locally equivalent to an :class:`.RXXGate`."""
+    r"""Decompose a two-qubit unitary in terms of a desired
+    :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}` gate that is locally
+    equivalent to an :class:`.RXXGate`.
+
+    The decomposition rewrites any two-qubit unitary :math:`U` as:
+
+    .. math::
+
+        U(0,1) = c_{2r}(0)\, c_{2l}(1)\; W(0,1)\; c_{1r}(0)\, c_{1l}(1)
+
+    where :math:`W` is the Weyl (canonical) gate, factored as:
+
+    .. math::
+
+        W(0,1) = R_{XX}(a)\; R_{YY}(b)\; R_{ZZ}(c)
+
+    :math:`R_{YY}` and :math:`R_{ZZ}` are rewritten as :math:`R_{XX}` using
+    single-qubit conjugations:
+
+    .. math::
+
+        R_{YY}(b) = S^\dagger(0)\,S^\dagger(1)\; R_{XX}(b)\; S(0)\,S(1)
+
+    .. math::
+
+        R_{ZZ}(c) = H(0)\,H(1)\; R_{XX}(c)\; H(0)\,H(1)
+
+    Each :math:`R_{XX}` is then expressed using the user-supplied equivalent gate.
+    The single-qubit matrices between consecutive two-qubit gates are multiplied
+    together before being passed to :class:`.OneQubitEulerDecomposer`, giving at
+    most 8 single-qubit gates in the general (3 basis gate) case.
+
+    .. list-table:: Single-qubit gate count
+        :header-rows: 1
+
+        * - Basis gates used
+          - Max 1q gates (before 2.5)
+          - Max 1q gates (2.5+)
+        * - 1
+          - 8
+          - 4
+        * - 2
+          - 16
+          - 6
+        * - 3
+          - 24
+          - 8
+    """
 
     def __init__(self, rxx_equivalent_gate: type[Gate], euler_basis: str = "ZXZ"):
         r"""Initialize the KAK decomposition.
 
         Args:
             rxx_equivalent_gate: Gate that is locally equivalent to an :class:`.RXXGate`:
-                :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}` gate.
-                Valid options are [:class:`.RZZGate`, :class:`.RXXGate`, :class:`.RYYGate`,
-                :class:`.RZXGate`, :class:`.CPhaseGate`, :class:`.CRXGate`, :class:`.CRYGate`,
-                :class:`.CRZGate`].
+                :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}` gate. Must take exactly
+                one angle parameter. Valid options are [:class:`.RZZGate`, :class:`.RXXGate`,
+                :class:`.RYYGate`, :class:`.RZXGate`, :class:`.CPhaseGate`, :class:`.CRXGate`,
+                :class:`.CRYGate`, :class:`.CRZGate`]. Custom gate classes are also accepted
+                if they implement ``to_matrix()`` and take a single angle.
             euler_basis: Basis string to be provided to :class:`.OneQubitEulerDecomposer`
-                for 1Q synthesis.
-                Valid options are [``'ZXZ'``, ``'ZYZ'``, ``'XYX'``, ``'XZX'``, ``'U'``, ``'U3'``,
-                ``'U321'``, ``'U1X'``, ``'PSX'``, ``'ZSX'``, ``'ZSXX'``, ``'RR'``].
+                for 1Q synthesis. Valid options are [``'ZXZ'``, ``'ZYZ'``, ``'XYX'``,
+                ``'XZX'``, ``'U'``, ``'U3'``, ``'U321'``, ``'U1X'``, ``'PSX'``, ``'ZSX'``,
+                ``'ZSXX'``, ``'RR'``].
 
         Raises:
-            QiskitError: If the gate is not locally equivalent to an :class:`.RXXGate`.
+            QiskitError: If the gate is not locally equivalent to an :class:`.RXXGate` or
+                does not take exactly one angle parameter.
+
+        Examples:
+            Decompose an :class:`.RZZGate` — all single-qubit gates cancel::
+
+                from qiskit.circuit import QuantumCircuit
+                from qiskit.circuit.library import RZZGate
+                from qiskit.quantum_info import Operator
+                from qiskit.synthesis import TwoQubitControlledUDecomposer
+
+                qc = QuantumCircuit(2)
+                qc.rzz(-0.3, 1, 0)
+                mat = Operator(qc).data
+
+                decomposer = TwoQubitControlledUDecomposer(RZZGate, "U")
+                print(decomposer(mat))
+
+            Decompose a random two-qubit unitary — at most 8 single-qubit gates and 3 basis gates::
+
+                from qiskit.circuit.library import RZZGate
+                from qiskit.quantum_info import random_unitary
+                from qiskit.synthesis import TwoQubitControlledUDecomposer
+
+                mat = random_unitary(4, seed=1).data
+                decomposer = TwoQubitControlledUDecomposer(RZZGate, "U")
+                print(decomposer(mat).count_ops())  # {'u': 8, 'rzz': 3}
         """
         if rxx_equivalent_gate._standard_gate is not None:
             self._inner_decomposer = two_qubit_decompose.TwoQubitControlledUDecomposer(
@@ -305,7 +377,7 @@ class TwoQubitControlledUDecomposer:
         """Returns the Weyl decomposition in circuit form.
 
         Args:
-            unitary (Operator or ndarray): :math:`4 \times 4` unitary to synthesize.
+            unitary (Operator or ndarray): :math:`4 \\times 4` unitary to synthesize.
 
         Returns:
             QuantumCircuit: Synthesized quantum circuit.
@@ -481,7 +553,7 @@ class TwoQubitBasisDecomposer:
 # expensive to construct, and we want to defer the object's creation until it's actually used.  We
 # only need to pass through the public methods that take `self` as a parameter.  Using `__getattr__`
 # doesn't work because it is only called if the normal resolution methods fail.  Using
-# `__getattribute__` is too messy for a simple one-off use object.
+# `__getattribute__`` is too messy for a simple one-off use object.
 
 
 class _LazyTwoQubitCXDecomposer(TwoQubitBasisDecomposer):
