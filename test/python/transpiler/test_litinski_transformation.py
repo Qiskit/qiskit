@@ -889,3 +889,19 @@ class TestLitinskiTransformation(QiskitTestCase):
         transform = LitinskiTransformation(fix_clifford=True, use_ppr=True)
         circuit_out = transform(circuit)
         self.assertEqual(Operator(circuit_out), Operator(circuit))
+
+    def test_simple_pbc_circuit(self):
+        """Test a simple PBC circuit: H T H"""
+        pbc = QuantumCircuit(1)
+        pbc.append(PauliProductRotationGate(Pauli("Y"), np.pi / 2), [0])
+        pbc.append(PauliProductRotationGate(Pauli("X"), np.pi), [0])
+        pbc.append(PauliProductRotationGate(Pauli("Z"), np.pi / 4), [0])
+        pbc.append(PauliProductRotationGate(Pauli("Y"), np.pi / 2), [0])
+        pbc.append(PauliProductRotationGate(Pauli("X"), np.pi), [0])
+
+        lit = LitinskiTransformation(fix_clifford=False, use_ppr=True)
+        pbc = lit(pbc)
+
+        out = QuantumCircuit(1)
+        out.append(PauliProductRotationGate(Pauli("X"), np.pi / 4), [0])
+        self.assertEqual(pbc, out)
