@@ -13,6 +13,7 @@
 use crate::data_tree::DataTree;
 use crate::program_node::ProgramNode;
 use crate::tensor::{DTypeLike, Tensor, TensorType, promotion};
+use crate::unpack_tensor_args;
 use std::sync::LazyLock;
 
 /// Shared input type spec for all elementwise binary nodes: two broadcastable tensors `x` and `y`.
@@ -73,9 +74,7 @@ macro_rules! elementwise_binary_node {
                 true
             }
             fn call_flat(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::CallError> {
-                let [x, y] = args else {
-                    unreachable!("input arity is fixed by input_types");
-                };
+                unpack_tensor_args!(args, [x, y]);
                 let out_dtype = promotion(x.dtype(), y.dtype());
                 Ok(vec![$call_fn(
                     &x.cast_ref(out_dtype),
@@ -243,5 +242,17 @@ mod tests {
                 ref key,
             }) if key == "y"
         ));
+    }
+
+    #[test]
+    fn test_add_wrong_arity_errors() {
+        let err = Add.call_flat(&[Tensor::from([1.0_f64])]).unwrap_err();
+        assert_eq!(
+            err,
+            MathNodeError::Input(CallInputError::WrongArity {
+                expected: 2,
+                actual: 1,
+            })
+        );
     }
 }

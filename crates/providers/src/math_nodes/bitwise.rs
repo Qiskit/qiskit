@@ -13,6 +13,7 @@
 use crate::data_tree::DataTree;
 use crate::program_node::{CallInputError, ProgramNode};
 use crate::tensor::{DType, DTypeLike, Tensor, TensorType, broadcast_shape};
+use crate::unpack_tensor_args;
 use ndarray::Axis;
 use std::sync::LazyLock;
 
@@ -82,9 +83,7 @@ macro_rules! bitwise_binary_node {
                 true
             }
             fn call_flat(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::CallError> {
-                let [x, y] = args else {
-                    unreachable!("input arity is fixed by input_types");
-                };
+                unpack_tensor_args!(args, [x, y]);
                 let Tensor::Bit(x_arr) = x else {
                     return Err(unexpected_dtype("x", x).into());
                 };
@@ -124,9 +123,7 @@ impl ProgramNode for BitwiseNot {
         true
     }
     fn call_flat(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::CallError> {
-        let [x] = args else {
-            unreachable!("input arity is fixed by input_types");
-        };
+        unpack_tensor_args!(args, [x]);
         let Tensor::Bit(arr) = x else {
             return Err(unexpected_dtype("", x).into());
         };
@@ -169,9 +166,7 @@ impl ProgramNode for Parity {
         true
     }
     fn call_flat(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::CallError> {
-        let [x] = args else {
-            unreachable!("input arity is fixed by input_types");
-        };
+        unpack_tensor_args!(args, [x]);
         let Tensor::Bit(arr) = x else {
             return Err(unexpected_dtype("", x).into());
         };
@@ -271,6 +266,32 @@ mod tests {
                 key: "x".to_string(),
                 expected: "Bit".to_string(),
                 actual: DType::F64,
+            })
+        );
+    }
+
+    #[test]
+    fn test_bitwise_and_wrong_arity_errors() {
+        let err = BitwiseAnd.call_flat(&[bit(&[1, 0])]).unwrap_err();
+        assert_eq!(
+            err,
+            MathNodeError::Input(CallInputError::WrongArity {
+                expected: 2,
+                actual: 1,
+            })
+        );
+    }
+
+    #[test]
+    fn test_bitwise_not_wrong_arity_errors() {
+        let err = BitwiseNot
+            .call_flat(&[bit(&[1, 0]), bit(&[0, 1])])
+            .unwrap_err();
+        assert_eq!(
+            err,
+            MathNodeError::Input(CallInputError::WrongArity {
+                expected: 1,
+                actual: 2,
             })
         );
     }

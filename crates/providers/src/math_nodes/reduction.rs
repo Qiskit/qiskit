@@ -13,6 +13,7 @@
 use crate::data_tree::DataTree;
 use crate::program_node::ProgramNode;
 use crate::tensor::{DType, DTypeLike, Tensor, TensorType};
+use crate::unpack_tensor_args;
 use ndarray::Axis;
 use num_complex::Complex;
 use std::sync::LazyLock;
@@ -70,9 +71,7 @@ impl ProgramNode for Mean {
         true
     }
     fn call_flat(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::CallError> {
-        let [x] = args else {
-            unreachable!("input arity is fixed by input_types");
-        };
+        unpack_tensor_args!(args, [x]);
         let result = match x {
             Tensor::F32(a) => Tensor::F32(a.mean_axis(Axis(self.axis)).unwrap().into_shared()),
             Tensor::F64(a) => Tensor::F64(a.mean_axis(Axis(self.axis)).unwrap().into_shared()),
@@ -136,9 +135,7 @@ impl ProgramNode for Variance {
         true
     }
     fn call_flat(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::CallError> {
-        let [x] = args else {
-            unreachable!("input arity is fixed by input_types");
-        };
+        unpack_tensor_args!(args, [x]);
         let result = match x {
             Tensor::F32(a) => {
                 Tensor::F32(a.var_axis(Axis(self.axis), self.ddof as f32).into_shared())
@@ -207,9 +204,7 @@ impl ProgramNode for Std {
         true
     }
     fn call_flat(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::CallError> {
-        let [x] = args else {
-            unreachable!("input arity is fixed by input_types");
-        };
+        unpack_tensor_args!(args, [x]);
         let result = match x {
             Tensor::F32(a) => {
                 Tensor::F32(a.std_axis(Axis(self.axis), self.ddof as f32).into_shared())
@@ -402,5 +397,19 @@ mod tests {
                 ref key,
             }) if key.is_empty()
         ));
+    }
+
+    #[test]
+    fn test_mean_wrong_arity_errors() {
+        let err = Mean::new(0)
+            .call_flat(&[Tensor::from([1.0_f64]), Tensor::from([2.0_f64])])
+            .unwrap_err();
+        assert_eq!(
+            err,
+            MathNodeError::Input(CallInputError::WrongArity {
+                expected: 1,
+                actual: 2,
+            })
+        );
     }
 }
