@@ -298,7 +298,9 @@ static int test_qdrift_seed_auto_generation(void) {
     // which results in a uniform ~33% split.
     // We test here that this assumption is correct, which must be, otherwise
     // the test must fail.
-    double num_gates = ceil(2.0 * (pow(3.0, 2)) * time * reps);
+    double num_gates = 2.0 * (pow(3.0, 2)) * time * reps;
+    // ceil num_gates manually since libm isn't linked yet
+    int inum_gates = num_gates - ((int)num_gates) > 0 ? (int)num_gates + 1 : (int)num_gates;
     double counter_x = 0, counter_y = 0, counter_z = 0;
     size_t n = qk_circuit_num_instructions(qc);
     for (size_t k = 0; k < n; ++k) {
@@ -316,9 +318,9 @@ static int test_qdrift_seed_auto_generation(void) {
     }
 
     // We add a toleration of 2% since the repetitions are not much
-    bool vx = is_approx_equal(counter_x / num_gates, 0.33, 0.02);
-    bool vy = is_approx_equal(counter_y / num_gates, 0.33, 0.02);
-    bool vz = is_approx_equal(counter_z / num_gates, 0.33, 0.02);
+    bool vx = is_approx_equal(counter_x / inum_gates, 0.33, 0.02);
+    bool vy = is_approx_equal(counter_y / inum_gates, 0.33, 0.02);
+    bool vz = is_approx_equal(counter_z / inum_gates, 0.33, 0.02);
 
     if (!vx || !vy || !vz) {
         printf("\n[seed-generation] gates didn't follow uniform split\n");
