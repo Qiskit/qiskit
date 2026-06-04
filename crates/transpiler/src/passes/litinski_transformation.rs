@@ -370,7 +370,6 @@ pub fn run_litinski_transformation(
                     let indices_in: Vec<u32> = (0..qargs_in.len())
                         .map(|i| qargs_in[i].index() as u32)
                         .collect();
-                    let mut is_clifford = false;
 
                     if let Param::Float(angle) = angle {
                         // PPR has pi/2 angle, and so is a clifford
@@ -378,9 +377,6 @@ pub fn run_litinski_transformation(
                             is_ppr_angle_close_to_multiple_of_pi2(in_z, in_x, *angle, tol)
                         {
                             is_clifford = true;
-                            if fix_clifford {
-                                clifford_ops.push(inst);
-                            }
                             clifford.append_ppr(in_z, in_x, &indices_in, multiple)
                         }
                     }
@@ -541,7 +537,7 @@ fn is_ppr_angle_close_to_multiple_of_pi2(
     angle: f64,
     tol: f64,
 ) -> Option<usize> {
-    let closest_ratio = angle / PI;
+    let closest_ratio = 2.0 * angle / PI;
     let closest_integer = closest_ratio.round();
     let closest_angle = closest_integer * PI / 2.0;
     let theta = angle - closest_angle;
