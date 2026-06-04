@@ -12,7 +12,7 @@
 
 use ndarray::{ArcArray, ArrayD, IxDyn, Zip};
 use num_complex::{Complex32, Complex64};
-use std::borrow::Cow;
+
 use std::fmt;
 use thiserror::Error;
 
@@ -309,7 +309,7 @@ macro_rules! cast_complex {
 
 /// Compute the NumPy-style broadcast shape for two operand shapes, or
 /// return [`TensorError::ShapeMismatch`] if they are not broadcast-compatible.
-pub(crate) fn broadcast_shape(a: &[usize], b: &[usize]) -> Result<Vec<usize>, TensorError> {
+pub fn broadcast_shape(a: &[usize], b: &[usize]) -> Result<Vec<usize>, TensorError> {
     let ndim = a.len().max(b.len());
     (0..ndim)
         .map(|i| {
@@ -475,19 +475,6 @@ impl Tensor {
             Tensor::F64(a) => cast_real!(a, f64, target),
             Tensor::C64(a) => cast_complex!(a, target),
             Tensor::C128(a) => cast_complex!(a, target),
-        }
-    }
-
-    /// Cast this tensor to the `target` dtype, borrowing if it is already that dtype.
-    ///
-    /// Returns `Cow::Borrowed(self)` when no conversion is needed, otherwise
-    /// `Cow::Owned` of the cast result. Useful when promoting a `&Tensor` into
-    /// a common dtype without paying for a clone in the common no-op case.
-    pub fn cast_ref(&self, target: DType) -> Cow<'_, Tensor> {
-        if self.dtype() == target {
-            Cow::Borrowed(self)
-        } else {
-            Cow::Owned(self.clone().cast(target))
         }
     }
 }
@@ -1493,36 +1480,5 @@ mod test {
         }
 
         assert_eq!(fails, Vec::<String>::new(), "cast failures: {fails:?}");
-    }
-
-    #[test]
-    fn test_cast_ref_borrows_when_dtype_matches() {
-        let t = Tensor::from([1.0_f64, 2.0, 3.0]);
-        let cow = t.cast_ref(DType::F64);
-        assert!(
-            matches!(cow, Cow::Borrowed(_)),
-            "expected Cow::Borrowed when dtype matches"
-        );
-        // The borrowed tensor still points at the original data.
-        assert_eq!(cow.dtype(), DType::F64);
-        let Tensor::F64(arr) = cow.as_ref() else {
-            panic!("expected F64");
-        };
-        assert_eq!(arr.as_slice().unwrap(), &[1.0_f64, 2.0, 3.0]);
-    }
-
-    #[test]
-    fn test_cast_ref_owns_when_dtype_differs() {
-        let t = Tensor::from([1.0_f32, 2.0, 3.0]);
-        let cow = t.cast_ref(DType::F64);
-        assert!(
-            matches!(cow, Cow::Owned(_)),
-            "expected Cow::Owned when dtype differs"
-        );
-        assert_eq!(cow.dtype(), DType::F64);
-        let Tensor::F64(arr) = cow.into_owned() else {
-            panic!("expected F64");
-        };
-        assert_eq!(arr.as_slice().unwrap(), &[1.0_f64, 2.0, 3.0]);
     }
 }

@@ -84,7 +84,7 @@ impl ProgramNode for Mean {
                 Tensor::C128((a.sum_axis(Axis(self.axis)) / Complex::new(n, 0.0)).into_shared())
             }
             other => {
-                let Tensor::F64(a) = other.cast_ref(DType::F64).into_owned() else {
+                let Tensor::F64(a) = other.clone().cast(DType::F64) else {
                     unreachable!()
                 };
                 Tensor::F64(a.mean_axis(Axis(self.axis)).unwrap().into_shared())
@@ -158,7 +158,7 @@ impl ProgramNode for Variance {
                 Tensor::F64((sq_mod.sum_axis(Axis(self.axis)) / (n - self.ddof)).into_shared())
             }
             other => {
-                let Tensor::F64(a) = other.cast_ref(DType::F64).into_owned() else {
+                let Tensor::F64(a) = other.clone().cast(DType::F64) else {
                     unreachable!()
                 };
                 Tensor::F64(a.var_axis(Axis(self.axis), self.ddof).into_shared())
@@ -233,7 +233,7 @@ impl ProgramNode for Std {
                 )
             }
             other => {
-                let Tensor::F64(a) = other.cast_ref(DType::F64).into_owned() else {
+                let Tensor::F64(a) = other.clone().cast(DType::F64) else {
                     unreachable!()
                 };
                 Tensor::F64(a.std_axis(Axis(self.axis), self.ddof).into_shared())

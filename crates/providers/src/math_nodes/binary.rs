@@ -76,10 +76,9 @@ macro_rules! elementwise_binary_node {
             fn call_flat(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::CallError> {
                 unpack_tensor_args!(args, [x, y]);
                 let out_dtype = promotion(x.dtype(), y.dtype());
-                Ok(vec![$call_fn(
-                    &x.cast_ref(out_dtype),
-                    &y.cast_ref(out_dtype),
-                )?])
+                let x = x.clone().cast(out_dtype);
+                let y = y.clone().cast(out_dtype);
+                Ok(vec![$call_fn(&x, &y)?])
             }
         }
     };
