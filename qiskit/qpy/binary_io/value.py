@@ -31,7 +31,7 @@ from qiskit.circuit.parameterexpression import (
     OpCode,
     op_code_to_method,
 )
-from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
+from qiskit.circuit.parametervector import ParameterVector
 from qiskit.qpy import common, formats, exceptions, type_keys
 from qiskit.qpy.binary_io.parse_sympy_repr import parse_sympy_repr
 
@@ -458,16 +458,8 @@ def _read_parameter_vec(file_obj, vectors):
     root_uuid_int = uuid.UUID(bytes=data.uuid).int - data.index
     root_uuid = uuid.UUID(int=root_uuid_int)
     name = file_obj.read(data.vector_name_size).decode(common.ENCODE)
-
-    if root_uuid not in vectors:
-        vectors[root_uuid] = (ParameterVector(name, data.vector_size), set())
-    vector = vectors[root_uuid][0]
-
-    if vector[data.index].uuid != uuid.UUID(bytes=data.uuid):
-        vectors[root_uuid][1].add(data.index)
-        vector._params[data.index] = ParameterVectorElement(
-            vector, data.index, uuid=uuid.UUID(int=root_uuid_int + data.index)
-        )
+    if (vector := vectors.get(root_uuid, None)) is None:
+        vector = vectors[root_uuid] = ParameterVector(name, data.vector_size, uuid=root_uuid)
     return vector[data.index]
 
 
