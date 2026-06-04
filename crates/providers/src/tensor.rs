@@ -17,6 +17,8 @@ use std::fmt;
 use thiserror::Error;
 
 /// Dynamic-dimensional [`ArcArray`]; the storage type for every [`Tensor`] variant.
+///
+/// When we upgrade to ndarray>=0.17, we can import this alias instead of defining it here.
 type ArcArrayD<T> = ArcArray<T, IxDyn>;
 
 /// Errors returned by [`Tensor`] operations.
@@ -307,7 +309,7 @@ macro_rules! cast_complex {
 
 /// Compute the NumPy-style broadcast shape for two operand shapes, or
 /// return [`TensorError::ShapeMismatch`] if they are not broadcast-compatible.
-fn broadcast_shape(a: &[usize], b: &[usize]) -> Result<Vec<usize>, TensorError> {
+pub(crate) fn broadcast_shape(a: &[usize], b: &[usize]) -> Result<Vec<usize>, TensorError> {
     let ndim = a.len().max(b.len());
     (0..ndim)
         .map(|i| {

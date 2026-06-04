@@ -12,7 +12,7 @@
 
 use crate::data_tree::DataTree;
 use crate::program_node::{CallInputError, ProgramNode};
-use crate::tensor::{DType, DTypeLike, Tensor, TensorType};
+use crate::tensor::{DType, DTypeLike, Tensor, TensorType, broadcast_shape};
 use ndarray::Axis;
 use std::sync::LazyLock;
 
@@ -91,7 +91,7 @@ macro_rules! bitwise_binary_node {
                 let Tensor::Bit(y_arr) = y else {
                     return Err(unexpected_dtype("y", y).into());
                 };
-                // TODO: I think this call will panic on bad broadcast? we need an error
+                broadcast_shape(x_arr.shape(), y_arr.shape())?;
                 Ok(vec![Tensor::Bit($call_fn(x_arr, y_arr).into_shared())])
             }
         }
@@ -130,7 +130,6 @@ impl ProgramNode for BitwiseNot {
         let Tensor::Bit(arr) = x else {
             return Err(unexpected_dtype("", x).into());
         };
-        // TODO: I think this call will panic on bad broadcast? we need an error
         Ok(vec![Tensor::Bit(arr.mapv(|b| b ^ 1).into_shared())])
     }
 }
@@ -272,6 +271,20 @@ mod tests {
                 key: "x".to_string(),
                 expected: "Bit".to_string(),
                 actual: DType::F64,
+            })
+        );
+    }
+
+    #[test]
+    fn test_bitwise_and_shape_mismatch_errors() {
+        let err = BitwiseAnd
+            .call_flat(&[bit(&[1, 0, 1]), bit(&[1, 0, 1, 1])])
+            .unwrap_err();
+        assert_eq!(
+            err,
+            MathNodeError::Tensor(crate::tensor::TensorError::ShapeMismatch {
+                lhs: vec![3],
+                rhs: vec![4],
             })
         );
     }
