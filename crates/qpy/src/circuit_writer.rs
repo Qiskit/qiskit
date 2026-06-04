@@ -259,6 +259,11 @@ fn pack_instruction(
         OperationRef::ControlFlow(control_flow_inst) => {
             pack_control_flow_inst(control_flow_inst, instruction, qpy_data)?
         }
+        OperationRef::CustomOperation(_) => {
+            return Err(QpyError::SerializationError(
+                "compiled custom operations are not yet supported in QPY".to_owned(),
+            ));
+        }
     };
 
     // common data extraction for all instruction types

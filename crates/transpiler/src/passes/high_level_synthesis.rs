@@ -15,6 +15,7 @@ use hashbrown::HashSet;
 use ndarray::prelude::*;
 use pyo3::Bound;
 use pyo3::IntoPyObjectExt;
+use pyo3::exceptions::PyNotImplementedError;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 use qiskit_circuit::bit::ShareableQubit;
@@ -809,6 +810,7 @@ fn extract_definition(op: &PackedOperation, params: &[Param]) -> PyResult<Option
             | StandardInstruction::Delay(_) => Ok(None),
         },
         OperationRef::ControlFlow(_) => Ok(None),
+        OperationRef::CustomOperation(custom_gate) => Ok(custom_gate.definition(params)),
     }
 }
 
@@ -956,6 +958,11 @@ fn synthesize_op_using_plugins(
         OperationRef::PauliProductMeasurement(ppm) => ppm.create_py_op(py, label)?.into_any(),
         OperationRef::PauliProductRotation(rotation) => {
             rotation.create_py_op(py, label)?.into_any()
+        }
+        OperationRef::CustomOperation(_) => {
+            return Err(PyNotImplementedError::new_err(
+                "Custom Operations from Rust cannot be exposed to Python.",
+            ));
         }
     };
 
