@@ -691,19 +691,24 @@ class TestCommutationChecker(QiskitTestCase):
         """Test that the standard_gate_commutations.rs tables are correct"""
         # check all pairs of standard gates
         for _, gate1 in get_standard_gate_name_mapping().items():
-            for _, gate2 in get_standard_gate_name_mapping().items():
-                if gate1._standard_gate and gate2._standard_gate:
-                    num_qubits1 = gate1.num_qubits
+            num_qubits1 = gate1.num_qubits
+            if (
+                gate1._standard_gate
+                and len(gate1._params) < 2
+                and num_qubits1 > 0
+                and num_qubits1 < 4
+            ):
+                for _, gate2 in get_standard_gate_name_mapping().items():
                     num_qubits2 = gate2.num_qubits
                     num_qubits = min(num_qubits1 + num_qubits2 - 1, 3)
-                    # check only gates with 0 or 1 parameters
-                    # we also limit the number of qubits so that the test won't take too long
                     if (
-                        len(gate1._params) < 2
+                        gate2._standard_gate
                         and len(gate2._params) < 2
-                        and num_qubits1 > 0
                         and num_qubits2 > 0
+                        and num_qubits2 < 4
                     ):
+                        # check only gates with 0 or 1 parameters
+                        # we also limit the number of qubits so that the test won't take too long
                         params1 = [0.32 * (i + 1) for i in range(len(gate1.params))]
                         params2 = [0.45 * (i + 1) for i in range(len(gate2.params))]
                         subsets1 = list(itertools.permutations(range(num_qubits), num_qubits1))
