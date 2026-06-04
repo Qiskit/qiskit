@@ -33,18 +33,13 @@ use qiskit_circuit::bit::{
 };
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
+use qiskit_circuit::classical::expr::Expr;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interned;
-use qiskit_circuit::operations::ArrayType;
-use qiskit_circuit::operations::PauliBased;
-use qiskit_circuit::operations::PauliProductRotation;
-use qiskit_circuit::operations::UnitaryGate;
 use qiskit_circuit::operations::{
-    BoxDuration, CaseSpecifier, Condition, StandardInstructionType, SwitchTarget,
-};
-use qiskit_circuit::operations::{
-    ControlFlow, ControlFlowInstruction, ControlFlowType, Param, PauliProductMeasurement,
-    StandardInstruction,
+    ArrayType, BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction,
+    ControlFlowType, LoopParam, Param, PauliBased, PauliProductMeasurement, PauliProductRotation,
+    StandardInstruction, StandardInstructionType, SwitchTarget, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
@@ -574,7 +569,10 @@ fn unpack_control_flow(
             }
             let collection = unpack_for_collection(&collection_value_pack)?;
             let loop_param = match loop_param_value_pack {
-                GenericValue::ParameterExpressionSymbol(symbol) => Some(symbol),
+                GenericValue::ParameterExpressionSymbol(symbol) => {
+                    Some(LoopParam::Parameter(symbol))
+                }
+                GenericValue::Expression(Expr::Var(var)) => Some(LoopParam::Variable(var)),
                 _ => None,
             };
             ControlFlow::ForLoop {

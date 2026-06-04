@@ -1040,11 +1040,16 @@ class QASM3Builder:
             out.append(ast.AliasStatement(name, ast.IndexSet(elements)))
         return out
 
-    def build_current_scope(self) -> list[ast.Statement]:
+    def build_current_scope(self, no_declaration: Iterable = None) -> list[ast.Statement]:
         """Build the instructions that occur in the current scope.
 
         In addition to everything literally in the circuit's ``data`` field, this also includes
         declarations for any local :class:`.expr.Var` nodes.
+
+        Args:
+            no_declaration: if given, a list of variables to ignore when building declarations.
+                This is currently used to avoid redeclaring the loop variable in a ForLoop using
+                expr.Var.
         """
 
         # We forward-declare all local variables uninitialised at the top of their scope. It would
@@ -1054,20 +1059,23 @@ class QASM3Builder:
         # the `QuantumCircuit` API protection to produce a circuit that uses an uninitialised
         # variable, or the initial write to a variable is within a control-flow scope.  (It would be
         # easier to see the def/use chain needed to do this cleanly if we were using `DAGCircuit`.)
+        no_declaration = set() if no_declaration is None else set(no_declaration)
         statements = [
             ast.ClassicalDeclaration(
                 _build_ast_type(var.type),
                 self.symbols.register_variable(var.name, var, allow_rename=True),
             )
             for var in self.scope.circuit.iter_declared_vars()
+            if var not in no_declaration
         ]
 
         for stretch in self.scope.circuit.iter_declared_stretches():
-            statements.append(
-                ast.StretchDeclaration(
-                    self.symbols.register_variable(stretch.name, stretch, allow_rename=True),
+            if stretch not in no_declaration:
+                statements.append(
+                    ast.StretchDeclaration(
+                        self.symbols.register_variable(stretch.name, stretch, allow_rename=True),
+                    )
                 )
-            )
 
         for instruction in self.scope.circuit.data:
             if isinstance(instruction.operation, ControlFlowOp):
@@ -1234,9 +1242,14 @@ class QASM3Builder:
                         "The values in OpenQASM 3 'for' loops must all be integers, but received"
                         f" '{indexset}'."
                     ) from None
-            body_ast = ast.ProgramBlock(self.build_current_scope())
-            # Force IntType as Qiskit ForLoop only supports indexset made of integers
-            type_ = ast.IntType()
+            if isinstance(loop_parameter, expr.Var):
+                no_declaration = {loop_parameter}
+                type_ = _build_ast_type(loop_parameter.type)
+            else:  # parameter
+                no_declaration = None
+                # Force IntType as Qiskit ForLoop only supports indexset made of integers
+                type_ = ast.IntType()
+            body_ast = ast.ProgramBlock(self.build_current_scope(no_declaration))
         return ast.ForLoopStatement(indexset_ast, loop_parameter_ast, body_ast, type_)
 
     def build_annotation(self, annotation: Annotation) -> ast.Annotation:

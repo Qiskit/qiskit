@@ -29,8 +29,8 @@ use crate::instruction::Parameters;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::{self, ObjectRegistry};
 use crate::operations::{
-    ControlFlow, ControlFlowView, Operation, OperationRef, Param, PauliBased, PyOperationTypes,
-    PythonOperation, StandardGate,
+    ControlFlow, ControlFlowView, LoopParam, Operation, OperationRef, Param, PauliBased,
+    PyOperationTypes, PythonOperation, StandardGate,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::{ParameterError, ParameterExpression};
@@ -2009,7 +2009,7 @@ fn for_each_symbol_use_in_control_flow(
             };
             for symbol in body.parameters() {
                 // Skip the loop variable itself — it is runtime-bound.
-                if loop_param.as_ref() == Some(&symbol) {
+                if loop_param == Some(&LoopParam::Parameter(symbol.clone())) {
                     continue;
                 }
                 action(symbol, usage)?;

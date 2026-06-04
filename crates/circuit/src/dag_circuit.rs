@@ -34,8 +34,8 @@ use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
     ArrayType, BoxDuration, Condition, ControlFlow, ControlFlowInstruction, ControlFlowView,
-    Operation, OperationRef, Param, PauliBased, PyOperationTypes, PythonOperation, StandardGate,
-    StandardInstruction, SwitchTarget,
+    LoopParam, Operation, OperationRef, Param, PauliBased, PyOperationTypes, PythonOperation,
+    StandardGate, StandardInstruction, SwitchTarget,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -2240,7 +2240,11 @@ impl DAGCircuit {
                                         return Ok(false);
                                     }
                                     match (loop_param_a, loop_param_b) {
-                                        (Some(loop_param_a), Some(loop_param_b)) => {
+                                        // TODO: must add a case for comparing two loop parameters which are identical expr.var
+                                        (
+                                            Some(LoopParam::Parameter(loop_param_a)),
+                                            Some(LoopParam::Parameter(loop_param_b)),
+                                        ) => {
                                             // Until we have a way to assign parameters in a DAG, we need
                                             // to convert a for loop's body DAG back to a circuit.
                                             let sentinel = PARAMETER

@@ -7233,7 +7233,6 @@ class QuantumCircuit:
         clbits: None,
         *,
         label: str | None,
-        as_var: bool = False,
     ) -> ForLoopContext: ...
 
     @typing.overload
@@ -7246,7 +7245,6 @@ class QuantumCircuit:
         clbits: Sequence[ClbitSpecifier],
         *,
         label: str | None,
-        as_var: bool = False,
     ) -> InstructionSet: ...
 
     def for_loop(
@@ -7258,7 +7256,6 @@ class QuantumCircuit:
         clbits=None,
         *,
         label=None,
-        as_var=False,
     ):
         """Create a ``for`` loop on this circuit.
 
@@ -7301,10 +7298,6 @@ class QuantumCircuit:
             clbits (Optional[Sequence[ClbitSpecifier]]): The circuit clbits over which the loop body
                 should be run.  Omit this to use the context-manager mode.
             label (Optional[str]): The string label of the instruction in the circuit.
-            as_var (bol): If ``True``, the loop variable will be an :class:`.expr.Var` runtime
-                variable (of :class:`.types.Uint` type) rather than a compile-time
-                :class:`.Parameter`. Only valid in the context-manager form.
-                Defaults to ``False``.
 
         Returns:
             InstructionSet or ForLoopContext: depending on the call signature, either a context
@@ -7319,7 +7312,7 @@ class QuantumCircuit:
                 raise CircuitError(
                     "When using 'for_loop' as a context manager, you cannot pass qubits or clbits."
                 )
-            return ForLoopContext(self, indexset, loop_parameter, label=label, as_var=as_var)
+            return ForLoopContext(self, indexset, loop_parameter, label=label)
         elif qubits is None or clbits is None:
             raise CircuitError(
                 "When using 'for_loop' with a body, you must pass qubits and clbits."

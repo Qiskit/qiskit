@@ -25,24 +25,6 @@ use num_bigint::BigUint;
 use num_traits::ToPrimitive;
 use numpy::ToPyArray;
 
-use pyo3::prelude::*;
-use pyo3::types::{PyAny, PyDict, PyTuple};
-use qiskit_circuit::bit::{
-    ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register, ShareableClbit, ShareableQubit,
-};
-use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
-use qiskit_circuit::circuit_instruction::{CircuitInstruction, OperationFromPython};
-use qiskit_circuit::converters::QuantumCircuitData;
-use qiskit_circuit::duration::Duration;
-use qiskit_circuit::imports;
-use qiskit_circuit::instruction::Parameters;
-use qiskit_circuit::operations::{
-    ArrayType, BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction,
-    Operation, OperationRef, Param, PauliProductMeasurement, PauliProductRotation, PyInstruction,
-    StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
-};
-use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
-
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::error::QpyError;
@@ -58,6 +40,24 @@ use crate::value::{
     QPYWriteData, RegisterType, get_circuit_type_key, pack_for_collection, pack_generic_value,
     pack_standalone_var, pack_stretch, serialize, serialize_param_register_value,
 };
+use pyo3::prelude::*;
+use pyo3::types::{PyAny, PyDict, PyTuple};
+use qiskit_circuit::bit::{
+    ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register, ShareableClbit, ShareableQubit,
+};
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
+use qiskit_circuit::circuit_instruction::{CircuitInstruction, OperationFromPython};
+use qiskit_circuit::classical::expr::Expr;
+use qiskit_circuit::converters::QuantumCircuitData;
+use qiskit_circuit::duration::Duration;
+use qiskit_circuit::imports;
+use qiskit_circuit::instruction::Parameters;
+use qiskit_circuit::operations::{
+    ArrayType, BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction,
+    LoopParam, Operation, OperationRef, Param, PauliProductMeasurement, PauliProductRotation,
+    PyInstruction, StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
+};
+use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::var_stretch_container::{StretchType, VarType};
 
 /// packing the qubits and clbits of a specific instruction into CircuitInstructionArgPack
@@ -465,7 +465,10 @@ fn pack_control_flow_inst(
             let collection_value = pack_for_collection(&collection);
             let loop_param_value = match loop_param {
                 None => GenericValue::Null,
-                Some(symbol) => GenericValue::ParameterExpressionSymbol(symbol),
+                Some(loop_param) => match loop_param {
+                    LoopParam::Variable(var) => GenericValue::Expression(Expr::Var(var)),
+                    LoopParam::Parameter(symbol) => GenericValue::ParameterExpressionSymbol(symbol),
+                },
             };
             let mut params = Vec::new();
             params.push(pack_generic_value(&collection_value, qpy_data)?);

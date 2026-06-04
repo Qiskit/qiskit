@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 from collections.abc import Iterable
 
 from qiskit.circuit.parameter import Parameter
-from qiskit.circuit.classical.expr import Var
+from qiskit.circuit.classical import expr
 from qiskit.circuit.classical.types import Uint
 from qiskit.circuit.exceptions import CircuitError
 from qiskit._accelerate.circuit import ControlFlowType
@@ -40,7 +40,7 @@ class ForLoopOp(ControlFlowOp):
     def __init__(
         self,
         indexset: Iterable[int],
-        loop_parameter: Parameter | None,
+        loop_parameter: Parameter | expr.Var | None,
         body: QuantumCircuit,
         label: str | None = None,
     ):
@@ -48,7 +48,8 @@ class ForLoopOp(ControlFlowOp):
         Args:
             indexset: A collection of integers to loop over.
             loop_parameter: The placeholder parameterizing ``body`` to which
-                the values from ``indexset`` will be assigned.
+                the values from ``indexset`` will be assigned. Can be a
+                ``Parameter``, ``expr.Var`` of type ``Uint``, or ``None``.
             body: The loop body to be repeatedly executed.
             label: An optional label for identifying the instruction.
         """
@@ -69,13 +70,13 @@ class ForLoopOp(ControlFlowOp):
 
         indexset, loop_parameter, body = parameters
 
-        if not isinstance(loop_parameter, (Parameter, Var, type(None))):
+        if not isinstance(loop_parameter, (Parameter, expr.Var, type(None))):
             raise CircuitError(
                 "ForLoopOp expects a loop_parameter parameter, to "
                 "be either of type Parameter, Var or None, but received "
                 f"{type(loop_parameter)}."
             )
-        if isinstance(loop_parameter, Var) and loop_parameter.type.kind is not Uint:
+        if isinstance(loop_parameter, expr.Var) and loop_parameter.type.kind is not Uint:
             raise CircuitError(
                 "ForLoopOp expects a Var loop_parameter parameter to "
                 "be of type Uint, but received "
@@ -192,10 +193,9 @@ class ForLoopContext:
         self,
         circuit: QuantumCircuit,
         indexset: Iterable[int],
-        loop_parameter: Parameter | Var | None = None,
+        loop_parameter: Parameter | expr.Var | None = None,
         *,
         label: str | None = None,
-        as_var: bool = False,
     ):
         self._circuit = circuit
         self._generate_loop_parameter = loop_parameter is None
@@ -205,23 +205,17 @@ class ForLoopContext:
         self._indexset = indexset if isinstance(indexset, range) else tuple(indexset)
         self._label = label
         self._used = False
-        self._as_var = as_var
 
     def __enter__(self):
         if self._used:
             raise CircuitError("A for-loop context manager cannot be re-entered.")
         self._used = True
         self._circuit._push_scope()
-        if self._as_var:
-            self._loop_parameter = Var.new(
-                f"_loop_i_{self._generated_loop_vars}", Uint(_indexset_bit_width(self._indexset))
-            )
-            type(self)._generated_loop_vars += 1
-            self._circuit._current_scope().add_uninitialized_var(self._loop_parameter)
-            return self._loop_parameter
         if self._generate_loop_parameter:
             self._loop_parameter = Parameter(f"_loop_i_{self._generated_loop_parameters}")
             type(self)._generated_loop_parameters += 1
+        if isinstance(self._loop_parameter, expr.Var):
+            self._circuit._current_scope().add_uninitialized_var(self._loop_parameter)
         return self._loop_parameter
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -234,15 +228,11 @@ class ForLoopContext:
         # Loops do not need to pass any further resources in, because this scope itself defines the
         # extent of ``break`` and ``continue`` statements.
         body = scope.build(scope.qubits(), scope.clbits())
-        if self._as_var:
-            # TODO: we want to have `loop_parameter = self._loop_parameter`
-            # For this we need to add support in the Rust level for CircuitInstruction
-            loop_parameter = None
         # We always bind the loop parameter if the user gave it to us, even if it isn't actually
         # used, because they requested we do that by giving us a parameter.  However, if they asked
         # us to auto-generate a parameter, then we only add it if they actually used it, to avoid
         # using unnecessary resources.
-        elif self._generate_loop_parameter and self._loop_parameter not in body.parameters:
+        if self._generate_loop_parameter and self._loop_parameter not in body.parameters:
             loop_parameter = None
         else:
             loop_parameter = self._loop_parameter
