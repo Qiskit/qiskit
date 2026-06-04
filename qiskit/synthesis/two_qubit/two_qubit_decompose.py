@@ -265,53 +265,105 @@ class TwoQubitWeylDecomposition:
 
 
 class TwoQubitControlledUDecomposer:
-    r"""Decompose a two-qubit unitary in terms of a desired
-    :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}` gate that is locally
-    equivalent to an :class:`.RXXGate`.
+    r"""Decompose two-qubit unitary in terms of a desired
+    :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}`
+    gate that is locally equivalent to an :class:`.RXXGate`.
 
-    The decomposition rewrites any two-qubit unitary :math:`U` as:
+    **Synthesis algorithm**
 
-    .. math::
-
-        U(0,1) = c_{2r}(0)\, c_{2l}(1)\; W(0,1)\; c_{1r}(0)\, c_{1l}(1)
-
-    where :math:`W` is the Weyl (canonical) gate, factored as:
+    Any general two-qubit unitary :math:`U \in U(4)` can be decomposed via the
+    KAK / Weyl decomposition as:
 
     .. math::
 
-        W(0,1) = R_{XX}(a)\; R_{YY}(b)\; R_{ZZ}(c)
+        U = (K_1^r \otimes K_1^l)\, e^{i(a\, XX + b\, YY + c\, ZZ)}\, (K_2^r \otimes K_2^l)
 
-    :math:`R_{YY}` and :math:`R_{ZZ}` are rewritten as :math:`R_{XX}` using
-    single-qubit conjugations:
+    where :math:`K_1^r, K_1^l, K_2^r, K_2^l \in SU(2)` are single-qubit unitaries and
+    :math:`a \geq b \geq |c| \geq 0` are the Weyl chamber parameters.
 
-    .. math::
+    The Weyl/interaction gate :math:`e^{i(a\,XX + b\,YY + c\,ZZ)}` is further
+    decomposed into three two-qubit gates:
 
-        R_{YY}(b) = S^\dagger(0)\,S^\dagger(1)\; R_{XX}(b)\; S(0)\,S(1)
+    .. parsed-literal::
 
-    .. math::
+             ┌─────────┐┌─────────┐
+        q_0: ┤0        ├┤0        ├─■──────
+             │  Rxx(a) ││  Ryy(b) │ │ZZ(c)
+        q_1: ┤1        ├┤1        ├─■──────
+             └─────────┘└─────────┘
 
-        R_{ZZ}(c) = H(0)\,H(1)\; R_{XX}(c)\; H(0)\,H(1)
+    Each :math:`RYY(b)` is expressed as an :math:`RXX` gate conjugated by :math:`Sdg`/:math:`S`
+    gates:
 
-    Each :math:`R_{XX}` is then expressed using the user-supplied equivalent gate.
-    The single-qubit matrices between consecutive two-qubit gates are multiplied
-    together before being passed to :class:`.OneQubitEulerDecomposer`, giving at
-    most 8 single-qubit gates in the general (3 basis gate) case.
+    .. parsed-literal::
 
-    .. list-table:: Single-qubit gate count
-        :header-rows: 1
+             ┌─────┐┌─────────┐┌───┐
+        q_0: ┤ Sdg ├┤0        ├┤ S ├
+             ├─────┤│  Rxx(b) │├───┤
+        q_1: ┤ Sdg ├┤1        ├┤ S ├
+             └─────┘└─────────┘└───┘
 
-        * - Basis gates used
-          - Max 1q gates (before 2.5)
-          - Max 1q gates (2.5+)
-        * - 1
-          - 8
-          - 4
-        * - 2
-          - 16
-          - 6
-        * - 3
-          - 24
-          - 8
+    and each :math:`RZZ(c)` is expressed as an :math:`RXX` gate conjugated by :math:`H` gates:
+
+    .. parsed-literal::
+
+             ┌───┐┌─────────┐┌───┐
+        q_0: ┤ H ├┤0        ├┤ H ├
+             ├───┤│  Rxx(c) │├───┤
+        q_1: ┤ H ├┤1        ├┤ H ├
+             └───┘└─────────┘└───┘
+
+    Each :math:`RXX(\theta)` is in turn replaced by the user-provided RXX-equivalent gate
+    (``rxx_equivalent_gate``) together with at most two surrounding single-qubit
+    correction unitaries derived from the KAK decomposition of that substitution.
+
+    ** improvement over the previous implementation**
+
+    Adjacent single-qubit layers are *merged* at the matrix level before being
+    decomposed into 1-qubit gate sequences.  Concretely, for the full three-gate
+    decomposition the circuit takes the form:
+
+    .. parsed-literal::
+
+             ┌─────┐┌─────────┐┌───────────┐┌─────────┐┌─────┐┌─────────┐┌───────────┐»
+        q_0: ┤ c2r ├┤ rxx_k2r ├┤0          ├┤ rxx_k1r ├┤ Sdg ├┤ ryy_k2r ├┤0          ├»
+             ├─────┤├─────────┤│  Equiv(a) │├─────────┤├─────┤├─────────┤│  Equiv(b) │»
+        q_1: ┤ c2l ├┤ rxx_k2l ├┤1          ├┤ rxx_k1l ├┤ Sdg ├┤ ryy_k2l ├┤1          ├»
+             └─────┘└─────────┘└───────────┘└─────────┘└─────┘└─────────┘└───────────┘»
+        «     ┌─────────┐┌───┐┌───┐┌─────────┐┌───────────┐┌─────────┐┌───┐┌─────┐
+        «q_0: ┤ ryy_k1r ├┤ S ├┤ H ├┤ rzz_k2r ├┤0          ├┤ rzz_k1r ├┤ H ├┤ c1r ├
+        «     ├─────────┤├───┤├───┤├─────────┤│  Equiv(c) │├─────────┤├───┤├─────┤
+        «q_1: ┤ ryy_k1l ├┤ S ├┤ H ├┤ rzz_k2l ├┤1          ├┤ rzz_k1l ├┤ H ├┤ c1l ├
+        «     └─────────┘└───┘└───┘└─────────┘└───────────┘└─────────┘└───┘└─────┘
+
+    The consecutive single-qubit operations between two-qubit gates (e.g.
+    ``rxx_k1r · Sdg · ryy_k2r``) are **multiplied together as unitary matrices**
+    before being synthesised into a single gate sequence.  This reduces the
+    single-qubit gate count from the previous maximum of **24** down to **8**
+    (one per qubit per inter-gate boundary, plus the outer ``c2`` and ``c1``
+    layers), while still using exactly **3** two-qubit gates for a general unitary.
+
+    For unitaries that require fewer than 3 two-qubit gates the same merging
+    strategy is applied, giving proportionally fewer single-qubit gates.
+
+    **Single-qubit gate counts (general unitary, 3 two-qubit gates)**
+
+    +----------------------------+-------------------+
+    | Quantity                   | Count             |
+    +============================+===================+
+    | Two-qubit gates            | 3                 |
+    +----------------------------+-------------------+
+    | Single-qubit unitaries     | 8 (max)           |
+    +----------------------------+-------------------+
+    | Single-qubit gates (prev.) | 24 (max)          |
+    +----------------------------+-------------------+
+
+    .. note::
+
+        The number of *elementary* 1-qubit gates (e.g. ``U``, ``RZ``, ``RX``)
+        produced per unitary depends on the chosen ``euler_basis`` and the
+        specific matrices involved.  The count of **8 single-qubit unitaries**
+        is basis-independent.
     """
 
     def __init__(self, rxx_equivalent_gate: type[Gate], euler_basis: str = "ZXZ"):
@@ -319,44 +371,17 @@ class TwoQubitControlledUDecomposer:
 
         Args:
             rxx_equivalent_gate: Gate that is locally equivalent to an :class:`.RXXGate`:
-                :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}` gate. Must take exactly
-                one angle parameter. Valid options are [:class:`.RZZGate`, :class:`.RXXGate`,
-                :class:`.RYYGate`, :class:`.RZXGate`, :class:`.CPhaseGate`, :class:`.CRXGate`,
-                :class:`.CRYGate`, :class:`.CRZGate`]. Custom gate classes are also accepted
-                if they implement ``to_matrix()`` and take a single angle.
+                :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}` gate.
+                Valid options are [:class:`.RZZGate`, :class:`.RXXGate`, :class:`.RYYGate`,
+                :class:`.RZXGate`, :class:`.CPhaseGate`, :class:`.CRXGate`, :class:`.CRYGate`,
+                :class:`.CRZGate`].
             euler_basis: Basis string to be provided to :class:`.OneQubitEulerDecomposer`
-                for 1Q synthesis. Valid options are [``'ZXZ'``, ``'ZYZ'``, ``'XYX'``,
-                ``'XZX'``, ``'U'``, ``'U3'``, ``'U321'``, ``'U1X'``, ``'PSX'``, ``'ZSX'``,
-                ``'ZSXX'``, ``'RR'``].
+                for 1Q synthesis.
+                Valid options are [``'ZXZ'``, ``'ZYZ'``, ``'XYX'``, ``'XZX'``, ``'U'``, ``'U3'``,
+                ``'U321'``, ``'U1X'``, ``'PSX'``, ``'ZSX'``, ``'ZSXX'``, ``'RR'``].
 
         Raises:
-            QiskitError: If the gate is not locally equivalent to an :class:`.RXXGate` or
-                does not take exactly one angle parameter.
-
-        Examples:
-            Decompose an :class:`.RZZGate` — all single-qubit gates cancel::
-
-                from qiskit.circuit import QuantumCircuit
-                from qiskit.circuit.library import RZZGate
-                from qiskit.quantum_info import Operator
-                from qiskit.synthesis import TwoQubitControlledUDecomposer
-
-                qc = QuantumCircuit(2)
-                qc.rzz(-0.3, 1, 0)
-                mat = Operator(qc).data
-
-                decomposer = TwoQubitControlledUDecomposer(RZZGate, "U")
-                print(decomposer(mat))
-
-            Decompose a random two-qubit unitary — at most 8 single-qubit gates and 3 basis gates::
-
-                from qiskit.circuit.library import RZZGate
-                from qiskit.quantum_info import random_unitary
-                from qiskit.synthesis import TwoQubitControlledUDecomposer
-
-                mat = random_unitary(4, seed=1).data
-                decomposer = TwoQubitControlledUDecomposer(RZZGate, "U")
-                print(decomposer(mat).count_ops())  # {'u': 8, 'rzz': 3}
+            QiskitError: If the gate is not locally equivalent to an :class:`.RXXGate`.
         """
         if rxx_equivalent_gate._standard_gate is not None:
             self._inner_decomposer = two_qubit_decompose.TwoQubitControlledUDecomposer(
@@ -377,7 +402,7 @@ class TwoQubitControlledUDecomposer:
         """Returns the Weyl decomposition in circuit form.
 
         Args:
-            unitary (Operator or ndarray): :math:`4 \\times 4` unitary to synthesize.
+            unitary (Operator or ndarray): :math:`4 \times 4` unitary to synthesize.
 
         Returns:
             QuantumCircuit: Synthesized quantum circuit.
@@ -551,9 +576,9 @@ class TwoQubitBasisDecomposer:
 # This weird duplicated lazy structure is for backwards compatibility; Qiskit has historically
 # always made ``two_qubit_cnot_decompose`` available publicly immediately on import, but it's quite
 # expensive to construct, and we want to defer the object's creation until it's actually used.  We
-# only need to pass through the public methods that take `self` as a parameter.  Using `__getattr__`
+# only need to pass through the public methods that take `self` as a parameter.  Using `__getattr__``
 # doesn't work because it is only called if the normal resolution methods fail.  Using
-# `__getattribute__`` is too messy for a simple one-off use object.
+# `__getattribute__` is too messy for a simple one-off use object.
 
 
 class _LazyTwoQubitCXDecomposer(TwoQubitBasisDecomposer):
