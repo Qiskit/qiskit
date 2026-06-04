@@ -272,7 +272,8 @@ class TwoQubitControlledUDecomposer:
     **Synthesis algorithm**
 
     Any two-qubit unitary :math:`U` can be written, through its canonical (Weyl) decomposition
-    [1], as a Weyl gate :math:`U_d(a, b, c)` surrounded by four single-qubit gates:
+    (see :class:`.TwoQubitWeylDecomposition`), as a Weyl gate :math:`U_d(a, b, c)` surrounded by
+    four single-qubit gates:
 
     .. code-block:: text
 
@@ -331,16 +332,18 @@ class TwoQubitControlledUDecomposer:
         q_1: ┤ d2l ├┤1          ├┤ d1l ├┤1          ├┤ e1l ├┤1          ├┤ f1l ├
              └─────┘└───────────┘└─────┘└───────────┘└─────┘└───────────┘└─────┘
 
+    Here ``Equiv(a)``, ``Equiv(b)`` and ``Equiv(c)`` are the user-supplied
+    ``rxx_equivalent_gate`` (the gate locally equivalent to :class:`.RXXGate`) realizing the
+    :math:`R_{XX}(a)`, :math:`R_{XX}(b)` and :math:`R_{XX}(c)` rotations, and the remaining
+    boxes are the consolidated single-qubit gates.
+
     The number of two-qubit gates actually emitted depends on the Weyl parameters of the
     target: rotations with a vanishing angle are dropped, so unitaries that are closer to the
     identity or to a single :class:`.RXXGate` use one or two applications of
     ``rxx_equivalent_gate`` instead of three.
 
-    References:
-        1. B. Kraus, J. I. Cirac, *Optimal Creation of Entanglement Using a Two-Qubit Gate*,
-           `arXiv:quant-ph/0011050 <https://arxiv.org/abs/quant-ph/0011050>`_
-
     """
+
     # Docs generated with assistance from Claude Opus 4.8 (Claude Code).
 
     def __init__(self, rxx_equivalent_gate: type[Gate], euler_basis: str = "ZXZ"):
