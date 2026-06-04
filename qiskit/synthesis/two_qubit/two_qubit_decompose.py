@@ -265,13 +265,86 @@ class TwoQubitWeylDecomposition:
 
 
 class TwoQubitControlledUDecomposer:
-    r"""Decompose two-qubit unitary in terms of a desired
-    :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}`
-    gate that is locally equivalent to an :class:`.RXXGate`."""
+    r"""Decompose a two-qubit unitary in terms of a desired two-qubit gate
+    :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}` that is locally equivalent to an
+    :class:`.RXXGate`.
+
+    **Synthesis algorithm**
+
+    Any two-qubit unitary :math:`U` can be written, through its canonical (Weyl) decomposition
+    [1], as a Weyl gate :math:`U_d(a, b, c)` surrounded by four single-qubit gates:
+
+    .. code-block:: text
+
+             ┌─────┐┌───────┐┌─────┐
+        q_0: ┤ c2r ├┤0      ├┤ c1r ├
+             ├─────┤│  Weyl │├─────┤
+        q_1: ┤ c2l ├┤1      ├┤ c1l ├
+             └─────┘└───────┘└─────┘
+
+    The Weyl gate factorizes into a product of three two-qubit rotations,
+    :math:`U_d(a, b, c) = R_{XX}(a)\, R_{YY}(b)\, R_{ZZ}(c)`:
+
+    .. code-block:: text
+
+             ┌─────────┐┌─────────┐
+        q_0: ┤0        ├┤0        ├─■──────
+             │  Rxx(a) ││  Ryy(b) │ │ZZ(c)
+        q_1: ┤1        ├┤1        ├─■──────
+             └─────────┘└─────────┘
+
+    The :math:`R_{YY}` and :math:`R_{ZZ}` rotations are then mapped onto :math:`R_{XX}`
+    rotations using single-qubit basis changes. With
+    :math:`R_{YY}(b) = (S^\dagger \otimes S^\dagger)\, R_{XX}(b)\, (S \otimes S)`:
+
+    .. code-block:: text
+
+             ┌─────┐┌─────────┐┌───┐
+        q_0: ┤ Sdg ├┤0        ├┤ S ├
+             ├─────┤│  Rxx(b) │├───┤
+        q_1: ┤ Sdg ├┤1        ├┤ S ├
+             └─────┘└─────────┘└───┘
+
+    and :math:`R_{ZZ}(c) = (H \otimes H)\, R_{XX}(c)\, (H \otimes H)`:
+
+    .. code-block:: text
+
+             ┌───┐┌─────────┐┌───┐
+        q_0: ┤ H ├┤0        ├┤ H ├
+             ├───┤│  Rxx(c) │├───┤
+        q_1: ┤ H ├┤1        ├┤ H ├
+             └───┘└─────────┘└───┘
+
+    Finally, each :math:`R_{XX}` rotation is realized with the user-supplied gate that is
+    locally equivalent to :class:`.RXXGate` (the ``rxx_equivalent_gate``), wrapped by the
+    single-qubit gates that account for the local equivalence and for any scaling of the
+    rotation angle. After every rotation is expanded, all single-qubit gates that fall between
+    two consecutive two-qubit gates are multiplied together and consolidated, so the
+    synthesized circuit uses at most three applications of ``rxx_equivalent_gate`` and at most
+    eight single-qubit gates:
+
+    .. code-block:: text
+
+             ┌─────┐┌───────────┐┌─────┐┌───────────┐┌─────┐┌───────────┐┌─────┐
+        q_0: ┤ d2r ├┤0          ├┤ d1r ├┤0          ├┤ e1r ├┤0          ├┤ f1r ├
+             ├─────┤│  Equiv(a) │├─────┤│  Equiv(b) │├─────┤│  Equiv(c) │├─────┤
+        q_1: ┤ d2l ├┤1          ├┤ d1l ├┤1          ├┤ e1l ├┤1          ├┤ f1l ├
+             └─────┘└───────────┘└─────┘└───────────┘└─────┘└───────────┘└─────┘
+
+    The number of two-qubit gates actually emitted depends on the Weyl parameters of the
+    target: rotations with a vanishing angle are dropped, so unitaries that are closer to the
+    identity or to a single :class:`.RXXGate` use one or two applications of
+    ``rxx_equivalent_gate`` instead of three.
+
+    References:
+        1. B. Kraus, J. I. Cirac, *Optimal Creation of Entanglement Using a Two-Qubit Gate*,
+           `arXiv:quant-ph/0011050 <https://arxiv.org/abs/quant-ph/0011050>`_
+
+    """
+    # Docs generated with assistance from Claude Opus 4.8 (Claude Code).
 
     def __init__(self, rxx_equivalent_gate: type[Gate], euler_basis: str = "ZXZ"):
-        r"""Initialize the KAK decomposition.
-
+        r"""
         Args:
             rxx_equivalent_gate: Gate that is locally equivalent to an :class:`.RXXGate`:
                 :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}` gate.
@@ -285,6 +358,8 @@ class TwoQubitControlledUDecomposer:
 
         Raises:
             QiskitError: If the gate is not locally equivalent to an :class:`.RXXGate`.
+
+        .. automethod:: __call__
         """
         if rxx_equivalent_gate._standard_gate is not None:
             self._inner_decomposer = two_qubit_decompose.TwoQubitControlledUDecomposer(
