@@ -29,8 +29,8 @@ use crate::instruction::Parameters;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::{self, ObjectRegistry};
 use crate::operations::{
-    ControlFlow, ControlFlowView, Operation, OperationRef, Param, PauliBased, PauliProductRotation,
-    PyOpKind, PythonOperation, StandardGate,
+    BoxedCustomOperation, ControlFlow, ControlFlowView, Operation, OperationRef, Param, PauliBased,
+    PauliProductRotation, PyOpKind, PythonOperation, StandardGate,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::{ParameterError, ParameterExpression};
@@ -1318,7 +1318,8 @@ impl CircuitData {
                     | OperationRef::StandardInstruction(_)
                     | OperationRef::Unitary(_)
                     | OperationRef::PauliProductMeasurement(_)
-                    | OperationRef::PauliProductRotation(_) => {
+                    | OperationRef::PauliProductRotation(_)
+                    | OperationRef::CustomOperation(_) => {
                         // TODO: `PauliProductRotation` actually stores a `Param` inside itself,
                         // which this code does not account for.  We most likely need to make an
                         // `OperationRefMut` in order to modify that without cloning the whole
@@ -2581,6 +2582,9 @@ impl PyCircuitData {
                     OperationRef::PauliProductRotation(ppr) => {
                         PauliBased::PauliProductRotation(ppr.clone()).into()
                     }
+                    OperationRef::CustomOperation(custom_operation) => {
+                        BoxedCustomOperation::from(custom_operation.clone_dyn()).into()
+                    }
                 };
                 res.data.push(PackedInstruction {
                     op: new_op,
@@ -2605,6 +2609,9 @@ impl PyCircuitData {
                     }
                     OperationRef::PauliProductRotation(ppr) => {
                         PauliBased::PauliProductRotation(ppr.clone()).into()
+                    }
+                    OperationRef::CustomOperation(custom_operation) => {
+                        BoxedCustomOperation::from(custom_operation.clone_dyn()).into()
                     }
                 };
                 res.data.push(PackedInstruction {

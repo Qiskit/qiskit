@@ -14,6 +14,7 @@
 use binrw::Endian;
 use numpy::Complex64;
 use pyo3::IntoPyObjectExt;
+use pyo3::exceptions::PyTypeError;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyComplex, PyDict, PyFloat, PyInt, PyList, PyString, PyTuple};
@@ -160,7 +161,7 @@ pub(crate) fn serialize_metadata(
     }
 }
 
-pub(crate) fn py_serialize_numpy_object(py_object: &Py<PyAny>) -> Result<Bytes, QpyError> {
+pub(crate) fn py_serialize_numpy_object(py_object: &Bound<PyAny>) -> Result<Bytes, QpyError> {
     Python::attach(|py| -> Result<Bytes, QpyError> {
         let np = py.import("numpy")?;
         let io = py.import("io")?;
@@ -297,6 +298,9 @@ pub(crate) fn gate_class_name(op: &PackedOperation) -> Result<String, QpyError> 
             Ok(String::from(PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME))
         }
         OperationRef::ControlFlow(inst) => Ok(inst.name().to_string()),
+        OperationRef::CustomOperation(_) => {
+            Err(PyTypeError::new_err("Custom gates from rust are not classes.").into())
+        }
     }
 }
 
@@ -399,7 +403,9 @@ pub(crate) fn py_convert_to_generic_value(
             Ok(GenericValue::Range(range))
         }
         // the python-managed data types
-        ValueType::NumpyObject => Ok(GenericValue::NumpyObject(py_object.clone().unbind())),
+        ValueType::NumpyObject => Ok(GenericValue::NumpyObject(py_serialize_numpy_object(
+            py_object,
+        )?)),
         ValueType::Modifier => Ok(GenericValue::Modifier(py_object.clone().unbind())),
         ValueType::Register => {
             if let Ok(clbit) = py_object.extract::<ShareableClbit>() {
@@ -444,7 +450,7 @@ pub(crate) fn py_convert_from_generic_value(value: &GenericValue) -> Result<Py<P
             }
             GenericValue::Modifier(py_object) => Ok(py_object.clone()),
             GenericValue::Range(py_range) => Ok(py_range.into_py_any(py)?),
-            GenericValue::NumpyObject(py_object) => Ok(py_object.clone()),
+            GenericValue::NumpyObject(bytes) => py_deserialize_numpy_object(bytes),
             GenericValue::Tuple(values) => {
                 let elements: Vec<Py<PyAny>> = values
                     .iter()
