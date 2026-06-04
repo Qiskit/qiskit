@@ -1,0 +1,5 @@
+---
+prelude: |
+  Qiskit v1.4.6 is a security-only release, and the final release in the Qiskit v1.x series.
+
+  Qiskit v1.x is no longer maintained in any form.
