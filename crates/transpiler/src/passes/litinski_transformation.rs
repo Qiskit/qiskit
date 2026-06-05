@@ -17,7 +17,7 @@ use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation,
-    PyInstruction, PyOperationTypes, StandardGate, StandardInstruction, multiply_param, radd_param,
+    PyInstruction, PyOpKind, StandardGate, StandardInstruction, multiply_param, radd_param,
 };
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
@@ -80,7 +80,7 @@ pub fn run_litinski_transformation(
         .sum();
     let clifford_count = dag.size(false)? - non_clifford_handled_count;
 
-    let new_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep)?;
+    let new_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep);
     let mut new_dag = new_dag.into_builder();
 
     let num_qubits = dag.num_qubits();
@@ -254,7 +254,7 @@ pub fn run_litinski_transformation(
                     let (sign, z, x, indices) =
                         clifford.get_inverse_z(dag.get_qargs(inst.qubits)[0].index());
                     qargs.clear();
-                    qargs.extend(indices.iter().map(|i| Qubit::new(*i)));
+                    qargs.extend(bytemuck::cast_slice(&indices));
 
                     // In the legacy path, we add PauliEvolutionGate as rotation gates, otherwise
                     // we add PauliProductRotation. The new path should not call Python at any
@@ -282,13 +282,14 @@ pub fn run_litinski_transformation(
                             let py_evo = PAULI_EVOLUTION_GATE
                                 .get_bound(py)
                                 .call1((obs, time.clone()))?;
-                            Ok(PyOperationTypes::Gate(PyInstruction {
-                                qubits: qargs.len() as u32,
+                            Ok(PyInstruction {
+                                qubits: indices.len() as u32,
                                 clbits: 0,
                                 params: 1,
                                 op_name: "PauliEvolution".to_string(),
-                                instruction: py_evo.into(),
-                            }))
+                                ob: py_evo.into(),
+                                kind: PyOpKind::Gate,
+                            })
                         })?;
                         (py_gate.into(), time)
                     };
@@ -309,7 +310,7 @@ pub fn run_litinski_transformation(
                     let (sign, z, x, indices) =
                         clifford.get_inverse_z(dag.get_qargs(inst.qubits)[0].index());
                     qargs.clear();
-                    qargs.extend(indices.iter().map(|i| Qubit::new(*i)));
+                    qargs.extend(bytemuck::cast_slice(&indices));
 
                     let ppm = PauliProductMeasurement { z, x, neg: sign };
 

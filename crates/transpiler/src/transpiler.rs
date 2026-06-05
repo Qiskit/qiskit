@@ -64,14 +64,16 @@ fn unroll_3q_or_more(
     let physical_qubits = (0..target.num_qubits.unwrap_or(0))
         .map(PhysicalQubit::new)
         .collect::<Vec<_>>();
-    *dag = run_unitary_synthesis(
+    if let Some(out) = run_unitary_synthesis(
         dag,
         &["unitary", "swap"].map(String::from).into_iter().collect(),
         3,
         &physical_qubits,
         synthesis_state,
         target.into(),
-    )?;
+    )? {
+        *dag = out;
+    }
     run_unroll_3q_or_more(dag, Some(target))?;
     Ok(())
 }
@@ -307,14 +309,16 @@ pub fn translation_stage(
     let physical_qubits = (0..target.num_qubits.unwrap_or(0))
         .map(PhysicalQubit::new)
         .collect::<Vec<_>>();
-    *dag = run_unitary_synthesis(
+    if let Some(out) = run_unitary_synthesis(
         dag,
         &["unitary".to_string()].into_iter().collect(),
         0,
         &physical_qubits,
         synthesis_state,
         target.into(),
-    )?;
+    )? {
+        *dag = out;
+    }
     if let Some(out_dag) = run_basis_translator(dag, equiv_lib, 0, Some(target), None)? {
         *dag = out_dag;
     }
@@ -366,14 +370,16 @@ pub fn optimization_stage(
         }
     } else if optimization_level == OptimizationLevel::Level2 {
         run_consolidate_blocks(dag, false, approximation_degree, Some(target))?;
-        *dag = run_unitary_synthesis(
+        if let Some(out) = run_unitary_synthesis(
             dag,
             &["unitary".to_string()].into_iter().collect(),
             0,
             &physical_qubits,
             synthesis_state,
             target.into(),
-        )?;
+        )? {
+            *dag = out;
+        }
         new_depth = Some(dag.depth(false)?);
         new_size = Some(dag.size(false)?);
         while new_depth != depth || new_size != size {
@@ -394,14 +400,16 @@ pub fn optimization_stage(
 
         while continue_loop {
             run_consolidate_blocks(dag, false, approximation_degree, Some(target))?;
-            *dag = run_unitary_synthesis(
+            if let Some(out) = run_unitary_synthesis(
                 dag,
                 &["unitary"].into_iter().map(|x| x.to_string()).collect(),
                 0,
                 &physical_qubits,
                 synthesis_state,
                 target.into(),
-            )?;
+            )? {
+                *dag = out
+            }
             run_remove_identity_equiv(dag, approximation_degree, Some(target))?;
             run_optimize_1q_gates_decomposition(dag, Some(target), None, None)?;
             cancel_commutations(dag, commutation_checker, None, 1.0)?;

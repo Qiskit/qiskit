@@ -19,6 +19,7 @@ mod qargs;
 mod qubit_properties;
 
 pub use errors::TargetError;
+use foldhash::fast::RandomState;
 pub use instruction_properties::InstructionProperties;
 use pyo3::types::IntoPyDict;
 pub use qargs::{Qargs, QargsRef};
@@ -26,10 +27,8 @@ pub use qubit_properties::QubitProperties;
 
 use std::{ops::Index, sync::OnceLock};
 
-use ahash::RandomState;
 use hashbrown::HashMap;
 use hashbrown::HashSet;
-use indexmap::IndexMap;
 use pyo3::{
     IntoPyObjectExt,
     exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError},
@@ -37,6 +36,7 @@ use pyo3::{
     pyclass,
     types::{PyDict, PyList, PySet},
 };
+use qiskit_util::IndexMap;
 use rustworkx_core::petgraph::prelude::*;
 use smallvec::SmallVec;
 use thiserror::Error;
@@ -186,7 +186,7 @@ impl Clone for NormalOperation {
 #[derive(Debug, Clone)]
 struct TargetProperties {
     /// Contains the mapping of qargs and properties for the instruction.
-    pub properties: IndexMap<Qargs, Option<InstructionProperties>, RandomState>,
+    pub properties: IndexMap<Qargs, Option<InstructionProperties>>,
     /// Contains the instruction's original instance.
     pub instruction: TargetOperation,
     /// Contains the specified angle constraints for a parametric instruction.
@@ -231,7 +231,7 @@ pub struct Target {
     pub qubit_properties: Option<Vec<QubitProperties>>,
     #[pyo3(get, set)]
     pub concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
-    gate_map: IndexMap<String, TargetProperties, RandomState>,
+    gate_map: IndexMap<String, TargetProperties>,
     global_operations: HashMap<u32, HashSet<String>>,
     qarg_gate_map: HashMap<Qargs, HashSet<String>>,
     has_angle_bounds: bool,
@@ -354,7 +354,7 @@ impl Target {
         &mut self,
         instruction: TargetOperation,
         name: String,
-        properties: Option<IndexMap<Qargs, Option<InstructionProperties>, RandomState>>,
+        properties: Option<IndexMap<Qargs, Option<InstructionProperties>>>,
         angle_bounds: Option<SmallVec<[Option<[f64; 2]>; 3]>>,
     ) -> PyResult<()> {
         if self.gate_map.contains_key(&name) {
@@ -960,7 +960,7 @@ impl Target {
         operation: PackedOperation,
         params: Option<Parameters<CircuitData>>,
         name: Option<&str>,
-        props_map: Option<IndexMap<Qargs, Option<InstructionProperties>, RandomState>>,
+        props_map: Option<IndexMap<Qargs, Option<InstructionProperties>>>,
     ) -> Result<(), TargetError> {
         let parsed_name = if let Some(name) = name {
             name.to_string()
@@ -993,7 +993,7 @@ impl Target {
         &mut self,
         name: String,
         instruction: TargetOperation,
-        properties: IndexMap<Qargs, Option<InstructionProperties>, RandomState>,
+        properties: IndexMap<Qargs, Option<InstructionProperties>>,
         angle_bounds: Option<SmallVec<[Option<[f64; 2]>; 3]>>,
     ) -> Result<(), TargetError> {
         let properties = match instruction {
@@ -1068,7 +1068,7 @@ impl Target {
     /// use qiskit_transpiler::target::{Target, InstructionProperties, Qargs};
     /// use qiskit_circuit::operations::StandardGate;
     /// use qiskit_circuit::PhysicalQubit;
-    /// use indexmap::IndexMap;
+    /// use qiskit_util::IndexMap;
     ///
     /// let mut target = Target::default();
     /// target.add_instruction(
@@ -1217,7 +1217,7 @@ impl Target {
             }
         }
         let mut incomplete_basis_gates: Vec<&str> = Vec::new();
-        let mut size_dict: IndexMap<u32, u32, RandomState> = IndexMap::default();
+        let mut size_dict: IndexMap<u32, u32> = IndexMap::default();
         *size_dict
             .entry(1)
             .or_insert(self.num_qubits.unwrap_or_default()) = self.num_qubits.unwrap_or_default();
@@ -1526,8 +1526,7 @@ impl Target {
     /// Retrieves an iterator over the property maps stored within the Target
     pub fn values(
         &self,
-    ) -> impl ExactSizeIterator<Item = &IndexMap<Qargs, Option<InstructionProperties>, RandomState>>
-    {
+    ) -> impl ExactSizeIterator<Item = &IndexMap<Qargs, Option<InstructionProperties>>> {
         self.gate_map.values().map(|props| &props.properties)
     }
 
@@ -1643,7 +1642,7 @@ impl Target {
 
 // To access the Target's gate map by gate name.
 impl Index<&str> for Target {
-    type Output = IndexMap<Qargs, Option<InstructionProperties>, RandomState>;
+    type Output = IndexMap<Qargs, Option<InstructionProperties>>;
     fn index(&self, index: &str) -> &Self::Output {
         &self.gate_map.index(index).properties
     }

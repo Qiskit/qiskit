@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ahash::RandomState;
+use foldhash::fast::RandomState;
 use pyo3::Python;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
@@ -21,10 +21,10 @@ use numpy::prelude::*;
 use numpy::{PyArray1, PyArray2, PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods};
 
 use hashbrown::HashMap;
-use indexmap::IndexMap;
 use ndarray::{Array2, ArrayView1, ArrayView2, Axis, s};
 use num_complex::Complex64;
 use num_traits::Zero;
+use qiskit_util::IndexMap;
 use rayon::prelude::*;
 use thiserror::Error;
 
@@ -334,11 +334,10 @@ impl MatrixCompressedPaulis {
     /// explicitly stored operations, if there are duplicates.  After the summation, any terms that
     /// have become zero are dropped.
     pub fn combine(&mut self) {
-        let mut hash_table =
-            IndexMap::<(u64, u64), Complex64, RandomState>::with_capacity_and_hasher(
-                self.coeffs.len(),
-                RandomState::new(),
-            );
+        let mut hash_table = IndexMap::<(u64, u64), Complex64>::with_capacity_and_hasher(
+            self.coeffs.len(),
+            RandomState::default(),
+        );
         for (key, coeff) in self
             .x_like
             .drain(..)
@@ -383,7 +382,10 @@ impl MatrixCompressedPaulis {
                 // Technically this discards part of the storable data, but in practice, a dense
                 // operator with more than 32 qubits needs in the region of 1 ZiB memory.  We still use
                 // `u64` to help sparse-matrix construction, though.
-                let coeff = if (i_row as u32 & z_like as u32).count_ones() % 2 == 0 {
+                let coeff = if (i_row as u32 & z_like as u32)
+                    .count_ones()
+                    .is_multiple_of(2)
+                {
                     coeff
                 } else {
                     -coeff

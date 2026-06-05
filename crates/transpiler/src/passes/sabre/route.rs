@@ -22,9 +22,10 @@ use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
 use hashbrown::HashSet;
-use indexmap::IndexMap;
 use ndarray::Array2;
+use qiskit_util::IndexMap;
 use rand::prelude::*;
+use rand::rngs::SysRng;
 use rand_pcg::Pcg64Mcg;
 use rayon_cond::CondIterator;
 use rustworkx_core::dictmap::*;
@@ -211,7 +212,7 @@ impl RoutingResult<'_> {
                 None,
                 dag.insert_qargs(&[Qubit(map_fn(swap[1]).0), Qubit(map_fn(swap[0]).0)]),
             );
-            dag.push_back(swap)
+            dag.push_back(swap).map_err(Into::into)
         };
         // The size here is pretty arbitrary, providing it can fit at least 2q operations in.
         let mut apply_scratch = Vec::with_capacity(4);
@@ -227,7 +228,7 @@ impl RoutingResult<'_> {
                 qubits: dag.insert_qargs(&apply_scratch),
                 ..inst.clone()
             };
-            dag.push_back(new_inst)
+            dag.push_back(new_inst).map_err(Into::into)
         };
 
         let mut dag = dag.into_builder();
@@ -623,8 +624,8 @@ impl State {
     fn populate_extended_set(&mut self, problem: RoutingProblem) {
         let mut next_visit = self.front_layer.iter_nodes().copied().collect::<Vec<_>>();
         let mut to_visit = Vec::new();
-        let mut decremented: IndexMap<NodeIndex, u32, ahash::RandomState> =
-            IndexMap::with_hasher(ahash::RandomState::default());
+        let mut decremented: IndexMap<NodeIndex, u32> =
+            IndexMap::with_hasher(foldhash::fast::RandomState::default());
         for layer in self.lookahead_layers.iter_mut() {
             for node in next_visit.drain(..) {
                 for edge in problem.sabre.dag.edges_directed(node, Direction::Outgoing) {
@@ -843,7 +844,7 @@ pub fn swap_map<'a>(
 ) -> RoutingResult<'a> {
     let seeds = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-        None => Pcg64Mcg::from_os_rng(),
+        None => Pcg64Mcg::try_from_rng(&mut SysRng).unwrap(),
     }
     .sample_iter(&rand::distr::StandardUniform)
     .take(num_trials)
