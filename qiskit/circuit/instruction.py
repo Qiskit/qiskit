@@ -576,6 +576,6 @@ class CustomInstruction(Instruction):
             self._native_operation.params,
             self._native_operation.label,
         )
-        
+
     def _define(self):
         return self._native_operation.definition

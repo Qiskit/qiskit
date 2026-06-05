@@ -814,7 +814,7 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
         }
         'custom_op: {
             // Custom operation extraction has to check a hidden attribute from
-            // the main Operation instance, namely `_native_operation`, and 
+            // the main Operation instance, namely `_native_operation`, and
             // then use that to extract the inner dyn CustomOperation instance
             // and its parameters.
             let Some(PyCustomOperation {
