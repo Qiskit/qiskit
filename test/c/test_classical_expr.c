@@ -29,6 +29,7 @@ QkExprNode *inner_test_unary_expr_ops(QkUnaryOpType);
 QkExprNode *inner_test_binary_expr_ops(QkBinaryOpType);
 QkExprNode *inner_test_expr_kinds_and_types(QkExprNodeKind, QkExprTypeInfo);
 QkExprNode *inner_test_value(QkExprType, bool, QkDurationInfo, double, uint64_t);
+void inned_test_old_style_vars(QkExprNode **);
 void *inner_expr_free(QkExprNode *);
 
 /*
@@ -325,6 +326,49 @@ static int test_expr_var(void) {
     }
 
     expr = NULL;
+
+    QkExprNode *var_nodes[2];
+    inned_test_old_style_vars(var_nodes);
+
+    // The first var is a Bit variable
+    const QkVar *var = qk_expr_as_var(var_nodes[0]);
+    QkExprTypeInfo var_type_info = qk_var_type_info(var);
+
+    if (var_type_info.ty != QkExprType_Bool) {
+        printf("Expected var type to be QkExprType_Bool, got %d\n", var_type_info.ty);
+        result = EqualityError;
+        goto cleanup_vars;
+    }
+
+    char *name = qk_var_name(var);
+    if (name != NULL) {
+        printf("Expected var name to be NULL, got %s\n", name);
+        qk_str_free(name);
+        result = EqualityError;
+        goto cleanup_vars;
+    }
+
+    // The second var is a Register variable
+    var = qk_expr_as_var(var_nodes[1]);
+    var_type_info = qk_var_type_info(var);
+
+    if (var_type_info.ty != QkExprType_Uint) {
+        printf("Expected var type to be QkExprType_Uint, got %d\n", var_type_info.ty);
+        result = EqualityError;
+        goto cleanup_vars;
+    }
+
+    name = qk_var_name(var);
+    if (name != NULL) {
+        printf("Expected var name to be NULL, got %s\n", name);
+        qk_str_free(name);
+        result = EqualityError;
+        goto cleanup_vars;
+    }
+
+cleanup_vars:
+    inner_expr_free(var_nodes[0]);
+    inner_expr_free(var_nodes[1]);
 
 cleanup:
     if (expr)

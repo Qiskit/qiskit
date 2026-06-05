@@ -16,6 +16,7 @@ use crate::pointers::const_ptr_as_ref;
 use num_bigint::BigUint;
 use num_traits::{ToPrimitive, Zero};
 use qiskit_circuit::{
+    bit::{ClassicalRegister, ShareableClbit},
     classical::{
         expr::{Binary, BinaryOp, Cast, Expr, Index, Stretch, Unary, UnaryOp, Value, Var},
         types::Type,
@@ -836,14 +837,16 @@ pub unsafe extern "C" fn qk_value_bool(value: *const Value) -> bool {
 /// @param var A pointer to the variable to inspect.
 ///
 /// @return A null-terminated string containing the variable name, or ``NULL``
-/// if ``var`` refers to a bit variable with no standalone name. The caller owns
-/// the returned string and must free it with ``qk_str_free``.
+/// if ``var`` refers to a non-standalone variable (i.e. based on a classical bit or a classical register).
+/// The caller owns the returned string and must free it with ``qk_str_free``.
 ///
 /// # Example
 /// ```c
 /// char *name = qk_var_name(var);
-/// // Use the name...
-/// qk_str_free(name);
+/// if (name ! = NULL) {
+///     // Use the name...
+///     qk_str_free(name);
+/// }
 /// ```
 ///
 /// # Safety
@@ -856,8 +859,7 @@ pub unsafe extern "C" fn qk_var_name(var: *const Var) -> *mut c_char {
 
     let name = match var {
         Var::Standalone { name, .. } => name.as_str(),
-        Var::Register { register, .. } => register.name(),
-        Var::Bit { .. } => return ptr::null_mut(),
+        Var::Register { .. } | Var::Bit { .. } => return ptr::null_mut(),
     };
 
     CString::new(name)
@@ -891,18 +893,15 @@ pub unsafe extern "C" fn qk_var_type_info(var: *const Var) -> CExprTypeInfo {
     let ty = match var {
         Var::Standalone { ty, .. } => ty,
         Var::Register { ty, .. } => ty,
-        Var::Bit { .. } => panic!("Bit variables are not yet supported by this API"),
-    };
-
-    let width = if let Type::Uint(width) = ty {
-        *width
-    } else {
-        0u16
+        Var::Bit { .. } => &Type::Bool,
     };
 
     CExprTypeInfo {
         ty: CExprType::from(ty),
-        width,
+        width: match ty {
+            Type::Uint(width) => *width,
+            _ => 0,
+        },
     }
 }
 
@@ -1132,6 +1131,27 @@ pub unsafe extern "C" fn inner_test_value(
     };
 
     Box::into_raw(Box::new(Expr::Value(value)))
+}
+
+/// cbindgen:qk-vtable-rules=[no-export]
+/// cbindgen:no-export
+#[allow(clippy::missing_safety_doc)]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inned_test_old_style_vars(out_vars: *mut *mut Expr) {
+    let bit_var = Var::Bit {
+        bit: ShareableClbit::new_anonymous(),
+    };
+    let reg_var = Var::Register {
+        register: ClassicalRegister::new_owning("c1", 2),
+        ty: Type::Uint(2),
+    };
+
+    unsafe {
+        out_vars.write(Box::into_raw(Box::new(Expr::Var(bit_var))));
+        out_vars
+            .add(1)
+            .write(Box::into_raw(Box::new(Expr::Var(reg_var))));
+    }
 }
 
 /// cbindgen:qk-vtable-rules=[no-export]
