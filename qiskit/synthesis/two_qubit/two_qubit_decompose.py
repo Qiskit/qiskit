@@ -313,7 +313,16 @@ class TwoQubitControlledUDecomposer:
         Note: atol is passed to OneQubitEulerDecomposer.
         """
         circ_data = self._inner_decomposer(np.asarray(unitary, dtype=complex), atol)
-        return QuantumCircuit._from_circuit_data(circ_data, legacy_qubits=True)
+        from qiskit.transpiler.passes import Optimize1qGatesDecomposition
+        # Tutaj wstrzykujesz optymalizację bramek jedno-kubitowych
+        circuit = QuantumCircuit._from_circuit_data(circ_data, legacy_qubits=True)
+        from qiskit.transpiler import PassManager
+        try:
+            pm = PassManager(Optimize1qGatesDecomposition())
+            circuit = pm.run(circuit)
+        except Exception:
+            pass
+        return circuit
 
 
 class TwoQubitBasisDecomposer:
@@ -466,7 +475,14 @@ class TwoQubitBasisDecomposer:
                 approximate,
                 _num_basis_uses=_num_basis_uses,
             )
-            return QuantumCircuit._from_circuit_data(circ_data, legacy_qubits=True)
+            circuit = QuantumCircuit._from_circuit_data(circ_data, legacy_qubits=True)
+        from qiskit.transpiler import PassManager
+        try:
+            pm = PassManager(Optimize1qGatesDecomposition())
+            circuit = pm.run(circuit)
+        except Exception:
+            pass
+        return circuit
 
     def traces(self, target):
         r"""
