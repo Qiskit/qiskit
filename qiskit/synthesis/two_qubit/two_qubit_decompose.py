@@ -343,6 +343,7 @@ class TwoQubitControlledUDecomposer:
     of three. A target close to the identity will use no applications of it.
 
     """
+
     # Docs generated with assistance from Claude Opus 4.8 (Claude Code).
 
     def __init__(self, rxx_equivalent_gate: type[Gate], euler_basis: str = "ZXZ"):
@@ -376,7 +377,7 @@ class TwoQubitControlledUDecomposer:
         self.scale = self._inner_decomposer.scale
         self.euler_basis = euler_basis
 
-    def __call__( # noqa: D417 TODO: Add support for the undocumented arguments
+    def __call__(  # noqa: D417 TODO: Add support for the undocumented arguments
         self, unitary: Operator | np.ndarray, approximate=False, use_dag=False, *, atol=DEFAULT_ATOL
     ) -> QuantumCircuit:
         r"""Decompose a two-qubit ``unitary`` using the :class:`.TwoQubitControlledUDecomposer`.
