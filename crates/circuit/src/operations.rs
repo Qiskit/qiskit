@@ -2251,16 +2251,6 @@ impl PyCustomOperation {
     }
 
     /// Creates a more complete Python view of the operation with the associated types.
-    ///
-    /// This version of the function will use clone the original instance. If you posess
-    /// ownership of the object and want to consume it, use [`PyCustomOperation::into_py_op.`]
-    pub fn create_py_op<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        let cloned = self.clone();
-
-        Self::into_py_op(cloned, py)
-    }
-
-    /// Creates a more complete Python view of the operation with the associated types.
     pub fn into_py_op<'py>(self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let py_type = match self.inner.is_unitary() {
             true => CUSTOM_GATE.get_bound(py),
