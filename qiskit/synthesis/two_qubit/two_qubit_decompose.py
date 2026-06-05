@@ -273,7 +273,7 @@ class TwoQubitControlledUDecomposer:
 
     Any two-qubit unitary :math:`U` can be written, through its canonical (Weyl) decomposition
     (see :class:`.TwoQubitWeylDecomposition`), as a Weyl gate :math:`U_d(a, b, c)` surrounded by
-    four single-qubit gates:
+    four single-qubit unitary gates:
 
     .. code-block:: text
 
@@ -322,7 +322,7 @@ class TwoQubitControlledUDecomposer:
     rotation angle. After every rotation is expanded, all single-qubit gates that fall between
     two consecutive two-qubit gates are multiplied together and consolidated, so the
     synthesized circuit uses at most three applications of ``rxx_equivalent_gate`` and at most
-    eight single-qubit gates:
+    eight single-qubit unitary gates:
 
     .. code-block:: text
 
@@ -335,7 +335,7 @@ class TwoQubitControlledUDecomposer:
     Here ``Equiv(a)``, ``Equiv(b)`` and ``Equiv(c)`` are the user-supplied
     ``rxx_equivalent_gate`` (the gate locally equivalent to :class:`.RXXGate`) realizing the
     :math:`R_{XX}(a)`, :math:`R_{XX}(b)` and :math:`R_{XX}(c)` rotations, and the remaining
-    boxes are the consolidated single-qubit gates.
+    boxes are the consolidated single-qubit unitary gates.
 
     The number of two-qubit gates actually emitted depends on the Weyl parameters of the
     target: rotations with a vanishing angle are dropped, so unitaries that are closer to a
