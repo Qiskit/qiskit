@@ -314,7 +314,7 @@ class TwoQubitControlledUDecomposer:
              └───┘└─────────┘└───┘
 
     Each :math:`RXX(\theta)` is in turn replaced by the user-provided RXX-equivalent gate
-    (``rxx_equivalent_gate``) together with at most two surrounding single-qubit
+    (``rxx_equivalent_gate``) together with at most four surrounding single-qubit
     correction unitaries derived from the KAK decomposition of that substitution.
 
     ** improvement over the previous implementation**
