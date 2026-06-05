@@ -96,6 +96,16 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(self.circuit[0].operation.name, "ccx")
         self.assertEqual(self.circuit[0].qubits, (self.qr[0], self.qr[1], self.qr[2]))
 
+    def test_ccx_label(self):
+        label = "toffoli"
+        self.circuit.ccx(self.qr[0], self.qr[1], self.qr[2], label=label)
+        self.assertEqual(self.circuit[0].operation.label, label)
+
+    def test_ccx_label_open_control(self):
+        label = "open-toffoli"
+        self.circuit.ccx(self.qr[0], self.qr[1], self.qr[2], ctrl_state=0, label=label)
+        self.assertEqual(self.circuit[0].operation.label, label)
+
     def test_ccx_invalid(self):
         qc = self.circuit
         self.assertRaises(CircuitError, qc.ccx, self.cr[0], self.cr[1], self.cr[2])
@@ -122,6 +132,31 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(CircuitError, qc.ch, (self.qr, 3), self.qr[0])
         self.assertRaises(CircuitError, qc.ch, self.cr, self.qr)
         self.assertRaises(CircuitError, qc.ch, "a", self.qr[1])
+
+    def test_rccx_label(self):
+        label = "relative-toffoli"
+        self.circuit.rccx(self.qr[0], self.qr[1], self.qr[2], label=label)
+        self.assertEqual(self.circuit[0].operation.label, label)
+
+    def test_rcccx_label(self):
+        label = "relative-3-toffoli"
+        self.circuit.rcccx(self.qr[0], self.qr[1], self.qr[2], self.qr2[0], label=label)
+        self.assertEqual(self.circuit[0].operation.label, label)
+
+    def test_mcx_label(self):
+        label = "multi-controlled-x"
+        self.circuit.mcx([self.qr[0], self.qr[1], self.qr[2]], self.qr2[0], label=label)
+        self.assertEqual(self.circuit[0].operation.label, label)
+
+    def test_mcx_label_open_control(self):
+        label = "open-multi-controlled-x"
+        self.circuit.mcx(
+            [self.qr[0], self.qr[1]],
+            self.qr[2],
+            ctrl_state=0,
+            label=label,
+        )
+        self.assertEqual(self.circuit[0].operation.label, label)
 
     def test_crz(self):
         self.circuit.crz(1, self.qr[0], self.qr[1])
