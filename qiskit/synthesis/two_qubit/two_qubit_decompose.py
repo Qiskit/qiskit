@@ -339,7 +339,7 @@ class TwoQubitControlledUDecomposer:
 
     The number of two-qubit gates actually emitted depends on the Weyl parameters of the
     target: rotations with a vanishing angle are dropped, so unitaries that are closer to a
-    single :class:`.RXXGate` use one or two applications of ``rxx_equivalent_gate`` instead
+    single or two instances of :class:`.RXXGate` use one or two applications of ``rxx_equivalent_gate`` respectively instead
     of three. A target close to the identity will use no applications of it.
 
     """
