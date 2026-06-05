@@ -314,8 +314,8 @@ class TwoQubitControlledUDecomposer:
              └───┘└─────────┘└───┘
 
     Each :math:`RXX(\theta)` is in turn replaced by the user-provided RXX-equivalent gate
-    (``rxx_equivalent_gate``), with surrounding single-qubit correction unitaries
-    derived from the KAK decomposition of that substitution.
+    (``rxx_equivalent_gate``) together with at most four surrounding single-qubit
+    correction unitaries derived from the KAK decomposition of that substitution.
 
     Adjacent single-qubit layers are *merged* at the matrix level before being
     decomposed into 1-qubit gate sequences.  Concretely, for the full three-gate
@@ -338,7 +338,7 @@ class TwoQubitControlledUDecomposer:
     ``rxx_k1r · Sdg · ryy_k2r``) are **multiplied together as unitary matrices**
     before being synthesised into a single gate sequence, resulting in at most
     **8 single-qubit unitaries** for a general unitary decomposed with 3 two-qubit gates
-    (one per qubit per inter-gate boundary, plus the outer ``c2`` and ``c1`` layers).
+    (one per qubit per inter-gate boundary, plus the outer ``c2`` and ``c1`` layers), while still using at most **3** two-qubit gates for a general unitary.
 
     For unitaries that require fewer than 3 two-qubit gates the same merging
     strategy is applied, giving proportionally fewer single-qubit gates.
