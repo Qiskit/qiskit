@@ -14,6 +14,8 @@ use std::fmt;
 use fixedbitset::FixedBitSet;
 use ndarray::{Array2, ArrayView2};
 
+use crate::dense_pauli::DensePauli;
+
 /// Symplectic matrix.
 pub struct SymplecticMatrix {
     /// Number of qubits.
@@ -288,15 +290,16 @@ impl Clifford {
         );
     }
 
-    /// Evolving the single-qubit Pauli-Z with Z on qubit qbit.
-    /// Returns the evolved Pauli in the a sparse ZX format: (sign, z, x, indices).
+    /// Evolving a Pauli with a single non-identity Z-term on qubit `qbit` by the given Clifford.
+    ///
+    /// Return the evolved Pauli in a sparse ZX format: (sign, z, x, indices).
     pub fn get_inverse_z(&self, qbit: usize) -> (bool, Vec<bool>, Vec<bool>, Vec<u32>) {
         let mut z = Vec::with_capacity(self.num_qubits);
         let mut x = Vec::with_capacity(self.num_qubits);
         let mut indices = Vec::with_capacity(self.num_qubits);
         let mut pauli_indices = Vec::<usize>::with_capacity(2 * self.num_qubits);
         // Compute the y-count to avoid recomputing it later
-        let mut pauli_y_count: u32 = 0;
+        let mut pauli_y_count: u8 = 0;
         for i in 0..self.num_qubits {
             let z_bit = self.tableau[qbit][i];
             let x_bit = self.tableau[qbit][i + self.num_qubits];
@@ -310,34 +313,102 @@ impl Clifford {
                 if z_bit {
                     pauli_indices.push(i + self.num_qubits);
                 }
-                pauli_y_count += (x_bit && z_bit) as u32;
+                pauli_y_count += (x_bit && z_bit) as u8;
             }
         }
         let phase = compute_phase_product_pauli(self, &pauli_indices, pauli_y_count);
 
         (phase, z, x, indices)
     }
+
+    /// Evolve a Pauli with at most one non-identity term (on qubit `qbit`) by the given Clifford.
+    /// The non-identity Pauli term is represented as a pair `(pauli_z, pauli_x)` of boolean values.
+    ///
+    /// Return the evolved Pauli as (dense) Pauli.
+    pub fn evolve_single_qubit_pauli_dense(
+        &self,
+        pauli_z: bool,
+        pauli_x: bool,
+        qbit: usize,
+    ) -> DensePauli {
+        let num_qubits = self.num_qubits;
+        if !pauli_z && !pauli_x {
+            // C^\dagger I C = I.
+            return DensePauli::identity(num_qubits);
+        }
+        let mut z = FixedBitSet::with_capacity(num_qubits);
+        let mut x = FixedBitSet::with_capacity(num_qubits);
+        let mut pauli_indices = Vec::<usize>::with_capacity(2 * num_qubits);
+        // Compute the y-count to avoid recomputing it later
+        let mut pauli_y_count: u8 = 0;
+        for i in 0..num_qubits {
+            let (z_bit, x_bit) = match (pauli_z, pauli_x) {
+                (true, false) => (
+                    // pauli Z
+                    self.tableau[qbit][i],
+                    self.tableau[qbit][i + num_qubits],
+                ),
+                (false, true) => (
+                    // pauli X
+                    self.tableau[qbit + num_qubits][i],
+                    self.tableau[qbit + num_qubits][i + num_qubits],
+                ),
+                (true, true) => (
+                    // pauli Y
+                    self.tableau[qbit + num_qubits][i] ^ self.tableau[qbit][i],
+                    self.tableau[qbit + num_qubits][i + num_qubits]
+                        ^ self.tableau[qbit][i + num_qubits],
+                ),
+                _ => unreachable!(
+                    "The case that both pauli_z and pauli_x are false has already been handled."
+                ),
+            };
+            z.set(i, z_bit);
+            x.set(i, x_bit);
+
+            if x_bit {
+                pauli_indices.push(i);
+            }
+            if z_bit {
+                pauli_indices.push(i + num_qubits);
+            }
+            pauli_y_count += (x_bit & z_bit) as u8;
+        }
+
+        let phase_sign = compute_phase_product_pauli(self, &pauli_indices, pauli_y_count);
+        let evolved_pauli_phase =
+            (pauli_y_count + 2 * (phase_sign as u8) + 3 * ((pauli_x & pauli_z) as u8)) & 3;
+        DensePauli {
+            pauli_z: z,
+            pauli_x: x,
+            zx_phase: evolved_pauli_phase,
+        }
+    }
 }
 
-/// Computes the sign (either +1 or -1) when conjugating a Pauli by a Clifford
+/// Compute the sign (either +1 or -1) when conjugating a Pauli by a Clifford.
+/// The Pauli is represented using a sparse vector of indices.
+/// For efficiency, the number of Y-terms in the Pauli is already available.
 fn compute_phase_product_pauli(
     clifford: &Clifford,
     pauli_indices: &[usize],
-    pauli_y_count: u32,
+    pauli_y_count: u8,
 ) -> bool {
+    let num_qubits = clifford.num_qubits;
+
     let phase = pauli_indices.iter().fold(false, |acc, &pauli_index| {
-        acc ^ (clifford.tableau[2 * clifford.num_qubits][pauli_index])
+        acc ^ (clifford.tableau[2 * num_qubits][pauli_index])
     });
 
-    let mut ifact: u8 = pauli_y_count as u8 % 4;
-
-    for j in 0..clifford.num_qubits {
+    let mut ifact: u8 = pauli_y_count;
+    for j in 0..num_qubits {
         let mut x = false;
         let mut z = false;
+        let x1_column = &clifford.tableau[j];
+        let z1_column = &clifford.tableau[j + num_qubits];
         for &pauli_index in pauli_indices.iter() {
-            let x1: bool = clifford.tableau[j][pauli_index];
-            let z1: bool = clifford.tableau[j + clifford.num_qubits][pauli_index];
-
+            let x1: bool = x1_column[pauli_index];
+            let z1: bool = z1_column[pauli_index];
             match (x1, z1, x, z) {
                 (false, true, true, true)
                 | (true, false, false, true)
@@ -353,10 +424,9 @@ fn compute_phase_product_pauli(
             };
             x ^= x1;
             z ^= z1;
-            ifact %= 4;
         }
     }
-    (((ifact % 4) >> 1) != 0) ^ phase
+    (((ifact & 3) >> 1) != 0) ^ phase
 }
 
 impl fmt::Debug for Clifford {
