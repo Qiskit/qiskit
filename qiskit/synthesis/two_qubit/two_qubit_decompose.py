@@ -345,7 +345,7 @@ class TwoQubitControlledUDecomposer:
              └─────┘└────────┘└─────┘
 
     Finally, all adjacent single-qubit unitaries between the 2-qubit gates are merged,
-    reducing the total from 24 to at most 8 single-qubit gates:
+    reducing the total from 24 to at most 8 single-qubit unitary gates:
 
     .. parsed-literal::
 
