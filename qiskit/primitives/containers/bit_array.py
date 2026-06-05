@@ -204,12 +204,10 @@ class BitArray(ShapedMixin):
         Returns:
             A ``numpy.uint64``-array with shape ``(*shape, num_shots)``.
         """
-        if self.num_bits % 8 == 0:
-            return np.bitwise_count(self._array).sum(axis=-1)
-
-        result = np.bitwise_count(self._array[..., 1:]).sum(axis=-1)
-        mask = np.uint8(255 >> ((-self.num_bits) % 8))
-        result += np.bitwise_count(np.bitwise_and(self._array[..., 0], mask))
+        result = np.bitwise_count(self._array).sum(axis=-1)
+        excess = self.num_bits % 8
+        if excess > 0:
+            result -= np.bitwise_count(self._array[..., 0] >> np.uint8(excess))
         return result
 
     @staticmethod
