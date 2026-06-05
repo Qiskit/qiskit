@@ -338,12 +338,11 @@ class TwoQubitControlledUDecomposer:
     boxes are the consolidated single-qubit gates.
 
     The number of two-qubit gates actually emitted depends on the Weyl parameters of the
-    target: rotations with a vanishing angle are dropped, so unitaries that are closer to the
-    identity or to a single :class:`.RXXGate` use one or two applications of
-    ``rxx_equivalent_gate`` instead of three.
+    target: rotations with a vanishing angle are dropped, so unitaries that are closer to a
+    single :class:`.RXXGate` use one or two applications of ``rxx_equivalent_gate`` instead
+    of three. A target close to the identity will use no applications of it.
 
     """
-
     # Docs generated with assistance from Claude Opus 4.8 (Claude Code).
 
     def __init__(self, rxx_equivalent_gate: type[Gate], euler_basis: str = "ZXZ"):
@@ -377,18 +376,20 @@ class TwoQubitControlledUDecomposer:
         self.scale = self._inner_decomposer.scale
         self.euler_basis = euler_basis
 
-    def __call__(  # noqa: D417 TODO: Add support for the undocumented arguments
+    def __call__( # noqa: D417 TODO: Add support for the undocumented arguments
         self, unitary: Operator | np.ndarray, approximate=False, use_dag=False, *, atol=DEFAULT_ATOL
     ) -> QuantumCircuit:
-        """Returns the Weyl decomposition in circuit form.
+        r"""Decompose a two-qubit ``unitary`` using the :class:`.TwoQubitControlledUDecomposer`.
 
         Args:
-            unitary (Operator or ndarray): :math:`4 \times 4` unitary to synthesize.
+            unitary: :math:`4 \times 4` unitary to synthesize.
+            atol: Absolute tolerance for checking angles of the single-qubit unitaries when
+                simplifying the returned circuit [Default: 1e-12].
 
         Returns:
             QuantumCircuit: Synthesized quantum circuit.
 
-        Note: atol is passed to OneQubitEulerDecomposer.
+        Note: atol is passed to :class:`.OneQubitEulerDecomposer`.
         """
         circ_data = self._inner_decomposer(np.asarray(unitary, dtype=complex), atol)
         return QuantumCircuit._from_circuit_data(circ_data, legacy_qubits=True)
