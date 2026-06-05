@@ -269,10 +269,11 @@ class TwoQubitControlledUDecomposer:
     :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}`
     gate that is locally equivalent to an :class:`.RXXGate`.
 
-    This decomposer synthesizes a general two-qubit unitary using at most 8 single-qubit
-    unitary gates (in the general case where 3 2-qubit gates are needed), along with up to
-    3 instances of the target 2-qubit gate. The reduction to 8 single-qubit unitaries is
-    achieved by multiplying the adjacent 1-qubit unitary matrices between the 2-qubit gates.
+    This decomposer synthesizes a general two-qubit unitary using at most 3 instances
+    of the target 2-qubit gate and at most 8 single-qubit unitary gates
+    (in the general case where 3 2-qubit gates are needed). The 8 single-qubit
+    unitary gates are obtained by multiplying the adjacent 1-qubit unitary matrices
+    between the 2-qubit gates.
 
     The synthesis algorithm proceeds as follows:
 
@@ -313,6 +314,8 @@ class TwoQubitControlledUDecomposer:
 
         R_{YY}(b) = (S^\dagger \otimes S^\dagger) \cdot R_{XX}(b) \cdot (S \otimes S)
 
+    .. math::
+
         R_{ZZ}(c) = (H \otimes H) \cdot R_{XX}(c) \cdot (H \otimes H)
 
     .. parsed-literal::
@@ -345,7 +348,7 @@ class TwoQubitControlledUDecomposer:
              └─────┘└────────┘└─────┘
 
     Finally, all adjacent single-qubit unitaries between the 2-qubit gates are merged,
-    reducing the total from 24 to at most 8 single-qubit unitary gates:
+    reducing the total to at most 8 single-qubit unitary gates:
 
     .. parsed-literal::
 
