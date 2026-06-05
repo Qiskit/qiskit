@@ -1131,7 +1131,9 @@ class TestControlledGate(QiskitTestCase):
         getattr(qc, method_name)(*args, label=label, **kwargs)
 
         self.assertTrue(qc.data)
-        self.assertEqual([instruction.operation.label for instruction in qc.data], [label] * len(qc.data))
+        self.assertEqual(
+            [instruction.operation.label for instruction in qc.data], [label] * len(qc.data)
+        )
 
     @data(
         ("ccx", 4, None, [0, 1], 2, "10"),
