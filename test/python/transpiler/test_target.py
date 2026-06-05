@@ -32,7 +32,6 @@ from qiskit.circuit.library import (
     RZXGate,
     CZGate,
     UnitaryGate,
-    Barrier,
 )
 from qiskit.circuit import IfElseOp, ForLoopOp, WhileLoopOp, SwitchCaseOp
 from qiskit.circuit.measure import Measure
