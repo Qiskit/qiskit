@@ -266,7 +266,7 @@ def transpile(
         optimization_level = config.get("transpile_optimization_level", 2)
 
     if seed_transpiler is None:
-        if seed := os.getenv("QISKIT_TRANSPILER_SEED", None) is not None:
+        if (seed := os.getenv("QISKIT_TRANSPILER_SEED", None)) is not None:
             seed_transpiler = int(seed)
         else:
             config = user_config.get_config()

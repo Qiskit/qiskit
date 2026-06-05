@@ -543,7 +543,7 @@ pub(crate) fn unpack_parameter_vector(
 
     let vector = Python::attach(|py| -> Result<_, QpyError> {
         // we use python-space to interface with the ParameterVector data
-        let vector_data = match qpy_data.vectors.get_mut(&root_uuid) {
+        let vector = match qpy_data.vectors.get(&root_uuid) {
             Some(value) => value,
             None => Python::attach(|py| -> Result<_, QpyError> {
                 // we use python-space to create a new parameter vector
@@ -557,17 +557,13 @@ pub(crate) fn unpack_parameter_vector(
                     .get_bound(py)
                     .call1((name.clone(), parameter_vector_pack.vector_size, py_uuid))?
                     .unbind();
-                qpy_data
-                    .vectors
-                    .insert(root_uuid, (vector, Default::default()));
-                qpy_data.vectors.get_mut(&root_uuid).ok_or_else(|| {
+                qpy_data.vectors.insert(root_uuid, vector);
+                qpy_data.vectors.get(&root_uuid).ok_or_else(|| {
                     QpyError::MissingData("Parameter vector creation failed".to_string())
                 })
             })?,
         };
-        let vector = vector_data.0.bind(py);
-        vector_data.1.insert(index);
-        Ok(vector.clone().unbind())
+        Ok(vector.clone_ref(py))
     })?;
 
     Ok(Symbol {
