@@ -293,9 +293,8 @@ class CustomGate(Gate):
             self._native_operation.params,
             self._native_operation.label,
         )
-        self.definition = (
-            None if self._native_operation.definition is None else self._native_operation.definition
-        )
-
-    def __array__(self, dtype=complex):
-        return self._native_operation.__array__(dtype)
+    def _define(self):
+        return self._native_operation.definition
+    
+    def __array__(self, dtype=complex, copy=None):
+        return self._native_operation.__array__(dtype, copy)

@@ -11,13 +11,14 @@
 // that they have been altered from the originals.
 
 use approx::relative_eq;
+use qiskit_quantum_info::sparse_observable::cast_array_type;
 use qiskit_quantum_info::sparse_pauli_op::MatrixCompressedPaulis;
 use std::any::Any;
 use std::fmt::Debug;
 use std::num::NonZero;
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::{fmt, vec};
 
 use crate::bit::{ClassicalRegister, ShareableClbit};
@@ -40,7 +41,7 @@ use num_bigint::BigUint;
 use num_complex::{Complex64, c64};
 use smallvec::SmallVec;
 
-use numpy::{IntoPyArray, PyArray1, PyReadonlyArray2, ToPyArray};
+use numpy::{IntoPyArray, PyArray1, PyArray2, PyArrayMethods, PyReadonlyArray2, ToPyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyList, PyTuple, PyType};
@@ -2084,6 +2085,9 @@ impl From<Box<dyn CustomOperation>> for BoxedCustomOperation {
 pub struct PyCustomOperation {
     pub inner: Box<dyn CustomOperation>,
     pub parameters: Option<SmallVec<[Param; 3]>>,
+    definition: OnceLock<Option<Py<PyAny>>>,
+    array: OnceLock<Option<Py<PyArray2<Complex64>>>>,
+    py_params: OnceLock<Py<PyList>>,
 }
 
 #[pymethods]
@@ -2120,37 +2124,82 @@ impl PyCustomOperation {
 
     #[getter]
     fn params<'a>(&'a self, py: Python<'a>) -> PyResult<Bound<'a, PyList>> {
-        PyList::new(
-            py,
-            self.parameters
-                .as_deref()
-                .unwrap_or_default()
-                .iter()
-                .cloned(),
-        )
+        if let Some(params) = self.py_params.get() {
+            Ok(params.bind(py).clone())
+        } else {
+            let params = PyList::new(
+                py,
+                self.parameters
+                    .as_deref()
+                    .unwrap_or_default()
+                    .iter()
+                    .cloned(),
+            )?;
+            self.py_params
+                .set(params.clone().unbind())
+                .expect("Cell should not be initialized");
+            Ok(params)
+        }
     }
 
     #[getter]
     fn definition<'py>(&'py self, py: Python<'py>) -> Option<Bound<'py, PyAny>> {
-        let params = self.parameters.as_deref().unwrap_or_default();
-        self.inner
-            .definition(params)
-            .map(|circ| circ.into_py_quantum_circuit(py).ok())?
+        self.definition
+            .get_or_init(|| {
+                let params = self.parameters.as_deref().unwrap_or_default();
+                self.inner.definition(params).map(|circ| {
+                    circ.into_py_quantum_circuit(py)
+                        .ok()
+                        .map(|circ| circ.unbind())
+                })?
+            })
+            .as_ref()
+            .map(|circ| circ.bind(py).clone())
     }
 
-    fn __array__<'py>(&'py self, dtype: Bound<'py, PyAny>) -> Option<Bound<'py, PyAny>> {
-        let py = dtype.py();
-        let params = self.parameters.as_deref().unwrap_or_default();
-        if let Some(matrix) = self.inner.matrix(params) {
-            let py_matrix = matrix.into_pyarray(py);
-            Some(py_matrix.into_any())
-        } else {
-            None
+    #[pyo3(signature = (dtype, copy = true))]
+    fn __array__<'py>(
+        &'py self,
+        py: Python<'py>,
+        dtype: Option<&Bound<'py, PyAny>>,
+        copy: Option<bool>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        // It is not possible for us to compute the matrix without copying currently
+        let copy = copy.unwrap_or_default();
+        let matrix = self
+            .array
+            .get_or_init(|| {
+                let params = self.parameters.as_deref().unwrap_or_default();
+                if let Some(matrix) = self.inner.matrix(params) {
+                    let py_matrix = matrix.into_pyarray(py);
+                    Some(py_matrix.unbind())
+                } else {
+                    None
+                }
+            })
+            .as_ref();
+
+        match matrix {
+            Some(matrix) => {
+                let matrix_bound = matrix.bind(py);
+                let ret = match copy {
+                    true => {
+                        let new_matrix = PyArray2::zeros(py, matrix_bound.dims(), false);
+                        matrix_bound.copy_to(&new_matrix)?;
+                        new_matrix
+                    }
+                    false => matrix_bound.clone(),
+                };
+                Ok(cast_array_type(py, ret, dtype)?)
+            }
+            None => Ok(py.None().into_bound(py)),
         }
     }
 
     fn __eq__<'py>(&'py self, other: Bound<'py, PyAny>) -> PyResult<bool> {
-        let as_own = other.cast::<Self>()?;
+        let Ok(as_own) = other.cast::<Self>() else {
+            return Ok(false);
+        };
         let as_borrowed = as_own.borrow();
 
         // First compare by instance
@@ -2195,6 +2244,9 @@ impl PyCustomOperation {
         Self {
             inner: op,
             parameters,
+            definition: std::default::Default::default(),
+            array: std::default::Default::default(),
+            py_params: std::default::Default::default(),
         }
     }
 
