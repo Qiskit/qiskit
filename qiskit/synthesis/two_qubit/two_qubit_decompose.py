@@ -278,19 +278,30 @@ class TwoQubitControlledUDecomposer:
 
         U = (c_2^r \otimes c_2^l)\, U_d(a, b, c)\, (c_1^r \otimes c_1^l)
 
-    where :math:`U_d(a, b, c) = e^{i(a\,XX + b\,YY + c\,ZZ)}` is the Weyl gate
-    and :math:`c_1^r, c_1^l, c_2^r, c_2^l \in SU(2)`:
+    where :math:`U_d(a, b, c) = e^{i(a\,XX + b\,YY + c\,ZZ)}` is the Weyl (canonical) gate
+    with Weyl chamber parameters :math:`\tfrac{\pi}{4} \geq a \geq b \geq |c| \geq 0`,
+    and :math:`c_1^r, c_1^l, c_2^r, c_2^l \in SU(2)` are single-qubit unitaries.
+    This gives an initial circuit of the form:
 
     .. code-block:: text
 
-             ┌─────┐┌───────┐┌─────┐
-        q_0: ┤ c2r ├┤0      ├┤ c1r ├
-             ├─────┤│  Weyl │├─────┤
-        q_1: ┤ c2l ├┤1      ├┤ c1l ├
-             └─────┘└───────┘└─────┘
+             ┌─────┐┌───────────┐┌─────┐
+        q_0: ┤ c2r ├┤0          ├┤ c1r ├
+             ├─────┤│  Ud(a,b,c)│├─────┤
+        q_1: ┤ c2l ├┤1          ├┤ c1l ├
+             └─────┘└───────────┘└─────┘
 
-    **Step 1.** The Weyl gate decomposes as
-    :math:`U_d(a, b, c) = R_{XX}(a)\, R_{YY}(b)\, R_{ZZ}(c)`:
+    **Step 1: Expand the Weyl gate into three two-qubit rotations**
+
+    The Weyl gate decomposes exactly as a product of three Pauli rotations:
+
+    .. math::
+
+        U_d(a, b, c) = R_{XX}(a)\, R_{YY}(b)\, R_{ZZ}(c)
+
+    where :math:`R_{XX}(\theta) = e^{-i \frac{\theta}{2} X \otimes X}`,
+    :math:`R_{YY}(\theta) = e^{-i \frac{\theta}{2} Y \otimes Y}`, and
+    :math:`R_{ZZ}(\theta) = e^{-i \frac{\theta}{2} Z \otimes Z}`:
 
     .. code-block:: text
 
@@ -300,8 +311,11 @@ class TwoQubitControlledUDecomposer:
         q_1: ┤1        ├┤1        ├─■──────
              └─────────┘└─────────┘
 
-    **Step 2.** :math:`R_{YY}` and :math:`R_{ZZ}` are rewritten as :math:`R_{XX}`
-    via single-qubit conjugations:
+    **Step 2: Conjugate** :math:`R_{YY}` **and** :math:`R_{ZZ}` **into** :math:`R_{XX}`
+
+    Since all three Pauli rotations are locally equivalent, :math:`R_{YY}` and
+    :math:`R_{ZZ}` can be rewritten as :math:`R_{XX}` rotations by conjugating with
+    single-qubit Clifford gates:
 
     .. math::
 
@@ -310,6 +324,8 @@ class TwoQubitControlledUDecomposer:
     .. math::
 
         R_{ZZ}(c) = (H \otimes H)\, R_{XX}(c)\, (H \otimes H)
+
+    giving the two sub-circuits:
 
     .. code-block:: text
 
@@ -325,16 +341,27 @@ class TwoQubitControlledUDecomposer:
         q_1: ┤ H ├┤1        ├┤ H ├
              └───┘└─────────┘└───┘
 
-    **Step 3.** Each :math:`R_{XX}(\theta)` is realized with the ``rxx_equivalent_gate``:
+    **Step 3: Realize each** :math:`R_{XX}` **with the target gate**
+
+    Each :math:`R_{XX}(\theta)` is decomposed using the user-supplied
+    ``rxx_equivalent_gate`` :math:`\text{Equiv} \sim U_d(\alpha, 0, 0)`.
+    Since :math:`\text{Equiv}` and :math:`R_{XX}` are locally equivalent,
+    there exist :math:`k_1^r, k_1^l, k_2^r, k_2^l \in SU(2)` such that:
 
     .. math::
 
-        R_{XX}(\theta) = (k_2^r \otimes k_2^l)\, \text{Equiv}\, (k_1^r \otimes k_1^l),
-        \quad k_1^r, k_1^l, k_2^r, k_2^l \in SU(2)
+        R_{XX}(\theta) = (k_2^r \otimes k_2^l)\, \text{Equiv}\, (k_1^r \otimes k_1^l)
 
-    Adjacent single-qubit unitary gates between the two-qubit gates are then merged,
-    giving at most three ``rxx_equivalent_gate`` applications and at most eight
-    single-qubit unitary gates:
+    where the angle scaling between :math:`\theta` and :math:`\alpha` is absorbed
+    into the surrounding single-qubit unitaries.
+
+    **Step 4: Consolidate single-qubit unitary gates**
+
+    After substituting the target gate for every :math:`R_{XX}`, the full circuit
+    contains up to 24 single-qubit unitary gates. All single-qubit unitary gates
+    that appear between consecutive two-qubit gates are merged by matrix multiplication
+    into a single :math:`SU(2)` operation per qubit, reducing the count to at most
+    eight single-qubit unitary gates in total. The final synthesized circuit has the form:
 
     .. code-block:: text
 
@@ -344,13 +371,23 @@ class TwoQubitControlledUDecomposer:
         q_1: ┤ d2l ├┤1          ├┤ d1l ├┤1          ├┤ e1l ├┤1          ├┤ f1l ├
              └─────┘└───────────┘└─────┘└───────────┘└─────┘└───────────┘└─────┘
 
-    where ``Equiv(a)``, ``Equiv(b)``, ``Equiv(c)`` realize :math:`R_{XX}(a)`,
-    :math:`R_{XX}(b)`, :math:`R_{XX}(c)` respectively, and the remaining boxes are
-    the consolidated single-qubit unitary gates.
+    where ``Equiv(a)``, ``Equiv(b)``, and ``Equiv(c)`` realize :math:`R_{XX}(a)`,
+    :math:`R_{XX}(b)`, and :math:`R_{XX}(c)` respectively using the target gate,
+    and ``d2r``, ``d2l``, ``d1r``, ``d1l``, ``e1r``, ``e1l``, ``f1r``, ``f1l``
+    are the consolidated single-qubit unitary gates on each qubit.
 
-    Rotations with a vanishing angle are dropped, so unitaries equivalent to the
-    identity, a single :class:`.RXXGate`, or two instances of :class:`.RXXGate` use
-    zero, one, or two applications of ``rxx_equivalent_gate`` respectively.
+    **Gate count**
+
+    The number of ``rxx_equivalent_gate`` applications depends on the Weyl chamber
+    parameters of the target unitary:
+
+    - If :math:`a = b = c = 0` (identity-like): zero applications.
+    - If :math:`b = c = 0` (single :class:`.RXXGate`-like): one application.
+    - If :math:`c = 0` (two :class:`.RXXGate`-like): two applications.
+    - General case: three applications.
+
+    Rotations with a vanishing angle are dropped automatically, so the decomposer
+    always emits the minimal number of two-qubit gates for the given unitary.
     """
 
     def __init__(self, rxx_equivalent_gate: type[Gate], euler_basis: str = "ZXZ"):
@@ -392,12 +429,11 @@ class TwoQubitControlledUDecomposer:
             approximate: Not used. Present for signature compatibility with other decomposers.
             use_dag: Not used. Present for signature compatibility with other decomposers.
             atol: Absolute tolerance for checking angles of the single-qubit unitary gates
-                when simplifying the returned circuit. Default: 1e-12.
+                when simplifying the returned circuit. Passed to
+                :class:`.OneQubitEulerDecomposer`. Default: 1e-12.
 
         Returns:
             QuantumCircuit: Synthesized quantum circuit.
-
-        Note: atol is passed to :class:`.OneQubitEulerDecomposer`.
         """
         circ_data = self._inner_decomposer(np.asarray(unitary, dtype=complex), atol)
         return QuantumCircuit._from_circuit_data(circ_data, legacy_qubits=True)
