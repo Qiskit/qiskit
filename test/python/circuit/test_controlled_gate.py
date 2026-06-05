@@ -1114,98 +1114,64 @@ class TestControlledGate(QiskitTestCase):
         ref_circuit.append(ccx, [qreg[0], qreg[1], qreg[2]])
         self.assertEqual(qc, ref_circuit)
 
-    def test_ccx_label_parameter(self):
-        """To check that labels are forwarded to CCX gates."""
-        qreg = QuantumRegister(3)
-        qc = QuantumCircuit(qreg)
-        qc.ccx(qreg[0], qreg[1], qreg[2], label="my_ccx", ctrl_state=0)
-
-        self.assertEqual(qc.data[0].operation.label, "my_ccx")
-
-    @data((4, [0, 1, 2], 3, "010"), (4, [2, 1, 3], 0, 2))
+    @data(
+        ("ccx", (0, 1, 2), {}),
+        ("mcx", ([0, 1, 2], 3), {}),
+        ("mcp", (0.2, [0, 1, 2], 3), {}),
+        ("cswap", (0, 1, 2), {}),
+        ("rccx", (0, 1, 2), {}),
+        ("rcccx", (0, 1, 2, 3), {}),
+    )
     @unpack
-    def test_multi_control_x_ctrl_state_parameter(
-        self, num_qubits, ctrl_qubits, target_qubit, ctrl_state
-    ):
-        """To check the consistency of parameters ctrl_state in MCX"""
-        qc = QuantumCircuit(num_qubits)
-        qc.mcx(ctrl_qubits, target_qubit, ctrl_state=ctrl_state)
-        operator_qc = Operator(qc)
-
-        qc1 = QuantumCircuit(num_qubits)
-        gate = MCXGate(num_ctrl_qubits=len(ctrl_qubits), ctrl_state=ctrl_state)
-        qc1.append(gate, ctrl_qubits + [target_qubit])
-        operator_qc1 = Operator(qc1)
-
-        self.assertEqual(operator_qc, operator_qc1)
-
-    def test_multi_control_x_label_parameter(self):
-        """To check that labels are forwarded to MCX gates."""
+    def test_controlled_operation_label_parameters(self, method_name, args, kwargs):
+        """Test that controlled-operation helpers forward labels to appended gates."""
         qc = QuantumCircuit(4)
-        qc.mcx([0, 1, 2], 3, label="my_mcx")
+        label = "my_label"
 
-        self.assertEqual(len(qc.data), 1)
-        self.assertEqual(qc.data[0].operation.label, "my_mcx")
+        getattr(qc, method_name)(*args, label=label, **kwargs)
 
-    @data((4, 0.2, [0, 1, 2], 3, "010"), (4, 0.6, [2, 1, 3], 0, 0))
+        self.assertTrue(qc.data)
+        self.assertEqual([instruction.operation.label for instruction in qc.data], [label] * len(qc.data))
+
+    @data(
+        ("ccx", 4, None, [0, 1], 2, "10"),
+        ("ccx", 4, None, [1, 2], 3, 1),
+        ("cswap", 4, None, [0], [1, 2], "0"),
+        ("cswap", 4, None, [3], [1, 0], 0),
+        ("mcx", 4, None, [0, 1, 2], 3, "010"),
+        ("mcx", 4, None, [2, 1, 3], 0, 2),
+        ("mcp", 4, 0.2, [0, 1, 2], 3, "010"),
+        ("mcp", 4, 0.6, [2, 1, 3], 0, 0),
+        ("mcp", 4, 0.2, [0, 1, 2], 3, "000"),
+        ("mcp", 3, 0.6, [0, 1], 2, 1),
+    )
     @unpack
-    def test_multi_control_p_ctrl_state_parameter(
-        self, num_qubits, lam, ctrl_qubits, target_qubit, ctrl_state
+    def test_controlled_operation_ctrl_state_parameter(
+        self, method_name, num_qubits, gate_param, ctrl_qubits, target_qubit, ctrl_state
     ):
-        """To check the consistency of parameters ctrl_state in MCP"""
+        """To check the consistency of ctrl_state for controlled-operation helpers."""
         qc = QuantumCircuit(num_qubits)
-        qc.mcp(lam, ctrl_qubits, target_qubit, ctrl_state=ctrl_state)
-        operator_qc = Operator(qc)
+        if method_name == "ccx":
+            qc.ccx(*ctrl_qubits, target_qubit, ctrl_state=ctrl_state)
+            gate = CCXGate(ctrl_state=ctrl_state)
+            qargs = ctrl_qubits + [target_qubit]
+        elif method_name == "cswap":
+            qc.cswap(*ctrl_qubits, *target_qubit, ctrl_state=ctrl_state)
+            gate = CSwapGate(ctrl_state=ctrl_state)
+            qargs = ctrl_qubits + target_qubit
+        elif method_name == "mcx":
+            qc.mcx(ctrl_qubits, target_qubit, ctrl_state=ctrl_state)
+            gate = MCXGate(num_ctrl_qubits=len(ctrl_qubits), ctrl_state=ctrl_state)
+            qargs = ctrl_qubits + [target_qubit]
+        else:
+            qc.mcp(gate_param, ctrl_qubits, target_qubit, ctrl_state=ctrl_state)
+            gate = MCPhaseGate(gate_param, num_ctrl_qubits=len(ctrl_qubits), ctrl_state=ctrl_state)
+            qargs = ctrl_qubits + [target_qubit]
 
-        qc1 = QuantumCircuit(num_qubits)
-        gate = MCPhaseGate(lam, num_ctrl_qubits=len(ctrl_qubits), ctrl_state=ctrl_state)
-        qc1.append(gate, ctrl_qubits + [target_qubit])
-        operator_qc1 = Operator(qc1)
+        expected = QuantumCircuit(num_qubits)
+        expected.append(gate, qargs)
 
-        self.assertEqual(operator_qc, operator_qc1)
-
-    def test_multi_control_p_label_parameter(self):
-        """To check that labels are forwarded to MCPhase gates."""
-        qc = QuantumCircuit(4)
-        qc.mcp(0.2, [0, 1, 2], 3, label="my_mcp")
-
-        self.assertEqual(len(qc.data), 1)
-        self.assertEqual(qc.data[0].operation.label, "my_mcp")
-
-    def test_cswap_label_parameter(self):
-        """To check that cswap forwards labels."""
-        qc = QuantumCircuit(3)
-        qc.cswap(0, 1, 2, label="my_cswap")
-
-        self.assertEqual(len(qc.data), 1)
-        self.assertEqual(qc.data[0].operation.label, "my_cswap")
-
-    def test_relative_phase_toffoli_label_parameter(self):
-        """rccx and rcccx should accept and preserve labels."""
-        qc = QuantumCircuit(4)
-        qc.rccx(0, 1, 2, label="my_rccx")
-        qc.rcccx(0, 1, 2, 3, label="my_rcccx")
-
-        self.assertEqual(qc.data[0].operation.label, "my_rccx")
-        self.assertEqual(qc.data[1].operation.label, "my_rcccx")
-
-    @data((4, 0.2, [0, 1, 2], 3, "000"), (3, 0.6, [0, 1], 2, 1))
-    @unpack
-    def test_open_control_mcphase_ctrl_state_parameter(
-        self, num_qubits, lam, ctrl_qubits, target_qubit, ctrl_state
-    ):
-        """To check the consistency of parameters ctrl_state in MCPhaseGate"""
-        qc = QuantumCircuit(num_qubits)
-        num_controls = len(ctrl_qubits)
-        qc.mcp(lam, ctrl_qubits, target_qubit, ctrl_state=ctrl_state)
-
-        # obtain unitary for circuit
-        simulated = Operator(qc).data
-        simulated = simulated[: 2 ** (num_controls + 1), : 2 ** (num_controls + 1)]
-        base = PhaseGate(lam).to_matrix()
-        expected = _compute_control_matrix(base, num_controls, ctrl_state=ctrl_state)
-
-        self.assertTrue(matrix_equal(simulated, expected))
+        self.assertEqual(Operator(qc), Operator(expected))
 
     def test_open_control_composite_unrolling(self):
         """test unrolling of open control gates when gate is in basis"""
