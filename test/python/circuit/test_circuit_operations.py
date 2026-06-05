@@ -71,6 +71,40 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(test, expected)
 
     @data(
+        ("h", (0,)),
+        ("id", (0,)),
+        ("p", (0.1, 0)),
+        ("r", (0.1, 0.2, 0)),
+        ("rxx", (0.1, 0, 1)),
+        ("ryy", (0.1, 0, 1)),
+        ("rz", (0.1, 0)),
+        ("rzx", (0.1, 0, 1)),
+        ("rzz", (0.1, 0, 1)),
+        ("ecr", (0, 1)),
+        ("s", (0,)),
+        ("sdg", (0,)),
+        ("swap", (0, 1)),
+        ("iswap", (0, 1)),
+        ("sx", (0,)),
+        ("sxdg", (0,)),
+        ("t", (0,)),
+        ("tdg", (0,)),
+        ("u", (0.1, 0.2, 0.3, 0)),
+        ("dcx", (0, 1)),
+        ("y", (0,)),
+        ("z", (0,)),
+    )
+    def test_standard_gates_label_param(self, case):
+        """Test standard QuantumCircuit gate helpers forward labels to the appended operation."""
+        method_name, args = case
+        qc = QuantumCircuit(4)
+
+        getattr(qc, method_name)(*args, label="my_label")
+
+        self.assertEqual(len(qc.data), 1)
+        self.assertEqual(qc.data[0].operation.label, "my_label")
+
+    @data(
         slice(0, 2),
         slice(None, 1),
         slice(1, None),
