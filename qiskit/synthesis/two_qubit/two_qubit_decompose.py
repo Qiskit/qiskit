@@ -341,7 +341,7 @@ class TwoQubitControlledUDecomposer:
     before being synthesised into a single gate sequence.  This reduces the
     single-qubit gate count from the previous maximum of **24** down to **8**
     (one per qubit per inter-gate boundary, plus the outer ``c2`` and ``c1``
-    layers), while still using exactly **3** two-qubit gates for a general unitary.
+    layers), while still using at most **3** two-qubit gates for a general unitary.
 
     For unitaries that require fewer than 3 two-qubit gates the same merging
     strategy is applied, giving proportionally fewer single-qubit gates.
