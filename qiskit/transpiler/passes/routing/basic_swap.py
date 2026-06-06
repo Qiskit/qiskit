@@ -124,8 +124,6 @@ class BasicSwap(TransformationPass):
             self.property_set["final_layout"] = self.property_set["final_layout"].compose(
                 current_layout, dag.qubits
             )
-
-        new_dag.global_phase = dag.global_phase
         return new_dag
 
     def _fake_run(self, dag):
