@@ -1,7 +1,9 @@
 ---
 fixes:
   - |
-    Fixed an issue where :class:`~qiskit.transpiler.passes.BasicSwap` could
-    inflate the input circuit ``global_phase`` while rebuilding the output DAG
-    from serial layers. See `#16271
+    Fixed an issue where :meth:`.DAGCircuit.layers` and
+    :meth:`.DAGCircuit.serial_layers` copied the parent circuit
+    ``global_phase`` into each yielded layer DAG. Rebuilding a circuit from
+    those layer DAGs could then accumulate the original phase more than once,
+    including in :class:`~qiskit.transpiler.passes.BasicSwap`. See `#16271
     <https://github.com/Qiskit/qiskit/issues/16271>`__.
