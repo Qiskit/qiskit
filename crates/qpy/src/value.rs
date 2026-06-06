@@ -777,6 +777,13 @@ pub(crate) fn get_circuit_type_key(
                 }
             }
         }),
+        OperationRef::CustomOperation(custom_gate) => match custom_gate.is_controlled_gate() {
+            true => Ok(CircuitInstructionType::ControlledGate),
+            false => match custom_gate.is_unitary() {
+                true => Ok(CircuitInstructionType::Gate),
+                false => Ok(CircuitInstructionType::Instruction),
+            },
+        },
     }
 }
 
