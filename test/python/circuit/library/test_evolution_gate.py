@@ -13,6 +13,7 @@
 """Test the evolution gate."""
 
 from itertools import permutations
+import warnings
 
 import unittest
 import numpy as np
@@ -60,6 +61,16 @@ class TestEvolutionGate(QiskitTestCase):
 
         self.assertTrue(Operator(gate).equiv(exact_gate))
 
+    @staticmethod
+    def _matching_approximate_synthesis_warnings(caught):
+        """Return only the warnings emitted for ignored approximate synthesis."""
+        return [
+            warning
+            for warning in caught
+            if warning.category is UserWarning
+            and "ignores the explicitly requested approximate synthesis" in str(warning.message)
+        ]
+
     def test_matrix_decomposition(self):
         """Test the matrix decomposition."""
         op = (X ^ X ^ X) + (Y ^ Y ^ Y) + (Z ^ Z ^ Z)
@@ -92,6 +103,71 @@ class TestEvolutionGate(QiskitTestCase):
         evo = PauliEvolutionGate(Z, time=Parameter("time"))
         with self.assertRaises(ValueError):
             _ = evo.to_matrix()
+
+    # AI-assisted tests: these warning regressions were drafted with OpenAI Codex (GPT-5)
+    # and then checked against the direct gate and circuit Operator paths from issue #16366.
+    def test_to_matrix_warns_for_explicit_approximate_synthesis(self):
+        """Test to_matrix warns when it ignores an explicitly requested approximation."""
+        evo = PauliEvolutionGate(X + Z, time=0.5, synthesis=LieTrotter(reps=1))
+
+        with self.assertWarnsRegex(
+            UserWarning, "ignores the explicitly requested approximate synthesis LieTrotter"
+        ):
+            _ = evo.to_matrix()
+
+    def test_operator_warns_for_explicit_approximate_synthesis(self):
+        """Test Operator(gate) warns when it resolves through to_matrix."""
+        evo = PauliEvolutionGate(X + Z, time=0.5, synthesis=LieTrotter(reps=1))
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            _ = Operator(evo)
+
+        caught = self._matching_approximate_synthesis_warnings(caught)
+        self.assertEqual(len(caught), 1)
+        self.assertIs(caught[0].category, UserWarning)
+        self.assertIn(
+            "ignores the explicitly requested approximate synthesis LieTrotter",
+            str(caught[0].message),
+        )
+
+    def test_circuit_operator_warns_once_for_explicit_approximate_synthesis(self):
+        """Test Operator(circuit) warns once for a gate with explicit approximate synthesis."""
+        evo = PauliEvolutionGate(X + Z, time=0.5, synthesis=LieTrotter(reps=1))
+        qc = QuantumCircuit(1)
+        qc.append(evo, [0])
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            _ = Operator(qc)
+
+        caught = self._matching_approximate_synthesis_warnings(caught)
+        self.assertEqual(len(caught), 1)
+        self.assertIs(caught[0].category, UserWarning)
+        self.assertIn(
+            "ignores the explicitly requested approximate synthesis LieTrotter",
+            str(caught[0].message),
+        )
+
+    def test_to_matrix_does_not_warn_for_default_synthesis(self):
+        """Test the default synthesis remains silent for matrix evaluation."""
+        evo = PauliEvolutionGate(X + Z, time=0.5)
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            _ = evo.to_matrix()
+
+        self.assertEqual(self._matching_approximate_synthesis_warnings(caught), [])
+
+    def test_to_matrix_does_not_warn_for_exact_synthesis(self):
+        """Test exact synthesis choices do not warn for matrix evaluation."""
+        evo = PauliEvolutionGate(X + Z, time=0.5, synthesis=MatrixExponential())
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            _ = evo.to_matrix()
+
+        self.assertEqual(self._matching_approximate_synthesis_warnings(caught), [])
 
     def test_reorder_paulis_invariant(self):
         """

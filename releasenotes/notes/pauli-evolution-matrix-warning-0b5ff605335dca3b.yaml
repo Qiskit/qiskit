@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    ``PauliEvolutionGate.to_matrix()`` and ``Operator(...)`` now emit a
+    warning when they evaluate a gate with an explicitly requested approximate
+    product-formula synthesis such as :class:`.LieTrotter` or
+    :class:`.SuzukiTrotter`. The returned matrix is still the exact
+    :math:`e^{-itH}`, but the evaluation no longer silently ignores the
+    user-specified approximate synthesis. See
+    `#16366 <https://github.com/Qiskit/qiskit/issues/16366>`__.

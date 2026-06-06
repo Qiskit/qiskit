@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+import warnings
 import numpy as np
 import scipy as sc
 
@@ -132,6 +133,7 @@ class PauliEvolutionGate(Gate):
             synthesis: A synthesis strategy. If None, the default synthesis is the Lie-Trotter
                 product formula with a single repetition.
         """
+        explicit_synthesis = synthesis is not None
         if isinstance(operator, list):
             operator = [_to_sparse_op(op) for op in operator]
         else:
@@ -163,6 +165,8 @@ class PauliEvolutionGate(Gate):
             synthesis = LieTrotter()
 
         self.synthesis = synthesis
+        self._explicit_synthesis = explicit_synthesis
+        self._ignored_approximate_synthesis_warned = False
 
     @property
     def time(self) -> ParameterValueType:
@@ -185,12 +189,19 @@ class PauliEvolutionGate(Gate):
     def to_matrix(self) -> np.ndarray:
         """Return the matrix :math:`e^{-it H}` as ``numpy.ndarray``.
 
+        If an approximate synthesis was explicitly requested when constructing this gate,
+        this method still returns the exact matrix exponential and warns that the requested
+        synthesis is ignored. Use :attr:`definition`, :meth:`decompose`, or ``transpile``
+        to obtain the synthesized circuit instead.
+
         Returns:
             The matrix this gate represents.
 
         Raises:
             ValueError: If the ``time`` parameters is not numeric.
         """
+        self._warn_if_ignoring_approximate_synthesis()
+
         # check the parameter is numeric, otherwise raise an error
         if isinstance(self.time, ParameterExpression):
             try:
@@ -223,7 +234,9 @@ class PauliEvolutionGate(Gate):
 
     def inverse(self, annotated: bool = False):
         """Return the inverse, which is obtained by flipping the sign of the evolution time."""
-        return PauliEvolutionGate(self.operator, -self.time, synthesis=self.synthesis)
+        gate = PauliEvolutionGate(self.operator, -self.time, synthesis=self.synthesis)
+        gate._explicit_synthesis = self._explicit_synthesis
+        return gate
 
     def power(self, exponent: float, annotated: bool = False) -> Gate:
         """Raise this gate to the power of ``exponent``.
@@ -240,7 +253,9 @@ class PauliEvolutionGate(Gate):
         Returns:
             An operation implementing ``gate^exponent``.
         """
-        return PauliEvolutionGate(self.operator, self.time * exponent, synthesis=self.synthesis)
+        gate = PauliEvolutionGate(self.operator, self.time * exponent, synthesis=self.synthesis)
+        gate._explicit_synthesis = self._explicit_synthesis
+        return gate
 
     def _return_repeat(self, exponent: float) -> PauliEvolutionGate:
         return self.power(exponent)  # same implementation
@@ -306,11 +321,37 @@ class PauliEvolutionGate(Gate):
         else:
             operator = extend_op(self.operator)
 
-        return PauliEvolutionGate(operator, self.time, label, synthesis=self.synthesis)
+        gate = PauliEvolutionGate(operator, self.time, label, synthesis=self.synthesis)
+        gate._explicit_synthesis = self._explicit_synthesis
+        return gate
 
     def _define(self):
         """Unroll, where the default synthesis is matrix based."""
         self.definition = self.synthesis.synthesize(self)
+
+    # AI-assisted change: this warning path was drafted with OpenAI Codex (GPT-5) and then
+    # manually reviewed against the exact-vs-synthesized semantics in issue #16366.
+    def _warn_if_ignoring_approximate_synthesis(self) -> None:
+        """Warn when matrix evaluation bypasses an explicitly requested approximation."""
+        if not self._explicit_synthesis:
+            return
+        if self._ignored_approximate_synthesis_warned:
+            return
+
+        from qiskit.synthesis.evolution.product_formula import ProductFormula
+
+        if not isinstance(self.synthesis, ProductFormula):
+            return
+
+        self._ignored_approximate_synthesis_warned = True
+        warnings.warn(
+            "PauliEvolutionGate.to_matrix() returns the exact evolution exp(-itH) and "
+            f"ignores the explicitly requested approximate synthesis "
+            f"{self.synthesis.__class__.__name__}. Use .definition, .decompose(), or "
+            "transpile(...) to obtain the synthesized circuit.",
+            UserWarning,
+            stacklevel=2,
+        )
 
     def validate_parameter(self, parameter: ParameterValueType) -> ParameterValueType:
         """Gate parameters should be int, float, or ParameterExpression"""
