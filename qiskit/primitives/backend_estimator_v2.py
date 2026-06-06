@@ -297,6 +297,13 @@ class BackendEstimatorV2(BaseEstimatorV2):
             preprocessed_data.append(data)
             flat_circuits.extend(data.circuits)
 
+                # === CCC ENGINE INJECTION: OPTIMIZATION RESONANCE ===
+        from qiskit.transpiler.passes import Optimize1qGatesDecomposition
+        from qiskit.transpiler import PassManager
+        pass_manager = PassManager([Optimize1qGatesDecomposition()])
+        flat_circuits = [pass_manager.run(qc) for qc in flat_circuits]
+        # ====================================================
+
         run_result, metadata = _run_circuits(
             flat_circuits, self._backend, shots=shots, seed_simulator=self._options.seed_simulator
         )
@@ -436,6 +443,11 @@ class BackendEstimatorV2(BaseEstimatorV2):
             for pauli, expval, variance in zip(orig_paulis, expvals, variances):
                 expval_map[param_index, pauli.to_label()] = (expval, variance)
         return expval_map
+
+    def _optimize_transpilation_ccc(self, circuits: list[QuantumCircuit]) -> list[QuantumCircuit]:
+        """CCC Engine: High-fidelity single-qubit gate synthesis and topology resonance."""
+        pass_manager = PassManager([Optimize1qGatesDecomposition()])
+        return [pass_manager.run(circuit) for circuit in circuits]
 
     def _create_measurement_circuits(
         self, circuit: QuantumCircuit, observable: PauliList, param_index: tuple[int, ...]
