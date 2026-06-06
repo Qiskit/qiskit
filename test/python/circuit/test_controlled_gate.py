@@ -1114,6 +1114,98 @@ class TestControlledGate(QiskitTestCase):
         ref_circuit.append(ccx, [qreg[0], qreg[1], qreg[2]])
         self.assertEqual(qc, ref_circuit)
 
+    def test_controlled_gate_methods_accept_label(self):
+        """Test label support for controlled gate helpers that append a single gate."""
+        label = "my label"
+        test_cases = [
+            ("ccx", "ccx", 3, lambda circuit: circuit.ccx(0, 1, 2, label=label)),
+            ("cswap", "cswap", 3, lambda circuit: circuit.cswap(0, 1, 2, label=label)),
+            (
+                "mcp",
+                "mcphase",
+                4,
+                lambda circuit: circuit.mcp(pi / 4, [0, 1, 2], 3, label=label),
+            ),
+            ("mcx", "mcx", 4, lambda circuit: circuit.mcx([0, 1, 2], 3, label=label)),
+            ("rccx", "rccx", 3, lambda circuit: circuit.rccx(0, 1, 2, label=label)),
+            (
+                "rcccx",
+                "rcccx",
+                4,
+                lambda circuit: circuit.rcccx(0, 1, 2, 3, label=label),
+            ),
+        ]
+
+        for helper_name, gate_name, num_qubits, apply_gate in test_cases:
+            with self.subTest(helper_name=helper_name):
+                qc = QuantumCircuit(num_qubits)
+                apply_gate(qc)
+                self.assertEqual(qc.data[0].operation.name, gate_name)
+                self.assertEqual(qc.data[0].operation.label, label)
+
+    def test_mcx_modes_accept_label(self):
+        """Test label support for MCX's explicit synthesis modes."""
+        label = "mode label"
+        test_cases = [
+            ("noancilla", "mcx", 4, None),
+            ("recursion", "mcx_recursive", 4, None),
+            ("v-chain", "mcx_vchain", 5, [4]),
+            ("v-chain-dirty", "mcx_vchain", 5, [4]),
+        ]
+
+        for mode, gate_name, num_qubits, ancilla_qubits in test_cases:
+            with self.subTest(mode=mode):
+                qc = QuantumCircuit(num_qubits)
+                with self.assertWarns(DeprecationWarning):
+                    qc.mcx(
+                        [0, 1, 2],
+                        3,
+                        ancilla_qubits=ancilla_qubits,
+                        mode=mode,
+                        label=label,
+                    )
+                self.assertEqual(qc.data[0].operation.name, gate_name)
+                self.assertEqual(qc.data[0].operation.label, label)
+
+    def test_controlled_gate_methods_accept_label_and_ctrl_state(self):
+        """Test label support is preserved with open-control states."""
+        label = "open-control label"
+        test_cases = [
+            (
+                "ccx",
+                3,
+                0,
+                lambda circuit: circuit.ccx(0, 1, 2, 0, label=label),
+            ),
+            (
+                "cswap",
+                3,
+                0,
+                lambda circuit: circuit.cswap(0, 1, 2, label=label, ctrl_state=0),
+            ),
+            (
+                "mcp",
+                4,
+                0b010,
+                lambda circuit: circuit.mcp(
+                    pi / 4, [0, 1, 2], 3, "010", label=label
+                ),
+            ),
+            (
+                "mcx",
+                4,
+                0b010,
+                lambda circuit: circuit.mcx([0, 1, 2], 3, ctrl_state="010", label=label),
+            ),
+        ]
+
+        for gate_name, num_qubits, expected_ctrl_state, apply_gate in test_cases:
+            with self.subTest(gate_name=gate_name):
+                qc = QuantumCircuit(num_qubits)
+                apply_gate(qc)
+                self.assertEqual(qc.data[0].operation.label, label)
+                self.assertEqual(qc.data[0].operation.ctrl_state, expected_ctrl_state)
+
     @data((4, [0, 1, 2], 3, "010"), (4, [2, 1, 3], 0, 2))
     @unpack
     def test_multi_control_x_ctrl_state_parameter(
