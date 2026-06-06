@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    :class:`.SynthesizeRZRotations` now raises a :exc:`ValueError` when ``synthesis_error``
+    or ``cache_error`` is set to a negative value, instead of causing a panic in the
+    underlying Rust code.
+    See `#16384 <https://github.com/Qiskit/qiskit/issues/16384>`__.
