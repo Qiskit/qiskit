@@ -104,8 +104,6 @@ class TestEvolutionGate(QiskitTestCase):
         with self.assertRaises(ValueError):
             _ = evo.to_matrix()
 
-    # AI-assisted tests: these warning regressions were drafted with OpenAI Codex (GPT-5)
-    # and then checked against the direct gate and circuit Operator paths from issue #16366.
     def test_to_matrix_warns_for_explicit_approximate_synthesis(self):
         """Test to_matrix warns when it ignores an explicitly requested approximation."""
         evo = PauliEvolutionGate(X + Z, time=0.5, synthesis=LieTrotter(reps=1))
@@ -168,6 +166,29 @@ class TestEvolutionGate(QiskitTestCase):
             _ = evo.to_matrix()
 
         self.assertEqual(self._matching_approximate_synthesis_warnings(caught), [])
+
+    @data(
+        ("inverse", lambda gate: gate.inverse()),
+        ("power", lambda gate: gate.power(2)),
+        ("control", lambda gate: gate.control()),
+    )
+    @unpack
+    def test_derived_gates_warn_for_explicit_approximate_synthesis(self, _name, derive):
+        """Test derived gates preserve the warning behavior for explicit approximations."""
+        base = PauliEvolutionGate(X + Z, time=0.5, synthesis=LieTrotter(reps=1))
+        derived = derive(base)
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            _ = Operator(derived)
+
+        caught = self._matching_approximate_synthesis_warnings(caught)
+        self.assertEqual(len(caught), 1)
+        self.assertIs(caught[0].category, UserWarning)
+        self.assertIn(
+            "ignores the explicitly requested approximate synthesis LieTrotter",
+            str(caught[0].message),
+        )
 
     def test_reorder_paulis_invariant(self):
         """

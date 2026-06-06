@@ -329,8 +329,6 @@ class PauliEvolutionGate(Gate):
         """Unroll, where the default synthesis is matrix based."""
         self.definition = self.synthesis.synthesize(self)
 
-    # AI-assisted change: this warning path was drafted with OpenAI Codex (GPT-5) and then
-    # manually reviewed against the exact-vs-synthesized semantics in issue #16366.
     def _warn_if_ignoring_approximate_synthesis(self) -> None:
         """Warn when matrix evaluation bypasses an explicitly requested approximation."""
         if not self._explicit_synthesis:
