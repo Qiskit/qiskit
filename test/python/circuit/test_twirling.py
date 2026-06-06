@@ -130,7 +130,7 @@ class TestTwirling(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.swap(0, 1)
         with self.assertRaisesRegex(QiskitError, "The specified gate name swap is not supported"):
-            pauli_twirl_2q_gates(qc, twirling_gate=[CXGate, "swap"])
+            pauli_twirl_2q_gates(qc, twirling_gate=["cx", "swap"])
 
     def test_invalid_class_entry_in_list(self):
         """Test an error is raised with an unsupported string gate in list."""
