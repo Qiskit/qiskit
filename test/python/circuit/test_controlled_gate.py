@@ -1282,11 +1282,12 @@ class TestControlledGate(QiskitTestCase):
         target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
 
         # build the matrix for the relative phase toffoli using the unitary simulator
+        # Added label arguments to the gate calls
         circuit = QuantumCircuit(num_ctrl_qubits + 1)
         if num_ctrl_qubits == 2:
-            circuit.rccx(0, 1, 2)
+            circuit.rccx(0, 1, 2, label="custom_rccx")
         else:  # num_ctrl_qubits == 3:
-            circuit.rcccx(0, 1, 2, 3)
+            circuit.rcccx(0, 1, 2, 3, label="custom_rcccx")
 
         simulated_mat = Operator(circuit)
 
@@ -1303,6 +1304,22 @@ class TestControlledGate(QiskitTestCase):
         # compare simulated matrix with the matrix representation provided by the class
         self.assertTrue(matrix_equal(simulated_mat, repr_mat))
 
+        expected_label = "custom_rccx" if num_ctrl_qubits == 2 else "custom_rcccx"
+        self.assertEqual(circuit.data[0].operation.label, expected_label)
+
+    def test_controlled_gate_labels_and_ctrl_states(self):
+        """Test that ccx, mcx, mcp, and cswap accept labels and control states."""
+        qc = QuantumCircuit(5)
+        
+        qc.ccx(0, 1, 2, ctrl_state="01", label="custom_ccx")
+        qc.mcx([0, 1, 2], 3, ctrl_state="101", label="custom_mcx")
+        qc.mcp(3.14, [0, 1, 2], 3, ctrl_state="111", label="custom_mcp")
+        qc.cswap(0, 1, 2, ctrl_state="0", label="custom_cswap")
+
+        self.assertEqual(qc.data[0].operation.label, "custom_ccx")
+        self.assertEqual(qc.data[1].operation.label, "custom_mcx")
+        self.assertEqual(qc.data[2].operation.label, "custom_mcp")
+        self.assertEqual(qc.data[3].operation.label, "custom_cswap")
     def test_open_controlled_gate(self):
         """
         Test controlled gates with control on '0'
