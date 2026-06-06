@@ -11,12 +11,14 @@
 # that they have been altered from the originals.
 
 """Cancel the redundant (self-adjoint) gates through commutation relations."""
+
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.commutation_library import StandardGateCommutations
 
 from qiskit.circuit.library.standard_gates.u1 import U1Gate
 from qiskit.circuit.library.standard_gates.p import PhaseGate
 from qiskit.circuit.library.standard_gates.rz import RZGate
+
 from qiskit._accelerate import commutation_cancellation
 from qiskit._accelerate.commutation_checker import CommutationChecker
 
@@ -32,6 +34,12 @@ class CommutativeCancellation(TransformationPass):
     the commutation relations in the circuit. Gates considered include::
 
         H, X, Y, Z, CX, CY, CZ
+
+    This pass is multithreaded and will potentially launch a thread pool
+    with threads equal to the number of CPUs by default. You can tune the
+    number of threads with the ``RAYON_NUM_THREADS`` environment variable.
+    For example, setting ``RAYON_NUM_THREADS=4`` would limit the thread pool
+    to 4 threads.
     """
 
     def __init__(self, basis_gates=None, target=None, approximation_degree=1.0):
@@ -54,7 +62,9 @@ class CommutativeCancellation(TransformationPass):
             self.basis = set(basis_gates)
         else:
             self.basis = set()
+
         self.target = target
+
         if target is not None:
             self.basis = set(target.operation_names)
 
@@ -62,14 +72,16 @@ class CommutativeCancellation(TransformationPass):
 
         self._var_z_map = {"rz": RZGate, "p": PhaseGate, "u1": U1Gate}
 
-        self._z_rotations = {"p", "z", "u1", "rz", "t", "s"}
-        self._x_rotations = {"x", "rx"}
-        self._gates = {"cx", "cy", "cz", "h", "y"}  # Now the gates supported are hard-coded
+        self._z_rotations = {"p", "z", "u1", "rz", "t", "s", "tdg", "sdg"}
+        self._x_rotations = {"x", "rx", "sx", "sxdg"}
+        self._gates = {"cx", "cy", "cz", "h", "y"}  # hard-coded supported gates
 
-        # build a commutation checker restricted to the gates we cancel -- the others we
-        # do not have to investigate, which allows to save time
+        # Build a commutation checker restricted to the gates we cancel.
+        # Pass approximation_degree so the checker uses the right tolerance.
         self._commutation_checker = CommutationChecker(
-            StandardGateCommutations, gates=self._gates | self._z_rotations | self._x_rotations
+            StandardGateCommutations,
+            gates=self._gates | self._z_rotations | self._x_rotations,
+            approximation_degree=self.approximation_degree,
         )
 
     @trivial_recurse
@@ -82,10 +94,9 @@ class CommutativeCancellation(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
+        # NOTE: sorted(self.basis) is intentional — it ensures deterministic
+        # behaviour of the pass regardless of Python set iteration order.
         commutation_cancellation.cancel_commutations(
-            dag,
-            self._commutation_checker,
-            self.basis,
-            self.approximation_degree,
+            dag, self._commutation_checker, sorted(self.basis)
         )
         return dag
