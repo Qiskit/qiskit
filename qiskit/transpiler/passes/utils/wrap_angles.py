@@ -12,6 +12,8 @@
 
 """Wrap angles pass for respecting target angle bounds."""
 
+import warnings
+
 from qiskit.transpiler.basepasses import TransformationPass
 
 from qiskit._accelerate import wrap_angles
@@ -108,7 +110,14 @@ class WrapAngles(TransformationPass):
         return dag
 
 
-# TODO This path is the only valid way to access this global object in Qiskit 2.2, and is documented and
-# preserved by the deprecation policy of that version.  The preferred way to access the object is as
-# `WrapAngles.DEFAULT_REGISTRY` and we should deprecate the old access path for Qiskit 2.4.
-WRAP_ANGLE_REGISTRY = WrapAngles.DEFAULT_REGISTRY
+def __getattr__(name):
+    if name == "WRAP_ANGLE_REGISTRY":
+        warnings.warn(
+            "The path qiskit.transpiler.passes.utils.wrap_angles.WRAP_ANGLE_REGISTRY is "
+            "deprecated since Qiskit 2.5 and will be removed in Qiskit 3.0 or later. "
+            "Instead, use qiskit.transpiler.passes.WrapAngles.DEFAULT_REGISTRY.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+        return WrapAngles.DEFAULT_REGISTRY
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

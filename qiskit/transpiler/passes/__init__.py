@@ -186,7 +186,8 @@ Additional data
 
 .. py:data:: qiskit.transpiler.passes.utils.wrap_angles.WRAP_ANGLE_REGISTRY
 
-    A legacy location for :attr:`.WrapAngles.DEFAULT_REGISTRY`.  This path should only be used when
+    A deprecated legacy location for :attr:`.WrapAngles.DEFAULT_REGISTRY`.
+    This path is deprecated as of Qiskit 2.5 and should only be used when
     full compatibility with Qiskit 2.2 is required.
 """
 
