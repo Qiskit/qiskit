@@ -66,6 +66,7 @@ from qiskit.circuit.library import (
     UnitaryGate,
     UGate,
     SwapGate,
+    iSwapGate,
     XXPlusYYGate,
     XXMinusYYGate,
     PauliEvolutionGate,
@@ -681,11 +682,11 @@ class TestCommutationChecker(QiskitTestCase):
         with self.subTest(other="z_unitary"):
             self.assertEqual(expect, scc.commute(z_pauli, [0], clbit, z_unitary, [0], []))
 
-    @data(CRXGate, CRYGate, CRZGate)
+    @data(SwapGate, iSwapGate)
     def test_controlled_rotation(self, gate_cls):
-        """Test that controlled rotation do not commute with swap."""
-        cr = gate_cls(0.2)
-        self.assertEqual(scc.commute(SwapGate(), [0, 1], [], cr, [0, 1], []), False)
+        """Test that controlled rotation CRZ do not commute with swap and iswap
+        (unlike CZ gate which is symmetric)."""
+        self.assertEqual(scc.commute(gate_cls(), [0, 1], [], CRZGate(0.2), [0, 1], []), False)
 
     def test_standard_gate_commutations(self):
         """Test that the standard_gate_commutations.rs tables are correct"""
