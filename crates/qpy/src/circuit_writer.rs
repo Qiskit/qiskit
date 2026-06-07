@@ -32,7 +32,8 @@ use qiskit_circuit::bit::{
 };
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::{CircuitInstruction, OperationFromPython};
-use qiskit_circuit::classical::expr::Expr;
+use qiskit_circuit::classical::expr::Var;
+use qiskit_circuit::classical::types::Type;
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::duration::Duration;
 use qiskit_circuit::imports;
@@ -471,10 +472,19 @@ fn pack_control_flow_inst(
             let collection_value = pack_for_collection(&collection);
             let loop_param_value = match loop_param {
                 None => GenericValue::Null,
-                Some(loop_param) => match loop_param {
-                    LoopParam::Variable(var) => GenericValue::Expression(Expr::Var(var)),
-                    LoopParam::Parameter(symbol) => GenericValue::ParameterExpressionSymbol(symbol),
-                },
+                Some(LoopParam::Variable(Var::Standalone {
+                    uuid,
+                    name,
+                    ty: Type::Uint(len),
+                })) => {
+                    let values = vec![
+                        GenericValue::Int64(len as i64),
+                        GenericValue::BigInt(BigUint::from(uuid)),
+                        GenericValue::String(name),
+                    ];
+                    GenericValue::Tuple(values)
+                }
+                _ => GenericValue::Null,
             };
             let mut params = Vec::new();
             params.push(pack_generic_value(&collection_value, qpy_data)?);

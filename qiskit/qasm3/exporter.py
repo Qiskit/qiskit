@@ -1040,7 +1040,7 @@ class QASM3Builder:
             out.append(ast.AliasStatement(name, ast.IndexSet(elements)))
         return out
 
-    def build_current_scope(self, no_declaration: Iterable = None) -> list[ast.Statement]:
+    def build_current_scope(self, no_declaration: Iterable | None = None) -> list[ast.Statement]:
         """Build the instructions that occur in the current scope.
 
         In addition to everything literally in the circuit's ``data`` field, this also includes
