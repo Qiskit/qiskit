@@ -25,14 +25,21 @@ from qiskit.circuit.library import PauliGate, PauliEvolutionGate
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.dagcircuit import DAGOpNode
 
+# Map a rotation gate to its generator
 SUPPORTED_ROTATIONS = {
-    "rxx": PauliGate("XX"),
-    "ryy": PauliGate("YY"),
-    "rzz": PauliGate("ZZ"),
-    "rzx": PauliGate("XZ"),
-    "crx": PauliEvolutionGate(-SparsePauliOp("XZ") + SparsePauliOp("XI"), time=1),
-    "cry": PauliEvolutionGate(-SparsePauliOp("YZ") + SparsePauliOp("YI"), time=1),
-    "crz": PauliEvolutionGate(-SparsePauliOp("ZZ") + SparsePauliOp("ZI"), time=1),
+    "rxx": PauliGate("XX"),  # RXX(t) = exp(-i  t/2 XX)
+    "ryy": PauliGate("YY"),  # RYY(t) = exp(-i  t/2 YY)
+    "rzz": PauliGate("ZZ"),  # RZZ(t) = exp(-i  t/2 ZZ)
+    "rzx": PauliGate("XZ"),  # RXX(t) = exp(-i  t/2 ZX)
+    "crx": PauliEvolutionGate(
+        SparsePauliOp(["XZ", "XI"], coeffs=[-1.0, 1.0])
+    ),  # CRX(t) = exp(-i t/4 (-ZX + IX))
+    "cry": PauliEvolutionGate(
+        SparsePauliOp(["YZ", "YI"], coeffs=[-1.0, 1.0])
+    ),  # CRY(t) = exp(-i t/4 (-ZY + IY))
+    "crz": PauliEvolutionGate(
+        SparsePauliOp(["ZZ", "ZI"], coeffs=[-1.0, 1.0])
+    ),  # CRZ(t) = exp(-i t/4 (-ZZ + IZ))
 }
 
 
