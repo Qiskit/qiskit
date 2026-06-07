@@ -16,7 +16,7 @@ use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, PI};
 use crate::QiskitError;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate, add_param};
-use qiskit_synthesis::ross_selinger::gridsynth_rz;
+use qiskit_synthesis::ross_selinger::{gridsynth_cleanup, gridsynth_rz};
 
 const MINIMUM_EPSILON: f64 = 1e-12; // minimum epsilon for synthesis
 
@@ -115,6 +115,12 @@ pub fn py_run_synthesize_rz_rotations(
     if dag.get_op_counts().keys().all(|k| k != "rz") {
         return Ok(());
     }
+
+    // The rsgridsynth internally caches results of various computations. However, these results become
+    // invalidated if precision changes. Fortunately, rsgridsynth exposes a method to clear (at least
+    // some of) these caches. This is not a perfect solution, and probably a major refactoring of
+    // gridsynth would be needed.
+    gridsynth_cleanup();
 
     // Compute error budgets. When approximation degree is used, the total error is
     // computed as 1 - approximation_degree, and the error budget for synthesis and for
