@@ -7,3 +7,12 @@ features_transpiler:
   - Single-qubit rotation gates and :class:`.PauliProductRotationGate` with angles
     that are integer multiples of :math:`\pi/2`, up to the specified approximation, are now
     recognized as Clifford gates by the :class:`.LitinskiTransformation` pass.
+
+features_c:
+  - Extended the :c:func:`qk_transpiler_pass_standalone_litinski_transformation`
+    pass to support single-qubit ``QkGate_RX`` and ``QkGate_RY`` rotation gates,
+    as well as ``QkPauliProductRotation`` and ``QkPauliProductMeasurement`` instructions.
+  - Single-qubit rotation gates and ``QkPauliProductRotation`` with angles
+    that are integer multiples of :math:`\pi/2`, up to the specified approximation, are now
+    recognized as Clifford gates by the :c:func:`qk_transpiler_pass_standalone_litinski_transformation`
+    pass.
