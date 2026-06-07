@@ -39,9 +39,7 @@ use std::{
 };
 use thiserror::Error;
 
-use qiskit_util::py::{
-    ImportOnceCell, PySequenceIndex, SequenceIndex, imports::NUMPY_COPY_ONLY_IF_NEEDED,
-};
+use qiskit_util::py::{ImportOnceCell, PySequenceIndex, SequenceIndex};
 
 static PAULI_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Pauli");
 static PAULI_LIST_TYPE: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "PauliList");
@@ -4443,13 +4441,7 @@ fn cast_array_type<'py, T: numpy::Element>(
         .getattr(intern!(py, "array"))?
         .call(
             (array,),
-            Some(
-                &[
-                    (intern!(py, "copy"), NUMPY_COPY_ONLY_IF_NEEDED.get_bound(py)),
-                    (intern!(py, "dtype"), dtype.as_any()),
-                ]
-                .into_py_dict(py)?,
-            ),
+            Some(&[(intern!(py, "dtype"), dtype.as_any())].into_py_dict(py)?),
         )
 }
 
