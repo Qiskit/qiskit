@@ -169,7 +169,7 @@ pub unsafe extern "C" fn qk_quantum_register_name(qreg: *const QuantumRegister) 
     let qreg = unsafe { const_ptr_as_ref(qreg) };
 
     CString::new(qreg.name())
-        .expect("Register name contains null byte")
+        .expect("Register name should not contain null bytes")
         .into_raw()
 }
 
@@ -350,7 +350,7 @@ pub unsafe extern "C" fn qk_classical_register_name(creg: *const ClassicalRegist
     let creg = unsafe { const_ptr_as_ref(creg) };
 
     CString::new(creg.name())
-        .expect("Register name contains null byte")
+        .expect("Register name should not contain null bytes")
         .into_raw()
 }
 
