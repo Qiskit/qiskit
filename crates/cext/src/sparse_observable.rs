@@ -994,7 +994,7 @@ pub unsafe extern "C" fn qk_obs_equal(
 ///
 /// @param obs A pointer to the ``QkObs`` to get the string for.
 ///
-/// @return A pointer to a null-terminated char array of the string representation for ``obs``
+/// @return A pointer to a nul-terminated char array of the string representation for ``obs``
 ///
 /// # Example
 /// ```c
@@ -1075,7 +1075,7 @@ pub unsafe extern "C" fn qk_str_free(string: *mut c_char) {
 ///
 /// @param term A pointer to the term.
 ///
-/// @return A pointer to a null-terminated char array of the string representation for ``term``
+/// @return A pointer to a nul-terminated char array of the string representation for ``term``
 ///
 /// # Example
 /// ```c
