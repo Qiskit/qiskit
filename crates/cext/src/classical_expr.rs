@@ -450,7 +450,7 @@ pub unsafe extern "C" fn qk_expr_kind(expr: *const Expr) -> CExprNodeKind {
 /// @param expr A pointer to a binary expression node.
 ///
 /// @return A ``QkBinaryExprInfo`` structure describing the operator, operands,
-/// result type, and constantness of the expression.
+/// result type, and whether the expression is constant.
 ///
 /// This function panics if ``expr`` does not point to a binary expression node.
 ///
@@ -488,7 +488,7 @@ pub unsafe extern "C" fn qk_expr_binary_info(expr: *const Expr) -> CBinaryExprIn
 /// @param expr A pointer to a unary expression node.
 ///
 /// @return A ``QkUnaryExprInfo`` structure describing the operator, operand,
-/// result type, and constantness of the expression.
+/// result type, and whether the expression is constant.
 ///
 /// This function panics if ``expr`` does not point to a unary expression node.
 ///
@@ -524,7 +524,7 @@ pub unsafe extern "C" fn qk_expr_unary_info(expr: *const Expr) -> CUnaryExprInfo
 /// @param expr A pointer to a cast expression node.
 ///
 /// @return A ``QkCastExprInfo`` structure describing the operand, destination
-/// type, implicitness, and constantness of the expression.
+/// type, whether the cast is implicit, and whether the expression is constant.
 ///
 /// This function panics if ``expr`` does not point to a cast expression node.
 ///
@@ -560,7 +560,7 @@ pub unsafe extern "C" fn qk_expr_cast_info(expr: *const Expr) -> CCastExprInfo {
 /// @param expr A pointer to an index expression node.
 ///
 /// @return A ``QkIndexExprInfo`` structure describing the indexed target,
-/// index expression, result type, and constantness of the expression.
+/// index expression, result type, and whether the expression is constant.
 ///
 /// This function panics if ``expr`` does not point to an index expression node.
 ///
