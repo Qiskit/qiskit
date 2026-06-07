@@ -2320,6 +2320,15 @@ impl DAGCircuit {
                                             )?;
                                             block_eq(&body_a, &body_b)
                                         }
+                                        (
+                                            Some(LoopParam::Variable(var_a)),
+                                            Some(LoopParam::Variable(var_b)),
+                                        ) => {
+                                            if var_a != var_b {
+                                                return Ok(false);
+                                            }
+                                            block_eq(body_a, body_b)
+                                        }
                                         (None, None) => block_eq(body_a, body_b),
                                         _ => Ok(false),
                                     }
