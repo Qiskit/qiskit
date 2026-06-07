@@ -116,10 +116,14 @@ pub fn py_run_synthesize_rz_rotations(
         return Ok(());
     }
 
-    // The rsgridsynth internally caches results of various computations. However, these results become
-    // invalidated if precision changes. Fortunately, rsgridsynth exposes a method to clear (at least
-    // some of) these caches. This is not a perfect solution, and probably a major refactoring of
-    // gridsynth would be needed.
+    // rsgridsynth internally caches results of various computations that depend on the
+    // number of precision bits. Generally speaking, these caches become invalid when
+    // precision changes. Fortunately, rsgridsynth exposes a method to clear some (though not all)
+    // of these caches. The current approach is to clear the caches at the start of each run
+    // of SynthesizeRZRotations, while the cached values can be safely reused for all
+    // rotation gates in the circuit.
+    // This is not a complete or perfect solution, so a major refactor of
+    // gridsynth is probably needed.
     gridsynth_cleanup();
 
     // Compute error budgets. When approximation degree is used, the total error is

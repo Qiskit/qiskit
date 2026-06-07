@@ -77,9 +77,10 @@ pub fn gridsynth_rz(theta: f64, epsilon: f64) -> PyResult<CircuitData> {
     circuit_from_string(gates_iter, phase, instruction_capacity)
 }
 
-// The rsgridsynth internally caches results of various computations. However, these results become
-// invalidated if precision changes. Fortunately, rsgridsynth exposes a method to clear (at least
-// some of) these caches.
+// rsgridsynth internally caches results of various computations that depend on the
+// number of precision bits. Generally speaking, these caches become invalid when
+// precision changes. Fortunately, rsgridsynth exposes a method to clear some (though not all)
+// of these caches.
 pub fn gridsynth_cleanup() {
     clear_caches();
 }
