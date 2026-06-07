@@ -32,14 +32,15 @@ use qiskit_circuit::bit::{
 };
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::{CircuitInstruction, OperationFromPython};
+use qiskit_circuit::classical::expr::Expr;
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::duration::Duration;
 use qiskit_circuit::imports;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
-    BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction, Operation,
-    OperationRef, Param, PauliProductMeasurement, PauliProductRotation, PyInstruction, PyOpKind,
-    StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
+    BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction, LoopParam,
+    Operation, OperationRef, Param, PauliProductMeasurement, PauliProductRotation, PyInstruction,
+    PyOpKind, StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 

@@ -34,8 +34,8 @@ use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
     ArrayType, BoxDuration, Condition, ControlFlow, ControlFlowInstruction, ControlFlowView,
-    LoopParam, Operation, OperationRef, Param, PyInstruction, PyOpKind,
-    PauliBased, PyOperationTypes, PythonOperation, StandardGate, StandardInstruction, SwitchTarget
+    LoopParam, Operation, OperationRef, Param, PyInstruction, PyOpKind, StandardGate,
+    StandardInstruction, SwitchTarget,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
