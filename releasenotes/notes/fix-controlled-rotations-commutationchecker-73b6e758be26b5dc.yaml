@@ -1,7 +1,10 @@
 ---
 fixes:
   - |
-    Fix the :class:`.CommutationChecker` transpiler pass for controlled-rotation gates 
-    :class:`.CRXGate`, :class:`.CRYGate` and :class:`.CRZGate`.
+    Fixed a bug in :class:`.CommutationChecker` when evaluating commutativity relations between
+    controlled-rotation gates :class:`.CRXGate`, :class:`.CRYGate` and :class:`.CRZGate` and other
+    standard gates. In particular, fixed the behavior of :class:`.CommutationAnalysis`,
+    :class:`.CommutativeCancellation`, and `CommutativeOptimization` passes in the presence of such
+    gates.
 
     See `#16164 <https://github.com/Qiskit/qiskit/issues/16164>`__.
