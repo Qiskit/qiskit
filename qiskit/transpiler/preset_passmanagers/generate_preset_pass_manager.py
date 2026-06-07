@@ -30,7 +30,10 @@ from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.layout import Layout
-from qiskit.transpiler.passmanager_config import PassManagerConfig, PassManagerCliffordTConfig
+from qiskit.transpiler.passmanager_config import (
+    PassManagerConfig,
+    PassManagerCliffordTConfig,
+)
 from qiskit.transpiler.preset_passmanagers.clifford_t import (
     clifford_t_pass_manager,
     clifford_t_pass_manager_legacy,
@@ -218,7 +221,7 @@ def generate_preset_pass_manager(
     config = user_config.get_config()
 
     if seed_transpiler is None:
-        if seed := os.getenv("QISKIT_TRANSPILER_SEED", None) is not None:
+        if (seed := os.getenv("QISKIT_TRANSPILER_SEED", None)) is not None:
             seed_transpiler = int(seed)
         else:
             seed_transpiler = config.get("transpiler_seed", None)
@@ -377,7 +380,7 @@ def generate_preset_clifford_t_pass_manager(
     """
     config = user_config.get_config()
     if seed_transpiler is None:
-        if seed := os.getenv("QISKIT_TRANSPILER_SEED", None) is not None:
+        if (seed := os.getenv("QISKIT_TRANSPILER_SEED", None)) is not None:
             seed_transpiler = int(seed)
         else:
             seed_transpiler = config.get("transpiler_seed", None)

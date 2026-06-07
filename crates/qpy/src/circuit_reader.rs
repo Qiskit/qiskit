@@ -23,7 +23,7 @@ use binrw::Endian;
 use hashbrown::HashMap;
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use numpy::{IntoPyArray, PyReadonlyArray2};
+use numpy::IntoPyArray;
 use pyo3::IntoPyObjectExt;
 use pyo3::intern;
 use pyo3::prelude::*;
@@ -61,10 +61,10 @@ use crate::formats;
 use crate::formats::ConditionData;
 use crate::formats::QPYCircuit;
 use crate::params::generic_value_to_param;
-use crate::py_methods::py_convert_from_generic_value;
 use crate::py_methods::{
     PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME,
-    UNITARY_GATE_CLASS_NAME, get_python_gate_class,
+    UNITARY_GATE_CLASS_NAME, get_python_gate_class, py_convert_from_generic_value,
+    py_deserialize_numpy_object,
 };
 use crate::value::ParamRegisterValue;
 use crate::value::unpack_for_collection;
@@ -73,6 +73,10 @@ use crate::value::{
     QPYReadData, RegisterType, ValueType, deserialize_with_args, load_param_register_value,
     load_value, unpack_duration_value, unpack_generic_value,
 };
+
+use ndarray::{Array2, ShapeBuilder};
+use npyz::NpyFile;
+use std::io::Cursor;
 
 // This is a helper struct, designed to pass data within methods
 // It is not meant to be serialized, so it's not in formats.rs
@@ -422,27 +426,41 @@ fn unpack_pauli_product_measurement(
             "Pauli Product Measurement should have exactly 3 parameters".to_string(),
         ));
     }
-    let z = unpack_generic_value(&instruction.params[0], qpy_data, Endian::Little)?
-        .as_typed::<Vec<bool>>()
-        .ok_or_else(|| {
-            QpyError::InvalidParameter(
-                "Pauli product measurement z parameter should be a boolean vector".to_string(),
-            )
-        })?;
-    let x = unpack_generic_value(&instruction.params[1], qpy_data, Endian::Little)?
-        .as_typed::<Vec<bool>>()
-        .ok_or_else(|| {
-            QpyError::InvalidParameter(
-                "Pauli product measurement x parameter should be a boolean vector".to_string(),
-            )
-        })?;
-    let neg = unpack_generic_value(&instruction.params[2], qpy_data, Endian::Little)?
-        .as_typed::<bool>()
-        .ok_or_else(|| {
-            QpyError::InvalidParameter(
-                "Pauli product measurement neg parameter should be a boolean".to_string(),
-            )
-        })?;
+    let z_values = unpack_generic_value(&instruction.params[0], qpy_data, Endian::Big)?;
+    let z: Vec<bool> = z_values.to_boolean_vec().ok_or_else(|| {
+        QpyError::InvalidParameter(format!(
+            "Pauli product measurement z parameter should be a boolean or integer vector, but got {:?}",
+            z_values
+        ))
+    })?;
+
+    let x_values = unpack_generic_value(&instruction.params[1], qpy_data, Endian::Big)?;
+    let x: Vec<bool> = x_values.to_boolean_vec().ok_or_else(|| {
+        QpyError::InvalidParameter(format!(
+            "Pauli product measurement x parameter should be a boolean or integer vector, but got {:?}",
+            x_values
+        ))
+    })?;
+    let neg_value = unpack_generic_value(&instruction.params[2], qpy_data, Endian::Big)?;
+    let neg = match neg_value {
+        GenericValue::NumpyObject(bytes) => {
+            let npy = NpyFile::new(Cursor::new(&bytes.0))?;
+            let values: Vec<i64> = npy.into_vec()?;
+            let value = *values.first().ok_or_else(|| {
+                QpyError::InvalidParameter(format!(
+                    "Pauli product measurement phase parameter should be a is invalid, got {:?}",
+                    values
+                ))
+            })?;
+            value != 0
+        }
+        _ => neg_value.as_typed::<bool>().ok_or_else(|| {
+                QpyError::InvalidParameter(format!(
+                    "Pauli product measurement neg parameter should be a boolean or integer, but got {:?}",
+                    neg_value
+                ))
+            })?
+    };
     let ppm = PauliProductMeasurement { z, x, neg };
     let pbc = Box::new(PauliBased::PauliProductMeasurement(ppm));
     let op = PackedOperation::from_pauli_based(pbc);
@@ -459,20 +477,18 @@ fn unpack_pauli_product_rotation(
             "No matrix for unitary op".to_string(),
         ));
     }
-    let z = unpack_generic_value(&instruction.params[0], qpy_data, Endian::Little)?
-        .as_typed::<Vec<bool>>()
-        .ok_or_else(|| {
-            QpyError::InvalidParameter(
-                "Pauli product measurement z parameter should be a boolean vector".to_string(),
-            )
-        })?;
-    let x = unpack_generic_value(&instruction.params[1], qpy_data, Endian::Little)?
-        .as_typed::<Vec<bool>>()
-        .ok_or_else(|| {
-            QpyError::InvalidParameter(
-                "Pauli product measurement x parameter should be a boolean vector".to_string(),
-            )
-        })?;
+    let z_values = unpack_generic_value(&instruction.params[0], qpy_data, Endian::Big)?;
+    let z = z_values.to_boolean_vec().ok_or_else(|| {
+        QpyError::InvalidParameter(
+            "Pauli product measurement z parameter should be a boolean vector".to_string(),
+        )
+    })?;
+    let x_values = unpack_generic_value(&instruction.params[1], qpy_data, Endian::Big)?;
+    let x = x_values.to_boolean_vec().ok_or_else(|| {
+        QpyError::InvalidParameter(
+            "Pauli product measurement x parameter should be a boolean vector".to_string(),
+        )
+    })?;
     let angle_value = unpack_generic_value(&instruction.params[2], qpy_data, Endian::Little)?;
     let angle = generic_value_to_param(&angle_value)?;
     let rotation = PauliProductRotation { z, x, angle };
@@ -486,18 +502,32 @@ fn unpack_unitary(
     instruction: &formats::CircuitInstructionV2Pack,
     qpy_data: &mut QPYReadData,
 ) -> Result<(PackedOperation, Vec<GenericValue>), QpyError> {
-    let GenericValue::NumpyObject(py_matrix) =
+    let GenericValue::NumpyObject(bytes) =
         unpack_generic_value(&instruction.params[0], qpy_data, Endian::Little)?
     else {
         return Err(QpyError::InvalidParameter(
             "No matrix for unitary op".to_string(),
         ));
     };
-    let matrix = Python::attach(|py| -> PyResult<_> {
-        let extracted_matrix = py_matrix.extract::<PyReadonlyArray2<Complex64>>(py)?;
-        Ok(extracted_matrix.as_array().to_owned())
-    })?;
-    let array = ArrayType::NDArray(matrix); // TODO: use 1 and 2 qubit matrices whenever possible
+    let npy = NpyFile::new(Cursor::new(bytes.0))?;
+    let shape = npy.shape().to_vec();
+
+    if shape.len() != 2 {
+        return Err(QpyError::InvalidParameter(
+            "Invalid matrix for unitary op".to_string(),
+        ));
+    }
+
+    let rows = shape[0] as usize;
+    let cols = shape[1] as usize;
+    let order = npy.order();
+
+    let data: Vec<Complex64> = npy.into_vec()?;
+
+    let true_shape = (rows, cols).set_f(order == npyz::Order::Fortran);
+    let matrix = Array2::from_shape_vec(true_shape, data)
+        .map_err(|_| QpyError::InvalidParameter("Invalid matrix for unitary op".to_string()))?;
+    let array = ArrayType::NDArray(matrix);
     let unitary = UnitaryGate { array };
     let op = PackedOperation::from_unitary(Box::new(unitary));
     let param_values = Vec::new();
@@ -1172,9 +1202,10 @@ fn deserialize_pauli_evolution_gate(
                     Endian::Big,
                 )?;
                 if let GenericValue::NumpyObject(op_raw_data) = data {
+                    let np_array = py_deserialize_numpy_object(&op_raw_data)?;
                     Ok(imports::SPARSE_PAULI_OP
                         .get_bound(py)
-                        .call_method1("from_list", (op_raw_data,))?
+                        .call_method1("from_list", (np_array,))?
                         .unbind())
                 } else {
                     Err(QpyError::InvalidParameter(
@@ -1184,6 +1215,7 @@ fn deserialize_pauli_evolution_gate(
             }
         })
         .collect::<Result<_, QpyError>>()?;
+
     let py_operators = if packed_data.standalone_op != 0 {
         operators[0].clone()
     } else {
@@ -1515,35 +1547,6 @@ pub(crate) fn unpack_circuit(
     for instruction in &packed_circuit.instructions {
         let inst = unpack_instruction(instruction, &custom_instructions, &mut qpy_data)?;
         qpy_data.circuit_data.push(inst)?;
-    }
-    for (vector, initialized_params) in qpy_data.vectors.values() {
-        let vector_length = vector
-            .bind(py)
-            .call_method0("__len__")?
-            .extract::<usize>()?;
-        let missing_indices: Vec<u64> = (0..vector_length as u64)
-            .filter(|x| !initialized_params.contains(&(*x as u32)))
-            .collect();
-        if initialized_params.len() != vector_length {
-            let msg = format!(
-                "The ParameterVector: '{:}' is not fully identical to its \
-                pre-serialization state. Elements {:} \
-                in the ParameterVector will be not equal to the pre-serialized ParameterVector \
-                as they weren't used in the circuit: {:}",
-                vector.getattr(py, "name")?.extract::<String>(py)?,
-                missing_indices
-                    .iter()
-                    .map(|index| index.to_string())
-                    .collect::<Vec<_>>()
-                    .join(", "),
-                packed_circuit.header.circuit_name
-            );
-            imports::WARNINGS_WARN.get_bound(py).call1((
-                msg,
-                imports::BUILTIN_USER_WARNING.get_bound(py),
-                1,
-            ))?;
-        }
     }
     // since we don't have a rust QuantumCircuit, and the metadata and custom layouts are also in python
     // this pythonic part is unavoidable

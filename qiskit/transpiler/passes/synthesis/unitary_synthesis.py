@@ -195,7 +195,10 @@ class UnitarySynthesis(TransformationPass):
                 self._natural_direction,
                 self._pulse_optimize,
             )
-            return out
+            if out is None:
+                return dag
+            else:
+                return out
 
         if self.plugins:
             plugin_method = self.plugins.ext_plugins[self.method].obj
