@@ -1581,19 +1581,18 @@ static int test_register_bits(void) {
         goto cleanup;
     }
 
-    int64_t *bit_indices = malloc(qr1_num_bits * sizeof(int64_t));
+    uint32_t *bit_indices = malloc(qr1_num_bits * sizeof(uint32_t));
     qk_quantum_register_circuit_bits(qr1, circuit, bit_indices);
 
     for (size_t bit = 0; bit < qr1_num_bits; bit++) {
-        if (bit_indices[bit] < 0) {
-            printf("Expected QR1 bit %zu to be in circuit, got index %" PRId64 "\n", bit,
-                   bit_indices[bit]);
+        if (bit_indices[bit] == UINT32_MAX) {
+            printf("Expected QR1 bit %zu to be in the circuit, but it's not\n", bit);
             result = EqualityError;
             goto clean_bit_indices;
         }
         // Positions should be 1, 2, 3, since the circuit has an anonymous qubit
-        if (bit_indices[bit] != (int64_t)bit + 1) {
-            printf("Expected QR1 bit %zu to have circuit index %zu, got %" PRId64 "\n", bit,
+        if (bit_indices[bit] != (uint32_t)bit + 1) {
+            printf("Expected QR1 bit %zu to have circuit index %zu, got %" PRIu32 "\n", bit,
                    bit + 1, bit_indices[bit]);
             result = EqualityError;
             goto clean_bit_indices;
@@ -1601,12 +1600,12 @@ static int test_register_bits(void) {
     }
 
     QkQuantumRegister *qr2 = qk_quantum_register_new(2, "QR2");
-    int64_t reg_circuit_bits[2];
+    uint32_t reg_circuit_bits[2];
     qk_quantum_register_circuit_bits(qr2, circuit, reg_circuit_bits);
 
     for (size_t bit = 0; bit < 2; bit++) {
-        if (reg_circuit_bits[bit] >= 0) {
-            printf("Expected QR2 bit %zu to NOT be in circuit, got %" PRId64 "\n", bit,
+        if (reg_circuit_bits[bit] != UINT32_MAX) {
+            printf("Expected QR2 bit %zu to NOT be in circuit, got bit index %" PRIu32 "\n", bit,
                    reg_circuit_bits[bit]);
             result = EqualityError;
             goto cleanup_qr2;
@@ -1619,8 +1618,8 @@ static int test_register_bits(void) {
 
     // Positions should be 2, 3, since the circuit has two anonymous clbits
     for (size_t bit = 0; bit < 2; bit++) {
-        if (reg_circuit_bits[bit] != (int64_t)bit + 2) {
-            printf("Expected CR1 bit %zu to have circuit index %zu, got %" PRId64 "\n", bit,
+        if (reg_circuit_bits[bit] != (uint32_t)bit + 2) {
+            printf("Expected CR1 bit %zu to have circuit index %zu, got %" PRIu32 "\n", bit,
                    bit + 2, reg_circuit_bits[bit]);
             result = EqualityError;
             goto cleanup_cr1;
@@ -1630,8 +1629,9 @@ static int test_register_bits(void) {
     QkClassicalRegister *cr2 = qk_classical_register_new(1, "cr2");
     qk_classical_register_circuit_bits(cr2, circuit, reg_circuit_bits);
 
-    if (reg_circuit_bits[0] >= 0) {
-        printf("Expected CR2 bit 0 to NOT be in circuit, got %" PRId64 "\n", reg_circuit_bits[0]);
+    if (reg_circuit_bits[0] != UINT32_MAX) {
+        printf("Expected CR2 bit 0 to NOT be in circuit, got bit index %" PRIu32 "\n",
+               reg_circuit_bits[0]);
         result = EqualityError;
     }
 

@@ -206,13 +206,13 @@ pub unsafe extern "C" fn qk_quantum_register_num_bits(qreg: *const QuantumRegist
 ///
 /// Outputs a mapping from each qubit in the quantum register to its corresponding index in the circuit's
 /// qubit list. If a qubit from the register is not present in the circuit, its index
-/// in the mapping will be -1.
+/// in the mapping will be `UINT32_MAX`.
 ///
 /// @param qreg A pointer to the quantum register to map.
 /// @param circuit A pointer to the circuit containing the qubits.
 /// @param out_bits A pointer to an array where the mapped indices will be written.
 ///                 The array must be pre-allocated with at least `qk_quantum_register_num_bits` elements
-///                 for `qreg`. Each element will contain either the circuit bit index (>= 0) or -1
+///                 for `qreg`. Each element will contain either the circuit bit index or `UINT32_MAX`
 ///                 if the qubit is not in the circuit.
 ///
 /// # Example
@@ -221,7 +221,7 @@ pub unsafe extern "C" fn qk_quantum_register_num_bits(qreg: *const QuantumRegist
 ///     QkQuantumRegister *qr = qk_quantum_register_new(3, "my_qreg");
 ///     qk_circuit_add_quantum_register(qc, qr);
 ///
-///     int64_t bit_indices[3];
+///     uint32_t bit_indices[3];
 ///
 ///     qk_quantum_register_circuit_bits(qr, qc, bit_indices);
 ///
@@ -243,7 +243,7 @@ pub unsafe extern "C" fn qk_quantum_register_num_bits(qreg: *const QuantumRegist
 pub unsafe extern "C" fn qk_quantum_register_circuit_bits(
     qreg: *const QuantumRegister,
     circuit: *const CircuitData,
-    out_bits: *mut i64,
+    out_bits: *mut u32,
 ) {
     // SAFETY: Per documentation, qreg is a valid, non-null pointer.
     let qreg = unsafe { const_ptr_as_ref(qreg) };
@@ -251,7 +251,7 @@ pub unsafe extern "C" fn qk_quantum_register_circuit_bits(
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
     qreg.iter().enumerate().for_each(|(i, qubit)| {
-        let mapped_qubit = circuit.qubit_index(&qubit).map_or(-1, |q| q as i64);
+        let mapped_qubit = circuit.qubit_index(&qubit).map_or(u32::MAX, |q| q);
         // SAFETY: Per documentation, out_bits has at least qreg.len() elements
         unsafe { out_bits.add(i).write(mapped_qubit) };
     });
@@ -387,13 +387,13 @@ pub unsafe extern "C" fn qk_classical_register_num_bits(creg: *const ClassicalRe
 ///
 /// Outputs a mapping from each clbit in the classical register to its corresponding index in the circuit's
 /// clbit list. If a clbit from the register is not present in the circuit, its index
-/// in the mapping will be -1.
+/// in the mapping will be `UINT32_MAX`.
 ///
 /// @param creg A pointer to the classical register to map.
 /// @param circuit A pointer to the circuit containing the clbits.
 /// @param out_bits A pointer to an array where the mapped indices will be written.
 ///                 The array must be pre-allocated with at least `qk_classical_register_num_bits` elements
-///                 for `creg`. Each element will contain either the circuit bit index (>= 0) or -1
+///                 for `creg`. Each element will contain either the circuit bit index or `UINT32_MAX`
 ///                 if the clbit is not in the circuit.
 ///
 /// # Example
@@ -402,7 +402,7 @@ pub unsafe extern "C" fn qk_classical_register_num_bits(creg: *const ClassicalRe
 ///     QkClassicalRegister *cr = qk_classical_register_new(3, "my_creg");
 ///     qk_circuit_add_classical_register(qc, cr);
 ///
-///     int64_t bit_indices[3];
+///     uint32_t bit_indices[3];
 ///
 ///     qk_classical_register_circuit_bits(cr, qc, bit_indices);
 ///
@@ -424,7 +424,7 @@ pub unsafe extern "C" fn qk_classical_register_num_bits(creg: *const ClassicalRe
 pub unsafe extern "C" fn qk_classical_register_circuit_bits(
     creg: *const ClassicalRegister,
     circuit: *const CircuitData,
-    out_bits: *mut i64,
+    out_bits: *mut u32,
 ) {
     // SAFETY: Per documentation, creg is a valid, non-null pointer.
     let creg = unsafe { const_ptr_as_ref(creg) };
@@ -432,7 +432,7 @@ pub unsafe extern "C" fn qk_classical_register_circuit_bits(
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
     creg.iter().enumerate().for_each(|(i, clbit)| {
-        let mapped_clbit = circuit.clbit_index(&clbit).map_or(-1, |c| c as i64);
+        let mapped_clbit = circuit.clbit_index(&clbit).map_or(u32::MAX, |c| c);
         // SAFETY: Per documentation, out_bits has at least creg.len() elements
         unsafe { out_bits.add(i).write(mapped_clbit) };
     });
@@ -2812,36 +2812,36 @@ mod test {
         let qr1 = QuantumRegister::new_owning("QR1", 2);
         let _ = circuit.add_qubit(qr1.get(0).unwrap(), false);
 
-        let mut out_bits = vec![MaybeUninit::<i64>::uninit(), MaybeUninit::<i64>::uninit()];
+        let mut out_bits = vec![MaybeUninit::<u32>::uninit(), MaybeUninit::<u32>::uninit()];
         unsafe {
-            qk_quantum_register_circuit_bits(&qr1, &circuit, out_bits.as_mut_ptr() as *mut i64)
+            qk_quantum_register_circuit_bits(&qr1, &circuit, out_bits.as_mut_ptr() as *mut u32)
         };
         let out_bits = unsafe {
             out_bits
                 .into_iter()
                 .map(|b| b.assume_init())
-                .collect::<Vec<i64>>()
+                .collect::<Vec<u32>>()
         };
 
         assert_eq!(out_bits[0], 1); // Bit was explicitly added to the circuit
-        assert!(out_bits[1] < 0); // Bit was not added to the circuit
+        assert_eq!(out_bits[1], u32::MAX); // Bit was not added to the circuit
 
         let cr1 = ClassicalRegister::new_owning("CR1", 2);
         let _ = circuit.add_clbit(cr1.get(1).unwrap(), false);
 
-        let mut out_bits = vec![MaybeUninit::<i64>::uninit(), MaybeUninit::<i64>::uninit()];
+        let mut out_bits = vec![MaybeUninit::<u32>::uninit(), MaybeUninit::<u32>::uninit()];
         unsafe {
-            qk_classical_register_circuit_bits(&cr1, &circuit, out_bits.as_mut_ptr() as *mut i64)
+            qk_classical_register_circuit_bits(&cr1, &circuit, out_bits.as_mut_ptr() as *mut u32)
         };
         let out_bits = unsafe {
             out_bits
                 .into_iter()
                 .map(|b| b.assume_init())
-                .collect::<Vec<i64>>()
+                .collect::<Vec<u32>>()
         };
 
         assert_eq!(out_bits[1], 1); // Bit was explicitly added to the circuit
-        assert!(out_bits[0] < 0); // Bit was not added to the circuit
+        assert_eq!(out_bits[0], u32::MAX); // Bit was not added to the circuit
     }
 
     #[test]
