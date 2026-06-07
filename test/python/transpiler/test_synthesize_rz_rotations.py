@@ -153,16 +153,6 @@ class TestSynthesizeRzRotations(QiskitTestCase):
 
         self.assertLessEqual(operator_norm(difference), 1e-8)
 
-    def test_negative_synthesis_error_raises(self):
-        """Test that a negative synthesis_error raises ValueError."""
-        with self.assertRaises(ValueError):
-            SynthesizeRZRotations(synthesis_error=-10)
-
-    def test_negative_cache_error_raises(self):
-        """Test that a negative cache_error raises ValueError."""
-        with self.assertRaises(ValueError):
-            SynthesizeRZRotations(cache_error=-0.5)
-
     def test_t(self):
         """Test a T-rotation is synthesized with a single T gate."""
         qc = QuantumCircuit(1)

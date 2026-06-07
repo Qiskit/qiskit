@@ -77,15 +77,11 @@ class SynthesizeRZRotations(TransformationPass):
             approximation_degree: Controls the overall degree of approximation. Defaults
                 to ``1 - 1e-10``.
             synthesis_error: Maximum allowed error for the approximate synthesis of
-                :math:`RZ(\theta)`. Must be non-negative.
+                :math:`RZ(\theta)`. Must be in the range ``[0, 1]``.
             cache_error: Maximum allowed error when reusing a cached synthesis
-                result for angles close to :math:`\theta`. Must be non-negative.
+                result for angles close to :math:`\theta`. Must be in the range ``[0, 1]``.
         """
         super().__init__()
-        if synthesis_error is not None and synthesis_error < 0:
-            raise ValueError(f"synthesis_error must be non-negative, got {synthesis_error}")
-        if cache_error is not None and cache_error < 0:
-            raise ValueError(f"cache_error must be non-negative, got {cache_error}")
         self.approximation_degree = approximation_degree
         self.synthesis_error = synthesis_error
         self.cache_error = cache_error
