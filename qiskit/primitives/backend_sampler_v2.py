@@ -185,6 +185,13 @@ class BackendSamplerV2(BaseSamplerV2):
         for circuits in bound_circuits:
             flatten_circuits.extend(np.ravel(circuits).tolist())
 
+                # === CCC ENGINE INJECTION: OPTIMIZATION RESONANCE ===
+        from qiskit.transpiler.passes import Optimize1qGatesDecomposition
+        from qiskit.transpiler import PassManager
+        pass_manager = PassManager([Optimize1qGatesDecomposition()])
+        flatten_circuits = [pass_manager.run(qc) for qc in flatten_circuits]
+        # ====================================================
+
         run_opts = self._options.run_options or {}
         # run circuits
         results, _ = _run_circuits(
