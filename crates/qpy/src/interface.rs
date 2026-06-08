@@ -30,39 +30,6 @@ use crate::formats::{QPYCircuit, QPYFileHeader};
 use crate::value::{ProgramType, SymbolicEncoding, deserialize, deserialize_with_args, serialize};
 
 use std::io::{Cursor, Seek};
-// parse the qiskit version
-const fn parse_version() -> (u8, u8, u8) {
-    let version_str = env!("CARGO_PKG_VERSION");
-    let bytes = version_str.as_bytes();
-    let mut major = 0u8;
-    let mut minor = 0u8;
-    let mut patch = 0u8;
-    let mut i = 0;
-    let mut part = 0; // 0=major, 1=minor, 2=patch
-
-    while i < bytes.len() {
-        let b = bytes[i];
-        if b >= b'0' && b <= b'9' {
-            let digit = b - b'0';
-            match part {
-                0 => major = major * 10 + digit,
-                1 => minor = minor * 10 + digit,
-                2 => patch = patch * 10 + digit,
-                _ => {}
-            }
-        } else if b == b'.' {
-            part += 1;
-        } else {
-            // Stop at any non-digit, non-dot character (e.g., '-' in "2.4.0-dev")
-            break;
-        }
-        i += 1;
-    }
-
-    (major, minor, patch)
-}
-
-const QISKIT_VERSION: (u8, u8, u8) = parse_version();
 
 pub fn dump_qpy(
     mut circuits: Vec<QuantumCircuitData>,
@@ -94,9 +61,20 @@ pub fn dump_qpy(
         true => SymbolicEncoding::Symengine,
         false => SymbolicEncoding::Sympy,
     };
+    let qiskit_version = (
+        env!("CARGO_PKG_VERSION_MAJOR")
+            .parse::<u8>()
+            .map_err(|_| QpyError::MissingData("Could not get qiskit version".to_string()))?,
+        env!("CARGO_PKG_VERSION_MINOR")
+            .parse::<u8>()
+            .map_err(|_| QpyError::MissingData("Could not get qiskit version".to_string()))?,
+        env!("CARGO_PKG_VERSION_PATCH")
+            .parse::<u8>()
+            .map_err(|_| QpyError::MissingData("Could not get qiskit version".to_string()))?,
+    );
     let qpy_header = QPYFileHeader {
         qpy_version,
-        qiskit_version: QISKIT_VERSION,
+        qiskit_version,
         num_programs: serialized_circuits.len() as u64,
         symbolic_encoding,
         type_key: ProgramType::Circuit, //for now, no other value type is used
@@ -272,6 +250,7 @@ pub fn py_load_qpy(
     let annotation_factories = annotation_factories.unwrap_or(PyDict::new(py));
 
     // Read all data from file object
+    // TODO: When we read from a rust native stream, maybe we can seek according to the circuit offsets instead of reading everything at once
     let data: Bytes = file_obj.call_method0("read")?.extract()?;
 
     load_qpy(

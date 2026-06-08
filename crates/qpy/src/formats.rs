@@ -32,7 +32,8 @@ use std::marker::PhantomData;
 /// 3) The Qiskit version used to create the QPY file (major, minor, patch)
 /// 4) The number of programs in the file
 /// 5) The symbolic encoding type (for parameter expressions)
-/// 6) The type of the programs stored in the file (a "program" is currently just a circuit; scheule is obsolete)
+/// An additional field, which in Python was not part of the header but came right after, was adjoined to the header:
+/// 6) The type of the programs stored in the file (a "program" is currently just a circuit; schedule is obsolete)
 
 #[binrw]
 #[brw(big)]
