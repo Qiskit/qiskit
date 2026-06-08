@@ -51,6 +51,10 @@ use qiskit_util::getenv_use_multiple_threads;
 #[cfg(feature = "cache_pygates")]
 use std::sync::OnceLock;
 
+/// Threshold in number of gates to synthesize to run the pass multithreaded
+/// vs serially. At smaller gate counts the overhead of multithreading outweighs the speedup
+const PARALLEL_THRESHOLD: usize = 50;
+
 /// The fidelity of the 2q basis gate used in a decomposer.
 ///
 /// This is "normalised" in the sense that the value is guaranteed (when constructed safely) to be
@@ -457,7 +461,7 @@ pub fn run_unitary_synthesis(
         return Ok(None);
     }
     let run_in_parallel = getenv_use_multiple_threads();
-    if run_in_parallel && gate_counts > 50 && !force_serial {
+    if run_in_parallel && gate_counts > PARALLEL_THRESHOLD && !force_serial {
         let node_replace_map = parallel_synthesis(
             dag,
             synth_gates,
@@ -1130,7 +1134,7 @@ pub fn py_unitary_synthesis(
         return Ok(None);
     }
     let run_in_parallel = getenv_use_multiple_threads();
-    if run_in_parallel && gate_counts > 50 {
+    if run_in_parallel && gate_counts > PARALLEL_THRESHOLD {
         // Release GIL in case there are python gates being processed as the synthesis target gate
         // and the GIL is needed by worker threads
         let node_replace_map = py.detach(|| {
