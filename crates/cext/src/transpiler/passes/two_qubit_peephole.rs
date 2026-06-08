@@ -97,7 +97,8 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_2q_peephole_optimization(
         Err(e) => panic!("{}", e),
     };
     if let Some(out_dag) = out_dag {
-        *circuit = CircuitData::from_dag_ref(&out_dag).unwrap();
+        *circuit = CircuitData::from_dag_ref(&out_dag)
+            .expect("Output circuit construction from DAG failed");
     }
 }
 
