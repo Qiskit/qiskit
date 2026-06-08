@@ -273,6 +273,38 @@ class TestCommutationChecker(QiskitTestCase):
         self.assertTrue(scc.commute(rx_gate_theta, [0], [], rxx_gate_theta, [0, 1], []))
         self.assertTrue(scc.commute(rz_gate_theta, [0], [], cx_gate, [0, 1], []))
 
+    def test_parameterized_controlled_rotation_gates(self):
+        """Check commutativity between parameterized controlled rotation gates,
+        both with free and with bound parameters."""
+        a = Parameter("a")
+        b = Parameter("b")
+
+        # Each gate is self-commuting
+        self.assertTrue(scc.commute(CRXGate(a), [0, 1], [], CRXGate(b), [0, 1], []))
+        self.assertTrue(scc.commute(CRYGate(a), [0, 1], [], CRYGate(b), [0, 1], []))
+        self.assertTrue(scc.commute(CRZGate(a), [0, 1], [], CRZGate(b), [0, 1], []))
+        self.assertTrue(scc.commute(CRZGate(a), [0, 1], [], CRZGate(b), [1, 0], []))
+
+        # Different controlled-rotation gates do not commute
+        self.assertFalse(scc.commute(CRXGate(a), [0, 1], [], CRYGate(b), [0, 1], []))
+        self.assertFalse(scc.commute(CRXGate(a), [0, 1], [], CRZGate(b), [0, 1], []))
+        self.assertFalse(scc.commute(CRYGate(a), [0, 1], [], CRZGate(b), [0, 1], []))
+        self.assertFalse(scc.commute(CRYGate(a), [0, 1], [], CRZGate(b), [1, 0], []))
+
+        # Checking commutation with CX
+        self.assertTrue(scc.commute(CRXGate(a), [0, 1], [], CXGate(), [0, 1], []))
+        self.assertFalse(scc.commute(CRYGate(a), [0, 1], [], CXGate(), [0, 1], []))
+        self.assertFalse(scc.commute(CRZGate(a), [0, 1], [], CXGate(), [0, 1], []))
+
+        # Checking commutation between free and bound parameters gates
+        self.assertTrue(scc.commute(CRXGate(a), [0, 1], [], CRXGate(0.2), [0, 1], []))
+        self.assertFalse(scc.commute(CRYGate(a), [0, 1], [], CRXGate(0.3), [0, 1], []))
+        self.assertFalse(scc.commute(CRZGate(a), [0, 1], [], CRXGate(0.4), [0, 1], []))
+
+        # Ovrlapping subsets of qubits
+        self.assertTrue(scc.commute(CRXGate(a), [0, 1], [], CRYGate(b), [0, 2], []))
+        self.assertFalse(scc.commute(CRXGate(a), [0, 1], [], CRYGate(b), [2, 1], []))
+
     def test_measure(self):
         """Check commutativity involving measures."""
         # Measure is over qubit 0, while gate is over a disjoint subset of qubits
@@ -686,7 +718,7 @@ class TestCommutationChecker(QiskitTestCase):
     def test_controlled_rotation(self, gate_cls):
         """Test that controlled rotation CRZ do not commute with swap and iswap
         (unlike CZ gate which is symmetric)."""
-        self.assertEqual(scc.commute(gate_cls(), [0, 1], [], CRZGate(0.2), [0, 1], []), False)
+        self.assertFalse(scc.commute(gate_cls(), [0, 1], [], CRZGate(0.2), [0, 1], []))
 
     def test_standard_gate_commutations(self):
         """Test that the standard_gate_commutations.rs tables are correct"""
