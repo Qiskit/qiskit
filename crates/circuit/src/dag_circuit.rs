@@ -8251,9 +8251,13 @@ impl DAGCircuit {
     ///
     /// This function will build a new output dag builder with the same capacity and iterate over
     /// the nodes in this dag in a topological order. The given callback is called at each operation
-    /// node and a mutable reference to the [`DAGCircuitBuilder`] which is where the new dag is built
+    /// node with a mutable reference to the [`DAGCircuitBuilder`] which is where the new dag is built
     /// and a [`PackedInstruction`] of the current op node in the dag. The caller is responsible for
     /// adding any nodes to the dag as part of the callback.
+    ///
+    /// Typical use cases for this method are for transpiler passes that rebuild a dag by iterating over all
+    /// nodes. The callback lets you handle removing or replacing a node (either with another single
+    /// node or a sequence of nodes) while iterating over the original DAG.
     pub fn rebuild_dag_with<F, E>(
         &self,
         mut callback: F,
