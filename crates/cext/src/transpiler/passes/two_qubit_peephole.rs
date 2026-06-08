@@ -57,11 +57,11 @@ use qiskit_transpiler::target::Target;
 ///     if (i % 2) {
 ///         qk_circuit_gate(qc, QkGate_CX, forward, NULL);
 ///     } else {
-///         qk_circuit_gate(QkGate_CX, reverse, NULL);
+///         qk_circuit_gate(qc, QkGate_CX, reverse, NULL);
 ///     }
 /// }
 /// qk_transpiler_pass_standalone_2q_peephole_optimization(qc, target, 1.0);
-/// qk_circuit_free(qc)
+/// qk_circuit_free(qc);
 /// qk_target_free(target);
 /// ```
 ///
@@ -134,7 +134,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_2q_peephole_optimization(
 ///
 /// This pass is multithreaded, and will perform the analysis in parallel
 /// and use all the cores available on your local system. You can refer to
-/// the `configuration guide <https://docs.quantum.ibm.com/guides/configure-qiskit-local>`__
+/// the [configuration guide](<https://docs.quantum.ibm.com/guides/configure-qiskit-local>)
 /// for details on how to control the threading behavior for Qiskit more broadly
 /// which will also control this pass
 ///
@@ -166,7 +166,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_2q_peephole_optimization(
 ///     if (i % 2) {
 ///         qk_circuit_gate(qc, QkGate_CX, forward, NULL);
 ///     } else {
-///         qk_circuit_gate(QkGate_CX, reverse, NULL);
+///         qk_circuit_gate(qc, QkGate_CX, reverse, NULL);
 ///     }
 /// }
 /// QkDag *dag = qk_circuit_to_dag(qc);
@@ -179,9 +179,9 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_2q_peephole_optimization(
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``circuit`` or ``target`` is not a valid, non-null pointer to a ``QkCircuit`` and ``QkTarget``.
+/// Behavior is undefined if ``dag`` or ``target`` is not a valid, non-null pointer to a ``QkDag`` and ``QkTarget``.
 ///
-/// This function is not safe to call in a context when the circuit contains objects owned by Python. As the
+/// This function is not safe to call in a context when the DAG circuit contains objects owned by Python. As the
 /// function is internally multi-threaded if there are any Python owned gates in the circuit the worker
 /// threads may need to acquire the GIL to access the attributes of those gates and this will result in
 /// a deadlock. You should use the Python space :py:class:`.TwoQubitPeepholeOptimization`
