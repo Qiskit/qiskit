@@ -362,7 +362,6 @@ pub fn run_litinski_transformation(
                 }
                 OperationRef::PauliProductRotation(rotation) => {
                     // Synthesize PPR
-
                     let in_z = &rotation.z;
                     let in_x = &rotation.x;
                     let angle = &rotation.angle;

@@ -14,7 +14,7 @@ use std::fmt;
 use fixedbitset::FixedBitSet;
 use ndarray::{Array2, ArrayView2};
 
-// 1-qubit Paulis
+/// 1-qubit Paulis
 #[derive(Clone, Copy, PartialEq)]
 pub enum Pauli1q {
     X,
