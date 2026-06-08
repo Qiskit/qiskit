@@ -34,6 +34,7 @@ from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.passes import ElidePermutations
 from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
 from qiskit.transpiler.passes import CommutativeOptimization
+from qiskit.transpiler.passes import TwoQubitPeepholeOptimization
 from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import SynthesizeRZRotations
 from qiskit.transpiler.passes import OptimizeCliffordT
@@ -45,7 +46,9 @@ from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePlugin,
     PassManagerStagePluginManager,
+    PassManagerCliffordTStagePlugin,
 )
+from qiskit.transpiler.passmanager_config import PassManagerCliffordTConfig
 from qiskit.transpiler.passes.optimization import (
     Optimize1qGatesDecomposition,
     CommutativeCancellation,
@@ -504,18 +507,9 @@ class OptimizationPassManager(PassManagerStagePlugin):
                 loop_check, continue_loop = _optimization_check_fixed_point()
             case 2:
                 pre_loop = [
-                    ConsolidateBlocks(
-                        basis_gates=pass_manager_config.basis_gates,
-                        target=pass_manager_config.target,
+                    TwoQubitPeepholeOptimization(
+                        pass_manager_config.target,
                         approximation_degree=pass_manager_config.approximation_degree,
-                    ),
-                    UnitarySynthesis(
-                        pass_manager_config.basis_gates,
-                        approximation_degree=pass_manager_config.approximation_degree,
-                        coupling_map=pass_manager_config.coupling_map,
-                        method=pass_manager_config.unitary_synthesis_method,
-                        plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
-                        target=pass_manager_config.target,
                     ),
                 ]
                 loop = [
@@ -534,18 +528,9 @@ class OptimizationPassManager(PassManagerStagePlugin):
             case 3:
                 pre_loop = []
                 loop = [
-                    ConsolidateBlocks(
-                        basis_gates=pass_manager_config.basis_gates,
-                        target=pass_manager_config.target,
+                    TwoQubitPeepholeOptimization(
+                        pass_manager_config.target,
                         approximation_degree=pass_manager_config.approximation_degree,
-                    ),
-                    UnitarySynthesis(
-                        pass_manager_config.basis_gates,
-                        approximation_degree=pass_manager_config.approximation_degree,
-                        coupling_map=pass_manager_config.coupling_map,
-                        method=pass_manager_config.unitary_synthesis_method,
-                        plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
-                        target=pass_manager_config.target,
                     ),
                     RemoveIdentityEquivalent(
                         approximation_degree=pass_manager_config.approximation_degree,
@@ -956,7 +941,7 @@ def _get_trial_count(default_trials=5):
     return default_trials
 
 
-class CliffordTInitPassManager(PassManagerStagePlugin):
+class CliffordTInitPassManager(PassManagerCliffordTStagePlugin):
     """
     Clifford+T transpilation stage, which decomposes larger gates into 1-qubit
     and 2-qubits gates and performs logical optimizations.
@@ -966,7 +951,9 @@ class CliffordTInitPassManager(PassManagerStagePlugin):
     # In theory, we could leave larger-qubit Clifford gates in-place, provided we do not have
     # the layout + routing stages, and the rest of the passes know how to handle larger-qubit
     # Clifford gates.
-    def pass_manager(self, pass_manager_config, optimization_level=None):
+    def pass_manager(
+        self, pass_manager_config: PassManagerCliffordTConfig, optimization_level: int | None = None
+    ):
         optimization_metric = OptimizationMetric.COUNT_T
         clifford_rz_gates = get_clifford_gate_names() + ["t", "tdg", "rz"]
 
@@ -1028,7 +1015,7 @@ class CliffordTInitPassManager(PassManagerStagePlugin):
                 pass_manager_config.qubits_initially_zero,
                 optimization_metric,
             )
-            if pass_manager_config.routing_method != "none":
+            if not pass_manager_config._routing_disabled:
                 init.append(ElidePermutations())
             init.append(
                 [
@@ -1044,7 +1031,11 @@ class CliffordTInitPassManager(PassManagerStagePlugin):
             )
             init.append(
                 CommutativeOptimization(
-                    approximation_degree=pass_manager_config.approximation_degree or 1.0
+                    approximation_degree=(
+                        pass_manager_config.approximation_degree
+                        if pass_manager_config.approximation_degree is not None
+                        else 1.0
+                    )
                 )
             )
 
@@ -1055,9 +1046,7 @@ class CliffordTInitPassManager(PassManagerStagePlugin):
             # error rates in the target. However, in the init stage we don't yet know the target
             # qubits being used to figure out the fidelity so just use the default fidelity parameter
             # in this case.
-            split_2q_unitaries_swap = False
-            if pass_manager_config.routing_method != "none":
-                split_2q_unitaries_swap = True
+            split_2q_unitaries_swap = not pass_manager_config._routing_disabled
             if pass_manager_config.approximation_degree is not None:
                 init.append(
                     Split2QUnitaries(
@@ -1071,12 +1060,14 @@ class CliffordTInitPassManager(PassManagerStagePlugin):
         return init
 
 
-class TranslateToCliffordRZPassManager(PassManagerStagePlugin):
+class TranslateToCliffordRZPassManager(PassManagerCliffordTStagePlugin):
     """
     Clifford+T transpilation stage, which translates circuits into Clifford+RZ+T basis set.
     """
 
-    def pass_manager(self, pass_manager_config, optimization_level=None):
+    def pass_manager(
+        self, pass_manager_config: PassManagerCliffordTConfig, optimization_level: int | None = None
+    ):
         clifford_rz_gates = get_clifford_gate_names() + ["t", "tdg", "rz"]
         translate = PassManager(
             [
@@ -1106,19 +1097,21 @@ class TranslateToCliffordRZPassManager(PassManagerStagePlugin):
         return translate
 
 
-class OptimizeCliffordRZPassManager(PassManagerStagePlugin):
+class OptimizeCliffordRZPassManager(PassManagerCliffordTStagePlugin):
     """
     Clifford+T transpilation stage, which optimizes Clifford+RZ+T circuits.
     """
 
-    def pass_manager(self, pass_manager_config, optimization_level=None):
+    def pass_manager(
+        self, pass_manager_config: PassManagerCliffordTConfig, optimization_level: int | None = None
+    ):
         """Build pass manager for optimization stage."""
 
         clifford_rz_gates = get_clifford_gate_names() + ["t", "tdg", "rz"]
 
         match optimization_level:
             case 0:
-                return None
+                return PassManager()
             case 1:
                 pre_loop = []
                 loop = [
@@ -1164,7 +1157,11 @@ class OptimizeCliffordRZPassManager(PassManagerStagePlugin):
                         target=pass_manager_config.target,
                     ),
                     CommutativeOptimization(
-                        approximation_degree=pass_manager_config.approximation_degree or 1.0
+                        approximation_degree=(
+                            pass_manager_config.approximation_degree
+                            if pass_manager_config.approximation_degree is not None
+                            else 1.0
+                        )
                     ),
                     ContractIdleWiresInControlFlow(),
                 ]
@@ -1183,32 +1180,49 @@ class OptimizeCliffordRZPassManager(PassManagerStagePlugin):
         return optimization
 
 
-class TranslateToCliffordTPassManager(PassManagerStagePlugin):
+class TranslateToCliffordTPassManager(PassManagerCliffordTStagePlugin):
     """
     Clifford+T transpilation stage, which translates Clifford+RZ+T circuits
     into Clifford+T circuits.
     """
 
-    def pass_manager(self, pass_manager_config, optimization_level=None):
+    def pass_manager(
+        self, pass_manager_config: PassManagerCliffordTConfig, optimization_level: int | None = None
+    ):
+        rz_config = pass_manager_config.rz_synthesis_config
+        rz_synthesis_error = rz_config.get("rz_synthesis_error") if rz_config is not None else None
+        rz_cache_error = rz_config.get("rz_cache_error") if rz_config is not None else None
         rz_to_t_translation = PassManager(
             [
                 SubstitutePi4Rotations(
-                    approximation_degree=pass_manager_config.approximation_degree or 1.0
+                    approximation_degree=(
+                        pass_manager_config.approximation_degree
+                        if pass_manager_config.approximation_degree is not None
+                        else 1.0
+                    )
                 ),
                 SynthesizeRZRotations(
-                    approximation_degree=pass_manager_config.approximation_degree or 1.0
+                    approximation_degree=(
+                        pass_manager_config.approximation_degree
+                        if pass_manager_config.approximation_degree is not None
+                        else 1.0
+                    ),
+                    synthesis_error=rz_synthesis_error,
+                    cache_error=rz_cache_error,
                 ),
             ]
         )
         return rz_to_t_translation
 
 
-class OptimizeCliffordTPassManager(PassManagerStagePlugin):
+class OptimizeCliffordTPassManager(PassManagerCliffordTStagePlugin):
     """
     Clifford+T transpilation stage, which optimizes Clifford+T circuits.
     """
 
-    def pass_manager(self, pass_manager_config, optimization_level=None):
+    def pass_manager(
+        self, pass_manager_config: PassManagerCliffordTConfig, optimization_level: int | None = None
+    ):
         basis_gates = pass_manager_config.basis_gates
         target = pass_manager_config.target
 
@@ -1249,10 +1263,18 @@ class OptimizeCliffordTPassManager(PassManagerStagePlugin):
                 loop = [
                     OptimizeCliffordT(basis_gates=basis_gates),
                     CommutativeOptimization(
-                        approximation_degree=pass_manager_config.approximation_degree or 1.0
+                        approximation_degree=(
+                            pass_manager_config.approximation_degree
+                            if pass_manager_config.approximation_degree is not None
+                            else 1.0
+                        )
                     ),
                     SubstitutePi4Rotations(
-                        approximation_degree=pass_manager_config.approximation_degree or 1.0
+                        approximation_degree=(
+                            pass_manager_config.approximation_degree
+                            if pass_manager_config.approximation_degree is not None
+                            else 1.0
+                        )
                     ),
                     ContractIdleWiresInControlFlow(),
                 ]
