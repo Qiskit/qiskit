@@ -1114,41 +1114,6 @@ class TestControlledGate(QiskitTestCase):
         ref_circuit.append(ccx, [qreg[0], qreg[1], qreg[2]])
         self.assertEqual(qc, ref_circuit)
 
-    @data(
-        ("ccx", (0, 1, 2), {}),
-        ("ccx", (0, 1, 2), {"ctrl_state": 0}),
-        ("mcp", (0.2, [0, 1, 2], 3), {}),
-        ("mcp", (0.2, [0, 1, 2], 3), {"ctrl_state": "010"}),
-        ("mcx", ([0, 1, 2], 3), {}),
-        ("mcx", ([0, 1, 2], 3), {"ctrl_state": "010"}),
-        ("rccx", (0, 1, 2), {}),
-        ("rcccx", (0, 1, 2, 3), {}),
-    )
-    @unpack
-    def test_quantum_circuit_controlled_gate_label(self, method, args, kwargs):
-        """Test QuantumCircuit helpers for controlled gates accept labels."""
-        qc = QuantumCircuit(4)
-
-        getattr(qc, method)(*args, label="a gate label", **kwargs)
-
-        self.assertEqual(qc.data[-1].operation.label, "a gate label")
-
-    @data(
-        ("ccx", (0, 1, 2, 0), 0),
-        ("mcp", (0.2, [0, 1, 2], 3, "010"), 2),
-    )
-    @unpack
-    def test_quantum_circuit_controlled_gate_label_keeps_positional_ctrl_state(
-        self, method, args, expected_ctrl_state
-    ):
-        """Test labels do not change the existing positional ctrl_state argument."""
-        qc = QuantumCircuit(4)
-
-        getattr(qc, method)(*args, label="a gate label")
-
-        self.assertEqual(qc.data[-1].operation.label, "a gate label")
-        self.assertEqual(qc.data[-1].operation.ctrl_state, expected_ctrl_state)
-
     @data((4, [0, 1, 2], 3, "010"), (4, [2, 1, 3], 0, 2))
     @unpack
     def test_multi_control_x_ctrl_state_parameter(

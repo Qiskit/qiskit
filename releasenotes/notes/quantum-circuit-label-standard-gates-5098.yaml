@@ -1,0 +1,6 @@
+---
+features_circuits:
+  - |
+    Added a ``label`` argument to standard-gate instruction methods on
+    :class:`.QuantumCircuit` that previously did not expose one. This lets labels be
+    set directly when adding these gates to a circuit.
