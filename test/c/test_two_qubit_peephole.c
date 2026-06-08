@@ -212,24 +212,28 @@ static int test_peephole_overcomplete_target(void) {
     QkExitCode result_x = qk_target_add_instruction(target, qk_target_entry_new(QkGate_X));
     if (result_x != QkExitCode_Success) {
         printf("Unexpected error occurred when adding a global X gate.\n");
-        return RuntimeError;
+        result = RuntimeError;
+        goto target_cleanup;
     }
     QkExitCode result_sx = qk_target_add_instruction(target, qk_target_entry_new(QkGate_SX));
     if (result_sx != QkExitCode_Success) {
         printf("Unexpected error occurred when adding a global SX gate.\n");
-        return RuntimeError;
+        result = RuntimeError;
+        goto target_cleanup;
     }
 
     QkExitCode result_rz = qk_target_add_instruction(target, qk_target_entry_new(QkGate_RZ));
     if (result_rz != QkExitCode_Success) {
         printf("Unexpected error occurred when adding a global RZ gate.\n");
-        return RuntimeError;
+        result = RuntimeError;
+        goto target_cleanup;
     }
 
     QkExitCode result_rx = qk_target_add_instruction(target, qk_target_entry_new(QkGate_RX));
     if (result_rx != QkExitCode_Success) {
         printf("Unexpected error occurred when adding a global RZ gate.\n");
-        return RuntimeError;
+        result = RuntimeError;
+        goto target_cleanup;
     }
 
     QkTargetEntry *cz_entry = qk_target_entry_new(QkGate_CZ);
