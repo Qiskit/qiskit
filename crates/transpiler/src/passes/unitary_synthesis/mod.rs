@@ -446,6 +446,20 @@ fn apply_synthesis(
 ///     * TwoQubitControlledUDecomposer
 ///     * XXDecomposer (Python, only if target is provided)
 /// * 3q+ synthesis: QuantumShannonDecomposer
+///
+/// # Args
+///
+/// - `dag`: The DAGCircuit to run the pass on
+/// - `synth_gates`: The set of gate names to synthesize the unitary matrix of.
+/// - `min_qubits`: The minimum number of qubits to require gates in synth_gates to act on to
+///   synthesize. For example, if `min_qubits=3` `UnitaryGate` instances acting on 1 or 2 qubits
+///   will not be synthesized (assuming `"unitary"` is in `synth_gates`).
+/// - `qubit_indices`: The mapping to apply when evaluating qubits in the circuit in the target.
+///   This is typically only used when recursing into control flow blocks.
+/// - `state`: The pass state, used to cache the decomposers to use for qubits
+/// - `constraint`: The qpu constraints that apply to synthesis
+/// - `force_serial`: Whether or not force running the pass serially even if
+///   otherwise the pass would be multithreaded.
 pub fn run_unitary_synthesis(
     dag: &DAGCircuit,
     synth_gates: &HashSet<String>,
