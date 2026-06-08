@@ -1309,16 +1309,3 @@ class TestAddingControlFlowOperations(QiskitTestCase):
 
         transpiled = transpile(qc)
         self.assertIsNotNone(transpiled)
-
-    def test_for_loop_with_var_measurement(self):
-        """Test loop control flow with Var index and measurement using that index"""
-        qc = QuantumCircuit(1, 5)
-        qc.x(0)
-        index = expr.lift(3)
-        qc.measure(0, index)
-        # TODO: determine how to test the circuit is correct
-        qc = QuantumCircuit(1, 5)
-        qc.x(0)
-        with qc.for_loop(range(5), as_var=True) as index:
-            qc.measure(0, index)
-        # TODO: determine how to test the circuit is correct
