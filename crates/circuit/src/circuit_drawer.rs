@@ -45,10 +45,11 @@ pub fn draw_circuit(
     cregbundle: bool,
     mergewires: bool,
     fold: Option<usize>,
+	measure_arrows: bool,
 ) -> PyResult<String> {
-    let vis_mat = VisualizationMatrix::from_circuit(circuit, cregbundle)?;
+    let vis_mat = VisualizationMatrix::from_circuit(circuit, cregbundle, measure_arrows)?;
 
-    let text_drawer = TextDrawer::from_visualization_matrix(&vis_mat, cregbundle);
+    let text_drawer = TextDrawer::from_visualization_matrix(&vis_mat, cregbundle, measure_arrows);
 
     let fold = match fold {
         Some(f) => f,
@@ -96,7 +97,7 @@ pub fn draw_circuit(
 /// Return a list of layers such that each layer contains a list of op node indices, representing instructions
 /// whose qubits/clbits indices do not overlap. The instruction are packed into each layer as long as there
 /// is no qubit/clbit overlap.
-fn build_layers(circ: &CircuitData) -> Vec<Vec<&PackedInstruction>> {
+fn build_layers(circ: &CircuitData, measure_arrows: bool) -> Vec<Vec<&PackedInstruction>> {
     let mut layers: Vec<Vec<&PackedInstruction>> = Vec::new();
     let num_qubits = circ.num_qubits();
     let num_clbits = circ.num_clbits();
@@ -113,10 +114,18 @@ fn build_layers(circ: &CircuitData) -> Vec<Vec<&PackedInstruction>> {
             layers.last_mut().unwrap().push(inst);
             continue;
         }
+
+		let is_measure = match!(
+			inst.op.view(),
+			OperationRef::StandardInstruction(StandardInstruction::Measure)
+		)
+
         let (node_min, node_max) = get_instruction_range(
             circ.get_qargs(inst.qubits),
             circ.get_cargs(inst.clbits),
             num_qubits,
+			measure_arrows,
+			is_measure,
         );
 
         let layer_idx = *layers_frontier[node_min..=node_max]
@@ -139,11 +148,20 @@ fn get_instruction_range(
     node_qubits: &[Qubit],
     node_clbits: &[Clbit],
     num_qubits: usize,
+	measure_arrows: bool,
+	is_measure: bool,
 ) -> (usize, usize) {
+
+	let effective_clbits = if !measure_arrows && is_measure {
+		&[]
+	} else {
+		node_clbits
+	};
+
     let indices = node_qubits
         .iter()
         .map(|q| q.index())
-        .chain(node_clbits.iter().max().map(|c| c.index() + num_qubits));
+        .chain(effective_clbits.iter().max().map(|c| c.index() + num_qubits));
 
     match indices.minmax() {
         MinMaxResult::MinMax(min, max) => (min, max),
@@ -289,7 +307,7 @@ impl<'a> VisualizationLayer<'a> {
                 self.add_standard_gate(gate, inst, circuit);
             }
             OperationRef::StandardInstruction(std_inst) => {
-                self.add_standard_instruction(cregbundle, std_inst, inst, circuit, clbit_map);
+                self.add_standard_instruction(cregbundle, std_inst, inst, circuit, clbit_map, true);
             }
             OperationRef::Unitary(_) => {
                 self.add_unitary_gate(inst, circuit);
@@ -327,7 +345,7 @@ impl<'a> VisualizationLayer<'a> {
         }
 
         let qargs = circuit.get_qargs(inst.qubits);
-        let (minima, maxima) = get_instruction_range(qargs, &[], 0);
+        let (minima, maxima) = get_instruction_range(qargs, &[], 0, false, false);
 
         match gate {
             StandardGate::ISwap
@@ -430,10 +448,11 @@ impl<'a> VisualizationLayer<'a> {
         inst: &'a PackedInstruction,
         circuit: &CircuitData,
         clbit_map: &[usize],
+		measure_arrows: bool,
     ) {
         let qargs = circuit.get_qargs(inst.qubits);
         let (minima, mut maxima) =
-            get_instruction_range(qargs, circuit.get_cargs(inst.clbits), circuit.num_qubits());
+            get_instruction_range(qargs, circuit.get_cargs(inst.clbits), circuit.num_qubits(), false, false);
 
         match std_inst {
             StandardInstruction::Barrier(_) => {
@@ -451,14 +470,16 @@ impl<'a> VisualizationLayer<'a> {
                     VisualizationElement::Boxed(BoxedElement::Single(inst));
 
                 // Some bits may be bundled, so we need to map the Clbit index to the proper wire index
-                if cregbundle {
-                    maxima = clbit_map[circuit
-                        .get_cargs(inst.clbits)
-                        .first()
-                        .expect("Measure should have a clbit arg")
-                        .index()];
-                }
-                self.add_vertical_lines(minima + 1, maxima, &[], inst);
+				if measure_arrows {
+					if cregbundle {
+						maxima = clbit_map[circuit
+							.get_cargs(inst.clbits)
+							.first()
+							.expect("Measure should have a clbit arg")
+							.index()];
+					}
+					self.add_vertical_lines(minima + 1, maxima, &[], inst);
+				}
             }
             StandardInstruction::Delay(_) => {
                 for q in qargs {
@@ -474,7 +495,7 @@ impl<'a> VisualizationLayer<'a> {
             self.0[qargs.first().unwrap().index()] =
                 VisualizationElement::Boxed(BoxedElement::Single(inst));
         } else {
-            let (minima, maxima) = get_instruction_range(qargs, &[], 0);
+            let (minima, maxima) = get_instruction_range(qargs, &[], 0, false, false);
             for q in minima..=maxima {
                 self.0[q] = VisualizationElement::Boxed(BoxedElement::Multi(inst));
             }
@@ -538,8 +559,8 @@ struct VisualizationMatrix<'a> {
 }
 
 impl<'a> VisualizationMatrix<'a> {
-    fn from_circuit(circuit: &'a CircuitData, bundle_cregs: bool) -> PyResult<Self> {
-        let inst_layers = build_layers(circuit);
+    fn from_circuit(circuit: &'a CircuitData, bundle_cregs: bool, measure_arrows: bool) -> PyResult<Self> {
+        let inst_layers = build_layers(circuit, measure_arrows);
 
         let num_wires = circuit.num_qubits()
             + if !bundle_cregs {
@@ -814,13 +835,13 @@ impl Index<usize> for TextDrawer {
 }
 
 impl TextDrawer {
-    fn from_visualization_matrix(vis_mat: &VisualizationMatrix, cregbundle: bool) -> Self {
+    fn from_visualization_matrix(vis_mat: &VisualizationMatrix, cregbundle: bool, measure_arrows: bool) -> Self {
         let mut text_drawer = TextDrawer {
             wires: vec![Vec::new(); vis_mat.num_wires()],
         };
 
         for (i, layer) in vis_mat.layers.iter().enumerate() {
-            let layer_wires = Self::draw_layer(layer, vis_mat, cregbundle, i);
+            let layer_wires = Self::draw_layer(layer, vis_mat, cregbundle, i, measure_arrows);
             for (j, wire) in layer_wires.iter().enumerate() {
                 text_drawer.wires[j].push(wire.clone());
             }
@@ -951,7 +972,7 @@ impl TextDrawer {
             .0
             .iter()
             .enumerate()
-            .map(|(i, element)| Self::draw_element(element, vis_mat, cregbundle, i))
+            .map(|(i, element)| Self::draw_element(element, vis_mat, cregbundle, i, measure_arrows))
             .collect();
 
         let num_qubits = vis_mat.circuit.num_qubits();
@@ -975,6 +996,7 @@ impl TextDrawer {
         vis_mat: &VisualizationMatrix,
         cregbundle: bool,
         wire_idx: usize,
+		measure_arrows: bool,
     ) -> TextWireElement {
         let circuit = vis_mat.circuit;
         let (top, mid, bot);
@@ -999,7 +1021,7 @@ impl TextDrawer {
                         if let Some(gate) = inst.op.try_standard_gate() {
                             if gate.is_controlled_gate() {
                                 let qargs = circuit.get_qargs(inst.qubits);
-                                let (minima, maxima) = get_instruction_range(qargs, &[], 0);
+                                let (minima, maxima) = get_instruction_range(qargs, &[], 0, false, false);
                                 if qargs.last().unwrap().index() > minima {
                                     top_con = TOP_CON;
                                 }
@@ -1015,7 +1037,9 @@ impl TextDrawer {
                             OperationRef::StandardInstruction(StandardInstruction::Measure)
                                 | OperationRef::PauliProductMeasurement(_)
                         ) {
-                            bot_con = C_BOT_CON;
+							if measure_arrows {
+								bot_con = C_BOT_CON;
+							}
                         }
 
                         let label_len = label.width();
@@ -1043,7 +1067,7 @@ impl TextDrawer {
                         let label = format!(" {} ", Self::get_label(inst));
                         let label_len = label.width();
                         let qargs = circuit.get_qargs(inst.qubits);
-                        let (minima, maxima) = get_instruction_range(qargs, &[], 0);
+                        let (minima, maxima) = get_instruction_range(qargs, &[], 0, false, false);
                         let mid_idx = (minima + maxima) / 2;
                         let input_idx = qargs.iter().position(|&x| x.index() == wire_idx);
                         let qarg_inputs_len = (qargs.len() as f64).log10().ceil() as usize;
@@ -1112,7 +1136,7 @@ impl TextDrawer {
                 (top, mid, bot) = match on_wire {
                     OnWireElement::Control(inst) => {
                         let (minima, maxima) =
-                            get_instruction_range(circuit.get_qargs(inst.qubits), &[], 0);
+                            get_instruction_range(circuit.get_qargs(inst.qubits), &[], 0, false, false);
                         (
                             format!(
                                 " {} ",
@@ -1135,7 +1159,7 @@ impl TextDrawer {
                     }
                     OnWireElement::Swap(inst) => {
                         let (minima, maxima) =
-                            get_instruction_range(circuit.get_qargs(inst.qubits), &[], 0);
+                            get_instruction_range(circuit.get_qargs(inst.qubits), &[], 0, false);
                         (
                             format!(
                                 " {} ",
@@ -1168,7 +1192,7 @@ impl TextDrawer {
                     ),
                     OnWireElement::CPhaseEndpoint(inst) => {
                         let qargs = circuit.get_qargs(inst.qubits);
-                        let (minima, maxima) = get_instruction_range(qargs, &[], 0);
+                        let (minima, maxima) = get_instruction_range(qargs, &[], 0, false, false);
                         // q_0: ─■───────
                         //       │P(0.5)
                         // q_1: ─┼───────
@@ -1572,7 +1596,7 @@ mod tests {
     fn test_creg_bundle() {
         let circuit = basic_circuit();
 
-        let result = draw_circuit(&circuit, true, false, None).unwrap();
+        let result = draw_circuit(&circuit, true, false, None, true).unwrap();
 
         let expected = "
       ┌───┐
@@ -1595,7 +1619,7 @@ c2: 2/══════════
     fn test_merge_wires() {
         let circuit = basic_circuit();
 
-        let result = draw_circuit(&circuit, false, true, None).unwrap();
+        let result = draw_circuit(&circuit, false, true, None, true).unwrap();
         let expected = "
       ┌───┐
  q_0: ┤ H ├──■──
