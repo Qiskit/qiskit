@@ -18,6 +18,11 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.exceptions import QiskitError
 
 MAX_FRAC = 16
+# Max denominator k for pi/k in the fourth check (2-digit denominators).
+# The different threshold compared to MAX_FRAC is historic, since previous versions
+# of Qiskit used a slightly different, inconsistent check that led to higher fractions
+# being detected.
+MAX_PI_FRAC = 99
 N, D = np.meshgrid(np.arange(1, MAX_FRAC + 1), np.arange(1, MAX_FRAC + 1))
 FRAC_MESH = N / D * np.pi
 RECIP_MESH = N / D / np.pi
@@ -122,13 +127,15 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
         # Fourth check is for fractions for 1*pi in the numer and any
         # number in the denom.
         val = np.pi / single_inpt
-        if abs(abs(val) - abs(round(val))) < eps:
-            val = int(abs(round(val)))
-            if output == "latex":
-                str_out = f"\\frac{{{neg_str}{pi}}}{{{val}}}"
-            else:
-                str_out = f"{neg_str}{pi}/{val}"
-            return str_out
+        denom = int(abs(round(val)))
+        if denom >= 1:
+            angle_close = abs(abs(single_inpt) - np.pi / denom) < eps
+            if angle_close and denom <= MAX_PI_FRAC:
+                if output == "latex":
+                    str_out = f"\\frac{{{neg_str}{pi}}}{{{denom}}}"
+                else:
+                    str_out = f"{neg_str}{pi}/{denom}"
+                return str_out
 
         # Fifth check is for fractions where the numer > 1*pi and numer
         # is up to MAX_FRAC*pi and denom is up to MAX_FRAC and all
