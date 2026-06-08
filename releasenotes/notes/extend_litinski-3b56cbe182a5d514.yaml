@@ -7,7 +7,8 @@ features_transpiler:
   - Single-qubit rotation gates and :class:`.PauliProductRotationGate` objects with angles
     that are integer multiples of :math:`\pi/2`, up to the specified approximation, are now
     recognized as Clifford gates by the :class:`.LitinskiTransformation` pass.
-  - Added an ``approoximation_degree`` argument to the :class:`.LitinskiTransformation` pass.
+  - Added an ``approximation_degree`` argument to the :class:`.LitinskiTransformation` pass,
+    which sets the allowed approximations of interpreting close-to-Clifford rotations as Clifford gates.
 
 features_c:
   - Extended the :c:func:`qk_transpiler_pass_standalone_litinski_transformation`
@@ -17,5 +18,7 @@ features_c:
     that are integer multiples of :math:`\pi/2`, up to the specified approximation, are now
     recognized as Clifford gates by the :c:func:`qk_transpiler_pass_standalone_litinski_transformation`
     pass.
-  - Added an ``approoximation_degree`` parameter to the 
-    :c:func:`qk_transpiler_pass_standalone_litinski_transformation` pass.
+  - Added an ``approximation_degree`` parameter to the
+    :c:func:`qk_transpiler_pass_standalone_litinski_transformation` pass,
+    which sets the allowed approximations of interpreting close-to-Clifford
+    rotations as Clifford gates.
