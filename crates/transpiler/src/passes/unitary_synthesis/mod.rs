@@ -300,11 +300,21 @@ static TWO_QUBIT_BASIS_SET_GATES: [StandardGate; 7] = [
 
 pub(crate) use {PARAM_SET, TWO_QUBIT_BASIS_SET};
 
+/// The different output types from a synthesis.
+///
+/// The different synthesis types have different outputs which make different
+/// assumptions about the output constraints based on the synthesis being
+/// performed (e.g. one qubit synthesis doesn't need to specify qubit indices).
 enum SynthesisOutput {
+    /// A global phase update
     Phase(f64),
+    /// A two qubit synthesis result
     TwoQ(TwoQSynthesisResult<f64>),
+    /// A single qubit synthesis result from the Euler one qubit synthesis module
     OneQ(OneQubitGateSequence),
+    /// A single qubit synthesis result from the Solovay Kitaev module
     OneQSK(CircuitData),
+    /// A multiqubit synthesis output from the Quantum Shannon Decomposition
     Qsd(CircuitData),
 }
 
