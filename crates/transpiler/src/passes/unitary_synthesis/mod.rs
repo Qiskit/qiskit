@@ -33,7 +33,7 @@ use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder};
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, PythonOperation, StandardGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
-use qiskit_circuit::{PhysicalQubit, Qubit};
+use qiskit_circuit::{BlocksMode, PhysicalQubit, Qubit, VarsMode};
 use qiskit_synthesis::euler_one_qubit_decomposer::unitary_to_gate_sequence_inner;
 use qiskit_synthesis::qsd::quantum_shannon_decomposition;
 use qiskit_synthesis::two_qubit_decompose::TwoQubitGateSequence;
@@ -387,7 +387,7 @@ pub fn run_unitary_synthesis(
         ))?;
         Ok(())
     };
-    Some(dag.rebuild_dag_with(rebuilder_callback)).transpose()
+    Some(dag.rebuild_dag_with(rebuilder_callback, VarsMode::Alike, BlocksMode::Drop)).transpose()
 }
 
 /// Synthesise a matrix onto the DAG.

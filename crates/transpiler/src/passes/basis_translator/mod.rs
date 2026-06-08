@@ -33,11 +33,12 @@ use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::parameter::symbol_expr::SymbolExpr;
 use qiskit_circuit::parameter::symbol_expr::Value;
-use qiskit_circuit::{Clbit, PhysicalQubit, Qubit};
 use qiskit_circuit::{
+    BlocksMode, VarsMode,
     dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType},
     operations::{Operation, OperationRef, Param, PauliBased, PythonOperation},
 };
+use qiskit_circuit::{Clbit, PhysicalQubit, Qubit};
 use smallvec::SmallVec;
 
 use crate::equivalence::EquivalenceLibrary;
@@ -461,7 +462,7 @@ fn apply_translation(
         }
         Ok(())
     };
-    dag.rebuild_dag_with(rebuilder_callback)
+    dag.rebuild_dag_with(rebuilder_callback, VarsMode::Alike, BlocksMode::Keep)
 }
 
 fn replace_node(

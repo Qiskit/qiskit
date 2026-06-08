@@ -8254,11 +8254,16 @@ impl DAGCircuit {
     /// node and a mutable reference to the [`DAGCircuitBuilder`] which is where the new dag is built
     /// and a [`PackedInstruction`] of the current op node in the dag. The caller is responsible for
     /// adding any nodes to the dag as part of the callback.
-    pub fn rebuild_dag_with<F, E>(&self, mut callback: F) -> Result<Self, E>
+    pub fn rebuild_dag_with<F, E>(
+        &self,
+        mut callback: F,
+        vars_mode: VarsMode,
+        blocks_mode: BlocksMode,
+    ) -> Result<Self, E>
     where
         F: FnMut(&mut DAGCircuitBuilder, &PackedInstruction) -> Result<(), E>,
     {
-        let new_dag = self.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep);
+        let new_dag = self.copy_empty_like_with_same_capacity(vars_mode, blocks_mode);
         let mut builder = new_dag.into_builder();
         for node in
             petgraph::algo::toposort(&self.dag, None).expect("DAGCircuit can't have a cycle")
