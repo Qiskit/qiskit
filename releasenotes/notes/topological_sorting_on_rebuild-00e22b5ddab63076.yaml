@@ -7,7 +7,7 @@ performance:
     :c:func:`qk_transpiler_pass_split_2q_unitaries` and
     :c:func:`qk_transpiler_pass_standalone_split_2q_unitaries`, have internally
     changed the topological sorting used when building their output
-    :class:`.DAGCircuit` which improves the runtime performance of the pass by
+    :class:`.DAGCircuit` which improves the runtime performance of the passes by
     avoiding overhead from the previously used lexicographical topological
     sorting. See
     `#15987 <https://github.com/Qiskit/qiskit/pull/15987>`__ for more details.
