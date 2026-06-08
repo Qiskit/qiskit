@@ -204,7 +204,11 @@ class BitArray(ShapedMixin):
         Returns:
             A ``numpy.uint64``-array with shape ``(*shape, num_shots)``.
         """
-        return np.bitwise_count(self._array).sum(axis=-1)
+        result = np.bitwise_count(self._array).sum(axis=-1)
+        excess = self.num_bits % 8
+        if excess > 0:
+            result -= np.bitwise_count(self._array[..., 0] >> np.uint8(excess))
+        return result
 
     @staticmethod
     def from_bool_array(
