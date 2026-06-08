@@ -76,6 +76,10 @@ static IDENTITY_2Q: Matrix4<Complex64> = Matrix4::new(
     Complex64::ONE,
 );
 
+/// Threshold in number of blocks to run the pass multithreaded vs serially
+/// At smaller block counts the overhead of multithreading outweighs the speedup
+const PARALLEL_THRESHOLD: usize = 50;
+
 #[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug)]
 pub enum DecomposerType {
@@ -535,7 +539,7 @@ fn py_run_consolidate_blocks(
         })
         .transpose()?;
     let run_in_parallel = getenv_use_multiple_threads();
-    if run_in_parallel && blocks.len() > 50 {
+    if run_in_parallel && blocks.len() > PARALLEL_THRESHOLD {
         let consolidations = py.detach(|| {
             consolidation_analysis_parallel(
                 dag,
