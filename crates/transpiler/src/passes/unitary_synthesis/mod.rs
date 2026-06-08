@@ -322,6 +322,8 @@ enum SynthesisOutput {
     Qsd(CircuitData),
 }
 
+/// Run synthesis analysis in parallel using multithreading and collect results into a mapping from node
+/// indices to synthesis result.
 fn parallel_synthesis(
     dag: &DAGCircuit,
     synth_gates: &HashSet<String>,
@@ -361,6 +363,8 @@ fn parallel_synthesis(
         .collect::<PyResult<_>>()
 }
 
+/// Return a new DAG that takes a mapping as returned by [`parallel_synthesis`] and replaces those
+/// nodes in the mapping with the synthesis result.
 fn apply_synthesis(
     dag: &DAGCircuit,
     mut node_replace_map: HashMap<NodeIndex, SynthesisOutput>,
@@ -491,6 +495,10 @@ pub fn run_unitary_synthesis(
     }
 }
 
+/// Run unitary synthesis serially in a single loop over the dag.
+///
+/// This is as opposed to the combination of [`parallel_synthesis`] and [`apply_synthesis`] that
+/// will iterate over the nodes twice, but one will done in parallel using multithreading.
 fn serial_run_unitary_synthesis(
     dag: &DAGCircuit,
     synth_gates: &HashSet<String>,
@@ -574,6 +582,7 @@ fn serial_run_unitary_synthesis(
     Ok(out.build())
 }
 
+/// Synthesize a unitary matrix and return the synthesis output
 fn synthesize_matrix(
     unitary: CowArray<Complex64, Ix2>,
     qubits_phys: &[PhysicalQubit],
@@ -763,6 +772,7 @@ fn synthesize_matrix_onto(
     }
 }
 
+/// Synthesize a 1q unitary matrix and return the output
 fn synthesize_1q_matrix(
     unitary: ArrayView2<Complex64>,
     qubit_phys: PhysicalQubit,
@@ -790,6 +800,7 @@ fn synthesize_1q_matrix(
     }
 }
 
+/// Synthesize a 1q unitary matrix and apply the result onto a DAGCircuit
 fn synthesize_1q_matrix_onto(
     out: &mut DAGCircuitBuilder,
     unitary: ArrayView2<Complex64>,
@@ -1016,6 +1027,7 @@ where
     }))
 }
 
+/// Synthesize a 2q unitary matrix and apply the result onto a DAGCircuit
 fn synthesize_2q_matrix_onto(
     out: &mut DAGCircuitBuilder,
     unitary: CowArray<Complex64, Ix2>,
