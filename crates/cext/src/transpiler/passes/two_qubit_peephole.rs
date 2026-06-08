@@ -20,12 +20,13 @@ use qiskit_transpiler::target::Target;
 /// @ingroup QkTranspilerPassesStandalone
 /// Run the TwoQubitPeepholeOptimization transpiler pass.
 ///
-/// Refer to the :c:func:`qk_transpiler_pass_2q_peephole_optimization` function documentation
+/// Refer to the
+/// @verbatim embed:rst:inline :c:func:`qk_transpiler_pass_2q_peephole_optimization` @endverbatim function documentation
 /// for the pass details.
 ///
 /// This function is multithreaded, and will perform the analysis in parallel
 /// and use all the cores available on your local system. You can refer to
-/// the `configuration guide <https://docs.quantum.ibm.com/guides/configure-qiskit-local>`__
+/// the [configuration guide](https://docs.quantum.ibm.com/guides/configure-qiskit-local)
 /// for details on how to control the threading behavior for Qiskit more broadly
 /// which will also control this pass
 ///
@@ -72,7 +73,7 @@ use qiskit_transpiler::target::Target;
 /// This function is not safe to call in a context when the circuit contains objects owned by Python. As the
 /// function is internally multi-threaded if there are any Python owned gates in the circuit the worker
 /// threads may need to acquire the GIL to access the attributes of those gates and this will result in
-/// a deadlock. You should use the Python space :py:class:`.TwoQubitPeepholeOptimization`
+/// a deadlock. You should use the Python space @verbatim embed:rst:inline :py:class:`.TwoQubitPeepholeOptimization` @endverbatim
 /// class to run this pass if there are circuit elements owned by Python.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_transpiler_pass_standalone_2q_peephole_optimization(
@@ -127,10 +128,10 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_2q_peephole_optimization(
 /// target. However, the output of the pass might not use hardware operations,
 /// specifically single qubit gates might be emitted outside the target's supported
 /// operations, typically only if a parameterized gate supported by the
-/// :class:`.TwoQubitControlledUDecomposer` is used for synthesis. As such if running
-/// this pass in a physical optimization stage (such as :ref:`transpiler-preset-stage-optimization`)
-/// this should be paired with passes such as :class:`.BasisTranslator` and/or
-/// :class:`.Optimize1qGatesDecomposition` to ensure that these errant single qubit
+/// @verbatim embed:rst:inline :class:`.TwoQubitControlledUDecomposer` @endverbatim is used for synthesis. As such if running
+/// this pass in a physical optimization stage (such as @verbatim embed:rst:inline :ref:`transpiler-preset-stage-optimization` @endverbatim)
+/// this should be paired with passes such as @verbatim embed:rst:inline :class:`.BasisTranslator`@endverbatim and/or
+/// @verbatim embed:rst:inline :class:`.Optimize1qGatesDecomposition` @endverbatim to ensure that these errant single qubit
 /// gates are replaced with hardware supported operations prior to exiting the stage.
 ///
 /// This pass is multithreaded, and will perform the analysis in parallel
