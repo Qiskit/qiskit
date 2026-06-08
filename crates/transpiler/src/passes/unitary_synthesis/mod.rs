@@ -18,7 +18,6 @@ use ndarray::prelude::*;
 use num_complex::Complex64;
 use qiskit_util::IndexSet;
 use rayon::prelude::*;
-use rustworkx_core::petgraph::algo::toposort;
 use rustworkx_core::petgraph::graph::NodeIndex;
 use rustworkx_core::petgraph::visit::NodeIndexable;
 use std::cell::RefCell;
@@ -374,64 +373,60 @@ fn apply_synthesis(
     state: &mut UnitarySynthesisState,
     constraint: QpuConstraint,
 ) -> PyResult<DAGCircuit> {
-    let mut out = dag
-        .copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Drop)
-        .into_builder();
-    for node in toposort(dag.dag(), None).unwrap() {
-        let NodeType::Operation(ref inst) = dag[node] else {
-            continue;
-        };
-        let Some(cf) = dag.try_view_control_flow(inst) else {
-            // Handle regular instructions - this path is where we end up most of the time.
-            if let Some(sequence) = node_replace_map.remove(&node) {
-                apply_matrix_result_onto(sequence, &mut out, dag.get_qargs(inst.qubits))?;
-            } else {
-                // No synthesis was necessary, so reinstate the operation.
-                out.push_back(inst.clone())?;
-            }
-            continue;
-        };
-        // If we make it here, we've got control flow and have to set ourselves up to recurse.
-        //
-        // TODO: Running this in parallel will potentially deadlock if the target decomposition gate is
-        // defined in python and there are unitaries in a control flow block inside the recursion run
-        // internally.
-        let blocks = cf
-            .blocks()
-            .into_iter()
-            .map(|orig_block| {
-                let qubit_indices = dag
-                    .get_qargs(inst.qubits)
-                    .iter()
-                    .map(|q| qubit_indices[q.index()])
-                    .collect::<Vec<_>>();
-                run_unitary_synthesis(
-                    orig_block,
-                    synth_gates,
-                    min_qubits,
-                    &qubit_indices,
-                    state,
-                    constraint,
-                    true,
-                )
-                .map(|block| {
-                    if let Some(block) = block {
-                        out.add_block(block)
-                    } else {
-                        out.add_block(orig_block.clone())
-                    }
+    let rebuilder_callback =
+        |out: &mut DAGCircuitBuilder, inst: &PackedInstruction, node_index: NodeIndex| {
+            let Some(cf) = dag.try_view_control_flow(inst) else {
+                // Handle regular instructions - this path is where we end up most of the time.
+                if let Some(sequence) = node_replace_map.remove(&node_index) {
+                    apply_matrix_result_onto(sequence, out, dag.get_qargs(inst.qubits))?;
+                } else {
+                    // No synthesis was necessary, so reinstate the operation.
+                    out.push_back(inst.clone())?;
+                }
+                return Ok(());
+            };
+            // If we make it here, we've got control flow and have to set ourselves up to recurse.
+            //
+            // TODO: Running this in parallel will potentially deadlock if the target decomposition gate is
+            // defined in python and there are unitaries in a control flow block inside the recursion run
+            // internally.
+            let blocks = cf
+                .blocks()
+                .into_iter()
+                .map(|orig_block| {
+                    let qubit_indices = dag
+                        .get_qargs(inst.qubits)
+                        .iter()
+                        .map(|q| qubit_indices[q.index()])
+                        .collect::<Vec<_>>();
+                    run_unitary_synthesis(
+                        orig_block,
+                        synth_gates,
+                        min_qubits,
+                        &qubit_indices,
+                        state,
+                        constraint,
+                        true,
+                    )
+                    .map(|block| {
+                        if let Some(block) = block {
+                            out.add_block(block)
+                        } else {
+                            out.add_block(orig_block.clone())
+                        }
+                    })
                 })
-            })
-            .collect::<PyResult<_>>()?;
-        out.push_back(PackedInstruction::from_control_flow(
-            inst.op.control_flow().clone(),
-            blocks,
-            inst.qubits,
-            inst.clbits,
-            inst.label.as_deref().cloned(),
-        ))?;
-    }
-    Ok(out.build())
+                .collect::<PyResult<_>>()?;
+            out.push_back(PackedInstruction::from_control_flow(
+                inst.op.control_flow().clone(),
+                blocks,
+                inst.qubits,
+                inst.clbits,
+                inst.label.as_deref().cloned(),
+            ))?;
+            Ok(())
+        };
+    dag.rebuild_dag_with(rebuilder_callback, VarsMode::Alike, BlocksMode::Drop)
 }
 
 /// Iterate over `DAGCircuit` to perform unitary synthesis.  For each eligible gate: find
@@ -544,56 +539,54 @@ fn serial_run_unitary_synthesis(
         )
     };
 
-    let mut out = dag
-        .copy_empty_like(VarsMode::Alike, BlocksMode::Drop)
-        .into_builder();
-    for node in dag.topological_op_nodes(false) {
-        let inst = dag[node].unwrap_operation();
-        let Some(cf) = dag.try_view_control_flow(inst) else {
-            // Handle regular instructions - this path is where we end up most of the time.
-            if !synthesize_onto(&mut out, state, inst)? {
-                // No synthesis was necessary, so reinstate the operation.
-                out.push_back(inst.clone())?;
-            }
-            continue;
-        };
-        // If we make it here, we've got control flow and have to set ourselves up to recurse.
-        let blocks = cf
-            .blocks()
-            .into_iter()
-            .map(|orig_block| {
-                let qubit_indices = dag
-                    .get_qargs(inst.qubits)
-                    .iter()
-                    .map(|q| qubit_indices[q.index()])
-                    .collect::<Vec<_>>();
-                run_unitary_synthesis(
-                    orig_block,
-                    synth_gates,
-                    min_qubits,
-                    &qubit_indices,
-                    state,
-                    constraint,
-                    true,
-                )
-                .map(|block| {
-                    if let Some(block) = block {
-                        out.add_block(block)
-                    } else {
-                        out.add_block(orig_block.clone())
-                    }
+    let rebuilder_callback =
+        |out: &mut DAGCircuitBuilder, inst: &PackedInstruction, _node_index: NodeIndex| {
+            let Some(cf) = dag.try_view_control_flow(inst) else {
+                // Handle regular instructions - this path is where we end up most of the time.
+                if !synthesize_onto(out, state, inst)? {
+                    // No synthesis was necessary, so reinstate the operation.
+                    out.push_back(inst.clone())?;
+                }
+                return Ok(());
+            };
+            // If we make it here, we've got control flow and have to set ourselves up to recurse.
+            let blocks = cf
+                .blocks()
+                .into_iter()
+                .map(|orig_block| {
+                    let qubit_indices = dag
+                        .get_qargs(inst.qubits)
+                        .iter()
+                        .map(|q| qubit_indices[q.index()])
+                        .collect::<Vec<_>>();
+                    run_unitary_synthesis(
+                        orig_block,
+                        synth_gates,
+                        min_qubits,
+                        &qubit_indices,
+                        state,
+                        constraint,
+                        true,
+                    )
+                    .map(|block| {
+                        if let Some(block) = block {
+                            out.add_block(block)
+                        } else {
+                            out.add_block(orig_block.clone())
+                        }
+                    })
                 })
-            })
-            .collect::<PyResult<_>>()?;
-        out.push_back(PackedInstruction::from_control_flow(
-            inst.op.control_flow().clone(),
-            blocks,
-            inst.qubits,
-            inst.clbits,
-            inst.label.as_deref().cloned(),
-        ))?;
-    }
-    Ok(out.build())
+                .collect::<PyResult<_>>()?;
+            out.push_back(PackedInstruction::from_control_flow(
+                inst.op.control_flow().clone(),
+                blocks,
+                inst.qubits,
+                inst.clbits,
+                inst.label.as_deref().cloned(),
+            ))?;
+            Ok(())
+        };
+    dag.rebuild_dag_with(rebuilder_callback, VarsMode::Alike, BlocksMode::Drop)
 }
 
 /// Synthesize a unitary matrix and return the synthesis output
