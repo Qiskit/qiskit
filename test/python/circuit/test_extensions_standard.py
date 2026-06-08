@@ -158,6 +158,42 @@ class TestStandard1Q(QiskitTestCase):
         )
         self.assertEqual(self.circuit[0].operation.label, label)
 
+    def test_standard_gate_method_labels(self):
+        label = "custom gate label"
+        cases = [
+            ("h", (0,)),
+            ("id", (0,)),
+            ("ms", (0.1, [0, 1])),
+            ("p", (0.1, 0)),
+            ("mcp", (0.1, [0, 1], 2)),
+            ("r", (0.1, 0.2, 0)),
+            ("rv", (0.1, 0.2, 0.3, 0)),
+            ("rxx", (0.1, 0, 1)),
+            ("ryy", (0.1, 0, 1)),
+            ("rz", (0.1, 0)),
+            ("rzx", (0.1, 0, 1)),
+            ("rzz", (0.1, 0, 1)),
+            ("ecr", (0, 1)),
+            ("s", (0,)),
+            ("sdg", (0,)),
+            ("swap", (0, 1)),
+            ("iswap", (0, 1)),
+            ("sx", (0,)),
+            ("sxdg", (0,)),
+            ("t", (0,)),
+            ("tdg", (0,)),
+            ("u", (0.1, 0.2, 0.3, 0)),
+            ("dcx", (0, 1)),
+            ("y", (0,)),
+            ("z", (0,)),
+            ("pauli", ("XX", [0, 1])),
+        ]
+        for method_name, args in cases:
+            with self.subTest(method_name=method_name):
+                circuit = QuantumCircuit(3)
+                getattr(circuit, method_name)(*args, label=label)
+                self.assertEqual(circuit[0].operation.label, label)
+
     def test_crz(self):
         self.circuit.crz(1, self.qr[0], self.qr[1])
         self.assertEqual(self.circuit[0].operation.name, "crz")
