@@ -74,6 +74,9 @@ const fn build_supported_ops() -> [bool; STANDARD_GATE_SIZE] {
     lut[StandardGate::RYY as usize] = true;
     lut[StandardGate::RZZ as usize] = true;
     lut[StandardGate::RZX as usize] = true;
+    lut[StandardGate::CRX as usize] = true;
+    lut[StandardGate::CRY as usize] = true;
+    lut[StandardGate::CRZ as usize] = true;
     lut[StandardGate::H as usize] = true;
     lut[StandardGate::X as usize] = true;
     lut[StandardGate::Y as usize] = true;
