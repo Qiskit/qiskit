@@ -377,13 +377,17 @@ class TwoQubitControlledUDecomposer:
         self.scale = self._inner_decomposer.scale
         self.euler_basis = euler_basis
 
-    def __call__(  # noqa: D417 TODO: Add support for the undocumented arguments
+    def __call__(  # TODO: add support for the approximate and use_dag arguments
         self, unitary: Operator | np.ndarray, approximate=False, use_dag=False, *, atol=DEFAULT_ATOL
     ) -> QuantumCircuit:
         r"""Decompose a two-qubit ``unitary`` using the :class:`.TwoQubitControlledUDecomposer`.
 
         Args:
             unitary: :math:`4 \times 4` unitary to synthesize.
+            approximate: Currently not used by this decomposer; accepted for signature
+                compatibility with the other two-qubit decomposers. Reserved for future use.
+            use_dag: Currently not used by this decomposer; accepted for signature
+                compatibility with the other two-qubit decomposers. Reserved for future use.
             atol: Absolute tolerance for checking angles of the single-qubit unitaries when
                 simplifying the returned circuit [Default: 1e-12].
 
