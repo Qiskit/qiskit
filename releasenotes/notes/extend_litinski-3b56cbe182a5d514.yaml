@@ -17,5 +17,5 @@ features_c:
     that are integer multiples of :math:`\pi/2`, up to the specified approximation, are now
     recognized as Clifford gates by the :c:func:`qk_transpiler_pass_standalone_litinski_transformation`
     pass.
-  - Added an ``approoximation_degree`` to the :c:func:`qk_transpiler_pass_standalone_litinski_transformation`
-    pass.
+  - Added an ``approoximation_degree`` parameter to the 
+    :c:func:`qk_transpiler_pass_standalone_litinski_transformation` pass.
