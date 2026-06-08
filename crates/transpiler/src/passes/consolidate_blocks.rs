@@ -225,10 +225,16 @@ impl PhysQargsMap {
     }
 }
 
+/// The different actions to take from the analysis
 enum ConsolidateResult {
+    /// The block is equivalent to an identity and should be removed
     Identity,
+    /// No consolidation should occur and the block should be left as is
     NoConsolidate,
+    /// The block should be consolidated into a `UnitaryGate` of a given
+    /// matrix
     Matrix(HashMap<Qubit, usize>, UnitaryGate),
+    /// The single gate block should be replaced with the UnitaryGate
     Replace(UnitaryGate),
 }
 
