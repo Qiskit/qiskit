@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Clarified in the docstring of :class:`.SynthesizeRZRotations` that
-    ``synthesis_error`` and ``cache_error`` must be in the range ``[0, 1]``.
-    See `#16384 <https://github.com/Qiskit/qiskit/issues/16384>`__.
