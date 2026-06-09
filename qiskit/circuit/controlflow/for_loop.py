@@ -29,22 +29,6 @@ if TYPE_CHECKING:
     from qiskit.circuit import QuantumCircuit
 
 
-def _validate_for_loop_params(indexset, loop_parameter, body) -> None:
-    """Enforce the compile-time vs runtime boundary for ``loop_parameter`` vs ``indexset``."""
-    if isinstance(indexset, Range):
-        if isinstance(loop_parameter, Parameter):
-            raise CircuitError(
-                "Cannot use a compile-time Parameter as a loop variable with an expr.Range "
-                "indexset. Use an expr.Var instead, or use a Python range/integer list for "
-                "gate-parameter unrolling."
-            )
-    elif isinstance(loop_parameter, Var):
-        raise CircuitError(
-            "Cannot use an expr.Var as a loop variable with a Python range or integer list "
-            "indexset. Use a Parameter instead, or use an expr.Range for runtime execution."
-        )
-
-
 class ForLoopOp(ControlFlowOp):
     """A circuit operation which repeatedly executes a subcircuit
     (``body``) parameterized by a parameter ``loop_parameter`` through
@@ -147,7 +131,18 @@ class ForLoopOp(ControlFlowOp):
                 stacklevel=2,
             )
 
-        _validate_for_loop_params(indexset, loop_parameter, body)
+        if isinstance(indexset, Range):
+            if isinstance(loop_parameter, Parameter):
+                raise CircuitError(
+                    "Cannot use a compile-time Parameter as a loop variable with an expr.Range "
+                    "indexset. Use an expr.Var instead, or use a Python range/integer list for "
+                    "gate-parameter unrolling."
+                )
+        elif isinstance(loop_parameter, Var):
+            raise CircuitError(
+                "Cannot use an expr.Var as a loop variable with a Python range or integer list "
+                "indexset. Use a Parameter instead, or use an expr.Range for runtime execution."
+            )
 
         # Consume indexset into a tuple unless it was provided as a range.
         # Preserve ranges so that they can be exported as OpenQASM 3 ranges.
