@@ -497,7 +497,7 @@ def _optimization_check_fixed_point_clifford_rz():
         Size(recurse=True),
         GateCount(gates=["rz"], key="rz_count", recurse=True),
         FixedPoint("size"),
-        FixedPoint("t_count"),
+        FixedPoint("rz_count"),
     ]
     return (setup, check)
 
