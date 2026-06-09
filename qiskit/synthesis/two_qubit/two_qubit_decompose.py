@@ -265,26 +265,30 @@ class TwoQubitWeylDecomposition:
 
 
 class TwoQubitControlledUDecomposer:
-    r"""Decompose two-qubit unitary in terms of a desired
-    :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}`
-    gate that is locally equivalent to an :class:`.RXXGate`.
+    r"""Decompose two-qubit unitaries using a user-supplied two-qubit gate
+    :math:`U \sim U_d(\alpha, 0, 0)` that is locally equivalent to :class:`.RXXGate`.
+
+    Decomposes any two-qubit unitary :math:`U \in U(4)` into a circuit using at most three
+    applications of the supplied gate, together with at most eight single-qubit unitary gates.
 
     **Synthesis algorithm**
 
-    Any general two-qubit unitary :math:`U \in U(4)` can be decomposed via the
-    KAK / Weyl decomposition as:
+    Any two-qubit unitary :math:`U` can be written via the Weyl decomposition (see
+    :class:`.TwoQubitWeylDecomposition`) as a Weyl (interaction) gate :math:`U_d(a, b, c)`
+    sandwiched between four single-qubit unitaries:
 
-    .. math::
+    .. code-block:: text
 
-        U = (K_1^r \otimes K_1^l)\, e^{i(a\, XX + b\, YY + c\, ZZ)}\, (K_2^r \otimes K_2^l)
+             ┌─────┐┌───────┐┌─────┐
+        q_0: ┤ c2r ├┤0      ├┤ c1r ├
+             ├─────┤│  Weyl │├─────┤
+        q_1: ┤ c2l ├┤1      ├┤ c1l ├
+             └─────┘└───────┘└─────┘
 
-    where :math:`K_1^r, K_1^l, K_2^r, K_2^l \in SU(2)` are single-qubit unitaries and
-    :math:`a \geq b \geq |c| \geq 0` are the Weyl chamber parameters.
+    The Weyl gate factorises into three two-qubit rotations,
+    :math:`U_d(a, b, c) = R_{XX}(a)\,R_{YY}(b)\,R_{ZZ}(c)`:
 
-    The Weyl/interaction gate :math:`e^{i(a\,XX + b\,YY + c\,ZZ)}` is further
-    decomposed into three two-qubit gates:
-
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌─────────┐┌─────────┐
         q_0: ┤0        ├┤0        ├─■──────
@@ -292,10 +296,11 @@ class TwoQubitControlledUDecomposer:
         q_1: ┤1        ├┤1        ├─■──────
              └─────────┘└─────────┘
 
-    Each :math:`RYY(b)` is expressed as an :math:`RXX` gate conjugated by :math:`Sdg`/:math:`S`
-    gates:
+    The :math:`R_{YY}` and :math:`R_{ZZ}` rotations are expressed as :math:`R_{XX}` rotations
+    conjugated by single-qubit basis changes.
+    With :math:`R_{YY}(b) = (S^\dagger \otimes S^\dagger)\,R_{XX}(b)\,(S \otimes S)`:
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌─────┐┌─────────┐┌───┐
         q_0: ┤ Sdg ├┤0        ├┤ S ├
@@ -303,9 +308,9 @@ class TwoQubitControlledUDecomposer:
         q_1: ┤ Sdg ├┤1        ├┤ S ├
              └─────┘└─────────┘└───┘
 
-    and each :math:`RZZ(c)` is expressed as an :math:`RXX` gate conjugated by :math:`H` gates:
+    and :math:`R_{ZZ}(c) = (H \otimes H)\,R_{XX}(c)\,(H \otimes H)`:
 
-    .. parsed-literal::
+    .. code-block:: text
 
              ┌───┐┌─────────┐┌───┐
         q_0: ┤ H ├┤0        ├┤ H ├
@@ -313,46 +318,55 @@ class TwoQubitControlledUDecomposer:
         q_1: ┤ H ├┤1        ├┤ H ├
              └───┘└─────────┘└───┘
 
-    Each :math:`RXX(\theta)` is in turn replaced by the user provided RXX-equivalent gate
-    (``rxx_equivalent_gate``) together with at most four surrounding single-qubit
-    correction unitaries derived from the KAK decomposition of that substitution.
+    The user-supplied ``rxx_equivalent_gate`` is first analysed through its own Weyl (KAK)
+    decomposition to extract the local single-qubit operations that map it onto
+    :class:`.RXXGate` and any scale factor relating its canonical interaction strength to the
+    desired rotation angle. These local correction unitaries and the scale factor are reused
+    when synthesising each :math:`R_{XX}` rotation.
 
-    Adjacent single-qubit layers are *merged* at the matrix level before being
-    decomposed into 1-qubit gate sequences.  Concretely, for the full three-gate
-    decomposition the circuit takes the form:
+    Each :math:`R_{XX}(\theta)` rotation is then realised by the ``rxx_equivalent_gate``
+    (with the rotation angle scaled appropriately) wrapped by the local correction unitaries
+    derived above. Naively this gives :math:`3 \times 4 + 8 + 4 = 24` single-qubit gates for
+    a general decomposition with three two-qubit gates.
 
-    .. parsed-literal::
+    To reduce this count, all single-qubit gates that fall *between* consecutive two-qubit
+    gates are **multiplied together as unitary matrices** before being synthesised into a
+    single gate sequence. For a decomposition using three two-qubit gates there are four
+    single-qubit layers (before the first gate, between each pair of consecutive gates, and
+    after the last gate), each containing one operation per qubit, giving at most
+    :math:`4 \times 2 = 8` synthesised single-qubit unitaries:
 
-             ┌─────┐┌─────────┐┌───────────┐┌─────────┐┌─────┐┌─────────┐┌───────────┐»
-        q_0: ┤ c2r ├┤ rxx_k2r ├┤0          ├┤ rxx_k1r ├┤ Sdg ├┤ ryy_k2r ├┤0          ├»
-             ├─────┤├─────────┤│  Equiv(a) │├─────────┤├─────┤├─────────┤│  Equiv(b) │»
-        q_1: ┤ c2l ├┤ rxx_k2l ├┤1          ├┤ rxx_k1l ├┤ Sdg ├┤ ryy_k2l ├┤1          ├»
-             └─────┘└─────────┘└───────────┘└─────────┘└─────┘└─────────┘└───────────┘»
-        «     ┌─────────┐┌───┐┌───┐┌─────────┐┌───────────┐┌─────────┐┌───┐┌─────┐
-        «q_0: ┤ ryy_k1r ├┤ S ├┤ H ├┤ rzz_k2r ├┤0          ├┤ rzz_k1r ├┤ H ├┤ c1r ├
-        «     ├─────────┤├───┤├───┤├─────────┤│  Equiv(c) │├─────────┤├───┤├─────┤
-        «q_1: ┤ ryy_k1l ├┤ S ├┤ H ├┤ rzz_k2l ├┤1          ├┤ rzz_k1l ├┤ H ├┤ c1l ├
-        «     └─────────┘└───┘└───┘└─────────┘└───────────┘└─────────┘└───┘└─────┘
+    .. code-block:: text
 
-    The consecutive single-qubit operations between two-qubit gates (e.g.
-    ``rxx_k1r · Sdg · ryy_k2r``) are **multiplied together as unitary matrices**
-    before being synthesised into a single gate sequence, resulting in at most
-    **8 single-qubit unitaries** for a general unitary decomposed with 3 two-qubit gates
-    (one per qubit per inter-gate boundary, plus the outer ``c2`` and ``c1`` layers), while still using at most **3** two-qubit gates for a general unitary.
+             ┌─────┐┌───────────┐┌─────┐┌───────────┐┌─────┐┌───────────┐┌─────┐
+        q_0: ┤ d2r ├┤0          ├┤ d1r ├┤0          ├┤ e1r ├┤0          ├┤ f1r ├
+             ├─────┤│  Equiv(a) │├─────┤│  Equiv(b) │├─────┤│  Equiv(c) │├─────┤
+        q_1: ┤ d2l ├┤1          ├┤ d1l ├┤1          ├┤ e1l ├┤1          ├┤ f1l ├
+             └─────┘└───────────┘└─────┘└───────────┘└─────┘└───────────┘└─────┘
 
-    For unitaries that require fewer than 3 two-qubit gates the same merging
-    strategy is applied, giving proportionally fewer single-qubit gates.
+    Here ``Equiv(a)``, ``Equiv(b)``, and ``Equiv(c)`` are the ``rxx_equivalent_gate``
+    realising the :math:`R_{XX}(a)`, :math:`R_{XX}(b)`, and :math:`R_{XX}(c)` rotations,
+    and each of ``d2r``, ``d2l``, ``d1r``, ``d1l``, ``e1r``, ``e1l``, ``f1r``, ``f1l``
+    is a consolidated single-qubit unitary obtained by multiplying together all intermediate
+    single-qubit matrices at that position.
+
+    The number of two-qubit gates actually emitted depends on the Weyl parameters of the
+    target: rotations with a vanishing angle are dropped, so unitaries requiring fewer than
+    three two-qubit gates use proportionally fewer single-qubit gates. When all Weyl
+    interaction angles vanish (up to numerical tolerance), no two-qubit gates are emitted
+    and the unitary is represented entirely by local single-qubit operations.
 
     .. note::
 
-        The number of *elementary* 1-qubit gates (e.g. ``U``, ``RZ``, ``RX``)
-        produced per unitary depends on the chosen ``euler_basis`` and the
-        specific matrices involved.  The count of **8 single-qubit unitaries**
-        is basis-independent.
+        The count of **8 single-qubit unitary gates** is basis-independent. The number of
+        *elementary* 1-qubit gates (e.g. ``U``, ``RZ``, ``RX``) depends on the chosen
+        ``euler_basis`` and the specific matrices involved.
+
+    .. automethod:: __call__
     """
 
     def __init__(self, rxx_equivalent_gate: type[Gate], euler_basis: str = "ZXZ"):
-        r"""Initialize the KAK decomposition.
+        r"""Initialize the :class:`.TwoQubitControlledUDecomposer`.
 
         Args:
             rxx_equivalent_gate: Gate that is locally equivalent to an :class:`.RXXGate`:
@@ -381,18 +395,24 @@ class TwoQubitControlledUDecomposer:
         self.scale = self._inner_decomposer.scale
         self.euler_basis = euler_basis
 
-    def __call__(  # noqa: D417 TODO: Add support for the undocumented arguments
+    def __call__(  # TODO: add support for the approximate and use_dag arguments
         self, unitary: Operator | np.ndarray, approximate=False, use_dag=False, *, atol=DEFAULT_ATOL
     ) -> QuantumCircuit:
-        """Returns the Weyl decomposition in circuit form.
+        r"""Decompose a two-qubit ``unitary`` using the :class:`.TwoQubitControlledUDecomposer`.
 
         Args:
             unitary (Operator or ndarray): :math:`4 \times 4` unitary to synthesize.
+            approximate: Currently not used by this decomposer; accepted for signature
+                compatibility with the other two-qubit decomposers. Reserved for future use.
+            use_dag: Currently not used by this decomposer; accepted for signature
+                compatibility with the other two-qubit decomposers. Reserved for future use.
+            atol (float): Absolute tolerance for checking angles of the single-qubit
+                unitaries when simplifying the returned circuit [Default: 1e-12].
 
         Returns:
             QuantumCircuit: Synthesized quantum circuit.
 
-        Note: atol is passed to OneQubitEulerDecomposer.
+        Note: ``atol`` is passed to :class:`.OneQubitEulerDecomposer`.
         """
         circ_data = self._inner_decomposer(np.asarray(unitary, dtype=complex), atol)
         return QuantumCircuit._from_circuit_data(circ_data, legacy_qubits=True)
@@ -561,7 +581,7 @@ class TwoQubitBasisDecomposer:
 # This weird duplicated lazy structure is for backwards compatibility; Qiskit has historically
 # always made ``two_qubit_cnot_decompose`` available publicly immediately on import, but it's quite
 # expensive to construct, and we want to defer the object's creation until it's actually used.  We
-# only need to pass through the public methods that take `self` as a parameter.  Using `__getattr__``
+# only need to pass through the public methods that take `self` as a parameter.  Using `__getattr__`
 # doesn't work because it is only called if the normal resolution methods fail.  Using
 # `__getattribute__` is too messy for a simple one-off use object.
 
