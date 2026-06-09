@@ -8262,6 +8262,39 @@ impl DAGCircuit {
         }
         Ok(())
     }
+
+    /// Build a new dag copy by iterating over this dag and building up nodes in the new dag from
+    /// them.
+    ///
+    /// This function will build a new output dag builder with the same capacity and iterate over
+    /// the nodes in this dag in a topological order. The given callback is called at each operation
+    /// node with a mutable reference to the [`DAGCircuitBuilder`] which is where the new dag is built
+    /// and a [`PackedInstruction`] of the current op node in the dag. The caller is responsible for
+    /// adding any nodes to the dag as part of the callback.
+    ///
+    /// Typical use cases for this method are for transpiler passes that rebuild a dag by iterating over all
+    /// nodes. The callback lets you handle removing or replacing a node (either with another single
+    /// node or a sequence of nodes) while iterating over the original DAG.
+    pub fn rebuild_dag_with<F, E>(
+        &self,
+        mut callback: F,
+        vars_mode: VarsMode,
+        blocks_mode: BlocksMode,
+    ) -> Result<Self, E>
+    where
+        F: FnMut(&mut DAGCircuitBuilder, &PackedInstruction) -> Result<(), E>,
+    {
+        let new_dag = self.copy_empty_like_with_same_capacity(vars_mode, blocks_mode);
+        let mut builder = new_dag.into_builder();
+        for node in
+            petgraph::algo::toposort(&self.dag, None).expect("DAGCircuit can't have a cycle")
+        {
+            if let NodeType::Operation(ref inst) = self.dag[node] {
+                callback(&mut builder, inst)?;
+            }
+        }
+        Ok(builder.build())
+    }
 }
 
 struct NodesOnWireIter<'a> {

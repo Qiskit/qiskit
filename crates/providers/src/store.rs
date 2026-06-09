@@ -89,7 +89,9 @@ mod tests {
     #[test]
     fn test_store_output_types_2d() {
         use ndarray::arr2;
-        let data = DataTree::new_leaf(Tensor::F64(arr2(&[[1.0_f64, 2.0], [3.0, 4.0]]).into_dyn()));
+        let data = DataTree::new_leaf(Tensor::F64(
+            arr2(&[[1.0_f64, 2.0], [3.0, 4.0]]).into_dyn().into_shared(),
+        ));
         let store = Store::new(data);
         let DataTree::Leaf(tt) = store.output_types() else {
             panic!("expected leaf output type");

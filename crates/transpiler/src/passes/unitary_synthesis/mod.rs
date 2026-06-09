@@ -342,18 +342,14 @@ pub fn run_unitary_synthesis(
         return Ok(None);
     }
 
-    let mut out = dag
-        .copy_empty_like(VarsMode::Alike, BlocksMode::Drop)
-        .into_builder();
-    for node in dag.topological_op_nodes(false) {
-        let inst = dag[node].unwrap_operation();
+    let rebuilder_callback = |out: &mut DAGCircuitBuilder, inst: &PackedInstruction| {
         let Some(cf) = dag.try_view_control_flow(inst) else {
             // Handle regular instructions - this path is where we end up most of the time.
-            if !synthesize_onto(&mut out, state, inst)? {
+            if !synthesize_onto(out, state, inst)? {
                 // No synthesis was necessary, so reinstate the operation.
                 out.push_back(inst.clone())?;
             }
-            continue;
+            return Ok(());
         };
         // If we make it here, we've got control flow and have to set ourselves up to recurse.
         let blocks = cf
@@ -389,8 +385,9 @@ pub fn run_unitary_synthesis(
             inst.clbits,
             inst.label.as_deref().cloned(),
         ))?;
-    }
-    Ok(Some(out.build()))
+        Ok(())
+    };
+    Some(dag.rebuild_dag_with(rebuilder_callback, VarsMode::Alike, BlocksMode::Drop)).transpose()
 }
 
 /// Synthesise a matrix onto the DAG.
