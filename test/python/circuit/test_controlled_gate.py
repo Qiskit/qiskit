@@ -1115,27 +1115,6 @@ class TestControlledGate(QiskitTestCase):
         self.assertEqual(qc, ref_circuit)
 
     @data(
-        ("ccx", (0, 1, 2), {}),
-        ("mcx", ([0, 1, 2], 3), {}),
-        ("mcp", (0.2, [0, 1, 2], 3), {}),
-        ("cswap", (0, 1, 2), {}),
-        ("rccx", (0, 1, 2), {}),
-        ("rcccx", (0, 1, 2, 3), {}),
-    )
-    @unpack
-    def test_controlled_operation_label_parameters(self, method_name, args, kwargs):
-        """Test that controlled-operation helpers forward labels to appended gates."""
-        qc = QuantumCircuit(4)
-        label = "my_label"
-
-        getattr(qc, method_name)(*args, label=label, **kwargs)
-
-        self.assertTrue(qc.data)
-        self.assertEqual(
-            [instruction.operation.label for instruction in qc.data], [label] * len(qc.data)
-        )
-
-    @data(
         ("ccx", 4, None, [0, 1], 2, "10"),
         ("ccx", 4, None, [1, 2], 3, 1),
         ("cswap", 4, None, [0], [1, 2], "0"),

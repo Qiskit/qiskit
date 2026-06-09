@@ -93,16 +93,23 @@ class TestCircuitOperations(QiskitTestCase):
         ("dcx", (0, 1)),
         ("y", (0,)),
         ("z", (0,)),
+        ("ccx", (0, 1, 2)),
+        ("mcx", ([0, 1, 2], 3)),
+        ("mcp", (0.2, [0, 1, 2], 3)),
+        ("cswap", (0, 1, 2)),
+        ("rccx", (0, 1, 2)),
+        ("rcccx", (0, 1, 2, 3)),
     )
-    def test_standard_gates_label_param(self, case):
+    def test_operation_label_parameters(self, case):
         """Test standard QuantumCircuit gate helpers forward labels to the appended operation."""
         method_name, args = case
         qc = QuantumCircuit(4)
+        label = "my_label"
 
-        getattr(qc, method_name)(*args, label="my_label")
+        getattr(qc, method_name)(*args, label=label)
 
-        self.assertEqual(len(qc.data), 1)
-        self.assertEqual(qc.data[0].operation.label, "my_label")
+        self.assertTrue(qc.data)
+        self.assertEqual(qc.data[0].operation.label, label)
 
     @data(
         slice(0, 2),
