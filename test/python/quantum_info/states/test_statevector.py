@@ -115,7 +115,17 @@ class TestStatevector(QiskitTestCase):
         expected.cx(0, 1)
         expected.cx(1, 2)
 
-        self.assertTrue(Statevector.from_circuit(transpiled).equiv(Statevector.from_instruction(expected)))
+        statevector = Statevector.from_circuit(transpiled)
+
+        self.assertTrue(statevector.equiv(Statevector.from_instruction(expected)))
+        self.assertTrue(
+            statevector.equiv(
+                Statevector.from_label("0" * transpiled.num_qubits).evolve(
+                    Operator.from_circuit(transpiled)
+                )
+            )
+        )
+        self.assertFalse(statevector.equiv(Statevector.from_circuit(transpiled, ignore_set_layout=True)))
 
     @classmethod
     def rand_vec(cls, n, normalize=False):
