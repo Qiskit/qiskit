@@ -1,0 +1,10 @@
+---
+features_circuits:
+  - |
+    :meth:`.Gate.broadcast_arguments` now treats empty qubit arguments as a
+    no-op instead of raising a :class:`.CircuitError`. This allows gate methods
+    on :class:`.QuantumCircuit` (e.g. :meth:`~.QuantumCircuit.x`,
+    :meth:`~.QuantumCircuit.cx`) to accept empty lists without requiring a
+    manual guard, such as ``if len(qubits) > 0: qc.x(qubits)``.
+
+    See `#15152 <https://github.com/Qiskit/qiskit/issues/15152>`__.
