@@ -499,7 +499,7 @@ impl From<Box<Range>> for Expr {
 /// expressions, and it does not make sense to add more outside of Qiskit library code.
 ///
 /// All subclasses are responsible for setting their ``type`` attribute in their ``__init__``, and
-/// should not call the parent initializer."""
+/// should not call the parent initializer.
 #[pyclass(
     eq,
     hash,
@@ -523,7 +523,7 @@ impl PyExpr {
     ///     visitor.accept(expr)
     ///
     /// Subclasses of :class:`Expr` should override this to call the correct virtual method on the
-    /// visitor.  This implements double dispatch with the visitor."""
+    /// visitor.  This implements double dispatch with the visitor.
     /// return visitor.visit_generic(self)
     fn accept<'py>(
         slf: PyRef<'py, Self>,
