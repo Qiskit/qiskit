@@ -114,7 +114,7 @@ def __getattr__(name):
     if name == "WRAP_ANGLE_REGISTRY":
         warnings.warn(
             "The path qiskit.transpiler.passes.utils.wrap_angles.WRAP_ANGLE_REGISTRY is "
-            "deprecated since Qiskit 2.5 and will be removed in Qiskit 3.0 or later. "
+            "deprecated since Qiskit 2.6 and will be removed in Qiskit 3.0 or later. "
             "Instead, use qiskit.transpiler.passes.WrapAngles.DEFAULT_REGISTRY.",
             category=DeprecationWarning,
             stacklevel=2,
