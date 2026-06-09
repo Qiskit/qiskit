@@ -2895,10 +2895,10 @@ class QuantumCircuit:
         circuit_scope = self._current_scope()
 
         # Make copy of parameterized gate instances.
-        # For a :class:`.ForLoopOp`, ``params[1]`` may be a real-time :class:`~.expr.Var`
+        # For a `ForLoopOp` class, `params[1]` may be a real-time `expr.Var`
         # declared inside the loop body.  It must not be validated against the outer
-        # scope.  ``params[0]`` (the indexset) is still validated when it is an
-        # :class:`~.expr.Range`.
+        # scope.  `params[0]` (the indexset) is still validated when it is an
+        # `expr.Range` class.
         is_for_loop = isinstance(operation, ForLoopOp)
         if params := getattr(operation, "params", ()):
             is_parameter = False
