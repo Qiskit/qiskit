@@ -193,13 +193,8 @@ impl VariableMapper {
     }
 
     /// Map the target's registers to suitable equivalents in the destination, adding an
-<<<<<<< HEAD
-    /// extra one if there's no exact match."""
-    fn map_register<F>(
-=======
     /// extra one if there's no exact match.
-    fn map_register<F, E>(
->>>>>>> 73cbf738e (Triple quoted strings in rust (#16397))
+    fn map_register<F>(
         &self,
         theirs: &ClassicalRegister,
         mut add_register: F,
