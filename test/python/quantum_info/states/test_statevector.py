@@ -25,6 +25,7 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import transpile
 from qiskit.circuit.library import HGate, QFTGate, GlobalPhaseGate, DiagonalGate, CXGate, XGate
 from qiskit.providers.basic_provider import BasicSimulator
+from qiskit.transpiler import CouplingMap
 from qiskit.utils import optionals
 from qiskit.quantum_info.random import random_unitary, random_statevector, random_pauli
 from qiskit.quantum_info.states import Statevector
@@ -99,6 +100,22 @@ class TestStatevector(QiskitTestCase):
         sv2 = Statevector.from_circuit(qc, ignore_set_layout=True)
 
         self.assertTrue(sv1.equiv(sv2))
+
+    def test_from_circuit_expanded_layout_with_ancillas(self):
+        """Statevector.from_circuit handles transpiler-added ancillas in layout permutations."""
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+
+        transpiled = transpile(qc, coupling_map=CouplingMap.from_line(5), initial_layout=[0, 2, 4])
+
+        expected = QuantumCircuit(5)
+        expected.h(0)
+        expected.cx(0, 1)
+        expected.cx(1, 2)
+
+        self.assertTrue(Statevector.from_circuit(transpiled).equiv(Statevector.from_instruction(expected)))
 
     @classmethod
     def rand_vec(cls, n, normalize=False):

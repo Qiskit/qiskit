@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug in :meth:`qiskit.quantum_info.Statevector.from_circuit` for transpiled circuits
+    whose stored layout includes transpiler-added ancillas. Previously this could raise an
+    ``IndexError`` while applying the layout permutation.
