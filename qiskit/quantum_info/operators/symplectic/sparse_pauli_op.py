@@ -496,11 +496,14 @@ class SparsePauliOp(LinearOp):
         if self.coeffs.dtype == object:
 
             def to_complex(coeff):
-                if not hasattr(coeff, "sympify"):
+                if not hasattr(coeff, "numeric"):
                     return coeff
-                sympified = coeff.sympify()
-                return complex(sympified) if sympified.is_Number else np.nan
-
+                try:
+                    return complex(coeff.numeric())
+                except TypeError:
+                    sympified = coeff.sympify()
+                    return complex(sympified) if sympified.is_Number else np.nan
+                
             non_zero = np.logical_not(
                 np.isclose([to_complex(x) for x in self.coeffs], 0, atol=atol, rtol=rtol)
             )
