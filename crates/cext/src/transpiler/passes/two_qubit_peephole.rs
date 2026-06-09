@@ -186,7 +186,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_2q_peephole_optimization(
 /// This function is not safe to call in a context when the DAG circuit contains objects owned by Python. As the
 /// function is internally multi-threaded if there are any Python owned gates in the circuit the worker
 /// threads may need to acquire the GIL to access the attributes of those gates and this will result in
-/// a deadlock. You should use the Python space :py:class:`.TwoQubitPeepholeOptimization`
+/// a deadlock. You should use the Python space @verbatim embed:rst:inline :py:class:`.TwoQubitPeepholeOptimization` @endverbatim
 /// class to run this pass if there are circuit elements owned by Python.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_transpiler_pass_2q_peephole_optimization(
