@@ -81,9 +81,7 @@ class TestCircuitOperations(QiskitTestCase):
         ("rcccx", (0, 1, 2, 3), {}, None),
     )
     @unpack
-    def test_quantum_circuit_standard_gate_label(
-        self, method, args, kwargs, expected_ctrl_state
-    ):
+    def test_quantum_circuit_standard_gate_label(self, method, args, kwargs, expected_ctrl_state):
         """Test QuantumCircuit instruction-methods for standard gates accept labels."""
         qc = QuantumCircuit(4)
 
