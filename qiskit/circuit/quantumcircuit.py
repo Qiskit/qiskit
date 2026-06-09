@@ -497,6 +497,10 @@ class QuantumCircuit:
     .. automethod:: iter_declared_vars
     .. automethod:: iter_declared_stretches
 
+    Real-time :class:`~.expr.Var` nodes can be structurally replaced throughout a circuit with
+    :meth:`substitute_vars`, the :class:`~.expr.Var` analogue of :meth:`assign_parameters`.
+
+    .. automethod:: substitute_vars
 
     .. _circuit-adding-operations:
 
