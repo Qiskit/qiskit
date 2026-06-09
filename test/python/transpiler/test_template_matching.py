@@ -16,7 +16,6 @@
 import unittest
 
 import numpy as np
-from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.quantum_info import Operator
@@ -791,7 +790,6 @@ class TestTemplateMatching(QiskitTestCase):
 
     def test_template_nonzero_global_phase_applied_to_circuit(self):
         """Test the template's global phase is respected (#14537)."""
-
         template = QuantumCircuit(1)
         template.h(0)
         template.s(0)

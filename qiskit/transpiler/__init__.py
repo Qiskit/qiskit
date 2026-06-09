@@ -1488,7 +1488,10 @@ Pass Manager Definition
    StagedPassManager
    PassManager
    PassManagerConfig
+   PassManagerCliffordTConfig
    generate_preset_pass_manager
+   generate_preset_clifford_t_pass_manager
+   generate_preset_pbc_pass_manager
 
 Layout and Topology
 -------------------
@@ -1546,10 +1549,13 @@ from qiskit.passmanager import (
 )
 from qiskit.passmanager.compilation_status import PropertySet
 
+# import QubitProperties here to provide convenience alias for building a full target
+from qiskit.providers.backend import QubitProperties
+
 from qiskit._accelerate.angle_bound_registry import WrapAngleRegistry
 
 from .passmanager import PassManager, StagedPassManager
-from .passmanager_config import PassManagerConfig
+from .passmanager_config import PassManagerConfig, PassManagerCliffordTConfig
 from .exceptions import (
     TranspilerError,
     TranspilerAccessError,
@@ -1562,8 +1568,45 @@ from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap
 from .layout import Layout, TranspileLayout
 from .instruction_durations import InstructionDurations
-from .preset_passmanagers import generate_preset_pass_manager
+from .preset_passmanagers import (
+    generate_preset_pass_manager,
+    generate_preset_clifford_t_pass_manager,
+    generate_preset_pbc_pass_manager,
+)
 from .target import Target
 from .target import InstructionProperties
-from .target import QubitProperties
 from .optimization_metric import OptimizationMetric
+
+from . import passes, preset_passmanagers
+
+__all__ = [
+    "AnalysisPass",
+    "CircuitTooWideForTarget",
+    "ConditionalController",
+    "CouplingError",
+    "CouplingMap",
+    "DoWhileController",
+    "InstructionDurations",
+    "InstructionProperties",
+    "InvalidLayoutError",
+    "Layout",
+    "LayoutError",
+    "OptimizationMetric",
+    "PassManager",
+    "PassManagerCliffordTConfig",
+    "PassManagerConfig",
+    "PropertySet",
+    "QubitProperties",
+    "StagedPassManager",
+    "Target",
+    "TransformationPass",
+    "TranspileLayout",
+    "TranspilerAccessError",
+    "TranspilerError",
+    "WrapAngleRegistry",
+    "generate_preset_clifford_t_pass_manager",
+    "generate_preset_pass_manager",
+    "generate_preset_pbc_pass_manager",
+    "passes",
+    "preset_passmanagers",
+]
