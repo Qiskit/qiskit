@@ -16,6 +16,7 @@ import unittest
 from test import QiskitTestCase
 
 import numpy as np
+import itertools
 from ddt import idata, ddt, data, unpack
 
 from qiskit.circuit import (
@@ -57,13 +58,16 @@ from qiskit.circuit.library import (
     YGate,
     ZGate,
     HGate,
+    SwapGate,
+    iSwapGate,
     UnitaryGate,
     UGate,
     PauliEvolutionGate,
     PauliProductMeasurement,
 )
+from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.dagcircuit import DAGOpNode
-from qiskit.quantum_info import SparseObservable, SparsePauliOp, Pauli
+from qiskit.quantum_info import SparseObservable, SparsePauliOp, Pauli, Operator
 
 ROTATION_GATES = [
     RXGate,
@@ -269,6 +273,38 @@ class TestCommutationChecker(QiskitTestCase):
         self.assertTrue(scc.commute(XGate(), [0], [], rxx_gate_theta, [0, 1], []))
         self.assertTrue(scc.commute(rx_gate_theta, [0], [], rxx_gate_theta, [0, 1], []))
         self.assertTrue(scc.commute(rz_gate_theta, [0], [], cx_gate, [0, 1], []))
+
+    def test_parameterized_controlled_rotation_gates(self):
+        """Check commutativity between parameterized controlled rotation gates,
+        both with free and with bound parameters."""
+        a = Parameter("a")
+        b = Parameter("b")
+
+        # Each gate is self-commuting
+        self.assertTrue(scc.commute(CRXGate(a), [0, 1], [], CRXGate(b), [0, 1], []))
+        self.assertTrue(scc.commute(CRYGate(a), [0, 1], [], CRYGate(b), [0, 1], []))
+        self.assertTrue(scc.commute(CRZGate(a), [0, 1], [], CRZGate(b), [0, 1], []))
+        self.assertTrue(scc.commute(CRZGate(a), [0, 1], [], CRZGate(b), [1, 0], []))
+
+        # Different controlled-rotation gates do not commute
+        self.assertFalse(scc.commute(CRXGate(a), [0, 1], [], CRYGate(b), [0, 1], []))
+        self.assertFalse(scc.commute(CRXGate(a), [0, 1], [], CRZGate(b), [0, 1], []))
+        self.assertFalse(scc.commute(CRYGate(a), [0, 1], [], CRZGate(b), [0, 1], []))
+        self.assertFalse(scc.commute(CRYGate(a), [0, 1], [], CRZGate(b), [1, 0], []))
+
+        # Checking commutation with CX
+        self.assertTrue(scc.commute(CRXGate(a), [0, 1], [], CXGate(), [0, 1], []))
+        self.assertFalse(scc.commute(CRYGate(a), [0, 1], [], CXGate(), [0, 1], []))
+        self.assertFalse(scc.commute(CRZGate(a), [0, 1], [], CXGate(), [0, 1], []))
+
+        # Checking commutation between free and bound parameters gates
+        self.assertTrue(scc.commute(CRXGate(a), [0, 1], [], CRXGate(0.2), [0, 1], []))
+        self.assertFalse(scc.commute(CRYGate(a), [0, 1], [], CRXGate(0.3), [0, 1], []))
+        self.assertFalse(scc.commute(CRZGate(a), [0, 1], [], CRXGate(0.4), [0, 1], []))
+
+        # Ovrlapping subsets of qubits
+        self.assertTrue(scc.commute(CRXGate(a), [0, 1], [], CRYGate(b), [0, 2], []))
+        self.assertFalse(scc.commute(CRXGate(a), [0, 1], [], CRYGate(b), [2, 1], []))
 
     def test_measure(self):
         """Check commutativity involving measures."""
@@ -624,6 +660,55 @@ class TestCommutationChecker(QiskitTestCase):
         x = PauliEvolutionGate(SparsePauliOp([19 * "X" + "I"]))
         with self.subTest(left=z, right=x):
             self.assertFalse(scc.commute(z, qargs, [], x, qargs, []))
+
+    @data(SwapGate, iSwapGate)
+    def test_controlled_rotation(self, gate_cls):
+        """Test that controlled rotation CRZ do not commute with swap and iswap
+        (unlike CZ gate which is symmetric)."""
+        self.assertFalse(scc.commute(gate_cls(), [0, 1], [], CRZGate(0.2), [0, 1], []))
+
+    def test_standard_gate_commutations(self):
+        """Test that the standard_gate_commutations.rs tables are correct"""
+        # check all pairs of standard gates
+        # check only gates with 0 or 1 parameters
+        # we also limit the total number of qubits to 3 so that the test won't take too long
+        for _, gate1 in get_standard_gate_name_mapping().items():
+            num_qubits1 = gate1.num_qubits
+            if (
+                not gate1._standard_gate
+                or len(gate1._params) not in [0, 1]
+                or num_qubits1 == 0
+                or num_qubits1 > 3
+            ):
+                continue
+            for _, gate2 in get_standard_gate_name_mapping().items():
+                num_qubits2 = gate2.num_qubits
+                if (
+                    not gate2._standard_gate
+                    or len(gate2._params) not in [0, 1]
+                    or num_qubits2 == 0
+                    or num_qubits2 > 3
+                ):
+                    continue
+
+                num_qubits = num_qubits1 + num_qubits2 - 1
+                num_qubits = num_qubits if num_qubits < 3 else 3
+                params1 = [0.32 * (i + 1) for i in range(len(gate1.params))]
+                params2 = [0.45 * (i + 1) for i in range(len(gate2.params))]
+                subsets1 = list(itertools.permutations(range(num_qubits), num_qubits1))
+                subsets2 = list(itertools.permutations(range(num_qubits), num_qubits2))
+                for qubits1 in subsets1:
+                    for qubits2 in subsets2:
+                        gatep1 = gate1.base_class(*params1)
+                        gatep2 = gate2.base_class(*params2)
+                        scc_res = scc.commute(gatep1, list(qubits1), [], gatep2, list(qubits2), [])
+                        qc1 = QuantumCircuit(num_qubits)
+                        qc1.append(gatep1, qubits1)
+                        qc1.append(gatep2, qubits2)
+                        qc2 = QuantumCircuit(num_qubits)
+                        qc2.append(gatep2, qubits2)
+                        qc2.append(gatep1, qubits1)
+                        self.assertEqual(Operator(qc1) == Operator(qc2), scc_res)
 
 
 def build_pauli_gate(pauli_string: str, gate_type: str) -> Gate:
