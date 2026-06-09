@@ -494,7 +494,7 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
                         qc.x(j)
                         qc.rzx(math.pi / 4, i - 1, j)
                         qc.x(j)
-                        qc.unitary(random_unitary(4, 4206_2026), [i - 1, j])
+                        qc.unitary(random_unitary(4, 4206_2026 + i + j), [i - 1, j])
                 qc.unitary(random_unitary(2**i, 4206_2026), range(i))
                 consolidated = ConsolidateBlocks(basis_gates=basis)(qc)
                 result = synth_pass(consolidated)
