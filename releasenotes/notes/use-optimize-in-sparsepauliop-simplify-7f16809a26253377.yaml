@@ -1,16 +1,18 @@
 ---
-features:
+features_quantum_info:
   - |
-    Added :meth:`.ParameterExpression.optimize`, which returns an algebraically
-    simplified copy of the expression using Qiskit's native symbolic engine,
-    without requiring the optional ``sympy`` dependency. For example,
-    ``(a + b - a - b).optimize()`` evaluates to ``0``.
-fixes:
+    Added a new :meth:`.ParameterExpression.optimize` method that returns an
+    algebraically simplified copy of the expression using the native symbolic
+    engine. It collapses cancelling terms such as ``a + b - a - b`` to zero,
+    which :meth:`.ParameterExpression.numeric` does not do on its own.
   - |
     :meth:`.SparsePauliOp.simplify` no longer requires the optional ``sympy``
     dependency when simplifying operators with :class:`.ParameterExpression`
     coefficients. It previously called ``sympify`` to detect coefficients that
-    algebraically cancel to zero; it now uses the native
-    :meth:`.ParameterExpression.optimize`, so cancellations such as
-    ``a + b - a - b`` are still detected and removed while working in a default
-    Qiskit install without ``sympy``.
+    algebraically cancel to zero; it now uses
+    :meth:`.ParameterExpression.optimize` instead, so cancellations such as
+    ``a + b - a - b`` are still detected and removed on a default Qiskit
+    install without ``sympy``.
+
+
+    
