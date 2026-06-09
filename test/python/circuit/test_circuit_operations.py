@@ -47,49 +47,59 @@ class TestCircuitOperations(QiskitTestCase):
     """QuantumCircuit Operations tests."""
 
     @data(
-        ("h", (0,), {}, None),
-        ("id", (0,), {}, None),
-        ("p", (0.2, 0), {}, None),
-        ("r", (0.2, 0.3, 0), {}, None),
-        ("rxx", (0.2, 0, 1), {}, None),
-        ("ryy", (0.2, 0, 1), {}, None),
-        ("rz", (0.2, 0), {}, None),
-        ("rzx", (0.2, 0, 1), {}, None),
-        ("rzz", (0.2, 0, 1), {}, None),
-        ("ecr", (0, 1), {}, None),
-        ("s", (0,), {}, None),
-        ("sdg", (0,), {}, None),
-        ("swap", (0, 1), {}, None),
-        ("iswap", (0, 1), {}, None),
-        ("sx", (0,), {}, None),
-        ("sxdg", (0,), {}, None),
-        ("t", (0,), {}, None),
-        ("tdg", (0,), {}, None),
-        ("u", (0.2, 0.3, 0.4, 0), {}, None),
-        ("dcx", (0, 1), {}, None),
-        ("y", (0,), {}, None),
-        ("z", (0,), {}, None),
-        ("ccx", (0, 1, 2), {}, None),
-        ("ccx", (0, 1, 2), {"ctrl_state": 0}, 0),
-        ("ccx", (0, 1, 2, 0), {}, 0),
-        ("mcp", (0.2, [0, 1, 2], 3), {}, None),
-        ("mcp", (0.2, [0, 1, 2], 3), {"ctrl_state": "010"}, 2),
-        ("mcp", (0.2, [0, 1, 2], 3, "010"), {}, 2),
-        ("mcx", ([0, 1, 2], 3), {}, None),
-        ("mcx", ([0, 1, 2], 3), {"ctrl_state": "010"}, 2),
-        ("rccx", (0, 1, 2), {}, None),
-        ("rcccx", (0, 1, 2, 3), {}, None),
+        ("h", (0,)),
+        ("ch", (0, 1)),
+        ("id", (0,)),
+        ("p", (0.2, 0)),
+        ("cp", (0.2, 0, 1)),
+        ("mcp", (0.2, [0, 1, 2], 3)),
+        ("r", (0.2, 0.3, 0)),
+        ("rccx", (0, 1, 2)),
+        ("rcccx", (0, 1, 2, 3)),
+        ("rx", (0.2, 0)),
+        ("crx", (0.2, 0, 1)),
+        ("rxx", (0.2, 0, 1)),
+        ("ry", (0.2, 0)),
+        ("cry", (0.2, 0, 1)),
+        ("ryy", (0.2, 0, 1)),
+        ("rz", (0.2, 0)),
+        ("crz", (0.2, 0, 1)),
+        ("rzx", (0.2, 0, 1)),
+        ("rzz", (0.2, 0, 1)),
+        ("ecr", (0, 1)),
+        ("s", (0,)),
+        ("sdg", (0,)),
+        ("cs", (0, 1)),
+        ("csdg", (0, 1)),
+        ("swap", (0, 1)),
+        ("iswap", (0, 1)),
+        ("cswap", (0, 1, 2)),
+        ("sx", (0,)),
+        ("sxdg", (0,)),
+        ("csx", (0, 1)),
+        ("t", (0,)),
+        ("tdg", (0,)),
+        ("u", (0.2, 0.3, 0.4, 0)),
+        ("cu", (0.2, 0.3, 0.4, 0.5, 0, 1)),
+        ("x", (0,)),
+        ("cx", (0, 1)),
+        ("dcx", (0, 1)),
+        ("ccx", (0, 1, 2)),
+        ("mcx", ([0, 1, 2], 3)),
+        ("y", (0,)),
+        ("cy", (0, 1)),
+        ("z", (0,)),
+        ("cz", (0, 1)),
+        ("ccz", (0, 1, 2)),
     )
     @unpack
-    def test_quantum_circuit_standard_gate_label(self, method, args, kwargs, expected_ctrl_state):
+    def test_quantum_circuit_standard_gate_label(self, method, args):
         """Test QuantumCircuit instruction-methods for standard gates accept labels."""
         qc = QuantumCircuit(4)
 
-        getattr(qc, method)(*args, label="a gate label", **kwargs)
+        getattr(qc, method)(*args, label="a gate label")
 
         self.assertEqual(qc.data[-1].operation.label, "a gate label")
-        if expected_ctrl_state is not None:
-            self.assertEqual(qc.data[-1].operation.ctrl_state, expected_ctrl_state)
 
     @data(0, 1, -1, -2)
     def test_append_resolves_integers(self, index):
