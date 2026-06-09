@@ -193,7 +193,7 @@ impl VariableMapper {
     }
 
     /// Map the target's registers to suitable equivalents in the destination, adding an
-    /// extra one if there's no exact match."""
+    /// extra one if there's no exact match.
     fn map_register<F>(
         &self,
         theirs: &ClassicalRegister,
