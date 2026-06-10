@@ -37,9 +37,9 @@ use qiskit_circuit::duration::Duration;
 use qiskit_circuit::imports;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
-    ArrayType, BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction,
-    Operation, OperationRef, Param, PauliProductMeasurement, PauliProductRotation, PyInstruction,
-    PyOpKind, StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
+    BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction, Operation,
+    OperationRef, Param, PauliProductMeasurement, PauliProductRotation, PyInstruction, PyOpKind,
+    StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
@@ -259,6 +259,11 @@ fn pack_instruction(
         OperationRef::ControlFlow(control_flow_inst) => {
             pack_control_flow_inst(control_flow_inst, instruction, qpy_data)?
         }
+        OperationRef::CustomOperation(_) => {
+            return Err(QpyError::SerializationError(
+                "compiled custom operations are not yet supported in QPY".to_owned(),
+            ));
+        }
     };
 
     // common data extraction for all instruction types
@@ -335,14 +340,17 @@ fn pack_pauli_product_measurement(
     // since we won't recreate this gate via python, it's not important to verify the python name is identical to the one we use here
     // so we simply hard-code it instead of going through python
     let gate_class_name = String::from(PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME);
-    let z_values = GenericValue::Tuple(ppm.z.iter().cloned().map(GenericValue::Bool).collect());
-    let x_values = GenericValue::Tuple(ppm.x.iter().cloned().map(GenericValue::Bool).collect());
-    let neg_value = GenericValue::Bool(ppm.neg);
-    let params = vec![
-        pack_generic_value(&z_values, qpy_data)?,
-        pack_generic_value(&x_values, qpy_data)?,
-        pack_generic_value(&neg_value, qpy_data)?,
-    ];
+    let params = Python::attach(|py| -> Result<_, QpyError> {
+        let z_array = ppm.z.to_pyarray(py);
+        let x_array = ppm.x.to_pyarray(py);
+        // Pauli phase: 0 means +1, 2 means -1 (i.e. neg)
+        let phase: i64 = if ppm.neg { 2 } else { 0 };
+        Ok(vec![
+            py_pack_param(&z_array, qpy_data, Endian::Big)?,
+            py_pack_param(&x_array, qpy_data, Endian::Big)?,
+            pack_generic_value(&GenericValue::Int64(phase), qpy_data)?,
+        ])
+    })?;
     Ok(formats::CircuitInstructionV2Pack {
         num_qargs: instruction.op.num_qubits(),
         num_cargs: instruction.op.num_clbits(),
@@ -362,19 +370,19 @@ fn pack_pauli_product_rotation(
     rotation: &PauliProductRotation,
     instruction: &PackedInstruction,
     qpy_data: &QPYWriteData,
-) -> PyResult<formats::CircuitInstructionV2Pack> {
+) -> Result<formats::CircuitInstructionV2Pack, QpyError> {
     // since we won't recreate this gate via python, it's not important to verify the python name is identical to the one we use here
     // so we simply hard-code it instead of going through python
     let gate_class_name = String::from(PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME);
-    let z_values =
-        GenericValue::Tuple(rotation.z.iter().cloned().map(GenericValue::Bool).collect());
-    let x_values =
-        GenericValue::Tuple(rotation.x.iter().cloned().map(GenericValue::Bool).collect());
-    let params = vec![
-        pack_generic_value(&z_values, qpy_data)?,
-        pack_generic_value(&x_values, qpy_data)?,
-        pack_param_obj(&rotation.angle, qpy_data, Endian::Little)?,
-    ];
+    let params = Python::attach(|py| -> Result<_, QpyError> {
+        let z_array = rotation.z.to_pyarray(py);
+        let x_array = rotation.x.to_pyarray(py);
+        Ok(vec![
+            py_pack_param(&z_array, qpy_data, Endian::Big)?,
+            py_pack_param(&x_array, qpy_data, Endian::Big)?,
+            pack_param_obj(&rotation.angle, qpy_data, Endian::Little)?,
+        ])
+    })?;
     Ok(formats::CircuitInstructionV2Pack {
         num_qargs: instruction.op.num_qubits(),
         num_cargs: 0,
@@ -558,14 +566,14 @@ fn pack_unitary_gate(
     // unitary gates are special since they are uniquely determined by a matrix, which is not
     // a "parameter", strictly speaking, but is treated as such when serializing
 
+    let matrix = unitary_gate.matrix().ok_or_else(|| {
+        QpyError::InvalidParameter("Could not read matrix for unitary gate".to_string())
+    })?;
+
     // until we change the QPY version or verify we get the exact same result,
     // we translate the matrix to numpy and then serialize it like python does
     let params = Python::attach(|py| -> Result<_, QpyError> {
-        let out_array = match &unitary_gate.array {
-            ArrayType::NDArray(arr) => arr.to_pyarray(py),
-            ArrayType::OneQ(arr) => arr.to_pyarray(py),
-            ArrayType::TwoQ(arr) => arr.to_pyarray(py),
-        };
+        let out_array = matrix.to_pyarray(py);
         Ok(vec![py_pack_param(&out_array, qpy_data, Endian::Little)?])
     })?;
     // since we won't recreate this gate via python, it's not important to verify the python name is identical to the one we use here
@@ -1068,7 +1076,9 @@ fn pack_custom_instruction(
         // But we still want to serialize it like a regular instruction, so we need to convert it to a PackedInstruction.
         // To avoid changing the original CircuitData we use a hack where it is packed using a dummy circuit data.
         // TODO: Hopefully we'll change all this in a future version of QPY.
-        let mut dummy_circuit_data = CircuitData::new(None, None, Param::Float(0.0))?;
+        let mut dummy_circuit_data = PyCircuitData {
+            inner: CircuitData::new(None, None, Param::Float(0.0))?,
+        };
         let packed_instruction = dummy_circuit_data.pack(py, &instruction)?;
         base_gate_raw = serialize(&pack_instruction(
             &packed_instruction,
