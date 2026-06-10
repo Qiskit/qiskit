@@ -212,7 +212,9 @@ mod test {
     #[test]
     fn simple_line() {
         let num_qubits = 5;
-        let mut target = Target::new().with_num_qubits(num_qubits);
+        let mut target = Target::new()
+            .try_with_num_qubits(num_qubits)
+            .expect("Number of qubits should not be defined.");
         let mut line: IndexMap<_, _> = Default::default();
         for qubit in 0..num_qubits - 1 {
             line.insert(Qargs::from([qubit, qubit + 1].map(PhysicalQubit)), None);
@@ -245,7 +247,9 @@ mod test {
     #[test]
     fn simple_all_to_all() {
         let num_qubits = 5;
-        let mut target = Target::new().with_num_qubits(num_qubits);
+        let mut target = Target::new()
+            .try_with_num_qubits(num_qubits)
+            .expect("Number of qubits should not be defined.");
         let mut line: IndexMap<_, _> = Default::default();
         line.insert(Qargs::Global, None);
         target

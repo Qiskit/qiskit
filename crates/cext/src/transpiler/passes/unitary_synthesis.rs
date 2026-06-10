@@ -177,7 +177,8 @@ mod tests {
 
         let mut target = Target::new()
             .with_description("Fake Target".to_string())
-            .with_num_qubits(3); // num_qubits
+            .try_with_num_qubits(3)
+            .expect("Number of qubits should not be defined."); // num_qubits
         let params = Some(Parameters::Params(smallvec![
             Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
                 "ϴ", None, None,

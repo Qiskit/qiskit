@@ -961,40 +961,6 @@ impl Target {
     ///
     /// * `num_qubits` - An optional int to specify the number of qubits
     ///   the backend target has. If not set it will be implicitly set
-    ///   based on the qargs when :meth:`~qiskit.Target.add_instruction`
-    ///   is called. Note this must be set if the backend target is for a
-    ///   noiseless simulator that doesn't have constraints on the
-    ///   instructions so the transpiler knows how many qubits are
-    ///   available.
-    ///
-    /// # Returns:
-    ///
-    /// Initialized [`Target`] with a defined number of qubits.
-    ///
-    /// # Panics
-    ///
-    /// This method will panic if there was a specified [Target::qubit_properties]
-    /// attribute and its length is not equal to ``num_qubits``.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use qiskit_transpiler::target::Target;
-    ///
-    /// let mut target = Target::new().with_num_qubits(1);
-    /// assert_eq!(target.unwrap().num_qubits, Some(1));
-    /// ```
-    pub fn with_num_qubits(self, num_qubits: u32) -> Self {
-        self.try_with_num_qubits(num_qubits)
-            .unwrap_or_else(|e| panic!("{}", e.to_string()))
-    }
-
-    /// Sets the num qubits attribute to a newly constructed [`Target`]
-    ///
-    /// # Arguments
-    ///
-    /// * `num_qubits` - An optional int to specify the number of qubits
-    ///   the backend target has. If not set it will be implicitly set
     ///   based on the qargs when [`Target::add_instruction`]
     ///   is called. Note this must be set if the backend target is for a
     ///   noiseless simulator that doesn't have constraints on the
@@ -1158,39 +1124,6 @@ impl Target {
     pub fn with_acquire_alignment(mut self, acquire_alignment: u32) -> Self {
         self.acquire_alignment = acquire_alignment;
         self
-    }
-
-    /// Sets a list of the characteristics of each qubit on the [`Target`] device.
-    ///
-    /// # Arguments
-    ///
-    /// * `qubit_properties` - A list of python `QubitProperties` objects defining
-    ///   the characteristics of each qubit on the target device. If specified
-    ///   the length of this list must match the number of qubits in the target,
-    ///   where the index in the list matches the qubit number the properties
-    ///   are defined for. If some qubits don't have properties available you
-    ///   can set that entry to [`QubitProperties::default`].
-    ///
-    /// # Returns:
-    ///
-    /// Initialized [`Target`] with a defined ``qubit_properties`` attribute.
-    ///
-    /// # Panics
-    ///
-    /// This function panics if there was a specified [`Target::num_qubits`] attribute and the
-    /// the length of the provided list is not equal to [`Target::num_qubits`].
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use qiskit_transpiler::target::Target;
-    ///
-    /// let mut target = Target::new().with_qubit_properties(vec![]);
-    /// assert_eq!(target.num_qubits, Some(0));
-    /// ```
-    pub fn with_qubit_properties(self, qubit_properties: Vec<QubitProperties>) -> Self {
-        self.try_with_qubit_properties(qubit_properties)
-            .unwrap_or_else(|e| panic!("{}", e.to_string()))
     }
 
     /// Sets a list of the characteristics of each qubit on the [`Target`] device.
@@ -2165,7 +2098,8 @@ mod test {
         ];
         let target = Target::new()
             .with_description("New Target")
-            .with_num_qubits(6)
+            .try_with_num_qubits(6)
+            .expect("Number of qubits should not be defined.")
             .with_dt(0.009201)
             .with_granularity(2)
             .with_min_length(3)
@@ -2199,7 +2133,8 @@ mod test {
             .with_description("New Target")
             // Try and add with num_qubits, since the Target
             // is empty, this should not panic.
-            .with_num_qubits(2)
+            .try_with_num_qubits(2)
+            .expect("Number of qubits should not be defined.")
             // Try and add an empty vec which will not match.
             .try_with_qubit_properties(vec![]);
 
@@ -2211,7 +2146,8 @@ mod test {
             // Try and add a property list for qubits.
             // Since there's not a defined num_qubit value,
             // this should not panic.
-            .with_qubit_properties(vec![])
+            .try_with_qubit_properties(vec![])
+            .expect("Number of qubits should not be defined.")
             // Try and set a number of qubits, since it's not zero
             // it will fail.
             .try_with_num_qubits(3);
@@ -2222,7 +2158,8 @@ mod test {
             .with_description("New Target")
             // Try and add with num_qubits, since the Target
             // is empty, this should not panic.
-            .with_num_qubits(0)
+            .try_with_num_qubits(0)
+            .expect("Number of qubits should not be defined.")
             // Try and add an empty vec which will match.
             .try_with_qubit_properties(vec![]);
         assert!(result.is_ok());
@@ -2233,7 +2170,8 @@ mod test {
             // Try and add a property list for qubits.
             // Since there's not a defined num_qubit value,
             // this should not panic.
-            .with_qubit_properties(vec![])
+            .try_with_qubit_properties(vec![])
+            .expect("Number of qubits should not be defined.")
             // Try and set a number of qubits, since it's not zero
             // it will fail.
             .try_with_num_qubits(0);
@@ -2432,7 +2370,8 @@ mod test {
         }];
         // num_qubits is 2, but only 1 qubit_properties
         let result = Target::new()
-            .with_num_qubits(2)
+            .try_with_num_qubits(2)
+            .expect("Number of qubits should not be defined yet.")
             .try_with_qubit_properties(props);
         assert!(result.is_err());
     }
