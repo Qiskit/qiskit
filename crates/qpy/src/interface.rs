@@ -31,6 +31,31 @@ use crate::value::{ProgramType, SymbolicEncoding, deserialize, deserialize_with_
 
 use std::io::{Cursor, Seek};
 
+// helper function to parse int from ascii at compile time
+const fn parse_u8_from_ascii(s: &str) -> u8 {
+    let bytes = s.as_bytes();
+    let mut result: u8 = 0;
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] < b'0' || bytes[i] > b'9' {
+            panic!("Invalid character in version string");
+        }
+        let digit = bytes[i] - b'0';
+        result = result * 10 + digit;
+        i += 1;
+    }
+    result
+}
+
+const fn parse_version() -> (u8, u8, u8) {
+    let major = parse_u8_from_ascii(env!("CARGO_PKG_VERSION_MAJOR"));
+    let minor = parse_u8_from_ascii(env!("CARGO_PKG_VERSION_MINOR"));
+    let patch = parse_u8_from_ascii(env!("CARGO_PKG_VERSION_PATCH"));
+    (major, minor, patch)
+}
+
+const QISKIT_VERSION: (u8, u8, u8) = parse_version();
+
 pub fn dump_qpy(
     mut circuits: Vec<QuantumCircuitData>,
     metadata_serializer: Option<Bound<PyAny>>,
@@ -61,20 +86,9 @@ pub fn dump_qpy(
         true => SymbolicEncoding::Symengine,
         false => SymbolicEncoding::Sympy,
     };
-    let qiskit_version = (
-        env!("CARGO_PKG_VERSION_MAJOR")
-            .parse::<u8>()
-            .map_err(|_| QpyError::MissingData("Could not get qiskit version".to_string()))?,
-        env!("CARGO_PKG_VERSION_MINOR")
-            .parse::<u8>()
-            .map_err(|_| QpyError::MissingData("Could not get qiskit version".to_string()))?,
-        env!("CARGO_PKG_VERSION_PATCH")
-            .parse::<u8>()
-            .map_err(|_| QpyError::MissingData("Could not get qiskit version".to_string()))?,
-    );
     let qpy_header = QPYFileHeader {
         qpy_version,
-        qiskit_version,
+        qiskit_version: QISKIT_VERSION,
         num_programs: serialized_circuits.len() as u64,
         symbolic_encoding,
         type_key: ProgramType::Circuit, //for now, no other value type is used
