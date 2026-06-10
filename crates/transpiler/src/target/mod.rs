@@ -1705,7 +1705,7 @@ where
 
 /// Estimate the fidelity of a circuit by taking the product of the error rates
 ///
-/// It is assumed that calling this function the circuit is already physical (already transpiled)
+/// It is assumed that, when this function is called, the circuit is already physical (already transpiled)
 /// such that the qubits for each gate correspond to the physical qubits in the target.
 ///
 /// Args:
@@ -1721,7 +1721,7 @@ pub fn py_estimate_fidelity(circuit: &PyCircuitData, target: &Target) -> Option<
 
 /// Estimate the fidelity of a circuit by taking the product of the error rates
 ///
-/// It is assumed that calling this function the circuit is already physical (already transpiled)
+/// It is assumed that, when this function is called, the circuit is already physical (already transpiled)
 /// such that the qubits for each gate correspond to the physical qubits in the target.
 ///
 /// # Args
