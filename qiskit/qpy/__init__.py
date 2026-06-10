@@ -462,6 +462,38 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+
+.. _qpy_version_18:
+
+Version 18
+----------
+
+Version 18 adds support for serializing and deserializing classical
+:class:`~.expr.Range` expressions and runtime loop variables for
+:class:`.ForLoopOp` instructions.
+
+New Expression.RANGE classical-expression element
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A new classical-expression discriminator ``RANGE`` (type key ``r``) represents an
+:class:`~.expr.Range` with start, stop, and step sub-expressions. This is used when a
+:class:`.ForLoopOp` indexset is an :class:`~.expr.Range` (serialized as a
+``Value.EXPRESSION`` instruction parameter whose payload contains ``RANGE`` nodes).
+QPY format versions below 18 cannot read or write this element; attempting to
+serialize a circuit that contains one with ``version < 18`` raises
+:exc:`~.UnsupportedFeatureForVersion`.
+
+New LOOP_VARIABLE instruction parameter type
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A new instruction-parameter value type ``LOOP_VARIABLE`` (type key ``w``) is supported
+for the second parameter of :class:`.ForLoopOp` when it is a standalone real-time
+variable. The payload reuses the ``EXPR_VAR_DECLARATION`` wire format (UUID, usage,
+type, and name) used for circuit-scope standalone variables, but the declaration is
+written directly in the instruction parameter slot rather than in the circuit header
+variable table. QPY format versions below 18 continue to emit ``Null`` for this slot
+when dumping (lossy by design), and cannot deserialize ``LOOP_VARIABLE`` payloads.
+
 .. _qpy_version_17:
 
 Version 17
@@ -511,37 +543,6 @@ the number of bytes by the size of each element.
    :class:`.SparseObservable.BitTerm`
  * The indices elements are of type `"!I"`.
  * The boundaries elements are of type `"!Q"`.
-
-.. _qpy_version_18:
-
-Version 18
-----------
-
-Version 18 adds support for serializing and deserializing classical
-:class:`~.expr.Range` expressions and runtime loop variables for
-:class:`.ForLoopOp` instructions.
-
-New Expression.RANGE classical-expression element
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-A new classical-expression discriminator ``RANGE`` (type key ``r``) represents an
-:class:`~.expr.Range` with start, stop, and step sub-expressions. This is used when a
-:class:`.ForLoopOp` indexset is an :class:`~.expr.Range` (serialized as a
-``Value.EXPRESSION`` instruction parameter whose payload contains ``RANGE`` nodes).
-QPY format versions below 18 cannot read or write this element; attempting to
-serialize a circuit that contains one with ``version < 18`` raises
-:exc:`~.UnsupportedFeatureForVersion`.
-
-New LOOP_VARIABLE instruction parameter type
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-A new instruction-parameter value type ``LOOP_VARIABLE`` (type key ``w``) is supported
-for the second parameter of :class:`.ForLoopOp` when it is a standalone real-time
-variable. The payload reuses the ``EXPR_VAR_DECLARATION`` wire format (UUID, usage,
-type, and name) used for circuit-scope standalone variables, but the declaration is
-written directly in the instruction parameter slot rather than in the circuit header
-variable table. QPY format versions below 18 continue to emit ``Null`` for this slot
-when dumping (lossy by design), and cannot deserialize ``LOOP_VARIABLE`` payloads.
 
 .. _qpy_version_16:
 

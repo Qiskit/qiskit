@@ -68,7 +68,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Range {
 
 /// Errors when materializing constant range bounds without calling Python.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum MaterializeError {
+pub enum MaterializeError {
     NonConstant,
     NonConstantBound,
     InvalidType,
@@ -98,6 +98,18 @@ impl MaterializeError {
     }
 }
 
+/// Length of a Python ``range(start, stop, step)`` with the given bounds.
+fn python_range_len(start: isize, stop: isize, step: isize) -> usize {
+    let step_abs = step.unsigned_abs();
+    let diff = start.abs_diff(stop);
+    if (step > 0 && start < stop) || (step < 0 && start > stop) {
+        // `diff` is at least 1 when the direction check passes.
+        1 + (diff - 1) / step_abs
+    } else {
+        0
+    }
+}
+
 /// Extract a constant unsigned integer from an expression, peeling implicit casts.
 fn extract_const_uint(expr: &Expr) -> Result<isize, MaterializeError> {
     match expr {
@@ -116,21 +128,35 @@ fn extract_const_uint(expr: &Expr) -> Result<isize, MaterializeError> {
 impl Range {
     /// Returns the length of the range.
     ///
-    /// Note: Returns 1 as the length is generally undefined for dynamic ranges.
+    /// For constant ranges, matches Python ``len(range(start, stop, step))``.  For
+    /// non-constant ranges the iteration count is unknown at compile time; returns ``1`` as a
+    /// conservative placeholder for ``ForCollection`` size/depth heuristics.
     pub fn len(&self) -> usize {
+        if self.constant {
+            if let Ok((start, stop, step)) = self.try_materialize_bounds() {
+                return python_range_len(start, stop, step);
+            }
+        }
         1
     }
 
     /// Returns whether the range is empty.
     ///
-    /// Note: Returns false if the object exists, as the emptiness cannot be
-    /// determined statically for dynamic ranges.
+    /// For constant ranges, matches Python ``range`` emptiness (``len() == 0``).  For
+    /// non-constant ranges, returns ``false`` because emptiness cannot be determined statically.
     pub fn is_empty(&self) -> bool {
+        if self.constant {
+            return self.len() == 0;
+        }
         false
     }
 
     /// Materialize constant range bounds to integers (exclusive ``stop`` semantics).
-    fn try_materialize_bounds(&self) -> Result<(isize, isize, isize), MaterializeError> {
+    ///
+    /// This is the language-agnostic counterpart of evaluating a constant range at
+    /// compile time.  Callers that need a Python ``range`` object should use
+    /// ``PyRangeExpr::values`` instead.
+    pub fn try_materialize_bounds(&self) -> Result<(isize, isize, isize), MaterializeError> {
         if !self.constant {
             return Err(MaterializeError::NonConstant);
         }
@@ -141,16 +167,6 @@ impl Range {
             return Err(MaterializeError::ZeroStep);
         }
         Ok((start, stop, step))
-    }
-
-    /// Materialize a constant range as a Python ``range`` object.
-    ///
-    /// Uses Python ``range`` semantics (exclusive ``stop``).
-    pub fn values<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyRange>> {
-        let (start, stop, step) = self
-            .try_materialize_bounds()
-            .map_err(MaterializeError::into_pyerr)?;
-        PyRange::new_with_step(py, start, stop, step)
     }
 }
 
@@ -260,19 +276,12 @@ impl PyRangeExpr {
         let step_expr = if let Some(step) = step {
             py_value_to_expr(py, step)?
         } else {
-            // Create a default step value of 1 in the target type
-            match target_ty {
-                Type::Uint(_) => Value::Uint {
-                    raw: BigUint::from(1u64),
-                    ty: target_ty,
-                }
-                .into(),
-                _ => {
-                    return Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
-                        "Range type must be an unsigned integer type",
-                    ));
-                }
+            // Default step of 1 in the target type (Uint-only validation follows below).
+            Value::Uint {
+                raw: BigUint::from(1u64),
+                ty: target_ty,
             }
+            .into()
         };
 
         let constant = start_expr.is_const() && stop_expr.is_const() && step_expr.is_const();
@@ -385,7 +394,11 @@ impl PyRangeExpr {
 
     /// Return a Python :class:`range` with the same bounds (constant ranges only).
     fn values<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
-        Ok(self.0.values(py)?.into_any())
+        let (start, stop, step) = self
+            .0
+            .try_materialize_bounds()
+            .map_err(MaterializeError::into_pyerr)?;
+        Ok(PyRange::new_with_step(py, start, stop, step)?.into_any())
     }
 
     fn accept<'py>(
@@ -568,6 +581,62 @@ mod tests {
             range.try_materialize_bounds(),
             Err(MaterializeError::NonConstant)
         );
+    }
+
+    #[test]
+    fn test_len_constant_matches_python_range() {
+        let ty = Type::Uint(8);
+        let make = |start: u64, stop: u64, step: u64| Range {
+            start: Value::Uint {
+                raw: BigUint::from(start),
+                ty,
+            }
+            .into(),
+            stop: Value::Uint {
+                raw: BigUint::from(stop),
+                ty,
+            }
+            .into(),
+            step: Value::Uint {
+                raw: BigUint::from(step),
+                ty,
+            }
+            .into(),
+            ty,
+            constant: true,
+        };
+        assert_eq!(make(0, 5, 1).len(), 5);
+        assert!(!make(0, 5, 1).is_empty());
+        assert_eq!(make(0, 10, 2).len(), 5);
+        assert_eq!(make(5, 5, 1).len(), 0);
+        assert!(make(5, 5, 1).is_empty());
+    }
+
+    #[test]
+    fn test_len_non_constant_placeholder() {
+        let ty = Type::Uint(8);
+        let range = Range {
+            start: Var::Standalone {
+                uuid: Uuid::new_v4().as_u128(),
+                name: "start".to_string(),
+                ty,
+            }
+            .into(),
+            stop: Value::Uint {
+                raw: BigUint::from(10u64),
+                ty,
+            }
+            .into(),
+            step: Value::Uint {
+                raw: BigUint::from(1u64),
+                ty,
+            }
+            .into(),
+            ty,
+            constant: false,
+        };
+        assert_eq!(range.len(), 1);
+        assert!(!range.is_empty());
     }
 
     #[test]

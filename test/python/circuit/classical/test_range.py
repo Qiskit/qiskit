@@ -73,6 +73,27 @@ class TestRange(QiskitTestCase):
         self.assertEqual(range_expr.type, types.Uint(8))
         self.assertTrue(range_expr.const)
 
+    def test_len_constant_matches_python_range(self):
+        """Constant Range len() matches Python range semantics."""
+        range_expr = expr.Range(expr.lift(0, types.Uint(8)), expr.lift(5, types.Uint(8)))
+        self.assertEqual(len(range_expr), len(range(5)))
+        self.assertEqual(len(range_expr), 5)
+
+        range_expr = expr.Range(
+            expr.lift(0, types.Uint(8)), expr.lift(10, types.Uint(8)), expr.lift(2, types.Uint(8))
+        )
+        self.assertEqual(len(range_expr), len(range(0, 10, 2)))
+
+        empty = expr.Range(expr.lift(5, types.Uint(8)), expr.lift(5, types.Uint(8)))
+        self.assertEqual(len(empty), 0)
+
+    def test_len_non_constant_placeholder(self):
+        """Non-constant Range len() returns a conservative placeholder."""
+        cr = ClassicalRegister(8, "c")
+        range_expr = expr.Range(expr.lift(cr), expr.lift(10, types.Uint(8)))
+        self.assertFalse(range_expr.const)
+        self.assertEqual(len(range_expr), 1)
+
     def test_values_constant(self):
         """Constant Range materializes to a Python range."""
         range_expr = expr.Range(expr.lift(0, types.Uint(8)), expr.lift(5, types.Uint(8)))

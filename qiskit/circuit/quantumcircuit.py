@@ -5180,14 +5180,10 @@ class QuantumCircuit:
             variable is not referenced anywhere.  Use this flag only when a later pass will either
             re-substitute or explicitly remove those retained declarations.
 
-            **``strict=False`` interaction.**  When a key is *not* declared in this circuit
-            (only reachable via ``strict=False``), ``keep_substituted_vars`` has no effect for
-            that key — there is nothing to retain at the top level.
-
         Args:
             substitutions: mapping from each :class:`~.expr.Var` to replace to its replacement
                 :class:`~.expr.Expr`.  For a safe, type-consistent rewrite the replacement
-                should have the same :attr:`~.expr.Expr.type` as the key it replaces.
+                should have the same type as the key it replaces.
             inplace: if ``True``, mutate this circuit and return ``None``; otherwise return a new,
                 independent circuit and leave this one unchanged (mirrors :meth:`assign_parameters`).
             strict: if ``True`` (the default), raise :exc:`.CircuitError` if any key in
@@ -5197,8 +5193,10 @@ class QuantumCircuit:
             keep_substituted_vars: if ``False`` (the default), substituted variables are removed
                 from the output circuit's variable declarations once they have been rewritten away.
                 Set to ``True`` to retain them as ghost declarations for use in a later pass.
-                Variables that *must* be kept for correctness (self-referential substitutions) are
-                always retained regardless of this flag.
+                Only applies to keys actually declared in this circuit; undeclared keys skipped by
+                ``strict=False`` are ignored entirely.  Variables that *must* be kept for
+                correctness (self-referential substitutions) are always retained regardless of this
+                flag.
 
         Returns:
             A new :class:`QuantumCircuit` with the substitutions applied, or ``None`` if ``inplace``

@@ -190,7 +190,7 @@ class SwitchCaseOp(ControlFlowOp):
     def substitute(self, substitutions: Mapping[expr.Var, expr.Expr]) -> SwitchCaseOp:
         """Return a new :class:`SwitchCaseOp` with classical :class:`~.expr.Var` nodes replaced.
 
-        The substitution is applied to the :attr:`target` (when it is an
+        The substitution is applied to the switch target (when it is an
         :class:`~.expr.Expr`; a bare :class:`.Clbit`/:class:`.ClassicalRegister` target is left
         unchanged) and recursively to each case body via
         :meth:`.QuantumCircuit.substitute_vars`.

@@ -95,7 +95,7 @@ features_transpiler:
     The transpiler pass :class:`~qiskit.transpiler.passes.UnrollForLoops` now supports
     :class:`~qiskit.circuit.ForLoopOp` instructions whose ``indexset`` is a
     **constant** :class:`~qiskit.circuit.classical.expr.Range`. The pass calls
-    :meth:`~qiskit.circuit.classical.expr.Range.values` to materialize the bounds
+    :meth:`expr.Range.values` to materialize the bounds
     to a Python :class:`range`, then unrolls the loop. Compile-time
     :class:`~qiskit.circuit.Parameter` loop variables are bound with
     :meth:`~qiskit.circuit.QuantumCircuit.assign_parameters`; real-time
@@ -114,9 +114,14 @@ features_transpiler:
 
 features_qpy:
   - |
-    QPY now supports faithful serialization of runtime loop variables
+    QPY format version 18 adds support for serializing
+    :class:`~qiskit.circuit.classical.expr.Range` for-loop indexsets and faithful
+    round-tripping of runtime loop variables
     (:class:`~qiskit.circuit.classical.expr.Var`) used as the loop parameter of
-    :class:`~qiskit.circuit.ForLoopOp` instructions. A new ``LOOP_VARIABLE``
+    :class:`~qiskit.circuit.ForLoopOp` instructions. A new classical-expression
+    ``RANGE`` discriminator (type key ``r``) encodes ``start``, ``stop``, and ``step``
+    sub-expressions when the indexset is an
+    :class:`~qiskit.circuit.classical.expr.Range`. A new ``LOOP_VARIABLE``
     instruction-parameter type (type key ``w``) carries the variable declaration
     in the ForLoop parameter slot using the existing ``EXPR_VAR_DECLARATION`` wire
     format. QPY format version 18 is required to serialize or deserialize these
@@ -140,7 +145,7 @@ features_qasm:
 
 upgrade_qasm:
   - |
-    Creating a :class:`~qiskit.qasm3.ast.ForLoopStatement` object without
+    Creating a OpenQASM 3 for-loop statement without
     specifying the ``type_`` parameter will now raise an error.
     This follows the latest standard OpenQASM 3 specification
     (https://openqasm.com/language/classical.html#for-loops).
