@@ -1740,11 +1740,6 @@ pub fn estimate_fidelity(circuit: &CircuitData, target: &Target) -> Option<f64> 
         .map(|inst| {
             let qubits = circuit.get_qargs(inst.qubits);
             let gate_name = inst.op.name();
-            // SAFETY: The base type of Qubit and PhysicalQubit are both u32
-            // so they are memory compatible. The transmute call lets us treat
-            // Qubit qargs as PhysicalQubit qargs directly. This function as documented as
-            // assuming that the circuit is physical so the qubit index is a physical qubit on the
-            // target
             let physical_qubits: &[PhysicalQubit] = PhysicalQubit::lift_slice(qubits);
             match target.get_instruction_properties(gate_name, physical_qubits) {
                 Some(props) => Some(1. - props.error.unwrap_or(0.)),
