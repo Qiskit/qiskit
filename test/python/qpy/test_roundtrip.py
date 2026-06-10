@@ -27,8 +27,10 @@ from qiskit.circuit.classical import expr
 from qiskit.synthesis import LieTrotter
 from qiskit.qpy.common import QPY_RUST_READ_MIN_VERSION, QPY_RUST_WRITE_MIN_VERSION, QPY_VERSION
 from qiskit.qpy.binary_io import write_circuit, read_circuit
+from qiskit.qpy import dump, load
 from qiskit.qpy import UnsupportedFeatureForVersion
 from test import QiskitTestCase
+from unittest.mock import patch
 
 
 def all_qpy_combinations(min_version):
@@ -63,20 +65,17 @@ class TestQPYRoundtrip(QiskitTestCase):
         qpy_file = io.BytesIO()
         use_rust_for_write = write_with == "Rust"
         use_rust_for_read = read_with == "Rust"
-        write_circuit(
-            qpy_file,
-            circuit,
-            version=version,
-            annotation_factories=annotation_factories,
-            use_rust=use_rust_for_write,
-        )
+        with patch(
+            "qiskit.qpy.common.QPY_RUST_WRITE_MIN_VERSION",
+            QPY_RUST_WRITE_MIN_VERSION if use_rust_for_write else QPY_VERSION + 1,
+        ):
+            dump(circuit, qpy_file, version=version, annotation_factories=annotation_factories)
         qpy_file.seek(0)
-        new_circuit = read_circuit(
-            qpy_file,
-            version=version,
-            annotation_factories=annotation_factories,
-            use_rust=use_rust_for_read,
-        )
+        with patch(
+            "qiskit.qpy.common.QPY_RUST_READ_MIN_VERSION",
+            QPY_RUST_READ_MIN_VERSION if use_rust_for_read else QPY_VERSION + 1,
+        ):
+            new_circuit = load(qpy_file, annotation_factories=annotation_factories)[0]
         self.assertEqual(circuit, new_circuit)
         self.assertEqual(circuit.layout, new_circuit.layout)
         self.assertEqual(circuit.parameters, new_circuit.parameters)
