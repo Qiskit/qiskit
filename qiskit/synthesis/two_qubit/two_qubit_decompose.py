@@ -395,7 +395,7 @@ class TwoQubitControlledUDecomposer:
         self.scale = self._inner_decomposer.scale
         self.euler_basis = euler_basis
 
-    def __call__(  # TODO: add support for the approximate and use_dag arguments
+    def __call__( 
         self, unitary: Operator | np.ndarray, approximate=False, use_dag=False, *, atol=DEFAULT_ATOL
     ) -> QuantumCircuit:
         r"""Decompose a two-qubit ``unitary`` using the :class:`.TwoQubitControlledUDecomposer`.
