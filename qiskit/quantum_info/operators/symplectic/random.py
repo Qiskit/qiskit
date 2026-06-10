@@ -39,7 +39,7 @@ def random_pauli(
                                            generator for RNG.
 
     Returns:
-        Pauli: a random Pauli
+        qiskit.quantum_info.Pauli: a random Pauli
     """
     if seed is None:
         rng = np.random.default_rng()
