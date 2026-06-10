@@ -12,6 +12,30 @@
 
 use pyo3::prelude::*;
 
+/// Information about a custom instruction that Python space is able to construct to pass down to
+/// us.
+#[pyclass(from_py_object)]
+#[derive(Clone)]
+pub struct CustomInstruction {
+    pub name: String,
+    pub num_params: usize,
+    pub num_qubits: usize,
+    pub builtin: bool,
+}
+
+#[pymethods]
+impl CustomInstruction {
+    #[new]
+    fn __new__(name: String, num_params: usize, num_qubits: usize, builtin: bool) -> Self {
+        Self {
+            name,
+            num_params,
+            num_qubits,
+            builtin,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum ClassicalBuiltinExt {
     Asin,

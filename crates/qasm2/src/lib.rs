@@ -23,30 +23,6 @@ mod parse;
 
 pub use self::ext::*;
 
-/// Information about a custom instruction that Python space is able to construct to pass down to
-/// us.
-#[pyclass(from_py_object)]
-#[derive(Clone)]
-pub struct CustomInstruction {
-    pub name: String,
-    pub num_params: usize,
-    pub num_qubits: usize,
-    pub builtin: bool,
-}
-
-#[pymethods]
-impl CustomInstruction {
-    #[new]
-    fn __new__(name: String, num_params: usize, num_qubits: usize, builtin: bool) -> Self {
-        Self {
-            name,
-            num_params,
-            num_qubits,
-            builtin,
-        }
-    }
-}
-
 /// Create a bytecode iterable from a string containing an OpenQASM 2 program.  The iterable will
 /// lex and parse the source lazily; evaluating OpenQASM 2 statements as required, without loading
 /// the entire token and parse tree into memory at once.
