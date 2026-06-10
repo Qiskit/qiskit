@@ -16,10 +16,12 @@ from __future__ import annotations
 
 from copy import deepcopy
 import operator
-from typing import TYPE_CHECKING
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from qiskit.dagcircuit import DAGCircuit
+    from qiskit.passmanager.compilation_status import PropertySet
 
 from qiskit.transpiler.basepasses import AnalysisPass
 
@@ -45,7 +47,9 @@ class FixedPoint(AnalysisPass):
         FixedPoint("size_and_t_count", get_size_and_t_count)
     """
 
-    def __init__(self, property_to_check: str, getter: callable | None = None) -> None:
+    def __init__(
+        self, property_to_check: str, getter: Callable[[PropertySet], Any] | None = None
+    ) -> None:
         """
         Args:
             property_to_check: The name used to key the fixed-point result in the property
