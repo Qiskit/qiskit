@@ -32,7 +32,7 @@ class UnrollForLoops(TransformationPass):
 
     For constant :class:`~.expr.Range` indexsets paired with an :class:`~.expr.Var`
     loop variable, each iteration substitutes the :class:`~.expr.Var` with the
-    iteration value (an :class:`~.expr.Value`) in every classical expression in
+    iteration value (of type :class:`~.expr.Value`) in every classical expression in
     the body via :meth:`~.QuantumCircuit.substitute_vars`.
     """
 

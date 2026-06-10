@@ -123,7 +123,7 @@ features_qpy:
     sub-expressions when the indexset is an
     :class:`~qiskit.circuit.classical.expr.Range`. A new ``LOOP_VARIABLE``
     instruction-parameter type (type key ``w``) carries the variable declaration
-    in the ForLoop parameter slot using the existing ``EXPR_VAR_DECLARATION`` wire
+    in the for-loop parameter slot using the existing ``EXPR_VAR_DECLARATION`` wire
     format. QPY format version 18 is required to serialize or deserialize these
     features; older target versions raise :exc:`~qiskit.qpy.UnsupportedFeatureForVersion`
     when dumping circuits that use them, and emit ``Null`` for the loop-variable
