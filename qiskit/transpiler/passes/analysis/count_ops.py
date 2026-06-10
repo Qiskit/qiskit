@@ -40,35 +40,3 @@ class CountOps(AnalysisPass):
     def run(self, dag: DAGCircuit) -> None:
         """Run the CountOps pass on ``dag``."""
         self.property_set["count_ops"] = dag.count_ops(recurse=self.recurse)
-
-
-class GateCount(AnalysisPass):
-    """Count the number of specified gates and store it in the specified key in the property set.
-
-    Stores the sum of all specified gates in ``property_set[key]``. If a gate
-    string is invalid, the gate is ignored and no error is raised.
-
-    For example::
-
-        t_count = GateCount(gates=["t", "tdg"], key="t_count")
-        rz_count = GateCount(gates=["rz"], key="rz_count")
-    """
-
-    def __init__(self, *, gates, key, recurse: bool = True) -> None:
-        """
-        Args:
-            gates: The gates to count.
-            key: The key to store it in.
-            recurse: If ``True`` (default), recursively count operations
-                inside control-flow blocks.  Note that this does not multiply by
-                the number of times a control-flow block is executed.
-        """
-        super().__init__()
-        self.gates = gates
-        self.key = key
-        self.recurse = recurse
-
-    def run(self, dag: DAGCircuit) -> None:
-        ops = dag.count_ops(recurse=self.recurse)
-        count = sum(ops.get(gate, 0) for gate in self.gates)
-        self.property_set[self.key] = count

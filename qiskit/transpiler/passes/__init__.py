@@ -127,7 +127,6 @@ Circuit Analysis
    CountOpsLongestPath
    DAGLongestPath
    Depth
-   GateCount
    NumTensorFactors
    ResourceEstimation
    Size
