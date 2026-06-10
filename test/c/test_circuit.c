@@ -1199,6 +1199,23 @@ static int test_circuit_draw(void) {
     return Ok;
 }
 
+static int expect_param_symbol_name(const QkCircuit *qc, size_t index, const char *expected) {
+    char *name = qk_circuit_param_symbol_name(qc, index);
+    if (name == NULL) {
+        printf("Expected parameter symbol %s at index %zu, found NULL\n", expected, index);
+        return NullptrError;
+    }
+
+    int result = Ok;
+    if (strcmp(name, expected) != 0) {
+        printf("Expected parameter symbol %s at index %zu, found %s\n", expected, index, name);
+        result = EqualityError;
+    }
+
+    qk_str_free(name);
+    return result;
+}
+
 static int test_parameterized_circuit(void) {
     QkCircuit *qc = qk_circuit_new(2, 0);
     QkParam *x = qk_param_new_symbol("x");
@@ -1232,6 +1249,22 @@ static int test_parameterized_circuit(void) {
         goto cleanup;
     }
 
+    result = expect_param_symbol_name(qc, 0, "somey longery namey");
+    if (result != Ok) {
+        goto cleanup;
+    }
+    result = expect_param_symbol_name(qc, 1, "x");
+    if (result != Ok) {
+        goto cleanup;
+    }
+    char *missing = qk_circuit_param_symbol_name(qc, 2);
+    if (missing != NULL) {
+        printf("Expected no parameter symbol at index 2, found %s\n", missing);
+        qk_str_free(missing);
+        result = EqualityError;
+        goto cleanup;
+    }
+
     // check number of gates
     size_t num_gates = qk_circuit_num_instructions(qc);
     if (num_gates != 3) {
@@ -1243,6 +1276,79 @@ static int test_parameterized_circuit(void) {
 cleanup:
     qk_param_free(x);
     qk_param_free(y);
+    qk_circuit_free(qc);
+    return result;
+}
+
+static int test_circuit_param_symbol_names_expression(void) {
+    QkCircuit *qc = qk_circuit_new(1, 0);
+    QkParam *theta = qk_param_new_symbol("theta");
+    QkParam *phi = qk_param_new_symbol("phi");
+    QkParam *expr = qk_param_zero();
+
+    int result = Ok;
+    if (qk_param_add(expr, theta, phi) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    uint32_t q0[1] = {0};
+    const QkParam *rx_param[1] = {expr};
+    if (qk_circuit_parameterized_gate(qc, QkGate_RX, q0, rx_param) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    size_t num_symbols = qk_circuit_num_param_symbols(qc);
+    if (num_symbols != 2) {
+        result = EqualityError;
+        printf("Expected 2 symbols, found %zu\n", num_symbols);
+        goto cleanup;
+    }
+
+    result = expect_param_symbol_name(qc, 0, "phi");
+    if (result != Ok) {
+        goto cleanup;
+    }
+    result = expect_param_symbol_name(qc, 1, "theta");
+
+cleanup:
+    qk_param_free(theta);
+    qk_param_free(phi);
+    qk_param_free(expr);
+    qk_circuit_free(qc);
+    return result;
+}
+
+static int test_circuit_param_symbol_names_numeric_only(void) {
+    QkCircuit *qc = qk_circuit_new(1, 0);
+    QkParam *angle = qk_param_from_double(0.5);
+
+    uint32_t q0[1] = {0};
+    const QkParam *rx_param[1] = {angle};
+
+    int result = Ok;
+    if (qk_circuit_parameterized_gate(qc, QkGate_RX, q0, rx_param) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    size_t num_symbols = qk_circuit_num_param_symbols(qc);
+    if (num_symbols != 0) {
+        result = EqualityError;
+        printf("Expected 0 symbols, found %zu\n", num_symbols);
+        goto cleanup;
+    }
+
+    char *name = qk_circuit_param_symbol_name(qc, 0);
+    if (name != NULL) {
+        printf("Expected no parameter symbol at index 0, found %s\n", name);
+        qk_str_free(name);
+        result = EqualityError;
+    }
+
+cleanup:
+    qk_param_free(angle);
     qk_circuit_free(qc);
     return result;
 }
@@ -1460,6 +1566,8 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_get_instruction_params);
     num_failed += RUN_TEST(test_instruction_params_ownership);
     num_failed += RUN_TEST(test_parameterized_circuit);
+    num_failed += RUN_TEST(test_circuit_param_symbol_names_expression);
+    num_failed += RUN_TEST(test_circuit_param_symbol_names_numeric_only);
     num_failed += RUN_TEST(test_circuit_global_phase);
     num_failed += RUN_TEST(test_circuit_to_dag);
     num_failed += RUN_TEST(test_pbc_instructions);

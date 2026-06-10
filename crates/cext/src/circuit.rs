@@ -382,6 +382,53 @@ pub unsafe extern "C" fn qk_circuit_num_param_symbols(circuit: *const CircuitDat
 }
 
 /// @ingroup QkCircuit
+/// Get the name of an unbound symbol in ``QkParam`` objects in the circuit.
+///
+/// The parameter-symbol order is deterministic and matches Qiskit's canonical parameter order.
+///
+/// @param circuit A pointer to the circuit.
+/// @param index The index of the parameter symbol name to read.
+///
+/// @return A pointer to the symbol name, or a null pointer if ``index`` is out of range. The
+///     returned string must be freed with :c:func:`qk_str_free`.
+///
+/// # Example
+///
+/// ```c
+/// QkCircuit *qc = qk_circuit_new(1, 0);
+/// QkParam *theta = qk_param_new_symbol("theta");
+///
+/// uint32_t q0[1] = {0};
+/// const QkParam *rx_param[1] = {theta};
+///
+/// qk_circuit_parameterized_gate(qc, QkGate_RX, q0, rx_param);
+///
+/// char *name = qk_circuit_param_symbol_name(qc, 0); // == "theta"
+/// qk_str_free(name);
+///
+/// qk_param_free(theta);
+/// qk_circuit_free(qc);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_param_symbol_name(
+    circuit: *const CircuitData,
+    index: usize,
+) -> *mut c_char {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+
+    let Some(symbol) = circuit.parameters().get(index) else {
+        return std::ptr::null_mut();
+    };
+
+    CString::new(symbol.repr(false)).unwrap().into_raw()
+}
+
+/// @ingroup QkCircuit
 /// Get the global phase of the circuit.
 ///
 /// This function returns a copy of the circuit's global phase
