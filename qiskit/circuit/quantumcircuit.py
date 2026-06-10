@@ -37,6 +37,7 @@ from qiskit._accelerate.circuit import CircuitData
 from qiskit._accelerate.circuit import StandardGate
 from qiskit._accelerate.circuit import BitLocations
 from qiskit._accelerate.circuit_duration import compute_estimated_duration
+from qiskit._accelerate.target import estimate_fidelity
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
@@ -1005,6 +1006,7 @@ class QuantumCircuit:
     of the preset compilation pipelines.
 
     .. automethod:: ensure_physical
+    .. automethod:: estimate_fidelity
 
 
     Instruction-like methods
@@ -8006,6 +8008,43 @@ class QuantumCircuit:
                 f"Specified unit: {unit} is not a valid/supported SI prefix, 's', or 'dt'"
             )
         return dur / prefix_dict[unit]
+
+    def estimate_fidelity(self, target) -> float | None:
+        """Estimate the fidelity of a physical circuit.
+
+        This function will compute the product of the error rates for each
+        gate in the circuit to estimate the fidelity of the circuit:
+
+        ..math::
+          :label: estimated circuit fidelity
+
+          \\prod_{g \\in \\text{gates}} \\bigl(1 - \\operatorname{error}(g)\\bigr)
+
+        where :math:`\\operatorname{error}(g)` is the error rate in the target for the instruction :math:`g` from the circuit
+        in the target. If the circuit is not physical, meaning any instruction in the circuit (as
+        in operation and qargs) is not found in the target, this will return ``None``. This method is not
+        intended to compute a realistic simulation of the fidelity of execution on real hardware. It is
+        designed to provide an estimate of how the transpiler would work with the fidelity for various
+        heuristics in its operation. It is typically only useful for comparing different compilation
+        outputs against each other to estimate which one would produce a better quality execution on
+        hardware.
+
+        Args:
+            target (Target): The :class:`.Target` instance that the circuit will be executed on and used to
+                get the error rates for the instructions in the circuit.
+
+        Returns:
+            The estimated fidelity of executing the circuit on the given target. If any
+            instruction in the circuit is not present in target
+
+        Raises:
+            QiskitError: If the circuit contains any control flow operations.
+        """
+        if self.has_control_flow_op():
+            raise CircuitError(
+                "The circuit contains control flow, this method cannot estimate the fidelity with control flow"
+            )
+        return estimate_fidelity(self._data, target)
 
 
 class _OuterCircuitScopeInterface(CircuitScopeInterface):
