@@ -478,7 +478,7 @@ def _optimization_check_fixed_point():
 
 def _optimization_check_fixed_point_clifford_t():
     def check(property_set):
-        return not property_set["t_count_and_size_fixed_point"]
+        return not property_set["size_and_t_count_fixed_point"]
 
     def get_size_and_t_count(property_set):
         return (
@@ -489,14 +489,14 @@ def _optimization_check_fixed_point_clifford_t():
     setup = [
         CountOps(recurse=True),
         Size(recurse=True),
-        FixedPoint("t_count_and_size", getter=get_size_and_t_count),
+        FixedPoint("size_and_t_count", getter=get_size_and_t_count),
     ]
     return (setup, check)
 
 
 def _optimization_check_fixed_point_clifford_rz():
     def check(property_set):
-        return not property_set["rz_count_and_size_fixed_point"]
+        return not property_set["size_and_rz_count_fixed_point"]
 
     def get_size_and_rz_count(property_set):
         return (property_set["size"], property_set["count_ops"].get("rz", 0))
@@ -504,7 +504,7 @@ def _optimization_check_fixed_point_clifford_rz():
     setup = [
         CountOps(recurse=True),
         Size(recurse=True),
-        FixedPoint("rz_count_and_size", getter=get_size_and_rz_count),
+        FixedPoint("size_and_rz_count", getter=get_size_and_rz_count),
     ]
     return (setup, check)
 
@@ -1311,7 +1311,6 @@ class OptimizeCliffordTPassManager(PassManagerCliffordTStagePlugin):
                     ),
                     ContractIdleWiresInControlFlow(),
                 ]
-                # loop_check, continue_loop = _optimization_check_fixed_point()
                 loop_check, continue_loop = _optimization_check_fixed_point_clifford_t()
                 post_loop = translate_to_target
             case bad:
