@@ -26,7 +26,7 @@ from qiskit.quantum_info import SparsePauliOp
 from qiskit.circuit.classical import expr
 from qiskit.synthesis import LieTrotter
 from qiskit.qpy.common import QPY_RUST_READ_MIN_VERSION, QPY_RUST_WRITE_MIN_VERSION, QPY_VERSION
-from qiskit.qpy.binary_io import write_circuit, read_circuit
+from qiskit.qpy.binary_io import write_circuit
 from qiskit.qpy import dump, load
 from qiskit.qpy import UnsupportedFeatureForVersion
 from test import QiskitTestCase
