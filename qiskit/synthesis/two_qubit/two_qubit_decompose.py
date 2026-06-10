@@ -265,9 +265,8 @@ class TwoQubitWeylDecomposition:
 
 
 class TwoQubitControlledUDecomposer:
-    r"""Decompose a two-qubit unitary in terms of a desired two-qubit gate
-    :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}` that is locally equivalent to an
-    :class:`.RXXGate`.
+    r"""Decompose a general two-qubit unitary in terms of a target two-qubit gate,
+    that is locally equivalent to an :class:`.RXXGate`.
 
     **Synthesis algorithm**
 
