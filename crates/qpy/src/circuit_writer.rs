@@ -33,7 +33,6 @@ use qiskit_circuit::bit::{
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::{CircuitInstruction, OperationFromPython};
 use qiskit_circuit::classical::expr::Var;
-use qiskit_circuit::classical::types::Type;
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::duration::Duration;
 use qiskit_circuit::imports;
@@ -57,8 +56,9 @@ use crate::py_methods::{
 };
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionVarDeclaration, GenericValue, ParamRegisterValue,
-    QPYWriteData, RegisterType, get_circuit_type_key, pack_for_collection, pack_generic_value,
-    pack_standalone_var, pack_stretch, serialize, serialize_param_register_value,
+    QPYWriteData, RegisterType, find_var_index_in_circuit, get_circuit_type_key,
+    pack_for_collection, pack_generic_value, pack_standalone_var, pack_stretch, serialize,
+    serialize_param_register_value,
 };
 
 use qiskit_circuit::var_stretch_container::{StretchType, VarType};
@@ -470,19 +470,19 @@ fn pack_control_flow_inst(
             loop_param,
         } => {
             let collection_value = pack_for_collection(&collection);
+            // Extract the inner circuit block to find the var's index in its standalone vars list.
+            let inner_blocks = extract_instruction_blocks(instruction, qpy_data);
+            let inner_circuit_data = inner_blocks.first().and_then(|b| b.as_circuit_data());
             let loop_param_value = match loop_param {
                 None => GenericValue::Null,
-                Some(LoopParam::Variable(Var::Standalone {
-                    uuid,
-                    name,
-                    ty: Type::Uint(len),
-                })) => {
-                    let values = vec![
-                        GenericValue::Int64(len as i64),
-                        GenericValue::BigInt(BigUint::from(uuid)),
-                        GenericValue::String(name),
-                    ];
-                    GenericValue::Tuple(values)
+                Some(LoopParam::Variable(Var::Standalone { uuid, .. })) => {
+                    // Look up the var's index in the inner circuit's standalone vars list.
+                    // Fall back to Null if the inner circuit is unavailable or the var is not found.
+                    inner_circuit_data
+                        .as_ref()
+                        .and_then(|inner_data| find_var_index_in_circuit(inner_data, uuid))
+                        .map(|idx| GenericValue::Int64(idx as i64))
+                        .unwrap_or(GenericValue::Null)
                 }
                 _ => GenericValue::Null,
             };

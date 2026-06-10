@@ -23,7 +23,6 @@ use binrw::Endian;
 use hashbrown::HashMap;
 use num_bigint::BigUint;
 use num_complex::Complex64;
-use num_traits::ToPrimitive;
 use numpy::IntoPyArray;
 use pyo3::IntoPyObjectExt;
 use pyo3::intern;
@@ -34,8 +33,6 @@ use qiskit_circuit::bit::{
 };
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::classical::expr::Var;
-use qiskit_circuit::classical::types::Type;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::{
@@ -72,8 +69,8 @@ use crate::value::ParamRegisterValue;
 use crate::value::unpack_for_collection;
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, GenericValue,
-    QPYReadData, RegisterType, ValueType, deserialize_with_args, load_param_register_value,
-    load_value, unpack_duration_value, unpack_generic_value,
+    QPYReadData, RegisterType, ValueType, deserialize_with_args, find_var_by_index_in_circuit,
+    load_param_register_value, load_value, unpack_duration_value, unpack_generic_value,
 };
 
 use ndarray::{Array2, ShapeBuilder};
@@ -604,35 +601,11 @@ fn unpack_control_flow(
                 GenericValue::ParameterExpressionSymbol(symbol) => {
                     Some(LoopParam::Parameter(symbol))
                 }
-                GenericValue::Tuple(values) => {
-                    if values.len() == 3 {
-                        let len = values[0].as_typed::<i64>().ok_or_else(|| {
-                            QpyError::InvalidParameter(
-                                "For loop parameter tuple should have an integer as first element"
-                                    .to_string(),
-                            )
-                        })? as u16;
-                        let uuid = values[1].as_typed::<BigUint>().ok_or_else(|| QpyError::InvalidParameter(
-                                "For loop parameter tuple should have a BigUint as second element".to_string(),
-                            ))?.to_u128().ok_or_else(|| QpyError::InvalidParameter(
-                                "For loop parameter tuple has a too large uuid to fit in u128".to_string(),
-                            ))?;
-                        let name = values[2].as_typed::<String>().ok_or_else(|| {
-                            QpyError::InvalidParameter(
-                                "For loop parameter tuple should have a string as third element"
-                                    .to_string(),
-                            )
-                        })?;
-                        let var = Var::Standalone {
-                            uuid,
-                            name,
-                            ty: Type::Uint(len),
-                        };
-                        Some(LoopParam::Variable(var))
-                    } else {
-                        None
-                    }
-                }
+                GenericValue::Int64(index) => param_values
+                    .first()
+                    .and_then(|v| v.as_circuit_data())
+                    .and_then(|inner_data| find_var_by_index_in_circuit(&inner_data, index as u16))
+                    .map(LoopParam::Variable),
                 _ => None,
             };
             ControlFlow::ForLoop {

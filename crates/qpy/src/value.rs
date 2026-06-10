@@ -29,6 +29,7 @@ use qiskit_circuit::operations::{ForCollection, OperationRef, PyInstruction, PyO
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
+use qiskit_circuit::var_stretch_container::VarType;
 use qiskit_circuit::{Clbit, imports};
 
 use crate::annotations::AnnotationHandler;
@@ -806,6 +807,46 @@ pub(crate) fn deserialize_expression(
         (qpy_data,),
     )?;
     Ok(exp_pack.expression)
+}
+
+/// Find the index of a standalone var (identified by UUID) in a circuit's standalone vars list.
+/// The order matches the order used by `pack_standalone_vars`: Input → Capture → Declare.
+pub(crate) fn find_var_index_in_circuit(
+    circuit_data: &CircuitData,
+    target_uuid: u128,
+) -> Option<u16> {
+    let mut index: u16 = 0;
+    for var_type in [VarType::Input, VarType::Capture, VarType::Declare] {
+        for var in circuit_data.vars_stretches_view().iter_vars(var_type) {
+            if let Var::Standalone { uuid, .. } = var {
+                if *uuid == target_uuid {
+                    return Some(index);
+                }
+            }
+            index += 1;
+        }
+    }
+    None
+}
+
+/// Find a standalone var (identified by index) in a circuit's standalone vars list.
+/// The order matches the order used by `pack_standalone_vars`: Input → Capture → Declare.
+pub(crate) fn find_var_by_index_in_circuit(
+    circuit_data: &CircuitData,
+    target_index: u16,
+) -> Option<Var> {
+    let mut index: u16 = 0;
+    for var_type in [VarType::Input, VarType::Capture, VarType::Declare] {
+        for var in circuit_data.vars_stretches_view().iter_vars(var_type) {
+            if let Var::Standalone { .. } = var {
+                if index == target_index {
+                    return Some(var.clone());
+                }
+            }
+            index += 1;
+        }
+    }
+    None
 }
 
 pub(crate) fn pack_standalone_var(
