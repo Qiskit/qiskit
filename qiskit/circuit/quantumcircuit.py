@@ -37,6 +37,7 @@ from qiskit._accelerate.circuit import CircuitData
 from qiskit._accelerate.circuit import StandardGate
 from qiskit._accelerate.circuit import BitLocations
 from qiskit._accelerate.circuit_duration import compute_estimated_duration
+from qiskit._accelerate.target import estimate_fidelity
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
@@ -81,7 +82,6 @@ if typing.TYPE_CHECKING:
     from qiskit.transpiler.layout import TranspileLayout
     from qiskit.quantum_info.operators.base_operator import BaseOperator
     from qiskit.quantum_info.states.statevector import Statevector
-
 
 # The following types are not marked private to avoid leaking this "private/public" abstraction out
 # into the documentation.  They are not imported by circuit.__init__, nor are they meant to be.
@@ -1002,6 +1002,7 @@ class QuantumCircuit:
     of the preset compilation pipelines.
 
     .. automethod:: ensure_physical
+    .. automethod:: estimate_fidelity
 
 
     Instruction-like methods
@@ -2280,9 +2281,15 @@ class QuantumCircuit:
                 dest.append(other, qargs=qubits, cargs=clbits, copy=copy)
             return None if inplace else dest
 
-        if other.num_qubits > dest.num_qubits or other.num_clbits > dest.num_clbits:
+        if other.num_qubits > dest.num_qubits:
             raise CircuitError(
-                "Trying to compose with another QuantumCircuit which has more 'in' edges."
+                "Cannot compose onto a circuit with fewer qubits "
+                f"({other.num_qubits} > {dest.num_qubits})."
+            )
+        if other.num_clbits > dest.num_clbits:
+            raise CircuitError(
+                "Cannot compose onto a circuit with fewer classical bits "
+                f"({other.num_clbits} > {dest.num_clbits})."
             )
 
         # Maps bits in 'other' to bits in 'dest'.
@@ -2843,7 +2850,10 @@ class QuantumCircuit:
 
         Args:
             instruction: :class:`~.circuit.Instruction` instance to append, or a
-                :class:`.CircuitInstruction` with all its context.
+                :class:`.CircuitInstruction` with all its context. Objects implementing
+                ``to_instruction`` are also supported, but passing an
+                :class:`~.circuit.Instruction` directly is generally preferred, since that
+                avoids the repeated conversion cost.
             qargs: specifiers of the :class:`~.circuit.Qubit`\\ s to attach instruction to.
             cargs: specifiers of the :class:`.Clbit`\\ s to attach instruction to.
             copy: if ``True`` (the default), then the incoming ``instruction`` is copied before
@@ -2857,7 +2867,8 @@ class QuantumCircuit:
             were actually added to the circuit.
 
         Raises:
-            CircuitError: if the operation passed is not an instance of :class:`~.circuit.Instruction` .
+            CircuitError: if the operation passed is not an instance of :class:`~.circuit.Instruction`,
+              or cannot be converted to one by calling ``to_instruction`` on it.
         """
         if isinstance(instruction, CircuitInstruction):
             operation = instruction.operation
@@ -3050,11 +3061,11 @@ class QuantumCircuit:
                 # and need to retrieve it.
                 my_param_again = qc.get_parameter("my_param")
 
-                assert my_param is my_param_again
+                assert my_param == my_param_again
 
             Get a variable from a circuit by name, returning some default if it is not present::
 
-                assert qc.get_parameter("my_param", None) is my_param
+                assert qc.get_parameter("my_param", None) == my_param
                 assert qc.get_parameter("unknown_param", None) is None
 
         See also:
@@ -3126,11 +3137,11 @@ class QuantumCircuit:
                 # need to retrieve it.
                 my_var_again = qc.get_var("my_var")
 
-                assert my_var is my_var_again
+                assert my_var == my_var_again
 
             Get a variable from a circuit by name, returning some default if it is not present::
 
-                assert qc.get_var("my_var", None) is my_var
+                assert qc.get_var("my_var", None) == my_var
                 assert qc.get_var("unknown_variable", None) is None
 
         See also:
@@ -3198,11 +3209,11 @@ class QuantumCircuit:
                 # need to retrieve it.
                 my_stretch_again = qc.get_stretch("my_stretch")
 
-                assert my_stretch is my_stretch_again
+                assert my_stretch == my_stretch_again
 
             Get a variable from a circuit by name, returning some default if it is not present::
 
-                assert qc.get_stretch("my_stretch", None) is my_stretch
+                assert qc.get_stretch("my_stretch", None) == my_stretch
                 assert qc.get_stretch("unknown_stretch", None) is None
         """
         if (out := self._current_scope().get_stretch(name)) is not None:
@@ -4248,7 +4259,7 @@ class QuantumCircuit:
         Returns:
             list(tuple): list of (instruction, qargs, cargs).
         """
-        return [match for match in self._data if match.operation.name == name]
+        return [match for match in self._data if match.name == name]
 
     def num_connected_components(self, unitary_only: bool = False) -> int:
         """How many non-entangled subcircuits can the circuit be factored to.
@@ -4713,16 +4724,18 @@ class QuantumCircuit:
             qubits=circ._data.qubits, reserve=len(circ._data), global_phase=circ.global_phase
         )
 
-        # Re-add old registers
+        # Re-add old registers.  We avoid `add_register` since we already know the registers are
+        # valid, the bits exist, and we don't want to trigger the "modified the quantum registers
+        # with a set layout" warning.
         for qreg in old_qregs:
-            circ.add_register(qreg)
+            circ._data.add_qreg(qreg)
 
         # We must add the clbits first to preserve the original circuit
         # order. This way, add_register never adds clbits and just
         # creates registers that point to them.
         circ.add_bits(clbits_to_add)
         for creg in cregs_to_add:
-            circ.add_register(creg)
+            circ._data.add_creg(creg)
 
         # Set circ instructions to match the new DAG
         for node in new_dag.topological_op_nodes():
@@ -5327,7 +5340,7 @@ class QuantumCircuit:
         """
 
         from .library.standard_gates.rx import RXGate
-        from qiskit.synthesis.multi_controlled import (
+        from qiskit.synthesis.multi_controlled.multi_control_rotation_gates import (
             _apply_cu,
             _apply_mcu_graycode,
             _mcsu2_real_diagonal,
@@ -5395,7 +5408,7 @@ class QuantumCircuit:
         """
 
         from .library.standard_gates.ry import RYGate
-        from qiskit.synthesis.multi_controlled import (
+        from qiskit.synthesis.multi_controlled.multi_control_rotation_gates import (
             _apply_cu,
             _apply_mcu_graycode,
             _mcsu2_real_diagonal,
@@ -5495,7 +5508,9 @@ class QuantumCircuit:
         """
 
         from .library.standard_gates.rz import CRZGate, RZGate
-        from qiskit.synthesis.multi_controlled import _mcsu2_real_diagonal
+        from qiskit.synthesis.multi_controlled.multi_control_rotation_gates import (
+            _mcsu2_real_diagonal,
+        )
 
         control_qubits = self._qbit_argument_conversion(q_controls)
         target_qubit = self._qbit_argument_conversion(q_target)
@@ -7731,6 +7746,43 @@ class QuantumCircuit:
                 f"Specified unit: {unit} is not a valid/supported SI prefix, 's', or 'dt'"
             )
         return dur / prefix_dict[unit]
+
+    def estimate_fidelity(self, target) -> float | None:
+        """Estimate the fidelity of a physical circuit.
+
+        This function will compute the product of the error rates for each
+        gate in the circuit to estimate the fidelity of the circuit:
+
+        ..math::
+          :label: estimated circuit fidelity
+
+          \\prod_{g \\in \\text{gates}} \\bigl(1 - \\operatorname{error}(g)\\bigr)
+
+        where :math:`\\operatorname{error}(g)` is the error rate in the target for the instruction :math:`g` from the circuit
+        in the target. If the circuit is not physical, meaning any instruction in the circuit (as
+        in operation and qargs) is not found in the target, this will return ``None``. This method is not
+        intended to compute a realistic simulation of the fidelity of execution on real hardware. It is
+        designed to provide an estimate of how the transpiler would work with the fidelity for various
+        heuristics in its operation. It is typically only useful for comparing different compilation
+        outputs against each other to estimate which one would produce a better quality execution on
+        hardware.
+
+        Args:
+            target (Target): The :class:`.Target` instance that the circuit will be executed on and used to
+                get the error rates for the instructions in the circuit.
+
+        Returns:
+            The estimated fidelity of executing the circuit on the given target. If any
+            instruction in the circuit is not present in target
+
+        Raises:
+            QiskitError: If the circuit contains any control flow operations.
+        """
+        if self.has_control_flow_op():
+            raise CircuitError(
+                "The circuit contains control flow, this method cannot estimate the fidelity with control flow"
+            )
+        return estimate_fidelity(self._data, target)
 
 
 class _OuterCircuitScopeInterface(CircuitScopeInterface):

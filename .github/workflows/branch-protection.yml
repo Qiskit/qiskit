@@ -18,21 +18,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Shared configuration values.  It's also possible to specify these in the GitHub web interface,
-  # but that separates them from the rest of the configuration logic and means that the changes to
-  # the configuration do not appear in the git history.
   config:
     name: Configure
-    runs-on: 'ubuntu-latest'
-    steps:
-      - run: ':'
-    outputs:
-      python-old: '3.10'
-      python-new: '3.14'
-      runner-linux-x86_64: 'ubuntu-latest'
-      runner-linux-arm64: 'ubuntu-24.04-arm'
-      runner-macos-arm64: 'macos-15'
-      runner-windows-x86_64: 'windows-latest'
+    uses: ./.github/workflows/config.yml
 
   # This 'finalize' job is a no-op; its sole purpose is to depend on all the other jobs and provide
   # a single in-code determination of whether the branch-protection rules have been passed.  The
@@ -53,6 +41,7 @@ jobs:
       - miri
       - qpy
       - neko
+      - pyo3-ffi
     # This job needs to trigger even if its predecessors failed and return the same status.  By
     # default, GitHub Actions will "skip" the job if a requirement failed, but that counts as a
     # "success" state, which is not acceptable for a branch-protection rule.  We don't use `always`
@@ -84,6 +73,13 @@ jobs:
       python-version: ${{ needs.config.outputs.python-old }}
       runner: ${{ needs.config.outputs.runner-linux-x86_64 }}
 
+  pyo3-ffi:
+    name: pyo3-ffi
+    needs: config
+    uses: ./.github/workflows/pyo3-ffi.yml
+    with:
+      runner: ${{ needs.config.outputs.runner-linux-x86_64 }}
+
   test-linux:
     name: Unit Python / Linux / ${{ matrix.config.id }} - ${{ matrix.runner }}
     needs: config
@@ -106,6 +102,7 @@ jobs:
             install-optionals: true
             install-from-sdist: false
             qiskit-pycache: false
+            mimalloc: false
           - id: "Python newest"
             python: ${{ needs.config.outputs.python-new }}
             install-optionals: false
@@ -127,6 +124,7 @@ jobs:
           - id: "Python oldest"
             python: ${{ needs.config.outputs.python-old }}
             install-optionals: true
+            mimalloc: false
           - id: "Python newest"
             python: ${{ needs.config.outputs.python-new }}
             install-optionals: false
@@ -146,6 +144,7 @@ jobs:
           - id: "Python oldest"
             python: ${{ needs.config.outputs.python-old }}
             install-optionals: true
+            mimalloc: false
           - id: "Python newest"
             python: ${{ needs.config.outputs.python-new }}
             install-optionals: false

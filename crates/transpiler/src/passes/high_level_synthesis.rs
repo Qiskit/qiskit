@@ -12,10 +12,10 @@
 
 use hashbrown::HashMap;
 use hashbrown::HashSet;
-use nalgebra::DMatrix;
 use ndarray::prelude::*;
 use pyo3::Bound;
 use pyo3::IntoPyObjectExt;
+use pyo3::exceptions::PyNotImplementedError;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 use qiskit_circuit::bit::ShareableQubit;
@@ -770,7 +770,7 @@ fn extract_definition(op: &PackedOperation, params: &[Param]) -> PyResult<Option
                         SmallVec::new(),
                         aview2(&CX_GATE),
                         1.0,
-                        "U",
+                        EulerBasis::U,
                         None,
                     )?;
                     let two_qubit_sequence =
@@ -793,16 +793,14 @@ fn extract_definition(op: &PackedOperation, params: &[Param]) -> PyResult<Option
                 }
                 // Run 3q+ synthesis
                 _ => {
-                    let matrix = DMatrix::from_fn(shape[0], shape[1], |i, j| unitary[[i, j]]);
                     let synth_circ =
-                        quantum_shannon_decomposition(&matrix, None, None, None, None)?;
+                        quantum_shannon_decomposition(unitary.view(), None, None, None, None)?;
                     Ok(Some(synth_circ))
                 }
             }
         }
         OperationRef::StandardGate(g) => Ok(g.definition(params)),
-        OperationRef::Gate(g) => Ok(g.definition()),
-        OperationRef::Instruction(i) => Ok(i.definition()),
+        OperationRef::PyCustom(i) => Ok(i.definition()),
         OperationRef::PauliProductMeasurement(ppm) => Ok(Some(synthesize_ppm(ppm)?)),
         OperationRef::PauliProductRotation(rotation) => Ok(Some(synthesize_ppr(rotation)?)),
         OperationRef::StandardInstruction(i) => match i {
@@ -811,7 +809,8 @@ fn extract_definition(op: &PackedOperation, params: &[Param]) -> PyResult<Option
             | StandardInstruction::Barrier(_)
             | StandardInstruction::Delay(_) => Ok(None),
         },
-        OperationRef::ControlFlow(_) | OperationRef::Operation(_) => Ok(None),
+        OperationRef::ControlFlow(_) => Ok(None),
+        OperationRef::CustomOperation(custom_gate) => Ok(custom_gate.definition(params)),
     }
 }
 
@@ -954,13 +953,16 @@ fn synthesize_op_using_plugins(
         OperationRef::StandardInstruction(instruction) => instruction
             .create_py_op(py, Some(params.iter().cloned().collect()), label)?
             .into_any(),
-        OperationRef::Gate(gate) => gate.instruction.clone_ref(py),
-        OperationRef::Instruction(instruction) => instruction.instruction.clone_ref(py),
-        OperationRef::Operation(operation) => operation.instruction.clone_ref(py),
+        OperationRef::PyCustom(inst) => inst.ob.clone_ref(py),
         OperationRef::Unitary(unitary) => unitary.create_py_op(py, label)?.into_any(),
         OperationRef::PauliProductMeasurement(ppm) => ppm.create_py_op(py, label)?.into_any(),
         OperationRef::PauliProductRotation(rotation) => {
             rotation.create_py_op(py, label)?.into_any()
+        }
+        OperationRef::CustomOperation(_) => {
+            return Err(PyNotImplementedError::new_err(
+                "Custom Operations from Rust cannot be exposed to Python.",
+            ));
         }
     };
 

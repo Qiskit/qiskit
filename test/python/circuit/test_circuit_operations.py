@@ -14,6 +14,7 @@
 """Test Qiskit's QuantumCircuit class."""
 import copy
 import pickle
+import warnings
 from itertools import combinations
 
 import numpy as np
@@ -29,15 +30,15 @@ from qiskit.circuit.controlflow.switch_case import SwitchCaseOp
 from qiskit.circuit.controlflow.while_loop import WhileLoopOp
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.controlflow import IfElseOp
-from qiskit.circuit.library import CXGate, HGate
+from qiskit.circuit.library import CXGate, HGate, XGate, YGate, ZGate, SXGate
 from qiskit.circuit.library.standard_gates import SGate
 from qiskit.circuit.quantumcircuit import BitLocations
 from qiskit.circuit.quantumcircuitdata import CircuitInstruction
 from qiskit.circuit import AncillaQubit, AncillaRegister, Qubit
-from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.quantum_info import Operator
-from qiskit.transpiler import Layout, CouplingMap
+from qiskit.transpiler import Layout, CouplingMap, passes, Target, InstructionProperties
+from qiskit.providers.fake_provider import GenericBackendV2
 from test import QiskitTestCase
 
 
@@ -1058,6 +1059,28 @@ class TestCircuitOperations(QiskitTestCase):
         qc.remove_final_measurements(inplace=True)
         self.assertEqual(qc.assign_parameters({a: 1}), expected)
 
+    def test_remove_final_measurement_with_layout(self):
+        def apply_layout(qc):
+            layout = Layout(dict(zip(qc.qubits, [1, 0])))
+            return passes.ApplyLayout()(qc, property_set={"layout": layout})
+
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure([0, 1], [0, 1])
+        qc = apply_layout(qc)
+
+        expected = QuantumCircuit(2)
+        expected.h(0)
+        expected.cx(0, 1)
+        expected = apply_layout(expected)
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error", module=r"(qiskit|test)")
+            self.assertEqual(qc.remove_final_measurements(inplace=False), expected)
+            qc.remove_final_measurements(inplace=True)
+            self.assertEqual(qc, expected)
+
     def test_reverse(self):
         """Test reverse method reverses but does not invert."""
         qc = QuantumCircuit(2, 2)
@@ -1762,6 +1785,68 @@ class TestCircuitOperations(QiskitTestCase):
         qc = QuantumCircuit(10)
         with self.assertRaisesRegex(ValueError, "cannot have fewer physical qubits"):
             qc.ensure_physical(5)
+
+    def test_estimate_fidelity(self):
+        target = Target(num_qubits=1)
+        target.add_instruction(XGate(), {(0,): InstructionProperties(error=0.5)})
+        qc = QuantumCircuit(1)
+        qc.x(0)
+        qc.x(0)
+        qc.x(0)
+        expected = 0.5**3
+        fidelity = qc.estimate_fidelity(target)
+        self.assertEqual(fidelity, expected)
+
+    def test_estimate_fidelity_with_barrier(self):
+        target = Target(num_qubits=1)
+        target.add_instruction(XGate(), {(0,): InstructionProperties(error=0.5)})
+        qc = QuantumCircuit(1)
+        qc.x(0)
+        qc.barrier(0)
+        qc.x(0)
+        qc.barrier(0)
+        qc.x(0)
+        qc.barrier(0)
+        fidelity = qc.estimate_fidelity(target)
+        expected = 0.5**3
+        self.assertEqual(fidelity, expected)
+
+    def test_estimate_fidelity_non_physical(self):
+        target = Target(num_qubits=1)
+        target.add_instruction(YGate(), {(0,): InstructionProperties(error=0.5)})
+        qc = QuantumCircuit(1)
+        qc.x(0)
+        qc.x(0)
+        qc.x(0)
+        fidelity = qc.estimate_fidelity(target)
+        self.assertIsNone(fidelity)
+
+    def test_estimate_fidelity_errors_on_control_flow(self):
+        target = Target(num_qubits=1)
+        target.add_instruction(YGate(), {(0,): InstructionProperties(error=0.5)})
+        qc = QuantumCircuit(1, 1)
+        qc.x(0)
+        qc.measure(0, 0)
+        with qc.if_test((0, 1)):
+            qc.x(0)
+            qc.x(0)
+        with self.assertRaises(CircuitError):
+            qc.estimate_fidelity(target)
+
+    def test_estimate_fidelity_with_ideal_gates(self):
+        target = Target(num_qubits=1)
+        target.add_instruction(XGate(), {(0,): InstructionProperties(error=0.25)})
+        target.add_instruction(YGate(), {(0,): InstructionProperties(error=None)})
+        target.add_instruction(ZGate())
+        target.add_instruction(SXGate(), {None: InstructionProperties(error=0.1)})
+        qc = QuantumCircuit(1)
+        qc.x(0)
+        qc.y(0)
+        qc.z(0)
+        qc.sx(0)
+        expected = 0.75 * 0.9
+        fidelity = qc.estimate_fidelity(target)
+        self.assertEqual(fidelity, expected)
 
 
 class TestCircuitPrivateOperations(QiskitTestCase):
