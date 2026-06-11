@@ -219,21 +219,40 @@ fn recognize_instruction_type(
     }
 }
 
+type InstructionBits = (Interned<[Qubit]>, Interned<[Clbit]>);
 fn get_instruction_bits(
     instruction: &formats::CircuitInstructionV2Pack,
     qpy_data: &mut QPYReadData,
-) -> (Interned<[Qubit]>, Interned<[Clbit]>) {
+) -> Result<InstructionBits, QpyError> {
     let mut qubit_indices = Vec::new();
     let mut clbit_indices = Vec::new();
     for arg in &instruction.bit_data {
         match arg.bit_type {
-            BitType::Qubit => qubit_indices.push(Qubit(arg.index)),
-            BitType::Clbit => clbit_indices.push(Clbit(arg.index)),
-        };
+            BitType::Qubit => {
+                if arg.index as usize >= qpy_data.circuit_data.num_qubits() {
+                    return Err(QpyError::InvalidBit(format!(
+                        "qubit index {} out of range (circuit has {} qubits)",
+                        arg.index,
+                        qpy_data.circuit_data.num_qubits()
+                    )));
+                }
+                qubit_indices.push(Qubit(arg.index));
+            }
+            BitType::Clbit => {
+                if arg.index as usize >= qpy_data.circuit_data.num_clbits() {
+                    return Err(QpyError::InvalidBit(format!(
+                        "clbit index {} out of range (circuit has {} clbits)",
+                        arg.index,
+                        qpy_data.circuit_data.num_clbits()
+                    )));
+                }
+                clbit_indices.push(Clbit(arg.index));
+            }
+        }
     }
     let qubits = qpy_data.circuit_data.add_qargs(&qubit_indices);
     let clbits = qpy_data.circuit_data.add_cargs(&clbit_indices);
-    (qubits, clbits)
+    Ok((qubits, clbits))
 }
 
 // Unpacks the instruction's parameters to a list of generic values
@@ -359,7 +378,7 @@ fn unpack_instruction(
         }
         InstructionType::Python => unpack_py_instruction(instruction, label.as_deref(), qpy_data)?,
     };
-    let (qubits, clbits) = get_instruction_bits(instruction, qpy_data);
+    let (qubits, clbits) = get_instruction_bits(instruction, qpy_data)?;
     let params = instruction_values_to_params(parameter_values, qpy_data)?;
 
     // Check if this is a non-control-flow instruction with a condition
