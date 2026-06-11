@@ -116,10 +116,10 @@ fn build_layers(circ: &CircuitData, measure_arrows: bool) -> Vec<Vec<&PackedInst
             continue;
         }
 
-		let is_measure = match!(
+		let is_measure = matches!(
 			inst.op.view(),
 			OperationRef::StandardInstruction(StandardInstruction::Measure)
-		)
+        );
 
         let (node_min, node_max) = get_instruction_range(
             circ.get_qargs(inst.qubits),
@@ -302,13 +302,14 @@ impl<'a> VisualizationLayer<'a> {
         inst: &'a PackedInstruction,
         circuit: &CircuitData,
         clbit_map: &[usize],
+        measure_arrows: bool,
     ) {
         match inst.op.view() {
             OperationRef::StandardGate(gate) => {
                 self.add_standard_gate(gate, inst, circuit);
             }
             OperationRef::StandardInstruction(std_inst) => {
-                self.add_standard_instruction(cregbundle, std_inst, inst, circuit, clbit_map, true);
+                self.add_standard_instruction(cregbundle, std_inst, inst, circuit, clbit_map, measure_arrows);
             }
             OperationRef::Unitary(_) => {
                 self.add_unitary_gate(inst, circuit);
@@ -623,7 +624,7 @@ impl<'a> VisualizationMatrix<'a> {
 
         for (i, layer) in inst_layers.iter().enumerate() {
             for inst in layer {
-                layers[i + 1].add_instruction(bundle_cregs, inst, circuit, &clbit_map);
+                layers[i + 1].add_instruction(bundle_cregs, inst, circuit, &clbit_map, measure_arrows);
             }
         }
 
@@ -968,6 +969,7 @@ impl TextDrawer {
         vis_mat: &VisualizationMatrix,
         cregbundle: bool,
         layer_ind: usize,
+        measure_arrows: bool,
     ) -> Vec<TextWireElement> {
         let mut wires: Vec<TextWireElement> = layer
             .0
@@ -1160,7 +1162,7 @@ impl TextDrawer {
                     }
                     OnWireElement::Swap(inst) => {
                         let (minima, maxima) =
-                            get_instruction_range(circuit.get_qargs(inst.qubits), &[], 0, false);
+                            get_instruction_range(circuit.get_qargs(inst.qubits), &[], 0, false, false);
                         (
                             format!(
                                 " {} ",
@@ -2789,4 +2791,177 @@ q_3: ┤ X ├─■─────────────────┤ X ├
             },
         );
     }
+
+
+    fn helper_measure(circuit: &mut CircuitData, qbit_idx: usize, clbit_idx: usize) {
+        let inst = PackedInstruction {
+            op: StandardInstruction::Measure.into(),
+            qubits: circuit.add_qargs(&[Qubit::new(qbit_idx)]),
+            clbits: circuit.add_cargs(&[Clbit::new(clbit_idx)]),
+            params: None,
+            label: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
+        };
+        circuit.push(inst).unwrap();
+    }
+    
+    fn helper_circuit_nqnc(n: u32) -> CircuitData {
+        let qreg = QuantumRegister::new_owning("q", n);
+        let creg = ClassicalRegister::new_owning("c", n);
+        let qubits = (0..qreg.len()).map(|i| qreg.get(i).unwrap()).collect();
+        let clbits = (0..creg.len()).map(|i| creg.get(i).unwrap()).collect();
+        let mut circuit = CircuitData::new(Some(qubits), Some(clbits), Param::Float(0.0)).unwrap();
+        _ = circuit.add_creg(creg, true);
+        _ = circuit.add_qreg(qreg, true);
+        circuit
+    }
+    
+    fn helper_circuit_measure_all(n: u32) -> CircuitData {
+        let mut c = helper_circuit_nqnc(n);
+        for i in 0..n{
+            helper_measure(&mut c, i.try_into().unwrap(), i.try_into().unwrap());
+        }
+        c
+    }
+
+    fn helper_circuit_h_measure() -> CircuitData {
+        let mut c = helper_circuit_nqnc(1);
+        c.push_standard_gate(StandardGate::H, &[], &[Qubit::new(0)]).unwrap();
+        helper_measure(&mut c, 0, 0);
+        c
+    }
+
+    fn helper_circuit_measure_q0_q1() -> CircuitData {
+        let mut c = helper_circuit_nqnc(2);
+        helper_measure(&mut c, 0, 0);
+        c
+    }
+
+    fn helper_circuit_bell_measure() -> CircuitData {
+        let mut c = helper_circuit_nqnc(2);
+        c.push_standard_gate(StandardGate::H, &[], &[Qubit::new(0)]).unwrap();
+        c.push_standard_gate(StandardGate::CX, &[], &[Qubit::new(0), Qubit::new(1)]).unwrap();
+        helper_measure(&mut c, 0, 0);
+        helper_measure(&mut c, 1, 1);
+        c
+    }
+
+    #[test]
+    fn test_measure_arrows() {
+        let list = [
+            (helper_circuit_measure_all(4), "     ┌─┐
+q_0: ┤M├─────────
+     └╥┘
+      ║ ┌─┐
+q_1: ─╫─┤M├──────
+      ║ └╥┘
+      ║  ║ ┌─┐
+q_2: ─╫──╫─┤M├───
+      ║  ║ └╥┘
+      ║  ║  ║ ┌─┐
+q_3: ─╫──╫──╫─┤M├
+      ║  ║  ║ └╥┘
+      ║  ║  ║  ║
+c_0: ═╩══╬══╬══╬═
+         ║  ║  ║
+         ║  ║  ║
+c_1: ════╩══╬══╬═
+            ║  ║
+            ║  ║
+c_2: ═══════╩══╬═
+               ║
+               ║
+c_3: ══════════╩═
+", "     ┌─┐
+q_0: ┤M├
+     └─┘
+     ┌─┐
+q_1: ┤M├
+     └─┘
+     ┌─┐
+q_2: ┤M├
+     └─┘
+     ┌─┐
+q_3: ┤M├
+     └─┘
+
+c_0: ═══
+
+
+c_1: ═══
+
+
+c_2: ═══
+
+
+c_3: ═══
+"),
+            (helper_circuit_h_measure(), "   ┌───┐┌─┐
+q: ┤ H ├┤M├
+   └───┘└╥┘
+         ║
+c: ══════╩═
+","   ┌───┐┌─┐
+q: ┤ H ├┤M├
+   └───┘└─┘
+
+c: ════════
+"),
+            (helper_circuit_measure_q0_q1(), "     ┌─┐
+q_0: ┤M├
+     └╥┘
+      ║
+q_1: ─╫─
+      ║
+      ║
+c_0: ═╩═
+
+
+c_1: ═══
+","     ┌─┐
+q_0: ┤M├
+     └─┘
+
+q_1: ───
+
+
+c_0: ═══
+
+
+c_1: ═══
+"),
+            (helper_circuit_bell_measure(), "     ┌───┐     ┌─┐
+q_0: ┤ H ├──■──┤M├───
+     └───┘  │  └╥┘
+          ┌─┴─┐ ║ ┌─┐
+q_1: ─────┤ X ├─╫─┤M├
+          └───┘ ║ └╥┘
+                ║  ║
+c_0: ═══════════╩══╬═
+                   ║
+                   ║
+c_1: ══════════════╩═
+","     ┌───┐     ┌─┐
+q_0: ┤ H ├──■──┤M├
+     └───┘  │  └─┘
+          ┌─┴─┐┌─┐
+q_1: ─────┤ X ├┤M├
+          └───┘└─┘
+
+c_0: ═════════════
+
+
+c_1: ═════════════
+"),
+        ];
+
+        for element in list {
+            assert_eq!(draw_circuit(&element.0, false, false, Some(100), true).unwrap(), element.1);
+            assert_eq!(draw_circuit(&element.0, false, false, Some(100), false).unwrap(), element.2);
+        }
+    }
+
+
+
 }
