@@ -88,7 +88,7 @@ impl PyType {
     ///
     /// This is exactly equal to the Python type object that defines
     /// this type, that is ``t.kind is type(t)``, but is exposed like this to make it clear that
-    /// this a hashable enum-like discriminator you can rely on."""
+    /// this a hashable enum-like discriminator you can rely on.
     #[getter]
     fn get_kind(&self, py: Python) -> Py<PyAny> {
         match self.0 {

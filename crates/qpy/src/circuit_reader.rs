@@ -33,7 +33,7 @@ use qiskit_circuit::bit::{
 };
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::instruction::Parameters;
+use qiskit_circuit::instruction::{Parameters, create_py_op};
 use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::ArrayType;
 use qiskit_circuit::operations::PauliBased;
@@ -972,13 +972,19 @@ fn unpack_custom_instruction(
                         None => gate_class_name,
                     };
                 }
+                let params = qpy_data
+                    .circuit_data
+                    .unpack_blocks_to_circuit_parameters(base_gate.params.as_deref());
+                let py_base_gate = create_py_op(
+                    py,
+                    base_gate.op.view(),
+                    params,
+                    base_gate.label.as_deref().map(String::as_str),
+                )?;
                 let kwargs = PyDict::new(py);
                 kwargs.set_item(intern!(py, "num_ctrl_qubits"), instruction.num_ctrl_qubits)?;
                 kwargs.set_item(intern!(py, "ctrl_state"), instruction.ctrl_state)?;
-                kwargs.set_item(
-                    intern!(py, "base_gate"),
-                    qpy_data.circuit_data.unpack_py_op(py, &base_gate)?,
-                )?;
+                kwargs.set_item(intern!(py, "base_gate"), py_base_gate)?;
 
                 let controlled_gate_object = imports::CONTROLLED_GATE.get_bound(py).call(
                     (&gate_class_name, custom_instruction.num_qubits, py_params),
@@ -998,11 +1004,17 @@ fn unpack_custom_instruction(
                     .0;
                 let base_gate =
                     unpack_instruction(&packed_base_gate, custom_instructions_map, qpy_data)?;
-                let kwargs = PyDict::new(py);
-                kwargs.set_item(
-                    intern!(py, "base_op"),
-                    qpy_data.circuit_data.unpack_py_op(py, &base_gate)?,
+                let params = qpy_data
+                    .circuit_data
+                    .unpack_blocks_to_circuit_parameters(base_gate.params.as_deref());
+                let py_base_gate = create_py_op(
+                    py,
+                    base_gate.op.view(),
+                    params,
+                    base_gate.label.as_deref().map(String::as_str),
                 )?;
+                let kwargs = PyDict::new(py);
+                kwargs.set_item(intern!(py, "base_op"), py_base_gate)?;
                 kwargs.set_item(intern!(py, "modifiers"), py_params)?;
                 imports::ANNOTATED_OPERATION
                     .get_bound(py)
