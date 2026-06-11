@@ -36,6 +36,7 @@ use crate::passes::unitary_synthesis::{
     Approximation, QpuConstraint, TwoQSynthesisResult, fidelity_2q_sequence, synthesize_2q_matrix,
 };
 use crate::passes::{UnitarySynthesisConfig, UnitarySynthesisState};
+use crate::target::PyTarget;
 use crate::target::Target;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_synthesis::linalg::nalgebra_array_view;
@@ -55,7 +56,7 @@ type MappingIterItem = Option<(TwoQSynthesisResult<f64>, [Qubit; 2])>;
 pub fn py_two_qubit_unitary_peephole_optimize(
     py: Python,
     dag: &DAGCircuit,
-    target: &Target,
+    target: &PyTarget,
     approximation_degree: Option<f64>,
 ) -> PyResult<Option<DAGCircuit>> {
     let result = py.detach(move || {
