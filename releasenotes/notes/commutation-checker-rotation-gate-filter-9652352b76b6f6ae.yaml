@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`qiskit.circuit.CommutationChecker` when the
+    ``gates`` filter is used with parameterized rotation gate names such as
+    ``"rx"``. Previously the filter could reject those gates after their
+    internal generator mapping and incorrectly return ``False`` for
+    self-commuting checks.

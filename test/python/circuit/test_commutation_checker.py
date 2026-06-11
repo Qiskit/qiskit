@@ -24,6 +24,7 @@ from qiskit.quantum_info import Operator
 
 from qiskit.circuit import (
     AnnotatedOperation,
+    CommutationChecker,
     ControlModifier,
     Gate,
     InverseModifier,
@@ -32,7 +33,10 @@ from qiskit.circuit import (
     Qubit,
     QuantumCircuit,
 )
-from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
+from qiskit.circuit.commutation_library import (
+    SessionCommutationChecker as scc,
+    StandardGateCommutations,
+)
 from qiskit.circuit.library import (
     Barrier,
     CCXGate,
@@ -272,6 +276,27 @@ class TestCommutationChecker(QiskitTestCase):
         self.assertTrue(scc.commute(XGate(), [0], [], rxx_gate_theta, [0, 1], []))
         self.assertTrue(scc.commute(rx_gate_theta, [0], [], rxx_gate_theta, [0, 1], []))
         self.assertTrue(scc.commute(rz_gate_theta, [0], [], cx_gate, [0, 1], []))
+
+    def test_gate_filter_accepts_rotation_gate_names(self):
+        """Gate filtering should accept both rotation gate names and generator names."""
+        rx1 = RXGate(0.1)
+        rx2 = RXGate(0.2)
+
+        self.assertTrue(
+            CommutationChecker(StandardGateCommutations, gates={"rx"}).commute(
+                rx1, [0], [], rx2, [0], []
+            )
+        )
+        self.assertTrue(
+            CommutationChecker(StandardGateCommutations, gates={"x"}).commute(
+                rx1, [0], [], rx2, [0], []
+            )
+        )
+        self.assertFalse(
+            CommutationChecker(StandardGateCommutations, gates={"rz"}).commute(
+                rx1, [0], [], rx2, [0], []
+            )
+        )
 
     def test_parameterized_controlled_rotation_gates(self):
         """Check commutativity between parameterized controlled rotation gates,
