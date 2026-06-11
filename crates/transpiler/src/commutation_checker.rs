@@ -463,10 +463,13 @@ impl CommutationChecker {
                 _ => &[],
             })
             .unwrap_or_default();
+        let gate_filter = self.gates.as_ref().filter(|gates| !gates.is_empty());
+        let (op1_allowed_by_original_name, op2_allowed_by_original_name) = gate_filter
+            .map(|gates| (gates.contains(op1.name()), gates.contains(op2.name())))
+            .unwrap_or((true, true));
 
         // if we have rotation gates, we attempt to map them to their generators, for example
         // RX -> X or CPhase -> CZ
-        let original_op1_name = op1.name();
         let (op1_gate, params1, trivial1) = map_rotation(op1, params1, tol);
         if trivial1 {
             return Ok(true);
@@ -476,7 +479,6 @@ impl CommutationChecker {
         } else {
             op1
         };
-        let original_op2_name = op2.name();
         let (op2_gate, params2, trivial2) = map_rotation(op2, params2, tol);
         if trivial2 {
             return Ok(true);
@@ -487,10 +489,10 @@ impl CommutationChecker {
             op2
         };
 
-        if let Some(gates) = &self.gates {
-            let op1_allowed = gates.contains(original_op1_name) || gates.contains(op1.name());
-            let op2_allowed = gates.contains(original_op2_name) || gates.contains(op2.name());
-            if !gates.is_empty() && (!op1_allowed || !op2_allowed) {
+        if let Some(gates) = gate_filter {
+            let op1_allowed = op1_allowed_by_original_name || gates.contains(op1.name());
+            let op2_allowed = op2_allowed_by_original_name || gates.contains(op2.name());
+            if !op1_allowed || !op2_allowed {
                 return Ok(false);
             }
         }
