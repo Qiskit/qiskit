@@ -46,7 +46,7 @@ class BasePassManager(Generic[IR], ABC):
             max_iteration: The maximum number of iterations the schedule will be looped if the
                 condition is not met.
         """
-        super().__init__([])
+        self._tasks = []
         self.max_iteration = max_iteration
         # This empty property set never gets used; it gets overridden at the completion of a
         # workflow run.
@@ -54,6 +54,25 @@ class BasePassManager(Generic[IR], ABC):
 
         if tasks:
             self.append(tasks)
+
+    def append(
+        self,
+        tasks: Task[IR, IR] | list[Task[IR, IR]],
+    ) -> None:
+        """Append tasks to the schedule of passes.
+
+        Args:
+            tasks: A set of pass manager tasks to be added to schedule.
+
+        Raises:
+            TypeError: When any element of tasks is not a subclass of passmanager Task.
+        """
+        if isinstance(tasks, Task):
+            tasks = [tasks]
+        if any(not isinstance(t, Task) for t in tasks):
+            raise TypeError("Added tasks are not all valid pass manager task types.")
+
+        self._tasks.append(tasks)
 
     def replace(
         self,
