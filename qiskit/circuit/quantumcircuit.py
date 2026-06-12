@@ -5157,7 +5157,6 @@ class QuantumCircuit:
             qarg = self.qubits
         return self.append(Delay(duration, unit=unit), [qarg], [], copy=False)
 
-    # AI-assisted update: gate convenience methods in this section propagate optional labels.
     def h(self, qubit: QubitSpecifier, label: str | None = None) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.HGate`.
 

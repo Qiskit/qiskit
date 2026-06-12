@@ -46,7 +46,6 @@ from test import QiskitTestCase
 class TestCircuitOperations(QiskitTestCase):
     """QuantumCircuit Operations tests."""
 
-    # AI-assisted regression coverage for labels on gate convenience methods.
     def test_gate_methods_accept_labels(self):
         """Test that gate convenience methods propagate labels to their operation."""
         cases = [
@@ -96,7 +95,10 @@ class TestCircuitOperations(QiskitTestCase):
         circuit.mcx([0, 1], 2, ctrl_state="01", label="mcx")
 
         self.assertEqual(
-            [(operation.operation.label, operation.operation.ctrl_state) for operation in circuit],
+            [
+                (instruction.operation.label, instruction.operation.ctrl_state)
+                for instruction in circuit.data
+            ],
             [("mcp", 1), ("ccx", 1), ("mcx", 1)],
         )
 
@@ -109,7 +111,7 @@ class TestCircuitOperations(QiskitTestCase):
             circuit.mcx([0, 1], 2, None, None, "01")
 
         self.assertEqual(
-            [operation.operation.ctrl_state for operation in circuit],
+            [instruction.operation.ctrl_state for instruction in circuit.data],
             [1, 1, 1],
         )
 
