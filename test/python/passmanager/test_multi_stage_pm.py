@@ -16,19 +16,14 @@
 from test import QiskitTestCase
 from copy import copy
 
-from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag
+from qiskit.transpiler.passes import RemoveIdentityEquivalent
+from qiskit.circuit import QuantumCircuit
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager.multi_ir_passmanager import MultiStagePassManager
+from qiskit.passmanager.base_tasks import GenericPass
+from qiskit.passmanager import BasePassManager
 from qiskit.transpiler import generate_preset_pass_manager, CouplingMap
-from .tasks import (
-    BaseTask,
-    CircuitNoOp,
-    CircuitAnalysis,
-    CircuitToDAG,
-    DAGNoOp,
-    DAGRemoveIdentity,
-    RequireKey,
-)
 
 
 class PauliIR:
@@ -44,41 +39,88 @@ class PauliIR:
             raise ValueError("Incompatible number of qubits")
         self.instructions.append(pauli)
 
-    def to_circuit(self) -> QuantumCircuit:
-        """Convert to a circuit."""
-        circuit = QuantumCircuit(self.num_qubits)
-        for pauli in self.instructions:
-            circuit.pauli(pauli, circuit.qubits)
-        return circuit
+
+class PauliPM(BasePassManager):
+    """A pass manager for the Pauli IR. Has trivial conversions."""
+
+    def _passmanager_frontend(self, input_program, **kwargs):
+        return input_program
+
+    def _passmanager_backend(self, passmanager_ir, in_program, **kwargs):
+        return passmanager_ir
 
 
-class RemovePauliIdentities(BaseTask[PauliIR, PauliIR]):
-    """A pass removing Pauli identities."""
+class IdentifyIdentities(GenericPass[PauliIR, PauliIR]):
+    """An analysis pass identifying Paul identities."""
 
-    def __init__(self):
-        super().__init__(PauliIR)
-
-    def run(self, passmanager_ir, property_set=None):
+    def run(self, passmanager_ir: PauliIR) -> PauliIR:
         to_remove = []
         for i, pauli in enumerate(passmanager_ir.instructions):
             if all(p == "I" for p in pauli):
                 to_remove.append(i)
 
+        # store it in the property set
+        self.property_set["pauli_identities"] = to_remove
+
+
+class RemovePauliIdentities(GenericPass[PauliIR, PauliIR]):
+    """A pass removing Pauli identities."""
+
+    def __init__(self):
+        super().__init__()
+        self.requires = [IdentifyIdentities()]
+
+    def run(self, passmanager_ir):
         # remove from the back to keep indices valid
-        for i in reversed(to_remove):
+        for i in reversed(self.property_set["pauli_identities"]):
             del passmanager_ir.instructions[i]
 
         return passmanager_ir
 
 
-class PauliToCircuit(BaseTask[PauliIR, QuantumCircuit]):
+class PauliToCircuit(GenericPass[PauliIR, QuantumCircuit]):
     """Lower PauliIR to QuantumCircuit."""
 
-    def __init__(self):
-        super().__init__(PauliIR)
+    def run(self, passmanager_ir):
+        circuit = QuantumCircuit(passmanager_ir.num_qubits)
+        for pauli in passmanager_ir.instructions:
+            circuit.pauli(pauli, circuit.qubits)
+        return circuit
 
-    def run(self, passmanager_ir, property_set=None):
-        return passmanager_ir.to_circuit()
+
+class CircuitAnalysis(GenericPass[QuantumCircuit, QuantumCircuit]):
+    """A task counting the number of operations and storing them in the property set."""
+
+    def run(self, passmanager_ir):
+        self.property_set["ops"] = passmanager_ir.count_ops()
+        return passmanager_ir
+
+
+class CircuitToDAG(GenericPass[QuantumCircuit, DAGCircuit]):
+    """A lowering task from circuit to DAG."""
+
+    def run(self, passmanager_ir):
+        return circuit_to_dag(passmanager_ir)
+
+
+class CircuitDecomposer(GenericPass[QuantumCircuit, QuantumCircuit]):
+    """A pass decomposing the circuit one level."""
+
+    def run(self, passmanager_ir):
+        return passmanager_ir.decompose()
+
+
+class RequireKey(GenericPass[QuantumCircuit, QuantumCircuit]):
+    """A task that raises if a required key is absent from the property set."""
+
+    def __init__(self, key: str):
+        super().__init__()
+        self.key = key
+
+    def run(self, passmanager_ir):
+        if self.key not in self.property_set:
+            raise ValueError(f"Required property ({self.key}) is not set.")
+        return passmanager_ir
 
 
 class TestMultiStagePM(QiskitTestCase):
@@ -86,9 +128,9 @@ class TestMultiStagePM(QiskitTestCase):
 
     def test_stage_names(self):
         """Test getting the stage names."""
-        opt1 = CircuitNoOp()
+        opt1 = CircuitDecomposer()
         lower = CircuitToDAG()
-        opt2 = DAGNoOp()
+        opt2 = RemoveIdentityEquivalent()
 
         staged_pm = MultiStagePassManager(first=opt1, lower=lower, last=opt2)
         expected = ("first", "lower", "last")
@@ -100,20 +142,18 @@ class TestMultiStagePM(QiskitTestCase):
             self.assertEqual(lower, getattr(staged_pm, expected[1]))
             self.assertEqual(opt2, getattr(staged_pm, expected[2]))
 
-    def test_multi_ir(self):
-        """Test changing the IR in the pipeline."""
-        pauli = RemovePauliIdentities()
+    def test_multi_ir_flow(self):
+        """Run a non-trivial multi-IR example."""
+        pauli = PauliPM([IdentifyIdentities(), RemovePauliIdentities()])
         pauli_to_circuit = PauliToCircuit()
-        circuit = CircuitNoOp()
-        qc_to_dag = CircuitToDAG()  # the "circuit_to_dag" name is reserved
-        dag = DAGNoOp()
+        circuit = CircuitDecomposer()
+        qc_to_dag = CircuitToDAG()
 
         staged_pm = MultiStagePassManager(
             pauli=pauli,
             pauli_to_circuit=pauli_to_circuit,
             circuit=circuit,
             circuit_to_dag=qc_to_dag,
-            dag=dag,
         )
         input_program = PauliIR(3)
         input_program.apply("XYZ")
@@ -124,18 +164,22 @@ class TestMultiStagePM(QiskitTestCase):
         output_program = staged_pm.run(input_program)
 
         expected = QuantumCircuit(3)
-        expected.pauli("XYZ", [0, 1, 2])
-        expected.pauli("ZZI", [0, 1, 2])
-        expected.pauli("IYI", [0, 1, 2])
+        expected.x(2)
+        expected.y(1)
+        expected.z(0)
+
+        expected.z(2)
+        expected.z(1)
+
+        expected.y(1)
 
         self.assertEqual(circuit_to_dag(expected), output_program)
 
     def test_generate_preset_pm_compatibility(self):
         """Check the existing pipeline can be a stage."""
 
-        pauli = RemovePauliIdentities()
+        pauli = PauliPM([IdentifyIdentities(), RemovePauliIdentities()])
         pauli_to_circuit = PauliToCircuit()
-        circuit = CircuitNoOp()
         qc_to_dag = CircuitToDAG()
         dag = generate_preset_pass_manager(
             coupling_map=CouplingMap.from_line(10), basis_gates=["sx", "x", "rz", "cx"]
@@ -144,7 +188,6 @@ class TestMultiStagePM(QiskitTestCase):
         staged_pm = MultiStagePassManager(
             pauli=pauli,
             pauli_to_circuit=pauli_to_circuit,
-            circuit=circuit,
             circuit_to_dag=qc_to_dag,
             dag=dag,
         )
@@ -159,32 +202,9 @@ class TestMultiStagePM(QiskitTestCase):
         self.assertEqual(output_program.count_ops(), {"x": 1})
         self.assertEqual(output_program.num_qubits(), 10)
 
-    def test_invalid_ir(self):
-        """Test invalid IR pipeline.
-
-        This can be set up by the user since we cannot generally validate the types
-        are correct.
-        """
-        opt1 = CircuitNoOp()
-        opt2 = DAGNoOp()
-
-        invalid_staged_pm = MultiStagePassManager(opt1=opt1, opt2=opt2)
-        input_program = QuantumCircuit(1)
-
-        # This TypeError is only raised since the passes check the input type at runtime
-        with self.assertRaises(TypeError):
-            _ = invalid_staged_pm.run(input_program)
-
     def test_stage_replacement(self):
         """Test replacing stages."""
-        circuit_noop = CircuitNoOp()
-        lower = CircuitToDAG()
-        dag_noop = DAGNoOp()
-        remove_iden = DAGRemoveIdentity()
-
-        staged_pm = MultiStagePassManager(
-            circuit_opt=circuit_noop, circuit_to_dag=lower, dag_opt=dag_noop
-        )
+        staged_pm = MultiStagePassManager(qc_to_dag=CircuitToDAG(), dag_opt=[])
 
         circuit = QuantumCircuit(1)
         circuit.rz(1e-10, 0)
@@ -193,8 +213,8 @@ class TestMultiStagePM(QiskitTestCase):
             out = staged_pm.run(circuit)
             self.assertEqual(circuit_to_dag(circuit), out)
 
-        # change the DAG optimization stage to remove close-to-identity gates
-        staged_pm.dag_opt = remove_iden
+        # change the optimization stage to remove close-to-identity gates
+        staged_pm.dag_opt = RemoveIdentityEquivalent()
 
         with self.subTest(msg="remove identities"):
             out = staged_pm.run(circuit)
@@ -202,9 +222,9 @@ class TestMultiStagePM(QiskitTestCase):
 
     def test_callback(self):
         """Test the callback works."""
-        circuit = [CircuitNoOp(), CircuitAnalysis()]
+        circuit = [CircuitDecomposer(), CircuitAnalysis()]
         lower = CircuitToDAG()
-        dag = DAGRemoveIdentity()
+        dag = RemoveIdentityEquivalent()
 
         staged_pm = MultiStagePassManager(circuit=circuit, circuit_to_dag=lower, dag=dag)
 
@@ -231,38 +251,30 @@ class TestMultiStagePM(QiskitTestCase):
         out = staged_pm.run(input_program, callback=callback)
 
         # Test after task 0
-        self.assertEqual(properties[0][0], "CircuitNoOp")
-        self.assertEqual(properties[0][1], input_program)
+        decomp = input_program.decompose()
+        self.assertEqual(properties[0][0], "CircuitDecomposer")
+        self.assertEqual(properties[0][1], decomp)
         self.assertEqual(properties[0][2], {})  # empty property set
 
         # Test after task 1
         self.assertEqual(properties[1][0], "CircuitAnalysis")
-        self.assertEqual(properties[1][1], input_program)
-        self.assertEqual(properties[1][2]["ops"], input_program.count_ops())
+        self.assertEqual(properties[1][1], decomp)
+        self.assertEqual(properties[1][2]["ops"], decomp.count_ops())
 
         # Test after task 2
         self.assertEqual(properties[2][0], "CircuitToDAG")
-        self.assertEqual(properties[2][1], circuit_to_dag(input_program))
+        self.assertEqual(properties[2][1], circuit_to_dag(decomp))
         self.assertEqual(properties[2][2]["ops"], properties[1][2]["ops"])  # property set remains
 
         # Test after task 3
-        self.assertEqual(properties[3][0], "DAGRemoveIdentity")
+        self.assertEqual(properties[3][0], "RemoveIdentityEquivalent")
         self.assertEqual(properties[3][1], out)
         self.assertEqual(properties[3][2]["ops"], properties[1][2]["ops"])
 
         # All recorded runtimes should be non-negative, and the tasks should be counted
         for i, prop in enumerate(properties):
             self.assertGreaterEqual(prop[3], 0.0)  # runtime
-            self.assertEqual(prop[4], i + 1)  # task count
-
-    def test_single_stage(self):
-        """Test a pipeline with a single stage."""
-        pm = MultiStagePassManager(circuit_opt=[CircuitNoOp()])
-
-        circuit = QuantumCircuit(2)
-        circuit.h(0)
-
-        self.assertEqual(circuit, pm.run(circuit))
+            self.assertEqual(prop[4], i)  # task count
 
     def test_initial_property_set(self):
         """Test that a pre-populated property set is visible to tasks."""
@@ -277,3 +289,23 @@ class TestMultiStagePM(QiskitTestCase):
         with self.subTest(msg="missing initial set"):
             with self.assertRaises(ValueError):
                 _ = pm.run(QuantumCircuit(1))
+
+    def test_nesting(self):
+        """Test nesting a multi-stage inside a multi-stage via FlowControllerLinear."""
+        inner = MultiStagePassManager(
+            pauli=RemovePauliIdentities(), to_circuit=PauliToCircuit(), circuit=CircuitDecomposer()
+        )
+
+        outer = MultiStagePassManager(
+            pauli_to_circuit=inner.to_flow_controller(), to_dag=CircuitToDAG()
+        )
+
+        input_program = PauliIR(3)
+        input_program.apply("ZZI")
+
+        out = outer.run(input_program)
+
+        expected = QuantumCircuit(3)
+        expected.z([2, 1])
+
+        self.assertEqual(circuit_to_dag(expected), out)
