@@ -996,9 +996,9 @@ static int test_get_instruction_params(void) {
     QkComplex64 c0 = {0.0, 0.0};
     QkComplex64 c1 = {1.0, 0.0};
     // clang-format off
-    QkComplex64 matrix[16] = {c1, c1, c0, c0, 
-                              c1, c1, c0, c0, 
-                              c0, c0, c1, c0, 
+    QkComplex64 matrix[16] = {c1, c1, c0, c0,
+                              c1, c1, c0, c0,
+                              c0, c0, c1, c0,
                               c0, c0, c0, c1};
     // clang-format on
 
@@ -1435,6 +1435,51 @@ cleanup:
     return result;
 }
 
+/**
+ * Test estimating a fidelity of a physical circuit
+ */
+static int test_estimate_fidelity(void) {
+    int result = Ok;
+    QkCircuit *qc = qk_circuit_new(1, 0);
+    qk_circuit_gate(qc, QkGate_X, (uint32_t[]){0}, NULL);
+    qk_circuit_gate(qc, QkGate_X, (uint32_t[]){0}, NULL);
+    qk_circuit_gate(qc, QkGate_X, (uint32_t[]){0}, NULL);
+    QkTarget *target = qk_target_new(1);
+    QkTargetEntry *entry = qk_target_entry_new(QkGate_X);
+    qk_target_entry_add_property(entry, (uint32_t[]){0}, 1, 0.5, 0.5);
+    qk_target_add_instruction(target, entry);
+    double fidelity = qk_circuit_estimate_fidelity(qc, target);
+    double expected = pow(0.5, 3);
+    if (fidelity != expected) {
+        printf("Expected %f fidelity got %f instead\n", expected, fidelity);
+        result = EqualityError;
+    }
+    qk_target_free(target);
+    qk_circuit_free(qc);
+    return result;
+}
+
+/**
+ * Test estimating a fidelity of a non-physical circuit
+ */
+static int test_estimate_fidelity_non_physical(void) {
+    int result = Ok;
+    QkCircuit *qc = qk_circuit_new(1, 0);
+    qk_circuit_gate(qc, QkGate_X, (uint32_t[]){0}, NULL);
+    QkTarget *target = qk_target_new(1);
+    QkTargetEntry *entry = qk_target_entry_new(QkGate_U);
+    qk_target_entry_add_property(entry, (uint32_t[]){0}, 1, NAN, 0.5);
+    qk_target_add_instruction(target, entry);
+    double fidelity = qk_circuit_estimate_fidelity(qc, target);
+    if (!isnan(fidelity)) {
+        printf("Expected NAN fidelity got %f instead\n", fidelity);
+        result = EqualityError;
+    }
+    qk_target_free(target);
+    qk_circuit_free(qc);
+    return result;
+}
+
 int test_circuit(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
@@ -1463,6 +1508,8 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_circuit_global_phase);
     num_failed += RUN_TEST(test_circuit_to_dag);
     num_failed += RUN_TEST(test_pbc_instructions);
+    num_failed += RUN_TEST(test_estimate_fidelity);
+    num_failed += RUN_TEST(test_estimate_fidelity_non_physical);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

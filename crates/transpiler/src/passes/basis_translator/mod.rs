@@ -21,6 +21,7 @@ use hashbrown::{HashMap, HashSet};
 use pyo3::prelude::*;
 use qiskit_util::{IndexMap, IndexSet};
 use rustworkx_core::petgraph::algo::toposort;
+use rustworkx_core::petgraph::graph::NodeIndex;
 
 mod basis_search;
 mod compose_transforms;
@@ -336,7 +337,8 @@ fn apply_translation(
     qarg_mapping: Option<&HashMap<Qubit, Qubit>>,
 ) -> Result<DAGCircuit, BasisTranslatorError> {
     let rebuilder_callback = |out_dag_builder: &mut DAGCircuitBuilder,
-                              node_obj: &PackedInstruction| {
+                              node_obj: &PackedInstruction,
+                              _node: NodeIndex| {
         let node_qarg = dag.get_qargs(node_obj.qubits);
         let node_carg = dag.get_cargs(node_obj.clbits);
         let qubit_set: AhashIndexSet<Qubit> = AhashIndexSet::from_iter(node_qarg.iter().copied());

@@ -469,7 +469,7 @@ fn pack_control_flow_inst(
             let collection_value = pack_for_collection(&collection);
             let loop_param_value = match loop_param {
                 None => GenericValue::Null,
-                Some(symbol) => GenericValue::ParameterExpressionSymbol(symbol),
+                Some(symbol) => GenericValue::ParameterExpressionSymbol(symbol.into()),
             };
             let mut params = Vec::new();
             params.push(pack_generic_value(&collection_value, qpy_data)?);
@@ -1076,7 +1076,9 @@ fn pack_custom_instruction(
         // But we still want to serialize it like a regular instruction, so we need to convert it to a PackedInstruction.
         // To avoid changing the original CircuitData we use a hack where it is packed using a dummy circuit data.
         // TODO: Hopefully we'll change all this in a future version of QPY.
-        let mut dummy_circuit_data = CircuitData::new(None, None, Param::Float(0.0))?;
+        let mut dummy_circuit_data = PyCircuitData {
+            inner: CircuitData::new(None, None, Param::Float(0.0))?,
+        };
         let packed_instruction = dummy_circuit_data.pack(py, &instruction)?;
         base_gate_raw = serialize(&pack_instruction(
             &packed_instruction,

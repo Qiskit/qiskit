@@ -71,6 +71,7 @@ fn unroll_3q_or_more(
         &physical_qubits,
         synthesis_state,
         target.into(),
+        false,
     )? {
         *dag = out;
     }
@@ -316,6 +317,7 @@ pub fn translation_stage(
         &physical_qubits,
         synthesis_state,
         target.into(),
+        false,
     )? {
         *dag = out;
     }
@@ -379,6 +381,7 @@ pub fn optimization_stage(
             &physical_qubits,
             synthesis_state,
             target.into(),
+            false,
         )? {
             *dag = out;
         }
@@ -412,6 +415,7 @@ pub fn optimization_stage(
                 &physical_qubits,
                 synthesis_state,
                 target.into(),
+                false,
             )? {
                 *dag = out
             }
@@ -632,15 +636,15 @@ mod tests {
     fn build_universal_star_target() -> Target {
         let mut target = Target::default();
         let u_params = Some(Parameters::Params(smallvec![
-            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
-                "a", None, None,
-            )))),
-            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
-                "b", None, None,
-            )))),
-            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
-                "c", None, None,
-            )))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
+                Symbol::standalone("a".to_owned(), None)
+            ))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
+                Symbol::standalone("b".to_owned(), None)
+            ))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
+                Symbol::standalone("c".to_owned(), None)
+            ))),
         ]));
 
         let props = (0..5)

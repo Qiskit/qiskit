@@ -8265,7 +8265,7 @@ impl DAGCircuit {
         blocks_mode: BlocksMode,
     ) -> Result<Self, E>
     where
-        F: FnMut(&mut DAGCircuitBuilder, &PackedInstruction) -> Result<(), E>,
+        F: FnMut(&mut DAGCircuitBuilder, &PackedInstruction, NodeIndex) -> Result<(), E>,
     {
         let new_dag = self.copy_empty_like_with_same_capacity(vars_mode, blocks_mode);
         let mut builder = new_dag.into_builder();
@@ -8273,7 +8273,7 @@ impl DAGCircuit {
             petgraph::algo::toposort(&self.dag, None).expect("DAGCircuit can't have a cycle")
         {
             if let NodeType::Operation(ref inst) = self.dag[node] {
-                callback(&mut builder, inst)?;
+                callback(&mut builder, inst, node)?;
             }
         }
         Ok(builder.build())
