@@ -124,7 +124,7 @@ impl Symbol {
     }
 
     /// The key object to use for all comparison operations with this object.
-    pub fn ord_key(&self) -> impl ::std::cmp::Ord + ::std::hash::Hash + use<'_> {
+    pub fn ord_key(&self) -> impl Ord + Hash + use<'_> {
         (
             // This is the base name, without the vector-index appended, because we use those
             // numerically.

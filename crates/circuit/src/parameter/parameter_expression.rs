@@ -1525,7 +1525,7 @@ impl PyParameter {
     // In Python space we inherit from `PyParameterExpression`, but we don't want its `__reduce__`
     // to take effect.  This statement is the same as the Python statement:
     //
-    // class Paramemter:
+    // class Parameter:
     //     __reduce__ = object.__reduce__
     //
     // which is a standard way of overriding with the default.
