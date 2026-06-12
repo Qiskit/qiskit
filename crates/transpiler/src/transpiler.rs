@@ -71,6 +71,7 @@ fn unroll_3q_or_more(
         &physical_qubits,
         synthesis_state,
         target.into(),
+        false,
     )? {
         *dag = out;
     }
@@ -316,6 +317,7 @@ pub fn translation_stage(
         &physical_qubits,
         synthesis_state,
         target.into(),
+        false,
     )? {
         *dag = out;
     }
@@ -379,6 +381,7 @@ pub fn optimization_stage(
             &physical_qubits,
             synthesis_state,
             target.into(),
+            false,
         )? {
             *dag = out;
         }
@@ -412,6 +415,7 @@ pub fn optimization_stage(
                 &physical_qubits,
                 synthesis_state,
                 target.into(),
+                false,
             )? {
                 *dag = out
             }

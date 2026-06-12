@@ -20,21 +20,26 @@ use errors::BasisTranslatorError;
 use hashbrown::{HashMap, HashSet};
 use pyo3::prelude::*;
 use qiskit_util::{IndexMap, IndexSet};
+use rustworkx_core::petgraph::algo::toposort;
+use rustworkx_core::petgraph::graph::NodeIndex;
 
 mod basis_search;
 mod compose_transforms;
 mod errors;
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder};
 use qiskit_circuit::instruction::Parameters;
-use qiskit_circuit::operations::{Operation, OperationRef, Param, PauliBased, PythonOperation};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter::parameter_expression::ParameterError;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::parameter::symbol_expr::SymbolExpr;
 use qiskit_circuit::parameter::symbol_expr::Value;
-use qiskit_circuit::{BlocksMode, Clbit, PhysicalQubit, Qubit, VarsMode};
+use qiskit_circuit::{
+    BlocksMode, VarsMode,
+    dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType},
+    operations::{Operation, OperationRef, Param, PauliBased, PythonOperation},
+};
+use qiskit_circuit::{Clbit, PhysicalQubit, Qubit};
 use smallvec::SmallVec;
 
 use crate::equivalence::EquivalenceLibrary;
@@ -331,10 +336,9 @@ fn apply_translation(
     qargs_with_non_global_operation: &AhashIndexMap<Qargs, AhashIndexSet<&str>>,
     qarg_mapping: Option<&HashMap<Qubit, Qubit>>,
 ) -> Result<DAGCircuit, BasisTranslatorError> {
-    let out_dag = dag.copy_empty_like(VarsMode::Alike, BlocksMode::Keep);
-    let mut out_dag_builder = out_dag.into_builder();
-    for node in dag.topological_op_nodes(false) {
-        let node_obj = dag[node].unwrap_operation();
+    let rebuilder_callback = |out_dag_builder: &mut DAGCircuitBuilder,
+                              node_obj: &PackedInstruction,
+                              _node: NodeIndex| {
         let node_qarg = dag.get_qargs(node_obj.qubits);
         let node_carg = dag.get_cargs(node_obj.clbits);
         let qubit_set: AhashIndexSet<Qubit> = AhashIndexSet::from_iter(node_qarg.iter().copied());
@@ -401,7 +405,7 @@ fn apply_translation(
                         )
                     })?;
             }
-            continue;
+            return Ok(());
         }
         // Map to the absolute indices when provided to avoid mistakenly tracking
         // the operation as global.
@@ -431,7 +435,7 @@ fn apply_translation(
                         "Error applying operation to DAGCircuit".to_string(),
                     )
                 })?;
-            continue;
+            return Ok(());
         }
 
         // Map the unique qargs with the absolute indices as well
@@ -445,21 +449,22 @@ fn apply_translation(
         };
         if extra_inst_map.contains_key(&unique_qargs) {
             replace_node(
-                &mut out_dag_builder,
+                out_dag_builder,
                 node_obj.clone(),
                 &extra_inst_map[&unique_qargs],
             )?;
         } else if instr_map
             .contains_key(&(node_obj.op.name().to_string(), node_obj.op.num_qubits()))
         {
-            replace_node(&mut out_dag_builder, node_obj.clone(), instr_map)?;
+            replace_node(out_dag_builder, node_obj.clone(), instr_map)?;
         } else {
             return Err(BasisTranslatorError::ApplyTranslationMappingError(
                 node_obj.op.name().to_string(),
             ));
         }
-    }
-    Ok(out_dag_builder.build())
+        Ok(())
+    };
+    dag.rebuild_dag_with(rebuilder_callback, VarsMode::Alike, BlocksMode::Keep)
 }
 
 fn replace_node(
@@ -480,8 +485,11 @@ fn replace_node(
         });
     }
     if params_view.is_empty() {
-        for inner_index in target_dag.topological_op_nodes(false) {
-            let inner_node = &target_dag[inner_index].unwrap_operation();
+        for inner_index in toposort(target_dag.dag(), None).expect("DAGCircuit can't have a cycle")
+        {
+            let NodeType::Operation(ref inner_node) = target_dag[inner_index] else {
+                continue;
+            };
             let old_qargs = dag.qargs_interner().get(node.qubits);
             let old_cargs = dag.cargs_interner().get(node.clbits);
             let new_qubits: Vec<Qubit> = target_dag
@@ -545,8 +553,11 @@ fn replace_node(
                     _ => None,
                 }),
         );
-        for inner_index in target_dag.topological_op_nodes(false) {
-            let inner_node = &target_dag[inner_index].unwrap_operation();
+        for inner_index in toposort(target_dag.dag(), None).expect("DAGCircuit can't have a cycle")
+        {
+            let NodeType::Operation(ref inner_node) = target_dag[inner_index] else {
+                continue;
+            };
             let old_qargs = dag.qargs_interner().get(node.qubits);
             let old_cargs = dag.cargs_interner().get(node.clbits);
             let new_qubits: Vec<Qubit> = target_dag
