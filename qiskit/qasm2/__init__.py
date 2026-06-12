@@ -577,6 +577,14 @@ def _normalize_path(path: str | os.PathLike) -> str:
     return str(path)
 
 
+def _get_recursion_limit() -> int:
+    """Get a recursion limit suitable for the parser.
+
+    We are more aggressive on Windows because it has a signifincantly more limited stack size by
+    default."""
+    return sys.getrecursionlimit() // 10
+
+
 def loads(
     string: str,
     *,
@@ -590,7 +598,8 @@ def loads(
     .. note::
         The internal classical-expression parser is recursive, and will raise a
         :exc:`RecursionError` if any expression requires excessive depth to evaluate.  This maxmimum
-        depth can be adjusted using :func:`sys.setrecursionlimit`.
+        depth can be adjusted using :func:`sys.setrecursionlimit`; the actual limit is one-tenth of
+        this value.
 
     Args:
         string: The OpenQASM 2 program in a string.
@@ -616,7 +625,7 @@ def loads(
             ],
             tuple(custom_classical),
             strict,
-            max_depth=sys.getrecursionlimit(),
+            max_depth=_get_recursion_limit(),
         ),
         custom_instructions,
     )
@@ -637,7 +646,8 @@ def load(
     .. note::
         The internal classical-expression parser is recursive, and will raise a
         :exc:`RecursionError` if any expression requires excessive depth to evaluate.  This maxmimum
-        depth can be adjusted using :func:`sys.setrecursionlimit`.
+        depth can be adjusted using :func:`sys.setrecursionlimit`; the actual limit is one-tenth of
+        this value.
 
     Args:
         filename: The path to the OpenQASM 2 file.
@@ -677,7 +687,7 @@ def load(
             ],
             tuple(custom_classical),
             strict,
-            max_depth=sys.getrecursionlimit(),
+            max_depth=_get_recursion_limit(),
         ),
         custom_instructions,
     )
