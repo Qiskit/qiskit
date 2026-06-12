@@ -1,0 +1,5 @@
+---
+prelude: |
+  Qiskit v2.4.2 is a patch release, fixing bugs identified in the v2.4 series.
+
+  This is also a security release, patching a stack-overflow vulnerability in the OpenQASM 2 parser.
