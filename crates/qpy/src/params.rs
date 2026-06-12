@@ -152,8 +152,8 @@ pub(crate) fn pack_parameter_expression(
 fn pack_symbol_table_element(
     symbol: &Symbol,
 ) -> Result<formats::ParameterExpressionSymbolPack, QpyError> {
-    // This was used only when packing symbol tables related to substitution commands and no longer
-    // relevant.
+    // The `value_data` part in the QPY format is only used for "substitute" commands in the replay,
+    // but the Rust-space writer has no need to output those, so it's always empty for us.
     let value_data = Bytes::new();
     match symbol {
         Symbol::Standalone { .. } => {
