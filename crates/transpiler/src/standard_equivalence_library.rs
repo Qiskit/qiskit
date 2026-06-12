@@ -3143,5 +3143,136 @@ pub fn generate_standard_equivalence_library() -> EquivalenceLibrary {
     )
     .expect("Error while adding XX_MINUS_YY gate equivalence");
 
+    // C3SXGate
+
+    // q_0: ──■───
+    //        │
+    // q_1: ──■───
+    //        │     =
+    // q_2: ──■───
+    //      ┌─┴──┐
+    // q_3: ┤ Sx ├
+    //      └────┘
+    //
+    // q_0: ──────■─────────■───────────────────■──────────────────────────────────────■──────────────────────────────────────■─────────────────────
+    //            │       ┌─┴─┐               ┌─┴─┐                                    │                                      │
+    // q_1: ──────┼───────┤ X ├──────■────────┤ X ├──────■─────────■───────────────────┼──────────────────■───────────────────┼─────────────────────
+    //            │       └───┘      │        └───┘      │       ┌─┴─┐               ┌─┴─┐              ┌─┴─┐               ┌─┴─┐
+    // q_2: ──────┼──────────────────┼───────────────────┼───────┤ X ├──────■────────┤ X ├──────■───────┤ X ├──────■────────┤ X ├──────■────────────
+    //      ┌───┐ │P(π/8) ┌───┐┌───┐ │P(-π/8) ┌───┐┌───┐ │P(π/8) ├───┤┌───┐ │P(-π/8) ├───┤┌───┐ │P(π/8) ├───┤┌───┐ │P(-π/8) ├───┤┌───┐ │P(π/8) ┌───┐
+    // q_3: ┤ H ├─■───────┤ H ├┤ H ├─■────────┤ H ├┤ H ├─■───────┤ H ├┤ H ├─■────────┤ H ├┤ H ├─■───────┤ H ├┤ H ├─■────────┤ H ├┤ H ├─■───────┤ H ├
+    //      └───┘         └───┘└───┘          └───┘└───┘         └───┘└───┘          └───┘└───┘         └───┘└───┘          └───┘└───┘         └───┘
+    create_standard_equivalence(
+        StandardGate::C3SX,
+        &[],
+        &[
+            (StandardGate::H, &[Qubit(3)], &[]),
+            (
+                StandardGate::CPhase,
+                &[Qubit(0), Qubit(3)],
+                &[Param::Float(PI / 8.)],
+            ),
+            (StandardGate::H, &[Qubit(3)], &[]),
+            (StandardGate::CX, &[Qubit(0), Qubit(1)], &[]),
+            (StandardGate::H, &[Qubit(3)], &[]),
+            (
+                StandardGate::CPhase,
+                &[Qubit(1), Qubit(3)],
+                &[Param::Float(-PI / 8.)],
+            ),
+            (StandardGate::H, &[Qubit(3)], &[]),
+            (StandardGate::CX, &[Qubit(0), Qubit(1)], &[]),
+            (StandardGate::H, &[Qubit(3)], &[]),
+            (
+                StandardGate::CPhase,
+                &[Qubit(1), Qubit(3)],
+                &[Param::Float(PI / 8.)],
+            ),
+            (StandardGate::H, &[Qubit(3)], &[]),
+            (StandardGate::CX, &[Qubit(1), Qubit(2)], &[]),
+            (StandardGate::H, &[Qubit(3)], &[]),
+            (
+                StandardGate::CPhase,
+                &[Qubit(2), Qubit(3)],
+                &[Param::Float(-PI / 8.)],
+            ),
+            (StandardGate::H, &[Qubit(3)], &[]),
+            (StandardGate::CX, &[Qubit(0), Qubit(2)], &[]),
+            (StandardGate::H, &[Qubit(3)], &[]),
+            (
+                StandardGate::CPhase,
+                &[Qubit(2), Qubit(3)],
+                &[Param::Float(PI / 8.)],
+            ),
+            (StandardGate::H, &[Qubit(3)], &[]),
+            (StandardGate::CX, &[Qubit(1), Qubit(2)], &[]),
+            (StandardGate::H, &[Qubit(3)], &[]),
+            (
+                StandardGate::CPhase,
+                &[Qubit(2), Qubit(3)],
+                &[Param::Float(-PI / 8.)],
+            ),
+            (StandardGate::H, &[Qubit(3)], &[]),
+            (StandardGate::CX, &[Qubit(0), Qubit(2)], &[]),
+            (StandardGate::H, &[Qubit(3)], &[]),
+            (
+                StandardGate::CPhase,
+                &[Qubit(2), Qubit(3)],
+                &[Param::Float(PI / 8.)],
+            ),
+            (StandardGate::H, &[Qubit(3)], &[]),
+        ],
+        0.0,
+        &mut equiv,
+    )
+    .expect("Error while adding C3SX gate equivalence");
+
+    // RC3X
+    //      ┌────────┐
+    // q_0: ┤0       ├
+    //      │        │
+    // q_1: ┤1       ├
+    //      │  Rcccx │  =
+    // q_2: ┤2       ├
+    //      │        │
+    // q_3: ┤3       ├
+    //      └────────┘
+    //
+    // q_0: ─────────────────────────────■─────────────────────■──────────────────────────────────────────────
+    //                                   │                     │
+    // q_1: ─────────────────────────────┼─────────■───────────┼─────────■────────────────────────────────────
+    //                                   │         │           │         │
+    // q_2: ────────────■────────────────┼─────────┼───────────┼─────────┼─────────────────────■──────────────
+    //      ┌───┐┌───┐┌─┴─┐┌─────┐┌───┐┌─┴─┐┌───┐┌─┴─┐┌─────┐┌─┴─┐┌───┐┌─┴─┐┌─────┐┌───┐┌───┐┌─┴─┐┌─────┐┌───┐
+    // q_3: ┤ H ├┤ T ├┤ X ├┤ Tdg ├┤ H ├┤ X ├┤ T ├┤ X ├┤ Tdg ├┤ X ├┤ T ├┤ X ├┤ Tdg ├┤ H ├┤ T ├┤ X ├┤ Tdg ├┤ H ├
+    //      └───┘└───┘└───┘└─────┘└───┘└───┘└───┘└───┘└─────┘└───┘└───┘└───┘└─────┘└───┘└───┘└───┘└─────┘└───┘
+    create_standard_equivalence(
+        StandardGate::RC3X,
+        &[],
+        &[
+            (StandardGate::H, &[Qubit(3)], &[]),
+            (StandardGate::T, &[Qubit(3)], &[]),
+            (StandardGate::CX, &[Qubit(2), Qubit(3)], &[]),
+            (StandardGate::Tdg, &[Qubit(3)], &[]),
+            (StandardGate::H, &[Qubit(3)], &[]),
+            (StandardGate::CX, &[Qubit(0), Qubit(3)], &[]),
+            (StandardGate::T, &[Qubit(3)], &[]),
+            (StandardGate::CX, &[Qubit(1), Qubit(3)], &[]),
+            (StandardGate::Tdg, &[Qubit(3)], &[]),
+            (StandardGate::CX, &[Qubit(0), Qubit(3)], &[]),
+            (StandardGate::T, &[Qubit(3)], &[]),
+            (StandardGate::CX, &[Qubit(1), Qubit(3)], &[]),
+            (StandardGate::Tdg, &[Qubit(3)], &[]),
+            (StandardGate::H, &[Qubit(3)], &[]),
+            (StandardGate::T, &[Qubit(3)], &[]),
+            (StandardGate::CX, &[Qubit(2), Qubit(3)], &[]),
+            (StandardGate::Tdg, &[Qubit(3)], &[]),
+            (StandardGate::H, &[Qubit(3)], &[]),
+        ],
+        0.0,
+        &mut equiv,
+    )
+    .expect("Error while adding RC3X gate equivalence");
+
     equiv
 }

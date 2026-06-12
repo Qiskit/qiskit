@@ -297,7 +297,19 @@ cargo +1.61 update   # Update lock file
 cargo +1.61 build    # Check build
 ```
 
-#### 4.4 Submit the PR for review
+#### 4.4 Update the C-API slots list
+
+You can skip this step if not making a first release candidate, though it should be a no-op in all other cases.
+Only first release candidates should change the C-API slots listing, since those correspond to the new-feature releases.
+
+Override the base "slots" listing for the repository (``/capi_slots.txt``) with the new set for this release.
+This causes the ABI check to use this as the new base for comparison in CI.
+
+```bash
+cargo run -p qiskit-bindgen-cli -- show-slots > capi_slots.txt
+```
+
+#### 4.5 Submit the PR for review
 
 As any other regular PR, commit your changes (don't forget to add the prelude release note), push the branch, and create a PR.
 

@@ -80,10 +80,7 @@ jobs:
           RUST_BACKTRACE: 1
       - name: Filter stestr history
         run: |
-          set -e
-          pushd .stestr
-          ls | grep -e '^[[:digit:]]' | xargs -n1 rm -f
-          popd
+          test-job/bin/stestr history remove all
       - name: Copy and Publish images
         uses: actions/upload-artifact@v7
         if: ${{ failure() }}

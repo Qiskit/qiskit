@@ -34,7 +34,7 @@ static int test_counts_litinski(void) {
     qk_circuit_gate(circuit, QkGate_S, (uint32_t[1]){2}, NULL);
     qk_circuit_gate(circuit, QkGate_T, (uint32_t[1]){2}, NULL);
 
-    qk_transpiler_pass_standalone_litinski_transformation(circuit, false);
+    qk_transpiler_pass_standalone_litinski_transformation(circuit, false, 1.0);
     int result = Ok;
     if (qk_circuit_num_instructions(circuit) != 4) {
         result = EqualityError;
@@ -269,7 +269,7 @@ static int test_concrete_litinski(void) {
         qk_circuit_measure(circuit, i, i);
     }
 
-    qk_transpiler_pass_standalone_litinski_transformation(circuit, false);
+    qk_transpiler_pass_standalone_litinski_transformation(circuit, false, 1.0);
 
     int result = Ok;
     result = check_pauli_rotation(circuit, 0, (enum Pauli[1]){PZ}, (uint32_t[1]){0}, 1, M_PI_4);
@@ -350,7 +350,7 @@ static int test_litinski_noop(void) {
     QkCircuit *circuit = qk_circuit_new(1, 0);
     qk_circuit_gate(circuit, QkGate_H, (uint32_t[1]){0}, NULL);
 
-    qk_transpiler_pass_standalone_litinski_transformation(circuit, true);
+    qk_transpiler_pass_standalone_litinski_transformation(circuit, true, 1.0);
 
     int result = Ok;
     if (qk_circuit_num_instructions(circuit) != 1) {
