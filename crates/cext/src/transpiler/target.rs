@@ -654,24 +654,23 @@ pub unsafe extern "C" fn qk_target_entry_new_fixed(
     params: *mut f64,
     name: *const c_char,
 ) -> *mut TargetEntry {
-    // SAFETY: per documentation, name points to a valid UTF-8 null-terminated string.
     let name_fixed: Option<String> = if name.is_null() {
         None
     } else {
-        Some(unsafe {
-            CStr::from_ptr(name)
+        Some(
+            // SAFETY: per documentation, name points to a valid UTF-8 null-terminated string.
+            unsafe { CStr::from_ptr(name) }
                 .to_str()
                 .expect("Error while extracting the given name.")
-                .to_string()
-        })
+                .to_string(),
+        )
     };
-    unsafe {
-        Box::into_raw(Box::new(TargetEntry::new_fixed(
-            operation,
-            parse_params(operation, params),
-            name_fixed,
-        )))
-    }
+    Box::into_raw(Box::new(TargetEntry::new_fixed(
+        operation,
+        // SAFETY: per documentation, params is compatible with the operation.
+        unsafe { parse_params(operation, params) },
+        name_fixed,
+    )))
 }
 
 /// @ingroup QkTargetEntry
@@ -1569,26 +1568,22 @@ pub unsafe extern "C" fn qk_target_op_clear(op: *mut CTargetOp) {
 
     // SAFETY: As per documentation, data from pointers contained in CTargetOp
     // originates from rust code and are constructed internally with vecs and CStrings.
-    unsafe {
-        let op_borrowed = mut_ptr_as_ref(op);
-        if !op_borrowed.name.is_null() {
-            let _ = CString::from_raw(op_borrowed.name);
-            op_borrowed.name = std::ptr::null_mut();
-        }
-
-        if op_borrowed.num_params > 0 && !op_borrowed.params.is_null() {
-            let params = std::slice::from_raw_parts_mut(
-                op_borrowed.params,
-                op_borrowed.num_params.try_into().unwrap(),
-            );
-            // Parameters don't need to be freed as they're owned by the
-            // Target.
-            let _ = Box::from_raw(params as *mut [*const Param]);
-            op_borrowed.params = std::ptr::null_mut();
-        }
-        op_borrowed.num_params = 0;
-        op_borrowed.num_qubits = 0;
+    // This safety comment holds for all unsafe blocks in this function.
+    let op_borrowed = unsafe { mut_ptr_as_ref(op) };
+    if !op_borrowed.name.is_null() {
+        let _ = unsafe { CString::from_raw(op_borrowed.name) };
+        op_borrowed.name = std::ptr::null_mut();
     }
+
+    if op_borrowed.num_params > 0 && !op_borrowed.params.is_null() {
+        let len = op_borrowed.num_params.try_into().unwrap();
+        let params = unsafe { std::slice::from_raw_parts_mut(op_borrowed.params, len) };
+        // Parameters don't need to be freed as they're owned by the Target.
+        let _ = unsafe { Box::from_raw(params as *mut [*const Param]) };
+        op_borrowed.params = std::ptr::null_mut();
+    }
+    op_borrowed.num_params = 0;
+    op_borrowed.num_qubits = 0;
 }
 
 /// Parses qargs based on a pointer and its size.
@@ -1612,11 +1607,9 @@ unsafe fn parse_qargs(qargs: *const u32, num_qubits: u32) -> Qargs {
         Qargs::Global
     } else {
         // SAFETY: Per the documentation qargs points to an array of num_qubits elements
-        unsafe {
-            (0..num_qubits)
-                .map(|idx| PhysicalQubit(*qargs.wrapping_add(idx as usize)))
-                .collect()
-        }
+        (0..num_qubits)
+            .map(|idx| PhysicalQubit(unsafe { *qargs.wrapping_add(idx as usize) }))
+            .collect()
     }
 }
 
@@ -1638,30 +1631,18 @@ unsafe fn parse_qargs(qargs: *const u32, num_qubits: u32) -> Qargs {
 /// behavior of this function is undefined as this will read outside the bounds of the array.
 /// It can be a null pointer if there are no params for a given gate. You can check
 /// ``qk_gate_num_params`` to determine how many qubits are required for a given gate.
-unsafe fn parse_params(gate: StandardGate, params: *mut f64) -> SmallVec<[Param; 3]> {
+///
+pub unsafe fn parse_params(gate: StandardGate, params: *const f64) -> SmallVec<[Param; 3]> {
     // SAFETY: Per the documentation the params pointers are arrays of num_params() elements.
-    unsafe {
-        match gate.num_params() {
-            0 => smallvec![],
-            1 => smallvec![(*params.wrapping_add(0)).into()],
-            2 => smallvec![
-                (*params.wrapping_add(0)).into(),
-                (*params.wrapping_add(1)).into(),
-            ],
-            3 => smallvec![
-                (*params.wrapping_add(0)).into(),
-                (*params.wrapping_add(1)).into(),
-                (*params.wrapping_add(2)).into(),
-            ],
-            4 => smallvec![
-                (*params.wrapping_add(0)).into(),
-                (*params.wrapping_add(1)).into(),
-                (*params.wrapping_add(2)).into(),
-                (*params.wrapping_add(3)).into(),
-            ],
-            // There are no standard gates that take > 4 params
-            _ => unreachable!(),
-        }
+    if gate.num_params() == 0 {
+        // if there's no parameters, params is NULL and it is not safe to call from_raw_parts
+        smallvec![]
+    } else {
+        // SAFETY: Per the documentation, params is readable for num_params elements of f64
+        unsafe { ::std::slice::from_raw_parts(params, gate.num_params() as usize) }
+            .iter()
+            .map(|p| Param::Float(*p))
+            .collect()
     }
 }
 
