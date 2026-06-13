@@ -61,6 +61,7 @@ impl From<&Expr> for CExprNodeKind {
 
 /// The data types that can be used in classical expressions.
 #[repr(u8)]
+#[derive(Copy, Clone)]
 pub enum CExprType {
     /// Boolean type
     Bool = 0,
@@ -95,6 +96,7 @@ impl From<&Value> for CExprType {
 
 /// The complete representation of the data type used for an expression.
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct CExprTypeInfo {
     /// The expression type
     ty: CExprType,
@@ -102,13 +104,13 @@ pub struct CExprTypeInfo {
     width: u16,
 }
 
-impl CExprTypeInfo {
-    fn to_type(&self) -> Type {
-        match self.ty {
+impl From<CExprTypeInfo> for Type {
+    fn from(value: CExprTypeInfo) -> Type {
+        match value.ty {
             CExprType::Bool => Type::Bool,
             CExprType::Duration => Type::Duration,
             CExprType::Float => Type::Float,
-            CExprType::Uint => Type::Uint(self.width),
+            CExprType::Uint => Type::Uint(value.width),
         }
     }
 }
@@ -158,9 +160,9 @@ impl From<UnaryOp> for CUnaryOpType {
     }
 }
 
-impl CUnaryOpType {
-    fn to_unary_op(&self) -> UnaryOp {
-        match self {
+impl From<CUnaryOpType> for UnaryOp {
+    fn from(value: CUnaryOpType) -> Self {
+        match value {
             CUnaryOpType::BitNot => UnaryOp::BitNot,
             CUnaryOpType::LogicNot => UnaryOp::LogicNot,
             CUnaryOpType::Negate => UnaryOp::Negate,
@@ -186,6 +188,7 @@ pub struct CUnaryExprInfo {
 /// The operation types a binary expression can hold.
 /// Values are one-based to match Python convention.
 #[repr(u8)]
+#[derive(Copy, Clone)]
 pub enum CBinaryOpType {
     /// Bitwise AND operation
     BitAnd = 1,
@@ -247,9 +250,9 @@ impl From<BinaryOp> for CBinaryOpType {
     }
 }
 
-impl CBinaryOpType {
-    fn to_binary_op(&self) -> BinaryOp {
-        match self {
+impl From<CBinaryOpType> for BinaryOp {
+    fn from(value: CBinaryOpType) -> Self {
+        match value {
             CBinaryOpType::BitAnd => BinaryOp::BitAnd,
             CBinaryOpType::BitOr => BinaryOp::BitOr,
             CBinaryOpType::BitXor => BinaryOp::BitXor,
@@ -320,6 +323,7 @@ pub struct CIndexExprInfo {
 
 /// Represents different time units used in duration expressions.
 #[repr(u8)]
+#[derive(Copy, Clone)]
 pub enum CDurationType {
     /// System time units
     Dt = 0,
@@ -352,6 +356,7 @@ impl From<&Duration> for CDurationType {
 ///
 /// This union is part of the `QkDurationInfo` struct and should not be used directly.
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub union CDurationValue {
     /// System time units (active when `ty` in `QkDurationInfo` is `QkDurationType_Dt`)
     dt: i64,
@@ -368,6 +373,7 @@ pub union CDurationValue {
 /// - For all other duration types the duration is stored as a floating-point value in `value.time`.
 ///
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct CDurationInfo {
     /// The duration unit type (discriminant for the union)
     pub ty: CDurationType,
@@ -406,16 +412,16 @@ impl From<&Duration> for CDurationInfo {
     }
 }
 
-impl CDurationInfo {
-    pub fn to_duration(&self) -> Duration {
-        match self.ty {
+impl From<CDurationInfo> for Duration {
+    fn from(value: CDurationInfo) -> Self {
+        match value.ty {
             // SAFETY: Per documentation, ty must correctly discriminate the union.
-            CDurationType::Dt => Duration::dt(unsafe { self.value.dt }),
-            CDurationType::Ps => Duration::ps(unsafe { self.value.time }),
-            CDurationType::Ns => Duration::ns(unsafe { self.value.time }),
-            CDurationType::Us => Duration::us(unsafe { self.value.time }),
-            CDurationType::Ms => Duration::ms(unsafe { self.value.time }),
-            CDurationType::S => Duration::s(unsafe { self.value.time }),
+            CDurationType::Dt => Duration::dt(unsafe { value.value.dt }),
+            CDurationType::Ps => Duration::ps(unsafe { value.value.time }),
+            CDurationType::Ns => Duration::ns(unsafe { value.value.time }),
+            CDurationType::Us => Duration::us(unsafe { value.value.time }),
+            CDurationType::Ms => Duration::ms(unsafe { value.value.time }),
+            CDurationType::S => Duration::s(unsafe { value.value.time }),
         }
     }
 }
@@ -999,7 +1005,7 @@ pub unsafe extern "C" fn inner_test_binary_expr_ops(op: CBinaryOpType) -> *mut E
     });
 
     let expr = Expr::Binary(Box::new(Binary {
-        op: op.to_binary_op(),
+        op: op.into(),
         left: zero.clone(),
         right: zero.clone(),
         ty: Type::Float,
@@ -1020,7 +1026,7 @@ pub unsafe extern "C" fn inner_test_unary_expr_ops(op: CUnaryOpType) -> *mut Exp
     });
 
     let expr = Expr::Unary(Box::new(Unary {
-        op: op.to_unary_op(),
+        op: op.into(),
         operand: zero,
         ty: Type::Float,
         constant: true,
@@ -1037,7 +1043,7 @@ pub unsafe extern "C" fn inner_test_expr_kinds_and_types(
     kind: CExprNodeKind,
     ty: CExprTypeInfo,
 ) -> *mut Expr {
-    let rust_type = ty.to_type();
+    let rust_type = ty.into();
 
     let dummy_value = match &rust_type {
         Type::Bool => Expr::Value(Value::Uint {
@@ -1058,7 +1064,7 @@ pub unsafe extern "C" fn inner_test_expr_kinds_and_types(
     let var = Expr::Var(Var::Standalone {
         uuid: Uuid::new_v4().as_u128(),
         name: "test_var".to_owned(),
-        ty: ty.to_type(),
+        ty: ty.into(),
     });
 
     let index = Expr::Value(Value::Uint {
@@ -1119,7 +1125,7 @@ pub unsafe extern "C" fn inner_test_value(
             raw: BigUint::from(if b { 1u32 } else { 0u32 }),
             ty: Type::Bool,
         },
-        CExprType::Duration => Value::Duration(duration.to_duration()),
+        CExprType::Duration => Value::Duration(duration.into()),
         CExprType::Float => Value::Float {
             raw: f_val,
             ty: Type::Float,
