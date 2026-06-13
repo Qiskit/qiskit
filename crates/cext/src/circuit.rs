@@ -546,59 +546,6 @@ pub unsafe extern "C" fn qk_circuit_get_quantum_register(
 
     ptr::from_ref(&circuit.qregs()[qreg_idx])
 }
-/// @ingroup QkCircuit
-/// Get the owning register of a qubit.
-///
-/// Returns a new pointer to the quantum register that owns the specified qubit,
-/// or NULL if the qubit is anonymous. A qubit can belong to multiple registers
-/// (through aliasing), but only one register is the owning register. Anonymous qubits
-/// are created directly via `qk_circuit_new` and are not owned by any register.
-///
-/// @param circuit A pointer to the circuit.
-/// @param qubit The index of the qubit.
-///
-/// @return A new pointer to the owning quantum register, or NULL if the qubit is anonymous.
-///         The caller must free this pointer with ``qk_quantum_register_free``.
-///
-/// # Example
-/// ```c
-///     QkCircuit *qc = qk_circuit_new(0, 0);
-///     QkQuantumRegister *qr = qk_quantum_register_new(3, "qr");
-///     qk_circuit_add_quantum_register(qc, qr);
-///
-///     QkQuantumRegister *owner2 = qk_circuit_qubit_owning_register(qc, 2);
-///     // Use owner2...
-///     qk_quantum_register_free(owner2);
-///
-///     qk_quantum_register_free(qr);
-///     qk_circuit_free(qc);
-/// ```
-///
-/// # Safety
-///
-/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``,
-/// or if ``qubit`` is out of bounds (>= the number of qubits in the circuit).
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_circuit_qubit_owning_register(
-    circuit: *const CircuitData,
-    qubit: u32,
-) -> *mut QuantumRegister {
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let circuit = unsafe { const_ptr_as_ref(circuit) };
-
-    let shareable_qubit = circuit
-        .qubits()
-        .get(Qubit::from(qubit))
-        .expect("Qubit index is invalid in the circuit");
-
-    if let Some(qreg) = shareable_qubit.owning_register() {
-        // Register should be cloned since it's not owned by the current circuit
-        // and might also not appear in CircuitData::qubit_indices
-        Box::into_raw(Box::new(qreg))
-    } else {
-        ptr::null_mut()
-    }
-}
 
 /// @ingroup QkCircuit
 /// Add a classical register to a given quantum circuit
@@ -707,60 +654,6 @@ pub unsafe extern "C" fn qk_circuit_get_classical_register(
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
     ptr::from_ref(&circuit.cregs()[creg_idx])
-}
-
-/// @ingroup QkCircuit
-/// Get the owning register of a classical bit.
-///
-/// Returns a new pointer to the classical register that owns the specified clbit,
-/// or NULL if the clbit is anonymous. A clbit can belong to multiple registers
-/// (through aliasing), but only one register is the owning register. Anonymous clbits
-/// are created directly via `qk_circuit_new` and are not owned by any register.
-///
-/// @param circuit A pointer to the circuit.
-/// @param clbit The index of the classical bit.
-///
-/// @return A new pointer to the owning classical register, or NULL if the classical bit is anonymous.
-///         The caller must free this pointer with ``qk_classical_register_free``.
-///
-/// # Example
-/// ```c
-///     QkCircuit *qc = qk_circuit_new(0, 0);
-///     QkClassicalRegister *cr = qk_classical_register_new(3, "cr");
-///     qk_circuit_add_classical_register(qc, cr);
-///
-///     QkClassicalRegister *owner2 = qk_circuit_clbit_owning_register(qc, 2);
-///     // Use owner2...
-///     qk_classical_register_free(owner2);
-///
-///     qk_classical_register_free(cr);
-///     qk_circuit_free(qc);
-/// ```
-///
-/// # Safety
-///
-/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``,
-/// or if ``clbit`` is out of bounds (>= the number of classical bits in the circuit).
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_circuit_clbit_owning_register(
-    circuit: *const CircuitData,
-    clbit: u32,
-) -> *mut ClassicalRegister {
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let circuit = unsafe { const_ptr_as_ref(circuit) };
-
-    let shareable_clbit = circuit
-        .clbits()
-        .get(Clbit::from(clbit))
-        .expect("Clbit index is invalid in the circuit");
-
-    if let Some(creg) = shareable_clbit.owning_register() {
-        // Register should be cloned since it's not owned by the current circuit
-        // and might also not appear in CircuitData::clbit_indices
-        Box::into_raw(Box::new(creg))
-    } else {
-        ptr::null_mut()
-    }
 }
 
 /// @ingroup QkCircuit
@@ -2789,15 +2682,9 @@ pub unsafe extern "C" fn qk_circuit_estimate_fidelity(
 
 #[cfg(test)]
 mod test {
-    use crate::{
-        circuit::{
-            qk_circuit_clbit_owning_register, qk_circuit_qubit_owning_register,
-            qk_classical_register_circuit_bits, qk_quantum_register_circuit_bits,
-        },
-        pointers::const_ptr_as_ref,
-    };
+    use crate::circuit::{qk_classical_register_circuit_bits, qk_quantum_register_circuit_bits};
     use qiskit_circuit::{
-        bit::{ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit},
+        bit::{ClassicalRegister, QuantumRegister, ShareableClbit, ShareableQubit},
         circuit_data::CircuitData,
         operations::Param,
     };
@@ -2842,42 +2729,5 @@ mod test {
 
         assert_eq!(out_bits[1], 1); // Bit was explicitly added to the circuit
         assert_eq!(out_bits[0], u32::MAX); // Bit was not added to the circuit
-    }
-
-    #[test]
-    fn test_owning_register_queries() {
-        let qubits = vec![ShareableQubit::new_anonymous()];
-        let clbits = vec![ShareableClbit::new_anonymous()];
-        let mut circuit = CircuitData::new(Some(qubits), Some(clbits), Param::Float(0.0)).unwrap();
-
-        let qr1 = QuantumRegister::new_owning("QR1", 1);
-        let qr1_bits = qr1.bits().collect::<Vec<ShareableQubit>>();
-        circuit.add_qubit(qr1_bits[0].clone(), false).unwrap();
-        let _ = QuantumRegister::new_alias(None, qr1_bits);
-
-        let cr1 = ClassicalRegister::new_owning("CR1", 1);
-        let cr1_bits = cr1.bits().collect::<Vec<ShareableClbit>>();
-        let _ = circuit.add_clbit(cr1_bits[0].clone(), false);
-        let _ = ClassicalRegister::new_alias(None, cr1_bits);
-
-        let owning_qreg_0 = unsafe { qk_circuit_qubit_owning_register(&circuit, 0) };
-        assert!(owning_qreg_0.is_null());
-
-        let owning_qreg_1 = unsafe { qk_circuit_qubit_owning_register(&circuit, 1) };
-        assert!(!owning_qreg_1.is_null());
-
-        let qreg = unsafe { const_ptr_as_ref(owning_qreg_1) };
-        assert_eq!(qreg.name(), qr1.name());
-        unsafe { crate::circuit::qk_quantum_register_free(owning_qreg_1) };
-
-        let owning_creg_0 = unsafe { qk_circuit_clbit_owning_register(&circuit, 0) };
-        assert!(owning_creg_0.is_null());
-
-        let owning_creg_1 = unsafe { qk_circuit_clbit_owning_register(&circuit, 1) };
-        assert!(!owning_creg_1.is_null());
-
-        let creg = unsafe { const_ptr_as_ref(owning_creg_1) };
-        assert_eq!(creg.name(), cr1.name());
-        unsafe { crate::circuit::qk_classical_register_free(owning_creg_1) };
     }
 }

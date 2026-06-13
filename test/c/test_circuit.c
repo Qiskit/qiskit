@@ -1648,77 +1648,6 @@ cleanup:
     return result;
 }
 
-/*
- * Test register ownership queries for circuit bits
- */
-static int test_owning_registers(void) {
-    int result = Ok;
-
-    QkCircuit *circuit = qk_circuit_new(1, 1);
-    QkQuantumRegister *qr1 = qk_quantum_register_new(1, "QR1");
-    qk_circuit_add_quantum_register(circuit, qr1);
-    qk_quantum_register_free(qr1);
-
-    QkClassicalRegister *cr1 = qk_classical_register_new(1, "CR1");
-    qk_circuit_add_classical_register(circuit, cr1);
-    qk_classical_register_free(cr1);
-
-    QkQuantumRegister *owning_qreg = qk_circuit_qubit_owning_register(circuit, 0);
-    if (owning_qreg != NULL) {
-        printf("Expected NULL for anonymous qubit 0, but got a register\n");
-        result = EqualityError;
-        goto owning_qreg_cleanup;
-    }
-
-    owning_qreg = qk_circuit_qubit_owning_register(circuit, 1);
-    if (owning_qreg == NULL) {
-        printf("Expected QR1 for qubit 1, but got NULL\n");
-        result = EqualityError;
-        goto cleanup;
-    }
-
-    // Verify it's the correct register by checking the name
-    char *name = qk_quantum_register_name(owning_qreg);
-    if (strcmp(name, "QR1") != 0) {
-        printf("Expected register name 'QR1' for qubit 1, but got '%s'\n", name);
-        result = EqualityError;
-        qk_str_free(name);
-        goto owning_qreg_cleanup;
-    }
-    qk_str_free(name);
-
-    // Test anonymous clbits (should return NULL)
-    QkClassicalRegister *owning_creg = qk_circuit_clbit_owning_register(circuit, 0);
-    if (owning_creg != NULL) {
-        printf("Expected NULL for anonymous clbit 0, but got a register\n");
-        result = EqualityError;
-        qk_classical_register_free(owning_creg);
-        goto owning_qreg_cleanup;
-    }
-
-    owning_creg = qk_circuit_clbit_owning_register(circuit, 1);
-    if (owning_creg == NULL) {
-        printf("Expected CR1 for clbit 1, but got NULL\n");
-        result = EqualityError;
-        goto owning_qreg_cleanup;
-    }
-
-    // Verify it's the correct register by checking the name
-    name = qk_classical_register_name(owning_creg);
-    if (strcmp(name, "CR1") != 0) {
-        printf("Expected register name 'CR1' for clbit 1, but got '%s'\n", name);
-        result = EqualityError;
-    }
-
-    qk_str_free(name);
-    qk_classical_register_free(owning_creg);
-owning_qreg_cleanup:
-    qk_quantum_register_free(owning_qreg);
-cleanup:
-    qk_circuit_free(circuit);
-    return result;
-}
-
 int test_circuit(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
@@ -1751,7 +1680,6 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_estimate_fidelity_non_physical);
     num_failed += RUN_TEST(test_basic_register_queries);
     num_failed += RUN_TEST(test_register_bits);
-    num_failed += RUN_TEST(test_owning_registers);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
