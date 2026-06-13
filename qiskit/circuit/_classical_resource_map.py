@@ -80,7 +80,7 @@ class VariableMapper(expr.ExprVisitor[expr.Expr]):
         If ``allow_reorder`` is ``True``, then when a legacy condition (the two-tuple form) is made
         on a register that has a counterpart in the destination with all the same (mapped) bits but
         in a different order, then that register will be used and the value suitably modified to
-        make the equality condition work.  This is maintaining legacy (tested) behavior of
+        make the equality condition work.  This is maintaining the legacy (tested) behavior of
         :meth:`.DAGCircuit.compose`; nowhere else does this, and in general this would require *far*
         more complex classical rewriting than Terra needs to worry about in the full expression era.
         """

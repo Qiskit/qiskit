@@ -449,7 +449,7 @@ class ElseContext:
 
     def __enter__(self):
         if self._used:
-            raise CircuitError("Cannot re-use an 'else' context.")
+            raise CircuitError("Cannot reuse an 'else' context.")
         self._used = True
         circuit = self._if_context.circuit
         if not self._if_context.appended:
@@ -489,7 +489,7 @@ class ElseContext:
         circuit = self._if_context.circuit
         if exc_type is not None:
             # If we're leaving the context manager because an exception was raised, we need to
-            # restore the "if" block we popped off.  At that point, it's safe to re-use this context
+            # restore the "if" block we popped off.  At that point, it's safe to reuse this context
             # manager, assuming nothing else untoward happened to the circuit, but that's checked by
             # the __enter__ method.
             circuit._pop_scope()
