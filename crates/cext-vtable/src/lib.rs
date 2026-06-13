@@ -106,10 +106,8 @@ mod circuit {
             export_fn!(qk_classical_register_circuit_bits),
             export_fn!(qk_circuit_num_quantum_registers),
             export_fn!(qk_circuit_get_quantum_register),
-            export_fn!(qk_circuit_qubit_owning_register),
             export_fn!(qk_circuit_num_classical_registers),
             export_fn!(qk_circuit_get_classical_register),
-            export_fn!(qk_circuit_clbit_owning_register),
         ]
     });
 }
