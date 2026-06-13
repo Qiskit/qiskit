@@ -1517,7 +1517,7 @@ static int test_basic_register_queries(void) {
         if (strcmp(name, expected_names[qreg_idx]) != 0) {
             printf("Expected quantum register name %s, got '%s'\n", expected_names[qreg_idx], name);
             result = EqualityError;
-            goto name_cleanup;
+            goto cleanup_name;
         }
 
         size_t num_bits = qk_quantum_register_num_bits(qr_retrieved);
@@ -1525,7 +1525,7 @@ static int test_basic_register_queries(void) {
             printf("Expected quantum register size %zu, got %zu\n", expected_bits[qreg_idx],
                    num_bits);
             result = EqualityError;
-            goto name_cleanup;
+            goto cleanup_name;
         }
         qk_str_free(name);
         name = NULL;
@@ -1545,16 +1545,16 @@ static int test_basic_register_queries(void) {
     if (strcmp(name, "CR1") != 0) {
         printf("Expected classical register name 'CR1', got '%s'\n", name);
         result = EqualityError;
-        goto name_cleanup;
+        goto cleanup_name;
     }
 
     if (cr1_size != 3) {
         printf("Expected classical register size 3, got %zu\n", cr1_size);
         result = EqualityError;
-        goto name_cleanup;
+        goto cleanup_name;
     }
 
-name_cleanup:
+cleanup_name:
     if (name != NULL) {
         qk_str_free(name);
     }
@@ -1588,14 +1588,14 @@ static int test_register_bits(void) {
         if (bit_indices[bit] == UINT32_MAX) {
             printf("Expected QR1 bit %zu to be in the circuit, but it's not\n", bit);
             result = EqualityError;
-            goto clean_bit_indices;
+            goto cleanup_bit_indices;
         }
         // Positions should be 1, 2, 3, since the circuit has an anonymous qubit
         if (bit_indices[bit] != (uint32_t)bit + 1) {
             printf("Expected QR1 bit %zu to have circuit index %zu, got %" PRIu32 "\n", bit,
                    bit + 1, bit_indices[bit]);
             result = EqualityError;
-            goto clean_bit_indices;
+            goto cleanup_bit_indices;
         }
     }
 
@@ -1640,7 +1640,7 @@ cleanup_cr1:
     qk_classical_register_free(cr1);
 cleanup_qr2:
     qk_quantum_register_free(qr2);
-clean_bit_indices:
+cleanup_bit_indices:
     free(bit_indices);
 cleanup:
     qk_quantum_register_free(qr1);
