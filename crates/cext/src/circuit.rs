@@ -237,7 +237,7 @@ pub unsafe extern "C" fn qk_quantum_register_num_bits(qreg: *const QuantumRegist
 /// Behavior is undefined if:
 /// - ``qreg`` is not a valid, non-null pointer to a ``QkQuantumRegister``.
 /// - ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
-/// - ``out_bits`` is not a valid, non-null pointer to an array with at least
+/// - ``qreg`` has one or more bits and ``out_bits`` is not an aligned, non-null pointer to an array with at least
 ///   ``qk_quantum_register_num_bits(qreg)`` elements.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_quantum_register_circuit_bits(
@@ -252,7 +252,7 @@ pub unsafe extern "C" fn qk_quantum_register_circuit_bits(
 
     qreg.iter().enumerate().for_each(|(i, qubit)| {
         let mapped_qubit = circuit.qubit_index(&qubit).map_or(u32::MAX, |q| q);
-        // SAFETY: Per documentation, out_bits has at least qreg.len() elements
+        // SAFETY: Per documentation, out_bits is aligned and has at least qreg.len() elements
         unsafe { out_bits.add(i).write(mapped_qubit) };
     });
 }
@@ -418,7 +418,7 @@ pub unsafe extern "C" fn qk_classical_register_num_bits(creg: *const ClassicalRe
 /// Behavior is undefined if:
 /// - ``creg`` is not a valid, non-null pointer to a ``QkClassicalRegister``.
 /// - ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
-/// - ``out_bits`` is not a valid, non-null pointer to an array with at least
+/// - ``creg`` has one or more bits and ``out_bits`` is not an aligned, non-null pointer to an array with at least
 ///   ``qk_classical_register_num_bits(creg)`` elements.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_classical_register_circuit_bits(
@@ -433,7 +433,7 @@ pub unsafe extern "C" fn qk_classical_register_circuit_bits(
 
     creg.iter().enumerate().for_each(|(i, clbit)| {
         let mapped_clbit = circuit.clbit_index(&clbit).map_or(u32::MAX, |c| c);
-        // SAFETY: Per documentation, out_bits has at least creg.len() elements
+        // SAFETY: Per documentation, out_bits is aligned and has at least creg.len() elements
         unsafe { out_bits.add(i).write(mapped_clbit) };
     });
 }
