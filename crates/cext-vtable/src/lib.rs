@@ -116,6 +116,7 @@ mod circuit_library {
             export_fn!(suzuki_trotter::qk_circuit_library_suzuki_trotter),
             export_fn!(pbc::qk_pauli_product_rotation_clear),
             export_fn!(pbc::qk_pauli_product_measurement_clear),
+            export_fn!(qdrift::qk_circuit_library_qdrift),
         ]
     });
 }
