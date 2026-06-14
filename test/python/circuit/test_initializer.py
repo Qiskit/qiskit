@@ -505,6 +505,36 @@ class TestInitialize(QiskitTestCase):
         vec = Statevector(qc)
         self.assertTrue(vec == Statevector(desired_vector))
 
+    def test_gates_to_uncompute_integer_bitmap(self):
+        """Test gates_to_uncompute preserves integer-bitmap initialization width."""
+        initialize = Initialize(1, num_qubits=2)
+        uncompute = initialize.gates_to_uncompute()
+        prepared_state = Statevector.from_instruction(initialize)
+        zero_state = Statevector.from_label("00")
+
+        self.assertEqual(uncompute.num_qubits, 2)
+        self.assertTrue(prepared_state.evolve(uncompute).equiv(zero_state))
+
+    def test_gates_to_uncompute_integer_bitmap_matches_vector_input(self):
+        """Test equivalent integer and vector inputs produce matching uncompute circuits."""
+        integer_initialize = Initialize(1, num_qubits=2)
+        vector_initialize = Initialize([0, 1, 0, 0])
+        integer_uncompute = integer_initialize.gates_to_uncompute()
+        vector_uncompute = vector_initialize.gates_to_uncompute()
+
+        self.assertEqual(integer_uncompute.num_qubits, vector_uncompute.num_qubits)
+        self.assertTrue(
+            Statevector.from_instruction(integer_initialize)
+            .evolve(integer_uncompute)
+            .equiv(Statevector.from_label("00"))
+        )
+        self.assertTrue(
+            Statevector.from_instruction(vector_initialize)
+            .evolve(vector_uncompute)
+            .equiv(Statevector.from_label("00"))
+        )
+        self.assertTrue(Operator(integer_uncompute).equiv(Operator(vector_uncompute)))
+
     def test_repeat(self):
         """Test the repeat() method."""
         desired_vector = np.array([0.5, 0.5, 0.5, 0.5])
