@@ -98,6 +98,16 @@ mod circuit {
             export_fn!(qk_circuit_global_phase),
             export_fn!(qk_circuit_set_global_phase),
             export_fn!(qk_circuit_estimate_fidelity),
+            export_fn!(qk_quantum_register_name),
+            export_fn!(qk_quantum_register_num_bits),
+            export_fn!(qk_quantum_register_circuit_bits),
+            export_fn!(qk_classical_register_name),
+            export_fn!(qk_classical_register_num_bits),
+            export_fn!(qk_classical_register_circuit_bits),
+            export_fn!(qk_circuit_num_quantum_registers),
+            export_fn!(qk_circuit_get_quantum_register),
+            export_fn!(qk_circuit_num_classical_registers),
+            export_fn!(qk_circuit_get_classical_register),
         ]
     });
 }
