@@ -42,8 +42,9 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
         for swap in swaps[::-1]:
             if getattr(swap.op, "_condition", None) is not None:
                 continue
+            descendants = dag.descendants(swap)
             final_successor = []
-            for successor in dag.descendants(swap):
+            for successor in descendants:
                 final_successor.append(
                     isinstance(successor, DAGOutNode)
                     or (isinstance(successor, DAGOpNode) and isinstance(successor.op, Measure))
@@ -56,13 +57,20 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
                     measure_layer.add_qreg(qreg)
                 for creg in dag.cregs.values():
                     measure_layer.add_creg(creg)
-                for successor in list(dag.descendants(swap)):
-                    if isinstance(successor, DAGOpNode) and isinstance(successor.op, Measure):
-                        # replace measure node with a new one, where qargs is set with the "other"
-                        # swap qarg.
+                measure_successors = {
+                    successor
+                    for successor in descendants
+                    if isinstance(successor, DAGOpNode) and isinstance(successor.op, Measure)
+                }
+                for successor in list(dag.topological_op_nodes()):
+                    if successor in measure_successors:
                         dag.remove_op_node(successor)
                         old_measure_qarg = successor.qargs[0]
-                        new_measure_qarg = swap_qargs[swap_qargs.index(old_measure_qarg) - 1]
+                        new_measure_qarg = old_measure_qarg
+                        if old_measure_qarg in swap_qargs:
+                            # replace measure node with a new one, where qargs is set with the
+                            # "other" swap qarg.
+                            new_measure_qarg = swap_qargs[swap_qargs.index(old_measure_qarg) - 1]
                         measure_layer.apply_operation_back(
                             Measure(), (new_measure_qarg,), (successor.cargs[0],), check=False
                         )

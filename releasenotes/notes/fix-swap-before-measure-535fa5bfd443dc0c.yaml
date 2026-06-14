@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed :class:`.OptimizeSwapBeforeMeasure` so it preserves terminal measurements that
+    reuse a classical bit but measure qubits unaffected by the removed swap. Previously,
+    the pass could raise a ``ValueError`` for such circuits.
+    See `#14949 <https://github.com/Qiskit/qiskit/issues/14949>`__.
