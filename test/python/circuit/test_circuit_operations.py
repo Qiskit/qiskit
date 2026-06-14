@@ -96,8 +96,8 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(
             [
-                (instruction.operation.label, instruction.operation.ctrl_state)
-                for instruction in circuit.data
+                (circuit_instruction.operation.label, circuit_instruction.operation.ctrl_state)
+                for circuit_instruction in circuit.data
             ],
             [("mcp", 1), ("ccx", 1), ("mcx", 1)],
         )
@@ -111,7 +111,7 @@ class TestCircuitOperations(QiskitTestCase):
             circuit.mcx([0, 1], 2, None, None, "01")
 
         self.assertEqual(
-            [instruction.operation.ctrl_state for instruction in circuit.data],
+            [circuit_instruction.operation.ctrl_state for circuit_instruction in circuit.data],
             [1, 1, 1],
         )
 
