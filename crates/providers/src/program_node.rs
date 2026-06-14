@@ -14,6 +14,28 @@ use crate::data_tree::{ArityMismatch, DataTree, TreeMatchError};
 use crate::tensor::{DType, Tensor, TensorType};
 use thiserror::Error;
 
+/// Destructure `$args: &[Tensor]` into the named bindings, returning
+/// [`CallInputError::WrongArity`] if the slice length does not match the pattern.
+///
+/// ```ignore
+/// crate::unpack_tensor_args!(args, [x, y]);   // expects exactly 2
+/// crate::unpack_tensor_args!(args, [x]);      // expects exactly 1
+/// ```
+#[macro_export]
+macro_rules! unpack_tensor_args {
+    ($args:ident, [$($x:ident),+]) => {
+        let [$($x),+] = $args else {
+            return Err($crate::program_node::CallInputError::WrongArity {
+                expected: $crate::unpack_tensor_args!(@count $($x),+),
+                actual: $args.len(),
+            }
+            .into());
+        };
+    };
+    (@count $x:ident) => { 1usize };
+    (@count $x:ident, $($rest:ident),+) => { 1usize + $crate::unpack_tensor_args!(@count $($rest),+) };
+}
+
 /// Errors returned when a tree-shaped argument does not match [`ProgramNode::input_types`].
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum CallInputError {
@@ -29,6 +51,9 @@ pub enum CallInputError {
         expected: String,
         actual: DType,
     },
+
+    #[error("expected {expected} flat inputs, got {actual}")]
+    WrongArity { expected: usize, actual: usize },
 }
 
 impl From<TreeMatchError> for CallInputError {
