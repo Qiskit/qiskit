@@ -333,6 +333,7 @@ impl BytecodeIterator {
         custom_instructions: &[CustomInstruction],
         custom_classical: &[CustomClassical],
         strict: bool,
+        max_depth: usize,
     ) -> PyResult<Self> {
         Ok(BytecodeIterator {
             parser_state: parse::State::new(
@@ -341,6 +342,7 @@ impl BytecodeIterator {
                 custom_instructions,
                 custom_classical,
                 strict,
+                max_depth,
             )
             .map_err(QASM2ParseError::new_err)?,
             buffer: vec![],

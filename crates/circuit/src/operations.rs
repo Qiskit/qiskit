@@ -151,11 +151,7 @@ impl Param {
                             .getattr(parameters_attr)?
                             .try_iter()?
                             .map(|elem| {
-                                let elem = elem?;
-                                let py_param_bound = elem.cast::<PyParameter>()?;
-                                let py_param = py_param_bound.borrow();
-                                let symbol = py_param.symbol();
-                                Ok(symbol.clone())
+                                Ok(Symbol::clone(&elem?.cast_into::<PyParameter>()?.borrow().0))
                             })
                             .collect::<PyResult<_>>()?;
                         Ok(Box::new(collected.into_iter()))
