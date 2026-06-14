@@ -23,7 +23,7 @@ use qiskit_quantum_info::sparse_observable::SparseObservable;
 ///
 /// @param op Pointer to a valid ``QkObs`` containing the sum of the Pauli terms.
 /// @param reps The number of times to repeat the Trotterization circuit.
-/// @param time Evolution time t in exp(-i t H). May be positive, negative, or zero.
+/// @param time Evolution time t in \f$e^{-itH}\f$. May be positive, negative, or zero.
 /// @param seed An optional seed for reproducibility of the random sampling process.
 ///   For default value it should be passed zero.
 /// @param preserve_order If ``false``, allows reordering the terms of the operator to
@@ -46,7 +46,7 @@ use qiskit_quantum_info::sparse_observable::SparseObservable;
 /// qk_obs_add_term(obs, &term2);
 ///
 /// // Passing zero as value for the seed for auto generating a seed value
-/// QkCircuit *qc = qk_qdrift(obs, 1, 0.5, 0, true, false);
+/// QkCircuit *qc = qk_circuit_library_qdrift(obs, 1, 0.5, 0, true, false);
 ///
 /// qk_obs_free(obs);
 /// qk_circuit_free(qc);
@@ -60,7 +60,7 @@ use qiskit_quantum_info::sparse_observable::SparseObservable;
 /// Phys. Rev. Lett. 123, 070503 (2019).
 /// [arXiv:quant-ph/1811.08017](https://arxiv.org/abs/1811.08017)
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_qdrift(
+pub unsafe extern "C" fn qk_circuit_library_qdrift(
     op: *const SparseObservable, // H in e^{-i t H}
     reps: usize,                 // n in e^{-it/n H}^n
     time: f64,                   // evolution time e in e^{-i t H}
