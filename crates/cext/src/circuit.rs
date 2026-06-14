@@ -2682,7 +2682,7 @@ pub unsafe extern "C" fn qk_circuit_estimate_fidelity(
 
 #[cfg(test)]
 mod test {
-    use crate::circuit::{qk_classical_register_circuit_bits, qk_quantum_register_circuit_bits};
+    use super::*;
     use qiskit_circuit::{
         bit::{ClassicalRegister, QuantumRegister, ShareableClbit, ShareableQubit},
         circuit_data::CircuitData,
