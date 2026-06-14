@@ -46,6 +46,75 @@ from test import QiskitTestCase
 class TestCircuitOperations(QiskitTestCase):
     """QuantumCircuit Operations tests."""
 
+    def test_gate_methods_accept_labels(self):
+        """Test that gate convenience methods propagate labels to their operation."""
+        cases = [
+            ("h", (0,), {}),
+            ("id", (0,), {}),
+            ("ms", (0.5, [0, 1]), {}),
+            ("p", (0.5, 0), {}),
+            ("mcp", (0.5, [0, 1], 2), {}),
+            ("r", (0.5, 0.25, 0), {}),
+            ("rv", (0.5, 0.25, 0.125, 0), {}),
+            ("rccx", (0, 1, 2), {}),
+            ("rcccx", (0, 1, 2, 3), {}),
+            ("rxx", (0.5, 0, 1), {}),
+            ("ryy", (0.5, 0, 1), {}),
+            ("rz", (0.5, 0), {}),
+            ("rzx", (0.5, 0, 1), {}),
+            ("rzz", (0.5, 0, 1), {}),
+            ("ecr", (0, 1), {}),
+            ("s", (0,), {}),
+            ("sdg", (0,), {}),
+            ("swap", (0, 1), {}),
+            ("iswap", (0, 1), {}),
+            ("sx", (0,), {}),
+            ("sxdg", (0,), {}),
+            ("t", (0,), {}),
+            ("tdg", (0,), {}),
+            ("u", (0.5, 0.25, 0.125, 0), {}),
+            ("dcx", (0, 1), {}),
+            ("ccx", (0, 1, 2), {}),
+            ("mcx", ([0, 1], 2), {}),
+            ("y", (0,), {}),
+            ("z", (0,), {}),
+            ("pauli", ("XYZ", [0, 1, 2]), {}),
+        ]
+
+        for method_name, args, kwargs in cases:
+            with self.subTest(method=method_name):
+                circuit = QuantumCircuit(4)
+                getattr(circuit, method_name)(*args, label="custom", **kwargs)
+                self.assertEqual(circuit.data[-1].operation.label, "custom")
+
+    def test_controlled_gate_labels_preserve_control_state(self):
+        """Test label propagation on non-default control states."""
+        circuit = QuantumCircuit(4)
+        circuit.mcp(0.5, [0, 1], 2, ctrl_state="01", label="mcp")
+        circuit.ccx(0, 1, 2, ctrl_state="01", label="ccx")
+        circuit.mcx([0, 1], 2, ctrl_state="01", label="mcx")
+
+        self.assertEqual(
+            [
+                (circuit_instruction.operation.label, circuit_instruction.operation.ctrl_state)
+                for circuit_instruction in circuit.data
+            ],
+            [("mcp", 1), ("ccx", 1), ("mcx", 1)],
+        )
+
+    def test_controlled_gate_positional_arguments_unchanged(self):
+        """Test that adding keyword-only labels does not change positional arguments."""
+        circuit = QuantumCircuit(4)
+        circuit.mcp(0.5, [0, 1], 2, "01")
+        circuit.ccx(0, 1, 2, "01")
+        with self.assertWarns(DeprecationWarning):
+            circuit.mcx([0, 1], 2, None, None, "01")
+
+        self.assertEqual(
+            [circuit_instruction.operation.ctrl_state for circuit_instruction in circuit.data],
+            [1, 1, 1],
+        )
+
     @data(0, 1, -1, -2)
     def test_append_resolves_integers(self, index):
         """Test that integer arguments to append are correctly resolved."""

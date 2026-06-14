@@ -1,0 +1,9 @@
+---
+features_circuits:
+  - |
+    Added an optional ``label`` argument to the remaining
+    :class:`.QuantumCircuit` convenience methods that append a single gate.
+    This makes it possible to label gates such as :meth:`.QuantumCircuit.h`,
+    :meth:`.QuantumCircuit.rz`, :meth:`.QuantumCircuit.swap`, and
+    :meth:`.QuantumCircuit.mcx` without constructing and appending the gate
+    object directly.
