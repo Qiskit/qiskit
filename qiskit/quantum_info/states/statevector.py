@@ -162,7 +162,10 @@ class Statevector(QuantumState, TolerancesMixin):
 
         # Apply layout permutations if needed (this handles transpiler layout changes)
         if not ignore_set_layout and layout is not None:
-            layout_indices = layout.final_index_layout()
+            # The simulated statevector spans the full output circuit, including
+            # any ancillas introduced during transpilation, so the permutation
+            # must be computed over that same full qubit set.
+            layout_indices = layout.final_index_layout(filter_ancillas=False)
             # Apply LSb0 qubit ordering (least-significant-bit is 0)
             num_qubits = statevec.num_qubits
             reversed_perm = [
