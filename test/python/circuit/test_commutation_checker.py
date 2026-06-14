@@ -277,8 +277,8 @@ class TestCommutationChecker(QiskitTestCase):
         self.assertTrue(scc.commute(rx_gate_theta, [0], [], rxx_gate_theta, [0, 1], []))
         self.assertTrue(scc.commute(rz_gate_theta, [0], [], cx_gate, [0, 1], []))
 
-    def test_gate_filter_accepts_rotation_gate_names(self):
-        """Gate filtering should accept both rotation gate names and generator names."""
+    def test_gate_filter_matches_parameterized_gate_names(self):
+        """Gate filtering should use the parameterized gate names, not their generators."""
         rx1 = RXGate(0.1)
         rx2 = RXGate(0.2)
         phase1 = PhaseGate(0.1)
@@ -291,7 +291,7 @@ class TestCommutationChecker(QiskitTestCase):
                 rx1, [0], [], rx2, [0], []
             )
         )
-        self.assertTrue(
+        self.assertFalse(
             CommutationChecker(StandardGateCommutations, gates={"x"}).commute(
                 rx1, [0], [], rx2, [0], []
             )
@@ -306,7 +306,7 @@ class TestCommutationChecker(QiskitTestCase):
                 phase1, [0], [], phase2, [0], []
             )
         )
-        self.assertTrue(
+        self.assertFalse(
             CommutationChecker(StandardGateCommutations, gates={"z"}).commute(
                 phase1, [0], [], phase2, [0], []
             )
@@ -316,7 +316,7 @@ class TestCommutationChecker(QiskitTestCase):
                 cphase1, [0, 1], [], cphase2, [0, 1], []
             )
         )
-        self.assertTrue(
+        self.assertFalse(
             CommutationChecker(StandardGateCommutations, gates={"cz"}).commute(
                 cphase1, [0, 1], [], cphase2, [0, 1], []
             )
