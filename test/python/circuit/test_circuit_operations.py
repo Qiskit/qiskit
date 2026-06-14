@@ -71,6 +71,70 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(test, expected)
 
     @data(
+        ("h", (0,)),
+        ("ch", (0, 1)),
+        ("id", (0,)),
+        ("p", (0.1, 0)),
+        ("r", (0.1, 0.2, 0)),
+        ("rx", (0.1, 0)),
+        ("crx", (0.1, 0, 1)),
+        ("ry", (0.1, 0)),
+        ("cry", (0.1, 0, 1)),
+        ("rxx", (0.1, 0, 1)),
+        ("ryy", (0.1, 0, 1)),
+        ("rz", (0.1, 0)),
+        ("crz", (0.1, 0, 1)),
+        ("rzx", (0.1, 0, 1)),
+        ("rzz", (0.1, 0, 1)),
+        ("ecr", (0, 1)),
+        ("s", (0,)),
+        ("cs", (0, 1)),
+        ("sdg", (0,)),
+        ("csdg", (0, 1)),
+        ("swap", (0, 1)),
+        ("iswap", (0, 1)),
+        ("sx", (0,)),
+        ("csx", (0, 1)),
+        ("sxdg", (0,)),
+        ("t", (0,)),
+        ("tdg", (0,)),
+        ("u", (0.1, 0.2, 0.3, 0)),
+        ("cu", (0.1, 0.2, 0.3, 0.4, 0, 1)),
+        ("x", (0,)),
+        ("cx", (0, 1)),
+        ("dcx", (0, 1)),
+        ("y", (0,)),
+        ("cy", (0, 1)),
+        ("z", (0,)),
+        ("cz", (0, 1)),
+        ("ccx", (0, 1, 2)),
+        ("ccz", (0, 1, 2)),
+        ("mcx", ([0, 1, 2], 3)),
+        ("mcp", (0.2, [0, 1, 2], 3)),
+        ("cswap", (0, 1, 2)),
+        ("rccx", (0, 1, 2)),
+        ("rcccx", (0, 1, 2, 3)),
+        ("prepare_state", ([1, 0], [0])),
+        ("unitary", ([[0, 1], [1, 0]], [0])),
+        ("box", (QuantumCircuit(1), [0], [])),
+        ("while_loop", ((0, 0), QuantumCircuit(1, 1), [0], [0])),
+        ("for_loop", (range(2), None, QuantumCircuit(1, 1), [0], [0])),
+        ("if_test", ((0, 0), QuantumCircuit(1, 1), [0], [0])),
+        ("if_else", ((0, 0), QuantumCircuit(1, 1), QuantumCircuit(1, 1), [0], [0])),
+        ("switch", (0, [(0, QuantumCircuit(1, 1))], [0], [0])),
+    )
+    def test_operation_label_parameters(self, case):
+        """Test standard QuantumCircuit gate helpers forward labels to the appended operation."""
+        method_name, args = case
+        qc = QuantumCircuit(4, 1)
+        label = "my_label"
+
+        getattr(qc, method_name)(*args, label=label)
+
+        self.assertTrue(qc.data)
+        self.assertEqual(qc.data[0].operation.label, label)
+
+    @data(
         slice(0, 2),
         slice(None, 1),
         slice(1, None),

@@ -1,0 +1,22 @@
+---
+features_circuits:
+  - |
+    Added support for the ``label`` keyword argument to operations in QuantumCircuit.
+    :class:`.QuantumCircuit` gate helpers, including :meth:`.QuantumCircuit.h`,
+    :meth:`.QuantumCircuit.id`, :meth:`.QuantumCircuit.p`,
+    :meth:`.QuantumCircuit.mcp`, :meth:`.QuantumCircuit.r`,
+    :meth:`.QuantumCircuit.rccx`, :meth:`.QuantumCircuit.rcccx`,
+    :meth:`.QuantumCircuit.rxx`, :meth:`.QuantumCircuit.ryy`,
+    :meth:`.QuantumCircuit.rz`, :meth:`.QuantumCircuit.rzx`,
+    :meth:`.QuantumCircuit.rzz`, :meth:`.QuantumCircuit.ecr`,
+    :meth:`.QuantumCircuit.s`, :meth:`.QuantumCircuit.sdg`,
+    :meth:`.QuantumCircuit.swap`, :meth:`.QuantumCircuit.iswap`,
+    :meth:`.QuantumCircuit.sx`, :meth:`.QuantumCircuit.sxdg`,
+    :meth:`.QuantumCircuit.t`, :meth:`.QuantumCircuit.tdg`,
+    :meth:`.QuantumCircuit.u`, :meth:`.QuantumCircuit.dcx`,
+    :meth:`.QuantumCircuit.mcx`, :meth:`.QuantumCircuit.y`, and
+    :meth:`.QuantumCircuit.z`.
+fixes:
+  - |
+    Fixes `#16393 <https://github.com/Qiskit/qiskit/issues/16393>`__ and
+    `#5098 <https://github.com/Qiskit/qiskit/issues/5098>`__.
