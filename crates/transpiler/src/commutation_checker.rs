@@ -463,10 +463,12 @@ impl CommutationChecker {
                 _ => &[],
             })
             .unwrap_or_default();
-        let gate_filter = self.gates.as_ref().filter(|gates| !gates.is_empty());
-        let (op1_allowed_by_original_name, op2_allowed_by_original_name) = gate_filter
-            .map(|gates| (gates.contains(op1.name()), gates.contains(op2.name())))
-            .unwrap_or((true, true));
+
+        if let Some(gates) = &self.gates {
+            if !gates.is_empty() && (!gates.contains(op1.name()) || !gates.contains(op2.name())) {
+                return Ok(false);
+            }
+        }
 
         // if we have rotation gates, we attempt to map them to their generators, for example
         // RX -> X or CPhase -> CZ
@@ -488,14 +490,6 @@ impl CommutationChecker {
         } else {
             op2
         };
-
-        if let Some(gates) = gate_filter {
-            let op1_allowed = op1_allowed_by_original_name || gates.contains(op1.name());
-            let op2_allowed = op2_allowed_by_original_name || gates.contains(op2.name());
-            if !op1_allowed || !op2_allowed {
-                return Ok(false);
-            }
-        }
 
         let precheck_status = commutation_precheck(
             op1,

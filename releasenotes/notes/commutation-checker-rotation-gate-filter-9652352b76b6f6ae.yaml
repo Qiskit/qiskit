@@ -1,8 +1,6 @@
 ---
 fixes:
   - |
-    Fixed a bug in :class:`qiskit.circuit.CommutationChecker` when the
-    ``gates`` filter is used with parameterized rotation gate names such as
-    ``"rx"``. Previously the filter could reject those gates after their
-    internal generator mapping and incorrectly return ``False`` for
-    self-commuting checks.
+    Fixed a bug in :class:`.CommutationChecker` when checking commutativity
+    of parameterized gates, such as :class:`.RXGate`, when the ``gates``
+    argument is specified.
