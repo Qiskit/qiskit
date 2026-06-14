@@ -46,7 +46,7 @@ pub use transpiler::FUNCTIONS as FUNCTIONS_TRANSPILE;
 mod circuit {
     use crate::impl_::prelude::*;
     #[cfg(feature = "addr")]
-    use qiskit_cext::circuit::*;
+    use qiskit_cext::{circuit::*, control_flow::*};
 
     #[rustfmt::skip]  // Don't wrap long lines so everything stays on one line for counting.
     pub static FUNCTIONS: ExportedFunctions = ExportedFunctions::leaves(100, || {
@@ -99,6 +99,40 @@ mod circuit {
             export_fn!(qk_circuit_global_phase),
             export_fn!(qk_circuit_set_global_phase),
             export_fn!(qk_circuit_estimate_fidelity),
+            export_fn!(qk_quantum_register_name),
+            export_fn!(qk_quantum_register_num_bits),
+            export_fn!(qk_quantum_register_circuit_bits),
+            export_fn!(qk_classical_register_name),
+            export_fn!(qk_classical_register_num_bits),
+            export_fn!(qk_classical_register_circuit_bits),
+            export_fn!(qk_circuit_num_quantum_registers),
+            export_fn!(qk_circuit_get_quantum_register),
+            export_fn!(qk_circuit_num_classical_registers),
+            export_fn!(qk_circuit_get_classical_register),
+            export_fn!(qk_circuit_get_control_flow_instruction),
+            export_fn!(qk_control_flow_instruction_free),
+            export_fn!(qk_control_flow_kind),
+            export_fn!(qk_control_flow_num_blocks),
+            export_fn!(qk_control_flow_block_circuit),
+            export_fn!(qk_control_flow_qubit_map),
+            export_fn!(qk_control_flow_clbit_map),
+            export_fn!(qk_control_flow_condition_type),
+            export_fn!(qk_control_flow_condition_bit_info),
+            export_fn!(qk_control_flow_condition_reg_info),
+            export_fn!(qk_control_flow_condition_expr),
+            export_fn!(qk_control_flow_box_duration_kind),
+            export_fn!(qk_control_flow_box_duration_info),
+            export_fn!(qk_control_flow_box_duration_expr),
+            export_fn!(qk_control_flow_loop_collection),
+            export_fn!(qk_control_flow_loop_symbol_info),
+            export_fn!(qk_control_flow_switch_target_type),
+            export_fn!(qk_control_flow_switch_target_bit),
+            export_fn!(qk_control_flow_switch_target_register),
+            export_fn!(qk_control_flow_switch_target_expr),
+            export_fn!(qk_control_flow_switch_num_cases),
+            export_fn!(qk_control_flow_switch_is_case_default),
+            export_fn!(qk_control_flow_switch_case_labels),
+            export_fn!(qk_control_flow_switch_case_labels_clear),
         ]
     });
 }
