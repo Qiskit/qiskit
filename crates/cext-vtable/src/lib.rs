@@ -441,7 +441,7 @@ mod classical_expr {
             export_fn!(qk_expr_as_value),
             export_fn!(qk_expr_as_var),
             export_fn!(qk_expr_as_stretch),
-            export_fn!(qk_value_type),
+            export_fn!(qk_value_type_info),
             export_fn!(qk_value_duration_info),
             export_fn!(qk_value_float),
             export_fn!(qk_value_uint),

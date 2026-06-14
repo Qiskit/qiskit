@@ -455,11 +455,11 @@ static int test_expr_value(void) {
             goto cleanup;
         }
 
-        QkExprType value_type = qk_value_type(value);
+        QkExprTypeInfo value_type_info = qk_value_type_info(value);
         switch (ty) {
         case QkExprType_Bool:
-            if (value_type != QkExprType_Bool) {
-                printf("Expected Bool type, got %d\n", value_type);
+            if (value_type_info.ty != QkExprType_Bool) {
+                printf("Expected Bool type, got %d\n", value_type_info.ty);
                 result = EqualityError;
                 goto cleanup;
             }
@@ -472,8 +472,8 @@ static int test_expr_value(void) {
             }
             break;
         case QkExprType_Duration:
-            if (value_type != QkExprType_Duration) {
-                printf("Expected Duration type, got %d\n", value_type);
+            if (value_type_info.ty != QkExprType_Duration) {
+                printf("Expected Duration type, got %d\n", value_type_info.ty);
                 result = EqualityError;
                 goto cleanup;
             }
@@ -492,8 +492,8 @@ static int test_expr_value(void) {
             }
             break;
         case QkExprType_Float:
-            if (value_type != QkExprType_Float) {
-                printf("Expected Float type, got %d\n", value_type);
+            if (value_type_info.ty != QkExprType_Float) {
+                printf("Expected Float type, got %d\n", value_type_info.ty);
                 result = EqualityError;
                 goto cleanup;
             }
@@ -506,8 +506,14 @@ static int test_expr_value(void) {
             }
             break;
         case QkExprType_Uint:
-            if (value_type != QkExprType_Uint) {
-                printf("Expected Uint type, got %d\n", value_type);
+            if (value_type_info.ty != QkExprType_Uint) {
+                printf("Expected Uint type, got %d\n", value_type_info.ty);
+                result = EqualityError;
+                goto cleanup;
+            }
+
+            if (value_type_info.width != 4) {
+                printf("Expected Uint width to be 4, got %" PRIu16 "\n", value_type_info.width);
                 result = EqualityError;
                 goto cleanup;
             }

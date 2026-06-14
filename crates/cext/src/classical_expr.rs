@@ -685,26 +685,32 @@ pub unsafe extern "C" fn qk_expr_as_stretch(expr: *const Expr) -> *const Stretch
 }
 
 /// @ingroup QkClassicalExpressions
-/// Return the type of a value.
+/// Return the type information of a value.
 ///
 /// @param value A pointer to the `QkValue` to inspect.
 ///
-/// @return The coarse-grained expression type for ``value``.
+/// @return A ``QkExprTypeInfo`` structure containing the value type information.
 ///
 /// # Example
 /// ```c
-/// QkExprType ty = qk_value_type(value);
+/// QkExprTypeInfo type_info = qk_value_type_info(value);
 /// ```
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``value`` is not a valid, non-null pointer to a ``Value``.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_value_type(value: *const Value) -> CExprType {
+pub unsafe extern "C" fn qk_value_type_info(value: *const Value) -> CExprTypeInfo {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let value = unsafe { const_ptr_as_ref(value) };
 
-    CExprType::from(value)
+    match value {
+        Value::Duration(_) => CExprTypeInfo {
+            ty: CExprType::Duration,
+            width: 0,
+        },
+        Value::Float { ty, .. } | Value::Uint { ty, .. } => CExprTypeInfo::from(ty),
+    }
 }
 
 /// @ingroup QkClassicalExpressions
@@ -878,14 +884,13 @@ pub unsafe extern "C" fn qk_var_name(var: *const Var) -> *mut c_char {
 ///
 /// @param var A pointer to the variable to inspect.
 ///
-/// @return A ``QkExprTypeInfo`` structure containing the variable type and, for
-/// unsigned integers, the declared bit width.
+/// @return A ``QkExprTypeInfo`` structure containing the variable type information.
 ///
 /// This function panics if ``var`` is a bit variable, which is not yet supported by this API.
 ///
 /// # Example
 /// ```c
-/// QkExprTypeInfo info = qk_var_type_info(var);
+/// QkExprTypeInfo type_info = qk_var_type_info(var);
 /// ```
 ///
 /// # Safety
