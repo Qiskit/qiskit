@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed :meth:`.Initialize.gates_to_uncompute` for integer-bitmap inputs with
+    an explicit ``num_qubits``. The method now preserves the initialization
+    width and returns an uncomputation circuit that matches the prepared state.

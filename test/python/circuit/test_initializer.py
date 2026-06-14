@@ -505,6 +505,16 @@ class TestInitialize(QiskitTestCase):
         vec = Statevector(qc)
         self.assertTrue(vec == Statevector(desired_vector))
 
+    def test_gates_to_uncompute_integer_bitmap(self):
+        """Test gates_to_uncompute preserves integer-bitmap initialization width."""
+        initialize = Initialize(1, num_qubits=2)
+        uncompute = initialize.gates_to_uncompute()
+        prepared_state = Statevector.from_instruction(initialize)
+        zero_state = Statevector.from_label("00")
+
+        self.assertEqual(uncompute.num_qubits, 2)
+        self.assertTrue(prepared_state.evolve(uncompute).equiv(zero_state))
+
     def test_repeat(self):
         """Test the repeat() method."""
         desired_vector = np.array([0.5, 0.5, 0.5, 0.5])
