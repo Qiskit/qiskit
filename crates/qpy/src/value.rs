@@ -28,7 +28,7 @@ use qiskit_circuit::duration::Duration;
 use qiskit_circuit::operations::{ForCollection, OperationRef, PyInstruction, PyOpKind, PyRange};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
-use qiskit_circuit::parameter::symbol_expr::Symbol;
+use qiskit_circuit::parameter::symbol_expr::{Symbol, SymbolVector};
 use qiskit_circuit::{Clbit, imports};
 
 use crate::annotations::AnnotationHandler;
@@ -125,7 +125,7 @@ pub struct QPYReadData<'a> {
     pub use_symengine: bool,
     pub standalone_vars: HashMap<u16, qiskit_circuit::Var>,
     pub standalone_stretches: HashMap<u16, qiskit_circuit::Stretch>,
-    pub vectors: HashMap<Uuid, Py<PyAny>>, // Parameter expression vectors, which are a python-only elements for now
+    pub vectors: HashMap<Uuid, Arc<SymbolVector>>,
     pub annotation_handler: AnnotationHandler<'a>,
 }
 
@@ -305,8 +305,8 @@ pub enum GenericValue {
     Range(PyRange),
     Tuple(Vec<GenericValue>),
     NumpyObject(Bytes),
-    ParameterExpressionSymbol(Symbol),
-    ParameterExpressionVectorSymbol(Symbol),
+    ParameterExpressionSymbol(Arc<Symbol>),
+    ParameterExpressionVectorSymbol(Arc<Symbol>),
     ParameterExpression(Arc<ParameterExpression>),
     String(String),
     Duration(Duration),
@@ -496,13 +496,13 @@ pub(crate) fn load_value(
         ValueType::Parameter => {
             let (parameter_pack, _) = deserialize::<formats::ParameterSymbolPack>(bytes)?;
             let symbol = unpack_symbol(&parameter_pack);
-            Ok(GenericValue::ParameterExpressionSymbol(symbol))
+            Ok(GenericValue::ParameterExpressionSymbol(symbol.into()))
         }
         ValueType::ParameterVector => {
             let (parameter_vector_element_pack, _) =
                 deserialize::<formats::ParameterVectorElementPack>(bytes)?;
             let symbol = unpack_parameter_vector(&parameter_vector_element_pack, qpy_data)?;
-            Ok(GenericValue::ParameterExpressionVectorSymbol(symbol))
+            Ok(GenericValue::ParameterExpressionVectorSymbol(symbol.into()))
         }
         ValueType::ParameterExpression => {
             let (parameter_expression_pack, _) =

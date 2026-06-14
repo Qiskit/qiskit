@@ -509,7 +509,7 @@ impl TargetEntry {
                     .map(|i| {
                         let op_name = operation.name();
                         Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
-                            Symbol::new(format!("{op_name}_param_{i}").as_str(), None, None),
+                            Symbol::standalone(format!("{op_name}_param_{i}"), None),
                         )))
                     })
                     .collect(),
