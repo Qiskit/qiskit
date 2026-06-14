@@ -176,13 +176,13 @@ impl From<CUnaryOpType> for UnaryOp {
 #[repr(C)]
 pub struct CUnaryExprInfo {
     /// The unary operator
-    pub op: CUnaryOpType,
+    op: CUnaryOpType,
     /// Borrowed pointer to the operand expression
-    pub operand: *const Expr,
+    operand: *const Expr,
     /// Result type of the operation
-    pub ty: CExprTypeInfo,
+    ty: CExprTypeInfo,
     /// Whether the expression is constant
-    pub constant: bool,
+    constant: bool,
 }
 
 /// The operation types a binary expression can hold.
@@ -280,15 +280,15 @@ impl From<CBinaryOpType> for BinaryOp {
 #[repr(C)]
 pub struct CBinaryExprInfo {
     /// The binary operator
-    pub op: CBinaryOpType,
+    op: CBinaryOpType,
     /// Borrowed pointer to the left operand expression
-    pub left: *const Expr,
+    left: *const Expr,
     /// Borrowed pointer to the right operand expression
-    pub right: *const Expr,
+    right: *const Expr,
     /// Result type of the operation
-    pub ty: CExprTypeInfo,
+    ty: CExprTypeInfo,
     /// Whether the expression is constant
-    pub constant: bool,
+    constant: bool,
 }
 
 /// Describes a cast expression, including the operand, target type, whether it is implicit, and whether it is constant.
@@ -297,13 +297,13 @@ pub struct CBinaryExprInfo {
 #[repr(C)]
 pub struct CCastExprInfo {
     /// Borrowed pointer to the operand expression being cast
-    pub operand: *const Expr,
+    operand: *const Expr,
     /// Target type of the cast
-    pub ty: CExprTypeInfo,
+    ty: CExprTypeInfo,
     /// Whether the cast is implicit (automatic) or explicit
-    pub implicit: bool,
+    implicit: bool,
     /// Whether the expression is constant
-    pub constant: bool,
+    constant: bool,
 }
 
 /// Describes an index expression, including the target, index, result type and whether it is constant.
@@ -312,13 +312,13 @@ pub struct CCastExprInfo {
 #[repr(C)]
 pub struct CIndexExprInfo {
     /// Borrowed pointer to the target expression being indexed
-    pub target: *const Expr,
+    target: *const Expr,
     /// Borrowed pointer to the index expression
-    pub index: *const Expr,
+    index: *const Expr,
     /// Result type of the indexing operation
-    pub ty: CExprTypeInfo,
+    ty: CExprTypeInfo,
     /// Whether the expression is constant
-    pub constant: bool,
+    constant: bool,
 }
 
 /// Represents different time units used in duration expressions.
@@ -376,9 +376,9 @@ pub union CDurationValue {
 #[derive(Copy, Clone)]
 pub struct CDurationInfo {
     /// The duration unit type (discriminant for the union)
-    pub ty: CDurationType,
+    ty: CDurationType,
     /// The duration value
-    pub value: CDurationValue,
+    value: CDurationValue,
 }
 
 impl From<&Duration> for CDurationInfo {
