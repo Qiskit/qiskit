@@ -82,7 +82,6 @@ fn bytecode_from_string(
     custom_instructions: Vec<CustomInstruction>,
     custom_classical: Vec<CustomClassical>,
     strict: bool,
-    max_depth: usize,
 ) -> PyResult<bytecode::BytecodeIterator> {
     bytecode::BytecodeIterator::new(
         lex::TokenStream::from_string(string, strict),
@@ -90,7 +89,6 @@ fn bytecode_from_string(
         &custom_instructions,
         &custom_classical,
         strict,
-        max_depth,
     )
 }
 
@@ -105,7 +103,6 @@ fn bytecode_from_file(
     custom_instructions: Vec<CustomInstruction>,
     custom_classical: Vec<CustomClassical>,
     strict: bool,
-    max_depth: usize,
 ) -> PyResult<bytecode::BytecodeIterator> {
     bytecode::BytecodeIterator::new(
         lex::TokenStream::from_path(&path, strict).map_err(|err| {
@@ -120,7 +117,6 @@ fn bytecode_from_file(
         &custom_instructions,
         &custom_classical,
         strict,
-        max_depth,
     )
 }
 
