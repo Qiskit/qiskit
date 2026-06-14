@@ -191,7 +191,7 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         ):
             op.params = [indexset, loop_parameter, bad_body]
 
-        with self.assertRaisesRegex(CircuitError, r"to be either of type Parameter or None"):
+        with self.assertRaisesRegex(CircuitError, r"to be either of type Parameter, Var or None"):
             _ = ForLoopOp(indexset, "foo", body)
 
     @idata(CONDITION_PARAMETRISATION)
@@ -536,12 +536,17 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         with self.assertRaisesRegex(CircuitError, "cannot contain input variables"):
             WhileLoopOp(cond, bad_body)
 
-    def test_for_rejects_input_vars(self):
-        """Bodies must not contain input variables."""
-        a = expr.Var.new("a", types.Bool())
-        bad_body = QuantumCircuit(inputs=[a])
-        with self.assertRaisesRegex(CircuitError, "cannot contain input variables"):
-            ForLoopOp(range(3), None, bad_body)
+    def test_for_input_vars(self):
+        """If a body has an input variable, it must match the loop parameter."""
+        a = expr.Var.new("a", types.Uint(32))
+        body = QuantumCircuit(inputs=[a])
+        with self.assertRaisesRegex(CircuitError, "loop variable.*disagree"):
+            ForLoopOp(range(3), None, body)
+        with self.assertRaisesRegex(CircuitError, "loop variable.*disagree"):
+            ForLoopOp(range(3), expr.Var.new("a", types.Uint(32)), body)
+        with self.assertRaisesRegex(CircuitError, "loop variable.*disagree"):
+            ForLoopOp(range(3), Parameter("a"), body)
+        self.assertEqual(list(ForLoopOp(range(3), a, body).params), [range(3), a, body])
 
     def test_switch_rejects_input_vars(self):
         """Bodies must not contain input variables."""
