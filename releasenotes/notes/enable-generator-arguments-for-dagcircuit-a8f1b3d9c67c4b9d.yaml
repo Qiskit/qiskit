@@ -1,0 +1,7 @@
+---
+features_circuits:
+  - |
+    The :class:`.DAGCircuit` class now supports passing generator arguments
+    as ``qargs`` and ``cargs`` to the :meth:`.apply_operation_back` and the 
+    :meth:`.apply_operation_front` methods. Refer to
+    `#14544 <https://github.com/Qiskit/qiskit/issues/14544>` for more details.
