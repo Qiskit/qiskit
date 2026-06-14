@@ -25,8 +25,9 @@ from qiskit.result import utils
 class TestCounts(unittest.TestCase):
     def test_just_counts(self):
         raw_counts = {"0x0": 21, "0x2": 12}
-        expected = {"0": 21, "10": 12}
-        result = counts.Counts(raw_counts)
+        expected = {"00": 21, "10": 12}
+        with self.assertWarnsRegex(UserWarning, "inconsistent bit widths"):
+            result = counts.Counts(raw_counts)
         self.assertEqual(expected, result)
 
     def test_counts_with_exta_formatting_data(self):
@@ -37,12 +38,47 @@ class TestCounts(unittest.TestCase):
         )
         self.assertEqual(result, expected)
 
+    def test_counts_with_creg_sizes_without_memory_slots(self):
+        raw_counts = {"0x0": 4, "0x2": 10}
+        expected = {"0 0": 4, "1 0": 10}
+        result = counts.Counts(raw_counts, creg_sizes=[["c0", 1], ["c1", 1]])
+        self.assertEqual(result, expected)
+
     def test_marginal_counts(self):
         raw_counts = {"0x0": 4, "0x1": 7, "0x2": 10, "0x6": 5, "0x9": 11, "0xD": 9, "0xE": 8}
         expected = {"00": 4, "01": 27, "10": 23}
         counts_obj = counts.Counts(raw_counts, creg_sizes=[["c0", 4]], memory_slots=4)
         result = utils.marginal_counts(counts_obj, [0, 1])
         self.assertEqual(expected, result)
+
+    def test_marginal_counts_mixed_width_hex_without_memory_slots(self):
+        raw_counts = {"0x0": 50, "0x3": 30}
+        expected_counts = {"00": 50, "11": 30}
+        expected_marginal = {"0": 50, "1": 30}
+
+        with self.assertWarnsRegex(UserWarning, "inconsistent bit widths"):
+            counts_obj = counts.Counts(raw_counts)
+
+        self.assertEqual(expected_counts, counts_obj)
+        self.assertEqual(expected_marginal, utils.marginal_counts(counts_obj, [0]))
+
+    def test_mixed_width_int_without_memory_slots(self):
+        raw_counts = {0: 50, 3: 30}
+        expected = {"00": 50, "11": 30}
+
+        with self.assertWarnsRegex(UserWarning, "inconsistent bit widths"):
+            counts_obj = counts.Counts(raw_counts)
+
+        self.assertEqual(expected, counts_obj)
+
+    def test_mixed_width_0b_without_memory_slots(self):
+        raw_counts = {"0b0": 50, "0b11": 30}
+        expected = {"00": 50, "11": 30}
+
+        with self.assertWarnsRegex(UserWarning, "inconsistent bit widths"):
+            counts_obj = counts.Counts(raw_counts)
+
+        self.assertEqual(expected, counts_obj)
 
     def test_marginal_distribution(self):
         raw_counts = {"0x0": 4, "0x1": 7, "0x2": 10, "0x6": 5, "0x9": 11, "0xD": 9, "0xE": 8}
@@ -87,8 +123,9 @@ class TestCounts(unittest.TestCase):
 
     def test_just_int_counts(self):
         raw_counts = {0: 21, 2: 12}
-        expected = {"0": 21, "10": 12}
-        result = counts.Counts(raw_counts)
+        expected = {"00": 21, "10": 12}
+        with self.assertWarnsRegex(UserWarning, "inconsistent bit widths"):
+            result = counts.Counts(raw_counts)
         self.assertEqual(expected, result)
 
     def test_int_counts_with_exta_formatting_data(self):
@@ -304,8 +341,9 @@ class TestCounts(unittest.TestCase):
 
     def test_just_0b_bitstring_counts(self):
         raw_counts = {"0b0": 21, "0b10": 12}
-        expected = {"0": 21, "10": 12}
-        result = counts.Counts(raw_counts)
+        expected = {"00": 21, "10": 12}
+        with self.assertWarnsRegex(UserWarning, "inconsistent bit widths"):
+            result = counts.Counts(raw_counts)
         self.assertEqual(expected, result)
 
     def test_0b_bistring_counts_with_exta_formatting_data(self):

@@ -13,6 +13,7 @@
 """A container class for counts from a circuit execution."""
 
 import re
+import warnings
 
 from qiskit.result import postprocess
 from qiskit import exceptions
@@ -63,6 +64,7 @@ class Counts(dict):
                 ``memory_slots``.
         """
         bin_data = None
+        inferred_memory_slots = None
         data = dict(data)
         if not data:
             self.int_raw = {}
@@ -73,13 +75,16 @@ class Counts(dict):
             if isinstance(first_key, int):
                 self.int_raw = data
                 self.hex_raw = {hex(key): value for key, value in self.int_raw.items()}
+                inferred_memory_slots = self._infer_memory_slots(self.int_raw)
             elif isinstance(first_key, str):
                 if first_key.startswith("0x"):
                     self.hex_raw = data
                     self.int_raw = {int(key, 0): value for key, value in self.hex_raw.items()}
+                    inferred_memory_slots = self._infer_memory_slots(self.int_raw)
                 elif first_key.startswith("0b"):
                     self.int_raw = {int(key, 0): value for key, value in data.items()}
                     self.hex_raw = {hex(key): value for key, value in self.int_raw.items()}
+                    inferred_memory_slots = self._infer_memory_slots(self.int_raw)
                 elif not creg_sizes and not memory_slots:
                     # bit strings with no leading 0b or dit strings
                     self.hex_raw = None
@@ -113,6 +118,16 @@ class Counts(dict):
         if self.creg_sizes:
             header["creg_sizes"] = self.creg_sizes
         self.memory_slots = memory_slots
+        if self.memory_slots is None and self.creg_sizes:
+            self.memory_slots = sum(size for _, size in self.creg_sizes)
+        if self.memory_slots is None and inferred_memory_slots is not None:
+            self.memory_slots = inferred_memory_slots
+            warnings.warn(
+                "Counts keys have inconsistent bit widths. Padding to the maximum inferred "
+                "width; pass memory_slots or creg_sizes to specify the intended width.",
+                UserWarning,
+                stacklevel=2,
+            )
         if self.memory_slots:
             header["memory_slots"] = self.memory_slots
         if not bin_data:
@@ -188,6 +203,14 @@ class Counts(dict):
     def _remove_space_underscore(bitstring):
         """Removes all spaces and underscores from bitstring"""
         return int(bitstring.replace(" ", "").replace("_", ""), 2)
+
+    @staticmethod
+    def _infer_memory_slots(int_keys):
+        """Infer a bit width for integer-like counts inputs when widths differ."""
+        widths = {max(key.bit_length(), 1) for key in int_keys}
+        if len(widths) > 1:
+            return max(widths)
+        return None
 
     def shots(self):
         """Return the number of shots"""
