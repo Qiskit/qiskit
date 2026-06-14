@@ -976,8 +976,31 @@ def generate_delay_stretch():
     stretch_expr.delay(expr.sub(Duration.ns(3.14159), stretch), 0)
     return [stretch_expr]
 
+def generate_pauli_product_measurement():
+    """Circuits that contain a Pauli Product Measurement gate"""
+    from qiskit.circuit.library import PauliProductMeasurement
+    from qiskit.quantum_info import Pauli
 
-def generate_circuits(generating_version, current_version, load_context=False):
+    ppm = PauliProductMeasurement(Pauli("ZXY"))
+    qc = QuantumCircuit(ppm.num_qubits, ppm.num_clbits)
+    qc.append(ppm, range(ppm.num_qubits), range(ppm.num_clbits))
+    return [qc]
+
+
+def generate_pauli_product_rotation():
+    """Circuits that contain a Pauli Product Rotation gate"""
+    from qiskit.circuit.library import PauliProductRotationGate
+    from qiskit.quantum_info import Pauli
+
+    ppr = PauliProductRotationGate(Pauli("ZXY"), angle=1.2)
+    qc = QuantumCircuit(ppr.num_qubits)
+    qc.append(ppr, range(ppr.num_qubits))
+    return [qc]
+
+
+def generate_circuits(
+    generating_version, current_version, load_context=False, qpy_version=None, forward_tests=False
+):
     """Generate reference circuits.
 
     If load_context is True, avoid generating Pulse-based reference
@@ -1054,6 +1077,23 @@ def generate_circuits(generating_version, current_version, load_context=False):
         output_circuits["v14_expr.qpy"] = generate_v14_expr()
         output_circuits["box.qpy"] = generate_box()
         output_circuits["delay_stretch.qpy"] = generate_delay_stretch()
+
+    # The Pauli Product Measurement gate was added in 2.3.0, but a bug in 2.4 prevents it from being read correctly
+    if (
+        generating_version.release >= (2, 3, 0)
+        and current_version.release >= (2, 3, 0)
+        and (not forward_tests or current_version.release[1] != 4)
+    ):
+        output_circuits["ppm.qpy"] = generate_pauli_product_measurement()
+
+    # The Pauli Product Rotation gate was added in 2.4.0, but a bug in 2.4 prevents it from being read correctly
+    if (
+        generating_version.release >= (2, 4, 0)
+        and current_version.release >= (2, 4, 0)
+        and (not forward_tests or current_version.release[1] != 4)
+    ):
+        output_circuits["ppr.qpy"] = generate_pauli_product_rotation()
+
     return output_circuits
 
 
