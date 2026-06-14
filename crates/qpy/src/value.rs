@@ -21,7 +21,7 @@ use pyo3::types::PyAny;
 
 use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::classical::expr::{Expr, Stretch, Var};
+use qiskit_circuit::classical::expr::{Expr, Range, Stretch, Var};
 use qiskit_circuit::classical::types::Type;
 use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::duration::Duration;
@@ -152,6 +152,7 @@ pub enum ValueType {
     Expression = b'x',
     Modifier = b'm',
     Circuit = b'q',
+    LoopVariable = b'w',
 }
 
 pub(crate) fn type_name(type_key: &ValueType) -> String {
@@ -173,6 +174,7 @@ pub(crate) fn type_name(type_key: &ValueType) -> String {
         ValueType::Expression => "expression",
         ValueType::Modifier => "modifier",
         ValueType::Circuit => "circuit",
+        ValueType::LoopVariable => "loop variable",
     })
 }
 
@@ -210,7 +212,7 @@ pub enum ExpressionType {
 #[binrw]
 #[brw(repr = u8)]
 #[repr(u8)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ExpressionVarDeclaration {
     Input = b'I',
     Capture = b'C',
@@ -302,7 +304,8 @@ pub enum GenericValue {
     Complex64(Complex64),
     CaseDefault,
     Register(ParamRegisterValue), // This is not the full register data; rather, it's the name stored inside instructions, or a clbit address
-    Range(PyRange),
+    Range(PyRange),               // Python range (start, stop, step as integers)
+    RangeExpr(Range),             // Range expression from qiskit.circuit.classical.expr
     Tuple(Vec<GenericValue>),
     NumpyObject(Bytes),
     ParameterExpressionSymbol(Arc<Symbol>),
@@ -315,6 +318,7 @@ pub enum GenericValue {
     Modifier(Py<PyAny>),
     Circuit(Py<PyAny>), // currently we have no rust class corresponding to a circuit, only to the inner CircuitData
     CircuitData(Box<CircuitData>),
+    LoopVariable(Var),
 }
 
 // we want to be able to extract the value relatively painlessly;
@@ -546,6 +550,19 @@ pub(crate) fn load_value(
                 Ok(GenericValue::Circuit(circuit))
             })
         }
+        ValueType::LoopVariable => {
+            if qpy_data.version < 18 {
+                return Err(QpyError::UnsupportedFeatureForVersion {
+                    feature: "ForLoop runtime loop variable".to_string(),
+                    version: 18,
+                    min_version: qpy_data.version,
+                });
+            }
+            Ok(GenericValue::LoopVariable(unpack_loop_variable(
+                bytes,
+                qpy_data.version,
+            )?))
+        }
     }
 }
 
@@ -636,6 +653,21 @@ pub(crate) fn serialize_generic_value(
             let range_pack = formats::RangePack { start, stop, step };
             (ValueType::Range, serialize(&range_pack)?)
         }
+        GenericValue::RangeExpr(range_expr) => {
+            if qpy_data.version < 18 {
+                return Err(QpyError::UnsupportedFeatureForVersion {
+                    feature: "classical expr.Range".to_string(),
+                    version: 18,
+                    min_version: qpy_data.version,
+                });
+            }
+            // Serialize Range expression as an Expression
+            let expr = Expr::Range(Box::new(range_expr.clone()));
+            (
+                ValueType::Expression,
+                serialize_expression(&expr, qpy_data)?,
+            )
+        }
         GenericValue::Modifier(py_object) => (
             ValueType::Modifier,
             serialize(&py_pack_modifier(py_object)?)?,
@@ -644,6 +676,19 @@ pub(crate) fn serialize_generic_value(
             ValueType::Register,
             serialize_param_register_value(param_register_value, qpy_data)?,
         ),
+        GenericValue::LoopVariable(var) => {
+            if qpy_data.version < 18 {
+                return Err(QpyError::UnsupportedFeatureForVersion {
+                    feature: "ForLoop runtime loop variable".to_string(),
+                    version: 18,
+                    min_version: qpy_data.version,
+                });
+            }
+            (
+                ValueType::LoopVariable,
+                pack_loop_variable(var, qpy_data.version)?,
+            )
+        }
     })
 }
 
@@ -691,12 +736,26 @@ pub(crate) fn pack_for_collection(value: &ForCollection) -> GenericValue {
                 .collect(),
         ),
         ForCollection::PyRange(py_range) => GenericValue::Range(*py_range),
+        ForCollection::Range(range_expr) => GenericValue::RangeExpr(range_expr.clone()),
     }
 }
 
 pub(crate) fn unpack_for_collection(value: &GenericValue) -> Result<ForCollection, QpyError> {
     match value {
         GenericValue::Range(py_range) => Ok(ForCollection::PyRange(*py_range)),
+        GenericValue::RangeExpr(range_expr) => Ok(ForCollection::Range(range_expr.clone())),
+        GenericValue::Expression(expr) => {
+            // Convert Range expressions to ForCollection::Range when unpacking
+            // This keeps Range expressions on the same code path as other expressions
+            // until we need to identify it as a Range for ForCollection unpacking
+            if let Expr::Range(range) = expr {
+                Ok(ForCollection::Range((**range).clone()))
+            } else {
+                Err(QpyError::ConversionError(
+                    "Could not unpack ForCollection".to_string(),
+                ))
+            }
+        }
         GenericValue::Tuple(vec) => {
             let value_list = vec
                 .iter()
@@ -828,6 +887,58 @@ pub(crate) fn pack_standalone_var(
             "attempted to pack as standalone var the non-standalone var {:?}",
             var
         ))),
+    }
+}
+
+pub(crate) fn unpack_loop_variable(bytes: &Bytes, version: u32) -> Result<Var, QpyError> {
+    let (packed_var, _) = deserialize::<formats::ExpressionVarDeclarationPack>(bytes)?;
+    if packed_var.usage != ExpressionVarDeclaration::Local {
+        return Err(QpyError::InvalidExpression(format!(
+            "loop variable declaration has unexpected usage {:?}",
+            packed_var.usage
+        )));
+    }
+    let ty = unpack_expression_type(packed_var.exp_type, version)?;
+    let uuid = u128::from_be_bytes(packed_var.uuid_bytes);
+    Ok(Var::Standalone {
+        uuid,
+        name: packed_var.name,
+        ty,
+    })
+}
+
+pub(crate) fn pack_loop_variable(var: &Var, version: u32) -> Result<Bytes, QpyError> {
+    let mut uuid = 0;
+    let packed_var = pack_standalone_var(var, ExpressionVarDeclaration::Local, version, &mut uuid)?;
+    serialize(&packed_var)
+}
+
+fn unpack_expression_type(exp_type: ExpressionType, version: u32) -> Result<Type, QpyError> {
+    match exp_type {
+        ExpressionType::Bool => Ok(Type::Bool),
+        ExpressionType::Duration => {
+            if version >= 14 {
+                Ok(Type::Duration)
+            } else {
+                Err(QpyError::UnsupportedFeatureForVersion {
+                    feature: "duration-typed expressions".to_string(),
+                    version: 14,
+                    min_version: version,
+                })
+            }
+        }
+        ExpressionType::Float => {
+            if version >= 14 {
+                Ok(Type::Float)
+            } else {
+                Err(QpyError::UnsupportedFeatureForVersion {
+                    feature: "float-typed expressions".to_string(),
+                    version: 14,
+                    min_version: version,
+                })
+            }
+        }
+        ExpressionType::Uint(width) => Ok(Type::Uint(width.try_into()?)),
     }
 }
 

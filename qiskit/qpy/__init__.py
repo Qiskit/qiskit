@@ -199,6 +199,9 @@ of QPY in qiskit-terra 0.18.0.
    * - Qiskit (qiskit-terra for < 1.0.0) version
      - :func:`.dump` format(s) output versions
      - :func:`.load` maximum supported version (older format versions can always be read)
+   * - 2.5.0
+     - 13, 14, 15, 16, 17, 18
+     - 18
    * - 2.4.1
      - 13, 14, 15, 16, 17
      - 17
@@ -458,6 +461,38 @@ Each individual circuit is composed of the following parts in order from top to 
 There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
+
+
+.. _qpy_version_18:
+
+Version 18
+----------
+
+Version 18 adds support for serializing and deserializing classical
+:class:`~.expr.Range` expressions and runtime loop variables for
+:class:`.ForLoopOp` instructions.
+
+New Expression.RANGE classical-expression element
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A new classical-expression discriminator ``RANGE`` (type key ``r``) represents an
+:class:`~.expr.Range` with start, stop, and step sub-expressions. This is used when a
+:class:`.ForLoopOp` indexset is an :class:`~.expr.Range` (serialized as a
+``Value.EXPRESSION`` instruction parameter whose payload contains ``RANGE`` nodes).
+QPY format versions below 18 cannot read or write this element; attempting to
+serialize a circuit that contains one with ``version < 18`` raises
+:exc:`~.UnsupportedFeatureForVersion`.
+
+New LOOP_VARIABLE instruction parameter type
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A new instruction-parameter value type ``LOOP_VARIABLE`` (type key ``w``) is supported
+for the second parameter of :class:`.ForLoopOp` when it is a standalone real-time
+variable. The payload reuses the ``EXPR_VAR_DECLARATION`` wire format (UUID, usage,
+type, and name) used for circuit-scope standalone variables, but the declaration is
+written directly in the instruction parameter slot rather than in the circuit header
+variable table. QPY format versions below 18 continue to emit ``Null`` for this slot
+when dumping (lossy by design), and cannot deserialize ``LOOP_VARIABLE`` payloads.
 
 .. _qpy_version_17:
 

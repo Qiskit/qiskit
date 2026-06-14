@@ -478,18 +478,39 @@ pub enum ForCollection {
     PyRange(PyRange),
     /// Some ordered collection of integers.
     List(Vec<usize>),
+    /// A Dynamic Range object from qiskit.circuit.classical.expr
+    Range(expr::Range),
+}
+
+/// The variable bound to each iteration value in a for-loop.
+///
+/// A compile-time [`Symbol`] (wrapping a Python `Parameter`) can be substituted at transpile
+/// time by `assign_parameters`; a runtime [`expr::Var`] is bound by the hardware at runtime and
+/// can only be unrolled by substituting it in the body's classical expressions.
+///
+/// Note: this enum intentionally does not derive `IntoPyObjectRef` because the inner
+/// `Symbol` / `expr::Var` types only provide `IntoPyObject` for owned values, not for
+/// references. All conversions to Python use owned `LoopVar` via clone.
+#[derive(Clone, Debug, IntoPyObject, FromPyObject, PartialEq, Eq)]
+pub enum LoopVar {
+    /// A compile-time [`Symbol`] (a Python `Parameter`).
+    Compile(Symbol),
+    /// A runtime real-time variable [`expr::Var`].
+    Runtime(expr::Var),
 }
 impl ForCollection {
     pub fn is_empty(&self) -> bool {
         match self {
             Self::PyRange(xs) => xs.is_empty(),
             Self::List(xs) => xs.is_empty(),
+            Self::Range(xs) => xs.is_empty(),
         }
     }
     pub fn len(&self) -> usize {
         match self {
             Self::PyRange(xs) => xs.len(),
             Self::List(xs) => xs.len(),
+            Self::Range(xs) => xs.len(),
         }
     }
 }
@@ -512,7 +533,7 @@ pub enum ControlFlow {
     ContinueLoop,
     ForLoop {
         collection: ForCollection,
-        loop_param: Option<Symbol>,
+        loop_param: Option<LoopVar>,
     },
     IfElse {
         condition: Condition,
@@ -772,7 +793,7 @@ pub enum ControlFlowView<'a, T> {
     ContinueLoop,
     ForLoop {
         collection: &'a ForCollection,
-        loop_param: Option<&'a Symbol>,
+        loop_param: Option<&'a LoopVar>,
         body: &'a T,
     },
     IfElse {

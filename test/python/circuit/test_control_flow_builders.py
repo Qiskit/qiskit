@@ -3970,6 +3970,26 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
             with self.assertRaisesRegex(CircuitError, "cannot use.*shadowed"):
                 base.store(outer, expr.lift(True))
 
+    def test_cannot_use_var_shadowing_pending_loop_var(self):
+        """A ``Var`` sharing an auto-generated loop variable's name cannot be used while that
+        loop variable is still pending.
+
+        Entering ``for_loop`` with an :class:`~.expr.Range` auto-generates an :class:`~.expr.Var`
+        loop variable that is registered *lazily* (it only becomes a declared local on first use,
+        so an unreferenced one is dropped).  This locks in the guard in
+        :meth:`.ControlFlowBuilderBlock.use_var` that rejects a *different* variable of the same
+        name while the loop variable is pending; a regression here would let the auto-generated
+        loop variable be silently shadowed.
+        """
+        base = QuantumCircuit()
+        indexset = expr.Range(expr.lift(0, types.Uint(8)), expr.lift(4, types.Uint(8)))
+        with base.for_loop(indexset) as loop_var:
+            clash = expr.Var.new(loop_var.name, loop_var.type)
+            self.assertNotEqual(clash, loop_var)
+            target = base.add_var("target", expr.lift(0, types.Uint(8)))
+            with self.assertRaisesRegex(CircuitError, "cannot use.*shadowed"):
+                base.store(target, clash)
+
     def test_cannot_use_beyond_outer_shadow(self):
         outer = expr.Var.new("a", types.Bool())
         inner = expr.Var.new("a", types.Bool())

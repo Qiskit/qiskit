@@ -37,7 +37,7 @@ use qiskit_circuit::duration::Duration;
 use qiskit_circuit::imports;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
-    BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction, Operation,
+    BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction, LoopVar, Operation,
     OperationRef, Param, PauliProductMeasurement, PauliProductRotation, PyInstruction, PyOpKind,
     StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
 };
@@ -412,6 +412,44 @@ fn control_flow_class_name(control_flow: &ControlFlow) -> String {
         ControlFlow::Switch { .. } => "SwitchCaseOp",
     })
 }
+
+fn validate_loop_var_in_body(
+    instruction: &PackedInstruction,
+    var: &qiskit_circuit::classical::expr::Var,
+    qpy_data: &QPYWriteData,
+) -> Result<(), QpyError> {
+    let qiskit_circuit::classical::expr::Var::Standalone { uuid, .. } = var else {
+        return Err(QpyError::InvalidExpression(
+            "ForLoop loop parameter must be a standalone real-time variable".to_string(),
+        ));
+    };
+    let body_id = instruction.blocks_view().first().copied().ok_or_else(|| {
+        QpyError::ConversionError("ForLoop is missing its body block".to_string())
+    })?;
+    let body = qpy_data
+        .circuit_data
+        .blocks()
+        .get(body_id)
+        .ok_or_else(|| QpyError::ConversionError("ForLoop body block not found".to_string()))?;
+    let found = body
+        .vars_stretches_view()
+        .iter_vars(VarType::Declare)
+        .any(|body_var| {
+            matches!(
+                body_var,
+                qiskit_circuit::classical::expr::Var::Standalone {
+                    uuid: body_uuid,
+                    ..
+                } if body_uuid == uuid
+            )
+        });
+    if !found {
+        return Err(QpyError::InvalidExpression(format!(
+            "ForLoop loop parameter UUID {uuid} does not match any declared variable in the body"
+        )));
+    }
+    Ok(())
+}
 fn pack_control_flow_inst(
     control_flow_inst: &ControlFlowInstruction,
     instruction: &PackedInstruction,
@@ -469,7 +507,17 @@ fn pack_control_flow_inst(
             let collection_value = pack_for_collection(&collection);
             let loop_param_value = match loop_param {
                 None => GenericValue::Null,
-                Some(symbol) => GenericValue::ParameterExpressionSymbol(symbol.into()),
+                Some(LoopVar::Compile(symbol)) => {
+                    GenericValue::ParameterExpressionSymbol(symbol.into())
+                }
+                Some(LoopVar::Runtime(var)) => {
+                    if qpy_data.version >= 18 {
+                        validate_loop_var_in_body(instruction, &var, qpy_data)?;
+                        GenericValue::LoopVariable(var)
+                    } else {
+                        GenericValue::Null
+                    }
+                }
             };
             let mut params = Vec::new();
             params.push(pack_generic_value(&collection_value, qpy_data)?);

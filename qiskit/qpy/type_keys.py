@@ -84,6 +84,7 @@ class Value(TypeKeyBase):
     NULL = b"z"
     EXPRESSION = b"x"
     MODIFIER = b"m"
+    LOOP_VARIABLE = b"w"
 
     @classmethod
     def assign(cls, obj):
@@ -256,6 +257,7 @@ class Expression(TypeKeyBase):
     UNARY = b"u"
     BINARY = b"b"
     INDEX = b"i"
+    RANGE = b"r"
 
     @classmethod
     def assign(cls, obj):
