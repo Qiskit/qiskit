@@ -1,0 +1,8 @@
+---
+deprecations:
+  - |
+    The legacy alias
+    ``qiskit.transpiler.passes.utils.wrap_angles.WRAP_ANGLE_REGISTRY`` is
+    deprecated as of Qiskit 2.6 and will be removed in Qiskit 3.0 or a later
+    major release. Instead, use
+    :attr:`qiskit.transpiler.passes.WrapAngles.DEFAULT_REGISTRY`.
