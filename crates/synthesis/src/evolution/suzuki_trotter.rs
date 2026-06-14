@@ -12,64 +12,14 @@
 
 use hashbrown::HashSet;
 use itertools::Itertools;
-use num_complex::Complex64;
 use qiskit_quantum_info::sparse_observable::SparseTermView;
 use qiskit_util::IndexMap;
-use rand::distr::weighted::{Error as DistroError, WeightedIndex};
-use rand::prelude::*;
-use rand::rngs::SysRng;
-use rand_pcg::Pcg64Mcg;
 use rustworkx_core::coloring::{ColoringStrategy, greedy_node_color_with_coloring_strategy};
 use rustworkx_core::petgraph::graph::NodeIndex;
 use rustworkx_core::petgraph::{Graph, Undirected};
 use std::convert::Infallible;
-use thiserror::Error;
 
-pub fn qdrift_evolution<'a>(
-    time: f64,
-    reps: u32,
-    seed: Option<u64>,
-    coeffs_iter: impl Iterator<Item = &'a Complex64>,
-) -> Result<Vec<(usize, f64)>, TrotterizationError> {
-    let mut rng = match seed {
-        Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-        None => Pcg64Mcg::try_from_rng(&mut SysRng).unwrap(),
-    };
-    let mut lambd = 0.0;
-
-    match coeffs_iter
-        .enumerate()
-        .map(|(i, coeff)| match real_or_fail(coeff) {
-            Ok(real_coeff) => Ok({
-                lambd += real_coeff;
-                (i, real_coeff)
-            }),
-            Err(err) => Err(err),
-        })
-        .collect::<Result<Vec<_>, _>>()
-    {
-        Ok(coeffs) => {
-            let num_gates = (2.0 * lambd.powi(2) * time.powi(2) * reps as f64).ceil() as usize;
-            match WeightedIndex::new(coeffs.iter().map(|(_, coeff)| coeff.abs() / lambd)) {
-                Ok(distr) => Ok({
-                    (0..num_gates)
-                        .map(|_| {
-                            let (index, coeff) = coeffs[distr.sample(&mut rng)];
-                            (
-                                index,
-                                coeff.signum() * (2.0 * lambd / (num_gates as f64) * time),
-                            )
-                        })
-                        .collect()
-                }),
-                Err(err) => Err(TrotterizationError::DistributionError(err)),
-            }
-        }
-        Err(err) => Err(err),
-    }
-}
-
-pub fn suzuki_evolution(order: u32, num_paulis: usize) -> Vec<(usize, f64)> {
+pub fn evolution(order: u32, num_paulis: usize) -> Vec<(usize, f64)> {
     match order {
         1 => (0..num_paulis).map(|i| (i, 1.)).collect(),
         2 => (0..num_paulis - 1)
@@ -79,7 +29,7 @@ pub fn suzuki_evolution(order: u32, num_paulis: usize) -> Vec<(usize, f64)> {
             .collect(),
         _ => {
             let reduction = 1.0 / (4.0 - 4_f64.powf(1.0 / (order as f64 - 1.0)));
-            let mut outer = suzuki_evolution(order - 2, num_paulis);
+            let mut outer = evolution(order - 2, num_paulis);
             let outer_len = outer.len();
             outer.iter_mut().for_each(|p| {
                 p.1 *= reduction;
@@ -88,7 +38,7 @@ pub fn suzuki_evolution(order: u32, num_paulis: usize) -> Vec<(usize, f64)> {
                 outer.into_iter().cycle().take(outer_len * 2).collect();
             let mut outer_r = outer.clone();
 
-            let mut inner = suzuki_evolution(order - 2, num_paulis);
+            let mut inner = evolution(order - 2, num_paulis);
             inner.iter_mut().for_each(|p| {
                 p.1 *= 1.0 - 4.0 * reduction;
             });
@@ -150,24 +100,4 @@ pub fn reorder_terms<'a>(
 
         Err(_) => Err("Unexpected error when coloring Pauli sparse terms"),
     }
-}
-
-/// Internal helper to extract real part of a complex number,
-/// returning an error if imaginary part is non-zero.
-fn real_or_fail(z: &Complex64) -> Result<f64, TrotterizationError> {
-    if z.im.abs() > 1e-12 {
-        return Err(TrotterizationError::RealOrFail(z.im.abs()));
-    }
-    Ok(z.re)
-}
-
-#[derive(Debug, Error)]
-pub enum TrotterizationError {
-    /// Complex value obtained from real approximation
-    #[error["Encountered complex value {0}, but expected real."]]
-    RealOrFail(f64),
-
-    /// Couldn't generate weighted distribution
-    #[error["Failed creating weight distribution"]]
-    DistributionError(#[from] DistroError),
 }
