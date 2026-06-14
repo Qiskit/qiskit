@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -302,10 +302,11 @@ def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
                         f"{{{virt_reg[:].index(virt_bit)}}} "
                         f"\\mapsto {{{index}}}"
                     )
-            elif drawer == "text":
-                wire_label = f"{index_str} -> {index}"
             else:
-                wire_label = f"{index_str} \\mapsto {{{index}}}"
+                if drawer == "text":
+                    wire_label = f"{index_str} -> {index}"
+                else:
+                    wire_label = f"{index_str} \\mapsto {{{index}}}"
         if drawer != "text":
             wire_label = wire_label.replace(" ", "\\;")  # use wider spaces
     else:
@@ -434,8 +435,6 @@ def _get_layered_instructions(
             default `left` will be used.
         idle_wires (bool): Include idle wires. Default is True.
         wire_order (list): A list of ints that modifies the order of the bits.
-        wire_map (dict): The wire map
-        measure_arrows (bool): whether do draw arrows from measurements
 
     Returns:
         Tuple(list,list,list): To be consumed by the visualizer directly.
@@ -481,7 +480,11 @@ def _get_layered_instructions(
             nodes.append([node])
     else:
         nodes = _LayerSpooler(dag, qubits, clbits, justify, measure_map, measure_arrows)
-
+        # Add zero-qubit gates manually since dag.layers() excludes them
+        for node in dag.topological_op_nodes():
+            if not node.qargs and not node.cargs:
+                nodes.insert(0, [node])
+                
     if not idle_wires:
         # Optionally remove all idle wires and instructions that are on them and
         # on them only.
@@ -491,7 +494,8 @@ def _get_layered_instructions(
             if wire in clbits:
                 clbits.remove(wire)
 
-    nodes = [[node for node in layer if any(q in qubits for q in node.qargs)] for layer in nodes]
+    nodes = [[node for node in layer if any(q in qubits for q in node.qargs) or not node.qargs] for layer in nodes]
+
 
     return qubits, clbits, nodes
 
@@ -618,7 +622,8 @@ class _LayerSpooler(list):
                 for carg in node.cargs:
                     try:
                         carg_bit = next(bit for bit in self.measure_map if carg == bit)
-                        index_stop = max(index_stop, self.measure_map[carg_bit])
+                        if self.measure_map[carg_bit] > index_stop:
+                            index_stop = self.measure_map[carg_bit]
                     except StopIteration:
                         pass
             while curr_index > index_stop:
@@ -649,7 +654,8 @@ class _LayerSpooler(list):
         if isinstance(node.op, Measure):
             if not measure_layer:
                 measure_layer = len(self) - 1
-            self.measure_map[measure_bit] = max(self.measure_map[measure_bit], measure_layer)
+            if measure_layer > self.measure_map[measure_bit]:
+                self.measure_map[measure_bit] = measure_layer
 
     def slide_from_right(self, node, index):
         """Insert node into rightmost layer as long there is no conflict."""
@@ -685,15 +691,18 @@ class _LayerSpooler(list):
 
     def add(self, node, index):
         """Add 'node' where it belongs, starting the try at 'index'."""
-        # Before we add the node, we set its node ID to be globally unique
-        # within this spooler. This is necessary because nodes may span
-        # layers (which are separate DAGs), and thus can falsely compare
-        # as equal if their contents and node IDs happen to be the same.
-        # This is particularly important for the matplotlib drawer, which
-        # keys several of its internal data structures with these nodes.
-        global _GLOBAL_NID  # noqa: PLW0603
+        global _GLOBAL_NID  # pylint: disable=global-statement
         node._node_id = _GLOBAL_NID
         _GLOBAL_NID += 1
+        # Zero-qubit gates like GlobalPhaseGate have no qargs
+        # so just append them to the current layer directly
+        if not node.qargs:
+            if not self or max(index, 0) >= len(self):
+                self.append([node])
+            else:
+                self[max(index, 0)].append(node)
+            return
+        
         if self.justification == "left":
             self.slide_from_left(node, index)
         else:

@@ -4,12 +4,13 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=invalid-name,inconsistent-return-statements
 
 """mpl circuit visualization backend."""
 
@@ -47,6 +48,7 @@ from qiskit.circuit.library.standard_gates import (
     XGate,
     ZGate,
 )
+from qiskit.circuit.library import GlobalPhaseGate
 from qiskit.qasm3 import ast
 from qiskit.qasm3.exporter import _ExprBuilder
 from qiskit.qasm3.printer import BasicPrinter
@@ -110,7 +112,6 @@ class MatplotlibDrawer:
         with_layout=False,
         expr_len=30,
         measure_arrows=None,
-        barrier_label_len=16,
     ):
         self._circuit = circuit
         self._qubits = qubits
@@ -139,7 +140,6 @@ class MatplotlibDrawer:
         self._initial_state = initial_state
         self._global_phase = self._circuit.global_phase
         self._expr_len = expr_len
-        self._barrier_label_len = barrier_label_len
         self._cregbundle = cregbundle
         self._measure_arrows = measure_arrows
 
@@ -254,7 +254,7 @@ class MatplotlibDrawer:
             "}": (0.1896, 0.1188),
         }
 
-    def draw(self, filename=None):
+    def draw(self, filename=None, verbose=False):
         """Main entry point to 'matplotlib' ('mpl') drawer. Called from
         ``visualization.circuit_drawer`` and from ``QuantumCircuit.draw`` through circuit_drawer.
         """
@@ -392,6 +392,7 @@ class MatplotlibDrawer:
             qubits_dict,
             clbits_dict,
             glob_data,
+            verbose,
         )
         if filename:
             mpl_figure.savefig(
@@ -421,9 +422,18 @@ class MatplotlibDrawer:
                 node_data[node] = NodeData()
                 node_data[node].width = WID
                 num_ctrl_qubits = getattr(op, "num_ctrl_qubits", 0)
+                
+                if isinstance(op, GlobalPhaseGate):
+                    node_data[node].width = WID
+                    node_data[node].param_text = get_param_str(op, "mpl", ndigits=3)
+                    layer_widths[node][0] =2
+                    continue
+                
                 if (
-                    getattr(op, "_directive", False) and (not op.label or not self._plot_barriers)
-                ) or (self._measure_arrows and isinstance(op, Measure)):
+                    getattr(op, "_directive", False)
+                    and (not op.label or not self._plot_barriers)
+                    or (self._measure_arrows and isinstance(op, Measure))
+                ):
                     node_data[node].raw_gate_text = op.name
                     continue
 
@@ -431,10 +441,6 @@ class MatplotlibDrawer:
                 gate_text, ctrl_text, raw_gate_text = get_gate_ctrl_text(
                     op, "mpl", style=self._style
                 )
-                # Truncate directive labels to match the rendered length so the layer
-                # width doesn't account for text that will never be displayed.
-                if getattr(op, "_directive", False) and len(gate_text) > self._barrier_label_len:
-                    gate_text = gate_text[: self._barrier_label_len] + "..."
                 node_data[node].gate_text = gate_text
                 node_data[node].ctrl_text = ctrl_text
                 # Measure doesn't use raw_gate_text since it displays a dial
@@ -667,7 +673,8 @@ class MatplotlibDrawer:
                         gate_width += 0.21
 
                 box_width = max(gate_width, ctrl_width, param_width, WID)
-                widest_box = max(widest_box, box_width)
+                if box_width > widest_box:
+                    widest_box = box_width
                 if not isinstance(node.op, ControlFlowOp):
                     node_data[node].width = max(raw_gate_width, raw_param_width)
             for node in layer:
@@ -724,7 +731,8 @@ class MatplotlibDrawer:
                 )
                 * 1.15
             )
-            longest_wire_label_width = max(longest_wire_label_width, text_width)
+            if text_width > longest_wire_label_width:
+                longest_wire_label_width = text_width
 
             if isinstance(wire, Qubit):
                 pos = -ii
@@ -766,6 +774,8 @@ class MatplotlibDrawer:
         prev_x_index = -1
         for layer in self._nodes:
             curr_x_index = prev_x_index + 1
+            glob_data["next_x_index"] = curr_x_index
+            
             l_width = []
             for node in layer:
                 # For gates inside a flow op set the x_index and if it's an else or case,
@@ -1085,6 +1095,7 @@ class MatplotlibDrawer:
         qubits_dict,
         clbits_dict,
         glob_data,
+        verbose=False,
     ):
         """Draw the gates in the circuit"""
 
@@ -1103,12 +1114,16 @@ class MatplotlibDrawer:
         for layer in nodes:
             l_width = []
             curr_x_index = prev_x_index + 1
+            glob_data["next_x_index"] = curr_x_index
 
             # draw the gates in this layer
             for node in layer:
                 op = node.op
 
                 self._get_colors(node, node_data)
+
+                if verbose:
+                    print(op)  # pylint: disable=bad-builtin
 
                 # add conditional
                 if getattr(op, "condition", None) or isinstance(op, SwitchCaseOp):
@@ -1145,7 +1160,20 @@ class MatplotlibDrawer:
                 # draw the box for control flow circuits
                 elif isinstance(op, ControlFlowOp):
                     self._flow_op_gate(node, node_data, glob_data)
-
+                
+                elif isinstance(op, GlobalPhaseGate):
+                    first_wire_y = list(qubits_dict.values())[0]["y"]
+                    last_wire_y = list(qubits_dict.values())[-1]["y"]
+                    xpos = curr_x_index + layer_widths[node][0]*0.5 + glob_data["x_offset"]+0.04
+                    ypos = last_wire_y
+                    height=abs(first_wire_y - last_wire_y) + HIG
+                    param_text = get_param_str(op, "mpl", ndigits=3)
+                    box = glob_data["patches_mod"].FancyBboxPatch(xy=(xpos - 0.35, ypos - 0.25), width=0.7, height=height, boxstyle="round, pad=0.1", fc=self._style["dispcol"]["u"][0], ec=self._style["dispcol"]["u"][0], linewidth=self._lwidth15, zorder=PORDER_GATE,)
+                    self._ax.add_patch(box)
+                    self._ax.text(xpos,(first_wire_y + last_wire_y)/2, f"GP\n({param_text})", ha="center", va="center", fontsize=self._style["sfs"], color=self._style["gt"], clip_on=True, zorder=PORDER_TEXT,)
+                    l_width.append(layer_widths[node][0])
+                    glob_data["next_x_index"] = curr_x_index
+                    
                 # draw single qubit gates
                 elif len(node_data[node].q_xy) == 1 and not node.cargs:
                     self._gate(node, node_data, glob_data)
@@ -1443,14 +1471,11 @@ class MatplotlibDrawer:
 
             # display the barrier label at the top if there is one
             if i == 0 and node.op.label is not None:
-                label = node.op.label
-                if len(label) > self._barrier_label_len:
-                    label = label[: self._barrier_label_len] + "..."
                 dir_ypos = ypos + 0.65 * HIG
                 self._ax.text(
                     xpos,
                     dir_ypos,
-                    label,
+                    node.op.label,
                     ha="center",
                     va="top",
                     fontsize=self._style["fs"],
@@ -1816,6 +1841,11 @@ class MatplotlibDrawer:
 
         elif isinstance(base_type, SwapGate):
             self._swap(xy[num_ctrl_qubits:], node_data[node].lc)
+            
+        elif num_qargs == 0:
+            qubit_b = min(xy, key=lambda xy: xy[1])
+            xpos, ypos = qubit_b
+            self._ax.text(xpos+0.15, ypos+HIG, f"GP({node_data[node].param_text})", ha="left", va="top", fontsize=self._style["fs"], color=node_data[node].tc, clip_on=True, zorder=PORDER_TEXT,)
 
         else:
             self._multiqubit_gate(node, node_data, glob_data, xy[num_ctrl_qubits:])
