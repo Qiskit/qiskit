@@ -52,6 +52,55 @@ class TestStandard1Q(QiskitTestCase):
         self.cr = ClassicalRegister(3, "c")
         self.circuit = QuantumCircuit(self.qr, self.qr2, self.cr)
 
+    def test_gate_methods_accept_label(self):
+        """Test label support for gate helpers that append a single gate."""
+        label = "my label"
+        test_cases = [
+            ("h", "h", 1, lambda circuit: circuit.h(0, label=label)),
+            ("id", "id", 1, lambda circuit: circuit.id(0, label=label)),
+            ("ms", "ms", 2, lambda circuit: circuit.ms(pi / 4, [0, 1], label=label)),
+            ("p", "p", 1, lambda circuit: circuit.p(pi / 4, 0, label=label)),
+            ("r", "r", 1, lambda circuit: circuit.r(pi / 4, pi / 2, 0, label=label)),
+            ("rv", "rv", 1, lambda circuit: circuit.rv(0.1, 0.2, 0.3, 0, label=label)),
+            ("rx", "rx", 1, lambda circuit: circuit.rx(pi / 4, 0, label=label)),
+            ("rxx", "rxx", 2, lambda circuit: circuit.rxx(pi / 4, 0, 1, label=label)),
+            ("ry", "ry", 1, lambda circuit: circuit.ry(pi / 4, 0, label=label)),
+            ("ryy", "ryy", 2, lambda circuit: circuit.ryy(pi / 4, 0, 1, label=label)),
+            ("rz", "rz", 1, lambda circuit: circuit.rz(pi / 4, 0, label=label)),
+            ("rzx", "rzx", 2, lambda circuit: circuit.rzx(pi / 4, 0, 1, label=label)),
+            ("rzz", "rzz", 2, lambda circuit: circuit.rzz(pi / 4, 0, 1, label=label)),
+            ("ecr", "ecr", 2, lambda circuit: circuit.ecr(0, 1, label=label)),
+            ("s", "s", 1, lambda circuit: circuit.s(0, label=label)),
+            ("sdg", "sdg", 1, lambda circuit: circuit.sdg(0, label=label)),
+            ("swap", "swap", 2, lambda circuit: circuit.swap(0, 1, label=label)),
+            ("iswap", "iswap", 2, lambda circuit: circuit.iswap(0, 1, label=label)),
+            ("sx", "sx", 1, lambda circuit: circuit.sx(0, label=label)),
+            ("sxdg", "sxdg", 1, lambda circuit: circuit.sxdg(0, label=label)),
+            ("t", "t", 1, lambda circuit: circuit.t(0, label=label)),
+            ("tdg", "tdg", 1, lambda circuit: circuit.tdg(0, label=label)),
+            ("u", "u", 1, lambda circuit: circuit.u(pi / 4, pi / 2, pi / 8, 0, label=label)),
+            ("x", "x", 1, lambda circuit: circuit.x(0, label=label)),
+            ("dcx", "dcx", 2, lambda circuit: circuit.dcx(0, 1, label=label)),
+            ("y", "y", 1, lambda circuit: circuit.y(0, label=label)),
+            ("z", "z", 1, lambda circuit: circuit.z(0, label=label)),
+            ("pauli", "pauli", 3, lambda circuit: circuit.pauli("XYZ", [0, 1, 2], label=label)),
+        ]
+
+        for helper_name, gate_name, num_qubits, apply_gate in test_cases:
+            with self.subTest(helper_name=helper_name):
+                qc = QuantumCircuit(num_qubits)
+                apply_gate(qc)
+                self.assertEqual(qc.data[0].operation.name, gate_name)
+                self.assertEqual(qc.data[0].operation.label, label)
+
+    def test_gate_methods_accept_label_for_broadcasts(self):
+        """Test label support for broadcasted standard-gate helpers."""
+        label = "broadcast label"
+        qc = QuantumCircuit(3)
+        instruction_set = qc.h(range(3), label=label)
+        self.assertEqual(len(instruction_set), 3)
+        self.assertEqual([instruction.operation.label for instruction in qc.data], [label] * 3)
+
     def test_barrier(self):
         self.circuit.barrier(self.qr[1])
         self.assertEqual(len(self.circuit), 1)
