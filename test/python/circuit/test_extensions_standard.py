@@ -96,6 +96,16 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(self.circuit[0].operation.name, "ccx")
         self.assertEqual(self.circuit[0].qubits, (self.qr[0], self.qr[1], self.qr[2]))
 
+    def test_ccx_label(self):
+        label = "toffoli"
+        self.circuit.ccx(self.qr[0], self.qr[1], self.qr[2], label=label)
+        self.assertEqual(self.circuit[0].operation.label, label)
+
+    def test_ccx_label_open_control(self):
+        label = "open-toffoli"
+        self.circuit.ccx(self.qr[0], self.qr[1], self.qr[2], ctrl_state=0, label=label)
+        self.assertEqual(self.circuit[0].operation.label, label)
+
     def test_ccx_invalid(self):
         qc = self.circuit
         self.assertRaises(CircuitError, qc.ccx, self.cr[0], self.cr[1], self.cr[2])
@@ -122,6 +132,67 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(CircuitError, qc.ch, (self.qr, 3), self.qr[0])
         self.assertRaises(CircuitError, qc.ch, self.cr, self.qr)
         self.assertRaises(CircuitError, qc.ch, "a", self.qr[1])
+
+    def test_rccx_label(self):
+        label = "relative-toffoli"
+        self.circuit.rccx(self.qr[0], self.qr[1], self.qr[2], label=label)
+        self.assertEqual(self.circuit[0].operation.label, label)
+
+    def test_rcccx_label(self):
+        label = "relative-3-toffoli"
+        self.circuit.rcccx(self.qr[0], self.qr[1], self.qr[2], self.qr2[0], label=label)
+        self.assertEqual(self.circuit[0].operation.label, label)
+
+    def test_mcx_label(self):
+        label = "multi-controlled-x"
+        self.circuit.mcx([self.qr[0], self.qr[1], self.qr[2]], self.qr2[0], label=label)
+        self.assertEqual(self.circuit[0].operation.label, label)
+
+    def test_mcx_label_open_control(self):
+        label = "open-multi-controlled-x"
+        self.circuit.mcx(
+            [self.qr[0], self.qr[1]],
+            self.qr[2],
+            ctrl_state=0,
+            label=label,
+        )
+        self.assertEqual(self.circuit[0].operation.label, label)
+
+    def test_standard_gate_method_labels(self):
+        label = "custom gate label"
+        cases = [
+            ("h", (0,)),
+            ("id", (0,)),
+            ("ms", (0.1, [0, 1])),
+            ("p", (0.1, 0)),
+            ("mcp", (0.1, [0, 1], 2)),
+            ("r", (0.1, 0.2, 0)),
+            ("rv", (0.1, 0.2, 0.3, 0)),
+            ("rxx", (0.1, 0, 1)),
+            ("ryy", (0.1, 0, 1)),
+            ("rz", (0.1, 0)),
+            ("rzx", (0.1, 0, 1)),
+            ("rzz", (0.1, 0, 1)),
+            ("ecr", (0, 1)),
+            ("s", (0,)),
+            ("sdg", (0,)),
+            ("swap", (0, 1)),
+            ("iswap", (0, 1)),
+            ("sx", (0,)),
+            ("sxdg", (0,)),
+            ("t", (0,)),
+            ("tdg", (0,)),
+            ("u", (0.1, 0.2, 0.3, 0)),
+            ("dcx", (0, 1)),
+            ("y", (0,)),
+            ("z", (0,)),
+            ("pauli", ("XX", [0, 1])),
+        ]
+        for method_name, args in cases:
+            with self.subTest(method_name=method_name):
+                circuit = QuantumCircuit(3)
+                getattr(circuit, method_name)(*args, label=label)
+                self.assertEqual(circuit[0].operation.label, label)
 
     def test_crz(self):
         self.circuit.crz(1, self.qr[0], self.qr[1])

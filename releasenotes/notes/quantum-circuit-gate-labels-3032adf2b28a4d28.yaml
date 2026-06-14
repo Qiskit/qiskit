@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Added a ``label`` argument to more of the single-gate methods on
+    :class:`.QuantumCircuit`, including methods such as :meth:`.QuantumCircuit.h`,
+    :meth:`.QuantumCircuit.rz`, :meth:`.QuantumCircuit.swap`, and
+    :meth:`.QuantumCircuit.ccx`. This makes it possible to set custom gate
+    labels directly from these helper methods without constructing the gate
+    object separately.
