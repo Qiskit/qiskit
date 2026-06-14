@@ -220,6 +220,29 @@ class TestParameterExpression(QiskitTestCase):
         # Expected is sqrt(-10):
         self.assertAlmostEqual(complex(0, 3.1622776601683795), complex(res))
 
+    def test_pow_add_sub_does_not_factor_exponent(self):
+        """Regression test for https://github.com/Qiskit/qiskit/issues/16259.
+
+        The simplifier must not apply the false identities
+            a**c + b**c == (a + b)**c
+            a**c - b**c == (a - b)**c
+        when reducing sums and differences of power expressions whose exponents
+        happen to match.
+        """
+        theta = Parameter("theta")
+        phi = Parameter("phi")
+
+        cases = [
+            (theta**2 + phi**2, {theta: 5, phi: 3}, 5**2 + 3**2),
+            (theta**2 - phi**2, {theta: 5, phi: 3}, 5**2 - 3**2),
+            (theta**3 + phi**3, {theta: 2, phi: 4}, 2**3 + 4**3),
+            (theta**3 - phi**3, {theta: 2, phi: 4}, 2**3 - 4**3),
+            ((2 * theta) ** 2 - (3 * phi) ** 2, {theta: 5, phi: 3}, (2 * 5) ** 2 - (3 * 3) ** 2),
+        ]
+        for expr, bindings, expected in cases:
+            with self.subTest(expr=str(expr)):
+                self.assertAlmostEqual(float(expr.bind(bindings)), float(expected))
+
     @combine(expression=operands, bind_value=bind_values, name="{expression}_bind_{bind_value}")
     def test_abs_simple(self, expression, bind_value):
         """Test expression abs."""

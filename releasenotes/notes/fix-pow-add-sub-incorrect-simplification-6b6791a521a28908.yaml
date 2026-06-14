@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`.ParameterExpression` where sums and differences of
+    power expressions sharing the same exponent were incorrectly simplified
+    using the false identities ``a**c + b**c == (a + b)**c`` and
+    ``a**c - b**c == (a - b)**c``.  The bug caused
+    :meth:`.QuantumCircuit.assign_parameters` to produce incorrect numerical
+    gate parameters when binding such expressions; for example,
+    ``(theta**2 - phi**2).bind({theta: 5, phi: 3})`` returned ``4`` instead
+    of ``16``.
+    See `#16259 <https://github.com/Qiskit/qiskit/issues/16259>`__.
