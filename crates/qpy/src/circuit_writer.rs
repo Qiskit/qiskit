@@ -507,7 +507,9 @@ fn pack_control_flow_inst(
             let collection_value = pack_for_collection(&collection);
             let loop_param_value = match loop_param {
                 None => GenericValue::Null,
-                Some(LoopVar::Compile(symbol)) => GenericValue::ParameterExpressionSymbol(symbol.into()),
+                Some(LoopVar::Compile(symbol)) => {
+                    GenericValue::ParameterExpressionSymbol(symbol.into())
+                }
                 Some(LoopVar::Runtime(var)) => {
                     if qpy_data.version >= 18 {
                         validate_loop_var_in_body(instruction, &var, qpy_data)?;
