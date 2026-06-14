@@ -33,6 +33,16 @@ class ForLoopOp(ControlFlowOp):
     """A circuit operation which repeatedly executes a subcircuit
     (``body``) parameterized by a parameter ``loop_parameter`` through
     the set of integer values provided in ``indexset``.
+
+    Data model
+    ----------
+
+    There is exactly one "block" in a for-loop op, which is the body of the loop.  The circuit block
+    may take exactly zero or one ``input`` variable (see :meth:`.QuantumCircuit.add_input_var`).  If
+    the body takes one input variable, then ``loop_parameter`` must be equal to that variable, and
+    it represents the loop variable.  If the body takes zero input variables, ``loop_parameter`` may
+    be either ``None`` (to indicate no binding) or a :class:`.Parameter`.  The :class:`.Parameter`
+    form is a legacy form that should be avoided.
     """
 
     _control_flow_type = ControlFlowType.ForLoop
@@ -65,7 +75,6 @@ class ForLoopOp(ControlFlowOp):
 
     @params.setter
     def params(self, parameters):
-
         from qiskit.circuit import QuantumCircuit
 
         indexset, loop_parameter, body = parameters
@@ -88,6 +97,18 @@ class ForLoopOp(ControlFlowOp):
                 "ForLoopOp expects a body parameter to be of type "
                 f"QuantumCircuit, but received {type(body)}."
             )
+        match body.num_input_vars:
+            case 0:
+                if isinstance(loop_parameter, expr.Var):
+                    raise CircuitError("loop variable is a `Var`, but body does not expect one")
+            case 1:
+                (expected,) = body.iter_input_vars()
+                if loop_parameter != expected:
+                    raise CircuitError(
+                        f"loop variable ({loop_parameter}) and body ({expected}) disagree"
+                    )
+            case count:
+                raise CircuitError(f"body expects too many input variables ({count})")
 
         if body.num_qubits != self.num_qubits or body.num_clbits != self.num_clbits:
             raise CircuitError(
@@ -210,12 +231,12 @@ class ForLoopContext:
         if self._used:
             raise CircuitError("A for-loop context manager cannot be re-entered.")
         self._used = True
-        self._circuit._push_scope()
         if self._generate_loop_parameter:
             self._loop_parameter = Parameter(f"_loop_i_{self._generated_loop_parameters}")
             type(self)._generated_loop_parameters += 1
-        if isinstance(self._loop_parameter, expr.Var):
-            self._circuit._current_scope().add_uninitialized_var(self._loop_parameter)
+        self._circuit._push_scope(
+            loop_var=None if isinstance(self._loop_parameter, Parameter) else self._loop_parameter
+        )
         return self._loop_parameter
 
     def __exit__(self, exc_type, exc_val, exc_tb):

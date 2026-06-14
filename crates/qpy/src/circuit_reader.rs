@@ -69,8 +69,8 @@ use crate::value::ParamRegisterValue;
 use crate::value::unpack_for_collection;
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, GenericValue,
-    QPYReadData, RegisterType, ValueType, deserialize_with_args, find_var_by_index_in_circuit,
-    load_param_register_value, load_value, unpack_duration_value, unpack_generic_value,
+    QPYReadData, RegisterType, ValueType, deserialize_with_args, load_param_register_value,
+    load_value, unpack_duration_value, unpack_generic_value,
 };
 
 use ndarray::{Array2, ShapeBuilder};
@@ -587,6 +587,11 @@ fn unpack_control_flow(
             let mut instruction_values =
                 get_instruction_values(instruction, qpy_data, Endian::Big)?;
             param_values = instruction_values.split_off(2);
+            let [GenericValue::Circuit(circuit)] = param_values.as_slice() else {
+                return Err(QpyError::DeserializationError(
+                    "for loops must have a single quantum-circuit body".to_owned(),
+                ));
+            };
             let mut iter = instruction_values.into_iter();
             let (mut collection_value_pack, loop_param_value_pack) =
                 iter.next().zip(iter.next()).ok_or(QpyError::MissingData(
@@ -601,12 +606,35 @@ fn unpack_control_flow(
                 GenericValue::ParameterExpressionSymbol(symbol) => {
                     Some(LoopParam::Parameter(symbol))
                 }
-                GenericValue::Int64(index) => param_values
-                    .first()
-                    .and_then(|v| v.as_circuit_data())
-                    .and_then(|inner_data| find_var_by_index_in_circuit(&inner_data, index as u16))
-                    .map(LoopParam::Variable),
-                _ => None,
+                GenericValue::Null => Python::attach(|py| -> Result<_, QpyError> {
+                    // When writing for loops, we serialise a `Var` loop parameter in the
+                    // instruction's parameters field as if it were null, because the `Var` isn't
+                    // part of the containing circuit.  Instead, we re-infer its existence from the
+                    // `input` variables of the body circuit.
+                    let data = circuit
+                        .bind(py)
+                        .getattr("_data")?
+                        .cast_into::<PyCircuitData>()
+                        .map_err(PyErr::from)?
+                        .borrow();
+                    let mut vars = data.vars_stretches_view().iter_vars(VarType::Input);
+                    let Some(v) = vars.next() else {
+                        // No input vars, so nothing to infer; this is a legacy-type body.
+                        return Ok(None);
+                    };
+                    match vars.next() {
+                        Some(_) => Err(QpyError::DeserializationError(
+                            "for loop bodies must have at most one input variable".to_owned(),
+                        )),
+                        None => Ok(Some(LoopParam::Variable(v.clone()))),
+                    }
+                })?,
+                other => {
+                    return Err(QpyError::InvalidValueType {
+                        expected: "a parameter or none".to_string(),
+                        actual: format!("{other:?}"),
+                    });
+                }
             };
             ControlFlow::ForLoop {
                 collection,
