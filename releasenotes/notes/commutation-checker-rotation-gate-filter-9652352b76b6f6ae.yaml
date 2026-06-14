@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`.CommutationChecker` when checking commutativity
+    of parameterized gates, such as :class:`.RXGate`, when the ``gates``
+    argument is specified.
