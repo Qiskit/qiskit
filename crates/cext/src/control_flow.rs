@@ -504,7 +504,7 @@ pub unsafe extern "C" fn qk_control_flow_condition_type(
         ControlFlow::IfElse { condition } | ControlFlow::While { condition } => {
             CConditionType::from(condition)
         }
-        _ => panic!("Control flow instruction must be IfElse or While to have a condition"),
+        _ => panic!("Expected either an IfElse or a While control flow instruction"),
     }
 }
 
@@ -539,20 +539,18 @@ pub unsafe extern "C" fn qk_control_flow_condition_bit_info(
 
     let condition = match &cf_inst.control_flow_inst().control_flow {
         ControlFlow::IfElse { condition } | ControlFlow::While { condition } => condition,
-        _ => panic!("Control flow instruction must be IfElse or While to have a bit condition"),
+        _ => panic!("Expected either an IfElse or a While control flow instruction"),
     };
 
     let Condition::Bit(clbit, cond) = condition else {
-        panic!(
-            "Condition must be a classical bit condition, not a register or expression condition"
-        )
+        panic!("Expected a classical bit condition for the instruction")
     };
 
     CConditionBitInfo {
         clbit: cf_inst
             .circuit()
             .clbit_index(clbit)
-            .expect("Classical bit not found in circuit"),
+            .expect("Classical bit should be in the containing circuit"),
         condition: *cond,
     }
 }
@@ -589,21 +587,19 @@ pub unsafe extern "C" fn qk_control_flow_condition_reg_info(
     let condition = match &cf_inst.control_flow_inst().control_flow {
         ControlFlow::IfElse { condition } | ControlFlow::While { condition } => condition,
         _ => {
-            panic!("Control flow instruction must be IfElse or While to have a register condition")
+            panic!("Expected either an IfElse or a While control flow instruction")
         }
     };
 
     let Condition::Register(creg, cond) = condition else {
-        panic!(
-            "Condition must be a classical register condition, not a bit or expression condition"
-        )
+        panic!("Expected a register condition for the instruction")
     };
 
     CConditionRegInfo {
         creg: ptr::from_ref(creg),
         condition: cond
             .try_into()
-            .expect("Condition value too large to fit in u64 (BigUint conversion failed)"),
+            .expect("Condition value too large to fit in uint64_t"),
     }
 }
 
@@ -648,9 +644,7 @@ pub unsafe extern "C" fn qk_control_flow_condition_expr(
                 panic!("Condition must be an expression condition")
             }
         }
-        _ => panic!(
-            "Control flow instruction must be IfElse or While to have an expression condition"
-        ),
+        _ => panic!("Expected either an IfElse or a While control flow instruction"),
     };
 
     ptr::from_ref(expr)
@@ -697,7 +691,7 @@ pub unsafe extern "C" fn qk_control_flow_box_duration_kind(
     let cf_inst = unsafe { const_ptr_as_ref(cf_inst) };
 
     let ControlFlow::Box { duration, .. } = &cf_inst.control_flow_inst().control_flow else {
-        panic!("Control flow instruction must be a Box instruction to have a duration")
+        panic!("Expected a Box control flow instruction")
     };
 
     CBoxDurationKind::from(duration.as_ref())
@@ -738,11 +732,11 @@ pub unsafe extern "C" fn qk_control_flow_box_duration_info(
     let cf_inst = unsafe { const_ptr_as_ref(cf_inst) };
 
     let ControlFlow::Box {
-        duration: Some(qiskit_circuit::operations::BoxDuration::Duration(duration)),
+        duration: Some(BoxDuration::Duration(duration)),
         ..
     } = &cf_inst.control_flow_inst().control_flow
     else {
-        panic!("Control flow instruction must be a Box with a concrete Duration")
+        panic!("Control flow instruction must be a Box with a concrete duration")
     };
 
     CDurationInfo::from(duration)
@@ -782,7 +776,7 @@ pub unsafe extern "C" fn qk_control_flow_box_duration_expr(
     let cf_inst = unsafe { const_ptr_as_ref(cf_inst) };
 
     let ControlFlow::Box {
-        duration: Some(qiskit_circuit::operations::BoxDuration::Expr(expr)),
+        duration: Some(BoxDuration::Expr(expr)),
         ..
     } = &cf_inst.control_flow_inst().control_flow
     else {
@@ -960,7 +954,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_target_type(
     let cf_inst = unsafe { const_ptr_as_ref(cf_inst) };
 
     let ControlFlow::Switch { target, .. } = &cf_inst.control_flow_inst().control_flow else {
-        panic!("Instruction is not a Switch control flow instruction")
+        panic!("Expected a Switch control flow instruction")
     };
 
     CConditionType::from(target)
@@ -1001,7 +995,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_target_bit(
         ..
     } = &cf_inst.control_flow_inst().control_flow
     else {
-        panic!("Instruction is not a Switch control flow instruction with a classical bit target")
+        panic!("Expected a Switch control flow instruction with a classical bit target")
     };
 
     let Some(clbit) = cf_inst.circuit().clbit_index(clbit) else {
@@ -1048,9 +1042,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_target_register(
         ..
     } = &cf_inst.control_flow_inst().control_flow
     else {
-        panic!(
-            "Instruction is not a Switch control flow instruction with a classical register target"
-        )
+        panic!("Expected a Switch control flow instruction with a register target")
     };
 
     ptr::from_ref(reg)
@@ -1093,7 +1085,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_target_expr(
         ..
     } = &cf_inst.control_flow_inst().control_flow
     else {
-        panic!("Instruction is not a Switch control flow instruction with an expression target")
+        panic!("Expected a Switch control flow instruction with an expression target")
     };
 
     ptr::from_ref(expr)
@@ -1133,7 +1125,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_num_cases(
     let cf_inst = unsafe { const_ptr_as_ref(cf_inst) };
 
     let ControlFlow::Switch { cases, .. } = cf_inst.control_flow_inst().control_flow else {
-        panic!("Instruction is not a Switch control flow instruction")
+        panic!("Expected a Switch control flow instruction")
     };
 
     cases
@@ -1176,7 +1168,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_is_case_default(
     let cf_inst = unsafe { const_ptr_as_ref(cf_inst) };
 
     let ControlFlow::Switch { label_spec, .. } = &cf_inst.control_flow_inst().control_flow else {
-        panic!("Instruction is not a Switch control flow instruction")
+        panic!("Expected a Switch control flow instruction")
     };
 
     matches!(label_spec[case_idx].first(), Some(CaseSpecifier::Default))
@@ -1222,7 +1214,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels(
     let cf_inst = unsafe { const_ptr_as_ref(cf_inst) };
 
     let ControlFlow::Switch { label_spec, .. } = &cf_inst.control_flow_inst().control_flow else {
-        panic!("Instruction is not a Switch control flow instruction")
+        panic!("Expected a Switch control flow instruction")
     };
 
     let labels = label_spec[case_idx]
