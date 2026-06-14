@@ -35,10 +35,7 @@ pub fn qdrift_evolution(
 ) -> Result<CircuitData, EvolutionError> {
     let num_qubits = observable.num_qubits();
 
-    let evo: Vec<(usize, f64)> = match qdrift(time, reps, seed, observable.coeffs().iter()) {
-        Ok(evo) => evo,
-        Err(err) => return Err(err),
-    };
+    let evo: Vec<(usize, f64)> = qdrift(time, reps, seed, observable.coeffs().iter())?;
 
     let sampled_paulis = evo.iter().map(|(index, coeff)| {
         let start = observable.boundaries()[*index];
