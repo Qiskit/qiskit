@@ -15,7 +15,6 @@ use pyo3::prelude::*;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::{imports, operations::Param};
-use thiserror::Error;
 
 /// Enum to determine the type of circuit layer.
 pub(super) enum LayerType {
@@ -97,7 +96,7 @@ pub trait LedgerBuilder {
     fn build_parameter_vector(
         parameter_prefix: &str,
         num_parameters: usize,
-    ) -> Result<Vec<Param>, ParameterLedgerError>;
+    ) -> PyResult<Vec<Param>>;
 
     /// Initialize the ledger n-local input data. This will call Python to create a new
     /// ``ParameterVector`` of adequate size and compute all required indices to access
@@ -112,7 +111,7 @@ pub trait LedgerBuilder {
         entanglement_blocks: &[&Block],
         skip_final_rotation_layer: bool,
         parameter_prefix: &str,
-    ) -> Result<ParameterLedger, ParameterLedgerError> {
+    ) -> PyResult<ParameterLedger> {
         // if we keep the final layer (i.e. skip=false), add parameters on the final layer
         let final_layer_rep = match skip_final_rotation_layer {
             true => 0,
@@ -183,7 +182,7 @@ impl LedgerBuilder for ParameterLedgerBuilder {
     fn build_parameter_vector(
         parameter_prefix: &str,
         num_parameters: usize,
-    ) -> Result<Vec<Param>, ParameterLedgerError> {
+    ) -> PyResult<Vec<Param>> {
         Ok((0..num_parameters)
             .map(|i| {
                 Param::ParameterExpression(
@@ -205,26 +204,16 @@ impl LedgerBuilder for PyParameterLedgerBuilder {
     fn build_parameter_vector(
         parameter_prefix: &str,
         num_parameters: usize,
-    ) -> Result<Vec<Param>, ParameterLedgerError> {
+    ) -> PyResult<Vec<Param>> {
         // generate a ParameterVector Python-side, containing all parameters, and then
         // map it onto Rust-space parameters
-        match Python::attach(|py| {
+        Python::attach(|py| {
             imports::PARAMETER_VECTOR
                 .get_bound(py)
                 .call1((parameter_prefix, num_parameters))? // get the Python ParameterVector
                 .try_iter()? // iterate over the elements and cast them to Rust Params
                 .map(|ob| Param::extract_no_coerce(ob?.as_borrowed()))
                 .collect::<PyResult<_>>()
-        }) {
-            Ok(param_vec) => Ok(param_vec),
-            Err(err) => Err(ParameterLedgerError::PyParameterVectorError(err)),
-        }
+        })
     }
-}
-
-#[derive(Debug, Error)]
-pub enum ParameterLedgerError {
-    /// A general error when trying to build the parameter vector from the Python side
-    #[error["Failed creating Python parameter vector"]]
-    PyParameterVectorError(#[from] PyErr),
 }
