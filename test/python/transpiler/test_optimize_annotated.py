@@ -52,7 +52,7 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
         gate5 = CXGate()
 
         gate1_expected = AnnotatedOperation(
-            SwapGate(), [InverseModifier(), PowerModifier(2), ControlModifier(3)]
+            SwapGate(), [PowerModifier(2), InverseModifier(), ControlModifier(3)]
         )
         gate2_expected = SwapGate()
         gate3_expected = AnnotatedOperation(CXGate(), ControlModifier(3))

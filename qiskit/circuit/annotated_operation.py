@@ -246,9 +246,12 @@ def _canonicalize_modifiers(modifiers):
     Returns the canonical representative of the modifier list. This is possible
     since all the modifiers commute; also note that InverseModifier is a special
     case of PowerModifier. The current solution is to compute the total number
-    of control qubits / control state and the total power. The InverseModifier
-    will be present if total power is negative, whereas the power modifier will
-    be present only with positive powers different from 1.
+    of control qubits / control state and the total power. The canonical order is
+    ``[PowerModifier, InverseModifier, ControlModifier]``: PowerModifier is present
+    only for absolute powers different from 1, and InverseModifier is present if
+    the total power is negative. This order ensures ``A^(-p)`` is realized as
+    ``(A^p)^{-1}`` rather than ``(A^{-1})^p``, which differ on the principal branch
+    when the base has eigenvalues on the negative real axis.
     """
     power = 1
     num_ctrl_qubits = 0
@@ -266,12 +269,10 @@ def _canonicalize_modifiers(modifiers):
             raise CircuitError(f"Unknown modifier {modifier}.")
 
     canonical_modifiers = []
+    if abs(power) != 1:
+        canonical_modifiers.append(PowerModifier(abs(power)))
     if power < 0:
         canonical_modifiers.append(InverseModifier())
-        power *= -1
-
-    if power != 1:
-        canonical_modifiers.append(PowerModifier(power))
     if num_ctrl_qubits > 0:
         canonical_modifiers.append(ControlModifier(num_ctrl_qubits, ctrl_state))
 

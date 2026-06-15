@@ -1,0 +1,15 @@
+---
+fixes:
+  - |
+    Fixed a bug in :func:`.OptimizeAnnotated` where an
+    :class:`.AnnotatedOperation` with a single negative fractional
+    :class:`.PowerModifier` (e.g. ``PowerModifier(-0.5)``) was canonicalized
+    to ``[InverseModifier(), PowerModifier(p)]``, realizing ``(A^{-1})^p``
+    instead of the correct ``(A^p)^{-1}``. For operators whose eigenvalues
+    lie on the negative real axis (e.g. :class:`.HGate`), the two
+    expressions differ under the principal matrix-power branch, so the pass
+    was silently producing a wrong unitary. The canonical modifier order is
+    now ``[PowerModifier(p), InverseModifier()]``, which correctly realizes
+    ``A^{-p} = (A^p)^{-1}``.
+
+    See `#16411 <https://github.com/Qiskit/qiskit/issues/16411>`__.

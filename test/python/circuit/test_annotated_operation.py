@@ -23,7 +23,9 @@ from qiskit.circuit.annotated_operation import (
     PowerModifier,
     _canonicalize_modifiers,
 )
-from qiskit.circuit.library import SGate, SdgGate, UGate, RXGate
+from qiskit.circuit.library import SGate, SdgGate, UGate, RXGate, HGate
+from qiskit.transpiler import PassManager
+from qiskit.transpiler.passes import OptimizeAnnotated
 from qiskit.quantum_info import Operator
 from test import QiskitTestCase
 
@@ -137,6 +139,22 @@ class TestAnnotatedOperationClass(QiskitTestCase):
             op = AnnotatedOperation(SGate(), PowerModifier(power))
             self.assertEqual(Operator(op), Operator(SGate()).power(power))
 
+    def test_negative_fractional_power_canonical_form(self):
+        """Test that a negative fractional PowerModifier canonicalizes to [PowerModifier, InverseModifier]."""
+        canonical = _canonicalize_modifiers([PowerModifier(-0.5)])
+        self.assertEqual(canonical, [PowerModifier(0.5), InverseModifier()])
+
+    def test_negative_fractional_power_preserves_unitary(self):
+        """Test that OptimizeAnnotated preserves the unitary for negative fractional PowerModifier.
+
+        HGate has an eigenvalue on the negative real axis (-1), which exposes the branch-cut
+        difference between (A^-1)^0.5 and (A^0.5)^-1.
+        """
+        qc = QuantumCircuit(1)
+        qc.append(AnnotatedOperation(HGate(), [PowerModifier(-0.5)]), [0])
+        out = PassManager([OptimizeAnnotated()]).run(qc)
+        self.assertTrue(Operator(qc).equiv(Operator(out)))
+
     def test_canonicalize_modifiers(self):
         """Test that ``canonicalize_modifiers`` works correctly."""
         original_list = [
@@ -148,7 +166,7 @@ class TestAnnotatedOperationClass(QiskitTestCase):
             PowerModifier(-3),
         ]
         canonical_list = _canonicalize_modifiers(original_list)
-        expected_list = [InverseModifier(), PowerModifier(6), ControlModifier(3)]
+        expected_list = [PowerModifier(6), InverseModifier(), ControlModifier(3)]
         self.assertEqual(canonical_list, expected_list)
 
     def test_canonicalize_inverse(self):
