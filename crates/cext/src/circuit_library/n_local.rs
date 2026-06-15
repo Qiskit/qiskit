@@ -142,7 +142,7 @@ pub enum EntanglementStrategy {
 /// // the default is QkEntanglementStrategy_Full
 /// settings.entanglement_strategy = QkEntanglementStrategy_Linear;
 ///
-/// QkCircuit *qc = qk_circuit_library_n_local(num_qubits, rotation_blocks, 1, 
+/// QkCircuit *qc = qk_circuit_library_n_local(num_qubits, rotation_blocks, 1,
 ///                                            entanglement_blocks, 1, &settings);
 ///
 /// qk_circuit_free(qc);
