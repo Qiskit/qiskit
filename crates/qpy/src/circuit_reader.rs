@@ -583,7 +583,7 @@ fn unpack_control_flow(
             let mut instruction_values =
                 get_instruction_values(instruction, qpy_data, Endian::Big)?;
             param_values = instruction_values.split_off(2);
-            let [GenericValue::Circuit(circuit)] = param_values.as_slice() else {
+            let [GenericValue::Circuit(_circuit)] = param_values.as_slice() else {
                 return Err(QpyError::DeserializationError(
                     "for loops must have a single quantum-circuit body".to_owned(),
                 ));
@@ -600,7 +600,7 @@ fn unpack_control_flow(
             let collection = unpack_for_collection(&collection_value_pack)?;
             let loop_param = match loop_param_value_pack {
                 GenericValue::ParameterExpressionSymbol(symbol) => {
-                    Some(Arc::unwrap_or_clone(symbol))
+                    Some(LoopParam::Parameter(Arc::unwrap_or_clone(symbol)))
                 }
                 _ => None,
             };

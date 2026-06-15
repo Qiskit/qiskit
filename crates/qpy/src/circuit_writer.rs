@@ -470,7 +470,10 @@ fn pack_control_flow_inst(
             let collection_value = pack_for_collection(&collection);
             let loop_param_value = match loop_param {
                 None => GenericValue::Null,
-                Some(symbol) => GenericValue::ParameterExpressionSymbol(symbol.into()),
+                Some(LoopParam::Parameter(symbol)) => {
+                    GenericValue::ParameterExpressionSymbol(symbol.into())
+                }
+                _ => GenericValue::Null,
             };
             let mut params = Vec::with_capacity(3);
             params.push(pack_generic_value(&collection_value, qpy_data)?);
