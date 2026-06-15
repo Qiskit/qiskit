@@ -583,7 +583,7 @@ fn unpack_control_flow(
             let mut instruction_values =
                 get_instruction_values(instruction, qpy_data, Endian::Big)?;
             param_values = instruction_values.split_off(2);
-            let [GenericValue::Circuit(_circuit)] = param_values.as_slice() else {
+            let [GenericValue::Circuit(circuit)] = param_values.as_slice() else {
                 return Err(QpyError::DeserializationError(
                     "for loops must have a single quantum-circuit body".to_owned(),
                 ));
@@ -602,7 +602,35 @@ fn unpack_control_flow(
                 GenericValue::ParameterExpressionSymbol(symbol) => {
                     Some(LoopParam::Parameter(Arc::unwrap_or_clone(symbol)))
                 }
-                _ => None,
+                GenericValue::Null => Python::attach(|py| -> Result<_, QpyError> {
+                    // When writing for loops, we serialise a `Var` loop parameter in the
+                    // instruction's parameters field as if it were null, because the `Var` isn't
+                    // part of the containing circuit.  Instead, we re-infer its existence from the
+                    // `input` variables of the body circuit.
+                    let data = circuit
+                        .bind(py)
+                        .getattr("_data")?
+                        .cast_into::<PyCircuitData>()
+                        .map_err(PyErr::from)?
+                        .borrow();
+                    let mut vars = data.vars_stretches_view().iter_vars(VarType::Input);
+                    let Some(v) = vars.next() else {
+                        // No input vars, so nothing to infer; this is a legacy-type body.
+                        return Ok(None);
+                    };
+                    match vars.next() {
+                        Some(_) => Err(QpyError::DeserializationError(
+                            "for loop bodies must have at most one input variable".to_owned(),
+                        )),
+                        None => Ok(Some(LoopParam::Variable(v.clone()))),
+                    }
+                })?,
+                other => {
+                    return Err(QpyError::InvalidValueType {
+                        expected: "a parameter or none".to_string(),
+                        actual: format!("{other:?}"),
+                    });
+                }
             };
             ControlFlow::ForLoop {
                 collection,
