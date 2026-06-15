@@ -247,8 +247,8 @@ impl ParameterExpression {
         self.try_to_symbol_ref().cloned()
     }
 
-    /// Return an algebraically optimized copy of this expression.
-    /// Reduces cancelling expressions such as `a + b - a - b` to `0`.
+    /// Simplify the expression. This, for example, attempts to cancel
+    /// variables in the expression.
     pub fn optimize(&self) -> Self {
         ParameterExpression::from_symbol_expr(self.expr.optimize())
     }
