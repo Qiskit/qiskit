@@ -1270,7 +1270,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_is_case_default(
         panic!("Expected a Switch control flow instruction")
     };
 
-    matches!(label_spec[case_idx].first(), Some(CaseSpecifier::Default))
+    matches!(label_spec[case_idx].last(), Some(CaseSpecifier::Default))
 }
 
 /// @ingroup QkControlFlow
@@ -1320,11 +1320,9 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels(
         .iter()
         .filter_map(|l| {
             if let CaseSpecifier::Uint(label) = l {
-                label.to_u64()
+                Some(label.to_u64().expect("Case specifier too large"))
             } else {
-                panic!(
-                    "Default case specifier should not be present in a non-default case label list"
-                )
+                None
             }
         })
         .collect::<Vec<u64>>()
@@ -1395,7 +1393,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels_clear(labels: *mut C
 // |   1   | For Loop         | Loop over [1,2] with body: H(0), CX(0,1), Measure(0->0),                     |
 // |       |                  | If-Else(clbit[0]==True: Break, else: Continue), H(0)                         |
 // +-------+------------------+------------------------------------------------------------------------------+
-// |   2   | Switch           | Target: ClassicalRegister(cr), Cases: {0->X(0), 1,2,3->H(1), DEFAULT->Y(2)}  |
+// |   2   | Switch           | Target: ClassicalRegister(cr), Cases: {0->X(0), 1,2,3->H(1), 4,DEFAULT->Y(2)}|
 // +-------+------------------+------------------------------------------------------------------------------+
 // |   3   | While Loop       | Condition: clbit[1]==False, Body: X(0)                                       |
 // +-------+------------------+------------------------------------------------------------------------------+
@@ -1617,7 +1615,7 @@ pub unsafe extern "C" fn inner_test_control_flow_circuit() -> *mut CircuitData {
     //         qc.x(0)
     //     with case(1, 2, 3):
     //         qc.h(1)
-    //     with case(case.DEFAULT):
+    //     with case(4, case.DEFAULT):
     //         qc.y(2)
     let mut case_0_block = CircuitData::new(
         Some(qubits.clone()),
@@ -1684,7 +1682,10 @@ pub unsafe extern "C" fn inner_test_control_flow_circuit() -> *mut CircuitData {
                     CaseSpecifier::Uint(BigUint::from(2u32)),
                     CaseSpecifier::Uint(BigUint::from(3u32)),
                 ],
-                vec![CaseSpecifier::Default],
+                vec![
+                    CaseSpecifier::Uint(BigUint::from(4u32)),
+                    CaseSpecifier::Default,
+                ],
             ],
         },
         num_qubits: 3,

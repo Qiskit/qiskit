@@ -352,7 +352,7 @@ cleanup:
 //         qc.x(0)
 //     with case(1, 2, 3):
 //         qc.h(1)
-//     with case(case.DEFAULT):
+//     with case(4, case.DEFAULT):
 //         qc.y(2)
 static int test_switch_case_on_register(void) {
     int result = Ok;
@@ -403,6 +403,7 @@ static int test_switch_case_on_register(void) {
         result = EqualityError;
         goto cleanup;
     }
+
     if (case_labels.labels[0] != 0) {
         printf("Expected label 0 for case 0, got %" PRIu64 "\n", case_labels.labels[0]);
         qk_control_flow_switch_case_labels_clear(&case_labels);
@@ -419,6 +420,7 @@ static int test_switch_case_on_register(void) {
         result = EqualityError;
         goto cleanup;
     }
+
     for (size_t l = 0; l < 3; l++) {
         if (case_labels.labels[l] != l + 1) {
             printf("Expected label %zu for case 1, got %" PRIu64 "\n", l + 1,
@@ -429,6 +431,15 @@ static int test_switch_case_on_register(void) {
         }
     }
     qk_control_flow_switch_case_labels_clear(&case_labels);
+
+    // Test case 2: A label and DEFAULT (4, DEFAULT)
+    qk_control_flow_switch_case_labels(cf_inst, 2, &case_labels);
+    if (case_labels.num_labels != 1) {
+        printf("Expected 1 labels for case 2, got %zu\n", case_labels.num_labels);
+        qk_control_flow_switch_case_labels_clear(&case_labels);
+        result = EqualityError;
+        goto cleanup;
+    }
 
     bool is_default = qk_control_flow_switch_is_case_default(cf_inst, 1);
     if (is_default) {
