@@ -218,6 +218,9 @@ that will all need to be adjusted in a suitable manner.
 
    * updates the QPY version-support table in the `qiskit.qpy` docstring, including patch releases
      <details>
+     The supported versions are everything between `qiskit.qpy.QPY_COMPATIBLITY_VERSION` and
+     `QPY_VERSION`, inclusive.
+
      See https://github.com/Qiskit/qiskit/pull/16034, for example.
      </details>
 
