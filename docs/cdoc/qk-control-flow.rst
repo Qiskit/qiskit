@@ -40,6 +40,8 @@ Data Types
 .. doxygenstruct:: QkSymbolInfo
     :members:
 
+.. doxygenenum:: QkLoopCollectionType
+
 Functions
 =========
 

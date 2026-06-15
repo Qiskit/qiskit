@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use std::ffi::{CString, c_char};
+use std::num::NonZero;
 use std::ptr;
 
 use qiskit_circuit::bit::ClassicalRegister;
@@ -20,7 +21,7 @@ use qiskit_circuit::classical::types::Type;
 use qiskit_circuit::duration::Duration;
 use qiskit_circuit::operations::{
     BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction, ForCollection,
-    SwitchTarget,
+    PyRange, SwitchTarget,
 };
 use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::{Clbit, Qubit};
@@ -254,6 +255,15 @@ pub struct CSymbolInfo {
     /// For element symbols, this is the index into the parameter vector. For standalone
     /// symbols, this field is unused and should be ignored.
     index: usize,
+}
+
+/// The type of collection used in a for-loop control flow instruction.
+#[repr(u8)]
+pub enum CLoopCollectionType {
+    /// The loop iterates over an explicit list of elements
+    List = 0,
+    /// The loop iterates over a Python-style range (start, stop, step)
+    Range = 1,
 }
 
 /// @ingroup QkControlFlow
@@ -787,54 +797,143 @@ pub unsafe extern "C" fn qk_control_flow_box_duration_expr(
 }
 
 /// @ingroup QkControlFlow
-/// Get the collection of elements that a for loop iterates over.
+/// Get the type of collection used in a for-loop control flow instruction.
 ///
-/// This function retrieves the iteration collection from a for loop control flow instruction.
-/// It only works with for loops that use an explicit list collection.
+/// This function determines whether a for-loop iterates over an explicit list of elements
+/// or a Python-style range.
 ///
-/// @param cf_inst Pointer to a control flow instruction that must be a ForLoop.
-/// @param out_collection Output parameter that will be set to point to the array of loop elements.
-///     The output pointer is borrowed for the duration of the control flow instruction and should
-///     not be freed.
+/// @param cf_inst A pointer to a control flow instruction that must be a ForLoop.
 ///
-/// @return The number of elements in the loop collection. Returns 0 if the instruction is not a
-///         ForLoop with a List collection.
+/// @return A ``CLoopCollectionType`` enum value indicating the collection type.
+///
+/// # Example
+/// ```c
+/// QkLoopCollectionType collection_type = qk_control_flow_loop_collection_type(cf_inst);
+/// if (collection_type == CLoopCollectionType_List) {
+///     // Handle list-based loop
+/// } else {
+///     // Handle range-based loop
+/// }
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``cf_inst`` is not a valid pointer to a ``QkControlFlowInstruction``
+/// or if the control flow instruction is not a ForLoop.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_control_flow_loop_collection_type(
+    cf_inst: *const CControlFlowInstruction,
+) -> CLoopCollectionType {
+    // SAFETY: Per documentation, cf_inst is a valid pointer to a QkControlFlowInstruction.
+    let cf_inst = unsafe { const_ptr_as_ref(cf_inst) };
+
+    let ControlFlow::ForLoop { collection, .. } = &cf_inst.control_flow_inst().control_flow else {
+        panic!("Expected a ForLoop control flow instruction")
+    };
+
+    match collection {
+        ForCollection::List(_) => CLoopCollectionType::List,
+        ForCollection::PyRange(_) => CLoopCollectionType::Range,
+    }
+}
+
+/// @ingroup QkControlFlow
+/// Get the list of elements that a for-loop iterates over.
+///
+/// This function retrieves the list of elements from a for-loop control flow instruction
+/// that uses an explicit list collection. Use ``qk_control_flow_loop_collection_type``
+/// to determine the collection type before calling this function.
+///
+/// @param cf_inst A pointer to a control flow instruction that must be a ForLoop with a List collection.
+/// @param out_elements An output parameter that will be set to point to the array of loop elements.
+///     The output pointer is borrowed for the duration of the control flow instruction and must
+///     not be freed by the caller.
+///
+/// @return The number of elements in the loop collection.
 ///
 /// # Example
 /// ```c
 /// const size_t *loop_elements = NULL;
-/// size_t num_elems = qk_control_flow_loop_collection(cf_inst, &loop_elements);
-/// if (num_elems > 0) {
-///     for (size_t i = 0; i < num_elems; i++) {
-///         printf("Element %zu: %zu\n", i, loop_elements[i]);
-///     }
+/// size_t num_elems = qk_control_flow_loop_elements(cf_inst, &loop_elements); // Assuming a List collection type for the instruction
+/// for (size_t i = 0; i < num_elems; i++) {
+///     printf("Element %zu: %zu\n", i, loop_elements[i]);
 /// }
 /// ```
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``cf_inst`` is not a valid pointer to a ``QkControlFlowInstruction``,
-/// if ``out_collection`` is not a valid pointer to write the collection pointer to, or if the
-/// returned pointer in ``out_collection`` is accessed after the control flow instruction is freed.
+/// if the control flow instruction is not a ForLoop with a List collection,
+/// if ``out_elements`` is not a valid pointer to write the array pointer to, or if the
+/// returned pointer in ``out_elements`` is accessed after the control flow instruction is freed.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_control_flow_loop_collection(
+pub unsafe extern "C" fn qk_control_flow_loop_elements(
     cf_inst: *const CControlFlowInstruction,
-    out_collection: *mut *const usize,
+    out_elements: *mut *const usize,
 ) -> usize {
     // SAFETY: Per documentation, cf_inst is a valid pointer to a QkControlFlowInstruction.
     let cf_inst = unsafe { const_ptr_as_ref(cf_inst) };
 
-    if let ControlFlow::ForLoop {
+    let ControlFlow::ForLoop {
         collection: ForCollection::List(elements),
         ..
     } = &cf_inst.control_flow_inst().control_flow
-    {
-        unsafe { *out_collection = elements.as_ptr() };
-        elements.len()
-    } else {
-        unsafe { *out_collection = ptr::null_mut() };
-        0
-    }
+    else {
+        panic!("Expected a ForLoop control flow instruction with a List collection")
+    };
+
+    // SAFETY: Per documentation, out_elements is a valid pointer to write to.
+    unsafe { *out_elements = elements.as_ptr() };
+    elements.len()
+}
+
+/// @ingroup QkControlFlow
+/// Get the range parameters of a for-loop that iterates over a Python-style range.
+///
+/// This function retrieves the start, stop, and step values from a for-loop control flow
+/// instruction that uses a range collection. Use
+/// ``qk_control_flow_loop_collection_type`` to determine the collection type before calling
+/// this function.
+///
+/// @param cf_inst A pointer to a control flow instruction that must be a ForLoop with a Range collection.
+/// @param out_start An output parameter that will be set to the range start value.
+/// @param out_stop An output parameter that will be set to the range stop value.
+/// @param out_step An output parameter that will be set to the range step value.
+///
+/// # Example
+/// ```c
+/// int64_t start, stop, step;
+/// qk_control_flow_loop_range(cf_inst, &start, &stop, &step); // Assuming a Range collection for the instruction
+/// printf("Loop range: start=%zd, stop=%zd, step=%zd\n", start, stop, step);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``cf_inst`` is not a valid pointer to a ``QkControlFlowInstruction``,
+/// if the control flow instruction is not a ForLoop with a Range collection, or if any of
+/// ``out_start``, ``out_stop``, or ``out_step`` are not valid pointers to write to.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_control_flow_loop_range(
+    cf_inst: *const CControlFlowInstruction,
+    out_start: *mut i64,
+    out_stop: *mut i64,
+    out_step: *mut i64,
+) {
+    // SAFETY: Per documentation, cf_inst is a valid pointer to a QkControlFlowInstruction.
+    let cf_inst = unsafe { const_ptr_as_ref(cf_inst) };
+
+    let ControlFlow::ForLoop {
+        collection: ForCollection::PyRange(range),
+        ..
+    } = &cf_inst.control_flow_inst().control_flow
+    else {
+        panic!("Expected a ForLoop control flow instruction with a Range collection");
+    };
+
+    // SAFETY: Per documentation, out_start, out_stop, and out_step are valid pointers to write to.
+    unsafe { *out_start = range.start as i64 };
+    unsafe { *out_stop = range.stop as i64 };
+    unsafe { *out_step = range.step.get() as i64 };
 }
 
 /// @ingroup QkControlFlow
@@ -1233,7 +1332,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels(
 
     let out_case_labels = unsafe { mut_ptr_as_ref(out_labels) };
     out_case_labels.num_labels = labels.len();
-    out_case_labels.labels = Box::into_raw(labels) as *const u64;
+    out_case_labels.labels = Box::into_raw(labels) as *mut u64;
 }
 
 /// @ingroup QkControlFlow
@@ -1307,6 +1406,8 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels_clear(labels: *mut C
 // |   6   | Switch           | Target: clbit[0], Cases: {DEFAULT->X(0)}                                     |
 // +-------+------------------+------------------------------------------------------------------------------+
 // |   7   | Switch           | Target: cr<2 (expression), Cases: {DEFAULT->Y(0)}                            |
+// +-------+------------------+------------------------------------------------------------------------------+
+// |   8   | For Loop         | Loop over range(1,10,3)                                                      |
 // +-------+------------------+------------------------------------------------------------------------------+
 /// cbindgen:qk-vtable-rules=[no-export]
 /// cbindgen:no-export
@@ -1851,6 +1952,50 @@ pub unsafe extern "C" fn inner_test_control_flow_circuit() -> *mut CircuitData {
             &[Clbit(0), Clbit(1), Clbit(2)],
         )
         .expect("Failed to add switch on expression instruction");
+
+    /////////////////////////////////////////////
+    // Build a for-loop like this:
+    // ----------------------
+    // with qc.for_loop(range(1,10,3)):
+    //      qc.y(0)
+    let mut for_loop_range_body = CircuitData::new(
+        Some(qubits.clone()),
+        Some(clbits.clone()),
+        Param::Float(0.0),
+    )
+    .expect("Failed to create for loop range body");
+
+    for_loop_range_body
+        .push_packed_operation(
+            PackedOperation::from_standard_gate(StandardGate::Y),
+            None,
+            &[Qubit(0)],
+            &[],
+        )
+        .expect("Failed to add Y gate");
+
+    // Add the for loop with range to the main circuit
+    let for_range_block = circuit.add_block(for_loop_range_body);
+    let for_range_op = PackedOperation::from(ControlFlowInstruction {
+        control_flow: ControlFlow::ForLoop {
+            collection: ForCollection::PyRange(PyRange {
+                start: 1,
+                stop: 10,
+                step: NonZero::new(3).unwrap(),
+            }),
+            loop_param: None,
+        },
+        num_qubits: 3,
+        num_clbits: 3,
+    });
+    circuit
+        .push_packed_operation(
+            for_range_op,
+            Some(Parameters::Blocks(vec![for_range_block])),
+            &[Qubit(0), Qubit(1), Qubit(2)],
+            &[Clbit(0), Clbit(1), Clbit(2)],
+        )
+        .expect("Failed to add for loop with range");
 
     Box::into_raw(Box::new(circuit))
 }

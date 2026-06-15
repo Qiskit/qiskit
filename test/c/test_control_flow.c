@@ -37,6 +37,7 @@
 // |   5   | While Loop       | Condition: expression 
 // |   6   | Switch           | Target: clbit 
 // |   7   | Switch           | Target: expression
+// |   8   | For Loop         | Loop over Range(1, 10, 3)
 // clang-format on
 QkCircuit *inner_test_control_flow_circuit();
 
@@ -181,8 +182,15 @@ static int test_for_nested_break_continue(void) {
         goto cleanup;
     }
 
+    QkLoopCollectionType collection_type = qk_control_flow_loop_collection_type(cf_inst);
+    if (collection_type != QkLoopCollectionType_List) {
+        printf("Expected a List collection type, got %u\n", collection_type);
+        result = EqualityError;
+        goto cleanup;
+    }
+
     const size_t *loop_elements = NULL;
-    size_t num_elems = qk_control_flow_loop_collection(cf_inst, &loop_elements);
+    size_t num_elems = qk_control_flow_loop_elements(cf_inst, &loop_elements);
 
     if (num_elems != 2) {
         printf("Expected 2 loop elements, got %zu\n", num_elems);
@@ -678,6 +686,45 @@ cleanup:
     return result;
 }
 
+// Test a for-loop statement over a range like this in Python:
+// with qc.for_loop(range(1,10,3)):
+//      qc.y(0)
+int test_for_loop_over_range(void) {
+    int result = Ok;
+    QkCircuit *circuit = inner_test_control_flow_circuit();
+
+    QkControlFlowInstruction *cf_inst = qk_circuit_get_control_flow_instruction(circuit, 8, NULL);
+
+    QkControlFlowKind kind = qk_control_flow_kind(cf_inst);
+    if (kind != QkControlFlowKind_ForLoop) {
+        printf("Expected ForLoop, got %u\n", kind);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    QkLoopCollectionType collection_type = qk_control_flow_loop_collection_type(cf_inst);
+    if (collection_type != QkLoopCollectionType_Range) {
+        printf("Expected a Range collection type, got %u\n", collection_type);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    int64_t start, stop, step;
+    qk_control_flow_loop_range(cf_inst, &start, &stop, &step);
+    if (start != 1 || stop != 10 || step != 3) {
+        printf("Expected a for-loop over Range(1,10,3), got Range(%" PRIi64 ",%" PRIi64 ",%" PRIi64
+               ")\n",
+               start, stop, step);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+cleanup:
+    qk_control_flow_instruction_free(cf_inst);
+    qk_circuit_free(circuit);
+    return result;
+}
+
 int test_control_flow(void) {
     int num_failed = 0;
 
@@ -690,6 +737,7 @@ int test_control_flow(void) {
     num_failed += RUN_TEST(test_while_on_expr);
     num_failed += RUN_TEST(test_switch_case_on_bit);
     num_failed += RUN_TEST(test_switch_case_on_expr);
+    num_failed += RUN_TEST(test_for_loop_over_range);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
