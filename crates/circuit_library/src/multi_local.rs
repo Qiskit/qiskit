@@ -23,11 +23,10 @@ use qiskit_circuit::operations::{Param, StandardInstruction};
 use qiskit_circuit::{Clbit, Qubit};
 
 use itertools::izip;
-use thiserror::Error;
 
 use super::blocks::{Block, Entanglement, LayerEntanglement};
 use super::parameter_ledger::{
-    LayerParameters, LayerType, LedgerBuilder, ParameterLedgerError, PyParameterLedgerBuilder,
+    LayerParameters, LayerType, LedgerBuilder, PyParameterLedgerBuilder,
 };
 
 type Instruction = (
@@ -168,25 +167,20 @@ pub fn n_local(
     parameter_prefix: &str,
     skip_final_rotation_layer: bool,
     skip_unentangled_qubits: bool,
-) -> Result<CircuitData, MultiLocalError> {
+) -> PyResult<CircuitData> {
     // Construct the parameter ledger, which will define all free parameters and provide
     // access to them, given an index for a layer and the current gate to implement.
-    let ledger = match parameter_ledger_builder.build_from_nlocal(
-        num_qubits,
-        reps,
-        entanglement,
-        rotation_blocks,
-        entanglement_blocks,
-        skip_final_rotation_layer,
-        parameter_prefix,
-    ) {
-        Ok(ledger) => ledger,
-        Err(err) => match err {
-            ParameterLedgerError::PyParameterVectorError(err) => {
-                return Err(MultiLocalError::PyParameterLedgerCreationError(err));
-            }
-        },
-    };
+    let ledger = parameter_ledger_builder
+        .build_from_nlocal(
+            num_qubits,
+            reps,
+            entanglement,
+            rotation_blocks,
+            entanglement_blocks,
+            skip_final_rotation_layer,
+            parameter_prefix,
+        )
+        .unwrap();
 
     // Compute the qubits that are skipped in the rotation layer. If this is set,
     // we skip qubits that do not appear in any of the entanglement layers.
@@ -318,25 +312,6 @@ impl MaybeBarrier {
         match &self.barrier {
             None => Box::new(std::iter::empty()),
             Some(inst) => Box::new(std::iter::once(Ok(inst.clone()))),
-        }
-    }
-}
-
-#[derive(Debug, Error)]
-pub enum MultiLocalError {
-    /// A general error when trying to build the parameter ledger
-    #[error["Failed creating parameter ledger"]]
-    PyParameterLedgerCreationError(#[from] PyErr),
-
-    /// A general error when trying to create the circuit from n_local
-    #[error["Failed creating circuit data"]]
-    CircuitCreationError(#[from] CircuitDataError),
-}
-impl From<MultiLocalError> for PyErr {
-    fn from(value: MultiLocalError) -> Self {
-        match value {
-            MultiLocalError::PyParameterLedgerCreationError(err) => err,
-            MultiLocalError::CircuitCreationError(err) => err.into(),
         }
     }
 }
