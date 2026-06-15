@@ -196,7 +196,7 @@ pub unsafe extern "C" fn qk_circuit_library_n_local(
     let entanglement = get_entanglement_with_strategy(
         num_qubits,
         &entanglement_blocks,
-        &entanglement,
+        entanglement,
         settings.reps,
     );
 
