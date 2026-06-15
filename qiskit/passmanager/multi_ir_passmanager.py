@@ -22,14 +22,138 @@ from .flow_controllers import FlowControllerLinear
 
 
 class MultiStagePassManager(Generic[IR, IR_OUT]):
-    """A multi-staged pass manager supporting multiple IRs.
+    """A staged pass manager supporting multiple IRs.
 
-    Stages are BasePassManager or Task, or list thereof. BasePassManager tasks are executed only,
-    the `_passmanager_frontend` and `_passmanager_backend` conversions are ignored.
+    This pass manager executes sequential, named stages on the input program.
+    A stage can be defined as :class:`~.passmanager.Task`, an iterable thereof, or as
+    a :class:`.BasePassManager`. If a :class:`.BasePassManager` is set as stage, only the tasks
+    it contains are executed, the input and output conversions defined by its
+    ``_passmanager_frontend`` and ``_passmanager_backend`` methods are _not_ applied.
 
-    The current execution model linearizes the pass into a :class:`.FlowControllerLinear`
-    to execute the tasks. This underlying model is subject to change and it is unsafe to
-    build on this assumption. The public interfaces of this class, however, are stable.
+
+    Stages can
+
+        * preserve the IR, for example if set as ``BasePassManager[IR]`` or ``Task[IR, IR]``, or
+        * lower the IR, for example as ``Task[IR1, IR2]``
+
+    It is the user's responsibility to set up the stages in a compatible fashion, such that the
+    output IR of the current stage matches in input IR of the next stage. If a callback is provided,
+    it is equally the user's responsiblity to ensure the it can handle every IR passed
+    through in the workflow.
+
+    .. note::
+
+        While :class:`~.passmanager.Task` object defines the task interface, it is
+        recommended to derive from the base class :class:`.GenericPass` which only
+        requires the :meth:`~.GenericPass.run` method to be implemented and directly
+        provides callback functionality.
+
+    The callback is called with the signature::
+
+        def callback(
+            task: Task,  # the executed task
+            passmanager_ir: Any,  # the IR after the task execution
+            property_set: PropertySet,  # the property set after execution
+            running_time: float,  # the time the task ran
+            count: int  # the number of executed tasks so far
+        ):
+            ...
+
+    Note, that the arguments are passed by name.
+
+    An example workflow is::
+
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.converters import circuit_to_dag
+        from qiskit.dagcircuit import DAGCircuit
+        from qiskit.passmanager import GenericPass, MultiStagePassManager
+        from qiskit.transpiler import generate_preset_pass_manager
+
+        class CustomPauliIR:
+            # A custom IR of global Pauli strings
+            def __init__(self, num_qubits):
+                self.num_qubits = num_qubits
+                self.paulis = []
+
+            def apply(self, pauli: str):
+                assert len(pauli) == self.num_qubits
+                self.paulis.append(pauli)
+
+        class CustomPauliOptimization(GenericPass[CustomPauliIR, CustomPauliIR]):
+            # A pass run on the custom Pauli IR
+            def run(self, passmanager_ir: CustomPauliIR) -> CustomPauliIR:
+                to_remove = []
+                for i, pauli in enumerate(passmanager_ir.paulis):
+                    if all(p == "I" for p in pauli):
+                        to_remove.append(i)
+
+                for i in reversed(to_remove):
+                    del passmanager_ir.paulis[i]
+
+                return passmanager_ir
+
+        class PauliToDAG(GenericPass[CustomPauliIR, DAGCircuit]):
+            # A pass converting CustomPauliIR to DAGCircuit
+            def run(self, passmanager_ir: CustomPauliIR) -> DAGCircuit:
+                circuit = QuantumCircuit(passmanager_ir.num_qubits)
+                for pauli in passmanager_ir.paulis:
+                    circuit.pauli(pauli, circuit.qubits)
+
+                return circuit_to_dag(circuit)
+
+        def callback(task, passmanager_ir, property_set, running_time, count):
+            if isinstance(passmanager_ir, CustomPauliIR):
+                print("PauliIR:", task.__class__.__name__, passmanager_ir.paulis)
+            else:
+                print("DAGCircuit:", task.__class__.__name__, passmanager_ir.count_ops())
+
+        multi_pm = MultiStagePassManager(
+            pauli_opt=CustomPauliOptimization(),
+            pauli_to_dag=PauliToDAG(),
+            dag_opt=generate_preset_pass_manager(basis_gates=["u", "cx"]),
+        )
+
+        program = CustomPauliIR(3)
+        program.apply("XYZ")
+        program.apply("III")
+        program.apply("ZZI")
+
+        out = multi_pm.run(program, callback=callback)
+        print(out.count_ops())
+
+
+    This class relates to :class:`.StagedPassManager` in that both have a staged execution model.
+    The :class:`.StagedPassManager`, however, allows :class:`.DAGCircuit` as single internal IR
+    and has implicit conversions from and to a :class:`.QuantumCircuit` at the input and output
+    levels. It's behavior can be reconstructed from this class as::
+
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.dagcircuit import DAGCircuit
+        from qiskit.converters import dag_to_circuit, circuit_to_dag
+        from qiskit.passmanager import GenericPass, MultiStagePassManager
+
+        class CircuitToDAG(GenericPass[QuantumCircuit, DAGCircuit]):
+            def run(self, passmanager_ir: QuantumCircuit) -> DAGCircuit:
+                return circuit_to_dag(passmanager_ir)
+
+        class DAGToCircuit(GenericPass[DAGCircuit, QuantumCircuit]):
+            def run(self, passmanager_ir: DAGCircuit) -> QuantumCircuit:
+                return dag_to_circuit(passmanager_ir)
+
+        multi_pm = MultiStagePassManager(
+            input=CircuitToDAG(),
+            # stages of StagedPassManager ...
+            output=DAGToCircuit()
+        )
+
+        input_circuit = QuantumCircuit(1)
+        output_circuit = multi_pm.run(input_circuit)
+
+    .. note ::
+
+        The current execution model linearizes the pass into a :class:`.FlowControllerLinear`
+        to execute the tasks. This underlying model is subject to change and it is unsafe to
+        build on this assumption. The public interfaces of this class, however, are stable.
     """
 
     def __init__(
