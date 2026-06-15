@@ -186,9 +186,8 @@ impl LedgerBuilder for ParameterLedgerBuilder {
         Ok((0..num_parameters)
             .map(|i| {
                 Param::ParameterExpression(
-                    ParameterExpression::from_symbol(Symbol::new(
-                        &format!("{}[{}]", parameter_prefix, i),
-                        None,
+                    ParameterExpression::from_symbol(Symbol::standalone(
+                        format!("{}[{}]", parameter_prefix, i),
                         None,
                     ))
                     .into(),
