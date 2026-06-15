@@ -497,10 +497,10 @@ class SparsePauliOp(LinearOp):
             def to_complex(coeff):
                 if not hasattr(coeff, "numeric"):
                     return coeff
-                # optimize() collapses cancellations like a + b - a - b to 0,
+                # simplify() collapses cancellations like a + b - a - b to 0,
                 # so numeric() can evaluate them without needing sympy.
                 try:
-                    return complex(coeff.optimize().numeric(strict=False))
+                    return complex(coeff.simplify().numeric(strict=False))
                 except TypeError:
                     return np.nan
 

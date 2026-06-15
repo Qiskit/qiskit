@@ -249,7 +249,7 @@ impl ParameterExpression {
 
     /// Simplify the expression. This, for example, attempts to cancel
     /// variables in the expression.
-    pub fn optimize(&self) -> Self {
+    pub fn simplify(&self) -> Self {
         ParameterExpression::from_symbol_expr(self.expr.optimize())
     }
 
@@ -837,11 +837,10 @@ impl PyParameterExpression {
 
 #[pymethods]
 impl PyParameterExpression {
-    /// Return an algebraically simplified copy of this expression.
     ///
-    /// Applies Qiskit's native symbolic optimizer (no SymPy required), collapsing
-    /// cancelling expressions such as ``a + b - a - b`` to ``0``.
-    pub fn optimize(&self) -> Self {
+    /// Simplify the expression. This, for example, attempts to cancel
+    /// variables in the expression.
+    pub fn simplify(&self) -> Self {
         self.inner.optimize().into()
     }
 

@@ -1,7 +1,7 @@
 ---
 features_quantum_info:
   - |
-    Added a new :meth:`.ParameterExpression.optimize` method that returns an
+    Added a new :meth:`.ParameterExpression.simplify` method that returns an
     algebraically simplified copy of the expression using the native symbolic
     engine. It collapses cancelling terms such as ``a + b - a - b`` to zero,
     which :meth:`.ParameterExpression.numeric` does not do on its own.
@@ -10,7 +10,7 @@ features_quantum_info:
     dependency when simplifying operators with :class:`.ParameterExpression`
     coefficients. It previously called ``sympify`` to detect coefficients that
     algebraically cancel to zero; it now uses
-    :meth:`.ParameterExpression.optimize` instead, so cancellations such as
+    :meth:`.ParameterExpression.simplify` instead, so cancellations such as
     ``a + b - a - b`` are still detected and removed on a default Qiskit
     install without ``sympy``.
 
