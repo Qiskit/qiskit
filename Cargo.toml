@@ -22,7 +22,7 @@ num-bigint = "0.4"
 num-complex = "0.4"
 nalgebra = "0.34"
 faer = "0.24"
-numpy = "0.28"
+numpy = "0.29"
 ndarray = "0.16"
 smallvec = "1.15"
 thiserror = "2.0"
@@ -51,7 +51,7 @@ npyz = {version = "0.9.1", features = ["complex"]}
 # distributions).  We only activate that feature when building the C extension module; we still need
 # it disabled for Rust-only tests to avoid linker errors with it not being loaded.  See
 # https://pyo3.rs/main/features#extension-module for more.
-pyo3 = { version = "0.28.3", features = ["abi3-py310"] }
+pyo3 = { version = "0.29.0", features = ["abi3-py310"] }
 
 # These are our own crates.
 qiskit-accelerate = { path = "crates/accelerate" }
