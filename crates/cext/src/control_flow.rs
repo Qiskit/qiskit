@@ -1332,7 +1332,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels(
 
     let out_case_labels = unsafe { mut_ptr_as_ref(out_labels) };
     out_case_labels.num_labels = labels.len();
-    out_case_labels.labels = Box::into_raw(labels) as *mut u64;
+    out_case_labels.labels = Box::into_raw(labels) as *const u64;
 }
 
 /// @ingroup QkControlFlow
@@ -1483,7 +1483,7 @@ pub unsafe extern "C" fn inner_test_control_flow_circuit() -> *mut CircuitData {
     /////////////////////////////////////////////
     // Build a for-loop like this:
     // ----------------------
-    // with qc.for_loop([1,2]) as i:
+    // with qc.for_loop([1,2], loop_parameter=Parameter("x")):
     //     qc.h(0)
     //     qc.cx(0, 1)
     //     qc.measure(0, 0)
