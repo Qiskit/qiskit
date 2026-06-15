@@ -174,7 +174,7 @@ that will all need to be adjusted in a suitable manner.
 
      ```bash
      notes=($(git diff --name-only ...upstream/stable/2.3 -- ':(glob)releasenotes/notes/*.yaml'))
-     for note in notes; do git mv -k "$note" releasenotes/notes/2.3/; done
+     for note in "${notes[@]}"; do git mv -k "$note" releasenotes/notes/2.3/; done
      ```
      </details>
 
