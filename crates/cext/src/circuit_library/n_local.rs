@@ -10,14 +10,14 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::pointers::{check_ptr, const_ptr_as_ref};
+use crate::pointers::const_ptr_as_ref;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit_library::blocks::{Block, Entanglement};
 use qiskit_circuit_library::entanglement::get_entanglement_from_str;
 use qiskit_circuit_library::multi_local::n_local;
 use qiskit_circuit_library::parameter_ledger::ParameterLedgerBuilder;
-use std::ffi::{CStr, CString, c_char};
+use std::ffi::{CStr, c_char};
 
 #[repr(C)]
 pub struct NLocalSettings {
@@ -40,7 +40,7 @@ impl Default for NLocalSettings {
         Self {
             entanglement_strategy: EntanglementStrategy::Full,
             reps: 3,
-            parameter_prefix: CString::new("θ").unwrap().into_raw(),
+            parameter_prefix: std::ptr::null_mut(),
             insert_barriers: false,
             skip_final_rotation_layer: false,
         }
@@ -138,7 +138,7 @@ pub enum EntanglementStrategy {
 ///
 /// QkNLocalSettings settings = qk_circuit_library_n_local_settings_default();
 /// settings.reps = 2;
-/// // For this example we use QkEntanglementStrategy_Linear since 
+/// // For this example we use QkEntanglementStrategy_Linear since
 /// // the default is QkEntanglementStrategy_Full
 /// settings.entanglement_strategy = QkEntanglementStrategy_Linear;
 ///
@@ -185,18 +185,11 @@ pub unsafe extern "C" fn qk_circuit_library_n_local(
             .collect();
     let entanglement_blocks: Vec<&Block> = entanglement_blocks.iter().collect();
 
-    let (settings, parameter_prefix) = if settings.is_null() {
-        (&NLocalSettings::default(), "θ")
+    let settings = if settings.is_null() {
+        &NLocalSettings::default()
     } else {
         // SAFETY: Per documentation, the pointer is non-null and aligned.
-        let settings = unsafe { const_ptr_as_ref(settings) };
-        (settings, unsafe {
-            // SAFETY: Per documentation, the pointer is non-null and aligned.
-            check_ptr(settings.parameter_prefix).expect("Parameter prefix must not be null");
-            CStr::from_ptr(settings.parameter_prefix)
-                .to_str()
-                .expect("Invalid UTF-8 character")
-        })
+        unsafe { const_ptr_as_ref(settings) }
     };
 
     let entanglement = get_entanglement_strategy(&settings.entanglement_strategy);
@@ -215,7 +208,16 @@ pub unsafe extern "C" fn qk_circuit_library_n_local(
         &entanglement,
         settings.reps,
         settings.insert_barriers,
-        &parameter_prefix,
+        if settings.parameter_prefix.is_null() {
+            "θ"
+        } else {
+            // SAFETY: Per documentation, the pointer is non-null and aligned.
+            unsafe {
+                CStr::from_ptr(settings.parameter_prefix)
+                    .to_str()
+                    .expect("Invalid UTF-8 character")
+            }
+        },
         settings.skip_final_rotation_layer,
         false,
     ) {
