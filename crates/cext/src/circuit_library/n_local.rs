@@ -142,21 +142,20 @@ pub enum EntanglementStrategy {
 /// // the default is QkEntanglementStrategy_Full
 /// settings.entanglement_strategy = QkEntanglementStrategy_Linear;
 ///
-/// QkCircuit *qc = qk_circuit_library_n_local(num_qubits, rotation_blocks, 1, entanglement_blocks, 1, &settings);
+/// QkCircuit *qc = qk_circuit_library_n_local(num_qubits, rotation_blocks, 1, 
+///                                            entanglement_blocks, 1, &settings);
 ///
 /// qk_circuit_free(qc);
 /// ```
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``entanglement`` is not either null
-/// or a valid pointer to a ``QkEntanglement``.
 /// Behavior is undefined if ``rotation_blocks`` is not a valid, non-null pointer
 /// to a sequence of ``rotation_blocks_size`` consecutive elements of ``StandardGate``.
 /// Behavior is undefined if ``entanglement_blocks`` is not a valid, non-null pointer
 /// to a sequence of ``entanglement_blocks_size`` consecutive elements of ``StandardGate``.
-/// The `parameter_prefix` parameter must be a pointer to memory that contains a valid
-/// nul terminator at the end of the string. It also must be valid for reads of
+/// The `NLocalSettings.parameter_prefix` parameter must be a pointer to memory that contains
+/// a valid nul terminator at the end of the string. It also must be valid for reads of
 /// bytes up to and including the nul terminator.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_library_n_local(
