@@ -433,11 +433,11 @@ pub fn run_optimize_1q_gates_decomposition(
             let mut outside_basis = false;
             if let BasisGatesPerQubit::Gates(basis) = basis_gates {
                 for node in raw_run {
-                    if let NodeType::Operation(inst) = &dag[*node] {
-                        if !basis.contains(inst.op.name()) {
-                            outside_basis = true;
-                            break;
-                        }
+                    if let NodeType::Operation(inst) = &dag[*node]
+                        && !basis.contains(inst.op.name())
+                    {
+                        outside_basis = true;
+                        break;
                     }
                 }
             } else {

@@ -958,21 +958,21 @@ pub unsafe extern "C" fn qk_transpile(
         Some(options.approximation_degree)
     };
 
-    if let Some(target_qubits) = target.num_qubits {
-        if target_qubits < qc.num_qubits() as u32 {
-            if !error.is_null() {
-                unsafe {
-                    *error = CString::new(format!(
-                        "Insufficient qubits in target: {}, the circuit uses {}",
-                        target_qubits,
-                        qc.num_qubits()
-                    ))
-                    .unwrap()
-                    .into_raw();
-                }
+    if let Some(target_qubits) = target.num_qubits
+        && target_qubits < qc.num_qubits() as u32
+    {
+        if !error.is_null() {
+            unsafe {
+                *error = CString::new(format!(
+                    "Insufficient qubits in target: {}, the circuit uses {}",
+                    target_qubits,
+                    qc.num_qubits()
+                ))
+                .unwrap()
+                .into_raw();
             }
-            return ExitCode::TranspilerError;
         }
+        return ExitCode::TranspilerError;
     }
 
     match transpile(

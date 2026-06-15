@@ -910,12 +910,12 @@ impl SparseObservable {
                 return Err(ArithmeticError::DuplicatedIndex);
             }
 
-            if let Some(&max_q) = qargs.iter().max() {
-                if max_q >= self.num_qubits {
-                    return Err(ArithmeticError::OutOfBounds(
-                        "qargs contains out-of-range qubits".to_string(),
-                    ));
-                }
+            if let Some(&max_q) = qargs.iter().max()
+                && max_q >= self.num_qubits
+            {
+                return Err(ArithmeticError::OutOfBounds(
+                    "qargs contains out-of-range qubits".to_string(),
+                ));
             }
 
             // This maps operator bit terms to observable qubits via qargs, considering
