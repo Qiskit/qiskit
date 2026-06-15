@@ -1104,6 +1104,7 @@ def generate_circuits(
     ):
         output_circuits["ppm.qpy"] = generate_pauli_product_measurement()
 
+    # The Pauli Product Rotation gate was added in 2.4.0, but a bug in 2.4 prevents it from being read correctly
     if (
         generating_version.release >= (2, 4, 0)
         and current_version.release >= (2, 4, 0)
@@ -1111,7 +1112,7 @@ def generate_circuits(
     ):
         output_circuits["ppr.qpy"] = generate_pauli_product_rotation()
 
-    # The for_loop with negative integers in a list indexset was broken in the 2.x 
+    # The for_loop with negative integers in a list indexset was broken in the 2.x
     # transition (Rust implementation) but worked in 1.x (Python implementation).
     if (0, 19, 2) <= generating_version.release < (2, 0, 0):
         output_circuits["for_loop_negative.qpy"] = generate_for_loop_negative_circuits()
