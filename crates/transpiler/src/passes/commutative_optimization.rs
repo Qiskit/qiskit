@@ -21,9 +21,8 @@ use qiskit_circuit::instruction::Parameters;
 use smallvec::smallvec;
 
 use crate::commutation_checker::{CommutationChecker, try_matrix_with_definition};
-use crate::passes::remove_identity_equiv::{
-    MINIMUM_TOL, average_gate_fidelity_below_tol, is_identity_equiv,
-};
+use crate::passes::common::{MINIMUM_TOL, average_gate_fidelity_below_tol};
+use crate::passes::remove_identity_equiv::is_identity_equiv;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{
