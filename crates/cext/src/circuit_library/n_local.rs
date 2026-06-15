@@ -19,6 +19,22 @@ use qiskit_circuit_library::multi_local::n_local;
 use qiskit_circuit_library::parameter_ledger::ParameterLedgerBuilder;
 use std::ffi::{CStr, c_char};
 
+/// Settings for generating a n-local variational circuit.
+///
+/// This contains the entanglement strategy (``entanglement_strategy``),
+/// the repetitions of the rotation and entanglement layers (``reps``),
+/// the parameter prefix for gates that have parameters (``parameter_prefix``),
+/// whether it's wanted to add barriers after each layer (``insert_barriers``)
+/// and if it's wanted to skip the last layer (``skip_final_rotation_layer``)
+///
+/// It's the responsibility of the user that the data is coherent,
+/// see also the below section on safety.
+///
+/// # Safety
+///
+/// ``parameter_prefix`` must be a pointer to memory that contains
+/// a valid nul terminator at the end of the string. It also must be valid for reads of
+/// bytes up to and including the nul terminator.
 #[repr(C)]
 pub struct NLocalSettings {
     /// The entanglement strategy to be used in the generated circuit.
@@ -150,13 +166,10 @@ pub enum EntanglementStrategy {
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``rotation_blocks`` is not a valid, non-null pointer
-/// to a sequence of ``rotation_blocks_size`` consecutive elements of ``StandardGate``.
-/// Behavior is undefined if ``entanglement_blocks`` is not a valid, non-null pointer
-/// to a sequence of ``entanglement_blocks_size`` consecutive elements of ``StandardGate``.
-/// The `NLocalSettings.parameter_prefix` parameter must be a pointer to memory that contains
-/// a valid nul terminator at the end of the string. It also must be valid for reads of
-/// bytes up to and including the nul terminator.
+/// * Behavior is undefined if ``rotation_blocks`` is not a valid, non-null pointer
+///   to a sequence of ``rotation_blocks_size`` consecutive elements of ``StandardGate``.
+/// * Behavior is undefined if ``entanglement_blocks`` is not a valid, non-null pointer
+///   to a sequence of ``entanglement_blocks_size`` consecutive elements of ``StandardGate``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_library_n_local(
     num_qubits: u32,
