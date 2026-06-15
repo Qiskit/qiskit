@@ -342,12 +342,12 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         "_built",
         "_forbidden_message",
         "_instructions",
+        "_loop_var",
         "_parent",
         "_stretches_capture",
         "_stretches_local",
         "_vars_capture",
         "_vars_local",
-        "_loop_var",
         "global_phase",
         "registers",
     )
@@ -387,6 +387,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
                 pseudo scopes where the state machine of the builder scopes has changed into a
                 position where no instructions should be accepted, such as when inside a ``switch``
                 but outside any cases.
+            loop_var: If given, a classical var used for the loop counter
         """
         self._instructions = CircuitData(qubits, clbits)
         self.registers = set(registers)
