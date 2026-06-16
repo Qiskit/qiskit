@@ -133,7 +133,7 @@ class TestTwirling(QiskitTestCase):
             pauli_twirl_2q_gates(qc, twirling_gate=["cx", "swap"])
 
     def test_invalid_class_entry_in_list(self):
-        """Test an error is raised with an unsupported string gate in list."""
+        """Test a mixed list accepts supported gate objects."""
         qc = QuantumCircuit(2)
         qc.swap(0, 1)
         res = pauli_twirl_2q_gates(qc, twirling_gate=[SwapGate(), "cx"])
