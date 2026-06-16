@@ -6,6 +6,7 @@ features_c:
     the properties of the control flow instructions. A few new types have been introduced to facilitate the 
     inspection of control flow instruction, along with these functions:
     
+
     * :c:func:`qk_circuit_get_control_flow_instruction`
     * :c:func:`qk_control_flow_instruction_free`
     * :c:func:`qk_control_flow_kind`
@@ -20,8 +21,10 @@ features_c:
     * :c:func:`qk_control_flow_box_duration_kind`
     * :c:func:`qk_control_flow_box_duration_info`
     * :c:func:`qk_control_flow_box_duration_expr`
-    * :c:func:`qk_control_flow_loop_collection`
-    * :c:func:`qk_control_flow_loop_symbol`
+    * :c:func:`qk_control_flow_loop_collection_type`
+    * :c:func:`qk_control_flow_loop_elements`
+    * :c:func:`qk_control_flow_loop_range`
+    * :c:func:`qk_control_flow_loop_symbol_info`
     * :c:func:`qk_control_flow_switch_target_type`
     * :c:func:`qk_control_flow_switch_target_bit`
     * :c:func:`qk_control_flow_switch_target_register`
