@@ -2038,8 +2038,10 @@ fn for_each_symbol_use_in_control_flow(
             };
             for symbol in body.parameters() {
                 // Skip the loop variable itself — it is runtime-bound.
-                if loop_param == Some(&LoopParam::Parameter(symbol.clone())) {
-                    continue;
+                if let Some(LoopParam::Parameter(loop_symbol)) = loop_param {
+                    if symbol == loop_symbol {
+                        continue;
+                    }
                 }
                 action(symbol, usage)?;
             }

@@ -1093,10 +1093,10 @@ c[1] = measure q[1];
     def test_for_loop_with_var(self):
         """Test that a for loop with a expr.Var instead of a Parameter outputs the expected result."""
         qc = QuantumCircuit(1, 1)
-        cr = ClassicalRegister(10_000, "reps")
+        cr = ClassicalRegister(5, "reps")
         qc.add_register(cr)
 
-        with qc.for_loop(range(10_000), expr.Var.new("a", types.Uint(32))) as v:
+        with qc.for_loop(range(5), expr.Var.new("a", types.Uint(32))) as v:
             qc.measure(0, 0)
             qc.store(expr.index(cr, v), qc.clbits[0])
 

@@ -90,4 +90,4 @@ class ControlFlowOp(Instruction, ABC):
     @staticmethod
     def _unexpected_input_var_error() -> Exception:
         """Create a suitable exception to raise when a block has unexpected input variables."""
-        return CircuitError("control-flow blocks cannot contain input variables")
+        return CircuitError("Only for-loop blocks can contain input variables")

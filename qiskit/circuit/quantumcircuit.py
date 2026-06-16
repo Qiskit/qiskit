@@ -4498,12 +4498,6 @@ class QuantumCircuit:
         indicates the result
         of that projection as a ``0`` or a ``1`` respectively. This operation is non-reversible.
 
-        If ``cbit`` is an :class:`.expr.Var` of :class:`.types.Uint` type or an
-        :class:`.expr.Index` expression, the measurement is performed in two steps: first the qubit
-        is measured into a temporary :class:`.Clbit` (added to the circuit on first use), then the
-        result is stored into the given expression via :meth:`store`.  This allows the measurement
-        target to be a runtime-indexed location such as ``c[i]`` where ``i`` is a loop variable.
-
         Args:
             qubit: qubit(s) to measure.
             cbit: classical bit(s) to place the measurement result(s) in,
@@ -7255,7 +7249,7 @@ class QuantumCircuit:
 
         Args:
             indexset (Iterable[int]): A collection of integers to loop over.  Always necessary.
-            loop_parameter (Optional[Parameter]): The parameter used within ``body`` to which
+            loop_parameter (Optional[Parameter|expr.Var]): The parameter used within ``body`` to which
                 the values from ``indexset`` will be assigned.  In the context-manager form, if this
                 argument is not supplied, then a loop parameter will be allocated for you and
                 returned as the value of the ``with`` statement.  This will only be bound into the

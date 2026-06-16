@@ -57,7 +57,7 @@ class ForLoopOp(ControlFlowOp):
         """
         Args:
             indexset: A collection of integers to loop over.
-            loop_parameter: The placeholder parameterizing ``body`` to which
+            loop_parameter: The placeholder parameter to which
                 the values from ``indexset`` will be assigned. Can be a
                 ``Parameter``, ``expr.Var`` of type ``Uint``, or ``None``.
             body: The loop body to be repeatedly executed.
@@ -100,7 +100,7 @@ class ForLoopOp(ControlFlowOp):
         match body.num_input_vars:
             case 0:
                 if isinstance(loop_parameter, expr.Var):
-                    raise CircuitError("loop variable is a `Var`, but body does not expect one")
+                    raise CircuitError("loop variable is a `Var`, but body does not contain one")
             case 1:
                 (expected,) = body.iter_input_vars()
                 if loop_parameter != expected:
@@ -149,14 +149,6 @@ class ForLoopOp(ControlFlowOp):
         return ForLoopOp(self.params[0], self.params[1], body, label=self.label)
 
 
-def _indexset_bit_width(indexset: Iterable[int]):
-    if isinstance(indexset, range):
-        max_val = max((indexset.start, indexset.stop))
-    else:
-        max_val = max(indexset) if indexset else 0
-    return max(1, max_val.bit_length())
-
-
 class ForLoopContext:
     """A context manager for building up ``for`` loops onto circuits in a natural order, without
     having to construct the loop body first.
@@ -201,7 +193,6 @@ class ForLoopContext:
     _generated_loop_vars = 0
 
     __slots__ = (
-        "_as_var",
         "_circuit",
         "_generate_loop_parameter",
         "_indexset",

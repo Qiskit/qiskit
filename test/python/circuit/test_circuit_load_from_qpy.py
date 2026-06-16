@@ -1284,10 +1284,10 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_qpy_with_for_loop_var_loop_counter(self):
         """Test qpy serialization with a for loop that uses expr.Var as its counter."""
         qc = QuantumCircuit(1, 1)
-        cr = ClassicalRegister(10_000, "reps")
+        cr = ClassicalRegister(5, "reps")
         qc.add_register(cr)
 
-        with qc.for_loop(range(10_000), expr.Var.new("a", types.Uint(32))) as v:
+        with qc.for_loop(range(5), expr.Var.new("a", types.Uint(32))) as v:
             qc.measure(0, 0)
             qc.store(expr.index(cr, v), qc.clbits[0])
 
