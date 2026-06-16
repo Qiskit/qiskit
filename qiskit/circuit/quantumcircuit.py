@@ -4490,7 +4490,7 @@ class QuantumCircuit:
         rvalue = expr.lift(rvalue, rvalue_type)
         return self.append(Store(lvalue, rvalue), (), (), copy=False)
 
-    def measure(self, qubit: QubitSpecifier, cbit: ClbitSpecifier | expr.Var) -> InstructionSet:
+    def measure(self, qubit: QubitSpecifier, cbit: ClbitSpecifier) -> InstructionSet:
         r"""Measure a quantum bit (``qubit``) in the Z basis into a classical bit (``cbit``).
 
         When a quantum state is measured, a qubit is projected in the computational (Pauli Z) basis
@@ -4587,38 +4587,7 @@ class QuantumCircuit:
         """
         from .measure import Measure
 
-        if isinstance(cbit, expr.Expr):
-            return self._measure_into_expression(qubit, cbit)
         return self.append(Measure(), [qubit], [cbit], copy=False)
-
-    def _measure_into_expression(self, qubit: QubitSpecifier, exp: expr.Expr) -> InstructionSet:
-        """Measure ``qubit`` and store the result in the cbit indexed by ``expr``.
-        This adds two operations:
-        1. Measuring to a temporary classical bit (added to the circuit if not already present)
-        2. Storing the result of the measurement into the cbit indexed by ``expr``.
-        Args:
-            qubit: the qubit to measure.
-            exp: the expression that indexes the cbit that should store the result of the measurement.
-        Returns:
-            qiskit.circuit.InstructionSet: handle to the added ``store`` instructions.
-        """
-        from .measure import Measure
-
-        if isinstance(exp, (expr.Var, expr.Value)) and exp.type.kind is types.Uint:
-            if not self.cregs:
-                raise CircuitError(
-                    "Cannot use a Var as a classical bit index when the circuit has no "
-                    "classical registers."
-                )
-            bit_exp = expr.index(self.cregs[0], exp)
-            # TODO: This is not the optimal way to manage the temp measurement bit
-            if not hasattr(self, "_measure_var_tmp_clbit"):
-                tmp = Clbit()
-                self.add_bits([tmp])
-                self._measure_var_tmp_clbit = tmp  # type: ignore[attr-defined]
-            tmp_clbit = self._measure_var_tmp_clbit  # type: ignore[attr-defined]
-            self.append(Measure(), [qubit], [tmp_clbit], copy=False)
-            return self.store(bit_exp, expr.lift(tmp_clbit))
 
     def measure_active(self, inplace: bool = True) -> QuantumCircuit | None:
         """Adds measurement to all non-idle qubits. Creates a new ClassicalRegister with

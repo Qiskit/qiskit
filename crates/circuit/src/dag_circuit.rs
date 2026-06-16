@@ -2251,7 +2251,6 @@ impl DAGCircuit {
                                         return Ok(false);
                                     }
                                     match (loop_param_a, loop_param_b) {
-                                        // TODO: must add a case for comparing two loop parameters which are identical expr.var
                                         (
                                             Some(LoopParam::Parameter(loop_param_a)),
                                             Some(LoopParam::Parameter(loop_param_b)),
