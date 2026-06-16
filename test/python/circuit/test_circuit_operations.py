@@ -91,6 +91,9 @@ class TestCircuitOperations(QiskitTestCase):
         ("z", (0,)),
         ("cz", (0, 1)),
         ("ccz", (0, 1, 2)),
+        ("prepare_state", ("0", [0])),
+        ("unitary", (np.eye(2), [0])),
+        ("box", (QuantumCircuit(1), [0], [])),
     )
     @unpack
     def test_quantum_circuit_standard_gate_label(self, method, args):
