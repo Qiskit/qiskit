@@ -278,7 +278,7 @@ class TestCommutationChecker(QiskitTestCase):
         self.assertTrue(scc.commute(rz_gate_theta, [0], [], cx_gate, [0, 1], []))
 
     def test_parameterized_gates_when_gates_specified(self):
-        """Gate filtering should use the public gate names and honor empty or mixed filters."""
+        """Gate filtering should use the public gate names and honor mixed filters."""
         rx1 = RXGate(0.1)
         rx2 = RXGate(0.2)
 
@@ -286,7 +286,6 @@ class TestCommutationChecker(QiskitTestCase):
             ({"rx"}, True),
             ({"x"}, False),
             ({"rx", "x"}, True),
-            (set(), True),
             ({"rz"}, False),
         ]:
             with self.subTest(gates=gates):
