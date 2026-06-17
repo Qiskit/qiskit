@@ -207,14 +207,14 @@ pub unsafe extern "C" fn qk_quantum_register_num_bits(qreg: *const QuantumRegist
 ///
 /// Outputs a mapping from each qubit in the quantum register to its corresponding index in the circuit's
 /// qubit list. If a qubit from the register is not present in the circuit, its index
-/// in the mapping will be `UINT32_MAX`.
+/// in the mapping will be ``UINT32_MAX``.
 ///
 /// @param qreg A pointer to the quantum register to map.
 /// @param circuit A pointer to the circuit containing the qubits.
 /// @param out_bits A pointer to an array where the mapped indices will be written.
-///                 The array must be pre-allocated with at least `qk_quantum_register_num_bits` elements
-///                 for `qreg`. Each element will contain either the circuit bit index or `UINT32_MAX`
-///                 if the qubit is not in the circuit.
+///     The array must be pre-allocated with at least `qk_quantum_register_num_bits` elements
+///     for ``qreg``. Each element will contain either the circuit bit index or ``UINT32_MAX``
+///     if the qubit is not in the circuit.
 ///
 /// # Example
 /// ```c
@@ -388,14 +388,14 @@ pub unsafe extern "C" fn qk_classical_register_num_bits(creg: *const ClassicalRe
 ///
 /// Outputs a mapping from each clbit in the classical register to its corresponding index in the circuit's
 /// clbit list. If a clbit from the register is not present in the circuit, its index
-/// in the mapping will be `UINT32_MAX`.
+/// in the mapping will be ``UINT32_MAX``.
 ///
 /// @param creg A pointer to the classical register to map.
 /// @param circuit A pointer to the circuit containing the clbits.
 /// @param out_bits A pointer to an array where the mapped indices will be written.
-///                 The array must be pre-allocated with at least `qk_classical_register_num_bits` elements
-///                 for `creg`. Each element will contain either the circuit bit index or `UINT32_MAX`
-///                 if the clbit is not in the circuit.
+///     The array must be pre-allocated with at least `qk_classical_register_num_bits` elements
+///     for ``creg``. Each element will contain either the circuit bit index or ``UINT32_MAX``
+///     if the clbit is not in the circuit.
 ///
 /// # Example
 /// ```c
@@ -2684,9 +2684,9 @@ pub unsafe extern "C" fn qk_circuit_estimate_fidelity(
 /// @ingroup QkCircuit
 /// Get a control flow instruction from a circuit at the specified index.
 ///
-/// This function returns a pointer to a ``QkControlFlowInstruction`` structure, which holds
+/// This function returns a pointer to an opaque ``QkControlFlowInstruction`` struct, which holds
 /// information about a control flow instruction at the specified index. The instruction at
-/// ``inst_idx`` must be a control flow instruction (if-else, for-loop, while-loop, switch, or box).
+/// ``inst_idx`` must be a control flow instruction (e.g. IfElse, ForLoop etc.).
 ///
 /// @param circuit A pointer to the circuit containing the control flow instruction.
 /// @param inst_idx The index of the instruction in the circuit's instruction list.
