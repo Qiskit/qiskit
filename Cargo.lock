@@ -1179,6 +1179,9 @@ name = "hashbrown"
 version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4f467dd6dccf739c208452f8014c75c18bb8301b050ad1cfb27153803edb0f51"
+dependencies = [
+ "foldhash 0.2.0",
+]
 
 [[package]]
 name = "heapless"
@@ -1263,6 +1266,15 @@ name = "itertools"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b4baf93f58d4425749ca49a51c50ebab072c5df6994d08fed93541c331481dc"
 dependencies = [
  "either",
 ]
@@ -2172,7 +2184,7 @@ version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd274650b21d4bfc26a0a47587962c1edb425f69287324355cd040c3ea66071c"
 dependencies = [
- "hashbrown 0.15.5",
+ "hashbrown 0.17.0",
  "indexmap",
  "libc",
  "num-bigint",
@@ -2247,7 +2259,7 @@ version = "2.5.0-dev"
 dependencies = [
  "approx",
  "hashbrown 0.15.5",
- "itertools 0.14.0",
+ "itertools 0.15.0",
  "nalgebra 0.34.2",
  "ndarray",
  "num-bigint",
@@ -2285,7 +2297,7 @@ dependencies = [
  "anyhow",
  "cbindgen",
  "clap",
- "itertools 0.14.0",
+ "itertools 0.15.0",
  "qiskit-bindgen",
  "qiskit-cext-vtable",
  "qiskit-util",
@@ -2334,7 +2346,7 @@ dependencies = [
  "crossterm",
  "foldhash 0.2.0",
  "hashbrown 0.15.5",
- "itertools 0.14.0",
+ "itertools 0.15.0",
  "lexical-core",
  "lexical-write-float",
  "nalgebra 0.34.2",
@@ -2363,7 +2375,7 @@ name = "qiskit-circuit-library"
 version = "2.5.0-dev"
 dependencies = [
  "hashbrown 0.15.5",
- "itertools 0.14.0",
+ "itertools 0.15.0",
  "nalgebra 0.34.2",
  "ndarray",
  "num-complex",
@@ -2472,7 +2484,7 @@ dependencies = [
  "fixedbitset 0.5.7",
  "foldhash 0.2.0",
  "hashbrown 0.15.5",
- "itertools 0.14.0",
+ "itertools 0.15.0",
  "nalgebra 0.34.2",
  "ndarray",
  "ndarray-einsum",
@@ -2500,7 +2512,7 @@ dependencies = [
  "faer",
  "fixedbitset 0.5.7",
  "hashbrown 0.15.5",
- "itertools 0.14.0",
+ "itertools 0.15.0",
  "nalgebra 0.34.2",
  "ndarray",
  "num-complex",
@@ -2533,7 +2545,7 @@ dependencies = [
  "foldhash 0.2.0",
  "hashbrown 0.15.5",
  "indexmap",
- "itertools 0.14.0",
+ "itertools 0.15.0",
  "nalgebra 0.34.2",
  "ndarray",
  "num-complex",
