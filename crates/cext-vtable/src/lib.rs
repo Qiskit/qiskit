@@ -26,7 +26,8 @@ pub static FUNCTIONS_CIRCUIT: ExportedFunctions =
         .add_child(5, &circuit::FUNCTIONS)
         .add_child(105, &dag::FUNCTIONS)
         .add_child(205, &param::FUNCTIONS)
-        .add_child(255, &circuit_library::FUNCTIONS);
+        .add_child(255, &circuit_library::FUNCTIONS)
+        .add_child(305, &classical_expr::FUNCTIONS);
 pub static FUNCTIONS_QI: ExportedFunctions =
     ExportedFunctions::empty().add_child(0, &sparse_observable::FUNCTIONS);
 pub use transpiler::FUNCTIONS as FUNCTIONS_TRANSPILE;
@@ -95,6 +96,9 @@ mod circuit {
             export_fn!(qk_classical_register_borrow_from_python, feature = "python_binding"),
             export_fn!(qk_classical_register_convert_from_python, feature = "python_binding"),
             export_fn!(qk_circuit_draw),
+            export_fn!(qk_circuit_global_phase),
+            export_fn!(qk_circuit_set_global_phase),
+            export_fn!(qk_circuit_estimate_fidelity),
         ]
     });
 }
@@ -163,6 +167,8 @@ mod dag {
             export_fn!(qk_dag_convert_from_python, feature = "python_binding"),
             export_fn!(qk_dag_replace_block_with_unitary),
             export_fn!(qk_dag_substitute_node_with_unitary),
+            export_fn!(qk_dag_global_phase),
+            export_fn!(qk_dag_set_global_phase),
         ]
     });
 }
@@ -360,6 +366,7 @@ mod transpiler {
                 export_fn!(remove_diagonal_gates_before_measure::qk_transpiler_pass_remove_diagonal_gates_before_measure),
                 export_fn!(remove_identity_equiv::qk_transpiler_pass_remove_identity_equivalent),
                 export_fn!(split_2q_unitaries::qk_transpiler_pass_split_2q_unitaries),
+                export_fn!(two_qubit_peephole::qk_transpiler_pass_2q_peephole_optimization),
             ]
         });
         static FUNCTIONS_STANDALONE: ExportedFunctions = ExportedFunctions::leaves(50, || {
@@ -381,6 +388,7 @@ mod transpiler {
                 export_fn!(vf2::qk_transpiler_pass_standalone_vf2_layout_exact),
                 export_fn!(convert_to_pauli_rotations::qk_transpiler_pass_standalone_convert_to_pauli_rotations),
                 export_fn!(litinski_transformation::qk_transpiler_pass_standalone_litinski_transformation),
+                export_fn!(two_qubit_peephole::qk_transpiler_pass_standalone_2q_peephole_optimization),
             ]
         });
         static FUNCTIONS_SABRE: ExportedFunctions = ExportedFunctions::leaves(5, || {
@@ -416,4 +424,31 @@ mod transpiler {
         .add_child(50, &TRANSPILE_STATE)
         .add_child(150, &target::FUNCTIONS)
         .add_child(250, &passes::FUNCTIONS);
+}
+
+mod classical_expr {
+    use crate::impl_::prelude::*;
+    #[cfg(feature = "addr")]
+    use qiskit_cext::classical_expr::*;
+
+    pub static FUNCTIONS: ExportedFunctions = ExportedFunctions::leaves(50, || {
+        vec![
+            export_fn!(qk_expr_kind),
+            export_fn!(qk_expr_binary_info),
+            export_fn!(qk_expr_unary_info),
+            export_fn!(qk_expr_cast_info),
+            export_fn!(qk_expr_index_info),
+            export_fn!(qk_expr_as_value),
+            export_fn!(qk_expr_as_var),
+            export_fn!(qk_expr_as_stretch),
+            export_fn!(qk_value_type_info),
+            export_fn!(qk_value_duration_info),
+            export_fn!(qk_value_float),
+            export_fn!(qk_value_uint),
+            export_fn!(qk_value_bool),
+            export_fn!(qk_var_name),
+            export_fn!(qk_var_type_info),
+            export_fn!(qk_stretch_name),
+        ]
+    });
 }

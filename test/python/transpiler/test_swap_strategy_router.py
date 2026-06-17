@@ -21,7 +21,7 @@ from qiskit.circuit.library import PauliEvolutionGate, CXGate
 from qiskit.circuit.library.n_local import QAOAAnsatz
 from qiskit.converters import circuit_to_dag
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.quantum_info import Operator, Pauli, SparsePauliOp
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
@@ -91,6 +91,18 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         expected.append(PauliEvolutionGate(Pauli("ZZ"), 3), (0, 1))
 
         self.assertEqual(swapped, expected)
+
+    def test_global_phase_preserved_without_commuting_blocks(self):
+        """Test routing a circuit with no commuting blocks preserves its global phase."""
+        circ = QuantumCircuit(4, global_phase=0.3)
+        circ.h(0)
+        circ.cx(0, 1)
+
+        swap_strat = SwapStrategy.from_line([0, 1, 2, 3])
+        routed = PassManager([Commuting2qGateRouter(swap_strat)]).run(circ)
+
+        self.assertEqual(routed.global_phase, circ.global_phase)
+        self.assertEqual(Operator(routed), Operator(circ))
 
     def test_basic_xx(self):
         """Test to route an XX-based evolution op.
