@@ -38,6 +38,7 @@
 // |   6   | Switch           | Target: clbit 
 // |   7   | Switch           | Target: expression
 // |   8   | For Loop         | Loop over Range(1, 10, 3)
+// |   9   | Switch           | Target: ClassicalRegister, condition width 80 bits
 // clang-format on
 QkCircuit *inner_test_control_flow_circuit();
 
@@ -532,15 +533,16 @@ static int test_while_on_register(void) {
         goto cleanup;
     }
 
-    QkConditionRegInfo reg_info = qk_control_flow_condition_reg_info(cf_inst);
-    if (reg_info.creg == NULL) {
+    const QkClassicalRegister *reg = qk_control_flow_condition_reg(cf_inst);
+    if (reg == NULL) {
         printf("Expected non-null classical register\n");
         result = NullptrError;
         goto cleanup;
     }
 
-    if (reg_info.condition != 7) {
-        printf("Expected condition value 7, got %" PRIu64 "\n", reg_info.condition);
+    uint64_t cond_val = qk_control_flow_condition_reg_uint(cf_inst);
+    if (cond_val != 7) {
+        printf("Expected condition value 7, got %" PRIu64 "\n", cond_val);
         result = EqualityError;
         goto cleanup;
     }
@@ -726,6 +728,28 @@ cleanup:
     return result;
 }
 
+// Test while loop with condition on classical register:
+// with qc.while_loop((cr, (1<<80)-1)):
+//     qc.Z(0)
+static int test_while_on_register_large_condition(void) {
+    int result = Ok;
+    QkCircuit *circuit = inner_test_control_flow_circuit();
+    QkControlFlowInstruction *cf_inst = qk_circuit_get_control_flow_instruction(circuit, 9, NULL);
+
+    uint64_t cond_bit_width = qk_control_flow_condition_reg_bit_width(cf_inst);
+    if (cond_bit_width <= 64) {
+        printf("Expected condition width to be larger than 64 bits, got %" PRIu64 "\n",
+               cond_bit_width);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+cleanup:
+    qk_control_flow_instruction_free(cf_inst);
+    qk_circuit_free(circuit);
+    return result;
+}
+
 int test_control_flow(void) {
     int num_failed = 0;
 
@@ -739,6 +763,7 @@ int test_control_flow(void) {
     num_failed += RUN_TEST(test_switch_case_on_bit);
     num_failed += RUN_TEST(test_switch_case_on_expr);
     num_failed += RUN_TEST(test_for_loop_over_range);
+    num_failed += RUN_TEST(test_while_on_register_large_condition);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

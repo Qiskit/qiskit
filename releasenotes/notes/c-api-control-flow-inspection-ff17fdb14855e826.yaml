@@ -16,7 +16,9 @@ features_c:
     * :c:func:`qk_control_flow_clbit_map`
     * :c:func:`qk_control_flow_condition_type`
     * :c:func:`qk_control_flow_condition_bit_info`
-    * :c:func:`qk_control_flow_condition_reg_info`
+    * :c:func:`qk_control_flow_condition_reg_bit_width`
+    * :c:func:`qk_control_flow_condition_reg`
+    * :c:func:`qk_control_flow_condition_reg_uint`
     * :c:func:`qk_control_flow_condition_expr`
     * :c:func:`qk_control_flow_box_duration_kind`
     * :c:func:`qk_control_flow_box_duration_info`

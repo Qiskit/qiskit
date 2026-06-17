@@ -94,7 +94,7 @@ impl CControlFlowInstruction {
         let inst = self.instruction();
         inst.op
             .try_control_flow()
-            .expect("inst should be a control flow instruction")
+            .unwrap_or_else(|| panic!("inst should be a control flow instruction"))
     }
 }
 
@@ -176,18 +176,6 @@ pub struct CConditionBitInfo {
     clbit: u32,
     /// The expected value of the classical bit (true or false)
     condition: bool,
-}
-
-/// Information about a classical register condition.
-///
-/// This struct contains the details of a condition that operates on a classical register
-/// Note: The condition value is currently limited to ``uint64_t``.
-#[repr(C)]
-pub struct CConditionRegInfo {
-    /// Pointer to the classical register
-    creg: *const ClassicalRegister,
-    /// The expected value of the classical register
-    condition: u64,
 }
 
 /// Represents the kind of duration specification for a Box instruction.
@@ -567,15 +555,15 @@ pub unsafe extern "C" fn qk_control_flow_condition_bit_info(
 }
 
 /// @ingroup QkControlFlow
-/// Get the classical register condition information for a control flow instruction.
+/// Get the bit width of the classical register condition for a control flow instruction.
 ///
-/// Extracts the classical register and expected value from an IfElse or While
+/// Extracts the bit width of the classical register from an IfElse or While
 /// instruction that has a classical register condition.
 ///
 /// @param cf_inst A valid pointer to a ``QkControlFlowInstruction`` that must represent
 ///     an IfElse or While instruction with a classical register condition.
 ///
-/// @return A `QkConditionRegInfo` struct containing the classical register and expected value.
+/// @return The bit width of the condition over the classical register.
 ///
 /// Panics if ``cf_inst`` is not an IfElse or While control flow instruction,
 /// or if the condition is not a register type.
@@ -583,17 +571,17 @@ pub unsafe extern "C" fn qk_control_flow_condition_bit_info(
 /// # Example
 /// ```c
 /// // Assuming cf_inst is an IfElse or While instruction with a register condition
-/// QkConditionRegInfo reg_info = qk_control_flow_condition_reg_info(cf_inst);
-/// // inspect the classical register and expected value
+/// uint64_t bit_width = qk_control_flow_condition_reg_bit_width(cf_inst);
+/// printf("Register bit width: %llu\n", bit_width);
 /// ```
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``cf_inst`` is not a valid pointer to a ``QkControlFlowInstruction``.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_control_flow_condition_reg_info(
+pub unsafe extern "C" fn qk_control_flow_condition_reg_bit_width(
     cf_inst: *const CControlFlowInstruction,
-) -> CConditionRegInfo {
+) -> u64 {
     // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
     let cf_inst = unsafe { const_ptr_as_ref(cf_inst) };
 
@@ -604,16 +592,104 @@ pub unsafe extern "C" fn qk_control_flow_condition_reg_info(
         }
     };
 
-    let Condition::Register(creg, cond) = condition else {
+    let Condition::Register(_, cond) = condition else {
         panic!("Expected a register condition for the instruction")
     };
 
-    CConditionRegInfo {
-        creg: ptr::from_ref(creg),
-        condition: cond
-            .try_into()
-            .expect("Condition value too large to fit in uint64_t"),
-    }
+    cond.bits()
+}
+
+/// @ingroup QkControlFlow
+/// Get the classical register for a control flow instruction condition.
+///
+/// Extracts the classical register from an IfElse or While instruction that has
+/// a classical register condition.
+///
+/// @param cf_inst A valid pointer to a ``QkControlFlowInstruction`` that must represent
+///     an IfElse or While instruction with a classical register condition.
+///
+/// @return A borrowed pointer to the ``QkClassicalRegister``. The pointer remains valid
+///     as long as the parent circuit remains valid.
+///
+/// Panics if ``cf_inst`` is not an IfElse or While control flow instruction,
+/// or if the condition is not a register type.
+///
+/// # Example
+/// ```c
+/// // Assuming cf_inst is an IfElse or While instruction with a register condition
+/// const QkClassicalRegister* creg = qk_control_flow_condition_reg(cf_inst);
+/// // Use the classical register pointer
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``cf_inst`` is not a valid pointer to a ``QkControlFlowInstruction``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_control_flow_condition_reg(
+    cf_inst: *const CControlFlowInstruction,
+) -> *const ClassicalRegister {
+    // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
+    let cf_inst = unsafe { const_ptr_as_ref(cf_inst) };
+
+    let condition = match &cf_inst.control_flow_inst().control_flow {
+        ControlFlow::IfElse { condition } | ControlFlow::While { condition } => condition,
+        _ => {
+            panic!("Expected either an IfElse or a While control flow instruction")
+        }
+    };
+
+    let Condition::Register(creg, _) = condition else {
+        panic!("Expected a register condition for the instruction")
+    };
+
+    ptr::from_ref(creg)
+}
+
+/// @ingroup QkControlFlow
+/// Get the condition value of the classical register condition for a control flow instruction.
+///
+/// Extracts the condition as an unsigned integer value from an IfElse or While
+/// instruction that has a classical register condition.
+///
+/// @param cf_inst A valid pointer to a ``QkControlFlowInstruction`` that must represent
+///     an IfElse or While instruction with a classical register condition.
+///
+/// @return The condition value.
+///
+/// Panics if ``cf_inst`` is not an IfElse or While control flow instruction,
+/// if the condition is not a register type, or if the condition value does not
+/// fit in a ``uint64_t``.
+///
+/// # Example
+/// ```c
+/// // Assuming cf_inst is an IfElse or While instruction with a register condition
+/// uint64_t expected_value = qk_control_flow_condition_reg_uint(cf_inst);
+/// printf("Expected register value: %" PRIu64 "\n", expected_value);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``cf_inst`` is not a valid pointer to a ``QkControlFlowInstruction``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_control_flow_condition_reg_uint(
+    cf_inst: *const CControlFlowInstruction,
+) -> u64 {
+    // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
+    let cf_inst = unsafe { const_ptr_as_ref(cf_inst) };
+
+    let condition = match &cf_inst.control_flow_inst().control_flow {
+        ControlFlow::IfElse { condition } | ControlFlow::While { condition } => condition,
+        _ => {
+            panic!("Expected either an IfElse or a While control flow instruction")
+        }
+    };
+
+    let Condition::Register(_, cond) = condition else {
+        panic!("Expected a register condition for the instruction")
+    };
+
+    cond.to_u64()
+        .unwrap_or_else(|| panic!("Condition value too large to fit in uint64_t"))
 }
 
 /// @ingroup QkControlFlow
@@ -1387,7 +1463,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels_uint(
                 Some(
                     label
                         .to_u64()
-                        .expect("Case label too large to fit in uint64_t"),
+                        .unwrap_or_else(|| panic!("Case label too large to fit in uint64_t")),
                 )
             } else {
                 None
@@ -1475,6 +1551,8 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels_clear(labels: *mut C
 // |   7   | Switch           | Target: cr<2 (expression), Cases: {DEFAULT->Y(0)}                            |
 // +-------+------------------+------------------------------------------------------------------------------+
 // |   8   | For Loop         | Loop over range(1,10,3)                                                      |
+// +-------+------------------+------------------------------------------------------------------------------+
+// |   9   | Switch           | Condition: cr==(1<<80)-1, Body: Z(0)                                         |
 // +-------+------------------+------------------------------------------------------------------------------+
 /// cbindgen:qk-vtable-rules=[no-export]
 /// cbindgen:no-export
@@ -2066,6 +2144,46 @@ pub unsafe extern "C" fn inner_test_control_flow_circuit() -> *mut CircuitData {
             &[Clbit(0), Clbit(1), Clbit(2)],
         )
         .expect("Failed to add for loop with range");
+
+    ///////////////////////////////////////
+    // Build a while loop like this:
+    // ----------------------
+    // with qc.while_loop((cr, (1<<80)-1)):
+    //     qc.z(0)
+    let mut while_block2 = CircuitData::new(
+        Some(qubits.clone()),
+        Some(clbits.clone()),
+        Param::Float(0.0),
+    )
+    .expect("Failed to create while block 2");
+
+    while_block2
+        .push_packed_operation(
+            PackedOperation::from_standard_gate(StandardGate::Z),
+            None,
+            &[Qubit(0)],
+            &[],
+        )
+        .expect("Failed to add Z gate to while block 2");
+
+    let while_block2_id = circuit.add_block(while_block2);
+    let creg2 = ClassicalRegister::new_owning("cr", 2);
+    let while_op2 = PackedOperation::from(ControlFlowInstruction {
+        control_flow: ControlFlow::While {
+            condition: Condition::Register(creg2, (BigUint::from(1u32) << 80) - 1u32),
+        },
+        num_qubits: 1,
+        num_clbits: 0,
+    });
+
+    circuit
+        .push_packed_operation(
+            while_op2,
+            Some(Parameters::Blocks(vec![while_block2_id])),
+            &[Qubit(0)],
+            &[],
+        )
+        .expect("Failed to add second while loop");
 
     Box::into_raw(Box::new(circuit))
 }

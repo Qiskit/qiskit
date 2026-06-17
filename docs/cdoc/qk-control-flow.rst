@@ -27,9 +27,6 @@ Data Types
 .. doxygenstruct:: QkConditionBitInfo
     :members:
 
-.. doxygenstruct:: QkConditionRegInfo
-    :members:
-
 .. doxygenenum:: QkBoxDurationKind
 
 .. doxygenstruct:: QkSwitchCaseLabels
