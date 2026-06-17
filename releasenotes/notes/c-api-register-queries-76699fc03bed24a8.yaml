@@ -6,10 +6,8 @@ features_c:
 
     * :c:func:`qk_circuit_num_quantum_registers`
     * :c:func:`qk_circuit_get_quantum_register`
-    * :c:func:`qk_circuit_qubit_owning_register`
     * :c:func:`qk_circuit_num_classical_registers`
     * :c:func:`qk_circuit_get_classical_register`
-    * :c:func:`qk_circuit_clbit_owning_register`
     * :c:func:`qk_quantum_register_name`
     * :c:func:`qk_quantum_register_num_bits`
     * :c:func:`qk_quantum_register_circuit_bits`

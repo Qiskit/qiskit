@@ -337,7 +337,7 @@ pub unsafe extern "C" fn qk_classical_register_free(reg: *mut ClassicalRegister)
 ///     QkClassicalRegister *cr = qk_classical_register_new(3, "my_creg");
 ///     char *name = qk_classical_register_name(cr);
 ///     printf("Register name: %s\n", name);
-///     free(name);
+///     qk_str_free(name);
 ///     qk_classical_register_free(cr);
 /// ```
 ///
