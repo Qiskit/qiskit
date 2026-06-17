@@ -5220,7 +5220,12 @@ class QuantumCircuit:
         """
         return self._append_standard_gate(StandardGate.I, [qubit], (), label=label)
 
-    def ms(self, theta: ParameterValueType, qubits: Sequence[QubitSpecifier]) -> InstructionSet:
+    def ms(
+        self,
+        theta: ParameterValueType,
+        qubits: Sequence[QubitSpecifier],
+        label: str | None = None,
+    ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.MSGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
@@ -5228,6 +5233,7 @@ class QuantumCircuit:
         Args:
             theta: The angle of the rotation.
             qubits: The qubits to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
@@ -5235,7 +5241,7 @@ class QuantumCircuit:
 
         from .library.generalized_gates.gms import MSGate
 
-        return self.append(MSGate(len(qubits), theta), qubits, copy=False)
+        return self.append(MSGate(len(qubits), theta, label=label), qubits, copy=False)
 
     def p(
         self, theta: ParameterValueType, qubit: QubitSpecifier, label: str | None = None
@@ -5574,6 +5580,7 @@ class QuantumCircuit:
         vy: ParameterValueType,
         vz: ParameterValueType,
         qubit: QubitSpecifier,
+        label: str | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.RVGate`.
 
@@ -5587,13 +5594,14 @@ class QuantumCircuit:
             vy: y-component of the rotation axis.
             vz: z-component of the rotation axis.
             qubit: The qubit(s) to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.generalized_gates.rv import RVGate
 
-        return self.append(RVGate(vx, vy, vz), [qubit], [], copy=False)
+        return self.append(RVGate(vx, vy, vz, label=label), [qubit], [], copy=False)
 
     def rccx(
         self,
@@ -6649,19 +6657,23 @@ class QuantumCircuit:
         self,
         pauli_string: str,
         qubits: Sequence[QubitSpecifier],
+        label: str | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.PauliGate`.
 
         Args:
             pauli_string: A string representing the Pauli operator to apply, e.g. 'XX'.
             qubits: The qubits to apply this gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from qiskit.circuit.library.generalized_gates.pauli import PauliGate
 
-        return self.append(PauliGate(pauli_string), qubits, [], copy=False)
+        gate = PauliGate(pauli_string)
+        gate.label = label
+        return self.append(gate, qubits, [], copy=False)
 
     def prepare_state(
         self,
