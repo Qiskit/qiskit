@@ -380,6 +380,7 @@ mod transpiler {
                 export_fn!(remove_identity_equiv::qk_transpiler_pass_remove_identity_equivalent),
                 export_fn!(split_2q_unitaries::qk_transpiler_pass_split_2q_unitaries),
                 export_fn!(two_qubit_peephole::qk_transpiler_pass_2q_peephole_optimization),
+                export_fn!(basis_translator::qk_transpiler_pass_basis_translator),
             ]
         });
         static FUNCTIONS_STANDALONE: ExportedFunctions = ExportedFunctions::leaves(50, || {
