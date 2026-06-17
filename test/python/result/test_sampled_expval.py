@@ -110,6 +110,32 @@ class TestSampledExpval(QiskitTestCase):
         result2 = sampled_expectation_value(dist, "00ZI")
         self.assertAlmostEqual(result2, 0.4376)
 
+    def test_complex_coefficient(self):
+        """Test that complex coefficients return complex expectation values.
+        Regression test for #11393 — imaginary part was silently dropped."""
+        sp = SparsePauliOp.from_list([["ZZZZZ", -1j]])
+        dist = {"11111": 1}
+        result = sampled_expectation_value(dist, sp)
+        self.assertAlmostEqual(result, 1j)
+
+    def test_real_coefficient_sparse_pauli(self):
+        """SparsePauliOp stores coefficients as complex internally, so even
+        real coefficients return complex (with zero imaginary part).
+        ZZZZZ|11111> = (-1)^5 = -1."""
+        sp = SparsePauliOp.from_list([["ZZZZZ", 1.0]])
+        dist = {"11111": 1}
+        result = sampled_expectation_value(dist, sp)
+        self.assertAlmostEqual(result, -1.0 + 0j)
+
+    def test_string_operator_still_returns_float(self):
+        """Plain strings and Pauli objects still use the float path
+        and return float — backward compatible, unchanged.
+        ZZZZZ|11111> = (-1)^5 = -1."""
+        dist = {"11111": 1}
+        result = sampled_expectation_value(dist, "ZZZZZ")
+        self.assertIsInstance(result, float)
+        self.assertAlmostEqual(result, -1.0)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

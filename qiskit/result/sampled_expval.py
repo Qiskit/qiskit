@@ -37,7 +37,7 @@ OPERS = {"Z", "I", "0", "1"}
 def sampled_expectation_value(
     dist: dict | result.Counts | QuasiDistribution | ProbDistribution,
     oper: str | quantum_info.Pauli | quantum_info.SparsePauliOp | quantum_info.SparseObservable,
-) -> float:
+) -> float | complex:
     """Computes expectation value from a sampled distribution
 
     Note that passing a raw dict requires bit-string keys.
@@ -47,7 +47,8 @@ def sampled_expectation_value(
         oper: The operator for the observable.
 
     Returns:
-        The expectation value.
+        The expectation value. Returns ``complex`` when the operator has
+        complex coefficients, ``float`` otherwise.
     Raises:
         QiskitError: if the input distribution or operator is an invalid type
     """
