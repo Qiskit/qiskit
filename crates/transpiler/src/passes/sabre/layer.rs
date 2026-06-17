@@ -103,14 +103,14 @@ impl Layers {
 /// Location of a node within the layer structure.
 ///
 /// Both attributes are indices into arrays: `layer` says which layer the node is in, and `position`
-/// says which position in [Layer::pairs] corresponds to the node.
+/// says which position in [Layer::gates] corresponds to the node.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct Location {
     // There's deliberate padding in this struct to allow `Option<Location>` to be only 8 bytes.  It
     // seems somewhat unlikely we'd need 65,536 layers...
     /// Which layer the node is in.
     layer: u16,
-    /// Which position in [Layer::pairs] corresponds to this node.
+    /// Which position in [Layer::gates] corresponds to this node.
     position: u32,
 }
 
