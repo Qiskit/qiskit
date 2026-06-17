@@ -144,10 +144,10 @@ pub unsafe extern "C" fn qk_transpiler_pass_optimize_1q_sequences(
     dag: *mut DAGCircuit,
     target: *const Target,
 ) {
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
     let target = if target.is_null() {
         None
     } else {
+        // SAFETY: Per documentation, the pointer is non-null and aligned.
         Some(unsafe { const_ptr_as_ref(target) })
     };
     // SAFETY: Per documentation, the pointer is non-null and aligned.

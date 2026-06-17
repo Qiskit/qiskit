@@ -1431,7 +1431,10 @@ pub unsafe extern "C" fn qk_circuit_instruction_clear(inst: *mut CInstruction) {
         inst.params = std::ptr::null_mut();
     }
     inst.num_params = 0;
-    inst.name = std::ptr::null_mut();
+    if !inst.name.is_null() {
+        let _ = unsafe { CString::from_raw(inst.name) };
+        inst.name = std::ptr::null_mut();
+    }
 }
 
 /// @ingroup QkCircuit
