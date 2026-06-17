@@ -61,9 +61,7 @@ use pyo3::exceptions::{
 use pyo3::intern;
 use pyo3::prelude::*;
 
-use pyo3::types::{
-    IntoPyDict, PyDict, PyInt, PyIterator, PyList, PySet, PyString, PyTuple, PyType,
-};
+use pyo3::types::{IntoPyDict, PyDict, PyInt, PyIterator, PyList, PySet, PyTuple, PyType};
 
 use rustworkx_core::dag_algo::layers;
 use rustworkx_core::err::ContractError;
@@ -4505,10 +4503,10 @@ impl DAGCircuit {
         graph_attrs: Option<BTreeMap<String, String>>,
         node_attrs: Option<Py<PyAny>>,
         edge_attrs: Option<Py<PyAny>>,
-    ) -> PyResult<Bound<'py, PyString>> {
+    ) -> PyResult<String> {
         let mut buffer = Vec::<u8>::new();
         build_dot(py, self, &mut buffer, graph_attrs, node_attrs, edge_attrs)?;
-        Ok(PyString::new(py, std::str::from_utf8(&buffer)?))
+        Ok(String::from_utf8(buffer)?)
     }
 
     /// Add an input variable to the circuit.
