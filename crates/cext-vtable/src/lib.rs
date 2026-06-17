@@ -352,6 +352,19 @@ mod transpiler {
             .add_child(50, &FUNCTIONS_TARGET_ENTRY);
     }
 
+    mod equivalence_library {
+        use crate::impl_::prelude::*;
+        #[cfg(feature = "addr")]
+        use qiskit_cext::transpiler::equivalence_library::*;
+
+        pub static FUNCTIONS: ExportedFunctions = ExportedFunctions::leaves(10, || {
+            vec![
+                export_fn!(qk_equivalence_library_new_standard),
+                export_fn!(qk_equivalence_library_free),
+            ]
+        });
+    }
+
     mod passes {
         use crate::impl_::prelude::*;
         #[cfg(feature = "addr")]
@@ -423,7 +436,8 @@ mod transpiler {
         .add_child(35, &TRANSPILE_LAYOUT)
         .add_child(50, &TRANSPILE_STATE)
         .add_child(150, &target::FUNCTIONS)
-        .add_child(250, &passes::FUNCTIONS);
+        .add_child(250, &passes::FUNCTIONS)
+        .add_child(500, &equivalence_library::FUNCTIONS);
 }
 
 mod classical_expr {
