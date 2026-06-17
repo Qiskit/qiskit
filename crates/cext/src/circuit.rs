@@ -528,9 +528,12 @@ pub unsafe extern "C" fn qk_circuit_gate(
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
-    // SAFETY: Per documentation, qubits is readable for num_qubits elements of type u32
-    let qargs: &[Qubit] =
-        unsafe { ::std::slice::from_raw_parts(qubits as *const Qubit, gate.num_qubits() as usize) };
+    let qargs: &[Qubit] = if gate.num_qubits() == 0 {
+        &[]
+    } else {
+        // SAFETY: Per documentation, qubits is readable for num_qubits elements of type u32
+        unsafe { ::std::slice::from_raw_parts(qubits as *const Qubit, gate.num_qubits() as usize) }
+    };
 
     // SAFETY: Per documentation, the params points is compatible with the gate and safe to read.
     let params = unsafe { parse_params(gate, params) };

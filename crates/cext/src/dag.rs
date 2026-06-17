@@ -582,9 +582,12 @@ pub unsafe extern "C" fn qk_dag_apply_gate(
 ) -> u32 {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { mut_ptr_as_ref(dag) };
-    // SAFETY: Per the documentation the qubits pointer is an array of num_qubits() elements
-    let qargs: &[Qubit] =
-        unsafe { ::std::slice::from_raw_parts(qubits as *const Qubit, gate.num_qubits() as usize) };
+    let qargs: &[Qubit] = if gate.num_qubits() == 0 {
+        &[]
+    } else {
+        // SAFETY: Per the documentation the qubits pointer is an array of num_qubits() elements
+        unsafe { ::std::slice::from_raw_parts(qubits as *const Qubit, gate.num_qubits() as usize) }
+    };
     let params: Option<SmallVec<[Param; 3]>> = if gate.num_params() == 0 {
         None
     } else {
