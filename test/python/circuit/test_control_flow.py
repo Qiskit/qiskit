@@ -521,11 +521,17 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         bad_body = QuantumCircuit(inputs=[a])
         good_body = QuantumCircuit(captures=[a], declarations=[(b, expr.lift(False))])
 
-        with self.assertRaisesRegex(CircuitError, "cannot contain input variables"):
+        with self.assertRaisesRegex(
+            CircuitError, "Only for-loop blocks can contain input variables"
+        ):
             IfElseOp(cond, bad_body, None)
-        with self.assertRaisesRegex(CircuitError, "cannot contain input variables"):
+        with self.assertRaisesRegex(
+            CircuitError, "Only for-loop blocks can contain input variables"
+        ):
             IfElseOp(cond, bad_body, good_body)
-        with self.assertRaisesRegex(CircuitError, "cannot contain input variables"):
+        with self.assertRaisesRegex(
+            CircuitError, "Only for-loop blocks can contain input variables"
+        ):
             IfElseOp(cond, good_body, bad_body)
 
     def test_while_rejects_input_vars(self):
@@ -533,7 +539,9 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         cond = (Clbit(), False)
         a = expr.Var.new("a", types.Bool())
         bad_body = QuantumCircuit(inputs=[a])
-        with self.assertRaisesRegex(CircuitError, "cannot contain input variables"):
+        with self.assertRaisesRegex(
+            CircuitError, "Only for-loop blocks can contain input variables"
+        ):
             WhileLoopOp(cond, bad_body)
 
     def test_for_input_vars(self):
@@ -546,6 +554,10 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
             ForLoopOp(range(3), expr.Var.new("a", types.Uint(32)), body)
         with self.assertRaisesRegex(CircuitError, "loop variable.*disagree"):
             ForLoopOp(range(3), Parameter("a"), body)
+        with self.assertRaisesRegex(
+            CircuitError, "ForLoopOp expects a Var loop_parameter parameter to be of type Uint"
+        ):
+            ForLoopOp(range(3), expr.Var.new("b", types.Bool()), body)
         self.assertEqual(list(ForLoopOp(range(3), a, body).params), [range(3), a, body])
 
     def test_switch_rejects_input_vars(self):
@@ -556,9 +568,13 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         bad_body = QuantumCircuit(inputs=[a])
         good_body = QuantumCircuit(captures=[a], declarations=[(b, expr.lift(False))])
 
-        with self.assertRaisesRegex(CircuitError, "cannot contain input variables"):
+        with self.assertRaisesRegex(
+            CircuitError, "Only for-loop blocks can contain input variables"
+        ):
             SwitchCaseOp(target, [(0, bad_body)])
-        with self.assertRaisesRegex(CircuitError, "cannot contain input variables"):
+        with self.assertRaisesRegex(
+            CircuitError, "Only for-loop blocks can contain input variables"
+        ):
             SwitchCaseOp(target, [(0, good_body), (1, bad_body)])
 
     def test_box_instantiation(self):
