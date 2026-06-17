@@ -774,9 +774,10 @@ class BitArrayTestCase(QiskitTestCase):
             with self.assertRaisesRegex(ValueError, "is not diagonal"):
                 _ = ba.expectation_values("X" * ba.num_bits)
 
-    def test_expectation_values_complex_dtype(self):
-        """expectation_values returns float64 for Hermitian observables,
-        complex128 when the result has non-zero imaginary part."""
+    def test_expectation_values_dtype(self):
+        """expectation_values returns float64 (ObservableArray enforces
+        Hermiticity, so results are always real; np.real_if_close handles
+        SparsePauliOp's internal complex storage)."""
         ba = BitArray.from_counts([{0: 1}, {1: 1}]).reshape(2, 1)
         result = ba.expectation_values("Z")
         self.assertEqual(result.dtype, np.float64)

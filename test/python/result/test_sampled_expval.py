@@ -119,13 +119,25 @@ class TestSampledExpval(QiskitTestCase):
         self.assertAlmostEqual(result, 1j)
 
     def test_real_coefficient_sparse_pauli(self):
-        """SparsePauliOp stores coefficients as complex internally, so even
-        real coefficients return complex (with zero imaginary part).
+        """SparsePauliOp stores coefficients as complex internally, but
+        np.real_if_close strips the zero imaginary part — real coefficients
+        return float, matching the documented contract.
         ZZZZZ|11111> = (-1)^5 = -1."""
         sp = SparsePauliOp.from_list([["ZZZZZ", 1.0]])
         dist = {"11111": 1}
         result = sampled_expectation_value(dist, sp)
-        self.assertAlmostEqual(result, -1.0 + 0j)
+        self.assertAlmostEqual(result, -1.0)
+        self.assertNotIsInstance(result, complex)
+
+    def test_sparse_observable_real_returns_not_complex(self):
+        """np.real_if_close strips zero imaginary part — SparseObservable
+        with real coefficients should not return complex type.
+        ZZZZZ|11111> = (-1)^5 = -1."""
+        so = SparseObservable.from_label("ZZZZZ")
+        dist = {"11111": 1}
+        result = sampled_expectation_value(dist, so)
+        self.assertAlmostEqual(result, -1.0)
+        self.assertNotIsInstance(result, complex)
 
     def test_string_operator_still_returns_float(self):
         """Plain strings and Pauli objects still use the float path

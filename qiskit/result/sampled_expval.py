@@ -71,7 +71,7 @@ def sampled_expectation_value(
         oper_strs = oper.paulis.to_labels()
         coeffs = np.asarray(oper.coeffs)
     elif isinstance(oper, SparseObservable):
-        return sampled_expval_sparse_observable(oper, dist)
+        return np.real_if_close(sampled_expval_sparse_observable(oper, dist))
     else:
         raise QiskitError("Invalid operator type")
 
@@ -86,6 +86,6 @@ def sampled_expectation_value(
             raise QiskitError(f"Input operator {op} is not diagonal")
     # Dispatch to Rust routines
     if coeffs.dtype == np.dtype(complex).type:
-        return sampled_expval_complex(oper_strs, coeffs, dist)
+        return np.real_if_close(sampled_expval_complex(oper_strs, coeffs, dist))
     else:
         return sampled_expval_float(oper_strs, coeffs, dist)
