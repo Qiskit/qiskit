@@ -31,7 +31,8 @@ features_c:
     * :c:func:`qk_control_flow_switch_target_expr`
     * :c:func:`qk_control_flow_switch_num_cases`
     * :c:func:`qk_control_flow_switch_is_case_default`
-    * :c:func:`qk_control_flow_switch_case_labels`
+    * :c:func:`qk_control_flow_switch_case_labels_bit_width`
+    * :c:func:`qk_control_flow_switch_case_labels_uint`
     * :c:func:`qk_control_flow_switch_case_labels_clear`
     
     Refer to the documentation of the functions for more details. 

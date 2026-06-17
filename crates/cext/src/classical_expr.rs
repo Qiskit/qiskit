@@ -778,6 +778,9 @@ pub unsafe extern "C" fn qk_value_float(value: *const Value) -> f64 {
 /// @ingroup QkClassicalExpressions
 /// Extract the unsigned integer value from a ``QkValue`` of type ``QkExprType_Uint``.
 ///
+/// you should use `qk_value_type_info` to ensure the value will fit in ``uint64_t``
+/// before calling this function.
+///
 /// @param value A pointer to a uint value.
 ///
 /// @return The integer value converted to ``uint64_t``.

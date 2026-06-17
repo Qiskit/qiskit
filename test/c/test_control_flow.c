@@ -348,11 +348,11 @@ cleanup:
 // qc = QuantumCircuit(2, 2)
 // cr = ClassicalRegister(2, 'cr')
 // with qc.switch(cr) as case:
-//     with case(0):
+//     with case((1 << 80) - 1):
 //         qc.x(0)
 //     with case(1, 2, 3):
 //         qc.h(1)
-//     with case(4, case.DEFAULT):
+//     with case((1 << 64) - 1, case.DEFAULT):
 //         qc.y(2)
 static int test_switch_case_on_register(void) {
     int result = Ok;
@@ -394,26 +394,16 @@ static int test_switch_case_on_register(void) {
         goto cleanup;
     }
 
-    // Test case 0: single label (0)
-    QkSwitchCaseLabels case_labels;
-    qk_control_flow_switch_case_labels(cf_inst, 0, &case_labels);
-    if (case_labels.num_labels != 1) {
-        printf("Expected 1 label for case 0, got %zu\n", case_labels.num_labels);
-        qk_control_flow_switch_case_labels_clear(&case_labels);
+    // Test case 0: single label (1<<80) - 1
+    uint64_t bit_width = qk_control_flow_switch_case_labels_bit_width(cf_inst, 0);
+    if (bit_width <= 64) {
+        printf("Expected label width to be larger than 64 bits, got %" PRIu64 "\n", bit_width);
         result = EqualityError;
         goto cleanup;
     }
-
-    if (case_labels.labels[0] != 0) {
-        printf("Expected label 0 for case 0, got %" PRIu64 "\n", case_labels.labels[0]);
-        qk_control_flow_switch_case_labels_clear(&case_labels);
-        result = EqualityError;
-        goto cleanup;
-    }
-    qk_control_flow_switch_case_labels_clear(&case_labels);
 
     // Test case 1: multiple labels (1, 2, 3)
-    qk_control_flow_switch_case_labels(cf_inst, 1, &case_labels);
+    QkSwitchCaseLabels case_labels = qk_control_flow_switch_case_labels_uint(cf_inst, 1);
     if (case_labels.num_labels != 3) {
         printf("Expected 3 labels for case 1, got %zu\n", case_labels.num_labels);
         qk_control_flow_switch_case_labels_clear(&case_labels);
@@ -432,10 +422,10 @@ static int test_switch_case_on_register(void) {
     }
     qk_control_flow_switch_case_labels_clear(&case_labels);
 
-    // Test case 2: A label and DEFAULT (4, DEFAULT)
-    qk_control_flow_switch_case_labels(cf_inst, 2, &case_labels);
+    // Test case 2: A label and DEFAULT ((1<<64)-1, DEFAULT)
+    case_labels = qk_control_flow_switch_case_labels_uint(cf_inst, 2);
     if (case_labels.num_labels != 1) {
-        printf("Expected 1 labels for case 2, got %zu\n", case_labels.num_labels);
+        printf("Expected one label for case 2, got %zu\n", case_labels.num_labels);
         qk_control_flow_switch_case_labels_clear(&case_labels);
         result = EqualityError;
         goto cleanup;

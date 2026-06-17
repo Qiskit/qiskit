@@ -133,7 +133,8 @@ mod circuit {
             export_fn!(qk_control_flow_switch_target_expr),
             export_fn!(qk_control_flow_switch_num_cases),
             export_fn!(qk_control_flow_switch_is_case_default),
-            export_fn!(qk_control_flow_switch_case_labels),
+            export_fn!(qk_control_flow_switch_case_labels_bit_width),
+            export_fn!(qk_control_flow_switch_case_labels_uint),
             export_fn!(qk_control_flow_switch_case_labels_clear),
         ]
     });

@@ -1280,29 +1280,83 @@ pub unsafe extern "C" fn qk_control_flow_switch_is_case_default(
 }
 
 /// @ingroup QkControlFlow
+/// Get the maximum bit width required to represent the labels in a Switch case.
+///
+/// This function returns the maximum number of bits needed to represent any of the
+/// unsigned integer labels in the specified case. This is useful for determining
+/// the minimum bit width required to store or process the case labels.
+///
+/// @param cf_inst A pointer to the control flow instruction.
+///     The control flow instruction must be of a Switch kind.
+/// @param case_idx The index of the case whose label bit width to retrieve. Must be less than
+///     the value returned by `qk_control_flow_switch_num_cases`.
+///
+/// @return The maximum bit width of the labels in the case, or 0 if the case has no
+///     unsigned integer labels (e.g., only a DEFAULT specifier).
+///
+/// Panics if ``cf_inst`` is not a Switch control flow instruction.
+///
+/// # Example
+/// ```c
+/// // Assuming cf_inst is a Switch control flow instruction
+/// uint64_t bit_width = qk_control_flow_switch_case_labels_bit_width(cf_inst, 0);
+/// printf("Maximum bit width for case 0: %" PRIu64 "\n", bit_width);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``cf_inst`` is not a valid pointer to a ``QkControlFlowInstruction``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_control_flow_switch_case_labels_bit_width(
+    cf_inst: *const CControlFlowInstruction,
+    case_idx: usize,
+) -> u64 {
+    // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
+    let cf_inst = unsafe { const_ptr_as_ref(cf_inst) };
+
+    let ControlFlow::Switch { label_spec, .. } = &cf_inst.control_flow_inst().control_flow else {
+        panic!("Expected a Switch control flow instruction")
+    };
+
+    label_spec[case_idx]
+        .iter()
+        .filter_map(|label| {
+            if let CaseSpecifier::Uint(biguint) = label {
+                Some(biguint.bits())
+            } else {
+                None
+            }
+        })
+        .max()
+        .unwrap_or_default()
+}
+
+/// @ingroup QkControlFlow
 /// Get the labels for a specific case in a Switch statement.
 ///
 /// Each case in a Switch statement can have one or more labels (e.g., ``case(1, 2, 3)``)
 /// has three labels: 1, 2, and 3). This function retrieves all labels for a given case.
 /// Note that the default case can also include labels, which can be retrieved by this function.
+/// Before calling this function, you should use `qk_control_flow_switch_case_labels_bit_width`
+/// to ensure the labels will fit in ``uint64_t``.
 ///
 /// @param cf_inst A pointer to the control flow instruction.
 ///     The control flow instruction must be of a Switch kind.
 /// @param case_idx The index of the case whose labels to retrieve. Must be less than
 ///     the value returned by `qk_control_flow_switch_num_cases`.
-/// @param out_labels A pointer to a `QkSwitchCaseLabels` struct that will be populated
-///     with the labels. The struct will contain a pointer to an array of labels
-///     and the number of labels. You should call `qk_control_flow_switch_case_labels_clear`
-///     to free up memory allocated by this function.
+///
+/// @return A `QkSwitchCaseLabels` struct with the label information for the given case.
+///     The struct will contain a pointer to an array of labels and the number of labels.
+///     You should call `qk_control_flow_switch_case_labels_clear` to free up memory
+///     allocated by this function.
 ///
 /// Panics if ``cf_inst`` is not a Switch control flow instruction or if a case label
 /// does not fit in ``uint64_t``.
 ///
 /// # Example
 /// ```c
-/// QkSwitchCaseLabels case_labels;
 /// // Assuming cf_inst is a Switch control flow instruction
-/// qk_control_flow_switch_case_labels(cf_inst, 0, &case_labels);
+/// QkSwitchCaseLabels case_labels = qk_control_flow_switch_case_labels(cf_inst, 0);
 /// for (size_t i = 0; i < case_labels.num_labels; i++) {
 ///     printf("Label %zu: %llu\n", i, case_labels.labels[i]);
 /// }
@@ -1314,11 +1368,11 @@ pub unsafe extern "C" fn qk_control_flow_switch_is_case_default(
 /// Behavior is undefined if ``cf_inst`` is not a valid pointer to a ``QkControlFlowInstruction``,
 /// or if `out_labels` is not a valid pointer to a `QkSwitchCaseLabels` struct.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_control_flow_switch_case_labels(
+pub unsafe extern "C" fn qk_control_flow_switch_case_labels_uint(
+    // change the documentation
     cf_inst: *const CControlFlowInstruction,
     case_idx: usize,
-    out_labels: *mut CSwitchCaseLabels,
-) {
+) -> CSwitchCaseLabels {
     // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
     let cf_inst = unsafe { const_ptr_as_ref(cf_inst) };
 
@@ -1330,7 +1384,11 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels(
         .iter()
         .filter_map(|l| {
             if let CaseSpecifier::Uint(label) = l {
-                Some(label.to_u64().expect("Case specifier too large"))
+                Some(
+                    label
+                        .to_u64()
+                        .expect("Case label too large to fit in uint64_t"),
+                )
             } else {
                 None
             }
@@ -1338,10 +1396,10 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels(
         .collect::<Vec<u64>>()
         .into_boxed_slice();
 
-    // SAFETY: Per documentation, out_labels is a valid pointer to a CSwitchCaseLabels.
-    let out_case_labels = unsafe { mut_ptr_as_ref(out_labels) };
-    out_case_labels.num_labels = labels.len();
-    out_case_labels.labels = Box::into_raw(labels) as *const u64;
+    CSwitchCaseLabels {
+        num_labels: labels.len(),
+        labels: Box::into_raw(labels) as *const u64,
+    }
 }
 
 /// @ingroup QkControlFlow
@@ -1404,7 +1462,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels_clear(labels: *mut C
 // |   1   | For Loop         | Loop over [1,2] with body: H(0), CX(0,1), Measure(0->0),                     |
 // |       |                  | If-Else(clbit[0]==True: Break, else: Continue), H(0)                         |
 // +-------+------------------+------------------------------------------------------------------------------+
-// |   2   | Switch           | Target: ClassicalRegister(cr), Cases: {0->X(0), 1,2,3->H(1), 4,DEFAULT->Y(2)}|
+// |   2   | Switch           | Target: cr, Cases: {(1<<80)-1->X(0), 1,2,3->H(1), (1<<64)-1,DEFAULT->Y(2)}   |
 // +-------+------------------+------------------------------------------------------------------------------+
 // |   3   | While Loop       | Condition: clbit[1]==False, Body: X(0)                                       |
 // +-------+------------------+------------------------------------------------------------------------------+
@@ -1622,20 +1680,20 @@ pub unsafe extern "C" fn inner_test_control_flow_circuit() -> *mut CircuitData {
     // Build a switch-case like this:
     // ----------------------
     // with qc.switch(cr) as case:
-    //     with case(0):
+    //     with case((1 << 80) - 1):
     //         qc.x(0)
     //     with case(1, 2, 3):
     //         qc.h(1)
-    //     with case(4, case.DEFAULT):
+    //     with case((1 << 64) - 1, case.DEFAULT):
     //         qc.y(2)
-    let mut case_0_block = CircuitData::new(
+    let mut first_case_block = CircuitData::new(
         Some(qubits.clone()),
         Some(clbits.clone()),
         Param::Float(0.0),
     )
     .expect("Failed to create case 0 block");
 
-    case_0_block
+    first_case_block
         .push_packed_operation(
             PackedOperation::from_standard_gate(StandardGate::X),
             None,
@@ -1644,14 +1702,14 @@ pub unsafe extern "C" fn inner_test_control_flow_circuit() -> *mut CircuitData {
         )
         .expect("Failed to add X gate to case 0");
 
-    let mut case_123_block = CircuitData::new(
+    let mut second_case_block = CircuitData::new(
         Some(qubits.clone()),
         Some(clbits.clone()),
         Param::Float(0.0),
     )
     .expect("Failed to create case 1,2,3 block");
 
-    case_123_block
+    second_case_block
         .push_packed_operation(
             PackedOperation::from_standard_gate(StandardGate::H),
             None,
@@ -1676,8 +1734,8 @@ pub unsafe extern "C" fn inner_test_control_flow_circuit() -> *mut CircuitData {
         )
         .expect("Failed to add Y gate to default case");
 
-    let case_0_id = circuit.add_block(case_0_block);
-    let case_123_id = circuit.add_block(case_123_block);
+    let first_case_id = circuit.add_block(first_case_block);
+    let second_case_id = circuit.add_block(second_case_block);
     let default_case_id = circuit.add_block(default_case_block);
 
     let creg = ClassicalRegister::new_owning("cr", 2);
@@ -1687,14 +1745,14 @@ pub unsafe extern "C" fn inner_test_control_flow_circuit() -> *mut CircuitData {
             target: SwitchTarget::Register(creg),
             cases: 3,
             label_spec: vec![
-                vec![CaseSpecifier::Uint(BigUint::from(0u32))],
+                vec![CaseSpecifier::Uint((BigUint::from(1u32) << 80) - 1u32)],
                 vec![
                     CaseSpecifier::Uint(BigUint::from(1u32)),
                     CaseSpecifier::Uint(BigUint::from(2u32)),
                     CaseSpecifier::Uint(BigUint::from(3u32)),
                 ],
                 vec![
-                    CaseSpecifier::Uint(BigUint::from(4u32)),
+                    CaseSpecifier::Uint((BigUint::from(1u32) << 64) - 1u32),
                     CaseSpecifier::Default,
                 ],
             ],
@@ -1707,8 +1765,8 @@ pub unsafe extern "C" fn inner_test_control_flow_circuit() -> *mut CircuitData {
         .push_packed_operation(
             switch_op,
             Some(Parameters::Blocks(vec![
-                case_0_id,
-                case_123_id,
+                first_case_id,
+                second_case_id,
                 default_case_id,
             ])),
             &[Qubit(0), Qubit(1), Qubit(2)],
@@ -2059,14 +2117,7 @@ mod test {
 
         let cf_inst = CControlFlowInstruction::new(&circuit, 0, vec![0], vec![0, 1]);
 
-        let mut case_labels = CSwitchCaseLabels {
-            labels: ptr::null(),
-            num_labels: 0,
-        };
-
-        unsafe {
-            qk_control_flow_switch_case_labels(&cf_inst, 0, &mut case_labels);
-        }
+        let mut case_labels = unsafe { qk_control_flow_switch_case_labels_uint(&cf_inst, 0) };
 
         assert_eq!(case_labels.num_labels, 3, "Expected 3 labels");
         assert!(
