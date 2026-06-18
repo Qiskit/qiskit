@@ -101,7 +101,7 @@ pub struct CExprTypeInfo {
     /// The expression type
     ty: CExprType,
     /// Bit width for the Uint expression type
-    width: u16,
+    width: u32,
 }
 
 impl From<CExprTypeInfo> for Type {
