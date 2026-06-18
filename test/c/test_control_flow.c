@@ -102,7 +102,7 @@ static int test_box_and_bit_mapping(void) {
     }
 
     if (qubit_mapping[1] != 0) {
-        printf("Expected qubit_mapping[1] == 1, got %u\n", qubit_mapping[1]);
+        printf("Expected qubit_mapping[1] == 0, got %u\n", qubit_mapping[1]);
         result = EqualityError;
         goto cleanup;
     }
@@ -157,7 +157,7 @@ cleanup:
 
 // Test a for loop which is constructed like this in Python:
 // qc = QuantumCircuit(2, 1)
-// with qc.for_loop([1,2]) as i:
+// with qc.for_loop([1,2], loop_parameter=Parameter("x")):
 //     qc.h(0)
 //     qc.cx(0, 1)
 //     qc.measure(0, 0)
@@ -692,7 +692,7 @@ cleanup:
 // Test a for-loop statement over a range like this in Python:
 // with qc.for_loop(range(1,10,3)):
 //      qc.y(0)
-int test_for_loop_over_range(void) {
+static int test_for_loop_over_range(void) {
     int result = Ok;
     QkCircuit *circuit = inner_test_control_flow_circuit();
 
@@ -753,7 +753,6 @@ cleanup:
 int test_control_flow(void) {
     int num_failed = 0;
 
-    // RUN_TEST(test_iteration_and_basic_queries);
     num_failed += RUN_TEST(test_box_and_bit_mapping);
     num_failed += RUN_TEST(test_for_nested_break_continue);
     num_failed += RUN_TEST(test_switch_case_on_register);
