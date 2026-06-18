@@ -13,6 +13,7 @@
 
 """Test the multi-stage pass manager."""
 
+from qiskit.passmanager.multistage_passmanager import PropertySet
 from test import QiskitTestCase
 from copy import copy
 
@@ -327,3 +328,21 @@ class TestMultiStagePM(QiskitTestCase):
             expected.append(circuit)
 
         self.assertEqual(pm.run(programs), expected)
+
+    def test_run_on_multiple_inputs_with_property_set(self):
+        pm = MultiStagePassManager(
+            pauli=RemovePauliIdentities(),
+            to_circuit=PauliToCircuit(),
+            circuit=CircuitDecomposer(),
+        )
+        programs = []
+        for pauli in ("ZZI", "IZZ", "ZIZ"):
+            program = PauliIR(3)
+            program.apply(pauli)
+
+            programs.append(program)
+
+        with self.assertRaisesRegex(
+            ValueError, "a 'property_set' cannot be provided when passing multiple input programs"
+        ):
+            pm.run(programs, property_set=PropertySet())
