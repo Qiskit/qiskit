@@ -1392,8 +1392,8 @@ pub unsafe extern "C" fn qk_control_flow_switch_target_expr(
 /// # Example
 /// ```c
 /// // Assuming cf_inst is a Switch control flow instruction
-/// uint32_t num_cases = qk_control_flow_switch_num_cases(cf_inst);
-/// for (uint32_t i = 0; i < num_cases; i++) {
+/// size_t num_cases = qk_control_flow_switch_num_cases(cf_inst);
+/// for (size_t i = 0; i < num_cases; i++) {
 ///     // Analyze the case...
 /// }
 /// ```
@@ -1404,15 +1404,15 @@ pub unsafe extern "C" fn qk_control_flow_switch_target_expr(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_control_flow_switch_num_cases(
     cf_inst: *const CControlFlowInstruction,
-) -> u32 {
+) -> usize {
     // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
     let cf_inst = unsafe { const_ptr_as_ref(cf_inst) };
 
-    let ControlFlow::Switch { cases, .. } = cf_inst.control_flow_inst().control_flow else {
+    let ControlFlow::Switch { label_spec, .. } = &cf_inst.control_flow_inst().control_flow else {
         panic!("Expected a Switch control flow instruction")
     };
 
-    cases
+    label_spec.len()
 }
 
 /// @ingroup QkControlFlow
@@ -1435,7 +1435,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_num_cases(
 /// # Example
 /// ```c
 /// // Assuming cf_inst is a Switch control flow instruction
-/// for (uint32_t i = 0; i < qk_control_flow_switch_num_cases(cf_inst); i++) {
+/// for (size_t i = 0; i < qk_control_flow_switch_num_cases(cf_inst); i++) {
 ///     if (qk_control_flow_switch_is_case_default(cf_inst, i)) {
 ///         printf("Case %u is the default case\n", i);
 ///     }
