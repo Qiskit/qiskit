@@ -113,7 +113,6 @@ pub static EXPORT_RENAME: &[(&str, &str)] = &[
     ("CDurationType", "DurationType"),
     ("CDurationInfo", "DurationInfo"),
     ("CDurationValue", "DurationValue"),
-    ("CValueType", "ValueType"),
 ];
 pub static EXPORT_VERBATIM: &[&str] = &["PyObject"];
 
