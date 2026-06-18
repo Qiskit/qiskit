@@ -113,7 +113,6 @@ pub static EXPORT_RENAME: &[(&str, &str)] = &[
     ("CDurationType", "DurationType"),
     ("CDurationInfo", "DurationInfo"),
     ("CDurationValue", "DurationValue"),
-    ("CValueType", "ValueType"),
     // Control flow types
     ("CControlFlowInstruction", "ControlFlowInstruction"),
     ("CControlFlowKind", "ControlFlowKind"),
