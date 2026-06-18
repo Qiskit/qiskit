@@ -10,7 +10,7 @@ and retrieve qubit and classical bit mappings between nested blocks and the top-
 
    typedef struct QkControlFlowInstruction QkControlFlowInstruction
 
-The ``QkControlFlowInstruction`` opaque strut is the primary handle used by the C API to represent and reason about control-flow 
+The ``QkControlFlowInstruction`` opaque struct is the primary handle used by the C API to represent and reason about control-flow 
 instructions within a circuit. It is obtained by a call to :c:func:`qk_circuit_get_control_flow_instruction` and must be freed with a call 
 to :c:func:`qk_control_flow_instruction_free`. Most C API functions that operate on control-flow constructs expect a pointer to 
 this opaque struct, making it the central vehicle for inspecting control-flow instructions from C. Note that most of the functions 

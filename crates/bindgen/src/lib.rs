@@ -119,7 +119,6 @@ pub static EXPORT_RENAME: &[(&str, &str)] = &[
     ("CControlFlowKind", "ControlFlowKind"),
     ("CConditionType", "ConditionType"),
     ("CConditionBitInfo", "ConditionBitInfo"),
-    ("CConditionRegInfo", "ConditionRegInfo"),
     ("CBoxDurationKind", "BoxDurationKind"),
     ("CSwitchCaseLabels", "SwitchCaseLabels"),
     ("CSymbolType", "SymbolType"),

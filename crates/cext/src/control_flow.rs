@@ -1550,7 +1550,6 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels_bit_width(
 /// or if `out_labels` is not a valid pointer to a `QkSwitchCaseLabels` struct.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_control_flow_switch_case_labels_uint(
-    // change the documentation
     cf_inst: *const CControlFlowInstruction,
     case_idx: usize,
 ) -> CSwitchCaseLabels {
@@ -1598,8 +1597,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels_uint(
 /// # Example
 /// ```c
 /// // Assuming cf_inst is a Switch control flow instruction
-/// QkSwitchCaseLabels case_labels;
-/// qk_control_flow_switch_case_labels_uint(cf_inst, 0, &case_labels);
+/// QkSwitchCaseLabels case_labels = qk_control_flow_switch_case_labels_uint(cf_inst, 0);
 /// // Use the labels...
 /// qk_control_flow_switch_case_labels_clear(&case_labels);
 /// ```
