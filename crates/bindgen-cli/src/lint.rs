@@ -12,8 +12,7 @@
 
 use crate::SlotsLists;
 use qiskit_bindgen::{EXPORT_PREFIX, EXPORT_RENAME, fn_attrs};
-use qiskit_util::IndexMap;
-use std::collections::HashSet;
+use qiskit_util::{IndexMap, IndexSet};
 use std::fmt::Write;
 
 /// Tracked failures from the linting of a resolved vtable listing against a set of extracted
@@ -112,7 +111,7 @@ pub fn lint(
     }
     // Check for dead entries in EXPORT_RENAME: entries whose source type was never encountered
     // by cbindgen, meaning the rename silently did nothing.
-    let emitted_names: HashSet<&str> = bindings
+    let emitted_names: IndexSet<&str> = bindings
         .items
         .iter()
         .map(|item| item.deref().export_name())
