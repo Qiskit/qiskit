@@ -351,17 +351,17 @@ impl ExprParser<'_> {
     /// constant floating-point values the application will be eagerly constant-folded, otherwise
     /// the resulting [Expr] will have a tree structure.
     fn apply_infix(&mut self, infix: Op, lhs: Expr, rhs: Expr, op_token: &Token) -> PyResult<Expr> {
-        if let (Expr::Constant(val), Op::Divide) = (&rhs, infix) {
-            if *val == 0.0 {
-                return Err(QASM2ParseError::new_err(message_generic(
-                    Some(&Position::new(
-                        self.current_filename(),
-                        op_token.line,
-                        op_token.col,
-                    )),
-                    "cannot divide by zero",
-                )));
-            }
+        if let (Expr::Constant(val), Op::Divide) = (&rhs, infix)
+            && *val == 0.0
+        {
+            return Err(QASM2ParseError::new_err(message_generic(
+                Some(&Position::new(
+                    self.current_filename(),
+                    op_token.line,
+                    op_token.col,
+                )),
+                "cannot divide by zero",
+            )));
         };
         if let (Expr::Constant(val_l), Expr::Constant(val_r)) = (&lhs, &rhs) {
             // Eagerly constant-fold if possible.

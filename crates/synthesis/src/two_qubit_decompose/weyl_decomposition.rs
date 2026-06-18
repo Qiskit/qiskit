@@ -951,13 +951,13 @@ impl TwoQubitWeylDecomposition {
             )
         };
         specialized.calculated_fidelity = tr.trace_to_fid();
-        if let Some(fid) = specialized.requested_fidelity {
-            if specialized.calculated_fidelity + 1.0e-13 < fid {
-                return Err(QiskitError::new_err(format!(
-                    "Specialization: {:?} calculated fidelity: {} is worse than requested fidelity: {}",
-                    specialized.specialization, specialized.calculated_fidelity, fid
-                )));
-            }
+        if let Some(fid) = specialized.requested_fidelity
+            && specialized.calculated_fidelity + 1.0e-13 < fid
+        {
+            return Err(QiskitError::new_err(format!(
+                "Specialization: {:?} calculated fidelity: {} is worse than requested fidelity: {}",
+                specialized.specialization, specialized.calculated_fidelity, fid
+            )));
         }
         specialized.global_phase += tr.arg();
         Ok(specialized)
