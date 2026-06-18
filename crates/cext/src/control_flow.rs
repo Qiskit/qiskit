@@ -598,7 +598,7 @@ pub unsafe extern "C" fn qk_control_flow_condition_bit_info(
 /// # Example
 /// ```c
 /// // Assuming cf_inst is an IfElse or While instruction with a register condition
-/// uint64_t bit_width = qk_control_flow_condition_reg_bit_width(cf_inst);
+/// uint64_t bit_width = qk_control_flow_condition_reg_cond_bit_width(cf_inst);
 /// printf("Register bit width: %llu\n", bit_width);
 /// ```
 ///
@@ -606,7 +606,7 @@ pub unsafe extern "C" fn qk_control_flow_condition_bit_info(
 ///
 /// Behavior is undefined if ``cf_inst`` is not a valid pointer to a ``QkControlFlowInstruction``.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_control_flow_condition_reg_bit_width(
+pub unsafe extern "C" fn qk_control_flow_condition_reg_cond_bit_width(
     cf_inst: *const CControlFlowInstruction,
 ) -> u64 {
     // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
@@ -690,7 +690,7 @@ pub unsafe extern "C" fn qk_control_flow_condition_reg(
 /// # Example
 /// ```c
 /// // Assuming cf_inst is an IfElse or While instruction with a register condition
-/// uint64_t expected_value = qk_control_flow_condition_reg_uint(cf_inst);
+/// uint64_t expected_value = qk_control_flow_condition_reg_cond_uint(cf_inst);
 /// printf("Expected register value: %" PRIu64 "\n", expected_value);
 /// ```
 ///
@@ -698,7 +698,7 @@ pub unsafe extern "C" fn qk_control_flow_condition_reg(
 ///
 /// Behavior is undefined if ``cf_inst`` is not a valid pointer to a ``QkControlFlowInstruction``.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_control_flow_condition_reg_uint(
+pub unsafe extern "C" fn qk_control_flow_condition_reg_cond_uint(
     cf_inst: *const CControlFlowInstruction,
 ) -> u64 {
     // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
@@ -1518,6 +1518,8 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels_bit_width(
 /// Each case in a Switch statement can have one or more labels (e.g., ``case(1, 2, 3)``)
 /// has three labels: 1, 2, and 3). This function retrieves all labels for a given case.
 /// Note that the default case can also include labels, which can be retrieved by this function.
+/// When called on a default case without additional labels, the function sets ``num_labels = 0`` and
+/// ``labels = NULL`` in the returned `QkSwitchCaseLabels` struct.
 /// Before calling this function, you should use `qk_control_flow_switch_case_labels_bit_width`
 /// to ensure the labels will fit in ``uint64_t``.
 ///
@@ -1528,8 +1530,8 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels_bit_width(
 ///
 /// @return A `QkSwitchCaseLabels` struct with the label information for the given case.
 ///     The struct will contain a pointer to an array of labels and the number of labels.
-///     You should call `qk_control_flow_switch_case_labels_clear` to free up memory
-///     allocated by this function.
+///     If ``num_labels > 0``, you should call `qk_control_flow_switch_case_labels_clear`
+///     to free the memory allocated by this function.
 ///
 /// Panics if ``cf_inst`` is not a Switch control flow instruction or if a case label
 /// does not fit in ``uint64_t``.
@@ -1578,7 +1580,11 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels_uint(
 
     CSwitchCaseLabels {
         num_labels: labels.len(),
-        labels: Box::into_raw(labels) as *const u64,
+        labels: if labels.is_empty() {
+            ptr::null() // occurs for a default case without additional labels
+        } else {
+            Box::into_raw(labels) as *const u64
+        },
     }
 }
 

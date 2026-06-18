@@ -540,7 +540,7 @@ static int test_while_on_register(void) {
         goto cleanup;
     }
 
-    uint64_t cond_val = qk_control_flow_condition_reg_uint(cf_inst);
+    uint64_t cond_val = qk_control_flow_condition_reg_cond_uint(cf_inst);
     if (cond_val != 7) {
         printf("Expected condition value 7, got %" PRIu64 "\n", cond_val);
         result = EqualityError;
@@ -730,12 +730,14 @@ static int test_for_loop_over_range(void) {
     }
 
     const QkVar *loop_var = qk_control_flow_loop_variable(cf_inst);
-    const char *var_name = qk_var_name(loop_var);
+    char *var_name = qk_var_name(loop_var);
     if (strcmp(var_name, "v") != 0) {
         printf("Expected var name to be v, got %s\n", var_name);
         result = EqualityError;
+        qk_str_free(var_name);
         goto cleanup;
     }
+    qk_str_free(var_name);
 
 cleanup:
     qk_control_flow_instruction_free(cf_inst);
@@ -751,7 +753,7 @@ static int test_while_on_register_large_condition(void) {
     QkCircuit *circuit = inner_test_control_flow_circuit();
     QkControlFlowInstruction *cf_inst = qk_circuit_get_control_flow_instruction(circuit, 9, NULL);
 
-    uint64_t cond_bit_width = qk_control_flow_condition_reg_bit_width(cf_inst);
+    uint64_t cond_bit_width = qk_control_flow_condition_reg_cond_bit_width(cf_inst);
     if (cond_bit_width <= 64) {
         printf("Expected condition width to be larger than 64 bits, got %" PRIu64 "\n",
                cond_bit_width);
