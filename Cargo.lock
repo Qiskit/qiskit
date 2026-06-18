@@ -2261,7 +2261,7 @@ dependencies = [
  "qiskit-util",
  "rand 0.10.1",
  "rand_distr 0.6.0",
- "rand_pcg 0.10.2",
+ "rand_pcg",
  "rayon",
  "rustworkx-core",
  "smallvec",
@@ -2310,7 +2310,7 @@ dependencies = [
  "qiskit-transpiler",
  "qiskit-util",
  "rand 0.10.1",
- "rand_pcg 0.10.2",
+ "rand_pcg",
  "smallvec",
  "thiserror 2.0.18",
  "uuid",
@@ -2375,7 +2375,7 @@ dependencies = [
  "qiskit-util",
  "rand 0.10.1",
  "rand_distr 0.6.0",
- "rand_pcg 0.10.2",
+ "rand_pcg",
  "rayon",
  "smallvec",
  "thiserror 2.0.18",
@@ -2484,7 +2484,7 @@ dependencies = [
  "qiskit-util",
  "rand 0.10.1",
  "rand_distr 0.6.0",
- "rand_pcg 0.10.2",
+ "rand_pcg",
  "rayon",
  "rustworkx-core",
  "thiserror 2.0.18",
@@ -2512,7 +2512,7 @@ dependencies = [
  "qiskit-util",
  "rand 0.10.1",
  "rand_distr 0.6.0",
- "rand_pcg 0.10.2",
+ "rand_pcg",
  "rayon",
  "rsgridsynth",
  "rstar",
@@ -2544,7 +2544,7 @@ dependencies = [
  "qiskit-synthesis",
  "qiskit-util",
  "rand 0.10.1",
- "rand_pcg 0.10.2",
+ "rand_pcg",
  "rayon",
  "rayon-cond",
  "rustworkx-core",
@@ -2686,15 +2686,6 @@ checksum = "4d431c2703ccf129de4d45253c03f49ebb22b97d6ad79ee3ecfc7e3f4862c1d8"
 dependencies = [
  "num-traits",
  "rand 0.10.1",
-]
-
-[[package]]
-name = "rand_pcg"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b48ac3f7ffaab7fac4d2376632268aa5f89abdb55f7ebf8f4d11fffccb2320f7"
-dependencies = [
- "rand_core 0.9.5",
 ]
 
 [[package]]
@@ -2893,9 +2884,9 @@ checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
 
 [[package]]
 name = "rustworkx-core"
-version = "0.17.1"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aaeee6f84153fd6f62507fc22bfe9499c8485075b44186dcbb918166ef75116f"
+checksum = "4b213df2cbfa5f580ed2c0ac3619eda06692a4ff0211f0aebbb4008eaa9724a6"
 dependencies = [
  "fixedbitset 0.5.7",
  "foldhash 0.1.5",
@@ -2905,9 +2896,9 @@ dependencies = [
  "num-traits",
  "petgraph 0.8.3",
  "priority-queue",
- "rand 0.9.4",
- "rand_distr 0.5.1",
- "rand_pcg 0.9.0",
+ "rand 0.10.1",
+ "rand_distr 0.6.0",
+ "rand_pcg",
  "rayon",
  "rayon-cond",
 ]
