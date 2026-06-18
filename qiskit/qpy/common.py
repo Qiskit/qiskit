@@ -29,6 +29,28 @@ QPY_RUST_READ_MIN_VERSION = 13
 QPY_RUST_WRITE_MIN_VERSION = 17
 ENCODE = "utf8"
 
+# only update the points at which either of the two QPY constants change (QPY_VERSION, QPY_COMPATIBILITY_VERSION)
+QPY_VERSION_HISTORY = [
+    # (max_qpy_version, min_qpy_version, release_introduced)
+    (17, 13, "2.3.0"),
+    (16, 13, "2.2.0"),
+    (15, 13, "2.1.0"),
+    (14, 13, "2.0.0"),
+    (13, 10, "1.3.0"),
+    (12, 10, "1.1.0"),
+    (11, 10, "1.0.0"),
+    (10, 10, "0.45.0"),
+    (9, 9, "0.25.0"),
+    (8, 8, "0.24.2"),
+    (7, 7, "0.24.0"),
+    (6, 6, "0.23.0"),
+    (5, 5, "0.21.0"),
+    (4, 4, "0.19.2"),
+    (3, 3, "0.19.1"),
+    (2, 2, "0.19.0"),
+    (1, 1, "0.18.0"),
+]
+
 
 def read_generic_typed_data(file_obj):
     """Read a single data chunk from the file like object.
