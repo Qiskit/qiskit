@@ -872,7 +872,7 @@ fn pack_expression_type(exp_type: &Type, version: u32) -> Result<ExpressionType,
                 })
             }
         }
-        Type::Uint(width) => Ok(ExpressionType::Uint(*width as u32)),
+        Type::Uint(width) => Ok(ExpressionType::Uint(*width)),
     }
 }
 
