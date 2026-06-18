@@ -30,23 +30,18 @@ class MultiStagePassManager(Generic[IR, IR_OUT]):
     it contains are executed, the input and output conversions defined by its
     ``_passmanager_frontend`` and ``_passmanager_backend`` methods are _not_ applied.
 
-
     Stages can:
 
     * preserve the IR, for example if set as ``BasePassManager[IR]`` or ``Task[IR, IR]``, or
     * lower the IR, for example as ``Task[IR1, IR2]``.
 
     It is the user's responsibility to set up the stages in a compatible fashion, such that the
-    output IR of the current stage matches in input IR of the next stage. If a callback is provided,
-    it is equally the user's responsiblity to ensure the it can handle every IR passed
-    through in the workflow.
+    output IR of the current stage matches in input IR of the next stage.  The stage names and the
+    order they execute in is set when the pass manager is constructed.  The implementation of a
+    stage can be modified by assigning a new implementation to the corresponding object attribute.
 
-    .. note::
-
-        While :class:`~.passmanager.Task` object defines the task interface, custom passes should
-        only derive from the base class :class:`.GenericPass`.  The ``Task`` base is an internal
-        interface, and later Qiskit releases may place more restrictions on the available types of
-        ``Task``.
+    If a callback is provided to the :meth:`run` method, it must be able to handle its IR input
+    being any type output by the tasks in the pass manager.
 
     The callback is called with the signature::
 
@@ -61,12 +56,19 @@ class MultiStagePassManager(Generic[IR, IR_OUT]):
 
     All arguments are passed as keyword arguments.
 
+    .. note::
+
+        While :class:`~.passmanager.Task` object defines the task interface, custom passes should
+        only derive from the base class :class:`.GenericPass`.  The ``Task`` base is an internal
+        interface, and later Qiskit releases may place more restrictions on the available types of
+        ``Task``.
+
     An example workflow is::
 
         from qiskit.circuit import QuantumCircuit
         from qiskit.dagcircuit import DAGCircuit
         from qiskit.passmanager import GenericPass, MultiStagePassManager
-        from qiskit.transpiler import generate_preset_pass_manager
+        from qiskit.transpiler import generate_preset_pass_manager, Target, CouplingMap
 
         class CustomPauliIR:
             # A custom IR of global Pauli strings
@@ -105,10 +107,13 @@ class MultiStagePassManager(Generic[IR, IR_OUT]):
             else:
                 print("DAGCircuit:", task.__class__.__name__, passmanager_ir.count_ops())
 
+        target = Target.from_configuration(
+            basis_gates=["u", "cx"], coupling_map=CouplingMap.from_line(3)
+        )
         multi_pm = MultiStagePassManager(
             pauli_opt=CustomPauliOptimization(),
             pauli_to_dag=PauliToDAG(),
-            dag_opt=generate_preset_pass_manager(basis_gates=["u", "cx"]),
+            dag_opt=generate_preset_pass_manager(target=target),
         )
 
         program = CustomPauliIR(3)
@@ -121,25 +126,34 @@ class MultiStagePassManager(Generic[IR, IR_OUT]):
 
 
     This class relates to :class:`.StagedPassManager` in that both have a staged execution model.
-    The :class:`.StagedPassManager`, however, allows :class:`.DAGCircuit` as single internal IR
-    and has implicit conversions from and to a :class:`.QuantumCircuit` at the input and output
-    levels. Its behavior can be reconstructed from this class as::
+    The :class:`.StagedPassManager`, however, only allows :class:`.DAGCircuit` as its IR,
+    has implicit conversions from and to a :class:`.QuantumCircuit` at the input and output
+    levels, and has implicit ``pre_*`` and ``post_*`` stage hooks that can be written into.
+
+    The execution logic of a :class:`.StagedPassManager` is roughly equivalent to::
 
         from qiskit.circuit import QuantumCircuit
         from qiskit.dagcircuit import DAGCircuit
         from qiskit.passmanager import GenericPass, MultiStagePassManager
+        from qiskit.transpiler import TranspileLayout
 
         class CircuitToDAG(GenericPass[QuantumCircuit, DAGCircuit]):
             def run(self, passmanager_ir: QuantumCircuit) -> DAGCircuit:
+                self.property_set["original_qubit_indices"] = {
+                    bit: i for i, bit in enumerate(passmanager_ir.qubits)
+                }
+                self.property_set["num_input_qubits"] = passmanager_ir.num_qubits
                 return passmanager_ir.to_dag()
 
         class DAGToCircuit(GenericPass[DAGCircuit, QuantumCircuit]):
             def run(self, passmanager_ir: DAGCircuit) -> QuantumCircuit:
-                return passmanager_ir.to_circuit()
+                qc = passmanager_ir.to_circuit(copy_operations=False)
+                qc._layout = TranspileLayout.from_property_set(passmanager_ir, self.property_set)
+                return qc
 
         multi_pm = MultiStagePassManager(
             input=CircuitToDAG(),
-            # stages of StagedPassManager ...
+            # ... stages of StagedPassManager ...
             output=DAGToCircuit()
         )
 
@@ -159,23 +173,21 @@ class MultiStagePassManager(Generic[IR, IR_OUT]):
     ):
         """
         Args:
-            **stages: The stages as pass managers. These will be executed in the provided order
+            stages: The stages as pass managers. These will be executed in the provided order
                 and must have compatible IRs.
-        """
-        # we store the stages as attributes, plus keep track of the stages
-        stage_names = []
-        for name, stage in stages.items():
-            stage_names.append(name)
-            self.__setattr__(name, stage)
 
-        # the stages are immutable, once set
-        self._stages = tuple(stage_names)
+                The stage names are fixed by the constructor; you cannot add new stages later, but
+                you can replace the implementation of each stage by re-assigning to its attribute.
+        """
+        self._stages = tuple(stages)
+        for name, stage in stages.items():
+            setattr(self, name, stage)
 
     @property
     def stages(self) -> tuple[str, ...]:
         """The stage names. These are immutable.
 
-        The stages themselves can be modified by accessing the attribute with the same name
+        The stages themselves can be modified by writing to the attribute with the same name
         as the stage.
         """
         return self._stages
