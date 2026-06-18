@@ -1818,8 +1818,10 @@ impl DAGCircuit {
         }
         if !self.has_control_flow() {
             let weight_fn = |_| -> Result<usize, Infallible> { Ok(1) };
-            return match rustworkx_core::dag_algo::longest_path(&self.dag, weight_fn).unwrap() {
-                Some(res) => Ok(res.1 - 1),
+            return match rustworkx_core::dag_algo::longest_path_length(&self.dag, weight_fn)
+                .unwrap()
+            {
+                Some(res) => Ok(res - 1),
                 None => panic!("not a DAG"),
             };
         }
@@ -1859,8 +1861,8 @@ impl DAGCircuit {
         let weight_fn = |edge: EdgeReference<'_, Wire>| -> Result<usize, Infallible> {
             Ok(*node_lookup.get(&edge.target()).unwrap_or(&1))
         };
-        match rustworkx_core::dag_algo::longest_path(&self.dag, weight_fn).unwrap() {
-            Some(res) => Ok(res.1 - 1),
+        match rustworkx_core::dag_algo::longest_path_length(&self.dag, weight_fn).unwrap() {
+            Some(res) => Ok(res - 1),
             None => panic!("not a DAG"),
         }
     }
