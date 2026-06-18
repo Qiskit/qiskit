@@ -252,7 +252,7 @@ Exceptions
 """
 
 from .passmanager import BasePassManager
-from .multi_ir_passmanager import MultiStagePassManager
+from .multistage_passmanager import MultiStagePassManager
 from .flow_controllers import (
     FlowControllerLinear,
     ConditionalController,

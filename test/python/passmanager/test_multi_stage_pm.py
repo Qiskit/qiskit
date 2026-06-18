@@ -20,7 +20,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import RemoveIdentityEquivalent
 from qiskit.circuit import QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.passmanager.multi_ir_passmanager import MultiStagePassManager
+from qiskit.passmanager import MultiStagePassManager
 from qiskit.passmanager.base_tasks import GenericPass
 from qiskit.passmanager import BasePassManager
 from qiskit.transpiler import generate_preset_pass_manager, CouplingMap
