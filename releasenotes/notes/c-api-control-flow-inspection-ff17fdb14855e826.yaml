@@ -21,7 +21,7 @@ features_c:
     * :c:func:`qk_control_flow_condition_reg_uint`
     * :c:func:`qk_control_flow_condition_expr`
     * :c:func:`qk_control_flow_box_duration_kind`
-    * :c:func:`qk_control_flow_box_duration_info`
+    * :c:func:`qk_control_flow_box_duration_val_info`
     * :c:func:`qk_control_flow_box_duration_expr`
     * :c:func:`qk_control_flow_loop_collection_type`
     * :c:func:`qk_control_flow_loop_elements`

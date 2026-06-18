@@ -123,7 +123,7 @@ mod circuit {
             export_fn!(qk_control_flow_condition_reg_uint),
             export_fn!(qk_control_flow_condition_expr),
             export_fn!(qk_control_flow_box_duration_kind),
-            export_fn!(qk_control_flow_box_duration_info),
+            export_fn!(qk_control_flow_box_duration_val_info),
             export_fn!(qk_control_flow_box_duration_expr),
             export_fn!(qk_control_flow_loop_collection_type),
             export_fn!(qk_control_flow_loop_elements),

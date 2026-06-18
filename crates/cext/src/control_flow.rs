@@ -816,9 +816,9 @@ pub unsafe extern "C" fn qk_control_flow_box_duration_kind(
 }
 
 /// @ingroup QkControlFlow
-/// Get the concrete duration information of a Box control flow instruction.
+/// Get the duration value information of a Box control flow instruction.
 ///
-/// This function retrieves the duration value for a Box instruction that has
+/// This function retrieves the duration value and type for a Box instruction that has
 /// a concrete duration.
 ///
 /// @param cf_inst A pointer to the control flow instruction.
@@ -831,7 +831,7 @@ pub unsafe extern "C" fn qk_control_flow_box_duration_kind(
 /// # Example
 /// ```c
 /// // Assuming cf_inst is a Box instruction with a concrete duration
-///  QkDurationInfo duration_info = qk_control_flow_box_duration_info(cf_inst);
+///  QkDurationInfo duration_info = qk_control_flow_box_duration_val_info(cf_inst);
 ///  if (duration_info.ty == QkDurationType_Dt) {
 ///      int64_t dt = duration_info.value.dt;
 ///  } else {
@@ -843,7 +843,7 @@ pub unsafe extern "C" fn qk_control_flow_box_duration_kind(
 ///
 /// Behavior is undefined if ``cf_inst`` is not a valid pointer to a ``QkControlFlowInstruction``.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_control_flow_box_duration_info(
+pub unsafe extern "C" fn qk_control_flow_box_duration_val_info(
     cf_inst: *const CControlFlowInstruction,
 ) -> CDurationInfo {
     // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.

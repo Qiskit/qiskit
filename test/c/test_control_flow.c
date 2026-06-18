@@ -134,7 +134,7 @@ static int test_box_and_bit_mapping(void) {
         goto cleanup;
     }
 
-    QkDurationInfo duration_info = qk_control_flow_box_duration_info(cf_inst);
+    QkDurationInfo duration_info = qk_control_flow_box_duration_val_info(cf_inst);
     if (duration_info.ty != QkDurationType_S) {
         printf("Expected QkDurationType_S, got %d\n", duration_info.ty);
         result = EqualityError;
