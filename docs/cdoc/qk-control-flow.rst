@@ -41,6 +41,9 @@ Data Types
 
 .. doxygenenum:: QkLoopCollectionType
 
+.. doxygenstruct:: QkLoopElements
+    :members:
+
 Functions
 =========
 

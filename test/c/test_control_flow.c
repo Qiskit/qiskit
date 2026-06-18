@@ -190,24 +190,23 @@ static int test_for_nested_break_continue(void) {
         goto cleanup;
     }
 
-    const size_t *loop_elements = NULL;
-    size_t num_elems = qk_control_flow_loop_elements(cf_inst, &loop_elements);
-
-    if (num_elems != 2) {
-        printf("Expected 2 loop elements, got %zu\n", num_elems);
+    QkLoopElements loop_elements = qk_control_flow_loop_elements(cf_inst);
+    if (loop_elements.len != 2) {
+        printf("Expected 2 loop elements, got %zu\n", loop_elements.len);
         result = EqualityError;
         goto cleanup;
     }
 
-    if (loop_elements == NULL) {
+    if (loop_elements.elements == NULL) {
         printf("Failed to get loop elements pointer\n");
         result = NullptrError;
         goto cleanup;
     }
 
-    for (size_t i = 0; i < num_elems; i++) {
-        if (loop_elements[i] != i + 1) {
-            printf("Expected loop_elements[%zu] == %zu, got %zu\n", i, i + 1, loop_elements[i]);
+    for (size_t i = 0; i < loop_elements.len; i++) {
+        if (loop_elements.elements[i] != i + 1) {
+            printf("Expected loop_elements.elements[%zu] == %zu, got %zu\n", i, i + 1,
+                   loop_elements.elements[i]);
             result = EqualityError;
             goto cleanup;
         }

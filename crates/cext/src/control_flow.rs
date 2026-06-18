@@ -268,6 +268,19 @@ pub enum CLoopCollectionType {
     Range = 1,
 }
 
+/// A struct containing loop elements from a ForLoop control flow instruction.
+///
+/// This struct is returned by `qk_control_flow_loop_elements` and contains both
+/// a pointer to the array of loop elements and the number of elements in the array.
+/// The pointer is borrowed and must not be freed by the caller.
+#[repr(C)]
+pub struct CLoopElements {
+    /// Pointer to the array of loop elements.
+    elements: *const usize,
+    /// Number of elements in the array.
+    len: usize,
+}
+
 /// @ingroup QkControlFlow
 /// Get the kind of a control flow instruction.
 ///
@@ -941,33 +954,29 @@ pub unsafe extern "C" fn qk_control_flow_loop_collection_type(
 /// to determine the collection type before calling this function.
 ///
 /// @param cf_inst A pointer to a control flow instruction that must be a ForLoop with a List collection.
-/// @param out_elements An output parameter that will be set to point to the array of loop elements.
-///     The output pointer is borrowed for the duration of the control flow instruction and must
-///     not be freed by the caller.
 ///
-/// @return The number of elements in the loop collection.
+/// @return A `QkLoopElements` struct containing a pointer to the array of loop elements and the number
+///     of elements. The pointer is borrowed for the duration of the control flow instruction and must
+///     not be freed by the caller.
 ///
 /// Panics if ``cf_inst`` is not a ForLoop control flow instruction with a list collection.
 ///
 /// # Example
 /// ```c
-/// const size_t *loop_elements = NULL;
 /// // Assuming cf_inst is a ForLoop instruction with a List collection type
-/// size_t num_elems = qk_control_flow_loop_elements(cf_inst, &loop_elements);
-/// for (size_t i = 0; i < num_elems; i++) {
-///     printf("Element %zu: %zu\n", i, loop_elements[i]);
+/// QkLoopElements loop_elements = qk_control_flow_loop_elements(cf_inst);
+/// for (size_t i = 0; i < loop_elements.len; i++) {
+///     printf("Element %zu: %zu\n", i, loop_elements.elements[i]);
 /// }
 /// ```
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``cf_inst`` is not a valid pointer to a ``QkControlFlowInstruction``,
-/// or if ``out_elements`` is not a valid, aligned pointer to write the array pointer to.
+/// Behavior is undefined if ``cf_inst`` is not a valid pointer to a ``QkControlFlowInstruction``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_control_flow_loop_elements(
     cf_inst: *const CControlFlowInstruction,
-    out_elements: *mut *const usize,
-) -> usize {
+) -> CLoopElements {
     // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
     let cf_inst = unsafe { const_ptr_as_ref(cf_inst) };
 
@@ -979,9 +988,10 @@ pub unsafe extern "C" fn qk_control_flow_loop_elements(
         panic!("Expected a ForLoop control flow instruction with a List collection")
     };
 
-    // SAFETY: Per documentation, out_elements is a valid and aligned pointer to write to.
-    unsafe { *out_elements = elements.as_ptr() };
-    elements.len()
+    CLoopElements {
+        elements: elements.as_ptr(),
+        len: elements.len(),
+    }
 }
 
 /// @ingroup QkControlFlow
