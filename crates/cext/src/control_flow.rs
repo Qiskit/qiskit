@@ -206,7 +206,7 @@ impl From<Option<&BoxDuration>> for CBoxDurationKind {
 ///
 /// This struct holds an array of label values that a Switch case matches against.
 /// For example, a case like ``case(1, 2, 3)`` would have three labels: 1, 2, and 3.
-/// The memory for the labels array is allocated by `qk_control_flow_switch_case_labels`
+/// The memory for the labels array is allocated by `qk_control_flow_switch_case_labels_uint`
 /// and must be freed using `qk_control_flow_switch_case_labels_clear`.
 #[repr(C)]
 pub struct CSwitchCaseLabels {
@@ -1421,7 +1421,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_num_cases(
 /// Switch statements can have a default case that matches when no other cases match.
 /// This function checks whether the case at the given index is the default case.
 /// The default case may also include leading labels, which can be retrieved by
-/// `qk_control_flow_switch_case_labels` on the default case.
+/// `qk_control_flow_switch_case_labels_uint` on the default case.
 ///
 /// @param cf_inst A pointer to the control flow instruction.
 ///     The control flow instruction must be of a Switch kind.
@@ -1537,7 +1537,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels_bit_width(
 /// # Example
 /// ```c
 /// // Assuming cf_inst is a Switch control flow instruction
-/// QkSwitchCaseLabels case_labels = qk_control_flow_switch_case_labels(cf_inst, 0);
+/// QkSwitchCaseLabels case_labels = qk_control_flow_switch_case_labels_uint(cf_inst, 0);
 /// for (size_t i = 0; i < case_labels.num_labels; i++) {
 ///     printf("Label %zu: %llu\n", i, case_labels.labels[i]);
 /// }
@@ -1587,19 +1587,19 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels_uint(
 /// Clear a `QkSwitchCaseLabels` struct.
 ///
 /// This function must be called to free the memory allocated by
-/// `qk_control_flow_switch_case_labels`. After calling this function,
+/// `qk_control_flow_switch_case_labels_uint`. After calling this function,
 /// the labels pointer in the struct will be set to null and the
 /// count will be set to zero.
 ///
 /// @param labels A pointer to the `QkSwitchCaseLabels` struct to clear.
 ///     The struct must have been previously populated by
-///     `qk_control_flow_switch_case_labels`.
+///     `qk_control_flow_switch_case_labels_uint`.
 ///
 /// # Example
 /// ```c
 /// // Assuming cf_inst is a Switch control flow instruction
 /// QkSwitchCaseLabels case_labels;
-/// qk_control_flow_switch_case_labels(cf_inst, 0, &case_labels);
+/// qk_control_flow_switch_case_labels_uint(cf_inst, 0, &case_labels);
 /// // Use the labels...
 /// qk_control_flow_switch_case_labels_clear(&case_labels);
 /// ```
