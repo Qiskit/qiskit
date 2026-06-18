@@ -222,18 +222,26 @@ class MultiStagePassManager(Generic[IR, IR_OUT]):
         Args:
             in_programs: The programs to run the pass manager on.
             callback: A callback passed to each individual task.
-            property_set: An optional property set to pass into the pass manager.
+            property_set: An optional property set to pass into the pass manager.  This will be
+                mutated in place, if given.  This cannot be used with multiple in programs.
 
         Returns:
             The output programs.
         """
         controller = self.to_flow_controller()
-        if property_set is None:
-            property_set = PropertySet()
 
-        def state():
+        def state(property_set):
             return PassManagerState(property_set=property_set, workflow_status=WorkflowStatus())
 
         if isinstance(in_programs, (list, tuple)):
-            return [controller.execute(program, state(), callback)[0] for program in in_programs]
-        return controller.execute(in_programs, state(), callback)[0]
+            if property_set is not None:
+                raise ValueError(
+                    "a 'property_set' cannot be provided when passing multiple input programs"
+                )
+            return [
+                controller.execute(program, state(PropertySet()), callback)[0]
+                for program in in_programs
+            ]
+
+        property_set = PropertySet() if property_set is None else property_set
+        return controller.execute(in_programs, state(property_set), callback)[0]
