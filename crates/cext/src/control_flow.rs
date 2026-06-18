@@ -21,7 +21,7 @@ use qiskit_circuit::classical::types::Type;
 use qiskit_circuit::duration::Duration;
 use qiskit_circuit::operations::{
     BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction, ForCollection,
-    PyRange, SwitchTarget,
+    LoopParam, PyRange, SwitchTarget,
 };
 use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::{Clbit, Qubit};
@@ -214,6 +214,20 @@ pub struct CSwitchCaseLabels {
     labels: *const u64,
     /// Number of labels in the array
     num_labels: usize,
+}
+
+/// The kind of loop parameter in a ForLoop control flow instruction.
+///
+/// This enum indicates whether a for-loop has no loop parameter, uses a Parameter symbol,
+/// or uses a Variable (``QkVar``) to track the iteration value.
+#[repr(u8)]
+pub enum CLoopParamKind {
+    /// No loop parameter is specified for the ForLoop instruction
+    NoLoopParam = 0,
+    /// Loop parameter is a Parameter
+    Parameter = 1,
+    /// Loop parameter is a Variable
+    Variable = 2,
 }
 
 /// The type of symbol in a ForLoop context.
@@ -1021,76 +1035,157 @@ pub unsafe extern "C" fn qk_control_flow_loop_range(
 }
 
 /// @ingroup QkControlFlow
-/// Get the loop parameter symbol information from a ForLoop control flow instruction.
+/// Get the kind of loop parameter used in a ForLoop control flow instruction.
 ///
-/// This function retrieves the loop parameter symbol information from a ForLoop instruction.
-/// If the for loop has a loop parameter, this function populates the ``out_symbol`` struct with the symbol's
-/// type, name, and index (for parameter vector element symbols), and returns ``true``. If there is no loop parameter,
-/// the function returns ``false`` and ``out_symbol`` is not modified.
+/// This function determines whether a ForLoop has no loop parameter, uses a Parameter symbol,
+/// or uses a Variable (``QkVar``) to track the iteration value.
 ///
-/// @param cf_inst A valid pointer to a ``QkControlFlowInstruction`` that must represent a ForLoop.
-/// @param out_symbol A valid pointer to a `QkSymbolInfo` struct where the symbol information
-///     will be written if a loop parameter exists.
+/// @param cf_inst A pointer to a control flow instruction that must be a ForLoop.
 ///
-/// @return ``true`` if the ForLoop has a loop parameter and ``out_symbol`` was populated,
-///     ``false`` if there is no loop parameter. The caller must free the returned string in ``out_symbol->name``
-///     using `qk_str_free` when the function returns ``true``.
+/// @return A `QkLoopParamKind` enum value indicating the loop parameter kind.
+///
+/// Panics if ``cf_inst`` is not a ForLoop control flow instruction.
 ///
 /// # Example
 /// ```c
-/// // Assuming cf_inst is a ForLoop control flow instruction
-/// QkSymbolInfo symbol_info;
-/// if (qk_control_flow_loop_symbol_info(cf_inst, &symbol_info)) {
-///     if (symbol_info.ty == QkSymbolType_Standalone) {
-///         printf("Loop variable: %s\n", symbol_info.name);
-///     } else if (symbol_info.ty == QkSymbolType_Element) {
-///         printf("Loop variable: %s[%zu]\n", symbol_info.name, symbol_info.index);
-///     }
-///     qk_str_free(symbol_info.name);
+/// // Assuming cf_inst is a ForLoop instruction
+/// QkLoopParamKind param_kind = qk_control_flow_loop_param_kind(cf_inst);
+/// if (param_kind == CLoopParamKind_NoLoopParam) {
+///     // Loop has no parameter
+/// } else if (param_kind == CLoopParamKind_Parameter) {
+///     // Loop uses a Parameter symbol
 /// } else {
-///     printf("No loop parameter\n");
+///     // Loop uses a Variable
 /// }
 /// ```
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``cf_inst`` is not a valid pointer to a ``QkControlFlowInstruction``,
-/// or if ``out_symbol`` is not a valid pointer to a `QkSymbolInfo` struct.
+/// Behavior is undefined if ``cf_inst`` is not a valid pointer to a ``QkControlFlowInstruction``.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_control_flow_loop_symbol_info(
+pub unsafe extern "C" fn qk_control_flow_loop_param_kind(
     cf_inst: *const CControlFlowInstruction,
-    out_symbol: *mut CSymbolInfo,
-) -> bool {
+) -> CLoopParamKind {
     // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
     let cf_inst = unsafe { const_ptr_as_ref(cf_inst) };
 
     let ControlFlow::ForLoop { loop_param, .. } = &cf_inst.control_flow_inst().control_flow else {
-        return false;
+        panic!("Expected a ForLoop control flow instruction")
     };
 
-    // SAFETY: Per documentation, out_symbol is a valid pointer to a CSymbolInfo struct.
-    let out_symbol = unsafe { mut_ptr_as_ref(out_symbol) };
-
     match loop_param {
-        None => false,
-        Some(symbol) => match symbol {
-            Symbol::Standalone { name, .. } => {
-                out_symbol.ty = CSymbolType::Standalone;
-                out_symbol.name = CString::new(name.as_str())
+        None => CLoopParamKind::NoLoopParam,
+        Some(LoopParam::Parameter(_)) => CLoopParamKind::Parameter,
+        Some(LoopParam::Variable(_)) => CLoopParamKind::Variable,
+    }
+}
+
+/// @ingroup QkControlFlow
+/// Get the loop parameter symbol information from a ForLoop control flow instruction.
+///
+/// This function retrieves the loop parameter symbol information from a ForLoop instruction
+/// that uses a Parameter as its loop parameter. The returned `QkSymbolInfo` contains the symbol's
+/// type, name, and index (for parameter vector element symbols).
+///
+/// @param cf_inst A valid pointer to a ``QkControlFlowInstruction`` that must represent a ForLoop
+///     with a Parameter loop parameter.
+///
+/// @return A `QkSymbolInfo` struct containing the symbol information. The caller must free
+///     the returned string in the ``name`` field using `qk_str_free`.
+///
+/// Panics if ``cf_inst`` is not a ForLoop control flow instruction with a Parameter loop parameter.
+///
+/// # Example
+/// ```c
+/// // Assuming cf_inst is a ForLoop control flow instruction with a Parameter loop parameter
+/// QkSymbolInfo symbol_info = qk_control_flow_loop_symbol_info(cf_inst);
+/// if (symbol_info.ty == QkSymbolType_Standalone) {
+///     printf("Loop parameter: %s\n", symbol_info.name);
+/// } else if (symbol_info.ty == QkSymbolType_Element) {
+///     printf("Loop parameter: %s[%zu]\n", symbol_info.name, symbol_info.index);
+/// }
+/// qk_str_free(symbol_info.name);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``cf_inst`` is not a valid pointer to a ``QkControlFlowInstruction``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_control_flow_loop_symbol_info(
+    cf_inst: *const CControlFlowInstruction,
+) -> CSymbolInfo {
+    // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
+    let cf_inst = unsafe { const_ptr_as_ref(cf_inst) };
+
+    let ControlFlow::ForLoop {
+        loop_param: Some(LoopParam::Parameter(symbol)),
+        ..
+    } = &cf_inst.control_flow_inst().control_flow
+    else {
+        panic!("Expected a ForLoop control flow instruction with a loop parameter")
+    };
+
+    match symbol {
+        Symbol::Standalone { name, .. } => {
+            CSymbolInfo {
+                ty: CSymbolType::Standalone,
+                name: CString::new(name.as_str())
                     .expect("Symbol should have a valid name")
-                    .into_raw();
-                true
+                    .into_raw(),
+                index: 0, // dummy value in the StandAlone case
             }
-            Symbol::Element { index, base } => {
-                out_symbol.ty = CSymbolType::Element;
-                out_symbol.index = *index;
-                out_symbol.name = CString::new(base.name.as_str())
-                    .expect("Parameter vector should have a valid name")
-                    .into_raw();
-                true
-            }
+        }
+        Symbol::Element { index, base } => CSymbolInfo {
+            ty: CSymbolType::Element,
+            index: *index,
+            name: CString::new(base.name.as_str())
+                .expect("Parameter vector should have a valid name")
+                .into_raw(),
         },
     }
+}
+
+/// @ingroup QkControlFlow
+/// Get the loop variable from a ForLoop control flow instruction.
+///
+/// This function retrieves a pointer to the Variable (``QkVar``) used as the loop parameter
+/// in a ForLoop instruction. The returned pointer is borrowed for the lifetime of the
+/// control flow instruction and must not be freed by the caller.
+///
+/// @param cf_inst A valid pointer to a ``QkControlFlowInstruction`` that must represent a ForLoop
+///     with a Variable loop parameter.
+///
+/// @return A pointer to the ``QkVar`` representing the loop variable. The pointer is valid
+///     for the lifetime of the control flow instruction.
+///
+/// Panics if ``cf_inst`` is not a ForLoop control flow instruction with a Variable loop parameter.
+///
+/// # Example
+/// ```c
+/// // Assuming cf_inst is a ForLoop control flow instruction with a Variable loop parameter
+/// const QkVar *loop_var = qk_control_flow_loop_variable(cf_inst);
+/// // Use the loop variable pointer to access variable information
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``cf_inst`` is not a valid pointer to a ``QkControlFlowInstruction``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_control_flow_loop_variable(
+    cf_inst: *const CControlFlowInstruction,
+) -> *const Var {
+    // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
+    let cf_inst = unsafe { const_ptr_as_ref(cf_inst) };
+
+    let ControlFlow::ForLoop {
+        loop_param: Some(LoopParam::Variable(var)),
+        ..
+    } = &cf_inst.control_flow_inst().control_flow
+    else {
+        panic!("Expected a ForLoop control flow instruction with a loop variable")
+    };
+
+    ptr::from_ref(var)
 }
 
 /// @ingroup QkControlFlow
@@ -1535,8 +1630,8 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels_clear(labels: *mut C
 // |   0   | Box              | Inner circuit with CX(0,1) and Measure(0->0), mapped to qubits [2,0],        |
 // |       |                  | clbit [1], duration=0.1s                                                     |
 // +-------+------------------+------------------------------------------------------------------------------+
-// |   1   | For Loop         | Loop over [1,2] with body: H(0), CX(0,1), Measure(0->0),                     |
-// |       |                  | If-Else(clbit[0]==True: Break, else: Continue), H(0)                         |
+// |   1   | For Loop         | Loop over [1,2] with loop_parameter=Parameter("x") and                       |
+// |       |                  | If-Else(clbit[0]==True: Break, else: Continue), H(0) in the body             |
 // +-------+------------------+------------------------------------------------------------------------------+
 // |   2   | Switch           | Target: cr, Cases: {(1<<80)-1->X(0), 1,2,3->H(1), (1<<64)-1,DEFAULT->Y(2)}   |
 // +-------+------------------+------------------------------------------------------------------------------+
@@ -1550,7 +1645,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels_clear(labels: *mut C
 // +-------+------------------+------------------------------------------------------------------------------+
 // |   7   | Switch           | Target: cr<2 (expression), Cases: {DEFAULT->Y(0)}                            |
 // +-------+------------------+------------------------------------------------------------------------------+
-// |   8   | For Loop         | Loop over range(1,10,3)                                                      |
+// |   8   | For Loop         | Loop over range(1,10,3), loop_parameter=expr.Var.new("v"), types.Uint(8)     |
 // +-------+------------------+------------------------------------------------------------------------------+
 // |   9   | Switch           | Condition: cr==(1<<80)-1, Body: Z(0)                                         |
 // +-------+------------------+------------------------------------------------------------------------------+
@@ -1737,10 +1832,10 @@ pub unsafe extern "C" fn inner_test_control_flow_circuit() -> *mut CircuitData {
     let for_op = PackedOperation::from(ControlFlowInstruction {
         control_flow: ControlFlow::ForLoop {
             collection: ForCollection::List(vec![1, 2]),
-            loop_param: Some(Symbol::Standalone {
+            loop_param: Some(LoopParam::Parameter(Symbol::Standalone {
                 name: "x".to_owned(),
                 uuid: Uuid::new_v4(),
-            }),
+            })),
         },
         num_qubits: 2,
         num_clbits: 1,
@@ -2104,7 +2199,7 @@ pub unsafe extern "C" fn inner_test_control_flow_circuit() -> *mut CircuitData {
     /////////////////////////////////////////////
     // Build a for-loop like this:
     // ----------------------
-    // with qc.for_loop(range(1,10,3)):
+    // with qc.for_loop(range(1,10,3), expr.Var.new("v"), types.Uint(8)):
     //      qc.y(0)
     let mut for_loop_range_body = CircuitData::new(
         Some(qubits.clone()),
@@ -2131,7 +2226,11 @@ pub unsafe extern "C" fn inner_test_control_flow_circuit() -> *mut CircuitData {
                 stop: 10,
                 step: NonZero::new(3).unwrap(),
             }),
-            loop_param: None,
+            loop_param: Some(LoopParam::Variable(Var::Standalone {
+                uuid: Uuid::new_v4().as_u128(),
+                name: "v".to_owned(),
+                ty: Type::Uint(8),
+            })),
         },
         num_qubits: 3,
         num_clbits: 3,

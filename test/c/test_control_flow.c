@@ -37,7 +37,7 @@
 // |   5   | While Loop       | Condition: expression 
 // |   6   | Switch           | Target: clbit 
 // |   7   | Switch           | Target: expression
-// |   8   | For Loop         | Loop over Range(1, 10, 3)
+// |   8   | For Loop         | Loop over Range(1, 10, 3), variable loop param
 // |   9   | Switch           | Target: ClassicalRegister, condition width 80 bits
 // clang-format on
 QkCircuit *inner_test_control_flow_circuit();
@@ -234,14 +234,15 @@ static int test_for_nested_break_continue(void) {
         goto cleanup;
     }
 
-    QkSymbolInfo symbol_info;
-    bool has_symbol = qk_control_flow_loop_symbol_info(cf_inst, &symbol_info);
-    if (!has_symbol) {
-        printf("Expected instruction to have a symbol, but it does not\n");
+    QkLoopParamKind param_kind = qk_control_flow_loop_param_kind(cf_inst);
+    if (param_kind != QkLoopParamKind_Parameter) {
+        printf("Expected loop parameter kind to be QkLoopParamKind_Parameter, got %d\n",
+               param_kind);
         result = EqualityError;
         goto cleanup;
     }
 
+    QkSymbolInfo symbol_info = qk_control_flow_loop_symbol_info(cf_inst);
     if (symbol_info.ty != QkSymbolType_Standalone) {
         printf("Expected symbol type to be QkSymbolType_Standalone, got %d\n", symbol_info.ty);
         result = EqualityError;
@@ -690,7 +691,7 @@ cleanup:
 }
 
 // Test a for-loop statement over a range like this in Python:
-// with qc.for_loop(range(1,10,3)):
+// with qc.for_loop(range(1,10,3), expr.Var.new("v"), types.Uint(8)):
 //      qc.y(0)
 static int test_for_loop_over_range(void) {
     int result = Ok;
@@ -718,6 +719,21 @@ static int test_for_loop_over_range(void) {
         printf("Expected a for-loop over Range(1,10,3), got Range(%" PRIi64 ",%" PRIi64 ",%" PRIi64
                ")\n",
                start, stop, step);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    QkLoopParamKind param_kind = qk_control_flow_loop_param_kind(cf_inst);
+    if (param_kind != QkLoopParamKind_Variable) {
+        printf("Expected loop parameter kind to be QkLoopParamKind_Variable, got %d\n", param_kind);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    const QkVar *loop_var = qk_control_flow_loop_variable(cf_inst);
+    const char *var_name = qk_var_name(loop_var);
+    if (strcmp(var_name, "v") != 0) {
+        printf("Expected var name to be v, got %s\n", var_name);
         result = EqualityError;
         goto cleanup;
     }

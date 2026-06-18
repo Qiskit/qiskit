@@ -32,6 +32,8 @@ Data Types
 .. doxygenstruct:: QkSwitchCaseLabels
     :members:
 
+.. doxygenenum:: QkLoopParamKind
+
 .. doxygenenum:: QkSymbolType
 
 .. doxygenstruct:: QkSymbolInfo

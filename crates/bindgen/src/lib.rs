@@ -125,6 +125,7 @@ pub static EXPORT_RENAME: &[(&str, &str)] = &[
     ("CSymbolType", "SymbolType"),
     ("CSymbolInfo", "SymbolInfo"),
     ("CLoopCollectionType", "LoopCollectionType"),
+    ("CLoopParamKind", "LoopParamKind"),
 ];
 pub static EXPORT_VERBATIM: &[&str] = &["PyObject"];
 
