@@ -309,3 +309,21 @@ class TestMultiStagePM(QiskitTestCase):
         expected.z([2, 1])
 
         self.assertEqual(circuit_to_dag(expected), out)
+
+    def test_run_on_multiple_inputs(self):
+        pm = MultiStagePassManager(
+            pauli=RemovePauliIdentities(), to_circuit=PauliToCircuit(), circuit=CircuitDecomposer()
+        )
+        programs = []
+        expected = []
+        for pauli in ("ZZI", "IZZ", "ZIZ"):
+            program = PauliIR(3)
+            program.apply(pauli)
+
+            circuit = QuantumCircuit(3)
+            circuit.z([2 - i for i, p in enumerate(pauli) if p == "Z"])
+
+            programs.append(program)
+            expected.append(circuit)
+
+        self.assertEqual(pm.run(programs), expected)

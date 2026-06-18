@@ -175,7 +175,7 @@ class MultiStagePassManager(Generic[IR, IR_OUT]):
         self._stages = tuple(stage_names)
 
     @property
-    def stages(self) -> tuple[str]:
+    def stages(self) -> tuple[str, ...]:
         """The stage names. These are immutable.
 
         The stages themselves can be modified by accessing the attribute with the same name
@@ -203,7 +203,7 @@ class MultiStagePassManager(Generic[IR, IR_OUT]):
 
     def run(
         self,
-        in_programs: IR | Iterable[IR],
+        in_programs: IR | list[IR] | tuple[IR],
         callback: Callback[Any] | None = None,
         *,
         property_set: PropertySet | None = None,
@@ -218,20 +218,13 @@ class MultiStagePassManager(Generic[IR, IR_OUT]):
         Returns:
             The output programs.
         """
+        controller = self.to_flow_controller()
         if property_set is None:
             property_set = PropertySet()
 
-        state = PassManagerState(property_set=property_set, workflow_status=WorkflowStatus())
+        def state():
+            return PassManagerState(property_set=property_set, workflow_status=WorkflowStatus())
 
-        flow_controller = self.to_flow_controller()
-        out_programs = _run_flow_controller(flow_controller, in_programs, state, callback)
-
-        return out_programs
-
-
-def _run_flow_controller(controller, programs, state, callback):
-    """A helper to run FlowControllerLinear on program or an iterable of programs."""
-    if isinstance(programs, Iterable):
-        return list(map(_run_flow_controller, programs))
-
-    return controller.execute(programs, state, callback)[0]
+        if isinstance(in_programs, (list, tuple)):
+            return [controller.execute(program, state(), callback)[0] for program in in_programs]
+        return controller.execute(in_programs, state(), callback)[0]
