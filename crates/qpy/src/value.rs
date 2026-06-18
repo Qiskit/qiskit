@@ -401,6 +401,8 @@ macro_rules! impl_from_generic {
 
 impl_from_generic!(i64, Int64);
 impl_from_generic!(f64, Float64);
+impl_from_generic!(BigUint, BigInt);
+impl_from_generic!(String, String);
 impl_from_generic!(Complex64, Complex64);
 // we do not implement Symbol extraction, since it is ambiguous - a symbol can be a Parameter or a ParameterVector
 
