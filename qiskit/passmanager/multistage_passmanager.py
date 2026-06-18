@@ -31,10 +31,10 @@ class MultiStagePassManager(Generic[IR, IR_OUT]):
     ``_passmanager_frontend`` and ``_passmanager_backend`` methods are _not_ applied.
 
 
-    Stages can
+    Stages can:
 
-        * preserve the IR, for example if set as ``BasePassManager[IR]`` or ``Task[IR, IR]``, or
-        * lower the IR, for example as ``Task[IR1, IR2]``
+    * preserve the IR, for example if set as ``BasePassManager[IR]`` or ``Task[IR, IR]``, or
+    * lower the IR, for example as ``Task[IR1, IR2]``.
 
     It is the user's responsibility to set up the stages in a compatible fashion, such that the
     output IR of the current stage matches in input IR of the next stage. If a callback is provided,
@@ -43,10 +43,10 @@ class MultiStagePassManager(Generic[IR, IR_OUT]):
 
     .. note::
 
-        While :class:`~.passmanager.Task` object defines the task interface, it is
-        recommended to derive from the base class :class:`.GenericPass` which only
-        requires the :meth:`~.GenericPass.run` method to be implemented and directly
-        provides callback functionality.
+        While :class:`~.passmanager.Task` object defines the task interface, custom passes should
+        only derive from the base class :class:`.GenericPass`.  The ``Task`` base is an internal
+        interface, and later Qiskit releases may place more restrictions on the available types of
+        ``Task``.
 
     The callback is called with the signature::
 
@@ -59,12 +59,11 @@ class MultiStagePassManager(Generic[IR, IR_OUT]):
         ):
             ...
 
-    Note, that the arguments are passed by name.
+    All arguments are passed as keyword arguments.
 
     An example workflow is::
 
         from qiskit.circuit import QuantumCircuit
-        from qiskit.converters import circuit_to_dag
         from qiskit.dagcircuit import DAGCircuit
         from qiskit.passmanager import GenericPass, MultiStagePassManager
         from qiskit.transpiler import generate_preset_pass_manager
@@ -98,8 +97,7 @@ class MultiStagePassManager(Generic[IR, IR_OUT]):
                 circuit = QuantumCircuit(passmanager_ir.num_qubits)
                 for pauli in passmanager_ir.paulis:
                     circuit.pauli(pauli, circuit.qubits)
-
-                return circuit_to_dag(circuit)
+                return circuit.to_dag()
 
         def callback(task, passmanager_ir, property_set, running_time, count):
             if isinstance(passmanager_ir, CustomPauliIR):
@@ -125,20 +123,19 @@ class MultiStagePassManager(Generic[IR, IR_OUT]):
     This class relates to :class:`.StagedPassManager` in that both have a staged execution model.
     The :class:`.StagedPassManager`, however, allows :class:`.DAGCircuit` as single internal IR
     and has implicit conversions from and to a :class:`.QuantumCircuit` at the input and output
-    levels. It's behavior can be reconstructed from this class as::
+    levels. Its behavior can be reconstructed from this class as::
 
         from qiskit.circuit import QuantumCircuit
         from qiskit.dagcircuit import DAGCircuit
-        from qiskit.converters import dag_to_circuit, circuit_to_dag
         from qiskit.passmanager import GenericPass, MultiStagePassManager
 
         class CircuitToDAG(GenericPass[QuantumCircuit, DAGCircuit]):
             def run(self, passmanager_ir: QuantumCircuit) -> DAGCircuit:
-                return circuit_to_dag(passmanager_ir)
+                return passmanager_ir.to_dag()
 
         class DAGToCircuit(GenericPass[DAGCircuit, QuantumCircuit]):
             def run(self, passmanager_ir: DAGCircuit) -> QuantumCircuit:
-                return dag_to_circuit(passmanager_ir)
+                return passmanager_ir.to_circuit()
 
         multi_pm = MultiStagePassManager(
             input=CircuitToDAG(),
@@ -149,7 +146,7 @@ class MultiStagePassManager(Generic[IR, IR_OUT]):
         input_circuit = QuantumCircuit(1)
         output_circuit = multi_pm.run(input_circuit)
 
-    .. note ::
+    .. warning::
 
         The current execution model linearizes the pass into a :class:`.FlowControllerLinear`
         to execute the tasks. This underlying model is subject to change and it is unsafe to
