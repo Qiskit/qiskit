@@ -1258,6 +1258,18 @@ class TextDrawing:
                 cargs=node.cargs,
                 conditional=conditional,
             )
+
+        elif not node.qargs and not node.cargs:
+            # Generated with AI assistance (Claude Code, Claude Sonnet 4.6); see
+            # PR description for disclosure.
+            # Zero-operand instructions (e.g. a stand-alone global-phase gate)
+            # act on the whole circuit implicitly, so draw them as a box
+            # spanning every qubit wire, without per-wire operand indices
+            # (see qiskit#9962).
+            layer.set_qu_multibox(
+                layer.qubits, gate_text, conditional=conditional, skip_wire_labels=True
+            )
+
         else:
             raise VisualizationError(
                 "Text visualizer does not know how to handle this node: ", op.name
@@ -1583,6 +1595,7 @@ class Layer:
         bot_connect=None,
         conditional=False,
         controlled_edge=None,
+        skip_wire_labels=False,
     ):
         if qargs is not None and cargs is not None:
             qarg_indices = sorted(i for i, x in enumerate(self.qubits) if x in qargs)
@@ -1649,12 +1662,20 @@ class Layer:
         elif cargs is None and qargs is not None:
             bits = list(qargs)
             bit_indices = sorted(i for i, x in enumerate(self.qubits) if x in bits)
-            wire_label_len = len(str(len(bits) - 1))
-            qargs_str = [
-                str(bits.index(qbit)).ljust(wire_label_len, " ")
-                for qbit in self.qubits
-                if qbit in bits
-            ]
+            if skip_wire_labels:
+                # Generated with AI assistance (Claude Code, Claude Sonnet 4.6);
+                # see PR description for disclosure.
+                # Zero-operand instructions apply uniformly to every qubit, so
+                # there's no per-wire operand index to label (see qiskit#9962).
+                wire_label_len = 0
+                qargs_str = [""] * len(bit_indices)
+            else:
+                wire_label_len = len(str(len(bits) - 1))
+                qargs_str = [
+                    str(bits.index(qbit)).ljust(wire_label_len, " ")
+                    for qbit in self.qubits
+                    if qbit in bits
+                ]
             bits.sort(key=self.qubits.index)
             set_bit = self.set_qubit
             OnWire = BoxOnQuWire
@@ -1671,7 +1692,14 @@ class Layer:
                     if qubit == qubit_in_edge:
                         control_index[index] = "■" if value == "1" else "o"
         if len(bit_indices) == 1:
-            set_bit(bits[0], OnWire(label, top_connect=top_connect))
+            # Generated with AI assistance (Claude Code, Claude Sonnet 4.6); see
+            # PR description for disclosure.
+            # Only override the box's own default top connector if the caller
+            # actually asked for one; passing `top_connect=None` through
+            # unconditionally would stomp on that default (e.g. BoxOnQuWire's
+            # "─") and break `.center()` calls on it later.
+            box_kwargs = {} if top_connect is None else {"top_connect": top_connect}
+            set_bit(bits[0], OnWire(label, **box_kwargs))
         else:
             box_height = max(bit_indices) - min(bit_indices) + 1
             set_bit(
@@ -1805,6 +1833,7 @@ class Layer:
         bot_connect=None,
         conditional=False,
         controlled_edge=None,
+        skip_wire_labels=False,
     ):
         """Sets the multi qubit box.
 
@@ -1815,6 +1844,8 @@ class Layer:
             bot_connect (char): None or a char connector on the bottom
             conditional (bool): If the box has a conditional
             controlled_edge (list): A list of bit that are controlled (to draw them at the edge)
+            skip_wire_labels (bool): If True, don't draw a per-wire operand index inside
+                the box (used for zero-operand instructions, which apply uniformly)
         Return:
             List: A list of indexes of the box.
         """
@@ -1825,6 +1856,7 @@ class Layer:
             bot_connect=bot_connect,
             conditional=conditional,
             controlled_edge=controlled_edge,
+            skip_wire_labels=skip_wire_labels,
         )
 
     def connect_with(self, wire_char):
