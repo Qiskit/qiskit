@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed the text, Matplotlib, and LaTeX circuit drawers (:meth:`.QuantumCircuit.draw`,
+    :func:`~qiskit.visualization.circuit_drawer`) so that zero-operand instructions,
+    such as a manually appended :class:`.GlobalPhaseGate`, are no longer silently
+    dropped from the drawing. Each such instruction is now rendered as a box spanning
+    every qubit wire, positioned in its original circuit order. See
+    `#9962 <https://github.com/Qiskit/qiskit/issues/9962>`__.
