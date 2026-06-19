@@ -30,6 +30,7 @@ from qiskit.circuit.library import (
     HamiltonianGate,
     Isometry,
     iqp,
+    GlobalPhaseGate,
 )
 from qiskit.circuit import Parameter, Qubit, Clbit
 from qiskit.quantum_info import random_unitary
@@ -119,6 +120,33 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         filename = self._get_resource_path("test_latex_global_phase.tex")
         circuit = QuantumCircuit(3, global_phase=1.57079632679)
         circuit.h(range(3))
+
+        circuit_drawer(circuit, filename=filename, output="latex_source")
+
+        self.assertEqualToReference(filename)
+
+    def test_zero_operand_gate(self):
+        """Test a zero-operand instruction (e.g. a stand-alone GlobalPhaseGate)
+        is drawn as a multigate spanning every qubit wire, positioned in
+        circuit order (see qiskit#9962)."""
+        filename = self._get_resource_path("test_latex_zero_operand_gate.tex")
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.append(GlobalPhaseGate(pi), [])
+        circuit.x(0)
+
+        circuit_drawer(circuit, filename=filename, output="latex_source")
+
+        self.assertEqualToReference(filename)
+
+    def test_zero_operand_gate_single_qubit(self):
+        """A single-qubit circuit is the boundary case for the zero-operand
+        box: it must draw the same plain single-wire box as any other
+        one-qubit gate, rather than crashing (see qiskit#9962)."""
+        filename = self._get_resource_path("test_latex_zero_operand_gate_single_qubit.tex")
+        circuit = QuantumCircuit(1)
+        circuit.append(GlobalPhaseGate(pi), [])
+        circuit.h(0)
 
         circuit_drawer(circuit, filename=filename, output="latex_source")
 
