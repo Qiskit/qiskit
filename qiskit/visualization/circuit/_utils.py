@@ -497,11 +497,35 @@ def _get_layered_instructions(
                 clbits.remove(wire)
 
     nodes = [
-        [node for node in layer if not node.qargs or any(q in qubits for q in node.qargs)]
+        [
+            node
+            for node in layer
+            if _is_zero_operand_gate(node) or any(q in qubits for q in node.qargs)
+        ]
         for layer in nodes
     ]
 
     return qubits, clbits, nodes
+
+
+def _is_zero_operand_gate(node):
+    """Whether ``node`` is a real zero-operand *gate* (e.g. a stand-alone
+    ``GlobalPhaseGate``), as opposed to a zero-operand *directive* (e.g. a
+    classical ``Store`` on a ``Var``).
+
+    Both have empty ``qargs``/``cargs``, but only the former is meant to be
+    visible in circuit drawings (see qiskit#9962); directives have never had
+    any rendering for this case, on any drawer, and shouldn't gain one as a
+    side effect of fixing gates. This predicate is shared between the
+    zero-operand layer insertion below and the final qubit-pruning filter
+    above, so that both treat the two cases identically -- a node with no
+    qargs and no cargs that's *also* a directive (e.g. ``Store``) is in fact
+    already reachable via `dag.layers()` through its `Var`, independently of
+    the insertion logic below, and must be filtered the same way a pruned
+    real instruction would be, or it reaches drawer code that has never had
+    to handle it and was never meant to.
+    """
+    return not node.qargs and not node.cargs and not getattr(node.op, "_directive", False)
 
 
 # Generated with AI assistance (Claude Code, Claude Sonnet 4.6); see PR description
@@ -533,11 +557,7 @@ def _insert_zero_operand_layers(nodes, dag, circuit):
     every wire they touch), so this is safe even when left-justification
     compacts other, independent instructions out of their original order.
     """
-    zero_operand_nodes = deque(
-        node
-        for node in dag.op_nodes()
-        if not node.qargs and not node.cargs and not getattr(node.op, "_directive", False)
-    )
+    zero_operand_nodes = deque(node for node in dag.op_nodes() if _is_zero_operand_gate(node))
     if not zero_operand_nodes:
         return
 
