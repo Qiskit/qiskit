@@ -1159,7 +1159,11 @@ class TextDrawing:
 
         elif getattr(op, "_directive", False):
             # barrier
-            if not self.plotbarriers:
+            # A zero-qarg directive (e.g. a classical `Store` on a `Var`) has
+            # nothing to draw on any qubit wire; leave it invisible, matching
+            # its behavior before zero-operand nodes could reach this point at
+            # all (see qiskit#9962).
+            if not self.plotbarriers or not node.qargs:
                 return layer, current_cons, current_cons_cond, connection_label
 
             top_qubit = min(node.qargs, key=lambda q: self._wire_map.get(q, float("inf")))

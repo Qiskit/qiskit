@@ -518,6 +518,11 @@ def _insert_zero_operand_layers(nodes, dag, circuit):
     original circuit order) that does have operands, which keeps it visually
     in place without having to share a column with anything else.
 
+    Directives (e.g. a classical ``Store`` on a ``Var``, which also has no
+    qargs or cargs) are deliberately excluded: drawers have no rendering for
+    them regardless of layering and never have, so giving one its own layer
+    would only insert a visibly empty column with nothing drawn in it.
+
     Note: ``DAGOpNode`` identity/equality is not stable across separate
     ``dag.layers()``/``dag.op_nodes()`` calls (each traversal can hand back
     distinct wrapper objects, even for the same logical node), so nodes can't
@@ -528,7 +533,11 @@ def _insert_zero_operand_layers(nodes, dag, circuit):
     every wire they touch), so this is safe even when left-justification
     compacts other, independent instructions out of their original order.
     """
-    zero_operand_nodes = deque(node for node in dag.op_nodes() if not node.qargs and not node.cargs)
+    zero_operand_nodes = deque(
+        node
+        for node in dag.op_nodes()
+        if not node.qargs and not node.cargs and not getattr(node.op, "_directive", False)
+    )
     if not zero_operand_nodes:
         return
 
@@ -545,6 +554,9 @@ def _insert_zero_operand_layers(nodes, dag, circuit):
             queue = occurrences.get(key)
             if queue:
                 insert_at = queue.popleft() + shift + 1
+            continue
+        if getattr(instruction.operation, "_directive", False):
+            # Excluded from zero_operand_nodes above; nothing to insert.
             continue
         nodes.insert(insert_at, [zero_operand_nodes.popleft()])
         shift += 1
