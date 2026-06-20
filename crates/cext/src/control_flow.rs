@@ -989,7 +989,9 @@ pub unsafe extern "C" fn qk_control_flow_loop_elements(
     };
 
     CLoopElements {
-        elements: elements.as_ptr(),
+        // SAFETY: isize and usize have the same size and alignment. The C API exposes
+        // these as opaque pointers; the signed bit pattern is preserved across the cast.
+        elements: elements.as_ptr() as *const usize,
         len: elements.len(),
     }
 }
