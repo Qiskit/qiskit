@@ -1090,6 +1090,32 @@ c[1] = measure q[1];
         )
         self.assertEqual(dumps(qc), expected_qasm)
 
+    def test_for_loop_with_var(self):
+        """Test that a for loop with a expr.Var instead of a Parameter outputs the expected result."""
+        qc = QuantumCircuit(1, 1)
+        cr = ClassicalRegister(5, "reps")
+        qc.add_register(cr)
+
+        with qc.for_loop(range(5), expr.Var.new("a", types.Uint(32))) as v:
+            qc.measure(0, 0)
+            qc.store(expr.index(cr, v), qc.clbits[0])
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                "bit[1] c;",
+                "bit[5] reps;",
+                "qubit[1] q;",
+                "for uint[32] a in [0:4] {",
+                "  c[0] = measure q[0];",
+                "  reps[a] = c[0];",
+                "}",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(qc), expected_qasm)
+
     def test_simple_while_loop(self):
         """Test that a simple while loop works correctly."""
         loop_body = QuantumCircuit(1)
