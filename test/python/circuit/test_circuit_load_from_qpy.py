@@ -1283,11 +1283,11 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_qpy_with_for_loop_var_loop_parameter(self):
         """QPY faithfully round-trips expr.Range for-loops with runtime loop variables."""
-        qc = QuantumCircuit(1)
-        target = qc.add_var("target", expr.lift(0, types.Uint(8)))
+        cr = ClassicalRegister(8, "cr")
+        qc = QuantumCircuit(QuantumRegister(1), cr)
         range_expr = expr.Range(expr.lift(0, types.Uint(8)), expr.lift(4, types.Uint(8)))
         with qc.for_loop(range_expr) as loop_var:
-            qc.store(target, loop_var)
+            qc.store(expr.index(cr, loop_var), True)
 
         qpy_file = io.BytesIO()
         dump(qc, qpy_file)
@@ -1305,6 +1305,23 @@ class TestLoadFromQPY(QiskitTestCase):
         loop_param = loaded_for_loop.params[1]
         self.assertIsInstance(loop_param, expr.Var)
         self.assertIn(f"for uint[8] {loop_param.name} in", dumps(loaded))
+
+    def test_qpy_with_for_loop_var_loop_counter(self):
+        """Test qpy serialization with a for loop that uses expr.Var as its counter."""
+        qc = QuantumCircuit(1, 1)
+        cr = ClassicalRegister(5, "reps")
+        qc.add_register(cr)
+
+        with qc.for_loop(range(5), expr.Var.new("a", types.Uint(32))) as v:
+            qc.measure(0, 0)
+            qc.store(expr.index(cr, v), qc.clbits[0])
+
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+        self.assertDeprecatedBitProperties(qc, new_circuit)
 
     def test_qpy_clbit_switch(self):
         """Test QPY serialization for a switch statement with a Clbit target."""

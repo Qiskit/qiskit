@@ -245,7 +245,7 @@ impl PyRangeExpr {
         stop: &Bound<PyAny>,
         step: Option<&Bound<PyAny>>,
         ty: Option<Type>,
-    ) -> PyResult<(Self, PyExpr)> {
+    ) -> PyResult<Py<Self>> {
         let start_expr = py_value_to_expr(py, start)?;
         let stop_expr = py_value_to_expr(py, stop)?;
         // Store whether the type was explicitly specified or implicitly determined
@@ -343,16 +343,19 @@ impl PyRangeExpr {
             (start_expr, stop_expr, step_expr)
         };
 
-        Ok((
-            PyRangeExpr(Range {
-                start: start_expr,
-                stop: stop_expr,
-                step: step_expr,
-                ty: target_ty,
-                constant,
-            }),
-            PyExpr(ExprKind::Range),
-        ))
+        Py::new(
+            py,
+            (
+                PyRangeExpr(Range {
+                    start: start_expr,
+                    stop: stop_expr,
+                    step: step_expr,
+                    ty: target_ty,
+                    constant,
+                }),
+                PyExpr(ExprKind::Range),
+            ),
+        )
     }
 
     #[getter]

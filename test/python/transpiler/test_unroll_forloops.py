@@ -206,40 +206,32 @@ class TestUnrollForLoops(QiskitTestCase):
 
     def test_unroll_constant_expr_range_with_var(self):
         """Constant expr.Range with an expr.Var loop variable unrolls by substituting the
-        Var with a constant Value on every iteration."""
+        Var with a constant Value on every iteration.
+
+        The loop variable indexes a register (it is the body's input var, so the body cannot
+        also capture an outer ``expr.Var``); unrolling substitutes the Var in the index
+        expression of each iteration.
+        """
         indexset = expr.Range(
             expr.lift(0, types.Uint(8)), expr.lift(10, types.Uint(8)), expr.lift(2, types.Uint(8))
         )
-        circuit = QuantumCircuit(1)
-        target = circuit.add_var("target", expr.lift(0, types.Uint(8)))
+        cr = ClassicalRegister(16, "cr")
+        circuit = QuantumCircuit(QuantumRegister(1), cr)
         with circuit.for_loop(indexset) as i:
-            circuit.store(target, i)
+            circuit.store(expr.index(cr, i), expr.lift(True))
 
-        expected = QuantumCircuit(1)
-        # Reuse the same Var to match identity with ``circuit``.
-        expected.add_capture(target)
-        expected.store(target, expr.lift(0, types.Uint(8)))
-        for index_loop in indexset.values():
-            expected.store(target, expr.lift(index_loop, types.Uint(8)))
-
-        # The unrolled circuit carries ``target`` as a captured var (it lived in the body
-        # via outer-scope capture, and the unrolled DAG keeps it as a capture); the outer
-        # ``add_var`` initial Store is preserved before the unrolled iterations.
         passmanager = PassManager()
         passmanager.append(UnrollForLoops())
         result = passmanager.run(circuit)
-        # We can't compare with the unrolled circuit directly because of var classification
-        # differences between the original ``add_var`` declaration and what the substitution
-        # produces. Compare the data instead.
-        result_stores = [
-            (inst.operation.lvalue, inst.operation.rvalue)
-            for inst in result.data
-            if inst.operation.name == "store"
+
+        self.assertFalse(any(inst.operation.name == "for_loop" for inst in result.data))
+        store_indices = [
+            inst.operation.lvalue.index for inst in result.data if inst.operation.name == "store"
         ]
-        expected_stores = [
-            (target, expr.lift(0, types.Uint(8))),
-        ] + [(target, expr.lift(index_loop, types.Uint(8))) for index_loop in indexset.values()]
-        self.assertEqual(result_stores, expected_stores)
+        self.assertEqual(
+            store_indices,
+            [expr.lift(value, types.Uint(8)) for value in indexset.values()],
+        )
 
     def test_unroll_constant_expr_range_with_explicit_var(self):
         """Explicit expr.Var loop variables unroll the same as auto-generated ones."""
@@ -247,42 +239,41 @@ class TestUnrollForLoops(QiskitTestCase):
         indexset = expr.Range(
             expr.lift(0, types.Uint(8)), expr.lift(6, types.Uint(8)), expr.lift(2, types.Uint(8))
         )
-        circuit = QuantumCircuit(1)
-        target = circuit.add_var("target", expr.lift(0, types.Uint(8)))
+        cr = ClassicalRegister(16, "cr")
+        circuit = QuantumCircuit(QuantumRegister(1), cr)
         with circuit.for_loop(indexset, loop_var):
-            circuit.store(target, loop_var)
+            circuit.store(expr.index(cr, loop_var), expr.lift(True))
 
         passmanager = PassManager()
         passmanager.append(UnrollForLoops())
         result = passmanager.run(circuit)
 
-        result_stores = [
-            (inst.operation.lvalue, inst.operation.rvalue)
-            for inst in result.data
-            if inst.operation.name == "store"
+        self.assertFalse(any(inst.operation.name == "for_loop" for inst in result.data))
+        store_indices = [
+            inst.operation.lvalue.index for inst in result.data if inst.operation.name == "store"
         ]
-        expected_stores = [
-            (target, expr.lift(0, types.Uint(8))),
-        ] + [(target, expr.lift(index_loop, types.Uint(8))) for index_loop in indexset.values()]
-        self.assertEqual(result_stores, expected_stores)
+        self.assertEqual(
+            store_indices,
+            [expr.lift(value, types.Uint(8)) for value in indexset.values()],
+        )
 
     def test_unroll_var_in_if_else_condition(self):
-        """Unrolling substitutes expr.Var loop variables in nested if-else conditions."""
+        """Unrolling substitutes expr.Var loop variables in nested if-else conditions.
+
+        The nested bodies act on qubits/clbits only (not an outer ``expr.Var``) because a body
+        with the input loop var cannot also capture outer variables.
+        """
         indexset = expr.Range(expr.lift(0, types.Uint(8)), expr.lift(3, types.Uint(8)))
         loop_var = expr.Var.new("i", types.Uint(8))
 
         circuit = QuantumCircuit(1, 1)
-        flag = circuit.add_var("flag", expr.lift(False, types.Bool()))
 
         true_body = QuantumCircuit(1, 1)
-        true_body.add_capture(flag)
-        true_body.store(flag, expr.lift(True, types.Bool()))
+        true_body.x(0)
         false_body = QuantumCircuit(1, 1)
         false_body.measure(0, 0)
 
-        body = QuantumCircuit(1, 1)
-        body.add_uninitialized_var(loop_var)
-        body.add_capture(flag)
+        body = QuantumCircuit(1, 1, inputs=[loop_var])
         body.if_else(
             expr.equal(loop_var, expr.lift(1, types.Uint(8))),
             true_body,
@@ -311,10 +302,10 @@ class TestUnrollForLoops(QiskitTestCase):
     def test_skip_continue_expr_range_with_var(self):
         """Unrolling is skipped when a continue appears in an expr.Range loop body."""
         indexset = expr.Range(expr.lift(0, types.Uint(8)), expr.lift(5, types.Uint(8)))
-        circuit = QuantumCircuit(1)
-        target = circuit.add_var("target", expr.lift(0, types.Uint(8)))
+        cr = ClassicalRegister(16, "cr")
+        circuit = QuantumCircuit(QuantumRegister(1), cr)
         with circuit.for_loop(indexset) as loop_var:
-            circuit.store(target, loop_var)
+            circuit.store(expr.index(cr, loop_var), expr.lift(True))
             circuit.continue_loop()
 
         result = UnrollForLoops()(circuit)
@@ -353,11 +344,11 @@ class TestUnrollForLoops(QiskitTestCase):
         indexset = expr.Range(
             expr.lift(0, types.Uint(8)), expr.lift(10, types.Uint(8)), expr.lift(2, types.Uint(8))
         )
-        circuit = QuantumCircuit(3, 1)
-        target = circuit.add_var("target", expr.lift(0, types.Uint(8)))
+        cr = ClassicalRegister(16, "cr")
+        circuit = QuantumCircuit(QuantumRegister(3), cr)
         with circuit.for_loop(indexset) as i:
             circuit.h([0, 1, 2])
-            circuit.store(target, i)
+            circuit.store(expr.index(cr, i), expr.lift(True))
 
         passmanager = PassManager()
         # Body has quantum depth 1, range has 5 values: 5*1 > max_target_depth=2 → skip unroll.

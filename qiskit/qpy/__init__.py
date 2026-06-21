@@ -469,8 +469,7 @@ Version 18
 ----------
 
 Version 18 adds support for serializing and deserializing classical
-:class:`~.expr.Range` expressions and runtime loop variables for
-:class:`.ForLoopOp` instructions.
+:class:`~.expr.Range` expressions used as :class:`.ForLoopOp` indexsets.
 
 New Expression.RANGE classical-expression element
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -483,16 +482,17 @@ QPY format versions below 18 cannot read or write this element; attempting to
 serialize a circuit that contains one with ``version < 18`` raises
 :exc:`~.UnsupportedFeatureForVersion`.
 
-New LOOP_VARIABLE instruction parameter type
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ForLoopOp runtime loop variable
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A new instruction-parameter value type ``LOOP_VARIABLE`` (type key ``w``) is supported
-for the second parameter of :class:`.ForLoopOp` when it is a standalone real-time
-variable. The payload reuses the ``EXPR_VAR_DECLARATION`` wire format (UUID, usage,
-type, and name) used for circuit-scope standalone variables, but the declaration is
-written directly in the instruction parameter slot rather than in the circuit header
-variable table. QPY format versions below 18 continue to emit ``Null`` for this slot
-when dumping (lossy by design), and cannot deserialize ``LOOP_VARIABLE`` payloads.
+When a :class:`.ForLoopOp` loop parameter is a real-time :class:`~.expr.Var` (paired with
+an :class:`~.expr.Range` indexset), the loop variable is the loop body's single ``input``
+variable.  It is therefore serialized as part of the body circuit's variable table, and the
+instruction's loop-parameter slot is written as ``Null``.  On read, the loop variable is
+re-inferred from the body circuit's lone ``input`` variable, so no dedicated instruction
+parameter element is needed.  This mechanism is independent of the QPY version (it reuses the
+existing body-circuit variable serialization), but the ``expr.Range`` indexset it is paired with
+requires version 18 as described above.
 
 .. _qpy_version_17:
 

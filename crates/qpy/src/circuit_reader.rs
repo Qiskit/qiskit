@@ -35,16 +35,10 @@ use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::instruction::{Parameters, create_py_op};
 use qiskit_circuit::interner::Interned;
-use qiskit_circuit::operations::ArrayType;
-use qiskit_circuit::operations::PauliBased;
-use qiskit_circuit::operations::PauliProductRotation;
-use qiskit_circuit::operations::UnitaryGate;
 use qiskit_circuit::operations::{
-    BoxDuration, CaseSpecifier, Condition, StandardInstructionType, SwitchTarget,
-};
-use qiskit_circuit::operations::{
-    ControlFlow, ControlFlowInstruction, ControlFlowType, LoopVar, Param, PauliProductMeasurement,
-    StandardInstruction,
+    ArrayType, BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction,
+    ControlFlowType, LoopParam, Param, PauliBased, PauliProductMeasurement, PauliProductRotation,
+    StandardInstruction, StandardInstructionType, SwitchTarget, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter::parameter_expression::{ParameterExpression, PyParameter};
@@ -589,6 +583,11 @@ fn unpack_control_flow(
             let mut instruction_values =
                 get_instruction_values(instruction, qpy_data, Endian::Big)?;
             param_values = instruction_values.split_off(2);
+            let [GenericValue::Circuit(circuit)] = param_values.as_slice() else {
+                return Err(QpyError::DeserializationError(
+                    "for loops must have a single quantum-circuit body".to_owned(),
+                ));
+            };
             let mut iter = instruction_values.into_iter();
             let (mut collection_value_pack, loop_param_value_pack) =
                 iter.next().zip(iter.next()).ok_or(QpyError::MissingData(
@@ -601,10 +600,37 @@ fn unpack_control_flow(
             let collection = unpack_for_collection(&collection_value_pack)?;
             let loop_param = match loop_param_value_pack {
                 GenericValue::ParameterExpressionSymbol(symbol) => {
-                    Some(LoopVar::Compile(Arc::unwrap_or_clone(symbol)))
+                    Some(LoopParam::Parameter(Arc::unwrap_or_clone(symbol)))
                 }
-                GenericValue::LoopVariable(var) => Some(LoopVar::Runtime(var)),
-                _ => None,
+                GenericValue::Null => Python::attach(|py| -> Result<_, QpyError> {
+                    // When writing for loops, we serialise a `Var` loop parameter in the
+                    // instruction's parameters field as if it were null, because the `Var` isn't
+                    // part of the containing circuit.  Instead, we re-infer its existence from the
+                    // `input` variables of the body circuit.
+                    let data = circuit
+                        .bind(py)
+                        .getattr("_data")?
+                        .cast_into::<PyCircuitData>()
+                        .map_err(PyErr::from)?
+                        .borrow();
+                    let mut vars = data.vars_stretches_view().iter_vars(VarType::Input);
+                    let Some(v) = vars.next() else {
+                        // No input vars, so nothing to infer; this is a legacy-type body.
+                        return Ok(None);
+                    };
+                    match vars.next() {
+                        Some(_) => Err(QpyError::DeserializationError(
+                            "for loop bodies must have at most one input variable".to_owned(),
+                        )),
+                        None => Ok(Some(LoopParam::Variable(v.clone()))),
+                    }
+                })?,
+                other => {
+                    return Err(QpyError::InvalidValueType {
+                        expected: "a parameter or none".to_string(),
+                        actual: format!("{other:?}"),
+                    });
+                }
             };
             ControlFlow::ForLoop {
                 collection,
@@ -1345,7 +1371,7 @@ fn add_standalone_vars(
             ExpressionType::Bool => classical::types::Type::Bool,
             ExpressionType::Duration => classical::types::Type::Duration,
             ExpressionType::Float => classical::types::Type::Float,
-            ExpressionType::Uint(val) => classical::types::Type::Uint(val.try_into()?),
+            ExpressionType::Uint(val) => classical::types::Type::Uint(val),
         };
         let uuid = u128::from_be_bytes(packed_var.uuid_bytes);
         let name = packed_var.name.clone();

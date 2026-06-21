@@ -1261,6 +1261,13 @@ class QASM3Builder:
                         f" '{indexset}'."
                     ) from None
             body_ast = ast.ProgramBlock(self.build_current_scope())
+        # The loop-variable type follows the loop parameter when it is an `expr.Var` (this covers
+        # both an `expr.Range` indexset and a Python `range`/integer list paired with a real-time
+        # `Var` counter).  Otherwise it follows the indexset: the `expr.Range` element type when the
+        # loop variable was auto-dropped (`loop_parameter is None`), or `int` for the legacy
+        # Python-range / integer-list form.
+        if isinstance(loop_parameter, expr.Var):
+            type_ = _build_ast_type(loop_parameter.type)
         return ast.ForLoopStatement(indexset_ast, loop_parameter_ast, body_ast, type_=type_)
 
     def build_annotation(self, annotation: Annotation) -> ast.Annotation:

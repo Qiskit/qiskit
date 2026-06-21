@@ -23,6 +23,7 @@ use std::{fmt, vec};
 use crate::bit::{ClassicalRegister, ShareableClbit};
 use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::classical::expr;
+use crate::classical::expr::Var;
 use crate::converters::QuantumCircuitData;
 use crate::duration::Duration;
 use crate::operations::custom_traits::{ClonableOp, ComparableOp};
@@ -482,22 +483,6 @@ pub enum ForCollection {
     Range(expr::Range),
 }
 
-/// The variable bound to each iteration value in a for-loop.
-///
-/// A compile-time [`Symbol`] (wrapping a Python `Parameter`) can be substituted at transpile
-/// time by `assign_parameters`; a runtime [`expr::Var`] is bound by the hardware at runtime and
-/// can only be unrolled by substituting it in the body's classical expressions.
-///
-/// Note: this enum intentionally does not derive `IntoPyObjectRef` because the inner
-/// `Symbol` / `expr::Var` types only provide `IntoPyObject` for owned values, not for
-/// references. All conversions to Python use owned `LoopVar` via clone.
-#[derive(Clone, Debug, IntoPyObject, FromPyObject, PartialEq, Eq)]
-pub enum LoopVar {
-    /// A compile-time [`Symbol`] (a Python `Parameter`).
-    Compile(Symbol),
-    /// A runtime real-time variable [`expr::Var`].
-    Runtime(expr::Var),
-}
 impl ForCollection {
     pub fn is_empty(&self) -> bool {
         match self {
@@ -522,6 +507,47 @@ pub struct ControlFlowInstruction {
     pub num_clbits: u32,
 }
 
+/// The variable bound to each iteration value in a for-loop.
+///
+/// A compile-time [`Symbol`] (wrapping a Python `Parameter`) can be substituted at transpile
+/// time by `assign_parameters`; a runtime [`Var`] is the body's input variable, bound by the
+/// loop header at runtime and only unrollable by substituting it in the body's classical
+/// expressions.
+#[derive(Clone, Debug, PartialEq)]
+pub enum LoopParam {
+    /// A compile-time [`Symbol`] (a Python `Parameter`).
+    Parameter(Symbol),
+    /// A runtime real-time variable [`Var`].
+    Variable(Var),
+}
+
+impl<'a, 'py> FromPyObject<'a, 'py> for LoopParam {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        if let Ok(parameter) = ob.extract::<Symbol>() {
+            Ok(LoopParam::Parameter(parameter))
+        } else {
+            ob.extract::<Var>()
+                .map(LoopParam::Variable)
+                .map_err(PyErr::from)
+        }
+    }
+}
+
+impl<'py> IntoPyObject<'py> for LoopParam {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        match self {
+            LoopParam::Parameter(symbol) => symbol.into_pyobject(py),
+            LoopParam::Variable(var) => var.into_pyobject(py),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 #[repr(align(8))]
 pub enum ControlFlow {
@@ -533,7 +559,7 @@ pub enum ControlFlow {
     ContinueLoop,
     ForLoop {
         collection: ForCollection,
-        loop_param: Option<LoopVar>,
+        loop_param: Option<LoopParam>,
     },
     IfElse {
         condition: Condition,
@@ -793,7 +819,7 @@ pub enum ControlFlowView<'a, T> {
     ContinueLoop,
     ForLoop {
         collection: &'a ForCollection,
-        loop_param: Option<&'a LoopVar>,
+        loop_param: Option<&'a LoopParam>,
         body: &'a T,
     },
     IfElse {

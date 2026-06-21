@@ -342,12 +342,14 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         "_built",
         "_forbidden_message",
         "_instructions",
+        "_loop_var",
+        "_loop_var_explicit",
+        "_loop_var_used",
         "_parent",
         "_stretches_capture",
         "_stretches_local",
         "_vars_capture",
         "_vars_local",
-        "_vars_pending",
         "global_phase",
         "registers",
     )
@@ -361,6 +363,8 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         registers: Iterable[Register] = (),
         allow_jumps: bool = True,
         forbidden_message: str | None = None,
+        loop_var: expr.Var | None = None,
+        loop_var_explicit: bool = False,
     ):
         """
         Args:
@@ -386,16 +390,25 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
                 pseudo scopes where the state machine of the builder scopes has changed into a
                 position where no instructions should be accepted, such as when inside a ``switch``
                 but outside any cases.
+            loop_var: If given, a classical :class:`~.expr.Var` used as the loop counter of an
+                enclosing :class:`.ForLoopOp`.  It is in scope within the body, and is emitted as
+                the body's single ``input`` variable rather than as a captured or declared local.
+            loop_var_explicit: Whether ``loop_var`` was supplied explicitly by the user.  An
+                explicit loop var is kept as a body input even if it is never referenced (mirroring
+                explicit :class:`~.Parameter` loop variables); an auto-generated one is dropped if
+                unused.
         """
         self._instructions = CircuitData(qubits, clbits)
         self.registers = set(registers)
         self.global_phase = 0.0
         self._vars_local = {}
         self._vars_capture = {}
-        # `_vars_pending` holds loop variables that should only be promoted to declared
-        # local vars if the user actually references them inside the body (mirrors the
-        # capture-on-use lazy promotion of `_vars_capture`).
-        self._vars_pending = {}
+        self._loop_var = loop_var
+        self._loop_var_explicit = loop_var_explicit
+        # Set on first reference of the loop var inside the body.  Together with
+        # `_loop_var_explicit` this decides whether the loop var is emitted as the body's input
+        # variable: an auto-generated loop var that is never used is dropped.
+        self._loop_var_used = False
         self._stretches_local = {}
         self._stretches_capture = {}
         self._allow_jumps = allow_jumps
@@ -502,25 +515,6 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
             raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
         self._vars_local[var.name] = var
 
-    def add_pending_loop_var(self, var: expr.Var):
-        """Register a loop variable that should only become a declared local var on first use.
-
-        This mirrors how `_vars_capture` is populated lazily by `use_var` the variable
-        is in scope for resolution, but only emitted into the built body if actually referenced
-        in a classical expression. Used by `ForLoopContext` when auto-generating a loop
-        `~.expr.Var so that an unused auto-generated variable is dropped, matching the
-        existing behavior for auto-generated :class:`~.Parameter` loop variables.
-        """
-        if self._built:
-            raise CircuitError("Cannot add resources after the scope has been built.")
-        if (previous := self._stretches_local.get(var.name)) is not None:
-            raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
-        if (previous := self._vars_local.get(var.name)) is not None:
-            raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
-        if var.name in self._vars_capture or var.name in self._stretches_capture:
-            raise CircuitError(f"cannot add '{var}' as its name shadows an outer-scope variable")
-        self._vars_pending[var.name] = var
-
     def add_stretch(self, stretch: expr.Stretch):
         if self._built:
             raise CircuitError("Cannot add resources after the scope has been built.")
@@ -545,9 +539,9 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
     def get_var(self, name: str):
         if name in self._stretches_local:
             return None
+        if self._loop_var is not None and self._loop_var.name == name:
+            return self._loop_var
         if (out := self._vars_local.get(name)) is not None:
-            return out
-        if (out := self._vars_pending.get(name)) is not None:
             return out
         return self._parent.get_var(name)
 
@@ -561,18 +555,15 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
     def use_var(self, var: expr.Var):
         if (local := self._stretches_local.get(var.name)) is not None:
             raise CircuitError(f"cannot use '{var}' which is shadowed by the local '{local}'")
+        if self._loop_var is not None and self._loop_var == var:
+            # The loop var is owned by the loop header and input into the body; mark it used so
+            # `build` emits it as the body's input variable.
+            self._loop_var_used = True
+            return
         if (local := self._vars_local.get(var.name)) is not None:
             if local == var:
                 return
             raise CircuitError(f"cannot use '{var}' which is shadowed by the local '{local}'")
-        if (pending := self._vars_pending.get(var.name)) is not None:
-            if pending == var:
-                # First use of a pending loop variable: promote to declared local so it
-                # appears in the built body's declared vars.
-                self._vars_local[var.name] = var
-                del self._vars_pending[var.name]
-                return
-            raise CircuitError(f"cannot use '{var}' which is shadowed by the local '{pending}'")
         if self._vars_capture.get(var.name) == var:
             return
         if self._parent.get_var(var.name) != var:
@@ -713,6 +704,14 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
             self._instructions.clbits,
             *self.registers,
             global_phase=self.global_phase,
+            # The loop var is emitted as the body's single input only if it was actually
+            # referenced, or if the user supplied it explicitly (kept even when unused, matching
+            # explicit `Parameter` loop variables).  An unused auto-generated loop var is dropped.
+            inputs=(
+                (self._loop_var,)
+                if self._loop_var is not None and (self._loop_var_used or self._loop_var_explicit)
+                else ()
+            ),
             captures=itertools.chain(self._vars_capture.values(), self._stretches_capture.values()),
         )
         for var in self._vars_local.values():
@@ -801,4 +800,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         out._parent = self._parent
         out._allow_jumps = self._allow_jumps
         out._forbidden_message = self._forbidden_message
+        out._loop_var = self._loop_var
+        out._loop_var_explicit = self._loop_var_explicit
+        out._loop_var_used = self._loop_var_used
         return out

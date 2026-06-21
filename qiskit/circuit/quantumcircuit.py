@@ -2910,10 +2910,17 @@ class QuantumCircuit:
             is_parameter = False
             for idx, param in enumerate(params):
                 is_parameter = is_parameter or isinstance(param, ParameterExpression)
-                if is_for_loop and idx == 1:
-                    continue
+                # Control-flow ops validate their own classical expressions through their blocks
+                # and captures, with one exception: a `ForLoopOp`'s `expr.Range` indexset
+                # (``params[0]``) may have free variables that must be resolved/captured against
+                # the enclosing scope here.  The loop variable (``params[1]``) is the body's
+                # ``input`` var and must not be validated against the outer scope.
                 if isinstance(param, expr.Expr):
-                    param = _validate_expr(circuit_scope, param)
+                    if is_for_loop:
+                        if idx != 1:
+                            param = _validate_expr(circuit_scope, param)
+                    elif not isinstance(operation, ControlFlowOp):
+                        param = _validate_expr(circuit_scope, param)
             if copy and is_parameter:
                 operation = _copy.deepcopy(operation)
         if isinstance(operation, ControlFlowOp):
@@ -3567,10 +3574,6 @@ class QuantumCircuit:
             else:
                 self._control_flow_scopes[-1].use_var(var)
             return
-        if self._data.num_input_vars:
-            raise CircuitError(
-                "circuits with input variables cannot be enclosed, so they cannot be closures"
-            )
         if isinstance(var, expr.Stretch):
             self._data.add_captured_stretch(self._prepare_new_stretch(var))
         else:
@@ -3601,10 +3604,10 @@ class QuantumCircuit:
             CircuitError: if the variable cannot be created due to shadowing an existing variable.
         """
         if self._control_flow_scopes:
+            # ForLoopOp uses an input variable for its loop variable, but that should be exactly one
+            # input variable and handled separately.
             raise CircuitError("cannot add an input variable in a control-flow scope")
 
-        if self._data.num_captured_vars or self._data.num_captured_stretches:
-            raise CircuitError("circuits to be enclosed with captures cannot have input variables")
         if isinstance(name_or_var, expr.Var) and type_ is not None:
             raise ValueError("cannot give an explicit type with an existing Var")
         var = self._prepare_new_var(name_or_var, type_)
@@ -4514,7 +4517,8 @@ class QuantumCircuit:
 
         Args:
             qubit: qubit(s) to measure.
-            cbit: classical bit(s) to place the measurement result(s) in.
+            cbit: classical bit(s) to place the measurement result(s) in,
+                or a :class:`.expr.Var` of :class:`.types.Uint` type indexing the target clbit.
 
         Returns:
             qiskit.circuit.InstructionSet: handle to the added instructions.
@@ -7175,6 +7179,8 @@ class QuantumCircuit:
         registers: Iterable[Register] = (),
         allow_jumps: bool = True,
         forbidden_message: str | None = None,
+        loop_var: expr.Var | None = None,
+        loop_var_explicit: bool = False,
     ) -> int:
         """Add a scope for collecting instructions into this circuit.
 
@@ -7188,6 +7194,11 @@ class QuantumCircuit:
             allow_jumps: Whether this scope allows jumps to be used within it.
             forbidden_message: If given, all attempts to add instructions to this scope will raise a
                 :exc:`.CircuitError` with this message.
+            loop_var: If given, the runtime loop variable of a for-loop block.  This should not be
+                set for the legacy :class:`.Parameter` form.
+            loop_var_explicit: Whether ``loop_var`` was supplied explicitly by the user.  An
+                explicit loop var is kept as the body's input even if it is never referenced; an
+                auto-generated one is dropped if unused.
 
         Returns:
             the depth of control-flow scopes (after the push)
@@ -7200,6 +7211,8 @@ class QuantumCircuit:
                 registers=registers,
                 allow_jumps=allow_jumps,
                 forbidden_message=forbidden_message,
+                loop_var=loop_var,
+                loop_var_explicit=loop_var_explicit,
             )
         )
         return len(self._control_flow_scopes)
@@ -7465,7 +7478,14 @@ class QuantumCircuit:
     ) -> InstructionSet: ...
 
     def for_loop(
-        self, indexset, loop_parameter=None, body=None, qubits=None, clbits=None, *, label=None
+        self,
+        indexset,
+        loop_parameter=None,
+        body=None,
+        qubits=None,
+        clbits=None,
+        *,
+        label=None,
     ):
         """Create a ``for`` loop on this circuit.
 
@@ -7500,13 +7520,15 @@ class QuantumCircuit:
                 See :class:`~.ForLoopOp` for the full compatibility table with ``loop_parameter``.
             loop_parameter (Optional[Parameter | expr.Var]): The placeholder bound to each
                 ``indexset`` value inside ``body``. For a Python :class:`range`/integer list,
-                this must be a :class:`~.Parameter` (or ``None``); for an :class:`~.expr.Range`,
-                this must be an :class:`~.expr.Var` (or ``None``). In the context-manager form,
-                if this argument is not supplied a loop variable is auto-allocated whose type
-                follows the ``indexset`` (:class:`~.Parameter` for ``range``/list,
-                :class:`~.expr.Var` for :class:`~.expr.Range`) and returned as the value of the
-                ``with`` statement; an auto-generated loop variable that the body never
-                references is dropped.
+                this may be a :class:`~.Parameter`, an :class:`~.expr.Var` of type
+                :class:`~.types.Uint`, or ``None``; for an :class:`~.expr.Range`, this must be an
+                :class:`~.expr.Var` of type :class:`~.types.Uint` (or ``None``).
+                In the context-manager form, if this argument is not supplied a loop variable is
+                auto-allocated whose type follows the ``indexset`` (:class:`~.Parameter` for
+                ``range``/list, :class:`~.expr.Var` for :class:`~.expr.Range`) and returned as the
+                value of the ``with`` statement; an auto-generated loop variable that the body
+                never references is dropped.  An :class:`~.expr.Var` loop variable is input into
+                the body rather than declared or captured (see :class:`~.ForLoopOp`).
 
                 If this argument is ``None`` in the manual form of this method, ``body`` will be
                 repeated once for each of the items in ``indexset`` but their values will be

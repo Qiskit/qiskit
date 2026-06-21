@@ -2092,6 +2092,24 @@ class TestControlFlowBuilders(QiskitTestCase):
             pass
         self.assertIs(test_parameter, parameter)
 
+    def test_for_accepts_var_input(self):
+        var = expr.Var.new("a", types.Uint(32))
+        test = QuantumCircuit(1, 1)
+        cr = ClassicalRegister(5, "cr")
+        test.add_register(cr)
+        with test.for_loop(range(3), var) as test_var:
+            test.measure(0, 0)
+            test.store(expr.index(cr, test_var), test.clbits[0])
+        self.assertEqual(var, test_var)
+
+        expected = QuantumCircuit(1, 1)
+        expected.add_register(cr)
+        body = QuantumCircuit(expected.qubits, expected.clbits, cr, inputs=(var,))
+        body.measure(0, 0)
+        body.store(expr.index(cr, var), body.clbits[0])
+        expected.for_loop(range(3), var, body, expected.qubits, expected.clbits)
+        self.assertEqual(test, expected)
+
     def test_for_binds_parameter_to_op(self):
         """Test that the ``for`` manager binds a parameter to the resulting :obj:`.ForLoopOp` if a
         user-generated one is given, or if a generated parameter is used.  Generated parameters that
@@ -3970,16 +3988,14 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
             with self.assertRaisesRegex(CircuitError, "cannot use.*shadowed"):
                 base.store(outer, expr.lift(True))
 
-    def test_cannot_use_var_shadowing_pending_loop_var(self):
-        """A ``Var`` sharing an auto-generated loop variable's name cannot be used while that
-        loop variable is still pending.
+    def test_cannot_use_var_clashing_with_loop_var_name(self):
+        """A *different* ``Var`` sharing the auto-generated loop variable's name cannot be used
+        inside the body.
 
         Entering ``for_loop`` with an :class:`~.expr.Range` auto-generates an :class:`~.expr.Var`
-        loop variable that is registered *lazily* (it only becomes a declared local on first use,
-        so an unreferenced one is dropped).  This locks in the guard in
-        :meth:`.ControlFlowBuilderBlock.use_var` that rejects a *different* variable of the same
-        name while the loop variable is pending; a regression here would let the auto-generated
-        loop variable be silently shadowed.
+        loop variable that is the body's ``input`` variable and is in scope by name.  A different
+        variable of the same name is therefore not in scope; a regression here would let the
+        auto-generated loop variable be silently shadowed.
         """
         base = QuantumCircuit()
         indexset = expr.Range(expr.lift(0, types.Uint(8)), expr.lift(4, types.Uint(8)))
@@ -3987,7 +4003,7 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
             clash = expr.Var.new(loop_var.name, loop_var.type)
             self.assertNotEqual(clash, loop_var)
             target = base.add_var("target", expr.lift(0, types.Uint(8)))
-            with self.assertRaisesRegex(CircuitError, "cannot use.*shadowed"):
+            with self.assertRaisesRegex(CircuitError, "cannot close over.*not in scope"):
                 base.store(target, clash)
 
     def test_cannot_use_beyond_outer_shadow(self):

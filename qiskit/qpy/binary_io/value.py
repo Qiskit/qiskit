@@ -911,34 +911,6 @@ def read_standalone_vars(file_obj, num_vars):
     return read_vars, var_order
 
 
-def _write_loop_variable(file_obj, var, version):
-    if not var.standalone:
-        raise exceptions.QpyError(f"ForLoop loop parameter must be a standalone Var, not '{var}'.")
-    name = var.name.encode(common.ENCODE)
-    file_obj.write(
-        struct.pack(
-            formats.EXPR_VAR_DECLARATION_PACK,
-            *formats.EXPR_VAR_DECLARATION(
-                var.var.bytes, type_keys.ExprVarDeclaration.LOCAL, len(name)
-            ),
-        )
-    )
-    _write_expr_type(file_obj, var.type, version)
-    file_obj.write(name)
-
-
-def _read_loop_variable(file_obj, version):
-    data = formats.EXPR_VAR_DECLARATION._make(
-        struct.unpack(
-            formats.EXPR_VAR_DECLARATION_PACK,
-            file_obj.read(formats.EXPR_VAR_DECLARATION_SIZE),
-        )
-    )
-    type_ = _read_expr_type(file_obj)
-    name = file_obj.read(data.name_size).decode(common.ENCODE)
-    return expr.Var(uuid.UUID(bytes=data.uuid_bytes), type_, name=name)
-
-
 def _write_standalone_var(file_obj, var, type_key, version):
     name = var.name.encode(common.ENCODE)
     file_obj.write(
@@ -1053,12 +1025,6 @@ def dumps_value(
             standalone_var_indices=standalone_var_indices,
             version=version,
         )
-    elif type_key == type_keys.Value.LOOP_VARIABLE:
-        if version < 18:
-            raise exceptions.UnsupportedFeatureForVersion(
-                "ForLoop runtime loop variable", required=18, target=version
-            )
-        binary_data = common.data_to_binary(obj, _write_loop_variable, version=version)
     else:
         raise exceptions.QpyError(f"Serialization for {type_key} is not implemented in value I/O.")
 
@@ -1175,13 +1141,6 @@ def loads_value(
             standalone_vars=standalone_vars,
             version=version,
         )
-    if type_key == type_keys.Value.LOOP_VARIABLE:
-        if version < 18:
-            raise exceptions.UnsupportedFeatureForVersion(
-                "ForLoop runtime loop variable", required=18, target=version
-            )
-        return common.data_from_binary(binary_data, _read_loop_variable, version=version)
-
     raise exceptions.QpyError(f"Serialization for {type_key} is not implemented in value I/O.")
 
 

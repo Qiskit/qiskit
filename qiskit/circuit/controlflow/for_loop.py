@@ -19,6 +19,8 @@ from typing import TYPE_CHECKING
 from collections.abc import Iterable, Mapping
 
 from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.classical import expr
+from qiskit.circuit.classical.types import Uint
 from qiskit.circuit.exceptions import CircuitError
 from qiskit._accelerate.circuit import ControlFlowType
 from qiskit.circuit.classical.expr import Expr, Range, Var
@@ -37,19 +39,29 @@ class ForLoopOp(ControlFlowOp):
     The ``indexset`` selects the loop semantics:
 
     * A Python :class:`range` or an iterable of integers is a compile-time index
-      set.  The ``loop_parameter`` must be a :class:`~.Parameter` (or ``None``),
-      and the loop can be unrolled by :class:`~qiskit.transpiler.passes.UnrollForLoops`
-      via ``body.assign_parameters``.
+      set.  The ``loop_parameter`` may be a :class:`~.Parameter` (the legacy form, unrolled by
+      :class:`~qiskit.transpiler.passes.UnrollForLoops` via ``body.assign_parameters``), an
+      :class:`~.expr.Var` of type :class:`~.types.Uint` (a real-time counter), or ``None``.
     * A classical :class:`~.expr.Range` (constant or dynamic) is a real-time index
-      set.  The ``loop_parameter`` must be an :class:`~.expr.Var` (or ``None``).
+      set.  The ``loop_parameter`` must be an :class:`~.expr.Var` of type :class:`~.types.Uint`
+      (or ``None``); a :class:`~.Parameter` cannot represent a runtime-bound iteration value.
       A constant :class:`~.expr.Range` paired with an :class:`~.expr.Var` is still
       unrollable: :class:`~qiskit.transpiler.passes.UnrollForLoops` materializes
       each iteration value and substitutes the :class:`~.expr.Var` in every
       classical expression in the body.
 
-    Mixing a :class:`~.Parameter` with an :class:`~.expr.Range`, or an
-    :class:`~.expr.Var` with a Python :class:`range`/integer list, raises
-    :class:`~.CircuitError`.
+    Mixing a :class:`~.Parameter` with an :class:`~.expr.Range` raises :class:`~.CircuitError`.
+
+    Data model
+    ----------
+
+    There is exactly one "block" in a for-loop op, which is the body of the loop.  The circuit block
+    may take exactly zero or one ``input`` variable (see :meth:`.QuantumCircuit.add_input_var`).  If
+    the body takes one input variable, then ``loop_parameter`` must be equal to that variable, and
+    it represents the loop variable: it is owned by the loop's implicit header (which assigns each
+    iteration's value) and is *input* into the body, rather than being a local or captured variable
+    of the body.  If the body takes zero input variables, ``loop_parameter`` may be either ``None``
+    (to indicate no binding) or a :class:`.Parameter` (a legacy form that should be avoided).
     """
 
     _control_flow_type = ControlFlowType.ForLoop
@@ -67,10 +79,11 @@ class ForLoopOp(ControlFlowOp):
                 :class:`range`, an iterable of integers, or a classical
                 :class:`~.expr.Range`.
             loop_parameter: The placeholder bound to each ``indexset`` value
-                inside ``body``. For a Python ``range``/integer list, must be a
-                :class:`~.Parameter` or ``None``. For an :class:`~.expr.Range`,
-                must be an :class:`~.expr.Var` or ``None``. ``None`` simply
-                repeats the body without binding any variable.
+                inside ``body``. For a Python ``range``/integer list, may be a
+                :class:`~.Parameter`, an :class:`~.expr.Var` of type :class:`~.types.Uint`,
+                or ``None``. For an :class:`~.expr.Range`, must be an :class:`~.expr.Var` of
+                type :class:`~.types.Uint` or ``None`` (a :class:`~.Parameter` is rejected).
+                ``None`` simply repeats the body without binding any variable.
             body: The loop body to be repeatedly executed.
             label: An optional label for identifying the instruction.
 
@@ -90,7 +103,6 @@ class ForLoopOp(ControlFlowOp):
 
     @params.setter
     def params(self, parameters):
-
         from qiskit.circuit import QuantumCircuit
 
         indexset, loop_parameter, body = parameters
@@ -101,12 +113,30 @@ class ForLoopOp(ControlFlowOp):
                 "be either of type Parameter, expr.Var, or None, but received "
                 f"{type(loop_parameter)}."
             )
+        if isinstance(loop_parameter, expr.Var) and loop_parameter.type.kind is not Uint:
+            raise CircuitError(
+                "ForLoopOp expects a Var loop_parameter parameter to "
+                "be of type Uint, but received "
+                f"{type(loop_parameter.type)}."
+            )
 
         if not isinstance(body, QuantumCircuit):
             raise CircuitError(
                 "ForLoopOp expects a body parameter to be of type "
                 f"QuantumCircuit, but received {type(body)}."
             )
+        match body.num_input_vars:
+            case 0:
+                if isinstance(loop_parameter, expr.Var):
+                    raise CircuitError("loop variable is a `Var`, but body does not contain one")
+            case 1:
+                (expected,) = body.iter_input_vars()
+                if loop_parameter != expected:
+                    raise CircuitError(
+                        f"loop variable ({loop_parameter}) and body ({expected}) disagree"
+                    )
+            case count:
+                raise CircuitError(f"body expects too many input variables ({count})")
 
         if body.num_qubits != self.num_qubits or body.num_clbits != self.num_clbits:
             raise CircuitError(
@@ -131,17 +161,16 @@ class ForLoopOp(ControlFlowOp):
                 stacklevel=2,
             )
 
-        if isinstance(indexset, Range):
-            if isinstance(loop_parameter, Parameter):
-                raise CircuitError(
-                    "Cannot use a compile-time Parameter as a loop variable with an expr.Range "
-                    "indexset. Use an expr.Var instead, or use a Python range/integer list for "
-                    "gate-parameter unrolling."
-                )
-        elif isinstance(loop_parameter, Var):
+        # An `expr.Range` has runtime bounds, so its loop variable must be a real-time `expr.Var`
+        # (a compile-time `Parameter` cannot represent a runtime-bound iteration value).  All other
+        # combinations are permitted: a Python `range`/integer list pairs with a `Parameter` (the
+        # legacy, gate-parameter-unrolling form), with an `expr.Var` (a real-time counter over a
+        # compile-time-known range), or with `None`.
+        if isinstance(indexset, Range) and isinstance(loop_parameter, Parameter):
             raise CircuitError(
-                "Cannot use an expr.Var as a loop variable with a Python range or integer list "
-                "indexset. Use a Parameter instead, or use an expr.Range for runtime execution."
+                "Cannot use a compile-time Parameter as a loop variable with an expr.Range "
+                "indexset. Use an expr.Var instead, or use a Python range/integer list for "
+                "gate-parameter unrolling."
             )
 
         # Consume indexset into a tuple unless it was provided as a range.
@@ -198,10 +227,12 @@ class ForLoopContext:
     * Classical :class:`~.expr.Range` → real-time :class:`~.expr.Var` of the Range's type.
 
     In both cases, an auto-generated loop variable that the body never references is dropped
-    (the resulting :class:`ForLoopOp` will have ``loop_parameter=None``).
+    (the resulting :class:`ForLoopOp` will have ``loop_parameter=None``).  To use a real-time
+    :class:`~.expr.Var` counter over a Python :class:`range`, pass it explicitly as
+    ``loop_parameter``.
 
-    Mixing a :class:`~.Parameter` with an :class:`~.expr.Range`, or an :class:`~.expr.Var` with a
-    Python :class:`range`/integer list, raises :class:`~.CircuitError`; see :class:`ForLoopOp`.
+    Mixing a :class:`~.Parameter` with an :class:`~.expr.Range` raises :class:`~.CircuitError`;
+    see :class:`ForLoopOp`.
 
     You generally should never need to instantiate this object directly.  Instead, use
     :obj:`.QuantumCircuit.for_loop` in its context-manager form, i.e. by not supplying a ``body`` or
@@ -265,18 +296,19 @@ class ForLoopContext:
         if self._used:
             raise CircuitError("A for-loop context manager cannot be re-entered.")
         self._used = True
-        self._circuit._push_scope()
-        scope = self._circuit._current_scope()
         if self._generate_loop_parameter:
             # Auto-generate a loop variable whose type follows the indexset; an
             # auto-generated variable that the body never references is dropped in __exit__.
             self._loop_parameter = self._make_loop_variable()
             type(self)._generated_loop_parameters += 1
-            self._register_loop_variable_in_scope(scope, lazy=True)
-        else:
-            # Explicit user-supplied loop variable: register eagerly so it is always kept,
-            # mirroring how an explicit Parameter is kept even if unused.
-            self._register_loop_variable_in_scope(scope, lazy=False)
+        # An `expr.Var` loop parameter is owned by the loop header and input into the body, so it
+        # is plumbed through as the scope's `loop_var`.  A `Parameter` (or `None`) needs no scope
+        # registration.  `loop_var_explicit` keeps a user-supplied Var even if it is never used,
+        # mirroring how an explicit `Parameter` loop variable is kept.
+        self._circuit._push_scope(
+            loop_var=self._loop_parameter if isinstance(self._loop_parameter, Var) else None,
+            loop_var_explicit=not self._generate_loop_parameter,
+        )
         return self._loop_parameter
 
     def _make_loop_variable(self):
@@ -286,31 +318,14 @@ class ForLoopContext:
             return Var.new(name, self._indexset.type)
         return Parameter(name)
 
-    def _register_loop_variable_in_scope(self, scope, *, lazy: bool) -> None:
-        """Make ``self._loop_parameter`` resolvable inside the body scope, if it needs to be.
-
-        A :class:`~.Parameter` is automatically tracked through gate parameter expressions and
-        needs no scope registration. A real-time :class:`~.expr.Var` is registered in the
-        classical-variable scope so :meth:`._BuildScope.use_var` resolves it inside the body:
-
-        * ``lazy=True``: defer until first use; an auto-generated Var that the user never
-          references is dropped, matching the existing :class:`~.Parameter` behavior.
-        * ``lazy=False``: register eagerly as a declared local, matching an explicit user-supplied
-          Var (which is kept even if unused, again matching the explicit-Parameter case).
-        """
-        if isinstance(self._loop_parameter, Var):
-            if lazy:
-                scope.add_pending_loop_var(self._loop_parameter)
-            else:
-                scope.add_uninitialized_var(self._loop_parameter)
-
     def _is_loop_variable_referenced(self, body) -> bool:
         """Return whether ``self._loop_parameter`` is referenced inside ``body``.
 
         A single boundary helper between the two kinds of loop variable Qiskit supports:
         a compile-time :class:`~.Parameter` appears in :attr:`.QuantumCircuit.parameters`,
-        a real-time :class:`~.expr.Var` appears as a declared/input variable of the body.
-        The rest of the for-loop machinery treats ``loop_parameter`` uniformly.
+        a real-time :class:`~.expr.Var` appears as the body's ``input`` variable (the scope only
+        emits it when it was referenced).  The rest of the for-loop machinery treats
+        ``loop_parameter`` uniformly.
         """
         if self._loop_parameter is None:
             return False
@@ -335,6 +350,7 @@ class ForLoopContext:
             loop_parameter = None
         else:
             loop_parameter = self._loop_parameter
+
         self._circuit.append(
             ForLoopOp(self._indexset, loop_parameter, body, label=self._label),
             tuple(body.qubits),

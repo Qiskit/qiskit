@@ -326,10 +326,6 @@ def _loads_instruction_parameter(
         param = struct.unpack("<d", data_bytes)[0]
     elif type_key == type_keys.Value.REGISTER:
         param = _loads_register_param(data_bytes.decode(common.ENCODE), circuit, registers)
-    elif type_key == type_keys.Value.LOOP_VARIABLE:
-        if version < 18:
-            raise UnsupportedFeatureForVersion("ForLoop runtime loop variable", 18, version)
-        param = common.data_from_binary(data_bytes, value._read_loop_variable, version=version)
     else:
         clbits = circuit.clbits if circuit is not None else ()
         param = value.loads_value(
@@ -1100,20 +1096,14 @@ def _write_instruction(
     # Encode instruction params
     is_for_loop = isinstance(instruction.operation, controlflow.ForLoopOp)
     for param_index, param in enumerate(instruction_params):
-        # ForLoopOp param[1] with an expr.Var is a real-time loop index.  The
-        # `param.standalone` check is always True here by construction: ForLoopOp
-        # validation rejects non-standalone (bit-backed) Vars as loop parameters.
-        # v18+ serialises it with LOOP_VARIABLE; older versions silently drop it to
-        # NULL (lossy by design — the loop body retains its own Var declaration).
+        # ForLoopOp param[1] with an expr.Var is a real-time loop index.  This Python
+        # serialization path only runs for QPY versions below the Rust write threshold
+        # (>= 18 always uses the Rust engine).  The loop variable is the loop body's ``input``
+        # variable, so it round-trips as part of the body circuit; the instruction slot is
+        # written as NULL and the variable is re-inferred from the body on read.
         if is_for_loop and param_index == 1 and isinstance(param, expr.Var) and param.standalone:
-            if version >= 18:
-                type_key = type_keys.Value.LOOP_VARIABLE
-                data_bytes = common.data_to_binary(
-                    param, value._write_loop_variable, version=version
-                )
-            else:
-                type_key = type_keys.Value.NULL
-                data_bytes = b""
+            type_key = type_keys.Value.NULL
+            data_bytes = b""
         else:
             type_key, data_bytes = _dumps_instruction_parameter(
                 param,

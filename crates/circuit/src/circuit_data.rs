@@ -29,8 +29,8 @@ use crate::instruction::Parameters;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::{self, ObjectRegistry};
 use crate::operations::{
-    BoxedCustomOperation, ControlFlow, ControlFlowView, Operation, OperationRef, Param, PauliBased,
-    PauliProductRotation, PyOpKind, PythonOperation, StandardGate,
+    BoxedCustomOperation, ControlFlow, ControlFlowView, LoopParam, Operation, OperationRef, Param,
+    PauliBased, PauliProductRotation, PyOpKind, PythonOperation, StandardGate,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::{ParameterError, ParameterExpression};
@@ -1188,13 +1188,13 @@ impl CircuitData {
         &self.cregs
     }
 
-    /// Returns an immutable view of the qubit locations of the [DAGCircuit]
+    /// Returns an immutable view of the qubit locations of the [CircuitData]
     #[inline(always)]
     pub fn qubit_indices(&self) -> &BitLocator<ShareableQubit, QuantumRegister> {
         &self.qubit_indices
     }
 
-    /// Returns an immutable view of the clbit locations of the [DAGCircuit]
+    /// Returns an immutable view of the clbit locations of the [CircuitData]
     #[inline(always)]
     pub fn clbit_indices(&self) -> &BitLocator<ShareableClbit, ClassicalRegister> {
         &self.clbit_indices
@@ -2036,17 +2036,15 @@ fn for_each_symbol_use_in_control_flow(
                 instruction: instruction_index,
                 parameter: 2,
             };
-            // The compile-time loop variant (Parameter) shadows any same-named parameter
-            // in the body — skip it from parameter tracking. The runtime loop variant
-            // (expr::Var) is in a different namespace from gate parameters entirely, so
-            // no per-symbol filtering is required for it here.
-            let loop_param_symbol = match loop_param {
-                Some(crate::operations::LoopVar::Compile(sym)) => Some(sym),
-                _ => None,
-            };
+            // The compile-time loop variant (Parameter) shadows any same-named parameter in the
+            // body — skip it from parameter tracking.  The runtime loop variant (expr::Var) is in
+            // a different namespace from gate parameters entirely, so it needs no filtering here.
             for symbol in body.parameters() {
-                if loop_param_symbol == Some(symbol) {
-                    continue;
+                // Skip the loop variable itself — it is runtime-bound.
+                if let Some(LoopParam::Parameter(loop_symbol)) = loop_param {
+                    if symbol == loop_symbol {
+                        continue;
+                    }
                 }
                 action(symbol, usage)?;
             }

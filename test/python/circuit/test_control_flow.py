@@ -181,12 +181,22 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         with self.assertRaisesRegex(CircuitError, r"compile-time Parameter"):
             ForLoopOp(range_expr, loop_parameter, body)
 
-    def test_for_loop_python_range_with_var_raises(self):
-        """A Python ``range``/integer list cannot be paired with an ``expr.Var``."""
+    def test_for_loop_python_range_with_var_counter(self):
+        """A Python ``range``/integer list may be paired with an ``expr.Var`` real-time counter;
+        the loop variable is the body's ``input`` variable."""
+        var = expr.Var.new("i", types.Uint(8))
+        body = QuantumCircuit(1, inputs=[var])
+        body.h(0)
+        op = ForLoopOp(range(5), var, body)
+        self.assertEqual(op.params[1], var)
+        self.assertEqual(op.blocks[0].num_input_vars, 1)
+
+    def test_for_loop_var_loop_parameter_requires_body_input_var(self):
+        """An ``expr.Var`` loop parameter must equal the body's single ``input`` variable."""
         var = expr.Var.new("i", types.Uint(8))
         body = QuantumCircuit(1)
         body.h(0)
-        with self.assertRaisesRegex(CircuitError, r"expr\.Var as a loop variable"):
+        with self.assertRaisesRegex(CircuitError, r"body does not contain one"):
             ForLoopOp(range(5), var, body)
 
     def test_for_loop_non_constant_expr_range_without_parameter(self):
@@ -203,14 +213,13 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
 
     def test_for_loop_with_var_loop_variable_explicit(self):
         """A ForLoopOp built manually with an expr.Var loop variable is valid and the
-        Var appears as a declared variable of the body."""
+        Var appears as the body's input variable."""
         i = expr.Var.new("i", types.Uint(8))
-        body = QuantumCircuit(1)
-        body.add_uninitialized_var(i)
+        body = QuantumCircuit(1, inputs=[i])
         body.h(0)
         op = ForLoopOp(expr.Range(0, 4), i, body)
         self.assertEqual(op.params[1], i)
-        self.assertIn(i, list(op.params[2].iter_declared_vars()))
+        self.assertIn(i, list(op.params[2].iter_input_vars()))
 
     def test_for_loop_context_manager_auto_generates_var_for_expr_range(self):
         """The for-loop context manager auto-generates an expr.Var whose type matches
@@ -221,18 +230,20 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
             qc.h(0)
         self.assertIsNone(qc.data[-1].operation.params[1])
 
-        # Used inside the body via a Store: the auto-generated Var is kept.
+        # Used inside the body (indexing a register by the loop var): the auto-generated Var is
+        # kept.  We index a register rather than closing over an outer ``expr.Var`` because a body
+        # with an input variable cannot also have captured variables.
+        cr = ClassicalRegister(5, "cr")
         qc2 = QuantumCircuit(1)
-        target = qc2.add_var("target", expr.lift(0, types.Uint(8)))
+        qc2.add_register(cr)
         with qc2.for_loop(expr.Range(0, 5)) as i:
-            qc2.store(target, expr.Cast(i, types.Uint(8)))
+            qc2.store(expr.index(cr, i), True)
         loop_var = qc2.data[-1].operation.params[1]
         self.assertIsInstance(loop_var, expr.Var)
-        # Auto-generated Var's type follows the Range's type (Uint(64) for the default
-        # Python ints).
+        # Auto-generated Var's type follows the Range's type.
         self.assertEqual(loop_var.type, expr.Range(0, 5).type)
-        # The Var is a declared var of the body.
-        self.assertIn(loop_var, list(qc2.data[-1].operation.params[2].iter_declared_vars()))
+        # The Var is the body's input var (owned by the loop header, input into the body).
+        self.assertIn(loop_var, list(qc2.data[-1].operation.params[2].iter_input_vars()))
 
     def test_for_loop_context_manager_keeps_explicit_var(self):
         """An explicitly-supplied Var is kept on the ForLoopOp even if the user
@@ -242,7 +253,7 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         with qc.for_loop(expr.Range(0, 5), i):
             qc.h(0)
         self.assertEqual(qc.data[-1].operation.params[1], i)
-        self.assertIn(i, list(qc.data[-1].operation.params[2].iter_declared_vars()))
+        self.assertIn(i, list(qc.data[-1].operation.params[2].iter_input_vars()))
 
     def test_for_loop_invalid_params_setter(self):
         """Verify we catch invalid param settings for ForLoopOp."""
@@ -605,11 +616,17 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         bad_body = QuantumCircuit(inputs=[a])
         good_body = QuantumCircuit(captures=[a], declarations=[(b, expr.lift(False))])
 
-        with self.assertRaisesRegex(CircuitError, "cannot contain input variables"):
+        with self.assertRaisesRegex(
+            CircuitError, "Only for-loop blocks can contain input variables"
+        ):
             IfElseOp(cond, bad_body, None)
-        with self.assertRaisesRegex(CircuitError, "cannot contain input variables"):
+        with self.assertRaisesRegex(
+            CircuitError, "Only for-loop blocks can contain input variables"
+        ):
             IfElseOp(cond, bad_body, good_body)
-        with self.assertRaisesRegex(CircuitError, "cannot contain input variables"):
+        with self.assertRaisesRegex(
+            CircuitError, "Only for-loop blocks can contain input variables"
+        ):
             IfElseOp(cond, good_body, bad_body)
 
     def test_while_rejects_input_vars(self):
@@ -617,15 +634,26 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         cond = (Clbit(), False)
         a = expr.Var.new("a", types.Bool())
         bad_body = QuantumCircuit(inputs=[a])
-        with self.assertRaisesRegex(CircuitError, "cannot contain input variables"):
+        with self.assertRaisesRegex(
+            CircuitError, "Only for-loop blocks can contain input variables"
+        ):
             WhileLoopOp(cond, bad_body)
 
-    def test_for_rejects_input_vars(self):
-        """Bodies must not contain input variables."""
-        a = expr.Var.new("a", types.Bool())
-        bad_body = QuantumCircuit(inputs=[a])
-        with self.assertRaisesRegex(CircuitError, "cannot contain input variables"):
-            ForLoopOp(range(3), None, bad_body)
+    def test_for_input_vars(self):
+        """If a body has an input variable, it must match the loop parameter."""
+        a = expr.Var.new("a", types.Uint(32))
+        body = QuantumCircuit(inputs=[a])
+        with self.assertRaisesRegex(CircuitError, "loop variable.*disagree"):
+            ForLoopOp(range(3), None, body)
+        with self.assertRaisesRegex(CircuitError, "loop variable.*disagree"):
+            ForLoopOp(range(3), expr.Var.new("a", types.Uint(32)), body)
+        with self.assertRaisesRegex(CircuitError, "loop variable.*disagree"):
+            ForLoopOp(range(3), Parameter("a"), body)
+        with self.assertRaisesRegex(
+            CircuitError, "ForLoopOp expects a Var loop_parameter parameter to be of type Uint"
+        ):
+            ForLoopOp(range(3), expr.Var.new("b", types.Bool()), body)
+        self.assertEqual(list(ForLoopOp(range(3), a, body).params), [range(3), a, body])
 
     def test_switch_rejects_input_vars(self):
         """Bodies must not contain input variables."""
@@ -635,9 +663,13 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         bad_body = QuantumCircuit(inputs=[a])
         good_body = QuantumCircuit(captures=[a], declarations=[(b, expr.lift(False))])
 
-        with self.assertRaisesRegex(CircuitError, "cannot contain input variables"):
+        with self.assertRaisesRegex(
+            CircuitError, "Only for-loop blocks can contain input variables"
+        ):
             SwitchCaseOp(target, [(0, bad_body)])
-        with self.assertRaisesRegex(CircuitError, "cannot contain input variables"):
+        with self.assertRaisesRegex(
+            CircuitError, "Only for-loop blocks can contain input variables"
+        ):
             SwitchCaseOp(target, [(0, good_body), (1, bad_body)])
 
     def test_box_instantiation(self):
@@ -911,11 +943,11 @@ class TestAddingControlFlowOperations(QiskitTestCase):
             qc.assign_parameters({theta: math.pi / 2}, inplace=False)
 
     def test_for_loop_var_loop_parameter_not_in_outer_vars(self):
-        """A ForLoopOp's expr.Var loop variable must NOT appear in the outer circuit's vars."""
+        """A ForLoopOp's expr.Var loop variable is the body's input var and must NOT appear in
+        the outer circuit's vars."""
         loop_var = expr.Var.new("i", types.Uint(8))
-        body = QuantumCircuit(1)
-        body.add_uninitialized_var(loop_var)
-        body.store(loop_var, expr.lift(0, types.Uint(8)))
+        body = QuantumCircuit(1, inputs=[loop_var])
+        body.h(0)
 
         qc = QuantumCircuit(1)
         qc.append(ForLoopOp(expr.Range(0, 3), loop_var, body), [0])
@@ -923,7 +955,7 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         self.assertNotIn(loop_var, qc.iter_vars())
         for_loop = qc.data[0].operation
         self.assertEqual(for_loop.params[1], loop_var)
-        self.assertIn(loop_var, list(for_loop.params[2].iter_declared_vars()))
+        self.assertIn(loop_var, list(for_loop.params[2].iter_input_vars()))
 
     @idata(CONDITION_PARAMETRISATION)
     def test_appending_if_else_op(self, condition):

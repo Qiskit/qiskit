@@ -92,9 +92,10 @@ class UnrollForLoops(TransformationPass):
                 continue
 
             # Start the unrolled DAG empty of variables, then add back only the body's
-            # captured variables. ``vars_mode="captures"`` would also re-export the body's
-            # declared variables (which include a Var loop variable that we are about to
-            # substitute away on every iteration), so it's not what we want here.
+            # captured variables.  The loop variable is the body's ``input`` variable, which we
+            # substitute away on every iteration (below), so it must not be carried into the
+            # accumulator.  ``vars_mode="captures"`` would re-export the body's input/declared
+            # variables, so we drop all vars and re-add only the captures explicitly.
             body_dag = circuit_to_dag(body)
             unrolled_dag = body_dag.copy_empty_like(vars_mode="drop")
             for captured in body_dag.iter_captured_vars():

@@ -60,10 +60,6 @@ class WhileLoopOp(ControlFlowOp):
         self._condition = validate_condition(condition)
 
     @property
-    def params(self):
-        return self._params
-
-    @property
     def condition(self):
         """The condition for the while loop."""
         return self._condition
@@ -71,6 +67,10 @@ class WhileLoopOp(ControlFlowOp):
     @condition.setter
     def condition(self, value):
         self._condition = value
+
+    @property
+    def params(self):
+        return self._params
 
     @params.setter
     def params(self, parameters):
@@ -84,6 +84,8 @@ class WhileLoopOp(ControlFlowOp):
                 "WhileLoopOp expects a body parameter of type "
                 f"QuantumCircuit, but received {type(body)}."
             )
+        if body.num_input_vars:
+            raise self._unexpected_input_var_error()
 
         if body.num_qubits != self.num_qubits or body.num_clbits != self.num_clbits:
             raise CircuitError(

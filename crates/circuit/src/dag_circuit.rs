@@ -34,8 +34,8 @@ use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
     ArrayType, BoxDuration, Condition, ControlFlow, ControlFlowInstruction, ControlFlowView,
-    Operation, OperationRef, Param, PyInstruction, PyOpKind, StandardGate, StandardInstruction,
-    SwitchTarget,
+    LoopParam, Operation, OperationRef, Param, PyInstruction, PyOpKind, StandardGate,
+    StandardInstruction, SwitchTarget,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -61,9 +61,7 @@ use pyo3::exceptions::{
 use pyo3::intern;
 use pyo3::prelude::*;
 
-use pyo3::types::{
-    IntoPyDict, PyDict, PyInt, PyIterator, PyList, PySet, PyString, PyTuple, PyType,
-};
+use pyo3::types::{IntoPyDict, PyDict, PyInt, PyIterator, PyList, PySet, PyTuple, PyType};
 
 use rustworkx_core::dag_algo::layers;
 use rustworkx_core::err::ContractError;
@@ -1820,8 +1818,10 @@ impl DAGCircuit {
         }
         if !self.has_control_flow() {
             let weight_fn = |_| -> Result<usize, Infallible> { Ok(1) };
-            return match rustworkx_core::dag_algo::longest_path(&self.dag, weight_fn).unwrap() {
-                Some(res) => Ok(res.1 - 1),
+            return match rustworkx_core::dag_algo::longest_path_length(&self.dag, weight_fn)
+                .unwrap()
+            {
+                Some(res) => Ok(res - 1),
                 None => panic!("not a DAG"),
             };
         }
@@ -1861,8 +1861,8 @@ impl DAGCircuit {
         let weight_fn = |edge: EdgeReference<'_, Wire>| -> Result<usize, Infallible> {
             Ok(*node_lookup.get(&edge.target()).unwrap_or(&1))
         };
-        match rustworkx_core::dag_algo::longest_path(&self.dag, weight_fn).unwrap() {
-            Some(res) => Ok(res.1 - 1),
+        match rustworkx_core::dag_algo::longest_path_length(&self.dag, weight_fn).unwrap() {
+            Some(res) => Ok(res - 1),
             None => panic!("not a DAG"),
         }
     }
@@ -2250,11 +2250,10 @@ impl DAGCircuit {
                                     if collection_a != collection_b {
                                         return Ok(false);
                                     }
-                                    use crate::operations::LoopVar;
                                     match (loop_param_a, loop_param_b) {
                                         (
-                                            Some(LoopVar::Compile(loop_param_a)),
-                                            Some(LoopVar::Compile(loop_param_b)),
+                                            Some(LoopParam::Parameter(loop_param_a)),
+                                            Some(LoopParam::Parameter(loop_param_b)),
                                         ) => {
                                             // Until we have a way to assign parameters in a DAG, we need
                                             // to convert a for loop's body DAG back to a circuit.
@@ -2321,13 +2320,12 @@ impl DAGCircuit {
                                             block_eq(&body_a, &body_b)
                                         }
                                         (
-                                            Some(LoopVar::Runtime(var_a)),
-                                            Some(LoopVar::Runtime(var_b)),
+                                            Some(LoopParam::Variable(var_a)),
+                                            Some(LoopParam::Variable(var_b)),
                                         ) => {
-                                            // Runtime loop variables live in the body as declared
-                                            // vars and aren't substituted at compile time, so we
-                                            // just check they're the same Var and the bodies
-                                            // structurally match.
+                                            // Runtime loop variables are the body's input var and
+                                            // aren't substituted at compile time, so we just check
+                                            // they're the same Var and the bodies structurally match.
                                             if var_a != var_b {
                                                 return Ok(false);
                                             }
@@ -4522,10 +4520,10 @@ impl DAGCircuit {
         graph_attrs: Option<BTreeMap<String, String>>,
         node_attrs: Option<Py<PyAny>>,
         edge_attrs: Option<Py<PyAny>>,
-    ) -> PyResult<Bound<'py, PyString>> {
+    ) -> PyResult<String> {
         let mut buffer = Vec::<u8>::new();
         build_dot(py, self, &mut buffer, graph_attrs, node_attrs, edge_attrs)?;
-        Ok(PyString::new(py, std::str::from_utf8(&buffer)?))
+        Ok(String::from_utf8(buffer)?)
     }
 
     /// Add an input variable to the circuit.
