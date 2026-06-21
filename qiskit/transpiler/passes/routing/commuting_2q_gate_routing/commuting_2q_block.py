@@ -16,7 +16,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import Gate, Qubit, Clbit
+from qiskit.circuit import Clbit, Gate, ParameterExpression, Qubit
 from qiskit.dagcircuit import DAGOpNode
 
 
@@ -37,6 +37,8 @@ class Commuting2qBlock(Gate):
         """
         qubits: set[Qubit] = set()
         cbits: set[Clbit] = set()
+        params_set: set[ParameterExpression] = set()
+
         for node in node_block:
             if len(node.qargs) != 2:
                 raise QiskitError(f"Node {node.name} does not apply to two-qubits.")
@@ -44,13 +46,19 @@ class Commuting2qBlock(Gate):
             qubits.update(node.qargs)
             cbits.update(node.cargs)
 
+            # Collect parameters from the node's operation
+            for param in node.op.params:
+                if isinstance(param, ParameterExpression):
+                    params_set.update(param.parameters)
+        params_list = sorted(params_set, key=lambda p: p.name)   
+
         if cbits:
             raise QiskitError(
                 f"{self.__class__.__name__} does not accept nodes with classical bits."
             )
 
         super().__init__(
-            "commuting_2q_block", num_qubits=len(qubits), params=[], label="Commuting 2q gates"
+            "commuting_2q_block", num_qubits=len(qubits), params=params_list, label="Commuting 2q gates"
         )
         self.node_block = node_block
         self.qubits = qubits
