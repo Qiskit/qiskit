@@ -46,7 +46,6 @@ class Commuting2qBlock(Gate):
             qubits.update(node.qargs)
             cbits.update(node.cargs)
 
-            # Collect parameters from the node's operation
             for param in node.op.params:
                 if isinstance(param, ParameterExpression):
                     params_set.update(param.parameters)
