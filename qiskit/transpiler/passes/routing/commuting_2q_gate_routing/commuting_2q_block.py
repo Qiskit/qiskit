@@ -37,12 +37,14 @@ class Commuting2qBlock(Gate):
         """
         qubits: set[Qubit] = set()
         cbits: set[Clbit] = set()
+        params = []
         for node in node_block:
             if len(node.qargs) != 2:
                 raise QiskitError(f"Node {node.name} does not apply to two-qubits.")
 
             qubits.update(node.qargs)
             cbits.update(node.cargs)
+            params.extend(node.op.params)
 
         if cbits:
             raise QiskitError(
@@ -50,7 +52,7 @@ class Commuting2qBlock(Gate):
             )
 
         super().__init__(
-            "commuting_2q_block", num_qubits=len(qubits), params=[], label="Commuting 2q gates"
+            "commuting_2q_block", num_qubits=len(qubits), params=params, label="Commuting 2q gates"
         )
         self.node_block = node_block
         self.qubits = qubits
