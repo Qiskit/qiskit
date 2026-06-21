@@ -48,9 +48,9 @@ our_dir="$(realpath -- "$(dirname -- "${BASH_SOURCE[0]}")")"
 cache_dir="$(pwd -P)/qpy_cache/$version"
 venv_dir="$(pwd -P)/venvs/$package-$version"
 
-# Use the updated constraints file for qiskit >= 2.5 (numpy >= 2.0.0 requirement)
+# Use the updated constraints file for qiskit >= 2.5 (numpy >= 2.0.0 requirement).
 constraints_file="qpy_test_constraints.txt"
-if "$python" -c "from packaging.version import Version; exit(0 if Version('$version') >= Version('2.5') else 1)" 2>/dev/null; then
+if "$python" -c "from packaging.version import Version; v = Version('$version'); exit(0 if Version(f'{v.major}.{v.minor}') >= Version('2.5') else 1)" 2>/dev/null; then
     constraints_file="qpy_test_constraints25.txt"
 fi
 
