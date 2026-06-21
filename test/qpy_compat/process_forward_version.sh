@@ -52,7 +52,12 @@ venv_dir="$(pwd -P)/venvs/qiskit-$qiskit_version"
 
 # Use the updated constraints file for qiskit >= 2.5
 constraints_file="qpy_test_constraints.txt"
-if "$python" -c "from packaging.version import Version; v = Version('$qiskit_version'); exit(0 if Version(f'{v.major}.{v.minor}') >= Version('2.5') else 1)" 2>/dev/null; then
+
+major=${qiskit_version%%.*}
+rest=${qiskit_version#*.}
+minor=${rest%%[^0-9]*}
+
+if (( major > 2 || (major == 2 && minor >= 5) )); then
     constraints_file="qpy_test_constraints25.txt"
 fi
 
