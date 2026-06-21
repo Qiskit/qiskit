@@ -48,8 +48,14 @@ our_dir="$(realpath -- "$(dirname -- "${BASH_SOURCE[0]}")")"
 cache_dir="$(pwd -P)/qpy_cache/$version"
 venv_dir="$(pwd -P)/venvs/$package-$version"
 
+# Use the updated constraints file for qiskit >= 2.5 (numpy >= 2.0.0 requirement)
+constraints_file="qpy_test_constraints.txt"
+if "$python" -c "from packaging.version import Version; exit(0 if Version('$version') >= Version('2.5') else 1)" 2>/dev/null; then
+    constraints_file="qpy_test_constraints25.txt"
+fi
+
 if [[ ! -d $cache_dir ]] ; then
-    docker build -t $package:$version --build-arg PYTHON_VERSION=$python_version --build-arg PACKAGE_NAME=$package --build-arg PACKAGE_VERSION=$version .
+    docker build -t $package:$version --build-arg PYTHON_VERSION=$python_version --build-arg PACKAGE_NAME=$package --build-arg PACKAGE_VERSION=$version --build-arg CONSTRAINTS_FILE=$constraints_file .
     mkdir -p "$cache_dir"
     pushd "$cache_dir"
     echo "Generating QPY files with $package==$version"
