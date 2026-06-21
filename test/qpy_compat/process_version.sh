@@ -51,8 +51,8 @@ venv_dir="$(pwd -P)/venvs/$package-$version"
 # Use the updated constraints file for qiskit >= 2.5 (numpy >= 2.0.0 requirement).
 constraints_file="qpy_test_constraints.txt"
 
-major=${qiskit_version%%.*}
-rest=${qiskit_version#*.}
+major=${version%%.*}
+rest=${version#*.}
 minor=${rest%%[^0-9]*}
 
 if (( major > 2 || (major == 2 && minor >= 5) )); then
