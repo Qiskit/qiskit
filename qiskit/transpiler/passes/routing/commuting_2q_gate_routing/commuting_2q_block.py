@@ -50,7 +50,7 @@ class Commuting2qBlock(Gate):
             for param in node.op.params:
                 if isinstance(param, ParameterExpression):
                     params_set.update(param.parameters)
-        params_list = sorted(params_set, key=lambda p: p.name)   
+        params_list = sorted(params_set, key=lambda p: p.name)
 
         if cbits:
             raise QiskitError(
@@ -58,7 +58,10 @@ class Commuting2qBlock(Gate):
             )
 
         super().__init__(
-            "commuting_2q_block", num_qubits=len(qubits), params=params_list, label="Commuting 2q gates"
+            "commuting_2q_block",
+            num_qubits=len(qubits),
+            params=params_list,
+            label="Commuting 2q gates",
         )
         self.node_block = node_block
         self.qubits = qubits
