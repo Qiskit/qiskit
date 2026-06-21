@@ -201,13 +201,13 @@ class TestQPYRoundtrip(QiskitTestCase):
     @all_qpy_combinations(18)
     def test_for_loop_with_var_loop_parameter(self, version, write_with, read_with):
         """For-loop expr.Var loop parameters round-trip faithfully in QPY v18+."""
-        qc = QuantumCircuit(1)
-        target = qc.add_var("target", expr.lift(0, types.Uint(8)))
+        cr = ClassicalRegister(16, "cr")
+        qc = QuantumCircuit(QuantumRegister(1), cr)
         range_expr = expr.Range(
             expr.lift(0, types.Uint(8)), expr.lift(6, types.Uint(8)), expr.lift(2, types.Uint(8))
         )
         with qc.for_loop(range_expr) as loop_var:
-            qc.store(target, loop_var)
+            qc.store(expr.index(cr, loop_var), expr.lift(True))
 
         self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
         qpy_file = io.BytesIO()
@@ -266,46 +266,47 @@ class TestQPYRoundtrip(QiskitTestCase):
         self, version, write_with, read_with
     ):
         """Dynamic expr.Range for-loops with loop Vars round-trip in QPY v18+."""
-        qc = QuantumCircuit(1)
+        cr = ClassicalRegister(16, "cr")
+        qc = QuantumCircuit(QuantumRegister(1), cr)
         start_var = qc.add_var("start", expr.lift(0, types.Uint(8)))
         stop_var = qc.add_var("stop", expr.lift(6, types.Uint(8)))
-        target = qc.add_var("target", expr.lift(0, types.Uint(8)))
         range_expr = expr.Range(start_var, stop_var)
         with qc.for_loop(range_expr) as loop_var:
-            qc.store(target, expr.Cast(loop_var, types.Uint(8)))
+            qc.store(expr.index(cr, loop_var), expr.lift(True))
         self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
 
     @all_qpy_combinations(18)
     def test_nested_for_loop_with_expr_range(self, version, write_with, read_with):
         """Nested for-loops with expr.Range indexsets round-trip at QPY v18+."""
-        qc = QuantumCircuit(2)
+        cr = ClassicalRegister(16, "cr")
+        qc = QuantumCircuit(QuantumRegister(2), cr)
         outer = expr.Range(expr.lift(0, types.Uint(8)), expr.lift(2, types.Uint(8)))
         inner = expr.Range(expr.lift(0, types.Uint(8)), expr.lift(3, types.Uint(8)))
         with qc.for_loop(outer) as outer_var:
+            qc.store(expr.index(cr, outer_var), expr.lift(True))
             with qc.for_loop(inner) as inner_var:
                 qc.h(0)
-                qc.store(outer_var, inner_var)
+                qc.store(expr.index(cr, inner_var), expr.lift(True))
         self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
 
     def test_for_loop_expr_range_unsupported_below_v18(self):
         """expr.Range for-loops cannot be dumped or read with QPY format version below 18."""
         from qiskit.circuit.controlflow import ForLoopOp
 
-        constant_range = QuantumCircuit(1)
-        target = constant_range.add_var("target", expr.lift(0, types.Uint(8)))
+        cr = ClassicalRegister(16, "cr")
+        constant_range = QuantumCircuit(QuantumRegister(1), cr)
         range_expr = expr.Range(
             expr.lift(0, types.Uint(8)), expr.lift(6, types.Uint(8)), expr.lift(2, types.Uint(8))
         )
         with constant_range.for_loop(range_expr) as loop_var:
-            constant_range.store(target, loop_var)
+            constant_range.store(expr.index(cr, loop_var), expr.lift(True))
 
-        dynamic_range = QuantumCircuit(1)
+        dynamic_range = QuantumCircuit(QuantumRegister(1), ClassicalRegister(16, "cr"))
         start_var = dynamic_range.add_var("start", expr.lift(0, types.Uint(8)))
         stop_var = dynamic_range.add_var("stop", expr.lift(6, types.Uint(8)))
-        target = dynamic_range.add_var("target", expr.lift(0, types.Uint(8)))
         dynamic_range_expr = expr.Range(start_var, stop_var)
         with dynamic_range.for_loop(dynamic_range_expr) as loop_var:
-            dynamic_range.store(target, expr.Cast(loop_var, types.Uint(8)))
+            dynamic_range.store(expr.index(dynamic_range.cregs[0], loop_var), expr.lift(True))
 
         explicit_loop_var = QuantumCircuit(1)
         loop_var = expr.Var.new("i", types.Uint(8))

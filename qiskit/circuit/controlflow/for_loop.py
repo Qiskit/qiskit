@@ -206,10 +206,16 @@ class ForLoopOp(ControlFlowOp):
         indexset, loop_parameter, body = self.params
         if isinstance(indexset, Range):
             indexset = indexset.substitute(substitutions)
+        # The loop variable is bound by the loop header (it is the body's ``input`` variable), not
+        # a free variable, so it must not be substituted out of the body: doing so would drop the
+        # body's input var and leave it disagreeing with ``loop_parameter``.  Exclude it.
+        body_substitutions = {
+            var: replacement for var, replacement in substitutions.items() if var != loop_parameter
+        }
         return ForLoopOp(
             indexset,
             loop_parameter,
-            body.substitute_vars(substitutions, strict=False),
+            body.substitute_vars(body_substitutions, strict=False),
             label=self.label,
         )
 

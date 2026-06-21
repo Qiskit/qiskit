@@ -660,29 +660,30 @@ class TestSubstituteVars(QiskitTestCase):
         )
 
     def test_substitute_var_in_for_loop_body(self):
-        """For-loop bodies are rewritten; the loop variable itself is preserved."""
-        loop_var = expr.Var.new("i", types.Uint(8))
-        qc = QuantumCircuit(1)
-        target = qc.add_var("target", expr.lift(0, types.Uint(8)))
-        indexset = expr.Range(expr.lift(0, types.Uint(8)), expr.lift(4, types.Uint(8)))
+        """The loop variable is bound by the loop, so substituting it is a no-op on the body.
 
-        body = QuantumCircuit(1)
-        body.add_uninitialized_var(loop_var)
-        body.add_capture(target)
-        body.store(target, loop_var)
-        qc.append(ForLoopOp(indexset, loop_var, body), [0])
+        The loop variable is the body's ``input`` variable (it cannot be substituted away without
+        leaving the body disagreeing with ``loop_parameter``); it indexes a register rather than
+        closing over an outer ``expr.Var`` (a body with an input var cannot also have captures).
+        """
+        cr = ClassicalRegister(16, "cr")
+        qc = QuantumCircuit(1)
+        qc.add_register(cr)
+        indexset = expr.Range(expr.lift(0, types.Uint(8)), expr.lift(4, types.Uint(8)))
+        with qc.for_loop(indexset) as loop_var:
+            qc.store(expr.index(cr, loop_var), expr.lift(True))
 
         result = qc.substitute_vars({loop_var: expr.lift(2, types.Uint(8))}, strict=False)
 
         for_loop = next(inst.operation for inst in result.data if inst.operation.name == "for_loop")
         self.assertEqual(for_loop.params[0], indexset)
         self.assertEqual(for_loop.params[1], loop_var)
-        body_stores = [
-            inst.operation.rvalue
+        body_indices = [
+            inst.operation.lvalue.index
             for inst in for_loop.params[2].data
             if inst.operation.name == "store"
         ]
-        self.assertEqual(body_stores, [expr.lift(2, types.Uint(8))])
+        self.assertEqual(body_indices, [loop_var])
 
     def test_empty_substitution_returns_independent_circuit(self):
         """An empty mapping returns a copy whose mutation does not affect the input."""
@@ -903,7 +904,7 @@ class TestSubstituteVars(QiskitTestCase):
         stop = expr.Var.new("n", types.Uint(8))
         loop_var = expr.Var.new("i", types.Uint(8))
         indexset = expr.Range(expr.lift(0, types.Uint(8)), stop)
-        body = QuantumCircuit(1)
+        body = QuantumCircuit(1, inputs=[loop_var])
         op = ForLoopOp(indexset, loop_var, body)
 
         new = op.substitute({stop: expr.lift(8, types.Uint(8))})

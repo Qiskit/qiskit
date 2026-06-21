@@ -65,21 +65,30 @@ features_circuits:
     ``strict=True`` to raise :class:`~qiskit.transpiler.exceptions.TranspilerError`
     instead.
 
-    **Loop parameters.** Qiskit for-loops now support two complementary loop-index
-    models, selected by the ``indexset`` type:
+    **Loop parameters.** The loop parameter may be a compile-time
+    :class:`~qiskit.circuit.Parameter`, a real-time classical
+    :class:`~qiskit.circuit.classical.expr.Var` of type
+    :class:`~qiskit.circuit.classical.types.Uint`, or ``None``:
 
-    * Python :class:`range` or an integer list with a compile-time
-      :class:`~qiskit.circuit.Parameter` (or ``None``), for gate-parameter unrolling
-      via :meth:`~qiskit.circuit.QuantumCircuit.assign_parameters`.
-    * :class:`~qiskit.circuit.classical.expr.Range` with a real-time classical
-      :class:`~qiskit.circuit.classical.expr.Var` (or ``None``), for runtime loop
-      indices used in classical expressions such as :class:`~qiskit.circuit.Store`.
+    * A Python :class:`range`/integer-list indexset pairs with a
+      :class:`~qiskit.circuit.Parameter` (gate-parameter unrolling via
+      :meth:`~qiskit.circuit.QuantumCircuit.assign_parameters`) **or** with an
+      :class:`~qiskit.circuit.classical.expr.Var` (a real-time counter).
+    * An :class:`~qiskit.circuit.classical.expr.Range` indexset requires an
+      :class:`~qiskit.circuit.classical.expr.Var` (a :class:`~qiskit.circuit.Parameter`
+      cannot represent a runtime-bound iteration value).
 
-    Mixing a :class:`~qiskit.circuit.Parameter` with an
-    :class:`~qiskit.circuit.classical.expr.Range`, or an
-    :class:`~qiskit.circuit.classical.expr.Var` with a Python :class:`range`/integer
-    list, raises :class:`~qiskit.circuit.exceptions.CircuitError` at construction
-    time.
+    Pairing a :class:`~qiskit.circuit.Parameter` with an
+    :class:`~qiskit.circuit.classical.expr.Range` raises
+    :class:`~qiskit.circuit.exceptions.CircuitError` at construction time.
+
+    A real-time :class:`~qiskit.circuit.classical.expr.Var` loop parameter is the
+    loop body's single ``input`` variable (owned by the loop header, input into the
+    body), consistent with the data model introduced for ``Var`` loop counters. As a
+    consequence, a body that has a ``Var`` loop counter may use registers, clbits and
+    the loop variable, but cannot also capture an outer
+    :class:`~qiskit.circuit.classical.expr.Var` (Qiskit forbids a circuit from holding
+    both ``input`` and ``capture`` variables).
 
     When using :meth:`~qiskit.circuit.QuantumCircuit.for_loop` as a context manager,
     a loop variable is auto-generated to match the ``indexset`` type
@@ -115,19 +124,19 @@ features_transpiler:
 features_qpy:
   - |
     QPY format version 18 adds support for serializing
-    :class:`~qiskit.circuit.classical.expr.Range` for-loop indexsets and faithful
-    round-tripping of runtime loop variables
-    (:class:`~qiskit.circuit.classical.expr.Var`) used as the loop parameter of
-    :class:`~qiskit.circuit.ForLoopOp` instructions. A new classical-expression
-    ``RANGE`` discriminator (type key ``r``) encodes ``start``, ``stop``, and ``step``
-    sub-expressions when the indexset is an
-    :class:`~qiskit.circuit.classical.expr.Range`. A new ``LOOP_VARIABLE``
-    instruction-parameter type (type key ``w``) carries the variable declaration
-    in the for-loop parameter slot using the existing ``EXPR_VAR_DECLARATION`` wire
-    format. QPY format version 18 is required to serialize or deserialize these
-    features; older target versions raise :exc:`~qiskit.qpy.UnsupportedFeatureForVersion`
-    when dumping circuits that use them, and emit ``Null`` for the loop-variable
-    slot when the indexset does not require v18.
+    :class:`~qiskit.circuit.classical.expr.Range` for-loop indexsets. A new
+    classical-expression ``RANGE`` discriminator (type key ``r``) encodes ``start``,
+    ``stop``, and ``step`` sub-expressions when the indexset is an
+    :class:`~qiskit.circuit.classical.expr.Range`. QPY format version 18 is required
+    to serialize or deserialize this element; older target versions raise
+    :exc:`~qiskit.qpy.UnsupportedFeatureForVersion` when dumping circuits that use it.
+
+    A runtime :class:`~qiskit.circuit.classical.expr.Var` used as a
+    :class:`~qiskit.circuit.ForLoopOp` loop parameter round-trips without any
+    dedicated element: it is the loop body's single ``input`` variable, so it is
+    serialized as part of the body circuit and re-inferred on read from the body's
+    lone input variable (the instruction's loop-parameter slot is written as
+    ``Null``). This mechanism is independent of the QPY version.
 
 features_qasm:
   - |
@@ -153,9 +162,10 @@ upgrade_qasm:
 upgrade_circuits:
   - |
     Constructing a :class:`~qiskit.circuit.ForLoopOp` (including via
-    :meth:`~qiskit.circuit.QuantumCircuit.for_loop`) with mismatched ``indexset``
-    and ``loop_parameter`` types will now raise
-    :class:`~qiskit.circuit.exceptions.CircuitError`. Use a Python :class:`range`
-    or integer list with a :class:`~qiskit.circuit.Parameter`, or an
-    :class:`~qiskit.circuit.classical.expr.Range` with an
-    :class:`~qiskit.circuit.classical.expr.Var`.
+    :meth:`~qiskit.circuit.QuantumCircuit.for_loop`) that pairs a compile-time
+    :class:`~qiskit.circuit.Parameter` with an
+    :class:`~qiskit.circuit.classical.expr.Range` indexset will now raise
+    :class:`~qiskit.circuit.exceptions.CircuitError`, as a ``Parameter`` cannot
+    represent a runtime-bound iteration value. A Python :class:`range`/integer list
+    may be used with either a :class:`~qiskit.circuit.Parameter` or an
+    :class:`~qiskit.circuit.classical.expr.Var` loop parameter.

@@ -446,6 +446,14 @@ def _read_instruction(
         )
         params.append(param)
 
+    # For a `ForLoopOp` whose loop parameter is a runtime `expr.Var`, the parameter slot is
+    # serialized as Null; re-infer the loop variable from the body circuit's single `input`
+    # variable (mirrors the Rust QPY reader and the `ForLoopOp` data model).
+    if gate_name == "ForLoopOp" and len(params) == 3 and params[1] is None:
+        input_vars = list(params[2].iter_input_vars())
+        if len(input_vars) == 1:
+            params[1] = input_vars[0]
+
     # Load annotations.
     annotations = (
         _read_instruction_annotations(file_obj, annotation_state) if has_annotations else None
