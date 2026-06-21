@@ -14,7 +14,7 @@
 
 from ddt import ddt, data
 
-from qiskit.circuit import QuantumCircuit, Qubit, QuantumRegister
+from qiskit.circuit import QuantumCircuit, Qubit, QuantumRegister, Parameter
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler import PassManager, CouplingMap, Layout, TranspilerError
 from qiskit.circuit.library import PauliEvolutionGate, CXGate
@@ -676,3 +676,23 @@ class TestSwapRouterExceptions(QiskitTestCase):
 
         with self.assertRaises(QiskitError):
             Commuting2qBlock(circuit_to_dag(circ).op_nodes())
+
+    def test_commuting2qblock_preserves_parameters(self):
+        """Test that Commuting2qBlock preserves parameters from parametric gates."""
+
+        c_0 = Parameter("c_0")
+        c_1 = Parameter("c_1")
+        gamma = Parameter("gamma")
+
+        qc = QuantumCircuit(3)
+        qc.rzz(c_0 * gamma, 0, 1)
+        qc.rzz(c_1, 1, 2)
+
+        dag = circuit_to_dag(qc)
+        nodes = list(dag.topological_op_nodes())
+        block = Commuting2qBlock(nodes)
+
+        # Check that both parameters are preserved
+        self.assertEqual(len(block.params), 3)
+        param_names = {p.name for p in block.params}
+        self.assertEqual(param_names, {"c_0", "gamma", "c_1"})
