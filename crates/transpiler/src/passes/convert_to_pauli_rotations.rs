@@ -16,7 +16,7 @@ use qiskit_circuit::operations::PauliBased;
 use smallvec::smallvec;
 use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, PI};
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{NodeType, PyDAGCircuit};
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, PauliProductMeasurement, PauliProductRotation, StandardGate,
@@ -468,7 +468,8 @@ fn generate_pauli_product_rotation_gate(paulis: &[BitTerm], angle: Param) -> Pau
 /// the pass.
 #[pyfunction]
 #[pyo3(name = "convert_to_pauli_rotations")]
-pub fn py_convert_to_pauli_rotations(dag: &DAGCircuit) -> PyResult<DAGCircuit> {
+pub fn py_convert_to_pauli_rotations(dag: &PyDAGCircuit) -> PyResult<PyDAGCircuit> {
+    let dag = dag.as_dag();
     let mut new_dag = dag.copy_empty_like(VarsMode::Alike, BlocksMode::Keep);
 
     // Iterate over nodes in the DAG and collect nodes
@@ -599,7 +600,7 @@ pub fn py_convert_to_pauli_rotations(dag: &DAGCircuit) -> PyResult<DAGCircuit> {
 
     new_dag.add_global_phase(&global_phase)?;
 
-    Ok(new_dag)
+    Ok(new_dag.into())
 }
 
 pub fn convert_to_pauli_rotations_mod(m: &Bound<PyModule>) -> PyResult<()> {

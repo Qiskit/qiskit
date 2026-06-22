@@ -25,7 +25,7 @@ use ndarray::prelude::*;
 use rayon::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_util::getenv_use_multiple_threads;
 
@@ -469,7 +469,7 @@ fn process_run(
 #[pyo3(name = "optimize_1q_gates_decomposition", signature = (dag, state, *, target=None, basis_gates=None, global_decomposers=None))]
 pub fn py_run_optimize_1q_gates_decomposition(
     py: Python,
-    dag: &mut DAGCircuit,
+    dag: &mut PyDAGCircuit,
     state: &Optimize1qGatesDecompositionState,
     target: Option<&Target>,
     basis_gates: Option<HashSet<String>>,
@@ -477,10 +477,17 @@ pub fn py_run_optimize_1q_gates_decomposition(
 ) -> PyResult<()> {
     if getenv_use_multiple_threads() {
         let results = py.detach(|| {
-            parallel_analyze_runs(dag, state, target, basis_gates, global_decomposers)
+            parallel_analyze_runs(
+                dag.as_dag_mut(),
+                state,
+                target,
+                basis_gates,
+                global_decomposers,
+            )
         })?;
-        apply_sequences(dag, results.runs, results.sequences)?;
+        apply_sequences(dag.as_dag_mut(), results.runs, results.sequences)?;
     } else {
+        let dag = dag.as_dag_mut();
         let runs: Vec<Vec<NodeIndex>> = dag.collect_1q_runs().unwrap().collect();
         for raw_run in runs {
             let sequence = process_run(

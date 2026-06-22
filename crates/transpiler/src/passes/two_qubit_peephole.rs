@@ -25,7 +25,7 @@ use rustworkx_core::petgraph::algo::toposort;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use rustworkx_core::petgraph::visit::NodeIndexable;
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{Operation, OperationRef, Param, PythonOperation};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
@@ -54,17 +54,18 @@ type MappingIterItem = Option<(TwoQSynthesisResult<f64>, [Qubit; 2])>;
 #[pyfunction(name = "two_qubit_unitary_peephole_optimize")]
 pub fn py_two_qubit_unitary_peephole_optimize(
     py: Python,
-    dag: &DAGCircuit,
+    dag: &PyDAGCircuit,
     target: &Target,
     approximation_degree: Option<f64>,
-) -> PyResult<Option<DAGCircuit>> {
+) -> PyResult<Option<PyDAGCircuit>> {
+    let dag = dag.as_dag();
     let result = py.detach(move || {
         two_qubit_unitary_peephole_optimize_analysis(dag, target, approximation_degree)
     })?;
     let Some(result) = result else {
         return Ok(None);
     };
-    two_qubit_unitary_peephole_optimize_apply(dag, result)
+    Ok(two_qubit_unitary_peephole_optimize_apply(dag, result)?.map(Into::into))
 }
 
 /// A non-python entry-point to the pass function.

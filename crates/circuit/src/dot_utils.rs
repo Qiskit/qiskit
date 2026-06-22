@@ -18,7 +18,7 @@
 use std::collections::BTreeMap;
 use std::io::prelude::*;
 
-use crate::dag_circuit::{DAGCircuit, Wire};
+use crate::dag_circuit::{PyDAGCircuit, Wire};
 use pyo3::IntoPyObjectExt;
 use pyo3::prelude::*;
 use rustworkx_core::petgraph::visit::{
@@ -30,7 +30,7 @@ static EDGE: [&str; 2] = ["--", "->"];
 
 pub fn build_dot<T>(
     py: Python,
-    dag: &DAGCircuit,
+    py_dag: &PyDAGCircuit,
     file: &mut T,
     graph_attrs: Option<BTreeMap<String, String>>,
     node_attrs: Option<Py<PyAny>>,
@@ -39,6 +39,7 @@ pub fn build_dot<T>(
 where
     T: Write,
 {
+    let dag = py_dag.as_dag();
     let graph = dag.dag();
     writeln!(file, "{} {{", TYPE[graph.is_directed() as usize])?;
     if let Some(graph_attr_map) = graph_attrs {
@@ -48,7 +49,7 @@ where
     }
 
     for node in graph.node_references() {
-        let node_weight = dag.get_node(py, node.id())?;
+        let node_weight = py_dag.get_node(py, node.id())?;
         writeln!(
             file,
             "{} {};",

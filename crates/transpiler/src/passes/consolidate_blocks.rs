@@ -27,7 +27,7 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
 use qiskit_circuit::gate_matrix::{
     CH_GATE, CX_GATE, CY_GATE, CZ_GATE, DCX_GATE, ECR_GATE, ISWAP_GATE, ONE_QUBIT_IDENTITY,
 };
@@ -467,7 +467,7 @@ fn apply_consolidation(
 #[pyo3(name = "consolidate_blocks", signature = (dag, decomposer, basis_gate_name, force_consolidate, target=None, basis_gates=None, blocks=None, runs=None, qubit_map=None, approximation_degree=None))]
 fn py_run_consolidate_blocks(
     py: Python,
-    dag: &mut DAGCircuit,
+    dag: &mut PyDAGCircuit,
     decomposer: Option<DecomposerType>,
     basis_gate_name: &str,
     force_consolidate: bool,
@@ -484,6 +484,7 @@ fn py_run_consolidate_blocks(
         MINIMUM_TOL
     };
 
+    let dag = dag.as_dag_mut();
     // If we don't have a decomposer and force consolidate is not set then there is not any
     // consolidation to do.
     if decomposer.is_none() && !force_consolidate {
@@ -802,9 +803,8 @@ mod test_consolidate_blocks {
             .expect("Error while adding CXGate to target");
 
         // Convert the circuit to a DAG.
-        let mut circ_as_dag =
-            DAGCircuit::from_circuit_data(&circuit, false, None, None, None, None)
-                .expect("Error converting circuit to DAG.");
+        let mut circ_as_dag = DAGCircuit::from_circuit_data(&circuit, false, None, None)
+            .expect("Error converting circuit to DAG.");
         // Run the pass
         run_consolidate_blocks(&mut circ_as_dag, false, None, Some(&target))
             .expect("Error while running the consolidate blocks pass.");

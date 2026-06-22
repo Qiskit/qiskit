@@ -4870,10 +4870,10 @@ impl PyDAGCircuit {
     fn remove_all_ops_named(&mut self, opname: &str) {
         let mut to_remove = Vec::new();
         for (id, weight) in self.inner.dag.node_references() {
-            if let NodeType::Operation(packed) = &weight {
-                if opname == packed.op.name() {
-                    to_remove.push(id);
-                }
+            if let NodeType::Operation(packed) = &weight
+                && opname == packed.op.name()
+            {
+                to_remove.push(id);
             }
         }
         for node in to_remove {
@@ -7410,10 +7410,10 @@ impl PyDAGCircuit {
         }
         let mut result: Vec<Py<PyAny>> = Vec::new();
         for (id, weight) in self.inner.dag.node_references() {
-            if let NodeType::Operation(packed) = weight {
-                if names_set.contains(packed.op.name()) {
-                    result.push(self.unpack_into(py, id, weight)?);
-                }
+            if let NodeType::Operation(packed) = weight
+                && names_set.contains(packed.op.name())
+            {
+                result.push(self.unpack_into(py, id, weight)?);
             }
         }
         Ok(result)
@@ -8158,16 +8158,14 @@ impl PyDAGCircuit {
                     for pred_index in self.inner.quantum_predecessors(cur_index) {
                         if let NodeType::Operation(pred_packed) =
                             self.inner.dag.node_weight(pred_index).unwrap()
-                        {
-                            if self
+                            && self
                                 .inner
                                 .qargs_interner
                                 .get(pred_packed.qubits)
                                 .iter()
                                 .any(|x| qubits_in_cone.contains(x))
-                            {
-                                queue.push_back(pred_index);
-                            }
+                        {
+                            queue.push_back(pred_index);
                         }
                     }
                 }

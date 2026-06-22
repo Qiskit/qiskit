@@ -12,7 +12,7 @@
 
 /// Remove diagonal gates (including diagonal 2Q gates) before a measurement.
 use pyo3::prelude::*;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::operations::StandardGate;
 
@@ -23,6 +23,16 @@ use qiskit_circuit::operations::StandardGate;
 ///     DAGCircuit: the optimized DAG.
 #[pyfunction]
 #[pyo3(name = "remove_diagonal_gates_before_measure")]
+pub fn py_run_remove_diagonal_before_measure(dag: &mut PyDAGCircuit) {
+    run_remove_diagonal_before_measure(dag.as_dag_mut());
+}
+
+/// Run the RemoveDiagonalGatesBeforeMeasure pass on `dag`.
+/// # Arguments:
+/// * `dag` - the DAG to be optimized.
+///
+/// # Returns:
+/// The optimized DAG.
 pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) {
     static DIAGONAL_1Q_GATES: [StandardGate; 8] = [
         StandardGate::RZ,
@@ -92,6 +102,6 @@ pub fn run_remove_diagonal_before_measure(dag: &mut DAGCircuit) {
 }
 
 pub fn remove_diagonal_gates_before_measure_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_remove_diagonal_before_measure))?;
+    m.add_wrapped(wrap_pyfunction!(py_run_remove_diagonal_before_measure))?;
     Ok(())
 }
