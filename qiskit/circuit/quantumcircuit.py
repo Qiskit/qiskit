@@ -37,6 +37,7 @@ from qiskit._accelerate.circuit import CircuitData
 from qiskit._accelerate.circuit import StandardGate
 from qiskit._accelerate.circuit import BitLocations
 from qiskit._accelerate.circuit_duration import compute_estimated_duration
+from qiskit._accelerate.target import estimate_fidelity
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
@@ -1001,6 +1002,7 @@ class QuantumCircuit:
     of the preset compilation pipelines.
 
     .. automethod:: ensure_physical
+    .. automethod:: estimate_fidelity
 
 
     Instruction-like methods
@@ -2899,7 +2901,8 @@ class QuantumCircuit:
             is_parameter = False
             for param in params:
                 is_parameter = is_parameter or isinstance(param, ParameterExpression)
-                if isinstance(param, expr.Expr):
+                # Control flow ops have a different validation for classical expressions
+                if isinstance(param, expr.Expr) and not isinstance(operation, ControlFlowOp):
                     param = _validate_expr(circuit_scope, param)
             if copy and is_parameter:
                 operation = _copy.deepcopy(operation)
@@ -3554,10 +3557,6 @@ class QuantumCircuit:
             else:
                 self._control_flow_scopes[-1].use_var(var)
             return
-        if self._data.num_input_vars:
-            raise CircuitError(
-                "circuits with input variables cannot be enclosed, so they cannot be closures"
-            )
         if isinstance(var, expr.Stretch):
             self._data.add_captured_stretch(self._prepare_new_stretch(var))
         else:
@@ -3588,10 +3587,10 @@ class QuantumCircuit:
             CircuitError: if the variable cannot be created due to shadowing an existing variable.
         """
         if self._control_flow_scopes:
+            # ForLoopOp uses an input variable for its loop variable, but that should be exactly one
+            # input variable and handled separately.
             raise CircuitError("cannot add an input variable in a control-flow scope")
 
-        if self._data.num_captured_vars or self._data.num_captured_stretches:
-            raise CircuitError("circuits to be enclosed with captures cannot have input variables")
         if isinstance(name_or_var, expr.Var) and type_ is not None:
             raise ValueError("cannot give an explicit type with an existing Var")
         var = self._prepare_new_var(name_or_var, type_)
@@ -4501,7 +4500,8 @@ class QuantumCircuit:
 
         Args:
             qubit: qubit(s) to measure.
-            cbit: classical bit(s) to place the measurement result(s) in.
+            cbit: classical bit(s) to place the measurement result(s) in,
+                or a :class:`.expr.Var` of :class:`.types.Uint` type indexing the target clbit.
 
         Returns:
             qiskit.circuit.InstructionSet: handle to the added instructions.
@@ -7006,6 +7006,7 @@ class QuantumCircuit:
         registers: Iterable[Register] = (),
         allow_jumps: bool = True,
         forbidden_message: str | None = None,
+        loop_var: expr.Var | None = None,
     ) -> int:
         """Add a scope for collecting instructions into this circuit.
 
@@ -7019,6 +7020,8 @@ class QuantumCircuit:
             allow_jumps: Whether this scope allows jumps to be used within it.
             forbidden_message: If given, all attempts to add instructions to this scope will raise a
                 :exc:`.CircuitError` with this message.
+            loop_var: If given, the runtime loop variable of a for-loop block.  This should not be
+                set for the legacy :class:`.Parameter` form.
 
         Returns:
             the depth of control-flow scopes (after the push)
@@ -7031,6 +7034,7 @@ class QuantumCircuit:
                 registers=registers,
                 allow_jumps=allow_jumps,
                 forbidden_message=forbidden_message,
+                loop_var=loop_var,
             )
         )
         return len(self._control_flow_scopes)
@@ -7275,7 +7279,7 @@ class QuantumCircuit:
     def for_loop(
         self,
         indexset: Iterable[int],
-        loop_parameter: Parameter | None,
+        loop_parameter: Parameter | expr.Var | None,
         body: None,
         qubits: None,
         clbits: None,
@@ -7287,7 +7291,7 @@ class QuantumCircuit:
     def for_loop(
         self,
         indexset: Iterable[int],
-        loop_parameter: Parameter | None,
+        loop_parameter: Parameter | expr.Var | None,
         body: QuantumCircuit,
         qubits: Sequence[QubitSpecifier],
         clbits: Sequence[ClbitSpecifier],
@@ -7296,7 +7300,14 @@ class QuantumCircuit:
     ) -> InstructionSet: ...
 
     def for_loop(
-        self, indexset, loop_parameter=None, body=None, qubits=None, clbits=None, *, label=None
+        self,
+        indexset,
+        loop_parameter=None,
+        body=None,
+        qubits=None,
+        clbits=None,
+        *,
+        label=None,
     ):
         """Create a ``for`` loop on this circuit.
 
@@ -7323,7 +7334,7 @@ class QuantumCircuit:
 
         Args:
             indexset (Iterable[int]): A collection of integers to loop over.  Always necessary.
-            loop_parameter (Optional[Parameter]): The parameter used within ``body`` to which
+            loop_parameter (Optional[Parameter|expr.Var]): The parameter used within ``body`` to which
                 the values from ``indexset`` will be assigned.  In the context-manager form, if this
                 argument is not supplied, then a loop parameter will be allocated for you and
                 returned as the value of the ``with`` statement.  This will only be bound into the
@@ -7829,6 +7840,43 @@ class QuantumCircuit:
                 f"Specified unit: {unit} is not a valid/supported SI prefix, 's', or 'dt'"
             )
         return dur / prefix_dict[unit]
+
+    def estimate_fidelity(self, target) -> float | None:
+        """Estimate the fidelity of a physical circuit.
+
+        This function will compute the product of the error rates for each
+        gate in the circuit to estimate the fidelity of the circuit:
+
+        ..math::
+          :label: estimated circuit fidelity
+
+          \\prod_{g \\in \\text{gates}} \\bigl(1 - \\operatorname{error}(g)\\bigr)
+
+        where :math:`\\operatorname{error}(g)` is the error rate in the target for the instruction :math:`g` from the circuit
+        in the target. If the circuit is not physical, meaning any instruction in the circuit (as
+        in operation and qargs) is not found in the target, this will return ``None``. This method is not
+        intended to compute a realistic simulation of the fidelity of execution on real hardware. It is
+        designed to provide an estimate of how the transpiler would work with the fidelity for various
+        heuristics in its operation. It is typically only useful for comparing different compilation
+        outputs against each other to estimate which one would produce a better quality execution on
+        hardware.
+
+        Args:
+            target (Target): The :class:`.Target` instance that the circuit will be executed on and used to
+                get the error rates for the instructions in the circuit.
+
+        Returns:
+            The estimated fidelity of executing the circuit on the given target. If any
+            instruction in the circuit is not present in target
+
+        Raises:
+            QiskitError: If the circuit contains any control flow operations.
+        """
+        if self.has_control_flow_op():
+            raise CircuitError(
+                "The circuit contains control flow, this method cannot estimate the fidelity with control flow"
+            )
+        return estimate_fidelity(self._data, target)
 
 
 class _OuterCircuitScopeInterface(CircuitScopeInterface):
