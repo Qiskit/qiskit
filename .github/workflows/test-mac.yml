@@ -32,7 +32,7 @@ jobs:
     env:
       QISKIT_TEST_CAPTURE_STREAMS: 1
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set up Python ${{ inputs.python-version }}
         uses: actions/setup-python@v6
         with:
