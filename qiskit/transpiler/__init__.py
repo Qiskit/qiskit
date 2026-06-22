@@ -1491,6 +1491,7 @@ Pass Manager Definition
    PassManagerCliffordTConfig
    generate_preset_pass_manager
    generate_preset_clifford_t_pass_manager
+   generate_preset_pbc_pass_manager
 
 Layout and Topology
 -------------------
@@ -1570,6 +1571,7 @@ from .instruction_durations import InstructionDurations
 from .preset_passmanagers import (
     generate_preset_pass_manager,
     generate_preset_clifford_t_pass_manager,
+    generate_preset_pbc_pass_manager,
 )
 from .target import Target
 from .target import InstructionProperties
@@ -1604,6 +1606,7 @@ __all__ = [
     "WrapAngleRegistry",
     "generate_preset_clifford_t_pass_manager",
     "generate_preset_pass_manager",
+    "generate_preset_pbc_pass_manager",
     "passes",
     "preset_passmanagers",
 ]
