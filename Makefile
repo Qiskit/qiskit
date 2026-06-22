@@ -157,12 +157,16 @@ c: cheader clib
 
 .PHONY: ctest
 # Use ctest to run C API tests.
+ifdef $(SKIP_BUILD)
+ctest:
+else
 ctest: cheader build-clib-dev
+endif
 # `-S` specifies the source (including the `CMakeLists.txt` file, `-B` is where
 # to put the build files, including the generated CMake stuff.  See the
 # `CMakeLists.txt` file for the build variables.
 	cmake -S$(C_DIR_TEST) -B$(C_DIR_TEST_BUILD) \
-		-DCARGO_LIB_DIR=$(abspath $(C_DIR_CARGO_TARGET))/debug \
+		-DCARGO_LIB_DIR=$(abspath $(C_DIR_OUT_LIB)) \
 		-DQISKIT_INCLUDE_PATH=$(abspath $(C_DIR_OUT_INCLUDE))
 # Actually build the test.
 	cmake --build $(C_DIR_TEST_BUILD)
