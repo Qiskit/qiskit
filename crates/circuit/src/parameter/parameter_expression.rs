@@ -847,7 +847,7 @@ impl PyParameterExpression {
     /// Simplify the expression. This, for example, attempts to cancel
     /// variables in the expression.
     pub fn simplify(&self) -> Self {
-        self.inner.optimize().into()
+        self.inner.simplify().into()
     }
 
     /// This is a **strictly internal** constructor and **should not be used**.
