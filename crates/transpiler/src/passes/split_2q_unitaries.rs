@@ -18,7 +18,7 @@ use pyo3::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::{SmallVec, smallvec};
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType, Wire};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGCircuitBuilder, NodeType, PyDAGCircuit, Wire};
 use qiskit_circuit::operations::{ArrayType, Operation, OperationRef, Param, UnitaryGate};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
@@ -27,6 +27,17 @@ use qiskit_synthesis::two_qubit_decompose::{Specialization, TwoQubitWeylDecompos
 
 #[pyfunction]
 #[pyo3(name = "split_2q_unitaries")]
+pub fn py_run_split_2q_unitaries(
+    dag: &mut PyDAGCircuit,
+    requested_fidelity: f64,
+    split_swaps: bool,
+) -> PyResult<Option<(PyDAGCircuit, Vec<usize>)>> {
+    Ok(
+        run_split_2q_unitaries(dag.as_dag_mut(), requested_fidelity, split_swaps)?
+            .map(|(dag, list)| (dag.into(), list)),
+    )
+}
+
 pub fn run_split_2q_unitaries(
     dag: &mut DAGCircuit,
     requested_fidelity: f64,
@@ -180,6 +191,6 @@ pub fn run_split_2q_unitaries(
 }
 
 pub fn split_2q_unitaries_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_split_2q_unitaries))?;
+    m.add_wrapped(wrap_pyfunction!(py_run_split_2q_unitaries))?;
     Ok(())
 }

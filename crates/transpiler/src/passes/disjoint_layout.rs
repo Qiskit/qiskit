@@ -28,7 +28,7 @@ use uuid::Uuid;
 use crate::TranspilerError;
 use crate::target::{Qargs, Target};
 use qiskit_circuit::bit::ShareableQubit;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
 use qiskit_circuit::operations::{Operation, OperationRef, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{
@@ -88,12 +88,12 @@ fn subgraph(graph: &CouplingMap, node_set: &HashSet<NodeIndex>) -> CouplingMap {
 
 #[pyfunction(name = "run_pass_over_connected_components")]
 pub fn py_run_pass_over_connected_components(
-    dag: Bound<DAGCircuit>,
+    dag: Bound<PyDAGCircuit>,
     target: &Target,
     run_func: Bound<PyAny>,
 ) -> PyResult<Option<Vec<Py<PyAny>>>> {
     let py = dag.py();
-    let func = |dag: Bound<DAGCircuit>, cmap: &CouplingMap| -> PyResult<Py<PyAny>> {
+    let func = |dag: Bound<PyDAGCircuit>, cmap: &CouplingMap| -> PyResult<Py<PyAny>> {
         let py = run_func.py();
         let coupling_map_cls = COUPLING_MAP.get_bound(py);
         let endpoints: Vec<[usize; 2]> = cmap
@@ -121,7 +121,7 @@ pub fn py_run_pass_over_connected_components(
     };
     let components = {
         let mut borrowed = dag.borrow_mut();
-        distribute_components(borrowed.deref_mut(), target)?
+        distribute_components(borrowed.deref_mut().as_dag_mut(), target)?
     };
     match components {
         DisjointSplit::NoneNeeded => {
@@ -152,7 +152,10 @@ pub fn py_run_pass_over_connected_components(
                             .map(|x| NodeIndex::new(x.index()))
                             .collect(),
                     );
-                    func(component.sub_dag.into_pyobject(py)?, &cmap)
+                    func(
+                        PyDAGCircuit::from(component.sub_dag).into_pyobject(py)?,
+                        &cmap,
+                    )
                 })
                 .collect::<PyResult<Vec<_>>>(),
         )
@@ -523,7 +526,11 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
     decomposed_dags
 }
 
-#[pyfunction]
+#[pyfunction(name = "combine_barriers")]
+fn py_combine_barriers(dag: &mut PyDAGCircuit, retain_uuid: bool) -> PyResult<()> {
+    combine_barriers(dag.as_dag_mut(), retain_uuid)
+}
+
 pub fn combine_barriers(dag: &mut DAGCircuit, retain_uuid: bool) -> PyResult<()> {
     let mut uuid_map: HashMap<String, NodeIndex> = HashMap::new();
     let barrier_nodes: Vec<NodeIndex> = dag
@@ -610,7 +617,7 @@ fn split_barriers(dag: &mut DAGCircuit) -> PyResult<()> {
 }
 
 pub fn disjoint_utils_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(combine_barriers))?;
+    m.add_wrapped(wrap_pyfunction!(py_combine_barriers))?;
     m.add_wrapped(wrap_pyfunction!(py_run_pass_over_connected_components))?;
     Ok(())
 }

@@ -22,7 +22,7 @@ use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::converters::QuantumCircuitData;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::gate_matrix::CX_GATE;
 use qiskit_circuit::imports::HLS_SYNTHESIZE_OP_USING_PLUGINS;
 use qiskit_circuit::operations::{
@@ -1042,18 +1042,19 @@ fn py_synthesize_circuit(
 /// to do anything, it returns None, meaning that the DAG should remain unchanged.
 /// Otherwise, the new DAG is returned.
 #[pyfunction]
-#[pyo3(name = "run_on_dag", signature = (dag, data, qubits_initially_zero))]
+#[pyo3(name = "run_on_dag", signature = (py_dag, data, qubits_initially_zero))]
 pub fn run_high_level_synthesis(
     py: Python,
-    dag: &DAGCircuit,
+    py_dag: &PyDAGCircuit,
     data: &Bound<HighLevelSynthesisData>,
     qubits_initially_zero: bool,
-) -> PyResult<Option<DAGCircuit>> {
+) -> PyResult<Option<PyDAGCircuit>> {
     // Fast-path: check if HighLevelSynthesis can be skipped altogether. This is only
     // done at the top-level since this does not track the qubit states.
 
     // First, we apply a super-fast (but incomplete) check to see if all the operations
     // present in the circuit are supported by the target / are in the basis.
+    let dag = py_dag.as_dag();
     if all_instructions_supported(py, data, dag)? {
         return Ok(None);
     }
@@ -1086,11 +1087,11 @@ pub fn run_high_level_synthesis(
             run_on_circuitdata(py, &circuit, &input_qubits, data, &mut tracker)?;
 
         // Using this constructor so name and metadata are not lost
-        let new_dag = DAGCircuit::from_circuit(
+        let new_dag = PyDAGCircuit::from_circuit(
             QuantumCircuitData {
                 data: output_circuit,
                 name: dag.get_name().cloned(),
-                metadata: dag.get_metadata().map(|m| m.bind(py)).cloned(),
+                metadata: py_dag.get_metadata().map(|m| m.bind(py)).cloned(),
                 transpile_layout: None,
             },
             false,

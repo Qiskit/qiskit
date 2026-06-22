@@ -25,7 +25,7 @@ use pyo3::{
     types::{PyDict, PyIterator, PyList},
 };
 use qiskit_circuit::{
-    dag_circuit::DAGCircuit,
+    dag_circuit::PyDAGCircuit,
     dag_node::{DAGNode, DAGOpNode},
 };
 use qiskit_util::IndexMap;
@@ -326,7 +326,11 @@ impl PyNodeDurations {
 }
 
 impl PyNodeDurations {
-    pub fn from_durations(py: Python, dag: &DAGCircuit, updated: NodeDurations) -> PyResult<Self> {
+    pub fn from_durations(
+        py: Python,
+        dag: &PyDAGCircuit,
+        updated: NodeDurations,
+    ) -> PyResult<Self> {
         let nodes_mapping = match &updated {
             NodeDurations::Dt(new) => new
                 .keys()

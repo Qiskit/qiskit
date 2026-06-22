@@ -25,7 +25,7 @@ use crate::passes::remove_identity_equiv::{
     MINIMUM_TOL, average_gate_fidelity_below_tol, is_identity_equiv,
 };
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation,
     StandardGate, multiply_param, radd_param,
@@ -596,13 +596,14 @@ fn disjoint_instructions(
 #[pyo3(name = "commutative_optimization")]
 #[pyo3(signature = (dag, commutation_checker, approximation_degree=1., matrix_max_num_qubits=0))]
 pub fn run_commutative_optimization(
-    dag: &mut DAGCircuit,
+    dag: &PyDAGCircuit,
     commutation_checker: &mut CommutationChecker,
     approximation_degree: f64,
     matrix_max_num_qubits: u32,
-) -> PyResult<Option<DAGCircuit>> {
+) -> PyResult<Option<PyDAGCircuit>> {
     let tol = MINIMUM_TOL.max(1. - approximation_degree);
     let error_cutoff_fn = |_inst: &PackedInstruction| -> f64 { tol };
+    let dag = dag.as_dag();
 
     // Create output DAG.
     // We will use it to intern qubits of canonicalized instructions.
@@ -732,7 +733,7 @@ pub fn run_commutative_optimization(
         }
     }
 
-    Ok(Some(new_dag))
+    Ok(Some(new_dag.into()))
 }
 
 pub fn commutative_optimization_mod(m: &Bound<PyModule>) -> PyResult<()> {
