@@ -50,6 +50,17 @@ files_dir="$(pwd -P)/forward-qpy-files/qpy${qpy_version}"
 our_dir="$(realpath -- "$(dirname -- "${BASH_SOURCE[0]}")")"
 venv_dir="$(pwd -P)/venvs/qiskit-$qiskit_version"
 
+# Use the updated constraints file for qiskit >= 2.5
+constraints_file="qpy_test_constraints.txt"
+
+major=${qiskit_version%%.*}
+rest=${qiskit_version#*.}
+minor=${rest%%[^0-9]*}
+
+if (( major > 2 || (major == 2 && minor >= 5) )); then
+    constraints_file="qpy_test_constraints25.txt"
+fi
+
 if [[ ! -d "$files_dir" ]]; then
     echo "Error: QPY files directory not found: $files_dir" 1>&2
     echo "Please run run_tests.sh first to generate QPY files" 1>&2
@@ -60,7 +71,7 @@ fi
 echo "Building venv for qiskit==$qiskit_version"
 "$python" -m venv "$venv_dir"
 "$venv_dir/bin/pip" install --upgrade pip setuptools wheel
-"$venv_dir/bin/pip" install -c "${our_dir}/qpy_test_constraints.txt" "qiskit==${qiskit_version}" packaging
+"$venv_dir/bin/pip" install -c "${our_dir}/${constraints_file}" "qiskit==${qiskit_version}" packaging
 
 # Step 2: Load the pre-generated QPY files using the venv.
 pushd "$files_dir"
