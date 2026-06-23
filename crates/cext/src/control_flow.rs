@@ -423,7 +423,7 @@ pub unsafe extern "C" fn qk_control_flow_block_circuit(
 /// const uint32_t *qubit_map = qk_control_flow_qubit_map(cf_inst);
 /// uint32_t num_qubits = qk_circuit_num_qubits(qk_control_flow_block_circuit(cf_inst, 0));
 /// for (uint32_t i = 0; i < num_qubits; i++) {
-///     printf("Block qubit %zu maps to circuit qubit %u\n", i, qubit_map[i]);
+///     printf("Block qubit %u maps to circuit qubit %u\n", i, qubit_map[i]);
 /// }
 /// ```
 ///
@@ -461,7 +461,7 @@ pub unsafe extern "C" fn qk_control_flow_qubit_map(
 /// const uint32_t *clbit_map = qk_control_flow_clbit_map(cf_inst);
 /// uint32_t num_clbits = qk_circuit_num_clbits(qk_control_flow_block_circuit(cf_inst, 0));
 /// for (uint32_t i = 0; i < num_clbits; i++) {
-///     printf("Block clbit %zu maps to circuit clbit %u\n", i, clbit_map[i]);
+///     printf("Block clbit %u maps to circuit clbit %u\n", i, clbit_map[i]);
 /// }
 /// ```
 ///
@@ -599,7 +599,7 @@ pub unsafe extern "C" fn qk_control_flow_condition_bit_info(
 /// ```c
 /// // Assuming cf_inst is an IfElse or While instruction with a register condition
 /// uint64_t bit_width = qk_control_flow_condition_reg_cond_bit_width(cf_inst);
-/// printf("Register bit width: %llu\n", bit_width);
+/// printf("Register bit width: %lu\n", bit_width);
 /// ```
 ///
 /// # Safety
@@ -691,7 +691,7 @@ pub unsafe extern "C" fn qk_control_flow_condition_reg(
 /// ```c
 /// // Assuming cf_inst is an IfElse or While instruction with a register condition
 /// uint64_t expected_value = qk_control_flow_condition_reg_cond_uint(cf_inst);
-/// printf("Expected register value: %" PRIu64 "\n", expected_value);
+/// printf("Expected register value: %lu\n", expected_value);
 /// ```
 ///
 /// # Safety
@@ -921,7 +921,7 @@ pub unsafe extern "C" fn qk_control_flow_box_duration_expr(
 /// QkLoopCollectionType collection_type = qk_control_flow_loop_collection_type(cf_inst);
 /// if (collection_type == QkLoopCollectionType_List) {
 ///     // Handle list-based loop
-/// } else (collection_type == QkLoopCollectionType_Range) {
+/// } else if (collection_type == QkLoopCollectionType_Range) {
 ///     // Handle range-based loop
 /// }
 /// ```
@@ -1435,7 +1435,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_num_cases(
 /// // Assuming cf_inst is a Switch control flow instruction
 /// for (size_t i = 0; i < qk_control_flow_switch_num_cases(cf_inst); i++) {
 ///     if (qk_control_flow_switch_is_case_default(cf_inst, i)) {
-///         printf("Case %u is the default case\n", i);
+///         printf("Case %zu is the default case\n", i);
 ///     }
 /// }
 /// ```
@@ -1479,7 +1479,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_is_case_default(
 /// ```c
 /// // Assuming cf_inst is a Switch control flow instruction
 /// uint64_t bit_width = qk_control_flow_switch_case_labels_bit_width(cf_inst, 0);
-/// printf("Maximum bit width for case 0: %" PRIu64 "\n", bit_width);
+/// printf("Maximum bit width for case 0: %lu\n", bit_width);
 /// ```
 ///
 /// # Safety
