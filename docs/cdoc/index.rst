@@ -32,6 +32,7 @@ Quantum Circuit
    qk-quantum-register
    qk-classical-register
    qk-param
+   qk-control-flow
    qk-classical-expressions
 
 Circuit Library
