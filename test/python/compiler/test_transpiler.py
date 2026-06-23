@@ -97,6 +97,7 @@ from qiskit.transpiler.passes import (
     GateDirection,
     VF2PostLayout,
     WrapAngles,
+    SabreLayout,
 )
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
@@ -2426,6 +2427,28 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(shared_circuits, own_circuits)
         together_circuits = make_pm().run(circuits)
         self.assertEqual(together_circuits, own_circuits)
+
+    def test_parse_seed_transpiler_from_env_var(self):
+        """Test that the environment variable QISKIT_TRANSPILER_SEED is passed to the transpiler."""
+        qc = QuantumCircuit(3)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.cx(2, 0)
+
+        # Save the original SabreLayout.run method, and create a mock method that calls the original method,
+        # but also records the value for seed.
+        original_run = SabreLayout.run
+        run_calls = []
+
+        def mock_run(self, dag):
+            run_calls.append(self.seed)
+            original_run(self, dag)
+
+        with patch.dict(os.environ, {"QISKIT_TRANSPILER_SEED": "1234"}):
+            with patch.object(SabreLayout, "run", new=mock_run):
+                _ = transpile(qc, optimization_level=1, coupling_map=CouplingMap.from_line(3))
+        self.assertEqual(len(run_calls), 1)
+        self.assertEqual(run_calls[0], 1234)
 
 
 @ddt

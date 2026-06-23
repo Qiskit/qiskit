@@ -5,11 +5,12 @@ library produced by that crate.
 This is an internal library only used as part of the build and distribution process of Qiskit.
 
 This crate owns all parts of the stand-alone header-file generation logic, including the
-custom-written include files, and the installation logic.
+custom-written include files (the `include` directory), the Rust template crate (the `pyo3-ffi`
+directory), and the installation logic of both.
 
 ## Usage
 
-This library is designed to be used by its consuming binary, `qiskit-bindgen-c`, and (in the future)
+This library is designed to be used by its consuming binary, `qiskit-bindgen-cli`, and (in the future)
 the Python-extension build process in `qiskit-pyext`.
 
 This encapsulates all the custom logic needed to parse the `qiskit-cext` source files into a

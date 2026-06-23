@@ -32,6 +32,13 @@ class CommutativeCancellation(TransformationPass):
     the commutation relations in the circuit. Gates considered include::
 
         H, X, Y, Z, CX, CY, CZ
+
+
+    This pass is multithreaded and will potentially launch a thread pool
+    with threads equal to the number of CPUs by default. You can tune the
+    number of threads with the ``RAYON_NUM_THREADS`` environment variable.
+    For example, setting ``RAYON_NUM_THREADS=4`` would limit the thread pool
+    to 4 threads.
     """
 
     def __init__(self, basis_gates=None, target=None):
@@ -58,8 +65,8 @@ class CommutativeCancellation(TransformationPass):
 
         self._var_z_map = {"rz": RZGate, "p": PhaseGate, "u1": U1Gate}
 
-        self._z_rotations = {"p", "z", "u1", "rz", "t", "s"}
-        self._x_rotations = {"x", "rx"}
+        self._z_rotations = {"p", "z", "u1", "rz", "t", "s", "tdg", "sdg"}
+        self._x_rotations = {"x", "rx", "sx", "sxdg"}
         self._gates = {"cx", "cy", "cz", "h", "y"}  # Now the gates supported are hard-coded
 
         # build a commutation checker restricted to the gates we cancel -- the others we
