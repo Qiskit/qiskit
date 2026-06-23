@@ -49,7 +49,7 @@ class Commuting2qBlock(Gate):
             for param in node.op.params:
                 if isinstance(param, ParameterExpression):
                     params_set.update(param.parameters)
-        params_list = sorted(params_set, key=lambda p: p.name)
+        params_list = list(params_set)
 
         if cbits:
             raise QiskitError(
