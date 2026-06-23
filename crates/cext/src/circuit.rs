@@ -2057,7 +2057,9 @@ pub struct CircuitDrawerConfig {
     /// to auto-detect console width. Use `SIZE_MAX` to effectively skip
     /// wrapping altogether.
     fold: usize,
-    /// If `true`, display measurements on qbits
+    /// If `true`, draws an arrow from each measure box down to its corresponding classical wire, 
+    /// otherwise places the name of the classical bit or register in the measure box.
+
     measure_arrows: bool,
 }
 

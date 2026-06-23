@@ -121,13 +121,17 @@ fn build_layers(circ: &CircuitData, measure_arrows: bool) -> Vec<Vec<&PackedInst
             OperationRef::StandardInstruction(StandardInstruction::Measure)
         );
 
-        let (node_min, node_max) = get_instruction_range(
-            circ.get_qargs(inst.qubits),
-            circ.get_cargs(inst.clbits),
-            num_qubits,
-            measure_arrows,
-            is_measure,
-        );
+        let (node_min, node_max) = if is_measure && !measure_arrows {
+            let qubit_idx = circ.get_qargs(inst.qubits)[0].index();
+            (qubit_idx, qubit_idx)
+        }
+        else {
+            get_instruction_range(
+                circ.get_qargs(inst.qubits),
+                circ.get_cargs(inst.clbits),
+                num_qubits,
+            )
+        };
 
         let layer_idx = *layers_frontier[node_min..=node_max]
             .iter()
@@ -149,17 +153,10 @@ fn get_instruction_range(
     node_qubits: &[Qubit],
     node_clbits: &[Clbit],
     num_qubits: usize,
-    measure_arrows: bool,
-    is_measure: bool,
 ) -> (usize, usize) {
-    let effective_clbits = if !measure_arrows && is_measure {
-        &[]
-    } else {
-        node_clbits
-    };
 
     let indices = node_qubits.iter().map(|q| q.index()).chain(
-        effective_clbits
+        node_clbits
             .iter()
             .max()
             .map(|c| c.index() + num_qubits),
@@ -355,7 +352,7 @@ impl<'a> VisualizationLayer<'a> {
         }
 
         let qargs = circuit.get_qargs(inst.qubits);
-        let (minima, maxima) = get_instruction_range(qargs, &[], 0, false, false);
+        let (minima, maxima) = get_instruction_range(qargs, &[], 0,);
 
         match gate {
             StandardGate::ISwap
@@ -465,8 +462,6 @@ impl<'a> VisualizationLayer<'a> {
             qargs,
             circuit.get_cargs(inst.clbits),
             circuit.num_qubits(),
-            false,
-            false,
         );
 
         match std_inst {
@@ -510,7 +505,7 @@ impl<'a> VisualizationLayer<'a> {
             self.0[qargs.first().unwrap().index()] =
                 VisualizationElement::Boxed(BoxedElement::Single(inst));
         } else {
-            let (minima, maxima) = get_instruction_range(qargs, &[], 0, false, false);
+            let (minima, maxima) = get_instruction_range(qargs, &[], 0);
             for q in minima..=maxima {
                 self.0[q] = VisualizationElement::Boxed(BoxedElement::Multi(inst));
             }
@@ -1052,7 +1047,7 @@ impl TextDrawer {
                             if gate.is_controlled_gate() {
                                 let qargs = circuit.get_qargs(inst.qubits);
                                 let (minima, maxima) =
-                                    get_instruction_range(qargs, &[], 0, false, false);
+                                    get_instruction_range(qargs, &[], 0);
                                 if qargs.last().unwrap().index() > minima {
                                     top_con = TOP_CON;
                                 }
@@ -1063,11 +1058,9 @@ impl TextDrawer {
                                 // lines regardless of whether the text element padding size is odd or even.
                                 (label.len() % 2 == 0).then(|| label.push(' '));
                             }
-                        } else if matches!(
-                            inst.op.view(),
-                            OperationRef::StandardInstruction(StandardInstruction::Measure)
-                                | OperationRef::PauliProductMeasurement(_)
-                        ) && measure_arrows
+                        } else if measure_arrows && 
+                            matches!(inst.op.view(),OperationRef::StandardInstruction(StandardInstruction::Measure)) ||  
+                            matches!(inst.op.view(), OperationRef::PauliProductMeasurement(_))
                         {
                             bot_con = C_BOT_CON;
                         }
@@ -1097,7 +1090,7 @@ impl TextDrawer {
                         let label = format!(" {} ", Self::get_label(inst));
                         let label_len = label.width();
                         let qargs = circuit.get_qargs(inst.qubits);
-                        let (minima, maxima) = get_instruction_range(qargs, &[], 0, false, false);
+                        let (minima, maxima) = get_instruction_range(qargs, &[], 0);
                         let mid_idx = (minima + maxima) / 2;
                         let input_idx = qargs.iter().position(|&x| x.index() == wire_idx);
                         let qarg_inputs_len = (qargs.len() as f64).log10().ceil() as usize;
@@ -1168,9 +1161,7 @@ impl TextDrawer {
                         let (minima, maxima) = get_instruction_range(
                             circuit.get_qargs(inst.qubits),
                             &[],
-                            0,
-                            false,
-                            false,
+                            0
                         );
                         (
                             format!(
@@ -1196,9 +1187,7 @@ impl TextDrawer {
                         let (minima, maxima) = get_instruction_range(
                             circuit.get_qargs(inst.qubits),
                             &[],
-                            0,
-                            false,
-                            false,
+                            0
                         );
                         (
                             format!(
@@ -1232,7 +1221,7 @@ impl TextDrawer {
                     ),
                     OnWireElement::CPhaseEndpoint(inst) => {
                         let qargs = circuit.get_qargs(inst.qubits);
-                        let (minima, maxima) = get_instruction_range(qargs, &[], 0, false, false);
+                        let (minima, maxima) = get_instruction_range(qargs, &[], 0);
                         // q_0: ─■───────
                         //       │P(0.5)
                         // q_1: ─┼───────
@@ -2696,9 +2685,9 @@ q_10: ────────────────────────�
             )
             .unwrap();
 
-        let result = draw_circuit(&circuit, true, true, Some(80), true).unwrap();
+        let result = draw_circuit(&circuit, true, true, Some(80), false).unwrap();
         let expected = "
-      ┌───────────┐
+        let result = draw_circuit(&circuit, true, true, Some(80), false).unwrap();
 qr_0: ┤0 I        ├───────────────────
       │           │┌────────┐
 qr_1: ┤1 Z        ├┤2 X     ├─────────
@@ -2892,7 +2881,8 @@ q_3: ┤ X ├─■─────────────────┤ X ├
         let list = [
             (
                 helper_circuit_measure_all(4),
-                "     ┌─┐
+                "
+     ┌─┐
 q_0: ┤M├─────────
      └╥┘
       ║ ┌─┐
