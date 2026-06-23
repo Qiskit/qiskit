@@ -421,8 +421,8 @@ pub unsafe extern "C" fn qk_control_flow_block_circuit(
 /// ```c
 /// // Assuming cf_inst is obtained from a circuit with control flow
 /// const uint32_t *qubit_map = qk_control_flow_qubit_map(cf_inst);
-/// size_t num_qubits = qk_circuit_num_qubits(qk_control_flow_block_circuit(cf_inst, 0));
-/// for (size_t i = 0; i < num_qubits; i++) {
+/// uint32_t num_qubits = qk_circuit_num_qubits(qk_control_flow_block_circuit(cf_inst, 0));
+/// for (uint32_t i = 0; i < num_qubits; i++) {
 ///     printf("Block qubit %zu maps to circuit qubit %u\n", i, qubit_map[i]);
 /// }
 /// ```
@@ -459,8 +459,8 @@ pub unsafe extern "C" fn qk_control_flow_qubit_map(
 /// ```c
 /// // Assuming cf_inst is obtained from a circuit with control flow
 /// const uint32_t *clbit_map = qk_control_flow_clbit_map(cf_inst);
-/// size_t num_clbits = qk_circuit_num_clbits(qk_control_flow_block_circuit(cf_inst, 0));
-/// for (size_t i = 0; i < num_clbits; i++) {
+/// uint32_t num_clbits = qk_circuit_num_clbits(qk_control_flow_block_circuit(cf_inst, 0));
+/// for (uint32_t i = 0; i < num_clbits; i++) {
 ///     printf("Block clbit %zu maps to circuit clbit %u\n", i, clbit_map[i]);
 /// }
 /// ```
@@ -919,9 +919,9 @@ pub unsafe extern "C" fn qk_control_flow_box_duration_expr(
 /// ```c
 /// // Assuming cf_inst is a ForLoop instruction
 /// QkLoopCollectionType collection_type = qk_control_flow_loop_collection_type(cf_inst);
-/// if (collection_type == CLoopCollectionType_List) {
+/// if (collection_type == QkLoopCollectionType_List) {
 ///     // Handle list-based loop
-/// } else {
+/// } else (collection_type == QkLoopCollectionType_Range) {
 ///     // Handle range-based loop
 /// }
 /// ```
@@ -1013,7 +1013,7 @@ pub unsafe extern "C" fn qk_control_flow_loop_elements(
 /// // Assuming cf_inst is a ForLoop instruction with a Range collection type
 /// int64_t start, stop, step;
 /// qk_control_flow_loop_range(cf_inst, &start, &stop, &step);
-/// printf("Loop range: start=%zd, stop=%zd, step=%zd\n", start, stop, step);
+/// printf("Loop range: start=%ld, stop=%ld, step=%ld\n", start, stop, step);
 /// ```
 ///
 /// # Safety
@@ -1060,11 +1060,9 @@ pub unsafe extern "C" fn qk_control_flow_loop_range(
 /// ```c
 /// // Assuming cf_inst is a ForLoop instruction
 /// QkLoopParamKind param_kind = qk_control_flow_loop_param_kind(cf_inst);
-/// if (param_kind == CLoopParamKind_NoLoopParam) {
-///     // Loop has no parameter
-/// } else if (param_kind == CLoopParamKind_Parameter) {
+/// if (param_kind == QkLoopParamKind_Parameter) {
 ///     // Loop uses a Parameter symbol
-/// } else {
+/// } else if (param_kind == QkLoopParamKind_Variable) {
 ///     // Loop uses a Variable
 /// }
 /// ```
@@ -1217,15 +1215,15 @@ pub unsafe extern "C" fn qk_control_flow_loop_variable(
 /// // Assuming cf_inst is a Switch control flow instruction
 /// QkConditionType target_type = qk_control_flow_switch_target_type(cf_inst);
 /// switch (target_type) {
-/// case QkConditionType_ClBit:
-///     // do something
-///     break;
-/// case QkConditionType_ClReg:
-///     // do something
-///     break;
-/// case QkConditionType_Expr:
-///     // do something
-///     break;
+///     case QkConditionType_ClBit:
+///         // do something
+///         break;
+///     case QkConditionType_ClReg:
+///         // do something
+///         break;
+///     case QkConditionType_Expr:
+///         // do something
+///         break;
 /// }
 /// ```
 ///
@@ -1541,7 +1539,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels_bit_width(
 /// // Assuming cf_inst is a Switch control flow instruction
 /// QkSwitchCaseLabels case_labels = qk_control_flow_switch_case_labels_uint(cf_inst, 0);
 /// for (size_t i = 0; i < case_labels.num_labels; i++) {
-///     printf("Label %zu: %llu\n", i, case_labels.labels[i]);
+///     printf("Label %zu: %lu\n", i, case_labels.labels[i]);
 /// }
 /// qk_control_flow_switch_case_labels_clear(&case_labels);
 /// ```
