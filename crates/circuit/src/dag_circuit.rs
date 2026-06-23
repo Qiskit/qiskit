@@ -8834,7 +8834,8 @@ impl PyDAGCircuit {
     ) -> Result<Self, DAGError> {
         // Extract necessary attributes
         let qc_data = qc.data;
-        let dag = DAGCircuit::from_circuit_data(&qc_data, copy_op, qubit_order, clbit_order)?;
+        let mut dag = DAGCircuit::from_circuit_data(&qc_data, copy_op, qubit_order, clbit_order)?;
+        dag.name = qc.name;
         Ok(PyDAGCircuit {
             metadata: qc.metadata.map(|data| data.unbind()),
             inner: dag,
