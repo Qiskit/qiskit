@@ -1109,6 +1109,9 @@ def generate_circuits(
         generating_version.release >= (2, 4, 0)
         and current_version.release >= (2, 4, 0)
         and (not forward_tests or current_version.release[1] != 4)
+        and (
+            qpy_version is None or qpy_version >= 17
+        )  # PPR gates are not supported in Python QPY, which currently handles qpy versions up to 16
     ):
         output_circuits["ppr.qpy"] = generate_pauli_product_rotation()
 
