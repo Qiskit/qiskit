@@ -281,24 +281,27 @@ pub fn cancel_commutations(
                     total_phase -= PI;
                 } else if cancel_key.gate == GateOrRotation::ZRotation {
                     let z_gate = z_var_gate.unwrap();
-                    dag.insert_1q_on_incoming_qubit((*z_gate, &[total_angle]), cancel_set[0]);
+                    let cancel_label = dag[cancel_set[0]].unwrap_operation().label.clone();
+                    dag.insert_1q_on_incoming_qubit_with_label((*z_gate, &[total_angle]), cancel_set[0], cancel_label);
                 } else {
                     // cancel_gate.key is either ZRotation or XRotation in this block it is an
                     // XRotation.
+                    let cancel_label = dag[cancel_set[0]].unwrap_operation().label.clone();
                     if x_supported && is_multiple_of_pi(total_angle, 1.) {
                         let num_x = (total_angle / PI).round();
                         total_phase -= FRAC_PI_2 * num_x;
-                        dag.insert_1q_on_incoming_qubit((StandardGate::X, &[]), cancel_set[0]);
+                        dag.insert_1q_on_incoming_qubit_with_label((StandardGate::X, &[]), cancel_set[0], cancel_label);
                     } else if sx_supported && is_multiple_of_pi(total_angle, 0.5) {
                         let num_sx = (total_angle / FRAC_PI_2).round();
                         total_phase -= FRAC_PI_4 * num_sx;
                         for _ in 0..(num_sx as i64) % 4 {
-                            dag.insert_1q_on_incoming_qubit((StandardGate::SX, &[]), cancel_set[0]);
+                            dag.insert_1q_on_incoming_qubit_with_label((StandardGate::SX, &[]), cancel_set[0], cancel_label.clone());
                         }
                     } else {
-                        dag.insert_1q_on_incoming_qubit(
+                        dag.insert_1q_on_incoming_qubit_with_label(
                             (StandardGate::RX, &[total_angle]),
                             cancel_set[0],
+                            cancel_label,
                         );
                     }
                 }

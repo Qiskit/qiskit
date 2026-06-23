@@ -320,6 +320,7 @@ fn two_qubit_unitary_peephole_optimize_apply(
                 out_dag_builder.insert_qargs(&[out_qargs[0], out_qargs[1]]),
                 out_dag_builder.insert_qargs(&[out_qargs[1], out_qargs[0]]),
             ];
+            let run_label: Option<Box<String>> = dag.dag()[node].unwrap_operation().label.as_deref().map(|s| Box::new(s.to_string()));
             for (gate, params, local_qubits) in &result.sequence.gates {
                 let qubits = match local_qubits.as_slice() {
                     [0] => qubit_keys[0],
@@ -351,7 +352,7 @@ fn two_qubit_unitary_peephole_optimize_apply(
                     qubits,
                     clbits: Default::default(),
                     params,
-                    label: None,
+                    label: run_label.clone().map(|s| Box::new(s.as_ref().to_string())),
                     #[cfg(feature = "cache_pygates")]
                     py_op: OnceLock::new(),
                 })?;

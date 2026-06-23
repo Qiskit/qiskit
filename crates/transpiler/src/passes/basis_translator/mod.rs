@@ -623,7 +623,7 @@ fn replace_node(
                 &new_qubits,
                 &new_clbits,
                 new_params,
-                inner_node.label.as_deref().cloned(),
+                node.label.as_deref().cloned(),
                 #[cfg(feature = "cache_pygates")]
                 None,
             )

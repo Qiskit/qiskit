@@ -7344,6 +7344,15 @@ impl DAGCircuit {
         new_gate: (StandardGate, &[f64]),
         old_index: NodeIndex,
     ) {
+        self.insert_1q_on_incoming_qubit_with_label(new_gate, old_index, None)
+    }
+
+    pub fn insert_1q_on_incoming_qubit_with_label(
+        &mut self,
+        new_gate: (StandardGate, &[f64]),
+        old_index: NodeIndex,
+        label: Option<Box<String>>,
+    ) {
         let inst = if let NodeType::Operation(old_node) = &self.dag[old_index] {
             PackedInstruction {
                 op: new_gate.0.into(),
@@ -7354,7 +7363,7 @@ impl DAGCircuit {
                         new_gate.1.iter().map(|x| Param::Float(*x)).collect(),
                     ))
                 }),
-                label: None,
+                label,
                 #[cfg(feature = "cache_pygates")]
                 py_op: OnceLock::new(),
             }

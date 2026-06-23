@@ -445,6 +445,9 @@ fn apply_consolidation(
     block: &[NodeIndex],
     consolidation: ConsolidateResult,
 ) -> PyResult<()> {
+    let block_label: Option<Box<str>> = block.first().and_then(|idx| {
+        dag[*idx].unwrap_operation().label.as_deref().map(|s| Box::from(s.as_ref()))
+    });
     match consolidation {
         ConsolidateResult::NoConsolidate => {}
         ConsolidateResult::Identity => {
@@ -458,7 +461,7 @@ fn apply_consolidation(
                 block,
                 PackedOperation::from_unitary(Box::new(unitary_gate)),
                 None,
-                None,
+                block_label.as_deref(),
                 false,
                 &block_index_map,
                 &clbit_pos_map,
@@ -469,7 +472,7 @@ fn apply_consolidation(
                 block[0],
                 PackedOperation::from_unitary(Box::new(unitary_gate)),
                 None,
-                None,
+                block_label.as_deref(),
             )?;
         }
     }
@@ -583,6 +586,7 @@ fn py_run_consolidate_blocks(
             }
             let first_inst_node = run[0];
             let first_inst = dag[first_inst_node].unwrap_operation();
+            let first_inst_label: Option<String> = first_inst.label.as_deref().map(|s| s.to_string());
             let first_qubits = phys_qargs.get(dag, first_inst.qubits);
 
             if run.len() == 1
@@ -607,7 +611,7 @@ fn py_run_consolidate_blocks(
                     first_inst_node,
                     PackedOperation::from_unitary(Box::new(unitary_gate)),
                     None,
-                    None,
+                    first_inst_label.as_deref(),
                 )?;
                 continue;
             }
@@ -651,7 +655,7 @@ fn py_run_consolidate_blocks(
                     &run,
                     PackedOperation::from_unitary(Box::new(unitary_gate)),
                     None,
-                    None,
+                    first_inst_label.as_deref(),
                     false,
                     &block_index_map,
                     &clbit_pos_map,

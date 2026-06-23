@@ -461,8 +461,9 @@ pub fn run_optimize_1q_gates_decomposition(
             .zip(sequences)
             .filter_map(|(raw_run, sequence)| sequence.map(|x| (raw_run, x)))
             .try_for_each(|(raw_run, sequence)| -> PyResult<()> {
+                let run_label = dag[raw_run[0]].unwrap_operation().label.clone();
                 for gate in sequence.gates {
-                    dag.insert_1q_on_incoming_qubit((gate.0, &gate.1), raw_run[0]);
+                    dag.insert_1q_on_incoming_qubit_with_label((gate.0, &gate.1), raw_run[0], run_label.clone());
                 }
                 dag.add_global_phase(&Param::Float(sequence.global_phase))?;
                 dag.remove_1q_sequence(&raw_run);
@@ -472,8 +473,9 @@ pub fn run_optimize_1q_gates_decomposition(
         for raw_run in runs {
             let sequence = process_run(&raw_run, dag)?;
             if let Some(sequence) = sequence {
+                let run_label = dag[raw_run[0]].unwrap_operation().label.clone();
                 for gate in sequence.gates {
-                    dag.insert_1q_on_incoming_qubit((gate.0, &gate.1), raw_run[0]);
+                    dag.insert_1q_on_incoming_qubit_with_label((gate.0, &gate.1), raw_run[0], run_label.clone());
                 }
                 dag.add_global_phase(&Param::Float(sequence.global_phase))?;
                 dag.remove_1q_sequence(&raw_run);
