@@ -293,27 +293,27 @@ pub struct CLoopElements {
 /// // Assuming cf_inst is obtained from a circuit with control flow
 /// QkControlFlowKind kind = qk_control_flow_kind(cf_inst);
 /// switch (kind) {
-///     case QkControlFlowKind_Box:
-///         // do something with the box instruction
-///         break;
-///     case QkControlFlowKind_BreakLoop:
-///         // do something with the break loop instruction
-///         break;
-///     case QkControlFlowKind_ContinueLoop:
-///         // do something with the continue loop instruction
-///         break;
-///     case QkControlFlowKind_ForLoop:
-///         // do something with the for loop instruction
-///         break;
-///     case QkControlFlowKind_IfElse:
-///         // do something with the if-else instruction
-///         break;
-///     case QkControlFlowKind_Switch:
-///         // do something with the switch instruction
-///         break;
-///     case QkControlFlowKind_While:
-///         // do something with the while loop instruction
-///         break;
+/// case QkControlFlowKind_Box:
+///     // do something with the box instruction
+///     break;
+/// case QkControlFlowKind_BreakLoop:
+///     // do something with the break loop instruction
+///     break;
+/// case QkControlFlowKind_ContinueLoop:
+///     // do something with the continue loop instruction
+///     break;
+/// case QkControlFlowKind_ForLoop:
+///     // do something with the for loop instruction
+///     break;
+/// case QkControlFlowKind_IfElse:
+///     // do something with the if-else instruction
+///     break;
+/// case QkControlFlowKind_Switch:
+///     // do something with the switch instruction
+///     break;
+/// case QkControlFlowKind_While:
+///     // do something with the while loop instruction
+///     break;
 /// }
 /// ```
 ///
@@ -497,18 +497,15 @@ pub unsafe extern "C" fn qk_control_flow_clbit_map(
 /// // Assuming cf_inst is an IfElse or While control flow instruction
 /// QkConditionType cond_type = qk_control_flow_condition_type(cf_inst);
 /// switch (cond_type) {
-///     case QkConditionType_ClBit: {
-///         // do something with classical bit...
-///         break;
-///     }
-///     case QkConditionType_ClReg: {
-///         // do something with classical register...
-///         break;
-///     }
-///     case QkConditionType_Expr: {
-///         // Process expression...
-///         break;
-///     }
+/// case QkConditionType_ClBit:
+///     // do something with classical bit...
+///     break;
+/// case QkConditionType_ClReg:
+///     // do something with classical register...
+///     break;
+/// case QkConditionType_Expr:
+///     // Process expression...
+///     break;
 /// }
 /// ```
 ///
@@ -786,13 +783,13 @@ pub unsafe extern "C" fn qk_control_flow_condition_expr(
 /// // Assuming cf_inst is a Box control flow instruction
 /// QkBoxDurationKind duration_kind = qk_control_flow_box_duration_kind(cf_inst);
 /// switch (duration_kind) {
-///     case QkBoxDurationKind_NoDuration:
+/// case QkBoxDurationKind_NoDuration:
 ///     // do something...
 ///     break;
-///     case QkBoxDurationKind_Duration:
+/// case QkBoxDurationKind_Duration:
 ///     // do something...
 ///     break;
-///     case QkBoxDurationKind_Expr:
+/// case QkBoxDurationKind_Expr:
 ///     // do something...
 ///     break;
 /// }
@@ -1215,15 +1212,15 @@ pub unsafe extern "C" fn qk_control_flow_loop_variable(
 /// // Assuming cf_inst is a Switch control flow instruction
 /// QkConditionType target_type = qk_control_flow_switch_target_type(cf_inst);
 /// switch (target_type) {
-///     case QkConditionType_ClBit:
-///         // do something
-///         break;
-///     case QkConditionType_ClReg:
-///         // do something
-///         break;
-///     case QkConditionType_Expr:
-///         // do something
-///         break;
+/// case QkConditionType_ClBit:
+///     // do something
+///     break;
+/// case QkConditionType_ClReg:
+///     // do something
+///     break;
+/// case QkConditionType_Expr:
+///     // do something
+///     break;
 /// }
 /// ```
 ///
