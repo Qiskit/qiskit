@@ -25,4 +25,5 @@
  * @defgroup QkVF2LayoutConfiguration QkVF2LayoutConfiguration
  * @defgroup QkVF2LayoutResult QkVF2LayoutResult
  * @defgroup QkClassicalExpressions QkClassicalExpressions
+ * @defgroup QkControlFlow QkControlFlow
  */

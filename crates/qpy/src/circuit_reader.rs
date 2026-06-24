@@ -469,19 +469,19 @@ fn unpack_pauli_product_rotation(
 ) -> Result<(PackedOperation, Vec<GenericValue>), QpyError> {
     if instruction.params.len() != 3 {
         return Err(QpyError::InvalidParameter(
-            "No matrix for unitary op".to_string(),
+            "No angle for pauli product rotation".to_string(),
         ));
     }
     let z_values = unpack_generic_value(&instruction.params[0], qpy_data, Endian::Big)?;
     let z = z_values.to_boolean_vec().ok_or_else(|| {
         QpyError::InvalidParameter(
-            "Pauli product measurement z parameter should be a boolean vector".to_string(),
+            "Pauli product rotation z parameter should be a boolean vector".to_string(),
         )
     })?;
     let x_values = unpack_generic_value(&instruction.params[1], qpy_data, Endian::Big)?;
     let x = x_values.to_boolean_vec().ok_or_else(|| {
         QpyError::InvalidParameter(
-            "Pauli product measurement x parameter should be a boolean vector".to_string(),
+            "Pauli product rotation x parameter should be a boolean vector".to_string(),
         )
     })?;
     let angle_value = unpack_generic_value(&instruction.params[2], qpy_data, Endian::Little)?;
@@ -1371,7 +1371,7 @@ fn add_standalone_vars(
             ExpressionType::Bool => classical::types::Type::Bool,
             ExpressionType::Duration => classical::types::Type::Duration,
             ExpressionType::Float => classical::types::Type::Float,
-            ExpressionType::Uint(val) => classical::types::Type::Uint(val.try_into()?),
+            ExpressionType::Uint(val) => classical::types::Type::Uint(val),
         };
         let uuid = u128::from_be_bytes(packed_var.uuid_bytes);
         let name = packed_var.name.clone();
