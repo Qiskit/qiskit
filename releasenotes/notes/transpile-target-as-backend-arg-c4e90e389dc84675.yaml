@@ -7,11 +7,11 @@ features_transpiler:
     with the existing behaviour of :func:`.generate_preset_pass_manager`. This allows
     users to write::
 
-        transpile(circuit, target)
+        tqc = transpile(circuit, target)
 
     instead of::
 
-        transpile(circuit, target=target)
+        tqc = transpile(circuit, target=target)
 
     A :exc:`TypeError` is raised if a :class:`.Target` is passed positionally and
     ``target`` is also specified as a keyword argument.
