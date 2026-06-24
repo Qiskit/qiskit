@@ -1213,7 +1213,7 @@ impl<'a> QASM3Builder {
             None => {
                 if delay_unit == DelayUnit::PS {
                     DurationLiteral {
-                        value: duration * 1000.0,
+                        value: duration / 1000.0,
                         unit: DurationUnit::Nanosecond,
                     }
                 } else {
