@@ -16,7 +16,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import Clbit, Gate, ParameterExpression, Qubit
+from qiskit.circuit import Clbit, Gate, Parameter, Qubit
 from qiskit.dagcircuit import DAGOpNode
 
 
@@ -37,7 +37,7 @@ class Commuting2qBlock(Gate):
         """
         qubits: set[Qubit] = set()
         cbits: set[Clbit] = set()
-        params_set: set[ParameterExpression] = set()
+        params_set: set[Parameter] = set()
 
         for node in node_block:
             if len(node.qargs) != 2:
@@ -47,7 +47,7 @@ class Commuting2qBlock(Gate):
             cbits.update(node.cargs)
 
             for param in node.op.params:
-                if isinstance(param, ParameterExpression):
+                if isinstance(param, Parameter):
                     params_set.update(param.parameters)
         params_list = list(params_set)
 
