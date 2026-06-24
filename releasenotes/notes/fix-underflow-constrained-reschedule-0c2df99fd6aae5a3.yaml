@@ -1,11 +1,5 @@
 ---
 fixes:
   - |
-<<<<<<< HEAD
     Fixed a subtraction panic via underflow in :class:`.ConstrainedReschedule`.
-    See `#16231 <https://github.com/Qiskit/qiskit/issues/16231>__`.
-=======
-    Ensure no subtraction panic happens via underflow in :class:`.ConstrainedReschedule`.
-    Fixed `#16231 <https://github.com/Qiskit/qiskit/issues/16231>`__.
-
->>>>>>> b3d0f9312 (Fix link (#16439))
+    See `#16231 <https://github.com/Qiskit/qiskit/issues/16231>`__.
