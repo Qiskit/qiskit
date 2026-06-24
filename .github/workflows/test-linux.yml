@@ -118,10 +118,7 @@ jobs:
       - name: Filter stestr history
         if: ${{ !inputs.install-from-sdist }}
         run: |
-          set -e
-          pushd .stestr
-          ls | grep -P "^\d" | xargs -d "\n" rm -f
-          popd
+          test-job/bin/stestr history remove all
       - name: Run Python tests (sdist)
         if: ${{ inputs.install-from-sdist }}
         run: |
@@ -145,8 +142,9 @@ jobs:
         if: ${{ inputs.install-from-sdist }}
         run: |
           set -e
-          pushd /tmp/terra-tests/.stestr
-          ls | grep -P "^\d" | xargs -d "\n" rm -f
+          source test-job/bin/activate
+          pushd /tmp/terra-tests
+          stestr history remove all
           popd
           cp -r /tmp/terra-tests/.stestr .
       - name: Copy and Publish images
