@@ -123,7 +123,7 @@ pub fn py_run_pass_over_connected_components(
         let mut borrowed = dag.borrow_mut();
         distribute_components(borrowed.deref_mut().as_dag_mut(), target)?
     };
-    let metadata = dag.getattr("metadata")?.extract::<Option<Py<PyAny>>>()?;
+    let borrowed = dag.borrow();
     match components {
         DisjointSplit::NoneNeeded => {
             let coupling_map: CouplingMap = match build_coupling_map(target) {
@@ -155,8 +155,10 @@ pub fn py_run_pass_over_connected_components(
                     );
                     // Since each generated dag originates as a copy from the original
                     // we can also copy the original's meta data.
-                    let mut dag_comp = PyDAGCircuit::from(component.sub_dag);
-                    dag_comp.metadata.clone_from(&metadata);
+                    let dag_comp = PyDAGCircuit::from_dagcircuit_with_cloned_metadata(
+                        component.sub_dag,
+                        &borrowed,
+                    );
                     func(dag_comp.into_pyobject(py)?, &cmap)
                 })
                 .collect::<PyResult<Vec<_>>>(),

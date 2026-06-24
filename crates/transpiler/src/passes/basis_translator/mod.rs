@@ -72,11 +72,7 @@ fn py_run_basis_translator(
         target_basis_ref,
     )?
     // Turn into Python DAG and restore metadata
-    .map(|out_dag| {
-        let mut dag_py: PyDAGCircuit = out_dag.into();
-        dag_py.metadata.clone_from(&dag.metadata);
-        dag_py
-    }))
+    .map(|out_dag| PyDAGCircuit::from_dagcircuit_with_cloned_metadata(out_dag, dag)))
 }
 
 pub fn run_basis_translator(

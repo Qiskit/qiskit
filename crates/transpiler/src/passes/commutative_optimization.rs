@@ -733,9 +733,9 @@ pub fn run_commutative_optimization(
         }
     }
     // Preserve metadata from original circuit
-    let mut py_new_dag: PyDAGCircuit = new_dag.into();
-    py_new_dag.metadata.clone_from(&py_dag.metadata);
-    Ok(Some(py_new_dag))
+    Ok(Some(PyDAGCircuit::from_dagcircuit_with_cloned_metadata(
+        new_dag, py_dag,
+    )))
 }
 
 pub fn commutative_optimization_mod(m: &Bound<PyModule>) -> PyResult<()> {

@@ -989,10 +989,11 @@ pub fn py_sabre_routing(
         run_in_parallel,
     )
     .map(|(out_dag, layout)| {
-        let mut py_dag: PyDAGCircuit = out_dag.into();
         // Preserve metadata
-        py_dag.metadata.clone_from(&dag.metadata);
-        (py_dag, layout)
+        (
+            PyDAGCircuit::from_dagcircuit_with_cloned_metadata(out_dag, dag),
+            layout,
+        )
     })
 }
 

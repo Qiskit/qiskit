@@ -35,10 +35,11 @@ pub fn py_run_split_2q_unitaries(
     Ok(
         run_split_2q_unitaries(dag.as_dag_mut(), requested_fidelity, split_swaps)?.map(
             |(out_dag, list)| {
-                let mut py_dag: PyDAGCircuit = out_dag.into();
                 // Preserve metadata
-                py_dag.metadata.clone_from(&dag.metadata);
-                (py_dag, list)
+                (
+                    PyDAGCircuit::from_dagcircuit_with_cloned_metadata(out_dag, dag),
+                    list,
+                )
             },
         ),
     )
