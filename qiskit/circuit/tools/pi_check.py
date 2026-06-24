@@ -140,7 +140,7 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
         # First check is for whole multiples of pi
         val = abs_inpt / np.pi
         if abs(val) >= 1 - eps:
-            coef = int(round(val))
+            coef = round(val)
             if coef <= MAX_FRAC and abs(val - coef) < eps:
                 return _format_pi_multiple(coef, 1, pi, output, neg_str)
 
