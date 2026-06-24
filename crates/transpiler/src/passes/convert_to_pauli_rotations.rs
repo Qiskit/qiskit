@@ -468,8 +468,8 @@ fn generate_pauli_product_rotation_gate(paulis: &[BitTerm], angle: Param) -> Pau
 /// the pass.
 #[pyfunction]
 #[pyo3(name = "convert_to_pauli_rotations")]
-pub fn py_convert_to_pauli_rotations(dag: &PyDAGCircuit) -> PyResult<PyDAGCircuit> {
-    let dag = dag.as_dag();
+pub fn py_convert_to_pauli_rotations(py_dag: &PyDAGCircuit) -> PyResult<PyDAGCircuit> {
+    let dag = py_dag.as_dag();
     let mut new_dag = dag.copy_empty_like(VarsMode::Alike, BlocksMode::Keep);
 
     // Iterate over nodes in the DAG and collect nodes
@@ -600,7 +600,10 @@ pub fn py_convert_to_pauli_rotations(dag: &PyDAGCircuit) -> PyResult<PyDAGCircui
 
     new_dag.add_global_phase(&global_phase)?;
 
-    Ok(new_dag.into())
+    // Preserve metadata from original circuit
+    let mut py_new_dag: PyDAGCircuit = new_dag.into();
+    py_new_dag.metadata.clone_from(&py_dag.metadata);
+    Ok(py_new_dag)
 }
 
 pub fn convert_to_pauli_rotations_mod(m: &Bound<PyModule>) -> PyResult<()> {

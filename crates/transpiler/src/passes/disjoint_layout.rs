@@ -123,6 +123,7 @@ pub fn py_run_pass_over_connected_components(
         let mut borrowed = dag.borrow_mut();
         distribute_components(borrowed.deref_mut().as_dag_mut(), target)?
     };
+    let metadata = dag.getattr("metadata")?.extract::<Option<Py<PyAny>>>()?;
     match components {
         DisjointSplit::NoneNeeded => {
             let coupling_map: CouplingMap = match build_coupling_map(target) {
@@ -152,10 +153,11 @@ pub fn py_run_pass_over_connected_components(
                             .map(|x| NodeIndex::new(x.index()))
                             .collect(),
                     );
-                    func(
-                        PyDAGCircuit::from(component.sub_dag).into_pyobject(py)?,
-                        &cmap,
-                    )
+                    // Since each generated dag originates as a copy from the original
+                    // we can also copy the original's meta data.
+                    let mut dag_comp = PyDAGCircuit::from(component.sub_dag);
+                    dag_comp.metadata.clone_from(&metadata);
+                    func(dag_comp.into_pyobject(py)?, &cmap)
                 })
                 .collect::<PyResult<Vec<_>>>(),
         )
@@ -585,7 +587,7 @@ pub fn combine_barriers(dag: &mut DAGCircuit, retain_uuid: bool) -> PyResult<()>
     Ok(())
 }
 
-fn split_barriers(dag: &mut DAGCircuit) -> PyResult<()> {
+fn split_barriers(dag: &DAGCircuit) -> PyResult<()> {
     for (_index, inst) in dag.op_nodes(true) {
         let OperationRef::StandardInstruction(StandardInstruction::Barrier(num_qubits)) =
             inst.op.view()

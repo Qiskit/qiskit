@@ -58,14 +58,21 @@ pub fn py_two_qubit_unitary_peephole_optimize(
     target: &Target,
     approximation_degree: Option<f64>,
 ) -> PyResult<Option<PyDAGCircuit>> {
-    let dag = dag.as_dag();
+    let dag_ref = dag.as_dag();
     let result = py.detach(move || {
-        two_qubit_unitary_peephole_optimize_analysis(dag, target, approximation_degree)
+        two_qubit_unitary_peephole_optimize_analysis(dag_ref, target, approximation_degree)
     })?;
     let Some(result) = result else {
         return Ok(None);
     };
-    Ok(two_qubit_unitary_peephole_optimize_apply(dag, result)?.map(Into::into))
+    Ok(
+        two_qubit_unitary_peephole_optimize_apply(dag_ref, result)?.map(|out_dag| {
+            let mut py_dag: PyDAGCircuit = out_dag.into();
+            // Preserve metadata
+            py_dag.metadata.clone_from(&dag.metadata);
+            py_dag
+        }),
+    )
 }
 
 /// A non-python entry-point to the pass function.

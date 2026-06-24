@@ -594,16 +594,16 @@ fn disjoint_instructions(
 
 #[pyfunction]
 #[pyo3(name = "commutative_optimization")]
-#[pyo3(signature = (dag, commutation_checker, approximation_degree=1., matrix_max_num_qubits=0))]
+#[pyo3(signature = (py_dag, commutation_checker, approximation_degree=1., matrix_max_num_qubits=0))]
 pub fn run_commutative_optimization(
-    dag: &PyDAGCircuit,
+    py_dag: &PyDAGCircuit,
     commutation_checker: &mut CommutationChecker,
     approximation_degree: f64,
     matrix_max_num_qubits: u32,
 ) -> PyResult<Option<PyDAGCircuit>> {
     let tol = MINIMUM_TOL.max(1. - approximation_degree);
     let error_cutoff_fn = |_inst: &PackedInstruction| -> f64 { tol };
-    let dag = dag.as_dag();
+    let dag = py_dag.as_dag();
 
     // Create output DAG.
     // We will use it to intern qubits of canonicalized instructions.
@@ -732,8 +732,10 @@ pub fn run_commutative_optimization(
             }
         }
     }
-
-    Ok(Some(new_dag.into()))
+    // Preserve metadata from original circuit
+    let mut py_new_dag: PyDAGCircuit = new_dag.into();
+    py_new_dag.metadata.clone_from(&py_dag.metadata);
+    Ok(Some(py_new_dag))
 }
 
 pub fn commutative_optimization_mod(m: &Bound<PyModule>) -> PyResult<()> {

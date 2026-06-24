@@ -33,8 +33,14 @@ pub fn py_run_split_2q_unitaries(
     split_swaps: bool,
 ) -> PyResult<Option<(PyDAGCircuit, Vec<usize>)>> {
     Ok(
-        run_split_2q_unitaries(dag.as_dag_mut(), requested_fidelity, split_swaps)?
-            .map(|(dag, list)| (dag.into(), list)),
+        run_split_2q_unitaries(dag.as_dag_mut(), requested_fidelity, split_swaps)?.map(
+            |(out_dag, list)| {
+                let mut py_dag: PyDAGCircuit = out_dag.into();
+                // Preserve metadata
+                py_dag.metadata.clone_from(&dag.metadata);
+                (py_dag, list)
+            },
+        ),
     )
 }
 

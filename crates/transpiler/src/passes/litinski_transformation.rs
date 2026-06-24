@@ -96,7 +96,12 @@ pub fn py_run_litinski_transformation(
         use_ppr,
         approximation_degree,
     )?
-    .map(Into::into))
+    .map(|out_dag| {
+        let mut py_dag: PyDAGCircuit = out_dag.into();
+        // Preserve metadata
+        py_dag.metadata.clone_from(&dag.metadata);
+        py_dag
+    }))
 }
 
 pub fn run_litinski_transformation(
