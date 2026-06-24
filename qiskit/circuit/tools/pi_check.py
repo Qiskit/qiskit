@@ -137,7 +137,14 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
         neg_str = "-" if single_inpt < 0 else ""
         abs_inpt = abs(single_inpt)
 
-        # First check is for powers of pi
+        # First check is for whole multiples of pi
+        val = abs_inpt / np.pi
+        if abs(val) >= 1 - eps:
+            coef = int(round(val))
+            if coef <= MAX_FRAC and abs(val - coef) < eps:
+                return _format_pi_multiple(coef, 1, pi, output, neg_str)
+
+        # Second check is for powers of pi
         if abs_inpt > np.pi:
             power = np.where(abs(abs_inpt - POW_LIST) < eps)
             if power[0].shape[0]:
@@ -149,18 +156,17 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
                     return f"{neg_str}{pi}$^{power[0][0] + 2}$"
                 return f"{neg_str}{pi}**{power[0][0] + 2}"
 
-        # Second is a check for a number larger than MAX_FRAC * pi, not a
+        # Third is a check for a number larger than MAX_FRAC * pi, not a
         # multiple or power of pi, since no fractions will exceed MAX_FRAC * pi
         if abs_inpt >= MAX_FRAC * np.pi:
             return _format_raw(single_inpt, output, ndigits)
 
-        # Third check is for fractions of the form (n * pi) / d, including
-        # whole multiples of pi when d == 1.
+        # Fourth check is for fractions of the form (n * pi) / d with n > 1 or d > 1.
         frac = _match_pi_multiple_coef(abs_inpt, eps, MAX_FRAC)
         if frac is not None:
             return _format_pi_multiple(frac.numerator, frac.denominator, pi, output, neg_str)
 
-        # Fourth check is for fractions of the form n / (d * pi)
+        # Fifth check is for fractions of the form n / (d * pi)
         frac = _match_pi_divisor_coef(abs_inpt, eps, MAX_FRAC)
         if frac is not None:
             return _format_pi_divisor(frac.numerator, frac.denominator, pi, output, neg_str)
