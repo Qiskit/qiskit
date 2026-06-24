@@ -612,7 +612,7 @@ class BitArray(ShapedMixin):
 
     def expectation_values(
         self, observables: ObservablesArrayLike
-    ) -> NDArray[np.float64 | np.complex128]:
+    ) -> NDArray[np.float64] | NDArray[np.complex128]:
         """Compute the expectation values of the provided observables, broadcasted against
         this bit array.
 
