@@ -8860,7 +8860,7 @@ impl PyDAGCircuit {
     ) -> Self {
         Self::from_dagcircuit(circuit, original.name.clone(), original.metadata.clone())
     }
-    
+
     /// Returns an immutable reference to the inner [`DAGCircuit`].
     pub fn as_dag(&self) -> &DAGCircuit {
         &self.inner
