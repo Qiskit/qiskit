@@ -1,5 +1,5 @@
 ---
-features_circuit:
+features_circuits:
   - |
     Added a new :meth:`.ParameterExpression.simplify` method that returns an
     algebraically simplified copy of the expression using the native symbolic
