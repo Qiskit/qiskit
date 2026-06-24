@@ -233,7 +233,12 @@ pub struct Target {
     pub concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
     gate_map: IndexMap<String, TargetProperties>,
     global_operations: HashMap<u32, HashSet<String>>,
-    qarg_gate_map: HashMap<Qargs, HashSet<String>>,
+    // This uses `IndexMap` not because it's necessary for determinism (though it will help), but so
+    // it retains the specific iteration order it is constructed with.  The order `qargs` are
+    // encountered during construction are _usually_ going to be quite structured, and structure
+    // here means that graphs built from qargs (like the coupling graph) will have their edges
+    // ordered in much cache- and branch-prediction-friendlier orders than if they are randomised.
+    qarg_gate_map: IndexMap<Qargs, HashSet<String>>,
     has_angle_bounds: bool,
 }
 
@@ -326,7 +331,7 @@ impl Target {
             concurrent_measurements,
             gate_map: IndexMap::default(),
             global_operations: HashMap::default(),
-            qarg_gate_map: HashMap::default(),
+            qarg_gate_map: IndexMap::default(),
             has_angle_bounds: false,
         })
     }
@@ -847,10 +852,7 @@ impl Target {
             );
         }
         self.gate_map = gate_map;
-        self.qarg_gate_map = state
-            .get_item("qarg_gate_map")?
-            .unwrap()
-            .extract::<HashMap<Qargs, HashSet<String>>>()?;
+        self.qarg_gate_map = state.get_item("qarg_gate_map")?.unwrap().extract()?;
         self.global_operations = state
             .get_item("global_operations")?
             .unwrap()
