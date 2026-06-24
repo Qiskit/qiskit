@@ -345,8 +345,7 @@ pub fn cancel_commutations(
                     }
                 }
 
-                dag.add_global_phase(&Param::Float(total_phase))
-                    .map_err(CommutationCancelError::DAGCircuit)?;
+                dag.add_global_phase(&Param::Float(total_phase))?;
 
                 for node in cancel_set {
                     dag.remove_op_node(*node);
