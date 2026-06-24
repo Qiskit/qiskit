@@ -40,7 +40,7 @@ use super::route::{RoutingProblem, RoutingResult, RoutingTarget, swap_map, swap_
 
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
-#[pyo3(signature = (dag, target, heuristic, max_iterations, num_swap_trials, num_random_trials, seed=None, partial_layouts=vec![], skip_routing=false))]
+#[pyo3(signature = (dag, target, heuristic, max_iterations, num_swap_trials, num_random_trials, seed=None, partial_layouts=vec![], skip_routing=false, skip_heuristic_layouts=false))]
 pub fn sabre_layout_and_routing(
     dag: &mut DAGCircuit,
     target: &Target,
@@ -51,6 +51,7 @@ pub fn sabre_layout_and_routing(
     seed: Option<u64>,
     partial_layouts: Vec<Vec<Option<PhysicalQubit>>>,
     skip_routing: bool,
+    skip_heuristic_layouts: bool,
 ) -> PyResult<(DAGCircuit, NLayout, NLayout)> {
     let Some(num_physical_qubits) = target.num_qubits else {
         return Err(TranspilerError::new_err(
@@ -83,14 +84,18 @@ pub fn sabre_layout_and_routing(
     let mut starting_layouts = (0..num_random_trials)
         .map(|_| Vec::new())
         .collect::<Vec<_>>();
-    let seeds = |count| {
-        match seed {
+    let seeds = |num_random_layouts, num_user_layouts| {
+        // Random seeds for random layouts chosen by Sabre
+        let mut seeds = match seed {
             Some(seed) => Pcg64Mcg::seed_from_u64(seed),
             None => Pcg64Mcg::try_from_rng(&mut SysRng).unwrap(),
         }
         .sample_iter(&rand::distr::StandardUniform)
-        .take(count)
-        .collect::<Vec<_>>()
+        .take(num_random_layouts)
+        .collect::<Vec<_>>();
+        // Fixed seeds for other (user-specified or heuristic) layouts
+        seeds.extend(std::iter::repeat_n(0, num_user_layouts));
+        seeds
     };
     fn expand_layout(
         num_qubits: u32,
@@ -146,11 +151,14 @@ pub fn sabre_layout_and_routing(
                 dag,
                 heuristic,
             };
+
+            if !skip_heuristic_layouts {
+                add_heuristic_layouts(&mut starting_layouts, problem, allow_parallel);
+            }
             starting_layouts.extend(partial_layouts);
-            add_heuristic_layouts(&mut starting_layouts, problem, allow_parallel);
             let num_layout_trials = starting_layouts.len();
             let (_, result) = CondIterator::new(
-                seeds(num_layout_trials),
+                seeds(num_random_trials, num_layout_trials - num_random_trials),
                 allow_parallel && num_layout_trials > 1,
             )
             .enumerate()
@@ -256,7 +264,7 @@ pub fn sabre_layout_and_routing(
                 add_heuristic_layouts(&mut starting_layouts, sub_problem, allow_parallel);
                 let num_layout_trials = starting_layouts.len();
                 let (_, result) = CondIterator::new(
-                    seeds(num_layout_trials),
+                    seeds(num_random_trials, num_layout_trials - num_random_trials),
                     allow_parallel && num_layout_trials > 1,
                 )
                 .enumerate()
