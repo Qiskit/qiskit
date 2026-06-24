@@ -95,7 +95,10 @@ def transpile(
         circuits: Circuit(s) to transpile
         backend: If set, the transpiler will compile the input circuit to this target
             device. If any other option is explicitly set (e.g., ``coupling_map``), it
-            will override the backend's.
+            will override the backend's. A :class:`~qiskit.transpiler.Target` instance
+            may also be passed here as a positional argument, in which case it is treated
+            as if it were passed as the ``target`` keyword argument instead. This mirrors
+            the behaviour of :func:`~.generate_preset_pass_manager`.
         basis_gates: List of basis gate names to unroll to
             (e.g.: ``['u1', 'u2', 'u3', 'cx']``). If ``None``, do not unroll.
         coupling_map: Directed coupling map (perhaps custom) to target in mapping. If
@@ -251,6 +254,8 @@ def transpile(
     Raises:
         TranspilerError: in case of bad inputs to transpiler (like conflicting parameters)
             or errors in passes
+        TypeError: if a :class:`~qiskit.transpiler.Target` is passed as the ``backend``
+            positional argument and ``target`` is also specified as a keyword argument.
     """
     arg_circuits_list = isinstance(circuits, list)
     circuits = circuits if arg_circuits_list else [circuits]
@@ -259,6 +264,15 @@ def transpile(
         return []
 
     start_time = time()
+
+    if isinstance(backend, Target):
+        if target is not None:
+            raise TypeError(
+                "A 'Target' was passed as the 'backend' positional argument, but 'target' "
+                "was also specified as a keyword argument. Please use only one of the two."
+            )
+        target = backend
+        backend = None
 
     if optimization_level is None:
         # Take optimization level from the configuration or 2 as default.
