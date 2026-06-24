@@ -5,8 +5,5 @@ fixes:
     :meth:`.BitArray.expectation_values` silently dropping the imaginary
     component of expectation values when the operator has complex coefficients.
     Both functions now return ``complex`` values when the input coefficients are
-    complex, and ``float`` values otherwise. Previously, the inner Rust
-    functions ``sampled_expval_complex`` and
-    ``sampled_expval_sparse_observable`` computed the full complex result but
-    returned only the real part. Fixed
-    `#11393 <https://github.com/Qiskit/qiskit/issues/11393>`__.
+    complex, and ``float`` values otherwise. 
+    Fixed `#11393 <https://github.com/Qiskit/qiskit/issues/11393>`__.
