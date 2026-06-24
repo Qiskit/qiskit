@@ -5,4 +5,4 @@ features_visualization:
     :class:`.PauliProductRotationGate` gates, improved parameter rendering that displays ``Pi`` fractions in 
     readable format (e.g., ``Rx(π/3)`` instead of ``Rx(1.047...)``), and visual improvements 
     including a more compact measurement box representation and cleaner :class:`.CPhaseGate` gate rendering. 
-    See `issue 15849 <https://github.com/Qiskit/qiskit/issues/15849>`_ for more details.
+    See `#15849 <https://github.com/Qiskit/qiskit/issues/15849>`__ for more details.
