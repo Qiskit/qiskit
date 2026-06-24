@@ -1069,7 +1069,6 @@ class TestFinalLayouts(QiskitTestCase):
             [5, 6, 10, 0, 11],
             [6, 7, 1, 5, 2],
         ]
-        print(f"{level = }")
         backend = GenericBackendV2(num_qubits=20, coupling_map=TOKYO_CMAP, seed=42)
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
         self.assertEqual(
