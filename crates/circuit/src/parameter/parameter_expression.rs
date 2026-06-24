@@ -843,7 +843,6 @@ impl PyParameterExpression {
 
 #[pymethods]
 impl PyParameterExpression {
-    ///
     /// Simplify the expression. This, for example, attempts to cancel
     /// variables in the expression.
     pub fn simplify(&self) -> Self {
