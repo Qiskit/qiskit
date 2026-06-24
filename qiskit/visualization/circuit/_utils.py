@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -302,11 +302,10 @@ def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
                         f"{{{virt_reg[:].index(virt_bit)}}} "
                         f"\\mapsto {{{index}}}"
                     )
+            elif drawer == "text":
+                wire_label = f"{index_str} -> {index}"
             else:
-                if drawer == "text":
-                    wire_label = f"{index_str} -> {index}"
-                else:
-                    wire_label = f"{index_str} \\mapsto {{{index}}}"
+                wire_label = f"{index_str} \\mapsto {{{index}}}"
         if drawer != "text":
             wire_label = wire_label.replace(" ", "\\;")  # use wider spaces
     else:
@@ -435,7 +434,8 @@ def _get_layered_instructions(
             default `left` will be used.
         idle_wires (bool): Include idle wires. Default is True.
         wire_order (list): A list of ints that modifies the order of the bits.
-
+        wire_map (dict): The wire map
+        measure_arrows (bool): whether do draw arrows from measurements
     Returns:
         Tuple(list,list,list): To be consumed by the visualizer directly.
 
@@ -691,7 +691,9 @@ class _LayerSpooler(list):
 
     def add(self, node, index):
         """Add 'node' where it belongs, starting the try at 'index'."""
-        global _GLOBAL_NID  # pylint: disable=global-statement
+        # This is particularly important for the matplotlib drawer, which
+        # keys several of its internal data structures with these nodes.
+        global _GLOBAL_NID  # noqa: PLW0603
         node._node_id = _GLOBAL_NID
         _GLOBAL_NID += 1
         # Zero-qubit gates like GlobalPhaseGate have no qargs
