@@ -447,7 +447,7 @@ impl CommutationChecker {
         approximation_degree: f64,
     ) -> Result<bool, CommutationError> {
         if let Some(gates) = &self.gates {
-            if !gates.is_empty() && (!gates.contains(op1.name()) || !gates.contains(op2.name())) {
+            if !gates.contains(op1.name()) || !gates.contains(op2.name()) {
                 return Ok(false);
             }
         }
