@@ -1167,7 +1167,7 @@ pub fn py_unitary_synthesis(
                 min_qubits,
             )
         })?;
-        let mut out_dag: PyDAGCircuit = apply_synthesis(
+        let out_dag = apply_synthesis(
             dag,
             node_replace_map,
             &qubit_indices,
@@ -1175,24 +1175,24 @@ pub fn py_unitary_synthesis(
             min_qubits,
             &mut state,
             constraint,
-        )?
-        .into();
+        )?;
         // Preserve metadata
-        out_dag.metadata.clone_from(&py_dag.metadata);
-        Ok(Some(out_dag))
+        Ok(Some(PyDAGCircuit::from_dagcircuit_with_cloned_metadata(
+            out_dag, py_dag,
+        )))
     } else {
-        let mut out_dag: PyDAGCircuit = serial_run_unitary_synthesis(
+        let out_dag = serial_run_unitary_synthesis(
             dag,
             &synth_gates,
             min_qubits,
             &qubit_indices,
             &mut state,
             constraint,
-        )?
-        .into();
+        )?;
         // Preserve metadata
-        out_dag.metadata.clone_from(&py_dag.metadata);
-        Ok(Some(out_dag))
+        Ok(Some(PyDAGCircuit::from_dagcircuit_with_cloned_metadata(
+            out_dag, py_dag,
+        )))
     }
 }
 

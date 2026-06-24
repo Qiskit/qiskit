@@ -1090,7 +1090,7 @@ pub fn run_high_level_synthesis(
         let new_dag = PyDAGCircuit::from_circuit(
             QuantumCircuitData {
                 data: output_circuit,
-                name: dag.get_name().cloned(),
+                name: py_dag.name.clone(),
                 metadata: py_dag.get_metadata().map(|m| m.bind(py)).cloned(),
                 transpile_layout: None,
             },

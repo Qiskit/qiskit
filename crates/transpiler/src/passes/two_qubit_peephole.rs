@@ -67,10 +67,8 @@ pub fn py_two_qubit_unitary_peephole_optimize(
     };
     Ok(
         two_qubit_unitary_peephole_optimize_apply(dag_ref, result)?.map(|out_dag| {
-            let mut py_dag: PyDAGCircuit = out_dag.into();
             // Preserve metadata
-            py_dag.metadata.clone_from(&dag.metadata);
-            py_dag
+            PyDAGCircuit::from_dagcircuit_with_cloned_metadata(out_dag, dag)
         }),
     )
 }

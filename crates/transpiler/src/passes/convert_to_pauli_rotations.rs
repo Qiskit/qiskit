@@ -601,9 +601,9 @@ pub fn py_convert_to_pauli_rotations(py_dag: &PyDAGCircuit) -> PyResult<PyDAGCir
     new_dag.add_global_phase(&global_phase)?;
 
     // Preserve metadata from original circuit
-    let mut py_new_dag: PyDAGCircuit = new_dag.into();
-    py_new_dag.metadata.clone_from(&py_dag.metadata);
-    Ok(py_new_dag)
+    Ok(PyDAGCircuit::from_dagcircuit_with_cloned_metadata(
+        new_dag, py_dag,
+    ))
 }
 
 pub fn convert_to_pauli_rotations_mod(m: &Bound<PyModule>) -> PyResult<()> {

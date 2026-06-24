@@ -329,9 +329,6 @@ impl Wire {
 /// bits.
 #[derive(Clone, Debug)]
 pub struct DAGCircuit {
-    /// Circuit name.  Generally, this corresponds to the name
-    /// of the QuantumCircuit from which the DAG was generated.
-    pub name: Option<String>,
     dag: StableDiGraph<NodeType, Wire>,
 
     qregs: RegisterData<QuantumRegister>,
@@ -613,7 +610,6 @@ impl DAGCircuit {
 
     pub fn new() -> Self {
         DAGCircuit {
-            name: None,
             dag: StableDiGraph::default(),
             qregs: RegisterData::new(),
             cregs: RegisterData::new(),
@@ -761,7 +757,6 @@ impl DAGCircuit {
             Some(num_edges),
             Some(num_stretches),
         );
-        target_dag.name.clone_from(&self.name);
         target_dag.global_phase = self.global_phase.clone();
         target_dag.duration.clone_from(&self.duration);
         target_dag.unit.clone_from(&self.unit);
@@ -2717,7 +2712,6 @@ impl DAGCircuit {
             num_ops;
 
         Self {
-            name: None,
             dag: StableDiGraph::with_capacity(num_nodes, num_edges),
             qregs: RegisterData::new(),
             cregs: RegisterData::new(),
@@ -3607,11 +3601,6 @@ impl DAGCircuit {
         DAGCircuitBuilder::new(self)
     }
 
-    // Returns an immutable reference to 'name', if it exists
-    pub fn get_name(&self) -> Option<&String> {
-        self.name.as_ref()
-    }
-
     /// Returns an iterator over the unique successors of the given node
     pub fn successors(&self, node: NodeIndex) -> impl Iterator<Item = NodeIndex> {
         self.dag.neighbors_directed(node, Outgoing).unique()
@@ -4228,6 +4217,10 @@ impl ::std::ops::Index<NodeIndex> for DAGCircuit {
 )]
 #[derive(Clone, Debug)]
 pub struct PyDAGCircuit {
+    /// Circuit name.  Generally, this corresponds to the name
+    /// of the QuantumCircuit from which the DAG was generated.
+    #[pyo3(get, set)]
+    pub name: Option<String>,
     /// Circuit metadata
     #[pyo3(get, set)]
     pub metadata: Option<Py<PyAny>>,
@@ -4242,19 +4235,10 @@ impl PyDAGCircuit {
         let out = DAGCircuit::new();
 
         PyDAGCircuit {
+            name: None,
             metadata: Some(PyDict::new(py).unbind().into()),
             inner: out,
         }
-    }
-
-    #[getter]
-    fn get_name(&self) -> Option<&str> {
-        self.inner.name.as_deref()
-    }
-
-    #[setter(name)]
-    fn set_name(&mut self, name: Option<String>) {
-        self.inner.name = name;
     }
 
     /// Returns the dict containing the QuantumRegisters in the circuit
@@ -4497,7 +4481,7 @@ impl PyDAGCircuit {
 
     fn __getstate__(&self, py: Python) -> PyResult<Py<PyDict>> {
         let out_dict = PyDict::new(py);
-        out_dict.set_item("name", self.inner.name.clone())?;
+        out_dict.set_item("name", self.name.clone())?;
         out_dict.set_item("metadata", self.metadata.as_ref().map(|x| x.clone_ref(py)))?;
         out_dict.set_item("qregs", self.inner.qregs.cached(py))?;
         out_dict.set_item("cregs", self.inner.cregs.cached(py))?;
@@ -4571,7 +4555,7 @@ impl PyDAGCircuit {
 
     fn __setstate__(&mut self, py: Python, state: Py<PyAny>) -> PyResult<()> {
         let dict_state = state.cast_bound::<PyDict>(py)?;
-        self.inner.name = dict_state.get_item("name")?.unwrap().extract()?;
+        self.name = dict_state.get_item("name")?.unwrap().extract()?;
         self.metadata = dict_state.get_item("metadata")?.unwrap().extract()?;
         self.inner.qregs = RegisterData::from_mapping(
             dict_state
@@ -5099,6 +5083,7 @@ impl PyDAGCircuit {
     #[pyo3(name = "copy_empty_like", signature = (*, vars_mode=VarsMode::Alike))]
     pub fn py_copy_empty_like(&self, vars_mode: VarsMode) -> Self {
         PyDAGCircuit {
+            name: self.name.clone(),
             metadata: self.metadata.as_ref().cloned(),
             inner: self
                 .inner
@@ -8825,6 +8810,11 @@ impl PyDAGCircuit {
         self.metadata.as_ref()
     }
 
+    // Returns an immutable reference to 'name', if it exists
+    pub fn get_name(&self) -> Option<&String> {
+        self.name.as_ref()
+    }
+
     /// Alternative constructor to build an instance of [DAGCircuit] from a `QuantumCircuit`.
     pub fn from_circuit(
         qc: QuantumCircuitData,
@@ -8834,12 +8824,41 @@ impl PyDAGCircuit {
     ) -> Result<Self, DAGError> {
         // Extract necessary attributes
         let qc_data = qc.data;
-        let mut dag = DAGCircuit::from_circuit_data(&qc_data, copy_op, qubit_order, clbit_order)?;
-        dag.name = qc.name;
+        let dag = DAGCircuit::from_circuit_data(&qc_data, copy_op, qubit_order, clbit_order)?;
         Ok(PyDAGCircuit {
+            name: qc.name,
             metadata: qc.metadata.map(|data| data.unbind()),
             inner: dag,
         })
+    }
+
+    /// Creates a [`PyDAGCircuit`] from a [`DAGCircuit`] while also accepting Python specific metadata.
+    ///
+    /// [`DAGCircuit`] already implements `Into<PyDAGCircuit>` which is enough for a conversion into
+    /// Python. However, when an instance originating from Python is to get processed by Rust, the inner
+    /// [`DAGCircuit`] is exposed and sometimes cloned, discarding its metadata.
+    ///
+    /// This static method allows users to transform back to [`PyDAGCircuit`] and preserve the previous
+    /// instance's metadata.
+    pub fn from_dagcircuit(
+        circuit: DAGCircuit,
+        name: Option<String>,
+        metadata: Option<Py<PyAny>>,
+    ) -> Self {
+        Self {
+            name,
+            metadata,
+            inner: circuit,
+        }
+    }
+
+    /// Creates an instance from a [`DAGCircuit`] while copying Python specific metadata from
+    /// another [`PyDAGCircuit`] instance.
+    pub fn from_dagcircuit_with_cloned_metadata(
+        circuit: DAGCircuit,
+        original: &PyDAGCircuit,
+    ) -> Self {
+        Self::from_dagcircuit(circuit, original.name.clone(), original.metadata.clone())
     }
 
     pub fn as_dag(&self) -> &DAGCircuit {
@@ -8854,6 +8873,7 @@ impl PyDAGCircuit {
 impl From<DAGCircuit> for PyDAGCircuit {
     fn from(value: DAGCircuit) -> Self {
         PyDAGCircuit {
+            name: None,
             metadata: None,
             inner: value,
         }
@@ -9038,7 +9058,7 @@ type SortKeyType<'a> = (&'a [Qubit], &'a [Clbit]);
 #[cfg(test)]
 mod test {
     use crate::bit::{ClassicalRegister, QuantumRegister};
-    use crate::dag_circuit::{BlocksMode, DAGCircuit, Wire};
+    use crate::dag_circuit::{BlocksMode, DAGCircuit, DAGError, Wire};
     use crate::operations::{StandardGate, StandardInstruction};
     use crate::packed_instruction::{PackedInstruction, PackedOperation};
     use crate::{Clbit, Qubit};
@@ -9226,11 +9246,10 @@ mod test {
     }
 
     #[test]
-    fn test_physical_empty_like() -> PyResult<()> {
+    fn test_physical_empty_like() -> Result<(), DAGError> {
         let mut dag = DAGCircuit::new();
         let qr = QuantumRegister::new_owning("virtual".to_owned(), 5);
         let cr = ClassicalRegister::new_owning("classical".to_owned(), 5);
-        dag.name = Some("my dag".to_owned());
         dag.add_creg(cr.clone())?;
         dag.add_qreg(qr)?;
         dag.apply_operation_back(
@@ -9252,7 +9271,6 @@ mod test {
             None,
         )?;
         let empty = dag.physical_empty_like_with_capacity(10, 0, 0, BlocksMode::Drop)?;
-        assert_eq!(empty.name.as_deref(), Some("my dag"));
         assert_eq!(
             empty
                 .qregs()
