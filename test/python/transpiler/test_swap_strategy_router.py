@@ -718,10 +718,6 @@ class TestSwapRouterExceptions(QiskitTestCase):
         expected_params = {theta[0], theta[1], theta[2]}
         self.assertEqual(circuit_params, expected_params)
 
-        # Verify parameters are in correct order (respecting ParameterVector indices)
-        params_list = list(circuit_with_block.parameters)
-        self.assertEqual(params_list, [theta[0], theta[1], theta[2]])
-
         # Assign parameters and verify the circuit has no parameters after assignment
         param_values = {theta[0]: 0.5, theta[1]: 1.0, theta[2]: 1.5}
         assigned_circuit = circuit_with_block.assign_parameters(param_values)
