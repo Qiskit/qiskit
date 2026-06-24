@@ -988,7 +988,12 @@ pub fn py_sabre_routing(
         seed,
         run_in_parallel,
     )
-    .map(|(dag, layout)| (dag.into(), layout))
+    .map(|(out_dag, layout)| {
+        let mut py_dag: PyDAGCircuit = out_dag.into();
+        // Preserve metadata
+        py_dag.metadata.clone_from(&dag.metadata);
+        (py_dag, layout)
+    })
 }
 
 pub fn sabre_routing(

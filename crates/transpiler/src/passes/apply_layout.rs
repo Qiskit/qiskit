@@ -17,8 +17,7 @@ use pyo3::wrap_pyfunction;
 use hashbrown::HashSet;
 
 use qiskit_circuit::bit::{QuantumRegister, Register};
-use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::dag_circuit::PyDAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::nlayout::NLayout;
 use qiskit_circuit::{PhysicalQubit, Qubit, VirtualQubit};
 

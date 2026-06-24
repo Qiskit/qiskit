@@ -63,7 +63,12 @@ pub fn py_sabre_layout_and_routing(
         partial_layouts,
         skip_routing,
     )
-    .map(|(dag, init, out)| (dag.into(), init, out))
+    .map(|(out_dag, init, out)| {
+        let mut py_dag: PyDAGCircuit = out_dag.into();
+        // Preserve metadata
+        py_dag.metadata.clone_from(&dag.metadata);
+        (py_dag, init, out)
+    })
 }
 
 #[allow(clippy::too_many_arguments)]
