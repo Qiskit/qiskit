@@ -48,7 +48,7 @@ def sampled_expectation_value(
 
     Returns:
         The expectation value. Returns ``complex`` when the operator has
-        complex coefficients, ``float`` otherwise.
+        complex-valued coefficients, ``float`` otherwise.
     Raises:
         QiskitError: if the input distribution or operator is an invalid type
     """
