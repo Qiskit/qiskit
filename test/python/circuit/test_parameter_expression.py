@@ -968,6 +968,7 @@ class TestParameterExpression(QiskitTestCase):
             gradient = g.arctan().gradient(p)
             actual = gradient.bind({p: val})
             self.assertAlmostEqual(actual, 2 / (1 + gval**2), places=10)
+
     def test_simplify_multi_parameter_cancellation(self):
         """Test that simplify() handles cancellation across multiple parameters."""
         a = Parameter("a")
