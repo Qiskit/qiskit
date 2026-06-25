@@ -197,7 +197,7 @@ pub fn py_analyze_commutations(
                         py,
                         inner
                             .iter()
-                            .map(|node_index| py_dag.get_node(py, *node_index).unwrap()),
+                            .map(|node_index| dag.get_node(py, *node_index).unwrap()),
                     )
                     .unwrap()
                 }),
@@ -215,7 +215,7 @@ pub fn py_analyze_commutations(
                 .get(Qubit::new(qubit))
                 .unwrap()
                 .into_pyobject(py)?;
-            out_dict.set_item((py_dag.get_node(py, *node_index)?, py_wire), index)?;
+            out_dict.set_item((dag.get_node(py, *node_index)?, py_wire), index)?;
         }
     }
 
