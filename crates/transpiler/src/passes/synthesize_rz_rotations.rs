@@ -111,7 +111,7 @@ pub fn py_run_synthesize_rz_rotations(
     synthesis_error: Option<f64>,
     cache_error: Option<f64>,
 ) -> PyResult<()> {
-    let dag = dag.as_dag_mut();
+    let dag = dag.try_write()?;
     // Skip the pass if there are no RZ rotation gates.
     if dag.get_op_counts().keys().all(|k| k != "rz") {
         return Ok(());

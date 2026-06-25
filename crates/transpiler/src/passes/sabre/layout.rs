@@ -53,7 +53,7 @@ pub fn py_sabre_layout_and_routing(
     skip_routing: bool,
 ) -> PyResult<(PyDAGCircuit, NLayout, NLayout)> {
     sabre_layout_and_routing(
-        dag.as_dag_mut(),
+        dag.try_write()?,
         target,
         heuristic,
         max_iterations,

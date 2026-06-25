@@ -45,6 +45,9 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_convert_to_pauli_rotation
     let as_py_dag: PyDAGCircuit = dag.into();
     let out = py_convert_to_pauli_rotations(&as_py_dag).expect("Failed running PBC conversion.");
     // If a DAG is returned, the circuit has been modified. Else just leave it as is.
-    *circuit =
-        CircuitData::from_dag_ref(out.as_dag()).expect("Internal DAG -> Circuit conversion failed");
+    *circuit = CircuitData::from_dag_ref(
+        out.try_read()
+            .expect("Nothing else should be reading the dag"),
+    )
+    .expect("Internal DAG -> Circuit conversion failed");
 }

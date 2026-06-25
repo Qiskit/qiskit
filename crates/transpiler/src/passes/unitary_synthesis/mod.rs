@@ -1122,7 +1122,7 @@ pub fn py_unitary_synthesis(
     natural_direction: Option<bool>,
     pulse_optimize: Option<bool>,
 ) -> PyResult<Option<PyDAGCircuit>> {
-    let dag = py_dag.as_dag();
+    let dag = py_dag.try_read()?;
     let config = UnitarySynthesisConfig {
         approximation: Approximation::from_py_approximation_degree(approximation_degree),
         use_pulse_optimizer: UsePulseOptimizer::from_py_pulse_optimize(pulse_optimize),

@@ -168,13 +168,13 @@ pub fn py_analyze_commutations(
     //   * The index in which commutation set a given node is located on a wire: {(node, wire): index}
     // The Python dict will store both of these dictionaries in one.
     let (commutation_set, node_indices) = analyze_commutations(
-        py_dag.as_dag_mut(),
+        py_dag.try_write()?,
         commutation_checker,
         approximation_degree,
     )?;
 
     let out_dict = PyDict::new(py);
-    let dag = py_dag.as_dag();
+    let dag = py_dag.try_read()?;
     // First set the {wire: [commuting_nodes_1, ...]} bit
     for (wire_index, commutations) in commutation_set.into_iter().enumerate() {
         if commutations.is_empty() {

@@ -58,7 +58,7 @@ pub fn py_two_qubit_unitary_peephole_optimize(
     target: &Target,
     approximation_degree: Option<f64>,
 ) -> PyResult<Option<PyDAGCircuit>> {
-    let dag_ref = dag.as_dag();
+    let dag_ref = dag.try_read()?;
     let result = py.detach(move || {
         two_qubit_unitary_peephole_optimize_analysis(dag_ref, target, approximation_degree)
     })?;

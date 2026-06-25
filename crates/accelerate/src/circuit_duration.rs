@@ -27,7 +27,7 @@ use rustworkx_core::petgraph::visit::{EdgeRef, IntoEdgeReferences};
 /// Estimate the duration of a scheduled circuit in seconds
 #[pyfunction(name = "compute_estimated_duration")]
 fn py_compute_estimated_duration(dag: &PyDAGCircuit, target: &Target) -> PyResult<f64> {
-    compute_estimated_duration(dag.as_dag(), target)
+    compute_estimated_duration(dag.try_read()?, target)
 }
 
 /// Estimate the duration of a scheduled circuit in seconds

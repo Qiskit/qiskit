@@ -77,7 +77,7 @@ pub fn py_run_check_map(
     py_dag: &PyDAGCircuit,
     target: &Target,
 ) -> PyResult<Option<(String, [u32; 2])>> {
-    let dag = py_dag.as_dag();
+    let dag = py_dag.try_read()?;
     if dag.has_control_flow() {
         recurse(dag, target, None)
     } else {

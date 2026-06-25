@@ -24,7 +24,7 @@ pub fn py_filter_op_nodes(
     dag: &mut PyDAGCircuit,
     predicate: &Bound<PyAny>,
 ) -> PyResult<()> {
-    let dag_borrowed = dag.as_dag();
+    let dag_borrowed = dag.try_read()?;
     let callable = |node: NodeIndex| -> PyResult<bool> {
         let dag_op_node = dag_borrowed.get_node(py, node)?;
         predicate.call1((dag_op_node,))?.extract()
@@ -35,7 +35,7 @@ pub fn py_filter_op_nodes(
             remove_nodes.push(node);
         }
     }
-    let dag_mut = dag.as_dag_mut();
+    let dag_mut = dag.try_write()?;
     for node in remove_nodes {
         dag_mut.remove_op_node(node);
     }
@@ -48,8 +48,9 @@ pub fn py_filter_op_nodes(
 ///     dag (DAGCircuit): The dag circuit to filter the ops from
 ///     label (str): The label to filter nodes on
 #[pyfunction(name = "filter_labeled_op")]
-fn py_filter_labeled_op(dag: &mut PyDAGCircuit, label: String) {
-    filter_labeled_op(dag.as_dag_mut(), label);
+fn py_filter_labeled_op(dag: &mut PyDAGCircuit, label: String) -> PyResult<()> {
+    filter_labeled_op(dag.try_write()?, label);
+    Ok(())
 }
 
 /// Remove any nodes that have the provided label set
