@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    The :class:`.ConsolidateBlocks` transpiler pass now reports the operations
+    in the offending 2-qubit block when the synthesis-cost estimation of that
+    block fails (for example, when a gate carries a ``NaN`` parameter that
+    slips through to the pass). Previously such a failure surfaced as an opaque
+    ``NoConvergence`` error with no indication of which block caused it. The
+    original error is now chained as the cause of the raised
+    :class:`.QiskitError`, and the happy path is left unchanged.
+    Fixed `#16236 <https://github.com/Qiskit/qiskit/issues/16236>`__.
