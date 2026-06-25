@@ -603,7 +603,7 @@ pub fn run_commutative_optimization(
 ) -> PyResult<Option<PyDAGCircuit>> {
     let tol = MINIMUM_TOL.max(1. - approximation_degree);
     let error_cutoff_fn = |_inst: &PackedInstruction| -> f64 { tol };
-    let dag = py_dag.as_dag();
+    let dag = py_dag.try_read()?;
 
     // Create output DAG.
     // We will use it to intern qubits of canonicalized instructions.

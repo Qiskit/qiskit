@@ -4489,7 +4489,7 @@ impl PyDAGCircuit {
         let mut buffer = Vec::<u8>::new();
         build_dot(
             py,
-            self.as_dag(),
+            self.try_read()?,
             &mut buffer,
             graph_attrs,
             node_attrs,
@@ -8883,13 +8883,13 @@ impl PyDAGCircuit {
     }
 
     /// Returns an immutable reference to the inner [`DAGCircuit`].
-    pub fn as_dag(&self) -> &DAGCircuit {
-        &self.inner
+    pub fn try_read(&self) -> PyResult<&DAGCircuit> {
+        Ok(&self.inner)
     }
 
     /// Returns a mutable reference to the inner [`DAGCircuit`].
-    pub fn as_dag_mut(&mut self) -> &mut DAGCircuit {
-        &mut self.inner
+    pub fn try_write(&mut self) -> PyResult<&mut DAGCircuit> {
+        Ok(&mut self.inner)
     }
 }
 

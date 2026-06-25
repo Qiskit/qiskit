@@ -354,7 +354,7 @@ fn py_run_optimize_1q_gates_decomposition(
     global_decomposers: Option<Vec<String>>,
 ) -> PyResult<()> {
     run_optimize_1q_gates_decomposition(
-        dag.as_dag_mut(),
+        dag.try_write()?,
         state,
         target,
         basis_gates,

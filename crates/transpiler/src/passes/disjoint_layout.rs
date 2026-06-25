@@ -121,7 +121,7 @@ pub fn py_run_pass_over_connected_components(
     };
     let components = {
         let mut borrowed = dag.borrow_mut();
-        distribute_components(borrowed.deref_mut().as_dag_mut(), target)?
+        distribute_components(borrowed.deref_mut().try_write()?, target)?
     };
     let borrowed = dag.borrow();
     match components {
@@ -532,7 +532,7 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
 
 #[pyfunction(name = "combine_barriers")]
 fn py_combine_barriers(dag: &mut PyDAGCircuit, retain_uuid: bool) -> PyResult<()> {
-    combine_barriers(dag.as_dag_mut(), retain_uuid)
+    combine_barriers(dag.try_write()?, retain_uuid)
 }
 
 pub fn combine_barriers(dag: &mut DAGCircuit, retain_uuid: bool) -> PyResult<()> {

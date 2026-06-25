@@ -82,7 +82,7 @@ pub fn py_cancel_commutations(
     approximation_degree: f64,
 ) -> PyResult<()> {
     cancel_commutations(
-        py_dag.as_dag_mut(),
+        py_dag.try_write()?,
         commutation_checker,
         basis_gates,
         approximation_degree,

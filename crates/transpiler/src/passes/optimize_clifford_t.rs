@@ -340,7 +340,7 @@ pub fn py_run_optimize_clifford_t(
     dag: &mut PyDAGCircuit,
     basis_gates: Option<Vec<StandardGate>>,
 ) -> PyResult<()> {
-    run_optimize_clifford_t(dag.as_dag_mut(), basis_gates)
+    run_optimize_clifford_t(dag.try_write()?, basis_gates)
 }
 
 pub fn run_optimize_clifford_t(

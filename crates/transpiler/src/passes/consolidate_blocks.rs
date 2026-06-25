@@ -491,7 +491,7 @@ fn py_run_consolidate_blocks(
     runs: Option<Vec<Vec<usize>>>,
     qubit_map: Option<Vec<PhysicalQubit>>,
 ) -> PyResult<()> {
-    let dag = dag.as_dag_mut();
+    let dag = dag.try_write()?;
     // If we don't have a decomposer and force consolidate is not set then there is not any
     // consolidation to do.
     if decomposer.is_none() && !force_consolidate {

@@ -90,7 +90,7 @@ pub fn py_run_litinski_transformation(
     approximation_degree: f64,
 ) -> PyResult<Option<PyDAGCircuit>> {
     Ok(run_litinski_transformation(
-        dag.as_dag(),
+        dag.try_read()?,
         fix_clifford,
         insert_barrier,
         use_ppr,

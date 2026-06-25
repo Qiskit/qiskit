@@ -1908,7 +1908,7 @@ pub unsafe extern "C" fn qk_dag_borrow_from_python(
         crate::py::borrow_map_mut::<PyDAGCircuit, DAGCircuit>(
             ::pyo3::Python::assume_attached(),
             ob,
-            |_py, dag| Ok(dag.as_dag_mut()),
+            |_py, dag| dag.try_write(),
         )
     }
 }

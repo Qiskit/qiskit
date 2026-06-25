@@ -242,7 +242,7 @@ pub fn py_remove_identity_equiv(
     approx_degree: Option<f64>,
     target: Option<&Target>,
 ) -> PyResult<()> {
-    let dag = dag.as_dag_mut();
+    let dag = dag.try_write()?;
     // TODO: This is a hack to avoid panicking in the case that the global phase contains `Py`
     // pointers (such as backrefs to `ParameterVector` objects in an expression `Symbol`) that would
     // get cloned when updating the global phase.  It's easier to do it out here than to try to

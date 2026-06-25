@@ -37,7 +37,7 @@ pub fn run_instruction_duration_check(
     acquire_align: u32,
     pulse_align: u32,
 ) -> PyResult<bool> {
-    let dag = dag.as_dag();
+    let dag = dag.try_read()?;
     let num_stretches = dag.num_stretches();
 
     // Rescheduling is not necessary

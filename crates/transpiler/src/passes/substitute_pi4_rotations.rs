@@ -1081,7 +1081,7 @@ pub fn py_run_substitute_pi4_rotations(
     dag: &mut PyDAGCircuit,
     approximation_degree: f64,
 ) -> PyResult<()> {
-    let dag = dag.as_dag_mut();
+    let dag = dag.try_write()?;
     // Skip the pass if there are no rotation gates.
     if dag
         .get_op_counts()
