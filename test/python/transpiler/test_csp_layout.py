@@ -307,6 +307,34 @@ class TestCSPLayout(QiskitTestCase):
             pass_.property_set["CSPLayout_stop_reason"], "3-or-more-qubit gate found"
         )
 
+    def test_issue_7155_reproduction(self):
+        """Reproduce the layout bug reported in Qiskit #7155."""
+        qc = QuantumCircuit(3)
+        qc.cx(0, 1)
+        qc.ccx(2, 0, 1)
+
+        pass_ = CSPLayout(CouplingMap([(0, 1), (1, 2)]))
+        pass_(qc)
+
+        self.assertNotIn("layout", pass_.property_set)
+        self.assertEqual(
+            pass_.property_set["CSPLayout_stop_reason"], "3-or-more-qubit gate found"
+        )
+
+    def test_4q_gate_stops_layout(self):
+        """Gates on four qubits should also stop layout early."""
+        qc = QuantumCircuit(4)
+        qc.mcx([0, 1, 2], 3)
+
+        dag = circuit_to_dag(qc)
+        pass_ = CSPLayout(CouplingMap.from_line(4), seed=self.seed)
+        pass_.run(dag)
+
+        self.assertNotIn("layout", pass_.property_set)
+        self.assertEqual(
+            pass_.property_set["CSPLayout_stop_reason"], "3-or-more-qubit gate found"
+        )
+
     def test_seed(self):
         """Different seeds yield different results"""
         seed_1 = 42
