@@ -65,7 +65,7 @@ pub struct CNeighbors {
 ///
 /// # Safety
 ///
-/// `neighbors` must point to a valid, initialized `QkNeighbors` object.
+/// `neighbors` must an aligned pointer to a valid, initialized `QkNeighbors` object.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_neighbors_is_all_to_all(neighbors: *const CNeighbors) -> bool {
     // SAFETY: per documentation, `neighbors` points to a valid initialized `CNeighbors`.
