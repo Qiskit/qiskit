@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixed :meth:`.QuantumCircuit.to_instruction` so that its ``parameter_map``
+    argument is also applied to the resulting instruction's
+    ``definition.global_phase``.  Previously the map was only applied to the
+    gate parameters inside the definition, which could leave an unbound
+    :class:`.Parameter` hidden in the instruction's global phase even when the
+    instruction's public ``params`` appeared fully bound.  Downstream consumers
+    such as :class:`.Operator` would then fail with an unbound-parameter error.
+    The sibling :meth:`.QuantumCircuit.to_gate` was already correct.
+    See `#16181 <https://github.com/Qiskit/qiskit/issues/16181>`__.
