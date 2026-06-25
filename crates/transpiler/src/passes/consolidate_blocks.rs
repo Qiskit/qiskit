@@ -26,8 +26,8 @@ use pyo3::exceptions::PyIndexError;
 use pyo3::intern;
 use pyo3::prelude::*;
 use qiskit_circuit::Qubit;
-use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, NodeType};
 use qiskit_circuit::gate_matrix::{
     CH_GATE, CX_GATE, CY_GATE, CZ_GATE, DCX_GATE, ECR_GATE, ISWAP_GATE, ONE_QUBIT_IDENTITY,
 };
@@ -52,6 +52,39 @@ use crate::passes::unitary_synthesis::{PARAM_SET, TWO_QUBIT_BASIS_SET};
 use crate::target::{Qargs, Target};
 use qiskit_circuit::PhysicalQubit;
 use qiskit_util::getenv_use_multiple_threads;
+
+/// Possible errors coming from the `ConsolidateBlocks` pass.
+#[derive(Debug, thiserror::Error)]
+pub enum ConsolidateBlocksError {
+    #[error("node index in run or block was not a valid operation")]
+    InvalidIndexOp,
+    #[error(transparent)]
+    DAGCircuit(#[from] DAGError),
+    #[error(transparent)]
+    Circuit(#[from] CircuitDataError),
+    #[error(transparent)]
+    // TODO: Replace with decomposer rust native error
+    PyTwoQubitBasisDecomposer(PyErr),
+    #[error(transparent)]
+    PyMatrixError(PyErr),
+    #[error(transparent)]
+    PyTwoQubitControlledU(PyErr),
+}
+
+impl From<ConsolidateBlocksError> for PyErr {
+    fn from(value: ConsolidateBlocksError) -> Self {
+        match value {
+            ConsolidateBlocksError::DAGCircuit(dagcircuit_inner_error) => {
+                dagcircuit_inner_error.into()
+            }
+            ConsolidateBlocksError::Circuit(circuit_data_error) => circuit_data_error.into(),
+            ConsolidateBlocksError::InvalidIndexOp => PyIndexError::new_err(value.to_string()),
+            ConsolidateBlocksError::PyMatrixError(py_err)
+            | ConsolidateBlocksError::PyTwoQubitBasisDecomposer(py_err)
+            | ConsolidateBlocksError::PyTwoQubitControlledU(py_err) => py_err,
+        }
+    }
+}
 
 static IDENTITY_2Q: Matrix4<Complex64> = Matrix4::new(
     // Row 1
@@ -253,7 +286,7 @@ fn should_substitute(
     block_qargs: &mut HashSet<Qubit>,
     phys_qargs: &mut PhysQargsMap,
     force_consolidate: bool,
-) -> PyResult<ConsolidateResult> {
+) -> Result<ConsolidateResult, ConsolidateBlocksError> {
     block_qargs.clear();
     if block.len() == 1 {
         let inst_node = block[0];
@@ -346,7 +379,8 @@ fn should_substitute(
                 .as_array()
                 .to_owned();
             Ok(matrix)
-        })?;
+        })
+        .map_err(ConsolidateBlocksError::PyMatrixError)?;
         let identity: Array2<Complex64> = Array2::eye(2usize.pow(block_qargs.len() as u32));
         if approx::abs_diff_eq!(identity, matrix.view()) {
             return Ok(ConsolidateResult::Identity);
@@ -372,13 +406,16 @@ fn should_substitute(
             } else {
                 let num_basis_gates = if let Some(ref decomposer) = decomposer {
                     match decomposer {
-                        DecomposerType::TwoQubitBasis(decomp) => decomp.num_basis_gates_inner(
-                            nalgebra_array_view::<Complex64, U4, U4>(matrix.as_view()),
-                        )?,
+                        DecomposerType::TwoQubitBasis(decomp) => decomp
+                            .num_basis_gates_inner(nalgebra_array_view::<Complex64, U4, U4>(
+                                matrix.as_view(),
+                            ))
+                            .map_err(ConsolidateBlocksError::PyTwoQubitBasisDecomposer)?,
                         DecomposerType::TwoQubitControlledU(decomp) => decomp
                             .num_basis_gates_inner(nalgebra_array_view::<Complex64, U4, U4>(
                                 matrix.as_view(),
-                            ))?,
+                            ))
+                            .map_err(ConsolidateBlocksError::PyTwoQubitControlledU)?,
                     }
                 } else {
                     unreachable!("A decomposer is always set unless force_consolidate is true");
@@ -415,7 +452,7 @@ fn consolidation_analysis_parallel<'a>(
     blocks: &'a [Vec<NodeIndex>],
     qubit_map: Option<Vec<PhysicalQubit>>,
     force_consolidate: bool,
-) -> PyResult<Vec<(&'a [NodeIndex], ConsolidateResult)>> {
+) -> Result<Vec<(&'a [NodeIndex], ConsolidateResult)>, ConsolidateBlocksError> {
     let block_qargs = ThreadLocal::new();
     let phys_qargs = ThreadLocal::new();
     blocks
@@ -444,7 +481,7 @@ fn apply_consolidation(
     dag: &mut DAGCircuit,
     block: &[NodeIndex],
     consolidation: ConsolidateResult,
-) -> PyResult<()> {
+) -> Result<(), DAGError> {
     match consolidation {
         ConsolidateResult::NoConsolidate => {}
         ConsolidateResult::Identity => {
@@ -500,15 +537,14 @@ fn py_run_consolidate_blocks(
     // trust that they come from a correct analysis (or the block/run collection might have been
     // invalidated). Rather than panicking, we should raise Python-space exceptions. We don't have
     // to check indices that are generated by trusted Rust-only methods within this function.
-    let valid_op_node = |dag: &mut DAGCircuit, index: usize| -> PyResult<NodeIndex> {
-        let index = NodeIndex::new(index);
-        match dag.dag().node_weight(index) {
-            Some(NodeType::Operation(_)) => Ok(index),
-            _ => Err(PyIndexError::new_err(
-                "node index in run or block was not a valid operation",
-            )),
-        }
-    };
+    let valid_op_node =
+        |dag: &mut DAGCircuit, index: usize| -> Result<NodeIndex, ConsolidateBlocksError> {
+            let index = NodeIndex::new(index);
+            match dag.dag().node_weight(index) {
+                Some(NodeType::Operation(_)) => Ok(index),
+                _ => Err(ConsolidateBlocksError::InvalidIndexOp),
+            }
+        };
     let blocks = match blocks {
         Some(runs) => runs
             .into_iter()
@@ -681,7 +717,7 @@ pub fn run_consolidate_blocks(
     force_consolidate: bool,
     approximation_degree: Option<f64>,
     target: Option<&Target>,
-) -> PyResult<()> {
+) -> Result<(), ConsolidateBlocksError> {
     let approximation_degree = approximation_degree.unwrap_or(1.0);
     let (decomposer, basis_gate): (Option<DecomposerType>, Option<StandardGate>) =
         if force_consolidate {
