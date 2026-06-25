@@ -46,6 +46,7 @@ class CSPLayout(AnalysisPass):
         * nonexistent solution: If no perfect layout was found and every combination was checked.
         * call limit reached: If no perfect layout was found and the call limit was reached.
         * time limit reached: If no perfect layout was found and the time limit was reached.
+        * 3-or-more-qubit gate found: If the circuit contains a gate acting on three or more qubits.
 
         Args:
             coupling_map (Union[CouplingMap, Target]): Directed graph representing a coupling map.
@@ -80,6 +81,10 @@ class CSPLayout(AnalysisPass):
                 "map."
             )
         qubits = dag.qubits
+        if dag.multi_qubit_ops():
+            self.property_set["CSPLayout_stop_reason"] = "3-or-more-qubit gate found"
+            return
+
         cxs = set()
 
         from constraint import Problem, AllDifferentConstraint, RecursiveBacktrackingSolver

@@ -292,6 +292,21 @@ class TestCSPLayout(QiskitTestCase):
         self.assertLess(runtime, 1)
         self.assertEqual(pass_.property_set["CSPLayout_stop_reason"], "call limit reached")
 
+    def test_3q_gate_on_linear_coupling(self):
+        """A 3-qubit gate cannot be laid out on a line without native support."""
+        qc = QuantumCircuit(3)
+        qc.cx(0, 1)
+        qc.ccx(2, 0, 1)
+
+        dag = circuit_to_dag(qc)
+        pass_ = CSPLayout(CouplingMap([(0, 1), (1, 2)]), seed=self.seed)
+        pass_.run(dag)
+
+        self.assertNotIn("layout", pass_.property_set)
+        self.assertEqual(
+            pass_.property_set["CSPLayout_stop_reason"], "3-or-more-qubit gate found"
+        )
+
     def test_seed(self):
         """Different seeds yield different results"""
         seed_1 = 42
