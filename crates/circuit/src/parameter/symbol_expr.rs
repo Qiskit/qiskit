@@ -1195,12 +1195,6 @@ impl SymbolExpr {
                                                 None => Some(_div(t, l_rhs.as_ref().clone())),
                                             };
                                         }
-                                        (BinaryOp::Pow, BinaryOp::Pow) => {
-                                            return match t.pow_opt(l_rhs) {
-                                                Some(e) => Some(e),
-                                                None => Some(_pow(t, l_rhs.as_ref().clone())),
-                                            };
-                                        }
                                         (_, _) => (),
                                     }
                                 }
@@ -1558,12 +1552,6 @@ impl SymbolExpr {
                                             return match t.div_opt(l_rhs, recursive) {
                                                 Some(e) => Some(e),
                                                 None => Some(_div(t, l_rhs.as_ref().clone())),
-                                            };
-                                        }
-                                        (BinaryOp::Pow, BinaryOp::Pow) => {
-                                            return match t.pow_opt(l_rhs) {
-                                                Some(e) => Some(e),
-                                                None => Some(_pow(t, l_rhs.as_ref().clone())),
                                             };
                                         }
                                         (_, _) => (),
@@ -2445,16 +2433,6 @@ impl SymbolExpr {
             },
             _ => self.div_opt(rhs, true),
         }
-    }
-
-    /// pow with heuristic optimization
-    fn pow_opt(&self, rhs: &SymbolExpr) -> Option<SymbolExpr> {
-        if self.is_zero() || rhs.is_one() {
-            return Some(self.clone());
-        } else if rhs.is_zero() {
-            return Some(SymbolExpr::Value(Value::Int(1)));
-        }
-        None
     }
 
     /// optimization for neg
