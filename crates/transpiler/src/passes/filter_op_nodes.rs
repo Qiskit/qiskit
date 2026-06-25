@@ -24,12 +24,13 @@ pub fn py_filter_op_nodes(
     dag: &mut PyDAGCircuit,
     predicate: &Bound<PyAny>,
 ) -> PyResult<()> {
+    let dag_borrowed = dag.as_dag();
     let callable = |node: NodeIndex| -> PyResult<bool> {
-        let dag_op_node = dag.get_node(py, node)?;
+        let dag_op_node = dag_borrowed.get_node(py, node)?;
         predicate.call1((dag_op_node,))?.extract()
     };
     let mut remove_nodes: Vec<NodeIndex> = Vec::new();
-    for node in dag.as_dag().op_node_indices(true) {
+    for node in dag_borrowed.op_node_indices(true) {
         if !callable(node)? {
             remove_nodes.push(node);
         }
