@@ -612,7 +612,7 @@ class BitArray(ShapedMixin):
 
     def expectation_values(
         self, observables: ObservablesArrayLike
-    ) -> NDArray[np.float64] | NDArray[np.complex128]:
+    ) -> NDArray[np.float64]:
         """Compute the expectation values of the provided observables, broadcasted against
         this bit array.
 
@@ -624,15 +624,19 @@ class BitArray(ShapedMixin):
 
         Returns:
             An array of expectation values whose shape is the broadcast shape of ``observables``
-            and this bit array. The dtype is ``float64`` when all imaginary parts are close
-            to zero, ``complex128`` otherwise.
-
+            and this bit array. The dtype is always ``float64``; the internal
+            ``complex`` values are cleaned up by ``np.real_if_close``.
+            
         Raises:
             ValueError: If the provided observables does not have a shape broadcastable with
                 this bit array.
             ValueError: If the provided observables does not have the same number of qubits as
                 the number of bits of this bit array.
             ValueError: If the provided observables are not diagonal.
+
+        Future:
+            if you relax the ObservablesArray.coerce(observables) to get complex there to. 
+            change   ") -> NDArray[np.float64]:" to   ") -> NDArray[np.float64] | NDArray[np.complex128]:" 
         """
         observables = ObservablesArray.coerce(observables)
         arr_indices = np.fromiter(np.ndindex(self.shape), dtype=object).reshape(self.shape)
