@@ -508,7 +508,6 @@ exclude_also = [
     "if TYPE_CHECKING:",          # Code that only runs during type checks
     "@abstractmethod",            # Abstract methods are not testable
     "@overload",                  # Type-checking overload stubs are not executed at runtime
-    "if __name__ == .__main__.:", # Script entry points are not exercised in unit tests
     "^\\s*\\.\\.\\.\\s*$",        # Ellipsis-only overload bodies are not executed at runtime
     ]
 
