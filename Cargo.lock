@@ -1201,6 +1201,12 @@ name = "hashbrown"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
+dependencies = [
+ "allocator-api2",
+ "equivalent",
+ "foldhash 0.2.0",
+ "rayon",
+]
 
 [[package]]
 name = "heapless"
@@ -2177,7 +2183,7 @@ version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd274650b21d4bfc26a0a47587962c1edb425f69287324355cd040c3ea66071c"
 dependencies = [
- "hashbrown 0.15.5",
+ "hashbrown 0.17.1",
  "indexmap",
  "libc",
  "num-bigint",
@@ -2895,7 +2901,7 @@ checksum = "4b213df2cbfa5f580ed2c0ac3619eda06692a4ff0211f0aebbb4008eaa9724a6"
 dependencies = [
  "fixedbitset 0.5.7",
  "foldhash 0.1.5",
- "hashbrown 0.15.5",
+ "hashbrown 0.17.1",
  "indexmap",
  "ndarray",
  "num-traits",
@@ -3384,9 +3390,9 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.23.3"
+version = "1.23.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "144d6b123cef80b301b8f72a9e2ca4370ddec21950d0a103dd22c437006d2db7"
+checksum = "bf80a72845275afea99e7f2b434723d3bc7e38470fcd1c7ed39a599c73319a53"
 dependencies = [
  "getrandom 0.4.3",
  "js-sys",
