@@ -624,14 +624,16 @@ class BitArray(ShapedMixin):
                 the same number of qubits as the number of bits of this bit array.
                 The observables must be diagonal (I, Z, 0 or 1) too.
             allow_non_hermitian: If True, non-Hermitian observables with complex
-                coefficients are accepted. When passed, the return type becomes
-                ``NDArray[np.complex128]`` for complex-valued coefficients.
-                Default: False.
+                coefficients are accepted. Requires
+                ``ObservablesArray(obs, validate=False)`` to bypass upstream
+                Hermiticity enforcement. Default: False.
 
         Returns:
             An array of expectation values whose shape is the broadcast shape of ``observables``
             and this bit array. The dtype is ``float64``; when ``allow_non_hermitian=True``
-            and the input has complex coefficients, returns ``complex128``.
+            and the input has complex-valued coefficients, ``complex128``
+            (collapsed to ``float64`` by ``np.real_if_close`` when all
+            imaginary parts are negligible).
 
         Raises:
             ValueError: If the provided observables does not have a shape broadcastable with

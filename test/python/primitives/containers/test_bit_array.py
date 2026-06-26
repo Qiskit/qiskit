@@ -775,7 +775,7 @@ class BitArrayTestCase(QiskitTestCase):
                 _ = ba.expectation_values("X" * ba.num_bits)
 
     def test_expectation_values_dtype(self):
-        """expectation_values returns float64 (ObservableArray enforces
+        """expectation_values returns float64 (ObservablesArray enforces
         Hermiticity, so results are always real; np.real_if_close handles
         SparsePauliOp's internal complex storage)."""
         ba = BitArray.from_counts([{0: 1}, {1: 1}]).reshape(2, 1)
@@ -796,6 +796,43 @@ class BitArrayTestCase(QiskitTestCase):
         self.assertTrue(np.iscomplexobj(result))
         self.assertIsInstance(result.flat[0], np.complex128)
         np.testing.assert_array_almost_equal(result, [[-1j], [1j]])
+
+    def test_expectation_values_sparse_observable_complex(self):
+        """SparseObservable with complex coefficients works through
+        expectation_values when allow_non_hermitian=True."""
+        from qiskit.quantum_info import SparseObservable
+
+        so = SparseObservable.from_list([("Z", -1j)])
+        obs = ObservablesArray(so, validate=False)
+        ba = BitArray.from_counts([{0: 1}, {1: 1}]).reshape(2, 1)
+        result = ba.expectation_values(obs, allow_non_hermitian=True)
+        self.assertEqual(result.dtype, np.complex128)
+        np.testing.assert_array_almost_equal(result, [[-1j], [1j]])
+
+    def test_expectation_values_hermitian_with_allow(self):
+        """allow_non_hermitian=True with Hermitian (real) input still
+        returns float64 — np.real_if_close collapses zero imaginary."""
+        ba = BitArray.from_counts([{0: 1}, {1: 1}]).reshape(2, 1)
+        result = ba.expectation_values("Z", allow_non_hermitian=True)
+        self.assertEqual(result.dtype, np.float64)
+
+    def test_expectation_values_bypass_without_allow(self):
+        """validate=False + allow_non_hermitian=False: complex coeffs
+        get silently stripped by _obs_to_dict (no complex rebuild)."""
+        sp = SparsePauliOp.from_list([["Z", -1j]])
+        obs = ObservablesArray(sp, validate=False)
+        ba = BitArray.from_counts([{0: 1}, {1: 1}]).reshape(2, 1)
+        result = ba.expectation_values(obs)
+        self.assertEqual(result.dtype, np.float64)
+
+    def test_expectation_values_validate_true_with_allow(self):
+        """validate=True + allow_non_hermitian=True: coerce() blocks
+        non-Hermitian before the flag takes effect."""
+        sp = SparsePauliOp.from_list([["Z", -1j]])
+        with self.assertRaises(ValueError):
+            # ObservablesArray with validate=True (default) blocks non-Hermitian
+            ba = BitArray.from_counts([{0: 1}])
+            ba.expectation_values(sp, allow_non_hermitian=True)
 
     def test_postselection(self):
         """Test the postselection method."""
