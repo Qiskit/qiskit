@@ -1623,7 +1623,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels_clear(labels: *mut C
     if !labels.labels.is_null() && labels.num_labels > 0 {
         drop(unsafe {
             // SAFETY: Per document unsafe, label is a valid CSwitchCaseLabels
-            Box::from_raw(std::slice::from_raw_parts_mut(
+            Box::from_raw(std::ptr::slice_from_raw_parts_mut(
                 labels.labels as *mut u64,
                 labels.num_labels,
             ))
