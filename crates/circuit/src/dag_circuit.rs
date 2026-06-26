@@ -2329,7 +2329,7 @@ impl PyDAGCircuit {
                                         ob,
                                         ..
                                     }),
-                                ] => Ok(unpack_py_op(slf, py, inst1)?.eq(ob)? && check_args()),
+                                ] => Ok(slf.unpack_py_op(py, inst1)?.eq(ob)? && check_args()),
                                 [
                                     OperationRef::PyCustom(PyInstruction {
                                         kind: PyOpKind::Gate,
@@ -2337,7 +2337,7 @@ impl PyDAGCircuit {
                                         ..
                                     }),
                                     OperationRef::StandardGate(_),
-                                ] => Ok(unpack_py_op(other, py, inst2)?.eq(ob)? && check_args()),
+                                ] => Ok(other.unpack_py_op(py, inst2)?.eq(ob)? && check_args()),
                                 [
                                     OperationRef::StandardInstruction(_),
                                     OperationRef::PyCustom(PyInstruction {
@@ -2345,7 +2345,7 @@ impl PyDAGCircuit {
                                         ob,
                                         ..
                                     }),
-                                ] => Ok(unpack_py_op(slf, py, inst1)?.eq(ob)? && check_args()),
+                                ] => Ok(slf.unpack_py_op(py, inst1)?.eq(ob)? && check_args()),
                                 [
                                     OperationRef::PyCustom(PyInstruction {
                                         kind: PyOpKind::Instruction,
@@ -2353,7 +2353,7 @@ impl PyDAGCircuit {
                                         ..
                                     }),
                                     OperationRef::StandardInstruction(_),
-                                ] => Ok(unpack_py_op(other, py, inst2)?.eq(ob)? && check_args()),
+                                ] => Ok(other.unpack_py_op(py, inst2)?.eq(ob)? && check_args()),
                                 [OperationRef::Unitary(op_a), OperationRef::Unitary(op_b)] => {
                                     match [&op_a.array, &op_b.array] {
                                         [ArrayType::NDArray(a), ArrayType::NDArray(b)] => Ok(
@@ -5025,6 +5025,45 @@ impl DAGCircuit {
         ControlFlowView::try_from_instruction(instr, &self.blocks)
     }
 
+    // TODO: Move Python auxiliary method
+    /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into an
+    /// instruction.  This may construct the reference if the `Instruction` is a standard
+    /// gate or instruction with no already stored operation.
+    ///
+    /// A standard-gate or standard-instruction operation object returned by this function is
+    /// disconnected from the dag; updates to its parameters, label, duration, unit
+    /// and condition will not be propagated back.
+    ///
+    /// Panics if `node` does not refer to an operation.
+    pub fn unpack_py_op<'py>(
+        &self,
+        py: Python<'py>,
+        instr: &PackedInstruction,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        // `OnceLock::get_or_init` and the non-stabilised `get_or_try_init`, which would otherwise
+        // be nice here are both non-reentrant.  This is a problem if the init yields control to the
+        // Python interpreter as this one does, since that can allow CPython to freeze the thread
+        // and for another to attempt the initialisation.
+        #[cfg(feature = "cache_pygates")]
+        {
+            if let Some(ob) = instr.py_op.get() {
+                return Ok(ob.bind(py).clone());
+            }
+        }
+        let out = instruction::create_py_op(
+            py,
+            instr.op.view(),
+            self.unpack_blocks_to_circuit_parameters(instr.params.as_deref())?,
+            instr.label.as_deref().map(String::as_str),
+        )?;
+        #[cfg(feature = "cache_pygates")]
+        // The unpacking operation can cause a thread pause and concurrency, since it can call
+        // interpreted Python code for a standard gate, so we need to take care that some other
+        // Python thread might have populated the cache before we do.
+        let _ = instr.py_op.set(out.clone_ref(py));
+        Ok(out.into_bound(py))
+    }
+
     pub fn new() -> Self {
         DAGCircuit {
             dag: StableDiGraph::default(),
@@ -6166,11 +6205,41 @@ impl DAGCircuit {
             .filter(|node: &NodeIndex| matches!(&self.dag[*node], NodeType::Operation(_)))
     }
 
+    // TODO: Move Python auxiliary method
+    fn topological_key_sort(
+        &self,
+        py: Python,
+        key: &Bound<PyAny>,
+        reverse: bool,
+    ) -> PyResult<impl Iterator<Item = NodeIndex> + use<>> {
+        // This path (user provided key func) is not ideal, since we no longer
+        // use a string key after moving to Rust, in favor of using a tuple
+        // of the qargs and cargs interner IDs of the node.
+        let key = |node: NodeIndex| -> PyResult<String> {
+            let node = self.get_node(py, node)?;
+            key.call1((node,))?.extract()
+        };
+        Ok(rustworkx_core::dag_algo::lexicographical_topological_sort(
+            &self.dag, key, reverse, None,
+        )
+        .map_err(|e| match e {
+            rustworkx_core::dag_algo::TopologicalSortError::CycleOrBadInitialState => {
+                PyValueError::new_err(format!("{e}"))
+            }
+            rustworkx_core::dag_algo::TopologicalSortError::KeyError(ref e) => e.clone_ref(py),
+        })?
+        .into_iter())
+    }
+
     #[inline]
     pub fn has_control_flow(&self) -> bool {
         CONTROL_FLOW_OP_NAMES
             .iter()
             .any(|x| self.op_names.contains_key(&x.to_string()))
+    }
+
+    pub fn get_node(&self, py: Python, node: NodeIndex) -> PyResult<Py<PyAny>> {
+        self.unpack_into(py, node, self.dag.node_weight(node).unwrap())
     }
 
     /// Is the given [Wire] idle?
@@ -6488,6 +6557,145 @@ impl DAGCircuit {
         node: NodeIndex,
     ) -> impl Iterator<Item = (NodeIndex, Vec<NodeIndex>)> + '_ {
         core_bfs_predecessors(&self.dag, node).filter(move |(_, others)| !others.is_empty())
+    }
+
+    // TODO: Move Python auxiliary method
+    fn pack_into(&mut self, py: Python, b: &Bound<PyAny>) -> Result<NodeType, PyErr> {
+        Ok(if let Ok(in_node) = b.cast::<DAGInNode>() {
+            let in_node = in_node.borrow();
+            let wire = in_node.wire.bind(py);
+            if let Ok(qubit) = wire.extract::<ShareableQubit>() {
+                NodeType::QubitIn(self.qubits.find(&qubit).unwrap())
+            } else if let Ok(clbit) = wire.extract::<ShareableClbit>() {
+                NodeType::ClbitIn(self.clbits.find(&clbit).unwrap())
+            } else {
+                let var = wire.extract::<expr::Var>()?;
+                NodeType::VarIn(self.vars_stretches.vars().find(&var).unwrap())
+            }
+        } else if let Ok(out_node) = b.cast::<DAGOutNode>() {
+            let out_node = out_node.borrow();
+            let wire = out_node.wire.bind(py);
+            if let Ok(qubit) = wire.extract::<ShareableQubit>() {
+                NodeType::QubitOut(self.qubits.find(&qubit).unwrap())
+            } else if let Ok(clbit) = wire.extract::<ShareableClbit>() {
+                NodeType::ClbitOut(self.clbits.find(&clbit).unwrap())
+            } else {
+                let var = wire.extract::<expr::Var>()?;
+                NodeType::VarOut(self.vars_stretches.vars().find(&var).unwrap())
+            }
+        } else if let Ok(op_node) = b.cast::<DAGOpNode>() {
+            let op_node = op_node.borrow();
+            let qubits = self.qargs_interner.insert_owned(
+                self.qubits
+                    .map_objects(
+                        op_node
+                            .instruction
+                            .qubits
+                            .extract::<Vec<ShareableQubit>>(py)?,
+                    )?
+                    .collect(),
+            );
+            let clbits = self.cargs_interner.insert_owned(
+                self.clbits
+                    .map_objects(
+                        op_node
+                            .instruction
+                            .clbits
+                            .extract::<Vec<ShareableClbit>>(py)?,
+                    )?
+                    .collect(),
+            );
+            let params =
+                self.extract_blocks_from_circuit_parameters(op_node.instruction.params.as_ref())?;
+            let inst = PackedInstruction {
+                op: op_node.instruction.operation.clone(),
+                qubits,
+                clbits,
+                params,
+                label: op_node.instruction.label.clone(),
+                #[cfg(feature = "cache_pygates")]
+                py_op: op_node.instruction.py_op.clone(),
+            };
+            NodeType::Operation(inst)
+        } else {
+            return Err(PyTypeError::new_err("Invalid type for DAGNode"));
+        })
+    }
+
+    // TODO: Move Python auxiliary method
+    fn unpack_into(&self, py: Python, id: NodeIndex, weight: &NodeType) -> PyResult<Py<PyAny>> {
+        let dag_node = match weight {
+            NodeType::QubitIn(qubit) => Py::new(
+                py,
+                DAGInNode::new(id, self.qubits.get(*qubit).unwrap().into_py_any(py)?),
+            )?
+            .into_any(),
+            NodeType::QubitOut(qubit) => Py::new(
+                py,
+                DAGOutNode::new(id, self.qubits.get(*qubit).unwrap().into_py_any(py)?),
+            )?
+            .into_any(),
+            NodeType::ClbitIn(clbit) => Py::new(
+                py,
+                DAGInNode::new(id, self.clbits.get(*clbit).unwrap().into_py_any(py)?),
+            )?
+            .into_any(),
+            NodeType::ClbitOut(clbit) => Py::new(
+                py,
+                DAGOutNode::new(id, self.clbits.get(*clbit).unwrap().into_py_any(py)?),
+            )?
+            .into_any(),
+            NodeType::Operation(packed) => {
+                let qubits = self.qargs_interner.get(packed.qubits);
+                let clbits = self.cargs_interner.get(packed.clbits);
+                let params = self.unpack_blocks_to_circuit_parameters(packed.params.as_deref())?;
+                Py::new(
+                    py,
+                    (
+                        DAGOpNode {
+                            instruction: CircuitInstruction {
+                                operation: packed.op.clone(),
+                                qubits: PyTuple::new(py, self.qubits.map_indices(qubits))?.unbind(),
+                                clbits: PyTuple::new(py, self.clbits.map_indices(clbits))?.unbind(),
+                                params,
+                                label: packed.label.clone(),
+                                #[cfg(feature = "cache_pygates")]
+                                py_op: packed.py_op.clone(),
+                            },
+                        },
+                        DAGNode { node: Some(id) },
+                    ),
+                )?
+                .into_any()
+            }
+            NodeType::VarIn(var) => Py::new(
+                py,
+                DAGInNode::new(
+                    id,
+                    self.vars_stretches
+                        .vars()
+                        .get(*var)
+                        .unwrap()
+                        .clone()
+                        .into_py_any(py)?,
+                ),
+            )?
+            .into_any(),
+            NodeType::VarOut(var) => Py::new(
+                py,
+                DAGOutNode::new(
+                    id,
+                    self.vars_stretches
+                        .vars()
+                        .get(*var)
+                        .unwrap()
+                        .clone()
+                        .into_py_any(py)?,
+                ),
+            )?
+            .into_any(),
+        };
+        Ok(dag_node)
     }
 
     /// An iterator of the DAG indices and corresponding `PackedInstruction` references for
@@ -8622,209 +8830,6 @@ impl ::std::ops::Index<NodeIndex> for DAGCircuit {
     }
 }
 
-// Python auxiliary methods
-impl DAGCircuit {
-    fn topological_key_sort(
-        &self,
-        py: Python,
-        key: &Bound<PyAny>,
-        reverse: bool,
-    ) -> PyResult<impl Iterator<Item = NodeIndex> + use<>> {
-        // This path (user provided key func) is not ideal, since we no longer
-        // use a string key after moving to Rust, in favor of using a tuple
-        // of the qargs and cargs interner IDs of the node.
-        let key = |node: NodeIndex| -> PyResult<String> {
-            let node = self.get_node(py, node)?;
-            key.call1((node,))?.extract()
-        };
-        Ok(rustworkx_core::dag_algo::lexicographical_topological_sort(
-            &self.dag, key, reverse, None,
-        )
-        .map_err(|e| match e {
-            rustworkx_core::dag_algo::TopologicalSortError::CycleOrBadInitialState => {
-                PyValueError::new_err(format!("{e}"))
-            }
-            rustworkx_core::dag_algo::TopologicalSortError::KeyError(ref e) => e.clone_ref(py),
-        })?
-        .into_iter())
-    }
-
-    /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into an
-    /// instruction.  This may construct the reference if the `Instruction` is a standard
-    /// gate or instruction with no already stored operation.
-    ///
-    /// A standard-gate or standard-instruction operation object returned by this function is
-    /// disconnected from the dag; updates to its parameters, label, duration, unit
-    /// and condition will not be propagated back.
-    ///
-    /// Panics if `node` does not refer to an operation.
-    pub fn unpack_py_op<'py>(
-        &self,
-        py: Python<'py>,
-        instr: &PackedInstruction,
-    ) -> PyResult<Bound<'py, PyAny>> {
-        #[cfg(feature = "cache_pygates")]
-        {
-            if let Some(ob) = instr.py_op.get() {
-                return Ok(ob.bind(py).clone());
-            }
-        }
-        let out = instruction::create_py_op(
-            py,
-            instr.op.view(),
-            self.unpack_blocks_to_circuit_parameters(instr.params.as_deref())?,
-            instr.label.as_deref().map(String::as_str),
-        )?;
-        #[cfg(feature = "cache_pygates")]
-        // The unpacking operation can cause a thread pause and concurrency, since it can call
-        // interpreted Python code for a standard gate, so we need to take care that some other
-        // Python thread might have populated the cache before we do.
-        let _ = instr.py_op.set(out.clone_ref(py));
-        Ok(out.into_bound(py))
-    }
-
-    pub fn get_node(&self, py: Python, node: NodeIndex) -> PyResult<Py<PyAny>> {
-        self.unpack_into(py, node, self.dag.node_weight(node).unwrap())
-    }
-
-    fn pack_into(&mut self, py: Python, b: &Bound<PyAny>) -> Result<NodeType, PyErr> {
-        Ok(if let Ok(in_node) = b.cast::<DAGInNode>() {
-            let in_node = in_node.borrow();
-            let wire = in_node.wire.bind(py);
-            if let Ok(qubit) = wire.extract::<ShareableQubit>() {
-                NodeType::QubitIn(self.qubits.find(&qubit).unwrap())
-            } else if let Ok(clbit) = wire.extract::<ShareableClbit>() {
-                NodeType::ClbitIn(self.clbits.find(&clbit).unwrap())
-            } else {
-                let var = wire.extract::<expr::Var>()?;
-                NodeType::VarIn(self.vars_stretches.vars().find(&var).unwrap())
-            }
-        } else if let Ok(out_node) = b.cast::<DAGOutNode>() {
-            let out_node = out_node.borrow();
-            let wire = out_node.wire.bind(py);
-            if let Ok(qubit) = wire.extract::<ShareableQubit>() {
-                NodeType::QubitOut(self.qubits.find(&qubit).unwrap())
-            } else if let Ok(clbit) = wire.extract::<ShareableClbit>() {
-                NodeType::ClbitOut(self.clbits.find(&clbit).unwrap())
-            } else {
-                let var = wire.extract::<expr::Var>()?;
-                NodeType::VarOut(self.vars_stretches.vars().find(&var).unwrap())
-            }
-        } else if let Ok(op_node) = b.cast::<DAGOpNode>() {
-            let op_node = op_node.borrow();
-            let qubits = self.qargs_interner.insert_owned(
-                self.qubits
-                    .map_objects(
-                        op_node
-                            .instruction
-                            .qubits
-                            .extract::<Vec<ShareableQubit>>(py)?,
-                    )?
-                    .collect(),
-            );
-            let clbits = self.cargs_interner.insert_owned(
-                self.clbits
-                    .map_objects(
-                        op_node
-                            .instruction
-                            .clbits
-                            .extract::<Vec<ShareableClbit>>(py)?,
-                    )?
-                    .collect(),
-            );
-            let params =
-                self.extract_blocks_from_circuit_parameters(op_node.instruction.params.as_ref())?;
-            let inst = PackedInstruction {
-                op: op_node.instruction.operation.clone(),
-                qubits,
-                clbits,
-                params,
-                label: op_node.instruction.label.clone(),
-                #[cfg(feature = "cache_pygates")]
-                py_op: op_node.instruction.py_op.clone(),
-            };
-            NodeType::Operation(inst)
-        } else {
-            return Err(PyTypeError::new_err("Invalid type for DAGNode"));
-        })
-    }
-
-    fn unpack_into(&self, py: Python, id: NodeIndex, weight: &NodeType) -> PyResult<Py<PyAny>> {
-        let dag_node = match weight {
-            NodeType::QubitIn(qubit) => Py::new(
-                py,
-                DAGInNode::new(id, self.qubits.get(*qubit).unwrap().into_py_any(py)?),
-            )?
-            .into_any(),
-            NodeType::QubitOut(qubit) => Py::new(
-                py,
-                DAGOutNode::new(id, self.qubits.get(*qubit).unwrap().into_py_any(py)?),
-            )?
-            .into_any(),
-            NodeType::ClbitIn(clbit) => Py::new(
-                py,
-                DAGInNode::new(id, self.clbits.get(*clbit).unwrap().into_py_any(py)?),
-            )?
-            .into_any(),
-            NodeType::ClbitOut(clbit) => Py::new(
-                py,
-                DAGOutNode::new(id, self.clbits.get(*clbit).unwrap().into_py_any(py)?),
-            )?
-            .into_any(),
-            NodeType::Operation(packed) => {
-                let qubits = self.qargs_interner.get(packed.qubits);
-                let clbits = self.cargs_interner.get(packed.clbits);
-                let params = self.unpack_blocks_to_circuit_parameters(packed.params.as_deref())?;
-                Py::new(
-                    py,
-                    (
-                        DAGOpNode {
-                            instruction: CircuitInstruction {
-                                operation: packed.op.clone(),
-                                qubits: PyTuple::new(py, self.qubits.map_indices(qubits))?.unbind(),
-                                clbits: PyTuple::new(py, self.clbits.map_indices(clbits))?.unbind(),
-                                params,
-                                label: packed.label.clone(),
-                                #[cfg(feature = "cache_pygates")]
-                                py_op: packed.py_op.clone(),
-                            },
-                        },
-                        DAGNode { node: Some(id) },
-                    ),
-                )?
-                .into_any()
-            }
-            NodeType::VarIn(var) => Py::new(
-                py,
-                DAGInNode::new(
-                    id,
-                    self.vars_stretches
-                        .vars()
-                        .get(*var)
-                        .unwrap()
-                        .clone()
-                        .into_py_any(py)?,
-                ),
-            )?
-            .into_any(),
-            NodeType::VarOut(var) => Py::new(
-                py,
-                DAGOutNode::new(
-                    id,
-                    self.vars_stretches
-                        .vars()
-                        .get(*var)
-                        .unwrap()
-                        .clone()
-                        .into_py_any(py)?,
-                ),
-            )?
-            .into_any(),
-        };
-        Ok(dag_node)
-    }
-}
-
 impl PyDAGCircuit {
     // Returns an immutable reference to 'metadata'
     pub fn get_metadata(&self) -> Option<&Py<PyAny>> {
@@ -8907,44 +8912,6 @@ impl From<PyDAGCircuit> for DAGCircuit {
     fn from(value: PyDAGCircuit) -> Self {
         value.inner
     }
-}
-
-/// Build a reference to the Python-space operation object (the `Gate`, etc) packed into an
-/// instruction.  This may construct the reference if the `Instruction` is a standard
-/// gate or instruction with no already stored operation.
-///
-/// A standard-gate or standard-instruction operation object returned by this function is
-/// disconnected from the dag; updates to its parameters, label, duration, unit
-/// and condition will not be propagated back.
-///
-/// Panics if `node` does not refer to an operation.
-pub fn unpack_py_op<'py>(
-    dag: &DAGCircuit,
-    py: Python<'py>,
-    instr: &PackedInstruction,
-) -> PyResult<Bound<'py, PyAny>> {
-    // `OnceLock::get_or_init` and the non-stabilised `get_or_try_init`, which would otherwise
-    // be nice here are both non-reentrant.  This is a problem if the init yields control to the
-    // Python interpreter as this one does, since that can allow CPython to freeze the thread
-    // and for another to attempt the initialisation.
-    #[cfg(feature = "cache_pygates")]
-    {
-        if let Some(ob) = instr.py_op.get() {
-            return Ok(ob.bind(py).clone());
-        }
-    }
-    let out = instruction::create_py_op(
-        py,
-        instr.op.view(),
-        dag.unpack_blocks_to_circuit_parameters(instr.params.as_deref())?,
-        instr.label.as_deref().map(String::as_str),
-    )?;
-    #[cfg(feature = "cache_pygates")]
-    // The unpacking operation can cause a thread pause and concurrency, since it can call
-    // interpreted Python code for a standard gate, so we need to take care that some other
-    // Python thread might have populated the cache before we do.
-    let _ = instr.py_op.set(out.clone_ref(py));
-    Ok(out.into_bound(py))
 }
 
 fn idle_wires(
