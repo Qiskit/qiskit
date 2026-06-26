@@ -34,8 +34,8 @@ use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
     ArrayType, BoxDuration, Condition, ControlFlow, ControlFlowInstruction, ControlFlowView,
-    Operation, OperationRef, Param, PyInstruction, PyOpKind, StandardGate, StandardInstruction,
-    SwitchTarget,
+    LoopParam, Operation, OperationRef, Param, PyInstruction, PyOpKind, StandardGate,
+    StandardInstruction, SwitchTarget,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -1818,8 +1818,10 @@ impl DAGCircuit {
         }
         if !self.has_control_flow() {
             let weight_fn = |_| -> Result<usize, Infallible> { Ok(1) };
-            return match rustworkx_core::dag_algo::longest_path(&self.dag, weight_fn).unwrap() {
-                Some(res) => Ok(res.1 - 1),
+            return match rustworkx_core::dag_algo::longest_path_length(&self.dag, weight_fn)
+                .unwrap()
+            {
+                Some(res) => Ok(res - 1),
                 None => panic!("not a DAG"),
             };
         }
@@ -1859,8 +1861,8 @@ impl DAGCircuit {
         let weight_fn = |edge: EdgeReference<'_, Wire>| -> Result<usize, Infallible> {
             Ok(*node_lookup.get(&edge.target()).unwrap_or(&1))
         };
-        match rustworkx_core::dag_algo::longest_path(&self.dag, weight_fn).unwrap() {
-            Some(res) => Ok(res.1 - 1),
+        match rustworkx_core::dag_algo::longest_path_length(&self.dag, weight_fn).unwrap() {
+            Some(res) => Ok(res - 1),
             None => panic!("not a DAG"),
         }
     }
@@ -2249,7 +2251,10 @@ impl DAGCircuit {
                                         return Ok(false);
                                     }
                                     match (loop_param_a, loop_param_b) {
-                                        (Some(loop_param_a), Some(loop_param_b)) => {
+                                        (
+                                            Some(LoopParam::Parameter(loop_param_a)),
+                                            Some(LoopParam::Parameter(loop_param_b)),
+                                        ) => {
                                             // Until we have a way to assign parameters in a DAG, we need
                                             // to convert a for loop's body DAG back to a circuit.
                                             let sentinel = PARAMETER
@@ -2313,6 +2318,15 @@ impl DAGCircuit {
                                                 None,
                                             )?;
                                             block_eq(&body_a, &body_b)
+                                        }
+                                        (
+                                            Some(LoopParam::Variable(var_a)),
+                                            Some(LoopParam::Variable(var_b)),
+                                        ) => {
+                                            if var_a != var_b {
+                                                return Ok(false);
+                                            }
+                                            block_eq(body_a, body_b)
                                         }
                                         (None, None) => block_eq(body_a, body_b),
                                         _ => Ok(false),

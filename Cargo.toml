@@ -3,7 +3,7 @@ members = ["crates/*"]
 resolver = "2"
 
 [workspace.package]
-version = "2.5.0-dev"
+version = "2.6.0-dev"
 edition = "2024"
 rust-version = "1.87"  # Keep in sync with README.md, rust-toolchain.toml, and tools/install_rust_msrv.sh
 license = "Apache-2.0"
@@ -26,7 +26,7 @@ numpy = "0.29"
 ndarray = "0.16"
 smallvec = "1.15"
 thiserror = "2.0"
-rustworkx-core = "0.17"
+rustworkx-core = "0.18"
 fixedbitset = "0.5.7"
 approx = "0.5"
 itertools = "0.14.0"
