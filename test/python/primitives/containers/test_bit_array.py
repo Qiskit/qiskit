@@ -864,9 +864,7 @@ class BitArrayTestCase(QiskitTestCase):
             with self.subTest(name):
                 sp = case["sp"]
                 obs = ObservablesArray(sp, validate=False)
-                result = case["ba"].expectation_values(
-                    obs, allow_non_hermitian=True
-                )
+                result = case["ba"].expectation_values(obs, allow_non_hermitian=True)
                 self.assertEqual(result.dtype, case["dtype"])
                 self.assertTrue(case["check"](result))
 
