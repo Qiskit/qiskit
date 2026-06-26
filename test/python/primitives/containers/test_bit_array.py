@@ -834,41 +834,41 @@ class BitArrayTestCase(QiskitTestCase):
             ba = BitArray.from_counts([{0: 1}])
             ba.expectation_values(sp, allow_non_hermitian=True)
 
-    def test_expectation_values_multi_qubit_complex(self):
-        """Multi-qubit complex observable (ZZ with 3+2j) works through
-        the sparse-to-full Pauli conversion in _obs_to_complex_dict."""
-        sp = SparsePauliOp.from_list([["ZZ", 3 + 2j]])
-        obs = ObservablesArray(sp, validate=False)
-        ba = BitArray.from_samples(["11"], num_bits=2)
-        result = ba.expectation_values(obs, allow_non_hermitian=True)
-        self.assertEqual(result.dtype, np.complex128)
-        self.assertTrue(np.isclose(result.flat[0], 3 + 2j))
-
-    def test_expectation_values_mixed_real_complex(self):
-        """Array with mixed real and complex coefficients returns
-        complex128 for the whole result."""
-        obs = ObservablesArray(
-            [
-                SparsePauliOp.from_list([["Z", 1.0]]),
-                SparsePauliOp.from_list([["Z", -1j]]),
-            ],
-            validate=False,
-        )
-        ba = BitArray.from_counts([{0: 1}, {1: 1}]).reshape(2, 1)
-        result = ba.expectation_values(obs, allow_non_hermitian=True)
-        self.assertEqual(result.dtype, np.complex128)
-        self.assertEqual(result.shape, (2, 2))
-        self.assertTrue(np.isclose(result[0, 1], -1j))
-
-    def test_expectation_values_large_imaginary(self):
-        """Large imaginary coefficients (999j) are preserved by
-        np.real_if_close."""
-        sp = SparsePauliOp.from_list([["Z", 999j]])
-        obs = ObservablesArray(sp, validate=False)
-        ba = BitArray.from_counts([{0: 1}, {1: 1}]).reshape(2, 1)
-        result = ba.expectation_values(obs, allow_non_hermitian=True)
-        self.assertEqual(result.dtype, np.complex128)
-        self.assertTrue(np.isclose(result.flat[0], 999j))
+    def test_expectation_values_complex_edge_cases(self):
+        """Complex edge cases: multi-qubit, mixed real/complex, large imag.
+        Uses subTest so all cases run even if one fails."""
+        test_cases = {
+            "multi_qubit_ZZ": {
+                "sp": SparsePauliOp.from_list([["ZZ", 3 + 2j]]),
+                "ba": BitArray.from_samples(["11"], num_bits=2),
+                "dtype": np.complex128,
+                "check": lambda r: np.isclose(r.flat[0], 3 + 2j),
+            },
+            "mixed_real_complex": {
+                "sp": [
+                    SparsePauliOp.from_list([["Z", 1.0]]),
+                    SparsePauliOp.from_list([["Z", -1j]]),
+                ],
+                "ba": BitArray.from_counts([{0: 1}, {1: 1}]).reshape(2, 1),
+                "dtype": np.complex128,
+                "check": lambda r: r.shape == (2, 2) and np.isclose(r[0, 1], -1j),
+            },
+            "large_imag": {
+                "sp": SparsePauliOp.from_list([["Z", 999j]]),
+                "ba": BitArray.from_counts([{0: 1}, {1: 1}]).reshape(2, 1),
+                "dtype": np.complex128,
+                "check": lambda r: np.isclose(r.flat[0], 999j),
+            },
+        }
+        for name, case in test_cases.items():
+            with self.subTest(name):
+                sp = case["sp"]
+                obs = ObservablesArray(sp, validate=False)
+                result = case["ba"].expectation_values(
+                    obs, allow_non_hermitian=True
+                )
+                self.assertEqual(result.dtype, case["dtype"])
+                self.assertTrue(case["check"](result))
 
     def test_postselection(self):
         """Test the postselection method."""
