@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed non-deterministic :class:`.VF2Layout` output at ``optimization_level=2`` on a
+    :class:`.Target` with control flow and a symmetric coupling map. The pass summed per-qubit
+    gate errors in a non-deterministic order; as floating-point addition is not associative, two
+    symmetric layouts could tie-break differently between runs, so the chosen layout -- and thus
+    the single-qubit gate count and depth of the output -- varied. The errors are now summed in a
+    deterministic order.
+    Fixed `#16490 <https://github.com/Qiskit/qiskit/issues/16490>`__.
