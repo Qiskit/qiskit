@@ -1,0 +1,10 @@
+---
+features_transpiler:
+  - |
+    Added an ``approximation_degree`` parameter to the
+    :class:`.CommutativeCancellation` transpiler pass. This allows the
+    approximation setting from :func:`.transpile` to propagate through
+    commutation analysis during gate cancellation. The preset pass managers
+    now pass ``approximation_degree`` when constructing this pass, consistent
+    with other optimization passes such as :class:`.RemoveIdentityEquivalent`
+    and :class:`.CommutativeOptimization`.

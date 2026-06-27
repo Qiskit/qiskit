@@ -994,6 +994,18 @@ measure q0[1] -> c0[1];
         pass_ = CommutativeCancellation(["sx", "rz"])
         self.assertEqual(pass_(qc), expected)
 
+    def test_approximation_degree(self):
+        """Test that approximation_degree is accepted and cancellation still works."""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+        expected = QuantumCircuit(2)
+
+        for approximation_degree in [None, 0.5, 1.0]:
+            with self.subTest(approximation_degree=approximation_degree):
+                result = CommutativeCancellation(approximation_degree=approximation_degree)(qc)
+                self.assertEqual(expected, result)
+
 
 if __name__ == "__main__":
     unittest.main()
