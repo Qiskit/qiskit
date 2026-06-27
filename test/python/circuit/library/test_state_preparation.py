@@ -124,5 +124,20 @@ class TestStatePreparation(QiskitTestCase):
         self.assertTrue(Statevector(qc).equiv(np.array([1, 1]) / np.sqrt(2)))
 
 
+class TestInitialize(QiskitTestCase):
+    def test_gates_to_uncompute_integer_input(self):
+        from qiskit.circuit.library import Initialize
+        int_init = Initialize(1, num_qubits=2)
+        uncompute_int = int_init.gates_to_uncompute()
+        self.assertEqual(uncompute_int.num_qubits, 2)
+
+        vec_init = Initialize([0, 1, 0, 0])
+        uncompute_vec = vec_init.gates_to_uncompute()
+        self.assertEqual(uncompute_vec.num_qubits, 2)
+
+        result = Statevector.from_label("01").evolve(uncompute_int)
+        self.assertTrue(result.equiv(Statevector.from_label("00")))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed :meth:`.Initialize.gates_to_uncompute` returning a 0-qubit circuit
+    when the :class:`.Initialize` object was constructed using the integer-bitmap
+    form (e.g. ``Initialize(1, num_qubits=2)``). The method now delegates to
+    the internal :class:`.StatePreparation` definition, which correctly
+    preserves the documented ``num_qubits`` width for all input forms.
+    Fixed `#16413 <https://github.com/Qiskit/qiskit/issues/16413>`__.
