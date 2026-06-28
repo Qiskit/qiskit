@@ -446,6 +446,12 @@ impl CommutationChecker {
         matrix_max_num_qubits: u32,
         approximation_degree: f64,
     ) -> Result<bool, CommutationError> {
+        if let Some(gates) = &self.gates {
+            if !gates.contains(op1.name()) || !gates.contains(op2.name()) {
+                return Ok(false);
+            }
+        }
+
         // If the average gate infidelity is below this tolerance, they commute. The tolerance
         // is set to max(1e-12, 1 - approximation_degree), to account for roundoffs and for
         // consistency with other places in Qiskit.
@@ -484,12 +490,6 @@ impl CommutationChecker {
         } else {
             op2
         };
-
-        if let Some(gates) = &self.gates {
-            if !gates.is_empty() && (!gates.contains(op1.name()) || !gates.contains(op2.name())) {
-                return Ok(false);
-            }
-        }
 
         let precheck_status = commutation_precheck(
             op1,
