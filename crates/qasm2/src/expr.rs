@@ -711,23 +711,23 @@ impl ExprParser<'_> {
         &mut self,
         expr: Expr,
         eval_state: EvalState,
-    ) -> PyResult<ControlFlow<(EvalState, u8), Expr>> {
+    ) -> PyResult<ControlFlow<(EvalState, u8), (Expr, u8)>> {
         let EvalState {
             state,
             token,
             power_min,
         } = eval_state;
+        let continue_from = |expr| ControlFlow::Continue((expr, power_min));
         match state {
             State::Paren => {
                 self.expect(TokenType::RParen, "a closing parenthesis", &token)?;
-                Ok(ControlFlow::Continue(expr))
+                Ok(continue_from(expr))
             }
             State::Function(func) => {
                 let comma = self.accept(TokenType::Comma)?;
                 self.check_trailing_comma(comma.as_ref())?;
                 self.expect(TokenType::RParen, "a closing parenthesis", &token)?;
-                self.apply_function(func, expr, &token)
-                    .map(ControlFlow::Continue)
+                self.apply_function(func, expr, &token).map(continue_from)
             }
             State::CustomFunction {
                 callable,
@@ -753,12 +753,10 @@ impl ExprParser<'_> {
                     return Ok(ControlFlow::Break((state, 0)));
                 };
                 self.apply_custom_function(callable, num_params, arguments, &token)
-                    .map(ControlFlow::Continue)
+                    .map(continue_from)
             }
-            State::Prefix(op) => self.apply_prefix(op, expr).map(ControlFlow::Continue),
-            State::Infix { lhs, op } => self
-                .apply_infix(op, lhs, expr, &token)
-                .map(ControlFlow::Continue),
+            State::Prefix(op) => self.apply_prefix(op, expr).map(continue_from),
+            State::Infix { lhs, op } => self.apply_infix(op, lhs, expr, &token).map(continue_from),
         }
     }
 
@@ -806,12 +804,11 @@ impl ExprParser<'_> {
                         let prev = stack
                             .pop()
                             .expect("tight binding requires a partial operation");
-                        power_min = prev.power_min;
-                        expr = match self.expect_expression_terminator(expr, prev)? {
+                        (expr, power_min) = match self.expect_expression_terminator(expr, prev)? {
                             ControlFlow::Break(_) => {
                                 panic!("tight binding requires a partial operation")
                             }
-                            ControlFlow::Continue(expr) => expr,
+                            ControlFlow::Continue((expr, power)) => (expr, power),
                         };
                     }
                     // The new binding power is tighter than whatever's remaining to the left of us,
@@ -833,16 +830,14 @@ impl ExprParser<'_> {
                     // If the stack is exhausted, we've entirely evaluated the expression.
                     return Ok(expr);
                 };
-                let restored_pm = prev.power_min;
-                expr = match self.expect_expression_terminator(expr, prev)? {
+                (expr, power_min) = match self.expect_expression_terminator(expr, prev)? {
                     ControlFlow::Break((state, power)) => {
                         stack.push(state);
                         power_min = power;
                         continue 'expr;
                     }
-                    ControlFlow::Continue(expr) => expr,
+                    ControlFlow::Continue((expr, power)) => (expr, power),
                 };
-                power_min = restored_pm;
                 // This statement is actually a no-op, but the loop is long so let's be explicit.
                 continue 'infix;
             }
