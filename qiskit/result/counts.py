@@ -13,6 +13,7 @@
 """A container class for counts from a circuit execution."""
 
 import re
+import warnings
 
 from qiskit.result import postprocess
 from qiskit import exceptions
@@ -113,6 +114,19 @@ class Counts(dict):
         if self.creg_sizes:
             header["creg_sizes"] = self.creg_sizes
         self.memory_slots = memory_slots
+        if not bin_data and self.int_raw and self.memory_slots is None:
+            if self.creg_sizes:
+                self.memory_slots = sum(size for _, size in self.creg_sizes)
+            else:
+                bit_lengths = {max(value.bit_length(), 1) for value in self.int_raw}
+                if len(bit_lengths) > 1:
+                    self.memory_slots = max(bit_lengths)
+                    warnings.warn(
+                        "Counts keys with different bit widths are ambiguous without "
+                        "memory_slots or creg_sizes; padding to the maximum key width.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
         if self.memory_slots:
             header["memory_slots"] = self.memory_slots
         if not bin_data:
