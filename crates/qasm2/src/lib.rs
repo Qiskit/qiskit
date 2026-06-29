@@ -21,7 +21,9 @@ mod ext;
 mod lex;
 mod parse;
 
-pub use self::ext::*;
+pub use self::ext::{
+    ClassicalBuiltinExt, ClassicalCallableExt, CustomClassical, CustomInstruction,
+};
 
 /// Create a bytecode iterable from a string containing an OpenQASM 2 program.  The iterable will
 /// lex and parse the source lazily; evaluating OpenQASM 2 statements as required, without loading

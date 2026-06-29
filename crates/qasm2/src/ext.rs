@@ -46,9 +46,7 @@ impl ClassicalBuiltinExt {
     /// How many parameters the builtin expects.
     pub fn num_params(&self) -> usize {
         match self {
-            Self::Asin => 1,
-            Self::Acos => 1,
-            Self::Atan => 1,
+            Self::Asin | Self::Acos | Self::Atan => 1,
         }
     }
     /// The name that Qiskit historically gave this extension function.
@@ -126,8 +124,7 @@ impl CustomClassical {
             ClassicalBuiltinExt::Acos,
             ClassicalBuiltinExt::Atan,
         ]
-        .iter()
-        .cloned()
+        .into_iter()
         .map(|builtin| CustomClassical {
             name: builtin.natural_name().to_owned(),
             callable: ClassicalCallableExt::Builtin(builtin),
