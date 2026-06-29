@@ -168,8 +168,8 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         """
         Args:
             num_state_qubits: The number of qubits representing the state.
-            coeffs: The coefficients of the polynomial. ``coeffs[i]`` is the coefficient of the
-                i-th power of :math:`x`. Defaults to linear: ``[0, 1]``.
+            coeffs: The coefficients of the polynomial. ``coeffs[i]`` is the coefficient of
+                :math:`x^i`. Defaults to linear: ``[0, 1]``.
             basis: The type of Pauli rotation (``"X"``, ``"Y"``, ``"Z"``).
             name: The name of the circuit.
         """
@@ -300,8 +300,8 @@ class PolynomialPauliRotationsGate(Gate):
         """
         Args:
             num_state_qubits: The number of qubits representing the state.
-            coeffs: The coefficients of the polynomial. ``coeffs[i]`` is the coefficient of the
-                i-th power of :math:`x`. Defaults to linear: ``[0, 1]``.
+            coeffs: The coefficients of the polynomial. ``coeffs[i]`` is the coefficient of
+                :math:`x^i`. Defaults to linear: ``[0, 1]``.
             basis: The type of Pauli rotation (``"X"``, ``"Y"``, ``"Z"``).
             label: A label for the gate.
         """
