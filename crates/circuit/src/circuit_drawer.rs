@@ -134,84 +134,6 @@ fn build_layers(circ: &CircuitData) -> Vec<Vec<&PackedInstruction>> {
     layers
 }
 
-/// Builds the mapping of qubits to their wire indices.
-///
-/// Returns the qubit map and number of qubit wires.
-fn build_qubit_wires_map(
-    circuit: &CircuitData,
-    is_idle: &[bool],
-    idle_wires: bool,
-) -> (Vec<Option<usize>>, usize) {
-    let mut qubit_map: Vec<Option<usize>> = Vec::new();
-    let num_qubits = circuit.num_qubits();
-    let mut num_qubit_wires = if idle_wires { num_qubits } else { 0 };
-
-    if idle_wires {
-        for i in 0..num_qubit_wires {
-            qubit_map.push(Some(i));
-        }
-    } else {
-        for is_idle_qub in is_idle[0..num_qubits].iter() {
-            if *is_idle_qub {
-                qubit_map.push(None);
-            } else {
-                qubit_map.push(Some(num_qubit_wires));
-                num_qubit_wires += 1;
-            }
-        }
-    }
-    (qubit_map, num_qubit_wires)
-}
-
-/// Builds the mapping of clbits to their wire indices.
-///
-/// Returns the clbit map and number of clbit wires.
-fn build_clbit_wires_map(
-    circuit: &CircuitData,
-    is_idle: &[bool],
-    qubit_wires: usize,
-    idle_wires: bool,
-    bundle_cregs: bool,
-) -> (Vec<Option<usize>>, usize) {
-    let mut clbit_map: Vec<Option<usize>> = Vec::new();
-
-    let mut visited_cregs: HashSet<&ClassicalRegister> = HashSet::new();
-    let mut input_idx = qubit_wires;
-    for (idx, clbit) in circuit.clbits().objects().iter().enumerate() {
-        if idle_wires || is_idle[qubit_wires + idx] {
-            if bundle_cregs {
-                let bit_location = circuit
-                    .clbit_indices()
-                    .get(clbit)
-                    .expect("Bit should have bit info");
-                if !bit_location.registers().is_empty() {
-                    let creg = &bit_location
-                        .registers()
-                        .first()
-                        .expect("Registers should not be empty")
-                        .0;
-
-                    if visited_cregs.contains(creg) {
-                        clbit_map.push(Some(input_idx - 1));
-                    } else {
-                        // input_layer.add_input(WireInputElement::Creg(creg), input_idx);
-                        visited_cregs.insert(creg);
-                        clbit_map.push(Some(input_idx));
-                        input_idx += 1;
-                    }
-                }
-            } else {
-                // input_layer.add_input(WireInputElement::Clbit(clbit), input_idx);
-                clbit_map.push(Some(input_idx));
-                input_idx += 1;
-            }
-        } else {
-            clbit_map.push(None);
-        }
-    }
-
-    (clbit_map, input_idx - qubit_wires)
-}
 /// Calculate the range (inclusive) of the given instruction qubits/clbits over the wire indices.
 /// The assumption is that clbits always appear after the qubits in the visualization, hence the clbit indices
 /// are offset by the number of instruction qubits when calculating the range.
@@ -691,32 +613,49 @@ impl<'a> VisualizationMatrix<'a> {
         bundle_cregs: bool,
         idle_wires: bool,
     ) -> PyResult<Self> {
+        let mut vis_matrix = VisualizationMatrix {
+            layers: Vec::new(),
+            circuit,
+            qubit_map: Vec::new(),
+            num_qubit_wires: 0,
+            clbit_map: Vec::new(),
+            num_clbit_wires: 0,
+        };
         let inst_layers = build_layers(circuit);
         let is_idle = get_idle_wires(circuit);
 
-        let (qubit_map, num_qubit_wires) = build_qubit_wires_map(circuit, &is_idle, idle_wires);
-        let (clbit_map, num_clbit_wires) =
-            build_clbit_wires_map(circuit, &is_idle, num_qubit_wires, idle_wires, bundle_cregs);
+        (vis_matrix.qubit_map, vis_matrix.num_qubit_wires) =
+            vis_matrix.build_qubit_wires_map(circuit, &is_idle, idle_wires);
+        (vis_matrix.clbit_map, vis_matrix.num_clbit_wires) = vis_matrix.build_clbit_wires_map(
+            circuit,
+            &is_idle,
+            vis_matrix.num_qubit_wires,
+            idle_wires,
+            bundle_cregs,
+        );
 
-        let num_wires = num_qubit_wires + num_clbit_wires;
+        let num_wires = vis_matrix.num_qubit_wires + vis_matrix.num_clbit_wires;
 
-        let mut layers = vec![
-            VisualizationLayer(vec![VisualizationElement::default(); num_wires]);
-            inst_layers.len() + 1
-        ]; // Add 1 to account for the inputs layer
+        vis_matrix.layers =
+            vec![
+                VisualizationLayer(vec![VisualizationElement::default(); num_wires]);
+                inst_layers.len() + 1
+            ]; // Add 1 to account for the inputs layer
 
         // Add wires for each qubit and clbit/creg
-        let input_layer = layers.first_mut().unwrap();
+        let input_layer = vis_matrix.layers.first_mut().unwrap();
         for (idx, qubit) in circuit.qubits().objects().iter().enumerate() {
-            if idle_wires || qubit_map[idx].is_some() {
-                input_layer.add_input(WireInputElement::Qubit(qubit), qubit_map[idx].unwrap());
+            if idle_wires || vis_matrix.qubit_map[idx].is_some() {
+                input_layer.add_input(
+                    WireInputElement::Qubit(qubit),
+                    vis_matrix.qubit_map[idx].unwrap(),
+                );
             }
         }
 
         let mut visited_cregs: HashSet<&ClassicalRegister> = HashSet::new();
-
         for (idx, clbit) in circuit.clbits().objects().iter().enumerate() {
-            if idle_wires || clbit_map[idx].is_some() {
+            if idle_wires || vis_matrix.clbit_map[idx].is_some() {
                 if bundle_cregs {
                     let bit_location = circuit
                         .clbit_indices()
@@ -730,32 +669,116 @@ impl<'a> VisualizationMatrix<'a> {
                             .0;
 
                         if !visited_cregs.contains(creg) {
-                            input_layer
-                                .add_input(WireInputElement::Creg(creg), clbit_map[idx].unwrap());
+                            input_layer.add_input(
+                                WireInputElement::Creg(creg),
+                                vis_matrix.clbit_map[idx].unwrap(),
+                            );
                             visited_cregs.insert(creg);
                         }
                         // }
                     }
                 } else {
-                    input_layer.add_input(WireInputElement::Clbit(clbit), clbit_map[idx].unwrap());
+                    input_layer.add_input(
+                        WireInputElement::Clbit(clbit),
+                        vis_matrix.clbit_map[idx].unwrap(),
+                    );
                 }
             }
         }
 
         for (i, layer) in inst_layers.iter().enumerate() {
             for inst in layer {
-                layers[i + 1].add_instruction(bundle_cregs, inst, circuit, &qubit_map, &clbit_map);
+                vis_matrix.layers[i + 1].add_instruction(
+                    bundle_cregs,
+                    inst,
+                    circuit,
+                    &vis_matrix.qubit_map,
+                    &vis_matrix.clbit_map,
+                );
+            }
+        }
+        Ok(vis_matrix)
+    }
+
+    /// Builds the mapping of qubits to their wire indices.
+    ///
+    /// Returns the qubit map and number of qubit wires.
+    fn build_qubit_wires_map(
+        &mut self,
+        circuit: &CircuitData,
+        is_idle: &[bool],
+        idle_wires: bool,
+    ) -> (Vec<Option<usize>>, usize) {
+        let mut qubit_map: Vec<Option<usize>> = Vec::new();
+        let num_qubits = circuit.num_qubits();
+        let mut num_qubit_wires = if idle_wires { num_qubits } else { 0 };
+
+        if idle_wires {
+            for i in 0..num_qubit_wires {
+                qubit_map.push(Some(i));
+            }
+        } else {
+            for is_idle_qub in is_idle[0..num_qubits].iter() {
+                if *is_idle_qub {
+                    qubit_map.push(None);
+                } else {
+                    qubit_map.push(Some(num_qubit_wires));
+                    num_qubit_wires += 1;
+                }
+            }
+        }
+        (qubit_map, num_qubit_wires)
+    }
+
+    /// Builds the mapping of clbits to their wire indices.
+    ///
+    /// Returns the clbit map and number of clbit wires.
+    fn build_clbit_wires_map(
+        &mut self,
+        circuit: &CircuitData,
+        is_idle: &[bool],
+        qubit_wires: usize,
+        idle_wires: bool,
+        bundle_cregs: bool,
+    ) -> (Vec<Option<usize>>, usize) {
+        let mut clbit_map: Vec<Option<usize>> = Vec::new();
+
+        let mut visited_cregs: HashSet<&ClassicalRegister> = HashSet::new();
+        let mut input_idx = qubit_wires;
+        for (idx, clbit) in circuit.clbits().objects().iter().enumerate() {
+            if idle_wires || is_idle[qubit_wires + idx] {
+                if bundle_cregs {
+                    let bit_location = circuit
+                        .clbit_indices()
+                        .get(clbit)
+                        .expect("Bit should have bit info");
+                    if !bit_location.registers().is_empty() {
+                        let creg = &bit_location
+                            .registers()
+                            .first()
+                            .expect("Registers should not be empty")
+                            .0;
+
+                        if visited_cregs.contains(creg) {
+                            clbit_map.push(Some(input_idx - 1));
+                        } else {
+                            // input_layer.add_input(WireInputElement::Creg(creg), input_idx);
+                            visited_cregs.insert(creg);
+                            clbit_map.push(Some(input_idx));
+                            input_idx += 1;
+                        }
+                    }
+                } else {
+                    // input_layer.add_input(WireInputElement::Clbit(clbit), input_idx);
+                    clbit_map.push(Some(input_idx));
+                    input_idx += 1;
+                }
+            } else {
+                clbit_map.push(None);
             }
         }
 
-        Ok(VisualizationMatrix {
-            layers,
-            circuit,
-            qubit_map,
-            num_qubit_wires,
-            clbit_map,
-            num_clbit_wires,
-        })
+        (clbit_map, input_idx - qubit_wires)
     }
 
     fn num_wires(&self) -> usize {
