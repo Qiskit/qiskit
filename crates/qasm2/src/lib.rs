@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -33,6 +33,7 @@ fn bytecode_from_string(
     custom_instructions: Vec<CustomInstruction>,
     custom_classical: Vec<CustomClassical>,
     strict: bool,
+    max_depth: usize,
 ) -> PyResult<bytecode::BytecodeIterator> {
     bytecode::BytecodeIterator::new(
         lex::TokenStream::from_string(string, strict),
@@ -40,6 +41,7 @@ fn bytecode_from_string(
         &custom_instructions,
         &custom_classical,
         strict,
+        max_depth,
     )
 }
 
@@ -54,6 +56,7 @@ fn bytecode_from_file(
     custom_instructions: Vec<CustomInstruction>,
     custom_classical: Vec<CustomClassical>,
     strict: bool,
+    max_depth: usize,
 ) -> PyResult<bytecode::BytecodeIterator> {
     bytecode::BytecodeIterator::new(
         lex::TokenStream::from_path(&path, strict).map_err(|err| {
@@ -68,6 +71,7 @@ fn bytecode_from_file(
         &custom_instructions,
         &custom_classical,
         strict,
+        max_depth,
     )
 }
 

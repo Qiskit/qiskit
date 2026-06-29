@@ -28,6 +28,7 @@ community in this goal.
   * [Release Cycle](#release-cycle)
 * [Adding deprecation warnings](#adding-deprecation-warnings)
 * [Using dependencies](#using-dependencies)
+  * [Version support policy](#version-support-policy)
   * [Adding a requirement](#adding-a-requirement)
   * [Adding an optional dependency](#adding-an-optional-dependency)
   * [Checking for optionals](#checking-for-optionals)
@@ -82,14 +83,27 @@ source ~/.venvs/qiskit-dev/bin/activate
 ```
 
 Upgrade pip within the environment to ensure Qiskit dependencies installed in the subsequent sections
-can be located for your system.
+can be located for your system.  You need `pip>=25.1` to use the `--group` feature used to manage
+developer dependency groups.
 
 ```
 pip install -U pip
 ```
 
+You then install Qiskit in editable mode using:
+
 ```
 pip install -e .
+```
+
+Changes to Python packages will be picked up automatically.
+Changes to Rust files will require a recompilation; see "Installing Qiskit from source" below.
+
+You can easily install all the standard developer dependencies for in-place testing, documentation-building,
+and linting using the `dev` dependency group:
+
+```
+pip install --group dev
 ```
 
 ### Set up a Conda environment
@@ -126,31 +140,53 @@ If you use Rustup, it will automatically install the correct Rust version
 currently used by the project.
 
 Once you have a Rust compiler installed, you can rely on the normal Python
-build/install steps to install Qiskit. This means you just run
-`pip install .` in your local git clone to build and install Qiskit.
+build/install steps to install Qiskit. This means you run `pip install .` or
+`pip install -e .` in your local git clone to build and install Qiskit.
+Note that changes to Rust files will not be reflected in an editable install
+until you recompile.
 
-Do note that if you do use develop mode/editable install (via `python setup.py develop` or `pip install -e .`) the Rust extension will be built in debug mode
-without any optimizations enabled. This will result in poor runtime performance.
-If you'd like to use an editable install with an optimized binary you can
-run `python setup.py build_rust --release --inplace` after you install in
-editable mode to recompile the rust extensions in release mode.
+You can recompile the Rust components of an editable
+install by running
+```
+python setup.py build_rust --inplace [--release | --debug]
+```
+Modifications to Rust files will not take effect until the Rust extension module
+is recompiled with the above command.  You must have the "build" dependencies
+installed in your environment for this command to work.  Do this by running
+```
+pip install --group build
+```
 
-Note that in order to run `python setup.py ...` commands you need to have the 
-build dependency packages, which are listed in the `pyproject.toml` file under 
-the `[build-system]` section, installed in your environment.
+By default, `pip install .` will build the Rust components in "release" mode
+and `pip install -e .` (or `python setup.py build_rust --inplace`) will build
+them in "debug" mode, without optimizations.  Debug mode will have poor
+runtime performance.  You can set the environment variable `QISKIT_BUILD_PROFILE`
+to `release` or `debug` to control the default.  The `--release`/`--debug` flag
+to `build_rust` overrides this default.
 
 ### Compile time options
 
-When building qiskit from source there are options available to control how
-Qiskit is built. Right now the only option is if you set the environment
-variable `QISKIT_NO_CACHE_GATES=1` this will disable runtime caching of
-Python gate objects when accessing them from a `QuantumCircuit` or `DAGCircuit`.
-This makes a tradeoff between runtime performance for Python access and memory
-overhead. Caching gates will result in better runtime for users of Python at
-the cost of increased memory consumption. If you're working with any custom
-transpiler passes written in Python or are otherwise using a workflow that
-repeatedly accesses the `operation` attribute of a `CircuitInstruction` or `op`
-attribute of `DAGOpNode` enabling caching is recommended.
+When building Qiskit from source there are options available to control how
+Qiskit is built. These options are set with the following environment variables:
+
+* `QISKIT_BUILD_WITH_MIMALLOC=1`: this will enable using
+  [mimalloc](https://github.com/microsoft/mimalloc) as the global allocator for
+  Qiskit instead of the default system allocator. This improves the runtime and
+  memory performance of Qiskit but will require having a C compiler installed
+  when building Qiskit.
+* `QISKIT_NO_CACHE_GATES=1`: this will disable runtime caching of
+  Python gate objects when accessing them from a `QuantumCircuit` or `DAGCircuit`.
+  This makes a tradeoff between runtime performance for Python access and memory
+  overhead. Caching gates will result in better runtime for users of Python at
+  the cost of increased memory consumption. If you're working with any custom
+  transpiler passes written in Python or are otherwise using a workflow that
+  repeatedly accesses the `operation` attribute of a `CircuitInstruction` or `op`
+  attribute of `DAGOpNode` enabling caching is recommended.
+
+These environment variables are only valid when building Qiskit the Python package
+with a PEP 517 compatible build tool or calling `setup.py` directly.
+Or as a standalone C library with `make c` (`QISKIT_NO_CACHE_GATES` has no effect
+when building a standalone C library).
 
 ## Issues and pull requests
 
@@ -278,15 +314,8 @@ message summary line from the git log for the release to the changelog.
 If there are multiple `Changelog:` tags on a PR the git commit message summary
 line from the git log will be used for each changelog category tagged.
 
-The current categories for each label are as follows:
-
-| PR Label               | Changelog Category |
-| -----------------------|--------------------|
-| Changelog: Deprecation | Deprecated         |
-| Changelog: New Feature | Added              |
-| Changelog: API Change  | Changed            |
-| Changelog: Removal     | Removed            |
-| Changelog: Bugfix      | Fixed              |
+The current categories for each label are configured in `qiskit_bot.yaml` in
+the repository root.
 
 ## Release notes
 
@@ -427,6 +456,7 @@ build all the documentation into `docs/_build/html` and the release notes in
 particular will be located at `docs/_build/html/release_notes.html`
 
 ## Testing
+
 Once you've made a code change, it is important to verify that your change
 does not break any existing tests and that any new tests that you've added
 also run successfully. Before you open a new pull request for your change,
@@ -473,6 +503,13 @@ tox -epy310 -- -n test.python.compiler.test_transpiler.TestTranspile
 to run a method:
 ```
 tox -epy310 -- -n test.python.compiler.test_transpiler.TestTranspile.test_transpile_non_adjacent_layout
+```
+
+If you want to run the test suite in your local environment without using `tox` as a runner, you can
+either use the `tox devenv -e py310` command to have `tox` construct you a new development environment,
+or you can install the `test` dependency group using your package manager, such as
+```
+pip install --group test
 ```
 
 Alternatively there is a makefile provided to run tests, however this
@@ -633,6 +670,12 @@ If you're not using `tox`, you can also execute Cargo tests directly in your own
 If you haven't done so already, [create a Python virtual environment](#set-up-a-python-venv) and
 **_activate it_**.
 
+You will need to install (at least) the `build` and `test` dependency groups, such as
+```
+pip install --group build --group test
+```
+You can alternatively install the `dev` group, which encompasses both of these.
+
 Then, run the following commands:
 
 ```bash
@@ -704,8 +747,10 @@ well.
 
 ### Testing the C API
 
-The C API test suite is located at `test/c/`. It is built and run using `cmake`
-and `ctest` which can be triggered simply via:
+The C API test suite is located at `test/c/`.  This is a CMake project and uses
+CMake's `ctest` runner.  To build and run the tests, use the `ctest` recipe in
+the top-level `Makefile`, which you can run with
+
 ```bash
 make ctest
 ```
@@ -754,31 +799,27 @@ int test_FILE_NAME()
 Qiskit uses three tools for Python code formatting and lint checking. The
 first tool is [black](https://github.com/psf/black) which is a code formatting
 tool that will automatically update the code formatting to a consistent style.
-The second tool is [pylint](https://www.pylint.org/) which is a code linter
+The second tool is [ruff](https://docs.astral.sh/ruff/) which is a code linter
 which does a deeper analysis of the Python code to find both style issues and
-potential bugs and other common issues in Python. The third tool is the linter
-[ruff](https://github.com/charliermarsh/ruff), which has been recently
-introduced into Qiskit on an experimental basis. Only a very small number
-of rules are enabled.
+potential bugs and other common issues in Python.
 
 You can check that your local modifications conform to the style rules by
-running `tox -elint` which will run `black`, `ruff`, and `pylint` to check the
+running `tox -elint` which will run `black` and  `ruff` to check the
 local code formatting and lint. If black returns a code formatting error you can
 run `tox -eblack` to automatically update the code formatting to conform to the
-style. However, if `ruff` or `pylint` return any error you will have to fix
-these issues by manually updating your code.
-
-Because `pylint` analysis can be slow, there is also a `tox -elint-incr` target,
-which runs `black` and `ruff` just as `tox -elint` does, but only applies
-`pylint` to files which have changed from the source github. On rare occasions
-this will miss some issues that would have been caught by checking the complete
-source tree, but makes up for this by being much faster (and those rare
-oversights will still be caught by the CI after you open a pull request).
+style. However, if `ruff` returns any error you will have to fix these issues by
+manually updating your code. Sometimes `ruff` will be able to fix failures with
+the `--fix` flag. In these cases the output will tell you how many errors can be
+automatically fixed.
 
 Because they are so fast, it is sometimes convenient to run the tools `black` and `ruff` separately
-rather than via `tox`. If you have installed the development packages in your python environment via
-`pip install -r requirements-dev.txt`, then `ruff` and `black` will be available and can be run from
-the command line. See [`tox.ini`](tox.ini) for how `tox` invokes them.
+rather than via `tox`.  You can install all the lint dependencies using the `lint` or `dev`
+dependency groups, such as by
+```
+pip install --group lint
+```
+After this, `ruff` and `black` will be available and can be run from the command line. See
+[`tox.ini`](tox.ini) for how `tox` invokes them.
 
 ### Rust style and lint
 
@@ -876,7 +917,7 @@ https://github.com/Qiskit/qiskit/milestone/23).
 After the proposal freeze a release review period will begin, during this time
 release candidate PRs will be reviewed as we finalize the feature set and merge
 the last PRs for the release. Following the review period a release candidate will be
-tagged and published. This release candidate is pre-release that enables users and
+tagged and published. This release candidate is a pre-release that enables users and
 developers to test the release ahead of time. When the pre-release is tagged the release
 automation will publish the pre-release to PyPI (but only get installed on user request),
 create the `stable/*` branch, and generate a pre-release changelog/release page. At
@@ -914,17 +955,29 @@ def test_method2(self):
 
 ## Using dependencies
 
-We distinguish between "requirements" and "optional dependencies" in qiskit.
-A requirement is a package that is absolutely necessary for core functionality in qiskit, such as Numpy or Scipy.
+We distinguish between "requirements" and "optional dependencies" in Qiskit.
+A requirement is a package that is absolutely necessary for core functionality in Qiskit, such as NumPy or SciPy.
 An optional dependency is a package that is used for specialized functionality, which might not be needed by all users.
 If a new feature has a new dependency, it is almost certainly optional.
+
+
+### Version support policy
+
+For Python-space dependencies, Qiskit follows [the scientific-computing standard SPEC 0](https://scientific-python.org/specs/spec-0000/).
+In short: Qiskit will require versions of NumPy and SciPy that are at least two years old.
+For packages not covered by SPEC 0, the requirements must be satisfiable with published binary artifacts from PyPI for all supported Python versions on [all platforms with tier 1 and tier 2 support](https://quantum.cloud.ibm.com/docs/guides/install-qiskit#operating-system-support).
+
+Python dependencies that are optional at runtime, only used during the build, or only used during the development process are not constrained.
+Qiskit supports all versions of CPython that are not end of life, which is wider than the minimum SPEC 0 support.
+
+Rust dependencies are not constrained, other than by the platform support requirements and minimum supported Rust version of the repository.
 
 ### Adding a requirement
 
 Any new requirement must have broad system support; it needs to be supported on all the Python versions and operating systems that qiskit supports.
 It also cannot impose many version restrictions on other packages.
 Users often install qiskit into virtual environments with many different packages in, and we need to ensure that neither we, nor any of our requirements, conflict with their other packages.
-When adding a new requirement, you must add it to [`requirements.txt`](requirements.txt) with as loose a constraint on the allowed versions as possible.
+When adding a new requirement, you must add it to [`requirements.txt`](requirements.txt) following the [version-support policy](#version-support-policy).
 
 ### Adding an optional dependency
 
@@ -932,7 +985,6 @@ New features can also use optional dependencies, which might be used only in ver
 These are not required to use the rest of the package, and so should not be added to `requirements.txt`.
 Instead, if several optional dependencies are grouped together to provide one feature, you can consider adding an "extra" to the package metadata, such as the `visualization` extra that installs Matplotlib and Seaborn (amongst others).
 To do this, modify the [`setup.py`](setup.py) file, adding another entry in the `extras_require` keyword argument to `setup()` at the bottom of the file.
-You do not need to be quite as accepting of all versions here, but it is still a good idea to be as permissive as you possibly can be.
 You should also add a new "tester" to [`qiskit.utils.optionals`](qiskit/utils/optionals.py), for use in the next section.
 
 ### Checking for optionals
@@ -965,5 +1017,5 @@ can update your local repository's configuration with:
 git config blame.ignoreRevsFile .git-blame-ignore-revs
 ```
 
-which will update your local repositories configuration to use the ignore list
+which will update your local repository's configuration to use the ignore list
 by default.

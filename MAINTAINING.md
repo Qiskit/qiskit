@@ -10,8 +10,9 @@ The version of the Qiskit package and crates is mentioned in a few places:
 
 * `qiskit/VERSION.txt` for defining the Python package and docs
 * `Cargo.toml` for defining the Rust crates
-* `crates/cext/include/qiskit/version.h` for defining the C header file
+* `crates/bindgen/include/qiskit/version.h` for defining the C header file
 * `docs/release_notes.rst` for configuring the release-notes documentation build
+* `.mergify.yml` (implicitly via a branch name) for configuring where Mergify targets backports
 
 In principle, the first three version numbers should be the same at all times.
 However, the different languages have different conventions about formatting.
@@ -51,7 +52,7 @@ The procedure for a new minor-version release, with respect to version numbers i
 
 1. on `main`, push a PR that bumps the version from `2.2.0.dev0` to `2.2.0rc1` (and moves the loose release notes into `releasenotes/notes/2.2`, and then do the rest of the release process)
 2. `qiskit-bot` will create a `stable/2.2` branch from that commit, since that's the one you should tag.
-3. on `main`, immediately push a PR that bumps the version to `2.3.0.dev0` to open development on the 2.3 series.
+3. on `main`, immediately push a PR that bumps the version to `2.3.0.dev0` to open development on the 2.3 series, including updating `.mergify.yml` to backport to the new stable branch.
 
 You will need to run `cargo build` as part of a version-bump commit to propagate the changes in `Cargo.toml` to `Cargo.lock`.
 
@@ -296,7 +297,19 @@ cargo +1.61 update   # Update lock file
 cargo +1.61 build    # Check build
 ```
 
-#### 4.4 Submit the PR for review
+#### 4.4 Update the C-API slots list
+
+You can skip this step if not making a first release candidate, though it should be a no-op in all other cases.
+Only first release candidates should change the C-API slots listing, since those correspond to the new-feature releases.
+
+Override the base "slots" listing for the repository (``/capi_slots.txt``) with the new set for this release.
+This causes the ABI check to use this as the new base for comparison in CI.
+
+```bash
+cargo run -p qiskit-bindgen-cli -- show-slots > capi_slots.txt
+```
+
+#### 4.5 Submit the PR for review
 
 As any other regular PR, commit your changes (don't forget to add the prelude release note), push the branch, and create a PR.
 

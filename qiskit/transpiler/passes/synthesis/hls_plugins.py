@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -511,6 +511,7 @@ Multiplier Synthesis
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 import warnings
 import numpy as np
 import rustworkx as rx
@@ -604,6 +605,9 @@ from qiskit.transpiler.optimization_metric import OptimizationMetric
 
 from qiskit._accelerate.high_level_synthesis import synthesize_operation, HighLevelSynthesisData
 from .plugin import HighLevelSynthesisPlugin
+
+if TYPE_CHECKING:
+    from qiskit.circuit.quantumcircuitdata import CircuitInstruction
 
 
 class DefaultSynthesisClifford(HighLevelSynthesisPlugin):
@@ -1088,7 +1092,7 @@ class MCXSynthesisNDirtyI15(HighLevelSynthesisPlugin):
 
     References:
         1. Iten et. al., *Quantum Circuits for Isometries*, Phys. Rev. A 93, 032318 (2016),
-           `arXiv:1501.06911 <http://arxiv.org/abs/1501.06911>`_
+           `arXiv:1501.06911 <https://arxiv.org/abs/1501.06911>`_
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
@@ -2286,7 +2290,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
         # Note that synthesize_operation also returns the output qubits on which the
         # operation is defined, however currently the plugin mechanism has no way
         # to return these (and instead the upstream code greedily grabs some ancilla
-        # qubits from the circuit). We should refactor the plugin "run" iterface to
+        # qubits from the circuit). We should refactor the plugin "run" interface to
         # return the actual ancilla qubits used.
         synthesized_base_op_result = synthesize_operation(
             operation.base_op, base_qubits, base_synthesis_data, annotated_tracker
@@ -2352,7 +2356,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
                         ctrl_state=modifier.ctrl_state,
                         annotated=False,
                     )
-                    controlled_qubits = list(range(0, modifier.num_ctrl_qubits))
+                    controlled_qubits = list(range(modifier.num_ctrl_qubits))
                     controlled_circuit.append(controlled_op, controlled_qubits)
                 for inst in circuit:
                     inst_op = inst.operation
@@ -2363,7 +2367,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
                         ctrl_state=modifier.ctrl_state,
                         annotated=False,
                     )
-                    controlled_qubits = list(range(0, modifier.num_ctrl_qubits)) + [
+                    controlled_qubits = list(range(modifier.num_ctrl_qubits)) + [
                         modifier.num_ctrl_qubits + circuit.find_bit(q).index for q in inst_qubits
                     ]
                     controlled_circuit.append(controlled_op, controlled_qubits)
@@ -2421,7 +2425,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
         return AnnotatedOperation(cur, canonical_modifiers)
 
     @staticmethod
-    def _are_inverse_ops(inst1: "CircuitInstruction", inst2: "CircuitInstruction"):
+    def _are_inverse_ops(inst1: CircuitInstruction, inst2: CircuitInstruction):
         """A very naive function that checks whether two circuit instructions are inverse of
         each other. The main use-case covered is a ``QFTGate`` and its inverse, represented as
         an ``AnnotatedOperation`` with a single ``InverseModifier``.
@@ -2482,7 +2486,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
 
         front_circuit = circuit.copy_empty_like()
         front_circuit.global_phase = 0
-        for i in range(0, idx):
+        for i in range(idx):
             front_circuit.append(circuit[i])
         middle_circuit = circuit.copy_empty_like()  # inherits the global phase
         for i in range(idx, ridx + 1):

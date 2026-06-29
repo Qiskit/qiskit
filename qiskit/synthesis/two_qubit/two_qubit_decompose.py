@@ -4,13 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """
 Expand 2-qubit Unitary operators into an equivalent
@@ -27,14 +26,14 @@ from __future__ import annotations
 import io
 import base64
 import warnings
-from typing import Optional, Type, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 import logging
 
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Gate
-from qiskit.circuit.library.standard_gates import (
+from qiskit.circuit.library import (
     CXGate,
     U3Gate,
     U2Gate,
@@ -49,15 +48,15 @@ from qiskit.circuit.library.standard_gates import (
     RGate,
 )
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.operators import Operator
+from qiskit.quantum_info import Operator
 from qiskit.synthesis.one_qubit.one_qubit_decompose import (
     DEFAULT_ATOL,
 )
-from qiskit.utils.deprecation import deprecate_func
+from qiskit.utils import deprecate_func
 from qiskit._accelerate import two_qubit_decompose
 
 if TYPE_CHECKING:
-    from qiskit.dagcircuit.dagcircuit import DAGCircuit, DAGOpNode
+    from qiskit.dagcircuit import DAGCircuit
 
 logger = logging.getLogger(__name__)
 
@@ -126,7 +125,7 @@ class TwoQubitWeylDecomposition:
 
     This class avoids some problems of numerical instability near high-symmetry loci within the Weyl
     chamber. If there is a high-symmetry gate "nearby" (in terms of the requested average gate fidelity),
-    then it return a canonicalized decomposition of that high-symmetry gate.
+    then it returns a canonicalized decomposition of that high-symmetry gate.
 
     References:
         1. Cross, A. W., Bishop, L. S., Sheldon, S., Nation, P. D. & Gambetta, J. M.,
@@ -150,7 +149,7 @@ class TwoQubitWeylDecomposition:
     K2r: np.ndarray
 
     unitary_matrix: np.ndarray  # The unitary that was input
-    requested_fidelity: Optional[float]  # None means no automatic specialization
+    requested_fidelity: float | None  # None means no automatic specialization
     calculated_fidelity: float  # Fidelity after specialization
 
     _specializations = two_qubit_decompose.Specialization
@@ -249,7 +248,7 @@ class TwoQubitWeylDecomposition:
         requested_fidelity: float,
         _specialization: two_qubit_decompose.Specialization | None = None,
         **kwargs,
-    ) -> "TwoQubitWeylDecomposition":
+    ) -> TwoQubitWeylDecomposition:
         """Decode bytes into :class:`.TwoQubitWeylDecomposition`."""
         # Used by __repr__
         del kwargs  # Unused (just for display)
@@ -266,13 +265,88 @@ class TwoQubitWeylDecomposition:
 
 
 class TwoQubitControlledUDecomposer:
-    r"""Decompose two-qubit unitary in terms of a desired
-    :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}`
-    gate that is locally equivalent to an :class:`.RXXGate`."""
+    r"""Decompose a general two-qubit unitary in terms of a target two-qubit gate,
+    that is locally equivalent to an :class:`.RXXGate`.
 
-    def __init__(self, rxx_equivalent_gate: Type[Gate], euler_basis: str = "ZXZ"):
-        r"""Initialize the KAK decomposition.
+    **Synthesis algorithm**
 
+    Any two-qubit unitary :math:`U` can be written, through its canonical (Weyl) decomposition
+    (see :class:`.TwoQubitWeylDecomposition`), as a Weyl gate :math:`U_d(a, b, c)` surrounded by
+    four single-qubit unitary gates:
+
+    .. code-block:: text
+
+             ┌─────┐┌───────┐┌─────┐
+        q_0: ┤ c2r ├┤0      ├┤ c1r ├
+             ├─────┤│  Weyl │├─────┤
+        q_1: ┤ c2l ├┤1      ├┤ c1l ├
+             └─────┘└───────┘└─────┘
+
+    The Weyl gate factorizes into a product of three two-qubit rotations,
+    :math:`U_d(a, b, c) = R_{XX}(a)\, R_{YY}(b)\, R_{ZZ}(c)`:
+
+    .. code-block:: text
+
+             ┌─────────┐┌─────────┐
+        q_0: ┤0        ├┤0        ├─■──────
+             │  Rxx(a) ││  Ryy(b) │ │ZZ(c)
+        q_1: ┤1        ├┤1        ├─■──────
+             └─────────┘└─────────┘
+
+    The :math:`R_{YY}` and :math:`R_{ZZ}` rotations are then mapped onto :math:`R_{XX}`
+    rotations using single-qubit basis changes. With
+    :math:`R_{YY}(b) = (S^\dagger \otimes S^\dagger)\, R_{XX}(b)\, (S \otimes S)`:
+
+    .. code-block:: text
+
+             ┌─────┐┌─────────┐┌───┐
+        q_0: ┤ Sdg ├┤0        ├┤ S ├
+             ├─────┤│  Rxx(b) │├───┤
+        q_1: ┤ Sdg ├┤1        ├┤ S ├
+             └─────┘└─────────┘└───┘
+
+    and :math:`R_{ZZ}(c) = (H \otimes H)\, R_{XX}(c)\, (H \otimes H)`:
+
+    .. code-block:: text
+
+             ┌───┐┌─────────┐┌───┐
+        q_0: ┤ H ├┤0        ├┤ H ├
+             ├───┤│  Rxx(c) │├───┤
+        q_1: ┤ H ├┤1        ├┤ H ├
+             └───┘└─────────┘└───┘
+
+    Finally, each :math:`R_{XX}` rotation is realized with the user-supplied gate that is
+    locally equivalent to :class:`.RXXGate` (the ``rxx_equivalent_gate``), wrapped by the
+    single-qubit gates that account for the local equivalence and for any scaling of the
+    rotation angle. After every rotation is expanded, all single-qubit gates that fall between
+    two consecutive two-qubit gates are multiplied together and consolidated, so the
+    synthesized circuit uses at most three applications of ``rxx_equivalent_gate`` and at most
+    eight single-qubit unitary gates:
+
+    .. code-block:: text
+
+             ┌─────┐┌───────────┐┌─────┐┌───────────┐┌─────┐┌───────────┐┌─────┐
+        q_0: ┤ d2r ├┤0          ├┤ d1r ├┤0          ├┤ e1r ├┤0          ├┤ f1r ├
+             ├─────┤│  Equiv(a) │├─────┤│  Equiv(b) │├─────┤│  Equiv(c) │├─────┤
+        q_1: ┤ d2l ├┤1          ├┤ d1l ├┤1          ├┤ e1l ├┤1          ├┤ f1l ├
+             └─────┘└───────────┘└─────┘└───────────┘└─────┘└───────────┘└─────┘
+
+    Here ``Equiv(a)``, ``Equiv(b)`` and ``Equiv(c)`` are the user-supplied
+    ``rxx_equivalent_gate`` (the gate locally equivalent to :class:`.RXXGate`) realizing the
+    :math:`R_{XX}(a)`, :math:`R_{XX}(b)` and :math:`R_{XX}(c)` rotations, and the remaining
+    boxes are the consolidated single-qubit unitary gates.
+
+    The number of two-qubit gates actually emitted depends on the Weyl parameters of the
+    target: rotations with a vanishing angle are dropped, so unitaries that are closer to a
+    single or two instances of :class:`.RXXGate` use one or two applications of ``rxx_equivalent_gate`` respectively instead
+    of three. A target close to the identity will use no applications of it.
+
+    """
+
+    # Docs generated with assistance from Claude Opus 4.8 (Claude Code).
+
+    def __init__(self, rxx_equivalent_gate: type[Gate], euler_basis: str = "ZXZ"):
+        r"""
         Args:
             rxx_equivalent_gate: Gate that is locally equivalent to an :class:`.RXXGate`:
                 :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}` gate.
@@ -286,6 +360,8 @@ class TwoQubitControlledUDecomposer:
 
         Raises:
             QiskitError: If the gate is not locally equivalent to an :class:`.RXXGate`.
+
+        .. automethod:: __call__
         """
         if rxx_equivalent_gate._standard_gate is not None:
             self._inner_decomposer = two_qubit_decompose.TwoQubitControlledUDecomposer(
@@ -303,15 +379,21 @@ class TwoQubitControlledUDecomposer:
     def __call__(
         self, unitary: Operator | np.ndarray, approximate=False, use_dag=False, *, atol=DEFAULT_ATOL
     ) -> QuantumCircuit:
-        """Returns the Weyl decomposition in circuit form.
+        r"""Decompose a two-qubit ``unitary`` using the :class:`.TwoQubitControlledUDecomposer`.
 
         Args:
-            unitary (Operator or ndarray): :math:`4 \times 4` unitary to synthesize.
+            unitary: :math:`4 \times 4` unitary to synthesize.
+            approximate: Currently not used by this decomposer; accepted for signature
+                compatibility with the other two-qubit decomposers. Reserved for future use.
+            use_dag: Currently not used by this decomposer; accepted for signature
+                compatibility with the other two-qubit decomposers. Reserved for future use.
+            atol: Absolute tolerance for checking angles of the single-qubit unitaries when
+                simplifying the returned circuit [Default: 1e-12].
 
         Returns:
             QuantumCircuit: Synthesized quantum circuit.
 
-        Note: atol is passed to OneQubitEulerDecomposer.
+        Note: atol is passed to :class:`.OneQubitEulerDecomposer`.
         """
         circ_data = self._inner_decomposer(np.asarray(unitary, dtype=complex), atol)
         return QuantumCircuit._from_circuit_data(circ_data, legacy_qubits=True)
@@ -488,7 +570,7 @@ class TwoQubitBasisDecomposer:
 class _LazyTwoQubitCXDecomposer(TwoQubitBasisDecomposer):
     __slots__ = ("_inner",)
 
-    def __init__(self):  # pylint: disable=super-init-not-called
+    def __init__(self):
         self._inner = None
 
     def _load(self):

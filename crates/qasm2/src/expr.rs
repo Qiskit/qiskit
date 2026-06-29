@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -17,6 +17,7 @@
 use core::f64;
 
 use hashbrown::HashMap;
+use pyo3::exceptions::PyRecursionError;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 
@@ -256,6 +257,8 @@ pub struct ExprParser<'a> {
     pub gate_symbols: &'a HashMap<String, GateSymbol>,
     pub global_symbols: &'a HashMap<String, GlobalSymbol>,
     pub strict: bool,
+    /// Internal recursion-depth limit.
+    pub remaining_depth: usize,
 }
 
 impl ExprParser<'_> {
@@ -576,6 +579,9 @@ impl ExprParser<'_> {
     /// and its parsing would finish when it saw the next `+` binary operation.  For initial entry,
     /// the `power_min` should be zero.
     fn eval_expression(&mut self, power_min: u8, cause: &Token) -> PyResult<Expr> {
+        self.remaining_depth = self.remaining_depth.checked_sub(1).ok_or_else(|| {
+            PyRecursionError::new_err("exceeded maximum permitted expression depth")
+        })?;
         let token = self.next_token()?.ok_or_else(|| {
             QASM2ParseError::new_err(message_bad_eof(
                 Some(&Position::new(
@@ -711,6 +717,7 @@ impl ExprParser<'_> {
             let rhs = self.eval_expression(power_r, &peeked_token)?;
             lhs = self.apply_infix(op, lhs, rhs, &peeked_token)?;
         }
+        self.remaining_depth += 1;
         Ok(lhs)
     }
 

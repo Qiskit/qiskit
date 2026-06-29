@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -55,7 +55,7 @@ from qiskit.circuit.library import (
     UnitaryGate,
 )
 from qiskit.quantum_info.operators import Operator
-from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info import random_unitary
 from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
 from qiskit.synthesis.two_qubit.two_qubit_decompose import (
     TwoQubitWeylDecomposition,
@@ -67,8 +67,8 @@ from qiskit.synthesis.two_qubit.two_qubit_decompose import (
 from qiskit._accelerate.two_qubit_decompose import two_qubit_decompose_up_to_diagonal
 from qiskit._accelerate.two_qubit_decompose import Specialization
 from qiskit._accelerate.two_qubit_decompose import Ud
-from test import combine  # pylint: disable=wrong-import-order
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine
+from test import QiskitTestCase
 
 
 def make_oneq_cliffords():
@@ -138,8 +138,8 @@ class CheckDecompositions(QiskitTestCase):
         """Fail if eval(repr(weyl1)) not equal to weyl1"""
         repr1 = repr(weyl1)
         with self.assertNoLogs("qiskit.synthesis"):
-            weyl2: TwoQubitWeylDecomposition = eval(repr1)  # pylint: disable=eval-used
-        msg_base = f"weyl1:\n{repr1}\nweyl2:\n{repr(weyl2)}"
+            weyl2: TwoQubitWeylDecomposition = eval(repr1)
+        msg_base = f"weyl1:\n{repr1}\nweyl2:\n{weyl2!r}"
         self.assertEqual(type(weyl1), type(weyl2), msg_base)
         maxdiff = np.max(abs(weyl1.unitary_matrix - weyl2.unitary_matrix))
         self.assertEqual(maxdiff, 0, msg=f"Unitary matrix differs by {maxdiff}\n" + msg_base)
@@ -161,7 +161,7 @@ class CheckDecompositions(QiskitTestCase):
 
         pkl = pickle.dumps(weyl1, protocol=max(4, pickle.DEFAULT_PROTOCOL))
         weyl2 = pickle.loads(pkl)
-        msg_base = f"weyl1:\n{weyl1}\nweyl2:\n{repr(weyl2)}"
+        msg_base = f"weyl1:\n{weyl1}\nweyl2:\n{weyl2!r}"
         self.assertEqual(type(weyl1), type(weyl2), msg_base)
         maxdiff = np.max(abs(weyl1.unitary_matrix - weyl2.unitary_matrix))
         self.assertEqual(maxdiff, 0, msg=f"Unitary matrix differs by {maxdiff}\n" + msg_base)
@@ -180,7 +180,7 @@ class CheckDecompositions(QiskitTestCase):
 
     def check_two_qubit_weyl_decomposition(self, target_unitary, tolerance=1.0e-12):
         """Check TwoQubitWeylDecomposition() works for a given operator"""
-        # pylint: disable=invalid-name
+
         with self.assertNoLogs("qiskit.synthesis"):
             decomp = TwoQubitWeylDecomposition(target_unitary, fidelity=None)
         # self.assertRoundTrip(decomp)  # Too slow
@@ -1457,6 +1457,35 @@ class TestTwoQubitControlledUDecompose(CheckDecompositions):
         decomposer = TwoQubitControlledUDecomposer(gate, euler_basis)
         circ = decomposer(unitary)
         self.assertEqual(Operator(unitary), Operator(circ))
+
+        # bound on the number of 2-qubit gates
+        num2q = circ.size(filter_function=lambda x: x.operation.num_qubits == 2)
+        self.assertLessEqual(num2q, 3)
+
+        # bound on the number of 1-qubit gates
+        self.assertLessEqual(circ.count_ops().get("u", 0), 8)
+        self.assertLessEqual(circ.count_ops().get("sx", 0), 14)
+        self.assertLessEqual(circ.count_ops().get("rx", 0), 14)
+        self.assertLessEqual(circ.count_ops().get("ry", 0), 8)
+        self.assertLessEqual(circ.count_ops().get("rz", 0), 22)
+
+    @combine(gate=[RXXGate, RYYGate, RZZGate, RZXGate, CPhaseGate, CRZGate, CRXGate, CRYGate])
+    def test_one_controlled_u_gate_in_unitary(self, gate):
+        """Verify a unitary with one controlled-u gate for different gates in the decomposition"""
+        unitary = RZZGate(-0.3).to_matrix()
+
+        decomposer = TwoQubitControlledUDecomposer(gate, euler_basis="U")
+        circ = decomposer(unitary)
+        self.assertEqual(Operator(unitary), Operator(circ))
+
+        # bound on the number of 2-qubit gates
+        num2q = circ.size(filter_function=lambda x: x.operation.num_qubits == 2)
+        self.assertEqual(num2q, 1)
+
+        # bound on the number of 1-qubit gates
+        self.assertLessEqual(circ.count_ops().get("u", 0), 4)
+        if gate(0.1).name == "rzz":
+            self.assertEqual(circ.size(), 1)
 
     def test_not_rxx_equivalent(self):
         """Test that an exception is raised if the gate is not equivalent to an RXXGate"""

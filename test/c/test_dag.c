@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -363,6 +363,61 @@ cleanup:
     return result;
 }
 
+static int test_dag_global_phase(void) {
+    int result = Ok;
+
+    QkDag *dag = qk_dag_new();
+
+    QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
+    qk_dag_add_quantum_register(dag, qr);
+
+    // Default global phase should be 0.0
+    QkParam *out_phase = qk_dag_global_phase(dag);
+    double out_phase_val = qk_param_as_real(out_phase);
+    qk_param_free(out_phase);
+    if (out_phase_val != 0.0) {
+        printf("Expected 0.0 for global phase, found %f\n", out_phase_val);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // Numeric global phase parameter
+    QkParam *theta = qk_param_from_double(1.23);
+    qk_dag_set_global_phase(dag, theta);
+    qk_param_free(theta);
+
+    out_phase = qk_dag_global_phase(dag);
+    out_phase_val = qk_param_as_real(out_phase);
+    qk_param_free(out_phase);
+
+    if (out_phase_val != 1.23) {
+        printf("Expected 1.23 for global phase, found %f\n", out_phase_val);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    // Symbolic global phase parameter
+    theta = qk_param_new_symbol("theta");
+    if (qk_dag_set_global_phase(dag, theta) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+    qk_param_free(theta);
+
+    QkCircuit *qc = qk_dag_to_circuit(dag);
+    size_t num_symbols = qk_circuit_num_param_symbols(qc);
+    qk_circuit_free(qc);
+    if (num_symbols != 1) {
+        printf("Expected 1 symbol, found %zu\n", num_symbols);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+cleanup:
+    qk_dag_free(dag);
+    return result;
+}
+
 static int test_dag_get_instruction(void) {
     int result = Ok;
     QkDag *dag = qk_dag_new();
@@ -647,7 +702,7 @@ static int test_substitute_node_with_dag(void) {
 
     if (qk_dag_num_op_nodes(dag) != 4) {
         res = EqualityError;
-        printf("Number of instructions is %zd but expected 4\n", qk_dag_num_op_nodes(dag));
+        printf("Number of instructions is %zu but expected 4\n", qk_dag_num_op_nodes(dag));
         goto cleanup;
     }
 
@@ -1153,6 +1208,173 @@ cleanup:
     return result;
 }
 
+static int test_dag_replace_block_with_unitary(void) {
+    int result = Ok;
+
+    // Create a DAG with H, T, S, T, H gates on the second qubit
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
+    qk_dag_add_quantum_register(dag, qr);
+    uint32_t qubit[1] = {1};
+    qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
+    uint32_t idx1 = qk_dag_apply_gate(dag, QkGate_T, qubit, NULL, false);
+    uint32_t idx2 = qk_dag_apply_gate(dag, QkGate_S, qubit, NULL, false);
+    uint32_t idx3 = qk_dag_apply_gate(dag, QkGate_T, qubit, NULL, false);
+    qk_dag_apply_gate(dag, QkGate_H, qubit, NULL, false);
+
+    // Replace the inner T, S, T gates by a unitary gate (representing Z)
+    uint32_t replaced_ids[3] = {idx1, idx2, idx3};
+    static const QkComplex64 mat_z[4] = {{1, 0}, {0, 0}, {0, 0}, {-1, 0}};
+    uint32_t new_node_idx =
+        qk_dag_replace_block_with_unitary(dag, 3, replaced_ids, mat_z, 1, qubit, false);
+
+    // The resulting DAG should have 3 operations
+    size_t num_ops = qk_dag_num_op_nodes(dag);
+    if (num_ops != 3) {
+        result = EqualityError;
+        printf("Number of instructions is %zu but expected 3\n", num_ops);
+        goto cleanup;
+    }
+
+    // And the new operation must be unitary
+    QkOperationKind new_node_kind = qk_dag_op_node_kind(dag, new_node_idx);
+    if (new_node_kind != QkOperationKind_Unitary) {
+        result = EqualityError;
+        printf(
+            "The new node with index %u has incorrect operation type: expected: %d but got %d.\n",
+            new_node_idx, QkOperationKind_Unitary, new_node_kind);
+    }
+
+cleanup:
+    qk_quantum_register_free(qr);
+    qk_dag_free(dag);
+
+    return result;
+}
+
+static int test_dag_replace_qubitless_block_with_unitary(void) {
+    int result = Ok;
+
+    // Create a DAG with H, GlobalPhase, CX
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
+    qk_dag_add_quantum_register(dag, qr);
+
+    qk_dag_apply_gate(dag, QkGate_H, (uint32_t[]){1}, NULL, false);
+    uint32_t idx = qk_dag_apply_gate(dag, QkGate_GlobalPhase, NULL, (double[]){0.0}, false);
+    qk_dag_apply_gate(dag, QkGate_CX, (uint32_t[]){0, 1}, NULL, false);
+
+    // Replace the global phase gate by a 0-qubit unitary gate
+    static const QkComplex64 identity_mat[1] = {{1, 0}};
+    uint32_t new_node_idx =
+        qk_dag_replace_block_with_unitary(dag, 1, (uint32_t[]){idx}, identity_mat, 0, NULL, false);
+
+    // The resulting DAG should have 3 operations
+    size_t num_ops = qk_dag_num_op_nodes(dag);
+    if (num_ops != 3) {
+        result = EqualityError;
+        printf("Number of instructions is %zu but expected 3\n", num_ops);
+        goto cleanup;
+    }
+
+    // And the new operation must be unitary
+    QkOperationKind new_node_kind = qk_dag_op_node_kind(dag, new_node_idx);
+    if (new_node_kind != QkOperationKind_Unitary) {
+        result = EqualityError;
+        printf(
+            "The new node with index %u has incorrect operation type: expected: %d but got %d.\n",
+            new_node_idx, QkOperationKind_Unitary, new_node_kind);
+    }
+
+cleanup:
+    qk_quantum_register_free(qr);
+    qk_dag_free(dag);
+
+    return result;
+}
+
+static int test_dag_replace_illegal_block_with_unitary(void) {
+    int result = Ok;
+
+    // Create a DAG with CX, H, CX
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
+    qk_dag_add_quantum_register(dag, qr);
+
+    uint32_t idx1 = qk_dag_apply_gate(dag, QkGate_CX, (uint32_t[]){0, 1}, NULL, false);
+    qk_dag_apply_gate(dag, QkGate_H, (uint32_t[]){1}, NULL, false);
+    uint32_t idx2 = qk_dag_apply_gate(dag, QkGate_CX, (uint32_t[]){0, 1}, NULL, false);
+
+    // Try to replace the block consisting of the two CX gates while setting cycle_check
+    // to true. Note that this would introduce a cycle.
+    static const QkComplex64 identity_mat_2[4] = {{1, 0}, {0, 0}, {0, 0}, {1, 0}};
+    uint32_t new_node_idx = qk_dag_replace_block_with_unitary(
+        dag, 2, (uint32_t[]){idx1, idx2}, identity_mat_2, 2, (uint32_t[]){0, 1}, true);
+
+    // The returned node index should be UINT32_MAX, indicating that
+    // replacing the provided node block would introduce a cycle.
+    if (new_node_idx != UINT32_MAX) {
+        result = EqualityError;
+        printf("The new node has index %u but expected %u\n", new_node_idx, UINT32_MAX);
+        goto cleanup;
+    }
+
+    // The original DAG should be left unchanged.
+    size_t num_ops = qk_dag_num_op_nodes(dag);
+    if (num_ops != 3) {
+        result = EqualityError;
+        printf("Number of instructions is %zu but expected 3\n", num_ops);
+        goto cleanup;
+    }
+
+cleanup:
+    qk_quantum_register_free(qr);
+    qk_dag_free(dag);
+
+    return result;
+}
+
+static int test_dag_substitute_node_with_unitary(void) {
+    int result = Ok;
+
+    // Create a DAG with H, CX, Z, S gates
+    QkDag *dag = qk_dag_new();
+    QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
+    qk_dag_add_quantum_register(dag, qr);
+
+    qk_dag_apply_gate(dag, QkGate_H, (uint32_t[]){0}, NULL, false);
+    qk_dag_apply_gate(dag, QkGate_CX, (uint32_t[]){0, 1}, NULL, false);
+    uint32_t idx_z = qk_dag_apply_gate(dag, QkGate_Z, (uint32_t[]){1}, NULL, false);
+    qk_dag_apply_gate(dag, QkGate_S, (uint32_t[]){1}, NULL, false);
+
+    static const QkComplex64 mat[4] = {{1, 0}, {0, 0}, {0, 0}, {-1, 0}};
+
+    // Replace the Z-gate by a unitary matrix
+    qk_dag_substitute_node_with_unitary(dag, idx_z, mat, 1);
+
+    // The resulting DAG should still have 4 operations
+    size_t num_ops_z = qk_dag_num_op_nodes(dag);
+    if (num_ops_z != 4) {
+        result = EqualityError;
+        printf("Number of instructions is %zu but expected 4\n", num_ops_z);
+        goto cleanup;
+    }
+
+    // And the new operation must be unitary
+    QkOperationKind new_node_kind_z = qk_dag_op_node_kind(dag, idx_z);
+    if (new_node_kind_z != QkOperationKind_Unitary) {
+        result = EqualityError;
+        printf("The node with index %u has incorrect operation type: expected: %d but got %d.\n",
+               idx_z, QkOperationKind_Unitary, new_node_kind_z);
+    }
+
+cleanup:
+    qk_quantum_register_free(qr);
+    qk_dag_free(dag);
+
+    return result;
+}
+
 int test_dag(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
@@ -1162,6 +1384,7 @@ int test_dag(void) {
     num_failed += RUN_TEST(test_dag_apply_gate);
     num_failed += RUN_TEST(test_dag_node_type);
     num_failed += RUN_TEST(test_dag_endpoint_node_value);
+    num_failed += RUN_TEST(test_dag_global_phase);
     num_failed += RUN_TEST(test_op_node_bits_explicit);
     num_failed += RUN_TEST(test_dag_get_instruction);
     num_failed += RUN_TEST(test_dag_topological_op_nodes);
@@ -1171,6 +1394,10 @@ int test_dag(void) {
     num_failed += RUN_TEST(test_dag_copy_empty_like);
     num_failed += RUN_TEST(test_dag_compose);
     num_failed += RUN_TEST(test_dag_compose_permuted);
+    num_failed += RUN_TEST(test_dag_replace_block_with_unitary);
+    num_failed += RUN_TEST(test_dag_replace_qubitless_block_with_unitary);
+    num_failed += RUN_TEST(test_dag_replace_illegal_block_with_unitary);
+    num_failed += RUN_TEST(test_dag_substitute_node_with_unitary);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

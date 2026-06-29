@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -235,6 +235,8 @@ pub struct State {
     allow_version: bool,
     /// Whether we're in strict mode or (the default) more permissive parse.
     strict: bool,
+    /// What the maximum depth for expression recursion is.
+    max_depth: usize,
 }
 
 impl State {
@@ -245,6 +247,7 @@ impl State {
         custom_instructions: &[CustomInstruction],
         custom_classical: &[CustomClassical],
         strict: bool,
+        max_depth: usize,
     ) -> PyResult<Self> {
         let mut state = State {
             tokens: vec![tokens],
@@ -265,6 +268,7 @@ impl State {
             num_gates: 0,
             allow_version: true,
             strict,
+            max_depth,
         };
         for inst in custom_instructions {
             if state.symbols.contains_key(&inst.name)
@@ -971,6 +975,19 @@ impl State {
         self.emit_gate_application(bc, &name_token, index, parameters, &qargs, condition)
     }
 
+    /// Parse an expected expression at this position.
+    fn expect_expression(&mut self, cause: &Token) -> PyResult<Expr> {
+        ExprParser {
+            tokens: &mut self.tokens,
+            context: &mut self.context,
+            gate_symbols: &self.gate_symbols,
+            global_symbols: &self.symbols,
+            strict: self.strict,
+            remaining_depth: self.max_depth,
+        }
+        .parse_expression(cause)
+    }
+
     /// Parse the parameters (if any) from a gate application.
     fn expect_gate_parameters(
         &mut self,
@@ -996,14 +1013,7 @@ impl State {
         let parameters = if in_gate {
             let mut parameters = Vec::<Expr>::with_capacity(num_params);
             while !self.next_is(TokenType::RParen)? {
-                let mut expr_parser = ExprParser {
-                    tokens: &mut self.tokens,
-                    context: &mut self.context,
-                    gate_symbols: &self.gate_symbols,
-                    global_symbols: &self.symbols,
-                    strict: self.strict,
-                };
-                parameters.push(expr_parser.parse_expression(&lparen_token)?);
+                parameters.push(self.expect_expression(&lparen_token)?);
                 seen_params += 1;
                 comma = self.accept(TokenType::Comma)?;
                 if comma.is_none() {
@@ -1015,14 +1025,7 @@ impl State {
         } else {
             let mut parameters = Vec::<f64>::with_capacity(num_params);
             while !self.next_is(TokenType::RParen)? {
-                let mut expr_parser = ExprParser {
-                    tokens: &mut self.tokens,
-                    context: &mut self.context,
-                    gate_symbols: &self.gate_symbols,
-                    global_symbols: &self.symbols,
-                    strict: self.strict,
-                };
-                match expr_parser.parse_expression(&lparen_token)? {
+                match self.expect_expression(&lparen_token)? {
                     Expr::Constant(value) => parameters.push(value),
                     _ => {
                         return Err(QASM2ParseError::new_err(message_generic(

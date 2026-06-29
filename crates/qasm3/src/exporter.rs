@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -24,7 +24,6 @@ use std::io::Write;
 
 use crate::printer::BasicPrinter;
 use hashbrown::{HashMap, HashSet};
-use indexmap::IndexMap;
 use pyo3::Python;
 use pyo3::prelude::*;
 use qiskit_circuit::bit::{
@@ -36,6 +35,7 @@ use qiskit_circuit::operations::{Operation, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr;
+use qiskit_util::IndexMap;
 use thiserror::Error;
 
 use lazy_static::lazy_static;
@@ -263,7 +263,7 @@ impl SymbolTable {
             symbols,
             bitinfo,
             reginfo,
-            gates: IndexMap::new(),
+            gates: IndexMap::default(),
             stdgates: HashSet::new(),
             _counter: Counter::new(),
         }
@@ -738,7 +738,7 @@ impl<'a> QASM3Builder {
         self.register_basis_gates();
         let header = self.build_header();
 
-        self.hoist_global_params()?;
+        self.hoist_global_params();
         let classical_decls = self.hoist_classical_bits()?;
         let qubit_decls = self.build_qubit_decls()?;
         let main_stmts = self.build_top_level_stmts()?;
@@ -791,28 +791,18 @@ impl<'a> QASM3Builder {
         }
     }
 
-    fn hoist_global_params(&mut self) -> ExporterResult<()> {
-        Python::attach(|py| {
-            for param in self.circuit_scope.circuit_data.get_parameters(py)? {
-                let raw_name: String = match param.getattr("name") {
-                    Ok(attr) => match attr.extract() {
-                        Ok(name) => name,
-                        Err(err) => return Err(QASM3ExporterError::PyErr(err)),
-                    },
-                    Err(err) => return Err(QASM3ExporterError::PyErr(err)),
-                };
-                let identifier = Identifier {
-                    string: raw_name.clone(),
-                };
-                let _ = self.symbol_table.bind(&raw_name);
-                self.global_io_decls.push(IODeclaration {
-                    modifier: IOModifier::Input,
-                    type_: ClassicalType::Float(Float::Double),
-                    identifier,
-                });
-            }
-            Ok(())
-        })
+    fn hoist_global_params(&mut self) {
+        for param in self.circuit_scope.circuit_data.parameters() {
+            let identifier = Identifier {
+                string: param.name().to_string(),
+            };
+            let _ = self.symbol_table.bind(param.name());
+            self.global_io_decls.push(IODeclaration {
+                modifier: IOModifier::Input,
+                type_: ClassicalType::Float(Float::Double),
+                identifier,
+            });
+        }
     }
 
     fn hoist_classical_bits(&mut self) -> ExporterResult<Vec<Statement>> {
@@ -1223,7 +1213,7 @@ impl<'a> QASM3Builder {
             None => {
                 if delay_unit == DelayUnit::PS {
                     DurationLiteral {
-                        value: duration * 1000.0,
+                        value: duration / 1000.0,
                         unit: DurationUnit::Nanosecond,
                     }
                 } else {
@@ -1317,9 +1307,8 @@ impl<'a> QASM3Builder {
             .map(|i| {
                 let name = format!("{}_{}", self._gate_param_prefix, i);
                 // TODO this need to be achievable more easily
-                let symbol = symbol_expr::Symbol::new(name.as_str(), None, None);
-                let symbol_expr = symbol_expr::SymbolExpr::Symbol(Arc::new(symbol));
-                let expr = ParameterExpression::from_symbol_expr(symbol_expr);
+                let symbol = symbol_expr::Symbol::standalone(name, None);
+                let expr = ParameterExpression::from_symbol(symbol);
                 Param::ParameterExpression(Arc::new(expr))
             })
             .collect();
