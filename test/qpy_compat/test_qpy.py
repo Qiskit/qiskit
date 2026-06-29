@@ -1117,12 +1117,7 @@ def generate_circuits(
 
     # The for_loop with negative integers in a list indexset was broken in the 2.0-2.4
     # transition (Rust implementation) but worked in 1.x (Python implementation).
-    # The fix was introduced in 2.5.0.
-    if (0, 19, 2) <= generating_version.release < (2, 0, 0) or generating_version.release >= (
-        2,
-        5,
-        0,
-    ):
+    if (0, 19, 2) <= generating_version.release < (2, 0, 0):
         output_circuits["for_loop_negative.qpy"] = generate_for_loop_negative_circuits()
 
     return output_circuits
