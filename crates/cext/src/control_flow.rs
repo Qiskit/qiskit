@@ -276,7 +276,7 @@ pub enum CLoopCollectionType {
 #[repr(C)]
 pub struct CLoopElements {
     /// Pointer to the array of loop elements.
-    elements: *const usize,
+    elements: *const isize,
     /// Number of elements in the array.
     len: usize,
 }
@@ -989,9 +989,7 @@ pub unsafe extern "C" fn qk_control_flow_loop_elements(
     };
 
     CLoopElements {
-        // SAFETY: isize and usize have the same size and alignment. The C API exposes
-        // these as opaque pointers; the signed bit pattern is preserved across the cast.
-        elements: elements.as_ptr() as *const usize,
+        elements: elements.as_ptr(),
         len: elements.len(),
     }
 }
