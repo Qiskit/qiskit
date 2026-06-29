@@ -24,7 +24,7 @@ use ndarray::prelude::*;
 use rayon::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
 use qiskit_util::getenv_use_multiple_threads;
 
@@ -346,6 +346,22 @@ impl Optimize1qGatesDecompositionState {
 
 #[pyfunction]
 #[pyo3(name = "optimize_1q_gates_decomposition", signature = (dag, state, *, target=None, basis_gates=None, global_decomposers=None))]
+fn py_run_optimize_1q_gates_decomposition(
+    dag: &mut PyDAGCircuit,
+    state: &Optimize1qGatesDecompositionState,
+    target: Option<&Target>,
+    basis_gates: Option<HashSet<String>>,
+    global_decomposers: Option<Vec<String>>,
+) -> PyResult<()> {
+    run_optimize_1q_gates_decomposition(
+        dag.try_write()?,
+        state,
+        target,
+        basis_gates,
+        global_decomposers,
+    )
+}
+
 pub fn run_optimize_1q_gates_decomposition(
     dag: &mut DAGCircuit,
     state: &Optimize1qGatesDecompositionState,
@@ -513,7 +529,7 @@ pub fn matmul_1q_with_slice(operator: &mut [[Complex64; 2]; 2], other: &[[Comple
 }
 
 pub fn optimize_1q_gates_decomposition_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_optimize_1q_gates_decomposition))?;
+    m.add_wrapped(wrap_pyfunction!(py_run_optimize_1q_gates_decomposition))?;
     m.add_class::<Optimize1qGatesDecompositionState>()?;
     Ok(())
 }

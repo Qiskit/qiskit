@@ -20,7 +20,7 @@ use qiskit_circuit::packed_instruction::PackedOperation;
 use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, PI};
 
 use crate::gate_metrics::rotation_trace_and_dim;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 
@@ -1078,9 +1078,10 @@ fn rotation_to_pi_div(gate: StandardGate) -> usize {
 #[pyfunction]
 #[pyo3(name = "substitute_pi4_rotations")]
 pub fn py_run_substitute_pi4_rotations(
-    dag: &mut DAGCircuit,
+    dag: &mut PyDAGCircuit,
     approximation_degree: f64,
 ) -> PyResult<()> {
+    let dag = dag.try_write()?;
     // Skip the pass if there are no rotation gates.
     if dag
         .get_op_counts()

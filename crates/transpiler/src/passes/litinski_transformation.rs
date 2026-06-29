@@ -12,7 +12,7 @@
 
 use pyo3::prelude::*;
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
 use qiskit_circuit::imports::PAULI_EVOLUTION_GATE;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
@@ -80,8 +80,28 @@ static HANDLED_INSTRUCTION_NAMES: [&str; 10] = [
 
 const MINIMUM_TOL: f64 = 1e-12;
 
-#[pyfunction]
+#[pyfunction(name = "run_litinski_transformation")]
 #[pyo3(signature = (dag, fix_clifford=true, insert_barrier=false, use_ppr=false, approximation_degree=1.0))]
+pub fn py_run_litinski_transformation(
+    dag: &PyDAGCircuit,
+    fix_clifford: bool,
+    insert_barrier: bool,
+    use_ppr: bool,
+    approximation_degree: f64,
+) -> PyResult<Option<PyDAGCircuit>> {
+    Ok(run_litinski_transformation(
+        dag.try_read()?,
+        fix_clifford,
+        insert_barrier,
+        use_ppr,
+        approximation_degree,
+    )?
+    .map(|out_dag| {
+        // Preserve metadata
+        PyDAGCircuit::from_dagcircuit_with_cloned_metadata(out_dag, dag)
+    }))
+}
+
 pub fn run_litinski_transformation(
     dag: &DAGCircuit,
     fix_clifford: bool,
@@ -559,6 +579,6 @@ fn is_ppr_angle_close_to_multiple_of_pi2(
 }
 
 pub fn litinski_transformation_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(run_litinski_transformation))?;
+    m.add_wrapped(wrap_pyfunction!(py_run_litinski_transformation))?;
     Ok(())
 }

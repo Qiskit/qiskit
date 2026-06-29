@@ -3493,7 +3493,7 @@ mod test {
         let other = qc.clone();
         check(&qc, &other);
         let roundtrip = py_dag_to_circuit(
-            &DAGCircuit::from_circuit_data(&qc, false, None, None, None, None)?,
+            &DAGCircuit::from_circuit_data(&qc, false, None, None)?.into(),
             false,
         )?;
         check(&qc, &roundtrip);

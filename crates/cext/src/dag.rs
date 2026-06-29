@@ -18,7 +18,7 @@ use smallvec::smallvec;
 use crate::exit_codes::ExitCode;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, NodeIndex, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, NodeIndex, NodeType, PyDAGCircuit};
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     ArrayType, Operation, OperationRef, Param, StandardGate, StandardInstruction, UnitaryGate,
@@ -1867,7 +1867,7 @@ pub unsafe extern "C" fn qk_dag_to_python(dag: *mut DAGCircuit) -> *mut ::pyo3::
     let py = unsafe { ::pyo3::Python::assume_attached() };
     // SAFETY: per documentation, `dag` points to owned and valid data.
     let dag = unsafe { Box::from_raw(dag) };
-    match ::pyo3::Bound::new(py, *dag) {
+    match ::pyo3::Bound::new(py, PyDAGCircuit::from(*dag)) {
         Ok(ob) => ob.into_ptr(),
         Err(e) => {
             e.restore(py);
@@ -1904,7 +1904,13 @@ pub unsafe extern "C" fn qk_dag_borrow_from_python(
 ) -> *mut DAGCircuit {
     // SAFETY: per documentation, we are attached to a Python interpreter, and `ob` points to a
     // valid PyObject.
-    unsafe { crate::py::borrow_mut(::pyo3::Python::assume_attached(), ob) }
+    unsafe {
+        crate::py::borrow_map_mut::<PyDAGCircuit, DAGCircuit>(
+            ::pyo3::Python::assume_attached(),
+            ob,
+            |_py, dag| dag.try_write(),
+        )
+    }
 }
 
 /// @ingroup QkDag
@@ -1938,6 +1944,6 @@ pub unsafe extern "C" fn qk_dag_convert_from_python(
     // SAFETY: per documentation, we are attached to a Python interpreter, `object` is a valid
     // pointer to a PyObject, and `address` points to enough space to write a pointer.
     unsafe {
-        crate::py::convert_mut::<DAGCircuit>(::pyo3::Python::assume_attached(), object, address)
+        crate::py::convert_mut::<PyDAGCircuit>(::pyo3::Python::assume_attached(), object, address)
     }
 }

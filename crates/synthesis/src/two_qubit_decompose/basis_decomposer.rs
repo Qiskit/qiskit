@@ -42,7 +42,7 @@ use crate::matrix::two_qubit;
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_circuit::dag_circuit::{DAGCircuit, PyDAGCircuit};
 use qiskit_circuit::gate_matrix::{CX_GATE, ONE_QUBIT_IDENTITY};
 use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
@@ -909,7 +909,7 @@ impl TwoQubitBasisDecomposer {
         basis_fidelity: Option<f64>,
         approximate: bool,
         _num_basis_uses: Option<u8>,
-    ) -> PyResult<DAGCircuit> {
+    ) -> PyResult<PyDAGCircuit> {
         let array = unitary.as_array();
         let sequence = self.call_inner(array, basis_fidelity, approximate, _num_basis_uses)?;
         let mut dag = DAGCircuit::with_capacity(2, 0, None, Some(sequence.gates.len()), None, None);
@@ -930,7 +930,7 @@ impl TwoQubitBasisDecomposer {
                 None,
             )?;
         }
-        Ok(builder.build())
+        Ok(builder.build().into())
     }
 
     /// Synthesizes a two qubit unitary matrix into a :class:`.CircuitData` object

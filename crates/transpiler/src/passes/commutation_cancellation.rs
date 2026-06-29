@@ -23,7 +23,7 @@ use super::analyze_commutations;
 use crate::commutation_checker::CommutationChecker;
 use approx::abs_diff_eq;
 use qiskit_circuit::Qubit;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_synthesis::QiskitError;
 
@@ -73,8 +73,22 @@ struct CancellationSetKey {
     second_index: Option<usize>,
 }
 
-#[pyfunction]
-#[pyo3(signature = (dag, commutation_checker, basis_gates=None, approximation_degree=1.))]
+#[pyfunction(name = "cancel_commutations")]
+#[pyo3(signature = (py_dag, commutation_checker, basis_gates=None, approximation_degree=1.))]
+pub fn py_cancel_commutations(
+    py_dag: &mut PyDAGCircuit,
+    commutation_checker: &mut CommutationChecker,
+    basis_gates: Option<Vec<String>>,
+    approximation_degree: f64,
+) -> PyResult<()> {
+    cancel_commutations(
+        py_dag.try_write()?,
+        commutation_checker,
+        basis_gates,
+        approximation_degree,
+    )
+}
+
 pub fn cancel_commutations(
     dag: &mut DAGCircuit,
     commutation_checker: &mut CommutationChecker,
@@ -324,6 +338,6 @@ fn is_multiple_of_pi(angle: f64, factor: f64) -> bool {
 }
 
 pub fn commutation_cancellation_mod(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(cancel_commutations))?;
+    m.add_wrapped(wrap_pyfunction!(py_cancel_commutations))?;
     Ok(())
 }
