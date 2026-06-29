@@ -704,8 +704,8 @@ impl ExprParser<'_> {
 
     /// Parse the expected terminators of the partial expression stored in `EvalState`.
     ///
-    /// Returns the evaluated expression if possible (Break), or the new stack frame to push if not
-    /// (Continue).
+    /// Returns the evaluated expression if possible (Continue), or the new stack frame to push if
+    /// not (Break).
     #[inline]
     fn expect_expression_terminator(
         &mut self,
@@ -826,9 +826,9 @@ impl ExprParser<'_> {
                 }
 
                 // We've reached the right-hand edge of a complete expression; the closest left-most
-                // subeexpression indicator (an operator, a comma, a bracket, etc) binds more
-                // tightly than anything to us from the right, so we need to pop from the stack,
-                // evaluate its terminators, then check again for an infix against the new power.
+                // subexpression indicator (an operator, a comma, a bracket, etc) binds more tightly
+                // than anything to us from the right, so we need to pop from the stack, evaluate
+                // its terminators, then check again for an infix against the new power.
                 let Some(prev) = stack.pop() else {
                     // If the stack is exhausted, we've entirely evaluated the expression.
                     return Ok(expr);
