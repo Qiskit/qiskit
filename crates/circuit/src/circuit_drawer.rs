@@ -519,11 +519,6 @@ impl<'a> VisualizationLayer<'a> {
                 VisualizationElement::Boxed(BoxedElement::Single(inst));
         } else {
             let (minima, maxima) = get_instruction_range(qargs, &[], 0);
-            // for q in minima..=maxima {
-            //     if let Some(idx) = qubit_map[q] {
-            //         self.0[idx] = VisualizationElement::Boxed(BoxedElement::Multi(inst));
-            //     }
-            // }
             for &idx in qubit_map[minima..=maxima].iter().flatten() {
                 self.0[idx] = VisualizationElement::Boxed(BoxedElement::Multi(inst));
             }
@@ -593,13 +588,13 @@ struct VisualizationMatrix<'a> {
     layers: Vec<VisualizationLayer<'a>>,
     /// A reference to the circuit this matrix was constructed from.
     circuit: &'a CircuitData,
-    /// A mapping from instruction's Qubbit indices to the visualization matrix wires.
+    /// A mapping from instruction's Qubit indices to the visualization matrix wires.
     /// Entries are `Some(wire_index)` for qubits that are used in the visualization
     /// and `None` for idle qubits that have been removed.
     qubit_map: Vec<Option<usize>>,
     /// Number of active qubit wires, excluding removed idle wires.
     num_qubit_wires: usize,
-    /// A mapping from instruction's Clbit indices to the visualization matrix wires.
+    /// A mapping from instruction's Clbit(creg if bundled) indices to the visualization matrix wires.
     /// Entries are `Some(wire_index)` for clbits that are used in the visualization
     /// and `None` for idle clbits that have been removed.
     clbit_map: Vec<Option<usize>>,
@@ -622,7 +617,7 @@ impl<'a> VisualizationMatrix<'a> {
             num_clbit_wires: 0,
         };
         let inst_layers = build_layers(circuit);
-        let is_idle = get_idle_wires(circuit);
+        let is_idle = vis_matrix.get_idle_wires(circuit);
 
         (vis_matrix.qubit_map, vis_matrix.num_qubit_wires) =
             vis_matrix.build_qubit_wires_map(circuit, &is_idle, idle_wires);
@@ -675,7 +670,6 @@ impl<'a> VisualizationMatrix<'a> {
                             );
                             visited_cregs.insert(creg);
                         }
-                        // }
                     }
                 } else {
                     input_layer.add_input(
@@ -746,7 +740,7 @@ impl<'a> VisualizationMatrix<'a> {
         let mut visited_cregs: HashSet<&ClassicalRegister> = HashSet::new();
         let mut input_idx = qubit_wires;
         for (idx, clbit) in circuit.clbits().objects().iter().enumerate() {
-            if idle_wires || is_idle[qubit_wires + idx] {
+            if idle_wires || !is_idle[qubit_wires + idx] {
                 if bundle_cregs {
                     let bit_location = circuit
                         .clbit_indices()
@@ -762,14 +756,12 @@ impl<'a> VisualizationMatrix<'a> {
                         if visited_cregs.contains(creg) {
                             clbit_map.push(Some(input_idx - 1));
                         } else {
-                            // input_layer.add_input(WireInputElement::Creg(creg), input_idx);
                             visited_cregs.insert(creg);
                             clbit_map.push(Some(input_idx));
                             input_idx += 1;
                         }
                     }
                 } else {
-                    // input_layer.add_input(WireInputElement::Clbit(clbit), input_idx);
                     clbit_map.push(Some(input_idx));
                     input_idx += 1;
                 }
@@ -779,6 +771,23 @@ impl<'a> VisualizationMatrix<'a> {
         }
 
         (clbit_map, input_idx - qubit_wires)
+    }
+
+    /// Calculate the wire indices of qubits and clbits that are not used by any instruction.
+    /// The assumption is that clbits always appear after the qubits in the visualization, hence the clbit indices
+    /// are offset by the number of instruction qubits.
+    fn get_idle_wires(&self, circuit: &CircuitData) -> Vec<bool> {
+        let mut is_idle = vec![true; circuit.num_qubits() + circuit.num_clbits()];
+
+        for inst in circuit.data() {
+            for q in circuit.get_qargs(inst.qubits) {
+                is_idle[q.index()] = false;
+            }
+            for c in circuit.get_cargs(inst.clbits) {
+                is_idle[c.index() + circuit.num_qubits()] = false;
+            }
+        }
+        is_idle
     }
 
     fn num_wires(&self) -> usize {
@@ -1613,45 +1622,6 @@ impl TextDrawer {
     }
 }
 
-/// Calculate the wire indices of qubits and clbits that are not used by any instruction.
-/// The assumption is that clbits always appear after the qubits in the visualization, hence the clbit indices
-/// are offset by the number of instruction qubits.
-fn get_idle_wires(circuit: &CircuitData) -> Vec<bool> {
-    let mut is_idle = vec![true; circuit.num_qubits() + circuit.num_clbits()];
-
-    for inst in circuit.data() {
-        for q in circuit.get_qargs(inst.qubits) {
-            is_idle[q.index()] = false;
-        }
-        for c in circuit.get_cargs(inst.clbits) {
-            is_idle[c.index() + circuit.num_qubits()] = false;
-        }
-    }
-    is_idle
-}
-
-// /// Calculate which classical registers are idle.
-// ///
-// /// A register is considered idle if none of its clbits are used by any
-// /// instruction in the circuit.
-// fn get_idle_cregs(circuit: &CircuitData) -> Vec<bool> {
-//     let mut is_idle = vec![true; circuit.cregs_data().len()];
-
-//     for (reg_idx, creg) in circuit.cregs_data().registers().iter().enumerate() {
-//         if creg.iter().any(|clbit| {
-//             circuit.data().iter().any(|inst| {
-//                 circuit
-//                     .get_cargs(inst.clbits)
-//                     .any(|c| c == clbit)
-//             })
-//         }) {
-//             is_idle[reg_idx] = false;
-//         }
-//     }
-
-//     is_idle
-// }
-
 /// Computes if a number is close to an integer
 /// fraction or multiple of PI and returns the
 /// corresponding string.
@@ -1948,7 +1918,7 @@ cr_1: ═════
             .push_standard_gate(StandardGate::CZ, &[], &[Qubit::new(0), Qubit::new(1)])
             .unwrap();
 
-        let result = draw_circuit(&circuit, false, false, Some(10), false).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(10), true).unwrap();
         let expected = "
       ┌───┐     »
  q_0: ┤ H ├──■──»
@@ -2498,15 +2468,13 @@ c_3: ═════════════════════════
         let qubits = vec![
             ShareableQubit::new_anonymous(),
             ShareableQubit::new_anonymous(),
-            ShareableQubit::new_anonymous(),
-            ShareableQubit::new_anonymous(),
         ];
         let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
         let param = Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
             Symbol::standalone("ϕ".to_owned(), None),
         )));
         circuit
-            .push_standard_gate(StandardGate::RXX, &[param], &[Qubit(0), Qubit(3)])
+            .push_standard_gate(StandardGate::RXX, &[param], &[Qubit(0), Qubit(1)])
             .unwrap();
         let mut inst_clone = circuit.data()[0].clone();
         inst_clone.label = Some(Box::new("μου_rxx".to_string()));
@@ -2515,16 +2483,16 @@ c_3: ═════════════════════════
             .push_standard_gate(
                 StandardGate::RZX,
                 &[Param::Float(2.)],
-                &[Qubit(0), Qubit(3)],
+                &[Qubit(0), Qubit(1)],
             )
             .unwrap();
-        let result = draw_circuit(&circuit, false, false, Some(100), false).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(100), true).unwrap();
         let expected = "
      ┌─────────┐┌─────────────┐┌─────────┐
 q_0: ┤0 Rxx(ϕ) ├┤0 μου_rxx(ϕ) ├┤0 Rzx(2) ├
      │         ││             ││         │
      │         ││             ││         │
-q_3: ┤1        ├┤1            ├┤1        ├
+q_1: ┤1        ├┤1            ├┤1        ├
      └─────────┘└─────────────┘└─────────┘
 ";
         assert_eq!(result, expected.trim_start_matches("\n"));
