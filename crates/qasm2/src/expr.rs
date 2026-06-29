@@ -833,6 +833,7 @@ impl ExprParser<'_> {
                     // If the stack is exhausted, we've entirely evaluated the expression.
                     return Ok(expr);
                 };
+                let restored_pm = prev.power_min;
                 expr = match self.expect_expression_terminator(expr, prev)? {
                     ControlFlow::Break((state, power)) => {
                         stack.push(state);
@@ -841,6 +842,7 @@ impl ExprParser<'_> {
                     }
                     ControlFlow::Continue(expr) => expr,
                 };
+                power_min = restored_pm;
                 // This statement is actually a no-op, but the loop is long so let's be explicit.
                 continue 'infix;
             }

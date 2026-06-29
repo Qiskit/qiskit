@@ -152,6 +152,13 @@ class TestSimple(QiskitTestCase):
         parsed = qiskit.qasm2.loads(program)
         self.assertEqual(list(parsed.data[0].operation.params), [100_001.0, 0.0, 0.0])
 
+    def test_parenthesised_lhs_followed_by_infix(self):
+        """A parenthesised subexpression on the left of an infix operator should evaluate
+        correctly regardless of the relative precedences involved."""
+        program = "qreg q[1]; U((1.0 + 2.0) + 3.0, (1.0 * 2.0) + 3.0, (4.0 / 2.0) * 3.0) q[0];"
+        parsed = qiskit.qasm2.loads(program)
+        self.assertEqual(list(parsed.data[0].operation.params), [6.0, 5.0, 6.0])
+
 
 class TestPrecedenceAssociativity(QiskitTestCase):
     def test_precedence(self):
