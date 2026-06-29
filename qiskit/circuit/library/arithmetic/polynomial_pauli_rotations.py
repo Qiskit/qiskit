@@ -134,7 +134,7 @@ def _multinomial_coefficients(m, n):
 class PolynomialPauliRotations(FunctionalPauliRotations):
     r"""A circuit implementing polynomial Pauli rotations.
 
-    For a polynomial :math:`p(x)`, a basis state :math:`|i\rangle` and a target qubit
+    For a polynomial :math:`p`, a basis state :math:`|i\rangle` and a target qubit
     :math:`|0\rangle` this operator acts as:
 
     .. math::
@@ -142,8 +142,8 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         |i\rangle |0\rangle \mapsto \cos\left(\frac{p(i)}{2}\right) |i\rangle |0\rangle
         + \sin\left(\frac{p(i)}{2}\right) |i\rangle |1\rangle
 
-    Let n be the number of qubits representing the state, d the degree of p(x) and q_i the qubits,
-    where q_0 is the least significant qubit. Then for
+    Let :math:`n` be the number of qubits representing the state, :math:`d` the degree of :math:`p`
+    and :math:`q_i` the qubits, where :math:`q_0` is the least significant qubit. Then for
 
     .. math::
 
@@ -168,9 +168,9 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         """
         Args:
             num_state_qubits: The number of qubits representing the state.
-            coeffs: The coefficients of the polynomial. ``coeffs[i]`` is the coefficient of the
-                i-th power of x. Defaults to linear: [0, 1].
-            basis: The type of Pauli rotation ('X', 'Y', 'Z').
+            coeffs: The coefficients of the polynomial. ``coeffs[i]`` is the coefficient of
+                :math:`x^i`. Defaults to linear: ``[0, 1]``.
+            basis: The type of Pauli rotation (``"X"``, ``"Y"``, ``"Z"``).
             name: The name of the circuit.
         """
         # set default internal parameters
@@ -266,7 +266,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 class PolynomialPauliRotationsGate(Gate):
     r"""A gate implementing polynomial Pauli rotations.
 
-    For a polynomial :math:`p(x)`, a basis state :math:`|i\rangle` and a target qubit
+    For a polynomial :math:`p`, a basis state :math:`|i\rangle` and a target qubit
     :math:`|0\rangle` this operator acts as:
 
     .. math::
@@ -274,8 +274,8 @@ class PolynomialPauliRotationsGate(Gate):
         |i\rangle |0\rangle \mapsto \cos\left(\frac{p(i)}{2}\right) |i\rangle |0\rangle
         + \sin\left(\frac{p(i)}{2}\right) |i\rangle |1\rangle
 
-    Let n be the number of qubits representing the state, d the degree of p(x) and q_i the qubits,
-    where q_0 is the least significant qubit. Then for
+    Let :math:`n` be the number of qubits representing the state, :math:`d` the degree of :math:`p`
+    and :math:`q_i` the qubits, where :math:`q_0` is the least significant qubit. Then for
 
     .. math::
 
@@ -297,13 +297,12 @@ class PolynomialPauliRotationsGate(Gate):
         basis: str = "Y",
         label: str | None = None,
     ) -> None:
-        """Prepare an approximation to a state with amplitudes specified by a polynomial.
-
+        """
         Args:
             num_state_qubits: The number of qubits representing the state.
-            coeffs: The coefficients of the polynomial. ``coeffs[i]`` is the coefficient of the
-                i-th power of x. Defaults to linear: [0, 1].
-            basis: The type of Pauli rotation ('X', 'Y', 'Z').
+            coeffs: The coefficients of the polynomial. ``coeffs[i]`` is the coefficient of
+                :math:`x^i`. Defaults to linear: ``[0, 1]``.
+            basis: The type of Pauli rotation (``"X"``, ``"Y"``, ``"Z"``).
             label: A label for the gate.
         """
         self.coeffs = coeffs or [0, 1]
