@@ -14,6 +14,7 @@
 use binrw::Endian;
 use numpy::Complex64;
 use pyo3::IntoPyObjectExt;
+use pyo3::exceptions::PyTypeError;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyComplex, PyDict, PyFloat, PyInt, PyList, PyString, PyTuple};
@@ -26,9 +27,7 @@ use qiskit_circuit::classical;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::{Operation, OperationRef, PyInstruction, PyOpKind, PyRange};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::parameter::parameter_expression::{
-    PyParameter, PyParameterExpression, PyParameterVectorElement,
-};
+use qiskit_circuit::parameter::parameter_expression::{PyParameter, PyParameterExpression};
 use qiskit_quantum_info::sparse_observable::PySparseObservable;
 use uuid::Uuid;
 
@@ -297,6 +296,9 @@ pub(crate) fn gate_class_name(op: &PackedOperation) -> Result<String, QpyError> 
             Ok(String::from(PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME))
         }
         OperationRef::ControlFlow(inst) => Ok(inst.name().to_string()),
+        OperationRef::CustomOperation(_) => {
+            Err(PyTypeError::new_err("Custom gates from rust are not classes.").into())
+        }
     }
 }
 
@@ -359,16 +361,18 @@ pub(crate) fn py_convert_to_generic_value(
         ValueType::Null => Ok(GenericValue::Null),
         ValueType::Parameter => Ok(GenericValue::ParameterExpressionSymbol(
             py_object
-                .extract::<PyParameter>()
-                .map_err(|e| QpyError::from(PyErr::from(e)))?
-                .symbol()
+                .cast::<PyParameter>()
+                .map_err(PyErr::from)?
+                .borrow()
+                .0
                 .clone(),
         )),
         ValueType::ParameterVector => Ok(GenericValue::ParameterExpressionVectorSymbol(
             py_object
-                .extract::<PyParameterVectorElement>()
-                .map_err(|e| QpyError::from(PyErr::from(e)))?
-                .symbol()
+                .cast::<PyParameter>()
+                .map_err(PyErr::from)?
+                .borrow()
+                .0
                 .clone(),
         )),
         ValueType::ParameterExpression => Ok(GenericValue::ParameterExpression(Arc::new(
@@ -430,11 +434,9 @@ pub(crate) fn py_convert_from_generic_value(value: &GenericValue) -> Result<Py<P
             GenericValue::Expression(exp) => Ok(exp.clone().into_py_any(py)?),
             GenericValue::CaseDefault => Ok(imports::CASE_DEFAULT.get(py).clone()),
             GenericValue::Null => Ok(py.None()),
-            GenericValue::ParameterExpressionSymbol(symbol) => {
-                Ok(symbol.clone().into_py_any(py)?)
-            }
-            GenericValue::ParameterExpressionVectorSymbol(symbol) => {
-                Ok(symbol.clone().into_py_any(py)?)
+            GenericValue::ParameterExpressionSymbol(symbol)
+            | GenericValue::ParameterExpressionVectorSymbol(symbol) => {
+                Ok(PyParameter(symbol.clone()).into_py_any(py)?)
             }
             GenericValue::ParameterExpression(exp) => Ok(exp.as_ref().clone().into_py_any(py)?),
             GenericValue::Circuit(py_object) => Ok(py_object.clone()),
