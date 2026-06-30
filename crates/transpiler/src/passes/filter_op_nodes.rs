@@ -24,18 +24,17 @@ pub fn py_filter_op_nodes(
     dag: &mut PyDAGCircuit,
     predicate: &Bound<PyAny>,
 ) -> PyResult<()> {
-    let dag_borrowed = dag.try_read()?;
+    let mut dag_mut = dag.try_write()?;
     let callable = |node: NodeIndex| -> PyResult<bool> {
-        let dag_op_node = dag_borrowed.get_node(py, node)?;
+        let dag_op_node = dag_mut.get_node(py, node)?;
         predicate.call1((dag_op_node,))?.extract()
     };
     let mut remove_nodes: Vec<NodeIndex> = Vec::new();
-    for node in dag_borrowed.op_node_indices(true) {
+    for node in dag_mut.op_node_indices(true) {
         if !callable(node)? {
             remove_nodes.push(node);
         }
     }
-    let dag_mut = dag.try_write()?;
     for node in remove_nodes {
         dag_mut.remove_op_node(node);
     }
@@ -49,7 +48,7 @@ pub fn py_filter_op_nodes(
 ///     label (str): The label to filter nodes on
 #[pyfunction(name = "filter_labeled_op")]
 fn py_filter_labeled_op(dag: &mut PyDAGCircuit, label: String) -> PyResult<()> {
-    filter_labeled_op(dag.try_write()?, label);
+    filter_labeled_op(&mut *dag.try_write()?, label);
     Ok(())
 }
 

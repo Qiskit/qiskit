@@ -260,7 +260,7 @@ pub fn py_run_constrained_reschedule(
         ));
     };
     run_constrained_reschedule(
-        dag.try_read()?,
+        &*dag.try_read()?,
         durations,
         clbit_write_latency,
         acquire_align,

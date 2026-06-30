@@ -316,7 +316,7 @@ fn std_inverse_pairs(dag: &mut DAGCircuit) {
 
 #[pyfunction(name = "run_inverse_cancellation_standard_gates")]
 pub fn py_run_inverse_cancellation_standard_gates(dag: &mut PyDAGCircuit) -> PyResult<()> {
-    run_inverse_cancellation_standard_gates(dag.try_write()?);
+    run_inverse_cancellation_standard_gates(&mut *dag.try_write()?);
     Ok(())
 }
 
@@ -335,20 +335,20 @@ pub fn py_run_inverse_cancellation(
     self_inverse_gate_names: HashSet<String>,
     run_defaults: bool,
 ) -> PyResult<()> {
-    let dag = dag.try_write()?;
+    let mut dag = dag.try_write()?;
     if self_inverse_gate_names.is_empty() && inverse_gate_names.is_empty() {
         return Ok(());
     }
     let op_counts = dag.count_ops(true)?;
     if !self_inverse_gate_names.is_empty() {
-        run_on_self_inverse(dag, &op_counts, self_inverse_gate_names, self_inverse_gates)?;
+        run_on_self_inverse(&mut dag, &op_counts, self_inverse_gate_names, self_inverse_gates)?;
     }
     if !inverse_gate_names.is_empty() {
-        run_on_inverse_pairs(dag, &op_counts, inverse_gate_names, inverse_gates)?;
+        run_on_inverse_pairs(&mut dag, &op_counts, inverse_gate_names, inverse_gates)?;
     }
     if run_defaults {
-        std_self_inverse(dag);
-        std_inverse_pairs(dag);
+        std_self_inverse(&mut dag);
+        std_inverse_pairs(&mut dag);
     }
     Ok(())
 }

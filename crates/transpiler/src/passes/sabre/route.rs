@@ -980,7 +980,7 @@ pub fn py_sabre_routing(
     run_in_parallel: Option<bool>,
 ) -> PyResult<(PyDAGCircuit, NLayout)> {
     sabre_routing(
-        dag.try_read()?,
+        &*dag.try_read()?,
         target,
         heuristic,
         initial_layout,

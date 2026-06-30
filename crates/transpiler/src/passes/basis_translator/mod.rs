@@ -65,7 +65,7 @@ fn py_run_basis_translator(
         .as_ref()
         .map(|set| set.iter().map(|obj| obj.as_str()).collect());
     Ok(run_basis_translator(
-        dag.try_read()?,
+        &*dag.try_read()?,
         equiv_lib,
         min_qubits,
         target,

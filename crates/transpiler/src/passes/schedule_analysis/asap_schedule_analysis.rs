@@ -167,10 +167,10 @@ pub fn py_run_asap_schedule_analysis(
     // Get the first duration type
     let new_durations: NodeDurations = match &*node_durations {
         NodeDurations::Dt(node_durations) => {
-            run_asap_schedule_analysis(dag.try_read()?, clbit_write_latency, node_durations)?.into()
+            run_asap_schedule_analysis(&*dag.try_read()?, clbit_write_latency, node_durations)?.into()
         }
         NodeDurations::Seconds(node_durations) => run_asap_schedule_analysis::<f64>(
-            dag.try_read()?,
+            &*dag.try_read()?,
             clbit_write_latency as f64,
             node_durations,
         )?

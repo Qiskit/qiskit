@@ -23,7 +23,7 @@ use rustworkx_core::petgraph::prelude::NodeIndex;
 #[pyfunction]
 #[pyo3(name = "any_gate_missing_from_target")]
 pub fn py_gates_missing_from_target(dag: &PyDAGCircuit, target: &Target) -> PyResult<bool> {
-    gates_missing_from_target(dag.try_read()?, target)
+    gates_missing_from_target(&*dag.try_read()?, target)
 }
 
 pub fn gates_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<bool> {
@@ -108,7 +108,7 @@ pub fn gates_missing_from_target(dag: &DAGCircuit, target: &Target) -> PyResult<
 #[pyfunction]
 #[pyo3(name = "any_gate_missing_from_basis")]
 pub fn py_gates_missing_from_basis(dag: &PyDAGCircuit, basis: HashSet<String>) -> PyResult<bool> {
-    gates_missing_from_basis(dag.try_read()?, basis)
+    gates_missing_from_basis(&*dag.try_read()?, basis)
 }
 
 pub fn gates_missing_from_basis(dag: &DAGCircuit, basis: HashSet<String>) -> PyResult<bool> {

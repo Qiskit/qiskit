@@ -477,18 +477,18 @@ pub fn py_run_optimize_1q_gates_decomposition(
 ) -> PyResult<()> {
     if getenv_use_multiple_threads() {
         let results = py.detach(|| {
-            let dag_mut = dag.try_write()?;
-            parallel_analyze_runs(dag_mut, state, target, basis_gates, global_decomposers)
+            let mut dag_mut = dag.try_write()?;
+            parallel_analyze_runs(&mut dag_mut, state, target, basis_gates, global_decomposers)
         })?;
-        let dag_mut = dag.try_write()?;
-        apply_sequences(dag_mut, results.runs, results.sequences)?;
+        let mut dag_mut = dag.try_write()?;
+        apply_sequences(&mut dag_mut, results.runs, results.sequences)?;
     } else {
-        let dag_mut = dag.try_write()?;
+        let mut dag_mut = dag.try_write()?;
         let runs: Vec<Vec<NodeIndex>> = dag_mut.collect_1q_runs().unwrap().collect();
         for raw_run in runs {
             let sequence = process_run(
                 &raw_run,
-                dag_mut,
+                &dag_mut,
                 state,
                 target,
                 basis_gates.as_ref(),

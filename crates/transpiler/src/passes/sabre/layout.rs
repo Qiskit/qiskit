@@ -52,8 +52,8 @@ pub fn py_sabre_layout_and_routing(
     partial_layouts: Vec<Vec<Option<PhysicalQubit>>>,
     skip_routing: bool,
 ) -> PyResult<(PyDAGCircuit, NLayout, NLayout)> {
-    sabre_layout_and_routing(
-        dag.try_write()?,
+    let ret = sabre_layout_and_routing(
+        &mut *dag.try_write()?,
         target,
         heuristic,
         max_iterations,
@@ -62,9 +62,8 @@ pub fn py_sabre_layout_and_routing(
         seed,
         partial_layouts,
         skip_routing,
-    )
-    .map(|(out_dag, init, out)| {
-        // Preserve metadata
+    );
+    ret.map(|(out_dag, init, out)| {
         (
             PyDAGCircuit::from_dagcircuit_with_cloned_metadata(out_dag, dag),
             init,

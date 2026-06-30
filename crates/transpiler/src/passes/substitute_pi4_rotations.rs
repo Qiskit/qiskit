@@ -1049,7 +1049,7 @@ fn py_run_substitute_pi4_rotations(
     dag: &mut PyDAGCircuit,
     approximation_degree: f64,
 ) -> PyResult<()> {
-    run_substitute_pi4_rotations(dag.try_write()?, approximation_degree).map_err(Into::into)
+    run_substitute_pi4_rotations(&mut *dag.try_write()?, approximation_degree).map_err(Into::into)
 }
 
 pub fn run_substitute_pi4_rotations(

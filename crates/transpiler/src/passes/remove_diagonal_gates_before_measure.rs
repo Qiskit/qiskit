@@ -24,7 +24,7 @@ use qiskit_circuit::operations::StandardGate;
 #[pyfunction]
 #[pyo3(name = "remove_diagonal_gates_before_measure")]
 pub fn py_run_remove_diagonal_before_measure(dag: &mut PyDAGCircuit) -> PyResult<()> {
-    run_remove_diagonal_before_measure(dag.try_write()?);
+    run_remove_diagonal_before_measure(&mut *dag.try_write()?);
     Ok(())
 }
 

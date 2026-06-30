@@ -927,11 +927,10 @@ impl PyDAGCircuit {
         let mut borrowed = self.try_write()?;
         let mut to_remove = Vec::new();
         for (id, weight) in borrowed.dag.node_references() {
-            if let NodeType::Operation(packed) = &weight {
-                if opname == packed.op.name() {
+            if let NodeType::Operation(packed) = &weight
+                && opname == packed.op.name() {
                     to_remove.push(id);
                 }
-            }
         }
         for node in to_remove {
             borrowed.remove_op_node(node);
@@ -3034,11 +3033,10 @@ impl PyDAGCircuit {
         }
         let mut result: Vec<Py<PyAny>> = Vec::new();
         for (id, weight) in borrowed.dag.node_references() {
-            if let NodeType::Operation(packed) = weight {
-                if names_set.contains(packed.op.name()) {
+            if let NodeType::Operation(packed) = weight
+                && names_set.contains(packed.op.name()) {
                     result.push(borrowed.unpack_into(py, id, weight)?);
                 }
-            }
         }
         Ok(result)
     }
@@ -8540,7 +8538,7 @@ impl DAGCircuit {
             if input_dag_var_set.difference(&var_set).count() > 0 {
                 return Err(DAGCircuitError::new_err(format!(
                     "Cannot replace a node with a DAG with more variables. Variables in node: {:?}. Variables in dag: {:?}",
-                    &var_set, &input_dag_var_set,
+                    var_set, input_dag_var_set,
                 )));
             }
             var_set
@@ -8999,6 +8997,11 @@ impl PyDAGCircuit {
         self.inner
             .try_write()
             .map_err(|e| PyRuntimeError::new_err(e.to_string()))
+    }
+
+    /// Clone the inner `DAGCircuit` as a non-reference-counted owned version.
+    pub fn clone_inner(&self) -> PyResult<DAGCircuit> {
+        Ok(self.try_read()?.clone())
     }
 }
 

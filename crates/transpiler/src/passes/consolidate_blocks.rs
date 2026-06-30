@@ -491,7 +491,7 @@ fn py_run_consolidate_blocks(
     runs: Option<Vec<Vec<usize>>>,
     qubit_map: Option<Vec<PhysicalQubit>>,
 ) -> PyResult<()> {
-    let dag = dag.try_write()?;
+    let mut dag = dag.try_write()?;
     // If we don't have a decomposer and force consolidate is not set then there is not any
     // consolidation to do.
     if decomposer.is_none() && !force_consolidate {
@@ -515,7 +515,7 @@ fn py_run_consolidate_blocks(
             .into_iter()
             .map(|run| {
                 run.into_iter()
-                    .map(|index| valid_op_node(dag, index))
+                    .map(|index| valid_op_node(&mut dag, index))
                     .collect::<Result<Vec<_>, _>>()
             })
             .collect::<Result<Vec<_>, _>>()?,
@@ -533,7 +533,7 @@ fn py_run_consolidate_blocks(
             runs.into_iter()
                 .map(|run| {
                     run.into_iter()
-                        .map(|index| valid_op_node(dag, index))
+                        .map(|index| valid_op_node(&mut dag, index))
                         .collect::<Result<Vec<_>, _>>()
                 })
                 .collect::<Result<Vec<_>, _>>()
@@ -543,7 +543,7 @@ fn py_run_consolidate_blocks(
     if run_in_parallel && blocks.len() > PARALLEL_THRESHOLD {
         let consolidations = py.detach(|| {
             consolidation_analysis_parallel(
-                dag,
+                &dag,
                 decomposer,
                 target,
                 basis_gates.as_ref(),
@@ -554,7 +554,7 @@ fn py_run_consolidate_blocks(
             )
         })?;
         for (block, result) in consolidations {
-            apply_consolidation(dag, block, result)?;
+            apply_consolidation(&mut dag, block, result)?;
         }
     } else {
         // In most cases, the qargs in a block will not exceed 2 qubits.
@@ -562,7 +562,7 @@ fn py_run_consolidate_blocks(
         let mut phys_qargs = PhysQargsMap::new(qubit_map.clone());
         for block in &blocks {
             let result = should_substitute(
-                dag,
+                &dag,
                 decomposer.as_ref(),
                 target,
                 basis_gates.as_ref(),
@@ -572,7 +572,7 @@ fn py_run_consolidate_blocks(
                 &mut phys_qargs,
                 force_consolidate,
             )?;
-            apply_consolidation(dag, block, result)?;
+            apply_consolidation(&mut dag, block, result)?;
         }
     }
     if let Some(runs) = runs {
@@ -584,7 +584,7 @@ fn py_run_consolidate_blocks(
             }
             let first_inst_node = run[0];
             let first_inst = dag[first_inst_node].unwrap_operation();
-            let first_qubits = phys_qargs.get(dag, first_inst.qubits);
+            let first_qubits = phys_qargs.get(&dag, first_inst.qubits);
 
             if run.len() == 1
                 && !is_supported(

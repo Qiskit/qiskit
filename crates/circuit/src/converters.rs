@@ -116,9 +116,9 @@ pub fn py_dag_to_circuit(
     copy_operations: bool,
 ) -> Result<PyCircuitData, CircuitDataError> {
     if copy_operations {
-        Python::attach(|py| CircuitData::from_dag_ref_deepcopy(py, dag.try_read()?))
+        Python::attach(|py| CircuitData::from_dag_ref_deepcopy(py, &*dag.try_read()?))
     } else {
-        CircuitData::from_dag_ref(dag.try_read()?)
+        CircuitData::from_dag_ref(&*dag.try_read()?)
     }
     .map(PyCircuitData::from)
 }

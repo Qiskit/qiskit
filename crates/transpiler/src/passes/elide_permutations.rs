@@ -31,7 +31,7 @@ pub fn py_run_elide_permutations(
     dag: &PyDAGCircuit,
 ) -> PyResult<Option<(PyDAGCircuit, Vec<usize>)>> {
     Ok(
-        run_elide_permutations(dag.try_read()?)?.map(|(out_dag, perm)| {
+        run_elide_permutations(&*dag.try_read()?)?.map(|(out_dag, perm)| {
             // Preserve the metadata
             (
                 PyDAGCircuit::from_dagcircuit_with_cloned_metadata(out_dag, dag),

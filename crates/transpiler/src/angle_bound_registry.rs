@@ -38,10 +38,7 @@ impl CallbackType {
                         .call1((angles, qubits))?
                         .cast_into::<PyDAGCircuit>()
                         .map_err(PyErr::from)
-                        // Since there is currently no other way of safely obtaining
-                        // the owned DAGCircuit object. We will explicitly clone the
-                        // DAG obtained in Python.
-                        .map(|dag| dag.borrow().try_read().cloned())?
+                        .map(|dag| dag.borrow().clone_inner())?
                 })
             }
             Self::Native(inner) => Ok(inner(angles, qubits)),

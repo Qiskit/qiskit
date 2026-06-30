@@ -155,7 +155,7 @@ fn py_apply_layout<'py>(
     physical_from_virtual: Vec<PhysicalQubit>,
     permutation: Option<Vec<Qubit>>,
 ) -> PyResult<Bound<'py, PyAny>> {
-    let dag_mut = dag.try_write()?;
+    let mut dag_mut = dag.try_write()?;
     let num_dag_qubits = dag_mut.num_qubits() as u32;
     if num_dag_qubits > num_physical_qubits {
         return Err(PyValueError::new_err(format!(
@@ -219,7 +219,7 @@ fn py_apply_layout<'py>(
         num_virtual_qubits,
         dag_mut.qregs().to_vec(),
     );
-    apply_layout(dag_mut, &mut cur_layout, num_physical_qubits, |v| {
+    apply_layout(&mut dag_mut, &mut cur_layout, num_physical_qubits, |v| {
         physical_from_virtual[v.index()]
     });
     cur_layout.to_py_native(py, dag_mut.qubits().objects())
@@ -232,7 +232,7 @@ fn py_update_layout<'py>(
     py_layout: &Bound<'py, PyAny>,
     reorder: Vec<Qubit>,
 ) -> PyResult<Bound<'py, PyAny>> {
-    let dag_mut = dag.try_write()?;
+    let mut dag_mut = dag.try_write()?;
     if reorder.len() != dag_mut.num_qubits() {
         return Err(PyValueError::new_err(format!(
             "Updated layout has different number of qubits ({}) to the DAG ({})",
@@ -257,7 +257,7 @@ fn py_update_layout<'py>(
     }
 
     let mut cur_layout = TranspileLayout::from_py_native(py_layout)?;
-    update_layout(dag_mut, &mut cur_layout, |q| reorder[q.index()]);
+    update_layout(&mut dag_mut, &mut cur_layout, |q| reorder[q.index()]);
     cur_layout.to_py_native(py_layout.py(), dag_mut.qubits().objects())
 }
 

@@ -27,7 +27,7 @@ pub fn py_run_barrier_before_final_measurements(
     dag: &mut PyDAGCircuit,
     label: Option<String>,
 ) -> PyResult<()> {
-    run_barrier_before_final_measurements(dag.try_write()?, label).map_err(Into::into)
+    run_barrier_before_final_measurements(&mut *dag.try_write()?, label).map_err(Into::into)
 }
 
 pub fn run_barrier_before_final_measurements(

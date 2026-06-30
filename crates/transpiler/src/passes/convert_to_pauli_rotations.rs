@@ -471,7 +471,7 @@ fn generate_pauli_product_rotation_gate(paulis: &[BitTerm], angle: Param) -> Pau
 fn py_convert_to_pauli_rotations(py_dag: &PyDAGCircuit) -> PyResult<PyDAGCircuit> {
     let dag = py_dag.try_read()?;
     Ok(PyDAGCircuit::from_dagcircuit_with_cloned_metadata(
-        convert_to_pauli_rotations(dag)?,
+        convert_to_pauli_rotations(&dag)?,
         py_dag,
     ))
 }

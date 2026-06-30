@@ -47,7 +47,7 @@ fn py_check_direction_coupling_map(
     dag: &PyDAGCircuit,
     coupling_edges: HashSet<[Qubit; 2]>,
 ) -> PyResult<bool> {
-    check_direction_coupling_map(dag.try_read()?, coupling_edges)
+    check_direction_coupling_map(&*dag.try_read()?, coupling_edges)
 }
 
 pub fn check_direction_coupling_map(
@@ -72,7 +72,7 @@ pub fn check_direction_coupling_map(
 #[pyfunction]
 #[pyo3(name = "check_gate_direction_target")]
 fn py_check_direction_target(dag: &PyDAGCircuit, target: &Target) -> PyResult<bool> {
-    check_direction_target(dag.try_read()?, target)
+    check_direction_target(&*dag.try_read()?, target)
 }
 
 /// Check if the two-qubit gates follow the right direction with respect to instructions supported in the given target.
@@ -175,7 +175,7 @@ fn py_fix_direction_coupling_map(
     dag: &mut PyDAGCircuit,
     coupling_edges: HashSet<[Qubit; 2]>,
 ) -> PyResult<()> {
-    fix_direction_coupling_map(dag.try_write()?, coupling_edges)
+    fix_direction_coupling_map(&mut *dag.try_write()?, coupling_edges)
 }
 /// Try to swap two-qubit gate directions using pre-defined mapping to follow the right direction with respect to the coupling map.
 ///
@@ -211,7 +211,7 @@ pub fn fix_direction_coupling_map(
 #[pyfunction]
 #[pyo3(name = "fix_gate_direction_target")]
 fn py_fix_direction_target(dag: &mut PyDAGCircuit, target: &Target) -> PyResult<()> {
-    fix_direction_target(dag.try_write()?, target)
+    fix_direction_target(&mut *dag.try_write()?, target)
 }
 /// Try to swap two-qubit gate directions using pre-defined mapping to follow the right direction with respect to the given target.
 ///

@@ -1159,7 +1159,7 @@ pub fn py_unitary_synthesis(
         // and the GIL is needed by worker threads
         let node_replace_map = py.detach(|| {
             parallel_synthesis(
-                dag,
+                &dag,
                 &synth_gates,
                 &qubit_indices,
                 constraint,
@@ -1168,7 +1168,7 @@ pub fn py_unitary_synthesis(
             )
         })?;
         let out_dag = apply_synthesis(
-            dag,
+            &dag,
             node_replace_map,
             &qubit_indices,
             &synth_gates,
@@ -1182,7 +1182,7 @@ pub fn py_unitary_synthesis(
         )))
     } else {
         let out_dag = serial_run_unitary_synthesis(
-            dag,
+            &dag,
             &synth_gates,
             min_qubits,
             &qubit_indices,
