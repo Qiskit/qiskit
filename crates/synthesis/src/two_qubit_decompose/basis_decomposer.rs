@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::str::FromStr;
+
 use approx::{abs_diff_eq, relative_eq};
 use num_complex::{Complex64, ComplexFloat};
 use num_traits::Zero;
@@ -25,7 +27,7 @@ use numpy::{IntoPyArray, ToPyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
-use super::common::{DEFAULT_FIDELITY, IPZ, TraceToFidelity, rx_matrix, rz_matrix};
+use super::common::{DEFAULT_FIDELITY, HGATE, IPZ, TraceToFidelity, rx_matrix, rz_matrix};
 use super::gate_sequence::{TwoQubitGateSequence, TwoQubitSequenceVec};
 use super::weyl_decomposition::{__num_basis_gates, _num_basis_gates, TwoQubitWeylDecomposition};
 
@@ -41,7 +43,7 @@ use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
-use qiskit_circuit::gate_matrix::{CX_GATE, H_GATE, ONE_QUBIT_IDENTITY};
+use qiskit_circuit::gate_matrix::{CX_GATE, ONE_QUBIT_IDENTITY};
 use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -55,9 +57,6 @@ use qiskit_util::complex::{C_M_ONE, C_ONE, IM, M_IM, c64};
 // and are just used to create a QuantumCircuit or DAGCircuit when we return to
 // Python space.
 const TWO_QUBIT_SEQUENCE_DEFAULT_CAPACITY: usize = 21;
-
-static HGATE: Matrix2<Complex64> =
-    Matrix2::new(H_GATE[0][0], H_GATE[0][1], H_GATE[1][0], H_GATE[1][1]);
 
 static K12R: Matrix2<Complex64> = Matrix2::new(
     c64(0., FRAC_1_SQRT_2),
@@ -137,6 +136,12 @@ impl TwoQubitBasisDecomposer {
     pub fn num_basis_gates_inner(&self, unitary: ArrayView2<Complex64>) -> PyResult<usize> {
         let u = ndarray_to_faer(unitary);
         __num_basis_gates(self.basis_decomposer.b, self.basis_fidelity, u)
+    }
+
+    /// Is the gate super controlled
+    #[inline]
+    pub fn super_controlled(&self) -> bool {
+        self.super_controlled
     }
 
     fn decomp1_inner(
@@ -524,7 +529,7 @@ impl TwoQubitBasisDecomposer {
         gate_params: SmallVec<[f64; 3]>,
         gate_matrix: ArrayView2<Complex64>,
         basis_fidelity: f64,
-        euler_basis: &str,
+        euler_basis: EulerBasis,
         pulse_optimize: Option<bool>,
     ) -> PyResult<Self> {
         let basis_decomposer =
@@ -610,7 +615,7 @@ impl TwoQubitBasisDecomposer {
             gate,
             gate_params,
             basis_fidelity,
-            euler_basis: EulerBasis::__new__(euler_basis)?,
+            euler_basis,
             pulse_optimize,
             basis_decomposer,
             super_controlled,
@@ -747,7 +752,7 @@ impl TwoQubitBasisDecomposer {
                 OperationRef::StandardGate(standard) => {
                     standard.create_py_op(py, Some(params), None)?.into_any()
                 }
-                OperationRef::Gate(gate) => gate.instruction.clone_ref(py),
+                OperationRef::PyCustom(inst) => inst.ob.clone_ref(py),
                 OperationRef::Unitary(unitary) => unitary.create_py_op(py, None)?.into_any(),
                 _ => unreachable!("decomposer gate must be a gate"),
             },
@@ -787,7 +792,7 @@ impl TwoQubitBasisDecomposer {
             gate_params?,
             gate_matrix.as_array(),
             basis_fidelity,
-            euler_basis,
+            EulerBasis::from_str(euler_basis).map_err(PyValueError::new_err)?,
             pulse_optimize,
         )
     }
@@ -1020,7 +1025,7 @@ pub fn two_qubit_decompose_up_to_diagonal(
         smallvec![],
         aview2(&CX_GATE),
         1.0,
-        "U",
+        EulerBasis::U,
         None,
     )?;
 
