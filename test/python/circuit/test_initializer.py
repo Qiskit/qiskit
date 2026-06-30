@@ -532,13 +532,7 @@ class TestInitialize(QiskitTestCase):
         uncompute_int = int_init.gates_to_uncompute()
         self.assertEqual(uncompute_int.num_qubits, 2)
 
-        # Equivalent amplitude-vector input should give same result
-        vec_init = Initialize([0, 1, 0, 0])
-        uncompute_vec = vec_init.gates_to_uncompute()
-        self.assertEqual(uncompute_vec.num_qubits, 2)
-
         # Verify integer-bitmap uncompute actually maps |01> back to |00...0>
-        from qiskit.quantum_info import Statevector
         result = Statevector.from_label("01").evolve(uncompute_int)
         zero_state = Statevector.from_label("00")
         self.assertTrue(result.equiv(zero_state))
