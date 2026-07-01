@@ -9,6 +9,7 @@
  * @defgroup QkClassicalRegister QkClassicalRegister
  * @defgroup QkComplex64 QkComplex64
  * @defgroup QkDag QkDag
+ * @defgroup QkEquivalenceLibrary QkEquivalenceLibrary
  * @defgroup QkNeighbors QkNeighbors
  * @defgroup QkObs QkObs
  * @defgroup QkObsTerm QkObsTerm

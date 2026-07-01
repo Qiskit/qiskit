@@ -13,6 +13,7 @@
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
+use qiskit_transpiler::equivalence::EquivalenceLibrary;
 use qiskit_transpiler::passes::run_basis_translator;
 use qiskit_transpiler::standard_equivalence_library::generate_standard_equivalence_library;
 use qiskit_transpiler::target::Target;
@@ -20,8 +21,7 @@ use qiskit_transpiler::target::Target;
 /// @ingroup QkTranspilerPassesStandalone
 /// Run the BasisTranslator transpiler pass on a circuit.
 ///
-/// The BasisTranslator transpiler pass translates gates to a target basis by
-/// searching for a set of translations from the standard EquivalenceLibrary.
+/// Refer to the ``qk_transpiler_pass_basis_translator`` function for more details about the pass.
 ///
 /// @param circuit A pointer to the circuit to run BasisTranslator on.
 /// The circuit will be mutated in-place, unless the circuit is already
@@ -29,29 +29,6 @@ use qiskit_transpiler::target::Target;
 /// @param target The target where we will obtain basis gates from.
 /// @param min_qubits The minimum number of qubits for operations in the input
 /// circuit to translate.
-///
-/// # Example
-///
-/// ```c
-///    #include <qiskit.h>
-///
-///    QkCircuit *circuit = qk_circuit_new(3, 0);
-///    qk_circuit_gate(circuit, QkGate_CCX, (uint32_t[3]){0, 1, 2}, NULL);
-///
-///    // Create a Target with global properties.
-///    QkTarget *target = qk_target_new(3);
-///    qk_target_add_instruction(target, qk_target_entry_new(QkGate_H));
-///    qk_target_add_instruction(target, qk_target_entry_new(QkGate_T));
-///    qk_target_add_instruction(target, qk_target_entry_new(QkGate_Tdg));
-///    qk_target_add_instruction(target, qk_target_entry_new(QkGate_CX));
-///
-///    // Run pass
-///    qk_transpiler_pass_standalone_basis_translator(circuit, target, 0);
-///
-///    // Free the circuit and target pointers once you're done
-///    qk_circuit_free(circuit);
-///    qk_target_free(target);
-/// ```
 ///
 /// # Safety
 ///
@@ -82,4 +59,80 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_basis_translator(
     let result_circ =
         CircuitData::from_dag_ref(&result_dag).expect("DAG to Circuit conversion failed");
     *circ_from_ptr = result_circ;
+}
+
+/// @ingroup QkTranspilerPasses
+/// Run the BasisTranslator transpiler pass on a DAG circuit.
+///
+/// The BasisTranslator transpiler pass translates gates to a target basis by
+/// searching for a set of translations from the supplied ``QkEquivalenceLibrary``.
+/// The DAG will be mutated in-place, unless the DAG is already in the target
+/// basis, in which case the DAG remains unchanged.
+///
+/// Unlike :c:func:`qk_transpiler_pass_standalone_basis_translator`, this
+/// function takes the equivalence library from the outside. This avoids
+/// regenerating it on every call when running the pass inside a custom
+/// transpiler stage, e.g. within a loop.
+///
+/// @param dag A pointer to the DAG to run BasisTranslator on.
+/// @param equiv_lib A pointer to the equivalence library to use as the source
+/// of translations.
+/// @param target The target where we will obtain basis gates from.
+/// @param min_qubits The minimum number of qubits for operations in the input
+/// DAG to translate.
+///
+/// # Example
+///
+/// ```c
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(3, "qr");
+/// qk_dag_add_quantum_register(dag, qr);
+/// uint32_t qargs[3] = {0, 1, 2};
+/// qk_dag_apply_gate(dag, QkGate_CCX, qargs, NULL, false);
+///
+/// // Create a Target with global properties.
+/// QkTarget *target = qk_target_new(3);
+/// qk_target_add_instruction(target, qk_target_entry_new(QkGate_H));
+/// qk_target_add_instruction(target, qk_target_entry_new(QkGate_T));
+/// qk_target_add_instruction(target, qk_target_entry_new(QkGate_Tdg));
+/// qk_target_add_instruction(target, qk_target_entry_new(QkGate_CX));
+///
+/// // Build the equivalence library to use for the translation
+/// QkEquivalenceLibrary *equiv_lib = qk_equivalence_library_new_standard();
+///
+/// // Run pass
+/// qk_transpiler_pass_basis_translator(dag, equiv_lib, target, 0);
+///
+/// // Free the resources once you're done
+/// qk_equivalence_library_free(equiv_lib);
+/// qk_quantum_register_free(qr);
+/// qk_dag_free(dag);
+/// qk_target_free(target);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag``, ``equiv_lib`` and/or ``target`` are not
+/// valid, non-null pointers to a ``QkDag``, ``QkEquivalenceLibrary`` or
+/// ``QkTarget``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_transpiler_pass_basis_translator(
+    dag: *mut DAGCircuit,
+    equiv_lib: *mut EquivalenceLibrary,
+    target: *const Target,
+    min_qubits: usize,
+) {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let dag = unsafe { mut_ptr_as_ref(dag) };
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let equiv_lib = unsafe { mut_ptr_as_ref(equiv_lib) };
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let target = unsafe { const_ptr_as_ref(target) };
+
+    let result_dag = match run_basis_translator(dag, equiv_lib, min_qubits, Some(target), None) {
+        Ok(Some(result)) => result,
+        Ok(None) => return,
+        Err(e) => panic!("{}", e),
+    };
+    *dag = result_dag;
 }
