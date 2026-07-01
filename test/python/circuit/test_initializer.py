@@ -522,7 +522,6 @@ class TestInitialize(QiskitTestCase):
         with self.assertRaises(CircuitError):
             _ = circuit.inverse()
 
-
     def test_gates_to_uncompute_integer_input(self):
         """Test that gates_to_uncompute works correctly for integer-bitmap inputs.
         Regression test for https://github.com/Qiskit/qiskit/issues/16413
