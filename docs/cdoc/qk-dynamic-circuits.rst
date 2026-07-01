@@ -12,8 +12,8 @@ Qiskit releases.
 
 When working with this API, keep the following assumptions and limitations in mind:
 
-* Most objects returned by the control flow and classical expressions API are borrowed pointers (returned as
-  ``const *``). They are read-only and remain valid only as long as the parent object - for example, the
+* Most objects returned by the control flow and classical expressions API are borrowed read-only pointers
+  (returned as ``const *``). These remain valid only as long as the parent object - for example, the
   circuit that owns an ``IfElse`` instruction - is alive. As such, callers must not free borrowed pointers,
   and must ensure that parent objects outlive any use of those pointers.
 
