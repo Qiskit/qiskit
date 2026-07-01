@@ -36,6 +36,7 @@ use unicode_width::UnicodeWidthStr;
 /// * cregbundle: If true, classical bits of classical registers are bundled into one wire.
 /// * mergewires: If true, adjacent wires are merged when rendered.
 /// * fold: If not None, applies line wrapping using the specified amount.
+/// * measure_arrows: If true, siplay measurement lines between qbits and classical bits
 ///
 /// # Returns:
 ///
@@ -45,10 +46,11 @@ pub fn draw_circuit(
     cregbundle: bool,
     mergewires: bool,
     fold: Option<usize>,
+    measure_arrows: bool,
 ) -> PyResult<String> {
-    let vis_mat = VisualizationMatrix::from_circuit(circuit, cregbundle)?;
+    let vis_mat = VisualizationMatrix::from_circuit(circuit, cregbundle, measure_arrows)?;
 
-    let text_drawer = TextDrawer::from_visualization_matrix(&vis_mat, cregbundle);
+    let text_drawer = TextDrawer::from_visualization_matrix(&vis_mat, cregbundle, measure_arrows);
 
     let fold = match fold {
         Some(f) => f,
@@ -96,7 +98,7 @@ pub fn draw_circuit(
 /// Return a list of layers such that each layer contains a list of op node indices, representing instructions
 /// whose qubits/clbits indices do not overlap. The instruction are packed into each layer as long as there
 /// is no qubit/clbit overlap.
-fn build_layers(circ: &CircuitData) -> Vec<Vec<&PackedInstruction>> {
+fn build_layers(circ: &CircuitData, measure_arrows: bool) -> Vec<Vec<&PackedInstruction>> {
     let mut layers: Vec<Vec<&PackedInstruction>> = Vec::new();
     let num_qubits = circ.num_qubits();
     let num_clbits = circ.num_clbits();
@@ -113,11 +115,23 @@ fn build_layers(circ: &CircuitData) -> Vec<Vec<&PackedInstruction>> {
             layers.last_mut().unwrap().push(inst);
             continue;
         }
-        let (node_min, node_max) = get_instruction_range(
-            circ.get_qargs(inst.qubits),
-            circ.get_cargs(inst.clbits),
-            num_qubits,
+
+        let is_measure = matches!(
+            inst.op.view(),
+            OperationRef::StandardInstruction(StandardInstruction::Measure)
         );
+
+        let (node_min, node_max) = if is_measure && !measure_arrows {
+            let qubit_idx = circ.get_qargs(inst.qubits)[0].index();
+            (qubit_idx, qubit_idx)
+        }
+        else {
+            get_instruction_range(
+                circ.get_qargs(inst.qubits),
+                circ.get_cargs(inst.clbits),
+                num_qubits,
+            )
+        };
 
         let layer_idx = *layers_frontier[node_min..=node_max]
             .iter()
@@ -140,10 +154,13 @@ fn get_instruction_range(
     node_clbits: &[Clbit],
     num_qubits: usize,
 ) -> (usize, usize) {
-    let indices = node_qubits
-        .iter()
-        .map(|q| q.index())
-        .chain(node_clbits.iter().max().map(|c| c.index() + num_qubits));
+
+    let indices = node_qubits.iter().map(|q| q.index()).chain(
+        node_clbits
+            .iter()
+            .max()
+            .map(|c| c.index() + num_qubits),
+    );
 
     match indices.minmax() {
         MinMaxResult::MinMax(min, max) => (min, max),
@@ -283,13 +300,21 @@ impl<'a> VisualizationLayer<'a> {
         inst: &'a PackedInstruction,
         circuit: &CircuitData,
         clbit_map: &[usize],
+        measure_arrows: bool,
     ) {
         match inst.op.view() {
             OperationRef::StandardGate(gate) => {
                 self.add_standard_gate(gate, inst, circuit);
             }
             OperationRef::StandardInstruction(std_inst) => {
-                self.add_standard_instruction(cregbundle, std_inst, inst, circuit, clbit_map);
+                self.add_standard_instruction(
+                    cregbundle,
+                    std_inst,
+                    inst,
+                    circuit,
+                    clbit_map,
+                    measure_arrows,
+                );
             }
             OperationRef::Unitary(_) => {
                 self.add_unitary_gate(inst, circuit);
@@ -327,7 +352,7 @@ impl<'a> VisualizationLayer<'a> {
         }
 
         let qargs = circuit.get_qargs(inst.qubits);
-        let (minima, maxima) = get_instruction_range(qargs, &[], 0);
+        let (minima, maxima) = get_instruction_range(qargs, &[], 0,);
 
         match gate {
             StandardGate::ISwap
@@ -430,10 +455,14 @@ impl<'a> VisualizationLayer<'a> {
         inst: &'a PackedInstruction,
         circuit: &CircuitData,
         clbit_map: &[usize],
+        measure_arrows: bool,
     ) {
         let qargs = circuit.get_qargs(inst.qubits);
-        let (minima, mut maxima) =
-            get_instruction_range(qargs, circuit.get_cargs(inst.clbits), circuit.num_qubits());
+        let (minima, mut maxima) = get_instruction_range(
+            qargs,
+            circuit.get_cargs(inst.clbits),
+            circuit.num_qubits(),
+        );
 
         match std_inst {
             StandardInstruction::Barrier(_) => {
@@ -451,14 +480,16 @@ impl<'a> VisualizationLayer<'a> {
                     VisualizationElement::Boxed(BoxedElement::Single(inst));
 
                 // Some bits may be bundled, so we need to map the Clbit index to the proper wire index
-                if cregbundle {
-                    maxima = clbit_map[circuit
-                        .get_cargs(inst.clbits)
-                        .first()
-                        .expect("Measure should have a clbit arg")
-                        .index()];
+                if measure_arrows {
+                    if cregbundle {
+                        maxima = clbit_map[circuit
+                            .get_cargs(inst.clbits)
+                            .first()
+                            .expect("Measure should have a clbit arg")
+                            .index()];
+                    }
+                    self.add_vertical_lines(minima + 1, maxima, &[], inst);
                 }
-                self.add_vertical_lines(minima + 1, maxima, &[], inst);
             }
             StandardInstruction::Delay(_) => {
                 for q in qargs {
@@ -538,8 +569,12 @@ struct VisualizationMatrix<'a> {
 }
 
 impl<'a> VisualizationMatrix<'a> {
-    fn from_circuit(circuit: &'a CircuitData, bundle_cregs: bool) -> PyResult<Self> {
-        let inst_layers = build_layers(circuit);
+    fn from_circuit(
+        circuit: &'a CircuitData,
+        bundle_cregs: bool,
+        measure_arrows: bool,
+    ) -> PyResult<Self> {
+        let inst_layers = build_layers(circuit, measure_arrows);
 
         let num_wires = circuit.num_qubits()
             + if !bundle_cregs {
@@ -601,7 +636,13 @@ impl<'a> VisualizationMatrix<'a> {
 
         for (i, layer) in inst_layers.iter().enumerate() {
             for inst in layer {
-                layers[i + 1].add_instruction(bundle_cregs, inst, circuit, &clbit_map);
+                layers[i + 1].add_instruction(
+                    bundle_cregs,
+                    inst,
+                    circuit,
+                    &clbit_map,
+                    measure_arrows,
+                );
             }
         }
 
@@ -814,13 +855,17 @@ impl Index<usize> for TextDrawer {
 }
 
 impl TextDrawer {
-    fn from_visualization_matrix(vis_mat: &VisualizationMatrix, cregbundle: bool) -> Self {
+    fn from_visualization_matrix(
+        vis_mat: &VisualizationMatrix,
+        cregbundle: bool,
+        measure_arrows: bool,
+    ) -> Self {
         let mut text_drawer = TextDrawer {
             wires: vec![Vec::new(); vis_mat.num_wires()],
         };
 
         for (i, layer) in vis_mat.layers.iter().enumerate() {
-            let layer_wires = Self::draw_layer(layer, vis_mat, cregbundle, i);
+            let layer_wires = Self::draw_layer(layer, vis_mat, cregbundle, i, measure_arrows);
             for (j, wire) in layer_wires.iter().enumerate() {
                 text_drawer.wires[j].push(wire.clone());
             }
@@ -946,12 +991,13 @@ impl TextDrawer {
         vis_mat: &VisualizationMatrix,
         cregbundle: bool,
         layer_ind: usize,
+        measure_arrows: bool,
     ) -> Vec<TextWireElement> {
         let mut wires: Vec<TextWireElement> = layer
             .0
             .iter()
             .enumerate()
-            .map(|(i, element)| Self::draw_element(element, vis_mat, cregbundle, i))
+            .map(|(i, element)| Self::draw_element(element, vis_mat, cregbundle, i, measure_arrows))
             .collect();
 
         let num_qubits = vis_mat.circuit.num_qubits();
@@ -975,6 +1021,7 @@ impl TextDrawer {
         vis_mat: &VisualizationMatrix,
         cregbundle: bool,
         wire_idx: usize,
+        measure_arrows: bool,
     ) -> TextWireElement {
         let circuit = vis_mat.circuit;
         let (top, mid, bot);
@@ -999,7 +1046,8 @@ impl TextDrawer {
                         if let Some(gate) = inst.op.try_standard_gate() {
                             if gate.is_controlled_gate() {
                                 let qargs = circuit.get_qargs(inst.qubits);
-                                let (minima, maxima) = get_instruction_range(qargs, &[], 0);
+                                let (minima, maxima) =
+                                    get_instruction_range(qargs, &[], 0);
                                 if qargs.last().unwrap().index() > minima {
                                     top_con = TOP_CON;
                                 }
@@ -1010,11 +1058,10 @@ impl TextDrawer {
                                 // lines regardless of whether the text element padding size is odd or even.
                                 (label.len() % 2 == 0).then(|| label.push(' '));
                             }
-                        } else if matches!(
-                            inst.op.view(),
-                            OperationRef::StandardInstruction(StandardInstruction::Measure)
-                                | OperationRef::PauliProductMeasurement(_)
-                        ) {
+                        } else if measure_arrows && 
+                            matches!(inst.op.view(),OperationRef::StandardInstruction(StandardInstruction::Measure)) ||  
+                            matches!(inst.op.view(), OperationRef::PauliProductMeasurement(_))
+                        {
                             bot_con = C_BOT_CON;
                         }
 
@@ -1111,8 +1158,11 @@ impl TextDrawer {
             VisualizationElement::DirectOnWire(on_wire) => {
                 (top, mid, bot) = match on_wire {
                     OnWireElement::Control(inst) => {
-                        let (minima, maxima) =
-                            get_instruction_range(circuit.get_qargs(inst.qubits), &[], 0);
+                        let (minima, maxima) = get_instruction_range(
+                            circuit.get_qargs(inst.qubits),
+                            &[],
+                            0
+                        );
                         (
                             format!(
                                 " {} ",
@@ -1134,8 +1184,11 @@ impl TextDrawer {
                         )
                     }
                     OnWireElement::Swap(inst) => {
-                        let (minima, maxima) =
-                            get_instruction_range(circuit.get_qargs(inst.qubits), &[], 0);
+                        let (minima, maxima) = get_instruction_range(
+                            circuit.get_qargs(inst.qubits),
+                            &[],
+                            0
+                        );
                         (
                             format!(
                                 " {} ",
@@ -1572,7 +1625,7 @@ mod tests {
     fn test_creg_bundle() {
         let circuit = basic_circuit();
 
-        let result = draw_circuit(&circuit, true, false, None).unwrap();
+        let result = draw_circuit(&circuit, true, false, None, true).unwrap();
 
         let expected = "
       ┌───┐
@@ -1595,7 +1648,7 @@ c2: 2/══════════
     fn test_merge_wires() {
         let circuit = basic_circuit();
 
-        let result = draw_circuit(&circuit, false, true, None).unwrap();
+        let result = draw_circuit(&circuit, false, true, None, true).unwrap();
         let expected = "
       ┌───┐
  q_0: ┤ H ├──■──
@@ -1645,7 +1698,7 @@ c2_1: ══════════
         };
         circuit.push(inst).unwrap();
 
-        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(100), true).unwrap();
         let expected = "
    ┌───┐┌─┐
 q: ┤ H ├┤M├
@@ -1688,7 +1741,7 @@ c: ══════╩═
             .push_standard_gate(StandardGate::H, &[], &[Qubit::new(1)])
             .unwrap();
 
-        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(100), true).unwrap();
         let expected = "
       ┌───┐
    q: ┤ H ├
@@ -1723,7 +1776,7 @@ cr_1: ═════
             .push_standard_gate(StandardGate::CZ, &[], &[Qubit::new(0), Qubit::new(1)])
             .unwrap();
 
-        let result = draw_circuit(&circuit, false, false, Some(10)).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(10), true).unwrap();
         let expected = "
       ┌───┐     »
  q_0: ┤ H ├──■──»
@@ -1788,7 +1841,7 @@ c2_1: ══════════»
         let mut inst_clone = circuit.data()[0].clone();
         inst_clone.label = Some(Box::new("my_ch".to_string()));
         circuit.push(inst_clone).unwrap();
-        let result = draw_circuit(&circuit, false, false, Some(80)).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(80), true).unwrap();
         let expected = "
           ┌────────────┐┌───────────────┐
 q_0: ──■──┤0 Rxx(1.23) ├┤0 my_rxx(1.23) ├────■────
@@ -1917,7 +1970,7 @@ q_1: ┤ H ├┤1           ├┤1              ├┤ my_ch ├
             py_op: OnceLock::new(),
         };
         circuit.push(inst).unwrap();
-        let result = draw_circuit(&circuit, false, false, Some(80)).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(80), true).unwrap();
         let expected = "
           ┌─────────┐                  ┌────────────────────┐┌──────────┐»
 q_0: ─────┤ Unitary ├──────────────────┤0                   ├┤2         ├»
@@ -1971,7 +2024,7 @@ q_3: ──────────────────────┤1     
                 .collect::<Vec<Param>>();
             circuit.push_standard_gate(op, &params, &qubits).unwrap();
         }
-        let result = draw_circuit(&circuit, false, false, Some(80)).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(80), true).unwrap();
         let expected = "
      ┌───┐  ┌───────────┐      ┌─────┐   ┌─────┐ ┌───────────────────────┐          »
 q_0: ┤ Y ├──┤ Rx(3.141) ├──────┤ Sdg ├───┤ Tdg ├─┤ U3(3.141,3.141,3.141) ├──■───────»
@@ -2058,7 +2111,7 @@ q_4: ─────────────────────────
     fn test_global_phase() {
         let mut circuit = basic_circuit();
         circuit.set_global_phase_param(3.14.into()).unwrap();
-        let result = draw_circuit(&circuit, true, false, None).unwrap();
+        let result = draw_circuit(&circuit, true, false, None, true).unwrap();
 
         let expected = "
 global phase: 3.14
@@ -2085,7 +2138,7 @@ c2: 2/══════════
                 ParameterExpression::from_symbol(Symbol::standalone("ϕ".to_owned(), None)),
             )))
             .unwrap();
-        let result = draw_circuit(&circuit, true, false, Some(80)).unwrap();
+        let result = draw_circuit(&circuit, true, false, Some(80), true).unwrap();
 
         let expected = "
 global phase: ϕ
@@ -2127,7 +2180,7 @@ c2: 2/══════════
                 &[Qubit(0), Qubit(1)],
             )
             .unwrap();
-        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(100), true).unwrap();
         let expected = "
      ┌─────────┐┌────────────┐┌─────────┐
 q_0: ┤0 Rxx(a) ├┤0 my_rxx(a) ├┤0 Rzx(2) ├
@@ -2214,7 +2267,7 @@ q_1: ┤1        ├┤1           ├┤1        ├
             circuit.push(inst).unwrap();
         }
 
-        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(100), true).unwrap();
         let expected = "
           ┌────────────────┐┌────────────────┐┌────────────────┐┌────────────────┐┌───────────────┐ ░  ░ »
 q_0: ─|0>─┤ Delay(2.1[ns]) ├┤ Delay(2.1[ps]) ├┤ Delay(2.1[us]) ├┤ Delay(2.1[ms]) ├┤ Delay(2.1[s]) ├─░──░─»
@@ -2291,7 +2344,7 @@ c_3: ═════════════════════════
                 &[Qubit(0), Qubit(1)],
             )
             .unwrap();
-        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(100), true).unwrap();
         let expected = "
      ┌─────────┐┌─────────────┐┌─────────┐
 q_0: ┤0 Rxx(ϕ) ├┤0 μου_rxx(ϕ) ├┤0 Rzx(2) ├
@@ -2332,7 +2385,7 @@ q_1: ┤1        ├┤1            ├┤1        ├
                 &[Qubit(0), Qubit(1)],
             )
             .unwrap();
-        let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
+        let result = draw_circuit(&circuit, false, false, Some(100), true).unwrap();
         let expected = "
                ┌───────────┐            ┌──────────────┐┌─────────┐
 q_0: ──────────┤0 Rxx(🎩)  ├────────────┤0  💶🔉(🎩)   ├┤0 Rzx(2) ├
@@ -2385,7 +2438,7 @@ q_1: ┤ Ry(🎩) ├┤1         ├─┤ 💶🔉(🎩) ├─┤1          �
             )
             .unwrap();
 
-        let result = draw_circuit(&circuit, true, true, None).unwrap();
+        let result = draw_circuit(&circuit, true, true, None, true).unwrap();
         let expected = "
 global phase: 4π/5
       ┌────────────┐ ┌────────────┐ ┌───────────────┐
@@ -2549,7 +2602,7 @@ q_1: ┤ Rz(1.2346e8) ├┤ Rx(0.12346) ├┤ Rx(1.2346e-5) ├┤ Rx(2π/3) �
             )
             .unwrap();
 
-        let result = draw_circuit(&circuit, true, true, Some(80)).unwrap();
+        let result = draw_circuit(&circuit, true, true, Some(80), true).unwrap();
         let expected = "
                       ┌────────────┐┌──────────────┐
  q_0: ────────────────┤0 Z         ├┤0  Z          ├
@@ -2632,9 +2685,9 @@ q_10: ────────────────────────�
             )
             .unwrap();
 
-        let result = draw_circuit(&circuit, true, true, Some(80)).unwrap();
+        let result = draw_circuit(&circuit, true, true, Some(80), false).unwrap();
         let expected = "
-      ┌───────────┐
+        let result = draw_circuit(&circuit, true, true, Some(80), false).unwrap();
 qr_0: ┤0 I        ├───────────────────
       │           │┌────────┐
 qr_1: ┤1 Z        ├┤2 X     ├─────────
@@ -2667,7 +2720,7 @@ cr: 3/══════╩══════════╩══════�
 
         build(&mut circuit);
 
-        let result = draw_circuit(&circuit, false, mergewires, Some(100)).unwrap();
+        let result = draw_circuit(&circuit, false, mergewires, Some(100), true).unwrap();
         assert_eq!(result, expected);
     }
 
@@ -2764,5 +2817,200 @@ q_3: ┤ X ├─■─────────────────┤ X ├
                     .unwrap();
             },
         );
+    }
+
+    fn helper_measure(circuit: &mut CircuitData, qbit_idx: usize, clbit_idx: usize) {
+        let inst = PackedInstruction {
+            op: StandardInstruction::Measure.into(),
+            qubits: circuit.add_qargs(&[Qubit::new(qbit_idx)]),
+            clbits: circuit.add_cargs(&[Clbit::new(clbit_idx)]),
+            params: None,
+            label: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
+        };
+        circuit.push(inst).unwrap();
+    }
+
+    fn helper_circuit_nqnc(n: u32) -> CircuitData {
+        let qreg = QuantumRegister::new_owning("q", n);
+        let creg = ClassicalRegister::new_owning("c", n);
+        let qubits = (0..qreg.len()).map(|i| qreg.get(i).unwrap()).collect();
+        let clbits = (0..creg.len()).map(|i| creg.get(i).unwrap()).collect();
+        let mut circuit = CircuitData::new(Some(qubits), Some(clbits), Param::Float(0.0)).unwrap();
+        _ = circuit.add_creg(creg, true);
+        _ = circuit.add_qreg(qreg, true);
+        circuit
+    }
+
+    fn helper_circuit_measure_all(n: u32) -> CircuitData {
+        let mut c = helper_circuit_nqnc(n);
+        for i in 0..n {
+            helper_measure(&mut c, i.try_into().unwrap(), i.try_into().unwrap());
+        }
+        c
+    }
+
+    fn helper_circuit_h_measure() -> CircuitData {
+        let mut c = helper_circuit_nqnc(1);
+        c.push_standard_gate(StandardGate::H, &[], &[Qubit::new(0)])
+            .unwrap();
+        helper_measure(&mut c, 0, 0);
+        c
+    }
+
+    fn helper_circuit_measure_q0_q1() -> CircuitData {
+        let mut c = helper_circuit_nqnc(2);
+        helper_measure(&mut c, 0, 0);
+        c
+    }
+
+    fn helper_circuit_bell_measure() -> CircuitData {
+        let mut c = helper_circuit_nqnc(2);
+        c.push_standard_gate(StandardGate::H, &[], &[Qubit::new(0)])
+            .unwrap();
+        c.push_standard_gate(StandardGate::CX, &[], &[Qubit::new(0), Qubit::new(1)])
+            .unwrap();
+        helper_measure(&mut c, 0, 0);
+        helper_measure(&mut c, 1, 1);
+        c
+    }
+
+    #[test]
+    fn test_measure_arrows() {
+        let list = [
+            (
+                helper_circuit_measure_all(4),
+                "
+     ┌─┐
+q_0: ┤M├─────────
+     └╥┘
+      ║ ┌─┐
+q_1: ─╫─┤M├──────
+      ║ └╥┘
+      ║  ║ ┌─┐
+q_2: ─╫──╫─┤M├───
+      ║  ║ └╥┘
+      ║  ║  ║ ┌─┐
+q_3: ─╫──╫──╫─┤M├
+      ║  ║  ║ └╥┘
+      ║  ║  ║  ║
+c_0: ═╩══╬══╬══╬═
+         ║  ║  ║
+         ║  ║  ║
+c_1: ════╩══╬══╬═
+            ║  ║
+            ║  ║
+c_2: ═══════╩══╬═
+               ║
+               ║
+c_3: ══════════╩═
+",
+                "     ┌─┐
+q_0: ┤M├
+     └─┘
+     ┌─┐
+q_1: ┤M├
+     └─┘
+     ┌─┐
+q_2: ┤M├
+     └─┘
+     ┌─┐
+q_3: ┤M├
+     └─┘
+
+c_0: ═══
+
+
+c_1: ═══
+
+
+c_2: ═══
+
+
+c_3: ═══
+",
+            ),
+            (
+                helper_circuit_h_measure(),
+                "   ┌───┐┌─┐
+q: ┤ H ├┤M├
+   └───┘└╥┘
+         ║
+c: ══════╩═
+",
+                "   ┌───┐┌─┐
+q: ┤ H ├┤M├
+   └───┘└─┘
+
+c: ════════
+",
+            ),
+            (
+                helper_circuit_measure_q0_q1(),
+                "     ┌─┐
+q_0: ┤M├
+     └╥┘
+      ║
+q_1: ─╫─
+      ║
+      ║
+c_0: ═╩═
+
+
+c_1: ═══
+",
+                "     ┌─┐
+q_0: ┤M├
+     └─┘
+
+q_1: ───
+
+
+c_0: ═══
+
+
+c_1: ═══
+",
+            ),
+            (
+                helper_circuit_bell_measure(),
+                "     ┌───┐     ┌─┐
+q_0: ┤ H ├──■──┤M├───
+     └───┘  │  └╥┘
+          ┌─┴─┐ ║ ┌─┐
+q_1: ─────┤ X ├─╫─┤M├
+          └───┘ ║ └╥┘
+                ║  ║
+c_0: ═══════════╩══╬═
+                   ║
+                   ║
+c_1: ══════════════╩═
+",
+                "     ┌───┐     ┌─┐
+q_0: ┤ H ├──■──┤M├
+     └───┘  │  └─┘
+          ┌─┴─┐┌─┐
+q_1: ─────┤ X ├┤M├
+          └───┘└─┘
+
+c_0: ═════════════
+
+
+c_1: ═════════════
+",
+            ),
+        ];
+
+        for element in list {
+            assert_eq!(
+                draw_circuit(&element.0, false, false, Some(100), true).unwrap(),
+                element.1
+            );
+            assert_eq!(
+                draw_circuit(&element.0, false, false, Some(100), false).unwrap(),
+                element.2
+            );
+        }
     }
 }
