@@ -62,6 +62,7 @@ from qiskit.circuit.library import (
     UnitaryGate,
     HamiltonianGate,
     UCGate,
+    GlobalPhaseGate,
 )
 from qiskit.transpiler.passes import ApplyLayout
 from test import QiskitTestCase
@@ -495,6 +496,74 @@ q_3: ───────────────────────┤ Bo
 q_4: ───────────────────────┤        ┤ Box-1    End-1 ├─────        ├─
                             └─────── └───────  ───────┘      ───────┘
 """.rstrip()
+        self.assertEqual(actual, expected)
+
+    def test_text_zero_operand_gate(self):
+        """A zero-operand instruction (e.g. a stand-alone ``GlobalPhaseGate``)
+        is drawn as a box spanning every qubit wire, with no per-wire operand
+        index, positioned in circuit order relative to the real gates around
+        it (see qiskit#9962)."""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cx(3, 2)
+        qc.append(GlobalPhaseGate(numpy.pi), [])
+        qc.append(GlobalPhaseGate(5 * numpy.pi), [])
+        qc.x(0)
+
+        actual = "\n".join(line.rstrip() for line in str(qc.draw("text")).splitlines())
+        expected = "\n".join(
+            [
+                "     ┌───┐┌─────────────────┐┌──────────────────┐┌───┐",
+                "q_0: ┤ H ├┤                 ├┤                  ├┤ X ├",
+                "     └───┘│                 ││                  │└───┘",
+                "q_1: ─────┤                 ├┤                  ├─────",
+                "     ┌───┐│                 ││                  │",
+                "q_2: ┤ X ├┤ Global_phase(π) ├┤ Global_phase(5π) ├─────",
+                "     └─┬─┘│                 ││                  │",
+                "q_3: ──■──┤                 ├┤                  ├─────",
+                "          │                 ││                  │",
+                "q_4: ─────┤                 ├┤                  ├─────",
+                "          └─────────────────┘└──────────────────┘",
+            ]
+        )
+        self.assertEqual(actual, expected)
+
+    def test_text_zero_operand_gate_single_qubit(self):
+        """A single-qubit circuit is the boundary case for the zero-operand
+        box: it must draw the same plain single-wire box as any other
+        one-qubit gate, rather than crashing (see qiskit#9962)."""
+        qc = QuantumCircuit(1)
+        qc.append(GlobalPhaseGate(numpy.pi), [])
+        qc.h(0)
+
+        actual = "\n".join(line.rstrip() for line in str(qc.draw("text")).splitlines())
+        expected = "\n".join(
+            [
+                "   ┌─────────────────┐┌───┐",
+                "q: ┤ Global_phase(π) ├┤ H ├",
+                "   └─────────────────┘└───┘",
+            ]
+        )
+        self.assertEqual(actual, expected)
+
+    def test_text_only_zero_operand_gate(self):
+        """A circuit consisting solely of a zero-operand instruction must
+        still draw a box spanning every qubit wire (see qiskit#9962)."""
+        qc = QuantumCircuit(3)
+        qc.append(GlobalPhaseGate(numpy.pi), [])
+
+        actual = "\n".join(line.rstrip() for line in str(qc.draw("text")).splitlines())
+        expected = "\n".join(
+            [
+                "     ┌─────────────────┐",
+                "q_0: ┤                 ├",
+                "     │                 │",
+                "q_1: ┤ Global_phase(π) ├",
+                "     │                 │",
+                "q_2: ┤                 ├",
+                "     └─────────────────┘",
+            ]
+        )
         self.assertEqual(actual, expected)
 
     def test_text_swap(self):

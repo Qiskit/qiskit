@@ -401,7 +401,19 @@ class QCircuitImage:
             for node in layer:
                 op = node.op
                 num_cols_op = 1
-                wire_list = [self._wire_map[qarg] for qarg in node.qargs if qarg in self._qubits]
+                # Generated with AI assistance (Claude Code, Claude Sonnet 4.6);
+                # see PR description for disclosure.
+                # A zero-operand instruction (e.g. a stand-alone global-phase
+                # gate) has no wires of its own, so it implicitly applies to
+                # every qubit in the circuit and is drawn spanning all of them,
+                # without per-wire operand indices (see qiskit#9962).
+                zero_operand = not node.qargs and not node.cargs
+                if zero_operand:
+                    wire_list = list(range(len(self._qubits)))
+                else:
+                    wire_list = [
+                        self._wire_map[qarg] for qarg in node.qargs if qarg in self._qubits
+                    ]
                 if getattr(op, "condition", None):
                     if isinstance(op.condition, expr.Expr):
                         warn("ignoring expression condition, which is not supported yet")
@@ -432,14 +444,19 @@ class QCircuitImage:
                         num_cols_op = self._build_ctrl_gate(op, gate_text, wire_list, column)
                     else:
                         num_cols_op = self._build_multi_gate(
-                            op, gate_text, wire_list, cwire_list, column
+                            op,
+                            gate_text,
+                            wire_list,
+                            cwire_list,
+                            column,
+                            skip_wire_labels=zero_operand,
                         )
 
                 num_cols_layer = max(num_cols_layer, num_cols_op)
 
             column += num_cols_layer
 
-    def _build_multi_gate(self, op, gate_text, wire_list, cwire_list, col):
+    def _build_multi_gate(self, op, gate_text, wire_list, cwire_list, col, skip_wire_labels=False):
         """Add a multiple wire gate to the _latex list"""
         cwire_start = len(self._qubits)
         num_cols_op = 1
@@ -450,12 +467,20 @@ class QCircuitImage:
             wire_max = max(wire_list)
             if cwire_list and not self._cregbundle:
                 wire_max = max(cwire_list)
-            wire_ind = wire_list.index(wire_min)
-            self._latex[wire_min][col] = (
-                f"\\multigate{{{wire_max - wire_min}}}{{{gate_text}}}_"
-                + "<" * (len(str(wire_ind)) + 2)
-                + f"{{{wire_ind}}}"
-            )
+            if skip_wire_labels:
+                # Generated with AI assistance (Claude Code, Claude Sonnet
+                # 4.6); see PR description for disclosure.
+                # Zero-operand instructions apply uniformly to every qubit,
+                # so there's no per-wire operand index to label (see
+                # qiskit#9962).
+                self._latex[wire_min][col] = f"\\multigate{{{wire_max - wire_min}}}{{{gate_text}}}"
+            else:
+                wire_ind = wire_list.index(wire_min)
+                self._latex[wire_min][col] = (
+                    f"\\multigate{{{wire_max - wire_min}}}{{{gate_text}}}_"
+                    + "<" * (len(str(wire_ind)) + 2)
+                    + f"{{{wire_ind}}}"
+                )
             for wire in range(wire_min + 1, wire_max + 1):
                 if wire < cwire_start:
                     ghost_box = f"\\ghost{{{gate_text}}}"
@@ -465,7 +490,9 @@ class QCircuitImage:
                     ghost_box = f"\\cghost{{{gate_text}}}"
                     if wire in cwire_list:
                         wire_ind = cwire_list.index(wire)
-                if wire in wire_list + cwire_list:
+                if skip_wire_labels:
+                    self._latex[wire][col] = ghost_box
+                elif wire in wire_list + cwire_list:
                     self._latex[wire][col] = (
                         ghost_box + "_" + "<" * (len(str(wire_ind)) + 2) + f"{{{wire_ind}}}"
                     )
