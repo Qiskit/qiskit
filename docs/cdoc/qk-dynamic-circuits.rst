@@ -19,7 +19,7 @@ When working with this API, keep the following assumptions and limitations in mi
 
 * This API does not use error codes. When called correctly, the functions are infallible. However,
   variant-specific functions (e.g. :c:func:`qk_control_flow_box_duration_kind` which expects a ``Box`` instruction) will 
-  panic and abort the process if passed an object of the wrong type. To guard against this, a set of query functions 
+  panic and abort the process used with an object of the wrong type. To guard against this, a set of query functions 
   is provided to check the type or kind of an object before calling the appropriate variant-specific function.
 
 * Qiskit uses big integers to represent some control flow and classical expression constructs,
