@@ -1,6 +1,7 @@
 ---
 features_transpiler:
-  - During Sabre layout and routing (:class:`.SabreLayout` and :class:`.SabreRouting`), the
+  - |
+    During Sabre layout and routing (:class:`.SabreLayout` and :class:`.SabreSwap`), the
     ``lookahead`` heuristic is now defined in terms of numbers of circuit layers, rather than numbers
     of circuit gates.  This reduces bias in the heuristic; for narrow circuits the previous
     heuristic could consider very far-off gates at equal weight to nearly routable gates, while for
