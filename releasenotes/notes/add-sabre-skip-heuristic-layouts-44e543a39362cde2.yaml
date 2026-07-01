@@ -1,0 +1,5 @@
+---
+features_transpiler:
+  - |
+    Added a new argument ``skip_heuristic_layouts`` to :class:`.SabreLayout` pass
+    to disable the addition of extra heuristic layouts.
