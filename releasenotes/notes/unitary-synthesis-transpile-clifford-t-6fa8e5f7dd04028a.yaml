@@ -6,8 +6,8 @@ upgrade_transpiler:
     relies on compiling to :math:`R_Z` gates and directly synthesizing these, which allows for
     better quality and runtime performance.
 
-    This implies that the Clifford+T synthesis options can no longer be passed into :func:`.transpile`
-    via the ``unitary_synthesis_method`` and ``unitary_synthesis_plugin_config``. Instead, the
+    As the result, the ``"unitary_synthesis_method"`` and ``"unitary_synthesis_plugin_config"``
+    arguments no longer affect Clifford+T synthesis in :func:`.transpile`. Instead, the
     accuracy can either be set globally by setting the ``approximation_degree``, or
     by using :func:`.generate_preset_clifford_t_pass_manager` which exposes
     ``rz_synthesis_config`` argument to pass a configuration for the :math:`R_Z` synthesis.
