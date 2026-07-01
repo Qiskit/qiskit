@@ -277,8 +277,12 @@ pub fn cancel_commutations(
                     // if the angle is close to a 4-pi multiple (from above or below), then the
                     // operator is equal to the identity
                 } else if is_multiple_of_pi(total_angle, 2.) {
-                    // a 2-pi multiple has a phase of pi: RX(2pi) = RZ(2pi) = -I = I exp(i pi)
-                    total_phase -= PI;
+                    if cancel_key.gate == GateOrRotation::XRotation
+                        || matches!(z_var_gate, Some(&StandardGate::RZ))
+                    {
+                        // a 2-pi multiple has a phase of pi: RX(2pi) = RZ(2pi) = -I = I exp(i pi)
+                        total_phase -= PI;
+                    }
                 } else if cancel_key.gate == GateOrRotation::ZRotation {
                     let z_gate = z_var_gate.unwrap();
                     dag.insert_1q_on_incoming_qubit((*z_gate, &[total_angle]), cancel_set[0]);
