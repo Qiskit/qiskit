@@ -2968,24 +2968,34 @@ q_3: ┤ X ├─■─────────────────┤ X ├
 
     #[test]
     fn test_idle_wires() {
-        let qreg = QuantumRegister::new_owning("q", 6);
-        let creg = ClassicalRegister::new_owning("c", 4);
-
-        let qubits: Vec<ShareableQubit> = (0..6).map(|i| qreg.get(i).unwrap()).collect();
-
-        let clbits: Vec<ShareableClbit> = (0..4).map(|i| creg.get(i).unwrap()).collect();
+        let qreg0 = QuantumRegister::new_owning("q0", 6);
+        let qreg1 = QuantumRegister::new_owning("q1", 4);
+        let creg0 = ClassicalRegister::new_owning("c0", 2);
+        let creg1 = ClassicalRegister::new_owning("c1", 3);
+        let creg2 = ClassicalRegister::new_owning("c2", 3);
+        let qubits: Vec<ShareableQubit> = qreg0.iter().chain(qreg1.iter()).collect();
+        let clbits: Vec<ShareableClbit> = creg0
+            .iter()
+            .chain(creg1.iter())
+            .chain(creg2.iter())
+            .collect();
 
         let mut circuit = CircuitData::new(Some(qubits), Some(clbits), Param::Float(0.0)).unwrap();
 
-        _ = circuit.add_qreg(qreg, true);
-        _ = circuit.add_creg(creg, true);
-
+        _ = circuit.add_qreg(qreg0, true);
+        _ = circuit.add_qreg(qreg1, true);
+        _ = circuit.add_creg(creg0, true);
+        _ = circuit.add_creg(creg1, true);
+        _ = circuit.add_creg(creg2, true);
         circuit
             .push_standard_gate(StandardGate::H, &[], &[Qubit(4)])
             .unwrap();
 
         circuit
             .push_standard_gate(StandardGate::CX, &[], &[Qubit(0), Qubit(2)])
+            .unwrap();
+        circuit
+            .push_standard_gate(StandardGate::CCX, &[], &[Qubit(0), Qubit(2), Qubit(4)])
             .unwrap();
 
         circuit
@@ -2997,7 +3007,7 @@ q_3: ┤ X ├─■─────────────────┤ X ├
             .unwrap();
 
         circuit
-            .push_standard_gate(StandardGate::Swap, &[], &[Qubit(4), Qubit(5)])
+            .push_standard_gate(StandardGate::Swap, &[], &[Qubit(4), Qubit(7)])
             .unwrap();
 
         let inst = PackedInstruction {
@@ -3011,6 +3021,13 @@ q_3: ┤ X ├─■─────────────────┤ X ├
         };
         circuit.push(inst).unwrap();
         circuit
+            .push_standard_gate(
+                StandardGate::CPhase,
+                &[Param::Float(PI / 2.0)],
+                &[Qubit(0), Qubit(5)],
+            )
+            .unwrap();
+        circuit
             .push_packed_operation(
                 PauliBased::PauliProductMeasurement(PauliProductMeasurement {
                     z: vec![true, true, false],
@@ -3020,44 +3037,51 @@ q_3: ┤ X ├─■─────────────────┤ X ├
                 .into(),
                 None,
                 &[Qubit(0), Qubit(5), Qubit(2)],
-                &[Clbit(2)],
+                &[Clbit(6)],
             )
             .unwrap();
         let result = draw_circuit(&circuit, false, false, Some(80), false).unwrap();
         let expected = "
-                          ┌─┐┌────────┐
-q_0: ──■──────────────────┤M├┤0 Z     ├
-       │                  └╥┘│        │
-     ┌─┴─┐┌───────────┐    ║ │        │
-q_2: ┤ X ├┤0 Rzz(π/4) ├────╫─┤2 X PPM ├
-     └───┘│           │    ║ │        │
-     ┌───┐│           │    ║ │        │
-q_4: ┤ H ├┤1          ├─X──╫─┤        ├
-     └───┘└───────────┘ │  ║ │        │
-                        │  ║ │        │
-q_5: ───────────────────X──╫─┤1 Y     ├
-                           ║ └───╥────┘
-                           ║     ║
-c_0: ══════════════════════╩═════╬═════
-                                 ║
-                                 ║
-c_2: ════════════════════════════╩═════
+                                ┌─┐         ┌────────┐
+q0_0: ──■────■──────────────────┤M├─■───────┤0 Z     ├
+        │    │                  └╥┘ │P(π/2) │        │
+      ┌─┴─┐  │  ┌───────────┐    ║  │       │        │
+q0_2: ┤ X ├──■──┤0 Rzz(π/4) ├────╫──┼───────┤2 X PPM ├
+      └───┘  │  │           │    ║  │       │        │
+      ┌───┐┌─┴─┐│           │    ║  │       │        │
+q0_4: ┤ H ├┤ X ├┤1          ├─X──╫──┼───────┤        ├
+      └───┘└───┘└───────────┘ │  ║  │       │        │
+                              │  ║  │       │        │
+q0_5: ────────────────────────┼──╫──■───────┤1 Y     ├
+                              │  ║          └───╥────┘
+                              │  ║              ║
+q1_1: ────────────────────────X──╫──────────────╫─────
+                                 ║              ║
+                                 ║              ║
+c0_0: ═══════════════════════════╩══════════════╬═════
+                                                ║
+                                                ║
+c2_1: ══════════════════════════════════════════╩═════
 ";
         assert_eq!(result, expected.trim_start_matches("\n"));
 
         let result_creg_bundle = draw_circuit(&circuit, true, true, Some(80), false).unwrap();
         let expected_creg_bundle = "
-                          ┌─┐┌────────┐
-q_0: ──■──────────────────┤M├┤0 Z     ├
-     ┌─┴─┐┌───────────┐   └╥┘│        │
-q_2: ┤ X ├┤0 Rzz(π/4) ├────╫─┤2 X PPM ├
-     ├───┤│           │    ║ │        │
-q_4: ┤ H ├┤1          ├─X──╫─┤        ├
-     └───┘└───────────┘ │  ║ │        │
-q_5: ───────────────────X──╫─┤1 Y     ├
-                           ║ └───╥────┘
-c: 4/══════════════════════╩═════╩═════
-                           0     2
+                                ┌─┐         ┌────────┐
+q0_0: ──■────■──────────────────┤M├─■───────┤0 Z     ├
+      ┌─┴─┐  │  ┌───────────┐   └╥┘ │P(π/2) │        │
+q0_2: ┤ X ├──■──┤0 Rzz(π/4) ├────╫──┼───────┤2 X PPM ├
+      ├───┤┌─┴─┐│           │    ║  │       │        │
+q0_4: ┤ H ├┤ X ├┤1          ├─X──╫──┼───────┤        ├
+      └───┘└───┘└───────────┘ │  ║  │       │        │
+q0_5: ────────────────────────┼──╫──■───────┤1 Y     ├
+                              │  ║          └───╥────┘
+q1_1: ────────────────────────X──╫──────────────╫─────
+                                 ║              ║
+c0: 2/═══════════════════════════╩══════════════╬═════
+                                 0              ║
+c2: 3/══════════════════════════════════════════╩═════
+                                                1
 ";
         assert_eq!(
             result_creg_bundle,
