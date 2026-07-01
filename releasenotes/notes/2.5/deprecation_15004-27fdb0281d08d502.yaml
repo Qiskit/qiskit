@@ -1,8 +1,12 @@
 ---
 deprecations_synthesis:
   - |
-    Some of the arguments in the function :func:`.qs_decomposition` are now deprecated:
+    Several behaviors of arguments of :func:`.qs_decomposition` are now deprecated and will be
+    removed in Qiskit v3.0.
 
-     * `opt_a1` and `opt_a2` are no longer needed, as the funcion automatically determines if the optimizations should run
-     * `decomposer_1q` won't accept any callable anymore, only instances of :class:`.OneQubitBasisDecomposer`
-     * `decomposer_2q` won't accept any callable anymore, only instances of :class:`.TwoQubitBasisDecomposer`
+    * setting ``opt_a1`` and ``opt_a2`` is no longer necessary; the function automatically determines
+      whether the optimizations can apply.
+
+    * ``decomposer_1q`` and ``decomposer_2q`` should be instances of
+      :class:`.OneQubitBasisDecomposer` or :class:`.TwoQubitBasisDecomposer`, respectively; using
+      arbitrary Python callables is non-performant compared to the Rust core.
