@@ -20,6 +20,6 @@
 
 fixes:
   - |
-    :func:`.plot_bloch_vector` no longer mutates a list input.
+    :func:`.plot_bloch_vector` no longer mutates :class:`list` inputs.
 features_visualization:
-  - :func:`.plot_bloch_vector` now accepts tuple input.
+  - :func:`.plot_bloch_vector` now accepts :class:`tuple` inputs.
