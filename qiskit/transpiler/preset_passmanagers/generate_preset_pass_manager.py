@@ -316,6 +316,32 @@ def generate_preset_clifford_t_pass_manager(
     default to all of the Clifford+T gates in Qiskit. Note, however, that if basis gates are specified
     but do not represent a Clifford+T basis, then an error will be raised.
 
+    Examples:
+        Generate and use a simple Clifford+T pass manager::
+
+            from qiskit.circuit import QuantumCircuit
+            from qiskit.transpiler import generate_preset_clifford_t_pass_manager
+
+            qc = QuantumCircuit(1)
+            qc.rz(2.3579, 0)
+
+            pm = generate_preset_clifford_t_pass_manager()
+            qct = pm.run(qc)
+
+        Various options are configurable; see the arguments documentation for more detail::
+
+            rz_synthesis_config = {
+                "rz_synthesis_error": 1e-4,
+                "rz_cache_error": 1e-5,
+            }
+
+            basis_gates = ["cx", "s", "sdg", "h", "t", "tdg"]
+            pm = generate_preset_clifford_t_pass_manager(
+                rz_synthesis_config=rz_synthesis_config,
+                basis_gates=basis_gates,
+                optimization_level=3,
+            )
+
     Args:
         optimization_level: The optimization level to generate a
             :class:`~.StagedPassManager` for. By default optimization level 2
