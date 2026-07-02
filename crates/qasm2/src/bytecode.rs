@@ -11,14 +11,141 @@
 // that they have been altered from the originals.
 
 use num_bigint::BigUint;
+use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
+use pyo3::types::PyTuple;
 
 use crate::error::QASM2ParseError;
 use crate::expr::Expr;
-use crate::lex;
-use crate::parse;
 use crate::parse::{ClbitId, CregId, GateId, ParamId, QubitId};
-use crate::{CustomClassical, CustomInstruction};
+use crate::{ClassicalCallableExt, CustomClassical, CustomInstruction, lex, parse};
+
+impl<'py> IntoPyObject<'py> for Expr {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        match self {
+            Expr::Constant(value) => Ok(Py::new(py, ExprConstant { value })?
+                .into_bound(py)
+                .into_any()),
+            Expr::Parameter(index) => Ok(Py::new(py, ExprArgument { index })?
+                .into_bound(py)
+                .into_any()),
+            Expr::Negate(expr) => {
+                let arg_py = (*expr).into_pyobject(py)?.unbind();
+                Ok(Py::new(
+                    py,
+                    ExprUnary {
+                        opcode: UnaryOpCode::Negate,
+                        argument: arg_py,
+                    },
+                )?
+                .into_bound(py)
+                .into_any())
+            }
+            Expr::Function(func, expr) => {
+                let arg_py = (*expr).into_pyobject(py)?.unbind();
+                Ok(Py::new(
+                    py,
+                    ExprUnary {
+                        opcode: UnaryOpCode::from(func),
+                        argument: arg_py,
+                    },
+                )?
+                .into_bound(py)
+                .into_any())
+            }
+            Expr::Add(left, right) => {
+                let left_py = (*left).into_pyobject(py)?.unbind();
+                let right_py = (*right).into_pyobject(py)?.unbind();
+                Ok(Py::new(
+                    py,
+                    ExprBinary {
+                        opcode: BinaryOpCode::Add,
+                        left: left_py,
+                        right: right_py,
+                    },
+                )?
+                .into_bound(py)
+                .into_any())
+            }
+            Expr::Subtract(left, right) => {
+                let left_py = (*left).into_pyobject(py)?.unbind();
+                let right_py = (*right).into_pyobject(py)?.unbind();
+                Ok(Py::new(
+                    py,
+                    ExprBinary {
+                        opcode: BinaryOpCode::Subtract,
+                        left: left_py,
+                        right: right_py,
+                    },
+                )?
+                .into_bound(py)
+                .into_any())
+            }
+            Expr::Multiply(left, right) => {
+                let left_py = (*left).into_pyobject(py)?.unbind();
+                let right_py = (*right).into_pyobject(py)?.unbind();
+                Ok(Py::new(
+                    py,
+                    ExprBinary {
+                        opcode: BinaryOpCode::Multiply,
+                        left: left_py,
+                        right: right_py,
+                    },
+                )?
+                .into_bound(py)
+                .into_any())
+            }
+            Expr::Divide(left, right) => {
+                let left_py = (*left).into_pyobject(py)?.unbind();
+                let right_py = (*right).into_pyobject(py)?.unbind();
+                Ok(Py::new(
+                    py,
+                    ExprBinary {
+                        opcode: BinaryOpCode::Divide,
+                        left: left_py,
+                        right: right_py,
+                    },
+                )?
+                .into_bound(py)
+                .into_any())
+            }
+            Expr::Power(left, right) => {
+                let left_py = (*left).into_pyobject(py)?.unbind();
+                let right_py = (*right).into_pyobject(py)?.unbind();
+                Ok(Py::new(
+                    py,
+                    ExprBinary {
+                        opcode: BinaryOpCode::Power,
+                        left: left_py,
+                        right: right_py,
+                    },
+                )?
+                .into_bound(py)
+                .into_any())
+            }
+            Expr::CustomFunction(callable, exprs) => {
+                let args_vec: Result<Vec<_>, _> = exprs
+                    .into_iter()
+                    .map(|arg| arg.into_pyobject(py).map(|obj| obj.unbind()))
+                    .collect();
+                let args_tuple = PyTuple::new(py, args_vec?)?;
+                Ok(Py::new(
+                    py,
+                    ExprCustom {
+                        callable,
+                        arguments: args_tuple.unbind(),
+                    },
+                )?
+                .into_bound(py)
+                .into_any())
+            }
+        }
+    }
+}
 
 /// The Rust parser produces an iterator of these `Bytecode` instructions, which comprise an opcode
 /// integer for operation distinction, and a free-form tuple containing the operands.
@@ -103,10 +230,29 @@ pub struct ExprBinary {
 #[pyclass(module = "qiskit._accelerate.qasm2", frozen, skip_from_py_object)]
 #[derive(Clone)]
 pub struct ExprCustom {
+    pub callable: ClassicalCallableExt,
     #[pyo3(get)]
-    pub callable: Py<PyAny>,
-    #[pyo3(get)]
-    pub arguments: Vec<Py<PyAny>>,
+    pub arguments: Py<PyTuple>,
+}
+#[pymethods]
+impl ExprCustom {
+    #[pyo3(signature = (*args))]
+    fn call(&self, args: Bound<PyTuple>) -> PyResult<f64> {
+        match &self.callable {
+            ClassicalCallableExt::Builtin(builtin) => {
+                let arg_vals = args.extract::<Vec<f64>>()?;
+                let provided = arg_vals.len();
+                builtin.call(&arg_vals).map_err(|expected| {
+                    PyTypeError::new_err(format!(
+                        "argument mismatch: expected {expected}, got {provided}"
+                    ))
+                })
+            }
+            ClassicalCallableExt::Py { ob, num_params: _ } => {
+                ob.bind(args.py()).call1(args).and_then(|ob| ob.extract())
+            }
+        }
+    }
 }
 
 /// Discriminator for the different types of unary operator.  We could have a separate class for
@@ -114,7 +260,7 @@ pub struct ExprCustom {
 /// option tree at the top level, so we don't have to test every unary operator before testing
 /// other operations.
 #[pyclass(module = "qiskit._accelerate.qasm2", frozen, eq, skip_from_py_object)]
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum UnaryOpCode {
     Negate,
     Cos,
@@ -130,7 +276,7 @@ pub enum UnaryOpCode {
 /// option tree at the top level, so we don't have to test every binary operator before testing
 /// other operations.
 #[pyclass(module = "qiskit._accelerate.qasm2", frozen, eq, skip_from_py_object)]
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum BinaryOpCode {
     Add,
     Subtract,
