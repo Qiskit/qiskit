@@ -276,7 +276,7 @@ pub enum CLoopCollectionType {
 #[repr(C)]
 pub struct CLoopElements {
     /// Pointer to the array of loop elements.
-    elements: *const usize,
+    elements: *const isize,
     /// Number of elements in the array.
     len: usize,
 }
