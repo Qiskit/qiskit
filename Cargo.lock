@@ -2395,6 +2395,7 @@ dependencies = [
  "hashbrown 0.15.5",
  "ndarray",
  "num-complex",
+ "qiskit-circuit",
  "rustworkx-core",
  "thiserror 2.0.18",
 ]
