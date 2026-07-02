@@ -1,9 +1,0 @@
----
-fixes:
-  - |
-    Fixed an :exc:`OverflowError` that occurred when passing a list containing negative integers
-    as an ``indexset`` to :meth:`.QuantumCircuit.for_loop`. The Rust backend was representing
-    the for-loop indexset list as an unsigned integer type (``usize``), which could not
-    accommodate negative values. The internal representation and the QPY serialization have been
-    corrected to use signed integers (``isize``).
-    Fixes `#16412 <https://github.com/Qiskit/qiskit/issues/16412>`__.
