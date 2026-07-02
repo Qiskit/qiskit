@@ -2323,6 +2323,9 @@ impl DAGCircuit {
                                             Some(LoopParam::Variable(var_a)),
                                             Some(LoopParam::Variable(var_b)),
                                         ) => {
+                                            // Runtime loop variables are the body's input var and
+                                            // aren't substituted at compile time, so we just check
+                                            // they're the same Var and the bodies structurally match.
                                             if var_a != var_b {
                                                 return Ok(false);
                                             }
