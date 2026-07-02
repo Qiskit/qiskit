@@ -78,13 +78,13 @@ sample transpilation looks like::
     # ... and use it (as many times as you like).
     physical = pm.run(abstract)
 
-For early experiments towards fault tolerance, the function :func:`.generate_preset_pass_manager`
+For early experiments towards fault tolerance, the functions :func:`.generate_preset_pass_manager`
 and :func:`.transpile` invoke a specialized transpilation pipeline when the target basis consists of 
 Clifford+T gates, see :func:`.generate_preset_clifford_t_pass_manager` for documentation.
 It is recommended to use the latter for a detailed configuration of Clifford+T pipelines. 
-For example, setting the :math:`R_Z` synthesis accuracy cannot be set via 
+For example, the :math:`R_Z` synthesis accuracy cannot be set via 
 ``"unitary_synthesis_method"`` in :func:`.generate_preset_pass_manager` but can only be globally
-set via the ``"approximation_degree"`` -- however, :func:`.generate_preset_clifford_t_pass_manager`
+set via the ``"approximation_degree"``. However, :func:`.generate_preset_clifford_t_pass_manager`
 exposes ``"rz_synthesis_config"`` for this matter.
 
 For example::
