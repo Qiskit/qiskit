@@ -49,6 +49,7 @@ pub unsafe extern "C" fn qk_transpiler_standalone_optimize_1q_sequences(
     circuit: *mut CircuitData,
     target: *const Target,
 ) {
+    // SAFETY: Per documentation, the pointers are valid and non-null.
     unsafe { qk_transpiler_pass_standalone_optimize_1q_sequences(circuit, target) };
 }
 
@@ -79,13 +80,11 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_optimize_1q_sequences(
     circuit: *mut CircuitData,
     target: *const Target,
 ) {
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let target = unsafe {
-        if target.is_null() {
-            None
-        } else {
-            Some(const_ptr_as_ref(target))
-        }
+    let target = if target.is_null() {
+        None
+    } else {
+        // SAFETY: Per documentation, the pointer is non-null and aligned.
+        Some(unsafe { const_ptr_as_ref(target) })
     };
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
@@ -170,13 +169,11 @@ pub unsafe extern "C" fn qk_transpiler_pass_optimize_1q_sequences(
     dag: *mut DAGCircuit,
     target: *const Target,
 ) {
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let target = unsafe {
-        if target.is_null() {
-            None
-        } else {
-            Some(const_ptr_as_ref(target))
-        }
+    let target = if target.is_null() {
+        None
+    } else {
+        // SAFETY: Per documentation, the pointer is non-null and aligned.
+        Some(unsafe { const_ptr_as_ref(target) })
     };
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let dag = unsafe { mut_ptr_as_ref(dag) };
