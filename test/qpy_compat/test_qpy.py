@@ -1115,9 +1115,11 @@ def generate_circuits(
     ):
         output_circuits["ppr.qpy"] = generate_pauli_product_rotation()
 
-    # The excluded versions had a bug in the Rust code and couldn't use negative indices.
-    if Version("0.19.2") < generating_version and (
-        not Version("2.0.0a1") <= generating_version < Version("2.5.0")
+    # The excluded versions have a bug in the Rust code and couldn't use negative indices.
+    if (
+        Version("0.19.2") < generating_version
+        and (not Version("2.0.0a1") <= generating_version < Version("2.5.0"))
+        and (not Version("2.0.0a1") <= current_version < Version("2.5.0"))
     ):
         output_circuits["for_loop_negative.qpy"] = generate_for_loop_negative_circuits()
 
