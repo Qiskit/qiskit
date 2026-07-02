@@ -203,9 +203,9 @@ static int test_for_nested_break_continue(void) {
         goto cleanup;
     }
 
-    for (ptrdiff_t i = 0; i < loop_elements.len; i++) {
-        if (loop_elements.elements[i] != i + 1) {
-            printf("Expected loop_elements.elements[%td] == %td, got %td\n", i, i + 1,
+    for (size_t i = 0; i < loop_elements.len; i++) {
+        if (loop_elements.elements[i] != (ptrdiff_t)i + 1) {
+            printf("Expected loop_elements.elements[%zu] == %zu, got %td\n", i, i + 1,
                    loop_elements.elements[i]);
             result = EqualityError;
             goto cleanup;
