@@ -4,14 +4,14 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
 use hashbrown::HashSet;
-use numpy::{PyArray1, PyArrayMethods, ToPyArray};
+use numpy::{PyArray1, PyArray2, PyArrayMethods, ToPyArray};
 use pyo3::{
     IntoPyObjectExt, PyErr,
     exceptions::{PyTypeError, PyValueError},
@@ -25,10 +25,11 @@ use std::{
 };
 
 use rand::prelude::*;
+use rand::rngs::SysRng;
 use rand_distr::Bernoulli;
 use rand_pcg::Pcg64Mcg;
 
-use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
+use qiskit_util::py::{PySequenceIndex, SequenceIndex};
 
 use super::qubit_sparse_pauli::{
     ArithmeticError, CoherenceError, InnerReadError, InnerWriteError, LabelError, Pauli,
@@ -192,7 +193,7 @@ impl PauliLindbladMap {
     /// Clear all the generator terms from this map, making it equal to the identity map again.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction of generator terms may not need to reallocate.
+    /// subtraction of generator terms may not need to reallocate.
     pub fn clear(&mut self) {
         self.rates.clear();
         self.gamma = 1.0;
@@ -385,16 +386,22 @@ impl PauliLindbladMap {
 
     /// Sample sign and Pauli operator pairs from the map.
     /// Note that here the "sign" bool is interpreted as the exponent of (-1)^b.
-    pub fn parity_sample(
+    #[allow(clippy::type_complexity)]
+    pub fn parity_sample_with_history(
         &self,
         num_samples: u64,
         seed: Option<u64>,
         scale: Option<f64>,
         local_scale: Option<Vec<f64>>,
-    ) -> (Vec<bool>, QubitSparsePauliList) {
+    ) -> (
+        Vec<bool>,
+        QubitSparsePauliList,
+        Vec<Vec<bool>>,
+        Vec<Vec<bool>>,
+    ) {
         let mut rng = match seed {
             Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-            None => Pcg64Mcg::from_os_rng(),
+            None => Pcg64Mcg::try_from_rng(&mut SysRng).unwrap(),
         };
         let modified_probabilities;
         let modified_non_negative_rates;
@@ -421,13 +428,18 @@ impl PauliLindbladMap {
         };
         let mut random_signs = Vec::with_capacity(num_samples as usize);
         let mut random_paulis = QubitSparsePauliList::empty(self.num_qubits());
+        let mut pauli_history = Vec::with_capacity(num_samples as usize);
+        let mut signs_history = Vec::with_capacity(num_samples as usize);
 
         for _ in 0..num_samples {
             let mut random_sign = false;
             let mut random_pauli = QubitSparsePauli::identity(self.num_qubits());
+            let mut inner_pauli_history = vec![false; self.qubit_sparse_pauli_list.num_terms()];
+            let mut inner_signs_history = vec![false; self.qubit_sparse_pauli_list.num_terms()];
 
-            for ((probability, generator), non_negative_rate) in probabilities
+            for (((idx, probability), generator), non_negative_rate) in probabilities
                 .iter()
+                .enumerate()
                 .zip(self.qubit_sparse_pauli_list.iter())
                 .zip(non_negative_rates.iter())
             {
@@ -436,6 +448,9 @@ impl PauliLindbladMap {
                     random_pauli = random_pauli.compose(&generator.to_term()).unwrap();
                     // if rate is negative, flip random_sign
                     random_sign = random_sign == *non_negative_rate;
+                    // keep track of sampled generator
+                    inner_pauli_history[idx] = true;
+                    inner_signs_history[idx] = *non_negative_rate;
                 }
             }
 
@@ -443,9 +458,11 @@ impl PauliLindbladMap {
             random_paulis
                 .add_qubit_sparse_pauli(random_pauli.view())
                 .unwrap();
+            pauli_history.push(inner_pauli_history);
+            signs_history.push(inner_signs_history);
         }
 
-        (random_signs, random_paulis)
+        (random_signs, random_paulis, pauli_history, signs_history)
     }
 
     /// Reduce the map to its canonical form.
@@ -590,7 +607,12 @@ impl GeneratorTerm {
 /// A single term from a complete :class:`PauliLindbladMap`.
 ///
 /// These are typically created by indexing into or iterating through a :class:`PauliLindbladMap`.
-#[pyclass(name = "GeneratorTerm", frozen, module = "qiskit.quantum_info")]
+#[pyclass(
+    name = "GeneratorTerm",
+    frozen,
+    module = "qiskit.quantum_info",
+    skip_from_py_object
+)]
 #[derive(Clone, Debug)]
 struct PyGeneratorTerm {
     inner: GeneratorTerm,
@@ -752,7 +774,7 @@ impl PyGeneratorTerm {
 /// :math:`\lambda_P` are real numbers. When all the rates :math:`\lambda_P` are non-negative, this
 /// corresponds to a completely positive and trace preserving map. The sum in the exponential is
 /// called the generator, and each individual term the generators. To simplify notation in the rest
-/// of the documention, we denote :math:`L(P)\bigl[\circ\bigr] = P \circ P - \circ`.
+/// of the documentation, we denote :math:`L(P)\bigl[\circ\bigr] = P \circ P - \circ`.
 ///
 /// Quasi-probability representation
 /// ================================
@@ -1089,7 +1111,7 @@ impl PyPauliLindbladMap {
     /// Clear all the generator terms from this map, making it equal to the identity map again.
     ///
     /// This does not change the capacity of the internal allocations, so subsequent addition or
-    /// substraction operations resulting from composition may not need to reallocate.
+    /// subtraction operations resulting from composition may not need to reallocate.
     ///
     /// Examples:
     ///
@@ -1228,6 +1250,18 @@ impl PyPauliLindbladMap {
     fn get_qubit_sparse_pauli_list_copy(&self) -> PyQubitSparsePauliList {
         let inner = self.inner.read().unwrap();
         inner.qubit_sparse_pauli_list.clone().into()
+    }
+
+    /// Get the generators of the map.
+    ///
+    /// This is an alias for :meth:`get_qubit_sparse_pauli_list_copy`, providing a more
+    /// convenient name that aligns with the naming conventions used in Aer and Runtime
+    /// for similar classes.
+    ///
+    /// Returns:
+    ///     QubitSparsePauliList: A copy of the map's generator terms.
+    fn generators(&self) -> PyQubitSparsePauliList {
+        self.get_qubit_sparse_pauli_list_copy()
     }
 
     /// Express the map in terms of a sparse list format.
@@ -1560,7 +1594,8 @@ impl PyPauliLindbladMap {
         seed: Option<u64>,
     ) -> PyResult<Bound<'py, PyTuple>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let (signs, paulis) = py.detach(|| inner.parity_sample(num_samples, seed, None, None));
+        let (signs, paulis, _, _) =
+            py.detach(|| inner.parity_sample_with_history(num_samples, seed, None, None));
 
         let signs = PyArray1::from_vec(py, signs.iter().map(|b| !b).collect());
         let paulis = paulis.into_pyobject(py).unwrap();
@@ -1612,13 +1647,51 @@ impl PyPauliLindbladMap {
         local_scale: Option<Vec<f64>>,
     ) -> PyResult<Bound<'py, PyTuple>> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        let (signs, paulis) =
-            py.detach(|| inner.parity_sample(num_samples, seed, scale, local_scale));
+        let (signs, paulis, _, _) =
+            py.detach(|| inner.parity_sample_with_history(num_samples, seed, scale, local_scale));
 
         let signs = PyArray1::from_vec(py, signs);
         let paulis = paulis.into_pyobject(py).unwrap();
 
         (signs, paulis).into_pyobject(py)
+    }
+
+    /// Sample sign and Pauli operator pairs from the map, preserving the sampled generators.
+    ///
+    /// This method is identical to :meth:`parity_sample` except for also returning the information
+    /// which :meth:`generators` were actually sampled to yield the final Pauli operator and sign.
+    ///
+    ///
+    /// Args:
+    ///     num_samples (int): Number of samples to draw.
+    ///     seed (int): Random seed.
+    ///     scale (float): Scale to apply to all rates.
+    ///     local_scale (list[float]): Local scale to apply on a term-by-term basis.
+    ///
+    /// Returns:
+    ///     signs, qubit_sparse_pauli_list, pauli_history, signs_history: The boolean array of
+    ///         signs, the list of qubit sparse paulis, the two dimensional boolean array
+    ///         indicating which :meth:`generators` were sampled and the two dimensional boolean
+    ///         array indicating their signs.
+    #[pyo3(signature = (num_samples, seed=None, scale=None, local_scale=None))]
+    pub fn parity_sample_with_history<'py>(
+        &self,
+        py: Python<'py>,
+        num_samples: u64,
+        seed: Option<u64>,
+        scale: Option<f64>,
+        local_scale: Option<Vec<f64>>,
+    ) -> PyResult<Bound<'py, PyTuple>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let (signs, paulis, pauli_history, signs_history) =
+            py.detach(|| inner.parity_sample_with_history(num_samples, seed, scale, local_scale));
+
+        let signs = PyArray1::from_vec(py, signs);
+        let paulis = paulis.into_pyobject(py).unwrap();
+        let pauli_history = PyArray2::from_vec2(py, &pauli_history).unwrap();
+        let signs_history = PyArray2::from_vec2(py, &signs_history).unwrap();
+
+        (signs, paulis, pauli_history, signs_history).into_pyobject(py)
     }
 
     /// For :class:`.PauliLindbladMap` instances with purely non-negative rates, sample Pauli
@@ -1665,21 +1738,22 @@ impl PyPauliLindbladMap {
             }
         }
 
-        let (_, paulis) = py.detach(|| inner.parity_sample(num_samples, seed, None, None));
+        let (_, paulis, _, _) =
+            py.detach(|| inner.parity_sample_with_history(num_samples, seed, None, None));
 
         paulis.into_pyobject(py)
     }
 
     /// Sum any like terms in the generator, removing them if the resulting rate has an absolute
     /// value within tolerance of zero. This also removes terms whose Pauli operator is proportional
-    /// to the identity, as the correponding generator is actually the zero map.
+    /// to the identity, as the corresponding generator is actually the zero map.
     ///
     /// As a side effect, this sorts the generators into a fixed canonical order.
     ///
     /// .. note::
     ///
     ///     When using this for equality comparisons, note that floating-point rounding and the
-    ///     non-associativity fo floating-point addition may cause non-zero coefficients of summed
+    ///     non-associativity of floating-point addition may cause non-zero coefficients of summed
     ///     terms to compare unequal.  To compare two observables up to a tolerance, it is safest to
     ///     compare the canonicalized difference of the two observables to zero.
     ///
@@ -1771,7 +1845,7 @@ impl PyPauliLindbladMap {
     ///
     /// Args: qubit_sparse_pauli (QubitSparsePauli): the qubit sparse Pauli to compute the Pauli
     ///     fidelity of.
-    fn pauli_fidelity(&self, qubit_sparse_pauli: PyQubitSparsePauli) -> PyResult<f64> {
+    fn pauli_fidelity(&self, qubit_sparse_pauli: &PyQubitSparsePauli) -> PyResult<f64> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         let result = inner.pauli_fidelity(qubit_sparse_pauli.inner())?;
         Ok(result)

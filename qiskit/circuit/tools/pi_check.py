@@ -4,12 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=too-many-return-statements
+
 
 """Check if number close to values of PI"""
 
@@ -18,6 +18,11 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.exceptions import QiskitError
 
 MAX_FRAC = 16
+# Max denominator k for pi/k in the fourth check (2-digit denominators).
+# The different threshold compared to MAX_FRAC is historic, since previous versions
+# of Qiskit used a slightly different, inconsistent check that led to higher fractions
+# being detected.
+MAX_PI_FRAC = 99
 N, D = np.meshgrid(np.arange(1, MAX_FRAC + 1), np.arange(1, MAX_FRAC + 1))
 FRAC_MESH = N / D * np.pi
 RECIP_MESH = N / D / np.pi
@@ -87,11 +92,10 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
                 val = int(abs(round(val)))
                 if abs(val) == 1:
                     str_out = f"{neg_str}{pi}"
+                elif output == "qasm":
+                    str_out = f"{neg_str}{val}*{pi}"
                 else:
-                    if output == "qasm":
-                        str_out = f"{neg_str}{val}*{pi}"
-                    else:
-                        str_out = f"{neg_str}{val}{pi}"
+                    str_out = f"{neg_str}{val}{pi}"
                 return str_out
 
         # Second is a check for powers of pi
@@ -123,13 +127,15 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
         # Fourth check is for fractions for 1*pi in the numer and any
         # number in the denom.
         val = np.pi / single_inpt
-        if abs(abs(val) - abs(round(val))) < eps:
-            val = int(abs(round(val)))
-            if output == "latex":
-                str_out = f"\\frac{{{neg_str}{pi}}}{{{val}}}"
-            else:
-                str_out = f"{neg_str}{pi}/{val}"
-            return str_out
+        denom = int(abs(round(val)))
+        if denom >= 1:
+            angle_close = abs(abs(single_inpt) - np.pi / denom) < eps
+            if angle_close and denom <= MAX_PI_FRAC:
+                if output == "latex":
+                    str_out = f"\\frac{{{neg_str}{pi}}}{{{denom}}}"
+                else:
+                    str_out = f"{neg_str}{pi}/{denom}"
+                return str_out
 
         # Fifth check is for fractions where the numer > 1*pi and numer
         # is up to MAX_FRAC*pi and denom is up to MAX_FRAC and all

@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -39,7 +39,7 @@ pub fn run_elide_permutations(dag: &DAGCircuit) -> PyResult<Option<(DAGCircuit, 
     let mut mapping: Vec<usize> = (0..dag.num_qubits()).collect();
 
     // note that DAGCircuit::copy_empty_like clones the interners
-    let mut new_dag = dag.copy_empty_like_with_capacity(0, 0, VarsMode::Alike, BlocksMode::Keep)?;
+    let mut new_dag = dag.copy_empty_like_with_capacity(0, 0, VarsMode::Alike, BlocksMode::Keep);
     for node_index in dag.topological_op_nodes(false) {
         if let NodeType::Operation(inst) = &dag[node_index] {
             match inst.op.view() {
@@ -49,7 +49,12 @@ pub fn run_elide_permutations(dag: &DAGCircuit) -> PyResult<Option<(DAGCircuit, 
                     let index1 = qargs[1].index();
                     mapping.swap(index0, index1);
                 }
-                OperationRef::Gate(gate) if gate.name() == "permutation" => {
+                OperationRef::PyCustom(
+                    gate @ qiskit_circuit::operations::PyInstruction {
+                        kind: qiskit_circuit::operations::PyOpKind::Gate,
+                        ..
+                    },
+                ) if gate.name() == "permutation" => {
                     Python::attach(|py| -> PyResult<()> {
                         let params = inst.params_view();
                         if let Param::Obj(ref pyobj) = params[0] {

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -20,7 +20,7 @@ onto a device with this coupling.
 """
 
 import math
-from typing import List
+import warnings
 
 import rustworkx as rx
 from rustworkx.visualization import graphviz_draw
@@ -38,12 +38,12 @@ class CouplingMap:
     """
 
     __slots__ = (
-        "description",
-        "graph",
         "_dist_matrix",
+        "_is_symmetric",
         "_qubit_list",
         "_size",
-        "_is_symmetric",
+        "description",
+        "graph",
     )
 
     def __init__(self, couplinglist=None, description=None):
@@ -69,7 +69,13 @@ class CouplingMap:
         self._is_symmetric = None
 
         if couplinglist is not None:
-            self.graph.extend_from_edge_list([tuple(x) for x in couplinglist])
+            edges = []
+            for src, dst in couplinglist:
+                if src == dst:
+                    warnings.warn(_loopback_warning(src), stacklevel=2)
+                    continue
+                edges.append((src, dst))
+            self.graph.extend_from_edge_list(edges)
 
     def size(self):
         """Return the number of physical qubits in this graph."""
@@ -115,6 +121,9 @@ class CouplingMap:
         src (int): source physical qubit
         dst (int): destination physical qubit
         """
+        if src == dst:
+            warnings.warn(_loopback_warning(src), stacklevel=2)
+            return
         if src not in self.physical_qubits:
             self.add_physical_qubit(src)
         if dst not in self.physical_qubits:
@@ -213,7 +222,7 @@ class CouplingMap:
         )
         if not paths:
             raise CouplingError(
-                f"Nodes {str(physical_qubit1)} and {str(physical_qubit2)} are not connected"
+                f"Nodes {physical_qubit1!s} and {physical_qubit2!s} are not connected"
             )
         return paths[physical_qubit2]
 
@@ -401,7 +410,7 @@ class CouplingMap:
         """Return a set of qubits in the largest connected component."""
         return max(rx.weakly_connected_components(self.graph), key=len)
 
-    def connected_components(self) -> List["CouplingMap"]:
+    def connected_components(self) -> list["CouplingMap"]:
         """Separate a :Class:`~.CouplingMap` into subgraph :class:`~.CouplingMap`
         for each connected component.
 
@@ -433,7 +442,7 @@ class CouplingMap:
         This method will return a list of :class:`~.CouplingMap` objects, one for each connected
         component in this :class:`~.CouplingMap`. The data payload of each node in the
         :attr:`~.CouplingMap.graph` attribute will contain the qubit number in the original
-        graph. This will enables mapping the qubit index in a component subgraph to
+        graph. This will enable mapping the qubit index in a component subgraph to
         the original qubit in the combined :class:`~.CouplingMap`. For example::
 
             from qiskit.transpiler import CouplingMap
@@ -492,6 +501,11 @@ class CouplingMap:
         This function calls the :func:`~rustworkx.visualization.graphviz_draw` function from the
         ``rustworkx`` package to draw the :class:`CouplingMap` object.
 
+        .. warning::
+            This function will call the system Graphviz tool on a file involving user-controllable
+            strings (such as qubit objects).  It is recommended to only call this function on
+            trusted input.
+
         Args:
             method (str): The layout method to use. See the documentation for
                 :func:`~rustworkx.visualization.graphviz_draw` for the list of supported methods
@@ -502,3 +516,7 @@ class CouplingMap:
         """
 
         return graphviz_draw(self.graph, method=method)
+
+
+def _loopback_warning(src: int) -> Warning:
+    return UserWarning(f"qubits cannot be coupled to themselves: ignoring edge ({src}, {src})")

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -199,6 +199,18 @@ of QPY in qiskit-terra 0.18.0.
    * - Qiskit (qiskit-terra for < 1.0.0) version
      - :func:`.dump` format(s) output versions
      - :func:`.load` maximum supported version (older format versions can always be read)
+   * - 2.5.0
+     - 13, 14, 15, 16, 17
+     - 17
+   * - 2.4.1
+     - 13, 14, 15, 16, 17
+     - 17
+   * - 2.4.0
+     - 13, 14, 15, 16, 17
+     - 17
+   * - 2.3.1
+     - 13, 14, 15, 16, 17
+     - 17
    * - 2.3.0
      - 13, 14, 15, 16, 17
      - 17
@@ -425,7 +437,8 @@ versions, the file header is immediately followed by the circuit payloads in seq
 without any padding in-between.
 
 All values use network byte order [#f1]_ (big endian) for cross platform
-compatibility.
+compatibility. The exception to this is for QPY format versions <= 17 the encoding of
+integers and floats as part of ``INSTRUCTION_PARAM`` is little endian.
 
 Each individual circuit is composed of the following parts in order from top to bottom:
 
@@ -1771,7 +1784,7 @@ a struct format to represent a :class:`~qiskit.circuit.library.PauliEvolutionGat
 natively in QPY. To accomplish this the :ref:`qpy_custom_definition` struct now supports
 a new type value ``'p'`` to represent a :class:`~qiskit.circuit.library.PauliEvolutionGate`.
 Enties in the custom instructions tables have unique name generated that start with the
-string ``"###PauliEvolutionGate_"`` followed by a uuid string. This gate name is reservered
+string ``"###PauliEvolutionGate_"`` followed by a uuid string. This gate name is reserved
 in QPY and if you have a custom :class:`~qiskit.circuit.Instruction` object with a definition
 set and that name prefix it will error. If it's of type ``'p'`` the data payload is defined
 as follows:
@@ -1892,7 +1905,7 @@ and if it's ``v`` it represents a :class:`~qiskit.circuit.ParameterVectorElement
 The map element struct is immediately followed by the symbol map key payload, if
 ``symbol_type`` is ``p`` then it is followed immediately by a :ref:`qpy_param_struct`
 object (both the struct and utf8 name bytes) and if ``symbol_type`` is ``v``
-then the struct is imediately followed by :ref:`qpy_param_vector` (both the struct
+then the struct is immediately followed by :ref:`qpy_param_vector` (both the struct
 and utf8 name bytes). That is followed by ``size`` bytes for the
 data of the symbol. The data format is dependent on the value of ``type``. If
 ``type`` is ``p`` then it represents a :class:`~qiskit.circuit.Parameter` and
@@ -2178,7 +2191,7 @@ The PARAMETER_EXPR data starts with a header:
 
 Immediately following the header is ``expr_size`` bytes of utf8 data containing
 the expression string, which is the sympy srepr of the expression for the
-parameter expression. Follwing that is a symbol map which contains
+parameter expression. Following that is a symbol map which contains
 ``map_elements`` elements with the format
 
 .. code-block:: c
@@ -2227,6 +2240,7 @@ from .exceptions import QpyError, UnsupportedFeatureForVersion, QPYLoadingDeprec
 from .interface import dump, load, get_qpy_version
 
 # For backward compatibility. Provide, Runtime, Experiment call these private functions.
+# ruff: disable[F401]
 from .binary_io import (
     _write_instruction,
     _read_instruction,
@@ -2234,4 +2248,18 @@ from .binary_io import (
     _read_parameter_expression,
     _read_parameter_expression_v3,
 )
+
+# ruff: enable[F401]
+
 from .common import QPY_VERSION, QPY_COMPATIBILITY_VERSION
+
+__all__ = [
+    "QPY_COMPATIBILITY_VERSION",
+    "QPY_VERSION",
+    "QPYLoadingDeprecatedFeatureWarning",
+    "QpyError",
+    "UnsupportedFeatureForVersion",
+    "dump",
+    "get_qpy_version",
+    "load",
+]

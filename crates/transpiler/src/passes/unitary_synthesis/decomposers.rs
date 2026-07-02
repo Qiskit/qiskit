@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -12,7 +12,7 @@
 
 //! Internals of the decomposer creation and caching for unitary synthesis.
 //!
-//! The decomposer cache logic makes very specifc assumptions about how the cache objects and keys
+//! The decomposer cache logic makes very specific assumptions about how the cache objects and keys
 //! are constructed, so we use this module to localise where all these assumptions are being made,
 //! and to enforce a safe API within the rest of the unitary synthesis logic.
 
@@ -23,9 +23,9 @@ use std::sync::LazyLock;
 
 use approx::relative_eq;
 use hashbrown::{HashMap, HashSet, hash_map};
-use indexmap::{IndexMap, IndexSet};
 use ndarray::{ArrayView2, CowArray, Ix2};
 use num_complex::Complex64;
+use qiskit_util::{IndexMap, IndexSet};
 use smallvec::{SmallVec, smallvec};
 
 use numpy::convert::ToPyArray;
@@ -35,15 +35,17 @@ use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict};
 
 use super::{
-    DecompositionDirection2q, QpuConstraint, QpuConstraintKind, UnitarySynthesisConfig,
-    UsePulseOptimizer,
+    Approximation, DecompositionDirection2q, NormalizedFidelity, QpuConstraint, QpuConstraintKind,
+    UnitarySynthesisConfig, UsePulseOptimizer,
 };
 use crate::QiskitError;
 use crate::passes::optimize_clifford_t::CLIFFORD_T_GATE_NAMES;
 use crate::target::{NormalOperation, Target, TargetOperation};
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::instruction::Instruction;
-use qiskit_circuit::operations::{Operation, OperationRef, Param, StandardGate};
+use qiskit_circuit::operations::{
+    Operation, OperationRef, Param, PyInstruction, PyOpKind, StandardGate,
+};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{PhysicalQubit, imports};
 use qiskit_synthesis::discrete_basis::solovay_kitaev::SolovayKitaevSynthesis;
@@ -52,42 +54,6 @@ use qiskit_synthesis::two_qubit_decompose::{
     RXXEquivalent, TwoQubitBasisDecomposer, TwoQubitControlledUDecomposer, TwoQubitGateSequence,
     TwoQubitWeylDecomposition,
 };
-
-/// The fidelity of the 2q basis gate used in a decomposer.
-///
-/// This is necessarily between 0.0 and 1.0 and we normalise away negative zero, which together are
-/// why it's safe to use with total equality and hashing.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct ApproximationDegree(f64);
-impl ApproximationDegree {
-    pub const EXACT: Self = Self(1.0);
-
-    #[inline]
-    pub fn new(val: f64) -> Option<Self> {
-        // The `abs` is normalising signed zero.
-        (0.0..=1.0).contains(&val).then(|| Self(val.abs()))
-    }
-    /// Get the value.  This is guaranteed to be finite, sign positive and in `[0.0, 1.0]`.
-    #[inline]
-    pub fn get(&self) -> f64 {
-        self.0
-    }
-
-    /// Does this represent approximate synthesis?
-    #[inline]
-    pub fn is_approximate(&self) -> bool {
-        *self != Self::EXACT
-    }
-}
-// `impl Eq` is safe for this float-derived quantity because we only permit the range `[0.0, 1.0]`
-// and forbid negative zero.
-impl Eq for ApproximationDegree {}
-impl hash::Hash for ApproximationDegree {
-    fn hash<H: hash::Hasher>(&self, state: &mut H) {
-        // This is safe because we're in the range `[0.0, 1.0]` and normalised out negative zero.
-        self.0.to_le_bytes().hash(state)
-    }
-}
 
 /// Constructor for a 2q Ising-like decomposer.  This corresponds to
 /// [TwoQubitControlledUDecomposer], and requires gates that are locally equivalent to RXX (and
@@ -130,7 +96,18 @@ impl hash::Hash for ContinuousPauliConstructor {
 }
 impl ContinuousPauliConstructor {
     fn try_build(&self) -> PyResult<TwoQubitControlledUDecomposer> {
-        TwoQubitControlledUDecomposer::new_inner(self.source.clone(), self.euler.as_str())
+        match self.source {
+            RXXEquivalent::Standard(gate) => TwoQubitControlledUDecomposer::new_inner(
+                RXXEquivalent::Standard(gate),
+                self.euler.as_str(),
+            ),
+            RXXEquivalent::CustomPython(ref gate) => Python::attach(|py| {
+                TwoQubitControlledUDecomposer::new_inner(
+                    RXXEquivalent::CustomPython(gate.clone_ref(py)),
+                    self.euler.as_str(),
+                )
+            }),
+        }
     }
 }
 
@@ -202,7 +179,7 @@ impl StaticKakSource {
                     .collect::<Vec<_>>();
                 g.matrix(&params).map(CowArray::from)
             }
-            OperationRef::Gate(g) => g.matrix().map(CowArray::from),
+            OperationRef::PyCustom(i) => i.matrix().map(CowArray::from),
             OperationRef::Unitary(u) => Some(CowArray::from(u.matrix_view())),
             _ => None,
         }
@@ -215,7 +192,7 @@ impl StaticKakSource {
 struct StaticKakConstructor {
     source: StaticKakSource,
     euler: EulerBasis,
-    approximation: ApproximationDegree,
+    fidelity: NormalizedFidelity,
     use_pulse_optimizer: UsePulseOptimizer,
 }
 impl StaticKakConstructor {
@@ -238,8 +215,8 @@ impl StaticKakConstructor {
             self.source.gate.clone(),
             self.source.params.clone(),
             matrix.view(),
-            self.approximation.get(),
-            self.euler.as_str(),
+            self.fidelity.get(),
+            self.euler,
             self.use_pulse_optimizer.to_py_pulse_optimize(),
         )
     }
@@ -294,7 +271,7 @@ impl Decomposer2qConstructor {
                     .try_build()
                     .map(|decomposer| Decomposer2q::StaticKak {
                         decomposer: Box::new(decomposer),
-                        approximation: constructor.approximation,
+                        fidelity: constructor.fidelity,
                     })
             }
         }
@@ -314,7 +291,7 @@ pub enum Decomposer2q {
     },
     StaticKak {
         decomposer: Box<TwoQubitBasisDecomposer>,
-        approximation: ApproximationDegree,
+        fidelity: NormalizedFidelity,
     },
 }
 impl Decomposer2q {
@@ -326,13 +303,13 @@ impl Decomposer2q {
                     .bind(py)
                     .call((matrix.to_pyarray(py),), Some(kwargs.bind(py)))?
                     .getattr(intern!(py, "_data"))?
-                    .cast_into::<CircuitData>()?;
+                    .cast_into::<PyCircuitData>()?;
                 circuit_to_2q_sequence(&circuit.borrow())
             }),
             Self::StaticKak {
                 decomposer,
-                approximation,
-            } => decomposer.call_inner(matrix, None, approximation.is_approximate(), None),
+                fidelity,
+            } => decomposer.call_inner(matrix, None, fidelity.get() < 1.0, None),
         }
     }
 }
@@ -345,9 +322,7 @@ impl Decomposer2q {
 ///
 /// This exists mostly just to attach methods to and to shorten a bunch of type signatures.
 #[derive(Clone, Debug, Default)]
-struct Decomposer2qCacheInner(
-    IndexMap<Decomposer2qConstructor, Option<Decomposer2q>, ::ahash::RandomState>,
-);
+struct Decomposer2qCacheInner(IndexMap<Decomposer2qConstructor, Option<Decomposer2q>>);
 impl Decomposer2qCacheInner {
     /// Get a decomposer by known-good index.
     ///
@@ -630,13 +605,15 @@ fn get_2q_decomposers(
                     gate: kak_gate.into(),
                     params: smallvec![],
                 };
-                let approximation =
-                    ApproximationDegree::new(config.approximation_degree.unwrap_or(1.0))
-                        .unwrap_or(ApproximationDegree::EXACT);
+                let fidelity = config.approximation.synthesis_fidelity(0.0).map_err(|e| {
+                    PyValueError::new_err(format!(
+                        "requested synthesis fidelity is out of range: {e}"
+                    ))
+                })?;
                 let constructor = Decomposer2qConstructor::StaticKak(StaticKakConstructor {
                     source,
                     euler,
-                    approximation,
+                    fidelity,
                     use_pulse_optimizer: config.use_pulse_optimizer,
                 });
                 let flip = choose_flip(direction, &constructor);
@@ -662,7 +639,7 @@ fn get_2q_decomposers(
             let euler_bases = euler_bases_from_target(target, qubits[0]);
             let candidates_2q =
                 get_candidate_2q_operations(target, qubits, config.decomposition_direction_2q);
-            let mut decomposers = IndexSet::new();
+            let mut decomposers = IndexSet::default();
 
             // Ising-like gates.
             for candidate in candidates_2q.iter() {
@@ -675,8 +652,12 @@ fn get_2q_decomposers(
                     OperationRef::StandardGate(standard @ super::PARAM_SET!()) => {
                         RXXEquivalent::Standard(standard)
                     }
-                    OperationRef::Gate(gate) => Python::attach(|py| {
-                        RXXEquivalent::CustomPython(gate.gate.bind(py).get_type().unbind())
+                    OperationRef::PyCustom(PyInstruction {
+                        kind: PyOpKind::Gate,
+                        ob,
+                        ..
+                    }) => Python::attach(|py| {
+                        RXXEquivalent::CustomPython(ob.bind(py).get_type().unbind())
                     }),
                     _ => continue,
                 };
@@ -684,9 +665,15 @@ fn get_2q_decomposers(
                 // _all_ of the 1q bases simultaneously without further decompositions, but don't
                 // expose that functionality.  This wastes huge amounts of time and needs a fix.
                 for euler in euler_bases.get_bases() {
+                    let rxx_copy = match rxx_equivalent {
+                        RXXEquivalent::Standard(gate) => RXXEquivalent::Standard(gate),
+                        RXXEquivalent::CustomPython(ref gate) => {
+                            RXXEquivalent::CustomPython(Python::attach(|py| gate.clone_ref(py)))
+                        }
+                    };
                     let constructor =
                         Decomposer2qConstructor::ContinuousPauli(ContinuousPauliConstructor {
-                            source: rxx_equivalent.clone(),
+                            source: rxx_copy,
                             euler,
                         });
                     let flip = choose_flip(candidate.direction, &constructor);
@@ -714,11 +701,13 @@ fn get_2q_decomposers(
                     continue;
                 };
                 let fidelity = config
-                    .approximation_degree
-                    .map(|a| a * (1. - candidate.error))
-                    .unwrap_or(1.);
-                let approximation =
-                    ApproximationDegree::new(fidelity).unwrap_or(ApproximationDegree::EXACT);
+                    .approximation
+                    .synthesis_fidelity(candidate.error)
+                    .map_err(|e| {
+                        PyValueError::new_err(format!(
+                            "requested synthesis fidelity is out of range: {e}"
+                        ))
+                    })?;
                 // TODO: the 2q decomposers internally already do everything that's needed to handle
                 // _all_ of the 1q bases simultaneously without further decompositions, but don't
                 // expose that functionality.  This wastes huge amounts of time and needs a fix.
@@ -732,7 +721,7 @@ fn get_2q_decomposers(
                     let constructor = Decomposer2qConstructor::StaticKak(StaticKakConstructor {
                         source,
                         euler,
-                        approximation,
+                        fidelity,
                         use_pulse_optimizer: config.use_pulse_optimizer,
                     });
                     let flip = choose_flip(candidate.direction, &constructor);
@@ -776,8 +765,7 @@ fn get_xx_decomposers(
     // `StandardGate` into a a known strength (or function of strength).
     let embodiments_lookup = imports::XX_EMBODIMENTS.get_bound(py).cast::<PyDict>()?;
     let xx_decomposer_class = imports::XX_DECOMPOSER.get_bound(py);
-    let approximation_degree = config.approximation_degree.unwrap_or(1.);
-    let is_approximate = approximation_degree != 1.;
+    let approximation = config.approximation;
 
     let mut extend_with_flip = |out: &mut Vec<(usize, FlipDirection)>,
                                 candidates: &[Candidate2q],
@@ -805,7 +793,17 @@ fn get_xx_decomposers(
                 embodiment
             };
             embodiments.set_item(strength, embodiment)?;
-            fidelities.set_item(strength, (1.0 - candidate.error) * approximation_degree)?;
+            fidelities.set_item(
+                strength,
+                approximation
+                    .synthesis_fidelity(candidate.error)
+                    .map_err(|e| {
+                        PyValueError::new_err(format!(
+                            "requested synthesis fidelity is out of range: {e}"
+                        ))
+                    })?
+                    .get(),
+            )?;
         }
         if !fidelities.is_truthy()? {
             return Ok(());
@@ -818,7 +816,7 @@ fn get_xx_decomposers(
             ))?;
             let constructor = Decomposer2qConstructor::DiscretePauli(DiscretePauliConstructor {
                 decomposer: ob.unbind(),
-                is_approximate,
+                is_approximate: approximation != Approximation::Exact,
             });
             if let Some(index) = cache.cache(constructor) {
                 out.push((index, flip));

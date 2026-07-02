@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -20,6 +20,8 @@ import warnings
 import itertools
 import numpy as np
 
+
+from qiskit.circuit.library.hamiltonian_gate import HamiltonianGate
 from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
@@ -27,7 +29,6 @@ from qiskit.circuit import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info import Operator, Pauli, SparsePauliOp, SparseObservable
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.synthesis.evolution.product_formula import real_or_fail
 
 from qiskit._accelerate.circuit_library import pauli_evolution
 
@@ -82,7 +83,7 @@ def evolved_operator_ansatz(
         insert_barriers: Whether to insert barriers in between each evolution.
         name: The name of the circuit.
         parameter_prefix: Set the names of the circuit parameters. If a string, the same prefix
-            will be used for each parameters. Can also be a list to specify a prefix per
+            will be used for each parameter. Can also be a list to specify a prefix per
             operator.
         remove_identities: If ``True``, ignore identity operators (note that we do not check
             :class:`.Operator` inputs). This will also remove parameters associated with identities.
@@ -90,6 +91,9 @@ def evolved_operator_ansatz(
             layers of gate objects. Setting this to ``False`` is significantly less performant,
             especially for parameter binding, but can be desirable for a cleaner visualization.
     """
+    from qiskit.synthesis.evolution import LieTrotter
+    from qiskit.synthesis.evolution.product_formula import real_or_fail
+
     if reps < 0:
         raise ValueError("reps must be a non-negative integer.")
 
@@ -153,14 +157,9 @@ def evolved_operator_ansatz(
 
     # slower, Python-path
     if evolution is None:
-        from qiskit.synthesis.evolution import LieTrotter
-
         evolution = LieTrotter(insert_barriers=insert_barriers)
 
     circuit = QuantumCircuit(num_qubits, name=name)
-
-    # pylint: disable=cyclic-import
-    from qiskit.circuit.library.hamiltonian_gate import HamiltonianGate
 
     for rep in range(reps):
         for i, op in enumerate(operators):
@@ -255,7 +254,7 @@ def hamiltonian_variational_ansatz(
         insert_barriers: Whether to insert barriers in between each evolution.
         name: The name of the circuit.
         parameter_prefix: Set the names of the circuit parameters. If a string, the same prefix
-            will be used for each parameters. Can also be a list to specify a prefix per
+            will be used for each parameter. Can also be a list to specify a prefix per
             operator.
 
     References:
@@ -311,7 +310,7 @@ class EvolvedOperatorAnsatz(NLocal):
             insert_barriers: Whether to insert barriers in between each evolution.
             name: The name of the circuit.
             parameter_prefix: Set the names of the circuit parameters. If a string, the same prefix
-                will be used for each parameters. Can also be a list to specify a prefix per
+                will be used for each parameter. Can also be a list to specify a prefix per
                 operator.
             initial_state: A :class:`.QuantumCircuit` object to prepend to the circuit.
             flatten: Set this to ``True`` to output a flat circuit instead of nesting it inside multiple
@@ -432,9 +431,6 @@ class EvolvedOperatorAnsatz(NLocal):
             return np.zeros(self.reps * len(self.operators), dtype=float)
 
     def _evolve_operator(self, operator, time):
-
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.library.hamiltonian_gate import HamiltonianGate
 
         # if the operator is specified as matrix use exact matrix exponentiation
         if isinstance(operator, Operator):

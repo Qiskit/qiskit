@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -15,25 +15,54 @@ Quantum Shannon Decomposition.
 Method is described in arXiv:quant-ph/0406176.
 """
 from __future__ import annotations
-from typing import Callable
+from collections.abc import Callable
 import scipy
 import numpy as np
-from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
+
+from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import CXGate, UCPauliRotGate, UnitaryGate
 from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
 from qiskit.synthesis.two_qubit import (
     TwoQubitBasisDecomposer,
     two_qubit_decompose,
 )
 from qiskit.synthesis.one_qubit import one_qubit_decompose
+from qiskit.quantum_info import Operator
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
-from qiskit.circuit.library.standard_gates import CXGate
-from qiskit.circuit.library.generalized_gates.uc_pauli_rot import UCPauliRotGate, _EPS
 from qiskit._accelerate.two_qubit_decompose import two_qubit_decompose_up_to_diagonal
 from qiskit._accelerate import qsd
 
+from qiskit.utils import deprecate_arg
 
-# pylint: disable=invalid-name
-# pylint: disable=too-many-return-statements
+_EPS = 1e-10
+
+
+@deprecate_arg(
+    "opt_a1",
+    since="2.5.0",
+    additional_msg="Optimization is applied automatically when appropriate.",
+)
+@deprecate_arg(
+    "opt_a2",
+    since="2.5.0",
+    additional_msg="Optimization is applied automatically when appropriate.",
+)
+@deprecate_arg(
+    "decomposer_1q",
+    since="2.5.0",
+    predicate=lambda x: callable(x) and not isinstance(x, OneQubitEulerDecomposer),
+    deprecation_description="The argument `decomposer_1q` in :func:`.qs_decomposition` only "
+    "accept instances of :class:`.OneQubitEulerDecomposer`.",
+    removal_timeline="Accepting any other callable will no longer be supported from 3.0.0 on.",
+)
+@deprecate_arg(
+    "decomposer_2q",
+    since="2.5.0",
+    predicate=lambda x: callable(x) and not isinstance(x, TwoQubitBasisDecomposer),
+    deprecation_description="The argument `decomposer_2q` in :func:`.qs_decomposition` only "
+    "accept instances of :class:`.TwoQubitBasisDecomposer`.",
+    removal_timeline="Accepting any other callable will no longer be supported from 3.0.0 on.",
+)
 def qs_decomposition(
     mat: np.ndarray,
     opt_a1: bool | None = None,
@@ -140,9 +169,6 @@ def qs_decomposition(
     if dim == 4:
         if decomposer_2q is None:
             if opt_a2 and _depth > 0:
-                from qiskit.circuit.library.generalized_gates.unitary import (
-                    UnitaryGate,
-                )  # pylint: disable=cyclic-import
 
                 def decomp_2q(mat):
                     ugate = UnitaryGate(mat)
@@ -304,7 +330,7 @@ def _demultiplex(
     nqubits = dim.bit_length() - 1
     if _ctrl_index is None:
         _ctrl_index = nqubits - 1
-    layout = list(range(0, _ctrl_index)) + list(range(_ctrl_index + 1, nqubits)) + [_ctrl_index]
+    layout = list(range(_ctrl_index)) + list(range(_ctrl_index + 1, nqubits)) + [_ctrl_index]
 
     um0um1 = um0 @ um1.T.conjugate()
     if is_hermitian_matrix(um0um1):
@@ -375,10 +401,6 @@ def _apply_a2(circ):
     diagonal gate and a two cx unitary and reduces overall ``cx`` count by
     4^(n-2) - 1. This optimization should not be done if the original unitary is controlled.
     """
-    from qiskit.quantum_info import Operator
-    from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
-
-    # pylint: disable=cyclic-import
     from qiskit.transpiler.passes.synthesis import HighLevelSynthesis
 
     decomposer = two_qubit_decompose_up_to_diagonal

@@ -31,6 +31,9 @@ Quantum Circuit
    qk-circuit
    qk-quantum-register
    qk-classical-register
+   qk-param
+   qk-control-flow
+   qk-classical-expressions
 
 Circuit Library
 +++++++++++++++
@@ -88,4 +91,5 @@ Utilities
 .. toctree::
    :maxdepth: 1
 
+   config
    version

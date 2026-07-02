@@ -4,13 +4,12 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
 import itertools
 import math
@@ -19,7 +18,7 @@ import sys
 import ddt
 
 import qiskit.qasm2
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt.ddt
@@ -135,6 +134,28 @@ class TestSimple(QiskitTestCase):
         parameters = list(parsed.data[0].operation.params)
         self.assertEqual([bigint, -bigint, 2 * bigint], parameters)
 
+    def test_excessive_depth_unary(self):
+        """We should either succeed in the evaluation or raise a Python-space error. We should _not_
+        segfault."""
+        expr = "-" * 100_000 + "2.0"
+        program = f"qreg q[1]; U({expr}, 0.0, 0.0) q[0];"
+        # This can be changed to an assertion that the expression evaluates to precisely `2.0` if we
+        # modify the parser to be non-recursive.
+        with self.assertRaises(RecursionError):
+            qiskit.qasm2.loads(program)
+
+    def test_excessive_depth_binary(self):
+        """We should either succeed in the evaluation or raise a Python-space error. We should _not_
+        segfault."""
+        # We have to include the parentheses or the operator-precedence parser will just decay to
+        # iterative anyway.
+        expr = "1.0+(" * 100_000 + "1.0" + ")" * 100_000
+        program = f"qreg q[1]; U({expr}, 0.0, 0.0) q[0];"
+        # This can be changed to an assertion that the expression evaluates to precisely `100001.0`
+        # if we modify the parser to be non-recursive.
+        with self.assertRaises(RecursionError):
+            qiskit.qasm2.loads(program)
+
 
 class TestPrecedenceAssociativity(QiskitTestCase):
     def test_precedence(self):
@@ -188,7 +209,6 @@ class TestCustomClassical(QiskitTestCase):
     def test_evaluation_order(self):
         """We should be evaluating all functions, including custom user ones the exact number of
         times we expect, and left-to-right in parameter lists."""
-        # pylint: disable=invalid-name
 
         order = itertools.count()
 

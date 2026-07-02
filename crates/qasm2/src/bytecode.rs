@@ -4,25 +4,25 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
 use num_bigint::BigUint;
+use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
+use pyo3::types::PyTuple;
 
 use crate::error::QASM2ParseError;
 use crate::expr::Expr;
-use crate::lex;
-use crate::parse;
 use crate::parse::{ClbitId, CregId, GateId, ParamId, QubitId};
-use crate::{CustomClassical, CustomInstruction};
+use crate::{ClassicalCallableExt, CustomClassical, CustomInstruction, lex, parse};
 
 /// The Rust parser produces an iterator of these `Bytecode` instructions, which comprise an opcode
 /// integer for operation distinction, and a free-form tuple containing the operands.
-#[pyclass(module = "qiskit._accelerate.qasm2", frozen)]
+#[pyclass(module = "qiskit._accelerate.qasm2", frozen, skip_from_py_object)]
 #[derive(Clone)]
 pub struct Bytecode {
     #[pyo3(get)]
@@ -32,7 +32,7 @@ pub struct Bytecode {
 }
 
 /// The operations that are represented by the "bytecode" passed to Python.
-#[pyclass(module = "qiskit._accelerate.qasm2", frozen, eq)]
+#[pyclass(module = "qiskit._accelerate.qasm2", frozen, eq, skip_from_py_object)]
 #[derive(Clone, Eq, PartialEq)]
 pub enum OpCode {
     // There is only a `Gate` here, not a `GateInBasis`, because in Python space we don't have the
@@ -61,7 +61,7 @@ pub enum OpCode {
 // that makes things a little fiddlier with PyO3, and there's no real benefit for our uses.
 
 /// A (potentially folded) floating-point constant value as part of an expression.
-#[pyclass(module = "qiskit._accelerate.qasm2", frozen)]
+#[pyclass(module = "qiskit._accelerate.qasm2", frozen, skip_from_py_object)]
 #[derive(Clone)]
 pub struct ExprConstant {
     #[pyo3(get)]
@@ -69,7 +69,7 @@ pub struct ExprConstant {
 }
 
 /// A reference to one of the arguments to the gate.
-#[pyclass(module = "qiskit._accelerate.qasm2", frozen)]
+#[pyclass(module = "qiskit._accelerate.qasm2", frozen, skip_from_py_object)]
 #[derive(Clone)]
 pub struct ExprArgument {
     #[pyo3(get)]
@@ -78,7 +78,7 @@ pub struct ExprArgument {
 
 /// A unary operation acting on some other part of the expression tree.  This includes the `+` and
 /// `-` unary operators, but also any of the built-in scientific-calculator functions.
-#[pyclass(module = "qiskit._accelerate.qasm2", frozen)]
+#[pyclass(module = "qiskit._accelerate.qasm2", frozen, skip_from_py_object)]
 #[derive(Clone)]
 pub struct ExprUnary {
     #[pyo3(get)]
@@ -88,7 +88,7 @@ pub struct ExprUnary {
 }
 
 /// A binary operation acting on two other parts of the expression tree.
-#[pyclass(module = "qiskit._accelerate.qasm2", frozen)]
+#[pyclass(module = "qiskit._accelerate.qasm2", frozen, skip_from_py_object)]
 #[derive(Clone)]
 pub struct ExprBinary {
     #[pyo3(get)]
@@ -100,20 +100,39 @@ pub struct ExprBinary {
 }
 
 /// Some custom callable Python function that the user told us about.
-#[pyclass(module = "qiskit._accelerate.qasm2", frozen)]
+#[pyclass(module = "qiskit._accelerate.qasm2", frozen, skip_from_py_object)]
 #[derive(Clone)]
 pub struct ExprCustom {
+    pub callable: ClassicalCallableExt,
     #[pyo3(get)]
-    pub callable: Py<PyAny>,
-    #[pyo3(get)]
-    pub arguments: Vec<Py<PyAny>>,
+    pub arguments: Py<PyTuple>,
+}
+#[pymethods]
+impl ExprCustom {
+    #[pyo3(signature = (*args))]
+    fn call(&self, args: Bound<PyTuple>) -> PyResult<f64> {
+        match &self.callable {
+            ClassicalCallableExt::Builtin(builtin) => builtin
+                .call(args.extract::<Vec<f64>>()?.as_slice())
+                .map_err(|actual| {
+                    PyTypeError::new_err(format!(
+                        "argument mismatch: expected {}, got {}",
+                        builtin.num_params(),
+                        actual
+                    ))
+                }),
+            ClassicalCallableExt::Py { ob, num_params: _ } => {
+                ob.bind(args.py()).call1(args).and_then(|ob| ob.extract())
+            }
+        }
+    }
 }
 
 /// Discriminator for the different types of unary operator.  We could have a separate class for
 /// each of these, but this way involves fewer imports in Python, and also serves to split up the
 /// option tree at the top level, so we don't have to test every unary operator before testing
 /// other operations.
-#[pyclass(module = "qiskit._accelerate.qasm2", frozen, eq)]
+#[pyclass(module = "qiskit._accelerate.qasm2", frozen, eq, skip_from_py_object)]
 #[derive(Clone, PartialEq, Eq)]
 pub enum UnaryOpCode {
     Negate,
@@ -129,7 +148,7 @@ pub enum UnaryOpCode {
 /// each of these, but this way involves fewer imports in Python, and also serves to split up the
 /// option tree at the top level, so we don't have to test every binary operator before testing
 /// other operations.
-#[pyclass(module = "qiskit._accelerate.qasm2", frozen, eq)]
+#[pyclass(module = "qiskit._accelerate.qasm2", frozen, eq, skip_from_py_object)]
 #[derive(Clone, PartialEq, Eq)]
 pub enum BinaryOpCode {
     Add,
@@ -333,6 +352,7 @@ impl BytecodeIterator {
         custom_instructions: &[CustomInstruction],
         custom_classical: &[CustomClassical],
         strict: bool,
+        max_depth: usize,
     ) -> PyResult<Self> {
         Ok(BytecodeIterator {
             parser_state: parse::State::new(
@@ -341,6 +361,7 @@ impl BytecodeIterator {
                 custom_instructions,
                 custom_classical,
                 strict,
+                max_depth,
             )
             .map_err(QASM2ParseError::new_err)?,
             buffer: vec![],

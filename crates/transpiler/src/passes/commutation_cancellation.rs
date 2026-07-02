@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -16,13 +16,14 @@ use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::{Bound, PyResult, pyfunction, wrap_pyfunction};
 
-use indexmap::IndexMap;
+use qiskit_util::IndexMap;
 use smallvec::{SmallVec, smallvec};
 
 use super::analyze_commutations;
 use crate::commutation_checker::CommutationChecker;
+use approx::abs_diff_eq;
 use qiskit_circuit::Qubit;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_synthesis::QiskitError;
 
@@ -34,15 +35,22 @@ static VAR_Z_MAP: [(&str, StandardGate); 3] = [
     ("p", StandardGate::Phase),
     ("u1", StandardGate::U1),
 ];
-static Z_ROTATIONS: [StandardGate; 6] = [
+static Z_ROTATIONS: [StandardGate; 8] = [
     StandardGate::Phase,
     StandardGate::Z,
     StandardGate::U1,
     StandardGate::RZ,
     StandardGate::T,
+    StandardGate::Tdg,
     StandardGate::S,
+    StandardGate::Sdg,
 ];
-static X_ROTATIONS: [StandardGate; 2] = [StandardGate::X, StandardGate::RX];
+static X_ROTATIONS: [StandardGate; 4] = [
+    StandardGate::X,
+    StandardGate::RX,
+    StandardGate::SX,
+    StandardGate::SXdg,
+];
 static SUPPORTED_GATES: [StandardGate; 5] = [
     StandardGate::CX,
     StandardGate::CY,
@@ -92,6 +100,8 @@ pub fn cancel_commutations(
                     .map(|(_, gate)| gate)
             })
         });
+    let sx_supported = dag.get_op_counts().contains_key("sx") || basis.iter().any(|x| x == "sx");
+    let x_supported = dag.get_op_counts().contains_key("x") || basis.iter().any(|x| x == "x");
 
     // RZ and P/U1 have a phase difference of angle/2, which we need to account for
     let z_phase_shift = match z_var_gate {
@@ -125,11 +135,12 @@ pub fn cancel_commutations(
     */
     let (commutation_set, node_indices) =
         analyze_commutations(dag, commutation_checker, approximation_degree)?;
-    let mut cancellation_sets = IndexMap::with_hasher(::ahash::RandomState::new());
+    let mut cancellation_sets = IndexMap::with_hasher(::foldhash::fast::RandomState::default());
 
     (0..dag.num_qubits() as u32).for_each(|qubit| {
         let wire = Qubit(qubit);
-        if let Some(wire_commutation_set) = commutation_set.get(&Wire::Qubit(wire)) {
+        let wire_commutation_set = &commutation_set[qubit as usize];
+        if !wire_commutation_set.is_empty() {
             for (com_set_idx, com_set) in wire_commutation_set.iter().enumerate() {
                 if let Some(&nd) = com_set.first() {
                     if !matches!(dag[nd], NodeType::Operation(_)) {
@@ -192,8 +203,8 @@ pub fn cancel_commutations(
                                     gate: GateOrRotation::Gate(op_gate),
                                     qubits: smallvec![wire, second_qarg],
                                     com_set_index: com_set_idx,
-                                    second_index: node_indices
-                                        .get(&(*node, Wire::Qubit(second_qarg)))
+                                    second_index: node_indices[second_qarg.index()]
+                                        .get(node)
                                         .copied(),
                                 })
                                 .or_insert_with(Vec::new)
@@ -246,9 +257,13 @@ pub fn cancel_commutations(
                     } else {
                         match node_op_name {
                             "t" => Ok((FRAC_PI_4, z_phase_shift("p", FRAC_PI_4))),
+                            "tdg" => Ok((-FRAC_PI_4, -z_phase_shift("p", FRAC_PI_4))),
                             "s" => Ok((FRAC_PI_2, z_phase_shift("p", FRAC_PI_2))),
+                            "sdg" => Ok((-FRAC_PI_2, -z_phase_shift("p", FRAC_PI_2))),
                             "z" => Ok((PI, z_phase_shift("p", PI))),
                             "x" => Ok((PI, FRAC_PI_2)),
+                            "sx" => Ok((FRAC_PI_2, FRAC_PI_4)),
+                            "sxdg" => Ok((-FRAC_PI_2, -FRAC_PI_4)),
                             _ => Err(PyRuntimeError::new_err(format!(
                                 "Angle for operation {node_op_name} is not defined"
                             ))),
@@ -258,24 +273,38 @@ pub fn cancel_commutations(
                     total_phase += phase_shift;
                 }
 
-                let new_op = match cancel_key.gate {
-                    GateOrRotation::ZRotation => z_var_gate.unwrap(),
-                    GateOrRotation::XRotation => &StandardGate::RX,
-                    _ => unreachable!(),
-                };
-
-                let pi_multiple = total_angle / PI;
-
-                let mod4 = pi_multiple.rem_euclid(4.);
-                if mod4 < _CUTOFF_PRECISION || (4. - mod4) < _CUTOFF_PRECISION {
+                if is_multiple_of_pi(total_angle, 4.) {
                     // if the angle is close to a 4-pi multiple (from above or below), then the
                     // operator is equal to the identity
-                } else if (mod4 - 2.).abs() < _CUTOFF_PRECISION {
-                    // a 2-pi multiple has a phase of pi: RX(2pi) = RZ(2pi) = -I = I exp(i pi)
-                    total_phase -= PI;
+                } else if is_multiple_of_pi(total_angle, 2.) {
+                    if cancel_key.gate == GateOrRotation::XRotation
+                        || matches!(z_var_gate, Some(&StandardGate::RZ))
+                    {
+                        // a 2-pi multiple has a phase of pi: RX(2pi) = RZ(2pi) = -I = I exp(i pi)
+                        total_phase -= PI;
+                    }
+                } else if cancel_key.gate == GateOrRotation::ZRotation {
+                    let z_gate = z_var_gate.unwrap();
+                    dag.insert_1q_on_incoming_qubit((*z_gate, &[total_angle]), cancel_set[0]);
                 } else {
-                    // any other is not the identity and we add the gate
-                    dag.insert_1q_on_incoming_qubit((*new_op, &[total_angle]), cancel_set[0]);
+                    // cancel_gate.key is either ZRotation or XRotation in this block it is an
+                    // XRotation.
+                    if x_supported && is_multiple_of_pi(total_angle, 1.) {
+                        let num_x = (total_angle / PI).round();
+                        total_phase -= FRAC_PI_2 * num_x;
+                        dag.insert_1q_on_incoming_qubit((StandardGate::X, &[]), cancel_set[0]);
+                    } else if sx_supported && is_multiple_of_pi(total_angle, 0.5) {
+                        let num_sx = (total_angle / FRAC_PI_2).round();
+                        total_phase -= FRAC_PI_4 * num_sx;
+                        for _ in 0..(num_sx as i64) % 4 {
+                            dag.insert_1q_on_incoming_qubit((StandardGate::SX, &[]), cancel_set[0]);
+                        }
+                    } else {
+                        dag.insert_1q_on_incoming_qubit(
+                            (StandardGate::RX, &[total_angle]),
+                            cancel_set[0],
+                        );
+                    }
                 }
 
                 dag.add_global_phase(&Param::Float(total_phase))?;
@@ -288,6 +317,14 @@ pub fn cancel_commutations(
     }
 
     Ok(())
+}
+
+/// Checks if angle is an integer multiple of ``factor * PI``.
+fn is_multiple_of_pi(angle: f64, factor: f64) -> bool {
+    let modulo = angle / (factor * PI);
+    let remainder = modulo.rem_euclid(1.0);
+    abs_diff_eq!(remainder, 0., epsilon = _CUTOFF_PRECISION)
+        || abs_diff_eq!(remainder, 1., epsilon = _CUTOFF_PRECISION)
 }
 
 pub fn commutation_cancellation_mod(m: &Bound<PyModule>) -> PyResult<()> {
