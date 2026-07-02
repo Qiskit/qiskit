@@ -18,7 +18,7 @@ from test import QiskitTestCase
 import ddt
 import numpy as np
 
-from qiskit.primitives.containers import BitArray
+from qiskit.primitives.containers import BitArray, ObservablesArray
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.result import Counts
 
@@ -773,6 +773,100 @@ class BitArrayTestCase(QiskitTestCase):
                 _ = ba.expectation_values("Z")
             with self.assertRaisesRegex(ValueError, "is not diagonal"):
                 _ = ba.expectation_values("X" * ba.num_bits)
+
+    def test_expectation_values_dtype(self):
+        """expectation_values returns float64 (ObservablesArray enforces
+        Hermiticity, so results are always real; np.real_if_close handles
+        SparsePauliOp's internal complex storage)."""
+        ba = BitArray.from_counts([{0: 1}, {1: 1}]).reshape(2, 1)
+        result = ba.expectation_values("Z")
+        self.assertEqual(result.dtype, np.float64)
+
+    def test_expectation_values_complex_return(self):
+        """expectation_values with allow_non_hermitian=True can return
+        complex128 when the observable has complex coefficients.
+        Z|0⟩ = +1|0⟩, Z|1⟩ = -1|1⟩, coeff = -1j
+        → |0⟩: (+1) × (-1j) = -1j
+        → |1⟩: (-1) × (-1j) = +1j"""
+        sp = SparsePauliOp.from_list([["Z", -1j]])
+        obs = ObservablesArray(sp, validate=False)
+        ba = BitArray.from_counts([{0: 1}, {1: 1}]).reshape(2, 1)
+        result = ba.expectation_values(obs, allow_non_hermitian=True)
+        self.assertEqual(result.dtype, np.complex128)
+        self.assertTrue(np.iscomplexobj(result))
+        self.assertIsInstance(result.flat[0], np.complex128)
+        np.testing.assert_array_almost_equal(result, [[-1j], [1j]])
+
+    def test_expectation_values_sparse_observable_complex(self):
+        """SparseObservable with complex coefficients works through
+        expectation_values when allow_non_hermitian=True."""
+        from qiskit.quantum_info import SparseObservable
+
+        so = SparseObservable.from_list([("Z", -1j)])
+        obs = ObservablesArray(so, validate=False)
+        ba = BitArray.from_counts([{0: 1}, {1: 1}]).reshape(2, 1)
+        result = ba.expectation_values(obs, allow_non_hermitian=True)
+        self.assertEqual(result.dtype, np.complex128)
+        np.testing.assert_array_almost_equal(result, [[-1j], [1j]])
+
+    def test_expectation_values_hermitian_with_allow(self):
+        """allow_non_hermitian=True with Hermitian (real) input still
+        returns float64 — np.real_if_close collapses zero imaginary."""
+        ba = BitArray.from_counts([{0: 1}, {1: 1}]).reshape(2, 1)
+        result = ba.expectation_values("Z", allow_non_hermitian=True)
+        self.assertEqual(result.dtype, np.float64)
+
+    def test_expectation_values_bypass_without_allow(self):
+        """validate=False + allow_non_hermitian=False: complex coeffs
+        get silently stripped by _obs_to_dict (no complex rebuild)."""
+        sp = SparsePauliOp.from_list([["Z", -1j]])
+        obs = ObservablesArray(sp, validate=False)
+        ba = BitArray.from_counts([{0: 1}, {1: 1}]).reshape(2, 1)
+        result = ba.expectation_values(obs)
+        self.assertEqual(result.dtype, np.float64)
+
+    def test_expectation_values_validate_true_with_allow(self):
+        """validate=True + allow_non_hermitian=True: coerce() blocks
+        non-Hermitian before the flag takes effect."""
+        sp = SparsePauliOp.from_list([["Z", -1j]])
+        with self.assertRaises(ValueError):
+            # ObservablesArray with validate=True (default) blocks non-Hermitian
+            ba = BitArray.from_counts([{0: 1}])
+            ba.expectation_values(sp, allow_non_hermitian=True)
+
+    def test_expectation_values_complex_edge_cases(self):
+        """Complex edge cases: multi-qubit, mixed real/complex, large imag.
+        Uses subTest so all cases run even if one fails."""
+        test_cases = {
+            "multi_qubit_ZZ": {
+                "sp": SparsePauliOp.from_list([["ZZ", 3 + 2j]]),
+                "ba": BitArray.from_samples(["11"], num_bits=2),
+                "dtype": np.complex128,
+                "check": lambda r: np.isclose(r.flat[0], 3 + 2j),
+            },
+            "mixed_real_complex": {
+                "sp": [
+                    SparsePauliOp.from_list([["Z", 1.0]]),
+                    SparsePauliOp.from_list([["Z", -1j]]),
+                ],
+                "ba": BitArray.from_counts([{0: 1}, {1: 1}]).reshape(2, 1),
+                "dtype": np.complex128,
+                "check": lambda r: r.shape == (2, 2) and np.isclose(r[0, 1], -1j),
+            },
+            "large_imag": {
+                "sp": SparsePauliOp.from_list([["Z", 999j]]),
+                "ba": BitArray.from_counts([{0: 1}, {1: 1}]).reshape(2, 1),
+                "dtype": np.complex128,
+                "check": lambda r: np.isclose(r.flat[0], 999j),
+            },
+        }
+        for name, case in test_cases.items():
+            with self.subTest(name):
+                sp = case["sp"]
+                obs = ObservablesArray(sp, validate=False)
+                result = case["ba"].expectation_values(obs, allow_non_hermitian=True)
+                self.assertEqual(result.dtype, case["dtype"])
+                self.assertTrue(case["check"](result))
 
     def test_postselection(self):
         """Test the postselection method."""

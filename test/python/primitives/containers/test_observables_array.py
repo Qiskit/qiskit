@@ -642,3 +642,20 @@ class ObservablesArrayTestCase(QiskitTestCase):
         invalid_basis = {1: "value", 2: "another_value"}  # Invalid keys (integers)
         with self.assertRaises(TypeError):
             ObservablesArray.coerce_observable(invalid_basis)
+
+    def test_obs_to_complex_dict_preserves_complex(self):
+        """_obs_to_complex_dict keeps complex coefficients;
+        _obs_to_dict strips them."""
+        obs = qi.SparseObservable.from_list([("Z", 1j), ("X", 2 + 3j), ("Y", -0.5)])
+        real_dict = ObservablesArray._obs_to_dict(obs)
+        complex_dict = ObservablesArray._obs_to_complex_dict(obs)
+        # _obs_to_dict strips imaginary
+        self.assertEqual(real_dict["Z"], 0.0)
+        self.assertEqual(real_dict["X"], 2.0)
+        self.assertEqual(real_dict["Y"], -0.5)
+        # _obs_to_complex_dict preserves
+        self.assertEqual(complex_dict["Z"], 1j)
+        self.assertEqual(complex_dict["X"], 2 + 3j)
+        self.assertEqual(complex_dict["Y"], -0.5 + 0j)
+        # Same keys
+        self.assertEqual(set(real_dict.keys()), set(complex_dict.keys()))
