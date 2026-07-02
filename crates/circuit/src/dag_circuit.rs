@@ -6256,15 +6256,24 @@ impl DAGCircuit {
             for var in node.vars() {
                 match var {
                     expr::Var::Bit { bit } => {
-                        clbits.push(self.clbits.find(bit).unwrap());
+                        let found_bit = self.clbits.find(bit).ok_or_else(|| {
+                            pyo3::exceptions::PyValueError::new_err("Classical bit reference not found in circuit. This indicates corrupted circuit state, likely from a failed mapping during compose.")
+                        })?;
+                        clbits.push(found_bit);
                     }
                     expr::Var::Register { register, .. } => {
                         for bit in register.bits() {
-                            clbits.push(self.clbits.find(&bit).unwrap());
+                            let found_bit = self.clbits.find(&bit).ok_or_else(|| {
+                                pyo3::exceptions::PyValueError::new_err("Classical bit from register not found in circuit.")
+                            })?;
+                            clbits.push(found_bit);
                         }
                     }
                     expr::Var::Standalone { .. } => {
-                        vars.push(self.vars_stretches.vars().find(var).unwrap())
+                        let found_var = self.vars_stretches.vars().find(var).ok_or_else(|| {
+                            pyo3::exceptions::PyValueError::new_err("Standalone variable not found in circuit.")
+                        })?;
+                        vars.push(found_var);
                     }
                 }
             }
