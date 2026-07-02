@@ -8,5 +8,5 @@ deprecations_synthesis:
       whether the optimizations can apply.
 
     * ``decomposer_1q`` and ``decomposer_2q`` should be instances of
-      :class:`.OneQubitBasisDecomposer` or :class:`.TwoQubitBasisDecomposer`, respectively; using
+      :class:`.OneQubitEulerDecomposer` or :class:`.TwoQubitBasisDecomposer`, respectively; using
       arbitrary Python callables is non-performant compared to the Rust core.
