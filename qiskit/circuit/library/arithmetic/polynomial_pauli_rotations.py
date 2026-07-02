@@ -145,10 +145,6 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         \cos\left(\frac{p(i)}{2}\right) |0\rangle |i\rangle
         + \sin\left(\frac{p(i)}{2}\right) |1\rangle |i\rangle
 
-    The target qubit is written first in the formula above to match the usual
-    left-to-right ordering of basis states. In the circuit, the state qubits are
-    passed first and the target qubit is the final qubit.
-
     For ``basis="X"``, the action on the target qubit is:
 
     .. math::
@@ -297,10 +293,6 @@ class PolynomialPauliRotationsGate(Gate):
         |0\rangle |i\rangle \mapsto
         \cos\left(\frac{p(i)}{2}\right) |0\rangle |i\rangle
         + \sin\left(\frac{p(i)}{2}\right) |1\rangle |i\rangle
-
-    The target qubit is written first in the formula above to match the usual
-    left-to-right ordering of basis states. In the circuit, the state qubits are
-    passed first and the target qubit is the final qubit.
 
     For ``basis="X"``, the action on the target qubit is:
 
