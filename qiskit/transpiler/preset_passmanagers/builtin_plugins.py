@@ -160,7 +160,9 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     ContractIdleWiresInControlFlow(),
                 ]
             )
-            init.append(CommutativeCancellation())
+            init.append(CommutativeCancellation(
+                approximation_degree=pass_manager_config.approximation_degree
+            ))
             init.append(ConsolidateBlocks())
 
             # If approximation degree is None that indicates a request to approximate up to the
