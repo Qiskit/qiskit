@@ -1,0 +1,37 @@
+---
+features_quantum_info:
+  - |
+    :class:`.SparseObservable` now has a :meth:`~.SparseObservable.to_matrix` method that
+    converts a pure-Pauli observable to a dense or sparse matrix using a fast
+    XOR/popcount algorithm, equivalent to the existing
+    :meth:`.SparsePauliOp.to_matrix` implementation.
+
+    The method supports optional sparse output (returns ``(data, indices, indptr)``
+    CSR components) and an optional ``force_serial`` flag to disable multi-threaded
+    execution:
+
+    .. code-block:: python
+
+        from qiskit.quantum_info import SparseObservable
+
+        obs = SparseObservable.from_list([("XI", 1.0), ("YZ", 2.0j)])
+
+        # Dense matrix (default)
+        dense = obs.to_matrix()
+
+        # Sparse CSR components
+        data, indices, indptr = obs.to_matrix(sparse=True)
+
+        # Disable threading
+        dense_serial = obs.to_matrix(force_serial=True)
+
+    Observables that contain projector terms (``Zero``, ``One``, ``Plus``,
+    ``Minus``, ``Right``, ``Left``) are not supported by this method and will
+    raise a ``ValueError``.  Support for projectors will be added in a
+    follow-on release.
+upgrade:
+  - |
+    :meth:`.SparsePauliOp.to_matrix` now delegates its implementation to
+    :meth:`.SparseObservable.to_matrix` via an internal conversion.  The
+    numerical results are identical to the previous implementation.  The
+    ``force_serial`` parameter continues to work as before.

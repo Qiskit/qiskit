@@ -1299,6 +1299,61 @@ pub fn sparse_pauli_op(m: &Bound<PyModule>) -> PyResult<()> {
     Ok(())
 }
 
+// ---------------------------------------------------------------------------
+// Delegation to SparseObservable for to_matrix
+//
+// SparsePauliOp.to_matrix() now converts to SparseObservable and delegates to
+// the fast Pauli path implemented there.  The From impl below is the bridge.
+// ---------------------------------------------------------------------------
+
+impl From<&MatrixCompressedPaulis> for crate::sparse_observable::SparseObservable {
+    fn from(paulis: &MatrixCompressedPaulis) -> Self {
+        let mut coeffs = Vec::with_capacity(paulis.num_ops());
+        let mut bit_terms_flat = Vec::new();
+        let mut indices_flat = Vec::new();
+        let mut boundaries = vec![0usize];
+
+        for i in 0..paulis.num_ops() {
+            // MatrixCompressedPaulis stores coefficients with a Y-count phase already
+            // absorbed.  SparseObservable keeps coefficients "raw" and applies the
+            // Y phase at matrix-build time, so we must undo the phase here.
+            let phase = ((paulis.z_like[i] & paulis.x_like[i]).count_ones() % 4) as u8;
+            let c = paulis.coeffs[i];
+            coeffs.push(match phase {
+                0 => c,
+                1 => Complex64::new(-c.im, c.re), // undo *(-i) → *(+i)
+                2 => -c,                          // undo *(-1) → *(-1)
+                3 => Complex64::new(c.im, -c.re), // undo *(+i) → *(-i)
+                _ => unreachable!(),
+            });
+
+            for q in 0..paulis.num_qubits() {
+                let x = (paulis.x_like[i] >> q) & 1;
+                let z = (paulis.z_like[i] >> q) & 1;
+                if x == 1 && z == 1 {
+                    bit_terms_flat.push(crate::sparse_observable::BitTerm::Y);
+                    indices_flat.push(q as u32);
+                } else if x == 1 {
+                    bit_terms_flat.push(crate::sparse_observable::BitTerm::X);
+                    indices_flat.push(q as u32);
+                } else if z == 1 {
+                    bit_terms_flat.push(crate::sparse_observable::BitTerm::Z);
+                    indices_flat.push(q as u32);
+                }
+            }
+            boundaries.push(bit_terms_flat.len());
+        }
+
+        crate::sparse_observable::SparseObservable::new(
+            paulis.num_qubits as u32,
+            coeffs,
+            bit_terms_flat,
+            indices_flat,
+            boundaries,
+        ).unwrap()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use ndarray::aview2;
@@ -1525,5 +1580,37 @@ mod tests {
         let parallel = in_scoped_thread_pool(|| to_matrix_sparse_parallel_64(&paulis)).unwrap();
         let serial = to_matrix_sparse_serial_64(&paulis);
         assert_eq!(parallel, serial);
+    }
+
+    // Verify that delegating to_matrix through SparseObservable gives the same
+    // result as the direct MatrixCompressedPaulis path.
+    #[cfg_attr(miri, ignore)]
+    #[test]
+    fn dense_threaded_and_serial_equal_via_sparse_observable() {
+        let paulis = example_paulis();
+        let observable = crate::sparse_observable::SparseObservable::from(&paulis);
+        let parallel = in_scoped_thread_pool(|| observable.to_matrix_dense(false)).unwrap();
+        let serial = observable.to_matrix_dense(true).unwrap();
+        assert_eq!(parallel.unwrap(), serial);
+    }
+
+    #[cfg_attr(miri, ignore)]
+    #[test]
+    fn sparse_threaded_and_serial_equal_32_via_sparse_observable() {
+        let paulis = example_paulis();
+        let observable = crate::sparse_observable::SparseObservable::from(&paulis);
+        let parallel = in_scoped_thread_pool(|| observable.to_matrix_sparse_32(false)).unwrap();
+        let serial = observable.to_matrix_sparse_32(true).unwrap();
+        assert_eq!(parallel.unwrap(), serial);
+    }
+
+    #[cfg_attr(miri, ignore)]
+    #[test]
+    fn sparse_threaded_and_serial_equal_64_via_sparse_observable() {
+        let paulis = example_paulis();
+        let observable = crate::sparse_observable::SparseObservable::from(&paulis);
+        let parallel = in_scoped_thread_pool(|| observable.to_matrix_sparse_64(false)).unwrap();
+        let serial = observable.to_matrix_sparse_64(true).unwrap();
+        assert_eq!(parallel.unwrap(), serial);
     }
 }

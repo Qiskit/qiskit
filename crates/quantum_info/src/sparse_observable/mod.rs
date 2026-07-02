@@ -31,7 +31,9 @@ use pyo3::{
     types::{IntoPyDict, PyList, PyString, PyTuple, PyType},
 };
 use qiskit_util::IndexSet;
+use rayon::prelude::*;
 use std::{
+    borrow::Cow,
     cmp::Ordering,
     collections::btree_map,
     ops::{AddAssign, DivAssign, MulAssign, SubAssign},
@@ -47,6 +49,22 @@ static SPARSE_PAULI_OP_TYPE: ImportOnceCell =
     ImportOnceCell::new("qiskit.quantum_info", "SparsePauliOp");
 static BIT_TERM_PY_ENUM: PyOnceLock<Py<PyType>> = PyOnceLock::new();
 static BIT_TERM_INTO_PY: PyOnceLock<[Option<Py<PyAny>>; 16]> = PyOnceLock::new();
+
+// CSR matrix components: (values, column-indices, row-pointer).
+type CSRData<T> = (Vec<Complex64>, Vec<T>, Vec<T>);
+
+/// Error variants for matrix construction from a [`SparseObservable`].
+#[derive(Debug, Error)]
+pub enum MatrixComputationError {
+    #[error("Non-Pauli term found in observable at qubit index {qubit}: {term:?}")]
+    NonPauliTerm { qubit: u32, term: BitTerm },
+
+    #[error("Failed to construct matrix from observable: {0}")]
+    InvalidObservable(String),
+}
+
+/// Result alias for matrix construction.
+pub type MatrixResult<T> = Result<T, MatrixComputationError>;
 
 /// Named handle to the alphabet of single-qubit terms.
 ///
@@ -393,6 +411,380 @@ pub struct SparseObservable {
     /// implicitly the identity.  This is one item longer than `coeffs`, since `boundaries[0]` is
     /// always an explicit zero (for algorithmic ease).
     boundaries: Vec<usize>,
+}
+
+// ---------------------------------------------------------------------------
+// Fast Pauli-path matrix construction
+//
+// Pure-Pauli observables (those whose every bit-term is X, Y, or Z) admit a
+// particularly efficient matrix construction: each Pauli term maps every
+// computational-basis row to exactly one other row, so the full matrix can be
+// built column-by-column with a single XOR (for X-like flips) and a popcount
+// (for Z-like phase signs), without ever expanding the tensor product.
+//
+// This is the same algorithm used by SparsePauliOp.to_matrix() in legacy code;
+// it has been migrated here so that SparseObservable can serve as the single
+// canonical implementation.  SparsePauliOp.to_matrix() now delegates by
+// converting to SparseObservable via From<MatrixCompressedPaulis>.
+//
+// Observables that contain projectors (Zero, One, Plus, Minus, Right, Left)
+// are not handled here; calling to_matrix_* on such an observable returns a
+// MatrixComputationError::NonPauliTerm.  Support for projectors will be added
+// in a follow-on PR that extends this infrastructure.
+// ---------------------------------------------------------------------------
+
+/// Trait that abstracts over concrete Pauli-observable types.
+///
+/// Implemented for [`SparseObservable`] so that [`MatrixComputationData`] can
+/// borrow its data without requiring a full copy.
+trait PauliLike {
+    fn num_terms(&self) -> usize;
+    fn get_term_slice(&self, term_idx: usize) -> &[BitTerm];
+    fn get_qubit_indices(&self, term_idx: usize) -> &[u32];
+    fn get_coeffs(&self) -> Cow<'_, [Complex64]>;
+    fn num_qubits(&self) -> u32;
+}
+
+impl PauliLike for SparseObservable {
+    fn num_terms(&self) -> usize {
+        self.boundaries.len() - 1
+    }
+    fn get_term_slice(&self, term_idx: usize) -> &[BitTerm] {
+        let start = self.boundaries[term_idx];
+        let end = self.boundaries[term_idx + 1];
+        &self.bit_terms[start..end]
+    }
+    fn get_qubit_indices(&self, term_idx: usize) -> &[u32] {
+        let start = self.boundaries[term_idx];
+        let end = self.boundaries[term_idx + 1];
+        &self.indices[start..end]
+    }
+    fn get_coeffs(&self) -> Cow<'_, [Complex64]> {
+        Cow::Borrowed(&self.coeffs)
+    }
+    fn num_qubits(&self) -> u32 {
+        self.num_qubits
+    }
+}
+
+/// Precomputed XOR/popcount masks for the fast Pauli matrix path.
+///
+/// For each term `k`:
+/// - `x_like[k]`: bitmask with a `1` at every qubit position acted on by X or Y.
+///   XOR-ing a row index with this mask gives the column index for that term.
+/// - `z_like[k]`: bitmask with a `1` at every qubit position acted on by Z or Y.
+///   The parity of `(row & z_like[k]).count_ones()` gives the sign (`+1` or `-1`).
+/// - `coeffs[k]`: the term coefficient, pre-multiplied by the Y-count phase
+///   `(-i)^(number of Y's)` so that no further phase correction is needed at row time.
+#[derive(Debug)]
+struct MatrixComputationData {
+    x_like: Vec<u64>,
+    z_like: Vec<u64>,
+    coeffs: Vec<Complex64>,
+    num_qubits: u32,
+}
+
+impl MatrixComputationData {
+    /// Build masks from any `PauliLike` observable.
+    ///
+    /// Returns `NonPauliTerm` if any bit-term is a projector.
+    fn from_sparse_observable<T: PauliLike>(obs: &T) -> MatrixResult<Self> {
+        if obs.num_terms() == 0 {
+            return Err(MatrixComputationError::InvalidObservable(
+                "observable contains no terms".into(),
+            ));
+        }
+
+        let num_terms = obs.num_terms();
+        let mut x_like = Vec::with_capacity(num_terms);
+        let mut z_like = Vec::with_capacity(num_terms);
+        let mut new_coeffs = Vec::with_capacity(num_terms);
+
+        for term_idx in 0..num_terms {
+            let bit_terms = obs.get_term_slice(term_idx);
+            let indices = obs.get_qubit_indices(term_idx);
+
+            let mut x_bits = 0u64;
+            let mut z_bits = 0u64;
+            let mut y_count = 0u32;
+
+            for (bit_term, &qubit) in bit_terms.iter().zip(indices.iter()) {
+                let mask = 1u64 << qubit;
+                match bit_term {
+                    BitTerm::X => x_bits |= mask,
+                    BitTerm::Y => {
+                        x_bits |= mask;
+                        z_bits |= mask;
+                        y_count += 1;
+                    }
+                    BitTerm::Z => z_bits |= mask,
+                    _ => {
+                        return Err(MatrixComputationError::NonPauliTerm {
+                            qubit,
+                            term: *bit_term,
+                        });
+                    }
+                }
+            }
+
+            x_like.push(x_bits);
+            z_like.push(z_bits);
+
+            // Pre-apply the Y phase: each Y contributes a factor of -i to the
+            // matrix element, so (-i)^n cycles through {1, -i, -1, i}.
+            let coeff = obs.get_coeffs().get(term_idx).copied().unwrap_or_default();
+            let final_coeff = match y_count % 4 {
+                0 => coeff,
+                1 => Complex64::new(coeff.im, -coeff.re), // * -i
+                2 => -coeff,                              // * -1
+                3 => Complex64::new(-coeff.im, coeff.re), // * i
+                _ => unreachable!(),
+            };
+            new_coeffs.push(final_coeff);
+        }
+
+        Ok(Self {
+            x_like,
+            z_like,
+            coeffs: new_coeffs,
+            num_qubits: obs.num_qubits(),
+        })
+    }
+
+    fn num_ops(&self) -> usize {
+        self.coeffs.len()
+    }
+
+    fn num_qubits(&self) -> u32 {
+        self.num_qubits
+    }
+}
+
+/// Concatenate several `Vec` slices into one flat `Vec` without intermediate allocation.
+fn copy_flatten<T: Copy, U: AsRef<[T]>>(slices: &[U]) -> Vec<T> {
+    let total: usize = slices.iter().map(|s| s.as_ref().len()).sum();
+    let mut out = Vec::with_capacity(total);
+    for s in slices {
+        out.extend_from_slice(s.as_ref());
+    }
+    out
+}
+
+/// Generate serial and parallel CSR-matrix builders for the pure-Pauli path.
+///
+/// The algorithm mirrors `SparsePauliOp.to_matrix()`: for each row `i_row`,
+/// every term `k` contributes exactly one non-zero entry at column
+/// `i_row ^ x_like[k]` with value `±coeffs[k]` (sign from popcount of
+/// `i_row & z_like[k]`).  Sorting terms by `x_like` groups contributions to
+/// the same column so they can be accumulated in a single pass.
+macro_rules! impl_sparse_observable_to_matrix {
+    ($serial_fn:ident, $parallel_fn:ident, $int_ty:ty, $uint_ty:ty $(,)?) => {
+        fn $serial_fn(data: &MatrixComputationData) -> CSRData<$int_ty> {
+            let side = 1usize << data.num_qubits();
+            let num_ops = data.num_ops();
+            if num_ops == 0 {
+                return (vec![], vec![], vec![0; side + 1]);
+            }
+            // Sort terms by their x_like mask so same-column contributions are adjacent.
+            let mut order = (0..num_ops).collect::<Vec<_>>();
+            order.sort_unstable_by_key(|&op| data.x_like[op]);
+
+            let mut values = Vec::<Complex64>::with_capacity(side * (num_ops + 1) / 2);
+            let mut indices = Vec::<$int_ty>::with_capacity(side * (num_ops + 1) / 2);
+            let mut indptr: Vec<$int_ty> = vec![0; side + 1];
+            let mut nnz = 0usize;
+
+            for i_row in 0..side {
+                let mut running = Complex64::new(0.0, 0.0);
+                let mut prev_index = i_row ^ (data.x_like[order[0]] as usize);
+
+                for &op_idx in &order {
+                    // Sign: Z (and Y) bits that overlap the row index flip the phase.
+                    let coeff = if ((i_row as $uint_ty) & (data.z_like[op_idx] as $uint_ty))
+                        .count_ones()
+                        % 2
+                        == 0
+                    {
+                        data.coeffs[op_idx]
+                    } else {
+                        -data.coeffs[op_idx]
+                    };
+
+                    let col = i_row ^ (data.x_like[op_idx] as usize);
+                    if col == prev_index {
+                        running += coeff;
+                    } else {
+                        nnz += 1;
+                        values.push(running);
+                        indices.push(prev_index as $int_ty);
+                        running = coeff;
+                        prev_index = col;
+                    }
+                }
+                nnz += 1;
+                values.push(running);
+                indices.push(prev_index as $int_ty);
+                indptr[i_row + 1] = nnz as $int_ty;
+            }
+
+            (values, indices, indptr)
+        }
+
+        fn $parallel_fn(data: &MatrixComputationData) -> CSRData<$int_ty> {
+            let side = 1usize << data.num_qubits();
+            let num_ops = data.num_ops();
+            if num_ops == 0 {
+                return (vec![], vec![], vec![0; side + 1]);
+            }
+            // Fall back to serial for small work sets to avoid parallelism overhead.
+            let est_work = (side as u64) * (num_ops as u64);
+            let num_threads = rayon::current_num_threads();
+            if est_work < 5_000_000 || num_threads <= 2 {
+                return $serial_fn(data);
+            }
+
+            let chunk_size = side.div_ceil(num_threads);
+
+            // Pre-sort once; share the ordering across all threads via Arc.
+            let mut global_order = (0..num_ops).collect::<Vec<_>>();
+            global_order.sort_unstable_by_key(|&op| data.x_like[op]);
+            let order_arc = Arc::new(global_order);
+
+            let mut indptr = vec![0 as $int_ty; side + 1];
+            let mut values_chunks = Vec::with_capacity(num_threads);
+            let mut indices_chunks = Vec::with_capacity(num_threads);
+
+            indptr[1..]
+                .par_chunks_mut(chunk_size)
+                .enumerate()
+                .map(|(i, indptr_chunk)| {
+                    let start = chunk_size * i;
+                    let end = (chunk_size * (i + 1)).min(side);
+                    let order = order_arc.as_ref();
+
+                    let mut values =
+                        Vec::<Complex64>::with_capacity(chunk_size * (num_ops + 1) / 2);
+                    let mut indices = Vec::<$int_ty>::with_capacity(chunk_size * (num_ops + 1) / 2);
+                    let mut nnz = 0usize;
+
+                    for i_row in start..end {
+                        let mut running = Complex64::new(0.0, 0.0);
+                        let mut prev_index = i_row ^ (data.x_like[order[0]] as usize);
+
+                        for &op_idx in order {
+                            let coeff = if ((i_row as $uint_ty) & (data.z_like[op_idx] as $uint_ty))
+                                .count_ones()
+                                % 2
+                                == 0
+                            {
+                                data.coeffs[op_idx]
+                            } else {
+                                -data.coeffs[op_idx]
+                            };
+
+                            let col = i_row ^ (data.x_like[op_idx] as usize);
+                            if col == prev_index {
+                                running += coeff;
+                            } else {
+                                nnz += 1;
+                                values.push(running);
+                                indices.push(prev_index as $int_ty);
+                                running = coeff;
+                                prev_index = col;
+                            }
+                        }
+                        nnz += 1;
+                        values.push(running);
+                        indices.push(prev_index as $int_ty);
+                        indptr_chunk[i_row - start] = nnz as $int_ty;
+                    }
+
+                    (values, indices)
+                })
+                .unzip_into_vecs(&mut values_chunks, &mut indices_chunks);
+
+            // Offset per-chunk nnz counts into global indptr.
+            let mut start_nnz = 0usize;
+            let chunk_nnz = values_chunks
+                .iter()
+                .map(|chunk| {
+                    let prev = start_nnz;
+                    start_nnz += chunk.len();
+                    prev as $int_ty
+                })
+                .collect::<Vec<_>>();
+
+            indptr[1..]
+                .par_chunks_mut(chunk_size)
+                .zip(chunk_nnz)
+                .for_each(|(indptr_chunk, base)| {
+                    indptr_chunk.iter_mut().for_each(|v| *v += base);
+                });
+
+            let values = copy_flatten(&values_chunks);
+            let indices = copy_flatten(&indices_chunks);
+            (values, indices, indptr)
+        }
+    };
+}
+
+impl_sparse_observable_to_matrix!(
+    sparse_observable_to_matrix_serial_32,
+    sparse_observable_to_matrix_parallel_32,
+    i32,
+    u32
+);
+impl_sparse_observable_to_matrix!(
+    sparse_observable_to_matrix_serial_64,
+    sparse_observable_to_matrix_parallel_64,
+    i64,
+    u64
+);
+
+/// Dense matrix builder for the pure-Pauli path.
+///
+/// Allocates the full `2^n × 2^n` matrix.  Each row is independent, so the
+/// parallel variant distributes rows across Rayon threads.
+fn sparse_observable_to_matrix_dense_inner(
+    data: &MatrixComputationData,
+    parallel: bool,
+) -> Vec<Complex64> {
+    let side = 1usize << data.num_qubits();
+    let x_like = &data.x_like;
+    let z_like = &data.z_like;
+    let coeffs = &data.coeffs;
+
+    const C_ZERO: Complex64 = Complex64 { re: 0.0, im: 0.0 };
+
+    // SAFETY: every element is overwritten by `write_row` before it is read.
+    // Complex64 does not implement Drop, so uninitialised bytes are safe to
+    // set_len over.
+    #[allow(clippy::uninit_vec)]
+    let mut out = {
+        let mut v: Vec<Complex64> = Vec::with_capacity(side * side);
+        unsafe { v.set_len(side * side) };
+        v
+    };
+
+    let write_row = |(i_row, row): (usize, &mut [Complex64])| {
+        row.fill(C_ZERO);
+        for ((&x_mask, &z_mask), &coeff) in x_like.iter().zip(z_like.iter()).zip(coeffs.iter()) {
+            // Sign from Z/Y bits that overlap the row.
+            let signed_coeff = if ((i_row as u32) & (z_mask as u32)).count_ones() % 2 == 0 {
+                coeff
+            } else {
+                -coeff
+            };
+            row[i_row ^ (x_mask as usize)] += signed_coeff;
+        }
+    };
+
+    if parallel {
+        out.par_chunks_mut(side).enumerate().for_each(write_row);
+    } else {
+        out.chunks_mut(side).enumerate().for_each(write_row);
+    }
+    out
 }
 
 impl SparseObservable {
@@ -1111,6 +1503,53 @@ impl SparseObservable {
             indices,
             boundaries,
         }
+    }
+
+    /// Returns `true` iff every bit-term in the observable is a Pauli (X, Y, or Z).
+    ///
+    /// Projectors (Zero, One, Plus, Minus, Right, Left) cause this to return `false`.
+    pub fn is_pure_pauli(&self) -> bool {
+        self.bit_terms.iter().all(|bt| !bt.is_projector())
+    }
+
+    /// Convert to a sparse CSR matrix, using 32-bit column/row indices.
+    ///
+    /// Returns `(values, indices, indptr)` arrays suitable for constructing a
+    /// `scipy.sparse.csr_matrix`. Fails if the observable contains non-Pauli terms.
+    ///
+    /// Use `to_matrix_sparse_64` for large observables whose matrix dimension exceeds `i32::MAX`.
+    pub fn to_matrix_sparse_32(&self, force_serial: bool) -> MatrixResult<CSRData<i32>> {
+        let data = MatrixComputationData::from_sparse_observable(self)?;
+        let parallel = qiskit_util::getenv_use_multiple_threads() && !force_serial;
+        Ok(if parallel {
+            sparse_observable_to_matrix_parallel_32(&data)
+        } else {
+            sparse_observable_to_matrix_serial_32(&data)
+        })
+    }
+
+    /// Convert to a sparse CSR matrix, using 64-bit column/row indices.
+    ///
+    /// Identical to `to_matrix_sparse_32` but uses `i64` indices for matrices whose
+    /// dimension exceeds `i32::MAX`. Fails if the observable contains non-Pauli terms.
+    pub fn to_matrix_sparse_64(&self, force_serial: bool) -> MatrixResult<CSRData<i64>> {
+        let data = MatrixComputationData::from_sparse_observable(self)?;
+        let parallel = qiskit_util::getenv_use_multiple_threads() && !force_serial;
+        Ok(if parallel {
+            sparse_observable_to_matrix_parallel_64(&data)
+        } else {
+            sparse_observable_to_matrix_serial_64(&data)
+        })
+    }
+
+    /// Convert to a dense row-major matrix stored as a flat `Vec<Complex64>`.
+    ///
+    /// The output has length `2^n * 2^n` where `n` is `num_qubits`.
+    /// Fails if the observable contains non-Pauli terms.
+    pub fn to_matrix_dense(&self, force_serial: bool) -> MatrixResult<Vec<Complex64>> {
+        let data = MatrixComputationData::from_sparse_observable(self)?;
+        let parallel = qiskit_util::getenv_use_multiple_threads() && !force_serial;
+        Ok(sparse_observable_to_matrix_dense_inner(&data, parallel))
     }
 
     /// Add the term implied by a dense string label onto this observable.
@@ -3125,6 +3564,123 @@ impl PySparseObservable {
     fn as_paulis(&self) -> PyResult<Self> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
         Ok(inner.as_paulis().into())
+    }
+
+    /// Convert to a sparse CSR matrix.
+    ///
+    /// Returns a 3-tuple ``(data, indices, indptr)`` of NumPy arrays that can
+    /// be passed directly to ``scipy.sparse.csr_matrix``.  The integer dtype of
+    /// ``indices``/``indptr`` is chosen automatically: ``int32`` when the matrix
+    /// fits (dimension ≤ ``i32::MAX``), ``int64`` otherwise.
+    ///
+    /// Args:
+    ///     force_serial: if ``True``, disable multi-threaded execution even when
+    ///         the Qiskit threading environment variable is set.
+    ///
+    /// Returns:
+    ///     tuple[np.ndarray, np.ndarray, np.ndarray]: (data, indices, indptr).
+    ///
+    /// Raises:
+    ///     ValueError: if the observable contains non-Pauli terms (projectors).
+    #[pyo3(signature = (force_serial=false))]
+    fn to_matrix_sparse<'py>(
+        &self,
+        py: Python<'py>,
+        force_serial: bool,
+    ) -> PyResult<Bound<'py, PyTuple>> {
+        fn to_py_tuple<T: numpy::Element>(
+            py: Python<'_>,
+            csr_data: CSRData<T>,
+        ) -> PyResult<Bound<'_, PyTuple>> {
+            let (values, indices, indptr) = csr_data;
+            PyTuple::new(
+                py,
+                [
+                    PyArray1::from_vec(py, values).into_any(),
+                    PyArray1::from_vec(py, indices).into_any(),
+                    PyArray1::from_vec(py, indptr).into_any(),
+                ],
+            )
+        }
+
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let data = MatrixComputationData::from_sparse_observable(&*inner)
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+
+        let num_qubits = data.num_qubits() as u64;
+        // Pick 32-bit indices when the total entries fit within i32::MAX.
+        let max_entries_per_row = (data.num_ops() as u64).min(1u64 << num_qubits);
+        let use_32_bit =
+            max_entries_per_row.saturating_mul(1u64 << num_qubits) <= (i32::MAX as u64);
+
+        let parallel = !force_serial && qiskit_util::getenv_use_multiple_threads();
+
+        if use_32_bit {
+            to_py_tuple(
+                py,
+                if parallel {
+                    sparse_observable_to_matrix_parallel_32(&data)
+                } else {
+                    sparse_observable_to_matrix_serial_32(&data)
+                },
+            )
+        } else {
+            if num_qubits > 63 {
+                return Err(PyValueError::new_err(format!(
+                    "{num_qubits} qubits is too large to convert to a sparse matrix"
+                )));
+            }
+            to_py_tuple(
+                py,
+                if parallel {
+                    sparse_observable_to_matrix_parallel_64(&data)
+                } else {
+                    sparse_observable_to_matrix_serial_64(&data)
+                },
+            )
+        }
+    }
+
+    /// Convert to a dense 2-D NumPy matrix.
+    ///
+    /// Args:
+    ///     force_serial: if ``True``, disable multi-threaded execution.
+    ///
+    /// Returns:
+    ///     np.ndarray: complex128 array of shape ``(2**n, 2**n)``.
+    ///
+    /// Raises:
+    ///     ValueError: if the observable contains non-Pauli terms (projectors).
+    #[pyo3(signature = (force_serial=false))]
+    fn to_matrix_dense<'py>(
+        &self,
+        py: Python<'py>,
+        force_serial: bool,
+    ) -> PyResult<Bound<'py, PyArray2<Complex64>>> {
+        let inner = self.inner.read().map_err(|_| InnerReadError)?;
+        let side = 1usize << inner.num_qubits();
+        let flat = inner
+            .to_matrix_dense(force_serial)
+            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        PyArray1::from_vec(py, flat).reshape([side, side])
+    }
+
+    /// Convert to a matrix.
+    ///
+    /// Args:
+    ///     sparse (bool): if ``True``, return a sparse ``(data, indices, indptr)``
+    ///         tuple; otherwise return a dense 2-D NumPy array.
+    ///     force_serial (bool): disable multi-threaded execution.
+    ///
+    /// Raises:
+    ///     ValueError: if the observable contains non-Pauli terms (projectors).
+    #[pyo3(signature = (sparse=false, force_serial=false))]
+    fn to_matrix(&self, py: Python, sparse: bool, force_serial: bool) -> PyResult<Py<PyAny>> {
+        if sparse {
+            Ok(self.to_matrix_sparse(py, force_serial)?.into())
+        } else {
+            Ok(self.to_matrix_dense(py, force_serial)?.into())
+        }
     }
 
     /// Express the observable in terms of a sparse list format.
