@@ -1,0 +1,26 @@
+---
+upgrade_transpiler:
+  - |
+    The :class:`.VF2Layout` and :class:`.VF2PostLayout` transpiler passes now
+    default their ``call_limit`` argument to a finite value (``10_000_000``)
+    instead of ``None`` (unbounded).  This bounds the worst-case run time of the
+    inner VF2 subgraph-isomorphism search when a pass is constructed directly with
+    default arguments.  The preset pass managers built by :func:`.generate_preset_pass_manager`
+    and used by :func:`.transpile` are unaffected, because they already pass
+    explicit ``call_limit`` values.  To restore the previous fully-unbounded
+    behavior, construct the pass with ``call_limit=None`` explicitly.  The chosen
+    default is generous enough that it does not change the layout found for
+    realistic circuits.
+security:
+  - |
+    Constructing :class:`.VF2Layout` or :class:`.VF2PostLayout` with default
+    arguments previously ran the VF2 subgraph-isomorphism search with no
+    ``call_limit`` (and, for :class:`.VF2PostLayout`, ``max_trials=0`` meaning
+    "unlimited").  Because VF2's worst case is exponential and a highly symmetric
+    interaction graph on a large, dense coupling graph has a combinatorial number
+    of valid embeddings, an unbounded search enumerates them all -- allowing a
+    very small crafted circuit to trigger an effectively unbounded compilation.
+    This is a denial-of-service risk for any service that transpiles untrusted
+    circuits using these passes with default settings.  The passes now default to
+    a finite ``call_limit``; callers that transpile untrusted input should keep a
+    finite ``call_limit`` (and, ideally, a ``time_limit``).

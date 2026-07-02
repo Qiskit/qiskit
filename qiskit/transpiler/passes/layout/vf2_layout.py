@@ -25,6 +25,16 @@ from qiskit._accelerate.vf2_layout import (
     VF2PassConfiguration,
 )
 
+# A finite default budget for the inner VF2 subgraph-isomorphism search.  VF2's
+# worst-case cost is exponential, and a highly symmetric interaction graph on a
+# large, dense coupling graph can have a combinatorial number of embeddings, which
+# an *unbounded* search will enumerate in full -- turning a tiny circuit into an
+# effectively unbounded compilation (a denial-of-service vector for any service
+# that transpiles untrusted circuits).  Defaulting to a finite budget bounds that
+# worst case while remaining generous enough not to affect realistic layouts; pass
+# ``call_limit=None`` explicitly to restore the old fully-unbounded behavior.
+DEFAULT_CALL_LIMIT = 10_000_000
+
 
 class VF2LayoutStopReason(Enum):
     """Stop reasons for VF2Layout pass."""
@@ -76,7 +86,7 @@ class VF2Layout(AnalysisPass):
         coupling_map=None,
         strict_direction=False,
         seed=None,
-        call_limit=None,
+        call_limit=DEFAULT_CALL_LIMIT,
         time_limit=None,
         max_trials=None,
         target=None,
@@ -91,11 +101,15 @@ class VF2Layout(AnalysisPass):
                 coupling graph, using a given pRNG seed.  ``None`` seeds using OS entropy (and so is
                 non-deterministic).  Using ``-1`` disables the shuffling.
             call_limit (None | int | tuple[int | None, int | None]): The maximum number of times
-                that the inner VF2 isomorphism search will attempt to extend the mapping. If
-                ``None``, then no limit.  If a 2-tuple, then the limit starts as the first item, and
-                swaps to the second after the first match is found, without resetting the number of
-                steps taken.  This can be used to allow a long search for any mapping, but still
-                terminate quickly with a small extension budget if one is found.
+                that the inner VF2 isomorphism search will attempt to extend the mapping.  Defaults
+                to a finite budget (``10_000_000``).  If ``None``, then no limit -- but
+                be aware that for a highly symmetric interaction graph on a large, dense coupling
+                graph the search space is combinatorial, so an unbounded search can run effectively
+                forever; only set ``None`` when the input circuits are trusted.  If a 2-tuple, then
+                the limit starts as the first item, and swaps to the second after the first match is
+                found, without resetting the number of steps taken.  This can be used to allow a
+                long search for any mapping, but still terminate quickly with a small extension
+                budget if one is found.
             time_limit (float): The total time limit in seconds to run ``VF2Layout``.  This is not
                 completely strict; execution will finish on the first isomorphism found (if any)
                 _after_ the time limit has been exceeded.  Setting this option breaks determinism of

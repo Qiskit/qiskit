@@ -25,7 +25,11 @@ from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.circuit import ControlFlowOp, Qubit, library as lib, Parameter
 from qiskit.transpiler import CouplingMap, Target, TranspilerError
 from qiskit.transpiler.passes import ApplyLayout
-from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout, VF2LayoutStopReason
+from qiskit.transpiler.passes.layout.vf2_layout import (
+    VF2Layout,
+    VF2LayoutStopReason,
+    DEFAULT_CALL_LIMIT,
+)
 from qiskit._accelerate.error_map import ErrorMap
 from qiskit.converters import circuit_to_dag
 from qiskit.providers.fake_provider import GenericBackendV2
@@ -234,6 +238,30 @@ class TestVF2LayoutSimple(LayoutTestCase):
         self.assertEqual(
             pass_.property_set["VF2Layout_stop_reason"], VF2LayoutStopReason.NO_SOLUTION_FOUND
         )
+
+    def test_default_call_limit_is_finite(self):
+        """The default ``call_limit`` is a finite budget (not ``None``/unbounded), so a directly
+        constructed pass cannot be driven into an unbounded VF2 search by a crafted circuit.
+        Passing ``call_limit=None`` explicitly restores the fully-unbounded behavior."""
+        cmap = CouplingMap([[0, 1], [1, 2], [2, 0]])
+        self.assertEqual(VF2Layout(cmap).call_limit, DEFAULT_CALL_LIMIT)
+        self.assertIsNotNone(VF2Layout(cmap).call_limit)
+        self.assertIsNone(VF2Layout(cmap, call_limit=None).call_limit)
+
+    def test_default_call_limit_finds_perfect_layout(self):
+        """A directly constructed pass with the default (finite) ``call_limit`` still finds a
+        perfect layout for a symmetric interaction graph on a dense coupling map, and terminates.
+        This guards against a regression back to an unbounded default, which for this class of
+        input would enumerate a combinatorial number of embeddings."""
+        cmap = CouplingMap.from_grid(5, 5)
+        qr = QuantumRegister(6, "qr")
+        circuit = QuantumCircuit(qr)
+        for i in range(0, 6, 2):  # perfect matching -> many symmetric embeddings
+            circuit.cx(qr[i], qr[i + 1])
+        dag = circuit_to_dag(circuit)
+        pass_ = VF2Layout(cmap, seed=-1)  # default finite call_limit
+        pass_.run(dag)
+        self.assertLayout(dag, cmap, pass_.property_set)
 
     def test_coupling_map_and_target(self):
         """Test that a Target is used instead of a CouplingMap if both are specified."""

@@ -19,6 +19,7 @@ from qiskit.circuit import ControlFlowOp, Parameter, library as lib
 from qiskit.transpiler import Layout, TranspilerError, PassManager, passes
 from qiskit.transpiler.passes import TrivialLayout, ApplyLayout
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayout, VF2PostLayoutStopReason
+from qiskit.transpiler.passes.layout.vf2_layout import DEFAULT_CALL_LIMIT
 from qiskit.converters import circuit_to_dag
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.compiler.transpiler import transpile
@@ -33,6 +34,15 @@ class TestVF2PostLayout(QiskitTestCase):
     """Tests the VF2Layout pass"""
 
     seed = 42
+
+    def test_default_call_limit_is_finite(self):
+        """The default ``call_limit`` is a finite budget (not ``None``/unbounded).  Combined with
+        the default ``max_trials=0`` ("unlimited"), a ``None`` call limit would make the VF2 search
+        fully unbounded, so the finite default guards a directly constructed pass against a crafted
+        circuit.  Passing ``call_limit=None`` explicitly restores the old behavior."""
+        self.assertEqual(VF2PostLayout().call_limit, DEFAULT_CALL_LIMIT)
+        self.assertIsNotNone(VF2PostLayout().call_limit)
+        self.assertIsNone(VF2PostLayout(call_limit=None).call_limit)
 
     def assertLayoutV2(self, dag, target, property_set):
         """Checks if the circuit in dag was a perfect layout in property_set for the given

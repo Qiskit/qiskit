@@ -24,6 +24,7 @@ from qiskit._accelerate.vf2_layout import (
     MultiQEncountered,
     VF2PassConfiguration,
 )
+from qiskit.transpiler.passes.layout.vf2_layout import DEFAULT_CALL_LIMIT
 
 
 class VF2PostLayoutStopReason(Enum):
@@ -87,7 +88,7 @@ class VF2PostLayout(AnalysisPass):
         self,
         target=None,
         seed=None,
-        call_limit=None,
+        call_limit=DEFAULT_CALL_LIMIT,
         time_limit=None,
         strict_direction=True,
         max_trials=0,
@@ -98,7 +99,11 @@ class VF2PostLayout(AnalysisPass):
             target (Target): A target representing the backend device to run ``VF2PostLayout`` on.
             seed (int): Sets the seed of the PRNG. -1 Means no node shuffling.
             call_limit (int): The number of state visits to attempt in each execution of
-                VF2.
+                VF2.  Defaults to a finite budget (``10_000_000``).  Passing ``None``
+                removes the limit; combined with the default ``max_trials=0`` ("unlimited") this
+                makes the search fully unbounded, which for a highly symmetric interaction graph on
+                a large, dense coupling graph can run effectively forever.  Only pass ``None`` when
+                the input circuits are trusted.
             time_limit (float): The total time limit in seconds to run ``VF2PostLayout``
             strict_direction (bool): Whether the pass is configured to follow
                 the strict direction in the coupling graph. If this is set to
