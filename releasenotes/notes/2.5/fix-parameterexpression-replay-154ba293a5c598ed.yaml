@@ -2,10 +2,10 @@
 fixes:
   - |
     :class:`.ParameterExpression` instances with cancelled-out variables (like ``x - x``) will now
-    retain the reference to ``x`` after a round-trip through QPY and pickle.
+    retain the reference to ``x`` after a round-trip through QPY and :mod:`pickle`.
   - |
     :class:`.ParameterExpression` instances that evaluated to a bare value (like ``0*x + 2``) will
-    now successfully round-trip through QPY and pickle.
+    now successfully round-trip through QPY and :mod:`pickle`.
 issues:
   - |
     Qiskit v2.2 and v2.3 can generate unreadable QPY files for circuits containing a

@@ -1,0 +1,32 @@
+---
+prelude: |
+  Qiskit v2.5.0 is a new feature release of the Qiskit SDK.
+  The highlights of this release are:
+
+   * **Expanded C API and increased access.**
+     The C API contains many new functions and types (see the "C API Features" section below), most
+     notably ones to inspect control-flow and classical exprsesions.  :mod:`qiskit.capi` also gained
+     :mod:`ctypes` bindings to the C API, for convenient debug access.
+
+   * **Initial multi-IR staged pass-manager support.**
+     A new :class:`.MultiStagePassManager` allows compilations that progressively lower through
+     multiple IRs.  Future releases will expand Qiskit's multi-IR capabilities.
+
+   * **Preset pass-managers for Clifford+T and PBC.**
+     Two new functions, :func:`.generate_preset_clifford_t_pass_manager` and
+     :func:`.generate_preset_pbc_pass_manager`, provide pre-configured pipelines for targetting
+     Clifford+T and Pauli-based computation (PBC) bases, respectively.  This is an early step
+     towards more powerful fault-tolerant compilation in Qiskit.
+
+   * **New default two-qubit transpiler optimizations.**
+     Qiskit's default two-qubit resynthesis optimization (enabled at levels 2 and 3 in the preset
+     pipelines) now uses a new :class:`.TwoQubitPeepholeOptimization` pass.  Compared to the
+     previous combination of :class:`.ConsolidateBlocks` and :class:`.UnitarySynthesis`, this is
+     more performant and better at selecting the highest-fidelity decomposition.
+
+   * **Transpiler performance improvements.**
+     Speed-ups of 2-3x across ``benchpress`` circuits are typical.  This stems from several
+     transpiler passes gaining multithreading suport, and many other improvements such as
+     the new two-qubit synthesis above, algorithmic improvements in :class:`.SabreLayout`,
+     optimizations in :mod:`rustworkx`, and more efficient hashing, allocation and linear-algebra
+     routines.

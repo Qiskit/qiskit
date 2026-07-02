@@ -1,7 +1,7 @@
 ---
 features_c:
   - |
-    Added functions to query a circuit about its quantum registers and classical registers, and for 
+    Added functions to query a circuit about its quantum registers and classical registers, and for
     various properties of the registers themselves. The following functions were added:
 
     * :c:func:`qk_circuit_num_quantum_registers`
@@ -14,6 +14,3 @@ features_c:
     * :c:func:`qk_classical_register_name`
     * :c:func:`qk_classical_register_num_bits`
     * :c:func:`qk_classical_register_circuit_bits`
-
-    Refer to the function API docs for more details about each function. 
-

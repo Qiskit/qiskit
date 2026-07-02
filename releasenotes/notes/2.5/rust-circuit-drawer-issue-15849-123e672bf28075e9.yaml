@@ -1,8 +1,9 @@
 ---
 features_visualization:
-  - The Rust circuit drawer (accessible e.g., via :c:func:`qk_circuit_draw` in the C API) 
-    has been enhanced with support for :class:`.PauliProductMeasurement` and 
-    :class:`.PauliProductRotationGate` gates, improved parameter rendering that displays ``Pi`` fractions in 
-    readable format (e.g., ``Rx(π/3)`` instead of ``Rx(1.047...)``), and visual improvements 
-    including a more compact measurement box representation and cleaner :class:`.CPhaseGate` gate rendering. 
-    See `#15849 <https://github.com/Qiskit/qiskit/issues/15849>`__ for more details.
+  - The C-API circuit drawer (:c:func:`qk_circuit_draw`)
+    now supports :class:`.PauliProductMeasurement` and
+    :class:`.PauliProductRotationGate` gates.
+  - The C-API circuit drawer (:c:func:`qk_circuit_draw`) now uses a fractional display for
+    angles close to simple fractions of :math:`\pi`, similar to the Python-space visualizers.
+  - The C-API circuit drawer (:c:func:`qk_circuit_draw`) now draws measurements and
+    :class:`.CPhaseGate` operations more clearly.

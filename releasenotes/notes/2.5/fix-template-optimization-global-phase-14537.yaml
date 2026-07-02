@@ -1,7 +1,7 @@
 ---
 fixes:
   - |
-    Fixed global phase handling in :class:`.TemplateSubstitution`, which previously
+    Fixed global phase handling in :class:`.TemplateOptimization`, which previously
     silently reset to input circuit's global phase to zero and didn't correct for global
     phases of the templates.
 

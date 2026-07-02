@@ -1,11 +1,11 @@
 ---
-features_misc:
+performance:
   - The precompiled wheels on PyPI are now built using `mimalloc <https://github.com/microsoft/mimalloc>`__
-    as the global allocator. This improves the runtime performance of Qiskit and also should
-    reduce the resident set size when running Qiskit.
+    as the global allocator. This improves the runtime performance and memory use of Qiskit.
+    For details see `#16024 <https://github.com/Qiskit/qiskit/pull/16024>`__ .
 build:
   - Qiskit can now be optionally built using `mimalloc <https://github.com/microsoft/mimalloc>`__
-    as the global allocator to improve the runtime performance of Qiskit.
+    as the global allocator.
     To opt-in to using mimalloc, set the environment variable ``QISKIT_BUILD_WITH_MIMALLOC=1``.
     This option can be used when either building the Python package or when using the Makefile
-    (`make c`) to build a standalone shared library.
+    (``make c``) to build a standalone shared library.

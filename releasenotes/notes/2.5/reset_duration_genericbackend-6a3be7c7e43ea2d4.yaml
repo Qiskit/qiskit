@@ -1,5 +1,4 @@
 ---
 fixes:
   - |
-    Circuits with reset instruction now can be scheduled using :class:`~GenericBackendV2`. The problem was that 
-    :class:`~GenericBackendV2` did not have a duration for `reset`.
+    Circuits with :class:`.Reset` instructions now can be scheduled against a :class:`.GenericBackendV2`.
