@@ -13,6 +13,7 @@
 """
 Preset pass manager generation function
 """
+
 from __future__ import annotations
 
 import copy
@@ -109,9 +110,11 @@ def generate_preset_pass_manager(
     .. note::
 
         When the target basis consists of Clifford+T gates, this function constructs
-        a specialized Clifford+T transpiler pipeline, see :func:`.clifford_t_pass_manager`
-        for documentation. The arguments that apply to transpiling into continuous basis sets
-        are ignored in this flow.
+        a specialized Clifford+T transpiler pipeline, see
+        :func:`.generate_preset_clifford_t_pass_manager` for more detailed documentation. Arguments
+        that apply only to transpiling into continuous basis sets are ignored in this flow.
+        For example, the ``"unitary_synthesis_method"`` is not taken into account when synthesizing
+        single-qubit unitaries into a Clifford+T sequence.
 
     Args:
         optimization_level: The optimization level to generate a
