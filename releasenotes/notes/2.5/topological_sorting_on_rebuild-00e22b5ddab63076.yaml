@@ -1,7 +1,7 @@
 ---
 performance:
   - The transpiler passes :class:`.BasisTranslator`, :class:`.UnitarySynthesis`,
-    and :class:`.Split2qUnitaries`, and their corresponding C API functions
+    and :class:`.Split2QUnitaries`, and their corresponding C API functions
     :c:func:`qk_transpiler_pass_standalone_basis_translator`,
     :c:func:`qk_transpiler_pass_standalone_unitary_synthesis`,
     :c:func:`qk_transpiler_pass_split_2q_unitaries` and

@@ -1,7 +1,7 @@
 ---
 fixes:
   - |
-    ``pi_check`` and circuit visualization no longer print a redundant leading ``1`` for
+    The circuit visualization no longer prints a redundant leading ``1`` for
     angles within tolerance of :math:`\pi/k` for integer :math:`k` (for example ``1π/2``
     is now ``π/2``), including ``latex``, ``mpl``, and ``qasm`` output modes.
 
