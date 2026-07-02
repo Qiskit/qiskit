@@ -17,9 +17,9 @@
 use core::f64;
 
 use hashbrown::HashMap;
-use pyo3::exceptions::PyRecursionError;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
+use std::ops::ControlFlow;
 
 use crate::bytecode;
 use crate::error::{
@@ -250,6 +250,26 @@ fn binary_power(op: Op) -> (u8, u8) {
     }
 }
 
+enum State {
+    Paren,
+    Function(Function),
+    CustomFunction {
+        callable: Py<PyAny>,
+        num_params: usize,
+        arguments: Vec<Expr>,
+    },
+    Prefix(Op),
+    Infix {
+        lhs: Expr,
+        op: Op,
+    },
+}
+struct EvalState {
+    power_min: u8,
+    state: State,
+    token: Token,
+}
+
 /// A subparser used to do the operator-precedence part of the parsing for individual parameter
 /// expressions.  The main parser creates a new instance of this struct for each expression it
 /// expects, and the instance lives only as long as is required to parse that expression, because
@@ -260,8 +280,6 @@ pub struct ExprParser<'a> {
     pub gate_symbols: &'a HashMap<String, GateSymbol>,
     pub global_symbols: &'a HashMap<String, GlobalSymbol>,
     pub strict: bool,
-    /// Internal recursion-depth limit.
-    pub remaining_depth: usize,
 }
 
 impl ExprParser<'_> {
@@ -436,9 +454,20 @@ impl ExprParser<'_> {
     fn apply_custom_function(
         &mut self,
         callable: Py<PyAny>,
+        num_params: usize,
         exprs: Vec<Expr>,
         token: &Token,
     ) -> PyResult<Expr> {
+        if exprs.len() != num_params {
+            return Err(QASM2ParseError::new_err(message_generic(
+                Some(&self.cur_position_of(token)),
+                &format!(
+                    "custom function argument-count mismatch: expected {}, saw {}",
+                    num_params,
+                    exprs.len(),
+                ),
+            )));
+        }
         if exprs.iter().all(|x| matches!(x, Expr::Constant(_))) {
             // We can still do constant folding with custom user classical functions, we're just
             // going to have to acquire the GIL and call the Python object the user gave us right
@@ -582,154 +611,153 @@ impl ExprParser<'_> {
         }
     }
 
-    /// The main recursive worker routing of the operator-precedence parser.  This evaluates a
-    /// series of binary infix operators that have binding powers greater than the input
-    /// `power_min`, and unary prefixes on the left-hand operand.  For example, if `power_min`
-    /// starts out at `2` (such as it would when evaluating the right-hand side of a binary `+`
-    /// expression), then as many `*` and `^` operations as appear would be evaluated by this loop,
-    /// and its parsing would finish when it saw the next `+` binary operation.  For initial entry,
-    /// the `power_min` should be zero.
-    fn eval_expression(&mut self, power_min: u8, cause: &Token) -> PyResult<Expr> {
-        self.remaining_depth = self.remaining_depth.checked_sub(1).ok_or_else(|| {
-            PyRecursionError::new_err("exceeded maximum permitted expression depth")
-        })?;
+    fn next_atom(&mut self, power_min: u8, cause: &Token) -> PyResult<(Token, Atom)> {
+        let description = if power_min == 0 {
+            "an expression"
+        } else {
+            "a missing operand"
+        };
         let token = self.next_token()?.ok_or_else(|| {
             QASM2ParseError::new_err(message_bad_eof(
-                Some(&Position::new(
-                    self.current_filename(),
-                    cause.line,
-                    cause.col,
-                )),
-                if power_min == 0 {
-                    "an expression"
-                } else {
-                    "a missing operand"
-                },
+                Some(&self.cur_position_of(cause)),
+                description,
             ))
         })?;
         let atom = self.try_atom_from_token(&token)?.ok_or_else(|| {
             QASM2ParseError::new_err(message_incorrect_requirement(
-                if power_min == 0 {
-                    "an expression"
-                } else {
-                    "a missing operand"
-                },
+                description,
                 &token,
                 self.current_filename(),
             ))
         })?;
-        // First evaluate the "left-hand side" of a (potential) sequence of binary infix operators.
-        // This might be a simple value, a unary operator acting on a value, or a bracketed
-        // expression (either the operand of a function, or just plain parentheses).  This can also
-        // invoke a recursive call; the parenthesis components feel naturally recursive, and the
-        // unary operator component introduces a new precedence level that requires a recursive
-        // call to evaluate.
-        let mut lhs = match atom {
-            Atom::LParen => {
-                let out = self.eval_expression(0, cause)?;
-                self.expect(TokenType::RParen, "a closing parenthesis", &token)?;
-                Ok(out)
-            }
+        Ok((token, atom))
+    }
+
+    #[inline]
+    fn cur_position_of(&self, token: &Token) -> Position {
+        Position::new(self.current_filename(), token.line, token.col)
+    }
+
+    /// Parse an expected expression part, allowing the logic to `Continue` if we can.
+    ///
+    /// If we need to break and look for a new subexpression component, return `Break` with the
+    /// stack update instead.
+    #[inline]
+    fn expect_expression_initial(
+        &mut self,
+        power_min: u8,
+        cause: &Token,
+    ) -> PyResult<ControlFlow<(EvalState, u8), Expr>> {
+        let (token, atom) = self.next_atom(power_min, cause)?;
+        let break_at = |state: State, new_power: u8| {
+            let state = EvalState {
+                power_min,
+                token,
+                state,
+            };
+            ControlFlow::Break((state, new_power))
+        };
+        match atom {
+            Atom::LParen => Ok(break_at(State::Paren, 0)),
             Atom::RParen => {
-                if power_min == 0 {
-                    Err(QASM2ParseError::new_err(message_generic(
-                        Some(&Position::new(
-                            self.current_filename(),
-                            token.line,
-                            token.col,
-                        )),
-                        "did not find an expected expression",
-                    )))
+                let msg = if power_min == 0 {
+                    "did not find an expected expression"
                 } else {
-                    Err(QASM2ParseError::new_err(message_generic(
-                        Some(&Position::new(
-                            self.current_filename(),
-                            token.line,
-                            token.col,
-                        )),
-                        "the parenthesis closed, but there was a missing operand",
-                    )))
-                }
+                    "the parenthesis closed, but there was a missing operand"
+                };
+                let pos = self.cur_position_of(&token);
+                Err(QASM2ParseError::new_err(message_generic(Some(&pos), msg)))
             }
             Atom::Function(func) => {
-                let lparen_token =
-                    self.expect(TokenType::LParen, "an opening parenthesis", &token)?;
-                let argument = self.eval_expression(0, &token)?;
-                let comma = self.accept(TokenType::Comma)?;
-                self.check_trailing_comma(comma.as_ref())?;
-                self.expect(TokenType::RParen, "a closing parenthesis", &lparen_token)?;
-                Ok(self.apply_function(func, argument, &token)?)
+                self.expect(TokenType::LParen, "an opening parenthesis", &token)?;
+                Ok(break_at(State::Function(func), 0))
             }
             Atom::CustomFunction(callable, num_params) => {
-                let lparen_token =
-                    self.expect(TokenType::LParen, "an opening parenthesis", &token)?;
-                let mut arguments = Vec::<Expr>::with_capacity(num_params);
-                let mut comma = None;
-                loop {
-                    // There are breaks at the start and end of this loop, because we might be
-                    // breaking because there are _no_ parameters, because there's a trailing
-                    // comma before the closing parenthesis, or because we didn't see a comma after
-                    // an expression so we _need_ a closing parenthesis.
-                    if let Some((Atom::RParen, _)) = self.peek_atom()? {
-                        break;
-                    }
-                    arguments.push(self.eval_expression(0, &token)?);
-                    comma = self.accept(TokenType::Comma)?;
-                    if comma.is_none() {
-                        break;
-                    }
-                }
-                self.check_trailing_comma(comma.as_ref())?;
-                self.expect(TokenType::RParen, "a closing parenthesis", &lparen_token)?;
-                if arguments.len() == num_params {
-                    Ok(self.apply_custom_function(callable, arguments, &token)?)
-                } else {
-                    Err(QASM2ParseError::new_err(message_generic(
-                        Some(&Position::new(
-                            self.current_filename(),
-                            token.line,
-                            token.col,
-                        )),
-                        &format!(
-                            "custom function argument-count mismatch: expected {}, saw {}",
+                self.expect(TokenType::LParen, "an opening parenthesis", &token)?;
+                match self.accept(TokenType::RParen)? {
+                    Some(_) => self
+                        .apply_custom_function(callable, num_params, Vec::new(), &token)
+                        .map(ControlFlow::Continue),
+                    None => Ok(break_at(
+                        State::CustomFunction {
+                            callable,
                             num_params,
-                            arguments.len(),
-                        ),
-                    )))
-                }
-            }
-            Atom::Op(op) => match prefix_power(op) {
-                Some(power) => {
-                    let expr = self.eval_expression(power, &token)?;
-                    Ok(self.apply_prefix(op, expr)?)
-                }
-                None => Err(QASM2ParseError::new_err(message_generic(
-                    Some(&Position::new(
-                        self.current_filename(),
-                        token.line,
-                        token.col,
+                            arguments: Vec::with_capacity(num_params),
+                        },
+                        0,
                     )),
-                    &format!("'{}' is not a valid unary operator", op.text()),
-                ))),
-            },
-            Atom::Const(val) => Ok(Expr::Constant(val)),
-            Atom::Parameter(val) => Ok(Expr::Parameter(val)),
-        }?;
-        // Now loop over a series of infix operators.  We can continue as long as we're just
-        // looking at operators that bind more tightly than the `power_min` passed to this
-        // function.  Once they're the same power or less, we have to return, because the calling
-        // evaluator needs to bind its operator before we move on to the next infix operator.
-        while let Some((Atom::Op(op), peeked_token)) = self.peek_atom()? {
-            let (power_l, power_r) = binary_power(op);
-            if power_l < power_min {
-                break;
+                }
             }
-            self.next_token()?; // Skip peeked operator.
-            let rhs = self.eval_expression(power_r, &peeked_token)?;
-            lhs = self.apply_infix(op, lhs, rhs, &peeked_token)?;
+            Atom::Op(op) => {
+                let Some(power) = prefix_power(op) else {
+                    return Err(QASM2ParseError::new_err(message_generic(
+                        Some(&self.cur_position_of(&token)),
+                        &format!("'{}' is not a valid unary operator", op.text()),
+                    )));
+                };
+                Ok(break_at(State::Prefix(op), power))
+            }
+            Atom::Const(val) => Ok(ControlFlow::Continue(Expr::Constant(val))),
+            Atom::Parameter(val) => Ok(ControlFlow::Continue(Expr::Parameter(val))),
         }
-        self.remaining_depth += 1;
-        Ok(lhs)
+    }
+
+    /// Parse the expected terminators of the partial expression stored in `EvalState`.
+    ///
+    /// Returns the evaluated expression if possible (Continue), or the new stack frame to push if
+    /// not (Break).
+    #[inline]
+    fn expect_expression_terminator(
+        &mut self,
+        expr: Expr,
+        eval_state: EvalState,
+    ) -> PyResult<ControlFlow<(EvalState, u8), (Expr, u8)>> {
+        let EvalState {
+            state,
+            token,
+            power_min,
+        } = eval_state;
+        let continue_from = |expr| ControlFlow::Continue((expr, power_min));
+        match state {
+            State::Paren => {
+                self.expect(TokenType::RParen, "a closing parenthesis", &token)?;
+                Ok(continue_from(expr))
+            }
+            State::Function(func) => {
+                let comma = self.accept(TokenType::Comma)?;
+                self.check_trailing_comma(comma.as_ref())?;
+                self.expect(TokenType::RParen, "a closing parenthesis", &token)?;
+                self.apply_function(func, expr, &token).map(continue_from)
+            }
+            State::CustomFunction {
+                callable,
+                num_params,
+                mut arguments,
+            } => {
+                arguments.push(expr);
+                let comma = self.accept(TokenType::Comma)?;
+                if comma.is_none() {
+                    self.expect(TokenType::RParen, "a closing parenthesis", &token)?;
+                } else if self.accept(TokenType::RParen)?.is_some() {
+                    self.check_trailing_comma(comma.as_ref())?;
+                } else {
+                    let state = EvalState {
+                        power_min,
+                        state: State::CustomFunction {
+                            callable,
+                            num_params,
+                            arguments,
+                        },
+                        token,
+                    };
+                    return Ok(ControlFlow::Break((state, 0)));
+                };
+                self.apply_custom_function(callable, num_params, arguments, &token)
+                    .map(continue_from)
+            }
+            State::Prefix(op) => self.apply_prefix(op, expr).map(continue_from),
+            State::Infix { lhs, op } => self.apply_infix(op, lhs, expr, &token).map(continue_from),
+        }
     }
 
     /// Parse a single expression completely. This is the only public entry point to the
@@ -740,6 +768,79 @@ impl ExprParser<'_> {
     ///     This evaluates in a floating-point context, including evaluating integer tokens, since
     ///     the only places that expressions are valid in OpenQASM 2 is during gate applications.
     pub fn parse_expression(&mut self, cause: &Token) -> PyResult<Expr> {
-        self.eval_expression(0, cause)
+        // We don't store the "root" case of expression parsing as a stack entry so that in the
+        // happy (and _massively_ most common) case of a floating-point literal, there's no heap
+        // allocation at all to manage the state.
+        let mut stack = Vec::new();
+        let mut power_min: u8 = 0;
+
+        'expr: loop {
+            // The entry point to this loop represents a parse state where we are starting a new
+            // (sub)expression.  Simply put: it's wherever a recursive-descent parser would call
+            // `parse_expression` recursively.
+            let mut expr = match self.expect_expression_initial(power_min, cause)? {
+                ControlFlow::Break((state, power)) => {
+                    stack.push(state);
+                    power_min = power;
+                    continue 'expr;
+                }
+                ControlFlow::Continue(expr) => expr,
+            };
+
+            'infix: loop {
+                // We've reached something that _might_ be a complete expression, but it also might
+                // just be the left-hand side of an infix operator.  Let's see.
+                if let Some((Atom::Op(op), peeked_token)) = self.peek_atom()? {
+                    self.next_token()?; // It matched, so consume it.
+                    let (power_l, power_r) = binary_power(op);
+                    // While the operator (if any) on the left binds tighter than `op`, we now know
+                    // it's complete and so can eagerly evaluate it.  This isn't necessary for
+                    // correctness in the parse, but doing it stops fully associative expressions
+                    // like `1.0 + 1.0 + 1.0 + ...` from causing stack growth (and our
+                    // `State::Infix` variant is written expecting the eager evaluation).
+                    while power_min > power_l {
+                        // If nothing else, the root of the stack should have `power_min == 0`,
+                        // and the left-binding power of our operator can't be lower than that.
+                        let prev = stack
+                            .pop()
+                            .expect("tight binding requires a partial operation");
+                        (expr, power_min) = match self.expect_expression_terminator(expr, prev)? {
+                            ControlFlow::Break(_) => {
+                                panic!("tight binding requires a partial operation")
+                            }
+                            ControlFlow::Continue((expr, power)) => (expr, power),
+                        };
+                    }
+                    // The new binding power is tighter than whatever's remaining to the left of us,
+                    // so now we have to ask for a new expression to complete our right-hand side.
+                    stack.push(EvalState {
+                        power_min,
+                        state: State::Infix { lhs: expr, op },
+                        token: peeked_token,
+                    });
+                    power_min = power_r;
+                    continue 'expr;
+                }
+
+                // We've reached the right-hand edge of a complete expression; the closest left-most
+                // subexpression indicator (an operator, a comma, a bracket, etc) binds more tightly
+                // than anything to us from the right, so we need to pop from the stack, evaluate
+                // its terminators, then check again for an infix against the new power.
+                let Some(prev) = stack.pop() else {
+                    // If the stack is exhausted, we've entirely evaluated the expression.
+                    return Ok(expr);
+                };
+                (expr, power_min) = match self.expect_expression_terminator(expr, prev)? {
+                    ControlFlow::Break((state, power)) => {
+                        stack.push(state);
+                        power_min = power;
+                        continue 'expr;
+                    }
+                    ControlFlow::Continue((expr, power)) => (expr, power),
+                };
+                // This statement is actually a no-op, but the loop is long so let's be explicit.
+                continue 'infix;
+            }
+        }
     }
 }
