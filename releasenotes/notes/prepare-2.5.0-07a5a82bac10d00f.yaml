@@ -1,0 +1,50 @@
+---
+prelude: |
+  Qiskit 2.5.0 is a new feature release of the Qiskit SDK. 
+  The highlights of this release are:
+  
+   * **C API functions for inspecting control flow instructions and classical expressions.**
+     This release adds support in the C API for inspecting both control-flow instructions and classical expressions. 
+     Users can now iterate over control-flow operations in a circuit, access and analyze nested circuit blocks, 
+     and inspect instruction-specific properties through a new set of types and accessor functions. 
+     These enhancements introduce new enums and structs that expose the structure and properties of control-flow 
+     and classical expression constructs, making it easier to build analysis, debugging, 
+     and tooling workflows on top of Qiskit's C API.
+
+   * **A multi-IR staged pass manager support.**
+     This release adds a new :class:`.MultiStagePassManager` to enable multi-IR compiler workflows. 
+     This pass manager introduces a staged execution model in which each stage can either operate 
+     on the current intermediate representation (IR) or lower the program into a different IR, 
+     making it possible to compose compilation pipelines across multiple abstraction levels. 
+
+   * **A new pass manager for Pauli Based Computation.**
+     This release adds a new :func:`.generate_preset_pbc_pass_manager` function for constructing 
+     preset compilation pipelines targeting the Pauli Based Computation (PBC) intermediate representation. 
+     This provides a standardized and convenient entry point for users building compilation workflows that 
+     target PBC-based execution and optimization pipelines as an incremental step towards fault-tolerant support.
+
+   * **Multi-threaded transipler passes.**
+     Performance of the transpiler optimization pipeline has been significantly improved in this release through 
+     expanded multithreading support and the adoption of a new optimization pass. 
+     The new multi-threaded :class:`.TwoQubitPeepholeOptimization` pass is now used by preset pass managers 
+     generated with :func:`.generate_preset_pass_manager` (and by :func:`.transpile`) at optimization levels 2 and 3, 
+     replacing the previous :class:`.ConsolidateBlocks` and :class:`.UnitarySynthesis`-based peephole optimization 
+     workflow while also providing improved fidelity-aware synthesis heuristics. 
+     In addition, several key transpiler passes and their corresponding C API entry points are now multithreaded, 
+     including :class:`.ConsolidateBlocks`, :class:`.Optimize1qGatesDecomposition`, :class:`.CommutationAnalysis`, 
+     :class:`.CommutativeCancellation` (through its commutation analysis stage), and :class:`.UnitarySynthesis`, 
+     resulting in substantially improved compilation throughput across a wide range of optimization workloads.
+
+   * **Transpiler performance improvements.**
+     Transpiler performance has been significantly improved in this release, with average speedups of 2–3× 
+     across many workloads, driven by a combination of algorithmic, architectural, and library-level optimizations.
+     Notable improvements include refinements to the SABRE layout and routing heuristics that reduce bias across 
+     circuit sizes by defining lookahead in terms of circuit layers rather than gate counts, 
+     extensive multithreading throughout key transpiler passes mentioned above, and adoption of high-performance infrastructure 
+     components such as the `mimalloc <https://github.com/microsoft/mimalloc>`__ global allocator, 
+     the `nalgebra <https://docs.rs/nalgebra/latest/nalgebra/>`__ linear algebra library, 
+     and the `foldhash <https://github.com/orlp/foldhash>`__ hashing algorithm. 
+     Additional gains come from improvements in rustworkx and from optimized internal implementations 
+     of two-qubit synthesis and analysis routines. Together, these changes improve both compilation 
+     throughput and memory efficiency, resulting in faster transpilation and synthesis performance 
+     across a broad range of quantum circuits.
