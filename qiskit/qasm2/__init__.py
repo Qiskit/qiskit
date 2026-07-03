@@ -50,8 +50,8 @@ in this include file are mapped to circuit-library gate objects defined by Qiski
 Security policy
 ---------------
 
-The OpenQASM 2 importer is safe to use on untrusted data, with some limitations.  The full security
-policy is:
+The OpenQASM 2 importer is intended to allow use on untrusted data, with some limitations.  The full
+security policy is:
 
 * Given sufficient system memory and runtime, loading an OpenQASM 2 program will either succeed
   and produce a valid :class:`.QuantumCircuit`, or return an error state that can be recovered from
