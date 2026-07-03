@@ -1201,6 +1201,12 @@ name = "hashbrown"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
+dependencies = [
+ "allocator-api2",
+ "equivalent",
+ "foldhash 0.2.0",
+ "rayon",
+]
 
 [[package]]
 name = "heapless"
@@ -1707,7 +1713,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f0e759e014e630f90af745101b614f761306ddc541681e546649068e25ec1b9"
 dependencies = [
  "byteorder",
- "num-bigint",
+ "num-bigint 0.4.7",
  "py_literal",
 ]
 
@@ -1718,7 +1724,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0a01a88a1d2f89d362475ad16f34de3994f7c86b12259236f5d33537b040bcd4"
 dependencies = [
  "byteorder",
- "num-bigint",
+ "num-bigint 0.4.7",
  "num-complex",
  "py_literal",
 ]
@@ -1738,7 +1744,7 @@ version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "35bd024e8b2ff75562e5f34e7f4905839deb4b22955ef5e73d2fea1b9813cb23"
 dependencies = [
- "num-bigint",
+ "num-bigint 0.4.7",
  "num-complex",
  "num-integer",
  "num-iter",
@@ -1748,9 +1754,19 @@ dependencies = [
 
 [[package]]
 name = "num-bigint"
-version = "0.4.6"
+version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5e44f723f1133c9deac646763579fdb3ac745e418f2a7af9cd0c431da1f20b9"
+checksum = "c863e9ab5e7bf9c99ba75e1050f1e4d624ae87ed3532d6238ffbdc7b585dbbe6"
+dependencies = [
+ "num-integer",
+ "num-traits",
+]
+
+[[package]]
+name = "num-bigint"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7032fbb7ef662c18e806aa75b311f68ddf5c94e8fc62832c0039d79095ab6abf"
 dependencies = [
  "num-integer",
  "num-traits",
@@ -1808,7 +1824,7 @@ version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f83d14da390562dca69fc84082e73e548e1ad308d24accdedd2720017cb37824"
 dependencies = [
- "num-bigint",
+ "num-bigint 0.4.7",
  "num-integer",
  "num-traits",
 ]
@@ -2164,7 +2180,7 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "102df7a3d46db9d3891f178dcc826dc270a6746277a9ae6436f8d29fd490a8e1"
 dependencies = [
- "num-bigint",
+ "num-bigint 0.4.7",
  "num-complex",
  "num-traits",
  "pest",
@@ -2177,10 +2193,10 @@ version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd274650b21d4bfc26a0a47587962c1edb425f69287324355cd040c3ea66071c"
 dependencies = [
- "hashbrown 0.15.5",
+ "hashbrown 0.17.1",
  "indexmap",
  "libc",
- "num-bigint",
+ "num-bigint 0.4.7",
  "num-complex",
  "num-traits",
  "once_cell",
@@ -2255,7 +2271,7 @@ dependencies = [
  "itertools 0.14.0",
  "nalgebra 0.34.2",
  "ndarray",
- "num-bigint",
+ "num-bigint 0.5.0",
  "num-complex",
  "numpy",
  "pulp",
@@ -2305,7 +2321,7 @@ dependencies = [
  "mimalloc",
  "nalgebra 0.34.2",
  "ndarray",
- "num-bigint",
+ "num-bigint 0.5.0",
  "num-complex",
  "num-traits",
  "pyo3",
@@ -2347,7 +2363,7 @@ dependencies = [
  "nom",
  "nom-language",
  "nom-unicode",
- "num-bigint",
+ "num-bigint 0.5.0",
  "num-complex",
  "num-traits",
  "numpy",
@@ -2426,7 +2442,7 @@ name = "qiskit-qasm2"
 version = "2.6.0-dev"
 dependencies = [
  "hashbrown 0.15.5",
- "num-bigint",
+ "num-bigint 0.5.0",
  "pyo3",
 ]
 
@@ -2455,7 +2471,7 @@ dependencies = [
  "hashbrown 0.15.5",
  "ndarray",
  "npyz 0.9.1",
- "num-bigint",
+ "num-bigint 0.5.0",
  "num-complex",
  "num-traits",
  "numpy",
@@ -2895,7 +2911,7 @@ checksum = "4b213df2cbfa5f580ed2c0ac3619eda06692a4ff0211f0aebbb4008eaa9724a6"
 dependencies = [
  "fixedbitset 0.5.7",
  "foldhash 0.1.5",
- "hashbrown 0.15.5",
+ "hashbrown 0.17.1",
  "indexmap",
  "ndarray",
  "num-traits",
@@ -3173,7 +3189,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",
