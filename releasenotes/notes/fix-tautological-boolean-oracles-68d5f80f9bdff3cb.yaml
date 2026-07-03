@@ -3,5 +3,5 @@ fixes:
   - |
     Fixed synthesis of :class:`.PhaseOracle`, :class:`.PhaseOracleGate`, and
     :class:`.BitFlipOracleGate` for boolean expressions that are true for every
-    assignment, such as ``x | ~x``. These expressions now synthesize to the
-    expected global phase or unconditional bit flip.
+    assignment, such as ``x | ~x``.
+    Fixed `#16524 <https://github.com/Qiskit/qiskit/issues/16524>`__.

@@ -85,7 +85,7 @@ def synth_phase_oracle_from_esop(esop, num_qubits):
     qc = QuantumCircuit(num_qubits)
     for clause in esop:
         clause_data = [(index, bit) for index, bit in enumerate(clause) if bit != "-"]
-        if not clause_data:
+        if len(clause_data) == 0:
             qc.global_phase += pi
             continue
         qubit_indices, control_data = zip(*clause_data)
@@ -119,7 +119,7 @@ def synth_bit_oracle_from_esop(esop, num_qubits):
     qc = QuantumCircuit(num_qubits)
     for clause in esop:
         clause_data = [(index, bit) for index, bit in enumerate(clause) if bit != "-"]
-        if not clause_data:
+        if len(clause_data) == 0:
             qc.x(output_index)
             continue
         qubit_indices, control_data = zip(*clause_data)
