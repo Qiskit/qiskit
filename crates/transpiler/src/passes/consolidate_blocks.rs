@@ -363,7 +363,10 @@ fn should_substitute(
         ];
         let matrix = blocks_to_matrix(dag, block, block_index_map).ok();
         if let Some(matrix) = matrix {
-            let consolidate = if (block.len() == 1 && !outside_basis && (basis_gates.is_some() || target.is_some())) {
+            let consolidate = if block.len() == 1
+                && !outside_basis
+                && (basis_gates.is_some() || target.is_some())
+            {
                 false
             } else if force_consolidate
                 || block.len() > MAX_2Q_DEPTH
