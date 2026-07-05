@@ -12,7 +12,7 @@
 use std::fmt;
 
 use fixedbitset::FixedBitSet;
-use ndarray::{Array2, ArrayView2};
+use ndarray::ArrayView2;
 
 /// 1-qubit Paulis
 #[derive(Clone, Copy, PartialEq)]
@@ -22,206 +22,140 @@ pub enum Pauli1q {
     Z,
 }
 
-/// Symplectic matrix.
-pub struct SymplecticMatrix {
-    /// Number of qubits.
-    pub num_qubits: usize,
-    /// Matrix with dimensions (2 * num_qubits) x (2 * num_qubits).
-    pub smat: Array2<bool>,
-}
-
-/// SIMD accelerated Clifford.
+/// SIMD accelerated PauliList.
 ///
-/// Currently this class offers a reduced functionality of the python-based
-/// Clifford class.
+/// Stores multiple Paulis with associated phases, but in a packed format
+/// optimized for vectorized conjugation by Clifford gates.
 #[derive(Clone)]
-pub struct Clifford {
+pub struct PauliList {
     /// Number of qubits.
     pub num_qubits: usize,
-    /// The (2 * num qubits) x (2 * num qubits + 1) stabilizer tableau stored
-    /// as a vector of (2 * num_qubits) + 1 columns,
-    /// each of length (2 * num_qubits). The element in row
-    /// i and column j can be access as tableau[j][i].
-    pub tableau: Vec<FixedBitSet>,
+    /// Number of Paulis.
+    pub num_paulis: usize,
+    /// List of Paulis, stored as vector of (2 * num_qubits) + 1 columns,
+    /// each of length num_paulis.
+    pub data: Vec<FixedBitSet>,
+    /// Scratch space for internal computations, of length num_paulis.
     scratch: FixedBitSet,
 }
 
-impl Clifford {
-    /// Create a new clifford from a tableau. The size of the tableau must match the number of
-    /// qubits provided otherwise an invalid Clifford object will be created.
-    pub fn new(num_qubits: usize, tableau: Vec<FixedBitSet>) -> Self {
-        Clifford {
-            num_qubits,
-            tableau,
-            scratch: FixedBitSet::with_capacity(2 * num_qubits),
-        }
-    }
-
-    /// Creates the identity Clifford on num_qubits
-    pub fn identity(num_qubits: usize) -> Self {
-        Self {
-            num_qubits,
-            tableau: (0..2 * num_qubits + 1)
-                .map(|i| {
-                    let mut column = FixedBitSet::with_capacity(2 * num_qubits);
-                    if i < 2 * num_qubits {
-                        // SAFETY: We know column is large enough since it's larger than the range
-                        // i is from
-                        unsafe {
-                            column.insert_unchecked(i);
-                        }
-                    }
-                    column
-                })
-                .collect(),
-            scratch: FixedBitSet::with_capacity(2 * num_qubits),
-        }
-    }
-
-    /// Creates a new Clifford from a tableau array of bools
-    #[inline]
-    pub fn from_array(tableau_array: ArrayView2<bool>) -> Self {
-        let tableau_shape = tableau_array.shape();
-        let num_qubits = tableau_shape[0] / 2;
-        let mut out = Self {
-            num_qubits,
-            tableau: (0..2 * num_qubits + 1)
-                .map(|_| FixedBitSet::with_capacity(2 * num_qubits))
-                .collect(),
-            scratch: FixedBitSet::with_capacity(2 * num_qubits),
-        };
-        tableau_array
-            .indexed_iter()
-            .for_each(|(index, v)| out.tableau[index.1].set(index.0, *v));
-        out
-    }
-
+impl PauliList {
     #[inline]
     pub fn get_phase(&self) -> &FixedBitSet {
-        self.tableau.get(2 * self.num_qubits).unwrap()
+        self.data.get(2 * self.num_qubits).unwrap()
     }
 
     #[inline]
     pub fn get_z(&self, qubit: usize) -> &FixedBitSet {
-        self.tableau.get(self.num_qubits + qubit).unwrap()
+        self.data.get(self.num_qubits + qubit).unwrap()
     }
 
     #[inline]
     pub fn get_z_mut(&mut self, qubit: usize) -> &mut FixedBitSet {
-        self.tableau.get_mut(self.num_qubits + qubit).unwrap()
+        self.data.get_mut(self.num_qubits + qubit).unwrap()
     }
 
-    /// Modifies the tableau in-place by appending S-gate
+    /// Modifies the pauli list in-place by conjugating each pauli with S-gate
     pub fn append_s(&mut self, qubit: usize) {
-        self.scratch.clone_from(&self.tableau[qubit]);
-        self.scratch &= &self.tableau[qubit + self.num_qubits];
-        self.tableau[2 * self.num_qubits] ^= &self.scratch;
-        let (lhs, rhs) = self.tableau.split_at_mut(qubit + 1);
+        self.scratch.clone_from(&self.data[qubit]);
+        self.scratch &= &self.data[qubit + self.num_qubits];
+        self.data[2 * self.num_qubits] ^= &self.scratch;
+        let (lhs, rhs) = self.data.split_at_mut(qubit + 1);
         rhs[self.num_qubits - 1] ^= lhs.last().unwrap();
     }
 
-    /// Modifies the tableau in-place by appending Sdg-gate
+    /// Modifies the pauli list in-place by conjugating each pauli with Sdg-gate
     pub fn append_sdg(&mut self, qubit: usize) {
-        let x = &self.tableau[qubit];
-        self.scratch
-            .clone_from(&self.tableau[qubit + self.num_qubits]);
+        let x = &self.data[qubit];
+        self.scratch.clone_from(&self.data[qubit + self.num_qubits]);
         self.scratch.toggle_range(..);
         self.scratch &= x;
-        self.tableau[2 * self.num_qubits] ^= &self.scratch;
-        let (lhs, rhs) = self.tableau.split_at_mut(qubit + 1);
+        self.data[2 * self.num_qubits] ^= &self.scratch;
+        let (lhs, rhs) = self.data.split_at_mut(qubit + 1);
         rhs[self.num_qubits - 1] ^= lhs.last().unwrap();
     }
 
-    /// Modifies the tableau in-place by appending SX-gate
+    /// Modifies the pauli list in-place by conjugating each pauli with SX-gate
     pub fn append_sx(&mut self, qubit: usize) {
-        let x = &self.tableau[qubit];
-        let z = &self.tableau[qubit + self.num_qubits];
+        let x = &self.data[qubit];
+        let z = &self.data[qubit + self.num_qubits];
         self.scratch.clone_from(x);
         self.scratch.toggle_range(..);
         self.scratch &= z;
-        self.tableau[2 * self.num_qubits] ^= &self.scratch;
-        let (lhs, rhs) = self.tableau.split_at_mut(qubit + 1);
+        self.data[2 * self.num_qubits] ^= &self.scratch;
+        let (lhs, rhs) = self.data.split_at_mut(qubit + 1);
         *lhs.last_mut().unwrap() ^= &rhs[self.num_qubits - 1];
     }
 
-    /// Modifies the tableau in-place by appending SXDG-gate
+    /// Modifies the pauli list in-place by conjugating each pauli with SXDG-gate
     pub fn append_sxdg(&mut self, qubit: usize) {
-        self.scratch.clone_from(&self.tableau[qubit]);
-        self.scratch &= &self.tableau[qubit + self.num_qubits];
-        self.tableau[2 * self.num_qubits] ^= &self.scratch;
-        let (lhs, rhs) = self.tableau.split_at_mut(qubit + 1);
+        self.scratch.clone_from(&self.data[qubit]);
+        self.scratch &= &self.data[qubit + self.num_qubits];
+        self.data[2 * self.num_qubits] ^= &self.scratch;
+        let (lhs, rhs) = self.data.split_at_mut(qubit + 1);
         *lhs.last_mut().unwrap() ^= &rhs[self.num_qubits - 1];
     }
 
-    /// Modifies the tableau in-place by appending H-gate
+    /// Modifies the pauli list in-place by conjugating each pauli with H-gate
     pub fn append_h(&mut self, qubit: usize) {
-        let x = &self.tableau[qubit];
-        let z = &self.tableau[qubit + self.num_qubits];
+        let x = &self.data[qubit];
+        let z = &self.data[qubit + self.num_qubits];
         self.scratch.clone_from(x);
         self.scratch &= z;
-        self.tableau[2 * self.num_qubits] ^= &self.scratch;
-        self.tableau.swap(qubit, self.num_qubits + qubit);
+        self.data[2 * self.num_qubits] ^= &self.scratch;
+        self.data.swap(qubit, self.num_qubits + qubit);
     }
 
-    /// Modifies the tableau in-place by appending SWAP-gate
+    /// Modifies the pauli list in-place by conjugating each pauli with SWAP-gate
     pub fn append_swap(&mut self, qubit0: usize, qubit1: usize) {
-        self.tableau.swap(qubit0, qubit1);
-        self.tableau
+        self.data.swap(qubit0, qubit1);
+        self.data
             .swap(self.num_qubits + qubit0, self.num_qubits + qubit1);
     }
 
-    /// Modifies the tableau in-place by appending CX-gate
+    /// Modifies the pauli list in-place by conjugating each pauli with CX-gate
     pub fn append_cx(&mut self, qubit0: usize, qubit1: usize) {
-        let x0 = &self.tableau[qubit0];
-        let z0 = &self.tableau[qubit0 + self.num_qubits];
-        let x1 = &self.tableau[qubit1];
-        let z1 = &self.tableau[qubit1 + self.num_qubits];
+        let x0 = &self.data[qubit0];
+        let z0 = &self.data[qubit0 + self.num_qubits];
+        let x1 = &self.data[qubit1];
+        let z1 = &self.data[qubit1 + self.num_qubits];
 
         self.scratch.clone_from(x1);
         self.scratch ^= z0;
         self.scratch.toggle_range(..);
         self.scratch &= z1;
         self.scratch &= x0;
-        self.tableau[2 * self.num_qubits] ^= &self.scratch;
-        self.scratch.clone_from(&self.tableau[qubit1]);
-        self.scratch ^= &self.tableau[qubit0];
-        std::mem::swap(&mut self.tableau[qubit1], &mut self.scratch);
+        self.data[2 * self.num_qubits] ^= &self.scratch;
+        self.scratch.clone_from(&self.data[qubit1]);
+        self.scratch ^= &self.data[qubit0];
+        std::mem::swap(&mut self.data[qubit1], &mut self.scratch);
         self.scratch
-            .clone_from(&self.tableau[qubit0 + self.num_qubits]);
-        self.scratch ^= &self.tableau[qubit1 + self.num_qubits];
-        std::mem::swap(
-            &mut self.tableau[qubit0 + self.num_qubits],
-            &mut self.scratch,
-        );
+            .clone_from(&self.data[qubit0 + self.num_qubits]);
+        self.scratch ^= &self.data[qubit1 + self.num_qubits];
+        std::mem::swap(&mut self.data[qubit0 + self.num_qubits], &mut self.scratch);
     }
 
-    /// Modifies the tableau in-place by appending CZ-gate
+    /// Modifies the pauli list in-place by conjugating each pauli with CZ-gate
     pub fn append_cz(&mut self, qubit0: usize, qubit1: usize) {
-        let x0 = &self.tableau[qubit0];
-        let z0 = &self.tableau[qubit0 + self.num_qubits];
-        let x1 = &self.tableau[qubit1];
-        let z1 = &self.tableau[qubit1 + self.num_qubits];
+        let x0 = &self.data[qubit0];
+        let z0 = &self.data[qubit0 + self.num_qubits];
+        let x1 = &self.data[qubit1];
+        let z1 = &self.data[qubit1 + self.num_qubits];
         self.scratch.clone_from(z0);
         self.scratch ^= z1;
         self.scratch &= &(x0 & x1);
-        self.tableau[2 * self.num_qubits] ^= &self.scratch;
+        self.data[2 * self.num_qubits] ^= &self.scratch;
         self.scratch
-            .clone_from(&self.tableau[qubit1 + self.num_qubits]);
-        self.scratch ^= &self.tableau[qubit0];
-        std::mem::swap(
-            &mut self.tableau[qubit1 + self.num_qubits],
-            &mut self.scratch,
-        );
+            .clone_from(&self.data[qubit1 + self.num_qubits]);
+        self.scratch ^= &self.data[qubit0];
+        std::mem::swap(&mut self.data[qubit1 + self.num_qubits], &mut self.scratch);
         self.scratch
-            .clone_from(&self.tableau[qubit0 + self.num_qubits]);
-        self.scratch ^= &self.tableau[qubit1];
-        std::mem::swap(
-            &mut self.tableau[qubit0 + self.num_qubits],
-            &mut self.scratch,
-        );
+            .clone_from(&self.data[qubit0 + self.num_qubits]);
+        self.scratch ^= &self.data[qubit1];
+        std::mem::swap(&mut self.data[qubit0 + self.num_qubits], &mut self.scratch);
     }
 
-    /// Modifies the tableau in-place by appending CY-gate
+    /// Modifies the pauli list in-place by conjugating each pauli with CY-gate
     /// (todo: rewrite using native tableau manipulations)
     pub fn append_cy(&mut self, qubit0: usize, qubit1: usize) {
         self.append_sdg(qubit1);
@@ -229,26 +163,26 @@ impl Clifford {
         self.append_s(qubit1);
     }
 
-    /// Modifies the tableau in-place by appending X-gate
+    /// Modifies the pauli list in-place by conjugating each pauli with X-gate
     pub fn append_x(&mut self, qubit: usize) {
-        let (lhs, rhs) = self.tableau.split_at_mut(qubit + self.num_qubits + 1);
+        let (lhs, rhs) = self.data.split_at_mut(qubit + self.num_qubits + 1);
         *rhs.last_mut().unwrap() ^= lhs.last().unwrap();
     }
 
-    /// Modifies the tableau in-place by appending Z-gate
+    /// Modifies the pauli list in-place by conjugating each pauli with Z-gate
     pub fn append_z(&mut self, qubit: usize) {
-        let (lhs, rhs) = self.tableau.split_at_mut(qubit + 1);
+        let (lhs, rhs) = self.data.split_at_mut(qubit + 1);
         *rhs.last_mut().unwrap() ^= lhs.last().unwrap();
     }
 
-    /// Modifies the tableau in-place by appending Y-gate
+    /// Modifies the pauli list in-place by conjugating each pauli with Y-gate
     pub fn append_y(&mut self, qubit: usize) {
-        self.scratch.clone_from(&self.tableau[qubit]);
-        self.scratch ^= &self.tableau[qubit + self.num_qubits];
-        self.tableau[2 * self.num_qubits] ^= &self.scratch;
+        self.scratch.clone_from(&self.data[qubit]);
+        self.scratch ^= &self.data[qubit + self.num_qubits];
+        self.data[2 * self.num_qubits] ^= &self.scratch;
     }
 
-    /// Modifies the tableau in-place by appending iSWAP-gate
+    /// Modifies the pauli list in-place by conjugating each pauli with iSWAP-gate
     /// (todo: rewrite using native tableau manipulations)
     pub fn append_iswap(&mut self, qubit0: usize, qubit1: usize) {
         self.append_s(qubit0);
@@ -259,7 +193,7 @@ impl Clifford {
         self.append_h(qubit1);
     }
 
-    /// Modifies the tableau in-place by appending ECR-gate
+    /// Modifies the pauli list in-place by conjugating each pauli with ECR-gate
     /// (todo: rewrite using native tableau manipulations)
     pub fn append_ecr(&mut self, qubit0: usize, qubit1: usize) {
         self.append_s(qubit0);
@@ -268,36 +202,34 @@ impl Clifford {
         self.append_x(qubit0);
     }
 
-    /// Modifies the tableau in-place by appending DCX-gate
+    /// Modifies the pauli list in-place by conjugating each pauli with DCX-gate
     /// (todo: rewrite using native tableau manipulations)
     pub fn append_dcx(&mut self, qubit0: usize, qubit1: usize) {
         self.append_cx(qubit0, qubit1);
         self.append_cx(qubit1, qubit0);
     }
 
-    /// Modifies the tableau in-place by appending V-gate.
+    /// Modifies the pauli list in-place by conjugating each pauli with V-gate
     /// This is equivalent to an Sdg gate followed by an H gate.
     pub fn append_v(&mut self, qubit: usize) {
-        self.scratch.clone_from(&self.tableau[qubit]);
-        self.scratch ^= &self.tableau[qubit + self.num_qubits];
-        self.tableau.swap(qubit, self.num_qubits + qubit);
-        std::mem::swap(&mut self.tableau[qubit], &mut self.scratch);
+        self.scratch.clone_from(&self.data[qubit]);
+        self.scratch ^= &self.data[qubit + self.num_qubits];
+        self.data.swap(qubit, self.num_qubits + qubit);
+        std::mem::swap(&mut self.data[qubit], &mut self.scratch);
     }
 
-    /// Modifies the tableau in-place by appending W-gate.
+    /// Modifies the pauli list in-place by conjugating each pauli with W-gate
     /// This is equivalent to two V gates.
     pub fn append_w(&mut self, qubit: usize) {
-        self.scratch.clone_from(&self.tableau[qubit]);
-        self.scratch ^= &self.tableau[qubit + self.num_qubits];
-        self.tableau.swap(qubit, self.num_qubits + qubit);
-        std::mem::swap(
-            &mut self.tableau[qubit + self.num_qubits],
-            &mut self.scratch,
-        );
+        self.scratch.clone_from(&self.data[qubit]);
+        self.scratch ^= &self.data[qubit + self.num_qubits];
+        self.data.swap(qubit, self.num_qubits + qubit);
+        std::mem::swap(&mut self.data[qubit + self.num_qubits], &mut self.scratch);
     }
-    /// Modifies the tableau in-place by appending RZ-gate,
+
+    /// Modifies the pauli list in-place by conjugating each pauli with RZ-gate,
     /// with an angle that is an integer multiple of pi/2
-    /// so RZ is necessarily a Clifford gate
+    /// (so RZ is necessarily a Clifford gate)
     pub fn append_rz(&mut self, qubit: usize, multiple: usize) {
         let multiple = multiple.rem_euclid(4);
         match multiple {
@@ -308,9 +240,10 @@ impl Clifford {
             _ => unreachable!("Multiple should be an integer."),
         }
     }
-    /// Modifies the tableau in-place by appending RX-gate,
+
+    /// Modifies the pauli list in-place by conjugating each pauli with RX-gate,
     /// with an angle that is an integer multiple of pi/2
-    /// so RX is necessarily a Clifford gate
+    /// (so RX is necessarily a Clifford gate)
     pub fn append_rx(&mut self, qubit: usize, multiple: usize) {
         let multiple = multiple.rem_euclid(4);
         match multiple {
@@ -321,9 +254,10 @@ impl Clifford {
             _ => unreachable!("Multiple should be an integer."),
         }
     }
-    /// Modifies the tableau in-place by appending RY-gate,
+
+    /// Modifies the pauli list in-place by conjugating each pauli with RY-gate,
     /// with an angle that is an integer multiple of pi/2
-    /// so RY is necessarily a Clifford gate
+    /// (so RY is necessarily a Clifford gate)
     pub fn append_ry(&mut self, qubit: usize, multiple: usize) {
         let multiple = multiple.rem_euclid(4);
         match multiple {
@@ -340,6 +274,7 @@ impl Clifford {
             _ => unreachable!("Multiple should be an integer."),
         }
     }
+
     /// Applies the initial basis transformation for a Pauli Product Rotation,
     /// and modifies the tableau in-place.
     ///
@@ -440,6 +375,79 @@ impl Clifford {
 
         self._append_final_part_ppr(pauli_z, pauli_x, indices, &active_indices);
     }
+}
+
+/// SIMD accelerated Clifford.
+///
+/// Currently this class offers a reduced functionality of the python-based
+/// Clifford class.
+#[derive(Clone)]
+pub struct Clifford {
+    /// The (2 * num qubits) x (2 * num qubits + 1) stabilizer tableau stored
+    /// as a vector of (2 * num_qubits) + 1 columns,
+    /// each of length (2 * num_qubits). The element in row
+    /// i and column j can be access as tableau.paulis[j][i].
+    pub tableau: PauliList,
+}
+
+impl Clifford {
+    /// Create a new clifford from a tableau. The size of the tableau must match the number of
+    /// qubits provided otherwise an invalid Clifford object will be created.
+    pub fn new(num_qubits: usize, tableau: Vec<FixedBitSet>) -> Self {
+        Clifford {
+            tableau: PauliList {
+                num_qubits,
+                num_paulis: 2 * num_qubits,
+                data: tableau,
+                scratch: FixedBitSet::with_capacity(2 * num_qubits),
+            },
+        }
+    }
+
+    /// Creates the identity Clifford on num_qubits
+    pub fn identity(num_qubits: usize) -> Self {
+        Self {
+            tableau: PauliList {
+                num_qubits,
+                num_paulis: 2 * num_qubits,
+                data: (0..2 * num_qubits + 1)
+                    .map(|i| {
+                        let mut column = FixedBitSet::with_capacity(2 * num_qubits);
+                        if i < 2 * num_qubits {
+                            // SAFETY: We know column is large enough since it's larger than the range
+                            // i is from
+                            unsafe {
+                                column.insert_unchecked(i);
+                            }
+                        }
+                        column
+                    })
+                    .collect(),
+                scratch: FixedBitSet::with_capacity(2 * num_qubits),
+            },
+        }
+    }
+
+    /// Creates a new Clifford from a tableau array of bools
+    #[inline]
+    pub fn from_array(tableau_array: ArrayView2<bool>) -> Self {
+        let tableau_shape = tableau_array.shape();
+        let num_qubits = tableau_shape[0] / 2;
+        let mut out = Self {
+            tableau: PauliList {
+                num_qubits,
+                num_paulis: 2 * num_qubits,
+                data: (0..2 * num_qubits + 1)
+                    .map(|_| FixedBitSet::with_capacity(2 * num_qubits))
+                    .collect(),
+                scratch: FixedBitSet::with_capacity(2 * num_qubits),
+            },
+        };
+        tableau_array
+            .indexed_iter()
+            .for_each(|(index, v)| out.tableau.data[index.1].set(index.0, *v));
+        out
+    }
 
     /// Evolving a (dense) Pauli gate by the Clifford.
     /// This is done by appending PPR (PPM) initial and final gates to the Clifford tableau in-place,
@@ -461,13 +469,15 @@ impl Clifford {
             .collect();
 
         if let Some(&idx) = active_indices.first() {
-            self._append_initial_part_ppr(in_z, in_x, indices_in, &active_indices);
+            self.tableau
+                ._append_initial_part_ppr(in_z, in_x, indices_in, &active_indices);
 
             // Evolving RZ by the Clifford.
             let (sign, z, x, indices) =
                 self.evolve_single_qubit_pauli(Pauli1q::Z, indices_in[idx] as usize);
 
-            self._append_final_part_ppr(in_z, in_x, indices_in, &active_indices);
+            self.tableau
+                ._append_final_part_ppr(in_z, in_x, indices_in, &active_indices);
 
             return (sign, z, x, indices);
         }
@@ -482,26 +492,27 @@ impl Clifford {
         pauli: Pauli1q,
         qbit: usize,
     ) -> (bool, Vec<bool>, Vec<bool>, Vec<u32>) {
-        let mut z = Vec::with_capacity(self.num_qubits);
-        let mut x = Vec::with_capacity(self.num_qubits);
-        let mut indices = Vec::with_capacity(self.num_qubits);
-        let mut pauli_indices = Vec::<usize>::with_capacity(2 * self.num_qubits);
+        let num_qubits = self.tableau.num_qubits;
+        let mut z = Vec::with_capacity(num_qubits);
+        let mut x = Vec::with_capacity(num_qubits);
+        let mut indices = Vec::with_capacity(num_qubits);
+        let mut pauli_indices = Vec::<usize>::with_capacity(2 * num_qubits);
         // Compute the y-count to avoid recomputing it later
         let mut pauli_y_count: u32 = 0;
-        for i in 0..self.num_qubits {
+        for i in 0..num_qubits {
             let (z_bit, x_bit) = match pauli {
                 Pauli1q::Z => (
-                    self.tableau[qbit][i],
-                    self.tableau[qbit][i + self.num_qubits],
+                    self.tableau.data[qbit][i],
+                    self.tableau.data[qbit][i + num_qubits],
                 ),
                 Pauli1q::X => (
-                    self.tableau[qbit + self.num_qubits][i],
-                    self.tableau[qbit + self.num_qubits][i + self.num_qubits],
+                    self.tableau.data[qbit + num_qubits][i],
+                    self.tableau.data[qbit + num_qubits][i + num_qubits],
                 ),
                 Pauli1q::Y => (
-                    self.tableau[qbit + self.num_qubits][i] ^ self.tableau[qbit][i],
-                    self.tableau[qbit + self.num_qubits][i + self.num_qubits]
-                        ^ self.tableau[qbit][i + self.num_qubits],
+                    self.tableau.data[qbit + num_qubits][i] ^ self.tableau.data[qbit][i],
+                    self.tableau.data[qbit + num_qubits][i + num_qubits]
+                        ^ self.tableau.data[qbit][i + num_qubits],
                 ),
             };
             if z_bit || x_bit {
@@ -512,7 +523,7 @@ impl Clifford {
                     pauli_indices.push(i);
                 }
                 if z_bit {
-                    pauli_indices.push(i + self.num_qubits);
+                    pauli_indices.push(i + num_qubits);
                 }
                 pauli_y_count += (x_bit && z_bit) as u32;
             }
@@ -530,17 +541,17 @@ fn compute_phase_product_pauli(
     pauli_y_count: u32,
 ) -> bool {
     let phase = pauli_indices.iter().fold(false, |acc, &pauli_index| {
-        acc ^ (clifford.tableau[2 * clifford.num_qubits][pauli_index])
+        acc ^ (clifford.tableau.data[2 * clifford.tableau.num_qubits][pauli_index])
     });
 
     let mut ifact: u8 = pauli_y_count as u8 % 4;
 
-    for j in 0..clifford.num_qubits {
+    for j in 0..clifford.tableau.num_qubits {
         let mut x = false;
         let mut z = false;
         for &pauli_index in pauli_indices.iter() {
-            let x1: bool = clifford.tableau[j][pauli_index];
-            let z1: bool = clifford.tableau[j + clifford.num_qubits][pauli_index];
+            let x1: bool = clifford.tableau.data[j][pauli_index];
+            let z1: bool = clifford.tableau.data[j + clifford.tableau.num_qubits][pauli_index];
 
             match (x1, z1, x, z) {
                 (false, true, true, true)
@@ -567,9 +578,9 @@ impl fmt::Debug for Clifford {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f)?;
         writeln!(f, "Tableau:")?;
-        for i in 0..2 * self.num_qubits {
-            for j in 0..2 * self.num_qubits + 1 {
-                write!(f, "{} ", self.tableau[j][i] as u8)?;
+        for i in 0..2 * self.tableau.num_qubits {
+            for j in 0..2 * self.tableau.num_qubits + 1 {
+                write!(f, "{} ", self.tableau.data[j][i] as u8)?;
             }
             writeln!(f)?;
         }

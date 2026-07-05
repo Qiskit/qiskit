@@ -148,81 +148,97 @@ pub fn run_litinski_transformation(
             match inst.op.view() {
                 OperationRef::StandardGate(StandardGate::I) => is_clifford = true,
                 OperationRef::StandardGate(StandardGate::X) => {
-                    clifford.append_x(dag.get_qargs(inst.qubits)[0].index());
+                    clifford
+                        .tableau
+                        .append_x(dag.get_qargs(inst.qubits)[0].index());
                     is_clifford = true
                 }
                 OperationRef::StandardGate(StandardGate::Y) => {
-                    clifford.append_y(dag.get_qargs(inst.qubits)[0].index());
+                    clifford
+                        .tableau
+                        .append_y(dag.get_qargs(inst.qubits)[0].index());
                     is_clifford = true
                 }
                 OperationRef::StandardGate(StandardGate::Z) => {
-                    clifford.append_z(dag.get_qargs(inst.qubits)[0].index());
+                    clifford
+                        .tableau
+                        .append_z(dag.get_qargs(inst.qubits)[0].index());
                     is_clifford = true
                 }
                 OperationRef::StandardGate(StandardGate::H) => {
-                    clifford.append_h(dag.get_qargs(inst.qubits)[0].index());
+                    clifford
+                        .tableau
+                        .append_h(dag.get_qargs(inst.qubits)[0].index());
                     is_clifford = true
                 }
                 OperationRef::StandardGate(StandardGate::S) => {
-                    clifford.append_s(dag.get_qargs(inst.qubits)[0].index());
+                    clifford
+                        .tableau
+                        .append_s(dag.get_qargs(inst.qubits)[0].index());
                     is_clifford = true
                 }
                 OperationRef::StandardGate(StandardGate::Sdg) => {
-                    clifford.append_sdg(dag.get_qargs(inst.qubits)[0].index());
+                    clifford
+                        .tableau
+                        .append_sdg(dag.get_qargs(inst.qubits)[0].index());
                     is_clifford = true
                 }
                 OperationRef::StandardGate(StandardGate::SX) => {
-                    clifford.append_sx(dag.get_qargs(inst.qubits)[0].index());
+                    clifford
+                        .tableau
+                        .append_sx(dag.get_qargs(inst.qubits)[0].index());
                     is_clifford = true
                 }
                 OperationRef::StandardGate(StandardGate::SXdg) => {
-                    clifford.append_sxdg(dag.get_qargs(inst.qubits)[0].index());
+                    clifford
+                        .tableau
+                        .append_sxdg(dag.get_qargs(inst.qubits)[0].index());
                     is_clifford = true
                 }
                 OperationRef::StandardGate(StandardGate::CX) => {
-                    clifford.append_cx(
+                    clifford.tableau.append_cx(
                         dag.get_qargs(inst.qubits)[0].index(),
                         dag.get_qargs(inst.qubits)[1].index(),
                     );
                     is_clifford = true
                 }
                 OperationRef::StandardGate(StandardGate::CZ) => {
-                    clifford.append_cz(
+                    clifford.tableau.append_cz(
                         dag.get_qargs(inst.qubits)[0].index(),
                         dag.get_qargs(inst.qubits)[1].index(),
                     );
                     is_clifford = true
                 }
                 OperationRef::StandardGate(StandardGate::CY) => {
-                    clifford.append_cy(
+                    clifford.tableau.append_cy(
                         dag.get_qargs(inst.qubits)[0].index(),
                         dag.get_qargs(inst.qubits)[1].index(),
                     );
                     is_clifford = true
                 }
                 OperationRef::StandardGate(StandardGate::Swap) => {
-                    clifford.append_swap(
+                    clifford.tableau.append_swap(
                         dag.get_qargs(inst.qubits)[0].index(),
                         dag.get_qargs(inst.qubits)[1].index(),
                     );
                     is_clifford = true
                 }
                 OperationRef::StandardGate(StandardGate::ISwap) => {
-                    clifford.append_iswap(
+                    clifford.tableau.append_iswap(
                         dag.get_qargs(inst.qubits)[0].index(),
                         dag.get_qargs(inst.qubits)[1].index(),
                     );
                     is_clifford = true
                 }
                 OperationRef::StandardGate(StandardGate::ECR) => {
-                    clifford.append_ecr(
+                    clifford.tableau.append_ecr(
                         dag.get_qargs(inst.qubits)[0].index(),
                         dag.get_qargs(inst.qubits)[1].index(),
                     );
                     is_clifford = true
                 }
                 OperationRef::StandardGate(StandardGate::DCX) => {
-                    clifford.append_dcx(
+                    clifford.tableau.append_dcx(
                         dag.get_qargs(inst.qubits)[0].index(),
                         dag.get_qargs(inst.qubits)[1].index(),
                     );
@@ -249,10 +265,10 @@ pub fn run_litinski_transformation(
                                 is_clifford = true;
                                 match gate {
                                     StandardGate::RZ | StandardGate::Phase | StandardGate::U1 => {
-                                        clifford.append_rz(qubit, multiple)
+                                        clifford.tableau.append_rz(qubit, multiple)
                                     }
-                                    StandardGate::RX => clifford.append_rx(qubit, multiple),
-                                    StandardGate::RY => clifford.append_ry(qubit, multiple),
+                                    StandardGate::RX => clifford.tableau.append_rx(qubit, multiple),
+                                    StandardGate::RY => clifford.tableau.append_ry(qubit, multiple),
                                     _ => unreachable!(
                                         "We cannot have gates other than RZ/RX/RY/P/U1 at this point."
                                     ),
@@ -376,7 +392,9 @@ pub fn run_litinski_transformation(
                             is_ppr_angle_close_to_multiple_of_pi2(in_z, in_x, *angle, tol)
                         {
                             is_clifford = true;
-                            clifford.append_ppr(in_z, in_x, &indices_in, multiple)
+                            clifford
+                                .tableau
+                                .append_ppr(in_z, in_x, &indices_in, multiple)
                         }
                     }
                     if !is_clifford {

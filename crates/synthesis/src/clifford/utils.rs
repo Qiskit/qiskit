@@ -129,7 +129,7 @@ pub fn adjust_final_pauli_gates(
 
     // compute the phase difference
     let target_phase = target_tableau.column(2 * num_qubits);
-    let sim_phase = simulated_clifford.get_phase();
+    let sim_phase = simulated_clifford.tableau.get_phase();
 
     let delta_phase: Vec<bool> = target_phase
         .iter()
@@ -175,31 +175,35 @@ pub fn clifford_from_gate_sequence(
         .iter()
         .try_for_each(|(gate, _params, qubits)| match *gate {
             StandardGate::S => {
-                clifford.append_s(qubits[0].index());
+                clifford.tableau.append_s(qubits[0].index());
                 Ok(())
             }
             StandardGate::Sdg => {
-                clifford.append_sdg(qubits[0].0 as usize);
+                clifford.tableau.append_sdg(qubits[0].0 as usize);
                 Ok(())
             }
             StandardGate::SX => {
-                clifford.append_sx(qubits[0].0 as usize);
+                clifford.tableau.append_sx(qubits[0].0 as usize);
                 Ok(())
             }
             StandardGate::SXdg => {
-                clifford.append_sxdg(qubits[0].0 as usize);
+                clifford.tableau.append_sxdg(qubits[0].0 as usize);
                 Ok(())
             }
             StandardGate::H => {
-                clifford.append_h(qubits[0].index());
+                clifford.tableau.append_h(qubits[0].index());
                 Ok(())
             }
             StandardGate::CX => {
-                clifford.append_cx(qubits[0].index(), qubits[1].index());
+                clifford
+                    .tableau
+                    .append_cx(qubits[0].index(), qubits[1].index());
                 Ok(())
             }
             StandardGate::Swap => {
-                clifford.append_swap(qubits[0].index(), qubits[1].index());
+                clifford
+                    .tableau
+                    .append_swap(qubits[0].index(), qubits[1].index());
                 Ok(())
             }
             _ => Err(format!("Unsupported gate {gate:?}")),
