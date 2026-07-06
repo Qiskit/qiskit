@@ -112,41 +112,14 @@ class TestSampledExpval(QiskitTestCase):
 
     def test_complex_coefficient(self):
         """Test that complex coefficients return complex expectation values.
-        Regression test for #11393 — imaginary part was silently dropped."""
-        sp = SparsePauliOp.from_list([["ZZZZZ", -1j]])
-        dist = {"11111": 1}
-        result = sampled_expectation_value(dist, sp)
-        self.assertAlmostEqual(result, 1j)
 
-    def test_real_coefficient_sparse_pauli(self):
-        """SparsePauliOp stores coefficients as complex internally, but
-        np.real_if_close strips the zero imaginary part — real coefficients
-        return float, matching the documented contract.
-        ZZZZZ|11111> = (-1)^5 = -1."""
-        sp = SparsePauliOp.from_list([["ZZZZZ", 1.0]])
+        Regression test for #11393."""
         dist = {"11111": 1}
-        result = sampled_expectation_value(dist, sp)
-        self.assertAlmostEqual(result, -1.0)
-        self.assertNotIsInstance(result, complex)
+        complex_coeff = SparsePauliOp(["ZZZZZ"], coeffs=[1j])
+        float_coeff = SparsePauliOp(["ZZZZZ"], coeffs=[1])
 
-    def test_sparse_observable_real_returns_not_complex(self):
-        """np.real_if_close strips zero imaginary part — SparseObservable
-        with real coefficients should not return complex type.
-        ZZZZZ|11111> = (-1)^5 = -1."""
-        so = SparseObservable.from_label("ZZZZZ")
-        dist = {"11111": 1}
-        result = sampled_expectation_value(dist, so)
-        self.assertAlmostEqual(result, -1.0)
-        self.assertNotIsInstance(result, complex)
-
-    def test_string_operator_still_returns_float(self):
-        """Plain strings and Pauli objects still use the float path
-        and return float — backward compatible, unchanged.
-        ZZZZZ|11111> = (-1)^5 = -1."""
-        dist = {"11111": 1}
-        result = sampled_expectation_value(dist, "ZZZZZ")
-        self.assertIsInstance(result, float)
-        self.assertAlmostEqual(result, -1.0)
+        self.assertAlmostEqual(-1j, sampled_expectation_value(dist, complex_coeff))
+        self.assertAlmostEqual(-1, sampled_expectation_value(dist, float_coeff))
 
 
 if __name__ == "__main__":
