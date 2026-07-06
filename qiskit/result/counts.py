@@ -56,7 +56,10 @@ class Counts(dict):
                 classical register size. For example,
                 ``[('c_reg', 2), ('my_creg', 4)]``.
             memory_slots (int): The number of total ``memory_slots`` in the
-                experiment.
+                experiment. If not supplied for integer-like input, this is
+                inferred from ``creg_sizes`` if present. If neither is supplied
+                and the keys have different bit widths, this is inferred from
+                the maximum observed bit width and a warning is emitted.
         Raises:
             TypeError: If the input key type is not an ``int`` or ``str``, or if the
                 input keys are not all of the same type.
@@ -114,7 +117,9 @@ class Counts(dict):
         if self.creg_sizes:
             header["creg_sizes"] = self.creg_sizes
         self.memory_slots = memory_slots
-        if not bin_data and self.int_raw and self.memory_slots is None:
+        # Derive memory slots before formatting integer-like counts if the user
+        # did not supply them explicitly.
+        if self.int_raw and self.memory_slots is None:
             if self.creg_sizes:
                 self.memory_slots = sum(size for _, size in self.creg_sizes)
             else:
