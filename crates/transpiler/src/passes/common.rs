@@ -17,6 +17,7 @@ use std::f64::consts::PI;
 use crate::gate_metrics::rotation_trace_and_dim;
 use qiskit_circuit::operations::StandardGate;
 
+// Default value for tolerance level. It is used to check the fidely tolerance.
 pub const MINIMUM_TOL: f64 = 1e-12;
 
 /// Fidelity-based computation to check whether an operation `G` is equivalent
@@ -46,6 +47,7 @@ pub fn average_gate_fidelity_below_tol(tr_over_dim: Complex64, dim: f64, tol: f6
 /// Otherwise, return `None`.
 /// E.g, if the angle is a multiple m of PI/4 then it returns m, where 0 <= m < 16,
 /// and if the angle is a multiple m of PI/2 then it returns m, where 0 <= m < 8.
+/// Panics if the StandardGate is not a rotation gate.
 pub fn is_angle_close_to_multiple_of_pi_k(
     gate: StandardGate,
     k: usize,
