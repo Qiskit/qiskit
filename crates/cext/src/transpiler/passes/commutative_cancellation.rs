@@ -19,10 +19,16 @@ use qiskit_transpiler::commutation_checker::get_standard_commutation_checker;
 use qiskit_transpiler::passes::cancel_commutations;
 use qiskit_transpiler::target::Target;
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Run the CommutativeCancellation transpiler pass on a circuit.
 ///
 /// This pass cancels the redundant (self-adjoint) gates through commutation relations.
+///
+/// This function is multithreaded and will potentially launch a thread pool
+/// with threads equal to the number of CPUs by default. You can tune the
+/// number of threads with the ``RAYON_NUM_THREADS`` environment variable.
+/// For example, setting ``RAYON_NUM_THREADS=4`` would limit the thread pool
+/// to 4 threads.
 ///
 /// @param circuit A pointer to the circuit to run CommutativeCancellation on. This circuit
 /// pointer to will be updated with the modified circuit if the pass is able to remove any gates.
@@ -90,6 +96,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_commutative_cancellation(
     ExitCode::Success
 }
 
+#[cfg(not(miri))]
 #[cfg(test)]
 mod tests {
     use super::*;

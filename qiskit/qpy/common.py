@@ -25,7 +25,8 @@ from qiskit.qpy import formats, exceptions
 
 QPY_VERSION = 17
 QPY_COMPATIBILITY_VERSION = 13
-QPY_RUST_MIN_VERSION = 17  # we do not support encoding/decoding in Rust for previous versions yet
+QPY_RUST_READ_MIN_VERSION = 13
+QPY_RUST_WRITE_MIN_VERSION = 17
 ENCODE = "utf8"
 
 

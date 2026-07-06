@@ -18,7 +18,7 @@ use smallvec::smallvec;
 use crate::exit_codes::ExitCode;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeIndex, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, NodeIndex, NodeType};
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     ArrayType, Operation, OperationRef, Param, StandardGate, StandardInstruction, UnitaryGate,
@@ -196,6 +196,84 @@ pub unsafe extern "C" fn qk_dag_num_op_nodes(dag: *const DAGCircuit) -> usize {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
     dag.num_ops()
+}
+
+/// @ingroup QkDag
+/// Get the global phase of the DAG.
+///
+/// This function returns a copy of the DAG's global phase
+/// and the value must be freed via :c:func:`qk_param_free`
+/// after usage.
+///
+/// @param dag A pointer to the DAG.
+///
+/// @return The global phase of the DAG.
+///
+/// # Example
+/// ```c
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(24, "my_register");
+/// qk_dag_add_quantum_register(dag, qr);
+/// QkParam *global_phase = qk_dag_global_phase(dag);
+/// qk_param_free(global_phase);
+/// qk_quantum_register_free(qr);
+/// qk_dag_free(dag);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_dag_global_phase(dag: *const DAGCircuit) -> *mut Param {
+    // SAFETY: Per documentation, the pointer is to valid data.
+    let dag = unsafe { const_ptr_as_ref(dag) };
+    Box::into_raw(Box::new(dag.global_phase().clone()))
+}
+
+/// @ingroup QkDag
+/// Set the global phase of the DAG.
+///
+/// This function copies the new global phase upon setting it,
+/// so the caller retains ownership of the ``QkParam`` phase,
+/// and the value of the phase must be freed via :c:func:`qk_param_free`
+/// after setting.
+///
+/// @param dag A pointer to the DAG.
+/// @param phase A pointer to the global phase to set.
+///
+/// @return ``QkExitCode_Success`` upon successful setting of the global phase. Upon failure,
+///     ``QkExitCode_ParameterError`` describes generic failures when attempting to
+///     track the parameter symbols such as invalid parameter values.
+///     Otherwise, ``QkExitCode_DagError`` indicates a DAG-specific cause of the failure.
+///
+/// # Example
+/// ```c
+/// QkDag *dag = qk_dag_new();
+/// QkParam *new_global_phase = qk_param_from_double(1.23);
+/// qk_dag_set_global_phase(dag, new_global_phase);
+/// qk_param_free(new_global_phase);
+/// qk_dag_free(dag);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag`` and
+/// if ``phase`` is not a valid, non-null pointer to a ``QkParam``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_dag_set_global_phase(
+    dag: *mut DAGCircuit,
+    phase: *const Param,
+) -> ExitCode {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let dag = unsafe { mut_ptr_as_ref(dag) };
+    let phase = unsafe { const_ptr_as_ref(phase) };
+    // dag.set_global_phase_param(phase.clone())
+    //     .expect("Unable to set global phase");
+    match dag.set_global_phase_param(phase.clone()) {
+        Ok(_) => ExitCode::Success,
+        Err(DAGError::ObjGlobalPhase) => ExitCode::ParameterError,
+        Err(_) => ExitCode::DagError,
+    }
 }
 
 /// The type of node in a ``QkDag``.
@@ -1021,9 +1099,7 @@ pub unsafe extern "C" fn qk_dag_op_node_kind(dag: *const DAGCircuit, node: u32) 
         OperationRef::PauliProductMeasurement(_) => COperationKind::PauliProductMeasurement,
         OperationRef::PauliProductRotation(_) => COperationKind::PauliProductRotation,
         OperationRef::ControlFlow(_) => COperationKind::ControlFlow,
-        OperationRef::Gate(_) | OperationRef::Instruction(_) | OperationRef::Operation(_) => {
-            COperationKind::Unknown
-        }
+        OperationRef::PyCustom(_) | OperationRef::CustomOperation(_) => COperationKind::Unknown,
     }
 }
 
@@ -1211,7 +1287,7 @@ pub unsafe extern "C" fn qk_dag_get_instruction(
 ) {
     // SAFETY: per documentation, `dag` is a pointer to valid data.
     let dag = unsafe { const_ptr_as_ref(dag) };
-    let inst = CInstruction::from_packed_instruction_with_floats(
+    let inst = CInstruction::from_packed_instruction_with_numeric(
         dag.dag()[NodeIndex::new(index as usize)].unwrap_operation(),
         dag.qargs_interner(),
         dag.cargs_interner(),
@@ -1245,7 +1321,7 @@ pub unsafe extern "C" fn qk_dag_get_instruction(
 /// // rqr_1: ──┼──┤ Y ├
 /// //        ┌─┴─┐└───┘
 /// // rqr_2: ┤ X ├─────
-/// //        └───┘     
+/// //        └───┘
 /// QkDag *dag_right = qk_dag_new();
 /// QkQuantumRegister *rqr = qk_quantum_register_new(3, "rqr");
 /// qk_dag_add_quantum_register(dag_right, rqr);
@@ -1254,7 +1330,7 @@ pub unsafe extern "C" fn qk_dag_get_instruction(
 /// qk_dag_apply_gate(dag_right, QkGate_Y, (uint32_t[]){1}, NULL, false);
 ///
 /// // Build the following dag
-/// //          ┌───┐   
+/// //          ┌───┐
 /// // lqr_0: ──┤ H ├───
 /// //        ┌─┴───┴──┐
 /// // lqr_1: ┤ P(0.1) ├
@@ -1268,13 +1344,13 @@ pub unsafe extern "C" fn qk_dag_get_instruction(
 ///
 /// // Compose left circuit onto right circuit
 /// // Should result in circuit
-/// //             ┌───┐          
+/// //             ┌───┐
 /// // rqr_0: ──■──┤ H ├──────────
 /// //          │  ├───┤┌────────┐
 /// // rqr_1: ──┼──┤ Y ├┤ P(0.1) ├
 /// //        ┌─┴─┐└───┘└────────┘
 /// // rqr_2: ┤ X ├───────────────
-/// //        └───┘               
+/// //        └───┘
 /// qk_dag_compose(dag_right, dag_left, NULL, NULL);
 ///
 /// // Clean up after you're done
@@ -1584,9 +1660,7 @@ pub unsafe extern "C" fn qk_dag_copy_empty_like(
     let vars_mode = vars_mode.into();
     let blocks_mode = blocks_mode.into();
 
-    let copied_dag = dag
-        .copy_empty_like_with_capacity(0, 0, vars_mode, blocks_mode)
-        .expect("Failed to copy the DAG.");
+    let copied_dag = dag.copy_empty_like_with_capacity(0, 0, vars_mode, blocks_mode);
     Box::into_raw(Box::new(copied_dag))
 }
 
@@ -1707,5 +1781,163 @@ pub unsafe extern "C" fn qk_dag_replace_block_with_unitary(
     match res {
         Ok(new_index) => new_index.index() as u32,
         Err(_) => u32::MAX,
+    }
+}
+
+/// @ingroup QkDag
+/// Substitute an operation in a node in a ``QkDag`` with a unitary gate
+/// corresponding to the specified unitary matrix.
+///
+/// The new operation should match the shape of the replaced operation.
+/// The qargs and cargs for the node will remain the same.
+///
+/// @param dag Pointer to the DAG.
+/// @param node The node whose operation is substituted. The number of qubits
+///     in the substituted operation should equal to ``num_qubits`` and the
+///     number of clbits should be ``0``.
+/// @param matrix Pointer to an initialized row-major unitary matrix of size
+///     ``4**num_qubits``.
+/// @param num_qubits The number of qubits the unitary acts on.
+///
+/// # Example
+/// ```c
+/// // Create a DAG with a Z-gate
+/// QkDag *dag = qk_dag_new();
+/// QkQuantumRegister *qr = qk_quantum_register_new(2, "qr");
+/// qk_dag_add_quantum_register(dag, qr);
+/// uint32_t idx_z = qk_dag_apply_gate(dag, QkGate_Z, (uint32_t[]){1}, NULL, false);
+///
+/// static const QkComplex64 mat[4] = {{1, 0}, {0, 0}, {0, 0}, {-1, 0}};
+///
+/// // Replace the Z-gate by a unitary matrix
+/// qk_dag_substitute_node_with_unitary(dag, idx_z, mat, 1);
+///
+/// // free the register and dag pointer when done
+/// qk_quantum_register_free(qr);
+/// qk_dag_free(dag);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if any of:
+/// * `dag` is not an aligned, non-null pointer to a valid ``QkDag``,
+/// * `matrix` is not an aligned pointer to `4**num_qubits` initialized values,
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_dag_substitute_node_with_unitary(
+    dag: *mut DAGCircuit,
+    node: u32,
+    matrix: *const Complex64,
+    num_qubits: u32,
+) {
+    // SAFETY: per documentation, `dag` points to valid data.
+    let dag = unsafe { mut_ptr_as_ref(dag) };
+
+    // SAFETY: per documentation, `matrix` is aligned and valid for `4**num_qubits` reads of
+    // initialized data.
+    let array = unsafe { unitary_from_pointer(matrix, num_qubits, None) }
+        .expect("infallible without tolerance checking");
+
+    dag.substitute_op(
+        NodeIndex::new(node as usize),
+        UnitaryGate { array }.into(),
+        None,
+        None,
+    )
+    .expect("Failed to substitute op.")
+}
+
+/// @ingroup QkDag
+/// Pass ownership of a `QkDag` object to Python.
+///
+/// It is not safe to use the `QkDag` pointer after calling this function.  In particular, you
+/// should not attempt to clear or free it.  The caller must own the `QkDag`, not hold a borrowed
+/// reference (for example, a `QkDag *` retrieved from `qk_dag_borrow_from_python` is not owned).
+///
+/// @param dag The owned object.
+/// @return An owned Python reference to the object.
+///
+/// # Safety
+///
+/// The caller must be attached to a Python interpreter.  Behavior is undefined if `dag` is not a
+/// valid non-null pointer to an initialized and owned `QkDag`.
+#[unsafe(no_mangle)]
+#[cfg(feature = "python_binding")]
+pub unsafe extern "C" fn qk_dag_to_python(dag: *mut DAGCircuit) -> *mut ::pyo3::ffi::PyObject {
+    // SAFETY: per documentation, we are attached to a Python interpreter.
+    let py = unsafe { ::pyo3::Python::assume_attached() };
+    // SAFETY: per documentation, `dag` points to owned and valid data.
+    let dag = unsafe { Box::from_raw(dag) };
+    match ::pyo3::Bound::new(py, *dag) {
+        Ok(ob) => ob.into_ptr(),
+        Err(e) => {
+            e.restore(py);
+            ::std::ptr::null_mut()
+        }
+    }
+}
+
+/// @ingroup QkDag
+/// Retrieve a `QkDag` pointer from a Python object.
+///
+/// This borrows a Python reference and extracts the `QkDag` pointer for it, if it is of
+/// the correct type.  The returned pointer is borrowed from the `ob` pointer.  If the
+/// ``PyObject`` is not the correct type, the return value is ``NULL`` and the exception
+/// state of the Python interpreter is set.
+///
+/// You must be attached to a Python interpreter to call this function.
+///
+/// You can also use `qk_dag_convert_from_python`, which is logically the exact same as this
+/// function, but can be directly used as a "converter" function for the `PyArg_Parse*`
+/// family of Python converter functions.
+///
+/// @param ob A borrowed Python object.
+/// @return A pointer to the native object, or `NULL` if the Python object is the wrong type.
+///
+/// # Safety
+///
+/// The caller must be attached to a Python interpreter.  Behavior is undefined if `ob` is
+/// not a valid non-null pointer to a Python object.
+#[unsafe(no_mangle)]
+#[cfg(feature = "python_binding")]
+pub unsafe extern "C" fn qk_dag_borrow_from_python(
+    ob: *mut pyo3::ffi::PyObject,
+) -> *mut DAGCircuit {
+    // SAFETY: per documentation, we are attached to a Python interpreter, and `ob` points to a
+    // valid PyObject.
+    unsafe { crate::py::borrow_mut(::pyo3::Python::assume_attached(), ob) }
+}
+
+/// @ingroup QkDag
+/// Retrieve a DAG pointer from a Python object.
+///
+/// This borrows a Python reference and extracts the `QkDag` pointer for it into ``address``, if it
+/// is of the correct type.  The returned pointer is borrowed from the `object` pointer.  If the
+/// ``PyObject`` is not the correct type, the return value is 1, the exception state of the Python
+/// interpreter is set, and ``address`` is unchanged.
+///
+/// You must be attached to a Python interpreter to call this function.
+///
+/// You can also use `qk_dag_borrow_from_python`, which is logically the exact same as this, but
+/// with a more natural signature for direct usage.
+///
+/// @param object A borrowed Python object.
+/// @param address The location to write the output to.
+/// @return 1 on success, 0 on failure.
+///
+/// # Safety
+///
+/// The caller must be attached to a Python interpreter.  Behavior is undefined if `object`
+/// is not a valid non-null pointer to a Python object, or if `address` is not a pointer to
+/// writeable data of the correct type.
+#[unsafe(no_mangle)]
+#[cfg(feature = "python_binding")]
+pub unsafe extern "C" fn qk_dag_convert_from_python(
+    object: *mut ::pyo3::ffi::PyObject,
+    address: *mut ::std::ffi::c_void,
+) -> ::std::ffi::c_int {
+    // SAFETY: per documentation, we are attached to a Python interpreter, `object` is a valid
+    // pointer to a PyObject, and `address` points to enough space to write a pointer.
+    unsafe {
+        crate::py::convert_mut::<DAGCircuit>(::pyo3::Python::assume_attached(), object, address)
     }
 }

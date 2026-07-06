@@ -15,7 +15,7 @@ use qiskit_transpiler::{passes::run_consolidate_blocks, target::Target};
 
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Run the ConsolidateBlocks pass on a circuit.
 ///
 /// ConsolidateBlocks is a transpiler pass that consolidates consecutive blocks of

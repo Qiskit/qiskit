@@ -17,15 +17,16 @@
 use core::f64;
 
 use hashbrown::HashMap;
+use pyo3::exceptions::PyRecursionError;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 
-use crate::bytecode;
 use crate::error::{
     Position, QASM2ParseError, message_bad_eof, message_generic, message_incorrect_requirement,
 };
 use crate::lex::{Token, TokenContext, TokenStream, TokenType};
 use crate::parse::{GateSymbol, GlobalSymbol, ParamId};
+use crate::{ClassicalCallableExt, bytecode};
 
 /// Enum representation of the builtin OpenQASM 2 functions.  The built-in Qiskit parser adds the
 /// inverse trigonometric functions, but these are an extension to the version as given in the
@@ -122,7 +123,7 @@ enum Atom {
     LParen,
     RParen,
     Function(Function),
-    CustomFunction(Py<PyAny>, usize),
+    CustomFunction(ClassicalCallableExt),
     Op(Op),
     Const(f64),
     Parameter(ParamId),
@@ -143,7 +144,7 @@ pub enum Expr {
     Divide(Box<Expr>, Box<Expr>),
     Power(Box<Expr>, Box<Expr>),
     Function(Function, Box<Expr>),
-    CustomFunction(Py<PyAny>, Vec<Expr>),
+    CustomFunction(ClassicalCallableExt, Vec<Expr>),
 }
 
 impl<'py> IntoPyObject<'py> for Expr {
@@ -206,12 +207,9 @@ impl<'py> IntoPyObject<'py> for Expr {
             }
             .into_pyobject(py)?
             .into_any(),
-            Expr::CustomFunction(func, exprs) => bytecode::ExprCustom {
-                callable: func,
-                arguments: exprs
-                    .into_iter()
-                    .map(|expr| expr.into_pyobject(py).unwrap().unbind())
-                    .collect(),
+            Expr::CustomFunction(callable, exprs) => bytecode::ExprCustom {
+                callable,
+                arguments: PyTuple::new(py, exprs)?.unbind(),
             }
             .into_pyobject(py)?
             .into_any(),
@@ -259,6 +257,8 @@ pub struct ExprParser<'a> {
     pub gate_symbols: &'a HashMap<String, GateSymbol>,
     pub global_symbols: &'a HashMap<String, GlobalSymbol>,
     pub strict: bool,
+    /// Internal recursion-depth limit.
+    pub remaining_depth: usize,
 }
 
 impl ExprParser<'_> {
@@ -432,57 +432,50 @@ impl ExprParser<'_> {
 
     fn apply_custom_function(
         &mut self,
-        callable: Py<PyAny>,
+        callable: &ClassicalCallableExt,
         exprs: Vec<Expr>,
         token: &Token,
     ) -> PyResult<Expr> {
-        if exprs.iter().all(|x| matches!(x, Expr::Constant(_))) {
-            // We can still do constant folding with custom user classical functions, we're just
-            // going to have to acquire the GIL and call the Python object the user gave us right
-            // now.  We need to explicitly handle any exceptions that might occur from that.
-            Python::attach(|py| {
-                let args = PyTuple::new(
-                    py,
-                    exprs.iter().map(|x| {
-                        if let Expr::Constant(val) = x {
-                            *val
-                        } else {
-                            unreachable!()
-                        }
-                    }),
-                )?;
-                match callable.call1(py, args) {
-                    Ok(retval) => match retval.extract::<f64>(py) {
-                        Ok(fval) => Ok(Expr::Constant(fval)),
-                        Err(inner) => {
-                            let error = QASM2ParseError::new_err(message_generic(
-                                Some(&Position::new(
-                                    self.current_filename(),
-                                    token.line,
-                                    token.col,
-                                )),
-                                "user-defined function returned non-float during constant folding",
-                            ));
-                            error.set_cause(py, Some(inner));
-                            Err(error)
-                        }
-                    },
-                    Err(inner) => {
-                        let error = QASM2ParseError::new_err(message_generic(
-                            Some(&Position::new(
-                                self.current_filename(),
-                                token.line,
-                                token.col,
-                            )),
-                            "caught exception when constant folding with user-defined function",
-                        ));
-                        error.set_cause(py, Some(inner));
-                        Err(error)
-                    }
-                }
+        let as_f64 = exprs
+            .iter()
+            .map(|expr| match expr {
+                Expr::Constant(val) => Some(*val),
+                _ => None,
             })
-        } else {
-            Ok(Expr::CustomFunction(callable, exprs))
+            .collect::<Option<Vec<f64>>>();
+        let Some(floats) = as_f64 else {
+            return Ok(Expr::CustomFunction(callable.clone(), exprs));
+        };
+        match callable {
+            ClassicalCallableExt::Builtin(builtin) => {
+                Ok(Expr::Constant(builtin.call(&floats).expect(
+                    "caller of apply_custom_function should validate the number of parameters",
+                )))
+            }
+            ClassicalCallableExt::Py { ob, num_params: _ } => Python::attach(|py| {
+                let chain_exception = |msg, base| {
+                    let pos = Position::new(self.current_filename(), token.line, token.col);
+                    let err = QASM2ParseError::new_err(message_generic(Some(&pos), msg));
+                    err.set_cause(py, Some(base));
+                    err
+                };
+                ob.bind(py)
+                    .call1(PyTuple::new(py, floats)?)
+                    .map_err(|inner| {
+                        chain_exception(
+                            "caught exception when constant folding with user-defined function",
+                            inner,
+                        )
+                    })?
+                    .extract::<f64>()
+                    .map_err(|inner| {
+                        chain_exception(
+                            "user-defined function returned non-float during constant folding",
+                            inner,
+                        )
+                    })
+                    .map(Expr::Constant)
+            }),
         }
     }
 
@@ -543,10 +536,9 @@ impl ExprParser<'_> {
                         )))
                     }
                     None => match self.global_symbols.get(id) {
-                        Some(GlobalSymbol::Classical {
-                            callable,
-                            num_params,
-                        }) => Ok(Some(Atom::CustomFunction(callable.clone(), *num_params))),
+                        Some(GlobalSymbol::Classical(callable)) => {
+                            Ok(Some(Atom::CustomFunction(callable.clone())))
+                        }
                         _ => Err(QASM2ParseError::new_err(message_generic(
                             Some(&Position::new(
                                 self.current_filename(),
@@ -587,6 +579,9 @@ impl ExprParser<'_> {
     /// and its parsing would finish when it saw the next `+` binary operation.  For initial entry,
     /// the `power_min` should be zero.
     fn eval_expression(&mut self, power_min: u8, cause: &Token) -> PyResult<Expr> {
+        self.remaining_depth = self.remaining_depth.checked_sub(1).ok_or_else(|| {
+            PyRecursionError::new_err("exceeded maximum permitted expression depth")
+        })?;
         let token = self.next_token()?.ok_or_else(|| {
             QASM2ParseError::new_err(message_bad_eof(
                 Some(&Position::new(
@@ -654,10 +649,10 @@ impl ExprParser<'_> {
                 self.expect(TokenType::RParen, "a closing parenthesis", &lparen_token)?;
                 Ok(self.apply_function(func, argument, &token)?)
             }
-            Atom::CustomFunction(callable, num_params) => {
+            Atom::CustomFunction(callable) => {
                 let lparen_token =
                     self.expect(TokenType::LParen, "an opening parenthesis", &token)?;
-                let mut arguments = Vec::<Expr>::with_capacity(num_params);
+                let mut arguments = Vec::<Expr>::with_capacity(callable.num_params());
                 let mut comma = None;
                 loop {
                     // There are breaks at the start and end of this loop, because we might be
@@ -675,8 +670,8 @@ impl ExprParser<'_> {
                 }
                 self.check_trailing_comma(comma.as_ref())?;
                 self.expect(TokenType::RParen, "a closing parenthesis", &lparen_token)?;
-                if arguments.len() == num_params {
-                    Ok(self.apply_custom_function(callable, arguments, &token)?)
+                if arguments.len() == callable.num_params() {
+                    Ok(self.apply_custom_function(&callable, arguments, &token)?)
                 } else {
                     Err(QASM2ParseError::new_err(message_generic(
                         Some(&Position::new(
@@ -686,7 +681,7 @@ impl ExprParser<'_> {
                         )),
                         &format!(
                             "custom function argument-count mismatch: expected {}, saw {}",
-                            num_params,
+                            callable.num_params(),
                             arguments.len(),
                         ),
                     )))
@@ -722,6 +717,7 @@ impl ExprParser<'_> {
             let rhs = self.eval_expression(power_r, &peeked_token)?;
             lhs = self.apply_infix(op, lhs, rhs, &peeked_token)?;
         }
+        self.remaining_depth += 1;
         Ok(lhs)
     }
 

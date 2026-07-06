@@ -25,7 +25,7 @@ use crate::error::{
 };
 use crate::expr::{Expr, ExprParser};
 use crate::lex::{Token, TokenContext, TokenStream, TokenType, Version};
-use crate::{CustomClassical, CustomInstruction};
+use crate::{ClassicalCallableExt, CustomClassical, CustomInstruction};
 
 /// The number of gates that are built in to the OpenQASM 2 language.  This is U and CX.
 const N_BUILTIN_GATES: usize = 2;
@@ -110,10 +110,7 @@ pub enum GlobalSymbol {
         num_qubits: usize,
         index: GateId,
     },
-    Classical {
-        callable: Py<PyAny>,
-        num_params: usize,
-    },
+    Classical(ClassicalCallableExt),
 }
 
 impl GlobalSymbol {
@@ -238,6 +235,8 @@ pub struct State {
     allow_version: bool,
     /// Whether we're in strict mode or (the default) more permissive parse.
     strict: bool,
+    /// What the maximum depth for expression recursion is.
+    max_depth: usize,
 }
 
 impl State {
@@ -248,6 +247,7 @@ impl State {
         custom_instructions: &[CustomInstruction],
         custom_classical: &[CustomClassical],
         strict: bool,
+        max_depth: usize,
     ) -> PyResult<Self> {
         let mut state = State {
             tokens: vec![tokens],
@@ -268,6 +268,7 @@ impl State {
             num_gates: 0,
             allow_version: true,
             strict,
+            max_depth,
         };
         for inst in custom_instructions {
             if state.symbols.contains_key(&inst.name)
@@ -312,10 +313,7 @@ impl State {
             }
             match state.symbols.insert(
                 classical.name.clone(),
-                GlobalSymbol::Classical {
-                    num_params: classical.num_params,
-                    callable: classical.callable.clone(),
-                },
+                GlobalSymbol::Classical(classical.callable.clone()),
             ) {
                 Some(GlobalSymbol::Gate { .. }) => {
                     let message = match classical.name.as_str() {
@@ -977,6 +975,19 @@ impl State {
         self.emit_gate_application(bc, &name_token, index, parameters, &qargs, condition)
     }
 
+    /// Parse an expected expression at this position.
+    fn expect_expression(&mut self, cause: &Token) -> PyResult<Expr> {
+        ExprParser {
+            tokens: &mut self.tokens,
+            context: &mut self.context,
+            gate_symbols: &self.gate_symbols,
+            global_symbols: &self.symbols,
+            strict: self.strict,
+            remaining_depth: self.max_depth,
+        }
+        .parse_expression(cause)
+    }
+
     /// Parse the parameters (if any) from a gate application.
     fn expect_gate_parameters(
         &mut self,
@@ -1002,14 +1013,7 @@ impl State {
         let parameters = if in_gate {
             let mut parameters = Vec::<Expr>::with_capacity(num_params);
             while !self.next_is(TokenType::RParen)? {
-                let mut expr_parser = ExprParser {
-                    tokens: &mut self.tokens,
-                    context: &mut self.context,
-                    gate_symbols: &self.gate_symbols,
-                    global_symbols: &self.symbols,
-                    strict: self.strict,
-                };
-                parameters.push(expr_parser.parse_expression(&lparen_token)?);
+                parameters.push(self.expect_expression(&lparen_token)?);
                 seen_params += 1;
                 comma = self.accept(TokenType::Comma)?;
                 if comma.is_none() {
@@ -1021,14 +1025,7 @@ impl State {
         } else {
             let mut parameters = Vec::<f64>::with_capacity(num_params);
             while !self.next_is(TokenType::RParen)? {
-                let mut expr_parser = ExprParser {
-                    tokens: &mut self.tokens,
-                    context: &mut self.context,
-                    gate_symbols: &self.gate_symbols,
-                    global_symbols: &self.symbols,
-                    strict: self.strict,
-                };
-                match expr_parser.parse_expression(&lparen_token)? {
+                match self.expect_expression(&lparen_token)? {
                     Expr::Constant(value) => parameters.push(value),
                     _ => {
                         return Err(QASM2ParseError::new_err(message_generic(

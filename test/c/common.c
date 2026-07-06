@@ -30,6 +30,8 @@ int run(const char *name, int (*test_function)(void)) {
         msg = "Ok";
     } else if (result == EqualityError) {
         msg = "FAILED with an EqualityError";
+    } else if (result == RuntimeError) {
+        msg = "FAILED with a RuntimeError";
     } else {
         msg = "FAILED with unknown error";
     }
@@ -124,9 +126,14 @@ bool compare_circuits(const QkCircuit *res, const QkCircuit *expected) {
             return false;
         }
         for (uint32_t j = 0; j < res_inst.num_params; j++) {
-            if (res_inst.params[j] != expected_inst.params[j]) {
-                printf("Parameter %d for gate %zu are different %f was found and expected %f\n", j,
-                       i, res_inst.params[j], expected_inst.params[j]);
+            if (!qk_param_equal(res_inst.params[j], expected_inst.params[j])) {
+                char *res_str = qk_param_str(res_inst.params[j]);
+                char *expected_str = qk_param_str(expected_inst.params[j]);
+
+                printf("Parameter %d for gate %zu are different %s was found and expected %s\n", j,
+                       i, res_str, expected_str);
+                qk_str_free(res_str);
+                qk_str_free(expected_str);
                 qk_circuit_instruction_clear(&res_inst);
                 qk_circuit_instruction_clear(&expected_inst);
                 return false;

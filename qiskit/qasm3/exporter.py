@@ -849,7 +849,7 @@ class QASM3Builder:
             if defn.num_parameters > 0:
                 if defn.num_parameters != len(gate.params):
                     raise QASM3ExporterError(
-                        "parameter mismatch in definition of '{gate}':"
+                        f"parameter mismatch in definition of '{gate.name}':"
                         f" call has {len(gate.params)}, definition has {defn.num_parameters}"
                     )
                 params = [
@@ -1235,8 +1235,12 @@ class QASM3Builder:
                         f" '{indexset}'."
                     ) from None
             body_ast = ast.ProgramBlock(self.build_current_scope())
-            # Force IntType as Qiskit ForLoop only supports indexset made of integers
-            type_ = ast.IntType()
+            type_ = (
+                _build_ast_type(loop_parameter.type)
+                if isinstance(loop_parameter, expr.Var)
+                # If in legacy iterable mode, we only support integer index sets.
+                else ast.IntType()
+            )
         return ast.ForLoopStatement(indexset_ast, loop_parameter_ast, body_ast, type_)
 
     def build_annotation(self, annotation: Annotation) -> ast.Annotation:

@@ -364,7 +364,7 @@ def _define_custom_operation(operation, gates_to_define):
 
     if operation.num_qubits == 0:
         raise QASM2ExportError(
-            f"OpenQASM 2 cannot represent '{operation.name}, which acts on zero qubits."
+            f"OpenQASM 2 cannot represent '{operation.name}', which acts on zero qubits."
         )
     if operation.num_clbits != 0:
         raise QASM2ExportError(

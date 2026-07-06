@@ -24,7 +24,6 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from qiskit import _numpy_compat
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.library.standard_gates import HGate, IGate, SGate, TGate, XGate, YGate, ZGate
 from qiskit.circuit.operation import Operation
@@ -93,12 +92,9 @@ class Operator(LinearOp):
         """Initialize an operator object.
 
         Args:
-            data (QuantumCircuit or Operation or BaseOperator or matrix):
-                                data to initialize operator.
-            input_dims (tuple): the input subsystem dimensions.
-                                [Default: None]
-            output_dims (tuple): the output subsystem dimensions.
-                                 [Default: None]
+            data: data to initialize operator.
+            input_dims: the input subsystem dimensions.
+            output_dims: the output subsystem dimensions.
 
         Raises:
             QiskitError: if input data cannot be initialized as an operator.
@@ -148,7 +144,7 @@ class Operator(LinearOp):
             shape=self._data.shape,
         )
 
-    def __array__(self, dtype=None, copy=_numpy_compat.COPY_ONLY_IF_NEEDED):
+    def __array__(self, dtype=None, copy=None):
         dtype = self.data.dtype if dtype is None else dtype
         return np.array(self.data, dtype=dtype, copy=copy)
 
@@ -438,7 +434,7 @@ class Operator(LinearOp):
             if not ignore_set_layout and layout is not None:
                 final_layout = getattr(layout, "final_layout", None)
 
-        from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
+        from qiskit.synthesis.permutation import _inverse_pattern
 
         op = Operator(circuit)
 

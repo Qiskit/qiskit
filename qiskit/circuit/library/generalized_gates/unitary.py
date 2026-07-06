@@ -18,7 +18,6 @@ import math
 import typing
 import numpy
 
-from qiskit import _numpy_compat
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.annotated_operation import AnnotatedOperation, ControlModifier
@@ -27,6 +26,7 @@ from qiskit.circuit import QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.circuit.library.standard_gates.u import UGate
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
@@ -114,7 +114,7 @@ class UnitaryGate(Gate):
             return False
         return matrix_equal(self.params[0], other.params[0])
 
-    def __array__(self, dtype=None, copy=_numpy_compat.COPY_ONLY_IF_NEEDED):
+    def __array__(self, dtype=None, copy=None):
         """Return matrix for the unitary."""
         dtype = self.params[0].dtype if dtype is None else dtype
         return numpy.array(self.params[0], dtype=dtype, copy=copy)
@@ -155,20 +155,29 @@ class UnitaryGate(Gate):
 
             self.definition = two_qubit_cnot_decompose(self.to_matrix())
         else:
-            from qiskit.synthesis.unitary.qsd import (
-                qs_decomposition,
-            )
 
-            self.definition = qs_decomposition(self.to_matrix())
-            # Since iterative Quantum Shannon Decomposition may provide imprecise matrices,
-            # we use the Isometry decomposition in this case
+            mat = self.to_matrix()
 
+            from qiskit.synthesis.unitary.qsd import qs_decomposition
+
+            try:
+                # The Rust code for Quantum Shannon Decomposition may return QiskitError
+                # when linear algebra methods (e.g. Schur decomposition) fail.
+                mat_def = qs_decomposition(mat)
+            except QiskitError:
+                mat_def = None
+
+            # If QSD fails or provides numerically imprecise matrices, fallback on the
+            # Isometry decomposition (which produces more gates but is more numerically
+            # stable)
             from qiskit.quantum_info.operators import Operator
 
-            if not (
-                matrix_equal(Operator(self.definition).to_matrix(), self.to_matrix(), atol=1e-7)
+            if (mat_def is None) or not (
+                matrix_equal(Operator(mat_def).to_matrix(), mat, atol=1e-7)
             ):
-                self.definition = Isometry(self.matrix, 0, 0).definition
+                mat_def = Isometry(self.to_matrix(), 0, 0).definition
+
+            self.definition = mat_def
 
     def control(
         self,
@@ -199,14 +208,22 @@ class UnitaryGate(Gate):
             cmat = _compute_control_matrix(mat, num_ctrl_qubits, ctrl_state=None)
             from qiskit.synthesis.unitary.qsd import qs_decomposition
 
-            cmat_def = qs_decomposition(cmat, opt_a1=True, opt_a2=False)
-            # Since iterative cosine-sine decomposition may provide imprecise matrices,
-            # we use the Isometry decomposition in this case
+            try:
+                # The Rust code for Quantum Shannon Decomposition may return QiskitError
+                # when linear algebra methods (e.g. Schur decomposition) fail.
+                cmat_def = qs_decomposition(cmat)
+            except QiskitError:
+                cmat_def = None
 
+            # If QSD fails or provides numerically imprecise matrices, fallback on the
+            # Isometry decomposition (which produces more gates but is more numerically
+            # stable)
             from qiskit.quantum_info.operators import Operator
 
-            if not matrix_equal(Operator(cmat_def).to_matrix(), cmat, atol=1e-7):
-                self.definition = Isometry(cmat, 0, 0).definition
+            if (cmat_def is None) or not (
+                matrix_equal(Operator(cmat_def).to_matrix(), cmat, atol=1e-7)
+            ):
+                cmat_def = Isometry(cmat, 0, 0).definition
 
             gate = ControlledGate(
                 "c-unitary",

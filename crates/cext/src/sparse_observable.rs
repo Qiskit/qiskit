@@ -20,13 +20,6 @@ use qiskit_quantum_info::sparse_observable::{
     BitTerm, CoherenceError, SparseObservable, SparseTermView,
 };
 
-#[cfg(feature = "python_binding")]
-use pyo3::ffi::PyObject;
-#[cfg(feature = "python_binding")]
-use pyo3::{Py, Python};
-#[cfg(feature = "python_binding")]
-use qiskit_quantum_info::sparse_observable::PySparseObservable;
-
 /// A term in a ``QkObs``.
 ///
 /// This contains the coefficient (``coeff``), the number of qubits of the observable
@@ -131,14 +124,15 @@ pub extern "C" fn qk_obs_identity(num_qubits: u32) -> *mut SparseObservable {
 ///    uint32_t num_qubits = 100;
 ///    uint64_t num_terms = 2;  // we have 2 terms: |01><01|, -1 * |+-><+-|
 ///    uint64_t num_bits = 4; // we have 4 non-identity bits: 0, 1, +, -
-///    QkComplex64 coeffs = {1, -1};
+///    QkComplex64 coeffs[] = {{1, 0}, {-1, 0}};
 ///    QkBitTerm bits[4] = {QkBitTerm_Zero, QkBitTerm_One, QkBitTerm_Plus, QkBitTerm_Minus};
 ///
 ///    uint32_t indices[4] = {0, 1, 98, 99};  // <-- e.g. {1, 0, 99, 98} would be invalid
 ///    size_t boundaries[3] = {0, 2, 4};
 ///    QkObs *obs = qk_obs_new(
-///        num_qubits, num_terms, num_bits, &coeffs, bits, indices, boundaries
+///        num_qubits, num_terms, num_bits, coeffs, bits, indices, boundaries
 ///    );
+///    qk_obs_free(obs);
 /// ```
 ///
 /// # Safety
@@ -1007,6 +1001,7 @@ pub unsafe extern "C" fn qk_obs_equal(
 ///     QkObs *obs = qk_obs_identity(100);
 ///     char *string = qk_obs_str(obs);
 ///     qk_str_free(string);
+///     qk_obs_free(obs);
 /// ```
 ///
 /// # Safety
@@ -1023,8 +1018,32 @@ pub unsafe extern "C" fn qk_obs_equal(
 pub unsafe extern "C" fn qk_obs_str(obs: *const SparseObservable) -> *mut c_char {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let obs = unsafe { const_ptr_as_ref(obs) };
-    let string: String = format!("{obs:?}");
-    CString::new(string).unwrap().into_raw()
+
+    let num_terms = obs.num_terms();
+    let num_qubits = obs.num_qubits();
+
+    let str_num_terms = format!(
+        "{} term{}",
+        num_terms,
+        if num_terms == 1 { "" } else { "s" }
+    );
+    let str_num_qubits = format!(
+        "{} qubit{}",
+        num_qubits,
+        if num_qubits == 1 { "" } else { "s" }
+    );
+
+    let str_terms = if num_terms == 0 {
+        "0.0".to_owned()
+    } else {
+        obs.iter()
+            .map(SparseTermView::to_sparse_str)
+            .collect::<Vec<_>>()
+            .join(" + ")
+    };
+
+    let obs_str = format!("<QkObs with {str_num_terms} on {str_num_qubits}: {str_terms}>");
+    CString::new(obs_str).unwrap().into_raw()
 }
 
 /// @ingroup QkObs
@@ -1056,7 +1075,7 @@ pub unsafe extern "C" fn qk_str_free(string: *mut c_char) {
 ///
 /// @param term A pointer to the term.
 ///
-/// @return The function exit code. This is ``>0`` if reading the term failed.
+/// @return A pointer to a nul-terminated char array of the string representation for ``term``
 ///
 /// # Example
 /// ```c
@@ -1065,6 +1084,7 @@ pub unsafe extern "C" fn qk_str_free(string: *mut c_char) {
 ///     qk_obs_term(obs, 0, &term);
 ///     char *string = qk_obsterm_str(&term);
 ///     qk_str_free(string);
+///     qk_obs_free(obs);
 /// ```
 ///
 /// # Safety
@@ -1082,7 +1102,13 @@ pub unsafe extern "C" fn qk_obsterm_str(term: *const CSparseTerm) -> *mut c_char
     let term = unsafe { const_ptr_as_ref(term) };
 
     let view: SparseTermView = term.try_into().unwrap();
-    let string: String = format!("{view:?}");
+
+    let string: String = format!(
+        "<QkObsTerm on {} qubit{}: {}>",
+        view.num_qubits,
+        if view.num_qubits == 1 { "" } else { "s" },
+        view.to_sparse_str()
+    );
     CString::new(string).unwrap().into_raw()
 }
 
@@ -1114,32 +1140,126 @@ pub extern "C" fn qk_bitterm_label(bit_term: BitTerm) -> u8 {
         .expect("Label has exactly one character") as u8
 }
 
-/// @ingroup QkObs
-/// Convert to a Python-space ``SparseObservable``.
-///
-/// @param obs The C-space ``QkObs`` pointer.
-///
-/// @return A Python object representing the ``SparseObservable``.
-///
-/// # Safety
-///
-/// Behavior is undefined if ``obs`` is not a valid, non-null pointer to a ``QkObs``.
-///
-/// It is assumed that the thread currently executing this function holds the
-/// Python GIL this is required to create the Python object returned by this
-/// function.
-#[unsafe(no_mangle)]
 #[cfg(feature = "python_binding")]
-pub unsafe extern "C" fn qk_obs_to_python(obs: *const SparseObservable) -> *mut PyObject {
-    // SAFETY: Per documentation, the pointer is non-null and aligned.
-    let obs = unsafe { const_ptr_as_ref(obs) };
-    let py_obs: PySparseObservable = obs.clone().into();
+mod py {
+    use crate::pointers::mut_ptr_as_ref;
+    use pyo3::exceptions::PyRuntimeError;
+    use pyo3::prelude::*;
+    use qiskit_quantum_info::sparse_observable::{PySparseObservable, SparseObservable};
+    use std::sync;
 
-    // SAFETY: the C caller is required to hold the GIL.
-    unsafe {
-        let py = Python::assume_attached();
-        Py::new(py, py_obs)
-            .expect("Unable to create a Python object")
-            .into_ptr()
+    fn try_project_inner_observable<'a>(
+        _py: Python<'_>,
+        py_obs: &'a mut PySparseObservable,
+    ) -> PyResult<&'a mut SparseObservable> {
+        sync::Arc::get_mut(&mut py_obs.inner)
+            .ok_or_else(|| PyRuntimeError::new_err("observable is not uniquely referenced"))?
+            .get_mut()
+            .map_err(|_| PyRuntimeError::new_err("inner observable is poisoned"))
+    }
+
+    /// @ingroup QkObs
+    /// Pass ownership of a `QkObs` object to Python.
+    ///
+    /// It is not safe to use the `QkObs` pointer after calling this function.  In particular, you
+    /// should not attempt to clear or free it.  The caller must own the `QkObs`, not hold a
+    /// borrowed reference (for example, a `QkObs *` retrieved from `qk_obs_borrow_from_python` is
+    /// not owned).
+    ///
+    /// @param obs The owned object.
+    /// @return An owned Python reference to the object.
+    ///
+    /// # Safety
+    ///
+    /// The caller must be attached to a Python interpreter.  Behavior is undefined if `obs` is not
+    /// a valid non-null pointer to an initialized and owned `QkObs`.
+    #[unsafe(no_mangle)]
+    pub unsafe extern "C" fn qk_obs_to_python(
+        obs: *mut SparseObservable,
+    ) -> *mut ::pyo3::ffi::PyObject {
+        // SAFETY: Per documentation, the pointer is aligned and points to valid owned data.
+        let obs = unsafe { Box::from_raw(mut_ptr_as_ref(obs)) };
+        // SAFETY: Per documentation, we are attached to a Python interpreter.
+        let py = unsafe { Python::assume_attached() };
+        match Bound::new(py, PySparseObservable::from(*obs)) {
+            Ok(ob) => ob.into_ptr(),
+            Err(e) => {
+                e.restore(py);
+                ::std::ptr::null_mut()
+            }
+        }
+    }
+
+    /// @ingroup QkObs
+    /// Retrieve a `QkObs` pointer from a Python object.
+    ///
+    /// This borrows a Python reference and extracts the `QkObs` pointer for it, if it is of
+    /// the correct type.  The returned pointer is borrowed from the `ob` pointer.  If the
+    /// `PyObject` is not the correct type, the return value is `NULL` and the exception
+    /// state of the Python interpreter is set.
+    ///
+    /// You must be attached to a Python interpreter to call this function.
+    ///
+    /// You can also use `qk_obs_convert_from_python`, which is logically the exact same as this
+    /// function, but can be directly used as a "converter" function for the `PyArg_Parse*`
+    /// family of Python converter functions.
+    ///
+    /// @param ob A borrowed Python object.
+    /// @return A pointer to the native object, or `NULL` if the Python object is the wrong type.
+    ///
+    /// # Safety
+    ///
+    /// The caller must be attached to a Python interpreter.  Behavior is undefined if `ob` is
+    /// not a valid non-null pointer to a Python object.
+    #[unsafe(no_mangle)]
+    pub unsafe extern "C" fn qk_obs_borrow_from_python(
+        ob: *mut pyo3::ffi::PyObject,
+    ) -> *mut SparseObservable {
+        // SAFETY: per documentation, we are attached to a Python interpreter, and `ob` is a valid
+        // pointer to a PyObject.
+        unsafe {
+            crate::py::borrow_map_mut(Python::assume_attached(), ob, try_project_inner_observable)
+        }
+    }
+
+    /// @ingroup QkObs
+    /// Retrieve a `QkObs` pointer from a Python object.
+    ///
+    /// This borrows a Python reference and extracts the `QkObs` pointer for it into `address`, if
+    /// it is of the correct type.  The returned pointer is borrowed from the `object` pointer.  If
+    /// the `PyObject` is not the correct type, the return value is 1, the exception state of the
+    /// Python interpreter is set, and `address` is unchanged.
+    ///
+    /// You must be attached to a Python interpreter to call this function.
+    ///
+    /// You can also use `qk_obs_borrow_from_python`, which is logically the exact same as this, but
+    /// with a more natural signature for direct usage.
+    ///
+    /// @param object A borrowed Python object.
+    /// @param address The location to write the output to.
+    /// @return 1 on success, 0 on failure.
+    ///
+    /// # Safety
+    ///
+    /// The caller must be attached to a Python interpreter.  Behavior is undefined if `object`
+    /// is not a valid non-null pointer to a Python object, or if `address` is not a pointer to
+    /// writeable data of the correct type.
+    #[unsafe(no_mangle)]
+    pub unsafe extern "C" fn qk_obs_convert_from_python(
+        object: *mut ::pyo3::ffi::PyObject,
+        address: *mut ::std::ffi::c_void,
+    ) -> ::std::ffi::c_int {
+        // SAFETY: per documentation, we are attached to a Python interpreter, `object` is a valid
+        // pointer to a PyObject, and `address` points to enough space to write a pointer.
+        unsafe {
+            crate::py::convert_map_mut(
+                Python::assume_attached(),
+                object,
+                address,
+                try_project_inner_observable,
+            )
+        }
     }
 }
+#[cfg(feature = "python_binding")]
+pub use py::*;

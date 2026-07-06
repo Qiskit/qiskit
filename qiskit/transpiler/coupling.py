@@ -20,6 +20,7 @@ onto a device with this coupling.
 """
 
 import math
+import warnings
 
 import rustworkx as rx
 from rustworkx.visualization import graphviz_draw
@@ -68,7 +69,13 @@ class CouplingMap:
         self._is_symmetric = None
 
         if couplinglist is not None:
-            self.graph.extend_from_edge_list([tuple(x) for x in couplinglist])
+            edges = []
+            for src, dst in couplinglist:
+                if src == dst:
+                    warnings.warn(_loopback_warning(src), stacklevel=2)
+                    continue
+                edges.append((src, dst))
+            self.graph.extend_from_edge_list(edges)
 
     def size(self):
         """Return the number of physical qubits in this graph."""
@@ -114,6 +121,9 @@ class CouplingMap:
         src (int): source physical qubit
         dst (int): destination physical qubit
         """
+        if src == dst:
+            warnings.warn(_loopback_warning(src), stacklevel=2)
+            return
         if src not in self.physical_qubits:
             self.add_physical_qubit(src)
         if dst not in self.physical_qubits:
@@ -491,6 +501,11 @@ class CouplingMap:
         This function calls the :func:`~rustworkx.visualization.graphviz_draw` function from the
         ``rustworkx`` package to draw the :class:`CouplingMap` object.
 
+        .. warning::
+            This function will call the system Graphviz tool on a file involving user-controllable
+            strings (such as qubit objects).  It is recommended to only call this function on
+            trusted input.
+
         Args:
             method (str): The layout method to use. See the documentation for
                 :func:`~rustworkx.visualization.graphviz_draw` for the list of supported methods
@@ -501,3 +516,7 @@ class CouplingMap:
         """
 
         return graphviz_draw(self.graph, method=method)
+
+
+def _loopback_warning(src: int) -> Warning:
+    return UserWarning(f"qubits cannot be coupled to themselves: ignoring edge ({src}, {src})")

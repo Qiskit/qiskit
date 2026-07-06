@@ -17,7 +17,6 @@ use std::sync::Arc;
 use crate::dag::COperationKind;
 use crate::exit_codes::{CInputError, ExitCode};
 use crate::pointers::{check_ptr, const_ptr_as_ref, mut_ptr_as_ref};
-use indexmap::IndexMap;
 use qiskit_circuit::PhysicalQubit;
 use qiskit_circuit::instruction::{Instruction, Parameters};
 use qiskit_circuit::operations::StandardInstruction;
@@ -26,6 +25,7 @@ use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_transpiler::target::{InstructionProperties, Qargs, Target, TargetOperation};
+use qiskit_util::IndexMap;
 use smallvec::{SmallVec, smallvec};
 
 /// @ingroup QkTarget
@@ -58,6 +58,68 @@ pub extern "C" fn qk_target_new(num_qubits: u32) -> *mut Target {
     )
     .unwrap();
     Box::into_raw(Box::new(target))
+}
+
+/// @ingroup QkTarget
+/// Retrieve a `QkTarget` pointer from a Python object.
+///
+/// This borrows a Python reference and extracts the `QkTarget` pointer for it, if it is of
+/// the correct type.  The returned pointer is borrowed from the `ob` pointer.  If the
+/// ``PyObject`` is not the correct type, the return value is ``NULL`` and the exception
+/// state of the Python interpreter is set.
+///
+/// You must be attached to a Python interpreter to call this function.
+///
+/// You can also use `qk_target_convert_from_python`, which is logically the exact same as this
+/// function, but can be directly used as a "converter" function for the `PyArg_Parse*`
+/// family of Python converter functions.
+///
+/// @param ob A borrowed Python object.
+/// @return A pointer to the native object, or `NULL` if the Python object is the wrong type.
+///
+/// # Safety
+///
+/// The caller must be attached to a Python interpreter.  Behavior is undefined if `ob` is
+/// not a valid non-null pointer to a Python object.
+#[unsafe(no_mangle)]
+#[cfg(feature = "python_binding")]
+pub unsafe extern "C" fn qk_target_borrow_from_python(ob: *mut pyo3::ffi::PyObject) -> *mut Target {
+    // SAFETY: per documentation, we are attached to a Python interpreter and `ob` points to a valid
+    // Python object.
+    unsafe { crate::py::borrow_mut(::pyo3::Python::assume_attached(), ob) }
+}
+
+/// @ingroup QkTarget
+/// Retrieve a Target pointer from a Python object.
+///
+/// This borrows a Python reference and extracts the `QkTarget` pointer for it into ``address``, if
+/// it is of the correct type.  The returned pointer is borrowed from the `object` pointer.  If the
+/// ``PyObject`` is not the correct type, the return value is 1, the exception state of the Python
+/// interpreter is set, and ``address`` is unchanged.
+///
+/// You must be attached to a Python interpreter to call this function.
+///
+/// You can also use `qk_target_borrow_from_python`, which is logically the exact same as this, but
+/// with a more natural signature for direct usage.
+///
+/// @param object A borrowed Python object.
+/// @param address The location to write the output to.
+/// @return 1 on success, 0 on failure.
+///
+/// # Safety
+///
+/// The caller must be attached to a Python interpreter.  Behavior is undefined if `object`
+/// is not a valid non-null pointer to a Python object, or if `address` is not a pointer to
+/// writeable data of the correct type.
+#[unsafe(no_mangle)]
+#[cfg(feature = "python_binding")]
+pub unsafe extern "C" fn qk_target_convert_from_python(
+    object: *mut ::pyo3::ffi::PyObject,
+    address: *mut ::std::ffi::c_void,
+) -> ::std::ffi::c_int {
+    // SAFETY: per documentation, we are attached to a Python interpreter, `object` points to a
+    // valid Python object and `address` points to enough space to write a pointer.
+    unsafe { crate::py::convert_mut::<Target>(::pyo3::Python::assume_attached(), object, address) }
 }
 
 /// @ingroup QkTarget
@@ -435,7 +497,7 @@ impl From<StandardOperation> for PackedOperation {
 pub struct TargetEntry {
     operation: StandardOperation,
     params: Option<SmallVec<[Param; 3]>>,
-    map: IndexMap<Qargs, Option<InstructionProperties>, ahash::RandomState>,
+    map: IndexMap<Qargs, Option<InstructionProperties>>,
     name: Option<String>,
 }
 
@@ -447,7 +509,7 @@ impl TargetEntry {
                     .map(|i| {
                         let op_name = operation.name();
                         Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
-                            Symbol::new(format!("{op_name}_param_{i}").as_str(), None, None),
+                            Symbol::standalone(format!("{op_name}_param_{i}"), None),
                         )))
                     })
                     .collect(),
@@ -947,8 +1009,8 @@ pub unsafe extern "C" fn qk_target_num_instructions(target: *const Target) -> us
 ///     qk_target_instruction_supported(target, "crx", (uint32_t []){0, 1}, params);
 ///
 ///     // Free the pointers
-///     qk_param_free(params[0]);  
-///     qk_target_free(target);  
+///     qk_param_free(params[0]);
+///     qk_target_free(target);
 /// ```
 ///
 /// # Safety
@@ -1158,8 +1220,8 @@ pub unsafe extern "C" fn qk_target_op_qargs_index(
 /// Retrieve the qargs for the operation by index.
 ///
 /// @param target A pointer to the ``QkTarget``.
-/// @param op_idx The index at which the gate is stored.  
-/// @param qarg_idx The index at which the qargs are stored.  
+/// @param op_idx The index at which the gate is stored.
+/// @param qarg_idx The index at which the qargs are stored.
 /// @param qargs_out An out pointer to an array qubits. If ``op_idx`` refers to a a global
 ///     operation, a null pointer will be written.  The written pointer is borrowed from the
 ///     target and must not be freed.  A zero-qargs instruction will write out a non-null pointer,
@@ -1460,7 +1522,7 @@ pub unsafe extern "C" fn qk_target_op_get(
 ///
 ///     QkTargetOp op;
 ///     qk_target_op_get(target, 0, &op);
-///     
+///
 ///     // Check if the operation is a gate;
 ///     if (op.op_type == QkOperationKind_Gate) {
 ///         QkGate gate = qk_target_op_gate(target, 0);

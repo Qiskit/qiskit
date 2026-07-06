@@ -16,6 +16,7 @@
 
 
 from io import StringIO
+from io import BytesIO
 from math import pi
 import re
 import warnings
@@ -50,6 +51,7 @@ from qiskit.qasm3 import (
 from qiskit.qasm3.exporter import QASM3Builder
 from qiskit.qasm3.printer import BasicPrinter
 from qiskit.qasm3.exceptions import QASM3ImporterError
+from qiskit import qpy
 from qiskit.quantum_info import Pauli
 from test import QiskitTestCase
 
@@ -1082,6 +1084,32 @@ c[1] = measure q[1];
                 f"qubit[2] {qr_name};",
                 "for int _ in {0, 3, 4} {",
                 f"  h {qr_name}[1];",
+                "}",
+                "",
+            ]
+        )
+        self.assertEqual(dumps(qc), expected_qasm)
+
+    def test_for_loop_with_var(self):
+        """Test that a for loop with a expr.Var instead of a Parameter outputs the expected result."""
+        qc = QuantumCircuit(1, 1)
+        cr = ClassicalRegister(5, "reps")
+        qc.add_register(cr)
+
+        with qc.for_loop(range(5), expr.Var.new("a", types.Uint(32))) as v:
+            qc.measure(0, 0)
+            qc.store(expr.index(cr, v), qc.clbits[0])
+
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3.0;",
+                'include "stdgates.inc";',
+                "bit[1] c;",
+                "bit[5] reps;",
+                "qubit[1] q;",
+                "for uint[32] a in [0:4] {",
+                "  c[0] = measure q[0];",
+                "  reps[a] = c[0];",
                 "}",
                 "",
             ]
@@ -3391,6 +3419,37 @@ class TestQASM3ExporterRust(QiskitTestCase):
             ]
         )
         self.assertEqual(dumps_experimental(qc, allow_aliasing=True), expected_qasm)
+
+    def test_delay_units(self):
+        """Each delay unit should round-trip through ``dumps_experimental`` with the
+        correct label and a numerically correct value.  OpenQASM 3 has no ``ps``
+        unit, so picoseconds are emitted as nanoseconds (1 ps = 0.001 ns)."""
+        cases = [
+            ("ns", 1, r"delay\[1ns\]"),
+            ("us", 1, r"delay\[1us\]"),
+            ("ms", 1, r"delay\[1ms\]"),
+            ("s", 1, r"delay\[1s\]"),
+            ("dt", 1, r"delay\[1dt\]"),
+            ("ps", 1337, r"delay\[1\.337ns\]"),
+        ]
+        for unit, value, expected_pattern in cases:
+            with self.subTest(unit=unit, value=value):
+                qc = QuantumCircuit(1)
+                qc.delay(value, 0, unit=unit)
+                self.assertRegex(dumps_experimental(qc), expected_pattern)
+
+    def test_delay_qpy_roundtrip(self):
+        qc = QuantumCircuit(1)
+        qc.delay(1, 0)
+        no_qpy = dumps_experimental(qc)
+
+        with BytesIO() as buf:
+            qpy.dump(qc, buf)
+            buf.seek(0)
+            qpy_roundtrip = qpy.load(buf)[0]
+
+        with_qpy = dumps_experimental(qpy_roundtrip)
+        self.assertEqual(no_qpy, with_qpy)
 
     def test_annotations(self):
         """Test that the annotation-serialisation framework works."""

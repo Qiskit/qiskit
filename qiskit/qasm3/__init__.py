@@ -216,7 +216,7 @@ using the :class:`CustomGate` object:
 .. autoclass:: CustomGate
     :members:
 
-In ``custom_gates`` is not given, Qiskit will attempt to use its standard-library gate objects for
+If ``custom_gates`` is not given, Qiskit will attempt to use its standard-library gate objects for
 the gates defined in OpenQASM 3 standard library file ``stdgates.inc``.  This sequence of gates is
 available on this module, if you wish to build on top of it:
 
@@ -242,6 +242,23 @@ from .._accelerate.qasm3 import CustomGate
 from .exceptions import QASM3Error, QASM3ExporterError, QASM3ImporterError
 from .experimental import ExperimentalFeatures
 from .exporter import Exporter, DefcalInstruction
+
+__all__ = [
+    "CustomGate",
+    "DefcalInstruction",
+    "ExperimentalFeatures",
+    "QASM3Error",
+    "QASM3ExporterError",
+    "QASM3ImporterError",
+    "dump",
+    "dump_experimental",
+    "dumps",
+    "dumps_experimental",
+    "load",
+    "load_experimental",
+    "loads",
+    "loads_experimental",
+]
 
 if typing.TYPE_CHECKING:
     from qiskit.circuit import annotation, QuantumCircuit

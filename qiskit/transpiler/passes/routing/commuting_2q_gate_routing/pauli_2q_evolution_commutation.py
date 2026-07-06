@@ -19,9 +19,7 @@ from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import TransformationPass
 from qiskit.quantum_info import SparsePauliOp, Pauli
-from qiskit.transpiler.passes.routing.commuting_2q_gate_routing.commuting_2q_block import (
-    Commuting2qBlock,
-)
+from .commuting_2q_block import Commuting2qBlock
 
 
 class FindCommutingPauliEvolutions(TransformationPass):
@@ -31,7 +29,7 @@ class FindCommutingPauliEvolutions(TransformationPass):
         """Check for :class:`.PauliEvolutionGate` objects where the summands all commute.
 
         Args:
-            The DAG circuit in which to look for the commuting evolutions.
+            dag: The DAG circuit in which to look for the commuting evolutions.
 
         Returns:
             The dag in which :class:`.PauliEvolutionGate` objects made of commuting two-qubit Paulis

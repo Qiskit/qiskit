@@ -37,6 +37,7 @@ from qiskit._accelerate.circuit import CircuitData
 from qiskit._accelerate.circuit import StandardGate
 from qiskit._accelerate.circuit import BitLocations
 from qiskit._accelerate.circuit_duration import compute_estimated_duration
+from qiskit._accelerate.target import estimate_fidelity
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
@@ -81,7 +82,6 @@ if typing.TYPE_CHECKING:
     from qiskit.transpiler.layout import TranspileLayout
     from qiskit.quantum_info.operators.base_operator import BaseOperator
     from qiskit.quantum_info.states.statevector import Statevector
-
 
 # The following types are not marked private to avoid leaking this "private/public" abstraction out
 # into the documentation.  They are not imported by circuit.__init__, nor are they meant to be.
@@ -172,6 +172,7 @@ class QuantumCircuit:
     :attr:`clbits`                 List of :class:`Clbit`\\ s tracked by the circuit.
     :attr:`data`                   List of individual :class:`CircuitInstruction`\\ s that make up
                                    the circuit.
+    :attr:`_data`                  Python-space handle to the C API :c:struct:`QkCircuit` object.
     :attr:`duration`               Total duration of the circuit, added by scheduling transpiler
                                    passes.
                                    This attribute is deprecated and :meth:`.estimate_duration`
@@ -208,9 +209,22 @@ class QuantumCircuit:
     :class:`CircuitInstruction`\\ s contained in an ordered form.  You generally should not mutate
     this object directly; :class:`QuantumCircuit` is only designed for append-only operations (which
     should use :meth:`append`).  Most operations that mutate circuits in place should be written as
-    transpiler passes (:mod:`qiskit.transpiler`).
+    transpiler passes (:mod:`qiskit.transpiler`).  The C API interacts with an internal object,
+    called :attr:`_data`, which is not part of the public Python API, other than as a handle to pass
+    to C-API calls.
 
     .. autoattribute:: data
+
+    .. py::attribute:: _data
+        An opaque handle to the C API object ``QkCircuit``.
+
+        .. warning::
+            No part of this object other than its existence is part of the public API.
+
+        The only valid use of this object from within the public Python API is as part of the
+        extraction of a :c:struct:`QkCircuit` using :c:func:`qk_circuit_borrow_from_python` or
+        similar methods.  The Python-space type of the object is not specified in the public API,
+        and none of its methods, regardless of name, should be considered public.
 
     Alongside the :attr:`data`, the :attr:`global_phase` of a circuit can have some impact on its
     output, if the circuit is used to describe a :class:`.Gate` that may be controlled.  This is
@@ -988,6 +1002,7 @@ class QuantumCircuit:
     of the preset compilation pipelines.
 
     .. automethod:: ensure_physical
+    .. automethod:: estimate_fidelity
 
 
     Instruction-like methods
@@ -1037,6 +1052,25 @@ class QuantumCircuit:
 
     instances = 0
     prefix = "circuit"
+    name: str
+    """A human-readable name for the circuit.
+
+    Example:
+
+        .. plot::
+            :include-source:
+            :nofigs:
+            :context: reset
+
+            from qiskit import QuantumCircuit
+
+            qc = QuantumCircuit(2, 2, name="my_circuit")
+            print(qc.name)
+
+        .. code-block:: text
+
+            my_circuit
+    """
 
     def __init__(
         self,
@@ -1128,25 +1162,6 @@ class QuantumCircuit:
 
             regs = tuple(int(reg) for reg in regs)  # cast to int
         self._base_name = None
-        self.name: str
-        """A human-readable name for the circuit.
-
-        Example:
-
-            .. plot::
-                :include-source:
-                :nofigs:
-                :context: reset
-
-                from qiskit import QuantumCircuit
-
-                qc = QuantumCircuit(2, 2, name="my_circuit")
-                print(qc.name)
-
-            .. code-block:: text
-
-                my_circuit
-        """
         if name is None:
             self._base_name = self._cls_prefix()
             self._name_update()
@@ -1686,7 +1701,16 @@ class QuantumCircuit:
 
             virtuals = self.qubits.copy()
             if num_qubits is not None and num_qubits > original_num_qubits:
-                virtuals.extend(QuantumRegister(num_qubits - original_num_qubits, "ancilla"))
+
+                ancilla_register_name = "ancilla"
+                ancilla_suffix = 0
+                reg_names = {reg.name for reg in self.qregs}
+                while ancilla_register_name in reg_names:
+                    ancilla_register_name = f"ancilla{ancilla_suffix}"
+                    ancilla_suffix += 1
+                virtuals.extend(
+                    QuantumRegister(num_qubits - original_num_qubits, ancilla_register_name)
+                )
             initial_layout = Layout(dict(enumerate(virtuals)))
         else:
             initial_layout = None
@@ -2257,9 +2281,15 @@ class QuantumCircuit:
                 dest.append(other, qargs=qubits, cargs=clbits, copy=copy)
             return None if inplace else dest
 
-        if other.num_qubits > dest.num_qubits or other.num_clbits > dest.num_clbits:
+        if other.num_qubits > dest.num_qubits:
             raise CircuitError(
-                "Trying to compose with another QuantumCircuit which has more 'in' edges."
+                "Cannot compose onto a circuit with fewer qubits "
+                f"({other.num_qubits} > {dest.num_qubits})."
+            )
+        if other.num_clbits > dest.num_clbits:
+            raise CircuitError(
+                "Cannot compose onto a circuit with fewer classical bits "
+                f"({other.num_clbits} > {dest.num_clbits})."
             )
 
         # Maps bits in 'other' to bits in 'dest'.
@@ -2389,9 +2419,7 @@ class QuantumCircuit:
             new_clbits=mapped_clbits,
         )
         if append_existing:
-            dest._current_scope().extend(
-                append_existing, qubits=mapped_qubits, clbits=mapped_clbits
-            )
+            dest._current_scope().extend(append_existing)
 
         return None if inplace else dest
 
@@ -2822,7 +2850,10 @@ class QuantumCircuit:
 
         Args:
             instruction: :class:`~.circuit.Instruction` instance to append, or a
-                :class:`.CircuitInstruction` with all its context.
+                :class:`.CircuitInstruction` with all its context. Objects implementing
+                ``to_instruction`` are also supported, but passing an
+                :class:`~.circuit.Instruction` directly is generally preferred, since that
+                avoids the repeated conversion cost.
             qargs: specifiers of the :class:`~.circuit.Qubit`\\ s to attach instruction to.
             cargs: specifiers of the :class:`.Clbit`\\ s to attach instruction to.
             copy: if ``True`` (the default), then the incoming ``instruction`` is copied before
@@ -2836,7 +2867,8 @@ class QuantumCircuit:
             were actually added to the circuit.
 
         Raises:
-            CircuitError: if the operation passed is not an instance of :class:`~.circuit.Instruction` .
+            CircuitError: if the operation passed is not an instance of :class:`~.circuit.Instruction`,
+              or cannot be converted to one by calling ``to_instruction`` on it.
         """
         if isinstance(instruction, CircuitInstruction):
             operation = instruction.operation
@@ -2869,7 +2901,8 @@ class QuantumCircuit:
             is_parameter = False
             for param in params:
                 is_parameter = is_parameter or isinstance(param, ParameterExpression)
-                if isinstance(param, expr.Expr):
+                # Control flow ops have a different validation for classical expressions
+                if isinstance(param, expr.Expr) and not isinstance(operation, ControlFlowOp):
                     param = _validate_expr(circuit_scope, param)
             if copy and is_parameter:
                 operation = _copy.deepcopy(operation)
@@ -2903,6 +2936,7 @@ class QuantumCircuit:
         base_instruction = CircuitInstruction(operation, (), ())
         for qarg, carg in broadcast_iter:
             self._check_dups(qarg)
+            self._check_dups(carg)
             instruction = base_instruction.replace(qubits=qarg, clbits=carg)
             circuit_scope.append(instruction)
             instructions._add_ref(circuit_scope.instructions, len(circuit_scope.instructions) - 1)
@@ -3028,11 +3062,11 @@ class QuantumCircuit:
                 # and need to retrieve it.
                 my_param_again = qc.get_parameter("my_param")
 
-                assert my_param is my_param_again
+                assert my_param == my_param_again
 
             Get a variable from a circuit by name, returning some default if it is not present::
 
-                assert qc.get_parameter("my_param", None) is my_param
+                assert qc.get_parameter("my_param", None) == my_param
                 assert qc.get_parameter("unknown_param", None) is None
 
         See also:
@@ -3104,11 +3138,11 @@ class QuantumCircuit:
                 # need to retrieve it.
                 my_var_again = qc.get_var("my_var")
 
-                assert my_var is my_var_again
+                assert my_var == my_var_again
 
             Get a variable from a circuit by name, returning some default if it is not present::
 
-                assert qc.get_var("my_var", None) is my_var
+                assert qc.get_var("my_var", None) == my_var
                 assert qc.get_var("unknown_variable", None) is None
 
         See also:
@@ -3176,11 +3210,11 @@ class QuantumCircuit:
                 # need to retrieve it.
                 my_stretch_again = qc.get_stretch("my_stretch")
 
-                assert my_stretch is my_stretch_again
+                assert my_stretch == my_stretch_again
 
             Get a variable from a circuit by name, returning some default if it is not present::
 
-                assert qc.get_stretch("my_stretch", None) is my_stretch
+                assert qc.get_stretch("my_stretch", None) == my_stretch
                 assert qc.get_stretch("unknown_stretch", None) is None
         """
         if (out := self._current_scope().get_stretch(name)) is not None:
@@ -3523,10 +3557,6 @@ class QuantumCircuit:
             else:
                 self._control_flow_scopes[-1].use_var(var)
             return
-        if self._data.num_input_vars:
-            raise CircuitError(
-                "circuits with input variables cannot be enclosed, so they cannot be closures"
-            )
         if isinstance(var, expr.Stretch):
             self._data.add_captured_stretch(self._prepare_new_stretch(var))
         else:
@@ -3557,10 +3587,10 @@ class QuantumCircuit:
             CircuitError: if the variable cannot be created due to shadowing an existing variable.
         """
         if self._control_flow_scopes:
+            # ForLoopOp uses an input variable for its loop variable, but that should be exactly one
+            # input variable and handled separately.
             raise CircuitError("cannot add an input variable in a control-flow scope")
 
-        if self._data.num_captured_vars or self._data.num_captured_stretches:
-            raise CircuitError("circuits to be enclosed with captures cannot have input variables")
         if isinstance(name_or_var, expr.Var) and type_ is not None:
             raise ValueError("cannot give an explicit type with an existing Var")
         var = self._prepare_new_var(name_or_var, type_)
@@ -3728,9 +3758,17 @@ class QuantumCircuit:
                 f"Could not locate provided bit: {bit}. Has it been added to the QuantumCircuit?"
             ) from err
 
-    def _check_dups(self, qubits: Sequence[Qubit]) -> None:
-        """Raise exception if list of qubits contains duplicates."""
-        CircuitData._check_dups(qubits)
+    def _check_dups(self, bits: Sequence[Bit]) -> None:
+        """Raise exception if list of bits contains duplicates."""
+        match bits:
+            case () | (_,):
+                pass
+            case (a, b):
+                if a == b:
+                    raise CircuitError("duplicate bit arguments")
+            case bits:
+                if len(bits) != len(set(bits)):
+                    raise CircuitError("duplicate bit arguments")
 
     def to_instruction(
         self,
@@ -3860,16 +3898,27 @@ class QuantumCircuit:
         wire_order: list[int] | None = None,
         expr_len: int = 30,
         measure_arrows: bool | None = None,
+        barrier_label_len: int = 16,
     ):
         r"""Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
-        **text**: ASCII art TextDrawing that can be printed in the console.
+        ``text``
+            ASCII art TextDrawing that can be printed in the console.
 
-        **mpl**: images with color rendered purely in Python using matplotlib.
+        ``mpl``
+            Images with color rendered purely in Python using matplotlib.
 
-        **latex**: high-quality images compiled via latex.
+        ``latex``
+            High-quality images compiled via LaTeX.
 
-        **latex_source**: raw uncompiled latex output.
+            .. warning::
+                This will call an installed system version of ``pdflatex`` on arbitrary user input
+                by design (such as to render custom code in :attr:`.Instruction.label`), so should
+                only be used on trusted input.
+
+        ``latex_source``
+            Raw uncompiled LaTeX output.  This is the source of what would be rendered by the
+            ``latex`` drawer.
 
         .. warning::
 
@@ -3961,6 +4010,9 @@ class QuantumCircuit:
                 instead place the name of the bit or register in the measure box.
                 Default is ``True`` unless the user config file (usually ``~/.qiskit/settings.conf``)
                 has an alternative value set. For example, ``circuit_measure_arrows = False``.
+            barrier_label_len: The number of characters to display for
+                :class:`.Barrier` labels in the output circuit. If this number is exceeded,
+                the string will be truncated at that number and '...' added to the end.
 
         Returns:
             :class:`.TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
@@ -4012,6 +4064,7 @@ class QuantumCircuit:
             cregbundle=cregbundle,
             wire_order=wire_order,
             expr_len=expr_len,
+            barrier_label_len=barrier_label_len,
             measure_arrows=measure_arrows,
         )
 
@@ -4203,7 +4256,7 @@ class QuantumCircuit:
         Returns:
             list(tuple): list of (instruction, qargs, cargs).
         """
-        return [match for match in self._data if match.operation.name == name]
+        return [match for match in self._data if match.name == name]
 
     def num_connected_components(self, unitary_only: bool = False) -> int:
         """How many non-entangled subcircuits can the circuit be factored to.
@@ -4447,7 +4500,8 @@ class QuantumCircuit:
 
         Args:
             qubit: qubit(s) to measure.
-            cbit: classical bit(s) to place the measurement result(s) in.
+            cbit: classical bit(s) to place the measurement result(s) in,
+                or a :class:`.expr.Var` of :class:`.types.Uint` type indexing the target clbit.
 
         Returns:
             qiskit.circuit.InstructionSet: handle to the added instructions.
@@ -4668,16 +4722,18 @@ class QuantumCircuit:
             qubits=circ._data.qubits, reserve=len(circ._data), global_phase=circ.global_phase
         )
 
-        # Re-add old registers
+        # Re-add old registers.  We avoid `add_register` since we already know the registers are
+        # valid, the bits exist, and we don't want to trigger the "modified the quantum registers
+        # with a set layout" warning.
         for qreg in old_qregs:
-            circ.add_register(qreg)
+            circ._data.add_qreg(qreg)
 
         # We must add the clbits first to preserve the original circuit
         # order. This way, add_register never adds clbits and just
         # creates registers that point to them.
         circ.add_bits(clbits_to_add)
         for creg in cregs_to_add:
-            circ.add_register(creg)
+            circ._data.add_creg(creg)
 
         # Set circ instructions to match the new DAG
         for node in new_dag.topological_op_nodes():
@@ -5282,7 +5338,7 @@ class QuantumCircuit:
         """
 
         from .library.standard_gates.rx import RXGate
-        from qiskit.synthesis.multi_controlled import (
+        from qiskit.synthesis.multi_controlled.multi_control_rotation_gates import (
             _apply_cu,
             _apply_mcu_graycode,
             _mcsu2_real_diagonal,
@@ -5350,7 +5406,7 @@ class QuantumCircuit:
         """
 
         from .library.standard_gates.ry import RYGate
-        from qiskit.synthesis.multi_controlled import (
+        from qiskit.synthesis.multi_controlled.multi_control_rotation_gates import (
             _apply_cu,
             _apply_mcu_graycode,
             _mcsu2_real_diagonal,
@@ -5450,7 +5506,9 @@ class QuantumCircuit:
         """
 
         from .library.standard_gates.rz import CRZGate, RZGate
-        from qiskit.synthesis.multi_controlled import _mcsu2_real_diagonal
+        from qiskit.synthesis.multi_controlled.multi_control_rotation_gates import (
+            _mcsu2_real_diagonal,
+        )
 
         control_qubits = self._qbit_argument_conversion(q_controls)
         target_qubit = self._qbit_argument_conversion(q_target)
@@ -5812,7 +5870,8 @@ class QuantumCircuit:
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
-            qubit1, qubit2: The qubits to apply the gate to.
+            qubit1: The first qubit to apply the gate to.
+            qubit2: The second qubit to apply the gate to.
 
         Returns:
             A handle to the instructions created.
@@ -5925,7 +5984,8 @@ class QuantumCircuit:
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
-            qubit1, qubit2: The qubits to apply the gate to.
+            qubit1: The first qubit to apply the gate to.
+            qubit2: The second qubit to apply the gate to.
 
         Returns:
             A handle to the instructions created.
@@ -5942,7 +6002,8 @@ class QuantumCircuit:
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
-            qubit1, qubit2: The qubits to apply the gate to.
+            qubit1: The first qubit to apply the gate to.
+            qubit2: The second qubit to apply the gate to.
 
         Returns:
             A handle to the instructions created.
@@ -6860,6 +6921,7 @@ class QuantumCircuit:
         registers: Iterable[Register] = (),
         allow_jumps: bool = True,
         forbidden_message: str | None = None,
+        loop_var: expr.Var | None = None,
     ) -> int:
         """Add a scope for collecting instructions into this circuit.
 
@@ -6869,9 +6931,12 @@ class QuantumCircuit:
         Args:
             qubits: Any qubits that this scope should automatically use.
             clbits: Any clbits that this scope should automatically use.
+            registers: Any registers that this scope should automatically use.
             allow_jumps: Whether this scope allows jumps to be used within it.
             forbidden_message: If given, all attempts to add instructions to this scope will raise a
                 :exc:`.CircuitError` with this message.
+            loop_var: If given, the runtime loop variable of a for-loop block.  This should not be
+                set for the legacy :class:`.Parameter` form.
 
         Returns:
             the depth of control-flow scopes (after the push)
@@ -6884,6 +6949,7 @@ class QuantumCircuit:
                 registers=registers,
                 allow_jumps=allow_jumps,
                 forbidden_message=forbidden_message,
+                loop_var=loop_var,
             )
         )
         return len(self._control_flow_scopes)
@@ -7128,7 +7194,7 @@ class QuantumCircuit:
     def for_loop(
         self,
         indexset: Iterable[int],
-        loop_parameter: Parameter | None,
+        loop_parameter: Parameter | expr.Var | None,
         body: None,
         qubits: None,
         clbits: None,
@@ -7140,7 +7206,7 @@ class QuantumCircuit:
     def for_loop(
         self,
         indexset: Iterable[int],
-        loop_parameter: Parameter | None,
+        loop_parameter: Parameter | expr.Var | None,
         body: QuantumCircuit,
         qubits: Sequence[QubitSpecifier],
         clbits: Sequence[ClbitSpecifier],
@@ -7149,7 +7215,14 @@ class QuantumCircuit:
     ) -> InstructionSet: ...
 
     def for_loop(
-        self, indexset, loop_parameter=None, body=None, qubits=None, clbits=None, *, label=None
+        self,
+        indexset,
+        loop_parameter=None,
+        body=None,
+        qubits=None,
+        clbits=None,
+        *,
+        label=None,
     ):
         """Create a ``for`` loop on this circuit.
 
@@ -7176,7 +7249,7 @@ class QuantumCircuit:
 
         Args:
             indexset (Iterable[int]): A collection of integers to loop over.  Always necessary.
-            loop_parameter (Optional[Parameter]): The parameter used within ``body`` to which
+            loop_parameter (Optional[Parameter|expr.Var]): The parameter used within ``body`` to which
                 the values from ``indexset`` will be assigned.  In the context-manager form, if this
                 argument is not supplied, then a loop parameter will be allocated for you and
                 returned as the value of the ``with`` statement.  This will only be bound into the
@@ -7682,6 +7755,43 @@ class QuantumCircuit:
                 f"Specified unit: {unit} is not a valid/supported SI prefix, 's', or 'dt'"
             )
         return dur / prefix_dict[unit]
+
+    def estimate_fidelity(self, target) -> float | None:
+        """Estimate the fidelity of a physical circuit.
+
+        This function will compute the product of the error rates for each
+        gate in the circuit to estimate the fidelity of the circuit:
+
+        ..math::
+          :label: estimated circuit fidelity
+
+          \\prod_{g \\in \\text{gates}} \\bigl(1 - \\operatorname{error}(g)\\bigr)
+
+        where :math:`\\operatorname{error}(g)` is the error rate in the target for the instruction :math:`g` from the circuit
+        in the target. If the circuit is not physical, meaning any instruction in the circuit (as
+        in operation and qargs) is not found in the target, this will return ``None``. This method is not
+        intended to compute a realistic simulation of the fidelity of execution on real hardware. It is
+        designed to provide an estimate of how the transpiler would work with the fidelity for various
+        heuristics in its operation. It is typically only useful for comparing different compilation
+        outputs against each other to estimate which one would produce a better quality execution on
+        hardware.
+
+        Args:
+            target (Target): The :class:`.Target` instance that the circuit will be executed on and used to
+                get the error rates for the instructions in the circuit.
+
+        Returns:
+            The estimated fidelity of executing the circuit on the given target. If any
+            instruction in the circuit is not present in target
+
+        Raises:
+            QiskitError: If the circuit contains any control flow operations.
+        """
+        if self.has_control_flow_op():
+            raise CircuitError(
+                "The circuit contains control flow, this method cannot estimate the fidelity with control flow"
+            )
+        return estimate_fidelity(self._data, target)
 
 
 class _OuterCircuitScopeInterface(CircuitScopeInterface):

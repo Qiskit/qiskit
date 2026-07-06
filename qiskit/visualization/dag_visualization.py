@@ -87,6 +87,11 @@ def dag_drawer(
     This function calls the :func:`~rustworkx.visualization.graphviz_draw` function from the
     ``rustworkx`` package to draw the DAG.
 
+    .. warning::
+        This function will call the system Graphviz tool on a file involving user-controllable
+        strings (such as operation labels).  It is recommended to only call this function on trusted
+        input.
+
     Args:
         dag (DAGCircuit or DAGDependency): The dag to draw.
         scale (float): scaling factor

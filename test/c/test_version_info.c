@@ -77,10 +77,23 @@ static int test_version_macros(void) {
     return Ok;
 }
 
+/**
+ * Test the version in the header matches the version returned from the library.
+ */
+static int test_header_vs_lib(void) {
+    if (qk_api_version() != QISKIT_VERSION_HEX) {
+        fprintf(stderr, "%s: QISKIT_VERSION_HEX (%x) does not match qk_api_version() (%x)\n",
+                __func__, QISKIT_VERSION_HEX, qk_api_version());
+        return EqualityError;
+    }
+    return Ok;
+}
+
 int test_version_info(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_version);
     num_failed += RUN_TEST(test_version_macros);
+    num_failed += RUN_TEST(test_header_vs_lib);
 
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
     fflush(stderr);

@@ -60,7 +60,7 @@ on:
       python-version:
         description: "The Python version to use to host the build runner."
         type: string
-        default: "3.13"
+        default: "3.14"
         required: false
 
       pgo:
@@ -80,12 +80,11 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          # Used for the ARM builds.
-          - macos-14
+          - macos-15
           - windows-latest
           - ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ inputs.python-version }}
@@ -107,16 +106,16 @@ jobs:
           set -e
           mkdir -p "$PGO_WORK_DIR"
           cat >>"$GITHUB_ENV" <<EOF
-          CIBW_BEFORE_ALL_LINUX=yum install -y wget && {package}/tools/install_rust.sh
+          CIBW_BEFORE_ALL_LINUX=dnf install -y wget && {package}/tools/install_rust.sh
           CIBW_BEFORE_BUILD=bash ./tools/build_pgo.sh $PGO_WORK_DIR $PGO_OUT_PATH
-          CIBW_ENVIRONMENT=RUSTUP_TOOLCHAIN=stable RUSTFLAGS='-Cprofile-use=$PGO_OUT_PATH -Cllvm-args=-pgo-warn-missing-function'
-          CIBW_ENVIRONMENT_MACOS=MACOSX_DEPLOYMENT_TARGET='10.12' RUSTUP_TOOLCHAIN=stable RUSTFLAGS='-Cprofile-use=$PGO_OUT_PATH -Cllvm-args=-pgo-warn-missing-function'
-          CIBW_ENVIRONMENT_LINUX=RUSTUP_TOOLCHAIN=stable RUSTFLAGS='-Cprofile-use=$PGO_OUT_PATH -Cllvm-args=-pgo-warn-missing-function' PATH="\$PATH:\$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true"
+          CIBW_ENVIRONMENT=RUSTUP_TOOLCHAIN=stable RUSTFLAGS='-Cprofile-use=$PGO_OUT_PATH -Cllvm-args=-pgo-warn-missing-function' QISKIT_BUILD_WITH_MIMALLOC=1
+          CIBW_ENVIRONMENT_MACOS=MACOSX_DEPLOYMENT_TARGET='10.12' RUSTUP_TOOLCHAIN=stable RUSTFLAGS='-Cprofile-use=$PGO_OUT_PATH -Cllvm-args=-pgo-warn-missing-function' QISKIT_BUILD_WITH_MIMALLOC=1
+          CIBW_ENVIRONMENT_LINUX=RUSTUP_TOOLCHAIN=stable QISKIT_BUILD_WITH_MIMALLOC=1 RUSTFLAGS='-Cprofile-use=$PGO_OUT_PATH -Cllvm-args=-pgo-warn-missing-function' PATH="\$PATH:\$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true"
           EOF
         env:
           PGO_WORK_DIR: ${{ github.workspace }}/pgo-data
           PGO_OUT_PATH: ${{ github.workspace }}/merged.profdata
-      - uses: pypa/cibuildwheel@v3.0.1
+      - uses: pypa/cibuildwheel@v3.4.0
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
@@ -126,13 +125,13 @@ jobs:
     if: (inputs.wheels-macos-intel == 'default' && inputs.default-action || inputs.wheels-macos-intel) == 'build'
     runs-on: macos-15-intel
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         name: Install Python
         with:
           python-version: ${{ inputs.python-version }}
       - uses: dtolnay/rust-toolchain@stable
-      - uses: pypa/cibuildwheel@v3.0.1
+      - uses: pypa/cibuildwheel@v3.4.0
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
@@ -144,16 +143,16 @@ jobs:
     if: (inputs.wheels-linux-s390x == 'default' && inputs.default-action || inputs.wheels-linux-s390x) == 'build'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         name: Install Python
         with:
           python-version: ${{ inputs.python-version }}
       - uses: dtolnay/rust-toolchain@stable
-      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-qemu-action@v4
         with:
           platforms: all
-      - uses: pypa/cibuildwheel@v3.0.1
+      - uses: pypa/cibuildwheel@v3.4.0
         env:
           CIBW_ARCHS_LINUX: s390x
           CIBW_TEST_SKIP: "cp*"
@@ -167,16 +166,16 @@ jobs:
     if: (inputs.wheels-linux-ppc64le == 'default' && inputs.default-action || inputs.wheels-linux-ppc64le) == 'build'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         name: Install Python
         with:
           python-version: ${{ inputs.python-version }}
       - uses: dtolnay/rust-toolchain@stable
-      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-qemu-action@v4
         with:
           platforms: all
-      - uses: pypa/cibuildwheel@v3.0.1
+      - uses: pypa/cibuildwheel@v3.4.0
         env:
           CIBW_ARCHS_LINUX: ppc64le
           CIBW_TEST_SKIP: "cp*"
@@ -190,7 +189,7 @@ jobs:
     if: (inputs.sdist == 'default' && inputs.default-action || inputs.sdist) == 'build'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ inputs.python-version }}

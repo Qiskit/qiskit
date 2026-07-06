@@ -207,6 +207,11 @@ class PassManager(BasePassManager):
         This function needs `pydot <https://github.com/erocarrera/pydot>`__, which in turn needs
         `Graphviz <https://www.graphviz.org/>`__ to be installed.
 
+        .. warning::
+            This function will call the system Graphviz tool on a file involving user-controllable
+            strings (such as pass names).  It is recommended to only call this function on trusted
+            input.
+
         Args:
             filename (str): file path to save image to.
             style (dict): keys are the pass classes and the values are the colors to make them. An
@@ -418,7 +423,21 @@ class StagedPassManager(PassManager):
         return super().to_flow_controller()
 
     def draw(self, filename=None, style=None, raw=False):
-        """Draw the staged pass manager."""
+        """Draw the staged pass manager.
+
+        .. warning::
+            This function will call the system Graphviz tool on a file involving user-controllable
+            strings (such as pass names).  It is recommended to only call this function on trusted
+            input.
+
+        Args:
+            filename (str): file path to save image to.
+            style (dict): keys are the pass classes and the values are the colors to make them. An
+                example can be seen in the DEFAULT_STYLE. An ordered dict can be used to ensure
+                a priority coloring when pass falls into multiple categories. Any values not
+                included in the provided dict will be filled in from the default dict.
+            raw (bool): If ``True``, save the raw Dot output instead of the image.
+        """
         from qiskit.visualization import staged_pass_manager_drawer
 
         return staged_pass_manager_drawer(self, filename=filename, style=style, raw=raw)

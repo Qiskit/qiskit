@@ -1,8 +1,0 @@
----
-upgrade_transpiler:
-  - The :class:`.LitinskiTransformation` pass now uses :class:`.PauliProductRotationGate`
-    objects to represent Pauli rotations instead of :class:`.PauliEvolutionGate`.  This
-    improves performance and ergonomics, since the :class:`.PauliProductRotationGate`
-    directly represents single Pauli products instead of generic sums of Paulis.
-    The legacy behavior can still be invoked by passing ``legacy_pauli_evolution=True``
-    as argument to :class:`.LitinskiTransformation`.
