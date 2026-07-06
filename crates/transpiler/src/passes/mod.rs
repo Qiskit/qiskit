@@ -25,6 +25,7 @@ mod apply_layout;
 mod barrier_before_final_measurement;
 mod basis_translator;
 mod check_map;
+pub mod common;
 mod commutation_analysis;
 mod commutation_cancellation;
 mod commutative_optimization;
