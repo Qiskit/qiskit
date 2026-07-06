@@ -60,22 +60,12 @@ def _format_pi_divisor(numer, denom, pi, output, neg_str):
     return f"{neg_str}{numer}/{denom_str}{pi}"
 
 
-def _match_pi_multiple_coef(abs_inpt, eps, limit):
-    """Return n/d with abs_inpt ≈ (n/d)*pi if within limit and tolerance."""
-    frac = Fraction(abs_inpt / np.pi).limit_denominator(limit)
-    if frac.numerator > limit or frac.denominator > limit:
+def _match_fraction(val, eps, limit):
+    """Return n/d close to val with denominator at most limit, else None."""
+    frac = Fraction(val).limit_denominator(limit)
+    if frac.numerator == 0 or frac.numerator > limit:
         return None
-    if abs(abs_inpt - float(frac) * np.pi) < eps:
-        return frac
-    return None
-
-
-def _match_pi_divisor_coef(abs_inpt, eps, limit):
-    """Return n/d with abs_inpt ≈ (n/d)/pi if within limit and tolerance."""
-    frac = Fraction(abs_inpt * np.pi).limit_denominator(limit)
-    if frac.numerator > limit or frac.denominator > limit:
-        return None
-    if abs(abs_inpt - float(frac) / np.pi) < eps:
+    if abs(val - frac) < eps:
         return frac
     return None
 
@@ -137,14 +127,6 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
         neg_str = "-" if single_inpt < 0 else ""
         abs_inpt = abs(single_inpt)
 
-        # First check is for whole multiples of pi
-        val = abs_inpt / np.pi
-        if abs(val) >= 1 - eps:
-            coef = round(val)
-            if coef <= MAX_FRAC and abs(val - coef) < eps:
-                return _format_pi_multiple(coef, 1, pi, output, neg_str)
-
-        # Second check is for powers of pi
         if abs_inpt > np.pi:
             power = np.where(abs(abs_inpt - POW_LIST) < eps)
             if power[0].shape[0]:
@@ -156,18 +138,11 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
                     return f"{neg_str}{pi}$^{power[0][0] + 2}$"
                 return f"{neg_str}{pi}**{power[0][0] + 2}"
 
-        # Third is a check for a number larger than MAX_FRAC * pi, not a
-        # multiple or power of pi, since no fractions will exceed MAX_FRAC * pi
-        if abs_inpt >= MAX_FRAC * np.pi:
-            return _format_raw(single_inpt, output, ndigits)
-
-        # Fourth check is for fractions of the form (n * pi) / d with n > 1 or d > 1.
-        frac = _match_pi_multiple_coef(abs_inpt, eps, MAX_FRAC)
+        frac = _match_fraction(abs_inpt / np.pi, eps, MAX_FRAC)
         if frac is not None:
             return _format_pi_multiple(frac.numerator, frac.denominator, pi, output, neg_str)
 
-        # Fifth check is for fractions of the form n / (d * pi)
-        frac = _match_pi_divisor_coef(abs_inpt, eps, MAX_FRAC)
+        frac = _match_fraction(abs_inpt * np.pi, eps, MAX_FRAC)
         if frac is not None:
             return _format_pi_divisor(frac.numerator, frac.denominator, pi, output, neg_str)
 
