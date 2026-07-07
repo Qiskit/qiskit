@@ -46,6 +46,16 @@ impl PauliList {
     }
 
     #[inline]
+    pub fn get_x(&self, qubit: usize) -> &FixedBitSet {
+        self.data.get(qubit).unwrap()
+    }
+
+    #[inline]
+    pub fn get_x_mut(&mut self, qubit: usize) -> &mut FixedBitSet {
+        self.data.get_mut(qubit).unwrap()
+    }
+
+    #[inline]
     pub fn get_z(&self, qubit: usize) -> &FixedBitSet {
         self.data.get(self.num_qubits + qubit).unwrap()
     }
@@ -53,6 +63,21 @@ impl PauliList {
     #[inline]
     pub fn get_z_mut(&mut self, qubit: usize) -> &mut FixedBitSet {
         self.data.get_mut(self.num_qubits + qubit).unwrap()
+    }
+
+    #[inline]
+    pub fn get_pauli_x(&self, pauli_idx: usize, qubit: usize) -> bool {
+        self.data[qubit][pauli_idx]
+    }
+
+    #[inline]
+    pub fn get_pauli_z(&self, pauli_idx: usize, qubit: usize) -> bool {
+        self.data[qubit + self.num_qubits][pauli_idx]
+    }
+
+    #[inline]
+    pub fn get_pauli_phase(&self, pauli_idx: usize) -> bool {
+        self.data[2 * self.num_qubits][pauli_idx]
     }
 
     /// Modifies the pauli list in-place by conjugating each pauli with S-gate
@@ -374,6 +399,109 @@ impl PauliList {
         }
 
         self._append_final_part_ppr(pauli_z, pauli_x, indices, &active_indices);
+    }
+
+    pub fn get_pauli_support_size(&self, idx: usize) -> usize {
+        (0..self.num_qubits)
+            .filter(|q| self.data[*q].contains(idx) | self.data[*q + self.num_qubits].contains(idx))
+            .count()
+    }
+
+    pub fn get_pauli_support(&self, idx: usize) -> Vec<usize> {
+        (0..self.num_qubits)
+            .filter(|q| self.data[*q].contains(idx) | self.data[*q + self.num_qubits].contains(idx))
+            .collect()
+    }
+
+    /// Return true if pauli1 and pauli2 commute
+    pub fn commute(&self, idx1: usize, idx2: usize) -> bool {
+        let mut parity = false;
+        for i in 0..self.num_qubits {
+            parity ^= (self.get_pauli_z(idx1, i) & self.get_pauli_x(idx2, i))
+                ^ (self.get_pauli_x(idx1, i) & self.get_pauli_z(idx2, i));
+        }
+        !parity
+    }
+
+    /// pauli_string cannot contain - sign
+    pub fn from_pauli_strings(pauli_strings: &[String]) -> Self {
+        let num_paulis = pauli_strings.len();
+
+        if num_paulis == 0 {
+            panic!("The constructor needs at least one pauli");
+        }
+
+        let num_qubits = pauli_strings[0].len();
+
+        let scratch = FixedBitSet::with_capacity(num_paulis);
+        let mut data: Vec<FixedBitSet> = Vec::with_capacity(2 * num_qubits + 1);
+
+        for _ in 0..=2 * num_qubits + 1 {
+            data.push(scratch.clone());
+        }
+
+        for (i, ps) in pauli_strings.iter().enumerate() {
+            for (j, p) in ps.chars().enumerate() {
+                match p {
+                    'X' => {
+                        data[j].set(i, true);
+                        data[j + num_qubits].set(i, false);
+                    }
+                    'Z' => {
+                        data[j].set(i, false);
+                        data[j + num_qubits].set(i, true);
+                    }
+                    'Y' => {
+                        data[j].set(i, true);
+                        data[j + num_qubits].set(i, true);
+                    }
+                    'I' => {
+                        data[j].set(i, false);
+                        data[j + num_qubits].set(i, false);
+                    }
+                    _ => {
+                        panic!("can only have I/X/Y/Z");
+                    }
+                }
+            }
+        }
+
+        Self {
+            num_qubits,
+            num_paulis,
+            data,
+            scratch,
+        }
+    }
+
+    // reimplement using iterators
+    pub fn to_pauli_strings(&self) -> Vec<String> {
+        let mut out: Vec<String> = Vec::with_capacity(self.num_paulis);
+        for i in 0..self.num_paulis {
+            let mut s: String = String::new();
+            let c = match self.get_pauli_phase(i) {
+                false => '+',
+                true => '-',
+            };
+            s.push(c);
+            for q in 0..self.num_qubits {
+                let c = match (self.get_pauli_x(i, q), self.get_pauli_z(i, q)) {
+                    (false, false) => 'I',
+                    (false, true) => 'Z',
+                    (true, false) => 'X',
+                    (true, true) => 'Y',
+                };
+                s.push(c);
+            }
+            out.push(s);
+        }
+        out
+    }
+}
+
+impl fmt::Display for PauliList {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self.to_pauli_strings())
     }
 }
 

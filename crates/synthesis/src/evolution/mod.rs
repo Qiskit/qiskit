@@ -10,14 +10,60 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+mod mcts;
 mod pauli_network;
 
 use pyo3::prelude::*;
-use pyo3::types::PyList;
+use pyo3::types::{PyList, PyString, PyTuple};
 
 use qiskit_circuit::circuit_data::PyCircuitData;
+use qiskit_circuit::operations::Param;
 
+use crate::QiskitError;
+use crate::evolution::mcts::pauli_network_mcts_inner;
 use crate::evolution::pauli_network::pauli_network_synthesis_inner;
+
+/// Expands the sparse pauli string representation to the full representation.
+///
+/// For example: for the input `sparse_pauli = "XY", qubits = [1, 3], num_qubits = 6`,
+/// the function returns `"IXIYII"`.
+fn expand_pauli(sparse_pauli: String, qubits: &[u32], num_qubits: usize) -> String {
+    let mut v: Vec<char> = vec!['I'; num_qubits];
+    for (q, p) in qubits.iter().zip(sparse_pauli.chars()) {
+        v[*q as usize] = p;
+    }
+    v.into_iter().collect()
+}
+
+fn extract_paulis_and_angles(
+    num_qubits: usize,
+    pauli_network: &Bound<PyList>,
+) -> PyResult<(Vec<String>, Vec<Param>)> {
+    let mut paulis: Vec<String> = Vec::with_capacity(pauli_network.len());
+    let mut angles: Vec<Param> = Vec::with_capacity(pauli_network.len());
+
+    let allowed_chars = ['I', 'X', 'Y', 'Z'];
+
+    // go over the input pauli network and extract a list of pauli rotations and
+    // the corresponding rotation angles
+    for item in pauli_network {
+        let tuple = item.cast::<PyTuple>()?;
+
+        let sparse_pauli: String = tuple.get_item(0)?.cast::<PyString>()?.extract()?;
+        let qubits: Vec<u32> = tuple.get_item(1)?.extract()?;
+        let angle: Param = tuple.get_item(2)?.extract()?;
+
+        if sparse_pauli.chars().any(|c| !allowed_chars.contains(&c)) {
+            return Err(QiskitError::new_err(format!(
+                "Pauli network contains invalid Pauli string {sparse_pauli}"
+            )));
+        }
+
+        paulis.push(expand_pauli(sparse_pauli, &qubits, num_qubits));
+        angles.push(angle);
+    }
+    Ok((paulis, angles))
+}
 
 /// Calls Rustiq's pauli network synthesis algorithm and returns the
 /// Qiskit circuit data with Clifford gates and rotations.
@@ -60,9 +106,11 @@ pub fn pauli_network_synthesis(
     upto_phase: bool,
     resynth_clifford_method: usize,
 ) -> PyResult<PyCircuitData> {
+    let (paulis, angles) = extract_paulis_and_angles(num_qubits, pauli_network)?;
     pauli_network_synthesis_inner(
         num_qubits,
-        pauli_network,
+        paulis,
+        angles,
         optimize_count,
         preserve_order,
         upto_clifford,
@@ -72,8 +120,32 @@ pub fn pauli_network_synthesis(
     .map(Into::into)
 }
 
+#[pyfunction]
+#[pyo3(signature = (num_qubits, pauli_network, upto_clifford=false, upto_phase=false, num_simulations=0))]
+#[allow(clippy::too_many_arguments)]
+pub fn pauli_network_mcts(
+    num_qubits: usize,
+    pauli_network: &Bound<PyList>,
+    upto_clifford: bool,
+    upto_phase: bool,
+    num_simulations: usize,
+) -> PyResult<PyCircuitData> {
+    let (paulis, angles) = extract_paulis_and_angles(num_qubits, pauli_network)?;
+    pauli_network_mcts_inner(
+        num_qubits,
+        paulis,
+        angles,
+        upto_clifford,
+        upto_phase,
+        num_simulations,
+    )
+    .map(Into::into)
+    .map_err(Into::into)
+}
+
 pub fn evolution(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(pauli_network_synthesis, m)?)?;
+    m.add_function(wrap_pyfunction!(pauli_network_mcts, m)?)?;
     Ok(())
 }
 
