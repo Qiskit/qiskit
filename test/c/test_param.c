@@ -92,6 +92,127 @@ static int test_param_to_real(void) {
     return Ok;
 }
 
+static int expect_param_symbol_name_at(const QkParam *param, size_t index,
+                                       const char *expected) {
+    char *name = qk_param_symbol_name_at(param, index);
+    if (name == NULL) {
+        printf("Expected parameter symbol %s at index %zu, found NULL.\n", expected, index);
+        return NullptrError;
+    }
+
+    int result = Ok;
+    if (strcmp(name, expected) != 0) {
+        printf("Expected parameter symbol %s at index %zu, found %s.\n", expected, index, name);
+        result = EqualityError;
+    }
+
+    qk_str_free(name);
+    return result;
+}
+
+/**
+ * Test enumerating parameter symbols from standalone symbols, expressions, and numeric values.
+ */
+static int test_param_symbol_enumeration(void) {
+    QkParam *a = qk_param_new_symbol("a");
+    QkParam *b = qk_param_new_symbol("b");
+    QkParam *sum = qk_param_zero();
+    QkParam *nested = qk_param_zero();
+    QkParam *value = qk_param_from_double(1.25);
+    char *missing = NULL;
+    int result = Ok;
+
+    if (qk_param_num_symbols(a) != 1) {
+        printf("Expected 1 symbol for standalone symbol.\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    result = expect_param_symbol_name_at(a, 0, "a");
+    if (result != Ok) {
+        goto cleanup;
+    }
+
+    missing = qk_param_symbol_name_at(a, 1);
+    if (missing != NULL) {
+        printf("Expected NULL for out-of-range standalone symbol, found %s.\n", missing);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    if (qk_param_add(sum, a, b) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    if (qk_param_num_symbols(sum) != 2) {
+        printf("Expected 2 symbols for parameter expression.\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    result = expect_param_symbol_name_at(sum, 0, "a");
+    if (result != Ok) {
+        goto cleanup;
+    }
+    result = expect_param_symbol_name_at(sum, 1, "b");
+    if (result != Ok) {
+        goto cleanup;
+    }
+
+    if (qk_param_sin(nested, sum) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    if (qk_param_num_symbols(nested) != 2) {
+        printf("Expected 2 symbols for nested parameter expression.\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    result = expect_param_symbol_name_at(nested, 0, "a");
+    if (result != Ok) {
+        goto cleanup;
+    }
+    result = expect_param_symbol_name_at(nested, 1, "b");
+    if (result != Ok) {
+        goto cleanup;
+    }
+
+    missing = qk_param_symbol_name_at(sum, 2);
+    if (missing != NULL) {
+        printf("Expected NULL for out-of-range expression symbol, found %s.\n", missing);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    if (qk_param_num_symbols(value) != 0) {
+        printf("Expected 0 symbols for numeric value.\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    missing = qk_param_symbol_name_at(value, 0);
+    if (missing != NULL) {
+        printf("Expected NULL symbol name for numeric value, found %s.\n", missing);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+cleanup:
+    if (missing != NULL) {
+        qk_str_free(missing);
+    }
+    qk_param_free(a);
+    qk_param_free(b);
+    qk_param_free(sum);
+    qk_param_free(nested);
+    qk_param_free(value);
+
+    return result;
+}
+
 /**
  * Test calling all binary operations and verify their string representation.
  */
@@ -506,6 +627,7 @@ int test_param(void) {
     num_failed += RUN_TEST(test_param_new);
     num_failed += RUN_TEST(test_param_new_values);
     num_failed += RUN_TEST(test_param_to_real);
+    num_failed += RUN_TEST(test_param_symbol_enumeration);
     num_failed += RUN_TEST(test_param_equal);
     num_failed += RUN_TEST(test_param_copy);
     num_failed += RUN_TEST(test_param_binary_ops);

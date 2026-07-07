@@ -247,6 +247,8 @@ mod param {
             export_fn!(qk_param_conjugate),
             export_fn!(qk_param_equal),
             export_fn!(qk_param_as_real),
+            export_fn!(qk_param_num_symbols),
+            export_fn!(qk_param_symbol_name_at),
         ]
     });
 }

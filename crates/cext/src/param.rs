@@ -211,6 +211,93 @@ pub unsafe extern "C" fn qk_param_str(param: *const Param) -> *mut c_char {
     out.into_raw()
 }
 
+fn sorted_param_symbols(expr: &ParameterExpression) -> Vec<&Symbol> {
+    let mut symbols: Vec<_> = expr.iter_symbols().collect();
+    symbols.sort_unstable();
+    symbols
+}
+
+/// @ingroup QkParam
+/// Get the number of unbound parameter symbols contained in a ``QkParam``.
+///
+/// This returns ``0`` for numeric parameters.
+///
+/// @param param A pointer to the ``QkParam``.
+///
+/// @return The number of unbound symbols in ``param``.
+///
+/// # Example
+///
+/// ```c
+/// QkParam *theta = qk_param_new_symbol("theta");
+/// size_t num_symbols = qk_param_num_symbols(theta); // == 1
+/// qk_param_free(theta);
+/// ```
+///
+/// # Safety
+///
+/// The behavior is undefined if ``param`` is not a valid pointer to a non-null ``QkParam``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_param_num_symbols(param: *const Param) -> usize {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let param = unsafe { const_ptr_as_ref(param) };
+
+    match param {
+        Param::ParameterExpression(expr) => expr.num_symbols(),
+        Param::Float(_) => 0,
+        Param::Obj(_) => panic!("Param::Obj is not supported in the C API"),
+    }
+}
+
+/// @ingroup QkParam
+/// Get the name of an unbound parameter symbol contained in a ``QkParam``.
+///
+/// The symbol order is deterministic, but callers should not attach semantic meaning to the order
+/// beyond using indices in the range ``0 <= index < qk_param_num_symbols(param)``.
+///
+/// @param param A pointer to the ``QkParam``.
+/// @param index The symbol index to read.
+///
+/// @return A pointer to the symbol name, or null if ``index`` is out of range or ``param`` is
+/// numeric.
+///
+/// # Example
+///
+/// ```c
+/// QkParam *theta = qk_param_new_symbol("theta");
+/// char *name = qk_param_symbol_name_at(theta, 0);
+///
+/// if (name != NULL) {
+///     printf("%s\n", name);
+///     qk_str_free(name);
+/// }
+///
+/// qk_param_free(theta);
+/// ```
+///
+/// # Safety
+///
+/// The behavior is undefined if ``param`` is not a valid pointer to a non-null ``QkParam``.
+///
+/// The returned string must not be freed with the normal C free, you must use ``qk_str_free`` to
+/// free the memory consumed by the String. Not calling ``qk_str_free`` will lead to a memory leak.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_param_symbol_name_at(param: *const Param, index: usize) -> *mut c_char {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let param = unsafe { const_ptr_as_ref(param) };
+    let expr = match param {
+        Param::ParameterExpression(expr) => expr,
+        Param::Float(_) => return std::ptr::null_mut(),
+        Param::Obj(_) => panic!("Param::Obj is not supported in the C API"),
+    };
+
+    let symbols = sorted_param_symbols(expr);
+    let Some(symbol) = symbols.get(index) else {
+        return std::ptr::null_mut();
+    };
+    CString::new(symbol.repr(false)).unwrap().into_raw()
+}
+
 /// @ingroup QkParam
 /// Add two ``QkParam``.
 ///
