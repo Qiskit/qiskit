@@ -28,7 +28,7 @@ use qiskit_circuit::duration::Duration;
 use qiskit_circuit::operations::{ForCollection, OperationRef, PyInstruction, PyOpKind, PyRange};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
-use qiskit_circuit::parameter::symbol_expr::Symbol;
+use qiskit_circuit::parameter::symbol_expr::{Symbol, SymbolVector};
 use qiskit_circuit::{Clbit, imports};
 
 use crate::annotations::AnnotationHandler;
@@ -125,7 +125,7 @@ pub struct QPYReadData<'a> {
     pub use_symengine: bool,
     pub standalone_vars: HashMap<u16, qiskit_circuit::Var>,
     pub standalone_stretches: HashMap<u16, qiskit_circuit::Stretch>,
-    pub vectors: HashMap<Uuid, Py<PyAny>>, // Parameter expression vectors, which are a python-only elements for now
+    pub vectors: HashMap<Uuid, Arc<SymbolVector>>,
     pub annotation_handler: AnnotationHandler<'a>,
 }
 
@@ -305,8 +305,8 @@ pub enum GenericValue {
     Range(PyRange),
     Tuple(Vec<GenericValue>),
     NumpyObject(Bytes),
-    ParameterExpressionSymbol(Symbol),
-    ParameterExpressionVectorSymbol(Symbol),
+    ParameterExpressionSymbol(Arc<Symbol>),
+    ParameterExpressionVectorSymbol(Arc<Symbol>),
     ParameterExpression(Arc<ParameterExpression>),
     String(String),
     Duration(Duration),
@@ -401,6 +401,8 @@ macro_rules! impl_from_generic {
 
 impl_from_generic!(i64, Int64);
 impl_from_generic!(f64, Float64);
+impl_from_generic!(BigUint, BigInt);
+impl_from_generic!(String, String);
 impl_from_generic!(Complex64, Complex64);
 // we do not implement Symbol extraction, since it is ambiguous - a symbol can be a Parameter or a ParameterVector
 
@@ -496,13 +498,13 @@ pub(crate) fn load_value(
         ValueType::Parameter => {
             let (parameter_pack, _) = deserialize::<formats::ParameterSymbolPack>(bytes)?;
             let symbol = unpack_symbol(&parameter_pack);
-            Ok(GenericValue::ParameterExpressionSymbol(symbol))
+            Ok(GenericValue::ParameterExpressionSymbol(symbol.into()))
         }
         ValueType::ParameterVector => {
             let (parameter_vector_element_pack, _) =
                 deserialize::<formats::ParameterVectorElementPack>(bytes)?;
             let symbol = unpack_parameter_vector(&parameter_vector_element_pack, qpy_data)?;
-            Ok(GenericValue::ParameterExpressionVectorSymbol(symbol))
+            Ok(GenericValue::ParameterExpressionVectorSymbol(symbol.into()))
         }
         ValueType::ParameterExpression => {
             let (parameter_expression_pack, _) =
@@ -702,7 +704,7 @@ pub(crate) fn unpack_for_collection(value: &GenericValue) -> Result<ForCollectio
                 .iter()
                 .map(|val| -> Result<_, QpyError> {
                     if let GenericValue::Int64(int_val) = val {
-                        Ok(*int_val as usize)
+                        Ok(*int_val as isize)
                     } else {
                         Err(QpyError::ConversionError(
                             "Could not unpack ForCollection: expected Int64 in tuple".to_string(),
@@ -870,7 +872,7 @@ fn pack_expression_type(exp_type: &Type, version: u32) -> Result<ExpressionType,
                 })
             }
         }
-        Type::Uint(width) => Ok(ExpressionType::Uint(*width as u32)),
+        Type::Uint(width) => Ok(ExpressionType::Uint(*width)),
     }
 }
 

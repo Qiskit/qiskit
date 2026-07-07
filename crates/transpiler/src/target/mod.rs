@@ -42,7 +42,7 @@ use smallvec::SmallVec;
 use thiserror::Error;
 
 use qiskit_circuit::PhysicalQubit;
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::instruction::{Instruction, Parameters, create_py_op};
 use qiskit_circuit::operations::{Operation, OperationRef, Param};
@@ -233,7 +233,12 @@ pub struct Target {
     pub concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
     gate_map: IndexMap<String, TargetProperties>,
     global_operations: HashMap<u32, HashSet<String>>,
-    qarg_gate_map: HashMap<Qargs, HashSet<String>>,
+    // This uses `IndexMap` not because it's necessary for determinism (though it will help), but so
+    // it retains the specific iteration order it is constructed with.  The order `qargs` are
+    // encountered during construction are _usually_ going to be quite structured, and structure
+    // here means that graphs built from qargs (like the coupling graph) will have their edges
+    // ordered in much cache- and branch-prediction-friendlier orders than if they are randomised.
+    qarg_gate_map: IndexMap<Qargs, HashSet<String>>,
     has_angle_bounds: bool,
 }
 
@@ -326,7 +331,7 @@ impl Target {
             concurrent_measurements,
             gate_map: IndexMap::default(),
             global_operations: HashMap::default(),
-            qarg_gate_map: HashMap::default(),
+            qarg_gate_map: IndexMap::default(),
             has_angle_bounds: false,
         })
     }
@@ -847,10 +852,7 @@ impl Target {
             );
         }
         self.gate_map = gate_map;
-        self.qarg_gate_map = state
-            .get_item("qarg_gate_map")?
-            .unwrap()
-            .extract::<HashMap<Qargs, HashSet<String>>>()?;
+        self.qarg_gate_map = state.get_item("qarg_gate_map")?.unwrap().extract()?;
         self.global_operations = state
             .get_item("global_operations")?
             .unwrap()
@@ -1703,10 +1705,80 @@ where
     obj.eq(other.into_bound_py_any(py)?)
 }
 
+/// Estimate the fidelity of a circuit by taking the product of the error rates
+///
+/// It is assumed that, when this function is called, the circuit is already physical (already transpiled)
+/// such that the qubits for each gate correspond to the physical qubits in the target.
+///
+/// Args:
+///     circuit: The circuit to estimate the fidelity of
+///     target: The target the circuit will be run on
+///
+/// Returns:
+///     The estimated fidelity. If any operation can't be found in the target it will return None.
+#[pyfunction(name = "estimate_fidelity")]
+pub fn py_estimate_fidelity(circuit: &PyCircuitData, target: &Target) -> Option<f64> {
+    estimate_fidelity(circuit, target)
+}
+
+/// Estimate the fidelity of a circuit by taking the product of the error rates
+///
+/// It is assumed that, when this function is called, the circuit is already physical (already transpiled)
+/// such that the qubits for each gate correspond to the physical qubits in the target.
+///
+/// # Args
+///
+/// `circuit`: The circuit to estimate the fidelity of
+/// `target`: The target the circuit will be run on
+///
+/// # Returns
+///
+/// The estimated fidelity. If any operation can't be found in the target it will return None.
+pub fn estimate_fidelity(circuit: &CircuitData, target: &Target) -> Option<f64> {
+    circuit
+        .data()
+        .iter()
+        .filter(|inst| !inst.op.directive())
+        .map(|inst| {
+            let qubits = circuit.get_qargs(inst.qubits);
+            let gate_name = inst.op.name();
+            let physical_qubits: &[PhysicalQubit] = PhysicalQubit::lift_slice(qubits);
+            match target.get_instruction_properties(gate_name, physical_qubits) {
+                Some(props) => Some(1. - props.error.unwrap_or(0.)),
+                None => {
+                    // If there is no instruction properties this either is because either the instruction
+                    // isn't supported or it is global and ideal. Check if it's supported then
+                    // treat as ideal, otherwise invalidate the fidelity because the instruction
+                    // isn't supported.
+                    if target.instruction_supported(
+                        gate_name,
+                        physical_qubits,
+                        inst.params_view(),
+                        true,
+                    ) {
+                        // Check that there aren't any instruction properties for a global entry
+                        // (which applies to all valid qargs) otherwise treat as ideal.
+                        if let Some(props) =
+                            target.get_instruction_properties(gate_name, &Qargs::Global)
+                        {
+                            Some(1. - props.error.unwrap_or(0.))
+                        } else {
+                            Some(1.)
+                        }
+                    } else {
+                        None
+                    }
+                }
+            }
+        })
+        .product()
+}
+
 pub fn target(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<InstructionProperties>()?;
     m.add_class::<Target>()?;
     m.add_class::<QubitProperties>()?;
+    m.add_wrapped(wrap_pyfunction!(py_estimate_fidelity))?;
     Ok(())
 }
 
@@ -1731,15 +1803,15 @@ mod test {
     #[test]
     fn test_invalid_params_instruction() {
         let params = smallvec![
-            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
-                "ϴ", None, None,
-            )))),
-            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
-                "φ", None, None,
-            )))),
-            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
-                "λ", None, None,
-            )))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
+                Symbol::standalone("ϴ".to_owned(), None,)
+            ))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
+                Symbol::standalone("φ".to_owned(), None,)
+            ))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
+                Symbol::standalone("λ".to_owned(), None,)
+            ))),
         ];
         let mut target = Target::default();
         let result = target.add_instruction(
@@ -1763,15 +1835,15 @@ mod test {
     #[test]
     fn test_mismatch_params_count_instruction() {
         let params = smallvec![
-            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
-                "ϴ", None, None,
-            )))),
-            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
-                "φ", None, None,
-            )))),
-            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
-                "λ", None, None,
-            )))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
+                Symbol::standalone("ϴ".to_owned(), None,)
+            ))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
+                Symbol::standalone("φ".to_owned(), None,)
+            ))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
+                Symbol::standalone("λ".to_owned(), None,)
+            ))),
         ];
         let mut target = Target::default();
         let result = target.add_instruction(

@@ -19,7 +19,7 @@ use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::CustomOperation;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
-use qiskit_circuit::parameter::symbol_expr::Symbol;
+use qiskit_circuit::parameter::symbol_expr::SymbolVector;
 use qiskit_circuit::parameter_table::ParameterUuid;
 use qiskit_circuit::{
     dag_circuit::DAGCircuit,
@@ -44,14 +44,11 @@ pub(super) fn compose_transforms<'a>(
 
     for (gate_name, gate_num_qubits) in source_basis.iter().cloned() {
         let num_params = gate_param_counts[&(gate_name.clone(), gate_num_qubits)];
-        let placeholder_params: SmallVec<[Param; 3]> = (0..num_params as u32)
-            .map(|idx| {
-                Param::ParameterExpression(
-                    ParameterExpression::from_symbol(Symbol::new(&gate_name, None, Some(idx)))
-                        .into(),
-                )
-            })
-            .collect();
+        let placeholder_params: SmallVec<[Param; 3]> =
+            SymbolVector::new(gate_name.clone(), num_params)
+                .iter()
+                .map(|sym| Param::ParameterExpression(ParameterExpression::from_symbol(sym).into()))
+                .collect();
 
         let mut dag = DAGCircuit::new();
         // Create the mock gate and add to the circuit, use Python if necessary.
