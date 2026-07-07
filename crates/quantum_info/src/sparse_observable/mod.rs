@@ -19,7 +19,7 @@ use ndarray::Array2;
 use num_complex::Complex64;
 use num_traits::Zero;
 use numpy::{
-    PyArray1, PyArray2, PyArrayDescr, PyArrayDescrMethods, PyArrayLike1, PyArrayMethods,
+    PyArray, PyArray1, PyArray2, PyArrayDescr, PyArrayDescrMethods, PyArrayLike1, PyArrayMethods,
     PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods,
 };
 use pyo3::{
@@ -4425,9 +4425,9 @@ impl ArrayView {
 
 /// Use the Numpy Python API to convert a `PyArray` into a dynamically chosen `dtype`, copying only
 /// if required.
-fn cast_array_type<'py, T: numpy::Element>(
+pub fn cast_array_type<'py, T: numpy::Element, D: ndarray::Dimension>(
     py: Python<'py>,
-    array: Bound<'py, PyArray1<T>>,
+    array: Bound<'py, PyArray<T, D>>,
     dtype: Option<&Bound<'py, PyAny>>,
 ) -> PyResult<Bound<'py, PyAny>> {
     let base_dtype = array.dtype();
