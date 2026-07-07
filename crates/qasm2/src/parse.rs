@@ -235,8 +235,6 @@ pub struct State {
     allow_version: bool,
     /// Whether we're in strict mode or (the default) more permissive parse.
     strict: bool,
-    /// What the maximum depth for expression recursion is.
-    max_depth: usize,
 }
 
 impl State {
@@ -247,7 +245,6 @@ impl State {
         custom_instructions: &[CustomInstruction],
         custom_classical: &[CustomClassical],
         strict: bool,
-        max_depth: usize,
     ) -> PyResult<Self> {
         let mut state = State {
             tokens: vec![tokens],
@@ -268,7 +265,6 @@ impl State {
             num_gates: 0,
             allow_version: true,
             strict,
-            max_depth,
         };
         for inst in custom_instructions {
             if state.symbols.contains_key(&inst.name)
@@ -983,7 +979,6 @@ impl State {
             gate_symbols: &self.gate_symbols,
             global_symbols: &self.symbols,
             strict: self.strict,
-            remaining_depth: self.max_depth,
         }
         .parse_expression(cause)
     }
