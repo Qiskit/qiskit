@@ -25,7 +25,7 @@ class Commuting2qBlock(Gate):
 
     This gate is intended for use with commuting swap strategies to make it convenient
     for the swap strategy router to identify which blocks of operations commute.
-    
+
     Note that :attr:`params` of this gate reports the free parameters the nodes contain.
     There is no guaranteed order they are stored in.
     """
