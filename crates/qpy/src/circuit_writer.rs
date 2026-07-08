@@ -273,15 +273,16 @@ fn pack_instruction(
 
     // common data extraction for all instruction types
     if let Some(label) = instruction.label.as_deref() {
-        if label.len() >= 65536 {
+        instruction_pack.label = label.clone();
+        if label.len() > u16::MAX as usize {
             imports::WARNINGS_WARN.get_bound(py).call1((
                 intern!(py, "Label exceeded maximum length and was truncated."),
                 py.get_type::<PyUserWarning>(),
                 1,
             ))?;
+            instruction_pack.label.truncate(u16::MAX as usize - 3);
+            instruction_pack.label.push_str("...");
         }
-        instruction_pack.label = label.clone();
-        instruction_pack.label.truncate(65535);
     }
     instruction_pack.bit_data = get_packed_bit_list(instruction, qpy_data.circuit_data);
     if let Some(new_name) =
