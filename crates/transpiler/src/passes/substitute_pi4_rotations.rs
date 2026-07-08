@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use num_complex::ComplexFloat;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use qiskit_circuit::bit::ShareableQubit;
@@ -19,7 +18,7 @@ use qiskit_circuit::operations::Operation;
 use qiskit_circuit::packed_instruction::PackedOperation;
 use std::f64::consts::{FRAC_PI_2, FRAC_PI_4, FRAC_PI_8, PI};
 
-use crate::gate_metrics::rotation_trace_and_dim;
+use crate::passes::common::{MINIMUM_TOL, is_angle_close_to_multiple_of_pi_k};
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
 use qiskit_circuit::packed_instruction::PackedInstruction;
@@ -30,8 +29,6 @@ static ROTATION_GATE_NAMES: [&str; 14] = [
 
 type SubstituteSequencePi4<'a> = [(&'a [(StandardGate, &'a [u32])], f64); 16];
 type SubstituteSequencePi2<'a> = [(&'a [(StandardGate, &'a [u32])], f64); 8];
-
-const MINIMUM_TOL: f64 = 1e-12;
 
 /// Table for RZ(k * pi / 4) substitutions, with 0 <= k < 16
 static RZ_SUBSTITUTIONS: [(&[StandardGate], f64); 16] = [
@@ -977,36 +974,6 @@ static CRY_SUBSTITUTIONS: SubstituteSequencePi2 = [
         0.0,
     ),
 ];
-
-/// For a given angle, if it is a multiple of PI/k, calculate the multiple mod (4*k),
-/// Otherwise, return `None`.
-/// E.g, if the angle is a multiple m of PI/4 then it returns m, where 0 <= m < 16,
-/// and if the angle is a multiple m of PI/2 then it returns m, where 0 <= m < 8.
-pub fn is_angle_close_to_multiple_of_pi_k(
-    gate: StandardGate,
-    k: usize,
-    angle: f64,
-    tol: f64,
-) -> Option<usize> {
-    let closest_ratio = angle * (k as f64) / PI;
-    let closest_integer = closest_ratio.round();
-    let closest_angle = closest_integer * PI / (k as f64);
-    let theta = angle - closest_angle;
-
-    // Trace and dimension calculation of rotation matrices
-    let (tr_over_dim, dim) = rotation_trace_and_dim(gate, theta)
-        .expect("Since only supported rotation gates are given, the result is not None");
-
-    // fidelity-based tolerance
-    let f_pro = tr_over_dim.abs().powi(2);
-    let gate_fidelity = (dim * f_pro + 1.) / (dim + 1.);
-    let rem = 4 * k as i64;
-    if (1. - gate_fidelity).abs() < tol {
-        Some((closest_integer as i64).rem_euclid(rem) as usize)
-    } else {
-        None
-    }
-}
 
 /// The following two functions get a rotation gate and outputs an equivalent vector of
 /// standard gates in {Clifford, T, Tdg} and a global phase.

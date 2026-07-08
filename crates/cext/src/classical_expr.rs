@@ -466,8 +466,8 @@ pub unsafe extern "C" fn qk_expr_kind(expr: *const Expr) -> CExprNodeKind {
 /// # Example
 /// ```c
 /// QkBinaryExprInfo info = qk_expr_binary_info(expr);
-/// const Expr *lhs = info.left;
-/// const Expr *rhs = info.right;
+/// const QkExprNode *lhs = info.left;
+/// const QkExprNode *rhs = info.right;
 /// ```
 ///
 /// # Safety
@@ -576,8 +576,8 @@ pub unsafe extern "C" fn qk_expr_cast_info(expr: *const Expr) -> CCastExprInfo {
 /// # Example
 /// ```c
 /// QkIndexExprInfo info = qk_expr_index_info(expr);
-/// const Expr *target = info.target;
-/// const Expr *index = info.index;
+/// const QkExprNode *target = info.target;
+/// const QkExprNode *index = info.index;
 /// ```
 ///
 /// # Safety
@@ -861,7 +861,7 @@ pub unsafe extern "C" fn qk_value_bool(value: *const Value) -> bool {
 /// # Example
 /// ```c
 /// char *name = qk_var_name(var);
-/// if (name ! = NULL) {
+/// if (name != NULL) {
 ///     // Use the name...
 ///     qk_str_free(name);
 /// }

@@ -734,7 +734,7 @@ pub(crate) fn unpack_for_collection(value: &GenericValue) -> Result<ForCollectio
                 .iter()
                 .map(|val| -> Result<_, QpyError> {
                     if let GenericValue::Int64(int_val) = val {
-                        Ok(*int_val as usize)
+                        Ok(*int_val as isize)
                     } else {
                         Err(QpyError::ConversionError(
                             "Could not unpack ForCollection: expected Int64 in tuple".to_string(),
