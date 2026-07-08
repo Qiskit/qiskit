@@ -478,7 +478,7 @@ pub enum ForCollection {
     /// A literal Python `range` object extracted to Rust.
     PyRange(PyRange),
     /// Some ordered collection of integers.
-    List(Vec<usize>),
+    List(Vec<isize>),
     /// A Dynamic Range object from qiskit.circuit.classical.expr
     Range(expr::Range),
 }
