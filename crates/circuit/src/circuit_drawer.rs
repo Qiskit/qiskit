@@ -808,7 +808,7 @@ pub const CL_Q_CROSSED_WIRE: char = '╫';
 /// than byte or scalar-value indices so that multi-byte characters and
 /// combining sequences are counted as single display units, matching the
 /// behaviour a reader would expect when looking at the rendered circuit.
-#[cfg_attr(not(test), allow(dead_code))]
+#[allow(dead_code)]
 fn truncate_to_expr_len(text: &str, max_chars: usize) -> String {
     let graphemes: Vec<&str> = text.graphemes(true).collect();
     if graphemes.len() > max_chars {
@@ -823,6 +823,7 @@ struct TextDrawer {
     /// The array of textural wire elements corresponding to the visualization elements
     wires: Vec<Vec<TextWireElement>>,
     /// Maximum character count for classical expression labels before truncation with "...".
+    #[allow(dead_code)]
     expr_len: usize,
 }
 
@@ -861,7 +862,7 @@ impl TextDrawer {
     /// When control-flow support lands (PR #16063), call this method on the
     /// expression string produced by the classical-expression printer before
     /// constructing the gate label in `get_label`.
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[allow(dead_code)]
     fn truncate_expr_label(&self, text: &str) -> String {
         truncate_to_expr_len(text, self.expr_len)
     }
@@ -2802,5 +2803,43 @@ q_3: ┤ X ├─■─────────────────┤ X ├
                     .unwrap();
             },
         );
+    }
+
+    // ── truncate_to_expr_len ────────────────────────────────────────────────
+
+    #[test]
+    fn test_truncate_expr_len_below_limit() {
+        // String shorter than max_chars: returned unchanged, no "..." appended.
+        assert_eq!(truncate_to_expr_len("c[0] && c[1]", 30), "c[0] && c[1]");
+    }
+
+    #[test]
+    fn test_truncate_expr_len_at_boundary() {
+        // String whose length equals max_chars exactly: no truncation.
+        let text = "a".repeat(10);
+        assert_eq!(truncate_to_expr_len(&text, 10), text);
+    }
+
+    #[test]
+    fn test_truncate_expr_len_exceeds_limit() {
+        // String longer than max_chars: truncated and "..." appended.
+        let result = truncate_to_expr_len("c[0] && c[1] && (c[2] && c[3])", 8);
+        assert_eq!(result, "c[0] && ...");
+    }
+
+    #[test]
+    fn test_truncate_expr_len_zero() {
+        // max_chars=0: every non-empty string becomes just "...".
+        // Models the edge case where a caller passes expr_len=0.
+        assert_eq!(truncate_to_expr_len("anything", 0), "...");
+    }
+
+    #[test]
+    fn test_truncate_expr_len_multibyte_grapheme_clusters() {
+        // Multi-byte Unicode characters count as single grapheme clusters.
+        // "α && β" is 6 grapheme clusters; truncating at 4 gives "α &&...".
+        let text = "α && β && γ";
+        let result = truncate_to_expr_len(text, 4);
+        assert_eq!(result, "α &&...");
     }
 }
