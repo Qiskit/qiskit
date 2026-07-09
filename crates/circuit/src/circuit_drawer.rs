@@ -800,6 +800,24 @@ pub const Q_CL_CROSSED_WIRE: char = '╪';
 pub const CL_CL_CROSSED_WIRE: char = '╬';
 pub const CL_Q_CROSSED_WIRE: char = '╫';
 
+/// Truncate `text` to at most `max_chars` Unicode grapheme clusters, appending
+/// `"..."` if the string was shortened. Mirrors the Python text drawer's
+/// `expr_len` truncation in `text.py:1349–1350`.
+///
+/// Grapheme-cluster boundaries are used (via `unicode_segmentation`) rather
+/// than byte or scalar-value indices so that multi-byte characters and
+/// combining sequences are counted as single display units, matching the
+/// behaviour a reader would expect when looking at the rendered circuit.
+#[cfg_attr(not(test), allow(dead_code))]
+fn truncate_to_expr_len(text: &str, max_chars: usize) -> String {
+    let graphemes: Vec<&str> = text.graphemes(true).collect();
+    if graphemes.len() > max_chars {
+        format!("{}...", graphemes[..max_chars].join(""))
+    } else {
+        text.to_string()
+    }
+}
+
 /// Textual representation of the circuit
 struct TextDrawer {
     /// The array of textural wire elements corresponding to the visualization elements
@@ -834,6 +852,18 @@ impl TextDrawer {
             }
         }
         text_drawer
+    }
+
+    /// Truncate `text` to `self.expr_len` Unicode grapheme clusters, appending
+    /// `"..."` if it was shortened. Called on classical expression label text
+    /// for control-flow ops (IfElseOp, WhileLoopOp, SwitchCaseOp).
+    ///
+    /// When control-flow support lands (PR #16063), call this method on the
+    /// expression string produced by the classical-expression printer before
+    /// constructing the gate label in `get_label`.
+    #[cfg_attr(not(test), allow(dead_code))]
+    fn truncate_expr_label(&self, text: &str) -> String {
+        truncate_to_expr_len(text, self.expr_len)
     }
 
     fn get_label(instruction: &PackedInstruction) -> String {
