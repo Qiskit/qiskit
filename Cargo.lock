@@ -2301,6 +2301,7 @@ name = "qiskit-cext"
 version = "2.6.0-dev"
 dependencies = [
  "anyhow",
+ "bytemuck",
  "hashbrown 0.15.5",
  "mimalloc",
  "nalgebra 0.34.2",

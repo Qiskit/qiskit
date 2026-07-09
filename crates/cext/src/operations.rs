@@ -11,11 +11,11 @@
 // that they have been altered from the originals.
 
 use std::{
-    ffi::{CStr, c_char},
+    ffi::{CStr, c_char, c_void},
     num::NonZero,
+    ptr::{null, null_mut},
 };
 
-use num_complex::Complex64;
 use qiskit_circuit::{
     circuit_data::CircuitData,
     operations::{CustomOperation, Operation, Param},
@@ -24,17 +24,17 @@ use qiskit_circuit::{
 /// DOCS: TODO
 #[repr(C)]
 #[derive(Debug, Clone)]
-pub struct QkOperation {
+pub struct CustomOp {
     orig: *mut (),
-    v_table: *mut QkOperationVtable,
+    v_table: *mut CustomOpVtable,
 }
 
 /// SAFETY: TODO
-unsafe impl Send for QkOperation {}
+unsafe impl Send for CustomOp {}
 /// SAFETY: TODO
-unsafe impl Sync for QkOperation {}
+unsafe impl Sync for CustomOp {}
 
-impl Operation for QkOperation {
+impl Operation for CustomOp {
     fn name(&self) -> &str {
         let name = ((unsafe { &*self.v_table }).name)(self.orig);
         let name_parsed = unsafe { CStr::from_ptr(name) };
@@ -60,7 +60,7 @@ impl Operation for QkOperation {
     }
 }
 
-impl PartialEq for QkOperation {
+impl PartialEq for CustomOp {
     fn eq(&self, _other: &Self) -> bool {
         // ((unsafe { &*self.v_table }).eq)(other.orig)
         todo!()
@@ -73,7 +73,7 @@ impl PartialEq for QkOperation {
 //     }
 // }
 
-impl CustomOperation for QkOperation {
+impl CustomOperation for CustomOp {
     fn is_unitary(&self) -> bool {
         todo!()
     }
@@ -86,106 +86,219 @@ impl CustomOperation for QkOperation {
         }
     }
 
-    fn is_controlled_gate(&self) -> bool {
-        ((unsafe { &*self.v_table }).is_controlled)(self.orig)
-    }
-
-    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
-        todo!()
-    }
-
-    fn inverse(
-        &self,
-        _params: &[Param],
-    ) -> Option<(
-        qiskit_circuit::packed_instruction::PackedOperation,
-        smallvec::SmallVec<[Param; 3]>,
-    )> {
-        todo!()
+    fn definition(&self, params: &[Param]) -> Option<CircuitData> {
+        let definition = ((unsafe { &*self.v_table }).definition)(self.orig, params.as_ptr());
+        if definition.is_null() {
+            return None;
+        }
+        let circ = unsafe { Box::from_raw(*definition) };
+        Some(*circ)
     }
 
     fn label(&self) -> Option<&str> {
-        todo!()
-    }
-
-    fn matrix(&self, _params: &[Param]) -> Option<ndarray::prelude::Array2<Complex64>> {
-        todo!()
+        unsafe {
+            CStr::from_ptr((({ &*self.v_table }).label)(self.orig))
+                .to_str()
+                .ok()
+        }
     }
 }
 
 /// DOCS: TODO
 #[derive(Debug, Clone)]
-#[repr(C)]
-pub struct QkOperationVtable {
+pub struct CustomOpVtable {
     pub name: fn(*const ()) -> *const i8,
     pub num_qubits: fn(*const ()) -> u32,
     pub num_clbits: fn(*const ()) -> u32,
     pub num_params: fn(*const ()) -> u32,
     pub directive: fn(*const ()) -> bool,
-    pub num_ctrl_qubits: fn(*const ()) -> u32,
-    pub is_controlled: fn(*const ()) -> bool,
     pub is_unitary: fn(*const ()) -> bool,
-    pub label: fn(*const ()) -> *mut c_char,
-    pub definition: fn(*const (), *mut *mut Param) -> *mut *mut CircuitData,
-    pub matrix: fn(*const (), *mut *mut Param) -> *mut Complex64,
+    pub num_ctrl_qubits: fn(*const ()) -> u32,
+    pub label: fn(*const ()) -> *const c_char,
+    pub definition: fn(*const (), *const Param) -> *mut *mut CircuitData,
     // pub eq: fn(*const ()) -> bool,
     // pub clone: fn(*const ()) -> *mut (),
 }
 
+impl TryFrom<CustomOpVtablePartial> for CustomOpVtable {
+    type Error = CustomOpMethod;
+
+    fn try_from(value: CustomOpVtablePartial) -> Result<Self, Self::Error> {
+        use CustomOpMethod::*;
+        Ok(Self {
+            name: value.name.ok_or(Name)?,
+            num_qubits: value.num_qubits.ok_or(NumQubits)?,
+            num_clbits: value.num_clbits.ok_or(NumClbits)?,
+            num_params: value.num_params.ok_or(NumParams)?,
+            directive: value.directive.ok_or(Directive)?,
+            is_unitary: value.is_unitary.ok_or(IsUnitary)?,
+            num_ctrl_qubits: value.num_ctrl_qubits.unwrap_or(|_slf: *const ()| 0),
+            label: value.label.unwrap_or(|_slf: *const ()| null()),
+            definition: value
+                .definition
+                .unwrap_or(|_slf: *const (), _params: *const Param| null_mut()),
+        })
+    }
+}
+
 /// DOCS: TODO
-#[derive(Debug, Clone)]
-#[repr(C)]
-pub struct QkOperationVtablePartial {
-    pub name: Option<fn(*const ()) -> *const i8>,
+#[derive(Debug, Clone, Default)]
+pub struct CustomOpVtablePartial {
+    pub name: Option<fn(*const ()) -> *const c_char>,
     pub num_qubits: Option<fn(*const ()) -> u32>,
     pub num_clbits: Option<fn(*const ()) -> u32>,
     pub num_params: Option<fn(*const ()) -> u32>,
     pub directive: Option<fn(*const ()) -> bool>,
-    pub num_ctrl_qubits: Option<fn(*const ()) -> u32>,
-    pub is_controlled: Option<fn(*const ()) -> bool>,
     pub is_unitary: Option<fn(*const ()) -> bool>,
-    pub label: Option<fn(*const ()) -> *mut c_char>,
-    pub definition: Option<fn(*const (), *mut *mut Param) -> *mut *mut CircuitData>,
-    pub matrix: Option<fn(*const (), *mut *mut Param) -> *mut Complex64>,
+    pub num_ctrl_qubits: Option<fn(*const ()) -> u32>,
+    pub label: Option<fn(*const ()) -> *const c_char>,
+    pub definition: Option<fn(*const (), *const Param) -> *mut *mut CircuitData>,
     // pub eq: Option<fn(*const ()) -> bool>,
     // pub clone: Option<fn(*const ()) -> *mut ()>,
 }
 
 /// TODO: Docs
 #[repr(u32)]
-pub enum QkCustomOperationMethod {
+pub enum CustomOpMethod {
     Name = 0,
     NumQubits = 1,
     NumClbits = 2,
     NumParams = 3,
     Directive = 4,
-    NumCtrlQubits = 5,
-    IsControlled = 6,
-    IsUnitary = 7,
-    Label = 8,
-    Definition = 9,
-    Matrix = 10,
+    IsUnitary = 5,
+    NumCtrlQubits = 6,
+    Label = 7,
+    Definition = 8,
+    // Eq = 10,
 }
 
-impl TryFrom<u32> for QkCustomOperationMethod {
+impl TryFrom<u32> for CustomOpMethod {
     type Error = u32;
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
-        use QkCustomOperationMethod::*;
+        use CustomOpMethod::*;
         let ret = match value {
             0 => Name,
             1 => NumQubits,
             2 => NumClbits,
             3 => NumParams,
             4 => Directive,
-            5 => NumCtrlQubits,
-            6 => IsControlled,
-            7 => IsUnitary,
-            8 => Label,
-            9 => Definition,
-            10 => Matrix,
+            5 => IsUnitary,
+            6 => NumCtrlQubits,
+            7 => Label,
+            8 => Definition,
+            // 10 => Eq,
             _ => return Err(value),
         };
         Ok(ret)
     }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct CustomOpVTableEntry {
+    slot: u32,
+    func: *const ::std::ffi::c_void,
+}
+
+impl CustomOpVTableEntry {
+    pub const SENTINEL: Self = Self {
+        slot: u32::MAX,
+        func: ::std::ptr::null(),
+    };
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_op_new_vtable(
+    mut slots: *const CustomOpVTableEntry,
+) -> *mut CustomOpVtable {
+    let mut vtable = CustomOpVtablePartial::default();
+    let mut slot = unsafe { slots.read() };
+    while slot != CustomOpVTableEntry::SENTINEL {
+        use CustomOpMethod::*;
+        match CustomOpMethod::try_from(slot.slot)
+            .unwrap_or_else(|_| panic!("Expected valid slot, obtained {}", slot.slot))
+        {
+            Name => {
+                if vtable.name.is_some() {
+                    panic!("Name slot has already been set.")
+                }
+                vtable.name = Some(unsafe {
+                    std::mem::transmute::<*const c_void, fn(*const ()) -> *const c_char>(slot.func)
+                })
+            }
+            NumQubits => {
+                if vtable.num_qubits.is_some() {
+                    panic!("NumQubits slot has already been set.")
+                }
+                vtable.num_qubits = Some(unsafe {
+                    std::mem::transmute::<*const c_void, fn(*const ()) -> u32>(slot.func)
+                })
+            }
+            NumClbits => {
+                if vtable.num_clbits.is_some() {
+                    panic!("NumClbits slot has already been set.")
+                }
+                vtable.num_clbits = Some(unsafe {
+                    std::mem::transmute::<*const c_void, fn(*const ()) -> u32>(slot.func)
+                })
+            }
+            NumParams => {
+                if vtable.num_params.is_some() {
+                    panic!("NumParams slot has already been set.")
+                }
+                vtable.num_params = Some(unsafe {
+                    std::mem::transmute::<*const c_void, fn(*const ()) -> u32>(slot.func)
+                })
+            }
+            Directive => {
+                if vtable.directive.is_some() {
+                    panic!("Directive slot has already been set.")
+                }
+                vtable.directive = Some(unsafe {
+                    std::mem::transmute::<*const c_void, fn(*const ()) -> bool>(slot.func)
+                })
+            }
+            IsUnitary => {
+                if vtable.is_unitary.is_some() {
+                    panic!("IsUnitary slot has already been set.")
+                }
+                vtable.is_unitary = Some(unsafe {
+                    std::mem::transmute::<*const c_void, fn(*const ()) -> bool>(slot.func)
+                })
+            }
+            NumCtrlQubits => {
+                if vtable.num_ctrl_qubits.is_some() {
+                    panic!("NumCtrlQubits slot has already been set.")
+                }
+                vtable.num_ctrl_qubits = Some(unsafe {
+                    std::mem::transmute::<*const c_void, fn(*const ()) -> u32>(slot.func)
+                })
+            }
+            Label => {
+                if vtable.label.is_some() {
+                    panic!("Label slot has already been set.")
+                }
+                vtable.label = Some(unsafe {
+                    std::mem::transmute::<*const c_void, fn(*const ()) -> *const c_char>(slot.func)
+                })
+            }
+            Definition => {
+                if vtable.definition.is_some() {
+                    panic!("Name slot has already been set.")
+                }
+                vtable.definition = Some(unsafe {
+                    std::mem::transmute::<
+                        *const c_void,
+                        fn(*const (), *const Param) -> *mut *mut CircuitData,
+                    >(slot.func)
+                })
+            }
+        }
+        slots = unsafe { slots.add(1) };
+        slot = unsafe { slots.read() };
+    }
+    CustomOpVtable::try_from(vtable)
+        .map(|x| Box::into_raw(Box::new(x)))
+        .unwrap_or(std::ptr::null_mut())
 }

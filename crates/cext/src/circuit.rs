@@ -17,6 +17,7 @@ use crate::circuit_library::pbc::{CPauliProductMeasurement, CPauliProductRotatio
 use crate::control_flow::CControlFlowInstruction;
 use crate::dag::COperationKind;
 use crate::exit_codes::ExitCode;
+use crate::operations::CustomOp;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 
 use nalgebra::{Matrix2, Matrix4};
@@ -31,8 +32,8 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interner;
 use qiskit_circuit::operations::{
-    ArrayType, DelayUnit, Operation, OperationRef, Param, PauliBased, PauliProductMeasurement,
-    PauliProductRotation, StandardGate, StandardInstruction, UnitaryGate,
+    ArrayType, CustomOperation, DelayUnit, Operation, OperationRef, Param, PauliBased,
+    PauliProductMeasurement, PauliProductRotation, StandardGate, StandardInstruction, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter_table::ParameterTableError;
@@ -2780,6 +2781,43 @@ pub unsafe extern "C" fn qk_circuit_get_control_flow_instruction(
 pub unsafe extern "C" fn qk_control_flow_instruction_free(cf_inst: *mut CControlFlowInstruction) {
     // SAFETY: Per documentation, cf_inst is a valid pointer to a QkControlFlowInstruction
     unsafe { drop(Box::from_raw(cf_inst)) };
+}
+
+/// TODO: DOCS
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_add_custom_operation(
+    circuit: *mut CircuitData,
+    operation: CustomOp,
+    qubits: *const u32,
+    clbits: *const u32,
+    params: *const *const Param,
+) -> ExitCode {
+    let boxed: Box<dyn CustomOperation> = Box::new(operation);
+    println!("Before adding to circuit {}", &boxed.name());
+    let op = PackedOperation::from_custom_operation(boxed);
+
+    let circ = unsafe { mut_ptr_as_ref(circuit) };
+
+    let qubits = (!qubits.is_null()).then(|| unsafe { std::slice::from_raw_parts(qubits, op.num_qubits() as usize) }).unwrap_or_default();
+    let qargs: &[Qubit] = bytemuck::cast_slice(qubits);
+
+    let clbits = (!clbits.is_null()).then(|| unsafe { std::slice::from_raw_parts(clbits, op.num_clbits() as usize) }).unwrap_or_default();
+    let cargs: &[Clbit] = bytemuck::cast_slice(clbits);
+
+    let params = (!params.is_null()).then(|| {
+        let params = (!params.is_null()).then(|| unsafe { std::slice::from_raw_parts(*params, op.num_params() as usize) }).unwrap_or_default();
+        Parameters::Params(params.iter().cloned().collect())
+    });
+    println!("Before adding to circuit {:?}", &op);
+    let ret = circ.push_packed_operation(op, params, qargs, cargs);
+    println!("After adding to circuit");
+    match ret {
+        Ok(()) => ExitCode::Success,
+        Err(CircuitDataError::ParameterTableError(ParameterTableError::NameConflict(_))) => {
+            ExitCode::ParameterNameConflict
+        }
+        Err(_) => ExitCode::ParameterError,
+    }
 }
 
 #[cfg(test)]
