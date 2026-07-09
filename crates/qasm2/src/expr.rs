@@ -621,7 +621,7 @@ impl ExprParser<'_> {
     }
 
     #[inline]
-    fn cur_position_of(&self, token: &Token) -> Position {
+    fn cur_position_of(&self, token: &Token) -> Position<'_> {
         Position::new(self.current_filename(), token.line, token.col)
     }
 
