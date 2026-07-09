@@ -61,7 +61,7 @@ use pyo3::exceptions::{
 use pyo3::intern;
 use pyo3::prelude::*;
 
-use pyo3::types::{IntoPyDict, PyDict, PyInt, PyIterator, PyList, PySet, PyTuple, PyType};
+use pyo3::types::{IntoPyDict, PyDict, PyFrozenSet, PyInt, PyIterator, PyList, PySet, PyTuple, PyType};
 
 use rustworkx_core::dag_algo::layers;
 use rustworkx_core::err::ContractError;
@@ -3614,8 +3614,10 @@ impl DAGCircuit {
     /// Get the list of "op" nodes in the dag.
     ///
     /// Args:
-    ///     op (Type): :class:`qiskit.circuit.Operation` subclass op nodes to
-    ///         return. If None, return all op nodes.
+    ///     op (Type | set[Type]): :class:`qiskit.circuit.Operation` subclass op
+    ///         nodes to return. If a single type, returns nodes matching that
+    ///         type. If a set of types, returns nodes matching any of the given
+    ///         types. If None, return all op nodes.
     ///     include_directives (bool): include `barrier`, `snapshot` etc.
     ///
     /// Returns:
@@ -3624,27 +3626,66 @@ impl DAGCircuit {
     fn py_op_nodes(
         &self,
         py: Python,
-        op: Option<&Bound<PyType>>,
+        op: Option<&Bound<PyAny>>,
         include_directives: bool,
     ) -> PyResult<Vec<Py<PyAny>>> {
-        let mut nodes = Vec::new();
-        let filter_is_nonstandard = if let Some(op) = op {
-            op.getattr(intern!(py, "_standard_gate")).ok().is_none()
-        } else {
-            true
+        // Determine if op is a single type, a set/frozenset of types, or None
+        let op_types: Option<Vec<Bound<PyType>>> = match op {
+            None => None,
+            Some(obj) => {
+                // Check if it's a type (single instruction filter)
+                if let Ok(py_type) = obj.clone().cast::<PyType>() {
+                    Some(vec![py_type.clone()])
+                }
+                // Check if it's a set or frozenset (multiple instruction filter)
+                else if obj.is_instance_of::<PySet>() || obj.is_instance_of::<PyFrozenSet>() {
+                    let mut types = Vec::new();
+                    let iter = PyIterator::from_object(obj)?;
+                    for item in iter {
+                        let item = item?;
+                        if let Ok(py_type) = item.cast::<PyType>() {
+                            types.push(py_type.clone());
+                        } else {
+                            return Err(PyTypeError::new_err(
+                                "Expected a set of Operation types",
+                            ));
+                        }
+                    }
+                    Some(types)
+                } else {
+                    return Err(PyTypeError::new_err(
+                        "Expected an Operation type or a set of Operation types",
+                    ));
+                }
+            }
         };
+
+        // Pre-compute which types are nonstandard for each type in the set
+        let filter_nonstandard: Option<Vec<bool>> = op_types.as_ref().map(|types| {
+            types
+                .iter()
+                .map(|t| t.getattr(intern!(py, "_standard_gate")).ok().is_none())
+                .collect()
+        });
+
+        let mut nodes = Vec::new();
         for (node, weight) in self.dag.node_references() {
             if let NodeType::Operation(packed) = &weight {
                 if !include_directives && packed.op.directive() {
                     continue;
                 }
-                if let Some(op_type) = op {
-                    // This middle catch is to avoid Python-space operation creation for most uses of
-                    // `op`; we're usually just looking for control-flow ops, and standard gates
-                    // aren't control-flow ops.
-                    if !(filter_is_nonstandard && packed.op.try_standard_gate().is_some())
-                        && packed.op.py_op_is_instance(op_type)?
-                    {
+                if let Some(ref types) = op_types {
+                    // Check if this node matches any of the requested types
+                    let matches = types.iter().enumerate().any(|(i, op_type)| {
+                        // Skip standard gates when filtering for nonstandard types
+                        if filter_nonstandard.as_ref().unwrap()[i]
+                            && packed.op.try_standard_gate().is_some()
+                        {
+                            return false;
+                        }
+                        packed.op.py_op_is_instance(op_type).unwrap_or(false)
+                    });
+                    if matches {
                         nodes.push(self.unpack_into(py, node, weight)?);
                     }
                 } else {
