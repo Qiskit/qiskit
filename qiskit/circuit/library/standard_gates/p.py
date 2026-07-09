@@ -13,13 +13,17 @@
 """Phase Gate."""
 
 from __future__ import annotations
+
+import math
 from cmath import exp
+
 import numpy
+
+from qiskit._accelerate.circuit import StandardGate
 from qiskit.circuit._utils import _ctrl_state_to_int
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
-from qiskit._accelerate.circuit import StandardGate
 
 
 class PhaseGate(Gate):
@@ -312,6 +316,9 @@ class MCPhaseGate(ControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.mcp` method.
 
+    The implementation of this gate is based on the method described in [1, 2],
+    which requires :math:`O(n)` depth and :math:`O(n^2)` elementary gates
+
     Circuit symbol:
 
     .. code-block:: text
@@ -329,6 +336,14 @@ class MCPhaseGate(ControlledGate):
 
         :class:`~qiskit.circuit.library.standard_gates.CPhaseGate`:
         The singly-controlled-version of this gate.
+
+    References:
+        [1] A. J. da Silva and D. K. Park,
+        Linear-depth quantum circuits for multiqubit controlled gates,
+        `Phys. Rev. A 106, 042602
+        <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.106.042602>`__.
+
+        [2] https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py
     """
 
     def __init__(
@@ -352,7 +367,6 @@ class MCPhaseGate(ControlledGate):
         )
 
     def _define(self):
-
         from qiskit.circuit import QuantumCircuit, QuantumRegister
 
         qr = QuantumRegister(self.num_qubits, "q")
@@ -363,18 +377,49 @@ class MCPhaseGate(ControlledGate):
         elif self.num_ctrl_qubits == 1:
             qc.cp(self.params[0], 0, 1)
         else:
-            lam = self.params[0]
+            phi = self.params[0]
 
-            q_controls = list(range(self.num_ctrl_qubits))
-            q_target = self.num_ctrl_qubits
-            new_target = q_target
-            for k in range(self.num_ctrl_qubits):
-                # Note: it's better *not* to run transpile recursively
-                qc.mcrz(lam / (2**k), q_controls, new_target, use_basis_gates=False)
-                new_target = q_controls.pop()
-            qc.p(lam / (2**self.num_ctrl_qubits), new_target)
+            MCPhaseGate._apply_controlled_gates(qc, phi, self.num_qubits, step=1)
+            MCPhaseGate._apply_controlled_gates(qc, phi, self.num_qubits, step=2)
+            MCPhaseGate._apply_controlled_gates(qc, phi, self.num_qubits - 1, step=3)
+            MCPhaseGate._apply_controlled_gates(qc, phi, self.num_qubits - 1, step=4)
 
         self.definition = qc
+
+    @staticmethod
+    def _apply_controlled_gates(circuit, phi, n_qubits, step):
+        if step in [1, 3]:
+            start = 0
+            reverse = True
+        else:
+            start = 1
+            reverse = False
+
+        qubit_pairs = [
+            (control, target) for target in range(n_qubits) for control in range(start, target)
+        ]
+
+        qubit_pairs.sort(key=lambda e: e[0] + e[1], reverse=reverse)
+
+        for control, target in qubit_pairs:
+            exponent = target - control
+            if control == 0:
+                exponent = exponent - 1
+            param = 2**exponent
+
+            if target == n_qubits - 1 and step in [1, 2]:
+                sign = 1 if step == 1 else -1
+                circuit.cp(sign * phi / param, control, target)
+            else:
+                if step == 1:
+                    sign = 1
+                elif step == 2:
+                    sign = -1
+                elif step == 3:
+                    sign = -1 if control == 0 else 1
+                else:
+                    sign = 1 if control == 0 else -1
+                circuit.crx(sign * math.pi / param, control, target)
 
     def control(
         self,
