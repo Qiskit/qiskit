@@ -132,7 +132,7 @@ pub(crate) fn pack_expression_var(
                 || {
                     QpyError::InvalidParameter(format!(
                         "Could not find standalone variable {:?} in the qpy data",
-                        &name
+                        name
                     ))
                 },
             )?),
