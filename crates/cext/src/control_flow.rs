@@ -276,7 +276,7 @@ pub enum CLoopCollectionType {
 #[repr(C)]
 pub struct CLoopElements {
     /// Pointer to the array of loop elements.
-    elements: *const usize,
+    elements: *const isize,
     /// Number of elements in the array.
     len: usize,
 }
@@ -293,27 +293,27 @@ pub struct CLoopElements {
 /// // Assuming cf_inst is obtained from a circuit with control flow
 /// QkControlFlowKind kind = qk_control_flow_kind(cf_inst);
 /// switch (kind) {
-///     case QkControlFlowKind_Box:
-///         // do something with the box instruction
-///         break;
-///     case QkControlFlowKind_BreakLoop:
-///         // do something with the break loop instruction
-///         break;
-///     case QkControlFlowKind_ContinueLoop:
-///         // do something with the continue loop instruction
-///         break;
-///     case QkControlFlowKind_ForLoop:
-///         // do something with the for loop instruction
-///         break;
-///     case QkControlFlowKind_IfElse:
-///         // do something with the if-else instruction
-///         break;
-///     case QkControlFlowKind_Switch:
-///         // do something with the switch instruction
-///         break;
-///     case QkControlFlowKind_While:
-///         // do something with the while loop instruction
-///         break;
+/// case QkControlFlowKind_Box:
+///     // do something with the box instruction
+///     break;
+/// case QkControlFlowKind_BreakLoop:
+///     // do something with the break loop instruction
+///     break;
+/// case QkControlFlowKind_ContinueLoop:
+///     // do something with the continue loop instruction
+///     break;
+/// case QkControlFlowKind_ForLoop:
+///     // do something with the for loop instruction
+///     break;
+/// case QkControlFlowKind_IfElse:
+///     // do something with the if-else instruction
+///     break;
+/// case QkControlFlowKind_Switch:
+///     // do something with the switch instruction
+///     break;
+/// case QkControlFlowKind_While:
+///     // do something with the while loop instruction
+///     break;
 /// }
 /// ```
 ///
@@ -421,9 +421,9 @@ pub unsafe extern "C" fn qk_control_flow_block_circuit(
 /// ```c
 /// // Assuming cf_inst is obtained from a circuit with control flow
 /// const uint32_t *qubit_map = qk_control_flow_qubit_map(cf_inst);
-/// size_t num_qubits = qk_circuit_num_qubits(qk_control_flow_block_circuit(cf_inst, 0));
-/// for (size_t i = 0; i < num_qubits; i++) {
-///     printf("Block qubit %zu maps to circuit qubit %u\n", i, qubit_map[i]);
+/// uint32_t num_qubits = qk_circuit_num_qubits(qk_control_flow_block_circuit(cf_inst, 0));
+/// for (uint32_t i = 0; i < num_qubits; i++) {
+///     printf("Block qubit %u maps to circuit qubit %u\n", i, qubit_map[i]);
 /// }
 /// ```
 ///
@@ -459,9 +459,9 @@ pub unsafe extern "C" fn qk_control_flow_qubit_map(
 /// ```c
 /// // Assuming cf_inst is obtained from a circuit with control flow
 /// const uint32_t *clbit_map = qk_control_flow_clbit_map(cf_inst);
-/// size_t num_clbits = qk_circuit_num_clbits(qk_control_flow_block_circuit(cf_inst, 0));
-/// for (size_t i = 0; i < num_clbits; i++) {
-///     printf("Block clbit %zu maps to circuit clbit %u\n", i, clbit_map[i]);
+/// uint32_t num_clbits = qk_circuit_num_clbits(qk_control_flow_block_circuit(cf_inst, 0));
+/// for (uint32_t i = 0; i < num_clbits; i++) {
+///     printf("Block clbit %u maps to circuit clbit %u\n", i, clbit_map[i]);
 /// }
 /// ```
 ///
@@ -497,18 +497,15 @@ pub unsafe extern "C" fn qk_control_flow_clbit_map(
 /// // Assuming cf_inst is an IfElse or While control flow instruction
 /// QkConditionType cond_type = qk_control_flow_condition_type(cf_inst);
 /// switch (cond_type) {
-///     case QkConditionType_ClBit: {
-///         // do something with classical bit...
-///         break;
-///     }
-///     case QkConditionType_ClReg: {
-///         // do something with classical register...
-///         break;
-///     }
-///     case QkConditionType_Expr: {
-///         // Process expression...
-///         break;
-///     }
+/// case QkConditionType_ClBit:
+///     // do something with classical bit...
+///     break;
+/// case QkConditionType_ClReg:
+///     // do something with classical register...
+///     break;
+/// case QkConditionType_Expr:
+///     // Process expression...
+///     break;
 /// }
 /// ```
 ///
@@ -599,7 +596,7 @@ pub unsafe extern "C" fn qk_control_flow_condition_bit_info(
 /// ```c
 /// // Assuming cf_inst is an IfElse or While instruction with a register condition
 /// uint64_t bit_width = qk_control_flow_condition_reg_cond_bit_width(cf_inst);
-/// printf("Register bit width: %llu\n", bit_width);
+/// printf("Register bit width: %lu\n", bit_width);
 /// ```
 ///
 /// # Safety
@@ -691,7 +688,7 @@ pub unsafe extern "C" fn qk_control_flow_condition_reg(
 /// ```c
 /// // Assuming cf_inst is an IfElse or While instruction with a register condition
 /// uint64_t expected_value = qk_control_flow_condition_reg_cond_uint(cf_inst);
-/// printf("Expected register value: %" PRIu64 "\n", expected_value);
+/// printf("Expected register value: %lu\n", expected_value);
 /// ```
 ///
 /// # Safety
@@ -786,13 +783,13 @@ pub unsafe extern "C" fn qk_control_flow_condition_expr(
 /// // Assuming cf_inst is a Box control flow instruction
 /// QkBoxDurationKind duration_kind = qk_control_flow_box_duration_kind(cf_inst);
 /// switch (duration_kind) {
-///     case QkBoxDurationKind_NoDuration:
+/// case QkBoxDurationKind_NoDuration:
 ///     // do something...
 ///     break;
-///     case QkBoxDurationKind_Duration:
+/// case QkBoxDurationKind_Duration:
 ///     // do something...
 ///     break;
-///     case QkBoxDurationKind_Expr:
+/// case QkBoxDurationKind_Expr:
 ///     // do something...
 ///     break;
 /// }
@@ -919,9 +916,9 @@ pub unsafe extern "C" fn qk_control_flow_box_duration_expr(
 /// ```c
 /// // Assuming cf_inst is a ForLoop instruction
 /// QkLoopCollectionType collection_type = qk_control_flow_loop_collection_type(cf_inst);
-/// if (collection_type == CLoopCollectionType_List) {
+/// if (collection_type == QkLoopCollectionType_List) {
 ///     // Handle list-based loop
-/// } else {
+/// } else if (collection_type == QkLoopCollectionType_Range) {
 ///     // Handle range-based loop
 /// }
 /// ```
@@ -1013,7 +1010,7 @@ pub unsafe extern "C" fn qk_control_flow_loop_elements(
 /// // Assuming cf_inst is a ForLoop instruction with a Range collection type
 /// int64_t start, stop, step;
 /// qk_control_flow_loop_range(cf_inst, &start, &stop, &step);
-/// printf("Loop range: start=%zd, stop=%zd, step=%zd\n", start, stop, step);
+/// printf("Loop range: start=%ld, stop=%ld, step=%ld\n", start, stop, step);
 /// ```
 ///
 /// # Safety
@@ -1060,11 +1057,9 @@ pub unsafe extern "C" fn qk_control_flow_loop_range(
 /// ```c
 /// // Assuming cf_inst is a ForLoop instruction
 /// QkLoopParamKind param_kind = qk_control_flow_loop_param_kind(cf_inst);
-/// if (param_kind == CLoopParamKind_NoLoopParam) {
-///     // Loop has no parameter
-/// } else if (param_kind == CLoopParamKind_Parameter) {
+/// if (param_kind == QkLoopParamKind_Parameter) {
 ///     // Loop uses a Parameter symbol
-/// } else {
+/// } else if (param_kind == QkLoopParamKind_Variable) {
 ///     // Loop uses a Variable
 /// }
 /// ```
@@ -1437,7 +1432,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_num_cases(
 /// // Assuming cf_inst is a Switch control flow instruction
 /// for (size_t i = 0; i < qk_control_flow_switch_num_cases(cf_inst); i++) {
 ///     if (qk_control_flow_switch_is_case_default(cf_inst, i)) {
-///         printf("Case %u is the default case\n", i);
+///         printf("Case %zu is the default case\n", i);
 ///     }
 /// }
 /// ```
@@ -1481,7 +1476,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_is_case_default(
 /// ```c
 /// // Assuming cf_inst is a Switch control flow instruction
 /// uint64_t bit_width = qk_control_flow_switch_case_labels_bit_width(cf_inst, 0);
-/// printf("Maximum bit width for case 0: %" PRIu64 "\n", bit_width);
+/// printf("Maximum bit width for case 0: %lu\n", bit_width);
 /// ```
 ///
 /// # Safety
@@ -1541,7 +1536,7 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels_bit_width(
 /// // Assuming cf_inst is a Switch control flow instruction
 /// QkSwitchCaseLabels case_labels = qk_control_flow_switch_case_labels_uint(cf_inst, 0);
 /// for (size_t i = 0; i < case_labels.num_labels; i++) {
-///     printf("Label %zu: %llu\n", i, case_labels.labels[i]);
+///     printf("Label %zu: %lu\n", i, case_labels.labels[i]);
 /// }
 /// qk_control_flow_switch_case_labels_clear(&case_labels);
 /// ```

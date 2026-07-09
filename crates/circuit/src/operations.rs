@@ -478,7 +478,7 @@ pub enum ForCollection {
     /// A literal Python `range` object extracted to Rust.
     PyRange(PyRange),
     /// Some ordered collection of integers.
-    List(Vec<usize>),
+    List(Vec<isize>),
 }
 impl ForCollection {
     pub fn is_empty(&self) -> bool {
