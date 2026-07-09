@@ -58,7 +58,8 @@ from qiskit._accelerate import qpy as _qpy
 if typing.TYPE_CHECKING:
     from qiskit.circuit.annotation import QPYSerializer, Annotation
 
-MAX_LABEL_SIZE=65535
+MAX_LABEL_SIZE = 65535
+
 
 class _AnnotationSerializationState:
     def __init__(self, factories: dict[str, typing.Callable[[], QPYSerializer]]):
