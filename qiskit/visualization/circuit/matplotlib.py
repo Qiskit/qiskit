@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -426,7 +426,7 @@ class MatplotlibDrawer:
                 if isinstance(op, GlobalPhaseGate):
                     node_data[node].width = WID
                     node_data[node].param_text = get_param_str(op, "mpl", ndigits=3)
-                    layer_widths[node][0] =2
+                    layer_widths[node][0] = 2
                     continue
                 
                 if (
@@ -1170,7 +1170,7 @@ class MatplotlibDrawer:
                     param_text = get_param_str(op, "mpl", ndigits=3)
                     box = glob_data["patches_mod"].FancyBboxPatch(xy=(xpos - 0.35, ypos - 0.25), width=0.7, height=height, boxstyle="round, pad=0.1", fc=self._style["dispcol"]["u"][0], ec=self._style["dispcol"]["u"][0], linewidth=self._lwidth15, zorder=PORDER_GATE,)
                     self._ax.add_patch(box)
-                    self._ax.text(xpos,(first_wire_y + last_wire_y)/2, f"GP\n({param_text})", ha="center", va="center", fontsize=self._style["sfs"], color=self._style["gt"], clip_on=True, zorder=PORDER_TEXT,)
+                    self._ax.text(xpos,(first_wire_y + last_wire_y)/2, f"Glob\n({param_text})", ha="center", va="center", fontsize=self._style["sfs"], color=self._style["gt"], clip_on=True, zorder=PORDER_TEXT,)
                     l_width.append(layer_widths[node][0])
                     glob_data["next_x_index"] = curr_x_index
                     
@@ -1845,7 +1845,7 @@ class MatplotlibDrawer:
         elif num_qargs == 0:
             qubit_b = min(xy, key=lambda xy: xy[1])
             xpos, ypos = qubit_b
-            self._ax.text(xpos+0.15, ypos+HIG, f"GP({node_data[node].param_text})", ha="left", va="top", fontsize=self._style["fs"], color=node_data[node].tc, clip_on=True, zorder=PORDER_TEXT,)
+            self._ax.text(xpos+0.15, ypos+HIG, f"Glob({node_data[node].param_text})", ha="left", va="top", fontsize=self._style["fs"], color=node_data[node].tc, clip_on=True, zorder=PORDER_TEXT,)
 
         else:
             self._multiqubit_gate(node, node_data, glob_data, xy[num_ctrl_qubits:])
