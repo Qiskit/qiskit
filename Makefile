@@ -18,9 +18,9 @@ ifeq ($(QISKIT_BUILD_WITH_MIMALLOC), 1)
 	MIMALLOC := --features=mimalloc
 endif
 
-.PHONY: default ruff env lint lint-incr style black test test_randomized pytest pytest_randomized test_ci coverage coverage_erase clean
+.PHONY: default env lint style black test test_randomized pytest pytest_randomized test_ci coverage coverage_erase clean
 
-default: style lint-incr test ;
+default: style lint test ;
 
 # Dependencies need to be installed on the Anaconda virtual environment.
 env:
@@ -37,15 +37,6 @@ lint:
 	tools/find_optional_imports.py
 	tools/find_stray_release_notes.py
 	tools/verify_images.py
-
-lint-incr:
-	ruff check qiskit test tools setup.py
-	tools/verify_headers.py qiskit test tools
-	tools/find_optional_imports.py
-	tools/verify_images.py
-
-ruff:
-	ruff qiskit test tools setup.py
 
 style:
 	black --check qiskit test tools setup.py docs/conf.py
@@ -183,6 +174,11 @@ ctest: cheader build-clib-dev
 .PHONY: ccoverage
 ccoverage: C_LIB_RUSTC_FLAGS=-Cinstrument-coverage
 ccoverage: ctest
+
+.PHONY: qiskit-pyo3-ffi
+qiskit-pyo3-ffi:
+	rm -rf dist/rust/qiskit-pyo3-ffi
+	cargo run -p qiskit-bindgen-cli -- generate-pyo3 --cext-path crates/cext --output-path dist/rust/qiskit-pyo3-ffi
 
 .PHONY: cclean
 cclean:
