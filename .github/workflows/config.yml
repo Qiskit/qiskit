@@ -18,6 +18,14 @@ on:
         description: Newest supported version of Python
         value: '3.14'
 
+      c-old:
+        description: Minimum required version of C spec
+        value: '11'
+
+      c-new:
+        description: Latest version of C spec to use in tests
+        value: '23'
+
       runner-linux-x86_64:
         description: Runner image for Linux x86_64 jobs
         value: 'ubuntu-latest'
