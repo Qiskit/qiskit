@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -64,6 +64,7 @@ class QCircuitImage:
         cregbundle=None,
         with_layout=False,
         circuit=None,
+        barrier_label_len=16,
     ):
         """QCircuitImage initializer.
 
@@ -86,6 +87,7 @@ class QCircuitImage:
         self._circuit = circuit
         self._qubits = qubits
         self._clbits = clbits
+        self._barrier_label_len = barrier_label_len
 
         # list of lists corresponding to layers of the circuit
         self._nodes = nodes
@@ -417,7 +419,7 @@ class QCircuitImage:
                 elif isinstance(op, GlobalPhaseGate):
                     # GlobalPhaseGate has no qubits - show as gate on all wires
                     param_str = get_param_str(op, "latex", ndigits=4)
-                    gate_text = f"GP{param_str}"
+                    gate_text = f"Glob{param_str}"
                     gate_text = generate_latex_label(gate_text)
                     wire_min = 0
                     wire_max = len(self._qubits) - 1
@@ -499,7 +501,7 @@ class QCircuitImage:
             # Add phase value as sidetext
             param_str = get_param_str(op.base_gate, "latex", ndigits=4)
             top_wire = 1
-            self._latex[top_wire][col + 1] = f"\\dstick{{\\hspace{{2.0em}}\\scriptsize GP{param_str}}} \\qw"
+            self._latex[top_wire][col + 1] = f"\\dstick{{\\hspace{{2.0em}}\\scriptsize Glob{param_str}}} \\qw"
             return 4
 
         wire_min = min(wireqargs)
@@ -604,7 +606,8 @@ class QCircuitImage:
             self._latex[pos][col - 1] += " \\barrier[0em]{" + str(last - first) + "}"
             if node.op.label is not None:
                 pos = indexes[0]
-                label = node.op.label.replace(" ", "\\,")
+                if len(label) > self._barrier_label_len:
+                    label = label[: self._barrier_label_len] + "..."
                 self._latex[pos][col] = f"\\cds{{0}}{{^{{\\mathrm{{{label}}}}}}}"
 
     def _add_controls(self, wire_list, ctrlqargs, ctrl_state, col):
