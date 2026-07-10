@@ -21,9 +21,8 @@ use qiskit_circuit::instruction::Parameters;
 use smallvec::smallvec;
 
 use crate::commutation_checker::{CommutationChecker, try_matrix_with_definition};
-use crate::passes::remove_identity_equiv::{
-    MINIMUM_TOL, average_gate_fidelity_below_tol, is_identity_equiv,
-};
+use crate::passes::common::{MINIMUM_TOL, average_gate_fidelity_below_tol};
+use crate::passes::remove_identity_equiv::is_identity_equiv;
 use qiskit_circuit::circuit_instruction::OperationFromPython;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::operations::{
@@ -608,7 +607,7 @@ pub fn run_commutative_optimization(
     // We will use it to intern qubits of canonicalized instructions.
     // (In theory, we could also change qubits when merging instructions, however
     // this does not happen right now).
-    let mut new_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep)?;
+    let mut new_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep);
 
     let node_indices = dag.topological_op_nodes(false).collect::<Vec<_>>();
     let num_nodes = node_indices.len();

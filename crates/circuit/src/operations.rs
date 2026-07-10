@@ -12,8 +12,10 @@
 
 use approx::relative_eq;
 use qiskit_quantum_info::sparse_pauli_op::MatrixCompressedPaulis;
+use std::any::Any;
 use std::fmt::Debug;
 use std::num::NonZero;
+use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 use std::sync::Arc;
 use std::{fmt, vec};
@@ -21,9 +23,11 @@ use std::{fmt, vec};
 use crate::bit::{ClassicalRegister, ShareableClbit};
 use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::classical::expr;
+use crate::classical::expr::Var;
 use crate::converters::QuantumCircuitData;
 use crate::duration::Duration;
-use crate::packed_instruction::PackedInstruction;
+use crate::operations::custom_traits::{ClonableOp, ComparableOp};
+use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::{
     ParameterExpression, PyParameter, PyParameterExpression,
 };
@@ -147,11 +151,7 @@ impl Param {
                             .getattr(parameters_attr)?
                             .try_iter()?
                             .map(|elem| {
-                                let elem = elem?;
-                                let py_param_bound = elem.cast::<PyParameter>()?;
-                                let py_param = py_param_bound.borrow();
-                                let symbol = py_param.symbol();
-                                Ok(symbol.clone())
+                                Ok(Symbol::clone(&elem?.cast_into::<PyParameter>()?.borrow().0))
                             })
                             .collect::<PyResult<_>>()?;
                         Ok(Box::new(collected.into_iter()))
@@ -287,6 +287,7 @@ pub enum OperationRef<'a> {
     Unitary(&'a UnitaryGate),
     PauliProductMeasurement(&'a PauliProductMeasurement),
     PauliProductRotation(&'a PauliProductRotation),
+    CustomOperation(&'a dyn CustomOperation),
 }
 
 impl Operation for OperationRef<'_> {
@@ -300,6 +301,7 @@ impl Operation for OperationRef<'_> {
             Self::Unitary(unitary) => unitary.name(),
             Self::PauliProductMeasurement(ppm) => ppm.name(),
             Self::PauliProductRotation(rotation) => rotation.name(),
+            Self::CustomOperation(operation) => operation.name(),
         }
     }
     #[inline]
@@ -312,6 +314,7 @@ impl Operation for OperationRef<'_> {
             Self::Unitary(unitary) => unitary.num_qubits(),
             Self::PauliProductMeasurement(ppm) => ppm.num_qubits(),
             Self::PauliProductRotation(rotation) => rotation.num_qubits(),
+            Self::CustomOperation(operation) => operation.num_qubits(),
         }
     }
     #[inline]
@@ -324,6 +327,7 @@ impl Operation for OperationRef<'_> {
             Self::Unitary(unitary) => unitary.num_clbits(),
             Self::PauliProductMeasurement(ppm) => ppm.num_clbits(),
             Self::PauliProductRotation(rotation) => rotation.num_clbits(),
+            Self::CustomOperation(operation) => operation.num_clbits(),
         }
     }
     #[inline]
@@ -336,6 +340,7 @@ impl Operation for OperationRef<'_> {
             Self::Unitary(unitary) => unitary.num_params(),
             Self::PauliProductMeasurement(ppm) => ppm.num_params(),
             Self::PauliProductRotation(rotation) => rotation.num_params(),
+            Self::CustomOperation(operation) => operation.num_params(),
         }
     }
     #[inline]
@@ -348,6 +353,7 @@ impl Operation for OperationRef<'_> {
             Self::Unitary(unitary) => unitary.directive(),
             Self::PauliProductMeasurement(ppm) => ppm.directive(),
             Self::PauliProductRotation(rotation) => rotation.directive(),
+            Self::CustomOperation(operation) => operation.directive(),
         }
     }
 }
@@ -472,7 +478,7 @@ pub enum ForCollection {
     /// A literal Python `range` object extracted to Rust.
     PyRange(PyRange),
     /// Some ordered collection of integers.
-    List(Vec<usize>),
+    List(Vec<isize>),
 }
 impl ForCollection {
     pub fn is_empty(&self) -> bool {
@@ -496,6 +502,39 @@ pub struct ControlFlowInstruction {
     pub num_clbits: u32,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum LoopParam {
+    Parameter(Symbol),
+    Variable(Var),
+}
+
+impl<'a, 'py> FromPyObject<'a, 'py> for LoopParam {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        if let Ok(parameter) = ob.extract::<Symbol>() {
+            Ok(LoopParam::Parameter(parameter))
+        } else {
+            ob.extract::<Var>()
+                .map(LoopParam::Variable)
+                .map_err(PyErr::from)
+        }
+    }
+}
+
+impl<'py> IntoPyObject<'py> for LoopParam {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        match self {
+            LoopParam::Parameter(symbol) => symbol.into_pyobject(py),
+            LoopParam::Variable(var) => var.into_pyobject(py),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 #[repr(align(8))]
 pub enum ControlFlow {
@@ -507,7 +546,7 @@ pub enum ControlFlow {
     ContinueLoop,
     ForLoop {
         collection: ForCollection,
-        loop_param: Option<Symbol>,
+        loop_param: Option<LoopParam>,
     },
     IfElse {
         condition: Condition,
@@ -767,7 +806,7 @@ pub enum ControlFlowView<'a, T> {
     ContinueLoop,
     ForLoop {
         collection: &'a ForCollection,
-        loop_param: Option<&'a Symbol>,
+        loop_param: Option<&'a LoopParam>,
         body: &'a T,
     },
     IfElse {
@@ -1878,6 +1917,181 @@ impl PartialEq for PauliProductMeasurement {
 
 impl Eq for PauliProductMeasurement {}
 
+/// Private module with especific traits that allow for the implementation
+/// of non dyn-compatible traits for [`CustomOperation`]. Namely [`PartialEq`]
+/// and [`Clone`].
+mod custom_traits {
+    use crate::operations::CustomOperation;
+
+    /// A trait which implements comparisons between [`CustomOperation`] instances.
+    /// If the operation implements [`PartialEq`], this trait will be automatically implemented.
+    /// Otherwise, the user is responsible for implementing this trait.
+    #[diagnostic::on_unimplemented(
+        message = "PartialEq is required to correctly implement CustomOperation on {Self}.",
+        label = "This type needs an implementation of PartialEq",
+        note = "Consider annotating {Self} with `#[derive(PartialEq)]`"
+    )]
+    pub trait ComparableOp {
+        fn rich_eq(&self, other: &dyn CustomOperation) -> bool;
+    }
+
+    impl<Op: PartialEq + CustomOperation> ComparableOp for Op {
+        fn rich_eq(&self, other: &dyn CustomOperation) -> bool {
+            let Some(other) = other.downcast_ref() else {
+                return false;
+            };
+            self.eq(other)
+        }
+    }
+
+    /// A trait which implements dynamically cloning [`CustomOperation`] dyn objects.
+    /// If the operation implements [`Clone`], this trait will be automatically implemented.
+    /// Otherwise, the user is responsible for implementing [`Clone`].
+    #[diagnostic::on_unimplemented(
+        message = "Clone is required to correctly implement CustomOperation on {Self}.",
+        label = "This type needs an implementation of Clone",
+        note = "Consider annotating {Self} with `#[derive(Clone)]`"
+    )]
+    pub trait ClonableOp {
+        fn clone_dyn(&self) -> Box<dyn CustomOperation>;
+    }
+
+    impl<Op: Clone + CustomOperation> ClonableOp for Op {
+        fn clone_dyn(&self) -> Box<dyn CustomOperation> {
+            Box::new(self.clone())
+        }
+    }
+}
+
+/// Trait that implements common methods found in operations that, in conjunction with
+/// the [Operation] trait, allows a struct to operate in a circuit.
+///
+/// Unlike [Operation] alone, this trait focuses on the specific functions that are
+/// typically available for the two main Qiskit operation types: Gate and Instruction.
+///
+/// To classify an operation, you must implement the [`CustomOperation::is_unitary`] method,
+/// which returns a [`bool`] object with two variants:
+/// - [`true`]: For unitary instructions.
+///     - In addition to this, the implementor should define required methods for
+///       the `Gate` to function properly:
+///       - [`CustomOperation::matrix`]
+///       - [`CustomOperation::num_ctrl_qubits`]
+///       - [`CustomOperation::is_controlled_gate`]
+/// - [`false`]: For non-unitary instruction.
+///
+/// This trait has an implicit requirement to [`PartialEq`] and [`Clone`] to allow for
+/// comparison between opaque gates and dynamic cloning.
+pub trait CustomOperation:
+    Operation + Any + Debug + Send + Sync + ComparableOp + ClonableOp
+{
+    /// Return the custom label assigned to this instruction.
+    fn label(&self) -> Option<&str> {
+        None
+    }
+
+    /// Returns an inverted version of this instruction and the computed parameters.
+    fn inverse(&self, _params: &[Param]) -> Option<(PackedOperation, SmallVec<[Param; 3]>)> {
+        None
+    }
+
+    /// Returns a circuit representing the possible list of instructions that
+    /// this operation is composed of.
+    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
+        None
+    }
+
+    /// If the instance is a gate, returns the unitary matrix that represents it,
+    /// if the parameters are correct. Otherwise, it returns None.
+    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
+        // TODO: Make fallible.
+        None
+    }
+
+    /// If the instance is a gate, returns the number of control qubits.
+    fn num_ctrl_qubits(&self) -> Option<NonZero<u32>> {
+        None
+    }
+
+    /// If the instance is a gate, checks if it contains any control Qubits.
+    fn is_controlled_gate(&self) -> bool {
+        self.num_ctrl_qubits().is_some()
+    }
+
+    /// Returns whether the operation is based on a unitary matrix.
+    fn is_unitary(&self) -> bool;
+}
+
+impl PartialEq for dyn CustomOperation {
+    fn eq(&self, other: &Self) -> bool {
+        ComparableOp::rich_eq(self, other)
+    }
+}
+
+impl Clone for Box<dyn CustomOperation> {
+    fn clone(&self) -> Self {
+        self.clone_dyn()
+    }
+}
+
+impl ToOwned for dyn CustomOperation {
+    type Owned = Box<dyn CustomOperation>;
+
+    fn to_owned(&self) -> Self::Owned {
+        self.clone_dyn()
+    }
+}
+
+impl dyn CustomOperation + 'static {
+    /// Casts a reference to a CustomOperation to its original type if the correct
+    /// type is specified.
+    pub fn downcast_ref<T: CustomOperation + 'static>(&self) -> Option<&T> {
+        let self_as_any: &dyn Any = self;
+        self_as_any.downcast_ref()
+    }
+}
+
+/// Internal representation of a custom operation within a Circuit.
+///
+/// It acts as a wrapper for a CustomOperation which ensures that
+/// the operation is wrapped within a [`Box`] pointer and is aligned
+/// to 8 bytes, which enables it to be safely represented as a
+/// [`PackedOperation`].
+#[derive(Debug)]
+#[repr(align(8))]
+pub(crate) struct BoxedCustomOperation(Box<dyn CustomOperation>);
+
+impl Deref for BoxedCustomOperation {
+    type Target = dyn CustomOperation;
+
+    fn deref(&self) -> &Self::Target {
+        self.0.as_ref()
+    }
+}
+
+impl DerefMut for BoxedCustomOperation {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.0.as_mut()
+    }
+}
+
+impl Clone for BoxedCustomOperation {
+    fn clone(&self) -> Self {
+        Self(self.0.clone_dyn())
+    }
+}
+
+impl<T: CustomOperation> From<T> for BoxedCustomOperation {
+    fn from(value: T) -> Self {
+        Self(value.clone_dyn())
+    }
+}
+
+impl From<Box<dyn CustomOperation>> for BoxedCustomOperation {
+    fn from(value: Box<dyn CustomOperation>) -> Self {
+        Self(value)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use approx::assert_abs_diff_eq;
@@ -1917,6 +2131,449 @@ mod test {
             for j in 0..dim {
                 assert_abs_diff_eq!(expected_matrix[(i, j)], matrix[(i, j)], epsilon = epsilon);
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod test_custom_operations {
+    use crate::circuit_data::CircuitData;
+    use crate::gate_matrix::{H_GATE, rz_gate};
+    use crate::instruction::Parameters;
+    use crate::operations::{CustomOperation, Operation, OperationRef, Param, StandardGate};
+    use crate::packed_instruction::PackedOperation;
+    use crate::{Clbit, Qubit};
+    use ndarray::aview2;
+    use smallvec::smallvec;
+    use std::f64::consts::PI;
+
+    macro_rules! impl_static_operation {
+        ($ty:ident; $name:expr, $qubits:expr, $clbits:expr, $params:expr, $directive:expr) => {
+            impl $crate::operations::Operation for $ty {
+                fn name(&self) -> &str {
+                    $name
+                }
+                fn num_qubits(&self) -> u32 {
+                    $qubits
+                }
+                fn num_clbits(&self) -> u32 {
+                    $clbits
+                }
+                fn num_params(&self) -> u32 {
+                    $params
+                }
+                fn directive(&self) -> bool {
+                    $directive
+                }
+            }
+        };
+    }
+
+    /// HGate-like implementor
+    #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+    struct CustomH;
+    impl_static_operation!(CustomH; "h", 1, 0, 0, false);
+
+    impl CustomOperation for CustomH {
+        fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
+            CircuitData::from_standard_gates(
+                1,
+                [(StandardGate::H, smallvec![], smallvec![Qubit(0)])],
+                0.0.into(),
+            )
+            .ok()
+        }
+
+        fn matrix(&self, params: &[Param]) -> Option<ndarray::Array2<numpy::Complex64>> {
+            params.is_empty().then_some(aview2(&H_GATE).to_owned())
+        }
+
+        fn is_unitary(&self) -> bool {
+            true
+        }
+    }
+
+    /// Parameterized Z gate
+    #[derive(Debug, Clone, PartialEq, Default)]
+    struct ParametrizedAndLabeled {
+        label: Option<String>,
+    }
+    impl_static_operation!(ParametrizedAndLabeled; "custom_rz", 1, 0, 1, false);
+    impl ParametrizedAndLabeled {
+        pub fn new<T: Into<String>>(label: Option<T>) -> Self {
+            Self {
+                label: label.map(Into::into),
+            }
+        }
+    }
+    impl CustomOperation for ParametrizedAndLabeled {
+        fn is_unitary(&self) -> bool {
+            true
+        }
+
+        fn matrix(&self, params: &[Param]) -> Option<ndarray::Array2<numpy::Complex64>> {
+            match params {
+                [Param::Float(theta)] => Some(aview2(&rz_gate(*theta)).to_owned()),
+                _ => None,
+            }
+        }
+
+        fn definition(&self, params: &[Param]) -> Option<CircuitData> {
+            match params {
+                [Param::Float(theta)] => CircuitData::from_standard_gates(
+                    1,
+                    [(
+                        StandardGate::RZ,
+                        smallvec![(*theta).into()],
+                        smallvec![Qubit(0)],
+                    )],
+                    0.0.into(),
+                )
+                .ok(),
+                _ => None,
+            }
+        }
+
+        fn label(&self) -> Option<&str> {
+            self.label.as_deref()
+        }
+    }
+
+    /// Custom controlled gate
+    #[derive(Debug, Copy, Clone, PartialEq)]
+    struct Controlled;
+    impl_static_operation!(Controlled; "controlled", 1, 0, 0, false);
+    impl CustomOperation for Controlled {
+        fn is_unitary(&self) -> bool {
+            false
+        }
+
+        fn num_ctrl_qubits(&self) -> Option<std::num::NonZero<u32>> {
+            std::num::NonZero::new(1)
+        }
+    }
+    /// Custom implementation of measure
+    #[derive(Debug, Copy, Clone, PartialEq)]
+    struct Measure2;
+    impl_static_operation!(Measure2; "measure", 2, 2, 0, false);
+    impl CustomOperation for Measure2 {
+        fn is_unitary(&self) -> bool {
+            false
+        }
+    }
+
+    /// Operation that can be reversed
+    #[derive(Debug, Copy, Clone, PartialEq)]
+    struct Reversible;
+    impl_static_operation!(Reversible; "rev", 1, 0, 0, false);
+    impl CustomOperation for Reversible {
+        fn is_unitary(&self) -> bool {
+            false
+        }
+
+        fn inverse(
+            &self,
+            params: &[Param],
+        ) -> Option<(
+            crate::packed_instruction::PackedOperation,
+            smallvec::SmallVec<[Param; 3]>,
+        )> {
+            match params {
+                [] => Some((
+                    PackedOperation::from_custom_operation(Box::new(Self)),
+                    smallvec![],
+                )),
+                _ => None,
+            }
+        }
+    }
+
+    /// Fully opaque gate with no matrix
+    #[derive(Debug, Clone, PartialEq)]
+    struct OpaqueGate;
+    impl_static_operation!(OpaqueGate; "foo", 1, 0, 0, false);
+    impl CustomOperation for OpaqueGate {
+        fn is_unitary(&self) -> bool {
+            true
+        }
+    }
+
+    #[test]
+    fn try_custom_h_gate() {
+        let gate: Box<dyn CustomOperation> = Box::new(CustomH);
+
+        // Try downcasting
+        let gate = gate
+            .downcast_ref::<CustomH>()
+            .expect("Should downcast to an H gate");
+
+        assert_eq!(gate.name(), "h");
+        assert_eq!(gate.num_qubits(), 1);
+        assert_eq!(gate.num_params(), 0);
+        assert_eq!(gate.label(), None);
+
+        assert!(gate.is_unitary());
+
+        let matrix_res = gate.matrix(&[]);
+        let matrix_exp = Some(aview2(&H_GATE));
+        assert_eq!(matrix_res.as_ref().map(|mat| mat.view()), matrix_exp);
+
+        let matrix_res = gate.matrix(&[Param::Float(PI)]);
+        let matrix_exp = None;
+        assert_eq!(matrix_res, matrix_exp,);
+
+        let circuit = gate.definition(&[]).expect("Circuit should exist.");
+        assert_eq!(circuit.len(), 1);
+
+        let hgate = circuit.iter().next().expect("Should be H gate");
+        assert_eq!(hgate.op.standard_gate(), StandardGate::H);
+    }
+
+    #[test]
+    fn try_add_to_circuit() {
+        let mut circuit = CircuitData::with_capacity(1, 0, 1, 0.0.into())
+            .expect("Circuit with small capacity should be built.");
+        let as_operation = PackedOperation::from_custom_operation(Box::new(CustomH));
+        circuit
+            .push_packed_operation(as_operation, None, &[Qubit(0)], &[])
+            .expect("Instruction should be added to the circuit.");
+
+        // Retrieve operation
+        let retrieved_gate = &circuit.data()[0];
+
+        let OperationRef::CustomOperation(gate_as_h) = retrieved_gate.op.view() else {
+            panic!("Gate should be a custom gate of type CustomH");
+        };
+
+        let Some(downcast_gate) = gate_as_h.downcast_ref::<CustomH>() else {
+            panic!("Gate should be a custom gate of type CustomH");
+        };
+
+        // Check that the retreived gate is still valid.
+        assert_eq!(gate_as_h.num_qubits(), 1);
+        assert!(gate_as_h.is_unitary());
+        assert_eq!(gate_as_h.matrix(&[]), Some(aview2(&H_GATE).to_owned()));
+
+        // Final instance equality check.
+        assert_eq!(Some(&CustomH), Some(downcast_gate))
+    }
+
+    // Test a custom gate with varying labels.
+    #[test]
+    fn test_custom_gate_with_label() {
+        let no_label = ParametrizedAndLabeled::default();
+        let labeled = ParametrizedAndLabeled::new(Some("label"));
+
+        // Make into boxed
+        let boxed_no_label: Box<dyn CustomOperation> = Box::new(no_label.clone());
+        let boxed_labeled: Box<dyn CustomOperation> = Box::new(labeled.clone());
+
+        assert_ne!(&boxed_labeled, &boxed_no_label);
+        assert_eq!(boxed_labeled.label(), labeled.label());
+        assert_eq!(boxed_no_label.label(), no_label.label());
+
+        // Try adding to circuit
+        let mut circuit =
+            CircuitData::with_capacity(2, 0, 2, 0.0.into()).expect("Empty circuit should work");
+        circuit
+            .push_packed_operation(
+                PackedOperation::from_custom_operation(boxed_no_label),
+                None,
+                &[Qubit(0)],
+                &[],
+            )
+            .expect("Operation should be added successfully");
+        circuit
+            .push_packed_operation(
+                PackedOperation::from_custom_operation(boxed_labeled),
+                None,
+                &[Qubit(0)],
+                &[],
+            )
+            .expect("Operation should be added successfully");
+
+        // Test roundtrip
+        let ops_ordered: [&dyn CustomOperation; 2] = [&no_label, &labeled];
+        for (idx, op) in circuit.data().iter().enumerate() {
+            let OperationRef::CustomOperation(op_ref) = op.op.view() else {
+                panic!("Incorrect operation variant found in circuit!");
+            };
+            assert_eq!(op_ref, ops_ordered[idx]);
+        }
+    }
+
+    /// Test comparison between custom operations
+    #[test]
+    fn test_gate_equality() {
+        let custom_h = CustomH;
+        let custom_h_as_dyn: Box<dyn CustomOperation> = Box::new(CustomH);
+        let labeled = ParametrizedAndLabeled::new(Some("fee"));
+        let labeled_fee = ParametrizedAndLabeled::new(Some("fee"));
+        let labeled_fi = ParametrizedAndLabeled::new(Some("fi"));
+
+        // identicals as opaques
+        assert_eq!(&custom_h as &dyn CustomOperation, custom_h_as_dyn.as_ref());
+        // two identicals
+        assert_eq!(labeled, labeled_fee);
+        // two non-identical
+        assert_ne!(labeled, labeled_fi);
+        // two different instances
+        assert_ne!(
+            custom_h_as_dyn.as_ref(),
+            &labeled_fi as &dyn CustomOperation
+        );
+    }
+
+    // Test dynamic cloning of operations with data within.
+    #[test]
+    fn test_clone_dyn() {
+        let labeled_fee = ParametrizedAndLabeled::new(Some("fee"));
+        let labeled_fi = ParametrizedAndLabeled::new(Some("fi"));
+
+        // Try cloning as dyn refs using `ToOwned`
+        let cloned_fee: Box<dyn CustomOperation> =
+            (&labeled_fee as &dyn CustomOperation).to_owned();
+        let cloned_fi: Box<dyn CustomOperation> = (&labeled_fi as &dyn CustomOperation).to_owned();
+
+        assert_eq!(cloned_fee.as_ref(), &labeled_fee as &dyn CustomOperation);
+        assert_eq!(cloned_fi.as_ref(), &labeled_fi as &dyn CustomOperation);
+
+        // Check if label data is still the same.
+        assert_eq!(cloned_fee.label(), labeled_fee.label());
+        assert_eq!(cloned_fi.label(), labeled_fi.label());
+    }
+
+    // Test downcasting
+    #[test]
+    fn test_downcast() {
+        let measure_boxed: Box<dyn CustomOperation> = Box::new(Measure2);
+        let control_boxed: Box<dyn CustomOperation> = Box::new(Controlled);
+
+        // Check if downcasting to the right type works
+        assert_eq!(measure_boxed.downcast_ref::<Measure2>(), Some(&Measure2));
+        assert_eq!(
+            control_boxed.downcast_ref::<Controlled>(),
+            Some(&Controlled)
+        );
+
+        // Check if downcasting to the wrong type doesn't work
+        assert!(measure_boxed.downcast_ref::<Controlled>().is_none());
+        assert!(control_boxed.downcast_ref::<Measure2>().is_none());
+    }
+
+    // Test parametrized matrix
+    #[test]
+    fn parameterized_gate_matrix() {
+        let labeled_rz = ParametrizedAndLabeled::new(Some("rz"));
+        let theta: Param = (PI / 4.0).into();
+
+        let Some(matrix) = labeled_rz.matrix(&[theta]) else {
+            panic!("Matrix should exist");
+        };
+        // Compare matrices
+        assert!(approx::abs_diff_eq!(
+            matrix,
+            aview2(&rz_gate(PI / 4.0)),
+            epsilon = 1e-12
+        ));
+
+        // Compare null case
+        assert_eq!(labeled_rz.matrix(&[]), None,);
+    }
+
+    // Test inversed gate
+    #[test]
+    fn test_inverse() {
+        let reversible = Reversible;
+
+        // Retrieve the reverse, should be itself
+        let Some((reversed, params)) = reversible.inverse(&[]) else {
+            panic!("A reverse was not obtained")
+        };
+
+        // Parameters should be empty
+        assert!(params.is_empty());
+
+        let OperationRef::CustomOperation(roundtrip) = reversed.view() else {
+            panic!("Obtained operation is not custom")
+        };
+
+        // Compare matrices
+        assert_eq!(roundtrip.downcast_ref::<Reversible>(), Some(&Reversible));
+
+        // Try with invalid params
+        assert!(roundtrip.inverse(&[0.0.into()]).is_none());
+    }
+
+    // Adds all custom instructions to a Circuit
+    #[test]
+    fn test_multiple_custom_ops_in_circuit() {
+        let h = CustomH;
+        let rz = ParametrizedAndLabeled::new(Some("rz"));
+        let reversible = Reversible;
+        let meas = Measure2;
+        let opaque = OpaqueGate;
+
+        let ops: [&dyn CustomOperation; 5] = [&h, &rz, &reversible, &meas, &opaque];
+        let params: [_; 5] = [
+            None,
+            Some(Parameters::Params(smallvec![Param::from(PI)])),
+            None,
+            None,
+            None,
+        ];
+
+        let mut circuit = CircuitData::with_capacity(2, 2, 5, 0.0.into())
+            .expect("Circuit creation should succeed.");
+        for (op, params) in ops.iter().zip(params) {
+            let qubits: Vec<Qubit> = (0..op.num_qubits()).map(Qubit).collect();
+            let clbits: Vec<Clbit> = (0..op.num_clbits()).map(Clbit).collect();
+            circuit
+                .push_packed_operation(
+                    PackedOperation::from_custom_operation((*op).to_owned()),
+                    params,
+                    &qubits,
+                    &clbits,
+                )
+                .expect("Operation should be added to circuit.");
+        }
+
+        for (idx, op) in (0..circuit.len())
+            .map(|idx| &circuit.data()[idx])
+            .enumerate()
+        {
+            let OperationRef::CustomOperation(comparison) = op.op.view() else {
+                panic!("Non-custom operation found")
+            };
+
+            // Check that each instance is the same.
+            assert_eq!(comparison, ops[idx]);
+        }
+    }
+
+    // Tests that `OperationRef` delegates each function call correctly for
+    // the `Operation` trait when it refers to a custom operation.
+    #[test]
+    fn test_operation_ref_delegates_correctly() {
+        let h = CustomH;
+        let rz = ParametrizedAndLabeled::new(Some("rz"));
+        let reversible = Reversible;
+        let meas = Measure2;
+        let opaque = OpaqueGate;
+
+        let ops: [&dyn CustomOperation; 5] = [&h, &rz, &reversible, &meas, &opaque];
+        let packed_ops: Vec<PackedOperation> = ops
+            .iter()
+            .map(|op| PackedOperation::from_custom_operation((*op).to_owned()))
+            .collect();
+
+        for (op, packed) in ops.iter().zip(&packed_ops) {
+            let view = packed.view();
+            assert_eq!(op.name(), view.name());
+            assert_eq!(op.num_qubits(), view.num_qubits());
+            assert_eq!(op.num_clbits(), view.num_clbits());
+            assert_eq!(op.num_params(), view.num_params());
+            assert_eq!(op.directive(), view.directive());
         }
     }
 }

@@ -16,7 +16,11 @@ import unittest
 
 from qiskit import QuantumCircuit
 from qiskit.transpiler import InstructionDurations
-from qiskit.transpiler.passes import ASAPScheduleAnalysis, ConstrainedReschedule
+from qiskit.transpiler.passes import (
+    ASAPScheduleAnalysis,
+    ConstrainedReschedule,
+    ALAPScheduleAnalysis,
+)
 from qiskit.transpiler.passmanager import PassManager
 
 from test import QiskitTestCase
@@ -50,6 +54,27 @@ class TestConstrainedReschedule(QiskitTestCase):
         node_start_time = pm.property_set["node_start_time"]
         starts_by_name = {node.op.name: time for node, time in node_start_time.items()}
         self.assertEqual(starts_by_name, {"x": 0, "measure": 160})
+
+    def test_no_panic_underflow(self):
+        """Regression test of #16231."""
+        durations = InstructionDurations(
+            [("x", 0, 160, "dt"), ("measure", 0, 1000, "dt")], dt=2.22e-10
+        )
+        qc = QuantumCircuit(1, 1)
+        qc.measure(0, 0)
+        qc.delay(200, 0, unit="dt")
+        qc.measure(0, 0)
+
+        pm = PassManager(
+            [
+                ALAPScheduleAnalysis(durations),
+                ConstrainedReschedule(acquire_alignment=16, pulse_alignment=16),
+            ]
+        )
+        _ = pm.run(qc)
+        for node, start_time in pm.property_set["node_start_time"].items():
+            if node.op.name == "measure":
+                self.assertEqual(0, start_time % 16)
 
 
 if __name__ == "__main__":
