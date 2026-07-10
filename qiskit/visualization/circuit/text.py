@@ -1189,7 +1189,7 @@ class TextDrawing:
 
         elif isinstance(op, GlobalPhaseGate):
             params = get_param_str(op, "text", ndigits=5)
-            gate_text = "GP("+params+")"
+            gate_text = "Glob("+params+")"
             # Span all qubits
             if len(self.qubits) == 1:
                 layer.set_qubit(self.qubits[0], BoxOnQuWire(gate_text, conditional=conditional))
@@ -1260,7 +1260,7 @@ class TextDrawing:
             elif len(rest) == 0:
                 # Controlled GlobalPhaseGate has no target qubit
                 # Show the phase as a connection label between control bullets
-                connection_label = f"GP{params}"
+                connection_label = f"Glob{params}"
             else:
                 gates.append(BoxOnQuWire(gate_text, conditional=conditional))
 
@@ -1879,3 +1879,4 @@ class Layer:
                     affected_bit.right_fill = len(label) + len(affected_bit.mid)
                     if isinstance(affected_bit, (Bullet, OpenBullet)) and affected_bit.conditional:
                         affected_bit.left_fill = len(label) + len(affected_bit.mid)
+                        
