@@ -158,6 +158,10 @@ c: cheader clib
 .PHONY: ctest
 # Use ctest to run C API tests.
 ctest: cheader build-clib-dev
+# Clear the CMake build cache so any reconfiguration (e.g. `CFLAGS` environment) is always
+# recalculated.  CMake 3.24+ has a `--fresh` argument, but since the intent is full-rebuild here
+# anyway, no need to bump our version from 3.20.  The re-configuration time is short.
+	rm -rf $(C_DIR_TEST_BUILD)
 # `-S` specifies the source (including the `CMakeLists.txt` file, `-B` is where
 # to put the build files, including the generated CMake stuff.  See the
 # `CMakeLists.txt` file for the build variables.
