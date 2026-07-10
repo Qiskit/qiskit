@@ -29,6 +29,7 @@ struct foo_gate {
 
 const char *foo_name(const void *gate) {
     struct foo_gate *_self = (struct foo_gate *)gate;
+    // Void pointer.
     (void)_self;
     return FOO_NAME;
 }
@@ -38,21 +39,25 @@ uint32_t foo_num_qubits(const void *gate) {
 }
 uint32_t foo_num_clbits(const void *gate) {
     struct foo_gate *_self = (struct foo_gate *)gate;
+    // Void pointer.
     (void)_self;
     return 0;
 }
 uint32_t foo_num_params(const void *gate) {
     struct foo_gate *_self = (struct foo_gate *)gate;
+    // Void pointer.
     (void)_self;
     return 0;
 }
 bool foo_directive(const void *gate) {
     struct foo_gate *_self = (struct foo_gate *)gate;
+    // Void pointer.
     (void)_self;
     return false;
 }
 bool foo_is_unitary(const void *gate) {
     struct foo_gate *_self = (struct foo_gate *)gate;
+    // Void pointer.
     (void)_self;
     return true;
 }
@@ -69,7 +74,6 @@ QkCustomOp wrap_foo(struct foo_gate *gate) {
         .orig = gate,
         .v_table = qk_custom_op_new_vtable(entries),
     };
-
     return op;
 }
 
@@ -83,6 +87,43 @@ static int test_custom_operation_in_circuit(void) {
 
     qk_circuit_add_custom_operation(circuit, op, qubits, NULL, NULL);
 
+    // Retrieve operation from circuit
+    QkCircuitInstruction inst;
+    qk_circuit_get_instruction(circuit, 0, &inst);
+
+    if (strcmp(inst.name, FOO_NAME)) {
+        printf("Retrieved incorrect instruction name. Expected '%s', got '%s'.\n", FOO_NAME,
+               inst.name);
+        goto cleanup;
+    }
+    if (inst.num_qubits != gate.num_qubits) {
+        printf("Retrieved incorrect num_qubits for '%s'. Expected %u, got %u.\n", inst.name,
+               gate.num_qubits, inst.num_qubits);
+        goto cleanup;
+    }
+    if (inst.num_clbits) {
+        printf("Retrieved incorrect num_clbits for '%s'. Expected %u, got %u.\n", inst.name, 0,
+               inst.num_clbits);
+        goto cleanup;
+    }
+    if (inst.num_params) {
+        printf("Retrieved incorrect num_params for '%s'. Expected %u, got %u.\n", inst.name, 0,
+               inst.num_params);
+        goto cleanup;
+    }
+
+    QkOperationKind kind = qk_circuit_instruction_kind(circuit, 0);
+    printf("Kind %u\n", kind);
+
+    if (kind != 8) {
+        printf("Retrieved incorrect kind for '%s'. Expected %u, got %u.\n", inst.name, 8, kind);
+        goto cleanup;
+    }
+
+    // Query based on the information retrieved
+cleanup:
+    qk_circuit_instruction_clear(&inst);
+    qk_circuit_free(circuit);
     return res;
 }
 

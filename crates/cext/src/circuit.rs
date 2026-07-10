@@ -2793,24 +2793,34 @@ pub unsafe extern "C" fn qk_circuit_add_custom_operation(
     params: *const *const Param,
 ) -> ExitCode {
     let boxed: Box<dyn CustomOperation> = Box::new(operation);
-    println!("Before adding to circuit {}", &boxed.name());
     let op = PackedOperation::from_custom_operation(boxed);
 
     let circ = unsafe { mut_ptr_as_ref(circuit) };
 
-    let qubits = (!qubits.is_null()).then(|| unsafe { std::slice::from_raw_parts(qubits, op.num_qubits() as usize) }).unwrap_or_default();
+    let qubits = if !qubits.is_null() {
+        unsafe { std::slice::from_raw_parts(qubits, op.num_qubits() as usize) }
+    } else {
+        Default::default()
+    };
     let qargs: &[Qubit] = bytemuck::cast_slice(qubits);
 
-    let clbits = (!clbits.is_null()).then(|| unsafe { std::slice::from_raw_parts(clbits, op.num_clbits() as usize) }).unwrap_or_default();
+    let clbits = if !clbits.is_null() {
+        unsafe { std::slice::from_raw_parts(clbits, op.num_clbits() as usize) }
+    } else {
+        Default::default()
+    };
     let cargs: &[Clbit] = bytemuck::cast_slice(clbits);
 
     let params = (!params.is_null()).then(|| {
-        let params = (!params.is_null()).then(|| unsafe { std::slice::from_raw_parts(*params, op.num_params() as usize) }).unwrap_or_default();
+        let params = if !params.is_null() {
+            unsafe { std::slice::from_raw_parts(*params, op.num_params() as usize) }
+        } else {
+            Default::default()
+        };
         Parameters::Params(params.iter().cloned().collect())
     });
-    println!("Before adding to circuit {:?}", &op);
+
     let ret = circ.push_packed_operation(op, params, qargs, cargs);
-    println!("After adding to circuit");
     match ret {
         Ok(()) => ExitCode::Success,
         Err(CircuitDataError::ParameterTableError(ParameterTableError::NameConflict(_))) => {

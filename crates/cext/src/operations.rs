@@ -96,18 +96,16 @@ impl CustomOperation for CustomOp {
     }
 
     fn label(&self) -> Option<&str> {
-        unsafe {
-            CStr::from_ptr((({ &*self.v_table }).label)(self.orig))
-                .to_str()
-                .ok()
-        }
+        unsafe { CStr::from_ptr((({ &*self.v_table }).label)(self.orig)) }
+            .to_str()
+            .ok()
     }
 }
 
 /// DOCS: TODO
 #[derive(Debug, Clone)]
 pub struct CustomOpVtable {
-    pub name: fn(*const ()) -> *const i8,
+    pub name: fn(*const ()) -> *const c_char,
     pub num_qubits: fn(*const ()) -> u32,
     pub num_clbits: fn(*const ()) -> u32,
     pub num_params: fn(*const ()) -> u32,
@@ -141,7 +139,7 @@ impl TryFrom<CustomOpVtablePartial> for CustomOpVtable {
     }
 }
 
-/// DOCS: TODO
+/// TODO: Docs
 #[derive(Debug, Clone, Default)]
 pub struct CustomOpVtablePartial {
     pub name: Option<fn(*const ()) -> *const c_char>,
@@ -194,6 +192,7 @@ impl TryFrom<u32> for CustomOpMethod {
     }
 }
 
+/// TODO: Docs
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct CustomOpVTableEntry {
