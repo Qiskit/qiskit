@@ -1,10 +1,29 @@
 ---
 features_transpiler:
-  - Enable multi-IR compiler workflows using the :class:`.MultiStagePassManager`.
-    This pass manager provides a staged execution flow, where each stage can either 
-    preserve the IR or lower into another IR. Stages can be generically defined via 
+  - |
+    Enable multi-IR compiler workflows using the :class:`.MultiStagePassManager`.
+    This pass manager provides a staged execution flow, where each stage can either
+    preserve the IR or lower into another IR. Stages can be generically defined via
     the :class:`~.passmanager.Task` interface (and the base class :class:`.GenericPass`),
     which can be used to lower the IR, or via :class:`.BasePassManager` objects,
     which makes them compatible with existing pipelines such as provided by
     :func:`.generate_preset_pass_manager`.
-    
+
+    For example::
+
+        from qiskit.converters import circuit_to_dag
+        from qiskit.passmanager import GenericPass, MultiStagePassManager
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.dagcircuit import DAGCircuit
+        from qiskit.transpiler import generate_preset_pass_manager
+
+        class CircuitToDAG(GenericPass[QuantumCircuit, DAGCircuit]):
+            def run(self, passmanager_ir: QuantumCircuit) -> DAGCircuit:
+                return circuit_to_dag(passmanager_ir)
+
+        pm = MultiStagePassManager(
+            circuit_to_dag=CircuitToDAG(),
+            dag=generate_preset_pass_manager(optimization_level=1),
+        )
+
+        out = pm.run(QuantumCircuit(2))

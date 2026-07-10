@@ -10,7 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Base classes for the Qiskit passmanager optimization tasks."""
+"""Base classes for the Qiskit passmanager optimization tasks.
+
+The :class:`Task` interface is internal to Qiskit. When implementing custom
+compilation steps, subclass :class:`GenericPass` and annotate the input and
+output IR types, for example ``GenericPass[PauliIR, QuantumCircuit]``.
+"""
 
 from __future__ import annotations
 

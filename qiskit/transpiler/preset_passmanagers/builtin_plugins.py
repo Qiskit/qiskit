@@ -518,7 +518,12 @@ def _optimization_check_minimum_point(prefix: str):
 
 
 class OptimizationPassManager(PassManagerStagePlugin):
-    """Plugin class for optimization stage"""
+    """Preset pass-manager stage plugin for the optimization stage.
+
+    This is not related to :class:`~qiskit.passmanager.MultiStagePassManager`; it
+    only provides the built-in ``optimization`` stage used by
+    :func:`~qiskit.transpiler.generate_preset_pass_manager`.
+    """
 
     def pass_manager(self, pass_manager_config, optimization_level=None):
         """Build pass manager for optimization stage."""

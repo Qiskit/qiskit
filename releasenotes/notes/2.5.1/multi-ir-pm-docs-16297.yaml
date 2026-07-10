@@ -1,0 +1,10 @@
+---
+features_transpiler:
+  - |
+    Expanded the module documentation for multi-IR staged pass managers in
+    :mod:`qiskit.passmanager` and :mod:`qiskit.transpiler`. The documentation
+    now includes examples of writing lowering passes with
+    :class:`.GenericPass`, chaining custom IRs with
+    :class:`.MultiStagePassManager`, and embedding preset transpiler pipelines
+    returned by :func:`.generate_preset_pass_manager` as DAG stages.
+    Fixed `#16297 <https://github.com/Qiskit/qiskit/issues/16297>`__.

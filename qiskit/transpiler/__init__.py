@@ -954,6 +954,49 @@ instances.  They generate pass managers which provide common functionality used 
 example, :func:`~.generate_embed_passmanager` generates a :class:`~.PassManager` to "embed" a
 selected initial :class:`~.Layout` from a layout pass to the specified target device.
 
+Multi-IR compiler pipelines
+---------------------------
+
+For workflows that start in a representation other than :class:`.QuantumCircuit`
+or :class:`.DAGCircuit`, use :class:`~qiskit.passmanager.MultiStagePassManager`
+from the :mod:`qiskit.passmanager` module. Each stage lowers or optimizes the
+current IR until the pipeline produces the desired output type.
+
+:class:`~.StagedPassManager` and :class:`~qiskit.passmanager.MultiStagePassManager`
+both provide staged execution, but they target different use cases:
+
+* :class:`~.StagedPassManager` operates on :class:`.DAGCircuit`, implicitly
+  converts :class:`.QuantumCircuit` inputs, and supports ``pre_*`` and
+  ``post_*`` stage hooks.
+* :class:`~qiskit.passmanager.MultiStagePassManager` supports arbitrary IR
+  chains. Lowering between IRs must be implemented explicitly as
+  :class:`~qiskit.passmanager.GenericPass` tasks.
+
+A common pattern is to lower a custom IR to a circuit, convert it to a
+:class:`.DAGCircuit`, and then run a preset transpiler pipeline as a stage:
+
+.. plot::
+    :include-source:
+    :nofigs:
+
+    from qiskit.converters import circuit_to_dag
+    from qiskit.passmanager import GenericPass, MultiStagePassManager
+    from qiskit.circuit import QuantumCircuit
+    from qiskit.dagcircuit import DAGCircuit
+    from qiskit.transpiler import generate_preset_pass_manager
+
+    class CircuitToDAG(GenericPass[QuantumCircuit, DAGCircuit]):
+        def run(self, passmanager_ir: QuantumCircuit) -> DAGCircuit:
+            return circuit_to_dag(passmanager_ir)
+
+    pm = MultiStagePassManager(
+        circuit_to_dag=CircuitToDAG(),
+        dag=generate_preset_pass_manager(optimization_level=1),
+    )
+
+See :mod:`qiskit.passmanager` for a full multi-IR example, including writing
+lowering passes and replacing individual stages after construction.
+
 
 .. _transpiler-custom-passes:
 

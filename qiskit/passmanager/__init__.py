@@ -72,6 +72,38 @@ also be grouped inside a :class:`BasePassManager`.
 The stages must be set up such that the output IR of the current stage matches the input IR
 of the next stage, there are (currently) no automatic translations.
 
+Multi-IR staged workflows
+-------------------------
+
+:class:`MultiStagePassManager` chains named compilation stages where each stage can
+preserve or lower the intermediate representation. Unlike
+:class:`~qiskit.transpiler.StagedPassManager`, which is specialized for
+:class:`~.DAGCircuit` pipelines with implicit :class:`~.QuantumCircuit`
+conversion, :class:`MultiStagePassManager` accepts an arbitrary sequence of IR
+types as long as each stage's output matches the next stage's input.
+
+A stage may be:
+
+* a single :class:`.GenericPass` (or other :class:`~.passmanager.Task`) instance,
+* an iterable of tasks executed in order, or
+* a :class:`BasePassManager` used as a *task container*. When a pass manager is
+  provided as a stage, only its scheduled tasks are executed; the stage does not
+  invoke :meth:`~.BasePassManager._passmanager_frontend` or
+  :meth:`~.BasePassManager._passmanager_backend`.
+
+.. note::
+
+    It is the user's responsibility to connect compatible stages. The pass
+    manager does not insert automatic IR conversion passes between stages.
+
+When embedding existing transpiler pipelines, a pass manager returned by
+:func:`~qiskit.transpiler.generate_preset_pass_manager` may be used directly as
+a DAG stage.
+
+The :class:`~.passmanager.Task` interface is internal. Custom compilation steps
+should subclass :class:`.GenericPass` and declare input and output IR types via
+type parameters, for example ``GenericPass[PauliIR, QuantumCircuit]``.
+
 
 Examples
 ========
@@ -201,6 +233,125 @@ values, which have more than six digits.
 With the pass manager framework, a developer can flexibly customize
 the optimization task by combining multiple passes and flow controllers.
 See details in the following class API documentation.
+
+Multi-IR staged pipelines
+-------------------------
+
+The following example shows a minimal multi-IR pipeline. A custom Pauli-string
+IR is optimized, lowered to a :class:`~.QuantumCircuit`, decomposed, and
+finally converted to a :class:`~.DAGCircuit`.
+
+.. plot::
+   :include-source:
+   :nofigs:
+   :context:
+
+    from qiskit.circuit import QuantumCircuit
+    from qiskit.converters import circuit_to_dag
+    from qiskit.dagcircuit import DAGCircuit
+    from qiskit.passmanager import BasePassManager, GenericPass, MultiStagePassManager
+
+    class PauliIR:
+        """A toy IR storing global Pauli strings."""
+
+        def __init__(self, num_qubits: int):
+            self.num_qubits = num_qubits
+            self.instructions = []
+
+        def apply(self, pauli: str):
+            if len(pauli) != self.num_qubits:
+                raise ValueError("Incompatible number of qubits")
+            self.instructions.append(pauli)
+
+    class PauliPM(BasePassManager):
+        """A pass manager used only as a task container for the Pauli IR."""
+
+        def _passmanager_frontend(self, input_program, **kwargs):
+            return input_program
+
+        def _passmanager_backend(self, passmanager_ir, in_program, **kwargs):
+            return passmanager_ir
+
+    class RemovePauliIdentities(GenericPass[PauliIR, PauliIR]):
+        """Remove all-identity Pauli strings from the IR."""
+
+        def run(self, passmanager_ir: PauliIR) -> PauliIR:
+            passmanager_ir.instructions = [
+                pauli for pauli in passmanager_ir.instructions if any(p != "I" for p in pauli)
+            ]
+            return passmanager_ir
+
+    class PauliToCircuit(GenericPass[PauliIR, QuantumCircuit]):
+        """Lower PauliIR to QuantumCircuit."""
+
+        def run(self, passmanager_ir: PauliIR) -> QuantumCircuit:
+            circuit = QuantumCircuit(passmanager_ir.num_qubits)
+            for pauli in passmanager_ir.instructions:
+                circuit.pauli(pauli, circuit.qubits)
+            return circuit
+
+    class CircuitDecomposer(GenericPass[QuantumCircuit, QuantumCircuit]):
+        """Decompose the circuit one level."""
+
+        def run(self, passmanager_ir: QuantumCircuit) -> QuantumCircuit:
+            return passmanager_ir.decompose()
+
+    class CircuitToDAG(GenericPass[QuantumCircuit, DAGCircuit]):
+        """Lower QuantumCircuit to DAGCircuit."""
+
+        def run(self, passmanager_ir: QuantumCircuit) -> DAGCircuit:
+            return circuit_to_dag(passmanager_ir)
+
+    pauli_pm = PauliPM([RemovePauliIdentities()])
+    multi_pm = MultiStagePassManager(
+        pauli=pauli_pm,
+        pauli_to_circuit=PauliToCircuit(),
+        circuit=CircuitDecomposer(),
+        circuit_to_dag=CircuitToDAG(),
+    )
+
+    program = PauliIR(3)
+    program.apply("XYZ")
+    program.apply("III")
+    program.apply("ZZI")
+
+    output_dag = multi_pm.run(program)
+
+An existing transpiler pipeline can be embedded as a stage once the program has
+been lowered to a :class:`~.DAGCircuit`:
+
+.. plot::
+   :include-source:
+   :nofigs:
+   :context:
+
+    from qiskit.transpiler import CouplingMap, generate_preset_pass_manager
+
+    dag_pm = generate_preset_pass_manager(
+        coupling_map=CouplingMap.from_line(3), basis_gates=["sx", "x", "rz", "cx"]
+    )
+
+    transpile_pm = MultiStagePassManager(
+        pauli=pauli_pm,
+        pauli_to_circuit=PauliToCircuit(),
+        circuit_to_dag=CircuitToDAG(),
+        dag=dag_pm,
+    )
+
+    transpiled = transpile_pm.run(program)
+
+Stages are fixed at construction time, but their implementations can be replaced
+by assigning to the corresponding attribute:
+
+.. plot::
+   :include-source:
+   :nofigs:
+   :context:
+
+    from qiskit.transpiler.passes import RemoveIdentityEquivalent
+
+    multi_pm.circuit_to_dag = CircuitToDAG()
+    multi_pm.dag_opt = RemoveIdentityEquivalent()
 
 
 Interface
