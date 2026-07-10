@@ -5,7 +5,8 @@ This crate is responsible for the C API symbols only; the header files needed to
 created by `qiskit-bindgen` by parsing the source of this crate.
 
 If you add a new `pub extern "C" fn` in this crate, you will also need to give it a slot
-in `qiskit-cext-vtable`.
+in `qiskit-cext-vtable`.  See the [developer guide for vtable
+slots](../cext-vtable/README.md) for the full workflow, ABI stability rules, and lint commands.
 
 ## Building the library
 

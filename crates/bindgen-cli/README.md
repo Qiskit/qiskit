@@ -48,6 +48,9 @@ This checks various coherence properties between the declared `extern "C"` funct
 all functions have a slot and there are no duplicates; in other words, that each exported function
 is referenced exactly once.
 
+For the structure of `qiskit-cext-vtable` and guidance on assigning new slots, see
+[`crates/cext-vtable/README.md`](../cext-vtable/README.md).
+
 Note that this command does not test for ABI compatibility between different Qiskit versions.
 
 You can annotate the docstring for an `extern "C"` function in `qiskit-cext` to exempt it from these

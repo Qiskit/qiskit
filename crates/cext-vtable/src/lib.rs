@@ -10,6 +10,30 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+//! ABI-stable vtables for the Qiskit C API.
+//!
+//! Python extension modules cannot link directly against Qiskit's C symbols. Instead,
+//! [`ExportedFunctions`] describes fixed-offset function-pointer tables that are published as
+//! [`PyCapsule`](https://docs.rs/pyo3/latest/pyo3/types/struct.PyCapsule.html) objects when
+//! `import qiskit` runs.
+//!
+//! # Overview
+//!
+//! * [`FUNCTIONS_CIRCUIT`], [`FUNCTIONS_TRANSPILE`], and [`FUNCTIONS_QI`] are the three top-level
+//!   tables exposed to consumers.
+//! * Each table is built from nested [`ExportedFunctions`] values. The nesting is a code-organisation
+//!   aid; the runtime layout is flat.
+//! * Slot indices are **stable public ABI** within a Qiskit major version.
+//!
+//! # Adding a new C API function
+//!
+//! 1. Implement `pub extern "C" fn qk_*` in `qiskit-cext`.
+//! 2. Add `export_fn!(...)` in the matching module here (see [`impl_::export_fn`]).
+//! 3. Run `cargo run -p qiskit-bindgen-cli -- lint-slots -c crates/cext`.
+//!
+//! See the [crate README](README.md) for the full developer guide, ABI rules, and examples of
+//! extending leaf groups and child tables.
+
 mod impl_;
 
 pub use crate::impl_::{ExportedFunction, ExportedFunctions};

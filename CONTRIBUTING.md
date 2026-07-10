@@ -973,6 +973,29 @@ int test_FILE_NAME()
 }
 ```
 
+#### Vtable slots for Python extension modules
+
+Distributable Python extension modules access the C API through ABI-stable vtables rather than by
+linking against `qk_*` symbols directly. The slot layout is defined in
+[`crates/cext-vtable`](../crates/cext-vtable/README.md).
+
+When you add or change a `pub extern "C" fn` in `qiskit-cext`:
+
+1. Add a matching `export_fn!` entry in the corresponding module of `qiskit-cext-vtable`.
+2. Run the slots linter:
+
+   ```bash
+   cargo run -p qiskit-bindgen-cli -- lint-slots -c crates/cext
+   ```
+
+3. If you are preparing a release, update `capi_slots.txt` using
+   `cargo run -p qiskit-bindgen-cli -- show-slots` (see `MAINTAINING.md`).
+
+Slot indices are public ABI within a major Qiskit version: do not reorder or remove existing slots.
+Append new functions at the end of a leaf group or as a new child table. See the
+[`qiskit-cext-vtable` README](../crates/cext-vtable/README.md) for the full structure of
+[`ExportedFunctions`](../crates/cext-vtable/src/impl_.rs) and worked examples.
+
 ## Style and lint
 
 Qiskit uses three tools for Python code formatting and lint checking. The
