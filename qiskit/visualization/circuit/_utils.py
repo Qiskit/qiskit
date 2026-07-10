@@ -409,7 +409,6 @@ def _get_valid_justify_arg(justify):
 
     return justify
 
-
 def _get_layered_instructions(
     circuit,
     reverse_bits=False,
@@ -418,6 +417,7 @@ def _get_layered_instructions(
     wire_order=None,
     wire_map=None,
     measure_arrows=True,
+    qubit_mapping=None,
 ):
     """
     Given a circuit, return a tuple (qubits, clbits, nodes) where
@@ -436,6 +436,8 @@ def _get_layered_instructions(
         wire_order (list): A list of ints that modifies the order of the bits.
         wire_map (dict): The wire map
         measure_arrows (bool): whether do draw arrows from measurements
+        qubit_mapping (dict): Optional mapping from inner virtual qubits to 
+            outer physical qubits, used to prevent BoxOp layer collisions.
 
     Returns:
         Tuple(list,list,list): To be consumed by the visualizer directly.
@@ -480,10 +482,19 @@ def _get_layered_instructions(
         for node in dag.topological_op_nodes():
             nodes.append([node])
     else:
-        nodes = _LayerSpooler(dag, qubits, clbits, justify, measure_map, measure_arrows)
+        # Passing the qubit_mapping down to the spooler so it can calculate outer spans properly
+        nodes = _LayerSpooler(
+            dag, 
+            qubits, 
+            clbits, 
+            justify, 
+            measure_map, 
+            measure_arrows, 
+            qubit_mapping=qubit_mapping
+        )
 
     if not idle_wires:
-        # Optionally remove all idle wires and instructions that are on them and
+        # Optionally, remove all idle wires and instructions that are on them and
         # on them only.
         for wire in dag.idle_wires(ignore=["barrier", "delay"]):
             if wire in qubits:
@@ -494,7 +505,6 @@ def _get_layered_instructions(
     nodes = [[node for node in layer if any(q in qubits for q in node.qargs)] for layer in nodes]
 
     return qubits, clbits, nodes
-
 
 def _sorted_nodes(dag_layer):
     """Convert DAG layer into list of nodes sorted by node_id
