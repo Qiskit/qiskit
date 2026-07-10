@@ -4093,6 +4093,7 @@ impl DAGCircuit {
             }
 
             let mut new_layer = self.copy_empty_like(vars_mode, BlocksMode::Drop);
+            new_layer.global_phase = Param::Float(0.);
             let mut block_map = BlockMapper::new();
             let data: Vec<_> = op_nodes
                 .iter()
@@ -4135,6 +4136,7 @@ impl DAGCircuit {
                 _ => unreachable!("A non-operation node was obtained from topological_op_nodes."),
             };
             let mut new_layer = self.copy_empty_like(vars_mode, BlocksMode::Drop);
+            new_layer.global_phase = Param::Float(0.);
             let mut block_map = BlockMapper::new();
 
             // Save the support of the operation we add to the layer
