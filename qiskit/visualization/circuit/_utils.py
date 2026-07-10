@@ -306,6 +306,7 @@ def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
                 wire_label = f"{index_str} -> {index}"
             else:
                 wire_label = f"{index_str} \\mapsto {{{index}}}"
+                
         if drawer != "text":
             wire_label = wire_label.replace(" ", "\\;")  # use wider spaces
     else:
@@ -436,6 +437,7 @@ def _get_layered_instructions(
         wire_order (list): A list of ints that modifies the order of the bits.
         wire_map (dict): The wire map
         measure_arrows (bool): whether do draw arrows from measurements
+
     Returns:
         Tuple(list,list,list): To be consumed by the visualizer directly.
 
@@ -495,7 +497,6 @@ def _get_layered_instructions(
                 clbits.remove(wire)
 
     nodes = [[node for node in layer if any(q in qubits for q in node.qargs) or not node.qargs] for layer in nodes]
-
 
     return qubits, clbits, nodes
 
@@ -622,8 +623,7 @@ class _LayerSpooler(list):
                 for carg in node.cargs:
                     try:
                         carg_bit = next(bit for bit in self.measure_map if carg == bit)
-                        if self.measure_map[carg_bit] > index_stop:
-                            index_stop = self.measure_map[carg_bit]
+                        index_stop = max(index_stop, self.measure_map[carg_bit])
                     except StopIteration:
                         pass
             while curr_index > index_stop:
@@ -654,8 +654,10 @@ class _LayerSpooler(list):
         if isinstance(node.op, Measure):
             if not measure_layer:
                 measure_layer = len(self) - 1
-            if measure_layer > self.measure_map[measure_bit]:
-                self.measure_map[measure_bit] = measure_layer
+            self.measure_map[measure_bit] = max(
+                self.measure_map[measure_bit],
+                measure_layer,
+            )
 
     def slide_from_right(self, node, index):
         """Insert node into rightmost layer as long there is no conflict."""
@@ -691,7 +693,7 @@ class _LayerSpooler(list):
 
     def add(self, node, index):
         """Add 'node' where it belongs, starting the try at 'index'."""
-        # This is particularly important for the matplotlib drawer, which
+        # Before we add the node, we set its node ID to be globally unique...
         # keys several of its internal data structures with these nodes.
         global _GLOBAL_NID  # noqa: PLW0603
         node._node_id = _GLOBAL_NID
@@ -709,3 +711,4 @@ class _LayerSpooler(list):
             self.slide_from_left(node, index)
         else:
             self.slide_from_right(node, index)
+            
