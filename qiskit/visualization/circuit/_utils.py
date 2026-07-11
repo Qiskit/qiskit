@@ -409,6 +409,7 @@ def _get_valid_justify_arg(justify):
 
     return justify
 
+
 def _get_layered_instructions(
     circuit,
     reverse_bits=False,
@@ -436,7 +437,7 @@ def _get_layered_instructions(
         wire_order (list): A list of ints that modifies the order of the bits.
         wire_map (dict): The wire map
         measure_arrows (bool): whether do draw arrows from measurements
-        qubit_mapping (dict): Optional mapping from inner virtual qubits to 
+        qubit_mapping (dict): Optional mapping from inner virtual qubits to
             outer physical qubits, used to prevent BoxOp layer collisions.
 
     Returns:
@@ -484,13 +485,7 @@ def _get_layered_instructions(
     else:
         # Passing the qubit_mapping down to the spooler so it can calculate outer spans properly
         nodes = _LayerSpooler(
-            dag, 
-            qubits, 
-            clbits, 
-            justify, 
-            measure_map, 
-            measure_arrows, 
-            qubit_mapping=qubit_mapping
+            dag, qubits, clbits, justify, measure_map, measure_arrows, qubit_mapping=qubit_mapping
         )
 
     if not idle_wires:
@@ -505,6 +500,7 @@ def _get_layered_instructions(
     nodes = [[node for node in layer if any(q in qubits for q in node.qargs)] for layer in nodes]
 
     return qubits, clbits, nodes
+
 
 def _sorted_nodes(dag_layer):
     """Convert DAG layer into list of nodes sorted by node_id
@@ -561,7 +557,9 @@ _GLOBAL_NID = 0
 class _LayerSpooler(list):
     """Manipulate list of layer dicts for _get_layered_instructions."""
 
-    def __init__(self, dag, qubits, clbits, justification, measure_map, measure_arrows, qubit_mapping=None):
+    def __init__(
+        self, dag, qubits, clbits, justification, measure_map, measure_arrows, qubit_mapping=None
+    ):
         """Create spool"""
         super().__init__()
         self.dag = dag
@@ -572,11 +570,14 @@ class _LayerSpooler(list):
         self.measure_arrows = measure_arrows
         self.qubit_mapping = qubit_mapping
         self.cregs = [self.dag.cregs[reg] for reg in self.dag.cregs]
-        
+
         # Construct a mapped virtual qubit list for crossover checking
         # This allows nested BoxOps to evaluate their span based on the outer circuit's physical layout.
         if self.qubit_mapping:
-            max_idx = max((v for v in self.qubit_mapping.values() if isinstance(v, int)), default=len(self.qubits) - 1)
+            max_idx = max(
+                (v for v in self.qubit_mapping.values() if isinstance(v, int)),
+                default=len(self.qubits) - 1,
+            )
             self.mapped_qubits = [None] * (max_idx + 1)
             for q in self.qubits:
                 idx = self.qubit_mapping.get(q)
