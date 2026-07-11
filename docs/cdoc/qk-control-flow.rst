@@ -1,3 +1,5 @@
+.. _capi-control-flow:
+
 ==============
 Control Flow
 ==============

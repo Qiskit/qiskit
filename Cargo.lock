@@ -93,9 +93,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.102"
+version = "1.0.103"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f202df86484c868dbad7eaa557ef785d5c66295e41b460ef922eca0723b842c"
+checksum = "2a4385e2e34eb35d6b3efe798b9eb88096925d87726c0798709bf56d9ed84af3"
 
 [[package]]
 name = "approx"
@@ -2125,9 +2125,9 @@ dependencies = [
 
 [[package]]
 name = "pulp"
-version = "0.22.2"
+version = "0.22.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e205bb30d5b916c55e584c22201771bcf2bad9aabd5d4127f38387140c38632"
+checksum = "046aa45b989642ec2e4717c8e72d677b13edd831a4d3b6cf37d9a3e54912496a"
 dependencies = [
  "bytemuck",
  "cfg-if",
@@ -2154,9 +2154,9 @@ dependencies = [
 
 [[package]]
 name = "pulp-wasm-simd-flag"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40e24eee682d89fb193496edf918a7f407d30175b2e785fe057e4392dfd182e0"
+checksum = "1d8f70e07b9c3962945a74e59ca1c511bba65b6419468acc217c457d93f3c740"
 
 [[package]]
 name = "py_literal"
@@ -2248,7 +2248,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-accelerate"
-version = "2.5.0-rc1"
+version = "2.6.0-dev"
 dependencies = [
  "approx",
  "hashbrown 0.15.5",
@@ -2264,7 +2264,7 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-transpiler",
  "qiskit-util",
- "rand 0.10.1",
+ "rand 0.10.2",
  "rand_distr 0.6.0",
  "rand_pcg",
  "rayon",
@@ -2274,7 +2274,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-bindgen"
-version = "2.5.0-rc1"
+version = "2.6.0-dev"
 dependencies = [
  "anyhow",
  "cbindgen",
@@ -2285,7 +2285,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-bindgen-cli"
-version = "2.5.0-rc1"
+version = "2.6.0-dev"
 dependencies = [
  "anyhow",
  "cbindgen",
@@ -2298,7 +2298,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-cext"
-version = "2.5.0-rc1"
+version = "2.6.0-dev"
 dependencies = [
  "anyhow",
  "hashbrown 0.15.5",
@@ -2314,7 +2314,7 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-transpiler",
  "qiskit-util",
- "rand 0.10.1",
+ "rand 0.10.2",
  "rand_pcg",
  "smallvec",
  "thiserror 2.0.18",
@@ -2323,14 +2323,14 @@ dependencies = [
 
 [[package]]
 name = "qiskit-cext-vtable"
-version = "2.5.0-rc1"
+version = "2.6.0-dev"
 dependencies = [
  "qiskit-cext",
 ]
 
 [[package]]
 name = "qiskit-circuit"
-version = "2.5.0-rc1"
+version = "2.6.0-dev"
 dependencies = [
  "ahash 0.8.12",
  "approx",
@@ -2365,7 +2365,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-circuit-library"
-version = "2.5.0-rc1"
+version = "2.6.0-dev"
 dependencies = [
  "hashbrown 0.15.5",
  "itertools 0.14.0",
@@ -2378,7 +2378,7 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-synthesis",
  "qiskit-util",
- "rand 0.10.1",
+ "rand 0.10.2",
  "rand_distr 0.6.0",
  "rand_pcg",
  "rayon",
@@ -2389,7 +2389,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-providers"
-version = "2.5.0-rc1"
+version = "2.6.0-dev"
 dependencies = [
  "approx",
  "hashbrown 0.15.5",
@@ -2401,7 +2401,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-pyext"
-version = "2.5.0-rc1"
+version = "2.6.0-dev"
 dependencies = [
  "anyhow",
  "cbindgen",
@@ -2423,7 +2423,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-qasm2"
-version = "2.5.0-rc1"
+version = "2.6.0-dev"
 dependencies = [
  "hashbrown 0.15.5",
  "num-bigint",
@@ -2432,7 +2432,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-qasm3"
-version = "2.5.0-rc1"
+version = "2.6.0-dev"
 dependencies = [
  "foldhash 0.2.0",
  "hashbrown 0.15.5",
@@ -2448,7 +2448,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-qpy"
-version = "2.5.0-rc1"
+version = "2.6.0-dev"
 dependencies = [
  "binrw",
  "bytemuck",
@@ -2470,7 +2470,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-quantum-info"
-version = "2.5.0-rc1"
+version = "2.6.0-dev"
 dependencies = [
  "approx",
  "bytemuck",
@@ -2487,7 +2487,7 @@ dependencies = [
  "pyo3",
  "qiskit-circuit",
  "qiskit-util",
- "rand 0.10.1",
+ "rand 0.10.2",
  "rand_distr 0.6.0",
  "rand_pcg",
  "rayon",
@@ -2497,7 +2497,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-synthesis"
-version = "2.5.0-rc1"
+version = "2.6.0-dev"
 dependencies = [
  "approx",
  "binrw",
@@ -2515,7 +2515,7 @@ dependencies = [
  "qiskit-circuit",
  "qiskit-quantum-info",
  "qiskit-util",
- "rand 0.10.1",
+ "rand 0.10.2",
  "rand_distr 0.6.0",
  "rand_pcg",
  "rayon",
@@ -2529,7 +2529,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-transpiler"
-version = "2.5.0-rc1"
+version = "2.6.0-dev"
 dependencies = [
  "anyhow",
  "approx",
@@ -2548,7 +2548,7 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-synthesis",
  "qiskit-util",
- "rand 0.10.1",
+ "rand 0.10.2",
  "rand_pcg",
  "rayon",
  "rayon-cond",
@@ -2561,7 +2561,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-util"
-version = "2.5.0-rc1"
+version = "2.6.0-dev"
 dependencies = [
  "foldhash 0.2.0",
  "indexmap",
@@ -2620,9 +2620,9 @@ dependencies = [
 
 [[package]]
 name = "rand"
-version = "0.10.1"
+version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2e8e8bcc7961af1fdac401278c6a831614941f6164ee3bf4ce61b7edb162207"
+checksum = "c7f5fa3a058cd35567ef9bfa5e75732bee0f9e4c55fa90477bef2dfcdbc4be80"
 dependencies = [
  "chacha20",
  "getrandom 0.4.3",
@@ -2690,7 +2690,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4d431c2703ccf129de4d45253c03f49ebb22b97d6ad79ee3ecfc7e3f4862c1d8"
 dependencies = [
  "num-traits",
- "rand 0.10.1",
+ "rand 0.10.2",
 ]
 
 [[package]]
@@ -2765,9 +2765,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.12.4"
+version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1292b7759ae1cb9ec195452d1390a074f0cd8541ab7a5a8c31cd6db45d4a6ba"
+checksum = "2a0e75113e14dc5acb068cd0786884f214f1312650a3d36d269f5c4f3cdee8a2"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -2901,7 +2901,7 @@ dependencies = [
  "num-traits",
  "petgraph 0.8.3",
  "priority-queue",
- "rand 0.10.1",
+ "rand 0.10.2",
  "rand_distr 0.6.0",
  "rand_pcg",
  "rayon",
@@ -3173,7 +3173,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.3",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",
@@ -3384,13 +3384,13 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.23.3"
+version = "1.23.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "144d6b123cef80b301b8f72a9e2ca4370ddec21950d0a103dd22c437006d2db7"
+checksum = "bf80a72845275afea99e7f2b434723d3bc7e38470fcd1c7ed39a599c73319a53"
 dependencies = [
  "getrandom 0.4.3",
  "js-sys",
- "rand 0.10.1",
+ "rand 0.10.2",
  "wasm-bindgen",
 ]
 
