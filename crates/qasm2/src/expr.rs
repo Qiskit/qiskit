@@ -209,7 +209,10 @@ impl<'py> IntoPyObject<'py> for Expr {
             .into_any(),
             Expr::CustomFunction(callable, exprs) => bytecode::ExprCustom {
                 callable,
-                arguments: PyTuple::new(py, exprs)?.unbind(),
+                arguments: exprs
+                    .into_iter()
+                    .map(|arg| arg.into_pyobject(py).map(|obj| obj.unbind()))
+                    .collect::<Result<Vec<_>, _>>()?,
             }
             .into_pyobject(py)?
             .into_any(),
@@ -265,6 +268,11 @@ struct EvalState {
     state: State,
     token: Token,
 }
+
+/// Either a fully-resolved expression component (`Continue`) or the stack frame to push while
+/// we wait for the rest of a sub-expression (`Break`), from one step of the iterative
+/// operator-precedence parser.
+type ExprStep<T> = Result<ControlFlow<(EvalState, u8), T>, ParseError>;
 
 /// A subparser used to do the operator-precedence part of the parsing for individual parameter
 /// expressions.  The main parser creates a new instance of this struct for each expression it
