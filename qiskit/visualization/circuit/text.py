@@ -1308,10 +1308,10 @@ class TextDrawing:
             layers.append(layer.full_layer)
 
         return layers
+    
 
     def add_control_flow(self, node, layers, wire_map):
         """Add control flow ops to the circuit drawing."""
-
         if (isinstance(node.op, SwitchCaseOp) and isinstance(node.op.target, expr.Expr)) or (
             getattr(node.op, "condition", None) and isinstance(node.op.condition, expr.Expr)
         ):
@@ -1384,7 +1384,15 @@ class TextDrawing:
                 )
                 layers.append(flow_layer.full_layer)
 
-            _, _, nodes = _get_layered_instructions(circuit, wire_map=flow_wire_map)
+            # Build the mapping tracking the internal virtual qubits to their outer index positions
+            qubit_mapping = {inner: wire_map[outer] for outer, inner in zip(node.qargs, circuit.qubits)}
+
+            # Pass the layout map into the layered instructions resolver
+            _, _, nodes = _get_layered_instructions(
+                circuit, 
+                wire_map=flow_wire_map, 
+                qubit_mapping=qubit_mapping
+            )
             for layer_nodes in nodes:
                 # Limit qubits sent to only ones from main circuit, so qubit_layer is correct length
                 flow_layer2 = Layer(

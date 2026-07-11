@@ -561,7 +561,7 @@ _GLOBAL_NID = 0
 class _LayerSpooler(list):
     """Manipulate list of layer dicts for _get_layered_instructions."""
 
-    def __init__(self, dag, qubits, clbits, justification, measure_map, measure_arrows):
+    def __init__(self, dag, qubits, clbits, justification, measure_map, measure_arrows, qubit_mapping=None):
         """Create spool"""
         super().__init__()
         self.dag = dag
@@ -570,7 +570,22 @@ class _LayerSpooler(list):
         self.justification = justification
         self.measure_map = measure_map
         self.measure_arrows = measure_arrows
+        self.qubit_mapping = qubit_mapping
         self.cregs = [self.dag.cregs[reg] for reg in self.dag.cregs]
+        
+        # Construct a mapped virtual qubit list for crossover checking
+        # This allows nested BoxOps to evaluate their span based on the outer circuit's physical layout.
+        if self.qubit_mapping:
+            max_idx = max((v for v in self.qubit_mapping.values() if isinstance(v, int)), default=len(self.qubits) - 1)
+            self.mapped_qubits = [None] * (max_idx + 1)
+            for q in self.qubits:
+                idx = self.qubit_mapping.get(q)
+                if isinstance(idx, int):
+                    if idx >= len(self.mapped_qubits):
+                        self.mapped_qubits.extend([None] * (idx - len(self.mapped_qubits) + 1))
+                    self.mapped_qubits[idx] = q
+        else:
+            self.mapped_qubits = self.qubits
 
         if self.justification == "left":
             for dag_layer in dag.layers():
@@ -602,7 +617,8 @@ class _LayerSpooler(list):
 
     def insertable(self, node, nodes):
         """True .IFF. we can add 'node' to layer 'nodes'"""
-        return not _any_crossover(self.qubits, node, nodes, self.measure_arrows)
+        # Use the physical mapped_qubits to correctly calculate spans for nested instructions
+        return not _any_crossover(self.mapped_qubits, node, nodes, self.measure_arrows)
 
     def slide_from_left(self, node, index):
         """Insert node into first layer where there is no conflict going l > r"""
