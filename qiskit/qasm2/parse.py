@@ -429,5 +429,5 @@ def _evaluate_argument(expr, parameters):
             return left**right
         raise ValueError(f"unhandled binary opcode: {opcode}")
     if isinstance(expr, ExprCustom):
-        return expr.call(*(_evaluate_argument(x, parameters) for x in expr.arguments))
+        return expr.call([_evaluate_argument(x, parameters) for x in expr.arguments])
     raise ValueError(f"unhandled expression type: {expr}")
