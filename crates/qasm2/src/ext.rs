@@ -10,7 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::sync::Arc;
 use pyo3::prelude::*;
+
+use crate::error::ParseError;
 
 /// Information about a custom instruction that Python space is able to construct to pass down to
 /// us.
@@ -84,18 +87,11 @@ pub enum ClassicalCallableExt {
     Custom { num_params: usize, f: ClassicalFn },
 }
 
-#[derive(Clone, Debug)]
-pub enum ClassicalCallableExt {
-    /// An extension to OpenQASM 2 that's built into Qiskit.
-    Builtin(ClassicalBuiltinExt),
-    /// A callable Python object.
-    Py { num_params: usize, ob: Py<PyAny> },
-}
 impl ClassicalCallableExt {
     pub fn num_params(&self) -> usize {
         match self {
             Self::Builtin(builtin) => builtin.num_params(),
-            Self::Py { num_params, ob: _ } => *num_params,
+            Self::Custom { num_params, ..} => *num_params,
         }
     }
 
@@ -130,12 +126,43 @@ impl CustomClassical {
     #[new]
     #[pyo3(text_signature = "(name, num_params, callable, /)")]
     fn __new__(name: String, num_params: usize, callable: Py<PyAny>) -> Self {
+        // Capture Py<PyAny> inside the Arc<dyn Fn> closure so ClassicalCallableExt itself
+        // has no pyo3 type in its definition.
+        let f: ClassicalFn = Arc::new(move |params: &[f64]| {
+            Python::attach(|py| {
+                // f64::IntoPyObject::Error = Infallible, so this cannot fail.
+                let py_args = pyo3::types::PyTuple::new(py, params)
+                    .expect("f64 -> PyFloat conversion is infallible");
+                let result = callable.call1(py, py_args).map_err(|e| {
+                    let desc = e
+                        .value(py)
+                        .str()
+                        .map(|s| s.to_string())
+                        .unwrap_or_else(|_| {
+                            let type_name = e
+                                .get_type(py)
+                                .qualname()
+                                .map(|n| n.to_string())
+                                .unwrap_or_else(|_| "?".to_string());
+                            format!("<{type_name}: unprintable>")
+                        });
+                    // Keep the original PyErr as `source` so that the traceback is preserved.
+                    ParseError::with_source(
+                        format!("caught exception when constant folding: {desc}"),
+                        Arc::new(e),
+                    )
+                })?;
+                result.extract::<f64>(py).map_err(|e| {
+                    ParseError::with_source(
+                        "user-provided classical function returned non-float".to_owned(),
+                        Arc::new(e),
+                    )
+                })
+            })
+        });
         Self {
             name,
-            callable: ClassicalCallableExt::Py {
-                num_params,
-                ob: callable,
-            },
+            callable: ClassicalCallableExt::Custom { num_params, f },
         }
     }
 

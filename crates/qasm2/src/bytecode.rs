@@ -361,7 +361,7 @@ impl BytecodeIterator {
                 custom_classical,
                 strict,
             )
-            .map_err(QASM2ParseError::new_err)?,
+            .map_err(parse_error_to_py)?,
             buffer: vec![],
             buffer_used: 0,
         })
@@ -378,7 +378,9 @@ impl BytecodeIterator {
         if self.buffer_used >= self.buffer.len() {
             self.buffer.clear();
             self.buffer_used = 0;
-            self.parser_state.parse_next(&mut self.buffer)?;
+            self.parser_state
+                .parse_next(&mut self.buffer)
+                .map_err(parse_error_to_py)?;
         }
         if self.buffer.is_empty() {
             Ok(None)

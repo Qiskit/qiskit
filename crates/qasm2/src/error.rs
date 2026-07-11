@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use pyo3::import_exception;
+use std::sync::Arc;
 
 use crate::lex::Token;
 
@@ -78,8 +79,6 @@ pub fn message_bad_eof(position: Option<&Position>, required: &str) -> String {
         &format!("unexpected end-of-file when expecting to see {required}"),
     )
 }
-
-import_exception!(qiskit.qasm2.exceptions, QASM2ParseError);
 
 /// Pure-Rust error type used as the error channel.
 #[derive(Debug, Clone)]
