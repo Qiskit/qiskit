@@ -10,8 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::sync::Arc;
 use pyo3::prelude::*;
+use std::sync::Arc;
 
 use crate::error::ParseError;
 
@@ -91,7 +91,7 @@ impl ClassicalCallableExt {
     pub fn num_params(&self) -> usize {
         match self {
             Self::Builtin(builtin) => builtin.num_params(),
-            Self::Custom { num_params, ..} => *num_params,
+            Self::Custom { num_params, .. } => *num_params,
         }
     }
 
