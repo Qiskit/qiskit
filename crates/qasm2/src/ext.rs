@@ -72,6 +72,18 @@ impl ClassicalBuiltinExt {
     }
 }
 
+/// A pure-Rust callable type for custom classical functions.
+pub type ClassicalFn = Arc<dyn Fn(&[f64]) -> Result<f64, ParseError> + Send + Sync>;
+
+/// A classical callable used during expression constant-folding in the qasm2 parser.
+#[derive(Clone)]
+pub enum ClassicalCallableExt {
+    /// An extension to OpenQASM 2 that's built into Qiskit.
+    Builtin(ClassicalBuiltinExt),
+    /// A user-supplied callable wrapped in an Arc closure.
+    Custom { num_params: usize, f: ClassicalFn },
+}
+
 #[derive(Clone, Debug)]
 pub enum ClassicalCallableExt {
     /// An extension to OpenQASM 2 that's built into Qiskit.
@@ -84,6 +96,18 @@ impl ClassicalCallableExt {
         match self {
             Self::Builtin(builtin) => builtin.num_params(),
             Self::Py { num_params, ob: _ } => *num_params,
+        }
+    }
+
+    pub fn call(&self, params: &[f64]) -> Result<f64, ParseError> {
+        match self {
+            Self::Builtin(builtin) => builtin.call(params).map_err(|expected| {
+                ParseError::new(format!(
+                    "argument mismatch: expected {expected}, got {}",
+                    params.len()
+                ))
+            }),
+            Self::Custom { f, .. } => f(params),
         }
     }
 }
