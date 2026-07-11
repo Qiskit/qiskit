@@ -825,10 +825,9 @@ class TestCustomClassical(QiskitTestCase):
                 program, custom_classical=[qiskit.qasm2.CustomClassical("f", 1, lambda x: x)]
             )
 
-
     def test_runtime_failure_in_gate_body_raises_qasm2_parse_error(self):
-        def always_raises(x):
-            raise RuntimeError("boom")
+        def always_raises(*_):
+            raise RuntimeError("expected failure")
 
         program = """
             OPENQASM 2.0;
@@ -842,7 +841,9 @@ class TestCustomClassical(QiskitTestCase):
             custom_classical=[qiskit.qasm2.CustomClassical("bad", 1, always_raises)],
         )
         # The exception is raised here, when _evaluate_argument processes ExprCustom.
-        with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "caught exception"):
+        with self.assertRaisesRegex(
+            qiskit.qasm2.QASM2ParseError, "caught exception when constant folding"
+        ):
             _ = circuit.data[0].operation.definition
 
     def test_runtime_non_float_in_gate_body_raises_qasm2_parse_error(self):
@@ -858,6 +859,7 @@ class TestCustomClassical(QiskitTestCase):
         )
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "non-float"):
             _ = circuit.data[0].operation.definition
+
 
 @ddt.ddt
 class TestStrict(QiskitTestCase):
