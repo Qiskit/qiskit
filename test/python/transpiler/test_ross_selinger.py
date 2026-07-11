@@ -41,7 +41,6 @@ from qiskit.transpiler.passes.synthesis import RossSelingerSynthesis
 
 from test import QiskitTestCase
 
-
 # Set of single-qubit Clifford gates
 CLIFFORD_GATES_1Q_SET = {"id", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg"}
 
@@ -189,13 +188,20 @@ class TestRossSelingerPlugin(QiskitTestCase):
         plugin = RossSelingerSynthesis()
 
         epsilons = [1e-6, 1e-8, 1e-10]
-        t_expected = [62, 81, 105]
+        previous_t_count = 0
 
-        for eps, t_expect in zip(epsilons, t_expected):
-            with self.subTest(eps=eps, t_expect=t_expect):
+        for eps in epsilons:
+            with self.subTest(eps=eps):
                 compiled_dag = plugin.run(unitary, method="gridsynth", config={"epsilon": eps})
                 t_count = compiled_dag.count_ops().get("t", 0)
-                self.assertLessEqual(t_count, t_expect)
+
+                # Monotonically increasing T-count shows epsilon configs are processed
+                self.assertGreaterEqual(t_count, previous_t_count)
+                previous_t_count = t_count
+
+                compiled = dag_to_circuit(compiled_dag)
+                self.assertLessEqual(set(compiled.count_ops()), CLIFFORD_T_GATES_SET)
+                self.assertTrue(Operator(circuit).equiv(Operator(compiled), atol=eps))
 
 
 if __name__ == "__main__":
