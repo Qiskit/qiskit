@@ -1,0 +1,8 @@
+---
+fixes_visualization:
+  - |
+    Fixed circuit drawers printing the full statevector amplitudes for
+    :class:`~.Initialize` and :class:`~.StatePreparation` instructions.
+    The drawers now omit these parameters, consistent with how
+    :class:`~.UnitaryGate` is displayed.
+    Fixed `#11470 <https://github.com/Qiskit/qiskit/issues/11470>`__.
