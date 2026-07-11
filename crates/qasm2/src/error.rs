@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::import_exception;
 use std::sync::Arc;
 
 use crate::lex::Token;

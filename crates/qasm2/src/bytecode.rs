@@ -11,9 +11,7 @@
 // that they have been altered from the originals.
 
 use num_bigint::BigUint;
-use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
-use pyo3::types::PyTuple;
 pyo3::import_exception!(qiskit.qasm2.exceptions, QASM2ParseError);
 
 /// Convert a `ParseError` from the pyo3-free parsing modules into the `QASM2ParseError`
