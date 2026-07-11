@@ -80,3 +80,46 @@ pub fn message_bad_eof(position: Option<&Position>, required: &str) -> String {
 }
 
 import_exception!(qiskit.qasm2.exceptions, QASM2ParseError);
+
+/// Pure-Rust error type used as the error channel.
+#[derive(Debug, Clone)]
+pub struct ParseError {
+    pub message: String,
+    pub source: Option<Arc<dyn std::error::Error + Send + Sync>>,
+}
+
+impl ParseError {
+    pub fn new(message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+            source: None,
+        }
+    }
+
+    /// As [`ParseError::new`], but chaining `source` as the original cause of the failure.
+    pub fn with_source(
+        message: impl Into<String>,
+        source: Arc<dyn std::error::Error + Send + Sync>,
+    ) -> Self {
+        Self {
+            message: message.into(),
+            source: Some(source),
+        }
+    }
+    /// Replace the message (e.g. to prepend position information) while keeping any chained
+    /// `source` intact.
+    pub fn with_message(self, message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+            source: self.source,
+        }
+    }
+}
+
+impl std::fmt::Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
+impl std::error::Error for ParseError {}
