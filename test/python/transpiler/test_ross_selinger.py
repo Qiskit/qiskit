@@ -188,15 +188,21 @@ class TestRossSelingerPlugin(QiskitTestCase):
         plugin = RossSelingerSynthesis()
 
         epsilons = [1e-6, 1e-8, 1e-10]
-        previous_t_count = 0
+        # We start with a lower bound that guarantees
+        # the first iteration requires strictly more than 50 T-gates
+        previous_t_count = 50
 
         for eps in epsilons:
             with self.subTest(eps=eps):
                 compiled_dag = plugin.run(unitary, method="gridsynth", config={"epsilon": eps})
                 t_count = compiled_dag.count_ops().get("t", 0)
 
-                # Monotonically increasing T-count shows epsilon configs are processed
-                self.assertGreaterEqual(t_count, previous_t_count)
+                # Ensure T-count strictly increases as epsilon gets tighter
+                self.assertGreater(t_count, previous_t_count)
+
+                # Loose upper bound to catch drastic regressions (e.g. 600 T-gates)
+                self.assertLess(t_count, 150)
+
                 previous_t_count = t_count
 
                 compiled = dag_to_circuit(compiled_dag)
