@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::cmp::Ordering;
 use std::str::FromStr;
 use std::sync::OnceLock;
 
@@ -33,11 +34,34 @@ use qiskit_circuit::instruction::Instruction;
 use qiskit_circuit::{PhysicalQubit, gate_matrix};
 use qiskit_synthesis::euler_one_qubit_decomposer::{
     EULER_BASES, EULER_BASIS_NAMES, EulerBasis, EulerBasisSet, OneQubitGateSequence,
-    unitary_to_gate_sequence_inner,
+    angles_from_unitary, generate_circuit,
 };
 
 fn compute_error_term_from_target(gate: &str, target: &Target, qubit: PhysicalQubit) -> f64 {
     1. - target.get_error(gate, &[qubit]).unwrap_or(0.)
+}
+
+/// Resynthesize a 1q unitary in each Euler basis of the set and return the candidate with the
+/// lowest error for the target (falling back to the lowest gate count when there is no target).
+/// Unlike selecting on gate count alone, this accounts for otherwise-tied candidates having
+/// very different error rates on the target.
+fn resynthesize_run_min_error(
+    operator: ArrayView2<Complex64>,
+    target_basis_set: &EulerBasisSet,
+    qubit: PhysicalQubit,
+    target: Option<&Target>,
+) -> Option<OneQubitGateSequence> {
+    target_basis_set
+        .get_bases()
+        .map(|target_basis| {
+            let [theta, phi, lam, phase] = angles_from_unitary(operator, target_basis);
+            generate_circuit(&target_basis, theta, phi, lam, phase, true, None).unwrap()
+        })
+        .min_by(|a, b| {
+            let error_a = compute_error_from_target_one_qubit_sequence(a, qubit, target);
+            let error_b = compute_error_from_target_one_qubit_sequence(b, qubit, target);
+            error_a.partial_cmp(&error_b).unwrap_or(Ordering::Equal)
+        })
 }
 
 fn compute_error_from_target_one_qubit_sequence(
@@ -417,14 +441,8 @@ pub fn run_optimize_1q_gates_decomposition(
             } else {
                 (error, raw_run.len())
             };
-            let sequence = unitary_to_gate_sequence_inner(
-                aview2(&operator),
-                target_basis_set,
-                qubit.index(),
-                None,
-                true,
-                None,
-            );
+            let sequence =
+                resynthesize_run_min_error(aview2(&operator), target_basis_set, qubit, target);
             let Some(sequence) = sequence else {
                 return Ok(None);
             };
