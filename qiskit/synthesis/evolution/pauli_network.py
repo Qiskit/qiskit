@@ -84,38 +84,45 @@ def synth_pauli_network_rustiq(
 def synth_pauli_network_mcts(
     num_qubits: int,
     pauli_network: list,
+    preserve_order: bool = True,
     upto_clifford: bool = False,
     upto_phase: bool = False,
     num_simulations: int = 0,
 ) -> QuantumCircuit:
     """
-    Calls Rustiq's pauli network synthesis algorithm.
+    Synthesize a :class:`.PauliEvolutionGate` using Monte Carlo Tree Search (MCTS).
 
-    The algorithm is described in [1]. The source code (in Rust) is available at
-    https://github.com/smartiel/rustiq-core.
+    The algorithm is described in [1].
 
     Args:
         num_qubits: the number of qubits over which the pauli network is defined.
         pauli_network: a list of pauli rotations, represented in sparse format: a list of
             triples such as `[("XX", [0, 3], theta), ("ZZ", [0, 1], 0.1)]`.
+        preserve_order: whether the order of paulis should be preserved, up to
+            commutativity. If the order is not preserved, the returned circuit will
+            generally not be equivalent to the given pauli network.
         upto_clifford: if `True`, the final Clifford operator is not synthesized
             and the returned circuit will generally not be equivalent to the given
             pauli network. In addition, the argument `upto_phase` would be ignored.
         upto_phase: if `True`, the global phase of the returned circuit may differ
              from the global phase of the given pauli network. The argument is ignored
              when `upto_clifford` is `True`.
-        num_simulations: todo
+        * num_simulations (int): Number of additional Monte Carlo simulations to perform,
+            beyond the default heuristic synthesis.
 
     Returns:
         A circuit implementation of the pauli network.
 
     References:
-        1. ToDo
+        1. Mulundano Machiya, Matt Menickelly, Paul Hovland, Ji Liu,
+           *MonteQ: A Monte Carlo Tree Search Based Quantum Circuit Synthesis Framework*,
+           `arXiv:2604.19029 <https://arxiv.org/abs/2604.19029>`_
 
     """
     out = pauli_network_mcts_inner(
         num_qubits=num_qubits,
         pauli_network=pauli_network,
+        preserve_order=preserve_order,
         upto_clifford=upto_clifford,
         upto_phase=upto_phase,
         num_simulations=num_simulations,

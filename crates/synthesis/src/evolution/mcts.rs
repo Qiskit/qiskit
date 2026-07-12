@@ -93,6 +93,14 @@ struct MctsNode {
 
 /// Count the number of CX-gates in [GateSequence].
 fn cx_count(gate_seq: &GateSequence) -> usize {
+    gate_seq
+        .iter()
+        .filter(|(gate, _, _)| *gate == StandardGate::CX)
+        .count()
+}
+
+/// Count the number of CX-gates in [GateSequence].
+fn cx_count_with_swaps(gate_seq: &GateSequence) -> usize {
     // This function may also be called on the resynthesized Clifford circuit,
     // and so also considers SWAP gates.
     gate_seq
@@ -221,6 +229,37 @@ fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
     }
 }
 
+/// Updates in-degree in-place with newly processed nodes.
+fn update_in_degrees(
+    dag: &StableDiGraph<usize, ()>,
+    in_degrees: &mut [Option<usize>],
+    new_processed: &[usize],
+) {
+    for i in new_processed {
+        for n in dag.neighbors_directed(NodeIndex::new(*i), Outgoing) {
+            let degree = in_degrees[n.index()]
+                .as_mut()
+                .expect("the successor node should not be processed");
+            assert_ne!(*degree, 0);
+            *degree -= 1;
+        }
+        // println!("=> Marking pauli idx = {:?} as processed", *i);
+        in_degrees[*i] = None;
+    }
+}
+
+/// Given a DAG, and a list of in-degrees (see the algorithm for detail),
+/// computes frontier nodes.
+fn compute_frontier_nodes(
+    dag: &StableDiGraph<usize, ()>,
+    in_degrees: &[Option<usize>],
+) -> Vec<usize> {
+    dag.node_indices()
+        .filter(|n| in_degrees[n.index()] == Some(0))
+        .map(|n| n.index())
+        .collect()
+}
+
 /// The main algorithm.
 struct MctsAlgorithm {
     /// Total number of Pauli rotations to synthesize.
@@ -235,10 +274,6 @@ struct MctsAlgorithm {
     /// MCTS nodes (forming a tree).
     mcts_nodes: Vec<MctsNode>,
 
-    /// List of solutions found with score.
-    /// TODO: remove this, just replace by minimization.
-    solutions: Vec<GateSequence>,
-
     /// Anti-commutativity DAG for Pauli rotations.
     dag: StableDiGraph<usize, ()>,
 
@@ -248,16 +283,19 @@ struct MctsAlgorithm {
 
 impl MctsAlgorithm {
     /// Creates a tree with a single root node
-    fn new(paulis: &PauliList, angles: &[Param]) -> Self {
+    fn new(paulis: &PauliList, angles: &[Param], preserve_order: bool) -> Self {
         let num_paulis = paulis.num_paulis;
 
         // Create anti-commutativity DAG.
         let mut dag = StableDiGraph::<usize, ()>::new();
         let node_indices: Vec<NodeIndex> = (0..num_paulis).map(|i| dag.add_node(i)).collect();
-        for i in 0..num_paulis {
-            for j in i + 1..num_paulis {
-                if !paulis.commute(i, j) {
-                    dag.add_edge(node_indices[i], node_indices[j], ());
+
+        if preserve_order {
+            for i in 0..num_paulis {
+                for j in i + 1..num_paulis {
+                    if !paulis.commute(i, j) {
+                        dag.add_edge(node_indices[i], node_indices[j], ());
+                    }
                 }
             }
         }
@@ -268,35 +306,8 @@ impl MctsAlgorithm {
             paulis: paulis.clone(),
             angles: angles.to_vec(),
             mcts_nodes: vec![],
-            solutions: vec![],
             dag,
         }
-    }
-
-    /// Updates in-degree in-place with newly processed nodes.
-    /// ToDo: move me out of this class.
-    fn update_in_degrees(&self, in_degrees: &mut [Option<usize>], new_processed: &[usize]) {
-        for i in new_processed {
-            for n in self.dag.neighbors_directed(NodeIndex::new(*i), Outgoing) {
-                let degree = in_degrees[n.index()]
-                    .as_mut()
-                    .expect("the successor node should not be processed");
-                assert_ne!(*degree, 0);
-                *degree -= 1;
-            }
-            // println!("=> Marking pauli idx = {:?} as processed", *i);
-            in_degrees[*i] = None;
-        }
-    }
-
-    /// Computes frontier nodes by examining in-degrees.
-    /// ToDo: move me out of this class.
-    fn compute_frontier_nodes(&self, in_degrees: &[Option<usize>]) -> Vec<usize> {
-        self.dag
-            .node_indices()
-            .filter(|n| in_degrees[n.index()] == Some(0))
-            .map(|n| n.index())
-            .collect()
     }
 
     /// Adds the root MCTS node.
@@ -318,8 +329,7 @@ impl MctsAlgorithm {
         self.global_phase = self.process_all_identity_paulis(&mut synthesis_state);
         self.process_synthesized_paulis(&mut synthesis_state);
 
-        let unexplored_actions = self
-            .compute_frontier_nodes(&synthesis_state.in_degrees)
+        let unexplored_actions = compute_frontier_nodes(&self.dag, &synthesis_state.in_degrees)
             .iter()
             .rev()
             .cloned()
@@ -375,30 +385,27 @@ impl MctsAlgorithm {
         // Add the root state (this also removes all-identity and synthesizable 1-qubit rotations).
         self.add_root_mcts_node(&self.paulis.clone());
 
-        // Runs rollout (greedy synthesis) starting at the root node.
-        let circuit = self.rollout_policy(0);
-        self.solutions.push(circuit);
-
-        // Runs additional simulations. Each simulation either selects an existing MCTS state
-        // with unexplored actions or creates a new MCTS state, and calls the rollout (greedy synthesis)
-        // starting from this state.
-        while self.mcts_nodes[0].ni < num_sims {
-            let leaf_node_id = self.tree_policy();
-            let solution = self.rollout_policy(leaf_node_id);
-            let value = cx_count(&solution);
-            self.backpropagate(leaf_node_id, value);
-            self.solutions.push(solution);
-        }
-
-        // Return best solution
-        let best_solution = self
-            .solutions
-            .iter()
-            .min_by_key(|sol| cx_count(sol))
+        // On the first iteration, runs rollout (greedy synthesis) starting at the root node.
+        // For consecutive iterations (if any): each simulation either selects an existing MCTS state
+        // with unexplored actions or creates a new MCTS state, and calls rollout (greedy synthesis)
+        // starting at this state.
+        let best_solution = std::iter::once(self.rollout_policy(0))
+            .map(|solution| {
+                let value = cx_count(&solution);
+                (solution, value)
+            })
+            .chain((0..num_sims).map(|_| {
+                let leaf_node_id = self.tree_policy();
+                let solution = self.rollout_policy(leaf_node_id);
+                let value = cx_count(&solution);
+                self.backpropagate(leaf_node_id, value);
+                (solution, value)
+            }))
+            .min_by_key(|(_solution, value)| *value)
+            .map(|(solution, _value)| solution)
             .expect("we should have at least one solution");
 
-        // println!("BEST SOLUTION = {:?}", best_solution);
-        (best_solution.clone(), self.global_phase.clone())
+        (best_solution, self.global_phase.clone())
     }
 
     /// Implement the "tree policy": find the best MCTS node to start the rollout from.
@@ -425,12 +432,12 @@ impl MctsAlgorithm {
                 synthesize_pauli(&mut synthesis_state, *chosen_pauli_idx);
                 self.process_synthesized_paulis(&mut synthesis_state);
 
-                let unexplored_actions = self
-                    .compute_frontier_nodes(&synthesis_state.in_degrees)
-                    .iter()
-                    .rev()
-                    .cloned()
-                    .collect();
+                let unexplored_actions =
+                    compute_frontier_nodes(&self.dag, &synthesis_state.in_degrees)
+                        .iter()
+                        .rev()
+                        .cloned()
+                        .collect();
 
                 // Create the child mcts node with the result of the above synthesis.
                 let child_node = MctsNode {
@@ -479,7 +486,7 @@ impl MctsAlgorithm {
             }
         }
         if !new_processed.is_empty() {
-            self.update_in_degrees(&mut synthesis_state.in_degrees, &new_processed);
+            update_in_degrees(&self.dag, &mut synthesis_state.in_degrees, &new_processed);
         }
         global_phase
     }
@@ -496,7 +503,7 @@ impl MctsAlgorithm {
 
             // Find Paulis of weight 1 in the front layer,
             let mut new_processed: Vec<usize> = Vec::new();
-            let frontier_nodes = self.compute_frontier_nodes(&state.in_degrees);
+            let frontier_nodes = compute_frontier_nodes(&self.dag, &state.in_degrees);
             for idx in &frontier_nodes {
                 let support = state.tab.get_pauli_support(*idx);
                 if support.len() == 1 {
@@ -555,7 +562,7 @@ impl MctsAlgorithm {
             }
 
             // recompute in_degrees
-            self.update_in_degrees(&mut state.in_degrees, &new_processed);
+            update_in_degrees(&self.dag, &mut state.in_degrees, &new_processed);
         }
     }
 
@@ -577,7 +584,7 @@ impl MctsAlgorithm {
         loop {
             // Compute front nodes.
             // ToDo: consider storing frontier nodes as part of the synthesis state as well.
-            let front_nodes = self.compute_frontier_nodes(&synthesis_state.in_degrees);
+            let front_nodes = compute_frontier_nodes(&self.dag, &synthesis_state.in_degrees);
             assert!(!front_nodes.is_empty());
 
             // Find active pauli of minimum weight.
@@ -609,12 +616,13 @@ pub fn pauli_network_mcts_inner(
     num_qubits: usize,
     paulis: Vec<String>,
     angles: Vec<Param>,
+    preserve_order: bool,
     upto_clifford: bool,
     upto_phase: bool,
     num_simulations: usize,
 ) -> Result<CircuitData, CircuitDataError> {
-    let paulis = PauliList::from_pauli_strings(&paulis);
-    let mut mcts = MctsAlgorithm::new(&paulis, &angles);
+    let paulis = PauliList::from_pauli_strings(num_qubits, &paulis);
+    let mut mcts = MctsAlgorithm::new(&paulis, &angles, preserve_order);
     let (mut circuit, global_phase) = mcts.run(num_simulations); // number of simulations
 
     // If upto_clifford is true, we just return the above circuit. However, if upto_clifford is false, we need to
@@ -641,7 +649,8 @@ pub fn pauli_network_mcts_inner(
             //  However, if upto_phase is true, we can attempt to resynthesize the final clifford.
             let resynthesized =
                 resynthesize_clifford_circuit(num_qubits, &inverse_clifford_circuit).unwrap();
-            if cx_count(&inverse_clifford_circuit) <= cx_count(&resynthesized) {
+            if cx_count_with_swaps(&inverse_clifford_circuit) <= cx_count_with_swaps(&resynthesized)
+            {
                 circuit.extend(inverse_clifford_circuit);
             } else {
                 circuit.extend(resynthesized);

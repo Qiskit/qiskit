@@ -122,11 +122,12 @@ pub fn pauli_network_synthesis(
 }
 
 #[pyfunction]
-#[pyo3(signature = (num_qubits, pauli_network, upto_clifford=false, upto_phase=false, num_simulations=0))]
+#[pyo3(signature = (num_qubits, pauli_network, preserve_order=true, upto_clifford=false, upto_phase=false, num_simulations=0))]
 #[allow(clippy::too_many_arguments)]
 pub fn pauli_network_mcts(
     num_qubits: usize,
     pauli_network: &Bound<PyList>,
+    preserve_order: bool,
     upto_clifford: bool,
     upto_phase: bool,
     num_simulations: usize,
@@ -136,6 +137,7 @@ pub fn pauli_network_mcts(
         num_qubits,
         paulis,
         angles,
+        preserve_order,
         upto_clifford,
         upto_phase,
         num_simulations,

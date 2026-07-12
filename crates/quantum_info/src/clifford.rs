@@ -423,20 +423,15 @@ impl PauliList {
         !parity
     }
 
-    /// pauli_string cannot contain - sign
-    pub fn from_pauli_strings(pauli_strings: &[String]) -> Self {
+    /// Creates a PauliList from a list of Strings. For now we assume that strings
+    /// do not contains negative ("-") signs. TODO: extend to "-" signs and add rust tests.
+    pub fn from_pauli_strings(num_qubits: usize, pauli_strings: &[String]) -> Self {
         let num_paulis = pauli_strings.len();
-
-        if num_paulis == 0 {
-            panic!("The constructor needs at least one pauli");
-        }
-
-        let num_qubits = pauli_strings[0].len();
 
         let scratch = FixedBitSet::with_capacity(num_paulis);
         let mut data: Vec<FixedBitSet> = Vec::with_capacity(2 * num_qubits + 1);
 
-        for _ in 0..=2 * num_qubits + 1 {
+        for _ in 0..2 * num_qubits + 1 {
             data.push(scratch.clone());
         }
 

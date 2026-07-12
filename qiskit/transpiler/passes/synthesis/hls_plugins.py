@@ -354,6 +354,10 @@ Pauli Evolution Synthesis
       - use the synthesis method from `Rustiq circuit synthesis library
         <https://github.com/smartiel/rustiq-core>`_
       - all-to-all
+    * - ``"mcts"``
+      - :class:`~.PauliEvolutionSynthesisMcts`
+      - use the Monte Carlo Tree Synthesis (MCTS) method
+      - all-to-all
     * - ``"default"``
       - :class:`~.PauliEvolutionSynthesisDefault`
       - use a diagonalizing Clifford per Pauli term
@@ -364,6 +368,7 @@ Pauli Evolution Synthesis
 
    PauliEvolutionSynthesisDefault
    PauliEvolutionSynthesisRustiq
+   PauliEvolutionSynthesisMcts
 
 
 Modular Adder Synthesis
@@ -2197,28 +2202,30 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
 
 
 class PauliEvolutionSynthesisMcts(HighLevelSynthesisPlugin):
-    """Synthesize a :class:`.PauliEvolutionGate` using Rustiq.
+    """Synthesize a :class:`.PauliEvolutionGate` using Monte Carlo Tree Search (MCTS).
 
-    This plugin name is :``PauliEvolution.rustiq`` which can be used as the key on
-    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    This plugin name is registered under the name ``"PauliEvolution.mcts"``, which can
+    be used as the key on an :class:`~.HLSConfig` object to use this method with
+    :class:`~.HighLevelSynthesis`.
 
-    The Rustiq synthesis algorithm is described in [1], and is implemented in
-    Rust-based quantum circuit synthesis library available at
-    https://github.com/smartiel/rustiq-core.
+    The synthesis algorithm is described in [1].
 
-    On large circuits the plugin may take a significant runtime.
+    On large circuits, this synthesis method may require a significant runtime.
 
     The plugin supports the following additional options:
 
-    * preserve_order (bool): whether the order of paulis should be preserved, up to
+    * preserve_order (bool): Preserve the order of Pauli rotations, up to
         commutativity.
     * upto_clifford (bool): if `True`, the final Clifford operator is not synthesized.
-    * upto_phase (bool): if `True`, the global phase of the returned circuit may
-        differ from the global phase of the given pauli network.
-    * num_simulations (int): TODO
-        
+    * upto_phase (bool): if `True`, the returned circuit may differ from the input by
+        a global phase.
+    * num_simulations (int): Number of additional Monte Carlo simulations to perform,
+        beyond the default heuristic synthesis.
+
     References:
-        1. ToDo
+        1. Mulundano Machiya, Matt Menickelly, Paul Hovland, Ji Liu,
+           *MonteQ: A Monte Carlo Tree Search Based Quantum Circuit Synthesis Framework*,
+           `arXiv:2604.19029 <https://arxiv.org/abs/2604.19029>`_
 
     """
 
@@ -2230,7 +2237,7 @@ class PauliEvolutionSynthesisMcts(HighLevelSynthesisPlugin):
 
         from qiskit.quantum_info import SparsePauliOp, SparseObservable
 
-        # The synthesis function synth_pauli_network_rustiq does not support SparseObservables,
+        # The synthesis function synth_pauli_network_mcts does not support SparseObservables,
         # so we need to convert them to SparsePauliOps.
         if isinstance(high_level_object.operator, SparsePauliOp):
             pauli_op = high_level_object.operator
@@ -2259,7 +2266,7 @@ class PauliEvolutionSynthesisMcts(HighLevelSynthesisPlugin):
 
         if not isinstance(algo, ProductFormula):
             warnings.warn(
-                "Cannot apply Rustiq if the evolution synthesis does not implement ``expand``. ",
+                "Cannot apply MCTS if the evolution synthesis does not implement ``expand``. ",
                 stacklevel=2,
                 category=RuntimeWarning,
             )
@@ -2274,12 +2281,12 @@ class PauliEvolutionSynthesisMcts(HighLevelSynthesisPlugin):
         preserve_order = options.get("preserve_order", True)
         upto_clifford = options.get("upto_clifford", False)
         upto_phase = options.get("upto_phase", False)
-        num_simulations = options.get("num_simulations")
+        num_simulations = options.get("num_simulations", 0)
 
         synth_object = synth_pauli_network_mcts(
             num_qubits=num_qubits,
             pauli_network=pauli_network,
-            # preserve_order=preserve_order,
+            preserve_order=preserve_order,
             upto_clifford=upto_clifford,
             upto_phase=upto_phase,
             num_simulations=num_simulations,
