@@ -71,11 +71,11 @@ jobs:
           python tools/report_numpy_state.py
           $Env:PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 1024))")
           echo "PYTHONHASHSEED=$PYTHONHASHSEED"
-          stestr run --slowest --abbreviate
+          python -m stestr run --slowest --abbreviate
       - name: Filter stestr history
         run: |
           .\test-job\Scripts\activate
-          stestr history remove all
+          python -m stestr history remove all
         env:
           LANG: "C.UTF-8"
           PYTHONIOENCODING: "utf-8:backslashreplace"
