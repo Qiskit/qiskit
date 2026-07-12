@@ -12,7 +12,7 @@
 
 use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
-use qiskit_circuit::operations::{Param, StandardGate, multiply_param};
+use qiskit_circuit::operations::{Param, StandardGate, multiply_param, radd_param};
 use qiskit_quantum_info::clifford::PauliList;
 
 use rustworkx_core::petgraph::Direction::Outgoing;
@@ -20,11 +20,12 @@ use rustworkx_core::petgraph::Incoming;
 use rustworkx_core::petgraph::graph::NodeIndex;
 use rustworkx_core::petgraph::prelude::StableDiGraph;
 
-use smallvec::SmallVec;
+use smallvec::{SmallVec, smallvec};
 
 use std::f64::consts::SQRT_2;
 use std::fmt;
 
+use crate::clifford::greedy_synthesis::resynthesize_clifford_circuit;
 use crate::evolution::chunks::{
     ALL_CHUNKS, CHUNK_CONJUGATION_TABLE, PAULI_SUPPORT_SIZES, REDUCING_CHUNKS,
 };
@@ -34,14 +35,14 @@ const MCTS_PARAM: f64 = SQRT_2;
 
 /// Sequence of standard gates constructed by the algorithm, including
 /// both Clifford gates and single-qubit rotations.
-type GateSequence = Vec<(StandardGate, Vec<Param>, Vec<usize>)>;
+type GateSequence = Vec<(StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>)>;
 
 /// A particular point during Pauli network synthesis.
 #[derive(Clone)]
 struct PauliSynthesisState {
     /// The tableau storing Pauli rotations corresponding to this state
     /// (the initial tableau conjugated by Clifford gates leading to this state).
-    /// The Paulis that havve already been synthesized are stored as ``None`` in
+    /// The Paulis that have already been synthesized are stored as ``None`` in
     /// ``in_degrees``.
     tab: PauliList,
 
@@ -73,7 +74,7 @@ struct MctsNode {
     ni: usize,
 
     /// Cumulative cost (e.g. number of CX=gates) from root to terminal node
-    /// across simulations.
+    /// across simulations visiting this node.
     qi: usize,
 
     /// Parent node in the MCTS tree.
@@ -92,10 +93,16 @@ struct MctsNode {
 
 /// Count the number of CX-gates in [GateSequence].
 fn cx_count(gate_seq: &GateSequence) -> usize {
+    // This function may also be called on the resynthesized Clifford circuit,
+    // and so also considers SWAP gates.
     gate_seq
         .iter()
-        .filter(|(gate, _, _)| *gate == StandardGate::CX)
-        .count()
+        .map(|(gate, _, _)| match gate {
+            StandardGate::CX => 1,
+            StandardGate::Swap => 3,
+            _ => 0,
+        })
+        .sum()
 }
 
 type Score = (isize, isize);
@@ -104,12 +111,11 @@ type Score = (isize, isize);
 /// to the synthesized state. The larger value of the score is better.
 /// Score from the paper but computed faster (hope)
 fn compute_score(
-    synthesis_state: &mut PauliSynthesisState,
+    synthesis_state: &PauliSynthesisState,
     ctrl: usize,
     targ: usize,
     chunk_idx: usize,
 ) -> Score {
-    // println!("in compute_score with ctrl = {}, targ = {}, chunk_idx = {}", ctrl, targ, chunk_idx);
     let mut total_decrease: isize = 0;
     let mut num_decreased: isize = 0;
 
@@ -123,7 +129,6 @@ fn compute_score(
             num_decreased += (conjugated_support_size < support_size) as isize;
         }
     }
-    // println!("=> total decrease = {}, num_decreased = {}", total_decrease, num_decreased);
     (total_decrease, num_decreased)
 }
 
@@ -132,13 +137,10 @@ fn compute_score(
 /// Updates the synthesis state in-place, adjusting the Pauli tableau (conjugating by Clifford gates) and extending
 /// the gate sequence.
 fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
-    // println!("in synthesize_pauli with ndx = {:?}", ndx);
-    // println!("{}", synthesis_state);
     let mut prev_support_size: Option<usize> = None;
 
     loop {
         let support_size = synthesis_state.tab.get_pauli_support_size(ndx);
-        // println!("current support size = {:?}", support_size);
         assert!(support_size >= 1);
 
         if let Some(old_support_size) = prev_support_size {
@@ -163,10 +165,8 @@ fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
             for jj in ii + 1..support.len() {
                 let ctrl = support[ii];
                 let targ = support[jj];
-                // println!("ii = {}, jj = {}, ctrl = {}, targ = {}", ii, jj, ctrl, targ);
                 // get the index 0..16
                 let pair_idx = synthesis_state.tab.pauli_pair_index(ndx, ctrl, targ);
-                // println!("ii = {}, jj = {}, ctrl = {}, targ = {}, pair = {}", ii, jj, ctrl, targ, pair_idx);
 
                 // get the indices of chunks that can reduce this
                 assert!(!REDUCING_CHUNKS[pair_idx].is_empty());
@@ -181,15 +181,14 @@ fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
                 }
             }
         }
-        // println!("best_score = {:?}, best_chunk_idx = {}, best_ctrl = {}, best_targ = {}", best_score, best_chunk_idx, best_ctrl, best_targ);
 
         // Apply the best chunk
         for (gate, qubits) in ALL_CHUNKS[best_chunk_idx] {
-            let mapped_qubits: Vec<usize> = qubits
+            let mapped_qubits: SmallVec<[Qubit; 2]> = qubits
                 .iter()
                 .map(|q| match q {
-                    0 => best_ctrl,
-                    1 => best_targ,
+                    0 => Qubit(best_ctrl as u32),
+                    1 => Qubit(best_targ as u32),
                     _ => {
                         unreachable!("can only have 0/1");
                     }
@@ -198,18 +197,18 @@ fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
 
             match gate {
                 StandardGate::H => {
-                    synthesis_state.tab.append_h(mapped_qubits[0]);
+                    synthesis_state.tab.append_h(mapped_qubits[0].index());
                 }
                 StandardGate::S => {
-                    synthesis_state.tab.append_s(mapped_qubits[0]);
+                    synthesis_state.tab.append_s(mapped_qubits[0].index());
                 }
                 StandardGate::SX => {
-                    synthesis_state.tab.append_sx(mapped_qubits[0]);
+                    synthesis_state.tab.append_sx(mapped_qubits[0].index());
                 }
                 StandardGate::CX => {
                     synthesis_state
                         .tab
-                        .append_cx(mapped_qubits[0], mapped_qubits[1]);
+                        .append_cx(mapped_qubits[0].index(), mapped_qubits[1].index());
                 }
                 _ => {
                     panic!("should only have s/sx/h/cx gates");
@@ -217,38 +216,42 @@ fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
             }
             synthesis_state
                 .gate_sequence
-                .push((*gate, vec![], mapped_qubits));
+                .push((*gate, smallvec![], mapped_qubits));
         }
     }
 }
 
+/// The main algorithm.
 struct MctsAlgorithm {
     /// Total number of Pauli rotations to synthesize.
     num_paulis: usize,
 
-    /// Paulis to be synthesized
-    /// The input will probably be not of type PauliList
+    /// Paulis to be synthesized.
     paulis: PauliList,
 
-    /// Angle params
+    /// Parameters for rotation angles.
     angles: Vec<Param>,
 
-    /// MCTS nodes (forming a tree)
+    /// MCTS nodes (forming a tree).
     mcts_nodes: Vec<MctsNode>,
 
-    // list of solutions found with score
+    /// List of solutions found with score.
+    /// TODO: remove this, just replace by minimization.
     solutions: Vec<GateSequence>,
 
-    // ToDo: add commutativity DAG
+    /// Anti-commutativity DAG for Pauli rotations.
     dag: StableDiGraph<usize, ()>,
+
+    /// Global phase of the circuit.
+    global_phase: Param,
 }
 
 impl MctsAlgorithm {
     /// Creates a tree with a single root node
     fn new(paulis: &PauliList, angles: &[Param]) -> Self {
-        // Commutativity DAG
         let num_paulis = paulis.num_paulis;
 
+        // Create anti-commutativity DAG.
         let mut dag = StableDiGraph::<usize, ()>::new();
         let node_indices: Vec<NodeIndex> = (0..num_paulis).map(|i| dag.add_node(i)).collect();
         for i in 0..num_paulis {
@@ -260,16 +263,18 @@ impl MctsAlgorithm {
         }
 
         Self {
+            global_phase: Param::Float(0.0),
             num_paulis,
             paulis: paulis.clone(),
             angles: angles.to_vec(),
             mcts_nodes: vec![],
             solutions: vec![],
-            dag: dag,
+            dag,
         }
     }
 
     /// Updates in-degree in-place with newly processed nodes.
+    /// ToDo: move me out of this class.
     fn update_in_degrees(&self, in_degrees: &mut [Option<usize>], new_processed: &[usize]) {
         for i in new_processed {
             for n in self.dag.neighbors_directed(NodeIndex::new(*i), Outgoing) {
@@ -285,6 +290,7 @@ impl MctsAlgorithm {
     }
 
     /// Computes frontier nodes by examining in-degrees.
+    /// ToDo: move me out of this class.
     fn compute_frontier_nodes(&self, in_degrees: &[Option<usize>]) -> Vec<usize> {
         self.dag
             .node_indices()
@@ -309,7 +315,7 @@ impl MctsAlgorithm {
             in_degrees,
         };
 
-        self.process_all_identity_paulis(&mut synthesis_state);
+        self.global_phase = self.process_all_identity_paulis(&mut synthesis_state);
         self.process_synthesized_paulis(&mut synthesis_state);
 
         let unexplored_actions = self
@@ -318,7 +324,6 @@ impl MctsAlgorithm {
             .rev()
             .cloned()
             .collect();
-        // let unexplored_actions = self.compute_frontier_nodes(&synthesis_state.in_degrees);
 
         let node = MctsNode {
             ni: 0,
@@ -334,8 +339,8 @@ impl MctsAlgorithm {
     fn upper_confidence_bound(&self, node_idx: usize) -> f64 {
         let node = &self.mcts_nodes[node_idx];
 
-        // if it has been completely unexplored
         if node.ni == 0 {
+            // it has been completely unexplored
             f64::INFINITY
         } else {
             match node.parent {
@@ -352,7 +357,7 @@ impl MctsAlgorithm {
         }
     }
 
-    /// function to backpropagate estimated value at terminal state up through tree
+    /// function to backpropagate estimated value from the terminal state up through the tree.
     fn backpropagate(&mut self, leaf: usize, value: usize) {
         let mut node = leaf;
         loop {
@@ -365,29 +370,24 @@ impl MctsAlgorithm {
         }
     }
 
-    /// The main function (mcts) which runs everything
-    fn run(&mut self, num_sims: usize) -> GateSequence {
-        // ToDo: remove all-I paulis; moving them to processed
+    /// The main function which runs everything.
+    fn run(&mut self, num_sims: usize) -> (GateSequence, Param) {
+        // Add the root state (this also removes all-identity and synthesizable 1-qubit rotations).
         self.add_root_mcts_node(&self.paulis.clone());
 
-        if true {
-            // for now, just rollout from the root node
-            let circuit = self.rollout_policy(0);
-            self.solutions.push(circuit);
-        }
+        // Runs rollout (greedy synthesis) starting at the root node.
+        let circuit = self.rollout_policy(0);
+        self.solutions.push(circuit);
 
+        // Runs additional simulations. Each simulation either selects an existing MCTS state
+        // with unexplored actions or creates a new MCTS state, and calls the rollout (greedy synthesis)
+        // starting from this state.
         while self.mcts_nodes[0].ni < num_sims {
             let leaf_node_id = self.tree_policy();
             let solution = self.rollout_policy(leaf_node_id);
-
-            // The full solution is obtained by taking the solution from root to leaf + rollout solutions
-            // let mut solution = self.nodes[leaf_node_id].gate_sequence.clone();
-            // solution.extend(new_gate_sequence);
-
             let value = cx_count(&solution);
-
-            self.solutions.push(solution);
             self.backpropagate(leaf_node_id, value);
+            self.solutions.push(solution);
         }
 
         // Return best solution
@@ -398,62 +398,33 @@ impl MctsAlgorithm {
             .expect("we should have at least one solution");
 
         // println!("BEST SOLUTION = {:?}", best_solution);
-        best_solution.clone()
+        (best_solution.clone(), self.global_phase.clone())
     }
 
-    // DEBUG ONLY FUNCTION
-    fn print_tree(&self) {
-        println!("========");
-        println!("Tree contains {} nodes", self.mcts_nodes.len());
-        for (i, node) in self.mcts_nodes.iter().enumerate() {
-            println!(
-                "node_id = {}: ni = {}, qi = {}, unexplored_actions = {:?}, parent = {:?}, children = {:?}, state = {}, num_processed = {:?}, gate_sequence = {:?} ",
-                i,
-                node.ni,
-                node.qi,
-                node.unexplored_actions,
-                node.parent,
-                node.children,
-                node.synthesis_state.tab,
-                node.synthesis_state.num_processed,
-                node.synthesis_state.gate_sequence.len()
-            );
-        }
-
-        println!("========");
-    }
-
-    /// Implement the "tree policy": find the best MCTS node to find the rollout from.
+    /// Implement the "tree policy": find the best MCTS node to start the rollout from.
     fn tree_policy(&mut self) -> usize {
-        // println!("=> Starting tree policy");
-        // self.print_tree();
-
         let mut mcts_node_id = 0; // root
         loop {
-            // println!("===> Current state:");
-            // println!("===> {}", self.mcts_nodes[mcts_node_id].synthesis_state);
-
             // If all the Paulis have been processed, return the current id.
             if self.mcts_nodes[mcts_node_id].synthesis_state.num_processed == self.num_paulis {
-                // println!("===> No paulis remaining; id = {}", mcts_node_id);
                 return mcts_node_id;
             }
 
-            // Node includes unexplored Paulis.
+            // Node includes unexplored actions (Paulis that can be immediately synthesized).
+            // We will create a new MCTS by synthesizing one of the unexplored Paulis and removing
+            // newly synthesized rotations.
             if !self.mcts_nodes[mcts_node_id].unexplored_actions.is_empty() {
                 // Choose one of the unprocessed paulis in the front layer.
                 let chosen_pauli_idx = self.mcts_nodes[mcts_node_id]
                     .unexplored_actions
                     .last()
                     .unwrap();
-                // println!("===> Choose unexplored action; pauli id = {}", chosen_pauli_idx);
 
-                // Synthesize it
+                // Synthesize it.
                 let mut synthesis_state = self.mcts_nodes[mcts_node_id].synthesis_state.clone();
                 synthesize_pauli(&mut synthesis_state, *chosen_pauli_idx);
                 self.process_synthesized_paulis(&mut synthesis_state);
 
-                // let unexplored_actions = self.compute_frontier_nodes(&synthesis_state.in_degrees);
                 let unexplored_actions = self
                     .compute_frontier_nodes(&synthesis_state.in_degrees)
                     .iter()
@@ -467,21 +438,20 @@ impl MctsAlgorithm {
                     qi: 0,
                     parent: Some(mcts_node_id),
                     children: vec![],
-                    synthesis_state: synthesis_state,
+                    synthesis_state,
                     unexplored_actions,
                 };
 
-                // add child to tree and remove the synthesized pauli from the set of unexplored frontier nodes.
+                // Add child to tree and remove the synthesized pauli from the set of unexplored actions.
                 self.mcts_nodes.push(child_node);
                 let child_node_id = self.mcts_nodes.len() - 1;
                 self.mcts_nodes[mcts_node_id].children.push(child_node_id);
                 self.mcts_nodes[mcts_node_id].unexplored_actions.pop();
-                // println!("===> Adding child node with index {:?}", child_node_id);
                 return child_node_id;
             };
 
-            // All the children have been explored; choose the one with highest UCT score.
-
+            // All the children have been explored; choose the child with highest UCT score
+            // (and proceed recursively examining this child).
             mcts_node_id = *self.mcts_nodes[mcts_node_id]
                 .children
                 .iter()
@@ -491,24 +461,27 @@ impl MctsAlgorithm {
                         .unwrap()
                 })
                 .unwrap();
-            // println!("===> Considering action with max score {:?}", mcts_node_id);
         }
     }
 
     /// Finds all-identity paulis and updates the synthesis state accordingly.
-    /// Should be called once at the start of the algorithm.
-    /// TODO: FIX GLOBAL PHASE!!!
-    fn process_all_identity_paulis(&self, synthesis_state: &mut PauliSynthesisState) {
+    /// Called once at the start of the algorithm.
+    /// Returns the global phase update.
+    fn process_all_identity_paulis(&self, synthesis_state: &mut PauliSynthesisState) -> Param {
+        let mut global_phase = Param::Float(0.0);
         let mut new_processed: Vec<usize> = Vec::new();
-        for idx in 0..self.num_paulis {
-            if synthesis_state.tab.get_pauli_support_size(idx) == 0 {
-                new_processed.push(idx);
+        for pauli_idx in 0..self.num_paulis {
+            if synthesis_state.tab.get_pauli_support_size(pauli_idx) == 0 {
+                new_processed.push(pauli_idx);
                 synthesis_state.num_processed += 1;
+                global_phase =
+                    radd_param(global_phase, multiply_param(&self.angles[pauli_idx], -0.5));
             }
         }
         if !new_processed.is_empty() {
             self.update_in_degrees(&mut synthesis_state.in_degrees, &new_processed);
         }
+        global_phase
     }
 
     /// Recursively find synthesized paulis and update the synthesis state accordingly.
@@ -542,33 +515,33 @@ impl MctsAlgorithm {
                     ) {
                         (true, false, false) => state.gate_sequence.push((
                             StandardGate::RX,
-                            vec![angle.clone()],
-                            vec![q],
+                            smallvec![angle.clone()],
+                            smallvec![Qubit(q as u32)],
                         )),
                         (true, false, true) => state.gate_sequence.push((
                             StandardGate::RX,
-                            vec![multiply_param(angle, -1.0)],
-                            vec![q],
+                            smallvec![multiply_param(angle, -1.0)],
+                            smallvec![Qubit(q as u32)],
                         )),
                         (false, true, false) => state.gate_sequence.push((
                             StandardGate::RZ,
-                            vec![angle.clone()],
-                            vec![q],
+                            smallvec![angle.clone()],
+                            smallvec![Qubit(q as u32)],
                         )),
                         (false, true, true) => state.gate_sequence.push((
                             StandardGate::RZ,
-                            vec![multiply_param(angle, -1.0)],
-                            vec![q],
+                            smallvec![multiply_param(angle, -1.0)],
+                            smallvec![Qubit(q as u32)],
                         )),
                         (true, true, false) => state.gate_sequence.push((
                             StandardGate::RY,
-                            vec![angle.clone()],
-                            vec![q],
+                            smallvec![angle.clone()],
+                            smallvec![Qubit(q as u32)],
                         )),
                         (true, true, true) => state.gate_sequence.push((
                             StandardGate::RY,
-                            vec![multiply_param(angle, -1.0)],
-                            vec![q],
+                            smallvec![multiply_param(angle, -1.0)],
+                            smallvec![Qubit(q as u32)],
                         )),
                         _ => {
                             unreachable!("The Pauli support qubit cannot be I");
@@ -580,7 +553,6 @@ impl MctsAlgorithm {
             if new_processed.is_empty() {
                 break;
             }
-            // println!("===> new processed: {:?}", new_processed);
 
             // recompute in_degrees
             self.update_in_degrees(&mut state.in_degrees, &new_processed);
@@ -588,46 +560,41 @@ impl MctsAlgorithm {
     }
 
     /// Starting from an MCTS node, implements the rollout (synthesizing all Paulis).
-    /// (TODO: experiment implementing this step using Rustiq.)
     /// Returns the solution.
+    /// ToDo: consider calling this function greedy_synthesis.
+    /// We should be able to get Rustiq implementation (for minimizing CX-count)
+    /// by changing the internal scoring function.
     fn rollout_policy(&mut self, mcts_node_id: usize) -> GateSequence {
         let num_paulis = self.num_paulis;
-
-        // println!("=> Starting Rollout:");
 
         // We are cloning this state, since are going to update it in-place.
         let mut synthesis_state = self.mcts_nodes[mcts_node_id].synthesis_state.clone();
 
         if synthesis_state.num_processed == self.num_paulis {
-            // println!("===> All Paulis are processed");
             return synthesis_state.gate_sequence.clone();
         }
 
         loop {
-            // println!("");
-            // println!("ROLLOUT: remain {}, synthesis_state: {}", synthesis_state.tab.num_paulis - synthesis_state.num_processed, synthesis_state);
-            // Find active Pauli of minimum weight.
+            // Compute front nodes.
+            // ToDo: consider storing frontier nodes as part of the synthesis state as well.
             let front_nodes = self.compute_frontier_nodes(&synthesis_state.in_degrees);
             assert!(!front_nodes.is_empty());
-            // println!("===> front nodes: {:?}", front_nodes);
 
-            // Find active pauli of smallest weight
-            let idx = front_nodes
+            // Find active pauli of minimum weight.
+            let pauli_idx = front_nodes
                 .iter()
                 .min_by_key(|idx| synthesis_state.tab.get_pauli_support_size(**idx))
                 .expect("The frontier cannot be empty.");
-            // println!("===> chose pauli id {:?}: {:?}", idx, synthesis_state.tab.to_pauli_strings()[*idx]);
 
             // We should have filtered all already synthesized paulis.
-            assert!(synthesis_state.tab.get_pauli_support_size(*idx) >= 2);
-            synthesize_pauli(&mut synthesis_state, *idx);
+            assert!(synthesis_state.tab.get_pauli_support_size(*pauli_idx) >= 2);
+            synthesize_pauli(&mut synthesis_state, *pauli_idx);
 
             // Update the state by finding all Paulis that got synthesized.
             self.process_synthesized_paulis(&mut synthesis_state);
 
             // Check if all the Paulis are processed now.
             if synthesis_state.num_processed == num_paulis {
-                // println!("===> All Paulis are processed");
                 break;
             }
         }
@@ -646,55 +613,41 @@ pub fn pauli_network_mcts_inner(
     upto_phase: bool,
     num_simulations: usize,
 ) -> Result<CircuitData, CircuitDataError> {
-    // println!("=> Called pauli_network_mcts_inner with paulis = {:?} and angles = {:?}", paulis, angles);
     let paulis = PauliList::from_pauli_strings(&paulis);
     let mut mcts = MctsAlgorithm::new(&paulis, &angles);
-    let mut circuit = mcts.run(num_simulations); // number of simulations
+    let (mut circuit, global_phase) = mcts.run(num_simulations); // number of simulations
 
-    // For now, extract & inverse the Clifford part of the circuit
-    let inverse_clifford_circuit: GateSequence = circuit
-        .iter()
-        .filter(|(gate, _params, _qubits)| !ROTATION_GATES.contains(gate))
-        .map(|(gate, params, qubits)| {
-            let inverse_clifford_gate = match gate {
-                StandardGate::CX => StandardGate::CX,
-                StandardGate::H => StandardGate::H,
-                StandardGate::S => StandardGate::Sdg,
-                StandardGate::SX => StandardGate::SXdg,
-                _ => {
-                    panic!("only CX/H/S");
-                }
-            };
-            (inverse_clifford_gate, params.clone(), qubits.clone())
-        })
-        .rev()
-        .collect();
+    // If upto_clifford is true, we just return the above circuit. However, if upto_clifford is false, we need to
+    // add the inverse clifford part of the circuit.
+    if !upto_clifford {
+        // Extract & inverse the Clifford part of the circuit
+        let inverse_clifford_circuit: GateSequence = circuit
+            .iter()
+            .filter(|(gate, _params, _qubits)| !ROTATION_GATES.contains(gate))
+            .rev()
+            .map(|(gate, params, qubits)| {
+                let (inverse_gate, inverse_params) = gate
+                    .inverse(params)
+                    .expect("All Clifford gates that can appear here are invertible");
+                (inverse_gate, inverse_params, qubits.clone())
+            })
+            .collect();
 
-    circuit.extend(inverse_clifford_circuit);
-    // // if the circuit needs to be synthesized exactly, we cannot use either Rustiq's
-    // // or Qiskit's synthesis methods for Cliffords, since they do not necessarily preserve
-    // // the global phase.
-    // let resynth_clifford_method = match upto_phase {
-    //     true => resynth_clifford_method,
-    //     false => 0,
-    // };
+        if !upto_phase {
+            // If the circuit needs to be synthesized exactly, we cannot use Clifford resynthesis methods
+            // since they do not preserve the global phase.
+            circuit.extend(inverse_clifford_circuit);
+        } else {
+            //  However, if upto_phase is true, we can attempt to resynthesize the final clifford.
+            let resynthesized =
+                resynthesize_clifford_circuit(num_qubits, &inverse_clifford_circuit).unwrap();
+            if cx_count(&inverse_clifford_circuit) <= cx_count(&resynthesized) {
+                circuit.extend(inverse_clifford_circuit);
+            } else {
+                circuit.extend(resynthesized);
+            }
+        }
+    }
 
-    // // synthesize the final Clifford
-    // if !upto_clifford {
-    //     let final_clifford = synthesize_final_clifford(&circuit.dagger(), resynth_clifford_method);
-    //     for gate in final_clifford {
-    //         gates.push(gate);
-    //     }
-    // }
-    // (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>
-    CircuitData::from_standard_gates(
-        num_qubits as u32,
-        circuit.into_iter().map(|(gate, params, qubits)| {
-            let params: SmallVec<[Param; 3]> = params.into_iter().collect();
-
-            let qubits: SmallVec<[Qubit; 2]> = qubits.iter().map(|q| Qubit(*q as u32)).collect();
-            (gate, params, qubits)
-        }),
-        Param::Float(0.0),
-    )
+    CircuitData::from_standard_gates(num_qubits as u32, circuit, global_phase)
 }
