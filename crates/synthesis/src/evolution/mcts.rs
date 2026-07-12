@@ -25,6 +25,10 @@ use smallvec::SmallVec;
 use std::f64::consts::SQRT_2;
 use std::fmt;
 
+use crate::evolution::chunks::{
+    ALL_CHUNKS, CHUNK_CONJUGATION_TABLE, PAULI_SUPPORT_SIZES, REDUCING_CHUNKS,
+};
+
 /// The multiplicative scaling parameter used in the MCTS algorithm.
 const MCTS_PARAM: f64 = SQRT_2;
 
@@ -55,7 +59,11 @@ struct PauliSynthesisState {
 
 impl fmt::Display for PauliSynthesisState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "tab = {}, num_processed = {}, in_degrees = {:?}", self.tab, self.num_processed, self.in_degrees)
+        write!(
+            f,
+            "tab = {}, num_processed = {}, in_degrees = {:?}",
+            self.tab, self.num_processed, self.in_degrees
+        )
     }
 }
 
@@ -90,213 +98,33 @@ fn cx_count(gate_seq: &GateSequence) -> usize {
         .count()
 }
 
-
 type Score = (isize, isize);
 
-/// ToDo: add CX to (control, target) AFTER calling this function
-/// ToDo: there might be an optimization (similar to the one in Rustiq that does not need to clone the table)
-/// Alternatively, modify the table + modify back
-fn identify(
+/// Computes the score of applying a Clifford circuit represented by chunk_idx on the given qubit pair
+/// to the synthesized state. The larger value of the score is better.
+/// Score from the paper but computed faster (hope)
+fn compute_score(
     synthesis_state: &mut PauliSynthesisState,
-    op_lists: &[GateSequence],
     ctrl: usize,
     targ: usize,
-) -> (Score, GateSequence) {
-    // println!("!!! identify called with tab = {}, ctrl = {:?}, targ = {:?}", synthesis_state.tab, ctrl, targ);
+    chunk_idx: usize,
+) -> Score {
+    // println!("in compute_score with ctrl = {}, targ = {}, chunk_idx = {}", ctrl, targ, chunk_idx);
+    let mut total_decrease: isize = 0;
+    let mut num_decreased: isize = 0;
 
-    let (best_idx, best_score) = op_lists
-        .iter()
-        .map(|op| {
-            // ToDo: instead of copying & evolving, consider evolving back, or consider implementing rustiq-like strategy
-            // that replaces evolve by a table lookup
-            // let mut tab = synthesis_state.tab.clone();
-            for (gate, _params, qubits) in op {
-                if *gate == StandardGate::H {
-                    synthesis_state.tab.append_h(qubits[0]);
-                } else if *gate == StandardGate::S {
-                    synthesis_state.tab.append_s(qubits[0])
-                }
-            }
-            let x_ctrl = synthesis_state.tab.get_x(ctrl);
-            let x_targ = synthesis_state.tab.get_x(targ);
-            let z_ctrl = synthesis_state.tab.get_z(ctrl);
-            let z_targ = synthesis_state.tab.get_z(targ);
-
-            let num_decreased: usize = (0..synthesis_state.tab.num_paulis)
-                .filter(|i| synthesis_state.in_degrees[*i].is_some())
-                .map(|i| {
-                    ((x_ctrl.contains(i) && x_targ.contains(i) && !z_targ.contains(i))
-                        | (!x_ctrl.contains(i) && z_ctrl.contains(i) && z_targ.contains(i)))
-                        as usize
-                })
-                .sum();
-
-            let num_increased: usize = (0..synthesis_state.tab.num_paulis)
-                .filter(|i| synthesis_state.in_degrees[*i].is_some())
-                .map(|i| {
-                    ((!x_ctrl.contains(i) && !z_ctrl.contains(i) && z_targ.contains(i))
-                        || (x_ctrl.contains(i) && !x_targ.contains(i) && !z_targ.contains(i)))
-                        as usize
-                })
-                .sum();
-            for (gate, _params, qubits) in op.iter().rev() {
-                if *gate == StandardGate::H {
-                    synthesis_state.tab.append_h(qubits[0]);
-                } else if *gate == StandardGate::S {
-                    synthesis_state.tab.append_sdg(qubits[0])
-                }
-            }
-            // println!("-- with op = {:?}: num_decreased = {:?}, num_increased = {:?}", op, num_decreased, num_increased);
-            ((num_decreased as isize) - (num_increased as isize), num_decreased as isize)
-
-        })
-        .enumerate()
-        .rev()
-        .max_by_key(|(_idx, score)| *score)
-        .expect("list of ops cannot be empty");
-
-    let mut best_seq = op_lists[best_idx].clone();
-    // println!("identify i = {}, j = {} returned score {:?} and seq {:?}", ctrl, targ, best_score, best_seq);
-    best_seq.push((StandardGate::CX, vec![], vec![ctrl, targ]));
-    (best_score, best_seq)
-}
-
-// QUESTION: DO WE COMPARE ON WHAT???! ALL SYNTHESIZED NODES?? ALL FRONT NODES???
-
-fn compare(
-    synthesis_state: &mut PauliSynthesisState,
-    ndx: usize,
-    ctrl: usize,
-    targ: usize,
-) -> (Score, GateSequence) {
-    let x_ctrl = synthesis_state.tab.get_x(ctrl).contains(ndx);
-    let x_targ = synthesis_state.tab.get_x(targ).contains(ndx);
-    let z_ctrl = synthesis_state.tab.get_z(ctrl).contains(ndx);
-    let z_targ = synthesis_state.tab.get_z(targ).contains(ndx);
-
-    // todo: replace vecs by arrays
-    let op_lists = match (x_ctrl, z_ctrl, x_targ, z_targ) {
-        // I*
-        (false, false, _, _) => {
-            panic!("The function should not be called with ctrl=I");
+    for pauli_idx in 0..synthesis_state.tab.num_paulis {
+        if synthesis_state.in_degrees[pauli_idx].is_some() {
+            let pair_idx = synthesis_state.tab.pauli_pair_index(pauli_idx, ctrl, targ);
+            let conjugated_pair_idx = CHUNK_CONJUGATION_TABLE[chunk_idx][pair_idx];
+            let support_size = PAULI_SUPPORT_SIZES[pair_idx];
+            let conjugated_support_size = PAULI_SUPPORT_SIZES[conjugated_pair_idx];
+            total_decrease += (support_size as isize) - (conjugated_support_size as isize);
+            num_decreased += (conjugated_support_size < support_size) as isize;
         }
-
-        // *I
-        (_, _, false, false) => {
-            panic!("The function should not be called with targ=I");
-        }
-
-        // XX
-        (true, false, true, false) => vec![
-            vec![],
-            vec![(StandardGate::S, vec![], vec![ctrl])],
-            vec![
-                (StandardGate::H, vec![], vec![ctrl]),
-                (StandardGate::H, vec![], vec![targ]),
-            ],
-            vec![
-                (StandardGate::H, vec![], vec![ctrl]),
-                (StandardGate::S, vec![], vec![targ]),
-            ],
-        ],
-
-        // XY
-        (true, false, true, true) => vec![
-            vec![
-                (StandardGate::S, vec![], vec![ctrl]),
-                (StandardGate::S, vec![], vec![targ]),
-            ],
-            vec![(StandardGate::S, vec![], vec![targ])],
-            vec![(StandardGate::H, vec![], vec![ctrl])],
-            vec![
-                (StandardGate::H, vec![], vec![ctrl]),
-                (StandardGate::H, vec![], vec![targ]),
-            ],
-        ],
-
-        // XZ
-        (true, false, false, true) => vec![
-            vec![
-                (StandardGate::S, vec![], vec![ctrl]),
-                (StandardGate::H, vec![], vec![targ]),
-            ],
-            vec![(StandardGate::H, vec![], vec![targ])],
-            vec![(StandardGate::H, vec![], vec![ctrl])],
-            vec![
-                (StandardGate::H, vec![], vec![ctrl]),
-                (StandardGate::S, vec![], vec![targ]),
-            ],
-        ],
-
-        // YX
-        (true, true, true, false) => vec![
-            vec![],
-            vec![(StandardGate::S, vec![], vec![ctrl])],
-            vec![(StandardGate::H, vec![], vec![ctrl])],
-        ],
-
-        // YY
-        (true, true, true, true) => vec![
-            vec![
-                (StandardGate::S, vec![], vec![ctrl]),
-                (StandardGate::S, vec![], vec![targ]),
-            ],
-            vec![
-                (StandardGate::H, vec![], vec![ctrl]),
-                (StandardGate::S, vec![], vec![targ]),
-            ],
-            vec![(StandardGate::S, vec![], vec![targ])],
-        ],
-
-        // YZ
-        (true, true, false, true) => vec![
-            vec![(StandardGate::H, vec![], vec![targ])],
-            vec![(StandardGate::S, vec![], vec![ctrl]), (StandardGate::H, vec![], vec![targ])],
-        ],
-
-        // ZX
-        (false, true, true, false) => vec![
-            vec![(StandardGate::H, vec![], vec![targ])],
-            vec![(StandardGate::H, vec![], vec![ctrl])],
-            vec![
-                (StandardGate::S, vec![], vec![ctrl]),
-                (StandardGate::H, vec![], vec![targ]),
-            ],
-            vec![(StandardGate::S, vec![], vec![targ])],
-        ],
-
-        // ZY
-        (false, true, true, true) => vec![
-            vec![],
-            vec![(StandardGate::S, vec![], vec![ctrl])],
-            vec![(StandardGate::H, vec![], vec![targ])],
-            vec![
-                (StandardGate::S, vec![], vec![ctrl]),
-                (StandardGate::H, vec![], vec![targ]),
-            ],
-            vec![
-                (StandardGate::H, vec![], vec![ctrl]),
-                (StandardGate::S, vec![], vec![targ]),
-            ],
-        ],
-
-        // ZZ
-        (false, true, false, true) => vec![
-            vec![],
-            vec![
-                (StandardGate::H, vec![], vec![ctrl]),
-                (StandardGate::H, vec![], vec![targ]),
-            ],
-            vec![(StandardGate::S, vec![], vec![ctrl])],
-            vec![(StandardGate::S, vec![], vec![targ])],
-            vec![
-                (StandardGate::S, vec![], vec![ctrl]),
-                (StandardGate::S, vec![], vec![targ]),
-            ],
-        ],
-    };
-
-    identify(synthesis_state, &op_lists, ctrl, targ)
+    }
+    // println!("=> total decrease = {}, num_decreased = {}", total_decrease, num_decreased);
+    (total_decrease, num_decreased)
 }
 
 /// Synthesizes a given Pauli, that is finds a sequence of Clifford gates that brings this Pauli to a single-qubit
@@ -304,9 +132,19 @@ fn compare(
 /// Updates the synthesis state in-place, adjusting the Pauli tableau (conjugating by Clifford gates) and extending
 /// the gate sequence.
 fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
+    // println!("in synthesize_pauli with ndx = {:?}", ndx);
+    // println!("{}", synthesis_state);
+    let mut prev_support_size: Option<usize> = None;
+
     loop {
         let support_size = synthesis_state.tab.get_pauli_support_size(ndx);
+        // println!("current support size = {:?}", support_size);
         assert!(support_size >= 1);
+
+        if let Some(old_support_size) = prev_support_size {
+            assert!(support_size < old_support_size);
+        }
+        prev_support_size = Some(support_size);
 
         // We have successfully reduced this Pauli to a single-qubit rotation.
         if support_size == 1 {
@@ -315,38 +153,72 @@ fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
 
         // loop to cycle over all qubit indices to get all combinations of control and target
         // for now, keep the same order as in python code
-        let ndx_support = synthesis_state.tab.get_pauli_support(ndx);
+        let support = synthesis_state.tab.get_pauli_support(ndx);
 
-        let pairs = (0..ndx_support.len())
-            .flat_map(|i| ((i + 1)..ndx_support.len()).flat_map(move |j| [(i, j), (j, i)]));
+        let mut best_score = (isize::MIN, isize::MIN);
+        let mut best_ctrl = 0;
+        let mut best_targ = 0;
+        let mut best_chunk_idx = 0;
+        for ii in 0..support.len() {
+            for jj in ii + 1..support.len() {
+                let ctrl = support[ii];
+                let targ = support[jj];
+                // println!("ii = {}, jj = {}, ctrl = {}, targ = {}", ii, jj, ctrl, targ);
+                // get the index 0..16
+                let pair_idx = synthesis_state.tab.pauli_pair_index(ndx, ctrl, targ);
+                // println!("ii = {}, jj = {}, ctrl = {}, targ = {}, pair = {}", ii, jj, ctrl, targ, pair_idx);
 
-        let (score, gate_seq) = pairs
-            .map(|(i, j)| compare(synthesis_state, ndx, ndx_support[i], ndx_support[j]))
-            .rev()
-            .max_by_key(|(score, _gate_seq)| *score)
-            .expect("The list should not be empty");
-
-        // println!("===> chose action: gate_sequence = {:?}, with score {:?}", gate_seq, score);
-
-
-        // Apply the best operation
-        for (gate, _paramas, qubits) in &gate_seq {
-            match gate {
-                StandardGate::H => {
-                    synthesis_state.tab.append_h(qubits[0]);
-                }
-                StandardGate::S => {
-                    synthesis_state.tab.append_s(qubits[0]);
-                }
-                StandardGate::CX => {
-                    synthesis_state.tab.append_cx(qubits[0], qubits[1]);
-                }
-                _ => {
-                    panic!("should only have s/h/cx gates");
+                // get the indices of chunks that can reduce this
+                assert!(!REDUCING_CHUNKS[pair_idx].is_empty());
+                for chunk_idx in REDUCING_CHUNKS[pair_idx] {
+                    let score = compute_score(synthesis_state, ctrl, targ, *chunk_idx);
+                    if score > best_score {
+                        best_score = score;
+                        best_chunk_idx = *chunk_idx;
+                        best_ctrl = ctrl;
+                        best_targ = targ;
+                    }
                 }
             }
         }
-        synthesis_state.gate_sequence.extend(gate_seq);
+        // println!("best_score = {:?}, best_chunk_idx = {}, best_ctrl = {}, best_targ = {}", best_score, best_chunk_idx, best_ctrl, best_targ);
+
+        // Apply the best chunk
+        for (gate, qubits) in ALL_CHUNKS[best_chunk_idx] {
+            let mapped_qubits: Vec<usize> = qubits
+                .iter()
+                .map(|q| match q {
+                    0 => best_ctrl,
+                    1 => best_targ,
+                    _ => {
+                        unreachable!("can only have 0/1");
+                    }
+                })
+                .collect();
+
+            match gate {
+                StandardGate::H => {
+                    synthesis_state.tab.append_h(mapped_qubits[0]);
+                }
+                StandardGate::S => {
+                    synthesis_state.tab.append_s(mapped_qubits[0]);
+                }
+                StandardGate::SX => {
+                    synthesis_state.tab.append_sx(mapped_qubits[0]);
+                }
+                StandardGate::CX => {
+                    synthesis_state
+                        .tab
+                        .append_cx(mapped_qubits[0], mapped_qubits[1]);
+                }
+                _ => {
+                    panic!("should only have s/sx/h/cx gates");
+                }
+            }
+            synthesis_state
+                .gate_sequence
+                .push((*gate, vec![], mapped_qubits));
+        }
     }
 }
 
@@ -440,7 +312,12 @@ impl MctsAlgorithm {
         self.process_all_identity_paulis(&mut synthesis_state);
         self.process_synthesized_paulis(&mut synthesis_state);
 
-        let unexplored_actions = self.compute_frontier_nodes(&synthesis_state.in_degrees).iter().rev().cloned().collect();
+        let unexplored_actions = self
+            .compute_frontier_nodes(&synthesis_state.in_degrees)
+            .iter()
+            .rev()
+            .cloned()
+            .collect();
         // let unexplored_actions = self.compute_frontier_nodes(&synthesis_state.in_degrees);
 
         let node = MctsNode {
@@ -555,8 +432,6 @@ impl MctsAlgorithm {
         loop {
             // println!("===> Current state:");
             // println!("===> {}", self.mcts_nodes[mcts_node_id].synthesis_state);
-            
-
 
             // If all the Paulis have been processed, return the current id.
             if self.mcts_nodes[mcts_node_id].synthesis_state.num_processed == self.num_paulis {
@@ -579,8 +454,13 @@ impl MctsAlgorithm {
                 self.process_synthesized_paulis(&mut synthesis_state);
 
                 // let unexplored_actions = self.compute_frontier_nodes(&synthesis_state.in_degrees);
-                let unexplored_actions = self.compute_frontier_nodes(&synthesis_state.in_degrees).iter().rev().cloned().collect();
-                
+                let unexplored_actions = self
+                    .compute_frontier_nodes(&synthesis_state.in_degrees)
+                    .iter()
+                    .rev()
+                    .cloned()
+                    .collect();
+
                 // Create the child mcts node with the result of the above synthesis.
                 let child_node = MctsNode {
                     ni: 0,
@@ -612,7 +492,6 @@ impl MctsAlgorithm {
                 })
                 .unwrap();
             // println!("===> Considering action with max score {:?}", mcts_node_id);
-
         }
     }
 
@@ -732,16 +611,12 @@ impl MctsAlgorithm {
             assert!(!front_nodes.is_empty());
             // println!("===> front nodes: {:?}", front_nodes);
 
-
             // Find active pauli of smallest weight
             let idx = front_nodes
                 .iter()
-                .min_by_key(|idx| {
-                    synthesis_state.tab.get_pauli_support_size(**idx)
-                })
+                .min_by_key(|idx| synthesis_state.tab.get_pauli_support_size(**idx))
                 .expect("The frontier cannot be empty.");
             // println!("===> chose pauli id {:?}: {:?}", idx, synthesis_state.tab.to_pauli_strings()[*idx]);
-
 
             // We should have filtered all already synthesized paulis.
             assert!(synthesis_state.tab.get_pauli_support_size(*idx) >= 2);
@@ -785,6 +660,7 @@ pub fn pauli_network_mcts_inner(
                 StandardGate::CX => StandardGate::CX,
                 StandardGate::H => StandardGate::H,
                 StandardGate::S => StandardGate::Sdg,
+                StandardGate::SX => StandardGate::SXdg,
                 _ => {
                     panic!("only CX/H/S");
                 }

@@ -497,6 +497,17 @@ impl PauliList {
         }
         out
     }
+
+    /// Returns (the index of) the Pauli pair over the qubits `i` and `j`
+    /// for the Pauli operator `pauli_idx`.
+    #[inline]
+    pub fn pauli_pair_index(&self, pauli_idx: usize, i: usize, j: usize) -> usize {
+        let xi = self.get_pauli_x(pauli_idx, i);
+        let zi = self.get_pauli_z(pauli_idx, i);
+        let xj = self.get_pauli_x(pauli_idx, j);
+        let zj = self.get_pauli_z(pauli_idx, j);
+        ((xi as usize) << 3) | ((zi as usize) << 2) | ((xj as usize) << 1) | (zj as usize)
+    }
 }
 
 impl fmt::Display for PauliList {
