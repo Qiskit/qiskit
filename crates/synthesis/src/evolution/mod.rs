@@ -144,6 +144,7 @@ pub fn pauli_network_synthesis(
         resynth_clifford_method,
     )
     .map(Into::into)
+    .map_err(Into::into)
 }
 
 #[pyfunction]

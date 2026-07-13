@@ -10,11 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-// use crate::QiskitError;
 use crate::clifford::greedy_synthesis::resynthesize_clifford_circuit;
+use crate::evolution::EvolutionSynthesisError;
 
-use pyo3::prelude::*;
-// use pyo3::types::{PyList, PyString, PyTuple};
 use smallvec::{SmallVec, smallvec};
 
 use qiskit_circuit::Qubit;
@@ -294,9 +292,7 @@ pub fn pauli_network_synthesis_inner(
     upto_clifford: bool,
     upto_phase: bool,
     resynth_clifford_method: usize,
-) -> PyResult<CircuitData> {
-    // println!("=> Called pauli_network_synthesis_inner with paulis = {:?} and angles = {:?}", paulis, angles);
-
+) -> Result<CircuitData, EvolutionSynthesisError> {
     let paulis = PauliSet::from_slice(&paulis);
     let metric = match optimize_count {
         true => Metric::COUNT,
