@@ -113,7 +113,7 @@ fn py_cancel_commutations(
     commutation_checker: &mut CommutationChecker,
     basis_gates: Option<Vec<String>>,
     approximation_degree: f64,
-) -> PyResult<()> {
+) -> PyResult<(bool, bool)> {
     cancel_commutations(dag, commutation_checker, basis_gates, approximation_degree)
         .map_err(Into::into)
 }
@@ -123,7 +123,7 @@ pub fn cancel_commutations(
     commutation_checker: &mut CommutationChecker,
     basis_gates: Option<Vec<String>>,
     approximation_degree: f64,
-) -> Result<(), CommutationCancelError> {
+) -> Result<(bool, bool), CommutationCancelError> {
     let basis = basis_gates.unwrap_or_default();
     let z_var_gate = dag
         .get_op_counts()
@@ -259,10 +259,15 @@ pub fn cancel_commutations(
         }
     });
 
+    let mut changed = false;
+    let mut rotations_consolidated = false;
     for (cancel_key, cancel_set) in &cancellation_sets {
         if cancel_set.len() > 1 {
             if let GateOrRotation::Gate(g) = cancel_key.gate {
                 if SUPPORTED_GATES.contains(&g) {
+                    if cancel_key.qubits.len() > 1 {
+                        changed = true;
+                    }
                     for &c_node in &cancel_set[0..(cancel_set.len() / 2) * 2] {
                         dag.remove_op_node(c_node);
                     }
@@ -276,6 +281,7 @@ pub fn cancel_commutations(
                 cancel_key.gate,
                 GateOrRotation::ZRotation | GateOrRotation::XRotation
             ) {
+                rotations_consolidated = true;
                 let mut total_angle: f64 = 0.0;
                 let mut total_phase: f64 = 0.0;
                 for current_node in cancel_set {
@@ -358,7 +364,7 @@ pub fn cancel_commutations(
         }
     }
 
-    Ok(())
+    Ok((changed, rotations_consolidated))
 }
 
 /// Checks if angle is an integer multiple of ``factor * PI``.
