@@ -2096,8 +2096,10 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
         if "preserve_order" in options and isinstance(algo, ProductFormula):
             algo.preserve_order = options["preserve_order"]
 
-        synth_object = algo.synthesize(high_level_object)
-        algo.preserve_order = original_preserve_order
+        try:
+            synth_object = algo.synthesize(high_level_object)
+        finally:
+            algo.preserve_order = original_preserve_order
         return synth_object
 
 
@@ -2188,16 +2190,18 @@ class PauliEvolutionSynthesisRustiq(HighLevelSynthesisPlugin):
         upto_phase = options.get("upto_phase", False)
         resynth_clifford_method = options.get("resynth_clifford_method", 1)
 
-        synth_object = synth_pauli_network_rustiq(
-            num_qubits=num_qubits,
-            pauli_network=pauli_network,
-            optimize_count=optimize_count,
-            preserve_order=preserve_order,
-            upto_clifford=upto_clifford,
-            upto_phase=upto_phase,
-            resynth_clifford_method=resynth_clifford_method,
-        )
-        algo.preserve_order = original_preserve_order
+        try:
+            synth_object = synth_pauli_network_rustiq(
+                num_qubits=num_qubits,
+                pauli_network=pauli_network,
+                optimize_count=optimize_count,
+                preserve_order=preserve_order,
+                upto_clifford=upto_clifford,
+                upto_phase=upto_phase,
+                resynth_clifford_method=resynth_clifford_method,
+            )
+        finally:
+            algo.preserve_order = original_preserve_order
         return synth_object
 
 
@@ -2283,14 +2287,17 @@ class PauliEvolutionSynthesisMcts(HighLevelSynthesisPlugin):
         upto_phase = options.get("upto_phase", False)
         num_simulations = options.get("num_simulations", 0)
 
-        synth_object = synth_pauli_network_mcts(
-            num_qubits=num_qubits,
-            pauli_network=pauli_network,
-            preserve_order=preserve_order,
-            upto_clifford=upto_clifford,
-            upto_phase=upto_phase,
-            num_simulations=num_simulations,
-        )
+        try:
+            synth_object = synth_pauli_network_mcts(
+                num_qubits=num_qubits,
+                pauli_network=pauli_network,
+                preserve_order=preserve_order,
+                upto_clifford=upto_clifford,
+                upto_phase=upto_phase,
+                num_simulations=num_simulations,
+            )
+        finally:
+            algo.preserve_order = original_preserve_order
         algo.preserve_order = original_preserve_order
         return synth_object
 

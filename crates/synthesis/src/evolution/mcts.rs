@@ -174,7 +174,6 @@ fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
         }
 
         // loop to cycle over all qubit indices to get all combinations of control and target
-        // for now, keep the same order as in python code
         let support = synthesis_state.tab.get_pauli_support(ndx);
 
         let mut best_score = (isize::MIN, isize::MIN);
@@ -663,7 +662,8 @@ pub fn pauli_network_mcts_inner(
         } else {
             //  However, if upto_phase is true, we can attempt to resynthesize the final clifford.
             let resynthesized =
-                resynthesize_clifford_circuit(num_qubits, &inverse_clifford_circuit).unwrap();
+                resynthesize_clifford_circuit(num_qubits, &inverse_clifford_circuit)
+                    .map_err(EvolutionSynthesisError::ErrorFromCliffordSynthesis)?;
             if cx_count_with_swaps(&inverse_clifford_circuit) <= cx_count_with_swaps(&resynthesized)
             {
                 circuit.extend(inverse_clifford_circuit);

@@ -36,6 +36,10 @@ pub enum EvolutionSynthesisError {
     // wraps CircuitData error
     #[error(transparent)]
     ErrorFromCircuitData(#[from] CircuitDataError),
+
+    // wraps a Clifford (re)synthesis error, which is reported as a plain string
+    #[error("Clifford synthesis failed: {0}")]
+    ErrorFromCliffordSynthesis(String),
 }
 
 impl From<EvolutionSynthesisError> for PyErr {
@@ -45,6 +49,7 @@ impl From<EvolutionSynthesisError> for PyErr {
                 QiskitError::new_err(err.to_string())
             }
             EvolutionSynthesisError::ErrorFromCircuitData(err) => err.into(),
+            EvolutionSynthesisError::ErrorFromCliffordSynthesis(msg) => QiskitError::new_err(msg),
         }
     }
 }
