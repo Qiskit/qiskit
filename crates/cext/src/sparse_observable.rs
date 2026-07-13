@@ -535,14 +535,14 @@ pub unsafe extern "C" fn qk_obs_bit_terms(obs: *mut SparseObservable) -> *mut Bi
 ///
 /// @param obs A pointer to the observable.
 /// @param coeff The coefficient to multiply the observable with.
+/// @param out A pointer to store the output observable pointer.
 ///
-/// @return A pointer to the result ``obs * coeff``.
+/// @return An exit code indicating success or failure.
 ///
 /// # Example
 /// ```c
-///     QkObs *obs = qk_obs_identity(100);
-///     QkComplex64 coeff = {2, 0};
-///     QkObs *result = qk_obs_multiply(obs, &coeff);
+///     QkObs *result = NULL;
+///     QkExitCode exit = qk_obs_multiply(obs, &coeff, &result);
 /// ```
 ///
 /// # Safety
@@ -550,17 +550,20 @@ pub unsafe extern "C" fn qk_obs_bit_terms(obs: *mut SparseObservable) -> *mut Bi
 /// Behavior is undefined if any of the following is violated
 /// * ``obs`` is a valid, non-null pointer to a ``QkObs``
 /// * ``coeff`` is a valid, non-null pointer to a ``QkComplex64``
+/// * ``out`` is a valid, non-null pointer to a ``QkObs*``
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_obs_multiply(
     obs: *const SparseObservable,
     coeff: *const Complex64,
-) -> *mut SparseObservable {
+    out: *mut *mut SparseObservable,
+) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
     let obs = unsafe { const_ptr_as_ref(obs) };
     let coeff = unsafe { const_ptr_as_ref(coeff) };
 
     let result = obs * (*coeff);
-    Box::into_raw(Box::new(result))
+    unsafe { *out = Box::into_raw(Box::new(result)) };
+    ExitCode::Success
 }
 
 /// @ingroup QkObs
@@ -569,11 +572,11 @@ pub unsafe extern "C" fn qk_obs_multiply(
 /// @param obs A pointer to the observable.
 /// @param coeff The coefficient to multiply the observable with.
 ///
+/// @return An exit code indicating success or failure.
+///
 /// # Example
 /// ```c
-/// QkObs *obs = qk_obs_identity(100);
-/// QkComplex64 coeff = {2, 0};
-/// qk_obs_multiply_inplace(obs, &coeff);
+/// QkExitCode exit = qk_obs_multiply_inplace(obs, &coeff);
 /// ```
 ///
 /// # Safety
@@ -585,12 +588,13 @@ pub unsafe extern "C" fn qk_obs_multiply(
 pub unsafe extern "C" fn qk_obs_multiply_inplace(
     obs: *mut SparseObservable,
     coeff: *const Complex64,
-) {
+) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
     let obs = unsafe { mut_ptr_as_ref(obs) };
     let coeff = unsafe { const_ptr_as_ref(coeff) };
 
     *obs *= *coeff;
+    ExitCode::Success
 }
 
 /// @ingroup QkObs
@@ -598,31 +602,37 @@ pub unsafe extern "C" fn qk_obs_multiply_inplace(
 ///
 /// @param left A pointer to the left observable.
 /// @param right A pointer to the right observable.
+/// @param out A pointer to store the output observable pointer.
 ///
-/// @return A pointer to the result ``left + right``.
+/// @return An exit code indicating success or failure.
 ///
 /// # Example
 /// ```c
-///     QkObs *left = qk_obs_identity(100);
-///     QkObs *right = qk_obs_zero(100);
-///     QkObs *result = qk_obs_add(left, right);
+///     QkObs *result = NULL;
+///     QkExitCode exit = qk_obs_add(left, right, &result);
 /// ```
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``left`` or ``right`` are not valid, non-null pointers to
-/// ``QkObs``\ s.
+/// ``QkObs``\ s, or if ``out`` is not a valid, non-null pointer to a ``QkObs*``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_obs_add(
     left: *const SparseObservable,
     right: *const SparseObservable,
-) -> *mut SparseObservable {
+    out: *mut *mut SparseObservable,
+) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
     let left = unsafe { const_ptr_as_ref(left) };
     let right = unsafe { const_ptr_as_ref(right) };
 
+    if left.num_qubits() != right.num_qubits() {
+        return ExitCode::MismatchedQubits;
+    }
+
     let result = left + right;
-    Box::into_raw(Box::new(result))
+    unsafe { *out = Box::into_raw(Box::new(result)) };
+    ExitCode::Success
 }
 
 /// @ingroup QkObs
@@ -631,11 +641,13 @@ pub unsafe extern "C" fn qk_obs_add(
 /// @param left A pointer to the left observable.
 /// @param right A pointer to the right observable.
 ///
+/// @return An exit code indicating success or failure.
+///
 /// # Example
 /// ```c
 /// QkObs *left = qk_obs_identity(100);
 /// QkObs *right = qk_obs_zero(100);
-/// qk_obs_add_inplace(left, right);
+/// QkExitCode exit = qk_obs_add_inplace(left, right);
 /// ```
 ///
 /// # Safety
@@ -646,12 +658,17 @@ pub unsafe extern "C" fn qk_obs_add(
 pub unsafe extern "C" fn qk_obs_add_inplace(
     left: *mut SparseObservable,
     right: *const SparseObservable,
-) {
+) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
     let left = unsafe { mut_ptr_as_ref(left) };
     let right = unsafe { const_ptr_as_ref(right) };
 
+    if left.num_qubits() != right.num_qubits() {
+        return ExitCode::MismatchedQubits;
+    }
+
     *left += right;
+    ExitCode::Success
 }
 
 /// @ingroup QkObs
@@ -660,34 +677,40 @@ pub unsafe extern "C" fn qk_obs_add_inplace(
 /// @param left A pointer to the left observable.
 /// @param right A pointer to the right observable.
 /// @param factor The factor to multiply the coefficients with.
+/// @param out A pointer to store the output observable pointer.
 ///
-/// @return An owned pointer to the result ``left + factor * right``.
+/// @return An exit code indicating success or failure.
 ///
 /// # Example
 /// ```c
-/// QkObs *left = qk_obs_zero(100);
-/// QkObs *right = qk_obs_identity(100);
+/// QkObs *result = NULL;
 /// QkComplex64 factor = {2, 0};
-/// QkObs *result = qk_obs_scaled_add(left, right, &factor);
+/// QkExitCode exit = qk_obs_scaled_add(left, right, &factor, &result);
 /// ```
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``left`` or ``right`` are not valid, non-null pointers to
-/// ``QkObs``\ s.
+/// ``QkObs``\ s, or if ``out`` is not a valid, non-null pointer to a ``QkObs*``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_obs_scaled_add(
     left: *const SparseObservable,
     right: *const SparseObservable,
     factor: *const Complex64,
-) -> *mut SparseObservable {
+    out: *mut *mut SparseObservable,
+) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
     let left = unsafe { const_ptr_as_ref(left) };
     let right = unsafe { const_ptr_as_ref(right) };
     let factor = unsafe { const_ptr_as_ref(factor) };
 
+    if left.num_qubits() != right.num_qubits() {
+        return ExitCode::MismatchedQubits;
+    }
+
     let result = left.scaled_add(right, *factor);
-    Box::into_raw(Box::new(result))
+    unsafe { *out = Box::into_raw(Box::new(result)) };
+    ExitCode::Success
 }
 
 /// @ingroup QkObs
@@ -697,12 +720,12 @@ pub unsafe extern "C" fn qk_obs_scaled_add(
 /// @param right A pointer to the right observable.
 /// @param factor The factor to multiply the coefficients with.
 ///
+/// @return An exit code indicating success or failure.
+///
 /// # Example
 /// ```c
-/// QkObs *left = qk_obs_zero(100);
-/// QkObs *right = qk_obs_identity(100);
 /// QkComplex64 factor = {2, 0};
-/// qk_obs_scaled_add_inplace(left, right, &factor);
+/// QkExitCode exit = qk_obs_scaled_add_inplace(left, right, &factor);
 /// ```
 ///
 /// # Safety
@@ -714,13 +737,18 @@ pub unsafe extern "C" fn qk_obs_scaled_add_inplace(
     left: *mut SparseObservable,
     right: *const SparseObservable,
     factor: *const Complex64,
-) {
+) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
     let left = unsafe { mut_ptr_as_ref(left) };
     let right = unsafe { const_ptr_as_ref(right) };
     let factor = unsafe { const_ptr_as_ref(factor) };
 
+    if left.num_qubits() != right.num_qubits() {
+        return ExitCode::MismatchedQubits;
+    }
+
     left.scaled_add_inplace(right, *factor);
+    ExitCode::Success
 }
 
 /// @ingroup QkObs
@@ -736,24 +764,31 @@ pub unsafe extern "C" fn qk_obs_scaled_add_inplace(
 /// ```c
 ///     QkObs *first = qk_obs_zero(100);
 ///     QkObs *second = qk_obs_identity(100);
-///     QkObs *result = qk_obs_compose(first, second);
+///     QkObs *result = NULL;
+///     QkExitCode exit = qk_obs_compose(first, second, &result);
 /// ```
 ///
 /// # Safety
 ///
 /// Behavior is undefined if ``first`` or ``second`` are not valid, non-null pointers to
-/// ``QkObs``\ s.
+/// ``QkObs``\ s, or if ``out`` is not a valid, non-null pointer to a ``QkObs*``.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_obs_compose(
     first: *const SparseObservable,
     second: *const SparseObservable,
-) -> *mut SparseObservable {
+    out: *mut *mut SparseObservable,
+) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
     let first = unsafe { const_ptr_as_ref(first) };
     let second = unsafe { const_ptr_as_ref(second) };
 
+    if first.num_qubits() != second.num_qubits() {
+        return ExitCode::MismatchedQubits;
+    }
+
     let result = first.compose(second);
-    Box::into_raw(Box::new(result))
+    unsafe { *out = Box::into_raw(Box::new(result)) };
+    ExitCode::Success
 }
 
 /// @ingroup QkObs
@@ -773,7 +808,8 @@ pub unsafe extern "C" fn qk_obs_compose(
 /// ```c
 ///     QkObs *first = qk_obs_zero(100);
 ///     QkObs *second = qk_obs_identity(100);
-///     QkObs *result = qk_obs_compose(first, second);
+///     uint32_t qargs[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+///     QkExitCode exit = qk_obs_compose_map(first, second, qargs, &result);
 /// ```
 ///
 /// # Safety
@@ -781,6 +817,7 @@ pub unsafe extern "C" fn qk_obs_compose(
 /// To call this function safely
 ///
 ///   * ``first`` and ``second`` must be valid, non-null pointers to ``QkObs``\ s
+///   * ``out`` must be a valid, non-null pointer to a ``QkObs*``
 ///   * ``qargs`` must point to an array of ``uint32_t``, readable for ``qk_obs_num_qubits(second)``
 ///     elements (meaning the number of qubits in ``second``)
 #[unsafe(no_mangle)]
@@ -788,7 +825,8 @@ pub unsafe extern "C" fn qk_obs_compose_map(
     first: *const SparseObservable,
     second: *const SparseObservable,
     qargs: *const u32,
-) -> *mut SparseObservable {
+    out: *mut *mut SparseObservable,
+) -> ExitCode {
     // SAFETY: Per documentation, the pointers are non-null and aligned.
     let first = unsafe { const_ptr_as_ref(first) };
     let second = unsafe { const_ptr_as_ref(second) };
@@ -798,7 +836,8 @@ pub unsafe extern "C" fn qk_obs_compose_map(
     let qargs_map = |index: u32| qargs[index as usize];
 
     let result = first.compose_map(second, qargs_map);
-    Box::into_raw(Box::new(result))
+    unsafe { *out = Box::into_raw(Box::new(result)) };
+    ExitCode::Success
 }
 
 /// @ingroup QkObs

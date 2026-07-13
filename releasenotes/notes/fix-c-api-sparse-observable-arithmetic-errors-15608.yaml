@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    The ``sparse_observable`` C API functions (``qk_obs_add``, ``qk_obs_scaled_add``,
+    ``qk_obs_multiply``, ``qk_obs_compose``, ``qk_obs_compose_map``) now
+    return :c:type:`QkExitCode` instead of raw pointers, and accept an ``out``
+    parameter to store the result. In-place functions (``qk_obs_add_inplace``,
+    ``qk_obs_scaled_add_inplace``, ``qk_obs_multiply_inplace``) now also return
+    :c:type:`QkExitCode` instead of ``void``. All arithmetic functions properly
+    handle qubit count mismatches, returning
+    :c:macro:`QkExitCode_MismatchedQubits` instead of panicking.
+    Fixed `#15608 <https://github.com/Qiskit/qiskit/issues/15608>`__.

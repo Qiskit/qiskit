@@ -63,7 +63,8 @@ static int test_copy(void) {
 static int test_add(void) {
     QkObs *left = qk_obs_identity(100);
     QkObs *right = qk_obs_identity(100);
-    QkObs *obs = qk_obs_add(left, right);
+    QkObs *obs = NULL;
+    QkExitCode exit = qk_obs_add(left, right, &obs);
 
     size_t num_terms = qk_obs_num_terms(obs);
 
@@ -71,7 +72,7 @@ static int test_add(void) {
     qk_obs_free(right);
     qk_obs_free(obs);
 
-    return (num_terms != 2) ? EqualityError : Ok;
+    return (exit != QkExitCode_Success || num_terms != 2) ? EqualityError : Ok;
 }
 
 /**
@@ -80,14 +81,14 @@ static int test_add(void) {
 static int test_add_inplace(void) {
     QkObs *left = qk_obs_identity(100);
     QkObs *right = qk_obs_identity(100);
-    qk_obs_add_inplace(left, right);
+    QkExitCode exit = qk_obs_add_inplace(left, right);
 
     size_t num_terms = qk_obs_num_terms(left);
 
     qk_obs_free(left);
     qk_obs_free(right);
 
-    return (num_terms != 2) ? EqualityError : Ok;
+    return (exit != QkExitCode_Success || num_terms != 2) ? EqualityError : Ok;
 }
 
 /**
@@ -97,7 +98,8 @@ static int test_scaled_add(void) {
     QkObs *left = qk_obs_identity(100);
     QkObs *right = qk_obs_identity(100);
     QkComplex64 factor = {2.0, 2.0};
-    QkObs *result = qk_obs_scaled_add(left, right, &factor);
+    QkObs *result = NULL;
+    QkExitCode exit = qk_obs_scaled_add(left, right, &factor, &result);
 
     // construct the expected observable: coeff * Id
     QkObs *expected = qk_obs_identity(100);
@@ -114,7 +116,7 @@ static int test_scaled_add(void) {
     qk_obs_free(result);
     qk_obs_free(expected);
 
-    return is_equal ? Ok : EqualityError;
+    return (exit != QkExitCode_Success || !is_equal) ? EqualityError : Ok;
 }
 
 /**
@@ -124,7 +126,7 @@ static int test_scaled_add_inplace(void) {
     QkObs *left = qk_obs_identity(100);
     QkObs *right = qk_obs_identity(100);
     QkComplex64 factor = {2.0, 2.0};
-    qk_obs_scaled_add_inplace(left, right, &factor);
+    QkExitCode exit = qk_obs_scaled_add_inplace(left, right, &factor);
 
     // construct the expected observable: coeff * Id
     QkObs *expected = qk_obs_identity(100);
@@ -140,7 +142,7 @@ static int test_scaled_add_inplace(void) {
     qk_obs_free(right);
     qk_obs_free(expected);
 
-    return is_equal ? Ok : EqualityError;
+    return (exit != QkExitCode_Success || !is_equal) ? EqualityError : Ok;
 }
 
 /**
@@ -163,7 +165,8 @@ static int test_compose(void) {
     QkObsTerm term2 = {coeff2, 3, op2_bits, op2_indices, num_qubits};
     qk_obs_add_term(op2, &term2);
 
-    QkObs *result = qk_obs_compose(op1, op2);
+    QkObs *result = NULL;
+    QkExitCode exit = qk_obs_compose(op1, op2, &result);
 
     QkObs *expected = qk_obs_zero(num_qubits);
     QkComplex64 expected_coeff = {0.0, 2.0};
@@ -179,7 +182,7 @@ static int test_compose(void) {
     qk_obs_free(result);
     qk_obs_free(expected);
 
-    if (!is_equal) {
+    if (exit != QkExitCode_Success || !is_equal) {
         return EqualityError;
     }
     return Ok;
@@ -207,7 +210,8 @@ static int test_compose_map(void) {
 
     uint32_t qargs[2] = {98, 97}; // compose op2 onto these indices in op1
 
-    QkObs *result = qk_obs_compose_map(op1, op2, qargs);
+    QkObs *result = NULL;
+    QkExitCode exit = qk_obs_compose_map(op1, op2, qargs, &result);
 
     QkObs *expected = qk_obs_zero(num_qubits);
     QkBitTerm expected_bits[2] = {QkBitTerm_Right, QkBitTerm_Z};
@@ -222,7 +226,7 @@ static int test_compose_map(void) {
     qk_obs_free(result);
     qk_obs_free(expected);
 
-    if (!is_equal) {
+    if (exit != QkExitCode_Success || !is_equal) {
         return EqualityError;
     }
     return Ok;
@@ -243,12 +247,15 @@ static int test_compose_scalar(void) {
 
     QkObs *scalar = qk_obs_identity(0);
     QkComplex64 factor = {2.0, 0.0};
-    QkObs *mult = qk_obs_multiply(scalar, &factor);
+    QkObs *mult = NULL;
+    QkExitCode mult_exit = qk_obs_multiply(scalar, &factor, &mult);
     uint32_t *qargs = NULL; // no value will be read (also MSVC doesn't allow qargs[0], so use this)
 
-    QkObs *result = qk_obs_compose_map(op, mult, qargs);
+    QkObs *result = NULL;
+    QkExitCode cmp_exit = qk_obs_compose_map(op, mult, qargs, &result);
 
-    QkObs *expected = qk_obs_multiply(op, &factor);
+    QkObs *expected = NULL;
+    QkExitCode expected_exit = qk_obs_multiply(op, &factor, &expected);
 
     bool is_equal = qk_obs_equal(expected, result);
 
@@ -258,7 +265,8 @@ static int test_compose_scalar(void) {
     qk_obs_free(result);
     qk_obs_free(expected);
 
-    if (!is_equal) {
+    if (mult_exit != QkExitCode_Success || cmp_exit != QkExitCode_Success
+        || expected_exit != QkExitCode_Success || !is_equal) {
         return EqualityError;
     }
     return Ok;
@@ -273,7 +281,8 @@ static int test_mult(void) {
     for (int i = 0; i < 3; i++) {
         QkObs *obs = qk_obs_identity(100);
 
-        QkObs *result = qk_obs_multiply(obs, &coeffs[i]);
+        QkObs *result = NULL;
+        QkExitCode exit = qk_obs_multiply(obs, &coeffs[i], &result);
 
         // construct the expected observable: coeff * Id
         QkObs *expected = qk_obs_zero(100);
@@ -290,7 +299,7 @@ static int test_mult(void) {
         qk_obs_free(result);
         qk_obs_free(expected);
 
-        if (!is_equal) {
+        if (exit != QkExitCode_Success || !is_equal) {
             return EqualityError;
         }
     }
@@ -307,7 +316,7 @@ static int test_mult_inplace(void) {
     for (int i = 0; i < 3; i++) {
         QkObs *obs = qk_obs_identity(100);
 
-        qk_obs_multiply_inplace(obs, &coeffs[i]);
+        QkExitCode exit = qk_obs_multiply_inplace(obs, &coeffs[i]);
 
         // construct the expected observable: coeff * Id
         QkObs *expected = qk_obs_zero(100);
@@ -323,7 +332,7 @@ static int test_mult_inplace(void) {
         qk_obs_free(obs);
         qk_obs_free(expected);
 
-        if (!is_equal) {
+        if (exit != QkExitCode_Success || !is_equal) {
             return EqualityError;
         }
     }
@@ -337,7 +346,8 @@ static int test_mult_inplace(void) {
 static int test_canonicalize(void) {
     QkObs *left = qk_obs_identity(100);
     QkObs *right = qk_obs_identity(100);
-    QkObs *obs = qk_obs_add(left, right);
+    QkObs *obs = NULL;
+    QkExitCode add_exit = qk_obs_add(left, right, &obs);
 
     double tol = 1e-5;
     QkObs *simplified = qk_obs_canonicalize(obs, tol);
@@ -358,7 +368,7 @@ static int test_canonicalize(void) {
     qk_obs_free(simplified);
     qk_obs_free(expected);
 
-    return is_equal ? Ok : EqualityError;
+    return (add_exit != QkExitCode_Success || !is_equal) ? EqualityError : Ok;
 }
 
 /**
