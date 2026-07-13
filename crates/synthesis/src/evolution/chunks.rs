@@ -133,6 +133,26 @@ pub static CHUNK_CONJUGATION_TABLE: [[usize; 16]; 18] = [
     [0, 11, 10, 1, 5, 14, 15, 4, 13, 6, 7, 12, 8, 3, 2, 9],
 ];
 
+// Precomputed change in support size for every (chunk, 2-qubit Pauli) pair
+// (a negative value means the conjugation reduces the support).
+pub static SUPPORT_DELTA: [[i8; 16]; 18] = build_support_delta();
+
+const fn build_support_delta() -> [[i8; 16]; 18] {
+    let mut table = [[0i8; 16]; 18];
+    let mut chunk_idx = 0;
+    while chunk_idx < 18 {
+        let mut pair_idx = 0;
+        while pair_idx < 16 {
+            let conjugated_pair_idx = CHUNK_CONJUGATION_TABLE[chunk_idx][pair_idx];
+            table[chunk_idx][pair_idx] = PAULI_SUPPORT_SIZES[conjugated_pair_idx] as i8
+                - PAULI_SUPPORT_SIZES[pair_idx] as i8;
+            pair_idx += 1;
+        }
+        chunk_idx += 1;
+    }
+    table
+}
+
 // For efficiency, we also precompute which conjugations reduce
 // the size of the support set of a given 2-qubit Pauli.
 pub static REDUCING_CHUNKS: [&[usize]; 16] = [

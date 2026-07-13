@@ -27,9 +27,7 @@ use std::fmt;
 
 use crate::clifford::greedy_synthesis::resynthesize_clifford_circuit;
 use crate::evolution::EvolutionSynthesisError;
-use crate::evolution::chunks::{
-    ALL_CHUNKS, CHUNK_CONJUGATION_TABLE, PAULI_SUPPORT_SIZES, REDUCING_CHUNKS,
-};
+use crate::evolution::chunks::{ALL_CHUNKS, REDUCING_CHUNKS, SUPPORT_DELTA};
 
 /// The multiplicative scaling parameter used in the MCTS algorithm.
 const MCTS_PARAM: f64 = SQRT_2;
@@ -114,29 +112,42 @@ fn cx_count_with_swaps(gate_seq: &GateSequence) -> usize {
         .sum()
 }
 
+/// Score of applying a 2-qubit Clifford circuit on a pair of qubits in the PauliList.
+/// Larger scores are better.
 type Score = (isize, isize);
 
-/// Computes the score of applying a Clifford circuit represented by chunk_idx on the given qubit pair
-/// to the synthesized state. The larger value of the score is better.
-/// Score from the paper but computed faster (hope)
-fn compute_score(
+/// Count how many times each of the 16 possible 2-qubit Paulis appear for a fixed
+/// pair `(ctrl, targ)`.
+fn count_active_pairs(
     synthesis_state: &PauliSynthesisState,
     ctrl: usize,
     targ: usize,
-    chunk_idx: usize,
-) -> Score {
-    let mut total_decrease: isize = 0;
-    let mut num_decreased: isize = 0;
-
+) -> [u32; 16] {
+    let mut pair_counts = [0u32; 16];
     for pauli_idx in 0..synthesis_state.tab.num_paulis {
         if synthesis_state.in_degrees[pauli_idx].is_some() {
             let pair_idx = synthesis_state.tab.pauli_pair_index(pauli_idx, ctrl, targ);
-            let conjugated_pair_idx = CHUNK_CONJUGATION_TABLE[chunk_idx][pair_idx];
-            let support_size = PAULI_SUPPORT_SIZES[pair_idx];
-            let conjugated_support_size = PAULI_SUPPORT_SIZES[conjugated_pair_idx];
-            total_decrease += (support_size as isize) - (conjugated_support_size as isize);
-            num_decreased += (conjugated_support_size < support_size) as isize;
+            pair_counts[pair_idx] += 1;
         }
+    }
+    pair_counts
+}
+
+/// Computes the score of applying a Clifford circuit represented by `chunk_idx` on a pair of
+/// qubits, where `pair_counts` represent the numbers of different types of 2-qubit Paulis
+/// (obtained by restricting the active Pauli roations to this pair of qubits).
+fn compute_score(pair_counts: &[u32; 16], chunk_idx: usize) -> Score {
+    let deltas = &SUPPORT_DELTA[chunk_idx];
+    let mut total_decrease: isize = 0;
+    let mut num_decreased: isize = 0;
+
+    for (pair_idx, &pair_count) in pair_counts.iter().enumerate() {
+        if pair_count == 0 {
+            continue;
+        }
+        let delta = deltas[pair_idx] as isize;
+        total_decrease -= delta * (pair_count as isize);
+        num_decreased += ((delta < 0) as isize) * (pair_count as isize);
     }
     (total_decrease, num_decreased)
 }
@@ -177,10 +188,13 @@ fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
                 // get the index 0..16
                 let pair_idx = synthesis_state.tab.pauli_pair_index(ndx, ctrl, targ);
 
+                // count the numbers of different 2-qubit Paulis on (ctrl, targ)
+                let pair_counts = count_active_pairs(synthesis_state, ctrl, targ);
+
                 // get the indices of chunks that can reduce this
                 assert!(!REDUCING_CHUNKS[pair_idx].is_empty());
                 for chunk_idx in REDUCING_CHUNKS[pair_idx] {
-                    let score = compute_score(synthesis_state, ctrl, targ, *chunk_idx);
+                    let score = compute_score(&pair_counts, *chunk_idx);
                     if score > best_score {
                         best_score = score;
                         best_chunk_idx = *chunk_idx;
