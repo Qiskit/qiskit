@@ -257,7 +257,6 @@ fn update_in_degrees(
             assert_ne!(*degree, 0);
             *degree -= 1;
         }
-        // println!("=> Marking pauli idx = {:?} as processed", *i);
         in_degrees[*i] = None;
     }
 }
@@ -585,7 +584,7 @@ impl MctsAlgorithm {
     /// ToDo: consider calling this function greedy_synthesis.
     /// We should be able to get Rustiq implementation (for minimizing CX-count)
     /// by changing the internal scoring function.
-    fn rollout_policy(&mut self, mcts_node_id: usize) -> GateSequence {
+    fn rollout_policy(&self, mcts_node_id: usize) -> GateSequence {
         let num_paulis = self.num_paulis;
 
         // We are cloning this state, since are going to update it in-place.
