@@ -21,6 +21,7 @@ import warnings
 from unittest.mock import patch
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, visualization
+from qiskit.circuit.library import GlobalPhaseGate
 from qiskit.utils import optionals
 from qiskit.visualization.circuit import styles, text
 from qiskit.visualization.exceptions import VisualizationError
@@ -288,3 +289,23 @@ class TestCircuitDrawer(QiskitTestCase):
         circuit.draw("latex_source")
         if optionals.HAS_MATPLOTLIB and optionals.HAS_PYLATEX:
             circuit.draw("mpl")
+
+    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "needs matplotlib")
+    def test_mpl_zero_operand_gate_does_not_raise(self):
+        """A zero-operand instruction (e.g. a stand-alone ``GlobalPhaseGate``)
+        used to be silently dropped by the matplotlib drawer, and a fix for
+        that regressed into a crash once the instruction reached layering.
+        Drawing it should produce a figure spanning every qubit, not raise
+        (see qiskit#9962)."""
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.append(GlobalPhaseGate(1.0), [])
+        circuit.x(0)
+
+        fig = circuit.draw("mpl")
+        self.assertIsInstance(fig, figure.Figure)
+        # The zero-operand box should be drawn as a patch taller than the
+        # single-qubit gate boxes (h, x), since it spans all 3 qubit wires.
+        heights = [abs(patch.get_height()) for patch in fig.axes[0].patches]
+        single_qubit_gate_height = 0.65
+        self.assertTrue(any(height > 2 * single_qubit_gate_height for height in heights))

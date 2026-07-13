@@ -13,7 +13,7 @@
 """Common circuit visualization utilities."""
 
 import re
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict, deque
 from warnings import warn
 
 import numpy as np
@@ -481,6 +481,11 @@ def _get_layered_instructions(
             nodes.append([node])
     else:
         nodes = _LayerSpooler(dag, qubits, clbits, justify, measure_map, measure_arrows)
+        # Zero-operand instructions (e.g. a stand-alone global-phase gate) have no
+        # wires, so `dag.layers()` never visits them and they're invisible to the
+        # `_LayerSpooler`. Re-insert them as their own dedicated layers, in their
+        # original circuit order, so they still get drawn (see qiskit#9962).
+        _insert_zero_operand_layers(nodes, dag, circuit)
 
     if not idle_wires:
         # Optionally remove all idle wires and instructions that are on them and
@@ -491,9 +496,93 @@ def _get_layered_instructions(
             if wire in clbits:
                 clbits.remove(wire)
 
-    nodes = [[node for node in layer if any(q in qubits for q in node.qargs)] for layer in nodes]
+    nodes = [
+        [
+            node
+            for node in layer
+            if _is_zero_operand_gate(node) or any(q in qubits for q in node.qargs)
+        ]
+        for layer in nodes
+    ]
 
     return qubits, clbits, nodes
+
+
+def _is_zero_operand_gate(node):
+    """Whether ``node`` is a real zero-operand *gate* (e.g. a stand-alone
+    ``GlobalPhaseGate``), as opposed to a zero-operand *directive* (e.g. a
+    classical ``Store`` on a ``Var``).
+
+    Both have empty ``qargs``/``cargs``, but only the former is meant to be
+    visible in circuit drawings (see qiskit#9962); directives have never had
+    any rendering for this case, on any drawer, and shouldn't gain one as a
+    side effect of fixing gates. This predicate is shared between the
+    zero-operand layer insertion below and the final qubit-pruning filter
+    above, so that both treat the two cases identically -- a node with no
+    qargs and no cargs that's *also* a directive (e.g. ``Store``) is in fact
+    already reachable via `dag.layers()` through its `Var`, independently of
+    the insertion logic below, and must be filtered the same way a pruned
+    real instruction would be, or it reaches drawer code that has never had
+    to handle it and was never meant to.
+    """
+    return not node.qargs and not node.cargs and not getattr(node.op, "_directive", False)
+
+
+# Generated with AI assistance (Claude Code, Claude Sonnet 4.6); see PR description
+# for disclosure.
+def _insert_zero_operand_layers(nodes, dag, circuit):
+    """Insert any zero-operand op nodes from ``dag`` into ``nodes`` (a list of
+    layers, as produced by ``_LayerSpooler``) as their own dedicated layers.
+
+    ``dag.layers()`` only ever yields nodes that are reachable by walking the
+    DAG's wires, so a node with no qargs and no cargs (such as a manually
+    appended ``GlobalPhaseGate``) is never visited and would otherwise be
+    silently dropped from the drawing (see qiskit#9962). Each such node is
+    placed immediately after the layer of the last preceding instruction (in
+    original circuit order) that does have operands, which keeps it visually
+    in place without having to share a column with anything else.
+
+    Directives (e.g. a classical ``Store`` on a ``Var``, which also has no
+    qargs or cargs) are deliberately excluded: drawers have no rendering for
+    them regardless of layering and never have, so giving one its own layer
+    would only insert a visibly empty column with nothing drawn in it.
+
+    Note: ``DAGOpNode`` identity/equality is not stable across separate
+    ``dag.layers()``/``dag.op_nodes()`` calls (each traversal can hand back
+    distinct wrapper objects, even for the same logical node), so nodes can't
+    be matched up by hashing them. Instead, operands are matched by their
+    ``(qargs, cargs)`` bits, which *are* stable, consuming one occurrence per
+    match in original circuit order; operations that share an identical set
+    of operands can't be reordered relative to each other (they conflict on
+    every wire they touch), so this is safe even when left-justification
+    compacts other, independent instructions out of their original order.
+    """
+    zero_operand_nodes = deque(node for node in dag.op_nodes() if _is_zero_operand_gate(node))
+    if not zero_operand_nodes:
+        return
+
+    occurrences = defaultdict(deque)
+    for layer_index, layer in enumerate(nodes):
+        for node in layer:
+            occurrences[node.qargs, node.cargs].append(layer_index)
+
+    shift = 0
+    insert_at = 0
+    for instruction in circuit.data:
+        if instruction.qubits or instruction.clbits:
+            key = (tuple(instruction.qubits), tuple(instruction.clbits))
+            queue = occurrences.get(key)
+            if queue:
+                insert_at = queue.popleft() + shift + 1
+            continue
+        if getattr(instruction.operation, "_directive", False):
+            # Excluded from zero_operand_nodes above; nothing to insert.
+            continue
+        nodes.insert(insert_at, [zero_operand_nodes.popleft()])
+        shift += 1
+        insert_at += 1
+        if not zero_operand_nodes:
+            break
 
 
 def _sorted_nodes(dag_layer):

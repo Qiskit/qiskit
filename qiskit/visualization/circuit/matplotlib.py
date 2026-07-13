@@ -792,10 +792,19 @@ class MatplotlibDrawer:
                     x_index = curr_x_index
 
                 # get qubit indexes
-                q_indxs = []
-                for qarg in node.qargs:
-                    if qarg in self._qubits:
-                        q_indxs.append(wire_map[qarg])
+                if not node.qargs and not node.cargs:
+                    # Generated with AI assistance (Claude Code, Claude Sonnet
+                    # 4.6); see PR description for disclosure.
+                    # A zero-operand instruction (e.g. a stand-alone global-phase
+                    # gate) has no wires of its own, so it implicitly applies to
+                    # every qubit in the circuit and is drawn spanning all of
+                    # them (see qiskit#9962).
+                    q_indxs = [wire_map[qubit] for qubit in self._qubits]
+                else:
+                    q_indxs = []
+                    for qarg in node.qargs:
+                        if qarg in self._qubits:
+                            q_indxs.append(wire_map[qarg])
 
                 # get clbit indexes
                 c_indxs = []
@@ -1529,7 +1538,14 @@ class MatplotlibDrawer:
             cypos = min(y[1] for y in c_xy)
             ypos = min(ypos, cypos)
 
-        wid = max(node_data[node].width + 0.21, WID)
+        # Generated with AI assistance (Claude Code, Claude Sonnet 4.6); see PR
+        # description for disclosure.
+        # A zero-operand instruction (e.g. a stand-alone global-phase gate) has
+        # no real operands to index, so its box spans every qubit but skips the
+        # left-hand per-wire operand numbers that real multi-qubit gates get
+        # (see qiskit#9962).
+        skip_wire_labels = not node.qargs and not node.cargs
+        wid = max(node_data[node].width + (0.0 if skip_wire_labels else 0.21), WID)
         qubit_span = abs(ypos) - abs(ypos_max)
         height = HIG + qubit_span
 
@@ -1545,18 +1561,19 @@ class MatplotlibDrawer:
         self._ax.add_patch(box)
 
         # annotate inputs
-        for bit, y in enumerate([x[1] for x in xy]):
-            self._ax.text(
-                xpos + 0.07 - 0.5 * wid,
-                y,
-                str(bit),
-                ha="left",
-                va="center",
-                fontsize=self._style["fs"],
-                color=node_data[node].gt,
-                clip_on=True,
-                zorder=PORDER_TEXT,
-            )
+        if not skip_wire_labels:
+            for bit, y in enumerate([x[1] for x in xy]):
+                self._ax.text(
+                    xpos + 0.07 - 0.5 * wid,
+                    y,
+                    str(bit),
+                    ha="left",
+                    va="center",
+                    fontsize=self._style["fs"],
+                    color=node_data[node].gt,
+                    clip_on=True,
+                    zorder=PORDER_TEXT,
+                )
         if c_xy:
             # annotate classical inputs
             for bit, y in enumerate([x[1] for x in c_xy]):

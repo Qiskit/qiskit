@@ -17,6 +17,7 @@ import numpy as np
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Qubit, Clbit
+from qiskit.circuit.library import GlobalPhaseGate
 from qiskit.visualization.circuit import _utils
 from qiskit.visualization import array_to_latex
 from qiskit.utils import optionals
@@ -311,6 +312,88 @@ class TestVisualizationUtils(QiskitTestCase):
 
         self.assertEqual(
             r_exp, [{(op.name, op.qargs, op.cargs) for op in ops} for ops in layered_ops]
+        )
+
+    def test_get_layered_instructions_zero_operand_gate(self):
+        """A zero-operand instruction (e.g. a stand-alone ``GlobalPhaseGate``)
+        must survive layering and land between the real instructions that
+        precede and follow it in circuit order (see qiskit#9962)."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.append(GlobalPhaseGate(1.0), [])
+        qc.x(0)
+
+        (_, _, layered_ops) = _utils._get_layered_instructions(qc)
+
+        exp = [
+            {("h", (Qubit(QuantumRegister(2, "q"), 0),), ())},
+            {("global_phase", (), ())},
+            {("x", (Qubit(QuantumRegister(2, "q"), 0),), ())},
+        ]
+
+        self.assertEqual(
+            exp, [{(op.name, op.qargs, op.cargs) for op in ops} for ops in layered_ops]
+        )
+
+    def test_get_layered_instructions_zero_operand_gates_preserve_order(self):
+        """Multiple zero-operand instructions between the same two real
+        instructions must keep their own relative (circuit) order rather than
+        collapsing into a single layer."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.append(GlobalPhaseGate(1.0), [])
+        qc.append(GlobalPhaseGate(2.0), [])
+        qc.x(0)
+
+        (_, _, layered_ops) = _utils._get_layered_instructions(qc)
+
+        self.assertEqual(4, len(layered_ops))
+        self.assertEqual(
+            [("h", (Qubit(QuantumRegister(2, "q"), 0),), ())],
+            [(op.name, op.qargs, op.cargs) for op in layered_ops[0]],
+        )
+        self.assertEqual(
+            [("global_phase", (), ())], [(op.name, op.qargs, op.cargs) for op in layered_ops[1]]
+        )
+        self.assertEqual(1.0, layered_ops[1][0].op.params[0])
+        self.assertEqual(
+            [("global_phase", (), ())], [(op.name, op.qargs, op.cargs) for op in layered_ops[2]]
+        )
+        self.assertEqual(2.0, layered_ops[2][0].op.params[0])
+        self.assertEqual(
+            [("x", (Qubit(QuantumRegister(2, "q"), 0),), ())],
+            [(op.name, op.qargs, op.cargs) for op in layered_ops[3]],
+        )
+
+    def test_get_layered_instructions_zero_operand_gate_idle_wires_false(self):
+        """A zero-operand instruction is not tied to any wire, so it must
+        still be drawn even when idle wires are stripped out."""
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.append(GlobalPhaseGate(1.0), [])
+
+        (qregs, _, layered_ops) = _utils._get_layered_instructions(qc, idle_wires=False)
+
+        self.assertEqual([Qubit(QuantumRegister(3, "q"), 0)], qregs)
+        exp = [
+            {("h", (Qubit(QuantumRegister(3, "q"), 0),), ())},
+            {("global_phase", (), ())},
+        ]
+        self.assertEqual(
+            exp, [{(op.name, op.qargs, op.cargs) for op in ops} for ops in layered_ops]
+        )
+
+    def test_get_layered_instructions_only_zero_operand_gate(self):
+        """A circuit consisting solely of a zero-operand instruction must
+        still produce a single layer containing it."""
+        qc = QuantumCircuit(2)
+        qc.append(GlobalPhaseGate(1.0), [])
+
+        (_, _, layered_ops) = _utils._get_layered_instructions(qc)
+
+        exp = [{("global_phase", (), ())}]
+        self.assertEqual(
+            exp, [{(op.name, op.qargs, op.cargs) for op in ops} for ops in layered_ops]
         )
 
     @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc")
