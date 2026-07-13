@@ -14,6 +14,8 @@ use std::fmt;
 use fixedbitset::FixedBitSet;
 use ndarray::ArrayView2;
 
+use thiserror::Error;
+
 /// 1-qubit Paulis
 #[derive(Clone, Copy, PartialEq)]
 pub enum Pauli1q {
@@ -37,6 +39,12 @@ pub struct PauliList {
     pub data: Vec<FixedBitSet>,
     /// Scratch space for internal computations, of length num_paulis.
     scratch: FixedBitSet,
+}
+
+#[derive(Error, Debug)]
+pub enum PauliListError {
+    #[error("Invalid Pauli label: {0}")]
+    InvalidLabel(String),
 }
 
 impl PauliList {
@@ -423,10 +431,22 @@ impl PauliList {
         !parity
     }
 
-    /// Creates a PauliList from a list of Strings. For now we assume that strings
-    /// do not contains negative ("-") signs. TODO: extend to "-" signs and add rust tests.
-    pub fn from_pauli_strings(num_qubits: usize, pauli_strings: &[String]) -> Self {
-        let num_paulis = pauli_strings.len();
+    /// Construct a [PauliList] from Pauli labels.
+    ///
+    /// # Arguments:
+    ///
+    /// * `pauli_labels`: An array of Pauli labels, where each label consists
+    ///   of an optional plus or minus sign followed by a sequence of `'I'`, `'X'`, `'Y'`,
+    ///   or `'Z'` characters. The `'i'` factor is not allowed.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PauliListError::InvalidLabel`] if the labels are invalid.
+    pub fn from_pauli_labels(
+        num_qubits: usize,
+        pauli_labels: &[String],
+    ) -> Result<Self, PauliListError> {
+        let num_paulis = pauli_labels.len();
 
         let scratch = FixedBitSet::with_capacity(num_paulis);
         let mut data: Vec<FixedBitSet> = Vec::with_capacity(2 * num_qubits + 1);
@@ -435,8 +455,17 @@ impl PauliList {
             data.push(scratch.clone());
         }
 
-        for (i, ps) in pauli_strings.iter().enumerate() {
-            for (j, p) in ps.chars().enumerate() {
+        for (i, pauli_label) in pauli_labels.iter().enumerate() {
+            let s = if let Some(rest) = pauli_label.strip_prefix('-') {
+                data[2 * num_qubits].set(i, true);
+                rest
+            } else if let Some(rest) = pauli_label.strip_prefix('+') {
+                rest
+            } else {
+                pauli_label.as_str()
+            };
+
+            for (j, p) in s.chars().enumerate() {
                 match p {
                     'X' => {
                         data[j].set(i, true);
@@ -455,18 +484,18 @@ impl PauliList {
                         data[j + num_qubits].set(i, false);
                     }
                     _ => {
-                        panic!("can only have I/X/Y/Z");
+                        return Err(PauliListError::InvalidLabel(pauli_label.clone()));
                     }
                 }
             }
         }
 
-        Self {
+        Ok(Self {
             num_qubits,
             num_paulis,
             data,
             scratch,
-        }
+        })
     }
 
     // reimplement using iterators

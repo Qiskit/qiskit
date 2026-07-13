@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use qiskit_circuit::Qubit;
-use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
+use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Param, StandardGate, multiply_param, radd_param};
 use qiskit_quantum_info::clifford::PauliList;
 
@@ -26,6 +26,7 @@ use std::f64::consts::SQRT_2;
 use std::fmt;
 
 use crate::clifford::greedy_synthesis::resynthesize_clifford_circuit;
+use crate::evolution::EvolutionSynthesisError;
 use crate::evolution::chunks::{
     ALL_CHUNKS, CHUNK_CONJUGATION_TABLE, PAULI_SUPPORT_SIZES, REDUCING_CHUNKS,
 };
@@ -620,8 +621,8 @@ pub fn pauli_network_mcts_inner(
     upto_clifford: bool,
     upto_phase: bool,
     num_simulations: usize,
-) -> Result<CircuitData, CircuitDataError> {
-    let paulis = PauliList::from_pauli_strings(num_qubits, &paulis);
+) -> Result<CircuitData, EvolutionSynthesisError> {
+    let paulis = PauliList::from_pauli_labels(num_qubits, &paulis)?;
     let mut mcts = MctsAlgorithm::new(&paulis, &angles, preserve_order);
     let (mut circuit, global_phase) = mcts.run(num_simulations); // number of simulations
 
@@ -658,5 +659,9 @@ pub fn pauli_network_mcts_inner(
         }
     }
 
-    CircuitData::from_standard_gates(num_qubits as u32, circuit, global_phase)
+    Ok(CircuitData::from_standard_gates(
+        num_qubits as u32,
+        circuit,
+        global_phase,
+    )?)
 }

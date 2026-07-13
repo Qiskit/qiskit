@@ -17,12 +17,37 @@ mod pauli_network;
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString, PyTuple};
 
-use qiskit_circuit::circuit_data::PyCircuitData;
+use qiskit_circuit::circuit_data::{CircuitDataError, PyCircuitData};
 use qiskit_circuit::operations::Param;
+use qiskit_quantum_info::clifford::PauliListError;
 
 use crate::QiskitError;
 use crate::evolution::mcts::pauli_network_mcts_inner;
 use crate::evolution::pauli_network::pauli_network_synthesis_inner;
+
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum EvolutionSynthesisError {
+    // wraps PauliList error
+    #[error(transparent)]
+    ErrorFromPauliList(#[from] PauliListError),
+
+    // wraps CircuitData error
+    #[error(transparent)]
+    ErrorFromCircuitData(#[from] CircuitDataError),
+}
+
+impl From<EvolutionSynthesisError> for PyErr {
+    fn from(error: EvolutionSynthesisError) -> Self {
+        match error {
+            EvolutionSynthesisError::ErrorFromPauliList(err) => {
+                QiskitError::new_err(err.to_string())
+            }
+            EvolutionSynthesisError::ErrorFromCircuitData(err) => err.into(),
+        }
+    }
+}
 
 /// Expands the sparse pauli string representation to the full representation.
 ///
