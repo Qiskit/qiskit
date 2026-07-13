@@ -27,6 +27,6 @@ __all__ = [
     "ProductFormula",
     "QDrift",
     "SuzukiTrotter",
-    "synth_pauli_network_rustiq",
     "synth_pauli_network_mcts",
+    "synth_pauli_network_rustiq",
 ]

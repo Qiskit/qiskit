@@ -110,7 +110,7 @@ def synth_pauli_network_mcts(
         upto_phase: if `True`, the global phase of the returned circuit may differ
              from the global phase of the given Pauli network. The argument is ignored
              when `upto_clifford` is `True`.
-        * num_simulations (int): Number of additional Monte Carlo simulations to perform,
+        num_simulations: Number of additional Monte Carlo simulations to perform,
             beyond the default heuristic synthesis.
 
     Returns:
