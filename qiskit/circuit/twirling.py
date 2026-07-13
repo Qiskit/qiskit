@@ -90,17 +90,18 @@ def pauli_twirl_2q_gates(
         twirling_std_gate = []
         for gate in twirling_gate:
             if isinstance(gate, str):
-                gate = NAME_TO_CLASS.get(gate, None)
+                gate_name = gate
+                gate = NAME_TO_CLASS.get(gate_name, None)
                 if gate is None:
-                    raise QiskitError(f"The specified gate name {twirling_gate} is not supported")
+                    raise QiskitError(f"The specified gate name {gate_name} is not supported")
                 twirling_std_gate.append(gate)
             else:
-                twirling_gate = getattr(gate, "_standard_gate", None)
+                standard_gate = getattr(gate, "_standard_gate", None)
 
-                if twirling_gate is None:
+                if standard_gate is None:
                     custom_gates.append(gate)
-                elif twirling_gate in NAME_TO_CLASS.values():
-                    twirling_std_gate.append(twirling_gate)
+                elif standard_gate in NAME_TO_CLASS.values():
+                    twirling_std_gate.append(standard_gate)
                 else:
                     custom_gates.append(gate)
         if not custom_gates:
