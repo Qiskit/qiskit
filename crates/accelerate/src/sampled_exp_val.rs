@@ -19,8 +19,8 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
 use crate::pauli_exp_val::fast_sum;
+use qiskit_quantum_info::python::sparse_observable::PySparseObservable;
 use qiskit_quantum_info::sparse_observable::BitTerm;
-use qiskit_quantum_info::sparse_observable::PySparseObservable;
 use qiskit_quantum_info::sparse_observable::SparseTermView;
 use qiskit_util::complex::c64;
 
