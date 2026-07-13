@@ -15,6 +15,7 @@ use std::ffi::{CString, c_char};
 use crate::exit_codes::{CInputError, ExitCode};
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref, slice_from_ptr, try_slice_from_ptr};
 use num_complex::Complex64;
+use qiskit_circuit::operations::{Param, PauliProductRotation};
 
 use qiskit_quantum_info::sparse_observable::{
     BitTerm, CoherenceError, SparseObservable, SparseTermView,
@@ -528,6 +529,43 @@ pub unsafe extern "C" fn qk_obs_bit_terms(obs: *mut SparseObservable) -> *mut Bi
     let obs = unsafe { mut_ptr_as_ref(obs) };
 
     obs.bit_terms_mut().as_mut_ptr()
+}
+
+/// Convert a single SparseObservable term to a PauliProductRotation gate + global phase.
+///
+/// This takes a slice of `BitTerm` values and a coefficient, and produces:
+/// - A `PauliProductRotation` gate representing the Pauli rotation
+/// - A global phase correction from projector terms
+fn term_to_pauli_product_rotation(
+    bit_terms: &[BitTerm],
+    coeff: f64,
+) -> (PauliProductRotation, f64) {
+    let n = bit_terms.len();
+    let mut z = Vec::with_capacity(n);
+    let mut x = Vec::with_capacity(n);
+    let mut global_phase = 0.0;
+
+    for bit in bit_terms {
+        match bit {
+            BitTerm::X => { z.push(false); x.push(true); }
+            BitTerm::Y => { z.push(true); x.push(true); }
+            BitTerm::Z => { z.push(true); x.push(false); }
+            // Projectors |ψ⟩⟨ψ| = (I ± P)/2 contribute the Pauli P and an identity
+            // term I/2 → global phase of -theta/2 in exp(-i*theta*|ψ⟩⟨ψ|).
+            BitTerm::Zero | BitTerm::One => { z.push(true); x.push(false); global_phase -= 0.5; }
+            BitTerm::Plus | BitTerm::Minus => { z.push(false); x.push(true); global_phase -= 0.5; }
+            BitTerm::Right | BitTerm::Left => { z.push(true); x.push(true); global_phase -= 0.5; }
+        }
+    }
+
+    (
+        PauliProductRotation {
+            z,
+            x,
+            angle: Param::Float(coeff * 2.0),
+        },
+        global_phase,
+    )
 }
 
 /// @ingroup QkObs

@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Added :func:`term_to_pauli_product_rotation` helper that converts a single
+    SparseObservable term (``BitTerm`` array + coefficient) to a
+    :class:`~qiskit.circuit.library.PauliProductRotation` gate and a global
+    phase contribution. Projector bit terms (Plus, Minus, Zero, One, Right,
+    Left) are correctly expanded into Pauli operators with the appropriate
+    global phase. This enables quantum chemistry workflows from
+    :class:`SparseObservable` to :class:`PauliProductRotation` gates.
+    Part of `#15969 <https://github.com/Qiskit/qiskit/issues/15969>`__.
