@@ -10,10 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::prelude::*;
-use qiskit_circuit::{imports, operations::Param};
-
 use super::blocks::{Block, Entanglement};
+use pyo3::prelude::*;
+use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
+use qiskit_circuit::parameter::symbol_expr::Symbol;
+use qiskit_circuit::{imports, operations::Param};
 
 /// Enum to determine the type of circuit layer.
 pub(super) enum LayerType {
@@ -42,7 +43,7 @@ pub(super) type LayerParameters<'a> = Vec<BlockParameters<'a>>; // parameter in 
 ///     let params_in_that_layer: LayerParameters =
 ///         ledger.get_parameter(LayerType::Rotation, layer);
 ///
-pub(super) struct ParameterLedger {
+pub struct ParameterLedger {
     parameter_vector: Vec<Param>, // all parameters
     rotation_indices: Vec<usize>, // indices where rotation blocks start
     entangle_indices: Vec<usize>,
@@ -51,88 +52,6 @@ pub(super) struct ParameterLedger {
 }
 
 impl ParameterLedger {
-    /// Initialize the ledger n-local input data. This will call Python to create a new
-    /// ``ParameterVector`` of adequate size and compute all required indices to access
-    /// parameter of a specific layer.
-    #[allow(clippy::too_many_arguments)]
-    pub(super) fn from_nlocal(
-        py: Python,
-        num_qubits: u32,
-        reps: usize,
-        entanglement: &Entanglement,
-        rotation_blocks: &[&Block],
-        entanglement_blocks: &[&Block],
-        skip_final_rotation_layer: bool,
-        parameter_prefix: &String,
-    ) -> PyResult<Self> {
-        // if we keep the final layer (i.e. skip=false), add parameters on the final layer
-        let final_layer_rep = match skip_final_rotation_layer {
-            true => 0,
-            false => 1,
-        };
-
-        // compute the number of parameters used for the rotation layers
-        let mut num_rotation_params_per_layer: usize = 0;
-        let mut rotations: Vec<(u32, usize)> = Vec::new();
-
-        for block in rotation_blocks {
-            let num_blocks = num_qubits / block.num_qubits;
-            rotations.push((num_blocks, block.num_parameters));
-            num_rotation_params_per_layer += (num_blocks as usize) * block.num_parameters;
-        }
-
-        // compute the number of parameters used for the entanglement layers
-        let mut num_entangle_params_per_layer: Vec<usize> = Vec::with_capacity(reps);
-        let mut entanglements: Vec<Vec<(u32, usize)>> = Vec::with_capacity(reps);
-        for this_entanglement in entanglement.iter() {
-            let mut this_entanglements: Vec<(u32, usize)> = Vec::new();
-            let mut this_num_params: usize = 0;
-            for (block, block_entanglement) in entanglement_blocks.iter().zip(this_entanglement) {
-                let num_blocks = block_entanglement.len();
-                this_num_params += num_blocks * block.num_parameters;
-                this_entanglements.push((num_blocks as u32, block.num_parameters));
-            }
-            num_entangle_params_per_layer.push(this_num_params);
-            entanglements.push(this_entanglements);
-        }
-
-        let num_rotation_params: usize = (reps + final_layer_rep) * num_rotation_params_per_layer;
-        let num_entangle_params: usize = num_entangle_params_per_layer.iter().sum();
-
-        // generate a ParameterVector Python-side, containing all parameters, and then
-        // map it onto Rust-space parameters
-        let num_parameters = num_rotation_params + num_entangle_params;
-        let parameter_vector: Vec<Param> = imports::PARAMETER_VECTOR
-            .get_bound(py)
-            .call1((parameter_prefix, num_parameters))? // get the Python ParameterVector
-            .try_iter()? // iterate over the elements and cast them to Rust Params
-            .map(|ob| Param::extract_no_coerce(ob?.as_borrowed()))
-            .collect::<PyResult<_>>()?;
-
-        // finally, distribute the parameters onto the repetitions and blocks for each
-        // rotation layer and entanglement layer
-        let mut rotation_indices: Vec<usize> = Vec::with_capacity(reps + final_layer_rep);
-        let mut entangle_indices: Vec<usize> = Vec::with_capacity(reps);
-        let mut index: usize = 0;
-        for num_entangle in num_entangle_params_per_layer {
-            rotation_indices.push(index);
-            index += num_rotation_params_per_layer;
-            entangle_indices.push(index);
-            index += num_entangle;
-        }
-        if !skip_final_rotation_layer {
-            rotation_indices.push(index);
-        }
-
-        Ok(ParameterLedger {
-            parameter_vector,
-            rotation_indices,
-            entangle_indices,
-            rotations,
-            entanglements,
-        })
-    }
-
     /// Get the parameters in the rotation or entanglement layer.
     pub(super) fn get_parameters(&self, kind: LayerType, layer: usize) -> LayerParameters<'_> {
         let (mut index, blocks) = match kind {
@@ -170,5 +89,130 @@ impl ParameterLedger {
         }
 
         parameters
+    }
+}
+
+pub trait LedgerBuilder {
+    fn build_parameter_vector(
+        parameter_prefix: &str,
+        num_parameters: usize,
+    ) -> PyResult<Vec<Param>>;
+
+    /// Initialize the ledger n-local input data. This will call Python to create a new
+    /// ``ParameterVector`` of adequate size and compute all required indices to access
+    /// parameter of a specific layer.
+    #[allow(clippy::too_many_arguments)]
+    fn build_from_nlocal(
+        &self,
+        num_qubits: u32,
+        reps: usize,
+        entanglement: &Entanglement,
+        rotation_blocks: &[&Block],
+        entanglement_blocks: &[&Block],
+        skip_final_rotation_layer: bool,
+        parameter_prefix: &str,
+    ) -> PyResult<ParameterLedger> {
+        // if we keep the final layer (i.e. skip=false), add parameters on the final layer
+        let final_layer_rep = match skip_final_rotation_layer {
+            true => 0,
+            false => 1,
+        };
+
+        // compute the number of parameters used for the rotation layers
+        let mut num_rotation_params_per_layer: usize = 0;
+        let mut rotations: Vec<(u32, usize)> = Vec::new();
+
+        for block in rotation_blocks {
+            let num_blocks = num_qubits / block.num_qubits;
+            rotations.push((num_blocks, block.num_parameters));
+            num_rotation_params_per_layer += (num_blocks as usize) * block.num_parameters;
+        }
+
+        // compute the number of parameters used for the entanglement layers
+        let mut num_entangle_params_per_layer: Vec<usize> = Vec::with_capacity(reps);
+        let mut entanglements: Vec<Vec<(u32, usize)>> = Vec::with_capacity(reps);
+        for this_entanglement in entanglement.iter() {
+            let mut this_entanglements: Vec<(u32, usize)> = Vec::new();
+            let mut this_num_params: usize = 0;
+            for (block, block_entanglement) in entanglement_blocks.iter().zip(this_entanglement) {
+                let num_blocks = block_entanglement.len();
+                this_num_params += num_blocks * block.num_parameters;
+                this_entanglements.push((num_blocks as u32, block.num_parameters));
+            }
+            num_entangle_params_per_layer.push(this_num_params);
+            entanglements.push(this_entanglements);
+        }
+
+        let num_rotation_params: usize = (reps + final_layer_rep) * num_rotation_params_per_layer;
+        let num_entangle_params: usize = num_entangle_params_per_layer.iter().sum();
+
+        let num_parameters = num_rotation_params + num_entangle_params;
+
+        let parameter_vector: Vec<Param> =
+            Self::build_parameter_vector(parameter_prefix, num_parameters)?;
+
+        // finally, distribute the parameters onto the repetitions and blocks for each
+        // rotation layer and entanglement layer
+        let mut rotation_indices: Vec<usize> = Vec::with_capacity(reps + final_layer_rep);
+        let mut entangle_indices: Vec<usize> = Vec::with_capacity(reps);
+        let mut index: usize = 0;
+        for num_entangle in num_entangle_params_per_layer {
+            rotation_indices.push(index);
+            index += num_rotation_params_per_layer;
+            entangle_indices.push(index);
+            index += num_entangle;
+        }
+        if !skip_final_rotation_layer {
+            rotation_indices.push(index);
+        }
+
+        Ok(ParameterLedger {
+            parameter_vector,
+            rotation_indices,
+            entangle_indices,
+            rotations,
+            entanglements,
+        })
+    }
+}
+
+pub struct ParameterLedgerBuilder;
+
+impl LedgerBuilder for ParameterLedgerBuilder {
+    fn build_parameter_vector(
+        parameter_prefix: &str,
+        num_parameters: usize,
+    ) -> PyResult<Vec<Param>> {
+        Ok((0..num_parameters)
+            .map(|i| {
+                Param::ParameterExpression(
+                    ParameterExpression::from_symbol(Symbol::standalone(
+                        format!("{}[{}]", parameter_prefix, i),
+                        None,
+                    ))
+                    .into(),
+                )
+            })
+            .collect())
+    }
+}
+
+pub struct PyParameterLedgerBuilder;
+
+impl LedgerBuilder for PyParameterLedgerBuilder {
+    fn build_parameter_vector(
+        parameter_prefix: &str,
+        num_parameters: usize,
+    ) -> PyResult<Vec<Param>> {
+        // generate a ParameterVector Python-side, containing all parameters, and then
+        // map it onto Rust-space parameters
+        Python::attach(|py| {
+            imports::PARAMETER_VECTOR
+                .get_bound(py)
+                .call1((parameter_prefix, num_parameters))? // get the Python ParameterVector
+                .try_iter()? // iterate over the elements and cast them to Rust Params
+                .map(|ob| Param::extract_no_coerce(ob?.as_borrowed()))
+                .collect::<PyResult<_>>()
+        })
     }
 }
