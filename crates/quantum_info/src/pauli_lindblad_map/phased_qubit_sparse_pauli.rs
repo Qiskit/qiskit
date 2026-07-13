@@ -148,6 +148,21 @@ impl PhasedQubitSparsePauliList {
         Ok(())
     }
 
+    // Check equality of operators
+    pub fn eq(&self, other: &PhasedQubitSparsePauliList) -> bool {
+        if self.qubit_sparse_pauli_list != other.qubit_sparse_pauli_list {
+            return false;
+        }
+
+        // assume here number of terms is equal
+        for (self_phase, other_phase) in self.phases.iter().zip(other.phases.iter()) {
+            if (self_phase - other_phase).rem_euclid(4) != 0 {
+                return false;
+            }
+        }
+        true
+    }
+
     /// Apply a transpiler layout.
     pub fn apply_layout(
         &self,
@@ -352,5 +367,11 @@ impl PhasedQubitSparsePauli {
         }
 
         self.qubit_sparse_pauli.commutes(&other.qubit_sparse_pauli)
+    }
+
+    // Check equality of operators
+    pub fn eq(&self, other: &PhasedQubitSparsePauli) -> bool {
+        ((self.phase - other.phase).rem_euclid(4) == 0)
+            && self.qubit_sparse_pauli == other.qubit_sparse_pauli
     }
 }
