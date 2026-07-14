@@ -10,18 +10,21 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::error::ParseError;
 use num_bigint::BigUint;
 use pyo3::prelude::*;
 pyo3::import_exception!(qiskit.qasm2.exceptions, QASM2ParseError);
 
 /// Convert a `ParseError` from the pyo3-free parsing modules into the `QASM2ParseError`
 /// Python exception, at the boundary where results cross back into Python space.
-fn parse_error_to_py(e: crate::error::ParseError) -> PyErr {
-    let py_err = QASM2ParseError::new_err(e.message);
-    if let Some(cause) = e.source.as_deref().and_then(|s| s.downcast_ref::<PyErr>()) {
-        Python::attach(|py| py_err.set_cause(py, Some(cause.clone_ref(py))));
+impl From<ParseError> for PyErr {
+    fn from(e: ParseError) -> PyErr {
+        let py_err = QASM2ParseError::new_err(e.message);
+        if let Some(source) = e.source {
+            Python::attach(|py| py_err.set_cause(py, Some(*source)));
+        }
+        py_err
     }
-    py_err
 }
 
 use crate::expr::Expr;
@@ -123,7 +126,7 @@ pub struct ExprCustom {
 impl ExprCustom {
     /// Invoke the custom callable with pre-evaluated float arguments.
     fn call(&self, args: Vec<f64>) -> PyResult<f64> {
-        self.callable.call(&args).map_err(parse_error_to_py)
+        Ok(self.callable.call(&args)?)
     }
 }
 
@@ -359,8 +362,7 @@ impl BytecodeIterator {
                 custom_instructions,
                 custom_classical,
                 strict,
-            )
-            .map_err(parse_error_to_py)?,
+            )?,
             buffer: vec![],
             buffer_used: 0,
         })
@@ -377,9 +379,7 @@ impl BytecodeIterator {
         if self.buffer_used >= self.buffer.len() {
             self.buffer.clear();
             self.buffer_used = 0;
-            self.parser_state
-                .parse_next(&mut self.buffer)
-                .map_err(parse_error_to_py)?;
+            self.parser_state.parse_next(&mut self.buffer)?;
         }
         if self.buffer.is_empty() {
             Ok(None)

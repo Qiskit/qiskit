@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::sync::Arc;
+use pyo3::PyErr;
 
 use crate::lex::Token;
 
@@ -80,10 +80,10 @@ pub fn message_bad_eof(position: Option<&Position>, required: &str) -> String {
 }
 
 /// Pure-Rust error type used as the error channel.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ParseError {
     pub message: String,
-    pub source: Option<Arc<dyn std::error::Error + Send + Sync>>,
+    pub source: Option<Box<PyErr>>,
 }
 
 impl ParseError {
@@ -95,13 +95,10 @@ impl ParseError {
     }
 
     /// As [`ParseError::new`], but chaining `source` as the original cause of the failure.
-    pub fn with_source(
-        message: impl Into<String>,
-        source: Arc<dyn std::error::Error + Send + Sync>,
-    ) -> Self {
+    pub fn with_source(message: impl Into<String>, source: PyErr) -> Self {
         Self {
             message: message.into(),
-            source: Some(source),
+            source: Some(Box::new(source)),
         }
     }
     /// Replace the message (e.g. to prepend position information) while keeping any chained
