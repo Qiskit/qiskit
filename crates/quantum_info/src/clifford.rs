@@ -14,6 +14,8 @@ use std::fmt;
 use fixedbitset::FixedBitSet;
 use ndarray::ArrayView2;
 
+use thiserror::Error;
+
 /// 1-qubit Paulis
 #[derive(Clone, Copy, PartialEq)]
 pub enum Pauli1q {
@@ -39,20 +41,93 @@ pub struct PauliList {
     scratch: FixedBitSet,
 }
 
+#[derive(Error, Debug)]
+pub enum PauliListError {
+    #[error("Invalid Pauli label: {0}")]
+    InvalidLabel(String),
+}
+
+/// Specifies the order in which Pauli labels are interpreted.
+/// The standard Qiskit convention inteprets labels right-to-left:
+/// for Pauli label "IXYZ", the label on the first qubit is "Z". However,
+/// in some cases it is more convenient to interpret labels left-to-right.
+#[derive(PartialEq)]
+pub enum PauliLabelOrder {
+    LeftToRight,
+    RightToLeft,
+}
+
 impl PauliList {
+    /// A reference to the given x-row of the PauliList.
+    ///
+    /// Note: this function assumes that the given row exists
+    /// and panics otherwise.
     #[inline]
-    pub fn get_phase(&self) -> &FixedBitSet {
-        self.data.get(2 * self.num_qubits).unwrap()
+    pub fn get_x(&self, qubit: usize) -> &FixedBitSet {
+        self.data.get(qubit).unwrap()
     }
 
+    /// A mutable reference to the given x-row of the PauliList.
+    ///
+    /// Note: this function assumes that the given row exists
+    /// and panics otherwise.
+    #[inline]
+    pub fn get_x_mut(&mut self, qubit: usize) -> &mut FixedBitSet {
+        self.data.get_mut(qubit).unwrap()
+    }
+
+    /// A reference to the given z-row of the PauliList.
+    ///
+    /// Note: this function assumes that the given row exists
+    /// and panics otherwise.
     #[inline]
     pub fn get_z(&self, qubit: usize) -> &FixedBitSet {
         self.data.get(self.num_qubits + qubit).unwrap()
     }
 
+    /// A mutable reference to the z-row of the PauliList.
+    ///
+    /// Note: this function assumes that the given row exists
+    /// and panics otherwise.
     #[inline]
     pub fn get_z_mut(&mut self, qubit: usize) -> &mut FixedBitSet {
         self.data.get_mut(self.num_qubits + qubit).unwrap()
+    }
+
+    /// A reference to the phase row of the PauliList.
+    #[inline]
+    pub fn get_phase(&self) -> &FixedBitSet {
+        self.data.get(2 * self.num_qubits).unwrap()
+    }
+
+    /// A mutable reference to the phase row of the PauliList.
+    #[inline]
+    pub fn get_phase_mut(&mut self) -> &mut FixedBitSet {
+        self.data.get_mut(2 * self.num_qubits).unwrap()
+    }
+
+    /// The entry in the given x-row corresponding to the Pauli ``pauli_idx``.
+    ///
+    /// Note: this function assumes that the given row exists
+    /// and panics otherwise.
+    #[inline]
+    pub fn get_pauli_x(&self, pauli_idx: usize, qubit: usize) -> bool {
+        self.data[qubit][pauli_idx]
+    }
+
+    /// The entry in the given z-row corresponding to the Pauli ``pauli_idx``.
+    ///
+    /// Note: this function assumes that the given row exists
+    /// and panics otherwise.
+    #[inline]
+    pub fn get_pauli_z(&self, pauli_idx: usize, qubit: usize) -> bool {
+        self.data[qubit + self.num_qubits][pauli_idx]
+    }
+
+    /// The entry in the phase-row corresponding to the Pauli ``pauli_idx``.
+    #[inline]
+    pub fn get_pauli_phase(&self, pauli_idx: usize) -> bool {
+        self.data[2 * self.num_qubits][pauli_idx]
     }
 
     /// Modifies the pauli list in-place by conjugating each pauli with S-gate
@@ -375,6 +450,146 @@ impl PauliList {
 
         self._append_final_part_ppr(pauli_z, pauli_x, indices, &active_indices);
     }
+
+    pub fn get_pauli_support_size(&self, idx: usize) -> usize {
+        (0..self.num_qubits)
+            .filter(|q| self.data[*q].contains(idx) | self.data[*q + self.num_qubits].contains(idx))
+            .count()
+    }
+
+    pub fn get_pauli_support(&self, idx: usize) -> Vec<usize> {
+        (0..self.num_qubits)
+            .filter(|q| self.data[*q].contains(idx) | self.data[*q + self.num_qubits].contains(idx))
+            .collect()
+    }
+
+    /// Return true if pauli1 and pauli2 commute
+    pub fn commute(&self, idx1: usize, idx2: usize) -> bool {
+        let mut parity = false;
+        for i in 0..self.num_qubits {
+            parity ^= (self.get_pauli_z(idx1, i) & self.get_pauli_x(idx2, i))
+                ^ (self.get_pauli_x(idx1, i) & self.get_pauli_z(idx2, i));
+        }
+        !parity
+    }
+
+    /// Construct a [PauliList] from Pauli labels.
+    ///
+    /// # Arguments:
+    ///
+    /// * `num_qubits`: The number of qubits each Pauli is defined on.
+    /// * `pauli_labels`: An array of Pauli labels, where each label consists
+    ///   of an optional plus or minus sign followed by a sequence of `'I'`, `'X'`, `'Y'`,
+    ///   or `'Z'` characters. The `'i'` factor is not allowed.
+    /// * `label_order`: specifies whether each label should be interpreted left-to-right,
+    ///   or right-to-left.
+    ///
+    /// # Errors:
+    ///
+    /// Returns [`PauliListError::InvalidLabel`] if the labels are invalid.
+    pub fn from_pauli_labels(
+        num_qubits: usize,
+        pauli_labels: &[String],
+        label_order: PauliLabelOrder,
+    ) -> Result<Self, PauliListError> {
+        let num_paulis = pauli_labels.len();
+
+        let scratch = FixedBitSet::with_capacity(num_paulis);
+        let mut data: Vec<FixedBitSet> = Vec::with_capacity(2 * num_qubits + 1);
+
+        for _ in 0..2 * num_qubits + 1 {
+            data.push(scratch.clone());
+        }
+
+        for (pauli_idx, pauli_label) in pauli_labels.iter().enumerate() {
+            let s = if let Some(rest) = pauli_label.strip_prefix('-') {
+                data[2 * num_qubits].set(pauli_idx, true);
+                rest
+            } else if let Some(rest) = pauli_label.strip_prefix('+') {
+                rest
+            } else {
+                pauli_label.as_str()
+            };
+
+            for (j, c) in s.chars().enumerate() {
+                let qubit = if label_order == PauliLabelOrder::LeftToRight {
+                    j
+                } else {
+                    num_qubits - j - 1
+                };
+                match c {
+                    'X' => {
+                        data[qubit].set(pauli_idx, true);
+                    }
+                    'Z' => {
+                        data[qubit + num_qubits].set(pauli_idx, true);
+                    }
+                    'Y' => {
+                        data[qubit].set(pauli_idx, true);
+                        data[qubit + num_qubits].set(pauli_idx, true);
+                    }
+                    'I' => {}
+                    _ => {
+                        return Err(PauliListError::InvalidLabel(pauli_label.clone()));
+                    }
+                }
+            }
+        }
+
+        Ok(Self {
+            num_qubits,
+            num_paulis,
+            data,
+            scratch,
+        })
+    }
+
+    /// Return Pauli labels.
+    ///
+    /// # Arguments:
+    ///
+    /// * `label_order`: specifies whether each label should be interpreted left-to-right,
+    ///   or right-to-left.
+    pub fn to_pauli_labels(&self, label_order: PauliLabelOrder) -> Vec<String> {
+        let mut pauli_labels: Vec<String> = Vec::with_capacity(self.num_paulis);
+        for pauli_idx in 0..self.num_paulis {
+            let mut s: String = String::with_capacity(self.num_qubits + 1);
+            let c = match self.get_pauli_phase(pauli_idx) {
+                false => '+',
+                true => '-',
+            };
+            s.push(c);
+            for j in 0..self.num_qubits {
+                let qubit = if label_order == PauliLabelOrder::LeftToRight {
+                    j
+                } else {
+                    self.num_qubits - j - 1
+                };
+                let c = match (
+                    self.get_pauli_x(pauli_idx, qubit),
+                    self.get_pauli_z(pauli_idx, qubit),
+                ) {
+                    (false, false) => 'I',
+                    (false, true) => 'Z',
+                    (true, false) => 'X',
+                    (true, true) => 'Y',
+                };
+                s.push(c);
+            }
+            pauli_labels.push(s);
+        }
+        pauli_labels
+    }
+}
+
+impl fmt::Display for PauliList {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{:?}",
+            self.to_pauli_labels(PauliLabelOrder::LeftToRight)
+        )
+    }
 }
 
 /// SIMD accelerated Clifford.
@@ -586,5 +801,67 @@ impl fmt::Debug for Clifford {
         }
         writeln!(f)?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::clifford::{PauliLabelOrder, PauliList};
+
+    #[test]
+    fn test_from_labels_and_back_with_left_to_right() {
+        let pauli_labels = vec!["XIZ".to_string(), "-YYY".to_string()];
+        let pauli_list =
+            PauliList::from_pauli_labels(3, &pauli_labels, PauliLabelOrder::LeftToRight)
+                .expect("Pauli List should be created");
+
+        // XIZ
+        assert!(pauli_list.get_pauli_x(0, 0));
+        assert!(!pauli_list.get_pauli_z(0, 0));
+        assert!(!pauli_list.get_pauli_x(0, 1));
+        assert!(!pauli_list.get_pauli_z(0, 1));
+        assert!(!pauli_list.get_pauli_x(0, 2));
+        assert!(pauli_list.get_pauli_z(0, 2));
+        assert!(!pauli_list.get_pauli_phase(0));
+        // -YYY
+        assert!(pauli_list.get_pauli_x(1, 0));
+        assert!(pauli_list.get_pauli_z(1, 0));
+        assert!(pauli_list.get_pauli_x(1, 1));
+        assert!(pauli_list.get_pauli_z(1, 1));
+        assert!(pauli_list.get_pauli_x(1, 2));
+        assert!(pauli_list.get_pauli_z(1, 2));
+        assert!(pauli_list.get_pauli_phase(1));
+
+        let pauli_labels_roundtrip = pauli_list.to_pauli_labels(PauliLabelOrder::LeftToRight);
+        let expected_pauli_labels = vec!["+XIZ".to_string(), "-YYY".to_string()];
+        assert_eq!(pauli_labels_roundtrip, expected_pauli_labels);
+    }
+
+    #[test]
+    fn test_from_labels_and_back_with_right_to_left() {
+        let pauli_labels = vec!["+XIZ".to_string(), "-YYY".to_string()];
+        let pauli_list =
+            PauliList::from_pauli_labels(3, &pauli_labels, PauliLabelOrder::RightToLeft)
+                .expect("Pauli List should be created");
+
+        // ZIX (when ordered left-to-right)
+        assert!(!pauli_list.get_pauli_x(0, 0));
+        assert!(pauli_list.get_pauli_z(0, 0));
+        assert!(!pauli_list.get_pauli_x(0, 1));
+        assert!(!pauli_list.get_pauli_z(0, 1));
+        assert!(pauli_list.get_pauli_x(0, 2));
+        assert!(!pauli_list.get_pauli_z(0, 2));
+        assert!(!pauli_list.get_pauli_phase(0));
+        // -YYY
+        assert!(pauli_list.get_pauli_x(1, 0));
+        assert!(pauli_list.get_pauli_z(1, 0));
+        assert!(pauli_list.get_pauli_x(1, 1));
+        assert!(pauli_list.get_pauli_z(1, 1));
+        assert!(pauli_list.get_pauli_x(1, 2));
+        assert!(pauli_list.get_pauli_z(1, 2));
+        assert!(pauli_list.get_pauli_phase(1));
+
+        let pauli_labels_roundtrip = pauli_list.to_pauli_labels(PauliLabelOrder::RightToLeft);
+        assert_eq!(pauli_labels_roundtrip, pauli_labels);
     }
 }
