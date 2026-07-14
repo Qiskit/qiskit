@@ -85,7 +85,7 @@ Further reading:
 * Vulnerability reports should be triaged quickly.
 
   We aim to provide an initial response to a report within one working day.
-  The reponse can be one of "accept", "reject" or "investigate further".
+  The response can be one of "accept", "reject" or "investigate further".
   If we need to investigate further, we aim to produce a final response within a week.
 
 * If a report is accepted, a fix or workaround should be prepared and released as soon as possible for all affected Qiskit versions with active security support.
@@ -108,7 +108,7 @@ This is one reason that `admin` rights must be very limited.
 
 There should be at least three people actively involved in any "accepted" or "investigate further" security report.
 One non-admin maintainer should be added to each such security report, in order to train others on the process.
-If there is only one active admin at a given time, two non-admin maintainers should be added intead.
+If there is only one active admin at a given time, two non-admin maintainers should be added instead.
 
 When choosing the non-admin collaborator(s), consider that the total goals are:
 
@@ -161,7 +161,7 @@ When designing a fix, consider these points:
   It is better to publish an overcautious fix immediately within the private process, then follow up with a cleaner solution under normal conditions.
   For example, we fixed [a recursive stack overflow in `qiskit.qasm2.load`](https://github.com/Qiskit/qiskit/security/advisories/GHSA-w7g6-mx9c-q2hr) with [an ugly depth limit](https://github.com/Qiskit/qiskit/pull/16421) first, then replaced the parser with [a fully iterative one](https://github.com/Qiskit/qiskit/pull/16425) later.
 
-* Fixes take priority over backwards-compatibile stability.
+* Fixes take priority over backwards-compatible stability.
 
   Wherever possible, aim to avoid impact to legitimate uses of Qiskit, but do not let this compromise the publication of a fix.
   Consider adding limitations by optional keyword arguments with reasonable defaults, but can be explicitly lifted by users.
