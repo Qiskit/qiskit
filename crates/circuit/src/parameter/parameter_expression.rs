@@ -1868,7 +1868,7 @@ impl PyParameterVector {
         // `ParameterVector` was first introduced.
         format!(
             "{}, [{}]",
-            &self.base.name,
+            self.base.name,
             self.base
                 .iter()
                 .map(|s| format!("'{}'", s.fullname()))
@@ -1879,7 +1879,7 @@ impl PyParameterVector {
     fn __repr__(&self) -> String {
         format!(
             "ParameterVector(name='{}', length={})",
-            &self.base.name,
+            self.base.name,
             self.base.len.load(atomic::Ordering::Relaxed)
         )
     }
