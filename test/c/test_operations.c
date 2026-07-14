@@ -25,6 +25,8 @@ bool foo_directive(const void *gate);
 bool foo_is_unitary(const void *gate);
 struct foo_gate {
     uint32_t num_qubits;
+    uint32_t num_clbits;
+    uint32_t num_params;
 };
 
 const char *foo_name(const void *gate) {
@@ -38,16 +40,12 @@ uint32_t foo_num_qubits(const void *gate) {
     return self->num_qubits;
 }
 uint32_t foo_num_clbits(const void *gate) {
-    struct foo_gate *_self = (struct foo_gate *)gate;
-    // Void pointer.
-    (void)_self;
-    return 0;
+    struct foo_gate *self = (struct foo_gate *)gate;
+    return self->num_clbits;
 }
 uint32_t foo_num_params(const void *gate) {
-    struct foo_gate *_self = (struct foo_gate *)gate;
-    // Void pointer.
-    (void)_self;
-    return 0;
+    struct foo_gate *self = (struct foo_gate *)gate;
+    return self->num_params;
 }
 bool foo_directive(const void *gate) {
     struct foo_gate *_self = (struct foo_gate *)gate;
@@ -69,23 +67,31 @@ QkCustomOpVTableEntry entries[7] = {
     {.slot = -1, .func = NULL},
 };
 
-QkCustomOp wrap_foo(struct foo_gate *gate) {
-    QkCustomOp op = {
-        .orig = gate,
-        .v_table = qk_custom_op_new_vtable(entries),
-    };
-    return op;
-}
+static QkCustomOpVtable *foo_vtable = NULL;
 
+/// Test adding a custom operation in the cicuit;
 static int test_custom_operation_in_circuit(void) {
     int res = Ok;
-    struct foo_gate gate = {.num_qubits = 3};
-    QkCustomOp op = wrap_foo(&gate);
+
+    struct foo_gate test_3q_op = {
+        .num_qubits = 3,
+        .num_clbits = 0,
+        .num_params = 1,
+    };
+
+    // Initialize Vtable
+    foo_vtable = qk_custom_op_new_vtable(entries);
+
+    QkCustomOp test_3q = {
+        .orig = &test_3q_op,
+        .v_table = foo_vtable,
+    };
 
     QkCircuit *circuit = qk_circuit_new(3, 2);
     uint32_t qubits[3] = {0, 1, 2};
+    QkParam *params[1] = {qk_param_from_double(3.14)};
 
-    qk_circuit_add_custom_operation(circuit, op, qubits, NULL, NULL);
+    qk_circuit_add_custom_operation(circuit, test_3q, qubits, NULL, params);
 
     // Retrieve operation from circuit
     QkCircuitInstruction inst;
@@ -94,29 +100,33 @@ static int test_custom_operation_in_circuit(void) {
     if (strcmp(inst.name, FOO_NAME)) {
         printf("Retrieved incorrect instruction name. Expected '%s', got '%s'.\n", FOO_NAME,
                inst.name);
+        res = EqualityError;
         goto cleanup;
     }
-    if (inst.num_qubits != gate.num_qubits) {
+    if (inst.num_qubits != test_3q_op.num_qubits) {
         printf("Retrieved incorrect num_qubits for '%s'. Expected %u, got %u.\n", inst.name,
-               gate.num_qubits, inst.num_qubits);
+               test_3q_op.num_qubits, inst.num_qubits);
+        res = EqualityError;
         goto cleanup;
     }
-    if (inst.num_clbits) {
-        printf("Retrieved incorrect num_clbits for '%s'. Expected %u, got %u.\n", inst.name, 0,
-               inst.num_clbits);
+    if (inst.num_clbits != test_3q_op.num_clbits) {
+        printf("Retrieved incorrect num_clbits for '%s'. Expected %u, got %u.\n", inst.name,
+               test_3q_op.num_clbits, inst.num_clbits);
+        res = EqualityError;
         goto cleanup;
     }
-    if (inst.num_params) {
-        printf("Retrieved incorrect num_params for '%s'. Expected %u, got %u.\n", inst.name, 0,
-               inst.num_params);
+    if (inst.num_params != test_3q_op.num_params) {
+        printf("Retrieved incorrect num_params for '%s'. Expected %u, got %u.\n", inst.name,
+               test_3q_op.num_params, inst.num_params);
+        res = EqualityError;
         goto cleanup;
     }
 
     QkOperationKind kind = qk_circuit_instruction_kind(circuit, 0);
-    printf("Kind %u\n", kind);
 
     if (kind != 8) {
         printf("Retrieved incorrect kind for '%s'. Expected %u, got %u.\n", inst.name, 8, kind);
+        res = EqualityError;
         goto cleanup;
     }
 
