@@ -23,7 +23,7 @@ use qiskit_circuit::{
 
 /// DOCS: TODO
 #[repr(C)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CustomOp {
     orig: *mut (),
     v_table: *mut CustomOpVtable,
@@ -60,22 +60,9 @@ impl Operation for CustomOp {
     }
 }
 
-impl PartialEq for CustomOp {
-    fn eq(&self, _other: &Self) -> bool {
-        // ((unsafe { &*self.v_table }).eq)(other.orig)
-        todo!()
-    }
-}
-
-// impl Clone for QkOperation {
-//     fn clone(&self) -> Self {
-//         Self { orig: (((unsafe {&*self.v_table}).clone))(self.orig), v_table: self.v_table.clone() }
-//     }
-// }
-
 impl CustomOperation for CustomOp {
     fn is_unitary(&self) -> bool {
-        todo!()
+        ((unsafe { &*self.v_table }).is_unitary)(self.orig)
     }
 
     fn num_ctrl_qubits(&self) -> Option<std::num::NonZero<u32>> {
@@ -155,6 +142,20 @@ pub struct CustomOpVtablePartial {
     // pub clone: Option<fn(*const ()) -> *mut ()>,
 }
 
+impl CustomOpVtablePartial {
+    pub const DEFAULT: CustomOpVtablePartial = CustomOpVtablePartial {
+        name: None,
+        num_qubits: None,
+        num_clbits: None,
+        num_params: None,
+        directive: None,
+        is_unitary: None,
+        num_ctrl_qubits: None,
+        label: None,
+        definition: None,
+    };
+}
+
 /// TODO: Docs
 #[repr(u32)]
 pub enum CustomOpMethod {
@@ -213,12 +214,10 @@ pub unsafe extern "C" fn qk_custom_op_new_vtable(
 ) -> *mut CustomOpVtable {
     let mut vtable = CustomOpVtablePartial::default();
     let mut slot = unsafe { slots.read() };
-    while slot != CustomOpVTableEntry::SENTINEL {
+    while slot.slot != u32::MAX {
         use CustomOpMethod::*;
-        match CustomOpMethod::try_from(slot.slot)
-            .unwrap_or_else(|_| panic!("Expected valid slot, obtained {}", slot.slot))
-        {
-            Name => {
+        match CustomOpMethod::try_from(slot.slot) {
+            Ok(Name) => {
                 if vtable.name.is_some() {
                     panic!("Name slot has already been set.")
                 }
@@ -226,7 +225,7 @@ pub unsafe extern "C" fn qk_custom_op_new_vtable(
                     std::mem::transmute::<*const c_void, fn(*const ()) -> *const c_char>(slot.func)
                 })
             }
-            NumQubits => {
+            Ok(NumQubits) => {
                 if vtable.num_qubits.is_some() {
                     panic!("NumQubits slot has already been set.")
                 }
@@ -234,7 +233,7 @@ pub unsafe extern "C" fn qk_custom_op_new_vtable(
                     std::mem::transmute::<*const c_void, fn(*const ()) -> u32>(slot.func)
                 })
             }
-            NumClbits => {
+            Ok(NumClbits) => {
                 if vtable.num_clbits.is_some() {
                     panic!("NumClbits slot has already been set.")
                 }
@@ -242,7 +241,7 @@ pub unsafe extern "C" fn qk_custom_op_new_vtable(
                     std::mem::transmute::<*const c_void, fn(*const ()) -> u32>(slot.func)
                 })
             }
-            NumParams => {
+            Ok(NumParams) => {
                 if vtable.num_params.is_some() {
                     panic!("NumParams slot has already been set.")
                 }
@@ -250,7 +249,7 @@ pub unsafe extern "C" fn qk_custom_op_new_vtable(
                     std::mem::transmute::<*const c_void, fn(*const ()) -> u32>(slot.func)
                 })
             }
-            Directive => {
+            Ok(Directive) => {
                 if vtable.directive.is_some() {
                     panic!("Directive slot has already been set.")
                 }
@@ -258,7 +257,7 @@ pub unsafe extern "C" fn qk_custom_op_new_vtable(
                     std::mem::transmute::<*const c_void, fn(*const ()) -> bool>(slot.func)
                 })
             }
-            IsUnitary => {
+            Ok(IsUnitary) => {
                 if vtable.is_unitary.is_some() {
                     panic!("IsUnitary slot has already been set.")
                 }
@@ -266,7 +265,7 @@ pub unsafe extern "C" fn qk_custom_op_new_vtable(
                     std::mem::transmute::<*const c_void, fn(*const ()) -> bool>(slot.func)
                 })
             }
-            NumCtrlQubits => {
+            Ok(NumCtrlQubits) => {
                 if vtable.num_ctrl_qubits.is_some() {
                     panic!("NumCtrlQubits slot has already been set.")
                 }
@@ -274,7 +273,7 @@ pub unsafe extern "C" fn qk_custom_op_new_vtable(
                     std::mem::transmute::<*const c_void, fn(*const ()) -> u32>(slot.func)
                 })
             }
-            Label => {
+            Ok(Label) => {
                 if vtable.label.is_some() {
                     panic!("Label slot has already been set.")
                 }
@@ -282,7 +281,7 @@ pub unsafe extern "C" fn qk_custom_op_new_vtable(
                     std::mem::transmute::<*const c_void, fn(*const ()) -> *const c_char>(slot.func)
                 })
             }
-            Definition => {
+            Ok(Definition) => {
                 if vtable.definition.is_some() {
                     panic!("Name slot has already been set.")
                 }
@@ -293,6 +292,7 @@ pub unsafe extern "C" fn qk_custom_op_new_vtable(
                     >(slot.func)
                 })
             }
+            Err(e) => panic!("Expected valid slot, obtained {}", e),
         }
         slots = unsafe { slots.add(1) };
         slot = unsafe { slots.read() };
