@@ -149,13 +149,13 @@ impl CustomClassical {
                     // Keep the original PyErr as `source` so that the traceback is preserved.
                     ParseError::with_source(
                         format!("caught exception when constant folding: {desc}"),
-                        Arc::new(e),
+                        e,
                     )
                 })?;
                 result.extract::<f64>(py).map_err(|e| {
                     ParseError::with_source(
                         "user-provided classical function returned non-float".to_owned(),
-                        Arc::new(e),
+                        e,
                     )
                 })
             })
