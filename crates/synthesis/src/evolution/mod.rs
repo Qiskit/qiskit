@@ -58,7 +58,7 @@ impl From<EvolutionSynthesisError> for PyErr {
 ///
 /// For example: for the input `sparse_pauli = "XY", qubits = [1, 3], num_qubits = 6`,
 /// the function returns `"IXIYII"`.
-fn expand_pauli(sparse_pauli: String, qubits: &[u32], num_qubits: usize) -> String {
+fn expand_pauli(num_qubits: usize, sparse_pauli: String, qubits: Vec<u32>) -> String {
     let mut v: Vec<char> = vec!['I'; num_qubits];
     for (q, p) in qubits.iter().zip(sparse_pauli.chars()) {
         v[*q as usize] = p;
@@ -66,17 +66,21 @@ fn expand_pauli(sparse_pauli: String, qubits: &[u32], num_qubits: usize) -> Stri
     v.into_iter().collect()
 }
 
-fn extract_paulis_and_angles(
-    num_qubits: usize,
-    pauli_network: &Bound<PyList>,
-) -> PyResult<(Vec<String>, Vec<Param>)> {
-    let mut paulis: Vec<String> = Vec::with_capacity(pauli_network.len());
+/// The input to Pauli network synthesis algorithm in Rust.
+/// This includes a list of Paulis in the sparse format and a list of rotation angles.
+type PauliNetworkInput = (Vec<(String, Vec<u32>)>, Vec<Param>);
+
+/// Extracts sparse paulis and angles.
+fn extract_sparse_paulis(pauli_network: &Bound<PyList>) -> PyResult<PauliNetworkInput> {
+    let mut sparse_paulis: Vec<(String, Vec<u32>)> = Vec::with_capacity(pauli_network.len());
     let mut angles: Vec<Param> = Vec::with_capacity(pauli_network.len());
 
+    // This does not allow minus signs, preserving the existing behavior.
+    // We can extend this if needed.
     let allowed_chars = ['I', 'X', 'Y', 'Z'];
 
-    // go over the input pauli network and extract a list of pauli rotations and
-    // the corresponding rotation angles
+    // Go over the input pauli network and extract a list of pauli rotations,
+    // qubits, and angles.
     for item in pauli_network {
         let tuple = item.cast::<PyTuple>()?;
 
@@ -90,10 +94,18 @@ fn extract_paulis_and_angles(
             )));
         }
 
-        paulis.push(expand_pauli(sparse_pauli, &qubits, num_qubits));
+        sparse_paulis.push((sparse_pauli, qubits));
         angles.push(angle);
     }
-    Ok((paulis, angles))
+    Ok((sparse_paulis, angles))
+}
+
+// Converts sparse pauli representation into dense pauli representation.
+fn paulis_to_dense(num_qubits: usize, sparse_paulis: Vec<(String, Vec<u32>)>) -> Vec<String> {
+    sparse_paulis
+        .into_iter()
+        .map(|(sparse_pauli, qubits)| expand_pauli(num_qubits, sparse_pauli, qubits))
+        .collect()
 }
 
 /// Calls Rustiq's Pauli network synthesis algorithm.
@@ -111,7 +123,9 @@ pub fn pauli_network_synthesis(
     upto_phase: bool,
     resynth_clifford_method: usize,
 ) -> PyResult<PyCircuitData> {
-    let (paulis, angles) = extract_paulis_and_angles(num_qubits, pauli_network)?;
+    let (sparse_paulis, angles) = extract_sparse_paulis(pauli_network)?;
+    let paulis: Vec<String> = paulis_to_dense(num_qubits, sparse_paulis);
+
     pauli_network_synthesis_inner(
         num_qubits,
         paulis,
@@ -140,10 +154,10 @@ pub fn pauli_network_mcts(
     upto_phase: bool,
     num_simulations: usize,
 ) -> PyResult<PyCircuitData> {
-    let (paulis, angles) = extract_paulis_and_angles(num_qubits, pauli_network)?;
+    let (sparse_paulis, angles) = extract_sparse_paulis(pauli_network)?;
     pauli_network_mcts_inner(
         num_qubits,
-        paulis,
+        sparse_paulis,
         angles,
         preserve_order,
         upto_clifford,

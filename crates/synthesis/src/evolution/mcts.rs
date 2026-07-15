@@ -26,8 +26,8 @@ use std::f64::consts::SQRT_2;
 use std::fmt;
 
 use crate::clifford::greedy_synthesis::resynthesize_clifford_circuit;
-use crate::evolution::EvolutionSynthesisError;
 use crate::evolution::chunks::{ALL_CHUNKS, REDUCING_CHUNKS, SUPPORT_DELTA};
+use crate::evolution::{EvolutionSynthesisError, paulis_to_dense};
 
 /// The multiplicative scaling parameter used in the MCTS algorithm.
 const MCTS_PARAM: f64 = SQRT_2;
@@ -273,6 +273,58 @@ fn compute_frontier_nodes(
         .collect()
 }
 
+/// Sorts a sparse Pauli by qubits, e.g., sorting ("XIZ", [5, 1, 2]) should produce ("IZX", [1, 2, 5]).
+fn sort_sparse_pauli(pauli: String, qubits: Vec<u32>) -> (String, Vec<u32>) {
+    let mut zipped: Vec<(u8, u32)> = pauli
+        .into_bytes()
+        .into_iter()
+        .zip(qubits.iter().copied())
+        .collect();
+    zipped.sort_unstable_by_key(|&(_, q)| q);
+
+    let sorted_paulis = String::from_utf8(
+        zipped
+            .iter()
+            .map(|&(sorted_pauli, _sorted_qubits)| sorted_pauli)
+            .collect(),
+    )
+    .unwrap();
+    let sorted_qubits = zipped
+        .into_iter()
+        .map(|(_sorted_pauli, sorted_qubits)| sorted_qubits)
+        .collect();
+
+    (sorted_paulis, sorted_qubits)
+}
+
+/// Checks whether two sparse sorted paulis commute.
+#[inline]
+fn sorted_sparse_paulis_commute(
+    pauli1: &String,
+    qubits1: &[u32],
+    pauli2: &String,
+    qubits2: &[u32],
+) -> bool {
+    let mut idx1 = 0;
+    let mut idx2 = 0;
+    let mut parity = false;
+    while (idx1 < qubits1.len()) && (idx2 < qubits2.len()) {
+        if qubits1[idx1] < qubits2[idx2] {
+            idx1 += 1;
+        } else if qubits1[idx1] > qubits2[idx2] {
+            idx2 += 1;
+        } else {
+            // same qubit
+            parity ^= (pauli1.as_bytes()[idx1] != b'I')
+                && (pauli2.as_bytes()[idx2] != b'I')
+                && (pauli1.as_bytes()[idx1] != pauli2.as_bytes()[idx2]);
+            idx1 += 1;
+            idx2 += 1;
+        }
+    }
+    !parity
+}
+
 /// The main algorithm.
 struct MctsAlgorithm {
     /// Total number of Pauli rotations to synthesize.
@@ -295,23 +347,48 @@ struct MctsAlgorithm {
 }
 
 impl MctsAlgorithm {
-    /// Creates a tree with a single root node
-    fn new(paulis: &PauliList, angles: &[Param], preserve_order: bool) -> Self {
-        let num_paulis = paulis.num_paulis;
+    /// Obtains the input in sparse format, consuming the input.
+    /// Creates a tree with a single root node.
+    fn new(
+        num_qubits: usize,
+        sparse_paulis: Vec<(String, Vec<u32>)>,
+        angles: Vec<Param>,
+        preserve_order: bool,
+    ) -> Self {
+        let num_paulis = sparse_paulis.len();
 
-        // Create anti-commutativity DAG.
+        // Anti-commutativity DAG.
         let mut dag = StableDiGraph::<usize, ()>::new();
         let node_indices: Vec<NodeIndex> = (0..num_paulis).map(|i| dag.add_node(i)).collect();
 
-        if preserve_order {
+        let dense_paulis = if preserve_order {
+            // We build the commutativity DAG, and for efficiency we check commutativity between sorted Paulis
+            // in sparse format.
+
+            let sorted_sparse_paulis: Vec<(String, Vec<u32>)> = sparse_paulis
+                .into_iter()
+                .map(|(p, q)| sort_sparse_pauli(p, q))
+                .collect();
+
             for i in 0..num_paulis {
                 for j in i + 1..num_paulis {
-                    if !paulis.commute(i, j) {
+                    if !sorted_sparse_paulis_commute(
+                        &sorted_sparse_paulis[i].0,
+                        &sorted_sparse_paulis[i].1,
+                        &sorted_sparse_paulis[j].0,
+                        &sorted_sparse_paulis[j].1,
+                    ) {
                         dag.add_edge(node_indices[i], node_indices[j], ());
                     }
                 }
             }
-        }
+            paulis_to_dense(num_qubits, sorted_sparse_paulis)
+        } else {
+            paulis_to_dense(num_qubits, sparse_paulis)
+        };
+
+        let paulis = PauliList::from_pauli_labels(num_qubits, &dense_paulis)
+            .expect("When MCTS algorithm is called, the Pauli labels have been validated.");
 
         Self {
             global_phase: Param::Float(0.0),
@@ -605,6 +682,7 @@ impl MctsAlgorithm {
                 .iter()
                 .min_by_key(|idx| synthesis_state.tab.get_pauli_support_size(**idx))
                 .expect("The frontier cannot be empty.");
+            // println!("chosen pauli_idx = {} with support {}", pauli_idx, synthesis_state.tab.get_pauli_support_size(*pauli_idx));
 
             // We should have filtered all already synthesized paulis.
             assert!(synthesis_state.tab.get_pauli_support_size(*pauli_idx) >= 2);
@@ -627,15 +705,14 @@ static ROTATION_GATES: [StandardGate; 3] = [StandardGate::RX, StandardGate::RY, 
 #[allow(clippy::too_many_arguments)]
 pub fn pauli_network_mcts_inner(
     num_qubits: usize,
-    paulis: Vec<String>,
+    sparse_paulis: Vec<(String, Vec<u32>)>,
     angles: Vec<Param>,
     preserve_order: bool,
     upto_clifford: bool,
     upto_phase: bool,
     num_simulations: usize,
 ) -> Result<CircuitData, EvolutionSynthesisError> {
-    let paulis = PauliList::from_pauli_labels(num_qubits, &paulis)?;
-    let mut mcts = MctsAlgorithm::new(&paulis, &angles, preserve_order);
+    let mut mcts = MctsAlgorithm::new(num_qubits, sparse_paulis, angles, preserve_order);
     let (mut circuit, global_phase) = mcts.run(num_simulations); // number of simulations
 
     // If upto_clifford is true, we just return the above circuit. However, if upto_clifford is false, we need to
