@@ -34,14 +34,17 @@ pub enum Pauli1q {
 /// Implementation-wise, each entry in `data` is a `FixedBitSet` corresponding
 /// to some X, some Z, or the phase component of every Pauli in the list.
 ///
-/// One can conceptually visualized a `PauliList` as the following two-dimensional
-/// array, with a row in this array corresponding to an entry in `data`, and a column
+/// One can conceptually visualize a `PauliList` as the following two-dimensional
+/// array, with a column in this array corresponding to an entry in `data`, and a row
 /// corresponding to a specific Pauli (represented using X, Z, and phase components).
+/// In this visual representation there are (2 * num_qubits + 1) columns and
+/// `num_paulis` rows.
 ///
 /// ```text
-/// [ pauli_1_x pauli_2_x pauli_3_x pauli_4_x ]
-/// [ pauli_1_z pauli_2_z pauli_3_z pauli_4_z ]
-/// [ pauli_1_p pauli_2_p pauli_3_p pauli_4_p ]
+/// [ pauli_1_x pauli_1_z pauli_1_p ]
+/// [ pauli_2_x pauli_2_z pauli_2_p ]
+/// [ pauli_3_x pauli_3_z pauli_3_p ]
+/// [ pauli_4_x pauli_4_z pauli_4_p ]
 /// ```
 #[derive(Clone)]
 pub struct PauliList {
@@ -49,7 +52,7 @@ pub struct PauliList {
     pub num_qubits: usize,
     /// Number of Paulis.
     pub num_paulis: usize,
-    /// List of Paulis, stored as vector of (2 * num_qubits) + 1 columns,
+    /// List of Paulis, stored as vector of (2 * num_qubits + 1) columns,
     /// each of length num_paulis.
     pub data: Vec<FixedBitSet>,
     /// Scratch space for internal computations, of length num_paulis.
@@ -617,28 +620,28 @@ impl fmt::Display for PauliList {
 
 /// A SIMD-accelerated Clifford representation.
 ///
-/// Conceptually, a Clifford is represented by a tableau in which the rows
-/// recorrespond to destabilizers and stabilizers, and the columns correspond
-/// to the X, Z, and phase components:
+/// Conceptually, a Clifford is represented by a (2 * num qubits) x (2 * num qubits + 1)
+/// stabilizer tableau in which the rows recorrespond to destabilizers and stabilizers,
+/// and the columns correspond to the X, Z, and phase components:
 ///
 /// ```text
 /// [ destab_x | destab_z | destab_phase ]
 /// [  stab_x  |  stab_z  |  stab_phase  ]
 /// ```
 ///
-/// Internally, this is stored as a `PauliList`, with `data` represented as a vector
-/// of "columns", and each column corresponding to the X, Z, and phase component of the
-/// Clifford. This makes it efficient to conjugate a Clifford by Clifford gates, as all
+/// Internally, this is stored as a `PauliList`, with `tableau` represented as a vector
+/// of (2 * num_qubits + 1) "columns", corresponding to the `num_qubits` X, `num_qubits` Z
+/// and the phase component of the tableau. Each column is of length (2 * num_qubits) with
+/// entries corresponding to `num_qubits` destabilizers and `num_qubits` stabilizers.
+/// This representations makes it efficient to conjugate a Clifford by Clifford gates, as all
 /// of the Paulis are conjugated in a SIMD-accelerated fashion.
 ///
 /// This type currently provides a subset of the functionality of the Python-based
 /// `Clifford`` class.
 #[derive(Clone)]
 pub struct Clifford {
-    /// The (2 * num qubits) x (2 * num qubits + 1) stabilizer tableau stored
-    /// as a vector of (2 * num_qubits) + 1 columns,
-    /// each of length (2 * num_qubits). The element in row
-    /// i and column j can be access as tableau.paulis[j][i].
+    /// Stabilizer tableau. The element in row i and column j can be accessed using
+    /// ``get_entry(i, j)``.
     pub tableau: PauliList,
 }
 
