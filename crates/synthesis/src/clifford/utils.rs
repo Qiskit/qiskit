@@ -17,7 +17,17 @@ use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_quantum_info::clifford::Clifford;
 use smallvec::{SmallVec, smallvec};
 
-/// Symplectic matrix.
+/// A symplectic matrix representation.
+///
+/// Conceptually, a symplectic matrix is represented by a tableau in which the rows
+/// recorrespond to destabilizers and stabilizers, and the columns correspond
+/// to the X and Z components:
+///
+/// ```text
+/// [ destab_x | destab_z ]
+/// [  stab_x  |  stab_z  ]
+/// ```
+///
 /// Currently this class is internal to the synthesis library.
 pub struct SymplecticMatrix {
     /// Number of qubits.
@@ -175,35 +185,31 @@ pub fn clifford_from_gate_sequence(
         .iter()
         .try_for_each(|(gate, _params, qubits)| match *gate {
             StandardGate::S => {
-                clifford.tableau.append_s(qubits[0].index());
+                clifford.append_s(qubits[0].index());
                 Ok(())
             }
             StandardGate::Sdg => {
-                clifford.tableau.append_sdg(qubits[0].0 as usize);
+                clifford.append_sdg(qubits[0].0 as usize);
                 Ok(())
             }
             StandardGate::SX => {
-                clifford.tableau.append_sx(qubits[0].0 as usize);
+                clifford.append_sx(qubits[0].0 as usize);
                 Ok(())
             }
             StandardGate::SXdg => {
-                clifford.tableau.append_sxdg(qubits[0].0 as usize);
+                clifford.append_sxdg(qubits[0].0 as usize);
                 Ok(())
             }
             StandardGate::H => {
-                clifford.tableau.append_h(qubits[0].index());
+                clifford.append_h(qubits[0].index());
                 Ok(())
             }
             StandardGate::CX => {
-                clifford
-                    .tableau
-                    .append_cx(qubits[0].index(), qubits[1].index());
+                clifford.append_cx(qubits[0].index(), qubits[1].index());
                 Ok(())
             }
             StandardGate::Swap => {
-                clifford
-                    .tableau
-                    .append_swap(qubits[0].index(), qubits[1].index());
+                clifford.append_swap(qubits[0].index(), qubits[1].index());
                 Ok(())
             }
             _ => Err(format!("Unsupported gate {gate:?}")),

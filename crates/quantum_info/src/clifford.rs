@@ -451,24 +451,32 @@ impl PauliList {
         self._append_final_part_ppr(pauli_z, pauli_x, indices, &active_indices);
     }
 
-    pub fn get_pauli_support_size(&self, idx: usize) -> usize {
+    /// Computes the support size (number of non-I terms) of the Pauli given by `pauli_idx`.
+    pub fn get_pauli_support_size(&self, pauli_idx: usize) -> usize {
         (0..self.num_qubits)
-            .filter(|q| self.data[*q].contains(idx) | self.data[*q + self.num_qubits].contains(idx))
+            .filter(|q| {
+                self.data[*q].contains(pauli_idx)
+                    | self.data[*q + self.num_qubits].contains(pauli_idx)
+            })
             .count()
     }
 
-    pub fn get_pauli_support(&self, idx: usize) -> Vec<usize> {
+    /// Computes the support (non-I terms) of the Pauli given by `pauli_idx`.
+    pub fn get_pauli_support(&self, pauli_idx: usize) -> Vec<usize> {
         (0..self.num_qubits)
-            .filter(|q| self.data[*q].contains(idx) | self.data[*q + self.num_qubits].contains(idx))
+            .filter(|q| {
+                self.data[*q].contains(pauli_idx)
+                    | self.data[*q + self.num_qubits].contains(pauli_idx)
+            })
             .collect()
     }
 
-    /// Return true if pauli1 and pauli2 commute
-    pub fn commute(&self, idx1: usize, idx2: usize) -> bool {
+    /// Returns whether two Paulis given `pauli_idx1` and `pauli_idx2` commute.
+    pub fn commute(&self, pauli_idx1: usize, pauli_idx2: usize) -> bool {
         let mut parity = false;
         for i in 0..self.num_qubits {
-            parity ^= (self.get_pauli_z(idx1, i) & self.get_pauli_x(idx2, i))
-                ^ (self.get_pauli_x(idx1, i) & self.get_pauli_z(idx2, i));
+            parity ^= (self.get_pauli_z(pauli_idx1, i) & self.get_pauli_x(pauli_idx2, i))
+                ^ (self.get_pauli_x(pauli_idx1, i) & self.get_pauli_z(pauli_idx2, i));
         }
         !parity
     }
@@ -592,10 +600,24 @@ impl fmt::Display for PauliList {
     }
 }
 
-/// SIMD accelerated Clifford.
+/// A SIMD-accelerated Clifford representation.
 ///
-/// Currently this class offers a reduced functionality of the python-based
-/// Clifford class.
+/// Conceptually, a Clifford is represented by a tableau in which the rows
+/// recorrespond to destabilizers and stabilizers, and the columns correspond
+/// to the X, Z, and phase components:
+///
+/// ```text
+/// [ destab_x | destab_z | destab_phase ]
+/// [  stab_x  |  stab_z  |  stab_phase  ]
+/// ```
+///
+/// Internally, this is stored as a `PauliList`, with `data` represented as a vector
+/// of "columns", and each column corresponding to the X, Z, and phase component of the
+/// Clifford. This makes it efficient to conjugate a Clifford by Clifford gates, as all
+/// of the Paulis are conjugated in a SIMD-accelerated fashion.
+///
+/// This type currently provides a subset of the functionality of the Python-based
+/// `Clifford`` class.
 #[derive(Clone)]
 pub struct Clifford {
     /// The (2 * num qubits) x (2 * num qubits + 1) stabilizer tableau stored
@@ -662,6 +684,201 @@ impl Clifford {
             .indexed_iter()
             .for_each(|(index, v)| out.tableau.data[index.1].set(index.0, *v));
         out
+    }
+
+    /// Returns the number of qubits the Clifford acts upon
+    #[inline]
+    pub fn num_qubits(&self) -> usize {
+        self.tableau.num_qubits
+    }
+
+    /// Returns the value in the given row and the given columns of the tableau.
+    /// The rows correspond to stabilizers and destabilizers, and the columns correspond
+    /// x, z, and phase components.
+    #[inline]
+    pub fn get_entry(&self, row: usize, col: usize) -> bool {
+        self.tableau.data[col].contains(row)
+    }
+
+    /// Sets the value in the given row and the given column of the tableau.
+    /// The rows correspond to stabilizers and destabilizers, and the columns correspond
+    /// x, z, and phase components.
+    #[inline]
+    pub fn set_entry(&mut self, row: usize, col: usize, value: bool) {
+        self.tableau.data[col].set(row, value);
+    }
+
+    /// Modifies the tableau in-place by conjugating with S-gate
+    #[inline]
+    pub fn append_s(&mut self, qubit: usize) {
+        self.tableau.append_s(qubit);
+    }
+
+    /// Modifies the tableau in-place by conjugating with Sdg-gate
+    #[inline]
+    pub fn append_sdg(&mut self, qubit: usize) {
+        self.tableau.append_sdg(qubit);
+    }
+
+    /// Modifies the tableau in-place by conjugating with SX-gate
+    #[inline]
+    pub fn append_sx(&mut self, qubit: usize) {
+        self.tableau.append_sx(qubit);
+    }
+
+    /// Modifies the tableau in-place by conjugating with SXDG-gate
+    #[inline]
+    pub fn append_sxdg(&mut self, qubit: usize) {
+        self.tableau.append_sxdg(qubit);
+    }
+
+    /// Modifies the tableau in-place by conjugating with H-gate
+    #[inline]
+    pub fn append_h(&mut self, qubit: usize) {
+        self.tableau.append_h(qubit);
+    }
+
+    /// Modifies the tableau in-place by conjugating with SWAP-gate
+    #[inline]
+    pub fn append_swap(&mut self, qubit0: usize, qubit1: usize) {
+        self.tableau.append_swap(qubit0, qubit1);
+    }
+
+    /// Modifies the tableau in-place by conjugating with CX-gate
+    #[inline]
+    pub fn append_cx(&mut self, qubit0: usize, qubit1: usize) {
+        self.tableau.append_cx(qubit0, qubit1);
+    }
+
+    /// Modifies the tableau in-place by conjugating with CZ-gate
+    #[inline]
+    pub fn append_cz(&mut self, qubit0: usize, qubit1: usize) {
+        self.tableau.append_cz(qubit0, qubit1);
+    }
+
+    /// Modifies the tableau in-place by conjugating with CY-gate
+    /// (todo: rewrite using native tableau manipulations)
+    #[inline]
+    pub fn append_cy(&mut self, qubit0: usize, qubit1: usize) {
+        self.tableau.append_cy(qubit0, qubit1);
+    }
+
+    /// Modifies the tableau in-place by conjugating with X-gate
+    #[inline]
+    pub fn append_x(&mut self, qubit: usize) {
+        self.tableau.append_x(qubit);
+    }
+
+    /// Modifies the tableau in-place by conjugating with Z-gate
+    #[inline]
+    pub fn append_z(&mut self, qubit: usize) {
+        self.tableau.append_z(qubit);
+    }
+
+    /// Modifies the tableau in-place by conjugating with Y-gate
+    #[inline]
+    pub fn append_y(&mut self, qubit: usize) {
+        self.tableau.append_y(qubit);
+    }
+
+    /// Modifies the tableau in-place by conjugating with iSWAP-gate
+    #[inline]
+    pub fn append_iswap(&mut self, qubit0: usize, qubit1: usize) {
+        self.tableau.append_iswap(qubit0, qubit1);
+    }
+
+    /// Modifies the tableau in-place by conjugating with ECR-gate
+    #[inline]
+    pub fn append_ecr(&mut self, qubit0: usize, qubit1: usize) {
+        self.tableau.append_ecr(qubit0, qubit1);
+    }
+
+    /// Modifies the tableau in-place by conjugating with DCX-gate
+    #[inline]
+    pub fn append_dcx(&mut self, qubit0: usize, qubit1: usize) {
+        self.tableau.append_dcx(qubit0, qubit1);
+    }
+
+    /// Modifies the tableau in-place by conjugating with V-gate
+    #[inline]
+    pub fn append_v(&mut self, qubit: usize) {
+        self.tableau.append_v(qubit);
+    }
+
+    /// Modifies the tableau in-place by conjugating with W-gate
+    #[inline]
+    pub fn append_w(&mut self, qubit: usize) {
+        self.tableau.append_w(qubit);
+    }
+
+    /// Modifies the tableau in-place by conjugating with RZ-gate,
+    /// with an angle that is an integer multiple of pi/2
+    /// (so RZ is necessarily a Clifford gate)
+    #[inline]
+    pub fn append_rz(&mut self, qubit: usize, multiple: usize) {
+        self.tableau.append_rz(qubit, multiple);
+    }
+
+    /// Modifies the tableau in-place by conjugating with RX-gate,
+    /// with an angle that is an integer multiple of pi/2
+    /// (so RX is necessarily a Clifford gate)
+    #[inline]
+    pub fn append_rx(&mut self, qubit: usize, multiple: usize) {
+        self.tableau.append_rx(qubit, multiple);
+    }
+
+    /// Modifies the tableau in-place by conjugating with RY-gate,
+    /// with an angle that is an integer multiple of pi/2
+    /// (so RY is necessarily a Clifford gate)
+    #[inline]
+    pub fn append_ry(&mut self, qubit: usize, multiple: usize) {
+        self.tableau.append_ry(qubit, multiple);
+    }
+
+    /// Applies the initial basis transformation for a Pauli Product Rotation,
+    /// and modifies the tableau in-place.
+    ///
+    /// See [`PauliList::_append_initial_part_ppr`] for details.
+    #[inline]
+    fn _append_initial_part_ppr(
+        &mut self,
+        z: &[bool],
+        x: &[bool],
+        indices: &[u32],
+        active_indices: &[usize],
+    ) {
+        self.tableau
+            ._append_initial_part_ppr(z, x, indices, active_indices);
+    }
+
+    /// Applies the final basis transformation for a Pauli Product Rotation,
+    /// and modifies the tableau in-place.
+    ///
+    /// See [`PauliList::_append_final_part_ppr`] for details.
+    #[inline]
+    fn _append_final_part_ppr(
+        &mut self,
+        z: &[bool],
+        x: &[bool],
+        indices: &[u32],
+        active_indices: &[usize],
+    ) {
+        self.tableau
+            ._append_final_part_ppr(z, x, indices, active_indices);
+    }
+
+    /// Modifies the tableau in-place by appending PPR gate,
+    /// with an angle that is an integer multiple of pi/2
+    /// so PPR is necessarily a Clifford gate.
+    #[inline]
+    pub fn append_ppr(
+        &mut self,
+        pauli_z: &[bool],
+        pauli_x: &[bool],
+        indices: &[u32],
+        multiple: usize,
+    ) {
+        self.tableau.append_ppr(pauli_z, pauli_x, indices, multiple);
     }
 
     /// Evolving a (dense) Pauli gate by the Clifford.
@@ -806,14 +1023,14 @@ impl fmt::Debug for Clifford {
 
 #[cfg(test)]
 mod tests {
-    use crate::clifford::{PauliLabelOrder, PauliList};
+    use crate::clifford::{PauliLabelOrder, PauliList, PauliListError};
 
     #[test]
     fn test_from_labels_and_back_with_left_to_right() {
-        let pauli_labels = vec!["XIZ".to_string(), "-YYY".to_string()];
+        let pauli_labels = ["XIZ".to_string(), "-YYY".to_string()];
         let pauli_list =
             PauliList::from_pauli_labels(3, &pauli_labels, PauliLabelOrder::LeftToRight)
-                .expect("Pauli List should be created");
+                .expect("PauliList should be created without problems (all labels are valid)");
 
         // XIZ
         assert!(pauli_list.get_pauli_x(0, 0));
@@ -839,10 +1056,10 @@ mod tests {
 
     #[test]
     fn test_from_labels_and_back_with_right_to_left() {
-        let pauli_labels = vec!["+XIZ".to_string(), "-YYY".to_string()];
+        let pauli_labels = ["+XIZ".to_string(), "-YYY".to_string()];
         let pauli_list =
             PauliList::from_pauli_labels(3, &pauli_labels, PauliLabelOrder::RightToLeft)
-                .expect("Pauli List should be created");
+                .expect("PauliList should be created without problems (all labels are valid)");
 
         // ZIX (when ordered left-to-right)
         assert!(!pauli_list.get_pauli_x(0, 0));
@@ -863,5 +1080,32 @@ mod tests {
 
         let pauli_labels_roundtrip = pauli_list.to_pauli_labels(PauliLabelOrder::RightToLeft);
         assert_eq!(pauli_labels_roundtrip, pauli_labels);
+    }
+
+    #[test]
+    fn test_from_invalid_labels() {
+        let pauli_labels = ["+XIZ".to_string(), "1XY".to_string()];
+        let pauli_list =
+            PauliList::from_pauli_labels(3, &pauli_labels, PauliLabelOrder::RightToLeft);
+        assert!(matches!(pauli_list, Err(PauliListError::InvalidLabel(_))));
+    }
+
+    #[test]
+    fn test_commutation() {
+        let pauli_labels = [
+            "+XIZ".to_string(),
+            "-YYY".to_string(),
+            "IIX".to_string(),
+            "III".to_string(),
+        ];
+        let pauli_list =
+            PauliList::from_pauli_labels(3, &pauli_labels, PauliLabelOrder::LeftToRight)
+                .expect("PauliList should be created without problems (all labels are valid)");
+        assert!(pauli_list.commute(0, 1));
+        assert!(!pauli_list.commute(2, 0));
+        assert!(pauli_list.commute(3, 0));
+        assert!(!pauli_list.commute(1, 2));
+        assert!(pauli_list.commute(2, 2));
+        assert!(pauli_list.commute(2, 3));
     }
 }
