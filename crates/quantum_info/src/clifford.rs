@@ -27,7 +27,22 @@ pub enum Pauli1q {
 /// SIMD accelerated PauliList.
 ///
 /// Stores multiple Paulis with associated phases, but in a packed format
-/// optimized for vectorized conjugation by Clifford gates.
+/// optimized for vectorized conjugation by Clifford gates. The phases are
+/// only allowed to be false ("+") and true ("-"); the "i" and "-i" phases
+/// are not allowed.
+///
+/// Implementation-wise, each entry in `data` is a `FixedBitSet` corresponding
+/// to some X, some Z, or the phase component of every Pauli in the list.
+///
+/// One can conceptually visualized a `PauliList` as the following two-dimensional
+/// array, with a row in this array corresponding to an entry in `data`, and a column
+/// corresponding to a specific Pauli (represented using X, Z, and phase components).
+///
+/// ```text
+/// [ pauli_1_x pauli_2_x pauli_3_x pauli_4_x ]
+/// [ pauli_1_z pauli_2_z pauli_3_z pauli_4_z ]
+/// [ pauli_1_p pauli_2_p pauli_3_p pauli_4_p ]
+/// ```
 #[derive(Clone)]
 pub struct PauliList {
     /// Number of qubits.
