@@ -421,6 +421,23 @@ impl PauliList {
             .collect()
     }
 
+    /// If the Pauli with index `pauli_idx` has support `[q]` of exactly size 1, return `Some(q)`.
+    /// Return `None` otherwise.
+    pub fn get_pauli_support_if_size_1(&self, pauli_idx: usize) -> Option<usize> {
+        let mut found: Option<usize> = None;
+        for q in 0..self.num_qubits {
+            if self.data[q].contains(pauli_idx) | self.data[q + self.num_qubits].contains(pauli_idx)
+            {
+                if found.is_some() {
+                    // Support size is at least 2
+                    return None;
+                }
+                found = Some(q);
+            }
+        }
+        found
+    }
+
     /// Return true if pauli1 and pauli2 commute
     pub fn commute(&self, idx1: usize, idx2: usize) -> bool {
         let mut parity = false;

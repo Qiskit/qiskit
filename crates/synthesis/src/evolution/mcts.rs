@@ -605,15 +605,14 @@ impl MctsAlgorithm {
             let mut new_processed: Vec<usize> = Vec::new();
             let frontier_nodes = compute_frontier_nodes(&self.dag, &state.in_degrees);
             for idx in &frontier_nodes {
-                let support = state.tab.get_pauli_support(*idx);
-                if support.len() == 1 {
+                let support = state.tab.get_pauli_support_if_size_1(*idx);
+                if let Some(q) = support {
                     new_processed.push(*idx);
 
                     // update number of processed nodes
                     state.num_processed += 1;
 
                     // update the circuit, including the single-qubit rotation gate
-                    let q = support[0];
                     let angle = &self.angles[*idx];
                     match (
                         state.tab.get_pauli_x(*idx, q),
