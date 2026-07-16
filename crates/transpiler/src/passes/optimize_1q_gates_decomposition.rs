@@ -367,6 +367,11 @@ impl Optimize1qGatesDecompositionState {
     }
 }
 
+struct AnalysisResults {
+    runs: Vec<Vec<NodeIndex>>,
+    sequences: Vec<Option<OneQubitGateSequence>>,
+}
+
 fn process_run(
     raw_run: &[NodeIndex],
     dag: &DAGCircuit,
@@ -471,10 +476,10 @@ pub fn py_run_optimize_1q_gates_decomposition(
     global_decomposers: Option<Vec<String>>,
 ) -> PyResult<()> {
     if getenv_use_multiple_threads() {
-        let (runs, sequences) = py.detach(|| {
+        let results = py.detach(|| {
             parallel_analyze_runs(dag, state, target, basis_gates, global_decomposers)
         })?;
-        apply_sequences(dag, runs, sequences)?;
+        apply_sequences(dag, results.runs, results.sequences)?;
     } else {
         let runs: Vec<Vec<NodeIndex>> = dag.collect_1q_runs().unwrap().collect();
         for raw_run in runs {
@@ -504,7 +509,7 @@ fn parallel_analyze_runs(
     target: Option<&Target>,
     basis_gates: Option<HashSet<String>>,
     global_decomposers: Option<Vec<String>>,
-) -> PyResult<(Vec<Vec<NodeIndex>>, Vec<Option<OneQubitGateSequence>>)> {
+) -> PyResult<AnalysisResults> {
     let runs: Vec<Vec<NodeIndex>> = dag.collect_1q_runs().unwrap().collect();
     let sequences = runs
         .par_iter()
@@ -519,7 +524,7 @@ fn parallel_analyze_runs(
             )
         })
         .collect::<PyResult<Vec<_>>>()?;
-    Ok((runs, sequences))
+    Ok(AnalysisResults { runs, sequences })
 }
 
 fn apply_sequences(
@@ -548,9 +553,8 @@ pub fn run_optimize_1q_gates_decomposition(
     global_decomposers: Option<Vec<String>>,
 ) -> PyResult<()> {
     if getenv_use_multiple_threads() {
-        let (runs, sequences) =
-            parallel_analyze_runs(dag, state, target, basis_gates, global_decomposers)?;
-        apply_sequences(dag, runs, sequences)?;
+        let results = parallel_analyze_runs(dag, state, target, basis_gates, global_decomposers)?;
+        apply_sequences(dag, results.runs, results.sequences)?;
     } else {
         let runs: Vec<Vec<NodeIndex>> = dag.collect_1q_runs().unwrap().collect();
         for raw_run in runs {
