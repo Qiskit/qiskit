@@ -27,14 +27,32 @@ pub enum Pauli1q {
 /// SIMD accelerated PauliList.
 ///
 /// Stores multiple Paulis with associated phases, but in a packed format
-/// optimized for vectorized conjugation by Clifford gates.
+/// optimized for vectorized conjugation by Clifford gates. The phases are
+/// only allowed to be false ("+") and true ("-"); the "i" and "-i" phases
+/// are not allowed.
+///
+/// Implementation-wise, each entry in `data` is a `FixedBitSet` corresponding
+/// to some X, some Z, or the phase component of every Pauli in the list.
+///
+/// One can conceptually visualize a `PauliList` as the following two-dimensional
+/// array, with a column in this array corresponding to an entry in `data`, and a row
+/// corresponding to a specific Pauli (represented using X, Z, and phase components).
+/// In this visual representation there are (2 * num_qubits + 1) columns and
+/// `num_paulis` rows.
+///
+/// ```text
+/// [ pauli_1_x pauli_1_z pauli_1_p ]
+/// [ pauli_2_x pauli_2_z pauli_2_p ]
+/// [ pauli_3_x pauli_3_z pauli_3_p ]
+/// [ pauli_4_x pauli_4_z pauli_4_p ]
+/// ```
 #[derive(Clone)]
 pub struct PauliList {
     /// Number of qubits.
     pub num_qubits: usize,
     /// Number of Paulis.
     pub num_paulis: usize,
-    /// List of Paulis, stored as vector of (2 * num_qubits) + 1 columns,
+    /// List of Paulis, stored as vector of (2 * num_qubits + 1) columns,
     /// each of length num_paulis.
     pub data: Vec<FixedBitSet>,
     /// Scratch space for internal computations, of length num_paulis.
@@ -47,42 +65,87 @@ pub enum PauliListError {
     InvalidLabel(String),
 }
 
-impl PauliList {
-    #[inline]
-    pub fn get_phase(&self) -> &FixedBitSet {
-        self.data.get(2 * self.num_qubits).unwrap()
-    }
+/// Specifies the order in which Pauli labels are interpreted.
+/// The standard Qiskit convention inteprets labels right-to-left:
+/// for Pauli label "IXYZ", the label on the first qubit is "Z". However,
+/// in some cases it is more convenient to interpret labels left-to-right.
+#[derive(PartialEq)]
+pub enum PauliLabelOrder {
+    LeftToRight,
+    RightToLeft,
+}
 
+impl PauliList {
+    /// A reference to the given x-column of the PauliList.
+    ///
+    /// Note: this function assumes that the given column exists
+    /// and panics otherwise.
     #[inline]
     pub fn get_x(&self, qubit: usize) -> &FixedBitSet {
         self.data.get(qubit).unwrap()
     }
 
+    /// A mutable reference to the given x-column of the PauliList.
+    ///
+    /// Note: this function assumes that the given column exists
+    /// and panics otherwise.
     #[inline]
     pub fn get_x_mut(&mut self, qubit: usize) -> &mut FixedBitSet {
         self.data.get_mut(qubit).unwrap()
     }
 
+    /// A reference to the given z-column of the PauliList.
+    ///
+    /// Note: this function assumes that the given column exists
+    /// and panics otherwise.
     #[inline]
     pub fn get_z(&self, qubit: usize) -> &FixedBitSet {
         self.data.get(self.num_qubits + qubit).unwrap()
     }
 
+    /// A mutable reference to the z-column of the PauliList.
+    ///
+    /// Note: this function assumes that the given column exists
+    /// and panics otherwise.
     #[inline]
     pub fn get_z_mut(&mut self, qubit: usize) -> &mut FixedBitSet {
         self.data.get_mut(self.num_qubits + qubit).unwrap()
     }
 
+    /// A reference to the phase column of the PauliList.
+    #[inline]
+    pub fn get_phase(&self) -> &FixedBitSet {
+        self.data.get(2 * self.num_qubits).unwrap()
+    }
+
+    /// A mutable reference to the phase column of the PauliList.
+    #[inline]
+    pub fn get_phase_mut(&mut self) -> &mut FixedBitSet {
+        self.data.get_mut(2 * self.num_qubits).unwrap()
+    }
+
+    /// The entry in the given x-column corresponding to the Pauli ``pauli_idx``.
+    ///
+    /// Note: this function assumes that the given pauli and the column exist
+    /// and panics otherwise.
     #[inline]
     pub fn get_pauli_x(&self, pauli_idx: usize, qubit: usize) -> bool {
         self.data[qubit][pauli_idx]
     }
 
+    /// The entry in the given z-column corresponding to the Pauli ``pauli_idx``.
+    ///
+    /// Note: this function assumes that the given pauli and the column exist
+    /// and panics otherwise.
     #[inline]
     pub fn get_pauli_z(&self, pauli_idx: usize, qubit: usize) -> bool {
         self.data[qubit + self.num_qubits][pauli_idx]
     }
 
+    /// The entry in the phase-column corresponding to the Pauli ``pauli_idx``.
+    ///
+    /// Note: this function assumes that the given pauli exists
+    /// and panics otherwise.
     #[inline]
     pub fn get_pauli_phase(&self, pauli_idx: usize) -> bool {
         self.data[2 * self.num_qubits][pauli_idx]
@@ -409,15 +472,23 @@ impl PauliList {
         self._append_final_part_ppr(pauli_z, pauli_x, indices, &active_indices);
     }
 
-    pub fn get_pauli_support_size(&self, idx: usize) -> usize {
+    /// Computes the support size (number of non-I terms) of the Pauli given by `pauli_idx`.
+    pub fn get_pauli_support_size(&self, pauli_idx: usize) -> usize {
         (0..self.num_qubits)
-            .filter(|q| self.data[*q].contains(idx) | self.data[*q + self.num_qubits].contains(idx))
+            .filter(|q| {
+                self.data[*q].contains(pauli_idx)
+                    | self.data[*q + self.num_qubits].contains(pauli_idx)
+            })
             .count()
     }
 
-    pub fn get_pauli_support(&self, idx: usize) -> Vec<usize> {
+    /// Computes the support (non-I terms) of the Pauli given by `pauli_idx`.
+    pub fn get_pauli_support(&self, pauli_idx: usize) -> Vec<usize> {
         (0..self.num_qubits)
-            .filter(|q| self.data[*q].contains(idx) | self.data[*q + self.num_qubits].contains(idx))
+            .filter(|q| {
+                self.data[*q].contains(pauli_idx)
+                    | self.data[*q + self.num_qubits].contains(pauli_idx)
+            })
             .collect()
     }
 
@@ -438,12 +509,14 @@ impl PauliList {
         found
     }
 
-    /// Return true if pauli1 and pauli2 commute
-    pub fn commute(&self, idx1: usize, idx2: usize) -> bool {
+    /// Returns whether two Paulis given `pauli_idx1` and `pauli_idx2` commute.
+    ///
+    /// Note: this function assumes that the two paulis exist, and will panic otherwise.
+    pub fn commute(&self, pauli_idx1: usize, pauli_idx2: usize) -> bool {
         let mut parity = false;
         for i in 0..self.num_qubits {
-            parity ^= (self.get_pauli_z(idx1, i) & self.get_pauli_x(idx2, i))
-                ^ (self.get_pauli_x(idx1, i) & self.get_pauli_z(idx2, i));
+            parity ^= (self.get_pauli_z(pauli_idx1, i) & self.get_pauli_x(pauli_idx2, i))
+                ^ (self.get_pauli_x(pauli_idx1, i) & self.get_pauli_z(pauli_idx2, i));
         }
         !parity
     }
@@ -452,16 +525,20 @@ impl PauliList {
     ///
     /// # Arguments:
     ///
+    /// * `num_qubits`: The number of qubits each Pauli is defined on.
     /// * `pauli_labels`: An array of Pauli labels, where each label consists
     ///   of an optional plus or minus sign followed by a sequence of `'I'`, `'X'`, `'Y'`,
     ///   or `'Z'` characters. The `'i'` factor is not allowed.
+    /// * `label_order`: specifies whether each label should be interpreted left-to-right,
+    ///   or right-to-left.
     ///
-    /// # Errors
+    /// # Errors:
     ///
     /// Returns [`PauliListError::InvalidLabel`] if the labels are invalid.
     pub fn from_pauli_labels(
         num_qubits: usize,
         pauli_labels: &[String],
+        label_order: PauliLabelOrder,
     ) -> Result<Self, PauliListError> {
         let num_paulis = pauli_labels.len();
 
@@ -472,9 +549,9 @@ impl PauliList {
             data.push(scratch.clone());
         }
 
-        for (i, pauli_label) in pauli_labels.iter().enumerate() {
+        for (pauli_idx, pauli_label) in pauli_labels.iter().enumerate() {
             let s = if let Some(rest) = pauli_label.strip_prefix('-') {
-                data[2 * num_qubits].set(i, true);
+                data[2 * num_qubits].set(pauli_idx, true);
                 rest
             } else if let Some(rest) = pauli_label.strip_prefix('+') {
                 rest
@@ -482,24 +559,24 @@ impl PauliList {
                 pauli_label.as_str()
             };
 
-            for (j, p) in s.chars().enumerate() {
-                match p {
+            for (j, c) in s.chars().enumerate() {
+                let qubit = if label_order == PauliLabelOrder::LeftToRight {
+                    j
+                } else {
+                    num_qubits - j - 1
+                };
+                match c {
                     'X' => {
-                        data[j].set(i, true);
-                        data[j + num_qubits].set(i, false);
+                        data[qubit].set(pauli_idx, true);
                     }
                     'Z' => {
-                        data[j].set(i, false);
-                        data[j + num_qubits].set(i, true);
+                        data[qubit + num_qubits].set(pauli_idx, true);
                     }
                     'Y' => {
-                        data[j].set(i, true);
-                        data[j + num_qubits].set(i, true);
+                        data[qubit].set(pauli_idx, true);
+                        data[qubit + num_qubits].set(pauli_idx, true);
                     }
-                    'I' => {
-                        data[j].set(i, false);
-                        data[j + num_qubits].set(i, false);
-                    }
+                    'I' => {}
                     _ => {
                         return Err(PauliListError::InvalidLabel(pauli_label.clone()));
                     }
@@ -515,18 +592,31 @@ impl PauliList {
         })
     }
 
-    // reimplement using iterators
-    pub fn to_pauli_strings(&self) -> Vec<String> {
-        let mut out: Vec<String> = Vec::with_capacity(self.num_paulis);
-        for i in 0..self.num_paulis {
-            let mut s: String = String::new();
-            let c = match self.get_pauli_phase(i) {
+    /// Return Pauli labels.
+    ///
+    /// # Arguments:
+    ///
+    /// * `label_order`: specifies whether each label should be interpreted left-to-right,
+    ///   or right-to-left.
+    pub fn to_pauli_labels(&self, label_order: PauliLabelOrder) -> Vec<String> {
+        let mut pauli_labels: Vec<String> = Vec::with_capacity(self.num_paulis);
+        for pauli_idx in 0..self.num_paulis {
+            let mut s: String = String::with_capacity(self.num_qubits + 1);
+            let c = match self.get_pauli_phase(pauli_idx) {
                 false => '+',
                 true => '-',
             };
             s.push(c);
-            for q in 0..self.num_qubits {
-                let c = match (self.get_pauli_x(i, q), self.get_pauli_z(i, q)) {
+            for j in 0..self.num_qubits {
+                let qubit = if label_order == PauliLabelOrder::LeftToRight {
+                    j
+                } else {
+                    self.num_qubits - j - 1
+                };
+                let c = match (
+                    self.get_pauli_x(pauli_idx, qubit),
+                    self.get_pauli_z(pauli_idx, qubit),
+                ) {
                     (false, false) => 'I',
                     (false, true) => 'Z',
                     (true, false) => 'X',
@@ -534,9 +624,9 @@ impl PauliList {
                 };
                 s.push(c);
             }
-            out.push(s);
+            pauli_labels.push(s);
         }
-        out
+        pauli_labels
     }
 
     /// Returns (the index of) the Pauli pair over the qubits `i` and `j`
@@ -553,20 +643,38 @@ impl PauliList {
 
 impl fmt::Display for PauliList {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self.to_pauli_strings())
+        write!(
+            f,
+            "{:?}",
+            self.to_pauli_labels(PauliLabelOrder::LeftToRight)
+        )
     }
 }
 
-/// SIMD accelerated Clifford.
+/// A SIMD-accelerated Clifford representation.
 ///
-/// Currently this class offers a reduced functionality of the python-based
-/// Clifford class.
+/// Conceptually, a Clifford is represented by a (2 * num qubits) x (2 * num qubits + 1)
+/// stabilizer tableau in which the rows recorrespond to destabilizers and stabilizers,
+/// and the columns correspond to the X, Z, and phase components:
+///
+/// ```text
+/// [ destab_x | destab_z | destab_phase ]
+/// [  stab_x  |  stab_z  |  stab_phase  ]
+/// ```
+///
+/// Internally, this is stored as a `PauliList`, with `tableau` represented as a vector
+/// of (2 * num_qubits + 1) "columns", corresponding to the `num_qubits` X, `num_qubits` Z
+/// and the phase component of the tableau. Each column is of length (2 * num_qubits) with
+/// entries corresponding to `num_qubits` destabilizers and `num_qubits` stabilizers.
+/// This representations makes it efficient to conjugate a Clifford by Clifford gates, as all
+/// of the Paulis are conjugated in a SIMD-accelerated fashion.
+///
+/// This type currently provides a subset of the functionality of the Python-based
+/// `Clifford`` class.
 #[derive(Clone)]
 pub struct Clifford {
-    /// The (2 * num qubits) x (2 * num qubits + 1) stabilizer tableau stored
-    /// as a vector of (2 * num_qubits) + 1 columns,
-    /// each of length (2 * num_qubits). The element in row
-    /// i and column j can be access as tableau.paulis[j][i].
+    /// Stabilizer tableau. The element in row i and column j can be accessed using
+    /// ``get_entry(i, j)``.
     pub tableau: PauliList,
 }
 
@@ -627,6 +735,201 @@ impl Clifford {
             .indexed_iter()
             .for_each(|(index, v)| out.tableau.data[index.1].set(index.0, *v));
         out
+    }
+
+    /// Returns the number of qubits the Clifford acts upon
+    #[inline]
+    pub fn num_qubits(&self) -> usize {
+        self.tableau.num_qubits
+    }
+
+    /// Returns the value in the given row and the given columns of the tableau.
+    /// The rows correspond to stabilizers and destabilizers, and the columns correspond
+    /// x, z, and phase components.
+    #[inline]
+    pub fn get_entry(&self, row: usize, col: usize) -> bool {
+        self.tableau.data[col].contains(row)
+    }
+
+    /// Sets the value in the given row and the given column of the tableau.
+    /// The rows correspond to stabilizers and destabilizers, and the columns correspond
+    /// x, z, and phase components.
+    #[inline]
+    pub fn set_entry(&mut self, row: usize, col: usize, value: bool) {
+        self.tableau.data[col].set(row, value);
+    }
+
+    /// Modifies the tableau in-place by conjugating with S-gate
+    #[inline]
+    pub fn append_s(&mut self, qubit: usize) {
+        self.tableau.append_s(qubit);
+    }
+
+    /// Modifies the tableau in-place by conjugating with Sdg-gate
+    #[inline]
+    pub fn append_sdg(&mut self, qubit: usize) {
+        self.tableau.append_sdg(qubit);
+    }
+
+    /// Modifies the tableau in-place by conjugating with SX-gate
+    #[inline]
+    pub fn append_sx(&mut self, qubit: usize) {
+        self.tableau.append_sx(qubit);
+    }
+
+    /// Modifies the tableau in-place by conjugating with SXDG-gate
+    #[inline]
+    pub fn append_sxdg(&mut self, qubit: usize) {
+        self.tableau.append_sxdg(qubit);
+    }
+
+    /// Modifies the tableau in-place by conjugating with H-gate
+    #[inline]
+    pub fn append_h(&mut self, qubit: usize) {
+        self.tableau.append_h(qubit);
+    }
+
+    /// Modifies the tableau in-place by conjugating with SWAP-gate
+    #[inline]
+    pub fn append_swap(&mut self, qubit0: usize, qubit1: usize) {
+        self.tableau.append_swap(qubit0, qubit1);
+    }
+
+    /// Modifies the tableau in-place by conjugating with CX-gate
+    #[inline]
+    pub fn append_cx(&mut self, qubit0: usize, qubit1: usize) {
+        self.tableau.append_cx(qubit0, qubit1);
+    }
+
+    /// Modifies the tableau in-place by conjugating with CZ-gate
+    #[inline]
+    pub fn append_cz(&mut self, qubit0: usize, qubit1: usize) {
+        self.tableau.append_cz(qubit0, qubit1);
+    }
+
+    /// Modifies the tableau in-place by conjugating with CY-gate
+    /// (todo: rewrite using native tableau manipulations)
+    #[inline]
+    pub fn append_cy(&mut self, qubit0: usize, qubit1: usize) {
+        self.tableau.append_cy(qubit0, qubit1);
+    }
+
+    /// Modifies the tableau in-place by conjugating with X-gate
+    #[inline]
+    pub fn append_x(&mut self, qubit: usize) {
+        self.tableau.append_x(qubit);
+    }
+
+    /// Modifies the tableau in-place by conjugating with Z-gate
+    #[inline]
+    pub fn append_z(&mut self, qubit: usize) {
+        self.tableau.append_z(qubit);
+    }
+
+    /// Modifies the tableau in-place by conjugating with Y-gate
+    #[inline]
+    pub fn append_y(&mut self, qubit: usize) {
+        self.tableau.append_y(qubit);
+    }
+
+    /// Modifies the tableau in-place by conjugating with iSWAP-gate
+    #[inline]
+    pub fn append_iswap(&mut self, qubit0: usize, qubit1: usize) {
+        self.tableau.append_iswap(qubit0, qubit1);
+    }
+
+    /// Modifies the tableau in-place by conjugating with ECR-gate
+    #[inline]
+    pub fn append_ecr(&mut self, qubit0: usize, qubit1: usize) {
+        self.tableau.append_ecr(qubit0, qubit1);
+    }
+
+    /// Modifies the tableau in-place by conjugating with DCX-gate
+    #[inline]
+    pub fn append_dcx(&mut self, qubit0: usize, qubit1: usize) {
+        self.tableau.append_dcx(qubit0, qubit1);
+    }
+
+    /// Modifies the tableau in-place by conjugating with V-gate
+    #[inline]
+    pub fn append_v(&mut self, qubit: usize) {
+        self.tableau.append_v(qubit);
+    }
+
+    /// Modifies the tableau in-place by conjugating with W-gate
+    #[inline]
+    pub fn append_w(&mut self, qubit: usize) {
+        self.tableau.append_w(qubit);
+    }
+
+    /// Modifies the tableau in-place by conjugating with RZ-gate,
+    /// with an angle that is an integer multiple of pi/2
+    /// (so RZ is necessarily a Clifford gate)
+    #[inline]
+    pub fn append_rz(&mut self, qubit: usize, multiple: usize) {
+        self.tableau.append_rz(qubit, multiple);
+    }
+
+    /// Modifies the tableau in-place by conjugating with RX-gate,
+    /// with an angle that is an integer multiple of pi/2
+    /// (so RX is necessarily a Clifford gate)
+    #[inline]
+    pub fn append_rx(&mut self, qubit: usize, multiple: usize) {
+        self.tableau.append_rx(qubit, multiple);
+    }
+
+    /// Modifies the tableau in-place by conjugating with RY-gate,
+    /// with an angle that is an integer multiple of pi/2
+    /// (so RY is necessarily a Clifford gate)
+    #[inline]
+    pub fn append_ry(&mut self, qubit: usize, multiple: usize) {
+        self.tableau.append_ry(qubit, multiple);
+    }
+
+    /// Applies the initial basis transformation for a Pauli Product Rotation,
+    /// and modifies the tableau in-place.
+    ///
+    /// See [`PauliList::_append_initial_part_ppr`] for details.
+    #[inline]
+    fn _append_initial_part_ppr(
+        &mut self,
+        z: &[bool],
+        x: &[bool],
+        indices: &[u32],
+        active_indices: &[usize],
+    ) {
+        self.tableau
+            ._append_initial_part_ppr(z, x, indices, active_indices);
+    }
+
+    /// Applies the final basis transformation for a Pauli Product Rotation,
+    /// and modifies the tableau in-place.
+    ///
+    /// See [`PauliList::_append_final_part_ppr`] for details.
+    #[inline]
+    fn _append_final_part_ppr(
+        &mut self,
+        z: &[bool],
+        x: &[bool],
+        indices: &[u32],
+        active_indices: &[usize],
+    ) {
+        self.tableau
+            ._append_final_part_ppr(z, x, indices, active_indices);
+    }
+
+    /// Modifies the tableau in-place by appending PPR gate,
+    /// with an angle that is an integer multiple of pi/2
+    /// so PPR is necessarily a Clifford gate.
+    #[inline]
+    pub fn append_ppr(
+        &mut self,
+        pauli_z: &[bool],
+        pauli_x: &[bool],
+        indices: &[u32],
+        multiple: usize,
+    ) {
+        self.tableau.append_ppr(pauli_z, pauli_x, indices, multiple);
     }
 
     /// Evolving a (dense) Pauli gate by the Clifford.
@@ -766,5 +1069,94 @@ impl fmt::Debug for Clifford {
         }
         writeln!(f)?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::clifford::{PauliLabelOrder, PauliList, PauliListError};
+
+    #[test]
+    fn test_from_labels_and_back_with_left_to_right() {
+        let pauli_labels = ["XIZ".to_string(), "-YYY".to_string()];
+        let pauli_list =
+            PauliList::from_pauli_labels(3, &pauli_labels, PauliLabelOrder::LeftToRight)
+                .expect("PauliList should be created without problems (all labels are valid)");
+
+        // XIZ
+        assert!(pauli_list.get_pauli_x(0, 0));
+        assert!(!pauli_list.get_pauli_z(0, 0));
+        assert!(!pauli_list.get_pauli_x(0, 1));
+        assert!(!pauli_list.get_pauli_z(0, 1));
+        assert!(!pauli_list.get_pauli_x(0, 2));
+        assert!(pauli_list.get_pauli_z(0, 2));
+        assert!(!pauli_list.get_pauli_phase(0));
+        // -YYY
+        assert!(pauli_list.get_pauli_x(1, 0));
+        assert!(pauli_list.get_pauli_z(1, 0));
+        assert!(pauli_list.get_pauli_x(1, 1));
+        assert!(pauli_list.get_pauli_z(1, 1));
+        assert!(pauli_list.get_pauli_x(1, 2));
+        assert!(pauli_list.get_pauli_z(1, 2));
+        assert!(pauli_list.get_pauli_phase(1));
+
+        let pauli_labels_roundtrip = pauli_list.to_pauli_labels(PauliLabelOrder::LeftToRight);
+        let expected_pauli_labels = vec!["+XIZ".to_string(), "-YYY".to_string()];
+        assert_eq!(pauli_labels_roundtrip, expected_pauli_labels);
+    }
+
+    #[test]
+    fn test_from_labels_and_back_with_right_to_left() {
+        let pauli_labels = ["+XIZ".to_string(), "-YYY".to_string()];
+        let pauli_list =
+            PauliList::from_pauli_labels(3, &pauli_labels, PauliLabelOrder::RightToLeft)
+                .expect("PauliList should be created without problems (all labels are valid)");
+
+        // ZIX (when ordered left-to-right)
+        assert!(!pauli_list.get_pauli_x(0, 0));
+        assert!(pauli_list.get_pauli_z(0, 0));
+        assert!(!pauli_list.get_pauli_x(0, 1));
+        assert!(!pauli_list.get_pauli_z(0, 1));
+        assert!(pauli_list.get_pauli_x(0, 2));
+        assert!(!pauli_list.get_pauli_z(0, 2));
+        assert!(!pauli_list.get_pauli_phase(0));
+        // -YYY
+        assert!(pauli_list.get_pauli_x(1, 0));
+        assert!(pauli_list.get_pauli_z(1, 0));
+        assert!(pauli_list.get_pauli_x(1, 1));
+        assert!(pauli_list.get_pauli_z(1, 1));
+        assert!(pauli_list.get_pauli_x(1, 2));
+        assert!(pauli_list.get_pauli_z(1, 2));
+        assert!(pauli_list.get_pauli_phase(1));
+
+        let pauli_labels_roundtrip = pauli_list.to_pauli_labels(PauliLabelOrder::RightToLeft);
+        assert_eq!(pauli_labels_roundtrip, pauli_labels);
+    }
+
+    #[test]
+    fn test_from_invalid_labels() {
+        let pauli_labels = ["+XIZ".to_string(), "1XY".to_string()];
+        let pauli_list =
+            PauliList::from_pauli_labels(3, &pauli_labels, PauliLabelOrder::RightToLeft);
+        assert!(matches!(pauli_list, Err(PauliListError::InvalidLabel(_))));
+    }
+
+    #[test]
+    fn test_commutation() {
+        let pauli_labels = [
+            "+XIZ".to_string(),
+            "-YYY".to_string(),
+            "IIX".to_string(),
+            "III".to_string(),
+        ];
+        let pauli_list =
+            PauliList::from_pauli_labels(3, &pauli_labels, PauliLabelOrder::LeftToRight)
+                .expect("PauliList should be created without problems (all labels are valid)");
+        assert!(pauli_list.commute(0, 1));
+        assert!(!pauli_list.commute(2, 0));
+        assert!(pauli_list.commute(3, 0));
+        assert!(!pauli_list.commute(1, 2));
+        assert!(pauli_list.commute(2, 2));
+        assert!(pauli_list.commute(2, 3));
     }
 }

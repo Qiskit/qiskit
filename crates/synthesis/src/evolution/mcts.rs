@@ -13,7 +13,7 @@
 use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Param, StandardGate, multiply_param, radd_param};
-use qiskit_quantum_info::clifford::PauliList;
+use qiskit_quantum_info::clifford::{PauliLabelOrder, PauliList};
 
 use rustworkx_core::petgraph::Direction::Outgoing;
 use rustworkx_core::petgraph::Incoming;
@@ -397,8 +397,9 @@ impl MctsAlgorithm {
             paulis_to_dense(num_qubits, sparse_paulis)
         };
 
-        let paulis = PauliList::from_pauli_labels(num_qubits, &dense_paulis)
-            .expect("When MCTS algorithm is called, the Pauli labels have been validated.");
+        let paulis =
+            PauliList::from_pauli_labels(num_qubits, &dense_paulis, PauliLabelOrder::LeftToRight)
+                .expect("When MCTS algorithm is called, the Pauli labels have been validated.");
 
         Self {
             global_phase: Param::Float(0.0),
