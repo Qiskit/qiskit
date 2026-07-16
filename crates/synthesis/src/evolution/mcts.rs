@@ -20,6 +20,7 @@ use rustworkx_core::petgraph::Incoming;
 use rustworkx_core::petgraph::graph::NodeIndex;
 use rustworkx_core::petgraph::prelude::StableDiGraph;
 
+use hashbrown::HashMap;
 use smallvec::{SmallVec, smallvec};
 
 use std::f64::consts::SQRT_2;
@@ -157,20 +158,17 @@ fn compute_score(pair_counts: &[u32; 16], chunk_idx: usize) -> Score {
 /// Updates the synthesis state in-place, adjusting the Pauli tableau (conjugating by Clifford gates) and extending
 /// the gate sequence.
 fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
-    let mut prev_support_size: Option<usize> = None;
+    // Caches previously computed information. For pairs (ctrl, targ) with ctrl < targ,
+    // store how many times each of the 16 possible 2-qubit Paulis appear.
+    let mut counts_cache: HashMap<(usize, usize), [u32; 16]> = HashMap::new();
 
     loop {
         let support_size = synthesis_state.tab.get_pauli_support_size(ndx);
         assert!(support_size >= 1);
 
-        if let Some(old_support_size) = prev_support_size {
-            assert!(support_size < old_support_size);
-        }
-        prev_support_size = Some(support_size);
-
         // We have successfully reduced this Pauli to a single-qubit rotation.
         if support_size == 1 {
-            return;
+            break;
         }
 
         // loop to cycle over all qubit indices to get all combinations of control and target
@@ -182,13 +180,20 @@ fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
         let mut best_chunk_idx = 0;
         for ii in 0..support.len() {
             for jj in ii + 1..support.len() {
+                // note that ctrl < targ
                 let ctrl = support[ii];
                 let targ = support[jj];
+                assert!(ctrl < targ);
+
                 // get the index 0..16
                 let pair_idx = synthesis_state.tab.pauli_pair_index(ndx, ctrl, targ);
 
-                // count the numbers of different 2-qubit Paulis on (ctrl, targ)
-                let pair_counts = count_active_pairs(synthesis_state, ctrl, targ);
+                // Count the numbers of different 2-qubit Paulis on (ctrl, targ). The
+                // counts only depend on `ctrl` and `targ`, and change only when the applied
+                // chunk involves one (or both) of the qubits.
+                let pair_counts = *counts_cache
+                    .entry((ctrl, targ))
+                    .or_insert_with(|| count_active_pairs(synthesis_state, ctrl, targ));
 
                 // get the indices of chunks that can reduce this
                 assert!(!REDUCING_CHUNKS[pair_idx].is_empty());
@@ -240,6 +245,11 @@ fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
                 .gate_sequence
                 .push((*gate, smallvec![], mapped_qubits));
         }
+
+        // Evict stale entries
+        counts_cache.retain(|&(i, j), _| {
+            i != best_ctrl && i != best_targ && j != best_ctrl && j != best_targ
+        });
     }
 }
 
@@ -682,7 +692,6 @@ impl MctsAlgorithm {
                 .iter()
                 .min_by_key(|idx| synthesis_state.tab.get_pauli_support_size(**idx))
                 .expect("The frontier cannot be empty.");
-            // println!("chosen pauli_idx = {} with support {}", pauli_idx, synthesis_state.tab.get_pauli_support_size(*pauli_idx));
 
             // We should have filtered all already synthesized paulis.
             assert!(synthesis_state.tab.get_pauli_support_size(*pauli_idx) >= 2);
