@@ -208,8 +208,8 @@ fn canonicalize(
         ));
     }
 
-    if let OperationRef::StandardGate(standard_gate) = inst.op.view() {
-        if SYMMETRIC_GATES.contains(&standard_gate) || is_special_symmetric(inst, tol) {
+    if let OperationRef::StandardGate(standard_gate) = inst.op.view()
+        && (SYMMETRIC_GATES.contains(&standard_gate) || is_special_symmetric(inst, tol)) {
             let qargs = dag.get_qargs(inst.qubits);
             if !qargs.is_sorted() {
                 let mut sorted_qargs = qargs.to_vec();
@@ -227,7 +227,6 @@ fn canonicalize(
                 return Some((canonical_instruction, Param::Float(0.)));
             }
         }
-    }
 
     // Sort qubits for PauliProductRotations: this allows to merge scrambled pauli rotations
     // and allows a faster commutativity check with other Pauli-based gates.
@@ -452,11 +451,10 @@ fn try_merge(
         (inst1.op.view(), inst2.op.view())
     {
         // Check whether the two gates are self-inverse.
-        if let Some((gate1inv, params1inv)) = gate1.inverse(params1) {
-            if (gate1inv == gate2) && compare_params(&params1inv, params2)? {
+        if let Some((gate1inv, params1inv)) = gate1.inverse(params1)
+            && (gate1inv == gate2) && compare_params(&params1inv, params2)? {
                 return Ok((true, None, 0.));
             }
-        }
 
         // Can merge two single-parameter standard rotation gates of the same type.
         if gate1 == gate2 && MERGEABLE_ROTATION_GATES.contains(&gate1) {
@@ -506,8 +504,8 @@ fn try_merge(
     }
 
     // Special handling for PauliEvolutionGates.
-    if inst1.op.name() == "PauliEvolution" && inst2.op.name() == "PauliEvolution" {
-        if let (OperationRef::PyCustom(py_gate1), OperationRef::PyCustom(py_gate2)) =
+    if inst1.op.name() == "PauliEvolution" && inst2.op.name() == "PauliEvolution"
+        && let (OperationRef::PyCustom(py_gate1), OperationRef::PyCustom(py_gate2)) =
             (inst1.op.view(), inst2.op.view())
         {
             let merged_instruction = Python::attach(|py| -> PyResult<Option<PackedInstruction>> {
@@ -554,7 +552,6 @@ fn try_merge(
                 return Ok((false, None, 0.));
             }
         }
-    }
 
     // Matrix-based check: the product matrix is equivalent to identity.
     if inst1.op.num_qubits() <= matrix_max_num_qubits {

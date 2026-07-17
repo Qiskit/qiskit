@@ -887,11 +887,10 @@ fn unpack_py_instruction(
                 gate_class.call1(args)?
             }
         };
-        if let Some(label_text) = label {
-            if !gate_object.hasattr("label")? || gate_object.getattr("label")?.is_none() {
+        if let Some(label_text) = label
+            && (!gate_object.hasattr("label")? || gate_object.getattr("label")?.is_none()) {
                 gate_object.setattr("label", label_text.as_str())?;
             }
-        }
         if gate_class
             .cast_into::<PyType>()
             .map_err(|_| QpyError::InvalidPythonType {

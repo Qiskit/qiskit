@@ -502,11 +502,10 @@ fn definitely_skip_op(
         return false;
     }
 
-    if let Some(equiv_lib) = &borrowed_data.equivalence_library {
-        if equiv_lib.borrow(py).has_entry(op) {
+    if let Some(equiv_lib) = &borrowed_data.equivalence_library
+        && equiv_lib.borrow(py).has_entry(op) {
             return true;
         }
-    }
 
     false
 }
@@ -873,13 +872,11 @@ fn synthesize_operation(
     }
 
     // Check if present in the equivalent library.
-    if output_circuit_and_qubits.is_none() {
-        if let Some(equiv_lib) = &borrowed_data.equivalence_library {
-            if equiv_lib.borrow(py).has_entry(op) {
+    if output_circuit_and_qubits.is_none()
+        && let Some(equiv_lib) = &borrowed_data.equivalence_library
+            && equiv_lib.borrow(py).has_entry(op) {
                 return Ok(None);
             }
-        }
-    }
 
     // Extract definition.
     if output_circuit_and_qubits.is_none() && borrowed_data.unroll_definitions {

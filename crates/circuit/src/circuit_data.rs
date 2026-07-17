@@ -1920,11 +1920,10 @@ where
     } else if let Ok(sequence) = specifier.extract::<PySequenceIndex>() {
         match sequence {
             PySequenceIndex::Int(index) => {
-                if let Ok(index) = PySequenceIndex::convert_idx(index, bit_sequence.len()) {
-                    if let Some(bit) = bit_sequence.get(index).cloned() {
+                if let Ok(index) = PySequenceIndex::convert_idx(index, bit_sequence.len())
+                    && let Some(bit) = bit_sequence.get(index).cloned() {
                         return Ok(vec![bit]);
                     }
-                }
                 Err(CircuitError::new_err(format!(
                     "Index {specifier} out of range for size {}.",
                     bit_sequence.len()
@@ -2038,11 +2037,10 @@ fn for_each_symbol_use_in_control_flow(
             };
             for symbol in body.parameters() {
                 // Skip the loop variable itself — it is runtime-bound.
-                if let Some(LoopParam::Parameter(loop_symbol)) = loop_param {
-                    if symbol == loop_symbol {
+                if let Some(LoopParam::Parameter(loop_symbol)) = loop_param
+                    && symbol == loop_symbol {
                         continue;
                     }
-                }
                 action(symbol, usage)?;
             }
         }

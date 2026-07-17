@@ -169,8 +169,8 @@ where
     }
 
     // Special handling for pauli evolution gates.
-    if view.name() == "PauliEvolution" {
-        if let OperationRef::PyCustom(py_gate) = view {
+    if view.name() == "PauliEvolution"
+        && let OperationRef::PyCustom(py_gate) = view {
             let result = Python::attach(|py| -> PyResult<Option<(Complex64, usize)>> {
                 let result = imports::PAULI_ROTATION_TRACE_AND_DIM
                     .get_bound(py)
@@ -187,7 +187,6 @@ where
                 ));
             }
         }
-    }
 
     // If matrix_from_definition is false and view.matrix() returns None, we skip the operation.
     // If matrix_from_definition is true, we also attempt to construct the matrix from the python Operator.

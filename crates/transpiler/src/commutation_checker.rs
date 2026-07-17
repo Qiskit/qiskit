@@ -262,12 +262,11 @@ fn try_sparse_observable_generator_for_standard_gate(
     qubits: &[Qubit],
     num_qubits: u32,
 ) -> Option<SparseObservable> {
-    if let OperationRef::StandardGate(gate) = operation {
-        if let Some(local) = standard_gate_exponent(*gate, params) {
+    if let OperationRef::StandardGate(gate) = operation
+        && let Some(local) = standard_gate_exponent(*gate, params) {
             let out = SparseObservable::identity(num_qubits);
             return Some(out.compose_map(&local, |i| qubits[i as usize].0));
         }
-    }
     None
 }
 
@@ -446,11 +445,10 @@ impl CommutationChecker {
         matrix_max_num_qubits: u32,
         approximation_degree: f64,
     ) -> Result<bool, CommutationError> {
-        if let Some(gates) = &self.gates {
-            if !gates.contains(op1.name()) || !gates.contains(op2.name()) {
+        if let Some(gates) = &self.gates
+            && (!gates.contains(op1.name()) || !gates.contains(op2.name())) {
                 return Ok(false);
             }
-        }
 
         // If the average gate infidelity is below this tolerance, they commute. The tolerance
         // is set to max(1e-12, 1 - approximation_degree), to account for roundoffs and for
@@ -517,8 +515,7 @@ impl CommutationChecker {
             OperationRef::PauliProductMeasurement(ppm1),
             OperationRef::PauliProductMeasurement(ppm2),
         ) = (op1, op2)
-        {
-            if cargs1 == cargs2 {
+            && cargs1 == cargs2 {
                 if (ppm1.neg != ppm2.neg) || (qargs1.len() != qargs2.len()) {
                     return Ok(false);
                 }
@@ -542,7 +539,6 @@ impl CommutationChecker {
                 }
                 return Ok(true);
             }
-        }
 
         // Sort the arguments, such that `op2` always is the larger one.
         let reversed = (op1.num_qubits(), op1.name().len(), op1.name())
@@ -755,19 +751,16 @@ fn commutation_precheck(
         return PrecheckStatus::Commuting;
     }
 
-    if let Some(limit) = max_num_qubits {
-        if qargs1.len() > limit as usize || qargs2.len() > limit as usize {
+    if let Some(limit) = max_num_qubits
+        && (qargs1.len() > limit as usize || qargs2.len() > limit as usize) {
             return PrecheckStatus::NonCommuting;
         }
-    }
 
-    if let OperationRef::StandardGate(gate_1) = op1 {
-        if let OperationRef::StandardGate(gate_2) = op2 {
-            if SUPPORTED_OP[(*gate_1) as usize] && SUPPORTED_OP[(*gate_2) as usize] {
+    if let OperationRef::StandardGate(gate_1) = op1
+        && let OperationRef::StandardGate(gate_2) = op2
+            && SUPPORTED_OP[(*gate_1) as usize] && SUPPORTED_OP[(*gate_2) as usize] {
                 return PrecheckStatus::Unknown;
             }
-        }
-    }
 
     if [op1, op2].iter().any(|op| match op {
         OperationRef::StandardInstruction(_) => true,
@@ -847,8 +840,8 @@ fn map_rotation<'a>(
     params: &'a [Param],
     tol: f64,
 ) -> (Option<StandardGate>, &'a [Param], bool) {
-    if let OperationRef::StandardGate(gate) = op {
-        if let Some(generator) = SUPPORTED_ROTATIONS[(*gate) as usize] {
+    if let OperationRef::StandardGate(gate) = op
+        && let Some(generator) = SUPPORTED_ROTATIONS[(*gate) as usize] {
             // If the rotation angle is below the tolerance, the gate is assumed to
             // commute with everything, and we simply return the operation with the flag that
             // it commutes trivially.
@@ -871,7 +864,6 @@ fn map_rotation<'a>(
                 return (Some(gate), &[], false);
             };
         }
-    }
     (None, params, false)
 }
 

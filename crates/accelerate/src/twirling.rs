@@ -231,12 +231,11 @@ fn generate_twirled_circuit(
     let mut out_circ = CircuitData::copy_empty_like(circ, VarsMode::Alike, BlocksMode::Drop)?;
 
     for inst in circ.data().iter() {
-        if let Some(custom_gate_map) = custom_gate_map {
-            if let Some(twirling_set) = custom_gate_map.get(inst.op.name()) {
+        if let Some(custom_gate_map) = custom_gate_map
+            && let Some(twirling_set) = custom_gate_map.get(inst.op.name()) {
                 twirl_gate(circ, rng, &mut out_circ, twirling_set.as_slice(), inst)?;
                 continue;
             }
-        }
         if let Some(control_flow) = circ.try_view_control_flow(inst) {
             let new_blocks: Vec<_> = control_flow
                 .blocks()

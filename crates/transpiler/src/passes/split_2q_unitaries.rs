@@ -101,8 +101,8 @@ pub fn run_split_2q_unitaries(
     let mut mapping: Vec<usize> = (0..dag.num_qubits()).collect();
     let rebuilder_callback =
         |new_dag: &mut DAGCircuitBuilder, inst: &PackedInstruction, _node: NodeIndex| {
-            if let OperationRef::Unitary(unitary_gate) = inst.op.view() {
-                if unitary_gate.num_qubits() == 2 {
+            if let OperationRef::Unitary(unitary_gate) = inst.op.view()
+                && unitary_gate.num_qubits() == 2 {
                     let decomp = TwoQubitWeylDecomposition::new_inner(
                         unitary_gate.matrix_view(),
                         Some(requested_fidelity),
@@ -155,7 +155,6 @@ pub fn run_split_2q_unitaries(
                         return Ok(());
                     }
                 }
-            }
             // General instruction
             let qargs = dag.get_qargs(inst.qubits);
             let cargs = dag.get_cargs(inst.clbits);

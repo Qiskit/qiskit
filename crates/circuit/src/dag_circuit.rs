@@ -1052,11 +1052,10 @@ impl DAGCircuit {
     fn remove_all_ops_named(&mut self, opname: &str) {
         let mut to_remove = Vec::new();
         for (id, weight) in self.dag.node_references() {
-            if let NodeType::Operation(packed) = &weight {
-                if opname == packed.op.name() {
+            if let NodeType::Operation(packed) = &weight
+                && opname == packed.op.name() {
                     to_remove.push(id);
                 }
-            }
         }
         for node in to_remove {
             self.remove_op_node(node);
@@ -3713,11 +3712,10 @@ impl DAGCircuit {
         }
         let mut result: Vec<Py<PyAny>> = Vec::new();
         for (id, weight) in self.dag.node_references() {
-            if let NodeType::Operation(packed) = weight {
-                if names_set.contains(packed.op.name()) {
+            if let NodeType::Operation(packed) = weight
+                && names_set.contains(packed.op.name()) {
                     result.push(self.unpack_into(py, id, weight)?);
                 }
-            }
         }
         Ok(result)
     }
@@ -4420,8 +4418,7 @@ impl DAGCircuit {
                     for pred_index in self.quantum_predecessors(cur_index) {
                         if let NodeType::Operation(pred_packed) =
                             self.dag.node_weight(pred_index).unwrap()
-                        {
-                            if self
+                            && self
                                 .qargs_interner
                                 .get(pred_packed.qubits)
                                 .iter()
@@ -4429,7 +4426,6 @@ impl DAGCircuit {
                             {
                                 queue.push_back(pred_index);
                             }
-                        }
                     }
                 }
             }
@@ -6864,8 +6860,8 @@ impl DAGCircuit {
 
         for (old_node_index, new_node_index) in out_map.iter() {
             let old_node = &other.dag[*old_node_index];
-            if let NodeType::Operation(old_inst) = old_node {
-                if let OperationRef::ControlFlow(cf) = old_inst.op.view() {
+            if let NodeType::Operation(old_inst) = old_node
+                && let OperationRef::ControlFlow(cf) = old_inst.op.view() {
                     match &cf.control_flow {
                         ControlFlow::Switch {
                             target,
@@ -6927,7 +6923,6 @@ impl DAGCircuit {
                         _ => (),
                     }
                 }
-            }
         }
         Ok(out_map)
     }

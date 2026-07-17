@@ -85,11 +85,10 @@ pub fn draw_circuit(
             .flat_map(|x| [x.trim_end(), "\n"]),
     );
     let mut chars = output.chars();
-    if let Some(last) = chars.next_back() {
-        if last == '\n' && chars.next_back() == Some('\n') {
+    if let Some(last) = chars.next_back()
+        && last == '\n' && chars.next_back() == Some('\n') {
             output.pop();
         }
-    }
     Ok(output)
 }
 
@@ -863,11 +862,10 @@ impl TextDrawer {
 
                 let mut label = STANDARD_GATE_LABELS[standard_gate as usize].to_string();
 
-                if let Some(custom_label) = instruction.label.clone() {
-                    if *custom_label != label {
+                if let Some(custom_label) = instruction.label.clone()
+                    && *custom_label != label {
                         label = *custom_label;
                     }
-                }
 
                 if standard_gate.num_params() > 0 {
                     let params = instruction
@@ -1466,11 +1464,10 @@ pub fn format_float_pi(f: f64) -> Option<String> {
     }
 
     // Second is a check for powers of pi
-    if f_abs > PI {
-        if let Some(k) = (2..=4).find(|k| (f_abs - PI.powi(*k)).abs() < EPS) {
+    if f_abs > PI
+        && let Some(k) = (2..=4).find(|k| (f_abs - PI.powi(*k)).abs() < EPS) {
             return Some(format!("{}{}^{}", sign, pi_str, k));
         }
-    }
 
     // Third is a check for a number larger than DENOMINATOR * pi, not a
     // multiple or power of pi, since no fractions will exceed DENOMINATOR * pi

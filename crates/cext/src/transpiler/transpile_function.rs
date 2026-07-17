@@ -958,8 +958,8 @@ pub unsafe extern "C" fn qk_transpile(
         Some(options.approximation_degree)
     };
 
-    if let Some(target_qubits) = target.num_qubits {
-        if target_qubits < qc.num_qubits() as u32 {
+    if let Some(target_qubits) = target.num_qubits
+        && target_qubits < qc.num_qubits() as u32 {
             if !error.is_null() {
                 unsafe {
                     *error = CString::new(format!(
@@ -973,7 +973,6 @@ pub unsafe extern "C" fn qk_transpile(
             }
             return ExitCode::TranspilerError;
         }
-    }
 
     match transpile(
         qc,

@@ -214,11 +214,10 @@ impl VF2PassReturn {
 /// Returns `None` if there is a global 2q operation to avoid attempting to construct a meaningless
 /// all-to-all connectivity graph.
 fn build_average_error_map(target: &Target) -> Option<ErrorMap> {
-    if let Ok(mut globals) = target.operations_for_qargs(QargsRef::Global) {
-        if globals.any(|op| op.operation.num_qubits() == 2) {
+    if let Ok(mut globals) = target.operations_for_qargs(QargsRef::Global)
+        && globals.any(|op| op.operation.num_qubits() == 2) {
             return None;
         }
-    }
     let mut error_map = ErrorMap::new(Some(target.num_qargs()));
     let mut target_without_errors = true;
     for qargs in target.qargs()? {

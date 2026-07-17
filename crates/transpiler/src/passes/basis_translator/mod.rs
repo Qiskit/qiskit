@@ -588,8 +588,8 @@ fn replace_node(
             };
 
             let mut new_params: Option<Parameters<_>> = inner_node.params.as_deref().cloned();
-            if let Some(Parameters::Params(inner_node_params)) = inner_node.params.as_deref() {
-                if inner_node_params
+            if let Some(Parameters::Params(inner_node_params)) = inner_node.params.as_deref()
+                && inner_node_params
                     .iter()
                     .any(|param| matches!(param, Param::ParameterExpression(_)))
                 {
@@ -617,7 +617,6 @@ fn replace_node(
                     }
                     new_params = Some(Parameters::Params(new_params_inner));
                 }
-            }
             dag.apply_operation_back(
                 new_op,
                 &new_qubits,

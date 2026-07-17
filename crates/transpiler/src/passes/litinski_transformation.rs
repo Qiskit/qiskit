@@ -241,8 +241,8 @@ pub fn run_litinski_transformation(
                     let mut process_rot_gate = |gate: StandardGate,
                                                 pauli: Pauli1q|
                      -> Option<(Pauli1q, Param)> {
-                        if let Param::Float(angle) = param[0] {
-                            if let Some(multiple) =
+                        if let Param::Float(angle) = param[0]
+                            && let Some(multiple) =
                                 is_angle_close_to_multiple_of_pi_k(gate, 2, angle, tol)
                             {
                                 is_clifford = true;
@@ -258,7 +258,6 @@ pub fn run_litinski_transformation(
                                 }
                                 return None;
                             }
-                        }
                         Some((pauli, param[0].clone()))
                     };
 

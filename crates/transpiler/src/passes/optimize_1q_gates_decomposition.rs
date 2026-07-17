@@ -440,12 +440,11 @@ fn process_run(
     let mut outside_basis = false;
     if let BasisGatesPerQubit::Gates(basis) = basis_gates {
         for node in raw_run {
-            if let NodeType::Operation(inst) = &dag[*node] {
-                if !basis.contains(inst.op.name()) {
+            if let NodeType::Operation(inst) = &dag[*node]
+                && !basis.contains(inst.op.name()) {
                     outside_basis = true;
                     break;
                 }
-            }
         }
     } else {
         outside_basis = false;

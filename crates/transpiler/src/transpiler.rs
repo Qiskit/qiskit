@@ -326,13 +326,12 @@ pub fn translation_stage(
     }
     if !check_direction_target(dag, target)? {
         fix_direction_target(dag, target)?;
-        if gates_missing_from_target(dag, target)? {
-            if let Some(out_dag) =
+        if gates_missing_from_target(dag, target)?
+            && let Some(out_dag) =
                 run_basis_translator(dag, equiv_lib, 0, Some(target), None).unwrap()
             {
                 *dag = out_dag;
             }
-        }
     }
     Ok(())
 }
