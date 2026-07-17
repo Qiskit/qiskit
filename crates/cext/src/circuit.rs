@@ -2443,6 +2443,10 @@ pub struct CircuitDrawerConfig {
     /// to auto-detect console width. Use `SIZE_MAX` to effectively skip
     /// wrapping altogether.
     fold: usize,
+    /// If `true`, plots barriers in the circuit.
+    plot_barriers: bool,
+    /// If `true`, adds initial states to the wires.
+    initial_state: bool,
 }
 
 /// @ingroup QkCircuit
@@ -2489,7 +2493,7 @@ pub unsafe extern "C" fn qk_circuit_draw(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
-    let (bundle_cregs, merge_wires, fold) = if !config.is_null() {
+    let (bundle_cregs, merge_wires, fold, plot_barriers, initial_state) = if !config.is_null() {
         // SAFETY: Per documentation, the pointer is to a valid QkCircuitDrawerConfig struct.
         let config = unsafe { const_ptr_as_ref(config) };
         (
@@ -2500,12 +2504,14 @@ pub unsafe extern "C" fn qk_circuit_draw(
             } else {
                 None
             },
+            config.plot_barriers,
+            config.initial_state,
         )
     } else {
-        (true, true, None)
+        (true, true, None, true, true)
     };
 
-    let circuit_str = draw_circuit(circuit, bundle_cregs, merge_wires, fold).unwrap();
+    let circuit_str = draw_circuit(circuit, bundle_cregs, merge_wires, fold, plot_barriers, initial_state).unwrap();
 
     CString::new(circuit_str).unwrap().into_raw()
 }
