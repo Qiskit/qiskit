@@ -338,7 +338,11 @@ pub fn cancel_commutations(
                     } else if sx_supported && is_multiple_of_pi(total_angle, 0.5) {
                         let num_sx = (total_angle / FRAC_PI_2).round();
                         total_phase -= FRAC_PI_4 * num_sx;
-                        for _ in 0..(num_sx as i64) % 4 {
+                        // `num_sx` may be negative (e.g. two `sxdg`); `%` would return a
+                        // negative remainder and skip the loop entirely, incorrectly removing
+                        // the rotation.  `SX**4 == I` exactly, so the Euclidean remainder is
+                        // always a valid replacement.
+                        for _ in 0..(num_sx as i64).rem_euclid(4) {
                             dag.insert_1q_on_incoming_qubit((StandardGate::SX, &[]), cancel_set[0]);
                         }
                     } else {

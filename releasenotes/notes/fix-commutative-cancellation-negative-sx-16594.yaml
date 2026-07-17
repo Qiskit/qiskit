@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`.CommutativeCancellation` (run at ``optimization_level`` 2 and 3)
+    where a set of commuting X-axis rotations summing to a negative angle could be removed
+    entirely instead of being resynthesized as :class:`.SXGate` instructions, producing a
+    circuit that was not equivalent to the input.  For example, two ``sxdg`` gates separated
+    by a gate on another qubit were cancelled as if they formed the identity, when their
+    product is actually an :class:`.XGate`.
+    Fixed `#16594 <https://github.com/Qiskit/qiskit/issues/16594>`__.

@@ -958,6 +958,29 @@ measure q0[1] -> c0[1];
         # We don't cancel any gates with a custom rzz gate
         self.assertEqual(res.count_ops()["z"], 2)
 
+    def test_negative_sx_rotation_sum(self):
+        """Two ``sxdg`` separated by a commuting gate combine to X, not identity.
+
+        Reproduce from https://github.com/Qiskit/qiskit/issues/16594"""
+        qc = QuantumCircuit(2)
+        qc.sxdg(1)
+        qc.sx(0)
+        qc.sxdg(1)
+        res = PassManager([CommutativeCancellation()]).run(qc)
+        self.assertTrue(Operator(qc).equiv(Operator(res)))
+
+    def test_negative_x_rotation_sums(self):
+        """Combined X rotations with negative totals resynthesize correctly."""
+        for gates in [["sxdg"] * 2, ["sxdg"] * 3, ["sxdg"] * 4, ["sxdg", "x", "sxdg"]]:
+            with self.subTest(gates=gates):
+                qc = QuantumCircuit(2)
+                for i, name in enumerate(gates):
+                    getattr(qc, name)(1)
+                    if i == 0:
+                        qc.sx(0)
+                res = PassManager([CommutativeCancellation()]).run(qc)
+                self.assertTrue(Operator(qc).equiv(Operator(res)))
+
     def test_determinism(self):
         """Test that the pass produces structurally equivalent circuits."""
         # This is two CZ rings in a row.  If the cancellation order is non-deterministic and each
