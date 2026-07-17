@@ -176,7 +176,7 @@ to `build_rust` overrides this default.
 At runtime, only Python is required, not Rust.  Any release of
 the Python-space `qiskit` package (such as v2.5.2) supports all versions of CPython that had active security support at the time of the first release in that minor series (v2.5.0, in this example).
 
-For developers, the requirements are stricter.
+Developers typically face stricter requirements.
 The documentation, linting and other development processes may require newer Python versions than Qiskit's minimum; it is typically easiest to use the newest or near-newest version of CPython for development.
 
 Qiskit has a conservative policy for the minimum-supported Rust version (MSRV) needed to build.
