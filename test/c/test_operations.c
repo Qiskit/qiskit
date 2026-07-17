@@ -23,6 +23,7 @@ uint32_t foo_num_clbits(const void *gate);
 uint32_t foo_num_params(const void *gate);
 bool foo_directive(const void *gate);
 bool foo_is_unitary(const void *gate);
+
 struct foo_gate {
     uint32_t num_qubits;
     uint32_t num_clbits;
@@ -78,6 +79,11 @@ static int test_custom_operation_in_circuit(void) {
         .num_clbits = 0,
         .num_params = 1,
     };
+    struct foo_gate test_2q_op = {
+        .num_qubits = 2,
+        .num_clbits = 1,
+        .num_params = 0,
+    };
 
     // Initialize Vtable
     foo_vtable = qk_custom_op_new_vtable(entries);
@@ -86,12 +92,19 @@ static int test_custom_operation_in_circuit(void) {
         .orig = &test_3q_op,
         .v_table = foo_vtable,
     };
+    QkCustomOp test_2q_1c = {
+        .orig = &test_2q_op,
+        .v_table = foo_vtable,
+    };
 
     QkCircuit *circuit = qk_circuit_new(3, 2);
     uint32_t qubits[3] = {0, 1, 2};
+    uint32_t qubits_2[2] = {1, 2};
+    uint32_t clbits_2[1] = {1};
     QkParam *params[1] = {qk_param_from_double(3.14)};
 
     qk_circuit_add_custom_operation(circuit, test_3q, qubits, NULL, params);
+    qk_circuit_add_custom_operation(circuit, test_2q_1c, qubits_2, clbits_2, NULL);
 
     // Retrieve operation from circuit
     QkCircuitInstruction inst;
@@ -118,6 +131,34 @@ static int test_custom_operation_in_circuit(void) {
     if (inst.num_params != test_3q_op.num_params) {
         printf("Retrieved incorrect num_params for '%s'. Expected %u, got %u.\n", inst.name,
                test_3q_op.num_params, inst.num_params);
+        res = EqualityError;
+        goto cleanup;
+    }
+
+    // Retrieve operation from circuit
+    qk_circuit_get_instruction(circuit, 1, &inst);
+
+    if (strcmp(inst.name, FOO_NAME)) {
+        printf("Retrieved incorrect instruction name. Expected '%s', got '%s'.\n", FOO_NAME,
+               inst.name);
+        res = EqualityError;
+        goto cleanup;
+    }
+    if (inst.num_qubits != test_2q_op.num_qubits) {
+        printf("Retrieved incorrect num_qubits for '%s'. Expected %u, got %u.\n", inst.name,
+               test_2q_op.num_qubits, inst.num_qubits);
+        res = EqualityError;
+        goto cleanup;
+    }
+    if (inst.num_clbits != test_2q_op.num_clbits) {
+        printf("Retrieved incorrect num_clbits for '%s'. Expected %u, got %u.\n", inst.name,
+               test_2q_op.num_clbits, inst.num_clbits);
+        res = EqualityError;
+        goto cleanup;
+    }
+    if (inst.num_params != test_2q_op.num_params) {
+        printf("Retrieved incorrect num_params for '%s'. Expected %u, got %u.\n", inst.name,
+               test_2q_op.num_params, inst.num_params);
         res = EqualityError;
         goto cleanup;
     }
