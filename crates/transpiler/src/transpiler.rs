@@ -329,9 +329,9 @@ pub fn translation_stage(
         if gates_missing_from_target(dag, target)?
             && let Some(out_dag) =
                 run_basis_translator(dag, equiv_lib, 0, Some(target), None).unwrap()
-            {
-                *dag = out_dag;
-            }
+        {
+            *dag = out_dag;
+        }
     }
     Ok(())
 }

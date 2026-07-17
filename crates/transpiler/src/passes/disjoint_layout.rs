@@ -531,10 +531,11 @@ pub fn combine_barriers(dag: &mut DAGCircuit, retain_uuid: bool) -> PyResult<()>
         .filter_map(|(index, inst)| {
             if let OperationRef::StandardInstruction(op) = inst.op.view()
                 && matches!(op, StandardInstruction::Barrier(_))
-                    && let Some(label) = inst.label.as_ref()
-                        && label.contains("_uuid=") {
-                            return Some(index);
-                        }
+                && let Some(label) = inst.label.as_ref()
+                && label.contains("_uuid=")
+            {
+                return Some(index);
+            }
             None
         })
         .collect();

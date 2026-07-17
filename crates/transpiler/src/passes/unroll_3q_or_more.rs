@@ -53,9 +53,10 @@ pub fn run_unroll_3q_or_more(
                     return None;
                 }
                 if let Some(target) = target
-                    && target.contains_key(inst.op.name()) {
-                        return None;
-                    }
+                    && target.contains_key(inst.op.name())
+                {
+                    return None;
+                }
                 let definition = match inst.try_definition() {
                     Some(def) => def,
                     None => {

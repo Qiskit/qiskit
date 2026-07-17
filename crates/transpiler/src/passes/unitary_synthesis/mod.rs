@@ -614,9 +614,10 @@ fn synthesize_matrix(
         }
         _ => {
             if let QpuConstraint::Loose { basis_gates, .. } = constraint
-                && basis_gates.is_empty() {
-                    return Ok(None);
-                }
+                && basis_gates.is_empty()
+            {
+                return Ok(None);
+            }
             Ok(Some(SynthesisOutput::Qsd(quantum_shannon_decomposition(
                 unitary.view(),
                 None,
@@ -760,9 +761,10 @@ fn synthesize_matrix_onto(
         }
         _ => {
             if let QpuConstraint::Loose { basis_gates, .. } = constraint
-                && basis_gates.is_empty() {
-                    return Ok(false);
-                }
+                && basis_gates.is_empty()
+            {
+                return Ok(false);
+            }
             let circuit = quantum_shannon_decomposition(unitary.view(), None, None, None, None)?;
             let map = out.merge_qargs(circuit.qargs_interner(), |q| Some(qubits_local[q.index()]));
             out.add_global_phase(circuit.global_phase())?;

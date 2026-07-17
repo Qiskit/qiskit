@@ -758,10 +758,11 @@ impl State {
         let sabre_dag = &problem.sabre.dag;
         while let Some(node) = self.visit.pop_front() {
             if self.layers.num_layers().get() > 1
-                && let InteractionKind::TwoQ(_) = &sabre_dag[node].kind {
-                    self.layers.remove(node, &self.layout);
-                    self.reached_previous_layer.push(node);
-                }
+                && let InteractionKind::TwoQ(_) = &sabre_dag[node].kind
+            {
+                self.layers.remove(node, &self.layout);
+                self.reached_previous_layer.push(node);
+            }
             match try_route(
                 node,
                 &mut initial_swaps,

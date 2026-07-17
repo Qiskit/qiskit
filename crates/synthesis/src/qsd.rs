@@ -671,9 +671,10 @@ fn apply_a2(
         .filter_map(|(idx, inst)| {
             if matches!(inst.op.view(), OperationRef::Unitary(_))
                 && let Some(ref label) = inst.label
-                    && label.as_str() == "qsd2q" {
-                        return Some(idx);
-                    }
+                && label.as_str() == "qsd2q"
+            {
+                return Some(idx);
+            }
             None
         })
         .collect();

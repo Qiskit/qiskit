@@ -1053,9 +1053,10 @@ impl DAGCircuit {
         let mut to_remove = Vec::new();
         for (id, weight) in self.dag.node_references() {
             if let NodeType::Operation(packed) = &weight
-                && opname == packed.op.name() {
-                    to_remove.push(id);
-                }
+                && opname == packed.op.name()
+            {
+                to_remove.push(id);
+            }
         }
         for node in to_remove {
             self.remove_op_node(node);
@@ -3713,9 +3714,10 @@ impl DAGCircuit {
         let mut result: Vec<Py<PyAny>> = Vec::new();
         for (id, weight) in self.dag.node_references() {
             if let NodeType::Operation(packed) = weight
-                && names_set.contains(packed.op.name()) {
-                    result.push(self.unpack_into(py, id, weight)?);
-                }
+                && names_set.contains(packed.op.name())
+            {
+                result.push(self.unpack_into(py, id, weight)?);
+            }
         }
         Ok(result)
     }
@@ -4423,9 +4425,9 @@ impl DAGCircuit {
                                 .get(pred_packed.qubits)
                                 .iter()
                                 .any(|x| qubits_in_cone.contains(x))
-                            {
-                                queue.push_back(pred_index);
-                            }
+                        {
+                            queue.push_back(pred_index);
+                        }
                     }
                 }
             }
@@ -6861,26 +6863,58 @@ impl DAGCircuit {
         for (old_node_index, new_node_index) in out_map.iter() {
             let old_node = &other.dag[*old_node_index];
             if let NodeType::Operation(old_inst) = old_node
-                && let OperationRef::ControlFlow(cf) = old_inst.op.view() {
-                    match &cf.control_flow {
-                        ControlFlow::Switch {
-                            target,
-                            label_spec,
-                            cases,
-                        } => {
-                            let mapped_target = variable_mapper
-                                .map_target(target, |new_reg| self.add_creg(new_reg.clone()))?;
+                && let OperationRef::ControlFlow(cf) = old_inst.op.view()
+            {
+                match &cf.control_flow {
+                    ControlFlow::Switch {
+                        target,
+                        label_spec,
+                        cases,
+                    } => {
+                        let mapped_target = variable_mapper
+                            .map_target(target, |new_reg| self.add_creg(new_reg.clone()))?;
 
-                            if let NodeType::Operation(new_inst) = &mut self.dag[*new_node_index] {
-                                #[cfg(feature = "cache_pygates")]
-                                {
-                                    new_inst.py_op.take();
-                                }
+                        if let NodeType::Operation(new_inst) = &mut self.dag[*new_node_index] {
+                            #[cfg(feature = "cache_pygates")]
+                            {
+                                new_inst.py_op.take();
+                            }
+                            new_inst.op = ControlFlowInstruction {
+                                control_flow: ControlFlow::Switch {
+                                    target: mapped_target,
+                                    label_spec: label_spec.clone(),
+                                    cases: *cases,
+                                },
+                                num_qubits: cf.num_qubits,
+                                num_clbits: cf.num_clbits,
+                            }
+                            .into();
+                        }
+                    }
+                    ControlFlow::IfElse { condition } | ControlFlow::While { condition } => {
+                        let mapped_condition =
+                            variable_mapper.map_condition(condition, false, |new_reg| {
+                                self.add_creg(new_reg.clone())
+                            })?;
+
+                        if let NodeType::Operation(new_inst) = &mut self.dag[*new_node_index] {
+                            #[cfg(feature = "cache_pygates")]
+                            {
+                                new_inst.py_op.take();
+                            }
+                            if matches!(&cf.control_flow, ControlFlow::While { .. }) {
                                 new_inst.op = ControlFlowInstruction {
-                                    control_flow: ControlFlow::Switch {
-                                        target: mapped_target,
-                                        label_spec: label_spec.clone(),
-                                        cases: *cases,
+                                    control_flow: ControlFlow::While {
+                                        condition: mapped_condition,
+                                    },
+                                    num_qubits: cf.num_qubits,
+                                    num_clbits: cf.num_clbits,
+                                }
+                                .into();
+                            } else {
+                                new_inst.op = ControlFlowInstruction {
+                                    control_flow: ControlFlow::IfElse {
+                                        condition: mapped_condition,
                                     },
                                     num_qubits: cf.num_qubits,
                                     num_clbits: cf.num_clbits,
@@ -6888,41 +6922,10 @@ impl DAGCircuit {
                                 .into();
                             }
                         }
-                        ControlFlow::IfElse { condition } | ControlFlow::While { condition } => {
-                            let mapped_condition =
-                                variable_mapper.map_condition(condition, false, |new_reg| {
-                                    self.add_creg(new_reg.clone())
-                                })?;
-
-                            if let NodeType::Operation(new_inst) = &mut self.dag[*new_node_index] {
-                                #[cfg(feature = "cache_pygates")]
-                                {
-                                    new_inst.py_op.take();
-                                }
-                                if matches!(&cf.control_flow, ControlFlow::While { .. }) {
-                                    new_inst.op = ControlFlowInstruction {
-                                        control_flow: ControlFlow::While {
-                                            condition: mapped_condition,
-                                        },
-                                        num_qubits: cf.num_qubits,
-                                        num_clbits: cf.num_clbits,
-                                    }
-                                    .into();
-                                } else {
-                                    new_inst.op = ControlFlowInstruction {
-                                        control_flow: ControlFlow::IfElse {
-                                            condition: mapped_condition,
-                                        },
-                                        num_qubits: cf.num_qubits,
-                                        num_clbits: cf.num_clbits,
-                                    }
-                                    .into();
-                                }
-                            }
-                        }
-                        _ => (),
                     }
+                    _ => (),
                 }
+            }
         }
         Ok(out_map)
     }

@@ -235,9 +235,10 @@ impl VarStretchContainer {
         }
 
         if let StretchType::Capture = stretch_type
-            && self.num_vars(VarType::Input) > 0 {
-                return Err(VarStretchContainerError::CaptureWithInputVars);
-            }
+            && self.num_vars(VarType::Input) > 0
+        {
+            return Err(VarStretchContainerError::CaptureWithInputVars);
+        }
 
         let name = stretch.name.clone();
         let idx = self

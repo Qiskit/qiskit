@@ -104,9 +104,10 @@ pub fn run_barrier_before_final_measurements(
                             && matches!(
                                 op,
                                 StandardInstruction::Measure | StandardInstruction::Barrier(_)
-                            ) {
-                                next_nodes.push(pred)
-                            }
+                            )
+                        {
+                            next_nodes.push(pred)
+                        }
                     }
                     _ => continue,
                 }

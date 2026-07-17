@@ -170,23 +170,24 @@ where
 
     // Special handling for pauli evolution gates.
     if view.name() == "PauliEvolution"
-        && let OperationRef::PyCustom(py_gate) = view {
-            let result = Python::attach(|py| -> PyResult<Option<(Complex64, usize)>> {
-                let result = imports::PAULI_ROTATION_TRACE_AND_DIM
-                    .get_bound(py)
-                    .call1((py_gate.ob.clone_ref(py),))?
-                    .extract()?;
-                Ok(result)
-            })?;
+        && let OperationRef::PyCustom(py_gate) = view
+    {
+        let result = Python::attach(|py| -> PyResult<Option<(Complex64, usize)>> {
+            let result = imports::PAULI_ROTATION_TRACE_AND_DIM
+                .get_bound(py)
+                .call1((py_gate.ob.clone_ref(py),))?
+                .extract()?;
+            Ok(result)
+        })?;
 
-            if let Some((tr_over_dim, dim)) = result {
-                return Ok(average_gate_fidelity_below_tol(
-                    tr_over_dim,
-                    dim as f64,
-                    error_cutoff_fn(inst),
-                ));
-            }
+        if let Some((tr_over_dim, dim)) = result {
+            return Ok(average_gate_fidelity_below_tol(
+                tr_over_dim,
+                dim as f64,
+                error_cutoff_fn(inst),
+            ));
         }
+    }
 
     // If matrix_from_definition is false and view.matrix() returns None, we skip the operation.
     // If matrix_from_definition is true, we also attempt to construct the matrix from the python Operator.

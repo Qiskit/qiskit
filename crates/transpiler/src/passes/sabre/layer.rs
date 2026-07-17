@@ -79,9 +79,10 @@ impl Layers {
         layout: &NLayout,
     ) {
         if let Some(Location { layer, position }) = self.locations[node]
-            && let Some(moved) = self.layers[layer as usize].remove(position, layout) {
-                self.locations[moved] = Some(Location { layer, position });
-            }
+            && let Some(moved) = self.layers[layer as usize].remove(position, layout)
+        {
+            self.locations[moved] = Some(Location { layer, position });
+        }
         let position = self.layers[layer as usize].insert(node, qubits, layout);
         self.locations[node] = Some(Location { layer, position });
     }
