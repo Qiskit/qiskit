@@ -2223,8 +2223,11 @@ class PauliEvolutionSynthesisMcts(HighLevelSynthesisPlugin):
     * upto_clifford (bool): if `True`, the final Clifford operator is not synthesized.
     * upto_phase (bool): if `True`, the returned circuit may differ from the input by
         a global phase.
-    * num_simulations (int): Number of additional Monte Carlo simulations to perform,
-        beyond the default heuristic synthesis.
+    * num_simulations (int): Number of Monte Carlo simulations to perform. This value
+        must be at least 1.
+    * max_parallel_simulations (int | None): Maximum number of simulations that can be
+        performed in parallel. If integer, this value must be at least 1. The value of
+        `None` means "unlimited".
 
     References:
         1. Mulundano Machiya, Matt Menickelly, Paul Hovland, Ji Liu,
@@ -2285,7 +2288,8 @@ class PauliEvolutionSynthesisMcts(HighLevelSynthesisPlugin):
         preserve_order = options.get("preserve_order", True)
         upto_clifford = options.get("upto_clifford", False)
         upto_phase = options.get("upto_phase", False)
-        num_simulations = options.get("num_simulations", 0)
+        num_simulations = options.get("num_simulations", 1)
+        max_parallel_simulations = options.get("max_parallel_simulations", 1)
 
         try:
             synth_object = synth_pauli_network_mcts(
@@ -2295,6 +2299,7 @@ class PauliEvolutionSynthesisMcts(HighLevelSynthesisPlugin):
                 upto_clifford=upto_clifford,
                 upto_phase=upto_phase,
                 num_simulations=num_simulations,
+                max_parallel_simulations=max_parallel_simulations,
             )
         finally:
             algo.preserve_order = original_preserve_order

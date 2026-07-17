@@ -16,7 +16,7 @@ Tests the interface for HighLevelSynthesis transpiler pass.
 import itertools
 import unittest.mock
 import numpy as np
-from ddt import ddt, data
+from ddt import ddt, data, unpack
 
 from qiskit.circuit import (
     QuantumCircuit,
@@ -3240,7 +3240,7 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
 
     def test_options_num_simulations_for_mcts(self):
         """
-        Test that the Mcts options ``num_simulations`` has an effect
+        Test that the Mcts option ``num_simulations`` has an effect
         on the number of CX-gates in the synthesized circuit.
         """
         pauli_terms = [
@@ -3261,8 +3261,8 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
         qc = QuantumCircuit(3)
         qc.append(PauliEvolutionGate(op), [0, 1, 2])
 
-        with self.subTest("num_simulations=0"):
-            hls_config = HLSConfig(PauliEvolution=[("mcts", {"num_simulations": 0})])
+        with self.subTest("num_simulations=1"):
+            hls_config = HLSConfig(PauliEvolution=[("mcts", {"num_simulations": 1})])
             hls_pass = HighLevelSynthesis(hls_config=hls_config)
             qct = hls_pass(qc)
             cnt_ops = qct.count_ops()
@@ -3274,6 +3274,70 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
             qct = hls_pass(qc)
             cnt_ops = qct.count_ops()
             self.assertEqual(cnt_ops["cx"], 14)
+
+    @data((1, 1), (1, 5), (1, None), (10, 1), (10, 5), (10, 10), (10, None))
+    @unpack
+    def test_options_max_parallel_simulations_for_mcts(
+        self, num_simulations, max_parallel_simulations
+    ):
+        """
+        Test that various combinations of mcts option ``num_simulations`` and ``max_parallel_simulations``
+        work correctly.
+        """
+        pauli_terms = [
+            "XII",
+            "XXI",
+            "XXX",
+            "XXZ",
+            "XYY",
+            "XZI",
+            "XZZ",
+            "XIZ",
+            "YXY",
+            "YYI",
+            "YYX",
+            "YYZ",
+        ]
+        op = SparsePauliOp(pauli_terms)
+        qc = QuantumCircuit(3)
+        qc.append(PauliEvolutionGate(op), [0, 1, 2])
+
+        hls_config = HLSConfig(
+            PauliEvolution=[
+                (
+                    "mcts",
+                    {
+                        "num_simulations": num_simulations,
+                        "max_parallel_simulations": max_parallel_simulations,
+                    },
+                )
+            ]
+        )
+        hls_pass = HighLevelSynthesis(hls_config=hls_config)
+        _ = hls_pass(qc)
+
+    def test_mcts_raises_for_invalid_option_values(self):
+        """Test that a proper error is raised for invalid values of the options."""
+        pauli_terms = ["XII"]
+        op = SparsePauliOp(pauli_terms)
+        qc = QuantumCircuit(3)
+        qc.append(PauliEvolutionGate(op), [0, 1, 2])
+
+        with self.subTest("invalid value for num_simulations"):
+            hls_config = HLSConfig(
+                PauliEvolution=[("mcts", {"num_simulations": 0, "max_parallel_simulations": 1})]
+            )
+            hls_pass = HighLevelSynthesis(hls_config=hls_config)
+            with self.assertRaises(QiskitError):
+                _ = hls_pass(qc)
+
+        with self.subTest("invalid value for max_parallel_simulations"):
+            hls_config = HLSConfig(
+                PauliEvolution=[("mcts", {"num_simulations": 1, "max_parallel_simulations": 0})]
+            )
+            hls_pass = HighLevelSynthesis(hls_config=hls_config)
+            with self.assertRaises(QiskitError):
+                _ = hls_pass(qc)
 
 
 class TestAnnotatedSynthesisPlugins(QiskitTestCase):

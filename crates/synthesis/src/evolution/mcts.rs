@@ -15,6 +15,8 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::operations::{Param, StandardGate, multiply_param, radd_param};
 use qiskit_quantum_info::clifford::{PauliLabelOrder, PauliList};
 
+use qiskit_util::getenv_use_multiple_threads;
+use rayon::prelude::*;
 use rustworkx_core::petgraph::Direction::Outgoing;
 use rustworkx_core::petgraph::Incoming;
 use rustworkx_core::petgraph::graph::NodeIndex;
@@ -367,7 +369,9 @@ impl MctsAlgorithm {
     ) -> Self {
         let num_paulis = sparse_paulis.len();
 
-        // Anti-commutativity DAG.
+        // Build anti-commutativity DAG.
+        // In the future, we may either parallelize this, or implement a slightly more clever algorithm
+        // from python's DAGDependency code that avoids adding transitive edges.
         let mut dag = StableDiGraph::<usize, ()>::new();
         let node_indices: Vec<NodeIndex> = (0..num_paulis).map(|i| dag.add_node(i)).collect();
 
@@ -481,36 +485,86 @@ impl MctsAlgorithm {
         }
     }
 
+    /// Runs simulation from each leaf node. In parallel, if there is more than one leaf node.
+    /// Returns the solution and the number of CX-gates in the solution.
+    fn run_next_batch(&mut self, leaf_node_ids: &[usize]) -> (GateSequence, usize) {
+        //
+        let results: Vec<(usize, GateSequence, usize)> = if leaf_node_ids.len() == 1 {
+            leaf_node_ids
+                .iter()
+                .map(|&leaf_node_id| {
+                    let solution = self.rollout_policy(leaf_node_id);
+                    let value = cx_count(&solution);
+                    (leaf_node_id, solution, value)
+                })
+                .collect()
+        } else {
+            leaf_node_ids
+                .par_iter()
+                .map(|&leaf_node_id| {
+                    let solution = self.rollout_policy(leaf_node_id);
+                    let value = cx_count(&solution);
+                    (leaf_node_id, solution, value)
+                })
+                .collect()
+        };
+
+        // Back-propagate values using all of the discovered solutions.
+        for &(leaf_node_id, _, value) in &results {
+            self.backpropagate(leaf_node_id, value);
+        }
+
+        // Pick the solution with the minimum value.
+        results
+            .into_iter()
+            .min_by_key(|(_leaf, _solution, value)| *value)
+            .map(|(_leaf, solution, value)| (solution, value))
+            .expect("we should have at least one solution")
+    }
+
     /// The main function which runs everything.
-    fn run(&mut self, num_sims: usize) -> (GateSequence, Param) {
+    fn run(
+        &mut self,
+        num_simulations: usize,
+        max_parallel_simulations: Option<usize>,
+    ) -> (GateSequence, Param) {
         // Add the root state (this also removes all-identity and synthesizable 1-qubit rotations).
         self.add_root_mcts_node(&self.paulis.clone());
 
-        // On the first iteration, runs rollout (greedy synthesis) starting at the root node.
-        // For consecutive iterations (if any): each simulation either selects an existing MCTS state
-        // with unexplored actions or creates a new MCTS state, and calls rollout (greedy synthesis)
-        // starting at this state.
-        let best_solution = std::iter::once(self.rollout_policy(0))
-            .map(|solution| {
-                let value = cx_count(&solution);
-                (solution, value)
+        // Number of simulations per batch. The simulation in one batch run in parallel.
+        let run_in_parallel = getenv_use_multiple_threads();
+        let batch_size = match (run_in_parallel, max_parallel_simulations) {
+            (false, _) => 1,
+            (true, Some(k)) => k.min(num_simulations),
+            (true, None) => num_simulations,
+        };
+        // Number of bataches to run. Batches run sequentially.
+        let num_batches = num_simulations.div_ceil(batch_size);
+
+        // The first simulation starts from the root MCTS node. Each consecutive simulation
+        // either selects an existing MCTS state with unexplored actions or creates a new MCTS
+        // state. For each selected state, the rollout strategy (heuristic greedy synthesis)
+        // is called, starting at this state.
+        let mut first_run = true;
+        let best_solution = (0..num_batches)
+            .map(|_| {
+                let leaf_node_ids = self.select_next_k_child_states(batch_size, first_run);
+                first_run = false;
+                self.run_next_batch(&leaf_node_ids)
             })
-            .chain((0..num_sims).map(|_| {
-                let leaf_node_id = self.tree_policy();
-                let solution = self.rollout_policy(leaf_node_id);
-                let value = cx_count(&solution);
-                self.backpropagate(leaf_node_id, value);
-                (solution, value)
-            }))
             .min_by_key(|(_solution, value)| *value)
             .map(|(solution, _value)| solution)
             .expect("we should have at least one solution");
-
         (best_solution, self.global_phase.clone())
     }
 
-    /// Implement the "tree policy": find the best MCTS node to start the rollout from.
-    fn tree_policy(&mut self) -> usize {
+    /// Find or create the next MCTS nodes to start the rollout from (called the "tree policy" in the paper).
+    /// If it's the very first run of this function, returns the root node.
+    fn select_next_child_state(&mut self, first_run: bool) -> usize {
+        if first_run {
+            return 0;
+        }
+
         let mut mcts_node_id = 0; // root
         loop {
             // If all the Paulis have been processed, return the current id.
@@ -570,6 +624,17 @@ impl MctsAlgorithm {
                 })
                 .unwrap();
         }
+    }
+
+    /// Find or create the next k MCTS nodes to start the rollout from
+    /// (for parallelization).
+    fn select_next_k_child_states(&mut self, k: usize, first_run: bool) -> Vec<usize> {
+        (0..k)
+            .map(|i| {
+                let set_first_run = first_run && (i == 0);
+                self.select_next_child_state(set_first_run)
+            })
+            .collect()
     }
 
     /// Finds all-identity paulis and updates the synthesis state accordingly.
@@ -720,9 +785,22 @@ pub fn pauli_network_mcts_inner(
     upto_clifford: bool,
     upto_phase: bool,
     num_simulations: usize,
+    max_parallel_simulations: Option<usize>,
 ) -> Result<CircuitData, EvolutionSynthesisError> {
+    if num_simulations == 0 {
+        return Err(EvolutionSynthesisError::ErrorInvalidInputArguments(
+            "Number of sumilations must be at least 1.".to_string(),
+        ));
+    }
+    if max_parallel_simulations == Some(0) {
+        return Err(EvolutionSynthesisError::ErrorInvalidInputArguments(
+            "Number of sumilations that can be executed in parallel must be at least 1."
+                .to_string(),
+        ));
+    }
+
     let mut mcts = MctsAlgorithm::new(num_qubits, sparse_paulis, angles, preserve_order);
-    let (mut circuit, global_phase) = mcts.run(num_simulations); // number of simulations
+    let (mut circuit, global_phase) = mcts.run(num_simulations, max_parallel_simulations);
 
     // If upto_clifford is true, we just return the above circuit. However, if upto_clifford is false, we need to
     // add the inverse clifford part of the circuit.

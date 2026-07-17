@@ -90,7 +90,8 @@ def synth_pauli_network_mcts(
     preserve_order: bool = True,
     upto_clifford: bool = False,
     upto_phase: bool = False,
-    num_simulations: int = 0,
+    num_simulations: int = 1,
+    max_parallel_simulations: int | None = 1,
 ) -> QuantumCircuit:
     """
     Synthesize a Pauli network using Monte Carlo Tree Search (MCTS).
@@ -110,8 +111,11 @@ def synth_pauli_network_mcts(
         upto_phase: if `True`, the global phase of the returned circuit may differ
              from the global phase of the given Pauli network. The argument is ignored
              when `upto_clifford` is `True`.
-        num_simulations: Number of additional Monte Carlo simulations to perform,
-            beyond the default heuristic synthesis.
+        num_simulations : Number of Monte Carlo simulations to perform. This value
+            must be at least 1.
+        max_parallel_simulations: Maximum number of simulations that can be
+            performed in parallel. If integer, this value must be at least 1. The value
+            of `None` means "unlimited".
 
     Returns:
         A circuit implementation of the Pauli network.
@@ -129,6 +133,7 @@ def synth_pauli_network_mcts(
         upto_clifford=upto_clifford,
         upto_phase=upto_phase,
         num_simulations=num_simulations,
+        max_parallel_simulations=max_parallel_simulations,
     )
     circuit = QuantumCircuit._from_circuit_data(out, legacy_qubits=True)
     return circuit

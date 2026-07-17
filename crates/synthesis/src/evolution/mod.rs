@@ -40,6 +40,10 @@ pub enum EvolutionSynthesisError {
     // wraps a Clifford (re)synthesis error, which is reported as a plain string
     #[error("Clifford synthesis failed: {0}")]
     ErrorFromCliffordSynthesis(String),
+
+    // invalid input arguments
+    #[error("Invalid input argument: {0}")]
+    ErrorInvalidInputArguments(String),
 }
 
 impl From<EvolutionSynthesisError> for PyErr {
@@ -50,6 +54,7 @@ impl From<EvolutionSynthesisError> for PyErr {
             }
             EvolutionSynthesisError::ErrorFromCircuitData(err) => err.into(),
             EvolutionSynthesisError::ErrorFromCliffordSynthesis(msg) => QiskitError::new_err(msg),
+            EvolutionSynthesisError::ErrorInvalidInputArguments(msg) => QiskitError::new_err(msg),
         }
     }
 }
@@ -144,7 +149,7 @@ pub fn pauli_network_synthesis(
 ///
 /// See python documentation for ``synth_pauli_network_mcts`` for details.
 #[pyfunction]
-#[pyo3(signature = (num_qubits, pauli_network, preserve_order=true, upto_clifford=false, upto_phase=false, num_simulations=0))]
+#[pyo3(signature = (num_qubits, pauli_network, preserve_order=true, upto_clifford=false, upto_phase=false, num_simulations=1, max_parallel_simulations=1))]
 #[allow(clippy::too_many_arguments)]
 pub fn pauli_network_mcts(
     num_qubits: usize,
@@ -153,6 +158,7 @@ pub fn pauli_network_mcts(
     upto_clifford: bool,
     upto_phase: bool,
     num_simulations: usize,
+    max_parallel_simulations: Option<usize>,
 ) -> PyResult<PyCircuitData> {
     let (sparse_paulis, angles) = extract_sparse_paulis(pauli_network)?;
     pauli_network_mcts_inner(
@@ -163,6 +169,7 @@ pub fn pauli_network_mcts(
         upto_clifford,
         upto_phase,
         num_simulations,
+        max_parallel_simulations,
     )
     .map(Into::into)
     .map_err(Into::into)
