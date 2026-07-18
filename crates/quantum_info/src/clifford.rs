@@ -474,6 +474,40 @@ impl Clifford {
         (false, in_z.to_vec(), in_x.to_vec(), indices_in.to_vec())
     }
 
+    /// Conjugate a dense Pauli, given by its per-qubit ``z`` and ``x`` bits, by
+    /// the Clifford ``C``, returning `C P C†` as ``(sign, z, x)`` dense bits.
+    ///
+    /// This is the Schrödinger-picture counterpart of [Clifford::evolve_pauli]
+    /// (which computes `C† P C`): the result is the ordered product of the
+    /// tableau rows selected by the input Pauli's bits.
+    pub fn conjugate_pauli(&self, z: &[bool], x: &[bool]) -> (bool, Vec<bool>, Vec<bool>) {
+        let num_qubits = self.num_qubits;
+        let mut rows = Vec::with_capacity(2 * num_qubits);
+        let mut y_count: u32 = 0;
+        for qubit in 0..num_qubits {
+            // Per qubit, the X (destabilizer) row multiplies before the Z
+            // (stabilizer) row, matching the phase convention of
+            // [compute_phase_product_pauli].
+            if x[qubit] {
+                rows.push(qubit);
+            }
+            if z[qubit] {
+                rows.push(qubit + num_qubits);
+            }
+            y_count += (x[qubit] && z[qubit]) as u32;
+        }
+        let mut out_z = vec![false; num_qubits];
+        let mut out_x = vec![false; num_qubits];
+        for &row in &rows {
+            for qubit in 0..num_qubits {
+                out_x[qubit] ^= self.tableau[qubit][row];
+                out_z[qubit] ^= self.tableau[qubit + num_qubits][row];
+            }
+        }
+        let sign = compute_phase_product_pauli(self, &rows, y_count);
+        (sign, out_z, out_x)
+    }
+
     /// Evolving a single qubit pauli on qubit qbit by the Clifford.
     /// The pauli (X, Y or Z) is given as (pauli_z, pauli_x)
     /// Returns the evolved Pauli in the a sparse ZX format: (sign, z, x, indices).
