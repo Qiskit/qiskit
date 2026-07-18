@@ -48,6 +48,10 @@ struct PauliSynthesisState {
     /// ``in_degrees``.
     tab: PauliList,
 
+    /// Support sizes for Paulis in the pauli list. This is a performance optimization that
+    /// avoid recomputing these and instead updates them on the fly for active Paulis.
+    support_sizes: Vec<usize>,
+
     /// Number of processed Pauli rotations.
     num_processed: usize,
 
@@ -165,15 +169,16 @@ fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
     let mut counts_cache: HashMap<(usize, usize), [u32; 16]> = HashMap::new();
 
     loop {
-        let support_size = synthesis_state.tab.get_pauli_support_size(ndx);
-        assert!(support_size >= 1);
+        let support_size = synthesis_state.support_sizes[ndx];
 
         // We have successfully reduced this Pauli to a single-qubit rotation.
         if support_size == 1 {
             break;
         }
 
-        // loop to cycle over all qubit indices to get all combinations of control and target
+        // Loop to cycle over all qubit indices to get all combinations of control and target
+        // TODO: for the follow-up iterations, we can avoid recomputing the support as
+        // we know exactly how it changes
         let support = synthesis_state.tab.get_pauli_support(ndx);
 
         let mut best_score = (isize::MIN, isize::MIN);
@@ -211,7 +216,21 @@ fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
             }
         }
 
-        // Apply the best chunk
+        // Updates following applying the best chunk -- pauli support sizes
+        for pauli_idx in 0..synthesis_state.tab.num_paulis {
+            if synthesis_state.in_degrees[pauli_idx].is_some() {
+                let pair_idx = synthesis_state
+                    .tab
+                    .pauli_pair_index(pauli_idx, best_ctrl, best_targ);
+
+                let delta = SUPPORT_DELTA[best_chunk_idx][pair_idx];
+                synthesis_state.support_sizes[pauli_idx] =
+                    ((synthesis_state.support_sizes[pauli_idx] as isize) + (delta as isize))
+                        as usize;
+            }
+        }
+
+        // Updates following applying the best chunk -- pauli list
         for (gate, qubits) in ALL_CHUNKS[best_chunk_idx] {
             let mapped_qubits: SmallVec<[Qubit; 2]> = qubits
                 .iter()
@@ -243,6 +262,7 @@ fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
                     panic!("should only have s/sx/h/cx gates");
                 }
             }
+
             synthesis_state
                 .gate_sequence
                 .push((*gate, smallvec![], mapped_qubits));
@@ -282,6 +302,13 @@ fn compute_frontier_nodes(
     dag.node_indices()
         .filter(|n| in_degrees[n.index()] == Some(0))
         .map(|n| n.index())
+        .collect()
+}
+
+// Computes support sizes (numbers of non-I terms) for every Pauli in the tableau.
+fn compute_support_sizes(tab: &PauliList) -> Vec<usize> {
+    (0..tab.num_paulis)
+        .map(|i| tab.get_pauli_support_size(i))
         .collect()
 }
 
@@ -423,14 +450,14 @@ impl MctsAlgorithm {
         self.dag.node_indices().for_each(|i| {
             in_degrees[i.index()] = Some(self.dag.neighbors_directed(i, Incoming).count());
         });
-
+        let support_sizes = compute_support_sizes(tab);
         let mut synthesis_state = PauliSynthesisState {
             tab: tab.clone(),
+            support_sizes,
             num_processed: 0,
             gate_sequence: vec![],
             in_degrees,
         };
-
         self.global_phase = self.process_all_identity_paulis(&mut synthesis_state);
         self.process_synthesized_paulis(&mut synthesis_state);
 
@@ -644,7 +671,7 @@ impl MctsAlgorithm {
         let mut global_phase = Param::Float(0.0);
         let mut new_processed: Vec<usize> = Vec::new();
         for pauli_idx in 0..self.num_paulis {
-            if synthesis_state.tab.get_pauli_support_size(pauli_idx) == 0 {
+            if synthesis_state.support_sizes[pauli_idx] == 0 {
                 new_processed.push(pauli_idx);
                 synthesis_state.num_processed += 1;
                 global_phase =
@@ -671,8 +698,13 @@ impl MctsAlgorithm {
             let mut new_processed: Vec<usize> = Vec::new();
             let frontier_nodes = compute_frontier_nodes(&self.dag, &state.in_degrees);
             for idx in &frontier_nodes {
-                let support = state.tab.get_pauli_support_if_size_1(*idx);
-                if let Some(q) = support {
+                if state.support_sizes[*idx] == 1 {
+                    // TODO: we can even have a function that returns the support qubit when it's known that
+                    // the support is of size 1 (without the need to iterate over the rest of the pauli string).
+                    let q = state
+                        .tab
+                        .get_pauli_support_if_size_1(*idx)
+                        .expect("We are guaranteed to have a single qubit in the support");
                     new_processed.push(*idx);
 
                     // update number of processed nodes
@@ -750,16 +782,14 @@ impl MctsAlgorithm {
             // Compute front nodes.
             // ToDo: consider storing frontier nodes as part of the synthesis state as well.
             let front_nodes = compute_frontier_nodes(&self.dag, &synthesis_state.in_degrees);
-            assert!(!front_nodes.is_empty());
 
             // Find active pauli of minimum weight.
             let pauli_idx = front_nodes
                 .iter()
-                .min_by_key(|idx| synthesis_state.tab.get_pauli_support_size(**idx))
+                .min_by_key(|&&idx| synthesis_state.support_sizes[idx])
                 .expect("The frontier cannot be empty.");
 
             // We should have filtered all already synthesized paulis.
-            assert!(synthesis_state.tab.get_pauli_support_size(*pauli_idx) >= 2);
             synthesize_pauli(&mut synthesis_state, *pauli_idx);
 
             // Update the state by finding all Paulis that got synthesized.
