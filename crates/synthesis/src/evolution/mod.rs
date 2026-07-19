@@ -149,7 +149,7 @@ pub fn pauli_network_synthesis(
 ///
 /// See python documentation for ``synth_pauli_network_mcts`` for details.
 #[pyfunction]
-#[pyo3(signature = (num_qubits, pauli_network, preserve_order=true, upto_clifford=false, upto_phase=false, num_simulations=1, max_parallel_simulations=1))]
+#[pyo3(signature = (num_qubits, pauli_network, preserve_order=true, upto_clifford=false, upto_phase=false, num_simulations=1, max_parallel_simulations=None))]
 #[allow(clippy::too_many_arguments)]
 pub fn pauli_network_mcts(
     num_qubits: usize,

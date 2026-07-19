@@ -91,7 +91,7 @@ def synth_pauli_network_mcts(
     upto_clifford: bool = False,
     upto_phase: bool = False,
     num_simulations: int = 1,
-    max_parallel_simulations: int | None = 1,
+    max_parallel_simulations: int | None = None,
 ) -> QuantumCircuit:
     """
     Synthesize a Pauli network using Monte Carlo Tree Search (MCTS).

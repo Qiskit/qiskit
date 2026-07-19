@@ -2289,7 +2289,7 @@ class PauliEvolutionSynthesisMcts(HighLevelSynthesisPlugin):
         upto_clifford = options.get("upto_clifford", False)
         upto_phase = options.get("upto_phase", False)
         num_simulations = options.get("num_simulations", 1)
-        max_parallel_simulations = options.get("max_parallel_simulations", 1)
+        max_parallel_simulations = options.get("max_parallel_simulations", None)
 
         try:
             synth_object = synth_pauli_network_mcts(

@@ -79,7 +79,7 @@ struct MctsNode {
     /// Number of times this node was visited across simulations.
     ni: usize,
 
-    /// Cumulative cost (e.g. number of CX=gates) from root to terminal node
+    /// Cumulative cost (e.g. number of CX-gates) from root to terminal node
     /// across simulations visiting this node.
     qi: usize,
 
@@ -98,6 +98,8 @@ struct MctsNode {
 }
 
 /// Count the number of CX-gates in [GateSequence].
+///
+/// All non-CX gates are ignored.
 fn cx_count(gate_seq: &GateSequence) -> usize {
     gate_seq
         .iter()
@@ -106,6 +108,9 @@ fn cx_count(gate_seq: &GateSequence) -> usize {
 }
 
 /// Count the number of CX-gates in [GateSequence].
+///
+/// This also handles SWAPs, counting each as 3 CX-gates. Note that SWAP gates can be produced
+/// by Clifford resynthesis.
 fn cx_count_with_swaps(gate_seq: &GateSequence) -> usize {
     // This function may also be called on the resynthesized Clifford circuit,
     // and so also considers SWAP gates.
@@ -190,7 +195,6 @@ fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
                 // note that ctrl < targ
                 let ctrl = support[ii];
                 let targ = support[jj];
-                assert!(ctrl < targ);
 
                 // get the index 0..16
                 let pair_idx = synthesis_state.tab.pauli_pair_index(ndx, ctrl, targ);
@@ -203,7 +207,6 @@ fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
                     .or_insert_with(|| count_active_pairs(synthesis_state, ctrl, targ));
 
                 // get the indices of chunks that can reduce this
-                assert!(!REDUCING_CHUNKS[pair_idx].is_empty());
                 for chunk_idx in REDUCING_CHUNKS[pair_idx] {
                     let score = compute_score(&pair_counts, *chunk_idx);
                     if score > best_score {
@@ -286,7 +289,7 @@ fn update_in_degrees(
             let degree = in_degrees[n.index()]
                 .as_mut()
                 .expect("the successor node should not be processed");
-            assert_ne!(*degree, 0);
+            // assert_ne!(*degree, 0);
             *degree -= 1;
         }
         in_degrees[*i] = None;
@@ -320,28 +323,17 @@ fn sort_sparse_pauli(pauli: String, qubits: Vec<u32>) -> (String, Vec<u32>) {
         .zip(qubits.iter().copied())
         .collect();
     zipped.sort_unstable_by_key(|&(_, q)| q);
-
-    let sorted_paulis = String::from_utf8(
-        zipped
-            .iter()
-            .map(|&(sorted_pauli, _sorted_qubits)| sorted_pauli)
-            .collect(),
-    )
-    .unwrap();
-    let sorted_qubits = zipped
-        .into_iter()
-        .map(|(_sorted_pauli, sorted_qubits)| sorted_qubits)
-        .collect();
-
+    let (sorted_bytes, sorted_qubits): (Vec<u8>, Vec<u32>) = zipped.into_iter().unzip();
+    let sorted_paulis = String::from_utf8(sorted_bytes).unwrap();
     (sorted_paulis, sorted_qubits)
 }
 
 /// Checks whether two sparse sorted paulis commute.
 #[inline]
 fn sorted_sparse_paulis_commute(
-    pauli1: &String,
+    pauli1: &str,
     qubits1: &[u32],
-    pauli2: &String,
+    pauli2: &str,
     qubits2: &[u32],
 ) -> bool {
     let mut idx1 = 0;
@@ -435,8 +427,8 @@ impl MctsAlgorithm {
         Self {
             global_phase: Param::Float(0.0),
             num_paulis,
-            paulis: paulis.clone(),
-            angles: angles.to_vec(),
+            paulis,
+            angles,
             mcts_nodes: vec![],
             dag,
         }
@@ -461,11 +453,13 @@ impl MctsAlgorithm {
         self.global_phase = self.process_all_identity_paulis(&mut synthesis_state);
         self.process_synthesized_paulis(&mut synthesis_state);
 
-        let unexplored_actions = compute_frontier_nodes(&self.dag, &synthesis_state.in_degrees)
-            .iter()
-            .rev()
-            .cloned()
-            .collect();
+        let unexplored_actions = {
+            let mut frontier_nodes = compute_frontier_nodes(&self.dag, &synthesis_state.in_degrees);
+            // Reversing to allow efficient popping of nodes from the back of the vector, while preserving
+            // the original order.
+            frontier_nodes.reverse();
+            frontier_nodes
+        };
 
         let node = MctsNode {
             ni: 0,
@@ -499,14 +493,15 @@ impl MctsAlgorithm {
         }
     }
 
-    /// function to backpropagate estimated value from the terminal state up through the tree.
-    fn backpropagate(&mut self, leaf: usize, value: usize) {
-        let mut node = leaf;
+    /// Backpropagate estimated value from the terminal state up through the tree.
+    fn backpropagate(&mut self, leaf_node_id: usize, value: usize) {
+        let mut node_id = leaf_node_id;
         loop {
-            self.mcts_nodes[node].ni += 1;
-            self.mcts_nodes[node].qi += value;
-            match self.mcts_nodes[node].parent {
-                Some(parent) => node = parent,
+            let node = &mut self.mcts_nodes[node_id];
+            node.ni += 1;
+            node.qi += value;
+            match node.parent {
+                Some(parent) => node_id = parent,
                 None => break,
             }
         }
@@ -515,25 +510,17 @@ impl MctsAlgorithm {
     /// Runs simulation from each leaf node. In parallel, if there is more than one leaf node.
     /// Returns the solution and the number of CX-gates in the solution.
     fn run_next_batch(&mut self, leaf_node_ids: &[usize]) -> (GateSequence, usize) {
-        //
+        let rollout = |&leaf_node_id: &usize| {
+            let solution = self.rollout_policy(leaf_node_id);
+            let value = cx_count(&solution);
+            (leaf_node_id, solution, value)
+        };
+
+        // Run rollout (greedy synthesis) from each leaf.
         let results: Vec<(usize, GateSequence, usize)> = if leaf_node_ids.len() == 1 {
-            leaf_node_ids
-                .iter()
-                .map(|&leaf_node_id| {
-                    let solution = self.rollout_policy(leaf_node_id);
-                    let value = cx_count(&solution);
-                    (leaf_node_id, solution, value)
-                })
-                .collect()
+            leaf_node_ids.iter().map(rollout).collect()
         } else {
-            leaf_node_ids
-                .par_iter()
-                .map(|&leaf_node_id| {
-                    let solution = self.rollout_policy(leaf_node_id);
-                    let value = cx_count(&solution);
-                    (leaf_node_id, solution, value)
-                })
-                .collect()
+            leaf_node_ids.par_iter().map(rollout).collect()
         };
 
         // Back-propagate values using all of the discovered solutions.
@@ -565,7 +552,7 @@ impl MctsAlgorithm {
             (true, Some(k)) => k.min(num_simulations),
             (true, None) => num_simulations,
         };
-        // Number of bataches to run. Batches run sequentially.
+        // Number of batches to run. Batches run sequentially.
         let num_batches = num_simulations.div_ceil(batch_size);
 
         // The first simulation starts from the root MCTS node. Each consecutive simulation
@@ -614,12 +601,14 @@ impl MctsAlgorithm {
                 synthesize_pauli(&mut synthesis_state, *chosen_pauli_idx);
                 self.process_synthesized_paulis(&mut synthesis_state);
 
-                let unexplored_actions =
-                    compute_frontier_nodes(&self.dag, &synthesis_state.in_degrees)
-                        .iter()
-                        .rev()
-                        .cloned()
-                        .collect();
+                let unexplored_actions = {
+                    let mut frontier_nodes =
+                        compute_frontier_nodes(&self.dag, &synthesis_state.in_degrees);
+                    // Reversing to allow efficient popping of nodes from the back of the vector, while preserving
+                    // the original order.
+                    frontier_nodes.reverse();
+                    frontier_nodes
+                };
 
                 // Create the child mcts node with the result of the above synthesis.
                 let child_node = MctsNode {
@@ -644,12 +633,13 @@ impl MctsAlgorithm {
             mcts_node_id = *self.mcts_nodes[mcts_node_id]
                 .children
                 .iter()
-                .max_by(|&&a, &&b| {
-                    self.upper_confidence_bound(a)
-                        .partial_cmp(&self.upper_confidence_bound(b))
-                        .unwrap()
+                .map(|node_idx| {
+                    let score = self.upper_confidence_bound(*node_idx);
+                    (node_idx, score)
                 })
-                .unwrap();
+                .max_by(|&a, &b| a.1.total_cmp(&b.1))
+                .unwrap()
+                .0;
         }
     }
 
@@ -658,8 +648,8 @@ impl MctsAlgorithm {
     fn select_next_k_child_states(&mut self, k: usize, first_run: bool) -> Vec<usize> {
         (0..k)
             .map(|i| {
-                let set_first_run = first_run && (i == 0);
-                self.select_next_child_state(set_first_run)
+                let is_first_run = first_run && (i == 0);
+                self.select_next_child_state(is_first_run)
             })
             .collect()
     }
@@ -819,12 +809,12 @@ pub fn pauli_network_mcts_inner(
 ) -> Result<CircuitData, EvolutionSynthesisError> {
     if num_simulations == 0 {
         return Err(EvolutionSynthesisError::ErrorInvalidInputArguments(
-            "Number of sumilations must be at least 1.".to_string(),
+            "Number of simulations must be at least 1.".to_string(),
         ));
     }
     if max_parallel_simulations == Some(0) {
         return Err(EvolutionSynthesisError::ErrorInvalidInputArguments(
-            "Number of sumilations that can be executed in parallel must be at least 1."
+            "Number of simulations that can be executed in parallel must be at least 1."
                 .to_string(),
         ));
     }
