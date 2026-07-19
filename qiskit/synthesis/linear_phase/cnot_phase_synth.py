@@ -84,9 +84,6 @@ def synth_cnot_phase_aam(
            `arXiv:1712.01859 <https://arxiv.org/abs/1712.01859>`_
     """
 
-    if len(cnots[0]) != len(angles):
-        raise QiskitError('Size of "cnots" and "angles" do not match.')
-
     cnots_array = np.asarray(cnots).astype(bool)
     angles = [angle if isinstance(angle, str) else f"{angle}" for angle in angles]
     _circuit_data = synth_cnot_phase_aam_xlated(cnots_array, angles, section_size)
