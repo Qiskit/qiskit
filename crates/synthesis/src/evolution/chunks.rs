@@ -84,7 +84,7 @@ pub const ALL_CHUNKS: [&[(StandardGate, &[usize])]; 18] = [
 ];
 
 // Given a 2-qubit Pauli, we want to precompute its conjugation
-// by various chunks according to the Shrodinger picture:
+// by various chunks according to the Schrödinger picture:
 // C P C^\dagger.
 //
 // The following table is a visual representation of this data.
