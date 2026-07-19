@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit
-from qiskit.exceptions import QiskitError
 from qiskit._accelerate.synthesis.linear_phase import (
     synth_cnot_phase_aam as synth_cnot_phase_aam_xlated,
 )
