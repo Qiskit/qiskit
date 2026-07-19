@@ -283,15 +283,15 @@ mod tests {
         )
         .unwrap();
         let params = Some(Parameters::Params(smallvec![
-            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
-                "ϴ", None, None,
-            )))),
-            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
-                "φ", None, None,
-            )))),
-            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
-                "λ", None, None,
-            )))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
+                Symbol::standalone("ϴ".to_owned(), None)
+            ))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
+                Symbol::standalone("φ".to_owned(), None)
+            ))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
+                Symbol::standalone("λ".to_owned(), None)
+            ))),
         ]));
         target
             .add_instruction(
