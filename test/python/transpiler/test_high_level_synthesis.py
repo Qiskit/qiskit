@@ -3262,14 +3262,18 @@ class TestPauliEvolutionSynthesisPlugins(QiskitTestCase):
         qc.append(PauliEvolutionGate(op), [0, 1, 2])
 
         with self.subTest("num_simulations=1"):
-            hls_config = HLSConfig(PauliEvolution=[("mcts", {"num_simulations": 1})])
+            hls_config = HLSConfig(
+                PauliEvolution=[("mcts", {"num_simulations": 1, "max_parallel_simulations": 1})]
+            )
             hls_pass = HighLevelSynthesis(hls_config=hls_config)
             qct = hls_pass(qc)
             cnt_ops = qct.count_ops()
             self.assertEqual(cnt_ops["cx"], 16)
 
         with self.subTest("num_simulations=20"):
-            hls_config = HLSConfig(PauliEvolution=[("mcts", {"num_simulations": 20})])
+            hls_config = HLSConfig(
+                PauliEvolution=[("mcts", {"num_simulations": 20, "max_parallel_simulations": 1})]
+            )
             hls_pass = HighLevelSynthesis(hls_config=hls_config)
             qct = hls_pass(qc)
             cnt_ops = qct.count_ops()
