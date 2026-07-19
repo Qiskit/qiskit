@@ -168,6 +168,23 @@ runtime performance.  You can set the environment variable `QISKIT_BUILD_PROFILE
 to `release` or `debug` to control the default.  The `--release`/`--debug` flag
 to `build_rust` overrides this default.
 
+### Python and Rust versions
+
+> [!NOTE]
+> More detail on OS support can be found in the [Qiskit installation guide](https://quantum.cloud.ibm.com/docs/guides/install-qiskit#operating-system-support).
+
+At runtime, only Python is required, not Rust.  Any release of
+the Python-space `qiskit` package (such as v2.5.2) supports all versions of CPython that had active security support at the time of the first release in that minor series (v2.5.0, in this example).
+
+Developers typically face stricter requirements.
+The documentation, linting and other development processes may require newer Python versions than Qiskit's minimum; it is typically easiest to use the newest or near-newest version of CPython for development.
+
+Qiskit has a conservative policy for the minimum-supported Rust version (MSRV) needed to build.
+The MSRV may increase on any major or minor version, but not on a patch release without exceptional circumstances.
+The MSRV must always be at least one year old at the time of any major or minor release, but may be older.
+The source of truth from the current MSRV is the `rust-version` key in the root `Cargo.toml` file.
+
+
 ### Compile time options
 
 When building Qiskit from source there are options available to control how
