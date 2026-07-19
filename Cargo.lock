@@ -2188,7 +2188,7 @@ version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd274650b21d4bfc26a0a47587962c1edb425f69287324355cd040c3ea66071c"
 dependencies = [
- "hashbrown 0.17.1",
+ "hashbrown 0.15.5",
  "indexmap",
  "libc",
  "num-bigint",
