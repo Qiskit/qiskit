@@ -2906,7 +2906,7 @@ checksum = "4b213df2cbfa5f580ed2c0ac3619eda06692a4ff0211f0aebbb4008eaa9724a6"
 dependencies = [
  "fixedbitset 0.5.7",
  "foldhash 0.1.5",
- "hashbrown 0.17.1",
+ "hashbrown 0.15.5",
  "indexmap",
  "ndarray",
  "num-traits",
