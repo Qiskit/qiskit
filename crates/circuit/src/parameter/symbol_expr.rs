@@ -104,7 +104,7 @@ impl Symbol {
     pub fn fullname(&self) -> Cow<'_, str> {
         match self {
             Self::Standalone { name, uuid: _ } => Cow::Borrowed(name.as_str()),
-            Self::Element { base, index } => Cow::Owned(format!("{}[{}]", &base.name, index)),
+            Self::Element { base, index } => Cow::Owned(format!("{}[{}]", base.name, index)),
         }
     }
 
@@ -419,18 +419,14 @@ impl SymbolExpr {
             SymbolExpr::Symbol(_) => None,
             SymbolExpr::Value(e) => Some(*e),
             SymbolExpr::Unary { op, expr } => {
-                let val: Value;
-                if recurse {
-                    match expr.eval(recurse) {
-                        Some(v) => val = v,
-                        None => return None,
-                    }
+                let val = if recurse {
+                    expr.eval(recurse)?
                 } else {
                     match expr.as_ref() {
-                        SymbolExpr::Value(e) => val = *e,
+                        SymbolExpr::Value(e) => *e,
                         _ => return None,
                     }
-                }
+                };
                 let ret = match op {
                     UnaryOp::Abs => val.abs(),
                     UnaryOp::Neg => -val,

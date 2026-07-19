@@ -235,8 +235,6 @@ pub struct State {
     allow_version: bool,
     /// Whether we're in strict mode or (the default) more permissive parse.
     strict: bool,
-    /// What the maximum depth for expression recursion is.
-    max_depth: usize,
 }
 
 impl State {
@@ -247,7 +245,6 @@ impl State {
         custom_instructions: &[CustomInstruction],
         custom_classical: &[CustomClassical],
         strict: bool,
-        max_depth: usize,
     ) -> PyResult<Self> {
         let mut state = State {
             tokens: vec![tokens],
@@ -268,7 +265,6 @@ impl State {
             num_gates: 0,
             allow_version: true,
             strict,
-            max_depth,
         };
         for inst in custom_instructions {
             if state.symbols.contains_key(&inst.name)
@@ -307,7 +303,7 @@ impl State {
                     None,
                     &format!(
                         "cannot override builtin classical function '{}'",
-                        &classical.name
+                        classical.name
                     ),
                 )));
             }
@@ -319,11 +315,11 @@ impl State {
                     let message = match classical.name.as_str() {
                         "U" | "CX" => format!(
                             "custom classical instructions cannot shadow built-in gates, but got '{}'",
-                            &classical.name,
+                            classical.name,
                         ),
                         _ => format!(
                             "custom classical instruction '{}' has a naming clash with a custom gate",
-                            &classical.name,
+                            classical.name,
                         ),
                     };
                     return Err(QASM2ParseError::new_err(message_generic(None, &message)));
@@ -331,7 +327,7 @@ impl State {
                 Some(GlobalSymbol::Classical { .. }) => {
                     return Err(QASM2ParseError::new_err(message_generic(
                         None,
-                        &format!("duplicate custom classical function '{}'", &classical.name,),
+                        &format!("duplicate custom classical function '{}'", classical.name,),
                     )));
                 }
                 _ => (),
@@ -983,7 +979,6 @@ impl State {
             gate_symbols: &self.gate_symbols,
             global_symbols: &self.symbols,
             strict: self.strict,
-            remaining_depth: self.max_depth,
         }
         .parse_expression(cause)
     }
@@ -1057,7 +1052,7 @@ impl State {
                 )),
                 &format!(
                     "'{}' takes {} parameter{}, but got {}",
-                    &name_token.text(&self.context),
+                    name_token.text(&self.context),
                     num_params,
                     if num_params == 1 { "" } else { "s" },
                     seen_params
@@ -1613,7 +1608,7 @@ impl State {
                             filename_token.line,
                             filename_token.col,
                         )),
-                        &format!("unable to open file '{}' for reading: {}", &filename, err),
+                        &format!("unable to open file '{}' for reading: {}", filename, err),
                     ))
                 })?;
             self.tokens.push(new_stream);

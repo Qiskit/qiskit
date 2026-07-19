@@ -3156,7 +3156,7 @@ impl DAGCircuit {
             if input_dag_var_set.difference(&var_set).count() > 0 {
                 return Err(DAGCircuitError::new_err(format!(
                     "Cannot replace a node with a DAG with more variables. Variables in node: {:?}. Variables in dag: {:?}",
-                    &var_set, &input_dag_var_set,
+                    var_set, input_dag_var_set,
                 )));
             }
             var_set
