@@ -7556,11 +7556,22 @@ impl DAGCircuit {
     ) -> Result<Self, DAGError> {
         // Extract necessary attributes
         let qc_data = qc.data;
+        let metadata = qc
+            .metadata
+            .map(|ob| {
+                if copy_op {
+                    ob.call_method0(intern!(ob.py(), "copy")).map(Bound::unbind)
+                } else {
+                    Ok(ob.unbind())
+                }
+            })
+            .transpose()
+            .map_err(DAGError::Python)?;
         Self::from_circuit_data(
             &qc_data,
             copy_op,
             qc.name,
-            qc.metadata.map(|x| x.unbind()),
+            metadata,
             qubit_order,
             clbit_order,
         )
