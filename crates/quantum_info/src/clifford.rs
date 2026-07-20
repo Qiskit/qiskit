@@ -180,7 +180,7 @@ impl PauliList {
         *lhs.last_mut().unwrap() ^= &rhs[self.num_qubits - 1];
     }
 
-    /// Modifies the pauli list in-place by conjugating each pauli with SXDG-gate
+    /// Modifies the pauli list in-place by conjugating each pauli with SXdg-gate
     pub fn append_sxdg(&mut self, qubit: usize) {
         self.scratch.clone_from(&self.data[qubit]);
         self.scratch &= &self.data[qubit + self.num_qubits];
@@ -744,7 +744,7 @@ impl Clifford {
         self.tableau.append_sx(qubit);
     }
 
-    /// Modifies the tableau in-place by conjugating with SXDG-gate
+    /// Modifies the tableau in-place by conjugating with SXdg-gate
     #[inline]
     pub fn append_sxdg(&mut self, qubit: usize) {
         self.tableau.append_sxdg(qubit);
@@ -888,6 +888,7 @@ impl Clifford {
     /// Modifies the tableau in-place by appending PPR gate,
     /// with an angle that is an integer multiple of pi/2
     /// so PPR is necessarily a Clifford gate.
+    /// See [PauliList::append_ppr] for details.
     #[inline]
     pub fn append_ppr(
         &mut self,
