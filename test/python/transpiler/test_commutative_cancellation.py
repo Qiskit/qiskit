@@ -981,19 +981,18 @@ measure q0[1] -> c0[1];
         # The actual asseertion.
         self.assertTrue(left.structurally_equal(right))
 
-    def test_negative_x_rotations(self):
-        qcs, expecteds = [], []
-        for num_sxdg in (2, 3, 4):
-            qc = QuantumCircuit(1)
-            for _ in range(num_sxdg):
-                qc.sxdg(0)
-            qcs.append(qc)
-            expected = qc.copy_empty_like()
-            for _ in range(4 - num_sxdg):
-                expected.sx(0)
-            expecteds.append(expected)
+    @ddt.data(2, 3, 4)
+    def test_negative_x_rotations(self, num_sxdg):
+        qc = QuantumCircuit(1)
+        for _ in range(num_sxdg):
+            qc.sxdg(0)
+
+        expected = qc.copy_empty_like()
+        for _ in range(4 - num_sxdg):
+            expected.sx(0)
+
         pass_ = CommutativeCancellation(["sx", "rz"])
-        self.assertEqual([pass_(qc) for qc in qcs], expecteds)
+        self.assertEqual(pass_(qc), expected)
 
 
 if __name__ == "__main__":
