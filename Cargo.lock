@@ -93,9 +93,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.102"
+version = "1.0.103"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f202df86484c868dbad7eaa557ef785d5c66295e41b460ef922eca0723b842c"
+checksum = "2a4385e2e34eb35d6b3efe798b9eb88096925d87726c0798709bf56d9ed84af3"
 
 [[package]]
 name = "approx"
@@ -215,9 +215,9 @@ checksum = "72f5acc6cb2ba439de613abc23857ec3d78374d8ed5ac84e9d11336e87da8649"
 
 [[package]]
 name = "bytemuck"
-version = "1.25.0"
+version = "1.25.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8efb64bd706a16a1bdde310ae86b351e4d21550d98d056f22f8a7f7a2183fec"
+checksum = "95832e849adfb21180ccb6826a99da14e5d266ae5c2e668e1602cf234f153797"
 dependencies = [
  "bytemuck_derive",
 ]
@@ -1198,6 +1198,17 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
+version = "0.16.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "841d1cc9bed7f9236f321df977030373f4a4163ae1a7dbfe1a51a2c1a51d9100"
+dependencies = [
+ "allocator-api2",
+ "equivalent",
+ "foldhash 0.2.0",
+]
+
+[[package]]
+name = "hashbrown"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
@@ -1645,9 +1656,9 @@ dependencies = [
 
 [[package]]
 name = "ndarray"
-version = "0.16.1"
+version = "0.17.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "882ed72dce9365842bf196bdeedf5055305f11fc8c03dee7bb0194a6cad34841"
+checksum = "520080814a7a6b4a6e9070823bb24b4531daac8c4627e08ba5de8c5ef2f2752d"
 dependencies = [
  "approx",
  "matrixmultiply",
@@ -1662,11 +1673,11 @@ dependencies = [
 
 [[package]]
 name = "ndarray-einsum"
-version = "0.8.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4b2d52dfff9b24d072b6080eab1587cbd54ae24da7b8370072c3a84db221e05"
+checksum = "7df4ff5c1e55d1a9dcb3fd1cb6506dd2bec71cfbb9d0deb4858693350f30ef28"
 dependencies = [
- "hashbrown 0.15.5",
+ "hashbrown 0.16.1",
  "lazy_static",
  "ndarray",
  "num-traits",
@@ -2264,7 +2275,7 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-transpiler",
  "qiskit-util",
- "rand 0.10.1",
+ "rand 0.10.2",
  "rand_distr 0.6.0",
  "rand_pcg",
  "rayon",
@@ -2314,10 +2325,10 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-transpiler",
  "qiskit-util",
- "rand 0.10.1",
+ "rand 0.10.2",
  "rand_pcg",
  "smallvec",
- "thiserror 2.0.18",
+ "thiserror 2.0.19",
  "uuid",
 ]
 
@@ -2357,7 +2368,7 @@ dependencies = [
  "rayon",
  "rustworkx-core",
  "smallvec",
- "thiserror 2.0.18",
+ "thiserror 2.0.19",
  "unicode-segmentation",
  "unicode-width 0.2.2",
  "uuid",
@@ -2378,12 +2389,12 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-synthesis",
  "qiskit-util",
- "rand 0.10.1",
+ "rand 0.10.2",
  "rand_distr 0.6.0",
  "rand_pcg",
  "rayon",
  "smallvec",
- "thiserror 2.0.18",
+ "thiserror 2.0.19",
  "uuid",
 ]
 
@@ -2396,7 +2407,7 @@ dependencies = [
  "ndarray",
  "num-complex",
  "rustworkx-core",
- "thiserror 2.0.18",
+ "thiserror 2.0.19",
 ]
 
 [[package]]
@@ -2443,7 +2454,7 @@ dependencies = [
  "qiskit-circuit",
  "qiskit-util",
  "regex",
- "thiserror 2.0.18",
+ "thiserror 2.0.19",
 ]
 
 [[package]]
@@ -2464,7 +2475,7 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-util",
  "smallvec",
- "thiserror 2.0.18",
+ "thiserror 2.0.19",
  "uuid",
 ]
 
@@ -2487,12 +2498,12 @@ dependencies = [
  "pyo3",
  "qiskit-circuit",
  "qiskit-util",
- "rand 0.10.1",
+ "rand 0.10.2",
  "rand_distr 0.6.0",
  "rand_pcg",
  "rayon",
  "rustworkx-core",
- "thiserror 2.0.18",
+ "thiserror 2.0.19",
 ]
 
 [[package]]
@@ -2515,7 +2526,7 @@ dependencies = [
  "qiskit-circuit",
  "qiskit-quantum-info",
  "qiskit-util",
- "rand 0.10.1",
+ "rand 0.10.2",
  "rand_distr 0.6.0",
  "rand_pcg",
  "rayon",
@@ -2524,7 +2535,7 @@ dependencies = [
  "rustiq-core",
  "rustworkx-core",
  "smallvec",
- "thiserror 2.0.18",
+ "thiserror 2.0.19",
 ]
 
 [[package]]
@@ -2548,13 +2559,13 @@ dependencies = [
  "qiskit-quantum-info",
  "qiskit-synthesis",
  "qiskit-util",
- "rand 0.10.1",
+ "rand 0.10.2",
  "rand_pcg",
  "rayon",
  "rayon-cond",
  "rustworkx-core",
  "smallvec",
- "thiserror 2.0.18",
+ "thiserror 2.0.19",
  "thread_local",
  "uuid",
 ]
@@ -2567,7 +2578,7 @@ dependencies = [
  "indexmap",
  "num-complex",
  "pyo3",
- "thiserror 2.0.18",
+ "thiserror 2.0.19",
 ]
 
 [[package]]
@@ -2620,9 +2631,9 @@ dependencies = [
 
 [[package]]
 name = "rand"
-version = "0.10.1"
+version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2e8e8bcc7961af1fdac401278c6a831614941f6164ee3bf4ce61b7edb162207"
+checksum = "c7f5fa3a058cd35567ef9bfa5e75732bee0f9e4c55fa90477bef2dfcdbc4be80"
 dependencies = [
  "chacha20",
  "getrandom 0.4.3",
@@ -2690,7 +2701,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4d431c2703ccf129de4d45253c03f49ebb22b97d6ad79ee3ecfc7e3f4862c1d8"
 dependencies = [
  "num-traits",
- "rand 0.10.1",
+ "rand 0.10.2",
 ]
 
 [[package]]
@@ -2765,9 +2776,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.12.4"
+version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1292b7759ae1cb9ec195452d1390a074f0cd8541ab7a5a8c31cd6db45d4a6ba"
+checksum = "2a0e75113e14dc5acb068cd0786884f214f1312650a3d36d269f5c4f3cdee8a2"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -2901,7 +2912,7 @@ dependencies = [
  "num-traits",
  "petgraph 0.8.3",
  "priority-queue",
- "rand 0.10.1",
+ "rand 0.10.2",
  "rand_distr 0.6.0",
  "rand_pcg",
  "rayon",
@@ -3147,6 +3158,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "syn"
+version = "3.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a207d6d6a2b7fc470b80443726053f18a2481b7e1eee970597051596567987a3"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "unicode-ident",
+]
+
+[[package]]
 name = "sysctl"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3196,11 +3218,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.18"
+version = "2.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4288b5bcbc7920c07a1149a35cf9590a2aa808e0bc1eafaade0b80947865fbc4"
+checksum = "09a43598840e33d5b0331f38c5e30d13bb11c11210a4b58f0d9b18a5a5eefcd9"
 dependencies = [
- "thiserror-impl 2.0.18",
+ "thiserror-impl 2.0.19",
 ]
 
 [[package]]
@@ -3216,20 +3238,20 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.18"
+version = "2.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ebc4ee7f67670e9b64d05fa4253e753e016c6c95ff35b89b7941d6b856dec1d5"
+checksum = "43cbfe0cf76104d42a574802844187e84a305e531ed54455f11fbde0f10541cd"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.118",
+ "syn 3.0.2",
 ]
 
 [[package]]
 name = "thread_local"
-version = "1.1.9"
+version = "1.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f60246a4944f24f6e018aa17cdeffb7818b76356965d03b07d6a9886e8962185"
+checksum = "1ad99c4c6d32803332c548b1af0540b357b3f5fc0be8f6c6bfe8b2e6ae784070"
 dependencies = [
  "cfg-if",
 ]
@@ -3384,13 +3406,13 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.23.3"
+version = "1.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "144d6b123cef80b301b8f72a9e2ca4370ddec21950d0a103dd22c437006d2db7"
+checksum = "bf3923a6f5c4c6382e0b653c4117f48d631ea17f38ed86e2a828e6f7412f5239"
 dependencies = [
  "getrandom 0.4.3",
  "js-sys",
- "rand 0.10.1",
+ "rand 0.10.2",
  "wasm-bindgen",
 ]
 

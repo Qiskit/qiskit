@@ -17,7 +17,17 @@ use qiskit_circuit::operations::{Param, StandardGate};
 use qiskit_quantum_info::clifford::Clifford;
 use smallvec::{SmallVec, smallvec};
 
-/// Symplectic matrix.
+/// A symplectic matrix representation.
+///
+/// Conceptually, a symplectic matrix is represented by a tableau in which the rows
+/// recorrespond to destabilizers and stabilizers, and the columns correspond
+/// to the X and Z components:
+///
+/// ```text
+/// [ destab_x | destab_z ]
+/// [  stab_x  |  stab_z  ]
+/// ```
+///
 /// Currently this class is internal to the synthesis library.
 pub struct SymplecticMatrix {
     /// Number of qubits.
@@ -129,7 +139,7 @@ pub fn adjust_final_pauli_gates(
 
     // compute the phase difference
     let target_phase = target_tableau.column(2 * num_qubits);
-    let sim_phase = simulated_clifford.get_phase();
+    let sim_phase = simulated_clifford.tableau.get_phase();
 
     let delta_phase: Vec<bool> = target_phase
         .iter()
