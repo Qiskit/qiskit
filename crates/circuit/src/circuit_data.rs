@@ -29,14 +29,14 @@ use crate::instruction::Parameters;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::{self, ObjectRegistry};
 use crate::operations::{
-    ControlFlow, ControlFlowView, Operation, OperationRef, Param, PauliBased, PauliProductRotation,
-    PyOpKind, PythonOperation, StandardGate,
+    BoxedCustomOperation, ControlFlow, ControlFlowView, LoopParam, Operation, OperationRef, Param,
+    PauliBased, PauliProductRotation, PyOpKind, PythonOperation, StandardGate,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::{ParameterError, ParameterExpression};
 use crate::parameter::symbol_expr::{Symbol, Value};
 use crate::parameter_table::{ParameterTable, ParameterTableError, ParameterUse, ParameterUuid};
-use crate::register_data::RegisterData;
+use crate::register_data::{RegisterAlreadyExists, RegisterData};
 use crate::var_stretch_container::{
     StretchType, VarStretchContainer, VarStretchContainerError, VarType,
 };
@@ -56,7 +56,7 @@ use pyo3::types::{IntoPyDict, PyDict, PyList, PySet, PyTuple, PyType};
 use pyo3::{PyTraverseError, PyVisit, import_exception, intern};
 
 use hashbrown::{HashMap, HashSet};
-use indexmap::IndexMap;
+use qiskit_util::IndexMap;
 use smallvec::SmallVec;
 use thiserror::Error;
 
@@ -81,6 +81,10 @@ pub enum CircuitDataError {
     AbsentObject(object_registry::AbsentObject),
     #[error(transparent)]
     AddObjectRegistry(object_registry::AddError),
+    #[error(transparent)]
+    RegisterNameExists(#[from] RegisterAlreadyExists),
+    #[error("{0} at index {1} exceeds circuit capacity.")]
+    BitExceedsCapacity(String, usize),
     // Explicitly an error returned from calling Python
     #[error(transparent)]
     ErrorFromPython(#[from] PyErr),
@@ -121,6 +125,12 @@ impl From<CircuitDataError> for PyErr {
             CircuitDataError::AddObjectRegistry(e) => e.into(),
             CircuitDataError::ErrorFromPython(e) => e,
             CircuitDataError::ParameterTableError(e) => e.into(),
+            CircuitDataError::RegisterNameExists(name) => {
+                CircuitError::new_err(format!("register name {name} already exists"))
+            }
+            CircuitDataError::BitExceedsCapacity(bit_type, bit_index) => CircuitError::new_err(
+                format!("{bit_type} at index {bit_index} exceds circuit capacity."),
+            ),
             CircuitDataError::VarStretchContainerError(e) => CircuitError::new_err(e.to_string()),
             CircuitDataError::ParameterSliceLenMismatch => PyValueError::new_err(
                 "Mismatching number of values and parameters. For partial binding please pass a mapping of {parameter: value} pairs.",
@@ -402,8 +412,14 @@ impl CircuitData {
     ///
     /// Args:
     ///     bit (:class:`.QuantumRegister`): The register to add.
-    pub fn add_qreg(&mut self, register: QuantumRegister, strict: bool) -> PyResult<()> {
-        self.qregs.add_register(register.clone(), strict)?;
+    pub fn add_qreg(
+        &mut self,
+        register: QuantumRegister,
+        strict: bool,
+    ) -> Result<(), CircuitDataError> {
+        self.qregs
+            .add_register(register.clone(), strict)
+            .map_err(CircuitDataError::RegisterNameExists)?;
 
         for (index, bit) in register.bits().enumerate() {
             if let Some(entry) = self.qubit_indices.get_mut(&bit) {
@@ -420,9 +436,7 @@ impl CircuitData {
                     bit,
                     BitLocations::new(
                         bit_idx.try_into().map_err(|_| {
-                            CircuitError::new_err(format!(
-                                "Qubit at index {bit_idx} exceeds circuit capacity."
-                            ))
+                            CircuitDataError::BitExceedsCapacity("Qubit".to_string(), bit_idx)
                         })?,
                         [(register.clone(), index)],
                     ),
@@ -436,9 +450,14 @@ impl CircuitData {
     ///
     /// Args:
     ///     bit (:class:`.ClassicalRegister`): The register to add.
-    pub fn add_creg(&mut self, register: ClassicalRegister, strict: bool) -> PyResult<()> {
-        self.cregs.add_register(register.clone(), strict)?;
-
+    pub fn add_creg(
+        &mut self,
+        register: ClassicalRegister,
+        strict: bool,
+    ) -> Result<(), CircuitDataError> {
+        self.cregs
+            .add_register(register.clone(), strict)
+            .map_err(CircuitDataError::RegisterNameExists)?;
         for (index, bit) in register.bits().enumerate() {
             if let Some(entry) = self.clbit_indices.get_mut(&bit) {
                 entry.add_register(register.clone(), index);
@@ -454,9 +473,7 @@ impl CircuitData {
                     bit,
                     BitLocations::new(
                         bit_idx.try_into().map_err(|_| {
-                            CircuitError::new_err(format!(
-                                "Clbit at index {bit_idx} exceeds circuit capacity."
-                            ))
+                            CircuitDataError::BitExceedsCapacity("Clbit".to_string(), bit_idx)
                         })?,
                         [(register.clone(), index)],
                     ),
@@ -1021,29 +1038,6 @@ impl CircuitData {
         Ok(())
     }
 
-    pub fn pack(&mut self, py: Python, inst: &CircuitInstruction) -> PyResult<PackedInstruction> {
-        let qubits = self.qargs_interner.insert_owned(
-            self.qubits
-                .map_objects(inst.qubits.extract::<Vec<ShareableQubit>>(py)?)?
-                .collect(),
-        );
-        let clbits = self.cargs_interner.insert_owned(
-            self.clbits
-                .map_objects(inst.clbits.extract::<Vec<ShareableClbit>>(py)?)?
-                .collect(),
-        );
-        let params = self.extract_blocks_from_circuit_parameters(inst.params.as_ref());
-        Ok(PackedInstruction {
-            op: inst.operation.clone(),
-            qubits,
-            clbits,
-            params,
-            label: inst.label.clone(),
-            #[cfg(feature = "cache_pygates")]
-            py_op: inst.py_op.clone(),
-        })
-    }
-
     /// Returns an iterator over all the instructions present in the circuit.
     pub fn iter(&self) -> impl ExactSizeIterator<Item = &PackedInstruction> {
         self.data.iter()
@@ -1194,13 +1188,13 @@ impl CircuitData {
         &self.cregs
     }
 
-    /// Returns an immutable view of the qubit locations of the [DAGCircuit]
+    /// Returns an immutable view of the qubit locations of the [CircuitData]
     #[inline(always)]
     pub fn qubit_indices(&self) -> &BitLocator<ShareableQubit, QuantumRegister> {
         &self.qubit_indices
     }
 
-    /// Returns an immutable view of the clbit locations of the [DAGCircuit]
+    /// Returns an immutable view of the clbit locations of the [CircuitData]
     #[inline(always)]
     pub fn clbit_indices(&self) -> &BitLocator<ShareableClbit, ClassicalRegister> {
         &self.clbit_indices
@@ -1318,7 +1312,8 @@ impl CircuitData {
                     | OperationRef::StandardInstruction(_)
                     | OperationRef::Unitary(_)
                     | OperationRef::PauliProductMeasurement(_)
-                    | OperationRef::PauliProductRotation(_) => {
+                    | OperationRef::PauliProductRotation(_)
+                    | OperationRef::CustomOperation(_) => {
                         // TODO: `PauliProductRotation` actually stores a `Param` inside itself,
                         // which this code does not account for.  We most likely need to make an
                         // `OperationRefMut` in order to modify that without cloning the whole
@@ -1705,7 +1700,11 @@ impl CircuitData {
             .any(|inst| inst.op.try_control_flow().is_some())
     }
 
-    pub fn insert(&mut self, mut index: isize, packed: PackedInstruction) -> PyResult<()> {
+    pub fn insert(
+        &mut self,
+        mut index: isize,
+        packed: PackedInstruction,
+    ) -> Result<(), CircuitDataError> {
         // `list.insert` has special-case extra clamping logic for its index argument.
         let index = {
             if index < 0 {
@@ -1764,21 +1763,21 @@ impl CircuitData {
         Ok(())
     }
 
-    pub fn assign_parameters_from_array(&mut self, array: ArrayView1<f64>) -> PyResult<()> {
+    pub fn assign_parameters_from_array(
+        &mut self,
+        array: ArrayView1<f64>,
+    ) -> Result<(), CircuitDataError> {
         if array.len() != self.param_table.num_parameters() {
-            return Err(PyValueError::new_err(concat!(
-                "Mismatching number of values and parameters. For partial binding ",
-                "please pass a dictionary of {parameter: value} pairs."
-            )));
+            return Err(CircuitDataError::ParameterSliceLenMismatch);
         }
         let mut old_table = std::mem::take(&mut self.param_table);
-        Ok(self.assign_parameters_inner(
+        self.assign_parameters_inner(
             array
                 .iter()
                 .map(|value| Param::Float(*value))
                 .zip(old_table.drain_ordered())
                 .map(|(value, (obj, uses))| (obj, value, uses)),
-        )?)
+        )
     }
 
     pub fn assign_parameters_from_slice(
@@ -1809,9 +1808,8 @@ impl CircuitData {
     ///
     /// # Returns
     /// An IndexMap containing the operation names as keys and their respective counts as values.
-    pub fn count_ops(&self) -> IndexMap<&str, usize, ::foldhash::fast::RandomState> {
-        let mut ops_count: IndexMap<&str, usize, ::foldhash::fast::RandomState> =
-            IndexMap::default();
+    pub fn count_ops(&self) -> IndexMap<&str, usize> {
+        let mut ops_count: IndexMap<&str, usize> = IndexMap::default();
         for instruction in &self.data {
             *ops_count.entry(instruction.op.name()).or_insert(0) += 1;
         }
@@ -1861,33 +1859,6 @@ impl CircuitData {
             .iter()
             .filter(|inst| inst.op.num_qubits() > 1 && !inst.op.directive())
             .count()
-    }
-
-    // TODO: in the long run, `CircuitData` should no rely on this method
-    pub fn unpack_py_op(&self, py: Python, instr: &PackedInstruction) -> PyResult<Py<PyAny>> {
-        // `OnceLock::get_or_init` and the non-stabilised `get_or_try_init`, which would otherwise
-        // be nice here are both non-reentrant.  This is a problem if the init yields control to the
-        // Python interpreter as this one does, since that can allow CPython to freeze the thread
-        // and for another to attempt the initialisation.
-        #[cfg(feature = "cache_pygates")]
-        {
-            if let Some(ob) = instr.py_op.get() {
-                return Ok(ob.clone_ref(py));
-            }
-        }
-        let params = self.unpack_blocks_to_circuit_parameters(instr.params.as_deref());
-        let out = instruction::create_py_op(
-            py,
-            instr.op.view(),
-            params,
-            instr.label.as_deref().map(String::as_str),
-        )?;
-        #[cfg(feature = "cache_pygates")]
-        // The unpacking operation can cause a thread pause and concurrency, since it can call
-        // interpreted Python code for a standard gate, so we need to take care that some other
-        // Python thread might have populated the cache before we do.
-        let _ = instr.py_op.set(out.clone_ref(py));
-        Ok(out)
     }
 
     pub fn len(&self) -> usize {
@@ -1949,10 +1920,10 @@ where
     } else if let Ok(sequence) = specifier.extract::<PySequenceIndex>() {
         match sequence {
             PySequenceIndex::Int(index) => {
-                if let Ok(index) = PySequenceIndex::convert_idx(index, bit_sequence.len()) {
-                    if let Some(bit) = bit_sequence.get(index).cloned() {
-                        return Ok(vec![bit]);
-                    }
+                if let Ok(index) = PySequenceIndex::convert_idx(index, bit_sequence.len())
+                    && let Some(bit) = bit_sequence.get(index).cloned()
+                {
+                    return Ok(vec![bit]);
                 }
                 Err(CircuitError::new_err(format!(
                     "Index {specifier} out of range for size {}.",
@@ -2067,7 +2038,9 @@ fn for_each_symbol_use_in_control_flow(
             };
             for symbol in body.parameters() {
                 // Skip the loop variable itself — it is runtime-bound.
-                if loop_param.as_ref() == Some(&symbol) {
+                if let Some(LoopParam::Parameter(loop_symbol)) = loop_param
+                    && symbol == loop_symbol
+                {
                     continue;
                 }
                 action(symbol, usage)?;
@@ -2521,7 +2494,7 @@ impl PyCircuitData {
     ///     bit (:class:`.QuantumRegister`): The register to add.
     #[pyo3(signature = (register, *,strict = true))]
     pub fn add_qreg(&mut self, register: QuantumRegister, strict: bool) -> PyResult<()> {
-        self.inner.add_qreg(register, strict)
+        Ok(self.inner.add_qreg(register, strict)?)
     }
 
     /// Registers a :class:`.ClassicalRegister` instance.
@@ -2530,7 +2503,7 @@ impl PyCircuitData {
     ///     bit (:class:`.ClassicalRegister`): The register to add.
     #[pyo3(signature = (register, *,strict = true))]
     pub fn add_creg(&mut self, register: ClassicalRegister, strict: bool) -> PyResult<()> {
-        self.inner.add_creg(register, strict)
+        Ok(self.inner.add_creg(register, strict)?)
     }
 
     /// Registers a :class:`.Clbit` instance.
@@ -2575,6 +2548,9 @@ impl PyCircuitData {
                     OperationRef::PauliProductRotation(ppr) => {
                         PauliBased::PauliProductRotation(ppr.clone()).into()
                     }
+                    OperationRef::CustomOperation(custom_operation) => {
+                        BoxedCustomOperation::from(custom_operation.clone_dyn()).into()
+                    }
                 };
                 res.data.push(PackedInstruction {
                     op: new_op,
@@ -2599,6 +2575,9 @@ impl PyCircuitData {
                     }
                     OperationRef::PauliProductRotation(ppr) => {
                         PauliBased::PauliProductRotation(ppr.clone()).into()
+                    }
+                    OperationRef::CustomOperation(custom_operation) => {
+                        BoxedCustomOperation::from(custom_operation.clone_dyn()).into()
                     }
                 };
                 res.data.push(PackedInstruction {
@@ -2723,18 +2702,18 @@ impl PyCircuitData {
     }
 
     pub fn __setitem__(&mut self, index: PySequenceIndex, value: &Bound<PyAny>) -> PyResult<()> {
-        fn set_single(slf: &mut CircuitData, index: usize, value: &Bound<PyAny>) -> PyResult<()> {
+        fn set_single(slf: &mut PyCircuitData, index: usize, value: &Bound<PyAny>) -> PyResult<()> {
             let py = value.py();
-            slf.untrack_instruction_parameters(index)?;
-            slf.untrack_instruction_blocks(index);
-            slf.data[index] = slf.pack(py, &value.cast::<CircuitInstruction>()?.borrow())?;
-            slf.track_instruction_blocks(index);
-            slf.track_instruction_parameters(index)?;
+            slf.inner.untrack_instruction_parameters(index)?;
+            slf.inner.untrack_instruction_blocks(index);
+            slf.inner.data[index] = slf.pack(py, &value.cast::<CircuitInstruction>()?.borrow())?;
+            slf.inner.track_instruction_blocks(index);
+            slf.inner.track_instruction_parameters(index)?;
             Ok(())
         }
 
         match index.with_len(self.inner.data.len())? {
-            SequenceIndex::Int(index) => set_single(&mut self.inner, index, value),
+            SequenceIndex::Int(index) => set_single(self, index, value),
             indices @ SequenceIndex::PosRange {
                 start,
                 stop,
@@ -2743,7 +2722,7 @@ impl PyCircuitData {
                 // `list` allows setting a slice with step +1 to an arbitrary length.
                 let values = value.try_iter()?.collect::<PyResult<Vec<_>>>()?;
                 for (index, value) in indices.iter().zip(values.iter()) {
-                    set_single(&mut self.inner, index, value)?;
+                    set_single(self, index, value)?;
                 }
                 if indices.len() > values.len() {
                     self.inner.delitem(SequenceIndex::PosRange {
@@ -2762,7 +2741,7 @@ impl PyCircuitData {
                 let values = value.try_iter()?.collect::<PyResult<Vec<_>>>()?;
                 if indices.len() == values.len() {
                     for (index, value) in indices.iter().zip(values.iter()) {
-                        set_single(&mut self.inner, index, value)?;
+                        set_single(self, index, value)?;
                     }
                     Ok(())
                 } else {
@@ -2778,13 +2757,13 @@ impl PyCircuitData {
 
     pub fn insert(&mut self, index: isize, value: PyRef<CircuitInstruction>) -> PyResult<()> {
         let py = value.py();
-        let packed = self.inner.pack(py, &value)?;
-        self.inner.insert(index, packed)
+        let packed = self.pack(py, &value)?;
+        Ok(self.inner.insert(index, packed)?)
     }
 
     /// Primary entry point for appending an instruction from Python space.
     pub fn append(&mut self, value: &Bound<CircuitInstruction>) -> PyResult<()> {
-        let packed = self.inner.pack(value.py(), &value.borrow())?;
+        let packed = self.pack(value.py(), &value.borrow())?;
         Ok(self.inner.push(packed)?)
     }
 
@@ -2800,7 +2779,7 @@ impl PyCircuitData {
         params: &Bound<PyList>,
     ) -> PyResult<()> {
         let instruction_index = self.len();
-        let packed = self.inner.pack(value.py(), &value.borrow())?;
+        let packed = self.pack(value.py(), &value.borrow())?;
         self.inner.data.push(packed);
         for item in params.iter() {
             let (parameter_index, parameters) = item.extract::<(u32, Bound<PyAny>)>()?;
@@ -2903,7 +2882,7 @@ impl PyCircuitData {
             // Fast path for Numpy arrays; in this case we can easily handle them without copying
             // the data across into a Rust-space `Vec` first.
             let array = readonly.as_array();
-            self.inner.assign_parameters_from_array(array)
+            Ok(self.inner.assign_parameters_from_array(array)?)
         } else {
             let values = sequence
                 .try_iter()?
@@ -2941,7 +2920,7 @@ impl PyCircuitData {
     ///
     /// # Returns
     /// An IndexMap containing the operation names as keys and their respective counts as values.
-    pub fn count_ops(&self) -> IndexMap<&str, usize, ::foldhash::fast::RandomState> {
+    pub fn count_ops(&self) -> IndexMap<&str, usize> {
         self.inner.count_ops()
     }
 
@@ -3323,6 +3302,31 @@ impl PyCircuitData {
 }
 
 impl PyCircuitData {
+    pub fn pack(&mut self, py: Python, inst: &CircuitInstruction) -> PyResult<PackedInstruction> {
+        let qubits = self.inner.qargs_interner.insert_owned(
+            self.qubits
+                .map_objects(inst.qubits.extract::<Vec<ShareableQubit>>(py)?)?
+                .collect(),
+        );
+        let clbits = self.inner.cargs_interner.insert_owned(
+            self.clbits
+                .map_objects(inst.clbits.extract::<Vec<ShareableClbit>>(py)?)?
+                .collect(),
+        );
+        let params = self
+            .inner
+            .extract_blocks_from_circuit_parameters(inst.params.as_ref());
+        Ok(PackedInstruction {
+            op: inst.operation.clone(),
+            qubits,
+            clbits,
+            params,
+            label: inst.label.clone(),
+            #[cfg(feature = "cache_pygates")]
+            py_op: inst.py_op.clone(),
+        })
+    }
+
     /// Build a reference to the Python-space operation object (the `Gate`, etc) packed into an
     /// instruction.  This may construct the reference if the `Instruction` is a standard
     /// gate or instruction with no already stored operation.
