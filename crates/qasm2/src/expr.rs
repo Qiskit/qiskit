@@ -376,7 +376,13 @@ impl ExprParser<'_> {
     /// Apply a binary infix [Op] to the current [expression][Expr].  If both operands have
     /// constant floating-point values the application will be eagerly constant-folded, otherwise
     /// the resulting [Expr] will have a tree structure.
-    fn apply_infix(&mut self, infix: Op, lhs: Expr, rhs: Expr, op_token: &Token) -> Result<Expr, ParseError> {
+    fn apply_infix(
+        &mut self,
+        infix: Op,
+        lhs: Expr,
+        rhs: Expr,
+        op_token: &Token,
+    ) -> Result<Expr, ParseError> {
         if let (Expr::Constant(val), Op::Divide) = (&rhs, infix)
             && *val == 0.0
         {
