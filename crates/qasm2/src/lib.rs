@@ -10,8 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
 
+#[cfg(feature = "py")]
 use crate::bytecode::QASM2ParseError;
 
 mod bytecode;
@@ -22,12 +24,13 @@ mod lex;
 mod parse;
 
 pub use self::ext::{
-    ClassicalBuiltinExt, ClassicalCallableExt, CustomClassical, CustomInstruction,
+    Attachment, ClassicalBuiltinExt, ClassicalCallableExt, CustomClassical, CustomInstruction,
 };
 
 /// Create a bytecode iterable from a string containing an OpenQASM 2 program.  The iterable will
 /// lex and parse the source lazily; evaluating OpenQASM 2 statements as required, without loading
 /// the entire token and parse tree into memory at once.
+#[cfg(feature = "py")]
 #[pyfunction]
 fn bytecode_from_string(
     string: String,
@@ -48,6 +51,7 @@ fn bytecode_from_string(
 /// Create a bytecode iterable from a path to a file containing an OpenQASM 2 program.  The
 /// iterable will lex and parse the source lazily; evaluating OpenQASM 2 statements as required,
 /// without loading the entire token and parse tree into memory at once.
+#[cfg(feature = "py")]
 #[pyfunction]
 fn bytecode_from_file(
     py: Python<'_>,
@@ -76,6 +80,7 @@ fn bytecode_from_file(
 /// An interface to the Rust components of the parser stack, and the types it uses to represent the
 /// output.  The principal entry points for Python are :func:`bytecode_from_string` and
 /// :func:`bytecode_from_file`, which produce iterables of :class:`Bytecode` objects.
+#[cfg(feature = "py")]
 pub fn qasm2(module: &Bound<PyModule>) -> PyResult<()> {
     module.add_class::<bytecode::OpCode>()?;
     module.add_class::<bytecode::UnaryOpCode>()?;
