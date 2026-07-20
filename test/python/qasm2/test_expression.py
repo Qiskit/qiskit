@@ -138,23 +138,26 @@ class TestSimple(QiskitTestCase):
         """We should either succeed in the evaluation or raise a Python-space error. We should _not_
         segfault."""
         expr = "-" * 100_000 + "2.0"
-        program = f"qreg q[1]; U({expr}, 0.0, 0.0) q[0];"
-        # This can be changed to an assertion that the expression evaluates to precisely `2.0` if we
-        # modify the parser to be non-recursive.
-        with self.assertRaises(RecursionError):
-            qiskit.qasm2.loads(program)
+        program = f"qreg q[1]; U({expr}, -{expr}, 0.0) q[0];"
+        parsed = qiskit.qasm2.loads(program)
+        self.assertEqual(list(parsed.data[0].operation.params), [2.0, -2.0, 0.0])
 
     def test_excessive_depth_binary(self):
         """We should either succeed in the evaluation or raise a Python-space error. We should _not_
         segfault."""
-        # We have to include the parentheses or the operator-precedence parser will just decay to
-        # iterative anyway.
+        # We have to include the parentheses to go against standard associativity, or a naive
+        # implementation will be effectively iterative anyway.
         expr = "1.0+(" * 100_000 + "1.0" + ")" * 100_000
         program = f"qreg q[1]; U({expr}, 0.0, 0.0) q[0];"
-        # This can be changed to an assertion that the expression evaluates to precisely `100001.0`
-        # if we modify the parser to be non-recursive.
-        with self.assertRaises(RecursionError):
-            qiskit.qasm2.loads(program)
+        parsed = qiskit.qasm2.loads(program)
+        self.assertEqual(list(parsed.data[0].operation.params), [100_001.0, 0.0, 0.0])
+
+    def test_parenthesised_lhs_followed_by_infix(self):
+        """A parenthesised subexpression on the left of an infix operator should evaluate
+        correctly regardless of the relative precedences involved."""
+        program = "qreg q[1]; U((1.0 + 2.0) + 3.0, (1.0 * 2.0) + 3.0, (4.0 / 2.0) * 3.0) q[0];"
+        parsed = qiskit.qasm2.loads(program)
+        self.assertEqual(list(parsed.data[0].operation.params), [6.0, 5.0, 6.0])
 
 
 class TestPrecedenceAssociativity(QiskitTestCase):

@@ -119,59 +119,59 @@ pub fn run_split_2q_unitaries(
     let mut mapping: Vec<usize> = (0..dag.num_qubits()).collect();
     let rebuilder_callback =
         |new_dag: &mut DAGCircuitBuilder, inst: &PackedInstruction, _node: NodeIndex| {
-            if let OperationRef::Unitary(unitary_gate) = inst.op.view() {
-                if unitary_gate.num_qubits() == 2 {
-                    let decomp = TwoQubitWeylDecomposition::new_inner(
-                        unitary_gate.matrix_view(),
-                        Some(requested_fidelity),
+            if let OperationRef::Unitary(unitary_gate) = inst.op.view()
+                && unitary_gate.num_qubits() == 2
+            {
+                let decomp = TwoQubitWeylDecomposition::new_inner(
+                    unitary_gate.matrix_view(),
+                    Some(requested_fidelity),
+                    None,
+                )?;
+                if matches!(decomp.specialization, Specialization::SWAPEquiv) {
+                    let k1r_arr = decomp.k1r_view();
+                    let k1r_mat: Matrix2<Complex64> = [
+                        [k1r_arr[[0, 0]], k1r_arr[[1, 0]]],
+                        [k1r_arr[[0, 1]], k1r_arr[[1, 1]]],
+                    ]
+                    .into();
+                    let k1r_gate = Box::new(UnitaryGate {
+                        array: ArrayType::OneQ(k1r_mat),
+                    });
+                    let k1l_arr = decomp.k1l_view();
+                    let k1l_mat: Matrix2<Complex64> = [
+                        [k1l_arr[[0, 0]], k1l_arr[[1, 0]]],
+                        [k1l_arr[[0, 1]], k1l_arr[[1, 1]]],
+                    ]
+                    .into();
+                    let k1l_gate = Box::new(UnitaryGate {
+                        array: ArrayType::OneQ(k1l_mat),
+                    });
+                    // perform the virtual swap
+                    let qargs = dag.get_qargs(inst.qubits);
+                    let index0 = qargs[0].index();
+                    let index1 = qargs[1].index();
+                    mapping.swap(index0, index1);
+                    // now add the two 1-qubit gates
+                    new_dag.apply_operation_back(
+                        PackedOperation::from_unitary(k1r_gate),
+                        &[Qubit::new(mapping[index0])],
+                        &[],
+                        None,
+                        None,
+                        #[cfg(feature = "cache_pygates")]
                         None,
                     )?;
-                    if matches!(decomp.specialization, Specialization::SWAPEquiv) {
-                        let k1r_arr = decomp.k1r_view();
-                        let k1r_mat: Matrix2<Complex64> = [
-                            [k1r_arr[[0, 0]], k1r_arr[[1, 0]]],
-                            [k1r_arr[[0, 1]], k1r_arr[[1, 1]]],
-                        ]
-                        .into();
-                        let k1r_gate = Box::new(UnitaryGate {
-                            array: ArrayType::OneQ(k1r_mat),
-                        });
-                        let k1l_arr = decomp.k1l_view();
-                        let k1l_mat: Matrix2<Complex64> = [
-                            [k1l_arr[[0, 0]], k1l_arr[[1, 0]]],
-                            [k1l_arr[[0, 1]], k1l_arr[[1, 1]]],
-                        ]
-                        .into();
-                        let k1l_gate = Box::new(UnitaryGate {
-                            array: ArrayType::OneQ(k1l_mat),
-                        });
-                        // perform the virtual swap
-                        let qargs = dag.get_qargs(inst.qubits);
-                        let index0 = qargs[0].index();
-                        let index1 = qargs[1].index();
-                        mapping.swap(index0, index1);
-                        // now add the two 1-qubit gates
-                        new_dag.apply_operation_back(
-                            PackedOperation::from_unitary(k1r_gate),
-                            &[Qubit::new(mapping[index0])],
-                            &[],
-                            None,
-                            None,
-                            #[cfg(feature = "cache_pygates")]
-                            None,
-                        )?;
-                        new_dag.apply_operation_back(
-                            PackedOperation::from_unitary(k1l_gate),
-                            &[Qubit::new(mapping[index1])],
-                            &[],
-                            None,
-                            None,
-                            #[cfg(feature = "cache_pygates")]
-                            None,
-                        )?;
-                        new_dag.add_global_phase(&Param::Float(decomp.global_phase + PI4))?;
-                        return Ok(());
-                    }
+                    new_dag.apply_operation_back(
+                        PackedOperation::from_unitary(k1l_gate),
+                        &[Qubit::new(mapping[index1])],
+                        &[],
+                        None,
+                        None,
+                        #[cfg(feature = "cache_pygates")]
+                        None,
+                    )?;
+                    new_dag.add_global_phase(&Param::Float(decomp.global_phase + PI4))?;
+                    return Ok(());
                 }
             }
             // General instruction

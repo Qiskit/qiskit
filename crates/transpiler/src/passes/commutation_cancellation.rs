@@ -16,16 +16,49 @@ use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::{Bound, PyResult, pyfunction, wrap_pyfunction};
 
+use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_util::IndexMap;
 use smallvec::{SmallVec, smallvec};
 
 use super::analyze_commutations;
-use crate::commutation_checker::CommutationChecker;
+use crate::commutation_checker::{CommutationChecker, CommutationError};
 use approx::abs_diff_eq;
 use qiskit_circuit::Qubit;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, NodeType, PyDAGCircuit};
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
 use qiskit_synthesis::QiskitError;
+
+/// Possible errors during the `CommutationCancellation` pass
+#[derive(Debug, thiserror::Error)]
+pub enum CommutationCancelError {
+    #[error("Rotational gate with parameter expression encountered in cancellation {0:?}")]
+    RotationalParameter(PackedOperation),
+    #[error("Angle for operation {0} is not defined")]
+    OperationUndefinedAngle(String),
+    #[error(transparent)]
+    DAGCircuit(#[from] DAGError),
+    #[error(transparent)]
+    Analysis(#[from] CommutationError),
+}
+
+impl From<CommutationCancelError> for PyErr {
+    fn from(value: CommutationCancelError) -> Self {
+        match value {
+            CommutationCancelError::RotationalParameter(_) => {
+                QiskitError::new_err(value.to_string())
+            }
+            CommutationCancelError::OperationUndefinedAngle(_) => {
+                PyRuntimeError::new_err(value.to_string())
+            }
+            CommutationCancelError::Analysis(commutation_analysis_error) => {
+                commutation_analysis_error.into()
+            }
+            CommutationCancelError::DAGCircuit(dagcircuit_inner_error) => {
+                dagcircuit_inner_error.into()
+            }
+        }
+    }
+}
 
 const _CUTOFF_PRECISION: f64 = 1e-5;
 static ROTATION_GATES: [&str; 4] = ["p", "u1", "rz", "rx"];
@@ -74,19 +107,20 @@ struct CancellationSetKey {
 }
 
 #[pyfunction(name = "cancel_commutations")]
-#[pyo3(signature = (py_dag, commutation_checker, basis_gates=None, approximation_degree=1.))]
-pub fn py_cancel_commutations(
-    py_dag: &mut PyDAGCircuit,
+#[pyo3(signature = (dag, commutation_checker, basis_gates=None, approximation_degree=1.))]
+fn py_cancel_commutations(
+    dag: &mut PyDAGCircuit,
     commutation_checker: &mut CommutationChecker,
     basis_gates: Option<Vec<String>>,
     approximation_degree: f64,
 ) -> PyResult<()> {
     cancel_commutations(
-        py_dag.try_write()?,
+        dag.try_write()?,
         commutation_checker,
         basis_gates,
         approximation_degree,
     )
+    .map_err(Into::into)
 }
 
 pub fn cancel_commutations(
@@ -94,7 +128,7 @@ pub fn cancel_commutations(
     commutation_checker: &mut CommutationChecker,
     basis_gates: Option<Vec<String>>,
     approximation_degree: f64,
-) -> PyResult<()> {
+) -> Result<(), CommutationCancelError> {
     let basis = basis_gates.unwrap_or_default();
     let z_var_gate = dag
         .get_op_counts()
@@ -260,10 +294,9 @@ pub fn cancel_commutations(
                         let node_angle = match node_op.params_view().first() {
                             Some(Param::Float(f)) => *f,
                             _ => {
-                                return Err(QiskitError::new_err(format!(
-                                    "Rotational gate with parameter expression encountered in cancellation {:?}",
-                                    node_op.op
-                                )));
+                                return Err(CommutationCancelError::RotationalParameter(
+                                    node_op.op.clone(),
+                                ));
                             }
                         };
                         let phase_shift = z_phase_shift(node_op_name, node_angle);
@@ -278,9 +311,9 @@ pub fn cancel_commutations(
                             "x" => Ok((PI, FRAC_PI_2)),
                             "sx" => Ok((FRAC_PI_2, FRAC_PI_4)),
                             "sxdg" => Ok((-FRAC_PI_2, -FRAC_PI_4)),
-                            _ => Err(PyRuntimeError::new_err(format!(
-                                "Angle for operation {node_op_name} is not defined"
-                            ))),
+                            _ => Err(CommutationCancelError::OperationUndefinedAngle(
+                                node_op_name.to_owned(),
+                            )),
                         }
                     }?;
                     total_angle += node_angle;
@@ -291,8 +324,12 @@ pub fn cancel_commutations(
                     // if the angle is close to a 4-pi multiple (from above or below), then the
                     // operator is equal to the identity
                 } else if is_multiple_of_pi(total_angle, 2.) {
-                    // a 2-pi multiple has a phase of pi: RX(2pi) = RZ(2pi) = -I = I exp(i pi)
-                    total_phase -= PI;
+                    if cancel_key.gate == GateOrRotation::XRotation
+                        || matches!(z_var_gate, Some(&StandardGate::RZ))
+                    {
+                        // a 2-pi multiple has a phase of pi: RX(2pi) = RZ(2pi) = -I = I exp(i pi)
+                        total_phase -= PI;
+                    }
                 } else if cancel_key.gate == GateOrRotation::ZRotation {
                     let z_gate = z_var_gate.unwrap();
                     dag.insert_1q_on_incoming_qubit((*z_gate, &[total_angle]), cancel_set[0]);
@@ -306,7 +343,7 @@ pub fn cancel_commutations(
                     } else if sx_supported && is_multiple_of_pi(total_angle, 0.5) {
                         let num_sx = (total_angle / FRAC_PI_2).round();
                         total_phase -= FRAC_PI_4 * num_sx;
-                        for _ in 0..(num_sx as i64) % 4 {
+                        for _ in 0..(num_sx as i64).rem_euclid(4) {
                             dag.insert_1q_on_incoming_qubit((StandardGate::SX, &[]), cancel_set[0]);
                         }
                     } else {

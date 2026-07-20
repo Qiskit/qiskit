@@ -1281,6 +1281,20 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc, new_circuit)
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
+    def test_qpy_with_for_loop_negative_indexset(self):
+        """Test qpy serialization with a for loop containing negative integers in a list indexset."""
+        qc = QuantumCircuit(1)
+        # Passing a list with negative integers should not raise OverflowError and should roundtrip
+        qc.for_loop([-1, 0, 1], None, QuantumCircuit(1), [0], [])
+
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+        self.assertEqual(tuple(new_circuit.data[0].operation.params[0]), (-1, 0, 1))
+        self.assertDeprecatedBitProperties(qc, new_circuit)
+
     def test_qpy_with_for_loop_var_loop_counter(self):
         """Test qpy serialization with a for loop that uses expr.Var as its counter."""
         qc = QuantumCircuit(1, 1)

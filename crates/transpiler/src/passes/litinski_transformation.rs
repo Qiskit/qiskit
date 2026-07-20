@@ -22,8 +22,9 @@ use qiskit_circuit::operations::{
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 
-use super::remove_identity_equiv::average_gate_fidelity_below_tol; // ToDo: move to a shared file
-use super::substitute_pi4_rotations::is_angle_close_to_multiple_of_pi_k; // ToDo: move to a shared file
+use super::common::{
+    MINIMUM_TOL, average_gate_fidelity_below_tol, is_angle_close_to_multiple_of_pi_k,
+};
 use crate::TranspilerError;
 use num_complex::Complex64;
 use qiskit_quantum_info::clifford::{Clifford, Pauli1q};
@@ -77,8 +78,6 @@ static HANDLED_INSTRUCTION_NAMES: [&str; 10] = [
     "pauli_product_rotation",
     "pauli_product_measurement",
 ];
-
-const MINIMUM_TOL: f64 = 1e-12;
 
 #[pyfunction(name = "run_litinski_transformation")]
 #[pyo3(signature = (dag, fix_clifford=true, insert_barrier=false, use_ppr=false, approximation_degree=1.0))]
@@ -262,23 +261,22 @@ pub fn run_litinski_transformation(
                     let mut process_rot_gate = |gate: StandardGate,
                                                 pauli: Pauli1q|
                      -> Option<(Pauli1q, Param)> {
-                        if let Param::Float(angle) = param[0] {
-                            if let Some(multiple) =
+                        if let Param::Float(angle) = param[0]
+                            && let Some(multiple) =
                                 is_angle_close_to_multiple_of_pi_k(gate, 2, angle, tol)
-                            {
-                                is_clifford = true;
-                                match gate {
-                                    StandardGate::RZ | StandardGate::Phase | StandardGate::U1 => {
-                                        clifford.append_rz(qubit, multiple)
-                                    }
-                                    StandardGate::RX => clifford.append_rx(qubit, multiple),
-                                    StandardGate::RY => clifford.append_ry(qubit, multiple),
-                                    _ => unreachable!(
-                                        "We cannot have gates other than RZ/RX/RY/P/U1 at this point."
-                                    ),
+                        {
+                            is_clifford = true;
+                            match gate {
+                                StandardGate::RZ | StandardGate::Phase | StandardGate::U1 => {
+                                    clifford.append_rz(qubit, multiple)
                                 }
-                                return None;
+                                StandardGate::RX => clifford.append_rx(qubit, multiple),
+                                StandardGate::RY => clifford.append_ry(qubit, multiple),
+                                _ => unreachable!(
+                                    "We cannot have gates other than RZ/RX/RY/P/U1 at this point."
+                                ),
                             }
+                            return None;
                         }
                         Some((pauli, param[0].clone()))
                     };
