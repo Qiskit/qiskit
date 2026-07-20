@@ -18,11 +18,10 @@ use core::f64;
 
 use hashbrown::HashMap;
 use pyo3::prelude::*;
-use pyo3::types::PyTuple;
 use std::ops::ControlFlow;
 
 use crate::error::{
-    Position, QASM2ParseError, message_bad_eof, message_generic, message_incorrect_requirement,
+    ParseError, Position, message_bad_eof, message_generic, message_incorrect_requirement,
 };
 use crate::lex::{Token, TokenContext, TokenStream, TokenType};
 use crate::parse::{GateSymbol, GlobalSymbol, ParamId};
@@ -290,7 +289,7 @@ impl ExprParser<'_> {
     /// Get the next token available in the stack of token streams, popping and removing any
     /// complete streams, except the base case.  Will only return `None` once all streams are
     /// exhausted.
-    fn next_token(&mut self) -> PyResult<Option<Token>> {
+    fn next_token(&mut self) -> Result<Option<Token>, ParseError> {
         let mut pointer = self.tokens.len() - 1;
         while pointer > 1 {
             let out = self.tokens[pointer].next(self.context)?;
@@ -305,7 +304,7 @@ impl ExprParser<'_> {
 
     /// Peek the next token in the stack of token streams.  This does not remove any complete
     /// streams yet.  Will only return `None` once all streams are exhausted.
-    fn peek_token(&mut self) -> PyResult<Option<&Token>> {
+    fn peek_token(&mut self) -> Result<Option<&Token>, ParseError> {
         let mut pointer = self.tokens.len() - 1;
         while pointer > 1 && self.tokens[pointer].peek(self.context)?.is_none() {
             pointer -= 1;
@@ -321,10 +320,15 @@ impl ExprParser<'_> {
     /// Expect a token of the correct [TokenType].  This is a direct analogue of
     /// [parse::State::expect].  The error variant of the result contains a suitable error message
     /// if the expectation is violated.
-    fn expect(&mut self, expected: TokenType, required: &str, cause: &Token) -> PyResult<Token> {
+    fn expect(
+        &mut self,
+        expected: TokenType,
+        required: &str,
+        cause: &Token,
+    ) -> Result<Token, ParseError> {
         let token = match self.next_token()? {
             None => {
-                return Err(QASM2ParseError::new_err(message_bad_eof(
+                return Err(ParseError::new(message_bad_eof(
                     Some(&Position::new(
                         self.current_filename(),
                         cause.line,
@@ -338,7 +342,7 @@ impl ExprParser<'_> {
         if token.ttype == expected {
             Ok(token)
         } else {
-            Err(QASM2ParseError::new_err(message_incorrect_requirement(
+            Err(ParseError::new(message_incorrect_requirement(
                 required,
                 &token,
                 self.current_filename(),
@@ -348,7 +352,7 @@ impl ExprParser<'_> {
 
     /// Peek the next token from the stream, and consume and return it only if it has the correct
     /// type.
-    fn accept(&mut self, acceptable: TokenType) -> PyResult<Option<Token>> {
+    fn accept(&mut self, acceptable: TokenType) -> Result<Option<Token>, ParseError> {
         match self.peek_token()? {
             Some(Token { ttype, .. }) if *ttype == acceptable => self.next_token(),
             _ => Ok(None),
@@ -358,7 +362,7 @@ impl ExprParser<'_> {
     /// Apply a prefix [Op] to the current [expression][Expr].  If the current expression is a
     /// constant floating-point value the application will be eagerly constant-folded, otherwise
     /// the resulting [Expr] will have a tree structure.
-    fn apply_prefix(&mut self, prefix: Op, expr: Expr) -> PyResult<Expr> {
+    fn apply_prefix(&mut self, prefix: Op, expr: Expr) -> Result<Expr, ParseError> {
         match prefix {
             Op::Plus => Ok(expr),
             Op::Minus => match expr {
@@ -372,11 +376,11 @@ impl ExprParser<'_> {
     /// Apply a binary infix [Op] to the current [expression][Expr].  If both operands have
     /// constant floating-point values the application will be eagerly constant-folded, otherwise
     /// the resulting [Expr] will have a tree structure.
-    fn apply_infix(&mut self, infix: Op, lhs: Expr, rhs: Expr, op_token: &Token) -> PyResult<Expr> {
+    fn apply_infix(&mut self, infix: Op, lhs: Expr, rhs: Expr, op_token: &Token) -> Result<Expr, ParseError> {
         if let (Expr::Constant(val), Op::Divide) = (&rhs, infix)
             && *val == 0.0
         {
-            return Err(QASM2ParseError::new_err(message_generic(
+            return Err(ParseError::new(message_generic(
                 Some(&Position::new(
                     self.current_filename(),
                     op_token.line,
@@ -411,7 +415,12 @@ impl ExprParser<'_> {
     /// Apply a "scientific calculator" built-in function to an [expression][Expr].  If the operand
     /// is a constant, the function will be constant-folded to produce a new constant expression,
     /// otherwise a tree-form [Expr] is returned.
-    fn apply_function(&mut self, func: Function, expr: Expr, token: &Token) -> PyResult<Expr> {
+    fn apply_function(
+        &mut self,
+        func: Function,
+        expr: Expr,
+        token: &Token,
+    ) -> Result<Expr, ParseError> {
         match expr {
             Expr::Constant(val) => match func {
                 Function::Cos => Ok(Expr::Constant(val.cos())),
@@ -420,7 +429,7 @@ impl ExprParser<'_> {
                     if val > 0.0 {
                         Ok(Expr::Constant(val.ln()))
                     } else {
-                        Err(QASM2ParseError::new_err(message_generic(
+                        Err(ParseError::new(message_generic(
                             Some(&Position::new(
                                 self.current_filename(),
                                 token.line,
@@ -437,7 +446,7 @@ impl ExprParser<'_> {
                     if val >= 0.0 {
                         Ok(Expr::Constant(val.sqrt()))
                     } else {
-                        Err(QASM2ParseError::new_err(message_generic(
+                        Err(ParseError::new(message_generic(
                             Some(&Position::new(
                                 self.current_filename(),
                                 token.line,
@@ -460,9 +469,9 @@ impl ExprParser<'_> {
         callable: &ClassicalCallableExt,
         exprs: Vec<Expr>,
         token: &Token,
-    ) -> PyResult<Expr> {
+    ) -> Result<Expr, ParseError> {
         if exprs.len() != callable.num_params() {
-            return Err(QASM2ParseError::new_err(message_generic(
+            return Err(ParseError::new(message_generic(
                 Some(&self.cur_position_of(token)),
                 &format!(
                     "custom function argument-count mismatch: expected {}, saw {}",
@@ -481,43 +490,16 @@ impl ExprParser<'_> {
         let Some(floats) = as_f64 else {
             return Ok(Expr::CustomFunction(callable.clone(), exprs));
         };
-        match callable {
-            ClassicalCallableExt::Builtin(builtin) => {
-                Ok(Expr::Constant(builtin.call(&floats).expect(
-                    "caller of apply_custom_function should validate the number of parameters",
-                )))
-            }
-            ClassicalCallableExt::Py { ob, num_params: _ } => Python::attach(|py| {
-                let chain_exception = |msg, base| {
-                    let pos = Position::new(self.current_filename(), token.line, token.col);
-                    let err = QASM2ParseError::new_err(message_generic(Some(&pos), msg));
-                    err.set_cause(py, Some(base));
-                    err
-                };
-                ob.bind(py)
-                    .call1(PyTuple::new(py, floats)?)
-                    .map_err(|inner| {
-                        chain_exception(
-                            "caught exception when constant folding with user-defined function",
-                            inner,
-                        )
-                    })?
-                    .extract::<f64>()
-                    .map_err(|inner| {
-                        chain_exception(
-                            "user-defined function returned non-float during constant folding",
-                            inner,
-                        )
-                    })
-                    .map(Expr::Constant)
-            }),
-        }
+        callable.call(&floats).map(Expr::Constant).map_err(|err| {
+            let message = message_generic(Some(&self.cur_position_of(token)), &err.message);
+            err.with_message(message)
+        })
     }
 
     /// If in `strict` mode, and we have a trailing comma, emit a suitable error message.
-    fn check_trailing_comma(&self, comma: Option<&Token>) -> PyResult<()> {
+    fn check_trailing_comma(&self, comma: Option<&Token>) -> Result<(), ParseError> {
         match (self.strict, comma) {
-            (true, Some(token)) => Err(QASM2ParseError::new_err(message_generic(
+            (true, Some(token)) => Err(ParseError::new(message_generic(
                 Some(&Position::new(
                     self.current_filename(),
                     token.line,
@@ -533,7 +515,7 @@ impl ExprParser<'_> {
     /// Not all [Token]s have a corresponding [Atom]; if this is the case, the return value is
     /// `Ok(None)`.  The error variant is returned if the next token is grammatically valid, but
     /// not semantically, such as an identifier for a value of an incorrect type.
-    fn try_atom_from_token(&self, token: &Token) -> PyResult<Option<Atom>> {
+    fn try_atom_from_token(&self, token: &Token) -> Result<Option<Atom>, ParseError> {
         match token.ttype {
             TokenType::LParen => Ok(Some(Atom::LParen)),
             TokenType::RParen => Ok(Some(Atom::RParen)),
@@ -560,21 +542,19 @@ impl ExprParser<'_> {
                 let id = token.text(self.context);
                 match self.gate_symbols.get(id) {
                     Some(GateSymbol::Parameter { index }) => Ok(Some(Atom::Parameter(*index))),
-                    Some(GateSymbol::Qubit { .. }) => {
-                        Err(QASM2ParseError::new_err(message_generic(
-                            Some(&Position::new(
-                                self.current_filename(),
-                                token.line,
-                                token.col,
-                            )),
-                            &format!("'{id}' is a gate qubit, not a parameter"),
-                        )))
-                    }
+                    Some(GateSymbol::Qubit { .. }) => Err(ParseError::new(message_generic(
+                        Some(&Position::new(
+                            self.current_filename(),
+                            token.line,
+                            token.col,
+                        )),
+                        &format!("'{id}' is a gate qubit, not a parameter"),
+                    ))),
                     None => match self.global_symbols.get(id) {
                         Some(GlobalSymbol::Classical(callable)) => {
                             Ok(Some(Atom::CustomFunction(callable.clone())))
                         }
-                        _ => Err(QASM2ParseError::new_err(message_generic(
+                        _ => Err(ParseError::new(message_generic(
                             Some(&Position::new(
                                 self.current_filename(),
                                 token.line,
@@ -594,7 +574,7 @@ impl ExprParser<'_> {
     /// Peek at the next [Atom] (and backing [Token]) if the next token exists and can be converted
     /// into a valid [Atom].  If it can't, or if we are at the end of the input, the `None` variant
     /// is returned.
-    fn peek_atom(&mut self) -> PyResult<Option<(Atom, Token)>> {
+    fn peek_atom(&mut self) -> Result<Option<(Atom, Token)>, ParseError> {
         if let Some(&token) = self.peek_token()? {
             if let Ok(Some(atom)) = self.try_atom_from_token(&token) {
                 Ok(Some((atom, token)))
@@ -606,20 +586,20 @@ impl ExprParser<'_> {
         }
     }
 
-    fn next_atom(&mut self, power_min: u8, cause: &Token) -> PyResult<(Token, Atom)> {
+    fn next_atom(&mut self, power_min: u8, cause: &Token) -> Result<(Token, Atom), ParseError> {
         let description = if power_min == 0 {
             "an expression"
         } else {
             "a missing operand"
         };
         let token = self.next_token()?.ok_or_else(|| {
-            QASM2ParseError::new_err(message_bad_eof(
+            ParseError::new(message_bad_eof(
                 Some(&self.cur_position_of(cause)),
                 description,
             ))
         })?;
         let atom = self.try_atom_from_token(&token)?.ok_or_else(|| {
-            QASM2ParseError::new_err(message_incorrect_requirement(
+            ParseError::new(message_incorrect_requirement(
                 description,
                 &token,
                 self.current_filename(),
@@ -638,11 +618,7 @@ impl ExprParser<'_> {
     /// If we need to break and look for a new subexpression component, return `Break` with the
     /// stack update instead.
     #[inline]
-    fn expect_expression_initial(
-        &mut self,
-        power_min: u8,
-        cause: &Token,
-    ) -> PyResult<ControlFlow<(EvalState, u8), Expr>> {
+    fn expect_expression_initial(&mut self, power_min: u8, cause: &Token) -> ExprStep<Expr> {
         let (token, atom) = self.next_atom(power_min, cause)?;
         let break_at = |state: State, new_power: u8| {
             let state = EvalState {
@@ -661,7 +637,7 @@ impl ExprParser<'_> {
                     "the parenthesis closed, but there was a missing operand"
                 };
                 let pos = self.cur_position_of(&token);
-                Err(QASM2ParseError::new_err(message_generic(Some(&pos), msg)))
+                Err(ParseError::new(message_generic(Some(&pos), msg)))
             }
             Atom::Function(func) => {
                 self.expect(TokenType::LParen, "an opening parenthesis", &token)?;
@@ -684,7 +660,7 @@ impl ExprParser<'_> {
             }
             Atom::Op(op) => {
                 let Some(power) = prefix_power(op) else {
-                    return Err(QASM2ParseError::new_err(message_generic(
+                    return Err(ParseError::new(message_generic(
                         Some(&self.cur_position_of(&token)),
                         &format!("'{}' is not a valid unary operator", op.text()),
                     )));
@@ -705,7 +681,7 @@ impl ExprParser<'_> {
         &mut self,
         expr: Expr,
         eval_state: EvalState,
-    ) -> PyResult<ControlFlow<(EvalState, u8), (Expr, u8)>> {
+    ) -> ExprStep<(Expr, u8)> {
         let EvalState {
             state,
             token,
@@ -759,7 +735,7 @@ impl ExprParser<'_> {
     ///
     ///     This evaluates in a floating-point context, including evaluating integer tokens, since
     ///     the only places that expressions are valid in OpenQASM 2 is during gate applications.
-    pub fn parse_expression(&mut self, cause: &Token) -> PyResult<Expr> {
+    pub fn parse_expression(&mut self, cause: &Token) -> Result<Expr, ParseError> {
         // We don't store the "root" case of expression parsing as a stack entry so that in the
         // happy (and _massively_ most common) case of a floating-point literal, there's no heap
         // allocation at all to manage the state.
