@@ -58,7 +58,7 @@ from qiskit.transpiler.passes.optimization import (
     ContractIdleWiresInControlFlow,
 )
 from qiskit.transpiler.optimization_metric import OptimizationMetric
-from qiskit.transpiler.passes import Depth, Size, FixedPoint, MinimumPoint
+from qiskit.transpiler.passes import Depth, Size, FixedPoint, MinimumPoint, CountOps
 from qiskit.transpiler.passes.utils.gates_basis import GatesInBasis
 from qiskit.transpiler.passes.synthesis.unitary_synthesis import UnitarySynthesis
 from qiskit.passmanager.flow_controllers import ConditionalController, DoWhileController
@@ -473,6 +473,39 @@ def _optimization_check_fixed_point():
         return not (property_set["depth_fixed_point"] and property_set["size_fixed_point"])
 
     setup = [Size(recurse=True), Depth(recurse=True), FixedPoint("size"), FixedPoint("depth")]
+    return (setup, check)
+
+
+def _optimization_check_fixed_point_clifford_t():
+    def check(property_set):
+        return not property_set["size_and_t_count_fixed_point"]
+
+    def get_size_and_t_count(property_set):
+        return (
+            property_set["size"],
+            property_set["count_ops"].get("t", 0) + property_set["count_ops"].get("tdg", 0),
+        )
+
+    setup = [
+        CountOps(recurse=True),
+        Size(recurse=True),
+        FixedPoint("size_and_t_count", getter=get_size_and_t_count),
+    ]
+    return (setup, check)
+
+
+def _optimization_check_fixed_point_clifford_rz():
+    def check(property_set):
+        return not property_set["size_and_rz_count_fixed_point"]
+
+    def get_size_and_rz_count(property_set):
+        return (property_set["size"], property_set["count_ops"].get("rz", 0))
+
+    setup = [
+        CountOps(recurse=True),
+        Size(recurse=True),
+        FixedPoint("size_and_rz_count", getter=get_size_and_rz_count),
+    ]
     return (setup, check)
 
 
@@ -1119,7 +1152,7 @@ class OptimizeCliffordRZPassManager(PassManagerCliffordTStagePlugin):
                     ContractIdleWiresInControlFlow(),
                 ]
                 post_loop = []
-                loop_check, continue_loop = _optimization_check_fixed_point()
+                loop_check, continue_loop = _optimization_check_fixed_point_clifford_rz()
             case 2 | 3:
                 clifford_t_gates = get_clifford_gate_names() + ["t", "tdg"]
 
@@ -1169,7 +1202,7 @@ class OptimizeCliffordRZPassManager(PassManagerCliffordTStagePlugin):
                 # CommutativeOptimization may produce RX gates, so we need BasisTranslator
                 # to convert them back to RZ-gates.
                 post_loop = [BasisTranslator(sel, clifford_rz_gates, None)]
-                loop_check, continue_loop = _optimization_check_fixed_point()
+                loop_check, continue_loop = _optimization_check_fixed_point_clifford_rz()
             case bad:
                 raise TranspilerError(f"Invalid optimization_level: {bad}")
 
@@ -1257,7 +1290,7 @@ class OptimizeCliffordTPassManager(PassManagerCliffordTStagePlugin):
                     OptimizeCliffordT(basis_gates=basis_gates),
                     ContractIdleWiresInControlFlow(),
                 ]
-                loop_check, continue_loop = _optimization_check_fixed_point()
+                loop_check, continue_loop = _optimization_check_fixed_point_clifford_t()
                 post_loop = translate_to_target
             case 2 | 3:
                 loop = [
@@ -1278,7 +1311,7 @@ class OptimizeCliffordTPassManager(PassManagerCliffordTStagePlugin):
                     ),
                     ContractIdleWiresInControlFlow(),
                 ]
-                loop_check, continue_loop = _optimization_check_fixed_point()
+                loop_check, continue_loop = _optimization_check_fixed_point_clifford_t()
                 post_loop = translate_to_target
             case bad:
                 raise TranspilerError(f"Invalid optimization_level: {bad}")

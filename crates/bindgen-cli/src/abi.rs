@@ -13,9 +13,9 @@
 use std::fmt::{self, Write};
 
 use anyhow::{anyhow, bail};
-use indexmap::IndexMap;
 use itertools::EitherOrBoth;
 use qiskit_cext_vtable::ExportedFunction;
+use qiskit_util::IndexMap;
 
 /// What type of change is permitted in the ABI between the two versions?
 #[derive(Clone, Copy, Debug, PartialOrd, Ord, PartialEq, Eq)]
@@ -129,7 +129,7 @@ impl SlotsLists {
         let Some(version) = version.strip_prefix('"').and_then(|v| v.strip_suffix('"')) else {
             bail!("malformed __version__: not a string");
         };
-        let mut slots_lists = IndexMap::new();
+        let mut slots_lists = IndexMap::default();
         while let Some(intro) = lines.next() {
             let Some((name, rest)) = intro.split_once(" = [") else {
                 bail!("didn't find expected '<slots_name> = [' opener");
@@ -165,7 +165,7 @@ impl SlotsLists {
 }
 impl fmt::Display for SlotsLists {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "__version__ = \"{}\"", &self.api_version)?;
+        writeln!(f, "__version__ = \"{}\"", self.api_version)?;
         for (name, slots) in self.slots.iter() {
             writeln!(f, "{name} = {slots}")?;
         }
@@ -257,12 +257,12 @@ impl Changes {
         if self.is_allowed() {
             return format!(
                 "Current slots list for version {} is compatible with previous version {}.",
-                &self.version_cur, &self.version_prev,
+                self.version_cur, self.version_prev,
             );
         }
         let mut explanation = format!(
             "Current slots list for version {} is incompatible with previous version {}.",
-            &self.version_cur, &self.version_prev,
+            self.version_cur, self.version_prev,
         );
         write!(
             explanation,
