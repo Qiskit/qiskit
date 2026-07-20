@@ -13,9 +13,10 @@
 use anyhow::Error;
 use hashbrown::HashMap;
 use num_complex::Complex64;
-use smallvec::smallvec;
+use smallvec::SmallVec;
 
 use crate::exit_codes::ExitCode;
+use crate::transpiler::target::parse_params;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, NodeIndex, NodeType};
@@ -581,76 +582,42 @@ pub unsafe extern "C" fn qk_dag_apply_gate(
 ) -> u32 {
     // SAFETY: Per documentation, the pointer is to valid data.
     let dag = unsafe { mut_ptr_as_ref(dag) };
-    // SAFETY: Per the documentation the qubits and params pointers are arrays of num_qubits()
-    // and num_params() elements respectively.
-    unsafe {
-        let qargs: &[Qubit] = match gate.num_qubits() {
-            0 => &[],
-            1 => &[Qubit(*qubits.wrapping_add(0))],
-            2 => &[
-                Qubit(*qubits.wrapping_add(0)),
-                Qubit(*qubits.wrapping_add(1)),
-            ],
-            3 => &[
-                Qubit(*qubits.wrapping_add(0)),
-                Qubit(*qubits.wrapping_add(1)),
-                Qubit(*qubits.wrapping_add(2)),
-            ],
-            4 => &[
-                Qubit(*qubits.wrapping_add(0)),
-                Qubit(*qubits.wrapping_add(1)),
-                Qubit(*qubits.wrapping_add(2)),
-                Qubit(*qubits.wrapping_add(3)),
-            ],
-            // There are no ``QkGate``s > 4 qubits
-            _ => panic!(),
-        };
-        let params = match gate.num_params() {
-            0 => None,
-            1 => Some(smallvec![(*params.wrapping_add(0)).into()]),
-            2 => Some(smallvec![
-                (*params.wrapping_add(0)).into(),
-                (*params.wrapping_add(1)).into(),
-            ]),
-            3 => Some(smallvec![
-                (*params.wrapping_add(0)).into(),
-                (*params.wrapping_add(1)).into(),
-                (*params.wrapping_add(2)).into(),
-            ]),
-            4 => Some(smallvec![
-                (*params.wrapping_add(0)).into(),
-                (*params.wrapping_add(1)).into(),
-                (*params.wrapping_add(2)).into(),
-                (*params.wrapping_add(3)).into(),
-            ]),
-            // There are no ``QkGate``s that take > 4 params
-            _ => panic!(),
-        };
-        let new_node = if front {
-            dag.apply_operation_front(
-                gate.into(),
-                qargs,
-                &[],
-                params.map(Parameters::Params),
-                None,
-                #[cfg(feature = "cache_pygates")]
-                None,
-            )
-            .unwrap()
-        } else {
-            dag.apply_operation_back(
-                gate.into(),
-                qargs,
-                &[],
-                params.map(Parameters::Params),
-                None,
-                #[cfg(feature = "cache_pygates")]
-                None,
-            )
-            .unwrap()
-        };
-        new_node.index() as u32
-    }
+    let qargs: &[Qubit] = if gate.num_qubits() == 0 {
+        &[]
+    } else {
+        // SAFETY: Per the documentation the qubits pointer is an array of num_qubits() elements
+        unsafe { ::std::slice::from_raw_parts(qubits as *const Qubit, gate.num_qubits() as usize) }
+    };
+    let params: Option<SmallVec<[Param; 3]>> = if gate.num_params() == 0 {
+        None
+    } else {
+        // SAFETY: Per the documentation, params is readable for num_params elements of f64
+        Some(unsafe { parse_params(gate, params) })
+    };
+    let new_node = if front {
+        dag.apply_operation_front(
+            gate.into(),
+            qargs,
+            &[],
+            params.map(Parameters::Params),
+            None,
+            #[cfg(feature = "cache_pygates")]
+            None,
+        )
+        .unwrap()
+    } else {
+        dag.apply_operation_back(
+            gate.into(),
+            qargs,
+            &[],
+            params.map(Parameters::Params),
+            None,
+            #[cfg(feature = "cache_pygates")]
+            None,
+        )
+        .unwrap()
+    };
+    new_node.index() as u32
 }
 
 /// @ingroup QkDag
@@ -1099,7 +1066,7 @@ pub unsafe extern "C" fn qk_dag_op_node_kind(dag: *const DAGCircuit, node: u32) 
         OperationRef::PauliProductMeasurement(_) => COperationKind::PauliProductMeasurement,
         OperationRef::PauliProductRotation(_) => COperationKind::PauliProductRotation,
         OperationRef::ControlFlow(_) => COperationKind::ControlFlow,
-        OperationRef::PyCustom(_) => COperationKind::Unknown,
+        OperationRef::PyCustom(_) | OperationRef::CustomOperation(_) => COperationKind::Unknown,
     }
 }
 
@@ -1321,7 +1288,7 @@ pub unsafe extern "C" fn qk_dag_get_instruction(
 /// // rqr_1: ──┼──┤ Y ├
 /// //        ┌─┴─┐└───┘
 /// // rqr_2: ┤ X ├─────
-/// //        └───┘     
+/// //        └───┘
 /// QkDag *dag_right = qk_dag_new();
 /// QkQuantumRegister *rqr = qk_quantum_register_new(3, "rqr");
 /// qk_dag_add_quantum_register(dag_right, rqr);
@@ -1330,7 +1297,7 @@ pub unsafe extern "C" fn qk_dag_get_instruction(
 /// qk_dag_apply_gate(dag_right, QkGate_Y, (uint32_t[]){1}, NULL, false);
 ///
 /// // Build the following dag
-/// //          ┌───┐   
+/// //          ┌───┐
 /// // lqr_0: ──┤ H ├───
 /// //        ┌─┴───┴──┐
 /// // lqr_1: ┤ P(0.1) ├
@@ -1344,13 +1311,13 @@ pub unsafe extern "C" fn qk_dag_get_instruction(
 ///
 /// // Compose left circuit onto right circuit
 /// // Should result in circuit
-/// //             ┌───┐          
+/// //             ┌───┐
 /// // rqr_0: ──■──┤ H ├──────────
 /// //          │  ├───┤┌────────┐
 /// // rqr_1: ──┼──┤ Y ├┤ P(0.1) ├
 /// //        ┌─┴─┐└───┘└────────┘
 /// // rqr_2: ┤ X ├───────────────
-/// //        └───┘               
+/// //        └───┘
 /// qk_dag_compose(dag_right, dag_left, NULL, NULL);
 ///
 /// // Clean up after you're done
@@ -1660,9 +1627,7 @@ pub unsafe extern "C" fn qk_dag_copy_empty_like(
     let vars_mode = vars_mode.into();
     let blocks_mode = blocks_mode.into();
 
-    let copied_dag = dag
-        .copy_empty_like_with_capacity(0, 0, vars_mode, blocks_mode)
-        .expect("Failed to copy the DAG.");
+    let copied_dag = dag.copy_empty_like_with_capacity(0, 0, vars_mode, blocks_mode);
     Box::into_raw(Box::new(copied_dag))
 }
 

@@ -14,7 +14,7 @@ use std::convert::Infallible;
 use std::time::Instant;
 
 use hashbrown::HashMap;
-use indexmap::{IndexMap, IndexSet};
+use qiskit_util::{IndexMap, IndexSet};
 use rand::prelude::*;
 use rand::rngs::SysRng;
 use rand_pcg::Pcg64Mcg;
@@ -214,10 +214,10 @@ impl VF2PassReturn {
 /// Returns `None` if there is a global 2q operation to avoid attempting to construct a meaningless
 /// all-to-all connectivity graph.
 fn build_average_error_map(target: &Target) -> Option<ErrorMap> {
-    if let Ok(mut globals) = target.operations_for_qargs(QargsRef::Global) {
-        if globals.any(|op| op.operation.num_qubits() == 2) {
-            return None;
-        }
+    if let Ok(mut globals) = target.operations_for_qargs(QargsRef::Global)
+        && globals.any(|op| op.operation.num_qubits() == 2)
+    {
+        return None;
     }
     let mut error_map = ErrorMap::new(Some(target.num_qargs()));
     let mut target_without_errors = true;
@@ -645,7 +645,7 @@ fn map_free_qubits(
 fn minimize_vf2<N, H, NG, HG, NO, HO, NS, ES>(
     vf2: vf2::Vf2<N, H, NG, HG, NO, HO, NS, ES>,
     config: &Vf2PassConfiguration,
-) -> Option<IndexMap<N::NodeId, H::NodeId, ::foldhash::fast::RandomState>>
+) -> Option<IndexMap<N::NodeId, H::NodeId>>
 where
     N: vf2::alias::IntoVf2Graph,
     H: vf2::alias::IntoVf2Graph<EdgeType = N::EdgeType>,
