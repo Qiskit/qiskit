@@ -60,6 +60,13 @@ bool foo_is_unitary(const void *gate) {
     (void)_self;
     return true;
 }
+bool foo_eq(const void *gate, const void *other) {
+    struct foo_gate *_self = (struct foo_gate *)gate;
+    struct foo_gate *_other = (struct foo_gate *)other;
+
+    return (_self->num_qubits == _other->num_qubits && _self->num_clbits == _other->num_clbits &&
+            _self->num_params == _other->num_params);
+}
 
 QkCustomOpVTableEntry entries[7] = {
     {.slot = 0, .func = foo_name},       {.slot = 1, .func = foo_num_qubits},
@@ -87,6 +94,12 @@ static int test_custom_operation_in_circuit(void) {
 
     // Initialize Vtable
     foo_vtable = qk_custom_op_new_vtable(entries);
+
+    if (foo_vtable == NULL) {
+        printf("Retrieved a Null pointer instead of a Vtable pointer.");
+        res = NullptrError;
+        goto exit;
+    }
 
     QkCustomOp test_3q = {
         .orig = &test_3q_op,
@@ -175,6 +188,7 @@ static int test_custom_operation_in_circuit(void) {
 cleanup:
     qk_circuit_instruction_clear(&inst);
     qk_circuit_free(circuit);
+exit:
     return res;
 }
 

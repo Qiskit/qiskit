@@ -21,12 +21,18 @@ use qiskit_circuit::{
     operations::{CustomOperation, Operation, Param},
 };
 
-/// DOCS: TODO
+/// Represents an Operation fully defined in C.
 #[repr(C)]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct CustomOp {
     orig: *mut (),
     v_table: *mut CustomOpVtable,
+}
+
+impl PartialEq for CustomOp {
+    fn eq(&self, other: &Self) -> bool {
+        ((unsafe { &*self.v_table }).eq)(self.orig, other.orig) && self.v_table == other.v_table
+    }
 }
 
 /// SAFETY: TODO
@@ -101,8 +107,7 @@ pub struct CustomOpVtable {
     pub num_ctrl_qubits: fn(*const ()) -> u32,
     pub label: fn(*const ()) -> *const c_char,
     pub definition: fn(*const (), *const Param) -> *mut *mut CircuitData,
-    // pub eq: fn(*const ()) -> bool,
-    // pub clone: fn(*const ()) -> *mut (),
+    pub eq: fn(*const (), *const ()) -> bool,
 }
 
 impl TryFrom<CustomOpVtablePartial> for CustomOpVtable {
@@ -122,6 +127,10 @@ impl TryFrom<CustomOpVtablePartial> for CustomOpVtable {
             definition: value
                 .definition
                 .unwrap_or(|_slf: *const (), _params: *const Param| null_mut()),
+            // eq: value.eq.ok_or(Eq)?,
+            eq: value
+                .eq
+                .unwrap_or(|_slf: *const (), _other: *const ()| _slf.eq(&_other)),
         })
     }
 }
@@ -138,8 +147,7 @@ pub struct CustomOpVtablePartial {
     pub num_ctrl_qubits: Option<fn(*const ()) -> u32>,
     pub label: Option<fn(*const ()) -> *const c_char>,
     pub definition: Option<fn(*const (), *const Param) -> *mut *mut CircuitData>,
-    // pub eq: Option<fn(*const ()) -> bool>,
-    // pub clone: Option<fn(*const ()) -> *mut ()>,
+    pub eq: Option<fn(*const (), *const ()) -> bool>,
 }
 
 impl CustomOpVtablePartial {
@@ -153,6 +161,7 @@ impl CustomOpVtablePartial {
         num_ctrl_qubits: None,
         label: None,
         definition: None,
+        eq: None,
     };
 }
 
@@ -168,7 +177,7 @@ pub enum CustomOpMethod {
     NumCtrlQubits = 6,
     Label = 7,
     Definition = 8,
-    // Eq = 10,
+    Eq = 9,
 }
 
 impl TryFrom<u32> for CustomOpMethod {
@@ -186,7 +195,7 @@ impl TryFrom<u32> for CustomOpMethod {
             6 => NumCtrlQubits,
             7 => Label,
             8 => Definition,
-            // 10 => Eq,
+            9 => Eq,
             _ => return Err(value),
         };
         Ok(ret)
@@ -290,6 +299,16 @@ pub unsafe extern "C" fn qk_custom_op_new_vtable(
                         *const c_void,
                         fn(*const (), *const Param) -> *mut *mut CircuitData,
                     >(slot.func)
+                })
+            }
+            Ok(Eq) => {
+                if vtable.eq.is_some() {
+                    panic!("Name slot has already been set.")
+                }
+                vtable.eq = Some(unsafe {
+                    std::mem::transmute::<*const c_void, fn(*const (), *const ()) -> bool>(
+                        slot.func,
+                    )
                 })
             }
             Err(e) => panic!("Expected valid slot, obtained {}", e),
