@@ -981,6 +981,16 @@ measure q0[1] -> c0[1];
         # The actual asseertion.
         self.assertTrue(left.structurally_equal(right))
 
+    def test_approximation_degree(self):
+        circuit = QuantumCircuit(1)
+        circuit.rz(1.0, 0)
+        circuit.rz(-1.0, 0)
+        passmanager = PassManager()
+        passmanager.append(CommutativeCancellation(approximation_degree=1.0))
+        new_circuit = passmanager.run(circuit)
+        expected = QuantumCircuit(1)
+        self.assertEqual(new_circuit, expected)
+
 
 if __name__ == "__main__":
     unittest.main()
