@@ -8,7 +8,10 @@ updates:
   - package-ecosystem: "cargo" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
-      interval: "daily"
+      interval: "weekly"
+    groups:
+      cargo:
+        patterns: ['*']
     labels:
       - "Rust"
       - "dependencies"
