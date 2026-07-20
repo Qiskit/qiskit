@@ -53,11 +53,7 @@ pub(super) fn compose_transforms<'a>(
         let mut dag = DAGCircuit::new();
         // Create the mock gate and add to the circuit, use Python if necessary.
         let qubits = QuantumRegister::new_owning("q", gate_num_qubits);
-        dag.add_qreg(qubits).map_err(|_| {
-            BasisTranslatorError::BasisDAGCircuitError(
-                "Error while adding register to the circuit".to_string(),
-            )
-        })?;
+        dag.add_qreg(qubits)?;
         let gate = PackedOperation::from_custom_operation(Box::new(CustomDummy {
             name: gate_name.clone(),
             num_qubits: gate_num_qubits,
@@ -72,12 +68,7 @@ pub(super) fn compose_transforms<'a>(
             None,
             #[cfg(feature = "cache_pygates")]
             None,
-        )
-        .map_err(|_| {
-            BasisTranslatorError::BasisDAGCircuitError(
-                "Error applying operation to DAGCircuit".to_string(),
-            )
-        })?;
+        )?;
         mapped_instructions.insert((gate_name, gate_num_qubits), (placeholder_params, dag));
     }
 
@@ -111,26 +102,10 @@ pub(super) fn compose_transforms<'a>(
                     .zip(params)
                     .collect();
                 let mut replacement = equiv.clone();
-                replacement
-                    .assign_parameters_from_mapping(param_mapping)
-                    .map_err(|_| {
-                        BasisTranslatorError::BasisCircuitError(
-                            "Error during parameter assignment".to_string(),
-                        )
-                    })?;
+                replacement.assign_parameters_from_mapping(param_mapping)?;
                 let replace_dag: DAGCircuit =
-                    DAGCircuit::from_circuit_data(&replacement, true, None, None, None, None)
-                        .map_err(|_| {
-                            BasisTranslatorError::BasisDAGCircuitError(
-                                "Error converting circuit to dag".to_string(),
-                            )
-                        })?;
-                dag.substitute_node_with_dag(node, &replace_dag, None, None, None, None)
-                    .map_err(|_| {
-                        BasisTranslatorError::BasisDAGCircuitError(
-                            "Error during node substitution with DAG.".to_string(),
-                        )
-                    })?;
+                    DAGCircuit::from_circuit_data(&replacement, true, None, None, None, None)?;
+                dag.substitute_node_with_dag(node, &replace_dag, None, None, None, None)?;
             }
         }
     }

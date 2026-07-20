@@ -383,27 +383,17 @@ fn apply_translation(
                     node_obj.clbits,
                     node_obj.label.as_deref().cloned(),
                 );
-                out_dag_builder.push_back(new_instr).map_err(|_| {
-                    BasisTranslatorError::BasisDAGCircuitError(
-                        "Error applying operation to DAGCircuit".to_string(),
-                    )
-                })?;
+                out_dag_builder.push_back(new_instr)?;
             } else {
-                out_dag_builder
-                    .apply_operation_back(
-                        node_obj.op.clone(),
-                        node_qarg,
-                        node_carg,
-                        node_obj.params.as_ref().map(|x| *x.clone()),
-                        node_obj.label.as_deref().cloned(),
-                        #[cfg(feature = "cache_pygates")]
-                        None,
-                    )
-                    .map_err(|_| {
-                        BasisTranslatorError::BasisDAGCircuitError(
-                            "Error applying operation to DAGCircuit".to_string(),
-                        )
-                    })?;
+                out_dag_builder.apply_operation_back(
+                    node_obj.op.clone(),
+                    node_qarg,
+                    node_carg,
+                    node_obj.params.as_ref().map(|x| *x.clone()),
+                    node_obj.label.as_deref().cloned(),
+                    #[cfg(feature = "cache_pygates")]
+                    None,
+                )?;
             }
             return Ok(());
         }
@@ -420,21 +410,15 @@ fn apply_translation(
         if qargs_with_non_global_operation.contains_key(&node_qarg_as_physical)
             && qargs_with_non_global_operation[&node_qarg_as_physical].contains(node_obj.op.name())
         {
-            out_dag_builder
-                .apply_operation_back(
-                    node_obj.op.clone(),
-                    node_qarg,
-                    node_carg,
-                    node_obj.params.as_ref().map(|x| *x.clone()),
-                    node_obj.label.as_deref().cloned(),
-                    #[cfg(feature = "cache_pygates")]
-                    None,
-                )
-                .map_err(|_| {
-                    BasisTranslatorError::BasisDAGCircuitError(
-                        "Error applying operation to DAGCircuit".to_string(),
-                    )
-                })?;
+            out_dag_builder.apply_operation_back(
+                node_obj.op.clone(),
+                node_qarg,
+                node_carg,
+                node_obj.params.as_ref().map(|x| *x.clone()),
+                node_obj.label.as_deref().cloned(),
+                #[cfg(feature = "cache_pygates")]
+                None,
+            )?;
             return Ok(());
         }
 
@@ -504,7 +488,7 @@ fn replace_node(
                 .collect();
             let new_op: PackedOperation = match inner_node.op.view() {
                 OperationRef::PyCustom(inst) => Python::attach(|py| inst.py_copy(py))
-                    .map_err(|err| BasisTranslatorError::BasisDAGCircuitError(err.to_string()))?
+                    .map_err(BasisTranslatorError::PyGateError)?
                     .into(),
                 OperationRef::ControlFlow(_) => panic!("control flow should not be present here"),
                 OperationRef::StandardGate(gate) => gate.into(),
@@ -527,19 +511,9 @@ fn replace_node(
                 node.label.as_deref().cloned(),
                 #[cfg(feature = "cache_pygates")]
                 None,
-            )
-            .map_err(|_| {
-                BasisTranslatorError::BasisDAGCircuitError(
-                    "Error applying operation to DAGCircuit".to_string(),
-                )
-            })?;
+            )?;
         }
-        dag.add_global_phase(target_dag.global_phase())
-            .map_err(|_| {
-                BasisTranslatorError::BasisDAGCircuitError(
-                    "Error while adding a new global phase".to_string(),
-                )
-            })?;
+        dag.add_global_phase(target_dag.global_phase())?;
     } else {
         let parameter_map: HashMap<Symbol, Param> = HashMap::from_iter(
             target_params
@@ -573,7 +547,7 @@ fn replace_node(
             let new_op: PackedOperation = match inner_node.op.view() {
                 OperationRef::ControlFlow(cf) => cf.clone().into(),
                 OperationRef::PyCustom(inst) => Python::attach(|py| inst.py_copy(py))
-                    .map_err(|err| BasisTranslatorError::BasisDAGCircuitError(err.to_string()))?
+                    .map_err(BasisTranslatorError::PyGateError)?
                     .into(),
                 OperationRef::StandardGate(gate) => gate.into(),
                 OperationRef::StandardInstruction(instruction) => instruction.into(),
@@ -610,9 +584,7 @@ fn replace_node(
                         inst.ob
                             .bind(py)
                             .setattr("params", new_params_inner.clone())
-                            .map_err(|err| {
-                                BasisTranslatorError::BasisDAGCircuitError(err.to_string())
-                            })
+                            .map_err(BasisTranslatorError::PyGateError)
                     })?;
                 }
                 new_params = Some(Parameters::Params(new_params_inner));
@@ -625,19 +597,15 @@ fn replace_node(
                 inner_node.label.as_deref().cloned(),
                 #[cfg(feature = "cache_pygates")]
                 None,
-            )
-            .map_err(|err| BasisTranslatorError::BasisDAGCircuitError(err.to_string()))?;
+            )?;
         }
 
         match target_dag.global_phase() {
             Param::ParameterExpression(expr) => {
                 let param = param_assignment_expr(expr, &parameter_map, false)?;
                 dag.add_global_phase(&param)
-                    .map_err(|e| BasisTranslatorError::BasisDAGCircuitError(e.to_string()))
             }
-            Param::Float(_) => dag
-                .add_global_phase(target_dag.global_phase())
-                .map_err(|e| BasisTranslatorError::BasisDAGCircuitError(e.to_string())),
+            Param::Float(_) => dag.add_global_phase(target_dag.global_phase()),
             Param::Obj(_) => Ok(()),
         }?
     }
