@@ -17,15 +17,18 @@
 use core::f64;
 
 use hashbrown::HashMap;
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
 use std::ops::ControlFlow;
 
+#[cfg(feature = "py")]
+use crate::bytecode;
 use crate::error::{
     ParseError, Position, message_bad_eof, message_generic, message_incorrect_requirement,
 };
 use crate::lex::{Token, TokenContext, TokenStream, TokenType};
 use crate::parse::{GateSymbol, GlobalSymbol, ParamId};
-use crate::{ClassicalCallableExt, bytecode};
+use crate::{Attachment, ClassicalCallableExt};
 
 /// Enum representation of the builtin OpenQASM 2 functions.  The built-in Qiskit parser adds the
 /// inverse trigonometric functions, but these are an extension to the version as given in the
@@ -54,6 +57,7 @@ impl From<TokenType> for Function {
     }
 }
 
+#[cfg(feature = "py")]
 impl From<Function> for bytecode::UnaryOpCode {
     fn from(value: Function) -> Self {
         match value {
@@ -146,6 +150,7 @@ pub enum Expr {
     CustomFunction(ClassicalCallableExt, Vec<Expr>),
 }
 
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for Expr {
     type Target = PyAny; // the Python type
     type Output = Bound<'py, Self::Target>; // in most cases this will be `Bound`
@@ -283,6 +288,8 @@ pub struct ExprParser<'a> {
     pub gate_symbols: &'a HashMap<String, GateSymbol>,
     pub global_symbols: &'a HashMap<String, GlobalSymbol>,
     pub strict: bool,
+    /// GIL attachment for Python custom classical callable
+    pub attachment: Attachment<'a>,
 }
 
 impl ExprParser<'_> {
@@ -496,10 +503,13 @@ impl ExprParser<'_> {
         let Some(floats) = as_f64 else {
             return Ok(Expr::CustomFunction(callable.clone(), exprs));
         };
-        callable.call(&floats).map(Expr::Constant).map_err(|err| {
-            let message = message_generic(Some(&self.cur_position_of(token)), &err.message);
-            err.with_message(message)
-        })
+        callable
+            .call(&floats, self.attachment)
+            .map(Expr::Constant)
+            .map_err(|err| {
+                let message = message_generic(Some(&self.cur_position_of(token)), &err.message);
+                err.with_message(message)
+            })
     }
 
     /// If in `strict` mode, and we have a trailing comma, emit a suitable error message.
