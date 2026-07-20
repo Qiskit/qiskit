@@ -623,6 +623,7 @@ For example, we can build a variational circuit
 
 .. plot::
    :alt: The efficient SU2 ansatz circuit...
+   :include-source:
    :context:
 
    from qiskit.circuit.library import efficient_su2
