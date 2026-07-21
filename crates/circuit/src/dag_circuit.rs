@@ -8919,12 +8919,6 @@ impl From<DAGCircuit> for PyDAGCircuit {
     }
 }
 
-impl From<PyDAGCircuit> for DAGCircuit {
-    fn from(value: PyDAGCircuit) -> Self {
-        value.inner
-    }
-}
-
 fn idle_wires(
     dag: &DAGCircuit,
     py: Python,
