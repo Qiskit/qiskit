@@ -133,7 +133,9 @@ impl WrapAngleRegistry {
     ) -> PyResult<Option<DAGCircuit>> {
         match self.registry.get(name) {
             Some(callback) => Some(callback.call(angles, qubits)).transpose(),
-            None => Err(PyKeyError::new_err(format!("Name '{name}' not in WrapAngleRegistry"))),
+            None => Err(PyKeyError::new_err(format!(
+                "Name '{name}' not in WrapAngleRegistry"
+            ))),
         }
     }
 }
