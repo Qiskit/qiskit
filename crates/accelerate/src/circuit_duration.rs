@@ -13,7 +13,7 @@
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit, Wire};
+use qiskit_circuit::dag_circuit::{NodeType, PyDAGCircuit, Wire};
 use qiskit_circuit::operations::{DelayUnit, Operation, OperationRef, Param, StandardInstruction};
 
 use qiskit_transpiler::target::Target;
@@ -25,15 +25,10 @@ use rustworkx_core::petgraph::stable_graph::StableDiGraph;
 use rustworkx_core::petgraph::visit::{EdgeRef, IntoEdgeReferences};
 
 /// Estimate the duration of a scheduled circuit in seconds
-#[pyfunction(name = "compute_estimated_duration")]
-fn py_compute_estimated_duration(dag: &PyDAGCircuit, target: &Target) -> PyResult<f64> {
-    compute_estimated_duration(dag.try_read()?, target)
-}
-
-/// Estimate the duration of a scheduled circuit in seconds
-pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &Target) -> PyResult<f64> {
+#[pyfunction]
+pub(crate) fn compute_estimated_duration(dag: &PyDAGCircuit, target: &Target) -> PyResult<f64> {
     let dt = target.dt;
-
+    let dag = dag.try_read()?;
     let get_duration =
         |edge: <&StableDiGraph<NodeType, Wire> as IntoEdgeReferences>::EdgeRef| -> PyResult<f64> {
             let node_weight = &dag[edge.target()];
@@ -103,6 +98,6 @@ pub(crate) fn compute_estimated_duration(dag: &DAGCircuit, target: &Target) -> P
 }
 
 pub fn compute_duration(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(py_compute_estimated_duration))?;
+    m.add_wrapped(wrap_pyfunction!(compute_estimated_duration))?;
     Ok(())
 }
