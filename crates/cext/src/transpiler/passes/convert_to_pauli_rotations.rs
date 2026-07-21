@@ -10,11 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use qiskit_circuit::{
-    circuit_data::CircuitData,
-    dag_circuit::{DAGCircuit, PyDAGCircuit},
-};
-use qiskit_transpiler::passes::py_convert_to_pauli_rotations;
+use qiskit_circuit::{circuit_data::CircuitData, dag_circuit::DAGCircuit};
+use qiskit_transpiler::passes::convert_to_pauli_rotations;
 
 use crate::pointers::mut_ptr_as_ref;
 
@@ -42,12 +39,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_convert_to_pauli_rotation
         Ok(dag) => dag,
         Err(_) => panic!("Internal Circuit -> DAG conversion failed"),
     };
-    let as_py_dag: PyDAGCircuit = dag.into();
-    let out = py_convert_to_pauli_rotations(&as_py_dag).expect("Failed running PBC conversion.");
+    let out = convert_to_pauli_rotations(&dag).expect("Failed running PBC conversion.");
     // If a DAG is returned, the circuit has been modified. Else just leave it as is.
-    *circuit = CircuitData::from_dag_ref(
-        out.try_read()
-            .expect("Nothing else should be reading the dag"),
-    )
-    .expect("Internal DAG -> Circuit conversion failed");
+    *circuit = CircuitData::from_dag_ref(&out).expect("Internal DAG -> Circuit conversion failed");
 }
