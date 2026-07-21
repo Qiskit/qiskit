@@ -8826,16 +8826,6 @@ impl ::std::ops::Index<NodeIndex> for DAGCircuit {
 }
 
 impl PyDAGCircuit {
-    // Returns an immutable reference to 'metadata'
-    pub fn get_metadata(&self) -> Option<&Py<PyAny>> {
-        self.metadata.as_ref()
-    }
-
-    // Returns an immutable reference to 'name', if it exists
-    pub fn get_name(&self) -> Option<&String> {
-        self.name.as_ref()
-    }
-
     /// Alternative constructor to build an instance of [DAGCircuit] from a `QuantumCircuit`.
     pub fn from_circuit(
         qc: QuantumCircuitData,
