@@ -15,6 +15,13 @@ pub use qiskit_cext::*;
 
 mod capi;
 
+#[cfg(feature = "mimalloc")]
+use mimalloc::MiMalloc;
+
+#[cfg(feature = "mimalloc")]
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
+
 #[inline(always)]
 #[doc(hidden)]
 fn add_submodule<F>(m: &Bound<PyModule>, constructor: F, name: &str) -> PyResult<()>
@@ -69,6 +76,11 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     add_submodule(m, ::qiskit_transpiler::passes::high_level_synthesis_mod, "high_level_synthesis")?;
     add_submodule(m, ::qiskit_transpiler::passes::remove_diagonal_gates_before_measure_mod, "remove_diagonal_gates_before_measure")?;
     add_submodule(m, ::qiskit_transpiler::passes::remove_identity_equiv_mod, "remove_identity_equiv")?;
+    add_submodule(
+        m,
+        ::qiskit_transpiler::passes::two_qubit_peephole_mod,
+        "two_qubit_peephole",
+    )?;
     add_submodule(m, ::qiskit_accelerate::results::results, "results")?;
     add_submodule(m, ::qiskit_transpiler::passes::sabre::sabre, "sabre")?;
     add_submodule(m, ::qiskit_accelerate::sampled_exp_val::sampled_exp_val, "sampled_exp_val")?;

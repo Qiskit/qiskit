@@ -171,7 +171,7 @@ pub struct TranspileOptions {
     /// The seed for the transpiler. If set to a negative number this means no seed will be
     /// set and the RNGs used in the transpiler will be seeded from system entropy.
     seed: i64,
-    /// The approximation degree a heurstic dial where 1.0 means no approximation (up to numerical
+    /// The approximation degree a heuristic dial where 1.0 means no approximation (up to numerical
     /// tolerance) and 0.0 means the maximum approximation. A `NAN` value indicates that
     /// approximation is allowed up to the reported error rate for an operation in the target.
     approximation_degree: f64,
@@ -317,18 +317,18 @@ pub unsafe extern "C" fn qk_transpile_stage_init(
         }
         Err(e) => {
             if !error.is_null() {
-                unsafe {
-                    // Right now we return a backtrace of the error. This at least gives a hint as to
-                    // which pass failed when we have rust errors normalized we can actually have error
-                    // messages which are user facing. But most likely this will be a PyErr and panic
-                    // when trying to extract the string.
-                    *error = CString::new(format!(
-                        "Transpilation failed with this backtrace: {}",
-                        e.backtrace()
-                    ))
-                    .unwrap()
-                    .into_raw();
-                }
+                // Right now we return a backtrace of the error. This at least gives a hint as to
+                // which pass failed when we have rust errors normalized we can actually have error
+                // messages which are user facing. But most likely this will be a PyErr and panic
+                // when trying to extract the string.
+                let out_string = CString::new(format!(
+                    "Transpilation failed with this backtrace: {}",
+                    e.backtrace()
+                ))
+                .unwrap()
+                .into_raw();
+                // SAFETY: Per documentation, error is a char* (and we checked it's not NULL)
+                unsafe { *error = out_string };
             }
             ExitCode::TranspilerError
         }
@@ -410,18 +410,18 @@ pub unsafe extern "C" fn qk_transpile_stage_routing(
         Ok(val) => val,
         Err(e) => {
             if !error.is_null() {
-                unsafe {
-                    // Right now we return a backtrace of the error. This at least gives a hint as to
-                    // which pass failed when we have rust errors normalized we can actually have error
-                    // messages which are user facing. But most likely this will be a PyErr and panic
-                    // when trying to extract the string.
-                    *error = CString::new(format!(
-                        "Transpilation failed with this backtrace: {}",
-                        e.backtrace()
-                    ))
-                    .unwrap()
-                    .into_raw();
-                }
+                // Right now we return a backtrace of the error. This at least gives a hint as to
+                // which pass failed when we have rust errors normalized we can actually have error
+                // messages which are user facing. But most likely this will be a PyErr and panic
+                // when trying to extract the string.
+                let out_string = CString::new(format!(
+                    "Transpilation failed with this backtrace: {}",
+                    e.backtrace()
+                ))
+                .unwrap()
+                .into_raw();
+                // SAFETY: Per documentation, error is a char* (and we checked it's not NULL)
+                unsafe { *error = out_string };
             }
             return ExitCode::TranspilerError;
         }
@@ -958,21 +958,21 @@ pub unsafe extern "C" fn qk_transpile(
         Some(options.approximation_degree)
     };
 
-    if let Some(target_qubits) = target.num_qubits {
-        if target_qubits < qc.num_qubits() as u32 {
-            if !error.is_null() {
-                unsafe {
-                    *error = CString::new(format!(
-                        "Insufficient qubits in target: {}, the circuit uses {}",
-                        target_qubits,
-                        qc.num_qubits()
-                    ))
-                    .unwrap()
-                    .into_raw();
-                }
+    if let Some(target_qubits) = target.num_qubits
+        && target_qubits < qc.num_qubits() as u32
+    {
+        if !error.is_null() {
+            unsafe {
+                *error = CString::new(format!(
+                    "Insufficient qubits in target: {}, the circuit uses {}",
+                    target_qubits,
+                    qc.num_qubits()
+                ))
+                .unwrap()
+                .into_raw();
             }
-            return ExitCode::TranspilerError;
         }
+        return ExitCode::TranspilerError;
     }
 
     match transpile(

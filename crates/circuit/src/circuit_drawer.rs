@@ -19,6 +19,8 @@ use approx;
 use crossterm::terminal;
 use hashbrown::HashSet;
 use itertools::{Itertools, MinMaxResult};
+use lexical_core::ToLexicalWithOptions;
+use lexical_write_float::{self, format::STANDARD};
 use pyo3::prelude::*;
 use std::f64::consts::PI;
 use std::fmt::Debug;
@@ -63,7 +65,7 @@ pub fn draw_circuit(
             } else {
                 format!(
                     "global phase: {}\n",
-                    format_float_pi(*f).unwrap_or_else(|| f.to_string())
+                    F64UiFormatter::new(5).format_with_pi(*f)
                 )
             }
         }
@@ -83,10 +85,11 @@ pub fn draw_circuit(
             .flat_map(|x| [x.trim_end(), "\n"]),
     );
     let mut chars = output.chars();
-    if let Some(last) = chars.next_back() {
-        if last == '\n' && chars.next_back() == Some('\n') {
-            output.pop();
-        }
+    if let Some(last) = chars.next_back()
+        && last == '\n'
+        && chars.next_back() == Some('\n')
+    {
+        output.pop();
     }
     Ok(output)
 }
@@ -208,6 +211,7 @@ impl WireInputElement<'_> {
 #[derive(Clone, Debug, Copy)]
 enum OnWireElement<'a> {
     Control(&'a PackedInstruction),
+    CPhaseEndpoint(&'a PackedInstruction),
     Swap(&'a PackedInstruction),
     Barrier,
     Reset,
@@ -259,6 +263,20 @@ impl<'a> VisualizationLayer<'a> {
         self.0[idx] = VisualizationElement::Input(input);
     }
 
+    fn add_vertical_lines(
+        &mut self,
+        minima: usize,
+        maxima: usize,
+        exclude_qargs: &[Qubit],
+        inst: &'a PackedInstruction,
+    ) {
+        let vertical_lines =
+            (minima..=maxima).filter(|idx| !exclude_qargs.iter().any(|q| q.index() == *idx));
+        for vline in vertical_lines {
+            self.0[vline] = VisualizationElement::VerticalLine(inst);
+        }
+    }
+
     /// Adds the required visualization elements to represent the given instruction
     fn add_instruction(
         &mut self,
@@ -277,6 +295,12 @@ impl<'a> VisualizationLayer<'a> {
             OperationRef::Unitary(_) => {
                 self.add_unitary_gate(inst, circuit);
             }
+            OperationRef::PauliProductRotation(_) => {
+                self.add_pauli_product_rotation(inst, circuit);
+            }
+            OperationRef::PauliProductMeasurement(_) => {
+                self.add_pauli_product_measurement(inst, circuit, clbit_map, cregbundle);
+            }
             _ => unimplemented!(
                 "{}",
                 format!(
@@ -290,15 +314,6 @@ impl<'a> VisualizationLayer<'a> {
     fn add_controls(&mut self, inst: &'a PackedInstruction, controls: &Vec<usize>) {
         for control in controls {
             self.0[*control] = VisualizationElement::DirectOnWire(OnWireElement::Control(inst));
-        }
-    }
-
-    fn add_vertical_lines<I>(&mut self, vertical_lines: I, inst: &'a PackedInstruction)
-    where
-        I: Iterator<Item = usize>,
-    {
-        for vline in vertical_lines {
-            self.0[vline] = VisualizationElement::VerticalLine(inst);
         }
     }
 
@@ -369,8 +384,7 @@ impl<'a> VisualizationLayer<'a> {
             | StandardGate::CCX
             | StandardGate::CCZ
             | StandardGate::C3X
-            | StandardGate::C3SX
-            | StandardGate::CPhase => {
+            | StandardGate::C3SX => {
                 self.0[qargs.last().unwrap().index()] =
                     VisualizationElement::Boxed(BoxedElement::Single(inst));
                 if gate.num_ctrl_qubits() > 0 {
@@ -384,9 +398,14 @@ impl<'a> VisualizationLayer<'a> {
                     );
                 }
 
-                let vert_lines = (minima..=maxima)
-                    .filter(|idx| !(qargs.iter().map(|q| q.0 as usize)).contains(idx));
-                self.add_vertical_lines(vert_lines, inst);
+                self.add_vertical_lines(minima, maxima, qargs, inst);
+            }
+            StandardGate::CPhase => {
+                for q in qargs {
+                    self.0[q.index()] =
+                        VisualizationElement::DirectOnWire(OnWireElement::CPhaseEndpoint(inst));
+                }
+                self.add_vertical_lines(minima, maxima, qargs, inst);
             }
             StandardGate::GlobalPhase => {}
             StandardGate::Swap | StandardGate::CSwap => {
@@ -400,9 +419,7 @@ impl<'a> VisualizationLayer<'a> {
                     self.0[qubit] = VisualizationElement::DirectOnWire(OnWireElement::Swap(inst));
                 }
 
-                let vert_lines = (minima..=maxima)
-                    .filter(|idx| !(qargs.iter().map(|q| q.0 as usize)).contains(idx));
-                self.add_vertical_lines(vert_lines, inst);
+                self.add_vertical_lines(minima, maxima, qargs, inst);
             }
         }
     }
@@ -442,7 +459,7 @@ impl<'a> VisualizationLayer<'a> {
                         .expect("Measure should have a clbit arg")
                         .index()];
                 }
-                self.add_vertical_lines(minima + 1..=maxima, inst);
+                self.add_vertical_lines(minima + 1, maxima, &[], inst);
             }
             StandardInstruction::Delay(_) => {
                 for q in qargs {
@@ -452,18 +469,53 @@ impl<'a> VisualizationLayer<'a> {
         }
     }
 
-    fn add_unitary_gate(&mut self, inst: &'a PackedInstruction, circuit: &CircuitData) {
+    fn add_multi_wire_box(&mut self, inst: &'a PackedInstruction, circuit: &CircuitData) {
         let qargs = circuit.get_qargs(inst.qubits);
         if qargs.len() == 1 {
             self.0[qargs.first().unwrap().index()] =
                 VisualizationElement::Boxed(BoxedElement::Single(inst));
         } else {
             let (minima, maxima) = get_instruction_range(qargs, &[], 0);
-
             for q in minima..=maxima {
                 self.0[q] = VisualizationElement::Boxed(BoxedElement::Multi(inst));
             }
         }
+    }
+
+    fn add_unitary_gate(&mut self, inst: &'a PackedInstruction, circuit: &CircuitData) {
+        self.add_multi_wire_box(inst, circuit);
+    }
+
+    fn add_pauli_product_rotation(&mut self, inst: &'a PackedInstruction, circuit: &CircuitData) {
+        self.add_multi_wire_box(inst, circuit);
+    }
+
+    fn add_pauli_product_measurement(
+        &mut self,
+        inst: &'a PackedInstruction,
+        circuit: &CircuitData,
+        clbit_map: &[usize],
+        cregbundle: bool,
+    ) {
+        self.add_multi_wire_box(inst, circuit);
+
+        let minima = circuit
+            .get_qargs(inst.qubits)
+            .iter()
+            .map(|q| q.index())
+            .max()
+            .unwrap();
+        let mut maxima =
+            circuit.get_cargs(inst.clbits).first().unwrap().index() + circuit.num_qubits();
+
+        if cregbundle {
+            maxima = clbit_map[circuit
+                .get_cargs(inst.clbits)
+                .first()
+                .expect("PauliProductMeasurement should have a clbit arg")
+                .index()];
+        }
+        self.add_vertical_lines(minima + 1, maxima, &[], inst);
     }
 }
 
@@ -586,13 +638,15 @@ impl Debug for VisualizationMatrix<'_> {
                 let label = match &element {
                     VisualizationElement::Empty => "~",
                     VisualizationElement::VerticalLine(inst) => {
-                        let mut line = "|";
-                        if let Some(std_inst) = inst.op.try_standard_instruction() {
-                            if std_inst == StandardInstruction::Measure {
-                                line = "║";
-                            }
+                        if matches!(
+                            inst.op.view(),
+                            OperationRef::StandardInstruction(StandardInstruction::Measure)
+                                | OperationRef::PauliProductMeasurement(_)
+                        ) {
+                            "║"
+                        } else {
+                            "|"
                         }
-                        line
                     }
                     VisualizationElement::Input(input) => match input {
                         WireInputElement::Qubit(_) => "QR",
@@ -604,6 +658,7 @@ impl Debug for VisualizationMatrix<'_> {
                         OnWireElement::Control(_) => "■",
                         OnWireElement::Reset => "|0>",
                         OnWireElement::Swap(_) => "x",
+                        OnWireElement::CPhaseEndpoint(_) => "■",
                     },
                     VisualizationElement::Boxed(_) => "[ ]",
                 };
@@ -673,6 +728,55 @@ impl TextWireElement {
     }
 }
 
+/// A formatter for UI rendering of floating-point numbers
+///
+/// Supports formatting similar to Python's `g` or C printf's `%g` format specifiers
+/// as well as formatting of multiples and fractions of pi.
+///
+/// Example outputs:
+/// ```text
+/// F64UiFormatter::new(4).format(1.23456)        → 1.235
+/// F64UiFormatter::new(4).format(123.456)        → 123.5
+/// F64UiFormatter::new(5).format(12345678.0)     → 1.2346e7
+/// F64UiFormatter::new(5).format(-0.00001234)    → -1.234e-5
+/// F64UiFormatter::new(5).format_with_pi(5π/6)   → 5π/6
+/// ```
+struct F64UiFormatter {
+    buffer: Vec<u8>,
+    options: lexical_write_float::Options,
+}
+
+impl F64UiFormatter {
+    fn new(num_significant_digits: usize) -> Self {
+        let options = lexical_write_float::Options::builder()
+            .max_significant_digits(core::num::NonZeroUsize::new(num_significant_digits))
+            .positive_exponent_break(core::num::NonZeroI32::new(num_significant_digits as i32))
+            .negative_exponent_break(core::num::NonZeroI32::new(
+                -(num_significant_digits as i32) + 1,
+            ))
+            .trim_floats(true)
+            .build_strict();
+
+        F64UiFormatter {
+            buffer: vec![0u8; options.buffer_size_const::<f64, STANDARD>()],
+            options,
+        }
+    }
+
+    /// Formats the input number based on the formatting options.
+    /// This Can be called multiple times, but the internal buffer is overwritten on each call.
+    fn format(&mut self, num: f64) -> &str {
+        let buf = num.to_lexical_with_options::<STANDARD>(&mut self.buffer, &self.options);
+        std::str::from_utf8_mut(buf).expect("Byte representation should be valid")
+    }
+
+    /// Tries to format the string as a multiple or simple fraction of pi if possible,
+    /// otherwise falls back to the simpler [F64UiFormatter::format] logic
+    fn format_with_pi(&mut self, num: f64) -> String {
+        format_float_pi(num).unwrap_or_else(|| self.format(num).to_owned())
+    }
+}
+
 pub const Q_WIRE: char = '─';
 pub const C_WIRE: char = '═';
 pub const TOP_CON: char = '┴';
@@ -735,7 +839,11 @@ impl TextDrawer {
                     StandardInstruction::Delay(delay_unit) => {
                         match instruction.params_view().first().unwrap() {
                             Param::Float(duration) => {
-                                format!("Delay({}[{}])", duration, delay_unit)
+                                format!(
+                                    "Delay({}[{}])",
+                                    F64UiFormatter::new(5).format(*duration),
+                                    delay_unit
+                                )
                             }
                             Param::ParameterExpression(expr) => {
                                 format!("Delay({}[{}])", expr, delay_unit)
@@ -756,10 +864,10 @@ impl TextDrawer {
 
                 let mut label = STANDARD_GATE_LABELS[standard_gate as usize].to_string();
 
-                if let Some(custom_label) = instruction.label.clone() {
-                    if *custom_label != label {
-                        label = *custom_label;
-                    }
+                if let Some(custom_label) = instruction.label.clone()
+                    && *custom_label != label
+                {
+                    label = *custom_label;
                 }
 
                 if standard_gate.num_params() > 0 {
@@ -767,7 +875,9 @@ impl TextDrawer {
                         .params_view()
                         .iter()
                         .map(|param| match param {
-                            Param::Float(f) => format_float_pi(*f).unwrap_or_else(|| f.to_string()),
+                            Param::Float(f) => {
+                                F64UiFormatter::new(5).format_with_pi(*f).to_string()
+                            }
                             Param::ParameterExpression(expr) => expr.to_string(),
                             _ => format!("{:?}", param),
                         })
@@ -780,7 +890,16 @@ impl TextDrawer {
                 .label
                 .as_ref()
                 .map(|x| x.to_string())
-                .unwrap_or(" Unitary ".to_string()),
+                .unwrap_or("Unitary".to_string()),
+            OperationRef::PauliProductRotation(ppr) => match &ppr.angle {
+                Param::Float(f) => format!("PPR({})", F64UiFormatter::new(5).format_with_pi(*f)),
+                Param::ParameterExpression(e) => format!("PPR({})", e),
+                Param::Obj(o) => format!("PPR({:?})", o),
+            },
+            OperationRef::PauliProductMeasurement(ppm) => {
+                format!("PPM{}", if ppm.neg { "(-)" } else { "" })
+            }
+
             // Fallback for non-standard operations
             _ => {
                 if let Some(ref label) = instruction.label {
@@ -789,6 +908,29 @@ impl TextDrawer {
                     format!(" {} ", instruction.op.name())
                 }
             }
+        }
+    }
+
+    /// Returns the Pauli term at input `idx` (or spaces if `idx` is None) for a PPR or PPM gate,
+    /// or an empty string if `inst` is neither.
+    fn try_pauli_term(idx: Option<usize>, inst: &PackedInstruction) -> &str {
+        let pauli_term = |zx: (bool, bool)| -> &str {
+            match zx {
+                (true, false) => " Z",
+                (false, true) => " X",
+                (true, true) => " Y",
+                (false, false) => " I",
+            }
+        };
+
+        match inst.op.view() {
+            OperationRef::PauliProductRotation(ppr) => {
+                idx.map_or("  ", |idx| pauli_term((ppr.z[idx], ppr.x[idx])))
+            }
+            OperationRef::PauliProductMeasurement(ppm) => {
+                idx.map_or("  ", |idx| pauli_term((ppm.z[idx], ppm.x[idx])))
+            }
+            _ => "",
         }
     }
 
@@ -833,19 +975,28 @@ impl TextDrawer {
         vis_ele: &VisualizationElement,
         vis_mat: &VisualizationMatrix,
         cregbundle: bool,
-        ind: usize,
+        wire_idx: usize,
     ) -> TextWireElement {
         let circuit = vis_mat.circuit;
         let (top, mid, bot);
         match vis_ele {
             VisualizationElement::Boxed(sub_type) => {
-                // implement for cases where the box is on classical wires. The left and right connectors will change
-                // from single wired to double wired.
                 match sub_type {
                     BoxedElement::Single(inst) => {
                         let mut top_con = Q_WIRE;
                         let mut bot_con = Q_WIRE;
-                        let mut label = format!(" {} ", Self::get_label(inst));
+                        let mut label = if matches!(
+                            inst.op.view(),
+                            OperationRef::StandardInstruction(StandardInstruction::Measure)
+                        ) {
+                            Self::get_label(inst).to_string() // Skip space padding around the label to make Measure box thinner
+                        } else {
+                            format!(
+                                "{} {} ",
+                                Self::try_pauli_term(Some(0), inst), // in case it's a PPR/PPM gate
+                                Self::get_label(inst)
+                            )
+                        };
                         if let Some(gate) = inst.op.try_standard_gate() {
                             if gate.is_controlled_gate() {
                                 let qargs = circuit.get_qargs(inst.qubits);
@@ -860,11 +1011,14 @@ impl TextDrawer {
                                 // lines regardless of whether the text element padding size is odd or even.
                                 (label.len() % 2 == 0).then(|| label.push(' '));
                             }
-                        } else if let Some(std_inst) = inst.op.try_standard_instruction() {
-                            if std_inst == StandardInstruction::Measure {
-                                bot_con = C_BOT_CON;
-                            }
+                        } else if matches!(
+                            inst.op.view(),
+                            OperationRef::StandardInstruction(StandardInstruction::Measure)
+                                | OperationRef::PauliProductMeasurement(_)
+                        ) {
+                            bot_con = C_BOT_CON;
                         }
+
                         let label_len = label.width();
                         let left_len = (label_len - 1) / 2;
                         let right_len = label_len - left_len - 1;
@@ -892,26 +1046,25 @@ impl TextDrawer {
                         let qargs = circuit.get_qargs(inst.qubits);
                         let (minima, maxima) = get_instruction_range(qargs, &[], 0);
                         let mid_idx = (minima + maxima) / 2;
-                        let num_affected =
-                            if let Some(idx) = qargs.iter().position(|&x| x.index() == ind) {
-                                format!("{:^width$}", idx, width = qargs.len())
+                        let input_idx = qargs.iter().position(|&x| x.index() == wire_idx);
+                        let qarg_inputs_len = (qargs.len() as f64).log10().ceil() as usize;
+
+                        let mid_section = format!(
+                            "{:<in_len$}{}{:^label_len$}",
+                            input_idx.map_or("".to_string(), |q| q.to_string()),
+                            Self::try_pauli_term(input_idx, inst), // in case it's a PPR/PPM gate
+                            if mid_idx == wire_idx {
+                                label
                             } else {
-                                " ".to_string()
-                            };
-                        let mid_section = if ind == mid_idx {
-                            format!("{:^total_q$}{}", num_affected, label, total_q = qargs.len(),)
-                        } else {
-                            format!(
-                                "{:^total_q$}{:^label_len$}",
-                                num_affected,
-                                " ",
-                                total_q = qargs.len(),
-                                label_len = label_len
-                            )
-                        };
+                                Default::default()
+                            },
+                            in_len = qarg_inputs_len,
+                            label_len = label_len,
+                        );
+
                         let left_len = (mid_section.width() - 1) / 2;
                         let right_len = mid_section.width() - left_len - 1;
-                        top = if ind == minima {
+                        top = if wire_idx == minima {
                             format!(
                                 "{}{}{}{}{}",
                                 TOP_LEFT_BOX,
@@ -929,12 +1082,19 @@ impl TextDrawer {
                             )
                         };
                         mid = format!("{}{}{}", Q_LEFT_CON, mid_section, Q_RIGHT_CON);
-                        bot = if ind == maxima {
+                        bot = if wire_idx == maxima {
                             format!(
                                 "{}{}{}{}{}",
                                 BOT_LEFT_BOX,
                                 Q_WIRE.to_string().repeat(left_len),
-                                Q_WIRE,
+                                if matches!(
+                                    inst.op.view(),
+                                    OperationRef::PauliProductMeasurement(_)
+                                ) {
+                                    C_BOT_CON
+                                } else {
+                                    Q_WIRE
+                                },
                                 Q_WIRE.to_string().repeat(right_len),
                                 BOT_RIGHT_BOX
                             )
@@ -950,59 +1110,104 @@ impl TextDrawer {
                 }
             }
             VisualizationElement::DirectOnWire(on_wire) => {
-                let (wire_top, wire_symbol, wire_bot) = match on_wire {
+                (top, mid, bot) = match on_wire {
                     OnWireElement::Control(inst) => {
                         let (minima, maxima) =
                             get_instruction_range(circuit.get_qargs(inst.qubits), &[], 0);
                         (
-                            if ind == minima {
-                                " ".to_string()
-                            } else {
-                                CONNECTING_WIRE.to_string()
-                            },
-                            BULLET.to_string(),
-                            if ind == maxima {
-                                " ".to_string()
-                            } else {
-                                CONNECTING_WIRE.to_string()
-                            },
+                            format!(
+                                " {} ",
+                                if wire_idx == minima {
+                                    ' '
+                                } else {
+                                    CONNECTING_WIRE
+                                }
+                            ),
+                            format!("{}{}{}", Q_WIRE, BULLET, Q_WIRE),
+                            format!(
+                                " {} ",
+                                if wire_idx == maxima {
+                                    ' '
+                                } else {
+                                    CONNECTING_WIRE
+                                }
+                            ),
                         )
                     }
                     OnWireElement::Swap(inst) => {
                         let (minima, maxima) =
                             get_instruction_range(circuit.get_qargs(inst.qubits), &[], 0);
                         (
-                            if ind == minima {
-                                " ".to_string()
-                            } else {
-                                CONNECTING_WIRE.to_string()
-                            },
-                            "X".to_string(),
-                            if ind == maxima {
-                                " ".to_string()
-                            } else {
-                                CONNECTING_WIRE.to_string()
-                            },
+                            format!(
+                                " {} ",
+                                if wire_idx == minima {
+                                    ' '
+                                } else {
+                                    CONNECTING_WIRE
+                                }
+                            ),
+                            format!("{}{}{}", Q_WIRE, 'X', Q_WIRE),
+                            format!(
+                                " {} ",
+                                if wire_idx == maxima {
+                                    ' '
+                                } else {
+                                    CONNECTING_WIRE
+                                }
+                            ),
                         )
                     }
                     OnWireElement::Barrier => (
-                        BARRIER.to_string(),
-                        BARRIER.to_string(),
-                        BARRIER.to_string(),
+                        format!(" {} ", BARRIER),
+                        format!("{}{}{}", Q_WIRE, BARRIER, Q_WIRE),
+                        format!(" {} ", BARRIER),
                     ),
-                    OnWireElement::Reset => {
-                        ("   ".to_string(), "|0>".to_string(), "   ".to_string())
+                    OnWireElement::Reset => (
+                        format!(" {} ", "   "),
+                        format!("{}{}{}", Q_WIRE, "|0>", Q_WIRE),
+                        format!(" {} ", "   "),
+                    ),
+                    OnWireElement::CPhaseEndpoint(inst) => {
+                        let qargs = circuit.get_qargs(inst.qubits);
+                        let (minima, maxima) = get_instruction_range(qargs, &[], 0);
+                        // q_0: ─■───────
+                        //       │P(0.5)
+                        // q_1: ─┼───────
+                        //       │
+                        // q_2: ─■───────
+                        // We add 3 to the overall label width to account for the " |" on the left of the label
+                        // and the trailing space on the right.
+                        let label = Self::get_label(inst);
+                        let width = label.width() + 3;
+                        let right_pad = label.width() + 1;
+
+                        (
+                            if wire_idx == maxima {
+                                format!(" {}{}", CONNECTING_WIRE, " ".repeat(right_pad))
+                            } else {
+                                " ".repeat(width)
+                            },
+                            format!(
+                                "{}{}{}",
+                                Q_WIRE,
+                                BULLET,
+                                Q_WIRE.to_string().repeat(right_pad)
+                            ),
+                            if wire_idx == minima {
+                                format!(" {}{}{}", CONNECTING_WIRE, label, " ")
+                            } else {
+                                " ".repeat(width)
+                            },
+                        )
                     }
                 };
-
-                top = format!(" {} ", wire_top);
-                mid = format!("{}{}{}", Q_WIRE, wire_symbol, Q_WIRE);
-                bot = format!(" {} ", wire_bot);
             }
             VisualizationElement::Input(input) => {
                 let input_name = input.get_name(circuit).unwrap_or_else(|| match input {
-                    WireInputElement::Qubit(_) => format!("q_{}: ", ind),
-                    WireInputElement::Clbit(_) => format!("c_{}: ", ind - circuit.num_qubits()),
+                    WireInputElement::Qubit(_) => format!("q_{}: ", wire_idx),
+                    WireInputElement::Clbit(_) => {
+                        format!("c_{}: ", wire_idx - circuit.num_qubits())
+                    }
                     WireInputElement::Creg(_) => unreachable!(),
                 });
                 top = " ".repeat(input_name.width());
@@ -1010,17 +1215,15 @@ impl TextDrawer {
                 mid = input_name;
             }
             VisualizationElement::VerticalLine(inst) => {
-                let is_measure = if let Some(std_inst) = inst.op.try_standard_instruction() {
-                    std_inst == StandardInstruction::Measure
-                } else {
-                    false
-                };
-
-                if is_measure {
+                if matches!(
+                    inst.op.view(),
+                    OperationRef::StandardInstruction(StandardInstruction::Measure)
+                        | OperationRef::PauliProductMeasurement(_)
+                ) {
                     top = CL_CONNECTING_WIRE.to_string();
 
                     let clbit = circuit.get_cargs(inst.clbits).first().unwrap();
-                    if ind == vis_mat.clbit_map[clbit.index()] {
+                    if wire_idx == vis_mat.clbit_map[clbit.index()] {
                         mid = C_WIRE_CON_TOP.to_string();
 
                         let shareable_clbit = circuit.clbits().get(*clbit).unwrap();
@@ -1040,7 +1243,7 @@ impl TextDrawer {
                     } else {
                         bot = CL_CONNECTING_WIRE.to_string();
                         mid = {
-                            if ind < circuit.num_qubits() {
+                            if wire_idx < circuit.num_qubits() {
                                 CL_Q_CROSSED_WIRE
                             } else {
                                 CL_CL_CROSSED_WIRE
@@ -1048,11 +1251,30 @@ impl TextDrawer {
                         }
                         .to_string();
                     }
+                } else if inst.op.try_standard_gate() == Some(StandardGate::CPhase) {
+                    // Match the endpoint width so the connector rows stay aligned with the
+                    // label row produced by OnWireElement::CPhaseEndpoint.
+                    // refer to the comment in OnWireElement::CPhaseEndpoint for more details.
+                    let label = Self::get_label(inst);
+                    let right_pad = label.width() + 1;
+
+                    top = format!(" {}{}", CONNECTING_WIRE, " ".repeat(right_pad));
+                    mid = format!(
+                        "{}{}{}",
+                        Q_WIRE,
+                        if wire_idx < circuit.num_qubits() {
+                            Q_Q_CROSSED_WIRE
+                        } else {
+                            Q_CL_CROSSED_WIRE
+                        },
+                        Q_WIRE.to_string().repeat(right_pad)
+                    );
+                    bot = top.clone();
                 } else {
                     top = CONNECTING_WIRE.to_string();
                     bot = CONNECTING_WIRE.to_string();
                     mid = {
-                        if ind < circuit.num_qubits() {
+                        if wire_idx < circuit.num_qubits() {
                             Q_Q_CROSSED_WIRE
                         } else {
                             Q_CL_CROSSED_WIRE
@@ -1065,7 +1287,7 @@ impl TextDrawer {
                 top = " ".to_string();
                 bot = " ".to_string();
                 mid = {
-                    if ind < circuit.num_qubits() {
+                    if wire_idx < circuit.num_qubits() {
                         Q_WIRE
                     } else {
                         C_WIRE
@@ -1214,7 +1436,7 @@ impl TextDrawer {
 ///     f : Number to check.
 ///
 /// Returns:
-///     The string representation of output. None if no Pi formatting is found.  
+///     The string representation of output. None if no Pi formatting is found.
 pub fn format_float_pi(f: f64) -> Option<String> {
     const DENOMINATOR: i64 = 16;
     // epsilon value defines the threshold to detect pi.
@@ -1245,10 +1467,10 @@ pub fn format_float_pi(f: f64) -> Option<String> {
     }
 
     // Second is a check for powers of pi
-    if f_abs > PI {
-        if let Some(k) = (2..=4).find(|k| (f_abs - PI.powi(*k)).abs() < EPS) {
-            return Some(format!("{}{}^{}", sign, pi_str, k));
-        }
+    if f_abs > PI
+        && let Some(k) = (2..=4).find(|k| (f_abs - PI.powi(*k)).abs() < EPS)
+    {
+        return Some(format!("{}{}^{}", sign, pi_str, k));
     }
 
     // Third is a check for a number larger than DENOMINATOR * pi, not a
@@ -1297,16 +1519,21 @@ pub fn format_float_pi(f: f64) -> Option<String> {
 mod tests {
     use ndarray::Array2;
     use smallvec::smallvec;
+    use std::f64::consts::PI;
     use std::sync::Arc;
 
     use super::*;
     use crate::bit::{ClassicalRegister, QuantumRegister, ShareableClbit, ShareableQubit};
     use crate::instruction::Parameters;
     use crate::operations::{
-        ArrayType, DelayUnit, STANDARD_GATE_SIZE, StandardInstruction, UnitaryGate,
+        ArrayType, DelayUnit, PauliBased, PauliProductMeasurement, PauliProductRotation,
+        STANDARD_GATE_SIZE, StandardInstruction, UnitaryGate,
     };
     use crate::parameter::parameter_expression::ParameterExpression;
     use crate::parameter::symbol_expr::Symbol;
+
+    #[cfg(feature = "cache_pygates")]
+    use std::sync::OnceLock;
 
     fn basic_circuit() -> CircuitData {
         let qreg = QuantumRegister::new_owning("q", 2);
@@ -1414,16 +1641,18 @@ c2_1: ══════════
             clbits: circuit.add_cargs(&[Clbit::new(0)]),
             params: None,
             label: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
         };
         circuit.push(inst).unwrap();
 
         let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
         let expected = "
-   ┌───┐┌───┐
-q: ┤ H ├┤ M ├
-   └───┘└─╥─┘
-          ║
-c: ═══════╩══
+   ┌───┐┌─┐
+q: ┤ H ├┤M├
+   └───┘└╥┘
+         ║
+c: ══════╩═
 ";
         assert_eq!(result, expected.trim_start_matches("\n"));
     }
@@ -1562,12 +1791,12 @@ c2_1: ══════════»
         circuit.push(inst_clone).unwrap();
         let result = draw_circuit(&circuit, false, false, Some(80)).unwrap();
         let expected = "
-          ┌─────────────┐┌────────────────┐
-q_0: ──■──┤0  Rxx(1.23) ├┤0  my_rxx(1.23) ├────■────
-       │  │             ││                │    │
-     ┌─┴─┐│             ││                │┌───┴───┐
-q_1: ┤ H ├┤1            ├┤1               ├┤ my_ch ├
-     └───┘└─────────────┘└────────────────┘└───────┘
+          ┌────────────┐┌───────────────┐
+q_0: ──■──┤0 Rxx(1.23) ├┤0 my_rxx(1.23) ├────■────
+       │  │            ││               │    │
+     ┌─┴─┐│            ││               │┌───┴───┐
+q_1: ┤ H ├┤1           ├┤1              ├┤ my_ch ├
+     └───┘└────────────┘└───────────────┘└───────┘
 ";
         assert_eq!(result, expected.trim_start_matches("\n"));
     }
@@ -1594,6 +1823,8 @@ q_1: ┤ H ├┤1            ├┤1               ├┤ my_ch ├
             clbits: circuit.cargs_interner().get_default(),
             params: None,
             label: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
         };
         circuit.push(inst).unwrap();
         let inst = PackedInstruction {
@@ -1605,6 +1836,8 @@ q_1: ┤ H ├┤1            ├┤1               ├┤ my_ch ├
             clbits: circuit.cargs_interner().get_default(),
             params: None,
             label: Some(Box::new("my little identity".to_string())),
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
         };
         circuit.push(inst).unwrap();
         let inst = PackedInstruction {
@@ -1616,6 +1849,8 @@ q_1: ┤ H ├┤1            ├┤1               ├┤ my_ch ├
             clbits: circuit.cargs_interner().get_default(),
             params: None,
             label: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
         };
         circuit.push(inst).unwrap();
         let inst = PackedInstruction {
@@ -1627,6 +1862,8 @@ q_1: ┤ H ├┤1            ├┤1               ├┤ my_ch ├
             clbits: circuit.cargs_interner().get_default(),
             params: None,
             label: Some(Box::new("my small identity".to_string())),
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
         };
         circuit.push(inst).unwrap();
         let inst = PackedInstruction {
@@ -1638,6 +1875,8 @@ q_1: ┤ H ├┤1            ├┤1               ├┤ my_ch ├
             clbits: circuit.cargs_interner().get_default(),
             params: None,
             label: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
         };
         circuit.push(inst).unwrap();
         let inst = PackedInstruction {
@@ -1649,6 +1888,8 @@ q_1: ┤ H ├┤1            ├┤1               ├┤ my_ch ├
             clbits: circuit.cargs_interner().get_default(),
             params: None,
             label: Some(Box::new("my medium identity".to_string())),
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
         };
         circuit.push(inst).unwrap();
         let inst = PackedInstruction {
@@ -1660,6 +1901,8 @@ q_1: ┤ H ├┤1            ├┤1               ├┤ my_ch ├
             clbits: circuit.cargs_interner().get_default(),
             params: None,
             label: None,
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
         };
         circuit.push(inst).unwrap();
         let inst = PackedInstruction {
@@ -1671,34 +1914,36 @@ q_1: ┤ H ├┤1            ├┤1               ├┤ my_ch ├
             clbits: circuit.cargs_interner().get_default(),
             params: None,
             label: Some(Box::new("my bigger identity".to_string())),
+            #[cfg(feature = "cache_pygates")]
+            py_op: OnceLock::new(),
         };
         circuit.push(inst).unwrap();
         let result = draw_circuit(&circuit, false, false, Some(80)).unwrap();
         let expected = "
-         ┌───────────┐                    ┌─────────────────────┐┌──────────────┐»
-q_0: ────┤  Unitary  ├────────────────────┤0                    ├┤ 2            ├»
-         └───────────┘                    │                     ││              │»
-                           ┌─────────────┐│                     ││              │»
-q_1: ──────────────────────┤0            ├┤   my small identity ├┤ 0   Unitary  ├»
-                           │             ││                     ││              │»
-     ┌────────────────────┐│             ││                     ││              │»
-q_2: ┤ my little identity ├┤    Unitary  ├┤1                    ├┤              ├»
-     └────────────────────┘│             │└─────────────────────┘│              │»
-                           │             │                       │              │»
-q_3: ──────────────────────┤1            ├───────────────────────┤ 1            ├»
-                           └─────────────┘                       └──────────────┘»
-«     ┌───────────────────────┐┌───────────────┐┌────────────────────────┐
-«q_0: ┤ 0                     ├┤ 2             ├┤ 0                      ├
-«     │                       ││               ││                        │
-«     │                       ││               ││                        │
-«q_1: ┤    my medium identity ├┤ 0    Unitary  ├┤ 3   my bigger identity ├
-«     │                       ││               ││                        │
-«     │                       ││               ││                        │
-«q_2: ┤ 1                     ├┤ 3             ├┤ 1                      ├
-«     │                       ││               ││                        │
-«     │                       ││               ││                        │
-«q_3: ┤ 2                     ├┤ 1             ├┤ 2                      ├
-«     └───────────────────────┘└───────────────┘└────────────────────────┘
+          ┌─────────┐                  ┌────────────────────┐┌──────────┐»
+q_0: ─────┤ Unitary ├──────────────────┤0                   ├┤2         ├»
+          └─────────┘                  │                    ││          │»
+                           ┌──────────┐│                    ││          │»
+q_1: ──────────────────────┤0         ├┤  my small identity ├┤0 Unitary ├»
+                           │          ││                    ││          │»
+     ┌────────────────────┐│          ││                    ││          │»
+q_2: ┤ my little identity ├┤  Unitary ├┤1                   ├┤          ├»
+     └────────────────────┘│          │└────────────────────┘│          │»
+                           │          │                      │          │»
+q_3: ──────────────────────┤1         ├──────────────────────┤1         ├»
+                           └──────────┘                      └──────────┘»
+«     ┌─────────────────────┐┌──────────┐┌─────────────────────┐
+«q_0: ┤0                    ├┤2         ├┤0                    ├
+«     │                     ││          ││                     │
+«     │                     ││          ││                     │
+«q_1: ┤  my medium identity ├┤0 Unitary ├┤3 my bigger identity ├
+«     │                     ││          ││                     │
+«     │                     ││          ││                     │
+«q_2: ┤1                    ├┤3         ├┤1                    ├
+«     │                     ││          ││                     │
+«     │                     ││          ││                     │
+«q_3: ┤2                    ├┤1         ├┤2                    ├
+«     └─────────────────────┘└──────────┘└─────────────────────┘
 ";
         assert_eq!(result, expected.trim_start_matches("\n"));
     }
@@ -1744,27 +1989,27 @@ q_3: ┤ X ├┤ R(3.141,3.141) ├────┤ S ├─────┤ T �
                                                                                     »
 q_4: ───────────────────────────────────────────────────────────────────────────────»
                                                                                     »
-«                                                                                     »
-«q_0: ──■───────────────X─────────────────────■─────────────────────────■─────────────»
-«       │               │                     │                         │             »
-«     ┌─┴─┐┌───────┐    │    ┌─────────┐┌─────┴─────┐                 ┌─┴─┐           »
-«q_1: ┤ Z ├┤0  Dcx ├────X────┤0  Iswap ├┤ Rx(3.141) ├──────■──────────┤ S ├───────■───»
-«     └───┘│       │         │         │└───────────┘      │          └───┘       │   »
-«          │       │┌───────┐│         │             ┌─────┴─────┐             ┌──┴──┐»
-«q_2: ──■──┤1      ├┤0  Ecr ├┤1        ├──────■──────┤ Ry(3.141) ├──────■──────┤ Sdg ├»
-«       │  └───────┘│       │└─────────┘      │      └───────────┘      │      └─────┘»
-«     ┌─┴─┐         │       │           ┌─────┴─────┐             ┌─────┴─────┐       »
-«q_3: ┤ Y ├─────────┤1      ├───────────┤ P(3.141)  ├─────────────┤ Rz(3.141) ├───────»
-«     └───┘         └───────┘           └───────────┘             └───────────┘       »
-«                                                                                     »
-«q_4: ────────────────────────────────────────────────────────────────────────────────»
-«                                                                                     »
-«                                                     ┌──────────────┐     »
-«q_0: ───────────────■────────────────────────────────┤0  Rxx(3.141) ├─────»
-«                    │                                │              │     »
-«     ┌──────────────┴──────────────┐                 │              │     »
-«q_1: ┤ U(3.141,3.141,3.141,3.141)  ├──────■──────────┤1             ├─────»
-«     └─────────────────────────────┘      │          └──────────────┘     »
+«                                                                                  »
+«q_0: ──■─────────────X────────────────────■─────────────────────────■─────────────»
+«       │             │                    │                         │             »
+«     ┌─┴─┐┌──────┐   │    ┌────────┐┌─────┴─────┐                 ┌─┴─┐           »
+«q_1: ┤ Z ├┤0 Dcx ├───X────┤0 Iswap ├┤ Rx(3.141) ├──────■──────────┤ S ├───────■───»
+«     └───┘│      │        │        │└───────────┘      │          └───┘       │   »
+«          │      │┌──────┐│        │             ┌─────┴─────┐             ┌──┴──┐»
+«q_2: ──■──┤1     ├┤0 Ecr ├┤1       ├──■──────────┤ Ry(3.141) ├──────■──────┤ Sdg ├»
+«       │  └──────┘│      │└────────┘  │P(3.141)  └───────────┘      │      └─────┘»
+«     ┌─┴─┐        │      │            │                       ┌─────┴─────┐       »
+«q_3: ┤ Y ├────────┤1     ├────────────■───────────────────────┤ Rz(3.141) ├───────»
+«     └───┘        └──────┘                                    └───────────┘       »
+«                                                                                  »
+«q_4: ─────────────────────────────────────────────────────────────────────────────»
+«                                                                                  »
+«                                                      ┌─────────────┐     »
+«q_0: ───────────────■─────────────────────────────────┤0 Rxx(3.141) ├─────»
+«                    │                                 │             │     »
+«     ┌──────────────┴──────────────┐                  │             │     »
+«q_1: ┤ U(3.141,3.141,3.141,3.141)  ├──────■───────────┤1            ├─────»
+«     └─────────────────────────────┘      │           └─────────────┘     »
 «                                    ┌─────┴─────┐                         »
 «q_2: ───────────────■───────────────┤ U1(3.141) ├────────────■────────────»
 «                    │               └───────────┘            │            »
@@ -1774,35 +2019,35 @@ q_4: ─────────────────────────
 «                                                                          »
 «q_4: ─────────────────────────────────────────────────────────────────────»
 «                                                                          »
-«                     ┌──────────────┐                                                »
-«q_0: ────────────────┤0  Rzx(3.141) ├────────────────────────────────────────────────»
-«                     │              │                                                »
-«     ┌──────────────┐│              │┌──────────────────────┐                        »
-«q_1: ┤0  Ryy(3.141) ├┤1             ├┤0  XX-YY(3.141,3.141) ├────────────────────────»
-«     │              │└──────────────┘│                      │                        »
-«     │              │┌──────────────┐│                      │┌──────────────────────┐»
-«q_2: ┤1             ├┤0  Rzz(3.141) ├┤1                     ├┤0  XX+YY(3.141,3.141) ├»
-«     └──────────────┘│              │└──────────────────────┘│                      │»
-«                     │              │                        │                      │»
-«q_3: ────────────────┤1             ├────────────────────────┤1                     ├»
-«                     └──────────────┘                        └──────────────────────┘»
-«                                                                                     »
-«q_4: ────────────────────────────────────────────────────────────────────────────────»
-«                                                                                     »
-«                  ┌─────────┐            ┌───────────┐
-«q_0: ───────■─────┤ 0       ├──■─────■───┤ 0         ├
-«            │     │         │  │     │   │           │
-«            │     │         │  │     │   │           │
-«q_1: ──■────■───■─┤ 1  Rccx ├──■─────■───┤ 1   Rcccx ├
-«       │    │   │ │         │  │     │   │           │
-«       │  ┌─┴─┐ │ │         │  │     │   │           │
-«q_2: ──■──┤ Z ├─X─┤ 2       ├──■─────■───┤ 2         ├
-«       │  └───┘ │ └─────────┘  │     │   │           │
-«     ┌─┴─┐      │            ┌─┴─┐┌──┴──┐│           │
-«q_3: ┤ X ├──────X────────────┤ X ├┤ Sx  ├┤ 3         ├
-«     └───┘                   └───┘└─────┘└───────────┘
+«                    ┌─────────────┐                                              »
+«q_0: ───────────────┤0 Rzx(3.141) ├──────────────────────────────────────────────»
+«                    │             │                                              »
+«     ┌─────────────┐│             │┌─────────────────────┐                       »
+«q_1: ┤0 Ryy(3.141) ├┤1            ├┤0 XX-YY(3.141,3.141) ├───────────────────────»
+«     │             │└─────────────┘│                     │                       »
+«     │             │┌─────────────┐│                     │┌─────────────────────┐»
+«q_2: ┤1            ├┤0 Rzz(3.141) ├┤1                    ├┤0 XX+YY(3.141,3.141) ├»
+«     └─────────────┘│             │└─────────────────────┘│                     │»
+«                    │             │                       │                     │»
+«q_3: ───────────────┤1            ├───────────────────────┤1                    ├»
+«                    └─────────────┘                       └─────────────────────┘»
+«                                                                                 »
+«q_4: ────────────────────────────────────────────────────────────────────────────»
+«                                                                                 »
+«                  ┌───────┐            ┌────────┐
+«q_0: ───────■─────┤0      ├──■─────■───┤0       ├
+«            │     │       │  │     │   │        │
+«            │     │       │  │     │   │        │
+«q_1: ──■────■───■─┤1 Rccx ├──■─────■───┤1 Rcccx ├
+«       │    │   │ │       │  │     │   │        │
+«       │  ┌─┴─┐ │ │       │  │     │   │        │
+«q_2: ──■──┤ Z ├─X─┤2      ├──■─────■───┤2       ├
+«       │  └───┘ │ └───────┘  │     │   │        │
+«     ┌─┴─┐      │          ┌─┴─┐┌──┴──┐│        │
+«q_3: ┤ X ├──────X──────────┤ X ├┤ Sx  ├┤3       ├
+«     └───┘                 └───┘└─────┘└────────┘
 «
-«q_4: ─────────────────────────────────────────────────
+«q_4: ────────────────────────────────────────────
 «
 ";
         assert_eq!(result, expected.trim_start_matches("\n"));
@@ -1838,7 +2083,7 @@ c2: 2/══════════
         let mut circuit = basic_circuit();
         circuit
             .set_global_phase_param(Param::ParameterExpression(Arc::new(
-                ParameterExpression::from_symbol(Symbol::new("ϕ", None, None)),
+                ParameterExpression::from_symbol(Symbol::standalone("ϕ".to_owned(), None)),
             )))
             .unwrap();
         let result = draw_circuit(&circuit, true, false, Some(80)).unwrap();
@@ -1868,7 +2113,7 @@ c2: 2/══════════
         ];
         let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
         let param = Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
-            Symbol::new("a", None, None),
+            Symbol::standalone("a".to_owned(), None),
         )));
         circuit
             .push_standard_gate(StandardGate::RXX, &[param], &[Qubit(0), Qubit(1)])
@@ -1885,12 +2130,12 @@ c2: 2/══════════
             .unwrap();
         let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
         let expected = "
-     ┌──────────┐┌─────────────┐┌──────────┐
-q_0: ┤0  Rxx(a) ├┤0  my_rxx(a) ├┤0  Rzx(2) ├
-     │          ││             ││          │
-     │          ││             ││          │
-q_1: ┤1         ├┤1            ├┤1         ├
-     └──────────┘└─────────────┘└──────────┘
+     ┌─────────┐┌────────────┐┌─────────┐
+q_0: ┤0 Rxx(a) ├┤0 my_rxx(a) ├┤0 Rzx(2) ├
+     │         ││            ││         │
+     │         ││            ││         │
+q_1: ┤1        ├┤1           ├┤1        ├
+     └─────────┘└────────────┘└─────────┘
 ";
         assert_eq!(result, expected.trim_start_matches("\n"));
     }
@@ -1918,6 +2163,8 @@ q_1: ┤1         ├┤1            ├┤1         ├
                 clbits: circuit.cargs_interner().get_default(),
                 params: None,
                 label: None,
+                #[cfg(feature = "cache_pygates")]
+                py_op: OnceLock::new(),
             };
             circuit.push(inst).unwrap();
         }
@@ -1936,6 +2183,8 @@ q_1: ┤1         ├┤1            ├┤1         ├
                     clbits: circuit.cargs_interner().get_default(),
                     params: Some(Box::new(Parameters::Params(smallvec![param]))),
                     label: None,
+                    #[cfg(feature = "cache_pygates")]
+                    py_op: OnceLock::new(),
                 };
                 circuit.push(inst).unwrap();
             }
@@ -1948,6 +2197,8 @@ q_1: ┤1         ├┤1            ├┤1         ├
                 clbits: circuit.cargs_interner().get_default(),
                 params: None,
                 label: None,
+                #[cfg(feature = "cache_pygates")]
+                py_op: OnceLock::new(),
             };
             circuit.push(inst).unwrap();
         }
@@ -1958,6 +2209,8 @@ q_1: ┤1         ├┤1            ├┤1         ├
                 clbits: circuit.add_cargs(&[Clbit::new(i)]),
                 params: None,
                 label: None,
+                #[cfg(feature = "cache_pygates")]
+                py_op: OnceLock::new(),
             };
             circuit.push(inst).unwrap();
         }
@@ -1988,29 +2241,29 @@ c_2: ═════════════════════════
                                                                                                          »
 c_3: ════════════════════════════════════════════════════════════════════════════════════════════════════»
                                                                                                          »
-«      ░  ░ ┌───┐
-«q_0: ─░──░─┤ M ├───────────────
-«      ░  ░ └─╥─┘
-«      ░  ░   ║  ┌───┐
-«q_1: ─░──░───╫──┤ M ├──────────
-«      ░  ░   ║  └─╥─┘
-«      ░  ░   ║    ║  ┌───┐
-«q_2: ─░──░───╫────╫──┤ M ├─────
-«      ░  ░   ║    ║  └─╥─┘
-«         ░   ║    ║    ║  ┌───┐
-«q_3: ────░───╫────╫────╫──┤ M ├
-«         ░   ║    ║    ║  └─╥─┘
-«             ║    ║    ║    ║
-«c_0: ════════╩════╬════╬════╬══
-«                  ║    ║    ║
-«                  ║    ║    ║
-«c_1: ═════════════╩════╬════╬══
-«                       ║    ║
-«                       ║    ║
-«c_2: ══════════════════╩════╬══
-«                            ║
-«                            ║
-«c_3: ═══════════════════════╩══
+«      ░  ░ ┌─┐
+«q_0: ─░──░─┤M├─────────
+«      ░  ░ └╥┘
+«      ░  ░  ║ ┌─┐
+«q_1: ─░──░──╫─┤M├──────
+«      ░  ░  ║ └╥┘
+«      ░  ░  ║  ║ ┌─┐
+«q_2: ─░──░──╫──╫─┤M├───
+«      ░  ░  ║  ║ └╥┘
+«         ░  ║  ║  ║ ┌─┐
+«q_3: ────░──╫──╫──╫─┤M├
+«         ░  ║  ║  ║ └╥┘
+«            ║  ║  ║  ║
+«c_0: ═══════╩══╬══╬══╬═
+«               ║  ║  ║
+«               ║  ║  ║
+«c_1: ══════════╩══╬══╬═
+«                  ║  ║
+«                  ║  ║
+«c_2: ═════════════╩══╬═
+«                     ║
+«                     ║
+«c_3: ════════════════╩═
 «
 ";
         assert_eq!(result, expected.trim_start_matches("\n"));
@@ -2024,7 +2277,7 @@ c_3: ═════════════════════════
         ];
         let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
         let param = Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
-            Symbol::new("ϕ", None, None),
+            Symbol::standalone("ϕ".to_owned(), None),
         )));
         circuit
             .push_standard_gate(StandardGate::RXX, &[param], &[Qubit(0), Qubit(1)])
@@ -2041,12 +2294,12 @@ c_3: ═════════════════════════
             .unwrap();
         let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
         let expected = "
-     ┌──────────┐┌──────────────┐┌──────────┐
-q_0: ┤0  Rxx(ϕ) ├┤0  μου_rxx(ϕ) ├┤0  Rzx(2) ├
-     │          ││              ││          │
-     │          ││              ││          │
-q_1: ┤1         ├┤1             ├┤1         ├
-     └──────────┘└──────────────┘└──────────┘
+     ┌─────────┐┌─────────────┐┌─────────┐
+q_0: ┤0 Rxx(ϕ) ├┤0 μου_rxx(ϕ) ├┤0 Rzx(2) ├
+     │         ││             ││         │
+     │         ││             ││         │
+q_1: ┤1        ├┤1            ├┤1        ├
+     └─────────┘└─────────────┘└─────────┘
 ";
         assert_eq!(result, expected.trim_start_matches("\n"));
     }
@@ -2059,10 +2312,10 @@ q_1: ┤1         ├┤1             ├┤1         ├
         ];
         let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
         let param = Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
-            Symbol::new("🎩", None, None),
+            Symbol::standalone("🎩".to_owned(), None),
         )));
         circuit
-            .push_standard_gate(StandardGate::RY, &[param.clone()], &[Qubit(1)])
+            .push_standard_gate(StandardGate::RY, std::slice::from_ref(&param), &[Qubit(1)])
             .unwrap();
         circuit
             .push_standard_gate(StandardGate::RXX, &[param], &[Qubit(0), Qubit(1)])
@@ -2082,13 +2335,67 @@ q_1: ┤1         ├┤1             ├┤1         ├
             .unwrap();
         let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
         let expected = "
-               ┌───────────┐            ┌────────────┐┌──────────┐
-q_0: ──────────┤0  Rxx(🎩) ├────────────┤0  💶🔉(🎩) ├┤0  Rzx(2) ├
-               │           │            │            ││          │
-     ┌────────┐│           │┌──────────┐│            ││          │
-q_1: ┤ Ry(🎩) ├┤1          ├┤ 💶🔉(🎩) ├┤1           ├┤1         ├
-     └────────┘└───────────┘└──────────┘└────────────┘└──────────┘
+               ┌───────────┐            ┌──────────────┐┌─────────┐
+q_0: ──────────┤0 Rxx(🎩)  ├────────────┤0  💶🔉(🎩)   ├┤0 Rzx(2) ├
+               │           │            │              ││         │
+     ┌────────┐│          │ ┌──────────┐ │           │  │         │
+q_1: ┤ Ry(🎩) ├┤1         ├─┤ 💶🔉(🎩) ├─┤1          ├──┤1        ├
+     └────────┘└──────────┘ └──────────┘ └───────────┘  └─────────┘
 ";
+        assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[cfg(not(miri))]
+    #[test]
+    fn test_f64_formatting() {
+        let qubits = vec![
+            ShareableQubit::new_anonymous(),
+            ShareableQubit::new_anonymous(),
+        ];
+        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.8 * PI)).unwrap();
+
+        circuit
+            .push_standard_gate(StandardGate::RX, &[Param::Float(1.234567)], &[Qubit(0)])
+            .unwrap();
+        circuit
+            .push_standard_gate(StandardGate::RX, &[Param::Float(123.4567)], &[Qubit(0)])
+            .unwrap();
+
+        let expr = ParameterExpression::from_symbol(Symbol::standalone("ϕ".to_owned(), None))
+            .mul(&ParameterExpression::from_f64(1.23456))
+            .unwrap();
+        let param = Param::ParameterExpression(Arc::new(expr));
+        circuit
+            .push_standard_gate(StandardGate::RY, &[param], &[Qubit(0)])
+            .unwrap();
+        circuit
+            .push_standard_gate(StandardGate::RZ, &[Param::Float(123456789f64)], &[Qubit(1)])
+            .unwrap();
+
+        circuit
+            .push_standard_gate(StandardGate::RX, &[Param::Float(0.1234567)], &[Qubit(1)])
+            .unwrap();
+        circuit
+            .push_standard_gate(StandardGate::RX, &[Param::Float(0.0000123456)], &[Qubit(1)])
+            .unwrap();
+        circuit
+            .push_standard_gate(
+                StandardGate::RX,
+                &[Param::Float(2.0 / 3.0 * PI)],
+                &[Qubit(1)],
+            )
+            .unwrap();
+
+        let result = draw_circuit(&circuit, true, true, None).unwrap();
+        let expected = "
+global phase: 4π/5
+      ┌────────────┐ ┌────────────┐ ┌───────────────┐
+q_0: ─┤ Rx(1.2346) ├─┤ Rx(123.46) ├─┤ Ry(1.23456*ϕ) ├────────────
+     ┌┴────────────┴┐├────────────┴┐├───────────────┤┌──────────┐
+q_1: ┤ Rz(1.2346e8) ├┤ Rx(0.12346) ├┤ Rx(1.2346e-5) ├┤ Rx(2π/3) ├
+     └──────────────┘└─────────────┘└───────────────┘└──────────┘
+";
+
         assert_eq!(result, expected.trim_start_matches("\n"));
     }
 
@@ -2145,5 +2452,318 @@ q_1: ┤ Ry(🎩) ├┤1          ├┤ 💶🔉(🎩) ├┤1           ├�
         for test in test_points {
             assert_eq!(format_float_pi(test.0), test.1.map(|s| s.to_string()));
         }
+    }
+
+    #[test]
+    fn test_f64_ui_formatter() {
+        let test_data_5_sig_digits = [
+            (-1.23, "-1.23"),
+            (1.23456, "1.2346"),
+            (-12.34567, "-12.346"),
+            (123456.78, "123460"),
+            (-0.0001, "-0.0001"),
+            (12.34 * 1_000_000.0, "1.234e7"),
+            (-0.00001, "-1e-5"),
+            (12345678.000001, "1.2346e7"),
+            (15.0 * PI / 16.0, "15π/16"),
+            (-2.0 * PI / 3.0, "-2π/3"),
+        ];
+
+        let mut formatter = F64UiFormatter::new(5);
+        for test in test_data_5_sig_digits {
+            assert_eq!(test.1.to_owned(), formatter.format_with_pi(test.0));
+        }
+    }
+
+    #[test]
+    fn test_pauli_product_rotation() {
+        let qubits = (0..11).map(|_| ShareableQubit::new_anonymous()).collect();
+        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
+
+        circuit
+            .push_packed_operation(
+                PauliBased::PauliProductRotation(PauliProductRotation {
+                    z: vec![true, true, false],
+                    x: vec![false, true, true],
+                    angle: Param::Float(-0.2),
+                })
+                .into(),
+                None,
+                &[Qubit(1), Qubit(5), Qubit(2)],
+                &[],
+            )
+            .unwrap();
+
+        let theta = Arc::new(ParameterExpression::from_symbol(Symbol::standalone(
+            "θ".to_owned(),
+            None,
+        )));
+
+        circuit
+            .push_packed_operation(
+                PauliBased::PauliProductRotation(PauliProductRotation {
+                    z: vec![true, true, true, true],
+                    x: vec![false, false, true, true],
+                    angle: Param::ParameterExpression(theta.neg().into()),
+                })
+                .into(),
+                None,
+                &[Qubit(0), Qubit(2), Qubit(3), Qubit(1)],
+                &[],
+            )
+            .unwrap();
+
+        circuit
+            .push_packed_operation(
+                PauliBased::PauliProductRotation(PauliProductRotation {
+                    z: vec![true],
+                    x: vec![true],
+                    angle: Param::Float(PI / 2.0),
+                })
+                .into(),
+                None,
+                &[Qubit(7)],
+                &[],
+            )
+            .unwrap();
+
+        circuit
+            .push_packed_operation(
+                PauliBased::PauliProductRotation(PauliProductRotation {
+                    z: vec![
+                        true, true, false, false, true, true, false, false, true, true, false,
+                    ],
+                    x: vec![
+                        false, true, true, false, false, true, true, false, false, true, true,
+                    ],
+                    angle: Param::ParameterExpression(
+                        theta
+                            .mul(&ParameterExpression::from_f64(2.0))
+                            .unwrap()
+                            .into(),
+                    ),
+                })
+                .into(),
+                None,
+                &(0..11).map(Qubit).collect::<Vec<Qubit>>(),
+                &[],
+            )
+            .unwrap();
+
+        let result = draw_circuit(&circuit, true, true, Some(80)).unwrap();
+        let expected = "
+                      ┌────────────┐┌──────────────┐
+ q_0: ────────────────┤0 Z         ├┤0  Z          ├
+      ┌──────────────┐│            ││              │
+ q_1: ┤0 Z           ├┤3 Y PPR(-θ) ├┤1  Y          ├
+      │              ││            ││              │
+ q_2: ┤2 X           ├┤1 Z         ├┤2  X          ├
+      │              ││            ││              │
+ q_3: ┤    PPR(-0.2) ├┤2 Y         ├┤3  I          ├
+      │              │└────────────┘│              │
+ q_4: ┤              ├──────────────┤4  Z          ├
+      │              │              │              │
+ q_5: ┤1 Y           ├──────────────┤5  Y PPR(2*θ) ├
+      └──────────────┘              │              │
+ q_6: ──────────────────────────────┤6  X          ├
+       ┌────────────┐               │              │
+ q_7: ─┤ Y PPR(π/2) ├───────────────┤7  I          ├
+       └────────────┘               │              │
+ q_8: ──────────────────────────────┤8  Z          ├
+                                    │              │
+ q_9: ──────────────────────────────┤9  Y          ├
+                                    │              │
+q_10: ──────────────────────────────┤10 X          ├
+                                    └──────────────┘
+";
+
+        assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    #[test]
+    fn test_pauli_product_measurement() {
+        let qreg = QuantumRegister::new_owning("qr", 6);
+        let qubits: Vec<ShareableQubit> = (0..qreg.len()).map(|i| qreg.get(i).unwrap()).collect();
+
+        let creg = ClassicalRegister::new_owning("cr", 3);
+        let clbits = (0..3).map(|c| creg.get(c).unwrap()).collect();
+        let mut circuit = CircuitData::new(Some(qubits), Some(clbits), Param::Float(0.0)).unwrap();
+        circuit.add_qreg(qreg, false).unwrap();
+        circuit.add_creg(creg, false).unwrap();
+
+        circuit
+            .push_packed_operation(
+                PauliBased::PauliProductMeasurement(PauliProductMeasurement {
+                    z: vec![false, true, true, true, false],
+                    x: vec![false, false, false, true, true],
+                    neg: true,
+                })
+                .into(),
+                None,
+                &[Qubit(0), Qubit(1), Qubit(2), Qubit(3), Qubit(4)],
+                &[Clbit(0)],
+            )
+            .unwrap();
+
+        circuit
+            .push_packed_operation(
+                PauliBased::PauliProductMeasurement(PauliProductMeasurement {
+                    z: vec![true, true, false],
+                    x: vec![false, true, true],
+                    neg: false,
+                })
+                .into(),
+                None,
+                &[Qubit(3), Qubit(5), Qubit(1)],
+                &[Clbit(2)],
+            )
+            .unwrap();
+
+        circuit
+            .push_packed_operation(
+                PauliBased::PauliProductMeasurement(PauliProductMeasurement {
+                    z: vec![false],
+                    x: vec![true],
+                    neg: false,
+                })
+                .into(),
+                None,
+                &[Qubit(4)],
+                &[Clbit(1)],
+            )
+            .unwrap();
+
+        let result = draw_circuit(&circuit, true, true, Some(80)).unwrap();
+        let expected = "
+      ┌───────────┐
+qr_0: ┤0 I        ├───────────────────
+      │           │┌────────┐
+qr_1: ┤1 Z        ├┤2 X     ├─────────
+      │           ││        │
+qr_2: ┤2 Z PPM(-) ├┤        ├─────────
+      │           ││        │
+qr_3: ┤3 Y        ├┤0 Z PPM ├─────────
+      │           ││        │┌───────┐
+qr_4: ┤4 X        ├┤        ├┤ X PPM ├
+      └─────╥─────┘│        │└───╥───┘
+qr_5: ──────╫──────┤1 Y     ├────╫────
+            ║      └───╥────┘    ║
+cr: 3/══════╩══════════╩═════════╩════
+            0          2         1
+";
+
+        assert_eq!(result, expected.trim_start_matches("\n"));
+    }
+
+    fn assert_cphase_case(
+        num_qubits: usize,
+        mergewires: bool,
+        expected: &str,
+        build: impl FnOnce(&mut CircuitData),
+    ) {
+        let qubits = (0..num_qubits)
+            .map(|_| ShareableQubit::new_anonymous())
+            .collect();
+        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
+
+        build(&mut circuit);
+
+        let result = draw_circuit(&circuit, false, mergewires, Some(100)).unwrap();
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_cphase_two_qubits() {
+        assert_cphase_case(
+            2,
+            true,
+            "
+q_0: ─■───────
+      │P(0.5)
+q_1: ─■───────
+",
+            |circuit| {
+                circuit
+                    .push_standard_gate(
+                        StandardGate::CPhase,
+                        &[Param::Float(0.5)],
+                        &[Qubit(0), Qubit(1)],
+                    )
+                    .unwrap();
+            },
+        );
+    }
+
+    #[test]
+    fn test_cphase_three_qubits_reversed_order() {
+        assert_cphase_case(
+            3,
+            true,
+            "
+q_0: ─■───────
+      │P(0.5)
+q_1: ─┼───────
+      │
+q_2: ─■───────
+",
+            |circuit| {
+                circuit
+                    .push_standard_gate(
+                        StandardGate::CPhase,
+                        &[Param::Float(0.5)],
+                        &[Qubit(2), Qubit(0)],
+                    )
+                    .unwrap();
+            },
+        );
+    }
+
+    #[test]
+    fn test_cphase_complex_mixed_gates() {
+        assert_cphase_case(
+            4,
+            false,
+            "
+q_0: ──■─────────────■──────■────────
+       │             │      │P(1.25)
+       │             │      │
+q_1: ──┼───■─────────┼───X──■────────
+       │   │P(0.5)   │   │
+       │   │       ┌─┴─┐ │
+q_2: ──┼───┼───────┤ Z ├─X─────■─────
+       │   │       └───┘       │
+     ┌─┴─┐ │                 ┌─┴─┐
+q_3: ┤ X ├─■─────────────────┤ X ├───
+     └───┘                   └───┘
+",
+            |circuit| {
+                circuit
+                    .push_standard_gate(StandardGate::CX, &[], &[Qubit(0), Qubit(3)])
+                    .unwrap();
+                circuit
+                    .push_standard_gate(
+                        StandardGate::CPhase,
+                        &[Param::Float(0.5)],
+                        &[Qubit(3), Qubit(1)],
+                    )
+                    .unwrap();
+                circuit
+                    .push_standard_gate(StandardGate::CZ, &[], &[Qubit(0), Qubit(2)])
+                    .unwrap();
+                circuit
+                    .push_standard_gate(StandardGate::Swap, &[], &[Qubit(1), Qubit(2)])
+                    .unwrap();
+                circuit
+                    .push_standard_gate(StandardGate::CX, &[], &[Qubit(2), Qubit(3)])
+                    .unwrap();
+                circuit
+                    .push_standard_gate(
+                        StandardGate::CPhase,
+                        &[Param::Float(1.25)],
+                        &[Qubit(0), Qubit(1)],
+                    )
+                    .unwrap();
+            },
+        );
     }
 }
