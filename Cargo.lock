@@ -93,9 +93,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.103"
+version = "1.0.104"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a4385e2e34eb35d6b3efe798b9eb88096925d87726c0798709bf56d9ed84af3"
+checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
 name = "approx"
@@ -287,9 +287,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.6.1"
+version = "4.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ddb117e43bbf7dacf0a4190fef4d345b9bad68dfc649cb349e7d17d28428e51"
+checksum = "0fb99565819980999fb7b4a1796046a5c949e6d4ff132cf5fadf5a641e20d776"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -297,9 +297,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.6.0"
+version = "4.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "714a53001bf66416adb0e2ef5ac857140e7dc3a0c48fb28b2f10762fc4b5069f"
+checksum = "f09628afdcc538b57f3c6341e9c8e9970f18e4a481690a64974d7023bd33548b"
 dependencies = [
  "anstream",
  "anstyle",
@@ -309,9 +309,9 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "4.6.1"
+version = "4.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2ce8604710f6733aa641a2b3731eaa1e8b3d9973d5e3565da11800813f997a9"
+checksum = "32f2392eae7f16557a3d727ef3a12e57b2b2ca6f98566a5f4fb41ffe305df077"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -1212,6 +1212,12 @@ name = "hashbrown"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
+dependencies = [
+ "allocator-api2",
+ "equivalent",
+ "foldhash 0.2.0",
+ "rayon",
+]
 
 [[package]]
 name = "heapless"
@@ -1288,6 +1294,15 @@ name = "itertools"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b4baf93f58d4425749ca49a51c50ebab072c5df6994d08fed93541c331481dc"
 dependencies = [
  "either",
 ]
@@ -1718,7 +1733,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f0e759e014e630f90af745101b614f761306ddc541681e546649068e25ec1b9"
 dependencies = [
  "byteorder",
- "num-bigint",
+ "num-bigint 0.4.8",
  "py_literal",
 ]
 
@@ -1729,7 +1744,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0a01a88a1d2f89d362475ad16f34de3994f7c86b12259236f5d33537b040bcd4"
 dependencies = [
  "byteorder",
- "num-bigint",
+ "num-bigint 0.4.8",
  "num-complex",
  "py_literal",
 ]
@@ -1749,7 +1764,7 @@ version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "35bd024e8b2ff75562e5f34e7f4905839deb4b22955ef5e73d2fea1b9813cb23"
 dependencies = [
- "num-bigint",
+ "num-bigint 0.4.8",
  "num-complex",
  "num-integer",
  "num-iter",
@@ -1759,9 +1774,19 @@ dependencies = [
 
 [[package]]
 name = "num-bigint"
-version = "0.4.6"
+version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5e44f723f1133c9deac646763579fdb3ac745e418f2a7af9cd0c431da1f20b9"
+checksum = "c89e69e7e0f03bea5ef08013795c25018e101932225a656383bd384495ecc367"
+dependencies = [
+ "num-integer",
+ "num-traits",
+]
+
+[[package]]
+name = "num-bigint"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "93e7820bc0a80a0238e650327316f929ba18d5be054b647490a3a6a339f3e7c0"
 dependencies = [
  "num-integer",
  "num-traits",
@@ -1819,7 +1844,7 @@ version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f83d14da390562dca69fc84082e73e548e1ad308d24accdedd2720017cb37824"
 dependencies = [
- "num-bigint",
+ "num-bigint 0.4.8",
  "num-integer",
  "num-traits",
 ]
@@ -2175,7 +2200,7 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "102df7a3d46db9d3891f178dcc826dc270a6746277a9ae6436f8d29fd490a8e1"
 dependencies = [
- "num-bigint",
+ "num-bigint 0.4.8",
  "num-complex",
  "num-traits",
  "pest",
@@ -2188,10 +2213,10 @@ version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd274650b21d4bfc26a0a47587962c1edb425f69287324355cd040c3ea66071c"
 dependencies = [
- "hashbrown 0.15.5",
+ "hashbrown 0.17.1",
  "indexmap",
  "libc",
- "num-bigint",
+ "num-bigint 0.4.8",
  "num-complex",
  "num-traits",
  "once_cell",
@@ -2263,10 +2288,10 @@ version = "2.6.0-dev"
 dependencies = [
  "approx",
  "hashbrown 0.15.5",
- "itertools 0.14.0",
+ "itertools 0.15.0",
  "nalgebra 0.34.2",
  "ndarray",
- "num-bigint",
+ "num-bigint 0.5.1",
  "num-complex",
  "numpy",
  "pulp",
@@ -2301,7 +2326,7 @@ dependencies = [
  "anyhow",
  "cbindgen",
  "clap",
- "itertools 0.14.0",
+ "itertools 0.15.0",
  "qiskit-bindgen",
  "qiskit-cext-vtable",
  "qiskit-util",
@@ -2316,7 +2341,7 @@ dependencies = [
  "mimalloc",
  "nalgebra 0.34.2",
  "ndarray",
- "num-bigint",
+ "num-bigint 0.5.1",
  "num-complex",
  "num-traits",
  "pyo3",
@@ -2350,7 +2375,7 @@ dependencies = [
  "crossterm",
  "foldhash 0.2.0",
  "hashbrown 0.15.5",
- "itertools 0.14.0",
+ "itertools 0.15.0",
  "lexical-core",
  "lexical-write-float",
  "nalgebra 0.34.2",
@@ -2358,7 +2383,7 @@ dependencies = [
  "nom",
  "nom-language",
  "nom-unicode",
- "num-bigint",
+ "num-bigint 0.5.1",
  "num-complex",
  "num-traits",
  "numpy",
@@ -2379,7 +2404,7 @@ name = "qiskit-circuit-library"
 version = "2.6.0-dev"
 dependencies = [
  "hashbrown 0.15.5",
- "itertools 0.14.0",
+ "itertools 0.15.0",
  "nalgebra 0.34.2",
  "ndarray",
  "num-complex",
@@ -2437,7 +2462,7 @@ name = "qiskit-qasm2"
 version = "2.6.0-dev"
 dependencies = [
  "hashbrown 0.15.5",
- "num-bigint",
+ "num-bigint 0.5.1",
  "pyo3",
 ]
 
@@ -2466,7 +2491,7 @@ dependencies = [
  "hashbrown 0.15.5",
  "ndarray",
  "npyz 0.9.1",
- "num-bigint",
+ "num-bigint 0.5.1",
  "num-complex",
  "num-traits",
  "numpy",
@@ -2488,7 +2513,7 @@ dependencies = [
  "fixedbitset 0.5.7",
  "foldhash 0.2.0",
  "hashbrown 0.15.5",
- "itertools 0.14.0",
+ "itertools 0.15.0",
  "nalgebra 0.34.2",
  "ndarray",
  "ndarray-einsum",
@@ -2516,7 +2541,7 @@ dependencies = [
  "faer",
  "fixedbitset 0.5.7",
  "hashbrown 0.15.5",
- "itertools 0.14.0",
+ "itertools 0.15.0",
  "nalgebra 0.34.2",
  "ndarray",
  "num-complex",
@@ -2549,7 +2574,7 @@ dependencies = [
  "foldhash 0.2.0",
  "hashbrown 0.15.5",
  "indexmap",
- "itertools 0.14.0",
+ "itertools 0.15.0",
  "nalgebra 0.34.2",
  "ndarray",
  "num-complex",
@@ -2776,9 +2801,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.13.0"
+version = "1.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a0e75113e14dc5acb068cd0786884f214f1312650a3d36d269f5c4f3cdee8a2"
+checksum = "f020237b6c8eed93db2e2cb53c00c60a8e1bc73da7d073199a1180401450218d"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -2788,9 +2813,9 @@ dependencies = [
 
 [[package]]
 name = "regex-automata"
-version = "0.4.14"
+version = "0.4.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e1dd4122fc1595e8162618945476892eefca7b88c52820e74af6262213cae8f"
+checksum = "8fcfdb36bda0c880c5931cdc7a2bcdc8ba4556847b9d912bca70bc94708711ad"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -2906,7 +2931,7 @@ checksum = "4b213df2cbfa5f580ed2c0ac3619eda06692a4ff0211f0aebbb4008eaa9724a6"
 dependencies = [
  "fixedbitset 0.5.7",
  "foldhash 0.1.5",
- "hashbrown 0.15.5",
+ "hashbrown 0.17.1",
  "indexmap",
  "ndarray",
  "num-traits",
