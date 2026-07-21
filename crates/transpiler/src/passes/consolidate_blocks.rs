@@ -42,8 +42,8 @@ use qiskit_synthesis::two_qubit_decompose::{
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::SmallVec;
 
-use crate::passes::remove_identity_equiv::{MINIMUM_TOL, average_gate_fidelity_below_tol};
-use crate::passes::unitary_synthesis::{PARAM_SET, TWO_QUBIT_BASIS_SET};
+use super::remove_identity_equiv::{MINIMUM_TOL, average_gate_fidelity_below_tol};
+use super::unitary_synthesis::{PARAM_SET, TWO_QUBIT_BASIS_SET};
 use crate::target::{Qargs, Target};
 use qiskit_circuit::PhysicalQubit;
 
