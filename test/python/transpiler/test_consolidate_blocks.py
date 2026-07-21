@@ -427,6 +427,26 @@ class TestConsolidateBlocks(QiskitTestCase):
         pm = PassManager([Collect2qBlocks(), ConsolidateBlocks()])
         self.assertEqual(QuantumCircuit(5, global_phase=np.pi), pm.run(qc))
 
+    def test_approximation_degree(self):
+        """Test setting the approximation degree."""
+        angle = 1e-2
+        qc = QuantumCircuit(1)
+        qc.rz(angle, 0)
+
+        with self.subTest(approximation_degree=1):
+            pm = PassManager([Collect1qRuns(), ConsolidateBlocks(approximation_degree=1)])
+            out = pm.run(qc)
+
+            expect = QuantumCircuit(1)
+            expect.unitary(RZGate(angle).to_matrix(), [0])
+
+            self.assertEqual(out, expect)
+
+        with self.subTest(approximation_degree=0.1):
+            pm = PassManager([Collect1qRuns(), ConsolidateBlocks(approximation_degree=0.1)])
+            out = pm.run(qc)
+            self.assertEqual(out, QuantumCircuit(1))
+
     def test_identity_1q_unitary_is_removed(self):
         """Test that a 1q identity unitary is removed without a basis."""
         qc = QuantumCircuit(5)
