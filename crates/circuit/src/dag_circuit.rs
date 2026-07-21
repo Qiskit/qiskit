@@ -348,10 +348,6 @@ pub struct DAGCircuit {
     vars_stretches: VarStretchContainer,
     /// Global phase.
     global_phase: Param,
-    /// Duration.
-    duration: Option<Py<PyAny>>,
-    /// Unit of duration.
-    unit: String,
 
     // Note: these are tracked separately from `qubits` and `clbits`
     // because it's not yet clear if the Rust concept of a native Qubit
@@ -494,6 +490,10 @@ pub struct PyDAGCircuit {
     /// Circuit metadata
     #[pyo3(get, set)]
     pub metadata: Option<Py<PyAny>>,
+    /// Duration.
+    duration: Option<Py<PyAny>>,
+    /// Unit of duration.
+    unit: String,
     /// Inner circuit
     inner: DAGCircuit,
 }
@@ -507,6 +507,8 @@ impl PyDAGCircuit {
             name: None,
             metadata: Some(PyDict::new(py).unbind().into()),
             inner: out,
+            duration: None,
+            unit: "dt".to_string(),
         }
     }
 
@@ -565,7 +567,7 @@ impl PyDAGCircuit {
     /// To be removed with get_duration.
     #[getter("_duration")]
     fn get_internal_duration(&self, py: Python) -> PyResult<Option<Py<PyAny>>> {
-        Ok(self.inner.duration.as_ref().map(|x| x.clone_ref(py)))
+        Ok(self.duration.as_ref().map(|x| x.clone_ref(py)))
     }
 
     /// Sets the total duration of the circuit, set by a scheduling transpiler pass. Its unit is
@@ -594,7 +596,7 @@ impl PyDAGCircuit {
     /// To be removed with set_duration.
     #[setter("_duration")]
     fn set_internal_duration(&mut self, duration: Option<Py<PyAny>>) {
-        self.inner.duration = duration
+        self.duration = duration
     }
 
     /// Returns the unit that duration is specified in.
@@ -621,7 +623,7 @@ impl PyDAGCircuit {
     /// To be removed with get_unit.
     #[getter("_unit")]
     fn get_internal_unit(&self) -> PyResult<String> {
-        Ok(self.inner.unit.clone())
+        Ok(self.unit.clone())
     }
 
     /// Sets the unit that duration is specified in.
@@ -649,7 +651,7 @@ impl PyDAGCircuit {
     /// To be removed with set_unit.
     #[setter("_unit")]
     fn set_internal_unit(&mut self, unit: String) {
-        self.inner.unit = unit
+        self.unit = unit
     }
 
     #[getter]
@@ -1007,8 +1009,7 @@ impl PyDAGCircuit {
             .metadata
             .map(|dict| deepcopy.call1((dict, memo)).map(|ob| ob.unbind()))
             .transpose()?;
-        out.inner.duration = out
-            .inner
+        out.duration = out
             .duration
             .map(|dict| deepcopy.call1((dict, memo)).map(|ob| ob.unbind()))
             .transpose()?;
@@ -1357,6 +1358,8 @@ impl PyDAGCircuit {
             inner: self
                 .inner
                 .copy_empty_like_with_capacity(0, 0, vars_mode, BlocksMode::Drop),
+            duration: None,
+            unit: "dt".to_string(),
         }
     }
 
@@ -5073,8 +5076,6 @@ impl DAGCircuit {
             clbits: ObjectRegistry::new(),
             blocks: ControlFlowBlocks::new(),
             global_phase: Param::Float(0.),
-            duration: None,
-            unit: "dt".to_string(),
             qubit_locations: BitLocator::new(),
             clbit_locations: BitLocator::new(),
             vars_stretches: VarStretchContainer::new(),
@@ -5212,8 +5213,6 @@ impl DAGCircuit {
             Some(num_stretches),
         );
         target_dag.global_phase = self.global_phase.clone();
-        target_dag.duration.clone_from(&self.duration);
-        target_dag.unit.clone_from(&self.unit);
         // We strongly expect the cargs to be copied over verbatim.  We don't know about qargs, so
         // we leave that with its default capacity.
         target_dag.cargs_interner = self.cargs_interner.clone();
@@ -7345,8 +7344,6 @@ impl DAGCircuit {
             blocks: ControlFlowBlocks::new(),
             vars_stretches: VarStretchContainer::with_capacity(Some(num_vars), Some(num_stretches)),
             global_phase: Param::Float(0.),
-            duration: None,
-            unit: "dt".to_string(),
             qubit_locations: BitLocator::with_capacity(num_qubits),
             clbit_locations: BitLocator::with_capacity(num_clbits),
             qubit_io_map: Vec::with_capacity(num_qubits),
@@ -8863,6 +8860,8 @@ impl PyDAGCircuit {
             name: qc.name,
             metadata,
             inner: dag,
+            duration: None,
+            unit: "dt".to_string(),
         })
     }
 
@@ -8883,6 +8882,8 @@ impl PyDAGCircuit {
             name,
             metadata,
             inner: circuit,
+            duration: None,
+            unit: "dt".to_string(),
         }
     }
 
@@ -8912,6 +8913,8 @@ impl From<DAGCircuit> for PyDAGCircuit {
             name: None,
             metadata: None,
             inner: value,
+            duration: None,
+            unit: "dt".to_string(),
         }
     }
 }
