@@ -110,6 +110,22 @@ pub struct CustomOpVtable {
     pub eq: fn(*const (), *const ()) -> bool,
 }
 
+fn default_num_ctrl_qubits(_slf: *const ()) -> u32 {
+    0
+}
+
+fn default_label(_slf: *const ()) -> *const c_char {
+    null()
+}
+
+fn default_definition(_slf: *const (), _params: *const Param) -> *mut *mut CircuitData {
+    null_mut()
+}
+
+fn default_eq(slf: *const (), other: *const ()) -> bool {
+    slf.eq(&other)
+}
+
 impl TryFrom<CustomOpVtablePartial> for CustomOpVtable {
     type Error = CustomOpMethod;
 
@@ -122,15 +138,11 @@ impl TryFrom<CustomOpVtablePartial> for CustomOpVtable {
             num_params: value.num_params.ok_or(NumParams)?,
             directive: value.directive.ok_or(Directive)?,
             is_unitary: value.is_unitary.ok_or(IsUnitary)?,
-            num_ctrl_qubits: value.num_ctrl_qubits.unwrap_or(|_slf: *const ()| 0),
-            label: value.label.unwrap_or(|_slf: *const ()| null()),
-            definition: value
-                .definition
-                .unwrap_or(|_slf: *const (), _params: *const Param| null_mut()),
+            num_ctrl_qubits: value.num_ctrl_qubits.unwrap_or(default_num_ctrl_qubits),
+            label: value.label.unwrap_or(default_label),
+            definition: value.definition.unwrap_or(default_definition),
             // eq: value.eq.ok_or(Eq)?,
-            eq: value
-                .eq
-                .unwrap_or(|_slf: *const (), _other: *const ()| _slf.eq(&_other)),
+            eq: value.eq.unwrap_or(default_eq),
         })
     }
 }
