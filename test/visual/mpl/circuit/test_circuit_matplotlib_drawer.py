@@ -44,7 +44,7 @@ from qiskit.circuit.annotated_operation import (
     ControlModifier,
     PowerModifier,
 )
-from qiskit.circuit import Parameter, Qubit, Clbit, IfElseOp, SwitchCaseOp
+from qiskit.circuit import Parameter, Qubit, Clbit, IfElseOp, SwitchCaseOp, BoxOp
 from qiskit.circuit.classical import expr, types
 from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info import random_unitary
@@ -1210,6 +1210,27 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             with qc.box():
                 qc.noop(4)
         fname = "basic_box.png"
+        self.circuit_drawer(qc, output="mpl", filename=fname)
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, self.threshold)
+
+    def test_box_permuted_qubits(self):
+        """Test a box body whose qubits are permuted relative to the outer circuit.
+        See https://github.com/Qiskit/qiskit/issues/16510.
+        """
+        body = QuantumCircuit(3)
+        body.cz(0, 1)
+        body.h(2)
+        qc = QuantumCircuit(3)
+        qc.append(BoxOp(body), [0, 2, 1])
+
+        fname = "box_permuted_qubits.png"
         self.circuit_drawer(qc, output="mpl", filename=fname)
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),

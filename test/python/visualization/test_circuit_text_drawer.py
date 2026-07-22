@@ -25,7 +25,7 @@ from math import pi
 import numpy
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.circuit import Gate, Parameter, Qubit, Clbit, Instruction, IfElseOp
+from qiskit.circuit import Gate, Parameter, Qubit, Clbit, Instruction, IfElseOp, BoxOp
 from qiskit.circuit.annotated_operation import (
     AnnotatedOperation,
     InverseModifier,
@@ -495,6 +495,54 @@ q_3: ───────────────────────┤ Bo
 q_4: ───────────────────────┤        ┤ Box-1    End-1 ├─────        ├─
                             └─────── └───────  ───────┘      ───────┘
 """.rstrip()
+        self.assertEqual(actual, expected)
+
+    def test_box_permuted_qubits(self):
+        """A box body whose qubits are permuted relative to the outer circuit must not collide.
+        See https://github.com/Qiskit/qiskit/issues/16510.
+        """
+        body = QuantumCircuit(3)
+        body.cz(0, 1)
+        body.h(2)
+        qc = QuantumCircuit(3)
+        qc.append(BoxOp(body), [0, 2, 1])
+
+        actual = "\n".join(line.rstrip() for line in str(qc.draw("text", fold=80)).splitlines())
+        expected = """\
+     ┌───────          ───────┐
+q_0: ┤        ─■──────        ├─
+     │         │ ┌───┐        │
+q_1: ┤ Box-0  ─┼─┤ H ├  End-0 ├─
+     │         │ └───┘        │
+q_2: ┤        ─■──────        ├─
+     └───────          ───────┘""".rstrip()
+        self.assertEqual(actual, expected)
+
+    def test_if_else_permuted_qubits(self):
+        """An if-else body with qubits permuted relative to the outer circuit must not collide.
+        Same bug as :meth:`test_box_permuted_qubits` but for a general control-flow op.
+        See https://github.com/Qiskit/qiskit/issues/16510.
+        """
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(1, "cr")
+        qc = QuantumCircuit(qr, cr)
+        body = QuantumCircuit(3)
+        body.cz(0, 1)
+        body.h(2)
+        qc.append(IfElseOp((cr[0], 1), body), [0, 2, 1])
+
+        actual = "\n".join(line.rstrip() for line in str(qc.draw("text", fold=80)).splitlines())
+        expected = """\
+        ┌──────            ───────┐
+qr_0: ──┤       ───■──────        ├─
+        │          │ ┌───┐        │
+qr_1: ──┤ If-0  ───┼─┤ H ├  End-0 ├─
+        │          │ └───┘        │
+qr_2: ──┤       ───■──────        ├─
+        └──╥───            ───────┘
+      ┌────╨─────┐
+cr: 1/╡ cr_0=0x1 ╞══════════════════
+      └──────────┘""".rstrip()
         self.assertEqual(actual, expected)
 
     def test_text_swap(self):

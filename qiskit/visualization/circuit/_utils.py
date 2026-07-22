@@ -480,7 +480,9 @@ def _get_layered_instructions(
         for node in dag.topological_op_nodes():
             nodes.append([node])
     else:
-        nodes = _LayerSpooler(dag, qubits, clbits, justify, measure_map, measure_arrows)
+        nodes = _LayerSpooler(
+            dag, qubits, clbits, justify, measure_map, measure_arrows, wire_map=wire_map
+        )
 
     if not idle_wires:
         # Optionally remove all idle wires and instructions that are on them and
@@ -551,7 +553,9 @@ _GLOBAL_NID = 0
 class _LayerSpooler(list):
     """Manipulate list of layer dicts for _get_layered_instructions."""
 
-    def __init__(self, dag, qubits, clbits, justification, measure_map, measure_arrows):
+    def __init__(
+        self, dag, qubits, clbits, justification, measure_map, measure_arrows, wire_map=None
+    ):
         """Create spool"""
         super().__init__()
         self.dag = dag
@@ -561,6 +565,15 @@ class _LayerSpooler(list):
         self.measure_map = measure_map
         self.measure_arrows = measure_arrows
         self.cregs = [self.dag.cregs[reg] for reg in self.dag.cregs]
+
+        # Order the qubits by their position in the outer drawing so that crossover checks reflect
+        # the outer layout. This prevents layer collisions when a control-flow body acts on qubits
+        # that are permuted relative to the outer circuit (see gh-16510). ``wire_map`` is only
+        # supplied for control-flow bodies; at the top level it is ``None`` and the ordering is
+        # left unchanged.
+        self.mapped_qubits = (
+            sorted(dag.qubits, key=lambda q: wire_map[q]) if wire_map is not None else self.qubits
+        )
 
         if self.justification == "left":
             for dag_layer in dag.layers():
@@ -592,7 +605,9 @@ class _LayerSpooler(list):
 
     def insertable(self, node, nodes):
         """True .IFF. we can add 'node' to layer 'nodes'"""
-        return not _any_crossover(self.qubits, node, nodes, self.measure_arrows)
+        # Use ``mapped_qubits`` (ordered by outer drawing position) so spans are computed against
+        # the outer layout for control-flow bodies.
+        return not _any_crossover(self.mapped_qubits, node, nodes, self.measure_arrows)
 
     def slide_from_left(self, node, index):
         """Insert node into first layer where there is no conflict going l > r"""
