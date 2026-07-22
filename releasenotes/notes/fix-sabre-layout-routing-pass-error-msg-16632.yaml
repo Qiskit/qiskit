@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Clarified the :class:`.TranspilerError` raised by :class:`.SabreLayout` when
+    ``routing_pass`` is combined with ``swap_trials`` or ``layout_trials``.
+    The previous message only mentioned ``swap_trials``, which was misleading
+    when only ``layout_trials`` was set (see `#16632
+    <https://github.com/Qiskit/qiskit/issues/16632>`__).

@@ -171,7 +171,7 @@ class SabreLayout(TransformationPass):
             if self._coupling_map is not None:
                 self._coupling_map.make_symmetric()
         if routing_pass is not None and (swap_trials is not None or layout_trials is not None):
-            raise TranspilerError("Both routing_pass and swap_trials can't be set at the same time")
+            raise TranspilerError("The swap_trials and layout_trials arguments are incompatible with routing_pass")
         self.routing_pass = routing_pass
         self.seed = seed
         self.max_iterations = max_iterations

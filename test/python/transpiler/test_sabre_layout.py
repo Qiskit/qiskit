@@ -292,6 +292,17 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
         self.assertIsInstance(out, QuantumCircuit)
         self.assertEqual(out.layout.initial_index_layout(), [2, 3, 4, 6, 5, 0, 1, 7])
 
+
+    def test_routing_pass_incompatible_with_trial_args(self):
+        """routing_pass cannot be combined with swap_trials or layout_trials (#16632)."""
+        cm = CouplingMap.from_line(3)
+        routing = BasicSwap(cm, fake_run=True)
+        msg = "swap_trials and layout_trials arguments are incompatible with routing_pass"
+        with self.assertRaisesRegex(TranspilerError, msg):
+            SabreLayout(cm, routing_pass=routing, swap_trials=2)
+        with self.assertRaisesRegex(TranspilerError, msg):
+            SabreLayout(cm, routing_pass=routing, layout_trials=2)
+
     def test_support_var_with_explicit_routing_pass(self):
         """Test that the logic works if an explicit routing pass is given."""
         a = expr.Var.new("a", types.Bool())
