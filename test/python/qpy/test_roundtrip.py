@@ -65,12 +65,14 @@ class TestQPYRoundtrip(QiskitTestCase):
         qpy_file = io.BytesIO()
         use_rust_for_write = write_with == "Rust"
         use_rust_for_read = read_with == "Rust"
+        # To ensure we use python for writing, we patch the QPY_RUST_WRITE_MIN_VERSION to be higher than the version we are testing.
         with patch(
             "qiskit.qpy.common.QPY_RUST_WRITE_MIN_VERSION",
             QPY_RUST_WRITE_MIN_VERSION if use_rust_for_write else QPY_VERSION + 1,
         ):
             dump(circuit, qpy_file, version=version, annotation_factories=annotation_factories)
         qpy_file.seek(0)
+        # To ensure we use python for reading, we patch the QPY_RUST_READ_MIN_VERSION to be higher than the version we are testing.
         with patch(
             "qiskit.qpy.common.QPY_RUST_READ_MIN_VERSION",
             QPY_RUST_READ_MIN_VERSION if use_rust_for_read else QPY_VERSION + 1,

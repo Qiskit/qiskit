@@ -55,7 +55,8 @@ const fn parse_version() -> (u8, u8, u8) {
 }
 
 const QISKIT_VERSION: (u8, u8, u8) = parse_version();
-
+const QPY_READ_MIN_VERSION: u8 = 13;
+const QPY_WRITE_MIN_VERSION: u8 = 17;
 pub fn dump_qpy(
     mut circuits: Vec<QuantumCircuitData>,
     metadata_serializer: Option<Bound<PyAny>>,
@@ -63,11 +64,11 @@ pub fn dump_qpy(
     qpy_version: u8,
     annotation_factories: Bound<PyDict>,
 ) -> Result<Bytes, QpyError> {
-    if qpy_version < 17 {
+    if qpy_version < QPY_WRITE_MIN_VERSION {
         Err(QpyError::UnsupportedFeatureForVersion {
             feature: "Rust QPY".to_string(),
             version: qpy_version,
-            min_version: 17,
+            min_version: QPY_WRITE_MIN_VERSION,
         })?;
     }
     let serialized_circuits: Vec<Bytes> = circuits
@@ -189,9 +190,17 @@ pub fn read_raw_circuits(
 pub fn load_qpy(
     py: Python,
     data: &Bytes,
+    qpy_version: u8,
     metadata_deserializer: Option<&Bound<PyAny>>,
     annotation_factories: &Bound<PyDict>,
 ) -> Result<Vec<Py<PyAny>>, QpyError> {
+    if qpy_version < QPY_READ_MIN_VERSION {
+        Err(QpyError::UnsupportedFeatureForVersion {
+            feature: "Rust QPY".to_string(),
+            version: qpy_version,
+            min_version: QPY_READ_MIN_VERSION,
+        })?;
+    }
     let (qpy_file_header, header_size) = deserialize::<QPYFileHeader>(data)?;
     // Verify the type key is for circuits
     if qpy_file_header.type_key == ProgramType::Schedule {
@@ -259,6 +268,7 @@ pub fn py_load_qpy(
     py: Python,
     file_obj: &Bound<PyAny>,
     metadata_deserializer: Option<Bound<PyAny>>,
+    version: u8,
     annotation_factories: Option<Bound<PyDict>>,
 ) -> Result<Vec<Py<PyAny>>, QpyError> {
     let annotation_factories = annotation_factories.unwrap_or(PyDict::new(py));
@@ -270,6 +280,7 @@ pub fn py_load_qpy(
     load_qpy(
         py,
         &data,
+        version,
         metadata_deserializer.as_ref(),
         &annotation_factories,
     )
