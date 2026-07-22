@@ -4,7 +4,4 @@ fixes:
     Fixed an issue where the layer-returning methods
     :meth:`.DAGCircuit.layers` and :meth:`.DAGCircuit.serial_layers`
     copied the parent DAG ``global_phase`` into each yielded layer DAG.
-    Rebuilding a circuit from those layer DAGs could then accumulate the
-    original phase more than once, including in
-    :class:`~qiskit.transpiler.passes.BasicSwap`. This fixes `#16271
-    <https://github.com/Qiskit/qiskit/issues/16271>`__.
+    Fixes `#16271 <https://github.com/Qiskit/qiskit/issues/16271>`__.
