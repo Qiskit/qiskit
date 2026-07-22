@@ -2795,12 +2795,7 @@ pub unsafe extern "C" fn qk_control_flow_instruction_free(cf_inst: *mut CControl
 /// @param params The pointer to the array of ``double`` values to use for the gate parameters.
 ///     This can be a null pointer if there are no parameters for ``gate`` (e.g. ``QkGate_H``).
 ///
-/// # Example
-/// ```c
-///     QkCircuit *circuit = ...; // Assume circuit contains a control flow instruction at index 0
-///     QkControlFlowInstruction *cf_inst = qk_circuit_get_control_flow_instruction(circuit, 0, NULL);
-///     qk_control_flow_instruction_free(cf_inst);
-/// ```
+/// @return an ExitCode.
 ///
 /// # Safety
 ///

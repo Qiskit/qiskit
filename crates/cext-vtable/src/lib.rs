@@ -27,7 +27,8 @@ pub static FUNCTIONS_CIRCUIT: ExportedFunctions =
         .add_child(105, &dag::FUNCTIONS)
         .add_child(205, &param::FUNCTIONS)
         .add_child(255, &circuit_library::FUNCTIONS)
-        .add_child(305, &classical_expr::FUNCTIONS);
+        .add_child(305, &classical_expr::FUNCTIONS)
+        .add_child(380, &operations::FUNCTIONS);
 pub static FUNCTIONS_QI: ExportedFunctions =
     ExportedFunctions::empty().add_child(0, &sparse_observable::FUNCTIONS);
 pub use transpiler::FUNCTIONS as FUNCTIONS_TRANSPILE;
@@ -140,6 +141,7 @@ mod circuit {
             export_fn!(qk_control_flow_switch_case_labels_bit_width),
             export_fn!(qk_control_flow_switch_case_labels_uint),
             export_fn!(qk_control_flow_switch_case_labels_clear),
+            export_fn!(qk_circuit_add_custom_operation),
         ]
     });
 }
@@ -249,6 +251,15 @@ mod param {
             export_fn!(qk_param_as_real),
         ]
     });
+}
+
+mod operations {
+    use crate::impl_::prelude::*;
+    #[cfg(feature = "addr")]
+    use qiskit_cext::operations::*;
+
+    pub static FUNCTIONS: ExportedFunctions =
+        ExportedFunctions::leaves(50, || vec![export_fn!(qk_custom_op_new_vtable)]);
 }
 
 mod sparse_observable {
