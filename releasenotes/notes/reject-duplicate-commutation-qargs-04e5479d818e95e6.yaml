@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed :meth:`.CommutationChecker.commute` panicking when an operation's qubit arguments
+    contain duplicates. It now raises :exc:`.QiskitError` for the invalid input.
+
+    See `#16268 <https://github.com/Qiskit/qiskit/issues/16268>`__.
