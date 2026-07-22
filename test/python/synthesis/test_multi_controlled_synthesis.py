@@ -685,7 +685,7 @@ class TestMCSynthesisDepth(QiskitTestCase):
         """Test synth_mcp_noaux_sp22 bound on depth."""
         synthesized_circuit = synth_mcp_noaux_sp22(num_ctrl_qubits, phase=0.123)
         transpiled_circuit = self.pm.run(synthesized_circuit)
-        depth = transpiled_circuit.count_ops()["cx"]
+        depth = transpiled_circuit.depth()
         # The bound from the documentation of synth_mcp_noaux_sp22
         self.assertLessEqual(depth, 40 * num_ctrl_qubits)
 
@@ -694,7 +694,7 @@ class TestMCSynthesisDepth(QiskitTestCase):
         """Test synth_mcp_noaux_default bound on depth."""
         synthesized_circuit = synth_mcp_noaux_default(num_ctrl_qubits, phase=0.123)
         transpiled_circuit = self.pm.run(synthesized_circuit)
-        depth = transpiled_circuit.count_ops()["cx"]
+        depth = transpiled_circuit.depth()
         # The bound from the documentation of synth_mcp_noaux_sp22
         self.assertLessEqual(depth, 40 * num_ctrl_qubits)
 
