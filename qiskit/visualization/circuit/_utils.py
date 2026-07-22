@@ -568,11 +568,9 @@ class _LayerSpooler(list):
 
         # Order the qubits by their position in the outer drawing so that crossover checks reflect
         # the outer layout. This prevents layer collisions when a control-flow body acts on qubits
-        # that are permuted relative to the outer circuit (see gh-16510). ``wire_map`` is only
-        # supplied for control-flow bodies; at the top level it is ``None`` and the ordering is
-        # left unchanged.
+        # that are permuted relative to the outer circuit.
         self.mapped_qubits = (
-            sorted(dag.qubits, key=lambda q: wire_map[q]) if wire_map is not None else self.qubits
+            sorted(dag.qubits, key=wire_map.__getitem__) if wire_map is not None else self.qubits
         )
 
         if self.justification == "left":
@@ -605,8 +603,6 @@ class _LayerSpooler(list):
 
     def insertable(self, node, nodes):
         """True .IFF. we can add 'node' to layer 'nodes'"""
-        # Use ``mapped_qubits`` (ordered by outer drawing position) so spans are computed against
-        # the outer layout for control-flow bodies.
         return not _any_crossover(self.mapped_qubits, node, nodes, self.measure_arrows)
 
     def slide_from_left(self, node, index):
