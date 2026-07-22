@@ -1221,14 +1221,15 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         self.assertGreaterEqual(ratio, self.threshold)
 
     def test_box_permuted_qubits(self):
-        """Test a box body whose qubits are permuted relative to the outer circuit.
+        """Test control-flow bodies whose qubits are permuted relative to the outer circuit.
         See https://github.com/Qiskit/qiskit/issues/16510.
         """
+        qc = QuantumCircuit(3, 1)
         body = QuantumCircuit(3)
         body.cz(0, 1)
         body.h(2)
-        qc = QuantumCircuit(3)
         qc.append(BoxOp(body), [0, 2, 1])
+        qc.append(IfElseOp((qc.clbits[0], 0), body, body), [0, 2, 1])
 
         fname = "box_permuted_qubits.png"
         self.circuit_drawer(qc, output="mpl", filename=fname)
