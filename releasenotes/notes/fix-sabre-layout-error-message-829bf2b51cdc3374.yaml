@@ -1,0 +1,9 @@
+fixes:
+  - |
+    Fixes a misleading ``TranspilerError`` message when attempting to specify a custom
+    ``routing_pass`` alongside built-in optimization trials. The error string now correctly
+    identifies that ``routing_pass`` is mutually exclusive with both ``swap_trials`` and
+    ``layout_trials``.
+
+    Fix `#16632 <https://github.com/Qiskit/qiskit/issues/16632>`__.
+
