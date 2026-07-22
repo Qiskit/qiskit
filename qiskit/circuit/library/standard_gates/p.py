@@ -14,7 +14,6 @@
 
 from __future__ import annotations
 
-import math
 from cmath import exp
 
 import numpy
@@ -316,9 +315,6 @@ class MCPhaseGate(ControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.mcp` method.
 
-    The implementation of this gate is based on the method described in [1, 2],
-    which requires :math:`O(n)` depth and :math:`O(n^2)` elementary gates
-
     Circuit symbol:
 
     .. code-block:: text
@@ -367,59 +363,11 @@ class MCPhaseGate(ControlledGate):
         )
 
     def _define(self):
-        from qiskit.circuit import QuantumCircuit, QuantumRegister
+        from qiskit.synthesis.multi_controlled.mcp_synthesis import (
+            synth_mcp_noaux_default,
+        )
 
-        qr = QuantumRegister(self.num_qubits, "q")
-        qc = QuantumCircuit(qr)
-
-        if self.num_ctrl_qubits == 0:
-            qc.p(self.params[0], 0)
-        elif self.num_ctrl_qubits == 1:
-            qc.cp(self.params[0], 0, 1)
-        else:
-            phi = self.params[0]
-
-            MCPhaseGate._apply_controlled_gates(qc, phi, self.num_qubits, step=1)
-            MCPhaseGate._apply_controlled_gates(qc, phi, self.num_qubits, step=2)
-            MCPhaseGate._apply_controlled_gates(qc, phi, self.num_qubits - 1, step=3)
-            MCPhaseGate._apply_controlled_gates(qc, phi, self.num_qubits - 1, step=4)
-
-        self.definition = qc
-
-    @staticmethod
-    def _apply_controlled_gates(circuit, phi, n_qubits, step):
-        if step in [1, 3]:
-            start = 0
-            reverse = True
-        else:
-            start = 1
-            reverse = False
-
-        qubit_pairs = [
-            (control, target) for target in range(n_qubits) for control in range(start, target)
-        ]
-
-        qubit_pairs.sort(key=lambda e: e[0] + e[1], reverse=reverse)
-
-        for control, target in qubit_pairs:
-            exponent = target - control
-            if control == 0:
-                exponent = exponent - 1
-            param = 2**exponent
-
-            if target == n_qubits - 1 and step in [1, 2]:
-                sign = 1 if step == 1 else -1
-                circuit.cp(sign * phi / param, control, target)
-            else:
-                if step == 1:
-                    sign = 1
-                elif step == 2:
-                    sign = -1
-                elif step == 3:
-                    sign = -1 if control == 0 else 1
-                else:
-                    sign = 1 if control == 0 else -1
-                circuit.crx(sign * math.pi / param, control, target)
+        self.definition = synth_mcp_noaux_default(self.num_ctrl_qubits, self.params[0])
 
     def control(
         self,

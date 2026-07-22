@@ -1,11 +1,9 @@
 ---
-features_circuits:
-  - &improve-mcp-performance |
-    Added a new decomposition technique for :meth:`.QuantumCircuit.mcp`.
+features_synthesis:
+  - |
+    Added a new decomposition technique for :meth:`.QuantumCircuit.mcp`, and let it
+    automatically choose the best decomposition techniquebased on the number of control qubits.
     This ensures that the circuit depth of :class:`.MCPhaseGate` will grow
     linearly in the number of qubits and not quadratically as the previous method.
     For gates with 2, 3, or 4 control qubits, the previous method is better in CNOT count,
     but for 5 or more control qubits, the new method is better.
-
-performance:
-  - *improve-mcp-performance
