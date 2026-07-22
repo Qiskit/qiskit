@@ -25,7 +25,9 @@ use qiskit_circuit::{
 #[repr(C)]
 #[derive(Debug, Clone)]
 pub struct CustomOp {
+    /// A pointer to the original gate.
     orig: *mut (),
+    /// A pointer to a vtable designed for the original gate.
     v_table: *mut CustomOpVtable,
 }
 
@@ -95,7 +97,9 @@ impl CustomOperation for CustomOp {
     }
 }
 
-/// DOCS: TODO
+/// Represents a table containing all the function pointers
+/// pertaining to the methods associated with the instance of
+/// ``QkCustomOp``.
 #[derive(Debug, Clone)]
 pub struct CustomOpVtable {
     pub name: fn(*const ()) -> *const c_char,
@@ -214,11 +218,13 @@ impl TryFrom<u32> for CustomOpMethod {
     }
 }
 
-/// TODO: Docs
+/// Represents an entry in a ``QkCustomOpVTable``.
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct CustomOpVTableEntry {
+    /// The slot index.
     slot: u32,
+    /// A function pointer for the operation to use as a method.
     func: *const ::std::ffi::c_void,
 }
 
@@ -229,6 +235,20 @@ impl CustomOpVTableEntry {
     };
 }
 
+/// @ingroup QkCustomOp
+/// Builds a ``QkCustomOpVTable`` based on a list of ``QkCustomVTavleEntry``
+/// instances.
+///
+/// @param slots A pointer to a list of entries delimited by an entry with
+/// a sentinel value.
+///
+/// @return A pointer to a constructed vtable or a null pointer if any
+/// required entries are absent.
+///
+/// # Safety
+///
+/// Behavior is undefined if a list of entries without delimiting sentinel
+/// value are provided.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_custom_op_new_vtable(
     mut slots: *const CustomOpVTableEntry,
