@@ -11,9 +11,9 @@
 # that they have been altered from the originals.
 
 """
-=========================================================================
-Generating Random Quantum Information (:mod:`qiskit.quantum_info.random`)
-=========================================================================
+==============================================================
+Random Quantum Information (:mod:`qiskit.quantum_info.random`)
+==============================================================
 
 .. currentmodule:: qiskit.quantum_info.random
 
