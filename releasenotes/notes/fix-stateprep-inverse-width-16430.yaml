@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed :meth:`.StatePreparation.inverse` so integer-bitmap inputs preserve an explicit
+    ``num_qubits`` value when constructing the inverse gate.
+    See `#16430 <https://github.com/Qiskit/qiskit/issues/16430>`__.
