@@ -325,6 +325,18 @@ mod tests {
     }
 
     #[test]
+    fn test_bitwise_and_call_end_to_end() {
+        let mut tree = DataTree::new();
+        tree.insert_leaf("x", bit(&[1, 0, 1, 1]));
+        tree.insert_leaf("y", bit(&[1, 1, 0, 1]));
+        let result = BitwiseAnd.call(&tree).unwrap();
+        let Tensor::Bit(arr) = result.unwrap_leaf() else {
+            panic!("expected Bit leaf");
+        };
+        assert_eq!(arr.as_slice().unwrap(), &[1, 0, 0, 1]);
+    }
+
+    #[test]
     fn test_parity_axis_out_of_bounds_errors() {
         let err = Parity::new(1).call_flat(&[bit(&[1, 0, 1])]).unwrap_err();
         assert_eq!(err, MathNodeError::InvalidAxis { axis: 1, ndim: 1 });

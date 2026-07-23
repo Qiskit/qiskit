@@ -416,6 +416,16 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_mean_call_end_to_end() {
+        let tree = DataTree::new_leaf(Tensor::from([1.0_f64, 2.0, 3.0, 4.0]));
+        let result = Mean::new(0).call(&tree).unwrap();
+        let Tensor::F64(arr) = result.unwrap_leaf() else {
+            panic!("expected F64 leaf");
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[2.5]);
+    }
+
     // --- Axis validation ---
 
     #[test]

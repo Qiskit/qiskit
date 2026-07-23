@@ -244,6 +244,18 @@ mod tests {
     }
 
     #[test]
+    fn test_add_call_end_to_end() {
+        let mut tree = DataTree::new();
+        tree.insert_leaf("x", Tensor::from([1.0_f64, 2.0, 3.0]));
+        tree.insert_leaf("y", Tensor::from([4.0_f64, 5.0, 6.0]));
+        let result = Add.call(&tree).unwrap();
+        let Tensor::F64(arr) = result.unwrap_leaf() else {
+            panic!("expected f64")
+        };
+        assert_eq!(arr.as_slice().unwrap(), &[5.0, 7.0, 9.0]);
+    }
+
+    #[test]
     fn test_add_wrong_arity_errors() {
         let err = Add.call_flat(&[Tensor::from([1.0_f64])]).unwrap_err();
         assert_eq!(
