@@ -907,6 +907,43 @@ class TestDagNodeSelection(DAGTest):
         with self.assertRaises(TypeError):
             self.dag.op_nodes(op=(Reset, 123))
 
+    def test_get_op_nodes_nonstandard_gate(self):
+        """op_nodes uses isinstance semantics for non-standard gate subclasses."""
+
+        class CustomXGate(XGate):
+            """A custom X gate without a standard-gate mapping."""
+
+            _standard_gate = None
+
+        self.dag.apply_operation_back(CustomXGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(XGate(), [self.qubit1], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit2], [])
+
+        custom_nodes = self.dag.op_nodes(op=CustomXGate)
+        self.assertEqual(len(custom_nodes), 1)
+        self.assertIsInstance(custom_nodes[0].op, CustomXGate)
+
+        x_nodes = self.dag.op_nodes(op=XGate)
+        self.assertEqual(len(x_nodes), 2)
+        self.assertTrue(all(isinstance(node.op, XGate) for node in x_nodes))
+
+        h_nodes = self.dag.op_nodes(op=HGate)
+        self.assertEqual(len(h_nodes), 1)
+
+    def test_get_op_nodes_mixed_standard_and_nonstandard_types(self):
+        """Iterable filters match both standard and non-standard requested types."""
+
+        class CustomXGate(XGate):
+            _standard_gate = None
+
+        self.dag.apply_operation_back(CustomXGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit1], [])
+
+        nodes = self.dag.op_nodes(op={CustomXGate, HGate})
+        self.assertEqual(len(nodes), 2)
+        op_types = {type(node.op) for node in nodes}
+        self.assertEqual(op_types, {CustomXGate, HGate})
+
     def test_quantum_successors(self):
         """The method dag.quantum_successors() returns successors connected by quantum edges"""
 
