@@ -16,19 +16,39 @@ use crate::expr::{read_expression, write_expression};
 use crate::params::ParameterType;
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, ModifierType,
-    QPYReadData, QPYWriteData, RegisterType, ValueType,
+    ProgramType, QPYReadData, QPYWriteData, RegisterType, SymbolicEncoding, ValueType,
 };
 use binrw::{BinRead, BinResult, BinWrite, Endian, binread, binrw, binwrite};
 use qiskit_circuit::classical::expr::Expr;
 use std::io::{Read, Seek, Write};
 use std::marker::PhantomData;
 
-/// The overall structure of the QPY data
+/// The QPY file header
+/// This is up-to-date with all the header data found in QPY13.
+/// Earlier versions were missing the `symbolic_encoding` and `type_key` fields
+/// The file header contains:
+/// 1) Every QPY file begins with "QISKIT" (in binary)
+/// 2) The QPY version.
+/// 3) The Qiskit version used to create the QPY file (major, minor, patch)
+/// 4) The number of programs in the file
+/// 5) The symbolic encoding type (for parameter expressions)
+/// An additional field, which in Python was not part of the header but came right after, was adjoined to the header:
+/// 6) The type of the programs stored in the file (a "program" is currently just a circuit; schedule is obsolete)
 
-// For now, the top-level is one circuit, and python handles the complete QPY file
-// Only QPY version 17 is currently supported
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct QPYFileHeader {
+    #[brw(magic = b"QISKIT")]
+    pub qpy_version: u8,
+    pub qiskit_version: (u8, u8, u8),
+    pub num_programs: u64,
+    /// Symbolic encoding type (for parameter expressions)
+    pub symbolic_encoding: SymbolicEncoding,
+    pub type_key: ProgramType,
+}
 
-// the main file structure:
+// the main circuit data structure:
 // 1) Header: Contains the global data such as name, number of qubits etc.
 // 2) Standalone vars: Contains the qiskit_circuit::Var elements used in expressions
 // 3) Annotation Headers: The annotation-related global data.
@@ -39,7 +59,7 @@ use std::marker::PhantomData;
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[brw(import (version: u32))]
+#[brw(import (version: u8))]
 pub struct QPYCircuit {
     pub header: CircuitHeaderV12Pack,
     #[br(count = header.num_vars)]
@@ -418,7 +438,7 @@ pub struct GenericDataSequencePack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[br(import (version: u32))]
+#[br(import (version: u8))]
 pub struct PauliEvolutionDefPack {
     #[bw(calc = pauli_data.len() as u64)]
     pub operator_size: u64,
@@ -459,7 +479,7 @@ pub enum PauliDataPackV16 {
 
 #[binrw]
 #[derive(Debug)]
-#[br(import(version: u32))]
+#[br(import(version: u8))]
 pub enum PauliDataPack {
     #[br(pre_assert(version <= 16))]
     V16(PauliDataPackV16),
@@ -661,6 +681,11 @@ pub enum ParameterExpressionSymbolPack {
     Parameter(ParameterExpressionParameterSymbolPack),
     #[brw(magic = b'v')]
     ParameterVector(ParameterExpressionParameterVectorSymbolPack),
+    /// This variant _should not_ exist; it is counter to the QPY spec, and has no semantic meaning.
+    /// However, Qiskit 2.0 (with QPY 13 non-symengine serialisation but before Rust-space
+    /// `ParameterExpression` or QPY) would populate the "symbol map" with the raw dictionaries
+    /// given to `ParameterExpression.subs` calls, which include expressions.  The equivalent "read"
+    /// code would load up the entries, then immediately filter them out to make the symbol map.
     #[brw(magic = b'e')]
     ParameterExpression(ParameterExpressionParameterExpressionSymbolPack),
 }
@@ -956,7 +981,7 @@ pub struct AnnotationHeaderStaticPack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[brw(import(version: u32))]
+#[brw(import(version: u8))]
 pub struct CalibrationsPack {
     #[bw(calc = calibrations.len() as u16)]
     pub num_cals: u16,
@@ -967,7 +992,7 @@ pub struct CalibrationsPack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[brw(import(version: u32))]
+#[brw(import(version: u8))]
 pub struct CalibrationDefPack {
     #[bw(calc = name.len() as u16)]
     pub name_size: u16,
@@ -990,7 +1015,7 @@ pub struct CalibrationDefPack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[brw(import(version: u32))] // should not work for version < 5 but we do not support it yet
+#[brw(import(version: u8))] // should not work for version < 5 but we do not support it yet
 pub struct ScheduleBlockPack {
     #[bw(calc = name.len() as u16)]
     pub name_size: u16,
@@ -1026,7 +1051,7 @@ pub struct AlignmentContextPack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[brw(import(version: u32))]
+#[brw(import(version: u8))]
 pub struct ScheduleBlockElementPack {
     pub element_type: u8,
     #[br(if(element_type == b's'), args(version,))]

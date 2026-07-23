@@ -31,7 +31,7 @@ from qiskit.circuit.parameterexpression import (
     OpCode,
     op_code_to_method,
 )
-from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
+from qiskit.circuit.parametervector import ParameterVector
 from qiskit.qpy import common, formats, exceptions, type_keys
 from qiskit.qpy.binary_io.parse_sympy_repr import parse_sympy_repr
 
@@ -56,7 +56,7 @@ def _write_parameter(file_obj, obj):
 
 
 def _write_parameter_vec(file_obj, obj):
-    name_bytes = obj.vector._name.encode(common.ENCODE)
+    name_bytes = obj.vector.name.encode(common.ENCODE)
     file_obj.write(
         struct.pack(
             formats.PARAMETER_VECTOR_ELEMENT_PACK,
@@ -458,16 +458,8 @@ def _read_parameter_vec(file_obj, vectors):
     root_uuid_int = uuid.UUID(bytes=data.uuid).int - data.index
     root_uuid = uuid.UUID(int=root_uuid_int)
     name = file_obj.read(data.vector_name_size).decode(common.ENCODE)
-
-    if root_uuid not in vectors:
-        vectors[root_uuid] = (ParameterVector(name, data.vector_size), set())
-    vector = vectors[root_uuid][0]
-
-    if vector[data.index].uuid != uuid.UUID(bytes=data.uuid):
-        vectors[root_uuid][1].add(data.index)
-        vector._params[data.index] = ParameterVectorElement(
-            vector, data.index, uuid=uuid.UUID(int=root_uuid_int + data.index)
-        )
+    if (vector := vectors.get(root_uuid, None)) is None:
+        vector = vectors[root_uuid] = ParameterVector(name, data.vector_size, uuid=root_uuid)
     return vector[data.index]
 
 
@@ -680,25 +672,12 @@ def _read_parameter_expr_v13(buf, symbol_map, version, vectors):
         if expression_data.OP_CODE == 255:
             continue
         method_str = op_code_to_method(expression_data.OP_CODE)
-        if expression_data.OP_CODE in {0, 1, 2, 3, 4, 13, 15, 18, 19, 20}:
+        if expression_data.OP_CODE in (0, 1, 2, 3, 4, 13, 15, 18, 19, 20):
             rhs = stack.pop()
             lhs = stack.pop()
-            # Reverse ops for commutative ops, which are add, mul (0 and 2 respectively)
-            # op codes 13 and 15 can never be reversed and 18, 19, 20
-            # are the reversed versions of non-commutative operations
-            # so 1, 3, 4 and 18, 19, 20 handle this explicitly.
-            if (
-                not isinstance(lhs, ParameterExpression)
-                and isinstance(rhs, ParameterExpression)
-                and expression_data.OP_CODE in {0, 2}
-            ):
-                if expression_data.OP_CODE == 0:
-                    method_str = "__radd__"
-                elif expression_data.OP_CODE == 2:
-                    method_str = "__rmul__"
-                stack.append(getattr(rhs, method_str)(lhs))
-            else:
-                stack.append(getattr(lhs, method_str)(rhs))
+            if not isinstance(lhs, ParameterExpression):
+                lhs = ParameterExpression._Value(lhs)
+            stack.append(getattr(lhs, method_str)(rhs))
         else:
             lhs = stack.pop()
             stack.append(getattr(lhs, method_str)())

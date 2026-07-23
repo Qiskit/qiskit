@@ -11,8 +11,8 @@
 # that they have been altered from the originals.
 
 """Cancel the redundant (self-adjoint) gates through commutation relations."""
+
 from __future__ import annotations
-import warnings
 from qiskit.circuit import Gate, Qubit
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 from qiskit.circuit.library import PauliGate, ZGate
@@ -110,17 +110,7 @@ class LightCone(TransformationPass):
                 # Check commutation with all previous operations
                 commutes_bool = True
                 for op in lightcone_operations:
-                    max_num_qubits = max(len(op[1]), len(node.qargs))
-                    if max_num_qubits > 10:
-                        warnings.warn(
-                            "LightCone pass is checking commutation of "
-                            f"operators of size {max_num_qubits}. "
-                            "This operation can be slow.",
-                            category=RuntimeWarning,
-                        )
-                    commute_bool = scc.commute(
-                        op[0], op[1], [], node.op, node.qargs, [], max_num_qubits=max_num_qubits
-                    )
+                    commute_bool = scc.commute(op[0], op[1], [], node.op, node.qargs, [])
                     if not commute_bool:
                         # If the current node does not commute, update the light-cone
                         lightcone_qubits.update(node.qargs)

@@ -13,12 +13,13 @@
 use ndarray::{
     Array1, Array2, ArrayView1, ArrayView2, ArrayViewMut2, Axis, Zip, azip, concatenate, s,
 };
-use rand::{Rng, SeedableRng};
+use rand::prelude::*;
+use rand::rngs::SysRng;
 use rand_pcg::Pcg64Mcg;
 use rayon::iter::{IndexedParallelIterator, ParallelIterator};
 use rayon::prelude::IntoParallelIterator;
 
-use qiskit_circuit::getenv_use_multiple_threads;
+use qiskit_util::getenv_use_multiple_threads;
 
 /// Specifies the minimum number of qubits in order to parallelize computations
 /// (this number is chosen based on several local experiments).
@@ -221,7 +222,7 @@ pub fn _row_sum(row_1: ArrayView1<bool>, row_2: ArrayView1<bool>) -> Result<Arra
 pub fn random_invertible_binary_matrix_inner(num_qubits: usize, seed: Option<u64>) -> Array2<bool> {
     let mut rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
-        None => Pcg64Mcg::from_os_rng(),
+        None => Pcg64Mcg::try_from_rng(&mut SysRng).unwrap(),
     };
 
     let mut matrix = Array2::from_elem((num_qubits, num_qubits), false);

@@ -151,7 +151,7 @@ class MultiplierGate(Gate):
             num_result_qubits: The number of result qubits to limit the output to.
                 Default value is ``2 * num_state_qubits`` to represent any possible
                 result from the multiplication of the two inputs.
-            name: The name of the circuit.
+            label: The optional string label to apply to the instruction.
         Raises:
             ValueError: If ``num_state_qubits`` is smaller than 1.
             ValueError: If ``num_result_qubits`` is smaller than ``num_state_qubits``.
@@ -198,4 +198,4 @@ class MultiplierGate(Gate):
         # This particular decomposition does not use any ancilla qubits.
         # Note that the transpiler may choose a different decomposition
         # based on the number of ancilla qubits available.
-        self.definition = multiplier_qft_r17(self.num_state_qubits)
+        self.definition = multiplier_qft_r17(self.num_state_qubits, self.num_result_qubits)

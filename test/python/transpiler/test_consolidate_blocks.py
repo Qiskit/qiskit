@@ -768,6 +768,36 @@ class TestConsolidateBlocks(QiskitTestCase):
         with self.assertRaisesRegex(IndexError, "node index.*was not a valid operation"):
             pass_.run(dag)
 
+    def test_force_consolidate_incomplete_basis(self):
+        """Test force_consolidate works even if the basis doesn't allow selecting a decomposer."""
+        qc = QuantumCircuit(1)
+        qc.rx(0.2, 0)
+
+        pm = PassManager(
+            [
+                Collect1qRuns(),
+                ConsolidateBlocks(basis_gates=["u"], force_consolidate=True),
+            ]
+        )
+
+        out = pm.run(qc)
+        self.assertEqual(set(out.count_ops().keys()), {"unitary"})
+
+    def test_determinism_with_multiple_two_qubits_gates_in_basis(self):
+        """
+        Test that the basis gate is chosen deterministically when the basis set
+        contains multiple parametric or non-parametric two-qubits gates.
+        """
+        with self.subTest("parametric"):
+            # rzz appears first in KAK_GATE_PARAM_NAMES
+            pass_ = ConsolidateBlocks(basis_gates=["ryy", "rzz"])
+            self.assertEqual(pass_.basis_gate_name, "rzz")
+
+        with self.subTest("non-parametric"):
+            # cx appears first in KAK_GATE_NAMES
+            pass_ = ConsolidateBlocks(basis_gates=["ecr", "cx", "cz"])
+            self.assertEqual(pass_.basis_gate_name, "cz")
+
 
 class TestCollect1qRuns(QiskitTestCase):
     """

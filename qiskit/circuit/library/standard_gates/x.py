@@ -1243,15 +1243,18 @@ class MCXVChain(MCXGate):
     ):
         """
         Args:
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
             dirty_ancillas: when set to ``True``, the method applies an optimized multicontrolled-X gate
                 up to a relative phase using dirty ancillary qubits with the properties of lemmas 7 and 8
                 from arXiv:1501.06911, with at most 8*k - 6 CNOT gates.
                 For k within the range {1, ..., ceil(n/2)}. And for n representing the total number of
                 qubits.
+            label: Optional gate label. Defaults to ``None``.
+            ctrl_state: The control state of the gate, specified either as an integer or a bitstring
+                (e.g. ``"110"``). If ``None``, defaults to the all-ones state ``2**num_ctrl_qubits - 1``
             relative_phase: when set to ``True``, the method applies the optimized multicontrolled-X gate
                 up to a relative phase, in a way that, by lemma 7 of arXiv:1501.06911, the relative
                 phases of the ``action part`` cancel out with the phases of the ``reset part``.
-
             action_only: when set to ``True``, the method applies only the action part of lemma 8
                 from arXiv:1501.06911.
 

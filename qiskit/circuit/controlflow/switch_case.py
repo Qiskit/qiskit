@@ -70,6 +70,7 @@ class SwitchCaseOp(ControlFlowOp):
             cases: an ordered iterable of the corresponding value of the ``target`` and the circuit
                 block that should be executed if this is matched.  There is no fall-through between
                 blocks, and the order matters.
+            label: An optional label for identifying the instruction.
         """
 
         from qiskit.circuit import QuantumCircuit
@@ -129,6 +130,8 @@ class SwitchCaseOp(ControlFlowOp):
             case_ids.add(id(case_))
             if num_qubits is None:
                 num_qubits, num_clbits = case_.num_qubits, case_.num_clbits
+            if case_.num_input_vars:
+                raise self._unexpected_input_var_error()
             if case_.num_qubits != num_qubits or case_.num_clbits != num_clbits:
                 raise CircuitError("incompatible bits between cases")
             self._params.append(case_)

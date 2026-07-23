@@ -1465,6 +1465,34 @@ class TestDagLayers(DAGTest):
             ]
             self.assertEqual(comp, truth)
 
+    def test_serial_layers_do_not_copy_global_phase(self):
+        """serial_layers() should not copy the parent DAG global phase."""
+        qc = QuantumCircuit(2, global_phase=math.pi / 7)
+        qc.h(0)
+        qc.cx(0, 1)
+        dag = circuit_to_dag(qc)
+
+        layers = list(dag.serial_layers())
+
+        self.assertEqual(len(layers), 2)
+        self.assertEqual(dag.global_phase, math.pi / 7)
+        self.assertEqual(layers[0]["graph"].global_phase, 0.0)
+        self.assertEqual(layers[1]["graph"].global_phase, 0.0)
+
+    def test_layers_do_not_copy_global_phase(self):
+        """layers() should not copy the parent DAG global phase."""
+        qc = QuantumCircuit(2, global_phase=math.pi / 7)
+        qc.h(0)
+        qc.cx(0, 1)
+        dag = circuit_to_dag(qc)
+
+        layers = list(dag.layers())
+
+        self.assertEqual(len(layers), 2)
+        self.assertEqual(dag.global_phase, math.pi / 7)
+        self.assertEqual(layers[0]["graph"].global_phase, 0.0)
+        self.assertEqual(layers[1]["graph"].global_phase, 0.0)
+
 
 def _sort_key(indices: dict[Qubit, int]):
     """Return key function for sorting DAGCircuits, given a global qubit mapping."""

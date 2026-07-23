@@ -34,7 +34,7 @@ from qiskit.circuit.annotated_operation import (
 )
 from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info.operators import SuperOp
-from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info import random_unitary
 from qiskit.transpiler.layout import Layout, TranspileLayout
 from qiskit.visualization.circuit.circuit_visualization import _text_circuit_drawer
 from qiskit.visualization import circuit_drawer
@@ -4431,21 +4431,21 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
         """Test that the gates inside ControlFlowOps land on correct qubits when transpiled"""
         expected = "\n".join(
             [
-                "                                                                  ",
-                "     qr_1 -> 0 ───────────────────────────────────────────────────",
-                "                                                                  ",
-                "ancilla_0 -> 1 ───────────────────────────────────────────────────",
-                "               ┌────── ┌────────┐┌────── ┌───┐ ───────┐  ───────┐ ",
-                "     qr_0 -> 2 ┤ If-0  ┤ Rz(-π) ├┤ If-1  ┤ X ├  End-1 ├─  End-0 ├─",
-                "               └──╥─── └────────┘└──╥─── └───┘ ───────┘  ───────┘ ",
-                "ancilla_1 -> 3 ───╫─────────────────╫─────────────────────────────",
-                "                  ║                 ║                             ",
-                "ancilla_2 -> 4 ───╫─────────────────╫─────────────────────────────",
-                "                  ║                 ║                             ",
-                "         cr_0: ═══o═════════════════╬═════════════════════════════",
-                "                  ║                 ║                             ",
-                "         cr_1: ═══■═════════════════■═════════════════════════════",
-                "                 0x2                                              ",
+                "                                                                 ",
+                "     qr_1 -> 0 ──────────────────────────────────────────────────",
+                "                                                                 ",
+                "ancilla_0 -> 1 ──────────────────────────────────────────────────",
+                "               ┌────── ┌───────┐┌────── ┌───┐ ───────┐  ───────┐ ",
+                "     qr_0 -> 2 ┤ If-0  ┤ Rz(π) ├┤ If-1  ┤ X ├  End-1 ├─  End-0 ├─",
+                "               └──╥─── └───────┘└──╥─── └───┘ ───────┘  ───────┘ ",
+                "ancilla_1 -> 3 ───╫────────────────╫─────────────────────────────",
+                "                  ║                ║                             ",
+                "ancilla_2 -> 4 ───╫────────────────╫─────────────────────────────",
+                "                  ║                ║                             ",
+                "         cr_0: ═══o════════════════╬═════════════════════════════",
+                "                  ║                ║                             ",
+                "         cr_1: ═══■════════════════■═════════════════════════════",
+                "                 0x2                                             ",
             ]
         )
 

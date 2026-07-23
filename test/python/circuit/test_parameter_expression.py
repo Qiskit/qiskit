@@ -15,6 +15,8 @@
 import cmath
 import math
 import unittest
+import pickle
+import copy
 
 from test import combine
 from test import QiskitTestCase
@@ -492,6 +494,16 @@ class TestParameterExpression(QiskitTestCase):
                 self.assertIsInstance(result, (int, float, complex))
                 self.assertEqual(result, expected)
 
+    @ddt.idata(operand for operand in operands if isinstance(operand, ParameterExpression))
+    def test_pickle_roundtrip(self, expr):
+        pickled = pickle.loads(pickle.dumps(expr))
+        copied = copy.copy(expr)
+        deep_copied = copy.deepcopy(expr)
+        self.assertEqual([expr] * 3, [pickled, copied, deep_copied])
+        self.assertEqual(
+            [expr.parameters] * 3, [pickled.parameters, copied.parameters, deep_copied.parameters]
+        )
+
     @unittest.skipUnless(HAS_SYMPY, "Sympy is required for this test")
     def test_sympify_all_ops(self):
         """Test the sympify function works for all the supported operations."""
@@ -607,3 +619,19 @@ class TestParameterExpression(QiskitTestCase):
         sympy_sub = res_sub.sympify()
         expected_sub = 2 - sympy.Symbol("a")
         self.assertEqual(sympy_sub, expected_sub)
+
+    def test_simplify_multi_parameter_cancellation(self):
+        """Test that simplify() handles cancellation across multiple parameters."""
+        a = Parameter("a")
+        b = Parameter("b")
+        expr = a + b - a - b
+        simplified = expr.simplify()
+        self.assertEqual(simplified.parameters, set())
+        self.assertEqual(simplified.numeric(), 0)
+
+    def test_simplify_no_cancellation(self):
+        """Test that simplify() leaves non-cancelling expressions intact."""
+        a = Parameter("a")
+        b = Parameter("b")
+        expr = a + b
+        self.assertEqual(expr, expr.simplify())
