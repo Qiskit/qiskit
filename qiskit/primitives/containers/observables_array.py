@@ -141,7 +141,10 @@ class ObservablesArray(ShapedMixin):
                     prev_qubit = qubit
                 string_fragments.append("I" * (obs.num_qubits - max(pauli_qubits) - 1))
                 full_pauli_str = "".join(string_fragments)[::-1]
-            result[full_pauli_str] = coeff  # keep complex!
+            # Unlike _obs_to_dict (which operates on pre-simplified observables),
+            # _obs_to_complex_dict may receive unsimplified observables with
+            # repeated Pauli terms — accumulate coefficients to avoid data loss.
+            result[full_pauli_str] = result.get(full_pauli_str, 0) + coeff
         return result
 
     def __repr__(self):
