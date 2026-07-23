@@ -755,6 +755,21 @@ the top-level `Makefile`, which you can run with
 make ctest
 ```
 
+You can pass arbitrary CMake flags to the `ctest` recipe by setting the
+`CMAKE_FLAGS` environment variable, such as:
+
+```bash
+CMAKE_FLAGS='-DCMAKE_C_STANDARD=23 -DCMAKE_C_EXTENSIONS=ON' make ctest
+```
+
+which will run the C API tests in `gnu23` (or equivalent) mode, instead of the
+default.
+
+> [!NOTE]
+> Overriding any `CMAKE_FLAGS` from the command line will cause them to become
+> your new cached default values.  Run `make cclean` to fully clear all caches
+> if you want to reset to the defaults later.
+
 #### Writing C API tests
 
 The C API test suite automatically discovers any files inside `test/c/` matching
