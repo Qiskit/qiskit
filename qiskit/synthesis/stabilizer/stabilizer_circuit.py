@@ -18,9 +18,13 @@ from collections.abc import Collection
 
 import numpy as np
 
-from qiskit.quantum_info import PauliList, Clifford
+from qiskit.quantum_info import PauliList
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
+
+from qiskit._accelerate.synthesis.stabilizer import (
+    synth_circuit_from_stabilizers as synth_circuit_from_stabilizers_inner,
+)
 
 
 def synth_circuit_from_stabilizers(
@@ -62,86 +66,15 @@ def synth_circuit_from_stabilizers(
     if len(stabilizer_list.commutes_with_all(stabilizer_list)) < len(stabilizer_list):
         raise QiskitError("Some stabilizers do not commute.")
 
-    num_qubits = stabilizer_list.num_qubits
-    circuit = QuantumCircuit(num_qubits)
-
-    used = 0
-    for i, stabilizer in enumerate(stabilizer_list):
-        curr_stab = stabilizer.evolve(Clifford(circuit), frame="s")
-
-        # Find pivot.
-        pivot = used
-        while pivot < num_qubits:
-            if curr_stab[pivot].x or curr_stab[pivot].z:
-                break
-            pivot += 1
-
-        if pivot == num_qubits:
-            if curr_stab.x.any():
-                raise QiskitError(
-                    f"Stabilizer {i} ({stabilizer}) anti-commutes with some of "
-                    "the previous stabilizers."
-                )
-            if curr_stab.phase == 2:
-                raise QiskitError(
-                    f"Stabilizer {i} ({stabilizer}) contradicts "
-                    "some of the previous stabilizers."
-                )
-            if curr_stab.z.any() and not allow_redundant:
-                raise QiskitError(
-                    f"Stabilizer {i} ({stabilizer}) is a product of the others "
-                    "and allow_redundant is False. Add allow_redundant=True "
-                    "to the function call if you want to allow redundant stabilizers."
-                )
-            continue
-
-        # Change pivot basis to the Z axis.
-        if curr_stab[pivot].x:
-            if curr_stab[pivot].z:
-                circuit.h(pivot)
-                circuit.s(pivot)
-                circuit.h(pivot)
-                circuit.s(pivot)
-                circuit.s(pivot)
-            else:
-                circuit.h(pivot)
-
-        # Cancel other terms in Pauli string.
-        for j in range(num_qubits):
-            if j == pivot or not (curr_stab[j].x or curr_stab[j].z):
-                continue
-            p = curr_stab[j].x + curr_stab[j].z * 2
-            if p == 1:  # X
-                circuit.h(pivot)
-                circuit.cx(pivot, j)
-                circuit.h(pivot)
-            elif p == 2:  # Z
-                circuit.cx(j, pivot)
-            elif p == 3:  # Y
-                circuit.h(pivot)
-                circuit.s(j)
-                circuit.s(j)
-                circuit.s(j)
-                circuit.cx(pivot, j)
-                circuit.h(pivot)
-                circuit.s(j)
-
-        # Move pivot to diagonal.
-        if pivot != used:
-            circuit.swap(pivot, used)
-
-        # fix sign
-        curr_stab = stabilizer.evolve(Clifford(circuit), frame="s")
-        if curr_stab.phase == 2:
-            circuit.x(used)
-        used += 1
-
-    if used < num_qubits and not allow_underconstrained:
-        raise QiskitError(
-            "Stabilizers are underconstrained and allow_underconstrained is False."
-            " Add allow_underconstrained=True  to the function call "
-            "if you want to allow underconstrained stabilizers."
-        )
-    if invert:
-        return circuit
-    return circuit.inverse()
+    return QuantumCircuit._from_circuit_data(
+        synth_circuit_from_stabilizers_inner(
+            stabilizer_list.z.astype(bool),
+            stabilizer_list.x.astype(bool),
+            stabilizer_list.phase.astype(np.uint8),
+            [str(stabilizer) for stabilizer in stabilizer_list],
+            allow_redundant,
+            allow_underconstrained,
+            invert,
+        ),
+        legacy_qubits=True,
+    )

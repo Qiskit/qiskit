@@ -1,0 +1,7 @@
+---
+features_synthesis:
+  - |
+    The function :func:`.synth_circuit_from_stabilizers` was ported to Rust, leading to a
+    significant increase in performance.  The Rust implementation maintains the Clifford
+    tableau of the circuit under construction incrementally instead of re-simulating the
+    circuit for every stabilizer, so the speedup grows with the number of qubits.
