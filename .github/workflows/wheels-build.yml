@@ -155,7 +155,7 @@ jobs:
           source .venv/bin/activate
           uv pip install cibuildwheel==3.4.0
       - name: Run cibuildwheel
-        run: python3 -m cibuildwheel
+        run: .venv/bin/python -m cibuildwheel
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
@@ -178,7 +178,7 @@ jobs:
           source .venv/bin/activate
           uv pip install cibuildwheel==3.4.0
       - name: Run cibuildwheel
-        run: python3 -m cibuildwheel
+        run: .venv/bin/python -m cibuildwheel
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
