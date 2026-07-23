@@ -3608,7 +3608,7 @@ impl PyDAGCircuit {
             None => (None, true),
             Some(obj) => {
                 if obj.is_instance_of::<PyType>() {
-                    let ty = obj.downcast::<PyType>()?;
+                    let ty = obj.cast::<PyType>()?;
                     let nonstandard = ty.getattr(intern!(py, "_standard_gate")).ok().is_none();
                     (Some(vec![ty.clone().unbind()]), nonstandard)
                 } else {
@@ -3618,7 +3618,7 @@ impl PyDAGCircuit {
                     let mut all_nonstandard = true;
                     for item in iter {
                         let item = item?;
-                        let ty = item.downcast::<PyType>()?;
+                        let ty = item.cast::<PyType>()?;
                         if ty.getattr(intern!(py, "_standard_gate")).ok().is_some() {
                             all_nonstandard = false;
                         }
