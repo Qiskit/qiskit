@@ -72,6 +72,7 @@ impl ProgramNode for Mean {
     }
     fn call_flat(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::CallError> {
         unpack_tensor_args!(args, [x]);
+        super::check_axis(self.axis, x.shape().len())?;
         let result = match x {
             Tensor::F32(a) => Tensor::F32(a.mean_axis(Axis(self.axis)).unwrap().into_shared()),
             Tensor::F64(a) => Tensor::F64(a.mean_axis(Axis(self.axis)).unwrap().into_shared()),
@@ -136,6 +137,7 @@ impl ProgramNode for Variance {
     }
     fn call_flat(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::CallError> {
         unpack_tensor_args!(args, [x]);
+        super::check_axis(self.axis, x.shape().len())?;
         let result = match x {
             Tensor::F32(a) => {
                 Tensor::F32(a.var_axis(Axis(self.axis), self.ddof as f32).into_shared())
@@ -205,6 +207,7 @@ impl ProgramNode for Std {
     }
     fn call_flat(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::CallError> {
         unpack_tensor_args!(args, [x]);
+        super::check_axis(self.axis, x.shape().len())?;
         let result = match x {
             Tensor::F32(a) => {
                 Tensor::F32(a.std_axis(Axis(self.axis), self.ddof as f32).into_shared())
@@ -411,5 +414,28 @@ mod tests {
                 actual: 2,
             })
         );
+    }
+
+    // --- Axis validation ---
+
+    #[test]
+    fn test_mean_axis_out_of_bounds_errors() {
+        let x = Tensor::from([1.0_f64, 2.0, 3.0]);
+        let err = Mean::new(1).call_flat(&[x]).unwrap_err();
+        assert_eq!(err, MathNodeError::InvalidAxis { axis: 1, ndim: 1 });
+    }
+
+    #[test]
+    fn test_variance_axis_out_of_bounds_errors() {
+        let x = Tensor::from([1.0_f64, 2.0, 3.0]);
+        let err = Variance::new(1, 0.0).call_flat(&[x]).unwrap_err();
+        assert_eq!(err, MathNodeError::InvalidAxis { axis: 1, ndim: 1 });
+    }
+
+    #[test]
+    fn test_std_axis_out_of_bounds_errors() {
+        let x = Tensor::from([1.0_f64, 2.0, 3.0]);
+        let err = Std::new(1, 0.0).call_flat(&[x]).unwrap_err();
+        assert_eq!(err, MathNodeError::InvalidAxis { axis: 1, ndim: 1 });
     }
 }

@@ -27,4 +27,15 @@ pub enum MathNodeError {
     /// A tensor operation failed (dtype or shape mismatch).
     #[error(transparent)]
     Tensor(#[from] TensorError),
+    /// The requested axis was out of bounds for the tensor's number of dimensions.
+    #[error("axis {axis} is out of bounds for tensor with {ndim} dimension(s)")]
+    InvalidAxis { axis: usize, ndim: usize },
+}
+
+/// Validate that `axis` is a valid axis index for a tensor with `ndim` dimensions.
+pub(crate) fn check_axis(axis: usize, ndim: usize) -> Result<(), MathNodeError> {
+    if axis >= ndim {
+        return Err(MathNodeError::InvalidAxis { axis, ndim });
+    }
+    Ok(())
 }

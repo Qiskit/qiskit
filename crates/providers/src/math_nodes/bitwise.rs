@@ -167,6 +167,7 @@ impl ProgramNode for Parity {
     }
     fn call_flat(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::CallError> {
         unpack_tensor_args!(args, [x]);
+        super::check_axis(self.axis, x.shape().len())?;
         let Tensor::Bit(arr) = x else {
             return Err(unexpected_dtype("", x).into());
         };
@@ -321,5 +322,11 @@ mod tests {
                 ref key,
             }) if key.is_empty()
         ));
+    }
+
+    #[test]
+    fn test_parity_axis_out_of_bounds_errors() {
+        let err = Parity::new(1).call_flat(&[bit(&[1, 0, 1])]).unwrap_err();
+        assert_eq!(err, MathNodeError::InvalidAxis { axis: 1, ndim: 1 });
     }
 }
