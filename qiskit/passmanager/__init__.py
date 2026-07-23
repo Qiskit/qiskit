@@ -21,7 +21,7 @@ Overview
 ========
 
 The Qiskit pass manager is inspired by the `LLVM compiler <https://llvm.org/>`_.
-The compiler infrastructure separates responsibilities into three main components;
+The compiler infrastructure separates responsibilities into three main components:
 tasks, flow controllers, and pass managers.
 
 A compilation pipeline executes a sequence of :class:`Task` objects, each of which
@@ -39,7 +39,7 @@ levels where optimizations are run until a convergence criterion is met.
 
 Pass managers are responsible for managing the tasks, including scheduling required analyses and
 enabling modification of the task sequence by the user.
-Qiskit provides two IR-generic pass managers in this module, and pass manager specialized
+Qiskit provides two IR-generic pass managers in this module, and a pass manager specialized
 to :class:`.DAGCircuit` as IR in :mod:`qiskit.transpiler`. The IR-generic ones are:
 
 * :class:`BasePassManager`: a pass manager with fixed IR. This pass manager allows modifying the
@@ -74,6 +74,7 @@ The callback is called by :class:`GenericPass` instances expecting the following
 .. code-block:: python
 
     def callback(
+        *,
         task: Task[IR_IN, IR_OUT],
         passmanager_ir: IR_OUT,
         property_set: PropertySet,
