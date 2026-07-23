@@ -109,6 +109,7 @@ class SabreLayout(TransformationPass):
         swap_trials=None,
         layout_trials=None,
         skip_routing=False,
+        skip_heuristic_layouts=False,
     ):
         """SabreLayout initializer.
 
@@ -147,6 +148,8 @@ class SabreLayout(TransformationPass):
                 will be set in the property set. This is a tradeoff to run custom
                 routing with multiple layout trials, as using this option will cause
                 SabreLayout to run the routing stage internally but not use that result.
+            skip_heuristic_layouts (bool): If this is set to ``True``, no heuristic
+                starting layouts are used.
 
         Raises:
             TranspilerError: If both ``routing_pass`` and ``swap_trials`` or
@@ -178,6 +181,7 @@ class SabreLayout(TransformationPass):
         self.swap_trials = default_num_processes() if swap_trials is None else swap_trials
         self.layout_trials = default_num_processes() if layout_trials is None else layout_trials
         self.skip_routing = skip_routing
+        self.skip_heuristic_layouts = skip_heuristic_layouts
 
     @property
     def coupling_map(self):
@@ -281,6 +285,7 @@ class SabreLayout(TransformationPass):
             seed=self.seed,
             partial_layouts=starting_layouts,
             skip_routing=self.skip_routing,
+            skip_heuristic_layouts=self.skip_heuristic_layouts,
         )
         sabre_stop = time.perf_counter()
         logger.debug(

@@ -182,6 +182,7 @@ pub fn layout_stage(
                 seed,
                 Vec::new(),
                 false,
+                false,
             )?;
             *dag = result;
             *transpile_layout =
@@ -206,6 +207,7 @@ pub fn layout_stage(
                 seed,
                 Vec::new(),
                 false,
+                false,
             )?;
             *dag = result;
             *transpile_layout =
@@ -228,6 +230,7 @@ pub fn layout_stage(
             20,
             seed,
             Vec::new(),
+            false,
             false,
         )?;
         *dag = result;
