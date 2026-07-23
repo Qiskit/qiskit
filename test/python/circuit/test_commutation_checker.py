@@ -658,11 +658,18 @@ class TestCommutationChecker(QiskitTestCase):
         ]
 
         for op1, qargs1, op2, qargs2, duplicate_arg in cases:
-            with self.subTest(duplicate_arg=duplicate_arg):
+            with self.subTest(duplicate_arg=duplicate_arg, check_inputs=True):
                 with self.assertRaisesRegex(
                     QiskitError, rf"{duplicate_arg} contains duplicate qubits"
                 ):
                     checker.commute(op1, qargs1, [], op2, qargs2, [])
+            with self.subTest(duplicate_arg=duplicate_arg, check_inputs=False):
+                # Use a gate filter so the core path returns early without remapping,
+                # which would panic on duplicate qargs when validation is skipped.
+                filtered = CommutationChecker(gates={"x"})
+                self.assertFalse(
+                    filtered.commute(op1, qargs1, [], op2, qargs2, [], check_inputs=False)
+                )
 
     def test_pauli_evolution_parameterized(self):
         """Test PauliEvolutionGate commutations for parameterized times."""

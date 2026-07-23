@@ -378,7 +378,7 @@ impl CommutationChecker {
         )?)
     }
 
-    #[pyo3(name="commute", signature=(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits=None, approximation_degree=1., matrix_max_num_qubits=3))]
+    #[pyo3(name="commute", signature=(op1, qargs1, cargs1, op2, qargs2, cargs2, max_num_qubits=None, approximation_degree=1., matrix_max_num_qubits=3, check_inputs=true))]
     #[allow(clippy::too_many_arguments)]
     fn py_commute(
         &mut self,
@@ -391,10 +391,13 @@ impl CommutationChecker {
         max_num_qubits: Option<u32>,
         approximation_degree: f64,
         matrix_max_num_qubits: u32,
+        check_inputs: bool,
     ) -> PyResult<bool> {
         let (qargs1, qargs2) = get_bits_from_py::<Qubit>(qargs1, qargs2)?;
-        validate_unique_bits(&qargs1, "qargs1")?;
-        validate_unique_bits(&qargs2, "qargs2")?;
+        if check_inputs {
+            validate_unique_bits(&qargs1, "qargs1")?;
+            validate_unique_bits(&qargs2, "qargs2")?;
+        }
         let (cargs1, cargs2) = get_bits_from_py::<Clbit>(cargs1, cargs2)?;
 
         Ok(self.commute(
