@@ -25,9 +25,9 @@ The compiler infrastructure separates responsibilities into three main component
 tasks, flow controllers, and pass managers.
 
 A compilation pipeline executes a sequence of :class:`Task` objects, each of which
-takes an intermediate representation (IR) as input, performs work, and returns an output IR.
-Where :class:`Task` defines the interface, an atomic task is a *pass*, which subclasses
-:class:`GenericPass` and implements its abstract :meth:`~GenericPass.run` method.
+takes an intermediate representation (IR) as input, performs work, and returns a, possibly
+different, IR as output. Where :class:`Task` defines the interface, an atomic task is a *pass*,
+which subclasses :class:`GenericPass` and implements its abstract :meth:`~GenericPass.run` method.
 This is the class that should be used as base class when implementing a custom compiler pass.
 
 Flow controllers provide execution models for a set of tasks.
