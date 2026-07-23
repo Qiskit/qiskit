@@ -941,8 +941,9 @@ class TestDagNodeSelection(DAGTest):
 
         nodes = self.dag.op_nodes(op={CustomXGate, HGate})
         self.assertEqual(len(nodes), 2)
-        op_types = {type(node.op) for node in nodes}
-        self.assertEqual(op_types, {CustomXGate, HGate})
+        self.assertTrue(all(isinstance(node.op, (CustomXGate, HGate)) for node in nodes))
+        self.assertEqual(sum(isinstance(node.op, CustomXGate) for node in nodes), 1)
+        self.assertEqual(sum(isinstance(node.op, HGate) for node in nodes), 1)
 
     def test_quantum_successors(self):
         """The method dag.quantum_successors() returns successors connected by quantum edges"""
