@@ -10,9 +10,13 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-pub mod binary;
-pub mod bitwise;
-pub mod reduction;
+mod binary;
+mod bitwise;
+mod reduction;
+
+pub use binary::*;
+pub use bitwise::*;
+pub use reduction::*;
 
 use crate::program_node::CallInputError;
 use crate::tensor::TensorError;
