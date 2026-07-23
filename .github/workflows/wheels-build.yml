@@ -145,12 +145,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
-      - name: Prepare cibuildwheel
-        run: pip3 install cibuildwheel==3.4.0
+      - name: Install uv
+        run: |
+          python3 -m pip install --user uv==0.11.2
+      - name: Install cibuildwheel dependencies
+        run: |
+          python3 -m uv python install 3.12
+          python3 -m uv venv --python 3.12 .venv
+          source .venv/bin/activate
+          uv pip install cibuildwheel==3.4.0
       - name: Run cibuildwheel
         run: python3 -m cibuildwheel
-        env:
-          CIBW_BEFORE_TEST: "dnf builddep scipy"
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
@@ -163,12 +168,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
-      - name: Prepare cibuildwheel
-        run: pip3 install cibuildwheel==3.4.0
+      - name: Install uv
+        run: |
+          python3 -m pip install --user uv==0.11.2
+      - name: Install cibuildwheel dependencies
+        run: |
+          python3 -m uv python install 3.12
+          python3 -m uv venv --python 3.12 .venv
+          source .venv/bin/activate
+          uv pip install cibuildwheel==3.4.0
       - name: Run cibuildwheel
         run: python3 -m cibuildwheel
-        env:
-          CIBW_BEFORE_TEST: "dnf builddep scipy"
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
