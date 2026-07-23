@@ -2,6 +2,9 @@
 fixes:
   - |
     Fixed :meth:`.CommutationChecker.commute` panicking when an operation's qubit arguments
-    contain duplicates. It now raises :exc:`.QiskitError` for the invalid input.
+    contain duplicates. With ``check_inputs=True`` (the default), it now raises
+    :exc:`.QiskitError` for the invalid input at the public boundary. Pass
+    ``check_inputs=False`` to skip that validation when callers already guarantee
+    distinct qubits. The core commutation path used by the transpiler is unchanged.
 
     See `#16268 <https://github.com/Qiskit/qiskit/issues/16268>`__.
