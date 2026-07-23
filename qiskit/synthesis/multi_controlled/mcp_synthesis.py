@@ -25,10 +25,11 @@ def synth_mcp_noaux_v24(num_ctrl_qubits: int, phase: float) -> QuantumCircuit:
 
     The circuit depth is :math:`O(n^2)` and the total number of CX gates used
     is :math:`8n^2-16n-60` for :math:`n \ge 8` control qubits,
-    which is worse than `synth_mcp_noaux_sp22` for large :math:`n`,
-    but better for small :math:`n \le 4`.
+    which is worse than :func:`synth_mcp_noaux_sp22` for :math:`n \ge 5`,
+    but better for :math:`n \le 4`.
 
     The number of CX gates required can be derived as follows:
+
     - Each :math:`m`-controlled RZ gate uses at most
 
       .. math::
@@ -50,7 +51,7 @@ def synth_mcp_noaux_v24(num_ctrl_qubits: int, phase: float) -> QuantumCircuit:
         8k - 6 & (k \ge 4)
         \end{cases}
 
-      CX gates, which can be derived from the implementation of `synth_mcx_n_dirty_i15`.
+      CX gates, which can be derived from the implementation of :func:`synth_mcx_n_dirty_i15`.
     - Thus, for :math:`1 \le m \le 7`,
 
       .. math::
@@ -68,8 +69,10 @@ def synth_mcp_noaux_v24(num_ctrl_qubits: int, phase: float) -> QuantumCircuit:
       and for :math:`m \ge 8`,
 
       .. math::
+
         N(m) = 2 \left( 8 \left\lceil \frac{m}{2} \right\rceil - 6 \right)
         + 2 \left( 8 \left\lfloor \frac{m}{2} \right\rfloor - 6 \right) = 16m-24
+
     - Therefore, the total number of CX gates used to synthesize a multi-controlled phase
       gate with :math:`n \ge 8` control qubits is
 
@@ -112,7 +115,7 @@ def synth_mcp_noaux_v24(num_ctrl_qubits: int, phase: float) -> QuantumCircuit:
 
 
 def _apply_controlled_gates(circuit: QuantumCircuit, phi: float, n_qubits: int, step: int) -> None:
-    """Helper function to apply controlled gates in a specific pattern based on the step in synth_mcp_noaux_sp22."""
+    """Helper function to apply controlled gates in a specific pattern based on the step in :func:`synth_mcp_noaux_sp22`."""
     # The following code is a derivative work of qclib
     # (https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py).
     # Copyright 2021 qclib project.
@@ -157,23 +160,28 @@ def synth_mcp_noaux_sp22(num_ctrl_qubits: int, phase: float) -> QuantumCircuit:
 
     For :math:`n \ge 2`, the method produces a circuit with :math:`4n^2-4n+2` CX gates
     and requires :math:`O(n)` depth.
-    For :math:`n \le 4`, it is more efficient to use `synth_mcp_noaux_v24`,
+    For :math:`n \le 4`, it is more efficient to use :func:`synth_mcp_noaux_v24`,
     which produces a circuit with less CX gates.
 
     The circuit breaks down into four steps, each applying a specific pattern of controlled gates.
-    - Step 1: Apply `n` controlled phase gates and `n(n-1)/2` controlled RX gates.
-    - Step 2: Apply `n-1` controlled phase gates and `(n-1)(n-2)/2` controlled RX gates.
-        This is the initial phase. It applies positive angle rotations (e.g., Rx(pi/k)) and
-        the k-th roots of the target unitary (U^(1/k)) in a cascading V-shape pattern.
-        This step systematically accumulates the partitioned components of the unitary
-        operation on the target qubit based on the control states.
-    - Step 3: Apply `n(n-1)/2` controlled RX gates.
-    - Step 4: Apply `(n-1)(n-2)/2` controlled RX gates.
-        Steps 3 and 4 together constitute the uncomputation process. By applying
-        negative angle rotations (e.g., Rx(-pi/k)), these steps cleanly reverse the unwanted
-        entanglement and phase shifts generated in the first two steps. This precise
-        cancellation ensures that the target qubit undergoes the full unitary operation U
-        if and only if all control qubits are in the |1> state.
+
+    - Step 1: Apply :math:`n` controlled phase gates and :math:`n(n-1)/2` controlled RX gates.
+    - Step 2: Apply :math:`n-1` controlled phase gates and :math:`(n-1)(n-2)/2` controlled RX gates.
+
+      This is the initial phase. It applies angle rotations (e.g., :math:`R_X(\pi/k)`) and
+      the :math:`k`-th roots of the target unitary (:math:`U^{1/k}`) in a cascading V-shape pattern.
+      This step systematically accumulates the partitioned components of the unitary
+      operation on the target qubit based on the control states.
+
+    - Step 3: Apply :math:`n(n-1)/2` controlled RX gates.
+    - Step 4: Apply :math:`(n-1)(n-2)/2` controlled RX gates.
+
+      Steps 3 and 4 together constitute the uncomputation process. By applying only the inverse of
+      the angle rotation operations in steps 1 and 2, these steps reverse the unwanted
+      entanglement and phase shifts generated in the first two steps. This cancellation ensures
+      that the target qubit undergoes the full unitary operation :math:`U`
+      if and only if all control qubits are in the :math:`|1\rangle` state.
+
     Each controlled RX gate and controlled phase gate requires two CX gates,
     resulting in a total of :math:`4n^2-4n+2` CX gates.
 
@@ -219,7 +227,7 @@ def synth_mcp_noaux_sp22(num_ctrl_qubits: int, phase: float) -> QuantumCircuit:
 
 
 def synth_mcp_noaux_default(num_ctrl_qubits: int, phase: float) -> QuantumCircuit:
-    """Choose the best synthesis code for MCPhaseGate according to the number of qubits.
+    """Choose the best synthesis code for MCPhaseGate according to the number of control qubits.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
