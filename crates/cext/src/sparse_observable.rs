@@ -1145,7 +1145,8 @@ mod py {
     use crate::pointers::mut_ptr_as_ref;
     use pyo3::exceptions::PyRuntimeError;
     use pyo3::prelude::*;
-    use qiskit_quantum_info::sparse_observable::{PySparseObservable, SparseObservable};
+    use qiskit_quantum_info::python::sparse_observable::PySparseObservable;
+    use qiskit_quantum_info::sparse_observable::SparseObservable;
     use std::sync;
 
     fn try_project_inner_observable<'a>(
