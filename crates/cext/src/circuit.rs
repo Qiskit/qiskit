@@ -17,6 +17,7 @@ use crate::circuit_library::pbc::{CPauliProductMeasurement, CPauliProductRotatio
 use crate::control_flow::CControlFlowInstruction;
 use crate::dag::COperationKind;
 use crate::exit_codes::ExitCode;
+use crate::operations::CustomOp;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 use crate::transpiler::target::parse_params;
 
@@ -32,8 +33,8 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interner;
 use qiskit_circuit::operations::{
-    ArrayType, DelayUnit, Operation, OperationRef, Param, PauliBased, PauliProductMeasurement,
-    PauliProductRotation, StandardGate, StandardInstruction, UnitaryGate,
+    ArrayType, CustomOperation, DelayUnit, Operation, OperationRef, Param, PauliBased,
+    PauliProductMeasurement, PauliProductRotation, StandardGate, StandardInstruction, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter_table::ParameterTableError;
@@ -2748,6 +2749,78 @@ pub unsafe extern "C" fn qk_circuit_get_control_flow_instruction(
 pub unsafe extern "C" fn qk_control_flow_instruction_free(cf_inst: *mut CControlFlowInstruction) {
     // SAFETY: Per documentation, cf_inst is a valid pointer to a QkControlFlowInstruction
     unsafe { drop(Box::from_raw(cf_inst)) };
+}
+
+/// @ingroup QkCircuit
+/// Adds a `QkCustomOp` into the circuit.
+///
+/// @param circuit A pointer to the circuit object.
+/// @param operation The `QkCustomOp` object.
+/// @param qubits The pointer to the array of ``uint32_t`` qubit indices to add the gate on. This
+///     can be a null pointer if there are no qubits for ``gate`` (e.g. ``QkGate_GlobalPhase``).
+/// @param clbits The pointer to the array of ``uint32_t`` qubit indices to add the gate on. This
+///     can be a null pointer if there are no qubits for ``gate`` (e.g. ``QkGate_GlobalPhase``).
+/// @param params The pointer to the array of ``double`` values to use for the gate parameters.
+///     This can be a null pointer if there are no parameters for ``gate`` (e.g. ``QkGate_H``).
+///
+/// @return an ExitCode.
+///
+/// # Safety
+///
+/// The ``qubits``, ``clbits``, and ``params`` types are expected to be a pointer to an
+/// array of ``uint32_t`` (for ``qubits``, ``clbits``) or  ``QkParam`` (for ``params``)
+/// where the length is matching the expectations for the standard gate. If the array is
+/// insufficiently long the behavior of this function is undefined as this will read
+/// outside the bounds of the array. It can be a null pointer if there are no qubits
+/// or params for a given gate. You can check ``qk_gate_num_qubits``, ``qk_gate_num_clbits``
+/// and ``qk_gate_num_params`` to determine how many qubits and params are required
+/// for a given gate.
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_add_custom_operation(
+    circuit: *mut CircuitData,
+    operation: CustomOp,
+    qubits: *const u32,
+    clbits: *const u32,
+    params: *mut *mut Param,
+) -> ExitCode {
+    let boxed: Box<dyn CustomOperation> = Box::new(operation);
+    let op = PackedOperation::from_custom_operation(boxed);
+
+    let circ = unsafe { mut_ptr_as_ref(circuit) };
+
+    let qubits = if !qubits.is_null() {
+        unsafe { std::slice::from_raw_parts(qubits, op.num_qubits() as usize) }
+    } else {
+        Default::default()
+    };
+    let qargs: &[Qubit] = bytemuck::cast_slice(qubits);
+
+    let clbits = if !clbits.is_null() {
+        unsafe { std::slice::from_raw_parts(clbits, op.num_clbits() as usize) }
+    } else {
+        Default::default()
+    };
+    let cargs: &[Clbit] = bytemuck::cast_slice(clbits);
+
+    let params = (!params.is_null()).then(|| {
+        let params = if !params.is_null() {
+            unsafe { std::slice::from_raw_parts(*params, op.num_params() as usize) }
+        } else {
+            Default::default()
+        };
+        Parameters::Params(params.iter().cloned().collect())
+    });
+
+    let ret = circ.push_packed_operation(op, params, qargs, cargs);
+    match ret {
+        Ok(()) => ExitCode::Success,
+        Err(CircuitDataError::ParameterTableError(ParameterTableError::NameConflict(_))) => {
+            ExitCode::ParameterNameConflict
+        }
+        Err(_) => ExitCode::ParameterError,
+    }
 }
 
 #[cfg(test)]
