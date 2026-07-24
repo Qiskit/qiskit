@@ -14,8 +14,7 @@ use pyo3::prelude::*;
 pyo3::import_exception!(qiskit.qasm2.exceptions, QASM2ParseError);
 
 use crate::error::ParseError;
-use crate::ext::ClassicalCallableExt;
-use crate::parse::ParamId;
+use crate::expr::Expr;
 use crate::{CustomClassical, CustomInstruction, lex, parse};
 
 use super::InternalBytecode;
@@ -64,98 +63,17 @@ pub enum OpCode {
     SpecialInclude,
 }
 
-// The following structs, with `Expr` or `OpCode` in the name (but not the top-level `OpCode`
-// above) build up the tree of symbolic expressions for the parameter applications within gate
-// bodies.  We choose to store this in the gate classes that the Python component emits, so it can
-// lazily create definitions as required, rather than eagerly binding them as the file is parsed.
-//
-// In Python space we would usually have the classes inherit from some shared subclass, but doing
-// that makes things a little fiddlier with PyO3, and there's no real benefit for our uses.
-
-/// A (potentially folded) floating-point constant value as part of an expression.
 #[pyclass(module = "qiskit._accelerate.qasm2", frozen, skip_from_py_object)]
-#[derive(Clone)]
-pub struct ExprConstant {
-    #[pyo3(get)]
-    pub value: f64,
-}
-
-/// A reference to one of the arguments to the gate.
-#[pyclass(module = "qiskit._accelerate.qasm2", frozen, skip_from_py_object)]
-#[derive(Clone)]
-pub struct ExprArgument {
-    #[pyo3(get)]
-    pub index: ParamId,
-}
-
-/// A unary operation acting on some other part of the expression tree.  This includes the `+` and
-/// `-` unary operators, but also any of the built-in scientific-calculator functions.
-#[pyclass(module = "qiskit._accelerate.qasm2", frozen, skip_from_py_object)]
-#[derive(Clone)]
-pub struct ExprUnary {
-    #[pyo3(get)]
-    pub opcode: UnaryOpCode,
-    #[pyo3(get)]
-    pub argument: Py<PyAny>,
-}
-
-/// A binary operation acting on two other parts of the expression tree.
-#[pyclass(module = "qiskit._accelerate.qasm2", frozen, skip_from_py_object)]
-#[derive(Clone)]
-pub struct ExprBinary {
-    #[pyo3(get)]
-    pub opcode: BinaryOpCode,
-    #[pyo3(get)]
-    pub left: Py<PyAny>,
-    #[pyo3(get)]
-    pub right: Py<PyAny>,
-}
-
-/// Some custom callable Python function that the user told us about.
-#[pyclass(module = "qiskit._accelerate.qasm2", frozen, skip_from_py_object)]
-#[derive(Clone)]
-pub struct ExprCustom {
-    pub callable: ClassicalCallableExt,
-    #[pyo3(get)]
-    pub arguments: Vec<Py<PyAny>>,
-}
+pub struct GateBodyArguments(Vec<Expr>);
 
 #[pymethods]
-impl ExprCustom {
-    /// Invoke the custom callable with pre-evaluated float arguments.
-    fn call(&self, py: Python<'_>, args: Vec<f64>) -> PyResult<f64> {
-        Ok(self.callable.call(&args, py)?)
+impl GateBodyArguments {
+    fn evaluate(&self, params: Vec<f64>, py: Python<'_>) -> PyResult<Vec<f64>> {
+        self.0
+            .iter()
+            .map(|expr| crate::expr::evaluate(expr, &params, py).map_err(PyErr::from))
+            .collect()
     }
-}
-
-/// Discriminator for the different types of unary operator.  We could have a separate class for
-/// each of these, but this way involves fewer imports in Python, and also serves to split up the
-/// option tree at the top level, so we don't have to test every unary operator before testing
-/// other operations.
-#[pyclass(module = "qiskit._accelerate.qasm2", frozen, eq, skip_from_py_object)]
-#[derive(Clone, PartialEq, Eq)]
-pub enum UnaryOpCode {
-    Negate,
-    Cos,
-    Exp,
-    Ln,
-    Sin,
-    Sqrt,
-    Tan,
-}
-
-/// Discriminator for the different types of binary operator.  We could have a separate class for
-/// each of these, but this way involves fewer imports in Python, and also serves to split up the
-/// option tree at the top level, so we don't have to test every binary operator before testing
-/// other operations.
-#[pyclass(module = "qiskit._accelerate.qasm2", frozen, eq, skip_from_py_object)]
-#[derive(Clone, PartialEq, Eq)]
-pub enum BinaryOpCode {
-    Add,
-    Subtract,
-    Multiply,
-    Divide,
-    Power,
 }
 
 impl<'py> IntoPyObject<'py> for InternalBytecode {
@@ -241,7 +159,7 @@ impl<'py> IntoPyObject<'py> for InternalBytecode {
                     // parameters changing here, so we can just use `OpCode::Gate` unlike in the
                     // internal bytecode.
                     opcode: OpCode::Gate,
-                    operands: (id, arguments.into_pyobject(py)?, qubits)
+                    operands: (id, GateBodyArguments(arguments), qubits)
                         .into_pyobject(py)?
                         .into_any()
                         .unbind(),

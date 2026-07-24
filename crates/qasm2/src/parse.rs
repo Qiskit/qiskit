@@ -73,6 +73,10 @@ macro_rules! newtype_id {
             pub fn new(value: usize) -> Self {
                 Self(value)
             }
+
+            pub fn index(&self) -> usize {
+                self.0
+            }
         }
     };
 
@@ -729,6 +733,18 @@ impl State {
             }
             self.check_trailing_comma(comma.as_ref())?;
             self.expect(TokenType::RParen, "a closing parenthesis", &lparen_token)?;
+        }
+
+        #[cfg(not(feature = "py"))]
+        if num_params > 0 {
+            return Err(ParseError::new(message_generic(
+                Some(&Position::new(
+                    self.current_filename(),
+                    gate_token.line,
+                    gate_token.col,
+                )),
+                "parameterized gate definitions are not supported without the py feature",
+            )));
         }
         // Parse the quantum parameters into the symbol table.
         let mut num_qubits = 0usize;

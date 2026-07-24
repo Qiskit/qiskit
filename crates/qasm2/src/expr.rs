@@ -18,11 +18,9 @@ use core::f64;
 
 use hashbrown::HashMap;
 #[cfg(feature = "py")]
-use pyo3::prelude::*;
+use qiskit_circuit::parameter::parameter_expression::{ParameterError, ParameterExpression};
 use std::ops::ControlFlow;
 
-#[cfg(feature = "py")]
-use crate::bytecode;
 use crate::error::{
     ParseError, Position, message_bad_eof, message_generic, message_incorrect_requirement,
 };
@@ -53,20 +51,6 @@ impl From<TokenType> for Function {
             TokenType::Sqrt => Function::Sqrt,
             TokenType::Tan => Function::Tan,
             _ => panic!(),
-        }
-    }
-}
-
-#[cfg(feature = "py")]
-impl From<Function> for bytecode::UnaryOpCode {
-    fn from(value: Function) -> Self {
-        match value {
-            Function::Cos => Self::Cos,
-            Function::Exp => Self::Exp,
-            Function::Ln => Self::Ln,
-            Function::Sin => Self::Sin,
-            Function::Sqrt => Self::Sqrt,
-            Function::Tan => Self::Tan,
         }
     }
 }
@@ -151,77 +135,70 @@ pub enum Expr {
 }
 
 #[cfg(feature = "py")]
-impl<'py> IntoPyObject<'py> for Expr {
-    type Target = PyAny; // the Python type
-    type Output = Bound<'py, Self::Target>; // in most cases this will be `Bound`
-    type Error = PyErr;
+pub fn evaluate(
+    expr: &Expr,
+    params: &[f64],
+    attachment: Attachment<'_>,
+) -> Result<f64, ParseError> {
+    to_parameter_expression(expr, params, attachment)?
+        .try_to_value(true)
+        .map(|value| value.as_real())
+        .map_err(|err| ParseError::new(err.to_string()))
+}
 
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        Ok(match self {
-            Expr::Constant(value) => bytecode::ExprConstant { value }
-                .into_pyobject(py)?
-                .into_any(),
-            Expr::Parameter(index) => bytecode::ExprArgument { index }
-                .into_pyobject(py)?
-                .into_any(),
-            Expr::Negate(expr) => bytecode::ExprUnary {
-                opcode: bytecode::UnaryOpCode::Negate,
-                argument: expr.into_pyobject(py)?.unbind(),
+#[cfg(feature = "py")]
+fn to_parameter_expression(
+    expr: &Expr,
+    params: &[f64],
+    attachment: Attachment<'_>,
+) -> Result<ParameterExpression, ParseError> {
+    let param_error = |err: ParameterError| ParseError::new(err.to_string());
+    Ok(match expr {
+        Expr::Constant(value) => ParameterExpression::from_f64(*value),
+        Expr::Parameter(index) => {
+            let value = params
+                .get(index.index())
+                .copied()
+                .ok_or_else(|| ParseError::new("gate parameter index out of range".to_owned()))?;
+            ParameterExpression::from_f64(value)
+        }
+        Expr::Negate(inner) => to_parameter_expression(inner, params, attachment)?.neg(),
+        Expr::Add(lhs, rhs) => to_parameter_expression(lhs, params, attachment)?
+            .add(&to_parameter_expression(rhs, params, attachment)?)
+            .map_err(param_error)?,
+        Expr::Subtract(lhs, rhs) => to_parameter_expression(lhs, params, attachment)?
+            .sub(&to_parameter_expression(rhs, params, attachment)?)
+            .map_err(param_error)?,
+        Expr::Multiply(lhs, rhs) => to_parameter_expression(lhs, params, attachment)?
+            .mul(&to_parameter_expression(rhs, params, attachment)?)
+            .map_err(param_error)?,
+        Expr::Divide(lhs, rhs) => to_parameter_expression(lhs, params, attachment)?
+            .div(&to_parameter_expression(rhs, params, attachment)?)
+            .map_err(param_error)?,
+        Expr::Power(lhs, rhs) => to_parameter_expression(lhs, params, attachment)?
+            .pow(&to_parameter_expression(rhs, params, attachment)?)
+            .map_err(param_error)?,
+        Expr::Function(func, inner) => {
+            let inner = to_parameter_expression(inner, params, attachment)?;
+            match func {
+                Function::Cos => inner.cos(),
+                Function::Exp => inner.exp(),
+                Function::Ln => inner.log(),
+                Function::Sin => inner.sin(),
+                Function::Sqrt => inner
+                    .pow(&ParameterExpression::from_f64(0.5))
+                    .map_err(param_error)?,
+                Function::Tan => inner.tan(),
             }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::Add(left, right) => bytecode::ExprBinary {
-                opcode: bytecode::BinaryOpCode::Add,
-                left: left.into_pyobject(py)?.unbind(),
-                right: right.into_pyobject(py)?.unbind(),
-            }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::Subtract(left, right) => bytecode::ExprBinary {
-                opcode: bytecode::BinaryOpCode::Subtract,
-                left: left.into_pyobject(py)?.unbind(),
-                right: right.into_pyobject(py)?.unbind(),
-            }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::Multiply(left, right) => bytecode::ExprBinary {
-                opcode: bytecode::BinaryOpCode::Multiply,
-                left: left.into_pyobject(py)?.unbind(),
-                right: right.into_pyobject(py)?.unbind(),
-            }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::Divide(left, right) => bytecode::ExprBinary {
-                opcode: bytecode::BinaryOpCode::Divide,
-                left: left.into_pyobject(py)?.unbind(),
-                right: right.into_pyobject(py)?.unbind(),
-            }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::Power(left, right) => bytecode::ExprBinary {
-                opcode: bytecode::BinaryOpCode::Power,
-                left: left.into_pyobject(py)?.unbind(),
-                right: right.into_pyobject(py)?.unbind(),
-            }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::Function(func, expr) => bytecode::ExprUnary {
-                opcode: func.into(),
-                argument: expr.into_pyobject(py)?.unbind(),
-            }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::CustomFunction(callable, exprs) => bytecode::ExprCustom {
-                callable,
-                arguments: exprs
-                    .into_iter()
-                    .map(|arg| arg.into_pyobject(py).map(|obj| obj.unbind()))
-                    .collect::<Result<Vec<_>, _>>()?,
-            }
-            .into_pyobject(py)?
-            .into_any(),
-        })
-    }
+        }
+        Expr::CustomFunction(callable, exprs) => {
+            let floats = exprs
+                .iter()
+                .map(|expr| evaluate(expr, params, attachment))
+                .collect::<Result<Vec<_>, _>>()?;
+            ParameterExpression::from_f64(callable.call(&floats, attachment)?)
+        }
+    })
 }
 
 /// Calculate the binding power of an [Op] when used in a prefix position.  Returns [None] if the
