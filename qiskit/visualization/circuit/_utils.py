@@ -306,6 +306,7 @@ def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
                 wire_label = f"{index_str} -> {index}"
             else:
                 wire_label = f"{index_str} \\mapsto {{{index}}}"
+                
         if drawer != "text":
             wire_label = wire_label.replace(" ", "\\;")  # use wider spaces
     else:
@@ -481,7 +482,11 @@ def _get_layered_instructions(
             nodes.append([node])
     else:
         nodes = _LayerSpooler(dag, qubits, clbits, justify, measure_map, measure_arrows)
-
+        # Add zero-qubit gates manually since dag.layers() excludes them
+        for node in dag.topological_op_nodes():
+            if not node.qargs and not node.cargs:
+                nodes.insert(0, [node])
+                
     if not idle_wires:
         # Optionally remove all idle wires and instructions that are on them and
         # on them only.
@@ -491,7 +496,7 @@ def _get_layered_instructions(
             if wire in clbits:
                 clbits.remove(wire)
 
-    nodes = [[node for node in layer if any(q in qubits for q in node.qargs)] for layer in nodes]
+    nodes = [[node for node in layer if any(q in qubits for q in node.qargs) or not node.qargs] for layer in nodes]
 
     return qubits, clbits, nodes
 
@@ -649,7 +654,10 @@ class _LayerSpooler(list):
         if isinstance(node.op, Measure):
             if not measure_layer:
                 measure_layer = len(self) - 1
-            self.measure_map[measure_bit] = max(self.measure_map[measure_bit], measure_layer)
+            self.measure_map[measure_bit] = max(
+                self.measure_map[measure_bit],
+                measure_layer,
+            )
 
     def slide_from_right(self, node, index):
         """Insert node into rightmost layer as long there is no conflict."""
@@ -685,16 +693,22 @@ class _LayerSpooler(list):
 
     def add(self, node, index):
         """Add 'node' where it belongs, starting the try at 'index'."""
-        # Before we add the node, we set its node ID to be globally unique
-        # within this spooler. This is necessary because nodes may span
-        # layers (which are separate DAGs), and thus can falsely compare
-        # as equal if their contents and node IDs happen to be the same.
-        # This is particularly important for the matplotlib drawer, which
+        # Before we add the node, we set its node ID to be globally unique...
         # keys several of its internal data structures with these nodes.
         global _GLOBAL_NID  # noqa: PLW0603
         node._node_id = _GLOBAL_NID
         _GLOBAL_NID += 1
+        # Zero-qubit gates like GlobalPhaseGate have no qargs
+        # so just append them to the current layer directly
+        if not node.qargs:
+            if not self or max(index, 0) >= len(self):
+                self.append([node])
+            else:
+                self[max(index, 0)].append(node)
+            return
+        
         if self.justification == "left":
             self.slide_from_left(node, index)
         else:
             self.slide_from_right(node, index)
+            
