@@ -1190,7 +1190,7 @@ static int test_circuit_draw(void) {
     QkPauliProductMeasurement ppm = {z, x, 4, true};
     qk_circuit_pauli_product_measurement(circuit, &ppm, qubits, 0);
 
-    QkCircuitDrawerConfig config = {false, true, 80};
+    QkCircuitDrawerConfig config = {false, true, 80, true};
 
     char *circ_str = qk_circuit_draw(circuit, &config);
 

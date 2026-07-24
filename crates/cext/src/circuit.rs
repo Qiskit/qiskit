@@ -2411,6 +2411,10 @@ pub struct CircuitDrawerConfig {
     /// to auto-detect console width. Use `SIZE_MAX` to effectively skip
     /// wrapping altogether.
     fold: usize,
+    /// If `true`, draws an arrow from each measure box down to its corresponding classical wire, 
+    /// otherwise places the name of the classical bit or register in the measure box.
+
+    measure_arrows: bool,
 }
 
 /// @ingroup QkCircuit
@@ -2457,7 +2461,7 @@ pub unsafe extern "C" fn qk_circuit_draw(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
-    let (bundle_cregs, merge_wires, fold) = if !config.is_null() {
+    let (bundle_cregs, merge_wires, fold, measure_arrows) = if !config.is_null() {
         // SAFETY: Per documentation, the pointer is to a valid QkCircuitDrawerConfig struct.
         let config = unsafe { const_ptr_as_ref(config) };
         (
@@ -2468,12 +2472,14 @@ pub unsafe extern "C" fn qk_circuit_draw(
             } else {
                 None
             },
+            config.measure_arrows,
         )
     } else {
-        (true, true, None)
+        (true, true, None, true)
     };
 
-    let circuit_str = draw_circuit(circuit, bundle_cregs, merge_wires, fold).unwrap();
+    let circuit_str =
+        draw_circuit(circuit, bundle_cregs, merge_wires, fold, measure_arrows).unwrap();
 
     CString::new(circuit_str).unwrap().into_raw()
 }
