@@ -20,7 +20,14 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import library as lib, Parameter
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import efficient_su2, quantum_volume
-from qiskit.transpiler import CouplingMap, AnalysisPass, PassManager, Target, Layout
+from qiskit.transpiler import (
+    CouplingMap,
+    AnalysisPass,
+    PassManager,
+    Target,
+    Layout,
+    InstructionProperties,
+)
 from qiskit.transpiler.passes import SabreLayout, DenseLayout, Unroll3qOrMore, BasicSwap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import circuit_to_dag
@@ -410,6 +417,24 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         layout_routing_pass(qc)
         layout = layout_routing_pass.property_set["layout"]
         self.assertEqual([layout[q] for q in qc.qubits], [3, 2, 1, 5, 4, 7, 6, 8])
+
+    def test_target_with_fewer_qargs_than_qubits(self):
+        """Test a target with no 1q gates does not panic building the coupling map.
+
+        Reproduce from https://github.com/Qiskit/qiskit/issues/16272"""
+        target = Target()
+        cx_errors = {(4, 0): 0.9, (4, 1): 0.8, (4, 2): 0.7, (4, 3): 0.6}
+        target.add_instruction(
+            lib.CXGate(),
+            {edge: InstructionProperties(error=err) for edge, err in cx_errors.items()},
+        )
+        qc = QuantumCircuit(4)
+        qc.cx(0, 3)
+        qc.cx(1, 2)
+        qc.cx(0, 2)
+        layout_pass = SabreLayout(target, seed=123456, swap_trials=1, layout_trials=1)
+        layout_pass(qc)
+        self.assertIsNotNone(layout_pass.property_set["layout"])
 
     def test_dual_ghz_with_wide_barrier(self):
         """Test a basic example with 2 circuit components and 2 cmap components."""
