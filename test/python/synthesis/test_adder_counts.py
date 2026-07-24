@@ -15,12 +15,16 @@
 from __future__ import annotations
 import unittest
 from test import QiskitTestCase
-from ddt import ddt, data
+from ddt import ddt, data, unpack
 
 from qiskit.synthesis.arithmetic.adders import (
     adder_modular_v17,
+    adder_ripple_c04,
 )
-from qiskit.transpiler import generate_preset_pass_manager
+from qiskit.transpiler import (
+    generate_preset_clifford_t_pass_manager,
+    generate_preset_pass_manager,
+)
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.arithmetic.adders import ModularAdderGate
 
@@ -35,6 +39,7 @@ class TestAdderSynthesisCounts(QiskitTestCase):
         self.pm = generate_preset_pass_manager(
             optimization_level=2, basis_gates=["u", "cx"], seed_transpiler=12345
         )
+        self.clifford_t_pm = generate_preset_clifford_t_pass_manager(optimization_level=0)
 
     @data(*range(1, 6))
     def test_small_modular_adder_cx_count(self, num_ctrl_gates: int):
@@ -56,6 +61,32 @@ class TestAdderSynthesisCounts(QiskitTestCase):
         cx_count = transpiled.count_ops().get("cx", 0)
         self.assertLessEqual(cx_count, 16 * num_qubits - 13)
         self.assertEqual(transpiled.num_qubits, 2 * num_qubits)
+
+    @data(("fixed", -8), ("half", 1), ("full", 1))
+    @unpack
+    def test_cdkm_adder_counts(self, kind, cx_offset):
+        """Test the exact CX and T counts of the optimized CDKM adder."""
+        for num_qubits in (1, 3, 5):
+            circuit = adder_ripple_c04(num_qubits, kind=kind)
+            cx_count = self.pm.run(circuit).count_ops().get("cx", 0)
+            clifford_t_ops = self.clifford_t_pm.run(circuit).count_ops()
+            t_count = clifford_t_ops.get("t", 0) + clifford_t_ops.get("tdg", 0)
+            self.assertEqual(cx_count, 10 * num_qubits + cx_offset)
+            self.assertEqual(t_count, 8 * num_qubits)
+
+    @data((4, 32), (5, 42))
+    @unpack
+    def test_modular_adder_with_clean_ancilla_counts(self, num_qubits, expected_cx):
+        """Test metric-aware default synthesis when a clean ancilla is available."""
+        circuit = QuantumCircuit(2 * num_qubits + 1)
+        circuit.append(ModularAdderGate(num_qubits), range(2 * num_qubits))
+
+        cx_count = self.pm.run(circuit).count_ops().get("cx", 0)
+        clifford_t_ops = self.clifford_t_pm.run(circuit).count_ops()
+        t_count = clifford_t_ops.get("t", 0) + clifford_t_ops.get("tdg", 0)
+
+        self.assertEqual(cx_count, expected_cx)
+        self.assertEqual(t_count, 8 * (num_qubits - 1))
 
 
 if __name__ == "__main__":

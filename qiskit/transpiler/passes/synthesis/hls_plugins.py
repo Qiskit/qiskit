@@ -1700,22 +1700,29 @@ class ModularAdderSynthesisDefault(HighLevelSynthesisPlugin):
     * ``num_clean_ancillas``: The number of clean ancillary qubits available.
     * ``num_dirty_ancillas``: The number of dirty ancillary qubits available.
 
+    For two-qubit-gate count, this selects QFT synthesis for two or three state
+    qubits, and CDKM synthesis from four state qubits when a clean ancilla is
+    available. Otherwise, it uses the ancilla-free V17 synthesis. For T-count,
+    it always uses V17 synthesis.
+
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         if not isinstance(high_level_object, ModularAdderGate):
             return None
 
+        num_state_qubits = high_level_object.num_state_qubits
         metric = options.get("optimization_metric", OptimizationMetric.COUNT_2Q)
-        if metric == OptimizationMetric.COUNT_2Q:
-            # The order is optimized towards CX -friendly synthesis methods.
-            methods = []
-            if 2 <= high_level_object.num_state_qubits <= 4:
-                methods.append(ModularAdderSynthesisD00)
-            methods.append(ModularAdderSynthesisV17)
-        else:
-            # The order is optimized towards Clifford+T -friendly synthesis methods.
+        if metric == OptimizationMetric.COUNT_T:
             methods = [ModularAdderSynthesisV17]
+        elif num_state_qubits == 1:
+            methods = [ModularAdderSynthesisV17]
+        elif num_state_qubits <= 3:
+            methods = [ModularAdderSynthesisD00]
+        elif num_state_qubits == 4:
+            methods = [ModularAdderSynthesisC04, ModularAdderSynthesisD00]
+        else:
+            methods = [ModularAdderSynthesisC04, ModularAdderSynthesisV17]
 
         for method in methods:
             if (
@@ -1817,19 +1824,18 @@ class ModularAdderSynthesisD00(HighLevelSynthesisPlugin):
 class HalfAdderSynthesisDefault(HighLevelSynthesisPlugin):
     r"""The default half-adder (no carry in, but a carry out qubit) synthesis.
 
-    If we have an auxiliary qubit available, the Cuccaro ripple-carry adder uses
-    :math:`O(n)` CX gates and 1 auxiliary qubit, whereas the Vedral ripple-carry uses more CX
-    and :math:`n-1` auxiliary qubits. The QFT-based adder uses no auxiliary qubits, but
-    :math:`O(n^2)`, hence it is only used if no auxiliary qubits are available.
+    The CDKM ripple-carry adder uses :math:`O(n)` CX gates and one clean auxiliary
+    qubit. The ancilla-free R25 ripple-carry adder is used when it has a lower cost
+    or no clean auxiliary qubit is available.
 
     This plugin name is:``HalfAdder.default`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
-    If at least one clean auxiliary qubit is available, the :class:`HalfAdderSynthesisC04`
-    is used, otherwise :class:`HalfAdderSynthesisD00`.
-
     The plugin supports the following plugin-specific options:
 
+    * ``optimization_metric``: The optimization metric, indicating whether the
+      two-qubit-gate count or T-count should be minimized. See
+      :class:`.OptimizationMetric`.
     * ``num_clean_ancillas``: The number of clean auxiliary qubits available.
 
     """
@@ -1838,9 +1844,11 @@ class HalfAdderSynthesisDefault(HighLevelSynthesisPlugin):
         if not isinstance(high_level_object, HalfAdderGate):
             return None
 
-        # For up to 3 qubits, ripple_r25 is better
+        metric = options.get("optimization_metric", OptimizationMetric.COUNT_2Q)
+        r25_max_qubits = 1 if metric == OptimizationMetric.COUNT_T else 2
+
         if (
-            high_level_object.num_state_qubits <= 3
+            high_level_object.num_state_qubits <= r25_max_qubits
             and (
                 decomposition := HalfAdderSynthesisR25().run(
                     high_level_object, coupling_map, target, qubits, **options
@@ -1951,15 +1959,21 @@ class FullAdderSynthesisDefault(HighLevelSynthesisPlugin):
 
     This plugin name is:``FullAdder.default`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    The plugin supports the ``optimization_metric`` option; see
+    :class:`.OptimizationMetric`.
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         if not isinstance(high_level_object, FullAdderGate):
             return None
 
-        # FullAdderSynthesisC04 requires no ancilla qubits and returns better results
-        # than FullAdderSynthesisV95 in all cases except for n=1.
-        if high_level_object.num_state_qubits == 1:
+        # V95 has one fewer CX for n=1, while C04 has the lower T-count.
+        if (
+            high_level_object.num_state_qubits == 1
+            and options.get("optimization_metric", OptimizationMetric.COUNT_2Q)
+            == OptimizationMetric.COUNT_2Q
+        ):
             decomposition = FullAdderSynthesisV95().run(
                 high_level_object, coupling_map, target, qubits, **options
             )
