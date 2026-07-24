@@ -23,10 +23,11 @@ use hashbrown::{HashMap, HashSet};
 use num_bigint::BigUint;
 use num_traits::ToPrimitive;
 use numpy::ToPyArray;
+use pyo3::exceptions::PyUserWarning;
 use qiskit_util::IndexSet;
 
-use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict, PyTuple};
+use pyo3::{intern, prelude::*};
 use qiskit_circuit::bit::{
     ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
@@ -85,6 +86,7 @@ fn get_packed_bit_list(
 /// pack all the instructions in the circuit, returning both the packed instructions
 /// and the dictionary of custom operations generated in the process
 fn pack_instructions(
+    py: Python,
     qpy_data: &mut QPYWriteData,
 ) -> Result<
     (
@@ -101,6 +103,7 @@ fn pack_instructions(
             .iter()
             .map(|instruction| {
                 pack_instruction(
+                    py,
                     instruction,
                     &mut custom_operations,
                     &mut custom_new_operations,
@@ -239,6 +242,7 @@ fn extract_instruction_blocks(
 
 /// packs one specific instruction into CircuitInstructionV2Pack, creating a new custom operation if needed
 fn pack_instruction(
+    py: Python,
     instruction: &PackedInstruction,
     custom_operations: &mut HashMap<String, PackedOperation>,
     new_custom_operations: &mut Vec<String>,
@@ -270,6 +274,15 @@ fn pack_instruction(
     // common data extraction for all instruction types
     if let Some(label) = instruction.label.as_deref() {
         instruction_pack.label = label.clone();
+        if label.len() > u16::MAX as usize {
+            imports::WARNINGS_WARN.get_bound(py).call1((
+                intern!(py, "Label exceeded maximum length and was truncated."),
+                py.get_type::<PyUserWarning>(),
+                1,
+            ))?;
+            instruction_pack.label.truncate(u16::MAX as usize - 3);
+            instruction_pack.label.push_str("...");
+        }
     }
     instruction_pack.bit_data = get_packed_bit_list(instruction, qpy_data.circuit_data);
     if let Some(new_name) =
@@ -1037,6 +1050,7 @@ fn pack_custom_instruction(
             ctrl_state = gate.getattr("ctrl_state")?.extract::<u32>()?;
             base_gate = gate.getattr("base_gate")?.clone();
             Some(serialize(&pack_circuit(
+                py,
                 &mut gate.getattr("_definition")?.extract()?,
                 Some(py.None().bind(py)),
                 false,
@@ -1052,6 +1066,7 @@ fn pack_custom_instruction(
             .py_definition(py)?
             .map(|mut defn| {
                 pack_circuit(
+                    py,
                     &mut defn,
                     Some(py.None().bind(py)),
                     false,
@@ -1084,6 +1099,7 @@ fn pack_custom_instruction(
         };
         let packed_instruction = dummy_circuit_data.pack(py, &instruction)?;
         base_gate_raw = serialize(&pack_instruction(
+            py,
             &packed_instruction,
             custom_instructions_hash,
             new_instructions_list,
@@ -1203,6 +1219,7 @@ fn pack_standalone_vars(
 }
 
 pub(crate) fn pack_circuit(
+    py: Python,
     circuit: &mut QuantumCircuitData,
     metadata_serializer: Option<&Bound<PyAny>>,
     _use_symengine: bool,
@@ -1228,7 +1245,7 @@ pub(crate) fn pack_circuit(
     let calibrations = formats::CalibrationsPack {
         calibrations: vec![],
     };
-    let (instructions, mut custom_instructions_hash) = pack_instructions(&mut qpy_data)?;
+    let (instructions, mut custom_instructions_hash) = pack_instructions(py, &mut qpy_data)?;
     let custom_instructions =
         pack_custom_instructions(&mut custom_instructions_hash, &mut qpy_data)?;
     let layout = pack_layout(circuit.transpile_layout.clone(), &qpy_data)?;
@@ -1263,6 +1280,7 @@ pub(crate) fn py_write_circuit(
     annotation_factories: &Bound<PyDict>,
 ) -> PyResult<usize> {
     let packed_circuit = pack_circuit(
+        py,
         &mut circuit.extract()?,
         Some(metadata_serializer),
         use_symengine,

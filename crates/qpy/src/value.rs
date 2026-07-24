@@ -636,6 +636,7 @@ pub(crate) fn serialize_generic_value(
         GenericValue::Null => (ValueType::Null, Bytes::new()),
         GenericValue::Circuit(circuit) => Python::attach(|py| -> Result<_, QpyError> {
             let packed_circuit = pack_circuit(
+                py,
                 &mut circuit.extract(py)?, // TODO: can we avoid cloning here?
                 None,
                 false,
@@ -651,6 +652,7 @@ pub(crate) fn serialize_generic_value(
                 .into_py_quantum_circuit(py)?
                 .extract()?;
             let packed_circuit = pack_circuit(
+                py,
                 &mut quantum_circuit_data,
                 None,
                 false,
