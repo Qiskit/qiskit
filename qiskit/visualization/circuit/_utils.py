@@ -480,9 +480,8 @@ def _get_layered_instructions(
         for node in dag.topological_op_nodes():
             nodes.append([node])
     else:
-        nodes = _LayerSpooler(
-            dag, qubits, clbits, justify, measure_map, measure_arrows, wire_map=wire_map
-        )
+        ordered_qubits = sorted(dag.qubits, key=wire_map.__getitem__) if wire_map else qubits
+        nodes = _LayerSpooler(dag, ordered_qubits, clbits, justify, measure_map, measure_arrows)
 
     if not idle_wires:
         # Optionally remove all idle wires and instructions that are on them and
@@ -553,10 +552,14 @@ _GLOBAL_NID = 0
 class _LayerSpooler(list):
     """Manipulate list of layer dicts for _get_layered_instructions."""
 
-    def __init__(
-        self, dag, qubits, clbits, justification, measure_map, measure_arrows, wire_map=None
-    ):
-        """Create spool"""
+    def __init__(self, dag, qubits, clbits, justification, measure_map, measure_arrows):
+        """Create spool.
+
+        ``qubits`` must already be ordered by their position in the outer drawing, so that
+        crossover checks in :meth:`insertable` reflect the outer layout. This prevents layer
+        collisions when a control-flow body acts on qubits that are permuted relative to the
+        outer circuit.
+        """
         super().__init__()
         self.dag = dag
         self.qubits = qubits
@@ -565,13 +568,6 @@ class _LayerSpooler(list):
         self.measure_map = measure_map
         self.measure_arrows = measure_arrows
         self.cregs = [self.dag.cregs[reg] for reg in self.dag.cregs]
-
-        # Order the qubits by their position in the outer drawing so that crossover checks reflect
-        # the outer layout. This prevents layer collisions when a control-flow body acts on qubits
-        # that are permuted relative to the outer circuit.
-        self.mapped_qubits = (
-            sorted(dag.qubits, key=wire_map.__getitem__) if wire_map is not None else self.qubits
-        )
 
         if self.justification == "left":
             for dag_layer in dag.layers():
@@ -603,7 +599,7 @@ class _LayerSpooler(list):
 
     def insertable(self, node, nodes):
         """True .IFF. we can add 'node' to layer 'nodes'"""
-        return not _any_crossover(self.mapped_qubits, node, nodes, self.measure_arrows)
+        return not _any_crossover(self.qubits, node, nodes, self.measure_arrows)
 
     def slide_from_left(self, node, index):
         """Insert node into first layer where there is no conflict going l > r"""
