@@ -27,9 +27,7 @@ use qiskit_circuit::classical;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::{Operation, OperationRef, PyInstruction, PyOpKind, PyRange};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::parameter::parameter_expression::{
-    PyParameter, PyParameterExpression, PyParameterVectorElement,
-};
+use qiskit_circuit::parameter::parameter_expression::{PyParameter, PyParameterExpression};
 use qiskit_quantum_info::sparse_observable::PySparseObservable;
 use uuid::Uuid;
 
@@ -83,14 +81,14 @@ pub(crate) fn recognize_custom_operation(
         {
             // Assign a uuid to each instance of a custom operation
             let new_name = if !["ucrx_dg", "ucry_dg", "ucrz_dg"].contains(&op.name()) {
-                format!("{}_{}", &op.name(), Uuid::new_v4().as_simple())
+                format!("{}_{}", op.name(), Uuid::new_v4().as_simple())
             } else {
                 // ucr*_dg gates can have different numbers of parameters,
                 // the uuid is appended to avoid storing a single definition
                 // in circuits with multiple ucr*_dg gates. For legacy reasons
                 // the uuid is stored in a different format as this was done
                 // prior to QPY 11.
-                format!("{}_{}", &op.name(), Uuid::new_v4())
+                format!("{}_{}", op.name(), Uuid::new_v4())
             };
             return Ok(Some(new_name));
         }
@@ -363,16 +361,18 @@ pub(crate) fn py_convert_to_generic_value(
         ValueType::Null => Ok(GenericValue::Null),
         ValueType::Parameter => Ok(GenericValue::ParameterExpressionSymbol(
             py_object
-                .extract::<PyParameter>()
-                .map_err(|e| QpyError::from(PyErr::from(e)))?
-                .symbol()
+                .cast::<PyParameter>()
+                .map_err(PyErr::from)?
+                .borrow()
+                .0
                 .clone(),
         )),
         ValueType::ParameterVector => Ok(GenericValue::ParameterExpressionVectorSymbol(
             py_object
-                .extract::<PyParameterVectorElement>()
-                .map_err(|e| QpyError::from(PyErr::from(e)))?
-                .symbol()
+                .cast::<PyParameter>()
+                .map_err(PyErr::from)?
+                .borrow()
+                .0
                 .clone(),
         )),
         ValueType::ParameterExpression => Ok(GenericValue::ParameterExpression(Arc::new(
@@ -434,11 +434,9 @@ pub(crate) fn py_convert_from_generic_value(value: &GenericValue) -> Result<Py<P
             GenericValue::Expression(exp) => Ok(exp.clone().into_py_any(py)?),
             GenericValue::CaseDefault => Ok(imports::CASE_DEFAULT.get(py).clone()),
             GenericValue::Null => Ok(py.None()),
-            GenericValue::ParameterExpressionSymbol(symbol) => {
-                Ok(symbol.clone().into_py_any(py)?)
-            }
-            GenericValue::ParameterExpressionVectorSymbol(symbol) => {
-                Ok(symbol.clone().into_py_any(py)?)
+            GenericValue::ParameterExpressionSymbol(symbol)
+            | GenericValue::ParameterExpressionVectorSymbol(symbol) => {
+                Ok(PyParameter(symbol.clone()).into_py_any(py)?)
             }
             GenericValue::ParameterExpression(exp) => Ok(exp.as_ref().clone().into_py_any(py)?),
             GenericValue::Circuit(py_object) => Ok(py_object.clone()),

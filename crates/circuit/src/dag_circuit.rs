@@ -34,8 +34,8 @@ use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::ObjectRegistry;
 use crate::operations::{
     ArrayType, BoxDuration, Condition, ControlFlow, ControlFlowInstruction, ControlFlowView,
-    Operation, OperationRef, Param, PyInstruction, PyOpKind, StandardGate, StandardInstruction,
-    SwitchTarget,
+    LoopParam, Operation, OperationRef, Param, PyInstruction, PyOpKind, StandardGate,
+    StandardInstruction, SwitchTarget,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -61,9 +61,7 @@ use pyo3::exceptions::{
 use pyo3::intern;
 use pyo3::prelude::*;
 
-use pyo3::types::{
-    IntoPyDict, PyDict, PyInt, PyIterator, PyList, PySet, PyString, PyTuple, PyType,
-};
+use pyo3::types::{IntoPyDict, PyDict, PyInt, PyIterator, PyList, PySet, PyTuple, PyType};
 
 use rustworkx_core::dag_algo::layers;
 use rustworkx_core::err::ContractError;
@@ -1054,10 +1052,10 @@ impl DAGCircuit {
     fn remove_all_ops_named(&mut self, opname: &str) {
         let mut to_remove = Vec::new();
         for (id, weight) in self.dag.node_references() {
-            if let NodeType::Operation(packed) = &weight {
-                if opname == packed.op.name() {
-                    to_remove.push(id);
-                }
+            if let NodeType::Operation(packed) = &weight
+                && opname == packed.op.name()
+            {
+                to_remove.push(id);
             }
         }
         for node in to_remove {
@@ -1820,8 +1818,10 @@ impl DAGCircuit {
         }
         if !self.has_control_flow() {
             let weight_fn = |_| -> Result<usize, Infallible> { Ok(1) };
-            return match rustworkx_core::dag_algo::longest_path(&self.dag, weight_fn).unwrap() {
-                Some(res) => Ok(res.1 - 1),
+            return match rustworkx_core::dag_algo::longest_path_length(&self.dag, weight_fn)
+                .unwrap()
+            {
+                Some(res) => Ok(res - 1),
                 None => panic!("not a DAG"),
             };
         }
@@ -1861,8 +1861,8 @@ impl DAGCircuit {
         let weight_fn = |edge: EdgeReference<'_, Wire>| -> Result<usize, Infallible> {
             Ok(*node_lookup.get(&edge.target()).unwrap_or(&1))
         };
-        match rustworkx_core::dag_algo::longest_path(&self.dag, weight_fn).unwrap() {
-            Some(res) => Ok(res.1 - 1),
+        match rustworkx_core::dag_algo::longest_path_length(&self.dag, weight_fn).unwrap() {
+            Some(res) => Ok(res - 1),
             None => panic!("not a DAG"),
         }
     }
@@ -2251,7 +2251,10 @@ impl DAGCircuit {
                                         return Ok(false);
                                     }
                                     match (loop_param_a, loop_param_b) {
-                                        (Some(loop_param_a), Some(loop_param_b)) => {
+                                        (
+                                            Some(LoopParam::Parameter(loop_param_a)),
+                                            Some(LoopParam::Parameter(loop_param_b)),
+                                        ) => {
                                             // Until we have a way to assign parameters in a DAG, we need
                                             // to convert a for loop's body DAG back to a circuit.
                                             let sentinel = PARAMETER
@@ -2315,6 +2318,15 @@ impl DAGCircuit {
                                                 None,
                                             )?;
                                             block_eq(&body_a, &body_b)
+                                        }
+                                        (
+                                            Some(LoopParam::Variable(var_a)),
+                                            Some(LoopParam::Variable(var_b)),
+                                        ) => {
+                                            if var_a != var_b {
+                                                return Ok(false);
+                                            }
+                                            block_eq(body_a, body_b)
                                         }
                                         (None, None) => block_eq(body_a, body_b),
                                         _ => Ok(false),
@@ -3144,7 +3156,7 @@ impl DAGCircuit {
             if input_dag_var_set.difference(&var_set).count() > 0 {
                 return Err(DAGCircuitError::new_err(format!(
                     "Cannot replace a node with a DAG with more variables. Variables in node: {:?}. Variables in dag: {:?}",
-                    &var_set, &input_dag_var_set,
+                    var_set, input_dag_var_set,
                 )));
             }
             var_set
@@ -3701,10 +3713,10 @@ impl DAGCircuit {
         }
         let mut result: Vec<Py<PyAny>> = Vec::new();
         for (id, weight) in self.dag.node_references() {
-            if let NodeType::Operation(packed) = weight {
-                if names_set.contains(packed.op.name()) {
-                    result.push(self.unpack_into(py, id, weight)?);
-                }
+            if let NodeType::Operation(packed) = weight
+                && names_set.contains(packed.op.name())
+            {
+                result.push(self.unpack_into(py, id, weight)?);
             }
         }
         Ok(result)
@@ -4408,15 +4420,13 @@ impl DAGCircuit {
                     for pred_index in self.quantum_predecessors(cur_index) {
                         if let NodeType::Operation(pred_packed) =
                             self.dag.node_weight(pred_index).unwrap()
-                        {
-                            if self
+                            && self
                                 .qargs_interner
                                 .get(pred_packed.qubits)
                                 .iter()
                                 .any(|x| qubits_in_cone.contains(x))
-                            {
-                                queue.push_back(pred_index);
-                            }
+                        {
+                            queue.push_back(pred_index);
                         }
                     }
                 }
@@ -4505,10 +4515,10 @@ impl DAGCircuit {
         graph_attrs: Option<BTreeMap<String, String>>,
         node_attrs: Option<Py<PyAny>>,
         edge_attrs: Option<Py<PyAny>>,
-    ) -> PyResult<Bound<'py, PyString>> {
+    ) -> PyResult<String> {
         let mut buffer = Vec::<u8>::new();
         build_dot(py, self, &mut buffer, graph_attrs, node_attrs, edge_attrs)?;
-        Ok(PyString::new(py, std::str::from_utf8(&buffer)?))
+        Ok(String::from_utf8(buffer)?)
     }
 
     /// Add an input variable to the circuit.
@@ -6852,27 +6862,59 @@ impl DAGCircuit {
 
         for (old_node_index, new_node_index) in out_map.iter() {
             let old_node = &other.dag[*old_node_index];
-            if let NodeType::Operation(old_inst) = old_node {
-                if let OperationRef::ControlFlow(cf) = old_inst.op.view() {
-                    match &cf.control_flow {
-                        ControlFlow::Switch {
-                            target,
-                            label_spec,
-                            cases,
-                        } => {
-                            let mapped_target = variable_mapper
-                                .map_target(target, |new_reg| self.add_creg(new_reg.clone()))?;
+            if let NodeType::Operation(old_inst) = old_node
+                && let OperationRef::ControlFlow(cf) = old_inst.op.view()
+            {
+                match &cf.control_flow {
+                    ControlFlow::Switch {
+                        target,
+                        label_spec,
+                        cases,
+                    } => {
+                        let mapped_target = variable_mapper
+                            .map_target(target, |new_reg| self.add_creg(new_reg.clone()))?;
 
-                            if let NodeType::Operation(new_inst) = &mut self.dag[*new_node_index] {
-                                #[cfg(feature = "cache_pygates")]
-                                {
-                                    new_inst.py_op.take();
-                                }
+                        if let NodeType::Operation(new_inst) = &mut self.dag[*new_node_index] {
+                            #[cfg(feature = "cache_pygates")]
+                            {
+                                new_inst.py_op.take();
+                            }
+                            new_inst.op = ControlFlowInstruction {
+                                control_flow: ControlFlow::Switch {
+                                    target: mapped_target,
+                                    label_spec: label_spec.clone(),
+                                    cases: *cases,
+                                },
+                                num_qubits: cf.num_qubits,
+                                num_clbits: cf.num_clbits,
+                            }
+                            .into();
+                        }
+                    }
+                    ControlFlow::IfElse { condition } | ControlFlow::While { condition } => {
+                        let mapped_condition =
+                            variable_mapper.map_condition(condition, false, |new_reg| {
+                                self.add_creg(new_reg.clone())
+                            })?;
+
+                        if let NodeType::Operation(new_inst) = &mut self.dag[*new_node_index] {
+                            #[cfg(feature = "cache_pygates")]
+                            {
+                                new_inst.py_op.take();
+                            }
+                            if matches!(&cf.control_flow, ControlFlow::While { .. }) {
                                 new_inst.op = ControlFlowInstruction {
-                                    control_flow: ControlFlow::Switch {
-                                        target: mapped_target,
-                                        label_spec: label_spec.clone(),
-                                        cases: *cases,
+                                    control_flow: ControlFlow::While {
+                                        condition: mapped_condition,
+                                    },
+                                    num_qubits: cf.num_qubits,
+                                    num_clbits: cf.num_clbits,
+                                }
+                                .into();
+                            } else {
+                                new_inst.op = ControlFlowInstruction {
+                                    control_flow: ControlFlow::IfElse {
+                                        condition: mapped_condition,
                                     },
                                     num_qubits: cf.num_qubits,
                                     num_clbits: cf.num_clbits,
@@ -6880,40 +6922,8 @@ impl DAGCircuit {
                                 .into();
                             }
                         }
-                        ControlFlow::IfElse { condition } | ControlFlow::While { condition } => {
-                            let mapped_condition =
-                                variable_mapper.map_condition(condition, false, |new_reg| {
-                                    self.add_creg(new_reg.clone())
-                                })?;
-
-                            if let NodeType::Operation(new_inst) = &mut self.dag[*new_node_index] {
-                                #[cfg(feature = "cache_pygates")]
-                                {
-                                    new_inst.py_op.take();
-                                }
-                                if matches!(&cf.control_flow, ControlFlow::While { .. }) {
-                                    new_inst.op = ControlFlowInstruction {
-                                        control_flow: ControlFlow::While {
-                                            condition: mapped_condition,
-                                        },
-                                        num_qubits: cf.num_qubits,
-                                        num_clbits: cf.num_clbits,
-                                    }
-                                    .into();
-                                } else {
-                                    new_inst.op = ControlFlowInstruction {
-                                        control_flow: ControlFlow::IfElse {
-                                            condition: mapped_condition,
-                                        },
-                                        num_qubits: cf.num_qubits,
-                                        num_clbits: cf.num_clbits,
-                                    }
-                                    .into();
-                                }
-                            }
-                        }
-                        _ => (),
                     }
+                    _ => (),
                 }
             }
         }
@@ -7544,11 +7554,22 @@ impl DAGCircuit {
     ) -> Result<Self, DAGError> {
         // Extract necessary attributes
         let qc_data = qc.data;
+        let metadata = qc
+            .metadata
+            .map(|ob| {
+                if copy_op {
+                    ob.call_method0(intern!(ob.py(), "copy")).map(Bound::unbind)
+                } else {
+                    Ok(ob.unbind())
+                }
+            })
+            .transpose()
+            .map_err(DAGError::Python)?;
         Self::from_circuit_data(
             &qc_data,
             copy_op,
             qc.name,
-            qc.metadata.map(|x| x.unbind()),
+            metadata,
             qubit_order,
             clbit_order,
         )
@@ -8244,6 +8265,39 @@ impl DAGCircuit {
             self.add_wire(Wire::Var(Var::new(var_idx)))?;
         }
         Ok(())
+    }
+
+    /// Build a new dag copy by iterating over this dag and building up nodes in the new dag from
+    /// them.
+    ///
+    /// This function will build a new output dag builder with the same capacity and iterate over
+    /// the nodes in this dag in a topological order. The given callback is called at each operation
+    /// node with a mutable reference to the [`DAGCircuitBuilder`] which is where the new dag is built
+    /// and a [`PackedInstruction`] of the current op node in the dag. The caller is responsible for
+    /// adding any nodes to the dag as part of the callback.
+    ///
+    /// Typical use cases for this method are for transpiler passes that rebuild a dag by iterating over all
+    /// nodes. The callback lets you handle removing or replacing a node (either with another single
+    /// node or a sequence of nodes) while iterating over the original DAG.
+    pub fn rebuild_dag_with<F, E>(
+        &self,
+        mut callback: F,
+        vars_mode: VarsMode,
+        blocks_mode: BlocksMode,
+    ) -> Result<Self, E>
+    where
+        F: FnMut(&mut DAGCircuitBuilder, &PackedInstruction, NodeIndex) -> Result<(), E>,
+    {
+        let new_dag = self.copy_empty_like_with_same_capacity(vars_mode, blocks_mode);
+        let mut builder = new_dag.into_builder();
+        for node in
+            petgraph::algo::toposort(&self.dag, None).expect("DAGCircuit can't have a cycle")
+        {
+            if let NodeType::Operation(ref inst) = self.dag[node] {
+                callback(&mut builder, inst, node)?;
+            }
+        }
+        Ok(builder.build())
     }
 }
 

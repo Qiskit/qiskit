@@ -10,16 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ndarray::{ArcArray, ArrayD, IxDyn, Zip};
+use ndarray::{ArcArrayD, ArrayD, IxDyn, Zip};
 use num_complex::{Complex32, Complex64};
 
 use std::fmt;
 use thiserror::Error;
-
-/// Dynamic-dimensional [`ArcArray`]; the storage type for every [`Tensor`] variant.
-///
-/// When we upgrade to ndarray>=0.17, we can import this alias instead of defining it here.
-type ArcArrayD<T> = ArcArray<T, IxDyn>;
 
 /// Errors returned by [`Tensor`] operations.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]

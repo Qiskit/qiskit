@@ -33,21 +33,15 @@ use qiskit_circuit::bit::{
 };
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
-use qiskit_circuit::instruction::Parameters;
+use qiskit_circuit::instruction::{Parameters, create_py_op};
 use qiskit_circuit::interner::Interned;
-use qiskit_circuit::operations::ArrayType;
-use qiskit_circuit::operations::PauliBased;
-use qiskit_circuit::operations::PauliProductRotation;
-use qiskit_circuit::operations::UnitaryGate;
 use qiskit_circuit::operations::{
-    BoxDuration, CaseSpecifier, Condition, StandardInstructionType, SwitchTarget,
-};
-use qiskit_circuit::operations::{
-    ControlFlow, ControlFlowInstruction, ControlFlowType, Param, PauliProductMeasurement,
-    StandardInstruction,
+    ArrayType, BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction,
+    ControlFlowType, LoopParam, Param, PauliBased, PauliProductMeasurement, PauliProductRotation,
+    StandardInstruction, StandardInstructionType, SwitchTarget, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
-use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
+use qiskit_circuit::parameter::parameter_expression::{ParameterExpression, PyParameter};
 use qiskit_circuit::var_stretch_container::{StretchType, VarType};
 use qiskit_circuit::{Block, classical, imports};
 use qiskit_circuit::{Clbit, Qubit};
@@ -298,14 +292,10 @@ pub fn instruction_values_to_params(
                 match value {
                     GenericValue::Float64(float) => Ok(Param::Float(float)),
                     GenericValue::ParameterExpression(exp) => Ok(Param::ParameterExpression(exp)),
-                    GenericValue::ParameterExpressionSymbol(symbol) => {
+                    GenericValue::ParameterExpressionSymbol(symbol)
+                    | GenericValue::ParameterExpressionVectorSymbol(symbol) => {
                         Ok(Param::ParameterExpression(Arc::new(
-                            ParameterExpression::from_symbol(symbol),
-                        )))
-                    }
-                    GenericValue::ParameterExpressionVectorSymbol(symbol) => {
-                        Ok(Param::ParameterExpression(Arc::new(
-                            ParameterExpression::from_symbol(symbol),
+                            ParameterExpression::from_arc_symbol(symbol),
                         )))
                     }
                     _ => Ok(Param::Obj(py_convert_from_generic_value(&value)?)),
@@ -479,19 +469,19 @@ fn unpack_pauli_product_rotation(
 ) -> Result<(PackedOperation, Vec<GenericValue>), QpyError> {
     if instruction.params.len() != 3 {
         return Err(QpyError::InvalidParameter(
-            "No matrix for unitary op".to_string(),
+            "No angle for pauli product rotation".to_string(),
         ));
     }
     let z_values = unpack_generic_value(&instruction.params[0], qpy_data, Endian::Big)?;
     let z = z_values.to_boolean_vec().ok_or_else(|| {
         QpyError::InvalidParameter(
-            "Pauli product measurement z parameter should be a boolean vector".to_string(),
+            "Pauli product rotation z parameter should be a boolean vector".to_string(),
         )
     })?;
     let x_values = unpack_generic_value(&instruction.params[1], qpy_data, Endian::Big)?;
     let x = x_values.to_boolean_vec().ok_or_else(|| {
         QpyError::InvalidParameter(
-            "Pauli product measurement x parameter should be a boolean vector".to_string(),
+            "Pauli product rotation x parameter should be a boolean vector".to_string(),
         )
     })?;
     let angle_value = unpack_generic_value(&instruction.params[2], qpy_data, Endian::Little)?;
@@ -593,6 +583,11 @@ fn unpack_control_flow(
             let mut instruction_values =
                 get_instruction_values(instruction, qpy_data, Endian::Big)?;
             param_values = instruction_values.split_off(2);
+            let [GenericValue::Circuit(circuit)] = param_values.as_slice() else {
+                return Err(QpyError::DeserializationError(
+                    "for loops must have a single quantum-circuit body".to_owned(),
+                ));
+            };
             let mut iter = instruction_values.into_iter();
             let (mut collection_value_pack, loop_param_value_pack) =
                 iter.next().zip(iter.next()).ok_or(QpyError::MissingData(
@@ -604,8 +599,38 @@ fn unpack_control_flow(
             }
             let collection = unpack_for_collection(&collection_value_pack)?;
             let loop_param = match loop_param_value_pack {
-                GenericValue::ParameterExpressionSymbol(symbol) => Some(symbol),
-                _ => None,
+                GenericValue::ParameterExpressionSymbol(symbol) => {
+                    Some(LoopParam::Parameter(Arc::unwrap_or_clone(symbol)))
+                }
+                GenericValue::Null => Python::attach(|py| -> Result<_, QpyError> {
+                    // When writing for loops, we serialise a `Var` loop parameter in the
+                    // instruction's parameters field as if it were null, because the `Var` isn't
+                    // part of the containing circuit.  Instead, we re-infer its existence from the
+                    // `input` variables of the body circuit.
+                    let data = circuit
+                        .bind(py)
+                        .getattr("_data")?
+                        .cast_into::<PyCircuitData>()
+                        .map_err(PyErr::from)?
+                        .borrow();
+                    let mut vars = data.vars_stretches_view().iter_vars(VarType::Input);
+                    let Some(v) = vars.next() else {
+                        // No input vars, so nothing to infer; this is a legacy-type body.
+                        return Ok(None);
+                    };
+                    match vars.next() {
+                        Some(_) => Err(QpyError::DeserializationError(
+                            "for loop bodies must have at most one input variable".to_owned(),
+                        )),
+                        None => Ok(Some(LoopParam::Variable(v.clone()))),
+                    }
+                })?,
+                other => {
+                    return Err(QpyError::InvalidValueType {
+                        expected: "a parameter or none".to_string(),
+                        actual: format!("{other:?}"),
+                    });
+                }
             };
             ControlFlow::ForLoop {
                 collection,
@@ -862,10 +887,10 @@ fn unpack_py_instruction(
                 gate_class.call1(args)?
             }
         };
-        if let Some(label_text) = label {
-            if !gate_object.hasattr("label")? || gate_object.getattr("label")?.is_none() {
-                gate_object.setattr("label", label_text.as_str())?;
-            }
+        if let Some(label_text) = label
+            && (!gate_object.hasattr("label")? || gate_object.getattr("label")?.is_none())
+        {
+            gate_object.setattr("label", label_text.as_str())?;
         }
         if gate_class
             .cast_into::<PyType>()
@@ -972,13 +997,19 @@ fn unpack_custom_instruction(
                         None => gate_class_name,
                     };
                 }
+                let params = qpy_data
+                    .circuit_data
+                    .unpack_blocks_to_circuit_parameters(base_gate.params.as_deref());
+                let py_base_gate = create_py_op(
+                    py,
+                    base_gate.op.view(),
+                    params,
+                    base_gate.label.as_deref().map(String::as_str),
+                )?;
                 let kwargs = PyDict::new(py);
                 kwargs.set_item(intern!(py, "num_ctrl_qubits"), instruction.num_ctrl_qubits)?;
                 kwargs.set_item(intern!(py, "ctrl_state"), instruction.ctrl_state)?;
-                kwargs.set_item(
-                    intern!(py, "base_gate"),
-                    qpy_data.circuit_data.unpack_py_op(py, &base_gate)?,
-                )?;
+                kwargs.set_item(intern!(py, "base_gate"), py_base_gate)?;
 
                 let controlled_gate_object = imports::CONTROLLED_GATE.get_bound(py).call(
                     (&gate_class_name, custom_instruction.num_qubits, py_params),
@@ -998,11 +1029,17 @@ fn unpack_custom_instruction(
                     .0;
                 let base_gate =
                     unpack_instruction(&packed_base_gate, custom_instructions_map, qpy_data)?;
-                let kwargs = PyDict::new(py);
-                kwargs.set_item(
-                    intern!(py, "base_op"),
-                    qpy_data.circuit_data.unpack_py_op(py, &base_gate)?,
+                let params = qpy_data
+                    .circuit_data
+                    .unpack_blocks_to_circuit_parameters(base_gate.params.as_deref());
+                let py_base_gate = create_py_op(
+                    py,
+                    base_gate.op.view(),
+                    params,
+                    base_gate.label.as_deref().map(String::as_str),
                 )?;
+                let kwargs = PyDict::new(py);
+                kwargs.set_item(intern!(py, "base_op"), py_base_gate)?;
                 kwargs.set_item(intern!(py, "modifiers"), py_params)?;
                 imports::ANNOTATED_OPERATION
                     .get_bound(py)
@@ -1234,8 +1271,8 @@ fn deserialize_pauli_evolution_gate(
     let py_time: Py<PyAny> = match time {
         GenericValue::Float64(value) => value.into_py_any(py)?,
         GenericValue::ParameterExpression(exp) => exp.as_ref().clone().into_py_any(py)?,
-        GenericValue::ParameterExpressionVectorSymbol(symbol) => symbol.into_py_any(py)?,
-        GenericValue::ParameterExpressionSymbol(symbol) => symbol.into_py_any(py)?,
+        GenericValue::ParameterExpressionVectorSymbol(symbol)
+        | GenericValue::ParameterExpressionSymbol(symbol) => PyParameter(symbol).into_py_any(py)?,
         _ => return Err(QpyError::InvalidParameter(
             "Pauli Evolution Gate 'time' parameter should be either float or parameter expression"
                 .to_string(),
@@ -1334,7 +1371,7 @@ fn add_standalone_vars(
             ExpressionType::Bool => classical::types::Type::Bool,
             ExpressionType::Duration => classical::types::Type::Duration,
             ExpressionType::Float => classical::types::Type::Float,
-            ExpressionType::Uint(val) => classical::types::Type::Uint(val.try_into()?),
+            ExpressionType::Uint(val) => classical::types::Type::Uint(val),
         };
         let uuid = u128::from_be_bytes(packed_var.uuid_bytes);
         let name = packed_var.name.clone();
