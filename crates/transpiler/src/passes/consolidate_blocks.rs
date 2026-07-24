@@ -555,6 +555,27 @@ fn py_run_consolidate_blocks(
         for (block, result) in consolidations {
             apply_consolidation(dag, block, result)?;
         }
+        let mut basis_count: usize = 0;
+        let mut unitary_count: usize = 0;
+        let mut outside_basis = false;
+        for node in &block {
+            let inst = dag[*node].unwrap_operation();
+            block_qargs.extend(dag.get_qargs(inst.qubits));
+            all_block_gates.insert(*node);
+            if inst.op.name() == basis_gate_name {
+                basis_count += 1;
+            }
+            let qarg_count = dag.get_qargs(inst.qubits).len();
+            // Count 2-qubit Unitary gates to decide if we should consolidate
+            // blocks that contain multiple unitaries (runs of unitary)
+            if matches!(
+                inst.op.view(),
+                qiskit_circuit::operations::OperationRef::Unitary(_)
+            ) && qarg_count == 2
+            {
+                unitary_count += 1;
+            }
+            if !is_supported(
     } else {
         // In most cases, the qargs in a block will not exceed 2 qubits.
         let mut block_qargs: HashSet<Qubit> = HashSet::with_capacity(2);
@@ -571,7 +592,88 @@ fn py_run_consolidate_blocks(
                 &mut phys_qargs,
                 force_consolidate,
             )?;
-            apply_consolidation(dag, block, result)?;
+            let matrix = Python::attach(|py| -> PyResult<_> {
+                let circuit = circuit_data.into_py_quantum_circuit(py)?;
+                let matrix = QI_OPERATOR
+                    .get_bound(py)
+                    .call1((circuit,))?
+                    .getattr(intern!(py, "data"))?
+                    .extract::<PyReadonlyArray2<Complex64>>()?
+                    .as_array()
+                    .to_owned();
+                Ok(matrix)
+            })?;
+            let identity: Array2<Complex64> = Array2::eye(2usize.pow(block_qargs.len() as u32));
+            if approx::abs_diff_eq!(identity, matrix.view()) {
+                for node in block {
+                    dag.remove_op_node(node);
+                }
+            } else {
+                let unitary_gate = UnitaryGate {
+                    array: ArrayType::NDArray(matrix),
+                };
+                let clbit_pos_map = HashMap::new();
+                dag.replace_block(
+                    &block,
+                    PackedOperation::from_unitary(Box::new(unitary_gate)),
+                    None,
+                    None,
+                    false,
+                    &block_index_map,
+                    &clbit_pos_map,
+                )?;
+            }
+        } else {
+            let block_index_map = [
+                *block_qargs.iter().min().unwrap(),
+                *block_qargs.iter().max().unwrap(),
+            ];
+            let matrix = blocks_to_matrix(dag, &block, block_index_map).ok();
+            if let Some(matrix) = matrix {
+                let num_basis_gates = match decomposer {
+                    DecomposerType::TwoQubitBasis(ref decomp) => {
+                        decomp.num_basis_gates_inner(matrix.view())?
+                    }
+                    DecomposerType::TwoQubitControlledU(ref decomp) => {
+                        decomp.num_basis_gates_inner(matrix.view())?
+                    }
+                };
+
+                if force_consolidate
+                    || num_basis_gates < basis_count
+                    || block.len() > MAX_2Q_DEPTH
+                    || (basis_gates.is_some() && outside_basis)
+                    || (target.is_some() && outside_basis)
+                    || (basis_gates.is_none() && target.is_none() && unitary_count > 1)
+                {
+                    if approx::abs_diff_eq!(aview2(&TWO_QUBIT_IDENTITY), matrix) {
+                        for node in block {
+                            dag.remove_op_node(node);
+                        }
+                    } else {
+                        // TODO: Use Matrix4/ArrayType::TwoQ when we're using nalgebra
+                        // for consolidation
+                        let unitary_gate = UnitaryGate {
+                            array: ArrayType::NDArray(matrix),
+                        };
+                        let qubit_pos_map = block_index_map
+                            .into_iter()
+                            .enumerate()
+                            .map(|(idx, qubit)| (qubit, idx))
+                            .collect();
+                        let clbit_pos_map = HashMap::new();
+                        dag.replace_block(
+                            &block,
+                            PackedOperation::from_unitary(Box::new(unitary_gate)),
+                            None,
+                            None,
+                            false,
+                            &qubit_pos_map,
+                            &clbit_pos_map,
+                        )?;
+                    }
+                }
+            }
         }
     }
     if let Some(runs) = runs {
