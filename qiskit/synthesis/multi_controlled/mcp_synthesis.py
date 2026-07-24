@@ -24,7 +24,7 @@ def synth_mcp_noaux_v24(num_ctrl_qubits: int, phase: float) -> QuantumCircuit:
     using multi-controlled RZ gates.
 
     The circuit depth is :math:`O(n^2)` and the total number of CX gates used
-    is :math:`8n^2-16n-60` for :math:`n \ge 8` control qubits,
+    is :math:`8n^2-16n-60` for :math:`n \ge 7` control qubits,
     which is worse than :func:`synth_mcp_noaux_sp22` for :math:`n \ge 5`,
     but better for :math:`n \le 4`.
 
@@ -73,8 +73,10 @@ def synth_mcp_noaux_v24(num_ctrl_qubits: int, phase: float) -> QuantumCircuit:
         N(m) = 2 \left( 8 \left\lceil \frac{m}{2} \right\rceil - 6 \right)
         + 2 \left( 8 \left\lfloor \frac{m}{2} \right\rfloor - 6 \right) = 16m-24
 
-    - Therefore, the total number of CX gates used to synthesize a multi-controlled phase
-      gate with :math:`n \ge 8` control qubits is
+    - Multi-controlled phase gates can be synthesized by applying :math:`m`-controlled RZ gates for
+      :math:`m = 1, 2, \ldots, n`, where :math:`n` is the number of control qubits [1].
+      Therefore, the total number of CX gates used to synthesize a multi-controlled phase
+      gate with :math:`n \ge 7` control qubits is
 
       .. math::
 
@@ -90,6 +92,12 @@ def synth_mcp_noaux_v24(num_ctrl_qubits: int, phase: float) -> QuantumCircuit:
 
     Raises:
         QiskitError: If the number of control qubits is negative.
+
+    References:
+        [1] Vale et. al.,
+        Circuit Decomposition of Multicontrolled Special Unitary Single-Qubit Gates,
+        IEEE TCAD 43(3) (2024), `arXiv:2302.06377 <https://arxiv.org/abs/2302.06377>`__.
+
     """
     qc = QuantumCircuit(num_ctrl_qubits + 1)
 
@@ -227,7 +235,7 @@ def synth_mcp_noaux_sp22(num_ctrl_qubits: int, phase: float) -> QuantumCircuit:
 
 
 def synth_mcp_noaux_default(num_ctrl_qubits: int, phase: float) -> QuantumCircuit:
-    """Choose the best synthesis code for MCPhaseGate according to the number of control qubits.
+    """Choose the best synthesis code for :class:`.MCPhaseGate` according to the number of control qubits.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
