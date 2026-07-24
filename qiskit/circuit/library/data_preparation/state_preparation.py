@@ -59,16 +59,13 @@ class StatePreparation(Gate):
                 * int: an integer that is used as a bitmap indicating which qubits to initialize
                   to :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit 2
                   to :math:`|1\rangle` and qubit 1 to :math:`|0\rangle`.
-            num_qubits: This parameter is only used if params is an int. Indicates the total
-                number of qubits in the `initialize` call. Example: `initialize` covers 5 qubits
+            num_qubits: Indicates the total number of qubits in the `initialize` call when `params`
+                is an integer. This value is ignored otherwise. Example: `initialize` covers 5 qubits
                 and params is 3. This allows qubits 0 and 1 to be initialized to :math:`|1\rangle`
                 and the remaining 3 qubits to be initialized to :math:`|0\rangle`.
             inverse: if True, the inverse state is constructed.
             label: An optional label for the gate
             normalize (bool): Whether to normalize an input array to a unit vector.
-
-        Raises:
-            QiskitError: ``num_qubits`` parameter used when ``params`` is not an integer
 
         When a Statevector argument is passed the state is prepared based on the
         :class:`~.library.Isometry` synthesis described in [1].
@@ -92,11 +89,6 @@ class StatePreparation(Gate):
         if isinstance(params, Statevector):
             params = params.data
 
-        if not isinstance(params, int) and num_qubits is not None:
-            raise QiskitError(
-                "The num_qubits parameter to StatePreparation should only be"
-                " used when params is an integer"
-            )
         self._from_label = isinstance(params, str)
         self._from_int = isinstance(params, int)
 
@@ -207,7 +199,9 @@ class StatePreparation(Gate):
             None if self._label in ("State Preparation", "State Preparation Dg") else self._label
         )
 
-        return StatePreparation(self._params_arg, inverse=not self._inverse, label=label)
+        return StatePreparation(
+            self._params_arg, num_qubits=self.num_qubits, inverse=not self._inverse, label=label
+        )
 
     def broadcast_arguments(self, qargs, cargs):
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]
