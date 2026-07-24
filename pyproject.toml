@@ -291,7 +291,7 @@ build = ["cp3??-*"]
 skip = ["*-win32", "*_i686", "*_universal2", "*-musllinux_*"]
 test-command = "cp -r {project}/test . && QISKIT_PARALLEL=FALSE stestr --test-path test/python run --abbreviate"
 test-groups = ["test"]
-test-skip = "*-*linux_{ppc64le,s390x}"
+test-skip = ["*ppc64le", "*s390x"]
 # We need to use pre-built versions of Numpy and Scipy in the tests; we don't configure
 # the CI machines to succeed at a source build, but the latest versions of these packages
 # don't support the same range of Python versions as we do.
