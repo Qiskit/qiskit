@@ -1,0 +1,15 @@
+---
+fixes:
+  - |
+    Extended the ``[tool.coverage.report]`` ``exclude_also`` list in
+    ``pyproject.toml`` to exclude ``@overload`` decorator lines, ellipsis-only
+    stub bodies (``...``), and ``if __name__ == '__main__':`` guards from
+    Python coverage reporting.
+    Also updated the ``grcov`` invocation in the coverage GitHub Actions
+    workflow to pass ``--excl-line`` flags that exclude Rust ``unreachable!``,
+    ``panic!``, ``todo!``, and ``unimplemented!`` macro call-sites from Rust
+    coverage reporting. These patterns are never executed by the test-runner
+    and were causing spurious, non-deterministic coverage changes in Coveralls
+    reports on pull requests (issue `#7235
+    <https://github.com/Qiskit/qiskit/issues/7235>`__).
+
