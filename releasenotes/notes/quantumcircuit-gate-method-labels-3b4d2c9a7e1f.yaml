@@ -1,0 +1,8 @@
+---
+features_circuits:
+  - |
+    Added a ``label`` argument to additional :class:`.QuantumCircuit`
+    standard-gate helper methods that previously did not expose one, such as
+    :meth:`.QuantumCircuit.h`, :meth:`.QuantumCircuit.rz`,
+    :meth:`.QuantumCircuit.swap`, :meth:`.QuantumCircuit.ccx`, and
+    :meth:`.QuantumCircuit.mcx`.
