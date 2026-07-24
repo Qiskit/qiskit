@@ -333,13 +333,6 @@ class MCPhaseGate(ControlledGate):
         :class:`~qiskit.circuit.library.standard_gates.CPhaseGate`:
         The singly-controlled-version of this gate.
 
-    References:
-        [1] A. J. da Silva and D. K. Park,
-        Linear-depth quantum circuits for multiqubit controlled gates,
-        `Phys. Rev. A 106, 042602
-        <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.106.042602>`__.
-
-        [2] https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py
     """
 
     def __init__(
@@ -363,9 +356,7 @@ class MCPhaseGate(ControlledGate):
         )
 
     def _define(self):
-        from qiskit.synthesis.multi_controlled.mcp_synthesis import (
-            synth_mcp_noaux_default,
-        )
+        from qiskit.synthesis.multi_controlled import synth_mcp_noaux_default
 
         self.definition = synth_mcp_noaux_default(self.num_ctrl_qubits, self.params[0])
 

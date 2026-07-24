@@ -54,6 +54,9 @@ from qiskit.quantum_info.operators.operator_utils import (
 from qiskit.synthesis.multi_controlled import (
     synth_c3x,
     synth_c4x,
+    synth_mcp_noaux_default,
+    synth_mcp_noaux_sp22,
+    synth_mcp_noaux_v24,
     synth_mcx_1_clean_b95,
     synth_mcx_1_clean_kg24,
     synth_mcx_1_dirty_kg24,
@@ -64,11 +67,6 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_n_dirty_i15,
     synth_mcx_noaux_hp24,
     synth_mcx_noaux_v24,
-)
-from qiskit.synthesis.multi_controlled.mcp_synthesis import (
-    synth_mcp_noaux_default,
-    synth_mcp_noaux_sp22,
-    synth_mcp_noaux_v24,
 )
 from qiskit.transpiler import generate_preset_pass_manager
 
@@ -577,7 +575,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
             base_gate, (PhaseGate, SGate, SdgGate, TGate, TdgGate, SXGate, SXdgGate, U1Gate)
         ):
             # MCPhase gate and other locally equivalent multi-controlled gates
-            expected = {1: 2, 2: 6, 3: 20, 4: 44, 5: 84, 6: 140, 7: 220, 8: 324}
+            expected = {1: 2, 2: 6, 3: 20, 4: 44, 5: 82, 6: 122, 7: 170, 8: 226}
         elif isinstance(base_gate, RZGate):
             expected = {1: 2, 2: 4, 3: 14, 4: 24, 5: 40, 6: 56, 7: 80, 8: 104}
         elif isinstance(base_gate, (RXGate, RYGate)):
