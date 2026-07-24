@@ -90,6 +90,14 @@ class TestStatePreparation(QiskitTestCase):
         actual_sv = Statevector(qc)
         self.assertTrue(desired_sv == actual_sv)
 
+    def test_inverse_preserves_integer_state_width(self):
+        """Test inverse preserves explicit qubit count for integer states."""
+        qc = QuantumCircuit(2)
+        stateprep = StatePreparation(1, num_qubits=2)
+        qc.append(stateprep, [0, 1])
+        qc.append(stateprep.inverse(), [0, 1])
+        self.assertTrue(np.allclose(Operator(qc).data, np.identity(2**qc.num_qubits)))
+
     def test_incompatible_state_and_qubit_args(self):
         """Test error raised if number of qubits not compatible with state arg"""
         qc = QuantumCircuit(3)
