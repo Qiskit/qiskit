@@ -675,6 +675,11 @@ impl ProgramNode for QuantumProgram {
         )
         .map_err(|_| QuantumProgramCallError::Cycle)?;
 
+        // The above doesn't catch self-loops, so catch them here.
+        if topo_order.len() != self.graph.node_count() {
+            return Err(QuantumProgramCallError::Cycle);
+        }
+
         // Map from NodeIndex → topo_idx, formatted as a list to avoid using a hash map.
         let mut node_idx_to_topo_idx: Vec<Option<usize>> = vec![None; self.graph.node_bound()];
         for (topo_idx, &node_idx) in topo_order.iter().enumerate() {
@@ -1024,7 +1029,7 @@ mod tests {
 
     #[test]
     fn test_fanout_same_output_to_two_inputs() {
-        use crate::math_nodes::binary::Add;
+        use crate::math_nodes::Add;
         let mut prog = QuantumProgram::new();
         prog.add_node("s", make_store(1.0)).unwrap();
         prog.add_node("add", Add).unwrap();
@@ -1054,7 +1059,7 @@ mod tests {
     #[test]
     fn test_call_store_add_pipeline() {
         // s1(3.0) and s2(5.0) feed into Add; result is exported.
-        use crate::math_nodes::binary::Add;
+        use crate::math_nodes::Add;
         let mut prog = QuantumProgram::new();
         prog.add_node("s1", make_store(3.0)).unwrap();
         prog.add_node("s2", make_store(5.0)).unwrap();
@@ -1075,7 +1080,7 @@ mod tests {
     #[test]
     fn test_call_with_program_input() {
         // A Store provides one operand of Add; the other comes from a program input.
-        use crate::math_nodes::binary::Add;
+        use crate::math_nodes::Add;
         let mut prog = QuantumProgram::new();
         prog.add_node("s", make_store(10.0)).unwrap();
         prog.add_node("add", Add).unwrap();
@@ -1097,7 +1102,7 @@ mod tests {
         // Address a Store output by Index(0) and confirm it resolves to the
         // same leaf as Key("a") — re-using either name on the same downstream
         // input should report it as already occupied.
-        use crate::math_nodes::binary::Add;
+        use crate::math_nodes::Add;
         let mut data = DataTree::new();
         data.insert_leaf("a", Tensor::from([1.0_f64]));
         data.insert_leaf("b", Tensor::from([2.0_f64]));
@@ -1119,5 +1124,224 @@ mod tests {
             err,
             QuantumProgramError::PortAlreadyConnected { .. }
         ));
+    }
+
+    #[test]
+    fn test_set_output_invalid_port() {
+        let mut prog = QuantumProgram::new();
+        prog.add_node("op", BinaryTestNode).unwrap();
+        // BinaryTestNode's output is a single leaf (empty path); a bogus key fails.
+        let err = prog
+            .set_output("bad", Port::new("op", vec!["nonexistent".into()]))
+            .unwrap_err();
+        assert!(matches!(
+            err,
+            QuantumProgramError::InvalidPort { ref label, .. } if label == "op"
+        ));
+    }
+
+    #[test]
+    fn test_call_cycle_detected() {
+        // Wire a node's own output back into one of its own inputs
+        let mut prog = QuantumProgram::new();
+        prog.add_node("op1", BinaryTestNode).unwrap();
+        prog.add_node("op2", BinaryTestNode).unwrap();
+        prog.add_edge(Port::new("op1", vec![]), Port::new("op2", vec!["x".into()]))
+            .unwrap();
+        prog.add_edge(Port::new("op2", vec![]), Port::new("op1", vec!["x".into()]))
+            .unwrap();
+        let err = prog.call_flat(&[]).unwrap_err();
+        assert!(matches!(err, QuantumProgramCallError::Cycle));
+    }
+
+        #[test]
+    fn test_call_self_loop_cycle_detected() {
+        // Wire a node's own output back into one of its own inputs
+        let mut prog = QuantumProgram::new();
+        prog.add_node("op", BinaryTestNode).unwrap();
+        prog.add_edge(Port::new("op", vec![]), Port::new("op", vec!["x".into()]))
+            .unwrap();
+        let err = prog.call_flat(&[]).unwrap_err();
+        assert!(matches!(err, QuantumProgramCallError::Cycle));
+    }
+
+    #[test]
+    fn test_call_missing_program_input() {
+        use crate::math_nodes::Add;
+        let mut prog = QuantumProgram::new();
+        prog.add_node("add", Add).unwrap();
+        prog.set_input("a", Port::new("add", vec!["x".into()]))
+            .unwrap();
+        prog.set_input("b", Port::new("add", vec!["y".into()]))
+            .unwrap();
+        prog.set_output("result", Port::new("add", vec![])).unwrap();
+
+        // No args supplied for either declared program input.
+        let err = prog.call_flat(&[]).unwrap_err();
+        assert!(matches!(
+            err,
+            QuantumProgramCallError::MissingProgramInput { ref key } if key == "a"
+        ));
+    }
+
+    #[test]
+    fn test_call_unwired_input() {
+        // "op" has inputs x and y; only y is wired (as a program input), x is
+        // left neither edge-connected nor declared, so calling should fail.
+        let mut prog = QuantumProgram::new();
+        prog.add_node("op", BinaryTestNode).unwrap();
+        prog.set_input("y_in", Port::new("op", vec!["y".into()]))
+            .unwrap();
+        prog.set_output("result", Port::new("op", vec![])).unwrap();
+
+        let err = prog.call_flat(&[Tensor::from([1.0_f64])]).unwrap_err();
+        assert!(matches!(
+            err,
+            QuantumProgramCallError::UnwiredInput { ref label, .. } if label == "op"
+        ));
+    }
+
+    #[test]
+    fn test_call_node_call_error_propagates() {
+        // Add's operands have incompatible (non-broadcastable) shapes, so its
+        // call_flat should error, and the program should surface that as a
+        // NodeCall error tagged with the failing node's label.
+        use crate::math_nodes::Add;
+        let mut prog = QuantumProgram::new();
+        prog.add_node(
+            "s1",
+            Store::new(DataTree::new_leaf(Tensor::from(&[1.0_f64, 2.0][..]))),
+        )
+        .unwrap();
+        prog.add_node(
+            "s2",
+            Store::new(DataTree::new_leaf(Tensor::from(&[1.0_f64, 2.0, 3.0][..]))),
+        )
+        .unwrap();
+        prog.add_node("add", Add).unwrap();
+        prog.add_edge(Port::new("s1", vec![]), Port::new("add", vec!["x".into()]))
+            .unwrap();
+        prog.add_edge(Port::new("s2", vec![]), Port::new("add", vec!["y".into()]))
+            .unwrap();
+        prog.set_output("result", Port::new("add", vec![])).unwrap();
+
+        let err = prog.call_flat(&[]).unwrap_err();
+        match err {
+            QuantumProgramCallError::NodeCall { label, source } => {
+                assert_eq!(label, "add");
+                assert!(source.to_string().contains("not broadcast-compatible"));
+            }
+            other => panic!("expected NodeCall, got {other:?}"),
+        }
+    }
+
+    /// A test node whose declared output schema (2 leaves) doesn't match what
+    /// `call_flat` actually returns (1 value); used to exercise
+    /// [`QuantumProgramCallError::NodeOutputArityMismatch`].
+    struct BadArityNode;
+
+    impl ProgramNode for BadArityNode {
+        type CallError = std::convert::Infallible;
+        fn name(&self) -> &'static str {
+            "bad_arity_test"
+        }
+        fn namespace(&self) -> &'static str {
+            "test"
+        }
+        fn input_types(&self) -> &DataTree<TensorType> {
+            static LOCK: OnceLock<DataTree<TensorType>> = OnceLock::new();
+            LOCK.get_or_init(DataTree::new)
+        }
+        fn output_types(&self) -> &DataTree<TensorType> {
+            static LOCK: OnceLock<DataTree<TensorType>> = OnceLock::new();
+            LOCK.get_or_init(|| {
+                let mut t = DataTree::with_capacity(2);
+                t.insert_leaf(
+                    "a",
+                    TensorType {
+                        dtype: DTypeLike::Var("a".into()),
+                        shape: vec![],
+                        broadcastable: true,
+                    },
+                );
+                t.insert_leaf(
+                    "b",
+                    TensorType {
+                        dtype: DTypeLike::Var("b".into()),
+                        shape: vec![],
+                        broadcastable: true,
+                    },
+                );
+                t
+            })
+        }
+        fn implements_call(&self) -> bool {
+            true
+        }
+        fn call_flat(&self, _args: &[Tensor]) -> Result<Vec<Tensor>, Self::CallError> {
+            // Declares 2 outputs above but only returns 1.
+            Ok(vec![Tensor::from([1.0_f64])])
+        }
+    }
+
+    #[test]
+    fn test_call_node_output_arity_mismatch() {
+        let mut prog = QuantumProgram::new();
+        prog.add_node("bad", BadArityNode).unwrap();
+        prog.set_output("o", Port::new("bad", vec!["a".into()]))
+            .unwrap();
+
+        let err = prog.call_flat(&[]).unwrap_err();
+        assert!(matches!(
+            err,
+            QuantumProgramCallError::NodeOutputArityMismatch {
+                ref label,
+                expected: 2,
+                actual: 1,
+            } if label == "bad"
+        ));
+    }
+
+    #[test]
+    fn test_nested_quantum_program() {
+        // An inner QuantumProgram (a + b -> sum) is embedded as a single node
+        // inside an outer program, verifying that QuantumProgram's own
+        // ProgramNode impl composes.
+        use crate::math_nodes::Add;
+        let mut inner = QuantumProgram::new();
+        inner.add_node("add", Add).unwrap();
+        inner
+            .set_input("a", Port::new("add", vec!["x".into()]))
+            .unwrap();
+        inner
+            .set_input("b", Port::new("add", vec!["y".into()]))
+            .unwrap();
+        inner.set_output("sum", Port::new("add", vec![])).unwrap();
+
+        let mut outer = QuantumProgram::new();
+        outer.add_node("s1", make_store(3.0)).unwrap();
+        outer.add_node("s2", make_store(4.0)).unwrap();
+        outer.add_node("inner", inner).unwrap();
+        outer
+            .add_edge(
+                Port::new("s1", vec![]),
+                Port::new("inner", vec!["a".into()]),
+            )
+            .unwrap();
+        outer
+            .add_edge(
+                Port::new("s2", vec![]),
+                Port::new("inner", vec!["b".into()]),
+            )
+            .unwrap();
+        outer
+            .set_output("result", Port::new("inner", vec!["sum".into()]))
+            .unwrap();
+
+        let out = outer.call_flat(&[]).unwrap();
+        let Tensor::F64(arr) = &out[0] else {
+            panic!("expected f64 leaf");
+        };
+        assert_eq!(arr.as_slice().unwrap(), &[7.0_f64]);
     }
 }
