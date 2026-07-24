@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    :meth:`~qiskit.transpiler.passes.ConsolidateBlocks` now raises a clear error
+    message with context when a gate parameter is NaN or Inf, instead of failing
+    with a non-descript ``NoConvergence`` error. The error message includes the
+    gate name and qubit index of the offending gate.
+    Fixed `#16236 <https://github.com/Qiskit/qiskit/issues/16236>`__.

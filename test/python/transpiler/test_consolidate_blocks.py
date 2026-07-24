@@ -32,6 +32,7 @@ from qiskit.circuit.library import (
 )
 from qiskit.circuit.classical import expr
 from qiskit.converters import circuit_to_dag
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.measures import process_fidelity
 from qiskit.transpiler import PassManager, Target, generate_preset_pass_manager
@@ -894,3 +895,19 @@ class TestCollect2qBlocks(QiskitTestCase):
             pm.run(qc)
             blocks = pm.property_set.get("block_list", [])
             self.assertEqual(len(blocks), 0)
+
+    def test_consolidate_nan_parameters_in_2q_block(self):
+        """Test that ConsolidateBlocks gives a clear error when a 2-qubit block has NaN parameters."""
+        qc = QuantumCircuit(2)
+        qc.rz(float("nan"), 0)
+        qc.cx(0, 1)
+
+        dag = circuit_to_dag(qc)
+        pm = PassManager([
+            Collect1qRuns(),
+            Collect2qBlocks(),
+            ConsolidateBlocks(basis_gates=["cx", "rz"]),
+        ])
+        with self.assertRaises(QiskitError) as ctx:
+            pm.run(dag)
+        self.assertIn("NaN", str(ctx.exception))
