@@ -57,6 +57,178 @@ The procedure for a new minor-version release, with respect to version numbers i
 You will need to run `cargo build` as part of a version-bump commit to propagate the changes in `Cargo.toml` to `Cargo.lock`.
 
 
+<span id="security"></span>
+## Handling Security Vulnerabilities
+
+Some bugs allow attackers to target systems using Qiskit as a library in ways that cannot reasonably be protected against, and can have severe negative consequences for those systems.
+We call these "security vulnerabilities", and there are special processes for handling these.
+
+Security vulnerabilities, including reports that _may_ be security vulnerabilities, are handled privately to avoid disclosing a potential attack surface until a fix or workaround is ready for deployment.
+Vulnerability reports are even hidden from most repository maintainers; only those with the GitHub `admin` role are automatically involved.
+This poses several problems:
+
+* even _potential_ security reports are high-priority interrupts on maintainers' time
+* it is hard to collaborate on and validate fixes
+* it is hard to deploy a fix without alerting bad actors to the presence of a vulnerability
+* it is hard to train new maintainers on the processes
+
+This section covers our maintenance policy for handling these.
+Maintainers may also have further responsibilities to their employers, which are not documented here.
+
+Further reading:
+
+* [Qiskit's security policy](/SECURITY.md) for what constitutes a security vulnerability and how to report one safely.
+* [GitHub's documentation on its security tooling](https://docs.github.com/code-security/how-tos/report-and-fix-vulnerabilities).
+
+
+### General principles
+
+* Vulnerability reports should be triaged quickly.
+
+  We aim to provide an initial response to a report within one working day.
+  The response can be one of "accept", "reject" or "investigate further".
+  If we need to investigate further, we aim to produce a final response within a week.
+
+* If a report is accepted, a fix or workaround should be prepared and released as soon as possible for all affected [Qiskit versions with active security support](https://quantum.cloud.ibm.com/docs/guides/qiskit-sdk-version-strategy).
+
+  We aim to release fixes within a month of accepting a report, and we must release the fix within three months of the report being made.
+
+* There should be as little time as reasonably possible between public disclosure and the fix being available in a released version of Qiskit.
+
+  This is a trade-off between the risk of vulnerability exploitation and the risk that rushed and insufficiently reviewed code is released.
+
+* As few people as reasonably possible should be exposed to vulnerability reports.
+
+  This is a trade-off between the risk of accidental disclosure, the risk of burning out the administrators, and the need to train new maintainers on the security procedures.
+
+
+### Who is involved
+
+Security reports are automatically visible to exactly those users with `admin` rights to the repository.
+This is one reason that `admin` rights must be very limited.
+
+There should be at least three people actively involved in any "accepted" or "investigate further" security report.
+One non-admin maintainer should be added to each such security report, in order to train others on the process.
+If there is only one active admin at a given time, two non-admin maintainers should be added instead.
+
+When choosing the non-admin collaborator(s), consider that the total goals are:
+
+* we need a diversity of opinions for patches that may be controversial;
+* we need at least one person, and ideally two, with expertise in the affected code;
+* we need to train new maintainers on the security procedures.
+
+All security-related fixes must have **two** non-authoring approvers, using the standard repository
+rules for when a contribution amounts to co-authorship and requires a different reviewer.
+
+An "active" member is one who is significantly participating in the triage, remediation or review of a report or fix.
+Examples of "non-active" admins are organization-level admins whose purpose is not repository-specific, and those who are not currently available, such as through illness or vacation.
+
+
+### Remediation process
+
+Once accepted, a fix must be prepared and released, and the vulnerability must be publicly announced, in order to allow downstream users to update.
+
+Employed administrators may have company-internal processes that need to happen in parallel to this
+process.
+For example, IBM employees have responsibilities to the internal [PSIRT processes](https://www.ibm.com/trust/security-vulnerability-management) that begin immediately, and should consult internal documentation on these.
+
+**Remediation process**:
+
+1. [Create a new private fork](https://docs.github.com/code-security/tutorials/fix-reported-vulnerabilities/collaborate-in-a-fork) for preparing the patches.
+   **Do not** push any work to Qiskit/qiskit or your own fork until you are in the "disclosure" section.
+
+
+2. Using the private fork, prepare a PR branched from `main` that fixes or invalidates the vulnerability.
+   **Note**: there is no CI available on private forks.
+
+   Explicitly check each of these basic steps; it is easy to feel pressured to cut corners, but you have less automated safety checks on the private fork.
+
+   1. Write the patch to fix or invalidate the vulnerability.
+   2. Add a `security` release note.
+   3. Run the test suite yourself on Linux, macOS and Windows, if at all possible.
+   4. Run the entire lint job.
+   5. Build the documentation.
+
+   Repeat steps 3 to 5 every time before you push changes in response to a review.
+
+3. Have two collaborators review and approve the PR.
+   The collaborators should remind the author to run the tests, lint and docs jobs, and double-check by running them themselves.
+
+   In order to simplify the next step, you may wish to squash the commit history once the review is complete.
+
+4. Using the private fork, prepare cherry-pick PRs to each `stable/*` branch with security support.
+   This is likely to be the current minor release, and potentially the last minor of the previous major.
+
+   1. Update your local copies of the relevant `stable/*` branches.
+   2. For each stable branch, make a new branch.
+   3. Cherry-pick the fix from the approved PR against `main`.
+   4. In the same PR, follow the regular procedures for preparing a new patch-version release, including the version bump and the release notes.
+   5. Run the tests, lint and docs again for each branch.
+   6. Push each branch to the private fork, as new PRs.
+   7. Have the collaborators review each branch, paying particular attention to any places where code had to be changed in the cherry-pick, and to the version-bump commit.
+
+When designing a fix, consider these points:
+
+* Fixes should be as minimal as possible.
+
+  The process is more stressful and unverified than usual, and it is easy to introduce new bugs and vulnerabilities, or regress on old ones.
+
+* Fixes do not need to be elegant.
+
+  It is better to publish an overcautious fix immediately within the private process, then follow up with a cleaner solution under normal conditions.
+  For example, we fixed [a recursive stack overflow in `qiskit.qasm2.load`](https://github.com/Qiskit/qiskit/security/advisories/GHSA-w7g6-mx9c-q2hr) with [a simple but overly restrictive depth limit](https://github.com/Qiskit/qiskit/pull/16421) first, then replaced the parser with [a fully iterative one](https://github.com/Qiskit/qiskit/pull/16425) later.
+
+* Fixes take priority over backwards-compatible stability and performance.
+
+  Wherever possible, aim to avoid impact to legitimate uses of Qiskit, but do not let this compromise the publication of a fix.
+  Consider adding limitations by optional keyword arguments with reasonable defaults, but can be explicitly lifted by users.
+
+
+### Disclosure and release process
+
+The order of disclosure and release for an accepted report is as follows:
+
+1. Co-ordinate with the responsible CVE issuer (currently IBM PSIRT) to receive a complete CVSS score _specifically for Qiskit SDK_.
+   There may be additional CVEs issued against downstream users of Qiskit SDK, which are not covered by this policy.
+   Fill in the advisory with this, and all other necessary details listed below this process.
+
+2. Prepare and review the fixes for each supported branch, as in the above section.
+
+3. Co-ordinate a disclosure date and time with the responsible owner (currently IBM PSIRT).
+
+4. At the specified time, re-open the approved PRs, now on the *public* repository.
+   **Do not publish the advisory yet.**
+   Allow the complete CI suite to pass, after fixing any caught mistakes.
+   Have the reviewers from the private fork verify and re-approve the now-public PR.
+   Once CI has passed, the PRs can be immediately admin-merged, skipping the merge queue.
+
+5. Tag and trigger package releases for each supported version.
+
+6. Once the releases are live, co-ordinate a time to publish the GitHub advisory with the responsible package owner.
+   (This co-ordination should be a fast rubber stamp on top of step 3.)
+
+Checklist for publication of an advisory:
+
+* The title of the GitHub advisory is short and clear.
+
+* All affected packages and versions are filled in.
+  Note that this may include packages and major versions that no longer have security support, such as Qiskit v1.x and `qiskit-terra`.
+
+* The patched versions of each supported package are filled in, and unsupported packages are marked "no security support".
+
+* The advisory description is edited so that it **does not include an explicit exploit implementation**, but clearly specifies the vulnerable function, conditions for vulnerability, and any known workarounds.
+
+  *Note*: comments on and edit history of the advisory are _not_ public, but remain visible to report collaborators.
+  Leave any comments and edit history in place for later auditing.
+
+* Add suitable "credits" to those involved.
+
+  This can also be done after publication.
+  Typically you will have at least one "remediation developer" and at least two "remediation
+  reviewer" credits.
+  If the vulnerability finder/reporter was not involved in the fix, give them a "finder" credit.
+  Each person can only have one credited role.
+
 ## Stable Branch Policy
 
 The stable branch is intended to be a safe source of fixes for high-impact
@@ -408,7 +580,7 @@ the example version number; adjust as appropriate.
 
      Run `cargo check` locally to propagate Rust version-number updates to `Cargo.lock`.
      </details>
- 
+
    You can skip all the "release notes" steps if you are releasing a follow-on release candidate and
    are pressed for time.
 
