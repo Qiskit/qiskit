@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 
-"""
+r"""
 
 High Level Synthesis Plugins
 -----------------------------
@@ -331,7 +331,7 @@ Sums
     * - ``"default"``
       - :class:`.WeightedSumSynthesisDefault`
       - use a V-chain based synthesis
-      - given :math:`s` sum qubits, used :math:`s - 1 + 1_{s > 2}` clean auxiliary qubits
+      - given :math:`s` sum qubits, used :math:`s - 1_{s \leq 2}` clean auxiliary qubits
 
 .. autosummary::
    :toctree: ../stubs/
