@@ -76,73 +76,76 @@ pub enum PauliLabelOrder {
 }
 
 impl PauliList {
-    /// A reference to the given x-row of the PauliList.
+    /// A reference to the given x-column of the PauliList.
     ///
-    /// Note: this function assumes that the given row exists
+    /// Note: this function assumes that the given column exists
     /// and panics otherwise.
     #[inline]
     pub fn get_x(&self, qubit: usize) -> &FixedBitSet {
         self.data.get(qubit).unwrap()
     }
 
-    /// A mutable reference to the given x-row of the PauliList.
+    /// A mutable reference to the given x-column of the PauliList.
     ///
-    /// Note: this function assumes that the given row exists
+    /// Note: this function assumes that the given column exists
     /// and panics otherwise.
     #[inline]
     pub fn get_x_mut(&mut self, qubit: usize) -> &mut FixedBitSet {
         self.data.get_mut(qubit).unwrap()
     }
 
-    /// A reference to the given z-row of the PauliList.
+    /// A reference to the given z-column of the PauliList.
     ///
-    /// Note: this function assumes that the given row exists
+    /// Note: this function assumes that the given column exists
     /// and panics otherwise.
     #[inline]
     pub fn get_z(&self, qubit: usize) -> &FixedBitSet {
         self.data.get(self.num_qubits + qubit).unwrap()
     }
 
-    /// A mutable reference to the z-row of the PauliList.
+    /// A mutable reference to the z-column of the PauliList.
     ///
-    /// Note: this function assumes that the given row exists
+    /// Note: this function assumes that the given column exists
     /// and panics otherwise.
     #[inline]
     pub fn get_z_mut(&mut self, qubit: usize) -> &mut FixedBitSet {
         self.data.get_mut(self.num_qubits + qubit).unwrap()
     }
 
-    /// A reference to the phase row of the PauliList.
+    /// A reference to the phase column of the PauliList.
     #[inline]
     pub fn get_phase(&self) -> &FixedBitSet {
         self.data.get(2 * self.num_qubits).unwrap()
     }
 
-    /// A mutable reference to the phase row of the PauliList.
+    /// A mutable reference to the phase column of the PauliList.
     #[inline]
     pub fn get_phase_mut(&mut self) -> &mut FixedBitSet {
         self.data.get_mut(2 * self.num_qubits).unwrap()
     }
 
-    /// The entry in the given x-row corresponding to the Pauli ``pauli_idx``.
+    /// The entry in the given x-column corresponding to the Pauli ``pauli_idx``.
     ///
-    /// Note: this function assumes that the given row exists
+    /// Note: this function assumes that the given pauli and the column exist
     /// and panics otherwise.
     #[inline]
     pub fn get_pauli_x(&self, pauli_idx: usize, qubit: usize) -> bool {
         self.data[qubit][pauli_idx]
     }
 
-    /// The entry in the given z-row corresponding to the Pauli ``pauli_idx``.
+    /// The entry in the given z-column corresponding to the Pauli ``pauli_idx``.
     ///
-    /// Note: this function assumes that the given row exists
+    /// Note: this function assumes that the given pauli and the column exist
     /// and panics otherwise.
     #[inline]
     pub fn get_pauli_z(&self, pauli_idx: usize, qubit: usize) -> bool {
         self.data[qubit + self.num_qubits][pauli_idx]
     }
 
-    /// The entry in the phase-row corresponding to the Pauli ``pauli_idx``.
+    /// The entry in the phase-column corresponding to the Pauli ``pauli_idx``.
+    ///
+    /// Note: this function assumes that the given pauli exists
+    /// and panics otherwise.
     #[inline]
     pub fn get_pauli_phase(&self, pauli_idx: usize) -> bool {
         self.data[2 * self.num_qubits][pauli_idx]
@@ -489,7 +492,26 @@ impl PauliList {
             .collect()
     }
 
+    /// If the Pauli with index `pauli_idx` has support `[q]` of exactly size 1, return `Some(q)`.
+    /// Return `None` otherwise.
+    pub fn get_pauli_support_if_size_1(&self, pauli_idx: usize) -> Option<usize> {
+        let mut found: Option<usize> = None;
+        for q in 0..self.num_qubits {
+            if self.data[q].contains(pauli_idx) | self.data[q + self.num_qubits].contains(pauli_idx)
+            {
+                if found.is_some() {
+                    // Support size is at least 2
+                    return None;
+                }
+                found = Some(q);
+            }
+        }
+        found
+    }
+
     /// Returns whether two Paulis given `pauli_idx1` and `pauli_idx2` commute.
+    ///
+    /// Note: this function assumes that the two paulis exist, and will panic otherwise.
     pub fn commute(&self, pauli_idx1: usize, pauli_idx2: usize) -> bool {
         let mut parity = false;
         for i in 0..self.num_qubits {
@@ -605,6 +627,17 @@ impl PauliList {
             pauli_labels.push(s);
         }
         pauli_labels
+    }
+
+    /// Returns (the index of) the Pauli pair over the qubits `i` and `j`
+    /// for the Pauli operator `pauli_idx`.
+    #[inline]
+    pub fn pauli_pair_index(&self, pauli_idx: usize, i: usize, j: usize) -> usize {
+        let xi = self.get_pauli_x(pauli_idx, i);
+        let zi = self.get_pauli_z(pauli_idx, i);
+        let xj = self.get_pauli_x(pauli_idx, j);
+        let zj = self.get_pauli_z(pauli_idx, j);
+        ((xi as usize) << 3) | ((zi as usize) << 2) | ((xj as usize) << 1) | (zj as usize)
     }
 }
 
