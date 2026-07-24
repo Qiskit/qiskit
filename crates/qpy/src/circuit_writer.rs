@@ -862,12 +862,11 @@ fn pack_transpile_layout(
                 .extract::<ShareableQubit>()
                 .map_err(|e| QpyError::from(PyErr::from(e)))?;
             let register = qubit.owning_register();
-            if let Some(reg) = register {
-                if qubit.owning_register_index().is_some()
-                    && !qpy_data.circuit_data.qregs().contains(&reg)
-                {
-                    extra_registers.insert(reg);
-                }
+            if let Some(reg) = register
+                && qubit.owning_register_index().is_some()
+                && !qpy_data.circuit_data.qregs().contains(&reg)
+            {
+                extra_registers.insert(reg);
             };
             let i: usize = index.extract()?;
             input_qubit_mapping_array[i] = layout_mapping.get_item(&qubit)?.extract::<u32>()?;
@@ -986,10 +985,10 @@ fn pack_extra_registers(
 ) -> Result<Vec<formats::RegisterV4Pack>, QpyError> {
     let mut out_circ_regs: HashSet<QuantumRegister> = HashSet::new();
     for qubit in qubits.iter() {
-        if let Some(qreg) = qubit.owning_register() {
-            if !in_circ_regs.contains(&qreg) {
-                out_circ_regs.insert(qreg);
-            }
+        if let Some(qreg) = qubit.owning_register()
+            && !in_circ_regs.contains(&qreg)
+        {
+            out_circ_regs.insert(qreg);
         }
     }
     let mut result = Vec::new();
@@ -1211,7 +1210,7 @@ pub(crate) fn pack_circuit(
     circuit: &mut QuantumCircuitData,
     metadata_serializer: Option<&Bound<PyAny>>,
     _use_symengine: bool,
-    version: u32,
+    version: u8,
     annotation_factories: &Bound<PyDict>,
 ) -> Result<formats::QPYCircuit, QpyError> {
     let annotation_handler = AnnotationHandler::new(annotation_factories);
@@ -1264,7 +1263,7 @@ pub(crate) fn py_write_circuit(
     circuit: &Bound<PyAny>,
     metadata_serializer: &Bound<PyAny>,
     use_symengine: bool,
-    version: u32,
+    version: u8,
     annotation_factories: &Bound<PyDict>,
 ) -> PyResult<usize> {
     let packed_circuit = pack_circuit(

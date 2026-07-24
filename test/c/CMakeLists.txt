@@ -17,6 +17,10 @@ set (
     CACHE FILEPATH "path to the `target/<profile>` directory where the Qiskit library is built"
 )
 
+# Keep in sync with Qiskit's actual C compiler standard. (For search purposes: C11.)
+set (CMAKE_C_STANDARD 11 CACHE STRING "C standard to use for test build.")
+set (CMAKE_C_EXTENSIONS OFF CACHE BOOL "Whether to allow GNU-like C extensions.")
+set (CMAKE_C_STANDARD_REQUIRED ON CACHE BOOL "Whether to fail if we can't set the C standard.")
 
 enable_testing ()
 include_directories (${QISKIT_INCLUDE_PATH})

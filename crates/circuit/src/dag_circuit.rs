@@ -1052,10 +1052,10 @@ impl DAGCircuit {
     fn remove_all_ops_named(&mut self, opname: &str) {
         let mut to_remove = Vec::new();
         for (id, weight) in self.dag.node_references() {
-            if let NodeType::Operation(packed) = &weight {
-                if opname == packed.op.name() {
-                    to_remove.push(id);
-                }
+            if let NodeType::Operation(packed) = &weight
+                && opname == packed.op.name()
+            {
+                to_remove.push(id);
             }
         }
         for node in to_remove {
@@ -3716,10 +3716,10 @@ impl DAGCircuit {
         }
         let mut result: Vec<Py<PyAny>> = Vec::new();
         for (id, weight) in self.dag.node_references() {
-            if let NodeType::Operation(packed) = weight {
-                if names_set.contains(packed.op.name()) {
-                    result.push(self.unpack_into(py, id, weight)?);
-                }
+            if let NodeType::Operation(packed) = weight
+                && names_set.contains(packed.op.name())
+            {
+                result.push(self.unpack_into(py, id, weight)?);
             }
         }
         Ok(result)
@@ -4096,6 +4096,7 @@ impl DAGCircuit {
             }
 
             let mut new_layer = self.copy_empty_like(vars_mode, BlocksMode::Drop);
+            new_layer.global_phase = Param::Float(0.);
             let mut block_map = BlockMapper::new();
             let data: Vec<_> = op_nodes
                 .iter()
@@ -4138,6 +4139,7 @@ impl DAGCircuit {
                 _ => unreachable!("A non-operation node was obtained from topological_op_nodes."),
             };
             let mut new_layer = self.copy_empty_like(vars_mode, BlocksMode::Drop);
+            new_layer.global_phase = Param::Float(0.);
             let mut block_map = BlockMapper::new();
 
             // Save the support of the operation we add to the layer
@@ -4423,15 +4425,13 @@ impl DAGCircuit {
                     for pred_index in self.quantum_predecessors(cur_index) {
                         if let NodeType::Operation(pred_packed) =
                             self.dag.node_weight(pred_index).unwrap()
-                        {
-                            if self
+                            && self
                                 .qargs_interner
                                 .get(pred_packed.qubits)
                                 .iter()
                                 .any(|x| qubits_in_cone.contains(x))
-                            {
-                                queue.push_back(pred_index);
-                            }
+                        {
+                            queue.push_back(pred_index);
                         }
                     }
                 }
@@ -6867,27 +6867,59 @@ impl DAGCircuit {
 
         for (old_node_index, new_node_index) in out_map.iter() {
             let old_node = &other.dag[*old_node_index];
-            if let NodeType::Operation(old_inst) = old_node {
-                if let OperationRef::ControlFlow(cf) = old_inst.op.view() {
-                    match &cf.control_flow {
-                        ControlFlow::Switch {
-                            target,
-                            label_spec,
-                            cases,
-                        } => {
-                            let mapped_target = variable_mapper
-                                .map_target(target, |new_reg| self.add_creg(new_reg.clone()))?;
+            if let NodeType::Operation(old_inst) = old_node
+                && let OperationRef::ControlFlow(cf) = old_inst.op.view()
+            {
+                match &cf.control_flow {
+                    ControlFlow::Switch {
+                        target,
+                        label_spec,
+                        cases,
+                    } => {
+                        let mapped_target = variable_mapper
+                            .map_target(target, |new_reg| self.add_creg(new_reg.clone()))?;
 
-                            if let NodeType::Operation(new_inst) = &mut self.dag[*new_node_index] {
-                                #[cfg(feature = "cache_pygates")]
-                                {
-                                    new_inst.py_op.take();
-                                }
+                        if let NodeType::Operation(new_inst) = &mut self.dag[*new_node_index] {
+                            #[cfg(feature = "cache_pygates")]
+                            {
+                                new_inst.py_op.take();
+                            }
+                            new_inst.op = ControlFlowInstruction {
+                                control_flow: ControlFlow::Switch {
+                                    target: mapped_target,
+                                    label_spec: label_spec.clone(),
+                                    cases: *cases,
+                                },
+                                num_qubits: cf.num_qubits,
+                                num_clbits: cf.num_clbits,
+                            }
+                            .into();
+                        }
+                    }
+                    ControlFlow::IfElse { condition } | ControlFlow::While { condition } => {
+                        let mapped_condition =
+                            variable_mapper.map_condition(condition, false, |new_reg| {
+                                self.add_creg(new_reg.clone())
+                            })?;
+
+                        if let NodeType::Operation(new_inst) = &mut self.dag[*new_node_index] {
+                            #[cfg(feature = "cache_pygates")]
+                            {
+                                new_inst.py_op.take();
+                            }
+                            if matches!(&cf.control_flow, ControlFlow::While { .. }) {
                                 new_inst.op = ControlFlowInstruction {
-                                    control_flow: ControlFlow::Switch {
-                                        target: mapped_target,
-                                        label_spec: label_spec.clone(),
-                                        cases: *cases,
+                                    control_flow: ControlFlow::While {
+                                        condition: mapped_condition,
+                                    },
+                                    num_qubits: cf.num_qubits,
+                                    num_clbits: cf.num_clbits,
+                                }
+                                .into();
+                            } else {
+                                new_inst.op = ControlFlowInstruction {
+                                    control_flow: ControlFlow::IfElse {
+                                        condition: mapped_condition,
                                     },
                                     num_qubits: cf.num_qubits,
                                     num_clbits: cf.num_clbits,
@@ -6895,40 +6927,8 @@ impl DAGCircuit {
                                 .into();
                             }
                         }
-                        ControlFlow::IfElse { condition } | ControlFlow::While { condition } => {
-                            let mapped_condition =
-                                variable_mapper.map_condition(condition, false, |new_reg| {
-                                    self.add_creg(new_reg.clone())
-                                })?;
-
-                            if let NodeType::Operation(new_inst) = &mut self.dag[*new_node_index] {
-                                #[cfg(feature = "cache_pygates")]
-                                {
-                                    new_inst.py_op.take();
-                                }
-                                if matches!(&cf.control_flow, ControlFlow::While { .. }) {
-                                    new_inst.op = ControlFlowInstruction {
-                                        control_flow: ControlFlow::While {
-                                            condition: mapped_condition,
-                                        },
-                                        num_qubits: cf.num_qubits,
-                                        num_clbits: cf.num_clbits,
-                                    }
-                                    .into();
-                                } else {
-                                    new_inst.op = ControlFlowInstruction {
-                                        control_flow: ControlFlow::IfElse {
-                                            condition: mapped_condition,
-                                        },
-                                        num_qubits: cf.num_qubits,
-                                        num_clbits: cf.num_clbits,
-                                    }
-                                    .into();
-                                }
-                            }
-                        }
-                        _ => (),
                     }
+                    _ => (),
                 }
             }
         }
@@ -7559,11 +7559,22 @@ impl DAGCircuit {
     ) -> Result<Self, DAGError> {
         // Extract necessary attributes
         let qc_data = qc.data;
+        let metadata = qc
+            .metadata
+            .map(|ob| {
+                if copy_op {
+                    ob.call_method0(intern!(ob.py(), "copy")).map(Bound::unbind)
+                } else {
+                    Ok(ob.unbind())
+                }
+            })
+            .transpose()
+            .map_err(DAGError::Python)?;
         Self::from_circuit_data(
             &qc_data,
             copy_op,
             qc.name,
-            qc.metadata.map(|x| x.unbind()),
+            metadata,
             qubit_order,
             clbit_order,
         )
