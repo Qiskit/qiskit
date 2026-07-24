@@ -360,7 +360,9 @@ mod tests {
     fn test_std_matches_sqrt_of_variance() {
         // Verify std = sqrt(variance) numerically
         let x = Tensor::from([1.0_f64, 3.0, 5.0, 7.0, 9.0]);
-        let var_result = Variance::new(0, 0.0).call_flat(&[x.clone()]).unwrap();
+        let var_result = Variance::new(0, 0.0)
+            .call_flat(std::slice::from_ref(&x))
+            .unwrap();
         let std_result = Std::new(0, 0.0).call_flat(&[x]).unwrap();
 
         let Tensor::F64(var_arr) = &var_result[0] else {
