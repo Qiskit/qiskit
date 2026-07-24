@@ -161,7 +161,7 @@ static int test_op_types_roundtrip(void) {
     }
 
     for (size_t op = QkBinaryOpType_BitAnd; op <= QkBinaryOpType_Div; op++) {
-        QkUnaryOpType expected_op = (QkUnaryOpType)op;
+        QkBinaryOpType expected_op = (QkBinaryOpType)op;
 
         expr = inner_test_binary_expr_ops(expected_op);
 
@@ -513,7 +513,7 @@ static int test_expr_value(void) {
             }
 
             if (value_type_info.width != 4) {
-                printf("Expected Uint width to be 4, got %" PRIu16 "\n", value_type_info.width);
+                printf("Expected Uint width to be 4, got %" PRIu32 "\n", value_type_info.width);
                 result = EqualityError;
                 goto cleanup;
             }

@@ -23,6 +23,7 @@ use std::{fmt, vec};
 use crate::bit::{ClassicalRegister, ShareableClbit};
 use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::classical::expr;
+use crate::classical::expr::Var;
 use crate::converters::QuantumCircuitData;
 use crate::duration::Duration;
 use crate::operations::custom_traits::{ClonableOp, ComparableOp};
@@ -477,7 +478,7 @@ pub enum ForCollection {
     /// A literal Python `range` object extracted to Rust.
     PyRange(PyRange),
     /// Some ordered collection of integers.
-    List(Vec<usize>),
+    List(Vec<isize>),
 }
 impl ForCollection {
     pub fn is_empty(&self) -> bool {
@@ -501,6 +502,39 @@ pub struct ControlFlowInstruction {
     pub num_clbits: u32,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum LoopParam {
+    Parameter(Symbol),
+    Variable(Var),
+}
+
+impl<'a, 'py> FromPyObject<'a, 'py> for LoopParam {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        if let Ok(parameter) = ob.extract::<Symbol>() {
+            Ok(LoopParam::Parameter(parameter))
+        } else {
+            ob.extract::<Var>()
+                .map(LoopParam::Variable)
+                .map_err(PyErr::from)
+        }
+    }
+}
+
+impl<'py> IntoPyObject<'py> for LoopParam {
+    type Target = PyAny;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        match self {
+            LoopParam::Parameter(symbol) => symbol.into_pyobject(py),
+            LoopParam::Variable(var) => var.into_pyobject(py),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 #[repr(align(8))]
 pub enum ControlFlow {
@@ -512,7 +546,7 @@ pub enum ControlFlow {
     ContinueLoop,
     ForLoop {
         collection: ForCollection,
-        loop_param: Option<Symbol>,
+        loop_param: Option<LoopParam>,
     },
     IfElse {
         condition: Condition,
@@ -772,7 +806,7 @@ pub enum ControlFlowView<'a, T> {
     ContinueLoop,
     ForLoop {
         collection: &'a ForCollection,
-        loop_param: Option<&'a Symbol>,
+        loop_param: Option<&'a LoopParam>,
         body: &'a T,
     },
     IfElse {

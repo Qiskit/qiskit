@@ -262,11 +262,11 @@ fn try_sparse_observable_generator_for_standard_gate(
     qubits: &[Qubit],
     num_qubits: u32,
 ) -> Option<SparseObservable> {
-    if let OperationRef::StandardGate(gate) = operation {
-        if let Some(local) = standard_gate_exponent(*gate, params) {
-            let out = SparseObservable::identity(num_qubits);
-            return Some(out.compose_map(&local, |i| qubits[i as usize].0));
-        }
+    if let OperationRef::StandardGate(gate) = operation
+        && let Some(local) = standard_gate_exponent(*gate, params)
+    {
+        let out = SparseObservable::identity(num_qubits);
+        return Some(out.compose_map(&local, |i| qubits[i as usize].0));
     }
     None
 }
@@ -446,6 +446,12 @@ impl CommutationChecker {
         matrix_max_num_qubits: u32,
         approximation_degree: f64,
     ) -> Result<bool, CommutationError> {
+        if let Some(gates) = &self.gates
+            && (!gates.contains(op1.name()) || !gates.contains(op2.name()))
+        {
+            return Ok(false);
+        }
+
         // If the average gate infidelity is below this tolerance, they commute. The tolerance
         // is set to max(1e-12, 1 - approximation_degree), to account for roundoffs and for
         // consistency with other places in Qiskit.
@@ -485,12 +491,6 @@ impl CommutationChecker {
             op2
         };
 
-        if let Some(gates) = &self.gates {
-            if !gates.is_empty() && (!gates.contains(op1.name()) || !gates.contains(op2.name())) {
-                return Ok(false);
-            }
-        }
-
         let precheck_status = commutation_precheck(
             op1,
             qargs1,
@@ -517,31 +517,30 @@ impl CommutationChecker {
             OperationRef::PauliProductMeasurement(ppm1),
             OperationRef::PauliProductMeasurement(ppm2),
         ) = (op1, op2)
+            && cargs1 == cargs2
         {
-            if cargs1 == cargs2 {
-                if (ppm1.neg != ppm2.neg) || (qargs1.len() != qargs2.len()) {
+            if (ppm1.neg != ppm2.neg) || (qargs1.len() != qargs2.len()) {
+                return Ok(false);
+            }
+            // Mark all qubit indices in qargs1
+            let qarg_map = qargs1
+                .iter()
+                .enumerate()
+                .map(|(i, q)| (q.index(), i))
+                .collect::<HashMap<_, _>>();
+            // Check that every qubit index in qargs2 is marked and has the same z,x values.
+            for (j, &q) in qargs2.iter().enumerate() {
+                let Some(&i) = qarg_map.get(&q.index()) else {
+                    return Ok(false);
+                };
+                if i == usize::MAX {
                     return Ok(false);
                 }
-                // Mark all qubit indices in qargs1
-                let qarg_map = qargs1
-                    .iter()
-                    .enumerate()
-                    .map(|(i, q)| (q.index(), i))
-                    .collect::<HashMap<_, _>>();
-                // Check that every qubit index in qargs2 is marked and has the same z,x values.
-                for (j, &q) in qargs2.iter().enumerate() {
-                    let Some(&i) = qarg_map.get(&q.index()) else {
-                        return Ok(false);
-                    };
-                    if i == usize::MAX {
-                        return Ok(false);
-                    }
-                    if ppm1.z[i] != ppm2.z[j] || ppm1.x[i] != ppm2.x[j] {
-                        return Ok(false);
-                    }
+                if ppm1.z[i] != ppm2.z[j] || ppm1.x[i] != ppm2.x[j] {
+                    return Ok(false);
                 }
-                return Ok(true);
             }
+            return Ok(true);
         }
 
         // Sort the arguments, such that `op2` always is the larger one.
@@ -755,18 +754,18 @@ fn commutation_precheck(
         return PrecheckStatus::Commuting;
     }
 
-    if let Some(limit) = max_num_qubits {
-        if qargs1.len() > limit as usize || qargs2.len() > limit as usize {
-            return PrecheckStatus::NonCommuting;
-        }
+    if let Some(limit) = max_num_qubits
+        && (qargs1.len() > limit as usize || qargs2.len() > limit as usize)
+    {
+        return PrecheckStatus::NonCommuting;
     }
 
-    if let OperationRef::StandardGate(gate_1) = op1 {
-        if let OperationRef::StandardGate(gate_2) = op2 {
-            if SUPPORTED_OP[(*gate_1) as usize] && SUPPORTED_OP[(*gate_2) as usize] {
-                return PrecheckStatus::Unknown;
-            }
-        }
+    if let OperationRef::StandardGate(gate_1) = op1
+        && let OperationRef::StandardGate(gate_2) = op2
+        && SUPPORTED_OP[(*gate_1) as usize]
+        && SUPPORTED_OP[(*gate_2) as usize]
+    {
+        return PrecheckStatus::Unknown;
     }
 
     if [op1, op2].iter().any(|op| match op {
@@ -847,30 +846,30 @@ fn map_rotation<'a>(
     params: &'a [Param],
     tol: f64,
 ) -> (Option<StandardGate>, &'a [Param], bool) {
-    if let OperationRef::StandardGate(gate) = op {
-        if let Some(generator) = SUPPORTED_ROTATIONS[(*gate) as usize] {
-            // If the rotation angle is below the tolerance, the gate is assumed to
-            // commute with everything, and we simply return the operation with the flag that
-            // it commutes trivially.
-            if let Param::Float(angle) = params[0] {
-                let (tr_over_dim, dim) = gate_metrics::rotation_trace_and_dim(*gate, angle)
-                    .expect("All rotation should be covered at this point");
-                let gate_fidelity = tr_over_dim.abs().powi(2);
-                let process_fidelity = (dim * gate_fidelity + 1.) / (dim + 1.);
-                if (1. - process_fidelity).abs() <= tol {
-                    return (Some(*gate), params, true);
-                };
+    if let OperationRef::StandardGate(gate) = op
+        && let Some(generator) = SUPPORTED_ROTATIONS[(*gate) as usize]
+    {
+        // If the rotation angle is below the tolerance, the gate is assumed to
+        // commute with everything, and we simply return the operation with the flag that
+        // it commutes trivially.
+        if let Param::Float(angle) = params[0] {
+            let (tr_over_dim, dim) = gate_metrics::rotation_trace_and_dim(*gate, angle)
+                .expect("All rotation should be covered at this point");
+            let gate_fidelity = tr_over_dim.abs().powi(2);
+            let process_fidelity = (dim * gate_fidelity + 1.) / (dim + 1.);
+            if (1. - process_fidelity).abs() <= tol {
+                return (Some(*gate), params, true);
             };
+        };
 
-            // Otherwise we need to cover two cases -- either a generator is given, in which case
-            // we return it, or we don't have a generator yet, but we know we have the operation
-            // stored in the commutation library. For example, RXX does not have a generator in Rust
-            // yet (PauliGate is not in Rust currently), but it is stored in the library, so we
-            // can strip the parameters and just return the gate.
-            if let Some(gate) = generator {
-                return (Some(gate), &[], false);
-            };
-        }
+        // Otherwise we need to cover two cases -- either a generator is given, in which case
+        // we return it, or we don't have a generator yet, but we know we have the operation
+        // stored in the commutation library. For example, RXX does not have a generator in Rust
+        // yet (PauliGate is not in Rust currently), but it is stored in the library, so we
+        // can strip the parameters and just return the gate.
+        if let Some(gate) = generator {
+            return (Some(gate), &[], false);
+        };
     }
     (None, params, false)
 }

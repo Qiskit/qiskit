@@ -85,6 +85,16 @@ pub enum BitType {
     Clbit = b'c',
 }
 
+// Representation for symbolic encodings (now obsolete)
+#[binrw]
+#[brw(repr = u8)]
+#[repr(u8)]
+#[derive(Debug)]
+pub enum SymbolicEncoding {
+    Sympy = b'p',
+    Symengine = b'e',
+}
+
 impl TryFrom<u8> for BitType {
     type Error = QpyError;
     fn try_from(value: u8) -> Result<Self, Self::Error> {
@@ -112,7 +122,7 @@ pub(crate) fn unpack_biguint(big_int_pack: BigIntPack) -> BigUint {
 #[derive(Debug)]
 pub struct QPYWriteData<'a> {
     pub circuit_data: &'a CircuitData,
-    pub version: u32,
+    pub version: u8,
     pub standalone_var_indices: HashMap<u128, u16>, // mapping from the variable's UUID to its index in the standalone variables list
     pub annotation_handler: AnnotationHandler<'a>,
 }
@@ -121,7 +131,7 @@ pub struct QPYWriteData<'a> {
 #[derive(Debug)]
 pub struct QPYReadData<'a> {
     pub circuit_data: &'a mut CircuitData,
-    pub version: u32,
+    pub version: u8,
     pub use_symengine: bool,
     pub standalone_vars: HashMap<u16, qiskit_circuit::Var>,
     pub standalone_stretches: HashMap<u16, qiskit_circuit::Stretch>,
@@ -190,6 +200,26 @@ pub enum ModifierType {
     Inverse = b'i',
     Control = b'c',
     Power = b'p',
+}
+
+// the schedule type is obsolete but needed for backwards compatibility.
+#[binrw]
+#[brw(repr = u8)]
+#[repr(u8)]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum ProgramType {
+    Circuit = b'q',
+    Schedule = b's',
+}
+
+impl std::fmt::Display for ProgramType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            ProgramType::Circuit => "circuit",
+            ProgramType::Schedule => "schedule",
+        };
+        write!(f, "{}", name)
+    }
 }
 
 // The types of nodes inside Expressions (not to be confused with ParameterExpressions)
@@ -401,6 +431,8 @@ macro_rules! impl_from_generic {
 
 impl_from_generic!(i64, Int64);
 impl_from_generic!(f64, Float64);
+impl_from_generic!(BigUint, BigInt);
+impl_from_generic!(String, String);
 impl_from_generic!(Complex64, Complex64);
 // we do not implement Symbol extraction, since it is ambiguous - a symbol can be a Parameter or a ParameterVector
 
@@ -533,7 +565,7 @@ pub(crate) fn load_value(
         }
         ValueType::Circuit => {
             let (packed_circuit, _) =
-                deserialize_with_args::<formats::QPYCircuit, (u32,)>(bytes, (qpy_data.version,))?;
+                deserialize_with_args::<formats::QPYCircuit, (u8,)>(bytes, (qpy_data.version,))?;
             Python::attach(|py| {
                 let circuit = unpack_circuit(
                     py,
@@ -702,7 +734,7 @@ pub(crate) fn unpack_for_collection(value: &GenericValue) -> Result<ForCollectio
                 .iter()
                 .map(|val| -> Result<_, QpyError> {
                     if let GenericValue::Int64(int_val) = val {
-                        Ok(*int_val as usize)
+                        Ok(*int_val as isize)
                     } else {
                         Err(QpyError::ConversionError(
                             "Could not unpack ForCollection: expected Int64 in tuple".to_string(),
@@ -809,7 +841,7 @@ pub(crate) fn deserialize_expression(
 pub(crate) fn pack_standalone_var(
     var: &Var,
     usage: ExpressionVarDeclaration,
-    version: u32,
+    version: u8,
     uuid_output: &mut u128,
 ) -> Result<formats::ExpressionVarDeclarationPack, QpyError> {
     match var {
@@ -845,7 +877,7 @@ pub(crate) fn pack_stretch(
 
 // we convert the type to the serializable struct; this amounts to simple copy unless
 // there's a field not supported in the expected version
-fn pack_expression_type(exp_type: &Type, version: u32) -> Result<ExpressionType, QpyError> {
+fn pack_expression_type(exp_type: &Type, version: u8) -> Result<ExpressionType, QpyError> {
     match exp_type {
         Type::Bool => Ok(ExpressionType::Bool),
         Type::Duration => {
@@ -870,7 +902,7 @@ fn pack_expression_type(exp_type: &Type, version: u32) -> Result<ExpressionType,
                 })
             }
         }
-        Type::Uint(width) => Ok(ExpressionType::Uint(*width as u32)),
+        Type::Uint(width) => Ok(ExpressionType::Uint(*width)),
     }
 }
 

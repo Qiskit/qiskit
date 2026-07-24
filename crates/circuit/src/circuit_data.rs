@@ -29,8 +29,8 @@ use crate::instruction::Parameters;
 use crate::interner::{Interned, InternedMap, Interner};
 use crate::object_registry::{self, ObjectRegistry};
 use crate::operations::{
-    BoxedCustomOperation, ControlFlow, ControlFlowView, Operation, OperationRef, Param, PauliBased,
-    PauliProductRotation, PyOpKind, PythonOperation, StandardGate,
+    BoxedCustomOperation, ControlFlow, ControlFlowView, LoopParam, Operation, OperationRef, Param,
+    PauliBased, PauliProductRotation, PyOpKind, PythonOperation, StandardGate,
 };
 use crate::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::parameter::parameter_expression::{ParameterError, ParameterExpression};
@@ -1188,13 +1188,13 @@ impl CircuitData {
         &self.cregs
     }
 
-    /// Returns an immutable view of the qubit locations of the [DAGCircuit]
+    /// Returns an immutable view of the qubit locations of the [CircuitData]
     #[inline(always)]
     pub fn qubit_indices(&self) -> &BitLocator<ShareableQubit, QuantumRegister> {
         &self.qubit_indices
     }
 
-    /// Returns an immutable view of the clbit locations of the [DAGCircuit]
+    /// Returns an immutable view of the clbit locations of the [CircuitData]
     #[inline(always)]
     pub fn clbit_indices(&self) -> &BitLocator<ShareableClbit, ClassicalRegister> {
         &self.clbit_indices
@@ -1920,10 +1920,10 @@ where
     } else if let Ok(sequence) = specifier.extract::<PySequenceIndex>() {
         match sequence {
             PySequenceIndex::Int(index) => {
-                if let Ok(index) = PySequenceIndex::convert_idx(index, bit_sequence.len()) {
-                    if let Some(bit) = bit_sequence.get(index).cloned() {
-                        return Ok(vec![bit]);
-                    }
+                if let Ok(index) = PySequenceIndex::convert_idx(index, bit_sequence.len())
+                    && let Some(bit) = bit_sequence.get(index).cloned()
+                {
+                    return Ok(vec![bit]);
                 }
                 Err(CircuitError::new_err(format!(
                     "Index {specifier} out of range for size {}.",
@@ -2038,7 +2038,9 @@ fn for_each_symbol_use_in_control_flow(
             };
             for symbol in body.parameters() {
                 // Skip the loop variable itself — it is runtime-bound.
-                if loop_param.as_ref() == Some(&symbol) {
+                if let Some(LoopParam::Parameter(loop_symbol)) = loop_param
+                    && symbol == loop_symbol
+                {
                     continue;
                 }
                 action(symbol, usage)?;

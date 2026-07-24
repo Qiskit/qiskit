@@ -2901,7 +2901,8 @@ class QuantumCircuit:
             is_parameter = False
             for param in params:
                 is_parameter = is_parameter or isinstance(param, ParameterExpression)
-                if isinstance(param, expr.Expr):
+                # Control flow ops have a different validation for classical expressions
+                if isinstance(param, expr.Expr) and not isinstance(operation, ControlFlowOp):
                     param = _validate_expr(circuit_scope, param)
             if copy and is_parameter:
                 operation = _copy.deepcopy(operation)
@@ -3556,10 +3557,6 @@ class QuantumCircuit:
             else:
                 self._control_flow_scopes[-1].use_var(var)
             return
-        if self._data.num_input_vars:
-            raise CircuitError(
-                "circuits with input variables cannot be enclosed, so they cannot be closures"
-            )
         if isinstance(var, expr.Stretch):
             self._data.add_captured_stretch(self._prepare_new_stretch(var))
         else:
@@ -3590,10 +3587,10 @@ class QuantumCircuit:
             CircuitError: if the variable cannot be created due to shadowing an existing variable.
         """
         if self._control_flow_scopes:
+            # ForLoopOp uses an input variable for its loop variable, but that should be exactly one
+            # input variable and handled separately.
             raise CircuitError("cannot add an input variable in a control-flow scope")
 
-        if self._data.num_captured_vars or self._data.num_captured_stretches:
-            raise CircuitError("circuits to be enclosed with captures cannot have input variables")
         if isinstance(name_or_var, expr.Var) and type_ is not None:
             raise ValueError("cannot give an explicit type with an existing Var")
         var = self._prepare_new_var(name_or_var, type_)
@@ -4503,7 +4500,8 @@ class QuantumCircuit:
 
         Args:
             qubit: qubit(s) to measure.
-            cbit: classical bit(s) to place the measurement result(s) in.
+            cbit: classical bit(s) to place the measurement result(s) in,
+                or a :class:`.expr.Var` of :class:`.types.Uint` type indexing the target clbit.
 
         Returns:
             qiskit.circuit.InstructionSet: handle to the added instructions.
@@ -6923,6 +6921,7 @@ class QuantumCircuit:
         registers: Iterable[Register] = (),
         allow_jumps: bool = True,
         forbidden_message: str | None = None,
+        loop_var: expr.Var | None = None,
     ) -> int:
         """Add a scope for collecting instructions into this circuit.
 
@@ -6936,6 +6935,8 @@ class QuantumCircuit:
             allow_jumps: Whether this scope allows jumps to be used within it.
             forbidden_message: If given, all attempts to add instructions to this scope will raise a
                 :exc:`.CircuitError` with this message.
+            loop_var: If given, the runtime loop variable of a for-loop block.  This should not be
+                set for the legacy :class:`.Parameter` form.
 
         Returns:
             the depth of control-flow scopes (after the push)
@@ -6948,6 +6949,7 @@ class QuantumCircuit:
                 registers=registers,
                 allow_jumps=allow_jumps,
                 forbidden_message=forbidden_message,
+                loop_var=loop_var,
             )
         )
         return len(self._control_flow_scopes)
@@ -7192,7 +7194,7 @@ class QuantumCircuit:
     def for_loop(
         self,
         indexset: Iterable[int],
-        loop_parameter: Parameter | None,
+        loop_parameter: Parameter | expr.Var | None,
         body: None,
         qubits: None,
         clbits: None,
@@ -7204,7 +7206,7 @@ class QuantumCircuit:
     def for_loop(
         self,
         indexset: Iterable[int],
-        loop_parameter: Parameter | None,
+        loop_parameter: Parameter | expr.Var | None,
         body: QuantumCircuit,
         qubits: Sequence[QubitSpecifier],
         clbits: Sequence[ClbitSpecifier],
@@ -7213,7 +7215,14 @@ class QuantumCircuit:
     ) -> InstructionSet: ...
 
     def for_loop(
-        self, indexset, loop_parameter=None, body=None, qubits=None, clbits=None, *, label=None
+        self,
+        indexset,
+        loop_parameter=None,
+        body=None,
+        qubits=None,
+        clbits=None,
+        *,
+        label=None,
     ):
         """Create a ``for`` loop on this circuit.
 
@@ -7240,7 +7249,7 @@ class QuantumCircuit:
 
         Args:
             indexset (Iterable[int]): A collection of integers to loop over.  Always necessary.
-            loop_parameter (Optional[Parameter]): The parameter used within ``body`` to which
+            loop_parameter (Optional[Parameter|expr.Var]): The parameter used within ``body`` to which
                 the values from ``indexset`` will be assigned.  In the context-manager form, if this
                 argument is not supplied, then a loop parameter will be allocated for you and
                 returned as the value of the ``with`` statement.  This will only be bound into the
