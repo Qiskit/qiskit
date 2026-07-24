@@ -28,6 +28,7 @@ from qiskit.circuit.library import (
     MCXGate,
     MultiplierGate,
     ModularAdderGate,
+    RCCXGate,
     UnitaryGate,
 )
 
@@ -432,6 +433,16 @@ class TestCliffordTPassManager(QiskitTestCase):
         t_count = _get_t_count(transpiled)
         expected_t_count = {1: 0, 2: 8, 3: 16, 4: 24, 5: 32, 6: 40, 7: 48}
         self.assertLessEqual(t_count, expected_t_count[n])
+
+    def test_controlled_rccx_gate_counts(self):
+        """Test the CX and T count upper bounds of a controlled RCCX gate."""
+        circuit = QuantumCircuit(4)
+        circuit.append(RCCXGate().control(annotated=False), circuit.qubits)
+
+        transpiled = generate_preset_clifford_t_pass_manager(optimization_level=0).run(circuit)
+
+        self.assertLessEqual(transpiled.count_ops().get("cx", 0), 8)
+        self.assertLessEqual(_get_t_count(transpiled), 11)
 
     def test_single_z_rotation(self):
         """Test a single RZ rotation is transpiled with expected overhead."""
