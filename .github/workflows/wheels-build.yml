@@ -145,11 +145,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
-      # uv is a more reliable way of getting Python on the non-tier-1 platforms.
-      - name: Install uv
-        run: python3 -m pip install --user uv==0.11.32
+      - name: Install cibuildwheel
+        run: python3 -m pip install --user cibuildwheel==3.4.0
       - name: Run cibuildwheel
-        run: python3 -m uv tool run --from cibuildwheel==3.4.0 cibuildwheel
+        run: python3 -m cibuildwheel
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
@@ -162,10 +161,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
-      - name: Install uv
-        run: python3 -m pip install --user uv==0.11.32
+      - name: Install cibuildwheel
+        run: python3 -m pip install --user cibuildwheel==3.4.0
       - name: Run cibuildwheel
-        run: python3 -m uv tool run --from cibuildwheel==3.4.0 cibuildwheel
+        run: python3 -m cibuildwheel
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
