@@ -1303,6 +1303,23 @@ class TestControlledGate(QiskitTestCase):
         # compare simulated matrix with the matrix representation provided by the class
         self.assertTrue(matrix_equal(simulated_mat, repr_mat))
 
+    @data(0, 1)
+    def test_controlled_rccx(self, ctrl_state):
+        """Test the compact controlled-RCCX decomposition."""
+        controlled = RCCXGate().control(ctrl_state=ctrl_state, annotated=False)
+        target = _compute_control_matrix(RCCXGate().to_matrix(), 1, ctrl_state=ctrl_state)
+
+        self.assertIsInstance(controlled, ControlledGate)
+        self.assertEqual(controlled.base_gate, RCCXGate())
+        self.assertEqual(Operator(controlled), Operator(target))
+
+        if ctrl_state:
+            self.assertEqual(controlled.definition.count_ops(), {"rcccx": 1, "csdg": 1})
+
+    def test_multiple_controlled_rccx_annotated(self):
+        """Test multiple controls retain the generic annotated representation."""
+        self.assertIsInstance(RCCXGate().control(2, annotated=True), AnnotatedOperation)
+
     def test_open_controlled_gate(self):
         """
         Test controlled gates with control on '0'

@@ -466,6 +466,17 @@ class RCCXGate(SingletonGate):
     This concrete implementation is from https://arxiv.org/abs/1508.03273, the dashed box
     of Fig. 3.
 
+    For a new control qubit :math:`c`, the first RCCX control :math:`a`, the second
+    RCCX control :math:`b`, and target :math:`t`, the single-controlled gate uses
+    the exact identity
+
+    .. math::
+
+        C(\\mathrm{RCCX})(c,a,b;t)
+        = \\mathrm{CS}^{\\dagger}(c,a)\\,\\mathrm{RC3X}(c,a,b;t).
+
+    This avoids separately controlling the T gates in the RCCX decomposition.
+
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.rccx` method.
     """
@@ -496,6 +507,56 @@ class RCCXGate(SingletonGate):
 
     def __eq__(self, other):
         return isinstance(other, RCCXGate)
+
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
+        annotated: bool | None = None,
+    ):
+        """Return a controlled version of the RCCX gate.
+
+        For a single control qubit, the controlled gate uses a compact, exact
+        decomposition consisting of an :class:`.RC3XGate` and an
+        :class:`.CSdgGate`. For more than one control qubit, the generic
+        controlled-gate synthesis is used.
+
+        Args:
+            num_ctrl_qubits: Number of controls to add. Defaults to ``1``.
+            label: Optional gate label. Defaults to ``None``.
+            ctrl_state: The control state of the gate, specified either as an
+                integer or a bitstring. If ``None``, defaults to the all-ones state.
+            annotated: For more than one control qubit, indicates whether to return
+                an annotated operation. Ignored for a single control qubit.
+
+        Returns:
+            A controlled version of this gate.
+        """
+        if num_ctrl_qubits != 1:
+            return super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
+
+        from qiskit.circuit import QuantumCircuit
+
+        definition = QuantumCircuit(4)
+        definition.append(RC3XGate(), definition.qubits)
+        definition.csdg(0, 1)
+
+        return ControlledGate(
+            "crccx",
+            4,
+            [],
+            label=label,
+            num_ctrl_qubits=1,
+            definition=definition,
+            ctrl_state=ctrl_state,
+            base_gate=RCCXGate(label=self.label),
+        )
 
     def inverse(self, annotated: bool = False):
         """Invert this gate. The RCCX gate is its own inverse.
