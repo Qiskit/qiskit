@@ -455,18 +455,15 @@ fn separate_dag(dag: &mut DAGCircuit) -> PyResult<Vec<DAGCircuit>> {
     split_barriers(dag)?;
     let im_graph_data = generate_directed_interaction(dag)?;
     let connected_components = connected_components(&im_graph_data.im_graph);
-    let component_qubits: Vec<HashSet<Qubit>> = connected_components
-        .into_iter()
-        .map(|component| {
-            component
-                .into_iter()
-                .map(|x| im_graph_data.reverse_im_graph_node_map[x.index()].unwrap())
-                .collect::<HashSet<Qubit>>()
-        })
-        .collect();
+    let component_qubits = connected_components.into_iter().map(|component| {
+        component
+            .into_iter()
+            .map(|x| im_graph_data.reverse_im_graph_node_map[x.index()].unwrap())
+            .collect::<HashSet<Qubit>>()
+    });
+
     let qubits: HashSet<Qubit> = (0..dag.num_qubits()).map(Qubit::new).collect();
     let decomposed_dags: PyResult<Vec<DAGCircuit>> = component_qubits
-        .into_iter()
         .map(|dag_qubits| -> PyResult<DAGCircuit> {
             let mut new_dag = dag.copy_empty_like(VarsMode::Alike, BlocksMode::Drop);
             let qubits_to_revmove: Vec<Qubit> = qubits.difference(&dag_qubits).copied().collect();
