@@ -12,7 +12,7 @@
 
 use pyo3::prelude::*;
 
-use crate::error::QASM2ParseError;
+use crate::bytecode::QASM2ParseError;
 
 mod bytecode;
 mod error;
