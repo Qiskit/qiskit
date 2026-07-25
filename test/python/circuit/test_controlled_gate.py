@@ -277,6 +277,13 @@ class TestControlledGate(QiskitTestCase):
                     # CX is treated like a primitive within Terra, and doesn't have a definition.
                     self.assertTrue(Operator(special_case_gate.definition).equiv(naive_operator))
 
+    def test_inverse_controlled_gate_to_matrix(self):
+        """Test to_matrix for a plain controlled gate returned from inverse()."""
+        gate = CSXGate().inverse()
+        expected = CSXGate().to_matrix().conj().T
+
+        np.testing.assert_allclose(gate.to_matrix(), expected)
+
     def test_global_phase_control(self):
         """Test creation of a GlobalPhaseGate."""
         base = GlobalPhaseGate(np.pi / 7)

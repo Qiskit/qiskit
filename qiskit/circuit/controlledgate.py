@@ -21,7 +21,7 @@ from qiskit.circuit.exceptions import CircuitError
 from . import QuantumRegister
 from .quantumcircuit import QuantumCircuit
 from .gate import Gate
-from ._utils import _ctrl_state_to_int
+from ._utils import _compute_control_matrix, _ctrl_state_to_int
 
 
 if TYPE_CHECKING:
@@ -277,3 +277,18 @@ class ControlledGate(Gate):
         else:
             inverse_gate = super().inverse(annotated=annotated)
         return inverse_gate
+
+    def to_matrix(self):
+        """Return a matrix representation of the controlled gate."""
+        if hasattr(self, "__array__"):
+            return super().to_matrix()
+        if (
+            self.base_gate is None
+            or self.num_qubits != self.num_ctrl_qubits + self.base_gate.num_qubits
+        ):
+            return super().to_matrix()
+        try:
+            base_matrix = self.base_gate.to_matrix()
+        except (AttributeError, CircuitError, TypeError, ValueError) as ex:
+            raise CircuitError(f"to_matrix not defined for this {type(self)}") from ex
+        return _compute_control_matrix(base_matrix, self.num_ctrl_qubits, self.ctrl_state)
