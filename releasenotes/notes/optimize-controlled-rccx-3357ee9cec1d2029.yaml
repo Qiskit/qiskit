@@ -1,5 +1,5 @@
 ---
-performance:
+features_circuits:
   - |
     Added a compact exact decomposition for a singly-controlled
     :class:`.RCCXGate`. Calling :meth:`.RCCXGate.control` with one control now

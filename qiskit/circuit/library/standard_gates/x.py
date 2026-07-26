@@ -466,6 +466,9 @@ class RCCXGate(SingletonGate):
     This concrete implementation is from https://arxiv.org/abs/1508.03273, the dashed box
     of Fig. 3.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.rccx` method.
+
     For a new control qubit :math:`c`, the first RCCX control :math:`a`, the second
     RCCX control :math:`b`, and target :math:`t`, the single-controlled gate uses
     the exact identity
@@ -476,9 +479,6 @@ class RCCXGate(SingletonGate):
         = \\mathrm{CS}^{\\dagger}(c,a)\\,\\mathrm{RC3X}(c,a,b;t).
 
     This avoids separately controlling the T gates in the RCCX decomposition.
-
-    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
-    with the :meth:`~qiskit.circuit.QuantumCircuit.rccx` method.
     """
 
     _standard_gate = StandardGate.RCCX
