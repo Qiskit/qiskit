@@ -395,11 +395,27 @@ class TestCliffordTPassManager(QiskitTestCase):
         expected_t_count = {1: 0, 2: 7, 3: 17, 4: 29, 5: 41, 6: 51, 7: 63}
         self.assertLessEqual(t_count, expected_t_count[n])
 
-    @data(2, 3, 4, 5, 6, 7)
-    def test_multiplier_gate(self, n):
-        """Clifford+T transpilation of a circuit with a multiplier gate."""
+    @data(
+        # Truncated result register: num_result_qubits < 2 * n.
+        (2, 2, 120),
+        (3, 3, 325),
+        (4, 4, 622),
+        (5, 5, 1011),
+        (6, 6, 1492),
+        (7, 7, 2065),
+        # Full-width result register: num_result_qubits = 2 * n.
+        (2, 4, 153),
+        (3, 6, 470),
+        (4, 8, 1014),
+        (5, 10, 1609),
+        (6, 12, 2320),
+        (7, 14, 3147),
+    )
+    @unpack
+    def test_multiplier_gate(self, n, num_result_qubits, expected_t_count):
+        """Clifford+T transpilation of truncated and full-width multiplier gates."""
         # Create a circuit with a multiplier gate
-        gate = MultiplierGate(n)
+        gate = MultiplierGate(n, num_result_qubits)
         qc = QuantumCircuit(gate.num_qubits)
         qc.append(gate, qc.qubits)
 
@@ -409,11 +425,10 @@ class TestCliffordTPassManager(QiskitTestCase):
         transpiled = pm.run(qc)
         self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
 
-        # The resulting decomposition should be efficient in terms of T-count,
-        # except surprisingly for the case n=1 (which is why it is not used in this test)
+        # The resulting decomposition should be efficient in terms of T-count.
+        # The n=1 case is surprisingly inefficient, which is why it is not tested here.
         t_count = _get_t_count(transpiled)
-        expected_t_count = {2: 153, 3: 501, 4: 1114, 5: 2005, 6: 2596, 7: 3850}
-        self.assertLessEqual(t_count, expected_t_count[n])
+        self.assertLessEqual(t_count, expected_t_count)
 
     @data(1, 2, 3, 4, 5, 6, 7)
     def test_modular_adder_gate(self, n):
