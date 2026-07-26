@@ -1074,125 +1074,127 @@ fn unpack_custom_instruction(
 }
 
 fn deserialize_metadata(
-    py: Python,
     metadata_bytes: &Bytes,
-    metadata_deserializer: Option<&Bound<PyAny>>,
+    metadata_deserializer: Option<&Py<PyAny>>,
 ) -> Result<Py<PyAny>, QpyError> {
-    let json = py.import("json")?;
-    let kwargs: Bound<'_, PyDict> = PyDict::new(py);
-    kwargs.set_item("cls", metadata_deserializer)?;
-    let metadata_string = PyString::new(py, metadata_bytes.try_into()?);
-    Ok(json
-        .call_method("loads", (metadata_string,), Some(&kwargs))?
-        .unbind())
+    Python::attach(|py| {
+        let json = py.import("json")?;
+        let kwargs: Bound<'_, PyDict> = PyDict::new(py);
+        kwargs.set_item("cls", metadata_deserializer)?;
+        let metadata_string = PyString::new(py, metadata_bytes.try_into()?);
+        Ok(json
+            .call_method("loads", (metadata_string,), Some(&kwargs))?
+            .unbind())
+    })
 }
 
-fn unpack_layout<'py>(
-    py: Python<'py>,
+fn unpack_layout(
     layout: &formats::LayoutV2Pack,
     circuit_data: &PyCircuitData,
-) -> Result<Option<Bound<'py, PyAny>>, QpyError> {
+) -> Result<Option<Py<PyAny>>, QpyError> {
     match layout.exists {
         0 => Ok(None),
-        _ => Ok(Some(unpack_transpile_layout(py, layout, circuit_data)?)),
+        _ => Ok(Some(unpack_transpile_layout(layout, circuit_data)?)),
     }
 }
 
-fn unpack_transpile_layout<'py>(
-    py: Python<'py>,
+fn unpack_transpile_layout(
     layout: &formats::LayoutV2Pack,
     circuit_data: &PyCircuitData,
-) -> Result<Bound<'py, PyAny>, QpyError> {
-    let mut initial_layout = py.None();
-    let mut input_qubit_mapping = py.None();
-    let mut final_layout = py.None();
+) -> Result<Py<PyAny>, QpyError> {
+    Python::attach(|py| -> Result<_, QpyError> {
+        let mut initial_layout = py.None();
+        let mut input_qubit_mapping = py.None();
+        let mut final_layout = py.None();
 
-    let mut extra_register_map = HashMap::new();
-    let mut existing_register_map = HashMap::new();
-    for packed_register in &layout.extra_registers {
-        if packed_register.register_type == RegisterType::Qreg {
-            let register = QuantumRegister::new_owning(
-                packed_register.name.clone(),
-                packed_register.bit_indices.len() as u32,
-            );
-            extra_register_map.insert(packed_register.name.as_str(), register);
+        let mut extra_register_map = HashMap::new();
+        let mut existing_register_map = HashMap::new();
+        for packed_register in &layout.extra_registers {
+            if packed_register.register_type == RegisterType::Qreg {
+                let register = QuantumRegister::new_owning(
+                    packed_register.name.clone(),
+                    packed_register.bit_indices.len() as u32,
+                );
+                extra_register_map.insert(packed_register.name.as_str(), register);
+            }
         }
-    }
-    // add the registers from the circuit, to streamline the search phase
-    for qreg in circuit_data.qregs() {
-        existing_register_map.insert(qreg.name(), qreg);
-    }
-    let initial_layout_virtual_bits = PyList::new(py, Vec::<Py<PyAny>>::new())?;
-    for virtual_bit in &layout.initial_layout_items {
-        let qubit = if let Some(register) =
-            extra_register_map.get(virtual_bit.register_name.as_str())
-        {
-            if let Some(qubit) = register.get(virtual_bit.index_value as usize) {
-                qubit
+        // add the registers from the circuit, to streamline the search phase
+        for qreg in circuit_data.qregs() {
+            existing_register_map.insert(qreg.name(), qreg);
+        }
+        let initial_layout_virtual_bits = PyList::new(py, Vec::<Py<PyAny>>::new())?;
+        for virtual_bit in &layout.initial_layout_items {
+            let qubit = if let Some(register) =
+                extra_register_map.get(virtual_bit.register_name.as_str())
+            {
+                if let Some(qubit) = register.get(virtual_bit.index_value as usize) {
+                    qubit
+                } else {
+                    ShareableQubit::new_anonymous()
+                }
+            } else if let Some(register) =
+                existing_register_map.get(virtual_bit.register_name.as_str())
+            {
+                if let Some(qubit) = register.get(virtual_bit.index_value as usize) {
+                    qubit
+                } else {
+                    ShareableQubit::new_anonymous()
+                }
             } else {
                 ShareableQubit::new_anonymous()
-            }
-        } else if let Some(register) = existing_register_map.get(virtual_bit.register_name.as_str())
-        {
-            if let Some(qubit) = register.get(virtual_bit.index_value as usize) {
-                qubit
-            } else {
-                ShareableQubit::new_anonymous()
-            }
-        } else {
-            ShareableQubit::new_anonymous()
-        };
-        initial_layout_virtual_bits.append(qubit)?;
-    }
-    if initial_layout_virtual_bits.len() > 0 {
-        initial_layout = imports::LAYOUT
-            .get_bound(py)
-            .call_method1("from_qubit_list", (initial_layout_virtual_bits,))?
-            .unbind();
-    }
+            };
+            initial_layout_virtual_bits.append(qubit)?;
+        }
+        if initial_layout_virtual_bits.len() > 0 {
+            initial_layout = imports::LAYOUT
+                .get_bound(py)
+                .call_method1("from_qubit_list", (initial_layout_virtual_bits,))?
+                .unbind();
+        }
 
-    if layout.input_mapping_size > 0 {
-        let input_qubit_mapping_data = PyDict::new(py);
-        let physical_bits_object = initial_layout.call_method0(py, "get_physical_bits")?;
-        let physical_bits = physical_bits_object.cast_bound::<PyDict>(py).map_err(|_| {
-            QpyError::InvalidPythonType {
-                python_type: "PyDict".to_string(),
-                name: "physical_bits".to_string(),
-            }
-        })?;
-        for (index, bit) in layout.input_mapping_items.iter().enumerate() {
-            let physical_bit = physical_bits.get_item(bit)?.ok_or_else(|| {
-                QpyError::InvalidBit(format!("Could not get physical bit for bit {:?}", bit))
+        if layout.input_mapping_size > 0 {
+            let input_qubit_mapping_data = PyDict::new(py);
+            let physical_bits_object = initial_layout.call_method0(py, "get_physical_bits")?;
+            let physical_bits = physical_bits_object.cast_bound::<PyDict>(py).map_err(|_| {
+                QpyError::InvalidPythonType {
+                    python_type: "PyDict".to_string(),
+                    name: "physical_bits".to_string(),
+                }
             })?;
-            input_qubit_mapping_data.set_item(physical_bit, index)?;
+            for (index, bit) in layout.input_mapping_items.iter().enumerate() {
+                let physical_bit = physical_bits.get_item(bit)?.ok_or_else(|| {
+                    QpyError::InvalidBit(format!("Could not get physical bit for bit {:?}", bit))
+                })?;
+                input_qubit_mapping_data.set_item(physical_bit, index)?;
+            }
+            input_qubit_mapping = input_qubit_mapping_data.into_py_any(py)?;
         }
-        input_qubit_mapping = input_qubit_mapping_data.into_py_any(py)?;
-    }
 
-    if layout.final_layout_size > 0 {
-        let final_layout_dict = PyDict::new(py);
-        let py_qubits = circuit_data.py_qubits(py);
-        let qubits = py_qubits.bind(py);
-        for (index, bit) in layout.final_layout_items.iter().enumerate() {
-            let qubit = qubits.get_item(*bit as usize)?;
-            final_layout_dict.set_item(qubit, index)?;
+        if layout.final_layout_size > 0 {
+            let final_layout_dict = PyDict::new(py);
+            let py_qubits = circuit_data.py_qubits(py);
+            let qubits = py_qubits.bind(py);
+            for (index, bit) in layout.final_layout_items.iter().enumerate() {
+                let qubit = qubits.get_item(*bit as usize)?;
+                final_layout_dict.set_item(qubit, index)?;
+            }
+            final_layout = imports::LAYOUT
+                .get_bound(py)
+                .call1((final_layout_dict,))?
+                .unbind();
         }
-        final_layout = imports::LAYOUT
-            .get_bound(py)
-            .call1((final_layout_dict,))?
-            .unbind();
-    }
-    let transpiled_layout = imports::TRANSPILER_LAYOUT.get_bound(py).call1((
-        initial_layout,
-        input_qubit_mapping,
-        final_layout,
-    ))?;
-    // TODO: this is for version >= 10
-    if layout.input_qubit_count >= 0 {
-        transpiled_layout.setattr("_input_qubit_count", layout.input_qubit_count)?;
-        transpiled_layout.setattr("_output_qubit_list", circuit_data.py_qubits(py))?;
-    }
-    Ok(transpiled_layout)
+        let transpiled_layout = imports::TRANSPILER_LAYOUT.get_bound(py).call1((
+            initial_layout,
+            input_qubit_mapping,
+            final_layout,
+        ))?;
+        // TODO: this is for version >= 10
+        if layout.input_qubit_count >= 0 {
+            transpiled_layout.setattr("_input_qubit_count", layout.input_qubit_count)?;
+            transpiled_layout.setattr("_output_qubit_list", circuit_data.py_qubits(py))?;
+        }
+        Ok(transpiled_layout.unbind())
+    })
 }
 
 fn deserialize_pauli_evolution_gate(
@@ -1339,46 +1341,46 @@ fn deserialize_pauli_evolution_gate(
 }
 
 fn read_custom_instructions(
-    py: Python,
     packed_circuit: &formats::QPYCircuit,
     qpy_data: &mut QPYReadData,
 ) -> Result<HashMap<String, CustomCircuitInstructionData>, QpyError> {
     let mut result = HashMap::new();
-    for operation in &packed_circuit.custom_instructions.custom_instructions {
-        let definition = if operation.custom_definition != 0 {
-            if operation.name.starts_with("###PauliEvolutionGate_") {
-                Some(deserialize_pauli_evolution_gate(
-                    py,
-                    &operation.data,
-                    qpy_data,
-                )?)
-            } else {
-                Some(unpack_circuit(
-                    py,
-                    &deserialize_with_args::<QPYCircuit, (u8,)>(
+    Python::attach(|py| -> Result<_, QpyError> {
+        for operation in &packed_circuit.custom_instructions.custom_instructions {
+            let definition = if operation.custom_definition != 0 {
+                if operation.name.starts_with("###PauliEvolutionGate_") {
+                    Some(deserialize_pauli_evolution_gate(
+                        py,
                         &operation.data,
-                        (qpy_data.version,),
-                    )?
-                    .0,
-                    qpy_data.version,
-                    None,
-                    qpy_data.use_symengine,
-                    qpy_data.annotation_handler.annotation_factories,
-                )?)
-            }
-        } else {
-            None
-        };
-        let custom_instruction_data = CustomCircuitInstructionData {
-            gate_type: operation.gate_type,
-            num_qubits: operation.num_qubits,
-            num_clbits: operation.num_clbits,
-            definition_circuit: definition,
-            base_gate_raw: operation.base_gate_raw.clone(),
-        };
-        result.insert(operation.name.clone(), custom_instruction_data);
-    }
-    Ok(result)
+                        qpy_data,
+                    )?)
+                } else {
+                    Some(unpack_circuit(
+                        &deserialize_with_args::<QPYCircuit, (u8,)>(
+                            &operation.data,
+                            (qpy_data.version,),
+                        )?
+                        .0,
+                        qpy_data.version,
+                        None,
+                        qpy_data.use_symengine,
+                        &qpy_data.annotation_handler.annotation_factories,
+                    )?)
+                }
+            } else {
+                None
+            };
+            let custom_instruction_data = CustomCircuitInstructionData {
+                gate_type: operation.gate_type,
+                num_qubits: operation.num_qubits,
+                num_clbits: operation.num_clbits,
+                definition_circuit: definition,
+                base_gate_raw: operation.base_gate_raw.clone(),
+            };
+            result.insert(operation.name.clone(), custom_instruction_data);
+        }
+        Ok(result)
+    })
 }
 fn add_standalone_vars(
     packed_circuit: &formats::QPYCircuit,
@@ -1561,12 +1563,11 @@ fn add_registers_and_bits(
 }
 
 pub(crate) fn unpack_circuit(
-    py: Python,
     packed_circuit: &QPYCircuit,
     version: u8,
-    metadata_deserializer: Option<&Bound<PyAny>>,
+    metadata_deserializer: Option<&Py<PyAny>>,
     use_symengine: bool,
-    annotation_factories: &Bound<PyDict>,
+    annotation_factories: &Py<PyDict>,
 ) -> Result<Py<PyAny>, QpyError> {
     let instruction_capacity = packed_circuit.instructions.len();
     // create an empty circuit; we'll fill data as we go along
@@ -1601,32 +1602,32 @@ pub(crate) fn unpack_circuit(
     qpy_data.circuit_data.set_global_phase_param(global_phase)?;
     add_standalone_vars(packed_circuit, &mut qpy_data)?;
     add_registers_and_bits(packed_circuit, &mut qpy_data)?;
-    let custom_instructions = read_custom_instructions(py, packed_circuit, &mut qpy_data)?;
+    let custom_instructions = read_custom_instructions(packed_circuit, &mut qpy_data)?;
     for instruction in &packed_circuit.instructions {
         let inst = unpack_instruction(instruction, &custom_instructions, &mut qpy_data)?;
         qpy_data.circuit_data.push(inst)?;
     }
     // since we don't have a rust QuantumCircuit, and the metadata and custom layouts are also in python
     // this pythonic part is unavoidable
-    let unpacked_layout = unpack_layout(py, &packed_circuit.layout, &circuit_data)?;
-    let metadata =
-        deserialize_metadata(py, &packed_circuit.header.metadata, metadata_deserializer)?;
-    let circuit = imports::QUANTUM_CIRCUIT
-        .get_bound(py)
-        .call_method1(intern!(py, "_from_circuit_data"), (circuit_data,))?;
-    circuit.setattr("metadata", metadata)?;
-    circuit.setattr("name", &packed_circuit.header.circuit_name)?;
-    if let Some(layout) = unpacked_layout {
-        circuit.setattr("_layout", layout)?;
-    }
-    Ok(circuit.unbind().as_any().clone())
+    let unpacked_layout = unpack_layout(&packed_circuit.layout, &circuit_data)?;
+    let metadata = deserialize_metadata(&packed_circuit.header.metadata, metadata_deserializer)?;
+    Python::attach(|py| {
+        let circuit = imports::QUANTUM_CIRCUIT
+            .get_bound(py)
+            .call_method1(intern!(py, "_from_circuit_data"), (circuit_data,))?;
+        circuit.setattr("metadata", metadata)?;
+        circuit.setattr("name", &packed_circuit.header.circuit_name)?;
+        if let Some(layout) = unpacked_layout {
+            circuit.setattr("_layout", layout)?;
+        }
+        Ok(circuit.unbind().as_any().clone())
+    })
 }
 
 #[pyfunction]
 #[pyo3(name = "read_circuit")]
 #[pyo3(signature = (file_obj, version, metadata_deserializer, use_symengine, annotation_factories))]
 pub(crate) fn py_read_circuit(
-    py: Python,
     file_obj: &Bound<PyAny>,
     version: u8,
     metadata_deserializer: &Bound<PyAny>,
@@ -1645,12 +1646,11 @@ pub(crate) fn py_read_circuit(
     let (packed_circuit, bytes_read) =
         deserialize_with_args::<formats::QPYCircuit, (u8,)>(serialized_circuit, (version,))?;
     let unpacked_circuit = unpack_circuit(
-        py,
         &packed_circuit,
         version,
-        Some(metadata_deserializer),
+        Some(metadata_deserializer.as_ref()),
         use_symengine,
-        annotation_factories,
+        &annotation_factories.clone().unbind(),
     )?;
     file_obj.call_method1("seek", (pos + bytes_read,))?;
     Ok(unpacked_circuit)

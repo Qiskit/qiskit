@@ -59,10 +59,10 @@ const QPY_READ_MIN_VERSION: u8 = 13;
 const QPY_WRITE_MIN_VERSION: u8 = 17;
 pub fn dump_qpy(
     mut circuits: Vec<QuantumCircuitData>,
-    metadata_serializer: Option<Bound<PyAny>>,
+    metadata_serializer: Option<&Py<PyAny>>,
     use_symengine: bool,
     qpy_version: u8,
-    annotation_factories: Bound<PyDict>,
+    annotation_factories: &Py<PyDict>,
 ) -> Result<Bytes, QpyError> {
     if qpy_version < QPY_WRITE_MIN_VERSION {
         Err(QpyError::UnsupportedFeatureForVersion {
@@ -76,10 +76,10 @@ pub fn dump_qpy(
         .map(|circuit| {
             serialize(&pack_circuit(
                 circuit,
-                metadata_serializer.as_ref(),
+                metadata_serializer,
                 use_symengine,
                 qpy_version,
-                &annotation_factories,
+                annotation_factories,
             )?)
         })
         .collect::<Result<Vec<Bytes>, QpyError>>()?;
@@ -137,10 +137,10 @@ pub fn py_dump_qpy(
     let annotation_factories = annotation_factories.unwrap_or(PyDict::new(py));
     let serialized_qpy = dump_qpy(
         programs.extract()?,
-        metadata_serializer,
+        metadata_serializer.clone().map(|d| d.unbind()).as_ref(),
         use_symengine.unwrap_or(false),
         version,
-        annotation_factories,
+        &annotation_factories.clone().unbind(),
     )?;
     file_obj.call_method1("write", (pyo3::types::PyBytes::new(py, &serialized_qpy),))?;
     Ok(())
@@ -230,12 +230,11 @@ pub fn load_qpy(
                 (qpy_file_header.qpy_version,),
             )?;
             circuits[index] = unpack_circuit(
-                py,
                 &packed_circuit,
                 qpy_file_header.qpy_version,
-                metadata_deserializer,
+                metadata_deserializer.map(|d| d.as_ref()),
                 use_symengine,
-                annotation_factories,
+                &annotation_factories.clone().unbind(),
             )?;
         }
     } else {
@@ -250,12 +249,11 @@ pub fn load_qpy(
         )?;
         for (index, packed_circuit) in packed_qpy_circuits.iter().enumerate() {
             circuits[index] = unpack_circuit(
-                py,
                 packed_circuit,
                 qpy_file_header.qpy_version,
-                metadata_deserializer,
+                metadata_deserializer.map(|d| d.as_ref()),
                 use_symengine,
-                annotation_factories,
+                &annotation_factories.clone().unbind(),
             )?;
         }
     }

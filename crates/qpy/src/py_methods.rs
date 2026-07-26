@@ -139,14 +139,13 @@ pub(crate) fn get_python_gate_class<'a>(
 // serializes python metadata to JSON using a python JSON serializer
 pub(crate) fn serialize_metadata(
     metadata_opt: &Option<Bound<PyAny>>,
-    metadata_serializer: Option<&Bound<PyAny>>,
+    metadata_serializer: Option<&Py<PyAny>>,
 ) -> Result<Bytes, QpyError> {
     match metadata_opt {
         None => Ok(Bytes::new()),
-        Some(metadata) => {
-            let py = metadata.py();
+        Some(metadata) => Python::attach(|py| {
             let none = py.None();
-            let py_serializer = metadata_serializer.unwrap_or(none.bind(py));
+            let py_serializer = metadata_serializer.unwrap_or(&none);
             let json = py.import("json")?;
             let kwargs = PyDict::new(py);
             kwargs.set_item("separators", PyTuple::new(py, [",", ":"])?)?;
@@ -155,7 +154,7 @@ pub(crate) fn serialize_metadata(
                 .call_method("dumps", (metadata,), Some(&kwargs))?
                 .extract::<String>()?
                 .into())
-        }
+        }),
     }
 }
 

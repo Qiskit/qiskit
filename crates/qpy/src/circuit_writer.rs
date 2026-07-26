@@ -752,7 +752,7 @@ fn pack_classical_registers(circuit_data: &CircuitData) -> Vec<formats::Register
 fn pack_circuit_header(
     circuit_name: Option<String>,
     circuit_metadata: Option<Bound<PyAny>>,
-    metadata_serializer: Option<&Bound<PyAny>>,
+    metadata_serializer: Option<&Py<PyAny>>,
     qpy_data: &QPYWriteData,
 ) -> Result<formats::CircuitHeaderV12Pack, QpyError> {
     let metadata = serialize_metadata(&circuit_metadata, metadata_serializer)?;
@@ -1038,10 +1038,10 @@ fn pack_custom_instruction(
             base_gate = gate.getattr("base_gate")?.clone();
             Some(serialize(&pack_circuit(
                 &mut gate.getattr("_definition")?.extract()?,
-                Some(py.None().bind(py)),
+                Some(&py.None()),
                 false,
                 qpy_data.version,
-                qpy_data.annotation_handler.annotation_factories,
+                &qpy_data.annotation_handler.annotation_factories,
             )?)?)
         }
         CircuitInstructionType::AnnotatedOperation => {
@@ -1053,10 +1053,10 @@ fn pack_custom_instruction(
             .map(|mut defn| {
                 pack_circuit(
                     &mut defn,
-                    Some(py.None().bind(py)),
+                    Some(&py.None()),
                     false,
                     qpy_data.version,
-                    qpy_data.annotation_handler.annotation_factories,
+                    &qpy_data.annotation_handler.annotation_factories,
                 )
                 .and_then(|fmt| serialize(&fmt))
             })
@@ -1204,10 +1204,10 @@ fn pack_standalone_vars(
 
 pub(crate) fn pack_circuit(
     circuit: &mut QuantumCircuitData,
-    metadata_serializer: Option<&Bound<PyAny>>,
+    metadata_serializer: Option<&Py<PyAny>>,
     _use_symengine: bool,
     version: u8,
-    annotation_factories: &Bound<PyDict>,
+    annotation_factories: &Py<PyDict>,
 ) -> Result<formats::QPYCircuit, QpyError> {
     let annotation_handler = AnnotationHandler::new(annotation_factories);
     let mut qpy_data = QPYWriteData {
@@ -1264,10 +1264,10 @@ pub(crate) fn py_write_circuit(
 ) -> PyResult<usize> {
     let packed_circuit = pack_circuit(
         &mut circuit.extract()?,
-        Some(metadata_serializer),
+        Some(metadata_serializer.as_ref()),
         use_symengine,
         version,
-        annotation_factories,
+        &annotation_factories.clone().unbind(),
     )?;
     let serialized_circuit = serialize(&packed_circuit)?;
     file_obj.call_method1(

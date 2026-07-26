@@ -313,7 +313,7 @@ impl BinRead for Bytes {
     ) -> BinResult<Self> {
         let mut buf = vec![0u8; args.count];
         reader.read_exact(&mut buf)?;
-        Ok(Bytes(buf))
+        Ok(Bytes(buf.to_vec()))
     }
 }
 

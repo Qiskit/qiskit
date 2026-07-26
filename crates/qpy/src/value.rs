@@ -124,7 +124,7 @@ pub struct QPYWriteData<'a> {
     pub circuit_data: &'a CircuitData,
     pub version: u8,
     pub standalone_var_indices: HashMap<u128, u16>, // mapping from the variable's UUID to its index in the standalone variables list
-    pub annotation_handler: AnnotationHandler<'a>,
+    pub annotation_handler: AnnotationHandler,
 }
 
 // Data that is needed globally while reading the circuit
@@ -136,7 +136,7 @@ pub struct QPYReadData<'a> {
     pub standalone_vars: HashMap<u16, qiskit_circuit::Var>,
     pub standalone_stretches: HashMap<u16, qiskit_circuit::Stretch>,
     pub vectors: HashMap<Uuid, Arc<SymbolVector>>,
-    pub annotation_handler: AnnotationHandler<'a>,
+    pub annotation_handler: AnnotationHandler,
 }
 
 // this is how tags for various value types are encoded in a QPY file
@@ -188,7 +188,8 @@ pub(crate) fn type_name(type_key: &ValueType) -> String {
 
 impl std::fmt::Display for ValueType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", type_name(self),)
+        write!(f, "{}", type_name(self),)?;
+        Ok(())
     }
 }
 
@@ -218,7 +219,8 @@ impl std::fmt::Display for ProgramType {
             ProgramType::Circuit => "circuit",
             ProgramType::Schedule => "schedule",
         };
-        write!(f, "{}", name)
+        write!(f, "{}", name)?;
+        Ok(())
     }
 }
 
@@ -566,17 +568,14 @@ pub(crate) fn load_value(
         ValueType::Circuit => {
             let (packed_circuit, _) =
                 deserialize_with_args::<formats::QPYCircuit, (u8,)>(bytes, (qpy_data.version,))?;
-            Python::attach(|py| {
-                let circuit = unpack_circuit(
-                    py,
-                    &packed_circuit,
-                    qpy_data.version,
-                    None,
-                    qpy_data.use_symengine,
-                    qpy_data.annotation_handler.annotation_factories,
-                )?;
-                Ok(GenericValue::Circuit(circuit))
-            })
+            let circuit = unpack_circuit(
+                &packed_circuit,
+                qpy_data.version,
+                None,
+                qpy_data.use_symengine,
+                &qpy_data.annotation_handler.annotation_factories,
+            )?;
+            Ok(GenericValue::Circuit(circuit))
         }
     }
 }
@@ -640,7 +639,7 @@ pub(crate) fn serialize_generic_value(
                 None,
                 false,
                 qpy_data.version,
-                qpy_data.annotation_handler.annotation_factories,
+                &qpy_data.annotation_handler.annotation_factories,
             )?;
             let serialized_circuit = serialize(&packed_circuit)?;
             Ok((ValueType::Circuit, serialized_circuit))
@@ -655,7 +654,7 @@ pub(crate) fn serialize_generic_value(
                 None,
                 false,
                 qpy_data.version,
-                qpy_data.annotation_handler.annotation_factories,
+                &qpy_data.annotation_handler.annotation_factories,
             )?;
             let serialized_circuit = serialize(&packed_circuit)?;
             Ok((ValueType::Circuit, serialized_circuit))

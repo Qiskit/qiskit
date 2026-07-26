@@ -22,31 +22,33 @@ use pyo3::types::{PyDict, PyIterator, PyNotImplemented};
 /// was `NotImplemented`.
 
 #[derive(Debug)]
-pub struct AnnotationHandler<'a> {
-    pub annotation_factories: &'a Bound<'a, PyDict>,
+pub struct AnnotationHandler {
+    pub annotation_factories: Py<PyDict>,
     factories: HashMap<String, Py<PyAny>>,
     pub serializers: HashMap<String, (usize, Py<PyAny>)>,
     potential_serializers: HashMap<String, Py<PyAny>>,
     pub deserializers: Vec<Py<PyAny>>,
 }
 
-impl<'a> AnnotationHandler<'a> {
-    pub fn new(annotation_factories: &'a Bound<'a, PyDict>) -> Self {
-        let mut factories = HashMap::with_capacity(annotation_factories.len());
-        for (key, value) in annotation_factories.iter() {
-            if let Ok(key_string) = key.extract() {
-                // we ignore non-string keys since they will not be invoked during serialization
-                // where we choose serializer according to the namespace string
-                factories.insert(key_string, value.clone().unbind());
+impl AnnotationHandler {
+    pub fn new(annotation_factories: &Py<PyDict>) -> Self {
+        let mut factories =
+            HashMap::with_capacity(Python::attach(|py| annotation_factories.bind(py).len()));
+        Python::attach(|py| {
+            for (key, value) in annotation_factories.bind(py).iter() {
+                if let Ok(key_string) = key.extract() {
+                    // we ignore non-string keys since they will not be invoked during serialization
+                    // where we choose serializer according to the namespace string
+                    factories.insert(key_string, value.clone().unbind());
+                }
             }
-        }
-
+        });
         let serializers = HashMap::new();
         let potential_serializers = HashMap::new();
         // deserializers are created on demand based on the QPY annotation headers
         let deserializers = Vec::new();
         AnnotationHandler {
-            annotation_factories,
+            annotation_factories: annotation_factories.clone(),
             factories,
             serializers,
             potential_serializers,
