@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from math import pi
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.library import CUGate, UGate, UnitaryGate
+from qiskit.circuit.library import UnitaryGate
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes.basis import BasisTranslator, UnrollCustomDefinitions
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
@@ -45,34 +45,6 @@ EFFICIENTLY_CONTROLLED_GATES = [
     "cx",
     "cz",
 ]
-
-
-class _UGateWithGlobalPhase(Gate):
-    """A one-qubit U gate with an explicit global phase parameter."""
-
-    def __init__(self, theta, phi, lam, gamma, label=None):
-        super().__init__("u", 1, [theta, phi, lam, gamma], label=label)
-
-    @Gate.params.setter
-    def params(self, parameters):
-        self._definition = None
-        Gate.params.fset(self, parameters)
-
-    def _define(self):
-        theta, phi, lam, gamma = self.params
-        definition = QuantumCircuit(1, name=self.name)
-        definition.global_phase = gamma
-        definition.append(UGate(theta, phi, lam), [0])
-        self.definition = definition
-
-    def inverse(self, annotated: bool = False):
-        if annotated:
-            return super().inverse(annotated=annotated)
-        theta, phi, lam, gamma = self.params
-        return _UGateWithGlobalPhase(-theta, -lam, -phi, -gamma)
-
-    def __eq__(self, other):
-        return isinstance(other, _UGateWithGlobalPhase) and self._compare_parameters(other)
 
 
 def add_control(
@@ -169,9 +141,7 @@ def control(
 
     global_phase = 0
 
-    if operation.name in EFFICIENTLY_CONTROLLED_GATES and not isinstance(
-        operation, _UGateWithGlobalPhase
-    ):
+    if operation.name in EFFICIENTLY_CONTROLLED_GATES:
         apply_basic_controlled_gate(controlled_circ, operation, q_control, q_target)
     else:
         if isinstance(operation, controlledgate.ControlledGate):
@@ -210,11 +180,7 @@ def control(
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
         new_ctrl_state = operation.ctrl_state << num_ctrl_qubits | ctrl_state
         base_name = operation.base_gate.name
-        base_gate = (
-            _UGateWithGlobalPhase(*operation.params, label=operation.base_gate.label)
-            if isinstance(operation, CUGate)
-            else operation.base_gate
-        )
+        base_gate = operation.base_gate
     else:
         new_num_ctrl_qubits = num_ctrl_qubits
         new_ctrl_state = ctrl_state
