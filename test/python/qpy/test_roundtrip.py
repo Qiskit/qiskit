@@ -119,7 +119,7 @@ class TestQPYRoundtrip(QiskitTestCase):
             qc.cx(0, 1)
         if version < 14:
             with io.BytesIO() as fptr, self.assertRaises(UnsupportedFeatureForVersion):
-                write_circuit(fptr, qc, version=version, use_rust=write_with == "Rust")
+                write_circuit(fptr, qc, version=version)
         else:
             self.assert_roundtrip_equal(
                 qc, version=version, read_with=read_with, write_with=write_with

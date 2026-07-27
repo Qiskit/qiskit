@@ -1249,30 +1249,3 @@ pub(crate) fn pack_circuit(
         layout,
     })
 }
-
-#[pyfunction]
-#[pyo3(name = "write_circuit")]
-#[pyo3(signature = (file_obj, circuit, metadata_serializer, use_symengine, version, annotation_factories))]
-pub(crate) fn py_write_circuit(
-    py: Python,
-    file_obj: &Bound<PyAny>,
-    circuit: &Bound<PyAny>,
-    metadata_serializer: &Bound<PyAny>,
-    use_symengine: bool,
-    version: u8,
-    annotation_factories: &Bound<PyDict>,
-) -> PyResult<usize> {
-    let packed_circuit = pack_circuit(
-        &mut circuit.extract()?,
-        Some(metadata_serializer),
-        use_symengine,
-        version,
-        annotation_factories,
-    )?;
-    let serialized_circuit = serialize(&packed_circuit)?;
-    file_obj.call_method1(
-        "write",
-        (pyo3::types::PyBytes::new(py, &serialized_circuit),),
-    )?;
-    Ok(serialized_circuit.len())
-}

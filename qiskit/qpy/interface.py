@@ -233,7 +233,6 @@ def dump(
             use_symengine=bool(use_symengine),
             version=version,
             annotation_factories=annotation_factories,
-            use_rust=use_rust,
         )
 
     if version >= 16:
@@ -450,7 +449,6 @@ def load(
                 metadata_deserializer=metadata_deserializer,
                 use_symengine=bool(use_symengine),
                 annotation_factories=annotation_factories,
-                use_rust=use_rust,
             )
         )
     return programs
