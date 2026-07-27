@@ -81,14 +81,14 @@ pub(crate) fn recognize_custom_operation(
         {
             // Assign a uuid to each instance of a custom operation
             let new_name = if !["ucrx_dg", "ucry_dg", "ucrz_dg"].contains(&op.name()) {
-                format!("{}_{}", &op.name(), Uuid::new_v4().as_simple())
+                format!("{}_{}", op.name(), Uuid::new_v4().as_simple())
             } else {
                 // ucr*_dg gates can have different numbers of parameters,
                 // the uuid is appended to avoid storing a single definition
                 // in circuits with multiple ucr*_dg gates. For legacy reasons
                 // the uuid is stored in a different format as this was done
                 // prior to QPY 11.
-                format!("{}_{}", &op.name(), Uuid::new_v4())
+                format!("{}_{}", op.name(), Uuid::new_v4())
             };
             return Ok(Some(new_name));
         }

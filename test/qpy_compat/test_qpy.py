@@ -371,6 +371,16 @@ def generate_control_flow_circuits():
     return circuits
 
 
+def generate_for_loop_negative_circuits():
+    """Test qpy serialization with for loop negative list."""
+    # for loop negative list
+    qc = QuantumCircuit(1, name="for_loop_negative_list")
+    body = QuantumCircuit(1)
+    body.x(0)
+    qc.for_loop([-1, 0, 1], None, body, [0], [])
+    return [qc]
+
+
 def generate_control_flow_switch_circuits():
     """Generate circuits with switch-statement instructions."""
     from qiskit.circuit.controlflow import CASE_DEFAULT
@@ -1104,6 +1114,14 @@ def generate_circuits(
         )  # PPR gates are not supported in Python QPY, which currently handles qpy versions up to 16
     ):
         output_circuits["ppr.qpy"] = generate_pauli_product_rotation()
+
+    # The excluded versions have a bug in the Rust code and couldn't use negative indices.
+    if (
+        Version("0.19.2") < generating_version
+        and (not Version("2.0.0a1") <= generating_version < Version("2.5.0"))
+        and (not Version("2.0.0a1") <= current_version < Version("2.5.0"))
+    ):
+        output_circuits["for_loop_negative.qpy"] = generate_for_loop_negative_circuits()
 
     return output_circuits
 
