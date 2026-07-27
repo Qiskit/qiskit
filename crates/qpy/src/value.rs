@@ -129,8 +129,8 @@ pub struct QPYWriteData<'a> {
 
 // Data that is needed globally while reading the circuit
 #[derive(Debug)]
-pub struct QPYReadData<'a> {
-    pub circuit_data: &'a mut CircuitData,
+pub struct QPYReadData {
+    pub circuit_data: CircuitData,
     pub version: u8,
     pub use_symengine: bool,
     pub standalone_vars: HashMap<u16, qiskit_circuit::Var>,
@@ -345,7 +345,7 @@ pub enum GenericValue {
     Null,
     Expression(Expr),
     Modifier(Py<PyAny>),
-    Circuit(Py<PyAny>), // currently we have no rust class corresponding to a circuit, only to the inner CircuitData
+    // Circuit(Py<PyAny>), // currently we have no rust class corresponding to a circuit, only to the inner CircuitData
     CircuitData(Box<CircuitData>),
 }
 
@@ -376,12 +376,12 @@ impl GenericValue {
     }
     pub(crate) fn as_circuit_data(&self) -> Option<CircuitData> {
         match self {
-            GenericValue::Circuit(py_circuit) => {
-                Python::attach(|py| -> Result<CircuitData, QpyError> {
-                    Ok(py_circuit.extract::<QuantumCircuitData>(py)?.data)
-                })
-                .ok()
-            }
+            // GenericValue::Circuit(py_circuit) => {
+            //     Python::attach(|py| -> Result<CircuitData, QpyError> {
+            //         Ok(py_circuit.extract::<QuantumCircuitData>(py)?.data)
+            //     })
+            //     .ok()
+            // }
             GenericValue::CircuitData(circuit_data) => Some(circuit_data.as_ref().clone()),
             _ => None,
         }
@@ -575,7 +575,7 @@ pub(crate) fn load_value(
                 qpy_data.use_symengine,
                 &qpy_data.annotation_handler.annotation_factories,
             )?;
-            Ok(GenericValue::Circuit(circuit))
+            Ok(GenericValue::CircuitData(Box::new(circuit)))
         }
     }
 }
@@ -633,17 +633,17 @@ pub(crate) fn serialize_generic_value(
             (ValueType::Expression, serialize_expression(exp, qpy_data)?)
         }
         GenericValue::Null => (ValueType::Null, Bytes::new()),
-        GenericValue::Circuit(circuit) => Python::attach(|py| -> Result<_, QpyError> {
-            let packed_circuit = pack_circuit(
-                &mut circuit.extract(py)?, // TODO: can we avoid cloning here?
-                None,
-                false,
-                qpy_data.version,
-                &qpy_data.annotation_handler.annotation_factories,
-            )?;
-            let serialized_circuit = serialize(&packed_circuit)?;
-            Ok((ValueType::Circuit, serialized_circuit))
-        })?,
+        // GenericValue::Circuit(circuit) => Python::attach(|py| -> Result<_, QpyError> {
+        //     let packed_circuit = pack_circuit(
+        //         &mut circuit.extract(py)?, // TODO: can we avoid cloning here?
+        //         None,
+        //         false,
+        //         qpy_data.version,
+        //         &qpy_data.annotation_handler.annotation_factories,
+        //     )?;
+        //     let serialized_circuit = serialize(&packed_circuit)?;
+        //     Ok((ValueType::Circuit, serialized_circuit))
+        // })?,
         GenericValue::CircuitData(circuit_data) => Python::attach(|py| -> PyResult<_> {
             let mut quantum_circuit_data = circuit_data
                 .clone()

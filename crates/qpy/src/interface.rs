@@ -28,6 +28,7 @@ use crate::circuit_writer::pack_circuit;
 use crate::error::QpyError;
 use crate::formats::{QPYCircuit, QPYFileHeader};
 use crate::value::{ProgramType, SymbolicEncoding, deserialize, deserialize_with_args, serialize};
+use crate::py_methods::py_circuit_data_to_quantum_circuit;
 
 use std::io::{Cursor, Seek};
 
@@ -229,13 +230,14 @@ pub fn load_qpy(
                 raw_circuit,
                 (qpy_file_header.qpy_version,),
             )?;
-            circuits[index] = unpack_circuit(
+            let circuit_data = unpack_circuit(
                 &packed_circuit,
                 qpy_file_header.qpy_version,
                 metadata_deserializer.map(|d| d.as_ref()),
                 use_symengine,
                 &annotation_factories.clone().unbind(),
             )?;
+            circuits[index] = py_circuit_data_to_quantum_circuit(circuit_data, &packed_circuit, metadata_deserializer.map(|d| d.as_ref()))?;
         }
     } else {
         // QPY version < 16, no offset table
@@ -248,13 +250,14 @@ pub fn load_qpy(
             },
         )?;
         for (index, packed_circuit) in packed_qpy_circuits.iter().enumerate() {
-            circuits[index] = unpack_circuit(
-                packed_circuit,
+            let circuit_data = unpack_circuit(
+                &packed_circuit,
                 qpy_file_header.qpy_version,
                 metadata_deserializer.map(|d| d.as_ref()),
                 use_symengine,
                 &annotation_factories.clone().unbind(),
             )?;
+            circuits[index] = py_circuit_data_to_quantum_circuit(circuit_data, &packed_circuit, metadata_deserializer.map(|d| d.as_ref()))?;
         }
     }
     Ok(circuits)

@@ -13,6 +13,7 @@
 // Methods for QPY serialization working directly with Python-based data
 use binrw::Endian;
 use numpy::Complex64;
+use hashbrown::HashMap;
 use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::PyTypeError;
 use pyo3::intern;
@@ -22,13 +23,14 @@ use qiskit_circuit::classical::expr::Expr;
 use std::num::NonZero;
 use std::sync::Arc;
 
-use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
+use qiskit_circuit::bit::{QuantumRegister, ClassicalRegister, ShareableClbit, ShareableQubit};
 use qiskit_circuit::classical;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::{Operation, OperationRef, PyInstruction, PyOpKind, PyRange};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::{PyParameter, PyParameterExpression};
-use qiskit_quantum_info::sparse_observable::PySparseObservable;
+use qiskit_quantum_info::sparse_observable::{BitTerm, SparseObservable, PySparseObservable};
 use uuid::Uuid;
 
 use crate::bytes::Bytes;
@@ -37,8 +39,9 @@ use crate::error::QpyError;
 use crate::formats;
 use crate::value::{
     GenericValue, ModifierType, ParamRegisterValue, QPYWriteData, ValueType,
-    serialize_generic_value,
+    serialize_generic_value, QPYReadData, RegisterType, deserialize_with_args, load_value
 };
+   
 
 pub const UNITARY_GATE_CLASS_NAME: &str = "UnitaryGate";
 pub const PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME: &str = "PauliProductMeasurement";
@@ -380,7 +383,15 @@ pub(crate) fn py_convert_to_generic_value(
                 .map_err(|e| QpyError::from(PyErr::from(e)))?
                 .inner,
         ))),
-        ValueType::Circuit => Ok(GenericValue::Circuit(py_object.clone().unbind())),
+        ValueType::Circuit => {
+            let circuit_data = py_object
+            .cast::<PyCircuitData>()
+            .map_err(PyErr::from)?
+            .borrow()
+            .inner
+            .clone();
+            Ok(GenericValue::CircuitData(Box::new(circuit_data)))
+        }
         ValueType::Tuple => {
             let elements: Vec<GenericValue> = py_object
                 .try_iter()?
@@ -438,7 +449,7 @@ pub(crate) fn py_convert_from_generic_value(value: &GenericValue) -> Result<Py<P
                 Ok(PyParameter(symbol.clone()).into_py_any(py)?)
             }
             GenericValue::ParameterExpression(exp) => Ok(exp.as_ref().clone().into_py_any(py)?),
-            GenericValue::Circuit(py_object) => Ok(py_object.clone()),
+            // GenericValue::Circuit(py_object) => Ok(py_object.clone()),
             GenericValue::CircuitData(circuit_data) => {
                 Ok(circuit_data.clone().into_py_quantum_circuit(py)?.unbind())
             }
@@ -536,4 +547,294 @@ pub(crate) fn py_unpack_modifier(
                 .unbind())
         }
     })
+}
+
+// This function finalizes the creation of QuantumCircuit from CircuitData by performing the Python-only
+// required operations: handling layouts and metadata, and creating the Python QuantumCircuit object.
+pub fn py_circuit_data_to_quantum_circuit(
+        circuit_data: CircuitData,
+        packed_circuit: &formats::QPYCircuit,
+        metadata_deserializer: Option<&Py<PyAny>>,
+    ) -> Result<Py<PyAny>, QpyError> {
+    let py_circuit_data: PyCircuitData = circuit_data.into();
+    let unpacked_layout = unpack_layout(&packed_circuit.layout, &py_circuit_data)?;
+    let metadata = deserialize_metadata(&packed_circuit.header.metadata, metadata_deserializer)?;
+    Python::attach(|py| {
+        let circuit = imports::QUANTUM_CIRCUIT
+            .get_bound(py)
+            .call_method1(intern!(py, "_from_circuit_data"), (py_circuit_data,))?;
+        circuit.setattr("metadata", metadata)?;
+        circuit.setattr("name", &packed_circuit.header.circuit_name)?;
+        if let Some(layout) = unpacked_layout {
+            circuit.setattr("_layout", layout)?;
+        }
+        Ok(circuit.unbind().as_any().clone())
+    })
+}
+
+fn deserialize_metadata(
+    metadata_bytes: &Bytes,
+    metadata_deserializer: Option<&Py<PyAny>>,
+) -> Result<Py<PyAny>, QpyError> {
+    Python::attach(|py| {
+        let json = py.import("json")?;
+        let kwargs: Bound<'_, PyDict> = PyDict::new(py);
+        kwargs.set_item("cls", metadata_deserializer)?;
+        let metadata_string = PyString::new(py, metadata_bytes.try_into()?);
+        Ok(json
+            .call_method("loads", (metadata_string,), Some(&kwargs))?
+            .unbind())
+    })
+}
+
+fn unpack_layout(
+    layout: &formats::LayoutV2Pack,
+    circuit_data: &PyCircuitData,
+) -> Result<Option<Py<PyAny>>, QpyError> {
+    match layout.exists {
+        0 => Ok(None),
+        _ => Ok(Some(unpack_transpile_layout(layout, circuit_data)?)),
+    }
+}
+
+fn unpack_transpile_layout(
+    layout: &formats::LayoutV2Pack,
+    circuit_data: &PyCircuitData,
+) -> Result<Py<PyAny>, QpyError> {
+    Python::attach(|py| -> Result<_, QpyError> {
+        let mut initial_layout = py.None();
+        let mut input_qubit_mapping = py.None();
+        let mut final_layout = py.None();
+
+        let mut extra_register_map = HashMap::new();
+        let mut existing_register_map = HashMap::new();
+        for packed_register in &layout.extra_registers {
+            if packed_register.register_type == RegisterType::Qreg {
+                let register = QuantumRegister::new_owning(
+                    packed_register.name.clone(),
+                    packed_register.bit_indices.len() as u32,
+                );
+                extra_register_map.insert(packed_register.name.as_str(), register);
+            }
+        }
+        // add the registers from the circuit, to streamline the search phase
+        for qreg in circuit_data.qregs() {
+            existing_register_map.insert(qreg.name(), qreg);
+        }
+        let initial_layout_virtual_bits = PyList::new(py, Vec::<Py<PyAny>>::new())?;
+        for virtual_bit in &layout.initial_layout_items {
+            let qubit = if let Some(register) =
+                extra_register_map.get(virtual_bit.register_name.as_str())
+            {
+                if let Some(qubit) = register.get(virtual_bit.index_value as usize) {
+                    qubit
+                } else {
+                    ShareableQubit::new_anonymous()
+                }
+            } else if let Some(register) =
+                existing_register_map.get(virtual_bit.register_name.as_str())
+            {
+                if let Some(qubit) = register.get(virtual_bit.index_value as usize) {
+                    qubit
+                } else {
+                    ShareableQubit::new_anonymous()
+                }
+            } else {
+                ShareableQubit::new_anonymous()
+            };
+            initial_layout_virtual_bits.append(qubit)?;
+        }
+        if initial_layout_virtual_bits.len() > 0 {
+            initial_layout = imports::LAYOUT
+                .get_bound(py)
+                .call_method1("from_qubit_list", (initial_layout_virtual_bits,))?
+                .unbind();
+        }
+
+        if layout.input_mapping_size > 0 {
+            let input_qubit_mapping_data = PyDict::new(py);
+            let physical_bits_object = initial_layout.call_method0(py, "get_physical_bits")?;
+            let physical_bits = physical_bits_object.cast_bound::<PyDict>(py).map_err(|_| {
+                QpyError::InvalidPythonType {
+                    python_type: "PyDict".to_string(),
+                    name: "physical_bits".to_string(),
+                }
+            })?;
+            for (index, bit) in layout.input_mapping_items.iter().enumerate() {
+                let physical_bit = physical_bits.get_item(bit)?.ok_or_else(|| {
+                    QpyError::InvalidBit(format!("Could not get physical bit for bit {:?}", bit))
+                })?;
+                input_qubit_mapping_data.set_item(physical_bit, index)?;
+            }
+            input_qubit_mapping = input_qubit_mapping_data.into_py_any(py)?;
+        }
+
+        if layout.final_layout_size > 0 {
+            let final_layout_dict = PyDict::new(py);
+            let py_qubits = circuit_data.py_qubits(py);
+            let qubits = py_qubits.bind(py);
+            for (index, bit) in layout.final_layout_items.iter().enumerate() {
+                let qubit = qubits.get_item(*bit as usize)?;
+                final_layout_dict.set_item(qubit, index)?;
+            }
+            final_layout = imports::LAYOUT
+                .get_bound(py)
+                .call1((final_layout_dict,))?
+                .unbind();
+        }
+        let transpiled_layout = imports::TRANSPILER_LAYOUT.get_bound(py).call1((
+            initial_layout,
+            input_qubit_mapping,
+            final_layout,
+        ))?;
+        // TODO: this is for version >= 10
+        if layout.input_qubit_count >= 0 {
+            transpiled_layout.setattr("_input_qubit_count", layout.input_qubit_count)?;
+            transpiled_layout.setattr("_output_qubit_list", circuit_data.py_qubits(py))?;
+        }
+        Ok(transpiled_layout.unbind())
+    })
+}
+
+pub fn deserialize_pauli_evolution_gate(
+    py: Python,
+    data: &Bytes,
+    qpy_data: &mut QPYReadData,
+) -> Result<Py<PyAny>, QpyError> {
+    let json = py.import("json")?;
+    let evo_synth_library = py.import("qiskit.synthesis.evolution")?;
+    let (packed_data, _) =
+        deserialize_with_args::<formats::PauliEvolutionDefPack, (u8,)>(data, (qpy_data.version,))?;
+    // operators as stored as a numpy dump that can be loaded into Python's SparsePauliOp.from_list
+    let operators: Vec<Py<PyAny>> = packed_data
+        .pauli_data
+        .iter()
+        .map(|elem| match elem {
+            formats::PauliDataPack::V17(formats::PauliDataPackV17::SparseObservable(
+                sparse_observable_pack,
+            )) => {
+                let num_qubits = sparse_observable_pack.num_qubits;
+                let coeffs = sparse_observable_pack
+                    .coeff_data
+                    .chunks_exact(2)
+                    .map(|c| Complex64::new(c[0], c[1]))
+                    .collect();
+                let bit_terms = sparse_observable_pack
+                    .bitterm_data
+                    .iter()
+                    .map(|&bitterm| -> Result<_, QpyError> {
+                        let reduced_bitterm = u8::try_from(bitterm)?;
+                        BitTerm::try_from(reduced_bitterm).map_err(|_| {
+                            QpyError::DeserializationError(
+                                "Could not read sparse observable data".to_string(),
+                            )
+                        })
+                    })
+                    .collect::<Result<_, QpyError>>()?;
+                let indices = sparse_observable_pack.inds_data.clone();
+                let boundaries = sparse_observable_pack
+                    .bounds_data
+                    .iter()
+                    .map(|&bounds_value| bounds_value as usize)
+                    .collect();
+                let sparse_observable =
+                    SparseObservable::new(num_qubits, coeffs, bit_terms, indices, boundaries)
+                        .map_err(|e| {
+                            QpyError::DeserializationError(format!(
+                                "Failed to create sparse observable: {}",
+                                e
+                            ))
+                        })?;
+                Ok(sparse_observable.into_py_any(py)?)
+            }
+            formats::PauliDataPack::V17(formats::PauliDataPackV17::SparsePauliOp(
+                sparse_pauli_op_pack,
+            ))
+            | formats::PauliDataPack::V16(formats::PauliDataPackV16::SparsePauliOp(
+                sparse_pauli_op_pack,
+            )) => {
+                // formats::PauliDataPack::SparsePauliOp(sparse_pauli_op_pack) => {
+                let data = load_value(
+                    ValueType::NumpyObject,
+                    &sparse_pauli_op_pack.data,
+                    qpy_data,
+                    Endian::Big,
+                )?;
+                if let GenericValue::NumpyObject(op_raw_data) = data {
+                    let np_array = py_deserialize_numpy_object(&op_raw_data)?;
+                    Ok(imports::SPARSE_PAULI_OP
+                        .get_bound(py)
+                        .call_method1("from_list", (np_array,))?
+                        .unbind())
+                } else {
+                    Err(QpyError::InvalidParameter(
+                        "Pauli Evolution Gate needs data list stored as numpy object".to_string(),
+                    ))
+                }
+            }
+        })
+        .collect::<Result<_, QpyError>>()?;
+
+    let py_operators = if packed_data.standalone_op != 0 {
+        operators[0].clone()
+    } else {
+        PyList::new(py, operators)?.into_py_any(py)?
+    };
+    // time is of type ParameterValueType = Union[ParameterExpression, float]
+    // we don't have a rust PauliEvolutionGate so we'll convert the time to python
+    let time = load_value(
+        packed_data.time_type,
+        &packed_data.time_data,
+        qpy_data,
+        Endian::Big,
+    )?;
+    let py_time: Py<PyAny> = match time {
+        GenericValue::Float64(value) => value.into_py_any(py)?,
+        GenericValue::ParameterExpression(exp) => exp.as_ref().clone().into_py_any(py)?,
+        GenericValue::ParameterExpressionVectorSymbol(symbol)
+        | GenericValue::ParameterExpressionSymbol(symbol) => PyParameter(symbol).into_py_any(py)?,
+        _ => return Err(QpyError::InvalidParameter(
+            "Pauli Evolution Gate 'time' parameter should be either float or parameter expression"
+                .to_string(),
+        )),
+    };
+    let synth_data = json.call_method1("loads", (packed_data.synth_data,))?;
+    let synth_data = synth_data
+        .cast::<PyDict>()
+        .map_err(|_| QpyError::InvalidPythonType {
+            python_type: "PyDict".to_string(),
+            name: "synth_data".to_string(),
+        })?;
+    let synthesis_class_name = synth_data.get_item("class")?.ok_or_else(|| {
+        QpyError::MissingData(
+            "Could not find synthesis class name for Pauli Evolution Gate".to_string(),
+        )
+    })?;
+    let synthesis_class_settings = synth_data.get_item("settings")?.ok_or_else(|| {
+        QpyError::MissingData(
+            "Could not find synthesis class settings for Pauli Evolution Gate".to_string(),
+        )
+    })?;
+    let synthesis_class =
+        evo_synth_library.getattr(synthesis_class_name.cast::<PyString>().map_err(|_| {
+            QpyError::InvalidPythonType {
+                python_type: "PyString".to_string(),
+                name: "synthesis_class".to_string(),
+            }
+        })?)?;
+    let synthesis_settings_dict =
+        synthesis_class_settings
+            .cast::<PyDict>()
+            .map_err(|_| QpyError::InvalidPythonType {
+                python_type: "PyDict".to_string(),
+                name: "synthesis_settings_dict".to_string(),
+            })?;
+    let synthesis = synthesis_class.call((), Some(synthesis_settings_dict))?;
+    let kwargs = PyDict::new(py);
+    kwargs.set_item(intern!(py, "time"), py_time)?;
+    kwargs.set_item(intern!(py, "synthesis"), synthesis)?;
+    Ok(imports::PAULI_EVOLUTION_GATE
+        .get_bound(py)
+        .call((py_operators,), Some(&kwargs))?
+        .unbind())
 }
