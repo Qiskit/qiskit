@@ -233,7 +233,12 @@ pub struct Target {
     pub concurrent_measurements: Option<Vec<Vec<PhysicalQubit>>>,
     gate_map: IndexMap<String, TargetProperties>,
     global_operations: HashMap<u32, HashSet<String>>,
-    qarg_gate_map: HashMap<Qargs, HashSet<String>>,
+    // This uses `IndexMap` not because it's necessary for determinism (though it will help), but so
+    // it retains the specific iteration order it is constructed with.  The order `qargs` are
+    // encountered during construction are _usually_ going to be quite structured, and structure
+    // here means that graphs built from qargs (like the coupling graph) will have their edges
+    // ordered in much cache- and branch-prediction-friendlier orders than if they are randomised.
+    qarg_gate_map: IndexMap<Qargs, HashSet<String>>,
     has_angle_bounds: bool,
 }
 
@@ -326,7 +331,7 @@ impl Target {
             concurrent_measurements,
             gate_map: IndexMap::default(),
             global_operations: HashMap::default(),
-            qarg_gate_map: HashMap::default(),
+            qarg_gate_map: IndexMap::default(),
             has_angle_bounds: false,
         })
     }
@@ -847,10 +852,7 @@ impl Target {
             );
         }
         self.gate_map = gate_map;
-        self.qarg_gate_map = state
-            .get_item("qarg_gate_map")?
-            .unwrap()
-            .extract::<HashMap<Qargs, HashSet<String>>>()?;
+        self.qarg_gate_map = state.get_item("qarg_gate_map")?.unwrap().extract()?;
         self.global_operations = state
             .get_item("global_operations")?
             .unwrap()
@@ -1248,10 +1250,10 @@ impl Target {
                     }
                     qarg_len = deduplicated_qargs.len() as u32;
                 }
-                if let Qargs::Concrete(qarg_sample) = qarg_sample {
-                    if qarg_len != *size_dict.entry(qarg_sample.len() as u32).or_insert(0) {
-                        incomplete_basis_gates.push(inst.as_str());
-                    }
+                if let Qargs::Concrete(qarg_sample) = qarg_sample
+                    && qarg_len != *size_dict.entry(qarg_sample.len() as u32).or_insert(0)
+                {
+                    incomplete_basis_gates.push(inst.as_str());
                 }
             }
         }
@@ -1269,13 +1271,12 @@ impl Target {
         if self.num_qubits.unwrap_or_default() == 0 || self.num_qubits.is_none() {
             qargs = QargsRef::Global;
         }
-        if let QargsRef::Concrete(qargs) = qargs {
-            if qargs
+        if let QargsRef::Concrete(qargs) = qargs
+            && qargs
                 .iter()
                 .any(|x| !(0..self.num_qubits.unwrap_or_default()).contains(&x.0))
-            {
-                return Err(TargetError::QargsWithoutInstruction(format!("{qargs:?}")));
-            }
+        {
+            return Err(TargetError::QargsWithoutInstruction(format!("{qargs:?}")));
         }
         if let Some(qarg_gate_map_arg) = self.qarg_gate_map.get(&qargs) {
             res.extend(qarg_gate_map_arg.iter().map(|key| key.as_str()));
@@ -1285,10 +1286,10 @@ impl Target {
                 res.insert(name);
             }
         }
-        if let QargsRef::Concrete(qargs) = qargs {
-            if let Some(global_gates) = self.global_operations.get(&(qargs.len() as u32)) {
-                res.extend(global_gates.iter().map(|key| key.as_str()))
-            }
+        if let QargsRef::Concrete(qargs) = qargs
+            && let Some(global_gates) = self.global_operations.get(&(qargs.len() as u32))
+        {
+            res.extend(global_gates.iter().map(|key| key.as_str()))
         }
         if res.is_empty() {
             return Err(TargetError::QargsWithoutInstruction(format!("{qargs:?}")));

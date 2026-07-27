@@ -259,6 +259,12 @@ impl ParameterExpression {
         self.try_to_symbol_ref().cloned()
     }
 
+    /// Simplify the expression. This, for example, attempts to cancel
+    /// variables in the expression.
+    pub fn simplify(&self) -> Self {
+        ParameterExpression::from_symbol_expr(self.expr.optimize())
+    }
+
     /// Try casting to a [Symbol], returning a reference.
     ///
     /// This only succeeds if the underlying expression is, in fact, only a symbol.
@@ -288,11 +294,10 @@ impl ParameterExpression {
         match self.expr.eval(true) {
             Some(value) => {
                 // we try to restrict complex to real, if possible
-                if let Value::Complex(c) = value {
-                    if (-symbol_expr::SYMEXPR_EPSILON..symbol_expr::SYMEXPR_EPSILON).contains(&c.im)
-                    {
-                        return Ok(Value::Real(c.re));
-                    }
+                if let Value::Complex(c) = value
+                    && (-symbol_expr::SYMEXPR_EPSILON..symbol_expr::SYMEXPR_EPSILON).contains(&c.im)
+                {
+                    return Ok(Value::Real(c.re));
                 }
                 Ok(value)
             }
@@ -837,6 +842,12 @@ impl PyParameterExpression {
 
 #[pymethods]
 impl PyParameterExpression {
+    /// Simplify the expression. This, for example, attempts to cancel
+    /// variables in the expression.
+    pub fn simplify(&self) -> Self {
+        self.inner.simplify().into()
+    }
+
     /// This is a **strictly internal** constructor and **should not be used**.
     /// It is subject to arbitrary change in between Qiskit versions and cannot be relied on.
     /// Parameter expressions should always be constructed from applying operations on
@@ -1856,7 +1867,7 @@ impl PyParameterVector {
         // `ParameterVector` was first introduced.
         format!(
             "{}, [{}]",
-            &self.base.name,
+            self.base.name,
             self.base
                 .iter()
                 .map(|s| format!("'{}'", s.fullname()))
@@ -1867,7 +1878,7 @@ impl PyParameterVector {
     fn __repr__(&self) -> String {
         format!(
             "ParameterVector(name='{}', length={})",
-            &self.base.name,
+            self.base.name,
             self.base.len.load(atomic::Ordering::Relaxed)
         )
     }
