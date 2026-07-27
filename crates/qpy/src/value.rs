@@ -23,7 +23,6 @@ use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::classical::expr::{Expr, Stretch, Var};
 use qiskit_circuit::classical::types::Type;
-use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::duration::Duration;
 use qiskit_circuit::operations::{ForCollection, OperationRef, PyInstruction, PyOpKind, PyRange};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -571,7 +570,6 @@ pub(crate) fn load_value(
             let circuit = unpack_circuit(
                 &packed_circuit,
                 qpy_data.version,
-                None,
                 qpy_data.use_symengine,
                 &qpy_data.annotation_handler.annotation_factories,
             )?;

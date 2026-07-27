@@ -12,8 +12,8 @@
 
 // Methods for QPY serialization working directly with Python-based data
 use binrw::Endian;
-use numpy::Complex64;
 use hashbrown::HashMap;
+use numpy::Complex64;
 use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::PyTypeError;
 use pyo3::intern;
@@ -23,14 +23,14 @@ use qiskit_circuit::classical::expr::Expr;
 use std::num::NonZero;
 use std::sync::Arc;
 
+use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister, ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
-use qiskit_circuit::bit::{QuantumRegister, ClassicalRegister, ShareableClbit, ShareableQubit};
 use qiskit_circuit::classical;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::{Operation, OperationRef, PyInstruction, PyOpKind, PyRange};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::{PyParameter, PyParameterExpression};
-use qiskit_quantum_info::sparse_observable::{BitTerm, SparseObservable, PySparseObservable};
+use qiskit_quantum_info::sparse_observable::{BitTerm, PySparseObservable, SparseObservable};
 use uuid::Uuid;
 
 use crate::bytes::Bytes;
@@ -38,10 +38,9 @@ use crate::circuit_writer::standard_instruction_class_name;
 use crate::error::QpyError;
 use crate::formats;
 use crate::value::{
-    GenericValue, ModifierType, ParamRegisterValue, QPYWriteData, ValueType,
-    serialize_generic_value, QPYReadData, RegisterType, deserialize_with_args, load_value
+    GenericValue, ModifierType, ParamRegisterValue, QPYReadData, QPYWriteData, RegisterType,
+    ValueType, deserialize_with_args, load_value, serialize_generic_value,
 };
-   
 
 pub const UNITARY_GATE_CLASS_NAME: &str = "UnitaryGate";
 pub const PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME: &str = "PauliProductMeasurement";
@@ -384,12 +383,14 @@ pub(crate) fn py_convert_to_generic_value(
                 .inner,
         ))),
         ValueType::Circuit => {
-            let circuit_data = py_object
-            .cast::<PyCircuitData>()
-            .map_err(PyErr::from)?
-            .borrow()
-            .inner
-            .clone();
+            py_object.getattr("data")?; // in case _data is lazily generated in python
+            let py_circuit_data = py_object.getattr("_data")?;
+            let circuit_data = py_circuit_data
+                .cast::<PyCircuitData>()
+                .map_err(PyErr::from)?
+                .borrow()
+                .inner
+                .clone();
             Ok(GenericValue::CircuitData(Box::new(circuit_data)))
         }
         ValueType::Tuple => {
@@ -552,10 +553,10 @@ pub(crate) fn py_unpack_modifier(
 // This function finalizes the creation of QuantumCircuit from CircuitData by performing the Python-only
 // required operations: handling layouts and metadata, and creating the Python QuantumCircuit object.
 pub fn py_circuit_data_to_quantum_circuit(
-        circuit_data: CircuitData,
-        packed_circuit: &formats::QPYCircuit,
-        metadata_deserializer: Option<&Py<PyAny>>,
-    ) -> Result<Py<PyAny>, QpyError> {
+    circuit_data: CircuitData,
+    packed_circuit: &formats::QPYCircuit,
+    metadata_deserializer: Option<&Py<PyAny>>,
+) -> Result<Py<PyAny>, QpyError> {
     let py_circuit_data: PyCircuitData = circuit_data.into();
     let unpacked_layout = unpack_layout(&packed_circuit.layout, &py_circuit_data)?;
     let metadata = deserialize_metadata(&packed_circuit.header.metadata, metadata_deserializer)?;

@@ -60,7 +60,8 @@ use crate::formats::QPYCircuit;
 use crate::params::generic_value_to_param;
 use crate::py_methods::{
     PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME,
-    UNITARY_GATE_CLASS_NAME, get_python_gate_class, py_convert_from_generic_value, deserialize_pauli_evolution_gate
+    UNITARY_GATE_CLASS_NAME, deserialize_pauli_evolution_gate, get_python_gate_class,
+    py_convert_from_generic_value,
 };
 use crate::value::ParamRegisterValue;
 use crate::value::unpack_for_collection;
@@ -619,23 +620,26 @@ fn unpack_control_flow(
                 GenericValue::ParameterExpressionSymbol(symbol) => {
                     Some(LoopParam::Parameter(Arc::unwrap_or_clone(symbol)))
                 }
-                GenericValue::Null => Python::attach(|py| -> Result<_, QpyError> {
+                GenericValue::Null => {
                     // When writing for loops, we serialise a `Var` loop parameter in the
                     // instruction's parameters field as if it were null, because the `Var` isn't
                     // part of the containing circuit.  Instead, we re-infer its existence from the
                     // `input` variables of the body circuit.
                     let mut vars = circuit.vars_stretches_view().iter_vars(VarType::Input);
-                    let Some(v) = vars.next() else {
-                        // No input vars, so nothing to infer; this is a legacy-type body.
-                        return Ok(None);
-                    };
                     match vars.next() {
-                        Some(_) => Err(QpyError::DeserializationError(
-                            "for loop bodies must have at most one input variable".to_owned(),
-                        )),
-                        None => Ok(Some(LoopParam::Variable(v.clone()))),
+                        // No input vars, so nothing to infer; this is a legacy-type body.
+                        None => None,
+                        Some(v) => {
+                            if vars.next().is_some() {
+                                return Err(QpyError::DeserializationError(
+                                    "for loop bodies must have at most one input variable"
+                                        .to_owned(),
+                                ));
+                            }
+                            Some(LoopParam::Variable(v.clone()))
+                        }
                     }
-                })?,
+                }
                 other => {
                     return Err(QpyError::InvalidValueType {
                         expected: "a parameter or none".to_string(),
@@ -893,7 +897,8 @@ fn unpack_py_instruction(
                 let args = PyTuple::new(py, &py_params)?;
                 if name.as_str() == "ForLoopOp" {
                     // we used the params to construct the loop; they should not be retained as params except the subcircuit
-                    instruction_values.retain(|value| matches!(value, GenericValue::CircuitData(_)));
+                    instruction_values
+                        .retain(|value| matches!(value, GenericValue::CircuitData(_)));
                 }
                 gate_class.call1(args)?
             }
@@ -1077,7 +1082,8 @@ fn read_custom_instructions(
                     Ok(Some(deserialize_pauli_evolution_gate(
                         py,
                         &operation.data,
-                        qpy_data)?))
+                        qpy_data,
+                    )?))
                 })
             } else {
                 let circuit: PyCircuitData = unpack_circuit(
@@ -1087,12 +1093,15 @@ fn read_custom_instructions(
                     )?
                     .0,
                     qpy_data.version,
-                    None,
                     qpy_data.use_symengine,
                     &qpy_data.annotation_handler.annotation_factories,
-                )?.into();
+                )?
+                .into();
                 let py_circuit = Python::attach(|py| -> Result<_, QpyError> {
-                    circuit.into_py_any(py).map_err(QpyError::from)
+                    Ok(circuit
+                        .into_py_quantum_circuit(py)
+                        .map_err(QpyError::from)?
+                        .unbind())
                 })?;
                 Ok(Some(py_circuit))
             }
@@ -1293,7 +1302,6 @@ fn add_registers_and_bits(
 pub(crate) fn unpack_circuit(
     packed_circuit: &QPYCircuit,
     version: u8,
-    metadata_deserializer: Option<&Py<PyAny>>,
     use_symengine: bool,
     annotation_factories: &Py<PyDict>,
 ) -> Result<CircuitData, QpyError> {
@@ -1332,7 +1340,7 @@ pub(crate) fn unpack_circuit(
     for instruction in &packed_circuit.instructions {
         let inst = unpack_instruction(instruction, &custom_instructions, &mut qpy_data)?;
         qpy_data.circuit_data.push(inst)?;
-    };
+    }
     Ok(qpy_data.circuit_data)
 }
 
