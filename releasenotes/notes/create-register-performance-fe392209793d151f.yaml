@@ -1,7 +1,6 @@
 performance:
   - |
-    Improves runtime performance when creating `QuantumCircuit` with many
-    registers. See PR `#16678 <https://github.com/Qiskit/qiskit/pull/16678>`
-    for performance details.
-
-
+    Improves runtime performance of the `add_register()` method on
+    `QuantumCircuit`. Consequently, this change has performance improvements
+    for creating `QuantumCircuit` as well. Generally, the time complexity of
+    checking if a register name exists was reduced from O(n) from O(1).
