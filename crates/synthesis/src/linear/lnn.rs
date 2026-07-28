@@ -69,10 +69,11 @@ fn _get_lower_triangular<'a>(
         });
 
         // Use row operations directed upwards to zero out all "1"s above the remaining "1" in row i
-        let rows_to_update: Vec<usize> = (0..i).rev().filter(|k| mat[[*k, *first_j]]).collect();
-        rows_to_update.into_iter().for_each(|k| {
-            _row_op_update_instructions(&mut cx_instructions_rows, mat.view_mut(), i, k);
-        });
+        for k in (0..i).rev() {
+            if mat[[k, *first_j]] {
+                _row_op_update_instructions(&mut cx_instructions_rows, mat.view_mut(), i, k);
+            }
+        }
     }
     // Apply only U instructions to get the permuted L
     for (ctrl, trgt) in cx_instructions_rows {

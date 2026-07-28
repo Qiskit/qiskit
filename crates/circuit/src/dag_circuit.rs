@@ -5996,21 +5996,15 @@ impl DAGCircuit {
             .collect();
 
         for terminus in termini {
-            let last_edges: Vec<_> = self
+            let mut last_edges = self
                 .dag
-                .edges_directed(terminus, dir.opposite())
-                .map(|e| {
-                    (
-                        match dir {
-                            Direction::Outgoing => e.source(),
-                            Direction::Incoming => e.target(),
-                        },
-                        e.id(),
-                        *e.weight(),
-                    )
-                })
-                .collect();
-            for (op_node, old_edge, weight) in last_edges.into_iter() {
+                .neighbors_directed(terminus, dir.opposite())
+                .detach();
+            while let Some((old_edge, op_node)) = last_edges.next(&self.dag) {
+                let weight = *self
+                    .dag
+                    .edge_weight(old_edge)
+                    .expect("edge index from a graph walker should still be valid");
                 match dir {
                     Direction::Outgoing => {
                         self.dag.add_edge(op_node, new_node, weight);
