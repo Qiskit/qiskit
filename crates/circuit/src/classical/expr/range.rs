@@ -132,7 +132,9 @@ impl Range {
     /// non-constant ranges the iteration count is unknown at compile time; returns ``1`` as a
     /// conservative placeholder for ``ForCollection`` size/depth heuristics.
     pub fn len(&self) -> usize {
-        if self.constant && let Ok((start, stop, step)) = self.try_materialize_bounds() {
+        if self.constant
+            && let Ok((start, stop, step)) = self.try_materialize_bounds()
+        {
             return python_range_len(start, stop, step);
         }
         1
