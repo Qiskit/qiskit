@@ -22,6 +22,7 @@ use pyo3::IntoPyObjectExt;
 use pyo3::types::{PyBool, PyList, PyTuple, PyType};
 use pyo3::{PyResult, intern};
 
+use crate::annotation::PyAnnotationObject;
 use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::dag_circuit::DAGCircuit;
 use crate::duration::Duration;
@@ -757,7 +758,12 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
                         } else {
                             None
                         };
-                        let annotations = ob.getattr(intern!(py, "annotations"))?.extract()?;
+                        let py_annotations: Vec<Py<PyAny>> =
+                            ob.getattr(intern!(py, "annotations"))?.extract()?;
+                        let annotations = py_annotations
+                            .into_iter()
+                            .map(|annotation| PyAnnotationObject::new(py, annotation).into())
+                            .collect();
                         ControlFlow::Box {
                             duration,
                             annotations,
