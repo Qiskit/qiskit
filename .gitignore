@@ -156,5 +156,3 @@ test/visual/mpl/visual_test_failures/*.png
 # Added by cargo
 
 /target
-
-.venv-test/
