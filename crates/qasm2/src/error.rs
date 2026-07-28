@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::PyErr;
+use pyo3::prelude::*;
 
 use crate::lex::Token;
 
@@ -116,5 +116,18 @@ impl std::fmt::Display for ParseError {
         write!(f, "{}", self.message)
     }
 }
-
 impl std::error::Error for ParseError {}
+
+pyo3::import_exception!(qiskit.qasm2.exceptions, QASM2ParseError);
+
+/// Convert a `ParseError` from the pyo3-free parsing modules into the `QASM2ParseError`
+/// Python exception, at the boundary where results cross back into Python space.
+impl From<ParseError> for PyErr {
+    fn from(e: ParseError) -> PyErr {
+        let py_err = QASM2ParseError::new_err(e.message);
+        if let Some(source) = e.source {
+            Python::attach(|py| py_err.set_cause(py, Some(*source)));
+        }
+        py_err
+    }
+}

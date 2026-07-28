@@ -12,8 +12,6 @@
 
 use pyo3::prelude::*;
 
-use crate::bytecode::QASM2ParseError;
-
 mod bytecode;
 mod error;
 mod expr;
@@ -21,7 +19,8 @@ mod ext;
 mod lex;
 mod parse;
 
-pub use self::ext::{
+use crate::error::QASM2ParseError;
+pub use crate::ext::{
     ClassicalBuiltinExt, ClassicalCallableExt, CustomClassical, CustomInstruction,
 };
 
