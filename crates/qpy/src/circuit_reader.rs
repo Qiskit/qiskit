@@ -28,6 +28,7 @@ use pyo3::IntoPyObjectExt;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyAny, PyBytes, PyDict, PyList, PyString, PyTuple, PyType};
+use qiskit_circuit::annotation::{Annotation, PyAnnotationObject};
 use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
@@ -332,15 +333,18 @@ pub fn instruction_values_to_params(
 fn unpack_annotations(
     packed_annotations: &Option<formats::InstructionsAnnotationPack>,
     qpy_data: &mut QPYReadData,
-) -> Result<Vec<Py<PyAny>>, QpyError> {
+) -> Result<Vec<Box<dyn Annotation>>, QpyError> {
     if let Some(annotations_vec) = packed_annotations {
         annotations_vec
             .annotations
             .iter()
             .map(|annotation| {
-                qpy_data
+                let py_annotation = qpy_data
                     .annotation_handler
-                    .load(annotation.namespace_index, annotation.payload.clone())
+                    .load(annotation.namespace_index, annotation.payload.clone())?;
+                Ok(Python::attach(|py| {
+                    Box::new(PyAnnotationObject::new(py, py_annotation)) as Box<dyn Annotation>
+                }))
             })
             .collect::<Result<_, QpyError>>()
     } else {
