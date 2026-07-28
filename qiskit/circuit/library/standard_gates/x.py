@@ -14,6 +14,7 @@
 from __future__ import annotations
 import warnings
 import numpy
+from qiskit.circuit.annotated_operation import AnnotatedOperation
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit._utils import _ctrl_state_to_int, with_gate_array, with_controlled_gate_array
@@ -468,17 +469,6 @@ class RCCXGate(SingletonGate):
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.rccx` method.
-
-    For a new control qubit :math:`c`, the first RCCX control :math:`a`, the second
-    RCCX control :math:`b`, and target :math:`t`, the single-controlled gate uses
-    the exact identity
-
-    .. math::
-
-        C(\\mathrm{RCCX})(c,a,b;t)
-        = \\mathrm{CS}^{\\dagger}(c,a)\\,\\mathrm{RC3X}(c,a,b;t).
-
-    This avoids separately controlling the T gates in the RCCX decomposition.
     """
 
     _standard_gate = StandardGate.RCCX
@@ -514,13 +504,23 @@ class RCCXGate(SingletonGate):
         label: str | None = None,
         ctrl_state: int | str | None = None,
         annotated: bool | None = None,
-    ):
+    ) -> ControlledGate | AnnotatedOperation:
         """Return a controlled version of the RCCX gate.
 
         For a single control qubit, the controlled gate uses a compact, exact
         decomposition consisting of an :class:`.RC3XGate` and an
-        :class:`.CSdgGate`. For more than one control qubit, the generic
-        controlled-gate synthesis is used.
+        :class:`.CSdgGate`. For a new control qubit :math:`c`, the first RCCX
+        control :math:`a`, the second RCCX control :math:`b`, and target
+        :math:`t`, it uses the identity
+
+        .. math::
+
+            C(\\mathrm{RCCX})(c,a,b;t)
+            = \\mathrm{CS}^{\\dagger}(c,a)\\,\\mathrm{RC3X}(c,a,b;t).
+
+        This avoids separately controlling the T gates in the RCCX decomposition.
+        For more than one control qubit, the generic controlled-gate synthesis is
+        used.
 
         Args:
             num_ctrl_qubits: Number of controls to add. Defaults to ``1``.

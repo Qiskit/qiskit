@@ -449,10 +449,13 @@ class TestCliffordTPassManager(QiskitTestCase):
         expected_t_count = {1: 0, 2: 8, 3: 16, 4: 24, 5: 32, 6: 40, 7: 48}
         self.assertLessEqual(t_count, expected_t_count[n])
 
-    def test_controlled_rccx_gate_counts(self):
-        """Test the CX and T count upper bounds of a controlled RCCX gate."""
+    @data(0, 1)
+    def test_controlled_rccx_gate_counts(self, ctrl_state):
+        """Test CX and T count upper bounds for open and closed controlled RCCX gates."""
         circuit = QuantumCircuit(4)
-        circuit.append(RCCXGate().control(annotated=False), circuit.qubits)
+        circuit.append(
+            RCCXGate().control(ctrl_state=ctrl_state, annotated=False), circuit.qubits
+        )
 
         transpiled = generate_preset_clifford_t_pass_manager(optimization_level=0).run(circuit)
 
