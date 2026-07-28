@@ -143,6 +143,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_sabre_layout(
         Vec::new(),
         false,
         false,
+        None,
     )
     .unwrap_or_else(|_| panic!("Sabre layout failed."));
     let out_circuit =

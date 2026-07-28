@@ -1,5 +1,14 @@
 ---
 features_transpiler:
   - |
-    Added a new argument ``skip_heuristic_layouts`` to :class:`.SabreLayout` pass
-    to disable the addition of extra heuristic layouts.
+    Added two new arguments, ``add_heuristic_layouts`` and ``seed_starting_layouts``,
+    to the :class:`.SabreLayout` pass.
+
+    Setting ``add_heuristic_layouts=False`` disables the additional candidate layouts
+    that Sabre normally generates: the dense layouts and heuristic layouts optimized for
+    specific heavy-hex coupling maps).
+
+    Setting ``seed_starting_layouts`` to an integer uses that value as the initial random
+    seed for additional trials specified by ``sabre_starting_layouts`` in the property set.
+    If set to ``None`` (the default), the seeds are generated pseudo-randomly from the pass's
+    argument ``seed``.
