@@ -24,8 +24,7 @@
 static bool biguint_matches_bytes(const QkBigUint *value, const uint8_t *expected,
                                   size_t expected_len, const char *context) {
     if (value->num_bytes != expected_len) {
-        printf("Expected %s to have %zu bytes, got %zu\n", context, expected_len,
-               value->num_bytes);
+        printf("Expected %s to have %zu bytes, got %zu\n", context, expected_len, value->num_bytes);
         return false;
     }
     if (expected_len > 0 && value->data == NULL) {

@@ -4,6 +4,7 @@
 
 /**
  * @defgroup QkBitTerm QkBitTerm
+ * @defgroup QkBigUint QkBigUint
  * @defgroup QkCircuit QkCircuit
  * @defgroup QkCircuitLibrary QkCircuitLibrary
  * @defgroup QkClassicalRegister QkClassicalRegister

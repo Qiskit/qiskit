@@ -24,8 +24,7 @@
 static bool biguint_matches_repeated_byte(const QkBigUint *value, uint8_t expected_byte,
                                           size_t expected_len, const char *context) {
     if (value->num_bytes != expected_len) {
-        printf("Expected %s to have %zu bytes, got %zu\n", context, expected_len,
-               value->num_bytes);
+        printf("Expected %s to have %zu bytes, got %zu\n", context, expected_len, value->num_bytes);
         return false;
     }
     if (expected_len > 0 && value->data == NULL) {
@@ -34,8 +33,8 @@ static bool biguint_matches_repeated_byte(const QkBigUint *value, uint8_t expect
     }
     for (size_t i = 0; i < expected_len; i++) {
         if (value->data[i] != expected_byte) {
-            printf("Expected %s byte %zu to be %u, got %u\n", context, i,
-                   (unsigned)expected_byte, (unsigned)value->data[i]);
+            printf("Expected %s byte %zu to be %u, got %u\n", context, i, (unsigned)expected_byte,
+                   (unsigned)value->data[i]);
             return false;
         }
     }
@@ -432,8 +431,7 @@ static int test_switch_case_on_register(void) {
 
     big_case_labels = qk_control_flow_switch_case_labels_big_uint(cf_inst, 0);
     if (big_case_labels.num_labels != 1) {
-        printf("Expected one big integer label for case 0, got %zu\n",
-               big_case_labels.num_labels);
+        printf("Expected one big integer label for case 0, got %zu\n", big_case_labels.num_labels);
         result = EqualityError;
         goto cleanup;
     }
@@ -463,8 +461,7 @@ static int test_switch_case_on_register(void) {
 
     big_case_labels = qk_control_flow_switch_case_labels_big_uint(cf_inst, 1);
     if (big_case_labels.num_labels != 3) {
-        printf("Expected 3 big integer labels for case 1, got %zu\n",
-               big_case_labels.num_labels);
+        printf("Expected 3 big integer labels for case 1, got %zu\n", big_case_labels.num_labels);
         result = EqualityError;
         goto cleanup;
     }
@@ -493,8 +490,7 @@ static int test_switch_case_on_register(void) {
 
     big_case_labels = qk_control_flow_switch_case_labels_big_uint(cf_inst, 2);
     if (big_case_labels.num_labels != 1) {
-        printf("Expected one big integer label for case 2, got %zu\n",
-               big_case_labels.num_labels);
+        printf("Expected one big integer label for case 2, got %zu\n", big_case_labels.num_labels);
         result = EqualityError;
         goto cleanup;
     }
