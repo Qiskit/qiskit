@@ -670,31 +670,26 @@ class TestMCSynthesisDepth(QiskitTestCase):
         )
 
     @data(10, 15, 20)
-    def test_mcp_noaux_v24_depth(self, num_ctrl_qubits: int):
-        """Test synth_mcp_noaux_v24 bound on depth."""
-        synthesized_circuit = synth_mcp_noaux_v24(num_ctrl_qubits, phase=0.123)
-        transpiled_circuit = self.pm.run(synthesized_circuit)
-        depth = transpiled_circuit.depth()
-        # The bound from the documentation of synth_mcp_noaux_v24
-        self.assertLessEqual(depth, 20 * num_ctrl_qubits**2)
-
-    @data(10, 15, 20)
     def test_synth_mcp_noaux_sp22(self, num_ctrl_qubits: int):
         """Test synth_mcp_noaux_sp22 bound on depth."""
         synthesized_circuit = synth_mcp_noaux_sp22(num_ctrl_qubits, phase=0.123)
         transpiled_circuit = self.pm.run(synthesized_circuit)
-        depth = transpiled_circuit.depth()
-        # The bound from the documentation of synth_mcp_noaux_sp22
-        self.assertLessEqual(depth, 40 * num_ctrl_qubits)
+        depth2q = transpiled_circuit.depth(filter_function=lambda x: x.operation.num_qubits == 2)
+        # For the exact calculation see Fig. 1 in SP22:
+        # The total number of CRX/CP layers is:
+        # n + (n-1) + (n-2) + (n-1) + (n-1) + (n-2) + (n-3) + (n-2) = 8*n-12
+        # where n=num_ctrl_qubits.
+        # Now, since each CRX/CP gate can be decomposed with 2 CX gates,
+        # the bound on the 2-qubit depth after transpilation is: 16*n-24
+        self.assertLessEqual(depth2q, 16 * num_ctrl_qubits - 24)
 
     @data(10, 15, 20)
     def test_synth_mcp_noaux_default(self, num_ctrl_qubits: int):
         """Test synth_mcp_noaux_default bound on depth."""
         synthesized_circuit = synth_mcp_noaux_default(num_ctrl_qubits, phase=0.123)
         transpiled_circuit = self.pm.run(synthesized_circuit)
-        depth = transpiled_circuit.depth()
-        # The bound from the documentation of synth_mcp_noaux_sp22
-        self.assertLessEqual(depth, 40 * num_ctrl_qubits)
+        depth2q = transpiled_circuit.depth(filter_function=lambda x: x.operation.num_qubits == 2)
+        self.assertLessEqual(depth2q, 16 * num_ctrl_qubits - 24)
 
 
 if __name__ == "__main__":
