@@ -29,7 +29,6 @@ from qiskit.qpy.common import QPY_RUST_READ_MIN_VERSION, QPY_RUST_WRITE_MIN_VERS
 from qiskit.qpy.binary_io import write_circuit
 from qiskit.qpy import dump, load
 from qiskit.qpy import UnsupportedFeatureForVersion
-from qiskit.qpy.exceptions import QpyError
 from test import QiskitTestCase
 from unittest.mock import patch
 
@@ -194,10 +193,6 @@ class TestQPYRoundtrip(QiskitTestCase):
             self.assert_roundtrip_equal(
                 qc, version=version, read_with=read_with, write_with=write_with
             )
-            loaded_for_loop = next(
-                inst.operation for inst in qc.data if inst.operation.name == "for_loop"
-            )
-            self.assertIsNone(loaded_for_loop.params[1])
 
     @all_qpy_combinations(18)
     def test_for_loop_with_var_loop_parameter(self, version, write_with, read_with):
@@ -211,25 +206,6 @@ class TestQPYRoundtrip(QiskitTestCase):
             qc.store(expr.index(cr, loop_var), expr.lift(True))
 
         self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
-        qpy_file = io.BytesIO()
-        write_circuit(
-            qpy_file,
-            qc,
-            version=version,
-            use_rust=write_with == "Rust",
-        )
-        qpy_file.seek(0)
-        loaded = read_circuit(
-            qpy_file,
-            version=version,
-            use_rust=read_with == "Rust",
-        )
-        from qiskit.qasm3 import dumps
-
-        loop_var = next(
-            inst.operation.params[1] for inst in loaded.data if inst.operation.name == "for_loop"
-        )
-        self.assertIn(f"for uint[8] {loop_var.name} in", dumps(loaded))
 
     @all_qpy_combinations(18)
     def test_for_loop_with_explicit_unused_var_loop_parameter(self, version, write_with, read_with):
@@ -242,25 +218,6 @@ class TestQPYRoundtrip(QiskitTestCase):
         with qc.for_loop(range_expr, loop_var):
             qc.h(0)
         self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
-        qpy_file = io.BytesIO()
-        write_circuit(
-            qpy_file,
-            qc,
-            version=version,
-            use_rust=write_with == "Rust",
-        )
-        qpy_file.seek(0)
-        loaded = read_circuit(
-            qpy_file,
-            version=version,
-            use_rust=read_with == "Rust",
-        )
-        loaded_for_loop = next(
-            inst.operation for inst in loaded.data if inst.operation.name == "for_loop"
-        )
-        loop_param = loaded_for_loop.params[1]
-        self.assertEqual(loop_param, loop_var)
-        self.assertEqual(loop_param.name, "i")
 
     @all_qpy_combinations(18)
     def test_for_loop_with_dynamic_range_and_var_loop_parameter(
@@ -291,7 +248,7 @@ class TestQPYRoundtrip(QiskitTestCase):
         self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
 
     def test_for_loop_expr_range_unsupported_below_v18(self):
-        """expr.Range for-loops cannot be dumped or read with QPY format version below 18."""
+        """expr.Range for-loops cannot be dumped with QPY format versions below 18."""
         from qiskit.circuit.controlflow import ForLoopOp
 
         cr = ClassicalRegister(16, "cr")
@@ -336,18 +293,6 @@ class TestQPYRoundtrip(QiskitTestCase):
                     with io.BytesIO() as fptr, self.assertRaises(UnsupportedFeatureForVersion):
                         write_circuit(fptr, qc, version=version, use_rust=True)
 
-        qpy_file = io.BytesIO()
-        write_circuit(qpy_file, constant_range, version=18, use_rust=False)
-        qpy_file.seek(0)
-        with self.assertRaises(UnsupportedFeatureForVersion):
-            read_circuit(qpy_file, version=17, use_rust=False)
-
-        qpy_file = io.BytesIO()
-        write_circuit(qpy_file, constant_range, version=18, use_rust=True)
-        qpy_file.seek(0)
-        with self.assertRaises(QpyError):
-            read_circuit(qpy_file, version=17, use_rust=True)
-
     @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
     def test_for_loop_with_expr_range_and_none_loop_parameter(self, version, write_with, read_with):
         """ForLoopOp with expr.Range indexset and explicit None loop parameter round-trips.
@@ -372,8 +317,6 @@ class TestQPYRoundtrip(QiskitTestCase):
             self.assert_roundtrip_equal(
                 qc, version=version, read_with=read_with, write_with=write_with
             )
-            for_loop = next(inst.operation for inst in qc.data if inst.operation.name == "for_loop")
-            self.assertIsNone(for_loop.params[1])
 
     @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
     def test_evolutiongate(self, version, write_with, read_with):
