@@ -1,6 +1,6 @@
 performance:
   - |
     Improves runtime performance of the `add_register()` method on
-    `QuantumCircuit`. Consequently, this change has performance improvements
-    for creating `QuantumCircuit` as well. Generally, the time complexity of
+    `QuantumCircuit`. Consequently, this change improves performance when
+    creating `QuantumCircuit` as well. Generally, the time complexity of
     checking if a register name exists was reduced from O(n) from O(1).
