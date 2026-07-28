@@ -453,9 +453,7 @@ class TestCliffordTPassManager(QiskitTestCase):
     def test_controlled_rccx_gate_counts(self, ctrl_state):
         """Test CX and T count upper bounds for open and closed controlled RCCX gates."""
         circuit = QuantumCircuit(4)
-        circuit.append(
-            RCCXGate().control(ctrl_state=ctrl_state, annotated=False), circuit.qubits
-        )
+        circuit.append(RCCXGate().control(ctrl_state=ctrl_state, annotated=False), circuit.qubits)
 
         transpiled = generate_preset_clifford_t_pass_manager(optimization_level=0).run(circuit)
 
