@@ -21,6 +21,27 @@
 #include <stdio.h>
 #include <string.h>
 
+static bool biguint_matches_bytes(const QkBigUint *value, const uint8_t *expected,
+                                  size_t expected_len, const char *context) {
+    if (value->num_bytes != expected_len) {
+        printf("Expected %s to have %zu bytes, got %zu\n", context, expected_len,
+               value->num_bytes);
+        return false;
+    }
+    if (expected_len > 0 && value->data == NULL) {
+        printf("Expected %s to have non-null data\n", context);
+        return false;
+    }
+    for (size_t i = 0; i < expected_len; i++) {
+        if (value->data[i] != expected[i]) {
+            printf("Expected %s byte %zu to be %u, got %u\n", context, i, (unsigned)expected[i],
+                   (unsigned)value->data[i]);
+            return false;
+        }
+    }
+    return true;
+}
+
 // TODO: remove these forward declarations
 // These are used for generating classical expressions for testing. They are non-public C API
 // functions which should be removed once we have C API for generating classical expressions.
@@ -437,6 +458,7 @@ static int test_expr_value(void) {
     int result = Ok;
     QkDurationInfo duration_info = {QkDurationType_Dt, {.dt = 12345}};
     QkExprNode *expr = NULL;
+    QkBigUint big_uint = {NULL, 0};
 
     for (uint8_t ty = QkExprType_Bool; ty <= QkExprType_Uint; ty++) {
         expr = inner_test_value((QkExprType)ty, true, duration_info, 3.14, 12345);
@@ -525,6 +547,15 @@ static int test_expr_value(void) {
                 result = EqualityError;
                 goto cleanup;
             }
+
+            big_uint = qk_value_big_uint(value);
+            uint8_t expected_bytes[] = {0x39, 0x30};
+            if (!biguint_matches_bytes(&big_uint, expected_bytes, sizeof(expected_bytes),
+                                       "uint value")) {
+                result = EqualityError;
+                goto cleanup;
+            }
+            qk_biguint_clear(&big_uint);
         }
 
         inner_expr_free(expr);
@@ -533,6 +564,9 @@ static int test_expr_value(void) {
     expr = NULL;
 
 cleanup:
+    if (big_uint.data != NULL) {
+        qk_biguint_clear(&big_uint);
+    }
     if (expr)
         inner_expr_free(expr);
 

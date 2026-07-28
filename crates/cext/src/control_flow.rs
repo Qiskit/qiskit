@@ -27,6 +27,7 @@ use qiskit_circuit::parameter::symbol_expr::Symbol;
 use qiskit_circuit::{Clbit, Qubit};
 use uuid::Uuid;
 
+use crate::big_uint::{CBigUint, biguint_to_c, clear_biguint};
 use crate::classical_expr::CDurationInfo;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 use num_traits::ToPrimitive;
@@ -212,6 +213,21 @@ impl From<Option<&BoxDuration>> for CBoxDurationKind {
 pub struct CSwitchCaseLabels {
     /// Pointer to an array of label values
     labels: *const u64,
+    /// Number of labels in the array
+    num_labels: usize,
+}
+
+/// Contains the arbitrary-size labels for a Switch case.
+///
+/// This struct holds an array of unsigned integer label values that a Switch case matches against.
+/// Each label is represented as little-endian bytes in a `QkBigUint`.
+/// The memory for the labels array is allocated by
+/// `qk_control_flow_switch_case_labels_big_uint` and must be freed using
+/// `qk_control_flow_switch_case_labels_big_uint_clear`.
+#[repr(C)]
+pub struct CSwitchCaseBigUintLabels {
+    /// Pointer to an array of label values
+    labels: *const CBigUint,
     /// Number of labels in the array
     num_labels: usize,
 }
@@ -714,6 +730,52 @@ pub unsafe extern "C" fn qk_control_flow_condition_reg_cond_uint(
 
     cond.to_u64()
         .unwrap_or_else(|| panic!("Condition value too large to fit in uint64_t"))
+}
+
+/// @ingroup QkControlFlow
+/// Get the condition value of the classical register condition for a control flow instruction.
+///
+/// Extracts the condition as an arbitrary-size unsigned integer from an IfElse or While
+/// instruction that has a classical register condition. The returned value is an owned copy in
+/// little-endian byte order, and must be freed using `qk_biguint_clear`.
+///
+/// @param cf_inst A valid pointer to a ``QkControlFlowInstruction`` that must represent
+///     an IfElse or While instruction with a classical register condition.
+///
+/// @return The condition value as little-endian bytes.
+///
+/// Panics if ``cf_inst`` is not an IfElse or While control flow instruction,
+/// or if the condition is not a register type.
+///
+/// # Example
+/// ```c
+/// // Assuming cf_inst is an IfElse or While instruction with a register condition
+/// QkBigUint expected_value = qk_control_flow_condition_reg_cond_big_uint(cf_inst);
+/// qk_biguint_clear(&expected_value);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``cf_inst`` is not a valid pointer to a ``QkControlFlowInstruction``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_control_flow_condition_reg_cond_big_uint(
+    cf_inst: *const CControlFlowInstruction,
+) -> CBigUint {
+    // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
+    let cf_inst = unsafe { const_ptr_as_ref(cf_inst) };
+
+    let condition = match &cf_inst.control_flow_inst().control_flow {
+        ControlFlow::IfElse { condition } | ControlFlow::While { condition } => condition,
+        _ => {
+            panic!("Expected either an IfElse or a While control flow instruction")
+        }
+    };
+
+    let Condition::Register(_, cond) = condition else {
+        panic!("Expected a register condition for the instruction")
+    };
+
+    biguint_to_c(cond)
 }
 
 /// @ingroup QkControlFlow
@@ -1584,6 +1646,73 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels_uint(
 }
 
 /// @ingroup QkControlFlow
+/// Get the arbitrary-size labels for a specific case in a Switch statement.
+///
+/// Each case in a Switch statement can have one or more labels (e.g., ``case(1, 2, 3)``)
+/// has three labels: 1, 2, and 3). This function retrieves all unsigned integer labels for a
+/// given case. Note that the default case can also include labels, which can be retrieved by
+/// this function. When called on a default case without additional labels, the function sets
+/// ``num_labels = 0`` and ``labels = NULL`` in the returned `QkSwitchCaseBigUintLabels` struct.
+///
+/// The returned labels are owned copies in little-endian byte order. If ``num_labels > 0``,
+/// call `qk_control_flow_switch_case_labels_big_uint_clear` to free the memory allocated by
+/// this function.
+///
+/// @param cf_inst A pointer to the control flow instruction.
+///     The control flow instruction must be of a Switch kind.
+/// @param case_idx The index of the case whose labels to retrieve. Must be less than
+///     the value returned by `qk_control_flow_switch_num_cases`.
+///
+/// @return A `QkSwitchCaseBigUintLabels` struct with the label information for the given case.
+///
+/// Panics if ``cf_inst`` is not a Switch control flow instruction.
+///
+/// # Example
+/// ```c
+/// // Assuming cf_inst is a Switch control flow instruction
+/// QkSwitchCaseBigUintLabels case_labels =
+///     qk_control_flow_switch_case_labels_big_uint(cf_inst, 0);
+/// qk_control_flow_switch_case_labels_big_uint_clear(&case_labels);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``cf_inst`` is not a valid pointer to a ``QkControlFlowInstruction``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_control_flow_switch_case_labels_big_uint(
+    cf_inst: *const CControlFlowInstruction,
+    case_idx: usize,
+) -> CSwitchCaseBigUintLabels {
+    // SAFETY: Per documentation, cf_inst is a valid pointer to a CControlFlowInstruction.
+    let cf_inst = unsafe { const_ptr_as_ref(cf_inst) };
+
+    let ControlFlow::Switch { label_spec, .. } = &cf_inst.control_flow_inst().control_flow else {
+        panic!("Expected a Switch control flow instruction")
+    };
+
+    let labels = label_spec[case_idx]
+        .iter()
+        .filter_map(|l| {
+            if let CaseSpecifier::Uint(label) = l {
+                Some(biguint_to_c(label))
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<CBigUint>>()
+        .into_boxed_slice();
+
+    CSwitchCaseBigUintLabels {
+        num_labels: labels.len(),
+        labels: if labels.is_empty() {
+            ptr::null() // occurs for a default case without additional labels
+        } else {
+            Box::into_raw(labels) as *const CBigUint
+        },
+    }
+}
+
+/// @ingroup QkControlFlow
 /// Clear a `QkSwitchCaseLabels` struct.
 ///
 /// This function must be called to free the memory allocated by
@@ -1623,6 +1752,55 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels_clear(labels: *mut C
         labels.labels = std::ptr::null();
         labels.num_labels = 0;
     }
+}
+
+/// @ingroup QkControlFlow
+/// Clear a `QkSwitchCaseBigUintLabels` struct.
+///
+/// This function must be called to free the memory allocated by
+/// `qk_control_flow_switch_case_labels_big_uint`. After calling this function,
+/// the labels pointer in the struct will be set to null and the count will be set to zero.
+///
+/// @param labels A pointer to the `QkSwitchCaseBigUintLabels` struct to clear.
+///     The struct must have been previously populated by
+///     `qk_control_flow_switch_case_labels_big_uint`.
+///
+/// # Example
+/// ```c
+/// // Assuming cf_inst is a Switch control flow instruction
+/// QkSwitchCaseBigUintLabels case_labels =
+///     qk_control_flow_switch_case_labels_big_uint(cf_inst, 0);
+/// // Use the labels...
+/// qk_control_flow_switch_case_labels_big_uint_clear(&case_labels);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``labels`` is not a valid pointer to a
+/// `QkSwitchCaseBigUintLabels`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_control_flow_switch_case_labels_big_uint_clear(
+    labels: *mut CSwitchCaseBigUintLabels,
+) {
+    // SAFETY: Per documentation, labels is a valid pointer to a CSwitchCaseBigUintLabels.
+    let labels = unsafe { mut_ptr_as_ref(labels) };
+
+    if !labels.labels.is_null() && labels.num_labels > 0 {
+        let labels_slice = unsafe {
+            std::slice::from_raw_parts_mut(labels.labels as *mut CBigUint, labels.num_labels)
+        };
+        for label in labels_slice {
+            unsafe { clear_biguint(label) };
+        }
+        drop(unsafe {
+            Box::from_raw(std::ptr::slice_from_raw_parts_mut(
+                labels.labels as *mut CBigUint,
+                labels.num_labels,
+            ))
+        });
+    }
+    labels.labels = std::ptr::null();
+    labels.num_labels = 0;
 }
 
 //////////////////////////////////////////////////////////////////

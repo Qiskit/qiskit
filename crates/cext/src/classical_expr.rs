@@ -12,6 +12,7 @@
 
 use std::ptr;
 
+use crate::big_uint::{CBigUint, biguint_to_c};
 use crate::pointers::const_ptr_as_ref;
 use num_bigint::BigUint;
 use num_traits::{ToPrimitive, Zero};
@@ -811,6 +812,43 @@ pub unsafe extern "C" fn qk_value_uint(value: *const Value) -> u64 {
 
     raw.to_u64()
         .expect("Integer value too large to fit in uint64_t")
+}
+
+/// @ingroup QkClassicalExpressions
+/// Extract the unsigned integer value from a ``QkValue`` of type ``QkExprType_Uint``.
+///
+/// The returned value is an owned copy of the integer in little-endian byte order.  The caller
+/// must free the returned value using `qk_biguint_clear`.
+///
+/// @param value A pointer to a uint value.
+///
+/// @return The integer value as little-endian bytes.
+///
+/// Panics if ``value`` does not point to a ``QkExprType_Uint`` value.
+///
+/// # Example
+/// ```c
+/// QkBigUint raw = qk_value_big_uint(value);
+/// qk_biguint_clear(&raw);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``value`` is not a valid, non-null pointer to a ``QkValue``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_value_big_uint(value: *const Value) -> CBigUint {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let value = unsafe { const_ptr_as_ref(value) };
+
+    let Value::Uint {
+        raw,
+        ty: Type::Uint(_),
+    } = value
+    else {
+        panic!("qk_value_big_uint called on non-uint value")
+    };
+
+    biguint_to_c(raw)
 }
 
 /// @ingroup QkClassicalExpressions

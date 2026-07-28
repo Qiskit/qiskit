@@ -1,7 +1,7 @@
 __version__ = "2.5.0-rc1"
 circuit = [
     "qk_api_version",
-    "",
+    "qk_biguint_clear",
     "",
     "",
     "",
@@ -94,9 +94,9 @@ circuit = [
     "qk_control_flow_switch_case_labels_bit_width",
     "qk_control_flow_switch_case_labels_uint",
     "qk_control_flow_switch_case_labels_clear",
-    "",
-    "",
-    "",
+    "qk_control_flow_condition_reg_cond_big_uint",
+    "qk_control_flow_switch_case_labels_big_uint",
+    "qk_control_flow_switch_case_labels_big_uint_clear",
     "",
     "",
     "",
@@ -321,7 +321,7 @@ circuit = [
     "qk_var_name",
     "qk_var_type_info",
     "qk_stretch_name",
-    "",
+    "qk_value_big_uint",
     "",
     "",
     "",
@@ -885,4 +885,3 @@ qi = [
     "",
     "",
 ]
-

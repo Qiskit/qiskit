@@ -21,6 +21,31 @@
 #include <stdio.h>
 #include <string.h>
 
+static bool biguint_matches_repeated_byte(const QkBigUint *value, uint8_t expected_byte,
+                                          size_t expected_len, const char *context) {
+    if (value->num_bytes != expected_len) {
+        printf("Expected %s to have %zu bytes, got %zu\n", context, expected_len,
+               value->num_bytes);
+        return false;
+    }
+    if (expected_len > 0 && value->data == NULL) {
+        printf("Expected %s to have non-null data\n", context);
+        return false;
+    }
+    for (size_t i = 0; i < expected_len; i++) {
+        if (value->data[i] != expected_byte) {
+            printf("Expected %s byte %zu to be %u, got %u\n", context, i,
+                   (unsigned)expected_byte, (unsigned)value->data[i]);
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool biguint_matches_u8(const QkBigUint *value, uint8_t expected, const char *context) {
+    return biguint_matches_repeated_byte(value, expected, 1, context);
+}
+
 // TODO: remove this forward declaration
 // This is used to generate a circuit with control flow instructions. This a non-public C API
 // function which should be removed once we have C API for adding control flow operations.
@@ -359,6 +384,8 @@ static int test_switch_case_on_register(void) {
     int result = Ok;
     QkCircuit *circuit = inner_test_control_flow_circuit();
     QkControlFlowInstruction *cf_inst = NULL;
+    QkSwitchCaseLabels case_labels = {NULL, 0};
+    QkSwitchCaseBigUintLabels big_case_labels = {NULL, 0};
 
     cf_inst = qk_circuit_get_control_flow_instruction(circuit, 2, NULL);
     if (cf_inst == NULL) {
@@ -403,11 +430,23 @@ static int test_switch_case_on_register(void) {
         goto cleanup;
     }
 
+    big_case_labels = qk_control_flow_switch_case_labels_big_uint(cf_inst, 0);
+    if (big_case_labels.num_labels != 1) {
+        printf("Expected one big integer label for case 0, got %zu\n",
+               big_case_labels.num_labels);
+        result = EqualityError;
+        goto cleanup;
+    }
+    if (!biguint_matches_repeated_byte(&big_case_labels.labels[0], 0xff, 10, "case 0 label")) {
+        result = EqualityError;
+        goto cleanup;
+    }
+    qk_control_flow_switch_case_labels_big_uint_clear(&big_case_labels);
+
     // Test case 1: multiple labels (1, 2, 3)
-    QkSwitchCaseLabels case_labels = qk_control_flow_switch_case_labels_uint(cf_inst, 1);
+    case_labels = qk_control_flow_switch_case_labels_uint(cf_inst, 1);
     if (case_labels.num_labels != 3) {
         printf("Expected 3 labels for case 1, got %zu\n", case_labels.num_labels);
-        qk_control_flow_switch_case_labels_clear(&case_labels);
         result = EqualityError;
         goto cleanup;
     }
@@ -416,21 +455,54 @@ static int test_switch_case_on_register(void) {
         if (case_labels.labels[l] != l + 1) {
             printf("Expected label %zu for case 1, got %" PRIu64 "\n", l + 1,
                    case_labels.labels[l]);
-            qk_control_flow_switch_case_labels_clear(&case_labels);
             result = EqualityError;
             goto cleanup;
         }
     }
     qk_control_flow_switch_case_labels_clear(&case_labels);
 
+    big_case_labels = qk_control_flow_switch_case_labels_big_uint(cf_inst, 1);
+    if (big_case_labels.num_labels != 3) {
+        printf("Expected 3 big integer labels for case 1, got %zu\n",
+               big_case_labels.num_labels);
+        result = EqualityError;
+        goto cleanup;
+    }
+    for (size_t l = 0; l < 3; l++) {
+        if (!biguint_matches_u8(&big_case_labels.labels[l], (uint8_t)(l + 1), "case 1 label")) {
+            result = EqualityError;
+            goto cleanup;
+        }
+    }
+    qk_control_flow_switch_case_labels_big_uint_clear(&big_case_labels);
+
     // Test case 2: A label and DEFAULT ((1<<64)-1, DEFAULT)
     case_labels = qk_control_flow_switch_case_labels_uint(cf_inst, 2);
     if (case_labels.num_labels != 1) {
         printf("Expected one label for case 2, got %zu\n", case_labels.num_labels);
-        qk_control_flow_switch_case_labels_clear(&case_labels);
         result = EqualityError;
         goto cleanup;
     }
+    if (case_labels.labels[0] != UINT64_MAX) {
+        printf("Expected label for case 2 to be UINT64_MAX, got %" PRIu64 "\n",
+               case_labels.labels[0]);
+        result = EqualityError;
+        goto cleanup;
+    }
+    qk_control_flow_switch_case_labels_clear(&case_labels);
+
+    big_case_labels = qk_control_flow_switch_case_labels_big_uint(cf_inst, 2);
+    if (big_case_labels.num_labels != 1) {
+        printf("Expected one big integer label for case 2, got %zu\n",
+               big_case_labels.num_labels);
+        result = EqualityError;
+        goto cleanup;
+    }
+    if (!biguint_matches_repeated_byte(&big_case_labels.labels[0], 0xff, 8, "case 2 label")) {
+        result = EqualityError;
+        goto cleanup;
+    }
+    qk_control_flow_switch_case_labels_big_uint_clear(&big_case_labels);
 
     bool is_default = qk_control_flow_switch_is_case_default(cf_inst, 1);
     if (is_default) {
@@ -447,6 +519,12 @@ static int test_switch_case_on_register(void) {
     }
 
 cleanup:
+    if (case_labels.labels != NULL) {
+        qk_control_flow_switch_case_labels_clear(&case_labels);
+    }
+    if (big_case_labels.labels != NULL) {
+        qk_control_flow_switch_case_labels_big_uint_clear(&big_case_labels);
+    }
     if (cf_inst != NULL) {
         qk_control_flow_instruction_free(cf_inst);
     }
@@ -752,6 +830,7 @@ static int test_while_on_register_large_condition(void) {
     int result = Ok;
     QkCircuit *circuit = inner_test_control_flow_circuit();
     QkControlFlowInstruction *cf_inst = qk_circuit_get_control_flow_instruction(circuit, 9, NULL);
+    QkBigUint cond = {NULL, 0};
 
     uint64_t cond_bit_width = qk_control_flow_condition_reg_cond_bit_width(cf_inst);
     if (cond_bit_width <= 64) {
@@ -761,7 +840,22 @@ static int test_while_on_register_large_condition(void) {
         goto cleanup;
     }
 
+    cond = qk_control_flow_condition_reg_cond_big_uint(cf_inst);
+    if (!biguint_matches_repeated_byte(&cond, 0xff, 10, "large register condition")) {
+        result = EqualityError;
+        goto cleanup;
+    }
+    qk_biguint_clear(&cond);
+    if (cond.data != NULL || cond.num_bytes != 0) {
+        printf("Expected qk_biguint_clear to reset the large register condition\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
 cleanup:
+    if (cond.data != NULL) {
+        qk_biguint_clear(&cond);
+    }
     qk_control_flow_instruction_free(cf_inst);
     qk_circuit_free(circuit);
     return result;

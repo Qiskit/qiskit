@@ -21,13 +21,17 @@ pub use crate::impl_::{ExportedFunction, ExportedFunctions};
 // =================================================================================================
 
 // We use a (small) number of different tables here so there's more breaks and places to expand.
-pub static FUNCTIONS_CIRCUIT: ExportedFunctions =
-    ExportedFunctions::leaves(5, || vec![impl_::export_fn!(qiskit_cext::qk_api_version)])
-        .add_child(5, &circuit::FUNCTIONS)
-        .add_child(105, &dag::FUNCTIONS)
-        .add_child(205, &param::FUNCTIONS)
-        .add_child(255, &circuit_library::FUNCTIONS)
-        .add_child(305, &classical_expr::FUNCTIONS);
+pub static FUNCTIONS_CIRCUIT: ExportedFunctions = ExportedFunctions::leaves(5, || {
+    vec![
+        impl_::export_fn!(qiskit_cext::qk_api_version),
+        impl_::export_fn!(qiskit_cext::big_uint::qk_biguint_clear),
+    ]
+})
+.add_child(5, &circuit::FUNCTIONS)
+.add_child(105, &dag::FUNCTIONS)
+.add_child(205, &param::FUNCTIONS)
+.add_child(255, &circuit_library::FUNCTIONS)
+.add_child(305, &classical_expr::FUNCTIONS);
 pub static FUNCTIONS_QI: ExportedFunctions =
     ExportedFunctions::empty().add_child(0, &sparse_observable::FUNCTIONS);
 pub use transpiler::FUNCTIONS as FUNCTIONS_TRANSPILE;
@@ -140,6 +144,9 @@ mod circuit {
             export_fn!(qk_control_flow_switch_case_labels_bit_width),
             export_fn!(qk_control_flow_switch_case_labels_uint),
             export_fn!(qk_control_flow_switch_case_labels_clear),
+            export_fn!(qk_control_flow_condition_reg_cond_big_uint),
+            export_fn!(qk_control_flow_switch_case_labels_big_uint),
+            export_fn!(qk_control_flow_switch_case_labels_big_uint_clear),
         ]
     });
 }
@@ -490,6 +497,7 @@ mod classical_expr {
             export_fn!(qk_var_name),
             export_fn!(qk_var_type_info),
             export_fn!(qk_stretch_name),
+            export_fn!(qk_value_big_uint),
         ]
     });
 }

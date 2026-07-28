@@ -82,6 +82,7 @@ pub static QISKIT_PUBLIC_API_CRATES: &[&str] =
 
 pub static EXPORT_PREFIX: &str = "Qk";
 pub static EXPORT_RENAME: &[(&str, &str)] = &[
+    ("CBigUint", "BigUint"),
     ("CBlocksMode", "BlocksMode"),
     ("CDagNeighbors", "DagNeighbors"),
     ("CDagNodeType", "DagNodeType"),
@@ -120,6 +121,7 @@ pub static EXPORT_RENAME: &[(&str, &str)] = &[
     ("CConditionBitInfo", "ConditionBitInfo"),
     ("CBoxDurationKind", "BoxDurationKind"),
     ("CSwitchCaseLabels", "SwitchCaseLabels"),
+    ("CSwitchCaseBigUintLabels", "SwitchCaseBigUintLabels"),
     ("CSymbolType", "SymbolType"),
     ("CSymbolInfo", "SymbolInfo"),
     ("CLoopCollectionType", "LoopCollectionType"),

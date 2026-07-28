@@ -1,0 +1,7 @@
+---
+features_c:
+  - |
+    Added :c:struct:`QkBigUint` and C API accessors for arbitrary-size
+    unsigned integers in classical-expression values, control-flow register
+    conditions, and switch-case labels. Returned values use little-endian bytes
+    and should be freed with :c:func:`qk_biguint_clear`.
