@@ -1750,6 +1750,15 @@ impl PauliProductRotation {
         Ok(gate.unbind())
     }
 
+    /// Return the inverse of the rotation.
+    pub fn inverse(&self) -> Self {
+        Self {
+            z: self.z.clone(),
+            x: self.x.clone(),
+            angle: multiply_param(&self.angle, -1.0),
+        }
+    }
+
     /// Attempts to merge `self` and `other`.
     /// If successful, returns the merged [PauliProductRotation].
     /// If not successful, returns `None`.
@@ -2097,8 +2106,11 @@ mod test {
     use approx::assert_abs_diff_eq;
     use ndarray::{Array2, arr2, linalg::kron};
     use qiskit_util::complex::{C_ONE, C_ZERO, IM};
+    use std::sync::Arc;
 
     use crate::operations::{Param, PauliProductRotation};
+    use crate::parameter::parameter_expression::ParameterExpression;
+    use crate::parameter::symbol_expr::Symbol;
 
     #[test]
     fn test_ppr_matrix() {
@@ -2132,6 +2144,42 @@ mod test {
                 assert_abs_diff_eq!(expected_matrix[(i, j)], matrix[(i, j)], epsilon = epsilon);
             }
         }
+    }
+
+    #[test]
+    fn test_ppr_inverse_float() {
+        let angle = -0.5;
+        let ppr = PauliProductRotation {
+            z: vec![false, true, true],
+            x: vec![true, false, true],
+            angle: Param::Float(angle),
+        };
+
+        let inverse = ppr.inverse();
+
+        assert_eq!(inverse.z, ppr.z);
+        assert_eq!(inverse.x, ppr.x);
+        assert_eq!(inverse.angle.try_float(), Some(-angle));
+    }
+
+    #[test]
+    fn test_ppr_inverse_parameterized_angle() {
+        let theta = Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
+            Symbol::standalone("theta".to_owned(), None),
+        )));
+        let ppr = PauliProductRotation {
+            z: vec![false, true, true],
+            x: vec![true, false, true],
+            angle: theta,
+        };
+
+        let inverse = ppr.inverse();
+        let roundtrip = inverse.inverse();
+
+        assert_eq!(inverse.z, ppr.z);
+        assert_eq!(inverse.x, ppr.x);
+        assert_ne!(inverse, ppr);
+        assert_eq!(roundtrip, ppr);
     }
 }
 
