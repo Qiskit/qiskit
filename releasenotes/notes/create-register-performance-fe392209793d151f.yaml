@@ -1,0 +1,5 @@
+performance:
+  - |
+    Improves performance when creating `QuantumCircuit` with many registers.
+    Refer to #7133 for more details.
+
