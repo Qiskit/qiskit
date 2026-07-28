@@ -1,0 +1,6 @@
+---
+features_c:
+  - |
+    Added C API functions for creating classical expression values, standalone
+    variables, stretches, and expression nodes. These constructors complement
+    the existing C API inspection functions for ``QkExprNode`` trees.

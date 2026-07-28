@@ -490,6 +490,23 @@ mod classical_expr {
             export_fn!(qk_var_name),
             export_fn!(qk_var_type_info),
             export_fn!(qk_stretch_name),
+            export_fn!(qk_var_new),
+            export_fn!(qk_var_free),
+            export_fn!(qk_var_as_expr),
+            export_fn!(qk_stretch_new),
+            export_fn!(qk_stretch_free),
+            export_fn!(qk_stretch_as_expr),
+            export_fn!(qk_value_new_bool),
+            export_fn!(qk_value_new_duration),
+            export_fn!(qk_value_new_float),
+            export_fn!(qk_value_new_uint),
+            export_fn!(qk_value_free),
+            export_fn!(qk_value_as_expr),
+            export_fn!(qk_expr_binary_new),
+            export_fn!(qk_expr_unary_new),
+            export_fn!(qk_expr_cast_new),
+            export_fn!(qk_expr_index_new),
+            export_fn!(qk_expr_free),
         ]
     });
 }

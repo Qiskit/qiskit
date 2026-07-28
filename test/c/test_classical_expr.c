@@ -539,6 +539,190 @@ cleanup:
     return result;
 }
 
+/*
+ * Test public constructors for expression nodes and their components.
+ */
+static int test_expr_construction(void) {
+    int result = Ok;
+    QkExprTypeInfo bool_type = {QkExprType_Bool, 0};
+    QkExprTypeInfo uint1_type = {QkExprType_Uint, 1};
+    QkExprTypeInfo uint3_type = {QkExprType_Uint, 3};
+    QkDurationInfo duration_info = {QkDurationType_Dt, {.dt = 12345}};
+
+    QkVar *var = NULL;
+    QkStretch *stretch = NULL;
+    QkValue *bool_value = NULL;
+    QkValue *duration_value = NULL;
+    QkValue *float_value = NULL;
+    QkValue *uint_value = NULL;
+    QkExprNode *var_expr = NULL;
+    QkExprNode *stretch_expr = NULL;
+    QkExprNode *bool_expr = NULL;
+    QkExprNode *duration_expr = NULL;
+    QkExprNode *float_expr = NULL;
+    QkExprNode *uint_expr = NULL;
+    QkExprNode *binary_expr = NULL;
+    QkExprNode *unary_expr = NULL;
+    QkExprNode *cast_expr = NULL;
+    QkExprNode *index_expr = NULL;
+    char *name = NULL;
+
+    var = qk_var_new("v1", uint3_type);
+    name = qk_var_name(var);
+    if (name == NULL || strcmp(name, "v1") != 0) {
+        printf("Expected constructed var name 'v1', got %s\n", name == NULL ? "NULL" : name);
+        result = EqualityError;
+        goto cleanup;
+    }
+    qk_str_free(name);
+    name = NULL;
+
+    QkExprTypeInfo var_type = qk_var_type_info(var);
+    if (var_type.ty != QkExprType_Uint || var_type.width != 3) {
+        printf("Expected constructed var type Uint(3), got type %d width %" PRIu32 "\n",
+               var_type.ty, var_type.width);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    var_expr = qk_var_as_expr(var);
+    if (qk_expr_kind(var_expr) != QkExprNodeKind_Var) {
+        printf("Expected constructed var expression to be a Var node\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    uint_value = qk_value_new_uint(5, 3);
+    uint_expr = qk_value_as_expr(uint_value);
+    const QkValue *read_uint = qk_expr_as_value(uint_expr);
+    QkExprTypeInfo uint_type = qk_value_type_info(read_uint);
+    if (uint_type.ty != QkExprType_Uint || uint_type.width != 3 ||
+        qk_value_uint(read_uint) != 5) {
+        printf("Expected constructed uint value 5 with width 3\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    binary_expr = qk_expr_binary_new(QkBinaryOpType_Greater, var_expr, uint_expr, bool_type);
+    QkBinaryExprInfo binary_info = qk_expr_binary_info(binary_expr);
+    if (binary_info.op != QkBinaryOpType_Greater || binary_info.ty.ty != QkExprType_Bool ||
+        binary_info.constant) {
+        printf("Constructed binary expression has incorrect metadata\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    unary_expr = qk_expr_unary_new(QkUnaryOpType_LogicNot, binary_expr, bool_type);
+    QkUnaryExprInfo unary_info = qk_expr_unary_info(unary_expr);
+    if (unary_info.op != QkUnaryOpType_LogicNot || unary_info.ty.ty != QkExprType_Bool ||
+        unary_info.constant) {
+        printf("Constructed unary expression has incorrect metadata\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    cast_expr = qk_expr_cast_new(unary_expr, uint1_type, false);
+    QkCastExprInfo cast_info = qk_expr_cast_info(cast_expr);
+    if (cast_info.ty.ty != QkExprType_Uint || cast_info.ty.width != 1 || cast_info.implicit ||
+        cast_info.constant) {
+        printf("Constructed cast expression has incorrect metadata\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    index_expr = qk_expr_index_new(var_expr, cast_expr, bool_type);
+    QkIndexExprInfo index_info = qk_expr_index_info(index_expr);
+    if (index_info.ty.ty != QkExprType_Bool || index_info.constant ||
+        qk_expr_kind(index_info.target) != QkExprNodeKind_Var ||
+        qk_expr_kind(index_info.index) != QkExprNodeKind_Cast) {
+        printf("Constructed index expression has incorrect metadata\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    bool_value = qk_value_new_bool(true);
+    bool_expr = qk_value_as_expr(bool_value);
+    const QkValue *read_bool = qk_expr_as_value(bool_expr);
+    if (qk_value_type_info(read_bool).ty != QkExprType_Bool || !qk_value_bool(read_bool)) {
+        printf("Expected constructed bool value true\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    duration_value = qk_value_new_duration(duration_info);
+    duration_expr = qk_value_as_expr(duration_value);
+    QkDurationInfo read_duration = qk_value_duration_info(qk_expr_as_value(duration_expr));
+    if (read_duration.ty != QkDurationType_Dt || read_duration.value.dt != 12345) {
+        printf("Expected constructed duration value 12345 dt\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    float_value = qk_value_new_float(2.5);
+    float_expr = qk_value_as_expr(float_value);
+    if (qk_value_float(qk_expr_as_value(float_expr)) != 2.5) {
+        printf("Expected constructed float value 2.5\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    stretch = qk_stretch_new("stretch1");
+    name = qk_stretch_name(stretch);
+    if (name == NULL || strcmp(name, "stretch1") != 0) {
+        printf("Expected constructed stretch name 'stretch1', got %s\n",
+               name == NULL ? "NULL" : name);
+        result = EqualityError;
+        goto cleanup;
+    }
+    qk_str_free(name);
+    name = NULL;
+
+    stretch_expr = qk_stretch_as_expr(stretch);
+    if (qk_expr_kind(stretch_expr) != QkExprNodeKind_Stretch) {
+        printf("Expected constructed stretch expression to be a Stretch node\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+cleanup:
+    if (name != NULL)
+        qk_str_free(name);
+    if (index_expr != NULL)
+        qk_expr_free(index_expr);
+    if (cast_expr != NULL)
+        qk_expr_free(cast_expr);
+    if (unary_expr != NULL)
+        qk_expr_free(unary_expr);
+    if (binary_expr != NULL)
+        qk_expr_free(binary_expr);
+    if (uint_expr != NULL)
+        qk_expr_free(uint_expr);
+    if (float_expr != NULL)
+        qk_expr_free(float_expr);
+    if (duration_expr != NULL)
+        qk_expr_free(duration_expr);
+    if (bool_expr != NULL)
+        qk_expr_free(bool_expr);
+    if (stretch_expr != NULL)
+        qk_expr_free(stretch_expr);
+    if (var_expr != NULL)
+        qk_expr_free(var_expr);
+    if (uint_value != NULL)
+        qk_value_free(uint_value);
+    if (float_value != NULL)
+        qk_value_free(float_value);
+    if (duration_value != NULL)
+        qk_value_free(duration_value);
+    if (bool_value != NULL)
+        qk_value_free(bool_value);
+    if (stretch != NULL)
+        qk_stretch_free(stretch);
+    if (var != NULL)
+        qk_var_free(var);
+
+    return result;
+}
+
 int test_classical_expr(void) {
     int num_failed = 0;
 
@@ -548,6 +732,7 @@ int test_classical_expr(void) {
     num_failed += RUN_TEST(test_expr_var);
     num_failed += RUN_TEST(test_expr_stretch);
     num_failed += RUN_TEST(test_expr_value);
+    num_failed += RUN_TEST(test_expr_construction);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

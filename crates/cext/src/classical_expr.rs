@@ -23,7 +23,7 @@ use qiskit_circuit::{
     },
     duration::Duration,
 };
-use std::ffi::{CString, c_char};
+use std::ffi::{CStr, CString, c_char};
 use uuid::Uuid;
 
 /// The different types of expression nodes that can appear in a classical expression tree.
@@ -945,6 +945,348 @@ pub unsafe extern "C" fn qk_stretch_name(stretch: *const Stretch) -> *mut c_char
     CString::new(stretch.name.as_str())
         .expect("Stretch should have a valid name")
         .into_raw()
+}
+
+/// @ingroup QkClassicalExpressions
+/// Create a new standalone variable.
+///
+/// @param name A null-terminated UTF-8 string containing the variable name.
+/// @param type_info The type of the new variable.
+///
+/// @return A pointer to a newly allocated ``QkVar``. The caller owns the returned pointer
+///     and must free it with `qk_var_free`.
+///
+/// Panics if ``name`` is not valid UTF-8.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``name`` is not a valid, non-null pointer to a null-terminated string.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_var_new(name: *const c_char, type_info: CExprTypeInfo) -> *mut Var {
+    let name = unsafe { CStr::from_ptr(name) }
+        .to_str()
+        .expect("Invalid UTF-8 character")
+        .to_owned();
+
+    Box::into_raw(Box::new(Var::Standalone {
+        uuid: Uuid::new_v4().as_u128(),
+        name,
+        ty: type_info.into(),
+    }))
+}
+
+/// @ingroup QkClassicalExpressions
+/// Free a ``QkVar``.
+///
+/// @param var A pointer previously returned by `qk_var_new`.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``var`` is not a valid pointer returned by `qk_var_new`, or if it
+/// has already been freed.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_var_free(var: *mut Var) {
+    drop(unsafe { Box::from_raw(var) });
+}
+
+/// @ingroup QkClassicalExpressions
+/// Create an expression node from a variable.
+///
+/// @param var A pointer to a ``QkVar``.
+///
+/// @return A newly allocated ``QkExprNode`` containing a clone of ``var``. The caller owns the
+///     returned pointer and must free it with `qk_expr_free`.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``var`` is not a valid, non-null pointer to a ``QkVar``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_var_as_expr(var: *const Var) -> *mut Expr {
+    let var = unsafe { const_ptr_as_ref(var) };
+    Box::into_raw(Box::new(Expr::Var(var.clone())))
+}
+
+/// @ingroup QkClassicalExpressions
+/// Create a new stretch.
+///
+/// @param name A null-terminated UTF-8 string containing the stretch name.
+///
+/// @return A pointer to a newly allocated ``QkStretch``. The caller owns the returned pointer
+///     and must free it with `qk_stretch_free`.
+///
+/// Panics if ``name`` is not valid UTF-8.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``name`` is not a valid, non-null pointer to a null-terminated string.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_stretch_new(name: *const c_char) -> *mut Stretch {
+    let name = unsafe { CStr::from_ptr(name) }
+        .to_str()
+        .expect("Invalid UTF-8 character")
+        .to_owned();
+
+    Box::into_raw(Box::new(Stretch {
+        uuid: Uuid::new_v4().as_u128(),
+        name,
+    }))
+}
+
+/// @ingroup QkClassicalExpressions
+/// Free a ``QkStretch``.
+///
+/// @param stretch A pointer previously returned by `qk_stretch_new`.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``stretch`` is not a valid pointer returned by `qk_stretch_new`,
+/// or if it has already been freed.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_stretch_free(stretch: *mut Stretch) {
+    drop(unsafe { Box::from_raw(stretch) });
+}
+
+/// @ingroup QkClassicalExpressions
+/// Create an expression node from a stretch.
+///
+/// @param stretch A pointer to a ``QkStretch``.
+///
+/// @return A newly allocated ``QkExprNode`` containing a clone of ``stretch``. The caller owns
+///     the returned pointer and must free it with `qk_expr_free`.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``stretch`` is not a valid, non-null pointer to a ``QkStretch``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_stretch_as_expr(stretch: *const Stretch) -> *mut Expr {
+    let stretch = unsafe { const_ptr_as_ref(stretch) };
+    Box::into_raw(Box::new(Expr::Stretch(stretch.clone())))
+}
+
+/// @ingroup QkClassicalExpressions
+/// Create a boolean value.
+///
+/// @param val The boolean value.
+///
+/// @return A pointer to a newly allocated ``QkValue``. The caller owns the returned pointer
+///     and must free it with `qk_value_free`.
+#[unsafe(no_mangle)]
+pub extern "C" fn qk_value_new_bool(val: bool) -> *mut Value {
+    Box::into_raw(Box::new(Value::Uint {
+        raw: BigUint::from(val as u8),
+        ty: Type::Bool,
+    }))
+}
+
+/// @ingroup QkClassicalExpressions
+/// Create a duration value.
+///
+/// @param duration The duration value and unit.
+///
+/// @return A pointer to a newly allocated ``QkValue``. The caller owns the returned pointer
+///     and must free it with `qk_value_free`.
+#[unsafe(no_mangle)]
+pub extern "C" fn qk_value_new_duration(duration: CDurationInfo) -> *mut Value {
+    Box::into_raw(Box::new(Value::Duration(duration.into())))
+}
+
+/// @ingroup QkClassicalExpressions
+/// Create a floating-point value.
+///
+/// @param val The floating-point value.
+///
+/// @return A pointer to a newly allocated ``QkValue``. The caller owns the returned pointer
+///     and must free it with `qk_value_free`.
+#[unsafe(no_mangle)]
+pub extern "C" fn qk_value_new_float(val: f64) -> *mut Value {
+    Box::into_raw(Box::new(Value::Float {
+        raw: val,
+        ty: Type::Float,
+    }))
+}
+
+/// @ingroup QkClassicalExpressions
+/// Create an unsigned integer value.
+///
+/// @param val The unsigned integer value.
+/// @param width The bit width of the unsigned integer type.
+///
+/// @return A pointer to a newly allocated ``QkValue``. The caller owns the returned pointer
+///     and must free it with `qk_value_free`.
+#[unsafe(no_mangle)]
+pub extern "C" fn qk_value_new_uint(val: u64, width: u32) -> *mut Value {
+    Box::into_raw(Box::new(Value::Uint {
+        raw: BigUint::from(val),
+        ty: Type::Uint(width),
+    }))
+}
+
+/// @ingroup QkClassicalExpressions
+/// Free a ``QkValue``.
+///
+/// @param value A pointer returned by one of the `qk_value_new_*` functions.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``value`` is not a valid pointer returned by one of the
+/// `qk_value_new_*` functions, or if it has already been freed.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_value_free(value: *mut Value) {
+    drop(unsafe { Box::from_raw(value) });
+}
+
+/// @ingroup QkClassicalExpressions
+/// Create an expression node from a value.
+///
+/// @param value A pointer to a ``QkValue``.
+///
+/// @return A newly allocated ``QkExprNode`` containing a clone of ``value``. The caller owns the
+///     returned pointer and must free it with `qk_expr_free`.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``value`` is not a valid, non-null pointer to a ``QkValue``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_value_as_expr(value: *const Value) -> *mut Expr {
+    let value = unsafe { const_ptr_as_ref(value) };
+    Box::into_raw(Box::new(Expr::Value(value.clone())))
+}
+
+/// @ingroup QkClassicalExpressions
+/// Create a binary expression.
+///
+/// @param op The binary operator.
+/// @param left The left operand.
+/// @param right The right operand.
+/// @param type_info The result type of the expression.
+///
+/// @return A newly allocated ``QkExprNode``. The caller owns the returned pointer
+///     and must free it with `qk_expr_free`.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``left`` or ``right`` are not valid, non-null pointers to
+/// ``QkExprNode``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_expr_binary_new(
+    op: CBinaryOpType,
+    left: *const Expr,
+    right: *const Expr,
+    type_info: CExprTypeInfo,
+) -> *mut Expr {
+    let left = unsafe { const_ptr_as_ref(left) };
+    let right = unsafe { const_ptr_as_ref(right) };
+
+    Box::into_raw(Box::new(Expr::Binary(Box::new(Binary {
+        op: op.into(),
+        left: left.clone(),
+        right: right.clone(),
+        ty: type_info.into(),
+        constant: left.is_const() && right.is_const(),
+    }))))
+}
+
+/// @ingroup QkClassicalExpressions
+/// Create a unary expression.
+///
+/// @param op The unary operator.
+/// @param operand The operand.
+/// @param type_info The result type of the expression.
+///
+/// @return A newly allocated ``QkExprNode``. The caller owns the returned pointer
+///     and must free it with `qk_expr_free`.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``operand`` is not a valid, non-null pointer to ``QkExprNode``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_expr_unary_new(
+    op: CUnaryOpType,
+    operand: *const Expr,
+    type_info: CExprTypeInfo,
+) -> *mut Expr {
+    let operand = unsafe { const_ptr_as_ref(operand) };
+
+    Box::into_raw(Box::new(Expr::Unary(Box::new(Unary {
+        op: op.into(),
+        operand: operand.clone(),
+        ty: type_info.into(),
+        constant: operand.is_const(),
+    }))))
+}
+
+/// @ingroup QkClassicalExpressions
+/// Create a cast expression.
+///
+/// @param operand The operand.
+/// @param type_info The result type of the cast.
+/// @param implicit Whether the cast is implicit.
+///
+/// @return A newly allocated ``QkExprNode``. The caller owns the returned pointer
+///     and must free it with `qk_expr_free`.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``operand`` is not a valid, non-null pointer to ``QkExprNode``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_expr_cast_new(
+    operand: *const Expr,
+    type_info: CExprTypeInfo,
+    implicit: bool,
+) -> *mut Expr {
+    let operand = unsafe { const_ptr_as_ref(operand) };
+
+    Box::into_raw(Box::new(Expr::Cast(Box::new(Cast {
+        operand: operand.clone(),
+        ty: type_info.into(),
+        implicit,
+        constant: operand.is_const(),
+    }))))
+}
+
+/// @ingroup QkClassicalExpressions
+/// Create an index expression.
+///
+/// @param target The indexed expression.
+/// @param index The index expression.
+/// @param type_info The result type of the expression.
+///
+/// @return A newly allocated ``QkExprNode``. The caller owns the returned pointer
+///     and must free it with `qk_expr_free`.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``target`` or ``index`` are not valid, non-null pointers to
+/// ``QkExprNode``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_expr_index_new(
+    target: *const Expr,
+    index: *const Expr,
+    type_info: CExprTypeInfo,
+) -> *mut Expr {
+    let target = unsafe { const_ptr_as_ref(target) };
+    let index = unsafe { const_ptr_as_ref(index) };
+
+    Box::into_raw(Box::new(Expr::Index(Box::new(Index {
+        target: target.clone(),
+        index: index.clone(),
+        ty: type_info.into(),
+        constant: target.is_const() && index.is_const(),
+    }))))
+}
+
+/// @ingroup QkClassicalExpressions
+/// Free a ``QkExprNode``.
+///
+/// @param expr A pointer returned by a `qk_*_as_expr` or `qk_expr_*_new` function.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``expr`` is not a valid pointer returned by a C API expression
+/// constructor, or if it has already been freed.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_expr_free(expr: *mut Expr) {
+    drop(unsafe { Box::from_raw(expr) });
 }
 
 //////////////////////////////////////////////////////////////////
