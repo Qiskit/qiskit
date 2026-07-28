@@ -596,8 +596,7 @@ static int test_expr_construction(void) {
     uint_expr = qk_value_as_expr(uint_value);
     const QkValue *read_uint = qk_expr_as_value(uint_expr);
     QkExprTypeInfo uint_type = qk_value_type_info(read_uint);
-    if (uint_type.ty != QkExprType_Uint || uint_type.width != 3 ||
-        qk_value_uint(read_uint) != 5) {
+    if (uint_type.ty != QkExprType_Uint || uint_type.width != 3 || qk_value_uint(read_uint) != 5) {
         printf("Expected constructed uint value 5 with width 3\n");
         result = EqualityError;
         goto cleanup;
