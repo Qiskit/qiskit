@@ -781,15 +781,9 @@ fn pack_classical_registers(circuit_data: &CircuitData) -> Vec<formats::Register
 
 fn pack_circuit_header(
     circuit_name: Option<String>,
-    circuit_metadata: Option<Bound<PyAny>>,
-    metadata_serializer: Option<&Py<PyAny>>,
+    metadata: Bytes,
     qpy_data: &QPYWriteData,
 ) -> Result<formats::CircuitHeaderV12Pack, QpyError> {
-    let metadata = qpy_data
-        .caller
-        .attach("circuit metadata", |py| -> Result<_, QpyError> {
-            serialize_metadata(py, &circuit_metadata, metadata_serializer)
-        })?;
     let global_phase_data = pack_param_obj(
         qpy_data.circuit_data.global_phase(),
         qpy_data,
@@ -1072,9 +1066,11 @@ fn pack_custom_instruction(
             num_ctrl_qubits = gate.getattr("num_ctrl_qubits")?.extract::<u32>()?;
             ctrl_state = gate.getattr("ctrl_state")?.extract::<u32>()?;
             base_gate = gate.getattr("base_gate")?.clone();
+            let mut definition: QuantumCircuitData = gate.getattr("_definition")?.extract()?;
+            let metadata = serialize_metadata(py, &definition.metadata, None)?;
             Some(serialize(&pack_circuit(
-                &mut gate.getattr("_definition")?.extract()?,
-                Some(&py.None()),
+                &mut definition,
+                metadata,
                 false,
                 qpy_data.version,
                 qpy_data.annotation_handler.child()?,
@@ -1088,9 +1084,10 @@ fn pack_custom_instruction(
         CircuitInstructionType::Gate | CircuitInstructionType::Instruction => inst
             .py_definition(py)?
             .map(|mut defn| {
+                let metadata = serialize_metadata(py, &defn.metadata, None)?;
                 pack_circuit(
                     &mut defn,
-                    Some(&py.None()),
+                    metadata,
                     false,
                     qpy_data.version,
                     qpy_data.annotation_handler.child()?,
@@ -1242,7 +1239,7 @@ fn pack_standalone_vars(
 
 pub(crate) fn pack_circuit(
     circuit: &mut QuantumCircuitData,
-    metadata_serializer: Option<&Py<PyAny>>,
+    metadata: Bytes,
     _use_symengine: bool,
     version: u8,
     annotation_handler: AnnotationHandler,
@@ -1256,12 +1253,7 @@ pub(crate) fn pack_circuit(
         annotation_handler,
     };
     let standalone_vars = pack_standalone_vars(&mut qpy_data)?;
-    let header = pack_circuit_header(
-        circuit.name.clone(),
-        circuit.metadata.clone(),
-        metadata_serializer,
-        &qpy_data,
-    )?;
+    let header = pack_circuit_header(circuit.name.clone(), metadata, &qpy_data)?;
     // Pulse has been removed in Qiskit 2.0. As long as we keep QPY at version 13,
     // we need to write an empty calibrations header since read_circuit expects it
     let calibrations = formats::CalibrationsPack {

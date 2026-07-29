@@ -7,7 +7,8 @@
 // of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
-// copyright notice indicating that it has been altered from the originals.
+// copyright notice, and modified files need to carry a notice indicating
+// that they have been altered from the originals.
 
 use crate::bytes::Bytes;
 use crate::error::QpyError;

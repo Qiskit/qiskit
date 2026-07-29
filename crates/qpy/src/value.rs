@@ -679,7 +679,7 @@ pub(crate) fn serialize_generic_value(
                         .extract()?;
                     let packed_circuit = pack_circuit(
                         &mut quantum_circuit_data,
-                        None,
+                        Bytes::new(),
                         false,
                         qpy_data.version,
                         qpy_data.annotation_handler.child()?,

@@ -29,7 +29,7 @@ use crate::circuit_reader::unpack_circuit;
 use crate::circuit_writer::pack_circuit;
 use crate::error::QpyError;
 use crate::formats::{QPYCircuit, QPYFileHeader};
-use crate::py_methods::py_circuit_data_to_quantum_circuit;
+use crate::py_methods::{py_circuit_data_to_quantum_circuit, serialize_metadata};
 use crate::value::{
     ProgramType, QpyCaller, SymbolicEncoding, deserialize, deserialize_with_args, serialize,
 };
@@ -74,7 +74,7 @@ const QPY_WRITE_MIN_VERSION: u8 = 17;
 
 pub fn dump_qpy(
     mut circuits: Vec<QuantumCircuitData>,
-    metadata_serializer: Option<&Py<PyAny>>,
+    metadata: Vec<Bytes>,
     use_symengine: bool,
     qpy_version: u8,
     annotation_handler: Option<AnnotationHandler>,
@@ -88,12 +88,20 @@ pub fn dump_qpy(
         })?;
     }
     let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native());
+    if circuits.len() != metadata.len() {
+        return Err(QpyError::ConversionError(format!(
+            "Expected metadata for {} circuits, got {}",
+            circuits.len(),
+            metadata.len()
+        )));
+    }
     let serialized_circuits: Vec<Bytes> = circuits
         .iter_mut()
-        .map(|circuit| {
+        .zip(metadata)
+        .map(|(circuit, metadata)| {
             serialize(&pack_circuit(
                 circuit,
-                metadata_serializer,
+                metadata,
                 use_symengine,
                 qpy_version,
                 annotation_handler.child()?,
@@ -154,9 +162,20 @@ pub fn py_dump_qpy(
 ) -> PyResult<()> {
     let annotation_factories = annotation_factories.unwrap_or(PyDict::new(py));
     let annotation_handler = AnnotationHandler::python(&annotation_factories.clone().unbind())?;
+    let circuits: Vec<QuantumCircuitData> = programs.extract()?;
+    let metadata = circuits
+        .iter()
+        .map(|circuit| {
+            serialize_metadata(
+                py,
+                &circuit.metadata,
+                metadata_serializer.as_ref().map(Bound::as_unbound),
+            )
+        })
+        .collect::<Result<Vec<_>, QpyError>>()?;
     let serialized_qpy = dump_qpy(
-        programs.extract()?,
-        metadata_serializer.clone().map(|d| d.unbind()).as_ref(),
+        circuits,
+        metadata,
         use_symengine.unwrap_or(false),
         version,
         Some(annotation_handler),
