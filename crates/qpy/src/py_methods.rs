@@ -153,9 +153,9 @@ pub(crate) fn serialize_metadata(
     metadata_serializer: Option<&Py<PyAny>>,
 ) -> Result<Bytes, QpyError> {
     match metadata_opt {
-        // Metadata is always decoded with `json.loads`, including for nested circuits.  An absent
-        // value must therefore still be represented by valid JSON.
-        None => Ok("null".into()),
+        // Metadata is always decoded with `json.loads`, including for nested circuits, and older
+        // Qiskit releases require the decoded value to be a dictionary.
+        None => Ok("{}".into()),
         Some(metadata) => {
             let none = py.None();
             let py_serializer = metadata_serializer.unwrap_or(&none);

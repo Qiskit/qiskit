@@ -677,9 +677,9 @@ pub(crate) fn serialize_generic_value(
                 &mut circuit_data,
                 ExtraCircuitData {
                     name: None,
-                    // Circuit metadata is always decoded with `json.loads`, so even a native
-                    // nested circuit with no metadata must contain a valid JSON value.
-                    metadata: "null".into(),
+                    // Circuit metadata is always decoded with `json.loads`, and older Qiskit
+                    // releases require the decoded value to be a dictionary.
+                    metadata: "{}".into(),
                     layout,
                 },
                 false,
