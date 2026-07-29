@@ -118,8 +118,47 @@ pub(crate) fn unpack_biguint(big_int_pack: BigIntPack) -> BigUint {
 }
 
 // Data that is needed globally while writing the circuit
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum QpyCaller {
+    Python,
+    // This is consumed by the C entry point when it is compiled into the QPY crate.
+    #[allow(dead_code)]
+    Native,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn native_caller_does_not_attach_python() {
+        let result = QpyCaller::Native.attach("test feature", |_py| -> Result<(), QpyError> {
+            panic!("native QPY must reject the feature before attaching Python")
+        });
+        assert!(matches!(result, Err(QpyError::PythonOnly("test feature"))));
+    }
+}
+
+impl QpyCaller {
+    pub(crate) fn attach<T, E>(
+        self,
+        feature: &'static str,
+        f: impl for<'py> FnOnce(Python<'py>) -> Result<T, E>,
+    ) -> Result<T, E>
+    where
+        E: From<QpyError>,
+    {
+        if self != Self::Python {
+            return Err(QpyError::PythonOnly(feature).into());
+        }
+        Python::attach(f)
+    }
+}
+
+// Data that is needed globally while writing the circuit
 #[derive(Debug)]
 pub struct QPYWriteData<'a> {
+    pub caller: QpyCaller,
     pub circuit_data: &'a CircuitData,
     pub version: u8,
     pub standalone_var_indices: HashMap<u128, u16>, // mapping from the variable's UUID to its index in the standalone variables list
@@ -129,6 +168,7 @@ pub struct QPYWriteData<'a> {
 // Data that is needed globally while reading the circuit
 #[derive(Debug)]
 pub struct QPYReadData {
+    pub caller: QpyCaller,
     pub circuit_data: CircuitData,
     pub version: u8,
     pub use_symengine: bool,
@@ -572,6 +612,7 @@ pub(crate) fn load_value(
                 qpy_data.version,
                 qpy_data.use_symengine,
                 &qpy_data.annotation_handler.annotation_factories,
+                qpy_data.caller,
             )?;
             Ok(GenericValue::CircuitData(Box::new(circuit)))
         }
@@ -642,21 +683,26 @@ pub(crate) fn serialize_generic_value(
         //     let serialized_circuit = serialize(&packed_circuit)?;
         //     Ok((ValueType::Circuit, serialized_circuit))
         // })?,
-        GenericValue::CircuitData(circuit_data) => Python::attach(|py| -> PyResult<_> {
-            let mut quantum_circuit_data = circuit_data
-                .clone()
-                .into_py_quantum_circuit(py)?
-                .extract()?;
-            let packed_circuit = pack_circuit(
-                &mut quantum_circuit_data,
-                None,
-                false,
-                qpy_data.version,
-                &qpy_data.annotation_handler.annotation_factories,
-            )?;
-            let serialized_circuit = serialize(&packed_circuit)?;
-            Ok((ValueType::Circuit, serialized_circuit))
-        })?,
+        GenericValue::CircuitData(circuit_data) => {
+            qpy_data
+                .caller
+                .attach("nested circuits", |py| -> PyResult<_> {
+                    let mut quantum_circuit_data = circuit_data
+                        .clone()
+                        .into_py_quantum_circuit(py)?
+                        .extract()?;
+                    let packed_circuit = pack_circuit(
+                        &mut quantum_circuit_data,
+                        None,
+                        false,
+                        qpy_data.version,
+                        &qpy_data.annotation_handler.annotation_factories,
+                        qpy_data.caller,
+                    )?;
+                    let serialized_circuit = serialize(&packed_circuit)?;
+                    Ok((ValueType::Circuit, serialized_circuit))
+                })?
+        }
         GenericValue::NumpyObject(bytes) => (ValueType::NumpyObject, bytes.clone()),
         GenericValue::Range(py_range) => {
             let start = py_range.start as i64;
@@ -774,6 +820,7 @@ pub(crate) fn unpack_generic_value_sequence(
 /// Each instruction type has a char representation in qpy
 pub(crate) fn get_circuit_type_key(
     op: &PackedOperation,
+    caller: QpyCaller,
 ) -> Result<CircuitInstructionType, QpyError> {
     match op.view() {
         OperationRef::StandardGate(_)
@@ -782,30 +829,32 @@ pub(crate) fn get_circuit_type_key(
         OperationRef::StandardInstruction(_)
         | OperationRef::ControlFlow(_)
         | OperationRef::PauliProductMeasurement(_) => Ok(CircuitInstructionType::Instruction),
-        OperationRef::PyCustom(PyInstruction { kind, ob, .. }) => Python::attach(|py| {
-            let ob = ob.bind(py);
-            match kind {
-                PyOpKind::Instruction => Ok(CircuitInstructionType::Instruction),
-                PyOpKind::Gate => {
-                    if ob.is_instance(imports::PAULI_EVOLUTION_GATE.get_bound(py))? {
-                        Ok(CircuitInstructionType::PauliEvolutionGate)
-                    } else if ob.is_instance(imports::CONTROLLED_GATE.get_bound(py))? {
-                        Ok(CircuitInstructionType::ControlledGate)
-                    } else {
-                        Ok(CircuitInstructionType::Gate)
+        OperationRef::PyCustom(PyInstruction { kind, ob, .. }) => {
+            caller.attach("Python-defined operations", |py| {
+                let ob = ob.bind(py);
+                match kind {
+                    PyOpKind::Instruction => Ok(CircuitInstructionType::Instruction),
+                    PyOpKind::Gate => {
+                        if ob.is_instance(imports::PAULI_EVOLUTION_GATE.get_bound(py))? {
+                            Ok(CircuitInstructionType::PauliEvolutionGate)
+                        } else if ob.is_instance(imports::CONTROLLED_GATE.get_bound(py))? {
+                            Ok(CircuitInstructionType::ControlledGate)
+                        } else {
+                            Ok(CircuitInstructionType::Gate)
+                        }
+                    }
+                    PyOpKind::Operation => {
+                        if ob.is_instance(imports::ANNOTATED_OPERATION.get_bound(py))? {
+                            Ok(CircuitInstructionType::AnnotatedOperation)
+                        } else {
+                            Err(QpyError::InvalidInstruction(format!(
+                                "Unable to determine circuit type key for {ob:?}"
+                            )))
+                        }
                     }
                 }
-                PyOpKind::Operation => {
-                    if ob.is_instance(imports::ANNOTATED_OPERATION.get_bound(py))? {
-                        Ok(CircuitInstructionType::AnnotatedOperation)
-                    } else {
-                        Err(QpyError::InvalidInstruction(format!(
-                            "Unable to determine circuit type key for {ob:?}"
-                        )))
-                    }
-                }
-            }
-        }),
+            })
+        }
         OperationRef::CustomOperation(custom_gate) => match custom_gate.is_controlled_gate() {
             true => Ok(CircuitInstructionType::ControlledGate),
             false => match custom_gate.is_unitary() {

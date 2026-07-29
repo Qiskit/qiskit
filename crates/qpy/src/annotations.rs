@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 use crate::bytes::Bytes;
 use crate::error::QpyError;
+use crate::value::QpyCaller;
 use hashbrown::HashMap;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyIterator, PyNotImplemented};
@@ -23,6 +24,7 @@ use pyo3::types::{PyDict, PyIterator, PyNotImplemented};
 
 #[derive(Debug)]
 pub struct AnnotationHandler {
+    caller: QpyCaller,
     pub annotation_factories: Py<PyDict>,
     factories: HashMap<String, Py<PyAny>>,
     pub serializers: HashMap<String, (usize, Py<PyAny>)>,
@@ -31,32 +33,36 @@ pub struct AnnotationHandler {
 }
 
 impl AnnotationHandler {
-    pub fn new(annotation_factories: &Py<PyDict>) -> Self {
-        let mut factories =
-            HashMap::with_capacity(Python::attach(|py| annotation_factories.bind(py).len()));
-        Python::attach(|py| {
-            for (key, value) in annotation_factories.bind(py).iter() {
-                if let Ok(key_string) = key.extract() {
-                    // we ignore non-string keys since they will not be invoked during serialization
-                    // where we choose serializer according to the namespace string
-                    factories.insert(key_string, value.clone().unbind());
+    pub fn new(annotation_factories: &Py<PyDict>, caller: QpyCaller) -> Result<Self, QpyError> {
+        let mut factories = HashMap::new();
+        if caller == QpyCaller::Python {
+            caller.attach("annotation factories", |py| -> Result<(), QpyError> {
+                factories.reserve(annotation_factories.bind(py).len());
+                for (key, value) in annotation_factories.bind(py).iter() {
+                    if let Ok(key_string) = key.extract() {
+                        // we ignore non-string keys since they will not be invoked during serialization
+                        // where we choose serializer according to the namespace string
+                        factories.insert(key_string, value.clone().unbind());
+                    }
                 }
-            }
-        });
+                Ok(())
+            })?;
+        }
         let serializers = HashMap::new();
         let potential_serializers = HashMap::new();
         // deserializers are created on demand based on the QPY annotation headers
         let deserializers = Vec::new();
-        AnnotationHandler {
+        Ok(AnnotationHandler {
+            caller,
             annotation_factories: annotation_factories.clone(),
             factories,
             serializers,
             potential_serializers,
             deserializers,
-        }
+        })
     }
     pub fn serialize(&mut self, annotation: &Py<PyAny>) -> Result<(u32, Bytes), QpyError> {
-        Python::attach(|py| {
+        self.caller.attach("annotations", |py| {
             let annotation_namespace: String = annotation.getattr(py, "namespace")?.extract(py)?;
             let annotation_module = py.import("qiskit.circuit.annotation")?;
             let namespace_iter_func = annotation_module.getattr("iter_namespaces")?;
@@ -121,9 +127,10 @@ impl AnnotationHandler {
 
     pub fn load(&self, index: u32, payload: Bytes) -> Result<Py<PyAny>, QpyError> {
         if let Some(deserializer) = self.deserializers.get(index as usize) {
-            Python::attach(|py| -> Result<Py<PyAny>, QpyError> {
-                Ok(deserializer.call_method1(py, "load_annotation", (payload,))?)
-            })
+            self.caller
+                .attach("annotations", |py| -> Result<Py<PyAny>, QpyError> {
+                    Ok(deserializer.call_method1(py, "load_annotation", (payload,))?)
+                })
         } else {
             Err(QpyError::ConversionError(format!(
                 "Annotation deserializer index {:?} out of range (0...{:?}), is too large and would overflow",
@@ -136,31 +143,33 @@ impl AnnotationHandler {
     pub fn dump_serializers(&self) -> Result<Vec<(String, Bytes)>, QpyError> {
         // we need to be a little careful to keep the result sorted by index order
         let mut result: Vec<Option<(String, Bytes)>> = vec![None; self.serializers.len()];
-        Python::attach(|py| -> Result<(), QpyError> {
-            for (namespace, (index, serializer)) in &self.serializers {
-                let state: Bytes = serializer.call_method0(py, "dump_state")?.extract(py)?;
-                result[*index] = Some((namespace.clone(), state));
-            }
-            Ok(())
-        })?;
+        self.caller
+            .attach("annotations", |py| -> Result<(), QpyError> {
+                for (namespace, (index, serializer)) in &self.serializers {
+                    let state: Bytes = serializer.call_method0(py, "dump_state")?.extract(py)?;
+                    result[*index] = Some((namespace.clone(), state));
+                }
+                Ok(())
+            })?;
         Ok(result.into_iter().flatten().collect())
     }
 
     pub fn load_deserializers(&mut self, data: Vec<(String, Bytes)>) -> Result<(), QpyError> {
-        Python::attach(|py| -> Result<(), QpyError> {
-            for (namespace, state) in data {
-                if let Some(factory) = self.factories.get(&namespace) {
-                    let serializer = factory.call0(py)?;
-                    serializer.call_method1(
-                        py,
-                        "load_state",
-                        (namespace.clone(), state.clone()),
-                    )?;
-                    self.deserializers.push(serializer);
-                };
-            }
-            Ok(())
-        })?;
+        self.caller
+            .attach("annotations", |py| -> Result<(), QpyError> {
+                for (namespace, state) in data {
+                    if let Some(factory) = self.factories.get(&namespace) {
+                        let serializer = factory.call0(py)?;
+                        serializer.call_method1(
+                            py,
+                            "load_state",
+                            (namespace.clone(), state.clone()),
+                        )?;
+                        self.deserializers.push(serializer);
+                    };
+                }
+                Ok(())
+            })?;
         Ok(())
     }
 }

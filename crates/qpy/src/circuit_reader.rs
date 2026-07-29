@@ -63,8 +63,8 @@ use crate::value::ParamRegisterValue;
 use crate::value::unpack_for_collection;
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, GenericValue,
-    QPYReadData, RegisterType, ValueType, deserialize_with_args, load_param_register_value,
-    load_value, unpack_duration_value, unpack_generic_value,
+    QPYReadData, QpyCaller, RegisterType, ValueType, deserialize_with_args,
+    load_param_register_value, load_value, unpack_duration_value, unpack_generic_value,
 };
 
 use ndarray::{Array2, ShapeBuilder};
@@ -771,13 +771,15 @@ fn read_custom_instructions(
     for operation in &packed_circuit.custom_instructions.custom_instructions {
         let definition = if operation.custom_definition != 0 {
             if operation.name.starts_with("###PauliEvolutionGate_") {
-                Python::attach(|py| -> Result<_, QpyError> {
-                    Ok(Some(deserialize_pauli_evolution_gate(
-                        py,
-                        &operation.data,
-                        qpy_data,
-                    )?))
-                })
+                qpy_data
+                    .caller
+                    .attach("Pauli-evolution gates", |py| -> Result<_, QpyError> {
+                        Ok(Some(deserialize_pauli_evolution_gate(
+                            py,
+                            &operation.data,
+                            qpy_data,
+                        )?))
+                    })
             } else {
                 let circuit: PyCircuitData = unpack_circuit(
                     &deserialize_with_args::<QPYCircuit, (u8,)>(
@@ -788,14 +790,18 @@ fn read_custom_instructions(
                     qpy_data.version,
                     qpy_data.use_symengine,
                     &qpy_data.annotation_handler.annotation_factories,
+                    qpy_data.caller,
                 )?
                 .into();
-                let py_circuit = Python::attach(|py| -> Result<_, QpyError> {
-                    Ok(circuit
-                        .into_py_quantum_circuit(py)
-                        .map_err(QpyError::from)?
-                        .unbind())
-                })?;
+                let py_circuit = qpy_data.caller.attach(
+                    "custom-instruction definitions",
+                    |py| -> Result<_, QpyError> {
+                        Ok(circuit
+                            .into_py_quantum_circuit(py)
+                            .map_err(QpyError::from)?
+                            .unbind())
+                    },
+                )?;
                 Ok(Some(py_circuit))
             }
         } else {
@@ -997,17 +1003,19 @@ pub(crate) fn unpack_circuit(
     version: u8,
     use_symengine: bool,
     annotation_factories: &Py<PyDict>,
+    caller: QpyCaller,
 ) -> Result<CircuitData, QpyError> {
     let instruction_capacity = packed_circuit.instructions.len();
     // create an empty circuit; we'll fill data as we go along
     let mut qpy_data = QPYReadData {
+        caller,
         circuit_data: CircuitData::with_capacity(0, 0, instruction_capacity, Param::Float(0.0))?,
         version,
         use_symengine,
         standalone_vars: HashMap::new(),
         standalone_stretches: HashMap::new(),
         vectors: HashMap::new(),
-        annotation_handler: AnnotationHandler::new(annotation_factories),
+        annotation_handler: AnnotationHandler::new(annotation_factories, caller)?,
     };
     if let Some(annotation_headers) = &packed_circuit.annotation_headers {
         let annotation_deserializers_data: Vec<(String, Bytes)> = annotation_headers

@@ -11,7 +11,6 @@
 // that they have been altered from the originals.
 use binrw::Endian;
 use num_complex::Complex64;
-use pyo3::prelude::*;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::parameter::parameter_expression::{
     OPReplay, ParameterExpression, ParameterValueType,
@@ -577,9 +576,9 @@ pub(crate) fn pack_param_obj(
             },
         },
         Param::ParameterExpression(exp) => pack_param_expression(exp, qpy_data)?,
-        Param::Obj(py_object) => {
-            Python::attach(|py| py_pack_param(py_object.bind(py), qpy_data, endian))?
-        }
+        Param::Obj(py_object) => qpy_data.caller.attach("Python parameters", |py| {
+            py_pack_param(py_object.bind(py), qpy_data, endian)
+        })?,
     })
 }
 

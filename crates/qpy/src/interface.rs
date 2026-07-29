@@ -28,7 +28,9 @@ use crate::circuit_writer::pack_circuit;
 use crate::error::QpyError;
 use crate::formats::{QPYCircuit, QPYFileHeader};
 use crate::py_methods::py_circuit_data_to_quantum_circuit;
-use crate::value::{ProgramType, SymbolicEncoding, deserialize, deserialize_with_args, serialize};
+use crate::value::{
+    ProgramType, QpyCaller, SymbolicEncoding, deserialize, deserialize_with_args, serialize,
+};
 
 use std::io::{Cursor, Seek};
 
@@ -81,6 +83,7 @@ pub fn dump_qpy(
                 use_symengine,
                 qpy_version,
                 annotation_factories,
+                QpyCaller::Python,
             )?)
         })
         .collect::<Result<Vec<Bytes>, QpyError>>()?;
@@ -235,6 +238,7 @@ pub fn load_qpy(
                 qpy_file_header.qpy_version,
                 use_symengine,
                 &annotation_factories.clone().unbind(),
+                QpyCaller::Python,
             )?;
             circuits[index] = py_circuit_data_to_quantum_circuit(
                 circuit_data,
@@ -258,6 +262,7 @@ pub fn load_qpy(
                 qpy_file_header.qpy_version,
                 use_symengine,
                 &annotation_factories.clone().unbind(),
+                QpyCaller::Python,
             )?;
             circuits[index] = py_circuit_data_to_quantum_circuit(
                 circuit_data,
