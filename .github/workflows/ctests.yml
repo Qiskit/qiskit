@@ -11,10 +11,17 @@ on:
         description: Runner image to use.
         type: string
         required: true
-
+      name:
+        description: Name to give the job.
+        type: string
+        required: false
+      cmake_flags:
+        description: Additional CMake flags to set.
+        type: string
+        required: false
 jobs:
   tests:
-    name: ${{ inputs.runner }}
+    name: ${{ inputs.name || inputs.runner }}
     runs-on: ${{ inputs.runner }}
     steps:
       - uses: actions/checkout@v7
@@ -23,3 +30,5 @@ jobs:
           python-version: ${{ inputs.python-version }}
       - name: Run tests
         run: make ctest
+        env:
+          CMAKE_FLAGS: ${{ inputs.cmake_flags }}
