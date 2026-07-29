@@ -384,7 +384,6 @@ pub enum GenericValue {
     Null,
     Expression(Expr),
     Modifier(Py<PyAny>),
-    // Circuit(Py<PyAny>), // currently we have no rust class corresponding to a circuit, only to the inner CircuitData
     CircuitData(Box<CircuitData>),
 }
 

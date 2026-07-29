@@ -20,6 +20,7 @@ use binrw::{BinRead, Endian, VecArgs};
 use pyo3::PyResult;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict};
+use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::QuantumCircuitData;
 
 use crate::bytes::Bytes;
@@ -33,6 +34,15 @@ use crate::value::{
 };
 
 use std::io::{Cursor, Seek};
+
+/// A circuit loaded from QPY, before the Python-only parts of circuit construction.
+///
+/// The packed circuit is retained because it contains the metadata, name, and layout that are
+/// applied when converting the native [`CircuitData`] into a Python `QuantumCircuit`.
+pub struct LoadedCircuit {
+    pub circuit_data: CircuitData,
+    pub packed_circuit: QPYCircuit,
+}
 
 // helper function to parse int from ascii at compile time
 const fn parse_u8_from_ascii(s: &str) -> u8 {
@@ -192,12 +202,10 @@ pub fn read_raw_circuits(
 }
 
 pub fn load_qpy(
-    py: Python,
     data: &Bytes,
     qpy_version: u8,
-    metadata_deserializer: Option<&Bound<PyAny>>,
     annotation_factories: &Bound<PyDict>,
-) -> Result<Vec<Py<PyAny>>, QpyError> {
+) -> Result<Vec<LoadedCircuit>, QpyError> {
     if qpy_version < QPY_READ_MIN_VERSION {
         Err(QpyError::UnsupportedFeatureForVersion {
             feature: "Rust QPY".to_string(),
@@ -223,12 +231,12 @@ pub fn load_qpy(
         qpy_file_header.symbolic_encoding,
         SymbolicEncoding::Symengine
     );
-    let mut circuits = vec![py.None(); num_programs];
+    let mut circuits = Vec::with_capacity(num_programs);
     let mut cursor = Cursor::new(data as &[u8]);
     cursor.seek(std::io::SeekFrom::Start(header_size as u64))?;
     if qpy_file_header.qpy_version >= 16 {
         let qpy_raw_circuits = read_raw_circuits(&mut cursor, num_programs)?;
-        for (index, raw_circuit) in qpy_raw_circuits.iter().enumerate() {
+        for raw_circuit in &qpy_raw_circuits {
             let (packed_circuit, _) = deserialize_with_args::<QPYCircuit, (u8,)>(
                 raw_circuit,
                 (qpy_file_header.qpy_version,),
@@ -240,14 +248,10 @@ pub fn load_qpy(
                 &annotation_factories.clone().unbind(),
                 QpyCaller::Python,
             )?;
-            circuits[index] = QpyCaller::Python.attach("Python circuit construction", |py| {
-                py_circuit_data_to_quantum_circuit(
-                    py,
-                    circuit_data,
-                    &packed_circuit,
-                    metadata_deserializer.map(|d| d.as_ref()),
-                )
-            })?;
+            circuits.push(LoadedCircuit {
+                circuit_data,
+                packed_circuit,
+            });
         }
     } else {
         // QPY version < 16, no offset table
@@ -259,22 +263,18 @@ pub fn load_qpy(
                 inner: (qpy_file_header.qpy_version,),
             },
         )?;
-        for (index, packed_circuit) in packed_qpy_circuits.iter().enumerate() {
+        for packed_circuit in packed_qpy_circuits {
             let circuit_data = unpack_circuit(
-                packed_circuit,
+                &packed_circuit,
                 qpy_file_header.qpy_version,
                 use_symengine,
                 &annotation_factories.clone().unbind(),
                 QpyCaller::Python,
             )?;
-            circuits[index] = QpyCaller::Python.attach("Python circuit construction", |py| {
-                py_circuit_data_to_quantum_circuit(
-                    py,
-                    circuit_data,
-                    packed_circuit,
-                    metadata_deserializer.map(|d| d.as_ref()),
-                )
-            })?;
+            circuits.push(LoadedCircuit {
+                circuit_data,
+                packed_circuit,
+            });
         }
     }
     Ok(circuits)
@@ -292,14 +292,19 @@ pub fn py_load_qpy(
     let annotation_factories = annotation_factories.unwrap_or(PyDict::new(py));
 
     // Read all data from file object
-    // TODO: When we read from a rust native stream, maybe we can seek according to the circuit offsets instead of reading everything at once
     let data: Bytes = file_obj.call_method0("read")?.extract()?;
 
-    load_qpy(
-        py,
-        &data,
-        version,
-        metadata_deserializer.as_ref(),
-        &annotation_factories,
-    )
+    load_qpy(&data, version, &annotation_factories)?
+        .into_iter()
+        .map(|loaded| {
+            QpyCaller::Python.attach("Python circuit construction", |py| {
+                py_circuit_data_to_quantum_circuit(
+                    py,
+                    loaded.circuit_data,
+                    &loaded.packed_circuit,
+                    metadata_deserializer.as_ref().map(Bound::as_ref),
+                )
+            })
+        })
+        .collect()
 }
