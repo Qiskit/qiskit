@@ -26,7 +26,7 @@ use qiskit_circuit::converters::QuantumCircuitData;
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::circuit_reader::unpack_circuit;
-use crate::circuit_writer::pack_circuit;
+use crate::circuit_writer::{pack_circuit, pack_layout};
 use crate::error::QpyError;
 use crate::formats::{QPYCircuit, QPYFileHeader};
 use crate::py_methods::{py_circuit_data_to_quantum_circuit, serialize_metadata};
@@ -43,6 +43,13 @@ use std::io::{Cursor, Seek};
 pub struct LoadedCircuit {
     pub circuit_data: CircuitData,
     pub packed_circuit: QPYCircuit,
+}
+
+/// Data associated with a circuit that is not stored in native [`CircuitData`].
+pub struct ExtraCircuitData {
+    pub name: Option<String>,
+    pub metadata: Bytes,
+    pub layout: Bytes,
 }
 
 // helper function to parse int from ascii at compile time
@@ -73,8 +80,8 @@ const QPY_READ_MIN_VERSION: u8 = 13;
 const QPY_WRITE_MIN_VERSION: u8 = 17;
 
 pub fn dump_qpy(
-    mut circuits: Vec<QuantumCircuitData>,
-    metadata: Vec<Bytes>,
+    mut circuits: Vec<CircuitData>,
+    extra_data: Vec<ExtraCircuitData>,
     use_symengine: bool,
     qpy_version: u8,
     annotation_handler: Option<AnnotationHandler>,
@@ -88,20 +95,20 @@ pub fn dump_qpy(
         })?;
     }
     let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native());
-    if circuits.len() != metadata.len() {
+    if circuits.len() != extra_data.len() {
         return Err(QpyError::ConversionError(format!(
-            "Expected metadata for {} circuits, got {}",
+            "Expected extra data for {} circuits, got {}",
             circuits.len(),
-            metadata.len()
+            extra_data.len()
         )));
     }
     let serialized_circuits: Vec<Bytes> = circuits
         .iter_mut()
-        .zip(metadata)
-        .map(|(circuit, metadata)| {
+        .zip(extra_data)
+        .map(|(circuit, extra)| {
             serialize(&pack_circuit(
                 circuit,
-                metadata,
+                extra,
                 use_symengine,
                 qpy_version,
                 annotation_handler.child()?,
@@ -163,19 +170,27 @@ pub fn py_dump_qpy(
     let annotation_factories = annotation_factories.unwrap_or(PyDict::new(py));
     let annotation_handler = AnnotationHandler::python(&annotation_factories.clone().unbind())?;
     let circuits: Vec<QuantumCircuitData> = programs.extract()?;
-    let metadata = circuits
+    let extra_data = circuits
         .iter()
         .map(|circuit| {
-            serialize_metadata(
+            let metadata = serialize_metadata(
                 py,
                 &circuit.metadata,
                 metadata_serializer.as_ref().map(Bound::as_unbound),
-            )
+            )?;
+            let layout = pack_layout(circuit.transpile_layout.clone(), &circuit.data)
+                .and_then(|layout| serialize(&layout))?;
+            Ok(ExtraCircuitData {
+                name: circuit.name.clone(),
+                metadata,
+                layout,
+            })
         })
         .collect::<Result<Vec<_>, QpyError>>()?;
+    let circuit_data = circuits.into_iter().map(|circuit| circuit.data).collect();
     let serialized_qpy = dump_qpy(
-        circuits,
-        metadata,
+        circuit_data,
+        extra_data,
         use_symengine.unwrap_or(false),
         version,
         Some(annotation_handler),

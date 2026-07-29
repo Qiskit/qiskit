@@ -37,6 +37,7 @@ use crate::circuit_writer::pack_circuit;
 use crate::error::QpyError;
 use crate::error::from_binrw_error;
 use crate::formats::{self, BigIntPack, DurationPack, GenericDataPack, GenericDataSequencePack};
+use crate::interface::ExtraCircuitData;
 use crate::params::{
     pack_parameter_expression, pack_parameter_vector, pack_symbol, unpack_parameter_expression,
     unpack_parameter_vector, unpack_symbol,
@@ -670,24 +671,21 @@ pub(crate) fn serialize_generic_value(
         }
         GenericValue::Null => (ValueType::Null, Bytes::new()),
         GenericValue::CircuitData(circuit_data) => {
-            qpy_data
-                .caller
-                .attach("nested circuits", |py| -> PyResult<_> {
-                    let mut quantum_circuit_data = circuit_data
-                        .clone()
-                        .into_py_quantum_circuit(py)?
-                        .extract()?;
-                    let packed_circuit = pack_circuit(
-                        &mut quantum_circuit_data,
-                        Bytes::new(),
-                        false,
-                        qpy_data.version,
-                        qpy_data.annotation_handler.child()?,
-                        qpy_data.caller,
-                    )?;
-                    let serialized_circuit = serialize(&packed_circuit)?;
-                    Ok((ValueType::Circuit, serialized_circuit))
-                })?
+            let mut circuit_data = circuit_data.clone();
+            let layout = serialize(&crate::circuit_writer::pack_layout(None, &circuit_data)?)?;
+            let packed_circuit = pack_circuit(
+                &mut circuit_data,
+                ExtraCircuitData {
+                    name: None,
+                    metadata: Bytes::new(),
+                    layout,
+                },
+                false,
+                qpy_data.version,
+                qpy_data.annotation_handler.child()?,
+                qpy_data.caller,
+            )?;
+            (ValueType::Circuit, serialize(&packed_circuit)?)
         }
         GenericValue::NumpyObject(bytes) => (ValueType::NumpyObject, bytes.clone()),
         GenericValue::Range(py_range) => {
