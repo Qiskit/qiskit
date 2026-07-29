@@ -1,7 +1,7 @@
 performance:
   - |
-    Improves runtime performance of the `add_register()` method on
-    `QuantumCircuit`. Consequently, this change improves performance when
-    creating `QuantumCircuit` as well. Generally, the time complexity of
+    Improves runtime performance of the :py:meth:`~.QuantumCircuit.add_register()` method on
+    :py:class:`~.QuantumCircuit`. Consequently, this change improves performance when
+    creating :py:class:`~.QuantumCircuit` as well. Generally, the time complexity of
     checking register name presence was reduced to O(1) from O(n). This was
     achieved by removing redundant error checking.
