@@ -111,6 +111,35 @@ class TestUCGate(QiskitTestCase):
 
         self.assertTrue(np.allclose(unitary_desired, unitary))
 
+    def test_double_inverse_transpilation_safety(self):
+        """Test that double inverse of UCGate preserves correct unitary and params"""
+        gates = [random_unitary(2, seed=42 + s).data for s in range(2**2)]
+        num_con = int(np.log2(len(gates)))
+        q = QuantumRegister(num_con + 1)
+        qc = QuantumCircuit(q)
+
+        uc = UCGate(gates, up_to_diagonal=False)
+        qc.append(uc, q)
+        qc_double_inv = qc.inverse().inverse()
+
+        op_original = Operator(qc).data
+        op_double_inv = Operator(qc_double_inv).data
+        self.assertTrue(
+            np.allclose(op_original, op_double_inv),
+            "Double inverted UCGate does not evaluate to the original unitary matrix."
+        )
+
+        compiled_qc = transpile(qc_double_inv)
+
+        for inst in compiled_qc.data:
+            if inst.operation.name == "multiplexer":
+                self.assertTrue(
+                    len(inst.operation.params) > 0,
+                    "Transpiled circuit contains a parameterless multiplexer gate, "
+                    "which indicates loss of parameters during double inversion, "
+                    "which might cause downstream errors"
+                )
+
     def test_ucge(self):
         """test ucg simplification"""
         gate_list = [_had, _had, _had, _had, _had, _had, _had, _had]
