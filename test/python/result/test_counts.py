@@ -38,6 +38,13 @@ class TestCounts(unittest.TestCase):
         self.assertEqual(expected, result)
         self.assertEqual({"0": 50, "1": 30}, utils.marginal_counts(result, indices=[0]))
 
+    def test_single_bit_counts_warn_for_inferred_memory_slots(self):
+        raw_counts = {"0x0": 50, "0x1": 30}
+        expected = {"0": 50, "1": 30}
+        with self.assertWarnsRegex(UserWarning, "inferring the bit width"):
+            result = counts.Counts(raw_counts)
+        self.assertEqual(expected, result)
+
     def test_counts_creg_sizes_without_memory_slots(self):
         raw_counts = {"0x0": 4, "0x2": 10}
         expected = {"0 0": 4, "1 0": 10}
