@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 use binrw::Endian;
 use num_complex::Complex64;
+use pyo3::Python;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::parameter::parameter_expression::{
     OPReplay, ParameterExpression, ParameterValueType,
@@ -582,7 +583,7 @@ pub(crate) fn pack_param_obj(
     })
 }
 
-pub(crate) fn generic_value_to_param(value: &GenericValue) -> Result<Param, QpyError> {
+pub(crate) fn generic_value_to_param(py: Python, value: &GenericValue) -> Result<Param, QpyError> {
     match value {
         GenericValue::Float64(float_val) => Ok(Param::Float(*float_val)),
         GenericValue::ParameterExpressionSymbol(symbol) => {
@@ -594,6 +595,6 @@ pub(crate) fn generic_value_to_param(value: &GenericValue) -> Result<Param, QpyE
             Ok(Param::ParameterExpression(Arc::new(parameter_expression)))
         }
         GenericValue::ParameterExpression(exp) => Ok(Param::ParameterExpression(exp.clone())),
-        _ => Ok(Param::Obj(py_convert_from_generic_value(value)?)),
+        _ => Ok(Param::Obj(py_convert_from_generic_value(py, value)?)),
     }
 }

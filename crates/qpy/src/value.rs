@@ -415,12 +415,6 @@ impl GenericValue {
     }
     pub(crate) fn as_circuit_data(&self) -> Option<CircuitData> {
         match self {
-            // GenericValue::Circuit(py_circuit) => {
-            //     Python::attach(|py| -> Result<CircuitData, QpyError> {
-            //         Ok(py_circuit.extract::<QuantumCircuitData>(py)?.data)
-            //     })
-            //     .ok()
-            // }
             GenericValue::CircuitData(circuit_data) => Some(circuit_data.as_ref().clone()),
             _ => None,
         }
@@ -591,7 +585,11 @@ pub(crate) fn load_value(
         ValueType::NumpyObject => Ok(GenericValue::NumpyObject(bytes.clone())),
         ValueType::Modifier => {
             let (modifier_pack, _) = deserialize::<formats::ModifierPack>(bytes)?;
-            let values = py_unpack_modifier(&modifier_pack)?;
+            let values = qpy_data
+                .caller
+                .attach("annotated-operation modifiers", |py| {
+                    py_unpack_modifier(py, &modifier_pack)
+                })?;
             Ok(GenericValue::Modifier(values))
         }
         ValueType::Expression => {
@@ -672,17 +670,6 @@ pub(crate) fn serialize_generic_value(
             (ValueType::Expression, serialize_expression(exp, qpy_data)?)
         }
         GenericValue::Null => (ValueType::Null, Bytes::new()),
-        // GenericValue::Circuit(circuit) => Python::attach(|py| -> Result<_, QpyError> {
-        //     let packed_circuit = pack_circuit(
-        //         &mut circuit.extract(py)?, // TODO: can we avoid cloning here?
-        //         None,
-        //         false,
-        //         qpy_data.version,
-        //         &qpy_data.annotation_handler.annotation_factories,
-        //     )?;
-        //     let serialized_circuit = serialize(&packed_circuit)?;
-        //     Ok((ValueType::Circuit, serialized_circuit))
-        // })?,
         GenericValue::CircuitData(circuit_data) => {
             qpy_data
                 .caller
@@ -711,10 +698,14 @@ pub(crate) fn serialize_generic_value(
             let range_pack = formats::RangePack { start, stop, step };
             (ValueType::Range, serialize(&range_pack)?)
         }
-        GenericValue::Modifier(py_object) => (
-            ValueType::Modifier,
-            serialize(&py_pack_modifier(py_object)?)?,
-        ),
+        GenericValue::Modifier(py_object) => {
+            let modifier = qpy_data
+                .caller
+                .attach("annotated-operation modifiers", |py| {
+                    py_pack_modifier(py, py_object)
+                })?;
+            (ValueType::Modifier, serialize(&modifier)?)
+        }
         GenericValue::Register(param_register_value) => (
             ValueType::Register,
             serialize_param_register_value(param_register_value, qpy_data)?,

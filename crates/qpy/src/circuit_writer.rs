@@ -278,7 +278,15 @@ fn pack_instruction(
     }
     instruction_pack.bit_data = get_packed_bit_list(instruction, qpy_data.circuit_data);
     if let Some(new_name) =
-        recognize_custom_operation(&instruction.op, &gate_class_name(&instruction.op)?)?
+        qpy_data
+            .caller
+            .attach("recognize custom operations", |py| -> Result<_, QpyError> {
+                recognize_custom_operation(
+                    py,
+                    &instruction.op,
+                    &gate_class_name(py, &instruction.op)?,
+                )
+            })?
     {
         instruction_pack.gate_class_name = new_name.clone();
         new_custom_operations.push(new_name.clone());
@@ -777,7 +785,11 @@ fn pack_circuit_header(
     metadata_serializer: Option<&Py<PyAny>>,
     qpy_data: &QPYWriteData,
 ) -> Result<formats::CircuitHeaderV12Pack, QpyError> {
-    let metadata = serialize_metadata(&circuit_metadata, metadata_serializer)?;
+    let metadata = qpy_data
+        .caller
+        .attach("circuit metadata", |py| -> Result<_, QpyError> {
+            serialize_metadata(py, &circuit_metadata, metadata_serializer)
+        })?;
     let global_phase_data = pack_param_obj(
         qpy_data.circuit_data.global_phase(),
         qpy_data,

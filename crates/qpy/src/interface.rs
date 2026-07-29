@@ -240,11 +240,14 @@ pub fn load_qpy(
                 &annotation_factories.clone().unbind(),
                 QpyCaller::Python,
             )?;
-            circuits[index] = py_circuit_data_to_quantum_circuit(
-                circuit_data,
-                &packed_circuit,
-                metadata_deserializer.map(|d| d.as_ref()),
-            )?;
+            circuits[index] = QpyCaller::Python.attach("Python circuit construction", |py| {
+                py_circuit_data_to_quantum_circuit(
+                    py,
+                    circuit_data,
+                    &packed_circuit,
+                    metadata_deserializer.map(|d| d.as_ref()),
+                )
+            })?;
         }
     } else {
         // QPY version < 16, no offset table
@@ -264,11 +267,14 @@ pub fn load_qpy(
                 &annotation_factories.clone().unbind(),
                 QpyCaller::Python,
             )?;
-            circuits[index] = py_circuit_data_to_quantum_circuit(
-                circuit_data,
-                packed_circuit,
-                metadata_deserializer.map(|d| d.as_ref()),
-            )?;
+            circuits[index] = QpyCaller::Python.attach("Python circuit construction", |py| {
+                py_circuit_data_to_quantum_circuit(
+                    py,
+                    circuit_data,
+                    packed_circuit,
+                    metadata_deserializer.map(|d| d.as_ref()),
+                )
+            })?;
         }
     }
     Ok(circuits)

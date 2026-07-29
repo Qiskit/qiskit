@@ -300,22 +300,29 @@ pub fn instruction_values_to_params(
             .extract_blocks_from_circuit_parameters(Some(&params)))
     } else {
         // params
-        let inst_params: Vec<Param> = values
-            .into_iter()
-            .map(|value| -> Result<_, QpyError> {
-                match value {
-                    GenericValue::Float64(float) => Ok(Param::Float(float)),
-                    GenericValue::ParameterExpression(exp) => Ok(Param::ParameterExpression(exp)),
-                    GenericValue::ParameterExpressionSymbol(symbol)
-                    | GenericValue::ParameterExpressionVectorSymbol(symbol) => {
-                        Ok(Param::ParameterExpression(Arc::new(
-                            ParameterExpression::from_arc_symbol(symbol),
-                        )))
-                    }
-                    _ => Ok(Param::Obj(py_convert_from_generic_value(&value)?)),
-                }
-            })
-            .collect::<Result<_, QpyError>>()?;
+        let inst_params: Vec<Param> = qpy_data.caller.attach(
+            "Python instruction parameters",
+            |py| -> Result<_, QpyError> {
+                values
+                    .into_iter()
+                    .map(|value| -> Result<_, QpyError> {
+                        match value {
+                            GenericValue::Float64(float) => Ok(Param::Float(float)),
+                            GenericValue::ParameterExpression(exp) => {
+                                Ok(Param::ParameterExpression(exp))
+                            }
+                            GenericValue::ParameterExpressionSymbol(symbol)
+                            | GenericValue::ParameterExpressionVectorSymbol(symbol) => {
+                                Ok(Param::ParameterExpression(Arc::new(
+                                    ParameterExpression::from_arc_symbol(symbol),
+                                )))
+                            }
+                            _ => Ok(Param::Obj(py_convert_from_generic_value(py, &value)?)),
+                        }
+                    })
+                    .collect::<Result<_, QpyError>>()
+            },
+        )?;
         Ok((!inst_params.is_empty()).then(|| {
             Box::new(Parameters::Params(SmallVec::<[Param; 3]>::from_vec(
                 inst_params,
@@ -499,7 +506,9 @@ fn unpack_pauli_product_rotation(
         )
     })?;
     let angle_value = unpack_generic_value(&instruction.params[2], qpy_data, Endian::Little)?;
-    let angle = generic_value_to_param(&angle_value)?;
+    let angle = qpy_data.caller.attach("Python parameters", |py| {
+        generic_value_to_param(py, &angle_value)
+    })?;
     let rotation = PauliProductRotation { z, x, angle };
     let pbc = Box::new(PauliBased::PauliProductRotation(rotation));
     let op = PackedOperation::from_pauli_based(pbc);
@@ -1028,12 +1037,15 @@ pub(crate) fn unpack_circuit(
             .annotation_handler
             .load_deserializers(annotation_deserializers_data)?;
     }
-    let global_phase = generic_value_to_param(&load_value(
+    let global_phase_value = load_value(
         packed_circuit.header.global_phase_type,
         &packed_circuit.header.global_phase_data,
         &mut qpy_data,
         Endian::Big,
-    )?)?;
+    )?;
+    let global_phase = qpy_data.caller.attach("Python global phase", |py| {
+        generic_value_to_param(py, &global_phase_value)
+    })?;
     qpy_data.circuit_data.set_global_phase_param(global_phase)?;
     add_standalone_vars(packed_circuit, &mut qpy_data)?;
     add_registers_and_bits(packed_circuit, &mut qpy_data)?;
