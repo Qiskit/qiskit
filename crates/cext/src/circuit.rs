@@ -2785,6 +2785,11 @@ pub unsafe extern "C" fn qk_control_flow_instruction_free(cf_inst: *mut CControl
 
 /// @ingroup QkCircuit
 /// Adds a `QkCustomOp` into the circuit.
+/// 
+/// The addition of this `QkCustomOp` depends on its validity and can be rejected.
+/// If the operation's vtable points to a null pointer due to any errors during construction,
+/// or invalid input being received by ``qk_custom_op_new_vtable``, the operation will be
+/// rejected and an `ExitCode` will be returned due to an unexpected null pointer.
 ///
 /// @param circuit A pointer to the circuit object.
 /// @param operation The `QkCustomOp` object.
@@ -2817,6 +2822,9 @@ pub unsafe extern "C" fn qk_circuit_add_custom_operation(
     clbits: *const u32,
     params: *mut *mut Param,
 ) -> ExitCode {
+    if !operation.is_valid() {
+        return ExitCode::CInputError;
+    }
     let boxed: Box<dyn CustomOperation> = Box::new(operation);
     let op = PackedOperation::from_custom_operation(boxed);
 

@@ -21,6 +21,8 @@ use qiskit_circuit::{
     operations::{CustomOperation, Operation, Param},
 };
 
+use crate::pointers::check_ptr;
+
 /// Represents an Operation fully defined in C.
 #[repr(C)]
 #[derive(Debug, Clone)]
@@ -29,6 +31,13 @@ pub struct CustomOp {
     orig: *mut (),
     /// A pointer to a vtable designed for the original gate.
     v_table: *mut CustomOpVtable,
+}
+
+impl CustomOp {
+    /// Returns false if any of the pointers stored are null or unaligned
+    pub fn is_valid(&self) -> bool {
+        check_ptr(self.orig).is_ok_and(|_| check_ptr(self.v_table).is_ok())
+    }
 }
 
 impl PartialEq for CustomOp {
