@@ -23,6 +23,7 @@ use pyo3::types::{PyAny, PyDict};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::QuantumCircuitData;
 
+use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::circuit_reader::unpack_circuit;
 use crate::circuit_writer::pack_circuit;
@@ -70,12 +71,14 @@ const fn parse_version() -> (u8, u8, u8) {
 const QISKIT_VERSION: (u8, u8, u8) = parse_version();
 const QPY_READ_MIN_VERSION: u8 = 13;
 const QPY_WRITE_MIN_VERSION: u8 = 17;
+
 pub fn dump_qpy(
     mut circuits: Vec<QuantumCircuitData>,
     metadata_serializer: Option<&Py<PyAny>>,
     use_symengine: bool,
     qpy_version: u8,
-    annotation_factories: &Py<PyDict>,
+    annotation_handler: Option<AnnotationHandler>,
+    caller: QpyCaller,
 ) -> Result<Bytes, QpyError> {
     if qpy_version < QPY_WRITE_MIN_VERSION {
         Err(QpyError::UnsupportedFeatureForVersion {
@@ -84,6 +87,7 @@ pub fn dump_qpy(
             min_version: QPY_WRITE_MIN_VERSION,
         })?;
     }
+    let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native());
     let serialized_circuits: Vec<Bytes> = circuits
         .iter_mut()
         .map(|circuit| {
@@ -92,8 +96,8 @@ pub fn dump_qpy(
                 metadata_serializer,
                 use_symengine,
                 qpy_version,
-                annotation_factories,
-                QpyCaller::Python,
+                annotation_handler.child()?,
+                caller,
             )?)
         })
         .collect::<Result<Vec<Bytes>, QpyError>>()?;
@@ -149,12 +153,14 @@ pub fn py_dump_qpy(
     annotation_factories: Option<Bound<PyDict>>,
 ) -> PyResult<()> {
     let annotation_factories = annotation_factories.unwrap_or(PyDict::new(py));
+    let annotation_handler = AnnotationHandler::python(&annotation_factories.clone().unbind())?;
     let serialized_qpy = dump_qpy(
         programs.extract()?,
         metadata_serializer.clone().map(|d| d.unbind()).as_ref(),
         use_symengine.unwrap_or(false),
         version,
-        &annotation_factories.clone().unbind(),
+        Some(annotation_handler),
+        QpyCaller::Python,
     )?;
     file_obj.call_method1("write", (pyo3::types::PyBytes::new(py, &serialized_qpy),))?;
     Ok(())
@@ -201,10 +207,20 @@ pub fn read_raw_circuits(
     Ok(circuits)
 }
 
-pub fn load_qpy(
+pub fn load_qpy(data: &Bytes, qpy_version: u8) -> Result<Vec<LoadedCircuit>, QpyError> {
+    load_qpy_with_handler(
+        data,
+        qpy_version,
+        &AnnotationHandler::native(),
+        QpyCaller::Native,
+    )
+}
+
+fn load_qpy_with_handler(
     data: &Bytes,
     qpy_version: u8,
-    annotation_factories: &Bound<PyDict>,
+    annotation_handler: &AnnotationHandler,
+    caller: QpyCaller,
 ) -> Result<Vec<LoadedCircuit>, QpyError> {
     if qpy_version < QPY_READ_MIN_VERSION {
         Err(QpyError::UnsupportedFeatureForVersion {
@@ -245,8 +261,8 @@ pub fn load_qpy(
                 &packed_circuit,
                 qpy_file_header.qpy_version,
                 use_symengine,
-                &annotation_factories.clone().unbind(),
-                QpyCaller::Python,
+                annotation_handler.child()?,
+                caller,
             )?;
             circuits.push(LoadedCircuit {
                 circuit_data,
@@ -268,8 +284,8 @@ pub fn load_qpy(
                 &packed_circuit,
                 qpy_file_header.qpy_version,
                 use_symengine,
-                &annotation_factories.clone().unbind(),
-                QpyCaller::Python,
+                annotation_handler.child()?,
+                caller,
             )?;
             circuits.push(LoadedCircuit {
                 circuit_data,
@@ -294,7 +310,8 @@ pub fn py_load_qpy(
     // Read all data from file object
     let data: Bytes = file_obj.call_method0("read")?.extract()?;
 
-    load_qpy(&data, version, &annotation_factories)?
+    let annotation_handler = AnnotationHandler::python(&annotation_factories.clone().unbind())?;
+    load_qpy_with_handler(&data, version, &annotation_handler, QpyCaller::Python)?
         .into_iter()
         .map(|loaded| {
             QpyCaller::Python.attach("Python circuit construction", |py| {

@@ -608,7 +608,7 @@ pub(crate) fn load_value(
                 &packed_circuit,
                 qpy_data.version,
                 qpy_data.use_symengine,
-                &qpy_data.annotation_handler.annotation_factories,
+                qpy_data.annotation_handler.child()?,
                 qpy_data.caller,
             )?;
             Ok(GenericValue::CircuitData(Box::new(circuit)))
@@ -682,7 +682,7 @@ pub(crate) fn serialize_generic_value(
                         None,
                         false,
                         qpy_data.version,
-                        &qpy_data.annotation_handler.annotation_factories,
+                        qpy_data.annotation_handler.child()?,
                         qpy_data.caller,
                     )?;
                     let serialized_circuit = serialize(&packed_circuit)?;

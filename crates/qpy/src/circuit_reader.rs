@@ -24,7 +24,7 @@ use hashbrown::HashMap;
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use pyo3::prelude::*;
-use pyo3::types::{PyAny, PyDict};
+use pyo3::types::PyAny;
 use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
@@ -798,7 +798,7 @@ fn read_custom_instructions(
                     .0,
                     qpy_data.version,
                     qpy_data.use_symengine,
-                    &qpy_data.annotation_handler.annotation_factories,
+                    qpy_data.annotation_handler.child()?,
                     qpy_data.caller,
                 )?
                 .into();
@@ -1011,7 +1011,7 @@ pub(crate) fn unpack_circuit(
     packed_circuit: &QPYCircuit,
     version: u8,
     use_symengine: bool,
-    annotation_factories: &Py<PyDict>,
+    annotation_handler: AnnotationHandler,
     caller: QpyCaller,
 ) -> Result<CircuitData, QpyError> {
     let instruction_capacity = packed_circuit.instructions.len();
@@ -1024,7 +1024,7 @@ pub(crate) fn unpack_circuit(
         standalone_vars: HashMap::new(),
         standalone_stretches: HashMap::new(),
         vectors: HashMap::new(),
-        annotation_handler: AnnotationHandler::new(annotation_factories, caller)?,
+        annotation_handler,
     };
     if let Some(annotation_headers) = &packed_circuit.annotation_headers {
         let annotation_deserializers_data: Vec<(String, Bytes)> = annotation_headers
