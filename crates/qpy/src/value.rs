@@ -677,7 +677,9 @@ pub(crate) fn serialize_generic_value(
                 &mut circuit_data,
                 ExtraCircuitData {
                     name: None,
-                    metadata: Bytes::new(),
+                    // Circuit metadata is always decoded with `json.loads`, so even a native
+                    // nested circuit with no metadata must contain a valid JSON value.
+                    metadata: "null".into(),
                     layout,
                 },
                 false,
