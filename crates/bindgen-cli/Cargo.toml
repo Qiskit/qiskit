@@ -21,7 +21,7 @@ cbindgen.workspace = true
 
 # Transitive dependency `rsgridsynth` pins `clap` version `=4.5.4`. `clap` can
 # be updated past `4.5.4` when the next major version of `clap` is released or
-# when `rsgridsynth` unpins the exact version. If these conditions aren't met,
-# `cargo` will automatically downgrade `rsgridsynth`, introducting a regression
-# that surfaces in fault tolerance compilation.
+# when `rsgridsynth` unpins the exact version. If one these conditions aren't
+# met, `cargo` will automatically downgrade `rsgridsynth`, introducing a
+# regression that surfaces in fault tolerance compilation.
 clap = { version = "4.5.4", features = ["derive"] }
