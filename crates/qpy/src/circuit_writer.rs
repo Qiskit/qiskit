@@ -1077,7 +1077,6 @@ fn pack_custom_instruction(
                     metadata,
                     layout,
                 },
-                false,
                 qpy_data.version,
                 qpy_data.annotation_handler.child()?,
                 qpy_data.caller,
@@ -1099,7 +1098,6 @@ fn pack_custom_instruction(
                         metadata,
                         layout,
                     },
-                    false,
                     qpy_data.version,
                     qpy_data.annotation_handler.child()?,
                     qpy_data.caller,
@@ -1251,7 +1249,6 @@ fn pack_standalone_vars(
 pub(crate) fn pack_circuit(
     circuit_data: &mut CircuitData,
     extra: ExtraCircuitData,
-    _use_symengine: bool,
     version: u8,
     annotation_handler: AnnotationHandler,
     caller: QpyCaller,

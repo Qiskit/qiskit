@@ -41,18 +41,26 @@ use std::io::{Cursor, Seek};
 /// The packed circuit is retained because it contains the metadata, name, and layout that are
 /// applied when converting the native [`CircuitData`] into a Python `QuantumCircuit`.
 pub struct LoadedCircuit {
+    /// The native circuit data reconstructed from the payload.
     pub circuit_data: CircuitData,
+    /// The packed representation containing data needed for Python circuit construction.
     pub packed_circuit: QPYCircuit,
 }
 
 /// Data associated with a circuit that is not stored in native [`CircuitData`].
 pub struct ExtraCircuitData {
+    /// The circuit name.
     pub name: Option<String>,
+    /// The serialized Python metadata mapping.
     pub metadata: Bytes,
+    /// The serialized transpiler-layout data.
     pub layout: Bytes,
 }
 
-// helper function to parse int from ascii at compile time
+/// Parses an ASCII decimal string as a `u8` during compile-time evaluation.
+///
+/// This is used for Cargo's package-version components, which are guaranteed to
+/// contain decimal digits.
 const fn parse_u8_from_ascii(s: &str) -> u8 {
     let bytes = s.as_bytes();
     let mut result: u8 = 0;
@@ -68,6 +76,7 @@ const fn parse_u8_from_ascii(s: &str) -> u8 {
     result
 }
 
+/// Returns this crate's Cargo package version as three numeric components.
 const fn parse_version() -> (u8, u8, u8) {
     let major = parse_u8_from_ascii(env!("CARGO_PKG_VERSION_MAJOR"));
     let minor = parse_u8_from_ascii(env!("CARGO_PKG_VERSION_MINOR"));
@@ -79,10 +88,22 @@ const QISKIT_VERSION: (u8, u8, u8) = parse_version();
 const QPY_READ_MIN_VERSION: u8 = 13;
 const QPY_WRITE_MIN_VERSION: u8 = 17;
 
+/// Serializes native circuits into a complete binary QPY payload.
+/// # Arguments
+///
+/// * circuits: The rust `CircuitData` of the circuts to serialize. Mutability is required because some implicit
+///   gates have to be instantiated in order to be serialized.
+/// * extra_data: The extra data associated with each circuit, including name, metadata, and layout. Since this
+///   is currently Python-only, metadata and layout should be already serialized into `Bytes` objects.
+/// * qpy_version: The QPY version to use for serialization. Must be >= QPY_WRITE_MIN_VERSION.
+/// * annotation_handler: The annotation handler to use for serializing annotations. If None, the native handler is used.
+/// * caller: The caller context, either Python or Native. Use `Native` when invoking `dump_qpy` from Rust.
+///
+/// Returns:
+/// A `Bytes` object containing the complete QPY payload.
 pub fn dump_qpy(
     mut circuits: Vec<CircuitData>,
     extra_data: Vec<ExtraCircuitData>,
-    use_symengine: bool,
     qpy_version: u8,
     annotation_handler: Option<AnnotationHandler>,
     caller: QpyCaller,
@@ -109,17 +130,14 @@ pub fn dump_qpy(
             serialize(&pack_circuit(
                 circuit,
                 extra,
-                use_symengine,
                 qpy_version,
                 annotation_handler.child()?,
                 caller,
             )?)
         })
         .collect::<Result<Vec<Bytes>, QpyError>>()?;
-    let symbolic_encoding = match use_symengine {
-        true => SymbolicEncoding::Symengine,
-        false => SymbolicEncoding::Sympy,
-    };
+    // Since QPY doesn't use symengine anymore, we default to SymbolicEncoding::Sympy
+    let symbolic_encoding = SymbolicEncoding::Sympy;
     let qpy_header = QPYFileHeader {
         qpy_version,
         qiskit_version: QISKIT_VERSION,
@@ -158,12 +176,21 @@ pub fn dump_qpy(
 
 #[pyfunction]
 #[pyo3(name = "dump")]
+/// Python entry point for serializing circuits to binary and writing to file.
+///
+/// # Arguments
+///
+/// * py: The GIL handle.
+/// * programs: The list of QuantumCircuit objects to serialize.
+/// * file_obj: A writable file-like object to which the serialized QPY data will be written.
+/// * metadata_serializer: An optional Python callable that takes a metadata dictionary and returns a serialized bytes object.
+/// * version: The QPY version to use for serialization. Must be >= QPY_WRITE_MIN_VERSION.
+/// * annotation_factories: An optional dictionary for annotation handlers
 pub fn py_dump_qpy(
     py: Python,
     programs: &Bound<PyAny>,
     file_obj: &Bound<PyAny>,
     metadata_serializer: Option<Bound<PyAny>>,
-    use_symengine: Option<bool>,
     version: u8,
     annotation_factories: Option<Bound<PyDict>>,
 ) -> PyResult<()> {
@@ -191,7 +218,6 @@ pub fn py_dump_qpy(
     let serialized_qpy = dump_qpy(
         circuit_data,
         extra_data,
-        use_symengine.unwrap_or(false),
         version,
         Some(annotation_handler),
         QpyCaller::Python,
@@ -200,7 +226,11 @@ pub fn py_dump_qpy(
     Ok(())
 }
 
-// reads the offset table and splits the raw bytes into circuits accordingly
+/// Reads a QPY circuit-offset table and splits the remaining payload into circuits.
+///
+/// The cursor must be positioned immediately before the table. Circuit sizes
+/// are derived from adjacent offsets; the final circuit consumes all remaining
+/// bytes.
 pub fn read_raw_circuits(
     cursor: &mut Cursor<&[u8]>,
     num_programs: usize,
@@ -241,21 +271,26 @@ pub fn read_raw_circuits(
     Ok(circuits)
 }
 
-pub fn load_qpy(data: &Bytes, qpy_version: u8) -> Result<Vec<LoadedCircuit>, QpyError> {
-    load_qpy_with_handler(
-        data,
-        qpy_version,
-        &AnnotationHandler::native(),
-        QpyCaller::Native,
-    )
-}
-
-fn load_qpy_with_handler(
+/// Deserializes native circuits from a complete QPY payload.
+///
+/// # Arguments
+///
+/// * data: The complete QPY payload as a byte slice.
+/// * annotation_handler: An optional annotation handler for deserializing annotations. If None, the native (dummy) handler is used.
+/// * caller: The caller context, either Python or Native. Use `Native` when invoking `load_qpy` from Rust.
+///
+/// # Returns
+/// A vector of [`LoadedCircuit`] values, each containing the native `CircuitData` and packed data needed for any later Python-only construction.
+pub fn load_qpy(
     data: &Bytes,
-    qpy_version: u8,
-    annotation_handler: &AnnotationHandler,
+    annotation_handler: Option<AnnotationHandler>,
     caller: QpyCaller,
 ) -> Result<Vec<LoadedCircuit>, QpyError> {
+    // Every QPY file begins with "QISKIT" followed by a version byte.
+    // Since the header might be effected by the version, we begin by explicitly extracting the version.
+    let qpy_version: u8 = *data.get(6).ok_or_else(|| {
+        QpyError::ConversionError("QPY payload is empty; cannot read version".to_string())
+    })?;
     if qpy_version < QPY_READ_MIN_VERSION {
         Err(QpyError::UnsupportedFeatureForVersion {
             feature: "Rust QPY".to_string(),
@@ -263,6 +298,7 @@ fn load_qpy_with_handler(
             min_version: QPY_READ_MIN_VERSION,
         })?;
     }
+    let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native());
     let (qpy_file_header, header_size) = deserialize::<QPYFileHeader>(data)?;
     // Verify the type key is for circuits
     if qpy_file_header.type_key == ProgramType::Schedule {
@@ -332,11 +368,25 @@ fn load_qpy_with_handler(
 
 #[pyfunction]
 #[pyo3(name = "load")]
+/// Python entry point for loading circuits from a readable file-like object.
+///
+/// This reads the complete payload from `file_obj`, reconstructs each native
+/// circuit, and then applies Python-only metadata, layout, and annotation data
+/// to create Python `QuantumCircuit` objects.
+///
+/// # Arguments
+///
+/// * py: The GIL handle.
+/// * file_obj: The file-like object to read the QPY payload from
+/// * metadata_deserializer: An optional Python callable that takes a serialized bytes object and returns a metadata dictionary.
+/// * annotation_factories: An optional dictionary for annotation handlers
+///
+/// Returns
+/// A list of Python `QuantumCircuit` objects reconstructed from the QPY payload.
 pub fn py_load_qpy(
     py: Python,
     file_obj: &Bound<PyAny>,
     metadata_deserializer: Option<Bound<PyAny>>,
-    version: u8,
     annotation_factories: Option<Bound<PyDict>>,
 ) -> Result<Vec<Py<PyAny>>, QpyError> {
     let annotation_factories = annotation_factories.unwrap_or(PyDict::new(py));
@@ -345,7 +395,7 @@ pub fn py_load_qpy(
     let data: Bytes = file_obj.call_method0("read")?.extract()?;
 
     let annotation_handler = AnnotationHandler::python(&annotation_factories.clone().unbind())?;
-    load_qpy_with_handler(&data, version, &annotation_handler, QpyCaller::Python)?
+    load_qpy(&data, Some(annotation_handler), QpyCaller::Python)?
         .into_iter()
         .map(|loaded| {
             QpyCaller::Python.attach("Python circuit construction", |py| {

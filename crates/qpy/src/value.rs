@@ -682,7 +682,6 @@ pub(crate) fn serialize_generic_value(
                     metadata: "{}".into(),
                     layout,
                 },
-                false,
                 qpy_data.version,
                 qpy_data.annotation_handler.child()?,
                 qpy_data.caller,
