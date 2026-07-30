@@ -155,7 +155,6 @@ jobs:
     needs: config
     uses: ./.github/workflows/rust-tests.yml
     with:
-      python-version: ${{ needs.config.outputs.python-old }}
       runner: ${{ needs.config.outputs.runner-linux-x86_64 }}
 
   miri:
