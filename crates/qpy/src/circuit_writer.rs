@@ -278,16 +278,13 @@ fn pack_instruction(
         instruction_pack.label = label.clone();
     }
     instruction_pack.bit_data = get_packed_bit_list(instruction, qpy_data.circuit_data);
-    if let Some(new_name) =
-        qpy_data
-            .caller
-            .attach("recognize custom operations", |py| -> Result<_, QpyError> {
-                recognize_custom_operation(
-                    py,
-                    &instruction.op,
-                    &gate_class_name(py, &instruction.op)?,
-                )
-            })?
+    if let Some(new_name) = qpy_data
+        .caller
+        .attach("recognize custom operations", |py| -> Result<_, QpyError> {
+            recognize_custom_operation(py, &instruction.op, &gate_class_name(py, &instruction.op)?)
+        })
+        .unwrap_or(None)
+    // None in the case we are not in the Python path
     {
         instruction_pack.gate_class_name = new_name.clone();
         new_custom_operations.push(new_name.clone());
@@ -983,6 +980,12 @@ fn pack_custom_instructions(
 ) -> Result<formats::CustomCircuitInstructionsPack, QpyError> {
     let mut custom_instructions: Vec<formats::CustomCircuitInstructionDefPack> = Vec::new();
     let mut instructions_to_pack: Vec<String> = custom_instructions_hash.keys().cloned().collect();
+    if instructions_to_pack.is_empty() {
+        // avoid invoking Python if not required
+        return Ok(formats::CustomCircuitInstructionsPack {
+            custom_instructions,
+        });
+    }
     qpy_data
         .caller
         .attach("custom instructions", |py| -> Result<_, QpyError> {
