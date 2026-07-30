@@ -26,6 +26,7 @@ from qiskit.circuit import ControlFlowOp, WhileLoopOp, IfElseOp, ForLoopOp, Swit
 from qiskit.circuit.classical import expr
 from qiskit.circuit.controlflow import node_resources
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
+from qiskit.circuit.library import GlobalPhaseGate
 from qiskit.circuit.annotated_operation import _canonicalize_modifiers, ControlModifier
 from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.qasm3 import ast
@@ -1076,6 +1077,9 @@ class TextDrawing:
 
         qubit_indices = sorted(wire_map[x] for x in wire_map if x in args_qubits)
 
+        if not qubit_indices:
+            qubit_indices = [wire_map[q] for q in ctrl_qubits]
+            
         for ctrl_qubit in zip(ctrl_qubits, ctrl_state):
             if min(qubit_indices) > wire_map[ctrl_qubit[0]]:
                 top_box.append(ctrl_qubit)
@@ -1093,9 +1097,7 @@ class TextDrawing:
             if ctrl_state[i] == "1":
                 gates.append(Bullet(conditional=conditional, label=ctrl_text, bottom=bool(bot_box)))
             else:
-                gates.append(
-                    OpenBullet(conditional=conditional, label=ctrl_text, bottom=bool(bot_box))
-                )
+                gates.append(OpenBullet(conditional=conditional, label=ctrl_text, bottom=bool(bot_box)))
         return (gates, top_box, bot_box, in_box, args_qubits)
 
     def _node_to_gate(self, node, layer, gate_wire_map):
@@ -1185,6 +1187,18 @@ class TextDrawing:
             gates = [Bullet(conditional=conditional), Bullet(conditional=conditional)]
             add_connected_gate(node, gates, layer, current_cons, gate_wire_map)
 
+        elif isinstance(op, GlobalPhaseGate):
+            params = get_param_str(op, "text", ndigits=5)
+            gate_text = "Glob("+params+")"
+            # Span all qubits
+            if len(self.qubits) == 1:
+                layer.set_qubit(self.qubits[0], BoxOnQuWire(gate_text, conditional=conditional))
+            else:
+                layer.set_qubit(self.qubits[0], BoxOnQuWireTop(gate_text))
+                for i in range(1, len(self.qubits) - 1):
+                    layer.set_qubit(self.qubits[i], BoxOnQuWireMid(gate_text, len(self.qubits), i))
+                layer.set_qubit(self.qubits[-1], BoxOnQuWireBot(gate_text, len(self.qubits)))
+                
         elif (len(node.qargs) == 1 and not node.cargs) or (
             not self.measure_arrows and isinstance(op, Measure)
         ):
@@ -1242,6 +1256,11 @@ class TextDrawing:
                 for index in range(min(indexes), max(indexes) + 1):
                     # Dummy element to connect the multibox with the bullets
                     current_cons.append((index, DrawElement("")))
+
+            elif len(rest) == 0:
+                # Controlled GlobalPhaseGate has no target qubit
+                # Show the phase as a connection label between control bullets
+                connection_label = f"Glob{params}"
             else:
                 gates.append(BoxOnQuWire(gate_text, conditional=conditional))
 
@@ -1860,3 +1879,4 @@ class Layer:
                     affected_bit.right_fill = len(label) + len(affected_bit.mid)
                     if isinstance(affected_bit, (Bullet, OpenBullet)) and affected_bit.conditional:
                         affected_bit.left_fill = len(label) + len(affected_bit.mid)
+                        

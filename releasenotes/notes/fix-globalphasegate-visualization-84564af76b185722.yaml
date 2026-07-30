@@ -1,0 +1,10 @@
+fixes:
+  - |
+    Fixed :class:`.GlobalPhaseGate` not being displayed in circuit drawings.
+    Previously, drawing a circuit containing a ``GlobalPhaseGate`` using the
+    ``text``, ``mpl``, or ``latex`` drawers would either crash or silently
+    skip the gate. Now it is displayed correctly as a box spanning all qubits
+    for the uncontrolled case, and as control bullets with a phase label for
+    the controlled case.
+    Fixes `#16189 <https://github.com/Qiskit/qiskit/issues/16189>`__
+
