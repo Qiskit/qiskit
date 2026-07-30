@@ -2793,12 +2793,12 @@ pub unsafe extern "C" fn qk_control_flow_instruction_free(cf_inst: *mut CControl
 ///
 /// @param circuit A pointer to the circuit object.
 /// @param operation The `QkCustomOp` object.
-/// @param qubits The pointer to the array of ``uint32_t`` qubit indices to add the gate on. This
-///     can be a null pointer if there are no qubits for ``gate`` (e.g. ``QkGate_GlobalPhase``).
-/// @param clbits The pointer to the array of ``uint32_t`` qubit indices to add the gate on. This
-///     can be a null pointer if there are no qubits for ``gate`` (e.g. ``QkGate_GlobalPhase``).
-/// @param params The pointer to the array of ``double`` values to use for the gate parameters.
-///     This can be a null pointer if there are no parameters for ``gate`` (e.g. ``QkGate_H``).
+/// @param qubits The pointer to the array of ``uint32_t`` qubit indices to add the operation on. This
+///     can be a null pointer if there are no qubits for ``operation`` (e.g. ``QkGate_GlobalPhase``).
+/// @param clbits The pointer to the array of ``uint32_t`` qubit indices to add the operation on. This
+///     can be a null pointer if there are no qubits for ``operation`` (e.g. ``QkGate_GlobalPhase``).
+/// @param params The pointer to the array of ``double`` values to use for the operation parameters.
+///     This can be a null pointer if there are no parameters for ``operation`` (e.g. ``QkGate_H``).
 ///
 /// @return an ExitCode.
 ///
@@ -2806,12 +2806,10 @@ pub unsafe extern "C" fn qk_control_flow_instruction_free(cf_inst: *mut CControl
 ///
 /// The ``qubits``, ``clbits``, and ``params`` types are expected to be a pointer to an
 /// array of ``uint32_t`` (for ``qubits``, ``clbits``) or  ``QkParam`` (for ``params``)
-/// where the length is matching the expectations for the standard gate. If the array is
+/// where the length is matching the expectations for the standard operation. If the array is
 /// insufficiently long the behavior of this function is undefined as this will read
 /// outside the bounds of the array. It can be a null pointer if there are no qubits
-/// or params for a given gate. You can check ``qk_gate_num_qubits``, ``qk_gate_num_clbits``
-/// and ``qk_gate_num_params`` to determine how many qubits and params are required
-/// for a given gate.
+/// or params for a given operation.
 ///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
 #[unsafe(no_mangle)]

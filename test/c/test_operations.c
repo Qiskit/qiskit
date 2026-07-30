@@ -183,8 +183,13 @@ static int test_custom_operation_in_circuit(void) {
         res = EqualityError;
         goto cleanup;
     }
+    kind = qk_circuit_instruction_kind(circuit, 1);
 
-    // Query based on the information retrieved
+    if (kind != 8) {
+        printf("Retrieved incorrect kind for '%s'. Expected %u, got %u.\n", inst.name, 8, kind);
+        res = EqualityError;
+        goto cleanup;
+    }
 cleanup:
     qk_circuit_instruction_clear(&inst);
     qk_circuit_free(circuit);
