@@ -15,14 +15,16 @@ use hashbrown::HashMap;
 use num_complex::Complex64;
 use smallvec::smallvec;
 
+use crate::operations::CustomOp;
 use crate::exit_codes::ExitCode;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, NodeIndex, NodeType};
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
-    ArrayType, Operation, OperationRef, Param, StandardGate, StandardInstruction, UnitaryGate,
+    ArrayType, CustomOperation, Operation, OperationRef, Param, StandardGate, StandardInstruction, UnitaryGate,
 };
+use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 
 use crate::circuit::{CBlocksMode, CInstruction, CVarsMode};
@@ -1939,5 +1941,100 @@ pub unsafe extern "C" fn qk_dag_convert_from_python(
     // pointer to a PyObject, and `address` points to enough space to write a pointer.
     unsafe {
         crate::py::convert_mut::<DAGCircuit>(::pyo3::Python::assume_attached(), object, address)
+    }
+}
+
+/// @ingroup QkDag
+/// Adds a `QkCustomOp` into the circuit.
+///
+/// The addition of this `QkCustomOp` depends on its validity and can be rejected.
+/// If the operation's vtable points to a null pointer due to any errors during construction,
+/// or invalid input being received by ``qk_custom_op_new_vtable``, the operation will be
+/// rejected and an `ExitCode` will be returned due to an unexpected null pointer.
+///
+/// @param dag A pointer to the DAG to apply the operation to.
+/// @param operation The `QkCustomOp` object.
+/// @param qubits The pointer to the array of ``uint32_t`` qubit indices to add the operation on. This
+///     can be a null pointer if there are no qubits for ``operation`` (e.g. ``QkGate_GlobalPhase``).
+/// @param clbits The pointer to the array of ``uint32_t`` qubit indices to add the operation on. This
+///     can be a null pointer if there are no qubits for ``operation`` (e.g. ``QkGate_GlobalPhase``).
+/// @param params The pointer to the array of ``double`` values to use for the operation parameters.
+///     This can be a null pointer if there are no parameters for ``operation`` (e.g. ``QkGate_H``).
+/// @param front If ``true``, the operation is applied as the first operation on the specified qubits,
+///     rather than as the last.
+/// @param node The pointer to an address big enough to write the unsigned 32-bit integer index to.
+/// 
+/// @return an ExitCode.
+///
+/// # Safety
+///
+/// The ``qubits``, ``clbits``, and ``params`` types are expected to be a pointer to an
+/// array of ``uint32_t`` (for ``qubits``, ``clbits``) or  ``QkParam`` (for ``params``)
+/// where the length is matching the expectations for operation. If the array is
+/// insufficiently long the behavior of this function is undefined as this will read
+/// outside the bounds of the array. It can be a null pointer if there are no qubits
+/// or params for a given operation.
+/// 
+/// Behavior is undefined if ``node`` is not a valid non-null pointer to an address big
+/// enough to store a 32-bit unsigned integer.
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_dag_apply_custom_operation(
+    dag: *mut DAGCircuit,
+    operation: CustomOp,
+    qubits: *const u32,
+    clbits: *const u32,
+    params: *mut *mut Param,
+    node: *mut u32,
+    front: bool,
+) -> ExitCode {
+    if !operation.is_valid() {
+        return ExitCode::CInputError;
+    }
+    let boxed: Box<dyn CustomOperation> = Box::new(operation);
+    let op = PackedOperation::from_custom_operation(boxed);
+
+    let circ = unsafe { mut_ptr_as_ref(dag) };
+
+    let qubits = if !qubits.is_null() {
+        unsafe { std::slice::from_raw_parts(qubits, op.num_qubits() as usize) }
+    } else {
+        Default::default()
+    };
+    let qargs: &[Qubit] = bytemuck::cast_slice(qubits);
+
+    let clbits = if !clbits.is_null() {
+        unsafe { std::slice::from_raw_parts(clbits, op.num_clbits() as usize) }
+    } else {
+        Default::default()
+    };
+    let cargs: &[Clbit] = bytemuck::cast_slice(clbits);
+
+    let params = (!params.is_null()).then(|| {
+        let params = if !params.is_null() {
+            unsafe { std::slice::from_raw_parts(*params, op.num_params() as usize) }
+        } else {
+            Default::default()
+        };
+        Parameters::Params(params.iter().cloned().collect())
+    });
+
+    let ret;
+    if front {
+        ret = circ.apply_operation_front(op, qargs, cargs, params, None);
+    } else {
+        ret = circ.apply_operation_back(op, qargs, cargs, params, None);
+    }
+    match ret {
+        Ok(val) => {
+            // SAFETY: `node` is a non-null pointer to an address that can hold a 32-bit integer.
+            unsafe { node.write(val.index() as u32) };
+            ExitCode::Success
+        },
+        Err(DAGError::WireOutOfRange(_wire, _size)) => {
+            ExitCode::MismatchedQubits
+        }
+        Err(_) => ExitCode::DagError,
     }
 }

@@ -212,6 +212,7 @@ mod dag {
             export_fn!(qk_dag_substitute_node_with_unitary),
             export_fn!(qk_dag_global_phase),
             export_fn!(qk_dag_set_global_phase),
+            export_fn!(qk_dag_apply_custom_operation),
         ]
     });
 }

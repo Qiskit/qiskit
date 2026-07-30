@@ -192,9 +192,151 @@ exit:
     return res;
 }
 
+/// Test adding a custom operation in the cicuit;
+static int test_custom_operation_in_dag(void) {
+    int res = Ok;
+
+    struct foo_gate test_1q_op = {
+        .num_qubits = 1,
+        .num_clbits = 0,
+        .num_params = 1,
+    };
+    struct foo_gate test_3q_op = {
+        .num_qubits = 3,
+        .num_clbits = 1,
+        .num_params = 0,
+    };
+
+    // Initialize Vtable
+    foo_vtable = qk_custom_op_new_vtable(entries);
+
+    if (foo_vtable == NULL) {
+        printf("Retrieved a Null pointer instead of a Vtable pointer.");
+        res = NullptrError;
+        goto exit;
+    }
+
+    QkCustomOp test_1q = {
+        .orig = &test_1q_op,
+        .v_table = foo_vtable,
+    };
+    QkCustomOp test_3q_1c = {
+        .orig = &test_3q_op,
+        .v_table = foo_vtable,
+    };
+
+    QkDag *circuit = qk_dag_new();
+    QkQuantumRegister *qreg = qk_quantum_register_new(3, "qreg0");
+    QkClassicalRegister *creg = qk_classical_register_new(1, "creg0");
+    qk_dag_add_quantum_register(circuit, qreg);
+    qk_dag_add_classical_register(circuit, creg);
+
+    uint32_t qubits_1[1] = {0};
+    uint32_t qubits_3[3] = {0, 1, 2};
+    uint32_t clbits_1[1] = {0};
+    QkParam *params[1] = {qk_param_from_double(3.14)};
+
+    uint32_t ind1;
+    uint32_t ind2;
+    if (qk_dag_apply_custom_operation(circuit, test_1q, qubits_1, NULL, params, &ind1, false) !=
+        QkExitCode_Success) {
+        printf("Unable to add operation 1q parametric custom operation to dag.");
+        res = RuntimeError;
+        goto cleanup;
+    };
+    if (qk_dag_apply_custom_operation(circuit, test_3q_1c, qubits_3, clbits_1, NULL, &ind2,
+                                      false) != QkExitCode_Success) {
+        printf("Unable to add operation 3q custom operation to dag.");
+        res = RuntimeError;
+        goto cleanup;
+    };
+
+    // Retrieve operation from circuit
+    QkCircuitInstruction inst;
+    qk_dag_get_instruction(circuit, ind1, &inst);
+
+    if (strcmp(inst.name, FOO_NAME)) {
+        printf("Retrieved incorrect instruction name. Expected '%s', got '%s'.\n", FOO_NAME,
+               inst.name);
+        res = EqualityError;
+        goto inst_cleanup;
+    }
+    if (inst.num_qubits != test_1q_op.num_qubits) {
+        printf("Retrieved incorrect num_qubits for '%s'. Expected %u, got %u.\n", inst.name,
+               test_1q_op.num_qubits, inst.num_qubits);
+        res = EqualityError;
+        goto inst_cleanup;
+    }
+    if (inst.num_clbits != test_1q_op.num_clbits) {
+        printf("Retrieved incorrect num_clbits for '%s'. Expected %u, got %u.\n", inst.name,
+               test_1q_op.num_clbits, inst.num_clbits);
+        res = EqualityError;
+        goto cleanup;
+    }
+    if (inst.num_params != test_1q_op.num_params) {
+        printf("Retrieved incorrect num_params for '%s'. Expected %u, got %u.\n", inst.name,
+               test_1q_op.num_params, inst.num_params);
+        res = EqualityError;
+        goto inst_cleanup;
+    }
+
+    QkOperationKind kind = qk_dag_op_node_kind(circuit, ind2);
+
+    if (kind != 8) {
+        printf("Retrieved incorrect kind for '%s'. Expected %u, got %u.\n", inst.name, 8, kind);
+        res = EqualityError;
+        goto cleanup;
+    }
+
+    // Retrieve operation from circuit
+    qk_dag_get_instruction(circuit, ind2, &inst);
+
+    if (strcmp(inst.name, FOO_NAME)) {
+        printf("Retrieved incorrect instruction name. Expected '%s', got '%s'.\n", FOO_NAME,
+               inst.name);
+        res = EqualityError;
+        goto inst_cleanup;
+    }
+    if (inst.num_qubits != test_3q_op.num_qubits) {
+        printf("Retrieved incorrect num_qubits for '%s'. Expected %u, got %u.\n", inst.name,
+               test_3q_op.num_qubits, inst.num_qubits);
+        res = EqualityError;
+        goto inst_cleanup;
+    }
+    if (inst.num_clbits != test_3q_op.num_clbits) {
+        printf("Retrieved incorrect num_clbits for '%s'. Expected %u, got %u.\n", inst.name,
+               test_3q_op.num_clbits, inst.num_clbits);
+        res = EqualityError;
+        goto inst_cleanup;
+    }
+    if (inst.num_params != test_3q_op.num_params) {
+        printf("Retrieved incorrect num_params for '%s'. Expected %u, got %u.\n", inst.name,
+               test_3q_op.num_params, inst.num_params);
+        res = EqualityError;
+        goto inst_cleanup;
+    }
+
+    kind = qk_dag_op_node_kind(circuit, ind2);
+
+    if (kind != 8) {
+        printf("Retrieved incorrect kind for '%s'. Expected %u, got %u.\n", inst.name, 8, kind);
+        res = EqualityError;
+        goto cleanup;
+    }
+inst_cleanup:
+    qk_circuit_instruction_clear(&inst);
+cleanup:
+    qk_quantum_register_free(qreg);
+    qk_classical_register_free(creg);
+    qk_dag_free(circuit);
+exit:
+    return res;
+}
+
 int test_operations(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_custom_operation_in_circuit);
+    num_failed += RUN_TEST(test_custom_operation_in_dag);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
