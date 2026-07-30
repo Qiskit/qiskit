@@ -46,6 +46,128 @@ use thread_local::ThreadLocal;
 
 type MappingIterItem = Option<(TwoQSynthesisResult<f64>, [Qubit; 2])>;
 
+#[pyclass(from_py_object)]
+#[derive(Debug, Clone, Copy)]
+pub enum HeuristicPriority {
+    EstimatedFidelity,
+    TwoQGate,
+    TotalGate,
+}
+
+/// Scored used as the heuristic of the unitary synthesis output
+///
+/// This differs from from [`ComparisonScore`] since the unitary synthesis
+/// scoring is trying to maximize so we use negative counts and i64. The
+/// comparison score is minimizing the gate counts so it uses usize which is
+/// the natural type of the counts.
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum BestSynthesisHeuristicScore {
+    GatePriority(i64, f64, i64),
+    FidelityPriority(f64, i64, i64),
+}
+
+impl PartialOrd for BestSynthesisHeuristicScore {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match [self, other] {
+            [Self::GatePriority(a, b, c), Self::GatePriority(d, e, f)] => {
+                (a, b, c).partial_cmp(&(d, e, f))
+            }
+            [
+                Self::FidelityPriority(a, b, c),
+                Self::FidelityPriority(d, e, f),
+            ] => (a, b, c).partial_cmp(&(d, e, f)),
+            _ => None,
+        }
+    }
+}
+
+/// Score used to compare the original sequence to the best synthesis output
+///
+/// This differs from [`BestSynthesisHeuristicScore`] in the typing of the counts, usize is
+/// used here because we are doing a minimum comparison for this comparison
+/// while [`BestSynthesisHeuristicScore`] is doing a maxmimum comparison and
+/// needs a negative gate count to work.
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum ComparisonScore {
+    GatePriority(usize, f64, usize),
+    FidelityPriority(f64, usize, usize),
+}
+
+impl PartialOrd for ComparisonScore {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match [self, other] {
+            [Self::GatePriority(a, b, c), Self::GatePriority(d, e, f)] => {
+                (a, b, c).partial_cmp(&(d, e, f))
+            }
+            [
+                Self::FidelityPriority(a, b, c),
+                Self::FidelityPriority(d, e, f),
+            ] => (a, b, c).partial_cmp(&(d, e, f)),
+            _ => None,
+        }
+    }
+}
+
+impl BestSynthesisHeuristicScore {
+    fn get_fidelity(&self, heuristic: HeuristicPriority) -> f64 {
+        match heuristic {
+            HeuristicPriority::TwoQGate => {
+                let BestSynthesisHeuristicScore::GatePriority(_twoq, fidelity, _total_gate) = self
+                else {
+                    panic!(
+                        "Two qubit gate count heuristic priority must have a gate priority score"
+                    );
+                };
+                *fidelity
+            }
+            HeuristicPriority::EstimatedFidelity => {
+                let BestSynthesisHeuristicScore::FidelityPriority(fidelity, _twoq, _total_gate) =
+                    self
+                else {
+                    panic!("fidelity heuristic priority must have a fidelity priority score");
+                };
+                *fidelity
+            }
+            HeuristicPriority::TotalGate => {
+                let BestSynthesisHeuristicScore::GatePriority(_total_gate, fidelity, _twoq) = self
+                else {
+                    panic!("Total gate count heuristic priority must have a gate priority score");
+                };
+                *fidelity
+            }
+        }
+    }
+
+    fn get_two_qubit_gate_count(&self, heuristic: HeuristicPriority) -> usize {
+        match heuristic {
+            HeuristicPriority::TwoQGate => {
+                let BestSynthesisHeuristicScore::GatePriority(twoq, _fidelity, _total_gate) = self
+                else {
+                    panic!(
+                        "Two qubit gate count heuristic priority must have a gate priority score"
+                    );
+                };
+                -twoq as usize
+            }
+            HeuristicPriority::EstimatedFidelity => {
+                let BestSynthesisHeuristicScore::FidelityPriority(_fidelity, twoq, _total_gate) =
+                    self
+                else {
+                    panic!("fidelity heuristic priority must have a fidelity priority score");
+                };
+                -twoq as usize
+            }
+            HeuristicPriority::TotalGate => {
+                let BestSynthesisHeuristicScore::GatePriority(_total_gate, _fidelity, twoq) = self
+                else {
+                    panic!("Total gate count heuristic priority must have a gate priority score");
+                };
+                -twoq as usize
+            }
+        }
+    }
+}
+
 /// A python entry-point to the pass function
 ///
 /// This function explicitly releases the GIL prior to entering the parallel portion of the pass.
@@ -57,9 +179,10 @@ pub fn py_two_qubit_unitary_peephole_optimize(
     dag: &DAGCircuit,
     target: &Target,
     approximation_degree: Option<f64>,
+    heuristic: HeuristicPriority,
 ) -> PyResult<Option<DAGCircuit>> {
     let result = py.detach(move || {
-        two_qubit_unitary_peephole_optimize_analysis(dag, target, approximation_degree)
+        two_qubit_unitary_peephole_optimize_analysis(dag, target, approximation_degree, heuristic)
     })?;
     let Some(result) = result else {
         return Ok(None);
@@ -77,8 +200,10 @@ pub fn two_qubit_unitary_peephole_optimize(
     dag: &DAGCircuit,
     target: &Target,
     approximation_degree: Option<f64>,
+    heuristic: HeuristicPriority,
 ) -> PyResult<Option<DAGCircuit>> {
-    let result = two_qubit_unitary_peephole_optimize_analysis(dag, target, approximation_degree)?;
+    let result =
+        two_qubit_unitary_peephole_optimize_analysis(dag, target, approximation_degree, heuristic)?;
     let Some(result) = result else {
         return Ok(None);
     };
@@ -90,7 +215,8 @@ fn score_sequence(
     sequence: &TwoQubitGateSequence,
     constraint: &QpuConstraint,
     qargs: [PhysicalQubit; 2],
-) -> (i64, f64, i64) {
+    heuristic: HeuristicPriority,
+) -> BestSynthesisHeuristicScore {
     let fidelity = fidelity_2q_sequence(dir, sequence, constraint, qargs);
     // Make the gate counts negative because synthesize_2q_matrix picks the largest value
     // we want to minimize the gate counts.
@@ -100,7 +226,17 @@ fn score_sequence(
         .iter()
         .filter(|x| x.0.num_qubits() == 2)
         .count() as i64);
-    (twoq_gate_count, fidelity, gate_count)
+    match heuristic {
+        HeuristicPriority::TwoQGate => {
+            BestSynthesisHeuristicScore::GatePriority(twoq_gate_count, fidelity, gate_count)
+        }
+        HeuristicPriority::EstimatedFidelity => {
+            BestSynthesisHeuristicScore::FidelityPriority(fidelity, twoq_gate_count, gate_count)
+        }
+        HeuristicPriority::TotalGate => {
+            BestSynthesisHeuristicScore::GatePriority(gate_count, fidelity, twoq_gate_count)
+        }
+    }
 }
 
 struct PeepholeResult {
@@ -112,6 +248,7 @@ fn two_qubit_unitary_peephole_optimize_analysis(
     dag: &DAGCircuit,
     target: &Target,
     approximation_degree: Option<f64>,
+    heuristic: HeuristicPriority,
 ) -> PyResult<Option<PeepholeResult>> {
     let runs: Vec<Vec<NodeIndex>> = dag.collect_2q_runs().unwrap();
     if runs.is_empty() {
@@ -148,12 +285,19 @@ fn two_qubit_unitary_peephole_optimize_analysis(
         let synthesis_state: &RefCell<UnitarySynthesisState> = thread_local_states
             .get_or(|| RefCell::new(UnitarySynthesisState::new(unitary_synthesis_config)));
 
+        let scorer = |dir: &Direction2q,
+                      sequence: &TwoQubitGateSequence,
+                      constraint: &QpuConstraint,
+                      qargs: [PhysicalQubit; 2]| {
+            score_sequence(dir, sequence, constraint, qargs, heuristic)
+        };
+
         let result = synthesize_2q_matrix(
             nalgebra_array_view::<Complex64, U4, U4>(matrix.as_view()).into(),
             q_phys,
             &mut synthesis_state.borrow_mut(),
             QpuConstraint::Target(target),
-            score_sequence,
+            scorer,
         )?;
         let Some(result) = result else {
             return Ok(None);
@@ -192,14 +336,26 @@ fn two_qubit_unitary_peephole_optimize_analysis(
             original_fidelity *= gate_fidelity;
         }
         let (new_score, original_score) = if !outside_target {
-            let original_score = (
-                original_2q_count,
-                1. - original_fidelity,
-                original_total_count,
-            );
+            let original_score = match heuristic {
+                HeuristicPriority::EstimatedFidelity => ComparisonScore::FidelityPriority(
+                    1. - original_fidelity,
+                    original_2q_count,
+                    original_total_count,
+                ),
+                HeuristicPriority::TwoQGate => ComparisonScore::GatePriority(
+                    original_2q_count,
+                    1. - original_fidelity,
+                    original_total_count,
+                ),
+                HeuristicPriority::TotalGate => ComparisonScore::GatePriority(
+                    original_total_count,
+                    1. - original_fidelity,
+                    original_2q_count,
+                ),
+            };
             let new_2q_count = result
                 .score
-                .map(|score| -score.0 as usize)
+                .map(|score| score.get_two_qubit_gate_count(heuristic))
                 .unwrap_or_else(|| {
                     result
                         .sequence
@@ -209,24 +365,44 @@ fn two_qubit_unitary_peephole_optimize_analysis(
                         .count()
                 });
             let new_gate_count = result.sequence.gates.len();
-            let new_score = (
-                new_2q_count,
-                1. - result.score.map(|score| score.1).unwrap_or_else(|| {
-                    fidelity_2q_sequence(
-                        &result.dir,
-                        &result.sequence,
-                        &QpuConstraint::Target(target),
-                        q_phys,
-                    )
-                }),
-                new_gate_count,
-            );
+            let new_fidelity = 1.
+                - result
+                    .score
+                    .map(|score| score.get_fidelity(heuristic))
+                    .unwrap_or_else(|| {
+                        fidelity_2q_sequence(
+                            &result.dir,
+                            &result.sequence,
+                            &QpuConstraint::Target(target),
+                            q_phys,
+                        )
+                    });
+            let new_score = match heuristic {
+                HeuristicPriority::EstimatedFidelity => {
+                    ComparisonScore::FidelityPriority(new_fidelity, new_2q_count, new_gate_count)
+                }
+                HeuristicPriority::TwoQGate => {
+                    ComparisonScore::GatePriority(new_2q_count, new_fidelity, new_gate_count)
+                }
+                HeuristicPriority::TotalGate => {
+                    ComparisonScore::GatePriority(new_gate_count, new_fidelity, new_2q_count)
+                }
+            };
             (new_score, original_score)
         } else {
             // If we're outside the target we don't need to score since we're going
             // to make the substitution to correct the basis gates. So just set to
             // zeros they won't be read but are needed for the result object.
-            ((0, 0., 0), (0, 0., 0))
+            match heuristic {
+                HeuristicPriority::EstimatedFidelity => (
+                    ComparisonScore::FidelityPriority(0., 0, 0),
+                    ComparisonScore::FidelityPriority(0., 0, 0),
+                ),
+                _ => (
+                    ComparisonScore::GatePriority(0, 0., 0),
+                    ComparisonScore::GatePriority(0, 0., 0),
+                ),
+            }
         };
         // If we are not outside the target and the new score isn't any better just use the
         // original (this includes a tie).
@@ -245,7 +421,7 @@ fn two_qubit_unitary_peephole_optimize_analysis(
         let result = TwoQSynthesisResult {
             sequence: result.sequence,
             dir: result.dir,
-            score: result.score.map(|score| score.1),
+            score: result.score.map(|score| score.get_fidelity(heuristic)),
         };
         Ok(Some((result, q_virt)))
     };
@@ -370,5 +546,6 @@ fn two_qubit_unitary_peephole_optimize_apply(
 
 pub fn two_qubit_peephole_mod(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(py_two_qubit_unitary_peephole_optimize))?;
+    m.add_class::<HeuristicPriority>()?;
     Ok(())
 }
