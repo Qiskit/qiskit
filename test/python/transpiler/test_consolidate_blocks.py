@@ -32,6 +32,7 @@ from qiskit.circuit.library import (
 )
 from qiskit.circuit.classical import expr
 from qiskit.converters import circuit_to_dag
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.measures import process_fidelity
 from qiskit.transpiler import PassManager, Target, generate_preset_pass_manager
@@ -235,6 +236,17 @@ class TestConsolidateBlocks(QiskitTestCase):
         result = pass_manager.run(circuit)
 
         self.assertEqual(circuit, result)
+
+    def test_nan_in_2q_block_error_context(self):
+        """This test proves that a failing 2q block reports the offending operation."""
+        circuit = QuantumCircuit(2)
+        circuit.u(np.nan, 0, 0, 0)
+        circuit.cx(0, 1)
+
+        pass_manager = PassManager([Collect2qBlocks(), ConsolidateBlocks()])
+
+        with self.assertRaisesRegex(QiskitError, r"u\(NaN, 0, 0\)"):
+            pass_manager.run(circuit)
 
     def test_node_added_after_block(self):
         """Test that a node after the block remains after the block

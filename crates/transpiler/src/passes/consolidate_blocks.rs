@@ -48,6 +48,7 @@ use qiskit_synthesis::two_qubit_decompose::{
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::SmallVec;
 
+use crate::QiskitError;
 use crate::passes::unitary_synthesis::{PARAM_SET, TWO_QUBIT_BASIS_SET};
 use crate::target::{Qargs, Target};
 use qiskit_circuit::PhysicalQubit;
@@ -103,6 +104,51 @@ impl<'a, 'py> pyo3::FromPyObject<'a, 'py> for DecomposerType {
                 .map(|ob| Self::TwoQubitControlledU(ob.borrow().clone()))
         }
     }
+}
+
+fn format_block_context(dag: &DAGCircuit, block: &[NodeIndex]) -> String {
+    block
+        .iter()
+        .map(|node| {
+            let inst = dag[*node].unwrap_operation();
+            let params = inst
+                .params_view()
+                .iter()
+                .map(|param| match param {
+                    Param::Float(value) => format!("{value}"),
+                    Param::ParameterExpression(expr) => expr.to_string(),
+                    Param::Obj(_) => "<object>".to_string(),
+                })
+                .collect::<Vec<_>>();
+            let params = if params.is_empty() {
+                String::new()
+            } else {
+                format!("({})", params.join(", "))
+            };
+            let qargs = dag
+                .get_qargs(inst.qubits)
+                .iter()
+                .map(|qubit| qubit.index().to_string())
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("{}{params} on qubits [{qargs}]", inst.op.name())
+        })
+        .collect::<Vec<_>>()
+        .join("; ")
+}
+
+fn add_block_context_to_error(
+    py: Python,
+    inner: PyErr,
+    dag: &DAGCircuit,
+    block: &[NodeIndex],
+) -> PyErr {
+    let error = QiskitError::new_err(format!(
+        "ConsolidateBlocks failed while estimating the synthesis cost of a 2-qubit block containing: {}.",
+        format_block_context(dag, block)
+    ));
+    error.set_cause(py, Some(inner));
+    error
 }
 
 fn get_matrix(gate: &StandardGate) -> ArrayView2<'_, Complex64> {
@@ -372,13 +418,24 @@ fn should_substitute(
             } else {
                 let num_basis_gates = if let Some(ref decomposer) = decomposer {
                     match decomposer {
-                        DecomposerType::TwoQubitBasis(decomp) => decomp.num_basis_gates_inner(
-                            nalgebra_array_view::<Complex64, U4, U4>(matrix.as_view()),
-                        )?,
+                        DecomposerType::TwoQubitBasis(decomp) => decomp
+                            .num_basis_gates_inner(nalgebra_array_view::<Complex64, U4, U4>(
+                                matrix.as_view(),
+                            ))
+                            .map_err(|inner| {
+                                Python::attach(|py| {
+                                    add_block_context_to_error(py, inner, dag, block)
+                                })
+                            })?,
                         DecomposerType::TwoQubitControlledU(decomp) => decomp
                             .num_basis_gates_inner(nalgebra_array_view::<Complex64, U4, U4>(
                                 matrix.as_view(),
-                            ))?,
+                            ))
+                            .map_err(|inner| {
+                                Python::attach(|py| {
+                                    add_block_context_to_error(py, inner, dag, block)
+                                })
+                            })?,
                     }
                 } else {
                     unreachable!("A decomposer is always set unless force_consolidate is true");
