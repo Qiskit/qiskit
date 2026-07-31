@@ -224,7 +224,7 @@ class _UGateWithGlobalPhase(Gate):
     """A one-qubit U gate with an explicit global phase parameter."""
 
     def __init__(self, theta, phi, lam, gamma, label=None):
-        super().__init__("u", 1, [theta, phi, lam, gamma], label=label)
+        super().__init__("u_global_phase", 1, [theta, phi, lam, gamma], label=label)
 
     @Gate.params.setter
     def params(self, parameters):
