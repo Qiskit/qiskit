@@ -69,12 +69,13 @@ pub fn suzuki_trotter_evolution(
             global_phase = radd_param(global_phase.clone(), (view.coeff.re * coeff).into());
             modified_phase = true;
         }
+        let pauli = view
+            .bit_terms
+            .iter()
+            .map(|bit| bit.py_label())
+            .collect::<String>();
         let instructions = sparse_term_evolution(
-            view.bit_terms
-                .iter()
-                .map(|bit| bit.py_label())
-                .collect::<String>()
-                .leak(),
+            pauli.as_str(),
             view.indices.into(),
             (view.coeff.re * coeff).into(),
             false,
