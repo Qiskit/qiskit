@@ -48,6 +48,7 @@ use qiskit_synthesis::two_qubit_decompose::{
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 use smallvec::SmallVec;
 
+use crate::QiskitError;
 use crate::passes::unitary_synthesis::{PARAM_SET, TWO_QUBIT_BASIS_SET};
 use crate::target::{Qargs, Target};
 use qiskit_circuit::PhysicalQubit;
@@ -116,6 +117,48 @@ fn get_matrix(gate: &StandardGate) -> ArrayView2<'_, Complex64> {
         StandardGate::ECR => aview2(&ECR_GATE),
         _ => unreachable!("Unsupported gate"),
     }
+}
+
+/// Format a block of nodes as a human-readable string for error messages.
+fn format_block_context(dag: &DAGCircuit, block: &[NodeIndex]) -> String {
+    block
+        .iter()
+        .map(|node| {
+            let inst = dag[*node].unwrap_operation();
+            let params = inst
+                .params_view()
+                .iter()
+                .map(|param| match param {
+                    Param::Float(value) => format!("{value}"),
+                    Param::ParameterExpression(expr) => expr.to_string(),
+                    Param::Obj(_) => "<object>".to_string(),
+                })
+                .collect::<Vec<_>>();
+            let params = if params.is_empty() {
+                String::new()
+            } else {
+                format!("({})", params.join(", "))
+            };
+            let qargs = dag
+                .get_qargs(inst.qubits)
+                .iter()
+                .map(|qubit| qubit.index().to_string())
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("{}{params} on qubits [{qargs}]", inst.op.name())
+        })
+        .collect::<Vec<_>>()
+        .join("; ")
+}
+
+/// Check if any element of a 2x2 complex matrix is NaN or infinite.
+fn matrix_2x2_has_nan_or_inf(matrix: &Matrix2<Complex64>) -> bool {
+    matrix.iter().any(|x| !x.re.is_finite() || !x.im.is_finite())
+}
+
+/// Check if any element of a 4x4 complex matrix is NaN or infinite.
+fn matrix_4x4_has_nan_or_inf(matrix: &Matrix4<Complex64>) -> bool {
+    matrix.iter().any(|x| !x.re.is_finite() || !x.im.is_finite())
 }
 
 /// Helper function that extracts the decomposer and basis gate directly from the [Target].
@@ -267,7 +310,15 @@ fn should_substitute(
             let num_qubits = inst.op.num_qubits();
             let unitary_gate = if num_qubits == 1 {
                 let matrix = match get_1q_matrix_from_inst(inst) {
-                    Ok(mat) => mat,
+                    Ok(mat) => {
+                        if matrix_2x2_has_nan_or_inf(&mat) {
+                            let block_desc = format_block_context(dag, block);
+                            return Err(QiskitError::new_err(format!(
+                                "ConsolidateBlocks failed because a 1-qubit gate has NaN or Inf parameters: {block_desc}"
+                            )));
+                        }
+                        mat
+                    }
                     Err(_) => return Ok(ConsolidateResult::NoConsolidate),
                 };
                 UnitaryGate {
@@ -275,7 +326,15 @@ fn should_substitute(
                 }
             } else if num_qubits == 2 {
                 let matrix = match get_2q_matrix_from_inst(inst) {
-                    Ok(mat) => mat,
+                    Ok(mat) => {
+                        if matrix_4x4_has_nan_or_inf(&mat) {
+                            let block_desc = format_block_context(dag, block);
+                            return Err(QiskitError::new_err(format!(
+                                "ConsolidateBlocks failed because a 2-qubit gate has NaN or Inf parameters: {block_desc}"
+                            )));
+                        }
+                        mat
+                    }
                     Err(_) => return Ok(ConsolidateResult::NoConsolidate),
                 };
                 UnitaryGate {
@@ -283,7 +342,15 @@ fn should_substitute(
                 }
             } else {
                 let matrix = match get_matrix_from_inst(inst) {
-                    Ok(mat) => mat,
+                    Ok(mat) => {
+                        if mat.iter().any(|x| !x.re.is_finite() || !x.im.is_finite()) {
+                            let block_desc = format_block_context(dag, block);
+                            return Err(QiskitError::new_err(format!(
+                                "ConsolidateBlocks failed because a gate has NaN or Inf parameters: {block_desc}"
+                            )));
+                        }
+                        mat
+                    }
                     Err(_) => return Ok(ConsolidateResult::NoConsolidate),
                 };
                 UnitaryGate {
@@ -363,6 +430,12 @@ fn should_substitute(
         ];
         let matrix = blocks_to_matrix(dag, block, block_index_map).ok();
         if let Some(matrix) = matrix {
+            if matrix_4x4_has_nan_or_inf(&matrix) {
+                let block_desc = format_block_context(dag, block);
+                return Err(QiskitError::new_err(format!(
+                    "ConsolidateBlocks failed because the 2-qubit block contains a circuit gate with NaN or Inf parameters: {block_desc}"
+                )));
+            }
             let consolidate = if force_consolidate
                 || block.len() > MAX_2Q_DEPTH
                 || (basis_gates.is_some() && outside_basis)
@@ -374,11 +447,19 @@ fn should_substitute(
                     match decomposer {
                         DecomposerType::TwoQubitBasis(decomp) => decomp.num_basis_gates_inner(
                             nalgebra_array_view::<Complex64, U4, U4>(matrix.as_view()),
-                        )?,
+                        ).map_err(|err| QiskitError::new_err(format!(
+                            "ConsolidateBlocks failed on block: {}. Error: {}",
+                            format_block_context(dag, block),
+                            err
+                        )))?,
                         DecomposerType::TwoQubitControlledU(decomp) => decomp
                             .num_basis_gates_inner(nalgebra_array_view::<Complex64, U4, U4>(
                                 matrix.as_view(),
-                            ))?,
+                            )).map_err(|err| QiskitError::new_err(format!(
+                                "ConsolidateBlocks failed on block: {}. Error: {}",
+                                format_block_context(dag, block),
+                                err
+                            )))?,
                     }
                 } else {
                     unreachable!("A decomposer is always set unless force_consolidate is true");
