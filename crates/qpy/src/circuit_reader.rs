@@ -286,7 +286,6 @@ pub fn instruction_values_to_params(
     if !non_null_values.is_empty()
         && non_null_values
             .iter()
-            // .all(|val| matches!(val, GenericValue::Circuit(_) | GenericValue::CircuitData(_)))
             .all(|val| matches!(val, GenericValue::CircuitData(_)))
     {
         // blocks
