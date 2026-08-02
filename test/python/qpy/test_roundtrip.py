@@ -283,3 +283,16 @@ class TestQPYRoundtrip(QiskitTestCase):
         with qc.for_loop((2, 5, (1 << 60))) as _:
             qc.x(0)
         self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
+
+    @all_qpy_combinations(QPY_RUST_WRITE_MIN_VERSION)
+    def test_large_generic_instruction_label(self, version, write_with, read_with):
+        """Test round-tripping a library instruction with a large label."""
+
+        label = "x" * 10000000
+        gate = PauliEvolutionGate(
+            SparsePauliOp.from_list([("Z", 1)]),
+            label=label,
+        )
+        qc = QuantumCircuit(1)
+        qc.append(gate, [0])
+        self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
