@@ -546,6 +546,42 @@ class TestInverseCancellation(QiskitTestCase):
             self.assertIn("h", gates_after)
             self.assertNotIn("p", gates_after)
 
+    def test_flat_gate_pair_error_hints_tuple_syntax(self):
+        """A flat list with a gate immediately followed by its own inverse
+        should raise a TranspilerError that names the partner gate and
+        points at the tuple-pair syntax, instead of the bare
+        "is not self-inverse" message.
+
+        See: https://github.com/Qiskit/qiskit/issues/7413
+        """
+        from qiskit.circuit.library import SGate, SdgGate
+        from qiskit.transpiler.exceptions import TranspilerError
+        from qiskit.transpiler.passes import InverseCancellation
+
+        with self.assertRaises(TranspilerError) as ctx:
+            InverseCancellation([SGate(), SdgGate()])
+
+        message = str(ctx.exception).lower()
+        self.assertIn("sdg", message)
+        self.assertIn("tuple", message)
+
+    def test_lone_non_self_inverse_gate_raises_cleanly(self):
+        """A non-self-inverse gate with no following item to pair with
+        must still raise a plain TranspilerError, not crash (e.g. with an
+        IndexError from peeking past the end of the list).
+
+        See: https://github.com/Qiskit/qiskit/issues/7413
+        """
+        from qiskit.circuit.library import SGate
+        from qiskit.transpiler.exceptions import TranspilerError
+        from qiskit.transpiler.passes import InverseCancellation
+
+        with self.assertRaises(TranspilerError) as ctx:
+            InverseCancellation([SGate()])
+
+        message = str(ctx.exception).lower()
+        self.assertIn("not self-inverse", message)
+
 
 @ddt.ddt
 class TestCXCancellation(QiskitTestCase):

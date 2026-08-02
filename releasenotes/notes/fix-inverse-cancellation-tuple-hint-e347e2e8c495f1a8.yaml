@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed :class:`.InverseCancellation` to raise a more informative
+    :class:`.TranspilerError` when a gate that is not self-inverse is
+    given as a flat list entry and the very next entry in the list is
+    its inverse. The error now names the partner gate and points to the
+    tuple-pair syntax, e.g. ``InverseCancellation([(SGate(), SdgGate())])``,
+    instead of only reporting that the first gate is not self-inverse.
+    Fixed `#7413 <https://github.com/Qiskit/qiskit/issues/7413>`__.

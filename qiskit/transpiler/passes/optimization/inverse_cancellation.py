@@ -13,6 +13,7 @@
 """
 A generic InverseCancellation pass for any set of gate-inverse pairs.
 """
+
 from __future__ import annotations
 
 
@@ -90,9 +91,22 @@ class InverseCancellation(TransformationPass):
             self._use_standard_gates = True
         else:
             self._use_standard_gates = False
-            for gates in gates_to_cancel:
+            for idx, gates in enumerate(gates_to_cancel):
                 if isinstance(gates, Gate):
-                    if gates != gates.inverse():
+                    gate_inverse = gates.inverse()
+                    if gates != gate_inverse:
+                        next_gate = (
+                            gates_to_cancel[idx + 1] if idx + 1 < len(gates_to_cancel) else None
+                        )
+                        if isinstance(next_gate, Gate) and gate_inverse == next_gate:
+                            raise TranspilerError(
+                                f"Gate {gates.name} is not self-inverse, but the "
+                                f"following gate '{next_gate.name}' is its inverse. "
+                                "To cancel this pair, group them together as a tuple "
+                                "instead of listing them separately, e.g. "
+                                "InverseCancellation("
+                                f"[({type(gates).__name__}(), {type(next_gate).__name__}())])."
+                            )
                         raise TranspilerError(f"Gate {gates.name} is not self-inverse")
                 elif isinstance(gates, tuple):
                     if len(gates) != 2:
