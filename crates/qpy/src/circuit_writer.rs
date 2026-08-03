@@ -1219,10 +1219,14 @@ pub(crate) fn pack_circuit(
         metadata_serializer,
         &qpy_data,
     )?;
-    // Pulse has been removed in Qiskit 2.0. As long as we keep QPY at version 13,
-    // we need to write an empty calibrations header since read_circuit expects it
-    let calibrations = formats::CalibrationsPack {
-        calibrations: vec![],
+    // CalibrationsPack was dropped in v18; for v13-17 write an empty block (pulse
+    // gates were removed in Qiskit 2.0 but older format versions require the field)
+    let calibrations = if version < 18 {
+        Some(formats::CalibrationsPack {
+            calibrations: vec![],
+        })
+    } else {
+        None
     };
     let (instructions, mut custom_instructions_hash) = pack_instructions(&mut qpy_data)?;
     let custom_instructions =

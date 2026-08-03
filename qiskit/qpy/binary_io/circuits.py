@@ -1648,10 +1648,9 @@ def write_circuit(
     file_obj.write(instruction_buffer.getvalue())
     instruction_buffer.close()
 
-    # Pulse has been removed in Qiskit 2.0. As long as we keep QPY at version 13,
-    # we need to write an empty calibrations header since read_circuit expects it
-    header = struct.pack(formats.CALIBRATION_PACK, 0)
-    file_obj.write(header)
+    # CalibrationsPack was dropped in v18; for v13-17 write an empty block
+    if version < 18:
+        file_obj.write(struct.pack(formats.CALIBRATION_PACK, 0))
 
     _write_layout(file_obj, circuit)
 
@@ -1808,8 +1807,8 @@ def read_circuit(
             annotation_state=annotation_state,
         )
 
-    # Consume calibrations, but don't use them since pulse gates are not supported as of Qiskit 2.0
-    if version >= 5:
+    # Consume calibrations block; absent in v18+ where it was dropped from the format
+    if 5 <= version < 18:
         _read_calibrations(file_obj, version, vectors, metadata_deserializer)
 
     if version >= 8:
