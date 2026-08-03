@@ -462,6 +462,23 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+.. _qpy_version_18:
+
+Version 18
+----------
+
+Version 18 removes the ``CalibrationsPack`` field from the circuit payload. Pulse gate
+calibrations were removed from Qiskit in version 2.0, and since then the field has always
+been written as an empty placeholder (``num_cals = 0``). Dropping it saves 2 bytes per
+circuit and cleans up the format.
+
+Files written with QPY version 18 cannot be read by Qiskit versions that only support QPY
+up to version 17. Files written with QPY version 17 or earlier are still read correctly.
+
+.. versionchanged:: QPY 18
+    The ``CALIBRATIONS`` block (``num_cals: uint16``) is no longer present in the circuit
+    payload. It was present in versions 5 through 17.
+
 .. _qpy_version_17:
 
 Version 17
