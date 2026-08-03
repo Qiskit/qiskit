@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         name: Install Python
         with:
           python-version: '3.11'
@@ -66,7 +66,7 @@ jobs:
 
       - name: Generate rust test coverage report
         run: |
-          python tools/run_cargo_test.py
+          cargo test
         env:
           RUSTFLAGS: "-Cinstrument-coverage -Cincremental=false"
           LLVM_PROFILE_FILE: "qiskit-%p-%m.profraw"

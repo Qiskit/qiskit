@@ -241,23 +241,22 @@ pub fn run_litinski_transformation(
                     let mut process_rot_gate = |gate: StandardGate,
                                                 pauli: Pauli1q|
                      -> Option<(Pauli1q, Param)> {
-                        if let Param::Float(angle) = param[0] {
-                            if let Some(multiple) =
+                        if let Param::Float(angle) = param[0]
+                            && let Some(multiple) =
                                 is_angle_close_to_multiple_of_pi_k(gate, 2, angle, tol)
-                            {
-                                is_clifford = true;
-                                match gate {
-                                    StandardGate::RZ | StandardGate::Phase | StandardGate::U1 => {
-                                        clifford.append_rz(qubit, multiple)
-                                    }
-                                    StandardGate::RX => clifford.append_rx(qubit, multiple),
-                                    StandardGate::RY => clifford.append_ry(qubit, multiple),
-                                    _ => unreachable!(
-                                        "We cannot have gates other than RZ/RX/RY/P/U1 at this point."
-                                    ),
+                        {
+                            is_clifford = true;
+                            match gate {
+                                StandardGate::RZ | StandardGate::Phase | StandardGate::U1 => {
+                                    clifford.append_rz(qubit, multiple)
                                 }
-                                return None;
+                                StandardGate::RX => clifford.append_rx(qubit, multiple),
+                                StandardGate::RY => clifford.append_ry(qubit, multiple),
+                                _ => unreachable!(
+                                    "We cannot have gates other than RZ/RX/RY/P/U1 at this point."
+                                ),
                             }
+                            return None;
                         }
                         Some((pauli, param[0].clone()))
                     };
