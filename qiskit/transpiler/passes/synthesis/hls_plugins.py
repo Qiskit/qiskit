@@ -183,12 +183,12 @@ not sufficient, the corresponding synthesis method will return `None`.
       - :class:`~.MCXSynthesisNoAuxV24`
       - :math:`0`
       - :math:`0`
-      - quadratic number of CX gates O(8*k^2)
+      - quadratic number of CX gates 8*k^2+O(k)
     * - ``"noaux_sp22"``
       - :class:`~.MCXSynthesisNoAuxSP22`
       - :math:`0`
       - :math:`0`
-      - quadratic number of CX gates O(4*k^2)
+      - quadratic number of CX gates 4*k^2+O(k)
     * - ``"noaux_hp24"``
       - :class:`~.MCXSynthesisNoAuxHP24`
       - :math:`0`
