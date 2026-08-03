@@ -277,18 +277,15 @@ class TestAdder(QiskitTestCase):
         count_2q = OptimizationMetric.COUNT_2Q
         count_t = OptimizationMetric.COUNT_T
         cases = [
-            ("half_2q_small", HalfAdderGate(2), 1, count_2q, "ccx"),
-            ("half_2q_c04", HalfAdderGate(3), 1, count_2q, "MAJ"),
-            ("half_2q_no_aux", HalfAdderGate(3), 0, count_2q, "ccx"),
-            ("half_t_small", HalfAdderGate(1), 1, count_t, "ccx"),
-            ("half_t_c04", HalfAdderGate(2), 1, count_t, "MAJ"),
-            ("half_t_no_aux", HalfAdderGate(2), 0, count_t, "ccx"),
+            ("half_2q_small", HalfAdderGate(3), 1, count_2q, "ccx"),
+            ("half_2q_c04", HalfAdderGate(4), 1, count_2q, "MAJ"),
+            ("half_2q_no_aux", HalfAdderGate(4), 0, count_2q, "ccx"),
             ("full_2q_v95", FullAdderGate(1), 0, count_2q, "Carry"),
             ("full_t_c04", FullAdderGate(1), 0, count_t, "MAJ"),
+            ("full_2q_c04", FullAdderGate(4), 0, count_2q, "MAJ"),
             ("modular_2q_small", ModularAdderGate(1), 1, count_2q, "cx"),
             ("modular_2q_qft", ModularAdderGate(3), 1, count_2q, "cp"),
-            ("modular_2q_c04", ModularAdderGate(4), 1, count_2q, "MAJ"),
-            ("modular_2q_qft_no_aux", ModularAdderGate(4), 0, count_2q, "cp"),
+            ("modular_2q_qft_4", ModularAdderGate(4), 1, count_2q, "cp"),
             ("modular_2q_c04_large", ModularAdderGate(5), 1, count_2q, "MAJ"),
             ("modular_2q_v17_no_aux", ModularAdderGate(5), 0, count_2q, "rccx"),
             ("modular_t_v17", ModularAdderGate(4), 1, count_t, "rccx"),

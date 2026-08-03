@@ -1700,8 +1700,8 @@ class ModularAdderSynthesisDefault(HighLevelSynthesisPlugin):
     * ``num_clean_ancillas``: The number of clean ancillary qubits available.
     * ``num_dirty_ancillas``: The number of dirty ancillary qubits available.
 
-    For two-qubit-gate count, this selects QFT synthesis for two or three state
-    qubits, and CDKM synthesis from four state qubits when a clean ancilla is
+    For two-qubit-gate count, this selects QFT synthesis for two to four state
+    qubits, and CDKM synthesis from five state qubits when a clean ancilla is
     available. Otherwise, it uses the ancilla-free V17 synthesis. For T-count,
     it always uses V17 synthesis.
 
@@ -1711,18 +1711,18 @@ class ModularAdderSynthesisDefault(HighLevelSynthesisPlugin):
         if not isinstance(high_level_object, ModularAdderGate):
             return None
 
-        num_state_qubits = high_level_object.num_state_qubits
         metric = options.get("optimization_metric", OptimizationMetric.COUNT_2Q)
-        if metric == OptimizationMetric.COUNT_T:
-            methods = [ModularAdderSynthesisV17]
-        elif num_state_qubits == 1:
-            methods = [ModularAdderSynthesisV17]
-        elif num_state_qubits <= 3:
-            methods = [ModularAdderSynthesisD00]
-        elif num_state_qubits == 4:
-            methods = [ModularAdderSynthesisC04, ModularAdderSynthesisD00]
+        if metric == OptimizationMetric.COUNT_2Q:
+            # The order is optimized towards CX-friendly synthesis methods.
+            methods = []
+            if 2 <= high_level_object.num_state_qubits <= 4:
+                methods.append(ModularAdderSynthesisD00)
+            elif high_level_object.num_state_qubits >= 5:
+                methods.append(ModularAdderSynthesisC04)
+            methods.append(ModularAdderSynthesisV17)
         else:
-            methods = [ModularAdderSynthesisC04, ModularAdderSynthesisV17]
+            # The order is optimized towards Clifford+T-friendly synthesis methods.
+            methods = [ModularAdderSynthesisV17]
 
         for method in methods:
             if (
@@ -1833,9 +1833,6 @@ class HalfAdderSynthesisDefault(HighLevelSynthesisPlugin):
 
     The plugin supports the following plugin-specific options:
 
-    * ``optimization_metric``: The optimization metric, indicating whether the
-      two-qubit-gate count or T-count should be minimized. See
-      :class:`.OptimizationMetric`.
     * ``num_clean_ancillas``: The number of clean auxiliary qubits available.
 
     """
@@ -1844,11 +1841,9 @@ class HalfAdderSynthesisDefault(HighLevelSynthesisPlugin):
         if not isinstance(high_level_object, HalfAdderGate):
             return None
 
-        metric = options.get("optimization_metric", OptimizationMetric.COUNT_2Q)
-        r25_max_qubits = 1 if metric == OptimizationMetric.COUNT_T else 2
-
+        # For up to 3 qubits, ripple_r25 is better
         if (
-            high_level_object.num_state_qubits <= r25_max_qubits
+            high_level_object.num_state_qubits <= 3
             and (
                 decomposition := HalfAdderSynthesisR25().run(
                     high_level_object, coupling_map, target, qubits, **options

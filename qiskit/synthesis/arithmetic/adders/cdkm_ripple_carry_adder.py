@@ -20,7 +20,7 @@ def adder_ripple_c04(num_state_qubits: int, kind: str = "half") -> QuantumCircui
 
     This circuit uses :math:`2n + O(1)` RCCX gates and :math:`5n + O(1)` CX gates,
     at a depth of :math:`2n + O(1)` [1].
-    The relative phases introduced by each RCCX are canceled by its inverse in the
+    The relative phases introduced during majority computation cancel during
     uncomputation. The constant depends on the kind of adder implemented.
 
     As an example, a ripple-carry adder circuit that performs addition on two 3-qubit sized
@@ -86,6 +86,7 @@ def adder_ripple_c04(num_state_qubits: int, kind: str = "half") -> QuantumCircui
             adder, or ``"fixed"`` for a fixed-sized adder. A full adder includes both carry-in
             and carry-out, a half only carry-out, and a fixed-sized adder neither carry-in
             nor carry-out.
+
     Raises:
         ValueError: If ``num_state_qubits`` is lower than 1.
 
