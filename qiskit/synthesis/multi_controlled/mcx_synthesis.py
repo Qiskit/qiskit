@@ -404,13 +404,8 @@ def synth_mcx_noaux_default(num_ctrl_qubits: int) -> QuantumCircuit:
         raise QiskitError(
             "synth_mcx_noaux_default cannot be called with a negative number of control qubits."
         )
-    elif num_ctrl_qubits == 0:
-        qc.x(0)
-    elif num_ctrl_qubits == 1:
-        qc.cx(0, 1)
-    elif num_ctrl_qubits == 2:
-        qc = QuantumCircuit(3)
-        qc.ccx(0, 1, 2)
+    if num_ctrl_qubits <= 2:
+        return _synth_mcx_special_cases(num_ctrl_qubits)
     elif num_ctrl_qubits == 3:
         qc = synth_c3x()
     elif num_ctrl_qubits == 4:
