@@ -282,8 +282,6 @@ class ControlledGate(Gate):
         """Return a matrix representation of the controlled gate."""
         if hasattr(self, "__array__"):
             return self.__array__(dtype=complex)
-        if self.base_gate is None:
-            raise CircuitError(f"to_matrix not defined for {type(self)}")
         has_ancillas = self.num_qubits != self.num_ctrl_qubits + self.base_gate.num_qubits
         if has_ancillas:
             raise CircuitError(f"to_matrix not defined for {type(self)}")
