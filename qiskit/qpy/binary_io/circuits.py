@@ -103,7 +103,7 @@ class _AnnotationSerializationState:
             (namespace, serializer)
             for (namespace, (_, serializer)) in self.serializers.items()
         )
-    
+
     def dump_states(self) -> list[tuple[str, bytes]]:
         """Return the serialized state for each serializer, in index order."""
         return [
