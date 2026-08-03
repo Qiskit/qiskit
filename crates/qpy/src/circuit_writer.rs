@@ -1041,7 +1041,7 @@ fn pack_custom_instruction(
                 Some(py.None().bind(py)),
                 false,
                 qpy_data.version,
-                qpy_data.annotation_handler.annotation_factories,
+                qpy_data.annotation_handler.child()?,
             )?)?)
         }
         CircuitInstructionType::AnnotatedOperation => {
@@ -1056,7 +1056,7 @@ fn pack_custom_instruction(
                     Some(py.None().bind(py)),
                     false,
                     qpy_data.version,
-                    qpy_data.annotation_handler.annotation_factories,
+                    qpy_data.annotation_handler.child()?,
                 )
                 .and_then(|fmt| serialize(&fmt))
             })
@@ -1207,9 +1207,8 @@ pub(crate) fn pack_circuit(
     metadata_serializer: Option<&Bound<PyAny>>,
     _use_symengine: bool,
     version: u8,
-    annotation_factories: &Bound<PyDict>,
+    annotation_handler: AnnotationHandler,
 ) -> Result<formats::QPYCircuit, QpyError> {
-    let annotation_handler = AnnotationHandler::new(annotation_factories);
     let mut qpy_data = QPYWriteData {
         circuit_data: &mut circuit.data,
         version,
@@ -1262,12 +1261,13 @@ pub(crate) fn py_write_circuit(
     version: u8,
     annotation_factories: &Bound<PyDict>,
 ) -> PyResult<usize> {
+    let annotation_handler = AnnotationHandler::python(&annotation_factories.clone().unbind())?;
     let packed_circuit = pack_circuit(
         &mut circuit.extract()?,
         Some(metadata_serializer),
         use_symengine,
         version,
-        annotation_factories,
+        annotation_handler,
     )?;
     let serialized_circuit = serialize(&packed_circuit)?;
     file_obj.call_method1(
