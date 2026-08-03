@@ -1,4 +1,5 @@
 fixes:
   - |
     Fixed an issue where `generate_preset_clifford_t_pass_manager` panics when
-    certain values are passed with `rz_synthesis_error`.
+    certain values are passed with `rz_synthesis_error`. See
+    `#16540 <https://github.com/Qiskit/qiskit/issues/16540>` for more details.
