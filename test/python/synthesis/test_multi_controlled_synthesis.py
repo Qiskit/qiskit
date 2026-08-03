@@ -542,7 +542,7 @@ class TestMCSynthesisCounts(QiskitTestCase):
         self.assertLessEqual(cx_count, 4 * num_ctrl_qubits**2 - 4 * num_ctrl_qubits + 2)
 
     @combine(
-        num_ctrl_qubits=[5, 10, 15],
+        num_ctrl_qubits=[10, 15, 20],
         annotated=[False, True],
     )
     def test_mcu_noaux_cx_count(self, num_ctrl_qubits: int, annotated: bool):
@@ -558,9 +558,8 @@ class TestMCSynthesisCounts(QiskitTestCase):
         cx_count = transpiled_circuit.count_ops()["cx"]
         # The synthesis of MCU(n) uses two MCRZ(n), one MCRY(n), and one MCPhase(n-1).
         # Thus the number of CX-gate should be upper-bounded by
-        # 3*(16 * (n + 1) - 40) + (8 * (n-1)^2 - 16 * (n-1))
-        # ToDo: recalculate the bound!
-        self.assertLessEqual(cx_count, 8 * num_ctrl_qubits**2 + 16 * num_ctrl_qubits - 96)
+        # 3 * (16 * (n + 1) - 40) + 8 * (n - 1) ** 2 - 16 * (n -1) - 60
+        self.assertLessEqual(cx_count, 8 * num_ctrl_qubits**2 + 16 * num_ctrl_qubits - 108)
 
     @combine(
         num_ctrl_qubits=[1, 2, 3, 4, 5, 6, 7, 8],
