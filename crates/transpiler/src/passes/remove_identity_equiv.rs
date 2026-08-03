@@ -20,7 +20,7 @@ use crate::gate_metrics::rotation_trace_and_dim;
 use crate::passes::common::{MINIMUM_TOL, average_gate_fidelity_below_tol};
 use crate::target::Target;
 use qiskit_circuit::PhysicalQubit;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit};
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::StandardGate;
@@ -213,10 +213,11 @@ where
 #[pyo3(name = "remove_identity_equiv", signature=(dag, approx_degree=Some(1.0), target=None))]
 pub fn py_remove_identity_equiv(
     py: Python,
-    dag: &mut DAGCircuit,
+    dag: &mut PyDAGCircuit,
     approx_degree: Option<f64>,
     target: Option<&Target>,
 ) -> PyResult<()> {
+    let mut dag_mut = dag.try_write()?;
     // TODO: This is a hack to avoid panicking in the case that the global phase contains `Py`
     // pointers (such as backrefs to `ParameterVector` objects in an expression `Symbol`) that would
     // get cloned when updating the global phase.  It's easier to do it out here than to try to
@@ -225,13 +226,16 @@ pub fn py_remove_identity_equiv(
     //
     // This doesn't account for control-flow blocks which _also_ might have set global phases, byt
     // `run_remove_identity_equiv` as of Qiskit 2.4 doesn't recurse, so the hack should hold.
-    let old_phase = dag.set_global_phase_f64(0.0);
+    let old_phase = dag_mut.set_global_phase_f64(0.0);
+
+    // Drop the acquired lock on dag to send safely in the next call.
+    drop(dag_mut);
 
     // Explicitly release GIL because threads may call Python to get
     // the matrix for a PyGate
-    py.detach(|| run_remove_identity_equiv(dag, approx_degree, target))?;
+    py.detach(|| run_remove_identity_equiv(&mut *dag.try_write()?, approx_degree, target))?;
 
-    dag.add_global_phase(&old_phase)?;
+    dag.try_write()?.add_global_phase(&old_phase)?;
     Ok(())
 }
 
