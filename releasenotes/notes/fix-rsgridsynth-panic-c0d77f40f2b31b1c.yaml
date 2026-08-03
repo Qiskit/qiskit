@@ -1,6 +1,7 @@
 fixes:
   - |
-    Fixed an issue where `generate_preset_clifford_t_pass_manager` causes an
-    unexpected panic when certain values are passed with `rz_synthesis_error`.
-    See `#16540 <https://github.com/Qiskit/qiskit/issues/16540>` for more
+    Fixed an issue where the :class:`.SynthesizeRZRotations` transpiler
+    pass could potentially panic if the ``synthesis_error`` argument
+    was set to specific values.
+    See `#16540 <https://github.com/Qiskit/qiskit/issues/16540>`__ for more
     details.
