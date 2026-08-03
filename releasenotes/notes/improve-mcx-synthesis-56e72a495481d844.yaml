@@ -13,6 +13,6 @@ features_synthesis:
   - Added a synthesis function :func:`.synth_mcx_noaux_default` which is a 
     dispatcher that selects between the differenct synthesis methods according 
     to the number of control qubits.
-features_trasnpiler:
+features_transpiler:
   - Added a new high-level synthesis plugin :class:`.MCXSynthesisNoAuxSP22`
     for the synthesis of :class:`.MCXGate` with no ancilla qubits.
