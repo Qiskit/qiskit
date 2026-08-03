@@ -15,14 +15,15 @@ use hashbrown::HashMap;
 use num_complex::Complex64;
 use smallvec::smallvec;
 
-use crate::operations::CustomOp;
 use crate::exit_codes::ExitCode;
+use crate::operations::CustomOp;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, NodeIndex, NodeType};
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
-    ArrayType, CustomOperation, Operation, OperationRef, Param, StandardGate, StandardInstruction, UnitaryGate,
+    ArrayType, CustomOperation, Operation, OperationRef, Param, StandardGate, StandardInstruction,
+    UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
@@ -1963,7 +1964,7 @@ pub unsafe extern "C" fn qk_dag_convert_from_python(
 /// @param front If ``true``, the operation is applied as the first operation on the specified qubits,
 ///     rather than as the last.
 /// @param node The pointer to an address big enough to write the unsigned 32-bit integer index to.
-/// 
+///
 /// @return an ExitCode.
 ///
 /// # Safety
@@ -1974,7 +1975,7 @@ pub unsafe extern "C" fn qk_dag_convert_from_python(
 /// insufficiently long the behavior of this function is undefined as this will read
 /// outside the bounds of the array. It can be a null pointer if there are no qubits
 /// or params for a given operation.
-/// 
+///
 /// Behavior is undefined if ``node`` is not a valid non-null pointer to an address big
 /// enough to store a 32-bit unsigned integer.
 ///
@@ -2020,21 +2021,34 @@ pub unsafe extern "C" fn qk_dag_apply_custom_operation(
         Parameters::Params(params.iter().cloned().collect())
     });
 
-    let ret;
-    if front {
-        ret = circ.apply_operation_front(op, qargs, cargs, params, None);
+    let ret = if front {
+        circ.apply_operation_front(
+            op,
+            qargs,
+            cargs,
+            params,
+            None,
+            #[cfg(feature = "cache_pygates")]
+            None,
+        )
     } else {
-        ret = circ.apply_operation_back(op, qargs, cargs, params, None);
-    }
+        circ.apply_operation_back(
+            op,
+            qargs,
+            cargs,
+            params,
+            None,
+            #[cfg(feature = "cache_pygates")]
+            None,
+        )
+    };
     match ret {
         Ok(val) => {
             // SAFETY: `node` is a non-null pointer to an address that can hold a 32-bit integer.
             unsafe { node.write(val.index() as u32) };
             ExitCode::Success
-        },
-        Err(DAGError::WireOutOfRange(_wire, _size)) => {
-            ExitCode::MismatchedQubits
         }
+        Err(DAGError::WireOutOfRange(_wire, _size)) => ExitCode::MismatchedQubits,
         Err(_) => ExitCode::DagError,
     }
 }
