@@ -995,16 +995,26 @@ measure q0[1] -> c0[1];
         self.assertEqual(pass_(qc), expected)
 
     def test_approximation_degree(self):
-        """Test that approximation_degree is accepted and cancellation still works."""
+        """Test that approximation_degree changes cancellation via commutation tolerance.
+
+        A small RZ on the CX target does not exactly commute with CX, so with
+        ``approximation_degree=1.0`` the flanking CXs do not cancel. With maximal
+        approximation (``0.0``), the RZ is treated as identity for commutation and
+        the CXs cancel. Omitting ``approximation_degree`` matches ``1.0``.
+        """
+        eps = 1e-5
         qc = QuantumCircuit(2)
         qc.cx(0, 1)
+        qc.rz(eps, 1)
         qc.cx(0, 1)
-        expected = QuantumCircuit(2)
 
-        for approximation_degree in [None, 0.5, 1.0]:
-            with self.subTest(approximation_degree=approximation_degree):
-                result = CommutativeCancellation(approximation_degree=approximation_degree)(qc)
-                self.assertEqual(expected, result)
+        strict = CommutativeCancellation(approximation_degree=1.0)(qc)
+        approx = CommutativeCancellation(approximation_degree=0.0)(qc)
+        default = CommutativeCancellation()(qc)
+
+        self.assertEqual(strict.count_ops().get("cx", 0), 2)
+        self.assertEqual(approx.count_ops().get("cx", 0), 0)
+        self.assertEqual(default, strict)
 
 
 if __name__ == "__main__":

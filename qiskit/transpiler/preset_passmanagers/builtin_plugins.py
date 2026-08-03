@@ -162,7 +162,11 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             )
             init.append(
                 CommutativeCancellation(
-                    approximation_degree=pass_manager_config.approximation_degree
+                    approximation_degree=(
+                        pass_manager_config.approximation_degree
+                        if pass_manager_config.approximation_degree is not None
+                        else 1.0
+                    )
                 )
             )
             init.append(ConsolidateBlocks())
@@ -559,7 +563,11 @@ class OptimizationPassManager(PassManagerStagePlugin):
                     ),
                     CommutativeCancellation(
                         target=pass_manager_config.target,
-                        approximation_degree=pass_manager_config.approximation_degree,
+                        approximation_degree=(
+                            pass_manager_config.approximation_degree
+                            if pass_manager_config.approximation_degree is not None
+                            else 1.0
+                        ),
                     ),
                     ContractIdleWiresInControlFlow(),
                 ]
@@ -581,7 +589,11 @@ class OptimizationPassManager(PassManagerStagePlugin):
                     ),
                     CommutativeCancellation(
                         target=pass_manager_config.target,
-                        approximation_degree=pass_manager_config.approximation_degree,
+                        approximation_degree=(
+                            pass_manager_config.approximation_degree
+                            if pass_manager_config.approximation_degree is not None
+                            else 1.0
+                        ),
                     ),
                     ContractIdleWiresInControlFlow(),
                 ]

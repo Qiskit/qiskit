@@ -48,7 +48,7 @@ class CommutativeCancellation(TransformationPass):
         self,
         basis_gates=None,
         target=None,
-        approximation_degree: float | None = 1.0,
+        approximation_degree: float = 1.0,
     ):
         """
         CommutativeCancellation initializer.
@@ -63,9 +63,8 @@ class CommutativeCancellation(TransformationPass):
                 precedence and ``basis_gates`` will be ignored.
             approximation_degree: The threshold used in the average gate fidelity
                 computation to decide whether pairs of gates can be considered as
-                canceling or commuting. This can be a floating point value between
-                0 and 1, or ``None``. If the value is ``None`` the default fidelity
-                of ``1.0`` is used.
+                canceling or commuting. A floating point value between 0 and 1,
+                where ``1.0`` means no approximation (default).
         """
         super().__init__()
         if basis_gates:
@@ -99,15 +98,10 @@ class CommutativeCancellation(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        approximation_degree = (
-            self._approximation_degree
-            if self._approximation_degree is not None
-            else 1.0
-        )
         commutation_cancellation.cancel_commutations(
             dag,
             self._commutation_checker,
             sorted(self.basis),
-            approximation_degree,
+            self._approximation_degree,
         )
         return dag
