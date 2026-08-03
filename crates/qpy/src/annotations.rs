@@ -50,6 +50,12 @@ impl AnnotationHandler {
         })
     }
 
+    // we will use this as part of the python-independance path
+    #[allow(dead_code)]
+    pub fn native() -> Self {
+        Self::Native
+    }
+
     /// Create independent annotation state for a nested circuit while preserving the caller mode.
     pub fn child(&self) -> Result<Self, QpyError> {
         match self {
