@@ -137,7 +137,6 @@ pub fn dump_qpy(
         })
         .collect::<Result<Vec<Bytes>, QpyError>>()?;
     // Since QPY doesn't use symengine anymore, we default to SymbolicEncoding::Sympy
-    let symbolic_encoding = SymbolicEncoding::Sympy;
     let qpy_header = QPYFileHeader {
         qpy_version,
         qiskit_version: QISKIT_VERSION,
@@ -390,7 +389,6 @@ pub fn py_load_qpy(
     annotation_factories: Option<Bound<PyDict>>,
 ) -> Result<Vec<Py<PyAny>>, QpyError> {
     let annotation_factories = annotation_factories.unwrap_or(PyDict::new(py));
-    let annotation_handler = AnnotationHandler::python(&annotation_factories.clone().unbind())?;
     // Read all data from file object
     let data: Bytes = file_obj.call_method0("read")?.extract()?;
 
