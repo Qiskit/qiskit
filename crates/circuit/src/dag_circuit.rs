@@ -4093,6 +4093,7 @@ impl DAGCircuit {
             }
 
             let mut new_layer = self.copy_empty_like(vars_mode, BlocksMode::Drop);
+            new_layer.global_phase = Param::Float(0.);
             let mut block_map = BlockMapper::new();
             let data: Vec<_> = op_nodes
                 .iter()
@@ -4135,6 +4136,7 @@ impl DAGCircuit {
                 _ => unreachable!("A non-operation node was obtained from topological_op_nodes."),
             };
             let mut new_layer = self.copy_empty_like(vars_mode, BlocksMode::Drop);
+            new_layer.global_phase = Param::Float(0.);
             let mut block_map = BlockMapper::new();
 
             // Save the support of the operation we add to the layer
@@ -5396,7 +5398,7 @@ impl DAGCircuit {
         &mut self,
         qubits: T,
     ) -> Result<(), DAGError> {
-        let qubits: HashSet<Qubit> = qubits.into_iter().collect();
+        let qubits: IndexSet<Qubit> = qubits.into_iter().collect();
 
         let mut busy_bits = Vec::new();
         for bit in qubits.iter() {
@@ -5530,7 +5532,7 @@ impl DAGCircuit {
         &mut self,
         clbits: T,
     ) -> Result<(), DAGError> {
-        let clbits: HashSet<Clbit> = clbits.into_iter().collect();
+        let clbits: IndexSet<Clbit> = clbits.into_iter().collect();
         let mut busy_bits = Vec::new();
         for bit in clbits.iter() {
             if !self.is_wire_idle(Wire::Clbit(*bit)) {

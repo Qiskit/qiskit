@@ -50,7 +50,9 @@ impl AnnotationHandler {
         })
     }
 
-    pub const fn native() -> Self {
+    // we will use this as part of the python-independance path
+    #[allow(dead_code)]
+    pub fn native() -> Self {
         Self::Native
     }
 
@@ -62,7 +64,7 @@ impl AnnotationHandler {
         }
     }
 
-    pub fn serialize(&mut self, annotation: &Py<PyAny>) -> Result<(u32, Bytes), QpyError> {
+    pub fn serialize(&self, annotation: &Py<PyAny>) -> Result<(u32, Bytes), QpyError> {
         match self {
             Self::Python {
                 serialization_state,
@@ -102,7 +104,7 @@ impl AnnotationHandler {
         }
     }
 
-    pub fn load_deserializers(&mut self, data: Vec<(String, Bytes)>) -> Result<(), QpyError> {
+    pub fn load_deserializers(&self, data: Vec<(String, Bytes)>) -> Result<(), QpyError> {
         if data.is_empty() {
             return Ok(());
         }
@@ -147,7 +149,7 @@ mod tests {
 
     #[test]
     fn native_handler_rejects_annotations() {
-        let mut handler = AnnotationHandler::native();
+        let handler = AnnotationHandler::native();
         assert!(matches!(
             handler.load(0, Bytes::new()),
             Err(QpyError::AnnotationError(_))
