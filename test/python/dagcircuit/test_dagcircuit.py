@@ -402,6 +402,50 @@ class TestDagRegisters(DAGTest):
         with self.assertRaises(DAGCircuitError):
             dag.find_bit(new_bit)
 
+    def test_remove_qubits_determinism(self):
+        """Regression test of gh-16655."""
+
+        def build() -> DAGCircuit:
+            in_reg = QuantumRegister(4, "f")
+            in_dag = DAGCircuit()
+            in_dag.add_qreg(in_reg)
+
+            out_reg = QuantumRegister(4, "q")
+            out_dag = in_dag.copy_empty_like()
+            out_dag.add_qreg(out_reg)
+            out_dag.remove_qregs(in_reg)
+            out_dag.remove_qubits(*in_reg)
+            out_dag.apply_operation_back(XGate(), (out_dag.qubits[0],), ())
+            out_dag.apply_operation_back(XGate(), (out_dag.qubits[1],), ())
+            return out_dag
+
+        base = build()
+        dags = [build() for _ in range(10)]
+        self.assertEqual([base.structurally_equal(dag) for dag in dags], [True] * len(dags))
+
+    def test_remove_clbits_determinism(self):
+        """Regression test of gh-16655."""
+
+        def build() -> DAGCircuit:
+            qr = QuantumRegister(4, "q")
+            in_reg = ClassicalRegister(4, "f")
+            in_dag = DAGCircuit()
+            in_dag.add_qreg(qr)
+            in_dag.add_creg(in_reg)
+
+            out_reg = ClassicalRegister(4, "c")
+            out_dag = in_dag.copy_empty_like()
+            out_dag.add_creg(out_reg)
+            out_dag.remove_cregs(in_reg)
+            out_dag.remove_clbits(*in_reg)
+            out_dag.apply_operation_back(Measure(), (out_dag.qubits[0],), (out_dag.clbits[0],))
+            out_dag.apply_operation_back(Measure(), (out_dag.qubits[1],), (out_dag.clbits[1],))
+            return out_dag
+
+        base = build()
+        dags = [build() for _ in range(10)]
+        self.assertEqual([base.structurally_equal(dag) for dag in dags], [True] * len(dags))
+
 
 class TestDagWireRemoval(DAGTest):
     """Test removal of registers and idle wires."""
@@ -1464,6 +1508,34 @@ class TestDagLayers(DAGTest):
                 for nd in dag1.topological_nodes()
             ]
             self.assertEqual(comp, truth)
+
+    def test_serial_layers_do_not_copy_global_phase(self):
+        """serial_layers() should not copy the parent DAG global phase."""
+        qc = QuantumCircuit(2, global_phase=math.pi / 7)
+        qc.h(0)
+        qc.cx(0, 1)
+        dag = circuit_to_dag(qc)
+
+        layers = list(dag.serial_layers())
+
+        self.assertEqual(len(layers), 2)
+        self.assertEqual(dag.global_phase, math.pi / 7)
+        self.assertEqual(layers[0]["graph"].global_phase, 0.0)
+        self.assertEqual(layers[1]["graph"].global_phase, 0.0)
+
+    def test_layers_do_not_copy_global_phase(self):
+        """layers() should not copy the parent DAG global phase."""
+        qc = QuantumCircuit(2, global_phase=math.pi / 7)
+        qc.h(0)
+        qc.cx(0, 1)
+        dag = circuit_to_dag(qc)
+
+        layers = list(dag.layers())
+
+        self.assertEqual(len(layers), 2)
+        self.assertEqual(dag.global_phase, math.pi / 7)
+        self.assertEqual(layers[0]["graph"].global_phase, 0.0)
+        self.assertEqual(layers[1]["graph"].global_phase, 0.0)
 
 
 def _sort_key(indices: dict[Qubit, int]):

@@ -858,12 +858,11 @@ fn pack_transpile_layout(
                 .extract::<ShareableQubit>()
                 .map_err(|e| QpyError::from(PyErr::from(e)))?;
             let register = qubit.owning_register();
-            if let Some(reg) = register {
-                if qubit.owning_register_index().is_some()
-                    && !qpy_data.circuit_data.qregs().contains(&reg)
-                {
-                    extra_registers.insert(reg);
-                }
+            if let Some(reg) = register
+                && qubit.owning_register_index().is_some()
+                && !qpy_data.circuit_data.qregs().contains(&reg)
+            {
+                extra_registers.insert(reg);
             };
             let i: usize = index.extract()?;
             input_qubit_mapping_array[i] = layout_mapping.get_item(&qubit)?.extract::<u32>()?;
@@ -982,10 +981,10 @@ fn pack_extra_registers(
 ) -> Result<Vec<formats::RegisterV4Pack>, QpyError> {
     let mut out_circ_regs: HashSet<QuantumRegister> = HashSet::new();
     for qubit in qubits.iter() {
-        if let Some(qreg) = qubit.owning_register() {
-            if !in_circ_regs.contains(&qreg) {
-                out_circ_regs.insert(qreg);
-            }
+        if let Some(qreg) = qubit.owning_register()
+            && !in_circ_regs.contains(&qreg)
+        {
+            out_circ_regs.insert(qreg);
         }
     }
     let mut result = Vec::new();
@@ -1042,7 +1041,7 @@ fn pack_custom_instruction(
                 Some(py.None().bind(py)),
                 false,
                 qpy_data.version,
-                qpy_data.annotation_handler.annotation_factories,
+                qpy_data.annotation_handler.child()?,
             )?)?)
         }
         CircuitInstructionType::AnnotatedOperation => {
@@ -1057,7 +1056,7 @@ fn pack_custom_instruction(
                     Some(py.None().bind(py)),
                     false,
                     qpy_data.version,
-                    qpy_data.annotation_handler.annotation_factories,
+                    qpy_data.annotation_handler.child()?,
                 )
                 .and_then(|fmt| serialize(&fmt))
             })
@@ -1207,10 +1206,9 @@ pub(crate) fn pack_circuit(
     circuit: &mut QuantumCircuitData,
     metadata_serializer: Option<&Bound<PyAny>>,
     _use_symengine: bool,
-    version: u32,
-    annotation_factories: &Bound<PyDict>,
+    version: u8,
+    annotation_handler: AnnotationHandler,
 ) -> Result<formats::QPYCircuit, QpyError> {
-    let annotation_handler = AnnotationHandler::new(annotation_factories);
     let mut qpy_data = QPYWriteData {
         circuit_data: &mut circuit.data,
         version,
@@ -1260,15 +1258,16 @@ pub(crate) fn py_write_circuit(
     circuit: &Bound<PyAny>,
     metadata_serializer: &Bound<PyAny>,
     use_symengine: bool,
-    version: u32,
+    version: u8,
     annotation_factories: &Bound<PyDict>,
 ) -> PyResult<usize> {
+    let annotation_handler = AnnotationHandler::python(&annotation_factories.clone().unbind())?;
     let packed_circuit = pack_circuit(
         &mut circuit.extract()?,
         Some(metadata_serializer),
         use_symengine,
         version,
-        annotation_factories,
+        annotation_handler,
     )?;
     let serialized_circuit = serialize(&packed_circuit)?;
     file_obj.call_method1(

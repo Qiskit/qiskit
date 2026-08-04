@@ -588,35 +588,34 @@ fn replace_node(
             };
 
             let mut new_params: Option<Parameters<_>> = inner_node.params.as_deref().cloned();
-            if let Some(Parameters::Params(inner_node_params)) = inner_node.params.as_deref() {
-                if inner_node_params
+            if let Some(Parameters::Params(inner_node_params)) = inner_node.params.as_deref()
+                && inner_node_params
                     .iter()
                     .any(|param| matches!(param, Param::ParameterExpression(_)))
-                {
-                    let new_params_inner: SmallVec<[Param; 3]> = inner_node_params
-                        .iter()
-                        .map(|param| match param {
-                            Param::ParameterExpression(parameter_expression) => {
-                                param_assignment_expr(parameter_expression, &parameter_map, true)
-                            }
-                            _ => Ok(param.clone()),
-                        })
-                        .collect::<Result<_, BasisTranslatorError>>()?;
-                    if let OperationRef::PyCustom(inst) = new_op.view() {
-                        // TODO: Remove this.
-                        // Acquire the gil if the operation is not native to set the operation parameters in
-                        // Python.
-                        Python::attach(|py| {
-                            inst.ob
-                                .bind(py)
-                                .setattr("params", new_params_inner.clone())
-                                .map_err(|err| {
-                                    BasisTranslatorError::BasisDAGCircuitError(err.to_string())
-                                })
-                        })?;
-                    }
-                    new_params = Some(Parameters::Params(new_params_inner));
+            {
+                let new_params_inner: SmallVec<[Param; 3]> = inner_node_params
+                    .iter()
+                    .map(|param| match param {
+                        Param::ParameterExpression(parameter_expression) => {
+                            param_assignment_expr(parameter_expression, &parameter_map, true)
+                        }
+                        _ => Ok(param.clone()),
+                    })
+                    .collect::<Result<_, BasisTranslatorError>>()?;
+                if let OperationRef::PyCustom(inst) = new_op.view() {
+                    // TODO: Remove this.
+                    // Acquire the gil if the operation is not native to set the operation parameters in
+                    // Python.
+                    Python::attach(|py| {
+                        inst.ob
+                            .bind(py)
+                            .setattr("params", new_params_inner.clone())
+                            .map_err(|err| {
+                                BasisTranslatorError::BasisDAGCircuitError(err.to_string())
+                            })
+                    })?;
                 }
+                new_params = Some(Parameters::Params(new_params_inner));
             }
             dag.apply_operation_back(
                 new_op,

@@ -13,6 +13,7 @@
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use qiskit_circuit::bit::ShareableQubit;
+use qiskit_circuit::dag_circuit::DAGError;
 use qiskit_circuit::dag_circuit::NodeIndex;
 use qiskit_circuit::operations::Operation;
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -1044,10 +1045,17 @@ fn rotation_to_pi_div(gate: StandardGate) -> usize {
 
 #[pyfunction]
 #[pyo3(name = "substitute_pi4_rotations")]
-pub fn py_run_substitute_pi4_rotations(
+fn py_run_substitute_pi4_rotations(
     dag: &mut DAGCircuit,
     approximation_degree: f64,
 ) -> PyResult<()> {
+    run_substitute_pi4_rotations(dag, approximation_degree).map_err(Into::into)
+}
+
+pub fn run_substitute_pi4_rotations(
+    dag: &mut DAGCircuit,
+    approximation_degree: f64,
+) -> Result<(), DAGError> {
     // Skip the pass if there are no rotation gates.
     if dag
         .get_op_counts()
