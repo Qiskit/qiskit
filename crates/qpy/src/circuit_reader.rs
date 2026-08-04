@@ -1363,7 +1363,7 @@ fn read_custom_instructions(
                     qpy_data.version,
                     None,
                     qpy_data.use_symengine,
-                    qpy_data.annotation_handler.annotation_factories,
+                    qpy_data.annotation_handler.child()?,
                 )?)
             }
         } else {
@@ -1566,7 +1566,7 @@ pub(crate) fn unpack_circuit(
     version: u8,
     metadata_deserializer: Option<&Bound<PyAny>>,
     use_symengine: bool,
-    annotation_factories: &Bound<PyDict>,
+    annotation_handler: AnnotationHandler,
 ) -> Result<Py<PyAny>, QpyError> {
     let instruction_capacity = packed_circuit.instructions.len();
     // create an empty circuit; we'll fill data as we go along
@@ -1579,7 +1579,7 @@ pub(crate) fn unpack_circuit(
         standalone_vars: HashMap::new(),
         standalone_stretches: HashMap::new(),
         vectors: HashMap::new(),
-        annotation_handler: AnnotationHandler::new(annotation_factories),
+        annotation_handler,
     };
     if let Some(annotation_headers) = &packed_circuit.annotation_headers {
         let annotation_deserializers_data: Vec<(String, Bytes)> = annotation_headers

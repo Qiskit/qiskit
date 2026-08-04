@@ -1040,7 +1040,7 @@ fn pack_custom_instruction(
                 &mut gate.getattr("_definition")?.extract()?,
                 Some(py.None().bind(py)),
                 qpy_data.version,
-                qpy_data.annotation_handler.annotation_factories,
+                qpy_data.annotation_handler.child()?,
             )?)?)
         }
         CircuitInstructionType::AnnotatedOperation => {
@@ -1054,7 +1054,7 @@ fn pack_custom_instruction(
                     &mut defn,
                     Some(py.None().bind(py)),
                     qpy_data.version,
-                    qpy_data.annotation_handler.annotation_factories,
+                    qpy_data.annotation_handler.child()?,
                 )
                 .and_then(|fmt| serialize(&fmt))
             })
@@ -1204,9 +1204,8 @@ pub(crate) fn pack_circuit(
     circuit: &mut QuantumCircuitData,
     metadata_serializer: Option<&Bound<PyAny>>,
     version: u8,
-    annotation_factories: &Bound<PyDict>,
+    annotation_handler: AnnotationHandler,
 ) -> Result<formats::QPYCircuit, QpyError> {
-    let annotation_handler = AnnotationHandler::new(annotation_factories);
     let mut qpy_data = QPYWriteData {
         circuit_data: &mut circuit.data,
         version,
