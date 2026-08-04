@@ -216,10 +216,12 @@ class TestSynthesizeRzRotations(QiskitTestCase):
         for angle in angles:
             qc.rz(angle, 0)
 
-        SynthesizeRZRotations(synthesis_error=synthesis_error, cache_error=1e-10)(qc)
+        qc = SynthesizeRZRotations(synthesis_error=synthesis_error, cache_error=1e-10)(qc)
 
         full_angle = sum(angles)
-        self.assertLessEqual(operator_norm_distance(qc, full_angle), synthesis_error)
+        full_error = 1 - ((1 - synthesis_error) ** len(angles))
+
+        self.assertLessEqual(operator_norm_distance(qc, full_angle), full_error)
 
 
 def operator_norm_distance(circuit, angle):
