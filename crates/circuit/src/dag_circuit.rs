@@ -6931,26 +6931,26 @@ impl DAGCircuit {
         // Transfer DAG-level variable declarations from the replacement DAG.
         // This is similar to how compose() handles variables, but only transfer variables
         // that are not already present in the target DAG.
-        for var in &other.vars_input {
+        for var in other.vars_input.iter() {
             let var_obj = other.vars.get(*var).unwrap();
             if self.vars.find(var_obj).is_none() {
                 self.add_input_var(var_obj.clone())?;
             }
         }
-        for var in &other.vars_capture {
+        for var in other.vars_capture.iter() {
             let var_obj = other.vars.get(*var).unwrap();
             if self.vars.find(var_obj).is_none() {
                 self.add_captured_var(var_obj.clone())?;
             }
         }
-        for var in &other.vars_declare {
+        for var in other.vars_declare.iter() {
             let var_obj = other.vars.get(*var).unwrap();
             if self.vars.find(var_obj).is_none() {
                 self.add_declared_var(var_obj.clone())?;
             }
         }
         // Also transfer stretches (captured/declared), but only if not already present
-        for stretch in &other.stretches_capture {
+        for stretch in other.stretches_capture.iter() {
             let stretch_obj = other.stretches.get(*stretch).unwrap();
             if self.stretches.find(stretch_obj).is_none() {
                 self.add_captured_stretch(stretch_obj.clone())?;

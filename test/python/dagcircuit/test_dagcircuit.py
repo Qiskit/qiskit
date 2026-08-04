@@ -2760,6 +2760,37 @@ class TestDagSubstitute(DAGTest):
         self.assertEqual(base_dag.num_input_vars, 1)
         self.assertTrue(any(var.name == "condition" for var in base_dag.iter_input_vars()))
 
+    def test_substitute_node_with_dag_transfers_captured_and_declared_stretches(self):
+        """substitute_node_with_dag should transfer captured and declared stretches."""
+        a = expr.Stretch.new("a")
+        b = expr.Stretch.new("b")
+
+        # Create a base DAG with a simple X gate
+        base_dag = DAGCircuit()
+        qr = QuantumRegister(1)
+        base_dag.add_qreg(qr)
+        x_node = base_dag.apply_operation_back(XGate(), [qr[0]], [])
+
+        # Create a replacement DAG with captured and declared stretches
+        replacement_dag = DAGCircuit()
+        replacement_dag.add_qubits([qr[0]])
+        replacement_dag.add_captured_stretch(a)
+        replacement_dag.add_declared_stretch(b)
+        replacement_dag.apply_operation_back(XGate(), [qr[0]], [])
+
+        # Perform the substitution
+        base_dag.substitute_node_with_dag(x_node, replacement_dag, wires=[qr[0]])
+
+        # Verify the stretches were transferred
+        self.assertEqual(base_dag.num_captured_stretches, 1)
+        self.assertEqual(base_dag.num_declared_stretches, 1)
+        captured_stretches = list(base_dag.iter_captured_stretches())
+        declared_stretches = list(base_dag.iter_declared_stretches())
+        self.assertEqual(len(captured_stretches), 1)
+        self.assertEqual(len(declared_stretches), 1)
+        self.assertEqual(captured_stretches[0].name, "a")
+        self.assertEqual(declared_stretches[0].name, "b")
+
 
 @ddt
 class TestDagSubstituteNode(DAGTest):
