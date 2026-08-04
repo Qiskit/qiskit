@@ -202,7 +202,6 @@ def dump(
             programs,
             file_obj,
             metadata_serializer,
-            bool(use_symengine),
             version,
             annotation_factories,
         )

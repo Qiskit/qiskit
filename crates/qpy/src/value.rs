@@ -638,7 +638,6 @@ pub(crate) fn serialize_generic_value(
             let packed_circuit = pack_circuit(
                 &mut circuit.extract(py)?, // TODO: can we avoid cloning here?
                 None,
-                false,
                 qpy_data.version,
                 qpy_data.annotation_handler.annotation_factories,
             )?;
@@ -653,7 +652,6 @@ pub(crate) fn serialize_generic_value(
             let packed_circuit = pack_circuit(
                 &mut quantum_circuit_data,
                 None,
-                false,
                 qpy_data.version,
                 qpy_data.annotation_handler.annotation_factories,
             )?;
