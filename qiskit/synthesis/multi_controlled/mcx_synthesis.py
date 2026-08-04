@@ -387,7 +387,8 @@ def synth_mcx_noaux_hp24(num_ctrl_qubits: int) -> QuantumCircuit:
 
 
 def synth_mcx_noaux_default(num_ctrl_qubits: int) -> QuantumCircuit:
-    """Choose the best synthesis code for :class:`.MCXGate` according to the number of control qubits.
+    """Choose the best synthesis code for :class:`.MCXGate` with no ancilla qubits
+    according to the number of control qubits.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
