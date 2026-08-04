@@ -158,21 +158,11 @@ def dump(
                 from the QPY format at that version will persist. This should only be used if
                 compatibility with loading the payload with an older version of Qiskit is necessary.
 
-            .. note::
-
-                If serializing a :class:`.QuantumCircuit` that contains
-                :class:`.ParameterExpression` objects with ``version`` set low with the intent to
-                load the payload using a historical release of Qiskit, it is safest to set the
-                ``use_symengine`` flag to ``False``.  Versions of Qiskit prior to 1.2.4 cannot load
-                QPY files containing ``symengine``-serialized :class:`.ParameterExpression` objects
-                unless the version of ``symengine`` used between the loading and generating
-                environments matches.
         annotation_factories: Mapping of namespaces to functions that create new instances of
             :class:`.annotation.QPUSerializer`, for handling the dumping of custom
             :class:`.Annotation` objects.  The subsequent call to :func:`load` will need to use
             similar serializer objects, that understand the custom output format of those
             serializers.
-
 
     Raises:
         TypeError: When invalid data type is input.
