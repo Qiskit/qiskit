@@ -64,7 +64,7 @@ impl AnnotationHandler {
         }
     }
 
-    pub fn serialize(&mut self, annotation: &Py<PyAny>) -> Result<(u32, Bytes), QpyError> {
+    pub fn serialize(&self, annotation: &Py<PyAny>) -> Result<(u32, Bytes), QpyError> {
         match self {
             Self::Python {
                 serialization_state,
@@ -104,7 +104,7 @@ impl AnnotationHandler {
         }
     }
 
-    pub fn load_deserializers(&mut self, data: Vec<(String, Bytes)>) -> Result<(), QpyError> {
+    pub fn load_deserializers(&self, data: Vec<(String, Bytes)>) -> Result<(), QpyError> {
         if data.is_empty() {
             return Ok(());
         }
