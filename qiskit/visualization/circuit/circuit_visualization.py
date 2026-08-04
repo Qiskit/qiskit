@@ -399,6 +399,28 @@ def circuit_drawer(
 # -----------------------------------------------------------------------------
 
 
+def _vertical_compression_to_mergewires(vertical_compression):
+    """Map the ``vertical_compression`` string to a boolean ``mergewires`` value.
+
+    The Rust circuit drawer uses a boolean ``mergewires`` parameter to control
+    whether adjacent wires are merged when rendered. This helper maps the
+    ``vertical_compression`` string values (``"high"``, ``"medium"``, ``"low"``)
+    to the corresponding ``mergewires`` boolean:
+
+    * ``"high"`` / ``"medium"`` → ``True``
+    * ``"low"`` → ``False``
+
+    Args:
+        vertical_compression (str): One of ``"high"``, ``"medium"``, or ``"low"``.
+
+    Returns:
+        bool: ``True`` if wires should be merged, ``False`` otherwise.
+    """
+    if vertical_compression == "low":
+        return False
+    return True
+
+
 def _text_circuit_drawer(
     circuit,
     filename=None,

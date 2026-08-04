@@ -288,3 +288,31 @@ class TestCircuitDrawer(QiskitTestCase):
         circuit.draw("latex_source")
         if optionals.HAS_MATPLOTLIB and optionals.HAS_PYLATEX:
             circuit.draw("mpl")
+
+
+class TestVerticalCompressionToMergewires(QiskitTestCase):
+    """Test _vertical_compression_to_mergewires mapping for Rust drawer integration."""
+
+    def test_high_returns_true(self):
+        """Test that 'high' maps to mergewires=True."""
+        from qiskit.visualization.circuit.circuit_visualization import (
+            _vertical_compression_to_mergewires,
+        )
+
+        self.assertTrue(_vertical_compression_to_mergewires("high"))
+
+    def test_medium_returns_true(self):
+        """Test that 'medium' maps to mergewires=True."""
+        from qiskit.visualization.circuit.circuit_visualization import (
+            _vertical_compression_to_mergewires,
+        )
+
+        self.assertTrue(_vertical_compression_to_mergewires("medium"))
+
+    def test_low_returns_false(self):
+        """Test that 'low' maps to mergewires=False."""
+        from qiskit.visualization.circuit.circuit_visualization import (
+            _vertical_compression_to_mergewires,
+        )
+
+        self.assertFalse(_vertical_compression_to_mergewires("low"))
