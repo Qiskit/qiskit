@@ -181,7 +181,8 @@ class TestSynthesizeRzRotations(QiskitTestCase):
 
     def test_large_synthesis_error(self):
         """
-        Test large synthesis error and rotations previously known to panic.
+        Test with large synthesis error and rotations that previously made
+        `rsgridsynth` panic.
         """
 
         synthesis_error = 1e-2
