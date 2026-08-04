@@ -18,49 +18,9 @@ use pyo3::prelude::*;
 use pyo3::sync::PyOnceLock;
 
 use crate::operations::{STANDARD_GATE_SIZE, StandardGate};
+use qiskit_util::py::ImportOnceCell;
 
-/// Helper wrapper around `PyOnceLock` instances that are just intended to store a Python object
-/// that is lazily imported.
-pub struct ImportOnceCell {
-    module: &'static str,
-    object: &'static str,
-    cell: PyOnceLock<Py<PyAny>>,
-}
-
-impl ImportOnceCell {
-    pub const fn new(module: &'static str, object: &'static str) -> Self {
-        Self {
-            module,
-            object,
-            cell: PyOnceLock::new(),
-        }
-    }
-
-    /// Get the underlying GIL-independent reference to the contained object, importing if
-    /// required.
-    #[inline]
-    pub fn get(&self, py: Python) -> &Py<PyAny> {
-        self.cell.get_or_init(py, || {
-            py.import(self.module)
-                .unwrap()
-                .getattr(self.object)
-                .unwrap()
-                .unbind()
-        })
-    }
-
-    /// Get a GIL-bound reference to the contained object, importing if required.
-    #[inline]
-    pub fn get_bound<'py>(&self, py: Python<'py>) -> &Bound<'py, PyAny> {
-        self.get(py).bind(py)
-    }
-}
-
-pub static BUILTIN_LIST: ImportOnceCell = ImportOnceCell::new("builtins", "list");
-pub static BUILTIN_SET: ImportOnceCell = ImportOnceCell::new("builtins", "set");
-pub static BUILTIN_RANGE: ImportOnceCell = ImportOnceCell::new("builtins", "range");
-pub static BUILTIN_USER_WARNING: ImportOnceCell = ImportOnceCell::new("builtins", "UserWarning");
-pub static BUILTIN_HASH: ImportOnceCell = ImportOnceCell::new("builtins", "hash");
+pub use qiskit_util::py::imports::*;
 
 pub static OPERATION: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.operation", "Operation");
 pub static INSTRUCTION: ImportOnceCell =
@@ -111,18 +71,15 @@ pub static CASE_DEFAULT: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", 
 pub static CLBIT: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Clbit");
 pub static CLASSICAL_REGISTER: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit", "ClassicalRegister");
-pub static DEEPCOPY: ImportOnceCell = ImportOnceCell::new("copy", "deepcopy");
 pub static QI_OPERATOR: ImportOnceCell = ImportOnceCell::new("qiskit.quantum_info", "Operator");
 pub static CLIFFORD: ImportOnceCell =
     ImportOnceCell::new("qiskit.quantum_info.operators.symplectic", "Clifford");
 pub static SPARSE_PAULI_OP: ImportOnceCell =
     ImportOnceCell::new("qiskit.quantum_info.operators", "SparsePauliOp");
-pub static WARNINGS_WARN: ImportOnceCell = ImportOnceCell::new("warnings", "warn");
 pub static CIRCUIT_TO_DAG: ImportOnceCell =
     ImportOnceCell::new("qiskit.converters", "circuit_to_dag");
 pub static DAG_TO_CIRCUIT: ImportOnceCell =
     ImportOnceCell::new("qiskit.converters", "dag_to_circuit");
-pub static UUID: ImportOnceCell = ImportOnceCell::new("uuid", "UUID");
 pub static BARRIER: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Barrier");
 pub static DELAY: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Delay");
 pub static MEASURE: ImportOnceCell = ImportOnceCell::new("qiskit.circuit", "Measure");
@@ -163,8 +120,6 @@ pub static XX_DECOMPOSER: ImportOnceCell =
     ImportOnceCell::new("qiskit.synthesis.two_qubit.xx_decompose", "XXDecomposer");
 pub static XX_EMBODIMENTS: ImportOnceCell =
     ImportOnceCell::new("qiskit.synthesis.two_qubit.xx_decompose", "XXEmbodiments");
-pub static NUMPY_COPY_ONLY_IF_NEEDED: ImportOnceCell =
-    ImportOnceCell::new("qiskit._numpy_compat", "COPY_ONLY_IF_NEEDED");
 pub static HLS_SYNTHESIZE_OP_USING_PLUGINS: ImportOnceCell = ImportOnceCell::new(
     "qiskit.transpiler.passes.synthesis.high_level_synthesis",
     "_synthesize_op_using_plugins",
@@ -179,7 +134,6 @@ pub static CONTROL_FLOW_BOX_OP: ImportOnceCell =
 pub static TRANSPILER_LAYOUT: ImportOnceCell =
     ImportOnceCell::new("qiskit.transpiler.layout", "TranspileLayout");
 pub static LAYOUT: ImportOnceCell = ImportOnceCell::new("qiskit.transpiler.layout", "Layout");
-pub static NUMPY_ARRAY: ImportOnceCell = ImportOnceCell::new("numpy", "ndarray");
 pub static SYMPIFY_PARAMETER_EXPRESSION: ImportOnceCell =
     ImportOnceCell::new("qiskit.circuit.parameterexpression", "sympify");
 pub static TRANSPILE_LAYOUT: ImportOnceCell =

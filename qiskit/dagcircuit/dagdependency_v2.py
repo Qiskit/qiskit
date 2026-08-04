@@ -127,7 +127,7 @@ class _DAGDependencyV2:
         """Set the global phase of the circuit.
 
         Args:
-            angle (float, ParameterExpression)
+            angle (float, ParameterExpression): The angle to set the global phase to.
         """
         if isinstance(angle, ParameterExpression):
             self._global_phase = angle
@@ -339,7 +339,7 @@ class _DAGDependencyV2:
         """Get the set of "op" nodes with the given name."""
         named_nodes = []
         for node in self._multi_graph.nodes():
-            if node.op.name in names:
+            if node.name in names:
                 named_nodes.append(node)
         return named_nodes
 

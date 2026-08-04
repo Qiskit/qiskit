@@ -38,6 +38,7 @@ _BINDING_POWER = {
     #
     ast.Unary.Op.LOGIC_NOT: _BindingPower(right=22),
     ast.Unary.Op.BIT_NOT: _BindingPower(right=22),
+    ast.Unary.Op.NEGATE: _BindingPower(right=22),
     #
     # Modulo: (19, 20)
     ast.Binary.Op.MUL: _BindingPower(19, 20),
@@ -119,6 +120,8 @@ class BasicPrinter:
                 default.  While the output of this printer is always unambiguous, using ``else``
                 without immediately opening an explicit scope with ``{ }`` in nested contexts can
                 cause issues, in the general case, which is why it is sometimes less supported.
+            experimental: any experimental features to enable during the export.  See
+                :class:`ExperimentalFeatures` for more details.
         """
         self.stream = stream
         self.indent = indent

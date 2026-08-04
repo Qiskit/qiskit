@@ -224,7 +224,8 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
 
             # update node start times
             for node_id, start_time in zip(node_ids, delay.start_times):
-                self.property_set["node_start_time"][id_map[node_id]] = start_time
+                # Start times represent a list of times in dt times, so cast to 'int' when needed
+                self.property_set["node_start_time"][id_map[node_id]] = int(start_time)
 
         return dag
 
@@ -260,7 +261,7 @@ class ContextAwareDynamicalDecoupling(TransformationPass):
             )
             for node, start_time in self.property_set["node_start_time"].items()
             if (
-                node.op.name == "delay"
+                node.name == "delay"
                 and not is_after_reset(node)
                 and self._duration(node, qubit_map) > self._min_duration
             )

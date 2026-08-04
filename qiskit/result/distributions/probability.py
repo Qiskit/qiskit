@@ -75,7 +75,7 @@ class ProbDistribution(dict):
     def binary_probabilities(self, num_bits=None):
         """Build a probabilities dictionary with binary string keys
 
-        Parameters:
+        Args:
             num_bits (int): number of bits in the binary bitstrings (leading
                 zeros will be padded). If None, a default value will be used.
                 If keys are given as integers or strings with binary or hex prefix,

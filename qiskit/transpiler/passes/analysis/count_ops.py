@@ -12,6 +12,13 @@
 
 """Count the operations in a DAG circuit."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGCircuit
+
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
@@ -21,10 +28,15 @@ class CountOps(AnalysisPass):
     The result is saved in ``property_set['count_ops']`` as an integer.
     """
 
-    def __init__(self, *, recurse=True):
+    def __init__(self, *, recurse: bool = True) -> None:
+        """
+        Args:
+            recurse: If ``True`` (default), recursively count operations
+                inside control-flow blocks.
+        """
         super().__init__()
         self.recurse = recurse
 
-    def run(self, dag):
-        """Run the CountOps pass on `dag`."""
+    def run(self, dag: DAGCircuit) -> None:
+        """Run the CountOps pass on ``dag``."""
         self.property_set["count_ops"] = dag.count_ops(recurse=self.recurse)

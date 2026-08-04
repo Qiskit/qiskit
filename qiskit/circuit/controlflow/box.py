@@ -86,6 +86,8 @@ class BoxOp(ControlFlowOp):
                 "BoxOp expects a body parameter of type "
                 f"QuantumCircuit, but received {type(body)}."
             )
+        if body.num_input_vars:
+            raise self._unexpected_input_var_error()
 
         if body.num_qubits != self.num_qubits or body.num_clbits != self.num_clbits:
             raise CircuitError(
@@ -154,6 +156,9 @@ class BoxContext:
             duration: the final duration of the box.
             unit: the unit of ``duration``.
             label: an optional label for the box.
+            annotations: any :class:`.Annotation`\\ s to apply to the box.  In cases where order
+                is important, annotations are to be interpreted in the same order they appear in
+                the iterable.
         """
         self._circuit = circuit
         self._duration = duration

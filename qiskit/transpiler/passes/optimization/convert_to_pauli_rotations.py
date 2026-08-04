@@ -14,15 +14,20 @@
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
+from qiskit.transpiler.passes.utils import control_flow
 from qiskit._accelerate.convert_to_pauli_rotations import convert_to_pauli_rotations
 
 
 class ConvertToPauliRotations(TransformationPass):
     r"""
-    Convert a quantum circuit containing single-qubit, two-qubit and three-qubit
-    standard gates, barriers and measurements, into an equivalent circuit containing
-    :class:`.PauliProductRotationGate` gates
-    and :class:`.PauliProductMeasurement` instructions.
+    Convert a quantum circuit into an equivalent circuit composed of
+    :class:`.PauliProductRotationGate` gates and :class:`.PauliProductMeasurement`
+    instructions.
+
+    The pass converts all single-qubit, two-qubit and three-qubit standard gates into
+    Pauli product rotations, converts measures to Pauli product measurements,
+    and leaves barriers, delays, resets, Pauli product rotations, and
+    Pauli product measurements unchanged.
 
     For example::
 
@@ -46,6 +51,7 @@ class ConvertToPauliRotations(TransformationPass):
       assert Operator(qc) == Operator(qct)
     """
 
+    @control_flow.trivial_recurse
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the ConvertToPauliRotations optimization pass on ``dag``.
 

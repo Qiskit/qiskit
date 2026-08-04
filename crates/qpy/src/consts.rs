@@ -70,6 +70,7 @@ pub fn standard_gate_from_gate_class_name(name: &str) -> Option<StandardGate> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use qiskit_circuit::imports::get_std_gate_class_name;

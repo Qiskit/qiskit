@@ -13,13 +13,16 @@
 pub mod basis_translator;
 pub mod commutative_cancellation;
 pub mod consolidate_blocks;
+pub mod convert_to_pauli_rotations;
 pub mod elide_permutations;
 pub mod gate_direction;
 pub mod inverse_cancellation;
+pub mod litinski_transformation;
 pub mod optimize_1q_sequences;
 pub mod remove_diagonal_gates_before_measure;
 pub mod remove_identity_equiv;
 pub mod sabre_layout;
 pub mod split_2q_unitaries;
+pub mod two_qubit_peephole;
 pub mod unitary_synthesis;
 pub mod vf2;

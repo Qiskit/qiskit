@@ -399,10 +399,10 @@ impl<'a> BasicPrinter<'a> {
 
     fn visit_quantum_gate_signature(&mut self, node: &QuantumGateSignature) {
         self.visit_identifier(&node.name);
-        if let Some(params) = &node.params {
-            if !params.is_empty() {
-                self.visit_expression_sequence(params, "(", ")", ", ");
-            }
+        if let Some(params) = &node.params
+            && !params.is_empty()
+        {
+            self.visit_expression_sequence(params, "(", ")", ", ");
         }
         write!(self.stream, " ").unwrap();
         let qarg_list: Vec<Expression> = node

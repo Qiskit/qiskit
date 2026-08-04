@@ -32,7 +32,7 @@ from qiskit.circuit.library import (
     iqp,
 )
 from qiskit.circuit import Parameter, Qubit, Clbit
-from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info import random_unitary
 from qiskit.utils import optionals
 from .visualization import QiskitVisualizationTestCase
 from ..legacy_cmaps import YORKTOWN_CMAP
@@ -225,6 +225,17 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.barrier(label="End Y/X")
 
         circuit_drawer(circuit, filename=filename, output="latex_source")
+
+        self.assertEqualToReference(filename)
+
+    def test_barrier_label_truncation(self):
+        """Test that long barrier labels are truncated"""
+        filename = self._get_resource_path("test_latex_barrier_label_truncation.tex")
+        circuit = QuantumCircuit(2)
+        circuit.barrier()
+        circuit.barrier(label="a" * 20)
+
+        circuit_drawer(circuit, filename=filename, output="latex_source", barrier_label_len=9)
 
         self.assertEqualToReference(filename)
 

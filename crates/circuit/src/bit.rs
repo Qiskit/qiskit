@@ -29,7 +29,7 @@ use pyo3::{
 
 use crate::circuit_data::CircuitError;
 use crate::dag_circuit::PyBitLocations;
-use crate::slice::{PySequenceIndex, SequenceIndex};
+use qiskit_util::py::{PySequenceIndex, SequenceIndex};
 
 /// Describes a relationship between a bit and all the registers it belongs to
 #[derive(Debug, Clone)]
@@ -375,6 +375,7 @@ macro_rules! create_bit_object {
             }
 
             /// Create a new anonymous bit.
+            #[inline]
             pub fn new_anonymous() -> Self {
                 Self(BitInfo::Anonymous {
                     uid: Self::anonymous_instance_count().fetch_add(1, Ordering::Relaxed),
@@ -398,6 +399,22 @@ macro_rules! create_bit_object {
                     BitInfo::Owned { index, .. } => Some(*index),
                     BitInfo::Anonymous { .. } => None,
                 }
+            }
+
+            /// Create `count` new anonymous bits, returned as an iterator.
+            ///
+            /// This is a bit more efficient than creating the bits individually, since we only have
+            /// to update the underlying atomic instance count once.
+            #[inline]
+            pub fn iter_anonymous(count: u32) -> impl ExactSizeIterator<Item = Self> {
+                let base = Self::anonymous_instance_count()
+                    .fetch_add(count as u64, Ordering::Relaxed);
+                (0..count).map(move |offset| {
+                    Self(BitInfo::Anonymous {
+                        uid: base + offset as u64,
+                        subclass: Default::default(),
+                    })
+                })
             }
         }
 
@@ -426,24 +443,24 @@ macro_rules! create_bit_object {
             fn new(
                 register: Option<Bound<$pyreg_struct>>,
                 index: Option<u32>,
-            ) -> PyResult<(Self, PyBit)> {
-                match (register, index) {
+            ) -> PyResult<PyClassInitializer<Self>> {
+                let bit = match (register, index) {
                     (Some(register), Some(index)) => {
                         let register = &register.borrow().0;
-                        let bit = register.get(index as usize).ok_or_else(|| {
+                        register.get(index as usize).ok_or_else(|| {
                             PyIndexError::new_err(format!(
                                 "index {} out of range for size {}",
                                 index,
                                 register.len()
                             ))
-                        })?;
-                        Ok((Self(bit), PyBit))
+                        })?
                     }
-                    (None, None) => Ok((Self($bit_struct::new_anonymous()), PyBit)),
-                    _ => Err(PyTypeError::new_err(
+                    (None, None) => $bit_struct::new_anonymous(),
+                    _ => return Err(PyTypeError::new_err(
                         "either both 'register' and 'index' are provided, or neither are",
                     )),
-                }
+                };
+                Ok(PyClassInitializer::from(PyBit).add_subclass(Self(bit)))
             }
 
             fn __repr__(slf: Bound<Self>) -> PyResult<String> {
@@ -729,7 +746,7 @@ macro_rules! create_bit_object {
                 size: Option<isize>,
                 name: Option<String>,
                 bits: Option<Vec<$bit_struct>>,
-            ) -> PyResult<(Self, PyRegister)> {
+            ) -> PyResult<PyClassInitializer<Self>> {
                 let name = name.unwrap_or_else(|| {
                     format!(
                         "{}{}",
@@ -737,8 +754,8 @@ macro_rules! create_bit_object {
                         $reg_struct::anonymous_instance_count().fetch_add(1, Ordering::Relaxed)
                     )
                 });
-                match (size, bits) {
-                    (None, None) | (Some(_), Some(_)) => Err(CircuitError::new_err(
+                let register = match (size, bits) {
+                    (None, None) | (Some(_), Some(_)) => return Err(CircuitError::new_err(
                         "Exactly one of the size or bits arguments can be provided.",
                     )),
                     (Some(size), None) => {
@@ -750,7 +767,7 @@ macro_rules! create_bit_object {
                         let Ok(size) = size.try_into() else {
                             return Err(CircuitError::new_err("Register size too large."));
                         };
-                        Ok((Self($reg_struct::new_owning(name, size)), PyRegister))
+                        $reg_struct::new_owning(name, size)
                     }
                     (None, Some(bits)) => {
                         if bits.iter().cloned().collect::<HashSet<_>>().len() != bits.len() {
@@ -758,9 +775,10 @@ macro_rules! create_bit_object {
                                 "Register bits must not be duplicated.",
                             ));
                         }
-                        Ok((Self($reg_struct::new_alias(Some(name), bits)), PyRegister))
+                        $reg_struct::new_alias(Some(name), bits)
                     }
-                }
+                };
+                Ok(PyClassInitializer::from(PyRegister).add_subclass(Self(register)))
             }
 
             /// The name of the register.
@@ -865,6 +883,13 @@ macro_rules! create_bit_object {
             #[classattr]
             fn instances_count() -> u32 {
                 $reg_struct::anonymous_instance_count().load(Ordering::Relaxed)
+            }
+        }
+
+        impl ::std::ops::Deref for $pyreg_struct {
+            type Target = $reg_struct;
+            fn deref(&self) -> &Self::Target {
+                &self.0
             }
         }
     };

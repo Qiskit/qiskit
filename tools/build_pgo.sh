@@ -23,7 +23,7 @@ if [[ $arch == "arm64" ]]; then
 fi
 
 # Build with instrumentation
-RUSTFLAGS="-Cprofile-generate=$work_dir" QISKIT_BUILD_PROFILE=release pip install --prefer-binary -c constraints.txt --group test -e .
+QISKIT_BUILD_WITH_MIMALLOC=1 RUSTFLAGS="-Cprofile-generate=$work_dir" QISKIT_BUILD_PROFILE=release pip install --prefer-binary -c constraints.txt --group test -e .
 
 # Run profile data generation
 QISKIT_PARALLEL=FALSE stestr run --abbreviate
