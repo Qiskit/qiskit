@@ -52,10 +52,10 @@ pub fn run_unroll_3q_or_more(
                 if inst.op.num_qubits() < 3 || inst.op.try_control_flow().is_some() {
                     return None;
                 }
-                if let Some(target) = target {
-                    if target.contains_key(inst.op.name()) {
-                        return None;
-                    }
+                if let Some(target) = target
+                    && target.contains_key(inst.op.name())
+                {
+                    return None;
                 }
                 let definition = match inst.try_definition() {
                     Some(def) => def,

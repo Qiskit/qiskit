@@ -161,7 +161,11 @@ ctest: cheader build-clib-dev
 # `-S` specifies the source (including the `CMakeLists.txt` file, `-B` is where
 # to put the build files, including the generated CMake stuff.  See the
 # `CMakeLists.txt` file for the build variables.
+#
+# The `CMAKE_FLAGS` argument is to allow user insertion of additional flags, such
+# as to override the `CMAKE_C_STANDARD` line.
 	cmake -S$(C_DIR_TEST) -B$(C_DIR_TEST_BUILD) \
+		$(CMAKE_FLAGS) \
 		-DCARGO_LIB_DIR=$(abspath $(C_DIR_CARGO_TARGET))/debug \
 		-DQISKIT_INCLUDE_PATH=$(abspath $(C_DIR_OUT_INCLUDE))
 # Actually build the test.
