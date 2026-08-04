@@ -2,5 +2,5 @@
 fixes:
   - |
     Fixed :meth:`.ControlledGate.to_matrix` for controlled gates such as
-    :meth:`.CSXGate.inverse` whose base gate already defines a matrix.
+    :meth:`.CSXGate` whose base gate already defines a matrix.
     Fixed `#10396 <https://github.com/Qiskit/qiskit/issues/10396>`__.
