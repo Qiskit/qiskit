@@ -104,6 +104,13 @@ class _AnnotationSerializationState:
             for (namespace, (_, serializer)) in self.serializers.items()
         )
 
+    def dump_states(self) -> list[tuple[str, bytes]]:
+        """Return the serialized state for each serializer, in index order."""
+        return [
+            (namespace, serializer.dump_state())
+            for namespace, serializer in self.iter_serializers()
+        ]
+
 
 class _AnnotationDeserializationState:
     def __init__(self, factories: dict[str, typing.Callable[[], QPYSerializer]]):
