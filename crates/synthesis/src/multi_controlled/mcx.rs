@@ -461,24 +461,25 @@ pub fn synth_mcx_noaux_v24(
     }
 }
 
-/// Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`k - 2`
-///     clean ancillary qubits with producing a circuit with :math:`2 * k - 1` qubits
-///     and at most :math:`6 * k - 6` CX gates, by Maslov [1].
-///     For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
-///     (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
+/// Synthesize a multi-controlled X gate with :math:`k\ge 3` controls based on the paper
+/// by Maslov[1].
 ///
-///     Args:
-///         num_controls: The number of control qubits.
+/// The method using :math:`k - 2`clean ancillary qubits with producing a circuit with
+/// :math:`2 * k - 1` qubits and at most :math:`6 * k - 6` CX gates, by Maslov [1].
+/// For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
+/// (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
 ///
-///     Returns:
-///         The synthesized quantum circuit.
+/// # Arguments
+/// - num_controls: the number of control qubits.
 ///
-///     Raises:
-///         QiskitError: if ``num_ctrl_qubits`` is illegal.
+/// # Returns
+/// The synthesized quantum circuit.
 ///
-///     References:
-///         1. Maslov., Phys. Rev. A 93, 022311 (2016),
-///            `arXiv:1508.03273 <https://arxiv.org/pdf/1508.03273>`_
+/// # References
+///
+/// 1. Maslov., Phys. Rev. A 93, 022311 (2016),"Advantages of using
+///    relative-phase Toffoli gates with an application to multiple control Toffoli optimization",
+///    [arXiv:1508.03273] (https://arxiv.org/pdf/1508.03273).
 pub fn synth_mcx_n_clean_m15(num_controls: usize) -> Result<CircuitData, CircuitDataError> {
     if num_controls == 0 {
         let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0))?;
@@ -492,29 +493,41 @@ pub fn synth_mcx_n_clean_m15(num_controls: usize) -> Result<CircuitData, Circuit
         Ok(ccx())
     } else {
         let num_qubits = 2 * num_controls - 1;
+        let num_instructions = 2 * num_controls - 3;
+        let mut circuit =
+            CircuitData::with_capacity(num_qubits as u32, 0, num_instructions, Param::Float(0.0))?;
 
-        let mut circuit = CircuitData::with_capacity(num_qubits as u32, 0, 0, Param::Float(0.0))?;
+        let target: u32 = num_controls as u32;
+        // indexing of controls starts from  0
+        // indexing of ancillas starts from num_controls + 1
 
-        let controls: Vec<u32> = (0..num_controls).map(|q| q as u32).collect();
-        let target = num_controls as u32;
-        let ancillas: Vec<u32> = ((num_controls + 1)..num_qubits).map(|q| q as u32).collect();
-
-        circuit.rccx(controls[0], controls[1], ancillas[0])?;
-
+        circuit.rccx(0, 1, (num_controls + 1) as u32)?;
         let mut i = 0;
-        for &ctrl in controls.iter().skip(2).take(num_controls - 3) {
-            circuit.rccx(ctrl, ancillas[i], ancillas[i + 1])?;
+        for j in 2..num_controls - 1 {
+            circuit.rccx(
+                j as u32,
+                (num_controls + 1 + i) as u32,
+                (num_controls + 2 + i) as u32,
+            )?;
             i += 1;
         }
-        circuit.ccx(controls[num_controls - 1], ancillas[i], target)?;
 
-        for &ctrl in controls.iter().skip(2).take(num_controls - 3).rev() {
-            circuit.rccx(ctrl, ancillas[i - 1], ancillas[i])?;
+        circuit.ccx(
+            (num_controls - 1) as u32,
+            (num_controls + 1 + i) as u32,
+            target,
+        )?;
+
+        for j in (2..num_controls - 1).rev() {
+            circuit.rccx(
+                j as u32,
+                (num_controls + i) as u32,
+                (num_controls + 1 + i) as u32,
+            )?;
             i -= 1;
         }
 
-        circuit.rccx(controls[0], controls[1], ancillas[i])?;
-
+        circuit.rccx(0, 1, (num_controls + 1 + i) as u32)?;
         Ok(circuit)
     }
 }
