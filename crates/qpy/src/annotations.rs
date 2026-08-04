@@ -149,7 +149,7 @@ mod tests {
 
     #[test]
     fn native_handler_rejects_annotations() {
-        let mut handler = AnnotationHandler::native();
+        let handler = AnnotationHandler::native();
         assert!(matches!(
             handler.load(0, Bytes::new()),
             Err(QpyError::AnnotationError(_))
