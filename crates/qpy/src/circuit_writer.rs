@@ -18,7 +18,6 @@
 // 3. "Write": To write to a file obj the serialization of the original data
 // Ideally, serialization is done by packing in a binrw-enhanced struct and using the
 // `write` method into a `Cursor` buffer, but there might be exceptions.
-use binrw::Endian;
 use hashbrown::{HashMap, HashSet};
 use num_bigint::BigUint;
 use num_traits::ToPrimitive;
@@ -55,8 +54,8 @@ use crate::py_methods::{
 };
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionVarDeclaration, GenericValue, ParamRegisterValue,
-    QPYWriteData, RegisterType, get_circuit_type_key, pack_for_collection, pack_generic_value,
-    pack_standalone_var, pack_stretch, serialize, serialize_param_register_value,
+    QPYWriteData, RegisterType, ValueEndian, get_circuit_type_key, pack_for_collection,
+    pack_generic_value, pack_standalone_var, pack_stretch, serialize, serialize_param_register_value,
 };
 
 use qiskit_circuit::var_stretch_container::{StretchType, VarType};
@@ -191,7 +190,7 @@ fn pack_instruction_params(
 ) -> Result<Vec<formats::GenericDataPack>, QpyError> {
     inst.params_view()
         .iter()
-        .map(|x| pack_param_obj(x, qpy_data, Endian::Little))
+        .map(|x| pack_param_obj(x, qpy_data, ValueEndian::LittleForV17AndBelow))
         .collect::<Result<_, QpyError>>()
 }
 
@@ -218,7 +217,7 @@ fn pack_instruction_blocks(
                     // which would result in inconsistent results, e.g. when packing the same circuit twice on the same run
                     let py_block: PyCircuitData = block.clone().into();
                     let circuit = py_block.into_py_quantum_circuit(py)?;
-                    py_pack_param(&circuit, qpy_data, Endian::Little)
+                    py_pack_param(&circuit, qpy_data, ValueEndian::LittleForV17AndBelow)
                 })
                 .collect::<Result<_, QpyError>>()
         }),
@@ -347,8 +346,8 @@ fn pack_pauli_product_measurement(
         // Pauli phase: 0 means +1, 2 means -1 (i.e. neg)
         let phase: i64 = if ppm.neg { 2 } else { 0 };
         Ok(vec![
-            py_pack_param(&z_array, qpy_data, Endian::Big)?,
-            py_pack_param(&x_array, qpy_data, Endian::Big)?,
+            py_pack_param(&z_array, qpy_data, ValueEndian::Big)?,
+            py_pack_param(&x_array, qpy_data, ValueEndian::Big)?,
             pack_generic_value(&GenericValue::Int64(phase), qpy_data)?,
         ])
     })?;
@@ -379,9 +378,9 @@ fn pack_pauli_product_rotation(
         let z_array = rotation.z.to_pyarray(py);
         let x_array = rotation.x.to_pyarray(py);
         Ok(vec![
-            py_pack_param(&z_array, qpy_data, Endian::Big)?,
-            py_pack_param(&x_array, qpy_data, Endian::Big)?,
-            pack_param_obj(&rotation.angle, qpy_data, Endian::Little)?,
+            py_pack_param(&z_array, qpy_data, ValueEndian::Big)?,
+            py_pack_param(&x_array, qpy_data, ValueEndian::Big)?,
+            pack_param_obj(&rotation.angle, qpy_data, ValueEndian::LittleForV17AndBelow)?,
         ])
     })?;
     Ok(formats::CircuitInstructionV2Pack {
@@ -448,7 +447,9 @@ fn pack_control_flow_inst(
                         };
                         let duration_unit_string =
                             GenericValue::String(duration.unit().to_string());
-                        params.push(pack_generic_value(&duration_value.as_le(), qpy_data)?);
+                        let encoded_duration =
+                            duration_value.as_little_for_v17_and_below(qpy_data.version);
+                        params.push(pack_generic_value(&encoded_duration, qpy_data)?);
                         params.push(pack_generic_value(&duration_unit_string, qpy_data)?);
                     }
                     BoxDuration::Expr(exp) => {
@@ -467,7 +468,7 @@ fn pack_control_flow_inst(
             collection,
             loop_param,
         } => {
-            let collection_value = pack_for_collection(&collection);
+            let collection_value = pack_for_collection(&collection, qpy_data.version);
             let loop_param_value = match loop_param {
                 None => GenericValue::Null,
                 Some(LoopParam::Parameter(symbol)) => {
@@ -518,14 +519,16 @@ fn pack_control_flow_inst(
                                 .map(|label_element| -> Result<GenericValue, QpyError> {
                                     match label_element {
                                         CaseSpecifier::Default => Ok(GenericValue::CaseDefault),
-                                        CaseSpecifier::Uint(val) => Ok(GenericValue::Int64(
-                                            val.to_i64().ok_or_else(|| {
-                                                QpyError::ConversionError(
-                                                    "Case specifier too large".to_string(),
-                                                )
-                                            })?,
-                                        )
-                                        .as_le()),
+                                        CaseSpecifier::Uint(val) => {
+                                            let v = GenericValue::Int64(
+                                                val.to_i64().ok_or_else(|| {
+                                                    QpyError::ConversionError(
+                                                        "Case specifier too large".to_string(),
+                                                    )
+                                                })?,
+                                            );
+                                            Ok(v.as_little_for_v17_and_below(qpy_data.version))
+                                        }
                                     }
                                 })
                                 .collect::<Result<Vec<GenericValue>, _>>()?,
@@ -578,7 +581,7 @@ fn pack_unitary_gate(
     // we translate the matrix to numpy and then serialize it like python does
     let params = Python::attach(|py| -> Result<_, QpyError> {
         let out_array = matrix.to_pyarray(py);
-        Ok(vec![py_pack_param(&out_array, qpy_data, Endian::Little)?])
+        Ok(vec![py_pack_param(&out_array, qpy_data, ValueEndian::LittleForV17AndBelow)?])
     })?;
     // since we won't recreate this gate via python, it's not important to verify the python name is identical to the one we use here
     // so we simply hard-code it instead of going through python
@@ -609,12 +612,12 @@ fn pack_py_instruction(
             let py_op_object = py_inst.ob.bind(py);
             if py_op_object.is_instance(imports::CLIFFORD.get_bound(py))? {
                 let tableau = py_op_object.getattr("tableau")?;
-                Ok(vec![py_pack_param(&tableau, qpy_data, Endian::Little)?])
+                Ok(vec![py_pack_param(&tableau, qpy_data, ValueEndian::LittleForV17AndBelow)?])
             } else if py_op_object.is_instance(imports::ANNOTATED_OPERATION.get_bound(py))? {
                 let modifiers = py_op_object.getattr("modifiers")?;
                 modifiers
                     .try_iter()?
-                    .map(|modifier| py_pack_param(&modifier?, qpy_data, Endian::Little))
+                    .map(|modifier| py_pack_param(&modifier?, qpy_data, ValueEndian::LittleForV17AndBelow))
                     .collect::<Result<_, QpyError>>()
             } else {
                 pack_instruction_params(instruction, qpy_data)
@@ -759,7 +762,7 @@ fn pack_circuit_header(
     let global_phase_data = pack_param_obj(
         qpy_data.circuit_data.global_phase(),
         qpy_data,
-        binrw::Endian::Big,
+        ValueEndian::Big,
     )?;
     let qregs = pack_quantum_registers(qpy_data.circuit_data);
     let cregs = pack_classical_registers(qpy_data.circuit_data);
