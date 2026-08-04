@@ -12,6 +12,7 @@
 
 // Methods for QPY serialization working directly with Python-based data
 use binrw::Endian;
+use crate::value::ValueEndian;
 use numpy::Complex64;
 use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::PyTypeError;
@@ -468,12 +469,13 @@ pub(crate) fn py_convert_from_generic_value(value: &GenericValue) -> Result<Py<P
 pub(crate) fn py_pack_param(
     py_object: &Bound<PyAny>,
     qpy_data: &QPYWriteData,
-    endian: Endian,
+    endian: ValueEndian,
 ) -> Result<formats::GenericDataPack, QpyError> {
     let value = py_convert_to_generic_value(py_object)?;
-    let (type_key, data) = match endian {
-        Endian::Big => serialize_generic_value(&value, qpy_data)?,
-        Endian::Little => serialize_generic_value(&value.as_le(), qpy_data)?,
+    let (type_key, data) = if endian.resolve(qpy_data.version) == Endian::Little {
+        serialize_generic_value(&value.as_le(), qpy_data)?
+    } else {
+        serialize_generic_value(&value, qpy_data)?
     };
     Ok(formats::GenericDataPack { type_key, data })
 }
