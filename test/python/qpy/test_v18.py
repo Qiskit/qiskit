@@ -28,7 +28,6 @@ def _dump(qc: QuantumCircuit, version: int) -> bytes:
     return buf.getvalue()
 
 
-
 class TestV17VsV18(QiskitTestCase):
     """Verify the binary-level differences between QPY v17 and v18."""
 

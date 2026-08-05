@@ -55,7 +55,8 @@ use crate::py_methods::{
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionVarDeclaration, GenericValue, ParamRegisterValue,
     QPYWriteData, RegisterType, ValueEndian, get_circuit_type_key, pack_for_collection,
-    pack_generic_value, pack_standalone_var, pack_stretch, serialize, serialize_param_register_value,
+    pack_generic_value, pack_standalone_var, pack_stretch, serialize,
+    serialize_param_register_value,
 };
 
 use qiskit_circuit::var_stretch_container::{StretchType, VarType};
@@ -520,13 +521,13 @@ fn pack_control_flow_inst(
                                     match label_element {
                                         CaseSpecifier::Default => Ok(GenericValue::CaseDefault),
                                         CaseSpecifier::Uint(val) => {
-                                            let v = GenericValue::Int64(
-                                                val.to_i64().ok_or_else(|| {
+                                            let v = GenericValue::Int64(val.to_i64().ok_or_else(
+                                                || {
                                                     QpyError::ConversionError(
                                                         "Case specifier too large".to_string(),
                                                     )
-                                                })?,
-                                            );
+                                                },
+                                            )?);
                                             Ok(v.as_little_for_v17_and_below(qpy_data.version))
                                         }
                                     }
@@ -581,7 +582,11 @@ fn pack_unitary_gate(
     // we translate the matrix to numpy and then serialize it like python does
     let params = Python::attach(|py| -> Result<_, QpyError> {
         let out_array = matrix.to_pyarray(py);
-        Ok(vec![py_pack_param(&out_array, qpy_data, ValueEndian::LittleForV17AndBelow)?])
+        Ok(vec![py_pack_param(
+            &out_array,
+            qpy_data,
+            ValueEndian::LittleForV17AndBelow,
+        )?])
     })?;
     // since we won't recreate this gate via python, it's not important to verify the python name is identical to the one we use here
     // so we simply hard-code it instead of going through python
@@ -612,12 +617,18 @@ fn pack_py_instruction(
             let py_op_object = py_inst.ob.bind(py);
             if py_op_object.is_instance(imports::CLIFFORD.get_bound(py))? {
                 let tableau = py_op_object.getattr("tableau")?;
-                Ok(vec![py_pack_param(&tableau, qpy_data, ValueEndian::LittleForV17AndBelow)?])
+                Ok(vec![py_pack_param(
+                    &tableau,
+                    qpy_data,
+                    ValueEndian::LittleForV17AndBelow,
+                )?])
             } else if py_op_object.is_instance(imports::ANNOTATED_OPERATION.get_bound(py))? {
                 let modifiers = py_op_object.getattr("modifiers")?;
                 modifiers
                     .try_iter()?
-                    .map(|modifier| py_pack_param(&modifier?, qpy_data, ValueEndian::LittleForV17AndBelow))
+                    .map(|modifier| {
+                        py_pack_param(&modifier?, qpy_data, ValueEndian::LittleForV17AndBelow)
+                    })
                     .collect::<Result<_, QpyError>>()
             } else {
                 pack_instruction_params(instruction, qpy_data)
