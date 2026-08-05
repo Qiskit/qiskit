@@ -1348,12 +1348,10 @@ fn read_custom_instructions(
                         qpy_data.annotation_handler.child()?,
                     )?
                     .into();
-                    let py_circuit = Python::attach(|py| -> Result<_, QpyError> {
-                        Ok(circuit
-                            .into_py_quantum_circuit(py)
-                            .map_err(QpyError::from)?
-                            .unbind())
-                    })?;
+                    let py_circuit = circuit
+                        .into_py_quantum_circuit(py)
+                        .map_err(QpyError::from)?
+                        .unbind();
                     Some(py_circuit)
                 }
             } else {

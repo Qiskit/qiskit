@@ -261,7 +261,6 @@ pub fn read_raw_circuits(
 ///
 /// * data: The complete QPY payload as a byte slice.
 /// * annotation_handler: An optional annotation handler for deserializing annotations. If None, the native (dummy) handler is used.
-/// * caller: The caller context, either Python or Native. Use `Native` when invoking `load_qpy` from Rust.
 ///
 /// # Returns
 /// A vector of [`LoadedCircuit`] values, each containing the native `CircuitData` and packed data needed for any later Python-only construction.
