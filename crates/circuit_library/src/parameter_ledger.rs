@@ -13,7 +13,7 @@
 use super::blocks::{Block, Entanglement};
 use pyo3::prelude::*;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
-use qiskit_circuit::parameter::symbol_expr::Symbol;
+use qiskit_circuit::parameter::symbol_expr::SymbolVector;
 use qiskit_circuit::{imports, operations::Param};
 
 /// Enum to determine the type of circuit layer.
@@ -183,17 +183,12 @@ impl LedgerBuilder for ParameterLedgerBuilder {
         parameter_prefix: &str,
         num_parameters: usize,
     ) -> PyResult<Vec<Param>> {
-        Ok((0..num_parameters)
-            .map(|i| {
-                Param::ParameterExpression(
-                    ParameterExpression::from_symbol(Symbol::standalone(
-                        format!("{}[{}]", parameter_prefix, i),
-                        None,
-                    ))
-                    .into(),
-                )
-            })
-            .collect())
+        Ok(
+            SymbolVector::new(parameter_prefix.to_string(), num_parameters)
+                .iter()
+                .map(|sym| Param::ParameterExpression(ParameterExpression::from_symbol(sym).into()))
+                .collect(),
+        )
     }
 }
 
