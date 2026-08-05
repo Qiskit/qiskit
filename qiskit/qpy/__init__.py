@@ -472,12 +472,9 @@ calibrations were removed from Qiskit in version 2.0, and since then the field h
 been written as an empty placeholder (``num_cals = 0``). Dropping it saves 2 bytes per
 circuit and cleans up the format.
 
-Files written with QPY version 18 cannot be read by Qiskit versions that only support QPY
-up to version 17. Files written with QPY version 17 or earlier are still read correctly.
-
-.. versionchanged:: QPY 18
-    The ``CALIBRATIONS`` block (``num_cals: uint16``) is no longer present in the circuit
-    payload. It was present in versions 5 through 17.
+Version 18 also corrects the encoding of integer and float ``INSTRUCTION_PARAM`` values
+to big-endian byte order, consistent with the rest of the QPY specification. In versions
+1–17 these were mistakenly written in little-endian.
 
 .. _qpy_version_17:
 
