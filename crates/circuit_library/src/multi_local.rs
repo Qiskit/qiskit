@@ -170,17 +170,15 @@ pub fn n_local(
 ) -> PyResult<CircuitData> {
     // Construct the parameter ledger, which will define all free parameters and provide
     // access to them, given an index for a layer and the current gate to implement.
-    let ledger = parameter_ledger_builder
-        .build_from_nlocal(
-            num_qubits,
-            reps,
-            entanglement,
-            rotation_blocks,
-            entanglement_blocks,
-            skip_final_rotation_layer,
-            parameter_prefix,
-        )
-        .unwrap();
+    let ledger = parameter_ledger_builder.build_from_nlocal(
+        num_qubits,
+        reps,
+        entanglement,
+        rotation_blocks,
+        entanglement_blocks,
+        skip_final_rotation_layer,
+        parameter_prefix,
+    )?;
 
     // Compute the qubits that are skipped in the rotation layer. If this is set,
     // we skip qubits that do not appear in any of the entanglement layers.
