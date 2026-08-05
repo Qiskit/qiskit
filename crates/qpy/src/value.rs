@@ -539,7 +539,6 @@ pub(crate) fn load_value(
     qpy_data: &mut QPYReadData,
     endian: ValueEndian,
 ) -> Result<GenericValue, QpyError> {
-    let resolved = endian.resolve(qpy_data.version);
     match type_key {
         ValueType::Bool => {
             let value: bool = bytes.try_into()?;
@@ -552,7 +551,7 @@ pub(crate) fn load_value(
                 for (idx, byte) in bytes.iter().enumerate() {
                     bytes_array[idx] = *byte;
                 }
-                match resolved {
+                match endian.resolve(qpy_data.version) {
                     Endian::Little => Ok(GenericValue::Int64(i64::from_le_bytes(bytes_array))),
                     Endian::Big => Ok(GenericValue::Int64(i64::from_be_bytes(bytes_array))),
                 }
@@ -561,7 +560,7 @@ pub(crate) fn load_value(
             }
         }
         ValueType::Float => {
-            let value: f64 = bytes.try_to_f64(resolved)?;
+            let value: f64 = bytes.try_to_f64(endian.resolve(qpy_data.version))?;
             Ok(GenericValue::Float64(value))
         }
         ValueType::Complex => {
