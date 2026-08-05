@@ -471,6 +471,10 @@ pub fn synth_mcx_noaux_v24(
 /// # Arguments
 /// - num_controls: the number of control qubits.
 ///
+/// # Returns
+///
+/// The synthesized quantum circuit.
+///
 /// # References
 ///
 /// 1. Barenco et al., *Elementary gates for quantum computation*, Phys. Rev. A52 3457 (1995),
