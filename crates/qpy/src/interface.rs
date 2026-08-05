@@ -61,7 +61,6 @@ const QPY_WRITE_MIN_VERSION: u8 = 17;
 pub fn dump_qpy(
     mut circuits: Vec<QuantumCircuitData>,
     metadata_serializer: Option<Bound<PyAny>>,
-    use_symengine: bool,
     qpy_version: u8,
     annotation_handler: AnnotationHandler,
 ) -> Result<Bytes, QpyError> {
@@ -78,21 +77,16 @@ pub fn dump_qpy(
             serialize(&pack_circuit(
                 circuit,
                 metadata_serializer.as_ref(),
-                use_symengine,
                 qpy_version,
                 annotation_handler.child()?,
             )?)
         })
         .collect::<Result<Vec<Bytes>, QpyError>>()?;
-    let symbolic_encoding = match use_symengine {
-        true => SymbolicEncoding::Symengine,
-        false => SymbolicEncoding::Sympy,
-    };
     let qpy_header = QPYFileHeader {
         qpy_version,
         qiskit_version: QISKIT_VERSION,
         num_programs: serialized_circuits.len() as u64,
-        symbolic_encoding,
+        symbolic_encoding: SymbolicEncoding::Sympy,
         type_key: ProgramType::Circuit, //for now, no other value type is used
     };
     let serialized_qpy_header = serialize(&qpy_header)?;
@@ -131,7 +125,6 @@ pub fn py_dump_qpy(
     programs: &Bound<PyAny>,
     file_obj: &Bound<PyAny>,
     metadata_serializer: Option<Bound<PyAny>>,
-    use_symengine: Option<bool>,
     version: u8,
     annotation_factories: Option<Bound<PyDict>>,
 ) -> PyResult<()> {
@@ -140,7 +133,6 @@ pub fn py_dump_qpy(
     let serialized_qpy = dump_qpy(
         programs.extract()?,
         metadata_serializer,
-        use_symengine.unwrap_or(false),
         version,
         annotation_handler,
     )?;
