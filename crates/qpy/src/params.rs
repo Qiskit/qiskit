@@ -9,8 +9,8 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
-use binrw::Endian;
 use crate::value::ValueEndian;
+use binrw::Endian;
 use num_complex::Complex64;
 use pyo3::prelude::*;
 use qiskit_circuit::operations::Param;

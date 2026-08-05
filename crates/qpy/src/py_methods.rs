@@ -11,8 +11,8 @@
 // that they have been altered from the originals.
 
 // Methods for QPY serialization working directly with Python-based data
-use binrw::Endian;
 use crate::value::ValueEndian;
+use binrw::Endian;
 use numpy::Complex64;
 use pyo3::IntoPyObjectExt;
 use pyo3::exceptions::PyTypeError;

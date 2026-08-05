@@ -407,7 +407,8 @@ fn unpack_standard_gate(
             instruction.gate_class_name
         )));
     };
-    let param_values = get_instruction_values(instruction, qpy_data, ValueEndian::LittleForV17AndBelow)?;
+    let param_values =
+        get_instruction_values(instruction, qpy_data, ValueEndian::LittleForV17AndBelow)?;
     Ok((op, param_values))
 }
 
@@ -424,7 +425,8 @@ fn unpack_standard_instruction(
             instruction.gate_class_name
         )));
     };
-    let param_values = get_instruction_values(instruction, qpy_data, ValueEndian::LittleForV17AndBelow)?;
+    let param_values =
+        get_instruction_values(instruction, qpy_data, ValueEndian::LittleForV17AndBelow)?;
     Ok((op, param_values))
 }
 
@@ -500,7 +502,11 @@ fn unpack_pauli_product_rotation(
             "Pauli product rotation x parameter should be a boolean vector".to_string(),
         )
     })?;
-    let angle_value = unpack_generic_value(&instruction.params[2], qpy_data, ValueEndian::LittleForV17AndBelow)?;
+    let angle_value = unpack_generic_value(
+        &instruction.params[2],
+        qpy_data,
+        ValueEndian::LittleForV17AndBelow,
+    )?;
     let angle = generic_value_to_param(&angle_value)?;
     let rotation = PauliProductRotation { z, x, angle };
     let pbc = Box::new(PauliBased::PauliProductRotation(rotation));
@@ -513,8 +519,11 @@ fn unpack_unitary(
     instruction: &formats::CircuitInstructionV2Pack,
     qpy_data: &mut QPYReadData,
 ) -> Result<(PackedOperation, Vec<GenericValue>), QpyError> {
-    let GenericValue::NumpyObject(bytes) =
-        unpack_generic_value(&instruction.params[0], qpy_data, ValueEndian::LittleForV17AndBelow)?
+    let GenericValue::NumpyObject(bytes) = unpack_generic_value(
+        &instruction.params[0],
+        qpy_data,
+        ValueEndian::LittleForV17AndBelow,
+    )?
     else {
         return Err(QpyError::InvalidParameter(
             "No matrix for unitary op".to_string(),
@@ -573,7 +582,9 @@ fn unpack_control_flow(
                 .params
                 .iter()
                 .skip(1)
-                .map(|param| unpack_generic_value(param, qpy_data, ValueEndian::LittleForV17AndBelow))
+                .map(|param| {
+                    unpack_generic_value(param, qpy_data, ValueEndian::LittleForV17AndBelow)
+                })
                 .collect::<Result<_, QpyError>>()?;
             let duration_value = if let Some(duration_pack) = instruction.params.first() {
                 unpack_duration_value(duration_pack, qpy_data)?
@@ -737,15 +748,17 @@ fn unpack_control_flow(
                 };
                 let label_spec_element = label_spec_element_tuple
                     .iter()
-                    .map(|label_spec_element| match label_spec_element.as_little_for_v17_and_below(qpy_data.version) {
-                        GenericValue::CaseDefault => Ok(CaseSpecifier::Default),
-                        GenericValue::BigInt(value) => Ok(CaseSpecifier::Uint(value.clone())),
-                        GenericValue::Int64(value) => {
-                            Ok(CaseSpecifier::Uint(BigUint::from(value as u64)))
+                    .map(|label_spec_element| {
+                        match label_spec_element.as_little_for_v17_and_below(qpy_data.version) {
+                            GenericValue::CaseDefault => Ok(CaseSpecifier::Default),
+                            GenericValue::BigInt(value) => Ok(CaseSpecifier::Uint(value.clone())),
+                            GenericValue::Int64(value) => {
+                                Ok(CaseSpecifier::Uint(BigUint::from(value as u64)))
+                            }
+                            _ => Err(QpyError::InvalidInstruction(
+                                "could not identify switch case label spec".to_string(),
+                            )),
                         }
-                        _ => Err(QpyError::InvalidInstruction(
-                            "could not identify switch case label spec".to_string(),
-                        )),
                     })
                     .collect::<Result<_, QpyError>>()?;
                 label_spec.push(label_spec_element);
@@ -775,7 +788,8 @@ fn unpack_py_instruction(
     qpy_data: &mut QPYReadData,
 ) -> Result<(PackedOperation, Vec<GenericValue>), QpyError> {
     let name = instruction.gate_class_name.clone();
-    let mut instruction_values = get_instruction_values(instruction, qpy_data, ValueEndian::LittleForV17AndBelow)?;
+    let mut instruction_values =
+        get_instruction_values(instruction, qpy_data, ValueEndian::LittleForV17AndBelow)?;
     Python::attach(|py| -> Result<_, QpyError> {
         let mut py_params: Vec<Bound<PyAny>> = instruction_values
             .iter()
@@ -939,7 +953,8 @@ fn unpack_custom_instruction(
     let custom_instruction = custom_instructions_map.get(&name).ok_or_else(|| {
         QpyError::MissingData("Custom instruction data not found for {name}".to_string())
     })?;
-    let instruction_values = get_instruction_values(instruction, qpy_data, ValueEndian::LittleForV17AndBelow)?;
+    let instruction_values =
+        get_instruction_values(instruction, qpy_data, ValueEndian::LittleForV17AndBelow)?;
     Python::attach(|py| -> Result<_, QpyError> {
         let py_params: Vec<Bound<PyAny>> = instruction_values
             .iter()

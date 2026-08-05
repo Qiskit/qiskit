@@ -34,8 +34,8 @@ pub(crate) enum ValueEndian {
     Big,
 
     /// Always little-endian, regardless of QPY version.
-    /// Not currently used in QPY, but included for completeness and in case
-    /// a future format element genuinely requires little-endian encoding.
+    /// Not currently used, but included for completeness.
+    #[allow(dead_code)]
     Little,
 
     /// Little-endian for QPY v≤17, big-endian for QPY v≥18.
@@ -58,7 +58,11 @@ impl ValueEndian {
             ValueEndian::Big => Endian::Big,
             ValueEndian::Little => Endian::Little,
             ValueEndian::LittleForV17AndBelow => {
-                if version >= 18 { Endian::Big } else { Endian::Little }
+                if version >= 18 {
+                    Endian::Big
+                } else {
+                    Endian::Little
+                }
             }
         }
     }
@@ -426,7 +430,11 @@ impl GenericValue {
     /// Mirrors the `ValueEndian::LittleForV17AndBelow` variant — use this at the few remaining
     /// call sites that work directly with `GenericValue` rather than going through `load_value`.
     pub(crate) fn as_little_for_v17_and_below(&self, version: u8) -> Self {
-        if version < 18 { self.as_le() } else { self.clone() }
+        if version < 18 {
+            self.as_le()
+        } else {
+            self.clone()
+        }
     }
     pub(crate) fn as_circuit_data(&self) -> Option<CircuitData> {
         match self {
@@ -773,9 +781,7 @@ pub(crate) fn pack_for_collection(value: &ForCollection, version: u8) -> Generic
     match value {
         ForCollection::List(vec) => GenericValue::Tuple(
             vec.iter()
-                .map(|&val| {
-                    GenericValue::Int64(val as i64).as_little_for_v17_and_below(version)
-                })
+                .map(|&val| GenericValue::Int64(val as i64).as_little_for_v17_and_below(version))
                 .collect(),
         ),
         ForCollection::PyRange(py_range) => GenericValue::Range(*py_range),
