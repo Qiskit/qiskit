@@ -14,6 +14,7 @@
 
 import unittest
 import ddt
+from numpy import pi
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import UnitaryGate
@@ -27,7 +28,15 @@ from test import QiskitTestCase
 class TestGraySynth(QiskitTestCase):
     """Test the Gray-Synth algorithm."""
 
-    def test_gray_synth(self):
+    @ddt.data(
+        (["s", "t", "z", "s", "t", "t"],),
+        # Angles applied on PhaseGate are 'angles%numpy.pi',
+        # So, to get PhaseGate(numpy.pi) we subtract a tiny value from pi.
+        ([pi / 2, pi / 4, pi - 1e-09, pi / 2, pi / 4, pi / 4],),
+        (["s", "t", "z", "s", "t", pi / 4],),
+    )
+    @ddt.unpack
+    def test_gray_synth(self, angles):
         """Test synthesis of a small parity network via gray_synth.
 
         The algorithm should take the following matrix as an input:
@@ -60,6 +69,7 @@ class TestGraySynth(QiskitTestCase):
         q_5: |0>──────────────────────────────────────────■────────────────────────■────────────
 
         """
+
         cnots = [
             [0, 1, 1, 0, 1, 1],
             [0, 1, 1, 0, 1, 0],
@@ -68,7 +78,6 @@ class TestGraySynth(QiskitTestCase):
             [0, 1, 0, 0, 1, 0],
             [0, 1, 0, 0, 1, 0],
         ]
-        angles = ["s", "t", "z", "s", "t", "t"]
         c_gray = synth_cnot_phase_aam(cnots, angles)
         unitary_gray = UnitaryGate(Operator(c_gray))
 
@@ -201,6 +210,51 @@ class TestGraySynth(QiskitTestCase):
 
         # Check if the two circuits are equivalent
         self.assertEqual(unitary_gray, unitary_compare)
+
+    def test_zero_parity_columns_are_dropped(self):
+        """Test if columns whose parity vector is all-zero, are dropped
+        along with their angles.
+        """
+        cnots = [
+            [0, 1, 1, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+        ]
+        angles = [0.1, 0.2, 0.3, 0.4]  # one per column
+        ckt_gray = synth_cnot_phase_aam(cnots, angles)
+        oper_list = [ckt_instr.operation for ckt_instr in ckt_gray]
+        oper_name_list = [oper.name for oper in oper_list]
+        oper_params_list = [oper.params for oper in oper_list]
+
+        # Only one parity is present on qubit:0, so, no CNOTs applied
+        self.assertNotIn("cx", oper_name_list)
+
+        # Angle 0.1, 0.4 were attached to a zero-parity column 0, 3 and should
+        # have been dropped.
+        self.assertFalse([0.1] in oper_params_list)
+        self.assertFalse([0.4] in oper_params_list)
+
+    def test_unit_parities_need_no_cnots(self):
+        """
+        Test that an input consisting only of unit parities e_0, e_1, ..., e_{n-1}
+        produces a circuit with zero CNOTs and only Rz gates.
+        """
+        n = 5
+        # Identity matrix: column k is the unit parity e_k.
+        cnots = [[1 if i == j else 0 for j in range(n)] for i in range(n)]
+        angles = [0.1, 0.2, 0.3, 0.4, 0.5]  # one angle per column
+
+        ckt_gray = synth_cnot_phase_aam(cnots, angles)
+        oper_list = [ckt_instr.operation for ckt_instr in ckt_gray]
+        oper_name_list = [oper.name for oper in oper_list]
+        oper_params_list = [oper.params for oper in oper_list]
+
+        # Unit partiy should have no CNOTs applied
+        self.assertNotIn("cx", oper_name_list)
+
+        # All angles should be present
+        for ang in angles:
+            self.assertIn([ang], oper_params_list)
 
 
 @ddt.ddt

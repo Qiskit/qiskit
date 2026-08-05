@@ -1,0 +1,4 @@
+performance:
+  - Ported :func:`~.synth_cnot_phase_aam` to Rust.  The new implementation is about x853
+    faster than the previous Python implementation when synthesizing a parity network with 120
+    terms on 150 qubits.
