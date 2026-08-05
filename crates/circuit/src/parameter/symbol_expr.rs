@@ -1253,11 +1253,8 @@ impl SymbolExpr {
                             return Some(SymbolExpr::Value(Value::Int(0)));
                         }
                     } else if let SymbolExpr::Symbol(r) = rhs
-                        && let (
-                            BinaryOp::Mul,
-                            SymbolExpr::Value(v),
-                            SymbolExpr::Symbol(s),
-                        ) = (op, l_lhs.as_ref(), l_rhs.as_ref())
+                        && let (BinaryOp::Mul, SymbolExpr::Value(v), SymbolExpr::Symbol(s)) =
+                            (op, l_lhs.as_ref(), l_rhs.as_ref())
                         && s == r
                     {
                         let t = v + &Value::Int(1);
@@ -1591,11 +1588,8 @@ impl SymbolExpr {
                             return Some(SymbolExpr::Value(Value::Int(0)));
                         }
                     } else if let SymbolExpr::Symbol(r) = rhs
-                        && let (
-                            BinaryOp::Mul,
-                            SymbolExpr::Value(v),
-                            SymbolExpr::Symbol(s),
-                        ) = (op, l_lhs.as_ref(), l_rhs.as_ref())
+                        && let (BinaryOp::Mul, SymbolExpr::Value(v), SymbolExpr::Symbol(s)) =
+                            (op, l_lhs.as_ref(), l_rhs.as_ref())
                         && s == r
                     {
                         let t = v - &Value::Int(1);
