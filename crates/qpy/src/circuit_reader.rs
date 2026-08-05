@@ -27,7 +27,7 @@ use numpy::IntoPyArray;
 use pyo3::IntoPyObjectExt;
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyAny, PyBytes, PyDict, PyList, PyString, PyTuple, PyType};
+use pyo3::types::{IntoPyDict, PyAny, PyDict, PyList, PyString, PyTuple, PyType};
 use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
@@ -1363,7 +1363,7 @@ fn read_custom_instructions(
                     qpy_data.version,
                     None,
                     qpy_data.use_symengine,
-                    qpy_data.annotation_handler.annotation_factories,
+                    qpy_data.annotation_handler.child()?,
                 )?)
             }
         } else {
@@ -1566,7 +1566,7 @@ pub(crate) fn unpack_circuit(
     version: u8,
     metadata_deserializer: Option<&Bound<PyAny>>,
     use_symengine: bool,
-    annotation_factories: &Bound<PyDict>,
+    annotation_handler: AnnotationHandler,
 ) -> Result<Py<PyAny>, QpyError> {
     let instruction_capacity = packed_circuit.instructions.len();
     // create an empty circuit; we'll fill data as we go along
@@ -1579,7 +1579,7 @@ pub(crate) fn unpack_circuit(
         standalone_vars: HashMap::new(),
         standalone_stretches: HashMap::new(),
         vectors: HashMap::new(),
-        annotation_handler: AnnotationHandler::new(annotation_factories),
+        annotation_handler,
     };
     if let Some(annotation_headers) = &packed_circuit.annotation_headers {
         let annotation_deserializers_data: Vec<(String, Bytes)> = annotation_headers
@@ -1620,40 +1620,6 @@ pub(crate) fn unpack_circuit(
         circuit.setattr("_layout", layout)?;
     }
     Ok(circuit.unbind().as_any().clone())
-}
-
-#[pyfunction]
-#[pyo3(name = "read_circuit")]
-#[pyo3(signature = (file_obj, version, metadata_deserializer, use_symengine, annotation_factories))]
-pub(crate) fn py_read_circuit(
-    py: Python,
-    file_obj: &Bound<PyAny>,
-    version: u8,
-    metadata_deserializer: &Bound<PyAny>,
-    use_symengine: bool,
-    annotation_factories: &Bound<PyDict>,
-) -> Result<Py<PyAny>, QpyError> {
-    let pos = file_obj.call_method0("tell")?.extract::<usize>()?;
-    let bytes = file_obj.call_method0("read")?;
-    let serialized_circuit: &[u8] = bytes
-        .cast::<PyBytes>()
-        .map_err(|_| QpyError::InvalidPythonType {
-            python_type: "PyBytes".to_string(),
-            name: "serialized_circuit".to_string(),
-        })?
-        .as_bytes();
-    let (packed_circuit, bytes_read) =
-        deserialize_with_args::<formats::QPYCircuit, (u8,)>(serialized_circuit, (version,))?;
-    let unpacked_circuit = unpack_circuit(
-        py,
-        &packed_circuit,
-        version,
-        Some(metadata_deserializer),
-        use_symengine,
-        annotation_factories,
-    )?;
-    file_obj.call_method1("seek", (pos + bytes_read,))?;
-    Ok(unpacked_circuit)
 }
 
 // handling for non control flow gates with conditionals, for backwards compatability
