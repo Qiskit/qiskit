@@ -1001,9 +1001,9 @@ class MCXGate(ControlledGate):
     def _define(self):
         """This definition is based on MCPhaseGate implementation."""
 
-        from qiskit.synthesis.multi_controlled import synth_mcx_noaux_default
+        from qiskit.synthesis.multi_controlled import synth_mcx_noaux_sp22
 
-        qc = synth_mcx_noaux_default(self.num_ctrl_qubits)
+        qc = synth_mcx_noaux_sp22(self.num_ctrl_qubits)
         self.definition = qc
 
     @property

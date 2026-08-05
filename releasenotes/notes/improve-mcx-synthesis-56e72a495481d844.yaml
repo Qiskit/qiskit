@@ -10,10 +10,6 @@ features_synthesis:
     grows quadratically in the number of controls, while the method in 
     :func:`.synth_mcx_noaux_hp24` grows linearly in the number of controls, 
     it still yields better CX counts where n <= 32.
-  - Added a synthesis function :func:`.synth_mcx_noaux_default` which is a 
-    dispatcher that selects between the differenct synthesis methods
-    of :class:`.MCXGate` with no ancilla qubits according
-    to the number of control qubits.
 features_transpiler:
   - Added a new high-level synthesis plugin :class:`.MCXSynthesisNoAuxSP22`
     for the synthesis of :class:`.MCXGate` with no ancilla qubits.

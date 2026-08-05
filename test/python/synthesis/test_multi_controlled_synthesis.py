@@ -65,7 +65,6 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_gray_code,
     synth_mcx_n_clean_m15,
     synth_mcx_n_dirty_i15,
-    synth_mcx_noaux_default,
     synth_mcx_noaux_hp24,
     synth_mcx_noaux_sp22,
     synth_mcx_noaux_v24,
@@ -211,14 +210,6 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
     def test_mcx_gray_code(self, num_ctrl_qubits: int):
         """Test synth_mcx_gray_code by comparing synthesized and expected matrices."""
         synthesized_circuit = synth_mcx_gray_code(num_ctrl_qubits)
-        self.assertSynthesisCorrect(
-            XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
-        )
-
-    @data(0, 1, 2, 3, 4, 5, 6, 7, 8)
-    def test_mcx_noaux_default(self, num_ctrl_qubits: int):
-        """Test synth_mcx_noaux_default by comparing synthesized and expected matrices."""
-        synthesized_circuit = synth_mcx_noaux_default(num_ctrl_qubits)
         self.assertSynthesisCorrect(
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
         )
@@ -480,15 +471,6 @@ class TestMCSynthesisCounts(QiskitTestCase):
         self.assertLessEqual(cx_count, 4 * num_ctrl_qubits**2 - 4 * num_ctrl_qubits + 2)
 
     @data(10, 15, 20)
-    def test_synth_mcx_noaux_default(self, num_ctrl_qubits: int):
-        """Test synth_mcx_noaux_default bound on CX count."""
-        synthesized_circuit = synth_mcx_noaux_default(num_ctrl_qubits)
-        transpiled_circuit = self.pm.run(synthesized_circuit)
-        cx_count = transpiled_circuit.count_ops()["cx"]
-        # The bound from the documentation of synth_mcx_noaux_sp22
-        self.assertLessEqual(cx_count, 4 * num_ctrl_qubits**2 - 4 * num_ctrl_qubits + 2)
-
-    @data(10, 15, 20)
     def test_mcx_noaux_v24_cx_count(self, num_ctrl_qubits: int):
         """Test synth_mcx_noaux_v24 bound on CX count."""
         synthesized_circuit = synth_mcx_noaux_v24(num_ctrl_qubits)
@@ -728,14 +710,6 @@ class TestMCSynthesisDepth(QiskitTestCase):
         transpiled_circuit = self.pm.run(synthesized_circuit)
         depth2q = transpiled_circuit.depth(filter_function=lambda x: x.operation.num_qubits == 2)
         # For the exact calculation see test_synth_mcp_noaux_sp22:
-        self.assertLessEqual(depth2q, 16 * num_ctrl_qubits - 24)
-
-    @data(10, 15, 20)
-    def test_synth_mcx_noaux_default(self, num_ctrl_qubits: int):
-        """Test synth_mcx_noaux_default bound on depth."""
-        synthesized_circuit = synth_mcx_noaux_default(num_ctrl_qubits)
-        transpiled_circuit = self.pm.run(synthesized_circuit)
-        depth2q = transpiled_circuit.depth(filter_function=lambda x: x.operation.num_qubits == 2)
         self.assertLessEqual(depth2q, 16 * num_ctrl_qubits - 24)
 
 
