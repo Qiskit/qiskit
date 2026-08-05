@@ -338,7 +338,7 @@ class QuantumChannel(LinearOp):
         if hasattr(data, "to_channel"):
             # TODO: this 'to_channel' method is the same case as the above
             # but is used by current version of Aer. It should be removed
-            # once Aer is nupdated to use `to_quantumchannel`
+            # once Aer is updated to use `to_quantumchannel`
             # instead of `to_channel`,
             return data.to_channel()
         # Finally if the input is not a QuantumChannel and doesn't have a

@@ -12,6 +12,7 @@
 
 
 """Circuit transpile function"""
+
 import logging
 import os
 from time import time
@@ -87,9 +88,11 @@ def transpile(
     .. note::
 
         When the target basis consists of Clifford+T gates, this function constructs
-        a specialized Clifford+T transpiler pipeline, see :func:`.clifford_t_pass_manager`
-        for documentation. The arguments that apply to transpiling into continuous basis sets
-        are ignored in this flow.
+        a specialized Clifford+T transpiler pipeline, see
+        :func:`.generate_preset_clifford_t_pass_manager` for more detailed documentation. Arguments
+        that apply only to transpiling into continuous basis sets are ignored in this flow.
+        For example, the ``"unitary_synthesis_method"`` is not taken into account when synthesizing
+        single-qubit unitaries into a Clifford+T sequence.
 
     Args:
         circuits: Circuit(s) to transpile
