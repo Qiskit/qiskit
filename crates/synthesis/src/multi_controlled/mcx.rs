@@ -598,7 +598,7 @@ pub fn synth_mcx_n_clean_m15(num_controls: usize) -> Result<CircuitData, Circuit
             CircuitData::with_capacity(num_qubits as u32, 0, num_instructions, Param::Float(0.0))?;
 
         let target: u32 = num_controls as u32;
-        // indexing of controls starts from  0
+        // indexing of controls starts from 0
         // indexing of ancillas starts from num_controls + 1
 
         circuit.rccx(0, 1, (num_controls + 1) as u32)?;
