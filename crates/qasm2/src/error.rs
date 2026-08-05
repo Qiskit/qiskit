@@ -123,10 +123,12 @@ impl std::fmt::Display for ParseError {
 }
 impl std::error::Error for ParseError {}
 
+#[cfg(feature = "py")]
 pyo3::import_exception!(qiskit.qasm2.exceptions, QASM2ParseError);
 
 /// Convert a `ParseError` from the pyo3-free parsing modules into the `QASM2ParseError`
 /// Python exception, at the boundary where results cross back into Python space.
+#[cfg(feature = "py")]
 impl From<ParseError> for PyErr {
     fn from(e: ParseError) -> PyErr {
         let py_err = QASM2ParseError::new_err(e.message);
