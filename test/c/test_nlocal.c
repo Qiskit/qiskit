@@ -295,6 +295,7 @@ cleanup:
     qk_circuit_free(expected_linear);
     qk_circuit_free(expected_revlinear);
     qk_circuit_free(expected_circular);
+    qk_circuit_free(expected_pairwise);
     qk_circuit_free(expected_sca);
     return result;
 }

@@ -206,13 +206,37 @@ pub unsafe extern "C" fn qk_circuit_library_n_local(
         unsafe { const_ptr_as_ref(settings) }
     };
 
-    let entanglement = get_entanglement_strategy(&settings.entanglement_strategy);
-    let entanglement = get_entanglement_with_strategy(
-        num_qubits,
-        &entanglement_blocks,
-        entanglement,
-        settings.reps,
-    );
+    // Create entanglement
+    let entanglement_strategy = match settings.entanglement_strategy {
+        EntanglementStrategy::Full => "full",
+        EntanglementStrategy::Linear => "linear",
+        EntanglementStrategy::ReverseLinear => "reverse_linear",
+        EntanglementStrategy::Sca => "sca",
+        EntanglementStrategy::Circular => "circular",
+        EntanglementStrategy::Pairwise => "pairwise",
+    };
+    let is_sca = matches!(settings.entanglement_strategy, EntanglementStrategy::Sca);
+    let entanglement = Entanglement {
+        entanglement_vec: (0..settings.reps)
+            .map(|layer| {
+                // Create entanglement layer
+                entanglement_blocks
+                    .iter()
+                    .map(|gate| {
+                        // Create block entanglement
+                        get_entanglement_from_str(
+                            num_qubits,
+                            gate.num_qubits,
+                            entanglement_strategy,
+                            if is_sca { layer } else { 0 },
+                        )
+                        .unwrap()
+                        .collect()
+                    })
+                    .collect()
+            })
+            .collect(),
+    };
 
     match n_local(
         ParameterLedgerBuilder,
@@ -248,70 +272,4 @@ pub unsafe extern "C" fn qk_circuit_library_n_local(
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_circuit_library_n_local_settings_default() -> NLocalSettings {
     NLocalSettings::default()
-}
-
-fn get_entanglement_with_strategy(
-    num_qubits: u32,
-    entanglement_blocks: &[&Block],
-    entanglement_strategy: &str,
-    reps: usize,
-) -> Entanglement {
-    Entanglement {
-        entanglement_vec: (0..reps)
-            .map(|layer| {
-                get_layer_entanglement_with_strategy(
-                    num_qubits,
-                    entanglement_blocks,
-                    entanglement_strategy,
-                    layer,
-                )
-            })
-            .collect(),
-    }
-}
-
-fn get_layer_entanglement_with_strategy(
-    num_qubits: u32,
-    entanglement_blocks: &[&Block],
-    strategy: &str,
-    layer_index: usize,
-) -> Vec<Vec<Vec<u32>>> {
-    entanglement_blocks
-        .iter()
-        .map(|gate| {
-            get_block_qubit_connections_with_strategy(
-                num_qubits,
-                gate,
-                strategy,
-                (strategy == "sca").then_some(layer_index),
-            )
-        })
-        .collect()
-}
-
-fn get_block_qubit_connections_with_strategy(
-    num_qubits: u32,
-    gate: &Block,
-    entanglement_strategy: &str,
-    offset: Option<usize>,
-) -> Vec<Vec<u32>> {
-    get_entanglement_from_str(
-        num_qubits,
-        gate.num_qubits,
-        entanglement_strategy,
-        offset.unwrap_or(0),
-    )
-    .unwrap()
-    .collect()
-}
-
-fn get_entanglement_strategy(entanglement_strategy: &EntanglementStrategy) -> &'static str {
-    match entanglement_strategy {
-        EntanglementStrategy::Full => "full",
-        EntanglementStrategy::Linear => "linear",
-        EntanglementStrategy::ReverseLinear => "reverse_linear",
-        EntanglementStrategy::Sca => "sca",
-        EntanglementStrategy::Circular => "circular",
-        EntanglementStrategy::Pairwise => "pairwise",
-    }
 }
