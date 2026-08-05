@@ -1549,6 +1549,11 @@ def write_circuit(
             annotation_factories=annotation_factories,
         )
         return
+    if version >= common.QPY_RUST_WRITE_MIN_VERSION:
+        raise QpyError(
+            f"QPY version {version} is not supported by the Python writer. "
+            f"The Python writer only supports versions below {common.QPY_RUST_WRITE_MIN_VERSION}."
+        )
     annotation_state = _AnnotationSerializationState(annotation_factories or {})
     metadata_raw = json.dumps(
         circuit.metadata, separators=(",", ":"), cls=metadata_serializer
@@ -1695,6 +1700,11 @@ def read_circuit(
             annotation_factories = {}
         return _qpy.read_circuit(
             file_obj, version, metadata_deserializer, use_symengine, annotation_factories
+        )
+    if version >= common.QPY_RUST_READ_MIN_VERSION:
+        raise QpyError(
+            f"QPY version {version} is not supported by the Python reader. "
+            f"The Python reader only supports versions below {common.QPY_RUST_READ_MIN_VERSION}."
         )
 
     vectors = {}
