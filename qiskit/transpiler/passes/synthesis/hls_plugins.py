@@ -1455,27 +1455,27 @@ class MCXSynthesisNoAuxV24(HighLevelSynthesisPlugin):
 
 
 class MCXSynthesisNoAuxSP22(HighLevelSynthesisPlugin):
-    r"""Synthesis plugin for a multi-controlled X gate based on the
-    implementation for MCPhaseGate, which is in turn based on the
-    paper by da Silva et al. (2022).
+    r"""Synthesis plugin for a multi-controlled :class:`.XGate` based on the
+    implementation for :class:`.MCPhaseGate`, which is in turn based on the
+    paper by da Silva et al. [1] and the implementation in qclib [2].
 
     See [1, 2] for details.
 
-    This plugin name is :``mcx.noaux_sp22`` which can be used as the key on
-    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    This plugin name is ``mcx.noaux_sp22`` which can be used as the key on
+    an :class:`.HLSConfig` object to use this method with :class:`.HighLevelSynthesis`.
 
-    For a multi-controlled X gate with :math:`k` control qubits this synthesis
+    For a multi-controlled :class:`.XGate` with :math:`k` control qubits this synthesis
     method requires no additional clean auxiliary qubits. The synthesized
     circuit consists of :math:`k + 1` qubits. The number of CX-gates is quadratic in
     :math:`k`.
 
     References:
-        1. A. J. da Silva and D. K. Park,
+        [1] A. J. da Silva and D. K. Park,
         Linear-depth quantum circuits for multiqubit controlled gates,
         `Phys. Rev. A 106, 042602
         <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.106.042602>`__.
 
-        2. https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py
+        [2] https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):

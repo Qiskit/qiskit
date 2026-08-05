@@ -264,11 +264,12 @@ def synth_mcx_gray_code(num_ctrl_qubits: int) -> QuantumCircuit:
 
 def synth_mcx_noaux_sp22(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
-    Synthesize a multi-controlled X gate with :math:`k` controls based on
-    the implementation for MCPhaseGate.
+    Synthesize a multi-controlled :class:`.XGate` gate with :math:`k` controls based on
+    the implementation for :class:`.MCPhaseGate`.
 
-    In turn, the MCPhase gate uses the decomposition for multi-controlled
-    special unitaries described in [1, 2].
+    In turn, the :class:`.MCPhaseGate` uses the decomposition for multi-controlled
+    special unitaries described in the paper by da Silva et al. [1]
+    and the implementation in qclib [2].
 
     Produces a quantum circuit with :math:`k + 1` qubits.
     The number of CX-gates is quadratic in :math:`k`.
@@ -283,12 +284,12 @@ def synth_mcx_noaux_sp22(num_ctrl_qubits: int) -> QuantumCircuit:
         QiskitError: if ``num_ctrl_qubits`` is illegal.
 
     References:
-        1. A. J. da Silva and D. K. Park,
+        [1] A. J. da Silva and D. K. Park,
         Linear-depth quantum circuits for multiqubit controlled gates,
         `Phys. Rev. A 106, 042602
         <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.106.042602>`__.
 
-        2. https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py
+        [2] https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py
     """
     if num_ctrl_qubits < 0:
         raise QiskitError(
