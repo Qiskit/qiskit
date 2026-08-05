@@ -464,7 +464,7 @@ pub fn synth_mcx_noaux_v24(
 /// Synthesize a multi-controlled X gate with :math:`k\ge 3` controls based on the paper
 /// by Maslov[1].
 ///
-/// The method using :math:`k - 2`clean ancillary qubits with producing a circuit with
+/// The method uses :math:`k - 2` clean ancillary qubits with producing a circuit with
 /// :math:`2 * k - 1` qubits and at most :math:`6 * k - 6` CX gates, by Maslov [1].
 /// For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
 /// (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
