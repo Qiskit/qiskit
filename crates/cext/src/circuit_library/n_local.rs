@@ -76,6 +76,14 @@ pub enum EntanglementStrategy {
     /// for all \f$i \in \{n-2, n-3, ... , 1, 0\}\f$ where \f$n\f$ is the total
     /// number of qubits.
     ReverseLinear = 2,
+    /// Entanglement that behaves the same as linear entanglement but with an additional
+    /// entanglement of the first and last qubit before the linear part.
+    Circular = 3,
+    /// Entanglement where one layer contains a qubit \f$i\f$ entangled with
+    /// qubit \f$i + 1\f$, for all even values of \f$i\f$, and then a second layer
+    /// where a qubit \f$i\f$ is entangled with qubit \f$i + 1\f$, for all odd values of
+    /// \f$i\f$.
+    Pairwise = 4,
     /// Entanglement shifted-circular-alternating. It's a generalized and modified
     /// version of the proposed circuit 14 in
     /// [Sim et al.](https://arxiv.org/abs/1905.10876)
@@ -83,15 +91,7 @@ pub enum EntanglementStrategy {
     /// the first with the last qubit is shifted by one each block.  
     /// Furthermore the role of control and target qubits are swapped every block
     /// (therefore alternating).
-    Sca = 3,
-    /// Entanglement that behaves the same as linear entanglement but with an additional
-    /// entanglement of the first and last qubit before the linear part.
-    Circular = 4,
-    /// Entanglement where one layer contains a qubit \f$i\f$ entangled with
-    /// qubit \f$i + 1\f$, for all even values of \f$i\f$, and then a second layer
-    /// where a qubit \f$i\f$ is entangled with qubit \f$i + 1\f$, for all odd values of
-    /// \f$i\f$.
-    Pairwise = 5,
+    Sca = 5,
 }
 
 /// @ingroup QkCircuitLibrary
@@ -142,7 +142,8 @@ pub enum EntanglementStrategy {
 /// @param entanglement_blocks The blocks used in the entanglement layers.
 /// @param entanglement_blocks_size Length of the list of entanglement blocks provided.
 /// @param settings A ``QkNLocalSettings`` pointer that is the settings to be applied
-///    to the generated circuit. See ``QkNLocalSettings`` for more details.
+///    to the generated circuit. If ``NULL``, the default settings are used,
+///    see ``QkNLocalSettings`` for more details.
 ///
 /// @return A pointer to the generated circuit.
 ///
@@ -170,6 +171,7 @@ pub enum EntanglementStrategy {
 ///   to a sequence of ``rotation_blocks_size`` consecutive elements of ``StandardGate``.
 /// * Behavior is undefined if ``entanglement_blocks`` is not a valid, non-null pointer
 ///   to a sequence of ``entanglement_blocks_size`` consecutive elements of ``StandardGate``.
+/// * Behavior is undefined if ``settings`` is not a valid, non-null pointer.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_library_n_local(
     num_qubits: u32,
@@ -240,9 +242,7 @@ pub unsafe extern "C" fn qk_circuit_library_n_local(
 
 /// @ingroup QkCircuitLibrary
 ///
-/// Generate n_local options defaults
-///
-/// This function generates a ``QkNLocalSettings`` with the default settings
+/// Generate default options for ``qk_circuit_library_n_local``.
 ///
 /// @return A ``QkNLocalSettings`` object with default settings.
 #[unsafe(no_mangle)]

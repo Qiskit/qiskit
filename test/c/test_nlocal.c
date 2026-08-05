@@ -27,6 +27,21 @@ static void build_circuit_based_on_entanglement_strategy(uint32_t num_qubits, ui
     uint32_t connections_reverse_linear[3][3] = {{2, 3, 4}, {1, 2, 3}, {0, 1, 2}};
     uint32_t connections_circular[5][3] = {{3, 4, 0}, {4, 0, 1}, {0, 1, 2}, {1, 2, 3}, {2, 3, 4}};
 
+    if (strategy == QkEntanglementStrategy_Pairwise) {
+        // Add rotation layer for X Gate
+        for (uint32_t i = 0; i < (uint32_t)num_qubits; i++) {
+            qk_circuit_gate(circuit, QkGate_X, (uint32_t[1]){i}, NULL);
+        }
+
+        // Add entanglement layer for CX Gate
+        qk_circuit_gate(circuit, QkGate_CX, (uint32_t[2]){0, 1}, NULL);
+        qk_circuit_gate(circuit, QkGate_CX, (uint32_t[2]){2, 3}, NULL);
+        qk_circuit_gate(circuit, QkGate_CX, (uint32_t[2]){1, 2}, NULL);
+        qk_circuit_gate(circuit, QkGate_CX, (uint32_t[2]){3, 4}, NULL);
+
+        return;
+    }
+
     for (uint32_t i = 0; i < reps; i++) {
         // Add rotation layer for Y Gate
         for (uint32_t j = 0; j < num_qubits; j++) {
@@ -224,17 +239,28 @@ static int test_entanglement_by_strategy(void) {
     build_circuit_based_on_entanglement_strategy(num_qubits, reps, expected_sca,
                                                  QkEntanglementStrategy_Sca);
 
+    // Pairwise entanglement strategy
+    QkCircuit *expected_pairwise = qk_circuit_new(num_qubits, 0);
+    build_circuit_based_on_entanglement_strategy(num_qubits, 1, expected_pairwise,
+                                                 QkEntanglementStrategy_Pairwise);
+
+    QkGate p_rotation_blocks[1] = {QkGate_X};
+    QkGate p_entanglement_blocks[1] = {QkGate_CX};
+
     QkGate rotation_blocks[1] = {QkGate_Y};
     QkGate entanglement_blocks[1] = {QkGate_CCX};
 
     for (QkEntanglementStrategy strategy = 0; strategy < 5; strategy++) {
+        bool is_pairwise = strategy == QkEntanglementStrategy_Pairwise;
         QkNLocalSettings settings = qk_circuit_library_n_local_settings_default();
         settings.entanglement_strategy = strategy;
-        settings.reps = reps;
+        settings.reps = is_pairwise ? 1 : reps;
         settings.skip_final_rotation_layer = true;
 
-        QkCircuit *qc = qk_circuit_library_n_local(num_qubits, rotation_blocks, 1,
-                                                   entanglement_blocks, 1, &settings);
+        QkCircuit *qc = qk_circuit_library_n_local(
+            num_qubits, is_pairwise ? p_rotation_blocks : rotation_blocks, 1,
+            is_pairwise ? p_entanglement_blocks : entanglement_blocks, 1, &settings);
+
         QkCircuit *expected = NULL;
         switch (strategy) {
         case QkEntanglementStrategy_Full:
@@ -252,6 +278,8 @@ static int test_entanglement_by_strategy(void) {
         case QkEntanglementStrategy_Sca:
             expected = expected_sca;
             break;
+        case QkEntanglementStrategy_Pairwise:
+            expected = expected_pairwise;
         }
         if (!(compare_circuits(qc, expected))) {
             result = EqualityError;
@@ -271,41 +299,6 @@ cleanup:
     return result;
 }
 
-static int test_pairwise_entanglement_strategy(void) {
-    uint32_t num_qubits = 5;
-
-    QkCircuit *expected = qk_circuit_new(num_qubits, 0);
-
-    // Add rotation layer for X Gate
-    for (uint32_t i = 0; i < num_qubits; i++) {
-        qk_circuit_gate(expected, QkGate_X, (uint32_t[1]){i}, NULL);
-    }
-
-    // Add entanglement layer for CX Gate
-    qk_circuit_gate(expected, QkGate_CX, (uint32_t[2]){0, 1}, NULL);
-    qk_circuit_gate(expected, QkGate_CX, (uint32_t[2]){2, 3}, NULL);
-    qk_circuit_gate(expected, QkGate_CX, (uint32_t[2]){1, 2}, NULL);
-    qk_circuit_gate(expected, QkGate_CX, (uint32_t[2]){3, 4}, NULL);
-
-    QkGate rotation_blocks[1] = {QkGate_X};
-    QkGate entanglement_blocks[1] = {QkGate_CX};
-
-    QkNLocalSettings settings = qk_circuit_library_n_local_settings_default();
-    settings.entanglement_strategy = QkEntanglementStrategy_Pairwise;
-    settings.reps = 1;
-    settings.skip_final_rotation_layer = true;
-
-    QkCircuit *qc = qk_circuit_library_n_local(num_qubits, rotation_blocks, 1, entanglement_blocks,
-                                               1, &settings);
-
-    int result = (compare_circuits(qc, expected)) ? Ok : EqualityError;
-
-    qk_circuit_free(qc);
-    qk_circuit_free(expected);
-
-    return result;
-}
-
 int test_nlocal(void) {
     int num_failed = 0;
 
@@ -313,7 +306,6 @@ int test_nlocal(void) {
     num_failed += RUN_TEST(test_parameter_prefix);
     num_failed += RUN_TEST(test_insert_barrier);
     num_failed += RUN_TEST(test_entanglement_by_strategy);
-    num_failed += RUN_TEST(test_pairwise_entanglement_strategy);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests (n_local): %i\n", num_failed);
