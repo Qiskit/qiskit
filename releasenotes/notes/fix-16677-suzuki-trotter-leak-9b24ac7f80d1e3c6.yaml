@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a memory leak in the Suzuki-Trotter circuit by removing an unnecessary lifetime bound on ``sparse_term_evolution``, which eliminated the need for an unsafe ``.leak()`` call.
+    Fixes `#16677 <https://github.com/Qiskit/qiskit/issues/16677>`__.
