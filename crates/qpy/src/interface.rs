@@ -20,19 +20,47 @@ use binrw::{BinRead, Endian, VecArgs};
 use pyo3::PyResult;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict};
+use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::QuantumCircuitData;
 
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::circuit_reader::unpack_circuit;
-use crate::circuit_writer::pack_circuit;
+use crate::circuit_writer::{pack_circuit, pack_layout};
 use crate::error::QpyError;
 use crate::formats::{QPYCircuit, QPYFileHeader};
-use crate::value::{ProgramType, SymbolicEncoding, deserialize, deserialize_with_args, serialize};
+use crate::py_methods::{py_circuit_data_to_quantum_circuit, serialize_metadata};
+use crate::value::{
+    ProgramType, QpyCaller, SymbolicEncoding, deserialize, deserialize_with_args, serialize,
+};
 
 use std::io::{Cursor, Seek};
 
-// helper function to parse int from ascii at compile time
+/// A circuit loaded from QPY, before the Python-only parts of circuit construction.
+///
+/// The packed circuit is retained because it contains the metadata, name, and layout that are
+/// applied when converting the native [`CircuitData`] into a Python `QuantumCircuit`.
+pub struct LoadedCircuit {
+    /// The native circuit data reconstructed from the payload.
+    pub circuit_data: CircuitData,
+    /// The packed representation containing data needed for Python circuit construction.
+    pub packed_circuit: QPYCircuit,
+}
+
+/// Data associated with a circuit that is not stored in native [`CircuitData`].
+pub struct ExtraCircuitData {
+    /// The circuit name.
+    pub name: Option<String>,
+    /// The serialized Python metadata mapping.
+    pub metadata: Bytes,
+    /// The serialized transpiler-layout data.
+    pub layout: Bytes,
+}
+
+/// Parses an ASCII decimal string as a `u8` during compile-time evaluation.
+///
+/// This is used for Cargo's package-version components, which are guaranteed to
+/// contain decimal digits.
 const fn parse_u8_from_ascii(s: &str) -> u8 {
     let bytes = s.as_bytes();
     let mut result: u8 = 0;
@@ -48,6 +76,7 @@ const fn parse_u8_from_ascii(s: &str) -> u8 {
     result
 }
 
+/// Returns this crate's Cargo package version as three numeric components.
 const fn parse_version() -> (u8, u8, u8) {
     let major = parse_u8_from_ascii(env!("CARGO_PKG_VERSION_MAJOR"));
     let minor = parse_u8_from_ascii(env!("CARGO_PKG_VERSION_MINOR"));
@@ -58,11 +87,26 @@ const fn parse_version() -> (u8, u8, u8) {
 const QISKIT_VERSION: (u8, u8, u8) = parse_version();
 const QPY_READ_MIN_VERSION: u8 = 13;
 const QPY_WRITE_MIN_VERSION: u8 = 17;
+
+/// Serializes native circuits into a complete binary QPY payload.
+/// # Arguments
+///
+/// * circuits: The rust `CircuitData` of the circuts to serialize. Mutability is required because some implicit
+///   gates have to be instantiated in order to be serialized.
+/// * extra_data: The extra data associated with each circuit, including name, metadata, and layout. Since this
+///   is currently Python-only, metadata and layout should be already serialized into `Bytes` objects.
+/// * qpy_version: The QPY version to use for serialization. Must be >= QPY_WRITE_MIN_VERSION.
+/// * annotation_handler: The annotation handler to use for serializing annotations. If None, the native handler is used.
+/// * caller: The caller context, either Python or Native. Use `Native` when invoking `dump_qpy` from Rust.
+///
+/// Returns:
+/// A `Bytes` object containing the complete QPY payload.
 pub fn dump_qpy(
-    mut circuits: Vec<QuantumCircuitData>,
-    metadata_serializer: Option<Bound<PyAny>>,
+    mut circuits: Vec<CircuitData>,
+    extra_data: Vec<ExtraCircuitData>,
     qpy_version: u8,
-    annotation_handler: AnnotationHandler,
+    annotation_handler: Option<AnnotationHandler>,
+    caller: QpyCaller,
 ) -> Result<Bytes, QpyError> {
     if qpy_version < QPY_WRITE_MIN_VERSION {
         Err(QpyError::UnsupportedFeatureForVersion {
@@ -71,17 +115,28 @@ pub fn dump_qpy(
             min_version: QPY_WRITE_MIN_VERSION,
         })?;
     }
+    let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native());
+    if circuits.len() != extra_data.len() {
+        return Err(QpyError::ConversionError(format!(
+            "Expected extra data for {} circuits, got {}",
+            circuits.len(),
+            extra_data.len()
+        )));
+    }
     let serialized_circuits: Vec<Bytes> = circuits
         .iter_mut()
-        .map(|circuit| {
+        .zip(extra_data)
+        .map(|(circuit, extra)| {
             serialize(&pack_circuit(
                 circuit,
-                metadata_serializer.as_ref(),
+                extra,
                 qpy_version,
                 annotation_handler.child()?,
+                caller,
             )?)
         })
         .collect::<Result<Vec<Bytes>, QpyError>>()?;
+    // Since QPY doesn't use symengine anymore, we default to SymbolicEncoding::Sympy
     let qpy_header = QPYFileHeader {
         qpy_version,
         qiskit_version: QISKIT_VERSION,
@@ -120,6 +175,16 @@ pub fn dump_qpy(
 
 #[pyfunction]
 #[pyo3(name = "dump")]
+/// Python entry point for serializing circuits to binary and writing to file.
+///
+/// # Arguments
+///
+/// * py: The GIL handle.
+/// * programs: The list of QuantumCircuit objects to serialize.
+/// * file_obj: A writable file-like object to which the serialized QPY data will be written.
+/// * metadata_serializer: An optional Python callable that takes a metadata dictionary and returns a serialized bytes object.
+/// * version: The QPY version to use for serialization. Must be >= QPY_WRITE_MIN_VERSION.
+/// * annotation_factories: An optional dictionary for annotation handlers
 pub fn py_dump_qpy(
     py: Python,
     programs: &Bound<PyAny>,
@@ -130,17 +195,41 @@ pub fn py_dump_qpy(
 ) -> PyResult<()> {
     let annotation_factories = annotation_factories.unwrap_or(PyDict::new(py));
     let annotation_handler = AnnotationHandler::python(&annotation_factories.clone().unbind())?;
+    let circuits: Vec<QuantumCircuitData> = programs.extract()?;
+    let extra_data = circuits
+        .iter()
+        .map(|circuit| {
+            let metadata = serialize_metadata(
+                py,
+                &circuit.metadata,
+                metadata_serializer.as_ref().map(Bound::as_unbound),
+            )?;
+            let layout = pack_layout(circuit.transpile_layout.clone(), &circuit.data)
+                .and_then(|layout| serialize(&layout))?;
+            Ok(ExtraCircuitData {
+                name: circuit.name.clone(),
+                metadata,
+                layout,
+            })
+        })
+        .collect::<Result<Vec<_>, QpyError>>()?;
+    let circuit_data = circuits.into_iter().map(|circuit| circuit.data).collect();
     let serialized_qpy = dump_qpy(
-        programs.extract()?,
-        metadata_serializer,
+        circuit_data,
+        extra_data,
         version,
-        annotation_handler,
+        Some(annotation_handler),
+        QpyCaller::Python,
     )?;
     file_obj.call_method1("write", (pyo3::types::PyBytes::new(py, &serialized_qpy),))?;
     Ok(())
 }
 
-// reads the offset table and splits the raw bytes into circuits accordingly
+/// Reads a QPY circuit-offset table and splits the remaining payload into circuits.
+///
+/// The cursor must be positioned immediately before the table. Circuit sizes
+/// are derived from adjacent offsets; the final circuit consumes all remaining
+/// bytes.
 pub fn read_raw_circuits(
     cursor: &mut Cursor<&[u8]>,
     num_programs: usize,
@@ -181,13 +270,26 @@ pub fn read_raw_circuits(
     Ok(circuits)
 }
 
+/// Deserializes native circuits from a complete QPY payload.
+///
+/// # Arguments
+///
+/// * data: The complete QPY payload as a byte slice.
+/// * annotation_handler: An optional annotation handler for deserializing annotations. If None, the native (dummy) handler is used.
+/// * caller: The caller context, either Python or Native. Use `Native` when invoking `load_qpy` from Rust.
+///
+/// # Returns
+/// A vector of [`LoadedCircuit`] values, each containing the native `CircuitData` and packed data needed for any later Python-only construction.
 pub fn load_qpy(
-    py: Python,
     data: &Bytes,
-    qpy_version: u8,
-    metadata_deserializer: Option<&Bound<PyAny>>,
-    annotation_handler: AnnotationHandler,
-) -> Result<Vec<Py<PyAny>>, QpyError> {
+    annotation_handler: Option<AnnotationHandler>,
+    caller: QpyCaller,
+) -> Result<Vec<LoadedCircuit>, QpyError> {
+    // Every QPY file begins with "QISKIT" followed by a version byte.
+    // Since the header might be effected by the version, we begin by explicitly extracting the version.
+    let qpy_version: u8 = *data.get(6).ok_or_else(|| {
+        QpyError::ConversionError("QPY payload is empty; cannot read version".to_string())
+    })?;
     if qpy_version < QPY_READ_MIN_VERSION {
         Err(QpyError::UnsupportedFeatureForVersion {
             feature: "Rust QPY".to_string(),
@@ -195,6 +297,7 @@ pub fn load_qpy(
             min_version: QPY_READ_MIN_VERSION,
         })?;
     }
+    let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native());
     let (qpy_file_header, header_size) = deserialize::<QPYFileHeader>(data)?;
     // Verify the type key is for circuits
     if qpy_file_header.type_key == ProgramType::Schedule {
@@ -213,24 +316,27 @@ pub fn load_qpy(
         qpy_file_header.symbolic_encoding,
         SymbolicEncoding::Symengine
     );
-    let mut circuits = vec![py.None(); num_programs];
+    let mut circuits = Vec::with_capacity(num_programs);
     let mut cursor = Cursor::new(data as &[u8]);
     cursor.seek(std::io::SeekFrom::Start(header_size as u64))?;
     if qpy_file_header.qpy_version >= 16 {
         let qpy_raw_circuits = read_raw_circuits(&mut cursor, num_programs)?;
-        for (index, raw_circuit) in qpy_raw_circuits.iter().enumerate() {
+        for raw_circuit in &qpy_raw_circuits {
             let (packed_circuit, _) = deserialize_with_args::<QPYCircuit, (u8,)>(
                 raw_circuit,
                 (qpy_file_header.qpy_version,),
             )?;
-            circuits[index] = unpack_circuit(
-                py,
+            let circuit_data = unpack_circuit(
                 &packed_circuit,
                 qpy_file_header.qpy_version,
-                metadata_deserializer,
                 use_symengine,
                 annotation_handler.child()?,
+                caller,
             )?;
+            circuits.push(LoadedCircuit {
+                circuit_data,
+                packed_circuit,
+            });
         }
     } else {
         // QPY version < 16, no offset table
@@ -242,15 +348,18 @@ pub fn load_qpy(
                 inner: (qpy_file_header.qpy_version,),
             },
         )?;
-        for (index, packed_circuit) in packed_qpy_circuits.iter().enumerate() {
-            circuits[index] = unpack_circuit(
-                py,
-                packed_circuit,
+        for packed_circuit in packed_qpy_circuits {
+            let circuit_data = unpack_circuit(
+                &packed_circuit,
                 qpy_file_header.qpy_version,
-                metadata_deserializer,
                 use_symengine,
                 annotation_handler.child()?,
+                caller,
             )?;
+            circuits.push(LoadedCircuit {
+                circuit_data,
+                packed_circuit,
+            });
         }
     }
     Ok(circuits)
@@ -258,24 +367,131 @@ pub fn load_qpy(
 
 #[pyfunction]
 #[pyo3(name = "load")]
+/// Python entry point for loading circuits from a readable file-like object.
+///
+/// This reads the complete payload from `file_obj`, reconstructs each native
+/// circuit, and then applies Python-only metadata, layout, and annotation data
+/// to create Python `QuantumCircuit` objects.
+///
+/// # Arguments
+///
+/// * py: The GIL handle.
+/// * file_obj: The file-like object to read the QPY payload from
+/// * metadata_deserializer: An optional Python callable that takes a serialized bytes object and returns a metadata dictionary.
+/// * annotation_factories: An optional dictionary for annotation handlers
+///
+/// Returns
+/// A list of Python `QuantumCircuit` objects reconstructed from the QPY payload.
 pub fn py_load_qpy(
     py: Python,
     file_obj: &Bound<PyAny>,
     metadata_deserializer: Option<Bound<PyAny>>,
-    version: u8,
     annotation_factories: Option<Bound<PyDict>>,
 ) -> Result<Vec<Py<PyAny>>, QpyError> {
     let annotation_factories = annotation_factories.unwrap_or(PyDict::new(py));
-    let annotation_handler = AnnotationHandler::python(&annotation_factories.clone().unbind())?;
     // Read all data from file object
-    // TODO: When we read from a rust native stream, maybe we can seek according to the circuit offsets instead of reading everything at once
     let data: Bytes = file_obj.call_method0("read")?.extract()?;
 
-    load_qpy(
-        py,
-        &data,
-        version,
-        metadata_deserializer.as_ref(),
-        annotation_handler,
-    )
+    let annotation_handler = AnnotationHandler::python(&annotation_factories.clone().unbind())?;
+    load_qpy(&data, Some(annotation_handler), QpyCaller::Python)?
+        .into_iter()
+        .map(|loaded| {
+            QpyCaller::Python.attach("Python circuit construction", |py| {
+                py_circuit_data_to_quantum_circuit(
+                    py,
+                    loaded.circuit_data,
+                    &loaded.packed_circuit,
+                    metadata_deserializer.as_ref().map(Bound::as_ref),
+                )
+            })
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use qiskit_circuit::Qubit;
+    use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
+
+    fn roundtrip_native(circuit: CircuitData) -> Result<CircuitData, QpyError> {
+        let payload = dump_qpy(
+            vec![circuit],
+            vec![ExtraCircuitData {
+                name: Some("native-roundtrip".to_owned()),
+                metadata: "{}".into(),
+                layout: Bytes::new(),
+            }],
+            QPY_WRITE_MIN_VERSION,
+            None,
+            QpyCaller::Native,
+        )?;
+        let mut loaded = load_qpy(&payload, None, QpyCaller::Native)?;
+        if loaded.len() != 1 {
+            return Err(QpyError::ConversionError(format!(
+                "expected one loaded circuit, got {}",
+                loaded.len()
+            )));
+        }
+        Ok(loaded.remove(0).circuit_data)
+    }
+
+    fn assert_same_simple_circuit(expected: &CircuitData, actual: &CircuitData) {
+        assert_eq!(actual.num_qubits(), expected.num_qubits());
+        assert_eq!(actual.num_clbits(), expected.num_clbits());
+        match (expected.global_phase(), actual.global_phase()) {
+            (Param::Float(expected), Param::Float(actual)) => assert_eq!(actual, expected),
+            (expected, actual) => panic!(
+                "global phases have different representations: expected {expected:?}, got {actual:?}"
+            ),
+        }
+        assert_eq!(actual.len(), expected.len());
+
+        for (expected_instruction, actual_instruction) in expected.data().iter().zip(actual.data())
+        {
+            match (expected_instruction.op.view(), actual_instruction.op.view()) {
+                (OperationRef::StandardGate(expected), OperationRef::StandardGate(actual)) => {
+                    assert_eq!(actual, expected)
+                }
+                (expected, actual) => panic!(
+                    "operations have different representations: expected {expected:?}, got {actual:?}"
+                ),
+            }
+            assert_eq!(
+                actual.get_qargs(actual_instruction.qubits),
+                expected.get_qargs(expected_instruction.qubits)
+            );
+            assert_eq!(
+                actual.get_cargs(actual_instruction.clbits),
+                expected.get_cargs(expected_instruction.clbits)
+            );
+            assert_eq!(
+                actual_instruction.params.is_none(),
+                expected_instruction.params.is_none()
+            );
+            assert_eq!(actual_instruction.label, expected_instruction.label);
+        }
+    }
+
+    #[test]
+    fn native_roundtrip_empty_circuit() -> Result<(), QpyError> {
+        let circuit = CircuitData::with_capacity(1, 0, 0, Param::Float(0.0))?;
+        let loaded = roundtrip_native(circuit.clone())?;
+        assert_same_simple_circuit(&circuit, &loaded);
+        Ok(())
+    }
+
+    #[test]
+    fn native_roundtrip_standard_gate() -> Result<(), QpyError> {
+        let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0))?;
+        circuit.push_standard_gate(StandardGate::H, &[], &[Qubit(0)])?;
+
+        let loaded = roundtrip_native(circuit.clone())?;
+        assert_same_simple_circuit(&circuit, &loaded);
+        assert!(matches!(
+            loaded.data()[0].op.view(),
+            OperationRef::StandardGate(StandardGate::H)
+        ));
+        Ok(())
+    }
 }

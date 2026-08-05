@@ -169,11 +169,13 @@ pub(crate) fn unpack_expression_var(
                 })?
                 .clone(),
             ty,
-        }), // TODO: can we avoid cloning?
+        }),
         ExpressionVarElementPack::Uuid(key) => {
             let var = qpy_data.standalone_vars.get(&key).ok_or_else(|| {
                 QpyError::InvalidParameter("Standalone var not found in qpy data".to_string())
             })?; // note: this is not an actual expr::Var; merely a key for this var inside the circuit data
+            // Expressions own their variables, while the circuit retains the
+            // canonical variable for subsequent references.
             Ok(qpy_data
                 .circuit_data
                 .vars_stretches_view()
@@ -184,7 +186,7 @@ pub(crate) fn unpack_expression_var(
                         "Standalone var not found in circuit data".to_string(),
                     )
                 })?
-                .clone()) // TODO: can we avoid cloning?
+                .clone())
         }
     }
 }
@@ -287,7 +289,7 @@ pub(crate) fn read_expression<R: Read + Seek>(
                         )
                     })?
                     .clone(),
-            )) // TODO: can we avoid cloning?
+            ))
         }
         ExpressionElementPack::Index(index_type_pack) => {
             let target = read_expression(reader, endian, (qpy_data,))?;
