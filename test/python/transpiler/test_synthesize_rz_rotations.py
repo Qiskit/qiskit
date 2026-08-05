@@ -219,7 +219,7 @@ class TestSynthesizeRzRotations(QiskitTestCase):
         qc = SynthesizeRZRotations(synthesis_error=synthesis_error, cache_error=1e-10)(qc)
 
         full_angle = sum(angles)
-        full_error = 1 - ((1 - synthesis_error) ** len(angles))
+        full_error = synthesis_error * len(angles)
 
         self.assertLessEqual(operator_norm_distance(qc, full_angle), full_error)
 
