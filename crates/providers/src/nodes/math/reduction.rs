@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use crate::data_tree::DataTree;
-use crate::program_node::ProgramNode;
+use crate::nodes::OpNodeType;
 use crate::tensor::{DType, DTypeLike, Tensor, TensorType};
 use crate::unpack_tensor_args;
 use ndarray::{ArrayBase, ArrayD, Axis, Data, IxDyn, NdFloat, Zip};
@@ -122,7 +122,7 @@ impl Mean {
     }
 }
 
-impl ProgramNode for Mean {
+impl OpNodeType for Mean {
     type CallError = super::MathNodeError;
 
     fn name(&self) -> &str {
@@ -187,7 +187,7 @@ impl Variance {
     }
 }
 
-impl ProgramNode for Variance {
+impl OpNodeType for Variance {
     type CallError = super::MathNodeError;
 
     fn name(&self) -> &str {
@@ -251,7 +251,7 @@ impl Std {
     }
 }
 
-impl ProgramNode for Std {
+impl OpNodeType for Std {
     type CallError = super::MathNodeError;
 
     fn name(&self) -> &str {
@@ -304,8 +304,8 @@ impl ProgramNode for Std {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math_nodes::MathNodeError;
-    use crate::program_node::{CallError, CallInputError, ProgramNodeExt};
+    use crate::nodes::math::MathNodeError;
+    use crate::nodes::{CallError, CallInputError, OpNodeTypeExt};
     use crate::tensor::{DType, Tensor};
     use ndarray::{ArrayView, ShapeBuilder, arr2};
     use num_complex::Complex;

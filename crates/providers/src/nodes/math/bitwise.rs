@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use crate::data_tree::DataTree;
-use crate::program_node::{CallInputError, ProgramNode};
+use crate::nodes::{CallInputError, OpNodeType};
 use crate::tensor::{DType, DTypeLike, Tensor, TensorType, broadcast_shape};
 use crate::unpack_tensor_args;
 use ndarray::Axis;
@@ -58,13 +58,13 @@ fn unexpected_dtype(key: &str, actual: &Tensor) -> CallInputError {
     }
 }
 
-/// Generate a [`ProgramNode`] struct for an elementwise binary bitwise operation on `Bit` tensors.
+/// Generate a [`OpNodeType`] struct for an elementwise binary bitwise operation on `Bit` tensors.
 macro_rules! bitwise_binary_node {
     ($name:ident, $node_name:literal, $call_fn:expr) => {
         #[doc = concat!("Elementwise `", $node_name, "` of two broadcastable `Bit` tensors.")]
         pub struct $name;
 
-        impl ProgramNode for $name {
+        impl OpNodeType for $name {
             type CallError = super::MathNodeError;
 
             fn name(&self) -> &str {
@@ -104,7 +104,7 @@ bitwise_binary_node!(BitwiseXor, "bitwise_xor", |x, y| x ^ y);
 /// Elementwise bitwise NOT of a broadcastable `Bit` tensor.
 pub struct BitwiseNot;
 
-impl ProgramNode for BitwiseNot {
+impl OpNodeType for BitwiseNot {
     type CallError = super::MathNodeError;
 
     fn name(&self) -> &str {
@@ -147,7 +147,7 @@ impl Parity {
     }
 }
 
-impl ProgramNode for Parity {
+impl OpNodeType for Parity {
     type CallError = super::MathNodeError;
 
     fn name(&self) -> &str {
@@ -181,8 +181,8 @@ impl ProgramNode for Parity {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math_nodes::MathNodeError;
-    use crate::program_node::{CallError, CallInputError, ProgramNodeExt};
+    use crate::nodes::math::MathNodeError;
+    use crate::nodes::{CallError, CallInputError, OpNodeTypeExt};
     use ndarray::{arr1, arr2};
 
     fn bit(data: &[u8]) -> Tensor {

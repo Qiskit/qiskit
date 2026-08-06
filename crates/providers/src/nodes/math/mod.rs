@@ -18,11 +18,11 @@ pub use binary::*;
 pub use bitwise::*;
 pub use reduction::*;
 
-use crate::program_node::CallInputError;
+use crate::nodes::CallInputError;
 use crate::tensor::TensorError;
 use thiserror::Error;
 
-/// Errors returned by [`crate::program_node::ProgramNode`] implementations in this module.
+/// Errors returned by [`crate::nodes::OpNodeType`] implementations in this module.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum MathNodeError {
     /// The input tree did not match the contract declared by `input_types`.

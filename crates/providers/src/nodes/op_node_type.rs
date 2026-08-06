@@ -25,7 +25,7 @@ use thiserror::Error;
 macro_rules! unpack_tensor_args {
     ($args:ident, [$($x:ident),+]) => {
         let [$($x),+] = $args else {
-            return Err($crate::program_node::CallInputError::WrongArity {
+            return Err($crate::nodes::CallInputError::WrongArity {
                 expected: $crate::unpack_tensor_args!(@count $($x),+),
                 actual: $args.len(),
             }
@@ -36,7 +36,7 @@ macro_rules! unpack_tensor_args {
     (@count $x:ident, $($rest:ident),+) => { 1usize + $crate::unpack_tensor_args!(@count $($rest),+) };
 }
 
-/// Errors returned when a tree-shaped argument does not match [`ProgramNode::input_types`].
+/// Errors returned when a tree-shaped argument does not match [`OpNodeType::input_types`].
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum CallInputError {
     #[error("missing required input {key:?}")]
@@ -77,16 +77,16 @@ impl MissingCallError {
     }
 }
 
-/// Errors returned by [`ProgramNodeExt::call`].
+/// Errors returned by [`OpNodeTypeExt::call`].
 #[derive(Debug, Error)]
 pub enum CallError<E> {
     /// The input tree did not match the contract declared by `input_types()`.
     #[error(transparent)]
     Input(CallInputError),
-    /// The node's [`ProgramNode::call_flat`] returned an error.
+    /// The node's [`OpNodeType::call_flat`] returned an error.
     #[error(transparent)]
     Call(E),
-    /// The node's [`ProgramNode::call_flat`] returned a vector whose length
+    /// The node's [`OpNodeType::call_flat`] returned a vector whose length
     /// did not match the leaf count of `output_types()`.
     #[error("call_flat returned {actual} outputs, expected {expected}")]
     OutputArityMismatch { expected: usize, actual: usize },
@@ -102,7 +102,7 @@ impl<E> From<ArityMismatch> for CallError<E> {
 }
 
 /// A node in a quantum program graph that transforms tensors.
-pub trait ProgramNode {
+pub trait OpNodeType {
     type CallError;
 
     /// The name of this program node.
@@ -137,15 +137,15 @@ pub trait ProgramNode {
     /// the leaf count of `input_types()`; callers are responsible for upholding
     /// this invariant. On the other hand, implementations should raise a call
     /// error if they find tensors that they don't like.
-    /// [`ProgramNodeExt::call`] and [`QuantumProgram::call_flat`] both do.
+    /// [`OpNodeTypeExt::call`] and [`QuantumProgram::call_flat`] both do.
     fn call_flat(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::CallError>;
 }
 
-/// Extension with the wrapper over [`ProgramNode::call_flat`] whose I/O are data trees.
+/// Extension with the wrapper over [`OpNodeType::call_flat`] whose I/O are data trees.
 ///
-/// Provided via a blanket impl over every `T: ProgramNode` so that it cannot
+/// Provided via a blanket impl over every `T: OpNodeType` so that it cannot
 /// be overridden in stable Rust.
-pub trait ProgramNodeExt: ProgramNode {
+pub trait OpNodeTypeExt: OpNodeType {
     /// The action of this program node.
     fn call(
         &self,
@@ -160,4 +160,4 @@ pub trait ProgramNodeExt: ProgramNode {
     }
 }
 
-impl<T: ProgramNode + ?Sized> ProgramNodeExt for T {}
+impl<T: OpNodeType + ?Sized> OpNodeTypeExt for T {}
