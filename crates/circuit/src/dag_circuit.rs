@@ -8630,14 +8630,20 @@ impl ::std::ops::Index<NodeIndex> for DAGCircuit {
 pub(crate) fn add_global_phase(phase: &Param, other: &Param) -> Param {
     match [phase, other] {
         [Param::Float(a), Param::Float(b)] => Param::Float(a + b),
-        [Param::Float(a), Param::ParameterExpression(b)] => {
-            Param::ParameterExpression(Arc::new(b.add(&ParameterExpression::from_f64(*a)).unwrap()))
-        }
-        [Param::ParameterExpression(a), Param::Float(b)] => {
-            Param::ParameterExpression(Arc::new(a.add(&ParameterExpression::from_f64(*b)).unwrap()))
-        }
+        [Param::Float(a), Param::ParameterExpression(b)] => Param::ParameterExpression(Arc::new(
+            b.add(&ParameterExpression::from_f64(*a))
+                .unwrap()
+                .simplify(),
+        )),
+        [Param::ParameterExpression(a), Param::Float(b)] => Param::ParameterExpression(Arc::new(
+            a.add(&ParameterExpression::from_f64(*b))
+                .unwrap()
+                .simplify(),
+        )),
         [Param::ParameterExpression(a), Param::ParameterExpression(b)] => {
-            Param::ParameterExpression(Arc::new(a.add(b).expect("Name conflict in add.")))
+            Param::ParameterExpression(Arc::new(
+                a.add(b).expect("Name conflict in add.").simplify(),
+            ))
         }
         _ => panic!("Invalid global phase"),
     }
@@ -8692,15 +8698,18 @@ type SortKeyType<'a> = (&'a [Qubit], &'a [Clbit]);
 #[cfg(test)]
 mod test {
     use crate::bit::{ClassicalRegister, QuantumRegister};
-    use crate::dag_circuit::{BlocksMode, DAGCircuit, Wire};
-    use crate::operations::{StandardGate, StandardInstruction};
+    use crate::dag_circuit::{BlocksMode, DAGCircuit, Wire, add_global_phase};
+    use crate::operations::{Param, StandardGate, StandardInstruction};
     use crate::packed_instruction::{PackedInstruction, PackedOperation};
+    use crate::parameter::parameter_expression::ParameterExpression;
+    use crate::parameter::symbol_expr::Symbol;
     use crate::{Clbit, Qubit};
     use hashbrown::HashSet;
     use pyo3::prelude::*;
     use rustworkx_core::petgraph::prelude::*;
     use rustworkx_core::petgraph::stable_graph::DefaultIx;
     use rustworkx_core::petgraph::visit::IntoEdgeReferences;
+    use std::sync::Arc;
 
     fn new_dag(qubits: u32, clbits: u32) -> DAGCircuit {
         let qreg = QuantumRegister::new_owning("q".to_owned(), qubits);
@@ -8709,6 +8718,19 @@ mod test {
         dag.add_qreg(qreg).unwrap();
         dag.add_creg(creg).unwrap();
         dag
+    }
+
+    #[test]
+    fn test_add_global_phase_simplifies_parameter_expression() {
+        let symbol = Symbol::standalone("x".to_owned(), None);
+        let phase = Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(symbol)));
+        let phase = add_global_phase(&phase, &Param::Float(1.0));
+        let phase = add_global_phase(&phase, &Param::Float(2.0));
+
+        let Param::ParameterExpression(phase) = phase else {
+            panic!("adding a float to a parameter expression must remain symbolic");
+        };
+        assert_eq!(phase.to_string(), "3 + x");
     }
 
     macro_rules! cx_gate {
