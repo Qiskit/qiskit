@@ -1039,7 +1039,6 @@ fn pack_custom_instruction(
             Some(serialize(&pack_circuit(
                 &mut gate.getattr("_definition")?.extract()?,
                 Some(py.None().bind(py)),
-                false,
                 qpy_data.version,
                 qpy_data.annotation_handler.child()?,
             )?)?)
@@ -1054,7 +1053,6 @@ fn pack_custom_instruction(
                 pack_circuit(
                     &mut defn,
                     Some(py.None().bind(py)),
-                    false,
                     qpy_data.version,
                     qpy_data.annotation_handler.child()?,
                 )
@@ -1205,7 +1203,6 @@ fn pack_standalone_vars(
 pub(crate) fn pack_circuit(
     circuit: &mut QuantumCircuitData,
     metadata_serializer: Option<&Bound<PyAny>>,
-    _use_symengine: bool,
     version: u8,
     annotation_handler: AnnotationHandler,
 ) -> Result<formats::QPYCircuit, QpyError> {
@@ -1247,32 +1244,4 @@ pub(crate) fn pack_circuit(
         calibrations,
         layout,
     })
-}
-
-#[pyfunction]
-#[pyo3(name = "write_circuit")]
-#[pyo3(signature = (file_obj, circuit, metadata_serializer, use_symengine, version, annotation_factories))]
-pub(crate) fn py_write_circuit(
-    py: Python,
-    file_obj: &Bound<PyAny>,
-    circuit: &Bound<PyAny>,
-    metadata_serializer: &Bound<PyAny>,
-    use_symengine: bool,
-    version: u8,
-    annotation_factories: &Bound<PyDict>,
-) -> PyResult<usize> {
-    let annotation_handler = AnnotationHandler::python(&annotation_factories.clone().unbind())?;
-    let packed_circuit = pack_circuit(
-        &mut circuit.extract()?,
-        Some(metadata_serializer),
-        use_symengine,
-        version,
-        annotation_handler,
-    )?;
-    let serialized_circuit = serialize(&packed_circuit)?;
-    file_obj.call_method1(
-        "write",
-        (pyo3::types::PyBytes::new(py, &serialized_circuit),),
-    )?;
-    Ok(serialized_circuit.len())
 }
