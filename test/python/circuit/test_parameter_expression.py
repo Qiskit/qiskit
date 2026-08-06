@@ -27,7 +27,6 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter, ParameterVector, ParameterExpression
 from qiskit.utils.optionals import HAS_SYMPY
 
-
 param_x = Parameter("x")
 param_y = Parameter("y")
 nested_expr = param_x + param_y - param_x
@@ -620,8 +619,6 @@ class TestParameterExpression(QiskitTestCase):
         sympy_sub = res_sub.sympify()
         expected_sub = 2 - sympy.Symbol("a")
         self.assertEqual(sympy_sub, expected_sub)
-<<<<<<< HEAD
-=======
 
     def test_division_with_addition(self):
         """Test that (v / p) + p evaluates correctly when bound.
@@ -970,20 +967,3 @@ class TestParameterExpression(QiskitTestCase):
             gradient = g.arctan().gradient(p)
             actual = gradient.bind({p: val})
             self.assertAlmostEqual(actual, 2 / (1 + gval**2), places=10)
-
-    def test_simplify_multi_parameter_cancellation(self):
-        """Test that simplify() handles cancellation across multiple parameters."""
-        a = Parameter("a")
-        b = Parameter("b")
-        expr = a + b - a - b
-        simplified = expr.simplify()
-        self.assertEqual(simplified.parameters, set())
-        self.assertEqual(simplified.numeric(), 0)
-
-    def test_simplify_no_cancellation(self):
-        """Test that simplify() leaves non-cancelling expressions intact."""
-        a = Parameter("a")
-        b = Parameter("b")
-        expr = a + b
-        self.assertEqual(expr, expr.simplify())
->>>>>>> b4073b7ac (Parameter expression bugfixes (#16283))

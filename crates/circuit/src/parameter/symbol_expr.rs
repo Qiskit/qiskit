@@ -1266,26 +1266,6 @@ impl SymbolExpr {
                                 }
                             }
                         }
-<<<<<<< HEAD
-                    } else if let SymbolExpr::Symbol(r) = rhs {
-                        if let (
-                            BinaryOp::Mul | BinaryOp::Div,
-                            SymbolExpr::Value(v),
-                            SymbolExpr::Symbol(s),
-                        ) = (op, l_lhs.as_ref(), l_rhs.as_ref())
-                        {
-                            if s == r {
-                                let t = v + &Value::Int(1);
-                                if t.is_zero() {
-                                    return Some(SymbolExpr::Value(Value::Int(0)));
-                                } else {
-                                    return Some(_mul(
-                                        SymbolExpr::Value(t),
-                                        l_rhs.as_ref().clone(),
-                                    ));
-                                }
-                            }
-=======
                     } else if let SymbolExpr::Symbol(r) = rhs
                         && let (BinaryOp::Mul, SymbolExpr::Value(v), SymbolExpr::Symbol(s)) =
                             (op, l_lhs.as_ref(), l_rhs.as_ref())
@@ -1296,7 +1276,6 @@ impl SymbolExpr {
                             return Some(SymbolExpr::Value(Value::Int(0)));
                         } else {
                             return Some(_mul(SymbolExpr::Value(t), l_rhs.as_ref().clone()));
->>>>>>> b4073b7ac (Parameter expression bugfixes (#16283))
                         }
                     }
                     if recursive {
@@ -1631,26 +1610,6 @@ impl SymbolExpr {
                         if op == rop && self.expand().string_id() == rhs.expand().string_id() {
                             return Some(SymbolExpr::Value(Value::Int(0)));
                         }
-<<<<<<< HEAD
-                    } else if let SymbolExpr::Symbol(r) = rhs {
-                        if let (
-                            BinaryOp::Mul | BinaryOp::Div,
-                            SymbolExpr::Value(v),
-                            SymbolExpr::Symbol(s),
-                        ) = (op, l_lhs.as_ref(), l_rhs.as_ref())
-                        {
-                            if s == r {
-                                let t = v - &Value::Int(1);
-                                if t.is_zero() {
-                                    return Some(SymbolExpr::Value(Value::Int(0)));
-                                } else {
-                                    return Some(_mul(
-                                        SymbolExpr::Value(t),
-                                        l_rhs.as_ref().clone(),
-                                    ));
-                                }
-                            }
-=======
                     } else if let SymbolExpr::Symbol(r) = rhs
                         && let (BinaryOp::Mul, SymbolExpr::Value(v), SymbolExpr::Symbol(s)) =
                             (op, l_lhs.as_ref(), l_rhs.as_ref())
@@ -1661,7 +1620,6 @@ impl SymbolExpr {
                             return Some(SymbolExpr::Value(Value::Int(0)));
                         } else {
                             return Some(_mul(SymbolExpr::Value(t), l_rhs.as_ref().clone()));
->>>>>>> b4073b7ac (Parameter expression bugfixes (#16283))
                         }
                     }
                     if recursive {
