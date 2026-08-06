@@ -461,6 +461,77 @@ pub fn synth_mcx_noaux_v24(
     }
 }
 
+/// Synthesize a multi-controlled X gate with :math:`k\ge 3` controls based on the paper
+/// by Maslov[1].
+///
+/// The method uses :math:`k - 2` clean ancillary qubits with producing a circuit with
+/// :math:`2 * k - 1` qubits and at most :math:`6 * k - 6` CX gates, by Maslov [1].
+/// For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
+/// (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
+///
+/// # Arguments
+/// - num_controls: the number of control qubits.
+///
+/// # Returns
+/// The synthesized quantum circuit.
+///
+/// # References
+///
+/// 1. Maslov., Phys. Rev. A 93, 022311 (2016),"Advantages of using
+///    relative-phase Toffoli gates with an application to multiple control Toffoli optimization",
+///    [arXiv:1508.03273] (https://arxiv.org/pdf/1508.03273).
+pub fn synth_mcx_n_clean_m15(num_controls: usize) -> Result<CircuitData, CircuitDataError> {
+    if num_controls == 0 {
+        let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0))?;
+        circuit.x(0)?;
+        Ok(circuit)
+    } else if num_controls == 1 {
+        let mut circuit = CircuitData::with_capacity(2, 0, 1, Param::Float(0.0))?;
+        circuit.cx(0, 1)?;
+        Ok(circuit)
+    } else if num_controls == 2 {
+        Ok(ccx())
+    } else {
+        let num_qubits = 2 * num_controls - 1;
+        let num_instructions = 2 * num_controls - 3;
+        let mut circuit =
+            CircuitData::with_capacity(num_qubits as u32, 0, num_instructions, Param::Float(0.0))?;
+
+        let target = num_controls as u32;
+        // indexing of controls starts from 0
+        // indexing of ancillas starts from num_controls + 1
+
+        circuit.rccx(0, 1, (num_controls + 1) as u32)?;
+
+        // Forward ladder
+        for j in 2..num_controls - 1 {
+            let anc_in = num_controls + j - 1;
+            let anc_out = num_controls + j;
+
+            circuit.rccx(j as u32, anc_in as u32, anc_out as u32)?;
+        }
+
+        // Final Toffoli
+        circuit.ccx(
+            (num_controls - 1) as u32,
+            (2 * num_controls - 2) as u32,
+            target,
+        )?;
+
+        // Reverse ladder
+        for j in (2..num_controls - 1).rev() {
+            let anc_in = num_controls + j - 1;
+            let anc_out = num_controls + j;
+
+            circuit.rccx(j as u32, anc_in as u32, anc_out as u32)?;
+        }
+
+        circuit.rccx(0, 1, (num_controls + 1) as u32)?;
+
+        Ok(circuit)
+    }
+}
+
 // The following synth_mcx_noaux_hp24 algorithm is based on the work by Huang and Palsberg.
 //
 // # References
