@@ -235,7 +235,8 @@ def synth_mcp_noaux_sp22(num_ctrl_qubits: int, phase: float) -> QuantumCircuit:
 
 
 def synth_mcp_noaux_default(num_ctrl_qubits: int, phase: float) -> QuantumCircuit:
-    """Choose the best synthesis code for :class:`.MCPhaseGate` according to the number of control qubits.
+    """Choose the best synthesis code for :class:`.MCPhaseGate` with no ancilla qubits
+    according to the number of control qubits.
 
     Args:
         num_ctrl_qubits: The number of control qubits.

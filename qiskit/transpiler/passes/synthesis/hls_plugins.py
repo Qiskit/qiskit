@@ -183,12 +183,17 @@ not sufficient, the corresponding synthesis method will return `None`.
       - :class:`~.MCXSynthesisNoAuxV24`
       - :math:`0`
       - :math:`0`
-      - quadratic number of CX gates
+      - quadratic number of CX gates :math:`8 k^2+O(k)`
+    * - ``"noaux_sp22"``
+      - :class:`~.MCXSynthesisNoAuxSP22`
+      - :math:`0`
+      - :math:`0`
+      - quadratic number of CX gates :math:`4 k^2+O(k)`
     * - ``"noaux_hp24"``
       - :class:`~.MCXSynthesisNoAuxHP24`
       - :math:`0`
       - :math:`0`
-      - linear number of CX gates; use instead of ``"noaux_v24"`` or ``"gray_code"`` for :math:`k>5`
+      - linear number of CX gates
     * - ``"n_clean_m15"``
       - :class:`~.MCXSynthesisNCleanM15`
       - :math:`k-2`
@@ -235,6 +240,7 @@ not sufficient, the corresponding synthesis method will return `None`.
 
    MCXSynthesisGrayCode
    MCXSynthesisNoAuxV24
+   MCXSynthesisNoAuxSP22
    MCXSynthesisNoAuxHP24
    MCXSynthesisNCleanM15
    MCXSynthesisNDirtyI15
@@ -583,6 +589,7 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_1_clean_b95,
     synth_mcx_gray_code,
     synth_mcx_noaux_v24,
+    synth_mcx_noaux_sp22,
     synth_mcx_noaux_hp24,
     synth_mcmt_vchain,
     synth_mcmt_xgate,
@@ -1447,6 +1454,45 @@ class MCXSynthesisNoAuxV24(HighLevelSynthesisPlugin):
         return decomposition
 
 
+class MCXSynthesisNoAuxSP22(HighLevelSynthesisPlugin):
+    r"""Synthesis plugin for a multi-controlled :class:`.XGate` based on the
+    implementation for :class:`.MCPhaseGate`, which is in turn based on the
+    paper by da Silva et al. [1] and the implementation in qclib [2].
+
+    See [1, 2] for details.
+
+    This plugin name is ``mcx.noaux_sp22`` which can be used as the key on
+    an :class:`.HLSConfig` object to use this method with :class:`.HighLevelSynthesis`.
+
+    For a multi-controlled :class:`.XGate` with :math:`k` control qubits this synthesis
+    method requires no additional clean auxiliary qubits. The synthesized
+    circuit consists of :math:`k + 1` qubits. The number of CX-gates is quadratic in
+    :math:`k`.
+
+    References:
+        [1] A. J. da Silva and D. K. Park,
+        Linear-depth quantum circuits for multiqubit controlled gates,
+        `Phys. Rev. A 106, 042602
+        <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.106.042602>`__.
+
+        [2] https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given MCX gate."""
+
+        if not isinstance(high_level_object, (MCXGate, C3XGate, C4XGate)):
+            # Unfortunately we occasionally have custom instructions called "mcx"
+            # which get wrongly caught by the plugin interface. A simple solution is
+            # to return None in this case, since HLS would proceed to examine
+            # their definition as it should.
+            return None
+
+        num_ctrl_qubits = high_level_object.num_ctrl_qubits
+        decomposition = synth_mcx_noaux_sp22(num_ctrl_qubits)
+        return decomposition
+
+
 class MCXSynthesisNoAuxHP24(HighLevelSynthesisPlugin):
     r"""Synthesis plugin for a multi-controlled X gate based on the
     paper by Huang and Palsberg.
@@ -1522,8 +1568,8 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
                 MCXSynthesisNCleanM15,
                 MCXSynthesisNDirtyI15,
                 (
-                    MCXSynthesisNoAuxV24
-                    if high_level_object.num_ctrl_qubits <= 5
+                    MCXSynthesisNoAuxSP22
+                    if high_level_object.num_ctrl_qubits <= 32
                     else MCXSynthesisNoAuxHP24
                 ),
             ]
@@ -1539,8 +1585,8 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
                 MCXSynthesis1DirtyKG24,
                 MCXSynthesis1CleanB95,
                 (
-                    MCXSynthesisNoAuxV24
-                    if high_level_object.num_ctrl_qubits <= 5
+                    MCXSynthesisNoAuxSP22
+                    if high_level_object.num_ctrl_qubits <= 32
                     else MCXSynthesisNoAuxHP24
                 ),
             ]
