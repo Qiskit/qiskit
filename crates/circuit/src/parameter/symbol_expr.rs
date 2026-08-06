@@ -1266,18 +1266,24 @@ impl SymbolExpr {
                                 }
                             }
                         }
-                    } else if let SymbolExpr::Symbol(r) = rhs
-                        && let (BinaryOp::Mul, SymbolExpr::Value(v), SymbolExpr::Symbol(s)) =
+                    } else if let SymbolExpr::Symbol(r) = rhs {
+                        if let (BinaryOp::Mul, SymbolExpr::Value(v), SymbolExpr::Symbol(s)) =
                             (op, l_lhs.as_ref(), l_rhs.as_ref())
-                        && s == r
-                    {
-                        let t = v + &Value::Int(1);
-                        if t.is_zero() {
-                            return Some(SymbolExpr::Value(Value::Int(0)));
-                        } else {
-                            return Some(_mul(SymbolExpr::Value(t), l_rhs.as_ref().clone()));
+                        {
+                            if s == r {
+                                let t = v + &Value::Int(1);
+                                if t.is_zero() {
+                                    return Some(SymbolExpr::Value(Value::Int(0)));
+                                } else {
+                                    return Some(_mul(
+                                        SymbolExpr::Value(t),
+                                        l_rhs.as_ref().clone(),
+                                    ));
+                                }
+                            }
                         }
                     }
+
                     if recursive {
                         if let BinaryOp::Add = op {
                             if let Some(e) = l_lhs.add_opt(rhs, true) {
@@ -1610,16 +1616,21 @@ impl SymbolExpr {
                         if op == rop && self.expand().string_id() == rhs.expand().string_id() {
                             return Some(SymbolExpr::Value(Value::Int(0)));
                         }
-                    } else if let SymbolExpr::Symbol(r) = rhs
-                        && let (BinaryOp::Mul, SymbolExpr::Value(v), SymbolExpr::Symbol(s)) =
+                    } else if let SymbolExpr::Symbol(r) = rhs {
+                        if let (BinaryOp::Mul, SymbolExpr::Value(v), SymbolExpr::Symbol(s)) =
                             (op, l_lhs.as_ref(), l_rhs.as_ref())
-                        && s == r
-                    {
-                        let t = v - &Value::Int(1);
-                        if t.is_zero() {
-                            return Some(SymbolExpr::Value(Value::Int(0)));
-                        } else {
-                            return Some(_mul(SymbolExpr::Value(t), l_rhs.as_ref().clone()));
+                        {
+                            if s == r {
+                                let t = v - &Value::Int(1);
+                                if t.is_zero() {
+                                    return Some(SymbolExpr::Value(Value::Int(0)));
+                                } else {
+                                    return Some(_mul(
+                                        SymbolExpr::Value(t),
+                                        l_rhs.as_ref().clone(),
+                                    ));
+                                }
+                            }
                         }
                     }
                     if recursive {
