@@ -1270,7 +1270,7 @@ example 3 qubit :class:`~.Target` above:
        }
    )
 
-   target.build_coupling_map().draw()
+   target.build_coupling_map().draw('mpl')
 
 This shows the global connectivity of the :class:`~.Target` which is the
 combination of the supported qubits for :class:`~.CXGate` and :class:`~.CZGate`. To
@@ -1387,7 +1387,7 @@ see the individual connectivity, you can pass the operation name to
        }
    )
 
-   target.build_coupling_map('cz').draw()
+   target.build_coupling_map('cz').draw('mpl')
 
 
 .. _transpiler-scheduling-description:
