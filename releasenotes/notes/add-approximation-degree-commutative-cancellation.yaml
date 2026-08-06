@@ -1,0 +1,11 @@
+---
+features_transpiler:
+  - |
+    Added an ``approximation_degree`` parameter to the
+    :class:`.CommutativeCancellation` transpiler pass. This floating-point
+    value (between ``0`` and ``1``, default ``1.0``) is forwarded to the
+    underlying commutation analysis used during gate cancellation. The preset
+    pass managers pass ``pass_manager_config.approximation_degree`` when
+    constructing this pass, substituting ``1.0`` when that config value is
+    ``None`` (unlike :class:`.RemoveIdentityEquivalent`, which can use target
+    error rates when ``approximation_degree`` is ``None``).
