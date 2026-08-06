@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use crate::data_tree::DataTree;
-use crate::program_node::ProgramNode;
+use crate::nodes::OpNodeType;
 use crate::tensor::{Tensor, TensorType};
 use std::sync::LazyLock;
 
@@ -41,7 +41,7 @@ impl Store {
     }
 }
 
-impl ProgramNode for Store {
+impl OpNodeType for Store {
     type CallError = std::convert::Infallible;
 
     fn name(&self) -> &str {
