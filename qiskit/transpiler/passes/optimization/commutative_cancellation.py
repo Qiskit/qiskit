@@ -28,8 +28,12 @@ _CUTOFF_PRECISION = 1e-5
 class CommutativeCancellation(TransformationPass):
     """Cancel the redundant (self-adjoint) gates through commutation relations.
 
-    Pass for cancelling self-inverse gates/rotations. The cancellation utilizes
-    the commutation relations in the circuit. Gates considered include::
+    Pass for cancelling self-inverse gates/rotations.
+
+    The pass searches for gates that can be brought together using the
+    commutation relations in the circuit and then cancelled. Only gates in the
+    supported set are considered; operations that cannot be proven to commute
+    are left in place. Gates considered include::
 
         H, X, Y, Z, CX, CY, CZ
 
