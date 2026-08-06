@@ -30,7 +30,7 @@ use thiserror::Error;
 
 use qiskit_util::complex::{C_ZERO, c64};
 
-use crate::rayon_ext::*;
+use super::rayon_ext::*;
 
 #[derive(Error, Debug)]
 pub enum PauliCompressionError {

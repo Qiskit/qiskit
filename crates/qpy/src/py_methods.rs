@@ -28,7 +28,7 @@ use qiskit_circuit::imports;
 use qiskit_circuit::operations::{Operation, OperationRef, PyInstruction, PyOpKind, PyRange};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::{PyParameter, PyParameterExpression};
-use qiskit_quantum_info::sparse_observable::PySparseObservable;
+use qiskit_quantum_info::python::sparse_observable::PySparseObservable;
 use uuid::Uuid;
 
 use crate::bytes::Bytes;
