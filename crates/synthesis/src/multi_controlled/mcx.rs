@@ -499,11 +499,11 @@ pub fn synth_mcx_1_clean_b95(num_controls: usize) -> Result<CircuitData, Circuit
     } else {
         // k >= 5: 1-clean-ancilla construction (Barenco et al. 1995, Lemma 7.3)
         // decompose the gate into two halves and add 2 qubits, target and ancilla
-        let num_qubits = (num_controls + 2) as u32;
+        let nc = num_controls as u32;
+        let num_qubits = nc + 2;
         let q_ancilla = num_qubits - 1;
         let q_target = num_qubits - 2;
-        let middle = ((num_controls + 1).div_ceil(2)) as u32;
-        let nc = num_controls as u32;
+        let middle = (nc + 1).div_ceil(2);
         let nc2: u32 = nc - middle + 1; // second half, plus the ancilla
 
         // Qubit layout (num_controls + 2 qubits total):
