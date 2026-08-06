@@ -11,12 +11,12 @@
 // that they have been altered from the originals.
 
 use crate::data_tree::DataTree;
-use crate::program_node::ProgramNode;
+use crate::ops::ProgramOp;
 use crate::tensor::{DTypeLike, Tensor, TensorType, promotion};
 use crate::unpack_tensor_args;
 use std::sync::LazyLock;
 
-/// Shared input type spec for all elementwise binary nodes: two broadcastable tensors `x` and `y`.
+/// Shared input type spec for all elementwise binary ops: two broadcastable tensors `x` and `y`.
 static INPUT_TYPES: LazyLock<DataTree<TensorType>> = LazyLock::new(|| {
     let mut types = DataTree::with_capacity(2);
     types.insert_leaf(
@@ -38,7 +38,7 @@ static INPUT_TYPES: LazyLock<DataTree<TensorType>> = LazyLock::new(|| {
     types
 });
 
-/// Shared output type spec for all elementwise binary nodes: a single tensor of the promoted dtype.
+/// Shared output type spec for all elementwise binary ops: a single tensor of the promoted dtype.
 static OUTPUT_TYPES: LazyLock<DataTree<TensorType>> = LazyLock::new(|| {
     DataTree::new_leaf(TensorType {
         dtype: DTypeLike::Promotion(
@@ -49,17 +49,17 @@ static OUTPUT_TYPES: LazyLock<DataTree<TensorType>> = LazyLock::new(|| {
     })
 });
 
-/// Generate a [`ProgramNode`] struct for an elementwise binary operation.
-macro_rules! elementwise_binary_node {
-    ($name:ident, $node_name:literal, $call_fn:expr) => {
-        #[doc = concat!("Elementwise `", $node_name, "` of two broadcastable tensors.")]
+/// Generate a [`ProgramOp`] struct for an elementwise binary operation.
+macro_rules! elementwise_binary_op {
+    ($name:ident, $op_name:literal, $call_fn:expr) => {
+        #[doc = concat!("Elementwise `", $op_name, "` of two broadcastable tensors.")]
         pub struct $name;
 
-        impl ProgramNode for $name {
-            type CallError = super::MathNodeError;
+        impl ProgramOp for $name {
+            type CallError = super::MathOpError;
 
             fn name(&self) -> &str {
-                $node_name
+                $op_name
             }
             fn namespace(&self) -> &str {
                 "qiskit"
@@ -84,18 +84,18 @@ macro_rules! elementwise_binary_node {
     };
 }
 
-elementwise_binary_node!(Add, "add", Tensor::add_tensor);
-elementwise_binary_node!(Subtract, "subtract", Tensor::sub_tensor);
-elementwise_binary_node!(Multiply, "multiply", Tensor::mul_tensor);
-elementwise_binary_node!(Divide, "divide", Tensor::div_tensor);
-elementwise_binary_node!(Remainder, "remainder", Tensor::rem_tensor);
-elementwise_binary_node!(Power, "power", Tensor::pow);
+elementwise_binary_op!(Add, "add", Tensor::add_tensor);
+elementwise_binary_op!(Subtract, "subtract", Tensor::sub_tensor);
+elementwise_binary_op!(Multiply, "multiply", Tensor::mul_tensor);
+elementwise_binary_op!(Divide, "divide", Tensor::div_tensor);
+elementwise_binary_op!(Remainder, "remainder", Tensor::rem_tensor);
+elementwise_binary_op!(Power, "power", Tensor::pow);
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math_nodes::MathNodeError;
-    use crate::program_node::{CallError, CallInputError, ProgramNodeExt};
+    use crate::ops::math::MathOpError;
+    use crate::ops::{CallError, CallInputError, ProgramOpExt};
     use crate::tensor::{DType, Tensor};
 
     #[test]
@@ -223,7 +223,7 @@ mod tests {
         let err = Add.call(&tree).unwrap_err();
         assert!(matches!(
             err,
-            CallError::<MathNodeError>::Input(CallInputError::MissingInput {
+            CallError::<MathOpError>::Input(CallInputError::MissingInput {
                 ref key,
             }) if key == "y"
         ));
@@ -237,7 +237,7 @@ mod tests {
         let err = Add.call(&tree).unwrap_err();
         assert!(matches!(
             err,
-            CallError::<MathNodeError>::Input(CallInputError::ExpectedLeaf {
+            CallError::<MathOpError>::Input(CallInputError::ExpectedLeaf {
                 ref key,
             }) if key == "y"
         ));
@@ -260,7 +260,7 @@ mod tests {
         let err = Add.call_flat(&[Tensor::from([1.0_f64])]).unwrap_err();
         assert_eq!(
             err,
-            MathNodeError::Input(CallInputError::WrongArity {
+            MathOpError::Input(CallInputError::WrongArity {
                 expected: 2,
                 actual: 1,
             })

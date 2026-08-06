@@ -18,13 +18,13 @@ pub use binary::*;
 pub use bitwise::*;
 pub use reduction::*;
 
-use crate::program_node::CallInputError;
+use crate::ops::CallInputError;
 use crate::tensor::TensorError;
 use thiserror::Error;
 
-/// Errors returned by [`crate::program_node::ProgramNode`] implementations in this module.
+/// Errors returned by [`crate::ops::ProgramOp`] implementations in this module.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
-pub enum MathNodeError {
+pub enum MathOpError {
     /// The input tree did not match the contract declared by `input_types`.
     #[error(transparent)]
     Input(#[from] CallInputError),
@@ -37,9 +37,9 @@ pub enum MathNodeError {
 }
 
 /// Validate that `axis` is a valid axis index for a tensor with `ndim` dimensions.
-pub(crate) fn check_axis(axis: usize, ndim: usize) -> Result<(), MathNodeError> {
+pub(crate) fn check_axis(axis: usize, ndim: usize) -> Result<(), MathOpError> {
     if axis >= ndim {
-        return Err(MathNodeError::InvalidAxis { axis, ndim });
+        return Err(MathOpError::InvalidAxis { axis, ndim });
     }
     Ok(())
 }
