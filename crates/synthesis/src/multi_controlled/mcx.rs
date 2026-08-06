@@ -502,32 +502,32 @@ pub fn synth_mcx_n_clean_m15(num_controls: usize) -> Result<CircuitData, Circuit
         // indexing of ancillas starts from num_controls + 1
 
         circuit.rccx(0, 1, (num_controls + 1) as u32)?;
-        let mut i = 0;
+
+        // Forward ladder
         for j in 2..num_controls - 1 {
-            circuit.rccx(
-                j as u32,
-                (num_controls + 1 + i) as u32,
-                (num_controls + 2 + i) as u32,
-            )?;
-            i += 1;
+            let anc_in = num_controls + j - 1;
+            let anc_out = num_controls + j;
+
+            circuit.rccx(j as u32, anc_in as u32, anc_out as u32)?;
         }
 
+        // Final Toffoli
         circuit.ccx(
             (num_controls - 1) as u32,
-            (num_controls + 1 + i) as u32,
+            (2 * num_controls - 2) as u32,
             target,
         )?;
 
+        // Reverse ladder
         for j in (2..num_controls - 1).rev() {
-            circuit.rccx(
-                j as u32,
-                (num_controls + i) as u32,
-                (num_controls + 1 + i) as u32,
-            )?;
-            i -= 1;
+            let anc_in = num_controls + j - 1;
+            let anc_out = num_controls + j;
+
+            circuit.rccx(j as u32, anc_in as u32, anc_out as u32)?;
         }
 
-        circuit.rccx(0, 1, (num_controls + 1 + i) as u32)?;
+        circuit.rccx(0, 1, (num_controls + 1) as u32)?;
+
         Ok(circuit)
     }
 }
