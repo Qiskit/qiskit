@@ -132,9 +132,9 @@ pub enum EvolutionError {
 
 #[cfg(test)]
 mod test {
+    use crate::suzuki_trotter::suzuki_trotter_evolution;
     use num_complex::c64;
     use qiskit_quantum_info::sparse_observable::SparseObservable;
-    use crate::suzuki_trotter::suzuki_trotter_evolution;
 
     #[test]
     fn test_suzuki_trotter() {
