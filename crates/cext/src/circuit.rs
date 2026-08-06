@@ -27,7 +27,7 @@ use num_complex::{Complex64, ComplexFloat};
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
-use qiskit_circuit::circuit_drawer::draw_circuit;
+use qiskit_circuit::circuit_drawer::{DEFAULT_BARRIER_LABEL_LEN, draw_circuit};
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interner;
@@ -2411,6 +2411,10 @@ pub struct CircuitDrawerConfig {
     /// to auto-detect console width. Use `SIZE_MAX` to effectively skip
     /// wrapping altogether.
     fold: usize,
+    /// Sets the number of characters to display for barrier labels. If
+    /// this number is exceeded, the label is truncated at that number and
+    /// '...' is appended. Use 0 to apply the default of 16 characters.
+    barrier_label_len: usize,
 }
 
 /// @ingroup QkCircuit
@@ -2422,6 +2426,7 @@ pub struct CircuitDrawerConfig {
 ///     * ``bundle_cregs = true``
 ///     * ``merge_wires = true``
 ///     * ``fold = 0``
+///     * ``barrier_label_len = 16``
 ///
 /// @return A pointer to a null-terminated string containing the circuit representation.
 ///     You must use ``qk_str_free`` to release the allocated memory when done.
@@ -2435,7 +2440,7 @@ pub struct CircuitDrawerConfig {
 ///     qk_circuit_measure(circuit, 0, 0);
 ///     qk_circuit_measure(circuit, 1, 0);
 ///
-///     QkCircuitDrawerConfig config = {false, true, 0};
+///     QkCircuitDrawerConfig config = {false, true, 0, 16};
 ///
 ///     char *circ_str = qk_circuit_draw(circuit, &config);
 ///
@@ -2457,7 +2462,7 @@ pub unsafe extern "C" fn qk_circuit_draw(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
-    let (bundle_cregs, merge_wires, fold) = if !config.is_null() {
+    let (bundle_cregs, merge_wires, fold, barrier_label_len) = if !config.is_null() {
         // SAFETY: Per documentation, the pointer is to a valid QkCircuitDrawerConfig struct.
         let config = unsafe { const_ptr_as_ref(config) };
         (
@@ -2468,12 +2473,18 @@ pub unsafe extern "C" fn qk_circuit_draw(
             } else {
                 None
             },
+            if config.barrier_label_len != 0 {
+                config.barrier_label_len
+            } else {
+                DEFAULT_BARRIER_LABEL_LEN
+            },
         )
     } else {
-        (true, true, None)
+        (true, true, None, DEFAULT_BARRIER_LABEL_LEN)
     };
 
-    let circuit_str = draw_circuit(circuit, bundle_cregs, merge_wires, fold).unwrap();
+    let circuit_str =
+        draw_circuit(circuit, bundle_cregs, merge_wires, fold, barrier_label_len).unwrap();
 
     CString::new(circuit_str).unwrap().into_raw()
 }
