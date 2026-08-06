@@ -134,7 +134,6 @@ pub enum EvolutionError {
 mod test {
     use num_complex::c64;
     use qiskit_quantum_info::sparse_observable::SparseObservable;
-
     use crate::suzuki_trotter::suzuki_trotter_evolution;
 
     #[test]
@@ -143,7 +142,6 @@ mod test {
         let mut obs = SparseObservable::zero(num_qubits);
         obs.add_dense_label("ZZ", c64(1.0, 0.0));
         obs.add_dense_label("XI", c64(1.0, 0.0));
-
         let out = suzuki_trotter_evolution(&obs, 2, 10, 1.0, true, false).unwrap();
         assert_eq!(out.num_qubits(), 2);
     }
