@@ -1536,40 +1536,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "nalgebra"
-version = "0.34.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df76ea0ff5c7e6b88689085804d6132ded0ddb9de5ca5b8aeb9eeadc0508a70a"
-dependencies = [
- "approx",
- "glam 0.14.0",
- "glam 0.15.2",
- "glam 0.16.0",
- "glam 0.17.3",
- "glam 0.18.0",
- "glam 0.19.0",
- "glam 0.20.5",
- "glam 0.21.3",
- "glam 0.22.0",
- "glam 0.23.0",
- "glam 0.24.2",
- "glam 0.25.0",
- "glam 0.27.0",
- "glam 0.28.0",
- "glam 0.29.3",
- "glam 0.30.10",
- "glam 0.31.1",
- "glam 0.32.1",
- "matrixmultiply",
- "nalgebra-macros",
- "num-complex",
- "num-rational",
- "num-traits",
- "simba",
- "typenum",
-]
-
-[[package]]
 name = "nalgebra-macros"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1847,7 +1813,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a5b15d63a5ff39e378daed0e1340d3a5964703ea9712eb09a0dc66fade996f4"
 dependencies = [
  "libc",
- "nalgebra 0.34.2",
+ "nalgebra",
  "ndarray",
  "num-complex",
  "num-integer",
@@ -2260,7 +2226,7 @@ dependencies = [
  "approx",
  "hashbrown 0.15.5",
  "itertools 0.14.0",
- "nalgebra 0.34.2",
+ "nalgebra",
  "ndarray",
  "num-bigint",
  "num-complex",
@@ -2310,7 +2276,7 @@ dependencies = [
  "anyhow",
  "hashbrown 0.15.5",
  "mimalloc",
- "nalgebra 0.34.2",
+ "nalgebra",
  "ndarray",
  "num-bigint",
  "num-complex",
@@ -2349,7 +2315,7 @@ dependencies = [
  "itertools 0.14.0",
  "lexical-core",
  "lexical-write-float",
- "nalgebra 0.34.2",
+ "nalgebra",
  "ndarray",
  "nom",
  "nom-language",
@@ -2376,7 +2342,7 @@ version = "2.5.1"
 dependencies = [
  "hashbrown 0.15.5",
  "itertools 0.14.0",
- "nalgebra 0.34.2",
+ "nalgebra",
  "ndarray",
  "num-complex",
  "numpy",
@@ -2485,7 +2451,7 @@ dependencies = [
  "foldhash 0.2.0",
  "hashbrown 0.15.5",
  "itertools 0.14.0",
- "nalgebra 0.34.2",
+ "nalgebra",
  "ndarray",
  "ndarray-einsum",
  "num-complex",
@@ -2513,7 +2479,7 @@ dependencies = [
  "fixedbitset 0.5.7",
  "hashbrown 0.15.5",
  "itertools 0.14.0",
- "nalgebra 0.34.2",
+ "nalgebra",
  "ndarray",
  "num-complex",
  "num-traits",
@@ -2546,7 +2512,7 @@ dependencies = [
  "hashbrown 0.15.5",
  "indexmap",
  "itertools 0.14.0",
- "nalgebra 0.34.2",
+ "nalgebra",
  "ndarray",
  "num-complex",
  "numpy",
@@ -2824,7 +2790,7 @@ dependencies = [
  "dashu-int",
  "env_logger",
  "log",
- "nalgebra 0.34.2",
+ "nalgebra",
  "num",
  "num-traits",
  "once_cell",
