@@ -699,6 +699,24 @@ class TestDagWireRemoval(DAGTest):
 
         self.assertEqual(dag, expected)
 
+    def test_remove_first_node_and_depth(self):
+        """Test a nondeterministic panic in rustworkx-core cased by a hole for the first node index
+
+        This caused a non-deterministic panic when using rustworkx-core
+        0.18.0 (fixed in rustworkx 0.18.1)
+        """
+        dag = DAGCircuit()
+        qreg = QuantumRegister(3, "qr")
+        qreg_two = QuantumRegister(3, "qr_two")
+        dag.add_qreg(qreg)
+        dag.add_qreg(qreg_two)
+        dag.remove_qubits(*qreg)
+        dag.apply_operation_back(XGate(), (dag.qubits[0],), ())
+        dag.apply_operation_back(XGate(), (dag.qubits[1],), ())
+        dag.apply_operation_back(XGate(), (dag.qubits[2],), ())
+        depth = dag.depth()
+        self.assertEqual(depth, 1)
+
 
 @ddt
 class TestDagApplyOperation(DAGTest):
