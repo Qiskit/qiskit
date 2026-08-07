@@ -12,7 +12,8 @@
 
 use crate::data_tree::{DataTree, Name};
 use crate::nodes::OpNodeType;
-use crate::tensor::{DTypeLike, Tensor, TensorType, promotion};
+use crate::tensor::rules::promotion;
+use crate::tensor::{DTypeLike, Tensor, TensorType};
 use crate::unpack_tensor_args;
 use std::sync::LazyLock;
 

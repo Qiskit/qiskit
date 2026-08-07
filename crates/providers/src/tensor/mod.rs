@@ -10,13 +10,23 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+//! The value domain: a [`Tensor`] and its static counterpart, a [`TensorType`].
+//!
+//! A value is a dense array over one of a fixed set of [`DType`]s. Its type pairs a dtype with a
+//! shape whose axes are each either a fixed size or a size bounded above ([`Dim`]).
+//!
+//! [`rules`] holds the questions answerable from types alone: promotion, broadcasting, and the
+//! requirement of a true size rather than a bound.
+
 use ndarray::{ArcArrayD, ArrayD, IxDyn, Zip};
 use num_complex::{Complex32, Complex64};
 
 use std::fmt;
 use thiserror::Error;
 
-/// Errors returned by [`Tensor`] operations.
+pub mod rules;
+
+/// Errors returned by [`Tensor`] operations and by the rules in [`rules`].
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum TensorError {
     /// The two operand tensors have different dtypes or a dtype that does not support the op.
@@ -29,6 +39,25 @@ pub enum TensorError {
     /// The two operand shapes are not broadcast-compatible.
     #[error("shapes {lhs:?} and {rhs:?} are not broadcast-compatible")]
     ShapeMismatch { lhs: Vec<usize>, rhs: Vec<usize> },
+    /// The two operand [`Dim`] shapes are not broadcast-compatible.
+    ///
+    /// The type-level counterpart of [`TensorError::ShapeMismatch`], raised by
+    /// [`rules::broadcast_dims`].
+    #[error(
+        "shapes {} and {} are not broadcast-compatible",
+        fmt_shape(lhs),
+        fmt_shape(rhs)
+    )]
+    DimShapeMismatch { lhs: Vec<Dim>, rhs: Vec<Dim> },
+    /// A [`Dim::Bounded`] axis reached a position that needs a true size.
+    ///
+    /// Raised by [`rules::require_static`] and by [`rules::broadcast_dims`]; see [`Dim::Bounded`]
+    /// for what a bounded axis can and cannot pass through.
+    #[error(
+        "shape {} has an axis whose size is only bounded above, where a true size is required",
+        fmt_shape(shape)
+    )]
+    DynamicDim { shape: Vec<Dim> },
 }
 
 /// The possible data types for a Tensor.
@@ -107,107 +136,33 @@ pub enum DTypeLike {
     Promotion(DTypePromotion),
 }
 
-/// Promote a pair of DTypes to the smallest type compatible with both.
+/// A tensor axis dimension.
 ///
-/// QuantumProgram nodes often, but not necessarily, use this promotion rule
-/// to determine their output type.
-///
-/// This function implements the same promotion rules as NumPy, modulo that we don't
-/// need to contend with the arbitrary precision types for each type kind, and that
-/// we omit F16 entirely because it's unstable in Rust:
-/// https://numpy.org/doc/stable/reference/arrays.promotion.html#numerical-promotion
-/// In short, if you view the linked diagram as a DAG, this function hard-codes the
-/// least-common-descendant algorithm.
-pub fn promotion(lhs: DType, rhs: DType) -> DType {
-    use DType::*;
+/// Every axis is either concrete or bounded above.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Dim {
+    /// A dimension whose size is known.
+    Fixed(usize),
+    /// A dimension whose size is not known until run time, but is provably at most `max`.
+    ///
+    /// An operation that needs the true size at build time demands it through
+    /// [`rules::require_static`].
+    Bounded { max: usize },
+}
 
-    match lhs {
-        C128 => C128,
-
-        C64 => match rhs {
-            U32 | U64 | I32 | I64 | F64 | C128 => C128,
-            _ => C64,
-        },
-
-        F64 => match rhs {
-            C64 | C128 => C128,
-            _ => F64,
-        },
-
-        F32 => match rhs {
-            C128 => C128,
-            C64 => C64,
-            U32 | U64 | I32 | I64 | F64 => F64,
-            _ => F32,
-        },
-
-        I64 => match rhs {
-            C64 | C128 => C128,
-            U64 | F32 | F64 => F64,
-            _ => I64,
-        },
-
-        I32 => match rhs {
-            C64 | C128 => C128,
-            U64 | F32 | F64 => F64,
-            U32 | I64 => I64,
-            _ => I32,
-        },
-
-        I16 => match rhs {
-            U64 => F64,
-            U32 => I64,
-            U16 => I32,
-            Bit | U8 | I8 => I16,
-            _ => rhs,
-        },
-
-        I8 => match rhs {
-            U64 => F64,
-            U32 => I64,
-            U16 => I32,
-            U8 => I16,
-            Bit => I8,
-            _ => rhs,
-        },
-
-        U64 => match rhs {
-            C128 | C64 => C128,
-            F32 | F64 | I8 | I16 | I32 | I64 => F64,
-            _ => U64,
-        },
-
-        U32 => match rhs {
-            C64 | C128 => C128,
-            F32 | F64 => F64,
-            I8 | I16 | I32 | I64 => I64,
-            U64 => U64,
-            _ => U32,
-        },
-
-        U16 => match rhs {
-            I8 | I16 => I32,
-            Bit | U8 => U16,
-            _ => rhs,
-        },
-
-        U8 => match rhs {
-            I8 => I16,
-            Bit => U8,
-            _ => rhs,
-        },
-
-        Bit => rhs,
+impl fmt::Display for Dim {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Dim::Fixed(n) => write!(f, "{n}"),
+            Dim::Bounded { max } => write!(f, "<={max}"),
+        }
     }
 }
 
-/// A tensor axis dimension.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Dim {
-    /// A known size.
-    Fixed(usize),
-    /// An unresolved, named size.
-    Named(String),
+/// Render a shape as `[4000, <=2]`.
+fn fmt_shape(shape: &[Dim]) -> String {
+    let dims: Vec<String> = shape.iter().map(Dim::to_string).collect();
+    format!("[{}]", dims.join(", "))
 }
 
 /// A specification of a tensor without any data.
@@ -215,22 +170,16 @@ pub enum Dim {
 pub struct TensorType {
     /// The type of the tensor.
     pub dtype: DTypeLike,
-    /// The shape of the tensor, possibly with axes of unknown size.
+    /// The dimension of each tensor axis.
     pub shape: Vec<Dim>,
     /// Whether the tensor supports leading-axis (i.e. NumPy-style) broadcasting semantics.
     pub broadcastable: bool,
 }
 
 impl TensorType {
-    /// Return a dimension vector if all sizes are fixed, or `None` if any are named.
+    /// Return the dimension of every axis, or `None` if any is only bounded above.
     pub fn concrete_shape(&self) -> Option<Vec<usize>> {
-        self.shape
-            .iter()
-            .map(|d| match d {
-                Dim::Fixed(n) => Some(*n),
-                Dim::Named(_) => None,
-            })
-            .collect()
+        rules::require_static(&self.shape).ok()
     }
 }
 
@@ -241,7 +190,7 @@ impl TensorType {
 /// This allows [`Tensor::clone`] to cause a refcount bump rather than a copy of
 /// underlying data. Note that mutating the underlying buffer in place (via ndarray
 /// methods that require `DataMut`) clones-on-write when the buffer is shared.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Tensor {
     C64(ArcArrayD<Complex32>), // complex
     C128(ArcArrayD<Complex64>),
@@ -302,31 +251,33 @@ macro_rules! cast_complex {
     };
 }
 
+/// Pair up the axes of two shapes, right-aligned, padding the shorter one with `pad`.
+///
+/// This is the axis correspondence NumPy-style broadcasting uses, shared by [`broadcast_shape`] and
+/// [`rules::broadcast_dims`] so that the two agree on which axes meet.
+fn align_axes<'a, T: Copy>(a: &'a [T], b: &'a [T], pad: T) -> impl Iterator<Item = (T, T)> + 'a {
+    let ndim = a.len().max(b.len());
+    (0..ndim).map(move |i| {
+        let axis = |shape: &[T]| {
+            let offset = ndim - shape.len();
+            if i >= offset { shape[i - offset] } else { pad }
+        };
+        (axis(a), axis(b))
+    })
+}
+
 /// Compute the NumPy-style broadcast shape for two operand shapes, or
 /// return [`TensorError::ShapeMismatch`] if they are not broadcast-compatible.
 pub fn broadcast_shape(a: &[usize], b: &[usize]) -> Result<Vec<usize>, TensorError> {
-    let ndim = a.len().max(b.len());
-    (0..ndim)
-        .map(|i| {
-            let dim_a = if i >= ndim - a.len() {
-                a[i - (ndim - a.len())]
-            } else {
-                1
-            };
-            let dim_b = if i >= ndim - b.len() {
-                b[i - (ndim - b.len())]
-            } else {
-                1
-            };
-            match (dim_a, dim_b) {
-                (x, y) if x == y => Ok(x),
-                (1, y) => Ok(y),
-                (x, 1) => Ok(x),
-                _ => Err(TensorError::ShapeMismatch {
-                    lhs: a.to_vec(),
-                    rhs: b.to_vec(),
-                }),
-            }
+    align_axes(a, b, 1)
+        .map(|pair| match pair {
+            (x, y) if x == y => Ok(x),
+            (1, y) => Ok(y),
+            (x, 1) => Ok(x),
+            _ => Err(TensorError::ShapeMismatch {
+                lhs: a.to_vec(),
+                rhs: b.to_vec(),
+            }),
         })
         .collect()
 }
@@ -619,146 +570,44 @@ impl std::ops::Rem for Tensor {
 mod test {
     use super::*;
 
-    const ALL_DTYPES: [DType; 13] = [
-        DType::Bit,
-        DType::U8,
-        DType::U16,
-        DType::U32,
-        DType::U64,
-        DType::I8,
-        DType::I16,
-        DType::I32,
-        DType::I64,
-        DType::F32,
-        DType::F64,
-        DType::C64,
-        DType::C128,
-    ];
-
-    #[test]
-    fn test_promotion_against_promotion_dag() {
-        use DType::*;
-        use hashbrown::{HashMap, HashSet};
-        use rustworkx_core::dag_algo::lexicographical_topological_sort;
-        use rustworkx_core::petgraph::graph::{DiGraph, NodeIndex};
-        use rustworkx_core::traversal::descendants;
-
-        // define a DAG that implements all promotion rules; two DTypes
-        // should be promoted to their least common descendant in the DAG
-        let mut g: DiGraph<DType, ()> = DiGraph::new();
-        let mut idx: HashMap<DType, NodeIndex> = HashMap::new();
-
-        for &dtype in &ALL_DTYPES {
-            idx.insert(dtype, g.add_node(dtype));
-        }
-
-        // within-kind promotions
-        g.add_edge(idx[&U8], idx[&U16], ());
-        g.add_edge(idx[&U16], idx[&U32], ());
-        g.add_edge(idx[&U32], idx[&U64], ());
-
-        g.add_edge(idx[&I8], idx[&I16], ());
-        g.add_edge(idx[&I16], idx[&I32], ());
-        g.add_edge(idx[&I32], idx[&I64], ());
-
-        g.add_edge(idx[&F32], idx[&F64], ());
-
-        g.add_edge(idx[&C64], idx[&C128], ());
-
-        // bit promotions
-        g.add_edge(idx[&Bit], idx[&U8], ());
-        g.add_edge(idx[&Bit], idx[&I8], ());
-
-        // uint promotions
-        g.add_edge(idx[&U8], idx[&I16], ());
-        g.add_edge(idx[&U16], idx[&I32], ());
-        g.add_edge(idx[&U16], idx[&F32], ());
-        g.add_edge(idx[&U32], idx[&I64], ());
-        g.add_edge(idx[&U64], idx[&F64], ());
-
-        // int promotions
-        g.add_edge(idx[&I16], idx[&F32], ());
-        g.add_edge(idx[&I32], idx[&F64], ());
-        g.add_edge(idx[&I64], idx[&F64], ());
-
-        // float promotions
-        g.add_edge(idx[&F32], idx[&C64], ());
-        g.add_edge(idx[&F64], idx[&C128], ());
-
-        let order = lexicographical_topological_sort(
-            &g,
-            |n: NodeIndex| Ok::<usize, std::convert::Infallible>(n.index()),
-            false,
-            None,
-        )
-        .unwrap();
-
-        let least_common_descendant = move |a: &DType, b: &DType| -> DType {
-            let da: HashSet<_> = descendants(&g, idx[a]).collect();
-            let db: HashSet<_> = descendants(&g, idx[b]).collect();
-            let common: HashSet<NodeIndex> = da.intersection(&db).copied().collect();
-            let least_idx = order.iter().find(|n| common.contains(*n)).unwrap();
-            ALL_DTYPES[least_idx.index()]
-        };
-
-        for &a in &ALL_DTYPES {
-            for &b in &ALL_DTYPES {
-                assert_eq!(
-                    promotion(a, b),
-                    least_common_descendant(&a, &b),
-                    "For promotion ({a}, {b})"
-                )
-            }
-        }
-    }
-
-    #[test]
-    fn test_promotion_idempotence() {
-        for &a in &ALL_DTYPES {
-            assert_eq!(promotion(a, a), a, "For promotion ({a}, {a})")
-        }
-    }
-
-    #[test]
-    fn test_promotion_commutativity() {
-        for &a in &ALL_DTYPES {
-            for &b in &ALL_DTYPES {
-                assert_eq!(promotion(a, b), promotion(b, a), "For promotion ({a}, {b})")
-            }
+    /// A `TensorType` over `shape`; the dtype is irrelevant to every test that uses this.
+    fn bit_type(shape: Vec<Dim>) -> TensorType {
+        TensorType {
+            dtype: DTypeLike::Concrete(DType::Bit),
+            shape,
+            broadcastable: false,
         }
     }
 
     #[test]
     fn test_tensor_type_concrete_shape() {
         assert_eq!(
-            TensorType {
-                dtype: DTypeLike::Concrete(DType::Bit),
-                shape: vec![Dim::Fixed(3)],
-                broadcastable: false,
-            }
-            .concrete_shape(),
-            Some(vec![3])
-        );
-
-        assert_eq!(
-            TensorType {
-                dtype: DTypeLike::Concrete(DType::Bit),
-                shape: vec![Dim::Fixed(3), Dim::Fixed(8)],
-                broadcastable: true,
-            }
-            .concrete_shape(),
+            bit_type(vec![Dim::Fixed(3), Dim::Fixed(8)]).concrete_shape(),
             Some(vec![3, 8])
         );
+        assert_eq!(bit_type(vec![]).concrete_shape(), Some(vec![]));
 
+        // A bounded axis has no concrete size, so the whole shape has none.
         assert_eq!(
-            TensorType {
-                dtype: DTypeLike::Concrete(DType::Bit),
-                shape: vec![Dim::Fixed(3), Dim::Named("foo".into())],
-                broadcastable: false,
-            }
-            .concrete_shape(),
+            bit_type(vec![Dim::Fixed(3), Dim::Bounded { max: 8 }]).concrete_shape(),
             None
         );
+    }
+
+    #[test]
+    fn test_tensor_equality() {
+        assert_eq!(Tensor::from([1.0_f64, 2.0]), Tensor::from([1.0_f64, 2.0]));
+        assert_ne!(Tensor::from([1.0_f64, 2.0]), Tensor::from([1.0_f64, 3.0]));
+
+        // Bit and U8 share a storage type but are distinct dtypes.
+        let bits = ndarray::ArrayD::from_elem(IxDyn(&[2]), 1u8).into_shared();
+        assert_ne!(Tensor::Bit(bits.clone()), Tensor::U8(bits));
+    }
+
+    #[test]
+    fn test_dim_display() {
+        assert_eq!(Dim::Fixed(4000).to_string(), "4000");
+        assert_eq!(Dim::Bounded { max: 2 }.to_string(), "<=2");
     }
 
     // -----------------------------------------------------------------------
