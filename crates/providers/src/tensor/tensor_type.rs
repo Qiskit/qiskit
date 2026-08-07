@@ -18,8 +18,6 @@ use super::DTypeLike;
 use super::rules;
 
 /// A tensor axis dimension.
-///
-/// Every axis is either concrete or bounded above.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Dim {
     /// A dimension whose size is known.
