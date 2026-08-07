@@ -2792,12 +2792,8 @@ class TestDagSubstitute(DAGTest):
         # Verify the variables were transferred
         self.assertEqual(base_dag.num_captured_vars, 1)
         self.assertEqual(base_dag.num_declared_vars, 1)
-        captured_vars = list(base_dag.iter_captured_vars())
-        declared_vars = list(base_dag.iter_declared_vars())
-        self.assertEqual(len(captured_vars), 1)
-        self.assertEqual(len(declared_vars), 1)
-        self.assertEqual(captured_vars[0].name, "a")
-        self.assertEqual(declared_vars[0].name, "b")
+        self.assertEqual(list(base_dag.iter_captured_vars()), [a])
+        self.assertEqual(list(base_dag.iter_declared_vars()), [b])
 
     def test_substitute_dag_transfers_input_vars(self):
         """substitute_node_with_dag should transfer DAG-level input vars from replacement."""
@@ -2830,7 +2826,7 @@ class TestDagSubstitute(DAGTest):
         )
 
         self.assertEqual(base_dag.num_input_vars, 1)
-        self.assertTrue(any(var.name == "condition" for var in base_dag.iter_input_vars()))
+        self.assertEqual(list(base_dag.iter_input_vars()), [condition_var])
 
     def test_substitute_node_with_dag_transfers_captured_and_declared_stretches(self):
         """substitute_node_with_dag should transfer captured and declared stretches."""
@@ -2856,12 +2852,8 @@ class TestDagSubstitute(DAGTest):
         # Verify the stretches were transferred
         self.assertEqual(base_dag.num_captured_stretches, 1)
         self.assertEqual(base_dag.num_declared_stretches, 1)
-        captured_stretches = list(base_dag.iter_captured_stretches())
-        declared_stretches = list(base_dag.iter_declared_stretches())
-        self.assertEqual(len(captured_stretches), 1)
-        self.assertEqual(len(declared_stretches), 1)
-        self.assertEqual(captured_stretches[0].name, "a")
-        self.assertEqual(declared_stretches[0].name, "b")
+        self.assertEqual(list(base_dag.iter_captured_stretches()), [a])
+        self.assertEqual(list(base_dag.iter_declared_stretches()), [b])
 
 
 @ddt
