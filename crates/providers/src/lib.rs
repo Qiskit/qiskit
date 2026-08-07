@@ -10,9 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-mod data_tree;
+pub mod data_tree;
 pub mod nodes;
 pub mod tensor;
 
-pub use data_tree::{ArityMismatch, DataTree, PathEntry, TreeMatchError};
+pub use data_tree::{ArityMismatch, DataTree, InvalidName, Name, PathEntry, TreeMatchError};
 pub use nodes::{CallError, CallInputError, MissingCallError, OpNodeType, OpNodeTypeExt, Store};

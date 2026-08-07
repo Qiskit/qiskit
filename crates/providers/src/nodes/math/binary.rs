@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::data_tree::DataTree;
+use crate::data_tree::{DataTree, Name};
 use crate::nodes::OpNodeType;
 use crate::tensor::{DTypeLike, Tensor, TensorType, promotion};
 use crate::unpack_tensor_args;
@@ -20,7 +20,7 @@ use std::sync::LazyLock;
 static INPUT_TYPES: LazyLock<DataTree<TensorType>> = LazyLock::new(|| {
     let mut types = DataTree::with_capacity(2);
     types.insert_leaf(
-        "x",
+        Name::new("x").unwrap(),
         TensorType {
             dtype: DTypeLike::Var("x".into()),
             shape: vec![],
@@ -28,7 +28,7 @@ static INPUT_TYPES: LazyLock<DataTree<TensorType>> = LazyLock::new(|| {
         },
     );
     types.insert_leaf(
-        "y",
+        Name::new("y").unwrap(),
         TensorType {
             dtype: DTypeLike::Var("y".into()),
             shape: vec![],
@@ -219,7 +219,7 @@ mod tests {
     #[test]
     fn test_call_missing_input_errors() {
         let mut tree = DataTree::new();
-        tree.insert_leaf("x", Tensor::from([1.0_f64]));
+        tree.insert_leaf(Name::new("x").unwrap(), Tensor::from([1.0_f64]));
         let err = Add.call(&tree).unwrap_err();
         assert!(matches!(
             err,
@@ -232,8 +232,8 @@ mod tests {
     #[test]
     fn test_call_branch_where_leaf_expected_errors() {
         let mut tree = DataTree::new();
-        tree.insert_leaf("x", Tensor::from([1.0_f64]));
-        tree.insert_branch("y", DataTree::new());
+        tree.insert_leaf(Name::new("x").unwrap(), Tensor::from([1.0_f64]));
+        tree.insert_branch(Name::new("y").unwrap(), DataTree::new());
         let err = Add.call(&tree).unwrap_err();
         assert!(matches!(
             err,
@@ -246,8 +246,8 @@ mod tests {
     #[test]
     fn test_add_call_end_to_end() {
         let mut tree = DataTree::new();
-        tree.insert_leaf("x", Tensor::from([1.0_f64, 2.0, 3.0]));
-        tree.insert_leaf("y", Tensor::from([4.0_f64, 5.0, 6.0]));
+        tree.insert_leaf(Name::new("x").unwrap(), Tensor::from([1.0_f64, 2.0, 3.0]));
+        tree.insert_leaf(Name::new("y").unwrap(), Tensor::from([4.0_f64, 5.0, 6.0]));
         let result = Add.call(&tree).unwrap();
         let Tensor::F64(arr) = result.unwrap_leaf() else {
             panic!("expected f64")
