@@ -108,8 +108,8 @@ fn format_label(operator: &SparseObservable, time: &ComparableParam) -> String {
             label.push_str(" + ");
         }
 
-        for term_bit in term.bit_terms {
-            label.push_str(term_bit.py_label());
+        for bit in term.bit_terms {
+            label.push_str(bit.py_label());
         }
     }
 
