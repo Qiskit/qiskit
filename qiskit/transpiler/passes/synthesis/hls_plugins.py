@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 
-"""
+r"""
 
 High Level Synthesis Plugins
 -----------------------------
@@ -33,11 +33,11 @@ Clifford Synthesis
     * - ``"bm"``
       - :class:`~.BMSynthesisClifford`
       - all-to-all
-      - optimal count for `n=2,3`; used in ``"default"`` for `n=2,3`
+      - optimal count for :math:`n \in \{2,3\}`; used in ``"default"`` for :math:`n \in \{2,3\}`
     * - ``"greedy"``
       - :class:`~.GreedySynthesisClifford`
       - all-to-all
-      - greedily optimizes CX-count; used in ``"default"`` for `n>=4`
+      - greedily optimizes CX-count; used in ``"default"`` for :math:`n\geq 4`
     * - ``"layers"``
       - :class:`~.LayerSynthesisClifford`
       - all-to-all
@@ -45,11 +45,11 @@ Clifford Synthesis
     * - ``"lnn"``
       - :class:`~.LayerLnnSynthesisClifford`
       - linear
-      - many CX-gates but guarantees CX-depth of at most `7*n+2`
+      - many CX-gates but guarantees CX-depth of at most :math:`7n+2`
     * - ``"default"``
       - :class:`~.DefaultSynthesisClifford`
       - all-to-all
-      - usually best for optimizing CX-count (and optimal CX-count for `n=2,3`)
+      - usually best for optimizing CX-count (and optimal CX-count for :math:`n \in \{2,3\}`)
 
 .. autosummary::
    :toctree: ../stubs/
@@ -75,7 +75,7 @@ Linear Function Synthesis
     * - ``"kms"``
       - :class:`~.KMSSynthesisLinearFunction`
       - linear
-      - many CX-gates but guarantees CX-depth of at most `5*n`
+      - many CX-gates but guarantees CX-depth of at most :math:`5n`
     * - ``"pmh"``
       - :class:`~.PMHSynthesisLinearFunction`
       - all-to-all
@@ -110,11 +110,11 @@ Permutation Synthesis
     * - ``"acg"``
       - :class:`~.ACGSynthesisPermutation`
       - all-to-all
-      - guarantees SWAP-depth of at most `2`
+      - guarantees SWAP-depth of at most :math:`2`
     * - ``"kms"``
       - :class:`~.KMSSynthesisPermutation`
       - linear
-      - many SWAP-gates, but guarantees SWAP-depth of at most `n`
+      - many SWAP-gates, but guarantees SWAP-depth of at most :math:`n`
     * - ``"token_swapper"``
       - :class:`~.TokenSwapperSynthesisPermutation`
       - any
@@ -178,52 +178,52 @@ not sufficient, the corresponding synthesis method will return `None`.
       - :class:`~.MCXSynthesisGrayCode`
       - `0`
       - `0`
-      - exponentially many CX gates; use only for small values of `k`
+      - exponentially many CX gates; use only for small values of :math:`k`
     * - ``"noaux_v24"``
       - :class:`~.MCXSynthesisNoAuxV24`
-      - `0`
-      - `0`
+      - :math:`0`
+      - :math:`0`
       - quadratic number of CX gates
     * - ``"noaux_hp24"``
       - :class:`~.MCXSynthesisNoAuxHP24`
-      - `0`
-      - `0`
-      - linear number of CX gates; use instead of ``"noaux_v24"`` or ``"gray_code"`` for `k>5`
+      - :math:`0`
+      - :math:`0`
+      - linear number of CX gates; use instead of ``"noaux_v24"`` or ``"gray_code"`` for :math:`k>5`
     * - ``"n_clean_m15"``
       - :class:`~.MCXSynthesisNCleanM15`
-      - `k-2`
-      - `0`
-      - at most `6*k-6` CX gates
+      - :math:`k-2`
+      - :math:`0`
+      - at most :math:`6k-6` CX gates
     * - ``"n_dirty_i15"``
       - :class:`~.MCXSynthesisNDirtyI15`
-      - `0`
-      - `k-2`
-      - at most `8*k-6` CX gates
+      - :math:`0`
+      - :math:`k-2`
+      - at most :math:`8k-6` CX gates
     * - ``"2_clean_kg24"``
       - :class:`~.MCXSynthesis2CleanKG24`
-      - `2`
-      - `0`
-      - at most `6*k-6` CX gates
+      - :math:`2`
+      - :math:`0`
+      - at most :math:`6k-6` CX gates
     * - ``"2_dirty_kg24"``
       - :class:`~.MCXSynthesis2DirtyKG24`
       - `0`
       - `2`
-      - at most `12*k-18` CX gates
+      - at most :math:`12k-18` CX gates
     * - ``"1_clean_kg24"``
       - :class:`~.MCXSynthesis1CleanKG24`
       - `1`
       - `0`
-      - at most `6*k-6` CX gates
+      - at most :math:`6k-6` CX gates
     * - ``"1_dirty_kg24"``
       - :class:`~.MCXSynthesis1DirtyKG24`
-      - `0`
-      - `1`
-      - at most `12*k-18` CX gates
+      - :math:`0`
+      - :math:`1`
+      - at most :math:`12k-18` CX gates
     * - ``"1_clean_b95"``
       - :class:`~.MCXSynthesis1CleanB95`
-      - `1`
-      - `0`
-      - at most `16*k-8` CX gates
+      - :math:`1`
+      - :math:`0`
+      - at most :math:`16k-8` CX gates
     * - ``"default"``
       - :class:`~.MCXSynthesisDefault`
       - any
@@ -259,18 +259,18 @@ MCMT Synthesis
       - Description
     * - ``"vchain"``
       - :class:`.MCMTSynthesisVChain`
-      - `k-1`
-      - `0`
+      - :math:`k-1`
+      - :math:`0`
       - uses a linear number of Toffoli gates
     * - ``"noaux"``
       - :class:`~.MCMTSynthesisNoAux`
-      - `0`
-      - `0`
+      - :math:`0`
+      - :math:`0`
       - uses Qiskit's standard control mechanism
     * - ``"xgate"``
       - :class:`.MCMTSynthesisXGate`
-      - `0`
-      - `0`
+      - :math:`0`
+      - :math:`0`
       - uses a linear number of Toffoli gates
     * - ``"default"``
       - :class:`~.MCMTSynthesisDefault`
@@ -300,7 +300,7 @@ Integer comparators
     * - ``"twos"``
       - :class:`~.IntComparatorSynthesis2s`
       - use addition with two's complement
-      - ``n - 1`` clean
+      - :math:`n - 1` clean
     * - ``"noaux"``
       - :class:`~.IntComparatorSynthesisNoAux`
       - flip the target controlled on all :math:`O(2^l)` allowed integer values
@@ -331,7 +331,7 @@ Sums
     * - ``"default"``
       - :class:`.WeightedSumSynthesisDefault`
       - use a V-chain based synthesis
-      - given ``s`` sum qubits, used ``s - 1 + int(s > 2)`` clean auxiliary qubits
+      - given :math:`s` sum qubits, used :math:`s - 1_{s \leq 2}` clean auxiliary qubits
 
 .. autosummary::
    :toctree: ../stubs/
@@ -378,11 +378,11 @@ Modular Adder Synthesis
       - Description
     * - ``"modular_v17"``
       - :class:`.ModularAdderSynthesisV17`
-      - 0
+      - :math:`0`
       - a modular adder without any ancillary qubits
     * - ``"ripple_cdkm"``
       - :class:`.ModularAdderSynthesisC04`
-      - 1
+      - :math:`1`
       - a ripple-carry adder
     * - ``"ripple_vbe"``
       - :class:`.ModularAdderSynthesisV95`
@@ -390,7 +390,7 @@ Modular Adder Synthesis
       - a ripple-carry adder
     * - ``"qft"``
       - :class:`.ModularAdderSynthesisD00`
-      - 0
+      - :math:`0`
       - a QFT-based adder
     * - ``"default"``
       - :class:`~.ModularAdderSynthesisDefault`
@@ -418,11 +418,11 @@ Half Adder Synthesis
       - Description
     * - ``"ripple_cdkm"``
       - :class:`.HalfAdderSynthesisC04`
-      - 1
+      - :math:`1`
       - a ripple-carry adder
     * - ``"ripple_r25"``
       - :class:`.HalfAdderSynthesisR25`
-      - 0
+      - :math:`0`
       - a ripple-carry adder with no ancillas
     * - ``"ripple_vbe"``
       - :class:`.HalfAdderSynthesisV95`
@@ -430,7 +430,7 @@ Half Adder Synthesis
       - a ripple-carry adder
     * - ``"qft"``
       - :class:`.HalfAdderSynthesisD00`
-      - 0
+      - :math:`0`
       - a QFT-based adder
     * - ``"default"``
       - :class:`~.HalfAdderSynthesisDefault`
@@ -458,7 +458,7 @@ Full Adder Synthesis
       - Description
     * - ``"ripple_cdkm"``
       - :class:`.FullAdderSynthesisC04`
-      - 0
+      - :math:`0`
       - a ripple-carry adder
     * - ``"ripple_vbe"``
       - :class:`.FullAdderSynthesisV95`
@@ -493,7 +493,7 @@ Multiplier Synthesis
       - a cumulative adder based on controlled adders
     * - ``"qft"``
       - :class:`.MultiplierSynthesisR17`
-      - 0
+      - :math:`0`
       - a QFT-based multiplier
     * - ``"default"``
       - :class:`~.MultiplierSynthesisDefault`
@@ -2316,7 +2316,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
             synthesized = self._apply_annotations(synthesized_base_op, operation.modifiers)
         else:
             # Apply annotations only to the middle part of the circuit.
-            (front, middle, back) = conjugate_decomp
+            front, middle, back = conjugate_decomp
             synthesized = QuantumCircuit(operation.num_qubits)
             synthesized.compose(
                 front, synthesized.qubits[num_ctrl : operation.num_qubits], inplace=True
