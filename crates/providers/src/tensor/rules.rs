@@ -10,13 +10,14 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-//! Type-level rules: functions over [`DType`] and [`Dim`] that never touch tensor data.
+//! Type-level rules for [`DType`] and [`Dim`].
 //!
-//! These answer what promotion and broadcasting *would* do for a given pair of operand types, so a
-//! caller can settle a question about types with no values in hand. A caller consults a rule and
-//! then acts on it; these functions change nothing on their own.
+//! Functions in this module answer questions about what promotion and broadcasting
+//! *would* do for a given pair of operand types, so a caller can understand expected
+//! behaviour without actual tensors instantiated.
 
-use super::{DType, Dim, TensorError, align_axes};
+use super::broadcast::align_axes;
+use super::{DType, Dim, TensorError};
 
 /// Promote a pair of dtypes to the smallest type compatible with both.
 ///
@@ -111,13 +112,7 @@ pub fn promotion(lhs: DType, rhs: DType) -> DType {
 
 /// Require every axis of `shape` to be [`Dim::Fixed`], returning their sizes.
 ///
-/// This is how an operation states that it needs a true size rather than a bound. A
-/// [`Tensor`](super::Tensor) draws no distinction between an axis's logical size and its allocation,
-/// so an operation that has to *read* an axis's live size cannot accept a [`Dim::Bounded`] one.
-///
-/// Call it on the axes actually needed, and only when the size is needed at build time — a size that
-/// is merely forwarded, or that is consumed while evaluating, needs nothing from this function. See
-/// [`Dim::Bounded`] for what a bounded axis can and cannot pass through.
+/// Operations should use this helper whenever they require the true size rather than a bound.
 pub fn require_static(shape: &[Dim]) -> Result<Vec<usize>, TensorError> {
     shape
         .iter()
