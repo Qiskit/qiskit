@@ -1503,22 +1503,6 @@ dependencies = [
 
 [[package]]
 name = "nalgebra"
-version = "0.33.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d43ddcacf343185dfd6de2ee786d9e8b1c2301622afab66b6c73baf9882abfd"
-dependencies = [
- "approx",
- "matrixmultiply",
- "nalgebra-macros 0.2.2",
- "num-complex",
- "num-rational",
- "num-traits",
- "simba",
- "typenum",
-]
-
-[[package]]
-name = "nalgebra"
 version = "0.34.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df76ea0ff5c7e6b88689085804d6132ded0ddb9de5ca5b8aeb9eeadc0508a70a"
@@ -1543,23 +1527,12 @@ dependencies = [
  "glam 0.31.1",
  "glam 0.32.1",
  "matrixmultiply",
- "nalgebra-macros 0.3.0",
+ "nalgebra-macros",
  "num-complex",
  "num-rational",
  "num-traits",
  "simba",
  "typenum",
-]
-
-[[package]]
-name = "nalgebra-macros"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "254a5372af8fc138e36684761d3c0cdb758a4410e938babcff1c860ce14ddbfc"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.118",
 ]
 
 [[package]]
@@ -1840,7 +1813,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a5b15d63a5ff39e378daed0e1340d3a5964703ea9712eb09a0dc66fade996f4"
 dependencies = [
  "libc",
- "nalgebra 0.34.2",
+ "nalgebra",
  "ndarray",
  "num-complex",
  "num-integer",
@@ -2253,7 +2226,7 @@ dependencies = [
  "approx",
  "hashbrown 0.15.5",
  "itertools 0.14.0",
- "nalgebra 0.34.2",
+ "nalgebra",
  "ndarray",
  "num-bigint",
  "num-complex",
@@ -2303,7 +2276,7 @@ dependencies = [
  "anyhow",
  "hashbrown 0.15.5",
  "mimalloc",
- "nalgebra 0.34.2",
+ "nalgebra",
  "ndarray",
  "num-bigint",
  "num-complex",
@@ -2342,7 +2315,7 @@ dependencies = [
  "itertools 0.14.0",
  "lexical-core",
  "lexical-write-float",
- "nalgebra 0.34.2",
+ "nalgebra",
  "ndarray",
  "nom",
  "nom-language",
@@ -2369,7 +2342,7 @@ version = "2.5.1"
 dependencies = [
  "hashbrown 0.15.5",
  "itertools 0.14.0",
- "nalgebra 0.34.2",
+ "nalgebra",
  "ndarray",
  "num-complex",
  "numpy",
@@ -2478,7 +2451,7 @@ dependencies = [
  "foldhash 0.2.0",
  "hashbrown 0.15.5",
  "itertools 0.14.0",
- "nalgebra 0.34.2",
+ "nalgebra",
  "ndarray",
  "ndarray-einsum",
  "num-complex",
@@ -2506,7 +2479,7 @@ dependencies = [
  "fixedbitset 0.5.7",
  "hashbrown 0.15.5",
  "itertools 0.14.0",
- "nalgebra 0.34.2",
+ "nalgebra",
  "ndarray",
  "num-complex",
  "num-traits",
@@ -2539,7 +2512,7 @@ dependencies = [
  "hashbrown 0.15.5",
  "indexmap",
  "itertools 0.14.0",
- "nalgebra 0.34.2",
+ "nalgebra",
  "ndarray",
  "num-complex",
  "numpy",
@@ -2807,18 +2780,17 @@ dependencies = [
 
 [[package]]
 name = "rsgridsynth"
-version = "0.2.0"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d7a6206ba19a3dbe199d9931a8630ce8b0f0c6cc393d81c700b8f2c8bd312fc"
+checksum = "133fdfbe9489a7c448e35e82c8443c9097ed6b5c22a492c3c78c19a472cacfad"
 dependencies = [
- "clap",
  "dashu",
  "dashu-base",
  "dashu-float",
  "dashu-int",
  "env_logger",
  "log",
- "nalgebra 0.33.3",
+ "nalgebra",
  "num",
  "num-traits",
  "once_cell",
@@ -2889,9 +2861,9 @@ checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
 
 [[package]]
 name = "rustworkx-core"
-version = "0.18.0"
+version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b213df2cbfa5f580ed2c0ac3619eda06692a4ff0211f0aebbb4008eaa9724a6"
+checksum = "54299df1d95fb17c25f9ae7f4169db76de708c231a19e29a50b7d74e87853246"
 dependencies = [
  "fixedbitset 0.5.7",
  "foldhash 0.1.5",
