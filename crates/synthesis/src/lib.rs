@@ -25,6 +25,7 @@ mod permutation;
 mod qft;
 pub mod qsd;
 pub mod ross_selinger;
+pub mod stabilizer;
 pub mod two_qubit_decompose;
 
 use pyo3::import_exception;
@@ -68,6 +69,10 @@ pub fn synthesis(m: &Bound<PyModule>) -> PyResult<()> {
     let qft_mod = PyModule::new(m.py(), "qft")?;
     qft::qft(&qft_mod)?;
     m.add_submodule(&qft_mod)?;
+
+    let stabilizer_mod = PyModule::new(m.py(), "stabilizer")?;
+    stabilizer::stabilizer(&stabilizer_mod)?;
+    m.add_submodule(&stabilizer_mod)?;
 
     Ok(())
 }
