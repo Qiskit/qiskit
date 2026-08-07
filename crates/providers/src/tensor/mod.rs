@@ -21,167 +21,14 @@
 use ndarray::{ArcArrayD, ArrayD, IxDyn, Zip};
 use num_complex::{Complex32, Complex64};
 
-use std::fmt;
-use thiserror::Error;
-
+mod dtype;
+mod error;
 pub mod rules;
+mod tensor_type;
 
-/// Errors returned by [`Tensor`] operations and by the rules in [`rules`].
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
-pub enum TensorError {
-    /// The two operand tensors have different dtypes or a dtype that does not support the op.
-    #[error("dtype mismatch in Tensor::{op}: lhs={lhs}, rhs={rhs}")]
-    DTypeMismatch {
-        op: &'static str,
-        lhs: DType,
-        rhs: DType,
-    },
-    /// The two operand shapes are not broadcast-compatible.
-    #[error("shapes {lhs:?} and {rhs:?} are not broadcast-compatible")]
-    ShapeMismatch { lhs: Vec<usize>, rhs: Vec<usize> },
-    /// The two operand [`Dim`] shapes are not broadcast-compatible.
-    ///
-    /// The type-level counterpart of [`TensorError::ShapeMismatch`], raised by
-    /// [`rules::broadcast_dims`].
-    #[error(
-        "shapes {} and {} are not broadcast-compatible",
-        fmt_shape(lhs),
-        fmt_shape(rhs)
-    )]
-    DimShapeMismatch { lhs: Vec<Dim>, rhs: Vec<Dim> },
-    /// A [`Dim::Bounded`] axis reached a position that needs a true size.
-    ///
-    /// Raised by [`rules::require_static`] and by [`rules::broadcast_dims`]; see [`Dim::Bounded`]
-    /// for what a bounded axis can and cannot pass through.
-    #[error(
-        "shape {} has an axis whose size is only bounded above, where a true size is required",
-        fmt_shape(shape)
-    )]
-    DynamicDim { shape: Vec<Dim> },
-}
-
-/// The possible data types for a Tensor.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum DType {
-    C128, // complex
-    C64,
-    F64, // real
-    F32,
-    I64, // signed integer
-    I32,
-    I16,
-    I8,
-    U64, // unsigned integer
-    U32,
-    U16,
-    U8,
-    Bit, // bool
-}
-
-impl fmt::Display for DType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let string_repr = match self {
-            DType::C128 => "C128",
-            DType::C64 => "C64",
-            DType::F64 => "F64",
-            DType::F32 => "F32",
-            DType::I64 => "I64",
-            DType::I32 => "I32",
-            DType::I16 => "I16",
-            DType::I8 => "I8",
-            DType::U64 => "U64",
-            DType::U32 => "U32",
-            DType::U16 => "U16",
-            DType::U8 => "U8",
-            DType::Bit => "Bit",
-        };
-        write!(f, "{string_repr}")
-    }
-}
-
-/// A tensor dtype that is unknown but identified by name.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct DTypeVar {
-    /// The variable name.
-    pub name: String,
-}
-
-impl<T: Into<String>> From<T> for DTypeVar {
-    fn from(value: T) -> Self {
-        Self { name: value.into() }
-    }
-}
-
-/// A tensor data type whose value is yet unknown, but will be the promotion of others.
-#[derive(Debug, Clone)]
-pub struct DTypePromotion {
-    /// The dtype arguments to promote over.
-    pub args: Vec<DTypeLike>,
-}
-
-impl<T: Into<Vec<DTypeLike>>> From<T> for DTypePromotion {
-    fn from(args: T) -> Self {
-        Self { args: args.into() }
-    }
-}
-
-/// A tensor data type, known or unknown.
-#[derive(Debug, Clone)]
-pub enum DTypeLike {
-    /// A fully resolved dtype.
-    Concrete(DType),
-    /// A dtype identified by a variable name, to be resolved later.
-    Var(DTypeVar),
-    /// A dtype that is the promotion of one or more other dtypes.
-    Promotion(DTypePromotion),
-}
-
-/// A tensor axis dimension.
-///
-/// Every axis is either concrete or bounded above.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Dim {
-    /// A dimension whose size is known.
-    Fixed(usize),
-    /// A dimension whose size is not known until run time, but is provably at most `max`.
-    ///
-    /// An operation that needs the true size at build time demands it through
-    /// [`rules::require_static`].
-    Bounded { max: usize },
-}
-
-impl fmt::Display for Dim {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Dim::Fixed(n) => write!(f, "{n}"),
-            Dim::Bounded { max } => write!(f, "<={max}"),
-        }
-    }
-}
-
-/// Render a shape as `[4000, <=2]`.
-fn fmt_shape(shape: &[Dim]) -> String {
-    let dims: Vec<String> = shape.iter().map(Dim::to_string).collect();
-    format!("[{}]", dims.join(", "))
-}
-
-/// A specification of a tensor without any data.
-#[derive(Debug, Clone)]
-pub struct TensorType {
-    /// The type of the tensor.
-    pub dtype: DTypeLike,
-    /// The dimension of each tensor axis.
-    pub shape: Vec<Dim>,
-    /// Whether the tensor supports leading-axis (i.e. NumPy-style) broadcasting semantics.
-    pub broadcastable: bool,
-}
-
-impl TensorType {
-    /// Return the dimension of every axis, or `None` if any is only bounded above.
-    pub fn concrete_shape(&self) -> Option<Vec<usize>> {
-        rules::require_static(&self.shape).ok()
-    }
-}
+pub use dtype::{DType, DTypeLike, DTypePromotion, DTypeVar};
+pub use error::TensorError;
+pub use tensor_type::{Dim, TensorType};
 
 /// A tensor of one of the supported dtypes.
 ///
@@ -565,34 +412,9 @@ impl std::ops::Rem for Tensor {
         &self % &rhs
     }
 }
-
 #[cfg(test)]
 mod test {
     use super::*;
-
-    /// A `TensorType` over `shape`; the dtype is irrelevant to every test that uses this.
-    fn bit_type(shape: Vec<Dim>) -> TensorType {
-        TensorType {
-            dtype: DTypeLike::Concrete(DType::Bit),
-            shape,
-            broadcastable: false,
-        }
-    }
-
-    #[test]
-    fn test_tensor_type_concrete_shape() {
-        assert_eq!(
-            bit_type(vec![Dim::Fixed(3), Dim::Fixed(8)]).concrete_shape(),
-            Some(vec![3, 8])
-        );
-        assert_eq!(bit_type(vec![]).concrete_shape(), Some(vec![]));
-
-        // A bounded axis has no concrete size, so the whole shape has none.
-        assert_eq!(
-            bit_type(vec![Dim::Fixed(3), Dim::Bounded { max: 8 }]).concrete_shape(),
-            None
-        );
-    }
 
     #[test]
     fn test_tensor_equality() {
@@ -602,12 +424,6 @@ mod test {
         // Bit and U8 share a storage type but are distinct dtypes.
         let bits = ndarray::ArrayD::from_elem(IxDyn(&[2]), 1u8).into_shared();
         assert_ne!(Tensor::Bit(bits.clone()), Tensor::U8(bits));
-    }
-
-    #[test]
-    fn test_dim_display() {
-        assert_eq!(Dim::Fixed(4000).to_string(), "4000");
-        assert_eq!(Dim::Bounded { max: 2 }.to_string(), "<=2");
     }
 
     // -----------------------------------------------------------------------
@@ -1029,57 +845,6 @@ mod test {
         let a = Tensor::from([1.0f64, 2.0, 3.0]);
         let b = Tensor::from([1.0f64, 2.0, 3.0, 4.0]);
         let _ = &a + &b;
-    }
-
-    // -----------------------------------------------------------------------
-    // Display & conversion helpers
-    // -----------------------------------------------------------------------
-
-    #[test]
-    fn test_dtype_display() {
-        use DType::*;
-        let cases = [
-            (C128, "C128"),
-            (C64, "C64"),
-            (F64, "F64"),
-            (F32, "F32"),
-            (I64, "I64"),
-            (I32, "I32"),
-            (I16, "I16"),
-            (I8, "I8"),
-            (U64, "U64"),
-            (U32, "U32"),
-            (U16, "U16"),
-            (U8, "U8"),
-            (Bit, "Bit"),
-        ];
-        let mut fails = vec![];
-        for (dtype, expected) in cases {
-            let got = format!("{dtype}");
-            if got != expected {
-                fails.push((dtype, expected, got));
-            }
-        }
-        assert_eq!(fails, [], "DType Display mismatches: {fails:?}");
-    }
-
-    #[test]
-    fn test_dtype_var_from() {
-        let v = DTypeVar::from("x");
-        assert_eq!(v.name, "x");
-
-        let v = DTypeVar::from(String::from("alpha"));
-        assert_eq!(v.name, "alpha");
-    }
-
-    #[test]
-    fn test_dtype_promotion_from() {
-        let args = vec![
-            DTypeLike::Concrete(DType::F32),
-            DTypeLike::Concrete(DType::I16),
-        ];
-        let p = DTypePromotion::from(args);
-        assert_eq!(p.args.len(), 2);
     }
 
     // -----------------------------------------------------------------------
