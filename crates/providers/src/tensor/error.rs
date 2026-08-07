@@ -31,10 +31,7 @@ pub enum TensorError {
     /// The two operand shapes are not broadcast-compatible.
     #[error("shapes {lhs:?} and {rhs:?} are not broadcast-compatible")]
     ShapeMismatch { lhs: Vec<usize>, rhs: Vec<usize> },
-    /// The two operand [`Dim`] shapes are not broadcast-compatible.
-    ///
-    /// The type-level counterpart of [`TensorError::ShapeMismatch`], raised by
-    /// [`broadcast_dims`](super::rules::broadcast_dims).
+    /// The two operand [`Dim`] shapes are not broadcast-compatible.ß
     #[error(
         "shapes {} and {} are not broadcast-compatible",
         fmt_shape(lhs),
@@ -45,10 +42,6 @@ pub enum TensorError {
     #[error("an exponent of dtype {dtype} cannot be negative")]
     NegativeExponent { dtype: DType },
     /// A [`Dim::Bounded`] axis reached a position that needs a true size.
-    ///
-    /// Raised by [`require_static`](super::rules::require_static) and by
-    /// [`broadcast_dims`](super::rules::broadcast_dims); see [`Dim::Bounded`] for what a bounded axis
-    /// can and cannot pass through.
     #[error(
         "shape {} has an axis whose size is only bounded above, where a true size is required",
         fmt_shape(shape)
