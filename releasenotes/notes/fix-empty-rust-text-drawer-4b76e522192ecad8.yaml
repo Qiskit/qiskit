@@ -1,0 +1,5 @@
+fixes:
+  - |
+    Fixed a panic in the Rust text circuit drawer when drawing a circuit with
+    no quantum or classical bits. Empty circuits now produce an empty circuit
+    section while preserving any global-phase output.
