@@ -125,9 +125,7 @@ impl From<CircuitDataError> for PyErr {
             CircuitDataError::AddObjectRegistry(e) => e.into(),
             CircuitDataError::ErrorFromPython(e) => e,
             CircuitDataError::ParameterTableError(e) => e.into(),
-            CircuitDataError::RegisterNameExists(name) => {
-                CircuitError::new_err(format!("register name {name} already exists"))
-            }
+            CircuitDataError::RegisterNameExists(e) => e.into(),
             CircuitDataError::BitExceedsCapacity(bit_type, bit_index) => CircuitError::new_err(
                 format!("{bit_type} at index {bit_index} exceds circuit capacity."),
             ),

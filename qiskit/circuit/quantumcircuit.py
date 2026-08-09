@@ -3653,11 +3653,6 @@ class QuantumCircuit:
                 )
 
         for register in regs:
-            if isinstance(register, Register) and any(
-                register.name == reg.name for reg in self.qregs + self.cregs
-            ):
-                raise CircuitError(f'register name "{register.name}" already exists')
-
             if isinstance(register, AncillaRegister):
                 for bit in register:
                     if bit not in self._qubit_indices:
