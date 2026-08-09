@@ -26,7 +26,6 @@ from qiskit.quantum_info import SparsePauliOp
 from qiskit.circuit.classical import expr, types
 from qiskit.synthesis import LieTrotter
 from qiskit.qpy.common import QPY_RUST_READ_MIN_VERSION, QPY_RUST_WRITE_MIN_VERSION, QPY_VERSION
-from qiskit.qpy.binary_io import write_circuit
 from qiskit.qpy import dump, load
 from qiskit.qpy import UnsupportedFeatureForVersion
 from test import QiskitTestCase
@@ -82,6 +81,16 @@ class TestQPYRoundtrip(QiskitTestCase):
         self.assertEqual(circuit.layout, new_circuit.layout)
         self.assertEqual(circuit.parameters, new_circuit.parameters)
 
+    def assert_dump_raises_unsupported(self, circuit, version, write_with):
+        """Assert dump() rejects the circuit for the given writer backend."""
+        use_rust_for_write = write_with == "Rust"
+        with patch(
+            "qiskit.qpy.common.QPY_RUST_WRITE_MIN_VERSION",
+            QPY_RUST_WRITE_MIN_VERSION if use_rust_for_write else QPY_VERSION + 1,
+        ):
+            with io.BytesIO() as fptr, self.assertRaises(UnsupportedFeatureForVersion):
+                dump(circuit, fptr, version=version)
+
     @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
     def test_simple(self, version, write_with, read_with):
         """Basic roundtrip test"""
@@ -118,8 +127,7 @@ class TestQPYRoundtrip(QiskitTestCase):
         with qc.box(duration=expr.mul(2, a)):
             qc.cx(0, 1)
         if version < 14:
-            with io.BytesIO() as fptr, self.assertRaises(UnsupportedFeatureForVersion):
-                write_circuit(fptr, qc, version=version, use_rust=write_with == "Rust")
+            self.assert_dump_raises_unsupported(qc, version=version, write_with=write_with)
         else:
             self.assert_roundtrip_equal(
                 qc, version=version, read_with=read_with, write_with=write_with
@@ -187,8 +195,7 @@ class TestQPYRoundtrip(QiskitTestCase):
             with qc.if_test((0, True)):
                 qc.break_loop()
         if version < 18:
-            with io.BytesIO() as fptr, self.assertRaises(UnsupportedFeatureForVersion):
-                write_circuit(fptr, qc, version=version, use_rust=write_with == "Rust")
+            self.assert_dump_raises_unsupported(qc, version=version, write_with=write_with)
         else:
             self.assert_roundtrip_equal(
                 qc, version=version, read_with=read_with, write_with=write_with
@@ -287,11 +294,11 @@ class TestQPYRoundtrip(QiskitTestCase):
 
         for qc in circuits:
             for version in (16, 17):
-                with io.BytesIO() as fptr, self.assertRaises(UnsupportedFeatureForVersion):
-                    write_circuit(fptr, qc, version=version, use_rust=False)
-                if version >= QPY_RUST_WRITE_MIN_VERSION:
-                    with io.BytesIO() as fptr, self.assertRaises(UnsupportedFeatureForVersion):
-                        write_circuit(fptr, qc, version=version, use_rust=True)
+                writers = (
+                    ("Python", "Rust") if version >= QPY_RUST_WRITE_MIN_VERSION else ("Python",)
+                )
+                for write_with in writers:
+                    self.assert_dump_raises_unsupported(qc, version=version, write_with=write_with)
 
     @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
     def test_for_loop_with_expr_range_and_none_loop_parameter(self, version, write_with, read_with):
@@ -311,8 +318,7 @@ class TestQPYRoundtrip(QiskitTestCase):
         body.h(0)
         qc.append(ForLoopOp(range_expr, None, body), [0])
         if version < 18:
-            with io.BytesIO() as fptr, self.assertRaises(UnsupportedFeatureForVersion):
-                write_circuit(fptr, qc, version=version, use_rust=write_with == "Rust")
+            self.assert_dump_raises_unsupported(qc, version=version, write_with=write_with)
         else:
             self.assert_roundtrip_equal(
                 qc, version=version, read_with=read_with, write_with=write_with
