@@ -14,7 +14,7 @@ updates:
     ignore:
       # faer has historically made major breaking changes between minor versions, so it's easier to
       # do things manually ourselves.
-      - { dependency-name: "faer", versions: ["0.19.4"] }
+      - { dependency-name: "faer", versions: [">0.19.4"] }
       - { dependency-name: "faer-ext", versions: [">0.2.0"] }
       # nalgebra 0.34 bumped its MSRV to 1.87, which is too high for us.
       - { dependency-name: "nalgebra", versions: [">0.33.2"] }
