@@ -1843,6 +1843,10 @@ impl PauliProductRotation {
             None
         }
     }
+
+    pub fn inverse(&self) -> Option<Array2<Complex64>> {
+        self.matrix().map(|matrix| matrix.map(|coeff| coeff.conj()))
+    }
 }
 
 impl PartialEq for PauliProductRotation {
