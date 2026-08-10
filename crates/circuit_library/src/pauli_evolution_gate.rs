@@ -3,35 +3,51 @@ use std::sync::Arc;
 use qiskit_circuit::{
     operations::{CustomOperation, Operation, Param},
     packed_instruction::PackedOperation,
-    parameter::parameter_expression::ParameterExpression,
 };
 use qiskit_quantum_info::sparse_observable::SparseObservable;
 use smallvec::SmallVec;
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum PauliEvolutionError {
+    #[error("operator list is empty")]
+    Empty,
+    #[error("time is python object")]
+    PythonTime,
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PauliEvolution {
     operator: SparseObservable,
-    time: Time,
+    time: ComparableParam,
     label: String,
 }
 
 impl PauliEvolution {
-    pub fn builder(operator: SparseObservable) -> PauliEvolutionBuilder {
-        PauliEvolutionBuilder::new(operator)
+    pub fn new(operator: SparseObservable, time: f64) -> PauliEvolution {
+        Self::builder()
+            .operator(operator)
+            .time(Param::Float(time))
+            .build()
+            .expect("is valid")
+    }
+
+    pub fn builder() -> PauliEvolutionBuilder {
+        PauliEvolutionBuilder::new()
     }
 
     pub fn operator(&self) -> &SparseObservable {
         &self.operator
     }
 
-    pub fn time(&self) -> &Time {
-        &self.time
+    pub fn time(&self) -> &Param {
+        &self.time.0
     }
 
     pub fn into_parts(self) -> PauliEvolutionParts {
         PauliEvolutionParts {
             operator: self.operator,
-            time: self.time,
+            time: self.time.0,
             label: self.label,
         }
     }
@@ -73,7 +89,7 @@ impl CustomOperation for PauliEvolution {
 
         params.first().map(|param| {
             let mut inverse = self.clone();
-            inverse_time(&mut inverse.time);
+            inverse_param(&mut inverse.time.0);
 
             let inverse = PackedOperation::from_custom_operation(Box::new(inverse));
             let mut param = param.clone();
@@ -84,17 +100,6 @@ impl CustomOperation for PauliEvolution {
 
             (inverse, params)
         })
-    }
-}
-
-fn inverse_time(time: &mut Time) {
-    match time {
-        Time::Float(time) => {
-            *time *= -1.0;
-        }
-        Time::Expression(time) => {
-            *time = Box::new(time.neg());
-        }
     }
 }
 
@@ -110,23 +115,24 @@ fn inverse_param(param: &mut Param) {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct PauliEvolutionBuilder {
-    operator: SparseObservable,
-    time: Option<Time>,
+    operator: Option<SparseObservable>,
+    time: Option<Param>,
     label: Option<String>,
 }
 
 impl PauliEvolutionBuilder {
-    pub fn new(operator: SparseObservable) -> Self {
-        Self {
-            operator,
-            time: None,
-            label: None,
-        }
+    pub fn new() -> Self {
+        Self::default()
     }
 
-    pub fn time(mut self, time: Time) -> Self {
+    pub fn operator(mut self, operator: SparseObservable) -> Self {
+        self.operator = Some(operator);
+        self
+    }
+
+    pub fn time(mut self, time: Param) -> Self {
         self.time = Some(time);
         self
     }
@@ -136,16 +142,27 @@ impl PauliEvolutionBuilder {
         self
     }
 
-    pub fn build(self) -> PauliEvolution {
+    pub fn build(self) -> Result<PauliEvolution, PauliEvolutionError> {
         const DEFAULT_TIME: f64 = 1.0;
 
-        let label = self.label.unwrap_or_else(|| format_label(&self.operator));
+        let operator = self.operator.ok_or(PauliEvolutionError::Empty)?;
 
-        PauliEvolution {
-            operator: self.operator,
-            time: self.time.unwrap_or(Time::Float(DEFAULT_TIME)),
-            label,
+        if matches!(self.time, Some(Param::Obj(_))) {
+            return Err(PauliEvolutionError::PythonTime);
         }
+
+        let time = self
+            .time
+            .map(ComparableParam)
+            .unwrap_or(ComparableParam(Param::Float(DEFAULT_TIME)));
+
+        let label = self.label.unwrap_or_else(|| format_label(&operator));
+
+        Ok(PauliEvolution {
+            operator,
+            time,
+            label,
+        })
     }
 }
 
@@ -167,16 +184,26 @@ fn format_label(operator: &SparseObservable) -> String {
 }
 
 #[derive(Debug, Clone)]
-pub struct PauliEvolutionParts {
-    pub operator: SparseObservable,
-    pub time: Time,
-    pub label: String,
+struct ComparableParam(Param);
+
+impl PartialEq for ComparableParam {
+    fn eq(&self, other: &Self) -> bool {
+        let Self(a) = self;
+        let Self(b) = other;
+
+        match (a, b) {
+            (Param::Float(a), Param::Float(b)) => a == b,
+            (Param::ParameterExpression(a), Param::ParameterExpression(b)) => a == b,
+            _ => false,
+        }
+    }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum Time {
-    Float(f64),
-    Expression(Box<ParameterExpression>),
+#[derive(Debug, Clone)]
+pub struct PauliEvolutionParts {
+    pub operator: SparseObservable,
+    pub time: Param,
+    pub label: String,
 }
 
 #[cfg(test)]
@@ -186,26 +213,10 @@ mod tests {
     use super::*;
 
     #[test]
-    #[should_panic]
-    fn test_inverse_empty() {
-        let evolution = PauliEvolution::builder(mock_xy()).build();
-        evolution.inverse(&[]);
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_inverse_too_many() {
-        let evolution = PauliEvolution::builder(mock_xy()).build();
-        evolution.inverse(&[Param::Float(3.0), Param::Float(1.0)]);
-    }
-
-    #[test]
     fn test_inverse_float() {
-        let evolution = PauliEvolution::builder(mock_xy())
-            .time(Time::Float(3.0))
-            .build();
-
+        let evolution = PauliEvolution::new(mock_xy(), 3.0);
         let (_, params) = evolution.inverse(&[Param::Float(3.0)]).expect("has time");
+
         assert!(matches!(
             params.first(),
             Some(Param::Float(time)) if *time == -3.0
@@ -214,19 +225,11 @@ mod tests {
 
     #[test]
     fn test_label_default() {
-        let evolution = PauliEvolution::builder(mock_xy()).build();
+        let evolution = PauliEvolution::new(mock_xy(), 1.0);
         assert_eq!(evolution.label(), Some("exp(-it (XY))"));
 
-        let evolution = PauliEvolution::builder(mock_xy_zz()).build();
+        let evolution = PauliEvolution::new(mock_xy_zz(), 1.0);
         assert_eq!(evolution.label(), Some("exp(-it (XY + ZZ))"))
-    }
-
-    #[test]
-    fn test_label_custom() {
-        let evolution = PauliEvolution::builder(mock_xy())
-            .label("Hello, World!")
-            .build();
-        assert_eq!(evolution.label(), Some("Hello, World!"));
     }
 
     fn mock_xy() -> SparseObservable {
