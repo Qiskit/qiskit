@@ -2947,7 +2947,7 @@ impl PySparseObservable {
         Ok(inner.into())
     }
 
-    /// Construct an observable from a list of dense labels and coefficients.
+    /// Const ruct an observable from a list of dense labels and coefficients.
     ///
     /// This is analogous to :meth:`.SparsePauliOp.from_list`, except it uses
     /// :ref:`the extended alphabet <sparse-observable-alphabet>` of :class:`.SparseObservable`.  In

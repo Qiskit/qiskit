@@ -74,7 +74,7 @@ impl PauliEvolutionBuilder {
     }
 
     pub fn build(self) -> Result<PauliEvolution, PauliEvolutionError> {
-        const DEFAULT_TIME = 1.0;
+        const DEFAULT_TIME: f64 = 1.0;
 
         let label = self.label.unwrap_or_else(|| format_label(&self.operator));
 
@@ -99,7 +99,7 @@ fn format_label(operator: &SparseObservable) -> String {
         }
     }
 
-    label.push(')');
+    label.push_str("))");
     label
 }
 
@@ -137,17 +137,51 @@ impl CustomOperation for PauliEvolution {
 
 #[cfg(test)]
 mod tests {
+    use qiskit_quantum_info::sparse_observable::BitTerm;
+
     use super::*;
 
     #[test]
-    fn test_default_label_format() {
-        let op = SparseObservable::new(0, vec![], vec![], vec![], vec![]).expect("is valid");
+    fn test_label_default() {
+        let evolution = PauliEvolution::builder(mock_xy())
+            .build()
+            .expect("is valid");
+        assert_eq!(evolution.label(), "exp(-it (XY))");
 
-        let gate = PauliEvolution::builder(op)
+        let evolution = PauliEvolution::builder(mock_xy_zz())
+            .build()
+            .expect("is valid");
+        assert_eq!(evolution.label(), "exp(-it (XY + ZZ))")
+    }
+
+    #[test]
+    fn test_label_custom() {
+        let evolution = PauliEvolution::builder(mock_xy())
             .label("Hello, World!")
             .build()
             .expect("is valid");
+        assert_eq!(evolution.label(), "Hello, World!");
+    }
 
-        assert_eq!(gate.label(), "Hello, World!");
+    fn mock_xy() -> SparseObservable {
+        SparseObservable::new(
+            2,
+            vec![1.0.into()],
+            vec![BitTerm::X, BitTerm::Y],
+            vec![0, 1],
+            vec![0, 2],
+        )
+        .expect("is valid")
+    }
+
+    fn mock_xy_zz() -> SparseObservable {
+        SparseObservable::new(
+            2,
+            vec![1.0.into(), (-1.0).into()],
+            vec![BitTerm::X, BitTerm::Y, BitTerm::Z, BitTerm::Z],
+            vec![0, 1, 0, 1],
+            vec![0, 2, 4],
+        )
+        .expect("is valid")
     }
 }
