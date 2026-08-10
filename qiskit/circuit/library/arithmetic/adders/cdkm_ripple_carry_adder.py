@@ -12,7 +12,6 @@
 
 """Compute the sum of two qubit registers using ripple-carry approach."""
 
-from qiskit.synthesis.arithmetic import adder_ripple_c04
 from .adder import Adder
 
 
@@ -116,6 +115,8 @@ class CDKMRippleCarryAdder(Adder):
         Raises:
             ValueError: If ``num_state_qubits`` is lower than 1.
         """
+        from qiskit.synthesis.arithmetic import adder_ripple_c04
+
         super().__init__(num_state_qubits, name=name)
         circuit = adder_ripple_c04(num_state_qubits, kind)
 

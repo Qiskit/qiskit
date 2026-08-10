@@ -949,6 +949,24 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(hash(x1), hash(x1_expr))
         self.assertEqual(hash(x2), hash(x2_expr))
 
+    def test_parameter_vector_elements_can_be_recreated(self):
+        left = ParameterVector("a", 5)
+        right = ParameterVector("a", 5, uuid=left.uuid)
+        # We can't compare the two vectors directly because `ParameterVector` only implements
+        # identity-based equality, since it's internally mutable.
+        self.assertEqual(list(left), list(right))
+
+        # UUIDs don't match.
+        other = ParameterVector("a", 5)
+        self.assertNotEqual(list(left), list(other))
+
+    def test_parameter_vector_backrefs_equal(self):
+        vector = ParameterVector("a", 10)
+        # With `ParameterVector` implemented in Rust and the actual Python object not cached,
+        # there's no guarantee that `pv[0].vector is pv` (as the pure-Python implementation used to
+        # preserve), but we need to maintain `pv[0].vector == pv`.
+        self.assertEqual([x.vector for x in vector], [vector] * len(vector))
+
     def test_binding_parameterized_circuits_built_in_multiproc(self):
         """Verify subcircuits built in a subprocess can still be bound."""
         # ref: https://github.com/Qiskit/qiskit-terra/issues/2429

@@ -12,3 +12,4 @@
 
 pub mod c;
 pub mod ctypes;
+pub mod rust;

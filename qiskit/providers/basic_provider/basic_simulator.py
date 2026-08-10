@@ -546,7 +546,7 @@ class BasicSimulator(BackendV2):
         # Find measurement operations
         measure_ops = []
         for operation in circuit.data:
-            if operation.operation.name == "measure":
+            if operation.name == "measure":
                 qubit = circuit.find_bit(operation.qubits[0]).index
                 clbit = circuit.find_bit(operation.clbits[0]).index
                 measure_ops.append((qubit, clbit))

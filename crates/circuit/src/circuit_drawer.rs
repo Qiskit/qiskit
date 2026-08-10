@@ -85,10 +85,11 @@ pub fn draw_circuit(
             .flat_map(|x| [x.trim_end(), "\n"]),
     );
     let mut chars = output.chars();
-    if let Some(last) = chars.next_back() {
-        if last == '\n' && chars.next_back() == Some('\n') {
-            output.pop();
-        }
+    if let Some(last) = chars.next_back()
+        && last == '\n'
+        && chars.next_back() == Some('\n')
+    {
+        output.pop();
     }
     Ok(output)
 }
@@ -863,10 +864,10 @@ impl TextDrawer {
 
                 let mut label = STANDARD_GATE_LABELS[standard_gate as usize].to_string();
 
-                if let Some(custom_label) = instruction.label.clone() {
-                    if *custom_label != label {
-                        label = *custom_label;
-                    }
+                if let Some(custom_label) = instruction.label.clone()
+                    && *custom_label != label
+                {
+                    label = *custom_label;
                 }
 
                 if standard_gate.num_params() > 0 {
@@ -984,11 +985,18 @@ impl TextDrawer {
                     BoxedElement::Single(inst) => {
                         let mut top_con = Q_WIRE;
                         let mut bot_con = Q_WIRE;
-                        let mut label = format!(
-                            "{} {} ",
-                            Self::try_pauli_term(Some(0), inst), // in case it's a PPR/PPM gate
-                            Self::get_label(inst)
-                        );
+                        let mut label = if matches!(
+                            inst.op.view(),
+                            OperationRef::StandardInstruction(StandardInstruction::Measure)
+                        ) {
+                            Self::get_label(inst).to_string() // Skip space padding around the label to make Measure box thinner
+                        } else {
+                            format!(
+                                "{} {} ",
+                                Self::try_pauli_term(Some(0), inst), // in case it's a PPR/PPM gate
+                                Self::get_label(inst)
+                            )
+                        };
                         if let Some(gate) = inst.op.try_standard_gate() {
                             if gate.is_controlled_gate() {
                                 let qargs = circuit.get_qargs(inst.qubits);
@@ -1045,7 +1053,11 @@ impl TextDrawer {
                             "{:<in_len$}{}{:^label_len$}",
                             input_idx.map_or("".to_string(), |q| q.to_string()),
                             Self::try_pauli_term(input_idx, inst), // in case it's a PPR/PPM gate
-                            (mid_idx == wire_idx).then_some(label).unwrap_or_default(),
+                            if mid_idx == wire_idx {
+                                label
+                            } else {
+                                Default::default()
+                            },
                             in_len = qarg_inputs_len,
                             label_len = label_len,
                         );
@@ -1455,10 +1467,10 @@ pub fn format_float_pi(f: f64) -> Option<String> {
     }
 
     // Second is a check for powers of pi
-    if f_abs > PI {
-        if let Some(k) = (2..=4).find(|k| (f_abs - PI.powi(*k)).abs() < EPS) {
-            return Some(format!("{}{}^{}", sign, pi_str, k));
-        }
+    if f_abs > PI
+        && let Some(k) = (2..=4).find(|k| (f_abs - PI.powi(*k)).abs() < EPS)
+    {
+        return Some(format!("{}{}^{}", sign, pi_str, k));
     }
 
     // Third is a check for a number larger than DENOMINATOR * pi, not a
@@ -1636,11 +1648,11 @@ c2_1: ══════════
 
         let result = draw_circuit(&circuit, false, false, Some(100)).unwrap();
         let expected = "
-   ┌───┐┌───┐
-q: ┤ H ├┤ M ├
-   └───┘└─╥─┘
-          ║
-c: ═══════╩══
+   ┌───┐┌─┐
+q: ┤ H ├┤M├
+   └───┘└╥┘
+         ║
+c: ══════╩═
 ";
         assert_eq!(result, expected.trim_start_matches("\n"));
     }
@@ -2071,7 +2083,7 @@ c2: 2/══════════
         let mut circuit = basic_circuit();
         circuit
             .set_global_phase_param(Param::ParameterExpression(Arc::new(
-                ParameterExpression::from_symbol(Symbol::new("ϕ", None, None)),
+                ParameterExpression::from_symbol(Symbol::standalone("ϕ".to_owned(), None)),
             )))
             .unwrap();
         let result = draw_circuit(&circuit, true, false, Some(80)).unwrap();
@@ -2101,7 +2113,7 @@ c2: 2/══════════
         ];
         let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
         let param = Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
-            Symbol::new("a", None, None),
+            Symbol::standalone("a".to_owned(), None),
         )));
         circuit
             .push_standard_gate(StandardGate::RXX, &[param], &[Qubit(0), Qubit(1)])
@@ -2229,29 +2241,29 @@ c_2: ═════════════════════════
                                                                                                          »
 c_3: ════════════════════════════════════════════════════════════════════════════════════════════════════»
                                                                                                          »
-«      ░  ░ ┌───┐
-«q_0: ─░──░─┤ M ├───────────────
-«      ░  ░ └─╥─┘
-«      ░  ░   ║  ┌───┐
-«q_1: ─░──░───╫──┤ M ├──────────
-«      ░  ░   ║  └─╥─┘
-«      ░  ░   ║    ║  ┌───┐
-«q_2: ─░──░───╫────╫──┤ M ├─────
-«      ░  ░   ║    ║  └─╥─┘
-«         ░   ║    ║    ║  ┌───┐
-«q_3: ────░───╫────╫────╫──┤ M ├
-«         ░   ║    ║    ║  └─╥─┘
-«             ║    ║    ║    ║
-«c_0: ════════╩════╬════╬════╬══
-«                  ║    ║    ║
-«                  ║    ║    ║
-«c_1: ═════════════╩════╬════╬══
-«                       ║    ║
-«                       ║    ║
-«c_2: ══════════════════╩════╬══
-«                            ║
-«                            ║
-«c_3: ═══════════════════════╩══
+«      ░  ░ ┌─┐
+«q_0: ─░──░─┤M├─────────
+«      ░  ░ └╥┘
+«      ░  ░  ║ ┌─┐
+«q_1: ─░──░──╫─┤M├──────
+«      ░  ░  ║ └╥┘
+«      ░  ░  ║  ║ ┌─┐
+«q_2: ─░──░──╫──╫─┤M├───
+«      ░  ░  ║  ║ └╥┘
+«         ░  ║  ║  ║ ┌─┐
+«q_3: ────░──╫──╫──╫─┤M├
+«         ░  ║  ║  ║ └╥┘
+«            ║  ║  ║  ║
+«c_0: ═══════╩══╬══╬══╬═
+«               ║  ║  ║
+«               ║  ║  ║
+«c_1: ══════════╩══╬══╬═
+«                  ║  ║
+«                  ║  ║
+«c_2: ═════════════╩══╬═
+«                     ║
+«                     ║
+«c_3: ════════════════╩═
 «
 ";
         assert_eq!(result, expected.trim_start_matches("\n"));
@@ -2265,7 +2277,7 @@ c_3: ═════════════════════════
         ];
         let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
         let param = Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
-            Symbol::new("ϕ", None, None),
+            Symbol::standalone("ϕ".to_owned(), None),
         )));
         circuit
             .push_standard_gate(StandardGate::RXX, &[param], &[Qubit(0), Qubit(1)])
@@ -2300,7 +2312,7 @@ q_1: ┤1        ├┤1            ├┤1        ├
         ];
         let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.0)).unwrap();
         let param = Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
-            Symbol::new("🎩", None, None),
+            Symbol::standalone("🎩".to_owned(), None),
         )));
         circuit
             .push_standard_gate(StandardGate::RY, std::slice::from_ref(&param), &[Qubit(1)])
@@ -2349,7 +2361,7 @@ q_1: ┤ Ry(🎩) ├┤1         ├─┤ 💶🔉(🎩) ├─┤1          �
             .push_standard_gate(StandardGate::RX, &[Param::Float(123.4567)], &[Qubit(0)])
             .unwrap();
 
-        let expr = ParameterExpression::from_symbol(Symbol::new("ϕ", None, None))
+        let expr = ParameterExpression::from_symbol(Symbol::standalone("ϕ".to_owned(), None))
             .mul(&ParameterExpression::from_f64(1.23456))
             .unwrap();
         let param = Param::ParameterExpression(Arc::new(expr));
@@ -2482,8 +2494,9 @@ q_1: ┤ Rz(1.2346e8) ├┤ Rx(0.12346) ├┤ Rx(1.2346e-5) ├┤ Rx(2π/3) �
             )
             .unwrap();
 
-        let theta = Arc::new(ParameterExpression::from_symbol(Symbol::new(
-            "θ", None, None,
+        let theta = Arc::new(ParameterExpression::from_symbol(Symbol::standalone(
+            "θ".to_owned(),
+            None,
         )));
 
         circuit
