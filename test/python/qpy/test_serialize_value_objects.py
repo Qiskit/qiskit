@@ -13,9 +13,11 @@
 """Test serializing ParameterExpressions from qpy."""
 
 import io
+import struct
 from test import QiskitTestCase
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit import qpy
+from qiskit.qpy.exceptions import QpyError
 from qiskit.quantum_info import SparseObservable
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.circuit.library import PauliEvolutionGate
@@ -106,3 +108,44 @@ class TestPauliEvolution(QiskitTestCase):
             qc_from_qpy = qpy.load(container)[0]
 
         self.assertEqual(circuit, qc_from_qpy)
+
+
+class TestSparseObservableBitTermWidth(QiskitTestCase):
+    """QPY 18 narrowed ``SPARSE_OBSERVABLE`` bit terms from ``uint16_t`` to ``uint8_t``.
+
+    Round-trip equality across versions and implementations is covered by
+    ``test_roundtrip.TestQPYRoundtrip.test_evolutiongate_sparse_observable``.  What is left here
+    is the byte-level behaviour that a round-trip cannot observe.
+    """
+
+    @staticmethod
+    def _payload(op, version=None):
+        evo = PauliEvolutionGate(op, time=0.3)
+        circuit = QuantumCircuit(evo.num_qubits)
+        circuit.append(evo, circuit.qubits)
+        kwargs = {} if version is None else {"version": version}
+        with io.BytesIO() as container:
+            qpy.dump(circuit, container, **kwargs)
+            return container.getvalue()
+
+    def test_version_18_saves_one_byte_per_bit_term(self):
+        """The narrowing must actually shrink the payload, not merely keep round-tripping."""
+        op = SparseObservable.from_list([("XIX", 0.1), ("ZIZ", 0.3)])
+        saved = len(self._payload(op, 17)) - len(self._payload(op, 18))
+        self.assertEqual(saved, len(op.bit_terms))
+
+    def test_version_17_bit_term_too_wide_is_rejected(self):
+        """A v17 bit term that does not fit in a byte must raise, not be silently truncated."""
+        op = SparseObservable.from_list([("XIX", 0.1), ("ZIZ", 0.3)])
+        payload = bytearray(self._payload(op, 17))
+
+        # In v17 each bit term occupies a big-endian uint16, so the bit terms appear in the
+        # payload as this byte run.  Setting a high byte makes the value exceed a uint8.
+        encoded = struct.pack(f"!{len(op.bit_terms)}H", *op.bit_terms)
+        offset = payload.find(encoded)
+        self.assertNotEqual(offset, -1, "could not locate the bit terms in the payload")
+        payload[offset] = 0x01
+
+        with io.BytesIO(bytes(payload)) as container:
+            with self.assertRaises(QpyError):
+                qpy.load(container)

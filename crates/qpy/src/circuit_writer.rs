@@ -57,6 +57,7 @@ use crate::value::{
     BitType, CircuitInstructionType, ExpressionVarDeclaration, GenericValue, ParamRegisterValue,
     QPYWriteData, RegisterType, get_circuit_type_key, pack_for_collection, pack_generic_value,
     pack_standalone_var, pack_stretch, serialize, serialize_param_register_value,
+    serialize_with_args,
 };
 
 use qiskit_circuit::var_stretch_container::{StretchType, VarType};
@@ -1021,8 +1022,11 @@ fn pack_custom_instruction(
     let mut base_gate_raw: Bytes = Bytes::new();
 
     let data = match gate_type {
-        CircuitInstructionType::PauliEvolutionGate => Some(serialize(
+        // The evolution payload needs the target QPY version: the width of the observable's bit
+        // terms narrowed from `u16` to `u8` in QPY 18.
+        CircuitInstructionType::PauliEvolutionGate => Some(serialize_with_args(
             &py_pack_pauli_evolution_gate(inst.ob.bind(py), qpy_data)?,
+            (qpy_data.version,),
         )?),
         CircuitInstructionType::ControlledGate => {
             // For ControlledGate, we have to access and store the private `_definition` rather than
