@@ -15,7 +15,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum PauliEvolutionError {
     #[error("operator not set")]
-    Empty,
+    MissingOperator,
     #[error("time is python object")]
     PythonTime,
 }
@@ -140,6 +140,10 @@ fn extract_time(param: &Param) -> Option<f64> {
     }
 }
 
+fn expand_operation(operation: &SparseObservable) -> Array2<Complex64> {
+    todo!()
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct PauliEvolutionBuilder {
     operator: Option<SparseObservable>,
@@ -170,7 +174,7 @@ impl PauliEvolutionBuilder {
     pub fn build(self) -> Result<PauliEvolution, PauliEvolutionError> {
         const DEFAULT_TIME: f64 = 1.0;
 
-        let operator = self.operator.ok_or(PauliEvolutionError::Empty)?;
+        let operator = self.operator.ok_or(PauliEvolutionError::MissingOperator)?;
 
         if matches!(self.time, Some(Param::Obj(_))) {
             return Err(PauliEvolutionError::PythonTime);
