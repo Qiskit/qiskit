@@ -40,6 +40,3 @@ updates:
       # This semi-reliably requires us to make manual changes to the wheel-build rules, so it's more
       # convenient to do it all ourselves.
       - { dependency-name: "pypa/cibuildwheel", versions: [">3.0.1"] }
-      # The version of this is used as a cutesy way to select the Rust version instead of doing
-      # things with an Actions input.
-      - { dependency-name: "dtolnay/rust-toolchain", versions: [">1.7.0"] }
