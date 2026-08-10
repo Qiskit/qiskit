@@ -1,15 +1,12 @@
-use std::fmt::Display;
+use std::sync::Arc;
 
 use qiskit_circuit::{
-    operations::{CustomOperation, Operation},
+    operations::{CustomOperation, Operation, Param},
+    packed_instruction::PackedOperation,
     parameter::parameter_expression::ParameterExpression,
 };
 use qiskit_quantum_info::sparse_observable::SparseObservable;
-use thiserror::Error;
-
-#[derive(Error, Debug)]
-#[error("invalid time")]
-pub struct PauliEvolutionError;
+use smallvec::SmallVec;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PauliEvolution {
@@ -40,10 +37,77 @@ impl PauliEvolution {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum Time {
-    Number(f64),
-    Expression(Box<ParameterExpression>),
+impl Operation for PauliEvolution {
+    fn name(&self) -> &'static str {
+        "PauliEvolution"
+    }
+
+    fn num_qubits(&self) -> u32 {
+        self.operator.num_qubits()
+    }
+
+    fn num_clbits(&self) -> u32 {
+        0
+    }
+
+    fn num_params(&self) -> u32 {
+        1
+    }
+
+    fn directive(&self) -> bool {
+        false
+    }
+}
+
+impl CustomOperation for PauliEvolution {
+    fn label(&self) -> Option<&str> {
+        Some(&self.label)
+    }
+
+    fn is_unitary(&self) -> bool {
+        true
+    }
+
+    fn inverse(&self, params: &[Param]) -> Option<(PackedOperation, SmallVec<[Param; 3]>)> {
+        debug_assert!(params.len() == 1);
+
+        params.first().map(|param| {
+            let mut inverse = self.clone();
+            inverse_time(&mut inverse.time);
+
+            let inverse = PackedOperation::from_custom_operation(Box::new(inverse));
+            let mut param = param.clone();
+            inverse_param(&mut param);
+
+            let mut params: SmallVec<_> = SmallVec::new();
+            params.push(param);
+
+            (inverse, params)
+        })
+    }
+}
+
+fn inverse_time(time: &mut Time) {
+    match time {
+        Time::Float(time) => {
+            *time *= -1.0;
+        }
+        Time::Expression(time) => {
+            *time = Box::new(time.neg());
+        }
+    }
+}
+
+fn inverse_param(param: &mut Param) {
+    match param {
+        Param::Float(time) => {
+            *time *= -1.0;
+        }
+        Param::ParameterExpression(time) => {
+            *time = Arc::new(time.neg());
+        }
+        _ => (),
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -72,16 +136,16 @@ impl PauliEvolutionBuilder {
         self
     }
 
-    pub fn build(self) -> Result<PauliEvolution, PauliEvolutionError> {
+    pub fn build(self) -> PauliEvolution {
         const DEFAULT_TIME: f64 = 1.0;
 
         let label = self.label.unwrap_or_else(|| format_label(&self.operator));
 
-        Ok(PauliEvolution {
+        PauliEvolution {
             operator: self.operator,
-            time: self.time.unwrap_or(Time::Number(DEFAULT_TIME)),
+            time: self.time.unwrap_or(Time::Float(DEFAULT_TIME)),
             label,
-        })
+        }
     }
 }
 
@@ -109,40 +173,10 @@ pub struct PauliEvolutionParts {
     pub label: String,
 }
 
-impl Operation for PauliEvolution {
-    fn name(&self) -> &'static str {
-        "PauliEvolution"
-    }
-
-    fn num_qubits(&self) -> u32 {
-        self.operator.num_qubits()
-    }
-
-    fn num_clbits(&self) -> u32 {
-        0
-    }
-
-    fn num_params(&self) -> u32 {
-        if matches!(self.time, Time::Expression(_)) {
-            1
-        } else {
-            0
-        }
-    }
-
-    fn directive(&self) -> bool {
-        false
-    }
-}
-
-impl CustomOperation for PauliEvolution {
-    fn label(&self) -> Option<&str> {
-        Some(&self.label)
-    }
-
-    fn is_unitary(&self) -> bool {
-        true
-    }
+#[derive(Debug, Clone, PartialEq)]
+pub enum Time {
+    Float(f64),
+    Expression(Box<ParameterExpression>),
 }
 
 #[cfg(test)]
@@ -153,14 +187,10 @@ mod tests {
 
     #[test]
     fn test_label_default() {
-        let evolution = PauliEvolution::builder(mock_xy())
-            .build()
-            .expect("is valid");
+        let evolution = PauliEvolution::builder(mock_xy()).build();
         assert_eq!(evolution.label(), Some("exp(-it (XY))"));
 
-        let evolution = PauliEvolution::builder(mock_xy_zz())
-            .build()
-            .expect("is valid");
+        let evolution = PauliEvolution::builder(mock_xy_zz()).build();
         assert_eq!(evolution.label(), Some("exp(-it (XY + ZZ))"))
     }
 
@@ -168,8 +198,7 @@ mod tests {
     fn test_label_custom() {
         let evolution = PauliEvolution::builder(mock_xy())
             .label("Hello, World!")
-            .build()
-            .expect("is valid");
+            .build();
         assert_eq!(evolution.label(), Some("Hello, World!"));
     }
 
