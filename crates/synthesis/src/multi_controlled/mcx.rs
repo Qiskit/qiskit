@@ -461,7 +461,6 @@ pub fn synth_mcx_noaux_v24(
     }
 }
 
-<<<<<<< HEAD
 /// Synthesize a multi-controlled X gate with :math:`k` controls using a single clean
 /// ancillary qubit, by Barenco et al. [1] and Iten et al. [2].
 ///
@@ -559,10 +558,8 @@ pub fn synth_mcx_1_clean_b95(num_controls: usize) -> Result<CircuitData, Circuit
 ///     and at most :math:`6 * k - 6` CX gates, by Maslov [1].
 ///     For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
 ///     (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
-=======
 /// Synthesize a multi-controlled X gate with :math:`k\ge 3` controls based on the paper
 /// by Maslov[1].
->>>>>>> 0a2b30ea5 (Addressing reviewer's comments for Rust code implementation and docstring formatting)
 ///
 /// The method uses :math:`k - 2` clean ancillary qubits with producing a circuit with
 /// :math:`2 * k - 1` qubits and at most :math:`6 * k - 6` CX gates, by Maslov [1].
