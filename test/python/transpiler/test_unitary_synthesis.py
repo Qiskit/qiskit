@@ -23,7 +23,7 @@ from ddt import ddt, data
 
 from qiskit import transpile, generate_preset_pass_manager
 from qiskit.providers.fake_provider import GenericBackendV2
-from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister, ParameterVector
 from qiskit.circuit.library import quantum_volume
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -469,6 +469,38 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
         self.assertTrue(
             set(out.count_ops()).issubset(set(get_clifford_gate_names()).union({"t", "tdg"}))
         )
+
+    @data(
+        ["u3", "cx"],
+        ["u1", "u2", "u3", "cx"],
+        ["ry", "rz", "rxx"],
+        ["rx", "rz", "rzz"],
+        ["rx", "rz", "iswap"],
+        ["u3", "rx", "rz", "cz", "iswap"],
+        ["rx", "rz", "cz", "rzz"],
+    )
+    def test_no_panic_on_parametervector_phase(self, basis):
+        pv = ParameterVector("v", 2)
+        synth_pass = UnitarySynthesis(basis)
+        for i in range(2, 6):
+            with self.subTest(width=i):
+                qc = QuantumCircuit(i, global_phase=pv[0])
+                qc.rz(pv[1], range(i))
+                for _ in range(50):
+                    for j in range(i):
+                        if i - 1 == j:
+                            continue
+                        qc.h(i - 1)
+                        qc.x(j)
+                        qc.rzx(math.pi / 4, i - 1, j)
+                        qc.x(j)
+                        qc.unitary(random_unitary(4, 4206_2026 + i + j), [i - 1, j])
+                qc.unitary(random_unitary(2**i, 4206_2026), range(i))
+                consolidated = ConsolidateBlocks(basis_gates=basis)(qc)
+                result = synth_pass(consolidated)
+                qc.assign_parameters([math.pi, -math.pi], inplace=True)
+                result.assign_parameters([math.pi, -math.pi], inplace=True)
+                self.assertEqual(Operator(result), Operator(qc))
 
 
 @ddt
@@ -971,6 +1003,24 @@ class TestUnitarySynthesisTarget(QiskitTestCase):
             self.assertTrue(set(out.count_ops()).issubset(basis_gates))
             for basis_gate in basis_gates:
                 self.assertLessEqual(out.count_ops()[basis_gate], gate_counts[basis_gate])
+
+    def test_determinism_parallelism(self):
+        """Test that the decomposition is deterministic in parallel mode with >50 gates to synthesize."""
+        gate_counts = {"rx": 800, "rz": 1100, "iswap": 300}
+        basis_gates = ["rx", "rz", "iswap"]
+        target = Target.from_configuration(basis_gates=basis_gates)
+
+        qc = QuantumCircuit(2)
+        for i in range(100):
+            qc.unitary(random_unitary(4, seed=2606_42), [0, 1])
+
+        for _ in range(10):
+            out = UnitarySynthesis(target=target)(qc)
+            self.assertTrue(Operator(out).equiv(qc))
+            op_counts = out.count_ops()
+            self.assertTrue(set(op_counts).issubset(basis_gates))
+            for basis_gate in basis_gates:
+                self.assertLessEqual(op_counts[basis_gate], gate_counts[basis_gate])
 
     @combine(gate=["unitary", "swap"], natural_direction=[True, False])
     def test_two_qubit_synthesis_to_directional_cx_target(self, gate, natural_direction):

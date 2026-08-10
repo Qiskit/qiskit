@@ -199,6 +199,9 @@ of QPY in qiskit-terra 0.18.0.
    * - Qiskit (qiskit-terra for < 1.0.0) version
      - :func:`.dump` format(s) output versions
      - :func:`.load` maximum supported version (older format versions can always be read)
+   * - 2.5.0
+     - 13, 14, 15, 16, 17
+     - 17
    * - 2.4.1
      - 13, 14, 15, 16, 17
      - 17
@@ -611,7 +614,7 @@ defining the condition and its type.  The high bit of the byte is now a flag, in
 ``INSTRUCTION`` struct.
 
 A complete instruction payload appears in the data stream, including trailing objects and without
-any padding bytes inbetween elements, as:
+any padding bytes between elements, as:
 
 .. code-block:: text
 

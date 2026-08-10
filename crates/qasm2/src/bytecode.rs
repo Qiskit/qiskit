@@ -13,8 +13,8 @@
 use num_bigint::BigUint;
 use pyo3::prelude::*;
 
-use crate::error::QASM2ParseError;
 use crate::expr::Expr;
+use crate::ext::ClassicalCallableExt;
 use crate::lex;
 use crate::parse;
 use crate::parse::{ClbitId, CregId, GateId, ParamId, QubitId};
@@ -103,10 +103,17 @@ pub struct ExprBinary {
 #[pyclass(module = "qiskit._accelerate.qasm2", frozen, skip_from_py_object)]
 #[derive(Clone)]
 pub struct ExprCustom {
-    #[pyo3(get)]
-    pub callable: Py<PyAny>,
+    pub callable: ClassicalCallableExt,
     #[pyo3(get)]
     pub arguments: Vec<Py<PyAny>>,
+}
+
+#[pymethods]
+impl ExprCustom {
+    /// Invoke the custom callable with pre-evaluated float arguments.
+    fn call(&self, args: Vec<f64>) -> PyResult<f64> {
+        Ok(self.callable.call(&args)?)
+    }
 }
 
 /// Discriminator for the different types of unary operator.  We could have a separate class for
@@ -341,8 +348,7 @@ impl BytecodeIterator {
                 custom_instructions,
                 custom_classical,
                 strict,
-            )
-            .map_err(QASM2ParseError::new_err)?,
+            )?,
             buffer: vec![],
             buffer_used: 0,
         })

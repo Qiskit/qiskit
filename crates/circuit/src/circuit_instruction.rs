@@ -1003,7 +1003,7 @@ pub fn extract_params<T: CircuitBlock>(
             }
         }
         OperationRef::Unitary(_) | OperationRef::PauliProductMeasurement(_) => None,
-        OperationRef::PyCustom(_) => {
+        OperationRef::PyCustom(_) | OperationRef::CustomOperation(_) => {
             let params: SmallVec<[Param; 3]> = params.extract()?;
             (!params.is_empty()).then(|| Parameters::Params(params))
         }

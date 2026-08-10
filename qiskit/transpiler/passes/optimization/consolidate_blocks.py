@@ -44,8 +44,8 @@ if typing.TYPE_CHECKING:
     from qiskit.circuit.gate import Gate
 
 KAK_GATE_NAMES = {
-    "cx": CXGate(),
     "cz": CZGate(),
+    "cx": CXGate(),
     "iswap": iSwapGate(),
     "ecr": ECRGate(),
 }
@@ -119,6 +119,7 @@ class ConsolidateBlocks(TransformationPass):
         super().__init__()
         self.basis_gates = None
         self.basis_gate_name = None
+        self._approximation_degree = approximation_degree
         # Bypass target if it doesn't contain any basis gates (i.e. it's a _FakeTarget), as this
         # not part of the official target model.
         self.target = target if target is not None and len(target.operation_names) > 0 else None
@@ -129,19 +130,21 @@ class ConsolidateBlocks(TransformationPass):
             self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
             self.basis_gate_name = kak_basis_gate.name
         elif basis_gates is not None:
-            kak_gates = KAK_GATE_NAMES.keys() & (basis_gates or [])
-            kak_param_gates = KAK_GATE_PARAM_NAMES.keys() & (basis_gates or [])
-            if kak_param_gates:
+            kak_gate = next((gate for gate in KAK_GATE_NAMES if gate in basis_gates), None)
+            kak_param_gate = next(
+                (gate for gate in KAK_GATE_PARAM_NAMES if gate in basis_gates), None
+            )
+            if kak_param_gate is not None:
                 self.decomposer = TwoQubitControlledUDecomposer(
-                    KAK_GATE_PARAM_NAMES[next(iter(kak_param_gates))]
+                    KAK_GATE_PARAM_NAMES[kak_param_gate]
                 )
-                self.basis_gate_name = next(iter(kak_param_gates))
-            elif kak_gates:
+                self.basis_gate_name = kak_param_gate
+            elif kak_gate is not None:
                 self.decomposer = TwoQubitBasisDecomposer(
-                    KAK_GATE_NAMES[next(iter(kak_gates))],
+                    KAK_GATE_NAMES[kak_gate],
                     basis_fidelity=approximation_degree or 1.0,
                 )
-                self.basis_gate_name = next(iter(kak_gates))
+                self.basis_gate_name = kak_gate
             else:
                 self.decomposer = None
                 self.basis_gate_name = "cx"
@@ -185,6 +188,7 @@ class ConsolidateBlocks(TransformationPass):
             blocks=blocks,
             runs=runs,
             qubit_map=qubit_map,
+            approximation_degree=self._approximation_degree,
         )
         dag = self._handle_control_flow_ops(dag, qubit_map)
 

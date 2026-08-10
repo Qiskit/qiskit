@@ -9,156 +9,154 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
+
 use crate::bytes::Bytes;
 use crate::error::QpyError;
-use hashbrown::HashMap;
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyIterator, PyNotImplemented};
-/// The purpose of AnnotationHandler is to keep track of all the annotation serializers/deserializers at once.
-/// Each namespace has one potential serializer/deserializer corresponding to it, given in the factories list.
-/// When serializing the first time a namespace is encountered, the serializer is generated from the factory,
-/// but it remains inside `potential_serializers` as long as it did not manage to serialize any annotation.
-/// The way to determine whether a serialization attempt succeeded is to check whether the result of `dump_annotation`
-/// was `NotImplemented`.
+use pyo3::types::{PyAny, PyDict};
 
+/// Handles QPY annotations at the boundary appropriate to the caller.
+///
+/// Python QPY entry points delegate annotation handling to the existing Python state objects.
+/// Native callers do not initialize any Python annotation machinery and fail only if the payload
+/// actually requires annotation handling.
 #[derive(Debug)]
-pub struct AnnotationHandler<'a> {
-    pub annotation_factories: &'a Bound<'a, PyDict>,
-    factories: HashMap<String, Py<PyAny>>,
-    pub serializers: HashMap<String, (usize, Py<PyAny>)>,
-    potential_serializers: HashMap<String, Py<PyAny>>,
-    pub deserializers: Vec<Py<PyAny>>,
+pub enum AnnotationHandler {
+    Python {
+        factories: Py<PyDict>,
+        serialization_state: Py<PyAny>,
+        deserialization_state: Py<PyAny>,
+    },
+    Native,
 }
 
-impl<'a> AnnotationHandler<'a> {
-    pub fn new(annotation_factories: &'a Bound<'a, PyDict>) -> Self {
-        let mut factories = HashMap::with_capacity(annotation_factories.len());
-        for (key, value) in annotation_factories.iter() {
-            if let Ok(key_string) = key.extract() {
-                // we ignore non-string keys since they will not be invoked during serialization
-                // where we choose serializer according to the namespace string
-                factories.insert(key_string, value.clone().unbind());
-            }
-        }
-
-        let serializers = HashMap::new();
-        let potential_serializers = HashMap::new();
-        // deserializers are created on demand based on the QPY annotation headers
-        let deserializers = Vec::new();
-        AnnotationHandler {
-            annotation_factories,
-            factories,
-            serializers,
-            potential_serializers,
-            deserializers,
-        }
-    }
-    pub fn serialize(&mut self, annotation: &Py<PyAny>) -> Result<(u32, Bytes), QpyError> {
+impl AnnotationHandler {
+    pub fn python(factories: &Py<PyDict>) -> Result<Self, QpyError> {
         Python::attach(|py| {
-            let annotation_namespace: String = annotation.getattr(py, "namespace")?.extract(py)?;
-            let annotation_module = py.import("qiskit.circuit.annotation")?;
-            let namespace_iter_func = annotation_module.getattr("iter_namespaces")?;
-            let namespace_iter =
-                PyIterator::from_object(&namespace_iter_func.call1((&annotation_namespace,))?)?;
-            for namespace_res in namespace_iter {
-                let namespace = namespace_res?;
-                let namespace_string: String = namespace.clone().extract()?;
-                // first check for an active serializer
-                if let Some((index, serializer)) = self.serializers.get(&namespace_string) {
-                    let result = serializer.call_method1(
-                        py,
-                        "dump_annotation",
-                        (namespace.clone(), annotation),
-                    )?;
-                    if !result.is(PyNotImplemented::get(py)) {
-                        let result_bytes: Bytes = result.extract(py)?;
-                        return Ok((*index as u32, result_bytes));
-                    }
-                } else if let Some(serializer) = self.potential_serializers.get(&namespace_string) {
-                    let result = serializer.call_method1(
-                        py,
-                        "dump_annotation",
-                        (namespace.clone(), annotation),
-                    )?;
-                    if !result.is(PyNotImplemented::get(py)) {
-                        let index = self.serializers.len();
-                        let result_bytes: Bytes = result.extract(py)?;
-                        self.serializers
-                            .insert(namespace_string.clone(), (index, serializer.clone()));
-                        return Ok((index as u32, result_bytes));
-                    }
-                }
-                // no serializer, let's try to create one from the corresponding factory
-                else if let Some(factory) = self.factories.get(&namespace_string) {
-                    let serializer = factory.call0(py)?;
-                    let result = serializer.call_method1(
-                        py,
-                        "dump_annotation",
-                        (namespace.clone(), annotation),
-                    )?;
-                    if !result.is(PyNotImplemented::get(py)) {
-                        let index = self.serializers.len();
-                        let result_bytes: Bytes = result.extract(py)?;
-                        self.serializers
-                            .insert(namespace_string.clone(), (index, serializer));
-                        return Ok((index as u32, result_bytes));
-                    } else {
-                        // This time the serializer failed, but we might want to try it again without
-                        // having to reconstruct it from the factory
-                        self.potential_serializers
-                            .insert(namespace_string.clone(), serializer);
-                    }
-                }
-            }
-            Err(QpyError::AnnotationError(format!(
-                "No configured annotation serializer could handle {}",
-                annotation.bind(py).repr()?,
-            )))
+            let module = py.import("qiskit.qpy.binary_io.circuits")?;
+            let serialization_state = module
+                .getattr("_AnnotationSerializationState")?
+                .call1((factories.bind(py),))?
+                .unbind();
+            let deserialization_state = module
+                .getattr("_AnnotationDeserializationState")?
+                .call1((factories.bind(py),))?
+                .unbind();
+            Ok(Self::Python {
+                factories: factories.clone_ref(py),
+                serialization_state,
+                deserialization_state,
+            })
         })
     }
 
+    // we will use this as part of the python-independance path
+    #[allow(dead_code)]
+    pub fn native() -> Self {
+        Self::Native
+    }
+
+    /// Create independent annotation state for a nested circuit while preserving the caller mode.
+    pub fn child(&self) -> Result<Self, QpyError> {
+        match self {
+            Self::Python { factories, .. } => Self::python(factories),
+            Self::Native => Ok(Self::Native),
+        }
+    }
+
+    pub fn serialize(&self, annotation: &Py<PyAny>) -> Result<(u32, Bytes), QpyError> {
+        match self {
+            Self::Python {
+                serialization_state,
+                ..
+            } => Python::attach(|py| {
+                Ok(serialization_state
+                    .call_method1(py, "serialize", (annotation,))?
+                    .extract(py)?)
+            }),
+            Self::Native => Err(Self::native_error("serialize")),
+        }
+    }
+
     pub fn load(&self, index: u32, payload: Bytes) -> Result<Py<PyAny>, QpyError> {
-        if let Some(deserializer) = self.deserializers.get(index as usize) {
-            Python::attach(|py| -> Result<Py<PyAny>, QpyError> {
-                Ok(deserializer.call_method1(py, "load_annotation", (payload,))?)
-            })
-        } else {
-            Err(QpyError::ConversionError(format!(
-                "Annotation deserializer index {:?} out of range (0...{:?}), is too large and would overflow",
-                index,
-                self.deserializers.len()
-            )))
+        match self {
+            Self::Python {
+                deserialization_state,
+                ..
+            } => Python::attach(|py| {
+                Ok(deserialization_state.call_method1(py, "load", (index, payload))?)
+            }),
+            Self::Native => Err(Self::native_error("deserialize")),
         }
     }
 
     pub fn dump_serializers(&self) -> Result<Vec<(String, Bytes)>, QpyError> {
-        // we need to be a little careful to keep the result sorted by index order
-        let mut result: Vec<Option<(String, Bytes)>> = vec![None; self.serializers.len()];
-        Python::attach(|py| -> Result<(), QpyError> {
-            for (namespace, (index, serializer)) in &self.serializers {
-                let state: Bytes = serializer.call_method0(py, "dump_state")?.extract(py)?;
-                result[*index] = Some((namespace.clone(), state));
-            }
-            Ok(())
-        })?;
-        Ok(result.into_iter().flatten().collect())
+        match self {
+            Self::Python {
+                serialization_state,
+                ..
+            } => Python::attach(|py| {
+                Ok(serialization_state
+                    .call_method0(py, "dump_states")?
+                    .extract(py)?)
+            }),
+            Self::Native => Ok(Vec::new()),
+        }
     }
 
-    pub fn load_deserializers(&mut self, data: Vec<(String, Bytes)>) -> Result<(), QpyError> {
-        Python::attach(|py| -> Result<(), QpyError> {
-            for (namespace, state) in data {
-                if let Some(factory) = self.factories.get(&namespace) {
-                    let serializer = factory.call0(py)?;
-                    serializer.call_method1(
-                        py,
-                        "load_state",
-                        (namespace.clone(), state.clone()),
-                    )?;
-                    self.deserializers.push(serializer);
-                };
-            }
-            Ok(())
-        })?;
-        Ok(())
+    pub fn load_deserializers(&self, data: Vec<(String, Bytes)>) -> Result<(), QpyError> {
+        if data.is_empty() {
+            return Ok(());
+        }
+        match self {
+            Self::Python {
+                deserialization_state,
+                ..
+            } => Python::attach(|py| {
+                for (namespace, state) in data {
+                    deserialization_state.call_method1(py, "initialize", (namespace, state))?;
+                }
+                Ok(())
+            }),
+            Self::Native => Err(Self::native_error("deserialize")),
+        }
+    }
+
+    fn native_error(action: &str) -> QpyError {
+        QpyError::AnnotationError(format!(
+            "native QPY cannot {action} circuits containing annotations"
+        ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn native_handler_is_inert_without_annotations() {
+        assert!(
+            AnnotationHandler::native()
+                .dump_serializers()
+                .is_ok_and(|states| states.is_empty())
+        );
+        assert!(
+            AnnotationHandler::native()
+                .load_deserializers(Vec::new())
+                .is_ok()
+        );
+    }
+
+    #[test]
+    fn native_handler_rejects_annotations() {
+        let handler = AnnotationHandler::native();
+        assert!(matches!(
+            handler.load(0, Bytes::new()),
+            Err(QpyError::AnnotationError(_))
+        ));
+        assert!(matches!(
+            handler.load_deserializers(vec![("namespace".to_owned(), Bytes::new())]),
+            Err(QpyError::AnnotationError(_))
+        ));
     }
 }
