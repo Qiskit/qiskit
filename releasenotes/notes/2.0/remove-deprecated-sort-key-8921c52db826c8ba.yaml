@@ -1,0 +1,15 @@
+---
+upgrade_transpiler:
+  - |
+    Removed the deprecated ``DAGNode.sort_key`` attribute. This attribute was deprecated
+    in the Qiskit 1.4.0 release. As the lexicographical topological sorting is done internally
+    and rust and the sort key attribute was unused this was removed to remove the overhead
+    from DAG node creation. If you were relying on the sort key you can reproduce it from
+    a given node using something like::
+
+        def get_sort_key(node: DAGNode):
+            if isinstance(node, (DAGInNode, DAGOutNode)):
+                return str(node.wire)
+            return ",".join(
+                f"{dag.find_bit(q).index:04d}" for q in itertools.chain(node.qargs, node.cargs)
+            )

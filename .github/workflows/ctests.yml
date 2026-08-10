@@ -1,0 +1,34 @@
+---
+name: C API Tests
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: Python version to test.
+        type: string
+        required: true
+      runner: 
+        description: Runner image to use.
+        type: string
+        required: true
+      name:
+        description: Name to give the job.
+        type: string
+        required: false
+      cmake_flags:
+        description: Additional CMake flags to set.
+        type: string
+        required: false
+jobs:
+  tests:
+    name: ${{ inputs.name || inputs.runner }}
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ inputs.python-version }}
+      - name: Run tests
+        run: make ctest
+        env:
+          CMAKE_FLAGS: ${{ inputs.cmake_flags }}

@@ -18,7 +18,7 @@ upgrade:
     (where ``circuit.qubits[0]`` is mapped to physical qubit 0,
     ``circuit.qubits[1]`` is mapped to physical qubit 1, etc) assuming the
     trivial layout is perfect. If your use case was dependent on the
-    trivial layout you can explictly request it when transpiling by specifying
+    trivial layout you can explicitly request it when transpiling by specifying
     ``layout_method="trivial"`` when calling :func:`~qiskit.compiler.transpile`.
   - |
     The preset pass manager for optimization level 1 (when calling

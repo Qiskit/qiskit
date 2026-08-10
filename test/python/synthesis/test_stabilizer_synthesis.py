@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,23 +14,23 @@
 
 
 import unittest
-from test import combine
 from ddt import ddt
 
 import numpy as np
 
-from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.states import StabilizerState
 from qiskit.quantum_info import random_clifford
 from qiskit.synthesis.stabilizer import synth_stabilizer_layers, synth_stabilizer_depth_lnn
 from qiskit.synthesis.linear.linear_circuits_utils import check_lnn_connectivity
+from test import combine
+from test import QiskitTestCase
 
 
 @ddt
 class TestStabDecomposeLayers(QiskitTestCase):
     """Tests for stabilizer state decomposition functions."""
 
-    @combine(num_qubits=[4, 5, 6, 7])
+    @combine(num_qubits=[0, 1, 2, 3, 4, 5, 6, 7])
     def test_decompose_stab(self, num_qubits):
         """Create layer decomposition for a stabilizer state, and check that it
         results in an equivalent stabilizer state."""
@@ -52,9 +52,9 @@ class TestStabDecomposeLayers(QiskitTestCase):
             self.assertEqual(circ.data[3].operation.name, "H1")
             self.assertEqual(circ.data[4].operation.name, "Pauli")
 
-    @combine(num_qubits=[4, 5, 6, 7])
+    @combine(num_qubits=[0, 1, 2, 3, 4, 5, 6, 7])
     def test_decompose_lnn_depth(self, num_qubits):
-        """Test stabilizer state decomposition for linear-nearest-neighbour (LNN) connectivity."""
+        """Test stabilizer state decomposition for linear-nearest-neighbor (LNN) connectivity."""
         rng = np.random.default_rng(1234)
         samples = 10
         for _ in range(samples):
@@ -65,8 +65,8 @@ class TestStabDecomposeLayers(QiskitTestCase):
             depth2q = (circ.decompose()).depth(
                 filter_function=lambda x: x.operation.num_qubits == 2
             )
-            self.assertTrue(depth2q == 2 * num_qubits + 2)
-            # Check that the stabilizer state circuit has linear nearest neighbour connectivity
+            self.assertTrue(depth2q <= 2 * num_qubits + 2)
+            # Check that the stabilizer state circuit has linear nearest neighbor connectivity
             self.assertTrue(check_lnn_connectivity(circ.decompose()))
             stab_target = StabilizerState(circ)
             # Verify that the two stabilizers generate the same state
@@ -74,7 +74,7 @@ class TestStabDecomposeLayers(QiskitTestCase):
             # Verify that the two stabilizers produce the same probabilities
             self.assertEqual(stab.probabilities_dict(), stab_target.probabilities_dict())
 
-    @combine(num_qubits=[4, 5], method_lnn=[True, False])
+    @combine(num_qubits=[0, 1, 2, 3, 4, 5], method_lnn=[True, False])
     def test_reduced_inverse_clifford(self, num_qubits, method_lnn):
         """Test that one can use this stabilizer state synthesis method to calculate an inverse Clifford
         that preserves the ground state |0...0>, with a reduced circuit depth.

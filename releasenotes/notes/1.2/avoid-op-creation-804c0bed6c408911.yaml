@@ -1,0 +1,17 @@
+---
+features_circuits:
+  - |
+    :class:`.CircuitInstruction` and :class:`.DAGOpNode` each have new methods to query various
+    properties of their internal :class:`.Operation`, without necessarily needing to access it.
+    These methods are:
+
+    * :meth:`.CircuitInstruction.is_standard_gate` and :meth:`.DAGOpNode.is_standard_gate`,
+    * :meth:`.CircuitInstruction.is_controlled_gate` and :meth:`.DAGOpNode.is_controlled_gate`,
+    * :meth:`.CircuitInstruction.is_directive` and :meth:`.DAGOpNode.is_directive`,
+    * :meth:`.CircuitInstruction.is_control_flow` and :meth:`.DAGOpNode.is_control_flow`, and
+    * :meth:`.CircuitInstruction.is_parameterized` and :meth:`.DAGOpNode.is_parameterized`.
+
+    If applicable, using any of these methods is significantly faster than querying
+    :attr:`.CircuitInstruction.operation` or :attr:`.DAGOpNode.op` directly, especially if the
+    instruction or node represents a Qiskit standard gate.  This is because the standard gates are
+    stored natively in Rust, and their Python representation is only created when requested.

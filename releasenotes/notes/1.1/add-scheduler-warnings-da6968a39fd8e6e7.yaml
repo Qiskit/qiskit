@@ -1,0 +1,11 @@
+fixes:
+  - |
+    Fixed an issue where the :class:`.ConstrainedReschedule` transpiler pass would previously error
+    if the circuit contained a :class:`~.circuit.Reset` instruction. This has been corrected so that the
+    pass no longer errors, however an actual hardware may behave differently from 
+    what Qiskit scheduler assumes especially for 
+    mid-circuit measurements and resets.
+    Qiskit scheduler raises ``RuntimeWarning`` if
+    it encounters circuit containing either.
+    Fixed `#10354 <https://github.com/Qiskit/qiskit/issues/10354>`__
+

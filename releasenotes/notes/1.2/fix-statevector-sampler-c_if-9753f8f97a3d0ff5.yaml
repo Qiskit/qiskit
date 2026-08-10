@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug of :class:`.StatevectorSampler` that ignored gates with ``c_if``.
+    It will raise an error because :class:`.Statevector` cannot handle ``c_if``.

@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The :func:`.transpile` function has been upgraded to internally convert 
+    `backend` inputs of type :class:`.BackendV1` to :class:`.BackendV2`, 
+    which allows the transpilation pipeline to now access the backend 
+    constraints through a :class:`.Target`. This change does not require any 
+    user action.

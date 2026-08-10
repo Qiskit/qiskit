@@ -1,0 +1,54 @@
+---
+upgrade_providers:
+  - |
+    The deprecated :mod:`qiskit.providers.fake_provider` module has been migrated to
+    the ``qiskit-ibm-runtime`` Python package. For this reason, the following elements in
+    the :mod:`qiskit.providers.fake_provider` have been removed following their deprecation
+    in Qiskit 0.46:
+
+      * ``qiskit.providers.fake_provider.FakeProvider``
+      * ``qiskit.providers.fake_provider.FakeProviderForBackendV2``
+      * ``qiskit.providers.fake_provider.FakeProviderFactory``
+      * ``qiskit.providers.fake_provider.fake_backends.FakeBackendV2``
+      * any fake backend contained in ``qiskit.providers.fake_provider.backends`` (accessible through the provider)
+      * ``qiskit.providers.fake_provider.FakeQasmSimulator``
+      * ``qiskit.providers.fake_provider.FakeJob``
+      * ``qiskit.providers.fake_provider.FakeQobj``
+
+    To use the new fake provider module, you can run ``pip install qiskit-ibm-runtime``
+    and replace the qiskit import path (``qiskit.providers.fake_provider``) with
+    the new import path (``qiskit_ibm_runtime.fake_provider``).
+    Migration example::
+
+      # Legacy path
+      from qiskit.providers.fake_provider import FakeProvider, FakeSherbrooke
+      backend1 = FakeProvider().get_backend("fake_ourense")
+      backend2 = FakeSherbrooke()
+
+      # New path
+      # run "pip install qiskit-ibm-runtime"
+      from qiskit_ibm_runtime.fake_provider import FakeProvider, FakeSherbrooke
+      backend1 = FakeProvider().get_backend("fake_ourense")
+      backend2 = FakeSherbrooke()
+
+    Additionally, the following fake backends designed for special testing purposes have
+    been superseded by the new :class:`.GenericBackendV2` class, and are also removed
+    following their deprecation in Qiskit 0.46:
+
+      * ``qiskit.providers.fake_provider.fake_backend_v2.FakeBackendV2``
+      * ```qiskit.providers.fake_provider.fake_backend_v2.FakeBackendV2LegacyQubitProps``
+      * ``qiskit.providers.fake_provider.fake_backend_v2.FakeBackend5QV2``
+      * ``qiskit.providers.fake_provider.fake_backend_v2.FakeBackendSimple``
+
+    Migration example to the new :class:`.GenericBackendV2` class::
+
+      # Legacy path
+      from qiskit.providers.fake_provider import FakeBackend5QV2
+      backend = FakeBackend5QV2()
+
+      # New path
+      from qiskit.providers.fake_provider import GenericBackendV2
+      backend = GenericBackendV2(num_qubits=5)
+      # note that this class will generate 5q backend with generic
+      # properties that serves the same purpose as FakeBackend5QV2
+      # but will generate different results

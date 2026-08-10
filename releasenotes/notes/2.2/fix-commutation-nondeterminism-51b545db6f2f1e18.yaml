@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed a non-determinism in :class:`.CommutativeCancellation`.  This did not affect the order
+    returned by :meth:`.DAGCircuit.topological_nodes` or :meth:`~.DAGCircuit.topological_op_nodes`,
+    which typically should be used when node-order determinism is important, due to their built-in
+    canonical sorting function.  However, if inspecting the nodes by arbitrary order
+    (:meth:`.DAGCircuit.op_nodes`) or the edge structure (:meth:`.DAGCircuit.edges`), the iteration
+    order would be non-deterministic after a call to :class:`.CommutativeCancellation`.

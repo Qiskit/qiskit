@@ -1,0 +1,25 @@
+---
+features_circuits:
+  - |
+    Added the ``insert_barriers`` keyword argument to the
+    :meth:`~.QuantumCircuit.repeat` method. Setting it to ``True`` will insert
+    barriers between circuit repetitions.
+features_synthesis:
+  - |
+    Added the ``wrap`` keyword argument to the :class:`.ProductFormula` classes
+    which (when enabled) wraps individual Pauli evolution terms. This can be
+    useful when visualizing circuits.
+upgrade_synthesis:
+  - |
+    The ``atomic_evolution`` argument to :class:`.ProductFormula` (and its
+    subclasses) has a new function signature. Rather than taking some Pauli
+    operator and time coefficient and returning the evolution circuit, the new
+    function takes in an existing circuit and should append the evolution of the
+    provided Pauli and given time to this circuit. This new implementation
+    benefits from significantly better performance.
+  - |
+    :class:`.LieTrotter` and :class:`.SuzukiTrotter` no longer wrap the
+    individually evolved Pauli terms into gate definitions. If you rely on a
+    certain decomposition level of your circuit, you have to remove one level of
+    :meth:`~.QuantumCircuit.decompose` or add the ``wrap=True`` keyword argument
+    to your synthesis object.

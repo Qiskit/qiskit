@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a performance regression when incrementally building :class:`.ParameterExpression`
+    from combining a large number of sub-expressions.
+    Fixed `#14653 <https://github.com/Qiskit/qiskit/issues/14653>`__

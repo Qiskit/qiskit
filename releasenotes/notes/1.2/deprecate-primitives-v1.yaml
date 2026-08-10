@@ -1,0 +1,32 @@
+---
+deprecations_primitives:
+  - |
+    Primitive V1 implementations and V1-exclusive non-versioned type aliases are now 
+    deprecated in favor of their V2 counterparts. The deprecation is extended to the 
+    following classes implementing V1 interfaces:
+
+    * :class:`.Estimator`, in favor of the V2 equivalent, :class:`.StatevectorEstimator`
+    * :class:`.Sampler`, in favor of the V2 equivalent, :class:`.StatevectorSampler`
+    * :class:`.BackendEstimator`, in favor of the V2 equivalent, :class:`.BackendEstimatorV2`
+    * :class:`.BackendSampler`, in favor of the V2 equivalent, :class:`.BackendSamplerV2`
+
+    As well as the following non-versioned type aliases:
+    
+    * :class:`.BaseEstimator`, alias for :class:`.BaseEstimatorV1`
+    * :class:`.BaseSampler`, alias for :class:`.BaseSamplerV1`
+
+    This deprecation does NOT affect the explicitly-versioned :class:`BaseEstimatorV1` 
+    and :class:`BaseSamplerV1` abstract
+    interface definitions or related result and job classes.
+
+    In addition, the following utility functions are deprecated:
+
+    * :func:`.init_circuit`, to initialize a circuit from a :class:`.Statevector`,
+      use :meth:`.QuantumCircuit.initialize` instead,
+    * :func:`.init_observable`, use the constructor of :class:`.SparsePauliOp` instead,
+    * :func:`.final_measurement_mapping`, use :meth:`.QuantumCircuit.layout` and
+      :meth:`.SparsePauliOp.apply_layout` to adjust an operator for a layout.
+      Otherwise, use ``mthree.utils.final_measurement_mapping``.
+      See `Mthree Utility functions <https://qiskit-extensions.github.io/mthree/apidocs/utils.html>`__
+      for details.
+

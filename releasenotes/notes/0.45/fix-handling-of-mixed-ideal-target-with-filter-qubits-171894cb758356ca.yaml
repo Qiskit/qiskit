@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed an issue in the :meth:`.Target.build_coupling_map` method when the
+    ``filter_idle_qubits`` argument was set to ``True`` and there was a mix
+    of fixed width ideal and physical instructions in the target. In these cases
+    previously the :meth:`.Target.build_coupling_map` would have raised an
+    exception because it was assuming all instructions in the target were
+    physical and defined over qubits.

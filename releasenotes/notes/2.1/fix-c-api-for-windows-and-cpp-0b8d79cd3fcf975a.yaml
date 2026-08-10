@@ -1,0 +1,50 @@
+---
+features:
+  - |
+    Added C++ support for the C API. The generated header now allows calling
+    objects and functions from C++ directly. For example, a 100-qubit observable
+    with the term `XYZ` on the first 3 qubits can be constructed as
+
+    .. code-block:: c++
+
+      #include <iostream>
+      #include <complex>
+      #include <vector>
+      #include <qiskit.h>
+
+      int main() {
+          uint32_t num_qubits = 100;
+
+          // Use smart pointer with custom deleter to manage QkObs memory
+          QkObs *obs = qk_obs_zero(num_qubits);
+
+          // Construct the observable term
+          std::complex<double> coeff = 2.0;
+          std::vector<QkBitTerm> bit_terms = {QkBitTerm_X, QkBitTerm_Y, QkBitTerm_Z};
+          std::vector<uint32_t> indices = {0, 1, 2};
+
+          QkObsTerm term {
+              .coeff      = coeff,
+              .len        = bit_terms.size(),
+              .bit_terms  = bit_terms.data(),
+              .indices    = indices.data(),
+              .num_qubits = num_qubits
+          };
+
+          qk_obs_add_term(obs.get(), &term);
+
+          // Print observable properties
+          std::cout << "num_qubits: " << qk_obs_num_qubits(obs) << "\n";
+          std::cout << "num_terms: "  << qk_obs_num_terms(obs)  << "\n";
+
+          qk_obs_free(obs);
+          return 0;
+      }
+
+    Note that ``std::complex<double>`` is compatible with ``QkComplex64``.
+fixes:
+  - |
+    Fixed edge-cases in the ``Makefile`` configuration for Windows, where
+    the pre-defined environment variable ``OS`` did not match the output of
+    the ``uname -s`` command.
+

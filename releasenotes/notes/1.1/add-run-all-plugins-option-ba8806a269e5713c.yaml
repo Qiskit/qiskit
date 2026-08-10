@@ -1,0 +1,51 @@
+---
+features:
+  - |
+    The :class:`~.HLSConfig` now has two additional optional arguments. The argument
+    ``plugin_selection`` can be set either to ``"sequential"`` or to ``"all"``.
+    If set to "sequential" (default), for every higher-level-object
+    the :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass will consider the
+    specified methods sequentially, in the order they appear in the list, stopping
+    at the first method that is able to synthesize the object. If set to "all",
+    all the specified methods will be considered, and the best synthesized circuit,
+    according to ``plugin_evaluation_fn`` will be chosen. The argument
+    ``plugin_evaluation_fn`` is an optional callable that evaluates the quality of
+    the synthesized quantum circuit; a smaller value means a better circuit. When
+    set to ``None``, the quality of the circuit is its size (i.e. the number of gates
+    that it contains).
+
+    The following example illustrates the new functionality::
+
+        from qiskit import QuantumCircuit
+        from qiskit.circuit.library import LinearFunction
+        from qiskit.synthesis.linear import random_invertible_binary_matrix
+        from qiskit.transpiler.passes import HighLevelSynthesis, HLSConfig
+
+        # Create a circuit with a linear function
+        mat = random_invertible_binary_matrix(7, seed=37)
+        qc = QuantumCircuit(7)
+        qc.append(LinearFunction(mat), [0, 1, 2, 3, 4, 5, 6])
+
+        # Run different methods with different parameters,
+        # choosing the best result in terms of depth.
+        hls_config = HLSConfig(
+            linear_function=[
+                ("pmh", {}),
+                ("pmh", {"use_inverted": True}),
+                ("pmh", {"use_transposed": True}),
+                ("pmh", {"use_inverted": True, "use_transposed": True}),
+                ("pmh", {"section_size": 1}),
+                ("pmh", {"section_size": 3}),
+                ("kms", {}),
+                ("kms", {"use_inverted": True}),
+            ],
+            plugin_selection="all",
+            plugin_evaluation_fn=lambda circuit: circuit.depth(),
+        )
+
+        # synthesize
+        qct = HighLevelSynthesis(hls_config=hls_config)(qc)
+
+    In the example, we run multiple synthesis methods with different parameters,
+    choosing the best circuit in terms of depth. Note that optimizing
+    ``circuit.size()`` instead would pick a different circuit.

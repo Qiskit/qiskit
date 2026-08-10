@@ -7,8 +7,15 @@ license.workspace = true
 
 [lib]
 name = "qiskit_qasm2"
-crate-type = ["cdylib"]
+doctest = false
+
+[lints]
+workspace = true
 
 [dependencies]
-hashbrown = "0.12.3"
-pyo3.workspace = true
+num-bigint.workspace = true
+hashbrown.workspace = true
+
+[dependencies.pyo3]
+workspace = true
+features = ["py-clone", "num-bigint"]

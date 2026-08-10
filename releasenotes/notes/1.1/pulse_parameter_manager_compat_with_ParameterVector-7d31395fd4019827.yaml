@@ -1,0 +1,7 @@
+---
+features_pulse:
+  - |
+    The ``assign_parameters`` methods of :class:`.Schedule` and :class:`.ScheduleBlock`
+    now support assigning a :class:`.ParameterVector` to a list of parameter values
+    simultaneously in addition to assigning individual :class:`.Parameter` instances to
+    individual values.

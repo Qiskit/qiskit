@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -13,11 +13,10 @@
 """Tests for qiskit.quantum_info.analysis"""
 
 import unittest
-from qiskit.result import Counts, QuasiDistribution, ProbDistribution, sampled_expectation_value
-from qiskit.quantum_info import Pauli, SparsePauliOp
-from qiskit.opflow import PauliOp, PauliSumOp
-from qiskit.test import QiskitTestCase
 
+from qiskit.result import Counts, QuasiDistribution, ProbDistribution, sampled_expectation_value
+from qiskit.quantum_info import Pauli, SparsePauliOp, SparseObservable
+from test import QiskitTestCase
 
 PROBS = {
     "1000": 0.0022,
@@ -75,6 +74,7 @@ class TestSampledExpval(QiskitTestCase):
             }
         )
         oper = "IZZ"
+        oper_non_diag = "IXZ"
 
         exp1 = sampled_expectation_value(counts, oper)
         self.assertAlmostEqual(exp1, ans)
@@ -82,17 +82,17 @@ class TestSampledExpval(QiskitTestCase):
         exp2 = sampled_expectation_value(counts, Pauli(oper))
         self.assertAlmostEqual(exp2, ans)
 
-        with self.assertWarns(DeprecationWarning):
-            exp3 = sampled_expectation_value(counts, PauliOp(Pauli(oper)))
+        spo = SparsePauliOp([oper], coeffs=[1])
+        exp3 = sampled_expectation_value(counts, spo)
         self.assertAlmostEqual(exp3, ans)
 
-        spo = SparsePauliOp([oper], coeffs=[1])
-        with self.assertWarns(DeprecationWarning):
-            exp4 = sampled_expectation_value(counts, PauliSumOp(spo, coeff=2))
-        self.assertAlmostEqual(exp4, 2 * ans)
+        so = SparseObservable.from_label(oper)
+        exp4 = sampled_expectation_value(counts, so)
+        self.assertAlmostEqual(exp4, ans)
 
-        exp5 = sampled_expectation_value(counts, SparsePauliOp.from_list([[oper, 1]]))
-        self.assertAlmostEqual(exp5, ans)
+        so_non_diag = SparseObservable.from_label(oper_non_diag)
+        with self.assertRaisesRegex(ValueError, "Operator string .* contains non-diagonal terms"):
+            _ = sampled_expectation_value(counts, so_non_diag)
 
     def test_asym_ops(self):
         """Test that asymmetric exp values work"""
@@ -109,6 +109,17 @@ class TestSampledExpval(QiskitTestCase):
 
         result2 = sampled_expectation_value(dist, "00ZI")
         self.assertAlmostEqual(result2, 0.4376)
+
+    def test_complex_coefficient(self):
+        """Test that complex coefficients return complex expectation values.
+
+        Regression test for #11393."""
+        dist = {"11111": 1}
+        complex_coeff = SparsePauliOp(["ZZZZZ"], coeffs=[1j])
+        float_coeff = SparsePauliOp(["ZZZZZ"], coeffs=[1])
+
+        self.assertAlmostEqual(-1j, sampled_expectation_value(dist, complex_coeff))
+        self.assertAlmostEqual(-1, sampled_expectation_value(dist, float_coeff))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :func:`.circuit_drawer` function and
+    :meth:`.QuantumCircuit.draw` method when loading a matplotlib style
+    via the user configuration file.

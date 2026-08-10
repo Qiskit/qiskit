@@ -1,0 +1,15 @@
+---
+upgrade_visualization:
+  - |
+    The following classes and methods in :mod:`qiskit.visualization.pulse` have been removed follow
+    their deprecation in Qiskit 0.40.0:
+
+      * ``SchedStyle``
+      * ``PulseStyle``
+      * ``matplotlib.EventsOutputChannels``
+      * ``matplotlib.WaveformDrawer``
+      * ``matplotlib.ScheduleDrawer``
+      * ``interpolation.interp1d``
+      * ``interpolation.step_wise``
+
+    Use the new interface :func:`qiskit.visualization.pulse_drawer` for pulse visualization.

@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -15,7 +15,8 @@ Superoperator representation of a Quantum Channel."""
 
 from __future__ import annotations
 
-import copy
+import copy as _copy
+import math
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -31,8 +32,7 @@ from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.operator import Operator
 
 if TYPE_CHECKING:
-    from qiskit.quantum_info.states.densitymatrix import DensityMatrix
-    from qiskit.quantum_info.states.statevector import Statevector
+    from qiskit import circuit
 
 
 class SuperOp(QuantumChannel):
@@ -60,21 +60,16 @@ class SuperOp(QuantumChannel):
 
     def __init__(
         self,
-        data: QuantumCircuit | Instruction | BaseOperator | np.ndarray,
+        data: QuantumCircuit | circuit.instruction.Instruction | BaseOperator | np.ndarray,
         input_dims: tuple | None = None,
         output_dims: tuple | None = None,
     ):
         """Initialize a quantum channel Superoperator operator.
 
         Args:
-            data (QuantumCircuit or
-                  Instruction or
-                  BaseOperator or
-                  matrix): data to initialize superoperator.
-            input_dims (tuple): the input subsystem dimensions.
-                                [Default: None]
-            output_dims (tuple): the output subsystem dimensions.
-                                 [Default: None]
+            data: data to initialize superoperator.
+            input_dims: the input subsystem dimensions.
+            output_dims: the output subsystem dimensions.
 
         Raises:
             QiskitError: if input data cannot be initialized as a
@@ -94,8 +89,8 @@ class SuperOp(QuantumChannel):
             super_mat = np.asarray(data, dtype=complex)
             # Determine total input and output dimensions
             dout, din = super_mat.shape
-            input_dim = int(np.sqrt(din))
-            output_dim = int(np.sqrt(dout))
+            input_dim = int(math.sqrt(din))
+            output_dim = int(math.sqrt(dout))
             if output_dim**2 != dout or input_dim**2 != din:
                 raise QiskitError("Invalid shape for SuperOp matrix.")
             op_shape = OpShape.auto(
@@ -126,10 +121,9 @@ class SuperOp(QuantumChannel):
         # Initialize QuantumChannel
         super().__init__(super_mat, op_shape=op_shape)
 
-    def __array__(self, dtype=None):
-        if dtype:
-            return np.asarray(self.data, dtype=dtype)
-        return self.data
+    def __array__(self, dtype=None, copy=None):
+        dtype = self.data.dtype if dtype is None else dtype
+        return np.array(self.data, dtype=dtype, copy=copy)
 
     @property
     def _tensor_shape(self):
@@ -148,18 +142,18 @@ class SuperOp(QuantumChannel):
     # ---------------------------------------------------------------------
 
     def conjugate(self):
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         ret._data = np.conj(self._data)
         return ret
 
     def transpose(self):
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         ret._data = np.transpose(self._data)
         ret._op_shape = self._op_shape.transpose()
         return ret
 
     def adjoint(self):
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         ret._data = np.conj(np.transpose(self._data))
         ret._op_shape = self._op_shape.transpose()
         return ret
@@ -176,7 +170,7 @@ class SuperOp(QuantumChannel):
 
     @classmethod
     def _tensor(cls, a, b):
-        ret = copy.copy(a)
+        ret = _copy.copy(a)
         ret._op_shape = a._op_shape.tensor(b._op_shape)
         ret._data = _bipartite_tensor(
             a._data, b.data, shape1=a._bipartite_shape, shape2=b._bipartite_shape
@@ -253,7 +247,7 @@ class SuperOp(QuantumChannel):
                          specified quantum state subsystem dimensions.
         """
         # Prevent cyclic imports by importing DensityMatrix here
-        # pylint: disable=cyclic-import
+
         from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 
         if not isinstance(state, DensityMatrix):
@@ -354,8 +348,8 @@ class SuperOp(QuantumChannel):
                 raise QiskitError(f"Cannot apply Instruction: {obj.name}")
             if not isinstance(obj.definition, QuantumCircuit):
                 raise QiskitError(
-                    "{} instruction definition is {}; "
-                    "expected QuantumCircuit".format(obj.name, type(obj.definition))
+                    f"{obj.name} instruction definition is {type(obj.definition)}; "
+                    "expected QuantumCircuit"
                 )
             qubit_indices = {bit: idx for idx, bit in enumerate(obj.definition.qubits)}
             for instruction in obj.definition.data:

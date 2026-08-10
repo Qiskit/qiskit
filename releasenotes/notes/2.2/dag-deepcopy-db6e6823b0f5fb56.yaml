@@ -1,0 +1,6 @@
+---
+features_transpiler:
+  - |
+    :class:`.DAGCircuit` now has a manual implementation of :meth:`~object.__deepcopy__`.  This is
+    orders of magnitude faster than the previous implicit implementation from the pickle protocol,
+    especially for large circuits, and directly benefits compilation at `optimization_level=3`.

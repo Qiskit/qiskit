@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixed an error when a user tries to load calibration
+    data of a gate from a :class:`.Target` in a particular situation.
+    This occurs when the backend reports only partial calibration data, for
+    example referencing a waveform pulse in a command definition but not
+    including that waveform pulse in the pulse library. In this situation, the
+    Qiskit pulse object could not be built, resulting in a failure to build the pulse
+    schedule for the calibration. Now when calibration data is incomplete
+    the :class:`.Target` treats it as equivalent to no calibration being reported
+    at all and does not raise an exception.

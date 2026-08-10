@@ -1,0 +1,47 @@
+---
+features_c:
+  - |
+    The two forms of "perfect" layout selection via the VF2 subgraph-isomorphism algorithm are now
+    available as standalone transpiler passes in the C API.  These functions are
+
+    * :c:func:`qk_transpiler_pass_standalone_vf2_layout_average`
+    * :c:func:`qk_transpiler_pass_standalone_vf2_layout_exact`
+
+    These differ in how the directionality and gatesets of interactions are handled; ``exact``
+    requires matches to directly support all gates natively, whereas ``average`` expects that further
+    transpiler passes will decompose gates into the supported set of a given qubit or link.
+
+    These functions use an encapsulated version of the VF2 configuration
+    (``QkVF2LayoutConfiguration``) which has setter methods for each of the options.  This includes
+    allowing access to the new two-limit form of the ``call_limit`` argument.
+features_transpiler:
+  - |
+    :class:`.VF2Layout` and :class:`.VF2PostLayout` now track partial candidate-layout scores during
+    subgraph isomorphism matching.  This has no meaningful effect when there is no perfect layout to
+    find, but can drastically reduce the cost of scoring layouts to choose the best candidate in
+    high-symmetry cases.
+  - |
+    The ``call_limit`` argument of :class:`.VF2Layout` and :class:`.VF2PostLayout` can now be a
+    2-tuple, where the first item is used before the first match is found, then the limit swaps to
+    the second after.  This is a more reliable runtime-limiter than the ``max_trials`` argument,
+    now that layouts are scored on the fly with more aggressive pruning.
+upgrade_transpiler:
+  - |
+    While the interface to :class:`.VF2Layout` and :class:`.VF2PostLayout` remain logically the
+    same, the ``max_trials`` argument now has much less effect as a runtime limiter, other than when
+    set to the value ``1``.  This is because, with the new on-the-fly score-and-prune algorithm used
+    internally by the class, "complete" layouts are encountered far more rarely, and the count of
+    "trials" only increments when a new layout is encountered that is better in error rate than a
+    previous one.  You should instead use ``call_limit`` as the deterministic runtime limiter; where
+    ``max_trials`` measures complete layouts encountered, ``call_limit`` measures partial-layout
+    extensions.
+deprecations_c:
+  - |
+    The function :c:func:`qk_transpiler_pass_standalone_vf2_layout` is deprecated, as callers should
+    now use :c:func:`qk_transpiler_pass_standalone_vf2_layout_average`.  The new function name is
+    more descriptive of the scoring heuristic, and the API allows encapsulated access to the whole
+    new configuration object, including the two-limit form of ``call_limit``.
+
+    This deprecation is not entirely necessary for users, but with the C API still explicitly
+    unstable, we are using this as a trial of managing deprecations and compiler-specific warnings
+    in the C API, before we reach stability guarantees.

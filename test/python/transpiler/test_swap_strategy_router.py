@@ -1,10 +1,10 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022, 2023.
+# (C) Copyright IBM 2022, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,23 +14,21 @@
 
 from ddt import ddt, data
 
-from qiskit.circuit import QuantumCircuit, Qubit, QuantumRegister
+from qiskit.circuit import QuantumCircuit, Qubit, QuantumRegister, Parameter, ParameterVector
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler import PassManager, CouplingMap, Layout, TranspilerError
-
-from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.circuit.library import PauliEvolutionGate, CXGate
 from qiskit.circuit.library.n_local import QAOAAnsatz
 from qiskit.converters import circuit_to_dag
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.quantum_info import Operator, Pauli, SparsePauliOp
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import SetLayout
-from qiskit.transpiler.passes import CXCancellation
+from qiskit.transpiler.passes import InverseCancellation
 from qiskit.transpiler.passes import Decompose
-
-from qiskit.test import QiskitTestCase
-
 from qiskit.transpiler.passes.routing.commuting_2q_gate_routing.commuting_2q_block import (
     Commuting2qBlock,
 )
@@ -39,6 +37,7 @@ from qiskit.transpiler.passes.routing.commuting_2q_gate_routing import (
     FindCommutingPauliEvolutions,
     Commuting2qGateRouter,
 )
+from test import QiskitTestCase
 
 
 @ddt
@@ -63,7 +62,8 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         The expected circuit is:
 
-        ..parsed-literal::
+        ..code-block:: text
+
                                                            ┌────────────────┐
             q_0: ───────────────────X──────────────────────┤0               ├
                  ┌────────────────┐ │ ┌────────────────┐   │  exp(-i ZZ)(3) │
@@ -92,6 +92,18 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         self.assertEqual(swapped, expected)
 
+    def test_global_phase_preserved_without_commuting_blocks(self):
+        """Test routing a circuit with no commuting blocks preserves its global phase."""
+        circ = QuantumCircuit(4, global_phase=0.3)
+        circ.h(0)
+        circ.cx(0, 1)
+
+        swap_strat = SwapStrategy.from_line([0, 1, 2, 3])
+        routed = PassManager([Commuting2qGateRouter(swap_strat)]).run(circ)
+
+        self.assertEqual(routed.global_phase, circ.global_phase)
+        self.assertEqual(Operator(routed), Operator(circ))
+
     def test_basic_xx(self):
         """Test to route an XX-based evolution op.
 
@@ -99,7 +111,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         The expected circuit is:
 
-        ..parsed-literal::
+        ..code-block:: text
 
                   ┌────────────────┐
             q_0: ─┤0               ├─X─────────────────────────────────────────
@@ -137,7 +149,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         The expected circuit is:
 
-        ..parsed-literal::
+        ..code-block:: text
 
                  ┌─────────────────┐
             q_0: ┤0                ├─X────────────────────
@@ -176,7 +188,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         The expected circuit is:
 
-        ..parsed-literal::
+        ..code-block:: text
 
                      ┌────────────────┐                                            ░    ┌─┐
                q_0: ─┤0               ├─X──────────────────────────────────────────░────┤M├──────
@@ -259,7 +271,8 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
             mixer.ry(-idx, idx)
 
         op = SparsePauliOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
-        circ = QAOAAnsatz(op, reps=2, mixer_operator=mixer)
+        with self.assertWarns(DeprecationWarning):
+            circ = QAOAAnsatz(op, reps=2, mixer_operator=mixer)
         swapped = self.pm_.run(circ.decompose())
 
         param_dict = {p: idx + 1 for idx, p in enumerate(swapped.parameters)}
@@ -344,7 +357,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         Here, we test that the circuit
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌──────────────────────────┐
             q_0: ┤0                         ├──■──
@@ -357,7 +370,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         becomes
 
-        .. parsed-literal::
+        .. code-block:: text
 
                  ┌─────────────────┐                      ┌───┐
             q_0: ┤0                ├─X────────────────────┤ X ├
@@ -400,7 +413,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         The coupling map in this test corresponds to
 
-        .. parsed-literal::
+        .. code-block:: text
 
             0 -- 1 -- 2
                  |
@@ -527,7 +540,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
                 Commuting2qGateRouter(swap_strat, edge_coloring=edge_coloring),
                 Decompose(),  # double decompose gets to CX
                 Decompose(),
-                CXCancellation(),
+                InverseCancellation([CXGate()]),
             ]
         )
 
@@ -565,9 +578,45 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         self.assertEqual(pm_.run(circ), expected)
 
+    def test_permutation_tracking(self):
+        """Test that circuit layout permutations are properly tracked in the pass property
+        set and returned with the output circuit."""
+
+        # We use the same scenario as the QAOA test above
+        mixer = QuantumCircuit(4)
+        for idx in range(4):
+            mixer.ry(-idx, idx)
+
+        op = SparsePauliOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
+        with self.assertWarns(DeprecationWarning):
+            circ = QAOAAnsatz(op, reps=2, mixer_operator=mixer)
+
+        cmap = CouplingMap(couplinglist=[(0, 1), (1, 2), (2, 3)])
+        swap_strat = SwapStrategy(cmap, swap_layers=[[(0, 1), (2, 3)], [(1, 2)]])
+
+        # test standalone
+        swap_pm = PassManager(
+            [
+                FindCommutingPauliEvolutions(),
+                Commuting2qGateRouter(swap_strat),
+            ]
+        )
+        swapped = swap_pm.run(circ.decompose())
+
+        # test as pre-routing step
+        backend = GenericBackendV2(num_qubits=4, coupling_map=[[0, 1], [0, 2], [0, 3]], seed=42)
+        pm = generate_preset_pass_manager(
+            optimization_level=3, target=backend.target, seed_transpiler=40
+        )
+        pm.pre_routing = swap_pm
+        full = pm.run(circ.decompose())
+
+        self.assertEqual(swapped.layout.routing_permutation(), [3, 1, 2, 0])
+        self.assertEqual(full.layout.routing_permutation(), [0, 1, 2, 3])
+
 
 class TestSwapRouterExceptions(QiskitTestCase):
-    """Test that exceptions are properly raises."""
+    """Test that exceptions are properly raised."""
 
     def setUp(self):
         """Setup useful variables."""
@@ -627,3 +676,74 @@ class TestSwapRouterExceptions(QiskitTestCase):
 
         with self.assertRaises(QiskitError):
             Commuting2qBlock(circuit_to_dag(circ).op_nodes())
+
+    def test_commuting2qblock_preserves_parameters(self):
+        """Test that Commuting2qBlock preserves parameters from parametric gates."""
+
+        c_0 = Parameter("c_0")
+        c_1 = Parameter("c_1")
+        gamma = Parameter("gamma")
+
+        qc = QuantumCircuit(3)
+        qc.rzz(c_0 * gamma, 0, 1)
+        qc.rzz(c_1, 1, 2)
+
+        dag = circuit_to_dag(qc)
+        nodes = list(dag.topological_op_nodes())
+        block = Commuting2qBlock(nodes)
+
+        # Check that both parameters are preserved
+        self.assertEqual(len(block.params), 3)
+        param_names = {p.name for p in block.params}
+        self.assertEqual(param_names, {"c_0", "gamma", "c_1"})
+
+    def test_parameters_when_appending_commuting2qblock_to_a_circuit(self):
+        """Test that a circuit appended with Commuting2qBlock knows about its parameters."""
+
+        theta = ParameterVector("theta", 3)
+        qc = QuantumCircuit(3)
+        qc.rzz(theta[0], 0, 1)
+        qc.rzz(theta[1], 1, 2)
+        qc.rzz(theta[2], 0, 2)
+
+        dag = circuit_to_dag(qc)
+        nodes = list(dag.topological_op_nodes())
+        block = Commuting2qBlock(nodes)
+
+        circuit_with_block = QuantumCircuit(3)
+        self.assertEqual(circuit_with_block.parameters, {})
+        circuit_with_block.append(block, range(3))
+
+        circuit_params = set(circuit_with_block.parameters)
+        expected_params = {theta[0], theta[1], theta[2]}
+        self.assertEqual(circuit_params, expected_params)
+
+        # Assign parameters and verify the circuit has no parameters after assignment
+        param_values = {theta[0]: 0.5, theta[1]: 1.0, theta[2]: 1.5}
+        assigned_circuit = circuit_with_block.assign_parameters(param_values)
+        self.assertEqual(assigned_circuit.parameters, {})
+
+    def test_commuting2qblock_parameter_reuse(self):
+        """Test that reusing the same parameter multiple times within a block works correctly."""
+
+        gamma = Parameter("gamma")
+        c_0 = Parameter("c_0")
+        qc = QuantumCircuit(3)
+        qc.rzz(gamma, 0, 1)
+        qc.rzz(2 * gamma, 1, 2)
+        qc.rzz(gamma + c_0, 0, 2)  # Reuse gamma
+
+        dag = circuit_to_dag(qc)
+        nodes = list(dag.topological_op_nodes())
+        block = Commuting2qBlock(nodes)
+
+        self.assertEqual(len(block.params), 2)
+        self.assertEqual(set(block.params), {c_0, gamma})
+
+        circuit_with_block = QuantumCircuit(3)
+        circuit_with_block.append(block, range(3))
+
+        self.assertEqual(set(circuit_with_block.parameters), {gamma, c_0})
+
+        assigned_circuit = circuit_with_block.assign_parameters({gamma: 0.7})
+        self.assertEqual(len(assigned_circuit.parameters), 1)

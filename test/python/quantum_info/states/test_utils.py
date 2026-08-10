@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -15,9 +15,9 @@
 import unittest
 import numpy as np
 
-from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.states import Statevector, DensityMatrix
 from qiskit.quantum_info.states import partial_trace, shannon_entropy, schmidt_decomposition
+from test import QiskitTestCase
 
 
 class TestStateUtils(QiskitTestCase):
@@ -113,14 +113,14 @@ class TestStateUtils(QiskitTestCase):
 
         # check decomposition elements
         self.assertAlmostEqual(schmidt_comps[0][0], 1 / np.sqrt(3))
-        self.assertEqual(schmidt_comps[0][1], Statevector(np.array([1, 0, 0]), dims=(3)))
-        self.assertEqual(schmidt_comps[0][2], Statevector(np.array([1, 0, 0]), dims=(3)))
+        self.assertEqual(schmidt_comps[0][1], Statevector(np.array([1, 0, 0]), dims=3))
+        self.assertEqual(schmidt_comps[0][2], Statevector(np.array([1, 0, 0]), dims=3))
         self.assertAlmostEqual(schmidt_comps[1][0], 1 / np.sqrt(3))
-        self.assertEqual(schmidt_comps[1][1], Statevector(np.array([0, 1, 0]), dims=(3)))
-        self.assertEqual(schmidt_comps[1][2], Statevector(np.array([0, 1, 0]), dims=(3)))
+        self.assertEqual(schmidt_comps[1][1], Statevector(np.array([0, 1, 0]), dims=3))
+        self.assertEqual(schmidt_comps[1][2], Statevector(np.array([0, 1, 0]), dims=3))
         self.assertAlmostEqual(schmidt_comps[2][0], 1 / np.sqrt(3))
-        self.assertEqual(schmidt_comps[2][1], Statevector(np.array([0, 0, 1]), dims=(3)))
-        self.assertEqual(schmidt_comps[2][2], Statevector(np.array([0, 0, 1]), dims=(3)))
+        self.assertEqual(schmidt_comps[2][1], Statevector(np.array([0, 0, 1]), dims=3))
+        self.assertEqual(schmidt_comps[2][2], Statevector(np.array([0, 0, 1]), dims=3))
 
         # check that state can be properly reconstructed
         state = Statevector(

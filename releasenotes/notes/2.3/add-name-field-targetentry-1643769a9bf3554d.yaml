@@ -1,0 +1,8 @@
+---
+features_c:
+  - |
+    A new function :c:func:`qk_target_entry_set_name` is introduced to set the name of an existing target entry.
+
+upgrade_c:
+  - |
+    The :c:func:`qk_target_entry_new_fixed` functions have a new parameter ``name`` to set the name of the target entry.

@@ -1,0 +1,60 @@
+---
+features:
+  - |
+    Added a new class :class:`~.AnnotatedOperation` that is a subclass of
+    :class:`~.Operation` and represents some "base operation" modified by a
+    list of "modifiers". The base operation is of type :class:`~.Operation`
+    and the currently supported modifiers are of types :class:`~.InverseModifier`,
+    :class:`~.ControlModifier` and :class:`~.PowerModifier`.
+    The modifiers are applied in the order they appear in the list.
+
+    As an example::
+
+        gate = AnnotatedOperation(
+          base_op=SGate(),
+          modifiers=[
+              InverseModifier(),
+              ControlModifier(1),
+              InverseModifier(),
+              PowerModifier(2),
+          ],
+        )
+
+    is logically equivalent to ``gate = SGate().inverse().control(1).inverse().power(2)``,
+    or to::
+
+        gate = AnnotatedOperation(
+          AnnotatedOperation(SGate(), [InverseModifier(), ControlModifier(1)]),
+          [InverseModifier(), PowerModifier(2)],
+        )
+
+    However, this equivalence is only logical, the internal representations are very
+    different.
+
+    For convenience, a single modifier can be also passed directly, thus
+    ``AnnotatedGate(SGate(), [ControlModifier(1)])`` is equivalent to
+    ``AnnotatedGate(SGate(), ControlModifier(1))``.
+
+    A distinguishing feature of an annotated operation is that circuit definition
+    is not constructed when the operation is declared, and instead happens only during
+    transpilation, specifically during the :class:`~.HighLevelSynthesis` transpiler pass.
+
+    An annotated operation can be also viewed as a "higher-level" or a "more abstract"
+    object that can be added onto a quantum circuit. This enables writing transpiler
+    optimization passes that make use of this higher-level representation, for instance
+    removing a gate that is immediately followed by its inverse (note that this reduction
+    might not be possible if both the gate and its inverse are first synthesized into simpler
+    gates).
+
+    In a sense, an annotated operation can be viewed as an extension of
+    :class:`~.ControlledGate`, which also allows adding control to the base operation.
+    In the future we are planning to replace :class:`~.ControlledGate` by
+    :class:`~.AnnotatedOperation`. Similar to controlled gates, the transpiler synthesizes
+    annotated operations before layout/routing takes place.
+
+    As of now, the annotated operations can appear only in the top-level of a quantum
+    circuit, that is they cannot appear inside of the recursively-defined ``definition``
+    circuit. We are planning to remove this limitation later.
+  - |
+    The :class:`.HighLevelSynthesis` is extended to synthesize circuits with objects
+    of type :class:`~.AnnotatedOperation`.

@@ -1,0 +1,20 @@
+---
+deprecations_circuits:
+  - |
+    Since Qiskit 1.0, the methods :meth:`.Gate.control` and :meth:`.QuantumCircuit.control`
+    accept the argument ``annotated`` which can be either ``False``, ``True`` or ``None``.
+    Presently, a controlled gate is represented using a dedicated controlled-gate class
+    when it exists, regardless of the value of ``annotated``, for instance a two-controlled
+    version of an  :class:`.XGate` is a :class:`.CCXGate`. If a dedicated controlled-gate
+    class does not exist, the controlled gate is represented as a :class:`.ControlledGate`
+    when ``annotated=False`` and as an :class:`.AnnotatedOperation` when ``annotated=True``.
+    The default value ``annotated=None`` is treated exactly the same as ``False``. 
+    
+    In Qiskit 3.0, we will no longer allow setting ``annotated=None`` and instead change
+    set the default to ``annotated=True``. This is recommended, as it defers the
+    construction of the controlled circuit from the circuit construction to the transpiler,
+    and enables additional controlled-gate optimizations, typically leading to higher-quality
+    circuits (especially for hierarhical circuits).
+
+    However, you will still be able to explicitly set ``annotated=False`` to preserve the
+    previous behavior.

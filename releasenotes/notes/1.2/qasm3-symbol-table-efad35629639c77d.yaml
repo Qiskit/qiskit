@@ -1,0 +1,18 @@
+---
+features_qasm:
+  - |
+    The internal symbol table of the OpenQASM 3 exporter (:mod:`qiskit.qasm3`) has been rewritten,
+    which should result in cleaner outputs when using Qiskit standard-library gates that are not in
+    the OpenQASM 3 standard-library headers, and more deterministic outputs.  For example, using
+    several :class:`.RZXGate`\ s will now result in only a single parametric definition, and when
+    naming collisions occur, the symbol table will assign a deterministic counter to make names
+    unique, rather than a non-deterministic integer (previously, the object identity was used).
+fixes:
+  - |
+    The OpenQASM 3 exporter (:mod:`qiskit.qasm3`) will now correctly export multiple instances of
+    :class:`.PauliEvolutionGate` from a circuit.  Previously, only a single instance would be exported,
+    and all other instances would silently use the same (incorrect) version.
+  - |
+    The OpenQASM 3 exporter (:mod:`qiskit.qasm3`) will now correctly escape gate names.  Previously,
+    a gate whose name was an invalid OpenQASM 3 identifier would cause invalid OpenQASM 3 to be
+    generated.

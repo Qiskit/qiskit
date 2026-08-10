@@ -2,12 +2,12 @@
 upgrade:
   - |
     An internal filter override that caused all Qiskit deprecation warnings to
-    be displayed has been removed.  This means that the behaviour will now
-    revert to the standard Python behaviour for deprecations; you should only
+    be displayed has been removed.  This means that the behavior will now
+    revert to the standard Python behavior for deprecations; you should only
     see a ``DeprecationWarning`` if it was triggered by code in the main script
     file, interpreter session or Jupyter notebook.  The user will no longer be
     blamed with a warning if internal Qiskit functions call deprecated
-    behaviour.  If you write libraries, you should occasionally run with the
+    behavior.  If you write libraries, you should occasionally run with the
     default warning filters disabled, or have tests which always run with them
     disabled.  See the `Python documentation on warnings`_, and in particular the
     `section on testing for deprecations`_ for more information on how to do this.
@@ -16,7 +16,7 @@ upgrade:
     .. _section on testing for deprecations: https://docs.python.org/3/library/warnings.html#updating-code-for-new-versions-of-dependencies
   - |
     Certain warnings used to be only issued once, even if triggered from
-    multiple places.  This behaviour has been removed, so it is possible that if
+    multiple places.  This behavior has been removed, so it is possible that if
     you call deprecated functions, you may see more warnings than you did
     before.  You should change any deprecated function calls to the suggested
     versions, because the deprecated forms will be removed in future Qiskit

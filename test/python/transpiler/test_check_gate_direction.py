@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -21,7 +21,7 @@ from qiskit.circuit.library import CXGate, CZGate, ECRGate
 from qiskit.transpiler.passes import CheckGateDirection
 from qiskit.transpiler import CouplingMap, Target
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase
 
 
 @ddt.ddt
@@ -72,13 +72,13 @@ class TestCheckGateDirection(QiskitTestCase):
 
     def test_true_direction_in_same_layer(self):
         """Two CXs distance_qubits 1 to each other, in the same layer
-        qr0:--(+)--
+        qr0:---.--
                |
-        qr1:---.---
+        qr1:--(+)---
 
-        qr2:--(+)--
+        qr2:---.---
                |
-        qr3:---.---
+        qr3:--(+)--
 
         CouplingMap map: [0]->[1]->[2]->[3]
         """
@@ -96,9 +96,9 @@ class TestCheckGateDirection(QiskitTestCase):
 
     def test_wrongly_mapped(self):
         """Needs [0]-[1] in a [0]--[2]--[1]
-        qr0:--(+)--
+        qr0:---.---
                |
-        qr1:---.---
+        qr1:--(+)--
 
         CouplingMap map: [0]->[2]->[1]
         """
@@ -115,11 +115,11 @@ class TestCheckGateDirection(QiskitTestCase):
 
     def test_true_direction_undirected(self):
         """Mapped but with wrong direction
-        qr0:--(+)-[H]--.--
+        qr0:---.--[H]-(+)-
                |       |
-        qr1:---.-------|--
+        qr1:--(+)------|--
                        |
-        qr2:----------(+)-
+        qr2:-----------.--
 
         CouplingMap map: [1]<-[0]->[2]
         """
@@ -138,13 +138,13 @@ class TestCheckGateDirection(QiskitTestCase):
 
     def test_false_direction_in_same_layer_undirected(self):
         """Two CXs in the same layer, but one is wrongly directed
-        qr0:--(+)--
+        qr0:---.---
                |
-        qr1:---.---
+        qr1:--(+)--
 
-        qr2:---.---
+        qr2:--(+)--
                |
-        qr3:--(+)--
+        qr3:---.---
 
         CouplingMap map: [0]->[1]->[2]->[3]
         """
@@ -257,7 +257,7 @@ class TestCheckGateDirection(QiskitTestCase):
         """Test recursing into control-flow operations with a coupling map."""
         swapped = Target(num_qubits=5)
         for gate in (CXGate(), CZGate(), ECRGate()):
-            swapped.add_instruction(gate, {qargs: None for qargs in zip(range(4), range(1, 5))})
+            swapped.add_instruction(gate, dict.fromkeys(zip(range(4), range(1, 5))))
 
         matching = Target(num_qubits=5)
         for gate in (CXGate(), CZGate(), ECRGate()):

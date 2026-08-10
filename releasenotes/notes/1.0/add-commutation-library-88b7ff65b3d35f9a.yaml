@@ -1,0 +1,14 @@
+---
+features_circuits:
+  - |
+    Added a commutation library to the :class:`.CommutationChecker`. This library stores all the
+    commutation relations of unparameterizable standard gates into a dictionary that allows
+    for efficient lookup at runtime. This speeds up the execution of the :class:`.CommutationChecker`
+    class and, by extension, the :class:`.CommutationAnalysis` transpiler pass, as instead of
+    computing whether two unparameterizable standard gates commute it just has to look it up
+    from the library.
+
+    Additionally, the :class:`.CommutationChecker` was refactored and now has an upper limit
+    set on the number of cached commutation relations that are not in the commutation library.
+    This addressed: `#8020 <https://github.com/Qiskit/qiskit/issues/8020>`__ and
+    `#7101 <https://github.com/Qiskit/qiskit/issues/7101>`__

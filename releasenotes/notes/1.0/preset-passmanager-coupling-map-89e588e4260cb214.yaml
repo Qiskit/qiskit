@@ -1,0 +1,6 @@
+---
+features_transpiler:
+  - |
+    Enhanced the :func:`.generate_preset_pass_manager` function to allow users to
+    provide a coupling map as a legacy-format list. Previously, users were required
+    to provide a :class:`.CouplingMap` object.

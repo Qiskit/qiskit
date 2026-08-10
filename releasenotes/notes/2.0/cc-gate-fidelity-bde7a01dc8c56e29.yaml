@@ -1,0 +1,35 @@
+---
+upgrade:
+  - |
+    Increased the minimum threshold for when gates are assumed to be the identity in
+    :class:`.RemoveIdentityEquivalent` from machine epsilon to ``1e-12`` to
+    account for round-off errors in the fidelity calculation and for consistency with the
+    other classes, such as :class:`.CommutationAnalysis` and :class:`.TwoQubitWeylDecomposition`.
+  - |
+    Updated the metric used to check commutations in :class:`.CommutationChecker`.
+    Two gates are assumed to commute if the average gate fidelity of the commutation is
+    above ``1 - 1e-12``. This value is chosen to account for round-off errors in the
+    fidelity calculation and for consistency with :class:`.RemoveIdentityEquivalent` and
+    :class:`.TwoQubitWeylDecomposition`. See the class docstring for more information.
+fixes:
+  - |
+    Fixed an inconsistency in dealing with close-to-identity gates in the transpilation process,
+    where gates that are close to the identity were assumed to commute with everything, but
+    not removed. The underlying issue were different metrics used in :class:`.RemoveIdentityEquivalent`
+    and :class:`.CommutationAnalysis` (and, by extension, :class:`.CommutativeInverseCancellation`).
+    Both now use the average gate fidelity and the same threshold to assess whether a gate
+    should be treated as identity (such as a rotation gate with very small angle). See either
+    of the aforementioned classes' docstrings for more information.
+    Fixed `#13547 <https://github.com/Qiskit/qiskit/issues/13547>`__.
+features_circuits:
+  - |
+    Added a new argument ``approximation_degree`` to :meth:`.CommutationChecker.commute` and
+    :meth:`.CommutationChecker.commute_nodes`, which allows to set the approximation threshold
+    for when gates are said to commute. See the docstring of :class:`.CommutationChecker` for more 
+    detail.
+features_transpiler:
+  - |
+    Added a new argument ``approximation_degree`` to :class:`.CommutationAnalysis`, which allows 
+    setting the approximation threshold for when gates are said to commute. See the class docstring 
+    for more information.
+

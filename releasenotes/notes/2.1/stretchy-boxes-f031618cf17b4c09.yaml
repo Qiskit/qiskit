@@ -1,0 +1,5 @@
+---
+features_circuits:
+  - |
+    The :attr:`.BoxOp.duration` field can now be an :class:`.expr.Expr` node with type
+    :class:`~.classical.types.Duration`, just like :attr:`.Delay.duration`.  This includes stretches.

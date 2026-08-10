@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    The :meth:`.PauliEvolutionGate.to_matrix` method now returns the exact matrix
+    exponential :math:`\exp(-it H)`, where :math:`H` is the ``operator`` and :math:`t`
+    the ``time`` passed to the gate. This fixes an unexpected behavior, since the
+    :class:`.PauliEvolutionGate` is documented to represent the *exact* time evolution,
+    but previously the matrix was dependent on how the compiler approximates the
+    time evolution. The ``to_matrix`` method is now consistent with the documentation.

@@ -1,0 +1,29 @@
+---
+other:
+  - |
+    A new optional extra dependency variant ``qpy-compat`` was added. This
+    target should be installed if you plan to load qpy files as it installs
+    extra requirements used for loading QPY files using format versions < 13.
+    If you are only using newer qpy format you do no need to install this.
+    By default :func:`.qpy.dump` only generates QPY >=13.
+    You can install this new optional variant with ``pip install qiskit[qpy-compat]```
+
+upgrade_circuits:
+  - |
+    Qiskit now uses its own, Rust-based symbolic expression library to implement
+    the internals of :class:`.ParameterExpression` and :class:`.Parameter`. As this is
+    a new implementation of the core symbolic math engine used for
+    :class:`.ParameterExpression` there might be minor differences in
+    the exact behavior of some functionality. It should always produce
+    equivalent results for the documented API. Please open an issue if there
+    are any problems with correctness found.
+upgrade:
+  - |
+    The dependency on ``symengine`` which was used for building :class:`.ParameterExpression`
+    objects has been removed. It has been replaced by a internal symbolic engine and is no
+    longer required for core functionality in Qiskit. The only exception is that symengine
+    was embedded into QPY formats 10, 11, and 12 so it is still required if you are
+    deserializing those formats. The dependency on symengine for :func:`.qpy.load` was made
+    explicitly optional in 2.0.0, but if you were previously relying on symengine getting
+    installed by default for this functionality you will now need to manually install it
+    to load the payload.

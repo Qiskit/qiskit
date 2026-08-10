@@ -1,0 +1,16 @@
+---
+features_qasm:
+  - |
+    The OpenQASM 3 exporter (see :func:`~.qasm3.dump` and :func:`~.qasm3.dumps` functions in
+    :mod:`qiskit.qasm3`) now supports the stabilized syntax of the ``switch`` statement in OpenQASM 3
+    by default.  The pre-certification syntax of the ``switch`` statement is still available by
+    using the :attr:`.ExperimentalFeatures.SWITCH_CASE_V1` flag in the ``experimental`` argument of
+    the exporter.  There is no feature flag required for the stabilized syntax, but if you are
+    interfacing with other tooling that is not yet updated, you may need to pass the experimental
+    flag.
+
+    The syntax of the stabilized form is slightly different with regards to terminating ``break``
+    statements (no longer required nor permitted), and multiple cases are now combined into a single
+    ``case`` line, rather than using C-style fall-through.  For more detail, see `the OpenQASM 3
+    documentation on the switch-case construct
+    <https://openqasm.com/language/classical.html#the-switch-statement>`__.

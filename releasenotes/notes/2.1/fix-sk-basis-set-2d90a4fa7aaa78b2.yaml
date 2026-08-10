@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a problem in the :class:`.SolovayKitaevSynthesis` unitary synthesis plugin,
+    where repeatedly running the plugin with different basis gates incorrectly reused the 
+    basis gates from the first run only. The problem was due to ignoring the basis gates 
+    when caching basic approximations, and is now fixed.

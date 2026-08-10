@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug in the transpiler pass :class:`~.ElidePermutations` where the
+    qubit mapping was not updated correctly in the presence of :class:`.PermutationGate`\s.

@@ -1,0 +1,5 @@
+---
+features_c:
+  - |
+    Added the :c:func:`qk_dag_to_circuit` and :c:func:`qk_circuit_to_dag` functions
+    to support DAG to circuit and circuit to DAG conversions, respectively.

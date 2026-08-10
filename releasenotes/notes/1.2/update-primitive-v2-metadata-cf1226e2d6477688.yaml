@@ -1,0 +1,13 @@
+---
+features_primitives:
+  - |
+    The metadata of Primitives V2 implementations, i.e., :class:`.StatevectorSampler`,
+    :class:`.StatevectorEstimator`, :class:`.BackendSamplerV2` and :class:`.BackendEstimatorV2`,
+    has been updated to match that of IBM quantum devices.
+
+    * ``version`` and ``circuit_metadata`` are added for all V2 implementations
+    * ``shots`` is added for :class:`.BackendSamplerV2` and :class:`.BackendEstimatorV2`
+    * ``precision`` is renamed with ``target_precision`` for :class:`.StatevectorEstimator`
+
+    Note that metadata of :class:`.StatevectorEstimator` does not have ``shots`` because
+    the class computes expectation values with :class:`.Statevector` and shots are not used.

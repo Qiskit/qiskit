@@ -1,0 +1,201 @@
+---
+features:
+  - |
+    Introduced two new classes, :class:`.SingletonInstruction` and :class:`~.SingletonGate`, which
+    are subclasses of :class:`~.circuit.Instruction` and :class:`~.Gate` respectively, that use a
+    single instance for all objects of that type.
+    The intent behind this class is to minimize the memory and construction
+    overhead of using multiple gates in a circuit with the tradeoff of having
+    global shared state. For this reason this class is only applicable to
+    gates that do not have any unique and/or mutable state stored in an instance.
+    For example, the best example of this is :class:`.XGate` doesn't contain
+    any state and could leverage :class:`~.SingletonGate` (and does starting in
+    this release), while :class:`~.RXGate` stores an angle parameter in an instance
+    and thus can not use :class:`~.SingletonGate` because a single shared global
+    instance can not represent the parameter values.
+
+    The other potential issue to be aware of when using this class is around the
+    use of the singleton classes is that the :class:`~.circuit.Instruction`
+    data model supports some mutable state. Specifically, the
+    :attr:`~.Instruction.label`, :attr:`~.Instruction.duration`, :attr:`~.Instruction.unit`, and
+    :attr:`~.Instruction.condition` attributes are all accessible and mutable in the
+    :class:`~.circuit.Instruction` and its direct subclasses. However, this is incompatible
+    with having a shared object via :class:`~.SingletonInstruction`. For instances of
+    :class:`~.SingletonInstruction`, setting these attributes directly is not allowed
+    and it will raise an exception. If they are needed for a particular
+    instance you must ensure you have a mutable instance using :meth:`.Instruction.to_mutable`
+    (or use :meth:`.Instruction.c_if` for :attr:`~.Instruction.condition`), or
+    ``label``, ``duration`` and ``unit`` can be given as keyword arguments during class construction.
+  - |
+    The following standard library gates are now instances of
+    :class:`~.SingletonGate`:
+
+     * :class:`~.DCXGate`
+     * :class:`~.ECRGate`
+     * :class:`~.HGate`
+     * :class:`~.IGate`
+     * :class:`~.iSwapGate`
+     * :class:`~.SGate`
+     * :class:`~.SdgGate`
+     * :class:`~.SwapGate`
+     * :class:`~.SXGate`
+     * :class:`~.SXdgGate`
+     * :class:`~.TGate`
+     * :class:`~.TdgGate`
+     * :class:`~.XGate`
+     * :class:`~.RCCXGate`
+     * :class:`~.RC3XGate`
+     * :class:`~.YGate`
+     * :class:`~.ZGate`
+
+    This means that if these classes are instantiated as (e.g.) ``XGate()`` using
+    all the constructor defaults, they will all share a single global
+    instance. This results in large reduction in the memory overhead for > 1
+    object of these types and significantly faster object construction time.
+  - |
+    Introduced a new class :class:`~.SingletonControlledGate` which is a subclass of
+    :class:`~.ControlledGate` that uses a single instance for all objects of that type.
+    The intent behind this class is to minimize the memory and construction
+    overhead of using multiple gates in a circuit with the tradeoff of having
+    global shared state. For this reason this class is only applicable to
+    gates that do not have any unique and/or mutable state stored in an instance.
+    For example, a :class:`.CXGate` doesn't contain any state and thus can
+    leverage :class:`~.SingletonControlledGate` (and does starting in
+    this release). In contrast, :class:`~.CRXGate` stores an angle parameter as
+    part of its instance data and thus can not use :class:`~.SingletonControlledGate`.
+
+    The other potential issue to be aware of when using
+    :class:`~.SingletonControlledGate` is that the original data model
+    of :class:`~.ControlledGate` supports mutation. Specifically, the
+    :attr:`~.ControlledGate.label`, :attr:`~.ControlledGate.duration`,
+    :attr:`~.ControlledGate.unit`, :attr:`~.ControlledGate.condition`, and
+    :attr:`~.ControlledGate.ctrl_state` attributes are all accessible and mutable in the
+    :class:`~.ControlledGate`, but mutation of these attributes on :class:`~.SingletonControlledGate` subclasses
+    is not allowed, and will raise an exception. These attributes can be customized but only at creation time
+    (i.e. via the constructor). In that case, the newly constructed gate will be a separate instance with the
+    custom state instead of the globally shared instance. You can also use the
+    :meth:`.SingletonControlledGate.to_mutable` method to get a mutable copy of a gate object and then mutate
+    the attributes like you would on any other :class:`~.circuit.Instruction` object.
+
+  - |
+    The following standard library gates are now instances of
+    :class:`~.SingletonControlledGate`:
+
+     * :class:`~.CHGate`
+     * :class:`~.CSGate`
+     * :class:`~.CSdgGate`
+     * :class:`~.CSwapGate`
+     * :class:`~.CSXGate`
+     * :class:`~.CXGate`
+     * :class:`~.CCXGate`
+     * :class:`~.C3SXGate`
+     * :class:`~.C3XGate`
+     * :class:`~.C4XGate`
+     * :class:`~.CYGate`
+     * :class:`~.CZGate`
+
+    This means that unless a ``label``, ``condition``, ``duration``, ``unit``, or
+    ``ctrl_state`` are set on the instance at creation time they will all share a
+    single global instance whenever a new gate object is created. This results in large
+    reduction in the memory overhead for > 1 object of these types.
+  - |
+    Added a new method :meth:`.Instruction.to_mutable` and attribute
+    :attr:`.Instruction.mutable` which is used to get a mutable copy and check whether
+    an :class:`~.circuit.Instruction` object is mutable. With the introduction
+    of :class:`~.SingletonGate` these methods can be used to have a unified interface
+    to deal with the mutability of instruction objects.
+  - |
+    Added an attribute :attr:`.Instruction.base_class`, which gets the "base" type of an
+    instruction.  Many instructions will satisfy ``type(obj) == obj.base_class``, however the
+    singleton instances of :class:`.SingletonInstruction` and :class:`.SingletonGate` are subclasses
+    of their base type.  You can use the new :attr:`~.Instruction.base_class` attribute to find the
+    base class of these.  See the attribute documentation for considerations on when other
+    subclasses may modify their :attr:`~.Instruction.base_class`, and what this means for execution.
+upgrade:
+  - |
+    The following standard library gates:
+
+        * :class:`~.DCXGate`
+        * :class:`~.ECRGate`
+        * :class:`~.HGate`
+        * :class:`~.IGate`
+        * :class:`~.iSwapGate`
+        * :class:`~.SGate`
+        * :class:`~.SdgGate`
+        * :class:`~.SwapGate`
+        * :class:`~.SXGate`
+        * :class:`~.SXdgGate`
+        * :class:`~.TGate`
+        * :class:`~.TdgGate`
+        * :class:`~.XGate`
+        * :class:`~.RCCXGate`
+        * :class:`~.RC3XGate`
+        * :class:`~.YGate`
+        * :class:`~.ZGate`
+        * :class:`~.CHGate`
+        * :class:`~.CSGate`
+        * :class:`~.CSdgGate`
+        * :class:`~.CSwapGate`
+        * :class:`~.CSXGate`
+        * :class:`~.CXGate`
+        * :class:`~.CCXGate`
+        * :class:`~.C3SXGate`
+        * :class:`~.C3XGate`
+        * :class:`~.C4XGate`
+        * :class:`~.CYGate`
+        * :class:`~.CZGate`
+
+
+    no longer are able to set :attr:`~.Gate.label`, :attr:`~.Gate.condition`,
+    :attr:`~.Gate.duration`, or :attr:`~.Gate.unit` (and :attr:`~.ControlledGate.ctrl_state`
+    for :class:`~.ControlledGate` subclasses) after instantiating an object
+    anymore. :attr:`~.Gate.condition` can be set through
+    the use :meth:`~.Gate.c_if`. You can use :meth:`~.Gate.to_mutable`
+    to get a mutable copy of the instruction and then use the setter on that copy
+    instead of the original object.  ``label``, ``duration`` and ``unit`` can
+    be given as keyword arguments to these gates at construction time, and a
+    mutable instance will be returned automatically.
+    This change was necessary as part of converting
+    these classes to be :class:`~.SingletonGate` and :class:`~.SingletonControlledGate`
+    types which greatly reduces the memory footprint of repeated instances of these gates.
+  - |
+    For anything that interacts with :class:`~.Gate`, :class:`~.Operation`,
+    or :class:`~.circuit.Instruction` objects or works with these as part of a
+    :class:`~.QuantumCircuit` or :class:`~.DAGCircuit` classes it is important
+    to note that the use of shared references for instances is much more common
+    now. Previously, it was possible to reuse and share an instance of a
+    circuit operation it wasn't very commonly used and a copy would generate
+    a unique instance. This has changed starting in this release because of
+    :class:`~.SingletonInstruction` and :class:`.SingletonGate` being made available (and a large
+    number of standard library gates now built off of it). If your usage of these objects is
+    assuming
+    unique instances for every circuit operation there are potential issue because
+    of shared state that will be reused between operations of the same type (that
+    will persist through copy and deep copies). You can rely on the
+    :attr:`.Instruction.mutable` attribute to check the mutability of an object or
+    use :meth:`.Instruction.to_mutable` to get a mutable copy of any instruction.
+  - |
+    More :class:`~.circuit.Instruction` instances (those that return singletons) no longer
+    strictly satisfy (for example)::
+
+        type(XGate()) is XGate
+
+    The returned object will, however, still be a standard subclass so :func:`isinstance` (the
+    correct way to do type checking) will continue to work correctly.  Several instructions already
+    had this property (e.g. :class:`.MCXGate`), but it is now more common as many more standard
+    gates will do this.
+
+    If you require the "base" type of a gate for some reason, omitting the synthetic singleton
+    subclasses, which cannot be instantiated, see :attr:`.Instruction.base_class`.
+fixes:
+  - |
+    Fixed an oversight in the :class:`~.ECRGate` that prevented setting an
+    :attr:`.ECRGate.label` attribute at object construction time. All other
+    :class:`~.Gate` classes and subclasses enable setting a ``label`` keyword
+    argument in the constructor.
+  - |
+    Fixed an oversight in the :class:`~.Gate` (and standard-library subclasses) constructor
+    where the :attr:`~.Gate.duration` and :attr:`~.Gate.unit` attributes could not
+    be set as keyword arguments during construction. The parent class
+    :class:`~.circuit.Instruction` supported setting this but :class:`~.Gate` was
+    previously not exposing this interface correctly.

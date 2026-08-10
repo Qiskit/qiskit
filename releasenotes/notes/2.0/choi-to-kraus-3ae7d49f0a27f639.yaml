@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Applied a small regularisation factor against ill-conditioned Hermitian matrices
+    in super-operator representations.

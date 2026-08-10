@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -19,29 +19,41 @@ The drawer canvas object is internally initialized from the input data and
 the configured canvas is passed to one of the plotter APIs to generate a visualization data.
 """
 
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Any
 
 from qiskit import circuit
+from qiskit.transpiler.target import Target
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.timeline import types, core, stylesheet
+from qiskit.utils import deprecate_arg
 
 
+@deprecate_arg("show_idle", new_alias="idle_wires", since="1.1.0", pending=True)
+@deprecate_arg("show_barriers", new_alias="plot_barriers", since="1.1.0", pending=True)
 def draw(
     program: circuit.QuantumCircuit,
-    style: Optional[Dict[str, Any]] = None,
-    time_range: Tuple[int, int] = None,
-    disable_bits: List[types.Bits] = None,
-    show_clbits: Optional[bool] = None,
-    show_idle: Optional[bool] = None,
-    show_barriers: Optional[bool] = None,
-    show_delays: Optional[bool] = None,
+    style: dict[str, Any] | None = None,
+    time_range: tuple[int, int] | None = None,
+    disable_bits: list[types.Bits] | None = None,
+    show_clbits: bool | None = None,
+    idle_wires: bool | None = None,
+    plot_barriers: bool | None = None,
+    show_delays: bool | None = None,
     show_labels: bool = True,
-    plotter: Optional[str] = types.Plotter.MPL.value,
-    axis: Optional[Any] = None,
-    filename: Optional[str] = None,
+    plotter: str | None = types.Plotter.MPL.value,
+    axis: Any | None = None,
+    filename: str | None = None,
+    target: Target | None = None,
+    *,
+    show_idle: bool | None = None,
+    show_barriers: bool | None = None,
 ):
     r"""Generate visualization data for scheduled circuit programs.
+
+    .. deprecated:: 1.3
+       The ``target`` parameter needs to be specified in Qiskit 2.0 in order to get the
+       instruction durations.
 
     Args:
         program: Program to visualize. This program should be a `QuantumCircuit` which is
@@ -55,9 +67,9 @@ def draw(
         disable_bits: List of qubits of classical bits not shown in the output image.
         show_clbits: A control property to show classical bits.
             Set `True` to show classical bits.
-        show_idle: A control property to show idle timeline.
+        idle_wires: A control property to show idle timeline.
             Set `True` to show timeline without gates.
-        show_barriers: A control property to show barrier instructions.
+        plot_barriers: A control property to show barrier instructions.
             Set `True` to show barrier instructions.
         show_delays: A control property to show delay instructions.
             Set `True` to show delay instructions.
@@ -75,6 +87,9 @@ def draw(
             the plotters uses given `axis` instead of internally initializing a figure object.
             This object format depends on the plotter. See plotters section for details.
         filename: If provided the output image is dumped into a file under the filename.
+        target: The target for the backend the timeline is being generated for.
+        show_idle: DEPRECATED.
+        show_barriers: DEPRECATED.
 
     Returns:
         Visualization output data.
@@ -104,7 +119,7 @@ def draw(
         formatter.margin.top: Margin from the top boundary of the figure canvas to
             the zero line of the first time slot (default `0.5`).
         formatter.margin.bottom: Margin from the bottom boundary of the figure canvas to
-            the zero lien of the last time slot (default `0.5`).
+            the zero line of the last time slot (default `0.5`).
         formatter.margin.left_percent:  Margin from the left boundary of the figure canvas to
             the left limit of the horizontal axis. The value is in units of percentage of
             the whole program duration. If the duration is 100 and the value of 0.5 is set,
@@ -279,57 +294,65 @@ def draw(
             for more details. No default layout is set. (default `None`).
 
     Examples:
-        To visualize a scheduled circuit program, you can call this function with set of
-        control arguments. Most of appearance of the output image can be controlled by the
+        To visualize a scheduled circuit program, you can call this function with a set of
+        control arguments. Most of the appearance of the output image can be controlled by the
         stylesheet.
 
         Drawing with the default stylesheet.
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
-            from qiskit import QuantumCircuit, transpile, schedule
+            from qiskit import QuantumCircuit, transpile
             from qiskit.visualization.timeline import draw
-            from qiskit.providers.fake_provider import FakeBoeblingen
+            from qiskit.providers.fake_provider import GenericBackendV2
 
             qc = QuantumCircuit(2)
             qc.h(0)
             qc.cx(0,1)
 
-            qc = transpile(qc, FakeBoeblingen(), scheduling_method='alap', layout_method='trivial')
-            draw(qc)
+            backend = GenericBackendV2(5)
+
+            qc = transpile(qc, backend, scheduling_method='alap', layout_method='trivial')
+            draw(qc, target=backend.target)
 
         Drawing with the simple stylesheet.
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
-            from qiskit import QuantumCircuit, transpile, schedule
+            from qiskit import QuantumCircuit, transpile
             from qiskit.visualization.timeline import draw, IQXSimple
-            from qiskit.providers.fake_provider import FakeBoeblingen
+            from qiskit.providers.fake_provider import GenericBackendV2
 
             qc = QuantumCircuit(2)
             qc.h(0)
             qc.cx(0,1)
 
-            qc = transpile(qc, FakeBoeblingen(), scheduling_method='alap', layout_method='trivial')
-            draw(qc, style=IQXSimple())
+            backend = GenericBackendV2(5)
+
+            qc = transpile(qc, backend, scheduling_method='alap', layout_method='trivial')
+            draw(qc, style=IQXSimple(), target=backend.target)
 
         Drawing with the stylesheet suited for program debugging.
 
         .. plot::
+           :alt: Output from the previous code.
            :include-source:
 
-            from qiskit import QuantumCircuit, transpile, schedule
+            from qiskit import QuantumCircuit, transpile
             from qiskit.visualization.timeline import draw, IQXDebugging
-            from qiskit.providers.fake_provider import FakeBoeblingen
+            from qiskit.providers.fake_provider import GenericBackendV2
 
             qc = QuantumCircuit(2)
             qc.h(0)
             qc.cx(0,1)
 
-            qc = transpile(qc, FakeBoeblingen(), scheduling_method='alap', layout_method='trivial')
-            draw(qc, style=IQXDebugging())
+            backend = GenericBackendV2(5)
+            qc = transpile(qc, backend, scheduling_method='alap', layout_method='trivial')
+            draw(qc, style=IQXDebugging(), target=backend.target)
 
         You can partially customize a preset stylesheet when call it::
 
@@ -344,29 +367,36 @@ def draw(
 
         In the same way as above, you can create custom generator or layout functions
         and update existing stylesheet with custom functions.
-        This feature enables you to control the most of appearance of the output image
+        This feature enables you to control the most of the appearance of the output image
         without modifying the codebase of the scheduled circuit drawer.
     """
+    del show_idle
+    del show_barriers
     # update stylesheet
     temp_style = stylesheet.QiskitTimelineStyle()
     temp_style.update(style or stylesheet.IQXStandard())
 
+    if target is None:
+        raise VisualizationError(
+            "No target is specified, this is required to get the duration of instructions."
+        )
+
     # update control properties
-    if show_idle is not None:
-        temp_style["formatter.control.show_idle"] = show_idle
+    if idle_wires is not None:
+        temp_style["formatter.control.show_idle"] = idle_wires
 
     if show_clbits is not None:
         temp_style["formatter.control.show_clbits"] = show_clbits
 
-    if show_barriers is not None:
-        temp_style["formatter.control.show_barriers"] = show_barriers
+    if plot_barriers is not None:
+        temp_style["formatter.control.show_barriers"] = plot_barriers
 
     if show_delays is not None:
         temp_style["formatter.control.show_delays"] = show_delays
 
     # create empty canvas and load program
     canvas = core.DrawerCanvas(stylesheet=temp_style)
-    canvas.load_program(program=program)
+    canvas.load_program(program=program, target=target)
 
     #
     # update configuration

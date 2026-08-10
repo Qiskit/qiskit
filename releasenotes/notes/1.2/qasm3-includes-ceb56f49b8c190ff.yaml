@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    The OpenQASM 3 exporter has restored its behavior of accepting non-standard-library include
+    files in the ``includes`` argument to :func:`.qasm3.dump`, :func:`~.qasm3.dumps`, and
+    :class:`~.qasm3.Exporter`.  These will insert a suitable ``include`` statement into the output
+    as before, and the exporter remains unaware of the intended gates in that include file; you
+    should pass the gates you expect it to define in the ``basis_gates`` argument to the same functions.
+
+    We expect to improve the export mechanism against non-standard include files in a future release
+    of Qiskit.

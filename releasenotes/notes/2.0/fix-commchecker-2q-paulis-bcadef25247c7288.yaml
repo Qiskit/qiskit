@@ -1,0 +1,16 @@
+---
+fixes:
+  - |
+    Fixed a bug in the :class:`.CommutationChecker` which could fail upon checking the commutation
+    relation of a two-qubit Pauli rotation with a gate that is not in the commutation cache.
+    For example::
+
+      import numpy as np
+      from qiskit.circuit.library import RXXGate, RGate
+      from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
+
+      res = scc.commute(RGate(2, 2), [1], [], RXXGate(np.pi / 2), [0, 1], [])
+
+    This behavior is now resolved and the commutation relation correctly computed.
+    Fixed `#13742 <https://github.com/Qiskit/qiskit/issues/13742>`__.
+

@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    The method :meth:`.Instruction.repeat` now moves a set :attr:`~.Instruction.condition` to the
+    outer returned :class:`~.circuit.Instruction` and leave the inner gates of its definition
+    unconditional.  Previously, the method would leave :class:`.ClassicalRegister` instances within
+    the inner definition, which was an invalid state, and would manifest itself as seemingly unrelated
+    bugs later, such as during transpilation or export.  Fixed `#11935 <https://github.com/Qiskit/qiskit/issues/11935>`__.

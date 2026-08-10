@@ -15,7 +15,7 @@ features:
     * Specifying ``axis`` objects for plotting to allow further extension of
       generated plots, i.e., for publication manipulations.
 
-    New stylesheets can take callback functions that dynamically modify the apperance of
+    New stylesheets can take callback functions that dynamically modify the appearance of
     the output image, for example, reassembling a collection of channels,
     showing details of instructions, updating appearance of pulse envelopes, etc...
     You can create custom callback functions and feed them into a stylesheet instance to

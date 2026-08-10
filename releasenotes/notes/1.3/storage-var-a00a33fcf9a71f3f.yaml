@@ -1,0 +1,122 @@
+---
+features_circuits:
+  - |
+    :class:`.QuantumCircuit` has several new methods to work with and inspect manual :class:`.Var`
+    variables.
+
+    See :ref:`circuit-real-time-methods` for more in-depth discussion on all of these.
+
+    The new methods are:
+
+    * :meth:`~.QuantumCircuit.add_var`
+    * :meth:`~.QuantumCircuit.add_input`
+    * :meth:`~.QuantumCircuit.add_capture`
+    * :meth:`~.QuantumCircuit.add_uninitialized_var`
+    * :meth:`~.QuantumCircuit.get_var`
+    * :meth:`~.QuantumCircuit.has_var`
+    * :meth:`~.QuantumCircuit.iter_vars`
+    * :meth:`~.QuantumCircuit.iter_declared_vars`
+    * :meth:`~.QuantumCircuit.iter_captured_vars`
+    * :meth:`~.QuantumCircuit.iter_input_vars`
+    * :meth:`~.QuantumCircuit.store`
+
+    In addition, there are several new dynamic attributes on :class:`.QuantumCircuit` surrounding
+    these variables:
+
+    * :attr:`~.QuantumCircuit.num_vars`
+    * :attr:`~.QuantumCircuit.num_input_vars`
+    * :attr:`~.QuantumCircuit.num_captured_vars`
+    * :attr:`~.QuantumCircuit.num_declared_vars`
+  - |
+    :class:`.ControlFlowOp` and its subclasses now have a :meth:`~.ControlFlowOp.iter_captured_vars`
+    method, which will return an iterator over the unique variables captured in any of its immediate
+    blocks.
+  - |
+    :class:`.DAGCircuit` has several new methods to work with and inspect manual :class:`.Var`
+    variables.  These are largely equivalent to their :class:`.QuantumCircuit` counterparts, except
+    that the :class:`.DAGCircuit` ones are optimized for programmatic access with already defined
+    objects, while the :class:`.QuantumCircuit` methods are more focussed on interactive human use.
+
+    The new methods are:
+
+    * :meth:`~.DAGCircuit.add_input_var`
+    * :meth:`~.DAGCircuit.add_captured_var`
+    * :meth:`~.DAGCircuit.add_declared_var`
+    * :meth:`~.DAGCircuit.has_var`
+    * :meth:`~.DAGCircuit.iter_vars`
+    * :meth:`~.DAGCircuit.iter_declared_vars`
+    * :meth:`~.DAGCircuit.iter_captured_vars`
+    * :meth:`~.DAGCircuit.iter_input_vars`
+
+    There are also new public attributes:
+
+    * :attr:`~.DAGCircuit.num_vars`
+    * :attr:`~.DAGCircuit.num_input_vars`
+    * :attr:`~.DAGCircuit.num_captured_vars`
+    * :attr:`~.DAGCircuit.num_declared_vars`
+  - |
+    :attr:`.DAGCircuit.wires` will now also contain any :class:`.Var` manual variables in the
+    circuit as well, as these are also classical data flow.
+  - |
+    A new method, :meth:`.Var.new`, is added to manually construct a real-time classical variable
+    that owns its memory.
+  - |
+    :meth:`.QuantumCircuit.compose` has two need keyword arguments, ``var_remap`` and ``inline_captures``
+    to better support real-time classical variables.
+
+    ``var_remap`` can be used to rewrite :class:`.Var` nodes in the circuit argument as its
+    instructions are inlined onto the base circuit.  This can be used to avoid naming conflicts.
+
+    ``inline_captures`` can be set to ``True`` (defaults to ``False``) to link all :class:`.Var`
+    nodes tracked as "captures" in the argument circuit with the same :class:`.Var` nodes in the
+    base circuit, without attempting to redeclare the variables.  This can be used, in combination
+    with :meth:`.QuantumCircuit.copy_empty_like`'s ``vars_mode="captures"`` handling, to build up
+    a circuit layer by layer, containing variables.
+  - |
+    :meth:`.DAGCircuit.compose` has a new keyword argument, ``inline_captures``, which can be set to
+    ``True`` to inline "captured" :class:`.Var` nodes on the argument circuit onto the base circuit
+    without redeclaring them.  In conjunction with the ``vars_mode="captures"`` option to several
+    :class:`.DAGCircuit` methods, this can be used to combine DAGs that operate on the same variables.
+  - |
+    :meth:`.QuantumCircuit.copy_empty_like` and :meth:`.DAGCircuit.copy_empty_like` have a new
+    keyword argument, ``vars_mode`` which controls how any memory-owning :class:`.Var` nodes are
+    tracked in the output.  By default (``"alike"``), the variables are declared in the same
+    input/captured/local mode as the source.  This can be set to ``"captures"`` to convert all
+    variables to captures (useful with :meth:`~.QuantumCircuit.compose`) or ``"drop"`` to remove
+    them.
+  - |
+    A new ``vars_mode`` keyword argument has been added to the :class:`.DAGCircuit` methods:
+
+    * :meth:`~.DAGCircuit.separable_circuits`
+    * :meth:`~.DAGCircuit.layers`
+    * :meth:`~.DAGCircuit.serial_layers`
+
+    which has the same meaning as it does for :meth:`~.DAGCircuit.copy_empty_like`.
+features_qasm:
+  - |
+    The OpenQASM 3 exporter supports manual-storage :class:`.Var` nodes on circuits.
+features_qpy:
+  - |
+    QPY (:mod:`qiskit.qpy`) format version 12 has been added, which includes support for memory-owning
+    :class:`.Var` variables.  See :ref:`qpy_version_12` for more detail on the format changes.
+features_visualization:
+  - |
+    The text and `Matplotlib <https://matplotlib.org>`__ circuit drawers (:meth:`.QuantumCircuit.draw`)
+    have minimal support for displaying expressions involving manual real-time variables.  The
+    :class:`.Store` operation and the variable initializations are not yet supported; for large-scale
+    dynamic circuits, we recommend using the OpenQASM 3 export capabilities (:func:`.qasm3.dumps`) to
+    get a textual representation of a circuit.
+upgrade_qpy:
+  - |
+    The value of :attr:`qiskit.qpy.QPY_VERSION` is now 12.  :attr:`.QPY_COMPATIBILITY_VERSION` is
+    unchanged at 10.
+upgrade_providers:
+  - |
+    Implementations of :class:`.BackendV2` (and :class:`.BackendV1`) may desire to update their 
+    :meth:`~.BackendV2.run` methods to eagerly reject inputs containing typed
+    classical variables (see :mod:`qiskit.circuit.classical`) and the :class:`.Store` instruction,
+    if they do not have support for them.  The new :class:`.Store` instruction is treated by the
+    transpiler as an always-available "directive" (like :class:`.Barrier`); if your backends do not
+    support this won't be caught by the :mod:`~qiskit.transpiler`.
+
+    See :ref:`providers-guide-real-time-variables` for more information.

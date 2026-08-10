@@ -1,16 +1,15 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring
 
 import unittest
 
@@ -19,11 +18,11 @@ import rustworkx as rx
 
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.exceptions import CouplingError
-from qiskit.providers.fake_provider import FakeRueschlikon
-from qiskit.test import QiskitTestCase
 from qiskit.utils import optionals
+from test import QiskitTestCase
 
 from ..visualization.visualization import QiskitVisualizationTestCase, path_to_diagram_reference
+from ..legacy_cmaps import RUESCHLIKON_CMAP
 
 
 class CouplingTest(QiskitTestCase):
@@ -104,20 +103,29 @@ class CouplingTest(QiskitTestCase):
 
     def test_successful_reduced_map(self):
         """Generate a reduced map"""
-        fake = FakeRueschlikon()
-        cmap = fake.configuration().coupling_map
+        cmap = RUESCHLIKON_CMAP
         coupling_map = CouplingMap(cmap)
         out = coupling_map.reduce([12, 11, 10, 9]).get_edges()
         ans = [(1, 2), (3, 2), (0, 1)]
         self.assertEqual(set(out), set(ans))
 
-    def test_failed_reduced_map(self):
-        """Generate a bad disconnected reduced map"""
-        fake = FakeRueschlikon()
-        cmap = fake.configuration().coupling_map
+    def test_bad_reduced_map(self):
+        """Generate disconnected reduced map"""
+        cmap = RUESCHLIKON_CMAP
         coupling_map = CouplingMap(cmap)
         with self.assertRaises(CouplingError):
             coupling_map.reduce([12, 11, 10, 3])
+
+    def test_disconnected_reduced_map_allowed(self):
+        """Generate disconnected reduced map but do not error"""
+        cmap = RUESCHLIKON_CMAP
+        coupling_map = CouplingMap(cmap)
+        reduced_map = coupling_map.reduce([12, 11, 10, 3], check_if_connected=False)
+        reduced_edges = reduced_map.get_edges()
+        qubits_expected = [0, 1, 2, 3]
+        edges_expected = [(0, 1), (1, 2)]
+        self.assertEqual(qubits_expected, reduced_map.physical_qubits)
+        self.assertEqual(set(reduced_edges), set(edges_expected))
 
     def test_symmetric_small_true(self):
         coupling_list = [[0, 1], [1, 0]]
@@ -442,16 +450,6 @@ class CouplingTest(QiskitTestCase):
         ]
         self.assertEqual(set(edges), set(expected))
 
-    def test_subgraph(self):
-        coupling = CouplingMap.from_line(6, bidirectional=False)
-        with self.assertWarns(DeprecationWarning):
-            subgraph = coupling.subgraph([4, 2, 3, 5])
-        self.assertEqual(subgraph.size(), 4)
-        self.assertEqual([0, 1, 2, 3], subgraph.physical_qubits)
-        edge_list = subgraph.get_edges()
-        expected = [(0, 1), (1, 2), (2, 3)]
-        self.assertEqual(expected, edge_list, f"{edge_list} does not match {expected}")
-
     def test_implements_iter(self):
         """Test that the object is implicitly iterable."""
         coupling = CouplingMap.from_line(3)
@@ -520,6 +518,15 @@ class CouplingTest(QiskitTestCase):
 
         # additional test for comparison to a non-CouplingMap object
         self.assertNotEqual(coupling0, 1)
+
+    def test_ignores_self_coupling(self):
+        edges = [(0, 1), (1, 1), (1, 2), (2, 3)]
+        with self.assertWarnsRegex(Warning, "qubits cannot be coupled to themselves"):
+            coupling = CouplingMap(edges)
+        self.assertEqual(set(coupling.get_edges()), {(a, b) for (a, b) in edges if a != b})
+        with self.assertWarnsRegex(Warning, "qubits cannot be coupled to themselves"):
+            coupling.add_edge(2, 2)
+        self.assertEqual(set(coupling.get_edges()), {(a, b) for (a, b) in edges if a != b})
 
 
 class CouplingVisualizationTest(QiskitVisualizationTestCase):

@@ -65,7 +65,7 @@ features:
         qc.append(lin_fun, [0, 1, 2])
         qc.append(cliff, [1, 2, 3])
 
-        # Choose synthesis methods that adhere to linear-nearest-neighbour connectivity
+        # Choose synthesis methods that adhere to linear-nearest-neighbor connectivity
         hls_config = HLSConfig(linear_function=["kms"], clifford=["lnn"])
 
         # Synthesize

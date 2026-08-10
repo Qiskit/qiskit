@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -16,12 +16,14 @@ import unittest
 
 from qiskit.quantum_info import Statevector
 from qiskit.visualization.state_visualization import state_drawer
+from qiskit.utils import optionals
 from .visualization import QiskitVisualizationTestCase
 
 
 class TestLatexStateDrawer(QiskitVisualizationTestCase):
     """Qiskit state and unitary latex drawer."""
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "needs sympy")
     def test_state(self):
         """Test latex state vector drawer works with default settings."""
 
@@ -35,6 +37,7 @@ class TestLatexStateDrawer(QiskitVisualizationTestCase):
         )
         self.assertEqual(output, expected_output)
 
+    @unittest.skipUnless(optionals.HAS_SYMPY, "needs sympy")
     def test_state_max_size(self):
         """Test `max_size` parameter for latex ket notation."""
 

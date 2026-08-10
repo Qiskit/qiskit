@@ -2,7 +2,7 @@
 fixes:
   - |
     Fixed :meth:`.QuantumCircuit.reverse_bits` with circuits containing registerless
-    :class:`.Qubit` and :class:`.Clbit`. For example, the following will now work::
+    :class:`~qiskit.circuit.Qubit` and :class:`.Clbit`. For example, the following will now work::
 
         from qiskit.circuit import QuantumCircuit, Qubit, Clbit
 

@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    :class:`.ApplyLayout` will now correctly handle the case of applying a zero-qubit :class:`.Layout`.
+    Previously, it would claim that no layout had been set, even if the ``"layout"`` field of the
+    :class:`.PropertySet` was equal to ``Layout()``.

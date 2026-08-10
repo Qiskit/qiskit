@@ -1,0 +1,8 @@
+---
+features_synthesis:
+  - |
+    Port internal binary matrix utils from Python to Rust, including
+    binary matrix multiplication, gaussian elimination, rank calculation,
+    binary matrix inversion, and random invertible binary matrix generation.
+    These functions are not part of the Qiskit API, and porting them to rust
+    improves the performance of certain synthesis methods.

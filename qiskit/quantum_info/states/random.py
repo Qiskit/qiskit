@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -29,9 +29,10 @@ from .densitymatrix import DensityMatrix
 def random_statevector(
     dims: int | tuple, seed: int | np.random.Generator | None = None
 ) -> Statevector:
-    """Generator a random Statevector.
+    """Generate a random Statevector.
 
-    The statevector is sampled from the uniform (Haar) measure.
+    The statevector is sampled from the uniform distribution. This is the measure
+    induced by the Haar measure on unitary matrices.
 
     Args:
         dims (int or tuple): the dimensions of the state.
@@ -40,6 +41,10 @@ def random_statevector(
 
     Returns:
         Statevector: the random statevector.
+
+    Reference:
+        K. Zyczkowski and H. Sommers (2001), "Induced measures in the space of mixed quantum states",
+        `J. Phys. A: Math. Gen. 34 7111 <https://arxiv.org/abs/quant-ph/0012101>`__.
     """
     if seed is None:
         rng = np.random.default_rng()
@@ -49,14 +54,10 @@ def random_statevector(
         rng = default_rng(seed)
 
     dim = np.prod(dims)
-
-    # Random array over interval (0, 1]
-    x = rng.random(dim)
-    x += x == 0
-    x = -np.log(x)
-    sumx = sum(x)
-    phases = rng.random(dim) * 2.0 * np.pi
-    return Statevector(np.sqrt(x / sumx) * np.exp(1j * phases), dims=dims)
+    vec = rng.standard_normal(dim).astype(complex)
+    vec += 1j * rng.standard_normal(dim)
+    vec /= np.linalg.norm(vec)
+    return Statevector(vec, dims=dims)
 
 
 def random_density_matrix(
@@ -65,11 +66,11 @@ def random_density_matrix(
     method: Literal["Hilbert-Schmidt", "Bures"] = "Hilbert-Schmidt",
     seed: int | np.random.Generator | None = None,
 ) -> DensityMatrix:
-    """Generator a random DensityMatrix.
+    """Generate a random density matrix.
 
     Args:
         dims (int or tuple): the dimensions of the DensityMatrix.
-        rank (int or None): Optional, the rank of the density matrix.
+        rank (int or None):  the rank of the density matrix.
                             The default value is full-rank.
         method (string): Optional. The method to use.
             'Hilbert-Schmidt': (Default) sample from the Hilbert-Schmidt metric.

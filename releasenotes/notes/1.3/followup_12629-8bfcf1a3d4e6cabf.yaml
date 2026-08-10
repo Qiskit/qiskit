@@ -1,0 +1,6 @@
+---
+deprecations_transpiler:
+  - |
+    The method :meth:`.PassManagerConfig.from_backend` will stop supporting inputs of type
+    :class:`.BackendV1` in the `backend` parameter in a future release no earlier than 2.0.
+    :class:`.BackendV1` is deprecated and implementations should move to :class:`.BackendV2`.

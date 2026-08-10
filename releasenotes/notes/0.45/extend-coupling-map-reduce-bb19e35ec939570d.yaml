@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    The method :meth:`~qiskit.transpiler.CouplingMap.reduce` now accepts an
+    additional argument ``check_if_connected``, defaulted to ``True``. This
+    corresponds to the previous behavior, checking whether the reduced coupling
+    map remains connected and raising a ``CouplingError`` if not so. When set to
+    ``False``, the check is skipped, allowing disconnected reduced coupling maps.
+

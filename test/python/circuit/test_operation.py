@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -16,11 +16,10 @@ import unittest
 
 import numpy as np
 
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import QuantumCircuit, Barrier, Measure, Reset, Gate, Operation
-from qiskit.circuit.library import XGate, CXGate
+from qiskit.circuit.library import XGate, CXGate, Initialize, Isometry
 from qiskit.quantum_info.operators import Clifford, CNOTDihedral, Pauli
-from qiskit.extensions.quantum_initializer import Initialize, Isometry
+from test import QiskitTestCase
 
 
 class TestOperationClass(QiskitTestCase):
@@ -103,7 +102,7 @@ class TestOperationClass(QiskitTestCase):
 
     def test_isometry_as_operation(self):
         """Test that we can instantiate an object of class
-        :class:`~qiskit.extensions.quantum_initializer.Isometry` and that
+        :class:`~qiskit.circuit.library.Isometry` and that
         it has the expected name, num_qubits and num_clbits.
         """
         op = Isometry(np.eye(4, 4), 3, 2)
@@ -114,7 +113,7 @@ class TestOperationClass(QiskitTestCase):
 
     def test_initialize_as_operation(self):
         """Test that we can instantiate an object of class
-        :class:`~qiskit.extensions.quantum_initializer.Initialize` and that
+        :class:`~qiskit.circuit.library.Initialize` and that
         it has the expected name, num_qubits and num_clbits.
         """
         desired_vector = [0.5, 0.5, 0.5, 0.5]

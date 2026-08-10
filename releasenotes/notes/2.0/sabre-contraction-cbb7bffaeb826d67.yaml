@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    :class:`.SabreSwap` will no longer contract idle qubit wires out of control-flow blocks during routing.
+    This was generally a valid optimization, but not an expected side effect of a routing pass.
+    You can now use the :class:`.ContractIdleWiresInControlFlow` pass to perform this contraction.

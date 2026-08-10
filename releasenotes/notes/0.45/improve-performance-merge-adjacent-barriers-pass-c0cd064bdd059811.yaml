@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Performance improvement of the :class:`~.MergeAdjacentBarriers` transpiler pass, which used to
+    rebuild the complete DAG to merge the barriers.

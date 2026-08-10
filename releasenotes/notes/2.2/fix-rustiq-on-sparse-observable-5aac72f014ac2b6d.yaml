@@ -1,0 +1,17 @@
+---
+fixes:
+  - |
+    Fixed a bug in the :class:`.PauliEvolutionSynthesisRustiq` plugin that produced
+    incorrect circuits in the case that the operator of a :class:`.PauliEvolutionGate` 
+    contains objects of type :class:`.SparseObservable`.
+
+    For example::
+
+      from qiskit.circuit.library import PauliEvolutionGate
+      from qiskit.quantum_info import SparseObservable, Operator
+      from qiskit.transpiler.passes.synthesis.hls_plugins import PauliEvolutionSynthesisRustiq
+
+      obs = SparseObservable.from_sparse_list([("1+XY", (0, 1, 2, 3), 1.5)], num_qubits=4)
+      evo = PauliEvolutionGate(obs, 1)
+      qct = PauliEvolutionSynthesisRustiq().run(evo)
+      assert Operator(qct) == Operator(evo)

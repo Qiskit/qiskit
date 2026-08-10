@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug in :meth:`.BitArray.from_counts` and :meth:`.BitArray.from_samples`.
+    Previously these would raise an error if given data containing only zeros, and no
+    value for the optional argument ``num_bits``. Now they produce a :class:`.BitArray`
+    with :attr:`.BitArray.num_bits` set to 1.

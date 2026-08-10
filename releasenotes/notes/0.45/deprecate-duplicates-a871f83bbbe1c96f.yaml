@@ -1,0 +1,17 @@
+---
+deprecations:
+  - |
+    Deprecate duplicate gate methods on :class:`.QuantumCircuit`. The rule applied is that
+    the method names reflect that gate names, e.g. the :class:`.CXGate` is added via
+    :meth:`.QuantumCircuit.cx` and not :meth:`.QuantumCircuit.cnot`.
+    The deprecations are:
+
+    * :meth:`.QuantumCircuit.cnot` in favor of :meth:`.QuantumCircuit.cx`
+    * :meth:`.QuantumCircuit.toffoli` in favor of :meth:`.QuantumCircuit.ccx`
+    * :meth:`.QuantumCircuit.fredkin` in favor of :meth:`.QuantumCircuit.cswap`
+    * :meth:`.QuantumCircuit.mct` in favor of :meth:`.QuantumCircuit.mcx`
+    * :meth:`.QuantumCircuit.i` in favor of :meth:`.QuantumCircuit.id`
+
+    Note that :meth:`.QuantumCircuit.i` is the only exception to the rule above, but since
+    :meth:`.QuantumCircuit.id` more intuitively represents the identity and is used more, we chose
+    it over its counterpart.

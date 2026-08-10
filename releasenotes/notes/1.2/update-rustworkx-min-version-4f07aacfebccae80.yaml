@@ -1,0 +1,7 @@
+---
+upgrade_misc:
+  - |
+    The minimum version of rustworkx required to run this release has been
+    increased from 0.14.0 to 0.15.0. This is required because Qiskit is now
+    using new functionality added in the rustworkx 0.15.0 release which
+    improves performance.

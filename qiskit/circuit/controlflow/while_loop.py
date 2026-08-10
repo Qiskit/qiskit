@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -14,43 +14,28 @@
 
 from __future__ import annotations
 
-from qiskit.circuit import Clbit, ClassicalRegister, QuantumCircuit
+from typing import TYPE_CHECKING
+
+from qiskit.circuit import ClassicalRegister, Clbit
 from qiskit.circuit.classical import expr
 from qiskit.circuit.exceptions import CircuitError
+from qiskit._accelerate.circuit import ControlFlowType
 from ._builder_utils import validate_condition, condition_resources
 from .control_flow import ControlFlowOp
+
+if TYPE_CHECKING:
+    from qiskit.circuit import QuantumCircuit
 
 
 class WhileLoopOp(ControlFlowOp):
     """A circuit operation which repeatedly executes a subcircuit (``body``) until
     a condition (``condition``) evaluates as False.
 
-    Parameters:
-        condition: A condition to be checked prior to executing ``body``. Can be
-            specified as either a tuple of a ``ClassicalRegister`` to be tested
-            for equality with a given ``int``, or as a tuple of a ``Clbit`` to
-            be compared to either a ``bool`` or an ``int``.
-        body: The loop body to be repeatedly executed.
-        label: An optional label for identifying the instruction.
-
     The classical bits used in ``condition`` must be a subset of those attached
     to ``body``.
-
-    **Circuit symbol:**
-
-    .. parsed-literal::
-
-             ┌─────────────┐
-        q_0: ┤0            ├
-             │             │
-        q_1: ┤1            ├
-             │  while_loop │
-        q_2: ┤2            ├
-             │             │
-        c_0: ╡0            ╞
-             └─────────────┘
-
     """
+
+    _control_flow_type = ControlFlowType.WhileLoop
 
     def __init__(
         self,
@@ -58,11 +43,29 @@ class WhileLoopOp(ControlFlowOp):
         body: QuantumCircuit,
         label: str | None = None,
     ):
+        """
+        Args:
+            condition: A condition to be checked prior to executing ``body``. Can be
+                specified as either a tuple of a ``ClassicalRegister`` to be tested
+                for equality with a given ``int``, or as a tuple of a ``Clbit`` to
+                be compared to either a ``bool`` or an ``int``.
+            body: The loop body to be repeatedly executed.
+            label: An optional label for identifying the instruction.
+        """
         num_qubits = body.num_qubits
         num_clbits = body.num_clbits
 
         super().__init__("while_loop", num_qubits, num_clbits, [body], label=label)
-        self.condition = validate_condition(condition)
+        self._condition = validate_condition(condition)
+
+    @property
+    def condition(self):
+        """The condition for the while loop."""
+        return self._condition
+
+    @condition.setter
+    def condition(self, value):
+        self._condition = value
 
     @property
     def params(self):
@@ -70,6 +73,9 @@ class WhileLoopOp(ControlFlowOp):
 
     @params.setter
     def params(self, parameters):
+
+        from qiskit.circuit import QuantumCircuit
+
         (body,) = parameters
 
         if not isinstance(body, QuantumCircuit):
@@ -77,6 +83,8 @@ class WhileLoopOp(ControlFlowOp):
                 "WhileLoopOp expects a body parameter of type "
                 f"QuantumCircuit, but received {type(body)}."
             )
+        if body.num_input_vars:
+            raise self._unexpected_input_var_error()
 
         if body.num_qubits != self.num_qubits or body.num_clbits != self.num_clbits:
             raise CircuitError(
@@ -94,13 +102,7 @@ class WhileLoopOp(ControlFlowOp):
 
     def replace_blocks(self, blocks):
         (body,) = blocks
-        return WhileLoopOp(self.condition, body, label=self.label)
-
-    def c_if(self, classical, val):
-        raise NotImplementedError(
-            "WhileLoopOp cannot be classically controlled through Instruction.c_if. "
-            "Please use an IfElseOp instead."
-        )
+        return WhileLoopOp(self._condition, body, label=self.label)
 
 
 class WhileLoopContext:
@@ -160,7 +162,7 @@ class WhileLoopContext:
         scope = self._circuit._pop_scope()
         # Loops do not need to pass any further resources in, because this scope itself defines the
         # extent of ``break`` and ``continue`` statements.
-        body = scope.build(scope.qubits, scope.clbits)
+        body = scope.build(scope.qubits(), scope.clbits())
         self._circuit.append(
             WhileLoopOp(self._condition, body, label=self._label),
             body.qubits,

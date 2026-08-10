@@ -1,0 +1,10 @@
+---
+upgrade:
+  - |
+    The ``python-dateutil`` library is no longer a dependency of Qiskit. Since
+    Qiskit 2.0.0 nothing in the library was actively using the library anymore
+    and Qiskit didn't actually depend on the library anymore. This release
+    removes it from the dependency list so it is not automatically installed
+    as a prerequisite anymore. If you were relying on Qiskit to install
+    dateutil for you as a dependency you will now need to ensure you're manually
+    installing it (which is best practice for direct dependencies).

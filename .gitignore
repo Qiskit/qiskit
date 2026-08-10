@@ -18,6 +18,9 @@ __pycache__/
 
 # C extensions
 *.so
+# Generated C header files included in package.
+/qiskit/capi/include
+/qiskit/capi/_ctypes.py
 
 # Distribution / packaging
 .Python
@@ -59,6 +62,8 @@ coverage.xml
 test/python/*.log
 test/python/*.pdf
 test/python/*.prof
+test/qpy_compat/forward-qpy-files
+test/qpy_compat/dev-files
 .stestr/
 
 # Translations
@@ -76,11 +81,6 @@ instance/
 # Scrapy stuff:
 .scrapy
 
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -98,6 +98,7 @@ celerybeat-schedule
 .env
 
 # virtualenv
+.asv/
 .venv
 venv/
 ENV/
@@ -117,10 +118,6 @@ token.json
 tutorial/rst/_build/*
 
 test/python/test_qasm_python_simulator.pdf
-
-doc/_build/*
-
-doc/**/_autodoc
 
 qiskit/bin/*
 
@@ -142,7 +139,12 @@ src/qasm-simulator-cpp/test/qubit_vector_tests
 qiskit/transpiler/passes/**/cython/**/*.cpp
 qiskit/quantum_info/states/cython/*.cpp
 
-docs/stubs/*
+# Sphinx documentation
+/docs/_build
+/docs/stubs
+/docs/locale
+/docs/xml
+/executed_tutorials
 
 # Notebook testing images
 test/visual/mpl/circuit/circuit_results/*.png

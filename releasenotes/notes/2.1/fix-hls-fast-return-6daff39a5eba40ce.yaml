@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a problem in :class:`.HighLevelSynthesis` transpiler pass that caused
+    it to erroneously terminate early on certain circuits with control flow
+    operations.
+    Fixed `#14338 <https://github.com/Qiskit/qiskit-terra/issues/14338>`__

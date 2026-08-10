@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -15,8 +15,8 @@
 Classical expressions (:mod:`qiskit.circuit.classical`)
 =======================================================
 
-This module contains an exploratory representation of runtime operations on classical values during
-circuit execution.
+This module contains an exploratory representation of real-time operations on classical values
+during circuit execution.
 
 Currently, only simple expressions on bits and registers that result in a Boolean value are
 supported, and these are only valid for use in the conditions of :meth:`.QuantumCircuit.if_test`
@@ -39,3 +39,8 @@ target of :meth:`.QuantumCircuit.switch` (:class:`.SwitchCaseOp`).
 """
 
 from . import types, expr
+
+__all__ = [
+    "expr",
+    "types",
+]

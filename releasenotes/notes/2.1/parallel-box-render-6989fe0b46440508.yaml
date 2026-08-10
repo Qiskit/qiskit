@@ -1,0 +1,4 @@
+---
+features_visualization:
+  - |
+    Box instructions whose vertical spans do not overlap are now rendered in the same vertical slice, when possible.

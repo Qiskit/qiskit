@@ -1,0 +1,30 @@
+---
+name: Rust Tests
+on:
+  workflow_call:
+    inputs:
+      runner:
+        description: >
+          Describes the system this workflow should run on.
+        type: string
+        required: true
+jobs:
+  unit-tests:
+    # The main name is set in the calling workflow.
+    name: ${{ inputs.runner }}
+    timeout-minutes: 60
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Standalone checks for all crates
+        run: |
+          set -e
+          for crate in `ls -d ./crates/*/` ; do
+              pushd "$crate"
+              cargo check
+              popd
+          done
+      - name: Run Rust Tests
+        run: |
+          set -e
+          cargo test
