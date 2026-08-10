@@ -29,5 +29,7 @@ pub use binary::{Add, Divide, Multiply, Power, Remainder, Subtract};
 pub use bitwise::{BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor, Parity};
 pub use constant::Constant;
 pub use error::MathNodeError;
-pub use op_node_type::{OpNodeType, QISKIT};
+pub use op_node_type::{BoxedOpNodeError, BoxedOpNodeType, ErasedOpNodeType, OpNodeType, QISKIT};
+
+pub(crate) use op_node_type::erase;
 pub use reduction::{Mean, Std, Variance};
