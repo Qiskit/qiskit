@@ -10,8 +10,8 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum PauliEvolutionError {
-    #[error("operator list is empty")]
-    Empty,
+    #[error("operator not set")]
+    UnsetOperator,
     #[error("time is python object")]
     PythonTime,
 }
@@ -145,7 +145,7 @@ impl PauliEvolutionBuilder {
     pub fn build(self) -> Result<PauliEvolution, PauliEvolutionError> {
         const DEFAULT_TIME: f64 = 1.0;
 
-        let operator = self.operator.ok_or(PauliEvolutionError::Empty)?;
+        let operator = self.operator.ok_or(PauliEvolutionError::UnsetOperator)?;
 
         if matches!(self.time, Some(Param::Obj(_))) {
             return Err(PauliEvolutionError::PythonTime);
