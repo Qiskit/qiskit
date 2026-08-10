@@ -106,10 +106,8 @@ impl CustomOperation for PauliEvolution {
 
     fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
         let time = params.first().and_then(extract_time)?;
-        todo!()
-    }
+        let size = 1 << self.num_qubits();
 
-    fn definition(&self, params: &[Param]) -> Option<CircuitData> {
         todo!()
     }
 }
