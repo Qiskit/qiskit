@@ -1,10 +1,7 @@
-use std::{
-    fmt::{Display, Write},
-    sync::Arc,
-};
+use std::fmt::Display;
 
 use qiskit_circuit::{
-    operations::{CustomOperation, Operation, Param},
+    operations::{CustomOperation, Operation},
     parameter::parameter_expression::ParameterExpression,
 };
 use qiskit_quantum_info::sparse_observable::SparseObservable;
@@ -17,34 +14,35 @@ pub struct PauliEvolutionError;
 #[derive(Debug, Clone, PartialEq)]
 pub struct PauliEvolution {
     operator: SparseObservable,
-    time: ComparableParam,
+    time: Time,
     label: String,
 }
 
 impl PauliEvolution {
-    pub fn new(operator: SparseObservable, time: f64) -> Self {
-        Self::builder(operator)
-            .time(Param::Float(time))
-            .build()
-            .expect("time is float")
-    }
-
     pub fn builder(operator: SparseObservable) -> PauliEvolutionBuilder {
         PauliEvolutionBuilder::new(operator)
+    }
+
+    pub fn time(&self) -> &Time {
+        &self.time
+    }
+
+    pub fn label(&self) -> &str {
+        &self.label
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
-enum ComparableParam {
-    Float(f64),
-    Expression(Arc<ParameterExpression>),
+pub enum Time {
+    Number(f64),
+    Expression(Box<ParameterExpression>),
 }
 
-impl Display for ComparableParam {
+impl Display for Time {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ComparableParam::Float(float) => float.fmt(f),
-            ComparableParam::Expression(expr) => expr.fmt(f),
+            Time::Number(time) => time.fmt(f),
+            Time::Expression(time) => time.fmt(f),
         }
     }
 }
@@ -52,7 +50,7 @@ impl Display for ComparableParam {
 #[derive(Debug, Clone)]
 pub struct PauliEvolutionBuilder {
     operator: SparseObservable,
-    time: Option<Param>,
+    time: Option<Time>,
     label: Option<String>,
 }
 
@@ -65,7 +63,7 @@ impl PauliEvolutionBuilder {
         }
     }
 
-    pub fn time(mut self, time: Param) -> Self {
+    pub fn time(mut self, time: Time) -> Self {
         self.time = Some(time);
         self
     }
@@ -76,27 +74,15 @@ impl PauliEvolutionBuilder {
     }
 
     pub fn build(self) -> Result<PauliEvolution, PauliEvolutionError> {
-        let time = self
-            .time
-            .map(|param| build_comparable_param(param).ok_or(PauliEvolutionError))
-            .transpose()?
-            .unwrap_or(ComparableParam::Float(1.0));
+        const DEFAULT_TIME = 1.0;
 
         let label = self.label.unwrap_or_else(|| format_label(&self.operator));
 
         Ok(PauliEvolution {
             operator: self.operator,
-            time,
+            time: self.time.unwrap_or(Time::Number(DEFAULT_TIME)),
             label,
         })
-    }
-}
-
-fn build_comparable_param(param: Param) -> Option<ComparableParam> {
-    match param {
-        Param::Float(param) => Some(ComparableParam::Float(param)),
-        Param::ParameterExpression(param) => Some(ComparableParam::Expression(param)),
-        Param::Obj(_) => None,
     }
 }
 
@@ -131,7 +117,7 @@ impl Operation for PauliEvolution {
     }
 
     fn num_params(&self) -> u32 {
-        if matches!(self.time, ComparableParam::Expression(_)) {
+        if matches!(self.time, Time::Expression(_)) {
             1
         } else {
             0
@@ -146,5 +132,22 @@ impl Operation for PauliEvolution {
 impl CustomOperation for PauliEvolution {
     fn is_unitary(&self) -> bool {
         true
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_default_label_format() {
+        let op = SparseObservable::new(0, vec![], vec![], vec![], vec![]).expect("is valid");
+
+        let gate = PauliEvolution::builder(op)
+            .label("Hello, World!")
+            .build()
+            .expect("is valid");
+
+        assert_eq!(gate.label(), "Hello, World!");
     }
 }
