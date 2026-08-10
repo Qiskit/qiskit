@@ -193,7 +193,7 @@ class TestCliffordTPassManager(QiskitTestCase):
         transpiled = pm.run(qc)
         self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
 
-        @data(0, 1, 2, 3)
+    @data(0, 1, 2, 3)
     def test_clifford_t_transpile_is_unitarily_equivalent(self, optimization_level):
         """Regression test: OptimizeCliffordT previously produced a circuit that
         was not unitarily equivalent to the input (not even up to global phase)
