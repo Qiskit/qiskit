@@ -136,6 +136,59 @@ impl Task {
     }
 }
 
+/// A callback registry.
+pub struct CallbackRegistry {
+    post_pass: Vec<Box<dyn Fn(&dyn Any, &PassContext) -> ()>>,
+    post_task: Vec<Box<dyn Fn(&dyn Any, &PassContext) -> ()>>,
+    post_stage: Vec<Box<dyn Fn(&dyn Any, &PassContext) -> ()>>,
+}
+
+pub enum CallbackType {
+    PostPass,
+    PostTask,
+    PostStage,
+}
+
+impl CallbackRegistry {
+    pub fn new() -> Self {
+        Self {
+            post_pass: vec![],
+            post_task: vec![],
+            post_stage: vec![],
+        }
+    }
+
+    pub fn register_callback(
+        &mut self,
+        callback: Box<dyn Fn(&dyn Any, &PassContext) -> ()>,
+        when: CallbackType,
+    ) {
+        match when {
+            CallbackType::PostPass => self.post_pass.push(callback),
+            CallbackType::PostTask => self.post_task.push(callback),
+            CallbackType::PostStage => self.post_stage.push(callback),
+        }
+    }
+
+    fn call_post_pass(&self, ir: &dyn Any, context: &PassContext) {
+        for callback in self.post_pass.iter() {
+            callback(ir, context);
+        }
+    }
+
+    fn call_post_task(&self, ir: &dyn Any, context: &PassContext) {
+        for callback in self.post_task.iter() {
+            callback(ir, context);
+        }
+    }
+
+    fn call_post_stage(&self, ir: &dyn Any, context: &PassContext) {
+        for callback in self.post_stage.iter() {
+            callback(ir, context);
+        }
+    }
+}
+
 /// Qiskit's pass manager.
 pub struct PassManager {
     // It is UNSAFE to directly mutate the task vector since we are checking that the types
@@ -160,7 +213,11 @@ impl PassManager {
         Self { tasks: vec![] }
     }
 
-    pub fn run<IRIn, IROut>(&self, ir: IRIn) -> Result<IROut, PassManagerError>
+    pub fn run<IRIn, IROut>(
+        &self,
+        ir: IRIn,
+        callbacks: Option<&CallbackRegistry>,
+    ) -> Result<IROut, PassManagerError>
     where
         IRIn: 'static,
         IROut: 'static,
@@ -181,7 +238,7 @@ impl PassManager {
         // Main iteration loop over tasks
         let mut context = PassContext::new();
         for task in self.tasks.iter() {
-            ir = execute_task(task, ir, &mut context)?;
+            ir = execute_task(task, ir, &mut context, callbacks)?;
         }
 
         cast_box::<IROut>(ir)
@@ -242,34 +299,41 @@ fn execute_task(
     task: &Task,
     mut ir: Box<dyn Any>,
     context: &mut PassContext,
+    callbacks: Option<&CallbackRegistry>,
 ) -> Result<Box<dyn Any>, PassManagerError> {
     let out = match task {
-        Task::Transformation(pass) => pass
-            .run(ir, context)
-            .map_err(|e| PassManagerError::PassError(e)),
+        Task::Transformation(pass) => {
+            let out = pass
+                .run(ir, context)
+                .map_err(|e| PassManagerError::PassError(e))?;
+            callbacks.map(|cb| cb.call_post_pass(&out, context));
+            Ok(out)
+        }
         Task::Group(tasks) => {
             for task in tasks.iter() {
-                ir = execute_task(task, ir, context)?;
+                ir = execute_task(task, ir, context, callbacks)?;
             }
             Ok(ir)
         }
         Task::Switch { switch, cases } => {
             let index = switch(&ir, context);
-            execute_task(&cases[index], ir, context)
+            execute_task(&cases[index], ir, context, callbacks)
         }
         Task::Loop { condition, body } => {
             while condition(&ir, &context) {
-                ir = execute_task(&body, ir, context)?;
+                ir = execute_task(&body, ir, context, callbacks)?;
             }
             Ok(ir)
         }
         Task::Stages(stages) => {
             for (_name, task) in stages.iter() {
-                ir = execute_task(task, ir, context)?;
+                ir = execute_task(task, ir, context, callbacks)?;
+                callbacks.map(|cb| cb.call_post_stage(&ir, context));
             }
             Ok(ir)
         }
     };
+    callbacks.map(|cb| cb.call_post_task(&out, context));
     out
 }
 
@@ -355,7 +419,7 @@ mod test {
         )
         .unwrap();
 
-        let out: DAGCircuit = pm.run(dag)?;
+        let out: DAGCircuit = pm.run(dag, None)?;
         let ops = out.count_ops(false).unwrap();
         assert_eq!(ops.get("h").map(|v| *v), Some(1));
         assert_eq!(ops.get("rx"), None);
