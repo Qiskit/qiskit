@@ -1,8 +1,12 @@
 use std::sync::Arc;
 
+use ndarray::Array2;
+use num_complex::Complex64;
 use qiskit_circuit::{
+    circuit_data::CircuitData,
     operations::{CustomOperation, Operation, Param},
     packed_instruction::PackedOperation,
+    parameter::symbol_expr::Value,
 };
 use qiskit_quantum_info::sparse_observable::SparseObservable;
 use smallvec::SmallVec;
@@ -11,7 +15,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum PauliEvolutionError {
     #[error("operator not set")]
-    UnsetOperator,
+    Empty,
     #[error("time is python object")]
     PythonTime,
 }
@@ -85,33 +89,54 @@ impl CustomOperation for PauliEvolution {
     }
 
     fn inverse(&self, params: &[Param]) -> Option<(PackedOperation, SmallVec<[Param; 3]>)> {
-        debug_assert!(params.len() == 1);
+        let param = params.first()?;
 
-        params.first().map(|param| {
-            let mut inverse = self.clone();
-            inverse_param(&mut inverse.time.0);
+        let mut inverse = self.clone();
+        inverse_time(&mut inverse.time.0);
 
-            let inverse = PackedOperation::from_custom_operation(Box::new(inverse));
-            let mut param = param.clone();
-            inverse_param(&mut param);
+        let inverse = PackedOperation::from_custom_operation(Box::new(inverse));
+        let mut param = param.clone();
+        inverse_time(&mut param);
 
-            let mut params: SmallVec<_> = SmallVec::new();
-            params.push(param);
+        let mut params: SmallVec<_> = SmallVec::new();
+        params.push(param);
 
-            (inverse, params)
-        })
+        Some((inverse, params))
+    }
+
+    fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
+        let time = params.first().and_then(extract_time)?;
+        todo!()
+    }
+
+    fn definition(&self, params: &[Param]) -> Option<CircuitData> {
+        todo!()
     }
 }
 
-fn inverse_param(param: &mut Param) {
+fn inverse_time(param: &mut Param) {
     match param {
-        Param::Float(time) => {
-            *time *= -1.0;
-        }
         Param::ParameterExpression(time) => {
             *time = Arc::new(time.neg());
         }
+        Param::Float(time) => {
+            *time *= -1.0;
+        }
         _ => (),
+    }
+}
+
+fn extract_time(param: &Param) -> Option<f64> {
+    match param {
+        Param::ParameterExpression(time) => {
+            if let Value::Real(time) = time.try_to_value(true).ok()? {
+                Some(time)
+            } else {
+                None
+            }
+        }
+        Param::Float(time) => Some(*time),
+        Param::Obj(_) => None,
     }
 }
 
@@ -145,7 +170,7 @@ impl PauliEvolutionBuilder {
     pub fn build(self) -> Result<PauliEvolution, PauliEvolutionError> {
         const DEFAULT_TIME: f64 = 1.0;
 
-        let operator = self.operator.ok_or(PauliEvolutionError::UnsetOperator)?;
+        let operator = self.operator.ok_or(PauliEvolutionError::Empty)?;
 
         if matches!(self.time, Some(Param::Obj(_))) {
             return Err(PauliEvolutionError::PythonTime);
