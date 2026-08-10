@@ -10,9 +10,24 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-mod constant;
-pub mod math;
-mod program_op;
+//! The op contract and the ops Qiskit defines.
+//!
+//! The ops here share the rules in `inference` rather than each spelling out its own, so two
+//! ops in one family cannot drift apart. An op may write its own inference, and one whose
+//! result types come from something other than its operand types has to: a shot loop takes its
+//! result types from its circuits.
 
-pub use constant::Store;
-pub use program_op::{CallError, CallInputError, MissingCallError, ProgramOp, ProgramOpExt};
+mod binary;
+mod bitwise;
+mod constant;
+mod error;
+mod inference;
+mod program_op;
+mod reduction;
+
+pub use binary::{Add, Divide, Multiply, Power, Remainder, Subtract};
+pub use bitwise::{BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor, Parity};
+pub use constant::Constant;
+pub use error::MathOpError;
+pub use program_op::{ProgramOp, QISKIT};
+pub use reduction::{Mean, Std, Variance};

@@ -10,9 +10,20 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+//! The quantum program: the dataflow IR that Qiskit's `BackendV3` interface consumes.
+//!
+//! A program describes a hybrid quantum-classical computation as typed tensor values produced and
+//! consumed by instructions. It is inert data: it describes a computation without performing one.
+//!
+//! - [`tensor`] is the value domain. A [`Tensor`](tensor::Tensor) is a dense array over one of a
+//!   fixed set of dtypes, and a [`TensorType`](tensor::TensorType) is its data-less counterpart.
+//! - [`ops`] holds the [`ProgramOp`] contract and the ops Qiskit defines. The set is
+//!   open: an op may be defined outside this crate, in its own namespace.
+//! - [`data_tree`] holds [`DataTree`], the container for structured values.
+
 pub mod data_tree;
 pub mod ops;
 pub mod tensor;
 
 pub use data_tree::{ArityMismatch, DataTree, InvalidName, Name, PathEntry, TreeMatchError};
-pub use ops::{CallError, CallInputError, MissingCallError, ProgramOp, ProgramOpExt, Store};
+pub use ops::{Constant, ProgramOp};

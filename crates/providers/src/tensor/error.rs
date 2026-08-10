@@ -31,7 +31,7 @@ pub enum TensorError {
     /// The two operand shapes are not broadcast-compatible.
     #[error("shapes {lhs:?} and {rhs:?} are not broadcast-compatible")]
     ShapeMismatch { lhs: Vec<usize>, rhs: Vec<usize> },
-    /// The two operand [`Dim`] shapes are not broadcast-compatible.ß
+    /// The two operand [`Dim`] shapes are not broadcast-compatible.
     #[error(
         "shapes {} and {} are not broadcast-compatible",
         fmt_shape(lhs),
