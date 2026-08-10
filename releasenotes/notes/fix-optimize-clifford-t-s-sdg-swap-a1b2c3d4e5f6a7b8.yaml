@@ -1,0 +1,12 @@
+fixes:
+  - |
+    Fixed a bug in :class:`.OptimizeCliffordT` where, for circuits transpiled
+    to a Clifford+T basis that excludes ``sx``/``sxdg`` (for example
+    ``basis_gates=["cx", "s", "sdg", "h", "t", "tdg"]``), the pass could
+    return a circuit that was not unitarily equivalent to its input -- not
+    even up to a global phase -- with no error or warning raised. This
+    affected :func:`~qiskit.compiler.transpile` at ``optimization_level`` 1,
+    2, and 3 (the default ``optimization_level`` is 2, so this was not an
+    opt-in edge case). The bug was a two-token transcription error (``S``
+    and ``Sdg`` swapped) in the pass's internal re-expression of a Y-axis
+    T-rotation for bases without ``sx``/``sxdg``, introduced in #15625.
