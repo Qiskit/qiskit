@@ -27,9 +27,17 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     groups:
-      GitHub_Actions:
+      # A group for changes that we'll want to test with the extra wheels-build test suite (the
+      # GitHub label `ci: test wheels`, see `.github/workflows/wheels-pr.yml`).  Unfortunately the
+      # Dependabot v2 configuration doesn't have a way to add extra labels per group to automate it.
+      wheels-build:
         patterns:
-          - "*"  # Group all Actions updates into a single larger pull request
+          - "pypa/cibuildwheel"
+      # Catch-all for all other Actions update.  Dependabot guarantees that packages are updated in
+      # the first group they match, so previous matches won't get folded into here.
+      github-actions:
+        patterns: 
+          - "*"
     schedule:
       interval: weekly
     labels:
@@ -37,9 +45,6 @@ updates:
       - "dependencies"
       - "Changelog: None"
     ignore:
-      # This semi-reliably requires us to make manual changes to the wheel-build rules, so it's more
-      # convenient to do it all ourselves.
-      - { dependency-name: "pypa/cibuildwheel", versions: [">3.0.1"] }
       # The version of this is used as a cutesy way to select the Rust version instead of doing
       # things with an Actions input.
       - { dependency-name: "dtolnay/rust-toolchain", versions: [">1.7.0"] }
