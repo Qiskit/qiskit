@@ -10,32 +10,43 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-//! The contract every op satisfies.
+//! Defines the contract of atomic units within a quantum program.
 
 use crate::tensor::{Tensor, TensorType};
 
 /// The [`ProgramOp::namespace`] of every op Qiskit defines.
 pub const QISKIT: &str = "qiskit";
 
-/// One step in a program function: a typed mapping from tensors to tensors.
+/// An atomic operation in a quantum program: a typed mapping from tensors to tensors.
 ///
-/// An op declares how many operands it takes ([`Self::arity`]) and how to derive its result
-/// types from theirs ([`Self::infer_output_types`]). Operands and results are flat and
-/// positional, and an op instance is monomorphic: given operand types it accepts, its result
-/// types are determined.
+/// An op declares how many operands it takes ([`Self::arity`]) and how to derive its result types
+/// from prospective input types ([`Self::infer_output_types`]). Operands and results are flat and
+/// positional, and inference is monomorphic: given operand types the op accepts, its result types
+/// are determined.
 ///
-/// The boolean [`Self::has_builtin_eval`] specifies whether [`Self::eval`] contains an implementation.
+/// An op may have a payload of its own, such as "which axis" information in
+/// [`Mean`](crate::ops::Mean), quantum circuit instances in [`ShotLoop`](crate::ops::ShotLoop), or
+/// a tensor in [`Constant`](crate::ops::Constant).
+///
+/// An op can optionally implement [`Self::eval`] to explicitly perform the tensor manipulation
+/// that it represents, declaring its choice to do so or not in [`Self::has_builtin_eval`].
+/// `QuantumProgram` offers call options to enable externally-defined evaluations.
+///
+/// An op defined outside this crate lives in its own [`Self::namespace`] and is treated like
+/// any other.
 pub trait ProgramOp {
     /// The error this op reports for a rejected operand type or a failed evaluation.
     type Error;
 
-    /// The name of this program op.
+    /// The name of this op within its namespace, `add` for instance.
     fn name(&self) -> &str;
 
-    /// The namespace this program op belongs to.
+    /// The namespace this op belongs to, [`QISKIT`] for one Qiskit defines.
     fn namespace(&self) -> &str;
 
-    /// The namespace and name as one string.
+    /// The namespace and name as one string, `qiskit.add` for instance.
+    ///
+    /// Backends dispatch on this value.
     fn full_name(&self) -> String {
         format!("{}.{}", self.namespace(), self.name())
     }
@@ -48,9 +59,14 @@ pub trait ProgramOp {
 
     /// Infer the types of this op's results from the types of its operands.
     ///
-    /// This runs when the op is added to a program function, and is therefore what makes a
-    /// built function well-typed: an operand type this op cannot accept must be reported as an
-    /// error here, naming the operand position at fault.
+    /// This runs when the op is added to a program function, and is the primary mechanism
+    /// to ensure all quantum programs and the functions they contain are well-defined at
+    /// all times. The inferred type returned by this method becomes the value type checked by
+    /// subsequent ops.
+    ///
+    /// When several ops happen to share output type inference rules, they are typically made
+    /// common in [`tensor::rules`](crate::tensor::rules). For example, binary arithmetic operations
+    /// share the same broadcasting and type promotion rules.
     ///
     /// # Panics
     ///
@@ -60,13 +76,105 @@ pub trait ProgramOp {
     /// Evaluate this op on `args`, returning one tensor per result.
     ///
     /// The returned tensors match, in count and type, what [`Self::infer_output_types`] promised
-    /// for the corresponding operand types. An error is a last resort: a division op, for
-    /// instance, returns non-finite values for a zero divisor rather than failing, because some
-    /// of the data from elsewhere in the program may still be usable. An op whose
-    /// [`Self::has_builtin_eval`] is false always returns an error.
+    /// for the corresponding operand types. Run time errors should be a last resort: a division op
+    /// returns non-finite values for a zero divisor rather than failing, because data from
+    /// elsewhere in the program may still be usable. An op whose [`Self::has_builtin_eval`] is
+    /// false always returns an error.
     ///
     /// # Panics
     ///
-    /// May panic if `args` does not match the operand types this op was type-checked against.
+    /// May panic if `args` does not correspond with a non-erroring input to
+    /// [`Self::infer_output_types`].
     fn eval(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::Error>;
+}
+
+/// The error of an op whose type inference or evaluation fails, type-erased.
+pub type BoxedOpError = Box<dyn std::error::Error + Send + Sync + 'static>;
+
+/// An owned [`ErasedProgramOp`].
+pub type BoxedProgramOp = Box<dyn ErasedProgramOp>;
+
+/// A type-erased [`ProgramOp`].
+pub trait ErasedProgramOp: std::any::Any + Send + Sync + sealed::Clonable {
+    fn name(&self) -> &str;
+    fn namespace(&self) -> &str;
+    fn full_name(&self) -> String;
+    fn arity(&self) -> usize;
+    fn has_builtin_eval(&self) -> bool;
+    fn infer_output_types(&self, inputs: &[TensorType]) -> Result<Vec<TensorType>, BoxedOpError>;
+    fn eval(&self, args: &[Tensor]) -> Result<Vec<Tensor>, BoxedOpError>;
+}
+
+impl<O> ErasedProgramOp for O
+where
+    O: ProgramOp + Clone + Send + Sync + 'static,
+    O::Error: std::error::Error + Send + Sync + 'static,
+{
+    fn name(&self) -> &str {
+        ProgramOp::name(self)
+    }
+    fn namespace(&self) -> &str {
+        ProgramOp::namespace(self)
+    }
+
+    fn full_name(&self) -> String {
+        ProgramOp::full_name(self)
+    }
+
+    fn arity(&self) -> usize {
+        ProgramOp::arity(self)
+    }
+
+    fn has_builtin_eval(&self) -> bool {
+        ProgramOp::has_builtin_eval(self)
+    }
+
+    fn infer_output_types(&self, inputs: &[TensorType]) -> Result<Vec<TensorType>, BoxedOpError> {
+        ProgramOp::infer_output_types(self, inputs).map_err(|error| Box::new(error) as BoxedOpError)
+    }
+
+    fn eval(&self, args: &[Tensor]) -> Result<Vec<Tensor>, BoxedOpError> {
+        ProgramOp::eval(self, args).map_err(|error| Box::new(error) as BoxedOpError)
+    }
+}
+
+impl dyn ErasedProgramOp + 'static {
+    /// Downcast a type-erased program op into the specific program op it actually is.
+    pub fn downcast_ref<O: ProgramOp + 'static>(&self) -> Option<&O> {
+        (self as &dyn std::any::Any).downcast_ref()
+    }
+}
+
+impl ToOwned for dyn ErasedProgramOp {
+    type Owned = BoxedProgramOp;
+
+    fn to_owned(&self) -> Self::Owned {
+        self.clone_dyn()
+    }
+}
+
+mod sealed {
+    use super::{BoxedProgramOp, ProgramOp};
+
+    /// Copying an op through a trait object.
+    ///
+    /// [`Clone`] is not dyn-compatible, because it returns `Self`. This trait is sealed and blanket
+    /// implemented, so an implementor supplies nothing but `Clone`.
+    #[diagnostic::on_unimplemented(
+        message = "Clone is required to store {Self} in a program function",
+        note = "Consider annotating {Self} with `#[derive(Clone)]`"
+    )]
+    pub trait Clonable {
+        fn clone_dyn(&self) -> BoxedProgramOp;
+    }
+
+    impl<O> Clonable for O
+    where
+        O: ProgramOp + Clone + Send + Sync + 'static,
+        O::Error: std::error::Error + Send + Sync + 'static,
+    {
+        fn clone_dyn(&self) -> BoxedProgramOp {
+            Box::new(self.clone())
+        }
+    }
 }
