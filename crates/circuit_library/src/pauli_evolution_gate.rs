@@ -23,12 +23,20 @@ impl PauliEvolution {
         PauliEvolutionBuilder::new(operator)
     }
 
+    pub fn operator(&self) -> &SparseObservable {
+        &self.operator
+    }
+
     pub fn time(&self) -> &Time {
         &self.time
     }
 
-    pub fn label(&self) -> &str {
-        &self.label
+    pub fn into_parts(self) -> PauliEvolutionParts {
+        PauliEvolutionParts {
+            operator: self.operator,
+            time: self.time,
+            label: self.label,
+        }
     }
 }
 
@@ -36,15 +44,6 @@ impl PauliEvolution {
 pub enum Time {
     Number(f64),
     Expression(Box<ParameterExpression>),
-}
-
-impl Display for Time {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Time::Number(time) => time.fmt(f),
-            Time::Expression(time) => time.fmt(f),
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -103,6 +102,13 @@ fn format_label(operator: &SparseObservable) -> String {
     label
 }
 
+#[derive(Debug, Clone)]
+pub struct PauliEvolutionParts {
+    pub operator: SparseObservable,
+    pub time: Time,
+    pub label: String,
+}
+
 impl Operation for PauliEvolution {
     fn name(&self) -> &'static str {
         "PauliEvolution"
@@ -130,6 +136,10 @@ impl Operation for PauliEvolution {
 }
 
 impl CustomOperation for PauliEvolution {
+    fn label(&self) -> Option<&str> {
+        Some(&self.label)
+    }
+
     fn is_unitary(&self) -> bool {
         true
     }
@@ -146,12 +156,12 @@ mod tests {
         let evolution = PauliEvolution::builder(mock_xy())
             .build()
             .expect("is valid");
-        assert_eq!(evolution.label(), "exp(-it (XY))");
+        assert_eq!(evolution.label(), Some("exp(-it (XY))"));
 
         let evolution = PauliEvolution::builder(mock_xy_zz())
             .build()
             .expect("is valid");
-        assert_eq!(evolution.label(), "exp(-it (XY + ZZ))")
+        assert_eq!(evolution.label(), Some("exp(-it (XY + ZZ))"))
     }
 
     #[test]
@@ -160,7 +170,7 @@ mod tests {
             .label("Hello, World!")
             .build()
             .expect("is valid");
-        assert_eq!(evolution.label(), "Hello, World!");
+        assert_eq!(evolution.label(), Some("Hello, World!"));
     }
 
     fn mock_xy() -> SparseObservable {
