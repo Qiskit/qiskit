@@ -186,6 +186,20 @@ mod tests {
     use super::*;
 
     #[test]
+    #[should_panic]
+    fn test_inverse_empty() {
+        let evolution = PauliEvolution::builder(mock_xy()).build();
+        evolution.inverse(&[]);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_inverse_too_many() {
+        let evolution = PauliEvolution::builder(mock_xy()).build();
+        evolution.inverse(&[Param::Float(3.0), Param::Float(1.0)]);
+    }
+
+    #[test]
     fn test_inverse_float() {
         let evolution = PauliEvolution::builder(mock_xy())
             .time(Time::Float(3.0))
@@ -196,25 +210,6 @@ mod tests {
             params.first(),
             Some(Param::Float(time)) if *time == -3.0
         ));
-    }
-
-    #[test]
-    fn test_inverse_expression() {
-        todo!()
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_inverse_empty() {
-        let evolution = PauliEvolution::builder(mock_xy()).build();
-        evolution.inverse(&[]);
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_inverse_two() {
-        let evolution = PauliEvolution::builder(mock_xy()).build();
-        evolution.inverse(&[Param::Float(3.0), Param::Float(1.0)]);
     }
 
     #[test]
