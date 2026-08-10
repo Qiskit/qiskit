@@ -25,6 +25,7 @@ from qiskit._accelerate.synthesis.multi_controlled import (
     synth_mcx_n_dirty_i15 as synth_mcx_n_dirty_i15_rs,
     synth_mcx_noaux_v24 as synth_mcx_noaux_v24_rs,
     synth_mcx_noaux_hp24 as synth_mcx_noaux_hp24_rs,
+    synth_mcx_1_kg24 as synth_mcx_1_kg24_rs,
 )
 from .gray_code import gray_code_chain
 
@@ -356,58 +357,6 @@ def _n_parallel_ccx_x(n: int, apply_x: bool = True) -> QuantumCircuit:
     return qc
 
 
-def _linear_depth_ladder_ops(num_ladder_qubits: int) -> tuple[QuantumCircuit, list[int]]:
-    r"""
-    Helper function to create linear-depth ladder operations used in Khattar and Gidney's MCX synthesis.
-    In particular, this implements Step-1 and Step-2 on Fig. 3 of [1] except for the first and last
-    CCX gates.
-
-    Args:
-        num_ladder_qubits: No. of qubits involved in the ladder operation.
-
-    Returns:
-        A tuple consisting of the linear-depth ladder circuit and the index of control qubit to
-        apply the final CCX gate.
-
-    Raises:
-        QiskitError: If num_ladder_qubits <= 2.
-
-    References:
-        1. Khattar and Gidney, Rise of conditionally clean ancillae for optimizing quantum circuits
-        `arXiv:2407.17966 <https://arxiv.org/abs/2407.17966>`__
-    """
-
-    if num_ladder_qubits <= 2:
-        raise QiskitError("n_ctrls >= 3 to use MCX ladder. Otherwise, use CCX")
-
-    n = num_ladder_qubits + 1
-    qc = QuantumCircuit(n)
-    qreg = list(range(n))
-
-    # up-ladder
-    for i in range(2, n - 2, 2):
-        qc.rccx(qreg[i + 1], qreg[i + 2], qreg[i])
-        qc.x(qreg[i])
-
-    # down-ladder
-    if n % 2 != 0:
-        a, b, target = n - 3, n - 5, n - 6
-    else:
-        a, b, target = n - 1, n - 4, n - 5
-
-    if target > 0:
-        qc.rccx(qreg[a], qreg[b], qreg[target])
-        qc.x(qreg[target])
-
-    for i in range(target, 2, -2):
-        qc.rccx(qreg[i], qreg[i - 1], qreg[i - 2])
-        qc.x(qreg[i - 2])
-
-    mid_second_ctrl = 1 + max(0, 6 - n)
-    final_ctrl = qreg[mid_second_ctrl] - 1
-    return qc, final_ctrl
-
-
 def synth_mcx_1_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit:
     r"""
     Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`1` ancillary qubit as
@@ -434,34 +383,10 @@ def synth_mcx_1_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
             "synth_mcx_1_kg24 cannot be called with a negative number of control qubits."
         )
 
-    if num_ctrl_qubits <= 2:
-        return _synth_mcx_special_cases(num_ctrl_qubits)
+    circ = QuantumCircuit._from_circuit_data(synth_mcx_1_kg24_rs(num_ctrl_qubits,clean)) 
+    return circ
 
-    q_controls = QuantumRegister(num_ctrl_qubits, name="ctrl")
-    q_target = QuantumRegister(1, name="targ")
-    q_ancilla = AncillaRegister(1, name="anc")
-    qc = QuantumCircuit(q_controls, q_target, q_ancilla, name="mcx_linear_depth")
-
-    ladder_ops, final_ctrl = _linear_depth_ladder_ops(num_ctrl_qubits)
-
-    qc.rccx(q_controls[0], q_controls[1], q_ancilla[0])  #              # create cond. clean ancilla
-    qc.compose(ladder_ops, q_ancilla[:] + q_controls[:], inplace=True)  # up-ladder
-    qc.ccx(q_ancilla, q_controls[final_ctrl], q_target)  #              # target
-    qc.compose(  #                                                      # down-ladder
-        ladder_ops.inverse(),
-        q_ancilla[:] + q_controls[:],
-        inplace=True,
-    )
-    qc.rccx(q_controls[0], q_controls[1], q_ancilla[0])  #              # undo cond. clean ancilla
-
-    if not clean:
-        # perform toggle-detection if ancilla is dirty
-        qc.compose(ladder_ops, q_ancilla[:] + q_controls[:], inplace=True)
-        qc.ccx(q_ancilla, q_controls[final_ctrl], q_target)
-        qc.compose(ladder_ops.inverse(), q_ancilla[:] + q_controls[:], inplace=True)
-
-    return qc
-
+ 
 
 def synth_mcx_1_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
@@ -489,9 +414,6 @@ def synth_mcx_1_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
         raise QiskitError(
             "synth_mcx_1_clean_kg24 cannot be called with a negative number of control qubits."
         )
-
-    if num_ctrl_qubits <= 2:
-        return _synth_mcx_special_cases(num_ctrl_qubits)
 
     return synth_mcx_1_kg24(num_ctrl_qubits, clean=True)
 
@@ -521,9 +443,6 @@ def synth_mcx_1_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
         raise QiskitError(
             "synth_mcx_1_dirty_kg24 cannot be called with a negative number of control qubits."
         )
-
-    if num_ctrl_qubits <= 2:
-        return _synth_mcx_special_cases(num_ctrl_qubits)
 
     return synth_mcx_1_kg24(num_ctrl_qubits, clean=False)
 

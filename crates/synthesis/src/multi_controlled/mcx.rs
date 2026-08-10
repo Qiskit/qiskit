@@ -23,6 +23,7 @@ use smallvec::SmallVec;
 
 use qiskit_circuit::instruction::Parameters;
 use std::f64::consts::PI;
+//use std::num;
 
 use crate::QiskitError;
 const PI2: f64 = PI / 2.0;
@@ -387,6 +388,146 @@ pub fn synth_mcx_n_dirty_i15(
                 break;
             }
         }
+        Ok(circuit)
+    }
+}
+
+/// Helper function to create linear-depth ladder operations used in Khattar and Gidney's MCX synthesis.
+///
+/// This implements Step 1 and Step 2 on Fig. 3 of [1] except for the first and last CCX gates.
+///
+/// # Arguments
+/// - num_controls: the number of qubits involved in the ladder operation.
+///
+/// # Returns
+///
+/// A tuple consisting of the linear-depth ladder circuit and the index of the control qubit
+/// to apply to the final CCX gate.
+///
+/// # Panics
+///
+/// Panics if `num_controls < 3`.
+///
+/// # References
+///
+/// 1. Khattar and Gidney, *Rise of conditionally clean ancillae for optimizing quantum circuits*,
+///    [arXiv:2407.17966](https://arxiv.org/abs/2407.17966).
+fn linear_depth_ladder_ops(num_controls: u32) -> Result<(CircuitData, u32), CircuitDataError> {
+    let k = num_controls;
+    assert!(k >= 3, "ladder requires >= 3 controls");
+
+    // At most k-2 rungs, each RCCX (9 gates) + X (1 gate); pre-size to avoid reallocation.
+    let mut circuit =
+        CircuitData::with_capacity(k, 0, 10 * k.saturating_sub(2) as usize, Param::Float(0.0))?;
+
+    // Fold all k controls into a running partial-AND via RCCX+X pairs. RCCX is used
+    // instead of CCX because its relative phase cancels when composed with its inverse.
+    // The trailing X after each RCCX prepares the written qubit as a control for the next rung.
+    //
+
+    // Up-sweep: fold controls into qubit 1 two at a time, walking toward the middle.
+    let mut i: u32 = 1;
+    while i + 2 < k {
+        circuit.rccx(i + 1, i + 2, i)?;
+        circuit.x(i)?;
+        i += 2;
+    }
+
+    // Peak: where the up-sweep and down-sweep meet. Parity of k determines which qubits
+    // participate. target < 0 means no distinct peak (up-sweep already reaches the end).
+    let (a, b, target) = if k % 2 == 0 {
+        (k as i32 - 3, k as i32 - 5, k as i32 - 6)
+    } else {
+        (k as i32 - 1, k as i32 - 4, k as i32 - 5)
+    };
+
+    if target >= 0 {
+        circuit.rccx(a as u32, b as u32, target as u32)?;
+        circuit.x(target as u32)?;
+
+        // Down-sweep: mirror of the up-sweep, walking back toward qubit 1.
+        let mut i = target as u32;
+        while i > 1 {
+            circuit.rccx(i, i - 1, i - 2)?;
+            circuit.x(i - 2)?;
+            i -= 2;
+        }
+    }
+    // final_ctrl holds the AND of the controls not covered by the ladder (qubits 0..1).
+    // The caller pairs it with the ancilla in one final CCX.
+    let final_ctrl = 5u32.saturating_sub(k);
+    Ok((circuit, final_ctrl))
+}
+
+/// Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`1` ancillary qubit.
+///
+/// The construction is described in Section 5 of [1]. For :math:`k\le 2`, the returned circuit
+/// consists of a single X, CX, or CCX gate (corresponding to :math:`k = 0, 1, 2`, respectively)
+/// and uses no ancillary qubits.
+///
+/// # Arguments
+/// - num_controls: the number of control qubits.
+/// - clean: if `true`, the ancilla is clean; if `false`, the ancilla is dirty.
+///
+/// # References
+///
+/// 1. Khattar and Gidney, *Rise of conditionally clean ancillae for optimizing quantum circuits*,
+///    [arXiv:2407.17966](https://arxiv.org/abs/2407.17966).
+pub fn synth_mcx_1_kg24(num_controls: usize, clean: bool) -> Result<CircuitData, CircuitDataError> {
+    if num_controls == 0 {
+        let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0))?;
+        circuit.x(0)?;
+        Ok(circuit)
+    } else if num_controls == 1 {
+        let mut circuit = CircuitData::with_capacity(2, 0, 1, Param::Float(0.0))?;
+        circuit.cx(0, 1)?;
+        Ok(circuit)
+    } else if num_controls == 2 {
+        Ok(ccx())
+    } else {
+        // --- General case: k >= 3 controls, 1 ancilla ---
+        let k = num_controls as u32;
+        let target = k;
+        let ancilla = k + 1;
+
+        let (ladder, final_ctrl) = linear_depth_ladder_ops(k)?;
+
+        // Precompute once; the dirty-ancilla case reuses it for the second pass.
+        let ladder_inv = ladder.inverse()?;
+
+        // Dirty case repeats the ladder/CCX pass twice; reserve capacity for both up front.
+        let sandwich_passes = if clean { 1 } else { 2 };
+        let instruction_capacity = 2 * rccx().data().len()
+            + sandwich_passes * (2 * ladder.data().len() + ccx().data().len());
+        let mut circuit =
+            CircuitData::with_capacity(k + 2, 0, instruction_capacity, Param::Float(0.0))?;
+
+        let controls_map: Vec<Qubit> = (0..k).map(Qubit).collect();
+
+        // Step 1: turn the ancilla into a "conditionally clean" qubit holding
+        // AND(control_0, control_1). RCCX is used (rather than CCX) because its stray
+        // relative phase is harmless: it will cancel against the same RCCX's inverse
+        // in step 5.
+        circuit.rccx(0, 1, ancilla)?;
+        // Step 2: fold in the remaining controls so that `final_ctrl` ends up holding
+        // AND(control_2, ..., control_{k-1}).
+        circuit.compose(&ladder, &controls_map, &[])?;
+        // Step 3: the actual MCX action — flip the target iff the ancilla AND
+        // final_ctrl are both set, i.e. iff AND(control_0, ..., control_{k-1}) holds.
+        circuit.ccx(ancilla, final_ctrl, target)?;
+        // Steps 4-5: undo steps 2 and 1, restoring every control qubit and the ancilla
+        // to their original state (the ancilla ends back at |0> if it started there).
+        circuit.compose(&ladder_inv, &controls_map, &[])?;
+        circuit.rccx(0, 1, ancilla)?;
+
+        if !clean {
+            // Dirty ancilla: repeat the compute/uncompute sandwich (toggle-detection) to
+            // cancel dependence on the ancilla's initial state.
+            circuit.compose(&ladder, &controls_map, &[])?;
+            circuit.ccx(ancilla, final_ctrl, target)?;
+            circuit.compose(&ladder_inv, &controls_map, &[])?;
+        }
+
         Ok(circuit)
     }
 }
