@@ -82,7 +82,7 @@ impl PauliEvolutionBuilder {
             .transpose()?
             .unwrap_or(ComparableParam::Float(1.0));
 
-        let label = self.label.unwrap_or(format_label(&self.operator, &time));
+        let label = self.label.unwrap_or_else(|| format_label(&self.operator));
 
         Ok(PauliEvolution {
             operator: self.operator,
@@ -100,7 +100,7 @@ fn build_comparable_param(param: Param) -> Option<ComparableParam> {
     }
 }
 
-fn format_label(operator: &SparseObservable, time: &ComparableParam) -> String {
+fn format_label(operator: &SparseObservable) -> String {
     let mut label = String::from("exp(-it (");
 
     for (i, term) in operator.iter().enumerate() {
@@ -113,7 +113,7 @@ fn format_label(operator: &SparseObservable, time: &ComparableParam) -> String {
         }
     }
 
-    write!(label, "))({})", time).expect("infallible");
+    label.push(')');
     label
 }
 
