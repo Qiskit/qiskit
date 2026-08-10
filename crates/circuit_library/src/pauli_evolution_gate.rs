@@ -3,7 +3,6 @@ use std::sync::Arc;
 use ndarray::Array2;
 use num_complex::Complex64;
 use qiskit_circuit::{
-    circuit_data::CircuitData,
     operations::{CustomOperation, Operation, Param},
     packed_instruction::PackedOperation,
     parameter::symbol_expr::Value,
@@ -106,9 +105,11 @@ impl CustomOperation for PauliEvolution {
 
     fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
         let time = params.first().and_then(extract_time)?;
-        let size = 1 << self.num_qubits();
 
-        todo!()
+        let size = 2usize.pow(self.num_qubits());
+        let mut matrix = Array2::zeros((size, size));
+
+        Some(matrix)
     }
 }
 
@@ -136,10 +137,6 @@ fn extract_time(param: &Param) -> Option<f64> {
         Param::Float(time) => Some(*time),
         Param::Obj(_) => None,
     }
-}
-
-fn expand_operation(operation: &SparseObservable) -> Array2<Complex64> {
-    todo!()
 }
 
 #[derive(Debug, Default, Clone)]
