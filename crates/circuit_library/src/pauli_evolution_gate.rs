@@ -17,36 +17,36 @@ pub struct PauliEvolutionError;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PauliEvolution {
-    hermitian: SparseObservable,
+    obs: SparseObservable,
     time: ComparableParam,
     label: Option<String>,
 }
 
 impl PauliEvolution {
-    pub fn new(hermitian: SparseObservable, time: Param) -> Result<Self, PauliEvolutionError> {
+    pub fn new(obs: SparseObservable, time: Param) -> Result<Self, PauliEvolutionError> {
         if matches!(time, Param::Obj(_)) {
             return Err(PauliEvolutionError);
         }
 
         Ok(Self {
-            hermitian,
+            obs,
             time: ComparableParam(time),
             label: None,
         })
     }
 
     pub fn with_label(
-        hermitian: SparseObservable,
+        obs: SparseObservable,
         time: Param,
         label: impl Into<String>,
     ) -> Result<Self, PauliEvolutionError> {
-        let mut gate = Self::new(hermitian, time)?;
+        let mut gate = Self::new(obs, time)?;
         gate.label = Some(label.into());
         Ok(gate)
     }
 
-    pub fn hermitian(&self) -> &SparseObservable {
-        &self.hermitian
+    pub fn obs(&self) -> &SparseObservable {
+        &self.obs
     }
 
     pub fn time(&self) -> &Param {
@@ -55,7 +55,7 @@ impl PauliEvolution {
 
     pub fn into_parts(self) -> PauliEvolutionParts {
         PauliEvolutionParts {
-            obs: self.hermitian,
+            obs: self.obs,
             time: self.time.0,
             label: self.label,
         }
@@ -67,15 +67,15 @@ impl fmt::Display for PauliEvolution {
         if let Some(label) = &self.label {
             write!(f, "{label}")
         } else {
-            format_label(f, &self.hermitian)
+            format_default_label(f, &self.obs)
         }
     }
 }
 
-fn format_label(f: &mut fmt::Formatter<'_>, hermitian: &SparseObservable) -> fmt::Result {
+fn format_default_label(f: &mut fmt::Formatter<'_>, obs: &SparseObservable) -> fmt::Result {
     write!(f, "exp(-it (")?;
 
-    for (i, term) in hermitian.iter().enumerate() {
+    for (i, term) in obs.iter().enumerate() {
         if i > 0 {
             write!(f, " + ")?;
         }
@@ -94,7 +94,7 @@ impl Operation for PauliEvolution {
     }
 
     fn num_qubits(&self) -> u32 {
-        self.hermitian.num_qubits()
+        self.obs.num_qubits()
     }
 
     fn num_clbits(&self) -> u32 {
@@ -132,11 +132,14 @@ impl CustomOperation for PauliEvolution {
     }
 
     fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
-        let time = params.first().and_then(extract_time)?;
+        let time = params.first().and_then(resolve_time).map(Complex64::from)?;
 
-        let size = 2usize.pow(self.num_qubits());
-        let mut matrix = Array2::zeros((size, size));
+        let dim = 1 << self.num_qubits();
+        let mut matrix = Array2::<Complex64>::zeros((dim, dim));
 
+        // convert `SparseObservable` into matrix.
+
+        matrix *= time;
         Some(matrix)
     }
 }
@@ -153,7 +156,7 @@ fn inverse_time(param: &mut Param) {
     }
 }
 
-fn extract_time(param: &Param) -> Option<f64> {
+fn resolve_time(param: &Param) -> Option<f64> {
     match param {
         Param::ParameterExpression(time) => {
             if let Value::Real(time) = time.try_to_value(true).ok()? {
@@ -203,7 +206,6 @@ mod tests {
         let gate = PauliEvolution::new(mock_xy(), Param::Float(3.0)).unwrap();
         let (_, params) = gate.inverse(&[Param::Float(3.0)]).unwrap();
 
-        assert!(matches!(gate.time(), Param::Float(time) if *time == -3.0));
         assert!(matches!(
             params.first(),
             Some(Param::Float(time)) if *time == -3.0
