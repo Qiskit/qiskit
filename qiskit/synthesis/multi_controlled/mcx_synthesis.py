@@ -320,10 +320,9 @@ def synth_mcx_1_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
             "synth_mcx_1_kg24 cannot be called with a negative number of control qubits."
         )
 
-    circ = QuantumCircuit._from_circuit_data(synth_mcx_1_kg24_rs(num_ctrl_qubits,clean)) 
+    circ = QuantumCircuit._from_circuit_data(synth_mcx_1_kg24_rs(num_ctrl_qubits, clean))
     return circ
 
- 
 
 def synth_mcx_1_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""

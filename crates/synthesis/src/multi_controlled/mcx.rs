@@ -435,18 +435,19 @@ fn linear_depth_ladder_ops(num_controls: u32) -> Result<(CircuitData, u32), Circ
 
     // Peak: where the up-sweep and down-sweep meet. Parity of k determines which qubits
     // participate. target < 0 means no distinct peak (up-sweep already reaches the end).
-    let (a, b, target) = if k % 2 == 0 {
-        (k as i32 - 3, k as i32 - 5, k as i32 - 6)
-    } else {
-        (k as i32 - 1, k as i32 - 4, k as i32 - 5)
-    };
+    let has_peak = if k % 2 == 0 { k >= 6 } else { k >= 5 };
 
-    if target >= 0 {
-        circuit.rccx(a as u32, b as u32, target as u32)?;
-        circuit.x(target as u32)?;
+    if has_peak {
+        let (a, b, peak) = if k % 2 == 0 {
+            (k - 3, k - 5, k - 6)
+        } else {
+            (k - 1, k - 4, k - 5)
+        };
+        circuit.rccx(a, b, peak)?;
+        circuit.x(peak)?;
 
         // Down-sweep: mirror of the up-sweep, walking back toward qubit 1.
-        let mut i = target as u32;
+        let mut i = peak;
         while i > 1 {
             circuit.rccx(i, i - 1, i - 2)?;
             circuit.x(i - 2)?;
