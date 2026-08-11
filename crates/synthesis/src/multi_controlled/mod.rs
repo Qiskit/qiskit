@@ -11,7 +11,10 @@
 // that they have been altered from the originals.
 
 use mcx::{
-    c3x, c4x, synth_mcx_1_kg24, synth_mcx_n_dirty_i15, synth_mcx_noaux_hp24, synth_mcx_noaux_v24,
+    
+    c3x, c4x, synth_mcx_1_clean_b95, synth_mcx_n_clean_m15, synth_mcx_1_kg24, synth_mcx_n_dirty_i15,
+    synth_mcx_noaux_hp24, synth_mcx_noaux_v24,
+,
 };
 use pyo3::prelude::*;
 use qiskit_circuit::circuit_data::PyCircuitData;
@@ -42,9 +45,21 @@ fn py_synth_mcx_noaux_v24(py: Python, num_controls: usize) -> PyResult<PyCircuit
 }
 
 #[pyfunction]
+#[pyo3(name="synth_mcx_n_clean_m15", signature = (num_controls))]
+fn py_synth_mcx_n_clean_m15(num_controls: usize) -> PyResult<PyCircuitData> {
+    Ok(synth_mcx_n_clean_m15(num_controls)?.into())
+}
+
+#[pyfunction]
 #[pyo3(name="synth_mcx_noaux_hp24", signature = (num_controls))]
 fn py_synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<PyCircuitData> {
     synth_mcx_noaux_hp24(num_controls).map(Into::into)
+}
+
+#[pyfunction]
+#[pyo3(name="synth_mcx_1_clean_b95", signature = (num_controls))]
+fn py_synth_mcx_1_clean_b95(num_controls: usize) -> PyResult<PyCircuitData> {
+    Ok(synth_mcx_1_clean_b95(num_controls)?.into())
 }
 
 pub fn multi_controlled(m: &Bound<PyModule>) -> PyResult<()> {
@@ -53,7 +68,9 @@ pub fn multi_controlled(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(py_synth_mcx_n_dirty_i15, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcx_noaux_v24, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcx_noaux_hp24, m)?)?;
+    m.add_function(wrap_pyfunction!(py_synth_mcx_1_clean_b95, m)?)?;
     m.add_function(wrap_pyfunction!(py_synth_mcx_1_kg24, m)?)?;
     m.add_function(wrap_pyfunction!(mcmt::mcmt_v_chain, m)?)?;
+    m.add_function(wrap_pyfunction!(py_synth_mcx_n_clean_m15, m)?)?;
     Ok(())
 }
