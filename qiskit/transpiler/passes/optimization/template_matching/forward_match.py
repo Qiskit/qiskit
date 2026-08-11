@@ -401,9 +401,9 @@ class ForwardMatch:
                     and self._is_same_c_conf(node_circuit, node_template)
                     and self._is_same_op(node_circuit, node_template)
                 ):
+                    # Check if parameters match the template or not.
                     continue
 
-                # Check if parameters match the template or not.
                 # Construct a temporary list of matches.
                 temp_match = self.match.copy()
 
