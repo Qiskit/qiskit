@@ -23,7 +23,6 @@ use smallvec::SmallVec;
 
 use qiskit_circuit::instruction::Parameters;
 use std::f64::consts::PI;
-//use std::num;
 
 use crate::QiskitError;
 const PI2: f64 = PI / 2.0;
@@ -404,9 +403,9 @@ pub fn synth_mcx_n_dirty_i15(
 /// A tuple consisting of the linear-depth ladder circuit and the index of the control qubit
 /// to apply to the final CCX gate.
 ///
-/// # Panics
+/// # Errors
 ///
-/// Panics if `num_controls < 3`.
+/// Returns an error if `num_controls < 3`.
 ///
 /// # References
 ///
@@ -414,8 +413,13 @@ pub fn synth_mcx_n_dirty_i15(
 ///    [arXiv:2407.17966](https://arxiv.org/abs/2407.17966).
 fn linear_depth_ladder_ops(num_controls: u32) -> Result<(CircuitData, u32), CircuitDataError> {
     let k = num_controls;
-    assert!(k >= 3, "ladder requires >= 3 controls");
 
+    if k < 3 {
+        return Err(QiskitError::new_err(
+                "linear_depth_ladder_ops requires >= 3 controls.",
+        ).into());
+    }
+    
     // At most k-2 rungs, each RCCX (9 gates) + X (1 gate); pre-size to avoid reallocation.
     let mut circuit =
         CircuitData::with_capacity(k, 0, 10 * k.saturating_sub(2) as usize, Param::Float(0.0))?;
@@ -423,8 +427,7 @@ fn linear_depth_ladder_ops(num_controls: u32) -> Result<(CircuitData, u32), Circ
     // Fold all k controls into a running partial-AND via RCCX+X pairs. RCCX is used
     // instead of CCX because its relative phase cancels when composed with its inverse.
     // The trailing X after each RCCX prepares the written qubit as a control for the next rung.
-    //
-
+  
     // Up-sweep: fold controls into qubit 1 two at a time, walking toward the middle.
     let mut i: u32 = 1;
     while i + 2 < k {
@@ -496,10 +499,11 @@ pub fn synth_mcx_1_kg24(num_controls: usize, clean: bool) -> Result<CircuitData,
         // Precompute once; the dirty-ancilla case reuses it for the second pass.
         let ladder_inv = ladder.inverse()?;
 
-        // Dirty case repeats the ladder/CCX pass twice; reserve capacity for both up front.
-        let sandwich_passes = if clean { 1 } else { 2 };
-        let instruction_capacity = 2 * rccx().data().len()
-            + sandwich_passes * (2 * ladder.data().len() + ccx().data().len());
+        // num_passes=1 for clean ancilla, 2 for dirty (repeat to cancel initial-state dependence).
+        // Fixed costs: 2 RCCX (9 gates each) + num_passes * (2 * ladder + 1 CCX (15 gates)).      
+        let num_passes = if clean { 1 } else { 2 };
+        let instruction_capacity = 2 * 9
+            + num_passes * (2 * ladder.data().len() + 15);
         let mut circuit =
             CircuitData::with_capacity(k + 2, 0, instruction_capacity, Param::Float(0.0))?;
 
