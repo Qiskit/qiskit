@@ -241,13 +241,7 @@ class CouplingMap:
         """
         Convert uni-directional edges into bi-directional.
         """
-        # TODO: replace with PyDiGraph.make_symmetric() after rustworkx
-        # 0.13.0 is released.
-        edges = self.get_edges()
-        edge_set = set(edges)
-        for src, dest in edges:
-            if (dest, src) not in edge_set:
-                self.graph.add_edge(dest, src, None)
+        self.graph.make_symmetric()
         self._dist_matrix = None  # invalidate
         self._is_symmetric = None  # invalidate
 
