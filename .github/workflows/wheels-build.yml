@@ -115,7 +115,12 @@ jobs:
         env:
           PGO_WORK_DIR: ${{ github.workspace }}/pgo-data
           PGO_OUT_PATH: ${{ github.workspace }}/merged.profdata
-      - uses: pypa/cibuildwheel@v3.4.0
+
+      - name: Install deployment requirements
+        run: python3 -m pip install --user -r ./github/workflows/wheels/requirements.txt
+      - name: Run cibuildwheel
+        run: python3 -m cibuildwheel
+
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
@@ -131,7 +136,12 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
       - uses: dtolnay/rust-toolchain@stable
-      - uses: pypa/cibuildwheel@v3.4.0
+
+      - name: Install deployment requirements
+        run: python3 -m pip install --user -r ./github/workflows/wheels/requirements.txt
+      - name: Run cibuildwheel
+        run: python3 -m cibuildwheel
+
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
@@ -145,10 +155,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
-      - name: Install cibuildwheel
-        run: python3 -m pip install --user cibuildwheel==3.4.0
+
+      - name: Install deployment requirements
+        run: python3 -m pip install --user -r ./github/workflows/wheels/requirements.txt
       - name: Run cibuildwheel
         run: python3 -m cibuildwheel
+
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
@@ -161,10 +173,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
-      - name: Install cibuildwheel
-        run: python3 -m pip install --user cibuildwheel==3.4.0
+
+      - name: Install deployment requirements
+        run: python3 -m pip install --user -r ./github/workflows/wheels/requirements.txt
       - name: Run cibuildwheel
         run: python3 -m cibuildwheel
+
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
