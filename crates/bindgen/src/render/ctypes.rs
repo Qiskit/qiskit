@@ -342,7 +342,7 @@ mod export {
     /// the variants for ease of use in Python space, but in actual function interfaces we have to use
     /// the raw `ctypes` backing type to get the ABI correct.
     pub fn r#enum(val: &simple_ir::Enum) -> String {
-        let mut out = format!("\nclass {}(enum.Enum):", &val.name);
+        let mut out = format!("\nclass {}(enum.Enum):", val.name);
         if val.variants.is_empty() {
             out.push_str("\n    pass");
             return out;
@@ -360,8 +360,8 @@ mod export {
     /// If `dllname` name is given, we assume the function is an attribute on an object with that
     /// name.
     pub fn function(val: &simple_ir::Function<Primitive>, dllname: &str) -> String {
-        let prefix = format!("{}.{}", dllname, &val.name);
-        let mut out = format!("\n{}.argtypes = [", &prefix);
+        let prefix = format!("{}.{}", dllname, val.name);
+        let mut out = format!("\n{}.argtypes = [", prefix);
         if let Some((first, rest)) = val.args.split_first() {
             render_type(&first.ty, &mut out);
             for arg in rest {
@@ -389,7 +389,7 @@ mod export {
     pub fn r#struct(val: &simple_ir::Struct<Primitive>) -> String {
         // TODO: this doesn't handle the case of (mutually) recursive `struct` definitions; we
         // assume that all the `_fields_` will refer to fully defined `ctypes` objects.
-        let mut out = format!("\nclass {}(ctypes.Structure):\n", &val.name);
+        let mut out = format!("\nclass {}(ctypes.Structure):\n", val.name);
         let Some(fields) = val.fields.as_ref() else {
             out.push_str("    pass\n");
             return out;
@@ -408,7 +408,7 @@ mod export {
 
     /// Get a string representing the declaration of this `union`` as a Python `ctypes.Union`.
     pub fn r#union(val: &simple_ir::Union<Primitive>) -> String {
-        let mut out = format!("\nclass {}(ctypes.Union):\n", &val.name);
+        let mut out = format!("\nclass {}(ctypes.Union):\n", val.name);
         out.push_str("    _fields_ = [\n");
 
         for simple_ir::StructField { name, ty } in &val.fields {
@@ -437,15 +437,15 @@ mod export {
         writeln!(out)?;
 
         writeln!(out, "__all__ = [")?;
-        writeln!(out, "    \"{}\",", &config.dll.name)?;
+        writeln!(out, "    \"{}\",", config.dll.name)?;
         for val in &items.enums {
-            writeln!(out, "    \"{}\",", &val.name)?;
+            writeln!(out, "    \"{}\",", val.name)?;
         }
         for val in &items.structs {
-            writeln!(out, "    \"{}\",", &val.name)?;
+            writeln!(out, "    \"{}\",", val.name)?;
         }
         for val in &items.functions {
-            writeln!(out, "    \"{}\",", &val.name)?;
+            writeln!(out, "    \"{}\",", val.name)?;
         }
         writeln!(out, "]")?;
         writeln!(out)?;
@@ -463,7 +463,7 @@ mod export {
         writeln!(
             out,
             "{} = ctypes.PyDLL({})",
-            &config.dll.name, &config.dll.expr
+            config.dll.name, config.dll.expr
         )?;
 
         writeln!(out)?;

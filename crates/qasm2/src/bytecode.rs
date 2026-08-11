@@ -11,14 +11,14 @@
 // that they have been altered from the originals.
 
 use num_bigint::BigUint;
-use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
-use pyo3::types::PyTuple;
 
-use crate::error::QASM2ParseError;
 use crate::expr::Expr;
+use crate::ext::ClassicalCallableExt;
+use crate::lex;
+use crate::parse;
 use crate::parse::{ClbitId, CregId, GateId, ParamId, QubitId};
-use crate::{ClassicalCallableExt, CustomClassical, CustomInstruction, lex, parse};
+use crate::{CustomClassical, CustomInstruction};
 
 /// The Rust parser produces an iterator of these `Bytecode` instructions, which comprise an opcode
 /// integer for operation distinction, and a free-form tuple containing the operands.
@@ -105,26 +105,14 @@ pub struct ExprBinary {
 pub struct ExprCustom {
     pub callable: ClassicalCallableExt,
     #[pyo3(get)]
-    pub arguments: Py<PyTuple>,
+    pub arguments: Vec<Py<PyAny>>,
 }
+
 #[pymethods]
 impl ExprCustom {
-    #[pyo3(signature = (*args))]
-    fn call(&self, args: Bound<PyTuple>) -> PyResult<f64> {
-        match &self.callable {
-            ClassicalCallableExt::Builtin(builtin) => builtin
-                .call(args.extract::<Vec<f64>>()?.as_slice())
-                .map_err(|actual| {
-                    PyTypeError::new_err(format!(
-                        "argument mismatch: expected {}, got {}",
-                        builtin.num_params(),
-                        actual
-                    ))
-                }),
-            ClassicalCallableExt::Py { ob, num_params: _ } => {
-                ob.bind(args.py()).call1(args).and_then(|ob| ob.extract())
-            }
-        }
+    /// Invoke the custom callable with pre-evaluated float arguments.
+    fn call(&self, args: Vec<f64>) -> PyResult<f64> {
+        Ok(self.callable.call(&args)?)
     }
 }
 
@@ -352,7 +340,6 @@ impl BytecodeIterator {
         custom_instructions: &[CustomInstruction],
         custom_classical: &[CustomClassical],
         strict: bool,
-        max_depth: usize,
     ) -> PyResult<Self> {
         Ok(BytecodeIterator {
             parser_state: parse::State::new(
@@ -361,9 +348,7 @@ impl BytecodeIterator {
                 custom_instructions,
                 custom_classical,
                 strict,
-                max_depth,
-            )
-            .map_err(QASM2ParseError::new_err)?,
+            )?,
             buffer: vec![],
             buffer_used: 0,
         })
