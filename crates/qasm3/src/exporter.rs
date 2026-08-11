@@ -24,7 +24,6 @@ use std::io::Write;
 
 use crate::printer::BasicPrinter;
 use hashbrown::{HashMap, HashSet};
-use pyo3::Python;
 use pyo3::prelude::*;
 use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
@@ -1176,27 +1175,20 @@ impl<'a> QASM3Builder {
             ));
         };
         let param = &instr.params_view()[0];
-        let duration: f64 = Python::attach(|py| match param {
+
+        let duration: f64 = match param {
             Param::Float(val) => *val,
+            Param::Int(int) => *int as f64, // lossy conversion
             Param::ParameterExpression(p) => match p.try_to_value(true) {
                 Ok(symbol_expr::Value::Real(val)) => val,
                 _ => {
                     panic!("Failed to parse parameter value")
                 }
             },
-            Param::Obj(obj) => {
-                let py_obj = obj.bind(py);
-                let py_str = py_obj.str().expect("Failed to call str() on Parameter");
-                let name = py_str
-                    .str()
-                    .expect("Failed to convert PyString to &str")
-                    .to_string();
-                match name.parse::<f64>() {
-                    Ok(val) => val,
-                    Err(_) => panic!("Failed to parse parameter value"),
-                }
+            Param::Obj(_) => {
+                unreachable!("Should not use obj as a parameter for duration.")
             }
-        });
+        };
 
         let mut map = HashMap::new();
         map.insert(DelayUnit::NS, DurationUnit::Nanosecond);
@@ -1255,22 +1247,24 @@ impl<'a> QASM3Builder {
             self.define_gate(instr)?;
         }
         let params = if self.disable_constants {
-            Python::attach(|_py| {
-                instr
-                    .params_view()
-                    .iter()
-                    .map(|param| match param {
-                        Param::Float(val) => Expression::Parameter(Parameter {
-                            obj: val.to_string(),
-                        }),
-                        Param::ParameterExpression(p) => {
-                            let name = p.to_string();
-                            Expression::Parameter(Parameter { obj: name })
-                        }
-                        Param::Obj(_) => panic!("Objects not supported yet"),
-                    })
-                    .collect::<Vec<_>>()
-            })
+            instr
+                .params_view()
+                .iter()
+                .map(|param| match param {
+                    Param::Float(val) => Expression::Parameter(Parameter {
+                        obj: val.to_string(),
+                    }),
+                    Param::ParameterExpression(p) => {
+                        let name = p.to_string();
+                        Expression::Parameter(Parameter { obj: name })
+                    }
+                    Param::Obj(_) => panic!("Objects not supported yet"),
+                    Param::Int(i) => {
+                        let name = i.to_string();
+                        Expression::Parameter(Parameter { obj: name })
+                    }
+                })
+                .collect::<Vec<_>>()
         } else {
             return Err(QASM3ExporterError::Error(
                 "Constant parameters not supported yet".to_string(),
