@@ -396,7 +396,7 @@ class ForwardMatch:
 
                 # Check if the qubit, clbit configuration are compatible for a match,
                 # also check if the operation are the same.
-                if not(
+                if not (
                     self._is_same_q_conf(node_circuit, node_template)
                     and self._is_same_c_conf(node_circuit, node_template)
                     and self._is_same_op(node_circuit, node_template)

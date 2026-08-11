@@ -670,15 +670,18 @@ class TestTemplateMatching(QiskitTestCase):
         """
         Test that the template matching works and correctly replaces a template if there is a
         parameter clash between it and the circuit. This should include binding a partial match with a
-        parameter. Used the rzx template ('zz3').
+        parameter. Used the rzx template ('zz2').
         """
         circuit_in = QuantumCircuit(2)
         circuit_in.cx(0, 1)
-        circuit_in.rz(0.42, 1)
+        circuit_in.p(0.42, 1)
         circuit_in.cx(0, 1)
-        circuit_in.rz(np.pi / 2, 1)
+        circuit_in.p(np.pi / 2, 1)
 
-        pass_ = TemplateOptimization(**rzx_templates(["zz3"]))
+        pass_ = TemplateOptimization(
+            template_list=[rzx.rzx_zz2()],
+            user_cost_dict={"rzx": 0, "cx": 6, "rz": 0, "p": 0, "rx": 1},
+        )
         circuit_out = PassManager(pass_).run(circuit_in)
 
         # these are NOT equal if template optimization works
