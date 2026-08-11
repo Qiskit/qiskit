@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::str::FromStr;
+
 use approx::{abs_diff_eq, relative_eq};
 use num_complex::{Complex64, ComplexFloat};
 use num_traits::Zero;
@@ -134,6 +136,12 @@ impl TwoQubitBasisDecomposer {
     pub fn num_basis_gates_inner(&self, unitary: ArrayView2<Complex64>) -> PyResult<usize> {
         let u = ndarray_to_faer(unitary);
         __num_basis_gates(self.basis_decomposer.b, self.basis_fidelity, u)
+    }
+
+    /// Is the gate super controlled
+    #[inline]
+    pub fn super_controlled(&self) -> bool {
+        self.super_controlled
     }
 
     fn decomp1_inner(
@@ -521,7 +529,7 @@ impl TwoQubitBasisDecomposer {
         gate_params: SmallVec<[f64; 3]>,
         gate_matrix: ArrayView2<Complex64>,
         basis_fidelity: f64,
-        euler_basis: &str,
+        euler_basis: EulerBasis,
         pulse_optimize: Option<bool>,
     ) -> PyResult<Self> {
         let basis_decomposer =
@@ -607,7 +615,7 @@ impl TwoQubitBasisDecomposer {
             gate,
             gate_params,
             basis_fidelity,
-            euler_basis: EulerBasis::__new__(euler_basis)?,
+            euler_basis,
             pulse_optimize,
             basis_decomposer,
             super_controlled,
@@ -744,7 +752,7 @@ impl TwoQubitBasisDecomposer {
                 OperationRef::StandardGate(standard) => {
                     standard.create_py_op(py, Some(params), None)?.into_any()
                 }
-                OperationRef::Gate(gate) => gate.instruction.clone_ref(py),
+                OperationRef::PyCustom(inst) => inst.ob.clone_ref(py),
                 OperationRef::Unitary(unitary) => unitary.create_py_op(py, None)?.into_any(),
                 _ => unreachable!("decomposer gate must be a gate"),
             },
@@ -784,7 +792,7 @@ impl TwoQubitBasisDecomposer {
             gate_params?,
             gate_matrix.as_array(),
             basis_fidelity,
-            euler_basis,
+            EulerBasis::from_str(euler_basis).map_err(PyValueError::new_err)?,
             pulse_optimize,
         )
     }
@@ -1017,7 +1025,7 @@ pub fn two_qubit_decompose_up_to_diagonal(
         smallvec![],
         aview2(&CX_GATE),
         1.0,
-        "U",
+        EulerBasis::U,
         None,
     )?;
 

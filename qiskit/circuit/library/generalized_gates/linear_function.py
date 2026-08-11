@@ -169,16 +169,16 @@ class LinearFunction(Gate):
         mat = np.eye(nq, nq, dtype=bool)
 
         for instruction in qc.data:
-            if instruction.operation.name in ("barrier", "delay"):
+            if instruction.name in ("barrier", "delay"):
                 # can be ignored
                 continue
-            if instruction.operation.name == "cx":
+            if instruction.name == "cx":
                 # implemented directly
                 cb = qc.find_bit(instruction.qubits[0]).index
                 tb = qc.find_bit(instruction.qubits[1]).index
                 mat[tb, :] = (mat[tb, :]) ^ (mat[cb, :])
                 continue
-            if instruction.operation.name == "swap":
+            if instruction.name == "swap":
                 # implemented directly
                 cb = qc.find_bit(instruction.qubits[0]).index
                 tb = qc.find_bit(instruction.qubits[1]).index
