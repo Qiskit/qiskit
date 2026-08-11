@@ -7,7 +7,7 @@ use qiskit_circuit::{
     packed_instruction::PackedOperation,
     parameter::symbol_expr::Value,
 };
-use qiskit_quantum_info::sparse_observable::SparseObservable;
+use qiskit_quantum_info::sparse_observable::{BitTerm, SparseObservable};
 use smallvec::SmallVec;
 use thiserror::Error;
 
@@ -17,36 +17,24 @@ pub struct PauliEvolutionError;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PauliEvolution {
-    obs: SparseObservable,
+    hermitian: SparseObservable,
     time: ComparableParam,
-    label: Option<String>,
 }
 
 impl PauliEvolution {
-    pub fn new(obs: SparseObservable, time: Param) -> Result<Self, PauliEvolutionError> {
+    pub fn new(hermitian: SparseObservable, time: Param) -> Result<Self, PauliEvolutionError> {
         if matches!(time, Param::Obj(_)) {
             return Err(PauliEvolutionError);
         }
 
         Ok(Self {
-            obs,
+            hermitian,
             time: ComparableParam(time),
-            label: None,
         })
     }
 
-    pub fn with_label(
-        obs: SparseObservable,
-        time: Param,
-        label: impl Into<String>,
-    ) -> Result<Self, PauliEvolutionError> {
-        let mut gate = Self::new(obs, time)?;
-        gate.label = Some(label.into());
-        Ok(gate)
-    }
-
-    pub fn obs(&self) -> &SparseObservable {
-        &self.obs
+    pub fn hermitian(&self) -> &SparseObservable {
+        &self.hermitian
     }
 
     pub fn time(&self) -> &Param {
@@ -55,37 +43,28 @@ impl PauliEvolution {
 
     pub fn into_parts(self) -> PauliEvolutionParts {
         PauliEvolutionParts {
-            obs: self.obs,
+            hermitian: self.hermitian,
             time: self.time.0,
-            label: self.label,
         }
     }
 }
 
 impl fmt::Display for PauliEvolution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(label) = &self.label {
-            write!(f, "{label}")
-        } else {
-            format_default_label(f, &self.obs)
+        write!(f, "exp(-it (")?;
+
+        for (i, term) in self.hermitian.iter().enumerate() {
+            if i > 0 {
+                write!(f, " + ")?;
+            }
+
+            for bit in term.bit_terms {
+                write!(f, "{}", bit.py_label())?;
+            }
         }
+
+        write!(f, "))")
     }
-}
-
-fn format_default_label(f: &mut fmt::Formatter<'_>, obs: &SparseObservable) -> fmt::Result {
-    write!(f, "exp(-it (")?;
-
-    for (i, term) in obs.iter().enumerate() {
-        if i > 0 {
-            write!(f, " + ")?;
-        }
-
-        for bit in term.bit_terms {
-            write!(f, "{}", bit.py_label())?;
-        }
-    }
-
-    write!(f, "))")
 }
 
 impl Operation for PauliEvolution {
@@ -94,7 +73,7 @@ impl Operation for PauliEvolution {
     }
 
     fn num_qubits(&self) -> u32 {
-        self.obs.num_qubits()
+        self.hermitian.num_qubits()
     }
 
     fn num_clbits(&self) -> u32 {
@@ -102,7 +81,7 @@ impl Operation for PauliEvolution {
     }
 
     fn num_params(&self) -> u32 {
-        1
+        0
     }
 
     fn directive(&self) -> bool {
@@ -115,49 +94,35 @@ impl CustomOperation for PauliEvolution {
         true
     }
 
-    fn inverse(&self, params: &[Param]) -> Option<(PackedOperation, SmallVec<[Param; 3]>)> {
-        let param = params.first()?;
-
+    fn inverse(&self, _params: &[Param]) -> Option<(PackedOperation, SmallVec<[Param; 3]>)> {
         let mut inverse = self.clone();
-        inverse_time(&mut inverse.time.0);
+
+        match &mut inverse.time.0 {
+            Param::ParameterExpression(time) => {
+                *time = Arc::new(time.neg());
+            }
+            Param::Float(time) => {
+                *time *= -1.0;
+            }
+            _ => (),
+        }
 
         let inverse = PackedOperation::from_custom_operation(Box::new(inverse));
-        let mut param = param.clone();
-        inverse_time(&mut param);
-
-        let mut params: SmallVec<_> = SmallVec::new();
-        params.push(param);
-
-        Some((inverse, params))
+        Some((inverse, SmallVec::new()))
     }
 
-    fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
-        let time = params.first().and_then(resolve_time).map(Complex64::from)?;
+    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
+        let time = resolve_time(self.time())?;
 
-        let dim = 1 << self.num_qubits();
-        let mut matrix = Array2::<Complex64>::zeros((dim, dim));
+        let mut matrix = self.hermitian.to_matrix();
+        matrix *= Complex64::from(time);
 
-        // convert `SparseObservable` into matrix.
-
-        matrix *= time;
         Some(matrix)
     }
 }
 
-fn inverse_time(param: &mut Param) {
-    match param {
-        Param::ParameterExpression(time) => {
-            *time = Arc::new(time.neg());
-        }
-        Param::Float(time) => {
-            *time *= -1.0;
-        }
-        _ => (),
-    }
-}
-
-fn resolve_time(param: &Param) -> Option<f64> {
-    match param {
+fn resolve_time(time: &Param) -> Option<f64> {
+    match time {
         Param::ParameterExpression(time) => {
             if let Value::Real(time) = time.try_to_value(true).ok()? {
                 Some(time)
@@ -168,6 +133,12 @@ fn resolve_time(param: &Param) -> Option<f64> {
         Param::Float(time) => Some(*time),
         Param::Obj(_) => None,
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct PauliEvolutionParts {
+    pub hermitian: SparseObservable,
+    pub time: Param,
 }
 
 #[derive(Debug, Clone)]
@@ -184,13 +155,6 @@ impl PartialEq for ComparableParam {
             _ => false,
         }
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct PauliEvolutionParts {
-    pub obs: SparseObservable,
-    pub time: Param,
-    pub label: Option<String>,
 }
 
 #[cfg(test)]
@@ -230,17 +194,6 @@ mod tests {
         let _ = write!(label, "{gate}");
 
         assert_eq!(label, "exp(-it (XY + ZZ))");
-    }
-
-    #[test]
-    fn test_display_label_custom() {
-        const HELLO: &str = "Hello, world!";
-        let gate = PauliEvolution::with_label(mock_xy(), Param::Float(1.0), HELLO).unwrap();
-
-        let mut label = String::new();
-        let _ = write!(label, "{gate}");
-
-        assert_eq!(label, HELLO);
     }
 
     fn mock_xy() -> SparseObservable {
