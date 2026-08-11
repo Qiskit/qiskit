@@ -17,6 +17,7 @@ import math
 import unittest
 import pickle
 import copy
+import functools
 
 from test import combine
 from test import QiskitTestCase
@@ -25,7 +26,6 @@ import ddt
 
 from qiskit.circuit import Parameter, ParameterVector, ParameterExpression
 from qiskit.utils.optionals import HAS_SYMPY
-
 
 param_x = Parameter("x")
 param_y = Parameter("y")
@@ -635,3 +635,22 @@ class TestParameterExpression(QiskitTestCase):
         b = Parameter("b")
         expr = a + b
         self.assertEqual(expr, expr.simplify())
+
+    @ddt.data("__add__", "__sub__", "__mul__", "__truediv__")
+    def test_accumulation(self, meth):
+        """Test on-the-fly accumulation of numerical values."""
+        symbol = Parameter("p")
+        values = [(i + 1) / 11 for i in range(50)]
+
+        def accumulator(total, value):
+            return getattr(total, meth)(value)
+
+        expression = functools.reduce(accumulator, [symbol] + values)
+        if meth == "__truediv__":
+            prod = functools.reduce(lambda total, value: total * value, values)
+            reference = symbol / prod
+        else:
+            accumulated = functools.reduce(accumulator, values)
+            reference = accumulator(symbol, accumulated)
+
+        self.assertEqual(reference, expression)

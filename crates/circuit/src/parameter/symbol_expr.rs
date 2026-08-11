@@ -276,10 +276,18 @@ fn _add(lhs: SymbolExpr, rhs: SymbolExpr) -> SymbolExpr {
             },
         }
     } else {
-        SymbolExpr::Binary {
-            op: BinaryOp::Add,
-            lhs: Arc::new(lhs),
-            rhs: Arc::new(rhs),
+        if matches!(lhs, SymbolExpr::Value(_)) || !matches!(rhs, SymbolExpr::Value(_)) {
+            SymbolExpr::Binary {
+                op: BinaryOp::Add,
+                lhs: Arc::new(lhs),
+                rhs: Arc::new(rhs),
+            }
+        } else {
+            SymbolExpr::Binary {
+                op: BinaryOp::Add,
+                lhs: Arc::new(rhs),
+                rhs: Arc::new(lhs),
+            }
         }
     }
 }
@@ -1172,7 +1180,12 @@ impl SymbolExpr {
                                 if l_rhs.expand().string_id() == r_rhs.expand().string_id() {
                                     let t = SymbolExpr::Value(lv + rv);
                                     if t.is_zero() {
-                                        return Some(SymbolExpr::Value(Value::Int(0)));
+                                        let out = _mul(
+                                            SymbolExpr::Value(Value::Int(2)),
+                                            l_rhs.as_ref().clone(),
+                                        );
+                                        println!("trigg change, returning {:?}", out);
+                                        return Some(out);
                                     }
                                     match (op, rop) {
                                         (BinaryOp::Mul, BinaryOp::Mul) => {
@@ -1264,6 +1277,46 @@ impl SymbolExpr {
                             return Some(SymbolExpr::Value(Value::Int(0)));
                         } else {
                             return Some(_mul(SymbolExpr::Value(t), l_rhs.as_ref().clone()));
+                        }
+                    } else if let SymbolExpr::Value(rv) = rhs {
+                        if matches!(op, BinaryOp::Add) {
+                            // implements l_lhs + l_rhs + rv
+                            match (l_lhs.as_ref(), l_rhs.as_ref()) {
+                                // case: (lv + rv) + l_rhs
+                                (SymbolExpr::Value(lv), _) => {
+                                    return Some(_add(
+                                        SymbolExpr::Value(lv + rv),
+                                        l_rhs.as_ref().clone(),
+                                    ));
+                                }
+                                // case: l_lhs + (lv + rv)
+                                (_, SymbolExpr::Value(lv)) => {
+                                    return Some(_add(
+                                        SymbolExpr::Value(lv + rv),
+                                        l_lhs.as_ref().clone(),
+                                    ));
+                                }
+                                (_, _) => (),
+                            }
+                        } else if matches!(op, BinaryOp::Sub) {
+                            // implements l_lhs - l_rhs + rv
+                            match (l_lhs.as_ref(), l_rhs.as_ref()) {
+                                // case: (lv + rv) - l_rhs
+                                (SymbolExpr::Value(lv), _) => {
+                                    return Some(_sub(
+                                        SymbolExpr::Value(lv + rv),
+                                        l_rhs.as_ref().clone(),
+                                    ));
+                                }
+                                // case: (rv - lv) + l_lhs
+                                (_, SymbolExpr::Value(lv)) => {
+                                    return Some(_add(
+                                        SymbolExpr::Value(rv - lv),
+                                        l_lhs.as_ref().clone(),
+                                    ));
+                                }
+                                (_, _) => (),
+                            }
                         }
                     }
                     if recursive {
@@ -1612,6 +1665,47 @@ impl SymbolExpr {
                         } else {
                             return Some(_mul(SymbolExpr::Value(t), l_rhs.as_ref().clone()));
                         }
+                    } else if let SymbolExpr::Value(rv) = rhs {
+                        if matches!(op, BinaryOp::Add) {
+                            // implements l_lhs + l_rhs - rv
+                            match (l_lhs.as_ref(), l_rhs.as_ref()) {
+                                // case: (lv - rv) + l_rhs
+                                (SymbolExpr::Value(lv), _) => {
+                                    return Some(_add(
+                                        SymbolExpr::Value(lv - rv),
+                                        l_rhs.as_ref().clone(),
+                                    ));
+                                }
+                                // case: l_lhs + (lv - rv)
+                                // (_, SymbolExpr::Value(lv)) => {
+                                //     return Some(_add(
+                                //         SymbolExpr::Value(lv - rv),
+                                //         l_lhs.as_ref().clone(),
+                                //     ));
+                                // }
+                                (_, _) => (),
+                            }
+                        }
+                        // } else if matches!(op, BinaryOp::Sub) {
+                        //     // implements l_lhs - l_rhs - rv
+                        //     match (l_lhs.as_ref(), l_rhs.as_ref()) {
+                        //         // case: (lv - rv) - l_rhs
+                        //         (SymbolExpr::Value(lv), _) => {
+                        //             return Some(_sub(
+                        //                 SymbolExpr::Value(lv - rv),
+                        //                 l_rhs.as_ref().clone(),
+                        //             ));
+                        //         }
+                        //         // case: l_lhs - (lv + rv)
+                        //         (_, SymbolExpr::Value(lv)) => {
+                        //             return Some(_sub(
+                        //                 SymbolExpr::Value(rv + lv),
+                        //                 l_rhs.as_ref().clone(),
+                        //             ));
+                        //         }
+                        //         (_, _) => (),
+                        //     }
+                        // }
                     }
                     if recursive {
                         if let BinaryOp::Add = op {
