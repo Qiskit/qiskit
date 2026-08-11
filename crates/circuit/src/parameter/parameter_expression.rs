@@ -294,11 +294,10 @@ impl ParameterExpression {
         match self.expr.eval(true) {
             Some(value) => {
                 // we try to restrict complex to real, if possible
-                if let Value::Complex(c) = value {
-                    if (-symbol_expr::SYMEXPR_EPSILON..symbol_expr::SYMEXPR_EPSILON).contains(&c.im)
-                    {
-                        return Ok(Value::Real(c.re));
-                    }
+                if let Value::Complex(c) = value
+                    && (-symbol_expr::SYMEXPR_EPSILON..symbol_expr::SYMEXPR_EPSILON).contains(&c.im)
+                {
+                    return Ok(Value::Real(c.re));
                 }
                 Ok(value)
             }
