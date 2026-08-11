@@ -25,6 +25,13 @@ from qiskit.converters.dagdependency_to_dag import dagdependency_to_dag
 from qiskit.utils import optionals as _optionals
 
 
+def sympy_expr_to_param(sympy_expr) -> ParameterExpression:
+    from qiskit.qpy.binary_io.parse_sympy_repr import parse_sympy_repr
+    from sympy import srepr
+
+    return parse_sympy_repr(srepr(sympy_expr))
+
+
 class SubstitutionConfig:
     """
     Class to store the configuration of a given match substitution, which circuit
@@ -590,10 +597,12 @@ class TemplateSubstitution:
             # No solutions.
             return None
         # If there's multiple solutions, arbitrarily pick the first one.
-        sol = {
-            param.name: ParameterExpression(circ_dict, str(expr))
-            for param, expr in sym_sol[0].items()
-        }
+        sol = {}
+        for param, expr in sym_sol[0].items():
+            expression = sympy_expr_to_param(expr)
+            if isinstance(expression, ParameterExpression):
+                expression._set_name_map(circ_dict)
+            sol[param.name] = expression
         fake_bind = {key: sol[key.name] for key in temp_symbols}
 
         for node in template_dag_dep.get_nodes():
