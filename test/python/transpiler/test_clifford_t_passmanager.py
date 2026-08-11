@@ -193,6 +193,30 @@ class TestCliffordTPassManager(QiskitTestCase):
         self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
 
     @data(0, 1, 2, 3)
+    def test_clifford_t_transpile_is_unitarily_equivalent(self, optimization_level):
+        """Regression test: OptimizeCliffordT previously produced a circuit that
+        was not unitarily equivalent to the input (not even up to global phase)
+        when `basis_gates` excluded `sx`/`sxdg`. This circuit -- a non-Clifford
+        `rz` rotation interleaved with T/CX/X gates -- broke at
+        optimization_level 1, 2, and 3 before the fix.
+        """
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.t(0)
+        qc.t(1)
+        qc.x(0)
+        qc.rz(0.3, 0)
+
+        basis_gates = ["cx", "s", "sdg", "h", "t", "tdg", "x", "y", "z"]
+        pm = generate_preset_clifford_t_pass_manager(
+            basis_gates=basis_gates, optimization_level=optimization_level
+        )
+        transpiled = pm.run(qc)
+        self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
+        self.assertTrue(Operator(qc).equiv(Operator(transpiled)))
+
+    @data(0, 1, 2, 3)
     def test_multiplier(self, optimization_level):
         """Clifford+T transpilation of a multiplier gate, using different optimization levels."""
         gate = MultiplierGate(4)
