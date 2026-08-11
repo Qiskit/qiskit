@@ -140,8 +140,8 @@ mod test {
     fn test_suzuki_trotter() {
         let num_qubits = 2;
         let mut obs = SparseObservable::zero(num_qubits);
-        obs.add_dense_label("ZZ", c64(1.0, 0.0));
-        obs.add_dense_label("XI", c64(1.0, 0.0));
+        obs.add_dense_label("ZZ", c64(1.0, 0.0)).unwrap();
+        obs.add_dense_label("XI", c64(1.0, 0.0)).unwrap();
         let out = suzuki_trotter_evolution(&obs, 2, 10, 1.0, true, false).unwrap();
         assert_eq!(out.num_qubits(), 2);
     }
