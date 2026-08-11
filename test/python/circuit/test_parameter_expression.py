@@ -649,6 +649,9 @@ class TestParameterExpression(QiskitTestCase):
         if meth == "__truediv__":
             prod = functools.reduce(lambda total, value: total * value, values)
             reference = symbol / prod
+        elif meth == "__sub__":
+            summed = functools.reduce(lambda total, value: total + value, values)
+            reference = symbol - summed
         else:
             accumulated = functools.reduce(accumulator, values)
             reference = accumulator(symbol, accumulated)

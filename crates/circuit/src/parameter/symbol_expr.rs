@@ -1677,35 +1677,34 @@ impl SymbolExpr {
                                     ));
                                 }
                                 // case: l_lhs + (lv - rv)
-                                // (_, SymbolExpr::Value(lv)) => {
-                                //     return Some(_add(
-                                //         SymbolExpr::Value(lv - rv),
-                                //         l_lhs.as_ref().clone(),
-                                //     ));
-                                // }
+                                (_, SymbolExpr::Value(lv)) => {
+                                    return Some(_add(
+                                        SymbolExpr::Value(lv - rv),
+                                        l_lhs.as_ref().clone(),
+                                    ));
+                                }
+                                (_, _) => (),
+                            }
+                        } else if matches!(op, BinaryOp::Sub) {
+                            // implements l_lhs - l_rhs - rv
+                            match (l_lhs.as_ref(), l_rhs.as_ref()) {
+                                // case: (lv - rv) - l_rhs
+                                (SymbolExpr::Value(lv), _) => {
+                                    return Some(_sub(
+                                        SymbolExpr::Value(lv - rv),
+                                        l_rhs.as_ref().clone(),
+                                    ));
+                                }
+                                // case: l_lhs - (lv + rv)
+                                (_, SymbolExpr::Value(lv)) => {
+                                    return Some(_sub(
+                                        SymbolExpr::Value(rv + lv),
+                                        l_lhs.as_ref().clone(),
+                                    ));
+                                }
                                 (_, _) => (),
                             }
                         }
-                        // } else if matches!(op, BinaryOp::Sub) {
-                        //     // implements l_lhs - l_rhs - rv
-                        //     match (l_lhs.as_ref(), l_rhs.as_ref()) {
-                        //         // case: (lv - rv) - l_rhs
-                        //         (SymbolExpr::Value(lv), _) => {
-                        //             return Some(_sub(
-                        //                 SymbolExpr::Value(lv - rv),
-                        //                 l_rhs.as_ref().clone(),
-                        //             ));
-                        //         }
-                        //         // case: l_lhs - (lv + rv)
-                        //         (_, SymbolExpr::Value(lv)) => {
-                        //             return Some(_sub(
-                        //                 SymbolExpr::Value(rv + lv),
-                        //                 l_rhs.as_ref().clone(),
-                        //             ));
-                        //         }
-                        //         (_, _) => (),
-                        //     }
-                        // }
                     }
                     if recursive {
                         if let BinaryOp::Add = op {
