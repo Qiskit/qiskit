@@ -24,6 +24,7 @@ from qiskit._accelerate.synthesis.multi_controlled import (
     synth_mcx_n_dirty_i15 as synth_mcx_n_dirty_i15_rs,
     synth_mcx_noaux_v24 as synth_mcx_noaux_v24_rs,
     synth_mcx_noaux_hp24 as synth_mcx_noaux_hp24_rs,
+    synth_mcx_n_clean_m15 as synth_mcx_n_clean_m15_rs,
     synth_mcx_1_clean_b95 as synth_mcx_1_clean_b95_rs,
 )
 from .gray_code import gray_code_chain
@@ -120,33 +121,8 @@ def synth_mcx_n_clean_m15(num_ctrl_qubits: int) -> QuantumCircuit:
             "synth_mcx_n_clean_m15 cannot be called with a negative number of control qubits."
         )
 
-    if num_ctrl_qubits <= 2:
-        return _synth_mcx_special_cases(num_ctrl_qubits)
-
-    num_qubits = 2 * num_ctrl_qubits - 1
-    q = QuantumRegister(num_qubits, name="q")
-    qc = QuantumCircuit(q)
-    q_controls = q[:num_ctrl_qubits]
-    q_target = q[num_ctrl_qubits]
-    q_ancillas = q[num_ctrl_qubits + 1 :]
-
-    qc.rccx(q_controls[0], q_controls[1], q_ancillas[0])
-    i = 0
-    for j in range(2, num_ctrl_qubits - 1):
-        qc.rccx(q_controls[j], q_ancillas[i], q_ancillas[i + 1])
-
-        i += 1
-
-    qc.ccx(q_controls[-1], q_ancillas[i], q_target)
-
-    for j in reversed(range(2, num_ctrl_qubits - 1)):
-        qc.rccx(q_controls[j], q_ancillas[i - 1], q_ancillas[i])
-
-        i -= 1
-
-    qc.rccx(q_controls[0], q_controls[1], q_ancillas[i])
-
-    return qc
+    circ = QuantumCircuit._from_circuit_data(synth_mcx_n_clean_m15_rs(num_ctrl_qubits))
+    return circ
 
 
 def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
