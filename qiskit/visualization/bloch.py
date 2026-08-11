@@ -734,7 +734,9 @@ class Bloch:
         """
         self.render(title=title)
         if self.fig:
-            plt.show(self.fig)
+            # `pyplot.show` only accepts a keyword-only `block` argument; passing the
+            # figure positionally raises `TypeError` on every backend.
+            plt.show()
 
     def save(self, name=None, output="png", dirc=None):
         """Saves Bloch sphere to file of type ``format`` in directory ``dirc``.
