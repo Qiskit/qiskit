@@ -1,3 +1,4 @@
+---
 fixes:
   - |
     Fixed a panic in the Rust text circuit drawer when drawing a circuit with
