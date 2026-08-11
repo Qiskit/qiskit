@@ -35,7 +35,10 @@ class QpyCircuitTestCase(QiskitTestCase):
     def assert_roundtrip_equal(
         self, circuit, version=None, use_symengine=None, annotation_factories=None
     ):
-        """QPY roundtrip equal test."""
+        """QPY roundtrip equal test.
+
+        Returns the round-tripped circuit so callers can run further assertions on it.
+        """
         qpy_file = io.BytesIO()
         if use_symengine is None:
             dump(circuit, qpy_file, version=version, annotation_factories=annotation_factories)
@@ -72,6 +75,7 @@ class QpyCircuitTestCase(QiskitTestCase):
                             yield from flat_annotations(block)
 
             self.assertEqual(list(flat_annotations(circuit)), list(flat_annotations(new_circuit)))
+        return new_circuit
 
 
 class TestVersions(QpyCircuitTestCase):
