@@ -548,8 +548,8 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
         else:
             raise exceptions.QpyError(f"Invalid parameter expression map type: {elem_key}")
         name_map[symbol.name] = value
-
-    return ParameterExpression(name_map, str(expr_))
+    expr_._set_name_map(name_map)
+    return expr_
 
 
 def _read_parameter_expression_v13(file_obj, vectors, version):
