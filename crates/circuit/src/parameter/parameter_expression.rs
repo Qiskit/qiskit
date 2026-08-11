@@ -872,6 +872,15 @@ impl PyParameterExpression {
         Ok(Self { inner })
     }
 
+    pub fn _set_name_map(&mut self, name_map: HashMap<String, PyParameter>) {
+        let symbol_map: HashMap<String, Symbol> = name_map
+            .iter()
+            .map(|(string, param)| (string.clone(), Symbol::clone(&param.0)))
+            .collect();
+        self.inner.expr = symbol_expr::replace_symbol(&self.inner.expr, &symbol_map);
+        self.inner.name_map = symbol_map;
+    }
+
     #[allow(non_snake_case)]
     #[staticmethod]
     pub fn _Value(value: &Bound<PyAny>) -> PyResult<Self> {
