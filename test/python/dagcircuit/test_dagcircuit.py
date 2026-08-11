@@ -2785,6 +2785,94 @@ class TestDagSubstitute(DAGTest):
         with self.assertRaisesRegex(DAGCircuitError, "Cannot replace a node with a DAG with more"):
             src.substitute_node_with_dag(node, replace, wires={})
 
+    def test_substitute_node_with_dag_transfers_captured_and_declared_vars(self):
+        """Test that substitute_node_with_dag transfers captured and declared variables.
+        Regression test for gh-15509."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+
+        # Create a base DAG with a simple X gate
+        base_dag = DAGCircuit()
+        qr = QuantumRegister(1)
+        base_dag.add_qreg(qr)
+        x_node = base_dag.apply_operation_back(XGate(), [qr[0]], [])
+
+        # Create a replacement DAG with captured and declared variables
+        replacement_dag = DAGCircuit()
+        replacement_dag.add_qubits([qr[0]])
+        replacement_dag.add_captured_var(a)
+        replacement_dag.add_declared_var(b)
+        replacement_dag.apply_operation_back(XGate(), [qr[0]], [])
+
+        # Perform the substitution
+        base_dag.substitute_node_with_dag(x_node, replacement_dag, wires=[qr[0]])
+
+        # Verify the variables were transferred
+        self.assertEqual(base_dag.num_captured_vars, 1)
+        self.assertEqual(base_dag.num_declared_vars, 1)
+        self.assertEqual(list(base_dag.iter_captured_vars()), [a])
+        self.assertEqual(list(base_dag.iter_declared_vars()), [b])
+
+    def test_substitute_dag_transfers_input_vars(self):
+        """substitute_node_with_dag should transfer DAG-level input vars from replacement."""
+        # Base DAG with a simple X gate
+        base_qc = QuantumCircuit(1)
+        base_qc.x(0)
+        base_dag = circuit_to_dag(base_qc)
+
+        # Node to replace
+        x_node = list(base_dag.op_nodes())[0]
+
+        # Replacement DAG that declares an input var and uses it in a control-flow op
+        replacement_dag = DAGCircuit()
+        replacement_dag.add_qubits(x_node.qargs)
+        replacement_dag.add_clbits(x_node.cargs)
+
+        condition_var = expr.Var.new("condition", types.Bool())
+        replacement_dag.add_input_var(condition_var)
+
+        if_block = QuantumCircuit(1)
+        if_block.x(0)
+        if_else_op = IfElseOp(condition_var, if_block, None)
+        replacement_dag.apply_operation_back(
+            if_else_op, replacement_dag.qubits, replacement_dag.clbits
+        )
+
+        # Perform substitution and verify input vars transferred
+        base_dag.substitute_node_with_dag(
+            x_node, replacement_dag, wires=x_node.qargs + x_node.cargs
+        )
+
+        self.assertEqual(base_dag.num_input_vars, 1)
+        self.assertEqual(list(base_dag.iter_input_vars()), [condition_var])
+
+    def test_substitute_node_with_dag_transfers_captured_and_declared_stretches(self):
+        """substitute_node_with_dag should transfer captured and declared stretches."""
+        a = expr.Stretch.new("a")
+        b = expr.Stretch.new("b")
+
+        # Create a base DAG with a simple X gate
+        base_dag = DAGCircuit()
+        qr = QuantumRegister(1)
+        base_dag.add_qreg(qr)
+        x_node = base_dag.apply_operation_back(XGate(), [qr[0]], [])
+
+        # Create a replacement DAG with captured and declared stretches
+        replacement_dag = DAGCircuit()
+        replacement_dag.add_qubits([qr[0]])
+        replacement_dag.add_captured_stretch(a)
+        replacement_dag.add_declared_stretch(b)
+        replacement_dag.apply_operation_back(XGate(), [qr[0]], [])
+
+        # Perform the substitution
+        base_dag.substitute_node_with_dag(x_node, replacement_dag, wires=[qr[0]])
+
+        # Verify the stretches were transferred
+        self.assertEqual(base_dag.num_captured_stretches, 1)
+        self.assertEqual(base_dag.num_declared_stretches, 1)
+        self.assertEqual(list(base_dag.iter_captured_stretches()), [a])
+        self.assertEqual(list(base_dag.iter_declared_stretches()), [b])
+
 
 @ddt
 class TestDagSubstituteNode(DAGTest):
