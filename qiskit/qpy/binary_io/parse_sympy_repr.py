@@ -13,6 +13,7 @@
 """Parser for sympy expressions srepr from ParameterExpression internals."""
 
 import ast
+import operator
 
 from qiskit.qpy.exceptions import QpyError
 from qiskit.circuit.parameter import Parameter
@@ -43,11 +44,6 @@ ALLOWED_CALLERS = {
 }
 
 METHOD_MAPPING = {
-    "Add": "__add__",
-    "Sub": "__sub__",
-    "Mul": "__mul__",
-    "Div": "__div__",
-    "Pow": "__pow__",
     "log": "log",
     "Abs": "abs",
     "sin": "sin",
@@ -59,19 +55,19 @@ METHOD_MAPPING = {
     "conjugate": "conjugate",
 }
 
-REVERSE_METHOD_MAPPING = {
-    "Add": "__radd__",
-    "Sub": "__rsub__",
-    "Mul": "__rmul__",
-    "Div": "__rdiv__",
-    "Pow": "__rpow__",
-}
-
 FUNCTION_MAPPING = {
     "Symbol": Parameter,
     "Integer": int,
     "Complex": complex,
     "Float": float,
+}
+
+OPERATOR_FUNCTIONS = {
+    "Add": operator.add,
+    "Sub": operator.sub,
+    "Mul": operator.mul,
+    "Div": operator.truediv,
+    "Pow": operator.pow,
 }
 
 UNARY = {
@@ -146,19 +142,12 @@ class ParseSympyWalker(ast.NodeVisitor):
             for arg in args:
                 self.visit(arg)
             out_args = [self.stack.pop() for _ in range(len(args))]
-            method = METHOD_MAPPING.get(name, None)
-            if method is not None:
+            func = OPERATOR_FUNCTIONS.get(name, None)
+            if func is not None:
                 obj = out_args.pop()
                 out_args.reverse()
                 for arg in out_args:
-                    if (
-                        name in REVERSE_METHOD_MAPPING
-                        and isinstance(arg, ParameterExpression)
-                        and not isinstance(obj, ParameterExpression)
-                    ):
-                        obj = getattr(arg, REVERSE_METHOD_MAPPING[name])(obj)
-                    else:
-                        obj = getattr(obj, method)(arg)
+                    obj = func(obj, arg)
             elif name == "Rational":
                 # If rational has one arg it's a no-op because
                 # ParameterExpression doesn't have a Rational type
