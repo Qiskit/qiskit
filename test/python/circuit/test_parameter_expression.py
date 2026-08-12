@@ -639,7 +639,10 @@ class TestParameterExpression(QiskitTestCase):
 
     @ddt.data("__add__", "__sub__", "__mul__", "__truediv__")
     def test_accumulation(self, meth):
-        """Test on-the-fly accumulation of numerical values."""
+        """Test on-the-fly accumulation of numerical values.
+
+        Regression test of
+        """
         symbol = Parameter("p")
         values = [(i + 1) / 11 for i in range(50)]
 
@@ -658,6 +661,17 @@ class TestParameterExpression(QiskitTestCase):
             reference = accumulator(symbol, accumulated)
 
         self.assertEqual(reference, expression)
+
+    def test_huge_addition(self):
+        """Test additions are simplified on the fly (aka. simpliflied).
+
+        Regression test of #16676.
+        """
+        p = Parameter("p")
+        for _ in range(int(1e6)):
+            p += 3.14
+
+        self.assertEqual(p, p.simplify())
 
     @ddt.data("__add__", "__sub__")
     def test_optimization_same_symbol(self, method):

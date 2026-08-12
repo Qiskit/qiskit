@@ -275,19 +275,17 @@ fn _add(lhs: SymbolExpr, rhs: SymbolExpr) -> SymbolExpr {
                 rhs: Arc::new(_neg(rhs)),
             },
         }
+    } else if matches!(lhs, SymbolExpr::Value(_)) || !matches!(rhs, SymbolExpr::Value(_)) {
+        SymbolExpr::Binary {
+            op: BinaryOp::Add,
+            lhs: Arc::new(lhs),
+            rhs: Arc::new(rhs),
+        }
     } else {
-        if matches!(lhs, SymbolExpr::Value(_)) || !matches!(rhs, SymbolExpr::Value(_)) {
-            SymbolExpr::Binary {
-                op: BinaryOp::Add,
-                lhs: Arc::new(lhs),
-                rhs: Arc::new(rhs),
-            }
-        } else {
-            SymbolExpr::Binary {
-                op: BinaryOp::Add,
-                lhs: Arc::new(rhs),
-                rhs: Arc::new(lhs),
-            }
+        SymbolExpr::Binary {
+            op: BinaryOp::Add,
+            lhs: Arc::new(rhs),
+            rhs: Arc::new(lhs),
         }
     }
 }
