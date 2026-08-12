@@ -18,6 +18,7 @@ import unittest
 import pickle
 import copy
 import functools
+import itertools
 
 from test import combine
 from test import QiskitTestCase
@@ -657,3 +658,21 @@ class TestParameterExpression(QiskitTestCase):
             reference = accumulator(symbol, accumulated)
 
         self.assertEqual(reference, expression)
+
+    @ddt.data("__add__", "__sub__")
+    def test_optimization_same_symbol(self, method):
+        """Test optimizations with the same symbol."""
+        x = Parameter("x")
+        pp = 1 + x
+        mp = -1 + x
+        pm = 1 - x
+        mm = -1 - x
+
+        value = 1.234
+
+        for lhs, rhs in itertools.combinations([pp, mp, pm, mm], 2):
+            with self.subTest(lhs=lhs, rhs=rhs):
+                reference = getattr(lhs.bind({x: value}), method)(rhs.bind({x: value}))
+                expression = getattr(lhs, method)(rhs)
+
+                self.assertEqual(reference, expression.bind({x: value}))
