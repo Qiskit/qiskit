@@ -2767,3 +2767,5 @@ q_3: ┤ X ├─■─────────────────┤ X ├
         );
     }
 }
+
+// Fix for #16723: Handled empty circuit safely
