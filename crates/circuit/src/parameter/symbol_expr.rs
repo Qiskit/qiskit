@@ -3781,31 +3781,6 @@ impl PartialOrd for Value {
     }
 }
 
-/// Replace [Symbol]s in a [SymbolExpr] according to the name map. This
-/// is used to reconstruct a parameter expression from a string.
-pub fn replace_symbol(symbol_expr: &SymbolExpr, name_map: &HashMap<String, Symbol>) -> SymbolExpr {
-    match symbol_expr {
-        SymbolExpr::Symbol(existing_symbol) => {
-            let name = existing_symbol.repr(false);
-            if let Some(new_symbol) = name_map.get(&name) {
-                SymbolExpr::Symbol(Arc::new(new_symbol.clone()))
-            } else {
-                symbol_expr.clone()
-            }
-        }
-        SymbolExpr::Value(_) => symbol_expr.clone(), // nothing to do
-        SymbolExpr::Binary { op, lhs, rhs } => SymbolExpr::Binary {
-            op: op.clone(),
-            lhs: Arc::new(replace_symbol(lhs, name_map)),
-            rhs: Arc::new(replace_symbol(rhs, name_map)),
-        },
-        SymbolExpr::Unary { op, expr } => SymbolExpr::Unary {
-            op: op.clone(),
-            expr: Arc::new(replace_symbol(expr, name_map)),
-        },
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
