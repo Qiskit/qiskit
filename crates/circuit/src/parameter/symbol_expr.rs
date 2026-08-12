@@ -1195,21 +1195,21 @@ impl SymbolExpr {
                                             }
                                         }
                                         (BinaryOp::Mul, BinaryOp::Mul) => {
+                                            if t.is_zero() {
+                                                return Some(SymbolExpr::Value(Value::Int(0)));
+                                            }
                                             return match t.mul_opt(l_rhs, recursive) {
                                                 Some(e) => Some(e),
                                                 None => Some(_mul(t, l_rhs.as_ref().clone())),
                                             };
                                         }
                                         (BinaryOp::Div, BinaryOp::Div) => {
+                                            if t.is_zero() {
+                                                return Some(SymbolExpr::Value(Value::Int(0)));
+                                            }
                                             return match t.div_opt(l_rhs, recursive) {
                                                 Some(e) => Some(e),
                                                 None => Some(_div(t, l_rhs.as_ref().clone())),
-                                            };
-                                        }
-                                        (BinaryOp::Pow, BinaryOp::Pow) => {
-                                            return match t.pow_opt(l_rhs) {
-                                                Some(e) => Some(e),
-                                                None => Some(_pow(t, l_rhs.as_ref().clone())),
                                             };
                                         }
                                         (_, _) => (),
@@ -1564,21 +1564,21 @@ impl SymbolExpr {
                                             }
                                         }
                                         (BinaryOp::Mul, BinaryOp::Mul) => {
+                                            if t.is_zero() {
+                                                return Some(SymbolExpr::Value(Value::Int(0)));
+                                            }
                                             return match t.mul_opt(l_rhs, recursive) {
                                                 Some(e) => Some(e),
                                                 None => Some(_mul(t, l_rhs.as_ref().clone())),
                                             };
                                         }
                                         (BinaryOp::Div, BinaryOp::Div) => {
+                                            if t.is_zero() {
+                                                return Some(SymbolExpr::Value(Value::Int(0)));
+                                            }
                                             return match t.div_opt(l_rhs, recursive) {
                                                 Some(e) => Some(e),
                                                 None => Some(_div(t, l_rhs.as_ref().clone())),
-                                            };
-                                        }
-                                        (BinaryOp::Pow, BinaryOp::Pow) => {
-                                            return match t.pow_opt(l_rhs) {
-                                                Some(e) => Some(e),
-                                                None => Some(_pow(t, l_rhs.as_ref().clone())),
                                             };
                                         }
                                         (_, _) => (),
@@ -2452,16 +2452,6 @@ impl SymbolExpr {
         }
     }
 
-    /// pow with heuristic optimization
-    fn pow_opt(&self, rhs: &SymbolExpr) -> Option<SymbolExpr> {
-        if self.is_zero() || rhs.is_one() {
-            return Some(self.clone());
-        } else if rhs.is_zero() {
-            return Some(SymbolExpr::Value(Value::Int(1)));
-        }
-        None
-    }
-
     /// optimization for neg
     fn neg_opt(&self) -> Option<SymbolExpr> {
         match self {
@@ -2837,7 +2827,6 @@ impl PartialEq for SymbolExpr {
         if let (Some(l), Some(r)) = (self.eval(true), rexpr.eval(true)) {
             return l == r;
         }
-
         match (self, rexpr) {
             (SymbolExpr::Symbol(l), SymbolExpr::Symbol(r)) => l == r,
             (SymbolExpr::Value(l), SymbolExpr::Value(r)) => l == r,
