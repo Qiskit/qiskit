@@ -11,8 +11,7 @@
 // that they have been altered from the originals.
 
 use mcx::{
-    c3x, c4x, synth_mcx_1_clean_b95, synth_mcx_n_clean_m15,
-    synth_mcx_1_kg24, synth_mcx_2_kg24,
+    c3x, c4x, synth_mcx_1_clean_b95, synth_mcx_1_kg24, synth_mcx_2_kg24, synth_mcx_n_clean_m15,
     synth_mcx_n_dirty_i15, synth_mcx_noaux_hp24, synth_mcx_noaux_v24,
 };
 use pyo3::prelude::*;

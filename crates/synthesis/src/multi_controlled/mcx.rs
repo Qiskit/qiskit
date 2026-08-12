@@ -415,11 +415,9 @@ fn linear_depth_ladder_ops(num_controls: u32) -> Result<(CircuitData, u32), Circ
     let k = num_controls;
 
     if k < 3 {
-        return Err(QiskitError::new_err(
-                "linear_depth_ladder_ops requires >= 3 controls.",
-        ).into());
+        return Err(QiskitError::new_err("linear_depth_ladder_ops requires >= 3 controls.").into());
     }
-    
+
     // At most k-2 rungs, each RCCX (9 gates) + X (1 gate); pre-size to avoid reallocation.
     let mut circuit =
         CircuitData::with_capacity(k, 0, 10 * k.saturating_sub(2) as usize, Param::Float(0.0))?;
@@ -427,7 +425,7 @@ fn linear_depth_ladder_ops(num_controls: u32) -> Result<(CircuitData, u32), Circ
     // Fold all k controls into a running partial-AND via RCCX+X pairs. RCCX is used
     // instead of CCX because its relative phase cancels when composed with its inverse.
     // The trailing X after each RCCX prepares the written qubit as a control for the next rung.
-  
+
     // Up-sweep: fold controls into qubit 1 two at a time, walking toward the middle.
     let mut i: u32 = 1;
     while i + 2 < k {
@@ -500,10 +498,9 @@ pub fn synth_mcx_1_kg24(num_controls: usize, clean: bool) -> Result<CircuitData,
         let ladder_inv = ladder.inverse()?;
 
         // num_passes=1 for clean ancilla, 2 for dirty (repeat to cancel initial-state dependence).
-        // Fixed costs: 2 RCCX (9 gates each) + num_passes * (2 * ladder + 1 CCX (15 gates)).      
+        // Fixed costs: 2 RCCX (9 gates each) + num_passes * (2 * ladder + 1 CCX (15 gates)).
         let num_passes = if clean { 1 } else { 2 };
-        let instruction_capacity = 2 * 9
-            + num_passes * (2 * ladder.data().len() + 15);
+        let instruction_capacity = 2 * 9 + num_passes * (2 * ladder.data().len() + 15);
         let mut circuit =
             CircuitData::with_capacity(k + 2, 0, instruction_capacity, Param::Float(0.0))?;
 
@@ -537,66 +534,42 @@ pub fn synth_mcx_1_kg24(num_controls: usize, clean: bool) -> Result<CircuitData,
     }
 }
 
-/// Helper function to create a log-depth ladder of conditionally-clean-ancilla
-/// AND-folding operations, as shown in Fig. 4b of [1].
+/// Builds the log-depth AND-folding ladder (Fig. 4b of [1]).
 ///
-/// # How the algorithm works
+/// Reduces `num_controls` controls to a set of AND-flag qubits using a
+/// doubling-width tree of parallel X+RCCX gates. Qubits 0 and 1 must have
+/// already been primed by the caller via `rccx(0, 1, ancilla0)`.
 ///
-/// The algorithm reduces `k` controls down to a single AND-flag using a
-/// doubling-width tree of parallel RCCX gates. Each RCCX writes
-/// `AND(ctrl_a, ctrl_b)` into a reusable ancilla qubit; a preceding X gate
-/// on that target prepares it from |0⟩ to |1⟩ so that the RCCX's relative
-/// phase is correct (the "conditionally clean ancilla" trick from [1]).
-///
-/// The ancilla pool starts with `ctrls[0]` and `ctrls[1]`, which the caller
-/// has already primed via `rccx(ctrls[0], ctrls[1], ancilla0)` — so those two
-/// qubits are free to be recycled as AND-flag targets here. The remaining
-/// controls are consumed round by round: each round takes a batch of controls
-/// whose size equals `|ancilla_pool| + 1`, folds them into the pool via
-/// parallel X+RCCX, and the batch survivors become the next pool. Controls
-/// that cannot be paired in a given round carry forward to `leftover_ctrls`.
-///
-/// # Arguments
-/// - `ctrls`: control qubit indices to fold (length must be >= 3). `ctrls[0]`
-///   and `ctrls[1]` must have already been primed by the caller.
-///
-/// # Returns
-/// A tuple of `(ladder_circuit, leftover_ctrls)`, where `leftover_ctrls` is
-/// the sorted list of qubit indices that still need to be combined with the
-/// physical ancilla in a final CCX or 1-ancilla MCX.
+/// Returns `(ladder_circuit, leftover_ctrls)`: the ladder gates and the qubit
+/// indices to feed into the final CCX or 1-ancilla MCX. Order of
+/// `leftover_ctrls` is not significant (MCX is symmetric in its controls).
 ///
 /// # References
 ///
 /// 1. Khattar and Gidney, *Rise of conditionally clean ancillae for optimizing quantum circuits*,
 ///    [arXiv:2407.17966](https://arxiv.org/abs/2407.17966).
-fn log_depth_ladder_ops(ctrls: &[u32]) -> Result<(CircuitData, Vec<u32>), CircuitDataError> {
-    if ctrls.len() < 3 {
-        return Err(QiskitError::new_err(
-            "log_depth_ladder_ops requires >= 3 controls.",
-        )
-        .into());
+fn log_depth_ladder_ops(num_controls: u32) -> Result<(CircuitData, Vec<u32>), CircuitDataError> {
+    if num_controls < 3 {
+        return Err(QiskitError::new_err("log_depth_ladder_ops requires >= 3 controls.").into());
     }
 
-    let num_qubits = ctrls.iter().copied().max().unwrap() + 1;
-    // Rough upper bound: at most (len-1) X+RCCX pairs across all rounds, 10 gates each.
+    // Rough upper bound: at most (num_controls-1) X+RCCX pairs across all rounds, 10 gates each.
     let mut qc = CircuitData::with_capacity(
-        num_qubits,
+        num_controls,
         0,
-        10 * ctrls.len().saturating_sub(1),
+        10 * (num_controls - 1) as usize,
         Param::Float(0.0),
     )?;
 
-    // `ancilla_pool`: qubits that hold AND-flags from previous rounds and can
-    // serve as targets for the next round of RCCXs. Seeded with ctrls[0] and
-    // ctrls[1] because the caller's priming RCCX already "consumed" them —
-    // they are now free to be overwritten.
-    let mut ancilla_pool: Vec<u32> = vec![ctrls[0], ctrls[1]];
-    // `unprocessed`: controls not yet folded into the AND-tree.
-    let mut unprocessed: Vec<u32> = ctrls[2..].to_vec();
-    // `leftover_ctrls`: qubits that survived each round as the odd-one-out
-    // (or the single survivor of a fully reduced batch). These are passed to
-    // the caller's final gate alongside the physical ancilla.
+    // Qubits 0 and 1 seed the pool: the caller's priming RCCX already consumed them,
+    // so they are free to be overwritten as AND-flag targets.
+    let mut ancilla_pool: Vec<u32> = vec![0, 1];
+    // Controls not yet folded into the AND-tree.
+    let mut unprocessed: Vec<u32> = (2..num_controls).collect();
+    // Single survivors from each round — passed to the caller's final gate.
     let mut leftover_ctrls: Vec<u32> = Vec::new();
+    // Hoisted out of the outer loop to reuse the allocation across rounds.
+    let mut newly_freed: Vec<u32> = Vec::new();
 
     // --- Outer loop: one round per batch of unprocessed controls -----------
     // Each round pulls a batch whose size fits the current ancilla pool (+1),
@@ -607,33 +580,33 @@ fn log_depth_ladder_ops(ctrls: &[u32]) -> Result<(CircuitData, Vec<u32>), Circui
         let batch_size = (ancilla_pool.len() + 1).min(unprocessed.len());
         let mut batch: Vec<u32> = unprocessed.drain(..batch_size).collect();
 
-        // Controls consumed by this batch become new ancilla after the round.
-        // Collect them before the inner loop mutates `batch`.
-        let mut newly_freed: Vec<u32> = Vec::new();
+        // Track controls consumed by this batch; they rejoin the pool after the inner loop.
+        newly_freed.clear();
 
         // --- Inner loop: parallel X+RCCX tree, halving `batch` each step ---
         // Each step pairs up the elements of `batch` and writes their AND-flags
         // into the last `pair_count` entries of `ancilla_pool`. After the step,
-        // `batch` is replaced by those AND-flag qubits (plus any odd-one-out),
-        // ready to be paired again next step.
+        // `batch` is updated in-place to hold the AND-flag target qubits (plus
+        // the odd-one-out if any), ready to be paired again in the next step.
+        //
+        // RCCX is symmetric in its two control qubits (AND is commutative), so
+        // the relative order of ctrl_a[i] and ctrl_b[i] does not affect the
+        // emitted gate. This allows the in-place batch update to skip a rotate,
+        // leaving the odd-one-out at the front rather than the back.
         while batch.len() > 1 {
             let pair_count = batch.len() / 2;
             // `leftover`: 0 or 1 element that cannot be paired this step.
             let leftover = batch.len() % 2;
-
-            // Split `batch` into two equal halves to be the RCCX controls (a, b),
-            // and take the last `pair_count` ancilla as the RCCX targets (t).
-            // Using the *tail* of the ancilla pool ensures we consume the most
-            // recently freed qubits first (they are the deepest in the tree and
-            // thus available earliest for reuse).
-            let ctrl_a: Vec<u32> = batch[leftover..leftover + pair_count].to_vec();
-            let ctrl_b: Vec<u32> = batch[leftover + pair_count..].to_vec();
             let pool_len = ancilla_pool.len();
-            let targets: Vec<u32> = ancilla_pool[pool_len - pair_count..].to_vec();
+
+            // Borrow slices for gate emission — no allocations.
+            let ctrl_a = &batch[leftover..leftover + pair_count];
+            let ctrl_b = &batch[leftover + pair_count..];
+            let targets = &ancilla_pool[pool_len - pair_count..]; // tail = most recently freed
 
             // Phase 1: X on every target (|0⟩ → |1⟩) so the RCCX relative phase
             // is correct for the "conditionally clean ancilla" construction.
-            for &t in &targets {
+            for &t in targets {
                 qc.x(t)?;
             }
             // Phase 2: RCCX(aᵢ, bᵢ, tᵢ) in parallel — writes AND(aᵢ, bᵢ) into tᵢ.
@@ -641,66 +614,49 @@ fn log_depth_ladder_ops(ctrls: &[u32]) -> Result<(CircuitData, Vec<u32>), Circui
                 qc.rccx(ctrl_a[i], ctrl_b[i], targets[i])?;
             }
 
-            // The consumed batch elements (ctrl_a ++ ctrl_b) are now free to be
-            // recycled as ancilla in future rounds.
+            // Record consumed controls; they'll rejoin ancilla_pool after this inner loop.
             newly_freed.extend_from_slice(&batch[leftover..]);
-            // Next step's batch = the AND-flag targets we just wrote, plus the
-            // odd-one-out element (if any) carried forward.
-            let odd_one_out: Vec<u32> = batch[..leftover].to_vec();
-            batch = targets.into_iter().chain(odd_one_out).collect();
-            // Retire the used tail of the ancilla pool.
+
+            // In-place: replace ctrl_a slots with target indices, drop ctrl_b slots.
+            // Leaves batch = [odd_one_out?, targets...] with no allocation.
+            batch[leftover..leftover + pair_count].copy_from_slice(targets);
+            batch.truncate(leftover + pair_count);
             ancilla_pool.truncate(pool_len - pair_count);
         }
 
-        // `batch` is now a single-element vec: the AND-flag qubit that holds
-        // AND(all controls in this batch). Record it as a leftover for the caller.
+        // `batch` is now one element: the AND-flag for all controls in this batch.
+        // Return consumed controls to the pool (order irrelevant — AND is commutative).
         ancilla_pool.extend_from_slice(&newly_freed);
-        ancilla_pool.sort_unstable();
         leftover_ctrls.extend_from_slice(&batch);
     }
 
-    // Any single remaining unprocessed control couldn't form a pair and is
-    // passed directly to the caller's final gate.
+    // Odd leftover control (if any) passes directly to the caller's final gate.
     leftover_ctrls.extend_from_slice(&unprocessed);
-    leftover_ctrls.sort_unstable();
 
     Ok((qc, leftover_ctrls))
 }
 
-/// Applies the "finish" step of `synth_mcx_2_kg24` (Step 3 of Fig. 4b in [1]):
-/// flip `target` iff `ancilla0` AND all `leftover_ctrls` are set, i.e. iff
-/// AND(all k controls) holds.
+/// Flips `target` iff AND(ancilla0, leftover_ctrls...) holds (Step 3 of [1]).
 ///
-/// Two cases depending on how many leftover controls remain after the log-depth fold:
-/// - 1 leftover: a single CCX suffices (`ancilla0`, the one leftover ctrl, `target`).
-/// - 2+ leftovers: delegate to `synth_mcx_1_kg24` using `ancilla1` as its ancilla.
-///   `mid_mcx` must be `Some(synth_mcx_1_kg24(leftover_ctrls.len() + 1, clean=true))`.
-///   It is always synthesized with `clean=true` — `ancilla1` is fully
-///   computed-and-uncomputed within a single pass, so its initial state is irrelevant.
-///
-/// Called once per pass (twice total for the dirty-ancilla case).
+/// Uses a single CCX when `leftover_ctrls` has one element, or a precomputed
+/// `synth_mcx_1_kg24` circuit + qubit map (`mid_mcx`) for two or more.
+/// Called once per pass (twice in the dirty-ancilla case).
 ///
 /// [1]: Khattar and Gidney, arXiv:2407.17966
 fn synth_mcx_2_finish(
     circuit: &mut CircuitData,
     ancilla0: u32,
-    ancilla1: u32,
     target: u32,
     leftover_ctrls: &[u32],
-    mid_mcx: Option<&CircuitData>,
+    mid_mcx: Option<(&CircuitData, &[Qubit])>,
 ) -> Result<(), CircuitDataError> {
     if leftover_ctrls.len() == 1 {
         // Single leftover: CCX(ancilla0, leftover_ctrl, target).
         circuit.ccx(ancilla0, leftover_ctrls[0], target)
     } else {
-        let mid_mcx = mid_mcx.expect("mid_mcx must be precomputed when leftover_ctrls.len() > 1");
-        // Map mid_mcx's local qubits [0, 1..n, n+1, n+2] onto
-        // [ancilla0, leftover_ctrls..., target, ancilla1] in the outer circuit.
-        let qubits_map: Vec<Qubit> = std::iter::once(Qubit(ancilla0))
-            .chain(leftover_ctrls.iter().map(|&c| Qubit(c)))
-            .chain([Qubit(target), Qubit(ancilla1)])
-            .collect();
-        circuit.compose(mid_mcx, &qubits_map, &[])
+        let (mid_mcx, qubits_map) =
+            mid_mcx.expect("mid_mcx must be precomputed when leftover_ctrls.len() > 1");
+        circuit.compose(mid_mcx, qubits_map, &[])
     }
 }
 
@@ -736,26 +692,34 @@ pub fn synth_mcx_2_kg24(num_controls: usize, clean: bool) -> Result<CircuitData,
         let ancilla0 = k + 1;
         let ancilla1 = k + 2;
 
-        let controls: Vec<u32> = (0..k).collect();
-        let controls_map: Vec<Qubit> = controls.iter().map(|&q| Qubit(q)).collect();
+        let controls_map: Vec<Qubit> = (0..k).map(Qubit).collect();
 
-        let (ladder, leftover_ctrls) = log_depth_ladder_ops(&controls)?;
+        let (ladder, leftover_ctrls) = log_depth_ladder_ops(k)?;
         // Precompute once; the dirty-ancilla case reuses it for the second pass.
         let ladder_inv = ladder.inverse()?;
 
-        // Precompute the mid-MCX used in the finish step when more than one
-        // leftover control remains. Always synthesized clean=true: ancilla1 is
-        // fully computed-and-uncomputed within a single pass, so its initial
-        // state is irrelevant. None when a single CCX suffices.
-        let mid_mcx: Option<CircuitData> = if leftover_ctrls.len() > 1 {
-            Some(synth_mcx_1_kg24(leftover_ctrls.len() + 1, true)?)
+        // Precompute mid-MCX and its qubit map together once; reused for both
+        // passes in the dirty case. clean=true: ancilla1 is fully uncomputed
+        // per pass. None → a single CCX suffices instead.
+        let mid_mcx_and_map: Option<(CircuitData, Vec<Qubit>)> = if leftover_ctrls.len() > 1 {
+            let circuit = synth_mcx_1_kg24(leftover_ctrls.len() + 1, true)?;
+            let mut qubits_map: Vec<Qubit> = Vec::with_capacity(leftover_ctrls.len() + 3);
+            qubits_map.push(Qubit(ancilla0));
+            qubits_map.extend(leftover_ctrls.iter().map(|&c| Qubit(c)));
+            qubits_map.push(Qubit(target));
+            qubits_map.push(Qubit(ancilla1));
+            Some((circuit, qubits_map))
         } else {
             None
         };
+        let mid_mcx_for_finish = mid_mcx_and_map
+            .as_ref()
+            .map(|(circuit, qubits_map)| (circuit, qubits_map.as_slice()));
 
         // num_passes=1 for clean ancilla, 2 for dirty (repeat to cancel initial-state dependence).
         // Fixed costs: 2 RCCX (9 gates each) + num_passes * (2 * ladder + finish step).
-        let finish_len = mid_mcx.as_ref().map_or(15, |m| m.data().len());
+        // finish_len = 15 when leftover_ctrls.len() == 1 (one CCX).
+        let finish_len = mid_mcx_and_map.as_ref().map_or(15, |(m, _)| m.data().len());
         let num_passes = if clean { 1 } else { 2 };
         let instruction_capacity = 2 * 9 + num_passes * (2 * ladder.data().len() + finish_len);
         let mut circuit =
@@ -769,7 +733,13 @@ pub fn synth_mcx_2_kg24(num_controls: usize, clean: bool) -> Result<CircuitData,
         // Step 2: fold -- log-depth AND-folding ladder over the remaining controls.
         circuit.compose(&ladder, &controls_map, &[])?;
         // Step 3: finish -- flip the target iff AND(all k controls) holds.
-        synth_mcx_2_finish(&mut circuit, ancilla0, ancilla1, target, &leftover_ctrls, mid_mcx.as_ref())?;
+        synth_mcx_2_finish(
+            &mut circuit,
+            ancilla0,
+            target,
+            &leftover_ctrls,
+            mid_mcx_for_finish,
+        )?;
         // Step 4: unfold -- undo step 2, restoring all control qubits.
         circuit.compose(&ladder_inv, &controls_map, &[])?;
         // Step 5: unprime -- undo step 1, restoring ancilla0 to its initial state.
@@ -780,7 +750,13 @@ pub fn synth_mcx_2_kg24(num_controls: usize, clean: bool) -> Result<CircuitData,
             // cancel dependence on the ancillas' initial state. Prime/unprime happen only
             // once (matches synth_mcx_1_kg24's dirty-ancilla pattern).
             circuit.compose(&ladder, &controls_map, &[])?;
-            synth_mcx_2_finish(&mut circuit, ancilla0, ancilla1, target, &leftover_ctrls, mid_mcx.as_ref())?;
+            synth_mcx_2_finish(
+                &mut circuit,
+                ancilla0,
+                target,
+                &leftover_ctrls,
+                mid_mcx_for_finish,
+            )?;
             circuit.compose(&ladder_inv, &controls_map, &[])?;
         }
 
