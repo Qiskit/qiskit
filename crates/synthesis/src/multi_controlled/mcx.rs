@@ -90,6 +90,9 @@ trait CircuitDataForSynthesis {
     /// Appends RCCX to the circuit.
     fn rccx(&mut self, q1: u32, q2: u32, q3: u32) -> Result<(), CircuitDataError>;
 
+    /// Appends CRX to the circuit.
+    fn crx(&mut self, theta: f64, q1: u32, q2: u32) -> Result<(), CircuitDataError>;
+
     /// Compose ``other`` into ``self``, while remapping the qubits
     /// over which ``other`` is defined. The operations are added in-place.
     fn compose(
@@ -145,6 +148,16 @@ impl CircuitDataForSynthesis for CircuitData {
     fn cp(&mut self, theta: f64, q1: u32, q2: u32) -> Result<(), CircuitDataError> {
         self.push_standard_gate(
             StandardGate::CPhase,
+            &[Param::Float(theta)],
+            &[Qubit(q1), Qubit(q2)],
+        )
+    }
+
+    /// Appends CRX to the circuit.
+    #[inline]
+    fn crx(&mut self, theta: f64, q1: u32, q2: u32) -> Result<(), CircuitDataError> {
+        self.push_standard_gate(
+            StandardGate::CRX,
             &[Param::Float(theta)],
             &[Qubit(q1), Qubit(q2)],
         )
@@ -1130,6 +1143,132 @@ pub fn synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
     }
 
     Ok(circuit)
+}
+
+/// Synthesize a multi-controlled phase gate with :math:`n` controls based on the paper
+/// by da Silva et al. [1] and the implementation in qclib [2].
+///
+/// For :math:`n \ge 2`, the method produces a circuit with :math:`4n^2-4n+2` CX gates
+/// and requires :math:`O(n)` depth.
+/// For :math:`n \le 4`, it is more efficient to use [`synth_mcp_noaux_v24`],
+/// which produces a circuit with less CX gates.
+///
+/// The circuit breaks down into four steps, each applying a specific pattern of controlled gates.
+///
+/// - Step 1: Apply :math:`n` controlled phase gates and :math:`n(n-1)/2` controlled RX gates.
+/// - Step 2: Apply :math:`n-1` controlled phase gates and :math:`(n-1)(n-2)/2` controlled RX gates.
+///
+///   This is the initial phase. It applies angle rotations (e.g., :math:`R_X(\pi/k)`) and
+///   the :math:`k`-th roots of the target unitary (:math:`U^{1/k}`) in a cascading V-shape pattern.
+///   This step systematically accumulates the partitioned components of the unitary
+///   operation on the target qubit based on the control states.
+///
+/// - Step 3: Apply :math:`n(n-1)/2` controlled RX gates.
+/// - Step 4: Apply :math:`(n-1)(n-2)/2` controlled RX gates.
+///
+///   Steps 3 and 4 together constitute the uncomputation process. By applying only the inverse of
+///   the angle rotation operations in steps 1 and 2, these steps reverse the unwanted
+///   entanglement and phase shifts generated in the first two steps. This cancellation ensures
+///   that the target qubit undergoes the full unitary operation :math:`U`
+///   if and only if all control qubits are in the :math:`|1\rangle` state.
+///
+/// Each controlled RX gate and controlled phase gate requires two CX gates,
+/// resulting in a total of :math:`4n^2-4n+2` CX gates.
+///
+/// # Arguments
+///
+/// - num_ctrl_qubits: the number of control qubits.
+/// - phase: the phase angle for the multi-controlled phase gate.
+///
+/// # Returns
+///
+/// A quantum circuit implementing the multi-controlled phase gate with :math:`4n^2-4n+2` CX gates.
+///
+/// # References
+///
+/// 1. A. J. da Silva and D. K. Park, *Linear-depth quantum circuits for multiqubit controlled gates*,
+///    [Phys. Rev. A 106, 042602](https://journals.aps.org/pra/abstract/10.1103/PhysRevA.106.042602).
+///
+/// 2. <https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py>
+pub fn synth_mcp_noaux_sp22(
+    num_ctrl_qubits: usize,
+    phase: f64,
+) -> Result<CircuitData, CircuitDataError> {
+    // The following code is a derivative work of qclib
+    // (https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py).
+    // Copyright 2021 qclib project.
+    // Licensed under the Apache License, Version 2.0.
+    let mut circuit =
+        CircuitData::with_capacity((num_ctrl_qubits + 1) as u32, 0, 0, Param::Float(0.0))?;
+
+    if num_ctrl_qubits == 0 {
+        circuit.p(phase, 0)?;
+    } else if num_ctrl_qubits == 1 {
+        circuit.cp(phase, 0, 1)?;
+    } else {
+        apply_controlled_gates(&mut circuit, phase, num_ctrl_qubits + 1, 1)?;
+        apply_controlled_gates(&mut circuit, phase, num_ctrl_qubits + 1, 2)?;
+        apply_controlled_gates(&mut circuit, phase, num_ctrl_qubits, 3)?;
+        apply_controlled_gates(&mut circuit, phase, num_ctrl_qubits, 4)?;
+    }
+    Ok(circuit)
+}
+
+/// Helper function to apply controlled gates in a specific pattern based on the step
+/// in [`synth_mcp_noaux_sp22`].
+///
+/// The following code is a derivative work of qclib
+/// (<https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py>).
+/// Copyright 2021 qclib project. Licensed under the Apache License, Version 2.0.
+fn apply_controlled_gates(
+    circuit: &mut CircuitData,
+    phi: f64,
+    n_qubits: usize,
+    step: usize,
+) -> Result<(), CircuitDataError> {
+    let (start, reverse) = if step == 1 || step == 3 {
+        (0usize, true)
+    } else {
+        (1usize, false)
+    };
+
+    // all pairs (control, target) where control<target
+    let mut qubit_pairs: Vec<(usize, usize)> = (start..n_qubits)
+        .flat_map(|target| (start..target).map(move |control| (control, target)))
+        .collect();
+
+    if reverse {
+        qubit_pairs.sort_by(|a, b| (b.0 + b.1).cmp(&(a.0 + a.1)));
+    } else {
+        qubit_pairs.sort_by(|a, b| (a.0 + a.1).cmp(&(b.0 + b.1)));
+    }
+
+    for &(control, target) in &qubit_pairs {
+        let exponent = if control == 0 {
+            target - control - 1
+        } else {
+            target - control
+        };
+
+        let param = (1usize << exponent) as f64; // 2^exponent, using bit shift
+        if target == n_qubits - 1 && (step == 1 || step == 2) {
+            let sign: i32 = if step == 1 { 1 } else { -1 };
+            circuit.cp((sign as f64) * phi / param, control as u32, target as u32)?;
+        } else {
+            let sign: i32 = if step == 1 {
+                1
+            } else if step == 2 {
+                -1
+            } else if step == 3 {
+                if control == 0 { -1 } else { 1 }
+            } else {
+                #[allow(clippy::collapsible_else_if)]
+                if control == 0 { 1 } else { -1 }
+            };
+            circuit.crx((sign as f64) * PI / param, control as u32, target as u32)?;
+        }
+    }
+    Ok(())
 }
 
 #[cfg(all(test, not(miri)))]

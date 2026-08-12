@@ -11,11 +11,12 @@
 # that they have been altered from the originals.
 """Module containing multi-controlled phase gate synthesis methods."""
 
-import numpy as np
-
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.exceptions import QiskitError
+from qiskit._accelerate.synthesis.multi_controlled import (
+    synth_mcp_noaux_sp22 as synth_mcp_noaux_sp22_rs,
+)
 
 
 def synth_mcp_noaux_v24(num_ctrl_qubits: int, phase: ParameterValueType) -> QuantumCircuit:
@@ -123,48 +124,6 @@ def synth_mcp_noaux_v24(num_ctrl_qubits: int, phase: ParameterValueType) -> Quan
     return qc
 
 
-def _apply_controlled_gates(
-    circuit: QuantumCircuit, phi: ParameterValueType, n_qubits: int, step: int
-) -> None:
-    """Helper function to apply controlled gates in a specific pattern based on the step in :func:`synth_mcp_noaux_sp22`."""
-    # The following code is a derivative work of qclib
-    # (https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py).
-    # Copyright 2021 qclib project.
-    # Licensed under the Apache License, Version 2.0.
-    if step in [1, 3]:
-        start = 0
-        reverse = True
-    else:
-        start = 1
-        reverse = False
-
-    qubit_pairs = [
-        (control, target) for target in range(n_qubits) for control in range(start, target)
-    ]
-
-    qubit_pairs.sort(key=lambda e: e[0] + e[1], reverse=reverse)
-
-    for control, target in qubit_pairs:
-        exponent = target - control
-        if control == 0:
-            exponent = exponent - 1
-        param = 2**exponent
-
-        if target == n_qubits - 1 and step in [1, 2]:
-            sign = 1 if step == 1 else -1
-            circuit.cp(sign * phi / param, control, target)
-        else:
-            if step == 1:
-                sign = 1
-            elif step == 2:
-                sign = -1
-            elif step == 3:
-                sign = -1 if control == 0 else 1
-            else:
-                sign = 1 if control == 0 else -1
-            circuit.crx(sign * np.pi / param, control, target)
-
-
 def synth_mcp_noaux_sp22(num_ctrl_qubits: int, phase: ParameterValueType) -> QuantumCircuit:
     r"""Synthesize a multi-controlled phase gate with :math:`n` controls based on the paper
     by da Silva et al. [1] and the implementation in qclib [2].
@@ -173,28 +132,6 @@ def synth_mcp_noaux_sp22(num_ctrl_qubits: int, phase: ParameterValueType) -> Qua
     and requires :math:`O(n)` depth.
     For :math:`n \le 4`, it is more efficient to use :func:`synth_mcp_noaux_v24`,
     which produces a circuit with less CX gates.
-
-    The circuit breaks down into four steps, each applying a specific pattern of controlled gates.
-
-    - Step 1: Apply :math:`n` controlled phase gates and :math:`n(n-1)/2` controlled RX gates.
-    - Step 2: Apply :math:`n-1` controlled phase gates and :math:`(n-1)(n-2)/2` controlled RX gates.
-
-      This is the initial phase. It applies angle rotations (e.g., :math:`R_X(\pi/k)`) and
-      the :math:`k`-th roots of the target unitary (:math:`U^{1/k}`) in a cascading V-shape pattern.
-      This step systematically accumulates the partitioned components of the unitary
-      operation on the target qubit based on the control states.
-
-    - Step 3: Apply :math:`n(n-1)/2` controlled RX gates.
-    - Step 4: Apply :math:`(n-1)(n-2)/2` controlled RX gates.
-
-      Steps 3 and 4 together constitute the uncomputation process. By applying only the inverse of
-      the angle rotation operations in steps 1 and 2, these steps reverse the unwanted
-      entanglement and phase shifts generated in the first two steps. This cancellation ensures
-      that the target qubit undergoes the full unitary operation :math:`U`
-      if and only if all control qubits are in the :math:`|1\rangle` state.
-
-    Each controlled RX gate and controlled phase gate requires two CX gates,
-    resulting in a total of :math:`4n^2-4n+2` CX gates.
 
     Args:
         num_ctrl_qubits: The number of control qubits.
@@ -214,27 +151,11 @@ def synth_mcp_noaux_sp22(num_ctrl_qubits: int, phase: ParameterValueType) -> Qua
 
         [2] https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py
     """
-    # The following code is a derivative work of qclib
-    # (https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py).
-    # Copyright 2021 qclib project.
-    # Licensed under the Apache License, Version 2.0.
-    qc = QuantumCircuit(num_ctrl_qubits + 1)
-
     if num_ctrl_qubits < 0:
         raise QiskitError(
             "synth_mcp_noaux_sp22 cannot be called with a negative number of control qubits."
         )
-    elif num_ctrl_qubits == 0:
-        qc.p(phase, 0)
-    elif num_ctrl_qubits == 1:
-        qc.cp(phase, 0, 1)
-    else:
-        _apply_controlled_gates(qc, phase, num_ctrl_qubits + 1, step=1)
-        _apply_controlled_gates(qc, phase, num_ctrl_qubits + 1, step=2)
-        _apply_controlled_gates(qc, phase, num_ctrl_qubits, step=3)
-        _apply_controlled_gates(qc, phase, num_ctrl_qubits, step=4)
-
-    return qc
+    return QuantumCircuit._from_circuit_data(synth_mcp_noaux_sp22_rs(num_ctrl_qubits, phase))
 
 
 def synth_mcp_noaux_default(num_ctrl_qubits: int, phase: ParameterValueType) -> QuantumCircuit:
