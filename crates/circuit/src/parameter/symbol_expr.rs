@@ -415,50 +415,6 @@ impl SymbolExpr {
     /// evaluate the equation
     /// if recursive is false, only this node will be evaluated
     pub fn eval(&self, recurse: bool) -> Option<Value> {
-<<<<<<< HEAD
-        match self {
-            SymbolExpr::Symbol(_) => None,
-            SymbolExpr::Value(e) => Some(*e),
-            SymbolExpr::Unary { op, expr } => {
-                let val: Value;
-                if recurse {
-                    match expr.eval(recurse) {
-                        Some(v) => val = v,
-                        None => return None,
-                    }
-                } else {
-                    match expr.as_ref() {
-                        SymbolExpr::Value(e) => val = *e,
-                        _ => return None,
-                    }
-                }
-                let ret = match op {
-                    UnaryOp::Abs => val.abs(),
-                    UnaryOp::Neg => -val,
-                    UnaryOp::Sin => val.sin(),
-                    UnaryOp::Asin => val.asin(),
-                    UnaryOp::Cos => val.cos(),
-                    UnaryOp::Acos => val.acos(),
-                    UnaryOp::Tan => val.tan(),
-                    UnaryOp::Atan => val.atan(),
-                    UnaryOp::Exp => val.exp(),
-                    UnaryOp::Log => val.log(),
-                    UnaryOp::Sign => val.sign(),
-                    UnaryOp::Conj => match val {
-                        Value::Complex(v) => Value::Complex(v.conj()),
-                        _ => val,
-                    },
-                };
-                match ret {
-                    Value::Real(_) => Some(ret),
-                    Value::Int(_) => Some(ret),
-                    Value::Complex(c) => {
-                        if (-SYMEXPR_EPSILON..SYMEXPR_EPSILON).contains(&c.im) {
-                            Some(Value::Real(c.re))
-                        } else {
-                            Some(ret)
-                        }
-=======
         let process_unary = |op: UnaryOp, val: Value| -> Value {
             let ret = match op {
                 UnaryOp::Abs => val.abs(),
@@ -485,7 +441,6 @@ impl SymbolExpr {
                         Value::Real(c.re)
                     } else {
                         ret
->>>>>>> 0a0be0a87 (Reimplement SymbolExpr::eval to be iterative (#16756))
                     }
                 }
             }
