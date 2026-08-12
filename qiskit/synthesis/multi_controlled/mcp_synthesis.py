@@ -134,19 +134,24 @@ def synth_mcp_noaux_sp22(num_ctrl_qubits: int, phase: ParameterValueType) -> Qua
     which produces a circuit with less CX gates.
 
     The circuit breaks down into four steps, each applying a specific pattern of controlled gates.
+
     - Step 1: Apply :math:`n` controlled phase gates and :math:`n(n-1)/2` controlled RX gates.
     - Step 2: Apply :math:`n-1` controlled phase gates and :math:`(n-1)(n-2)/2` controlled RX gates.
+
       This is the initial phase. It applies angle rotations (e.g., :math:`R_X(\pi/k)`) and
       the :math:`k`-th roots of the target unitary (:math:`U^{1/k}`) in a cascading V-shape pattern.
       This step systematically accumulates the partitioned components of the unitary
       operation on the target qubit based on the control states.
+
     - Step 3: Apply :math:`n(n-1)/2` controlled RX gates.
     - Step 4: Apply :math:`(n-1)(n-2)/2` controlled RX gates.
+
       Steps 3 and 4 together constitute the uncomputation process. By applying only the inverse of
       the angle rotation operations in steps 1 and 2, these steps reverse the unwanted
       entanglement and phase shifts generated in the first two steps. This cancellation ensures
       that the target qubit undergoes the full unitary operation :math:`U`
       if and only if all control qubits are in the :math:`|1\rangle` state.
+
     Each controlled RX gate and controlled phase gate requires two CX gates,
     resulting in a total of :math:`4n^2-4n+2` CX gates.
 
