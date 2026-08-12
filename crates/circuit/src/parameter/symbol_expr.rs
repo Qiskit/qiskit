@@ -3768,6 +3768,7 @@ pub fn replace_symbol(symbol_expr: &SymbolExpr, name_map: &HashMap<String, Symbo
 #[cfg(test)]
 mod test {
     use super::*;
+    use approx::assert_abs_diff_eq;
     use std::f64::consts::PI;
 
     #[test]
@@ -3781,8 +3782,11 @@ mod test {
                 rhs: Arc::new(SymbolExpr::Value(Value::Real(1.0))),
             }),
         };
-        let value = test_expr.eval(true);
-        assert_eq!(Value::Real(2. * PI), value.unwrap());
+        let value = test_expr.eval(true).unwrap();
+        let Value::Real(result) = value else {
+            panic!("A non-real value was returned");
+        };
+        assert_abs_diff_eq!(2. * PI, result);
     }
 
     #[test]
