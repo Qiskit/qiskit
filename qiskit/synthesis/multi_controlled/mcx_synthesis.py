@@ -27,6 +27,7 @@ from qiskit._accelerate.synthesis.multi_controlled import (
     synth_mcx_n_clean_m15 as synth_mcx_n_clean_m15_rs,
     synth_mcx_1_clean_b95 as synth_mcx_1_clean_b95_rs,
     synth_mcx_1_kg24 as synth_mcx_1_kg24_rs,
+    synth_mcx_2_kg24 as synth_mcx_2_kg24_rs,
 )
 from .gray_code import gray_code_chain
 
@@ -542,11 +543,16 @@ def synth_mcx_2_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
         raise QiskitError(
             "synth_mcx_2_clean_kg24 cannot be called with a negative number of control qubits."
         )
+    #print("before rust")
+    circ = QuantumCircuit._from_circuit_data(synth_mcx_2_kg24_rs(num_ctrl_qubits, True))
+    #print("after rust")
+    return circ
 
-    if num_ctrl_qubits <= 2:
-        return _synth_mcx_special_cases(num_ctrl_qubits)
 
-    return synth_mcx_2_kg24(num_ctrl_qubits, clean=True)
+    # if num_ctrl_qubits <= 2:
+    #     return _synth_mcx_special_cases(num_ctrl_qubits)
+
+    # return synth_mcx_2_kg24(num_ctrl_qubits, clean=True)
 
 
 def synth_mcx_2_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
@@ -574,11 +580,14 @@ def synth_mcx_2_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
         raise QiskitError(
             "synth_mcx_2_dirty_kg24 cannot be called with a negative number of control qubits."
         )
+    #print("before rust dirty ")
+    circ = QuantumCircuit._from_circuit_data(synth_mcx_2_kg24_rs(num_ctrl_qubits, False))
+    #print("after rust dirty")
+    # if num_ctrl_qubits <= 2:
+    #     return _synth_mcx_special_cases(num_ctrl_qubits)
 
-    if num_ctrl_qubits <= 2:
-        return _synth_mcx_special_cases(num_ctrl_qubits)
-
-    return synth_mcx_2_kg24(num_ctrl_qubits, clean=False)
+    # return synth_mcx_2_kg24(num_ctrl_qubits, clean=False)
+    return circ
 
 
 def synth_c3x() -> QuantumCircuit:
