@@ -17,24 +17,24 @@ pub struct PauliEvolutionError;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PauliEvolution {
-    hermitian: SparseObservable,
+    operator: SparseObservable,
     time: ComparableParam,
 }
 
 impl PauliEvolution {
-    pub fn new(hermitian: SparseObservable, time: Param) -> Result<Self, PauliEvolutionError> {
+    pub fn new(operator: SparseObservable, time: Param) -> Result<Self, PauliEvolutionError> {
         if matches!(time, Param::Obj(_)) {
             return Err(PauliEvolutionError);
         }
 
         Ok(Self {
-            hermitian,
+            operator,
             time: ComparableParam(time),
         })
     }
 
-    pub fn hermitian(&self) -> &SparseObservable {
-        &self.hermitian
+    pub fn operator(&self) -> &SparseObservable {
+        &self.operator
     }
 
     pub fn time(&self) -> &Param {
@@ -43,7 +43,7 @@ impl PauliEvolution {
 
     pub fn into_parts(self) -> PauliEvolutionParts {
         PauliEvolutionParts {
-            hermitian: self.hermitian,
+            operator: self.operator,
             time: self.time.0,
         }
     }
@@ -53,7 +53,7 @@ impl fmt::Display for PauliEvolution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "exp(-it (")?;
 
-        for (i, term) in self.hermitian.iter().enumerate() {
+        for (i, term) in self.operator.iter().enumerate() {
             if i > 0 {
                 write!(f, " + ")?;
             }
@@ -73,7 +73,7 @@ impl Operation for PauliEvolution {
     }
 
     fn num_qubits(&self) -> u32 {
-        self.hermitian.num_qubits()
+        self.operator.num_qubits()
     }
 
     fn num_clbits(&self) -> u32 {
@@ -110,34 +110,11 @@ impl CustomOperation for PauliEvolution {
         let inverse = PackedOperation::from_custom_operation(Box::new(inverse));
         Some((inverse, SmallVec::new()))
     }
-
-    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
-        let time = resolve_time(self.time())?;
-
-        let mut matrix = self.hermitian.to_matrix();
-        matrix *= Complex64::from(time);
-
-        Some(matrix)
-    }
-}
-
-fn resolve_time(time: &Param) -> Option<f64> {
-    match time {
-        Param::ParameterExpression(time) => {
-            if let Value::Real(time) = time.try_to_value(true).ok()? {
-                Some(time)
-            } else {
-                None
-            }
-        }
-        Param::Float(time) => Some(*time),
-        Param::Obj(_) => None,
-    }
 }
 
 #[derive(Debug, Clone)]
 pub struct PauliEvolutionParts {
-    pub hermitian: SparseObservable,
+    pub operator: SparseObservable,
     pub time: Param,
 }
 

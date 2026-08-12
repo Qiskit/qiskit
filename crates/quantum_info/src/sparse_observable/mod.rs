@@ -15,9 +15,8 @@ mod lookup;
 use hashbrown::HashSet;
 use itertools::Itertools;
 use lookup::conjugate_bitterm;
-use ndarray::linalg::kron;
 #[cfg(feature = "python")]
-use ndarray::{Array2, array};
+use ndarray::Array2;
 use num_complex::Complex64;
 #[cfg(feature = "python")]
 use num_traits::Zero;
@@ -202,49 +201,6 @@ impl BitTerm {
 
     pub fn is_projector(&self) -> bool {
         !matches!(self, BitTerm::X | BitTerm::Y | BitTerm::Z)
-    }
-
-    pub fn to_matrix(&self) -> Array2<Complex64> {
-        let complex = |re, im| Complex64::new(re, im);
-
-        match self {
-            BitTerm::X => array![
-                [complex(0.0, 0.0), complex(1.0, 0.0)],
-                [complex(1.0, 0.0), complex(0.0, 0.0)],
-            ],
-            BitTerm::Plus => array![
-                [complex(0.5, 0.0), complex(0.5, 0.0)],
-                [complex(0.5, 0.0), complex(0.5, 0.0)],
-            ],
-            BitTerm::Minus => array![
-                [complex(0.5, 0.0), complex(-0.5, 0.0)],
-                [complex(-0.5, 0.0), complex(0.5, 0.0)],
-            ],
-            BitTerm::Y => array![
-                [complex(0.0, 0.0), complex(0.0, -1.0)],
-                [complex(0.0, 1.0), complex(0.0, 0.0)],
-            ],
-            BitTerm::Right => array![
-                [complex(0.5, 0.0), complex(0.0, -0.5)],
-                [complex(0.0, 0.5), complex(0.5, 0.0)],
-            ],
-            BitTerm::Left => array![
-                [complex(0.5, 0.0), complex(0.0, 0.5)],
-                [complex(0.0, -0.5), complex(0.5, 0.0)],
-            ],
-            BitTerm::Z => array![
-                [complex(1.0, 0.0), complex(0.0, 0.0)],
-                [complex(0.0, 0.0), complex(-1.0, 0.0)],
-            ],
-            BitTerm::Zero => array![
-                [complex(1.0, 0.0), complex(0.0, 0.0)],
-                [complex(0.0, 0.0), complex(0.0, 0.0)],
-            ],
-            BitTerm::One => array![
-                [complex(0.0, 0.0), complex(0.0, 0.0)],
-                [complex(0.0, 0.0), complex(1.0, 0.0)],
-            ],
-        }
     }
 }
 
@@ -1316,45 +1272,6 @@ impl SparseObservable {
         let ba = other.compose(self).canonicalize(tol);
         ab == ba
     }
-
-    pub fn to_matrix(&self) -> Array2<Complex64> {
-        let n = self.num_qubits() as usize;
-
-        let len = 1 << n;
-        let mut matrix = Array2::zeros((len, len));
-
-        for term in self.iter() {
-            let qubit_ops = collect_qubit_ops(&term);
-            let tensor = tensor_qubit_ops(&term, &qubit_ops);
-            matrix += &(tensor * term.coeff);
-        }
-
-        matrix
-    }
-}
-
-fn collect_qubit_ops(term: &SparseTermView) -> Vec<Array2<Complex64>> {
-    let len = term.num_qubits as usize;
-
-    let identity = Array2::eye(2);
-    let mut qubit_ops = vec![identity; len];
-
-    for (i, op) in term.indices.iter().zip(term.bit_terms.iter()) {
-        qubit_ops[*i as usize] = op.to_matrix();
-    }
-
-    qubit_ops
-}
-
-fn tensor_qubit_ops(term: &SparseTermView, qubit_ops: &[Array2<Complex64>]) -> Array2<Complex64> {
-    let len = term.num_qubits as usize;
-
-    let mut tensor = qubit_ops[len - 1].clone();
-    for i in (0..len - 1).rev() {
-        tensor = kron(&tensor, &qubit_ops[i]);
-    }
-
-    tensor
 }
 
 impl ::std::ops::Add<&SparseObservable> for SparseObservable {
