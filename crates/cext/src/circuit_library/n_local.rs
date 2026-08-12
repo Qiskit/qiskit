@@ -182,7 +182,7 @@ pub unsafe extern "C" fn qk_circuit_library_n_local(
     settings: *const NLocalSettings,
 ) -> *mut CircuitData {
     // SAFETY: per documentation, `rotation_blocks` is aligned and and points to a valid
-    // aligned block of memory valid for `num_rotation_blocks` writes of `StandardGate`s
+    // aligned block of memory valid for `num_rotation_blocks` reads of `StandardGate`s
     let rotation_blocks: Vec<Block> =
         unsafe { ::std::slice::from_raw_parts(rotation_blocks, rotation_blocks_size) }
             .iter()
@@ -191,7 +191,7 @@ pub unsafe extern "C" fn qk_circuit_library_n_local(
     let rotation_blocks: Vec<&Block> = rotation_blocks.iter().collect();
 
     // SAFETY: per documentation, `entanglement_blocks` is aligned and and points to a valid
-    // aligned block of memory valid for `num_entanglement_blocks` writes of `StandardGate`s
+    // aligned block of memory valid for `num_entanglement_blocks` reads of `StandardGate`s
     let entanglement_blocks: Vec<Block> =
         unsafe { ::std::slice::from_raw_parts(entanglement_blocks, entanglement_blocks_size) }
             .iter()
