@@ -56,7 +56,6 @@ METHOD_MAPPING = {
 }
 
 FUNCTION_MAPPING = {
-    "Symbol": Parameter,
     "Integer": int,
     "Complex": complex,
     "Float": float,
@@ -90,8 +89,9 @@ class ParseSympyWalker(ast.NodeVisitor):
     """A custom ast walker that is passed the sympy srepr from QPY < 13 and creates a custom
     expression."""
 
-    def __init__(self):
+    def __init__(self, name_map: dict[str, Parameter]):
         self.stack = []
+        self.name_map = name_map
 
     def visit_UnaryOp(self, node: ast.UnaryOp):
         """Visit a python unary op node"""
@@ -134,6 +134,8 @@ class ParseSympyWalker(ast.NodeVisitor):
             method = METHOD_MAPPING.get(name, None)
             if method is not None:
                 obj = getattr(self.stack.pop(), method)()
+            elif name == "Symbol":
+                obj = self.name_map[self.stack.pop()]
             else:
                 function = FUNCTION_MAPPING[name]
                 obj = function(self.stack.pop())
@@ -174,9 +176,9 @@ class ParseSympyWalker(ast.NodeVisitor):
             self.stack.append(obj)
 
 
-def parse_sympy_repr(sympy_repr: str) -> ParameterExpression:
+def parse_sympy_repr(sympy_repr: str, name_map: dict[str, Parameter]) -> ParameterExpression:
     """Parse a given sympy srepr into a symbolic expression object."""
     tree = ast.parse(sympy_repr, mode="eval")
-    visitor = ParseSympyWalker()
+    visitor = ParseSympyWalker(name_map)
     visitor.visit(tree)
     return visitor.stack.pop()
