@@ -108,6 +108,71 @@ class TestQPYRoundtrip(QiskitTestCase):
         self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
 
     @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
+    def test_ifelse_single_clbit_condition(self, version, write_with, read_with):
+        """Check an IfElse conditioned on a single clbit rather than a whole register.
+
+        The two share one ``REGISTER`` payload, whose encoding changed in QPY 18, so both arms need
+        covering: ``test_ifelse`` conditions on a register and this one on a bit.
+        """
+        qc = QuantumCircuit(2, 2)
+        body = QuantumCircuit([qc.qubits[0]])
+        body.x(0)
+        qc.if_test((qc.clbits[1], True), body, [qc.qubits[0]], [])
+        self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
+
+    @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
+    def test_ifelse_single_clbit_condition_nonzero_index(self, version, write_with, read_with):
+        qc = QuantumCircuit(3, 4)
+        body = QuantumCircuit([qc.qubits[0]])
+        print("---------------------")
+        print(qc.qubits[0])
+        print("---------------------")
+        body.x(0)
+
+        qc.if_test((qc.clbits[2], True), body, [qc.qubits[0]], [])
+
+        self.assert_roundtrip_equal(
+            qc,
+            version=version,
+            read_with=read_with,
+            write_with=write_with,
+        )
+
+    @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
+    def test_ifelse_single_clbit_condition_index_zero(self, version, write_with, read_with):
+        """Check a bit condition on clbit 0, whose index is the edge case of both encodings.
+
+        Up to QPY 17 it is the shortest possible payload (a null byte and the digit ``0``), and from
+        QPY 18 it is the only one whose ``uint32_t`` index is entirely zero bytes.
+        """
+        qc = QuantumCircuit(2, 2)
+        body = QuantumCircuit([qc.qubits[0]])
+        body.x(0)
+        qc.if_test((qc.clbits[0], True), body, [qc.qubits[0]], [])
+        self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
+
+    @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
+    def test_ifelse_condition_among_multiple_registers(self, version, write_with, read_with):
+        """Check that a condition resolves to the right register when several are present.
+
+        The payload identifies a register by name and a bit by its circuit-wide index, so a circuit
+        with more than one same-sized register exercises the lookup rather than just the encoding.
+        """
+        qr = QuantumRegister(1, "q")
+        cregs = [ClassicalRegister(2, name) for name in ("alpha", "beta", "gamma")]
+        body = QuantumCircuit(1)
+        body.x(0)
+
+        qc = QuantumCircuit(qr, *cregs)
+        qc.if_test((cregs[1], 1), body.copy(), [qr[0]], [])
+        self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
+
+        # `gamma[1]` is clbit 5 of the circuit; the payload stores that circuit-wide index.
+        qc = QuantumCircuit(qr, *cregs)
+        qc.if_test((cregs[2][1], True), body.copy(), [qr[0]], [])
+        self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
+
+    @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
     def test_box(self, version, write_with, read_with):
         """Check the BoxOp control flow gate passes roundtrip"""
         qc = QuantumCircuit(2)
