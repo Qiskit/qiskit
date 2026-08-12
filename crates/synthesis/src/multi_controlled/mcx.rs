@@ -1232,7 +1232,7 @@ fn apply_controlled_gates(
         (1usize, false)
     };
 
-    // all pairs (control, target) where control<target
+    // all index pairs (control, target) where control<target
     let mut qubit_pairs: Vec<(usize, usize)> = (start..n_qubits)
         .flat_map(|target| (start..target).map(move |control| (control, target)))
         .collect();
@@ -1252,18 +1252,31 @@ fn apply_controlled_gates(
 
         let param = (1usize << exponent) as f64; // 2^exponent, using bit shift
         if target == n_qubits - 1 && (step == 1 || step == 2) {
-            let sign: i32 = if step == 1 { 1 } else { -1 };
+            let sign: i32 = match step {
+                1 => 1,
+                2 => -1,
+                _ => unreachable!(),
+            };
             circuit.cp((sign as f64) * phi / param, control as u32, target as u32)?;
         } else {
-            let sign: i32 = if step == 1 {
-                1
-            } else if step == 2 {
-                -1
-            } else if step == 3 {
-                if control == 0 { -1 } else { 1 }
-            } else {
-                #[allow(clippy::collapsible_else_if)]
-                if control == 0 { 1 } else { -1 }
+            let sign: i32 = match step {
+                1 => 1,
+                2 => -1,
+                3 => {
+                    if control == 0 {
+                        -1
+                    } else {
+                        1
+                    }
+                }
+                4 => {
+                    if control == 0 {
+                        1
+                    } else {
+                        -1
+                    }
+                }
+                _ => unreachable!(),
             };
             circuit.crx((sign as f64) * PI / param, control as u32, target as u32)?;
         }
