@@ -1300,6 +1300,7 @@ impl TextDrawer {
     }
 
     fn draw(&self, mergewires: bool, fold: usize) -> String {
+        // Code generated/assisted by LLM
         if self.wires.is_empty() {
             return String::new();
         }
