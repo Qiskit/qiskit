@@ -3768,7 +3768,6 @@ pub fn replace_symbol(symbol_expr: &SymbolExpr, name_map: &HashMap<String, Symbo
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::f64::consts::PI;
 
     #[test]
     fn test_eval_subtraction() {
