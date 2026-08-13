@@ -260,8 +260,8 @@ class TestTemplateMatching(QiskitTestCase):
         # these are NOT equal if template optimization works
         self.assertNotEqual(circuit_in, circuit_out)
 
-        # however these are equivalent if the operators are the same
-        self.assertTrue(Operator(circuit_in).equiv(circuit_out))
+        # however their operators are equal
+        self.assertEqual(Operator(circuit_in), Operator(circuit_out))
 
     def test_parametric_template(self):
         """
