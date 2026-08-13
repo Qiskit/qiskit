@@ -14,7 +14,7 @@ workspace = true
 
 [features]
 default = ["py"]
-py = ["dep:pyo3"]
+py = ["dep:pyo3", "dep:qiskit-circuit"]
 
 [dependencies]
 num-bigint.workspace = true
@@ -24,3 +24,7 @@ hashbrown.workspace = true
 workspace = true
 optional = true
 features = ["py-clone", "num-bigint"]
+
+[dependencies.qiskit-circuit]
+workspace = true
+optional = true
