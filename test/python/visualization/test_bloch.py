@@ -104,7 +104,3 @@ class TestPlotBlochMultivector(QiskitVisualizationTestCase):
             img_buffer.seek(0)
             self.assertImagesAreEqual(Image.open(img_buffer), img_ref, 0.1)
         plt.close(fig)
-
-
-if __name__ == "__main__":
-    unittest.main(verbosity=2)
