@@ -393,7 +393,6 @@ impl MatrixCompressedPaulis {
                 row[i_row ^ (x_like as usize)] += coeff;
             }
         };
-
         if parallel {
             out.par_chunks_mut(side).enumerate().for_each(write_row);
         } else {
