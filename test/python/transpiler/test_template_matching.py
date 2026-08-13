@@ -688,7 +688,7 @@ class TestTemplateMatching(QiskitTestCase):
         self.assertNotEqual(circuit_in, circuit_out)
 
         # however these are equivalent if the operators are the same
-        self.assertTrue(Operator(circuit_in).equiv(circuit_out))
+        self.assertEqual(Operator(circuit_in), Operator(template_circuit))
 
     def test_consecutive_templates_apply(self):
         """Test the scenario where one template optimization creates an opportunity for
