@@ -14,7 +14,9 @@
 //! through.
 
 mod program_function;
+mod quantum_program;
 
 pub use program_function::{
     FunctionError, FunctionEvalError, NodeId, NodeRef, NodeRole, ProgramFunction, Signature, Value,
 };
+pub use quantum_program::{FunctionId, ProgramError, ProgramEvalError, QuantumProgram};
