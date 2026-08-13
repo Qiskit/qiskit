@@ -14,11 +14,11 @@ use std::sync::Arc;
 
 use crate::ast::{
     Alias, Barrier, BitArray, Break, ClassicalDeclaration, ClassicalType, Continue, Delay,
-    Designator, DurationLiteral, DurationUnit, Expression, Float, GateCall, Header, IODeclaration,
-    IOModifier, Identifier, IdentifierOrSubscripted, Include, IndexSet, IntegerLiteral, Node,
-    Parameter, Program, QuantumBlock, QuantumDeclaration, QuantumGateDefinition,
-    QuantumGateSignature, QuantumInstruction, QuantumMeasurement, QuantumMeasurementAssignment,
-    Reset, Statement, SubscriptedIdentifier, Version,
+    Designator, DurationLiteral, DurationUnit, DurationValue, Expression, Float, GateCall, Header,
+    IODeclaration, IOModifier, Identifier, IdentifierOrSubscripted, Include, IndexSet,
+    IntegerLiteral, Node, Parameter, Program, QuantumBlock, QuantumDeclaration,
+    QuantumGateDefinition, QuantumGateSignature, QuantumInstruction, QuantumMeasurement,
+    QuantumMeasurementAssignment, Reset, Statement, SubscriptedIdentifier, Version,
 };
 use std::io::Write;
 
@@ -1176,18 +1176,34 @@ impl<'a> QASM3Builder {
         };
         let param = &instr.params_view()[0];
 
-        let duration: f64 = match param {
-            Param::Float(val) => *val,
-            Param::Int(int) => *int as f64, // lossy conversion
+        let duration: DurationValue = match param {
+            Param::Float(val) => DurationValue::Float(*val),
+            Param::Int(int) => DurationValue::Dt(*int),
             Param::ParameterExpression(p) => match p.try_to_value(true) {
-                Ok(symbol_expr::Value::Real(val)) => val,
+                Ok(symbol_expr::Value::Real(val)) => DurationValue::Float(val),
+                Ok(symbol_expr::Value::Int(val)) => {
+                    if let Ok(val) = val.try_into() {
+                        DurationValue::Dt(val)
+                    } else {
+                        DurationValue::Float(val as f64) // Lossy conversion.
+                    }
+                }
                 _ => {
                     panic!("Failed to parse parameter value")
                 }
             },
-            Param::Obj(_) => {
-                unreachable!("Should not use obj as a parameter for duration.")
-            }
+            Param::Obj(obj) => Python::attach(|py| {
+                let py_obj = obj.bind(py);
+                let py_str = py_obj.str().expect("Failed to call str() on Parameter");
+                let name = py_str
+                    .str()
+                    .expect("Failed to convert PyString to &str")
+                    .to_string();
+                match name.parse::<f64>() {
+                    Ok(val) => DurationValue::Float(val),
+                    Err(_) => panic!("Failed to parse parameter value"),
+                }
+            }),
         };
 
         let mut map = HashMap::new();
@@ -1205,7 +1221,11 @@ impl<'a> QASM3Builder {
             None => {
                 if delay_unit == DelayUnit::PS {
                     DurationLiteral {
-                        value: duration / 1000.0,
+                        value: DurationValue::Float(
+                            duration.try_float().expect(
+                                "Ps values should be floats, an integer was found instead.",
+                            ) / 1000.0,
+                        ),
                         unit: DurationUnit::Nanosecond,
                     }
                 } else {
