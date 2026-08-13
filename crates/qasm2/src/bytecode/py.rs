@@ -13,7 +13,9 @@
 use pyo3::prelude::*;
 pyo3::import_exception!(qiskit.qasm2.exceptions, QASM2ParseError);
 
+use crate::expr::Expr;
 use crate::ext::{ClassicalCallableExt, ClassicalEvaluator};
+
 use crate::parse::ParamId;
 use crate::{CustomClassical, CustomInstruction, lex, parse};
 
@@ -200,5 +202,18 @@ impl BytecodeIterator {
                 .transpose()?
                 .map(|x| x.get().clone()))
         }
+    }
+}
+
+#[pyclass(module = "qiskit._accelerate.qasm2", frozen, skip_from_py_object)]
+pub struct GateBodyArguments(Vec<Expr>);
+
+#[pymethods]
+impl GateBodyArguments {
+    fn evaluate(&self, params: Vec<f64>, py: Python<'_>) -> PyResult<Vec<f64>> {
+        self.0
+            .iter()
+            .map(|expr| crate::expr::evaluate(expr, &params, py).map_err(PyErr::from))
+            .collect()
     }
 }
