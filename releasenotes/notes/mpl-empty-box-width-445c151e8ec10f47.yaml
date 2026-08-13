@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed the ``"mpl"`` circuit drawer collapsing an empty :class:`.BoxOp` to zero width, which
+    made it invisible. An empty box is now drawn with a the single-qubit gate width.
+  - |
+    Fixed the ``"mpl"`` circuit drawer omitting a control-flow box entirely when the box was
+    narrow enough to end at a negative x coordinate, which happened for an empty
+    :class:`.BoxOp` at the start of a circuit.
