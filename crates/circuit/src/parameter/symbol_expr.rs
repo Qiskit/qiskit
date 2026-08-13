@@ -1172,27 +1172,23 @@ impl SymbolExpr {
                                 if l_rhs.expand().string_id() == r_rhs.expand().string_id() {
                                     let t = SymbolExpr::Value(lv + rv);
                                     match (op, rop) {
-                                        (BinaryOp::Add, BinaryOp::Add) => {
-                                            if t.is_zero() {
-                                                return Some(_mul(
-                                                    SymbolExpr::Value(Value::Int(2)),
-                                                    l_rhs.as_ref().clone(),
-                                                ));
-                                            }
+                                        (BinaryOp::Add, BinaryOp::Add) if t.is_zero() => {
+                                            return Some(_mul(
+                                                SymbolExpr::Value(Value::Int(2)),
+                                                l_rhs.as_ref().clone(),
+                                            ));
                                         }
-                                        (BinaryOp::Sub, BinaryOp::Sub) => {
-                                            if t.is_zero() {
-                                                return Some(_mul(
-                                                    SymbolExpr::Value(Value::Int(-2)),
-                                                    l_rhs.as_ref().clone(),
-                                                ));
-                                            }
+                                        (BinaryOp::Sub, BinaryOp::Sub) if t.is_zero() => {
+                                            return Some(_mul(
+                                                SymbolExpr::Value(Value::Int(-2)),
+                                                l_rhs.as_ref().clone(),
+                                            ));
                                         }
                                         (BinaryOp::Sub, BinaryOp::Add)
-                                        | (BinaryOp::Add, BinaryOp::Sub) => {
-                                            if t.is_zero() {
-                                                return Some(SymbolExpr::Value(Value::Int(0)));
-                                            }
+                                        | (BinaryOp::Add, BinaryOp::Sub)
+                                            if t.is_zero() =>
+                                        {
+                                            return Some(SymbolExpr::Value(Value::Int(0)));
                                         }
                                         (BinaryOp::Mul, BinaryOp::Mul) => {
                                             if t.is_zero() {
@@ -1542,26 +1538,22 @@ impl SymbolExpr {
                                     let t = SymbolExpr::Value(lv - rv);
                                     match (op, rop) {
                                         (BinaryOp::Add, BinaryOp::Add)
-                                        | (BinaryOp::Sub, BinaryOp::Sub) => {
-                                            if t.is_zero() {
-                                                return Some(SymbolExpr::Value(Value::Int(0)));
-                                            }
+                                        | (BinaryOp::Sub, BinaryOp::Sub)
+                                            if t.is_zero() =>
+                                        {
+                                            return Some(SymbolExpr::Value(Value::Int(0)));
                                         }
-                                        (BinaryOp::Sub, BinaryOp::Add) => {
-                                            if t.is_zero() {
-                                                return Some(_mul(
-                                                    SymbolExpr::Value(Value::Int(-2)),
-                                                    l_rhs.as_ref().clone(),
-                                                ));
-                                            }
+                                        (BinaryOp::Sub, BinaryOp::Add) if t.is_zero() => {
+                                            return Some(_mul(
+                                                SymbolExpr::Value(Value::Int(-2)),
+                                                l_rhs.as_ref().clone(),
+                                            ));
                                         }
-                                        (BinaryOp::Add, BinaryOp::Sub) => {
-                                            if t.is_zero() {
-                                                return Some(_mul(
-                                                    SymbolExpr::Value(Value::Int(2)),
-                                                    l_rhs.as_ref().clone(),
-                                                ));
-                                            }
+                                        (BinaryOp::Add, BinaryOp::Sub) if t.is_zero() => {
+                                            return Some(_mul(
+                                                SymbolExpr::Value(Value::Int(2)),
+                                                l_rhs.as_ref().clone(),
+                                            ));
                                         }
                                         (BinaryOp::Mul, BinaryOp::Mul) => {
                                             if t.is_zero() {
