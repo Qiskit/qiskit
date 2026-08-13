@@ -43,7 +43,7 @@ use smallvec::SmallVec;
 use numpy::{PyArray1, PyReadonlyArray2, ToPyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyTuple, PyType};
+use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyInt, PyTuple, PyType};
 use pyo3::{IntoPyObjectExt, Python, intern};
 
 // This is a convenience re-export, since basically everywhere in Qiskit expects all the
@@ -193,9 +193,11 @@ impl Param {
                     if coerce_to_float {
                         Ok(Self::Float(i as f64)) // coerce integer to float
                     } else {
-                        // Int is not a param type and only comes from Python so dump it in
-                        // there until we support DT unit delay from C
-                        Python::attach(|py| Ok(Self::Obj(i.into_py_any(py)?)))
+                        if let Ok(unsigned) = i.try_into() {
+                            Ok(Self::Int(unsigned))
+                        } else {
+                            Python::attach(|py| Ok(Self::Obj(i.into_py_any(py)?)))
+                        }
                     }
                 }
                 Value::Real(f) => Ok(Self::Float(f)),
@@ -220,10 +222,25 @@ impl Param {
     pub fn extract_no_coerce(ob: Borrowed<PyAny>) -> PyResult<Self> {
         Ok(if ob.is_instance_of::<PyFloat>() {
             Param::Float(ob.extract()?)
+        } else if ob.is_instance_of::<PyInt>() {
+            if let Ok(int) = ob.extract() {
+                Param::Int(int)
+            } else {
+                Param::Obj(ob.to_owned().unbind())
+            }
         } else if let Ok(py_expr) = PyParameterExpression::extract_coerce(ob) {
+            if Some(true) == py_expr.inner.is_int() {
+                let Value::Int(int) = py_expr.inner.try_to_value(true)? else {
+                    return Ok(Param::Obj(ob.to_owned().unbind()));
+                };
+                let Ok(int) = int.try_into() else {
+                    return Ok(Param::Obj(ob.to_owned().unbind()));
+                };
+                Param::Int(int)
+            }
             // don't get confused by the `coerce` name here -- we promise to not coerce to
-            // Param::Float. But if it's an int or complex we need to store it as an Obj.
-            if Some(true) == py_expr.inner.is_int() || Some(true) == py_expr.inner.is_complex() {
+            // Param::Float. But if it's complex we need to store it as an Obj.
+            else if Some(true) == py_expr.inner.is_complex() {
                 Param::Obj(ob.to_owned().unbind())
             } else {
                 Param::ParameterExpression(Arc::new(py_expr.inner))
