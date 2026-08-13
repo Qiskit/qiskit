@@ -84,13 +84,17 @@ jobs:
           - windows-latest
           - ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ inputs.python-version }}
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: llvm-tools-preview
+      - name: Install Rust
+        run:
+          rustup toolchain install stable
+            --override
+            --profile minimal
+            --component llvm-tools-preview
+            --no-self-update
       - name: Configure PGO
         shell: bash
         if: inputs.pgo
@@ -125,12 +129,13 @@ jobs:
     if: (inputs.wheels-macos-intel == 'default' && inputs.default-action || inputs.wheels-macos-intel) == 'build'
     runs-on: macos-15-intel
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         name: Install Python
         with:
           python-version: ${{ inputs.python-version }}
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust
+        run: rustup toolchain install stable --override --profile minimal --no-self-update
       - uses: pypa/cibuildwheel@v3.4.0
       - uses: actions/upload-artifact@v7
         with:
@@ -141,21 +146,15 @@ jobs:
   wheels-linux-s390x:
     name: "Wheels / Linux s390x"
     if: (inputs.wheels-linux-s390x == 'default' && inputs.default-action || inputs.wheels-linux-s390x) == 'build'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-s390x
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        name: Install Python
-        with:
-          python-version: ${{ inputs.python-version }}
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: docker/setup-qemu-action@v4
-        with:
-          platforms: all
-      - uses: pypa/cibuildwheel@v3.4.0
-        env:
-          CIBW_ARCHS_LINUX: s390x
-          CIBW_TEST_SKIP: "cp*"
+      - uses: actions/checkout@v7
+      - name: Install Rust
+        run: rustup toolchain install stable --override --profile minimal --no-self-update
+      - name: Install cibuildwheel
+        run: python3 -m pip install --user cibuildwheel==3.4.0
+      - name: Run cibuildwheel
+        run: python3 -m cibuildwheel
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
@@ -164,21 +163,15 @@ jobs:
   wheels-linux-ppc64le:
     name: "Wheels / Linux ppc64le"
     if: (inputs.wheels-linux-ppc64le == 'default' && inputs.default-action || inputs.wheels-linux-ppc64le) == 'build'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-ppc64le
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        name: Install Python
-        with:
-          python-version: ${{ inputs.python-version }}
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: docker/setup-qemu-action@v4
-        with:
-          platforms: all
-      - uses: pypa/cibuildwheel@v3.4.0
-        env:
-          CIBW_ARCHS_LINUX: ppc64le
-          CIBW_TEST_SKIP: "cp*"
+      - uses: actions/checkout@v7
+      - name: Install Rust
+        run: rustup toolchain install stable --override --profile minimal --no-self-update
+      - name: Install cibuildwheel
+        run: python3 -m pip install --user cibuildwheel==3.4.0
+      - name: Run cibuildwheel
+        run: python3 -m cibuildwheel
       - uses: actions/upload-artifact@v7
         with:
           path: ./wheelhouse/*.whl
@@ -189,8 +182,8 @@ jobs:
     if: (inputs.sdist == 'default' && inputs.default-action || inputs.sdist) == 'build'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ inputs.python-version }}
       - name: Build sdist

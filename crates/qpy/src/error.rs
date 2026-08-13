@@ -36,8 +36,8 @@ pub enum QpyError {
     )]
     UnsupportedFeatureForVersion {
         feature: String,
-        version: u32,
-        min_version: u32,
+        version: u8,
+        min_version: u8,
     },
 
     /// Failure to cast a python object into a specific type
@@ -135,6 +135,10 @@ pub enum QpyError {
     /// Something went wrong in annotation handling.
     #[error("annotation-handling error: {0}")]
     AnnotationError(String),
+
+    /// The qpy file payload is of an incorrect type
+    #[error("{0}")]
+    PayloadTypeError(String),
 
     /// Python error that occurred during a Python call
     #[error("Python error: {0}")]

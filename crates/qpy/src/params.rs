@@ -525,13 +525,13 @@ pub(crate) fn unpack_parameter_vector(
     if vector.name != pack.name || vector_len != pack.vector_size as usize {
         return Err(QpyError::InvalidParameter(format!(
             "'{}[{}]' has a base vector ('{}[{}]') that disagrees with another ('{}[{}]')",
-            &pack.name, pack.index, &pack.name, pack.vector_size, &vector.name, vector_len,
+            pack.name, pack.index, pack.name, pack.vector_size, vector.name, vector_len,
         )));
     }
     vector.get(pack.index as usize).ok_or_else(|| {
         QpyError::InvalidParameter(format!(
             "index {} is out of range for vector '{}[{}]'",
-            pack.index, &vector.name, vector_len
+            pack.index, vector.name, vector_len
         ))
     })
 }
