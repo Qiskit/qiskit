@@ -28,9 +28,9 @@ keywords = [
     "sdk",
 ]
 classifiers = [
-    "Environment :: Console",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
+    "Intended Audience :: Information Technology",
     "Operating System :: MacOS",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
@@ -40,7 +40,12 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: C",
+    "Programming Language :: Rust",
     "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Quantum Computing",
+    "Topic :: Software Development :: Compilers",
+    "Development Status :: 5 - Production/Stable",
 ]
 # These are configured in the `tool.setuptools.dynamic` table.
 dynamic = ["version", "readme", "dependencies"]
