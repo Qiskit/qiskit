@@ -656,8 +656,9 @@ particular will be located at `docs/_build/html/release_notes.html`
 Once you've made a code change, it is important to verify that your change
 does not break any existing tests and that any new tests that you've added
 also run successfully. Before you open a new pull request for your change,
-you'll want to run Qiskit's Python test suite (as well as its Rust-based
-unit tests if you've modified native code).
+you'll want to run Qiskit's Python test suite, as well as its Rust-based
+unit tests if you've modified native Rust code, and the C API tests if you're
+working with the C API or Rust code.
 
 ### Qiskit's Python test suite
 
@@ -823,10 +824,19 @@ Note: If you have run `test/ipynb/mpl_tester.ipynb` locally it is possible some 
 
 ### Testing Rust components
 
-Many of Qiskit's core data structures and algorithms are implemented in Rust.
-The bulk of this code is exercised heavily by our Python-based unit testing,
+The core Qiskit data structures and algorithms are implemented in Rust.
+However, the bulk of this code is still primarily exercised by our Python-based unit testing,
 but this coverage really only provides integration-level testing from the
-perspective of Rust.
+perspective of Rust. This is primarily an artifact of the development history of Qiskit,
+where it originally started as a pure Python library and the core of the library was migrated
+to Rust over time. For new functionality being added to Qiskit the expectation is to add
+Rust tests in addition to integration level tests for Python and C.
+
+For C APIs there are potential benefits to writing Rust tests to exercise the C API entrypoints.
+Besides the ergonomic advantages of testing via Rust vs C, writing Rust tests for the C API enable
+more detailed analysis, such as potentially running under [miri](#Unsafe code and Miri). Rust tests
+should not be used in lieu of C tests, it is still required that all public interfaces added to
+C are exercised via the C tests.
 
 To provide Rust unit testing, we use `cargo test`. Rust tests are
 integrated directly into the Rust file being tested within a `tests` module.
@@ -846,76 +856,15 @@ mod tests {
 For more detailed guidance on how to write Rust tests, you can refer to the Rust
 documentation's [guide on writing tests](https://doc.rust-lang.org/book/ch11-01-writing-tests.html).
 
-Rust tests are run separately from the Python tests. The easiest way to run
-them is via `tox`, which creates an isolated venv and pre-installs `qiskit`
-prior to running `cargo test`:
+Rust tests are run separately from the Python and C tests. To run the tests you can simply invoke
+`cargo test`.
 
 ```bash
-tox -erust
+cargo test
 ```
 
-> [!TIP]
-> If you've already built your changes (e.g. `python setup.py build_rust --release --inplace`),
-> you can pass `--skip-pkg-install` when invoking `tox` to avoid a rebuild. This works because
-> Python will instead find and use Qiskit from the current working directory (since we skipped
-> its installation).
-
-#### Using a custom venv instead of `tox`
-
-If you're not using `tox`, you can also execute Cargo tests directly in your own virtual environment.
-If you haven't done so already, [create a Python virtual environment](#set-up-a-python-venv) and
-**_activate it_**.
-
-You will need to install (at least) the `build` and `test` dependency groups, such as
-```
-pip install --group build --group test
-```
-You can alternatively install the `dev` group, which encompasses both of these.
-
-Then, run the following commands:
-
-```bash
-python setup.py build_rust --inplace
-tools/run_cargo_test.py
-```
-
-The first command builds Qiskit in editable mode,
-which ensures that Rust tests that interact with Qiskit's Python code actually
-use the latest Python code from your working directory. The second command invokes
-the tests via Cargo.
-
-#### Calling Python from Rust tests
-By default, our Cargo project configuration allows Rust tests to interact with the
-Python interpreter by calling `Python::with_gil` to obtain a `Python` (`py`) token.
-This is particularly helpful when testing Rust code that (still) requires interaction
-with Python.
-
-To execute code that needs the GIL in your tests, define the `tests` module as
-follows:
-
-```rust
-#[cfg(all(test, not(miri)))] // disable for Miri!
-mod tests {
-    use pyo3::prelude::*;
-    
-    #[test]
-    fn my_first_test() {
-        Python::with_gil(|py| {
-            todo!() // do something that needs a `py` token.
-        })
-    }
-}
-```
-
-> [!IMPORTANT]
-> Note that we explicitly disable compilation of such tests when running with Miri, i.e.
-`#[cfg(not(miri))]`. This is necessary because Miri doesn't support the FFI
-> code used internally by PyO3.
->
-> If not all of your tests will use the `Python` token, you can disable Miri on a per-test
-basis within the same module by decorating *the specific test* with `#[cfg_attr(miri, ignore)]`
-instead of disabling Miri for the entire module.
-
+If you want to run the tests for a single [crate](https://doc.rust-lang.org/book/ch07-01-packages-and-crates.html)
+you can either change your working directory to that crate and run `cargo test`.
 
 ### Unsafe code and Miri
 

@@ -614,7 +614,7 @@ defining the condition and its type.  The high bit of the byte is now a flag, in
 ``INSTRUCTION`` struct.
 
 A complete instruction payload appears in the data stream, including trailing objects and without
-any padding bytes inbetween elements, as:
+any padding bytes between elements, as:
 
 .. code-block:: text
 

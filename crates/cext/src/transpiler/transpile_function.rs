@@ -495,7 +495,7 @@ pub unsafe extern "C" fn qk_transpile_stage_routing(
 ///   If the transpiler fails a pointer to the string with the error description will be written
 ///   to this pointer. That pointer needs to be freed with ``qk_str_free``. This can be a null
 ///   pointer in which case the error will not be written out.
-/// @param state A pointer to a ``QkTranspilerStageState`` object contiaining the layout. Typically you will need
+/// @param state A pointer to a ``QkTranspilerStageState`` object containing the layout. Typically you will need
 ///   to run the `qk_transpile_stage_layout` prior to this function and that will provide a
 ///   `QkTranspileLayout` object with the initial layout set you want to take that output layout from
 ///   that function and use this as the input for this. If you don't have a layout object (e.g. you ran
