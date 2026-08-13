@@ -383,8 +383,8 @@ def synth_mcx_2_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
 def synth_mcx_2_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
     Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`2` clean
-    ancillary qubits producing a circuit with depth :math:`O(\log(k))` as described in
-    Sec. 5.2 of [1].
+    ancillary qubits producing a circuit with :math:`2k-3` Toffoli gates or :math:`6k-6` CX
+    gates and depth :math:`O(\log(k))` as described in Sec. 5.2 of [1].
     For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
     (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
 
@@ -406,11 +406,6 @@ def synth_mcx_2_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
         raise QiskitError(
             "synth_mcx_2_clean_kg24 cannot be called with a negative number of control qubits."
         )
-    #print("before rust")
-    circ = QuantumCircuit._from_circuit_data(synth_mcx_2_kg24_rs(num_ctrl_qubits, True))
-    #print("after rust")
-    return circ
-
 
     return QuantumCircuit._from_circuit_data(synth_mcx_2_kg24_rs(num_ctrl_qubits, True))
 
