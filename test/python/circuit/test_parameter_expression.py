@@ -17,6 +17,7 @@ import math
 import unittest
 import pickle
 import copy
+import itertools
 
 from test import combine
 from test import QiskitTestCase
@@ -967,3 +968,24 @@ class TestParameterExpression(QiskitTestCase):
             gradient = g.arctan().gradient(p)
             actual = gradient.bind({p: val})
             self.assertAlmostEqual(actual, 2 / (1 + gval**2), places=10)
+
+    @ddt.data("__add__", "__sub__")
+    def test_optimization_same_symbol(self, method):
+        """Test optimizations with the same symbol."""
+        x = Parameter("x")
+        add_sub_terms = [1 + x, -1 + x, 1 - x, -1 - x]
+        pow_terms = [x**2, x ** (-2)]
+        rpow_terms = [2**x, (-2) ** x]
+        mul_terms = [2 * x, -2 * x]
+        rdiv_terms = [2 / x, -2 / x]
+        div_terms = [x / 2, x / (-2)]
+
+        value = 1.234
+
+        for terms in [add_sub_terms, pow_terms, rpow_terms, mul_terms, rdiv_terms, div_terms]:
+            for lhs, rhs in itertools.combinations(terms, 2):
+                with self.subTest(lhs=lhs, rhs=rhs):
+                    reference = getattr(lhs.bind({x: value}), method)(rhs.bind({x: value}))
+                    expression = getattr(lhs, method)(rhs)
+
+                    self.assertEqual(reference, expression.bind({x: value}))
