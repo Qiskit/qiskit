@@ -27,7 +27,6 @@ import ddt
 from qiskit.circuit import Parameter, ParameterVector, ParameterExpression
 from qiskit.utils.optionals import HAS_SYMPY
 
-
 param_x = Parameter("x")
 param_y = Parameter("y")
 nested_expr = param_x + param_y - param_x
@@ -656,6 +655,4 @@ class TestParameterExpression(QiskitTestCase):
                     reference = getattr(lhs.bind({x: value}), method)(rhs.bind({x: value}))
                     expression = getattr(lhs, method)(rhs)
 
-                    print(lhs, "OP", rhs, "->", expression)
-                    print("expected", reference)
                     self.assertEqual(reference, expression.bind({x: value}))
