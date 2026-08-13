@@ -734,8 +734,6 @@ class Bloch:
         """
         self.render(title=title)
         if self.fig:
-            # `pyplot.show` only accepts a keyword-only `block` argument; passing the
-            # figure positionally raises `TypeError` on every backend.
             plt.show()
 
     def save(self, name=None, output="png", dirc=None):

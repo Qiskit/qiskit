@@ -1,8 +1,0 @@
----
-fixes:
-  - |
-    Fixed ``Bloch.show()`` in :mod:`qiskit.visualization` raising ``TypeError``
-    on every matplotlib backend.  The figure was passed positionally to
-    ``matplotlib.pyplot.show()``, which only accepts a keyword-only ``block``
-    argument.
-    Fixed `#16741 <https://github.com/Qiskit/qiskit/issues/16741>`__.
