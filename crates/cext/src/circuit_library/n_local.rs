@@ -16,7 +16,6 @@ use qiskit_circuit::operations::StandardGate;
 use qiskit_circuit_library::blocks::{Block, Entanglement};
 use qiskit_circuit_library::entanglement::get_entanglement_from_str;
 use qiskit_circuit_library::multi_local::n_local;
-use qiskit_circuit_library::parameter_ledger::ParameterLedgerBuilder;
 use std::ffi::{CStr, c_char};
 
 /// Settings for generating a n-local variational circuit.
@@ -243,7 +242,6 @@ pub unsafe extern "C" fn qk_circuit_library_n_local(
     };
 
     match n_local(
-        ParameterLedgerBuilder,
         num_qubits,
         &rotation_blocks,
         &entanglement_blocks,

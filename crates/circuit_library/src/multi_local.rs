@@ -24,10 +24,10 @@ use qiskit_circuit::{Clbit, Qubit};
 
 use itertools::izip;
 
+use crate::parameter_ledger::ParameterLedger;
+
 use super::blocks::{Block, Entanglement, LayerEntanglement};
-use super::parameter_ledger::{
-    LayerParameters, LayerType, LedgerBuilder, PyParameterLedgerBuilder,
-};
+use super::parameter_ledger::{LayerParameters, LayerType};
 
 type Instruction = (
     PackedOperation,
@@ -157,7 +157,6 @@ fn entanglement_layer<'a>(
 /// An N-local circuit.
 #[allow(clippy::too_many_arguments)]
 pub fn n_local(
-    parameter_ledger_builder: impl LedgerBuilder,
     num_qubits: u32,
     rotation_blocks: &[&Block],
     entanglement_blocks: &[&Block],
@@ -170,15 +169,15 @@ pub fn n_local(
 ) -> PyResult<CircuitData> {
     // Construct the parameter ledger, which will define all free parameters and provide
     // access to them, given an index for a layer and the current gate to implement.
-    let ledger = parameter_ledger_builder.build_from_nlocal(
+    let ledger = ParameterLedger::from_nlocal(
         num_qubits,
         reps,
         entanglement,
         rotation_blocks,
         entanglement_blocks,
         skip_final_rotation_layer,
-        parameter_prefix,
-    )?;
+        &parameter_prefix.to_string(),
+    );
 
     // Compute the qubits that are skipped in the rotation layer. If this is set,
     // we skip qubits that do not appear in any of the entanglement layers.
@@ -262,7 +261,6 @@ pub fn py_n_local(
     let entanglement = Entanglement::from_py(num_qubits, reps, entanglement, &entanglement_blocks)?;
 
     Ok(n_local(
-        PyParameterLedgerBuilder,
         num_qubits,
         &rotation_blocks,
         &entanglement_blocks,
