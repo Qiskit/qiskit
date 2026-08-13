@@ -216,26 +216,30 @@ pub unsafe extern "C" fn qk_circuit_library_n_local(
         EntanglementStrategy::Pairwise => "pairwise",
     };
     let is_sca = matches!(settings.entanglement_strategy, EntanglementStrategy::Sca);
-    let entanglement = Entanglement {
-        entanglement_vec: (0..settings.reps)
-            .map(|layer| {
-                // Create entanglement layer
-                entanglement_blocks
-                    .iter()
-                    .map(|gate| {
-                        // Create block entanglement
-                        get_entanglement_from_str(
-                            num_qubits,
-                            gate.num_qubits,
-                            entanglement_strategy,
-                            if is_sca { layer } else { 0 },
-                        )
-                        .unwrap()
-                        .collect()
-                    })
-                    .collect()
-            })
-            .collect(),
+
+    let entanglement = match (0..settings.reps)
+        .map(|layer| {
+            // Create entanglement layer
+            entanglement_blocks
+                .iter()
+                .map(|gate| {
+                    // Create block entanglement
+                    get_entanglement_from_str(
+                        num_qubits,
+                        gate.num_qubits,
+                        entanglement_strategy,
+                        if is_sca { layer } else { 0 },
+                    )
+                    .map(|connection| connection.collect())
+                })
+                .collect::<Result<Vec<_>, _>>()
+        })
+        .collect::<Result<Vec<_>, _>>()
+    {
+        Ok(entanglement_vector) => Entanglement {
+            entanglement_vec: entanglement_vector,
+        },
+        Err(_) => return std::ptr::null_mut(),
     };
 
     match n_local(

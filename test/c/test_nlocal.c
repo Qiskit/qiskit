@@ -300,6 +300,46 @@ cleanup:
     return result;
 }
 
+static int test_pairwise_with_3_qubits(void) {
+    int num_qubits = 3;
+    QkGate rotation_blocks[3] = {QkGate_X, QkGate_Z, QkGate_Y};
+    QkGate entanglement_blocks[1] = {QkGate_CCX};
+    QkNLocalSettings settings = qk_circuit_library_n_local_settings_default();
+    settings.entanglement_strategy = QkEntanglementStrategy_Pairwise;
+    QkCircuit *qc = qk_circuit_library_n_local(num_qubits, rotation_blocks, 3, entanglement_blocks,
+                                               1, &settings);
+    if (qc != NULL) {
+        printf("Inconsistent result when testing pairwise entanglement with 3 qubits: A null "
+               "response was expected, "
+               "but it was obtain a circuit");
+        qk_circuit_free(qc);
+        return EqualityError;
+    }
+    return Ok;
+}
+
+/*
+ * Test CCX gate on 2 qubits on full entanglement
+ */
+static int test_full_entaglement_with_3_qubit_gate_for_2_qubits(void) {
+    //
+    int num_qubits = 2;
+    QkGate rotation_blocks[1] = {QkGate_X};
+    QkGate entanglement_blocks[1] = {QkGate_CCX};
+    QkCircuit *qc =
+        qk_circuit_library_n_local(num_qubits, rotation_blocks, 1, entanglement_blocks, 1, NULL);
+
+    if (qc != NULL) {
+        printf("Inconsistent result when testing 2 qubits with a 3 qubit gate: A null "
+               "response was expected, "
+               "but it was obtain a circuit");
+        qk_circuit_free(qc);
+        return EqualityError;
+    }
+
+    return Ok;
+}
+
 int test_nlocal(void) {
     int num_failed = 0;
 
@@ -307,6 +347,8 @@ int test_nlocal(void) {
     num_failed += RUN_TEST(test_parameter_prefix);
     num_failed += RUN_TEST(test_insert_barrier);
     num_failed += RUN_TEST(test_entanglement_by_strategy);
+    num_failed += RUN_TEST(test_pairwise_with_3_qubits);
+    num_failed += RUN_TEST(test_full_entaglement_with_3_qubit_gate_for_2_qubits);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests (n_local): %i\n", num_failed);
