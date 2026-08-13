@@ -968,24 +968,6 @@ class TestParameterExpression(QiskitTestCase):
             gradient = g.arctan().gradient(p)
             actual = gradient.bind({p: val})
             self.assertAlmostEqual(actual, 2 / (1 + gval**2), places=10)
-<<<<<<< HEAD
-=======
-
-    def test_simplify_multi_parameter_cancellation(self):
-        """Test that simplify() handles cancellation across multiple parameters."""
-        a = Parameter("a")
-        b = Parameter("b")
-        expr = a + b - a - b
-        simplified = expr.simplify()
-        self.assertEqual(simplified.parameters, set())
-        self.assertEqual(simplified.numeric(), 0)
-
-    def test_simplify_no_cancellation(self):
-        """Test that simplify() leaves non-cancelling expressions intact."""
-        a = Parameter("a")
-        b = Parameter("b")
-        expr = a + b
-        self.assertEqual(expr, expr.simplify())
 
     @ddt.data("__add__", "__sub__")
     def test_optimization_same_symbol(self, method):
@@ -1007,4 +989,3 @@ class TestParameterExpression(QiskitTestCase):
                     expression = getattr(lhs, method)(rhs)
 
                     self.assertEqual(reference, expression.bind({x: value}))
->>>>>>> 4b0b834dc (Fix add/sub optimizations including the same symbols (#16752))
