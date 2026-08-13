@@ -42,7 +42,6 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Programming Language :: C",
     "Programming Language :: Rust",
-    "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Quantum Computing",
     "Topic :: Software Development :: Compilers",
     "Development Status :: 5 - Production/Stable",
