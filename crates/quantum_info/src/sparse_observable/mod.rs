@@ -298,6 +298,14 @@ pub enum ArithmeticError {
     OutOfBounds(String),
 }
 
+#[derive(Error, Debug)]
+pub enum MatrixError {
+    #[error("{0} qubit matrix is too large")]
+    Unrepresentable(u32),
+    #[error("operation has projectors")]
+    HasProjectors,
+}
+
 /// One part of the type of the iteration value from [PairwiseOrdered].
 ///
 /// The struct iterates over two sorted lists, and returns values from the left iterator, the right
@@ -1076,7 +1084,7 @@ impl SparseObservable {
     ///
     /// This representation is highly inefficient for projectors. For example, a term with
     /// :math:`n` projectors :math:`|+\rangle\langle +|` will use :math:`2^n` Pauli terms.
-    pub fn as_paulis(&self) -> Self {
+    pub fn to_paulis(&self) -> Self {
         let mut paulis: Vec<BitTerm> = Vec::new(); // maybe get capacity here
         let mut indices: Vec<u32> = Vec::new();
         let mut coeffs: Vec<Complex64> = Vec::new();
@@ -1271,6 +1279,62 @@ impl SparseObservable {
         let ab = self.compose(other).canonicalize(tol);
         let ba = other.compose(self).canonicalize(tol);
         ab == ba
+    }
+
+    pub fn to_matrix(&self) -> Result<Array2<Complex64>, MatrixError> {
+        let n = self.num_qubits();
+
+        let dim = 1usize
+            .checked_shl(n)
+            .ok_or(MatrixError::Unrepresentable(n))?;
+
+        let len = dim
+            .checked_mul(dim)
+            .ok_or(MatrixError::Unrepresentable(n))?;
+
+        let mut matrix = vec![Complex64::ZERO; len];
+        for (i, row) in matrix.chunks_mut(dim).enumerate() {
+            self.to_matrix_row(row, i)?;
+        }
+
+        let matrix = Array2::from_shape_vec((dim, dim), matrix).expect("shape fits len");
+        Ok(matrix)
+    }
+
+    fn to_matrix_row(&self, data: &mut [Complex64], row: usize) -> Result<(), MatrixError> {
+        let is_one = |col, qubit| col & (1usize << qubit) != 0;
+        let flip = |col, qubit| col ^ (1usize << qubit);
+
+        for term in self.iter() {
+            let mut col = row;
+            let mut coeff = term.coeff;
+
+            for (&bit_term, &qubit) in term.bit_terms.iter().zip(term.indices) {
+                match bit_term {
+                    BitTerm::X => {
+                        col = flip(col, qubit);
+                    }
+                    BitTerm::Y if is_one(row, qubit) => {
+                        coeff *= Complex64::i();
+                        col = flip(col, qubit);
+                    }
+                    BitTerm::Y => {
+                        coeff *= -Complex64::i();
+                        col = flip(col, qubit);
+                    }
+                    BitTerm::Z if is_one(row, qubit) => {
+                        coeff = -coeff;
+                    }
+                    _ => {
+                        return Err(MatrixError::HasProjectors);
+                    }
+                };
+            }
+
+            data[col] += coeff;
+        }
+
+        Ok(())
     }
 }
 
@@ -3154,7 +3218,7 @@ impl PySparseObservable {
     ///         :class:`SparseObservable` in the :class:`.SparsePauliOp` dense Pauli representation.
     fn as_paulis(&self) -> PyResult<Self> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(inner.as_paulis().into())
+        Ok(inner.to_paulis().into())
     }
 
     /// Express the observable in terms of a sparse list format.
