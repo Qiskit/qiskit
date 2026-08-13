@@ -1606,7 +1606,7 @@ class MatplotlibDrawer:
         ypos_max = max(y[1] for y in xy)
 
         if not isinstance(node.op, BoxOp):
-            node_data[node].width[0] + WID
+            if_width =node_data[node].width[0] + WID
         elif node_data[node].width[0] > 0.0:
             # Bring the right side back tight gates to allow for better spacing
             if_width = node_data[node].width[0] - 0.19

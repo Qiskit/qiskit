@@ -99,7 +99,11 @@ class TestCircuitDrawer(QiskitTestCase):
         # Flow ops (the box) are drawn as `FanceBboxPatch`, plain gates as `Rectangle`. The
         # axes holds a large negatively-sized background rectangle that is filtered out.
         boxes = [patch for patch in ax.patches if isinstance(patch, FancyBboxPatch)]
-        gates = [patch for patch in ax.patches if isinstance(patch, Rectangle) and patch.get_width() > 0.0]
+        gates = [
+            patch
+            for patch in ax.patches
+            if isinstance(patch, Rectangle) and patch.get_width() > 0.0
+        ]
         self.assertEqual(len(boxes), 1)
         self.assertEqual(len(gates), 1)
         self.assertAlmostEqual(boxes[0].get_width(), gates[0].get_width())
