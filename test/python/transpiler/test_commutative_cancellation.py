@@ -962,13 +962,21 @@ measure q0[1] -> c0[1];
 
     def test_approximation_degree(self):
         circuit = QuantumCircuit(1)
-        circuit.rz(1.0, 0)
-        circuit.rz(-1.0, 0)
-        passmanager = PassManager()
-        passmanager.append(CommutativeCancellation(approximation_degree=1.0))
-        new_circuit = passmanager.run(circuit)
-        expected = QuantumCircuit(1)
-        self.assertEqual(new_circuit, expected)
+        circuit.x(0)
+        circuit.rz(0.1, 0)
+        circuit.x(0)
+
+        with self.subTest(approximation_degree=1.0):
+            passmanager = PassManager()
+            passmanager.append(CommutativeCancellation(approximation_degree=1.0))
+            result = passmanager.run(circuit)
+            self.assertEqual(result.count_ops().get('x', 0), 2)
+
+        with self.subTest(approximation_degree=0.0):
+            passmanager = PassManager()
+            passmanager.append(CommutativeCancellation(approximation_degree=0.0))
+            result = passmanager.run(circuit)
+            self.assertEqual(result.count_ops().get('x', 0), 0)
 
 
 if __name__ == "__main__":
