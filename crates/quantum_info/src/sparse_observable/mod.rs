@@ -1084,7 +1084,7 @@ impl SparseObservable {
     ///
     /// This representation is highly inefficient for projectors. For example, a term with
     /// :math:`n` projectors :math:`|+\rangle\langle +|` will use :math:`2^n` Pauli terms.
-    pub fn to_paulis(&self) -> Self {
+    pub fn as_paulis(&self) -> Self {
         let mut paulis: Vec<BitTerm> = Vec::new(); // maybe get capacity here
         let mut indices: Vec<u32> = Vec::new();
         let mut coeffs: Vec<Complex64> = Vec::new();
@@ -3218,7 +3218,7 @@ impl PySparseObservable {
     ///         :class:`SparseObservable` in the :class:`.SparsePauliOp` dense Pauli representation.
     fn as_paulis(&self) -> PyResult<Self> {
         let inner = self.inner.read().map_err(|_| InnerReadError)?;
-        Ok(inner.to_paulis().into())
+        Ok(inner.as_paulis().into())
     }
 
     /// Express the observable in terms of a sparse list format.
