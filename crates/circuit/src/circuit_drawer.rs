@@ -1301,9 +1301,7 @@ impl TextDrawer {
 
     fn draw(&self, mergewires: bool, fold: usize) -> String {
         // Calculate the layer ranges for each fold of the circuit
-        let Some(num_layers) = self.wires.first().map(|wire| wire.len()) else {
-            return String::new();
-        };
+        let num_layers = self.wires[0].len();
 
         // We skip the first (inputs) layer since it's printed for each fold, regardless
         // of screen width limit
