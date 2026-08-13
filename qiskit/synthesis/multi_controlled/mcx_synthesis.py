@@ -13,7 +13,6 @@
 """Module containing multi-controlled circuits synthesis with and without ancillary qubits."""
 
 from __future__ import annotations
-from math import ceil
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -25,6 +24,8 @@ from qiskit._accelerate.synthesis.multi_controlled import (
     synth_mcx_n_dirty_i15 as synth_mcx_n_dirty_i15_rs,
     synth_mcx_noaux_v24 as synth_mcx_noaux_v24_rs,
     synth_mcx_noaux_hp24 as synth_mcx_noaux_hp24_rs,
+    synth_mcx_n_clean_m15 as synth_mcx_n_clean_m15_rs,
+    synth_mcx_1_clean_b95 as synth_mcx_1_clean_b95_rs,
 )
 from .gray_code import gray_code_chain
 
@@ -120,33 +121,8 @@ def synth_mcx_n_clean_m15(num_ctrl_qubits: int) -> QuantumCircuit:
             "synth_mcx_n_clean_m15 cannot be called with a negative number of control qubits."
         )
 
-    if num_ctrl_qubits <= 2:
-        return _synth_mcx_special_cases(num_ctrl_qubits)
-
-    num_qubits = 2 * num_ctrl_qubits - 1
-    q = QuantumRegister(num_qubits, name="q")
-    qc = QuantumCircuit(q)
-    q_controls = q[:num_ctrl_qubits]
-    q_target = q[num_ctrl_qubits]
-    q_ancillas = q[num_ctrl_qubits + 1 :]
-
-    qc.rccx(q_controls[0], q_controls[1], q_ancillas[0])
-    i = 0
-    for j in range(2, num_ctrl_qubits - 1):
-        qc.rccx(q_controls[j], q_ancillas[i], q_ancillas[i + 1])
-
-        i += 1
-
-    qc.ccx(q_controls[-1], q_ancillas[i], q_target)
-
-    for j in reversed(range(2, num_ctrl_qubits - 1)):
-        qc.rccx(q_controls[j], q_ancillas[i - 1], q_ancillas[i])
-
-        i -= 1
-
-    qc.rccx(q_controls[0], q_controls[1], q_ancillas[i])
-
-    return qc
+    circ = QuantumCircuit._from_circuit_data(synth_mcx_n_clean_m15_rs(num_ctrl_qubits))
+    return circ
 
 
 def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
@@ -177,46 +153,7 @@ def synth_mcx_1_clean_b95(num_ctrl_qubits: int) -> QuantumCircuit:
             "synth_mcx_1_clean_b95 cannot be called with a negative number of control qubits."
         )
 
-    if num_ctrl_qubits <= 2:
-        return _synth_mcx_special_cases(num_ctrl_qubits)
-
-    if num_ctrl_qubits == 3:
-        return synth_c3x()
-
-    elif num_ctrl_qubits == 4:
-        return synth_c4x()
-
-    num_qubits = num_ctrl_qubits + 2
-    q = QuantumRegister(num_qubits, name="q")
-    qc = QuantumCircuit(q)
-
-    num_ctrl_qubits = len(q) - 1
-    q_ancilla = q[-1]
-    q_target = q[-2]
-    middle = ceil(num_ctrl_qubits / 2)
-
-    # The construction involving 4 MCX gates is described in Lemma 7.3 of [1], and also
-    # appears as Lemma 9 in [2]. The optimization that the first and third MCX gates
-    # can be synthesized up to relative phase follows from Lemma 7 in [2], as a diagonal
-    # gate following the first MCX gate commutes with the second MCX gate, and
-    # thus cancels with the inverse diagonal gate preceding the third MCX gate. The
-    # same optimization cannot be applied to the second MCX gate, since a diagonal
-    # gate following the second MCX gate would not satisfy the preconditions of Lemma 7,
-    # and would not necessarily commute with the third MCX gate.
-    controls1 = [*q[:middle]]
-    mcx1 = synth_mcx_n_dirty_i15(num_ctrl_qubits=len(controls1), relative_phase=True)
-    qubits1 = [*controls1, q_ancilla, *q[middle : middle + mcx1.num_qubits - len(controls1) - 1]]
-
-    controls2 = [*q[middle : num_ctrl_qubits - 1], q_ancilla]
-    mcx2 = synth_mcx_n_dirty_i15(num_ctrl_qubits=len(controls2))
-    qc2_qubits = [*controls2, q_target, *q[0 : mcx2.num_qubits - len(controls2) - 1]]
-
-    qc.compose(mcx1, qubits1, inplace=True)
-    qc.compose(mcx2, qc2_qubits, inplace=True)
-    qc.compose(mcx1.inverse(), qubits1, inplace=True)
-    qc.compose(mcx2, qc2_qubits, inplace=True)
-
-    return qc
+    return QuantumCircuit._from_circuit_data(synth_mcx_1_clean_b95_rs(num_ctrl_qubits))
 
 
 def synth_mcx_gray_code(num_ctrl_qubits: int) -> QuantumCircuit:

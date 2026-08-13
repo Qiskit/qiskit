@@ -142,6 +142,9 @@ Multi Controlled Synthesis
 .. autofunction:: synth_mcx_gray_code
 .. autofunction:: synth_c3x
 .. autofunction:: synth_c4x
+.. autofunction:: synth_mcp_noaux_default
+.. autofunction:: synth_mcp_noaux_sp22
+.. autofunction:: synth_mcp_noaux_v24
 
 Binary Arithmetic Synthesis
 ===========================
@@ -178,37 +181,35 @@ Integer comparators
 
 """
 
-
-from .evolution import *
-from .permutation import *
-from .linear import *
-from .linear_phase import *
-from .clifford import *
-from .cnotdihedral import *
-from .stabilizer import *
-from .discrete_basis import *
-from .qft import *
-from .unitary.qsd import qs_decomposition
-from .unitary import aqc
-from .one_qubit import OneQubitEulerDecomposer
-from .two_qubit import *
-from .multi_controlled import *
-from .arithmetic import *
-
 from . import (
-    evolution,
-    permutation,
-    linear,
-    linear_phase,
+    arithmetic,
     clifford,
     cnotdihedral,
-    stabilizer,
     discrete_basis,
-    qft,
-    two_qubit,
+    evolution,
+    linear,
+    linear_phase,
     multi_controlled,
-    arithmetic,
+    permutation,
+    qft,
+    stabilizer,
+    two_qubit,
 )
+from .arithmetic import *
+from .clifford import *
+from .cnotdihedral import *
+from .discrete_basis import *
+from .evolution import *
+from .linear import *
+from .linear_phase import *
+from .multi_controlled import *
+from .one_qubit import OneQubitEulerDecomposer
+from .permutation import *
+from .qft import *
+from .stabilizer import *
+from .two_qubit import *
+from .unitary import aqc
+from .unitary.qsd import qs_decomposition
 
 __all__ = [
     "OneQubitEulerDecomposer",
