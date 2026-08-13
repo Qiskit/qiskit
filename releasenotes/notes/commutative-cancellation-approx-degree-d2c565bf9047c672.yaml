@@ -1,6 +1,6 @@
 ---
 features_transpiler:
   - |
-    Added an ``aproximation_degree`` argument to
-    :class:`.CommutativeCancellation`. The approximation_degree
-    used when analyzing commutations. Must be within ``(0, 1]``.
+    Exposed ``approximation_degree`` as argument in the
+    :class:`.CommutativeCancellation` pass, which allows to set the
+    approximation used when analyzing commutations.
