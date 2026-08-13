@@ -358,7 +358,6 @@ impl MatrixCompressedPaulis {
 
     /// Returns a C-ordered [Vec] of the 2D matrix.
     pub fn to_matrix_dense(&self, parallel: bool) -> Array2<Complex64> {
-        // dcohen: Init the 2D matrix.
         let side = 1usize << self.num_qubits();
         #[allow(clippy::uninit_vec)]
         let mut out = {
@@ -369,17 +368,11 @@ impl MatrixCompressedPaulis {
             unsafe { out.set_len(side * side) };
             out
         };
-
-        // dcohen: For each row of the matrix:
         let write_row = |(i_row, row): (usize, &mut [Complex64])| {
             // Doing the initialization here means that when we're in parallel contexts, we do the
             // zeroing across the whole threadpool.  This also seems to give a speed-up in serial
             // contexts, but I don't understand that. ---Jake
             row.fill(C_ZERO);
-
-            // dcohen: For each coefficient applying to the row:
-            //     - Add the coeff from column of X if an even number of Z terms are on.
-            //     - Sub the coeff from column of X if an odd number of Z terms are on.
             for ((&x_like, &z_like), &coeff) in self
                 .x_like
                 .iter()
