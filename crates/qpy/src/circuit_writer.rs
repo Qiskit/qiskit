@@ -24,9 +24,11 @@ use num_bigint::BigUint;
 use num_traits::ToPrimitive;
 use numpy::ToPyArray;
 use qiskit_util::IndexSet;
+use std::sync::Arc;
 
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict, PyTuple};
+use qiskit_circuit::annotation::Annotation;
 use qiskit_circuit::bit::{
     ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
@@ -113,13 +115,13 @@ fn pack_instructions(
 }
 
 pub(crate) fn pack_annotations(
-    annotations: &[Py<PyAny>],
+    annotations: &[Arc<dyn Annotation>],
     qpy_data: &mut QPYWriteData,
-) -> PyResult<Option<formats::InstructionsAnnotationPack>> {
+) -> Result<Option<formats::InstructionsAnnotationPack>, QpyError> {
     let annotations_pack: Vec<formats::InstructionAnnotationPack> = annotations
         .iter()
         .map(|annotation| {
-            let (namespace_index, payload) = qpy_data.annotation_handler.serialize(annotation)?;
+            let (namespace_index, payload) = qpy_data.annotation_handler.serialize(annotation.as_ref())?;
             Ok(formats::InstructionAnnotationPack {
                 namespace_index,
                 payload,
@@ -420,12 +422,12 @@ fn pack_control_flow_inst(
 ) -> Result<formats::CircuitInstructionV2Pack, QpyError> {
     let mut packed_annotations = None;
     let mut packed_condition: formats::ConditionPack = Default::default();
-    let params = match control_flow_inst.control_flow.clone() {
+    let params = match &control_flow_inst.control_flow {
         ControlFlow::Box {
             duration,
             annotations,
         } => {
-            packed_annotations = pack_annotations(&annotations, qpy_data)?;
+            packed_annotations = pack_annotations(annotations, qpy_data)?;
             let mut params = Vec::new();
             params.extend(pack_instruction_blocks(instruction, qpy_data)?);
             match duration {
@@ -439,12 +441,12 @@ fn pack_control_flow_inst(
                 Some(box_duration) => match box_duration {
                     BoxDuration::Duration(duration) => {
                         let duration_value = match duration {
-                            Duration::dt(v) => GenericValue::Int64(v),
+                            Duration::dt(v) => GenericValue::Int64(*v),
                             Duration::ps(v)
                             | Duration::us(v)
                             | Duration::ns(v)
                             | Duration::ms(v)
-                            | Duration::s(v) => GenericValue::Float64(v),
+                            | Duration::s(v) => GenericValue::Float64(*v),
                         };
                         let duration_unit_string =
                             GenericValue::String(duration.unit().to_string());
@@ -453,7 +455,7 @@ fn pack_control_flow_inst(
                     }
                     BoxDuration::Expr(exp) => {
                         let duration_value_pack =
-                            pack_generic_value(&GenericValue::Expression(exp), qpy_data)?;
+                            pack_generic_value(&GenericValue::Expression(exp.clone()), qpy_data)?;
                         let duration_unit_string = GenericValue::String("expr".to_string());
                         params.push(duration_value_pack);
                         params.push(pack_generic_value(&duration_unit_string, qpy_data)?);
@@ -467,11 +469,11 @@ fn pack_control_flow_inst(
             collection,
             loop_param,
         } => {
-            let collection_value = pack_for_collection(&collection);
+            let collection_value = pack_for_collection(collection);
             let loop_param_value = match loop_param {
                 None => GenericValue::Null,
                 Some(LoopParam::Parameter(symbol)) => {
-                    GenericValue::ParameterExpressionSymbol(symbol.into())
+                    GenericValue::ParameterExpressionSymbol(Arc::new(symbol.clone()))
                 }
                 Some(LoopParam::Variable(_)) => GenericValue::Null,
             };
@@ -482,11 +484,11 @@ fn pack_control_flow_inst(
             params
         }
         ControlFlow::IfElse { condition } => {
-            packed_condition = pack_condition(condition, qpy_data)?;
+            packed_condition = pack_condition(condition.clone(), qpy_data)?;
             pack_instruction_blocks(instruction, qpy_data)?
         }
         ControlFlow::While { condition } => {
-            packed_condition = pack_condition(condition, qpy_data)?;
+            packed_condition = pack_condition(condition.clone(), qpy_data)?;
             pack_instruction_blocks(instruction, qpy_data)?
         }
         ControlFlow::Switch {
@@ -500,11 +502,11 @@ fn pack_control_flow_inst(
             // or the special default case label
             let target_value = match target {
                 SwitchTarget::Bit(clbit) => {
-                    GenericValue::Register(ParamRegisterValue::ShareableClbit(clbit))
+                    GenericValue::Register(ParamRegisterValue::ShareableClbit(clbit.clone()))
                 }
-                SwitchTarget::Expr(exp) => GenericValue::Expression(exp),
+                SwitchTarget::Expr(exp) => GenericValue::Expression(exp.clone()),
                 SwitchTarget::Register(reg) => {
-                    GenericValue::Register(ParamRegisterValue::Register(reg))
+                    GenericValue::Register(ParamRegisterValue::Register(reg.clone()))
                 }
             };
             let case_circuits = extract_instruction_blocks(instruction, qpy_data);
