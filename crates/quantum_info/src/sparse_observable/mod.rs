@@ -15,7 +15,6 @@ mod lookup;
 use hashbrown::HashSet;
 use itertools::Itertools;
 use lookup::conjugate_bitterm;
-#[cfg(feature = "python")]
 use ndarray::Array2;
 use num_complex::Complex64;
 #[cfg(feature = "python")]
