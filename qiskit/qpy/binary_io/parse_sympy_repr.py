@@ -48,9 +48,10 @@ METHOD_MAPPING = {
     "Abs": "abs",
     "sin": "sin",
     "tan": "tan",
-    "atan": "atan",
-    "acos": "acos",
-    "asin": "asin",
+    "cos": "cos",
+    "atan": "arctan",
+    "acos": "arccos",
+    "asin": "arcsin",
     "exp": "exp",
     "conjugate": "conjugate",
 }
@@ -77,6 +78,8 @@ UNARY = {
     "acos",
     "asin",
     "conjugate",
+    "exp",
+    "log",
     "Symbol",
     "Integer",
     "Complex",
@@ -121,7 +124,7 @@ class ParseSympyWalker(ast.NodeVisitor):
         if isinstance(node.func, ast.Name):
             name = node.func.id
         else:
-            raise QpyError("Unknown node type")
+            raise QpyError(f"Unknown node type: {node.func}")
 
         if name not in ALLOWED_CALLERS:
             raise QpyError(f"{name} is not part of a valid sympy expression srepr")
@@ -154,6 +157,8 @@ class ParseSympyWalker(ast.NodeVisitor):
                 # If rational has one arg it's a no-op because
                 # ParameterExpression doesn't have a Rational type
                 if len(out_args) < 2:
+                    obj = out_args[0]
+                else:
                     lhs = out_args.pop()
                     rhs = out_args.pop()
                     # If there is a 3rd argument that is the GCD which isn't supported by
@@ -166,9 +171,7 @@ class ParseSympyWalker(ast.NodeVisitor):
                         raise QpyError(
                             f"Invalid Rational too many arguments Rational({lhs}, {rhs}, *{out_args})"
                         )
-                    else:
-                        obj = lhs / rhs
-                        self.stack.append(obj)
+                    obj = lhs / rhs
             else:
                 function = FUNCTION_MAPPING[name]
                 out_args.reverse()
