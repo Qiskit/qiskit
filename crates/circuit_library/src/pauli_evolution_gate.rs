@@ -12,8 +12,6 @@
 
 use std::sync::Arc;
 
-use ndarray::Array2;
-use num_complex::Complex64;
 use qiskit_circuit::{
     operations::{CustomOperation, Operation, Param},
     packed_instruction::PackedOperation,
@@ -26,15 +24,22 @@ use thiserror::Error;
 #[error("time is python object")]
 pub struct PauliEvolutionError;
 
+/// Time-evolution of a hermitian operator.
+///
+/// For a hermitian operator **H** and time **t**, this gate represents the
+/// unitary **U(t) = e<sup>-itH</sup>**.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PauliEvolution {
     operator: SparseObservable,
-    // TODO: We should have team discussion to decide whether `time` should be
-    // owned by `PauliEvolution` or passed as a `param`.
     time: ComparableParam,
 }
 
 impl PauliEvolution {
+    /// Construct a new [`PauliEvolution`] with a hermitian `operator` and `time`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `time` is [`Param::Obj`].
     pub fn new(operator: SparseObservable, time: Param) -> Result<Self, PauliEvolutionError> {
         if matches!(time, Param::Obj(_)) {
             return Err(PauliEvolutionError);
@@ -46,19 +51,19 @@ impl PauliEvolution {
         })
     }
 
+    /// Returns a reference to the hermitian `operator`.
     pub fn operator(&self) -> &SparseObservable {
         &self.operator
     }
 
+    /// Returns a reference to the `time` parameter.
     pub fn time(&self) -> &Param {
         &self.time.0
     }
 
-    pub fn into_parts(self) -> PauliEvolutionParts {
-        PauliEvolutionParts {
-            operator: self.operator,
-            time: self.time.0,
-        }
+    /// Decomposes `PauliEvolution` into its raw components: `(operator, time)`.
+    pub fn into_parts(self) -> (SparseObservable, Param) {
+        (self.operator, self.time.0)
     }
 }
 
@@ -85,20 +90,6 @@ impl Operation for PauliEvolution {
 }
 
 impl CustomOperation for PauliEvolution {
-    // TODO: We need to have a discussion about whether this trait member
-    // should be removed or replaced with a dynamic label function
-    // returning `Option<Box<String>>`.
-    fn label(&self) -> Option<&str> {
-        None
-    }
-
-    // TODO: We'd like `SparseObservable::to_matrix`. This requires some
-    // discussion and should be completed seperately from the introduction of
-    // this gate.
-    fn matrix(&self, _param: &[Param]) -> Option<Array2<Complex64>> {
-        None
-    }
-
     fn is_unitary(&self) -> bool {
         true
     }
@@ -119,12 +110,6 @@ impl CustomOperation for PauliEvolution {
         let inverse = PackedOperation::from_custom_operation(Box::new(inverse));
         Some((inverse, SmallVec::new()))
     }
-}
-
-#[derive(Debug, Clone)]
-pub struct PauliEvolutionParts {
-    pub operator: SparseObservable,
-    pub time: Param,
 }
 
 #[derive(Debug, Clone)]
@@ -152,8 +137,17 @@ mod tests {
 
     #[test]
     fn test_inverse_float() {
-        let gate = PauliEvolution::new(mock_xy(), Param::Float(3.0)).unwrap();
-        let (inverse, _) = gate.inverse(&[]).unwrap();
+        let operator = SparseObservable::new(
+            2,
+            vec![1.0.into()],
+            vec![BitTerm::Y, BitTerm::X],
+            vec![0, 1],
+            vec![0, 2],
+        )
+        .expect("is valid");
+
+        let evolution = PauliEvolution::new(operator, Param::Float(3.0)).unwrap();
+        let (inverse, _) = evolution.inverse(&[]).unwrap();
 
         let OperationRef::CustomOperation(inverse) = inverse.view() else {
             panic!("inverse is not custom operation");
@@ -165,16 +159,5 @@ mod tests {
             inverse.time(),
             Param::Float(time) if *time == -3.0
         ));
-    }
-
-    fn mock_xy() -> SparseObservable {
-        SparseObservable::new(
-            2,
-            vec![1.0.into()],
-            vec![BitTerm::X, BitTerm::Y],
-            vec![0, 1],
-            vec![0, 2],
-        )
-        .expect("is valid")
     }
 }
