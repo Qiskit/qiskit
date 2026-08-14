@@ -19,6 +19,8 @@
 
 mod binary;
 mod bitwise;
+mod broadcast_to;
+mod cast;
 mod constant;
 mod error;
 mod inference;
@@ -28,6 +30,8 @@ mod shot_loop;
 
 pub use binary::{Add, Divide, Multiply, Power, Remainder, Subtract};
 pub use bitwise::{BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor, Parity};
+pub use broadcast_to::BroadcastTo;
+pub use cast::Cast;
 pub use constant::Constant;
 pub use error::MathNodeError;
 pub use op_node_type::{BoxedOpNodeError, BoxedOpNodeType, ErasedOpNodeType, OpNodeType, QISKIT};
