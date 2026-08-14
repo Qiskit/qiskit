@@ -1324,6 +1324,7 @@ impl SparseObservable {
                     BitTerm::Z if is_one(row, qubit) => {
                         coeff = -coeff;
                     }
+                    // handle 1, 0, +, -
                     _ => {
                         return Err(MatrixError::HasProjectors);
                     }
@@ -4601,5 +4602,61 @@ mod test {
         ));
         // `modified` should have been left in a valid state.
         assert_eq!(base, modified);
+    }
+
+    #[test]
+    fn test_to_matrix_xy() {
+        let result = SparseObservable::new(
+            2,
+            vec![0.5.into()],
+            vec![BitTerm::Y, BitTerm::X],
+            vec![0, 1],
+            vec![0, 2],
+        )
+        .expect("is valid")
+        .to_matrix()
+        .expect("no projectors");
+
+        let expect = Array2::from_shape_vec(
+            (4, 4),
+            vec![
+                // Row 1
+                Complex64::ZERO,
+                Complex64::ZERO,
+                Complex64::ZERO,
+                Complex64::new(0.0, -0.5),
+                // Row 2
+                Complex64::ZERO,
+                Complex64::ZERO,
+                Complex64::new(0.0, 0.5),
+                Complex64::ZERO,
+                // Row 3
+                Complex64::ZERO,
+                Complex64::new(0.0, -0.5),
+                Complex64::ZERO,
+                Complex64::ZERO,
+                // Row 4
+                Complex64::new(0.0, 0.5),
+                Complex64::ZERO,
+                Complex64::ZERO,
+                Complex64::ZERO,
+            ],
+        )
+        .unwrap();
+
+        assert_eq!(result, expect);
+    }
+
+    #[test]
+    fn test_to_matrix_xy_zz() {
+        let xy_zz = SparseObservable::new(
+            2,
+            vec![0.5.into(), 1.0.into()],
+            vec![BitTerm::Y, BitTerm::X, BitTerm::Z, BitTerm::Z],
+            vec![0, 1, 0, 1],
+            vec![0, 2, 4],
+        )
+        .expect("is valid");
+        todo!()
     }
 }
