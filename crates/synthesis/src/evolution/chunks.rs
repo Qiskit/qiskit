@@ -12,11 +12,25 @@
 
 use qiskit_circuit::operations::StandardGate;
 
+// The concept of chunks appears in the paper [1] and the implementation is partially
+// adapted from [2].
+//
+// References:
+//
+// 1. Timothée Goubault de Brugière and Simon Martiel,
+// *Faster and shorter synthesis of Hamiltonian simulation circuits*,
+// [arXiv:2404.03280](https://arxiv.org/abs/2404.03280).
+//
+// 2. https://github.com/qiskit-community/rustiq-core/blob/main/src/synthesis/pauli_network/chunks.rs.
+// The code in https://github.com/qiskit-community/rustiq-core is licensed under the MIT license.
+
 // In what follows, Pauli labels should be read left-to-right, thus XY
 // means X on the first qubit and Y on the second qubits.
 
-// A 2-qubit Pauli can be indexed by a number in 0..16.
-// Explicitly, we compute the index as (X[0] << 3) | (Z[0] << 2) | (X[1] << 1) | Z[1].
+// A two-qubit Pauli operator can be encoded as an integer in 0..16,
+// see [TwoQubitPauliIndex].
+// Internally, this packs the `x` and the `z` components of the two qubits as
+// (x[0] << 3) | (z[0] << 2) | (x[1] << 1) | z[1].
 // For instance, XY (read left-to-right) corresponds to 8 + 0 + 2 + 1 = 11.
 // In this way, 2-qubit Paulis are given by
 // [II, IZ, IX, IY, ZI, ZZ, ZX, ZY, XI, XZ, XX, XY, YI, YZ, YX, YY].
@@ -26,10 +40,10 @@ use qiskit_circuit::operations::StandardGate;
 // is given by PAULI_SUPPORT_SIZES[4] = 1.
 pub static PAULI_SUPPORT_SIZES: [usize; 16] = [0, 1, 1, 1, 1, 2, 2, 2, 1, 2, 2, 2, 1, 2, 2, 2];
 
-// A "chunk" is a small 2-qubit circuit constisting of some
-// single-qubit gates followed either by CX(0, 1) or CX(1, 0).
-// There are 18 chunks of interest, numbered 0..18.
-// These are taken for the Rustiq paper.
+// A "chunk" is a small 2-qubit Clifford circuit constisting of some
+// single-qubit Clifford gates followed either by CX(0, 1) or CX(1, 0).
+// There are 18 chunks of interest, numbered 0..18, see reference [1]
+// above.
 pub const ALL_CHUNKS: [&[(StandardGate, &[usize])]; 18] = [
     &[(StandardGate::CX, &[0, 1])],
     &[(StandardGate::CX, &[1, 0])],
@@ -173,3 +187,98 @@ pub static REDUCING_CHUNKS: [&[usize]; 16] = [
     &[0, 5, 6, 7, 9, 14, 16, 17],
     &[4, 5, 10, 11, 12, 13, 14, 15],
 ];
+
+#[cfg(test)]
+mod tests {
+
+    use qiskit_circuit::Qubit;
+    use qiskit_quantum_info::clifford::TwoQubitPauliIndex;
+    use smallvec::SmallVec;
+
+    use crate::clifford::utils::clifford_from_gate_sequence;
+    use crate::evolution::chunks::{
+        ALL_CHUNKS, CHUNK_CONJUGATION_TABLE, PAULI_SUPPORT_SIZES, REDUCING_CHUNKS, SUPPORT_DELTA,
+    };
+
+    /// Given a chunk index corresponding to a 2-qubit Clifford circuit `C`, and a two-qubit Pauli
+    /// index corresponding to a Pauli `P`, computes the two-qubit Pauli index for `C^\dagger P C`.
+    fn inverse_conjugate_chunk(chunk_idx: usize, pauli_idx: usize) -> usize {
+        // Create a Clifford from the chunk
+        let clifford_gates_vec: Vec<_> = ALL_CHUNKS[chunk_idx]
+            .iter()
+            .map(|(gate, indices)| {
+                let qubits: SmallVec<_> = indices.iter().copied().map(Qubit::new).collect();
+                (*gate, SmallVec::new(), qubits)
+            })
+            .collect();
+        let cliff = clifford_from_gate_sequence(&clifford_gates_vec, 2);
+        assert!(cliff.is_ok());
+        let mut cliff = cliff.unwrap();
+
+        // Convert pauli index to z and x components of the two qubits
+        let (x0, z0, x1, z1) = TwoQubitPauliIndex::from_usize(pauli_idx).bits();
+
+        // Use Clifford's evolve_pauli method to compute C^\dagger P C.
+        let (_, evolved_z, evolved_x, indices_out) =
+            cliff.evolve_pauli(&[z0, z1], &[x0, x1], &[0, 1]);
+
+        // Explicitly compute the z and x components for the two qubits (as the output of evolve_pauli
+        // is given in the sparse format).
+        let (out_x0, out_z0, out_x1, out_z1) = match indices_out.as_slice() {
+            [0, 1] => (evolved_x[0], evolved_z[0], evolved_x[1], evolved_z[1]),
+            [0] => (evolved_x[0], evolved_z[0], false, false),
+            [1] => (false, false, evolved_x[0], evolved_z[0]),
+            [] => (false, false, false, false),
+            _ => {
+                unreachable!(
+                    "The output qubits of the evolved Pauli are a sorted subset of [0, 1]."
+                );
+            }
+        };
+
+        // Return the index of the corresponding Pauli.
+        TwoQubitPauliIndex::from_bits(out_x0, out_z0, out_x1, out_z1).as_usize()
+    }
+
+    /// Returns the size of the Pauli support (number of non-I terms) for the two-qubit Pauli
+    /// with index pauli_idx.
+    fn pauli_support_size(pauli_idx: usize) -> usize {
+        let (x0, z0, x1, z1) = TwoQubitPauliIndex::from_usize(pauli_idx).bits();
+        ((x0 || z0) as usize) + ((x1 || z1) as usize)
+    }
+
+    /// Test that the table CHUNK_CONJUGATION_TABLE is correct.
+    #[test]
+    fn test_chunk_conjugation_table() {
+        for (chunk_idx, stored_pauli_indices) in CHUNK_CONJUGATION_TABLE.iter().enumerate() {
+            for pauli_idx in 0..16 {
+                // Note that CHUNK_CONJUGATION_TABLE stores results for C P C^\dagger,
+                // while inverse_conjugate_chunk returns the result for C^\dagger P C.
+                let evolved_id = inverse_conjugate_chunk(chunk_idx, pauli_idx);
+                let expected_id = stored_pauli_indices[evolved_id];
+                assert_eq!(expected_id, pauli_idx);
+            }
+        }
+    }
+
+    /// Test that the table PAULI_SUPPORT_SIZES is correct.    
+    #[test]
+    fn test_pauli_support_sizes() {
+        for (pauli_idx, &stored_support_size) in PAULI_SUPPORT_SIZES.iter().enumerate() {
+            assert_eq!(stored_support_size, pauli_support_size(pauli_idx));
+        }
+    }
+
+    /// Test that the table REDUCING_CHUNKS is correct.
+    #[test]
+    fn check_reducing_chunks_table() {
+        // Note that the table SUPPORT_DELTA is constructed automatically and thus is correct.
+        for (pauli_idx, stored_reducing_chunks) in REDUCING_CHUNKS.iter().enumerate() {
+            let stored: Vec<usize> = stored_reducing_chunks.to_vec();
+            let computed: Vec<_> = (0..18)
+                .filter(|chunk_idx| SUPPORT_DELTA[*chunk_idx][pauli_idx] < 0)
+                .collect();
+            assert_eq!(stored, computed);
+        }
+    }
+}

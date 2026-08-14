@@ -24,6 +24,43 @@ pub enum Pauli1q {
     Z,
 }
 
+/// An index identifying a two-qubit Pauli operator.
+///
+/// A two-qubit Pauli operator can be encoded as an integer in 0..16
+/// by packing the `x` and `z` components of the two qubits:
+/// ```text
+/// (x[0] << 3) | (z[0] << 2) | (x[1] << 1) | z[1].
+/// ```
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct TwoQubitPauliIndex(u8);
+
+impl TwoQubitPauliIndex {
+    /// Constructor from the given index.
+    pub fn from_usize(index: usize) -> Self {
+        Self(index as u8)
+    }
+
+    /// Packs the bits into the index.
+    pub fn from_bits(x0: bool, z0: bool, x1: bool, z1: bool) -> Self {
+        Self(((x0 as u8) << 3) | ((z0 as u8) << 2) | ((x1 as u8) << 1) | (z1 as u8))
+    }
+
+    /// Unpacks bits from the index.
+    pub fn bits(self) -> (bool, bool, bool, bool) {
+        (
+            self.0 & 0b1000 != 0,
+            self.0 & 0b0100 != 0,
+            self.0 & 0b0010 != 0,
+            self.0 & 0b0001 != 0,
+        )
+    }
+
+    /// Returns the index as a `usize`.
+    pub fn as_usize(self) -> usize {
+        self.0 as usize
+    }
+}
+
 /// SIMD accelerated PauliList.
 ///
 /// Stores multiple Paulis with associated phases, but in a packed format
@@ -494,10 +531,15 @@ impl PauliList {
 
     /// If the Pauli with index `pauli_idx` has support `[q]` of exactly size 1, return `Some(q)`.
     /// Return `None` otherwise.
+    ///
+    /// # Panics
+    ///
+    /// This function assumes that `pauli_idx < self.num_paulis`.
     pub fn get_pauli_support_if_size_1(&self, pauli_idx: usize) -> Option<usize> {
         let mut found: Option<usize> = None;
         for q in 0..self.num_qubits {
-            if self.data[q].contains(pauli_idx) | self.data[q + self.num_qubits].contains(pauli_idx)
+            if self.data[q].contains(pauli_idx)
+                || self.data[q + self.num_qubits].contains(pauli_idx)
             {
                 if found.is_some() {
                     // Support size is at least 2
@@ -511,7 +553,9 @@ impl PauliList {
 
     /// Returns whether two Paulis given `pauli_idx1` and `pauli_idx2` commute.
     ///
-    /// Note: this function assumes that the two paulis exist, and will panic otherwise.
+    /// # Panics
+    ///
+    /// This function assumes that `pauli_idx1 < self.num_paulis` and `pauli_idx2 < self.num_paulis`.
     pub fn commute(&self, pauli_idx1: usize, pauli_idx2: usize) -> bool {
         let mut parity = false;
         for i in 0..self.num_qubits {
@@ -629,15 +673,27 @@ impl PauliList {
         pauli_labels
     }
 
-    /// Returns (the index of) the Pauli pair over the qubits `i` and `j`
-    /// for the Pauli operator `pauli_idx`.
+    /// Returns the index of 2-qubit Pauli operator induces by `pauli_idx` on qubits `i` and `j`.
+    ///
+    /// The two-qubit Pauli is encoded as an integer in `0..16` using the binary representation
+    /// ```text
+    /// (X[i] << 3) | (Z[i] << 2) | (X[j] << 1) | Z[j].
+    /// ```
+    /// where `X[i]`, `Z[i]`, `X[j]`, `Z[j]` are the X and Z components of the Pauli operator on qubits
+    /// `i` and `j` respectively.
+    /// For example, if the Pauli on `(i, j)` is `XY`, the corresponding index is 8 + 0 + 2 + 1 = 11.
+    ///
+    /// # Panics
+    ///
+    /// This function assumes that `pauli_idx < self.num_paulis` and
+    /// `i < self.num_qubits` and `j < self.num_qubits`.
     #[inline]
     pub fn pauli_pair_index(&self, pauli_idx: usize, i: usize, j: usize) -> usize {
         let xi = self.get_pauli_x(pauli_idx, i);
         let zi = self.get_pauli_z(pauli_idx, i);
         let xj = self.get_pauli_x(pauli_idx, j);
         let zj = self.get_pauli_z(pauli_idx, j);
-        ((xi as usize) << 3) | ((zi as usize) << 2) | ((xj as usize) << 1) | (zj as usize)
+        TwoQubitPauliIndex::from_bits(xi, zi, xj, zj).as_usize()
     }
 }
 
