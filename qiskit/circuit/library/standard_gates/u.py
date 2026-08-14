@@ -63,10 +63,9 @@ class UGate(Gate):
 
         The matrix representation shown here differs from the `OpenQASM 3.0 specification
         <https://openqasm.com/language/gates.html#built-in-gates>`_ by a global phase of
-        :math:`e^{i\theta/2}`; the built-in ``U`` gate of OpenQASM 3.0 is equal to
-        :math:`e^{i\theta/2} U(\theta, \phi, \lambda)`.  It also differs from the
-        `OpenQASM 2.0 specification <https://doi.org/10.48550/arXiv.1707.03429>`_ by a
-        global phase of :math:`e^{i(\phi+\lambda)/2}`.
+        :math:`e^{-i\theta/2}`.  It differs from the
+        `OpenQASM 2.0 specification <https://doi.org/10.48550/arXiv.1707.03429>`_ 
+        by a global phase of :math:`e^{i(\phi+\lambda)/2}`.
 
     Examples:
 
