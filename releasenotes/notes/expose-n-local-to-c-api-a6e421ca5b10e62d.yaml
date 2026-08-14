@@ -1,0 +1,41 @@
+---
+features_c:
+  - |
+    Exposed the n-local circuit to C API by adding the
+    circuit generator in the circuit library. 
+
+    A couple of new functions were added: 
+    * ``qk_circuit_library_n_local``
+    * ``qk_circuit_library_n_local_settings_default``
+
+    A new struct called ``QkNLocalSettings`` is added.
+    This struct holds information needed to build the n-local circuit.
+
+    A new enum called ``QkEntanglementStrategy`` is added. 
+    This enum has all the available entanglement strategies
+    to be used when generating the circuit.
+
+    The function ``qk_circuit_library_n_local`` is responsible of
+    generating the circuit and can be used as follows:
+
+    .. code-block:: C
+
+      uint32_t num_qubits = 2;
+
+      // Setup the `QkNLocalSettings`
+      QkNLocalSettings settings = qk_circuit_library_n_local_settings_default();
+      settings.reps = 2;
+      settings.entanglement_strategy = QkEntanglementStrategy_Linear;
+      settings.skip_final_rotation_layer = true;
+      settings.parameter_prefix = "θ";
+
+      // Setup the rotation and entanglement blocks
+      QkGate rotation_blocks[1] = {QkGate_H};
+      QkGate entanglement_blocks[1] = {QkGate_CRX};
+
+      // Create the circuit
+      QkCircuit *qc = qk_circuit_library_n_local(num_qubits, rotation_blocks, 1, 
+                                                 entanglement_blocks, 1, &settings);
+
+      // Free the object
+      qk_circuit_free(qc);
