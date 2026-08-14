@@ -461,6 +461,171 @@ pub fn synth_mcx_noaux_v24(
     }
 }
 
+/// Synthesize a multi-controlled X gate with :math:`k` controls using a single clean
+/// ancillary qubit, by Barenco et al. [1] and Iten et al. [2].
+///
+/// For :math:`k \ge 5` the method uses 1 clean ancillary qubit, producing a circuit with
+/// :math:`k + 2` qubits and at most :math:`16 * k - 24` CX gates. For :math:`k \le 4`
+/// explicit efficient circuits that require no ancillary qubits are used instead.
+///
+/// # Arguments
+/// - num_controls: the number of control qubits.
+///
+/// # Returns
+///
+/// The synthesized quantum circuit.
+///
+/// # References
+///
+/// 1. Barenco et al., *Elementary gates for quantum computation*, Phys. Rev. A52 3457 (1995),
+///    [arXiv:quant-ph/9503016] (https://arxiv.org/abs/quant-ph/9503016).
+/// 2. Iten et al., *Quantum Circuits for Isometries*, Phys. Rev. A 93, 032318 (2016),
+///    [arXiv:1501.06911] (https://arxiv.org/abs/1501.06911).
+pub fn synth_mcx_1_clean_b95(num_controls: usize) -> Result<CircuitData, CircuitDataError> {
+    if num_controls == 0 {
+        let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0))?;
+        circuit.x(0)?;
+        Ok(circuit)
+    } else if num_controls == 1 {
+        let mut circuit = CircuitData::with_capacity(2, 0, 1, Param::Float(0.0))?;
+        circuit.cx(0, 1)?;
+        Ok(circuit)
+    } else if num_controls == 2 {
+        Ok(ccx())
+    } else if num_controls == 3 {
+        Ok(c3x().into())
+    } else if num_controls == 4 {
+        Ok(c4x()?.into())
+    } else {
+        // k >= 5: 1-clean-ancilla construction (Barenco et al. 1995, Lemma 7.3)
+        // decompose the gate into two halves and add 2 qubits, target and ancilla
+        let nc = num_controls as u32;
+        let num_qubits = nc + 2;
+        let q_ancilla = num_qubits - 1;
+        let q_target = num_qubits - 2;
+        let middle = (nc + 1).div_ceil(2);
+        let nc2: u32 = nc - middle + 1; // second half, plus the ancilla
+
+        // Qubit layout (num_controls + 2 qubits total):
+        //   nc = num_controls
+        //   [0 .. middle-1]   controls1 (first half)
+        //   [middle .. nc-1]  controls2 (second half)
+        //   [nc]              target
+        //   [nc+1]            ancilla (clean)
+        //
+        // mcx1: controls1 -> ancilla , up to relative phase
+        //   drives the ancilla using the first-half controls;
+        //   borrows second-half control qubits as dirty ancillas.
+        //
+        // mcx2: controls2, ancilla -> target, exact
+        //   drives the target using second-half controls + ancilla;
+        //   borrows first-half control qubits as dirty ancillas.
+
+        let mcx1 = synth_mcx_n_dirty_i15(middle as usize, true, false)?;
+        let mcx2 = synth_mcx_n_dirty_i15(nc2 as usize, false, false)?;
+
+        let num_dirty1 = (mcx1.num_qubits() as u32) - middle - 1;
+        let qubits1: Vec<Qubit> = (0..middle)
+            .chain([q_ancilla])
+            .chain(middle..middle + num_dirty1)
+            .map(Qubit)
+            .collect();
+
+        let num_dirty2 = (mcx2.num_qubits() as u32) - nc2 - 1;
+        let qubits2: Vec<Qubit> = (middle..nc)
+            .chain([q_ancilla, q_target])
+            .chain(0..num_dirty2)
+            .map(Qubit)
+            .collect();
+
+        // Compose pattern: mcx1 · mcx2 · mcx1† · mcx2  (Lemma 7.3 [1], Lemma 9 [2]).
+        // mcx1/mcx1† are synthesized up to relative phase (Lemma 7 [2]): the relative
+        // phase commutes with mcx2 and cancels between mcx1 and mcx1†. mcx2 must be exact.
+        let mut circuit: CircuitData =
+            CircuitData::with_capacity(num_qubits, 0, 0, Param::Float(0.0))?;
+        let mcx1_inv = mcx1.inverse()?;
+        circuit.compose(&mcx1, &qubits1, &[])?;
+        circuit.compose(&mcx2, &qubits2, &[])?;
+        circuit.compose(&mcx1_inv, &qubits1, &[])?;
+        circuit.compose(&mcx2, &qubits2, &[])?;
+
+        Ok(circuit)
+    }
+}
+
+/// Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`k - 2`
+///     clean ancillary qubits with producing a circuit with :math:`2 * k - 1` qubits
+///     and at most :math:`6 * k - 6` CX gates, by Maslov [1].
+///     For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
+///     (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
+/// Synthesize a multi-controlled X gate with :math:`k\ge 3` controls based on the paper
+/// by Maslov[1].
+///
+/// The method uses :math:`k - 2` clean ancillary qubits with producing a circuit with
+/// :math:`2 * k - 1` qubits and at most :math:`6 * k - 6` CX gates, by Maslov [1].
+/// For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
+/// (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
+///
+/// # Arguments
+/// - num_controls: the number of control qubits.
+///
+/// # Returns
+/// The synthesized quantum circuit.
+///
+/// # References
+///
+/// 1. Maslov., Phys. Rev. A 93, 022311 (2016),"Advantages of using
+///    relative-phase Toffoli gates with an application to multiple control Toffoli optimization",
+///    [arXiv:1508.03273] (https://arxiv.org/pdf/1508.03273).
+pub fn synth_mcx_n_clean_m15(num_controls: usize) -> Result<CircuitData, CircuitDataError> {
+    if num_controls == 0 {
+        let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0))?;
+        circuit.x(0)?;
+        Ok(circuit)
+    } else if num_controls == 1 {
+        let mut circuit = CircuitData::with_capacity(2, 0, 1, Param::Float(0.0))?;
+        circuit.cx(0, 1)?;
+        Ok(circuit)
+    } else if num_controls == 2 {
+        Ok(ccx())
+    } else {
+        let num_qubits = 2 * num_controls - 1;
+        let num_instructions = 2 * num_controls - 3;
+        let mut circuit =
+            CircuitData::with_capacity(num_qubits as u32, 0, num_instructions, Param::Float(0.0))?;
+
+        let target = num_controls as u32;
+        circuit.rccx(0, 1, (num_controls + 1) as u32)?;
+
+        // Forward ladder
+        for j in 2..num_controls - 1 {
+            let anc_in = num_controls + j - 1;
+            let anc_out = num_controls + j;
+
+            circuit.rccx(j as u32, anc_in as u32, anc_out as u32)?;
+        }
+
+        // Final Toffoli
+        circuit.ccx(
+            (num_controls - 1) as u32,
+            (2 * num_controls - 2) as u32,
+            target,
+        )?;
+
+        // Reverse ladder
+        for j in (2..num_controls - 1).rev() {
+            let anc_in = num_controls + j - 1;
+            let anc_out = num_controls + j;
+
+            circuit.rccx(j as u32, anc_in as u32, anc_out as u32)?;
+        }
+
+        circuit.rccx(0, 1, (num_controls + 1) as u32)?;
+
+        Ok(circuit)
+    }
+}
+
 // The following synth_mcx_noaux_hp24 algorithm is based on the work by Huang and Palsberg.
 //
 // # References
