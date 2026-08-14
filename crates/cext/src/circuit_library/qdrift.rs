@@ -19,19 +19,20 @@ use qiskit_quantum_info::sparse_observable::SparseObservable;
 ///
 /// Implements the QDrift Trotterization method, which selects Hamiltonian terms
 /// randomly with probability proportional to their absolute coefficients.
-/// This implementation follows the method introduced by Earl Campbell [1].
+/// This implementation follows the method introduced by Ref. [1].
 ///
 /// @param op Pointer to a valid ``QkObs`` containing the sum of the Pauli terms.
-/// @param reps The number of times to repeat the Trotterization circuit.
-/// @param time Evolution time t in \f$e^{-itH}\f$. May be positive, negative, or zero.
+/// @param reps The number of times to repeat the Trotter steps.
+/// @param time Evolution time t in \f$exp(-itH)\f$. May be positive, negative, or zero.
 /// @param seed An optional seed for reproducibility of the random sampling process.
-///   For default value it should be passed zero.
+///   For default value it should be passed -1.
 /// @param preserve_order If ``false``, allows reordering the terms of the operator to
 ///   potentially yield a shallower evolution circuit. Not relevant
 ///   when synthesizing an observable with a single term.
 /// @param insert_barriers  Whether to insert barriers between the terms evolutions.
 ///
-/// @return A pointer to the generated circuit.
+/// @return A pointer to the generated circuit. ``NULL`` if the circuit generation
+///   failed.
 ///
 /// # Example
 /// ```c
@@ -64,14 +65,14 @@ pub unsafe extern "C" fn qk_circuit_library_qdrift(
     op: *const SparseObservable, // H in e^{-i t H}
     reps: usize,                 // n in e^{-it/n H}^n
     time: f64,                   // evolution time e in e^{-i t H}
-    seed: u64,
+    seed: i64,
     preserve_order: bool,
     insert_barriers: bool,
 ) -> *mut CircuitData {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let op = unsafe { const_ptr_as_ref(op) };
 
-    let seed = if seed == 0 { None } else { Some(seed) };
+    let seed = if seed < 0 { None } else { Some(seed as u64) };
 
     match qdrift_evolution(op, time, reps as u32, seed, preserve_order, insert_barriers) {
         Ok(circuit) => Box::into_raw(Box::new(circuit)),

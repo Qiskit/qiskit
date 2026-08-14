@@ -37,6 +37,9 @@ pub fn qdrift_evolution(
 
     let evo: Vec<(usize, f64)> = qdrift(time, reps, seed, observable.coeffs().iter())?;
 
+    // Since we need the term to use the coefficient obtained by the evolution,
+    // we chose to build `SparseTermView` directly instead of using the
+    // `observable.term` function
     let sampled_paulis = evo.iter().map(|(index, coeff)| {
         let start = observable.boundaries()[*index];
         let end = observable.boundaries()[index + 1];
@@ -67,11 +70,11 @@ pub fn qdrift_evolution(
             modified_phase = true;
         }
         let inst_iter = sparse_term_evolution(
-            view.bit_terms
+            &view
+                .bit_terms
                 .iter()
                 .map(|bit| bit.py_label())
-                .collect::<String>()
-                .leak(),
+                .collect::<String>(),
             view.indices.into(),
             coeff_param,
             false,
@@ -156,7 +159,7 @@ pub fn qdrift<'a>(
 /// returning an error if imaginary part is non-zero.
 fn real_or_fail(z: &Complex64) -> Result<f64, EvolutionError> {
     if z.im.abs() > 1e-12 {
-        return Err(EvolutionError::RealOrFail(z.im.abs()));
+        return Err(EvolutionError::UnexpectedImaginaryPart(z.im.abs()));
     }
     Ok(z.re)
 }
@@ -172,11 +175,11 @@ pub enum EvolutionError {
     CircuitBuild(#[from] CircuitDataError),
 
     #[error["qDrift evolution failed"]]
-    FailedEvolutionError(),
+    FailedEvolutionError,
 
     /// Complex value obtained from real approximation
     #[error["Encountered complex value {0}, but expected real."]]
-    RealOrFail(f64),
+    UnexpectedImaginaryPart(f64),
 
     /// Couldn't generate weighted distribution
     #[error["Failed creating weight distribution"]]
