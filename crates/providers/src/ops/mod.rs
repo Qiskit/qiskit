@@ -18,6 +18,7 @@
 //! result types from its circuits.
 
 mod binary;
+mod bind_parameters;
 mod bitwise;
 mod broadcast_to;
 mod cast;
@@ -29,6 +30,7 @@ mod reduction;
 mod shot_loop;
 
 pub use binary::{Add, Divide, Multiply, Power, Remainder, Subtract};
+pub use bind_parameters::{BindParameters, BindParametersError};
 pub use bitwise::{BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor, Parity};
 pub use broadcast_to::BroadcastTo;
 pub use cast::Cast;
