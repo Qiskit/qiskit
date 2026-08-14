@@ -574,7 +574,7 @@ impl<T> DataTree<T> {
     /// Return an iterator over the leaves in the `DataTree`
     ///
     /// This method will return an iterator over all leaf nodes in the tree by traversing the tree
-    /// in a DFS order.
+    /// in a DFS order. A branch with no leaves beneath it yields nothing, so it is passed over.
     ///
     /// # Example
     ///
@@ -621,7 +621,7 @@ impl<T> DataTree<T> {
     /// node in the tree and should only be used if you need the path along with the value.
     ///
     /// A named child contributes [`PathEntry::Key`] to the path and an unnamed one contributes
-    /// [`PathEntry::Index`].
+    /// [`PathEntry::Index`]. A branch with no leaves beneath it yields nothing, so it has no path.
     ///
     /// ```rust
     /// use qiskit_providers::{DataTree, InvalidName, PathEntry};
@@ -901,15 +901,18 @@ impl<'a, T> Iterator for IterDataTree<'a, T> {
                         let mut inner_path = self.path.clone();
                         inner_path.push(self.entry(self.index));
                         inner.path = inner_path;
+                        let Some((leaf_path, val)) = inner.next() else {
+                            // A branch with no leaves under it contributes none here either.
+                            self.index += 1;
+                            return self.next();
+                        };
+                        self.inner_next = inner.next();
                         self.inner = Some(Box::new(inner));
-                        let (inner_path, val) = self.inner.as_mut().map(|x| x.next().unwrap())?;
-                        self.inner_next = self.inner.as_mut().and_then(|x| x.next());
                         if self.inner_next.is_none() {
                             self.index += 1;
                             self.inner = None;
-                            self.inner_next = None;
                         }
-                        Some((inner_path, val))
+                        Some((leaf_path, val))
                     }
                 }
             }
@@ -943,15 +946,18 @@ impl<'a, T> Iterator for IterDataTree<'a, T> {
                         let mut inner_path = self.path.clone();
                         inner_path.push(self.entry(self.index));
                         inner.path = inner_path;
+                        let Some((leaf_path, val)) = inner.next() else {
+                            // A branch with no leaves under it contributes none here either.
+                            self.index += 1;
+                            return self.next();
+                        };
+                        self.inner_next = inner.next();
                         self.inner = Some(Box::new(inner));
-                        let (inner_path, val) = self.inner.as_mut().map(|x| x.next().unwrap())?;
-                        self.inner_next = self.inner.as_mut().and_then(|x| x.next());
                         if self.inner_next.is_none() {
                             self.index += 1;
                             self.inner = None;
-                            self.inner_next = None;
                         }
-                        Some((inner_path, val))
+                        Some((leaf_path, val))
                     }
                 },
             }
@@ -1030,14 +1036,17 @@ impl<'a, T> Iterator for IterLeaves<'a, T> {
                             Some(return_val)
                         }
                     } else {
-                        let inner = sub_branch.iter_leaves();
+                        let mut inner = sub_branch.iter_leaves();
+                        let Some(val) = inner.next() else {
+                            // A branch with no leaves under it contributes none here either.
+                            self.index += 1;
+                            return self.next();
+                        };
+                        self.inner_next = inner.next();
                         self.inner = Some(Box::new(inner));
-                        let val = self.inner.as_mut().map(|x| x.next().unwrap())?;
-                        self.inner_next = self.inner.as_mut().and_then(|x| x.next());
                         if self.inner_next.is_none() {
                             self.index += 1;
                             self.inner = None;
-                            self.inner_next = None;
                         }
                         Some(val)
                     }
@@ -1067,14 +1076,17 @@ impl<'a, T> Iterator for IterLeaves<'a, T> {
                         }
                     }
                     None => {
-                        let inner = subtree.iter_leaves();
+                        let mut inner = subtree.iter_leaves();
+                        let Some(val) = inner.next() else {
+                            // A branch with no leaves under it contributes none here either.
+                            self.index += 1;
+                            return self.next();
+                        };
+                        self.inner_next = inner.next();
                         self.inner = Some(Box::new(inner));
-                        let val = self.inner.as_mut().map(|x| x.next().unwrap())?;
-                        self.inner_next = self.inner.as_mut().and_then(|x| x.next());
                         if self.inner_next.is_none() {
                             self.index += 1;
                             self.inner = None;
-                            self.inner_next = None;
                         }
                         Some(val)
                     }
@@ -1610,6 +1622,29 @@ mod test {
         assert_eq!(mixed_tree().len(), 2);
         assert_eq!(DataTree::Leaf(1).leaf_count(), 1);
         assert_eq!(DataTree::<i32>::new().leaf_count(), 0);
+    }
+
+    #[test]
+    fn test_a_branch_with_no_leaves_under_it_contributes_none() {
+        // Such a branch is part of a structure without describing a slot, wherever it sits among its
+        // siblings and however deeply it is nested.
+        let empty = DataTree::new;
+        let tree = DataTree::mapping([
+            ("first", empty()),
+            ("a", DataTree::Leaf(1)),
+            ("middle", DataTree::sequence([empty(), empty()])),
+            ("b", DataTree::Leaf(2)),
+            ("last", empty()),
+        ])
+        .unwrap();
+
+        assert_eq!(tree.iter_leaves().copied().collect::<Vec<_>>(), [1, 2]);
+        assert_eq!(tree.leaf_count(), 2);
+        assert_eq!(tree.dotted_paths(), ["a", "b"]);
+        assert_eq!(
+            tree.unflatten(vec![10, 20]).unwrap(),
+            tree.map_leaves(|leaf| leaf * 10)
+        );
     }
 
     #[test]
