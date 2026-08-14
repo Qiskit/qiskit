@@ -919,3 +919,61 @@ pub fn vf2_layout_mod(m: &Bound<PyModule>) -> PyResult<()> {
     m.add("VF2PassReturn", m.py().get_type::<VF2PassReturn>())?;
     Ok(())
 }
+
+#[cfg(test)]
+mod test {
+    use qiskit_circuit::PhysicalQubit;
+    use qiskit_circuit::operations::StandardGate;
+    use qiskit_util::IndexMap;
+    use smallvec::smallvec;
+
+    use crate::target::{InstructionProperties, Qargs, Target};
+
+    use super::build_average_error_map;
+
+    /// The average error of a qarg is a floating-point sum over the operations defined on it.
+    /// Floating-point addition is not associative, and a `Target` makes no ordering guarantee about
+    /// the operations it reports for a qarg, so the average is only reproducible if the summation
+    /// order is canonicalised.
+    ///
+    /// Regression test for https://github.com/Qiskit/qiskit/issues/16490
+    #[test]
+    fn average_error_is_summed_in_a_canonical_order() {
+        // The four small errors together are more than half an ulp of the large one, but each is
+        // less than half an ulp on its own, so the total depends on the order of the summation.
+        let mut target = Target::default();
+        for (gate, error) in [
+            (StandardGate::H, 5e-17),
+            (StandardGate::S, 5e-17),
+            (StandardGate::SX, 5e-17),
+            (StandardGate::T, 5e-17),
+            (StandardGate::X, 0.5),
+        ] {
+            target
+                .add_instruction(
+                    gate.into(),
+                    None,
+                    None,
+                    Some(IndexMap::from_iter([(
+                        Qargs::Concrete(smallvec![PhysicalQubit(0)]),
+                        Some(InstructionProperties::new(None, Some(error))),
+                    )])),
+                )
+                .expect("gate is valid on this qubit");
+        }
+
+        // Sorted name order is `h`, `s`, `sx`, `t`, `x`, so the large error is added last.
+        let expected = (5e-17 + 5e-17 + 5e-17 + 5e-17 + 0.5) / 5.0;
+        assert_ne!(expected, (0.5 + 5e-17 + 5e-17 + 5e-17 + 5e-17) / 5.0);
+
+        // Check with multiple hash seeds.
+        for _ in 0..100 {
+            let error_map = build_average_error_map(&target).expect("the target has 1q errors");
+            assert_eq!(error_map.error_map.len(), 1);
+            assert_eq!(
+                error_map.error_map[&[PhysicalQubit(0), PhysicalQubit(0)]],
+                expected
+            );
+        }
+    }
+}
