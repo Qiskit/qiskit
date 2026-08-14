@@ -12,7 +12,7 @@
 
 //! A tensor value: a dense array over one of the supported dtypes.
 
-use ndarray::{ArcArrayD, ArrayD};
+use ndarray::{ArcArrayD, ArrayD, IxDyn};
 use num_complex::{Complex32, Complex64};
 
 use super::broadcast::{broadcast_elementwise, broadcast_shape};
@@ -205,6 +205,43 @@ impl Tensor {
                 rhs: rhs.dtype(),
             }),
         }
+    }
+
+    /// Broadcast this tensor to `shape`.
+    ///
+    /// The shapes are right-aligned, so leading axes may be added and an axis of size `1` grows to
+    /// any size. Returns [`TensorError::ShapeMismatch`] if `shape` cannot be reached that way. This
+    /// is the value-level counterpart of [`broadcast_dims_to`](super::rules::broadcast_dims_to).
+    pub fn broadcast_to(&self, shape: &[usize]) -> Result<Tensor, TensorError> {
+        if self.shape() == shape {
+            return Ok(self.clone());
+        }
+        let ix = IxDyn(shape);
+        macro_rules! broadcast {
+            ($variant:ident, $arr:expr) => {
+                $arr.broadcast(ix)
+                    .map(|view| Tensor::$variant(view.to_owned().into_shared()))
+            };
+        }
+        match self {
+            Tensor::C128(a) => broadcast!(C128, a),
+            Tensor::C64(a) => broadcast!(C64, a),
+            Tensor::F64(a) => broadcast!(F64, a),
+            Tensor::F32(a) => broadcast!(F32, a),
+            Tensor::I64(a) => broadcast!(I64, a),
+            Tensor::I32(a) => broadcast!(I32, a),
+            Tensor::I16(a) => broadcast!(I16, a),
+            Tensor::I8(a) => broadcast!(I8, a),
+            Tensor::U64(a) => broadcast!(U64, a),
+            Tensor::U32(a) => broadcast!(U32, a),
+            Tensor::U16(a) => broadcast!(U16, a),
+            Tensor::U8(a) => broadcast!(U8, a),
+            Tensor::Bit(a) => broadcast!(Bit, a),
+        }
+        .ok_or_else(|| TensorError::ShapeMismatch {
+            lhs: self.shape().to_vec(),
+            rhs: shape.to_vec(),
+        })
     }
 
     /// Cast this tensor to `target`, consuming it. Returns `self` unchanged if already that dtype.
@@ -691,6 +728,57 @@ mod test {
     fn test_cast_complex_to_real_panics() {
         let t = Tensor::from([Complex64::new(1.0, 2.0)]);
         let _ = t.cast(DType::F64);
+    }
+
+    // -----------------------------------------------------------------------
+    // broadcast_to
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_broadcast_to_duplicates_along_the_axes_that_grow() {
+        // [1, 2, 3] to [2, 3] repeats the row; a leading axis may be added.
+        let t = Tensor::from([1.0_f64, 2.0, 3.0]);
+        let Tensor::F64(arr) = t.broadcast_to(&[2, 3]).unwrap() else {
+            panic!("expected F64 tensor")
+        };
+        assert_eq!(arr.shape(), &[2, 3]);
+        assert_eq!(arr.as_slice().unwrap(), &[1.0, 2.0, 3.0, 1.0, 2.0, 3.0]);
+
+        // A single element reaches any shape.
+        let Tensor::Bit(arr) =
+            Tensor::Bit(ndarray::ArrayD::from_elem(IxDyn(&[1]), 1u8).into_shared())
+                .broadcast_to(&[2, 2])
+                .unwrap()
+        else {
+            panic!("expected Bit tensor")
+        };
+        assert_eq!(arr.as_slice().unwrap(), &[1, 1, 1, 1]);
+    }
+
+    #[test]
+    fn test_broadcast_to_its_own_shape_shares_the_buffer() {
+        let t = Tensor::from([1.0_f64, 2.0, 3.0]);
+        let broadcast = t.broadcast_to(&[3]).unwrap();
+        let (Tensor::F64(orig), Tensor::F64(copy)) = (&t, &broadcast) else {
+            panic!("expected F64 tensors")
+        };
+        assert_eq!(orig.as_ptr(), copy.as_ptr());
+    }
+
+    #[test]
+    fn test_broadcast_to_a_shape_it_cannot_reach_reports_both() {
+        let t = Tensor::from([1.0_f64, 2.0, 3.0]);
+        for shape in [vec![4], vec![1], vec![3, 2], vec![]] {
+            let err = t.broadcast_to(&shape).unwrap_err();
+            assert_eq!(
+                err,
+                TensorError::ShapeMismatch {
+                    lhs: vec![3],
+                    rhs: shape.clone(),
+                },
+                "for target {shape:?}"
+            );
+        }
     }
 
     // -----------------------------------------------------------------------

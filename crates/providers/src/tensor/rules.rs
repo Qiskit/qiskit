@@ -154,6 +154,30 @@ pub fn broadcast_dims(a: &[Dim], b: &[Dim]) -> Result<Vec<Dim>, TensorError> {
         .collect()
 }
 
+/// Compute the shape `shape` is broadcast to when the target is `target`, right-aligning the two.
+pub fn broadcast_dims_to(shape: &[Dim], target: &[Dim]) -> Result<Vec<Dim>, TensorError> {
+    let mismatch = || TensorError::DimShapeMismatch {
+        lhs: shape.to_vec(),
+        rhs: target.to_vec(),
+    };
+    if shape.len() > target.len() {
+        return Err(mismatch());
+    }
+    align_axes(shape, target, Dim::Fixed(1))
+        .map(|pair| match pair {
+            (from, to) if from == to => Ok(to),
+            (Dim::Fixed(1), to @ Dim::Fixed(_)) => Ok(to),
+            (Dim::Bounded { .. }, _) => Err(TensorError::DynamicDim {
+                shape: shape.to_vec(),
+            }),
+            (_, Dim::Bounded { .. }) => Err(TensorError::DynamicDim {
+                shape: target.to_vec(),
+            }),
+            _ => Err(mismatch()),
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -348,6 +372,83 @@ mod test {
         assert_eq!(
             broadcast_dims(&[bounded, Dim::Fixed(3)], &[Dim::Fixed(3)]).unwrap(),
             vec![bounded, Dim::Fixed(3)]
+        );
+    }
+
+    #[test]
+    fn test_broadcast_dims_to_reaches_the_target() {
+        let fixed = |sizes: &[usize]| sizes.iter().copied().map(Dim::Fixed).collect::<Vec<_>>();
+
+        // A size of 1 grows to the target's size, and a size already the target's is unchanged.
+        assert_eq!(
+            broadcast_dims_to(&fixed(&[1, 5]), &fixed(&[3, 5])).unwrap(),
+            fixed(&[3, 5])
+        );
+        // So do the implicit leading axes that pad the shorter shape.
+        assert_eq!(
+            broadcast_dims_to(&fixed(&[5]), &fixed(&[3, 5])).unwrap(),
+            fixed(&[3, 5])
+        );
+        assert_eq!(broadcast_dims_to(&[], &fixed(&[3])).unwrap(), fixed(&[3]));
+        assert_eq!(broadcast_dims_to(&[], &[]).unwrap(), vec![]);
+    }
+
+    #[test]
+    fn test_broadcast_dims_to_copies_a_bounded_axis_from_the_operand() {
+        let bounded = Dim::Bounded { max: 4000 };
+        assert_eq!(
+            broadcast_dims_to(&[bounded, Dim::Fixed(1)], &[bounded, Dim::Fixed(5)]).unwrap(),
+            vec![bounded, Dim::Fixed(5)]
+        );
+    }
+
+    #[test]
+    fn test_broadcast_dims_to_rejects_a_bounded_axis_with_no_known_size() {
+        let bounded = Dim::Bounded { max: 4000 };
+        let other = Dim::Bounded { max: 8 };
+        for (shape, target, at_fault) in [
+            // A bounded operand axis has no size to compare against a fixed target.
+            (vec![bounded], vec![Dim::Fixed(5)], vec![bounded]),
+            // Growing into a bounded axis would need a number of copies that is unknown.
+            (vec![Dim::Fixed(1)], vec![bounded], vec![bounded]),
+            (vec![Dim::Fixed(5)], vec![bounded], vec![bounded]),
+            (vec![], vec![bounded], vec![bounded]),
+            // Two different bounds need not be equal sizes.
+            (vec![other], vec![bounded], vec![other]),
+        ] {
+            assert_eq!(
+                broadcast_dims_to(&shape, &target).unwrap_err(),
+                TensorError::DynamicDim {
+                    shape: at_fault.clone()
+                },
+                "for {shape:?} broadcast to {target:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_broadcast_dims_to_rejects_a_target_it_cannot_reach() {
+        // A size other than 1 cannot grow, and an axis cannot be dropped.
+        for (shape, target) in [
+            (vec![Dim::Fixed(3)], vec![Dim::Fixed(4)]),
+            (vec![Dim::Fixed(5)], vec![Dim::Fixed(1)]),
+            (vec![Dim::Fixed(1), Dim::Fixed(3)], vec![Dim::Fixed(3)]),
+        ] {
+            let err = broadcast_dims_to(&shape, &target).unwrap_err();
+            assert_eq!(
+                err,
+                TensorError::DimShapeMismatch {
+                    lhs: shape.clone(),
+                    rhs: target.clone(),
+                },
+                "for {shape:?} broadcast to {target:?}"
+            );
+        }
+        assert_eq!(
+            broadcast_dims_to(&[Dim::Fixed(3)], &[Dim::Fixed(4)])
+                .unwrap_err()
+                .to_string(),
+            "shapes [3] and [4] are not broadcast-compatible"
         );
     }
 
