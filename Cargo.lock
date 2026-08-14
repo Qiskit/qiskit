@@ -2446,6 +2446,7 @@ dependencies = [
  "ndarray",
  "num-complex",
  "num-traits",
+ "qiskit-circuit",
  "rustworkx-core",
  "thiserror 2.0.20",
 ]
