@@ -452,6 +452,49 @@ static int test_qdrift_insert_barrier(void) {
     return result;
 }
 
+static int test_qdrift_global_phase(void) {
+    int num_qubits = 2;
+    float time = 1.0;
+    int reps = 2;
+    int seed = 0;
+
+    QkObs *obs = qk_obs_zero(num_qubits);
+
+    QkObsTerm term1 = {(QkComplex64){1.0, 0.0}, 0, NULL, NULL, num_qubits};
+    qk_obs_add_term(obs, &term1);
+
+    // Let's calculate manually the expected global phase
+    double manual_global_phase = 0.0;
+    // Lambda is equal to 1 since there is just one term
+    float lambda = 1.0;
+    float num_gates = 2.0 * pow(lambda, 2) * pow(time, 2) * reps;
+    // ceil num_gates manually since libm isn't linked yet
+    size_t inum_gates = num_gates - ((int)num_gates) > 0 ? (int)num_gates + 1 : (int)num_gates;
+    for (size_t i = 0; i < inum_gates; i++) {
+        manual_global_phase += 2.0 * lambda / num_gates * time;
+    }
+    manual_global_phase *= -0.5;
+
+    QkCircuit *expected = qk_circuit_new(num_qubits, 0);
+    QkParam *global_phase = qk_param_from_double(manual_global_phase);
+    qk_circuit_set_global_phase(expected, global_phase);
+
+    QkCircuit *qc = qk_circuit_library_qdrift(obs, reps, time, seed, true, false);
+
+    QkParam *expected_gp = qk_circuit_global_phase(expected);
+    QkParam *gp = qk_circuit_global_phase(qc);
+
+    int result = (qk_param_equal(expected_gp, gp)) ? Ok : EqualityError;
+
+    qk_obs_free(obs);
+    qk_circuit_free(expected);
+    qk_circuit_free(qc);
+    qk_param_free(expected_gp);
+    qk_param_free(gp);
+
+    return result;
+}
+
 int test_qdrift(void) {
     int num_failed = 0;
 
@@ -463,6 +506,7 @@ int test_qdrift(void) {
     num_failed += RUN_TEST(test_qdrift_multiple_terms_manual);
     num_failed += RUN_TEST(test_qdrift_reorder);
     num_failed += RUN_TEST(test_qdrift_insert_barrier);
+    num_failed += RUN_TEST(test_qdrift_global_phase);
 
     fflush(stderr);
     fprintf(stderr, "=== QDRIFT: Number of failed subtests: %i\n", num_failed);

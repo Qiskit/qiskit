@@ -37,16 +37,24 @@ pub fn qdrift_evolution(
 
     let evo: Vec<(usize, f64)> = qdrift(time, reps, seed, observable.coeffs().iter())?;
 
+    let mut global_phase = Param::Float(0.0);
+    let mut modified_phase = false;
+
     // Since we need the term to use the coefficient obtained by the evolution,
     // we chose to build `SparseTermView` directly instead of using the
     // `observable.term` function
     let sampled_paulis = evo.iter().map(|(index, coeff)| {
         let start = observable.boundaries()[*index];
         let end = observable.boundaries()[index + 1];
+        let bit_terms = &observable.bit_terms()[start..end];
+        if bit_terms.is_empty() {
+            global_phase = radd_param(global_phase.clone(), (*coeff).into());
+            modified_phase = true;
+        }
         SparseTermView {
             num_qubits,
             coeff: coeff.into(),
-            bit_terms: &observable.bit_terms()[start..end],
+            bit_terms,
             indices: &observable.indices()[start..end],
         }
     });
@@ -60,15 +68,8 @@ pub fn qdrift_evolution(
         }
     };
 
-    let mut global_phase = Param::Float(0.0);
-    let mut modified_phase = false;
-
     let instructions = sampled_paulis.iter().enumerate().flat_map(|(i, view)| {
         let coeff_param: Param = view.coeff.re.into();
-        if view.bit_terms.is_empty() {
-            global_phase = radd_param(global_phase.clone(), coeff_param.clone());
-            modified_phase = true;
-        }
         let inst_iter = sparse_term_evolution(
             &view
                 .bit_terms
@@ -95,20 +96,17 @@ pub fn qdrift_evolution(
         inst_iter.chain(maybe_barrier)
     });
 
-    match CircuitData::from_packed_operations(
+    CircuitData::from_packed_operations(
         observable.num_qubits(),
         0,
         instructions,
-        Param::Float(0.0),
-    ) {
-        Ok(mut circuit) => {
-            if modified_phase {
-                let _ = circuit.set_global_phase_param(multiply_param(&global_phase, -0.5));
-            }
-            Ok(circuit)
-        }
-        Err(err) => Err(EvolutionError::CircuitBuild(err)),
-    }
+        if modified_phase {
+            multiply_param(&global_phase, -0.5)
+        } else {
+            Param::Float(0.0)
+        },
+    )
+    .map_err(EvolutionError::CircuitBuild)
 }
 
 pub fn qdrift<'a>(
