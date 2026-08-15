@@ -289,7 +289,6 @@ fn update_in_degrees(
             let degree = in_degrees[n.index()]
                 .as_mut()
                 .expect("the successor node should not be processed");
-            // assert_ne!(*degree, 0);
             *degree -= 1;
         }
         in_degrees[*i] = None;
