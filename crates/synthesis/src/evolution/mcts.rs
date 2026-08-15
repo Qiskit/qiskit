@@ -201,9 +201,7 @@ fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
             break;
         }
 
-        // Loop to cycle over all qubit indices to get all combinations of control and target
-        // TODO: for the follow-up iterations, we can avoid recomputing the support as
-        // we know exactly how it changes
+        // Loop to cycle over all qubit indices to get all combinations of control and target.
         let support = synthesis_state.tab.get_pauli_support(ndx);
 
         let mut best_score = (isize::MIN, isize::MIN);
@@ -491,6 +489,10 @@ impl MctsAlgorithm {
         self.mcts_nodes.push(node);
     }
 
+    /// Returns the "upper confidence bound" score for a given node in the tree.
+    /// These scores balance the exploration of the previously unexplored vertices and
+    /// the exploitation of the previously explored promising virtices. Higher scores
+    /// are better. See [1] for additional details.
     fn upper_confidence_bound(&self, node_idx: usize) -> f64 {
         let node = &self.mcts_nodes[node_idx];
 
@@ -647,7 +649,7 @@ impl MctsAlgorithm {
                 return child_node_id;
             };
 
-            // All the children have been explored; choose the child with highest UCT score
+            // All the children have been explored; choose the child with highest upper confidence bound
             // (and proceed recursively examining this child).
             mcts_node_id = *self.mcts_nodes[mcts_node_id]
                 .children
@@ -708,8 +710,6 @@ impl MctsAlgorithm {
             let frontier_nodes = compute_frontier_nodes(&self.dag, &state.in_degrees);
             for idx in &frontier_nodes {
                 if state.support_sizes[*idx] == 1 {
-                    // TODO: we can even have a function that returns the support qubit when it's known that
-                    // the support is of size 1 (without the need to iterate over the rest of the pauli string).
                     let q = state
                         .tab
                         .get_pauli_support_if_size_1(*idx)
@@ -774,9 +774,8 @@ impl MctsAlgorithm {
 
     /// Starting from an MCTS node, implements the rollout (synthesizing all Paulis).
     /// Returns the solution.
-    /// ToDo: consider calling this function greedy_synthesis.
-    /// We should be able to get Rustiq implementation (for minimizing CX-count)
-    /// by changing the internal scoring function.
+    /// A possible follow-up: also implement Rustiq's heuristic for minimizing CX-count
+    /// (by changing the internal scoring function).
     fn rollout_policy(&self, mcts_node_id: usize) -> GateSequence {
         let num_paulis = self.num_paulis;
 
@@ -789,7 +788,6 @@ impl MctsAlgorithm {
 
         loop {
             // Compute front nodes.
-            // ToDo: consider storing frontier nodes as part of the synthesis state as well.
             let front_nodes = compute_frontier_nodes(&self.dag, &synthesis_state.in_degrees);
 
             // Find active pauli of minimum weight.
@@ -815,6 +813,7 @@ impl MctsAlgorithm {
 
 static ROTATION_GATES: [StandardGate; 3] = [StandardGate::RX, StandardGate::RY, StandardGate::RZ];
 
+/// See python documentation for ``synth_pauli_network_mcts`` for details.
 #[allow(clippy::too_many_arguments)]
 pub fn pauli_network_mcts_inner(
     num_qubits: usize,

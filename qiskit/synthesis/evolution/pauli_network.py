@@ -35,7 +35,7 @@ def synth_pauli_network_rustiq(
     Calls Rustiq's Pauli network synthesis algorithm.
 
     The algorithm is described in [1]. The source code (in Rust) is available at
-    https://github.com/smartiel/rustiq-core.
+    https://github.com/qiskit-community/rustiq-core.
 
     Args:
         num_qubits: the number of qubits over which the Pauli network is defined.
