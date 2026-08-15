@@ -129,16 +129,16 @@ fn cx_count_with_swaps(gate_seq: &GateSequence) -> usize {
 type Score = (isize, isize);
 
 /// Count how many times each of the 16 possible 2-qubit Paulis appear for a fixed
-/// pair `(ctrl, targ)`.
+/// pair `(ctrl, trgt)`.
 fn count_active_pairs(
     synthesis_state: &PauliSynthesisState,
     ctrl: usize,
-    targ: usize,
+    trgt: usize,
 ) -> [u32; 16] {
     let mut pair_counts = [0u32; 16];
     for pauli_idx in 0..synthesis_state.tab.num_paulis {
         if synthesis_state.in_degrees[pauli_idx].is_some() {
-            let pair_idx = synthesis_state.tab.pauli_pair_index(pauli_idx, ctrl, targ);
+            let pair_idx = synthesis_state.tab.pauli_pair_index(pauli_idx, ctrl, trgt);
             pair_counts[pair_idx] += 1;
         }
     }
@@ -169,7 +169,7 @@ fn compute_score(pair_counts: &[u32; 16], chunk_idx: usize) -> Score {
 /// Updates the synthesis state in-place, adjusting the Pauli tableau (conjugating by Clifford gates) and extending
 /// the gate sequence.
 fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
-    // Caches previously computed information. For pairs (ctrl, targ) with ctrl < targ,
+    // Caches previously computed information. For pairs (ctrl, trgt) with ctrl < trgt,
     // store how many times each of the 16 possible 2-qubit Paulis appear.
     let mut counts_cache: HashMap<(usize, usize), [u32; 16]> = HashMap::new();
 
@@ -188,23 +188,23 @@ fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
 
         let mut best_score = (isize::MIN, isize::MIN);
         let mut best_ctrl = 0;
-        let mut best_targ = 0;
+        let mut best_trgt = 0;
         let mut best_chunk_idx = 0;
         for ii in 0..support.len() {
             for jj in ii + 1..support.len() {
-                // note that ctrl < targ
+                // note that ctrl < trgt
                 let ctrl = support[ii];
-                let targ = support[jj];
+                let trgt = support[jj];
 
                 // get the index 0..16
-                let pair_idx = synthesis_state.tab.pauli_pair_index(ndx, ctrl, targ);
+                let pair_idx = synthesis_state.tab.pauli_pair_index(ndx, ctrl, trgt);
 
-                // Count the numbers of different 2-qubit Paulis on (ctrl, targ). The
-                // counts only depend on `ctrl` and `targ`, and change only when the applied
+                // Count the numbers of different 2-qubit Paulis on (ctrl, trgt). The
+                // counts only depend on `ctrl` and `trgt`, and change only when the applied
                 // chunk involves one (or both) of the qubits.
                 let pair_counts = *counts_cache
-                    .entry((ctrl, targ))
-                    .or_insert_with(|| count_active_pairs(synthesis_state, ctrl, targ));
+                    .entry((ctrl, trgt))
+                    .or_insert_with(|| count_active_pairs(synthesis_state, ctrl, trgt));
 
                 // get the indices of chunks that can reduce this
                 for chunk_idx in REDUCING_CHUNKS[pair_idx] {
@@ -213,7 +213,7 @@ fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
                         best_score = score;
                         best_chunk_idx = *chunk_idx;
                         best_ctrl = ctrl;
-                        best_targ = targ;
+                        best_trgt = trgt;
                     }
                 }
             }
@@ -224,7 +224,7 @@ fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
             if synthesis_state.in_degrees[pauli_idx].is_some() {
                 let pair_idx = synthesis_state
                     .tab
-                    .pauli_pair_index(pauli_idx, best_ctrl, best_targ);
+                    .pauli_pair_index(pauli_idx, best_ctrl, best_trgt);
 
                 let delta = SUPPORT_DELTA[best_chunk_idx][pair_idx];
                 synthesis_state.support_sizes[pauli_idx] =
@@ -239,7 +239,7 @@ fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
                 .iter()
                 .map(|q| match q {
                     0 => Qubit(best_ctrl as u32),
-                    1 => Qubit(best_targ as u32),
+                    1 => Qubit(best_trgt as u32),
                     _ => {
                         unreachable!("can only have 0/1");
                     }
@@ -273,7 +273,7 @@ fn synthesize_pauli(synthesis_state: &mut PauliSynthesisState, ndx: usize) {
 
         // Evict stale entries
         counts_cache.retain(|&(i, j), _| {
-            i != best_ctrl && i != best_targ && j != best_ctrl && j != best_targ
+            i != best_ctrl && i != best_trgt && j != best_ctrl && j != best_trgt
         });
     }
 }
