@@ -32,6 +32,26 @@ use crate::clifford::greedy_synthesis::resynthesize_clifford_circuit;
 use crate::evolution::chunks::{ALL_CHUNKS, REDUCING_CHUNKS, SUPPORT_DELTA};
 use crate::evolution::{EvolutionSynthesisError, paulis_to_dense};
 
+// The MCTS algorithm implemented in this file is based on the papers [1], [2],
+// their respecitive implementations in [3], [4], but with substantial modifications
+// and performance optimizations beyond the original algorithms.
+//
+// References:
+//
+// 1. Mulundano Machiya, Matt Menickelly, Paul Hovland, Ji Liu,
+// *MonteQ: A Monte Carlo Tree Search Based Quantum Circuit Synthesis Framework*,
+// [arXiv:2604.19029](https://arxiv.org/abs/2604.19029).
+//
+// 2. Timothée Goubault de Brugière and Simon Martiel,
+// *Faster and shorter synthesis of Hamiltonian simulation circuits*,
+// [arXiv:2404.03280](https://arxiv.org/abs/2404.03280).
+//
+// 3. https://github.com/Mulundano/MonteQ,
+// The code is licensed under the MIT license.
+//
+// 4. https://github.com/qiskit-community/rustiq-core,
+// The code is licensed under the MIT license.
+
 /// The multiplicative scaling parameter used in the MCTS algorithm.
 const MCTS_PARAM: f64 = SQRT_2;
 
