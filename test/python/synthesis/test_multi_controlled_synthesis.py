@@ -221,6 +221,14 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
         )
 
+    def test_mcx_noaux_v24_preserves_mcphase_parameters(self):
+        """Test the MCPhase parameter is stored on its circuit instruction."""
+        synthesized_circuit = synth_mcx_noaux_v24(5)
+        mcphase_instruction = synthesized_circuit.data[1]
+
+        self.assertEqual(mcphase_instruction.params, [np.pi])
+        self.assertEqual(mcphase_instruction.params, mcphase_instruction.operation.params)
+
     @data(0, 1, 2, 3, 4, 5, 6, 7, 8)
     def test_mcx_noaux_hp24(self, num_ctrl_qubits: int):
         """Test synth_mcx_noaux_hp24 by comparing synthesized and expected matrices."""
