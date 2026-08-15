@@ -454,7 +454,7 @@ static int test_qdrift_insert_barrier(void) {
 
 static int test_qdrift_global_phase(void) {
     int num_qubits = 2;
-    float time = 1.0;
+    double time = 1.0;
     int reps = 2;
     int seed = 0;
 
@@ -466,8 +466,8 @@ static int test_qdrift_global_phase(void) {
     // Let's calculate manually the expected global phase
     double manual_global_phase = 0.0;
     // Lambda is equal to 1 since there is just one term
-    float lambda = 1.0;
-    float num_gates = 2.0 * (lambda * lambda) * (time * time) * reps;
+    double lambda = 1.0;
+    double num_gates = 2.0 * (lambda * lambda) * (time * time) * reps;
     // ceil num_gates manually since libm isn't linked yet
     size_t inum_gates = num_gates - ((int)num_gates) > 0 ? (int)num_gates + 1 : (int)num_gates;
     for (size_t i = 0; i < inum_gates; i++) {
