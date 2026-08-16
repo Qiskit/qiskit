@@ -73,13 +73,13 @@ trait CircuitDataForSynthesis {
 
     /// Appends Phase to the circuit.
     #[allow(dead_code)]
-    fn p(&mut self, theta: f64, q: u32) -> Result<(), CircuitDataError>;
+    fn p(&mut self, theta: impl Into<Param>, q: u32) -> Result<(), CircuitDataError>;
 
     /// Appends CX to the circuit.
     fn cx(&mut self, q1: u32, q2: u32) -> Result<(), CircuitDataError>;
 
     /// Appends CPhase to the circuit.
-    fn cp(&mut self, theta: f64, q1: u32, q2: u32) -> Result<(), CircuitDataError>;
+    fn cp(&mut self, theta: impl Into<Param>, q1: u32, q2: u32) -> Result<(), CircuitDataError>;
 
     /// Appends CCPhase to the circuit.
     fn ccp(&mut self, theta: f64, q1: u32, q2: u32, q3: u32) -> Result<(), CircuitDataError>;
@@ -133,8 +133,8 @@ impl CircuitDataForSynthesis for CircuitData {
 
     /// Appends Phase to the circuit.
     #[inline]
-    fn p(&mut self, theta: f64, q: u32) -> Result<(), CircuitDataError> {
-        self.push_standard_gate(StandardGate::Phase, &[Param::Float(theta)], &[Qubit(q)])
+    fn p(&mut self, theta: impl Into<Param>, q: u32) -> Result<(), CircuitDataError> {
+        self.push_standard_gate(StandardGate::Phase, &[theta.into()], &[Qubit(q)])
     }
 
     /// Appends CX to the circuit.
@@ -145,10 +145,10 @@ impl CircuitDataForSynthesis for CircuitData {
 
     /// Appends CPhase to the circuit.
     #[inline]
-    fn cp(&mut self, theta: f64, q1: u32, q2: u32) -> Result<(), CircuitDataError> {
+    fn cp(&mut self, theta: impl Into<Param>, q1: u32, q2: u32) -> Result<(), CircuitDataError> {
         self.push_standard_gate(
             StandardGate::CPhase,
-            &[Param::Float(theta)],
+            &[theta.into()],
             &[Qubit(q1), Qubit(q2)],
         )
     }
@@ -1196,7 +1196,7 @@ pub fn synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
 /// 2. <https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py>
 pub fn synth_mcp_noaux_sp22(
     num_ctrl_qubits: usize,
-    phase: f64,
+    phase: Param,
 ) -> Result<CircuitData, CircuitDataError> {
     // For n>1 steps 1-4 emit 2n-1 CP gates and 2(n-1)^2 CRX gates, i.e. 2n^2-2n+1 instructions
     // in total (later each of which decomposes into two CX gates, giving the 4n^2-4n+2 of the
@@ -1221,8 +1221,8 @@ pub fn synth_mcp_noaux_sp22(
         // Apply da Silva and Park algorithm for MCP decomposition in four steps:
         // Step 1 & 2: accumulate phase φ on the target qubit via CP gates;
         //             entangle controls via CRX gates.
-        step_1(&mut circuit, phase, num_ctrl_qubits)?;
-        step_2(&mut circuit, phase, num_ctrl_qubits)?;
+        step_1(&mut circuit, &phase, num_ctrl_qubits)?;
+        step_2(&mut circuit, &phase, num_ctrl_qubits)?;
         // Step 3 & 4: uncompute control entanglement via inverse CRX gates.
         step_3(&mut circuit, num_ctrl_qubits)?;
         step_4(&mut circuit, num_ctrl_qubits)?;
@@ -1251,13 +1251,13 @@ fn pairs_low_sum_first(n_qubits: usize) -> Vec<(usize, usize)> {
 }
 
 /// Returns `2^exponent` where `exponent = (target - control) - 1` if `control == 0`,
-/// or `(target - control)` otherwise. This is the denominator of the fractional angle
-/// (`φ / param` for CP gates, `π / param` for CRX gates) applied to each qubit pair.
+/// or `(target - control)` otherwise. This is the divisor of the fractional angle
+/// (`φ / divisor` for CP gates, `π / divisor` for CRX gates) applied to each qubit pair.
 /// Uses `f64::exp2` rather than a bit shift to avoid overflow for `n > 64` controls.
 /// Note that target > control by design, no need to assert for.
-fn gate_param(control: usize, target: usize) -> f64 {
+fn angle_divisor(control: usize, target: usize) -> f64 {
     let exponent = if control == 0 {
-    target - control - 1
+        target - control - 1
     } else {
         target - control
     };
@@ -1267,19 +1267,23 @@ fn gate_param(control: usize, target: usize) -> f64 {
 /// SP22 Step 1 — phase accumulation (on controls+target)
 ///
 /// Pairs sorted high-sum first, starting from qubit 0.
-/// Target qubit (`num_ctrl_qubits`): CP(+φ / param, c, t).
-/// All other pairs:                  CRX(+π / param, c, t).
+/// Target qubit (`num_ctrl_qubits`): CP(+φ / divisor, c, t).
+/// All other pairs:                  CRX(+π / divisor, c, t).
 fn step_1(
     circuit: &mut CircuitData,
-    phi: f64,
+    phi: &Param,
     num_ctrl_qubits: usize,
 ) -> Result<(), CircuitDataError> {
     for (control, target) in pairs_high_sum_first(num_ctrl_qubits + 1) {
-        let param = gate_param(control, target);
+        let divisor = angle_divisor(control, target);
         if target == num_ctrl_qubits {
-            circuit.cp(phi / param, control as u32, target as u32)?;
+            circuit.cp(
+                multiply_param(phi, 1.0 / divisor),
+                control as u32,
+                target as u32,
+            )?;
         } else {
-            circuit.crx(PI / param, control as u32, target as u32)?;
+            circuit.crx(PI / divisor, control as u32, target as u32)?;
         }
     }
     Ok(())
@@ -1288,19 +1292,23 @@ fn step_1(
 /// SP22 Step 2 — phase accumulation (reverse order, on controls+target).
 ///
 /// Pairs sorted low-sum first, starting from qubit 1.
-/// Target qubit (`num_ctrl_qubits`): CP(−φ / param, c, t).
-/// All other pairs:                  CRX(−π / param, c, t).
+/// Target qubit (`num_ctrl_qubits`): CP(−φ / divisor, c, t).
+/// All other pairs:                  CRX(−π / divisor, c, t).
 fn step_2(
     circuit: &mut CircuitData,
-    phi: f64,
+    phi: &Param,
     num_ctrl_qubits: usize,
 ) -> Result<(), CircuitDataError> {
     for (control, target) in pairs_low_sum_first(num_ctrl_qubits + 1) {
-        let param = gate_param(control, target);
+        let divisor = angle_divisor(control, target);
         if target == num_ctrl_qubits {
-            circuit.cp(-phi / param, control as u32, target as u32)?;
+            circuit.cp(
+                multiply_param(phi, -1.0 / divisor),
+                control as u32,
+                target as u32,
+            )?;
         } else {
-            circuit.crx(-PI / param, control as u32, target as u32)?;
+            circuit.crx(-PI / divisor, control as u32, target as u32)?;
         }
     }
     Ok(())
@@ -1309,12 +1317,12 @@ fn step_2(
 /// SP22 Step 3 — uncomputation (on controls only).
 ///
 /// Pairs sorted high-sum first, starting from qubit 0.
-/// CRX(−π / param, c, t) when c == 0, else CRX(+π / param, c, t).
+/// CRX(−π / divisor, c, t) when c == 0, else CRX(+π / divisor, c, t).
 fn step_3(circuit: &mut CircuitData, num_ctrl_qubits: usize) -> Result<(), CircuitDataError> {
     for (control, target) in pairs_high_sum_first(num_ctrl_qubits) {
-        let param = gate_param(control, target);
+        let divisor = angle_divisor(control, target);
         let sign = if control == 0 { -1.0 } else { 1.0 };
-        circuit.crx(sign * PI / param, control as u32, target as u32)?;
+        circuit.crx(sign * PI / divisor, control as u32, target as u32)?;
     }
     Ok(())
 }
@@ -1322,11 +1330,11 @@ fn step_3(circuit: &mut CircuitData, num_ctrl_qubits: usize) -> Result<(), Circu
 /// SP22 Step 4 — uncomputation (reverse order, controls only).
 ///
 /// Pairs sorted low-sum first, starting from qubit 1.
-/// Sign: CRX(−π / param, c, t).
+/// Sign: CRX(−π / divisor, c, t).
 fn step_4(circuit: &mut CircuitData, num_ctrl_qubits: usize) -> Result<(), CircuitDataError> {
     for (control, target) in pairs_low_sum_first(num_ctrl_qubits) {
-        let param = gate_param(control, target);
-        circuit.crx(-PI / param, control as u32, target as u32)?;
+        let divisor = angle_divisor(control, target);
+        circuit.crx(-PI / divisor, control as u32, target as u32)?;
     }
     Ok(())
 }
