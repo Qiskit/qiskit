@@ -5,8 +5,9 @@ performance:
     :py:func:`~qiskit.synthesis.synth_mcx_2_kg24` (and their ``_clean``/``_dirty`` variants)
     by migrating the implementation to Rust. These functions synthesize multi-controlled X
     gates using 1 and 2 ancillary qubits respectively, with linear and logarithmic circuit
-    depth (Khattar and Gidney). Benchmarks show a **2.4-3.1x speedup** for the 1-ancilla,
-    linear-depth construction and a **2.5-6.3x speedup** for the 2-ancilla, log-depth
-    construction, across control qubit counts from 50 to 5000. There are no API changes.
-    See `#XXXXX <https://github.com/Qiskit/qiskit/pull/XXXXX>`__ for more details.
+    depth (Khattar and Gidney). Benchmarks show a **2.2–3.0x speedup** for the 1-ancilla,
+    linear-depth construction and a **2.5–4.2x for clean ancilla and 3.9–6.1x for dirty
+    ancilla** for the 2-ancilla, log-depth construction, across control qubit counts
+    from 50 to 1000. There are no API changes.
+    See `#16783 <https://github.com/Qiskit/qiskit/pull/16783>`__ for more details.
 
