@@ -180,7 +180,7 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
         self.assertSynthesisCorrect(
             PhaseGate(val), num_ctrl_qubits, bound_circuit, clean_ancillas=False
         )
-    
+
     def test_mcp_noaux_v24_with_expr_param(self):
         """Test synth_mcp_noaux_v24 works correctly with a parameter expression."""
         a, b = Parameter("a"), Parameter("b")
