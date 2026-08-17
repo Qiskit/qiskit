@@ -1,0 +1,6 @@
+--- 
+performance:
+- Improved the runtime performance of :py:func:`~qiskit.synthesis.synth_qft_full` function
+  by migrating the implementation to Rust. Benchmarks demonstrate speedups ranging from 9x to 30x, 
+  including 9x for 5 qubits, 30x for 200 qubits, and 18x for 1000 qubits. There are no API changes.
+ 
