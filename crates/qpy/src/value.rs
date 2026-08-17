@@ -124,7 +124,7 @@ pub struct QPYWriteData<'a> {
     pub circuit_data: &'a CircuitData,
     pub version: u8,
     pub standalone_var_indices: HashMap<u128, u16>, // mapping from the variable's UUID to its index in the standalone variables list
-    pub annotation_handler: AnnotationHandler<'a>,
+    pub annotation_handler: AnnotationHandler,
 }
 
 // Data that is needed globally while reading the circuit
@@ -136,7 +136,7 @@ pub struct QPYReadData<'a> {
     pub standalone_vars: HashMap<u16, qiskit_circuit::Var>,
     pub standalone_stretches: HashMap<u16, qiskit_circuit::Stretch>,
     pub vectors: HashMap<Uuid, Arc<SymbolVector>>,
-    pub annotation_handler: AnnotationHandler<'a>,
+    pub annotation_handler: AnnotationHandler,
 }
 
 // this is how tags for various value types are encoded in a QPY file
@@ -573,7 +573,7 @@ pub(crate) fn load_value(
                     qpy_data.version,
                     None,
                     qpy_data.use_symengine,
-                    qpy_data.annotation_handler.annotation_factories,
+                    qpy_data.annotation_handler.child()?,
                 )?;
                 Ok(GenericValue::Circuit(circuit))
             })
@@ -638,9 +638,8 @@ pub(crate) fn serialize_generic_value(
             let packed_circuit = pack_circuit(
                 &mut circuit.extract(py)?, // TODO: can we avoid cloning here?
                 None,
-                false,
                 qpy_data.version,
-                qpy_data.annotation_handler.annotation_factories,
+                qpy_data.annotation_handler.child()?,
             )?;
             let serialized_circuit = serialize(&packed_circuit)?;
             Ok((ValueType::Circuit, serialized_circuit))
@@ -653,9 +652,8 @@ pub(crate) fn serialize_generic_value(
             let packed_circuit = pack_circuit(
                 &mut quantum_circuit_data,
                 None,
-                false,
                 qpy_data.version,
-                qpy_data.annotation_handler.annotation_factories,
+                qpy_data.annotation_handler.child()?,
             )?;
             let serialized_circuit = serialize(&packed_circuit)?;
             Ok((ValueType::Circuit, serialized_circuit))

@@ -22,6 +22,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict};
 use qiskit_circuit::converters::QuantumCircuitData;
 
+use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::circuit_reader::unpack_circuit;
 use crate::circuit_writer::pack_circuit;
@@ -60,9 +61,8 @@ const QPY_WRITE_MIN_VERSION: u8 = 17;
 pub fn dump_qpy(
     mut circuits: Vec<QuantumCircuitData>,
     metadata_serializer: Option<Bound<PyAny>>,
-    use_symengine: bool,
     qpy_version: u8,
-    annotation_factories: Bound<PyDict>,
+    annotation_handler: AnnotationHandler,
 ) -> Result<Bytes, QpyError> {
     if qpy_version < QPY_WRITE_MIN_VERSION {
         Err(QpyError::UnsupportedFeatureForVersion {
@@ -77,21 +77,16 @@ pub fn dump_qpy(
             serialize(&pack_circuit(
                 circuit,
                 metadata_serializer.as_ref(),
-                use_symengine,
                 qpy_version,
-                &annotation_factories,
+                annotation_handler.child()?,
             )?)
         })
         .collect::<Result<Vec<Bytes>, QpyError>>()?;
-    let symbolic_encoding = match use_symengine {
-        true => SymbolicEncoding::Symengine,
-        false => SymbolicEncoding::Sympy,
-    };
     let qpy_header = QPYFileHeader {
         qpy_version,
         qiskit_version: QISKIT_VERSION,
         num_programs: serialized_circuits.len() as u64,
-        symbolic_encoding,
+        symbolic_encoding: SymbolicEncoding::Sympy,
         type_key: ProgramType::Circuit, //for now, no other value type is used
     };
     let serialized_qpy_header = serialize(&qpy_header)?;
@@ -130,17 +125,16 @@ pub fn py_dump_qpy(
     programs: &Bound<PyAny>,
     file_obj: &Bound<PyAny>,
     metadata_serializer: Option<Bound<PyAny>>,
-    use_symengine: Option<bool>,
     version: u8,
     annotation_factories: Option<Bound<PyDict>>,
 ) -> PyResult<()> {
     let annotation_factories = annotation_factories.unwrap_or(PyDict::new(py));
+    let annotation_handler = AnnotationHandler::python(&annotation_factories.clone().unbind())?;
     let serialized_qpy = dump_qpy(
         programs.extract()?,
         metadata_serializer,
-        use_symengine.unwrap_or(false),
         version,
-        annotation_factories,
+        annotation_handler,
     )?;
     file_obj.call_method1("write", (pyo3::types::PyBytes::new(py, &serialized_qpy),))?;
     Ok(())
@@ -192,7 +186,7 @@ pub fn load_qpy(
     data: &Bytes,
     qpy_version: u8,
     metadata_deserializer: Option<&Bound<PyAny>>,
-    annotation_factories: &Bound<PyDict>,
+    annotation_handler: AnnotationHandler,
 ) -> Result<Vec<Py<PyAny>>, QpyError> {
     if qpy_version < QPY_READ_MIN_VERSION {
         Err(QpyError::UnsupportedFeatureForVersion {
@@ -235,7 +229,7 @@ pub fn load_qpy(
                 qpy_file_header.qpy_version,
                 metadata_deserializer,
                 use_symengine,
-                annotation_factories,
+                annotation_handler.child()?,
             )?;
         }
     } else {
@@ -255,7 +249,7 @@ pub fn load_qpy(
                 qpy_file_header.qpy_version,
                 metadata_deserializer,
                 use_symengine,
-                annotation_factories,
+                annotation_handler.child()?,
             )?;
         }
     }
@@ -272,7 +266,7 @@ pub fn py_load_qpy(
     annotation_factories: Option<Bound<PyDict>>,
 ) -> Result<Vec<Py<PyAny>>, QpyError> {
     let annotation_factories = annotation_factories.unwrap_or(PyDict::new(py));
-
+    let annotation_handler = AnnotationHandler::python(&annotation_factories.clone().unbind())?;
     // Read all data from file object
     // TODO: When we read from a rust native stream, maybe we can seek according to the circuit offsets instead of reading everything at once
     let data: Bytes = file_obj.call_method0("read")?.extract()?;
@@ -282,6 +276,6 @@ pub fn py_load_qpy(
         &data,
         version,
         metadata_deserializer.as_ref(),
-        &annotation_factories,
+        annotation_handler,
     )
 }
