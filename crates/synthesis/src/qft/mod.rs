@@ -16,11 +16,6 @@ mod qft_decompose_lnn;
 use pyo3::prelude::*;
 use qft_decompose_full::synth_qft_full;
 use qft_decompose_lnn::synth_qft_line;
-use qiskit_circuit::Qubit;
-use qiskit_circuit::operations::{Param, StandardGate};
-use smallvec::SmallVec;
-
-pub(super) type QftGatesVec = Vec<(StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>)>;
 
 pub fn qft(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(synth_qft_full, m)?)?;

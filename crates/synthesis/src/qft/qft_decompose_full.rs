@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use super::QftGatesVec;
 use pyo3::prelude::*;
 use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
@@ -67,83 +66,76 @@ pub fn synth_qft_full(
         + if insert_barriers { num_qubits } else { 0 }
         + if do_swaps { num_qubits / 2 } else { 0 };
 
-    if insert_barriers {
-        // When barriers are requested we must use the builder API because
-        // `CircuitData::from_standard_gates` only accepts `StandardGate` tuples.
-        let mut circuit =
-            CircuitData::with_capacity(num_qubits as u32, 0, no_of_gates, Param::Float(0.0))?;
+    // Build the H+CP instructions shared by both paths (with barriers and without).
+    // Each round j emits: one H(j) followed by num_entanglements(j) CP gates.
+    // rounds_end[j] is the exclusive end index of round j's gates in `instructions`,
+    // used by the barrier path to know where to insert each barrier.
+    let mut instructions = Vec::with_capacity(no_of_gates);
+    let mut rounds_end: Vec<usize> = if insert_barriers {
+        Vec::with_capacity(num_qubits)
+    } else {
+        Vec::new() // not used in the fast path
+    };
 
-        let all_qubits: SmallVec<[Qubit; 32]> = (0..num_qubits).map(Qubit::new).collect();
+    for j in (0..num_qubits).rev() {
+        instructions.push((StandardGate::H, smallvec![], smallvec![Qubit::new(j)]));
 
-        for j in (0..num_qubits).rev() {
-            circuit.push_standard_gate(StandardGate::H, &[], &[Qubit::new(j)])?;
+        let tail = num_qubits - j - 1;
+        let approx_offset = approximation_degree.saturating_sub(tail);
+        let num_entanglements = j.saturating_sub(approx_offset);
 
-            let tail = num_qubits - j - 1;
-            let approx_offset = approximation_degree.saturating_sub(tail);
-            let num_entanglements = j.saturating_sub(approx_offset);
-
-            for k in (j - num_entanglements..j).rev() {
-                let lam = PI * (2.0_f64).powi(k as i32 - j as i32);
-                circuit.push_standard_gate(
-                    StandardGate::CPhase,
-                    &[Param::Float(lam)],
-                    &[Qubit::new(j), Qubit::new(k)],
-                )?;
-            }
-
-            // Barrier across all qubits after each round.
-            circuit.push_packed_operation(
-                PackedOperation::from_standard_instruction(StandardInstruction::Barrier(
-                    num_qubits as u32,
-                )),
-                None,
-                &all_qubits,
-                &[],
-            )?;
+        for k in (j - num_entanglements..j).rev() {
+            let lam = PI * (2.0_f64).powi(k as i32 - j as i32);
+            instructions.push((
+                StandardGate::CPhase,
+                smallvec![Param::Float(lam)],
+                smallvec![Qubit::new(j), Qubit::new(k)],
+            ));
         }
 
-        if do_swaps {
-            for i in 0..num_qubits / 2 {
-                circuit.push_standard_gate(
-                    StandardGate::Swap,
-                    &[],
-                    &[Qubit::new(i), Qubit::new(num_qubits - i - 1)],
-                )?;
+        if insert_barriers {
+            rounds_end.push(instructions.len());
+        }
+    }
+
+    if do_swaps {
+        for i in 0..num_qubits / 2 {
+            instructions.push((
+                StandardGate::Swap,
+                smallvec![],
+                smallvec![Qubit::new(i), Qubit::new(num_qubits - i - 1)],
+            ));
+        }
+    }
+
+    if insert_barriers {
+        // Rebuild as CircuitData using the builder API, interleaving barriers
+        // after each round. `CircuitData::from_standard_gates` cannot be used
+        // here because `Barrier` is a `StandardInstruction`, not a `StandardGate`.
+        let mut circuit =
+            CircuitData::with_capacity(num_qubits as u32, 0, no_of_gates, Param::Float(0.0))?;
+        let all_qubits: SmallVec<[Qubit; 32]> = (0..num_qubits).map(Qubit::new).collect();
+        let barrier_op = PackedOperation::from_standard_instruction(StandardInstruction::Barrier(
+            num_qubits as u32,
+        ));
+
+        let mut prev = 0;
+        for end in rounds_end {
+            for (gate, params, qargs) in &instructions[prev..end] {
+                circuit.push_standard_gate(*gate, params, qargs)?;
             }
+            circuit.push_packed_operation(barrier_op.clone(), None, &all_qubits, &[])?;
+            prev = end;
+        }
+        // Append any trailing swap gates (beyond the last round boundary).
+        for (gate, params, qargs) in &instructions[prev..] {
+            circuit.push_standard_gate(*gate, params, qargs)?;
         }
 
         Ok(circuit.into())
     } else {
-        // Fast path: no barriers — use the zero-overhead batch constructor.
-        let mut instructions: QftGatesVec = Vec::with_capacity(no_of_gates);
-
-        for j in (0..num_qubits).rev() {
-            instructions.push((StandardGate::H, smallvec![], smallvec![Qubit::new(j)]));
-
-            let tail = num_qubits - j - 1;
-            let approx_offset = approximation_degree.saturating_sub(tail);
-            let num_entanglements = j.saturating_sub(approx_offset);
-
-            for k in (j - num_entanglements..j).rev() {
-                let lam = PI * (2.0_f64).powi(k as i32 - j as i32);
-                instructions.push((
-                    StandardGate::CPhase,
-                    smallvec![Param::Float(lam)],
-                    smallvec![Qubit::new(j), Qubit::new(k)],
-                ));
-            }
-        }
-
-        if do_swaps {
-            for i in 0..num_qubits / 2 {
-                instructions.push((
-                    StandardGate::Swap,
-                    smallvec![],
-                    smallvec![Qubit::new(i), Qubit::new(num_qubits - i - 1)],
-                ));
-            }
-        }
-
+        // Fast path: no barriers — feed the instruction vec directly into the
+        // zero-overhead batch constructor.
         Ok(
             CircuitData::from_standard_gates(num_qubits as u32, instructions, Param::Float(0.0))?
                 .into(),
