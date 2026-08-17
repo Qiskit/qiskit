@@ -1,41 +1,19 @@
 ---
 features_c:
   - |
-    Exposed the n-local circuit to C API by adding the
-    circuit generator in the circuit library. 
+    Exposed the n-local circuit to the C API. 
 
-    A couple of new functions were added: 
-    * ``qk_circuit_library_n_local``
-    * ``qk_circuit_library_n_local_settings_default``
+    * A couple of new functions were added: 
 
-    A new struct called ``QkNLocalSettings`` is added.
-    This struct holds information needed to build the n-local circuit.
+      * ``qk_circuit_library_n_local``
 
-    A new enum called ``QkEntanglementStrategy`` is added. 
-    This enum has all the available entanglement strategies
-    to be used when generating the circuit.
+        Constructs an n-local variational circuit.      
+      * ``qk_circuit_library_n_local_settings_default``
 
-    The function ``qk_circuit_library_n_local`` is responsible of
-    generating the circuit and can be used as follows:
+        Generates default options for ``qk_circuit_library_n_local``.
+    * New struct ``QkNLocalSettings`` is added.
 
-    .. code-block:: C
+      Holds settings needed to build the n-local circuit.
+    * New enum ``QkEntanglementStrategy`` is added. 
 
-      uint32_t num_qubits = 2;
-
-      // Setup the `QkNLocalSettings`
-      QkNLocalSettings settings = qk_circuit_library_n_local_settings_default();
-      settings.reps = 2;
-      settings.entanglement_strategy = QkEntanglementStrategy_Linear;
-      settings.skip_final_rotation_layer = true;
-      settings.parameter_prefix = "θ";
-
-      // Setup the rotation and entanglement blocks
-      QkGate rotation_blocks[1] = {QkGate_H};
-      QkGate entanglement_blocks[1] = {QkGate_CRX};
-
-      // Create the circuit
-      QkCircuit *qc = qk_circuit_library_n_local(num_qubits, rotation_blocks, 1, 
-                                                 entanglement_blocks, 1, &settings);
-
-      // Free the object
-      qk_circuit_free(qc);
+      Enum representing all the strategies that can be used for the circuit entanglement blocks.
