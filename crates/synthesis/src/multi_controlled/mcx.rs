@@ -450,7 +450,7 @@ pub fn synth_mcx_noaux_v24(
         };
         circuit.push_packed_operation(
             inst.into(),
-            None,
+            Some(Parameters::Params(smallvec::smallvec![Param::Float(PI)])),
             &(0..num_qubits).map(Qubit).collect::<Vec<Qubit>>(),
             &[],
         )?;
