@@ -589,27 +589,30 @@ fn log_depth_ladder_ops(num_controls: u32) -> Result<(CircuitData, Vec<u32>), Ci
         // --- Inner loop: parallel X+RCCX tree, halving `batch` each step ---
         // Each step pairs up the elements of `batch` and writes their AND-flags
         // into the last `pair_count` entries of `ancilla_pool`. After the step,
-        // `batch` is updated in-place to hold the AND-flag target qubits (plus
-        // the odd-one-out if any), ready to be paired again in the next step.
+        // `batch` is updated to hold the AND-flag target qubits (plus the
+        // odd-one-out if any), ready to be paired again in the next step.
         //
         // RCCX is symmetric in its two control qubits (AND is commutative), so
         // the relative order of ctrl_a[i] and ctrl_b[i] does not affect the
-        // emitted gate. This allows the in-place batch update to skip a rotate,
-        // leaving the odd-one-out at the front rather than the back.
+        // emitted gate. However, the *position* of the new target qubits within
+        // `batch` for the next step does matter: it determines which qubits get
+        // grouped together in that next pairing, which measurably affects
+        // post-transpile depth even though the unitary is unaffected. The
+        // targets are therefore placed ahead of the leftover (prepended), not
+        // after it — a plain rotate/copy rather than a zero-allocation trick.
         while batch.len() > 1 {
             let pair_count = batch.len() / 2;
             // `leftover`: 0 or 1 element that cannot be paired this step.
             let leftover = batch.len() % 2;
             let pool_len = ancilla_pool.len();
 
-            // Borrow slices for gate emission — no allocations.
-            let ctrl_a = &batch[leftover..leftover + pair_count];
-            let ctrl_b = &batch[leftover + pair_count..];
-            let targets = &ancilla_pool[pool_len - pair_count..]; // tail = most recently freed
+            let ctrl_a = batch[leftover..leftover + pair_count].to_vec();
+            let ctrl_b = batch[leftover + pair_count..].to_vec();
+            let targets: Vec<u32> = ancilla_pool[pool_len - pair_count..].to_vec();
 
             // Phase 1: X on every target (|0⟩ → |1⟩) so the RCCX relative phase
             // is correct for the "conditionally clean ancilla" construction.
-            for &t in targets {
+            for &t in &targets {
                 qc.x(t)?;
             }
             // Phase 2: RCCX(aᵢ, bᵢ, tᵢ) in parallel — writes AND(aᵢ, bᵢ) into tᵢ.
@@ -620,22 +623,24 @@ fn log_depth_ladder_ops(num_controls: u32) -> Result<(CircuitData, Vec<u32>), Ci
             // Record consumed controls; they'll rejoin ancilla_pool after this inner loop.
             newly_freed.extend_from_slice(&batch[leftover..]);
 
-            // In-place: replace ctrl_a slots with target indices, drop ctrl_b slots.
-            // Leaves batch = [odd_one_out?, targets...] with no allocation.
-            batch[leftover..leftover + pair_count].copy_from_slice(targets);
-            batch.truncate(leftover + pair_count);
+            // Prepend the new target qubits ahead of the leftover for the next step.
+            let leftover_qubits: Vec<u32> = batch[..leftover].to_vec();
+            batch.clear();
+            batch.extend_from_slice(&targets);
+            batch.extend_from_slice(&leftover_qubits);
             ancilla_pool.truncate(pool_len - pair_count);
         }
 
         // `batch` is now one element: the AND-flag for all controls in this batch.
         // Return consumed controls to the pool (order irrelevant — AND is commutative).
         ancilla_pool.extend_from_slice(&newly_freed);
+        ancilla_pool.sort_unstable();
         leftover_ctrls.extend_from_slice(&batch);
     }
 
     // Odd leftover control (if any) passes directly to the caller's final gate.
     leftover_ctrls.extend_from_slice(&unprocessed);
-
+    leftover_ctrls.sort_unstable();
     Ok((qc, leftover_ctrls))
 }
 
