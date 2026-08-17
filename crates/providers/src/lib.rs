@@ -34,6 +34,6 @@ pub mod tensor;
 pub use data_tree::{ArityMismatch, DataTree, InvalidName, Name, PathEntry, TreeMatchError};
 pub use nodes::{BoxedOpNodeError, BoxedOpNodeType, Constant, ErasedOpNodeType, OpNodeType};
 pub use program::{
-    FunctionError, FunctionEvalError, FunctionId, NodeId, NodeRef, NodeRole, ProgramError,
-    ProgramEvalError, ProgramFunction, QuantumProgram, Signature, Value,
+    FunctionError, FunctionEvalError, FunctionId, NodeId, NodeRef, NodeRole, NodeView,
+    ProgramError, ProgramEvalError, ProgramFunction, QuantumProgram, Signature, Value,
 };

@@ -10,14 +10,15 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-//! A callable collection of functions, together with the structures that name what a caller hands
-//! over and what it gets back.
+//! A callable collection of functions.
 
 use std::fmt;
 
 use thiserror::Error;
 
-use super::program_function::{FunctionEvalError, ProgramFunction};
+use super::program_function::{
+    FunctionEvalError, NodeId, NodeRef, NodeRole, NodeView, ProgramFunction, Signature,
+};
 use crate::data_tree::DataTree;
 use crate::tensor::{Tensor, TensorType};
 
@@ -65,6 +66,68 @@ pub enum ProgramError {
          result(s)"
     )]
     OutputArity { leaves: usize, results: usize },
+
+    /// A call names the function holding it, or one defined after it.
+    #[error("{function} node {node} calls {callee}, which is not defined before it")]
+    CallOrder {
+        function: FunctionId,
+        node: NodeId,
+        callee: FunctionId,
+    },
+
+    /// A call supplies a different number of operands than its callee takes parameters.
+    #[error(
+        "{function} node {node} calls {callee}: it takes {parameters} parameter(s), the call \
+         supplies {operands}"
+    )]
+    CallParameterCount {
+        function: FunctionId,
+        node: NodeId,
+        callee: FunctionId,
+        parameters: usize,
+        operands: usize,
+    },
+
+    /// An operand of a call does not satisfy the corresponding parameter type of its callee.
+    #[error(
+        "{function} node {node} calls {callee}: its parameter {slot} is {parameter}, the call \
+         supplies {operand}"
+    )]
+    CallParameterType {
+        function: FunctionId,
+        node: NodeId,
+        callee: FunctionId,
+        slot: usize,
+        parameter: TensorType,
+        operand: TensorType,
+    },
+
+    /// A call declares a different number of results than its callee produces.
+    #[error(
+        "{function} node {node} calls {callee}: it produces {results} result(s), the call declares \
+         {outputs}"
+    )]
+    CallResultCount {
+        function: FunctionId,
+        node: NodeId,
+        callee: FunctionId,
+        results: usize,
+        outputs: usize,
+    },
+
+    /// A result a call declares does not admit the corresponding result type of its callee.
+    #[error(
+        "{function} node {node} calls {callee}: its result {slot} is {result}, the call declares \
+         {output}"
+    )]
+    CallResultType {
+        function: FunctionId,
+        node: NodeId,
+        callee: FunctionId,
+        slot: usize,
+        result: TensorType,
+        output: TensorType,
+    },
 }
 
 /// Why [`QuantumProgram::eval`] could not produce results.
@@ -77,15 +140,29 @@ pub enum ProgramEvalError {
         actual: Box<DataTree<()>>,
     },
 
+    /// A function contains a node Qiskit has no in-process implementation of.
+    #[error("{function} node {node} ({full_name}) has no built-in implementation")]
+    NoBuiltinEval {
+        function: FunctionId,
+        node: NodeId,
+        full_name: String,
+    },
+
     /// The entry point failed.
     #[error(transparent)]
     Function(#[from] FunctionEvalError),
 }
 
-/// A collection of [`ProgramFunction`]s, the last of them the entry point.
+/// A collection of [`ProgramFunction`]s.
 ///
-/// A caller to `eval` provides a [`DataTree`] of tensor inputs arranged in the format prescribed by
-/// `input_types`, and receives back the resulting tensors as prescribed by `output_types`.
+/// A caller to this program provides a [`DataTree`] of tensor inputs arranged in the format
+/// prescribed by [`input_types`](Self::input_types), and receives back the resulting tensors as
+/// prescribed by [`output_types`](Self::output_types).
+///
+/// A function may call one defined before it but not after it, through
+/// [`ProgramFunction::add_call`]. The last function is the entry point to the program, so
+/// definition order is also an execution order. This type has no builder; [`Self::new`] is its
+/// only constructor.
 ///
 /// # Example
 /// ```rust
@@ -135,6 +212,8 @@ impl QuantumProgram {
     ///
     /// The last of `functions` is the entry point, and the structures describe its slots: a
     /// structure's leaves correspond to them by DFS order.
+    ///
+    /// Function calls are checked for type compatibility.
     pub fn new(
         functions: Vec<ProgramFunction>,
         input_structure: DataTree<()>,
@@ -154,6 +233,8 @@ impl QuantumProgram {
         if leaves != results {
             return Err(ProgramError::OutputArity { leaves, results });
         }
+
+        check_calls(&functions)?;
 
         Ok(Self {
             functions,
@@ -190,17 +271,11 @@ impl QuantumProgram {
     }
 
     /// How the program's outputs are arranged and named.
-    ///
-    /// [`DataTree::dotted_paths`] turns this into an address for each output, in output order. The
-    /// structure is the thing worth keeping: a path addresses one leaf of it, and a set of paths
-    /// cannot reconstruct it, because an empty branch contributes no leaves and so no path.
     pub fn output_structure(&self) -> &DataTree<()> {
         &self.output_structure
     }
 
-    /// The declared type of every input, arranged in the input structure.
-    ///
-    /// Answers what a program consumes without evaluating it.
+    /// The declared type of every input.
     pub fn input_types(&self) -> DataTree<TensorType> {
         arrange(
             &self.input_structure,
@@ -208,10 +283,7 @@ impl QuantumProgram {
         )
     }
 
-    /// The declared type of every output, arranged in the output structure.
-    ///
-    /// Answers what a program produces without evaluating it, which is what lets a caller check that
-    /// a result is the one it wanted before paying for it.
+    /// The declared type of every output.
     pub fn output_types(&self) -> DataTree<TensorType> {
         arrange(
             &self.output_structure,
@@ -219,11 +291,18 @@ impl QuantumProgram {
         )
     }
 
+    /// Whether every node in every function has a built-in evaluation.
+    ///
+    /// In other words, whether [`eval`](Self::eval) is expected to work.
+    pub fn has_builtin_eval(&self) -> bool {
+        self.first_without_builtin_eval().is_none()
+    }
+
     /// Evaluate the program on a tree of inputs, returning a tree of outputs.
     ///
-    /// `inputs` must be arranged exactly as [`input_structure`](Self::input_structure) says, which is
-    /// checked before anything is evaluated, and the results come back arranged as
-    /// [`output_structure`](Self::output_structure) says.
+    /// `inputs` must be arranged as [`input_structure`](Self::input_structure) dictates, which is
+    /// checked before anything is evaluated, and the results are formatted according to
+    /// [`output_structure`](Self::output_structure).
     pub fn eval(&self, inputs: DataTree<Tensor>) -> Result<DataTree<Tensor>, ProgramEvalError> {
         let actual = inputs.structure();
         if actual != self.input_structure {
@@ -232,9 +311,33 @@ impl QuantumProgram {
                 actual: Box::new(actual),
             });
         }
+        // Every function is checked before anything runs, so a program that needs a backend
+        // produces no intermediates.
+        if let Some((function, node)) = self.first_without_builtin_eval() {
+            return Err(ProgramEvalError::NoBuiltinEval {
+                function,
+                node: node.id(),
+                full_name: node.full_name(),
+            });
+        }
         let arguments: Vec<Tensor> = inputs.into_leaves().collect();
-        let results = self.entry_function().eval(&arguments)?;
+        let results = self.entry_function().eval_in(&arguments, &self.functions)?;
         Ok(arrange(&self.output_structure, results))
+    }
+
+    /// The first node of any function that has no built-in evaluation.
+    ///
+    /// A call node is skipped; the function it names is checked in its own right.
+    fn first_without_builtin_eval(&self) -> Option<(FunctionId, NodeRef<'_>)> {
+        self.functions
+            .iter()
+            .enumerate()
+            .find_map(|(index, function)| {
+                function
+                    .iter_nodes()
+                    .find(|node| node.role() != NodeRole::Call && !node.has_builtin_eval())
+                    .map(|node| (FunctionId::from_index(index), node))
+            })
     }
 }
 
@@ -245,10 +348,102 @@ fn arrange<T>(structure: &DataTree<()>, values: Vec<T>) -> DataTree<T> {
         .expect("a structure describes as many slots as the entry point it was checked against")
 }
 
+/// Verify every call node of every function against the function it names.
+///
+/// Functions the entry point cannot reach are checked too, so evaluation can resolve every call
+/// with no error path of its own.
+fn check_calls(functions: &[ProgramFunction]) -> Result<(), ProgramError> {
+    for (index, function) in functions.iter().enumerate() {
+        let caller = FunctionId::from_index(index);
+        for node in function.iter_nodes() {
+            let NodeView::Call(callee) = node.view() else {
+                continue;
+            };
+            // A call may only name an earlier function. The call graph is acyclic by construction,
+            // and the callee is in bounds without a separate check.
+            if callee.index() >= index {
+                return Err(ProgramError::CallOrder {
+                    function: caller,
+                    node: node.id(),
+                    callee,
+                });
+            }
+            check_call(caller, node, callee, &functions[callee.index()].signature())?;
+        }
+    }
+    Ok(())
+}
+
+/// Verify one call node's operand and result types against `signature`, the contract of the function
+/// it names.
+fn check_call(
+    function: FunctionId,
+    node: NodeRef<'_>,
+    callee: FunctionId,
+    signature: &Signature,
+) -> Result<(), ProgramError> {
+    if node.operands().len() != signature.inputs.len() {
+        return Err(ProgramError::CallParameterCount {
+            function,
+            node: node.id(),
+            callee,
+            parameters: signature.inputs.len(),
+            operands: node.operands().len(),
+        });
+    }
+    for (slot, (parameter, operand)) in signature
+        .inputs
+        .iter()
+        .zip(node.operand_types())
+        .enumerate()
+    {
+        if !parameter.admits(operand) {
+            return Err(ProgramError::CallParameterType {
+                function,
+                node: node.id(),
+                callee,
+                slot,
+                parameter: parameter.clone(),
+                operand: operand.clone(),
+            });
+        }
+    }
+
+    if node.output_types().len() != signature.outputs.len() {
+        return Err(ProgramError::CallResultCount {
+            function,
+            node: node.id(),
+            callee,
+            results: signature.outputs.len(),
+            outputs: node.output_types().len(),
+        });
+    }
+    // The nodes reading a result were type-checked against the type the call declares, so that type
+    // has to admit what the callee produces.
+    for (slot, (result, output)) in signature
+        .outputs
+        .iter()
+        .zip(node.output_types())
+        .enumerate()
+    {
+        if !output.admits(result) {
+            return Err(ProgramError::CallResultType {
+                function,
+                node: node.id(),
+                callee,
+                slot,
+                result: result.clone(),
+                output: output.clone(),
+            });
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::nodes::Add;
+    use crate::nodes::{Add, OpNodeType};
     use crate::program::Signature;
     use crate::tensor::{DType, Dim};
 
@@ -491,6 +686,110 @@ mod test {
     }
 
     // ---------------------------------------------------------------------------
+    // Several functions, one calling another
+    // ---------------------------------------------------------------------------
+
+    /// A function that calls `callee` on its one parameter and returns what comes back, given the
+    /// signature the callee has.
+    fn calling_function(callee: FunctionId, signature: &Signature) -> ProgramFunction {
+        let mut function = ProgramFunction::new();
+        let x = function.add_parameter(signature.inputs[0].clone());
+        let called = function.add_call(callee, signature, &[x]).unwrap()[0];
+        function.add_result(called).unwrap();
+        function
+    }
+
+    #[test]
+    fn a_call_computes_what_the_function_it_names_computes() {
+        // @1 is `f(x) = double(x) + double(x)`, over the one body @0.
+        let callee = double_function();
+        let signature = callee.signature();
+        let mut entry = ProgramFunction::new();
+        let x = entry.add_parameter(f64_1d(1));
+        let doubled = entry
+            .add_call(FunctionId::from_index(0), &signature, &[x])
+            .unwrap()[0];
+        let sum = entry.add_node(Add, &[doubled, doubled]).unwrap()[0];
+        entry.add_result(sum).unwrap();
+
+        let program =
+            QuantumProgram::new(vec![callee, entry], DataTree::Leaf(()), DataTree::Leaf(()))
+                .unwrap();
+        assert!(program.has_builtin_eval());
+
+        // The same computation with the body written out where it is called.
+        let mut inlined = ProgramFunction::new();
+        let x = inlined.add_parameter(f64_1d(1));
+        let doubled = inlined.add_node(Add, &[x, x]).unwrap()[0];
+        let sum = inlined.add_node(Add, &[doubled, doubled]).unwrap()[0];
+        inlined.add_result(sum).unwrap();
+        let inlined =
+            QuantumProgram::new(vec![inlined], DataTree::Leaf(()), DataTree::Leaf(())).unwrap();
+
+        let input = DataTree::Leaf(one_element(3.0));
+        assert_eq!(
+            program.eval(input.clone()).unwrap(),
+            DataTree::Leaf(one_element(12.0))
+        );
+        assert_eq!(
+            program.eval(input.clone()).unwrap(),
+            inlined.eval(input).unwrap()
+        );
+    }
+
+    #[test]
+    fn a_call_may_be_reached_through_a_chain_of_calls() {
+        // @0 doubles, @1 calls @0, and @2 calls @1, so 1.5 comes back as 3.0.
+        let doubling = double_function();
+        let signature = doubling.signature();
+        let program = QuantumProgram::new(
+            vec![
+                doubling,
+                calling_function(FunctionId::from_index(0), &signature),
+                calling_function(FunctionId::from_index(1), &signature),
+            ],
+            DataTree::Leaf(()),
+            DataTree::Leaf(()),
+        )
+        .unwrap();
+
+        assert_eq!(
+            program.eval(DataTree::Leaf(one_element(1.5))).unwrap(),
+            DataTree::Leaf(one_element(3.0))
+        );
+    }
+
+    #[test]
+    fn a_function_the_entry_point_cannot_reach_is_accepted() {
+        // @0 is dead code, and fails if it is ever evaluated, so the program evaluating at all is
+        // what shows the entry point @1 never reaches it.
+        let mut unreachable = ProgramFunction::new();
+        let x = unreachable.add_parameter(f64_1d(1));
+        let out = unreachable
+            .add_node(Elsewhere { builtin: true }, &[x])
+            .unwrap()[0];
+        unreachable.add_result(out).unwrap();
+
+        let program = QuantumProgram::new(
+            vec![unreachable, add_function()],
+            named_inputs(),
+            named_output(),
+        )
+        .unwrap();
+
+        assert!(program.has_builtin_eval());
+        let inputs = DataTree::mapping([
+            ("x", DataTree::Leaf(one_element(1.0))),
+            ("y", DataTree::Leaf(one_element(10.0))),
+        ])
+        .unwrap();
+        assert_eq!(
+            program.eval(inputs).unwrap(),
+            DataTree::mapping([("sum", DataTree::Leaf(one_element(11.0)))]).unwrap()
+        );
+    }
+
+    // ---------------------------------------------------------------------------
     // Assembly rejections
     // ---------------------------------------------------------------------------
 
@@ -538,6 +837,145 @@ mod test {
 
         assert_eq!(err, ProgramError::NoFunctions);
         assert_eq!(err.to_string(), "there are no functions to enter at");
+    }
+
+    #[test]
+    fn a_call_naming_itself_or_a_later_function_is_rejected() {
+        let signature = double_function().signature();
+
+        // @0 calls @0. A call may only name an earlier function, so the call graph cannot have a
+        // cycle in it and nothing has to look for one.
+        let Err(err) = QuantumProgram::new(
+            vec![calling_function(FunctionId::from_index(0), &signature)],
+            DataTree::Leaf(()),
+            DataTree::Leaf(()),
+        ) else {
+            panic!("a function cannot call itself")
+        };
+        assert!(matches!(err, ProgramError::CallOrder { .. }));
+        assert_eq!(
+            err.to_string(),
+            "@0 node 1 calls @0, which is not defined before it"
+        );
+
+        // @0 calls @1, which is defined after it.
+        let Err(err) = QuantumProgram::new(
+            vec![
+                calling_function(FunctionId::from_index(1), &signature),
+                double_function(),
+            ],
+            DataTree::Leaf(()),
+            DataTree::Leaf(()),
+        ) else {
+            panic!("a call may not name a later function")
+        };
+        assert_eq!(
+            err.to_string(),
+            "@0 node 1 calls @1, which is not defined before it"
+        );
+    }
+
+    #[test]
+    fn a_call_whose_operands_disagree_with_its_callee_is_rejected() {
+        // The call is built against a signature describing something other than @0, which takes one
+        // F64[1]. Nothing is checked against @0 until the program is assembled.
+        let two_parameters = Signature {
+            inputs: vec![f64_1d(1), f64_1d(1)],
+            outputs: vec![f64_1d(1)],
+        };
+        let mut entry = ProgramFunction::new();
+        let x = entry.add_parameter(f64_1d(1));
+        let called = entry
+            .add_call(FunctionId::from_index(0), &two_parameters, &[x, x])
+            .unwrap()[0];
+        entry.add_result(called).unwrap();
+
+        let Err(err) = QuantumProgram::new(
+            vec![double_function(), entry],
+            DataTree::Leaf(()),
+            DataTree::Leaf(()),
+        ) else {
+            panic!("@0 takes one parameter, not two")
+        };
+        assert_eq!(
+            err.to_string(),
+            "@1 node 1 calls @0: it takes 1 parameter(s), the call supplies 2"
+        );
+
+        // One operand, of a shape @0 does not take.
+        let wider = Signature {
+            inputs: vec![f64_1d(2)],
+            outputs: vec![f64_1d(1)],
+        };
+        let Err(err) = QuantumProgram::new(
+            vec![
+                double_function(),
+                calling_function(FunctionId::from_index(0), &wider),
+            ],
+            DataTree::Leaf(()),
+            DataTree::Leaf(()),
+        ) else {
+            panic!("@0 takes an F64[1], and the call supplies an F64[2]")
+        };
+        assert!(matches!(
+            err,
+            ProgramError::CallParameterType { slot: 0, .. }
+        ));
+        assert_eq!(
+            err.to_string(),
+            "@1 node 1 calls @0: its parameter 0 is F64[1], the call supplies F64[2]",
+            "the calling function, the call node, the slot, and both types are named"
+        );
+    }
+
+    #[test]
+    fn a_call_whose_results_disagree_with_its_callee_is_rejected() {
+        let no_results = Signature {
+            inputs: vec![f64_1d(1)],
+            outputs: vec![],
+        };
+        let mut entry = ProgramFunction::new();
+        let x = entry.add_parameter(f64_1d(1));
+        assert!(
+            entry
+                .add_call(FunctionId::from_index(0), &no_results, &[x])
+                .unwrap()
+                .is_empty()
+        );
+        entry.add_result(x).unwrap();
+
+        let Err(err) = QuantumProgram::new(
+            vec![double_function(), entry],
+            DataTree::Leaf(()),
+            DataTree::Leaf(()),
+        ) else {
+            panic!("@0 produces a result the call does not declare")
+        };
+        assert_eq!(
+            err.to_string(),
+            "@1 node 1 calls @0: it produces 1 result(s), the call declares 0"
+        );
+
+        // One result, of a shape @0 does not produce.
+        let wider = Signature {
+            inputs: vec![f64_1d(1)],
+            outputs: vec![f64_1d(2)],
+        };
+        let Err(err) = QuantumProgram::new(
+            vec![
+                double_function(),
+                calling_function(FunctionId::from_index(0), &wider),
+            ],
+            DataTree::Leaf(()),
+            DataTree::Leaf(()),
+        ) else {
+            panic!("@0 produces an F64[1], and the call declares an F64[2]")
+        };
+        assert!(matches!(err, ProgramError::CallResultType { slot: 0, .. }));
+        assert_eq!(
+            err.to_string(),
+            "@1 node 1 calls @0: its result 0 is F64[1], the call declares F64[2]"
+        );
     }
 
     // ---------------------------------------------------------------------------
@@ -618,5 +1056,137 @@ mod test {
             })
         ));
         assert_eq!(err.to_string(), "argument 1: expected F64[1], got I64[1]");
+    }
+
+    /// A node type defined outside the crate whose `eval` always fails, reporting `builtin` for
+    /// [`OpNodeType::has_builtin_eval`]. A backend contributes work Qiskit cannot perform with
+    /// `builtin` false; with it true, the failure lands in the middle of a walk.
+    #[derive(Clone)]
+    struct Elsewhere {
+        builtin: bool,
+    }
+
+    /// The error [`Elsewhere`] returns when asked to evaluate itself.
+    #[derive(Debug)]
+    struct NoImplementation;
+
+    impl fmt::Display for NoImplementation {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(f, "vendor.elsewhere has no in-process implementation")
+        }
+    }
+
+    impl std::error::Error for NoImplementation {}
+
+    impl OpNodeType for Elsewhere {
+        type Error = NoImplementation;
+
+        fn name(&self) -> &str {
+            "elsewhere"
+        }
+
+        fn namespace(&self) -> &str {
+            "vendor"
+        }
+
+        fn arity(&self) -> usize {
+            1
+        }
+
+        fn has_builtin_eval(&self) -> bool {
+            self.builtin
+        }
+
+        fn infer_output_types(
+            &self,
+            inputs: &[TensorType],
+        ) -> Result<Vec<TensorType>, Self::Error> {
+            Ok(vec![inputs[0].clone()])
+        }
+
+        fn eval(&self, _args: &[Tensor]) -> Result<Vec<Tensor>, Self::Error> {
+            Err(NoImplementation)
+        }
+    }
+
+    /// A one-parameter, one-result function holding a single [`Elsewhere`].
+    fn vendor_function(builtin: bool) -> ProgramFunction {
+        let mut function = ProgramFunction::new();
+        let x = function.add_parameter(f64_1d(1));
+        let out = function.add_node(Elsewhere { builtin }, &[x]).unwrap()[0];
+        function.add_result(out).unwrap();
+        function
+    }
+
+    /// A program whose entry point @1 calls @0, which holds a single [`Elsewhere`].
+    fn calls_a_vendor_function(builtin: bool) -> QuantumProgram {
+        let callee = vendor_function(builtin);
+        let signature = callee.signature();
+        QuantumProgram::new(
+            vec![
+                callee,
+                calling_function(FunctionId::from_index(0), &signature),
+            ],
+            DataTree::Leaf(()),
+            DataTree::Leaf(()),
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn a_program_whose_call_reaches_a_node_needing_a_backend_names_that_node() {
+        let program = calls_a_vendor_function(false);
+        assert!(
+            !program.has_builtin_eval(),
+            "the entry point reaches @0, which needs a backend"
+        );
+
+        let Err(err) = program.eval(DataTree::Leaf(one_element(1.0))) else {
+            panic!("a program that needs a backend cannot be evaluated in process")
+        };
+        assert!(matches!(err, ProgramEvalError::NoBuiltinEval { .. }));
+        assert_eq!(
+            err.to_string(),
+            "@0 node 1 (vendor.elsewhere) has no built-in implementation",
+            "the function as well as the node is named"
+        );
+    }
+
+    #[test]
+    fn a_function_needing_a_backend_counts_even_where_nothing_calls_it() {
+        // The question is asked of every function a program holds, rather than only of those the
+        // entry point reaches.
+        let program = QuantumProgram::new(
+            vec![vendor_function(false), add_function()],
+            named_inputs(),
+            named_output(),
+        )
+        .unwrap();
+
+        assert!(!program.has_builtin_eval());
+    }
+
+    #[test]
+    fn a_call_that_fails_names_the_function_it_reached() {
+        let Err(err) = calls_a_vendor_function(true).eval(DataTree::Leaf(one_element(1.0))) else {
+            panic!("@0 fails as it runs")
+        };
+
+        assert_eq!(err.to_string(), "evaluating the call at node 1 to @0");
+        let mut source = std::error::Error::source(&err);
+        let messages: Vec<String> = std::iter::from_fn(|| {
+            let error = source?;
+            source = error.source();
+            Some(error.to_string())
+        })
+        .collect();
+        assert_eq!(
+            messages,
+            [
+                "evaluating node 1 (vendor.elsewhere)".to_string(),
+                "vendor.elsewhere has no in-process implementation".to_string(),
+            ],
+            "the chain leads from the call to the node that failed"
+        );
     }
 }

@@ -29,6 +29,21 @@ pub enum Dim {
     Bounded { max: usize },
 }
 
+impl Dim {
+    /// Whether every size `offered` allows is a size this dimension allows.
+    ///
+    /// A fixed dimension allows only its own size. Broadcasting, where a size of `1` stands for any
+    /// size, is [`rules::broadcast_dims`].
+    pub fn admits(self, offered: Dim) -> bool {
+        match (self, offered) {
+            (Dim::Fixed(n), Dim::Fixed(m)) => n == m,
+            (Dim::Fixed(_), Dim::Bounded { .. }) => false,
+            (Dim::Bounded { max }, Dim::Fixed(m)) => m <= max,
+            (Dim::Bounded { max }, Dim::Bounded { max: bound }) => bound <= max,
+        }
+    }
+}
+
 impl fmt::Display for Dim {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -57,6 +72,20 @@ impl TensorType {
     /// Return the dimension of every axis, or `None` if any is only bounded above.
     pub fn concrete_shape(&self) -> Option<Vec<usize>> {
         rules::require_static(&self.shape).ok()
+    }
+
+    /// Whether every tensor satisfying `other` also satisfies this type.
+    ///
+    /// A value of type `other` already fits this one, rather than fitting after broadcasting. It is
+    /// [`Tensor::matches`](super::Tensor::matches) with a type in place of the tensor.
+    pub fn admits(&self, other: &TensorType) -> bool {
+        self.dtype == other.dtype
+            && self.shape.len() == other.shape.len()
+            && self
+                .shape
+                .iter()
+                .zip(&other.shape)
+                .all(|(&dim, &offered)| dim.admits(offered))
     }
 }
 
@@ -92,6 +121,51 @@ mod test {
             bit_type(vec![Dim::Fixed(3), Dim::Bounded { max: 8 }]).concrete_shape(),
             None
         );
+    }
+
+    #[test]
+    fn test_dim_admits() {
+        let bounded = Dim::Bounded { max: 4 };
+
+        assert!(Dim::Fixed(3).admits(Dim::Fixed(3)));
+        assert!(bounded.admits(bounded));
+
+        // A bound admits a true size within it, up to and including the bound itself.
+        assert!(bounded.admits(Dim::Fixed(3)));
+        assert!(bounded.admits(Dim::Fixed(4)));
+        assert!(!bounded.admits(Dim::Fixed(5)));
+
+        // A tighter bound is admitted by a looser one, and not the other way round.
+        assert!(bounded.admits(Dim::Bounded { max: 2 }));
+        assert!(!Dim::Bounded { max: 2 }.admits(bounded));
+
+        // A true size is required where a true size is declared.
+        assert!(!Dim::Fixed(3).admits(bounded));
+
+        // A size of 1 stands for any size when broadcasting, which this is not.
+        assert!(!Dim::Fixed(3).admits(Dim::Fixed(1)));
+        assert!(!Dim::Fixed(1).admits(Dim::Fixed(3)));
+    }
+
+    #[test]
+    fn test_tensor_type_admits() {
+        let fixed = bit_type(vec![Dim::Fixed(3)]);
+
+        assert!(fixed.admits(&fixed));
+        assert!(
+            bit_type(vec![Dim::Bounded { max: 4 }]).admits(&fixed),
+            "per axis"
+        );
+
+        // The dtype and the number of axes must agree.
+        assert!(
+            !TensorType {
+                dtype: DType::F64,
+                shape: vec![Dim::Fixed(3)],
+            }
+            .admits(&fixed)
+        );
+        assert!(!fixed.admits(&bit_type(vec![Dim::Fixed(1), Dim::Fixed(3)])));
     }
 
     #[test]
