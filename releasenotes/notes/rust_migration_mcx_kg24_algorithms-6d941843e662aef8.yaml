@@ -1,8 +1,11 @@
 ---
 performance:
   - |
-    Improved the runtime performance of :py:func:`~qiskit.synthesis.synth_mcx_1_kg24` and
-    :py:func:`~qiskit.synthesis.synth_mcx_2_kg24` (and their ``_clean``/``_dirty`` variants)
+    Improved the runtime performance of
+    :func:`~qiskit.synthesis.synth_mcx_1_clean_kg24`,
+    :func:`~qiskit.synthesis.synth_mcx_1_dirty_kg24`,
+    :func:`~qiskit.synthesis.synth_mcx_2_clean_kg24`, and
+    :func:`~qiskit.synthesis.synth_mcx_2_dirty_kg24`
     by migrating the implementation to Rust. These functions synthesize multi-controlled X
     gates using 1 and 2 ancillary qubits respectively, with linear and logarithmic circuit
     depth (Khattar and Gidney). Benchmarks show a **2.2–3.0x speedup** for the 1-ancilla,

@@ -265,8 +265,8 @@ def synth_mcx_noaux_hp24(num_ctrl_qubits: int) -> QuantumCircuit:
 
 def synth_mcx_1_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit:
     r"""
-    Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`1` ancillary qubit as
-    described in Sec. 5 of [1].
+    Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`1` ancillary
+    qubits, producing a circuit with depth :math:`O(k)` as described in Sec. 5 of [1].
     For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
     (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
 

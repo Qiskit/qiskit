@@ -393,7 +393,8 @@ pub fn synth_mcx_n_dirty_i15(
 
 /// Helper function to create linear-depth ladder operations used in Khattar and Gidney's MCX synthesis.
 ///
-/// This implements Step 1 and Step 2 on Fig. 3 of [1] except for the first and last CCX gates.
+/// Together with the caller's initial rccx(control_0, control_1, ancilla), this implements
+/// the "up" and "down" Toffoli ladders of Step-1 and Step-2 in Fig. 3a of [1].
 ///
 /// # Arguments
 /// - num_controls: the number of qubits involved in the ladder operation.
@@ -506,25 +507,27 @@ pub fn synth_mcx_1_kg24(num_controls: usize, clean: bool) -> Result<CircuitData,
 
         let controls_map: Vec<Qubit> = (0..k).map(Qubit).collect();
 
-        // Step 1: turn the ancilla into a "conditionally clean" qubit holding
-        // AND(control_0, control_1). RCCX is used (rather than CCX) because its stray
-        // relative phase is harmless: it will cancel against the same RCCX's inverse
-        // in step 5.
+        // The steps below follow the base (clean) construction of Fig. 3a in [1].
+        // Step 1 (up ladder), part 1: turn the ancilla into a "conditionally clean" qubit
+        // holding AND(control_0, control_1) — the first gate of Fig. 3a's "up" ladder.
+        // RCCX is used (rather than CCX) because its stray relative phase is harmless:
+        // it will cancel against the same RCCX's inverse later.
         circuit.rccx(0, 1, ancilla)?;
-        // Step 2: fold in the remaining controls so that `final_ctrl` ends up holding
-        // AND(control_2, ..., control_{k-1}).
+        // Step 1 (up ladder), part 2, and Step 2 (down ladder): fold in the remaining
+        // controls so that `final_ctrl` ends up holding AND(control_2, ..., control_{k-1}).
         circuit.compose(&ladder, &controls_map, &[])?;
         // Step 3: the actual MCX action — flip the target iff the ancilla AND
         // final_ctrl are both set, i.e. iff AND(control_0, ..., control_{k-1}) holds.
         circuit.ccx(ancilla, final_ctrl, target)?;
-        // Steps 4-5: undo steps 2 and 1, restoring every control qubit and the ancilla
+        // Step 4: undo Steps 1-2, restoring every control qubit and the ancilla
         // to their original state (the ancilla ends back at |0> if it started there).
         circuit.compose(&ladder_inv, &controls_map, &[])?;
         circuit.rccx(0, 1, ancilla)?;
 
         if !clean {
-            // Dirty ancilla: repeat the compute/uncompute sandwich (toggle-detection) to
-            // cancel dependence on the ancilla's initial state.
+            // Dirty ancilla: repeat the compute/uncompute sandwich above once more
+            // (toggle-detection) so that dependence on the ancilla's unknown initial
+            // state cancels out.
             circuit.compose(&ladder, &controls_map, &[])?;
             circuit.ccx(ancilla, final_ctrl, target)?;
             circuit.compose(&ladder_inv, &controls_map, &[])?;
@@ -534,7 +537,7 @@ pub fn synth_mcx_1_kg24(num_controls: usize, clean: bool) -> Result<CircuitData,
     }
 }
 
-/// Builds the log-depth AND-folding ladder (Fig. 4b of [1]).
+/// Builds the log-depth AND-folding ladder (Step 2 in Fig. 4b of [1]).
 ///
 /// Reduces `num_controls` controls to a set of AND-flag qubits using a
 /// doubling-width tree of parallel X+RCCX gates. Qubits 0 and 1 must have
@@ -636,7 +639,7 @@ fn log_depth_ladder_ops(num_controls: u32) -> Result<(CircuitData, Vec<u32>), Ci
     Ok((qc, leftover_ctrls))
 }
 
-/// Flips `target` iff AND(ancilla0, leftover_ctrls...) holds (Step 3 of [1]).
+/// Flips `target` iff AND(ancilla0, leftover_ctrls...) holds (Step 3 of Fig. 4b in [1]).
 ///
 /// Uses a single CCX when `leftover_ctrls` has one element, or a precomputed
 /// `synth_mcx_1_kg24` circuit + qubit map (`mid_mcx`) for two or more.
@@ -725,6 +728,7 @@ pub fn synth_mcx_2_kg24(num_controls: usize, clean: bool) -> Result<CircuitData,
         let mut circuit =
             CircuitData::with_capacity(k + 3, 0, instruction_capacity, Param::Float(0.0))?;
 
+        // The steps below follow Fig. 4b in [1].
         // Step 1: prime -- turn ancilla0 into a conditionally clean qubit holding
         // AND(control_0, control_1). RCCX is used (rather than CCX) because its stray
         // relative phase is harmless: it will cancel against the same RCCX's inverse
