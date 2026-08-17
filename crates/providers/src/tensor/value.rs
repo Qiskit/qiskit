@@ -163,10 +163,7 @@ impl Tensor {
                 .shape()
                 .iter()
                 .zip(&ty.shape)
-                .all(|(&size, dim)| match *dim {
-                    Dim::Fixed(n) => size == n,
-                    Dim::Bounded { max } => size <= max,
-                })
+                .all(|(&size, &dim)| dim.admits(Dim::Fixed(size)))
     }
 
     /// Element-wise power with NumPy-style broadcasting.
