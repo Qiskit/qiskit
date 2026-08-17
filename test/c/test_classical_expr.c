@@ -29,8 +29,28 @@ QkExprNode *inner_test_unary_expr_ops(QkUnaryOpType);
 QkExprNode *inner_test_binary_expr_ops(QkBinaryOpType);
 QkExprNode *inner_test_expr_kinds_and_types(QkExprNodeKind, QkExprTypeInfo);
 QkExprNode *inner_test_value(QkExprType, bool, QkDurationInfo, double, uint64_t);
+QkValue *inner_test_value_biguint(const uint8_t *, size_t, bool, uint32_t);
 void inned_test_old_style_vars(QkExprNode **);
 void *inner_expr_free(QkExprNode *);
+void *inner_value_free(QkValue *);
+
+/*
+ * Print QkBigUint values (debug helper)
+ */
+static void biguint_debug_print(const QkBigUint *biguint, const char *name) {
+    if (name == NULL)
+        name = "biguint";
+    printf("%s.num_limbs = %zu\n", name, biguint->num_limbs);
+    for (size_t limb_idx = 0; limb_idx < biguint->num_limbs; limb_idx++) {
+        printf("%s[%zu] = [", name, limb_idx);
+        for (size_t i = 0; i < sizeof(uint64_t); i++) {
+            printf("%02" PRIX8, ((uint8_t *)biguint->limbs)[sizeof(uint64_t) * limb_idx + i]);
+            if (i < sizeof(uint64_t) - 1)
+                printf(" ");
+        }
+        printf("]\n");
+    }
+}
 
 /*
  * Test that expression tree structure is captured correctly via the information structs
@@ -437,6 +457,7 @@ static int test_expr_value(void) {
     int result = Ok;
     QkDurationInfo duration_info = {QkDurationType_Dt, {.dt = 12345}};
     QkExprNode *expr = NULL;
+    QkBigUint biguint_val = {0};
 
     for (uint8_t ty = QkExprType_Bool; ty <= QkExprType_Uint; ty++) {
         expr = inner_test_value((QkExprType)ty, true, duration_info, 3.14, 12345);
@@ -525,6 +546,20 @@ static int test_expr_value(void) {
                 result = EqualityError;
                 goto cleanup;
             }
+
+            biguint_val = qk_value_biguint(value);
+
+            if (biguint_val.num_limbs != 1) {
+                printf("Expected biguint value length 1 (one limb), got %" PRIu64 "\n",
+                       biguint_val.num_limbs);
+                result = EqualityError;
+                goto cleanup;
+            }
+            if (biguint_val.limbs[0] != 12345) {
+                printf("Expected biguint value 12345, got %" PRIu64 "\n", biguint_val.limbs[0]);
+                result = EqualityError;
+                goto cleanup;
+            }
         }
 
         inner_expr_free(expr);
@@ -536,7 +571,156 @@ cleanup:
     if (expr)
         inner_expr_free(expr);
 
+    if (biguint_val.limbs)
+        qk_biguint_clear(&biguint_val);
+
     return result;
+}
+
+typedef struct {
+    const char *label;
+
+    const uint8_t *bytes;
+    size_t bytes_len;
+    bool bit_width_auto;
+    uint32_t bit_width;
+
+    QkBigUint expected;
+} BigUint_TestCase;
+
+static enum TestResult check_biguint_value(const BigUint_TestCase *tc) {
+    enum TestResult result = Ok;
+
+    // Create test QkValue:
+    QkValue *value =
+        inner_test_value_biguint(tc->bytes, tc->bytes_len, tc->bit_width_auto, tc->bit_width);
+
+    // Extract QkBigUint from QkValue (copy):
+    QkBigUint actual = qk_value_biguint(value);
+
+    // Check that actual and expected biguints are equal:
+    if (!(actual.num_limbs == tc->expected.num_limbs &&
+          memcmp(actual.limbs, tc->expected.limbs, tc->expected.num_limbs * sizeof(uint64_t)) ==
+              0)) {
+        printf("Unexpected QkBigUint value for '%s'\n", tc->label);
+        biguint_debug_print(&tc->expected, "expected");
+        biguint_debug_print(&actual, "actual");
+        result = EqualityError;
+    }
+
+    // Cleanup:
+    qk_biguint_clear(&actual);
+    inner_value_free(value);
+
+    return result;
+}
+
+/*
+ * Test construction of `QkBigUint` from `QkValue`.
+ */
+static int test_expr_value_biguint(void) {
+    enum TestResult result = Ok;
+
+    // Data for constructing a testing QkValue.
+    const uint8_t testdata[] = {
+        /*  0.. 8 */ 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+        /*  8..16 */ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+        /* 16..24 */ 0xEE, 0xDD, 0xCC, 0xBB, 0xAA, 0x99, 0x88, 0x77,
+    };
+    // Expected output data. Type is `uint64_t[]` so that comparison is endian-independent.
+    const uint64_t expected_limbs[] = {
+        0x0807060504030201,
+        0xFFFFFFFFFFFFFFFF,
+        0x778899AABBCCDDEE,
+    };
+
+    const BigUint_TestCase one_limb = {
+        .label = "one_limb",
+        .bytes = testdata,
+        .bytes_len = 1 * sizeof(uint64_t),
+        .bit_width_auto = true,
+        .bit_width = 0,
+        .expected = {.limbs = expected_limbs, .num_limbs = 1},
+    };
+    result = check_biguint_value(&one_limb);
+    if (result != Ok)
+        return result;
+
+    const BigUint_TestCase two_limbs = {
+        .label = "two_limbs",
+        .bytes = testdata,
+        .bytes_len = 2 * sizeof(uint64_t),
+        .bit_width_auto = true,
+        .bit_width = 0,
+        .expected = {.limbs = expected_limbs, .num_limbs = 2},
+    };
+    result = check_biguint_value(&two_limbs);
+    if (result != Ok)
+        return result;
+
+    const BigUint_TestCase three_limbs = {
+        .label = "three_limbs",
+        .bytes = testdata,
+        .bytes_len = 3 * sizeof(uint64_t),
+        .bit_width_auto = true,
+        .bit_width = 0,
+        .expected = {.limbs = expected_limbs, .num_limbs = 3},
+    };
+    result = check_biguint_value(&three_limbs);
+    if (result != Ok)
+        return result;
+
+    // `bit_width` should be ignored.
+    {
+        const BigUint_TestCase zero_bitwidth = {
+            .label = "zero_bitwidth",
+            .bytes = testdata + (2 * sizeof(uint64_t)),
+            .bytes_len = 1 * sizeof(uint64_t),
+            .bit_width_auto = false, // <- notice: `bit_width` not auto-calculated.
+            .bit_width = 0,
+            .expected = {.limbs = &expected_limbs[2], .num_limbs = 1},
+        };
+        result = check_biguint_value(&zero_bitwidth);
+        if (result != Ok)
+            return result;
+
+        BigUint_TestCase big_bitwidth = zero_bitwidth;
+        big_bitwidth.label = "big_bitwidth";
+        big_bitwidth.bit_width = 1000;
+        result = check_biguint_value(&big_bitwidth);
+        if (result != Ok)
+            return result;
+    }
+
+    // Bigger BigUint
+    {
+        const size_t BIG_LIMB_LEN = 2000;
+        uint8_t big_bytes[BIG_LIMB_LEN * sizeof(uint64_t)];
+        for (size_t i = 0; i < sizeof(big_bytes); i++)
+            big_bytes[i] = (uint8_t)i;
+
+        uint64_t big_expected[BIG_LIMB_LEN];
+        for (size_t limb_idx = 0; limb_idx < BIG_LIMB_LEN; limb_idx++) {
+            for (size_t i = 0; i < sizeof(uint64_t); i++) {
+                big_expected[limb_idx] |= (uint64_t)big_bytes[limb_idx * sizeof(uint64_t) + i]
+                                          << (8 * i);
+            }
+        }
+
+        const BigUint_TestCase big = {
+            .label = "big",
+            .bytes = big_bytes,
+            .bytes_len = BIG_LIMB_LEN * sizeof(uint64_t),
+            .bit_width_auto = true,
+            .bit_width = 0,
+            .expected = {.limbs = big_expected, .num_limbs = BIG_LIMB_LEN},
+        };
+        result = check_biguint_value(&big);
+        if (result != Ok)
+            return result;
+    }
+
+    return Ok;
 }
 
 int test_classical_expr(void) {
@@ -548,6 +732,7 @@ int test_classical_expr(void) {
     num_failed += RUN_TEST(test_expr_var);
     num_failed += RUN_TEST(test_expr_stretch);
     num_failed += RUN_TEST(test_expr_value);
+    num_failed += RUN_TEST(test_expr_value_biguint);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

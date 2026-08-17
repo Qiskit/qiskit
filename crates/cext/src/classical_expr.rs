@@ -12,7 +12,7 @@
 
 use std::ptr;
 
-use crate::pointers::const_ptr_as_ref;
+use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 use num_bigint::BigUint;
 use num_traits::{ToPrimitive, Zero};
 use qiskit_circuit::{
@@ -813,6 +813,93 @@ pub unsafe extern "C" fn qk_value_uint(value: *const Value) -> u64 {
         .expect("Integer value too large to fit in uint64_t")
 }
 
+/// Representation of big-integer data.
+///
+/// The slice ``self.limbs[0..self.num_limbs]`` holds the limbs (big-digits) of the unsigned bigint in
+/// little-endian order. Each limb itself is encoded native-endian.
+///
+/// Trailing limbs where the value is zero will not be included. Notice that this implies that the
+/// buffer may be smaller than what you expect by inspecting the bit-width from `QkExprTypeInfo`.
+///
+/// **Ownership**: When constructed by calling `qk_value_biguint`, the caller owns the memory, and
+/// is responsible for calling `qk_biguint_clear` to free it at the end of use.
+#[repr(C)]
+pub struct CBigUint {
+    /// A buffer containing the bigint data, where each ``uint64_t`` element represents a limb
+    /// (big-digit) of the bigint.
+    limbs: *const u64,
+    /// Number of limbs.
+    num_limbs: usize,
+}
+
+/// @ingroup QkClassicalExpressions
+/// Extract the unsigned bigint value from a ``QkValue``. The data is copied
+/// to a freshly allocated `QkBigUint` which the caller owns after calling
+/// this function.
+///
+/// @param value A pointer to a uint value.
+///
+/// @return A `QkBigUint` that contains a copy of the big-integer data. Value is owned by the caller
+///     and should be freed with `qk_biguint_clear` when no longer in use.
+///
+/// Panics if ``value`` does not point to a ``QkExprType_Uint`` value.
+///
+/// # Example
+/// ```c
+/// QkBigUint biguint = qk_value_biguint(value);
+/// for (size_t i = 0; i< biguint.num_limbs; i++)
+///     printf("biguint.limbs[i] = %lx\n", biguint.limbs[i]);
+/// qk_biguint_clear(&biguint);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``value`` is not a valid, non-null pointer to a ``QkValue``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_value_biguint(value: *const Value) -> CBigUint {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let value = unsafe { const_ptr_as_ref(value) };
+
+    let Value::Uint {
+        raw,
+        ty: Type::Uint(_),
+    } = value
+    else {
+        panic!("qk_value_biguint called on non-uint value")
+    };
+
+    let biguint_slice = raw.iter_u64_digits().collect::<Vec<_>>().into_boxed_slice();
+    let result = CBigUint {
+        limbs: biguint_slice.as_ptr(),
+        num_limbs: biguint_slice.len(),
+    };
+    std::mem::forget(biguint_slice);
+    result
+}
+
+/// @ingroup QkClassicalExpressions
+/// Clear a `QkBigUint`.
+///
+/// This function frees the buffer. The pointer is then set to null, and the length is
+/// set to zero.
+///
+/// @param biguint Pointer to `QkBigUint`.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``biguint`` is not a valid, non-null pointer to a `QkBigUint`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_biguint_clear(biguint: *mut CBigUint) {
+    // SAFETY: Per documentation, `biguint` is a valid, non-null pointer.
+    let biguint = unsafe { mut_ptr_as_ref(biguint) };
+    let slice = ptr::slice_from_raw_parts_mut(biguint.limbs as *mut u64, biguint.num_limbs);
+    // SAFETY: Per documentation, converting the value to an owned slice must be valid.
+    unsafe { drop(Box::from_raw(slice)) };
+
+    biguint.limbs = ptr::null();
+    biguint.num_limbs = 0;
+}
+
 /// @ingroup QkClassicalExpressions
 /// Extract the value from a ``QkValue`` of type ``QkExprType_Bool``.
 ///
@@ -1149,6 +1236,43 @@ pub unsafe extern "C" fn inner_test_value(
 
 /// cbindgen:qk-vtable-rules=[no-export]
 /// cbindgen:no-export
+///
+/// Create [`Value::Uint`] with big values for testing.
+///
+/// Copies `buf[0..len]` to a new [`Value::Uint`]. Note that `buf: *const u8` is agnostic regarding
+/// endianness -- unlike the inner representation of [`Value::Uint`] and [`QkBigUint`].
+///
+/// If `bit_width_auto` is true, calculate the bit-width metadata in `value::uint { ty: uint(_), .. }`
+/// according to the buffer size `len`, and ignore the `bit_width` parameter. Otherwise, use the
+/// `bit_width` parameter. Note that this stored bit-width metadata is treated as a hint, and we
+/// avoid relying on it for operations where using a wrong value may cause memory-unsafety.
+#[allow(clippy::missing_safety_doc)]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inner_test_value_biguint(
+    buf: *const u8,
+    len: usize,
+    bit_width_auto: bool,
+    bit_width: u32,
+) -> *mut Value {
+    let bytes: &[u8] = unsafe { std::slice::from_raw_parts(buf, len) };
+    let raw = BigUint::from_bytes_le(bytes);
+
+    let bit_width = if bit_width_auto {
+        u32::try_from(len).unwrap() * u64::BITS
+    } else {
+        bit_width
+    };
+
+    let value = Value::Uint {
+        raw,
+        ty: Type::Uint(bit_width),
+    };
+
+    Box::into_raw(Box::new(value))
+}
+
+/// cbindgen:qk-vtable-rules=[no-export]
+/// cbindgen:no-export
 #[allow(clippy::missing_safety_doc)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn inned_test_old_style_vars(out_vars: *mut *mut Expr) {
@@ -1174,4 +1298,12 @@ pub unsafe extern "C" fn inned_test_old_style_vars(out_vars: *mut *mut Expr) {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn inner_expr_free(expr: *mut Expr) {
     drop(unsafe { Box::from_raw(expr) })
+}
+
+/// cbindgen:qk-vtable-rules=[no-export]
+/// cbindgen:no-export
+#[allow(clippy::missing_safety_doc)]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn inner_value_free(value: *mut Value) {
+    drop(unsafe { Box::from_raw(value) })
 }
