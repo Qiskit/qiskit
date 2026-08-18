@@ -14,8 +14,11 @@
 
 import io
 from test import QiskitTestCase
-from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit import Duration, Parameter, QuantumCircuit
 from qiskit import qpy
+from qiskit.qpy import type_keys
+from qiskit.qpy.binary_io import value as value_io
+from qiskit.qpy.exceptions import UnsupportedFeatureForVersion
 from qiskit.quantum_info import SparseObservable
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.circuit.library import PauliEvolutionGate
@@ -106,3 +109,36 @@ class TestPauliEvolution(QiskitTestCase):
             qc_from_qpy = qpy.load(container)[0]
 
         self.assertEqual(circuit, qc_from_qpy)
+
+
+class TestDurationValue(QiskitTestCase):
+    """Serializing a ``Duration`` value, which QPY 18 gave a type key of its own.
+
+    Up to QPY 17 a ``Duration`` shared :attr:`.Container.TUPLE`'s key, so a reader had to be told
+    which of the two a payload held; there was no way to write one as a standalone value.
+    """
+
+    def test_duration_uses_its_own_key(self):
+        """Every duration unit round-trips under the ``DURATION`` key from version 18."""
+        for duration in (
+            Duration.dt(100),
+            Duration.ps(1.5),
+            Duration.ns(250.0),
+            Duration.us(0.5),
+            Duration.ms(2.0),
+            Duration.s(1.0),
+        ):
+            with self.subTest(duration=duration):
+                type_key, data = value_io.dumps_value(duration, version=18)
+                self.assertEqual(type_key, type_keys.Value.DURATION)
+                self.assertEqual(value_io.loads_value(type_key, data, 18, {}), duration)
+
+    def test_duration_key_is_distinct_from_tuple(self):
+        """The whole point: the key no longer collides with a container."""
+        self.assertNotEqual(type_keys.Value.DURATION, type_keys.Container.TUPLE)
+        self.assertNotEqual(type_keys.Value.BIGINT, type_keys.Value.INTEGER)
+
+    def test_duration_rejected_before_v18(self):
+        """Below 18 there is no unambiguous encoding, so refuse rather than write one."""
+        with self.assertRaises(UnsupportedFeatureForVersion):
+            value_io.dumps_value(Duration.dt(100), version=17)

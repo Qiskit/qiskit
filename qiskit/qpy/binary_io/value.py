@@ -844,6 +844,19 @@ def _read_duration(file_obj) -> Duration:
     raise exceptions.QpyError(f"Invalid duration Type key '{type_key}'")
 
 
+def _read_bigint(file_obj) -> int:
+    """Read a ``BIGINT`` value: a one-byte length, then that many big-endian magnitude bytes.
+
+    The layout is the one the expression writer uses for an integer value (:attr:`ExprValue.INT`),
+    but read as unsigned: a ``BIGINT`` is only produced for a non-negative value too large for an
+    ``int64``, so there is no sign byte to account for.
+    """
+    payload = formats.EXPR_VALUE_INT._make(
+        struct.unpack(formats.EXPR_VALUE_INT_PACK, file_obj.read(formats.EXPR_VALUE_INT_SIZE))
+    )
+    return int.from_bytes(file_obj.read(payload.num_bytes), "big", signed=False)
+
+
 def read_standalone_vars(file_obj, num_vars):
     """Read the ``num_vars`` standalone variable declarations from the file.
 
@@ -999,6 +1012,18 @@ def dumps_value(
             standalone_var_indices=standalone_var_indices,
             version=version,
         )
+    elif type_key == type_keys.Value.DURATION:
+        # Only from QPY 18: before that, a standalone `Duration` value had no unambiguous key of its
+        # own, and nothing in the format wrote one.
+        if version < 18:
+            raise exceptions.UnsupportedFeatureForVersion(
+                "a Duration value", required=18, target=version
+            )
+        if version < 16 and obj.unit() == "ps":
+            raise exceptions.UnsupportedFeatureForVersion(
+                "Duration variant 'Duration.ps'", required=16, target=version
+            )
+        binary_data = common.data_to_binary(obj, _write_duration)
     else:
         raise exceptions.QpyError(f"Serialization for {type_key} is not implemented in value I/O.")
 
@@ -1114,6 +1139,12 @@ def loads_value(
             cregs=cregs or {},
             standalone_vars=standalone_vars,
         )
+    # Both keys exist only from QPY 18; an earlier payload cannot contain them, so no version
+    # branching is needed here.
+    if type_key == type_keys.Value.DURATION:
+        return common.data_from_binary(binary_data, _read_duration)
+    if type_key == type_keys.Value.BIGINT:
+        return common.data_from_binary(binary_data, _read_bigint)
 
     raise exceptions.QpyError(f"Serialization for {type_key} is not implemented in value I/O.")
 

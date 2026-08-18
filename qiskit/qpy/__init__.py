@@ -462,6 +462,29 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+.. _qpy_version_18:
+
+Version 18
+----------
+
+Version 18 gives two value types a type key of their own, in the ``type`` field of an
+``INSTRUCTION_PARAM`` (see :ref:`qpy_instructions`) and anywhere else a value is stored with its key:
+
+* ``'D'`` for a :class:`.Duration`, which up to :ref:`version 17 <qpy_version_17>` shared ``'t'``
+  with a tuple.  The payload is unchanged: the one-byte unit discriminator followed by that unit's
+  value, exactly as in a ``DURATION`` item.
+* ``'I'`` for an arbitrary-precision integer, which up to version 17 shared ``'i'`` with a 64-bit
+  integer.  The payload is unchanged: one byte of length followed by that many big-endian magnitude
+  bytes.
+
+Neither type could be identified from its key before, so a reader had to be told from context which
+of the two possibilities a payload held — for instance that the first parameter of a ``BoxOp`` is a
+duration rather than a tuple, or that an ``'i'`` payload longer than eight bytes is an
+arbitrary-precision integer rather than a 64-bit one.  From version 18 a value can be decoded from
+its own bytes.
+
+Payloads of :ref:`version 17 <qpy_version_17>` and earlier are read exactly as before.
+
 .. _qpy_version_17:
 
 Version 17
@@ -2152,6 +2175,11 @@ struct (on QPY format :ref:`qpy_version_3` the format is tweak slightly see:
 and in QPY :ref:`qpy_version_3` ``'v'`` represents a
 :class:`~qiskit.circuit.ParameterVectorElement` which is represented by a
 :ref:`qpy_param_vector` struct.
+
+From :ref:`version 18 <qpy_version_18>` two further keys are used: ``'D'`` for a
+:class:`.Duration` and ``'I'`` for an arbitrary-precision integer.  Before that version those
+values shared the keys of a tuple and of a 64-bit integer respectively, and were told apart by
+context rather than by their key.
 
 .. _qpy_param_struct:
 

@@ -420,6 +420,14 @@ pub(crate) fn py_convert_to_generic_value(
                 ))
             }
         }
+        // Unreachable: `py_get_type_key` maps every Python `int` to `Integer` and has no branch for
+        // `Duration`, since no public API lets a bare `Duration` into a circuit.  Both only arise
+        // when *reading* -- from an `'I'`/`'D'` payload, or a switch-case specifier -- so there is
+        // nothing to convert here.  Listed explicitly rather than as a `_` arm so that a new
+        // `ValueType` variant fails to compile here instead of quietly landing in this branch.
+        ValueType::BigInt | ValueType::Duration => Err(QpyError::ConversionError(
+            "big integer and duration values are not produced from Python objects".to_string(),
+        )),
     }
 }
 
