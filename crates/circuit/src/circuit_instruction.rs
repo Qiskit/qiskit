@@ -758,7 +758,8 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
                         } else {
                             None
                         };
-                        let annotations = ob.getattr(intern!(py, "annotations"))?
+                        let annotations = ob
+                            .getattr(intern!(py, "annotations"))?
                             .try_iter()?
                             .map(|a| Ok(extract_annotation(&a?)))
                             .collect::<PyResult<Vec<_>>>()?;

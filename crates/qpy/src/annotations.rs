@@ -95,7 +95,11 @@ impl AnnotationHandler {
 
     pub fn load(&self, index: u32, payload: Bytes) -> Result<Arc<dyn Annotation>, QpyError> {
         match self {
-            Self::Python {..} => Python::attach(|py| Ok(extract_annotation(self.load_py(py, index, payload)?.bind(py)))),
+            Self::Python { .. } => Python::attach(|py| {
+                Ok(extract_annotation(
+                    self.load_py(py, index, payload)?.bind(py),
+                ))
+            }),
             Self::Native => Err(Self::native_error("deserialize")),
         }
     }

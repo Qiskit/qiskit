@@ -599,9 +599,11 @@ impl ControlFlowInstruction {
                         duration,
                         unit,
                         label,
-                        PyTuple::new(py, annotations
-                            .iter()
-                            .map(|a| a.create_py_annotation(py).unwrap())
+                        PyTuple::new(
+                            py,
+                            annotations
+                                .iter()
+                                .map(|a| a.create_py_annotation(py).unwrap()),
                         )?,
                     ),
                 )
@@ -708,7 +710,7 @@ impl PartialEq for ControlFlowInstruction {
                 }
                 _ => false,
             },
-            ControlFlow::BreakLoop => matches!(&other.control_flow, ControlFlow::BreakLoop), 
+            ControlFlow::BreakLoop => matches!(&other.control_flow, ControlFlow::BreakLoop),
             ControlFlow::ContinueLoop => matches!(&other.control_flow, ControlFlow::ContinueLoop),
             ControlFlow::ForLoop {
                 collection: self_collection,
@@ -737,9 +739,11 @@ impl PartialEq for ControlFlowInstruction {
                     target: other_target,
                     label_spec: other_label_spec,
                     cases: other_cases,
-                } => self_cases == other_cases
-                    && self_target == other_target
-                    && self_label_spec == other_label_spec,
+                } => {
+                    self_cases == other_cases
+                        && self_target == other_target
+                        && self_label_spec == other_label_spec
+                }
                 _ => false,
             },
             ControlFlow::While {

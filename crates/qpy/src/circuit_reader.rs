@@ -329,7 +329,7 @@ pub fn instruction_values_to_params(
 fn unpack_annotations(
     packed_annotations: &Option<formats::InstructionsAnnotationPack>,
     qpy_data: &mut QPYReadData,
-) -> Result<Vec<Arc< dyn Annotation>>, QpyError> {
+) -> Result<Vec<Arc<dyn Annotation>>, QpyError> {
     if let Some(annotations_vec) = packed_annotations {
         annotations_vec
             .annotations
@@ -879,12 +879,12 @@ fn unpack_py_instruction(
                             .iter()
                             .map(|annotation| {
                                 qpy_data.annotation_handler.load_py(
-                                    py, 
+                                    py,
                                     annotation.namespace_index,
                                     annotation.payload.clone(),
                                 )
-                        })
-                        .collect::<Result<Vec<_>, QpyError>>()?,
+                            })
+                            .collect::<Result<Vec<_>, QpyError>>()?,
                     )?,
                     None => PyList::empty(py),
                 }

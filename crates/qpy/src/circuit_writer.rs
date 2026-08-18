@@ -121,7 +121,8 @@ pub(crate) fn pack_annotations(
     let annotations_pack: Vec<formats::InstructionAnnotationPack> = annotations
         .iter()
         .map(|annotation| {
-            let (namespace_index, payload) = qpy_data.annotation_handler.serialize(annotation.as_ref())?;
+            let (namespace_index, payload) =
+                qpy_data.annotation_handler.serialize(annotation.as_ref())?;
             Ok(formats::InstructionAnnotationPack {
                 namespace_index,
                 payload,

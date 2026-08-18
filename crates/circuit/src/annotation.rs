@@ -19,7 +19,7 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyString;
 
-use crate::annotation::custom_traits::{ComparableAnnotation};
+use crate::annotation::custom_traits::ComparableAnnotation;
 
 /// An arbitrary annotation for instructions.
 ///
@@ -56,7 +56,7 @@ use crate::annotation::custom_traits::{ComparableAnnotation};
 /// annotations to declare their validity requirements in the future.
 #[pyclass(module = "qiskit.circuit", name = "Annotation", subclass, frozen)]
 pub struct PyAnnotation {
-    inner: Option<Arc<dyn Annotation>>
+    inner: Option<Arc<dyn Annotation>>,
 }
 
 #[pymethods]
@@ -91,7 +91,7 @@ impl PyAnnotation {
 
 impl PyAnnotation {
     pub fn new(inner: Arc<dyn Annotation>) -> Self {
-        Self {inner: Some(inner)}
+        Self { inner: Some(inner) }
     }
 
     pub fn inner(&self) -> Option<&Arc<dyn Annotation>> {
@@ -150,13 +150,16 @@ pub struct PythonAnnotation {
 
 impl PythonAnnotation {
     pub fn new(annotation: Py<PyAny>) -> Self {
-        Self {annotation, namespace: OnceLock::new()}
+        Self {
+            annotation,
+            namespace: OnceLock::new(),
+        }
     }
 }
 
 impl Annotation for PythonAnnotation {
     fn namespace(&self) -> &str {
-        if let Some(namespace) = self.namespace.get(){
+        if let Some(namespace) = self.namespace.get() {
             return namespace;
         }
         let namespace = Python::attach(|py| {
@@ -176,30 +179,31 @@ impl Annotation for PythonAnnotation {
 
 impl PartialEq for PythonAnnotation {
     fn eq(&self, other: &Self) -> bool {
-        self.annotation.is(&other.annotation) 
+        self.annotation.is(&other.annotation)
             || Python::attach(|py| {
                 self.annotation
                     .bind(py)
                     .eq(other.annotation.bind(py))
                     .unwrap()
-        })
+            })
     }
 }
 
 pub fn extract_annotation(ob: &Bound<'_, PyAny>) -> Arc<dyn Annotation> {
-    if let Ok(base) = ob.cast::<PyAnnotation>() 
-        && let Some(native) = base.get().inner() {
-            return Arc::clone(native);
-        }
-    
+    if let Ok(base) = ob.cast::<PyAnnotation>()
+        && let Some(native) = base.get().inner()
+    {
+        return Arc::clone(native);
+    }
+
     Arc::new(PythonAnnotation::new(ob.clone().unbind()))
 }
 
 #[cfg(test)]
 mod test_annotation {
-    use std::sync::Arc;
-    use pyo3::prelude::*;
     use crate::annotation::Annotation;
+    use pyo3::prelude::*;
+    use std::sync::Arc;
 
     macro_rules! impl_annotation {
         ($ty:ident; $namespace:expr,) => {
@@ -234,7 +238,7 @@ mod test_annotation {
         let tag: Arc<dyn Annotation> = Arc::new(Tag("my_tag"));
 
         let tag = tag.downcast_ref::<Tag>().expect("Should be a Tag.");
-        assert_eq!(tag, &Tag("my_tag")) ;
+        assert_eq!(tag, &Tag("my_tag"));
     }
 
     #[test]
