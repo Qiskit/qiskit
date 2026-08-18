@@ -106,10 +106,8 @@ fn rotation_axis_from_so3(matrix: &Matrix3<f64>, do_checks: bool) -> Matrix3x1<f
                 axis[2] *= -1.;
             }
         }
-        1 => {
-            if matrix[(1, 2)] < 0. {
-                axis[2] *= -1.;
-            }
+        1 if matrix[(1, 2)] < 0. => {
+            axis[2] *= -1.;
         }
         _ => (),
     };

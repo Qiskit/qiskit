@@ -10,8 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::env;
-
 pub mod annotation;
 pub mod bit;
 pub mod bit_locator;
@@ -37,21 +35,21 @@ pub mod packed_instruction;
 pub mod parameter;
 pub mod parameter_table;
 pub mod register_data;
-pub mod slice;
-pub mod util;
+pub mod standard_gate;
 pub mod var_stretch_container;
 mod variable_mapper;
 pub mod vf2;
 
+use bytemuck::AnyBitPattern;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PySequence, PyString, PyTuple};
 
-#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
+#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject, AnyBitPattern)]
 #[repr(transparent)]
 pub struct Qubit(pub u32);
 
-#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject)]
+#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, FromPyObject, AnyBitPattern)]
 #[repr(transparent)]
 pub struct Clbit(pub u32);
 
@@ -216,19 +214,6 @@ impl From<CapacityError> for PyErr {
     }
 }
 
-#[inline]
-pub fn getenv_use_multiple_threads() -> bool {
-    let parallel_context = env::var("QISKIT_IN_PARALLEL")
-        .unwrap_or_else(|_| "FALSE".to_string())
-        .to_uppercase()
-        == "TRUE";
-    let force_threads = env::var("QISKIT_FORCE_THREADS")
-        .unwrap_or_else(|_| "FALSE".to_string())
-        .to_uppercase()
-        == "TRUE";
-    !parallel_context || force_threads
-}
-
 pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<annotation::PyAnnotation>()?;
     m.add_class::<bit::PyBit>()?;
@@ -255,6 +240,7 @@ pub fn circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<parameter::parameter_expression::PyParameterExpression>()?;
     m.add_class::<parameter::parameter_expression::PyParameter>()?;
     m.add_class::<parameter::parameter_expression::PyParameterVectorElement>()?;
+    m.add_class::<parameter::parameter_expression::PyParameterVector>()?;
     m.add_class::<parameter::parameter_expression::OpCode>()?;
     m.add_class::<parameter::parameter_expression::OPReplay>()?;
     let classical_mod = PyModule::new(m.py(), "classical")?;

@@ -16,7 +16,7 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use std::vec::Vec;
 
-use qiskit_circuit::slice::PySequenceIndex;
+use qiskit_util::py::PySequenceIndex;
 
 pub fn validate_permutation(pattern: &ArrayView1<i64>) -> PyResult<()> {
     let n = pattern.len();

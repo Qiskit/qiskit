@@ -34,9 +34,9 @@ use pyo3::pybacked::PyBackedStr;
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
-use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
-use qiskit_circuit::util::c64;
 use qiskit_circuit::{Qubit, impl_intopyobject_for_copy_pyclass};
+use qiskit_util::complex::c64;
+use qiskit_util::py::{PySequenceIndex, SequenceIndex};
 
 pub const ANGLE_ZERO_EPSILON: f64 = 1e-12;
 

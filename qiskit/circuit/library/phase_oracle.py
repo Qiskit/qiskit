@@ -14,10 +14,13 @@
 
 from __future__ import annotations
 
-from qiskit.circuit import QuantumCircuit, Gate
+import typing
 
-from qiskit.synthesis.boolean.boolean_expression import BooleanExpression
+from qiskit.circuit import QuantumCircuit, Gate
 from qiskit.utils.deprecation import deprecate_func
+
+if typing.TYPE_CHECKING:
+    from qiskit.synthesis.boolean.boolean_expression import BooleanExpression
 
 
 class PhaseOracle(QuantumCircuit):
@@ -66,6 +69,7 @@ class PhaseOracle(QuantumCircuit):
             var_order: A list with the order in which variables will be created.
                (default: by appearance)
         """
+        from qiskit.synthesis.boolean.boolean_expression import BooleanExpression
 
         if isinstance(expression, str):
             expression = BooleanExpression(expression, var_order=var_order)
@@ -134,6 +138,8 @@ class PhaseOracle(QuantumCircuit):
         Returns:
             PhaseOracle: A quantum circuit with a phase oracle.
         """
+        from qiskit.synthesis.boolean.boolean_expression import BooleanExpression
+
         expr = BooleanExpression.from_dimacs_file(filename)
         return cls(expr)
 
@@ -182,6 +188,8 @@ class PhaseOracleGate(Gate):
             label: A label for the gate to display in visualizations. Per default, the label is
                 set to display the textual representation of the boolean expression (truncated if needed)
         """
+        from qiskit.synthesis.boolean.boolean_expression import BooleanExpression
+
         if label is None:
             if isinstance(expression, str):
                 label = (expression[:15] + "...") if len(expression) > 15 else expression
@@ -248,5 +256,7 @@ class PhaseOracleGate(Gate):
         Returns:
             PhaseOracleGate: A quantum circuit with a phase oracle.
         """
+        from qiskit.synthesis.boolean.boolean_expression import BooleanExpression
+
         expr = BooleanExpression.from_dimacs_file(filename)
         return cls(expr)

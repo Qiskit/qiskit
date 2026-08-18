@@ -97,6 +97,7 @@ from qiskit.transpiler.passes import (
     GateDirection,
     VF2PostLayout,
     WrapAngles,
+    SabreLayout,
 )
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
@@ -1931,6 +1932,41 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(Operator.from_circuit(result), Operator.from_circuit(qc))
 
     @data(0, 1, 2, 3)
+    def test_target_as_positional_backend_arg(self, opt_level):
+        """Test that a Target can be passed as the second positional argument to transpile(),
+        consistent with the behaviour of generate_preset_pass_manager()."""
+        theta = Parameter("θ")
+        phi = Parameter("ϕ")
+        lam = Parameter("λ")
+        target = Target(num_qubits=2)
+        target.add_instruction(UGate(theta, phi, lam), {(0,): None, (1,): None})
+        target.add_instruction(CXGate(), {(0, 1): None})
+        target.add_instruction(Measure(), {(0,): None, (1,): None})
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        result = transpile(qc, target, optimization_level=opt_level, seed_transpiler=42)
+
+        self.assertEqual(Operator.from_circuit(result), Operator.from_circuit(qc))
+
+    def test_target_as_positional_backend_arg_conflicts_with_target_kwarg(self):
+        """Test that passing a Target positionally as backend and also as target= raises TypeError."""
+        theta = Parameter("θ")
+        phi = Parameter("ϕ")
+        lam = Parameter("λ")
+        target = Target(num_qubits=2)
+        target.add_instruction(UGate(theta, phi, lam), {(0,): None, (1,): None})
+        target.add_instruction(CXGate(), {(0, 1): None})
+        target.add_instruction(Measure(), {(0,): None, (1,): None})
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        with self.assertRaises(TypeError):
+            transpile(qc, target, target=target)
+
+    @data(0, 1, 2, 3)
     def test_transpile_control_flow_no_backend(self, opt_level):
         """Test `transpile` with control flow and no specified hardware constraints."""
         qc = QuantumCircuit(QuantumRegister(1, "q"), ClassicalRegister(1, "c"))
@@ -2286,17 +2322,19 @@ class TestTranspile(QiskitTestCase):
         # `dt` set.  For that test to work, we need to check that compiling explicitly without
         # errors produces a different layout to transpiling with them, so we can then later check
         # that the "custom dt" transpile matches the "with errors" case.
-
-        tqc_no_error = transpile(qc, coupling_map=coupling_map, seed_transpiler=4242)
+        seed_transpiler = 2025_07_07
+        tqc_no_error = transpile(qc, coupling_map=coupling_map, seed_transpiler=seed_transpiler)
         # transpile with gate errors
-        tqc_no_dt = transpile(qc, backend=backend, seed_transpiler=4242)
-        # confirm that the output layouts are different
+        tqc_no_dt = transpile(qc, backend=backend, seed_transpiler=seed_transpiler)
+        # confirm that the output layouts are different. This can fail spurious if the built-in
+        # layout pass happened to choose the same initial layout that the noise-aware remapping
+        # converges to.  In that case, you can bump the transpiler seed.
         self.assertNotEqual(
             tqc_no_dt.layout.final_index_layout(), tqc_no_error.layout.final_index_layout()
         )
         # now modify dt with gate errors
-        tqc_dt = transpile(qc, backend=backend, seed_transpiler=4242, dt=backend.dt * 2)
-        # confirm that dt doesn't affect layout
+        tqc_dt = transpile(qc, backend=backend, seed_transpiler=seed_transpiler, dt=backend.dt * 2)
+        # confirm that dt doesn't affect layout.
         self.assertEqual(tqc_no_dt.layout.final_index_layout(), tqc_dt.layout.final_index_layout())
 
     @combine(optimization_level=[0, 1, 2, 3], control_flow=[False, True])
@@ -2389,6 +2427,28 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(shared_circuits, own_circuits)
         together_circuits = make_pm().run(circuits)
         self.assertEqual(together_circuits, own_circuits)
+
+    def test_parse_seed_transpiler_from_env_var(self):
+        """Test that the environment variable QISKIT_TRANSPILER_SEED is passed to the transpiler."""
+        qc = QuantumCircuit(3)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.cx(2, 0)
+
+        # Save the original SabreLayout.run method, and create a mock method that calls the original method,
+        # but also records the value for seed.
+        original_run = SabreLayout.run
+        run_calls = []
+
+        def mock_run(self, dag):
+            run_calls.append(self.seed)
+            original_run(self, dag)
+
+        with patch.dict(os.environ, {"QISKIT_TRANSPILER_SEED": "1234"}):
+            with patch.object(SabreLayout, "run", new=mock_run):
+                _ = transpile(qc, optimization_level=1, coupling_map=CouplingMap.from_line(3))
+        self.assertEqual(len(run_calls), 1)
+        self.assertEqual(run_calls[0], 1234)
 
 
 @ddt
@@ -2795,9 +2855,9 @@ class TestPostTranspileIntegration(QiskitTestCase):
         for i in range(5):
             qc.cx(i % qubits, int(i + qubits / 2) % qubits)
 
-        tqc = transpile(qc, backend=backend, seed_transpiler=4242, callback=callback)
+        tqc = transpile(qc, backend=backend, seed_transpiler=2025_07_07, callback=callback)
         self.assertTrue(vf2_post_layout_called)
-        self.assertEqual([1, 3, 4], _get_index_layout(tqc, qubits))
+        self.assertEqual([1, 4, 3], _get_index_layout(tqc, qubits))
 
     @data("sabre", "lookahead", "basic")
     def test_final_layout_combined_correctly(self, routing):

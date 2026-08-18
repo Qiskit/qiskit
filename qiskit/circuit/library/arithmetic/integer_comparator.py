@@ -17,10 +17,6 @@ from __future__ import annotations
 
 from qiskit.circuit import QuantumRegister, AncillaRegister, Gate
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.synthesis.arithmetic.comparators import (
-    synth_integer_comparator_2s,
-    synth_integer_comparator_greedy,
-)
 from ..blueprintcircuit import BlueprintCircuit
 
 
@@ -159,6 +155,8 @@ class IntegerComparator(BlueprintCircuit):
 
     def _build(self) -> None:
         """If not already built, build the circuit."""
+        from qiskit.synthesis.arithmetic.comparators import synth_integer_comparator_2s
+
         if self._is_built:
             return
 
@@ -196,4 +194,6 @@ class IntegerComparatorGate(Gate):
         self.geq = geq
 
     def _define(self):
+        from qiskit.synthesis.arithmetic.comparators import synth_integer_comparator_greedy
+
         self.definition = synth_integer_comparator_greedy(self.num_qubits - 1, self.value, self.geq)

@@ -150,7 +150,7 @@ fn _update_phase_schedule(
                     (k != i)
                         && (k != j)
                         && (order_comp[min(k, j)] < order_comp[i])
-                        && (phase_schedule[[min(k, j), max(k, j)]] % 4 != 0)
+                        && !phase_schedule[[min(k, j), max(k, j)]].is_multiple_of(4)
                 })
                 .collect();
 

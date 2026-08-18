@@ -481,6 +481,7 @@ pub unsafe extern "C" fn qk_transpiler_pass_standalone_vf2_layout_exact(
 ///
 /// The safety requirements of `qk_transpiler_pass_standalone_vf2_layout_average` must be respected
 /// for `circuit` and `target`.
+/// cbindgen:qk-vtable-rules=[no-export]
 #[deprecated(
     since = "2.3.0",
     note = "use `qk_transpiler_pass_standalone_vf2_layout_average` instead"

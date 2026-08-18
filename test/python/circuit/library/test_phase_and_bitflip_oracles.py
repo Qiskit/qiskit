@@ -12,6 +12,7 @@
 
 """Test the phase and bit-flip oracle circuits."""
 
+import os
 import unittest
 import tempfile
 from ddt import ddt, data, unpack
@@ -46,6 +47,7 @@ class TestPhaseOracleAndGate(QiskitTestCase):
         ("~x", "10"),
         ("x & y", "0001"),
         ("x & ~y", "0100"),
+        ("(x0 | ~x0) & (x1 | ~x1) & (x2 | ~x2)", "11111111"),
         ("(x0 & x1 | ~x2) ^ x4", "1111000100001110"),
         ("x & y ^ ( ~z1 | z2)", "1110000111101110"),
     )
@@ -121,15 +123,15 @@ class TestPhaseOracleAndGate(QiskitTestCase):
         1 -2 -3 0
         -1 2 3 0
         """
-        filename = tempfile.mkstemp(suffix=".dimacs")[1]
-        with open(filename, "w") as file:
+        with tempfile.NamedTemporaryFile("wt", suffix=".dimacs", delete=False) as file:
             file.write(input_3sat_instance)
+        self.addCleanup(os.remove, file.name)
         for use_gate in [True, False]:
             if use_gate:
-                oracle = PhaseOracleGate.from_dimacs_file(filename)
+                oracle = PhaseOracleGate.from_dimacs_file(file.name)
             else:
                 with self.assertWarns(DeprecationWarning):
-                    oracle = PhaseOracle.from_dimacs_file(filename)
+                    oracle = PhaseOracle.from_dimacs_file(file.name)
             self.assertEqual(oracle.num_qubits, 3)
 
 
@@ -142,6 +144,7 @@ class TestBitFlipOracleGate(QiskitTestCase):
         ("~x", "10"),
         ("x & y", "0001"),
         ("x & ~y", "0100"),
+        ("(x0 | ~x0) & (x1 | ~x1) & (x2 | ~x2)", "11111111"),
         ("(x0 & x1 | ~x2) ^ x4", "1111000100001110"),
         ("x & y ^ ( ~z1 | z2)", "1110000111101110"),
     )
@@ -214,10 +217,10 @@ class TestBitFlipOracleGate(QiskitTestCase):
         1 -2 -3 0
         -1 2 3 0
         """
-        filename = tempfile.mkstemp(suffix=".dimacs")[1]
-        with open(filename, "w") as file:
+        with tempfile.NamedTemporaryFile("wt", suffix=".dimacs", delete=False) as file:
             file.write(input_3sat_instance)
-        oracle = BitFlipOracleGate.from_dimacs_file(filename)
+        self.addCleanup(os.remove, file.name)
+        oracle = BitFlipOracleGate.from_dimacs_file(file.name)
         self.assertEqual(oracle.num_qubits, 4)
 
 

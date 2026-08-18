@@ -17,6 +17,7 @@ pub mod evolution;
 pub mod linalg;
 pub mod linear;
 pub mod linear_phase;
+pub mod matrix;
 mod multi_controlled;
 pub mod pauli_evolution;
 pub mod pauli_products;

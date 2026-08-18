@@ -13,6 +13,8 @@ community in this goal.
 * [Issues and pull requests](#issues-and-pull-requests)
   * [Pull request checklist](#pull-request-checklist)
   * [Code review](#code-review)
+  * [Pull request author checklist](#pull-request-author-checklist)
+  * [Pull request merging checking](#pull-request-merging-checklist)
   * [Use of AI tools](#use-of-ai-tools)
 * [Contributor Licensing Agreement](#contributor-licensing-agreement)
 * [Changelog generation](#changelog-generation)
@@ -31,6 +33,7 @@ community in this goal.
   * [Release Cycle](#release-cycle)
 * [Adding deprecation warnings](#adding-deprecation-warnings)
 * [Using dependencies](#using-dependencies)
+  * [Version support policy](#version-support-policy)
   * [Adding a requirement](#adding-a-requirement)
   * [Adding an optional dependency](#adding-an-optional-dependency)
   * [Checking for optionals](#checking-for-optionals)
@@ -98,7 +101,7 @@ You then install Qiskit in editable mode using:
 pip install -e .
 ```
 
-Changes to Python packages will need be picked up automatically.
+Changes to Python packages will be picked up automatically.
 Changes to Rust files will require a recompilation; see "Installing Qiskit from source" below.
 
 You can easily install all the standard developer dependencies for in-place testing, documentation-building,
@@ -166,18 +169,46 @@ runtime performance.  You can set the environment variable `QISKIT_BUILD_PROFILE
 to `release` or `debug` to control the default.  The `--release`/`--debug` flag
 to `build_rust` overrides this default.
 
+### Python and Rust versions
+
+> [!NOTE]
+> More detail on OS support can be found in the [Qiskit installation guide](https://quantum.cloud.ibm.com/docs/guides/install-qiskit#operating-system-support).
+
+At runtime, only Python is required, not Rust.  Any release of
+the Python-space `qiskit` package (such as v2.5.2) supports all versions of CPython that had active security support at the time of the first release in that minor series (v2.5.0, in this example).
+
+Developers typically face stricter requirements.
+The documentation, linting and other development processes may require newer Python versions than Qiskit's minimum; it is typically easiest to use the newest or near-newest version of CPython for development.
+
+Qiskit has a conservative policy for the minimum-supported Rust version (MSRV) needed to build.
+The MSRV may increase on any major or minor version, but not on a patch release without exceptional circumstances.
+The MSRV must always be at least one year old at the time of any major or minor release, but may be older.
+The source of truth from the current MSRV is the `rust-version` key in the root `Cargo.toml` file.
+
+
 ### Compile time options
 
-When building qiskit from source there are options available to control how
-Qiskit is built. Right now the only option is if you set the environment
-variable `QISKIT_NO_CACHE_GATES=1` this will disable runtime caching of
-Python gate objects when accessing them from a `QuantumCircuit` or `DAGCircuit`.
-This makes a tradeoff between runtime performance for Python access and memory
-overhead. Caching gates will result in better runtime for users of Python at
-the cost of increased memory consumption. If you're working with any custom
-transpiler passes written in Python or are otherwise using a workflow that
-repeatedly accesses the `operation` attribute of a `CircuitInstruction` or `op`
-attribute of `DAGOpNode` enabling caching is recommended.
+When building Qiskit from source there are options available to control how
+Qiskit is built. These options are set with the following environment variables:
+
+* `QISKIT_BUILD_WITH_MIMALLOC=1`: this will enable using
+  [mimalloc](https://github.com/microsoft/mimalloc) as the global allocator for
+  Qiskit instead of the default system allocator. This improves the runtime and
+  memory performance of Qiskit but will require having a C compiler installed
+  when building Qiskit.
+* `QISKIT_NO_CACHE_GATES=1`: this will disable runtime caching of
+  Python gate objects when accessing them from a `QuantumCircuit` or `DAGCircuit`.
+  This makes a tradeoff between runtime performance for Python access and memory
+  overhead. Caching gates will result in better runtime for users of Python at
+  the cost of increased memory consumption. If you're working with any custom
+  transpiler passes written in Python or are otherwise using a workflow that
+  repeatedly accesses the `operation` attribute of a `CircuitInstruction` or `op`
+  attribute of `DAGOpNode` enabling caching is recommended.
+
+These environment variables are only valid when building Qiskit the Python package
+with a PEP 517 compatible build tool or calling `setup.py` directly.
+Or as a standalone C library with `make c` (`QISKIT_NO_CACHE_GATES` has no effect
+when building a standalone C library).
 
 ## Issues and pull requests
 
@@ -207,7 +238,7 @@ Before marking your Pull Request as "ready for review" make sure you have follow
 PR Checklist below. PRs that adhere to this list are more likely to get reviewed and
 merged in a timely manner.
 
-### Pull request checklist
+### Pull request author checklist
 
 When submitting a pull request and you feel it is ready for review,
 please ensure that:
@@ -230,14 +261,24 @@ please ensure that:
 
 3. If you are of the opinion that the modifications you made warrant additional tests,
    feel free to include them
+   feel free to include them.
 
 4. Ensure that if your change has an end user facing impact (new feature,
-   deprecation, removal etc) that you have added a reno release note for that
+   deprecation, removal etc) that you have added a `reno` release note for that
    change and that the PR is tagged for the changelog.
 
-5. All contributors have signed the CLA.
+5. All contributors have [signed the CLA](#contributor-licensing-agreement).
 
-6. The PR has a concise and explanatory title (e.g. `Fixes Issue1234` is a bad title!).
+   You will need to ensure that all commits in the PR chain have a correctly configured
+   email address, and the email address is registered to a GitHub account that has signed
+   the CLA.  A bot will leave a comment with a link to sign the CLA.
+
+6. The PR has a concise and explanatory title that can be understood without
+   clicking on another GitHub issue.
+
+   The PR title will become the summary line of the commit, which appears in `git log`.
+   For example, "Fixes Issue 1234" is a bad title, and "Fix `ApplyLayout` with
+   empty layouts" is good.
 
 7. If the PR addresses an open issue the PR description includes the `fixes #issue-number`
    syntax to link the PR to that issue (**you must use the exact phrasing in order for GitHub
@@ -246,22 +287,6 @@ please ensure that:
 8. You have disclosed all substantial use of AI tooling, including large language models (LLMs).
    See [Use of AI tools](#use-of-ai-tools) for your responsibilities.
 
-### Code Review
-
-Code review is done in the open and is open to anyone. While only maintainers have
-access to merge commits, community feedback on pull requests is extremely valuable.
-It is also a good mechanism to learn about the code base.
-
-Response times may vary for your PR, it is not unusual to wait a few weeks for a maintainer
-to review your work, due to other internal commitments. If you have been waiting over a week
-for a review on your PR feel free to tag the relevant maintainer in a comment to politely remind
-them to review your work.
-
-Please be patient! Maintainers have a number of other priorities to focus on and so it may take
-some time for your work to get reviewed and merged. PRs that are in a good shape (i.e. following the [Pull request checklist](#pull-request-checklist))
-are easier for maintainers to review and more likely to get merged in a timely manner. Please also make
-sure to always be kind and respectful in your interactions with maintainers and other contributors, you can read
-[the Qiskit Code of Conduct](https://github.com/Qiskit/qiskit/blob/main/CODE_OF_CONDUCT.md).
 
 ### Use of AI tools
 
@@ -358,6 +383,183 @@ Some questions to ask yourself:
   Remember that Qiskit maintainers have access to AI tools too.  If the majority of your involvement
   was to point an AI tool at an open issue and ask it to fix it, consider that we could have done
   that too and there was a reason we didn't.
+
+### Code review
+
+All code merged to Qiskit, even from maintainers, goes through a code-review
+process after a pull request is made.  There are a small number of
+maintainers who can authorize a final merge, but code review involves everyone
+working together to make Qiskit better.  You can review code even if you
+are not a maintainer, which helps make sure pull requests are technically
+correct, well tested, and easier to tackle in their final maintainer review.
+
+The code-review process is a normal part of software development, and nothing to
+be scared of; for very easy changes it can be as simple as a maintainer saying
+"looks good to me!" (or in short, "LGTM!") and merging the PR.  For more complex changes, it's often a
+back-and-forth where the reviewer may ask a couple of questions about why things
+were done a particular way, and make suggestions for improvement.  You don't
+need to do everything suggested if you've got good reasons to disagree, but
+communicate that clearly and politely.
+
+If you're struggling with code review or a PR on Qiskit, you can ask for help in
+the `#qiskit-pr-help` channel on [the public Qiskit Slack](https://qisk.it/join-slack).
+
+Remember that the PR author is a human, not just a username!  It's OK to ask
+questions about the code, but don't be mean or rude about it even if you don't
+like it.  It's also fine to provide comments that are just compliments with no
+suggested changes, if you particularly like something!
+
+#### What to focus on in review
+
+* Is everything in [the PR checklist](#pull-request-checklist) done?
+
+* Are any new public APIs easy to use, well documented, and consistent with
+  other parts of the Qiskit API?
+
+* Do any changes to the code have knock-on effects for other parts of Qiskit
+  that may be using them, or do they imply changes to the assumptions in
+  our data structures?
+
+* Are there any edge cases you can think of that the code might not handle well?
+  Could the PR benefit from extra tests to cover these, or to verify other edge
+  cases that it *does* handle successfully?
+
+* Is the code reasonably easy for you to understand?  This particular point is
+  tricky; the more you review code, the easier it will be for you to understand
+  other code, so don't worry about this as much if you're getting started.
+
+* If this PR is a bugfix, is it suitable for backport?  If not, could the PR be
+  split into a "simple" bugfix that is suitable for backport and a follow-on
+  improvement?  (Not all bugfixes *must* be backported.)
+
+#### Writing review comments
+
+* Make concrete suggestions when you think something should be changed, but
+  remember that the author might have already thought about it and have a
+  reason.  Try "What do you think about us raising a `TypeError` here instead of
+  returning `None`?", rather than "You should raise an exception here".
+
+* Try to make each round of review thorough.  Don't add one or two comments on
+  one file, then come back a day later and add a couple of other unrelated
+  comments on a different file, and so on.  Try to review the whole PR
+  thoroughly in one go; it's easier to catch bugs like this, and less
+  frustrating for the PR creator. If that's too much for you, consider
+  asking if the PR could be split into smaller independent chunks.
+
+* Try to keep the number of comments reasonable.  This depends on the size of
+  the PR, but remember that there's somebody who'll read all your comments, and
+  it can be demoralizing if you get a PR back and it's got 30 comments on from a
+  50-line change.  If you feel like you're putting too many comments on,
+  consider if you could group several of them into one theme, and ask them as a
+  more detailed question with a focus on only one part of the code.  Try not to
+  comment the same thing in many places.
+
+* Try to avoid saying "you do" in review comments, and instead try to
+  say things like "we do" even when talking about new code. It's not a big
+  change, yet it helps to make us think about Qiskit's code as something that we
+  all own and care about, and that we're all working together to make it better.
+
+#### Responding to review comments
+
+* Ask questions if you don't understand what a reviewer is saying, or if you're
+  not certain whether they're suggesting changes.
+
+* Feel free to respond to suggestions or questions with your reasoning for doing
+  things a different way, if you don't fully agree with the review comment.
+  Code review is a collaborative two-way process.
+
+* Don't use the "update branch" on GitHub unless a maintainer suggests it or
+  there are merge conflicts.  The merge queue will take care of this when the
+  PR is approved, and pressing it unnecessarily uses up CI resources that other
+  PRs might need.
+
+* Try not to take suggestions personally.  It's hard to communicate over text,
+  especially when we might have different native languages and we're talking
+  about improving something.  Assume that the reviewer was acting in good faith,
+  trying to be polite, and knows what they're talking about; it's unlikely that
+  they meant to make you feel bad or insult you.  If you _do_ feel like somebody
+  is not following [the code of conduct](/CODE_OF_CONDUCT.md), please report it
+  using the violation form there.
+
+#### Things that shouldn't be said
+
+* Anything about the formatting of the code, unless it is illegible.  We have
+  automated code formatters that enforce a uniform style, and CI requires them
+  to have been run.
+
+* Minor stylistic changes in _how_ people code, except where they might be
+  seriously affecting performance or legibility.  There are lots of ways to
+  program, especially in Python, and lots of ways that achieve the same thing.
+  For example, if somebody has written
+  ```python
+  if my_condition:
+      my_first_variable = 123
+      my_second_variable = 456
+  else:
+      my_first_variable = 456
+      my_second_variable = 123
+  ```
+  there's no need to suggest changes like
+  ```python
+  my_first_variable = 123 if my_condition else 456
+  my_second_variable = 456 if my_condition else 123
+  ```
+  Both are perfectly legible, and focusing on small details like this is
+  frustrating for everybody.
+
+### Pull request merging checklist
+
+When a PR is fully approved by code owners, it can be queued for merge.
+Authorised users (those with write access to the repository) will be able to
+press the "merge when ready" button.  Before enqueuing for merge, check that the
+following PR metadata items are set correctly:
+
+* The "milestone" is set to the expected release version.  For PRs to be
+  backported, this should be (for example) "2.3.2".  For PRs for the next minor
+  release, it should be (for example) "2.4.0".  If the PR is unrelated to any
+  particular release (such as a change only to a test), you can leave this
+  blank.
+
+  This metadata lets us quickly jump from `git log` to the PR page, and see
+  there which Qiskit release a patch went out in.
+
+* The correct "Changelog: X" label is applied, including "Changelog: None" if
+  the PR need not appear.
+
+  These labels are much simpler than the `reno` structure; they are for the
+  GitHub "releases" page instead, and categorize PRs into "Added", "Deprecated",
+  "Changed" or "Fixed".
+
+* Suitable backport commands have been set, if necessary.
+
+  In most cases, applying the label "stable backport potential" is sufficient.
+  In this case, the Mergify bot will open a backport PR to the most recent
+  stable branch (for example `stable/2.3` if we are currently preparing for
+  2.4.0).  If you need more complex backports, write a GitHub comment of the
+  form:
+
+  ```
+  @Mergifyio backport <branch> <branch2> ...
+  ```
+
+  You can have as many branches as necessary.  It usually only necessary to do
+  this to support old major branches.
+
+* Any issues fixed by the PR have their own "Fix #<num>" line in the author's PR
+  comment.  If you are empowered to merge PRs, you should be empowered to edit
+  the author's comment to add these, if necessary.
+
+* The PR title is clear, concise, and does not link to GitHub issues.
+
+  As a merger, you can edit the title; there is an "edit" button at the top right
+  of the PR main page, right of the title.  This title becomes the `git` commit
+  summary line, so should be understandable without reference to GitHub.
+
+If a PR is backported, the Mergify bot will open a PR for each branch to
+backport it to.  Assuming there are no merge conflicts, you can immediately
+approve and enqueue those PRs; a GitHub Actions workflow will copy across the
+labels (except for "stable backport potential") and milestone.
+
 
 ## Contributor Licensing Agreement
 
@@ -536,8 +738,9 @@ particular will be located at `docs/_build/html/release_notes.html`
 Once you've made a code change, it is important to verify that your change
 does not break any existing tests and that any new tests that you've added
 also run successfully. Before you open a new pull request for your change,
-you'll want to run Qiskit's Python test suite (as well as its Rust-based
-unit tests if you've modified native code).
+you'll want to run Qiskit's Python test suite, as well as its Rust-based
+unit tests if you've modified native Rust code, and the C API tests if you're
+working with the C API or Rust code.
 
 ### Qiskit's Python test suite
 
@@ -703,10 +906,19 @@ Note: If you have run `test/ipynb/mpl_tester.ipynb` locally it is possible some 
 
 ### Testing Rust components
 
-Many of Qiskit's core data structures and algorithms are implemented in Rust.
-The bulk of this code is exercised heavily by our Python-based unit testing,
+The core Qiskit data structures and algorithms are implemented in Rust.
+However, the bulk of this code is still primarily exercised by our Python-based unit testing,
 but this coverage really only provides integration-level testing from the
-perspective of Rust.
+perspective of Rust. This is primarily an artifact of the development history of Qiskit,
+where it originally started as a pure Python library and the core of the library was migrated
+to Rust over time. For new functionality being added to Qiskit the expectation is to add
+Rust tests in addition to integration level tests for Python and C.
+
+For C APIs there are potential benefits to writing Rust tests to exercise the C API entrypoints.
+Besides the ergonomic advantages of testing via Rust vs C, writing Rust tests for the C API enable
+more detailed analysis, such as potentially running under [miri](#Unsafe code and Miri). Rust tests
+should not be used in lieu of C tests, it is still required that all public interfaces added to
+C are exercised via the C tests.
 
 To provide Rust unit testing, we use `cargo test`. Rust tests are
 integrated directly into the Rust file being tested within a `tests` module.
@@ -726,76 +938,15 @@ mod tests {
 For more detailed guidance on how to write Rust tests, you can refer to the Rust
 documentation's [guide on writing tests](https://doc.rust-lang.org/book/ch11-01-writing-tests.html).
 
-Rust tests are run separately from the Python tests. The easiest way to run
-them is via `tox`, which creates an isolated venv and pre-installs `qiskit`
-prior to running `cargo test`:
+Rust tests are run separately from the Python and C tests. To run the tests you can simply invoke
+`cargo test`.
 
 ```bash
-tox -erust
+cargo test
 ```
 
-> [!TIP]
-> If you've already built your changes (e.g. `python setup.py build_rust --release --inplace`),
-> you can pass `--skip-pkg-install` when invoking `tox` to avoid a rebuild. This works because
-> Python will instead find and use Qiskit from the current working directory (since we skipped
-> its installation).
-
-#### Using a custom venv instead of `tox`
-
-If you're not using `tox`, you can also execute Cargo tests directly in your own virtual environment.
-If you haven't done so already, [create a Python virtual environment](#set-up-a-python-venv) and
-**_activate it_**.
-
-You will need to install (at least) the `build` and `test` dependency groups, such as
-```
-pip install --group build --group test
-```
-You can alternatively install the `dev` group, which encompasses both of these.
-
-Then, run the following commands:
-
-```bash
-python setup.py build_rust --inplace
-tools/run_cargo_test.py
-```
-
-The first command builds Qiskit in editable mode,
-which ensures that Rust tests that interact with Qiskit's Python code actually
-use the latest Python code from your working directory. The second command invokes
-the tests via Cargo.
-
-#### Calling Python from Rust tests
-By default, our Cargo project configuration allows Rust tests to interact with the
-Python interpreter by calling `Python::with_gil` to obtain a `Python` (`py`) token.
-This is particularly helpful when testing Rust code that (still) requires interaction
-with Python.
-
-To execute code that needs the GIL in your tests, define the `tests` module as
-follows:
-
-```rust
-#[cfg(all(test, not(miri)))] // disable for Miri!
-mod tests {
-    use pyo3::prelude::*;
-    
-    #[test]
-    fn my_first_test() {
-        Python::with_gil(|py| {
-            todo!() // do something that needs a `py` token.
-        })
-    }
-}
-```
-
-> [!IMPORTANT]
-> Note that we explicitly disable compilation of such tests when running with Miri, i.e.
-`#[cfg(not(miri))]`. This is necessary because Miri doesn't support the FFI
-> code used internally by PyO3.
->
-> If not all of your tests will use the `Python` token, you can disable Miri on a per-test
-basis within the same module by decorating *the specific test* with `#[cfg_attr(miri, ignore)]`
-instead of disabling Miri for the entire module.
-
+If you want to run the tests for a single [crate](https://doc.rust-lang.org/book/ch07-01-packages-and-crates.html)
+you can either change your working directory to that crate and run `cargo test`.
 
 ### Unsafe code and Miri
 
@@ -830,6 +981,21 @@ the top-level `Makefile`, which you can run with
 ```bash
 make ctest
 ```
+
+You can pass arbitrary CMake flags to the `ctest` recipe by setting the
+`CMAKE_FLAGS` environment variable, such as:
+
+```bash
+CMAKE_FLAGS='-DCMAKE_C_STANDARD=23 -DCMAKE_C_EXTENSIONS=ON' make ctest
+```
+
+which will run the C API tests in `gnu23` (or equivalent) mode, instead of the
+default.
+
+> [!NOTE]
+> Overriding any `CMAKE_FLAGS` from the command line will cause them to become
+> your new cached default values.  Run `make cclean` to fully clear all caches
+> if you want to reset to the defaults later.
 
 #### Writing C API tests
 
@@ -883,10 +1049,10 @@ You can check that your local modifications conform to the style rules by
 running `tox -elint` which will run `black` and  `ruff` to check the
 local code formatting and lint. If black returns a code formatting error you can
 run `tox -eblack` to automatically update the code formatting to conform to the
-style. However, if `ruff`  return any error you will have to fix these issues by
+style. However, if `ruff` returns any error you will have to fix these issues by
 manually updating your code. Sometimes `ruff` will be able to fix failures with
 the `--fix` flag. In these cases the output will tell you how many errors can be
-automatically fixed
+automatically fixed.
 
 Because they are so fast, it is sometimes convenient to run the tools `black` and `ruff` separately
 rather than via `tox`.  You can install all the lint dependencies using the `lint` or `dev`
@@ -993,7 +1159,7 @@ https://github.com/Qiskit/qiskit/milestone/23).
 After the proposal freeze a release review period will begin, during this time
 release candidate PRs will be reviewed as we finalize the feature set and merge
 the last PRs for the release. Following the review period a release candidate will be
-tagged and published. This release candidate is pre-release that enables users and
+tagged and published. This release candidate is a pre-release that enables users and
 developers to test the release ahead of time. When the pre-release is tagged the release
 automation will publish the pre-release to PyPI (but only get installed on user request),
 create the `stable/*` branch, and generate a pre-release changelog/release page. At
@@ -1031,17 +1197,29 @@ def test_method2(self):
 
 ## Using dependencies
 
-We distinguish between "requirements" and "optional dependencies" in qiskit.
-A requirement is a package that is absolutely necessary for core functionality in qiskit, such as Numpy or Scipy.
+We distinguish between "requirements" and "optional dependencies" in Qiskit.
+A requirement is a package that is absolutely necessary for core functionality in Qiskit, such as NumPy or SciPy.
 An optional dependency is a package that is used for specialized functionality, which might not be needed by all users.
 If a new feature has a new dependency, it is almost certainly optional.
+
+
+### Version support policy
+
+For Python-space dependencies, Qiskit follows [the scientific-computing standard SPEC 0](https://scientific-python.org/specs/spec-0000/).
+In short: Qiskit will require versions of NumPy and SciPy that are at least two years old.
+For packages not covered by SPEC 0, the requirements must be satisfiable with published binary artifacts from PyPI for all supported Python versions on [all platforms with tier 1 and tier 2 support](https://quantum.cloud.ibm.com/docs/guides/install-qiskit#operating-system-support).
+
+Python dependencies that are optional at runtime, only used during the build, or only used during the development process are not constrained.
+Qiskit supports all versions of CPython that are not end of life, which is wider than the minimum SPEC 0 support.
+
+Rust dependencies are not constrained, other than by the platform support requirements and minimum supported Rust version of the repository.
 
 ### Adding a requirement
 
 Any new requirement must have broad system support; it needs to be supported on all the Python versions and operating systems that qiskit supports.
 It also cannot impose many version restrictions on other packages.
 Users often install qiskit into virtual environments with many different packages in, and we need to ensure that neither we, nor any of our requirements, conflict with their other packages.
-When adding a new requirement, you must add it to [`requirements.txt`](requirements.txt) with as loose a constraint on the allowed versions as possible.
+When adding a new requirement, you must add it to [`requirements.txt`](requirements.txt) following the [version-support policy](#version-support-policy).
 
 ### Adding an optional dependency
 
@@ -1049,7 +1227,6 @@ New features can also use optional dependencies, which might be used only in ver
 These are not required to use the rest of the package, and so should not be added to `requirements.txt`.
 Instead, if several optional dependencies are grouped together to provide one feature, you can consider adding an "extra" to the package metadata, such as the `visualization` extra that installs Matplotlib and Seaborn (amongst others).
 To do this, modify the [`setup.py`](setup.py) file, adding another entry in the `extras_require` keyword argument to `setup()` at the bottom of the file.
-You do not need to be quite as accepting of all versions here, but it is still a good idea to be as permissive as you possibly can be.
 You should also add a new "tester" to [`qiskit.utils.optionals`](qiskit/utils/optionals.py), for use in the next section.
 
 ### Checking for optionals
@@ -1082,5 +1259,5 @@ can update your local repository's configuration with:
 git config blame.ignoreRevsFile .git-blame-ignore-revs
 ```
 
-which will update your local repositories configuration to use the ignore list
+which will update your local repository's configuration to use the ignore list
 by default.

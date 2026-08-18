@@ -76,13 +76,13 @@ fn _create_patterns(n: usize) -> HashMap<(usize, usize), (usize, usize)> {
         return HashMap::from_iter((0..n).map(|i| ((0, i), (i, i))));
     }
 
-    let (pat1, pat2) = if n % 2 == 0 {
+    let (pat1, pat2) = if n.is_multiple_of(2) {
         (_even_pattern1(n), _even_pattern2(n))
     } else {
         (_odd_pattern1(n), _odd_pattern2(n))
     };
 
-    let ind = if n % 2 == 0 {
+    let ind = if n.is_multiple_of(2) {
         (2 * n - 4) / 2
     } else {
         (2 * n - 4) / 2 - 1
@@ -115,6 +115,10 @@ fn _append_phase_gate(pat_val: usize, gates: &mut LnnGatesVec, qubit: usize) {
 
 /// Synthesis of a CZ circuit for linear nearest neighbor (LNN) connectivity,
 /// based on Maslov and Roetteler.
+///
+/// # Panics
+///
+/// If `matrix` is not square.
 pub(super) fn synth_cz_depth_line_mr_inner(matrix: ArrayView2<bool>) -> (usize, LnnGatesVec) {
     let num_qubits = matrix.raw_dim()[0];
     let pats = _create_patterns(num_qubits);
@@ -157,7 +161,7 @@ pub(super) fn synth_cz_depth_line_mr_inner(matrix: ArrayView2<bool>) -> (usize, 
         s_gates = Array1::<usize>::zeros(num_qubits);
     }
 
-    if num_qubits % 2 == 0 {
+    if num_qubits.is_multiple_of(2) {
         let i = num_qubits / 2;
 
         for j in 0..num_qubits {

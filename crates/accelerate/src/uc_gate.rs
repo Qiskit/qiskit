@@ -19,7 +19,7 @@ use std::f64::consts::{FRAC_1_SQRT_2, PI};
 use nalgebra::{Matrix2, MatrixView2, Vector2};
 use numpy::{IntoPyArray, PyReadonlyArray2, ToPyArray};
 
-use qiskit_circuit::util::{C_ZERO, IM, c64};
+use qiskit_util::complex::{C_ZERO, IM, c64};
 
 const EPS: f64 = 1e-10;
 

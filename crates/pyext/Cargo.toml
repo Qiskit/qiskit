@@ -24,8 +24,7 @@ cache_pygates = ["qiskit-circuit/cache_pygates", "qiskit-accelerate/cache_pygate
 
 [build-dependencies]
 anyhow.workspace = true
-cbindgen = { workspace = true, features = ["unstable_ir"] }
-hashbrown.workspace = true
+cbindgen.workspace = true
 qiskit-bindgen.workspace = true
 qiskit-cext-vtable = { workspace = true, features = ["python_binding"] }
 
@@ -40,5 +39,6 @@ qiskit-qpy.workspace = true
 qiskit-cext = { workspace = true, features = ["python_binding"] }
 qiskit-cext-vtable = { workspace = true, features = ["python_binding", "addr"] }
 qiskit-transpiler.workspace = true
-qiskit-quantum-info.workspace = true
+qiskit-quantum-info = { workspace = true, features = ["python"] }
 qiskit-synthesis.workspace = true
+mimalloc = { workspace = true, optional = true }

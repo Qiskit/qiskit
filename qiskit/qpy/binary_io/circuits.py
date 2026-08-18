@@ -104,6 +104,13 @@ class _AnnotationSerializationState:
             for (namespace, (_, serializer)) in self.serializers.items()
         )
 
+    def dump_states(self) -> list[tuple[str, bytes]]:
+        """Return the serialized state for each serializer, in index order."""
+        return [
+            (namespace, serializer.dump_state())
+            for namespace, serializer in self.iter_serializers()
+        ]
+
 
 class _AnnotationDeserializationState:
     def __init__(self, factories: dict[str, typing.Callable[[], QPYSerializer]]):
@@ -1542,6 +1549,11 @@ def write_circuit(
             annotation_factories=annotation_factories,
         )
         return
+    if version >= common.QPY_RUST_WRITE_MIN_VERSION:
+        raise QpyError(
+            f"QPY version {version} is not supported by the Python writer. "
+            f"The Python writer only supports versions below {common.QPY_RUST_WRITE_MIN_VERSION}."
+        )
     annotation_state = _AnnotationSerializationState(annotation_factories or {})
     metadata_raw = json.dumps(
         circuit.metadata, separators=(",", ":"), cls=metadata_serializer
@@ -1641,10 +1653,9 @@ def write_circuit(
     file_obj.write(instruction_buffer.getvalue())
     instruction_buffer.close()
 
-    # Pulse has been removed in Qiskit 2.0. As long as we keep QPY at version 13,
-    # we need to write an empty calibrations header since read_circuit expects it
-    header = struct.pack(formats.CALIBRATION_PACK, 0)
-    file_obj.write(header)
+    # CalibrationsPack was dropped in v18; for v13-17 write an empty block
+    if version < 18:
+        file_obj.write(struct.pack(formats.CALIBRATION_PACK, 0))
 
     _write_layout(file_obj, circuit)
 
@@ -1689,6 +1700,11 @@ def read_circuit(
             annotation_factories = {}
         return _qpy.read_circuit(
             file_obj, version, metadata_deserializer, use_symengine, annotation_factories
+        )
+    if version >= common.QPY_RUST_READ_MIN_VERSION:
+        raise QpyError(
+            f"QPY version {version} is not supported by the Python reader. "
+            f"The Python reader only supports versions below {common.QPY_RUST_READ_MIN_VERSION}."
         )
 
     vectors = {}
@@ -1801,20 +1817,10 @@ def read_circuit(
             annotation_state=annotation_state,
         )
 
-    # Consume calibrations, but don't use them since pulse gates are not supported as of Qiskit 2.0
-    if version >= 5:
+    # Consume calibrations block; absent in v18+ where it was dropped from the format
+    if 5 <= version < 18:
         _read_calibrations(file_obj, version, vectors, metadata_deserializer)
 
-    for vector, initialized_params in vectors.values():
-        if len(initialized_params) != len(vector):
-            warnings.warn(
-                f"The ParameterVector: '{vector.name}' is not fully identical to its "
-                "pre-serialization state. Elements "
-                f"{', '.join([str(x) for x in set(range(len(vector))) - initialized_params])} "
-                "in the ParameterVector will be not equal to the pre-serialized ParameterVector "
-                f"as they weren't used in the circuit: {circ.name}",
-                UserWarning,
-            )
     if version >= 8:
         if version >= 10:
             _read_layout_v2(file_obj, circ)

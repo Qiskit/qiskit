@@ -14,8 +14,9 @@ use std::convert::Infallible;
 use std::time::Instant;
 
 use hashbrown::HashMap;
-use indexmap::{IndexMap, IndexSet};
+use qiskit_util::{IndexMap, IndexSet};
 use rand::prelude::*;
+use rand::rngs::SysRng;
 use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
 use rustworkx_core::petgraph::data::Create;
@@ -143,7 +144,7 @@ impl Vf2PassConfiguration {
             None => {
                 // In Python space, `None` means "seed with OS entropy" because seeding was expected
                 // to be the default.
-                Some(Pcg64Mcg::from_os_rng().next_u64())
+                Some(Pcg64Mcg::try_from_rng(&mut SysRng).unwrap().next_u64())
             }
             Some(-1) => None,
             Some(seed) => {
@@ -213,10 +214,10 @@ impl VF2PassReturn {
 /// Returns `None` if there is a global 2q operation to avoid attempting to construct a meaningless
 /// all-to-all connectivity graph.
 fn build_average_error_map(target: &Target) -> Option<ErrorMap> {
-    if let Ok(mut globals) = target.operations_for_qargs(QargsRef::Global) {
-        if globals.any(|op| op.operation.num_qubits() == 2) {
-            return None;
-        }
+    if let Ok(mut globals) = target.operations_for_qargs(QargsRef::Global)
+        && globals.any(|op| op.operation.num_qubits() == 2)
+    {
+        return None;
     }
     let mut error_map = ErrorMap::new(Some(target.num_qargs()));
     let mut target_without_errors = true;
@@ -229,10 +230,17 @@ fn build_average_error_map(target: &Target) -> Option<ErrorMap> {
         };
         let mut qarg_error: f64 = 0.;
         let mut count: usize = 0;
-        for op in target
+        // `operation_names_for_qargs` returns a `HashSet`, whose iteration order is randomised
+        // per call.  Summing the per-operation errors in that order makes `qarg_error` depend on a
+        // non-deterministic floating-point summation order, which can produce tie-break differences
+        // between otherwise-symmetric layouts.  Sort the names so the sum is reproducible.
+        let mut op_names: Vec<&str> = target
             .operation_names_for_qargs(QargsRef::Concrete(qargs))
             .expect("these qargs came from `target.qargs()`")
-        {
+            .into_iter()
+            .collect();
+        op_names.sort_unstable();
+        for op in op_names {
             count += 1;
             // If the `target` has no error recorded for an operation, we treat it as errorless.
             qarg_error += target
@@ -316,9 +324,11 @@ struct VirtualInteractions<T> {
 }
 impl<T: Default> VirtualInteractions<T> {
     /// Create a set of virtual interactions from a DAG, and a weighter function for a single
-    /// interaction.  The weighter should return `true` on success, or `false` if no weight could be
-    /// created (indicating a necessary failure of the layout pass).
-    fn from_dag<W>(dag: &DAGCircuit, weighter: W) -> PyResult<Option<Self>>
+    /// interaction.
+    ///
+    /// The weighter should return `true` on success, or `false` if no weight could be created
+    /// (indicating a necessary failure of the layout pass).
+    fn try_from_dag<W>(dag: &DAGCircuit, weighter: W) -> PyResult<Option<Self>>
     where
         W: Fn(&mut T, &PackedInstruction, usize) -> bool,
     {
@@ -335,6 +345,19 @@ impl<T: Default> VirtualInteractions<T> {
                 .filter(|q| !(out.nodes.contains(q) || out.uncoupled.contains_key(q))),
         );
         Ok(Some(out))
+    }
+
+    /// Create a set of virtual interactions from a DAG, and a weighter function for a single
+    /// interaction.
+    fn from_dag<W>(dag: &DAGCircuit, weighter: W) -> PyResult<Self>
+    where
+        W: Fn(&mut T, &PackedInstruction, usize),
+    {
+        Self::try_from_dag(dag, |weight, inst, count| {
+            weighter(weight, inst, count);
+            true
+        })
+        .map(|res| res.expect("weighter is infallible so should always produce interactions"))
     }
 
     /// Add interactions from a given DAG.  Returns `false` if the weighter ever returned `false`.
@@ -430,11 +453,19 @@ impl<T> VirtualInteractions<T> {
     }
 }
 
+/// Calculate a safe version of `-ln(1 - e)`, where the result is guaranteed to be finite.
+///
+/// This treats `nan` as `0.0`, and clamps errors to the `[0.0, 1.0]` interval.  An error of `1.0`
+/// should arguably have an infinite cost, but we use `f64::MAX` instead so the score is guaranteed
+/// to be finite, and safe to multiply by any other floating-point value.
 fn neg_log_fidelity(error: f64) -> f64 {
     if error.is_nan() || error <= 0. {
         0.0
     } else if error >= 1. {
-        f64::INFINITY
+        // Logically this would be cleaner as `INFINITY`, but it's better to allow the downstream
+        // scoring to rely on this value being finite, so we don't have to branch in inner-loop
+        // scoring code.
+        f64::MAX
     } else {
         -((-error).ln_1p())
     }
@@ -621,7 +652,7 @@ fn map_free_qubits(
 fn minimize_vf2<N, H, NG, HG, NO, HO, NS, ES>(
     vf2: vf2::Vf2<N, H, NG, HG, NO, HO, NS, ES>,
     config: &Vf2PassConfiguration,
-) -> Option<IndexMap<N::NodeId, H::NodeId, ::ahash::RandomState>>
+) -> Option<IndexMap<N::NodeId, H::NodeId>>
 where
     N: vf2::alias::IntoVf2Graph,
     H: vf2::alias::IntoVf2Graph<EdgeType = N::EdgeType>,
@@ -658,14 +689,11 @@ where
         max_trials == 0 || trials <= max_trials
     };
     let mut vf2 = vf2.with_call_limit(config.call_limit.0).into_iter();
-    let (mut mapping, _score) = vf2.next()?.expect("error is infallible");
+    let Ok((mut mapping, _score)) = vf2.next()?;
     if can_continue() {
         vf2.call_limit = config.call_limit.1;
-        if let Some((new_mapping, _score)) = vf2
-            .take_while(|_| can_continue())
-            .last()
-            .map(|v| v.expect("error is infallible"))
-        {
+        if let Some(result) = vf2.take_while(|_| can_continue()).last() {
+            let Ok((new_mapping, _)) = result;
             mapping = new_mapping;
         }
     }
@@ -702,12 +730,8 @@ where
     for node in interactions.graph.node_indices() {
         let needle = interactions.graph.node_weight(node)?;
         let haystack = coupling.node_weight(node_map(node))?;
-        score = W::Score::combine(
-            &score,
-            &scorer
-                .score(needle, haystack)
-                .expect("error is infallible")?,
-        );
+        let Ok(partial) = scorer.score(needle, haystack);
+        score = W::Score::combine(&score, &partial?);
     }
     for edge in interactions.graph.edge_references() {
         let needle = edge.weight();
@@ -716,12 +740,8 @@ where
             .edges_connecting(node_map(edge.source()), node_map(edge.target()))
             .next()?
             .weight();
-        score = W::Score::combine(
-            &score,
-            &scorer
-                .score(needle, haystack)
-                .expect("error is infallible")?,
-        );
+        let Ok(partial) = scorer.score(needle, haystack);
+        score = W::Score::combine(&score, &partial?);
     }
     Some(score)
 }
@@ -737,11 +757,8 @@ pub fn vf2_layout_pass_average(
 ) -> PyResult<Vf2PassReturn> {
     let add_interaction = |count: &mut usize, _: &PackedInstruction, repeats: usize| {
         *count += repeats;
-        true
     };
-    let interactions = VirtualInteractions::from_dag(dag, add_interaction)?
-        .expect("weighting function is infallible");
-
+    let interactions = VirtualInteractions::from_dag(dag, add_interaction)?;
     let score =
         |count: &usize, err: &f64| -> Result<f64, Infallible> { Ok(*err * (*count as f64)) };
     let target_error_map = avg_error_map
@@ -819,7 +836,7 @@ pub fn vf2_layout_pass_exact(
             }
             true
         };
-    let Some(mut interactions) = VirtualInteractions::from_dag(dag, add_interaction)? else {
+    let Some(mut interactions) = VirtualInteractions::try_from_dag(dag, add_interaction)? else {
         return Ok(Vf2PassReturn::NoSolution);
     };
 
@@ -901,4 +918,62 @@ pub fn vf2_layout_mod(m: &Bound<PyModule>) -> PyResult<()> {
     )?;
     m.add("VF2PassReturn", m.py().get_type::<VF2PassReturn>())?;
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use qiskit_circuit::PhysicalQubit;
+    use qiskit_circuit::operations::StandardGate;
+    use qiskit_util::IndexMap;
+    use smallvec::smallvec;
+
+    use crate::target::{InstructionProperties, Qargs, Target};
+
+    use super::build_average_error_map;
+
+    /// The average error of a qarg is a floating-point sum over the operations defined on it.
+    /// Floating-point addition is not associative, and a `Target` makes no ordering guarantee about
+    /// the operations it reports for a qarg, so the average is only reproducible if the summation
+    /// order is canonicalised.
+    ///
+    /// Regression test for https://github.com/Qiskit/qiskit/issues/16490
+    #[test]
+    fn average_error_is_summed_in_a_canonical_order() {
+        // The four small errors together are more than half an ulp of the large one, but each is
+        // less than half an ulp on its own, so the total depends on the order of the summation.
+        let mut target = Target::default();
+        for (gate, error) in [
+            (StandardGate::H, 5e-17),
+            (StandardGate::S, 5e-17),
+            (StandardGate::SX, 5e-17),
+            (StandardGate::T, 5e-17),
+            (StandardGate::X, 0.5),
+        ] {
+            target
+                .add_instruction(
+                    gate.into(),
+                    None,
+                    None,
+                    Some(IndexMap::from_iter([(
+                        Qargs::Concrete(smallvec![PhysicalQubit(0)]),
+                        Some(InstructionProperties::new(None, Some(error))),
+                    )])),
+                )
+                .expect("gate is valid on this qubit");
+        }
+
+        // Sorted name order is `h`, `s`, `sx`, `t`, `x`, so the large error is added last.
+        let expected = (5e-17 + 5e-17 + 5e-17 + 5e-17 + 0.5) / 5.0;
+        assert_ne!(expected, (0.5 + 5e-17 + 5e-17 + 5e-17 + 5e-17) / 5.0);
+
+        // Check with multiple hash seeds.
+        for _ in 0..100 {
+            let error_map = build_average_error_map(&target).expect("the target has 1q errors");
+            assert_eq!(error_map.error_map.len(), 1);
+            assert_eq!(
+                error_map.error_map[&[PhysicalQubit(0), PhysicalQubit(0)]],
+                expected
+            );
+        }
+    }
 }

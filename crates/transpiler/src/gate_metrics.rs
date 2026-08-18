@@ -12,7 +12,7 @@
 
 use ndarray::ArrayView2;
 use num_complex::{Complex64, ComplexFloat};
-use qiskit_circuit::{Qubit, operations::StandardGate};
+use qiskit_circuit::operations::StandardGate;
 
 use qiskit_quantum_info::unitary_compose;
 
@@ -46,19 +46,13 @@ pub fn rotation_trace_and_dim(rotation: StandardGate, angle: f64) -> Option<(Com
     Some((trace_over_dim, dim))
 }
 
-pub fn gate_fidelity(
-    left: &ArrayView2<Complex64>,
-    right: &ArrayView2<Complex64>,
-    qargs: Option<&[Qubit]>,
-) -> (f64, f64) {
+pub fn gate_fidelity(left: &ArrayView2<Complex64>, right: &ArrayView2<Complex64>) -> (f64, f64) {
     let dim = left.nrows();
 
     let left = left.t().mapv(|el| el.conj());
     let product = match dim {
         2 => unitary_compose::matmul_1q(&left.view(), right),
-        4 => {
-            unitary_compose::matmul_2q(&left.view(), right, qargs.unwrap_or(&[Qubit(0), Qubit(1)]))
-        }
+        4 => unitary_compose::matmul_2q(&left.view(), right, &[0, 1]),
         _ => left.dot(right),
     };
     let trace = product.diag().sum();

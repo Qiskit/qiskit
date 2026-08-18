@@ -64,14 +64,17 @@ fn unroll_3q_or_more(
     let physical_qubits = (0..target.num_qubits.unwrap_or(0))
         .map(PhysicalQubit::new)
         .collect::<Vec<_>>();
-    *dag = run_unitary_synthesis(
+    if let Some(out) = run_unitary_synthesis(
         dag,
         &["unitary", "swap"].map(String::from).into_iter().collect(),
         3,
         &physical_qubits,
         synthesis_state,
         target.into(),
-    )?;
+        false,
+    )? {
+        *dag = out;
+    }
     run_unroll_3q_or_more(dag, Some(target))?;
     Ok(())
 }
@@ -307,25 +310,27 @@ pub fn translation_stage(
     let physical_qubits = (0..target.num_qubits.unwrap_or(0))
         .map(PhysicalQubit::new)
         .collect::<Vec<_>>();
-    *dag = run_unitary_synthesis(
+    if let Some(out) = run_unitary_synthesis(
         dag,
         &["unitary".to_string()].into_iter().collect(),
         0,
         &physical_qubits,
         synthesis_state,
         target.into(),
-    )?;
+        false,
+    )? {
+        *dag = out;
+    }
     if let Some(out_dag) = run_basis_translator(dag, equiv_lib, 0, Some(target), None)? {
         *dag = out_dag;
     }
     if !check_direction_target(dag, target)? {
         fix_direction_target(dag, target)?;
-        if gates_missing_from_target(dag, target)? {
-            if let Some(out_dag) =
+        if gates_missing_from_target(dag, target)?
+            && let Some(out_dag) =
                 run_basis_translator(dag, equiv_lib, 0, Some(target), None).unwrap()
-            {
-                *dag = out_dag;
-            }
+        {
+            *dag = out_dag;
         }
     }
     Ok(())
@@ -353,10 +358,12 @@ pub fn optimization_stage(
     if optimization_level == OptimizationLevel::Level1 {
         new_depth = Some(dag.depth(false)?);
         new_size = Some(dag.size(false)?);
+        let optimize_1q_state =
+            Optimize1qGatesDecompositionState::new(target.num_qubits.unwrap_or(0) as usize);
         while new_depth != depth || new_size != size {
             depth = new_depth;
             size = new_size;
-            run_optimize_1q_gates_decomposition(dag, Some(target), None, None)?;
+            run_optimize_1q_gates_decomposition(dag, &optimize_1q_state, Some(target), None, None)?;
             run_inverse_cancellation_standard_gates(dag);
             if gates_missing_from_target(dag, target)? {
                 translation_stage(dag, target, synthesis_state, equivalence_library)?;
@@ -366,21 +373,26 @@ pub fn optimization_stage(
         }
     } else if optimization_level == OptimizationLevel::Level2 {
         run_consolidate_blocks(dag, false, approximation_degree, Some(target))?;
-        *dag = run_unitary_synthesis(
+        if let Some(out) = run_unitary_synthesis(
             dag,
             &["unitary".to_string()].into_iter().collect(),
             0,
             &physical_qubits,
             synthesis_state,
             target.into(),
-        )?;
+            false,
+        )? {
+            *dag = out;
+        }
         new_depth = Some(dag.depth(false)?);
         new_size = Some(dag.size(false)?);
+        let optimize_1q_state =
+            Optimize1qGatesDecompositionState::new(target.num_qubits.unwrap_or(0) as usize);
         while new_depth != depth || new_size != size {
             depth = new_depth;
             size = new_size;
             run_remove_identity_equiv(dag, approximation_degree, Some(target))?;
-            run_optimize_1q_gates_decomposition(dag, Some(target), None, None)?;
+            run_optimize_1q_gates_decomposition(dag, &optimize_1q_state, Some(target), None, None)?;
             cancel_commutations(dag, commutation_checker, None, 1.0)?;
             if gates_missing_from_target(dag, target)? {
                 translation_stage(dag, target, synthesis_state, equivalence_library)?;
@@ -391,19 +403,23 @@ pub fn optimization_stage(
     } else if optimization_level == OptimizationLevel::Level3 {
         let mut continue_loop: bool = true;
         let mut min_state = MinPointState::new(dag);
-
+        let optimize_1q_state =
+            Optimize1qGatesDecompositionState::new(target.num_qubits.unwrap_or(0) as usize);
         while continue_loop {
             run_consolidate_blocks(dag, false, approximation_degree, Some(target))?;
-            *dag = run_unitary_synthesis(
+            if let Some(out) = run_unitary_synthesis(
                 dag,
                 &["unitary"].into_iter().map(|x| x.to_string()).collect(),
                 0,
                 &physical_qubits,
                 synthesis_state,
                 target.into(),
-            )?;
+                false,
+            )? {
+                *dag = out
+            }
             run_remove_identity_equiv(dag, approximation_degree, Some(target))?;
-            run_optimize_1q_gates_decomposition(dag, Some(target), None, None)?;
+            run_optimize_1q_gates_decomposition(dag, &optimize_1q_state, Some(target), None, None)?;
             cancel_commutations(dag, commutation_checker, None, 1.0)?;
             if gates_missing_from_target(dag, target)? {
                 translation_stage(dag, target, synthesis_state, equivalence_library)?;
@@ -450,7 +466,10 @@ pub fn get_sabre_heuristic(target: &Target) -> Result<sabre::Heuristic> {
         1e-10,
     )
     .with_basic(1.0, sabre::SetScaling::Constant)
-    .with_lookahead(0.5, 20, sabre::SetScaling::Size)
+    .with_lookahead(
+        vec![0.5 / target.num_qubits.unwrap_or(20) as f64],
+        sabre::SetScaling::Constant,
+    )
     .with_decay(0.001, 5)?)
 }
 
@@ -562,14 +581,19 @@ impl MinPointState {
             true
         } else if (new_depth, new_size) > (self.best_depth, self.best_size) {
             self.count += 1;
-            true
+            // Limit to 5 iterations without improvement
+            // and back track to previous best
+            self.count < 5
         } else if (new_depth, new_size) < (self.best_depth, self.best_size) {
             self.count = 1;
             self.best_depth = new_depth;
             self.best_size = new_size;
+            self.best_dag = dag.clone();
             true
         } else {
-            (new_depth, new_size) != (self.best_depth, self.best_size)
+            // When depth and size are unchanged, we reach a fixed point
+            // and can stop the optimization loop
+            false
         }
     }
 }
@@ -611,15 +635,15 @@ mod tests {
     fn build_universal_star_target() -> Target {
         let mut target = Target::default();
         let u_params = Some(Parameters::Params(smallvec![
-            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
-                "a", None, None,
-            )))),
-            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
-                "b", None, None,
-            )))),
-            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(Symbol::new(
-                "c", None, None,
-            )))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
+                Symbol::standalone("a".to_owned(), None)
+            ))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
+                Symbol::standalone("b".to_owned(), None)
+            ))),
+            Param::ParameterExpression(Arc::new(ParameterExpression::from_symbol(
+                Symbol::standalone("c".to_owned(), None)
+            ))),
         ]));
 
         let props = (0..5)
@@ -843,5 +867,116 @@ mod tests {
             }
             assert!(result.1.output_permutation().is_some());
         }
+    }
+
+    #[test]
+    fn test_update_best_dag() {
+        let circuit1 = CircuitData::from_packed_operations(
+            1,
+            1,
+            vec![Ok((
+                StandardGate::H.into(),
+                smallvec![],
+                vec![Qubit(0)],
+                vec![],
+            ))],
+            Param::Float(0.),
+        )
+        .unwrap();
+
+        let dag1 = DAGCircuit::from_circuit_data(&circuit1, false, None, None, None, None).unwrap();
+        let circuit2 = CircuitData::from_packed_operations(1, 1, vec![], Param::Float(0.)).unwrap();
+        let dag2 = DAGCircuit::from_circuit_data(&circuit2, false, None, None, None, None).unwrap();
+
+        let mut state = MinPointState::new(&dag1);
+        assert!(state.update_with(&dag1));
+        assert_eq!(state.count, 0);
+        assert!(state.update_with(&dag2));
+        assert_eq!(state.count, 1);
+        assert_eq!(
+            state.best_dag.depth(false).unwrap(),
+            dag2.depth(false).unwrap()
+        );
+        assert_eq!(
+            state.best_dag.size(false).unwrap(),
+            dag2.size(false).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_backtrack_limit_stops_loop() {
+        let circuit1 = CircuitData::from_packed_operations(1, 1, vec![], Param::Float(0.)).unwrap();
+        let dag1 = DAGCircuit::from_circuit_data(&circuit1, false, None, None, None, None).unwrap();
+        let circuit2 = CircuitData::from_packed_operations(
+            1,
+            1,
+            vec![Ok((
+                StandardGate::H.into(),
+                smallvec![],
+                vec![Qubit(0)],
+                vec![],
+            ))],
+            Param::Float(0.),
+        )
+        .unwrap();
+
+        let dag2 = DAGCircuit::from_circuit_data(&circuit2, false, None, None, None, None).unwrap();
+        let mut state = MinPointState::new(&dag1);
+
+        state.update_with(&dag1);
+        for i in 0..5 {
+            let continue_loop = state.update_with(&dag2);
+            if i < 4 {
+                assert!(continue_loop);
+            } else {
+                assert!(!continue_loop);
+            }
+        }
+    }
+
+    #[test]
+    fn test_backtrack_resets_on_improvement() {
+        let circuit1 = CircuitData::from_packed_operations(
+            1,
+            1,
+            vec![
+                Ok((StandardGate::H.into(), smallvec![], vec![Qubit(0)], vec![])),
+                Ok((StandardGate::H.into(), smallvec![], vec![Qubit(0)], vec![])),
+            ],
+            Param::Float(0.),
+        )
+        .unwrap();
+        let dag_worst =
+            DAGCircuit::from_circuit_data(&circuit1, false, None, None, None, None).unwrap();
+        let circuit2 = CircuitData::from_packed_operations(
+            1,
+            1,
+            vec![Ok((
+                StandardGate::H.into(),
+                smallvec![],
+                vec![Qubit(0)],
+                vec![],
+            ))],
+            Param::Float(0.),
+        )
+        .unwrap();
+        let dag_better =
+            DAGCircuit::from_circuit_data(&circuit2, false, None, None, None, None).unwrap();
+        let circuit3 = CircuitData::from_packed_operations(1, 1, vec![], Param::Float(0.)).unwrap();
+        let dag_best =
+            DAGCircuit::from_circuit_data(&circuit3, false, None, None, None, None).unwrap();
+        let mut state = MinPointState::new(&dag_worst);
+
+        state.update_with(&dag_worst);
+        state.update_with(&dag_better);
+        for _i in 0..3 {
+            state.update_with(&dag_worst);
+        }
+        state.update_with(&dag_best);
+        assert_eq!(state.count, 1);
+        // After updating to the dag_best the state tracked dag should
+        // be empty
+        assert_eq!(state.best_dag.depth(false).unwrap(), 0);
+        assert_eq!(state.best_dag.size(false).unwrap(), 0);
     }
 }

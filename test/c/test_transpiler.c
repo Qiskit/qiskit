@@ -191,13 +191,13 @@ static int test_transpile_idle_qubits(void) {
             result = EqualityError;
             goto cleanup;
         }
-        if ((opt_level == 1 || opt_level == 3) && num_instructions != 8) {
+        if (opt_level == 1 && num_instructions != 8) {
             printf("opt_level: %d num_instructions: %zu is not the expected value 8\n", opt_level,
                    num_instructions);
             result = EqualityError;
             goto cleanup;
         }
-        if (opt_level == 2 && num_instructions != 7) {
+        if ((opt_level == 2 || opt_level == 3) && num_instructions != 7) {
             printf("opt_level: %d num_instructions: %zu is not the expected value 7\n", opt_level,
                    num_instructions);
             result = EqualityError;

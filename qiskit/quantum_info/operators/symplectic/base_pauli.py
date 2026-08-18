@@ -636,6 +636,22 @@ def _evolve_sdg(base_pauli, qubit):
     return base_pauli
 
 
+def _evolve_sx(base_pauli, qubit):
+    """Update P -> SX.P.SXdg"""
+    z = base_pauli._z[:, qubit]
+    base_pauli._x[:, qubit] ^= z
+    base_pauli._phase -= z.T.astype(base_pauli._phase.dtype)
+    return base_pauli
+
+
+def _evolve_sxdg(base_pauli, qubit):
+    """Update P -> SXdg.P.SX"""
+    z = base_pauli._z[:, qubit]
+    base_pauli._x[:, qubit] ^= z
+    base_pauli._phase += z.T.astype(base_pauli._phase.dtype)
+    return base_pauli
+
+
 def _evolve_i(base_pauli, qubit):
     """Update P -> P"""
     return base_pauli
@@ -690,6 +706,15 @@ def _evolve_cy(base_pauli, qctrl, qtrgt):
     return base_pauli
 
 
+def _evolve_dcx(base_pauli, qctrl, qtrgt):
+    """Update P -> DCX.P.DCXdg"""
+    base_pauli._x[:, qtrgt] ^= base_pauli._x[:, qctrl]
+    base_pauli._z[:, qctrl] ^= base_pauli._z[:, qtrgt]
+    base_pauli._x[:, qctrl] ^= base_pauli._x[:, qtrgt]
+    base_pauli._z[:, qtrgt] ^= base_pauli._z[:, qctrl]
+    return base_pauli
+
+
 def _evolve_swap(base_pauli, q1, q2):
     """Update P -> SWAP.P.SWAP"""
     x1 = base_pauli._x[:, q1].copy()
@@ -698,6 +723,22 @@ def _evolve_swap(base_pauli, q1, q2):
     base_pauli._z[:, q1] = base_pauli._z[:, q2]
     base_pauli._x[:, q2] = x1
     base_pauli._z[:, q2] = z1
+    return base_pauli
+
+
+def _evolve_iswap(base_pauli, q1, q2):
+    """Update P -> iSWAP.P.iSWAP"""
+    x1 = base_pauli._x[:, q1].copy()
+    z1 = base_pauli._z[:, q1].copy()
+    x2 = base_pauli._x[:, q2].copy()
+    z2 = base_pauli._z[:, q2].copy()
+
+    base_pauli._x[:, q1] = x2
+    base_pauli._x[:, q2] = x1
+    base_pauli._z[:, q1] = x1 ^ x2 ^ z2
+    base_pauli._z[:, q2] = x1 ^ x2 ^ z1
+
+    base_pauli._phase += np.logical_xor(x1, x2).T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -740,13 +781,17 @@ _basis_1q = {
     "s": _evolve_s,
     "sdg": _evolve_sdg,
     "sinv": _evolve_sdg,
+    "sx": _evolve_sx,
+    "sxdg": _evolve_sxdg,
 }
 _basis_2q = {
     "cx": _evolve_cx,
     "cz": _evolve_cz,
     "cy": _evolve_cy,
     "swap": _evolve_swap,
+    "iswap": _evolve_iswap,
     "ecr": _evolve_ecr,
+    "dcx": _evolve_dcx,
 }
 
 # Non-Clifford gates

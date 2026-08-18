@@ -25,7 +25,7 @@ from qiskit.circuit.annotated_operation import AnnotatedOperation
 from qiskit.circuit.singleton import SingletonControlledGate, _SingletonControlledGateOverrides
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
-from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info import random_unitary
 from qiskit.quantum_info.states import Statevector
 from qiskit.transpiler.passes import UnrollCustomDefinitions, BasisTranslator
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
@@ -749,7 +749,9 @@ class TestControlledGate(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         self.assertEqual(len(list(dag.idle_wires())), 0)
 
-    @combine(num_controls=[1, 2, 3], base_gate=[RXGate, RYGate, RZGate, CPhaseGate])
+    @combine(
+        num_controls=[1, 2, 3, 4, 5, 6], base_gate=[RXGate, RYGate, RZGate, PhaseGate, CPhaseGate]
+    )
     def test_multi_controlled_rotation_gate_with_parameter(self, num_controls, base_gate):
         """Test multi-controlled rotation gates and MCPhase gate with Parameter synthesis."""
         theta = Parameter("theta")
@@ -1302,6 +1304,26 @@ class TestControlledGate(QiskitTestCase):
 
         # compare simulated matrix with the matrix representation provided by the class
         self.assertTrue(matrix_equal(simulated_mat, repr_mat))
+
+    @data(
+        (0, {"x": 2, "rcccx": 1, "csdg": 1}),
+        (1, {"rcccx": 1, "csdg": 1}),
+    )
+    @unpack
+    def test_controlled_rccx(self, ctrl_state, expected_ops):
+        """Test the compact controlled-RCCX decomposition."""
+        controlled = RCCXGate().control(ctrl_state=ctrl_state, annotated=False)
+        target = _compute_control_matrix(RCCXGate().to_matrix(), 1, ctrl_state=ctrl_state)
+
+        self.assertIsInstance(controlled, ControlledGate)
+        self.assertEqual(controlled.base_gate, RCCXGate())
+        self.assertEqual(Operator(controlled), Operator(target))
+        decomposition = controlled.definition.decompose(gates_to_decompose="crccx")
+        self.assertEqual(decomposition.count_ops(), expected_ops)
+
+    def test_multiple_controlled_rccx_annotated(self):
+        """Test multiple controls retain the generic annotated representation."""
+        self.assertIsInstance(RCCXGate().control(2, annotated=True), AnnotatedOperation)
 
     def test_open_controlled_gate(self):
         """
