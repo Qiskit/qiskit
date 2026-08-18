@@ -462,6 +462,20 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+.. _qpy_version_18:
+
+Version 18
+----------
+
+Version 18 removes the ``CalibrationsPack`` field from the circuit payload. Pulse gate
+calibrations were removed from Qiskit in version 2.0, and since then the field has always
+been written as an empty placeholder (``num_cals = 0``). Dropping it saves 2 bytes per
+circuit and cleans up the format.
+
+Version 18 also corrects the encoding of integer and float ``INSTRUCTION_PARAM`` values
+to big-endian byte order, consistent with the rest of the QPY specification. In versions
+1–17 these were mistakenly written in little-endian.
+
 .. _qpy_version_17:
 
 Version 17

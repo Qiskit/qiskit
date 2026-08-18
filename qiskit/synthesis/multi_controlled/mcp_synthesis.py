@@ -14,10 +14,11 @@
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.exceptions import QiskitError
 
 
-def synth_mcp_noaux_v24(num_ctrl_qubits: int, phase: float) -> QuantumCircuit:
+def synth_mcp_noaux_v24(num_ctrl_qubits: int, phase: ParameterValueType) -> QuantumCircuit:
     r"""Synthesize a multi-controlled phase gate with no auxiliary qubits.
 
     This method implements the synthesis of a multi-controlled phase gate
@@ -122,7 +123,9 @@ def synth_mcp_noaux_v24(num_ctrl_qubits: int, phase: float) -> QuantumCircuit:
     return qc
 
 
-def _apply_controlled_gates(circuit: QuantumCircuit, phi: float, n_qubits: int, step: int) -> None:
+def _apply_controlled_gates(
+    circuit: QuantumCircuit, phi: ParameterValueType, n_qubits: int, step: int
+) -> None:
     """Helper function to apply controlled gates in a specific pattern based on the step in :func:`synth_mcp_noaux_sp22`."""
     # The following code is a derivative work of qclib
     # (https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py).
@@ -162,7 +165,7 @@ def _apply_controlled_gates(circuit: QuantumCircuit, phi: float, n_qubits: int, 
             circuit.crx(sign * np.pi / param, control, target)
 
 
-def synth_mcp_noaux_sp22(num_ctrl_qubits: int, phase: float) -> QuantumCircuit:
+def synth_mcp_noaux_sp22(num_ctrl_qubits: int, phase: ParameterValueType) -> QuantumCircuit:
     r"""Synthesize a multi-controlled phase gate with :math:`n` controls based on the paper
     by da Silva et al. [1] and the implementation in qclib [2].
 
@@ -234,7 +237,7 @@ def synth_mcp_noaux_sp22(num_ctrl_qubits: int, phase: float) -> QuantumCircuit:
     return qc
 
 
-def synth_mcp_noaux_default(num_ctrl_qubits: int, phase: float) -> QuantumCircuit:
+def synth_mcp_noaux_default(num_ctrl_qubits: int, phase: ParameterValueType) -> QuantumCircuit:
     """Choose the best synthesis code for :class:`.MCPhaseGate` according to the number of control qubits.
 
     Args:
