@@ -1012,7 +1012,7 @@ pub(crate) fn serialize_param_register_value(
                 name: register.name().to_string(),
             },
             ParamRegisterValue::ShareableClbit(clbit) => formats::ParamRegisterPack::Clbit {
-                index: find_clbit_index(clbit, qpy_data)?.0,
+                index: clbit_index(clbit, qpy_data)?,
             },
         };
         return serialize(&pack);
@@ -1021,7 +1021,7 @@ pub(crate) fn serialize_param_register_value(
     match value {
         ParamRegisterValue::Register(register) => Ok(register.name().into()),
         ParamRegisterValue::ShareableClbit(clbit) => {
-            let name = find_clbit_index(clbit, qpy_data)?.0.to_string();
+            let name = clbit_index(clbit, qpy_data)?.to_string();
             let mut bytes: Bytes = Bytes(Vec::with_capacity(name.len() + 1));
             bytes.push(0u8);
             bytes.extend_from_slice(name.as_bytes());
@@ -1038,10 +1038,10 @@ pub(crate) fn load_param_register_value(
         let (pack, _) = deserialize::<formats::ParamRegisterPack>(bytes)?;
         return match pack {
             formats::ParamRegisterPack::Register { name } => {
-                Ok(ParamRegisterValue::Register(find_creg(&name, qpy_data)?))
+                Ok(ParamRegisterValue::Register(creg_by_name(&name, qpy_data)?))
             }
             formats::ParamRegisterPack::Clbit { index } => Ok(ParamRegisterValue::ShareableClbit(
-                find_clbit(Clbit(index), qpy_data)?,
+                clbit_at(index, qpy_data)?,
             )),
         };
     }
@@ -1052,49 +1052,59 @@ pub(crate) fn load_param_register_value(
         ));
     }
     if bytes[0] == 0u8 {
-        let index = Clbit(std::str::from_utf8(&bytes[1..])?.parse().map_err(
-            |e: std::num::ParseIntError| {
-                QpyError::ConversionError(format!("Failed to parse clbit index: {}", e))
-            },
-        )?);
-        Ok(ParamRegisterValue::ShareableClbit(find_clbit(
+        let index: u32 =
+            std::str::from_utf8(&bytes[1..])?
+                .parse()
+                .map_err(|e: std::num::ParseIntError| {
+                    QpyError::ConversionError(format!("Failed to parse clbit index: {e}"))
+                })?;
+        Ok(ParamRegisterValue::ShareableClbit(clbit_at(
             index, qpy_data,
         )?))
     } else {
         // `bytes` has the register name
         let name = std::str::from_utf8(bytes)?;
-        Ok(ParamRegisterValue::Register(find_creg(name, qpy_data)?))
+        Ok(ParamRegisterValue::Register(creg_by_name(name, qpy_data)?))
     }
 }
 
-/// Position of `clbit` in the circuit being written, which is how both encodings identify it.
-fn find_clbit_index(clbit: &ShareableClbit, qpy_data: &QPYWriteData) -> Result<Clbit, QpyError> {
+/// Position of `clbit` in the circuit being written, which is how the format refers to a bit.
+///
+/// A thin wrapper over [`CircuitData::clbit_index`] that turns the `None` into the QPY error, so
+/// every site that needs a bit index reports the same thing.
+pub(crate) fn clbit_index(
+    clbit: &ShareableClbit,
+    qpy_data: &QPYWriteData,
+) -> Result<u32, QpyError> {
     qpy_data
         .circuit_data
-        .clbits()
-        .find(clbit)
-        .ok_or_else(|| QpyError::InvalidBit("clbit not found".to_string()))
+        .clbit_index(clbit)
+        .ok_or_else(|| QpyError::InvalidBit(format!("Could not find clbit {clbit:?} in circuit")))
 }
 
 /// The clbit at `index` in the circuit being read.
-fn find_clbit(index: Clbit, qpy_data: &QPYReadData) -> Result<ShareableClbit, QpyError> {
+pub(crate) fn clbit_at(index: u32, qpy_data: &QPYReadData) -> Result<ShareableClbit, QpyError> {
     qpy_data
         .circuit_data
         .clbits()
-        .get(index)
+        .get(Clbit(index))
         .cloned()
-        .ok_or_else(|| QpyError::InvalidBit(format!("Could not find clbit {:?}", index)))
+        .ok_or_else(|| QpyError::InvalidBit(format!("Could not find clbit {index} in circuit")))
 }
 
 /// The classical register called `name` in the circuit being read.
-fn find_creg(name: &str, qpy_data: &QPYReadData) -> Result<ClassicalRegister, QpyError> {
+///
+/// Uses the name-keyed [`CircuitData::cregs_data`] map rather than scanning `cregs()`.
+pub(crate) fn creg_by_name(
+    name: &str,
+    qpy_data: &QPYReadData,
+) -> Result<ClassicalRegister, QpyError> {
     qpy_data
         .circuit_data
-        .cregs()
-        .iter()
-        .find(|creg| creg.name() == name)
+        .cregs_data()
+        .get(name)
         .cloned()
         .ok_or_else(|| {
-            QpyError::InvalidRegister(format!("Could not find classical register {:?}", name))
+            QpyError::InvalidRegister(format!("Could not find classical register {name:?}"))
         })
 }

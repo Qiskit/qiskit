@@ -2144,14 +2144,15 @@ class if it's defined in Qiskit. Otherwise it falls back to the custom
 instruction name. Following the ``name`` bytes there are ``label_size`` bytes of
 utf8 data for the label if one was set on the instruction. Following the label
 bytes if ``has_conditional`` is ``True`` then there are
-``conditional_reg_name_size`` bytes holding the condition's `Register` payload, which
-identifies either a classical register or a single classical bit.
+``conditional_reg_name_size`` bytes of utf8 data for the name of the conditional
+register name. In case of single classical bit conditions the register name
+utf8 data will be prefixed with a null character "\\x00" and then a utf8 string
+integer representing the classical bit index in the circuit that the condition
+is on.
 
-Up to :ref:`version 17 <qpy_version_17>` that payload is utf8 data giving the name of the
-conditional register, and in case of single classical bit conditions the register name utf8 data
-will be prefixed with a null character "\\x00" and then a utf8 string integer representing the
-classical bit index in the circuit that the condition is on.  From
-:ref:`version 18 <qpy_version_18>` onwards it is the tagged struct described in that section.
+.. versionchanged:: QPY 18
+    This payload is a tagged struct rather than a utf8 string; see
+    :ref:`qpy_version_18`.
 
 This is immediately followed by the INSTRUCTION_ARG structs for the list of
 arguments of that instruction. These are in the order of all quantum arguments
@@ -2182,10 +2183,8 @@ The contents of each INSTRUCTION_PARAM is:
     }
 
 After each INSTRUCTION_PARAM the next ``size`` bytes are the parameter's data.
-The ``type`` field can be ``'i'``, ``'f'``, ``'p'``, ``'e'``, ``'s'``, ``'c'``,
-``'R'`` or ``'n'`` which dictate the format. ``'R'`` is a `REGISTER_PARAM` payload,
-identifying a :class:`.ClassicalRegister` or a single :class:`.Clbit` in the encoding described in
-:ref:`version 18 <qpy_version_18>`. For ``'i'`` it's an integer, ``'f'`` it's
+The ``type`` field can be ``'i'``, ``'f'``, ``'p'``, ``'e'``, ``'s'``, ``'c'``
+or ``'n'`` which dictate the format. For ``'i'`` it's an integer, ``'f'`` it's
 a double, ``'s'`` if it's a string (encoded as utf8), ``'c'`` is a complex and
 the data is represented by the struct format in the :ref:`qpy_param_expr` section.
 ``'p'`` defines a :class:`~qiskit.circuit.Parameter` object  which is
