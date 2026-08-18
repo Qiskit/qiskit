@@ -297,9 +297,9 @@ code, PRs, issues, or comments.
 
 You are responsible for the suitability, understanding, and explanation of any code you submit to Qiskit, no matter how it was produced.
 
-Qiskit maintainers are not obliged to accept any pull request, even if it follows these guidelines.
-Pull requests that require excessive maintainer time may be closed, even with no proposed
-alternative.  This is a subjective decision made by maintainers.
+Qiskit maintainers may close any pull request if the review effort is expected to outweigh the
+benefit to the project, even with no proposed alternative.  This is a subjective decision made by
+maintainers, and does not require proof of generative AI use.
 
 #### Your responsibilities
 
