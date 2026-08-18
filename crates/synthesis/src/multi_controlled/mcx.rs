@@ -1145,7 +1145,7 @@ pub fn synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
     Ok(circuit)
 }
 
-// The following code (synth_mcp_noaux_sp22 and its helpers) is a derivative work of qclib
+// The following code (synth_mcp_noaux_sp22 and mod sp22) is a derivative work of qclib
 // (https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py).
 // Copyright 2021 qclib project. Licensed under the Apache License, Version 2.0.
 
@@ -1194,124 +1194,139 @@ pub fn synth_mcp_noaux_sp22(
     } else if num_ctrl_qubits == 1 {
         circuit.cp(phase, 0, 1)?;
     } else {
-        step_1(&mut circuit, &phase, num_ctrl_qubits)?;
-        step_2(&mut circuit, &phase, num_ctrl_qubits)?;
-        step_3(&mut circuit, num_ctrl_qubits)?;
-        step_4(&mut circuit, num_ctrl_qubits)?;
+        sp22::step_1(&mut circuit, &phase, num_ctrl_qubits)?;
+        sp22::step_2(&mut circuit, &phase, num_ctrl_qubits)?;
+        sp22::step_3(&mut circuit, num_ctrl_qubits)?;
+        sp22::step_4(&mut circuit, num_ctrl_qubits)?;
     }
     Ok(circuit)
 }
-// ---- SP22 helper functions -----
-/// Returns all `(control, target)` index pairs with `0 <= control < target < n_qubits`,
-/// sorted by `control + target` descending.
-fn pairs_high_sum_first(n_qubits: usize) -> Vec<(usize, usize)> {
-    let mut pairs: Vec<(usize, usize)> = (0..n_qubits)
-        .flat_map(|target| (0..target).map(move |control| (control, target)))
-        .collect();
-    pairs.sort_by(|a, b| (b.0 + b.1).cmp(&(a.0 + a.1)));
-    pairs
-}
 
-/// Returns all `(control, target)` index pairs with `1 <= control < target < n_qubits`,
-/// sorted by `control + target` ascending.
-fn pairs_low_sum_first(n_qubits: usize) -> Vec<(usize, usize)> {
-    let mut pairs: Vec<(usize, usize)> = (1..n_qubits)
-        .flat_map(|target| (1..target).map(move |control| (control, target)))
-        .collect();
-    pairs.sort_by(|a, b| (a.0 + a.1).cmp(&(b.0 + b.1)));
-    pairs
-}
+mod sp22 {
+    use std::f64::consts::PI;
 
-/// Returns `2^exponent` where `exponent = (target - control) - 1` if `control == 0`,
-/// or `(target - control)` otherwise. This is the divisor of the fractional angle
-/// (`φ / divisor` for CP gates, `π / divisor` for CRX gates) applied to each qubit pair.
-/// Uses `f64::exp2` rather than a bit shift to avoid overflow for `n > 64` controls.
-/// Note that target > control by design, no need to assert for.
-fn angle_divisor(control: usize, target: usize) -> f64 {
-    let exponent = if control == 0 {
-        target - control - 1
-    } else {
-        target - control
-    };
-    (exponent as f64).exp2()
-}
+    use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
+    use qiskit_circuit::operations::{Param, multiply_param};
 
-/// SP22 Step 1 — forward phase accumulation on controls and target.
-///
-/// Iterates over all pairs `0 <= c < t <= num_ctrl_qubits`, high-sum first.
-/// Emits CP(+φ/divisor, c, t) when `t` is the target qubit, CRX(+π/divisor, c, t) otherwise.
-/// The CP gates accumulate phase on the target; the CRX gates entangle the controls
-/// so that the phases cancel for all input states except |11…1⟩.
-fn step_1(
-    circuit: &mut CircuitData,
-    phi: &Param,
-    num_ctrl_qubits: usize,
-) -> Result<(), CircuitDataError> {
-    for (control, target) in pairs_high_sum_first(num_ctrl_qubits + 1) {
-        let divisor = angle_divisor(control, target);
-        if target == num_ctrl_qubits {
-            circuit.cp(
-                multiply_param(phi, 1.0 / divisor),
-                control as u32,
-                target as u32,
-            )?;
-        } else {
-            circuit.crx(PI / divisor, control as u32, target as u32)?;
-        }
+    use super::CircuitDataForSynthesis;
+
+    /// Returns all `(control, target)` index pairs with `0 <= control < target < n_qubits`,
+    /// sorted by `control + target` descending.
+    fn pairs_high_sum_first(n_qubits: usize) -> Vec<(usize, usize)> {
+        let mut pairs: Vec<(usize, usize)> = (0..n_qubits)
+            .flat_map(|target| (0..target).map(move |control| (control, target)))
+            .collect();
+        pairs.sort_by(|a, b| (b.0 + b.1).cmp(&(a.0 + a.1)));
+        pairs
     }
-    Ok(())
-}
 
-/// SP22 Step 2 — reverse sweep on controls and target.
-///
-/// Iterates over all pairs `1 <= c < t <= num_ctrl_qubits`, low-sum first.
-/// Emits CP(−φ/divisor, c, t) when `t` is the target qubit, CRX(−π/divisor, c, t) otherwise.
-/// Mirrors step 1 in reverse order to complete the phase accumulation pattern.
-fn step_2(
-    circuit: &mut CircuitData,
-    phi: &Param,
-    num_ctrl_qubits: usize,
-) -> Result<(), CircuitDataError> {
-    for (control, target) in pairs_low_sum_first(num_ctrl_qubits + 1) {
-        let divisor = angle_divisor(control, target);
-        if target == num_ctrl_qubits {
-            circuit.cp(
-                multiply_param(phi, -1.0 / divisor),
-                control as u32,
-                target as u32,
-            )?;
+    /// Returns all `(control, target)` index pairs with `1 <= control < target < n_qubits`,
+    /// sorted by `control + target` ascending.
+    fn pairs_low_sum_first(n_qubits: usize) -> Vec<(usize, usize)> {
+        let mut pairs: Vec<(usize, usize)> = (1..n_qubits)
+            .flat_map(|target| (1..target).map(move |control| (control, target)))
+            .collect();
+        pairs.sort_by(|a, b| (a.0 + a.1).cmp(&(b.0 + b.1)));
+        pairs
+    }
+
+    /// Returns `2^exponent` where `exponent = (target - control) - 1` if `control == 0`,
+    /// or `(target - control)` otherwise. This is the divisor of the fractional angle
+    /// (`φ / divisor` for CP gates, `π / divisor` for CRX gates) applied to each qubit pair.
+    /// Uses `f64::exp2` rather than a bit shift to avoid overflow for `n > 64` controls.
+    /// Note that target > control by design, no need to assert for.
+    fn angle_divisor(control: usize, target: usize) -> f64 {
+        let exponent = if control == 0 {
+            target - control - 1
         } else {
+            target - control
+        };
+        (exponent as f64).exp2()
+    }
+
+    /// SP22 Step 1 — forward phase accumulation on controls and target.
+    ///
+    /// Iterates over all pairs `0 <= c < t <= num_ctrl_qubits`, high-sum first.
+    /// Emits CP(+φ/divisor, c, t) when `t` is the target qubit, CRX(+π/divisor, c, t) otherwise.
+    /// The CP gates accumulate phase on the target; the CRX gates entangle the controls
+    /// so that the phases cancel for all input states except |11…1⟩.
+    pub fn step_1(
+        circuit: &mut CircuitData,
+        phi: &Param,
+        num_ctrl_qubits: usize,
+    ) -> Result<(), CircuitDataError> {
+        for (control, target) in pairs_high_sum_first(num_ctrl_qubits + 1) {
+            let divisor = angle_divisor(control, target);
+            if target == num_ctrl_qubits {
+                circuit.cp(
+                    multiply_param(phi, 1.0 / divisor),
+                    control as u32,
+                    target as u32,
+                )?;
+            } else {
+                circuit.crx(PI / divisor, control as u32, target as u32)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// SP22 Step 2 — reverse sweep on controls and target.
+    ///
+    /// Iterates over all pairs `1 <= c < t <= num_ctrl_qubits`, low-sum first.
+    /// Emits CP(−φ/divisor, c, t) when `t` is the target qubit, CRX(−π/divisor, c, t) otherwise.
+    /// Mirrors step 1 in reverse order to complete the phase accumulation pattern.
+    pub fn step_2(
+        circuit: &mut CircuitData,
+        phi: &Param,
+        num_ctrl_qubits: usize,
+    ) -> Result<(), CircuitDataError> {
+        for (control, target) in pairs_low_sum_first(num_ctrl_qubits + 1) {
+            let divisor = angle_divisor(control, target);
+            if target == num_ctrl_qubits {
+                circuit.cp(
+                    multiply_param(phi, -1.0 / divisor),
+                    control as u32,
+                    target as u32,
+                )?;
+            } else {
+                circuit.crx(-PI / divisor, control as u32, target as u32)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// SP22 Step 3 — uncomputation on controls only, forward order.
+    ///
+    /// Iterates over all pairs `0 <= c < t < num_ctrl_qubits`, high-sum first.
+    /// Emits CRX(−π/divisor, c, t) when `c == 0`, CRX(+π/divisor, c, t) otherwise.
+    /// The sign alternation here and in step 4 cancels the CRX entanglement from steps 1 and 2.
+    pub fn step_3(
+        circuit: &mut CircuitData,
+        num_ctrl_qubits: usize,
+    ) -> Result<(), CircuitDataError> {
+        for (control, target) in pairs_high_sum_first(num_ctrl_qubits) {
+            let divisor = angle_divisor(control, target);
+            let sign = if control == 0 { -1.0 } else { 1.0 };
+            circuit.crx(sign * PI / divisor, control as u32, target as u32)?;
+        }
+        Ok(())
+    }
+
+    /// SP22 Step 4 — uncomputation on controls only, reverse order.
+    ///
+    /// Iterates over all pairs `1 <= c < t < num_ctrl_qubits`, low-sum first.
+    /// Emits CRX(−π/divisor, c, t) for all pairs (`c == 0` never occurs in this range).
+    /// Mirrors step 3 in reverse order to complete the uncomputation.
+    pub fn step_4(
+        circuit: &mut CircuitData,
+        num_ctrl_qubits: usize,
+    ) -> Result<(), CircuitDataError> {
+        for (control, target) in pairs_low_sum_first(num_ctrl_qubits) {
+            let divisor = angle_divisor(control, target);
             circuit.crx(-PI / divisor, control as u32, target as u32)?;
         }
+        Ok(())
     }
-    Ok(())
-}
-
-/// SP22 Step 3 — uncomputation on controls only, forward order.
-///
-/// Iterates over all pairs `0 <= c < t < num_ctrl_qubits`, high-sum first.
-/// Emits CRX(−π/divisor, c, t) when `c == 0`, CRX(+π/divisor, c, t) otherwise.
-/// The sign alternation here and in step 4 cancels the CRX entanglement from steps 1 and 2.
-fn step_3(circuit: &mut CircuitData, num_ctrl_qubits: usize) -> Result<(), CircuitDataError> {
-    for (control, target) in pairs_high_sum_first(num_ctrl_qubits) {
-        let divisor = angle_divisor(control, target);
-        let sign = if control == 0 { -1.0 } else { 1.0 };
-        circuit.crx(sign * PI / divisor, control as u32, target as u32)?;
-    }
-    Ok(())
-}
-
-/// SP22 Step 4 — uncomputation on controls only, reverse order.
-///
-/// Iterates over all pairs `1 <= c < t < num_ctrl_qubits`, low-sum first.
-/// Emits CRX(−π/divisor, c, t) for all pairs (`c == 0` never occurs in this range).
-/// Mirrors step 3 in reverse order to complete the uncomputation.
-fn step_4(circuit: &mut CircuitData, num_ctrl_qubits: usize) -> Result<(), CircuitDataError> {
-    for (control, target) in pairs_low_sum_first(num_ctrl_qubits) {
-        let divisor = angle_divisor(control, target);
-        circuit.crx(-PI / divisor, control as u32, target as u32)?;
-    }
-    Ok(())
 }
 
 #[cfg(all(test, not(miri)))]

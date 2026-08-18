@@ -57,7 +57,7 @@ fn py_synth_mcx_1_clean_b95(num_controls: usize) -> PyResult<PyCircuitData> {
 }
 
 #[pyfunction]
-#[pyo3(name="synth_mcp_noaux_sp22", signature = (num_controls, phase))]
+#[pyo3(name = "synth_mcp_noaux_sp22")]
 fn py_synth_mcp_noaux_sp22(num_controls: usize, phase: Param) -> PyResult<PyCircuitData> {
     // Reject unsupported types early: PyO3 silently maps unrecognised Python objects to
     // ``Param::Obj``, which would later panic.
