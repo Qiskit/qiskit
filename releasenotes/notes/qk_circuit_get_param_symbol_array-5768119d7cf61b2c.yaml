@@ -1,0 +1,5 @@
+---
+features_c:
+  - Added a new function to the C API, :c:func:`qk_circuit_get_param_symbol_array` which is used
+    to get an array of pointers to :c:struct:`QkParam` objects for all the unbound symbol parameters
+    in the circuit.

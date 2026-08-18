@@ -501,6 +501,88 @@ cleanup:
     return result;
 }
 
+static int test_param_circuit(void) {
+    int result = Ok;
+    QkParam *a = qk_param_new_symbol("a");
+    QkParam *b = qk_param_new_symbol("b");
+    QkParam *c = qk_param_new_symbol("c");
+    QkParam *d = qk_param_new_symbol("d");
+    QkCircuit *qc = qk_circuit_new(2, 0);
+    const QkParam *u_param[3] = {a, b, c};
+    const QkParam *ry_param[1] = {d};
+    uint32_t q0[1] = {0};
+    qk_circuit_parameterized_gate(qc, QkGate_U, q0, u_param);
+    qk_circuit_parameterized_gate(qc, QkGate_RY, q0, ry_param);
+    size_t num_symbols = qk_circuit_num_param_symbols(qc);
+    if (num_symbols != 4) {
+        result = EqualityError;
+        printf("Invalid number of symbols, expected 4 got %zu\n", num_symbols);
+        goto cleanup;
+    }
+    QkParam *params[4] = {NULL, NULL, NULL, NULL};
+    qk_circuit_get_param_symbol_array(qc, params);
+    uint8_t seen = 0;
+    for (size_t i = 0; i < num_symbols; i++) {
+        QkParam *tmp = params[i];
+        char *symbol_str = qk_param_str(tmp);
+        if (strcmp(symbol_str, "a") == 0) {
+            if ((seen & 1) == 1) {
+                result = EqualityError;
+                printf("Symbol a seen more than once\n");
+                qk_str_free(symbol_str);
+                goto param_array_cleanup;
+            } else {
+                seen |= 1;
+            }
+        } else if (strcmp(symbol_str, "b") == 0) {
+            if ((seen >> 1 & 1) == 1) {
+                result = EqualityError;
+                printf("Symbol b seen more than once\n");
+                qk_str_free(symbol_str);
+                goto param_array_cleanup;
+            } else {
+                seen |= 2;
+            }
+        } else if (strcmp(symbol_str, "c") == 0) {
+            if ((seen >> 2 & 1) == 1) {
+                result = EqualityError;
+                printf("Symbol c seen more than once\n");
+                qk_str_free(symbol_str);
+                goto param_array_cleanup;
+            } else {
+                seen |= 4;
+            }
+        } else if (strcmp(symbol_str, "d") == 0) {
+            if ((seen >> 3 & 1) == 1) {
+                result = EqualityError;
+                printf("Symbol d seen more than once\n");
+                qk_str_free(symbol_str);
+                goto param_array_cleanup;
+            } else {
+                seen |= 8;
+            }
+        } else {
+            result = EqualityError;
+            printf("Unexpected symbol: %s\n", symbol_str);
+            qk_str_free(symbol_str);
+            goto param_array_cleanup;
+        }
+        qk_str_free(symbol_str);
+    }
+param_array_cleanup:
+    for (int i = 0; i < 4; i++) {
+        qk_param_free(params[i]);
+    }
+
+cleanup:
+    qk_circuit_free(qc);
+    qk_param_free(a);
+    qk_param_free(b);
+    qk_param_free(c);
+    qk_param_free(d);
+    return result;
+}
+
 int test_param(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_param_new);
@@ -511,6 +593,7 @@ int test_param(void) {
     num_failed += RUN_TEST(test_param_binary_ops);
     num_failed += RUN_TEST(test_param_unary_ops);
     num_failed += RUN_TEST(test_param_with_value);
+    num_failed += RUN_TEST(test_param_circuit);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);

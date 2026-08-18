@@ -12,6 +12,7 @@
 
 use std::ffi::{CStr, CString, c_char};
 use std::ptr;
+use std::sync::Arc;
 
 use crate::circuit_library::pbc::{CPauliProductMeasurement, CPauliProductRotation};
 use crate::control_flow::CControlFlowInstruction;
@@ -36,6 +37,7 @@ use qiskit_circuit::operations::{
     PauliProductRotation, StandardGate, StandardInstruction, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
+use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter_table::ParameterTableError;
 use qiskit_circuit::{BlocksMode, Clbit, Qubit, VarsMode};
 use qiskit_transpiler::target::{Target, estimate_fidelity};
@@ -767,6 +769,67 @@ pub unsafe extern "C" fn qk_circuit_num_param_symbols(circuit: *const CircuitDat
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
     circuit.num_parameters()
+}
+
+/// @ingroup QkCircuit
+/// Get an array of unbound symbol ``QkParam`` objects in the circuit
+///
+/// @param circuit a pointer to the circuit
+/// @param out a pointer to an array of at least sufficient size for the length returned by
+/// ``qk_circuit_num_param_symbols`` pointers to ``QkParam`` objects. The ``QkParam`` pointers
+/// written into this array are unordered and are not guaranteed to be in a particular order.
+/// All elements in this array must be freed with ``qk_param_free()``.
+///
+/// # Example
+/// ```c
+/// #include <assert.h>
+///
+/// QkCircuit *qc = qk_circuit_new(2, 0);
+/// QkParam *x = qk_param_new_symbol("x");
+/// QkParam *y = qk_param_new_symbol("y");
+///
+/// uint32_t q0[1] = {0};
+/// const QkParam *rx_param[1] = {x};
+/// const QkParam *ry_param[1] = {y};
+///
+/// qk_circuit_parameterized_gate(qc, QkGate_RX, q0, rx_param);
+/// qk_circuit_parameterized_gate(qc, QkGate_RY, q0, ry_param);
+///
+/// size_t num_symbols = qk_circuit_num_param_symbols(qc);
+/// assert(num_symbols == 2);
+///
+/// QkParams* params[2] = {NULL, NULL};
+/// qk_circuit_get_param_symbol_array(qc, params)
+///
+/// qk_param_free(params[0]);
+/// qk_param_free(params[1]);
+/// qk_param_free(x);
+/// qk_param_free(y);
+/// qk_circuit_free(qc);
+/// ```
+///
+/// # Safety
+///
+/// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit`` or if
+/// ``out`` does not point to a memory location with sufficient space to write out an
+/// array of QkParam pointers with the length as returned by ``qk_circuit_num_param_symbols``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_get_param_symbol_array(
+    circuit: *const CircuitData,
+    out: *mut *mut Param,
+) {
+    // SAFETY: Per documentation, the pointer is non-null and aligned.
+    let circuit = unsafe { const_ptr_as_ref(circuit) };
+    let out_array: &mut [*mut Param] =
+        unsafe { std::slice::from_raw_parts_mut(out, circuit.num_parameters()) };
+    out_array
+        .iter_mut()
+        .zip(circuit.iter_parameters())
+        .for_each(|(out, symbol)| {
+            *out = Box::into_raw(Box::new(Param::ParameterExpression(Arc::new(
+                ParameterExpression::from_symbol(symbol.clone()),
+            ))))
+        })
 }
 
 /// @ingroup QkCircuit
@@ -2753,11 +2816,14 @@ pub unsafe extern "C" fn qk_control_flow_instruction_free(cf_inst: *mut CControl
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::param::{qk_param_free, qk_param_new_symbol, qk_param_str};
+    use crate::sparse_observable::qk_str_free;
     use qiskit_circuit::{
         bit::{ClassicalRegister, QuantumRegister, ShareableClbit, ShareableQubit},
         circuit_data::CircuitData,
         operations::Param,
     };
+    use std::ffi::CStr;
     use std::mem::MaybeUninit;
 
     #[test]
@@ -2799,5 +2865,67 @@ mod test {
 
         assert_eq!(out_bits[1], 1); // Bit was explicitly added to the circuit
         assert_eq!(out_bits[0], u32::MAX); // Bit was not added to the circuit
+    }
+
+    #[test]
+    fn test_circuit_params() {
+        let qubits = vec![ShareableQubit::new_anonymous()];
+        let clbits = vec![ShareableClbit::new_anonymous()];
+        let mut circuit = CircuitData::new(Some(qubits), Some(clbits), Param::Float(0.0)).unwrap();
+
+        let x = unsafe { qk_param_new_symbol(c"x".as_ptr()) };
+        let y = unsafe { qk_param_new_symbol(c"y".as_ptr()) };
+        let z = unsafe { qk_param_new_symbol(c"z".as_ptr()) };
+
+        let qubits: [u32; 1] = [0];
+        unsafe {
+            qk_circuit_parameterized_gate(
+                &mut circuit,
+                StandardGate::RX,
+                qubits.as_ptr(),
+                [x as *const Param].as_ptr(),
+            );
+            qk_circuit_parameterized_gate(
+                &mut circuit,
+                StandardGate::RY,
+                qubits.as_ptr(),
+                [y as *const Param].as_ptr(),
+            );
+            qk_circuit_parameterized_gate(
+                &mut circuit,
+                StandardGate::RZ,
+                qubits.as_ptr(),
+                [z as *const Param].as_ptr(),
+            );
+        }
+        let count = unsafe { qk_circuit_num_param_symbols(&circuit) };
+        assert_eq!(3, count);
+        let mut symbol_array: Vec<*mut Param> = vec![std::ptr::null_mut(); count];
+        unsafe {
+            qk_circuit_get_param_symbol_array(&circuit, symbol_array.as_mut_ptr());
+        }
+        let mut counts: hashbrown::HashMap<&CStr, usize> = hashbrown::HashMap::new();
+        for i in 0..count {
+            let symbol_str_ptr = unsafe { qk_param_str(symbol_array[i]) };
+            let symbol_str = unsafe { CStr::from_ptr(symbol_str_ptr) };
+            counts
+                .entry(symbol_str)
+                .and_modify(|count| *count += 1)
+                .or_insert(1);
+        }
+        assert_eq!(
+            [(c"x", 1), (c"y", 1), (c"z", 1)]
+                .into_iter()
+                .collect::<hashbrown::HashMap<&CStr, usize>>(),
+            counts
+        );
+        counts
+            .into_keys()
+            .for_each(|symbol_str_ptr| unsafe { qk_str_free(symbol_str_ptr.as_ptr() as *mut i8) });
+        unsafe {
+            for symbol in symbol_array {
+                qk_param_free(symbol)
+            }
+        }
     }
 }
