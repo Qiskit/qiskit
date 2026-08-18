@@ -1154,30 +1154,6 @@ pub fn synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
 ///
 /// For :math:`n \ge 2`, the method produces a circuit with :math:`4n^2-4n+2` CX gates
 /// and requires :math:`O(n)` depth.
-/// For :math:`n \le 4`, it is more efficient to use [`synth_mcp_noaux_v24`],
-/// which produces a circuit with less CX gates.
-///
-/// The circuit breaks down into four steps, each applying a specific pattern of controlled gates.
-///
-/// - Step 1: Apply :math:`n` controlled phase gates and :math:`n(n-1)/2` controlled RX gates.
-/// - Step 2: Apply :math:`n-1` controlled phase gates and :math:`(n-1)(n-2)/2` controlled RX gates.
-///
-///   This is the initial phase. It applies angle rotations (e.g., :math:`R_X(\pi/k)`) and
-///   the :math:`k`-th roots of the target unitary (:math:`U^{1/k}`) in a cascading V-shape pattern.
-///   This step systematically accumulates the partitioned components of the unitary
-///   operation on the target qubit based on the control states.
-///
-/// - Step 3: Apply :math:`n(n-1)/2` controlled RX gates.
-/// - Step 4: Apply :math:`(n-1)(n-2)/2` controlled RX gates.
-///
-///   Steps 3 and 4 together constitute the uncomputation process. By applying only the inverse of
-///   the angle rotation operations in steps 1 and 2, these steps reverse the unwanted
-///   entanglement and phase shifts generated in the first two steps. This cancellation ensures
-///   that the target qubit undergoes the full unitary operation :math:`U`
-///   if and only if all control qubits are in the :math:`|1\rangle` state.
-///
-/// Each controlled RX gate and controlled phase gate requires two CX gates,
-/// resulting in a total of :math:`4n^2-4n+2` CX gates.
 ///
 /// # Arguments
 ///
@@ -1199,7 +1175,7 @@ pub fn synth_mcp_noaux_sp22(
     phase: Param,
 ) -> Result<CircuitData, CircuitDataError> {
     // For n>1 steps 1-4 emit 2n-1 CP gates and 2(n-1)^2 CRX gates, i.e. 2n^2-2n+1 instructions
-    // in total (later each of which decomposes into two CX gates, giving the 4n^2-4n+2 of the
+    // in total (later each of which decomposes into two CX gates, giving total of 4n^2-4n+2 of the
     // doc comment).
     let num_instructions = if num_ctrl_qubits < 2 {
         1
@@ -1218,12 +1194,8 @@ pub fn synth_mcp_noaux_sp22(
     } else if num_ctrl_qubits == 1 {
         circuit.cp(phase, 0, 1)?;
     } else {
-        // Apply da Silva and Park algorithm for MCP decomposition in four steps:
-        // Step 1 & 2: accumulate phase φ on the target qubit via CP gates;
-        //             entangle controls via CRX gates.
         step_1(&mut circuit, &phase, num_ctrl_qubits)?;
         step_2(&mut circuit, &phase, num_ctrl_qubits)?;
-        // Step 3 & 4: uncompute control entanglement via inverse CRX gates.
         step_3(&mut circuit, num_ctrl_qubits)?;
         step_4(&mut circuit, num_ctrl_qubits)?;
     }
@@ -1264,11 +1236,12 @@ fn angle_divisor(control: usize, target: usize) -> f64 {
     (exponent as f64).exp2()
 }
 
-/// SP22 Step 1 — phase accumulation (on controls+target)
+/// SP22 Step 1 — forward phase accumulation on controls and target.
 ///
-/// Pairs sorted high-sum first, starting from qubit 0.
-/// Target qubit (`num_ctrl_qubits`): CP(+φ / divisor, c, t).
-/// All other pairs:                  CRX(+π / divisor, c, t).
+/// Iterates over all pairs `0 <= c < t <= num_ctrl_qubits`, high-sum first.
+/// Emits CP(+φ/divisor, c, t) when `t` is the target qubit, CRX(+π/divisor, c, t) otherwise.
+/// The CP gates accumulate phase on the target; the CRX gates entangle the controls
+/// so that the phases cancel for all input states except |11…1⟩.
 fn step_1(
     circuit: &mut CircuitData,
     phi: &Param,
@@ -1289,11 +1262,11 @@ fn step_1(
     Ok(())
 }
 
-/// SP22 Step 2 — phase accumulation (reverse order, on controls+target).
+/// SP22 Step 2 — reverse sweep on controls and target.
 ///
-/// Pairs sorted low-sum first, starting from qubit 1.
-/// Target qubit (`num_ctrl_qubits`): CP(−φ / divisor, c, t).
-/// All other pairs:                  CRX(−π / divisor, c, t).
+/// Iterates over all pairs `1 <= c < t <= num_ctrl_qubits`, low-sum first.
+/// Emits CP(−φ/divisor, c, t) when `t` is the target qubit, CRX(−π/divisor, c, t) otherwise.
+/// Mirrors step 1 in reverse order to complete the phase accumulation pattern.
 fn step_2(
     circuit: &mut CircuitData,
     phi: &Param,
@@ -1314,10 +1287,11 @@ fn step_2(
     Ok(())
 }
 
-/// SP22 Step 3 — uncomputation (on controls only).
+/// SP22 Step 3 — uncomputation on controls only, forward order.
 ///
-/// Pairs sorted high-sum first, starting from qubit 0.
-/// CRX(−π / divisor, c, t) when c == 0, else CRX(+π / divisor, c, t).
+/// Iterates over all pairs `0 <= c < t < num_ctrl_qubits`, high-sum first.
+/// Emits CRX(−π/divisor, c, t) when `c == 0`, CRX(+π/divisor, c, t) otherwise.
+/// The sign alternation here and in step 4 cancels the CRX entanglement from steps 1 and 2.
 fn step_3(circuit: &mut CircuitData, num_ctrl_qubits: usize) -> Result<(), CircuitDataError> {
     for (control, target) in pairs_high_sum_first(num_ctrl_qubits) {
         let divisor = angle_divisor(control, target);
@@ -1327,10 +1301,11 @@ fn step_3(circuit: &mut CircuitData, num_ctrl_qubits: usize) -> Result<(), Circu
     Ok(())
 }
 
-/// SP22 Step 4 — uncomputation (reverse order, controls only).
+/// SP22 Step 4 — uncomputation on controls only, reverse order.
 ///
-/// Pairs sorted low-sum first, starting from qubit 1.
-/// Sign: CRX(−π / divisor, c, t).
+/// Iterates over all pairs `1 <= c < t < num_ctrl_qubits`, low-sum first.
+/// Emits CRX(−π/divisor, c, t) for all pairs (`c == 0` never occurs in this range).
+/// Mirrors step 3 in reverse order to complete the uncomputation.
 fn step_4(circuit: &mut CircuitData, num_ctrl_qubits: usize) -> Result<(), CircuitDataError> {
     for (control, target) in pairs_low_sum_first(num_ctrl_qubits) {
         let divisor = angle_divisor(control, target);
