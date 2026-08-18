@@ -12,7 +12,7 @@ community in this goal.
 * [Installing Qiskit from source](#installing-qiskit-from-source)
 * [Issues and pull requests](#issues-and-pull-requests)
   * [Pull request author checklist](#pull-request-author-checklist)
-  * [Use of AI tools](#use-of-ai-tools)
+  * [Use of generative AI](#use-of-generative-ai)
   * [Code review](#code-review)
   * [Pull request merging checking](#pull-request-merging-checklist)
 * [Contributor Licensing Agreement](#contributor-licensing-agreement)
@@ -284,7 +284,7 @@ please ensure that:
    to automatically close the issue when the PR merges**)
 
 8. You have disclosed all substantial use of AI tooling, including large language models (LLMs).
-   See [Use of AI tools](#use-of-ai-tools) for your responsibilities.
+   See [Use of generative AI](#use-of-generative-ai) for your responsibilities.
 
 
 ### Use of generative AI
