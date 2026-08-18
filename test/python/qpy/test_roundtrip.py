@@ -124,9 +124,6 @@ class TestQPYRoundtrip(QiskitTestCase):
     def test_ifelse_single_clbit_condition_nonzero_index(self, version, write_with, read_with):
         qc = QuantumCircuit(3, 4)
         body = QuantumCircuit([qc.qubits[0]])
-        print("---------------------")
-        print(qc.qubits[0])
-        print("---------------------")
         body.x(0)
 
         qc.if_test((qc.clbits[2], True), body, [qc.qubits[0]], [])
