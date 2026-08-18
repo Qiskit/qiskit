@@ -7,7 +7,7 @@ use crate::sparse_observable::SparseTermView;
 use super::{BitTerm, SparseObservable};
 
 #[derive(Debug, Error)]
-#[error("{0} qubit matrix not representable on hardware")]
+#[error("{0} qubit matrix not supported on this system")]
 pub struct MatrixError(u32);
 
 impl SparseObservable {
