@@ -8902,13 +8902,15 @@ impl PyDAGCircuit {
         circuit: DAGCircuit,
         name: Option<String>,
         metadata: Option<Py<PyAny>>,
+        duration: Option<Py<PyAny>>,
+        unit: Option<String>,
     ) -> Self {
         Self {
             name,
             metadata,
             inner: circuit,
-            duration: None,
-            unit: "dt".to_string(),
+            duration,
+            unit: unit.unwrap_or("dt".to_string()),
         }
     }
 
@@ -8918,7 +8920,13 @@ impl PyDAGCircuit {
         circuit: DAGCircuit,
         original: &PyDAGCircuit,
     ) -> Self {
-        Self::from_dagcircuit(circuit, original.name.clone(), original.metadata.clone())
+        Self::from_dagcircuit(
+            circuit,
+            original.name.clone(),
+            original.metadata.clone(),
+            original.duration.clone(),
+            Some(original.unit.clone()),
+        )
     }
 
     /// Returns an immutable reference to the inner [`DAGCircuit`].
