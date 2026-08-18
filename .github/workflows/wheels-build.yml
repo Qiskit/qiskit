@@ -88,9 +88,13 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: ${{ inputs.python-version }}
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: llvm-tools-preview
+      - name: Install Rust
+        run:
+          rustup toolchain install stable
+            --override
+            --profile minimal
+            --component llvm-tools-preview
+            --no-self-update
       - name: Configure PGO
         shell: bash
         if: inputs.pgo
@@ -130,7 +134,8 @@ jobs:
         name: Install Python
         with:
           python-version: ${{ inputs.python-version }}
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust
+        run: rustup toolchain install stable --override --profile minimal --no-self-update
       - uses: pypa/cibuildwheel@v3.4.0
       - uses: actions/upload-artifact@v7
         with:
@@ -144,7 +149,8 @@ jobs:
     runs-on: ubuntu-24.04-s390x
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust
+        run: rustup toolchain install stable --override --profile minimal --no-self-update
       - name: Install cibuildwheel
         run: python3 -m pip install --user cibuildwheel==3.4.0
       - name: Run cibuildwheel
@@ -160,7 +166,8 @@ jobs:
     runs-on: ubuntu-24.04-ppc64le
     steps:
       - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust
+        run: rustup toolchain install stable --override --profile minimal --no-self-update
       - name: Install cibuildwheel
         run: python3 -m pip install --user cibuildwheel==3.4.0
       - name: Run cibuildwheel
