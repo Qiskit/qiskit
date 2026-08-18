@@ -132,9 +132,13 @@ impl Param {
             [Self::Int(int), Self::Float(float)] | [Self::Float(float), Self::Int(int)] => {
                 Ok(float == &(*int as f64))
             }
-            [Self::Int(_), Self::ParameterExpression(_)]
-            | [Self::ParameterExpression(_), Self::Int(_)] => Ok(false),
-            [Self::Int(_), Self::Obj(_)] | [Self::Obj(_), Self::Int(_)] => Ok(false),
+            [Self::Int(int), Self::ParameterExpression(expr)]
+            | [Self::ParameterExpression(expr), Self::Int(int)] => {
+                Ok(ParameterExpression::try_from(*int).map(|i_expr| i_expr == **expr)?)
+            }
+            [Self::Int(int), Self::Obj(obj)] | [Self::Obj(obj), Self::Int(int)] => {
+                Python::attach(|py| obj.bind(py).eq(int))
+            }
         }
     }
 
@@ -193,6 +197,7 @@ impl Param {
                     if coerce_to_float {
                         Ok(Self::Float(i as f64)) // coerce integer to float
                     } else {
+                        // Only extract to integer if the value fits within an unsigned integer
                         if let Ok(unsigned) = i.try_into() {
                             Ok(Self::Int(unsigned))
                         } else {
@@ -223,6 +228,7 @@ impl Param {
         Ok(if ob.is_instance_of::<PyFloat>() {
             Param::Float(ob.extract()?)
         } else if ob.is_instance_of::<PyInt>() {
+            // Only unsigned integers should be represented
             if let Ok(int) = ob.extract() {
                 Param::Int(int)
             } else {
