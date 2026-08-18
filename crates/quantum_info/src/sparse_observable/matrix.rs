@@ -39,27 +39,34 @@ fn fill_matrix_row(row: &mut ArrayViewMut1<Complex64>, i: usize, terms: &[Term])
     for term in terms {
         match &term.kind {
             TermKind::Pauli { x, z } => {
-                apply_pauli(row, i, term.coeff, *x, *z);
+                accumulate_pauli(row, i, term.coeff, *x, *z);
             }
             TermKind::Projector(bit_terms) => {
-                apply_projector(row, i, term.coeff, bit_terms);
+                accumulate_projector(row, i, term.coeff, bit_terms);
             }
         }
     }
 }
 
-fn apply_pauli(row: &mut ArrayViewMut1<Complex64>, i: usize, coeff: Complex64, x: u32, z: u32) {
+fn accumulate_pauli(
+    row: &mut ArrayViewMut1<Complex64>,
+    i: usize,
+    coeff: Complex64,
+    x: u32,
+    z: u32,
+) {
     let target = i ^ x as usize;
-    let is_positive = (i & z as usize).count_ones().is_multiple_of(2);
+    let is_positive_coeff = (i & z as usize).count_ones().is_multiple_of(2);
 
-    if is_positive {
-        row[target] += coeff;
-    } else {
-        row[target] -= coeff;
+    let mut coeff = coeff;
+    if is_positive_coeff {
+        coeff *= -1.0;
     }
+
+    row[target] += coeff;
 }
 
-fn apply_projector(
+fn accumulate_projector(
     row: &mut ArrayViewMut1<Complex64>,
     i: usize,
     coeff: Complex64,
