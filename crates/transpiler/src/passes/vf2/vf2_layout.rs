@@ -230,10 +230,17 @@ fn build_average_error_map(target: &Target) -> Option<ErrorMap> {
         };
         let mut qarg_error: f64 = 0.;
         let mut count: usize = 0;
-        for op in target
+        // `operation_names_for_qargs` returns a `HashSet`, whose iteration order is randomised
+        // per call.  Summing the per-operation errors in that order makes `qarg_error` depend on a
+        // non-deterministic floating-point summation order, which can produce tie-break differences
+        // between otherwise-symmetric layouts.  Sort the names so the sum is reproducible.
+        let mut op_names: Vec<&str> = target
             .operation_names_for_qargs(QargsRef::Concrete(qargs))
             .expect("these qargs came from `target.qargs()`")
-        {
+            .into_iter()
+            .collect();
+        op_names.sort_unstable();
+        for op in op_names {
             count += 1;
             // If the `target` has no error recorded for an operation, we treat it as errorless.
             qarg_error += target
