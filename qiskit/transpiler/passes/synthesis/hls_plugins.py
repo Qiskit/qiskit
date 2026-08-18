@@ -193,7 +193,7 @@ not sufficient, the corresponding synthesis method will return `None`.
       - :class:`~.MCXSynthesisNoAuxHP24`
       - :math:`0`
       - :math:`0`
-      - linear number of CX gates
+      - linear number of CX gates; use instead of ``"noaux_sp22"`` or ``"noaux_v24"`` or ``"gray_code"`` for :math:`k>32`
     * - ``"n_clean_m15"``
       - :class:`~.MCXSynthesisNCleanM15`
       - :math:`k-2`
