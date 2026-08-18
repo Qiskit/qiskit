@@ -259,7 +259,6 @@ please ensure that:
    documentation `autosummary` index to include it in the api documentation.
 
 3. If you are of the opinion that the modifications you made warrant additional tests,
-   feel free to include them
    feel free to include them.
 
 4. Ensure that if your change has an end user facing impact (new feature,
@@ -310,7 +309,7 @@ without being exhaustive:
 - You must submit the pull request and drive all communications.  It is not acceptable to allow an
   agent to publicly interact autonomously with the Qiskit repository.
 
-- You have reviewed and fully understand all code you submit, and explain the reasoning for it.
+- You have reviewed and fully understand all code you submit, and can explain the reasoning for it.
   Asking an LLM to explain the reasoning for you is not acceptable.
 
 - Your use of the tool, or the use of the output in Qiskit, does not violate any third-party
