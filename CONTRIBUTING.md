@@ -309,8 +309,8 @@ without being exhaustive:
 - You must submit the pull request and drive all communications.  It is not acceptable to allow an
   agent to publicly interact autonomously with the Qiskit repository.
 
-- You have reviewed and fully understand all code you submit, and can explain the reasoning for it.
-  Asking an LLM to explain the reasoning for you is not acceptable.
+- You have fully reviewed and understood all code you submit, and can explain the reasoning for it.
+  Using an LLM generate the explanation is not acceptable.
 
 - Your use of the tool, or the use of the output in Qiskit, does not violate any third-party
   license obligations of source code used during the generation, or the terms and conditions of the
