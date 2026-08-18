@@ -749,7 +749,9 @@ class TestControlledGate(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         self.assertEqual(len(list(dag.idle_wires())), 0)
 
-    @combine(num_controls=[1, 2, 3], base_gate=[RXGate, RYGate, RZGate, CPhaseGate])
+    @combine(
+        num_controls=[1, 2, 3, 4, 5, 6], base_gate=[RXGate, RYGate, RZGate, PhaseGate, CPhaseGate]
+    )
     def test_multi_controlled_rotation_gate_with_parameter(self, num_controls, base_gate):
         """Test multi-controlled rotation gates and MCPhase gate with Parameter synthesis."""
         theta = Parameter("theta")

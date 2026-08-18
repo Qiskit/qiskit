@@ -6843,6 +6843,39 @@ impl DAGCircuit {
             }
         };
 
+        // Transfer DAG-level variable declarations from the replacement DAG.
+        // This is similar to how compose() handles variables, but only transfer variables
+        // that are not already present in the target DAG.
+        for var in other.vars_stretches.iter_vars(VarType::Input) {
+            if self.vars_stretches.vars().find(var).is_none() {
+                self.add_var(var.clone(), VarType::Input)?;
+            }
+        }
+
+        for var in other.vars_stretches.iter_vars(VarType::Capture) {
+            if self.vars_stretches.vars().find(var).is_none() {
+                self.add_var(var.clone(), VarType::Capture)?;
+            }
+        }
+
+        for var in other.vars_stretches.iter_vars(VarType::Declare) {
+            if self.vars_stretches.vars().find(var).is_none() {
+                self.add_var(var.clone(), VarType::Declare)?;
+            }
+        }
+
+        for stretch in other.vars_stretches.iter_stretches(StretchType::Capture) {
+            if self.vars_stretches.stretches().find(stretch).is_none() {
+                self.add_stretch(stretch.clone(), StretchType::Capture)?;
+            }
+        }
+
+        for stretch in other.vars_stretches.iter_stretches(StretchType::Declare) {
+            if self.vars_stretches.stretches().find(stretch).is_none() {
+                self.add_stretch(stretch.clone(), StretchType::Declare)?;
+            }
+        }
+
         let out_map = self.substitute_node_with_graph(
             node_index, other, qubit_map, clbit_map, var_map, block_map,
         )?;

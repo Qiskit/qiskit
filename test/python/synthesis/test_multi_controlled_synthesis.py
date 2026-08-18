@@ -18,7 +18,7 @@ from test import QiskitTestCase, combine
 import numpy as np
 from ddt import data, ddt
 
-from qiskit.circuit import Gate, QuantumCircuit
+from qiskit.circuit import Gate, QuantumCircuit, Parameter
 from qiskit.circuit._utils import _compute_control_matrix, _ctrl_state_to_int
 from qiskit.circuit.library import (
     C3XGate,
@@ -149,6 +149,39 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
         )
 
     @data(0, 1, 2, 3, 4, 5, 6)
+    def test_mcp_noaux_v24_with_params(self, num_ctrl_qubits: int):
+        """Test synth_mcp_noaux_v24 works correctly with parametric angles."""
+        theta = Parameter("theta")
+        val = 0.456
+        circuit = synth_mcp_noaux_v24(num_ctrl_qubits, phase=theta)
+        bound_circuit = circuit.assign_parameters([val])
+        self.assertSynthesisCorrect(
+            PhaseGate(val), num_ctrl_qubits, bound_circuit, clean_ancillas=False
+        )
+
+    @data(0, 1, 2, 3, 4, 5, 6)
+    def test_mcp_noaux_default_with_params(self, num_ctrl_qubits: int):
+        """Test synth_mcp_noaux_default works correctly with parametric angles."""
+        theta = Parameter("theta")
+        val = 0.456
+        circuit = synth_mcp_noaux_default(num_ctrl_qubits, phase=theta)
+        bound_circuit = circuit.assign_parameters([val])
+        self.assertSynthesisCorrect(
+            PhaseGate(val), num_ctrl_qubits, bound_circuit, clean_ancillas=False
+        )
+
+    @data(0, 1, 2, 3, 4, 5, 6)
+    def test_mcp_noaux_sp22_with_params(self, num_ctrl_qubits: int):
+        """Test synth_mcp_noaux_sp22 works correctly with parametric angles."""
+        theta = Parameter("theta")
+        val = 0.456
+        circuit = synth_mcp_noaux_sp22(num_ctrl_qubits, phase=theta)
+        bound_circuit = circuit.assign_parameters([val])
+        self.assertSynthesisCorrect(
+            PhaseGate(val), num_ctrl_qubits, bound_circuit, clean_ancillas=False
+        )
+
+    @data(0, 1, 2, 3, 4, 5, 6)
     def test_mcx_n_dirty_i15(self, num_ctrl_qubits: int):
         """Test synth_mcx_n_dirty_i15 by comparing synthesized and expected matrices."""
         synthesized_circuit = synth_mcx_n_dirty_i15(num_ctrl_qubits)
@@ -220,6 +253,14 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
         self.assertSynthesisCorrect(
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
         )
+
+    def test_mcx_noaux_v24_preserves_mcphase_parameters(self):
+        """Test the MCPhase parameter is stored on its circuit instruction."""
+        synthesized_circuit = synth_mcx_noaux_v24(5)
+        mcphase_instruction = synthesized_circuit.data[1]
+
+        self.assertEqual(mcphase_instruction.params, [np.pi])
+        self.assertEqual(mcphase_instruction.params, mcphase_instruction.operation.params)
 
     @data(0, 1, 2, 3, 4, 5, 6, 7, 8)
     def test_mcx_noaux_hp24(self, num_ctrl_qubits: int):
