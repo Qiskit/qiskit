@@ -46,8 +46,8 @@ impl<'a, 'py> FromPyObject<'a, 'py> for QuantumCircuitData<'py> {
     }
 }
 
-#[pyfunction(signature = (quantum_circuit, copy_operations = true, qubit_order = None, clbit_order = None))]
-pub fn circuit_to_dag(
+#[pyfunction(name = "circuit_to_dag", signature = (quantum_circuit, copy_operations = true, qubit_order = None, clbit_order = None))]
+pub fn py_circuit_to_dag(
     quantum_circuit: QuantumCircuitData,
     copy_operations: bool,
     qubit_order: Option<Vec<ShareableQubit>>,
@@ -124,7 +124,7 @@ pub fn py_dag_to_circuit(
 }
 
 pub fn converters(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(circuit_to_dag, m)?)?;
+    m.add_function(wrap_pyfunction!(py_circuit_to_dag, m)?)?;
     m.add_function(wrap_pyfunction!(py_dag_to_circuit, m)?)?;
     Ok(())
 }
