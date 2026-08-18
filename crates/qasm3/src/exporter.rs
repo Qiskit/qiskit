@@ -1178,11 +1178,17 @@ impl<'a> QASM3Builder {
 
         let duration: DurationValue = match param {
             Param::Float(val) => DurationValue::Float(*val),
-            Param::Int(int) => DurationValue::Dt(*int),
+            Param::Int(int) => match delay_unit {
+                // Any param with an integer value should only be reserved for DT
+                DelayUnit::DT => DurationValue::Dt(*int),
+                _ => DurationValue::Float(*int as f64), // Lossy conversion
+            },
             Param::ParameterExpression(p) => match p.try_to_value(true) {
                 Ok(symbol_expr::Value::Real(val)) => DurationValue::Float(val),
                 Ok(symbol_expr::Value::Int(val)) => {
-                    if let Ok(val) = val.try_into() {
+                    if let Ok(val) = val.try_into()
+                        && matches!(delay_unit, DelayUnit::DT)
+                    {
                         DurationValue::Dt(val)
                     } else {
                         DurationValue::Float(val as f64) // Lossy conversion.
