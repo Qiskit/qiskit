@@ -1149,15 +1149,14 @@ pub unsafe extern "C" fn qk_circuit_reset(circuit: *mut CircuitData, qubit: u32)
 pub unsafe extern "C" fn qk_circuit_barrier(
     circuit: *mut CircuitData,
     qubits: *const u32,
-    num_qubits: u32,
+    mut num_qubits: u32,
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
     let qubits_base;
     let qubits: &[Qubit] = if qubits.is_null() {
-        qubits_base = (0..circuit.num_qubits() as u32)
-            .map(Qubit)
-            .collect::<Vec<_>>();
+        num_qubits = circuit.num_qubits() as u32;
+        qubits_base = (0..num_qubits).map(Qubit).collect::<Vec<_>>();
         bytemuck::cast_slice(qubits_base.as_slice())
     } else {
         // SAFETY: since it is not null, then per documentation `qubits` is aligned and valid for
