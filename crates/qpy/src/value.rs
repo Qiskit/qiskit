@@ -15,6 +15,59 @@ use std::sync::Arc;
 
 use binrw::meta::{ReadEndian, WriteEndian};
 use binrw::{BinRead, BinWrite, Endian, binrw};
+
+/// Endianness selector for QPY value serialization and deserialization.
+///
+/// QPY's format spec requires big-endian (network byte order) for all values.
+/// However, `INSTRUCTION_PARAM` integers and floats were historically written
+/// in little-endian due to an oversight that dates back to the earliest QPY
+/// versions. This was acknowledged as a mistake and is corrected in v18.
+///
+/// Use this enum instead of `binrw::Endian` at every QPY value read/write site.
+/// Call `.resolve(version)` to obtain a concrete `binrw::Endian` — all version-dispatch
+/// logic lives there, so call sites never need to inspect the version themselves.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) enum ValueEndian {
+    /// Always big-endian, regardless of QPY version.
+    /// Use for data that was never affected by the little-endian mistake:
+    /// numpy arrays, expression values, register data, etc.
+    Big,
+
+    /// Always little-endian, regardless of QPY version.
+    /// Not currently used, but included for completeness.
+    #[allow(dead_code)]
+    Little,
+
+    /// Little-endian for QPY v≤17, big-endian for QPY v≥18.
+    ///
+    /// This is the "legacy compatibility" variant. It encodes the fact that
+    /// instruction parameter integers and floats were mistakenly written in
+    /// little-endian in QPY v1–17. Version 18 corrects this to big-endian.
+    /// The version check is resolved by calling `.resolve(qpy_data.version)`,
+    /// so callers never need to inspect the version themselves — just use this
+    /// variant for all instruction scalar parameters.
+    LittleForV17AndBelow,
+}
+
+impl ValueEndian {
+    /// Resolve to a concrete `binrw::Endian` given the QPY format version.
+    /// This is the single place where `LittleForV17AndBelow` is converted —
+    /// every other file calls this instead of repeating the version comparison.
+    pub(crate) fn resolve(self, version: u8) -> Endian {
+        match self {
+            ValueEndian::Big => Endian::Big,
+            ValueEndian::Little => Endian::Little,
+            ValueEndian::LittleForV17AndBelow => {
+                if version >= 18 {
+                    Endian::Big
+                } else {
+                    Endian::Little
+                }
+            }
+        }
+    }
+}
+
 use hashbrown::HashMap;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
@@ -373,6 +426,17 @@ impl GenericValue {
             _ => self.clone(),
         }
     }
+    /// Applies the little-endian encoding workaround for QPY v≤17 instruction parameters.
+    /// For v≥18 the value is returned unchanged; for v≤17 it is byte-swapped via `as_le()`.
+    /// Mirrors the `ValueEndian::LittleForV17AndBelow` variant — use this at the few remaining
+    /// call sites that work directly with `GenericValue` rather than going through `load_value`.
+    pub(crate) fn as_little_for_v17_and_below(&self, version: u8) -> Self {
+        if version < 18 {
+            self.as_le()
+        } else {
+            self.clone()
+        }
+    }
     pub(crate) fn as_circuit_data(&self) -> Option<CircuitData> {
         match self {
             GenericValue::Circuit(py_circuit) => {
@@ -482,7 +546,7 @@ pub(crate) fn load_value(
     type_key: ValueType,
     bytes: &Bytes,
     qpy_data: &mut QPYReadData,
-    endian: Endian,
+    endian: ValueEndian,
 ) -> Result<GenericValue, QpyError> {
     match type_key {
         ValueType::Bool => {
@@ -496,7 +560,7 @@ pub(crate) fn load_value(
                 for (idx, byte) in bytes.iter().enumerate() {
                     bytes_array[idx] = *byte;
                 }
-                match endian {
+                match endian.resolve(qpy_data.version) {
                     Endian::Little => Ok(GenericValue::Int64(i64::from_le_bytes(bytes_array))),
                     Endian::Big => Ok(GenericValue::Int64(i64::from_be_bytes(bytes_array))),
                 }
@@ -505,7 +569,7 @@ pub(crate) fn load_value(
             }
         }
         ValueType::Float => {
-            let value: f64 = bytes.try_to_f64(endian)?;
+            let value: f64 = bytes.try_to_f64(endian.resolve(qpy_data.version))?;
             Ok(GenericValue::Float64(value))
         }
         ValueType::Complex => {
@@ -707,7 +771,7 @@ pub(crate) fn pack_generic_value(
 pub(crate) fn unpack_generic_value(
     value_pack: &GenericDataPack,
     qpy_data: &mut QPYReadData,
-    endian: Endian,
+    endian: ValueEndian,
 ) -> Result<GenericValue, QpyError> {
     let result = load_value(value_pack.type_key, &value_pack.data, qpy_data, endian)?;
     Ok(result)
@@ -725,15 +789,15 @@ pub(crate) fn unpack_duration_value(
             let duration = unpack_duration(deserialize::<DurationPack>(&value_pack.data)?.0);
             Ok(GenericValue::Duration(duration))
         }
-        _ => unpack_generic_value(value_pack, qpy_data, Endian::Little), // fallback (duration can also be expression)
+        _ => unpack_generic_value(value_pack, qpy_data, ValueEndian::LittleForV17AndBelow), // fallback (duration can also be expression)
     }
 }
 
-pub(crate) fn pack_for_collection(value: &ForCollection) -> GenericValue {
+pub(crate) fn pack_for_collection(value: &ForCollection, version: u8) -> GenericValue {
     match value {
         ForCollection::List(vec) => GenericValue::Tuple(
             vec.iter()
-                .map(|&val| GenericValue::Int64(val as i64).as_le())
+                .map(|&val| GenericValue::Int64(val as i64).as_little_for_v17_and_below(version))
                 .collect(),
         ),
         ForCollection::PyRange(py_range) => GenericValue::Range(*py_range),
@@ -793,7 +857,7 @@ pub(crate) fn pack_generic_value_sequence(
 pub(crate) fn unpack_generic_value_sequence(
     value_seqeunce_pack: GenericDataSequencePack,
     qpy_data: &mut QPYReadData,
-    endian: Endian,
+    endian: ValueEndian,
 ) -> Result<Vec<GenericValue>, QpyError> {
     value_seqeunce_pack
         .elements
