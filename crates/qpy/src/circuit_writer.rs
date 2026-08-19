@@ -1239,12 +1239,7 @@ pub(crate) fn pack_circuit(
         annotation_handler,
     };
     let standalone_vars = pack_standalone_vars(&mut qpy_data)?;
-    let header = pack_circuit_header(
-        circuit.name.clone(),
-        circuit.metadata.clone(),
-        metadata_serializer,
-        &qpy_data,
-    )?;
+    let header = pack_circuit_header(extra.name, extra.metadata, &qpy_data)?;
     // CalibrationsPack was dropped in v18; for v13-17 write an empty block (pulse
     // gates were removed in Qiskit 2.0 but older format versions require the field)
     let calibrations = if version < 18 {
