@@ -21,7 +21,6 @@
 use hashbrown::{HashMap, HashSet};
 use num_bigint::BigUint;
 use num_traits::ToPrimitive;
-use numpy::ToPyArray;
 use qiskit_util::IndexSet;
 
 use pyo3::prelude::*;
@@ -595,20 +594,10 @@ fn pack_unitary_gate(
         QpyError::InvalidParameter("Could not read matrix for unitary gate".to_string())
     })?;
 
-    // until we change the QPY version or verify we get the exact same result,
-    // we translate the matrix to numpy and then serialize it like python does
-    // TODO: get rid of the Python dependency here, we can serialize the array directly
-    let params =
-        qpy_data
-            .caller
-            .attach("unitary gate parameters", |py| -> Result<_, QpyError> {
-                let out_array = matrix.to_pyarray(py);
-                Ok(vec![py_pack_param(
-                    &out_array,
-                    qpy_data,
-                    ValueEndian::LittleForV17AndBelow,
-                )?])
-            })?;
+    let params = vec![pack_generic_value(
+        &GenericValue::numpy_array_from_complex_matrix(&matrix)?,
+        qpy_data,
+    )?];
     // since we won't recreate this gate via python, it's not important to verify the python name is identical to the one we use here
     // so we simply hard-code it instead of going through python
     let gate_class_name = String::from(UNITARY_GATE_CLASS_NAME);

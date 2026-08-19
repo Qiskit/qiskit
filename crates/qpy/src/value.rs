@@ -45,6 +45,7 @@ use crate::params::{
 };
 use crate::py_methods::{py_pack_modifier, py_unpack_modifier};
 
+use ndarray::Array2;
 use npyz::{NpyFile, WriterBuilder};
 use num_bigint::BigUint;
 use num_complex::Complex64;
@@ -68,9 +69,31 @@ mod tests {
     #[test]
     fn boolean_vec_numpy_object_roundtrip() {
         for values in [vec![], vec![false], vec![true, false, true]] {
-            let value = GenericValue::numpy_array_from_boolean_vec(&values).unwrap_or(GenericValue::Null);
+            let value =
+                GenericValue::numpy_array_from_boolean_vec(&values).unwrap_or(GenericValue::Null);
             assert_eq!(value.to_boolean_vec(), Some(values));
         }
+    }
+
+    #[test]
+    fn complex_matrix_numpy_object_roundtrip() -> Result<(), Box<dyn std::error::Error>> {
+        let matrix = ndarray::array![
+            [Complex64::new(1.0, 0.0), Complex64::new(0.0, 1.0)],
+            [Complex64::new(0.0, -1.0), Complex64::new(-1.0, 0.0)],
+        ];
+        let GenericValue::NumpyObject(bytes) =
+            GenericValue::numpy_array_from_complex_matrix(&matrix)?
+        else {
+            return Err("expected a numpy object".into());
+        };
+        let npy = NpyFile::new(Cursor::new(bytes.0))?;
+        assert_eq!(npy.shape(), &[2, 2]);
+        assert_eq!(npy.order(), npyz::Order::C);
+        assert_eq!(
+            npy.into_vec::<Complex64>()?,
+            matrix.iter().copied().collect::<Vec<_>>()
+        );
+        Ok(())
     }
 
     #[test]
@@ -525,6 +548,23 @@ impl GenericValue {
             let mut writer = npyz::WriteOptions::<bool>::new()
                 .default_dtype()
                 .shape(&[values.len() as u64])
+                .writer(&mut bytes)
+                .begin_nd()?;
+            writer.extend(values.iter().copied())?;
+            writer.finish()?;
+        }
+        Ok(Self::NumpyObject(bytes.into()))
+    }
+
+    pub(crate) fn numpy_array_from_complex_matrix(
+        values: &Array2<Complex64>,
+    ) -> Result<Self, QpyError> {
+        let shape = values.shape();
+        let mut bytes = Vec::new();
+        {
+            let mut writer = npyz::WriteOptions::<Complex64>::new()
+                .default_dtype()
+                .shape(&[shape[0] as u64, shape[1] as u64])
                 .writer(&mut bytes)
                 .begin_nd()?;
             writer.extend(values.iter().copied())?;
