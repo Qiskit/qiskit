@@ -15,8 +15,11 @@ use std::fmt::Debug;
 use std::sync::Arc;
 use std::sync::OnceLock;
 
+#[cfg(feature = "py")]
 use pyo3::intern;
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
+#[cfg(feature = "py")]
 use pyo3::types::PyString;
 
 use crate::annotation::custom_traits::ComparableAnnotation;
@@ -54,11 +57,13 @@ use crate::annotation::custom_traits::ComparableAnnotation;
 /// :func:`.transpile` or :func:`.generate_preset_pass_manager` to ensure that the compiler passes
 /// selected will not invalidate the annotation.  We expect to have more first-class support for
 /// annotations to declare their validity requirements in the future.
+#[cfg(feature = "py")]
 #[pyclass(module = "qiskit.circuit", name = "Annotation", subclass, frozen)]
 pub struct PyAnnotation {
     inner: Option<Arc<dyn Annotation>>,
 }
 
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyAnnotation {
     #[allow(unused_variables)]
@@ -89,6 +94,7 @@ impl PyAnnotation {
     }
 }
 
+#[cfg(feature = "py")]
 impl PyAnnotation {
     pub fn new(inner: Arc<dyn Annotation>) -> Self {
         Self { inner: Some(inner) }
@@ -133,6 +139,7 @@ pub trait Annotation: Any + Debug + Send + Sync + ComparableAnnotation {
     fn namespace(&self) -> &str;
 
     /// Return a Python representation of this annotation.
+    #[cfg(feature = "py")]
     fn create_py_annotation(&self, py: Python) -> PyResult<Py<PyAny>>;
 }
 
@@ -153,11 +160,13 @@ impl dyn Annotation + 'static {
 
 /// Internal representation of a Python annotation.
 #[derive(Debug)]
+#[cfg(feature = "py")]
 pub struct PythonAnnotation {
     annotation: Py<PyAny>,
     namespace: OnceLock<String>,
 }
 
+#[cfg(feature = "py")]
 impl PythonAnnotation {
     pub fn new(annotation: Py<PyAny>) -> Self {
         Self {
@@ -167,6 +176,7 @@ impl PythonAnnotation {
     }
 }
 
+#[cfg(feature = "py")]
 impl Annotation for PythonAnnotation {
     /// Return the namespace of the annotation.
     ///
@@ -191,6 +201,7 @@ impl Annotation for PythonAnnotation {
     }
 }
 
+#[cfg(feature = "py")]
 impl PartialEq for PythonAnnotation {
     fn eq(&self, other: &Self) -> bool {
         self.annotation.is(&other.annotation)
@@ -204,6 +215,7 @@ impl PartialEq for PythonAnnotation {
 }
 
 /// Return the internal representation of a Python annotation.
+#[cfg(feature = "py")]
 pub fn extract_annotation(ob: &Bound<'_, PyAny>) -> Arc<dyn Annotation> {
     if let Ok(base) = ob.cast::<PyAnnotation>()
         && let Some(native) = base.get().inner()
