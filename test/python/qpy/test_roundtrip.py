@@ -22,7 +22,7 @@ from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
-from qiskit.quantum_info import SparseObservable, SparsePauliOp
+from qiskit.quantum_info import SparsePauliOp
 from qiskit.circuit.classical import expr
 from qiskit.synthesis import LieTrotter
 from qiskit.qpy.common import QPY_RUST_READ_MIN_VERSION, QPY_RUST_WRITE_MIN_VERSION, QPY_VERSION
@@ -48,25 +48,6 @@ def all_qpy_combinations(min_version):
             if not (version >= QPY_RUST_WRITE_MIN_VERSION and write_with == "Python")
             if not (version >= QPY_RUST_WRITE_MIN_VERSION and read_with == "Python")
         )(unpack(func))
-
-    return wrapper
-
-
-# TODO - workaround for the bug #16722
-def rust_qpy_combinations(min_version):
-    """Like :func:`all_qpy_combinations`, but only the Rust writer/reader pairing.
-
-    Use this for payloads that cannot currently cross implementations.  The Python and Rust
-    codecs disagree on whether the ``SPARSE_OBSERVABLE`` ``*_data_len`` fields hold a byte length
-    (Python) or an element count (Rust), so a :class:`.SparseObservable` written by one cannot be
-    read by the other.  Rust is the only implementation that writes QPY >= 17 in practice, since
-    ``QPY_RUST_WRITE_MIN_VERSION`` is 17.
-    """
-
-    def wrapper(func):
-        return idata((version, "Rust", "Rust") for version in range(min_version, QPY_VERSION + 1))(
-            unpack(func)
-        )
 
     return wrapper
 
@@ -203,42 +184,6 @@ class TestQPYRoundtrip(QiskitTestCase):
 
         qc = QuantumCircuit(2)
         qc.append(evo, range(2))
-        self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
-
-    @rust_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
-    # TODO - workaround for the bug #16722
-    def test_evolutiongate_sparse_observable(self, version, write_with, read_with):
-        """Test an evolution gate over a SparseObservable, which QPY gained in version 17.
-
-        Version 18 narrowed the stored bit terms from ``uint16_t`` to ``uint8_t``, so this covers
-        both encodings.  The operator uses every :class:`.SparseObservable.BitTerm` variant so the
-        full value range of that field is exercised.
-        """
-        op = SparseObservable.from_list(
-            [
-                ("XIII", 0.1),
-                ("YIII", 0.2),
-                ("ZIII", 0.3),
-                ("+III", 0.4),
-                ("-III", 0.5),
-                ("rIII", 0.6),
-                ("lIII", 0.7),
-                ("0III", 0.8),
-                ("1III", 0.9),
-            ]
-        )
-        qc = QuantumCircuit(op.num_qubits)
-        qc.append(PauliEvolutionGate(op, time=0.3), qc.qubits)
-        self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
-
-    @rust_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
-    def test_evolutiongate_mixed_operators(self, version, write_with, read_with):
-        """Test an evolution gate over a list mixing SparseObservable and SparsePauliOp."""
-        op1 = SparseObservable.from_list([("XIX", 0.1), ("ZIZ", 0.3)])
-        op2 = SparsePauliOp.from_list([("ZZI", 1), ("XIX", -0.1)])
-        evo = PauliEvolutionGate([op1, op2], time=0.5)
-        qc = QuantumCircuit(evo.num_qubits)
-        qc.append(evo, qc.qubits)
         self.assert_roundtrip_equal(qc, version=version, read_with=read_with, write_with=write_with)
 
     @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)

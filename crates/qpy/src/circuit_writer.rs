@@ -57,7 +57,7 @@ use crate::value::{
     BitType, CircuitInstructionType, ExpressionVarDeclaration, GenericValue, ParamRegisterValue,
     QPYWriteData, RegisterType, ValueEndian, get_circuit_type_key, pack_for_collection,
     pack_generic_value, pack_standalone_var, pack_stretch, serialize,
-    serialize_param_register_value,
+    serialize_param_register_value, serialize_with_args,
 };
 
 use qiskit_circuit::var_stretch_container::{StretchType, VarType};
