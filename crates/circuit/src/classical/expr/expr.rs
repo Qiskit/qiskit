@@ -14,7 +14,9 @@ use std::error::Error;
 
 use crate::classical::expr::{Binary, Cast, Index, Stretch, Unary, Value, Var};
 use crate::classical::types::Type;
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
+#[cfg(feature = "py")]
 use pyo3::{IntoPyObjectExt, intern};
 
 /// A classical expression.
@@ -385,6 +387,7 @@ impl From<Box<Index>> for Expr {
     }
 }
 
+#[cfg(feature = "py")]
 /// Root base class of all nodes in the expression tree.  The base case should never be
 /// instantiated directly.
 ///
@@ -405,6 +408,7 @@ impl From<Box<Index>> for Expr {
 #[derive(PartialEq, Clone, Copy, Debug, Hash)]
 pub struct PyExpr(pub ExprKind); // ExprKind is used for fast extraction from Python
 
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyExpr {
     /// Call the relevant ``visit_*`` method on the given :class:`ExprVisitor`.  The usual entry
@@ -440,6 +444,7 @@ pub enum ExprKind {
     Index,
 }
 
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for Expr {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
@@ -458,6 +463,7 @@ impl<'py> IntoPyObject<'py> for Expr {
     }
 }
 
+#[cfg(feature = "py")]
 impl<'a, 'py> FromPyObject<'a, 'py> for Expr {
     type Error = PyErr;
 
@@ -477,6 +483,8 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Expr {
 
 #[cfg(test)]
 mod tests {
+    use std::convert::Infallible;
+
     use crate::bit::{ClassicalRegister, ShareableClbit};
     use crate::classical::expr::{
         Binary, BinaryOp, Cast, Expr, ExprRef, ExprRefMut, IdentifierRef, Index, Stretch, Unary,
@@ -485,7 +493,6 @@ mod tests {
     use crate::classical::types::Type;
     use crate::duration::Duration;
     use num_bigint::BigUint;
-    use pyo3::{PyErr, PyResult};
     use uuid::Uuid;
 
     #[test]
@@ -632,7 +639,7 @@ mod tests {
     }
 
     #[test]
-    fn test_visit_mut_ordering() -> PyResult<()> {
+    fn test_visit_mut_ordering() -> Result<(), Infallible> {
         let mut expr: Expr = Binary {
             op: BinaryOp::Mul,
             left: Binary {
@@ -708,7 +715,7 @@ mod tests {
 
         expr.visit_mut(|x| {
             assert!(order.next().unwrap()(&x));
-            Ok::<_, PyErr>(())
+            Ok::<_, Infallible>(())
         })?;
 
         assert!(order.next().is_none());
@@ -716,7 +723,7 @@ mod tests {
     }
 
     #[test]
-    fn test_visit_mut() -> PyResult<()> {
+    fn test_visit_mut() -> Result<(), Infallible> {
         let mut expr: Expr = Binary {
             op: BinaryOp::BitAnd,
             left: Unary {
@@ -744,7 +751,7 @@ mod tests {
         expr.visit_mut(|x| match x {
             ExprRefMut::Var(Var::Standalone { name, .. }) => {
                 *name = "updated".to_string();
-                Ok::<_, PyErr>(())
+                Ok::<_, Infallible>(())
             }
             _ => Ok(()),
         })?;
@@ -757,7 +764,7 @@ mod tests {
     }
 
     #[test]
-    fn test_structurally_eq_to_self() -> PyResult<()> {
+    fn test_structurally_eq_to_self() -> Result<(), Infallible> {
         let exprs = [
             Expr::Var(Var::Bit {
                 bit: ShareableClbit::new_anonymous(),
@@ -986,7 +993,7 @@ mod tests {
     }
 
     #[test]
-    fn test_structurally_eq_key_function_both() -> PyResult<()> {
+    fn test_structurally_eq_key_function_both() -> Result<(), Infallible> {
         let left_clbit = ShareableClbit::new_anonymous();
         let left_cr = ClassicalRegister::new_owning("a", 3);
         let right_clbit = ShareableClbit::new_anonymous();
