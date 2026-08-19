@@ -972,10 +972,10 @@ pub(crate) fn unpack_duration(duration_pack: DurationPack) -> Duration {
 }
 
 // due to historical reasons, the treatment of instructions params which are registers/clbits is a little strange
-// When a register is stored as an instruction param, it is serialized compactly
-// For a classical register its name is saved as a string; for a clbit
-// its index in the full clbit list is converted into a string, with 0x00 appended at the start
-// to differentiate from the register case
+// A `Register` value stored inside an instruction is either a whole classical register or a single
+// clbit.  From QPY 18 the two are told apart by a tag byte (`formats::ParamRegisterPack`); up to
+// QPY 17 they shared one untyped string, a register being its bare name and a clbit being 0x00
+// followed by its index in ASCII digits.
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum ParamRegisterValue {
@@ -987,17 +987,22 @@ pub(crate) fn serialize_param_register_value(
     value: &ParamRegisterValue,
     qpy_data: &QPYWriteData,
 ) -> Result<Bytes, QpyError> {
+    if qpy_data.version >= 18 {
+        let pack = match value {
+            ParamRegisterValue::Register(register) => formats::ParamRegisterPack::Register {
+                name: register.name().to_string(),
+            },
+            ParamRegisterValue::ShareableClbit(clbit) => formats::ParamRegisterPack::Clbit {
+                index: clbit_index(clbit, qpy_data)?,
+            },
+        };
+        return serialize(&pack);
+    }
+    // QPY <= 17: the untyped string form.
     match value {
         ParamRegisterValue::Register(register) => Ok(register.name().into()),
         ParamRegisterValue::ShareableClbit(clbit) => {
-            let name = qpy_data
-                .circuit_data
-                .clbits()
-                .find(clbit)
-                .ok_or_else(|| QpyError::InvalidBit("clbit not found".to_string()))?
-                .0
-                .to_string();
-            // this is the part where we get hack-y
+            let name = clbit_index(clbit, qpy_data)?.to_string();
             let mut bytes: Bytes = Bytes(Vec::with_capacity(name.len() + 1));
             bytes.push(0u8);
             bytes.extend_from_slice(name.as_bytes());
@@ -1010,38 +1015,77 @@ pub(crate) fn load_param_register_value(
     bytes: &Bytes,
     qpy_data: &mut QPYReadData,
 ) -> Result<ParamRegisterValue, QpyError> {
-    // If register name prefixed with null character it's a clbit index for single bit condition.
+    if qpy_data.version >= 18 {
+        let (pack, _) = deserialize::<formats::ParamRegisterPack>(bytes)?;
+        return match pack {
+            formats::ParamRegisterPack::Register { name } => {
+                Ok(ParamRegisterValue::Register(creg_by_name(&name, qpy_data)?))
+            }
+            formats::ParamRegisterPack::Clbit { index } => Ok(ParamRegisterValue::ShareableClbit(
+                clbit_at(index, qpy_data)?,
+            )),
+        };
+    }
+    // QPY <= 17: a leading null character means the rest is a clbit index in ASCII digits.
     if bytes.is_empty() {
         return Err(QpyError::InvalidRegister(
             "Failed to load register - name missing".to_string(),
         ));
     }
     if bytes[0] == 0u8 {
-        let index = Clbit(std::str::from_utf8(&bytes[1..])?.parse().map_err(
-            |e: std::num::ParseIntError| {
-                QpyError::ConversionError(format!("Failed to parse clbit index: {}", e))
-            },
-        )?);
-        match qpy_data.circuit_data.clbits().get(index) {
-            Some(shareable_clbit) => {
-                Ok(ParamRegisterValue::ShareableClbit(shareable_clbit.clone()))
-            }
-            None => Err(QpyError::InvalidBit(format!(
-                "Could not find clbit {:?}",
-                index
-            ))),
-        }
+        let index: u32 =
+            std::str::from_utf8(&bytes[1..])?
+                .parse()
+                .map_err(|e: std::num::ParseIntError| {
+                    QpyError::ConversionError(format!("Failed to parse clbit index: {e}"))
+                })?;
+        Ok(ParamRegisterValue::ShareableClbit(clbit_at(
+            index, qpy_data,
+        )?))
     } else {
         // `bytes` has the register name
         let name = std::str::from_utf8(bytes)?;
-        for creg in qpy_data.circuit_data.cregs() {
-            if creg.name() == name {
-                return Ok(ParamRegisterValue::Register(creg.clone()));
-            }
-        }
-        Err(QpyError::InvalidRegister(format!(
-            "Could not find classical register {:?}",
-            name
-        )))
+        Ok(ParamRegisterValue::Register(creg_by_name(name, qpy_data)?))
     }
+}
+
+/// Position of `clbit` in the circuit being written, which is how the format refers to a bit.
+///
+/// A thin wrapper over [`CircuitData::clbit_index`] that turns the `None` into the QPY error, so
+/// every site that needs a bit index reports the same thing.
+pub(crate) fn clbit_index(
+    clbit: &ShareableClbit,
+    qpy_data: &QPYWriteData,
+) -> Result<u32, QpyError> {
+    qpy_data
+        .circuit_data
+        .clbit_index(clbit)
+        .ok_or_else(|| QpyError::InvalidBit(format!("Could not find clbit {clbit:?} in circuit")))
+}
+
+/// The clbit at `index` in the circuit being read.
+pub(crate) fn clbit_at(index: u32, qpy_data: &QPYReadData) -> Result<ShareableClbit, QpyError> {
+    qpy_data
+        .circuit_data
+        .clbits()
+        .get(Clbit(index))
+        .cloned()
+        .ok_or_else(|| QpyError::InvalidBit(format!("Could not find clbit {index} in circuit")))
+}
+
+/// The classical register called `name` in the circuit being read.
+///
+/// Uses the name-keyed [`CircuitData::cregs_data`] map rather than scanning `cregs()`.
+pub(crate) fn creg_by_name(
+    name: &str,
+    qpy_data: &QPYReadData,
+) -> Result<ClassicalRegister, QpyError> {
+    qpy_data
+        .circuit_data
+        .cregs_data()
+        .get(name)
+        .cloned()
+        .ok_or_else(|| {
+            QpyError::InvalidRegister(format!("Could not find classical register {name:?}"))
+        })
 }
