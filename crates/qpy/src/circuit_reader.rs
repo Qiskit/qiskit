@@ -64,12 +64,11 @@ use crate::py_methods::{
     UNITARY_GATE_CLASS_NAME, get_python_gate_class, py_convert_from_generic_value,
     py_deserialize_numpy_object,
 };
-use crate::value::ParamRegisterValue;
-use crate::value::unpack_for_collection;
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, GenericValue,
-    QPYReadData, RegisterType, ValueEndian, ValueType, deserialize_with_args,
-    load_param_register_value, load_value, unpack_duration_value, unpack_generic_value,
+    ParamRegisterValue, QPYReadData, QpyCaller, RegisterType, ValueEndian, ValueType,
+    deserialize_with_args, load_param_register_value, load_value, unpack_duration_value,
+    unpack_for_collection, unpack_generic_value,
 };
 
 use ndarray::{Array2, ShapeBuilder};
@@ -1358,6 +1357,7 @@ fn read_custom_instructions(
                         qpy_data.version,
                         qpy_data.use_symengine,
                         qpy_data.annotation_handler.child()?,
+                        qpy_data.caller,
                     )?
                     .into();
                     let py_circuit = circuit
@@ -1566,10 +1566,12 @@ pub(crate) fn unpack_circuit(
     version: u8,
     use_symengine: bool,
     annotation_handler: AnnotationHandler,
+    caller: QpyCaller,
 ) -> Result<CircuitData, QpyError> {
     let instruction_capacity = packed_circuit.instructions.len();
     // create an empty circuit; we'll fill data as we go along
     let mut qpy_data = QPYReadData {
+        caller,
         circuit_data: CircuitData::with_capacity(0, 0, instruction_capacity, Param::Float(0.0))?,
         version,
         use_symengine,

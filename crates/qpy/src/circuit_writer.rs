@@ -55,7 +55,7 @@ use crate::py_methods::{
 };
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionVarDeclaration, GenericValue, ParamRegisterValue,
-    QPYWriteData, RegisterType, ValueEndian, get_circuit_type_key, pack_for_collection,
+    QPYWriteData, QpyCaller, RegisterType, ValueEndian, get_circuit_type_key, pack_for_collection,
     pack_generic_value, pack_standalone_var, pack_stretch, serialize,
     serialize_param_register_value,
 };
@@ -1061,6 +1061,7 @@ fn pack_custom_instruction(
                 },
                 qpy_data.version,
                 qpy_data.annotation_handler.child()?,
+                qpy_data.caller,
             )?)?)
         }
         CircuitInstructionType::AnnotatedOperation => {
@@ -1081,6 +1082,7 @@ fn pack_custom_instruction(
                     },
                     qpy_data.version,
                     qpy_data.annotation_handler.child()?,
+                    qpy_data.caller,
                 )
                 .and_then(|fmt| serialize(&fmt))
             })
@@ -1231,8 +1233,10 @@ pub(crate) fn pack_circuit(
     extra: ExtraCircuitData,
     version: u8,
     annotation_handler: AnnotationHandler,
+    caller: QpyCaller,
 ) -> Result<formats::QPYCircuit, QpyError> {
     let mut qpy_data = QPYWriteData {
+        caller,
         circuit_data,
         version,
         standalone_var_indices: HashMap::new(),

@@ -16,6 +16,80 @@ use std::sync::Arc;
 use binrw::meta::{ReadEndian, WriteEndian};
 use binrw::{BinRead, BinWrite, Endian, binrw};
 
+use hashbrown::HashMap;
+use pyo3::prelude::*;
+use pyo3::types::PyAny;
+
+use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
+use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::classical::expr::{Expr, Stretch, Var};
+use qiskit_circuit::classical::types::Type;
+use qiskit_circuit::duration::Duration;
+use qiskit_circuit::operations::{ForCollection, OperationRef, PyInstruction, PyOpKind, PyRange};
+use qiskit_circuit::packed_instruction::PackedOperation;
+use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
+use qiskit_circuit::parameter::symbol_expr::{Symbol, SymbolVector};
+use qiskit_circuit::{Clbit, imports};
+
+use crate::annotations::AnnotationHandler;
+use crate::bytes::Bytes;
+use crate::circuit_reader::unpack_circuit;
+use crate::circuit_writer::pack_circuit;
+use crate::error::QpyError;
+use crate::error::from_binrw_error;
+use crate::formats::{self, BigIntPack, DurationPack, GenericDataPack, GenericDataSequencePack};
+use crate::interface::ExtraCircuitData;
+use crate::params::{
+    pack_parameter_expression, pack_parameter_vector, pack_symbol, unpack_parameter_expression,
+    unpack_parameter_vector, unpack_symbol,
+};
+use crate::py_methods::{py_pack_modifier, py_unpack_modifier};
+
+use npyz::NpyFile;
+use num_bigint::BigUint;
+use num_complex::Complex64;
+use std::fmt::Debug;
+use std::io::Cursor;
+use uuid::Uuid;
+
+// Data that is needed globally while writing the circuit
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum QpyCaller {
+    Python,
+    // This is consumed by the C entry point when it is compiled into the QPY crate.
+    #[allow(dead_code)]
+    Native,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn native_caller_does_not_attach_python() {
+        let result = QpyCaller::Native.attach("test feature", |_py| -> Result<(), QpyError> {
+            panic!("native QPY must reject the feature before attaching Python")
+        });
+        assert!(matches!(result, Err(QpyError::PythonOnly("test feature"))));
+    }
+}
+
+impl QpyCaller {
+    pub(crate) fn attach<T, E>(
+        self,
+        feature: &'static str,
+        f: impl for<'py> FnOnce(Python<'py>) -> Result<T, E>,
+    ) -> Result<T, E>
+    where
+        E: From<QpyError>,
+    {
+        if self != Self::Python {
+            return Err(QpyError::PythonOnly(feature).into());
+        }
+        Python::attach(f)
+    }
+}
+
 /// Endianness selector for QPY value serialization and deserialization.
 ///
 /// QPY's format spec requires big-endian (network byte order) for all values.
@@ -67,42 +141,6 @@ impl ValueEndian {
         }
     }
 }
-
-use hashbrown::HashMap;
-use pyo3::prelude::*;
-use pyo3::types::PyAny;
-
-use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
-use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::classical::expr::{Expr, Stretch, Var};
-use qiskit_circuit::classical::types::Type;
-use qiskit_circuit::duration::Duration;
-use qiskit_circuit::operations::{ForCollection, OperationRef, PyInstruction, PyOpKind, PyRange};
-use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
-use qiskit_circuit::parameter::symbol_expr::{Symbol, SymbolVector};
-use qiskit_circuit::{Clbit, imports};
-
-use crate::annotations::AnnotationHandler;
-use crate::bytes::Bytes;
-use crate::circuit_reader::unpack_circuit;
-use crate::circuit_writer::pack_circuit;
-use crate::error::QpyError;
-use crate::error::from_binrw_error;
-use crate::formats::{self, BigIntPack, DurationPack, GenericDataPack, GenericDataSequencePack};
-use crate::interface::ExtraCircuitData;
-use crate::params::{
-    pack_parameter_expression, pack_parameter_vector, pack_symbol, unpack_parameter_expression,
-    unpack_parameter_vector, unpack_symbol,
-};
-use crate::py_methods::{py_pack_modifier, py_unpack_modifier};
-
-use npyz::NpyFile;
-use num_bigint::BigUint;
-use num_complex::Complex64;
-use std::fmt::Debug;
-use std::io::Cursor;
-use uuid::Uuid;
 
 // Standard char representation of register types: 'q' qreg, 'c' for creg
 #[binrw]
@@ -174,6 +212,7 @@ pub(crate) fn unpack_biguint(big_int_pack: BigIntPack) -> BigUint {
 // Data that is needed globally while writing the circuit
 #[derive(Debug)]
 pub struct QPYWriteData<'a> {
+    pub caller: QpyCaller,
     pub circuit_data: &'a CircuitData,
     pub version: u8,
     pub standalone_var_indices: HashMap<u128, u16>, // mapping from the variable's UUID to its index in the standalone variables list
@@ -183,6 +222,7 @@ pub struct QPYWriteData<'a> {
 // Data that is needed globally while reading the circuit
 #[derive(Debug)]
 pub struct QPYReadData {
+    pub caller: QpyCaller,
     pub circuit_data: CircuitData,
     pub version: u8,
     pub use_symengine: bool,
@@ -628,6 +668,7 @@ pub(crate) fn load_value(
                 qpy_data.version,
                 qpy_data.use_symengine,
                 qpy_data.annotation_handler.child()?,
+                qpy_data.caller,
             )?;
             Ok(GenericValue::CircuitData(Box::new(circuit)))
         }
@@ -700,6 +741,7 @@ pub(crate) fn serialize_generic_value(
                 },
                 qpy_data.version,
                 qpy_data.annotation_handler.child()?,
+                qpy_data.caller,
             )?;
             (ValueType::Circuit, serialize(&packed_circuit)?)
         }
