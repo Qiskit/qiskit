@@ -579,9 +579,9 @@ pub(crate) fn pack_param_obj(
             },
         },
         Param::ParameterExpression(exp) => pack_param_expression(exp, qpy_data)?,
-        Param::Obj(py_object) => {
-            Python::attach(|py| py_pack_param(py_object.bind(py), qpy_data, endian))?
-        }
+        Param::Obj(py_object) => qpy_data.caller.attach("Python parameter", |py| {
+            py_pack_param(py_object.bind(py), qpy_data, endian)
+        })?,
     })
 }
 

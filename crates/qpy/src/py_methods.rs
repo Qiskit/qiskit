@@ -34,13 +34,13 @@ use qiskit_circuit::instruction::create_py_op;
 use qiskit_circuit::operations::{Operation, OperationRef, PyInstruction, PyOpKind, PyRange};
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::parameter::parameter_expression::{PyParameter, PyParameterExpression};
-use qiskit_quantum_info::sparse_observable::PySparseObservable;
+use qiskit_quantum_info::sparse_observable::{BitTerm, PySparseObservable, SparseObservable};
 use uuid::Uuid;
 
 use crate::bytes::Bytes;
 use crate::circuit_reader::{
-    CustomCircuitInstructionData, get_instruction_values, unpack_condition, unpack_instruction,
-    unpack_layout,
+    CustomCircuitInstructionData, get_instruction_values, unpack_circuit, unpack_condition,
+    unpack_instruction, unpack_layout,
 };
 use crate::circuit_writer::standard_instruction_class_name;
 use crate::error::QpyError;
@@ -48,7 +48,8 @@ use crate::formats;
 use crate::params::generic_value_to_param;
 use crate::value::{
     BitType, CircuitInstructionType, GenericValue, ModifierType, ParamRegisterValue, QPYReadData,
-    QPYWriteData, ValueEndian, ValueType, deserialize_with_args, serialize_generic_value,
+    QPYWriteData, ValueEndian, ValueType, deserialize_with_args, load_value,
+    serialize_generic_value,
 };
 
 pub const UNITARY_GATE_CLASS_NAME: &str = "UnitaryGate";
@@ -890,4 +891,152 @@ pub fn unpack_custom_instruction(
         .extract::<OperationFromPython<CircuitData>>(py)?
         .operation;
     Ok((op, instruction_values))
+}
+
+pub fn deserialize_pauli_evolution_gate(
+    py: Python,
+    data: &Bytes,
+    qpy_data: &mut QPYReadData,
+) -> Result<Py<PyAny>, QpyError> {
+    let json = py.import("json")?;
+    let evo_synth_library = py.import("qiskit.synthesis.evolution")?;
+    let (packed_data, _) =
+        deserialize_with_args::<formats::PauliEvolutionDefPack, (u8,)>(data, (qpy_data.version,))?;
+    // operators as stored as a numpy dump that can be loaded into Python's SparsePauliOp.from_list
+    let operators: Vec<Py<PyAny>> = packed_data
+        .pauli_data
+        .iter()
+        .map(|elem| match elem {
+            formats::PauliDataPack::V17(formats::PauliDataPackV17::SparseObservable(
+                sparse_observable_pack,
+            )) => {
+                let num_qubits = sparse_observable_pack.num_qubits;
+                let coeffs = sparse_observable_pack
+                    .coeff_data
+                    .chunks_exact(2)
+                    .map(|c| Complex64::new(c[0], c[1]))
+                    .collect();
+                let bit_terms = sparse_observable_pack
+                    .bitterm_data
+                    .iter()
+                    .map(|&bitterm| -> Result<_, QpyError> {
+                        let reduced_bitterm = u8::try_from(bitterm)?;
+                        BitTerm::try_from(reduced_bitterm).map_err(|_| {
+                            QpyError::DeserializationError(
+                                "Could not read sparse observable data".to_string(),
+                            )
+                        })
+                    })
+                    .collect::<Result<_, QpyError>>()?;
+                let indices = sparse_observable_pack.inds_data.clone();
+                let boundaries = sparse_observable_pack
+                    .bounds_data
+                    .iter()
+                    .map(|&bounds_value| bounds_value as usize)
+                    .collect();
+                let sparse_observable =
+                    SparseObservable::new(num_qubits, coeffs, bit_terms, indices, boundaries)
+                        .map_err(|e| {
+                            QpyError::DeserializationError(format!(
+                                "Failed to create sparse observable: {}",
+                                e
+                            ))
+                        })?;
+                Ok(sparse_observable.into_py_any(py)?)
+            }
+            formats::PauliDataPack::V17(formats::PauliDataPackV17::SparsePauliOp(
+                sparse_pauli_op_pack,
+            ))
+            | formats::PauliDataPack::V16(formats::PauliDataPackV16::SparsePauliOp(
+                sparse_pauli_op_pack,
+            )) => {
+                // formats::PauliDataPack::SparsePauliOp(sparse_pauli_op_pack) => {
+                let data = load_value(
+                    ValueType::NumpyObject,
+                    &sparse_pauli_op_pack.data,
+                    qpy_data,
+                    ValueEndian::Big,
+                )?;
+                if let GenericValue::NumpyObject(op_raw_data) = data {
+                    qpy_data.caller.attach(
+                        "deserialize numpy object",
+                        |py| -> Result<_, QpyError> {
+                            let np_array = py_deserialize_numpy_object(py, &op_raw_data)?;
+                            Ok(imports::SPARSE_PAULI_OP
+                                .get_bound(py)
+                                .call_method1("from_list", (np_array,))?
+                                .unbind())
+                        },
+                    )
+                } else {
+                    Err(QpyError::InvalidParameter(
+                        "Pauli Evolution Gate needs data list stored as numpy object".to_string(),
+                    ))
+                }
+            }
+        })
+        .collect::<Result<_, QpyError>>()?;
+
+    let py_operators = if packed_data.standalone_op != 0 {
+        operators[0].clone()
+    } else {
+        PyList::new(py, operators)?.into_py_any(py)?
+    };
+    // time is of type ParameterValueType = Union[ParameterExpression, float]
+    // we don't have a rust PauliEvolutionGate so we'll convert the time to python
+    let time = load_value(
+        packed_data.time_type,
+        &packed_data.time_data,
+        qpy_data,
+        ValueEndian::Big,
+    )?;
+    let py_time: Py<PyAny> = match time {
+        GenericValue::Float64(value) => value.into_py_any(py)?,
+        GenericValue::ParameterExpression(exp) => exp.as_ref().clone().into_py_any(py)?,
+        GenericValue::ParameterExpressionVectorSymbol(symbol)
+        | GenericValue::ParameterExpressionSymbol(symbol) => PyParameter(symbol).into_py_any(py)?,
+        _ => return Err(QpyError::InvalidParameter(
+            "Pauli Evolution Gate 'time' parameter should be either float or parameter expression"
+                .to_string(),
+        )),
+    };
+    let synth_data = json.call_method1("loads", (packed_data.synth_data,))?;
+    let synth_data = synth_data
+        .cast::<PyDict>()
+        .map_err(|_| QpyError::InvalidPythonType {
+            python_type: "PyDict".to_string(),
+            name: "synth_data".to_string(),
+        })?;
+    let synthesis_class_name = synth_data.get_item("class")?.ok_or_else(|| {
+        QpyError::MissingData(
+            "Could not find synthesis class name for Pauli Evolution Gate".to_string(),
+        )
+    })?;
+    let synthesis_class_settings = synth_data.get_item("settings")?.ok_or_else(|| {
+        QpyError::MissingData(
+            "Could not find synthesis class settings for Pauli Evolution Gate".to_string(),
+        )
+    })?;
+    let synthesis_class =
+        evo_synth_library.getattr(synthesis_class_name.cast::<PyString>().map_err(|_| {
+            QpyError::InvalidPythonType {
+                python_type: "PyString".to_string(),
+                name: "synthesis_class".to_string(),
+            }
+        })?)?;
+    let synthesis_settings_dict =
+        synthesis_class_settings
+            .cast::<PyDict>()
+            .map_err(|_| QpyError::InvalidPythonType {
+                python_type: "PyDict".to_string(),
+                name: "synthesis_settings_dict".to_string(),
+            })?;
+    let synthesis = synthesis_class.call((), Some(synthesis_settings_dict))?;
+    let kwargs = PyDict::new(py);
+    kwargs.set_item(intern!(py, "time"), py_time)?;
+    kwargs.set_item(intern!(py, "synthesis"), synthesis)?;
+    Ok(imports::PAULI_EVOLUTION_GATE
+        .get_bound(py)
+        .call((py_operators,), Some(&kwargs))?
+        .unbind())
 }
