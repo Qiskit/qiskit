@@ -71,53 +71,53 @@ fn accumulate_projector(
     mut coeff: Complex64,
     qubit_terms: &[QubitTerm],
 ) {
-    let mut target_col = i;
+    let mut qubit_col = i;
 
     for qubit_term in qubit_terms.iter() {
-        let toggle = || target_col ^ 1usize << qubit_term.idx;
-        let is_enabled = || target_col & (1usize << qubit_term.idx) != 0;
+        let is_qubit_one = || qubit_col & (1usize << qubit_term.qubit_idx) != 0;
+        let move_qubit_col = || qubit_col ^ (1usize << qubit_term.qubit_idx);
 
-        match qubit_term.bit {
+        match qubit_term.bit_term {
             BitTerm::X => {
-                target_col = toggle();
+                qubit_col = move_qubit_col();
             }
-            BitTerm::Y if is_enabled() => {
+            BitTerm::Y if is_qubit_one() => {
                 coeff *= Complex64::i();
-                target_col = toggle();
+                qubit_col = move_qubit_col();
             }
             BitTerm::Y => {
                 coeff *= -Complex64::i();
-                target_col = toggle();
+                qubit_col = move_qubit_col();
             }
-            BitTerm::Z if is_enabled() => {
+            BitTerm::Z if is_qubit_one() => {
                 coeff = -coeff;
             }
             BitTerm::Plus | BitTerm::Minus => {
                 coeff /= Complex64::from(2.0_f64.sqrt());
             }
-            BitTerm::Right if is_enabled() => {
+            BitTerm::Right if is_qubit_one() => {
                 coeff *= Complex64::i();
             }
             BitTerm::Right => {
                 coeff *= -Complex64::i();
             }
-            BitTerm::Left if is_enabled() => {
+            BitTerm::Left if is_qubit_one() => {
                 coeff *= -Complex64::i();
             }
             BitTerm::Left => {
                 coeff *= Complex64::i();
             }
-            BitTerm::Zero if is_enabled() => {
+            BitTerm::Zero if is_qubit_one() => {
                 return;
             }
-            BitTerm::One if !is_enabled() => {
+            BitTerm::One if !is_qubit_one() => {
                 return;
             }
             _ => (),
         }
     }
 
-    row[target_col] += coeff;
+    row[qubit_col] += coeff;
 }
 
 #[derive(Debug, Clone)]
@@ -134,8 +134,8 @@ enum TermKind {
 
 #[derive(Debug, Clone)]
 struct QubitTerm {
-    bit: BitTerm,
-    idx: u32,
+    bit_term: BitTerm,
+    qubit_idx: u32,
 }
 
 fn compress_pauli_terms(operator: &SparseObservable) -> Vec<Term> {
@@ -174,16 +174,46 @@ fn maybe_compress_term(term: &SparseTermView<'_>) -> Term {
 }
 
 fn map_projector(term: &SparseTermView<'_>) -> Term {
-    let bit_terms = term
+    let qubit_terms = term
         .bit_terms
         .iter()
         .copied()
         .zip(term.indices.iter().copied())
-        .map(|(bit, idx)| QubitTerm { idx, bit })
+        .map(|(bit_term, qubit_idx)| QubitTerm {
+            qubit_idx,
+            bit_term,
+        })
         .collect();
 
     Term {
         coeff: term.coeff,
-        kind: TermKind::Projector(bit_terms),
+        kind: TermKind::Projector(qubit_terms),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn single_term(coeff: Complex64, term: &str) -> SparseObservable {
+        let mut num_qubits = 0;
+        let mut bit_terms = Vec::new();
+        let mut indices = Vec::new();
+
+        for (idx, bit_term) in term.as_bytes().iter().enumerate() {
+            let bit_term = BitTerm::try_from_u8(*bit_term).expect("is bit term");
+            if let Some(non_identity) = bit_term {
+                bit_terms.push(non_identity);
+
+                let idx = idx.try_into().expect("qubit idx is small");
+                indices.push(idx);
+            }
+
+            num_qubits += 1;
+        }
+
+        let end = bit_terms.len();
+        SparseObservable::new(num_qubits, vec![coeff], bit_terms, indices, vec![0, end])
+            .expect("is coherent")
     }
 }
