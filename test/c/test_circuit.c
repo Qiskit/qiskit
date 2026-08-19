@@ -1306,13 +1306,13 @@ static int instruction_view_cmp(const QkCircuitInstructionView *a,
                                 const QkCircuitInstructionView *b, const QkParam *const *b_params) {
     int ret = 0;
     if (a->name_len != b->name_len)
-        return (ptrdiff_t)a->name_len - (ptrdiff_t)b->name_len;
+        return a->name_len < b->name_len ? -1 : 1;
     if (a->num_qubits != b->num_qubits)
-        return (int32_t)a->num_qubits - (int32_t)b->num_qubits;
+        return a->num_qubits < b->num_qubits ? -1 : 1;
     if (a->num_clbits != b->num_clbits)
-        return (int32_t)a->num_clbits - (int32_t)b->num_clbits;
+        return a->num_clbits < b->num_clbits ? -1 : 1;
     if (a->num_params != b->num_params)
-        return (ptrdiff_t)a->num_params - (ptrdiff_t)b->num_params;
+        return a->num_params < b->num_params ? -1 : 1;
     if ((ret = strncmp(a->name, b->name, a->name_len)))
         return ret;
     if ((ret = memcmp(a->qubits, b->qubits, sizeof(a->qubits[0]) * a->num_qubits)))
