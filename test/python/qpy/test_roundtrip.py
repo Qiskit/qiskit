@@ -44,6 +44,9 @@ def all_qpy_combinations(min_version):
             for read_with in (
                 ("Python", "Rust") if version >= QPY_RUST_READ_MIN_VERSION else ("Python",)
             )
+            # Python writer/reader are not supported for v >= QPY_RUST_WRITE_MIN_VERSION
+            if not (version >= QPY_RUST_WRITE_MIN_VERSION and write_with == "Python")
+            if not (version >= QPY_RUST_WRITE_MIN_VERSION and read_with == "Python")
         )(unpack(func))
 
     return wrapper
