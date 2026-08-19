@@ -56,10 +56,10 @@ fn accumulate_pauli(
     z: u32,
 ) {
     let target = i ^ x as usize;
-    let is_positive_coeff = (i & z as usize).count_ones().is_multiple_of(2);
+    let is_negative = !(i & z as usize).count_ones().is_multiple_of(2);
 
     let mut coeff = coeff;
-    if is_positive_coeff {
+    if is_negative {
         coeff *= -1.0;
     }
 
