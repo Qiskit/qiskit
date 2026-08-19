@@ -76,7 +76,6 @@ use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::classical::expr::{Expr, Stretch, Var};
 use qiskit_circuit::classical::types::Type;
-use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::duration::Duration;
 use qiskit_circuit::operations::{ForCollection, OperationRef, PyInstruction, PyOpKind, PyRange};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -91,6 +90,7 @@ use crate::circuit_writer::pack_circuit;
 use crate::error::QpyError;
 use crate::error::from_binrw_error;
 use crate::formats::{self, BigIntPack, DurationPack, GenericDataPack, GenericDataSequencePack};
+use crate::interface::ExtraCircuitData;
 use crate::params::{
     pack_parameter_expression, pack_parameter_vector, pack_symbol, unpack_parameter_expression,
     unpack_parameter_vector, unpack_symbol,
@@ -182,8 +182,8 @@ pub struct QPYWriteData<'a> {
 
 // Data that is needed globally while reading the circuit
 #[derive(Debug)]
-pub struct QPYReadData<'a> {
-    pub circuit_data: &'a mut CircuitData,
+pub struct QPYReadData {
+    pub circuit_data: CircuitData,
     pub version: u8,
     pub use_symengine: bool,
     pub standalone_vars: HashMap<u16, qiskit_circuit::Var>,
@@ -396,7 +396,6 @@ pub enum GenericValue {
     Null,
     Expression(Expr),
     Modifier(Py<PyAny>),
-    Circuit(Py<PyAny>), // currently we have no rust class corresponding to a circuit, only to the inner CircuitData
     CircuitData(Box<CircuitData>),
 }
 
@@ -438,12 +437,6 @@ impl GenericValue {
     }
     pub(crate) fn as_circuit_data(&self) -> Option<CircuitData> {
         match self {
-            GenericValue::Circuit(py_circuit) => {
-                Python::attach(|py| -> Result<CircuitData, QpyError> {
-                    Ok(py_circuit.extract::<QuantumCircuitData>(py)?.data)
-                })
-                .ok()
-            }
             GenericValue::CircuitData(circuit_data) => Some(circuit_data.as_ref().clone()),
             _ => None,
         }
@@ -630,17 +623,13 @@ pub(crate) fn load_value(
         ValueType::Circuit => {
             let (packed_circuit, _) =
                 deserialize_with_args::<formats::QPYCircuit, (u8,)>(bytes, (qpy_data.version,))?;
-            Python::attach(|py| {
-                let circuit = unpack_circuit(
-                    py,
-                    &packed_circuit,
-                    qpy_data.version,
-                    None,
-                    qpy_data.use_symengine,
-                    qpy_data.annotation_handler.child()?,
-                )?;
-                Ok(GenericValue::Circuit(circuit))
-            })
+            let circuit = unpack_circuit(
+                &packed_circuit,
+                qpy_data.version,
+                qpy_data.use_symengine,
+                qpy_data.annotation_handler.child()?,
+            )?;
+            Ok(GenericValue::CircuitData(Box::new(circuit)))
         }
     }
 }
@@ -698,30 +687,22 @@ pub(crate) fn serialize_generic_value(
             (ValueType::Expression, serialize_expression(exp, qpy_data)?)
         }
         GenericValue::Null => (ValueType::Null, Bytes::new()),
-        GenericValue::Circuit(circuit) => Python::attach(|py| -> Result<_, QpyError> {
+        GenericValue::CircuitData(circuit_data) => {
+            let layout = serialize(&crate::circuit_writer::pack_layout(None, circuit_data)?)?;
             let packed_circuit = pack_circuit(
-                &mut circuit.extract(py)?, // TODO: can we avoid cloning here?
-                None,
+                circuit_data,
+                ExtraCircuitData {
+                    name: None,
+                    // Circuit metadata is always decoded with `json.loads`, and older Qiskit
+                    // releases require the decoded value to be a dictionary.
+                    metadata: "{}".into(),
+                    layout,
+                },
                 qpy_data.version,
                 qpy_data.annotation_handler.child()?,
             )?;
-            let serialized_circuit = serialize(&packed_circuit)?;
-            Ok((ValueType::Circuit, serialized_circuit))
-        })?,
-        GenericValue::CircuitData(circuit_data) => Python::attach(|py| -> PyResult<_> {
-            let mut quantum_circuit_data = circuit_data
-                .clone()
-                .into_py_quantum_circuit(py)?
-                .extract()?;
-            let packed_circuit = pack_circuit(
-                &mut quantum_circuit_data,
-                None,
-                qpy_data.version,
-                qpy_data.annotation_handler.child()?,
-            )?;
-            let serialized_circuit = serialize(&packed_circuit)?;
-            Ok((ValueType::Circuit, serialized_circuit))
-        })?,
+            (ValueType::Circuit, serialize(&packed_circuit)?)
+        }
         GenericValue::NumpyObject(bytes) => (ValueType::NumpyObject, bytes.clone()),
         GenericValue::Range(py_range) => {
             let start = py_range.start as i64;
