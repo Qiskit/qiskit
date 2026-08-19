@@ -1,5 +1,5 @@
 use ndarray::{Array2, ArrayViewMut1};
-use num_complex::Complex64;
+use num_complex::{Complex64, c64};
 use thiserror::Error;
 
 use crate::sparse_observable::SparseTermView;
@@ -55,14 +55,14 @@ fn accumulate_pauli(
     x: u32,
     z: u32,
 ) {
-    let target_col = i ^ x as usize;
+    let qubit_col = i ^ x as usize;
     let is_negative = !(i & z as usize).count_ones().is_multiple_of(2);
 
     if is_negative {
-        coeff *= -1.0;
+        coeff = -coeff;
     }
 
-    row[target_col] += coeff;
+    row[qubit_col] += coeff;
 }
 
 fn accumulate_projector(
@@ -82,30 +82,30 @@ fn accumulate_projector(
                 qubit_col = move_qubit_col();
             }
             BitTerm::Y if is_qubit_one() => {
-                coeff *= Complex64::i();
+                coeff *= Complex64::I;
                 qubit_col = move_qubit_col();
             }
             BitTerm::Y => {
-                coeff *= -Complex64::i();
+                coeff *= -Complex64::I;
                 qubit_col = move_qubit_col();
             }
             BitTerm::Z if is_qubit_one() => {
                 coeff = -coeff;
             }
             BitTerm::Plus | BitTerm::Minus => {
-                coeff /= Complex64::from(2.0_f64.sqrt());
+                coeff /= c64(2_f64.sqrt(), 0.0);
             }
             BitTerm::Right if is_qubit_one() => {
-                coeff *= Complex64::i();
+                coeff *= Complex64::I;
             }
             BitTerm::Right => {
-                coeff *= -Complex64::i();
+                coeff *= -Complex64::I;
             }
             BitTerm::Left if is_qubit_one() => {
-                coeff *= -Complex64::i();
+                coeff *= -Complex64::I;
             }
             BitTerm::Left => {
-                coeff *= Complex64::i();
+                coeff *= Complex64::I;
             }
             BitTerm::Zero if is_qubit_one() => {
                 return;
@@ -193,9 +193,39 @@ fn map_projector(term: &SparseTermView<'_>) -> Term {
 
 #[cfg(test)]
 mod tests {
+    use ndarray::arr2;
+
     use super::*;
 
-    fn single_term(coeff: Complex64, term: &str) -> SparseObservable {
+    #[test]
+    fn test_xi() {
+        let observable = parse_single_term(2.0.into(), "XI");
+        let expect: Array2<Complex64> = arr2(&[
+            [c64(0.0, 0.0), c64(2.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0)],
+            [c64(2.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0)],
+            [c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(2.0, 0.0)],
+            [c64(0.0, 0.0), c64(0.0, 0.0), c64(2.0, 0.0), c64(0.0, 0.0)],
+        ]);
+
+        let result = observable.to_matrix().expect("is supported");
+        assert_eq!(result, expect);
+    }
+
+    #[test]
+    fn test_xy() {
+        let observable = parse_single_term(1.0.into(), "XY");
+        let expect: Array2<Complex64> = arr2(&[
+            [c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(1.0, -1.0)],
+            [c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 1.0), c64(0.0, 0.0)],
+            [c64(0.0, 0.0), c64(0.0, -1.0), c64(0.0, 0.0), c64(0.0, 0.0)],
+            [c64(0.0, 1.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0)],
+        ]);
+
+        let result = observable.to_matrix().expect("is supported");
+        assert_eq!(result, expect);
+    }
+
+    fn parse_single_term(coeff: Complex64, term: &str) -> SparseObservable {
         let mut num_qubits = 0;
         let mut bit_terms = Vec::new();
         let mut indices = Vec::new();
