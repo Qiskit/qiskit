@@ -56,9 +56,15 @@ fn accumulate_pauli(
     z: u32,
 ) {
     let qubit_col = i ^ x as usize;
-    let is_negative = !(i & z as usize).count_ones().is_multiple_of(2);
+    let y = x & z;
 
-    if is_negative {
+    if y != 0 {
+        if (i & y as usize).count_ones() % 2 != 0 {
+            coeff *= Complex64::I
+        } else {
+            coeff *= -Complex64::I
+        }
+    } else if (i & z as usize).count_ones() % 2 != 0 {
         coeff = -coeff;
     }
 
@@ -146,11 +152,8 @@ fn compress_pauli_terms(operator: &SparseObservable) -> Vec<Term> {
 }
 
 fn maybe_compress_term(term: &SparseTermView<'_>) -> Term {
-    return map_projector(term);
-
     let mut x = 0;
     let mut z = 0;
-    let mut phase = Complex64::ONE;
 
     for (bit_term, qubit_idx) in term.bit_terms.iter().zip(term.indices) {
         let enable = |qubits: &mut u32| *qubits |= 1 << qubit_idx;
@@ -162,7 +165,6 @@ fn maybe_compress_term(term: &SparseTermView<'_>) -> Term {
             BitTerm::Y => {
                 enable(&mut x);
                 enable(&mut z);
-                phase *= Complex64::I;
             }
             BitTerm::Z => {
                 enable(&mut z);
@@ -172,7 +174,7 @@ fn maybe_compress_term(term: &SparseTermView<'_>) -> Term {
     }
 
     Term {
-        coeff: term.coeff * phase,
+        coeff: term.coeff,
         kind: TermKind::Pauli { x, z },
     }
 }
@@ -202,7 +204,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_2xi() {
+    fn test_pauli_2xi() {
         let observable = parse_single_term(2.0.into(), "XI");
         let expect: Array2<Complex64> = arr2(&[
             [c64(0.0, 0.0), c64(0.0, 0.0), c64(2.0, 0.0), c64(0.0, 0.0)],
@@ -216,13 +218,27 @@ mod tests {
     }
 
     #[test]
-    fn test_1xy() {
+    fn test_pauli_1xy() {
         let observable = parse_single_term(1.0.into(), "XY");
         let expect: Array2<Complex64> = arr2(&[
             [c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, -1.0)],
             [c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 1.0), c64(0.0, 0.0)],
             [c64(0.0, 0.0), c64(0.0, -1.0), c64(0.0, 0.0), c64(0.0, 0.0)],
             [c64(0.0, 1.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0)],
+        ]);
+
+        let result = observable.to_matrix().expect("is supported");
+        assert_eq!(result, expect);
+    }
+
+    #[test]
+    fn test_pauli_3iz() {
+        let observable = parse_single_term(3.0.into(), "IZ");
+        let expect: Array2<Complex64> = arr2(&[
+            [c64(3.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0)],
+            [c64(0.0, 0.0), c64(-3.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0)],
+            [c64(0.0, 0.0), c64(0.0, 0.0), c64(3.0, 0.0), c64(0.0, 0.0)],
+            [c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(-3.0, 0.0)],
         ]);
 
         let result = observable.to_matrix().expect("is supported");
