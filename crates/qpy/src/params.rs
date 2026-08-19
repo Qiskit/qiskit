@@ -12,7 +12,6 @@
 use crate::value::ValueEndian;
 use binrw::Endian;
 use num_complex::Complex64;
-use pyo3::prelude::*;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::parameter::parameter_expression::{
     OPReplay, ParameterExpression, ParameterValueType,

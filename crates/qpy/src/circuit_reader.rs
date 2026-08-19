@@ -23,9 +23,8 @@ use hashbrown::HashMap;
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use pyo3::IntoPyObjectExt;
-use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::{PyAny, PyDict, PyList, PyString};
+use pyo3::types::{PyAny, PyDict, PyList};
 use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
@@ -38,12 +37,10 @@ use qiskit_circuit::operations::{
     StandardInstruction, StandardInstructionType, SwitchTarget, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
-use qiskit_circuit::parameter::parameter_expression::{ParameterExpression, PyParameter};
+use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::var_stretch_container::{StretchType, VarType};
 use qiskit_circuit::{Block, classical, imports};
 use qiskit_circuit::{Clbit, Qubit};
-use qiskit_quantum_info::sparse_observable::BitTerm;
-use qiskit_quantum_info::sparse_observable::SparseObservable;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -60,7 +57,7 @@ use crate::params::generic_value_to_param;
 use crate::py_methods::{
     PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME,
     UNITARY_GATE_CLASS_NAME, deserialize_pauli_evolution_gate, py_convert_from_generic_value,
-    py_deserialize_numpy_object, unpack_custom_instruction, unpack_py_instruction,
+    unpack_custom_instruction, unpack_py_instruction,
 };
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, GenericValue,

@@ -39,8 +39,8 @@ use uuid::Uuid;
 
 use crate::bytes::Bytes;
 use crate::circuit_reader::{
-    CustomCircuitInstructionData, get_instruction_values, unpack_circuit, unpack_condition,
-    unpack_instruction, unpack_layout,
+    CustomCircuitInstructionData, get_instruction_values, unpack_condition, unpack_instruction,
+    unpack_layout,
 };
 use crate::circuit_writer::standard_instruction_class_name;
 use crate::error::QpyError;
