@@ -322,7 +322,7 @@ impl ParameterExpression {
         value.into()
     }
 
-    /// Initialize from an f64.
+    /// Initialize from an i64.
     pub fn from_i64(value: i64) -> Self {
         Self {
             expr: SymbolExpr::Value(Value::Int(value)),
