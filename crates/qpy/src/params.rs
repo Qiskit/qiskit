@@ -27,7 +27,7 @@ use crate::formats;
 use crate::py_methods::{py_convert_from_generic_value, py_pack_param};
 use crate::value::{
     GenericValue, QPYReadData, QPYWriteData, ValueType, deserialize, deserialize_vec, load_value,
-    pack_generic_value, serialize,
+    pack_generic_value, serialize, QpyCaller,
 };
 use binrw::binrw;
 use hashbrown::hash_map::HashMap;
@@ -597,6 +597,10 @@ pub(crate) fn generic_value_to_param(value: &GenericValue) -> Result<Param, QpyE
             Ok(Param::ParameterExpression(Arc::new(parameter_expression)))
         }
         GenericValue::ParameterExpression(exp) => Ok(Param::ParameterExpression(exp.clone())),
-        _ => Ok(Param::Obj(py_convert_from_generic_value(value)?)),
+        _ => {
+            QpyCaller::Python.attach("Arbitrary value to python Param", |py| {
+                Ok(Param::Obj(py_convert_from_generic_value(py, value)?))
+        })
     }
+}
 }

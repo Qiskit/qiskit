@@ -313,7 +313,12 @@ pub fn instruction_values_to_params(
                             ParameterExpression::from_arc_symbol(symbol),
                         )))
                     }
-                    _ => Ok(Param::Obj(py_convert_from_generic_value(&value)?)),
+                    _ => qpy_data.caller.attach(
+                        "convert arbitrary parameter value to python representation",
+                        |py| -> Result<_, QpyError> {
+                            Ok(Param::Obj(py_convert_from_generic_value(py, &value)?))
+                        },
+                    ),
                 }
             })
             .collect::<Result<_, QpyError>>()?;
@@ -1255,11 +1260,16 @@ fn deserialize_pauli_evolution_gate(
                     ValueEndian::Big,
                 )?;
                 if let GenericValue::NumpyObject(op_raw_data) = data {
-                    let np_array = py_deserialize_numpy_object(&op_raw_data)?;
-                    Ok(imports::SPARSE_PAULI_OP
-                        .get_bound(py)
-                        .call_method1("from_list", (np_array,))?
-                        .unbind())
+                    qpy_data.caller.attach(
+                        "deserialize numpy object",
+                        |py| -> Result<_, QpyError> {
+                            let np_array = py_deserialize_numpy_object(py, &op_raw_data)?;
+                            Ok(imports::SPARSE_PAULI_OP
+                                .get_bound(py)
+                                .call_method1("from_list", (np_array,))?
+                                .unbind())
+                        },
+                    )
                 } else {
                     Err(QpyError::InvalidParameter(
                         "Pauli Evolution Gate needs data list stored as numpy object".to_string(),

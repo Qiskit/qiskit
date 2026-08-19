@@ -66,48 +66,47 @@ fn is_python_gate(
 /// this method recognizes whether we have such a gate and returns a unique name for it
 /// since custom gates are implemented in python, this is a heavy python-space function
 pub(crate) fn recognize_custom_operation(
+    py: Python,
     op: &PackedOperation,
     name: &String,
 ) -> Result<Option<String>, QpyError> {
-    Python::attach(|py| {
-        let library = py.import("qiskit.circuit.library")?;
-        let circuit_mod = py.import("qiskit.circuit")?;
-        let controlflow = py.import("qiskit.circuit.controlflow")?;
+    let library = py.import("qiskit.circuit.library")?;
+    let circuit_mod = py.import("qiskit.circuit")?;
+    let controlflow = py.import("qiskit.circuit.controlflow")?;
 
-        if (!library.hasattr(name)?
-            && !circuit_mod.hasattr(name)?
-            && !controlflow.hasattr(name)?
-            && (name != "Clifford" && name != PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME))
-            || name == "Gate"
-            || name == "Instruction"
-            || is_python_gate(py, op, imports::BLUEPRINT_CIRCUIT.get_bound(py))?
-        {
-            // Assign a uuid to each instance of a custom operation
-            let new_name = if !["ucrx_dg", "ucry_dg", "ucrz_dg"].contains(&op.name()) {
-                format!("{}_{}", op.name(), Uuid::new_v4().as_simple())
-            } else {
-                // ucr*_dg gates can have different numbers of parameters,
-                // the uuid is appended to avoid storing a single definition
-                // in circuits with multiple ucr*_dg gates. For legacy reasons
-                // the uuid is stored in a different format as this was done
-                // prior to QPY 11.
-                format!("{}_{}", op.name(), Uuid::new_v4())
-            };
-            return Ok(Some(new_name));
-        }
+    if (!library.hasattr(name)?
+        && !circuit_mod.hasattr(name)?
+        && !controlflow.hasattr(name)?
+        && (name != "Clifford" && name != PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME))
+        || name == "Gate"
+        || name == "Instruction"
+        || is_python_gate(py, op, imports::BLUEPRINT_CIRCUIT.get_bound(py))?
+    {
+        // Assign a uuid to each instance of a custom operation
+        let new_name = if !["ucrx_dg", "ucry_dg", "ucrz_dg"].contains(&op.name()) {
+            format!("{}_{}", op.name(), Uuid::new_v4().as_simple())
+        } else {
+            // ucr*_dg gates can have different numbers of parameters,
+            // the uuid is appended to avoid storing a single definition
+            // in circuits with multiple ucr*_dg gates. For legacy reasons
+            // the uuid is stored in a different format as this was done
+            // prior to QPY 11.
+            format!("{}_{}", op.name(), Uuid::new_v4())
+        };
+        return Ok(Some(new_name));
+    }
 
-        if ["ControlledGate", "AnnotatedOperation"].contains(&name.as_str())
-            || is_python_gate(py, op, imports::MCMT_GATE.get_bound(py))?
-        {
-            return Ok(Some(format!("{}_{}", op.name(), Uuid::new_v4())));
-        }
+    if ["ControlledGate", "AnnotatedOperation"].contains(&name.as_str())
+        || is_python_gate(py, op, imports::MCMT_GATE.get_bound(py))?
+    {
+        return Ok(Some(format!("{}_{}", op.name(), Uuid::new_v4())));
+    }
 
-        if is_python_gate(py, op, imports::PAULI_EVOLUTION_GATE.get_bound(py))? {
-            return Ok(Some(format!("###PauliEvolutionGate_{}", Uuid::new_v4())));
-        }
+    if is_python_gate(py, op, imports::PAULI_EVOLUTION_GATE.get_bound(py))? {
+        return Ok(Some(format!("###PauliEvolutionGate_{}", Uuid::new_v4())));
+    }
 
-        Ok(None)
-    })
+    Ok(None)
 }
 
 /// when trying to instantiate nonstandard gates, we turn to the relevant python clas
@@ -162,25 +161,24 @@ pub(crate) fn serialize_metadata(
     }
 }
 
-pub(crate) fn py_serialize_numpy_object(py_object: &Bound<PyAny>) -> Result<Bytes, QpyError> {
-    Python::attach(|py| -> Result<Bytes, QpyError> {
-        let np = py.import("numpy")?;
-        let io = py.import("io")?;
-        let buffer = io.call_method0("BytesIO")?;
-        np.call_method1("save", (&buffer, py_object))?;
-        Ok(buffer.call_method0("getvalue")?.extract::<Bytes>()?)
-    })
+pub(crate) fn py_serialize_numpy_object(
+    py_object: &Bound<PyAny>,
+) -> Result<Bytes, QpyError> {
+    let py = py_object.py();
+    let np = py.import("numpy")?;
+    let io = py.import("io")?;
+    let buffer = io.call_method0("BytesIO")?;
+    np.call_method1("save", (&buffer, py_object))?;
+    Ok(buffer.call_method0("getvalue")?.extract::<Bytes>()?)
 }
 
-pub(crate) fn py_deserialize_numpy_object(data: &Bytes) -> Result<Py<PyAny>, QpyError> {
-    Python::attach(|py| {
-        let np = py.import("numpy")?;
-        let io = py.import("io")?;
-        let buffer = io.call_method0("BytesIO")?;
-        buffer.call_method1("write", (data.clone(),))?;
-        buffer.call_method1("seek", (0,))?;
-        Ok(np.call_method1("load", (buffer,))?.unbind())
-    })
+pub(crate) fn py_deserialize_numpy_object(py: Python, data: &Bytes) -> Result<Py<PyAny>, QpyError> {
+    let np = py.import("numpy")?;
+    let io = py.import("io")?;
+    let buffer = io.call_method0("BytesIO")?;
+    buffer.call_method1("write", (data.clone(),))?;
+    buffer.call_method1("seek", (0,))?;
+    Ok(np.call_method1("load", (buffer,))?.unbind())
 }
 
 fn pack_sparse_pauli_op(
@@ -280,7 +278,7 @@ pub(crate) fn py_pack_pauli_evolution_gate(
     })
 }
 
-pub(crate) fn gate_class_name(op: &PackedOperation) -> Result<String, QpyError> {
+pub(crate) fn gate_class_name(py: Python, op: &PackedOperation) -> Result<String, QpyError> {
     match op.view() {
         // getting __name__ for standard gates and instructions should
         // eventually be replaced with a Rust-side mapping
@@ -288,9 +286,7 @@ pub(crate) fn gate_class_name(op: &PackedOperation) -> Result<String, QpyError> 
         OperationRef::StandardInstruction(inst) => {
             Ok(standard_instruction_class_name(&inst).to_string())
         }
-        OperationRef::PyCustom(inst) => {
-            Python::attach(|py| inst.class_name(py).map_err(QpyError::from))
-        }
+        OperationRef::PyCustom(inst) => inst.class_name(py).map_err(QpyError::from),
         OperationRef::Unitary(_) => Ok(UNITARY_GATE_CLASS_NAME.to_string()),
         OperationRef::PauliProductMeasurement(_) => {
             Ok(String::from(PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME))
@@ -436,43 +432,44 @@ pub(crate) fn py_convert_to_generic_value(
     }
 }
 
-pub(crate) fn py_convert_from_generic_value(value: &GenericValue) -> Result<Py<PyAny>, QpyError> {
-    Python::attach(|py| -> Result<Py<PyAny>, QpyError> {
-        match value {
-            GenericValue::Bool(value) => Ok(value.into_py_any(py)?),
-            GenericValue::Int64(value) => Ok(value.into_py_any(py)?),
-            GenericValue::Float64(value) => Ok(value.into_py_any(py)?),
-            GenericValue::Complex64(value) => Ok(value.into_py_any(py)?),
-            GenericValue::String(value) => Ok(value.into_py_any(py)?),
-            GenericValue::Expression(exp) => Ok(exp.clone().into_py_any(py)?),
-            GenericValue::CaseDefault => Ok(imports::CASE_DEFAULT.get(py).clone()),
-            GenericValue::Null => Ok(py.None()),
-            GenericValue::ParameterExpressionSymbol(symbol)
-            | GenericValue::ParameterExpressionVectorSymbol(symbol) => {
-                Ok(PyParameter(symbol.clone()).into_py_any(py)?)
-            }
-            GenericValue::ParameterExpression(exp) => Ok(exp.as_ref().clone().into_py_any(py)?),
-            GenericValue::CircuitData(circuit_data) => {
-                Ok(circuit_data.clone().into_py_quantum_circuit(py)?.unbind())
-            }
-            GenericValue::Modifier(py_object) => Ok(py_object.clone()),
-            GenericValue::Range(py_range) => Ok(py_range.into_py_any(py)?),
-            GenericValue::NumpyObject(bytes) => py_deserialize_numpy_object(bytes),
-            GenericValue::Tuple(values) => {
-                let elements: Vec<Py<PyAny>> = values
-                    .iter()
-                    .map(py_convert_from_generic_value)
-                    .collect::<Result<_, QpyError>>()?;
-                Ok(PyTuple::new(py, &elements)?.into_py_any(py)?)
-            }
-            GenericValue::Register(reg_value) => match reg_value {
-                ParamRegisterValue::Register(reg) => Ok(reg.clone().into_py_any(py)?),
-                ParamRegisterValue::ShareableClbit(clbit) => Ok(clbit.clone().into_py_any(py)?),
-            },
-            GenericValue::BigInt(bigint) => Ok(bigint.clone().into_py_any(py)?),
-            GenericValue::Duration(duration) => Ok((*duration).into_py_any(py)?),
+pub(crate) fn py_convert_from_generic_value(
+    py: Python,
+    value: &GenericValue,
+) -> Result<Py<PyAny>, QpyError> {
+    match value {
+        GenericValue::Bool(value) => Ok(value.into_py_any(py)?),
+        GenericValue::Int64(value) => Ok(value.into_py_any(py)?),
+        GenericValue::Float64(value) => Ok(value.into_py_any(py)?),
+        GenericValue::Complex64(value) => Ok(value.into_py_any(py)?),
+        GenericValue::String(value) => Ok(value.into_py_any(py)?),
+        GenericValue::Expression(exp) => Ok(exp.clone().into_py_any(py)?),
+        GenericValue::CaseDefault => Ok(imports::CASE_DEFAULT.get(py).clone()),
+        GenericValue::Null => Ok(py.None()),
+        GenericValue::ParameterExpressionSymbol(symbol)
+        | GenericValue::ParameterExpressionVectorSymbol(symbol) => {
+            Ok(PyParameter(symbol.clone()).into_py_any(py)?)
         }
-    })
+        GenericValue::ParameterExpression(exp) => Ok(exp.as_ref().clone().into_py_any(py)?),
+        GenericValue::CircuitData(circuit_data) => {
+            Ok(circuit_data.clone().into_py_quantum_circuit(py)?.unbind())
+        }
+        GenericValue::Modifier(py_object) => Ok(py_object.clone()),
+        GenericValue::Range(py_range) => Ok(py_range.into_py_any(py)?),
+        GenericValue::NumpyObject(bytes) => py_deserialize_numpy_object(py, bytes),
+        GenericValue::Tuple(values) => {
+            let elements: Vec<Py<PyAny>> = values
+                .iter()
+                .map(|v| py_convert_from_generic_value(py, v))
+                .collect::<Result<_, QpyError>>()?;
+            Ok(PyTuple::new(py, &elements)?.into_py_any(py)?)
+        }
+        GenericValue::Register(reg_value) => match reg_value {
+            ParamRegisterValue::Register(reg) => Ok(reg.clone().into_py_any(py)?),
+            ParamRegisterValue::ShareableClbit(clbit) => Ok(clbit.clone().into_py_any(py)?),
+        },
+        GenericValue::BigInt(bigint) => Ok(bigint.clone().into_py_any(py)?),
+        GenericValue::Duration(duration) => Ok((*duration).into_py_any(py)?),
+    }
 }
 
 // This functions packs an instruction parameter, which can be an arbitrary piece of data
@@ -491,43 +488,45 @@ pub(crate) fn py_pack_param(
     Ok(formats::GenericDataPack { type_key, data })
 }
 
-pub(crate) fn py_pack_modifier(modifier: &Py<PyAny>) -> Result<formats::ModifierPack, QpyError> {
-    Python::attach(|py| {
-        let modifier = modifier.bind(py);
-        let module = py.import("qiskit.circuit.annotated_operation")?;
-        if modifier.is_instance(&module.getattr("InverseModifier")?)? {
-            Ok(formats::ModifierPack {
-                modifier_type: ModifierType::Inverse,
-                num_ctrl_qubits: 0,
-                ctrl_state: 0,
-                power: 0.0,
-            })
-        } else if modifier.is_instance(&module.getattr("ControlModifier")?)? {
-            Ok(formats::ModifierPack {
-                modifier_type: ModifierType::Control,
-                num_ctrl_qubits: modifier.getattr("num_ctrl_qubits")?.extract::<u32>()?,
-                ctrl_state: modifier.getattr("ctrl_state")?.extract::<u32>()?,
-                power: 0.0,
-            })
-        } else if modifier.is_instance(&module.getattr("PowerModifier")?)? {
-            Ok(formats::ModifierPack {
-                modifier_type: ModifierType::Power,
-                num_ctrl_qubits: 0,
-                ctrl_state: 0,
-                power: modifier.getattr("power")?.extract::<f64>()?,
-            })
-        } else {
-            Err(QpyError::ConversionError(
-                "Unsupported modifier".to_string(),
-            ))
-        }
-    })
+pub(crate) fn py_pack_modifier(
+    py: Python,
+    modifier: &Py<PyAny>,
+) -> Result<formats::ModifierPack, QpyError> {
+    let modifier = modifier.bind(py);
+    let module = py.import("qiskit.circuit.annotated_operation")?;
+    if modifier.is_instance(&module.getattr("InverseModifier")?)? {
+        Ok(formats::ModifierPack {
+            modifier_type: ModifierType::Inverse,
+            num_ctrl_qubits: 0,
+            ctrl_state: 0,
+            power: 0.0,
+        })
+    } else if modifier.is_instance(&module.getattr("ControlModifier")?)? {
+        Ok(formats::ModifierPack {
+            modifier_type: ModifierType::Control,
+            num_ctrl_qubits: modifier.getattr("num_ctrl_qubits")?.extract::<u32>()?,
+            ctrl_state: modifier.getattr("ctrl_state")?.extract::<u32>()?,
+            power: 0.0,
+        })
+    } else if modifier.is_instance(&module.getattr("PowerModifier")?)? {
+        Ok(formats::ModifierPack {
+            modifier_type: ModifierType::Power,
+            num_ctrl_qubits: 0,
+            ctrl_state: 0,
+            power: modifier.getattr("power")?.extract::<f64>()?,
+        })
+    } else {
+        Err(QpyError::ConversionError(
+            "Unsupported modifier".to_string(),
+        ))
+    }
 }
 
 pub(crate) fn py_unpack_modifier(
+    py: Python,
     packed_modifier: &formats::ModifierPack,
 ) -> Result<Py<PyAny>, QpyError> {
-    Python::attach(|py| match packed_modifier.modifier_type {
+    match packed_modifier.modifier_type {
         ModifierType::Inverse => Ok(imports::INVERSE_MODIFIER.get_bound(py).call0()?.unbind()),
         ModifierType::Control => {
             let kwargs = PyDict::new(py);
@@ -549,7 +548,7 @@ pub(crate) fn py_unpack_modifier(
                 .call((), Some(&kwargs))?
                 .unbind())
         }
-    })
+    }
 }
 
 fn deserialize_metadata(
@@ -569,11 +568,11 @@ fn deserialize_metadata(
 // This function finalizes the creation of QuantumCircuit from CircuitData by performing the Python-only
 // required operations: handling layouts and metadata, and creating the Python QuantumCircuit object.
 pub(crate) fn py_circuit_data_to_quantum_circuit(
+    py: Python,
     circuit_data: CircuitData,
     packed_circuit: &formats::QPYCircuit,
     metadata_deserializer: Option<&Py<PyAny>>,
 ) -> Result<Py<PyAny>, QpyError> {
-    Python::attach(|py| {
         let py_circuit_data: PyCircuitData = circuit_data.into();
         let unpacked_layout = unpack_layout(py, &packed_circuit.layout, &py_circuit_data)?;
         let metadata =
@@ -587,5 +586,4 @@ pub(crate) fn py_circuit_data_to_quantum_circuit(
             circuit.setattr("_layout", layout)?;
         }
         Ok(circuit.unbind().as_any().clone())
-    })
 }

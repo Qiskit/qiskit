@@ -647,7 +647,12 @@ pub(crate) fn load_value(
         ValueType::NumpyObject => Ok(GenericValue::NumpyObject(bytes.clone())),
         ValueType::Modifier => {
             let (modifier_pack, _) = deserialize::<formats::ModifierPack>(bytes)?;
-            let values = py_unpack_modifier(&modifier_pack)?;
+            let values =
+                qpy_data
+                    .caller
+                    .attach("unpack modifier", |py| -> Result<_, QpyError> {
+                        Ok(py_unpack_modifier(py, &modifier_pack).map_err(QpyError::from)?)
+                    })?;
             Ok(GenericValue::Modifier(values))
         }
         ValueType::Expression => {
@@ -753,10 +758,15 @@ pub(crate) fn serialize_generic_value(
             let range_pack = formats::RangePack { start, stop, step };
             (ValueType::Range, serialize(&range_pack)?)
         }
-        GenericValue::Modifier(py_object) => (
-            ValueType::Modifier,
-            serialize(&py_pack_modifier(py_object)?)?,
-        ),
+        GenericValue::Modifier(py_object) => {
+            let packed_modifier =
+                qpy_data
+                    .caller
+                    .attach("pack modifier", |py| -> Result<_, QpyError> {
+                        Ok(py_pack_modifier(py, py_object).map_err(QpyError::from)?)
+                    })?;
+            (ValueType::Modifier, serialize(&packed_modifier)?)
+        }
         GenericValue::Register(param_register_value) => (
             ValueType::Register,
             serialize_param_register_value(param_register_value, qpy_data)?,
