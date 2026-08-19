@@ -69,15 +69,15 @@ fn accumulate_projector(
     row: &mut ArrayViewMut1<Complex64>,
     i: usize,
     mut coeff: Complex64,
-    bit_terms: &[BitTerm],
+    qubit_terms: &[QubitTerm],
 ) {
     let mut target_col = i;
 
-    for (qubit, bit_term) in bit_terms.iter().enumerate() {
-        let toggle = || target_col ^ 1usize << qubit;
-        let is_enabled = || target_col & (1usize << qubit) != 0;
+    for qubit_term in qubit_terms.iter() {
+        let toggle = || target_col ^ 1usize << qubit_term.idx;
+        let is_enabled = || target_col & (1usize << qubit_term.idx) != 0;
 
-        match bit_term {
+        match qubit_term.bit {
             BitTerm::X => {
                 target_col = toggle();
             }
@@ -129,7 +129,13 @@ struct Term {
 #[derive(Debug, Clone)]
 enum TermKind {
     Pauli { x: u32, z: u32 },
-    Projector(Vec<BitTerm>),
+    Projector(Vec<QubitTerm>),
+}
+
+#[derive(Debug, Clone)]
+struct QubitTerm {
+    bit: BitTerm,
+    idx: u32,
 }
 
 fn compress_pauli_terms(operator: &SparseObservable) -> Vec<Term> {
@@ -143,8 +149,8 @@ fn maybe_compress_term(term: &SparseTermView<'_>) -> Term {
     let mut x = 0;
     let mut z = 0;
 
-    for (qubit, bit_term) in term.bit_terms.iter().enumerate() {
-        let enable = |qubits: &mut u32| *qubits |= 1 << qubit;
+    for (bit_term, qubit_idx) in term.bit_terms.iter().zip(term.indices) {
+        let enable = |qubits: &mut u32| *qubits |= 1 << qubit_idx;
 
         match bit_term {
             BitTerm::X => {
@@ -168,7 +174,14 @@ fn maybe_compress_term(term: &SparseTermView<'_>) -> Term {
 }
 
 fn map_projector(term: &SparseTermView<'_>) -> Term {
-    let bit_terms = term.bit_terms.to_vec();
+    let bit_terms = term
+        .bit_terms
+        .iter()
+        .copied()
+        .zip(term.indices.iter().copied())
+        .map(|(bit, idx)| QubitTerm { idx, bit })
+        .collect();
+
     Term {
         coeff: term.coeff,
         kind: TermKind::Projector(bit_terms),
