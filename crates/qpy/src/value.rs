@@ -45,7 +45,7 @@ use crate::params::{
 };
 use crate::py_methods::{py_pack_modifier, py_unpack_modifier};
 
-use npyz::NpyFile;
+use npyz::{NpyFile, WriterBuilder};
 use num_bigint::BigUint;
 use num_complex::Complex64;
 use std::fmt::Debug;
@@ -64,6 +64,14 @@ pub enum QpyCaller {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn boolean_vec_numpy_object_roundtrip() {
+        for values in [vec![], vec![false], vec![true, false, true]] {
+            let value = GenericValue::numpy_array_from_boolean_vec(&values).unwrap_or(GenericValue::Null);
+            assert_eq!(value.to_boolean_vec(), Some(values));
+        }
+    }
 
     #[test]
     fn native_caller_does_not_attach_python() {
@@ -510,6 +518,19 @@ impl GenericValue {
             }
             _ => None,
         }
+    }
+    pub(crate) fn numpy_array_from_boolean_vec(values: &[bool]) -> Result<Self, QpyError> {
+        let mut bytes = Vec::new();
+        {
+            let mut writer = npyz::WriteOptions::<bool>::new()
+                .default_dtype()
+                .shape(&[values.len() as u64])
+                .writer(&mut bytes)
+                .begin_nd()?;
+            writer.extend(values.iter().copied())?;
+            writer.finish()?;
+        }
+        Ok(Self::NumpyObject(bytes.into()))
     }
 }
 
