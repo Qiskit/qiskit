@@ -15,10 +15,10 @@ use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::operations::{Param, StandardGate, StandardInstruction};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use smallvec::{SmallVec, smallvec};
+use smallvec::SmallVec;
 use std::f64::consts::PI;
 
-/// Construct a circuit for the Quantum Fourier Transform using all-to-all connectivity.
+/// Construct the textbook Quantum Fourier Transform circuit.
 ///
 /// .. note::
 ///
@@ -35,9 +35,7 @@ use std::f64::consts::PI;
 ///     do_swaps: Whether to synthesize the "QFT" or the "QFT-with-reversal" operation.
 ///     approximation_degree: The degree of approximation (0 for no approximation).
 ///         It is possible to implement the QFT approximately by ignoring
-///         controlled-phase rotations with the angle beneath a threshold. This is discussed
-///         in more detail in https://arxiv.org/abs/quant-ph/9601018 or
-///         https://arxiv.org/abs/quant-ph/0403071.
+///         controlled-phase rotations with the angle beneath a threshold.
 ///     insert_barriers: If ``True``, barriers are inserted after each qubit's H+CP block
 ///         for improved visualization.
 ///
@@ -66,19 +64,20 @@ pub fn synth_qft_full(
         + if insert_barriers { num_qubits } else { 0 }
         + if do_swaps { num_qubits / 2 } else { 0 };
 
-    // Build the H+CP instructions shared by both paths (with barriers and without).
-    // Each round j emits: one H(j) followed by num_entanglements(j) CP gates.
-    // rounds_end[j] is the exclusive end index of round j's gates in `instructions`,
-    // used by the barrier path to know where to insert each barrier.
-    let mut instructions = Vec::with_capacity(no_of_gates);
-    let mut rounds_end: Vec<usize> = if insert_barriers {
-        Vec::with_capacity(num_qubits)
+    let mut circuit =
+        CircuitData::with_capacity(num_qubits as u32, 0, no_of_gates, Param::Float(0.0))?;
+    let (barrier_op, all_qubits) = if insert_barriers {
+        let op = PackedOperation::from_standard_instruction(StandardInstruction::Barrier(
+            num_qubits as u32,
+        ));
+        let qubits: SmallVec<[Qubit; 32]> = (0..num_qubits).map(|q| Qubit(q as u32)).collect();
+        (Some(op), Some(qubits))
     } else {
-        Vec::new() // not used in the fast path
+        (None, None)
     };
 
     for j in (0..num_qubits).rev() {
-        instructions.push((StandardGate::H, smallvec![], smallvec![Qubit::new(j)]));
+        circuit.push_standard_gate(StandardGate::H, &[], &[Qubit(j as u32)])?;
 
         let tail = num_qubits - j - 1;
         let approx_offset = approximation_degree.saturating_sub(tail);
@@ -86,59 +85,27 @@ pub fn synth_qft_full(
 
         for k in (j - num_entanglements..j).rev() {
             let lam = PI * (2.0_f64).powi(k as i32 - j as i32);
-            instructions.push((
+            circuit.push_standard_gate(
                 StandardGate::CPhase,
-                smallvec![Param::Float(lam)],
-                smallvec![Qubit::new(j), Qubit::new(k)],
-            ));
+                &[Param::Float(lam)],
+                &[Qubit(j as u32), Qubit(k as u32)],
+            )?;
         }
 
-        if insert_barriers {
-            rounds_end.push(instructions.len());
+        if let (Some(op), Some(qubits)) = (&barrier_op, &all_qubits) {
+            circuit.push_packed_operation(op.clone(), None, qubits, &[])?;
         }
     }
 
     if do_swaps {
+        // Add a reversal network
         for i in 0..num_qubits / 2 {
-            instructions.push((
+            circuit.push_standard_gate(
                 StandardGate::Swap,
-                smallvec![],
-                smallvec![Qubit::new(i), Qubit::new(num_qubits - i - 1)],
-            ));
+                &[],
+                &[Qubit(i as u32), Qubit((num_qubits - i - 1) as u32)],
+            )?;
         }
     }
-
-    if insert_barriers {
-        // Rebuild as CircuitData using the builder API, interleaving barriers
-        // after each round. `CircuitData::from_standard_gates` cannot be used
-        // here because `Barrier` is a `StandardInstruction`, not a `StandardGate`.
-        let mut circuit =
-            CircuitData::with_capacity(num_qubits as u32, 0, no_of_gates, Param::Float(0.0))?;
-        let all_qubits: SmallVec<[Qubit; 32]> = (0..num_qubits).map(Qubit::new).collect();
-        let barrier_op = PackedOperation::from_standard_instruction(StandardInstruction::Barrier(
-            num_qubits as u32,
-        ));
-
-        let mut prev = 0;
-        for end in rounds_end {
-            for (gate, params, qargs) in &instructions[prev..end] {
-                circuit.push_standard_gate(*gate, params, qargs)?;
-            }
-            circuit.push_packed_operation(barrier_op.clone(), None, &all_qubits, &[])?;
-            prev = end;
-        }
-        // Append any trailing swap gates (beyond the last round boundary).
-        for (gate, params, qargs) in &instructions[prev..] {
-            circuit.push_standard_gate(*gate, params, qargs)?;
-        }
-
-        Ok(circuit.into())
-    } else {
-        // Fast path: no barriers — feed the instruction vec directly into the
-        // zero-overhead batch constructor.
-        Ok(
-            CircuitData::from_standard_gates(num_qubits as u32, instructions, Param::Float(0.0))?
-                .into(),
-        )
-    }
+    Ok(circuit.into())
 }
