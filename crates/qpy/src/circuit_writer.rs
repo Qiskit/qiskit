@@ -1032,7 +1032,7 @@ fn pack_custom_instruction(
             operation.view()
         )));
     };
-    let gate_type = get_circuit_type_key(operation)?;
+    let gate_type = get_circuit_type_key(operation, qpy_data.caller)?;
     let mut num_ctrl_qubits = 0;
     let mut ctrl_state = 0;
     let mut base_gate: Bound<PyAny> = py.None().bind(py).clone();
