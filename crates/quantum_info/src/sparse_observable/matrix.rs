@@ -146,8 +146,11 @@ fn compress_pauli_terms(operator: &SparseObservable) -> Vec<Term> {
 }
 
 fn maybe_compress_term(term: &SparseTermView<'_>) -> Term {
+    return map_projector(term);
+
     let mut x = 0;
     let mut z = 0;
+    let mut phase = Complex64::ONE;
 
     for (bit_term, qubit_idx) in term.bit_terms.iter().zip(term.indices) {
         let enable = |qubits: &mut u32| *qubits |= 1 << qubit_idx;
@@ -159,6 +162,7 @@ fn maybe_compress_term(term: &SparseTermView<'_>) -> Term {
             BitTerm::Y => {
                 enable(&mut x);
                 enable(&mut z);
+                phase *= Complex64::I;
             }
             BitTerm::Z => {
                 enable(&mut z);
@@ -168,7 +172,7 @@ fn maybe_compress_term(term: &SparseTermView<'_>) -> Term {
     }
 
     Term {
-        coeff: term.coeff,
+        coeff: term.coeff * phase,
         kind: TermKind::Pauli { x, z },
     }
 }
@@ -198,13 +202,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_xi() {
+    fn test_2xi() {
         let observable = parse_single_term(2.0.into(), "XI");
         let expect: Array2<Complex64> = arr2(&[
-            [c64(0.0, 0.0), c64(2.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0)],
-            [c64(2.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0)],
-            [c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(2.0, 0.0)],
             [c64(0.0, 0.0), c64(0.0, 0.0), c64(2.0, 0.0), c64(0.0, 0.0)],
+            [c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(2.0, 0.0)],
+            [c64(2.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0)],
+            [c64(0.0, 0.0), c64(2.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0)],
         ]);
 
         let result = observable.to_matrix().expect("is supported");
@@ -212,10 +216,10 @@ mod tests {
     }
 
     #[test]
-    fn test_xy() {
+    fn test_1xy() {
         let observable = parse_single_term(1.0.into(), "XY");
         let expect: Array2<Complex64> = arr2(&[
-            [c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(1.0, -1.0)],
+            [c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, -1.0)],
             [c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 1.0), c64(0.0, 0.0)],
             [c64(0.0, 0.0), c64(0.0, -1.0), c64(0.0, 0.0), c64(0.0, 0.0)],
             [c64(0.0, 1.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0)],
@@ -230,13 +234,11 @@ mod tests {
         let mut bit_terms = Vec::new();
         let mut indices = Vec::new();
 
-        for (idx, bit_term) in term.as_bytes().iter().enumerate() {
+        for (idx, bit_term) in term.as_bytes().iter().rev().enumerate() {
             let bit_term = BitTerm::try_from_u8(*bit_term).expect("is bit term");
             if let Some(non_identity) = bit_term {
                 bit_terms.push(non_identity);
-
-                let idx = idx.try_into().expect("qubit idx is small");
-                indices.push(idx);
+                indices.push(idx as u32);
             }
 
             num_qubits += 1;
