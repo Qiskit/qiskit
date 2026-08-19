@@ -2488,8 +2488,7 @@ pub unsafe extern "C" fn qk_circuit_draw(
         (true, true, None, 0)
     };
 
-    let circuit_str =
-        draw_circuit(circuit, bundle_cregs, merge_wires, fold, barrier_label_len).unwrap();
+    let circuit_str = draw_circuit(circuit, bundle_cregs, merge_wires, fold, barrier_label_len);
 
     CString::new(circuit_str).unwrap().into_raw()
 }
