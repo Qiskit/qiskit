@@ -51,28 +51,73 @@ fn fill_matrix_row(row: &mut ArrayViewMut1<Complex64>, i: usize, terms: &[Term])
 fn accumulate_pauli(
     row: &mut ArrayViewMut1<Complex64>,
     i: usize,
-    coeff: Complex64,
+    mut coeff: Complex64,
     x: u32,
     z: u32,
 ) {
-    let target = i ^ x as usize;
+    let target_col = i ^ x as usize;
     let is_negative = !(i & z as usize).count_ones().is_multiple_of(2);
 
-    let mut coeff = coeff;
     if is_negative {
         coeff *= -1.0;
     }
 
-    row[target] += coeff;
+    row[target_col] += coeff;
 }
 
 fn accumulate_projector(
     row: &mut ArrayViewMut1<Complex64>,
     i: usize,
-    coeff: Complex64,
-    terms: &[BitTerm],
+    mut coeff: Complex64,
+    bit_terms: &[BitTerm],
 ) {
-    todo!()
+    let mut target_col = i;
+
+    for (qubit, bit_term) in bit_terms.iter().enumerate() {
+        let toggle = || target_col ^ 1usize << qubit;
+        let is_enabled = || target_col & (1usize << qubit) != 0;
+
+        match bit_term {
+            BitTerm::X => {
+                target_col = toggle();
+            }
+            BitTerm::Y if is_enabled() => {
+                coeff *= Complex64::i();
+                target_col = toggle();
+            }
+            BitTerm::Y => {
+                coeff *= -Complex64::i();
+                target_col = toggle();
+            }
+            BitTerm::Z if is_enabled() => {
+                coeff = -coeff;
+            }
+            BitTerm::Plus | BitTerm::Minus => {
+                coeff /= Complex64::from(2.0_f64.sqrt());
+            }
+            BitTerm::Right if is_enabled() => {
+                coeff *= Complex64::i();
+            }
+            BitTerm::Right => {
+                coeff *= -Complex64::i();
+            }
+            BitTerm::Left if is_enabled() => {
+                coeff *= -Complex64::i();
+            }
+            BitTerm::Left => {
+                coeff *= Complex64::i();
+            }
+            BitTerm::Zero if is_enabled() => {
+                return;
+            }
+            BitTerm::One if !is_enabled() => {
+                return;
+            }
+            _ => (),
+        }
+    }
+
+    row[target_col] += coeff;
 }
 
 #[derive(Debug, Clone)]
