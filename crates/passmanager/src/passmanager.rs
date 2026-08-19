@@ -83,6 +83,7 @@ impl<P: Pass> AnyPass for P {
 /// This is a single unit of execution flow. It describes how work is being executed, ranging
 /// from the simple execution of a single pass, over groups of passes to structured flow control,
 /// such as loops. The [PassManager] stores a vector of [Task]s and executes them.
+#[non_exhaustive]
 pub enum Task {
     /// A single pass.
     Transformation(Box<dyn AnyPass>),
@@ -206,6 +207,8 @@ pub enum PassManagerError {
     FailedOutputConversion,
     #[error("Encountered an empty task.")]
     EmptyTask,
+    #[error("Invalid index ({index}) for ({len}) tasks")]
+    IndexError { index: usize, len: usize },
 }
 
 impl PassManager {
@@ -244,6 +247,13 @@ impl PassManager {
         cast_box::<IROut>(ir)
     }
 
+    /// The number of first-level tasks in the pass manager.
+    ///
+    /// Note that this does not count any nested tasks.
+    pub fn num_tasks(&self) -> usize {
+        self.tasks.len()
+    }
+
     /// Try push a [Task] to the pass manager. Returns an error if the types are not
     /// compatible.
     pub fn try_push_task(&mut self, task: Task) -> Result<(), PassManagerError> {
@@ -270,11 +280,15 @@ impl PassManager {
     /// Try and remove a task.
     ///
     /// Returns the removed task and verifies the types are still compatible after removal.
-    ///
-    /// Panics if the index is out of bounds.
     pub fn try_remove_task(&mut self, index: usize) -> Result<Task, PassManagerError> {
-        let task = self.tasks.remove(index);
+        if index >= self.tasks.len() {
+            return Err(PassManagerError::IndexError {
+                index,
+                len: self.tasks.len(),
+            });
+        }
 
+        let task = self.tasks.remove(index);
         if index > 0 && index < self.tasks.len() - 1 {
             let (_, before) = self.tasks[index - 1].io_types()?;
             let (after, _) = self.tasks[index + 1].io_types()?;
@@ -285,11 +299,46 @@ impl PassManager {
         Ok(task)
     }
 
-    /// The number of tasks in the pass manager.
+    /// Try and insert a task at an index.
     ///
-    /// Note that this does not count any nested tasks.
-    pub fn num_tasks(&self) -> usize {
-        self.tasks.len()
+    /// This pushes the task at `index` to `index + 1` and shifts all subsequent ones by one.
+    /// If `index` equals [Self::num_tasks], the task is appended at the end.
+    pub fn try_insert_task(&mut self, index: usize, task: Task) -> Result<(), PassManagerError> {
+        if index > self.tasks.len() {
+            return Err(PassManagerError::IndexError {
+                index,
+                len: self.tasks.len(),
+            });
+        }
+
+        let (in_type, out_type) = task.io_types()?;
+        if index > 0 {
+            let (_, before) = self.tasks[index - 1].io_types()?;
+            if before != in_type {
+                return Err(PassManagerError::IncompatibleTypes);
+            }
+        }
+        if index < self.tasks.len() - 1 {
+            let (after, _) = self.tasks[index + 1].io_types()?;
+            if out_type != after {
+                return Err(PassManagerError::IncompatibleTypes);
+            }
+        }
+
+        self.tasks.insert(index, task);
+        Ok(())
+    }
+
+    /// Get a reference to a [Task] at a given index.
+    pub fn try_get_task_ref<'a>(&'a self, index: usize) -> Result<&'a Task, PassManagerError> {
+        if index > self.tasks.len() {
+            return Err(PassManagerError::IndexError {
+                index,
+                len: self.tasks.len(),
+            });
+        }
+
+        Ok(&self.tasks[index])
     }
 }
 
@@ -350,6 +399,8 @@ where
 
 #[cfg(test)]
 mod test {
+    use std::{cell::Cell, rc::Rc};
+
     use super::*;
     use qiskit_circuit::{
         bit::ShareableQubit,
@@ -361,6 +412,7 @@ mod test {
     use qiskit_transpiler::passes::run_remove_identity_equiv;
     use smallvec::smallvec;
 
+    #[derive(Clone, Debug)]
     struct RemoveIdentities {}
 
     impl Pass for RemoveIdentities {
@@ -377,6 +429,7 @@ mod test {
         }
     }
 
+    #[derive(Clone, Debug)]
     struct CountT {}
 
     impl Pass for CountT {
@@ -395,6 +448,43 @@ mod test {
                 .insert("t_count".to_string(), Box::new(t_count));
             Ok(ir)
         }
+    }
+
+    #[test]
+    fn test_io_types() -> Result<(), PassManagerError> {
+        let dag_type = TypeId::of::<DAGCircuit>();
+        let circ_type = TypeId::of::<CircuitData>();
+
+        let make_dag_pass = || Task::Transformation(Box::new(RemoveIdentities {}));
+        assert_eq!(make_dag_pass().io_types()?, (dag_type, dag_type));
+
+        let circ_pass = Task::Transformation(Box::new(CountT {}));
+        assert_eq!(circ_pass.io_types()?, (circ_type, circ_type));
+
+        let infinity = Task::Loop {
+            condition: |_, _| true,
+            body: Box::new(make_dag_pass()),
+        };
+        assert_eq!(infinity.io_types()?, (dag_type, dag_type));
+
+        let switch = Task::Switch {
+            switch: |_, _| 0,
+            cases: vec![make_dag_pass()],
+        };
+        assert_eq!(switch.io_types()?, (dag_type, dag_type));
+
+        let stages = Task::Stages(vec![("one_and_only".to_string(), make_dag_pass())]);
+        assert_eq!(stages.io_types()?, (dag_type, dag_type));
+
+        let nested = Task::Stages(vec![
+            ("pass".to_string(), make_dag_pass()),
+            ("loop".to_string(), infinity),
+            ("switch".to_string(), switch),
+            ("stages".to_string(), stages),
+        ]);
+        assert_eq!(nested.io_types()?, (dag_type, dag_type));
+
+        Ok(())
     }
 
     #[test]
@@ -435,6 +525,57 @@ mod test {
         pm.try_push_pass(Box::new(pass1))?;
         let result = pm.try_push_pass(Box::new(pass2));
         assert!(matches!(result, Err(PassManagerError::IncompatibleTypes)));
+        Ok(())
+    }
+
+    #[test]
+    fn test_callback() -> Result<(), PassManagerError> {
+        // The ownership story around the callback is a bit tricky: The callback is immutable (Fn,
+        // not FnMut), so it cannot simply modify a local variable. To get around this, we store
+        // the data as refcell and pass a clone to the callback (which takes ownership) so we can
+        // later check the original refcell for the value
+        let pass_counter = Rc::new(Cell::new(0usize));
+        let task_counter = Rc::new(Cell::new(0usize));
+        let stage_counter = Rc::new(Cell::new(0usize));
+
+        let pass_clone = pass_counter.clone();
+        let cb_pass =
+            move |_ir: &dyn Any, _context: &PassContext| pass_clone.set(pass_clone.get() + 1);
+
+        let task_clone = task_counter.clone();
+        let cb_task =
+            move |_ir: &dyn Any, _context: &PassContext| task_clone.set(task_clone.get() + 1);
+
+        let stage_clone = stage_counter.clone();
+        let cb_stage =
+            move |_ir: &dyn Any, _context: &PassContext| stage_clone.set(stage_clone.get() + 1);
+
+        let make_task = || Task::Transformation(Box::new(RemoveIdentities {}));
+
+        let mut pm = PassManager::new();
+        pm.try_push_task(make_task())?;
+        pm.try_push_task(make_task())?;
+        pm.try_push_task(make_task())?;
+
+        pm.try_push_task(Task::Stages(
+            (0..3)
+                .map(|i| (format!("stage_{}", i).to_string(), make_task()))
+                .collect(),
+        ))?;
+
+        pm.try_push_task(Task::Group(vec![make_task(), make_task(), make_task()]))?;
+
+        let mut callbacks = CallbackRegistry::new();
+        callbacks.register_callback(Box::new(cb_pass), CallbackType::PostPass);
+        callbacks.register_callback(Box::new(cb_task), CallbackType::PostTask);
+        callbacks.register_callback(Box::new(cb_stage), CallbackType::PostStage);
+
+        let _out: DAGCircuit = pm.run(DAGCircuit::new(), Some(&callbacks))?;
+
+        assert_eq!(pass_counter.get(), 9);
+        assert_eq!(task_counter.get(), 11);
+        assert_eq!(stage_counter.get(), 3);
+
         Ok(())
     }
 }
