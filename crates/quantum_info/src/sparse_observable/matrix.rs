@@ -51,24 +51,28 @@ fn fill_matrix_row(row: &mut ArrayViewMut1<Complex64>, i: usize, terms: &[Term])
 fn accumulate_pauli(
     row: &mut ArrayViewMut1<Complex64>,
     i: usize,
-    mut coeff: Complex64,
+    coeff: Complex64,
     x: u32,
     z: u32,
 ) {
     let qubit_col = i ^ x as usize;
+    let coeff = count_phase(coeff, i, x, z);
+    row[qubit_col] += coeff;
+}
+
+fn count_phase(coeff: Complex64, row: usize, x: u32, z: u32) -> Complex64 {
+    let mask = row as u32;
     let y = x & z;
 
-    if y != 0 {
-        if (i & y as usize).count_ones() % 2 != 0 {
-            coeff *= Complex64::I
-        } else {
-            coeff *= -Complex64::I
-        }
-    } else if (i & z as usize).count_ones() % 2 != 0 {
-        coeff = -coeff;
+    if y != 0 && (mask & y).count_ones() % 2 != 0 {
+        coeff * Complex64::I
+    } else if y != 0 {
+        coeff * -Complex64::I
+    } else if (mask & z).count_ones() % 2 != 0 {
+        -coeff
+    } else {
+        coeff
     }
-
-    row[qubit_col] += coeff;
 }
 
 fn accumulate_projector(
