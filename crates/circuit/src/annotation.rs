@@ -10,8 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+#[cfg(feature = "py")]
 use pyo3::intern;
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
+#[cfg(feature = "py")]
 use pyo3::types::PyString;
 
 /// An arbitrary annotation for instructions.
@@ -47,8 +50,10 @@ use pyo3::types::PyString;
 /// :func:`.transpile` or :func:`.generate_preset_pass_manager` to ensure that the compiler passes
 /// selected will not invalidate the annotation.  We expect to have more first-class support for
 /// annotations to declare their validity requirements in the future.
+#[cfg(feature = "py")]
 #[pyclass(module = "qiskit.circuit", name = "Annotation", subclass, frozen)]
 pub struct PyAnnotation;
+#[cfg(feature = "py")]
 #[pymethods]
 impl PyAnnotation {
     #[allow(unused_variables)]

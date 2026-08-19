@@ -40,6 +40,7 @@ lexical-write-float = "1.0.6"
 [dependencies.pyo3]
 workspace = true
 features = ["hashbrown", "indexmap", "num-complex", "num-bigint", "smallvec", "py-clone"]
+optional = true
 
 [dependencies.approx]
 workspace = true
@@ -62,4 +63,5 @@ workspace = true
 features = ["nalgebra"]
 
 [features]
-cache_pygates = []
+py = ["dep:pyo3"]
+cache_pygates = ["py"]
