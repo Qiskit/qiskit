@@ -69,8 +69,8 @@ pub struct QPYCircuit {
     pub custom_instructions: CustomCircuitInstructionsPack,
     #[br(count = header.num_instructions, args { inner: (true,) })]
     pub instructions: Vec<CircuitInstructionV2Pack>,
-    #[br(args(version,))]
-    pub calibrations: CalibrationsPack,
+    #[brw(if(version < 18), args(version,))]
+    pub calibrations: Option<CalibrationsPack>,
     pub layout: LayoutV2Pack,
 }
 

@@ -91,7 +91,7 @@ const QPY_WRITE_MIN_VERSION: u8 = 17;
 /// Serializes native circuits into a complete binary QPY payload.
 /// # Arguments
 ///
-/// * circuits: The rust `CircuitData` of the circuts to serialize. Mutability is required because some implicit
+/// * circuits: The rust `CircuitData` of the circuits to serialize. Mutability is required because some implicit
 ///   gates have to be instantiated in order to be serialized.
 /// * extra_data: The extra data associated with each circuit, including name, metadata, and layout. Since this
 ///   is currently Python-only, metadata and layout should be already serialized into `Bytes` objects.

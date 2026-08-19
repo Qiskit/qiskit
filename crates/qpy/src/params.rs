@@ -9,6 +9,7 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
+use crate::value::ValueEndian;
 use binrw::Endian;
 use num_complex::Complex64;
 use qiskit_circuit::operations::Param;
@@ -446,7 +447,7 @@ pub(crate) fn unpack_parameter_expression(
                             item.item_type,
                             &item.item_bytes,
                             qpy_data,
-                            Endian::Big,
+                            ValueEndian::Big,
                         )?)?;
                         Ok((sym, replacement))
                     })
@@ -562,10 +563,11 @@ pub(crate) fn pack_param_expression(
 pub(crate) fn pack_param_obj(
     param: &Param,
     qpy_data: &QPYWriteData,
-    endian: Endian,
+    endian: ValueEndian,
 ) -> Result<formats::GenericDataPack, QpyError> {
+    let resolved = endian.resolve(qpy_data.version);
     Ok(match param {
-        Param::Float(val) => match endian {
+        Param::Float(val) => match resolved {
             Endian::Little => formats::GenericDataPack {
                 type_key: ValueType::Float,
                 data: val.to_le_bytes().into(),
