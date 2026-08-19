@@ -15,6 +15,59 @@ use std::sync::Arc;
 
 use binrw::meta::{ReadEndian, WriteEndian};
 use binrw::{BinRead, BinWrite, Endian, binrw};
+
+/// Endianness selector for QPY value serialization and deserialization.
+///
+/// QPY's format spec requires big-endian (network byte order) for all values.
+/// However, `INSTRUCTION_PARAM` integers and floats were historically written
+/// in little-endian due to an oversight that dates back to the earliest QPY
+/// versions. This was acknowledged as a mistake and is corrected in v18.
+///
+/// Use this enum instead of `binrw::Endian` at every QPY value read/write site.
+/// Call `.resolve(version)` to obtain a concrete `binrw::Endian` — all version-dispatch
+/// logic lives there, so call sites never need to inspect the version themselves.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) enum ValueEndian {
+    /// Always big-endian, regardless of QPY version.
+    /// Use for data that was never affected by the little-endian mistake:
+    /// numpy arrays, expression values, register data, etc.
+    Big,
+
+    /// Always little-endian, regardless of QPY version.
+    /// Not currently used, but included for completeness.
+    #[allow(dead_code)]
+    Little,
+
+    /// Little-endian for QPY v≤17, big-endian for QPY v≥18.
+    ///
+    /// This is the "legacy compatibility" variant. It encodes the fact that
+    /// instruction parameter integers and floats were mistakenly written in
+    /// little-endian in QPY v1–17. Version 18 corrects this to big-endian.
+    /// The version check is resolved by calling `.resolve(qpy_data.version)`,
+    /// so callers never need to inspect the version themselves — just use this
+    /// variant for all instruction scalar parameters.
+    LittleForV17AndBelow,
+}
+
+impl ValueEndian {
+    /// Resolve to a concrete `binrw::Endian` given the QPY format version.
+    /// This is the single place where `LittleForV17AndBelow` is converted —
+    /// every other file calls this instead of repeating the version comparison.
+    pub(crate) fn resolve(self, version: u8) -> Endian {
+        match self {
+            ValueEndian::Big => Endian::Big,
+            ValueEndian::Little => Endian::Little,
+            ValueEndian::LittleForV17AndBelow => {
+                if version >= 18 {
+                    Endian::Big
+                } else {
+                    Endian::Little
+                }
+            }
+        }
+    }
+}
+
 use hashbrown::HashMap;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
@@ -23,7 +76,6 @@ use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::classical::expr::{Expr, Stretch, Var};
 use qiskit_circuit::classical::types::Type;
-use qiskit_circuit::converters::QuantumCircuitData;
 use qiskit_circuit::duration::Duration;
 use qiskit_circuit::operations::{ForCollection, OperationRef, PyInstruction, PyOpKind, PyRange};
 use qiskit_circuit::packed_instruction::PackedOperation;
@@ -38,6 +90,7 @@ use crate::circuit_writer::pack_circuit;
 use crate::error::QpyError;
 use crate::error::from_binrw_error;
 use crate::formats::{self, BigIntPack, DurationPack, GenericDataPack, GenericDataSequencePack};
+use crate::interface::ExtraCircuitData;
 use crate::params::{
     pack_parameter_expression, pack_parameter_vector, pack_symbol, unpack_parameter_expression,
     unpack_parameter_vector, unpack_symbol,
@@ -129,8 +182,8 @@ pub struct QPYWriteData<'a> {
 
 // Data that is needed globally while reading the circuit
 #[derive(Debug)]
-pub struct QPYReadData<'a> {
-    pub circuit_data: &'a mut CircuitData,
+pub struct QPYReadData {
+    pub circuit_data: CircuitData,
     pub version: u8,
     pub use_symengine: bool,
     pub standalone_vars: HashMap<u16, qiskit_circuit::Var>,
@@ -354,7 +407,6 @@ pub enum GenericValue {
     Null,
     Expression(Expr),
     Modifier(Py<PyAny>),
-    Circuit(Py<PyAny>), // currently we have no rust class corresponding to a circuit, only to the inner CircuitData
     CircuitData(Box<CircuitData>),
 }
 
@@ -383,14 +435,19 @@ impl GenericValue {
             _ => self.clone(),
         }
     }
+    /// Applies the little-endian encoding workaround for QPY v≤17 instruction parameters.
+    /// For v≥18 the value is returned unchanged; for v≤17 it is byte-swapped via `as_le()`.
+    /// Mirrors the `ValueEndian::LittleForV17AndBelow` variant — use this at the few remaining
+    /// call sites that work directly with `GenericValue` rather than going through `load_value`.
+    pub(crate) fn as_little_for_v17_and_below(&self, version: u8) -> Self {
+        if version < 18 {
+            self.as_le()
+        } else {
+            self.clone()
+        }
+    }
     pub(crate) fn as_circuit_data(&self) -> Option<CircuitData> {
         match self {
-            GenericValue::Circuit(py_circuit) => {
-                Python::attach(|py| -> Result<CircuitData, QpyError> {
-                    Ok(py_circuit.extract::<QuantumCircuitData>(py)?.data)
-                })
-                .ok()
-            }
             GenericValue::CircuitData(circuit_data) => Some(circuit_data.as_ref().clone()),
             _ => None,
         }
@@ -492,7 +549,7 @@ pub(crate) fn load_value(
     type_key: ValueType,
     bytes: &Bytes,
     qpy_data: &mut QPYReadData,
-    endian: Endian,
+    endian: ValueEndian,
 ) -> Result<GenericValue, QpyError> {
     match type_key {
         ValueType::Bool => {
@@ -510,7 +567,7 @@ pub(crate) fn load_value(
             for (idx, byte) in bytes.iter().enumerate() {
                 bytes_array[idx] = *byte;
             }
-            match endian {
+            match endian.resolve(qpy_data.version) {
                 Endian::Little => Ok(GenericValue::Int64(i64::from_le_bytes(bytes_array))),
                 Endian::Big => Ok(GenericValue::Int64(i64::from_be_bytes(bytes_array))),
             }
@@ -521,7 +578,7 @@ pub(crate) fn load_value(
             Ok(GenericValue::Duration(unpack_duration(duration_pack)))
         }
         ValueType::Float => {
-            let value: f64 = bytes.try_to_f64(endian)?;
+            let value: f64 = bytes.try_to_f64(endian.resolve(qpy_data.version))?;
             Ok(GenericValue::Float64(value))
         }
         ValueType::Complex => {
@@ -583,17 +640,13 @@ pub(crate) fn load_value(
         ValueType::Circuit => {
             let (packed_circuit, _) =
                 deserialize_with_args::<formats::QPYCircuit, (u8,)>(bytes, (qpy_data.version,))?;
-            Python::attach(|py| {
-                let circuit = unpack_circuit(
-                    py,
-                    &packed_circuit,
-                    qpy_data.version,
-                    None,
-                    qpy_data.use_symengine,
-                    qpy_data.annotation_handler.child()?,
-                )?;
-                Ok(GenericValue::Circuit(circuit))
-            })
+            let circuit = unpack_circuit(
+                &packed_circuit,
+                qpy_data.version,
+                qpy_data.use_symengine,
+                qpy_data.annotation_handler.child()?,
+            )?;
+            Ok(GenericValue::CircuitData(Box::new(circuit)))
         }
     }
 }
@@ -666,30 +719,22 @@ pub(crate) fn serialize_generic_value(
             (ValueType::Expression, serialize_expression(exp, qpy_data)?)
         }
         GenericValue::Null => (ValueType::Null, Bytes::new()),
-        GenericValue::Circuit(circuit) => Python::attach(|py| -> Result<_, QpyError> {
+        GenericValue::CircuitData(circuit_data) => {
+            let layout = serialize(&crate::circuit_writer::pack_layout(None, circuit_data)?)?;
             let packed_circuit = pack_circuit(
-                &mut circuit.extract(py)?, // TODO: can we avoid cloning here?
-                None,
+                circuit_data,
+                ExtraCircuitData {
+                    name: None,
+                    // Circuit metadata is always decoded with `json.loads`, and older Qiskit
+                    // releases require the decoded value to be a dictionary.
+                    metadata: "{}".into(),
+                    layout,
+                },
                 qpy_data.version,
                 qpy_data.annotation_handler.child()?,
             )?;
-            let serialized_circuit = serialize(&packed_circuit)?;
-            Ok((ValueType::Circuit, serialized_circuit))
-        })?,
-        GenericValue::CircuitData(circuit_data) => Python::attach(|py| -> PyResult<_> {
-            let mut quantum_circuit_data = circuit_data
-                .clone()
-                .into_py_quantum_circuit(py)?
-                .extract()?;
-            let packed_circuit = pack_circuit(
-                &mut quantum_circuit_data,
-                None,
-                qpy_data.version,
-                qpy_data.annotation_handler.child()?,
-            )?;
-            let serialized_circuit = serialize(&packed_circuit)?;
-            Ok((ValueType::Circuit, serialized_circuit))
-        })?,
+            (ValueType::Circuit, serialize(&packed_circuit)?)
+        }
         GenericValue::NumpyObject(bytes) => (ValueType::NumpyObject, bytes.clone()),
         GenericValue::Range(py_range) => {
             let start = py_range.start as i64;
@@ -723,17 +768,17 @@ pub(crate) fn pack_generic_value(
 pub(crate) fn unpack_generic_value(
     value_pack: &GenericDataPack,
     qpy_data: &mut QPYReadData,
-    endian: Endian,
+    endian: ValueEndian,
 ) -> Result<GenericValue, QpyError> {
     let result = load_value(value_pack.type_key, &value_pack.data, qpy_data, endian)?;
     Ok(result)
 }
 
-pub(crate) fn pack_for_collection(value: &ForCollection) -> GenericValue {
+pub(crate) fn pack_for_collection(value: &ForCollection, version: u8) -> GenericValue {
     match value {
         ForCollection::List(vec) => GenericValue::Tuple(
             vec.iter()
-                .map(|&val| GenericValue::Int64(val as i64).as_le())
+                .map(|&val| GenericValue::Int64(val as i64).as_little_for_v17_and_below(version))
                 .collect(),
         ),
         ForCollection::PyRange(py_range) => GenericValue::Range(*py_range),
@@ -779,7 +824,7 @@ pub(crate) fn pack_generic_value_sequence(
 pub(crate) fn unpack_generic_value_sequence(
     value_seqeunce_pack: GenericDataSequencePack,
     qpy_data: &mut QPYReadData,
-    endian: Endian,
+    endian: ValueEndian,
 ) -> Result<Vec<GenericValue>, QpyError> {
     value_seqeunce_pack
         .elements
@@ -943,10 +988,10 @@ pub(crate) fn unpack_duration(duration_pack: DurationPack) -> Duration {
 }
 
 // due to historical reasons, the treatment of instructions params which are registers/clbits is a little strange
-// When a register is stored as an instruction param, it is serialized compactly
-// For a classical register its name is saved as a string; for a clbit
-// its index in the full clbit list is converted into a string, with 0x00 appended at the start
-// to differentiate from the register case
+// A `Register` value stored inside an instruction is either a whole classical register or a single
+// clbit.  From QPY 18 the two are told apart by a tag byte (`formats::ParamRegisterPack`); up to
+// QPY 17 they shared one untyped string, a register being its bare name and a clbit being 0x00
+// followed by its index in ASCII digits.
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum ParamRegisterValue {
@@ -958,17 +1003,22 @@ pub(crate) fn serialize_param_register_value(
     value: &ParamRegisterValue,
     qpy_data: &QPYWriteData,
 ) -> Result<Bytes, QpyError> {
+    if qpy_data.version >= 18 {
+        let pack = match value {
+            ParamRegisterValue::Register(register) => formats::ParamRegisterPack::Register {
+                name: register.name().to_string(),
+            },
+            ParamRegisterValue::ShareableClbit(clbit) => formats::ParamRegisterPack::Clbit {
+                index: clbit_index(clbit, qpy_data)?,
+            },
+        };
+        return serialize(&pack);
+    }
+    // QPY <= 17: the untyped string form.
     match value {
         ParamRegisterValue::Register(register) => Ok(register.name().into()),
         ParamRegisterValue::ShareableClbit(clbit) => {
-            let name = qpy_data
-                .circuit_data
-                .clbits()
-                .find(clbit)
-                .ok_or_else(|| QpyError::InvalidBit("clbit not found".to_string()))?
-                .0
-                .to_string();
-            // this is the part where we get hack-y
+            let name = clbit_index(clbit, qpy_data)?.to_string();
             let mut bytes: Bytes = Bytes(Vec::with_capacity(name.len() + 1));
             bytes.push(0u8);
             bytes.extend_from_slice(name.as_bytes());
@@ -981,40 +1031,79 @@ pub(crate) fn load_param_register_value(
     bytes: &Bytes,
     qpy_data: &mut QPYReadData,
 ) -> Result<ParamRegisterValue, QpyError> {
-    // If register name prefixed with null character it's a clbit index for single bit condition.
+    if qpy_data.version >= 18 {
+        let (pack, _) = deserialize::<formats::ParamRegisterPack>(bytes)?;
+        return match pack {
+            formats::ParamRegisterPack::Register { name } => {
+                Ok(ParamRegisterValue::Register(creg_by_name(&name, qpy_data)?))
+            }
+            formats::ParamRegisterPack::Clbit { index } => Ok(ParamRegisterValue::ShareableClbit(
+                clbit_at(index, qpy_data)?,
+            )),
+        };
+    }
+    // QPY <= 17: a leading null character means the rest is a clbit index in ASCII digits.
     if bytes.is_empty() {
         return Err(QpyError::InvalidRegister(
             "Failed to load register - name missing".to_string(),
         ));
     }
     if bytes[0] == 0u8 {
-        let index = Clbit(std::str::from_utf8(&bytes[1..])?.parse().map_err(
-            |e: std::num::ParseIntError| {
-                QpyError::ConversionError(format!("Failed to parse clbit index: {}", e))
-            },
-        )?);
-        match qpy_data.circuit_data.clbits().get(index) {
-            Some(shareable_clbit) => {
-                Ok(ParamRegisterValue::ShareableClbit(shareable_clbit.clone()))
-            }
-            None => Err(QpyError::InvalidBit(format!(
-                "Could not find clbit {:?}",
-                index
-            ))),
-        }
+        let index: u32 =
+            std::str::from_utf8(&bytes[1..])?
+                .parse()
+                .map_err(|e: std::num::ParseIntError| {
+                    QpyError::ConversionError(format!("Failed to parse clbit index: {e}"))
+                })?;
+        Ok(ParamRegisterValue::ShareableClbit(clbit_at(
+            index, qpy_data,
+        )?))
     } else {
         // `bytes` has the register name
         let name = std::str::from_utf8(bytes)?;
-        for creg in qpy_data.circuit_data.cregs() {
-            if creg.name() == name {
-                return Ok(ParamRegisterValue::Register(creg.clone()));
-            }
-        }
-        Err(QpyError::InvalidRegister(format!(
-            "Could not find classical register {:?}",
-            name
-        )))
+        Ok(ParamRegisterValue::Register(creg_by_name(name, qpy_data)?))
     }
+}
+
+/// Position of `clbit` in the circuit being written, which is how the format refers to a bit.
+///
+/// A thin wrapper over [`CircuitData::clbit_index`] that turns the `None` into the QPY error, so
+/// every site that needs a bit index reports the same thing.
+pub(crate) fn clbit_index(
+    clbit: &ShareableClbit,
+    qpy_data: &QPYWriteData,
+) -> Result<u32, QpyError> {
+    qpy_data
+        .circuit_data
+        .clbit_index(clbit)
+        .ok_or_else(|| QpyError::InvalidBit(format!("Could not find clbit {clbit:?} in circuit")))
+}
+
+/// The clbit at `index` in the circuit being read.
+pub(crate) fn clbit_at(index: u32, qpy_data: &QPYReadData) -> Result<ShareableClbit, QpyError> {
+    qpy_data
+        .circuit_data
+        .clbits()
+        .get(Clbit(index))
+        .cloned()
+        .ok_or_else(|| QpyError::InvalidBit(format!("Could not find clbit {index} in circuit")))
+}
+
+/// The classical register called `name` in the circuit being read.
+///
+/// Uses the name-keyed [`CircuitData::cregs_data`] map rather than scanning `cregs()`.
+pub(crate) fn creg_by_name(
+    name: &str,
+    qpy_data: &QPYReadData,
+) -> Result<ClassicalRegister, QpyError> {
+    qpy_data
+        .circuit_data
+        .cregs_data()
+        .get(name)
+        .cloned()
+        .ok_or_else(|| {
+            QpyError::InvalidRegister(format!("Could not find classical register {name:?}"))
+        })
 }
 
 #[cfg(test)]
@@ -1028,7 +1117,7 @@ mod tests {
     /// (`py_get_type_key` has no branch for either), so these round-trips exercise the two new
     /// QPY 18 keys directly through the value codec.
     fn round_trip(value: &GenericValue, version: u8) -> (ValueType, GenericValue) {
-        let mut circuit_data = CircuitData::new(None, None, Param::Float(0.0)).unwrap();
+        let circuit_data = CircuitData::new(None, None, Param::Float(0.0)).unwrap();
         let write_data = QPYWriteData {
             circuit_data: &circuit_data,
             version,
@@ -1037,7 +1126,7 @@ mod tests {
         };
         let (type_key, bytes) = serialize_generic_value(value, &write_data).unwrap();
         let mut read_data = QPYReadData {
-            circuit_data: &mut circuit_data,
+            circuit_data,
             version,
             use_symengine: false,
             standalone_vars: HashMap::new(),
@@ -1045,7 +1134,7 @@ mod tests {
             vectors: HashMap::new(),
             annotation_handler: AnnotationHandler::native(),
         };
-        let loaded = load_value(type_key, &bytes, &mut read_data, Endian::Big).unwrap();
+        let loaded = load_value(type_key, &bytes, &mut read_data, ValueEndian::Big).unwrap();
         (type_key, loaded)
     }
 
