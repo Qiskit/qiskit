@@ -208,13 +208,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_pauli_2xi() {
-        let observable = parse_single_term(2.0.into(), "XI");
-        let expect: Array2<Complex64> = arr2(&[
-            [c64(0.0, 0.0), c64(0.0, 0.0), c64(2.0, 0.0), c64(0.0, 0.0)],
-            [c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(2.0, 0.0)],
-            [c64(2.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0)],
-            [c64(0.0, 0.0), c64(2.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0)],
+    fn test_pauli_only() {
+        let terms = &[(2.0.into(), "XI"), (1.0.into(), "XY"), (3.0.into(), "IZ")];
+        let observable = parse_observable(terms);
+        let expect = arr2(&[
+            [c64(3.0, 0.0), c64(0.0, 0.0), c64(2.0, 0.0), c64(0.0, -1.0)],
+            [c64(0.0, 0.0), c64(-3.0, 0.0), c64(0.0, 1.0), c64(2.0, 0.0)],
+            [c64(2.0, 0.0), c64(0.0, -1.0), c64(3.0, 0.0), c64(0.0, 0.0)],
+            [c64(0.0, 1.0), c64(2.0, 0.0), c64(0.0, 0.0), c64(-3.0, 0.0)],
         ]);
 
         let result = observable.to_matrix().expect("is supported");
@@ -222,50 +223,52 @@ mod tests {
     }
 
     #[test]
-    fn test_pauli_1xy() {
-        let observable = parse_single_term(1.0.into(), "XY");
-        let expect: Array2<Complex64> = arr2(&[
-            [c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, -1.0)],
-            [c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 1.0), c64(0.0, 0.0)],
-            [c64(0.0, 0.0), c64(0.0, -1.0), c64(0.0, 0.0), c64(0.0, 0.0)],
-            [c64(0.0, 1.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0)],
-        ]);
+    fn test_pauli_with_projectors() {
+        let terms = &[
+            (2.0.into(), "X+"),
+            (1.0.into(), "Y-"),
+            (3.5.into(), "Zr"),
+            (2.0.into(), "Il"),
+            (0.5.into(), "X0"),
+            (1.0.into(), "Y1"),
+        ];
 
-        let result = observable.to_matrix().expect("is supported");
+        let observable = parse_observable(terms);
+        let expect: Array2<Complex64> = todo!();
+
+        let result = observable.to_matrix().expect("is_supported");
         assert_eq!(result, expect);
     }
 
-    #[test]
-    fn test_pauli_3iz() {
-        let observable = parse_single_term(3.0.into(), "IZ");
-        let expect: Array2<Complex64> = arr2(&[
-            [c64(3.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0)],
-            [c64(0.0, 0.0), c64(-3.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0)],
-            [c64(0.0, 0.0), c64(0.0, 0.0), c64(3.0, 0.0), c64(0.0, 0.0)],
-            [c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(-3.0, 0.0)],
-        ]);
-
-        let result = observable.to_matrix().expect("is supported");
-        assert_eq!(result, expect);
-    }
-
-    fn parse_single_term(coeff: Complex64, term: &str) -> SparseObservable {
+    fn parse_observable<'a>(
+        terms: impl IntoIterator<Item = &'a (Complex64, &'a str)>,
+    ) -> SparseObservable {
         let mut num_qubits = 0;
+        let mut coeffs = Vec::new();
         let mut bit_terms = Vec::new();
-        let mut indices = Vec::new();
+        let mut indicies = Vec::new();
+        let mut boundaries = vec![0];
 
-        for (idx, bit_term) in term.as_bytes().iter().rev().enumerate() {
-            let bit_term = BitTerm::try_from_u8(*bit_term).expect("is bit term");
-            if let Some(non_identity) = bit_term {
-                bit_terms.push(non_identity);
-                indices.push(idx as u32);
+        for (coeff, term) in terms {
+            num_qubits = term.len() as u32;
+            coeffs.push(*coeff);
+
+            let mut num_bit_terms = 0;
+            for (i, bit_term) in term.as_bytes().iter().rev().enumerate() {
+                let bit_term = BitTerm::try_from_u8(*bit_term).expect("is bit term char");
+
+                if let Some(non_identity) = bit_term {
+                    bit_terms.push(non_identity);
+                    num_bit_terms += 1;
+                    indicies.push(i as u32);
+                }
             }
 
-            num_qubits += 1;
+            let next_boundary = boundaries.last().expect("non empty") + num_bit_terms;
+            boundaries.push(next_boundary);
         }
 
-        let end = bit_terms.len();
-        SparseObservable::new(num_qubits, vec![coeff], bit_terms, indices, vec![0, end])
+        SparseObservable::new(num_qubits, coeffs, bit_terms, indicies, boundaries)
             .expect("is coherent")
     }
 }
