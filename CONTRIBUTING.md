@@ -295,7 +295,8 @@ All interactions must be driven by a human.
 It is forbidden to allow an agent to post any content autonomously to the Qiskit repository, whether
 code, PRs, issues, or comments.
 
-You are responsible for the suitability, understanding, and explanation of any code you submit to Qiskit, no matter how it was produced.
+You are responsible for the suitability, understanding, and explanation of any code you submit to
+Qiskit, no matter how it was produced.
 
 Qiskit maintainers may close any pull request if the review effort is expected to outweigh the
 benefit to the project, even with no proposed alternative.  This is a subjective decision made by
@@ -316,26 +317,12 @@ without being exhaustive:
   license obligations of source code used during the generation, or the terms and conditions of the
   tool.  This may mean including license notices or source attribution with the generated code.
 
-- You are assert that your submission is your own original work of authorship, as required by the
+- You assert that your submission is your own original work of authorship, as required by the
   [Contributor License Agreement (CLA)](https://qisk.it/cla) that you signed (or will sign) on your
   first contribution to Qiskit.
 
 Any use of generative tooling to produce code or public communications (for example, comments or
 pull-request descriptions) must be disclosed in the pull-request description, using the template.
-
-All non-trivial generated code must be clearly marked inline with code comments that:
-
-- include the name and version of the model and tool used;
-- indicate the start and end of the generated code.
-
-For example, you might write:
-
-```python
-class SomeTranspilerPass:
-    # This `run` method was originally generated using Claude Opus 4.6, then tidied up by hand.
-    def run(self, dag):
-        # [ ... generated code ... ]
-```
 
 #### Appropriate use of AI tools
 
