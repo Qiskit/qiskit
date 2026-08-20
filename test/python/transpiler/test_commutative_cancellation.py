@@ -995,7 +995,7 @@ measure q0[1] -> c0[1];
         self.assertEqual(pass_(qc), expected)
 
     def test_approximation_degree(self):
-        """Test that approximation_degree changes cancellation via commutation tolerance.
+        """Test that approximation_degree controls commutation-based cancellation.
 
         A small RZ on the CX target does not exactly commute with CX, so with
         ``approximation_degree=1.0`` the flanking CXs do not cancel. With maximal
