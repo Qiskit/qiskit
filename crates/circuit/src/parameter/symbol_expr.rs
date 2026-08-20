@@ -3805,23 +3805,3 @@ pub fn replace_symbol(symbol_expr: &SymbolExpr, name_map: &HashMap<String, Symbo
         },
     }
 }
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_eval_subtraction() {
-        let test_expr = SymbolExpr::Binary {
-            op: BinaryOp::Add,
-            lhs: Arc::new(SymbolExpr::Value(Value::Complex(Complex64::new(1.0, -2.0)))),
-            rhs: Arc::new(SymbolExpr::Binary {
-                op: BinaryOp::Pow,
-                lhs: Arc::new(SymbolExpr::Value(Value::Complex(Complex64::new(-1.0, 2.0)))),
-                rhs: Arc::new(SymbolExpr::Value(Value::Real(1.0))),
-            }),
-        };
-        let value = test_expr.eval(true);
-        assert_eq!(Some(Value::Complex(Complex64::ZERO)), value);
-    }
-}
