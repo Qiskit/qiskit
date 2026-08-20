@@ -61,6 +61,7 @@ pub fn standard_gate_exponent(gate: StandardGate, params: &[Param]) -> Option<Sp
             Param::Float(f) => *f,
             Param::ParameterExpression(_) => 1.0,
             Param::Obj(_) => panic!("StandardGate does not have Param::Obj parameters"),
+            Param::Int(_) => panic!("StandardGate does not have Param::Int parameters"),
         })
         .collect::<Vec<f64>>();
 

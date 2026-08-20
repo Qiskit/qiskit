@@ -845,6 +845,9 @@ impl TextDrawer {
                                     delay_unit
                                 )
                             }
+                            Param::Int(duration) => {
+                                format!("Delay({}[{}])", duration, delay_unit)
+                            }
                             Param::ParameterExpression(expr) => {
                                 format!("Delay({}[{}])", expr, delay_unit)
                             }
@@ -895,6 +898,7 @@ impl TextDrawer {
                 Param::Float(f) => format!("PPR({})", F64UiFormatter::new(5).format_with_pi(*f)),
                 Param::ParameterExpression(e) => format!("PPR({})", e),
                 Param::Obj(o) => format!("PPR({:?})", o),
+                Param::Int(i) => format!("PPR({:?})", i),
             },
             OperationRef::PauliProductMeasurement(ppm) => {
                 format!("PPM{}", if ppm.neg { "(-)" } else { "" })

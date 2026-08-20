@@ -43,7 +43,7 @@ use smallvec::SmallVec;
 use numpy::{PyArray1, PyReadonlyArray2, ToPyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyTuple, PyType};
+use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyInt, PyTuple, PyType};
 use pyo3::{IntoPyObjectExt, Python, intern};
 
 // This is a convenience re-export, since basically everywhere in Qiskit expects all the
@@ -53,6 +53,7 @@ pub use crate::standard_gate::*;
 #[derive(Clone, Debug)]
 pub enum Param {
     ParameterExpression(Arc<ParameterExpression>),
+    Int(u64),
     Float(f64),
     Obj(Py<PyAny>),
 }
@@ -70,6 +71,7 @@ impl<'py> IntoPyObject<'py> for &Param {
                 let py_expr = PyParameterExpression::from(expr.as_ref().clone());
                 py_expr.coerce_into_py(py)?.into_bound_py_any(py)
             }
+            Param::Int(big_uint) => big_uint.into_bound_py_any(py),
         }
     }
 }
@@ -95,6 +97,8 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Param {
         } else if let Ok(val) = b.extract::<f64>() {
             // TODO: remove this branch when we raise the NumPy version to 2.4.
             Param::Float(val)
+        } else if let Ok(int) = b.extract::<u64>() {
+            Param::Int(int)
         } else {
             Param::Obj(b.to_owned().unbind())
         })
@@ -124,6 +128,17 @@ impl Param {
             [Self::Float(_), Self::Obj(_)] => Ok(false),
             [Self::Obj(_a), Self::ParameterExpression(_b)] => Ok(false),
             [Self::ParameterExpression(_a), Self::Obj(_b)] => Ok(false),
+            [Self::Int(int), Self::Int(other_int)] => Ok(int == other_int),
+            [Self::Int(int), Self::Float(float)] | [Self::Float(float), Self::Int(int)] => {
+                Ok(float == &(*int as f64))
+            }
+            [Self::Int(int), Self::ParameterExpression(expr)]
+            | [Self::ParameterExpression(expr), Self::Int(int)] => {
+                Ok(ParameterExpression::try_from(*int).map(|i_expr| i_expr == **expr)?)
+            }
+            [Self::Int(int), Self::Obj(obj)] | [Self::Obj(obj), Self::Int(int)] => {
+                Python::attach(|py| obj.bind(py).eq(int))
+            }
         }
     }
 
@@ -139,7 +154,7 @@ impl Param {
     /// Get an iterator over any `Symbol` instances tracked within this `Param`.
     pub fn iter_parameters(&self) -> PyResult<Box<dyn Iterator<Item = Symbol> + '_>> {
         match self {
-            Param::Float(_) => Ok(Box::new(::std::iter::empty())),
+            Param::Float(_) | Param::Int(_) => Ok(Box::new(::std::iter::empty())),
             Param::ParameterExpression(expr) => Ok(Box::new(expr.iter_symbols().cloned())),
             Param::Obj(obj) => {
                 Python::attach(|py| -> PyResult<Box<dyn Iterator<Item = Symbol>>> {
@@ -182,9 +197,12 @@ impl Param {
                     if coerce_to_float {
                         Ok(Self::Float(i as f64)) // coerce integer to float
                     } else {
-                        // Int is not a param type and only comes from Python so dump it in
-                        // there until we support DT unit delay from C
-                        Python::attach(|py| Ok(Self::Obj(i.into_py_any(py)?)))
+                        // Only extract to integer if the value fits within an unsigned integer
+                        if let Ok(unsigned) = i.try_into() {
+                            Ok(Self::Int(unsigned))
+                        } else {
+                            Python::attach(|py| Ok(Self::Obj(i.into_py_any(py)?)))
+                        }
                     }
                 }
                 Value::Real(f) => Ok(Self::Float(f)),
@@ -209,10 +227,26 @@ impl Param {
     pub fn extract_no_coerce(ob: Borrowed<PyAny>) -> PyResult<Self> {
         Ok(if ob.is_instance_of::<PyFloat>() {
             Param::Float(ob.extract()?)
+        } else if ob.is_instance_of::<PyInt>() {
+            // Only unsigned integers should be represented
+            if let Ok(int) = ob.extract() {
+                Param::Int(int)
+            } else {
+                Param::Obj(ob.to_owned().unbind())
+            }
         } else if let Ok(py_expr) = PyParameterExpression::extract_coerce(ob) {
+            if Some(true) == py_expr.inner.is_int() {
+                let Value::Int(int) = py_expr.inner.try_to_value(true)? else {
+                    return Ok(Param::Obj(ob.to_owned().unbind()));
+                };
+                let Ok(int) = int.try_into() else {
+                    return Ok(Param::Obj(ob.to_owned().unbind()));
+                };
+                Param::Int(int)
+            }
             // don't get confused by the `coerce` name here -- we promise to not coerce to
-            // Param::Float. But if it's an int or complex we need to store it as an Obj.
-            if Some(true) == py_expr.inner.is_int() || Some(true) == py_expr.inner.is_complex() {
+            // Param::Float. But if it's complex we need to store it as an Obj.
+            else if Some(true) == py_expr.inner.is_complex() {
                 Param::Obj(ob.to_owned().unbind())
             } else {
                 Param::ParameterExpression(Arc::new(py_expr.inner))
@@ -228,6 +262,7 @@ impl Param {
             Param::ParameterExpression(exp) => Param::ParameterExpression(exp.clone()),
             Param::Float(float) => Param::Float(*float),
             Param::Obj(obj) => Param::Obj(obj.clone_ref(py)),
+            Param::Int(int) => Param::Int(*int),
         }
     }
 
@@ -1195,6 +1230,7 @@ pub fn clone_param(param: &Param) -> Param {
         Param::Float(theta) => Param::Float(*theta),
         Param::ParameterExpression(theta) => Param::ParameterExpression(theta.clone()),
         Param::Obj(_) => unreachable!(),
+        Param::Int(int) => Param::Int(*int),
     }
 }
 
@@ -1202,6 +1238,7 @@ pub fn clone_param(param: &Param) -> Param {
 pub fn multiply_param(param: &Param, mult: f64) -> Param {
     match param {
         Param::Float(theta) => Param::Float(theta * mult),
+        Param::Int(theta) => Param::Float(mult * (*theta as f64)),
         Param::ParameterExpression(theta) => {
             // safe to unwrap as multiplication with float does not have name conflicts
             Param::ParameterExpression(Arc::new(
@@ -1222,6 +1259,7 @@ pub fn multiply_params(param1: Param, param2: Param) -> Param {
             // TODO we could properly propagate the error here
             Param::ParameterExpression(Arc::new(p1.mul(p2).expect("Name conflict during mul.")))
         }
+        (Param::Int(left), Param::Int(right)) => Param::Int(left * right),
         _ => unreachable!("Unsupported multiplication."),
     }
 }
@@ -1234,14 +1272,13 @@ pub fn add_param(param: &Param, summand: f64) -> Param {
             Arc::new(theta.add(&ParameterExpression::from_f64(summand)).unwrap()),
         ),
         Param::Obj(_) => unreachable!("Unsupported addition of a Param::Obj."),
+        Param::Int(int) => Param::Float(summand + (*int as f64)),
     }
 }
 
 pub fn radd_param(param1: Param, param2: Param) -> Param {
     match [&param1, &param2] {
-        [Param::Float(theta), Param::Float(lambda)] => Param::Float(theta + lambda),
-        [Param::Float(theta), Param::ParameterExpression(_lambda)] => add_param(&param2, *theta),
-        [Param::ParameterExpression(_theta), Param::Float(lambda)] => add_param(&param1, *lambda),
+        [param, Param::Float(float)] | [Param::Float(float), param] => add_param(param, *float),
         [
             Param::ParameterExpression(theta),
             Param::ParameterExpression(lambda),
