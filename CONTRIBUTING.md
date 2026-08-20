@@ -311,7 +311,7 @@ without being exhaustive:
   agent to publicly interact autonomously with the Qiskit repository.
 
 - You have fully reviewed and understood all code you submit, and can explain the reasoning for it.
-  Using an LLM generate the explanation is not acceptable.
+  Using an LLM to generate the explanation is not acceptable.
 
 - Your use of the tool, or the use of the output in Qiskit, does not violate any third-party
   license obligations of source code used during the generation, or the terms and conditions of the
