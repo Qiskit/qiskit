@@ -1300,8 +1300,11 @@ impl TextDrawer {
     }
 
     fn draw(&self, mergewires: bool, fold: usize) -> String {
+        // Code generated/assisted by LLM
+        let Some(num_layers) = self.wires.first().map(|wire| wire.len()) else {
+            return String::new();
+        };
         // Calculate the layer ranges for each fold of the circuit
-        let num_layers = self.wires[0].len();
         // We skip the first (inputs) layer since it's printed for each fold, regardless
         // of screen width limit
         let layer_widths = (1..num_layers).map(|layer| self.get_layer_width(layer));
@@ -1517,6 +1520,12 @@ pub fn format_float_pi(f: f64) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn test_empty_circuit() {
+        let circuit = CircuitData::new(None, None, Param::Float(0.5)).unwrap();
+        let result = draw_circuit(&circuit, false, false, None).unwrap();
+        assert_eq!("global phase: 0.5\n", result);
+    }
     use ndarray::Array2;
     use smallvec::smallvec;
     use std::f64::consts::PI;
