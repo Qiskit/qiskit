@@ -35,7 +35,6 @@ use pyo3::{IntoPyObjectExt, intern};
 use crate::circuit_data::CircuitError;
 use crate::imports::{BUILTIN_HASH, SYMPIFY_PARAMETER_EXPRESSION, UUID, WARNINGS_WARN};
 use crate::parameter::symbol_expr::{self, SymbolExpr, SymbolVector};
-use crate::parameter::symbol_parser::parse_expression;
 use qiskit_util::IndexSet;
 
 use super::symbol_expr::{SYMEXPR_EPSILON, Symbol, Value};
@@ -854,22 +853,28 @@ impl PyParameterExpression {
     /// parameters, or by loading via QPY.
     #[new]
     #[pyo3(signature = (name_map, expr))]
-    pub fn py_new(name_map: HashMap<String, PyParameter>, expr: String) -> PyResult<Self> {
-        // We first parse the expression and then update the symbols with the ones
-        // the user provided. The replacement relies on the names to match.
-        // This is hacky and we likely want a more reliably conversion from a SymPy object,
-        // if we decide we want to continue supporting this.
-        let expr = parse_expression(&expr)
-            .map_err(|_| PyRuntimeError::new_err("Failed parsing input expression"))?;
+    pub fn py_new(
+        name_map: HashMap<String, PyParameter>,
+        expr: &PyParameterExpression,
+    ) -> PyResult<Self> {
         let symbol_map: HashMap<String, Symbol> = name_map
             .iter()
             .map(|(string, param)| (string.clone(), Symbol::clone(&param.0)))
             .collect();
 
-        let replaced_expr = symbol_expr::replace_symbol(&expr, &symbol_map);
+        let replaced_expr = symbol_expr::replace_symbol(&expr.inner.expr, &symbol_map);
 
         let inner = ParameterExpression::new(replaced_expr, symbol_map);
         Ok(Self { inner })
+    }
+
+    pub fn _set_name_map(&mut self, name_map: HashMap<String, PyParameter>) {
+        let symbol_map: HashMap<String, Symbol> = name_map
+            .iter()
+            .map(|(string, param)| (string.clone(), Symbol::clone(&param.0)))
+            .collect();
+        self.inner.expr = symbol_expr::replace_symbol(&self.inner.expr, &symbol_map);
+        self.inner.name_map = symbol_map;
     }
 
     #[allow(non_snake_case)]

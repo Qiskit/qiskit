@@ -15,7 +15,8 @@
 import ast
 
 from qiskit.qpy.exceptions import QpyError
-from qiskit.utils.optionals import HAS_SYMPY
+from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.parameterexpression import ParameterExpression
 
 
 ALLOWED_CALLERS = {
@@ -39,6 +40,38 @@ ALLOWED_CALLERS = {
     "asin",
     "exp",
     "conjugate",
+}
+
+METHOD_MAPPING = {
+    "Add": "__add__",
+    "Sub": "__sub__",
+    "Mul": "__mul__",
+    "Div": "__div__",
+    "Pow": "__pow__",
+    "log": "log",
+    "Abs": "abs",
+    "sin": "sin",
+    "tan": "tan",
+    "atan": "atan",
+    "acos": "acos",
+    "asin": "asin",
+    "exp": "exp",
+    "conjugate": "conjugate",
+}
+
+REVERSE_METHOD_MAPPING = {
+    "Add": "__radd__",
+    "Sub": "__rsub__",
+    "Mul": "__rmul__",
+    "Div": "__rdiv__",
+    "Pow": "__rpow__",
+}
+
+FUNCTION_MAPPING = {
+    "Symbol": Parameter,
+    "Integer": int,
+    "Complex": complex,
+    "Float": float,
 }
 
 UNARY = {
@@ -88,7 +121,6 @@ class ParseSympyWalker(ast.NodeVisitor):
 
         This can only be parameter expression allowed sympy call types.
         """
-        import sympy
 
         if isinstance(node.func, ast.Name):
             name = node.func.id
@@ -103,22 +135,57 @@ class ParseSympyWalker(ast.NodeVisitor):
             if len(args) != 1:
                 raise QpyError(f"{name} has an invalid number of args in sympy srepr")
             self.visit(args[0])
-            obj = getattr(sympy, name)(self.stack.pop())
+            method = METHOD_MAPPING.get(name, None)
+            if method is not None:
+                obj = getattr(self.stack.pop(), method)()
+            else:
+                function = FUNCTION_MAPPING[name]
+                obj = function(self.stack.pop())
             self.stack.append(obj)
         else:
             for arg in args:
                 self.visit(arg)
             out_args = [self.stack.pop() for _ in range(len(args))]
-            out_args.reverse()
-            obj = getattr(sympy, name)(*out_args)
+            method = METHOD_MAPPING.get(name, None)
+            if method is not None:
+                obj = out_args.pop()
+                out_args.reverse()
+                for arg in out_args:
+                    if (
+                        name in REVERSE_METHOD_MAPPING
+                        and isinstance(arg, ParameterExpression)
+                        and not isinstance(obj, ParameterExpression)
+                    ):
+                        obj = getattr(arg, REVERSE_METHOD_MAPPING[name])(obj)
+                    else:
+                        obj = getattr(obj, method)(arg)
+            elif name == "Rational":
+                # If rational has one arg it's a no-op because
+                # ParameterExpression doesn't have a Rational type
+                if len(out_args) < 2:
+                    lhs = out_args.pop()
+                    rhs = out_args.pop()
+                    # If there is a 3rd argument that is the GCD which isn't supported by
+                    # ParameterExpression
+                    if len(out_args) == 1:
+                        raise QpyError(
+                            "An expression can not contain a Sympy Rational with a GCD set"
+                        )
+                    elif len(out_args) > 0:
+                        raise QpyError(
+                            f"Invalid Rational too many arguments Rational({lhs}, {rhs}, *{out_args})"
+                        )
+                    else:
+                        obj = lhs / rhs
+                        self.stack.append(obj)
+            else:
+                function = FUNCTION_MAPPING[name]
+                out_args.reverse()
+                obj = function(*out_args)
             self.stack.append(obj)
 
 
-@HAS_SYMPY.require_in_call(
-    "Sympy is required to parse parameter expressions encoded using sympy's "
-    "srepr in QPY format versions < 13"
-)
-def parse_sympy_repr(sympy_repr: str):
+def parse_sympy_repr(sympy_repr: str) -> ParameterExpression:
     """Parse a given sympy srepr into a symbolic expression object."""
     tree = ast.parse(sympy_repr, mode="eval")
     visitor = ParseSympyWalker()
