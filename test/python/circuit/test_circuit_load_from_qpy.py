@@ -2377,4 +2377,3 @@ class TestSymengineLoadFromQPY(QiskitTestCase):
             fptr.seek(0)
             new_circuit = load(fptr)[0]
         self.assertEqual(qc, new_circuit)
-        
