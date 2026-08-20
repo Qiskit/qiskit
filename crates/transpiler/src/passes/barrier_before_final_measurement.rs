@@ -15,7 +15,7 @@ use rayon::prelude::*;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use qiskit_circuit::Qubit;
-use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, NodeType};
+use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, NodeType, PyDAGCircuit};
 use qiskit_circuit::operations::{OperationRef, StandardInstruction};
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
@@ -24,10 +24,10 @@ const PARALLEL_THRESHOLD: usize = 150;
 #[pyfunction]
 #[pyo3(name = "barrier_before_final_measurements", signature=(dag, label=None))]
 pub fn py_run_barrier_before_final_measurements(
-    dag: &mut DAGCircuit,
+    dag: &mut PyDAGCircuit,
     label: Option<String>,
 ) -> PyResult<()> {
-    run_barrier_before_final_measurements(dag, label).map_err(Into::into)
+    run_barrier_before_final_measurements(dag.try_write()?, label).map_err(Into::into)
 }
 
 pub fn run_barrier_before_final_measurements(
