@@ -14,10 +14,11 @@ use std::ffi::{CStr, CString, c_char};
 use std::ptr;
 
 use crate::circuit_library::pbc::{CPauliProductMeasurement, CPauliProductRotation};
+use crate::classical_expr::CDurationInfo;
 use crate::control_flow::CControlFlowInstruction;
 use crate::dag::COperationKind;
 use crate::exit_codes::ExitCode;
-use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
+use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref, slice_from_ptr};
 use crate::transpiler::target::parse_params;
 
 use nalgebra::{Matrix2, Matrix4};
@@ -32,8 +33,9 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interner;
 use qiskit_circuit::operations::{
-    ArrayType, DelayUnit, Operation, OperationRef, Param, PauliBased, PauliProductMeasurement,
-    PauliProductRotation, StandardGate, StandardInstruction, UnitaryGate,
+    ArrayType, BoxDuration, ControlFlow, ControlFlowInstruction, DelayUnit, Operation,
+    OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation, StandardGate,
+    StandardInstruction, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter_table::ParameterTableError;
@@ -2408,6 +2410,108 @@ pub unsafe extern "C" fn qk_circuit_delay(
     ExitCode::Success
 }
 
+/// @ingroup QkCircuit
+/// Append a ``box`` control-flow instruction to a circuit.
+///
+/// A box is a control-flow construct that is entered unconditionally; its body is executed
+/// exactly once, as a single atomic unit from the perspective of the containing circuit.
+///
+/// This function copies ``body`` upon appending it, so the caller retains ownership of the
+/// ``QkCircuit`` body and must free it with ``qk_circuit_free`` once it is no longer needed.
+///
+/// @param circuit A pointer to the circuit to append the box to.
+/// @param body A pointer to the circuit to use as the body of the box.
+/// @param qubits A pointer to an array of ``uint32_t`` qubit indices in ``circuit``, of length
+///     ``qk_circuit_num_qubits(body)``, mapping the body's qubits onto ``circuit``'s qubits.
+/// @param clbits A pointer to an array of ``uint32_t`` clbit indices in ``circuit``, of length
+///     ``qk_circuit_num_clbits(body)``, mapping the body's clbits onto ``circuit``'s clbits.
+/// @param duration A pointer to a ``QkDurationInfo`` describing a concrete duration for the box,
+///     or ``NULL`` if the box has no duration.
+///
+/// @return An exit code.
+///
+/// # Example
+/// ```c
+///     QkCircuit *qc = qk_circuit_new(2, 0);
+///
+///     QkCircuit *body = qk_circuit_new(2, 0);
+///     uint32_t body_qubits[2] = {0, 1};
+///     qk_circuit_gate(body, QkGate_CX, body_qubits, NULL);
+///
+///     uint32_t qubits[2] = {1, 0};
+///     QkDurationInfo duration = {QkDurationType_S, {.time = 0.1}};
+///     qk_circuit_box(qc, body, qubits, NULL, &duration);
+///
+///     qk_circuit_free(body);
+///     qk_circuit_free(qc);
+/// ```
+///
+/// # Safety
+///
+/// ``qubits`` and ``clbits`` must be arrays of ``uint32_t`` of length
+/// ``qk_circuit_num_qubits(body)`` and ``qk_circuit_num_clbits(body)`` respectively, containing
+/// valid qubit/clbit indices into ``circuit``. Behavior is undefined otherwise.
+///
+/// If not null, ``duration`` must be a valid, aligned pointer to a ``QkDurationInfo``.
+///
+/// Behavior is undefined if ``circuit`` or ``body`` is not a valid, non-null pointer to a
+/// ``QkCircuit``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_box(
+    circuit: *mut CircuitData,
+    body: *const CircuitData,
+    qubits: *const u32,
+    clbits: *const u32,
+    duration: *const CDurationInfo,
+) -> ExitCode {
+    // SAFETY: Per documentation, the pointers are non-null and aligned.
+    let circuit = unsafe { mut_ptr_as_ref(circuit) };
+    let body = unsafe { const_ptr_as_ref(body) };
+
+    let num_qubits = body.num_qubits() as u32;
+    let num_clbits = body.num_clbits() as u32;
+
+    // SAFETY: Per documentation, qubits/clbits point to arrays of at least num_qubits/num_clbits
+    // uint32_t elements.
+    let qargs: Vec<Qubit> = unsafe { slice_from_ptr(qubits, num_qubits as usize) }
+        .iter()
+        .map(|&q| Qubit(q))
+        .collect();
+    let cargs: Vec<Clbit> = unsafe { slice_from_ptr(clbits, num_clbits as usize) }
+        .iter()
+        .map(|&c| Clbit(c))
+        .collect();
+
+    let duration = if duration.is_null() {
+        None
+    } else {
+        // SAFETY: Per documentation, duration is a valid, aligned pointer to a QkDurationInfo.
+        let info = unsafe { *duration };
+        Some(BoxDuration::Duration(info.into()))
+    };
+
+    let box_block = circuit.add_block(body.clone());
+    let box_op = PackedOperation::from(ControlFlowInstruction {
+        control_flow: ControlFlow::Box {
+            duration,
+            annotations: Default::default(),
+        },
+        num_qubits,
+        num_clbits,
+    });
+
+    circuit
+        .push_packed_operation(
+            box_op,
+            Some(Parameters::Blocks(vec![box_block])),
+            &qargs,
+            &cargs,
+        )
+        .unwrap();
+
+    ExitCode::Success
+}
+
 /// The configuration options for the ``qk_circuit_draw`` function.
 #[repr(C)]
 pub struct CircuitDrawerConfig {
@@ -2764,6 +2868,7 @@ mod test {
     use qiskit_circuit::{
         bit::{ClassicalRegister, QuantumRegister, ShareableClbit, ShareableQubit},
         circuit_data::CircuitData,
+        duration::Duration,
         operations::Param,
     };
     use std::mem::MaybeUninit;
@@ -2807,5 +2912,56 @@ mod test {
 
         assert_eq!(out_bits[1], 1); // Bit was explicitly added to the circuit
         assert_eq!(out_bits[0], u32::MAX); // Bit was not added to the circuit
+    }
+
+    #[test]
+    fn test_circuit_box() {
+        let circuit = qk_circuit_new(3, 3);
+        let body = qk_circuit_new(2, 1);
+
+        let cx_qubits = [0_u32, 1];
+        unsafe {
+            qk_circuit_gate(body, StandardGate::CX, cx_qubits.as_ptr(), ptr::null());
+            qk_circuit_measure(body, 0, 0);
+        }
+
+        let qubits = [2_u32, 0];
+        let clbits = [1_u32];
+        let duration = CDurationInfo::from(&Duration::s(0.1));
+
+        let exit_code =
+            unsafe { qk_circuit_box(circuit, body, qubits.as_ptr(), clbits.as_ptr(), &duration) };
+        assert_eq!(exit_code, ExitCode::Success);
+
+        let circuit_ref = unsafe { const_ptr_as_ref(circuit) };
+        assert_eq!(circuit_ref.data().len(), 1);
+
+        let inst = &circuit_ref.data()[0];
+        assert_eq!(circuit_ref.get_qargs(inst.qubits), [Qubit(2), Qubit(0)]);
+        assert_eq!(circuit_ref.get_cargs(inst.clbits), [Clbit(1)]);
+
+        let OperationRef::ControlFlow(cf_inst) = inst.op.view() else {
+            panic!("expected a control flow instruction")
+        };
+        let ControlFlow::Box { duration, .. } = &cf_inst.control_flow else {
+            panic!("expected a box")
+        };
+        assert!(matches!(
+            duration,
+            Some(BoxDuration::Duration(Duration::s(secs))) if *secs == 0.1
+        ));
+
+        let Some(Parameters::Blocks(block_ids)) = inst.params.as_deref() else {
+            panic!("expected the box to carry its body as a block")
+        };
+        assert_eq!(circuit_ref.blocks()[block_ids[0]].data().len(), 2);
+
+        let body_ref = unsafe { const_ptr_as_ref(body) };
+        assert_eq!(body_ref.data().len(), 2); // The body was copied, not consumed
+
+        unsafe {
+            qk_circuit_free(circuit);
+            qk_circuit_free(body);
+        }
     }
 }

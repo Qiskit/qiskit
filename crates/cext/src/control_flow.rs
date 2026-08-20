@@ -18,7 +18,6 @@ use qiskit_circuit::bit::ClassicalRegister;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::classical::expr::{Binary, BinaryOp, Expr, Value, Var};
 use qiskit_circuit::classical::types::Type;
-use qiskit_circuit::duration::Duration;
 use qiskit_circuit::operations::{
     BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction, ForCollection,
     LoopParam, PyRange, SwitchTarget,
@@ -1636,8 +1635,8 @@ pub unsafe extern "C" fn qk_control_flow_switch_case_labels_clear(labels: *mut C
 // +-------+------------------+------------------------------------------------------------------------------+
 // | Index | Instruction Type | Description                                                                  |
 // +-------+------------------+------------------------------------------------------------------------------+
-// |   0   | Box              | Inner circuit with CX(0,1) and Measure(0->0), mapped to qubits [2,0],        |
-// |       |                  | clbit [1], duration=0.1s                                                     |
+// |   0   | Barrier          | Placeholder over qubits [0,1,2]. This slot held a Box until boxes could be   |
+// |       |                  | built from C; the barrier keeps the indices below unchanged.                 |
 // +-------+------------------+------------------------------------------------------------------------------+
 // |   1   | For Loop         | Loop over [1,2] with loop_parameter=Parameter("x") and                       |
 // |       |                  | If-Else(clbit[0]==True: Break, else: Continue), H(0) in the body             |
@@ -1674,60 +1673,20 @@ pub unsafe extern "C" fn inner_test_control_flow_circuit() -> *mut CircuitData {
     .expect("Failed to create circuit");
 
     //////////////////////////////////////////////////////
-    // Build a box like this:
+    // Add a barrier like this:
     // ----------------------
-    // inner = QuantumCircuit(2,1)
-    // inner.cx(0,1)
-    // inner.measure(0,0)
-    // qc.box(inner, [2,0], [1], duration=0.1, unit='s')
-    let inner_qubits: Vec<ShareableQubit> =
-        (0..2).map(|_| ShareableQubit::new_anonymous()).collect();
-    let inner_clbits: Vec<ShareableClbit> =
-        (0..1).map(|_| ShareableClbit::new_anonymous()).collect();
-
-    let mut inner_circuit = CircuitData::new(
-        Some(inner_qubits.clone()),
-        Some(inner_clbits.clone()),
-        Param::Float(0.0),
-    )
-    .expect("Failed to create inner circuit");
-
-    inner_circuit
-        .push_packed_operation(
-            PackedOperation::from_standard_gate(StandardGate::CX),
-            None,
-            &[Qubit(0), Qubit(1)],
-            &[],
-        )
-        .expect("Failed to add CX gate");
-
-    inner_circuit
-        .push_packed_operation(
-            PackedOperation::from_standard_instruction(StandardInstruction::Measure),
-            None,
-            &[Qubit(0)],
-            &[Clbit(0)],
-        )
-        .expect("Failed to add measure");
-
-    let box_block = circuit.add_block(inner_circuit);
-    let box_op = PackedOperation::from(ControlFlowInstruction {
-        control_flow: ControlFlow::Box {
-            duration: Some(BoxDuration::Duration(Duration::s(0.1))),
-            annotations: Default::default(),
-        },
-        num_qubits: 2,
-        num_clbits: 1,
-    });
-
+    // qc.barrier()
+    //
+    // This slot held a Box before it could be built from C; the barrier keeps the indices below
+    // unchanged.
     circuit
         .push_packed_operation(
-            box_op,
-            Some(Parameters::Blocks(vec![box_block])),
-            &[Qubit(2), Qubit(0)],
-            &[Clbit(1)],
+            PackedOperation::from_standard_instruction(StandardInstruction::Barrier(3)),
+            None,
+            &[Qubit(0), Qubit(1), Qubit(2)],
+            &[],
         )
-        .expect("Failed to add box");
+        .expect("Failed to add barrier");
 
     /////////////////////////////////////////////
     // Build a for-loop like this:
