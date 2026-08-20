@@ -997,10 +997,10 @@ measure q0[1] -> c0[1];
     def test_approximation_degree(self):
         """Test that approximation_degree controls commutation-based cancellation.
 
-        A small RZ on the CX target does not exactly commute with CX, so with
-        ``approximation_degree=1.0`` the flanking CXs do not cancel. With maximal
-        approximation (``0.0``), the RZ is treated as identity for commutation and
-        the CXs cancel. Omitting ``approximation_degree`` matches ``1.0``.
+        A small RZ rotation between two CX gates prevents the CX gates from canceling with
+        ``approximation_degree=1.0``. The CX gates do cancel with maximal approximation
+        ``approximation_degree=0.0``. Omitting ``approximation_degree`` has the same
+        behavior as ``1.0``.
         """
         eps = 1e-5
         qc = QuantumCircuit(2)
