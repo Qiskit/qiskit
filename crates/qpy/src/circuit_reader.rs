@@ -429,8 +429,13 @@ fn unpack_standard_instruction(
             instruction.gate_class_name
         )));
     };
-    let param_values =
+    let mut param_values =
         get_instruction_values(instruction, qpy_data, ValueEndian::LittleForV17AndBelow)?;
+
+    // Delay instructions store the unit as a second temporary parameter which should be removed
+    if instruction.gate_class_name == "Delay" && param_values.len() >= 2 {
+        param_values.remove(1);
+    }
     Ok((op, param_values))
 }
 
