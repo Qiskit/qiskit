@@ -1123,9 +1123,13 @@ pub unsafe extern "C" fn qk_circuit_reset(circuit: *mut CircuitData, qubit: u32)
 /// @ingroup QkCircuit
 /// Append a barrier to the circuit.
 ///
+/// If `qubits` is `NULL`, then `num_qubits` is ignored and the barrier is applied to all qubits in
+/// the circuit.  This is a convenience; it is more efficient to allocate your own all-qubits buffer
+/// and re-use it, if you need multiple full-width barriers.
+///
 /// @param circuit A pointer to the circuit to add the barrier to.
-/// @param num_qubits The number of qubits wide the barrier is.
 /// @param qubits The pointer to the array of ``uint32_t`` qubit indices to add the barrier on.
+/// @param num_qubits The number of qubits wide the barrier is.  Ignored if `qubits` is null.
 ///
 /// @return An exit code.
 ///
@@ -1138,29 +1142,33 @@ pub unsafe extern "C" fn qk_circuit_reset(circuit: *mut CircuitData, qubit: u32)
 ///
 /// # Safety
 ///
-/// The length of the array ``qubits`` points to must be ``num_qubits``. If there is
-/// a mismatch the behavior is undefined.
-///
 /// Behavior is undefined if ``circuit`` is not a valid, non-null pointer to a ``QkCircuit``.
+/// If `qubits` is not `NULL`, it must be aligned and point to `num_qubits` valid initialized
+/// values that have no duplicates and are all in-bounds for the circuit.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_barrier(
     circuit: *mut CircuitData,
     qubits: *const u32,
-    num_qubits: u32,
+    mut num_qubits: u32,
 ) -> ExitCode {
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { mut_ptr_as_ref(circuit) };
-    // SAFETY: Per the documentation the qubits pointer is an array of num_qubits elements
-    let qubits: Vec<Qubit> = unsafe {
-        (0..num_qubits)
-            .map(|idx| Qubit(*qubits.wrapping_add(idx as usize)))
-            .collect()
+    let qubits_base;
+    let qubits: &[Qubit] = if qubits.is_null() {
+        num_qubits = circuit.num_qubits() as u32;
+        qubits_base = (0..num_qubits).map(Qubit).collect::<Vec<_>>();
+        bytemuck::cast_slice(qubits_base.as_slice())
+    } else {
+        // SAFETY: since it is not null, then per documentation `qubits` is aligned and valid for
+        // `num_qubits` reads of initialized data.
+        let as_u32 = unsafe { std::slice::from_raw_parts(qubits, num_qubits as usize) };
+        bytemuck::cast_slice(as_u32)
     };
     circuit
         .push_packed_operation(
             PackedOperation::from_standard_instruction(StandardInstruction::Barrier(num_qubits)),
             None,
-            &qubits,
+            qubits,
             &[],
         )
         .unwrap();
