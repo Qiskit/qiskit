@@ -55,7 +55,7 @@ use crate::py_methods::{
 };
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionVarDeclaration, GenericValue, ParamRegisterValue,
-    QPYWriteData, RegisterType, ValueEndian, get_circuit_type_key, pack_for_collection,
+    QPYWriteData, QpyCaller, RegisterType,  ValueEndian, get_circuit_type_key, pack_for_collection,
     pack_generic_value, pack_standalone_var, pack_stretch, serialize,
     serialize_param_register_value,
 };
@@ -211,18 +211,22 @@ fn pack_instruction_blocks(
         Parameters::Params(_) => Err(QpyError::ConversionError(
             "Instruction has params but expected blocks".to_string(),
         )),
-        Parameters::Blocks(blocks) => Python::attach(|py| -> Result<_, QpyError> {
-            blocks
-                .iter()
-                .map(|block: &CircuitData| -> Result<_, QpyError> {
-                    // we explicitly name the block "unnamed" because otherwise it will be assigned a serial number name (e.g. "circuit-45")
-                    // which would result in inconsistent results, e.g. when packing the same circuit twice on the same run
-                    let py_block: PyCircuitData = block.clone().into();
-                    let circuit = py_block.into_py_quantum_circuit(py)?;
-                    py_pack_param(&circuit, qpy_data, ValueEndian::LittleForV17AndBelow)
+        Parameters::Blocks(blocks) => {
+            qpy_data
+                .caller
+                .attach("control-flow blocks", |py| -> Result<_, QpyError> {
+                    blocks
+                        .iter()
+                        .map(|block: &CircuitData| -> Result<_, QpyError> {
+                            // we explicitly name the block "unnamed" because otherwise it will be assigned a serial number name (e.g. "circuit-45")
+                            // which would result in inconsistent results, e.g. when packing the same circuit twice on the same run
+                            let py_block: PyCircuitData = block.clone().into();
+                            let circuit = py_block.into_py_quantum_circuit(py)?;
+                            py_pack_param(&circuit, qpy_data, ValueEndian::LittleForV17AndBelow)
+                        })
+                        .collect::<Result<_, QpyError>>()
                 })
-                .collect::<Result<_, QpyError>>()
-        }),
+        }
     }
 }
 
@@ -273,8 +277,13 @@ fn pack_instruction(
         instruction_pack.label = label.clone();
     }
     instruction_pack.bit_data = get_packed_bit_list(instruction, qpy_data.circuit_data);
-    if let Some(new_name) =
-        recognize_custom_operation(&instruction.op, &gate_class_name(&instruction.op)?)?
+    if let Some(new_name) = qpy_data
+        .caller
+        .attach("recognize custom operations", |py| -> Result<_, QpyError> {
+            recognize_custom_operation(py, &instruction.op, &gate_class_name(py, &instruction.op)?)
+        })
+        .unwrap_or(None)
+    // None in the case we are not in the Python path
     {
         instruction_pack.gate_class_name = new_name.clone();
         new_custom_operations.push(new_name.clone());
@@ -342,17 +351,20 @@ fn pack_pauli_product_measurement(
     // since we won't recreate this gate via python, it's not important to verify the python name is identical to the one we use here
     // so we simply hard-code it instead of going through python
     let gate_class_name = String::from(PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME);
-    let params = Python::attach(|py| -> Result<_, QpyError> {
-        let z_array = ppm.z.to_pyarray(py);
-        let x_array = ppm.x.to_pyarray(py);
-        // Pauli phase: 0 means +1, 2 means -1 (i.e. neg)
-        let phase: i64 = if ppm.neg { 2 } else { 0 };
-        Ok(vec![
-            py_pack_param(&z_array, qpy_data, ValueEndian::Big)?,
-            py_pack_param(&x_array, qpy_data, ValueEndian::Big)?,
-            pack_generic_value(&GenericValue::Int64(phase), qpy_data)?,
-        ])
-    })?;
+    let params = qpy_data.caller.attach(
+        "Pauli-product measurement parameters",
+        |py| -> Result<_, QpyError> {
+            let z_array = ppm.z.to_pyarray(py);
+            let x_array = ppm.x.to_pyarray(py);
+            // Pauli phase: 0 means +1, 2 means -1 (i.e. neg)
+            let phase: i64 = if ppm.neg { 2 } else { 0 };
+            Ok(vec![
+                py_pack_param(&z_array, qpy_data, ValueEndian::Big)?,
+                py_pack_param(&x_array, qpy_data, ValueEndian::Big)?,
+                pack_generic_value(&GenericValue::Int64(phase), qpy_data)?,
+            ])
+        },
+    )?;
     Ok(formats::CircuitInstructionV2Pack {
         num_qargs: instruction.op.num_qubits(),
         num_cargs: instruction.op.num_clbits(),
@@ -376,15 +388,18 @@ fn pack_pauli_product_rotation(
     // since we won't recreate this gate via python, it's not important to verify the python name is identical to the one we use here
     // so we simply hard-code it instead of going through python
     let gate_class_name = String::from(PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME);
-    let params = Python::attach(|py| -> Result<_, QpyError> {
-        let z_array = rotation.z.to_pyarray(py);
-        let x_array = rotation.x.to_pyarray(py);
-        Ok(vec![
-            py_pack_param(&z_array, qpy_data, ValueEndian::Big)?,
-            py_pack_param(&x_array, qpy_data, ValueEndian::Big)?,
-            pack_param_obj(&rotation.angle, qpy_data, ValueEndian::LittleForV17AndBelow)?,
-        ])
-    })?;
+    let params = qpy_data.caller.attach(
+        "Pauli-product rotation parameters",
+        |py| -> Result<_, QpyError> {
+            let z_array = rotation.z.to_pyarray(py);
+            let x_array = rotation.x.to_pyarray(py);
+            Ok(vec![
+                py_pack_param(&z_array, qpy_data, ValueEndian::Big)?,
+                py_pack_param(&x_array, qpy_data, ValueEndian::Big)?,
+                pack_param_obj(&rotation.angle, qpy_data, Endian::Little)?,
+            ])
+        },
+    )?;
     Ok(formats::CircuitInstructionV2Pack {
         num_qargs: instruction.op.num_qubits(),
         num_cargs: 0,
@@ -581,14 +596,13 @@ fn pack_unitary_gate(
 
     // until we change the QPY version or verify we get the exact same result,
     // we translate the matrix to numpy and then serialize it like python does
-    let params = Python::attach(|py| -> Result<_, QpyError> {
-        let out_array = matrix.to_pyarray(py);
-        Ok(vec![py_pack_param(
-            &out_array,
-            qpy_data,
-            ValueEndian::LittleForV17AndBelow,
-        )?])
-    })?;
+    let params =
+        qpy_data
+            .caller
+            .attach("unitary-gate parameters", |py| -> Result<_, QpyError> {
+                let out_array = matrix.to_pyarray(py);
+                Ok(vec![py_pack_param(&out_array, qpy_data, ValueEndian::LittleForV17AndBelow)?])
+            })?;
     // since we won't recreate this gate via python, it's not important to verify the python name is identical to the one we use here
     // so we simply hard-code it instead of going through python
     let gate_class_name = String::from(UNITARY_GATE_CLASS_NAME);
@@ -614,27 +628,27 @@ fn pack_py_instruction(
 ) -> Result<formats::CircuitInstructionV2Pack, QpyError> {
     let params = match py_inst.kind {
         PyOpKind::Gate | PyOpKind::Instruction => pack_instruction_params(instruction, qpy_data)?,
-        PyOpKind::Operation => Python::attach(|py| -> Result<_, QpyError> {
-            let py_op_object = py_inst.ob.bind(py);
-            if py_op_object.is_instance(imports::CLIFFORD.get_bound(py))? {
-                let tableau = py_op_object.getattr("tableau")?;
-                Ok(vec![py_pack_param(
-                    &tableau,
-                    qpy_data,
-                    ValueEndian::LittleForV17AndBelow,
-                )?])
-            } else if py_op_object.is_instance(imports::ANNOTATED_OPERATION.get_bound(py))? {
-                let modifiers = py_op_object.getattr("modifiers")?;
-                modifiers
-                    .try_iter()?
-                    .map(|modifier| {
-                        py_pack_param(&modifier?, qpy_data, ValueEndian::LittleForV17AndBelow)
-                    })
-                    .collect::<Result<_, QpyError>>()
-            } else {
-                pack_instruction_params(instruction, qpy_data)
-            }
-        })?,
+        PyOpKind::Operation => {
+            qpy_data
+                .caller
+                .attach("Python-defined operations", |py| -> Result<_, QpyError> {
+                    let py_op_object = py_inst.ob.bind(py);
+                    if py_op_object.is_instance(imports::CLIFFORD.get_bound(py))? {
+                        let tableau = py_op_object.getattr("tableau")?;
+                        Ok(vec![py_pack_param(&tableau, qpy_data, Endian::Little)?])
+                    } else if py_op_object
+                        .is_instance(imports::ANNOTATED_OPERATION.get_bound(py))?
+                    {
+                        let modifiers = py_op_object.getattr("modifiers")?;
+                        modifiers
+                            .try_iter()?
+                            .map(|modifier| py_pack_param(&modifier?, qpy_data, ValueEndian::LittleForV17AndBelow))
+                            .collect::<Result<_, QpyError>>()
+                    } else {
+                        pack_instruction_params(instruction, qpy_data)
+                    }
+                })?
+        }
     };
     Ok(formats::CircuitInstructionV2Pack {
         num_qargs: py_inst.num_qubits(),
@@ -642,7 +656,9 @@ fn pack_py_instruction(
         extras_key: 0,
         num_ctrl_qubits: py_inst.num_ctrl_qubits().unwrap_or(0),
         ctrl_state: py_inst.ctrl_state().unwrap_or(0),
-        gate_class_name: Python::attach(|py| py_inst.class_name(py))?,
+        gate_class_name: qpy_data.caller.attach("Python-defined operations", |py| {
+            py_inst.class_name(py).map_err(QpyError::from)
+        })?,
         label: Default::default(),
         condition: Default::default(),
         bit_data: Default::default(),
@@ -967,18 +983,26 @@ fn pack_custom_instructions(
 ) -> Result<formats::CustomCircuitInstructionsPack, QpyError> {
     let mut custom_instructions: Vec<formats::CustomCircuitInstructionDefPack> = Vec::new();
     let mut instructions_to_pack: Vec<String> = custom_instructions_hash.keys().cloned().collect();
-    Python::attach(|py| -> Result<_, QpyError> {
-        while let Some(name) = instructions_to_pack.pop() {
-            custom_instructions.push(pack_custom_instruction(
-                py,
-                &name,
-                custom_instructions_hash,
-                &mut instructions_to_pack,
-                qpy_data,
-            )?);
-        }
-        Ok(())
-    })?;
+    if instructions_to_pack.is_empty() {
+        // avoid invoking Python if not required
+        return Ok(formats::CustomCircuitInstructionsPack {
+            custom_instructions,
+        });
+    }
+    qpy_data
+        .caller
+        .attach("custom instructions", |py| -> Result<_, QpyError> {
+            while let Some(name) = instructions_to_pack.pop() {
+                custom_instructions.push(pack_custom_instruction(
+                    py,
+                    &name,
+                    custom_instructions_hash,
+                    &mut instructions_to_pack,
+                    qpy_data,
+                )?);
+            }
+            Ok(())
+        })?;
     Ok(formats::CustomCircuitInstructionsPack {
         custom_instructions,
     })
@@ -1024,7 +1048,7 @@ fn pack_custom_instruction(
             operation.view()
         )));
     };
-    let gate_type = get_circuit_type_key(operation)?;
+    let gate_type = get_circuit_type_key(operation, qpy_data.caller)?;
     let mut num_ctrl_qubits = 0;
     let mut ctrl_state = 0;
     let mut base_gate: Bound<PyAny> = py.None().bind(py).clone();
@@ -1046,14 +1070,14 @@ fn pack_custom_instruction(
             num_ctrl_qubits = gate.getattr("num_ctrl_qubits")?.extract::<u32>()?;
             ctrl_state = gate.getattr("ctrl_state")?.extract::<u32>()?;
             base_gate = gate.getattr("base_gate")?.clone();
-            let definition: QuantumCircuitData = gate.getattr("_definition")?.extract()?;
-            let metadata = serialize_metadata(&definition.metadata, None)?;
+            let mut definition: QuantumCircuitData = gate.getattr("_definition")?.extract()?;
+            let metadata = serialize_metadata(py, &definition.metadata, None)?;
             let layout = serialize(&pack_layout(
                 definition.transpile_layout.clone(),
                 &definition.data,
             )?)?;
             Some(serialize(&pack_circuit(
-                &definition.data,
+                &mut definition.data,
                 ExtraCircuitData {
                     name: definition.name,
                     metadata,
@@ -1061,6 +1085,7 @@ fn pack_custom_instruction(
                 },
                 qpy_data.version,
                 qpy_data.annotation_handler.child()?,
+                qpy_data.caller,
             )?)?)
         }
         CircuitInstructionType::AnnotatedOperation => {
@@ -1069,11 +1094,11 @@ fn pack_custom_instruction(
         }
         CircuitInstructionType::Gate | CircuitInstructionType::Instruction => inst
             .py_definition(py)?
-            .map(|defn| {
-                let metadata = serialize_metadata(&defn.metadata, None)?;
+            .map(|mut defn| {
+                let metadata = serialize_metadata(py, &defn.metadata, None)?;
                 let layout = serialize(&pack_layout(defn.transpile_layout.clone(), &defn.data)?)?;
                 pack_circuit(
-                    &defn.data,
+                    &mut defn.data,
                     ExtraCircuitData {
                         name: defn.name,
                         metadata,
@@ -1081,6 +1106,7 @@ fn pack_custom_instruction(
                     },
                     qpy_data.version,
                     qpy_data.annotation_handler.child()?,
+                    qpy_data.caller,
                 )
                 .and_then(|fmt| serialize(&fmt))
             })
@@ -1227,12 +1253,14 @@ fn pack_standalone_vars(
 }
 
 pub(crate) fn pack_circuit(
-    circuit_data: &CircuitData,
+    circuit_data: &mut CircuitData,
     extra: ExtraCircuitData,
     version: u8,
     annotation_handler: AnnotationHandler,
+    caller: QpyCaller,
 ) -> Result<formats::QPYCircuit, QpyError> {
     let mut qpy_data = QPYWriteData {
+        caller,
         circuit_data,
         version,
         standalone_var_indices: HashMap::new(),
