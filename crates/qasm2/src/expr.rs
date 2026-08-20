@@ -17,15 +17,20 @@
 use core::f64;
 
 use hashbrown::HashMap;
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
+#[cfg(feature = "py")]
+use qiskit_circuit::parameter::parameter_expression::{ParameterError, ParameterExpression};
 use std::ops::ControlFlow;
 
+#[cfg(feature = "py")]
+use crate::bytecode;
 use crate::error::{
     ParseError, Position, message_bad_eof, message_generic, message_incorrect_requirement,
 };
 use crate::lex::{Token, TokenContext, TokenStream, TokenType};
 use crate::parse::{GateSymbol, GlobalSymbol, ParamId};
-use crate::{ClassicalCallableExt, bytecode};
+use crate::{Attachment, ClassicalCallableExt};
 
 /// Enum representation of the builtin OpenQASM 2 functions.  The built-in Qiskit parser adds the
 /// inverse trigonometric functions, but these are an extension to the version as given in the
@@ -54,6 +59,7 @@ impl From<TokenType> for Function {
     }
 }
 
+#[cfg(feature = "py")]
 impl From<Function> for bytecode::UnaryOpCode {
     fn from(value: Function) -> Self {
         match value {
@@ -146,6 +152,7 @@ pub enum Expr {
     CustomFunction(ClassicalCallableExt, Vec<Expr>),
 }
 
+#[cfg(feature = "py")]
 impl<'py> IntoPyObject<'py> for Expr {
     type Target = PyAny; // the Python type
     type Output = Bound<'py, Self::Target>; // in most cases this will be `Bound`
@@ -219,6 +226,73 @@ impl<'py> IntoPyObject<'py> for Expr {
     }
 }
 
+#[cfg(feature = "py")]
+pub fn evaluate(
+    expr: &Expr,
+    params: &[f64],
+    attachment: Attachment<'_>,
+) -> Result<f64, ParseError> {
+    to_parameter_expression(expr, params, attachment)?
+        .try_to_value(true)
+        .map(|value| value.as_real())
+        .map_err(|err| ParseError::new(err.to_string()))
+}
+
+#[cfg(feature = "py")]
+fn to_parameter_expression(
+    expr: &Expr,
+    params: &[f64],
+    attachment: Attachment<'_>,
+) -> Result<ParameterExpression, ParseError> {
+    let param_error = |err: ParameterError| ParseError::new(err.to_string());
+    Ok(match expr {
+        Expr::Constant(value) => ParameterExpression::from_f64(*value),
+        Expr::Parameter(index) => {
+            let value = params
+                .get(index.index())
+                .copied()
+                .ok_or_else(|| ParseError::new("gate parameter index out of range".to_owned()))?;
+            ParameterExpression::from_f64(value)
+        }
+        Expr::Negate(inner) => to_parameter_expression(inner, params, attachment)?.neg(),
+        Expr::Add(lhs, rhs) => to_parameter_expression(lhs, params, attachment)?
+            .add(&to_parameter_expression(rhs, params, attachment)?)
+            .map_err(param_error)?,
+        Expr::Subtract(lhs, rhs) => to_parameter_expression(lhs, params, attachment)?
+            .sub(&to_parameter_expression(rhs, params, attachment)?)
+            .map_err(param_error)?,
+        Expr::Multiply(lhs, rhs) => to_parameter_expression(lhs, params, attachment)?
+            .mul(&to_parameter_expression(rhs, params, attachment)?)
+            .map_err(param_error)?,
+        Expr::Divide(lhs, rhs) => to_parameter_expression(lhs, params, attachment)?
+            .div(&to_parameter_expression(rhs, params, attachment)?)
+            .map_err(param_error)?,
+        Expr::Power(lhs, rhs) => to_parameter_expression(lhs, params, attachment)?
+            .pow(&to_parameter_expression(rhs, params, attachment)?)
+            .map_err(param_error)?,
+        Expr::Function(func, inner) => {
+            let inner = to_parameter_expression(inner, params, attachment)?;
+            match func {
+                Function::Cos => inner.cos(),
+                Function::Exp => inner.exp(),
+                Function::Ln => inner.log(),
+                Function::Sin => inner.sin(),
+                Function::Sqrt => inner
+                    .pow(&ParameterExpression::from_f64(0.5))
+                    .map_err(param_error)?,
+                Function::Tan => inner.tan(),
+            }
+        }
+        Expr::CustomFunction(callable, exprs) => {
+            let floats = exprs
+                .iter()
+                .map(|expr| evaluate(expr, params, attachment))
+                .collect::<Result<Vec<_>, _>>()?;
+            ParameterExpression::from_f64(callable.call(&floats, attachment)?)
+        }
+    })
+}
+
 /// Calculate the binding power of an [Op] when used in a prefix position.  Returns [None] if the
 /// operation cannot be used in the prefix position.  The binding power is on the same scale as
 /// those returned by [binary_power].
@@ -283,6 +357,8 @@ pub struct ExprParser<'a> {
     pub gate_symbols: &'a HashMap<String, GateSymbol>,
     pub global_symbols: &'a HashMap<String, GlobalSymbol>,
     pub strict: bool,
+    /// GIL attachment for Python custom classical callable
+    pub attachment: Attachment<'a>,
 }
 
 impl ExprParser<'_> {
@@ -496,10 +572,13 @@ impl ExprParser<'_> {
         let Some(floats) = as_f64 else {
             return Ok(Expr::CustomFunction(callable.clone(), exprs));
         };
-        callable.call(&floats).map(Expr::Constant).map_err(|err| {
-            let message = message_generic(Some(&self.cur_position_of(token)), &err.message);
-            err.with_message(message)
-        })
+        callable
+            .call(&floats, self.attachment)
+            .map(Expr::Constant)
+            .map_err(|err| {
+                let message = message_generic(Some(&self.cur_position_of(token)), &err.message);
+                err.with_message(message)
+            })
     }
 
     /// If in `strict` mode, and we have a trailing comma, emit a suitable error message.
