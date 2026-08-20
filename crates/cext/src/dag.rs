@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::ptr::null;
+
 use anyhow::Error;
 use hashbrown::HashMap;
 use num_complex::Complex64;
@@ -2014,4 +2016,23 @@ pub unsafe extern "C" fn qk_dag_apply_custom_operation(
         Err(DAGError::WireOutOfRange(_wire, _size)) => ExitCode::MismatchedQubits,
         Err(_) => ExitCode::DagError,
     }
+}
+
+/// @ingroup QkDag
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_dag_get_custom_operation(
+    dag: *mut DAGCircuit,
+    index: u32,
+) -> *const BoxedCustomOperation {
+    let dag_borrowed = unsafe { const_ptr_as_ref(dag) };
+
+    let NodeType::Operation(operation) = &dag_borrowed.dag()[NodeIndex::from(index)] else {
+        return null();
+    };
+
+    let Ok(custom): Result<&'_ BoxedCustomOperation, _> = (&operation.op).try_into() else {
+        return null();
+    };
+
+    custom as *const BoxedCustomOperation
 }

@@ -10,8 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use core::slice;
 use std::{
-    ffi::{CStr, c_char, c_void},
+    ffi::{CStr, CString, c_char, c_void},
     num::NonZero,
     ptr::{null, null_mut},
     sync::Arc,
@@ -21,6 +22,8 @@ use qiskit_circuit::{
     circuit_data::CircuitData,
     operations::{BoxedCustomOperation, CustomOperation, Operation, Param},
 };
+
+use crate::pointers::const_ptr_as_ref;
 
 /// Represents a quantum operation fully defined in C.
 ///
@@ -605,4 +608,133 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
     CustomOpVTable::try_from(vtable)
         .map(|x| Arc::into_raw(Arc::new(x)))
         .unwrap_or(std::ptr::null())
+}
+
+/// @ingroup QkCustomOp
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_inst_name(inst: *const BoxedCustomOperation) -> *const c_char {
+    let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
+
+    if let Some(as_custom_op) = borrowed_inst.downcast_ref::<CustomOp>() {
+        // Use vtable directly to avoid converting
+        unsafe { ((&*as_custom_op.v_table).name)(as_custom_op.orig) }
+    } else {
+        CString::new(borrowed_inst.name())
+            .expect("Operation name should not contain null bytes")
+            .into_raw()
+    }
+}
+
+/// @ingroup QkCustomOp
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_inst_num_qubits(inst: *const BoxedCustomOperation) -> u32 {
+    let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
+
+    borrowed_inst.num_qubits()
+}
+
+/// @ingroup QkCustomOp
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_inst_num_clbits(inst: *const BoxedCustomOperation) -> u32 {
+    let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
+
+    borrowed_inst.num_clbits()
+}
+
+/// @ingroup QkCustomOp
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_inst_num_params(inst: *const BoxedCustomOperation) -> u32 {
+    let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
+
+    borrowed_inst.num_params()
+}
+
+/// @ingroup QkCustomOp
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_inst_directive(inst: *const BoxedCustomOperation) -> bool {
+    let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
+
+    borrowed_inst.directive()
+}
+
+/// @ingroup QkCustomOp
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_inst_is_unitary(inst: *const BoxedCustomOperation) -> bool {
+    let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
+
+    borrowed_inst.is_unitary()
+}
+
+/// @ingroup QkCustomOp
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_inst_num_ctrl_qubits(inst: *const BoxedCustomOperation) -> u32 {
+    let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
+
+    if let Some(number) = borrowed_inst.num_ctrl_qubits() {
+        number.into()
+    } else {
+        0
+    }
+}
+
+/// @ingroup QkCustomOp
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_inst_label(inst: *const BoxedCustomOperation) -> *const c_char {
+    let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
+
+    if let Some(as_custom_op) = borrowed_inst.downcast_ref::<CustomOp>() {
+        // Use vtable directly to avoid converting
+        unsafe { ((&*as_custom_op.v_table).name)(as_custom_op.orig) }
+    } else {
+        if let Some(label) = borrowed_inst.label() {
+            CString::new(label)
+                .expect("Label should not contain null bytes")
+                .into_raw()
+        } else {
+            null()
+        }
+    }
+}
+
+/// @ingroup QkCustomOp
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_inst_definition(
+    inst: *const BoxedCustomOperation,
+    params: *const *const Param,
+) -> *mut CircuitData {
+    let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
+
+    if let Some(as_custom_op) = borrowed_inst.downcast_ref::<CustomOp>() {
+        // Use vtable directly to avoid converting
+        unsafe { ((&*as_custom_op.v_table).definition)(as_custom_op.orig, params) }
+    } else {
+        let parsed_params: Vec<Param> =
+            unsafe { slice::from_raw_parts(params, borrowed_inst.num_params() as usize) }
+                .iter()
+                .map(|&ptr| unsafe { const_ptr_as_ref(ptr) }.clone())
+                .collect();
+
+        match borrowed_inst.definition(&parsed_params) {
+            Some(circ) => Box::into_raw(Box::new(circ)),
+            None => null_mut(),
+        }
+    }
+}
+
+/// @ingroup QkCustomOp
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_inst_eq(
+    inst: *const BoxedCustomOperation,
+    other: *const BoxedCustomOperation,
+) -> bool {
+    let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
+    let borrowed_other = unsafe { const_ptr_as_ref(other) };
+
+    **borrowed_inst == **borrowed_other
+}
+
+/// @ingroup QkCustomOp
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_inst_free(inst: *mut BoxedCustomOperation) {
+    let _ = unsafe { Box::from_raw(inst) };
 }
