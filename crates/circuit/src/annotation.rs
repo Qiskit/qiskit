@@ -124,8 +124,15 @@ mod custom_traits {
     }
 }
 
+/// Trait that implements methods for annotations.
+///
+/// This trait has an implicit requirement of [`PartialEq`] to allow for comparison
+/// between opaque annotations.
 pub trait Annotation: Any + Debug + Send + Sync + ComparableAnnotation {
+    /// Return the namespace of the annotation.
     fn namespace(&self) -> &str;
+
+    /// Return a Python representation of this annotation.
     fn create_py_annotation(&self, py: Python) -> PyResult<Py<PyAny>>;
 }
 
@@ -136,12 +143,15 @@ impl PartialEq for dyn Annotation {
 }
 
 impl dyn Annotation + 'static {
+    /// Casts a reference to an Annotation to its original type if the correct
+    /// type is specified.
     pub fn downcast_ref<T: Annotation + 'static>(&self) -> Option<&T> {
         let self_as_any: &dyn Any = self;
         self_as_any.downcast_ref()
     }
 }
 
+/// Internal representation of a Python annotation.
 #[derive(Debug)]
 pub struct PythonAnnotation {
     annotation: Py<PyAny>,
@@ -158,6 +168,10 @@ impl PythonAnnotation {
 }
 
 impl Annotation for PythonAnnotation {
+    /// Return the namespace of the annotation.
+    /// 
+    /// On construction, the underlying namespace field is uninitialized. The first time this method is called,
+    /// it sets the namespace from Python.
     fn namespace(&self) -> &str {
         if let Some(namespace) = self.namespace.get() {
             return namespace;
@@ -189,6 +203,7 @@ impl PartialEq for PythonAnnotation {
     }
 }
 
+/// Return the internal representation of a Python annotation.
 pub fn extract_annotation(ob: &Bound<'_, PyAny>) -> Arc<dyn Annotation> {
     if let Ok(base) = ob.cast::<PyAnnotation>()
         && let Some(native) = base.get().inner()
