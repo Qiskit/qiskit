@@ -191,7 +191,7 @@ fn parse_addsub<'a>(
     sym_fn: &impl Fn(&'a str) -> Option<Symbol>,
 ) -> IResult<&'a str, SymbolExpr, VerboseError<&'a str>> {
     let parse_muldiv = |s| parse_muldiv(s, sym_fn);
-    permutation((
+    let mut parser = permutation((
         parse_muldiv,
         many0(
             (
@@ -215,8 +215,12 @@ fn parse_addsub<'a>(
             BinaryOp::Sub => &acc - &x.1,
             _ => acc,
         })
-    })
-    .parse(s)
+    });
+    // `parse_addsub` is the "top" of the recursive expression parse; all recursive cycles have to
+    // pass through it.  Each time we reach here, check how much stack space we're using, and if
+    // it's too much, move into the heap to continue, so we can grow without overflowing, but don't
+    // need a heap allocation unless the recursion gets crazy.
+    stacker::maybe_grow(32 * 1024, 1024 * 1024, || parser.parse(s))
 }
 
 pub fn parse_expression<'a>(
