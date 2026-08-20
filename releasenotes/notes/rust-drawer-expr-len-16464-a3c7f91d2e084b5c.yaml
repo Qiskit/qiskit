@@ -1,0 +1,13 @@
+---
+features_visualization:
+  - |
+    The Rust circuit drawer C API now supports an ``expr_len`` field in
+    ``QkCircuitDrawerConfig``. This field controls the maximum number of
+    Unicode grapheme clusters shown for a classical expression label (e.g. an
+    ``IfElseOp`` condition) before the label is truncated with ``"..."``, matching
+    the behavior of the Python text drawer's ``expr_len`` parameter (default 30).
+    When ``config`` is ``NULL`` in ``qk_circuit_draw()``, the default of 30 is used.
+    The truncation logic will take effect for control-flow operations once support
+    for them lands in the Rust drawer.
+
+    See `#16464 <https://github.com/Qiskit/qiskit/issues/16464>`__.
