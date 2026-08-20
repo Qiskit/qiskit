@@ -1250,6 +1250,7 @@ mod sp22 {
     /// Emits CP(+φ/divisor, c, t) when `t` is the target qubit, CRX(+π/divisor, c, t) otherwise.
     /// The CP gates accumulate phase on the target; the CRX gates entangle the controls
     /// so that the phases cancel for all input states except |11…1⟩.
+    /// Gate count: :math:`n` CP and :math:`n(n-1)/2` CRX.
     pub fn step_1(
         circuit: &mut CircuitData,
         phi: &Param,
@@ -1275,6 +1276,7 @@ mod sp22 {
     /// Iterates over all pairs `1 <= c < t <= num_ctrl_qubits`, low-sum first.
     /// Emits CP(−φ/divisor, c, t) when `t` is the target qubit, CRX(−π/divisor, c, t) otherwise.
     /// Mirrors step 1 in reverse order to complete the phase accumulation pattern.
+    /// Gate count: :math:`n-1` CP and :math:`(n-1)(n-2)/2` CRX.
     pub fn step_2(
         circuit: &mut CircuitData,
         phi: &Param,
@@ -1300,6 +1302,7 @@ mod sp22 {
     /// Iterates over all pairs `0 <= c < t < num_ctrl_qubits`, high-sum first.
     /// Emits CRX(−π/divisor, c, t) when `c == 0`, CRX(+π/divisor, c, t) otherwise.
     /// The sign alternation here and in step 4 cancels the CRX entanglement from steps 1 and 2.
+    /// Gate count: :math:`n(n-1)/2` CRX.
     pub fn step_3(
         circuit: &mut CircuitData,
         num_ctrl_qubits: usize,
@@ -1317,6 +1320,7 @@ mod sp22 {
     /// Iterates over all pairs `1 <= c < t < num_ctrl_qubits`, low-sum first.
     /// Emits CRX(−π/divisor, c, t) for all pairs (`c == 0` never occurs in this range).
     /// Mirrors step 3 in reverse order to complete the uncomputation.
+    /// Gate count: :math:`(n-1)(n-2)/2` CRX.
     pub fn step_4(
         circuit: &mut CircuitData,
         num_ctrl_qubits: usize,
