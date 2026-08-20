@@ -1,5 +1,5 @@
 use ndarray::{Array2, ArrayViewMut1};
-use num_complex::{Complex64, c64};
+use num_complex::Complex64;
 use thiserror::Error;
 
 use crate::sparse_observable::SparseTermView;
@@ -46,60 +46,48 @@ fn create_empty_matrix(num_qubits: u32) -> Result<Array2<Complex64>, MatrixError
 fn fill_matrix_row(row: &mut ArrayViewMut1<Complex64>, i: usize, terms: &[PauliTerm]) {
     for term in terms {
         let qubit_col = i ^ term.x as usize;
-        let coeff = count_phase(term.coeff, i, term.x, term.z);
-        row[qubit_col] += coeff;
-    }
-}
 
-fn count_phase(coeff: Complex64, row: usize, x: u32, z: u32) -> Complex64 {
-    let mask = row as u32;
-    let y = x & z;
-
-    if y != 0 {
-        if (mask & y).count_ones() % 2 != 0 {
-            coeff * Complex64::I
+        if (i as u32 & term.z).count_ones().is_multiple_of(2) {
+            row[qubit_col] += term.coeff;
         } else {
-            coeff * -Complex64::I
+            row[qubit_col] -= term.coeff;
         }
-    } else if (mask & z).count_ones() % 2 != 0 {
-        -coeff
-    } else {
-        coeff
     }
 }
 
 fn compress_term(term: &SparseTermView<'_>) -> PauliTerm {
-    let mut x = 0;
-    let mut z = 0;
+    let mut pauli = PauliTerm {
+        coeff: term.coeff,
+        x: 0,
+        z: 0,
+    };
 
     for (bit_term, qubit) in term.bit_terms.iter().zip(term.indices) {
         let enable_qubit = |qubits: &mut u32| *qubits |= 1 << qubit;
 
         match bit_term {
             BitTerm::X => {
-                enable_qubit(&mut x);
+                enable_qubit(&mut pauli.x);
             }
             BitTerm::Y => {
-                enable_qubit(&mut x);
-                enable_qubit(&mut z);
+                enable_qubit(&mut pauli.x);
+                enable_qubit(&mut pauli.z);
+                pauli.coeff *= -Complex64::i();
             }
             BitTerm::Z => {
-                enable_qubit(&mut z);
+                enable_qubit(&mut pauli.z);
             }
             _ => (),
         }
     }
 
-    PauliTerm {
-        coeff: term.coeff,
-        x,
-        z,
-    }
+    pauli
 }
 
 #[cfg(test)]
 mod tests {
     use ndarray::arr2;
+    use num_complex::c64;
 
     use super::*;
 
@@ -112,6 +100,35 @@ mod tests {
             [c64(0.0, 0.0), c64(-3.0, 0.0), c64(0.0, 1.0), c64(2.0, 0.0)],
             [c64(2.0, 0.0), c64(0.0, -1.0), c64(3.0, 0.0), c64(0.0, 0.0)],
             [c64(0.0, 1.0), c64(2.0, 0.0), c64(0.0, 0.0), c64(-3.0, 0.0)],
+        ]);
+
+        let result = observable.to_matrix().expect("is supported");
+        assert_eq!(result, expect);
+    }
+
+    #[test]
+    fn test_5yz_2xx_3iy() {
+        let terms = &[(5.0.into(), "YZ"), (2.0.into(), "XX"), (3.0.into(), "IY")];
+        let observable = parse_observable(terms);
+        let expect = arr2(&[
+            [c64(0.0, 0.0), c64(0.0, -3.0), c64(0.0, -5.0), c64(2.0, 0.0)],
+            [c64(0.0, 3.0), c64(0.0, 0.0), c64(2.0, 0.0), c64(0.0, 5.0)],
+            [c64(0.0, 5.0), c64(2.0, 0.0), c64(0.0, 0.0), c64(0.0, -3.0)],
+            [c64(2.0, 0.0), c64(0.0, -5.0), c64(0.0, 3.0), c64(0.0, 0.0)],
+        ]);
+
+        let result = observable.to_matrix().expect("is supported");
+        assert_eq!(result, expect);
+    }
+
+    #[test]
+    fn test_3yy() {
+        let observable = parse_observable(&[(3.0.into(), "YY")]);
+        let expect = arr2(&[
+            [c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(-3.0, 0.0)],
+            [c64(0.0, 0.0), c64(0.0, 0.0), c64(3.0, 0.0), c64(0.0, 0.0)],
+            [c64(0.0, 0.0), c64(3.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0)],
+            [c64(-3.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0)],
         ]);
 
         let result = observable.to_matrix().expect("is supported");
