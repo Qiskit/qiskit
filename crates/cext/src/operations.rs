@@ -18,10 +18,11 @@ use std::{
 
 use qiskit_circuit::{
     circuit_data::CircuitData,
-    operations::{CustomOperation, Operation, Param},
+    dag_circuit::{DAGCircuit, NodeIndex},
+    operations::{CustomOperation, Operation, OperationRef, Param},
 };
 
-use crate::pointers::check_ptr;
+use crate::pointers::{check_ptr, const_ptr_as_ref};
 
 /// Represents a quantum operation fully defined in C.
 ///
@@ -501,4 +502,212 @@ pub unsafe extern "C" fn qk_custom_op_new_vtable(
     CustomOpVtable::try_from(vtable)
         .map(|x| Box::into_raw(Box::new(x)))
         .unwrap_or(std::ptr::null_mut())
+}
+
+pub enum CCustomOperation {
+    CircuitData {
+        circ: *const CircuitData,
+        idx: usize,
+    },
+    DAG {
+        circ: *const DAGCircuit,
+        idx: NodeIndex,
+    },
+}
+
+impl CCustomOperation {
+    pub unsafe fn extract_instruction(&self) -> Option<&CustomOp> {
+        let op = match self {
+            CCustomOperation::CircuitData { circ, idx } => {
+                let borrowed_circ = unsafe { const_ptr_as_ref(*circ) };
+                &borrowed_circ.data()[*idx].op
+            }
+            CCustomOperation::DAG { circ, idx } => {
+                let borrowed_circ = unsafe { const_ptr_as_ref(*circ) };
+                &borrowed_circ.dag()[*idx].unwrap_operation().op
+            }
+        };
+        let OperationRef::CustomOperation(op_view) = op.view() else {
+            return None;
+        };
+
+        op_view.downcast_ref()
+    }
+
+    pub unsafe fn params(&self) -> &[Param] {
+        let op = match self {
+            CCustomOperation::CircuitData { circ, idx } => {
+                let borrowed_circ = unsafe { const_ptr_as_ref(*circ) };
+                &borrowed_circ.data()[*idx]
+            }
+            CCustomOperation::DAG { circ, idx } => {
+                let borrowed_circ = unsafe { const_ptr_as_ref(*circ) };
+                borrowed_circ.dag()[*idx].unwrap_operation()
+            }
+        };
+
+        op.params_view()
+    }
+}
+
+/// @ingroup QkCustomOp
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_inst_name(inst: *const CCustomOperation) -> *const c_char {
+    let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
+
+    let Some(as_custom_op) = (unsafe { borrowed_inst.extract_instruction() }) else {
+        return null();
+    };
+
+    // Use vtable directly to avoid converting
+    ((unsafe { &*as_custom_op.v_table }).name)(as_custom_op.orig)
+}
+
+/// @ingroup QkCustomOp
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_inst_num_qubits(inst: *const CCustomOperation) -> u32 {
+    let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
+
+    let Some(as_custom_op) = (unsafe { borrowed_inst.extract_instruction() }) else {
+        return 0;
+    };
+
+    as_custom_op.num_qubits()
+}
+
+/// @ingroup QkCustomOp
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_inst_num_clbits(inst: *const CCustomOperation) -> u32 {
+    let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
+
+    let Some(as_custom_op) = (unsafe { borrowed_inst.extract_instruction() }) else {
+        return 0;
+    };
+
+    as_custom_op.num_clbits()
+}
+
+/// @ingroup QkCustomOp
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_inst_num_params(inst: *const CCustomOperation) -> u32 {
+    let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
+
+    let Some(as_custom_op) = (unsafe { borrowed_inst.extract_instruction() }) else {
+        return 0;
+    };
+
+    as_custom_op.num_params()
+}
+
+/// @ingroup QkCustomOp
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_inst_directive(inst: *const CCustomOperation) -> bool {
+    let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
+
+    let Some(as_custom_op) = (unsafe { borrowed_inst.extract_instruction() }) else {
+        return false;
+    };
+
+    as_custom_op.directive()
+}
+
+/// @ingroup QkCustomOp
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_inst_is_unitary(inst: *const CCustomOperation) -> bool {
+    let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
+
+    let Some(as_custom_op) = (unsafe { borrowed_inst.extract_instruction() }) else {
+        return false;
+    };
+
+    as_custom_op.is_unitary()
+}
+
+/// @ingroup QkCustomOp
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_inst_num_ctrl_qubits(inst: *const CCustomOperation) -> u32 {
+    let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
+
+    let Some(as_custom_op) = (unsafe { borrowed_inst.extract_instruction() }) else {
+        return 0;
+    };
+
+    if let Some(number) = as_custom_op.num_ctrl_qubits() {
+        number.into()
+    } else {
+        0
+    }
+}
+
+/// @ingroup QkCustomOp
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_inst_label(inst: *const CCustomOperation) -> *const c_char {
+    let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
+
+    let Some(as_custom_op) = (unsafe { borrowed_inst.extract_instruction() }) else {
+        return null();
+    };
+
+    // Use vtable directly to avoid converting
+    ((unsafe { &*as_custom_op.v_table }).label)(as_custom_op.orig)
+}
+
+/// @ingroup QkCustomOp
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_inst_definition(
+    inst: *const CCustomOperation,
+) -> *mut *mut CircuitData {
+    let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
+
+    let Some(as_custom_op) = (unsafe { borrowed_inst.extract_instruction() }) else {
+        return null_mut();
+    };
+
+    let params = unsafe { borrowed_inst.params() };
+    // Use vtable directly to avoid converting
+    ((unsafe { &*as_custom_op.v_table }).definition)(as_custom_op.orig, params.as_ptr())
+}
+
+/// @ingroup QkCustomOp
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_inst_eq_custom_op(
+    inst: *const CCustomOperation,
+    other: *const CustomOp,
+) -> bool {
+    let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
+    let borrowed_other = unsafe { const_ptr_as_ref(other) };
+
+    let Some(as_custom_op) = (unsafe { borrowed_inst.extract_instruction() }) else {
+        return false;
+    };
+
+    // Use vtable directly to avoid converting
+    ((unsafe { &*as_custom_op.v_table }).eq)(as_custom_op.orig, borrowed_other.orig)
+}
+
+/// @ingroup QkCustomOp
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_inst_eq(
+    inst: *const CCustomOperation,
+    other: *const CCustomOperation,
+) -> bool {
+    let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
+    let borrowed_other = unsafe { const_ptr_as_ref(other) };
+
+    let (Some(as_custom_op), Some(other_custom_op)) =
+        (unsafe { borrowed_inst.extract_instruction() }, unsafe {
+            borrowed_other.extract_instruction()
+        })
+    else {
+        return false;
+    };
+
+    // Use vtable directly to avoid converting
+    ((unsafe { &*as_custom_op.v_table }).eq)(as_custom_op.orig, other_custom_op.orig)
+}
+
+/// @ingroup QkCustomOp
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_inst_free(inst: *mut CCustomOperation) {
+    let _ = unsafe { Box::from_raw(inst) };
 }

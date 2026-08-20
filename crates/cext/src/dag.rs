@@ -10,13 +10,15 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::ptr::null;
+
 use anyhow::Error;
 use hashbrown::HashMap;
 use num_complex::Complex64;
 use smallvec::SmallVec;
 
 use crate::exit_codes::ExitCode;
-use crate::operations::CustomOp;
+use crate::operations::{CCustomOperation, CustomOp};
 use crate::transpiler::target::parse_params;
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::circuit_data::CircuitData;
@@ -2017,5 +2019,24 @@ pub unsafe extern "C" fn qk_dag_apply_custom_operation(
         }
         Err(DAGError::WireOutOfRange(_wire, _size)) => ExitCode::MismatchedQubits,
         Err(_) => ExitCode::DagError,
+    }
+}
+
+/// @ingroup QkDag
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_dag_get_custom_operation(
+    dag: *mut DAGCircuit,
+    index: u32,
+) -> *const CCustomOperation {
+    if matches!(
+        unsafe { qk_dag_op_node_kind(dag, index) },
+        COperationKind::Unknown
+    ) {
+        Box::into_raw(Box::new(CCustomOperation::DAG {
+            circ: dag,
+            idx: index.into(),
+        }))
+    } else {
+        null()
     }
 }

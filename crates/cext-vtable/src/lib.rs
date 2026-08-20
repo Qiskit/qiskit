@@ -142,6 +142,7 @@ mod circuit {
             export_fn!(qk_control_flow_switch_case_labels_uint),
             export_fn!(qk_control_flow_switch_case_labels_clear),
             export_fn!(qk_circuit_add_custom_operation),
+            export_fn!(qk_circuit_get_custom_operation),
         ]
     });
 }
@@ -213,6 +214,7 @@ mod dag {
             export_fn!(qk_dag_global_phase),
             export_fn!(qk_dag_set_global_phase),
             export_fn!(qk_dag_apply_custom_operation),
+            export_fn!(qk_dag_get_custom_operation),
         ]
     });
 }
@@ -259,8 +261,23 @@ mod operations {
     #[cfg(feature = "addr")]
     use qiskit_cext::operations::*;
 
-    pub static FUNCTIONS: ExportedFunctions =
-        ExportedFunctions::leaves(50, || vec![export_fn!(qk_custom_op_new_vtable)]);
+    pub static FUNCTIONS: ExportedFunctions = ExportedFunctions::leaves(50, || {
+        vec![
+            export_fn!(qk_custom_op_new_vtable),
+            export_fn!(qk_custom_inst_name),
+            export_fn!(qk_custom_inst_num_qubits),
+            export_fn!(qk_custom_inst_num_clbits),
+            export_fn!(qk_custom_inst_num_params),
+            export_fn!(qk_custom_inst_directive),
+            export_fn!(qk_custom_inst_is_unitary),
+            export_fn!(qk_custom_inst_num_ctrl_qubits),
+            export_fn!(qk_custom_inst_label),
+            export_fn!(qk_custom_inst_definition),
+            export_fn!(qk_custom_inst_eq),
+            export_fn!(qk_custom_inst_eq_custom_op),
+            export_fn!(qk_custom_inst_free),
+        ]
+    });
 }
 
 mod sparse_observable {

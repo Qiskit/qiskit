@@ -83,6 +83,7 @@ pub static QISKIT_PUBLIC_API_CRATES: &[&str] =
 pub static EXPORT_PREFIX: &str = "Qk";
 pub static EXPORT_RENAME: &[(&str, &str)] = &[
     ("CBlocksMode", "BlocksMode"),
+    ("CCustomOperation", "QkCustomOperation"),
     ("CDagNeighbors", "DagNeighbors"),
     ("CDagNodeType", "DagNodeType"),
     ("CDelayUnit", "DelayUnit"),

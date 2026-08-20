@@ -11,13 +11,13 @@
 // that they have been altered from the originals.
 
 use std::ffi::{CStr, CString, c_char};
-use std::ptr;
+use std::ptr::{self, null};
 
 use crate::circuit_library::pbc::{CPauliProductMeasurement, CPauliProductRotation};
 use crate::control_flow::CControlFlowInstruction;
 use crate::dag::COperationKind;
 use crate::exit_codes::ExitCode;
-use crate::operations::CustomOp;
+use crate::operations::{CCustomOperation, CustomOp};
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 use crate::transpiler::target::parse_params;
 
@@ -2826,6 +2826,25 @@ pub unsafe extern "C" fn qk_circuit_add_custom_operation(
             ExitCode::ParameterNameConflict
         }
         Err(_) => ExitCode::ParameterError,
+    }
+}
+
+/// @ingroup QkCircuit
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_circuit_get_custom_operation(
+    circuit: *mut CircuitData,
+    index: usize,
+) -> *const CCustomOperation {
+    if matches!(
+        unsafe { qk_circuit_instruction_kind(circuit, index) },
+        COperationKind::Unknown
+    ) {
+        Box::into_raw(Box::new(CCustomOperation::CircuitData {
+            circ: circuit,
+            idx: index,
+        }))
+    } else {
+        null()
     }
 }
 
