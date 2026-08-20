@@ -1470,12 +1470,13 @@ class MCXSynthesisNoAuxSP22(HighLevelSynthesisPlugin):
     :math:`k`.
 
     References:
-        [1] A. J. da Silva and D. K. Park,
-        Linear-depth quantum circuits for multiqubit controlled gates,
-        `Phys. Rev. A 106, 042602
-        <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.106.042602>`__.
 
-        [2] https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py
+    [1] A. J. da Silva and D. K. Park,
+    Linear-depth quantum circuits for multiqubit controlled gates,
+    `Phys. Rev. A 106, 042602
+    <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.106.042602>`__.
+
+    [2] https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
