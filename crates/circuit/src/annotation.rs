@@ -169,7 +169,7 @@ impl PythonAnnotation {
 
 impl Annotation for PythonAnnotation {
     /// Return the namespace of the annotation.
-    /// 
+    ///
     /// On construction, the underlying namespace field is uninitialized. The first time this method is called,
     /// it sets the namespace from Python.
     fn namespace(&self) -> &str {
