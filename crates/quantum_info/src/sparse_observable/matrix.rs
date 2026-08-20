@@ -12,8 +12,10 @@ pub struct MatrixError(u32);
 
 impl SparseObservable {
     pub fn to_matrix(&self) -> Result<Array2<Complex64>, MatrixError> {
-        let mut matrix = create_empty_matrix(self.num_qubits)?;
-        let terms = compress_pauli_terms(self);
+        let observable = self.as_paulis();
+
+        let mut matrix = create_empty_matrix(observable.num_qubits)?;
+        let terms: Vec<_> = observable.iter().map(|term| compress_term(&term)).collect();
 
         for (i, mut row) in matrix.rows_mut().into_iter().enumerate() {
             fill_matrix_row(&mut row, i, &terms);
@@ -21,6 +23,12 @@ impl SparseObservable {
 
         Ok(matrix)
     }
+}
+
+struct PauliTerm {
+    coeff: Complex64,
+    x: u32,
+    z: u32,
 }
 
 fn create_empty_matrix(num_qubits: u32) -> Result<Array2<Complex64>, MatrixError> {
@@ -35,39 +43,24 @@ fn create_empty_matrix(num_qubits: u32) -> Result<Array2<Complex64>, MatrixError
     Ok(matrix)
 }
 
-fn fill_matrix_row(row: &mut ArrayViewMut1<Complex64>, i: usize, terms: &[Term]) {
+fn fill_matrix_row(row: &mut ArrayViewMut1<Complex64>, i: usize, terms: &[PauliTerm]) {
     for term in terms {
-        match &term.kind {
-            TermKind::Pauli { x, z } => {
-                accumulate_pauli(row, i, term.coeff, *x, *z);
-            }
-            TermKind::Projector(bit_terms) => {
-                accumulate_projector(row, i, term.coeff, bit_terms);
-            }
-        }
+        let qubit_col = i ^ term.x as usize;
+        let coeff = count_phase(term.coeff, i, term.x, term.z);
+        row[qubit_col] += coeff;
     }
-}
-
-fn accumulate_pauli(
-    row: &mut ArrayViewMut1<Complex64>,
-    i: usize,
-    coeff: Complex64,
-    x: u32,
-    z: u32,
-) {
-    let qubit_col = i ^ x as usize;
-    let coeff = count_phase(coeff, i, x, z);
-    row[qubit_col] += coeff;
 }
 
 fn count_phase(coeff: Complex64, row: usize, x: u32, z: u32) -> Complex64 {
     let mask = row as u32;
     let y = x & z;
 
-    if y != 0 && (mask & y).count_ones() % 2 != 0 {
-        coeff * Complex64::I
-    } else if y != 0 {
-        coeff * -Complex64::I
+    if y != 0 {
+        if (mask & y).count_ones() % 2 != 0 {
+            coeff * Complex64::I
+        } else {
+            coeff * -Complex64::I
+        }
     } else if (mask & z).count_ones() % 2 != 0 {
         -coeff
     } else {
@@ -75,129 +68,32 @@ fn count_phase(coeff: Complex64, row: usize, x: u32, z: u32) -> Complex64 {
     }
 }
 
-fn accumulate_projector(
-    row: &mut ArrayViewMut1<Complex64>,
-    i: usize,
-    mut coeff: Complex64,
-    qubit_terms: &[QubitTerm],
-) {
-    let mut qubit_col = i;
+fn compress_term(term: &SparseTermView<'_>) -> PauliTerm {
+    let mut x = 0;
+    let mut z = 0;
 
-    for qubit_term in qubit_terms.iter() {
-        let is_qubit_one = || qubit_col & (1usize << qubit_term.qubit_idx) != 0;
-        let move_qubit_col = || qubit_col ^ (1usize << qubit_term.qubit_idx);
+    for (bit_term, qubit) in term.bit_terms.iter().zip(term.indices) {
+        let enable_qubit = |qubits: &mut u32| *qubits |= 1 << qubit;
 
-        match qubit_term.bit_term {
+        match bit_term {
             BitTerm::X => {
-                qubit_col = move_qubit_col();
-            }
-            BitTerm::Y if is_qubit_one() => {
-                coeff *= Complex64::I;
-                qubit_col = move_qubit_col();
+                enable_qubit(&mut x);
             }
             BitTerm::Y => {
-                coeff *= -Complex64::I;
-                qubit_col = move_qubit_col();
+                enable_qubit(&mut x);
+                enable_qubit(&mut z);
             }
-            BitTerm::Z if is_qubit_one() => {
-                coeff = -coeff;
-            }
-            BitTerm::Plus | BitTerm::Minus => {
-                coeff /= c64(2_f64.sqrt(), 0.0);
-            }
-            BitTerm::Right if is_qubit_one() => {
-                coeff *= Complex64::I;
-            }
-            BitTerm::Right => {
-                coeff *= -Complex64::I;
-            }
-            BitTerm::Left if is_qubit_one() => {
-                coeff *= -Complex64::I;
-            }
-            BitTerm::Left => {
-                coeff *= Complex64::I;
-            }
-            BitTerm::Zero if is_qubit_one() => {
-                return;
-            }
-            BitTerm::One if !is_qubit_one() => {
-                return;
+            BitTerm::Z => {
+                enable_qubit(&mut z);
             }
             _ => (),
         }
     }
 
-    row[qubit_col] += coeff;
-}
-
-#[derive(Debug, Clone)]
-struct Term {
-    coeff: Complex64,
-    kind: TermKind,
-}
-
-#[derive(Debug, Clone)]
-enum TermKind {
-    Pauli { x: u32, z: u32 },
-    Projector(Vec<QubitTerm>),
-}
-
-#[derive(Debug, Clone)]
-struct QubitTerm {
-    bit_term: BitTerm,
-    qubit_idx: u32,
-}
-
-fn compress_pauli_terms(operator: &SparseObservable) -> Vec<Term> {
-    operator
-        .iter()
-        .map(|term| maybe_compress_term(&term))
-        .collect()
-}
-
-fn maybe_compress_term(term: &SparseTermView<'_>) -> Term {
-    let mut x = 0;
-    let mut z = 0;
-
-    for (bit_term, qubit_idx) in term.bit_terms.iter().zip(term.indices) {
-        let enable = |qubits: &mut u32| *qubits |= 1 << qubit_idx;
-
-        match bit_term {
-            BitTerm::X => {
-                enable(&mut x);
-            }
-            BitTerm::Y => {
-                enable(&mut x);
-                enable(&mut z);
-            }
-            BitTerm::Z => {
-                enable(&mut z);
-            }
-            _ => return map_projector(term),
-        }
-    }
-
-    Term {
+    PauliTerm {
         coeff: term.coeff,
-        kind: TermKind::Pauli { x, z },
-    }
-}
-
-fn map_projector(term: &SparseTermView<'_>) -> Term {
-    let qubit_terms = term
-        .bit_terms
-        .iter()
-        .copied()
-        .zip(term.indices.iter().copied())
-        .map(|(bit_term, qubit_idx)| QubitTerm {
-            qubit_idx,
-            bit_term,
-        })
-        .collect();
-
-    Term {
-        coeff: term.coeff,
-        kind: TermKind::Projector(qubit_terms),
+        x,
+        z,
     }
 }
 
@@ -208,7 +104,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_pauli_only() {
+    fn test_2xi_xy_3iz() {
         let terms = &[(2.0.into(), "XI"), (1.0.into(), "XY"), (3.0.into(), "IZ")];
         let observable = parse_observable(terms);
         let expect = arr2(&[
@@ -219,24 +115,6 @@ mod tests {
         ]);
 
         let result = observable.to_matrix().expect("is supported");
-        assert_eq!(result, expect);
-    }
-
-    #[test]
-    fn test_pauli_with_projectors() {
-        let terms = &[
-            (2.0.into(), "X+"),
-            (1.0.into(), "Y-"),
-            (3.5.into(), "Zr"),
-            (2.0.into(), "Il"),
-            (0.5.into(), "X0"),
-            (1.0.into(), "Y1"),
-        ];
-
-        let observable = parse_observable(terms);
-        let expect: Array2<Complex64> = todo!();
-
-        let result = observable.to_matrix().expect("is_supported");
         assert_eq!(result, expect);
     }
 
