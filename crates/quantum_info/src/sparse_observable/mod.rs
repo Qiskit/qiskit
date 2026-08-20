@@ -299,10 +299,6 @@ pub enum ArithmeticError {
     OutOfBounds(String),
 }
 
-#[derive(Error, Debug)]
-#[error("{0} qubit matrix is unrepresentable")]
-pub struct MatrixError(u32);
-
 /// One part of the type of the iteration value from [PairwiseOrdered].
 ///
 /// The struct iterates over two sorted lists, and returns values from the left iterator, the right

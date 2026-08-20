@@ -18,16 +18,31 @@ use crate::sparse_observable::SparseTermView;
 
 use super::{BitTerm, SparseObservable};
 
+/// The error returned for matrix operations.
 #[derive(Debug, Error)]
 #[error("{0} qubit matrix not supported on this system")]
 pub struct MatrixError(u32);
 
 impl SparseObservable {
+    /// Expand the observable into its matrix form.
+    ///
+    /// If the observable contains projectors to the eigenstate of X, Y, or Z,
+    /// the observable is expanded into its Pauli-only form. See
+    /// [`SparseObservable::as_paulis`].
+    ///
+    /// # Warning
+    ///
+    /// The total length of the matrix scales exponentially with the number of
+    /// qubits. For example, an 8 qubit matrix requires 4 KB of memory, whereas
+    /// 16 qubits requires 69 GB!
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the total number of matrix elements would exceed
+    /// [`usize::MAX`];
     pub fn to_matrix(&self) -> Result<Array2<Complex64>, MatrixError> {
-        let observable = self.as_paulis();
-
-        let mut matrix = create_empty_matrix(observable.num_qubits)?;
-        let terms: Vec<_> = observable.iter().map(|term| compress_term(&term)).collect();
+        let mut matrix = create_empty_matrix(self.num_qubits)?;
+        let terms = compress_terms(self);
 
         for (i, mut row) in matrix.rows_mut().into_iter().enumerate() {
             fill_matrix_row(&mut row, i, &terms);
@@ -35,12 +50,6 @@ impl SparseObservable {
 
         Ok(matrix)
     }
-}
-
-struct PauliTerm {
-    coeff: Complex64,
-    x: u32,
-    z: u32,
 }
 
 fn create_empty_matrix(num_qubits: u32) -> Result<Array2<Complex64>, MatrixError> {
@@ -55,20 +64,30 @@ fn create_empty_matrix(num_qubits: u32) -> Result<Array2<Complex64>, MatrixError
     Ok(matrix)
 }
 
-fn fill_matrix_row(row: &mut ArrayViewMut1<Complex64>, i: usize, terms: &[PauliTerm]) {
-    for term in terms {
-        let qubit_col = i ^ term.x as usize;
+struct ZXTerm {
+    coeff: Complex64,
+    x: u32,
+    z: u32,
+}
 
-        if (i as u32 & term.z).count_ones().is_multiple_of(2) {
-            row[qubit_col] += term.coeff;
-        } else {
-            row[qubit_col] -= term.coeff;
-        }
+fn compress_terms(observable: &SparseObservable) -> Vec<ZXTerm> {
+    if has_projectors(observable) {
+        observable.iter().map(|term| compress_term(&term)).collect()
+    } else {
+        let observable = observable.as_paulis();
+        observable.iter().map(|term| compress_term(&term)).collect()
     }
 }
 
-fn compress_term(term: &SparseTermView<'_>) -> PauliTerm {
-    let mut pauli = PauliTerm {
+fn has_projectors(observable: &SparseObservable) -> bool {
+    observable
+        .bit_terms()
+        .iter()
+        .any(|bit_term| !matches!(bit_term, BitTerm::X | BitTerm::Y | BitTerm::Z))
+}
+
+fn compress_term(term: &SparseTermView<'_>) -> ZXTerm {
+    let mut pauli = ZXTerm {
         coeff: term.coeff,
         x: 0,
         z: 0,
@@ -94,6 +113,18 @@ fn compress_term(term: &SparseTermView<'_>) -> PauliTerm {
     }
 
     pauli
+}
+
+fn fill_matrix_row(row: &mut ArrayViewMut1<Complex64>, i: usize, terms: &[ZXTerm]) {
+    for term in terms {
+        let qubit_col = i ^ term.x as usize;
+
+        if (i as u32 & term.z).count_ones().is_multiple_of(2) {
+            row[qubit_col] += term.coeff;
+        } else {
+            row[qubit_col] -= term.coeff;
+        }
+    }
 }
 
 #[cfg(test)]
