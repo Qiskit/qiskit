@@ -311,7 +311,7 @@ fn pack_standard_instruction(
 ) -> Result<formats::CircuitInstructionV2Pack, QpyError> {
     let mut params = pack_instruction_params(instruction, qpy_data)?;
     if let StandardInstruction::Delay(unit) = inst
-        && qpy_data.version >= 17
+        && qpy_data.version > 17
     {
         let unit_value = GenericValue::String(unit.to_string());
         let unit_param_pack = pack_generic_value(&unit_value, qpy_data)?;
