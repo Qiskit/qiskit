@@ -24,7 +24,7 @@ num-bigint.workspace = true
 itertools.workspace = true
 qiskit-circuit.workspace = true
 qiskit-transpiler.workspace = true
-qiskit-quantum-info.workspace = true
+qiskit-quantum-info = { workspace = true, features = ["python"]}
 qiskit-util.workspace = true
 nalgebra.workspace = true
 
