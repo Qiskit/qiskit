@@ -134,7 +134,7 @@ class TestSabreLayout(QiskitTestCase):
         )
         pm.run(circuit)
         layout = pm.property_set["layout"]
-        self.assertEqual([layout[q] for q in circuit.qubits], [1, 3, 5, 2, 6, 0])
+        self.assertEqual([layout[q] for q in circuit.qubits], [1, 0, 2, 6, 3, 5])
 
     def test_6q_circuit_20q_coupling_with_target(self):
         """Test finds layout for 6q circuit on 20q device."""
@@ -370,6 +370,72 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
         for target in range(1, qc.num_qubits):
             expected.cx(0, target)
         self.assertEqual(out, expected)
+
+    def test_add_heuristic_layouts(self):
+        """Test the option add_heuristic_layouts."""
+        qc = QuantumCircuit(4)
+        qc.cx(0, 1)
+        cm = CouplingMap.from_line(4)
+        initial_layout = Layout(dict(zip(qc.qubits, [0, 3, 2, 1])))
+
+        with self.subTest("no heuristic layouts"):
+            # Set the number of random layouts to 0, the number of forward-backward iterations to 0, and
+            # disable heuristic layouts. This forces Sabre to examine the given initial layout only,
+            # and introduce two swaps.
+            pass_ = SabreLayout(
+                cm, seed=0, layout_trials=0, max_iterations=0, add_heuristic_layouts=False
+            )
+            qct = pass_(qc, property_set={"sabre_starting_layouts": [initial_layout]})
+            self.assertEqual(qct.count_ops().get("swap", 0), 2)
+            layout = pass_.property_set["layout"]
+            self.assertEqual([layout[q] for q in qc.qubits], [0, 3, 2, 1])
+        with self.subTest("with heuristic layouts"):
+            # Set the number of random layouts to 0, the number of forward-backward iterations to 0, but
+            # allow heuristic layouts. This allows Sabre to choose a heuristic layout that introduces no
+            # swaps.
+            pass_ = SabreLayout(
+                cm, seed=0, layout_trials=0, max_iterations=0, add_heuristic_layouts=True
+            )
+            qct = pass_(qc, property_set={"sabre_starting_layouts": [initial_layout]})
+            self.assertEqual(qct.count_ops().get("swap", 0), 0)
+            layout = pass_.property_set["layout"]
+            self.assertEqual([layout[q] for q in qc.qubits], [0, 1, 2, 3])
+
+    def test_seed_starting_layouts(self):
+        """Test the option seed_starting_layouts."""
+        qc = QuantumCircuit(5)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.cx(2, 3)
+        qc.cx(3, 4)
+        initial_layout = Layout(dict(zip(qc.qubits, [0, 4, 8, 12, 16])))
+        # The test shows that the option seed_starting_layouts has an effect and generally leads to different results.
+        with self.subTest(seed_starting_layouts=1000):
+            pass_ = SabreLayout(
+                CouplingMap(self.cmap20),
+                seed=0,
+                layout_trials=0,
+                max_iterations=3,
+                add_heuristic_layouts=False,
+                seed_starting_layouts=1000,
+            )
+            qct = pass_(qc, property_set={"sabre_starting_layouts": [initial_layout]})
+            layout = pass_.property_set["layout"]
+            self.assertEqual(qct.count_ops().get("swap", 0), 2)
+            self.assertEqual([layout[q] for q in qc.qubits], [2, 3, 8, 12, 16])
+        with self.subTest(seed_starting_layouts=3):
+            pass_ = SabreLayout(
+                CouplingMap(self.cmap20),
+                seed=0,
+                layout_trials=0,
+                max_iterations=3,
+                add_heuristic_layouts=False,
+                seed_starting_layouts=3,
+            )
+            qct = pass_(qc, property_set={"sabre_starting_layouts": [initial_layout]})
+            layout = pass_.property_set["layout"]
+            self.assertEqual(qct.count_ops().get("swap", 0), 1)
+            self.assertEqual([layout[q] for q in qc.qubits], [2, 3, 8, 12, 11])
 
 
 class DensePartialSabreTrial(AnalysisPass):
