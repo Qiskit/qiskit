@@ -39,7 +39,7 @@ impl SparseObservable {
     /// # Errors
     ///
     /// Returns an error if the total number of matrix elements would exceed
-    /// [`usize::MAX`];
+    /// [`usize::MAX`].
     pub fn to_matrix(&self) -> Result<Array2<Complex64>, MatrixError> {
         let mut matrix = create_empty_matrix(self.num_qubits)?;
         let terms = compress_terms(self);
