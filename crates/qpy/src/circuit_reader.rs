@@ -1106,12 +1106,21 @@ fn unpack_transpile_layout<'py>(
     let mut extra_register_map = HashMap::new();
     let mut existing_register_map = HashMap::new();
     for packed_register in &layout.extra_registers {
-        if packed_register.register_type == RegisterType::Qreg {
-            let register = QuantumRegister::new_owning(
-                packed_register.name.clone(),
-                packed_register.bit_indices.len() as u32,
-            );
-            extra_register_map.insert(packed_register.name.as_str(), register);
+        let (name, bit_indices_len, register_type) = match packed_register {
+            formats::RegisterPack::V4(packed_register) => (
+                &packed_register.name,
+                packed_register.bit_indices.len(),
+                &packed_register.register_type,
+            ),
+            formats::RegisterPack::V18(packed_register) => (
+                &packed_register.name,
+                packed_register.bit_indices.len(),
+                &packed_register.register_type,
+            ),
+        };
+        if *register_type == RegisterType::Qreg {
+            let register = QuantumRegister::new_owning(name.clone(), bit_indices_len as u32);
+            extra_register_map.insert(name.as_str(), register);
         }
     }
     // add the registers from the circuit, to streamline the search phase
@@ -1454,39 +1463,113 @@ fn add_registers_and_bits(
 
     // first, create all owning registers and collect their bits
     let mut non_standalone_registers = Vec::new();
-    for packed_register in &packed_circuit.header.registers {
-        if packed_register.standalone == 0 {
-            non_standalone_registers.push(packed_register);
-        } else {
-            match packed_register.register_type {
-                RegisterType::Qreg => {
-                    let qreg = QuantumRegister::new_owning(
-                        &packed_register.name,
-                        packed_register.bit_indices.len() as u32,
-                    );
-                    for (qubit, &index) in qreg.bits().zip(packed_register.bit_indices.iter()) {
-                        if index >= 0 {
-                            // index can be -1, indicating this bit is not in the circuit
-                            qubits[index as usize] = Some(qubit);
+    for raw_register in &packed_circuit.header.registers {
+        match raw_register {
+            formats::RegisterPack::V4(packed_register) => {
+                if packed_register.standalone == 0 {
+                    non_standalone_registers.push(raw_register);
+                } else {
+                    match packed_register.register_type {
+                        RegisterType::Qreg => {
+                            let qreg = QuantumRegister::new_owning(
+                                &packed_register.name,
+                                packed_register.bit_indices.len() as u32,
+                            );
+                            for (qubit, &index) in
+                                qreg.bits().zip(packed_register.bit_indices.iter())
+                            {
+                                if index >= 0 {
+                                    // index can be -1, indicating this bit is not in the circuit
+                                    qubits[index as usize] = Some(qubit);
+                                }
+                            }
+                            if packed_register.in_circuit != 0 {
+                                qregs.push(qreg);
+                            }
                         }
-                    }
-                    if packed_register.in_circuit != 0 {
-                        qregs.push(qreg);
+                        RegisterType::Creg => {
+                            let creg = ClassicalRegister::new_owning(
+                                &packed_register.name,
+                                packed_register.bit_indices.len() as u32,
+                            );
+                            for (clbit, &index) in
+                                creg.bits().zip(packed_register.bit_indices.iter())
+                            {
+                                if index >= 0 {
+                                    // index can be -1, indicating this bit is not in the circuit
+                                    clbits[index as usize] = Some(clbit);
+                                }
+                            }
+                            if packed_register.in_circuit != 0 {
+                                cregs.push(creg);
+                            }
+                        }
                     }
                 }
-                RegisterType::Creg => {
-                    let creg = ClassicalRegister::new_owning(
-                        &packed_register.name,
-                        packed_register.bit_indices.len() as u32,
-                    );
-                    for (clbit, &index) in creg.bits().zip(packed_register.bit_indices.iter()) {
-                        if index >= 0 {
-                            // index can be -1, indicating this bit is not in the circuit
-                            clbits[index as usize] = Some(clbit);
+            }
+            formats::RegisterPack::V18(packed_register) => {
+                if packed_register.standalone == 0 {
+                    non_standalone_registers.push(raw_register);
+                } else {
+                    match packed_register.register_type {
+                        RegisterType::Qreg => {
+                            let qreg = QuantumRegister::new_owning(
+                                &packed_register.name,
+                                packed_register.size,
+                            );
+                            if packed_register.register_attachment == 1 {
+                                let start = packed_register.start_index;
+                                for i in 0..packed_register.size {
+                                    let index = start + i;
+                                    qubits[index as usize] = qreg.get(i as usize);
+                                }
+                            } else if packed_register.register_attachment == 0 {
+                                for (qubit, &index) in
+                                    qreg.bits().zip(packed_register.bit_indices.iter())
+                                {
+                                    if index != u32::MAX {
+                                        // index can be -1, indicating this bit is not in the circuit
+                                        qubits[index as usize] = Some(qubit);
+                                    }
+                                }
+                            } else {
+                                return Err(QpyError::InvalidRegister(
+                                    "Invalid register attachment type: {packed_register.register_attachment}, must either be 0 or 1".to_owned(),
+                                ));
+                            }
+                            if packed_register.in_circuit != 0 {
+                                qregs.push(qreg);
+                            }
                         }
-                    }
-                    if packed_register.in_circuit != 0 {
-                        cregs.push(creg);
+                        RegisterType::Creg => {
+                            let creg = ClassicalRegister::new_owning(
+                                &packed_register.name,
+                                packed_register.size,
+                            );
+                            if packed_register.register_attachment == 1 {
+                                let start = packed_register.start_index;
+                                for i in 0..packed_register.size {
+                                    let index = start + i;
+                                    clbits[index as usize] = creg.get(i as usize);
+                                }
+                            } else if packed_register.register_attachment == 0 {
+                                for (clbit, &index) in
+                                    creg.bits().zip(packed_register.bit_indices.iter())
+                                {
+                                    if index != u32::MAX {
+                                        // index can be -1, indicating this bit is not in the circuit
+                                        clbits[index as usize] = Some(clbit);
+                                    }
+                                }
+                            } else {
+                                return Err(QpyError::InvalidRegister(
+                                    "Invalid register attachment type: {packed_register.register_attachment}, must either be 0 or 1".to_owned(),
+                                ));
+                            }
+                            if packed_register.in_circuit != 0 {
+                                cregs.push(creg);
+                            }
+                        }
                     }
                 }
             }
@@ -1509,37 +1592,81 @@ fn add_registers_and_bits(
         .collect();
 
     // We collected owning registers to qregs, cregs and added all remaining bits and can now deal with the non-standalone registers
-    for packed_register in non_standalone_registers {
-        match packed_register.register_type {
-            RegisterType::Qreg => {
-                let bits: Vec<ShareableQubit> = packed_register
-                    .bit_indices
-                    .iter()
-                    .filter_map(|&index| {
-                        if index >= 0 {
-                            Some(final_qubit_list[index as usize].clone())
-                        } else {
-                            None
-                        }
-                    })
-                    .collect();
-                let qreg = QuantumRegister::new_alias(Some(packed_register.name.clone()), bits);
-                qregs.push(qreg);
-            }
-            RegisterType::Creg => {
-                let bits: Vec<ShareableClbit> = packed_register
-                    .bit_indices
-                    .iter()
-                    .filter_map(|&index| {
-                        if index >= 0 {
-                            Some(final_clbit_list[index as usize].clone())
-                        } else {
-                            None
-                        }
-                    })
-                    .collect();
-                let creg = ClassicalRegister::new_alias(Some(packed_register.name.clone()), bits);
-                cregs.push(creg);
+    for raw_register in non_standalone_registers {
+        match raw_register {
+            formats::RegisterPack::V4(packed_register) => match packed_register.register_type {
+                RegisterType::Qreg => {
+                    let bits: Vec<ShareableQubit> = packed_register
+                        .bit_indices
+                        .iter()
+                        .filter_map(|&index| {
+                            if index >= 0 {
+                                Some(final_qubit_list[index as usize].clone())
+                            } else {
+                                None
+                            }
+                        })
+                        .collect();
+                    let qreg = QuantumRegister::new_alias(Some(packed_register.name.clone()), bits);
+                    qregs.push(qreg);
+                }
+                RegisterType::Creg => {
+                    let bits: Vec<ShareableClbit> = packed_register
+                        .bit_indices
+                        .iter()
+                        .filter_map(|&index| {
+                            if index >= 0 {
+                                Some(final_clbit_list[index as usize].clone())
+                            } else {
+                                None
+                            }
+                        })
+                        .collect();
+                    let creg =
+                        ClassicalRegister::new_alias(Some(packed_register.name.clone()), bits);
+                    cregs.push(creg);
+                }
+            },
+            formats::RegisterPack::V18(packed_register) => {
+                if packed_register.register_attachment == 1 {
+                    return Err(QpyError::InvalidRegister(
+                        "Invalid register attachment type for aliased registers.".to_owned(),
+                    ));
+                }
+                match packed_register.register_type {
+                    RegisterType::Qreg => {
+                        let bits: Vec<ShareableQubit> = packed_register
+                            .bit_indices
+                            .iter()
+                            .filter_map(|&index| {
+                                if index != u32::MAX {
+                                    Some(final_qubit_list[index as usize].clone())
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect();
+                        let qreg =
+                            QuantumRegister::new_alias(Some(packed_register.name.clone()), bits);
+                        qregs.push(qreg);
+                    }
+                    RegisterType::Creg => {
+                        let bits: Vec<ShareableClbit> = packed_register
+                            .bit_indices
+                            .iter()
+                            .filter_map(|&index| {
+                                if index != u32::MAX {
+                                    Some(final_clbit_list[index as usize].clone())
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect();
+                        let creg =
+                            ClassicalRegister::new_alias(Some(packed_register.name.clone()), bits);
+                        cregs.push(creg);
+                    }
+                }
             }
         }
     }

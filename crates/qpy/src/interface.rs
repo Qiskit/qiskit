@@ -28,9 +28,12 @@ use crate::bytes::Bytes;
 use crate::circuit_reader::unpack_circuit;
 use crate::circuit_writer::{pack_circuit, pack_layout};
 use crate::error::QpyError;
-use crate::formats::{QPYCircuit, QPYFileHeader};
+use crate::formats::{LayoutV2Pack, QPYCircuit, QPYFileHeader};
 use crate::py_methods::{py_circuit_data_to_quantum_circuit, serialize_metadata};
-use crate::value::{ProgramType, SymbolicEncoding, deserialize, deserialize_with_args, serialize};
+use crate::value::{
+    ProgramType, SymbolicEncoding, deserialize, deserialize_with_args, serialize,
+    serialize_with_args,
+};
 
 use std::io::{Cursor, Seek};
 
@@ -195,8 +198,10 @@ pub fn py_dump_qpy(
         .iter()
         .map(|circuit| {
             let metadata = serialize_metadata(&circuit.metadata, metadata_serializer.as_ref())?;
-            let layout = pack_layout(circuit.transpile_layout.clone(), &circuit.data)
-                .and_then(|layout| serialize(&layout))?;
+            let layout = pack_layout(circuit.transpile_layout.clone(), &circuit.data, version)
+                .and_then(|layout| {
+                    serialize_with_args::<LayoutV2Pack, (u8,)>(&layout, (version,))
+                })?;
             Ok(ExtraCircuitData {
                 name: circuit.name.clone(),
                 metadata,

@@ -15,7 +15,7 @@
 import io
 import struct
 
-from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister, Qubit
 from qiskit.circuit.classical import expr
 from qiskit.qpy import dump, load
 from qiskit.qpy import formats
@@ -34,7 +34,9 @@ class TestV17VsV18(QiskitTestCase):
 
     def test_v18_smaller_than_v17_by_calibration_header(self):
         """v18 output is exactly 2 bytes smaller than v17 (CalibrationsPack removed)."""
-        qc = QuantumCircuit(2)
+        # Use raw bits because register sizes also shrink in QPY v18
+        qubits = [Qubit(), Qubit()]
+        qc = QuantumCircuit(qubits)
         qc.h(0)
         qc.cx(0, 1)
 
