@@ -22,15 +22,15 @@ from qiskit.quantum_info.operators import Clifford
 from qiskit.quantum_info import random_clifford
 from qiskit.synthesis.clifford import synth_clifford_layers, synth_clifford_depth_lnn
 from qiskit.synthesis.linear.linear_circuits_utils import check_lnn_connectivity
-from test import combine  # pylint: disable=wrong-import-order
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine
+from test import QiskitTestCase
 
 
 @ddt
 class TestCliffordDecomposeLayers(QiskitTestCase):
     """Tests for clifford advanced decomposition functions."""
 
-    @combine(num_qubits=[4, 5, 6, 7])
+    @combine(num_qubits=[0, 1, 2, 3, 4, 5, 6, 7])
     def test_decompose_clifford(self, num_qubits):
         """Create layer decomposition for a Clifford U, and check that it
         results in an equivalent Clifford."""
@@ -51,7 +51,7 @@ class TestCliffordDecomposeLayers(QiskitTestCase):
             self.assertEqual(circ.data[6].operation.name, "H1")
             self.assertEqual(circ.data[7].operation.name, "Pauli")
 
-    @combine(num_qubits=[4, 5, 6, 7])
+    @combine(num_qubits=[0, 1, 2, 3, 4, 5, 6, 7])
     def test_decompose_lnn_depth(self, num_qubits):
         """Test layered decomposition for linear-nearest-neighbor (LNN) connectivity."""
         rng = np.random.default_rng(1234)

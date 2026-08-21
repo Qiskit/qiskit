@@ -20,14 +20,14 @@ from ddt import ddt
 
 from qiskit.quantum_info import Choi, Clifford, Operator, PauliList, Stinespring
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
-from qiskit.quantum_info.random import (
+from qiskit.quantum_info import (
     random_clifford,
     random_hermitian,
     random_pauli_list,
     random_quantum_channel,
     random_unitary,
 )
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

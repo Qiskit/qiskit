@@ -25,7 +25,7 @@ from qiskit.circuit.annotated_operation import AnnotatedOperation
 from qiskit.circuit.singleton import SingletonControlledGate, _SingletonControlledGateOverrides
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
-from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info import random_unitary
 from qiskit.quantum_info.states import Statevector
 from qiskit.transpiler.passes import UnrollCustomDefinitions, BasisTranslator
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
@@ -84,6 +84,7 @@ from qiskit.circuit.library import (
     UnitaryGate,
     MCMTGate,
     CCZGate,
+    Isometry,
 )
 from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.circuit.library.standard_gates as allGates
@@ -91,8 +92,8 @@ from qiskit.synthesis.multi_controlled.multi_control_rotation_gates import _mcsu
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
-from test import combine  # pylint: disable=wrong-import-order
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine
+from test import QiskitTestCase
 
 from .gate_utils import _get_free_params
 
@@ -748,7 +749,9 @@ class TestControlledGate(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         self.assertEqual(len(list(dag.idle_wires())), 0)
 
-    @combine(num_controls=[1, 2, 3], base_gate=[RXGate, RYGate, RZGate, CPhaseGate])
+    @combine(
+        num_controls=[1, 2, 3, 4, 5, 6], base_gate=[RXGate, RYGate, RZGate, PhaseGate, CPhaseGate]
+    )
     def test_multi_controlled_rotation_gate_with_parameter(self, num_controls, base_gate):
         """Test multi-controlled rotation gates and MCPhase gate with Parameter synthesis."""
         theta = Parameter("theta")
@@ -930,6 +933,46 @@ class TestControlledGate(QiskitTestCase):
         test_op = Operator(cgate)
         cop_mat = _compute_control_matrix(base_mat, num_ctrl_qubits)
         self.assertTrue(matrix_equal(cop_mat, test_op.data, atol=1e-8))
+
+    def test_qsd_failed_matrix(self):
+        """Test that even if the rust code for qs_decomposition panic,
+        one can still use Isometry for the unitary calculation."""
+        umat = QuantumCircuit(4)
+        base_mat = np.array(
+            [
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+                [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+                [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+                [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+                [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            ]
+        )
+        # check decomposition of original matrix
+        umat.append(UnitaryGate(base_mat), range(4))
+        test_u_op = Operator(umat)
+        isom = Isometry(base_mat, 0, 0).definition
+        self.assertTrue(matrix_equal(base_mat, test_u_op.data, atol=1e-8))
+        self.assertTrue(matrix_equal(base_mat, Operator(isom).data, atol=1e-8))
+
+        # check decomposition of controlled matrix
+        cop_mat = _compute_control_matrix(base_mat, 1)
+        ugate = umat.to_gate()
+        cgate = ugate.control()
+        test_ctrl_op = Operator(cgate)
+        isom_ctrl = Isometry(cop_mat, 0, 0).definition
+        self.assertTrue(matrix_equal(cop_mat, test_ctrl_op.data, atol=1e-8))
+        self.assertTrue(matrix_equal(cop_mat, Operator(isom_ctrl).data, atol=1e-8))
 
     @combine(num_ctrl_qubits=[1, 2, 3], ctrl_state=[0, None])
     def test_open_controlled_unitary_z(self, num_ctrl_qubits, ctrl_state):
@@ -1261,6 +1304,26 @@ class TestControlledGate(QiskitTestCase):
 
         # compare simulated matrix with the matrix representation provided by the class
         self.assertTrue(matrix_equal(simulated_mat, repr_mat))
+
+    @data(
+        (0, {"x": 2, "rcccx": 1, "csdg": 1}),
+        (1, {"rcccx": 1, "csdg": 1}),
+    )
+    @unpack
+    def test_controlled_rccx(self, ctrl_state, expected_ops):
+        """Test the compact controlled-RCCX decomposition."""
+        controlled = RCCXGate().control(ctrl_state=ctrl_state, annotated=False)
+        target = _compute_control_matrix(RCCXGate().to_matrix(), 1, ctrl_state=ctrl_state)
+
+        self.assertIsInstance(controlled, ControlledGate)
+        self.assertEqual(controlled.base_gate, RCCXGate())
+        self.assertEqual(Operator(controlled), Operator(target))
+        decomposition = controlled.definition.decompose(gates_to_decompose="crccx")
+        self.assertEqual(decomposition.count_ops(), expected_ops)
+
+    def test_multiple_controlled_rccx_annotated(self):
+        """Test multiple controls retain the generic annotated representation."""
+        self.assertIsInstance(RCCXGate().control(2, annotated=True), AnnotatedOperation)
 
     def test_open_controlled_gate(self):
         """

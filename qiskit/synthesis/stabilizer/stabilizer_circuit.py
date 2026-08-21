@@ -18,10 +18,9 @@ from collections.abc import Collection
 
 import numpy as np
 
-from qiskit.quantum_info import PauliList
+from qiskit.quantum_info import PauliList, Clifford
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
-from qiskit.quantum_info.operators.symplectic.clifford import Clifford
 
 
 def synth_circuit_from_stabilizers(
@@ -30,7 +29,6 @@ def synth_circuit_from_stabilizers(
     allow_underconstrained: bool = False,
     invert: bool = False,
 ) -> QuantumCircuit:
-    # pylint: disable=line-too-long
     """Synthesis of a circuit that generates a state stabilized by the stabilizers
     using Gaussian elimination with Clifford gates.
     If the stabilizers are underconstrained, and ``allow_underconstrained`` is ``True``,

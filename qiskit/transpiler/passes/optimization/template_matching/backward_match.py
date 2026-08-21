@@ -286,11 +286,10 @@ class BackwardMatch:
                     return False
         # For non controlled gates, the qubits indices for symmetric gates can be compared as sets
         # But for non-symmetric gates the qubits indices have to be compared as lists.
+        elif node_template.op.name in ["rxx", "ryy", "rzz", "swap", "iswap", "ms"]:
+            return set(qarg_circuit) == set(node_template.qindices)
         else:
-            if node_template.op.name in ["rxx", "ryy", "rzz", "swap", "iswap", "ms"]:
-                return set(qarg_circuit) == set(node_template.qindices)
-            else:
-                return qarg_circuit == node_template.qindices
+            return qarg_circuit == node_template.qindices
 
     def _is_same_c_conf(self, node_circuit, node_template, carg_circuit):
         """

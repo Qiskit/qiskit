@@ -14,7 +14,7 @@ Circuit synthesis for the Clifford class.
 """
 
 # ---------------------------------------------------------------------
-# Synthesis based on Bravyi et. al. greedy clifford compiler
+# Synthesis based on Bravyi et al. greedy clifford compiler
 # ---------------------------------------------------------------------
 
 from qiskit.circuit import QuantumCircuit

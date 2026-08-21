@@ -190,11 +190,9 @@ def random_circuit_from_graph(
             edge_list.append((ctrl, trgt))
             edges_probs.append(prob)
 
-            if ctrl > num_qubits:
-                num_qubits = ctrl
+            num_qubits = max(num_qubits, ctrl)
 
-            if trgt > num_qubits:
-                num_qubits = trgt
+            num_qubits = max(num_qubits, trgt)
 
         num_qubits += 1  # ctrl, trgt are qubit indices.
         edge_list = np.array(edge_list)
@@ -465,7 +463,7 @@ def random_circuit(
     conditional=False,
     reset=False,
     seed=None,
-    num_operand_distribution: dict = None,
+    num_operand_distribution: dict | None = None,
 ):
     """Generate random circuit of arbitrary size and form.
 
@@ -710,7 +708,7 @@ def random_clifford_circuit(num_qubits, num_gates, gates="all", seed=None):
         QuantumCircuit: constructed circuit
     """
 
-    gates_1q = list(set(_BASIS_1Q.keys()) - {"v", "w", "id", "iden", "sinv"})
+    gates_1q = [gate for gate in _BASIS_1Q if gate not in {"v", "w", "id", "iden", "sinv"}]
     gates_2q = list(_BASIS_2Q.keys())
 
     if gates == "all":

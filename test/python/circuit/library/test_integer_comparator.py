@@ -21,7 +21,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import IntegerComparator
 from qiskit.synthesis.arithmetic import synth_integer_comparator_2s, synth_integer_comparator_greedy
 from qiskit.quantum_info import Statevector
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

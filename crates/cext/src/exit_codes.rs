@@ -42,6 +42,8 @@ pub enum ExitCode {
     IndexError = 103,
     /// Duplicate index.
     DuplicateIndexError = 104,
+    /// Invalid ``QkOperationKind``.
+    InvalidOperationKind = 105,
     /// Error related to arithmetic operations or similar.
     ArithmeticError = 200,
     /// Mismatching number of qubits.
@@ -66,12 +68,19 @@ pub enum ExitCode {
     DagComposeMismatch = 501,
     /// One or more bit indices were not found during compose.
     DagComposeMissingBit = 502,
+    /// Errors concerning parameter handling.
+    ParameterError = 600,
+    /// Parameter name conflict.
+    ParameterNameConflict = 601,
 }
 
 impl From<ArithmeticError> for ExitCode {
     fn from(value: ArithmeticError) -> Self {
         match value {
             ArithmeticError::MismatchedQubits { left: _, right: _ } => ExitCode::MismatchedQubits,
+            ArithmeticError::InvalidOperation(_) => ExitCode::ArithmeticError,
+            ArithmeticError::DuplicatedIndex => ExitCode::DuplicateIndexError,
+            ArithmeticError::OutOfBounds(_) => ExitCode::IndexError,
         }
     }
 }

@@ -14,9 +14,7 @@
 
 from __future__ import annotations
 
-from typing import Optional
 
-# pylint: disable=cyclic-import
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 from qiskit._accelerate.circuit import StandardGate
@@ -73,7 +71,7 @@ class YGate(SingletonGate):
 
     _standard_gate = StandardGate.Y
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: str | None = None):
         """
         Args:
             label: An optional label for the gate.
@@ -84,7 +82,7 @@ class YGate(SingletonGate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         #    ┌──────────────┐
@@ -234,7 +232,7 @@ class CYGate(SingletonControlledGate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         # q_0: ─────────■───────

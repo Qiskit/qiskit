@@ -18,7 +18,7 @@ matching algorithm.
 
 class Match:
     """
-    Class Match is an object to store a list of match with its qubits and
+    Class Match is an object to store a list of matches with its qubits and
     clbits configuration.
     """
 

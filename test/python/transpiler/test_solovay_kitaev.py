@@ -27,16 +27,18 @@ from qiskit.circuit.library import (
     TGate,
     TdgGate,
     HGate,
+    CXGate,
     SGate,
     SdgGate,
     QFTGate,
     RXGate,
     RYGate,
     RZGate,
+    PauliProductRotationGate,
 )
 from qiskit.circuit import QuantumRegister
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.quantum_info import Operator
+from qiskit.quantum_info import Operator, Pauli
 from qiskit.synthesis.discrete_basis.generate_basis_approximations import (
     generate_basic_approximations,
 )
@@ -44,7 +46,7 @@ from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import UnitarySynthesis, Collect1qRuns, ConsolidateBlocks
 from qiskit.transpiler.passes.synthesis import SolovayKitaev, SolovayKitaevSynthesis
 from qiskit.synthesis.discrete_basis import SolovayKitaevDecomposition
-from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine
 
 
 def _trace_distance(circuit1, circuit2):
@@ -383,6 +385,20 @@ class TestSolovayKitaev(QiskitTestCase):
         diff = _trace_distance(circuit, transpiled)
         self.assertLess(diff, 1e-6)
 
+    def test_ppr(self):
+        """Test a circuit with a Pauli-product rotation."""
+        ppr = PauliProductRotationGate(Pauli("X"), 0.2)
+        circuit = QuantumCircuit(1)
+        circuit.append(ppr, [0])
+
+        transpiled = self.default_sk(circuit)
+        with self.subTest(msg="test gate set"):
+            self.assertEqual(set(transpiled.count_ops()), {"h", "t", "tdg"})
+
+        with self.subTest(msg="test approximation"):
+            diff = _trace_distance(circuit, transpiled)
+            self.assertLess(diff, 1e-5)
+
     @data(["unitary"], ["rz"])
     def test_sk_synth_gates_to_basis(self, synth_gates):
         """Verify two qubit unitaries are synthesized to match basis gates."""
@@ -478,6 +494,16 @@ class TestSolovayKitaevDecomposition(QiskitTestCase):
         expected.h(0)
 
         self.assertEqual(synth, expected)
+
+    @data("cx", CXGate())
+    def test_rejects_multi_qubit_basis_gate(self, gate):
+        """Test that multi-qubit basis gates are rejected before calling into Rust."""
+        with self.assertRaisesRegex(
+            ValueError,
+            "Solovay-Kitaev synthesis only supports single-qubit basis gates, "
+            "but 'cx' acts on 2 qubits",
+        ):
+            SolovayKitaevDecomposition(basis_gates=["h", "t", "tdg", gate], depth=1)
 
 
 def _convert_u2_to_su2(u2_matrix: np.ndarray) -> tuple[np.ndarray, float]:

@@ -20,7 +20,7 @@ from qiskit.transpiler import CouplingMap, Layout, Target
 from qiskit.circuit.library import CXGate
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.exceptions import TranspilerError
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestFullAncillaAllocation(QiskitTestCase):
@@ -72,7 +72,7 @@ class TestFullAncillaAllocation(QiskitTestCase):
                     4 -> ancilla1
         """
         target = Target(num_qubits=5)
-        target.add_instruction(CXGate(), {edge: None for edge in self.cmap5.get_edges()})
+        target.add_instruction(CXGate(), dict.fromkeys(self.cmap5.get_edges()))
 
         qr = QuantumRegister(3, "q")
         circ = QuantumCircuit(qr)

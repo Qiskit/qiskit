@@ -14,7 +14,7 @@ use pyo3::{prelude::*, pyclass};
 /**
     A representation of a ``QubitProperties`` object.
 */
-#[pyclass(subclass, module = "qiskit._accelerate.target")]
+#[pyclass(subclass, module = "qiskit._accelerate.target", from_py_object)]
 #[derive(Clone, Debug, PartialEq)]
 pub struct QubitProperties {
     #[pyo3(get, set)]

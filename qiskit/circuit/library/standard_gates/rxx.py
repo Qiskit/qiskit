@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import math
-from typing import Optional
+
 import numpy
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
@@ -77,7 +77,7 @@ class RXXGate(Gate):
 
     _standard_gate = StandardGate.RXX
 
-    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+    def __init__(self, theta: ParameterValueType, label: str | None = None):
         """
         Args:
             theta: The rotation angle.
@@ -87,7 +87,7 @@ class RXXGate(Gate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         #      ┌───┐                   ┌───┐

@@ -236,7 +236,7 @@ def _isint(obj: Sequence[Sequence[float]] | Sequence[float] | float) -> bool:
 def _isreal(obj: Sequence[Sequence[float]] | Sequence[float] | float) -> bool:
     """Check if object is a real number: int or float except ``±Inf`` and ``NaN``."""
     float_types = (float, np.floating)
-    return _isint(obj) or isinstance(obj, float_types) and float("-Inf") < obj < float("Inf")
+    return _isint(obj) or (isinstance(obj, float_types) and float("-Inf") < obj < float("Inf"))
 
 
 def _has_measure(circuit: QuantumCircuit) -> bool:

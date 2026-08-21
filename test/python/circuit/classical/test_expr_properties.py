@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
 import copy
 import pickle
@@ -20,7 +19,7 @@ import ddt
 
 from qiskit.circuit import ClassicalRegister, Clbit
 from qiskit.circuit.classical import expr, types
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt.ddt

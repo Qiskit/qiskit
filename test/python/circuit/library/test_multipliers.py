@@ -29,7 +29,7 @@ from qiskit.circuit.library import (
 )
 from qiskit.transpiler.passes import HighLevelSynthesis, HLSConfig
 from qiskit.synthesis.arithmetic import multiplier_qft_r17, multiplier_cumulative_h18
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt
@@ -184,6 +184,30 @@ class TestMultiplier(QiskitTestCase):
                 synth = hls(circuit)
                 ops = set(synth.count_ops().keys())
                 self.assertIn(expected_op, ops)
+
+    def test_multiplier_gate_decompose_with_custom_result_qubits(self):
+        """Test MultiplierGate.decompose() with non-default num_result_qubits."""
+        cases = (
+            (1, 1),
+            (2, 2),
+            (2, 3),
+            (3, 3),
+            (3, 4),
+            (3, 5),
+        )
+
+        for num_state_qubits, num_result_qubits in cases:
+            with self.subTest(
+                num_state_qubits=num_state_qubits, num_result_qubits=num_result_qubits
+            ):
+                gate = MultiplierGate(num_state_qubits, num_result_qubits)
+                self.assertEqual(gate.num_qubits, 2 * num_state_qubits + num_result_qubits)
+                self.assertEqual(gate.definition.num_qubits, gate.num_qubits)
+
+                circuit = QuantumCircuit(gate.num_qubits)
+                circuit.append(gate, range(gate.num_qubits))
+                decomposed = circuit.decompose()
+                self.assertEqual(decomposed.num_qubits, gate.num_qubits)
 
 
 if __name__ == "__main__":

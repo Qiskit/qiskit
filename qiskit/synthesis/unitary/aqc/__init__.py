@@ -55,7 +55,7 @@ To properly define what we mean by best circuit representation, we define the me
 as the Frobenius norm between the unitary matrix of the compiled circuit :math:`V` and
 the target unitary matrix :math:`U`, i.e., :math:`\|V - U\|_{\mathrm{F}}`. This choice
 is motivated by mathematical programming considerations, and it is related to other
-formulations that appear in the literature. Let's take a look at the problem in more details.
+formulations that appear in the literature. Let's take a look at the problem in more detail.
 
 Let :math:`n` be the number of qubits and :math:`d=2^n`. Given a CNOT structure :math:`ct`
 and a vector of rotation angles :math:`\theta`, the parametric circuit forms a matrix
@@ -175,3 +175,14 @@ from .cnot_structures import make_cnot_network
 from .cnot_unit_circuit import CNOTUnitCircuit
 from .cnot_unit_objective import CNOTUnitObjective, DefaultCNOTUnitObjective
 from .fast_gradient.fast_gradient import FastCNOTUnitObjective
+
+__all__ = [
+    "AQC",
+    "ApproximateCircuit",
+    "ApproximatingObjective",
+    "CNOTUnitCircuit",
+    "CNOTUnitObjective",
+    "DefaultCNOTUnitObjective",
+    "FastCNOTUnitObjective",
+    "make_cnot_network",
+]

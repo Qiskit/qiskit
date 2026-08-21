@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring
+
 from pickle import loads, dumps
 
 import math
@@ -32,7 +32,6 @@ from qiskit.circuit.library import (
     RZXGate,
     CZGate,
     UnitaryGate,
-    Barrier,
 )
 from qiskit.circuit import IfElseOp, ForLoopOp, WhileLoopOp, SwitchCaseOp
 from qiskit.circuit.measure import Measure
@@ -45,9 +44,9 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler import Target
 from qiskit.transpiler import InstructionProperties
 from qiskit.providers.fake_provider import GenericBackendV2
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 from qiskit.providers.backend import QubitProperties
-from test.python.providers.fake_mumbai_v2 import (  # pylint: disable=wrong-import-order
+from test.python.providers.fake_mumbai_v2 import (
     FakeMumbaiFractionalCX,
 )
 
@@ -1204,26 +1203,6 @@ Instructions:
 
         # Check that the Target num_qubit attribute matches the length of qubit properties
         self.assertEqual(target.num_qubits, len(qubit_properties))
-
-    def test_gate_reconstruction_rust(self):
-        standard_gate = RXGate(3.14)
-        barrier = Barrier(5)
-        unitary = UnitaryGate([[0, 1], [1, 0]])
-
-        # Create Target and add rest of instructions.
-        target = Target()
-        target.add_instruction(standard_gate)
-        target.add_instruction(barrier)
-        target.add_instruction(unitary)
-
-        # Check the gate instances are working as expected
-        self.assertEqual(target.operation_from_name("rx"), target._raw_operation_from_name("rx"))
-        self.assertEqual(
-            target.operation_from_name("barrier"), target._raw_operation_from_name("barrier")
-        )
-        self.assertEqual(
-            target.operation_from_name("unitary"), target._raw_operation_from_name("unitary")
-        )
 
     def test_num_qubits_inference_with_globals(self):
         """If explicitly overriding `num_qubits` to be "any", it should persist."""

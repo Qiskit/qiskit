@@ -25,7 +25,7 @@ from qiskit.circuit import (
     CircuitInstruction,
 )
 from qiskit.circuit.library import BlueprintCircuit, XGate, EfficientSU2
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class MockBlueprint(BlueprintCircuit):
@@ -210,7 +210,7 @@ class TestBlueprintCircuit(QiskitTestCase):
 
             def _build(self):
                 # We don't need to do anything, we just need `_build` to be non-abstract.
-                # pylint: disable=useless-parent-delegation
+
                 return super()._build()
 
         with self.assertWarns(DeprecationWarning):

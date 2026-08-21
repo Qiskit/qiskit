@@ -22,7 +22,6 @@ class BooleanExpressionEvalVisitor(ast.NodeVisitor):
     """Node visitor to compute the value of the expression, given the boolean values of the args
     as defined in https://docs.python.org/3/library/ast.html#ast.NodeVisitor"""
 
-    # pylint: disable=invalid-name
     bitops = {
         _ast.BitAnd: lambda values: values[0] and values[1],
         _ast.And: lambda values: values[0] and values[1],
@@ -77,7 +76,6 @@ class BooleanExpressionArgsCollectorVisitor(ast.NodeVisitor):
     """Node visitor to collect the name of the args of the expression
     as defined in https://docs.python.org/3/library/ast.html#ast.NodeVisitor"""
 
-    # pylint: disable=invalid-name
     def __init__(self):
         self.args = set()
         self.args_pos = {}

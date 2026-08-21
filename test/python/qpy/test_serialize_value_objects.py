@@ -13,7 +13,7 @@
 """Test serializing ParameterExpressions from qpy."""
 
 import io
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit import qpy
 from qiskit.quantum_info import SparseObservable

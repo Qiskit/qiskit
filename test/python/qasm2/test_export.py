@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
 import io
 import os
@@ -23,7 +22,7 @@ from math import pi
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, qasm2
 from qiskit.circuit import Parameter, Qubit, Clbit, Gate, library as lib
 from qiskit.circuit.classical import expr
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 # Regex pattern to match valid OpenQASM identifiers
 VALID_QASM2_IDENTIFIER = re.compile("[a-z][a-zA-Z_0-9]*")
@@ -385,7 +384,7 @@ custom q\[0\];""",
         self.assertEqual(Operator(qc), Operator(qasm2.loads(qasm_str)))
 
     def test_mcx_gate(self):
-        # pylint: disable=line-too-long
+
         qc = QuantumCircuit(4)
         qc.mcx([0, 1, 2], 3)
 
@@ -399,7 +398,7 @@ mcx q[0],q[1],q[2],q[3];"""
         self.assertEqual(qasm2.dumps(qc), expected_qasm)
 
     def test_mcx_gate_variants(self):
-        # pylint: disable=line-too-long
+
         n = 5
         qc = QuantumCircuit(2 * n - 1)
         with self.assertWarns(DeprecationWarning):
@@ -414,7 +413,7 @@ mcx q[0],q[1],q[2],q[3];"""
 include "qelib1.inc";
 gate mcx_gray q0,q1,q2,q3,q4,q5 { h q5; cu1(pi/16) q4,q5; cx q4,q3; cu1(-pi/16) q3,q5; cx q4,q3; cu1(pi/16) q3,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; h q5; }
 gate mcx_recursive q0,q1,q2,q3,q4,q5,q6 { h q6; t q6; cx q2,q6; tdg q6; cx q3,q6; h q3; t q3; cx q1,q3; tdg q3; cx q0,q3; t q3; cx q1,q3; tdg q3; h q3; cx q3,q6; t q6; cx q2,q6; tdg q6; h q6; h q3; t q3; cx q1,q3; tdg q3; cx q0,q3; t q3; cx q1,q3; tdg q3; h q3; h q5; p(pi/8) q3; p(pi/8) q4; p(pi/8) q6; p(pi/8) q5; cx q3,q4; p(-pi/8) q4; cx q3,q4; cx q4,q6; p(-pi/8) q6; cx q3,q6; p(pi/8) q6; cx q4,q6; p(-pi/8) q6; cx q3,q6; cx q6,q5; p(-pi/8) q5; cx q4,q5; p(pi/8) q5; cx q6,q5; p(-pi/8) q5; cx q3,q5; p(pi/8) q5; cx q6,q5; p(-pi/8) q5; cx q4,q5; p(pi/8) q5; cx q6,q5; p(-pi/8) q5; cx q3,q5; h q5; h q3; t q3; cx q1,q3; tdg q3; cx q0,q3; t q3; cx q1,q3; tdg q3; h q3; h q6; t q6; cx q2,q6; tdg q6; cx q3,q6; h q3; t q3; cx q1,q3; tdg q3; cx q0,q3; t q3; cx q1,q3; tdg q3; h q3; cx q3,q6; t q6; cx q2,q6; tdg q6; h q6; h q5; p(pi/8) q3; p(pi/8) q4; p(pi/8) q6; p(pi/8) q5; cx q3,q4; p(-pi/8) q4; cx q3,q4; cx q4,q6; p(-pi/8) q6; cx q3,q6; p(pi/8) q6; cx q4,q6; p(-pi/8) q6; cx q3,q6; cx q6,q5; p(-pi/8) q5; cx q4,q5; p(pi/8) q5; cx q6,q5; p(-pi/8) q5; cx q3,q5; p(pi/8) q5; cx q6,q5; p(-pi/8) q5; cx q4,q5; p(pi/8) q5; cx q6,q5; p(-pi/8) q5; cx q3,q5; h q5; }
-gate mcx_vchain q0,q1,q2,q3,q4,q5,q6,q7,q8 { rccx q0,q1,q6; rccx q2,q6,q7; rccx q3,q7,q8; ccx q4,q8,q5; rccx q3,q7,q8; rccx q2,q6,q7; rccx q0,q1,q6; }
+gate mcx_vchain q0,q1,q2,q3,q4,q5,q6,q7,q8 { h q6; t q6; cx q1,q6; tdg q6; cx q0,q6; t q6; cx q1,q6; tdg q6; h q6; h q7; t q7; cx q6,q7; tdg q7; cx q2,q7; t q7; cx q6,q7; tdg q7; h q7; h q8; t q8; cx q7,q8; tdg q8; cx q3,q8; t q8; cx q7,q8; tdg q8; h q8; h q5; cx q8,q5; tdg q5; cx q4,q5; t q5; cx q8,q5; tdg q5; cx q4,q5; t q8; t q5; h q5; cx q4,q8; t q4; tdg q8; cx q4,q8; h q8; t q8; cx q7,q8; tdg q8; cx q3,q8; t q8; cx q7,q8; tdg q8; h q8; h q7; t q7; cx q6,q7; tdg q7; cx q2,q7; t q7; cx q6,q7; tdg q7; h q7; h q6; t q6; cx q1,q6; tdg q6; cx q0,q6; t q6; cx q1,q6; tdg q6; h q6; }
 qreg q[9];
 mcx_gray q[0],q[1],q[2],q[3],q[4],q[5];
 mcx_recursive q[0],q[1],q[2],q[3],q[4],q[5],q[6];
@@ -597,13 +596,14 @@ qreg ({VALID_QASM2_IDENTIFIER.pattern})\[1\];
         qc.p(pi * pi, 0)
         qc.p(MAX_FRAC * pi + 1, 0)
 
-        expected_qasm = """\
+        boundary = MAX_FRAC * pi + 1
+        expected_qasm = f"""\
 OPENQASM 2.0;
 include "qelib1.inc";
 qreg q[1];
 p(0.123456789) q[0];
 p(9.869604401089358) q[0];
-p(51.26548245743669) q[0];"""
+p({boundary:#}) q[0];"""
         self.assertEqual(qasm2.dumps(qc), expected_qasm)
 
     def test_rotation_angles_close_to_pi(self):
@@ -829,7 +829,7 @@ class TestDumpStream(QiskitTestCase):
             os.chdir(tmpdir)
             try:
                 qasm2.dump(qc, "myfile.qasm")
-                with open("myfile.qasm", "r") as fptr:
+                with open("myfile.qasm") as fptr:
                     written = fptr.read()
             finally:
                 os.chdir(prevdir)
@@ -847,7 +847,7 @@ class TestDumpStream(QiskitTestCase):
             os.chdir(tmpdir)
             try:
                 qasm2.dump(qc, pathlib.Path(".") / "myfile.qasm")
-                with open("myfile.qasm", "r") as fptr:
+                with open("myfile.qasm") as fptr:
                     written = fptr.read()
             finally:
                 os.chdir(prevdir)

@@ -18,9 +18,9 @@ from ddt import ddt
 import numpy as np
 
 from qiskit.quantum_info import Statevector, DensityMatrix
-from qiskit.quantum_info.random import random_statevector
-from qiskit.quantum_info.random import random_density_matrix
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.quantum_info import random_statevector
+from qiskit.quantum_info import random_density_matrix
+from test import QiskitTestCase
 
 
 @ddt

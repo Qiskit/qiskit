@@ -39,7 +39,7 @@ def apply_prefix(value: float | ParameterExpression, unit: str) -> float | Param
         See https://docs.python.org/3/tutorial/floatingpoint.html for details.
 
     Raises:
-        ValueError: If the ``units`` aren't recognized.
+        ValueError: If the ``unit`` isn't recognized.
     """
     prefactors = {
         "f": -15,

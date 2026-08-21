@@ -171,7 +171,9 @@ class SabreLayout(TransformationPass):
             if self._coupling_map is not None:
                 self._coupling_map.make_symmetric()
         if routing_pass is not None and (swap_trials is not None or layout_trials is not None):
-            raise TranspilerError("Both routing_pass and swap_trials can't be set at the same time")
+            raise TranspilerError(
+                "The 'routing_pass' argument cannot be set alongside 'swap_trials' or 'layout_trials'."
+            )
         self.routing_pass = routing_pass
         self.seed = seed
         self.max_iterations = max_iterations
@@ -180,7 +182,7 @@ class SabreLayout(TransformationPass):
         self.skip_routing = skip_routing
 
     @property
-    def coupling_map(self):  # pylint: disable=missing-function-docstring
+    def coupling_map(self):
         # This property is not intended to be public API, it just keeps backwards compatibility.
         if self._coupling_map is None:
             self._coupling_map = self.target.build_coupling_map()
@@ -266,7 +268,7 @@ class SabreLayout(TransformationPass):
         heuristic = (
             Heuristic(attempt_limit=10 * self.target.num_qubits)
             .with_basic(1.0, SetScaling.Constant)
-            .with_lookahead(0.5, 20, SetScaling.Size)
+            .with_lookahead([0.5 / self.target.num_qubits], SetScaling.Constant)
             .with_decay(0.001, 5)
         )
         sabre_start = time.perf_counter()
@@ -302,7 +304,13 @@ class SabreLayout(TransformationPass):
             }
             return dag
 
-        ancillas = QuantumRegister(self.target.num_qubits - dag.num_qubits(), "ancilla")
+        ancilla_register_name = "ancilla"
+        ancilla_suffix = 0
+        while ancilla_register_name in dag.qregs:
+            ancilla_register_name = f"{ancilla_register_name}{ancilla_suffix}"
+            ancilla_suffix += 1
+
+        ancillas = QuantumRegister(self.target.num_qubits - dag.num_qubits(), ancilla_register_name)
         virtuals = list(dag.qubits) + list(ancillas)
         initial_layout = Layout({p: virtuals[v] for v, p in initial.layout_mapping()})
         for register in dag.qregs.values():

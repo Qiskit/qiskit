@@ -27,7 +27,7 @@ from qiskit.synthesis.linear import (
     binary_matmul,
 )
 from qiskit.synthesis.linear.linear_circuits_utils import transpose_cx_circ, optimize_cx_4_options
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

@@ -22,7 +22,7 @@ from qiskit.compiler import transpile
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.qasm2 import dumps
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 from ..legacy_cmaps import TOKYO_CMAP
 

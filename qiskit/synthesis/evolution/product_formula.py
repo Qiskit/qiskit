@@ -22,8 +22,9 @@ from itertools import combinations
 import typing
 import numpy as np
 import rustworkx as rx
-from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.circuit.quantumcircuit import QuantumCircuit, ParameterValueType
+
+from qiskit.circuit import ParameterExpression, QuantumCircuit
+from qiskit.circuit.quantumcircuit import ParameterValueType
 from qiskit.quantum_info import SparsePauliOp, SparseObservable
 from qiskit._accelerate.circuit_library import pauli_evolution
 import qiskit.quantum_info
@@ -33,7 +34,7 @@ from .evolution_synthesis import EvolutionSynthesis
 if typing.TYPE_CHECKING:
     from qiskit.circuit.library import PauliEvolutionGate
 
-SparsePauliLabel = typing.Tuple[str, list[int], ParameterValueType]
+SparsePauliLabel = tuple[str, list[int], ParameterValueType]
 
 
 class ProductFormula(EvolutionSynthesis):

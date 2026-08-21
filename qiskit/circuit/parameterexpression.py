@@ -15,7 +15,7 @@ ParameterExpression Class to enable creating simple expressions of Parameters.
 
 from __future__ import annotations
 
-from typing import Union
+
 from qiskit.utils.optionals import HAS_SYMPY
 import qiskit._accelerate.circuit
 
@@ -61,7 +61,7 @@ def sympify(expression):
     .. note::
 
         This is for interoperability only.  Qiskit will not accept or work with raw Sympy or
-        Symegine expressions in its parameters, because they do not contain the tracking
+        Symengine expressions in its parameters, because they do not contain the tracking
         information used in circuit-parameter binding and assignment.
     """
     import sympy
@@ -158,4 +158,4 @@ def sympify(expression):
 
 # Redefine the type so external imports get an evaluated reference; Sphinx needs this to understand
 # the type hints.
-ParameterValueType = Union[ParameterExpression, float]
+ParameterValueType = ParameterExpression | float

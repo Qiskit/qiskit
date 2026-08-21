@@ -19,7 +19,7 @@ from qiskit.circuit import QuantumCircuit, Qubit, Clbit
 from qiskit.circuit.library import EfficientSU2, UnitaryOverlap, unitary_overlap
 from qiskit.quantum_info import Statevector
 from qiskit.circuit.exceptions import CircuitError
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

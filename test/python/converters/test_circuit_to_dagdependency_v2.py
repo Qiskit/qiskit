@@ -18,7 +18,7 @@ import unittest
 from qiskit.converters.dagdependency_to_circuit import dagdependency_to_circuit
 from qiskit.converters.circuit_to_dagdependency_v2 import _circuit_to_dagdependency_v2
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestCircuitToDAGDependencyV2(QiskitTestCase):

@@ -53,7 +53,7 @@ class ProbDistribution(dict):
                 # but the number of bits to represent the largest key.
                 self._num_bits = len(bin(max(data.keys()))) - 2
             elif isinstance(first_key, str):
-                if first_key.startswith("0x") or first_key.startswith("0b"):
+                if first_key.startswith(("0x", "0b")):
                     data = {int(key, 0): value for key, value in data.items()}
                     # `self._num_bits` is not always the exact number of qubits measured,
                     # but the number of bits to represent the largest key.
@@ -75,7 +75,7 @@ class ProbDistribution(dict):
     def binary_probabilities(self, num_bits=None):
         """Build a probabilities dictionary with binary string keys
 
-        Parameters:
+        Args:
             num_bits (int): number of bits in the binary bitstrings (leading
                 zeros will be padded). If None, a default value will be used.
                 If keys are given as integers or strings with binary or hex prefix,

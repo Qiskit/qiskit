@@ -19,7 +19,7 @@ from qiskit._accelerate.split_2q_unitaries import split_2q_unitaries
 
 
 class Split2QUnitaries(TransformationPass):
-    """Attempt to splits two-qubit unitaries in a :class:`.DAGCircuit` into two single-qubit gates.
+    """Attempt to split two-qubit unitaries in a :class:`.DAGCircuit` into two single-qubit gates.
 
     This pass will analyze all :class:`.UnitaryGate` instances and determine whether the
     matrix is actually a product of 2 single qubit gates. In these cases the 2q gate can be

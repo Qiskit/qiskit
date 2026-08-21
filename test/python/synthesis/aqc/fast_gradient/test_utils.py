@@ -22,8 +22,8 @@ import qiskit.synthesis.unitary.aqc.fast_gradient.fast_grad_utils as myu
 from qiskit.synthesis.unitary.aqc.elementary_operations import rx_matrix as _rx
 from qiskit.synthesis.unitary.aqc.elementary_operations import ry_matrix as _ry
 from qiskit.synthesis.unitary.aqc.elementary_operations import rz_matrix as _rz
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
-import test.python.synthesis.aqc.fast_gradient.utils_for_testing as tut  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
+import test.python.synthesis.aqc.fast_gradient.utils_for_testing as tut
 
 
 class TestUtils(QiskitTestCase):
@@ -166,7 +166,7 @@ class TestUtils(QiskitTestCase):
 
         tol = np.finfo(np.float64).eps * 2.0
         out = np.full((2, 2), fill_value=0, dtype=np.complex128)
-        for test in range(self.num_repeats_gates2x2):  # pylint: disable=unused-variable
+        for test in range(self.num_repeats_gates2x2):
             phi = random.random() * 2.0 * np.pi
             self.assertTrue(np.allclose(myu.make_rx(phi, out=out), _rx(phi), atol=tol, rtol=tol))
             self.assertTrue(np.allclose(myu.make_ry(phi, out=out), _ry(phi), atol=tol, rtol=tol))

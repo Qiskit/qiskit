@@ -36,6 +36,8 @@ class PrimitiveJob(BasePrimitiveJob[ResultT, JobStatus]):
         """
         Args:
             function: A callable function to execute the job.
+            args: any additional positional arguments
+            kwargs: any additional keyword arguments
         """
         super().__init__(str(uuid.uuid4()))
         self._future = None
@@ -49,7 +51,7 @@ class PrimitiveJob(BasePrimitiveJob[ResultT, JobStatus]):
         if self._future is not None:
             raise JobError("Primitive job has been submitted already.")
 
-        executor = ThreadPoolExecutor(max_workers=1)  # pylint: disable=consider-using-with
+        executor = ThreadPoolExecutor(max_workers=1)
         self._future = executor.submit(self._function, *self._args, **self._kwargs)
         executor.shutdown(wait=False)
 

@@ -27,7 +27,7 @@ from qiskit.circuit.library.n_local import (
 )
 from qiskit.synthesis.evolution import MatrixExponential
 from qiskit.utils import optionals
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt

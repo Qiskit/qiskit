@@ -13,7 +13,8 @@
 """Integer comparator based on an exponential number of multi-controlled gates."""
 
 import numpy as np
-from qiskit.circuit.quantumcircuit import QuantumCircuit
+
+from qiskit.circuit import QuantumCircuit
 
 
 def synth_integer_comparator_greedy(
@@ -58,7 +59,7 @@ def synth_integer_comparator_greedy(
     if geq:
         accepted_values = range(value, 2**num_state_qubits)
     else:
-        accepted_values = range(0, value)
+        accepted_values = range(value)
 
     for accepted_value in accepted_values:
         circuit.mcx(list(range(num_state_qubits)), num_state_qubits, ctrl_state=accepted_value)

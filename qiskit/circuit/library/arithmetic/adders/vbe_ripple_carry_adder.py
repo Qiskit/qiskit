@@ -13,7 +13,6 @@
 """Compute the sum of two qubit registers using Classical Addition."""
 
 from __future__ import annotations
-from qiskit.synthesis.arithmetic import adder_ripple_v95
 from .adder import Adder
 
 
@@ -47,7 +46,7 @@ class VBERippleCarryAdder(Adder):
     *Carry_dg* correspond to the inverse of the *Carry* gate. Note that
     in this implementation the input register qubits are ordered as all qubits from
     the first input register, followed by all qubits from the second input register.
-    This is different ordering as compared to Figure 2 in [1], which leads to a different
+    This is a different ordering as compared to Figure 2 in [1], which leads to a different
     drawing of the circuit.
 
     .. seealso::
@@ -88,6 +87,8 @@ class VBERippleCarryAdder(Adder):
         Raises:
             ValueError: If ``num_state_qubits`` is lower than 1.
         """
+        from qiskit.synthesis.arithmetic import adder_ripple_v95
+
         super().__init__(num_state_qubits, name=name)
         circuit = adder_ripple_v95(num_state_qubits, kind)
 

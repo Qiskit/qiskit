@@ -18,7 +18,7 @@ from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.passmanager_config import PassManagerConfig
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 from ..legacy_cmaps import ALMADEN_CMAP
 
 

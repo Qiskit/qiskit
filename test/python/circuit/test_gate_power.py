@@ -14,7 +14,6 @@
 """Test Qiskit's power instruction operation."""
 
 import unittest
-from typing import Type
 
 import numpy as np
 import scipy.linalg
@@ -48,7 +47,7 @@ from qiskit.circuit.library import (
     SwapGate,
 )
 from qiskit.quantum_info.operators import Operator
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt
@@ -251,7 +250,7 @@ class TestEfficientGatePowering(QiskitTestCase):
         (iSwapGate(), XXPlusYYGate),
     )
     @unpack
-    def test_efficient_gate_powering(self, gate: Gate, output_gate_type: Type[Gate]):
+    def test_efficient_gate_powering(self, gate: Gate, output_gate_type: type[Gate]):
         """Test efficient gate powering."""
         exponents = (-5, -0.5, -0.1, 0, 0.1, 0.5, 5)
         for exponent in exponents:

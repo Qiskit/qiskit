@@ -18,9 +18,6 @@ notifications:
         - "`@levbishop`"
     "visualization":
         - "@enavarro51"
-    "^docs/":
-        - "@abbycross"
-        - "@beckykd"
 always_notify: true
 
 # Set the headings in the GitHub Releases release notes.
@@ -31,4 +28,5 @@ categories:
   "Changelog: Deprecated": "Deprecated"
   "Changelog: Removed": "Removed"
   "Changelog: Build": "Build System"
+  "Changelog: Performance": "Performance"
   "Changelog: None": null

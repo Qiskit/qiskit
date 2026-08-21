@@ -18,7 +18,8 @@ use pyo3::{prelude::*, pyclass};
 #[pyclass(
     subclass,
     name = "BaseInstructionProperties",
-    module = "qiskit._accelerate.target"
+    module = "qiskit._accelerate.target",
+    from_py_object
 )]
 #[derive(Clone, Debug, PartialEq)]
 pub struct InstructionProperties {

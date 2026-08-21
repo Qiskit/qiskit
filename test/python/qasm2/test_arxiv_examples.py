@@ -14,7 +14,6 @@
 is a test for each subsection (except the description of 'qelib1.inc') in section 3 of
 https://arxiv.org/abs/1707.03429v2. The examples are copy/pasted from the source files there."""
 
-# pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
 import math
 import os
@@ -25,7 +24,7 @@ import ddt
 from qiskit import qasm2
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister, Qubit
 from qiskit.circuit.library import U1Gate, U3Gate, CU1Gate
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 from . import gate_builder
 
@@ -33,7 +32,7 @@ from . import gate_builder
 def load(string, *args, **kwargs):
     # We're deliberately not using the context-manager form here because we need to use it in a
     # slightly odd pattern.
-    # pylint: disable=consider-using-with
+
     temp = tempfile.NamedTemporaryFile(mode="w", delete=False)
     try:
         temp.write(string)

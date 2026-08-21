@@ -110,7 +110,7 @@ class CommutativeInverseCancellation(TransformationPass):
 
         phase_update = 0
 
-        for idx1 in range(0, circ_size):
+        for idx1 in range(circ_size):
             # if the node should be skipped or does not have an inverse, continue
             if self._skip_node(topo_sorted_nodes[idx1]):
                 continue

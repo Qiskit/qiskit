@@ -20,9 +20,9 @@ from qiskit.circuit.library import CCXGate, RCCXGate, UnitaryGate
 from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info.operators import Operator
-from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info import random_unitary
 from qiskit.transpiler import Target
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestUnroll3qOrMore(QiskitTestCase):

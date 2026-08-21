@@ -16,7 +16,7 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_transpiler::passes::run_inverse_cancellation_standard_gates;
 
-/// @ingroup QkTranspilerPasses
+/// @ingroup QkTranspilerPassesStandalone
 /// Run the InverseCancellation transpiler pass on a circuit.
 ///
 /// Cancels pairs of consecutive gates that are inverses of each other.

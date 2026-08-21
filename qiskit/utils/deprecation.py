@@ -18,7 +18,7 @@ import functools
 import inspect
 import warnings
 from collections.abc import Callable
-from typing import Any, Type
+from typing import Any
 
 
 def deprecate_func(
@@ -214,7 +214,7 @@ def _maybe_warn_and_rename_kwarg(
     old_arg_name: str,
     new_alias: str | None,
     warning_msg: str,
-    category: Type[Warning],
+    category: type[Warning],
     predicate: Callable[[Any], bool] | None,
 ) -> None:
     # We want to stop iterating once `args` is done, since some args may have not been explicitly
@@ -248,9 +248,9 @@ def _write_deprecation_msg(
     pending: bool,
     additional_msg: str,
     removal_timeline: str,
-) -> tuple[str, Type[DeprecationWarning] | Type[PendingDeprecationWarning]]:
+) -> tuple[str, type[DeprecationWarning] | type[PendingDeprecationWarning]]:
     if pending:
-        category: Type[DeprecationWarning] | Type[PendingDeprecationWarning] = (
+        category: type[DeprecationWarning] | type[PendingDeprecationWarning] = (
             PendingDeprecationWarning
         )
         deprecation_status = "pending deprecation"

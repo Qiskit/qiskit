@@ -18,16 +18,10 @@ from qiskit.exceptions import QiskitError
 class JobError(QiskitError):
     """Base class for errors raised by Jobs."""
 
-    pass
-
 
 class JobTimeoutError(JobError):
     """Base class for timeout errors raised by jobs."""
 
-    pass
-
 
 class QiskitBackendNotFoundError(QiskitError):
     """Base class for errors raised while looking for a backend."""
-
-    pass

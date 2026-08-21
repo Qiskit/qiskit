@@ -81,7 +81,7 @@ class Stinespring(QuantumChannel):
             output_dims: the output subsystem dimensions.
 
         Raises:
-            QiskitError: if input data cannot be initialized as a
+            QiskitError: if input data cannot be initialized as
                          a list of Kraus matrices.
 
         Additional Information:

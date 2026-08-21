@@ -33,7 +33,7 @@ class BasicSwap(TransformationPass):
         """BasicSwap initializer.
 
         Args:
-            coupling_map (Union[CouplingMap, Target]): Directed graph represented a coupling map.
+            coupling_map (Union[CouplingMap, Target]): Directed graph representing a coupling map.
             fake_run (bool): if true, it will only pretend to do routing, i.e., no
                 swap is effectively added.
         """

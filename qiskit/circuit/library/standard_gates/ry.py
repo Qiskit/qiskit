@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import math
-from typing import Optional
+
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
@@ -52,7 +52,7 @@ class RYGate(Gate):
 
     _standard_gate = StandardGate.RY
 
-    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+    def __init__(self, theta: ParameterValueType, label: str | None = None):
         """
         Args:
             theta: The rotation angle.
@@ -62,7 +62,7 @@ class RYGate(Gate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         #    ┌──────────┐
@@ -233,7 +233,7 @@ class CRYGate(ControlledGate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         # q_0: ─────────────■────────────────■──

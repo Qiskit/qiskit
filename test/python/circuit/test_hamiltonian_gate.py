@@ -21,7 +21,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.quantum_info import Operator
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestHamiltonianGate(QiskitTestCase):

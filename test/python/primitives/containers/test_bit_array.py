@@ -174,6 +174,16 @@ class BitArrayTestCase(QiskitTestCase):
         ba = BitArray.from_bool_array([[1, 0, 0], [1, 1, 0]])
         self.assertEqual(~ba, BitArray.from_bool_array([[0, 1, 1], [0, 0, 1]]))
 
+    @ddt.data(1, 7, 9, 13)
+    def test_bitcount_ignores_padding_bits(self, num_bits):
+        """Test bitcount only counts logical bits."""
+        ba = BitArray.from_samples([0], num_bits)
+        self.assertEqual(ba.bitcount().tolist(), [0])
+
+        ba = ~BitArray.from_samples([0], num_bits)
+        np.testing.assert_array_equal(ba.bitcount(), ba.to_bool_array().sum(axis=-1))
+        self.assertEqual(ba.bitcount().tolist(), [num_bits])
+
     def test_logical_xor(self):
         """Test the logical XOR operator."""
         ba1 = BitArray.from_bool_array([[1, 0, 0], [1, 1, 0]])
@@ -698,7 +708,7 @@ class BitArrayTestCase(QiskitTestCase):
             expval = ba.expectation_values(op)
             # both 0 and 1 appear 5 times
             self.assertEqual(expval.shape, ba.shape)
-            np.testing.assert_allclose(expval, np.zeros((ba.shape)))
+            np.testing.assert_allclose(expval, np.zeros(ba.shape))
 
             expval = ba.expectation_values(op2)
             self.assertEqual(expval.shape, ba.shape)
@@ -730,17 +740,17 @@ class BitArrayTestCase(QiskitTestCase):
         with self.subTest("Pauli"):
             expval = ba.expectation_values(pauli)
             self.assertEqual(expval.shape, ba.shape)
-            np.testing.assert_allclose(expval, np.zeros((ba.shape)))
+            np.testing.assert_allclose(expval, np.zeros(ba.shape))
 
         with self.subTest("SparsePauliOp"):
             expval = ba.expectation_values(sp_op)
             self.assertEqual(expval.shape, ba.shape)
-            np.testing.assert_allclose(expval, np.zeros((ba.shape)))
+            np.testing.assert_allclose(expval, np.zeros(ba.shape))
 
             expval = ba.expectation_values(sp_op2)
             # 6th bit are all 0
             self.assertEqual(expval.shape, ba.shape)
-            np.testing.assert_allclose(expval, np.ones((ba.shape)))
+            np.testing.assert_allclose(expval, np.ones(ba.shape))
 
         with self.subTest("ObservableArray"):
             obs = ["Z", "0", "1"]

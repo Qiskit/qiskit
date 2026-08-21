@@ -19,7 +19,7 @@ from qiskit.circuit.library import UnitaryGate
 from qiskit.converters import dag_to_circuit
 from qiskit.quantum_info import Operator, get_clifford_gate_names
 from qiskit.transpiler.passes import UnitarySynthesis, CliffordUnitarySynthesis
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestCliffordSynthesis(QiskitTestCase):

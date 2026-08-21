@@ -42,7 +42,7 @@ from qiskit.quantum_info.operators.operator_utils import _equal_with_ancillas
 from qiskit.transpiler.passes import HighLevelSynthesis, HLSConfig
 from qiskit.synthesis.multi_controlled import synth_mcmt_vchain, synth_mcmt_xgate
 from qiskit.quantum_info import Operator
-from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine
 
 
 @ddt

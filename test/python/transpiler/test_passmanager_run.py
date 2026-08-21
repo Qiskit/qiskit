@@ -19,7 +19,7 @@ from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler import Layout, PassManager
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from ..legacy_cmaps import ALMADEN_CMAP
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestPassManagerRun(QiskitTestCase):

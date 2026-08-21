@@ -12,7 +12,8 @@
 
 """Exact synthesis of operator evolution via (exponentially expensive) matrix exponentiation."""
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.library import HamiltonianGate
 
 from .evolution_synthesis import EvolutionSynthesis
 
@@ -20,15 +21,13 @@ from .evolution_synthesis import EvolutionSynthesis
 class MatrixExponential(EvolutionSynthesis):
     r"""Exact operator evolution via matrix exponentiation and unitary synthesis.
 
-    This class synthesis the exponential of operators by calculating their exponentially-sized
+    This class synthesizes the exponential of operators by calculating their exponentially-sized
     matrix representation and using exact matrix exponentiation followed by unitary synthesis
     to obtain a circuit. This process is not scalable and serves as comparison or benchmark
     for small systems.
     """
 
     def synthesize(self, evolution):
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.library.hamiltonian_gate import HamiltonianGate
 
         # get operators and time to evolve
         operators = evolution.operator

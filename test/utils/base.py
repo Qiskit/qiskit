@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """Base TestCases for the unit tests.
 
@@ -59,8 +58,6 @@ else:
 
     class BaseTestCase(unittest.TestCase):
         """Base test class."""
-
-        pass
 
 
 @enforce_subclasses_call(["setUp", "setUpClass", "tearDown", "tearDownClass"])

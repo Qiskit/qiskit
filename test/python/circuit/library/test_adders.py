@@ -36,7 +36,7 @@ from qiskit.synthesis.arithmetic import (
     adder_modular_v17,
 )
 from qiskit.transpiler.passes import HLSConfig, HighLevelSynthesis
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 ADDERS = {
     "vbe": adder_ripple_v95,

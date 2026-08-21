@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Optimize the synthesis of an n-qubit circuit contains only CX gates for
+Optimize the synthesis of an n-qubit circuit containing only CX gates for
 linear nearest neighbor (LNN) connectivity.
 The depth of the circuit is bounded by 5*n, while the gate count is approximately 2.5*n^2
 
@@ -25,8 +25,10 @@ from __future__ import annotations
 import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
-from qiskit.synthesis.linear.linear_matrix_utils import check_invertible_binary_matrix
-from qiskit._accelerate.synthesis.linear import py_synth_cnot_depth_line_kms as fast_kms
+from qiskit._accelerate.synthesis.linear import (
+    py_synth_cnot_depth_line_kms as fast_kms,
+    check_invertible_binary_matrix,
+)
 
 
 def synth_cnot_depth_line_kms(mat: np.ndarray[bool]) -> QuantumCircuit:

@@ -52,7 +52,7 @@ from qiskit.exceptions import QiskitError
 from qiskit._accelerate.circuit_library import get_entangler_map as fast_entangler_map
 from qiskit._accelerate.circuit_library import Block
 
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class Gato(Gate):

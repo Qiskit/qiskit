@@ -95,18 +95,18 @@ direction, and must be done explicitly.
 """
 
 __all__ = [
-    "Type",
     "Bool",
+    "CastKind",
     "Duration",
     "Float",
-    "Uint",
     "Ordering",
-    "order",
+    "Type",
+    "Uint",
+    "cast_kind",
+    "greater",
     "is_subtype",
     "is_supertype",
-    "greater",
-    "CastKind",
-    "cast_kind",
+    "order",
 ]
 
 from .types import Type, Bool, Duration, Float, Uint

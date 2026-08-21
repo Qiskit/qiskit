@@ -42,5 +42,5 @@ class EstimatorResult(_BasePrimitiveResultV1):
         metadata (list[dict]): List of the metadata.
     """
 
-    values: "np.ndarray[Any, np.dtype[np.float64]]"
+    values: np.ndarray[Any, np.dtype[np.float64]]
     metadata: list[dict[str, Any]]

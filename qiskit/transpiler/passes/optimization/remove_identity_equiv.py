@@ -32,11 +32,16 @@ class RemoveIdentityEquivalent(TransformationPass):
 
     .. math::
 
-        \bar{F} = \frac{1 + d F_{\text{process}}}{1 + d},\ 
+        \bar{F} = \frac{1 + d F_{\text{process}}}{1 + d},\
 
         F_{\text{process}} = \frac{|\mathrm{Tr}(G)|^2}{d^2}
 
     where :math:`d = 2^n` is the dimension of the gate for :math:`n` qubits.
+
+    This function is multithreaded and will potentially launch a thread pool with threads
+    equal to the number of CPUs by default. You can tune the number of threads with the
+    ``RAYON_NUM_THREADS`` environment variable. For example, setting ``RAYON_NUM_THREADS=4``
+    would limit the thread pool to 4 threads.
     """
 
     def __init__(

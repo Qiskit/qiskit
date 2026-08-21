@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member,invalid-name,missing-docstring,no-name-in-module
-# pylint: disable=attribute-defined-outside-init,unsubscriptable-object
 
 import os
 
@@ -27,7 +25,6 @@ class TranspilerQualitativeBench:
     param_names = ["optimization level"]
     timeout = 600
 
-    # pylint: disable=unused-argument
     def setup(self, optimization_level):
         self.backend = GenericBackendV2(num_qubits=27, coupling_map=MUMBAI_CMAP, seed=0)
         self.qasm_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "qasm"))

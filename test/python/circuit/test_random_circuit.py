@@ -22,7 +22,7 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.random.utils import random_circuit_from_graph
 from qiskit.converters import circuit_to_dag
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestCircuitRandom(QiskitTestCase):
@@ -169,14 +169,14 @@ class TestCircuitRandom(QiskitTestCase):
 
 
 def incomplete_graph(n_nodes):
-    # pylint: disable=missing-function-docstring
+
     pydi_graph = rx.generators.directed_complete_graph(n_nodes)
     pydi_graph.remove_edge(1, 3)
     return pydi_graph
 
 
 def digraph_with_no_edges(n_nodes):
-    # pylint: disable=missing-function-docstring
+
     graph = rx.PyDiGraph()
     graph.add_nodes_from(range(n_nodes))
     return graph
@@ -235,10 +235,8 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         n_nodes = 0
         if isinstance(inter_graph, list):
             for ctrl, trgt, _ in inter_graph:
-                if ctrl > n_nodes:
-                    n_nodes = ctrl
-                if trgt > n_nodes:
-                    n_nodes = trgt
+                n_nodes = max(n_nodes, ctrl)
+                n_nodes = max(n_nodes, trgt)
             n_nodes += 1  # ctrl, trgt are qubit indices.
         else:
             n_nodes = inter_graph.num_nodes()
@@ -297,7 +295,7 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
         cond_counter = 0
         for instr in qc:
             cond = getattr(instr.operation, "_condition", None)
-            if not cond is None:
+            if cond is not None:
                 cond_counter += 1
                 break  # even one conditional is enough for the check.
 
@@ -481,7 +479,7 @@ class TestRandomCircuitFromGraph(QiskitTestCase):
                 continue
 
             cond = getattr(instr.operation, "_condition", None)
-            if not cond is None:
+            if cond is not None:
                 if instr.operation.num_qubits == 1:
                     cond_counter_1q += 1
 

@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-function-docstring, missing-module-docstring
 
 import unittest
 from inspect import signature
@@ -40,7 +39,7 @@ from qiskit.quantum_info import Pauli
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 from qiskit.quantum_info import Operator
 from qiskit import transpile
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class TestStandard1Q(QiskitTestCase):

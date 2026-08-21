@@ -30,8 +30,8 @@ from operator import itemgetter
 
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.library.standard_gates import RXXGate, RYYGate, RZGate
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.library import RXXGate, RYYGate, RZGate
 from qiskit.exceptions import QiskitError
 
 from .paths import decomposition_hop
@@ -45,7 +45,6 @@ from .weyl import (
 )
 
 
-# pylint:disable=invalid-name
 def decompose_xxyy_into_xxyy_xx(a_target, b_target, a_source, b_source, interaction):
     """
     Consumes a target canonical interaction CAN(a_target, b_target) and source interactions

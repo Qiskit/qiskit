@@ -78,7 +78,7 @@ def _physical_cpus_assuming_twofold_smt():
     if (sched_getaffinity := getattr(os, "sched_getaffinity", None)) is not None:
         # It is callable, just pylint doesn't recognise it as `os.sched_getaffinity` because of the
         # `getattr`.
-        # pylint: disable=not-callable
+
         num_cpus = len(sched_getaffinity(0))
     else:
         num_cpus = os.cpu_count() or 1
@@ -198,7 +198,7 @@ def should_run_in_parallel(num_processes: int | None = None) -> bool:
             ...     assert not should_run_in_parallel(8)
     """
     # It's a configuration function with many simple choices - it'd be less clean to return late.
-    # pylint: disable=too-many-return-statements
+
     num_processes = default_num_processes() if num_processes is None else num_processes
     if num_processes < 2:
         # There's no resources to parallelise over.
@@ -230,7 +230,7 @@ def _parallel_ignore_user_settings():
     ignored within this context."""
     # The way around this would be to encapsulate `should_run_in_parallel` into a class, but since
     # it's a singleton, it ends up being functionally no different to a global anyway.
-    global _PARALLEL_IGNORE_USER_SETTINGS  # pylint: disable=global-statement
+    global _PARALLEL_IGNORE_USER_SETTINGS  # noqa: PLW0603
 
     should_run_in_parallel.cache_clear()
     previous, _PARALLEL_IGNORE_USER_SETTINGS = _PARALLEL_IGNORE_USER_SETTINGS, True
@@ -250,7 +250,7 @@ def _parallel_override(value: bool):
     process is available, and will not allow process-based parallelism at a depth greater than 1."""
     # The way around this would be to encapsulate `should_run_in_parallel` into a class, but since
     # it's a singleton, it ends up being functionally no different to a global anyway.
-    global _PARALLEL_OVERRIDE  # pylint: disable=global-statement
+    global _PARALLEL_OVERRIDE  # noqa: PLW0603
 
     should_run_in_parallel.cache_clear()
     previous, _PARALLEL_OVERRIDE = _PARALLEL_OVERRIDE, value

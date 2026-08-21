@@ -10,13 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring,invalid-name,no-member
-# pylint: disable=attribute-defined-outside-init
 
 import copy
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, transpile
-from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info import random_unitary
 from qiskit.synthesis.one_qubit import OneQubitEulerDecomposer
 
 

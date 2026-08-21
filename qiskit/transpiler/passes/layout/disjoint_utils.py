@@ -12,7 +12,7 @@
 
 """This module contains common utils for disjoint coupling maps."""
 from __future__ import annotations
-from typing import Union
+
 
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.coupling import CouplingMap
@@ -20,9 +20,7 @@ from qiskit.transpiler.target import Target
 from qiskit.transpiler.exceptions import TranspilerError
 
 
-def require_layout_isolated_to_component(
-    dag: DAGCircuit, components_source: Union[Target, CouplingMap]
-):
+def require_layout_isolated_to_component(dag: DAGCircuit, components_source: Target | CouplingMap):
     """
     Check that the layout of the dag does not require connectivity across connected components
     in the CouplingMap

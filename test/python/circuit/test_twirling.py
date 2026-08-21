@@ -31,7 +31,7 @@ from qiskit.circuit.random import random_circuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.target import Target
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 @ddt.ddt

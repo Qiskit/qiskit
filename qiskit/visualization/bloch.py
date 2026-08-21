@@ -105,8 +105,6 @@ VERSION_PATTERN_REGEX = re.compile(VERSION_PATTERN, re.VERBOSE | re.IGNORECASE)
 class Arrow3D(Patch3D, FancyArrowPatch):
     """Makes a fancy arrow"""
 
-    # pylint: disable=missing-function-docstring,invalid-name
-
     # Nasty hack around a poorly implemented deprecation warning in Matplotlib 3.5 that issues two
     # deprecation warnings if an artist's module does not claim to be part of the below module.
     # This revolves around the method `Patch3D.do_3d_projection(self, renderer=None)`.  The
@@ -123,7 +121,7 @@ class Arrow3D(Patch3D, FancyArrowPatch):
         # how it goes on to call set_3d_properties, so we just have to do things ourselves.  The
         # parent of Patch3D is Patch, which is also a parent of FancyArrowPatch, so its __init__ is
         # still getting suitably called.
-        # pylint: disable=super-init-not-called
+
         FancyArrowPatch.__init__(self, (0, 0), (0, 0), **kwargs)
         self.set_3d_properties(tuple(zip(xs, ys)), zs, zdir)
         self._path2d = None

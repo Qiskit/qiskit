@@ -22,9 +22,18 @@ from numpy.random import default_rng
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator, Stinespring
 
-# pylint: disable=unused-import
 from .dihedral.random import random_cnotdihedral
 from .symplectic.random import random_clifford, random_pauli, random_pauli_list
+
+__all__ = [
+    "random_clifford",
+    "random_cnotdihedral",
+    "random_hermitian",
+    "random_pauli",
+    "random_pauli_list",
+    "random_quantum_channel",
+    "random_unitary",
+]
 
 DEFAULT_RNG = default_rng()
 
@@ -115,7 +124,7 @@ def random_quantum_channel(
 
     Args:
         input_dims (int or tuple): the input dimension of the channel.
-        output_dims (int or tuple): the input dimension of the channel.
+        output_dims (int or tuple): the output dimension of the channel.
         rank (int): Optional. The rank of the quantum channel Choi-matrix.
         seed (int or np.random.Generator): Optional. Set a fixed seed or
                                            generator for RNG.

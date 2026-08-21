@@ -39,7 +39,7 @@ class ExperimentResultData:
     def __init__(
         self, counts=None, snapshots=None, memory=None, statevector=None, unitary=None, **kwargs
     ):
-        """Initialize an ExperimentalResult Data class
+        """Initialize an ExperimentResultData class
 
         Args:
             counts (dict): A dictionary where the keys are the result in
@@ -164,7 +164,7 @@ class ExperimentResult:
             self.seed = seed
         if meas_return is not None:
             if meas_return not in list(MeasReturnType):
-                raise QiskitError("%s not a valid meas_return value")
+                raise QiskitError(f"{meas_return} not a valid meas_return value")
             self.meas_return = meas_return
         self._metadata.update(kwargs)
 

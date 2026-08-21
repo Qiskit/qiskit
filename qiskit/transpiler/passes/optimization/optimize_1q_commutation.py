@@ -120,7 +120,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         # time
         run_clone = deque(run)
 
-        commuted = deque([])
+        commuted = deque()
         preindex, commutation_rule = None, None
         if isinstance(blocker, DAGOpNode):
             preindex = None

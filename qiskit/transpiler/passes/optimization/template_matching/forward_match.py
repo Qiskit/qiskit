@@ -80,47 +80,37 @@ class ForwardMatch:
         self.carg_indices = []
 
     def _init_successors_to_visit(self):
-        """
-        Initialize the attribute list 'SuccessorsToVisit'
-        """
-        for i in range(0, self.circuit_dag_dep.size()):
+        """Initialize the attribute list 'SuccessorsToVisit'"""
+        for i in range(self.circuit_dag_dep.size()):
             if i == self.node_id_c:
                 self.circuit_dag_dep.get_node(i).successorstovisit = (
                     self.circuit_dag_dep.direct_successors(i)
                 )
 
     def _init_matched_with_circuit(self):
-        """
-        Initialize the attribute 'MatchedWith' in the template DAG dependency.
-        """
-        for i in range(0, self.circuit_dag_dep.size()):
+        """Initialize the attribute 'MatchedWith' in the template DAG dependency."""
+        for i in range(self.circuit_dag_dep.size()):
             if i == self.node_id_c:
                 self.circuit_dag_dep.get_node(i).matchedwith = [self.node_id_t]
             else:
                 self.circuit_dag_dep.get_node(i).matchedwith = []
 
     def _init_matched_with_template(self):
-        """
-        Initialize the attribute 'MatchedWith' in the circuit DAG dependency.
-        """
-        for i in range(0, self.template_dag_dep.size()):
+        """Initialize the attribute 'MatchedWith' in the circuit DAG dependency."""
+        for i in range(self.template_dag_dep.size()):
             if i == self.node_id_t:
                 self.template_dag_dep.get_node(i).matchedwith = [self.node_id_c]
             else:
                 self.template_dag_dep.get_node(i).matchedwith = []
 
     def _init_is_blocked_circuit(self):
-        """
-        Initialize the attribute 'IsBlocked' in the circuit DAG dependency.
-        """
-        for i in range(0, self.circuit_dag_dep.size()):
+        """Initialize the attribute 'IsBlocked' in the circuit DAG dependency."""
+        for i in range(self.circuit_dag_dep.size()):
             self.circuit_dag_dep.get_node(i).isblocked = False
 
     def _init_is_blocked_template(self):
-        """
-        Initialize the attribute 'IsBlocked' in the template DAG dependency.
-        """
-        for i in range(0, self.template_dag_dep.size()):
+        """Initialize the attribute 'IsBlocked' in the template DAG dependency."""
+        for i in range(self.template_dag_dep.size()):
             self.template_dag_dep.get_node(i).isblocked = False
 
     def _init_list_match(self):
@@ -294,11 +284,10 @@ class ForwardMatch:
                         return target_qubits_template == target_qubits_circuit
                 else:
                     return False
+        elif node_template.op.name in ["rxx", "ryy", "rzz", "swap", "iswap", "ms"]:
+            return set(self.qarg_indices) == set(node_template.qindices)
         else:
-            if node_template.op.name in ["rxx", "ryy", "rzz", "swap", "iswap", "ms"]:
-                return set(self.qarg_indices) == set(node_template.qindices)
-            else:
-                return self.qarg_indices == node_template.qindices
+            return self.qarg_indices == node_template.qindices
 
     def _is_same_c_conf(self, node_circuit, node_template):
         """

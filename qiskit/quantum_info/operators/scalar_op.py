@@ -29,7 +29,7 @@ from qiskit.quantum_info.operators.mixins import generate_apidocs
 class ScalarOp(LinearOp):
     """Scalar identity operator class.
 
-    This is a symbolic representation of an scalar identity operator on
+    This is a symbolic representation of a scalar identity operator on
     multiple subsystems. It may be used to initialize a symbolic scalar
     multiplication of an identity and then be implicitly converted to other
     kinds of operator subclasses by using the :meth:`compose`, :meth:`dot`,

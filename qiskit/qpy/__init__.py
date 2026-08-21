@@ -199,6 +199,18 @@ of QPY in qiskit-terra 0.18.0.
    * - Qiskit (qiskit-terra for < 1.0.0) version
      - :func:`.dump` format(s) output versions
      - :func:`.load` maximum supported version (older format versions can always be read)
+   * - 2.5.0
+     - 13, 14, 15, 16, 17
+     - 17
+   * - 2.4.1
+     - 13, 14, 15, 16, 17
+     - 17
+   * - 2.4.0
+     - 13, 14, 15, 16, 17
+     - 17
+   * - 2.3.1
+     - 13, 14, 15, 16, 17
+     - 17
    * - 2.3.0
      - 13, 14, 15, 16, 17
      - 17
@@ -425,7 +437,8 @@ versions, the file header is immediately followed by the circuit payloads in seq
 without any padding in-between.
 
 All values use network byte order [#f1]_ (big endian) for cross platform
-compatibility.
+compatibility. The exception to this is for QPY format versions <= 17 the encoding of
+integers and floats as part of ``INSTRUCTION_PARAM`` is little endian.
 
 Each individual circuit is composed of the following parts in order from top to bottom:
 
@@ -448,6 +461,47 @@ Each individual circuit is composed of the following parts in order from top to 
 There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
+
+.. _qpy_version_18:
+
+Version 18
+----------
+
+Version 18 removes the ``CalibrationsPack`` field from the circuit payload. Pulse gate
+calibrations were removed from Qiskit in version 2.0, and since then the field has always
+been written as an empty placeholder (``num_cals = 0``). Dropping it saves 2 bytes per
+circuit and cleans up the format.
+
+Version 18 also corrects the encoding of integer and float ``INSTRUCTION_PARAM`` values
+to big-endian byte order, consistent with the rest of the QPY specification. In versions
+1–17 these were mistakenly written in little-endian.
+
+New ParamRegisterPack
+~~~~~~~~~~~~~~~~~~~~~
+Version 18 replaces the encoding of a `Register` payload, which stores either a whole
+:class:`.ClassicalRegister` or a single :class:`.Clbit`.  It appears as an instruction's condition
+(see :ref:`qpy_instructions`) and as an ``INSTRUCTION_PARAM`` of type ``'R'``.
+
+Up to :ref:`version 17 <qpy_version_17>` both cases shared one untyped utf8 string: a register was
+its bare name, while a clbit was a null character ``"\\x00"`` followed by the bit's index in the
+circuit *written out as decimal digits*.  From version 18 the payload begins with a tag byte
+identifying which of the two it is:
+
+.. code-block:: c
+
+    struct {                    // classical register, tag == 1
+      uint8_t kind;
+      char    name[];           // to the end of the payload
+    }
+
+    struct {                    // single clbit, tag == 0
+      uint8_t  kind;
+      uint32_t index;           // index of the bit in the circuit
+    }
+
+The register name needs no length of its own because the enclosing field already delimits the
+payload: ``conditional_reg_name_size`` for a condition, and the ``INSTRUCTION_PARAM`` header's
+``size`` for a parameter.
 
 .. _qpy_version_17:
 
@@ -601,7 +655,7 @@ defining the condition and its type.  The high bit of the byte is now a flag, in
 ``INSTRUCTION`` struct.
 
 A complete instruction payload appears in the data stream, including trailing objects and without
-any padding bytes inbetween elements, as:
+any padding bytes between elements, as:
 
 .. code-block:: text
 
@@ -2096,6 +2150,10 @@ utf8 data will be prefixed with a null character "\\x00" and then a utf8 string
 integer representing the classical bit index in the circuit that the condition
 is on.
 
+.. versionchanged:: QPY 18
+    This payload is a tagged struct rather than a utf8 string; see
+    :ref:`qpy_version_18`.
+
 This is immediately followed by the INSTRUCTION_ARG structs for the list of
 arguments of that instruction. These are in the order of all quantum arguments
 (there are num_qargs of these) followed by all classical arguments (num_cargs
@@ -2227,6 +2285,7 @@ from .exceptions import QpyError, UnsupportedFeatureForVersion, QPYLoadingDeprec
 from .interface import dump, load, get_qpy_version
 
 # For backward compatibility. Provide, Runtime, Experiment call these private functions.
+# ruff: disable[F401]
 from .binary_io import (
     _write_instruction,
     _read_instruction,
@@ -2234,4 +2293,18 @@ from .binary_io import (
     _read_parameter_expression,
     _read_parameter_expression_v3,
 )
+
+# ruff: enable[F401]
+
 from .common import QPY_VERSION, QPY_COMPATIBILITY_VERSION
+
+__all__ = [
+    "QPY_COMPATIBILITY_VERSION",
+    "QPY_VERSION",
+    "QPYLoadingDeprecatedFeatureWarning",
+    "QpyError",
+    "UnsupportedFeatureForVersion",
+    "dump",
+    "get_qpy_version",
+    "load",
+]

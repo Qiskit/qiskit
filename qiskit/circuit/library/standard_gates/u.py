@@ -18,7 +18,7 @@ import cmath
 import copy as _copy
 import math
 from cmath import exp
-from typing import Optional
+
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
@@ -61,11 +61,11 @@ class UGate(Gate):
 
     .. note::
 
-        The matrix representation shown here is the same as in the `OpenQASM 3.0 specification
-        <https://openqasm.com/language/gates.html#built-in-gates>`_,
-        which differs from the `OpenQASM 2.0 specification
-        <https://doi.org/10.48550/arXiv.1707.03429>`_ by a global phase of
-        :math:`e^{i(\phi+\lambda)/2}`.
+        The matrix representation shown here differs from the `OpenQASM 3.0 specification
+        <https://openqasm.com/language/gates.html#built-in-gates>`_ by a global phase of
+        :math:`e^{-i\theta/2}`.  It differs from the
+        `OpenQASM 2.0 specification <https://doi.org/10.48550/arXiv.1707.03429>`_ 
+        by a global phase of :math:`e^{i(\phi+\lambda)/2}`.
 
     Examples:
 
@@ -85,11 +85,11 @@ class UGate(Gate):
         theta: ParameterValueType,
         phi: ParameterValueType,
         lam: ParameterValueType,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
         r"""
         Args:
-            theta: The angle :math:`\theta corresponding to the :math:`R_Y(\theta)` rotation.
+            theta: The angle :math:`\theta` corresponding to the :math:`R_Y(\theta)` rotation.
             phi: The angle :math:`\phi` corresponding to the :math:`R_Z(\phi)` rotation.
             lam: The angle :math:`\lambda` corresponding to the :math:`R_Z(\lambda)` rotation.
             label: An optional label for the gate.
@@ -312,7 +312,7 @@ class CUGate(ControlledGate):
 
     def _define(self):
         """Default definition"""
-        # pylint: disable=cyclic-import
+
         from qiskit.circuit import QuantumCircuit
 
         #          ┌──────┐    ┌──────────────┐
