@@ -13,6 +13,176 @@
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyString;
+use std::any::Any;
+use std::fmt::Debug;
+
+/// Private traits that allow [`Annotation`] trait objects to be cloned.
+mod annotation_traits {
+    use crate::annotation::Annotation;
+
+    /// A trait which implements dynamically cloning [`Annotation`] dyn objects.
+    ///
+    /// If an annotation implements [`Clone`], this trait will be automatically implemented.
+    #[diagnostic::on_unimplemented(
+        message = "Clone is required to correctly implement Annotation on {Self}.",
+        label = "This type needs an implementation of Clone",
+        note = "Consider annotating {Self} with `#[derive(Clone)]`"
+    )]
+    pub trait ClonableAnnotation {
+        fn clone_dyn(&self) -> Box<dyn Annotation>;
+    }
+
+    impl<A: Clone + Annotation> ClonableAnnotation for A {
+        fn clone_dyn(&self) -> Box<dyn Annotation> {
+            Box::new(self.clone())
+        }
+    }
+}
+
+use annotation_traits::ClonableAnnotation;
+
+/// A native Rust annotation that can be attached to circuit instructions.
+///
+/// Implementors can use this trait to store annotation payloads directly in Rust-owned circuit
+/// data.  Existing Python-space annotations are represented by [`PyAnnotationObject`].
+pub trait Annotation: Any + Debug + Send + Sync + ClonableAnnotation {
+    /// The namespace that consumers use to dispatch annotation handling.
+    fn namespace(&self) -> &str;
+
+    /// Compare this annotation with another annotation.
+    fn equals(&self, other: &dyn Annotation) -> bool;
+
+    /// Compare this annotation with another annotation while attached to Python.
+    fn py_eq(&self, _py: Python<'_>, other: &dyn Annotation) -> PyResult<bool> {
+        Ok(self.equals(other))
+    }
+
+    /// Convert this annotation to its Python representation.
+    ///
+    /// Native Rust annotations that do not have a Python representation should leave the default
+    /// implementation in place.  Python-backed annotations implement this by cloning the stored
+    /// Python object reference.
+    fn to_python(&self, _py: Python<'_>) -> PyResult<Py<PyAny>> {
+        Err(pyo3::exceptions::PyTypeError::new_err(format!(
+            "annotation '{}' does not have a Python representation",
+            self.namespace()
+        )))
+    }
+}
+
+impl Clone for Box<dyn Annotation> {
+    fn clone(&self) -> Self {
+        self.clone_dyn()
+    }
+}
+
+impl PartialEq for dyn Annotation {
+    fn eq(&self, other: &Self) -> bool {
+        self.equals(other)
+    }
+}
+
+impl dyn Annotation + '_ {
+    /// Cast a reference to a concrete annotation type.
+    pub fn downcast_ref<T: Annotation + 'static>(&self) -> Option<&T> {
+        let self_as_any: &dyn Any = self;
+        self_as_any.downcast_ref()
+    }
+}
+
+/// Python-backed annotation payload.
+#[derive(Clone, Debug)]
+pub struct PyAnnotationObject {
+    annotation: Py<PyAny>,
+    namespace: String,
+}
+
+impl PyAnnotationObject {
+    /// Build a Rust-owned annotation wrapper from a Python annotation object.
+    pub fn new(py: Python<'_>, annotation: Py<PyAny>) -> Self {
+        let namespace = annotation
+            .bind(py)
+            .getattr(intern!(py, "namespace"))
+            .ok()
+            .and_then(|namespace| namespace.extract().ok())
+            .unwrap_or_default();
+        Self {
+            annotation,
+            namespace,
+        }
+    }
+
+    /// Borrow the wrapped Python object.
+    pub fn as_python(&self) -> &Py<PyAny> {
+        &self.annotation
+    }
+}
+
+impl Annotation for PyAnnotationObject {
+    fn namespace(&self) -> &str {
+        self.namespace.as_str()
+    }
+
+    fn equals(&self, other: &dyn Annotation) -> bool {
+        Python::attach(|py| self.py_eq(py, other).unwrap_or(false))
+    }
+
+    fn py_eq(&self, py: Python<'_>, other: &dyn Annotation) -> PyResult<bool> {
+        let Some(other) = other.downcast_ref::<Self>() else {
+            return Ok(false);
+        };
+        self.annotation.bind(py).eq(other.annotation.bind(py))
+    }
+
+    fn to_python(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        Ok(self.annotation.clone_ref(py))
+    }
+}
+
+impl From<PyAnnotationObject> for Box<dyn Annotation> {
+    fn from(value: PyAnnotationObject) -> Self {
+        Box::new(value)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct NativeAnnotation {
+        namespace: &'static str,
+        value: u64,
+    }
+
+    impl Annotation for NativeAnnotation {
+        fn namespace(&self) -> &str {
+            self.namespace
+        }
+
+        fn equals(&self, other: &dyn Annotation) -> bool {
+            other.downcast_ref::<Self>() == Some(self)
+        }
+    }
+
+    #[test]
+    fn native_annotations_clone_and_compare_as_trait_objects() {
+        let annotation: Box<dyn Annotation> = Box::new(NativeAnnotation {
+            namespace: "test.native",
+            value: 5,
+        });
+
+        let cloned = annotation.clone();
+        assert_eq!(annotation.namespace(), "test.native");
+        assert!(annotation.equals(cloned.as_ref()));
+
+        let different: Box<dyn Annotation> = Box::new(NativeAnnotation {
+            namespace: "test.native",
+            value: 8,
+        });
+        assert!(!annotation.equals(different.as_ref()));
+    }
+}
 
 /// An arbitrary annotation for instructions.
 ///

@@ -26,6 +26,7 @@ use qiskit_util::IndexSet;
 
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict, PyTuple};
+use qiskit_circuit::annotation::Annotation;
 use qiskit_circuit::bit::{
     ClassicalRegister, PyClbit, PyQubit, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
@@ -114,13 +115,15 @@ fn pack_instructions(
 }
 
 pub(crate) fn pack_annotations(
-    annotations: &[Py<PyAny>],
+    annotations: &[Box<dyn Annotation>],
     qpy_data: &mut QPYWriteData,
 ) -> PyResult<Option<formats::InstructionsAnnotationPack>> {
     let annotations_pack: Vec<formats::InstructionAnnotationPack> = annotations
         .iter()
         .map(|annotation| {
-            let (namespace_index, payload) = qpy_data.annotation_handler.serialize(annotation)?;
+            let py_annotation = Python::attach(|py| annotation.to_python(py))?;
+            let (namespace_index, payload) =
+                qpy_data.annotation_handler.serialize(&py_annotation)?;
             Ok(formats::InstructionAnnotationPack {
                 namespace_index,
                 payload,
