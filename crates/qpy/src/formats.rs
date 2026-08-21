@@ -61,6 +61,7 @@ pub struct QPYFileHeader {
 #[derive(Debug)]
 #[brw(import (version: u8))]
 pub struct QPYCircuit {
+    #[brw(args(version,))]
     pub header: CircuitHeaderV12Pack,
     #[br(count = header.num_vars)]
     pub standalone_vars: Vec<ExpressionVarDeclarationPack>,
@@ -71,6 +72,7 @@ pub struct QPYCircuit {
     pub instructions: Vec<CircuitInstructionV2Pack>,
     #[brw(if(version < 18), args(version,))]
     pub calibrations: Option<CalibrationsPack>,
+    #[brw(args(version,))]
     pub layout: LayoutV2Pack,
 }
 
@@ -80,6 +82,7 @@ pub struct QPYCircuit {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
+#[brw(import (version: u8))]
 pub struct CircuitHeaderV12Pack {
     #[bw(calc = circuit_name.len() as u16)]
     pub name_size: u16,
@@ -101,8 +104,19 @@ pub struct CircuitHeaderV12Pack {
     pub global_phase_data: Bytes,
     #[br(count = metadata_size)]
     pub metadata: Bytes,
-    #[br(count = num_registers)]
-    pub registers: Vec<RegisterV4Pack>,
+    #[br(count = num_registers, args { inner: (version,) })]
+    pub registers: Vec<RegisterPack>,
+}
+
+#[binrw]
+#[derive(Debug)]
+#[br(import (version: u8))]
+pub enum RegisterPack {
+    #[br(pre_assert(version < 18))]
+    V4(RegisterV4Pack),
+
+    #[br(pre_assert(version >= 18))]
+    V18(RegisterV18Pack),
 }
 
 // The data for a specific instruction in the circuit
@@ -224,6 +238,27 @@ pub struct CustomCircuitInstructionDefPack {
     pub data: Bytes,
     #[br(count = base_gate_size)]
     pub base_gate_raw: Bytes,
+}
+
+#[binread]
+#[binwrite]
+#[brw(big)]
+#[derive(Debug)]
+pub struct RegisterV18Pack {
+    pub register_type: RegisterType,
+    pub standalone: u8,
+    pub size: u32,
+    #[bw(calc = name.len() as u16)]
+    pub name_size: u16,
+    pub in_circuit: u8,
+    pub register_attachment: u8,
+    #[br(count = name_size as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
+    pub name: String,
+    #[br(if(register_attachment==1))]
+    pub start_index: u32,
+    #[br(if(register_attachment==0), count = size)]
+    pub bit_indices: Vec<u32>,
 }
 
 // Register data. Containing its type (qubits/clbits), its size, name,
@@ -392,6 +427,7 @@ impl ConditionPack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
+#[brw(import (version: u8))]
 pub struct LayoutV2Pack {
     pub exists: u8,
     pub initial_layout_size: i32,
@@ -400,8 +436,8 @@ pub struct LayoutV2Pack {
     #[bw(calc = extra_registers.len() as u32)]
     pub extra_registers_length: u32,
     pub input_qubit_count: i32,
-    #[br(count = extra_registers_length)]
-    pub extra_registers: Vec<RegisterV4Pack>,
+    #[br(count = extra_registers_length, args { inner: (version,) })]
+    pub extra_registers: Vec<RegisterPack>,
     #[br(count = initial_layout_size.max(0))]
     pub initial_layout_items: Vec<InitialLayoutItemV2Pack>,
     #[br(count = input_mapping_size.max(0))]

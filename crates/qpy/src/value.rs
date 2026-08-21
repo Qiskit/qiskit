@@ -688,7 +688,11 @@ pub(crate) fn serialize_generic_value(
         }
         GenericValue::Null => (ValueType::Null, Bytes::new()),
         GenericValue::CircuitData(circuit_data) => {
-            let layout = serialize(&crate::circuit_writer::pack_layout(None, circuit_data)?)?;
+            let layout = serialize(&crate::circuit_writer::pack_layout(
+                None,
+                circuit_data,
+                qpy_data.version,
+            )?)?;
             let packed_circuit = pack_circuit(
                 circuit_data,
                 ExtraCircuitData {
