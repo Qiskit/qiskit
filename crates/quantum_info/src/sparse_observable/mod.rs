@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 mod lookup;
+pub mod matrix;
 
 use hashbrown::HashSet;
 use itertools::Itertools;
