@@ -20,6 +20,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::{fmt, vec};
 
+use crate::annotation::Annotation;
 use crate::bit::{ClassicalRegister, ShareableClbit};
 use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::classical::expr;
@@ -540,7 +541,7 @@ impl<'py> IntoPyObject<'py> for LoopParam {
 pub enum ControlFlow {
     Box {
         duration: Option<BoxDuration>,
-        annotations: Vec<Py<PyAny>>,
+        annotations: Vec<Arc<dyn Annotation>>,
     },
     BreakLoop,
     ContinueLoop,
@@ -562,88 +563,6 @@ pub enum ControlFlow {
 }
 
 impl ControlFlowInstruction {
-    /// Check if another control flow operations is equivalent to this one.
-    ///
-    /// This can be removed and [ControlFlowInstruction] can be made to implement [PartialEq]
-    /// instead once `annotations` gets moved to the instruction.
-    pub fn py_eq(&self, py: Python, other: &ControlFlowInstruction) -> PyResult<bool> {
-        if self.num_qubits != other.num_qubits || self.num_clbits != other.num_clbits {
-            return Ok(false);
-        }
-        match &self.control_flow {
-            ControlFlow::Box {
-                duration: self_duration,
-                annotations: self_annotations,
-            } => match &other.control_flow {
-                ControlFlow::Box {
-                    duration: other_duration,
-                    annotations: other_annotations,
-                } => {
-                    if self_duration != other_duration
-                        || self_annotations.len() != other_annotations.len()
-                    {
-                        return Ok(false);
-                    }
-                    for (a, b) in self_annotations.iter().zip(other_annotations) {
-                        if !a.bind(py).eq(b)? {
-                            return Ok(false);
-                        }
-                    }
-                    Ok(true)
-                }
-                _ => Ok(false),
-            },
-            ControlFlow::BreakLoop => match &other.control_flow {
-                ControlFlow::BreakLoop => Ok(true),
-                _ => Ok(false),
-            },
-            ControlFlow::ContinueLoop => match &other.control_flow {
-                ControlFlow::ContinueLoop => Ok(true),
-                _ => Ok(false),
-            },
-            ControlFlow::ForLoop {
-                collection: self_collection,
-                loop_param: self_loop_param,
-            } => match &other.control_flow {
-                ControlFlow::ForLoop {
-                    collection: other_collection,
-                    loop_param: other_loop_param,
-                } => Ok(self_collection == other_collection && self_loop_param == other_loop_param),
-                _ => Ok(false),
-            },
-            ControlFlow::IfElse {
-                condition: self_condition,
-            } => match &other.control_flow {
-                ControlFlow::IfElse {
-                    condition: other_condition,
-                } => Ok(self_condition == other_condition),
-                _ => Ok(false),
-            },
-            ControlFlow::Switch {
-                target: self_target,
-                label_spec: self_label_spec,
-                cases: self_cases,
-            } => match &other.control_flow {
-                ControlFlow::Switch {
-                    target: other_target,
-                    label_spec: other_label_spec,
-                    cases: other_cases,
-                } => Ok(self_cases == other_cases
-                    && self_target == other_target
-                    && self_label_spec == other_label_spec),
-                _ => Ok(false),
-            },
-            ControlFlow::While {
-                condition: self_condition,
-            } => match &other.control_flow {
-                ControlFlow::While {
-                    condition: other_condition,
-                } => Ok(self_condition == other_condition),
-                _ => Ok(false),
-            },
-        }
-    }
-
     pub fn create_py_op(
         &self,
         py: Python,
@@ -680,7 +599,12 @@ impl ControlFlowInstruction {
                         duration,
                         unit,
                         label,
-                        PyTuple::new(py, annotations)?,
+                        PyTuple::new(
+                            py,
+                            annotations
+                                .iter()
+                                .map(|a| a.create_py_annotation(py).unwrap()),
+                        )?,
                     ),
                 )
             }
@@ -753,6 +677,83 @@ impl ControlFlowInstruction {
                 ),
                 kwargs.as_ref(),
             ),
+        }
+    }
+}
+
+impl PartialEq for ControlFlowInstruction {
+    /// Check if another control flow operations is equivalent to this one.
+    fn eq(&self, other: &ControlFlowInstruction) -> bool {
+        if self.num_qubits != other.num_qubits || self.num_clbits != other.num_clbits {
+            return false;
+        }
+        match &self.control_flow {
+            ControlFlow::Box {
+                duration: self_duration,
+                annotations: self_annotations,
+            } => match &other.control_flow {
+                ControlFlow::Box {
+                    duration: other_duration,
+                    annotations: other_annotations,
+                } => {
+                    if self_duration != other_duration
+                        || self_annotations.len() != other_annotations.len()
+                    {
+                        return false;
+                    }
+                    for (a, b) in self_annotations.iter().zip(other_annotations) {
+                        if a != b {
+                            return false;
+                        }
+                    }
+                    true
+                }
+                _ => false,
+            },
+            ControlFlow::BreakLoop => matches!(&other.control_flow, ControlFlow::BreakLoop),
+            ControlFlow::ContinueLoop => matches!(&other.control_flow, ControlFlow::ContinueLoop),
+            ControlFlow::ForLoop {
+                collection: self_collection,
+                loop_param: self_loop_param,
+            } => match &other.control_flow {
+                ControlFlow::ForLoop {
+                    collection: other_collection,
+                    loop_param: other_loop_param,
+                } => self_collection == other_collection && self_loop_param == other_loop_param,
+                _ => false,
+            },
+            ControlFlow::IfElse {
+                condition: self_condition,
+            } => match &other.control_flow {
+                ControlFlow::IfElse {
+                    condition: other_condition,
+                } => self_condition == other_condition,
+                _ => false,
+            },
+            ControlFlow::Switch {
+                target: self_target,
+                label_spec: self_label_spec,
+                cases: self_cases,
+            } => match &other.control_flow {
+                ControlFlow::Switch {
+                    target: other_target,
+                    label_spec: other_label_spec,
+                    cases: other_cases,
+                } => {
+                    self_cases == other_cases
+                        && self_target == other_target
+                        && self_label_spec == other_label_spec
+                }
+                _ => false,
+            },
+            ControlFlow::While {
+                condition: self_condition,
+            } => match &other.control_flow {
+                ControlFlow::While {
+                    condition: other_condition,
+                } => self_condition == other_condition,
+                _ => false,
+            },
         }
     }
 }

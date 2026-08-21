@@ -10,6 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::sync::Arc;
+
+use qiskit_circuit::annotation::{Annotation, extract_annotation};
+
 use crate::bytes::Bytes;
 use crate::error::QpyError;
 use pyo3::prelude::*;
@@ -64,27 +68,37 @@ impl AnnotationHandler {
         }
     }
 
-    pub fn serialize(&self, annotation: &Py<PyAny>) -> Result<(u32, Bytes), QpyError> {
+    pub fn serialize(&self, annotation: &dyn Annotation) -> Result<(u32, Bytes), QpyError> {
         match self {
             Self::Python {
                 serialization_state,
                 ..
             } => Python::attach(|py| {
+                let ob = annotation.create_py_annotation(py)?;
                 Ok(serialization_state
-                    .call_method1(py, "serialize", (annotation,))?
+                    .call_method1(py, "serialize", (ob,))?
                     .extract(py)?)
             }),
             Self::Native => Err(Self::native_error("serialize")),
         }
     }
 
-    pub fn load(&self, index: u32, payload: Bytes) -> Result<Py<PyAny>, QpyError> {
+    pub fn load_py(&self, py: Python, index: u32, payload: Bytes) -> Result<Py<PyAny>, QpyError> {
         match self {
             Self::Python {
                 deserialization_state,
                 ..
-            } => Python::attach(|py| {
-                Ok(deserialization_state.call_method1(py, "load", (index, payload))?)
+            } => Ok(deserialization_state.call_method1(py, "load", (index, payload))?),
+            Self::Native => Err(Self::native_error("deserialize")),
+        }
+    }
+
+    pub fn load(&self, index: u32, payload: Bytes) -> Result<Arc<dyn Annotation>, QpyError> {
+        match self {
+            Self::Python { .. } => Python::attach(|py| {
+                Ok(extract_annotation(
+                    self.load_py(py, index, payload)?.bind(py),
+                ))
             }),
             Self::Native => Err(Self::native_error("deserialize")),
         }
