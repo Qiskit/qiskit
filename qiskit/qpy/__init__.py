@@ -462,6 +462,47 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+.. _qpy_version_18:
+
+Version 18
+----------
+
+Version 18 removes the ``CalibrationsPack`` field from the circuit payload. Pulse gate
+calibrations were removed from Qiskit in version 2.0, and since then the field has always
+been written as an empty placeholder (``num_cals = 0``). Dropping it saves 2 bytes per
+circuit and cleans up the format.
+
+Version 18 also corrects the encoding of integer and float ``INSTRUCTION_PARAM`` values
+to big-endian byte order, consistent with the rest of the QPY specification. In versions
+1–17 these were mistakenly written in little-endian.
+
+New ParamRegisterPack
+~~~~~~~~~~~~~~~~~~~~~
+Version 18 replaces the encoding of a `Register` payload, which stores either a whole
+:class:`.ClassicalRegister` or a single :class:`.Clbit`.  It appears as an instruction's condition
+(see :ref:`qpy_instructions`) and as an ``INSTRUCTION_PARAM`` of type ``'R'``.
+
+Up to :ref:`version 17 <qpy_version_17>` both cases shared one untyped utf8 string: a register was
+its bare name, while a clbit was a null character ``"\\x00"`` followed by the bit's index in the
+circuit *written out as decimal digits*.  From version 18 the payload begins with a tag byte
+identifying which of the two it is:
+
+.. code-block:: c
+
+    struct {                    // classical register, tag == 1
+      uint8_t kind;
+      char    name[];           // to the end of the payload
+    }
+
+    struct {                    // single clbit, tag == 0
+      uint8_t  kind;
+      uint32_t index;           // index of the bit in the circuit
+    }
+
+The register name needs no length of its own because the enclosing field already delimits the
+payload: ``conditional_reg_name_size`` for a condition, and the ``INSTRUCTION_PARAM`` header's
+``size`` for a parameter.
+
 .. _qpy_version_17:
 
 Version 17
@@ -2108,6 +2149,10 @@ register name. In case of single classical bit conditions the register name
 utf8 data will be prefixed with a null character "\\x00" and then a utf8 string
 integer representing the classical bit index in the circuit that the condition
 is on.
+
+.. versionchanged:: QPY 18
+    This payload is a tagged struct rather than a utf8 string; see
+    :ref:`qpy_version_18`.
 
 This is immediately followed by the INSTRUCTION_ARG structs for the list of
 arguments of that instruction. These are in the order of all quantum arguments
