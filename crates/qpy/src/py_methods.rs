@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 // Methods for QPY serialization working directly with Python-based data
+use crate::value::ValueEndian;
 use binrw::Endian;
 use numpy::Complex64;
 use pyo3::IntoPyObjectExt;
@@ -23,6 +24,7 @@ use std::num::NonZero;
 use std::sync::Arc;
 
 use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::classical;
 use qiskit_circuit::imports;
 use qiskit_circuit::operations::{Operation, OperationRef, PyInstruction, PyOpKind, PyRange};
@@ -32,6 +34,7 @@ use qiskit_quantum_info::sparse_observable::PySparseObservable;
 use uuid::Uuid;
 
 use crate::bytes::Bytes;
+use crate::circuit_reader::unpack_layout;
 use crate::circuit_writer::standard_instruction_class_name;
 use crate::error::QpyError;
 use crate::formats;
@@ -381,7 +384,17 @@ pub(crate) fn py_convert_to_generic_value(
                 .map_err(|e| QpyError::from(PyErr::from(e)))?
                 .inner,
         ))),
-        ValueType::Circuit => Ok(GenericValue::Circuit(py_object.clone().unbind())),
+        ValueType::Circuit => {
+            py_object.getattr("data")?; // in case _data is lazily generated in python
+            let py_circuit_data = py_object.getattr("_data")?;
+            let circuit_data = py_circuit_data
+                .cast::<PyCircuitData>()
+                .map_err(PyErr::from)?
+                .borrow()
+                .inner
+                .clone();
+            Ok(GenericValue::CircuitData(Box::new(circuit_data)))
+        }
         ValueType::Tuple => {
             let elements: Vec<GenericValue> = py_object
                 .try_iter()?
@@ -439,7 +452,6 @@ pub(crate) fn py_convert_from_generic_value(value: &GenericValue) -> Result<Py<P
                 Ok(PyParameter(symbol.clone()).into_py_any(py)?)
             }
             GenericValue::ParameterExpression(exp) => Ok(exp.as_ref().clone().into_py_any(py)?),
-            GenericValue::Circuit(py_object) => Ok(py_object.clone()),
             GenericValue::CircuitData(circuit_data) => {
                 Ok(circuit_data.clone().into_py_quantum_circuit(py)?.unbind())
             }
@@ -468,12 +480,13 @@ pub(crate) fn py_convert_from_generic_value(value: &GenericValue) -> Result<Py<P
 pub(crate) fn py_pack_param(
     py_object: &Bound<PyAny>,
     qpy_data: &QPYWriteData,
-    endian: Endian,
+    endian: ValueEndian,
 ) -> Result<formats::GenericDataPack, QpyError> {
     let value = py_convert_to_generic_value(py_object)?;
-    let (type_key, data) = match endian {
-        Endian::Big => serialize_generic_value(&value, qpy_data)?,
-        Endian::Little => serialize_generic_value(&value.as_le(), qpy_data)?,
+    let (type_key, data) = if endian.resolve(qpy_data.version) == Endian::Little {
+        serialize_generic_value(&value.as_le(), qpy_data)?
+    } else {
+        serialize_generic_value(&value, qpy_data)?
     };
     Ok(formats::GenericDataPack { type_key, data })
 }
@@ -536,5 +549,43 @@ pub(crate) fn py_unpack_modifier(
                 .call((), Some(&kwargs))?
                 .unbind())
         }
+    })
+}
+
+fn deserialize_metadata(
+    py: Python,
+    metadata_bytes: &Bytes,
+    metadata_deserializer: Option<&Py<PyAny>>,
+) -> Result<Py<PyAny>, QpyError> {
+    let json = py.import("json")?;
+    let kwargs: Bound<'_, PyDict> = PyDict::new(py);
+    kwargs.set_item("cls", metadata_deserializer)?;
+    let metadata_string = PyString::new(py, metadata_bytes.try_into()?);
+    Ok(json
+        .call_method("loads", (metadata_string,), Some(&kwargs))?
+        .unbind())
+}
+
+// This function finalizes the creation of QuantumCircuit from CircuitData by performing the Python-only
+// required operations: handling layouts and metadata, and creating the Python QuantumCircuit object.
+pub(crate) fn py_circuit_data_to_quantum_circuit(
+    circuit_data: CircuitData,
+    packed_circuit: &formats::QPYCircuit,
+    metadata_deserializer: Option<&Py<PyAny>>,
+) -> Result<Py<PyAny>, QpyError> {
+    Python::attach(|py| {
+        let py_circuit_data: PyCircuitData = circuit_data.into();
+        let unpacked_layout = unpack_layout(py, &packed_circuit.layout, &py_circuit_data)?;
+        let metadata =
+            deserialize_metadata(py, &packed_circuit.header.metadata, metadata_deserializer)?;
+        let circuit = imports::QUANTUM_CIRCUIT
+            .get_bound(py)
+            .call_method1(intern!(py, "_from_circuit_data"), (py_circuit_data,))?;
+        circuit.setattr("metadata", metadata)?;
+        circuit.setattr("name", &packed_circuit.header.circuit_name)?;
+        if let Some(layout) = unpacked_layout {
+            circuit.setattr("_layout", layout)?;
+        }
+        Ok(circuit.unbind().as_any().clone())
     })
 }

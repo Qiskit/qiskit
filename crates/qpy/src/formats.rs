@@ -69,8 +69,8 @@ pub struct QPYCircuit {
     pub custom_instructions: CustomCircuitInstructionsPack,
     #[br(count = header.num_instructions, args { inner: (true,) })]
     pub instructions: Vec<CircuitInstructionV2Pack>,
-    #[br(args(version,))]
-    pub calibrations: CalibrationsPack,
+    #[brw(if(version < 18), args(version,))]
+    pub calibrations: Option<CalibrationsPack>,
     pub layout: LayoutV2Pack,
 }
 
@@ -254,7 +254,8 @@ pub struct RegisterV4Pack {
 // 1) None.
 // 2) Two-tuple: a tuple of the form (register, target) where the register value should be compared with the target.
 // In this case the target is a python int, represented in rust as BigUInt, but in python qpy it was saved using i64 so we keep it for now.
-// Note that we also use (clbit, bool_target) as two tuple, where the clbit is encoded using the "\x00" hack that can be seen in ParamRegisterValue
+// Note that we also use (clbit, bool_target) as two tuple; register and clbit alike are encoded as
+// a register payload, see `ParamRegisterPack` below
 // 3) Expression
 // In the two-tuple representation, the target value is stored in the `value` field and the number of bytes in the serialized registered are stored in the
 // `register_size` fields. Both are unused in the other cases, making the packing and decoding of this struct rather non-uniform.
@@ -286,13 +287,33 @@ impl TryFrom<u8> for ConditionType {
     }
 }
 
-// register SHOULD be a string, but since we encode some registers starting with "\x00" they are rendered illegal
-// we should probably change this in future versions to support magic numbers (TODO: change in QPY18?)
+// The condition's register is carried as an opaque blob because its encoding depends on the QPY
+// version: up to 17 it is the string hack described on `ParamRegisterPack`, from 18 it is that
+// tagged struct.  `value::load_param_register_value` decodes it.
 #[derive(Debug)]
 pub enum ConditionData {
     None,
     Register(Bytes),
     Expression(GenericDataPack),
+}
+
+/// A `Register` payload, which is either a whole `ClassicalRegister` or a single `Clbit`.  It
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub enum ParamRegisterPack {
+    /// A classical register, identified by name.  The name runs to the end of the payload, whose
+    /// length the enclosing field already carries (`condition_register_size` for a condition, the
+    /// `INSTRUCTION_PARAM` header's `size` for a parameter), so it needs no length of its own.
+    #[brw(magic = 1u8)]
+    Register {
+        #[br(parse_with = binrw::helpers::until_eof, try_map = String::from_utf8)]
+        #[bw(map = |name| name.as_bytes())]
+        name: String,
+    },
+    /// A single clbit, identified by its index in the circuit's clbit list.
+    #[brw(magic = 0u8)]
+    Clbit { index: u32 },
 }
 
 // most of the data here is "virtual" in the sense that is is not stored as-is
@@ -765,7 +786,7 @@ pub struct MappingItem {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[br(import(qpy_read_data: &'a QPYReadData<'a>))]
+#[br(import(qpy_read_data: &QPYReadData))]
 #[bw(import(qpy_write_data: &'a QPYWriteData<'a>))]
 pub struct ExpressionPack<'a> {
     #[br(parse_with = read_expression, args(qpy_read_data))]

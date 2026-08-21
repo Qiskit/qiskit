@@ -30,7 +30,7 @@ updates:
       # Catch-all for all other Actions update.  Dependabot guarantees that packages are updated in
       # the first group they match, so previous matches won't get folded into here.
       github-actions:
-        patterns: 
+        patterns:
           - "*"
     schedule:
       interval: weekly
@@ -38,10 +38,6 @@ updates:
       - "type: qa"
       - "dependencies"
       - "Changelog: None"
-    ignore:
-      # The version of this is used as a cutesy way to select the Rust version instead of doing
-      # things with an Actions input.
-      - { dependency-name: "dtolnay/rust-toolchain", versions: [">1.7.0"] }
 
   # Configuration for the wheels-build job.
   #
