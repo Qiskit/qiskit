@@ -192,11 +192,11 @@ The order of disclosure and release for an accepted report is as follows:
    There may be additional CVEs issued against downstream users of Qiskit SDK, which are not covered by this policy.
    Fill in the advisory with this, and all other necessary details listed below this process.
 
-2. Prepare and review the fixes for each supported branch, as in the above section.
+2. Prepare, review, and approve the fixes for each supported branch, as in the above section.
 
 3. Co-ordinate a disclosure date and time with the responsible owner (currently IBM PSIRT).
 
-4. At the specified time, re-open the approved PRs, now on the *public* repository.
+4. At the specified time, recreate the approved PRs using the same code but now on the *public* repository.
    **Do not publish the advisory yet.**
    Allow the complete CI suite to pass, after fixing any caught mistakes.
    Have the reviewers from the private fork verify and re-approve the now-public PR.
