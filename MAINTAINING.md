@@ -188,7 +188,7 @@ When designing a fix, consider these points:
 
 The order of disclosure and release for an accepted report is as follows:
 
-1. Co-ordinate with the responsible CVE issuer (currently IBM PSIRT) to receive a complete CVSS score _specifically for Qiskit SDK_.
+1. Co-ordinate with the responsible CVE[^1] issuer (currently IBM PSIRT) to receive a complete CVSS[^2] score _specifically for Qiskit SDK_.
    There may be additional CVEs issued against downstream users of Qiskit SDK, which are not covered by this policy.
    Fill in the advisory with this, and all other necessary details listed below this process.
 
@@ -228,6 +228,9 @@ Checklist for publication of an advisory:
   reviewer" credits.
   If the vulnerability finder/reporter was not involved in the fix, give them a "finder" credit.
   Each person can only have one credited role.
+
+[^1]: "CVE" is the [Common Vulnerabilities and Exposures system](https://en.wikipedia.org/wiki/Common_Vulnerabilities_and_Exposures).
+[^2]: "CVSS" is the [Common Vulnerability Scoring System](https://en.wikipedia.org/wiki/Common_Vulnerability_Scoring_System).
 
 ## Stable Branch Policy
 
