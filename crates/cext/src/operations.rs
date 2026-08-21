@@ -186,7 +186,7 @@ impl CustomOperation for CustomOp {
         if definition.is_null() {
             return None;
         }
-        let circ = unsafe { Box::from_raw(*definition) };
+        let circ = unsafe { Box::from_raw(definition) };
         Some(*circ)
     }
 
@@ -232,7 +232,7 @@ pub struct CustomOpVtable {
     pub is_unitary: fn(*const ()) -> bool,
     pub num_ctrl_qubits: fn(*const ()) -> u32,
     pub label: fn(*const ()) -> *const c_char,
-    pub definition: fn(*const (), *const Param) -> *mut *mut CircuitData,
+    pub definition: fn(*const (), *const Param) -> *mut CircuitData,
     pub eq: fn(*const (), *const ()) -> bool,
 }
 
@@ -244,7 +244,7 @@ fn default_label(_slf: *const ()) -> *const c_char {
     null()
 }
 
-fn default_definition(_slf: *const (), _params: *const Param) -> *mut *mut CircuitData {
+fn default_definition(_slf: *const (), _params: *const Param) -> *mut CircuitData {
     null_mut()
 }
 
@@ -291,7 +291,7 @@ pub struct CustomOpVtablePartial {
     pub is_unitary: Option<fn(*const ()) -> bool>,
     pub num_ctrl_qubits: Option<fn(*const ()) -> u32>,
     pub label: Option<fn(*const ()) -> *const c_char>,
-    pub definition: Option<fn(*const (), *const Param) -> *mut *mut CircuitData>,
+    pub definition: Option<fn(*const (), *const Param) -> *mut CircuitData>,
     pub eq: Option<fn(*const (), *const ()) -> bool>,
 }
 
@@ -479,7 +479,7 @@ pub unsafe extern "C" fn qk_custom_op_new_vtable(
                 vtable.definition = Some(unsafe {
                     std::mem::transmute::<
                         *const c_void,
-                        fn(*const (), *const Param) -> *mut *mut CircuitData,
+                        fn(*const (), *const Param) -> *mut CircuitData,
                     >(slot.func)
                 })
             }
