@@ -373,13 +373,18 @@ pub enum {name} {{
         let name = &val.name;
         let Some(fields) = val.fields.as_deref() else {
             // In the absence of Rust-stable `extern type`, this is the Nomicon-approved way of
-            // defining an opaque type:
+            // defining an opaque type, with the addition of `[()]` to ensure the type is `!Sized`:
             //      https://doc.rust-lang.org/nomicon/ffi.html#representing-opaque-structs
+            //
+            // It helps to make things forcibly unsized so that you can't produce things like
+            // `&[Ty]`, which is important for `CInstructionView::params` where we _do_ expose a
+            // contiguous buffer of `QkParam` without specifying a compile-time width of it.
             return format!(
                 "
 #[repr(C)]
 pub struct {name} {{
-    _private: ::core::marker::PhantomData<(*mut u8, ::core::marker::PhantomPinned)>,
+    _variance: ::core::marker::PhantomData<(*mut u8, ::core::marker::PhantomPinned)>,
+    _unsized: [u8],
 }}"
             );
         };
