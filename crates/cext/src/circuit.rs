@@ -2481,7 +2481,7 @@ pub unsafe extern "C" fn qk_circuit_draw(
         (true, true, None)
     };
 
-    let circuit_str = draw_circuit(circuit, bundle_cregs, merge_wires, fold).unwrap();
+    let circuit_str = draw_circuit(circuit, bundle_cregs, merge_wires, fold);
 
     CString::new(circuit_str).unwrap().into_raw()
 }
@@ -2518,7 +2518,7 @@ pub unsafe extern "C" fn qk_circuit_to_dag(circuit: *const CircuitData) -> *mut 
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
-    let dag = DAGCircuit::from_circuit_data(circuit, true, None, None, None, None)
+    let dag = DAGCircuit::from_circuit_data(circuit, true, None, None)
         .expect("Error occurred while converting CircuitData to DAGCircuit");
 
     Box::into_raw(Box::new(dag))
