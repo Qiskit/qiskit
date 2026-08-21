@@ -182,6 +182,7 @@ impl CustomOperation for CustomOp {
     }
 
     fn definition(&self, params: &[Param]) -> Option<CircuitData> {
+        let params: Vec<*const Param> = params.iter().map(|obj| obj as *const Param).collect();
         let definition = ((unsafe { &*self.v_table }).definition)(self.orig, params.as_ptr());
         if definition.is_null() {
             return None;
@@ -220,7 +221,7 @@ impl CustomOperation for CustomOp {
 ///
 /// * ``num_ctrl_qubits(*const ())`` -> ``u32``,
 /// * ``label(*const ())`` ->  ``*const c_char``,
-/// * ``definition(*const (), *const Param)`` -> ``*mut *mut CircuitData``,
+/// * ``definition(*const (), *const Param)`` -> ``*mut CircuitData``,
 /// * ``eq(*const (), *const ())`` -> ``bool``, to compare two operations of the same kind.
 #[derive(Debug, Clone)]
 pub struct CustomOpVtable {
@@ -232,7 +233,7 @@ pub struct CustomOpVtable {
     pub is_unitary: fn(*const ()) -> bool,
     pub num_ctrl_qubits: fn(*const ()) -> u32,
     pub label: fn(*const ()) -> *const c_char,
-    pub definition: fn(*const (), *const Param) -> *mut CircuitData,
+    pub definition: fn(*const (), *const *const Param) -> *mut CircuitData,
     pub eq: fn(*const (), *const ()) -> bool,
 }
 
@@ -244,7 +245,7 @@ fn default_label(_slf: *const ()) -> *const c_char {
     null()
 }
 
-fn default_definition(_slf: *const (), _params: *const Param) -> *mut CircuitData {
+fn default_definition(_slf: *const (), _params: *const *const Param) -> *mut CircuitData {
     null_mut()
 }
 
@@ -291,7 +292,7 @@ pub struct CustomOpVtablePartial {
     pub is_unitary: Option<fn(*const ()) -> bool>,
     pub num_ctrl_qubits: Option<fn(*const ()) -> u32>,
     pub label: Option<fn(*const ()) -> *const c_char>,
-    pub definition: Option<fn(*const (), *const Param) -> *mut CircuitData>,
+    pub definition: Option<fn(*const (), *const *const Param) -> *mut CircuitData>,
     pub eq: Option<fn(*const (), *const ()) -> bool>,
 }
 
@@ -479,7 +480,7 @@ pub unsafe extern "C" fn qk_custom_op_new_vtable(
                 vtable.definition = Some(unsafe {
                     std::mem::transmute::<
                         *const c_void,
-                        fn(*const (), *const Param) -> *mut CircuitData,
+                        fn(*const (), *const *const Param) -> *mut CircuitData,
                     >(slot.func)
                 })
             }
