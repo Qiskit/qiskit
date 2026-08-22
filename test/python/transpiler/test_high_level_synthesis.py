@@ -71,7 +71,13 @@ from qiskit.synthesis.arithmetic import adder_qft_d00
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
 from qiskit.converters import dag_to_circuit, circuit_to_dag, circuit_to_instruction
-from qiskit.transpiler import PassManager, TranspilerError, CouplingMap, Target
+from qiskit.transpiler import (
+    PassManager,
+    TranspilerError,
+    CouplingMap,
+    Target,
+    OptimizationMetric,
+)
 from qiskit.transpiler.passes.basis import BasisTranslator
 from qiskit.transpiler.passes.synthesis.plugin import (
     HighLevelSynthesisPlugin,
@@ -88,6 +94,7 @@ from qiskit.transpiler.passes.synthesis.hls_plugins import (
     MCXSynthesis1CleanB95,
     MCXSynthesisNCleanM15,
     MCXSynthesisNDirtyI15,
+    MCXSynthesisNDirtyM15,
     MCXSynthesis2CleanKG24,
     MCXSynthesis2DirtyKG24,
     MCXSynthesis1CleanKG24,
@@ -2766,21 +2773,59 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
         supported_plugin_names = high_level_synthesis_plugin_names("mcx")
         self.assertIn("default", supported_plugin_names)
 
+    @data(OptimizationMetric.COUNT_T, OptimizationMetric.COUNT_2Q)
+    def test_default_prefers_n_dirty_m15(self, optimization_metric):
+        """Test the default selects dirty M15 for four or more controls when applicable."""
+        for num_ctrl_qubits in range(4, 8):
+            with self.subTest(num_ctrl_qubits=num_ctrl_qubits):
+                decomposition = MCXSynthesisDefault().run(
+                    MCXGate(num_ctrl_qubits),
+                    num_clean_ancillas=0,
+                    num_dirty_ancillas=(num_ctrl_qubits - 1) // 2,
+                    optimization_metric=optimization_metric,
+                )
+                counts = decomposition.count_ops()
+
+                self.assertEqual(counts["cx"], 8 * num_ctrl_qubits - 12)
+                self.assertEqual(counts["t"] + counts["tdg"], 8 * num_ctrl_qubits - 8)
+
+    def test_default_selects_c3x_by_metric(self):
+        """Test the C3X default uses NDirtyI15 for CX and dirty M15 for T count."""
+        count_2q = MCXSynthesisDefault().run(
+            MCXGate(3),
+            num_clean_ancillas=0,
+            num_dirty_ancillas=1,
+            optimization_metric=OptimizationMetric.COUNT_2Q,
+        )
+        count_t = MCXSynthesisDefault().run(
+            MCXGate(3),
+            num_clean_ancillas=0,
+            num_dirty_ancillas=1,
+            optimization_metric=OptimizationMetric.COUNT_T,
+        )
+
+        self.assertEqual(count_2q.num_qubits, 4)
+        self.assertEqual(count_2q.count_ops()["cx"], 14)
+        self.assertEqual(count_2q.count_ops()["p"], 15)
+        self.assertEqual(count_t.num_qubits, 5)
+        self.assertEqual(count_t.count_ops()["cx"], 14)
+        self.assertEqual(count_t.count_ops()["t"] + count_t.count_ops()["tdg"], 16)
+
     def test_mcx_plugins_applicability(self):
         """Test applicability of MCX synthesis plugins for MCX gates."""
         gate = MCXGate(5)
 
-        with self.subTest(method="n_clean_m15", num_clean_ancillas=4, num_dirty_ancillas=4):
+        with self.subTest(method="n_clean_m15", num_clean_ancillas=2, num_dirty_ancillas=4):
             # should have a decomposition
             decomposition = MCXSynthesisNCleanM15().run(
-                gate, num_clean_ancillas=4, num_dirty_ancillas=4
+                gate, num_clean_ancillas=2, num_dirty_ancillas=4
             )
             self.assertIsNotNone(decomposition)
 
-        with self.subTest(method="n_clean_m15", num_clean_ancillas=2, num_dirty_ancillas=4):
+        with self.subTest(method="n_clean_m15", num_clean_ancillas=1, num_dirty_ancillas=4):
             # should not have a decomposition
             decomposition = MCXSynthesisNCleanM15().run(
-                gate, num_clean_ancillas=2, num_dirty_ancillas=4
+                gate, num_clean_ancillas=1, num_dirty_ancillas=4
             )
             self.assertIsNone(decomposition)
 
@@ -2802,6 +2847,18 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
             # should not have a decomposition
             decomposition = MCXSynthesisNDirtyI15().run(
                 gate, num_clean_ancillas=1, num_dirty_ancillas=1
+            )
+            self.assertIsNone(decomposition)
+
+        with self.subTest(method="n_dirty_m15", num_clean_ancillas=1, num_dirty_ancillas=1):
+            decomposition = MCXSynthesisNDirtyM15().run(
+                gate, num_clean_ancillas=1, num_dirty_ancillas=1
+            )
+            self.assertIsNotNone(decomposition)
+
+        with self.subTest(method="n_dirty_m15", num_clean_ancillas=0, num_dirty_ancillas=1):
+            decomposition = MCXSynthesisNDirtyM15().run(
+                gate, num_clean_ancillas=0, num_dirty_ancillas=1
             )
             self.assertIsNone(decomposition)
 
@@ -2976,6 +3033,7 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
     @data(
         "n_clean_m15",
         "n_dirty_i15",
+        "n_dirty_m15",
         "2_clean_kg24",
         "2_dirty_kg24",
         "1_clean_kg24",
@@ -3003,6 +3061,7 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
     @data(
         "n_clean_m15",
         "n_dirty_i15",
+        "n_dirty_m15",
         "2_clean_kg24",
         "2_dirty_kg24",
         "1_clean_kg24",

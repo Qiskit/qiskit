@@ -22,6 +22,7 @@ from qiskit._accelerate.synthesis.multi_controlled import (
     c3x as c3x_rs,
     c4x as c4x_rs,
     synth_mcx_n_dirty_i15 as synth_mcx_n_dirty_i15_rs,
+    synth_mcx_n_dirty_m15 as synth_mcx_n_dirty_m15_rs,
     synth_mcx_noaux_hp24 as synth_mcx_noaux_hp24_rs,
     synth_mcx_n_clean_m15 as synth_mcx_n_clean_m15_rs,
     synth_mcx_1_clean_b95 as synth_mcx_1_clean_b95_rs,
@@ -75,6 +76,39 @@ def synth_mcx_n_dirty_i15(
     )
 
 
+def synth_mcx_n_dirty_m15(num_ctrl_qubits: int) -> QuantumCircuit:
+    r"""
+    Synthesize a multi-controlled X gate with :math:`k` controls using dirty ancillary
+    qubits, following Proposition 5 of Maslov [1].
+
+    For :math:`k = 3`, the method uses one dirty ancilla and produces a circuit with
+    16 T gates and 14 CX gates. For :math:`k \ge 4`, it uses
+    :math:`\lceil (k - 2) / 2 \rceil` dirty ancillas and produces a circuit with
+    :math:`8k - 8` T gates and :math:`8k - 12` CX gates. For :math:`k \le 2`, no
+    ancillas are used.
+
+    Args:
+        num_ctrl_qubits: The number of control qubits.
+
+    Returns:
+        The synthesized quantum circuit.
+
+    Raises:
+        QiskitError: if ``num_ctrl_qubits`` is illegal.
+
+    References:
+        1. Maslov, *On the advantages of using relative phase Toffolis with an application
+           to multiple control Toffoli optimization*, Phys. Rev. A 93, 022311 (2016),
+           `arXiv:1508.03273 <https://arxiv.org/abs/1508.03273>`_
+    """
+    if num_ctrl_qubits < 0:
+        raise QiskitError(
+            "synth_mcx_n_dirty_m15 cannot be called with a negative number of control qubits."
+        )
+
+    return QuantumCircuit._from_circuit_data(synth_mcx_n_dirty_m15_rs(num_ctrl_qubits))
+
+
 def _synth_mcx_special_cases(num_ctrl_qubits: int) -> QuantumCircuit:
     """Internal function that produces default MCX circuits when num_ctrl_qubits is 0, 1, or 2."""
     if num_ctrl_qubits == 0:
@@ -100,9 +134,10 @@ def _synth_mcx_special_cases(num_ctrl_qubits: int) -> QuantumCircuit:
 
 def synth_mcx_n_clean_m15(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
-    Synthesize a multi-controlled X gate with :math:`k\ge 3` controls using :math:`k - 2`
-    clean ancillary qubits with producing a circuit with :math:`2 * k - 1` qubits
-    and at most :math:`6 * k - 6` CX gates, by Maslov [1].
+    Synthesize a multi-controlled X gate following Proposition 4 of Maslov [1], using
+    :math:`k\ge 3` controls and
+    :math:`\lceil(k - 2) / 2\rceil` clean ancillary qubits, producing a circuit with
+    :math:`8 * k - 9` T gates and :math:`6 * k - 6` CX gates.
     For :math:`k\le 2`, the returned circuit consists of a single X, CX or CCX gate
     (corresponding to :math:`k = 0, 1, 2`, respectively) and uses no ancillary qubits.
 
