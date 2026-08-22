@@ -49,8 +49,18 @@ enum AngleSpec {
 
 type Data = (FixedBitSet, AngleSpec);
 
-// A frame on the algorithm's explicit stack: `(S, I, target)`.
-type Frame = (Vec<Data>, Vec<usize>, Option<usize>);
+// `GraySynth(S, I, target)` from the paper.
+struct Frame {
+    // `S`: the parities paired with their angles.
+    parities: Vec<Data>,
+
+    // `I`: the bit positions still available to split on. Once this is empty
+    // its phase gates are applied on `target`.
+    indices: Vec<usize>,
+
+    // The qubit that accumulates the parities.
+    target: Option<usize>,
+}
 
 /// Implements `GraySynth` algorithm by Amy, Azimzadeh, and Mosca, described in the paper
 ///`arXiv:1712.01859 <https://arxiv.org/abs/1712.01859>`_
@@ -145,9 +155,19 @@ pub fn synth_cnot_phase_aam(
     // reallocations: the recursion tree has depth ≤ n, and each level
     // pushes two children.
     let mut stack: Vec<Frame> = Vec::with_capacity(2 * num_qubits + 4);
-    stack.push((s, (0..num_qubits).collect(), None));
 
-    while let Some((mut s, indices, target_opt)) = stack.pop() {
+    stack.push(Frame {
+        parities: s,
+        indices: (0..num_qubits).collect(),
+        target: None,
+    });
+
+    while let Some(Frame {
+        parities: mut s,
+        indices,
+        target: target_opt,
+    }) = stack.pop()
+    {
         // Skip empty branches.
         if s.is_empty() {
             continue;
@@ -255,10 +275,18 @@ pub fn synth_cnot_phase_aam(
         let s1_target = target_opt.or(Some(j));
 
         if !s1.is_empty() {
-            stack.push((s1, new_indices.clone(), s1_target));
+            stack.push(Frame {
+                parities: s1,
+                indices: new_indices.clone(),
+                target: s1_target,
+            });
         }
         if !s0.is_empty() {
-            stack.push((s0, new_indices, target_opt));
+            stack.push(Frame {
+                parities: s0,
+                indices: new_indices,
+                target: target_opt,
+            });
         }
     }
 
@@ -270,7 +298,7 @@ pub fn synth_cnot_phase_aam(
 /// Apply y_control = y_control XOR y_target to every parity in every frame on the stack.
 fn apply_row_op_stack(stack: &mut [Frame], control: usize, target: usize) {
     for frame in stack.iter_mut() {
-        apply_row_op_set(&mut frame.0, control, target);
+        apply_row_op_set(&mut frame.parities, control, target);
     }
 }
 
