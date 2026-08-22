@@ -693,7 +693,7 @@ class TestControlledGate(QiskitTestCase):
         if num_controls <= 2:
             num_ancillas = 0
         else:
-            num_ancillas = num_controls - 2
+            num_ancillas = (num_controls - 1) // 2
 
         q_controls = QuantumRegister(num_controls)
         q_target = QuantumRegister(1)

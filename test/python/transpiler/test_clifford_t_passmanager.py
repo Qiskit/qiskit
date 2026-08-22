@@ -400,23 +400,24 @@ class TestCliffordTPassManager(QiskitTestCase):
         """Clifford+T transpilation of a circuit with an mcx gate."""
         # Create a circuit with an mcx gate and many dirty ancillas
         nqc = 20  # number of qubits in the circuit
-        qc = QuantumCircuit(nqc)
-        for i in range(nqc):  # make all the qubits dirty
-            qc.x(i)
         gate = MCXGate(n)
         nq = gate.num_qubits  # number of qubits in the gate
+        qc = QuantumCircuit(nqc)
+        for i in range(nq, nqc):
+            qc.h(i)
+        # Ensure the ancilla preparation cannot be rescheduled after the MCX.
+        qc.barrier()
         qc.append(gate, qc.qubits[0:nq])
 
         # Transpile to a Clifford+T basis set
         basis_gates = get_clifford_gate_names() + ["t", "tdg"]
         pm = generate_preset_clifford_t_pass_manager(optimization_level=0)
         transpiled = pm.run(qc)
-        self.assertLessEqual(set(transpiled.count_ops()), set(basis_gates))
+        self.assertLessEqual(set(transpiled.count_ops()) - {"barrier"}, set(basis_gates))
 
-        # The resulting decomposition should be efficient in terms of T-count
-        # provided 1 ancilla qubit is available
+        # The resulting decomposition should use the dirty Maslov construction.
         t_count = _get_t_count(transpiled)
-        expected_t_count = {1: 0, 2: 7, 3: 17, 4: 29, 5: 41, 6: 51, 7: 63}
+        expected_t_count = {2: 7, 3: 16, 4: 24, 5: 32, 6: 40, 7: 48}
         self.assertLessEqual(t_count, expected_t_count[n])
 
     @data(
