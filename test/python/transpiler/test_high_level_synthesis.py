@@ -2775,8 +2775,8 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
 
     @data(OptimizationMetric.COUNT_T, OptimizationMetric.COUNT_2Q)
     def test_default_prefers_n_dirty_m15(self, optimization_metric):
-        """Test the default plugin selects dirty M15 whenever it has enough dirty ancillas."""
-        for num_ctrl_qubits in range(3, 8):
+        """Test the default selects dirty M15 for four or more controls when applicable."""
+        for num_ctrl_qubits in range(4, 8):
             with self.subTest(num_ctrl_qubits=num_ctrl_qubits):
                 decomposition = MCXSynthesisDefault().run(
                     MCXGate(num_ctrl_qubits),
@@ -2785,11 +2785,31 @@ class TestMCXSynthesisPlugins(QiskitTestCase):
                     optimization_metric=optimization_metric,
                 )
                 counts = decomposition.count_ops()
-                expected_cx = 14 if num_ctrl_qubits == 3 else 8 * num_ctrl_qubits - 12
-                expected_t = 16 if num_ctrl_qubits == 3 else 8 * num_ctrl_qubits - 8
 
-                self.assertEqual(counts["cx"], expected_cx)
-                self.assertEqual(counts["t"] + counts["tdg"], expected_t)
+                self.assertEqual(counts["cx"], 8 * num_ctrl_qubits - 12)
+                self.assertEqual(counts["t"] + counts["tdg"], 8 * num_ctrl_qubits - 8)
+
+    def test_default_selects_c3x_by_metric(self):
+        """Test the C3X default uses NDirtyI15 for CX and dirty M15 for T count."""
+        count_2q = MCXSynthesisDefault().run(
+            MCXGate(3),
+            num_clean_ancillas=0,
+            num_dirty_ancillas=1,
+            optimization_metric=OptimizationMetric.COUNT_2Q,
+        )
+        count_t = MCXSynthesisDefault().run(
+            MCXGate(3),
+            num_clean_ancillas=0,
+            num_dirty_ancillas=1,
+            optimization_metric=OptimizationMetric.COUNT_T,
+        )
+
+        self.assertEqual(count_2q.num_qubits, 4)
+        self.assertEqual(count_2q.count_ops()["cx"], 14)
+        self.assertEqual(count_2q.count_ops()["p"], 15)
+        self.assertEqual(count_t.num_qubits, 5)
+        self.assertEqual(count_t.count_ops()["cx"], 14)
+        self.assertEqual(count_t.count_ops()["t"] + count_t.count_ops()["tdg"], 16)
 
     def test_mcx_plugins_applicability(self):
         """Test applicability of MCX synthesis plugins for MCX gates."""

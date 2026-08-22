@@ -13,9 +13,10 @@ features_synthesis:
 features_transpiler:
   - |
     Added the ``mcx.n_dirty_m15`` high-level synthesis plugin. The default MCX
-    synthesis plugin selects it for both T-count and two-qubit-count optimization
-    when enough dirty ancillas are available and no higher-priority clean-ancilla
-    method applies. It can also be selected explicitly using :class:`.HLSConfig`,
-    for example as ``HLSConfig(mcx=["n_dirty_m15"])``. The plugin requires
+    synthesis plugin selects it for T-count optimization with three or more controls,
+    and for two-qubit-count optimization with four or more controls, when enough dirty
+    ancillas are available and no higher-priority clean-ancilla method applies. It can
+    also be selected explicitly using :class:`.HLSConfig`, for example as
+    ``HLSConfig(mcx=["n_dirty_m15"])``. The plugin requires
     :math:`\lceil(k - 2) / 2\rceil` clean or dirty ancillas for :math:`k \geq 4`,
     and one ancilla for :math:`k = 3`.

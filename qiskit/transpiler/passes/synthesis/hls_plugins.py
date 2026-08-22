@@ -1619,12 +1619,18 @@ class MCXSynthesisDefault(HighLevelSynthesisPlugin):
             ]
         else:
             # The order is optimized towards CX-count -friendly synthesis methods.
+            # For C3X, NDirtyI15 and NDirtyM15 both use 14 CX gates, but NDirtyI15
+            # does not use an ancilla and can enable more downstream cancellations.
+            dirty_methods = (
+                (MCXSynthesisNDirtyI15, MCXSynthesisNDirtyM15)
+                if high_level_object.num_ctrl_qubits == 3
+                else (MCXSynthesisNDirtyM15, MCXSynthesisNDirtyI15)
+            )
             methods = [
                 MCXSynthesis2CleanKG24,
                 MCXSynthesis1CleanKG24,
                 MCXSynthesisNCleanM15,
-                MCXSynthesisNDirtyM15,
-                MCXSynthesisNDirtyI15,
+                *dirty_methods,
                 MCXSynthesis2DirtyKG24,
                 MCXSynthesis1DirtyKG24,
                 MCXSynthesis1CleanB95,
