@@ -18,6 +18,7 @@ from numpy import pi
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import UnitaryGate
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
 from qiskit.synthesis.linear import synth_cnot_count_full_pmh
 from qiskit.synthesis.linear_phase import synth_cnot_phase_aam
@@ -255,6 +256,27 @@ class TestGraySynth(QiskitTestCase):
         # All angles should be present
         for ang in angles:
             self.assertIn([ang], oper_params_list)
+
+    def test_section_size_None(self):
+        """Test section_size can be None"""
+        cnots = [
+            [0, 1, 1, 0],
+            [0, 0, 0, 1],
+            [1, 0, 0, 0],
+        ]
+        angles = [0.1, 0.2, 0.3, 0.4]
+        section_size = None
+        synth_cnot_phase_aam(cnots, angles, section_size)
+
+    # All are exmaples of invalid angles.
+    @ddt.data("", "rz", "0.5", None)
+    def test_invalid_angle_raises(self, inv_angle):
+        """Test that an angle which is neither a recognized label in {'t', 'tdg', 's', 'sdg', 'z'}
+        nor a number raises QiskitError."""
+        cnots = [[1, 1], [1, 0]]
+        angles = [inv_angle, "s"]
+        with self.assertRaises(QiskitError):
+            synth_cnot_phase_aam(cnots, angles)
 
 
 @ddt.ddt

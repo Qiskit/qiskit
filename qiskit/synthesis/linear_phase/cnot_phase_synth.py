@@ -25,7 +25,7 @@ from qiskit._accelerate.synthesis.linear_phase import (
 
 
 def synth_cnot_phase_aam(
-    cnots: list[list[int]], angles: list[str], section_size: int = 2
+    cnots: list[list[int]], angles: list[str], section_size: int | None = 2
 ) -> QuantumCircuit:
     r"""This function is an implementation of the `GraySynth` algorithm of
     Amy, Azimadeh and Mosca.
@@ -74,7 +74,8 @@ def synth_cnot_phase_aam(
         The decomposed quantum circuit.
 
     Raises:
-        QiskitError: when dimensions of ``cnots`` and ``angles`` don't align.
+        QiskitError: when dimensions of ``cnots`` and ``angles`` don't align or when an angle is
+        neither a floating-point value, nor one of the supported gates 't', 'tdg', 's', 'sdg' or 'z'.
 
     References:
         1. Matthew Amy, Parsiad Azimzadeh, and Michele Mosca.
@@ -84,6 +85,5 @@ def synth_cnot_phase_aam(
     """
 
     cnots_array = np.asarray(cnots).astype(bool)
-    angles = [angle if isinstance(angle, str) else f"{angle}" for angle in angles]
     _circuit_data = synth_cnot_phase_aam_xlated(cnots_array, angles, section_size)
-    return QuantumCircuit._from_circuit_data(_circuit_data)
+    return QuantumCircuit._from_circuit_data(_circuit_data, legacy_qubits=True)

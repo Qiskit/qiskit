@@ -16,7 +16,7 @@ use crate::linear::utils::_row_op;
 use fixedbitset::FixedBitSet;
 use ndarray::Array2;
 use numpy::PyReadonlyArray2;
-use pyo3::{prelude::*, types::PyList};
+use pyo3::{prelude::*, pybacked::PyBackedStr, types::PyList};
 use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::operations::{Param, StandardGate};
@@ -47,8 +47,9 @@ enum AngleSpec {
 // phase term. We store it as a `FixedBitSet` of exactly `n` bits, where bit `k`
 // is set iff qubit `k` is in the parity.
 
-// A frame on the algorithm's explicit stack: `(S, I, target)`.
 type Data = (FixedBitSet, AngleSpec);
+
+// A frame on the algorithm's explicit stack: `(S, I, target)`.
 type Frame = (Vec<Data>, Vec<usize>, Option<usize>);
 
 /// Implements `GraySynth` algorithm by Amy, Azimzadeh, and Mosca, described in the paper
@@ -60,7 +61,6 @@ pub fn synth_cnot_phase_aam(
     angles: &Bound<PyList>,
     section_size: Option<usize>,
 ) -> PyResult<PyCircuitData> {
-    // converting to Option<usize>
     let cnots = cnots.as_array().to_owned();
     let num_qubits = cnots.nrows();
     let num_parities = cnots.ncols();
@@ -73,19 +73,14 @@ pub fn synth_cnot_phase_aam(
 
     let mut angle_specs: Vec<AngleSpec> = Vec::with_capacity(angles.len());
     for data in angles.iter() {
-        let spec = if let Ok(label) = data.extract::<String>() {
-            match label.as_str() {
-                "" => return Err(QiskitError::new_err("angle must not be an empty string")),
+        let spec = if let Ok(label) = data.extract::<PyBackedStr>() {
+            match &*label {
                 "t" => AngleSpec::Gate(StandardGate::T),
                 "tdg" => AngleSpec::Gate(StandardGate::Tdg),
                 "s" => AngleSpec::Gate(StandardGate::S),
                 "sdg" => AngleSpec::Gate(StandardGate::Sdg),
                 "z" => AngleSpec::Gate(StandardGate::Z),
-                other => AngleSpec::Phase(
-                    other
-                        .parse::<f64>()
-                        .map_err(|_| QiskitError::new_err(format!("invalid angle: {other:?}")))?,
-                ),
+                other => return Err(QiskitError::new_err(format!("invalid angle: {other:?}"))),
             }
         } else if let Ok(theta) = data.extract::<f64>() {
             AngleSpec::Phase(theta)
@@ -98,7 +93,7 @@ pub fn synth_cnot_phase_aam(
     }
     let angles = angle_specs;
 
-    let mut s: Vec<Data> = Vec::with_capacity(num_qubits);
+    let mut s: Vec<Data> = Vec::with_capacity(num_parities);
 
     for j in 0..num_parities {
         let mut p = FixedBitSet::with_capacity(num_qubits);
@@ -161,7 +156,7 @@ pub fn synth_cnot_phase_aam(
         // While every remaining y in S shares a `1` in some bit other than
         // the target, we can emit ONE CNOT to fold that bit into the
         // target. Each such CNOT advances every parity in S simultaneously.
-        if let Some(t) = target_opt {
+        if let Some(target) = target_opt {
             loop {
                 // AND all parities in S into `common`. Seed with the first
                 // parity (`clone_from` reuses `common`'s allocation), then
@@ -178,29 +173,29 @@ pub fn synth_cnot_phase_aam(
                     }
                 }
 
-                // Never pick j == t (control == target would be invalid).
-                common.set(t, false);
+                // Never pick control == target, that would be invalid.
+                common.set(target, false);
 
                 // Lowest remaining shared bit, or None. Length is exactly
-                // num_qubits, so no `j < num_qubits` guard is needed.
+                // num_qubits, so no `control < num_qubits` guard is needed.
                 match common.ones().next() {
-                    Some(j) => {
-                        // Emit the CNOT (control = j, target = t).
+                    Some(control) => {
+                        // Emit the CNOT.
                         circuit.push((
                             StandardGate::CX,
                             smallvec![],
-                            smallvec![Qubit(j as u32), Qubit(t as u32)],
+                            smallvec![Qubit(control as u32), Qubit(target as u32)],
                         ));
 
-                        // In the paper, Lemma 4.1 says After CNOT(j,t), every parity in every
+                        // In the paper, Lemma 4.1 says After CNOT(control, target), every parity in every
                         // frame on the stack AND in our local `s` must be updated by
-                        // y_j = y_j XOR y_t.
-                        //
+                        // y_control = y_control XOR y_target.
+
                         // Note: at this point `s` has been moved OUT of the stack.
                         // So `stack` and `s` are disjoint we have to update each separately.
-                        apply_row_op_stack(&mut stack, t, j);
-                        apply_row_op_set(&mut s, t, j);
-                        _row_op(tranx_matrix.view_mut(), j, t);
+                        apply_row_op_stack(&mut stack, control, target);
+                        apply_row_op_set(&mut s, control, target);
+                        _row_op(tranx_matrix.view_mut(), control, target);
                     }
                     None => break, // No shared 1-bit anywhere means we are done.
                 }
@@ -217,7 +212,7 @@ pub fn synth_cnot_phase_aam(
         }
 
         // We want j in indices maximizing the larger half:
-        //     j = argmax_{j ∈ indices} max(|{y : y_j = 0}|, |{y : y_j = 1}|)
+        //     j = argmax_{j ∈ indices} max(|{y : y_target = 0}|, |{y : y_target = 1}|)
         // Equivalently: pick the most lopsided bit.
         // Reset `counts` to zero without reallocating.
         counts.fill(0);
@@ -272,21 +267,19 @@ pub fn synth_cnot_phase_aam(
     Ok(CircuitData::from_standard_gates(num_qubits as u32, circuit, Param::Float(0.0))?.into())
 }
 
-/// Apply  y_j = y_j XOR y_t  to every parity in every frame on the stack.
-#[inline]
+/// Apply y_control = y_control XOR y_target to every parity in every frame on the stack.
 fn apply_row_op_stack(stack: &mut [Frame], control: usize, target: usize) {
     for frame in stack.iter_mut() {
         apply_row_op_set(&mut frame.0, control, target);
     }
 }
 
-/// Apply  y_j = y_j XOR y_t  to every parity in the given slice.
-/// For each parity, if bit `i` is set we flip bit `j` (that is exactly XOR).
-#[inline]
-fn apply_row_op_set(s: &mut [Data], i: usize, j: usize) {
+/// Apply  y_control = y_control XOR y_target  to every parity in the given slice.
+/// For each parity, if bit `target` is set we flip bit `control` (that is exactly XOR).
+fn apply_row_op_set(s: &mut [Data], control: usize, target: usize) {
     for (y, _) in s.iter_mut() {
-        if y.contains(i) {
-            y.toggle(j);
+        if y.contains(target) {
+            y.toggle(control);
         }
     }
 }
