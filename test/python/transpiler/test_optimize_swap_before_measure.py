@@ -106,6 +106,23 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
+    def test_measurement_of_unswapped_qubit_with_reused_clbit(self):
+        """Keep measurement order for repeated writes to the same clbit."""
+        qc = QuantumCircuit(3, 1)
+        qc.swap(0, 1)
+        qc.measure(0, 0)
+        qc.measure(2, 0)
+        dag = circuit_to_dag(qc)
+
+        expected = QuantumCircuit(3, 1)
+        expected.measure(1, 0)
+        expected.measure(2, 0)
+
+        pass_ = OptimizeSwapBeforeMeasure()
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
     def test_optimize_nswap_nmeasure(self):
         """Remove severals swap affecting multiple measurements
                             ┌─┐                                                   ┌─┐
