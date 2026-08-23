@@ -100,13 +100,13 @@ pub fn run_barrier_before_final_measurements(
             for pred in dag.quantum_predecessors(node_index) {
                 match &dag[pred] {
                     NodeType::Operation(inst) => {
-                        if let OperationRef::StandardInstruction(op) = inst.op.view() {
-                            if matches!(
+                        if let OperationRef::StandardInstruction(op) = inst.op.view()
+                            && matches!(
                                 op,
                                 StandardInstruction::Measure | StandardInstruction::Barrier(_)
-                            ) {
-                                next_nodes.push(pred)
-                            }
+                            )
+                        {
+                            next_nodes.push(pred)
                         }
                     }
                     _ => continue,

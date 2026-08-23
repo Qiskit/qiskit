@@ -478,7 +478,7 @@ pub enum ForCollection {
     /// A literal Python `range` object extracted to Rust.
     PyRange(PyRange),
     /// Some ordered collection of integers.
-    List(Vec<usize>),
+    List(Vec<isize>),
 }
 impl ForCollection {
     pub fn is_empty(&self) -> bool {
@@ -800,6 +800,7 @@ impl Operation for ControlFlowInstruction {
 pub enum ControlFlowView<'a, T> {
     Box {
         duration: Option<&'a BoxDuration>,
+        annotations: &'a [Py<PyAny>],
         body: &'a T,
     },
     BreakLoop,
@@ -845,9 +846,10 @@ impl<'a, T> ControlFlowView<'a, T> {
         let view = match &cf.control_flow {
             ControlFlow::Box {
                 duration,
-                annotations: _,
+                annotations,
             } => Self::Box {
                 duration: duration.as_ref(),
+                annotations: annotations.as_slice(),
                 body: &blocks[block_ids[0]],
             },
             ControlFlow::BreakLoop => Self::BreakLoop,

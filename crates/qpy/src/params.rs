@@ -9,6 +9,7 @@
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
+use crate::value::ValueEndian;
 use binrw::Endian;
 use num_complex::Complex64;
 use pyo3::prelude::*;
@@ -447,7 +448,7 @@ pub(crate) fn unpack_parameter_expression(
                             item.item_type,
                             &item.item_bytes,
                             qpy_data,
-                            Endian::Big,
+                            ValueEndian::Big,
                         )?)?;
                         Ok((sym, replacement))
                     })
@@ -525,13 +526,13 @@ pub(crate) fn unpack_parameter_vector(
     if vector.name != pack.name || vector_len != pack.vector_size as usize {
         return Err(QpyError::InvalidParameter(format!(
             "'{}[{}]' has a base vector ('{}[{}]') that disagrees with another ('{}[{}]')",
-            &pack.name, pack.index, &pack.name, pack.vector_size, &vector.name, vector_len,
+            pack.name, pack.index, pack.name, pack.vector_size, vector.name, vector_len,
         )));
     }
     vector.get(pack.index as usize).ok_or_else(|| {
         QpyError::InvalidParameter(format!(
             "index {} is out of range for vector '{}[{}]'",
-            pack.index, &vector.name, vector_len
+            pack.index, vector.name, vector_len
         ))
     })
 }
@@ -563,10 +564,11 @@ pub(crate) fn pack_param_expression(
 pub(crate) fn pack_param_obj(
     param: &Param,
     qpy_data: &QPYWriteData,
-    endian: Endian,
+    endian: ValueEndian,
 ) -> Result<formats::GenericDataPack, QpyError> {
+    let resolved = endian.resolve(qpy_data.version);
     Ok(match param {
-        Param::Float(val) => match endian {
+        Param::Float(val) => match resolved {
             Endian::Little => formats::GenericDataPack {
                 type_key: ValueType::Float,
                 data: val.to_le_bytes().into(),

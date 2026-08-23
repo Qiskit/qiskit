@@ -138,6 +138,27 @@ class TestCommutativeCancellation(QiskitTestCase):
             tqc = cc(qc)
             self.assertTrue(np.allclose(Operator(qc).data, Operator(tqc).data))
 
+    @ddt.data(RZGate(np.pi / 4), PhaseGate(np.pi / 4), U1Gate(np.pi / 4))
+    def test_p_u1_2pi_accumulation(self, gate):
+        """Test different Z rotations."""
+        basis = ["t", "rz", "cx"]
+        if gate.name not in basis:
+            basis = [gate.name] + basis
+        cc = CommutativeCancellation(basis_gates=basis)
+        reps = (7, 15, 23, 31)
+
+        tqcs = []
+        for rep in reps:
+            qc = QuantumCircuit(1)
+            qc.append(gate, [0])
+            for _ in range(rep):
+                qc.t(0)
+            tqcs.append(cc(qc))
+
+        phase = -gate.params[0] / 2 if gate.name == "rz" else 0.0
+        expected = [QuantumCircuit(1, global_phase=phase)] * len(tqcs)
+        self.assertEqual(tqcs, expected)
+
     def test_commutative_circuit1(self):
         """A simple circuit where three CNOTs commute, the first and the last cancel.
 
@@ -959,6 +980,41 @@ measure q0[1] -> c0[1];
 
         # The actual asseertion.
         self.assertTrue(left.structurally_equal(right))
+
+    @ddt.data(2, 3, 4)
+    def test_negative_x_rotations(self, num_sxdg):
+        qc = QuantumCircuit(1)
+        for _ in range(num_sxdg):
+            qc.sxdg(0)
+
+        expected = qc.copy_empty_like()
+        for _ in range(4 - num_sxdg):
+            expected.sx(0)
+
+        pass_ = CommutativeCancellation(["sx", "rz"])
+        self.assertEqual(pass_(qc), expected)
+
+    def test_approximation_degree(self):
+        """Test that approximation_degree controls commutation-based cancellation.
+
+        A small RZ rotation between two CX gates prevents the CX gates from canceling with
+        ``approximation_degree=1.0``. The CX gates do cancel with maximal approximation
+        ``approximation_degree=0.0``. Omitting ``approximation_degree`` has the same
+        behavior as ``1.0``.
+        """
+        eps = 1e-5
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.rz(eps, 1)
+        qc.cx(0, 1)
+
+        strict = CommutativeCancellation(approximation_degree=1.0)(qc)
+        approx = CommutativeCancellation(approximation_degree=0.0)(qc)
+        default = CommutativeCancellation()(qc)
+
+        self.assertEqual(strict.count_ops().get("cx", 0), 2)
+        self.assertEqual(approx.count_ops().get("cx", 0), 0)
+        self.assertEqual(default, strict)
 
 
 if __name__ == "__main__":

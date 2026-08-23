@@ -402,6 +402,50 @@ class TestDagRegisters(DAGTest):
         with self.assertRaises(DAGCircuitError):
             dag.find_bit(new_bit)
 
+    def test_remove_qubits_determinism(self):
+        """Regression test of gh-16655."""
+
+        def build() -> DAGCircuit:
+            in_reg = QuantumRegister(4, "f")
+            in_dag = DAGCircuit()
+            in_dag.add_qreg(in_reg)
+
+            out_reg = QuantumRegister(4, "q")
+            out_dag = in_dag.copy_empty_like()
+            out_dag.add_qreg(out_reg)
+            out_dag.remove_qregs(in_reg)
+            out_dag.remove_qubits(*in_reg)
+            out_dag.apply_operation_back(XGate(), (out_dag.qubits[0],), ())
+            out_dag.apply_operation_back(XGate(), (out_dag.qubits[1],), ())
+            return out_dag
+
+        base = build()
+        dags = [build() for _ in range(10)]
+        self.assertEqual([base.structurally_equal(dag) for dag in dags], [True] * len(dags))
+
+    def test_remove_clbits_determinism(self):
+        """Regression test of gh-16655."""
+
+        def build() -> DAGCircuit:
+            qr = QuantumRegister(4, "q")
+            in_reg = ClassicalRegister(4, "f")
+            in_dag = DAGCircuit()
+            in_dag.add_qreg(qr)
+            in_dag.add_creg(in_reg)
+
+            out_reg = ClassicalRegister(4, "c")
+            out_dag = in_dag.copy_empty_like()
+            out_dag.add_creg(out_reg)
+            out_dag.remove_cregs(in_reg)
+            out_dag.remove_clbits(*in_reg)
+            out_dag.apply_operation_back(Measure(), (out_dag.qubits[0],), (out_dag.clbits[0],))
+            out_dag.apply_operation_back(Measure(), (out_dag.qubits[1],), (out_dag.clbits[1],))
+            return out_dag
+
+        base = build()
+        dags = [build() for _ in range(10)]
+        self.assertEqual([base.structurally_equal(dag) for dag in dags], [True] * len(dags))
+
 
 class TestDagWireRemoval(DAGTest):
     """Test removal of registers and idle wires."""
@@ -654,6 +698,24 @@ class TestDagWireRemoval(DAGTest):
         expected.apply_operation_back(op, qr, ())
 
         self.assertEqual(dag, expected)
+
+    def test_remove_first_node_and_depth(self):
+        """Test a nondeterministic panic in rustworkx-core cased by a hole for the first node index
+
+        This caused a non-deterministic panic when using rustworkx-core
+        0.18.0 (fixed in rustworkx 0.18.1)
+        """
+        dag = DAGCircuit()
+        qreg = QuantumRegister(3, "qr")
+        qreg_two = QuantumRegister(3, "qr_two")
+        dag.add_qreg(qreg)
+        dag.add_qreg(qreg_two)
+        dag.remove_qubits(*qreg)
+        dag.apply_operation_back(XGate(), (dag.qubits[0],), ())
+        dag.apply_operation_back(XGate(), (dag.qubits[1],), ())
+        dag.apply_operation_back(XGate(), (dag.qubits[2],), ())
+        depth = dag.depth()
+        self.assertEqual(depth, 1)
 
 
 @ddt
@@ -1464,6 +1526,34 @@ class TestDagLayers(DAGTest):
                 for nd in dag1.topological_nodes()
             ]
             self.assertEqual(comp, truth)
+
+    def test_serial_layers_do_not_copy_global_phase(self):
+        """serial_layers() should not copy the parent DAG global phase."""
+        qc = QuantumCircuit(2, global_phase=math.pi / 7)
+        qc.h(0)
+        qc.cx(0, 1)
+        dag = circuit_to_dag(qc)
+
+        layers = list(dag.serial_layers())
+
+        self.assertEqual(len(layers), 2)
+        self.assertEqual(dag.global_phase, math.pi / 7)
+        self.assertEqual(layers[0]["graph"].global_phase, 0.0)
+        self.assertEqual(layers[1]["graph"].global_phase, 0.0)
+
+    def test_layers_do_not_copy_global_phase(self):
+        """layers() should not copy the parent DAG global phase."""
+        qc = QuantumCircuit(2, global_phase=math.pi / 7)
+        qc.h(0)
+        qc.cx(0, 1)
+        dag = circuit_to_dag(qc)
+
+        layers = list(dag.layers())
+
+        self.assertEqual(len(layers), 2)
+        self.assertEqual(dag.global_phase, math.pi / 7)
+        self.assertEqual(layers[0]["graph"].global_phase, 0.0)
+        self.assertEqual(layers[1]["graph"].global_phase, 0.0)
 
 
 def _sort_key(indices: dict[Qubit, int]):
@@ -2694,6 +2784,94 @@ class TestDagSubstitute(DAGTest):
 
         with self.assertRaisesRegex(DAGCircuitError, "Cannot replace a node with a DAG with more"):
             src.substitute_node_with_dag(node, replace, wires={})
+
+    def test_substitute_node_with_dag_transfers_captured_and_declared_vars(self):
+        """Test that substitute_node_with_dag transfers captured and declared variables.
+        Regression test for gh-15509."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+
+        # Create a base DAG with a simple X gate
+        base_dag = DAGCircuit()
+        qr = QuantumRegister(1)
+        base_dag.add_qreg(qr)
+        x_node = base_dag.apply_operation_back(XGate(), [qr[0]], [])
+
+        # Create a replacement DAG with captured and declared variables
+        replacement_dag = DAGCircuit()
+        replacement_dag.add_qubits([qr[0]])
+        replacement_dag.add_captured_var(a)
+        replacement_dag.add_declared_var(b)
+        replacement_dag.apply_operation_back(XGate(), [qr[0]], [])
+
+        # Perform the substitution
+        base_dag.substitute_node_with_dag(x_node, replacement_dag, wires=[qr[0]])
+
+        # Verify the variables were transferred
+        self.assertEqual(base_dag.num_captured_vars, 1)
+        self.assertEqual(base_dag.num_declared_vars, 1)
+        self.assertEqual(list(base_dag.iter_captured_vars()), [a])
+        self.assertEqual(list(base_dag.iter_declared_vars()), [b])
+
+    def test_substitute_dag_transfers_input_vars(self):
+        """substitute_node_with_dag should transfer DAG-level input vars from replacement."""
+        # Base DAG with a simple X gate
+        base_qc = QuantumCircuit(1)
+        base_qc.x(0)
+        base_dag = circuit_to_dag(base_qc)
+
+        # Node to replace
+        x_node = list(base_dag.op_nodes())[0]
+
+        # Replacement DAG that declares an input var and uses it in a control-flow op
+        replacement_dag = DAGCircuit()
+        replacement_dag.add_qubits(x_node.qargs)
+        replacement_dag.add_clbits(x_node.cargs)
+
+        condition_var = expr.Var.new("condition", types.Bool())
+        replacement_dag.add_input_var(condition_var)
+
+        if_block = QuantumCircuit(1)
+        if_block.x(0)
+        if_else_op = IfElseOp(condition_var, if_block, None)
+        replacement_dag.apply_operation_back(
+            if_else_op, replacement_dag.qubits, replacement_dag.clbits
+        )
+
+        # Perform substitution and verify input vars transferred
+        base_dag.substitute_node_with_dag(
+            x_node, replacement_dag, wires=x_node.qargs + x_node.cargs
+        )
+
+        self.assertEqual(base_dag.num_input_vars, 1)
+        self.assertEqual(list(base_dag.iter_input_vars()), [condition_var])
+
+    def test_substitute_node_with_dag_transfers_captured_and_declared_stretches(self):
+        """substitute_node_with_dag should transfer captured and declared stretches."""
+        a = expr.Stretch.new("a")
+        b = expr.Stretch.new("b")
+
+        # Create a base DAG with a simple X gate
+        base_dag = DAGCircuit()
+        qr = QuantumRegister(1)
+        base_dag.add_qreg(qr)
+        x_node = base_dag.apply_operation_back(XGate(), [qr[0]], [])
+
+        # Create a replacement DAG with captured and declared stretches
+        replacement_dag = DAGCircuit()
+        replacement_dag.add_qubits([qr[0]])
+        replacement_dag.add_captured_stretch(a)
+        replacement_dag.add_declared_stretch(b)
+        replacement_dag.apply_operation_back(XGate(), [qr[0]], [])
+
+        # Perform the substitution
+        base_dag.substitute_node_with_dag(x_node, replacement_dag, wires=[qr[0]])
+
+        # Verify the stretches were transferred
+        self.assertEqual(base_dag.num_captured_stretches, 1)
+        self.assertEqual(base_dag.num_declared_stretches, 1)
+        self.assertEqual(list(base_dag.iter_captured_stretches()), [a])
+        self.assertEqual(list(base_dag.iter_declared_stretches()), [b])
 
 
 @ddt

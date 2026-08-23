@@ -155,6 +155,17 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         self.assertEqual(op.params, [indexset, loop_parameter, body])
         self.assertEqual(op.blocks, (body,))
 
+    def test_for_loop_negative_indexset(self):
+        """Verify that ForLoopOp can be instantiated with negative integers in a list."""
+        body = QuantumCircuit(1)
+        body.x(0)
+        indexset = [-1, 0, 1]
+        op = ForLoopOp(indexset, None, body)
+
+        self.assertIsInstance(op, ControlFlowOp)
+        self.assertEqual(op.name, "for_loop")
+        self.assertEqual(tuple(op.params[0]), (-1, 0, 1))
+
     def test_for_loop_invalid_instantiation(self):
         """Verify we catch invalid instantiations of ForLoopOp."""
         body = QuantumCircuit(3, 1)
