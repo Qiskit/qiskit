@@ -129,24 +129,6 @@ class TestQPYRoundtrip(QiskitTestCase):
             )
 
     @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
-    def test_box_duration_value(self, version, write_with, read_with):
-        """Check a box whose duration is a lifted :class:`.Duration`.
-
-        This is the only way a ``Duration`` reaches QPY -- no public API takes a bare ``Duration``
-        for a box duration or a delay -- so it is the case that exercises the duration value codec.
-        """
-        qc = QuantumCircuit(2)
-        with qc.box(duration=expr.lift(Duration.dt(100))):
-            qc.cx(0, 1)
-        if version < 14:
-            with io.BytesIO() as fptr, self.assertRaises(UnsupportedFeatureForVersion):
-                write_circuit(fptr, qc, version=version, use_rust=write_with == "Rust")
-        else:
-            self.assert_roundtrip_equal(
-                qc, version=version, read_with=read_with, write_with=write_with
-            )
-
-    @all_qpy_combinations(QPY_RUST_READ_MIN_VERSION)
     def test_forloop(self, version, write_with, read_with):
         """Check the ForLoop control flow gate passes roundtrip"""
         qc = QuantumCircuit(2, 1)

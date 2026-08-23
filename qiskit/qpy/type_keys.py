@@ -84,11 +84,6 @@ class Value(TypeKeyBase):
     NULL = b"z"
     EXPRESSION = b"x"
     MODIFIER = b"m"
-    # Added in QPY 18.  Before that an arbitrary-precision integer shared ``INTEGER`` and a
-    # :class:`.Duration` shared :attr:`Container.TUPLE`, so a payload could not be identified from
-    # its own type key; see :mod:`qiskit.qpy` for the format description.
-    BIGINT = b"I"
-    DURATION = b"D"
 
     @classmethod
     def assign(cls, obj):
@@ -118,11 +113,6 @@ class Value(TypeKeyBase):
             return cls.EXPRESSION
         if isinstance(obj, Modifier):
             return cls.MODIFIER
-        if isinstance(obj, Duration):
-            return cls.DURATION
-        # `BIGINT` is deliberately not assigned here: every Python `int` maps to `INTEGER`, and a
-        # value only becomes a `BIGINT` when it cannot be an `int64`, which the writers currently
-        # reject rather than widen.  The key exists so such a payload can be read.
 
         raise exceptions.QpyError(
             f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."

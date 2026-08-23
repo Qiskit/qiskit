@@ -504,7 +504,7 @@ payload: ``conditional_reg_name_size`` for a condition, and the ``INSTRUCTION_PA
 ``size`` for a parameter.
 
 Distinct type keys for ``Duration`` and big integers
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Version 18 gives two value types a type key of their own, in the ``type`` field of an
 ``INSTRUCTION_PARAM`` (see :ref:`qpy_instructions`) and anywhere else a value is stored with its key:
 
@@ -515,11 +515,10 @@ Version 18 gives two value types a type key of their own, in the ``type`` field 
   integer.  The payload is unchanged: one byte of length followed by that many big-endian magnitude
   bytes.
 
-Neither type could be identified from its key before, so a reader had to be told from context which
-of the two possibilities a payload held — for instance that the first parameter of a ``BoxOp`` is a
-duration rather than a tuple, or that an ``'i'`` payload longer than eight bytes is an
-arbitrary-precision integer rather than a 64-bit one.  From version 18 a value can be decoded from
-its own bytes.
+Reusing those keys is unambiguous for a decoder that knows which kind of value to expect at each
+point in the payload, and up to version 17 a decoder had to rely on that: an ``'i'`` payload longer
+than eight bytes was an arbitrary-precision integer rather than a 64-bit one.  The distinct keys
+additionally allow a value to be decoded from its own key and length, without that context.
 
 Payloads of :ref:`version 17 <qpy_version_17>` and earlier are read exactly as before.
 

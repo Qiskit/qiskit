@@ -672,7 +672,8 @@ pub(crate) fn serialize_generic_value(
             if qpy_data.version >= QPY_DISTINCT_VALUE_KEYS_MIN_VERSION {
                 ValueType::BigInt
             } else {
-                // Shared with `Int64` up to QPY 17, where the reader tells them apart by length.
+                // Up to QPY 17 this reuses `Int64`'s key, and a reader of those versions tells the
+                // two apart by payload length.
                 ValueType::Integer
             },
             serialize(&pack_biguint(bigint))?,
