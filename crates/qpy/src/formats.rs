@@ -255,9 +255,12 @@ pub struct RegisterV18Pack {
     #[br(count = name_size as usize, try_map = String::from_utf8)]
     #[bw(map = |s| s.as_bytes())]
     pub name: String,
-    #[br(if(register_attachment==1))]
+    #[br(if(register_attachment == 1))]
+    #[bw(if(*register_attachment == 1))]
     pub start_index: u32,
-    #[br(if(register_attachment==0), count = size)]
+
+    #[br(if(register_attachment == 0), count = size)]
+    #[bw(if(*register_attachment == 0))]
     pub bit_indices: Vec<u32>,
 }
 

@@ -1114,7 +1114,7 @@ fn unpack_transpile_layout<'py>(
             ),
             formats::RegisterPack::V18(packed_register) => (
                 &packed_register.name,
-                packed_register.bit_indices.len(),
+                packed_register.size as usize,
                 &packed_register.register_type,
             ),
         };
