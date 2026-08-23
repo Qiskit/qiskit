@@ -1138,6 +1138,58 @@ pub fn synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
     Ok(circuit)
 }
 
+/// Synthesize a multi-controlled X gate with :math:`k` controls using the relation
+/// MCX = H · MCP(π) · H, where MCP is synthesized via `synth_mcp_noaux_sp22` [1][2].
+///
+/// Produces a quantum circuit with :math:`k + 1` qubits.
+/// The number of CX-gates is quadratic in :math:`k`.
+///
+/// # Arguments
+///
+/// - num_ctrl_qubits: The number of control qubits.
+///
+/// # Returns
+///
+/// The synthesized quantum circuit.
+///
+/// # References
+/// 1. A. J. da Silva and D. K. Park, *Linear-depth quantum circuits for multiqubit controlled gates*,
+///    [Phys. Rev. A 106, 042602](https://journals.aps.org/pra/abstract/10.1103/PhysRevA.106.042602).
+///
+/// 2. <https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py>
+pub fn synth_mcx_noaux_sp22(num_ctrl_qubits: usize) -> Result<CircuitData, CircuitDataError> {
+    if num_ctrl_qubits == 0 {
+        let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0))?;
+        circuit.x(0)?;
+        Ok(circuit)
+    } else if num_ctrl_qubits == 1 {
+        let mut circuit = CircuitData::with_capacity(2, 0, 1, Param::Float(0.0))?;
+        circuit.cx(0, 1)?;
+        Ok(circuit)
+    } else if num_ctrl_qubits == 2 {
+        Ok(ccx())
+    } else if num_ctrl_qubits == 3 {
+        Ok(c3x().into())
+    } else if num_ctrl_qubits == 4 {
+        Ok(c4x()?.into())
+    } else {
+        // 2n^2-2n+1 instructions from synth_mcp_noaux_sp22, plus 2 H gates wrapping it.
+        let num_instructions = 2 * num_ctrl_qubits * num_ctrl_qubits - 2 * num_ctrl_qubits + 3;
+        let mut circuit = CircuitData::with_capacity(
+            (num_ctrl_qubits + 1) as u32,
+            0,
+            num_instructions,
+            Param::Float(0.0),
+        )?;
+        let mcp = synth_mcp_noaux_sp22(num_ctrl_qubits, Param::Float(PI))?;
+        let qubits: Vec<Qubit> = (0..=(num_ctrl_qubits as u32)).map(Qubit).collect();
+        circuit.h(num_ctrl_qubits as u32)?;
+        circuit.compose(&mcp, &qubits, &[])?;
+        circuit.h(num_ctrl_qubits as u32)?;
+        Ok(circuit)
+    }
+}
+
 // The following code (synth_mcp_noaux_sp22 and mod sp22) is a derivative work of qclib
 // (https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py).
 // Copyright 2021 qclib project. Licensed under the Apache License, Version 2.0.
