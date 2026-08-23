@@ -34,7 +34,6 @@ class TestConstrainedReschedule(QiskitTestCase):
 
     def test_alignment_only_construction(self):
         """Regression test of #16245."""
-        # Test contributed with assistance from Claude Opus 4.7 (Claude Code).
         durations = InstructionDurations(
             [("x", 0, 160, "dt"), ("measure", 0, 1000, "dt")], dt=2.22e-10
         )
@@ -81,7 +80,6 @@ class TestConstrainedReschedule(QiskitTestCase):
 
     def test_target_acquire_alignment(self):
         """Test measurement alignment is read from the target."""
-        # Regression test written with LLM assistance.
         target = Target(dt=1, acquire_alignment=16, pulse_alignment=1)
         target.add_instruction(XGate(), {(0,): InstructionProperties(duration=160)})
         target.add_instruction(Measure(), {(0,): InstructionProperties(duration=800)})
@@ -107,7 +105,6 @@ class TestConstrainedReschedule(QiskitTestCase):
 
     def test_target_preserves_aligned_measure(self):
         """Test already aligned measurements are not shifted."""
-        # Regression test written with LLM assistance.
         target = Target(dt=1, acquire_alignment=16, pulse_alignment=1)
         target.add_instruction(XGate(), {(0,): InstructionProperties(duration=160)})
         target.add_instruction(Measure(), {(0,): InstructionProperties(duration=800)})
