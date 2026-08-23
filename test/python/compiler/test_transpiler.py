@@ -66,6 +66,7 @@ from qiskit.circuit.library import (
     IGate,
     PermutationGate,
     PhaseGate,
+    QFTGate,
     RXGate,
     RYGate,
     RZGate,
@@ -1267,6 +1268,31 @@ class TestTranspile(QiskitTestCase):
             translation_method="synthesis",
             basis_gates=basis_gates,
             optimization_level=optimization_level,
+            seed_transpiler=42,
+        )
+
+        self.assertTrue(Operator(out).equiv(qc))
+        self.assertTrue(set(out.count_ops()).issubset(basis_gates))
+
+    def test_translation_method_synthesis_inverse_qft(self):
+        """Verify translation_method='synthesis' gets a one-qubit inverse QFT to the basis.
+
+        Regression test of #13152.
+        """
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        qc.sx(0)
+        qc.z(0)
+        qc.append(QFTGate(1).inverse(), [0])
+        qc.z(0)
+        qc.sxdg(0)
+
+        basis_gates = ["ecr", "id", "rz", "sx", "x"]
+        out = transpile(
+            qc,
+            translation_method="synthesis",
+            basis_gates=basis_gates,
+            optimization_level=3,
             seed_transpiler=42,
         )
 

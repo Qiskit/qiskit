@@ -20,7 +20,7 @@ import numpy as np
 from ddt import ddt, data, unpack
 
 from qiskit import transpile
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import AnnotatedOperation, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import QFT, QFTGate
 from qiskit.quantum_info import Operator
 from qiskit.qpy import dump, load
@@ -288,6 +288,28 @@ class TestQFTGate(QiskitTestCase):
         qc.append(QFTGate(4), [1, 2, 0, 4])
         qci = qc.inverse()
         self.assertEqual(Operator(qci), Operator(qc).adjoint())
+
+    @data(1, 2, 3, 4)
+    def test_gate_inverse(self, num_qubits):
+        """Test the gate returned by QFTGate.inverse."""
+        qft_gate = QFTGate(num_qubits)
+        inverse_gate = qft_gate.inverse()
+        adjoint = Operator(qft_gate).adjoint()
+
+        # the inverse must provide its own matrix, otherwise transpiler passes collecting
+        # single-qubit unitaries cannot handle it
+        self.assertEqual(Operator(inverse_gate.to_matrix()), adjoint)
+        self.assertEqual(Operator(inverse_gate.definition), adjoint)
+        self.assertEqual(QFTGate(num_qubits), inverse_gate.inverse())
+
+    @data(1, 3)
+    def test_gate_annotated_inverse(self, num_qubits):
+        """Test the annotated inverse of a QFTGate."""
+        qft_gate = QFTGate(num_qubits)
+        inverse_gate = qft_gate.inverse(annotated=True)
+
+        self.assertIsInstance(inverse_gate, AnnotatedOperation)
+        self.assertEqual(Operator(inverse_gate), Operator(qft_gate).adjoint())
 
     def test_reverse_ops(self):
         """Test reverse_ops works for a circuit with a QFTGate."""

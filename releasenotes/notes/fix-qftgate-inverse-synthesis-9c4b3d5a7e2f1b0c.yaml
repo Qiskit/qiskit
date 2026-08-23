@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed :meth:`.QFTGate.inverse`, which used to return an opaque gate defined only by
+    its decomposition. The returned gate now provides its own unitary matrix, so that a
+    single-qubit inverse QFT can be collected and synthesized by the transpiler. This
+    previously made ``transpile(..., translation_method="synthesis")`` fail with a
+    ``TranspilerError`` on circuits containing ``QFTGate(1).inverse()``.
+    Fixed `#13152 <https://github.com/Qiskit/qiskit/issues/13152>`__.
