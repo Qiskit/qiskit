@@ -24,6 +24,12 @@ use smallvec::{SmallVec, smallvec};
 use std::f64::consts::PI;
 type Instruction = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[Qubit; 2]>);
 
+#[derive(Clone, Copy)]
+enum AngleSpec {
+    Gate(StandardGate), // t, tdg, s, sdg, z
+    Phase(f64),         // numeric angle
+}
+
 fn get_instr(angle: AngleSpec, qubit_idx: usize) -> Instruction {
     let sm_vec = smallvec![];
     let qubit = smallvec![Qubit(qubit_idx as u32)];
@@ -31,16 +37,10 @@ fn get_instr(angle: AngleSpec, qubit_idx: usize) -> Instruction {
         AngleSpec::Gate(gate) => (gate, sm_vec, qubit),
         AngleSpec::Phase(angle) => (
             StandardGate::Phase,
-            smallvec![Param::Float(angle % PI)],
+            smallvec![Param::Float(angle.rem_euclid(2.0 * PI))],
             qubit,
         ),
     }
-}
-
-#[derive(Clone, Copy)]
-enum AngleSpec {
-    Gate(StandardGate), // t, tdg, s, sdg, z
-    Phase(f64),         // numeric angle
 }
 
 // A parity is a vector in `F_2^n`: the set of qubits that participate in one
@@ -71,14 +71,22 @@ pub fn synth_cnot_phase_aam(
     angles: &Bound<PyList>,
     section_size: Option<usize>,
 ) -> PyResult<PyCircuitData> {
-    let cnots = cnots.as_array().to_owned();
+    let cnots = cnots.as_array();
     let num_qubits = cnots.nrows();
     let num_parities = cnots.ncols();
 
     if num_parities != angles.len() {
         return Err(QiskitError::new_err(
-            "Size of \"cnots\" and \"angles\" do not match.",
+            "Number of parities (column of cnots) and angles do not match.",
         ));
+    }
+
+    if let Some(size) = section_size
+        && size > num_parities
+    {
+        return Err(QiskitError::new_err(format!(
+            "\"section_size\"- {size} must not exceed the number of parities- {num_parities}."
+        )));
     }
 
     let mut angle_specs: Vec<AngleSpec> = Vec::with_capacity(angles.len());
@@ -90,7 +98,11 @@ pub fn synth_cnot_phase_aam(
                 "s" => AngleSpec::Gate(StandardGate::S),
                 "sdg" => AngleSpec::Gate(StandardGate::Sdg),
                 "z" => AngleSpec::Gate(StandardGate::Z),
-                other => return Err(QiskitError::new_err(format!("invalid angle: {other:?}"))),
+                other => {
+                    return Err(QiskitError::new_err(format!(
+                        "invalid angle: \'{other:?}\' ,each angle must be a gate label (t, tdg, s, sdg, z) or a number"
+                    )));
+                }
             }
         } else if let Ok(theta) = data.extract::<f64>() {
             AngleSpec::Phase(theta)
@@ -117,7 +129,7 @@ pub fn synth_cnot_phase_aam(
         }
     }
 
-    let mut tranx_matrix = Array2::<bool>::from_shape_fn((num_qubits, num_qubits), |(i, j)| i == j);
+    let mut linear_state = Array2::<bool>::from_shape_fn((num_qubits, num_qubits), |(i, j)| i == j);
 
     let mut circuit: Vec<Instruction> = Vec::new();
 
@@ -147,9 +159,9 @@ pub fn synth_cnot_phase_aam(
     // k is shared by all remaining parities.
     let mut common = FixedBitSet::with_capacity(num_qubits);
 
-    // `counts[k]` will hold the number of parities in the current S whose
+    // `parities_per_qubit[k]` will hold the number of parities in the current S whose
     // bit k is 1. Used to pick the best split bit.
-    let mut counts: Vec<usize> = vec![0usize; num_qubits];
+    let mut parities_per_qubit: Vec<usize> = vec![0usize; num_qubits];
 
     // We pre-allocate space for ~2n+4 frames, enough to avoid most
     // reallocations: the recursion tree has depth ≤ n, and each level
@@ -173,12 +185,12 @@ pub fn synth_cnot_phase_aam(
             continue;
         }
 
-        // While every remaining y in S shares a `1` in some bit other than
+        // While every remaining parity in `S` shares a `1` in some bit other than
         // the target, we can emit ONE CNOT to fold that bit into the
         // target. Each such CNOT advances every parity in S simultaneously.
         if let Some(target) = target_opt {
             loop {
-                // AND all parities in S into `common`. Seed with the first
+                // AND all parities in `S` into `common`. Seed with the first
                 // parity (`clone_from` reuses `common`'s allocation), then
                 // intersect the rest in place.
                 common.clone_from(&s[0].0);
@@ -186,8 +198,8 @@ pub fn synth_cnot_phase_aam(
                 // `s.iter().skip(1)` walks `s` starting from index 1; we've
                 // already used `s[0]` for the seed. If `common` collapses to
                 // all-zero we can stop early and further ANDs stay zero.
-                for (y, _) in s.iter().skip(1) {
-                    common.intersect_with(y);
+                for (parity, _) in s.iter().skip(1) {
+                    common.intersect_with(parity);
                     if common.is_clear() {
                         break; // all-zero already: further ANDs can't restore bits
                     }
@@ -215,7 +227,7 @@ pub fn synth_cnot_phase_aam(
                         // So `stack` and `s` are disjoint we have to update each separately.
                         apply_row_op_stack(&mut stack, control, target);
                         apply_row_op_set(&mut s, control, target);
-                        _row_op(tranx_matrix.view_mut(), control, target);
+                        _row_op(linear_state.view_mut(), control, target);
                     }
                     None => break, // No shared 1-bit anywhere means we are done.
                 }
@@ -223,56 +235,61 @@ pub fn synth_cnot_phase_aam(
         }
 
         if indices.is_empty() {
-            if let Some(t) = target_opt {
+            if let Some(target) = target_opt {
                 for (_, angle) in &s {
-                    circuit.push(get_instr(*angle, t));
+                    circuit.push(get_instr(*angle, target));
                 }
             }
             continue;
         }
 
-        // We want j in indices maximizing the larger half:
-        //     j = argmax_{j ∈ indices} max(|{y : y_target = 0}|, |{y : y_target = 1}|)
-        // Equivalently: pick the most lopsided bit.
-        // Reset `counts` to zero without reallocating.
-        counts.fill(0);
+        // Pick the bit to split on (the paper's `j`, Algorithm 1 line 18): the one giving the most
+        // lopsided partition of S. Here, `j` is called `split_idx`.
+        // split_idx = argmax_{split_idx ∈ indices} max(|{y : y_split_idx = 0}|, |{y : y_split_idx = 1}|)
+
+        // Reset `parities_per_qubit` to zero without reallocating.
+        parities_per_qubit.fill(0);
 
         // Count how many parities have each bit set. `ones()` yields exactly
         // the set-bit indices (increasing, all < num_qubits).
-        for (y, _) in &s {
-            for idx in y.ones() {
-                counts[idx] += 1;
+        for (parity, _) in &s {
+            for idx in parity.ones() {
+                parities_per_qubit[idx] += 1;
             }
         }
 
-        let total = s.len();
-
-        let (mut best_j, mut best_max) = (indices[0], 0usize);
-        for &cand in &indices {
-            let ones = counts[cand];
-            let m = ones.max(total - ones);
-            if m > best_max {
-                best_max = m;
-                best_j = cand;
+        let count_0s_1s = s.len();
+        let (mut largest_idx, mut largest_subset) = (indices[0], 0usize);
+        for &idx in &indices {
+            let count_1s = parities_per_qubit[idx];
+            let larger_subset = count_1s.max(count_0s_1s - count_1s);
+            if larger_subset > largest_subset {
+                largest_subset = larger_subset;
+                largest_idx = idx;
             }
         }
-        let j = best_j;
+        let split_idx = largest_idx;
 
         let mut s0: Vec<Data> = Vec::with_capacity(s.len());
         let mut s1: Vec<Data> = Vec::with_capacity(s.len());
-        for (y, a) in s {
-            if y.contains(j) {
-                s1.push((y, a));
+
+        for (parity, angle) in s {
+            if parity.contains(split_idx) {
+                s1.push((parity, angle));
             } else {
-                s0.push((y, a));
+                s0.push((parity, angle));
             }
         }
 
-        let new_indices: Vec<usize> = indices.iter().copied().filter(|&i| i != j).collect();
+        let new_indices: Vec<usize> = indices
+            .iter()
+            .copied()
+            .filter(|&i| i != split_idx)
+            .collect();
 
         // Push S_1 first, then S_0, so S_0 ends up on TOP of the stack and
         // is processed first, matching the paper's recursion order.
-        let s1_target = target_opt.or(Some(j));
+        let s1_target = target_opt.or(Some(split_idx));
 
         if !s1.is_empty() {
             stack.push(Frame {
@@ -290,7 +307,7 @@ pub fn synth_cnot_phase_aam(
         }
     }
 
-    circuit.extend(synth_pmh(tranx_matrix, section_size).rev());
+    circuit.extend(synth_pmh(linear_state, section_size).rev());
 
     Ok(CircuitData::from_standard_gates(num_qubits as u32, circuit, Param::Float(0.0))?.into())
 }

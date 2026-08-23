@@ -75,7 +75,8 @@ def synth_cnot_phase_aam(
 
     Raises:
         QiskitError: when dimensions of ``cnots`` and ``angles`` don't align or when an angle is
-        neither a floating-point value, nor one of the supported gates 't', 'tdg', 's', 'sdg' or 'z'.
+            neither a floating-point value, nor one of the supported gates
+            't', 'tdg', 's', 'sdg' or 'z'.
 
     References:
         1. Matthew Amy, Parsiad Azimzadeh, and Michele Mosca.

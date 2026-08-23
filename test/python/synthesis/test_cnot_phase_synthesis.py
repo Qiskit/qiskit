@@ -268,6 +268,24 @@ class TestGraySynth(QiskitTestCase):
         section_size = None
         synth_cnot_phase_aam(cnots, angles, section_size)
 
+    def test_invalid_section_size(self):
+        """Test `section_size` when greater than number of parities raises QiskitError"""
+        with self.assertRaisesRegex(QiskitError, ".not exceed the number of."):
+            synth_cnot_phase_aam([[1], [1]], [0], 2)
+
+    def test_2pi_mod_angle(self):
+        """Test angle modulo 2pi, is applied to PhaseGate"""
+
+        cnots = [[1], [1]]
+        section_size = 1
+        qc_0 = synth_cnot_phase_aam(cnots, [0], section_size)
+        qc_pi = synth_cnot_phase_aam(cnots, [2.0 * pi], section_size)
+
+        unitary_qc_0 = UnitaryGate(Operator(qc_0))
+        unitary_qc_pi = UnitaryGate(Operator(qc_pi))
+
+        self.assertEqual(unitary_qc_0, unitary_qc_pi)
+
     # All are exmaples of invalid angles.
     @ddt.data("", "rz", "0.5", None)
     def test_invalid_angle_raises(self, inv_angle):
