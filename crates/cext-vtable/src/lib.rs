@@ -265,17 +265,17 @@ mod operations {
         vec![
             export_fn!(qk_custom_operation_vtable_new),
             export_fn!(qk_custom_operation_new),
-            export_fn!(qk_custom_inst_name),
-            export_fn!(qk_custom_inst_num_qubits),
-            export_fn!(qk_custom_inst_num_clbits),
-            export_fn!(qk_custom_inst_num_params),
-            export_fn!(qk_custom_inst_directive),
-            export_fn!(qk_custom_inst_is_unitary),
-            export_fn!(qk_custom_inst_num_ctrl_qubits),
-            export_fn!(qk_custom_inst_label),
-            export_fn!(qk_custom_inst_definition),
-            export_fn!(qk_custom_inst_eq),
-            export_fn!(qk_custom_inst_free),
+            export_fn!(qk_custom_operation_name),
+            export_fn!(qk_custom_operation_num_qubits),
+            export_fn!(qk_custom_operation_num_clbits),
+            export_fn!(qk_custom_operation_num_params),
+            export_fn!(qk_custom_operation_directive),
+            export_fn!(qk_custom_operation_is_unitary),
+            export_fn!(qk_custom_operation_num_ctrl_qubits),
+            export_fn!(qk_custom_operation_label),
+            export_fn!(qk_custom_operation_definition),
+            export_fn!(qk_custom_operation_eq),
+            export_fn!(qk_custom_operation_free),
         ]
     });
 }
