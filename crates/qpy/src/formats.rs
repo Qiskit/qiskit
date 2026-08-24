@@ -612,15 +612,16 @@ fn write_bitterms(bitterms: &Vec<u8>, version: u8) -> BinResult<()> {
 #[brw(import(version: u8))]
 pub struct SparsePauliObservableElemPack {
     pub num_qubits: u32,
-    #[bw(calc = coeff_data.len() as u64)]
+    // coeffs are Complex64 numbers, stored as a vector of f64 in the format [re1, im1, re2, im2,...]
+    #[bw(calc = (coeff_data.len() * std::mem::size_of::<f64>()) as u64)]
     pub coeff_data_size: u64,
-    #[bw(calc = bitterm_data.len() as u64)]
+    #[bw(calc = (bitterm_data.len() * std::mem::size_of::<u16>()) as u64)]
     pub bitterm_data_size: u64,
-    #[bw(calc = inds_data.len() as u64)]
+    #[bw(calc = (inds_data.len() * std::mem::size_of::<u32>()) as u64)]
     pub inds_data_size: u64,
-    #[bw(calc = bounds_data.len() as u64)]
+    #[bw(calc = (bounds_data.len() * std::mem::size_of::<u64>()) as u64)]
     pub bounds_data_size: u64,
-    #[br(count = coeff_data_size)]
+    #[br(count = coeff_data_size / std::mem::size_of::<f64>() as u64)]
     pub coeff_data: Vec<f64>, // complex numbers stored in format [re1, im1, re2, im2,...]
     // Stored as `u16` up to QPY 17 and as `u8` from QPY 18 on; always `u8` in memory.
     #[br(parse_with = read_bitterms, args(version, bitterm_data_size))]
@@ -628,7 +629,7 @@ pub struct SparsePauliObservableElemPack {
     pub bitterm_data: Vec<u8>,
     #[br(count = inds_data_size)]
     pub inds_data: Vec<u32>,
-    #[br(count = bounds_data_size)]
+    #[br(count = bounds_data_size / std::mem::size_of::<u64>() as u64)]
     pub bounds_data: Vec<u64>,
 }
 
