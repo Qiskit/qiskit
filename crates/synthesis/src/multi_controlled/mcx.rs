@@ -404,11 +404,8 @@ pub fn synth_mcx_n_dirty_i15(
     }
 }
 
-/// Synthesize a multi-controlled X gate with :math:`k` controls based on
-/// the implementation for `MCPhaseGate`.
-///
-/// In turn, the MCPhase gate uses the decomposition for multi-controlled
-/// special unitaries described in [1].
+/// Synthesize a multi-controlled X gate with :math:`k` using no auxiliary qubits via the relation
+/// MCX = H · MCP(π) · H.
 ///
 /// # Arguments
 /// - num_controls: the number of control qubits.
@@ -418,12 +415,7 @@ pub fn synth_mcx_n_dirty_i15(
 /// A quantum circuit with :math:`k + 1` qubits. The number of CX-gates is
 /// quadratic in :math:`k`.
 ///
-/// # References
-///
-/// 1. Vale et. al., *Circuit Decomposition of Multicontrolled Special Unitary
-///    Single-Qubit Gates*, IEEE TCAD 43(3) (2024),
-///    [arXiv:2302.06377] (https://arxiv.org/abs/2302.06377).
-pub fn synth_mcx_noaux_v24(
+pub fn synth_mcx_mcp_noaux(
     py: Python,
     num_controls: usize,
 ) -> Result<CircuitData, CircuitDataError> {
