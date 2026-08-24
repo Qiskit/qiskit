@@ -50,6 +50,17 @@ class TestStatePlotTools(QiskitTestCase):
         self.assertEqual(output[0], labels)
         self.assertTrue(np.allclose(output[1], values))
 
+    def test_bloch_vector_style_line(self):
+        """Test Bloch render with vector_style='' simple line style."""
+        from qiskit.visualization.bloch import Bloch
+        import matplotlib.pyplot as plt
+
+        b = Bloch()
+        b.vector_style = ""
+        b.add_vectors([0, 1, 0])
+        b.render()
+        plt.close(b.fig)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

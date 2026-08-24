@@ -639,7 +639,7 @@ class Bloch:
             if self.vector_style == "":
                 # simple line style
                 self.axes.plot(
-                    xs3d, ys3d, zs3d, zs=0, zdir="z", label="Z", lw=self.vector_width, color=color
+                    xs3d, ys3d, zs3d, zdir="z", label="Z", lw=self.vector_width, color=color
                 )
             else:
                 # decorated style, with arrow heads
