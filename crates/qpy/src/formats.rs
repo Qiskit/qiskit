@@ -506,6 +506,7 @@ pub struct SparsePauliOpListElemPack {
 #[derive(Debug)]
 pub struct SparsePauliObservableElemPack {
     pub num_qubits: u32,
+    // coeffs are Complex64 numbers, stored as a vector of f64 in the format [re1, im1, re2, im2,...]
     #[bw(calc = (coeff_data.len() * std::mem::size_of::<f64>()) as u64)]
     pub coeff_data_size: u64,
     #[bw(calc = (bitterm_data.len() * std::mem::size_of::<u16>()) as u64)]
