@@ -46,6 +46,7 @@ use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::error::QpyError;
 use crate::formats;
+use crate::interface::ExtraCircuitData;
 use crate::params::pack_param_obj;
 use crate::py_methods::{
     PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME,
@@ -765,11 +766,9 @@ fn pack_classical_registers(circuit_data: &CircuitData) -> Vec<formats::Register
 
 fn pack_circuit_header(
     circuit_name: Option<String>,
-    circuit_metadata: Option<Bound<PyAny>>,
-    metadata_serializer: Option<&Bound<PyAny>>,
+    metadata: Bytes,
     qpy_data: &QPYWriteData,
 ) -> Result<formats::CircuitHeaderV12Pack, QpyError> {
-    let metadata = serialize_metadata(&circuit_metadata, metadata_serializer)?;
     let global_phase_data = pack_param_obj(
         qpy_data.circuit_data.global_phase(),
         qpy_data,
@@ -797,11 +796,8 @@ fn pack_circuit_header(
     Ok(header)
 }
 
-fn pack_layout(
-    transpile_layout: Option<Bound<PyAny>>,
-    qpy_data: &QPYWriteData,
-) -> Result<formats::LayoutV2Pack, QpyError> {
-    let default_layout = formats::LayoutV2Pack {
+fn default_layout() -> formats::LayoutV2Pack {
+    formats::LayoutV2Pack {
         exists: 0,
         initial_layout_size: -1,
         input_mapping_size: -1,
@@ -811,14 +807,20 @@ fn pack_layout(
         initial_layout_items: Vec::new(),
         input_mapping_items: Vec::new(),
         final_layout_items: Vec::new(),
-    };
+    }
+}
+
+pub(crate) fn pack_layout(
+    transpile_layout: Option<Bound<PyAny>>,
+    circuit_data: &CircuitData,
+) -> Result<formats::LayoutV2Pack, QpyError> {
     match transpile_layout {
-        None => Ok(default_layout),
+        None => Ok(default_layout()),
         Some(transpile_layout) => {
             if transpile_layout.is_none() {
-                Ok(default_layout)
+                Ok(default_layout())
             } else {
-                pack_transpile_layout(&transpile_layout, qpy_data)
+                pack_transpile_layout(&transpile_layout, circuit_data)
             }
         }
     }
@@ -826,7 +828,7 @@ fn pack_layout(
 
 fn pack_transpile_layout(
     layout: &Bound<PyAny>,
-    qpy_data: &QPYWriteData,
+    circuit_data: &CircuitData,
 ) -> Result<formats::LayoutV2Pack, QpyError> {
     let mut initial_layout_size = -1; // initial_size
     let mut input_qubit_mapping: HashMap<ShareableQubit, usize> = HashMap::new();
@@ -838,7 +840,7 @@ fn pack_transpile_layout(
     if !initial_layout.is_none() {
         initial_layout_size = initial_layout.call_method0("__len__")?.extract::<i32>()?;
         let layout_mapping = initial_layout.call_method0("get_physical_bits")?;
-        for i in 0..qpy_data.circuit_data.num_qubits() {
+        for i in 0..circuit_data.num_qubits() {
             let qubit = layout_mapping
                 .get_item(i)?
                 .extract::<ShareableQubit>()
@@ -874,7 +876,7 @@ fn pack_transpile_layout(
             let register = qubit.owning_register();
             if let Some(reg) = register
                 && qubit.owning_register_index().is_some()
-                && !qpy_data.circuit_data.qregs().contains(&reg)
+                && !circuit_data.qregs().contains(&reg)
             {
                 extra_registers.insert(reg);
             };
@@ -893,29 +895,23 @@ fn pack_transpile_layout(
         final_layout_size = final_layout.call_method0("__len__")?.extract::<i32>()?;
         let mut final_layout_items: Vec<u32> = Vec::with_capacity(final_layout_size as usize);
         let final_layout_physical = final_layout.call_method0("get_physical_bits")?;
-        for i in 0..qpy_data.circuit_data.num_qubits() {
+        for i in 0..circuit_data.num_qubits() {
             let virtual_bit = final_layout_physical.get_item(i)?;
             if virtual_bit.is_instance_of::<PyClbit>() {
                 let virtual_clbit = virtual_bit
                     .extract::<ShareableClbit>()
                     .map_err(|e| QpyError::from(PyErr::from(e)))?;
-                let index = qpy_data
-                    .circuit_data
-                    .clbit_index(&virtual_clbit)
-                    .ok_or_else(|| {
-                        QpyError::ConversionError("Clbit missing an index".to_string())
-                    })?;
+                let index = circuit_data.clbit_index(&virtual_clbit).ok_or_else(|| {
+                    QpyError::ConversionError("Clbit missing an index".to_string())
+                })?;
                 final_layout_items.push(index);
             } else if virtual_bit.is_instance_of::<PyQubit>() {
                 let virtual_qubit = virtual_bit
                     .extract::<ShareableQubit>()
                     .map_err(|e| QpyError::from(PyErr::from(e)))?;
-                let index = qpy_data
-                    .circuit_data
-                    .qubit_index(&virtual_qubit)
-                    .ok_or_else(|| {
-                        QpyError::ConversionError("Qubit missing an index".to_string())
-                    })?;
+                let index = circuit_data.qubit_index(&virtual_qubit).ok_or_else(|| {
+                    QpyError::ConversionError("Qubit missing an index".to_string())
+                })?;
                 final_layout_items.push(index);
             }
         }
@@ -931,7 +927,7 @@ fn pack_transpile_layout(
     };
 
     let extra_registers =
-        pack_extra_registers(&extra_registers, &extra_registers_qubits, qpy_data)?;
+        pack_extra_registers(&extra_registers, &extra_registers_qubits, circuit_data)?;
 
     let initial_layout_items: Vec<formats::InitialLayoutItemV2Pack> = initial_layout_array
         .iter()
@@ -991,7 +987,7 @@ fn pack_custom_instructions(
 fn pack_extra_registers(
     in_circ_regs: &HashSet<QuantumRegister>,
     qubits: &HashSet<ShareableQubit>,
-    qpy_data: &QPYWriteData,
+    circuit_data: &CircuitData,
 ) -> Result<Vec<formats::RegisterV4Pack>, QpyError> {
     let mut out_circ_regs: HashSet<QuantumRegister> = HashSet::new();
     for qubit in qubits.iter() {
@@ -1003,10 +999,10 @@ fn pack_extra_registers(
     }
     let mut result = Vec::new();
     for qreg in in_circ_regs.iter() {
-        result.push(pack_quantum_register(qreg, qpy_data.circuit_data, true));
+        result.push(pack_quantum_register(qreg, circuit_data, true));
     }
     for qreg in out_circ_regs.iter() {
-        result.push(pack_quantum_register(qreg, qpy_data.circuit_data, false));
+        result.push(pack_quantum_register(qreg, circuit_data, false));
     }
     Ok(result)
 }
@@ -1050,9 +1046,19 @@ fn pack_custom_instruction(
             num_ctrl_qubits = gate.getattr("num_ctrl_qubits")?.extract::<u32>()?;
             ctrl_state = gate.getattr("ctrl_state")?.extract::<u32>()?;
             base_gate = gate.getattr("base_gate")?.clone();
+            let definition: QuantumCircuitData = gate.getattr("_definition")?.extract()?;
+            let metadata = serialize_metadata(&definition.metadata, None)?;
+            let layout = serialize(&pack_layout(
+                definition.transpile_layout.clone(),
+                &definition.data,
+            )?)?;
             Some(serialize(&pack_circuit(
-                &mut gate.getattr("_definition")?.extract()?,
-                Some(py.None().bind(py)),
+                &definition.data,
+                ExtraCircuitData {
+                    name: definition.name,
+                    metadata,
+                    layout,
+                },
                 qpy_data.version,
                 qpy_data.annotation_handler.child()?,
             )?)?)
@@ -1063,10 +1069,16 @@ fn pack_custom_instruction(
         }
         CircuitInstructionType::Gate | CircuitInstructionType::Instruction => inst
             .py_definition(py)?
-            .map(|mut defn| {
+            .map(|defn| {
+                let metadata = serialize_metadata(&defn.metadata, None)?;
+                let layout = serialize(&pack_layout(defn.transpile_layout.clone(), &defn.data)?)?;
                 pack_circuit(
-                    &mut defn,
-                    Some(py.None().bind(py)),
+                    &defn.data,
+                    ExtraCircuitData {
+                        name: defn.name,
+                        metadata,
+                        layout,
+                    },
                     qpy_data.version,
                     qpy_data.annotation_handler.child()?,
                 )
@@ -1215,24 +1227,19 @@ fn pack_standalone_vars(
 }
 
 pub(crate) fn pack_circuit(
-    circuit: &mut QuantumCircuitData,
-    metadata_serializer: Option<&Bound<PyAny>>,
+    circuit_data: &CircuitData,
+    extra: ExtraCircuitData,
     version: u8,
     annotation_handler: AnnotationHandler,
 ) -> Result<formats::QPYCircuit, QpyError> {
     let mut qpy_data = QPYWriteData {
-        circuit_data: &mut circuit.data,
+        circuit_data,
         version,
         standalone_var_indices: HashMap::new(),
         annotation_handler,
     };
     let standalone_vars = pack_standalone_vars(&mut qpy_data)?;
-    let header = pack_circuit_header(
-        circuit.name.clone(),
-        circuit.metadata.clone(),
-        metadata_serializer,
-        &qpy_data,
-    )?;
+    let header = pack_circuit_header(extra.name, extra.metadata, &qpy_data)?;
     // CalibrationsPack was dropped in v18; for v13-17 write an empty block (pulse
     // gates were removed in Qiskit 2.0 but older format versions require the field)
     let calibrations = if version < 18 {
@@ -1245,7 +1252,11 @@ pub(crate) fn pack_circuit(
     let (instructions, mut custom_instructions_hash) = pack_instructions(&mut qpy_data)?;
     let custom_instructions =
         pack_custom_instructions(&mut custom_instructions_hash, &mut qpy_data)?;
-    let layout = pack_layout(circuit.transpile_layout.clone(), &qpy_data)?;
+    let layout = if extra.layout.is_empty() {
+        default_layout()
+    } else {
+        crate::value::deserialize(&extra.layout)?.0
+    };
     let state_headers: Vec<formats::AnnotationStateHeaderPack> = qpy_data
         .annotation_handler
         .dump_serializers()?

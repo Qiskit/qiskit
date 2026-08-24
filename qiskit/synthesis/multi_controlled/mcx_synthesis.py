@@ -22,7 +22,6 @@ from qiskit._accelerate.synthesis.multi_controlled import (
     c3x as c3x_rs,
     c4x as c4x_rs,
     synth_mcx_n_dirty_i15 as synth_mcx_n_dirty_i15_rs,
-    synth_mcx_noaux_v24 as synth_mcx_noaux_v24_rs,
     synth_mcx_noaux_hp24 as synth_mcx_noaux_hp24_rs,
     synth_mcx_n_clean_m15 as synth_mcx_n_clean_m15_rs,
     synth_mcx_1_clean_b95 as synth_mcx_1_clean_b95_rs,
@@ -30,6 +29,10 @@ from qiskit._accelerate.synthesis.multi_controlled import (
     synth_mcx_2_kg24 as synth_mcx_2_kg24_rs,
 )
 from .gray_code import gray_code_chain
+from qiskit.synthesis.multi_controlled.mcp_synthesis import (
+    synth_mcp_noaux_sp22,
+    synth_mcp_noaux_v24,
+)
 
 
 def synth_mcx_n_dirty_i15(
@@ -198,6 +201,57 @@ def synth_mcx_gray_code(num_ctrl_qubits: int) -> QuantumCircuit:
     return qc
 
 
+def synth_mcx_noaux_sp22(num_ctrl_qubits: int) -> QuantumCircuit:
+    r"""
+    Synthesize a multi-controlled :class:`.XGate` gate with :math:`k` controls based on
+    the implementation for :class:`.MCPhaseGate`.
+
+    In turn, the :class:`.MCPhaseGate` uses the decomposition for multi-controlled
+    special unitaries described in the paper by da Silva et al. [1]
+    and the implementation in qclib [2].
+
+    Produces a quantum circuit with :math:`k + 1` qubits.
+    The number of CX-gates is quadratic in :math:`k`.
+
+    Args:
+        num_ctrl_qubits: The number of control qubits.
+
+    Returns:
+        The synthesized quantum circuit.
+
+    Raises:
+        QiskitError: if ``num_ctrl_qubits`` is illegal.
+
+    References:
+        [1] A. J. da Silva and D. K. Park,
+        Linear-depth quantum circuits for multiqubit controlled gates,
+        `Phys. Rev. A 106, 042602
+        <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.106.042602>`__.
+
+        [2] https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py
+    """
+    if num_ctrl_qubits < 0:
+        raise QiskitError(
+            "synth_mcx_noaux_sp22 cannot be called with a negative number of control qubits."
+        )
+    circ = QuantumCircuit(num_ctrl_qubits + 1)
+    if num_ctrl_qubits <= 2:
+        return _synth_mcx_special_cases(num_ctrl_qubits)
+    elif num_ctrl_qubits == 3:
+        circ = synth_c3x()
+    elif num_ctrl_qubits == 4:
+        circ = synth_c4x()
+    else:
+        circ.h(num_ctrl_qubits)
+        circ.compose(
+            synth_mcp_noaux_sp22(num_ctrl_qubits, phase=np.pi),
+            range(num_ctrl_qubits + 1),
+            inplace=True,
+        )
+        circ.h(num_ctrl_qubits)
+    return circ
+
+
 def synth_mcx_noaux_v24(num_ctrl_qubits: int) -> QuantumCircuit:
     r"""
     Synthesize a multi-controlled X gate with :math:`k` controls based on
@@ -227,8 +281,21 @@ def synth_mcx_noaux_v24(num_ctrl_qubits: int) -> QuantumCircuit:
         raise QiskitError(
             "synth_mcx_noaux_v24 cannot be called with a negative number of control qubits."
         )
-
-    circ = QuantumCircuit._from_circuit_data(synth_mcx_noaux_v24_rs(num_ctrl_qubits))
+    circ = QuantumCircuit(num_ctrl_qubits + 1)
+    if num_ctrl_qubits <= 2:
+        return _synth_mcx_special_cases(num_ctrl_qubits)
+    elif num_ctrl_qubits == 3:
+        circ = synth_c3x()
+    elif num_ctrl_qubits == 4:
+        circ = synth_c4x()
+    else:
+        circ.h(num_ctrl_qubits)
+        circ.compose(
+            synth_mcp_noaux_v24(num_ctrl_qubits, phase=np.pi),
+            range(num_ctrl_qubits + 1),
+            inplace=True,
+        )
+        circ.h(num_ctrl_qubits)
     return circ
 
 
