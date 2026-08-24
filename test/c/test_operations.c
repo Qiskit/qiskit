@@ -433,7 +433,7 @@ static int test_custom_operation_query(void) {
     const QkParam *params[1] = {qk_param_from_double(3.14)};
 
     qk_circuit_add_custom_operation(circuit, test_3q, qubits, NULL, NULL);
-    qk_circuit_add_custom_operation(circuit, test_2q_1c, qubits_2, clbits_2, NULL);
+    qk_circuit_add_custom_operation(circuit, test_2q_1c, qubits_2, clbits_2, (QkParam **)params);
 
     void *gates[2] = {(void *)&test_3q_op, (void *)&test_2q_op};
 
