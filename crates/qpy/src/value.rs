@@ -62,49 +62,6 @@ pub enum QpyCaller {
     Native,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn boolean_vec_numpy_object_roundtrip() {
-        for values in [vec![], vec![false], vec![true, false, true]] {
-            let value =
-                GenericValue::numpy_array_from_boolean_vec(&values).unwrap_or(GenericValue::Null);
-            assert_eq!(value.to_boolean_vec(), Some(values));
-        }
-    }
-
-    #[test]
-    fn complex_matrix_numpy_object_roundtrip() -> Result<(), Box<dyn std::error::Error>> {
-        let matrix = ndarray::array![
-            [Complex64::new(1.0, 0.0), Complex64::new(0.0, 1.0)],
-            [Complex64::new(0.0, -1.0), Complex64::new(-1.0, 0.0)],
-        ];
-        let GenericValue::NumpyObject(bytes) =
-            GenericValue::numpy_array_from_complex_matrix(&matrix)?
-        else {
-            return Err("expected a numpy object".into());
-        };
-        let npy = NpyFile::new(Cursor::new(bytes.0))?;
-        assert_eq!(npy.shape(), &[2, 2]);
-        assert_eq!(npy.order(), npyz::Order::C);
-        assert_eq!(
-            npy.into_vec::<Complex64>()?,
-            matrix.iter().copied().collect::<Vec<_>>()
-        );
-        Ok(())
-    }
-
-    #[test]
-    fn native_caller_does_not_attach_python() {
-        let result = QpyCaller::Native.attach("test feature", |_py| -> Result<(), QpyError> {
-            panic!("native QPY must reject the feature before attaching Python")
-        });
-        assert!(matches!(result, Err(QpyError::PythonOnly("test feature"))));
-    }
-}
-
 impl QpyCaller {
     pub(crate) fn attach<T, E>(
         self,
@@ -1228,7 +1185,7 @@ pub(crate) fn creg_by_name(
 #[cfg(test)]
 // Tests are allowed to unwrap; the crate-level deny exists for the deserializer, not for fixtures.
 #[allow(clippy::unwrap_used)]
-mod tests {
+mod qpy_value_tests {
     use super::*;
     use qiskit_circuit::operations::Param;
 
@@ -1238,6 +1195,7 @@ mod tests {
     fn round_trip(value: &GenericValue, version: u8) -> (ValueType, GenericValue) {
         let circuit_data = CircuitData::new(None, None, Param::Float(0.0)).unwrap();
         let write_data = QPYWriteData {
+            caller: QpyCaller::Native,
             circuit_data: &circuit_data,
             version,
             standalone_var_indices: HashMap::new(),
@@ -1245,6 +1203,7 @@ mod tests {
         };
         let (type_key, bytes) = serialize_generic_value(value, &write_data).unwrap();
         let mut read_data = QPYReadData {
+            caller: QpyCaller::Native,
             circuit_data,
             version,
             use_symengine: false,
@@ -1273,6 +1232,7 @@ mod tests {
         let value = GenericValue::Duration(Duration::dt(100));
         let circuit_data = CircuitData::new(None, None, Param::Float(0.0)).unwrap();
         let write_data = QPYWriteData {
+            caller: QpyCaller::Native,
             circuit_data: &circuit_data,
             version: QPY_DISTINCT_VALUE_KEYS_MIN_VERSION - 1,
             standalone_var_indices: HashMap::new(),
@@ -1306,5 +1266,43 @@ mod tests {
             panic!("expected a big integer, got {loaded:?}");
         };
         assert_eq!(bigint, big);
+    }
+
+    #[test]
+    fn boolean_vec_numpy_object_roundtrip() {
+        for values in [vec![], vec![false], vec![true, false, true]] {
+            let value =
+                GenericValue::numpy_array_from_boolean_vec(&values).unwrap_or(GenericValue::Null);
+            assert_eq!(value.to_boolean_vec(), Some(values));
+        }
+    }
+
+    #[test]
+    fn complex_matrix_numpy_object_roundtrip() -> Result<(), Box<dyn std::error::Error>> {
+        let matrix = ndarray::array![
+            [Complex64::new(1.0, 0.0), Complex64::new(0.0, 1.0)],
+            [Complex64::new(0.0, -1.0), Complex64::new(-1.0, 0.0)],
+        ];
+        let GenericValue::NumpyObject(bytes) =
+            GenericValue::numpy_array_from_complex_matrix(&matrix)?
+        else {
+            return Err("expected a numpy object".into());
+        };
+        let npy = NpyFile::new(Cursor::new(bytes.0))?;
+        assert_eq!(npy.shape(), &[2, 2]);
+        assert_eq!(npy.order(), npyz::Order::C);
+        assert_eq!(
+            npy.into_vec::<Complex64>()?,
+            matrix.iter().copied().collect::<Vec<_>>()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn native_caller_does_not_attach_python() {
+        let result = QpyCaller::Native.attach("test feature", |_py| -> Result<(), QpyError> {
+            panic!("native QPY must reject the feature before attaching Python")
+        });
+        assert!(matches!(result, Err(QpyError::PythonOnly("test feature"))));
     }
 }

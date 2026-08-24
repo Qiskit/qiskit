@@ -62,8 +62,8 @@ use crate::py_methods::{
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, GenericValue,
     ParamRegisterValue, QPYReadData, QpyCaller, RegisterType, ValueEndian, ValueType,
-    deserialize_with_args, load_param_register_value, load_value, unpack_duration_value,
-    unpack_for_collection, unpack_generic_value,
+    deserialize_with_args, load_param_register_value, load_value, unpack_for_collection,
+    unpack_generic_value,
 };
 
 use ndarray::{Array2, ShapeBuilder};
