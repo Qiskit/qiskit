@@ -654,7 +654,7 @@ fn pack_py_instruction(
 // packs the quantum registers in the circuit. we pack:
 // 1) registers appearing explicitly in the circuit register list (identified using in_circ_lookup)
 // 2) registers appearing implicitly for bits (in python: as their "_register" data field)
-fn pack_quantum_registers(circuit_data: &CircuitData) -> Vec<formats::RegisterV4Pack> {
+fn pack_quantum_registers(circuit_data: &CircuitData, version: u8) -> Vec<formats::RegisterPack> {
     // let in_circ_lookup: HashSet<QuantumRegister> = circuit_data.qregs().iter().cloned().collect();
     // let mut registers_to_pack: IndexSet<QuantumRegister> =
     //     circuit_data.qregs().iter().cloned().collect();
@@ -689,7 +689,9 @@ fn pack_quantum_registers(circuit_data: &CircuitData) -> Vec<formats::RegisterV4
     );
     registers_to_pack
         .iter()
-        .map(|qreg| pack_quantum_register(qreg, circuit_data, in_circ_lookup.contains(qreg)))
+        .map(|qreg| {
+            pack_quantum_register(qreg, circuit_data, in_circ_lookup.contains(qreg), version)
+        })
         .collect()
 }
 
@@ -697,26 +699,63 @@ fn pack_quantum_register(
     qreg: &QuantumRegister,
     circuit_data: &CircuitData,
     in_circuit: bool,
-) -> formats::RegisterV4Pack {
-    let bit_indices = qreg
-        .bits()
-        .map(|qubit| {
-            circuit_data
-                .qubit_index(&qubit)
-                .map(|index| index as i64)
-                .unwrap_or(-1)
+    version: u8,
+) -> formats::RegisterPack {
+    if version < 18 {
+        let bit_indices = qreg
+            .bits()
+            .map(|qubit| {
+                circuit_data
+                    .qubit_index(&qubit)
+                    .map(|index| index as i64)
+                    .unwrap_or(-1)
+            })
+            .collect();
+
+        formats::RegisterPack::V4(formats::RegisterV4Pack {
+            register_type: RegisterType::Qreg,
+            standalone: qreg.is_owning() as u8,
+            in_circuit: in_circuit as u8,
+            name: qreg.name().to_string(),
+            bit_indices,
         })
-        .collect();
-    formats::RegisterV4Pack {
-        register_type: RegisterType::Qreg,
-        standalone: qreg.is_owning() as u8,
-        in_circuit: in_circuit as u8,
-        name: qreg.name().to_string(),
-        bit_indices,
+    } else {
+        let mut contiguous_indices = true;
+        let mut bit_indices: Vec<u32> = Vec::with_capacity(qreg.len());
+        for qubit in qreg.bits() {
+            if let Some(index) = circuit_data.qubit_index(&qubit) {
+                if let Some(prev) = bit_indices.last()
+                    && *prev != index.saturating_sub(1)
+                {
+                    contiguous_indices = false
+                }
+                bit_indices.push(index);
+            } else {
+                bit_indices.push(u32::MAX);
+                contiguous_indices = false;
+            }
+        }
+        let start_index = bit_indices.first().copied().unwrap_or(u32::MAX);
+        let register_attachment = if qreg.is_owning() && in_circuit && contiguous_indices {
+            bit_indices = vec![];
+            1
+        } else {
+            0
+        };
+        formats::RegisterPack::V18(formats::RegisterV18Pack {
+            register_type: RegisterType::Qreg,
+            standalone: qreg.is_owning() as u8,
+            size: qreg.len() as u32,
+            register_attachment,
+            in_circuit: in_circuit as u8,
+            name: qreg.name().to_string(),
+            start_index,
+            bit_indices,
+        })
     }
 }
 
-fn pack_classical_registers(circuit_data: &CircuitData) -> Vec<formats::RegisterV4Pack> {
+fn pack_classical_registers(circuit_data: &CircuitData, version: u8) -> Vec<formats::RegisterPack> {
     let in_circ_lookup: HashSet<ClassicalRegister> = circuit_data.cregs().iter().cloned().collect();
     let mut registers_to_pack: IndexSet<ClassicalRegister> =
         circuit_data.cregs().iter().cloned().collect();
@@ -744,24 +783,68 @@ fn pack_classical_registers(circuit_data: &CircuitData) -> Vec<formats::Register
     registers_to_pack
         .iter()
         .map(|creg| {
-            let bit_indices = creg
-                .bits()
-                .map(|clbit| {
-                    circuit_data
-                        .clbit_index(&clbit)
-                        .map(|index| index as i64)
-                        .unwrap_or(-1)
-                })
-                .collect();
-            formats::RegisterV4Pack {
-                register_type: RegisterType::Creg,
-                standalone: creg.is_owning() as u8,
-                in_circuit: in_circ_lookup.contains(creg) as u8,
-                name: creg.name().to_string(),
-                bit_indices,
-            }
+            pack_classical_register(creg, circuit_data, in_circ_lookup.contains(creg), version)
         })
         .collect()
+}
+
+fn pack_classical_register(
+    creg: &ClassicalRegister,
+    circuit_data: &CircuitData,
+    in_circuit: bool,
+    version: u8,
+) -> formats::RegisterPack {
+    if version < 18 {
+        let bit_indices = creg
+            .bits()
+            .map(|clbit| {
+                circuit_data
+                    .clbit_index(&clbit)
+                    .map(|index| index as i64)
+                    .unwrap_or(-1)
+            })
+            .collect();
+        formats::RegisterPack::V4(formats::RegisterV4Pack {
+            register_type: RegisterType::Creg,
+            standalone: creg.is_owning() as u8,
+            in_circuit: in_circuit as u8,
+            name: creg.name().to_string(),
+            bit_indices,
+        })
+    } else {
+        let mut contiguous_indices = true;
+        let mut bit_indices: Vec<u32> = Vec::with_capacity(creg.len());
+        for clbit in creg.bits() {
+            if let Some(index) = circuit_data.clbit_index(&clbit) {
+                if let Some(prev) = bit_indices.last()
+                    && *prev != index.saturating_sub(1)
+                {
+                    contiguous_indices = false
+                }
+                bit_indices.push(index);
+            } else {
+                bit_indices.push(u32::MAX);
+                contiguous_indices = false;
+            }
+        }
+        let start_index = bit_indices.first().copied().unwrap_or(u32::MAX);
+        let register_attachment = if creg.is_owning() && in_circuit && contiguous_indices {
+            bit_indices = vec![];
+            1
+        } else {
+            0
+        };
+        formats::RegisterPack::V18(formats::RegisterV18Pack {
+            register_type: RegisterType::Creg,
+            standalone: creg.is_owning() as u8,
+            size: creg.len() as u32,
+            register_attachment,
+            in_circuit: in_circuit as u8,
+            name: creg.name().to_string(),
+            start_index,
+            bit_indices,
+        })
+    }
 }
 
 fn pack_circuit_header(
@@ -774,8 +857,8 @@ fn pack_circuit_header(
         qpy_data,
         ValueEndian::Big,
     )?;
-    let qregs = pack_quantum_registers(qpy_data.circuit_data);
-    let cregs = pack_classical_registers(qpy_data.circuit_data);
+    let qregs = pack_quantum_registers(qpy_data.circuit_data, qpy_data.version);
+    let cregs = pack_classical_registers(qpy_data.circuit_data, qpy_data.version);
     let mut registers = qregs;
     registers.extend(cregs);
     let header = formats::CircuitHeaderV12Pack {
@@ -813,6 +896,7 @@ fn default_layout() -> formats::LayoutV2Pack {
 pub(crate) fn pack_layout(
     transpile_layout: Option<Bound<PyAny>>,
     circuit_data: &CircuitData,
+    version: u8,
 ) -> Result<formats::LayoutV2Pack, QpyError> {
     match transpile_layout {
         None => Ok(default_layout()),
@@ -820,7 +904,7 @@ pub(crate) fn pack_layout(
             if transpile_layout.is_none() {
                 Ok(default_layout())
             } else {
-                pack_transpile_layout(&transpile_layout, circuit_data)
+                pack_transpile_layout(&transpile_layout, circuit_data, version)
             }
         }
     }
@@ -829,6 +913,7 @@ pub(crate) fn pack_layout(
 fn pack_transpile_layout(
     layout: &Bound<PyAny>,
     circuit_data: &CircuitData,
+    version: u8,
 ) -> Result<formats::LayoutV2Pack, QpyError> {
     let mut initial_layout_size = -1; // initial_size
     let mut input_qubit_mapping: HashMap<ShareableQubit, usize> = HashMap::new();
@@ -926,8 +1011,12 @@ fn pack_transpile_layout(
         layout.getattr("_input_qubit_count")?.extract()?
     };
 
-    let extra_registers =
-        pack_extra_registers(&extra_registers, &extra_registers_qubits, circuit_data)?;
+    let extra_registers = pack_extra_registers(
+        &extra_registers,
+        &extra_registers_qubits,
+        circuit_data,
+        version,
+    )?;
 
     let initial_layout_items: Vec<formats::InitialLayoutItemV2Pack> = initial_layout_array
         .iter()
@@ -988,7 +1077,8 @@ fn pack_extra_registers(
     in_circ_regs: &HashSet<QuantumRegister>,
     qubits: &HashSet<ShareableQubit>,
     circuit_data: &CircuitData,
-) -> Result<Vec<formats::RegisterV4Pack>, QpyError> {
+    version: u8,
+) -> Result<Vec<formats::RegisterPack>, QpyError> {
     let mut out_circ_regs: HashSet<QuantumRegister> = HashSet::new();
     for qubit in qubits.iter() {
         if let Some(qreg) = qubit.owning_register()
@@ -999,10 +1089,10 @@ fn pack_extra_registers(
     }
     let mut result = Vec::new();
     for qreg in in_circ_regs.iter() {
-        result.push(pack_quantum_register(qreg, circuit_data, true));
+        result.push(pack_quantum_register(qreg, circuit_data, true, version));
     }
     for qreg in out_circ_regs.iter() {
-        result.push(pack_quantum_register(qreg, circuit_data, false));
+        result.push(pack_quantum_register(qreg, circuit_data, false, version));
     }
     Ok(result)
 }
@@ -1054,6 +1144,7 @@ fn pack_custom_instruction(
             let layout = serialize(&pack_layout(
                 definition.transpile_layout.clone(),
                 &definition.data,
+                qpy_data.version,
             )?)?;
             Some(serialize(&pack_circuit(
                 &definition.data,
@@ -1074,7 +1165,11 @@ fn pack_custom_instruction(
             .py_definition(py)?
             .map(|defn| {
                 let metadata = serialize_metadata(&defn.metadata, None)?;
-                let layout = serialize(&pack_layout(defn.transpile_layout.clone(), &defn.data)?)?;
+                let layout = serialize(&pack_layout(
+                    defn.transpile_layout.clone(),
+                    &defn.data,
+                    qpy_data.version,
+                )?)?;
                 pack_circuit(
                     &defn.data,
                     ExtraCircuitData {
@@ -1258,7 +1353,11 @@ pub(crate) fn pack_circuit(
     let layout = if extra.layout.is_empty() {
         default_layout()
     } else {
-        crate::value::deserialize(&extra.layout)?.0
+        crate::value::deserialize_with_args::<formats::LayoutV2Pack, (u8,)>(
+            &extra.layout,
+            (version,),
+        )?
+        .0
     };
     let state_headers: Vec<formats::AnnotationStateHeaderPack> = qpy_data
         .annotation_handler

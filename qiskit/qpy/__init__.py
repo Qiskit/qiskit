@@ -199,6 +199,15 @@ of QPY in qiskit-terra 0.18.0.
    * - Qiskit (qiskit-terra for < 1.0.0) version
      - :func:`.dump` format(s) output versions
      - :func:`.load` maximum supported version (older format versions can always be read)
+   * - 2.6.0
+     - 13, 14, 15, 16, 17, 18
+     - 18
+   * - 2.5.2
+     - 13, 14, 15, 16, 17
+     - 17
+   * - 2.5.1
+     - 13, 14, 15, 16, 17
+     - 17
    * - 2.5.0
      - 13, 14, 15, 16, 17
      - 17
@@ -503,7 +512,6 @@ The register name needs no length of its own because the enclosing field already
 payload: ``conditional_reg_name_size`` for a condition, and the ``INSTRUCTION_PARAM`` header's
 ``size`` for a parameter.
 
-
 Version 18 also narrows the bit-term elements of the `SPARSE_OBSERVABLE` payload from `"!H"`
 (``uint16_t``) to `"!B"` (``uint8_t``).
 
@@ -512,6 +520,57 @@ stored a byte of padding for every bit term.  A version 18 payload is therefore 
 per bit term than the equivalent version 17 payload.  No other field of `SPARSE_OBSERVABLE`
 changes, and the meaning of `bitterm_data_len` is unaffected because it counts elements rather
 than bytes.
+
+Distinct type keys for ``Duration`` and big integers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Version 18 gives two value types a type key of their own, in the ``type`` field of an
+``INSTRUCTION_PARAM`` (see :ref:`qpy_instructions`) and anywhere else a value is stored with its key:
+
+* ``'D'`` for a :class:`.Duration`, which up to :ref:`version 17 <qpy_version_17>` shared ``'t'``
+  with a tuple.  The payload is unchanged: the one-byte unit discriminator followed by that unit's
+  value, exactly as in a ``DURATION`` item.
+* ``'I'`` for an arbitrary-precision integer, which up to version 17 shared ``'i'`` with a 64-bit
+  integer.  The payload is unchanged: one byte of length followed by that many big-endian magnitude
+  bytes.
+
+Reusing those keys is unambiguous for a decoder that knows which kind of value to expect at each
+point in the payload, and up to version 17 a decoder had to rely on that: an ``'i'`` payload longer
+than eight bytes was an arbitrary-precision integer rather than a 64-bit one.  The distinct keys
+additionally allow a value to be decoded from its own key and length, without that context.
+
+Payloads of :ref:`version 17 <qpy_version_17>` and earlier are read exactly as before.
+
+Changes to REGISTER_PACK
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The representation of registers defined in :ref:`qpy_registers` and updated in :ref:`qpy_version_4`)
+in QPY has changed in Version 18. The first change is the type of register
+index mapping array from ``int64_t`` to ``uint32_t`` (which is what it was prior to QPY v4). The original
+change to ``int64_t`` was done to enable using -1 as a sentinel value for a bit not in the circuit. This
+is not actually needed as we can use the max value of a ``uint32_t`` (4294967295) as the sentinel value.
+In version 18 values of 4294967295 should be treated as -1 was in previous QPY and the bit in that array
+position is not in the circuit.
+
+The :ref:`qpy_registers` header format has also been updated to
+
+.. code-block:: c
+
+    struct {
+        char type;
+        _Bool standalone;
+        uint32_t size;
+        uint16_t name_size;
+        _bool in_circuit;
+        char register_attachment;
+    }
+
+With the addition of the additional byte at the end of the struct for the
+``register_attachment`` field. If this value is 1 this indicates a contiguous
+register attached to a circuit. This will make the array following the
+name with the bit indices be a length of 1 and that contains the
+starting index of the register. The indices are then the range of length
+``size`` from that starting index. For example, if the starting index is 5
+and the ``size`` is 10 the indices are 5, 6, 7, 8, 9, 10, 11, 12, 13, 14.
 
 .. _qpy_version_17:
 
@@ -2208,6 +2267,11 @@ struct (on QPY format :ref:`qpy_version_3` the format is tweak slightly see:
 and in QPY :ref:`qpy_version_3` ``'v'`` represents a
 :class:`~qiskit.circuit.ParameterVectorElement` which is represented by a
 :ref:`qpy_param_vector` struct.
+
+From :ref:`version 18 <qpy_version_18>` two further keys are used: ``'D'`` for a
+:class:`.Duration` and ``'I'`` for an arbitrary-precision integer.  Before that version those
+values shared the keys of a tuple and of a 64-bit integer respectively, and were told apart by
+context rather than by their key.
 
 .. _qpy_param_struct:
 
