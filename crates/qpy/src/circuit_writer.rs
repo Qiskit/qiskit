@@ -1121,8 +1121,6 @@ fn pack_custom_instruction(
     let mut base_gate_raw: Bytes = Bytes::new();
 
     let data = match gate_type {
-        // The evolution payload needs the target QPY version: the width of the observable's bit
-        // terms narrowed from `u16` to `u8` in QPY 18.
         CircuitInstructionType::PauliEvolutionGate => Some(serialize_with_args(
             &py_pack_pauli_evolution_gate(inst.ob.bind(py), qpy_data)?,
             (qpy_data.version,),
