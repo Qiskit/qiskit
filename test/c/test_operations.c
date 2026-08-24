@@ -577,7 +577,7 @@ static int test_custom_operation_query(void) {
     const QkParam *params[1] = {qk_param_from_double(3.14)};
 
     qk_circuit_custom_operation(circuit, test_3q, qubits, NULL, NULL);
-    qk_circuit_custom_operation(circuit, test_2q_1c, qubits_2, clbits_2, NULL);
+    qk_circuit_custom_operation(circuit, test_2q_1c, qubits_2, clbits_2, (QkParam **)params);
 
     void *gates[2] = {(void *)copy_of_3q, (void *)&test_2q_op};
     if (qk_circuit_instruction_kind(circuit, 0) != QkOperationKind_Unknown) {
