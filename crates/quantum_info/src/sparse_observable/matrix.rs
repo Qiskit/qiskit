@@ -11,7 +11,7 @@ use super::{BitTerm, SparseObservable};
 pub type Result<T> = result::Result<T, MatrixError>;
 
 #[derive(Debug, Error)]
-#[error("{0} qubit matrix not supported on this system")]
+#[error("{0} qubit matrix too large for this system")]
 pub struct MatrixError(u32);
 
 impl SparseObservable {
