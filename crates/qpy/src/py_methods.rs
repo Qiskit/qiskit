@@ -436,6 +436,12 @@ pub(crate) fn py_convert_to_generic_value(
                 ))
             }
         }
+        // Unreachable: `py_get_type_key` produces neither key -- every Python `int` maps to
+        // `Integer`, and it has no `Duration` branch at all.  Both only arise when *reading*, from
+        // an `'I'`/`'D'` payload, so there is nothing to convert here.
+        ValueType::BigInt | ValueType::Duration => Err(QpyError::ConversionError(
+            "big integer and duration values are not produced from Python objects".to_string(),
+        )),
     }
 }
 
