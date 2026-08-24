@@ -31,7 +31,8 @@ use crate::error::QpyError;
 use crate::formats::{LayoutV2Pack, QPYCircuit, QPYFileHeader};
 use crate::py_methods::{py_circuit_data_to_quantum_circuit, serialize_metadata};
 use crate::value::{
-    ProgramType, QpyCaller, SymbolicEncoding, deserialize, deserialize_with_args, serialize, serialize_with_args,
+    ProgramType, QpyCaller, SymbolicEncoding, deserialize, deserialize_with_args, serialize,
+    serialize_with_args,
 };
 
 use std::io::{Cursor, Seek};
