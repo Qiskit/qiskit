@@ -75,7 +75,9 @@ QkCustomOpVTableEntry foo_entries[7] = {
     {.slot = -1, .func = NULL},
 };
 
-struct fee_gate {};
+struct fee_gate {
+    char *label;
+};
 
 const char *fee_name(const void *gate) {
     struct fee_gate *_self = (struct fee_gate *)gate;
@@ -131,11 +133,17 @@ QkCircuit *fee_definition(const void *gate, const QkParam **params) {
     return circuit;
 }
 
-QkCustomOpVTableEntry fee_entries[8] = {
+const char *fee_label(const void *gate) {
+    struct fee_gate *self = (struct fee_gate *)gate;
+    return self->label;
+}
+
+QkCustomOpVTableEntry fee_entries[9] = {
     {.slot = 0, .func = fee_name},       {.slot = 1, .func = fee_num_qubits},
     {.slot = 2, .func = fee_num_clbits}, {.slot = 3, .func = fee_num_params},
     {.slot = 4, .func = fee_directive},  {.slot = 5, .func = fee_is_unitary},
-    {.slot = 8, .func = fee_definition}, {.slot = -1, .func = NULL},
+    {.slot = 7, .func = fee_label},      {.slot = 8, .func = fee_definition},
+    {.slot = -1, .func = NULL},
 };
 
 /// Test adding a custom operation in the cicuit;
@@ -395,7 +403,9 @@ static int test_custom_operation_query(void) {
         .num_clbits = 0,
         .num_params = 0,
     };
-    struct fee_gate test_2q_op;
+    struct fee_gate test_2q_op = {
+        .label = "fee",
+    };
 
     // Initialize Vtable
     const QkCustomOpVtable *foo_vtable = qk_custom_op_vtable_new(foo_entries);
@@ -485,7 +495,7 @@ static int test_custom_operation_query(void) {
         goto cleanup;
     }
     op = qk_circuit_get_custom_operation(circuit, 1);
-    gate = &gates[1];
+    gate = gates[1];
 
     const char *retrieved_name_1 = qk_custom_operation_name(op);
     const char *orig_name_1 = fee_name(gate);
@@ -522,6 +532,15 @@ static int test_custom_operation_query(void) {
 
     if (qk_custom_operation_is_unitary(op) != fee_is_unitary(gate)) {
         printf("Unexpected non-unitary instruction for '%s'.\n", retrieved_name_1);
+        res = EqualityError;
+        goto cleanup;
+    }
+
+    const char *retrieved_label = qk_custom_operation_label(op);
+    const char *orig_label = fee_label(gate);
+    if (strcmp(retrieved_label, orig_label)) {
+        printf("Retrieved incorrect instruction label. Expected '%s', got '%s'.\n", orig_label,
+               retrieved_label);
         res = EqualityError;
         goto cleanup;
     }
