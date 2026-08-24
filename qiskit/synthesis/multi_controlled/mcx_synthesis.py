@@ -291,7 +291,9 @@ def synth_mcx_1_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
             "synth_mcx_1_kg24 cannot be called with a negative number of control qubits."
         )
 
-    return QuantumCircuit._from_circuit_data(synth_mcx_1_kg24_rs(num_ctrl_qubits, clean))
+    return QuantumCircuit._from_circuit_data(
+        synth_mcx_1_kg24_rs(num_ctrl_qubits, clean), legacy_qubits=True
+    )
 
 
 def synth_mcx_1_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
@@ -325,7 +327,9 @@ def synth_mcx_1_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
             "synth_mcx_1_clean_kg24 cannot be called with a negative number of control qubits."
         )
 
-    return QuantumCircuit._from_circuit_data(synth_mcx_1_kg24_rs(num_ctrl_qubits, True))
+    return QuantumCircuit._from_circuit_data(
+        synth_mcx_1_kg24_rs(num_ctrl_qubits, True), legacy_qubits=True
+    )
 
 
 def synth_mcx_1_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
@@ -358,7 +362,9 @@ def synth_mcx_1_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
             "synth_mcx_1_dirty_kg24 cannot be called with a negative number of control qubits."
         )
 
-    return QuantumCircuit._from_circuit_data(synth_mcx_1_kg24_rs(num_ctrl_qubits, False))
+    return QuantumCircuit._from_circuit_data(
+        synth_mcx_1_kg24_rs(num_ctrl_qubits, False), legacy_qubits=True
+    )
 
 
 def synth_mcx_2_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit:
@@ -388,7 +394,9 @@ def synth_mcx_2_kg24(num_ctrl_qubits: int, clean: bool = True) -> QuantumCircuit
             "synth_mcx_2_kg24 cannot be called with a negative number of control qubits."
         )
 
-    return QuantumCircuit._from_circuit_data(synth_mcx_2_kg24_rs(num_ctrl_qubits, clean))
+    return QuantumCircuit._from_circuit_data(
+        synth_mcx_2_kg24_rs(num_ctrl_qubits, clean), legacy_qubits=True
+    )
 
 
 def synth_mcx_2_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
@@ -421,7 +429,9 @@ def synth_mcx_2_clean_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
             "synth_mcx_2_clean_kg24 cannot be called with a negative number of control qubits."
         )
 
-    return QuantumCircuit._from_circuit_data(synth_mcx_2_kg24_rs(num_ctrl_qubits, True))
+    return QuantumCircuit._from_circuit_data(
+        synth_mcx_2_kg24_rs(num_ctrl_qubits, True), legacy_qubits=True
+    )
 
 
 def synth_mcx_2_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
@@ -454,7 +464,9 @@ def synth_mcx_2_dirty_kg24(num_ctrl_qubits: int) -> QuantumCircuit:
             "synth_mcx_2_dirty_kg24 cannot be called with a negative number of control qubits."
         )
 
-    return QuantumCircuit._from_circuit_data(synth_mcx_2_kg24_rs(num_ctrl_qubits, False))
+    return QuantumCircuit._from_circuit_data(
+        synth_mcx_2_kg24_rs(num_ctrl_qubits, False), legacy_qubits=True
+    )
 
 
 def synth_c3x() -> QuantumCircuit:
