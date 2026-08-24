@@ -388,7 +388,7 @@ class Operator(LinearOp):
     ) -> Operator:
         """Create a new Operator object from a :class:`.QuantumCircuit`
 
-        While a :class:`~.QuantumCircuit` object can passed directly as ``data``
+        While a :class:`~.QuantumCircuit` object can be passed directly as ``data``
         to the class constructor this provides no options on how the circuit
         is used to create an :class:`.Operator`. This constructor method lets
         you control how the :class:`.Operator` is created so it can be adjusted
