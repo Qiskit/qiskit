@@ -15,8 +15,9 @@ use hashbrown::HashMap;
 use std::any::{Any, TypeId};
 use thiserror::Error;
 
+/// Context information provided to the passes.
 pub struct PassContext {
-    // The String key could be promoted to some AnalysisKey if needed.
+    /// The data provided to the passes.
     pub data: HashMap<String, Box<dyn Any>>,
 }
 
@@ -25,6 +26,12 @@ impl PassContext {
         Self {
             data: HashMap::new(),
         }
+    }
+}
+
+impl Default for PassContext {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -48,7 +55,6 @@ pub trait Pass {
     /// # Returns
     /// * `Ok(Self::OutputIR)` - The transformed IR.
     /// * `Err(anyhow::Error)` - A type-erased [anyhow::Error].
-    // TODO or use an associated error type?
     fn run(&self, ir: Self::InputIR, context: &mut PassContext) -> anyhow::Result<Self::OutputIR>;
 }
 
@@ -73,7 +79,7 @@ impl<P: Pass> AnyPass for P {
         let ir = ir
             .downcast::<P::InputIR>()
             .expect("The pipeline construction guarantees the input IR has the correct type.");
-        let out_ir = P::run(&self, *ir, context)?;
+        let out_ir = P::run(self, *ir, context)?;
         Ok(Box::new(out_ir))
     }
 }
@@ -137,13 +143,23 @@ impl Task {
     }
 }
 
+// clippy is complaining about complex callback types, hence this typedef, even
+// though I'm not a huge fan of using them
+pub type Callback = dyn Fn(&dyn Any, &PassContext);
+
 /// A callback registry.
+///
+/// Callbacks can be registered to be run after a [Pass], a [Task], or after every stage
+/// in a [Task::Stage] variant.
+///
+/// Each callback is called with the type-erased IR and the pass context.
 pub struct CallbackRegistry {
-    post_pass: Vec<Box<dyn Fn(&dyn Any, &PassContext) -> ()>>,
-    post_task: Vec<Box<dyn Fn(&dyn Any, &PassContext) -> ()>>,
-    post_stage: Vec<Box<dyn Fn(&dyn Any, &PassContext) -> ()>>,
+    post_pass: Vec<Box<Callback>>,
+    post_task: Vec<Box<Callback>>,
+    post_stage: Vec<Box<Callback>>,
 }
 
+/// Hookpoint for the callback.
 pub enum CallbackType {
     PostPass,
     PostTask,
@@ -159,11 +175,8 @@ impl CallbackRegistry {
         }
     }
 
-    pub fn register_callback(
-        &mut self,
-        callback: Box<dyn Fn(&dyn Any, &PassContext) -> ()>,
-        when: CallbackType,
-    ) {
+    /// Register a callback.
+    pub fn register_callback(&mut self, callback: Box<Callback>, when: CallbackType) {
         match when {
             CallbackType::PostPass => self.post_pass.push(callback),
             CallbackType::PostTask => self.post_task.push(callback),
@@ -190,10 +203,16 @@ impl CallbackRegistry {
     }
 }
 
+impl Default for CallbackRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Qiskit's pass manager.
 pub struct PassManager {
     // It is UNSAFE to directly mutate the task vector since we are checking that the types
-    // match upon construction.
+    // match upon construction, hence the tasks are private.
     tasks: Vec<Task>,
 }
 
@@ -216,6 +235,7 @@ impl PassManager {
         Self { tasks: vec![] }
     }
 
+    /// Run the pass manager on the input IR.
     pub fn run<IRIn, IROut>(
         &self,
         ir: IRIn,
@@ -225,7 +245,7 @@ impl PassManager {
         IRIn: 'static,
         IROut: 'static,
     {
-        if self.tasks.len() == 0 {
+        if self.tasks.is_empty() {
             // If there are no tasks, return the input, but cast to IROut
             return cast_box::<IROut>(Box::new(ir));
         }
@@ -273,7 +293,7 @@ impl PassManager {
     /// Try push a pass to the pass manager, which will automatically wrap into a
     /// [Task::Transformation]. Returns an error if the types are not compatible.
     pub fn try_push_pass(&mut self, pass: Box<dyn AnyPass>) -> Result<(), PassManagerError> {
-        let task = Task::Transformation(pass.into());
+        let task = Task::Transformation(pass);
         self.try_push_task(task)
     }
 
@@ -288,7 +308,6 @@ impl PassManager {
             });
         }
 
-        let task = self.tasks.remove(index);
         if index > 0 && index < self.tasks.len() - 1 {
             let (_, before) = self.tasks[index - 1].io_types()?;
             let (after, _) = self.tasks[index + 1].io_types()?;
@@ -296,6 +315,8 @@ impl PassManager {
                 return Err(PassManagerError::IncompatibleTypes);
             }
         }
+        let task = self.tasks.remove(index);
+
         Ok(task)
     }
 
@@ -311,17 +332,19 @@ impl PassManager {
             });
         }
 
-        let (in_type, out_type) = task.io_types()?;
-        if index > 0 {
-            let (_, before) = self.tasks[index - 1].io_types()?;
-            if before != in_type {
-                return Err(PassManagerError::IncompatibleTypes);
+        if !self.tasks.is_empty() {
+            let (in_type, out_type) = task.io_types()?;
+            if index > 0 {
+                let (_, before) = self.tasks[index - 1].io_types()?;
+                if before != in_type {
+                    return Err(PassManagerError::IncompatibleTypes);
+                }
             }
-        }
-        if index < self.tasks.len() - 1 {
-            let (after, _) = self.tasks[index + 1].io_types()?;
-            if out_type != after {
-                return Err(PassManagerError::IncompatibleTypes);
+            if index < self.tasks.len() - 1 {
+                let (after, _) = self.tasks[index + 1].io_types()?;
+                if out_type != after {
+                    return Err(PassManagerError::IncompatibleTypes);
+                }
             }
         }
 
@@ -330,7 +353,7 @@ impl PassManager {
     }
 
     /// Get a reference to a [Task] at a given index.
-    pub fn try_get_task_ref<'a>(&'a self, index: usize) -> Result<&'a Task, PassManagerError> {
+    pub fn try_get_task_ref(&self, index: usize) -> Result<&Task, PassManagerError> {
         if index > self.tasks.len() {
             return Err(PassManagerError::IndexError {
                 index,
@@ -339,6 +362,12 @@ impl PassManager {
         }
 
         Ok(&self.tasks[index])
+    }
+}
+
+impl Default for PassManager {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -352,10 +381,10 @@ fn execute_task(
 ) -> Result<Box<dyn Any>, PassManagerError> {
     let out = match task {
         Task::Transformation(pass) => {
-            let out = pass
-                .run(ir, context)
-                .map_err(|e| PassManagerError::PassError(e))?;
-            callbacks.map(|cb| cb.call_post_pass(&out, context));
+            let out = pass.run(ir, context).map_err(PassManagerError::PassError)?;
+            if let Some(cb) = callbacks {
+                cb.call_post_pass(&out, context)
+            };
             Ok(out)
         }
         Task::Group(tasks) => {
@@ -369,20 +398,24 @@ fn execute_task(
             execute_task(&cases[index], ir, context, callbacks)
         }
         Task::Loop { condition, body } => {
-            while condition(&ir, &context) {
-                ir = execute_task(&body, ir, context, callbacks)?;
+            while condition(&ir, context) {
+                ir = execute_task(body, ir, context, callbacks)?;
             }
             Ok(ir)
         }
         Task::Stages(stages) => {
             for (_name, task) in stages.iter() {
                 ir = execute_task(task, ir, context, callbacks)?;
-                callbacks.map(|cb| cb.call_post_stage(&ir, context));
+                if let Some(cb) = callbacks {
+                    cb.call_post_stage(&ir, context)
+                };
             }
             Ok(ir)
         }
     };
-    callbacks.map(|cb| cb.call_post_task(&out, context));
+    if let Some(cb) = callbacks {
+        cb.call_post_task(&out, context)
+    };
     out
 }
 
@@ -399,7 +432,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use std::{cell::Cell, rc::Rc};
+    use std::{assert_matches, cell::Cell, rc::Rc};
 
     use super::*;
     use qiskit_circuit::{
@@ -447,6 +480,21 @@ mod test {
                 .data
                 .insert("t_count".to_string(), Box::new(t_count));
             Ok(ir)
+        }
+    }
+
+    struct DagToCircuit {}
+
+    impl Pass for DagToCircuit {
+        type InputIR = DAGCircuit;
+        type OutputIR = CircuitData;
+
+        fn run(
+            &self,
+            ir: Self::InputIR,
+            _context: &mut PassContext,
+        ) -> anyhow::Result<Self::OutputIR> {
+            Ok(CircuitData::from_dag_ref(&ir)?)
         }
     }
 
@@ -575,6 +623,95 @@ mod test {
         assert_eq!(pass_counter.get(), 9);
         assert_eq!(task_counter.get(), 11);
         assert_eq!(stage_counter.get(), 3);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_insertion() -> Result<(), PassManagerError> {
+        let make_dag_task = || Task::Transformation(Box::new(RemoveIdentities {}));
+        let make_circ_task = || Task::Transformation(Box::new(CountT {}));
+
+        let mut pm = PassManager::new();
+        pm.try_insert_task(0, make_dag_task())?;
+        pm.try_insert_task(1, make_dag_task())?;
+        pm.try_insert_task(0, make_dag_task())?;
+
+        assert_matches!(
+            pm.try_insert_task(1, make_circ_task()),
+            Err(PassManagerError::IncompatibleTypes)
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_removal() -> Result<(), PassManagerError> {
+        let mut pm = PassManager::new();
+        pm.try_push_pass(Box::new(RemoveIdentities {}))?;
+        pm.try_push_pass(Box::new(RemoveIdentities {}))?;
+        pm.try_push_pass(Box::new(DagToCircuit {}))?;
+        pm.try_push_pass(Box::new(CountT {}))?;
+
+        // we cannot use assert_matches! directly, which requires Task to implement Debug
+        match pm.try_remove_task(2) {
+            Ok(_) => assert!(false, "Expected failure"),
+            Err(e) => assert_matches!(e, PassManagerError::IncompatibleTypes),
+        };
+        // assert!(matches!(
+        //     pm.try_remove_task(2),
+        //     Err(PassManagerError::IncompatibleTypes)
+        // ));
+
+        pm.try_remove_task(3)?;
+        pm.try_remove_task(2)?;
+        pm.try_remove_task(0)?;
+
+        assert_eq!(pm.num_tasks(), 1);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_task_retrieval() -> Result<(), PassManagerError> {
+        let make_task = || Task::Transformation(Box::new(RemoveIdentities {}));
+
+        let group = Task::Group(vec![make_task(), make_task()]);
+        let loop_task = Task::Loop {
+            condition: |_, _| true,
+            body: Box::new(make_task()),
+        };
+        let switch = Task::Switch {
+            switch: |_, _| 0,
+            cases: vec![make_task()],
+        };
+        let stages = Task::Stages(vec![("one_and_only".to_string(), make_task())]);
+
+        let mut pm = PassManager::new();
+        pm.try_push_task(make_task())?;
+        pm.try_push_task(group)?;
+        pm.try_push_task(loop_task)?;
+        pm.try_push_task(switch)?;
+        pm.try_push_task(stages)?;
+
+        // we cannot use assert_matches! directly, which requires Task to implement Debug
+        assert!(matches!(pm.try_get_task_ref(0)?, Task::Transformation(_)));
+
+        if let Ok(Task::Group(group)) = pm.try_get_task_ref(1) {
+            assert_eq!(group.len(), 2);
+        } else {
+            assert!(false, "Expected a Task::Group");
+        }
+
+        assert!(matches!(pm.try_get_task_ref(2)?, Task::Loop { .. }));
+        assert!(matches!(pm.try_get_task_ref(3)?, Task::Switch { .. }));
+
+        if let Ok(Task::Stages(stages)) = pm.try_get_task_ref(4) {
+            assert_eq!(stages.len(), 1);
+            assert_eq!(stages[0].0, "one_and_only".to_string());
+        } else {
+            assert!(false, "Expected a Task::Stage");
+        }
 
         Ok(())
     }
