@@ -74,6 +74,58 @@ static QkVtableEntry complete_slots_with_null[] = {
     {.slot = -1, .ptr = NULL},
 };
 
+struct fee_gate {};
+
+const char *fee_name(const void *gate) {
+    struct fee_gate *_self = (struct fee_gate *)gate;
+    // Void pointer.
+    (void)_self;
+    return FOO_NAME;
+}
+uint32_t fee_num_qubits(const void *gate) {
+    struct fee_gate *_self = (struct fee_gate *)gate;
+    // Void pointer.
+    (void)_self;
+    return 2;
+}
+uint32_t fee_num_clbits(const void *gate) {
+    struct fee_gate *_self = (struct fee_gate *)gate;
+    // Void pointer.
+    (void)_self;
+    return 0;
+}
+uint32_t fee_num_params(const void *gate) {
+    struct fee_gate *_self = (struct fee_gate *)gate;
+    // Void pointer.
+    (void)_self;
+    return 1;
+}
+QkCircuit *fee_definition(const void *gate, const QkParam **params) {
+    struct fee_gate *_self = (struct fee_gate *)gate;
+    // Void pointer.
+    (void)_self;
+    QkCircuit *circuit = qk_circuit_new(2, 0);
+    uint32_t hgate_args[1] = {0};
+    uint32_t cxgate_args[2] = {0, 1};
+    uint32_t rzgate_args[2] = {1};
+    qk_circuit_gate(circuit, QkGate_H, hgate_args, NULL);
+    qk_circuit_gate(circuit, QkGate_CX, cxgate_args, NULL);
+
+    double params_fixed[1] = {qk_param_as_real(params[0])};
+    qk_circuit_gate(circuit, QkGate_RZ, rzgate_args, params_fixed);
+
+    return circuit;
+}
+
+static QkVtableEntry fee_entries[] = {
+    {.slot = QkCustomOpSlot_Name, .ptr = fee_name},
+    {.slot = QkCustomOpSlot_NumQubits, .ptr = fee_num_qubits},
+    {.slot = QkCustomOpSlot_NumClbits, .ptr = fee_num_clbits},
+    {.slot = QkCustomOpSlot_NumParams, .ptr = fee_num_params},
+    {.slot = QkCustomOpSlot_Definition, .ptr = fee_definition},
+    {.slot = -1, .ptr = NULL},
+};
+
 /// Test adding a custom operation in the cicuit;
 static int test_custom_operation_in_circuit(void) {
     int res = Ok;
@@ -477,6 +529,183 @@ exit:
     return res;
 }
 
+static int test_custom_operation_query(void) {
+    int res = Ok;
+
+    struct foo_gate *test_3q_op = malloc(sizeof(struct foo_gate));
+    test_3q_op->num_qubits = 3;
+    test_3q_op->num_clbits = 0;
+    test_3q_op->num_params = 0;
+    struct fee_gate test_2q_op;
+
+    // Clone for testing
+    struct foo_gate *copy_of_3q = foo_clone(test_3q_op);
+
+    // Initialize Vtable
+    const QkCustomOpVtable *foo_vtable = qk_custom_operation_vtable_new(foo_entries);
+    // Initialize Vtable
+    const QkCustomOpVtable *fee_vtable = qk_custom_operation_vtable_new(fee_entries);
+
+    if (foo_vtable == NULL) {
+        printf("Retrieved a Null pointer instead of a Vtable pointer for foo_gate.");
+        res = NullptrError;
+        goto exit;
+    }
+    if (fee_vtable == NULL) {
+        printf("Retrieved a Null pointer instead of a Vtable pointer for fee_gate.");
+        res = NullptrError;
+        goto exit;
+    }
+
+    QkCustomOp *test_3q = qk_custom_operation_new(test_3q_op, foo_vtable);
+    QkCustomOp *test_2q_1c = qk_custom_operation_new(&test_2q_op, fee_vtable);
+
+    QkCircuit *circuit = qk_circuit_new(3, 2);
+    uint32_t qubits[3] = {0, 1, 2};
+    uint32_t qubits_2[2] = {1, 2};
+    uint32_t clbits_2[1] = {1};
+    const QkParam *params[1] = {qk_param_from_double(3.14)};
+
+    qk_circuit_custom_operation(circuit, test_3q, qubits, NULL, NULL);
+    qk_circuit_custom_operation(circuit, test_2q_1c, qubits_2, clbits_2, NULL);
+
+    void *gates[2] = {(void *)copy_of_3q, (void *)&test_2q_op};
+    if (qk_circuit_instruction_kind(circuit, 0) != QkOperationKind_Unknown) {
+        res = RuntimeError;
+        goto exit;
+    }
+    const QkCustomOp *op = qk_circuit_custom_operation_get(circuit, 0);
+    void *gate = gates[0];
+
+    const char *retrieved_name = qk_custom_operation_name(op);
+    const char *orig_name = foo_name(gate);
+    if (strcmp(retrieved_name, orig_name)) {
+        printf("Retrieved incorrect instruction name. Expected '%s', got '%s'.\n", orig_name,
+               retrieved_name);
+        res = EqualityError;
+        goto cleanup;
+    }
+    uint32_t retrieved_num_qubits = qk_custom_operation_num_qubits(op);
+    uint32_t orig_num_qubits = foo_num_qubits(gate);
+    if (retrieved_num_qubits != orig_num_qubits) {
+        printf("Retrieved incorrect num_qubits for '%s'. Expected %u, got %u.\n", retrieved_name,
+               orig_num_qubits, retrieved_num_qubits);
+        res = EqualityError;
+        goto cleanup;
+    }
+    uint32_t retrieved_num_clbits = qk_custom_operation_num_clbits(op);
+    uint32_t orig_num_clbits = foo_num_clbits(gate);
+    if (retrieved_num_clbits != orig_num_clbits) {
+        printf("Retrieved incorrect num_clbits for '%s'. Expected %u, got %u.\n", retrieved_name,
+               orig_num_clbits, retrieved_num_clbits);
+        res = EqualityError;
+        goto cleanup;
+    }
+    uint32_t retrieved_num_params = qk_custom_operation_num_params(op);
+    uint32_t orig_num_params = foo_num_params(gate);
+    if (retrieved_num_params != orig_num_params) {
+        printf("Retrieved incorrect num_params for '%s'. Expected %u, got %u.\n", retrieved_name,
+               orig_num_params, retrieved_num_params);
+        res = EqualityError;
+        goto cleanup;
+    }
+
+    if (qk_custom_operation_is_unitary(op) != true) {
+        printf("Unexpected non-unitary instruction for '%s'.\n", retrieved_name);
+        res = EqualityError;
+        goto cleanup;
+    }
+
+    QkCircuit *retrieved_definition_foo = qk_custom_operation_definition(op, NULL);
+    QkCircuit *orig_definition_foo = foo_definition(gate, NULL);
+    char *retrieved_drawing_foo = qk_circuit_draw(retrieved_definition_foo, NULL);
+    char *orig_drawing_foo =
+        qk_circuit_draw(qk_custom_operation_definition(op, (const QkParam **)params), NULL);
+    if (strcmp(retrieved_drawing_foo, orig_drawing_foo) != 0) {
+        printf("Definitions are not simlar for '%s'.\n", retrieved_name);
+        printf("Expected.\n");
+        print_circuit(retrieved_definition_foo);
+        printf("Got.\n");
+        print_circuit(orig_definition_foo);
+        res = EqualityError;
+        goto cleanup_definitions;
+    }
+
+    if (qk_circuit_instruction_kind(circuit, 1) != QkOperationKind_Unknown) {
+        res = RuntimeError;
+        goto cleanup;
+    }
+    op = qk_circuit_custom_operation_get(circuit, 1);
+    gate = gates[1];
+
+    const char *retrieved_name_1 = qk_custom_operation_name(op);
+    const char *orig_name_1 = fee_name(gate);
+    if (strcmp(retrieved_name_1, orig_name_1)) {
+        printf("Retrieved incorrect instruction name. Expected '%s', got '%s'.\n", orig_name_1,
+               retrieved_name_1);
+        res = EqualityError;
+        goto cleanup;
+    }
+    retrieved_num_qubits = qk_custom_operation_num_qubits(op);
+    orig_num_qubits = fee_num_qubits(gate);
+    if (retrieved_num_qubits != orig_num_qubits) {
+        printf("Retrieved incorrect num_qubits for '%s'. Expected %u, got %u.\n", retrieved_name_1,
+               orig_num_qubits, retrieved_num_qubits);
+        res = EqualityError;
+        goto cleanup;
+    }
+    retrieved_num_clbits = qk_custom_operation_num_clbits(op);
+    orig_num_clbits = fee_num_clbits(gate);
+    if (retrieved_num_clbits != orig_num_clbits) {
+        printf("Retrieved incorrect num_clbits for '%s'. Expected %u, got %u.\n", retrieved_name_1,
+               orig_num_clbits, retrieved_num_clbits);
+        res = EqualityError;
+        goto cleanup;
+    }
+    retrieved_num_params = qk_custom_operation_num_params(op);
+    orig_num_params = fee_num_params(gate);
+    if (retrieved_num_params != orig_num_params) {
+        printf("Retrieved incorrect num_params for '%s'. Expected %u, got %u.\n", retrieved_name_1,
+               orig_num_params, retrieved_num_params);
+        res = EqualityError;
+        goto cleanup;
+    }
+
+    if (qk_custom_operation_is_unitary(op) != true) {
+        printf("Unexpected non-unitary instruction for '%s'.\n", retrieved_name_1);
+        res = EqualityError;
+        goto cleanup;
+    }
+
+    // No definition was made for this operation, therefore it should be NULL
+    QkCircuit *retrieved_definition = qk_custom_operation_definition(op, (const QkParam **)params);
+    QkCircuit *orig_definition = fee_definition(gate, (const QkParam **)params);
+    char *retrieved_drawing = qk_circuit_draw(retrieved_definition, NULL);
+    char *orig_drawing =
+        qk_circuit_draw(qk_custom_operation_definition(op, (const QkParam **)params), NULL);
+    if (strcmp(retrieved_drawing, orig_drawing) != 0) {
+        printf("Definitions are not simlar for '%s'.\n", retrieved_name_1);
+        printf("Expected.\n");
+        print_circuit(retrieved_definition);
+        printf("Got.\n");
+        print_circuit(orig_definition);
+        res = EqualityError;
+        goto cleanup_definitions_1;
+    }
+
+cleanup_definitions_1:
+    qk_circuit_free(retrieved_definition);
+    qk_circuit_free(orig_definition);
+cleanup_definitions:
+    qk_circuit_free(retrieved_definition_foo);
+    qk_circuit_free(orig_definition_foo);
+cleanup:
+    free(copy_of_3q);
+    qk_circuit_free(circuit);
+exit:
+    return res;
+}
+
 int test_operations(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_custom_operation_in_circuit);
@@ -485,6 +714,7 @@ int test_operations(void) {
     num_failed += RUN_TEST(test_vtable_with_null);
     num_failed += RUN_TEST(test_dtor_calls);
     num_failed += RUN_TEST(test_custom_op_transpile);
+    num_failed += RUN_TEST(test_custom_operation_query);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
