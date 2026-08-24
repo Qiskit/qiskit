@@ -415,6 +415,7 @@ pub fn synth_mcx_n_dirty_i15(
 /// A quantum circuit with :math:`k + 1` qubits. The number of CX-gates is
 /// quadratic in :math:`k`.
 ///
+#[allow(dead_code)]
 pub fn synth_mcx_mcp_noaux(
     py: Python,
     num_controls: usize,
