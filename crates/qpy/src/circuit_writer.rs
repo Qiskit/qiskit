@@ -36,9 +36,9 @@ use qiskit_circuit::duration::Duration;
 use qiskit_circuit::imports;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
-    BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction, LoopParam,
-    Operation, OperationRef, Param, PauliProductMeasurement, PauliProductRotation, PyInstruction,
-    PyOpKind, StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
+    BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction, DelayUnit,
+    LoopParam, Operation, OperationRef, Param, PauliProductMeasurement, PauliProductRotation,
+    PyInstruction, PyOpKind, StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
@@ -311,7 +311,10 @@ fn pack_standard_instruction(
 ) -> Result<formats::CircuitInstructionV2Pack, QpyError> {
     let mut params = pack_instruction_params(instruction, qpy_data)?;
     if let StandardInstruction::Delay(unit) = inst
-        && qpy_data.version > 17
+        // as of QPY 18 we store the duration unit as another parameter, fixing a bug where every delay
+        // duration was defaulted to DT. To save space, we keep relying on DT being default
+        // when no unit is present.
+        && qpy_data.version > 17 && !matches!(unit, DelayUnit::DT)
     {
         let unit_value = GenericValue::String(unit.to_string());
         let unit_param_pack = pack_generic_value(&unit_value, qpy_data)?;
