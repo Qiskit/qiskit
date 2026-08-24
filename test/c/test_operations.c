@@ -74,7 +74,9 @@ static QkVtableEntry complete_slots_with_null[] = {
     {.slot = -1, .ptr = NULL},
 };
 
-struct fee_gate {};
+struct fee_gate {
+    char *label;
+};
 
 const char *fee_name(const void *gate) {
     struct fee_gate *_self = (struct fee_gate *)gate;
@@ -116,6 +118,10 @@ QkCircuit *fee_definition(const void *gate, const QkParam **params) {
 
     return circuit;
 }
+const char *fee_label(const void *gate) {
+    struct fee_gate *self = (struct fee_gate *)gate;
+    return self->label;
+}
 
 static QkVtableEntry fee_entries[] = {
     {.slot = QkCustomOpSlot_Name, .ptr = fee_name},
@@ -123,6 +129,7 @@ static QkVtableEntry fee_entries[] = {
     {.slot = QkCustomOpSlot_NumClbits, .ptr = fee_num_clbits},
     {.slot = QkCustomOpSlot_NumParams, .ptr = fee_num_params},
     {.slot = QkCustomOpSlot_Definition, .ptr = fee_definition},
+    {.slot = QkCustomOpSlot_Label, .ptr = fee_label},
     {.slot = -1, .ptr = NULL},
 };
 
@@ -536,7 +543,10 @@ static int test_custom_operation_query(void) {
     test_3q_op->num_qubits = 3;
     test_3q_op->num_clbits = 0;
     test_3q_op->num_params = 0;
-    struct fee_gate test_2q_op;
+
+    struct fee_gate test_2q_op = {
+        .label = "fee",
+    };
 
     // Clone for testing
     struct foo_gate *copy_of_3q = foo_clone(test_3q_op);
@@ -633,7 +643,7 @@ static int test_custom_operation_query(void) {
 
     if (qk_circuit_instruction_kind(circuit, 1) != QkOperationKind_Unknown) {
         res = RuntimeError;
-        goto cleanup;
+        goto cleanup_definitions;
     }
     op = qk_circuit_custom_operation_get(circuit, 1);
     gate = gates[1];
@@ -644,7 +654,7 @@ static int test_custom_operation_query(void) {
         printf("Retrieved incorrect instruction name. Expected '%s', got '%s'.\n", orig_name_1,
                retrieved_name_1);
         res = EqualityError;
-        goto cleanup;
+        goto cleanup_definitions;
     }
     retrieved_num_qubits = qk_custom_operation_num_qubits(op);
     orig_num_qubits = fee_num_qubits(gate);
@@ -652,7 +662,7 @@ static int test_custom_operation_query(void) {
         printf("Retrieved incorrect num_qubits for '%s'. Expected %u, got %u.\n", retrieved_name_1,
                orig_num_qubits, retrieved_num_qubits);
         res = EqualityError;
-        goto cleanup;
+        goto cleanup_definitions;
     }
     retrieved_num_clbits = qk_custom_operation_num_clbits(op);
     orig_num_clbits = fee_num_clbits(gate);
@@ -660,7 +670,7 @@ static int test_custom_operation_query(void) {
         printf("Retrieved incorrect num_clbits for '%s'. Expected %u, got %u.\n", retrieved_name_1,
                orig_num_clbits, retrieved_num_clbits);
         res = EqualityError;
-        goto cleanup;
+        goto cleanup_definitions;
     }
     retrieved_num_params = qk_custom_operation_num_params(op);
     orig_num_params = fee_num_params(gate);
@@ -668,13 +678,22 @@ static int test_custom_operation_query(void) {
         printf("Retrieved incorrect num_params for '%s'. Expected %u, got %u.\n", retrieved_name_1,
                orig_num_params, retrieved_num_params);
         res = EqualityError;
-        goto cleanup;
+        goto cleanup_definitions;
     }
 
     if (qk_custom_operation_is_unitary(op) != true) {
         printf("Unexpected non-unitary instruction for '%s'.\n", retrieved_name_1);
         res = EqualityError;
-        goto cleanup;
+        goto cleanup_definitions;
+    }
+
+    const char *retrieved_label = qk_custom_operation_label(op);
+    const char *orig_label = fee_label(gate);
+    if (strcmp(retrieved_label, orig_label)) {
+        printf("Retrieved incorrect instruction label. Expected '%s', got '%s'.\n", orig_label,
+               retrieved_label);
+        res = EqualityError;
+        goto cleanup_definitions;
     }
 
     // No definition was made for this operation, therefore it should be NULL
