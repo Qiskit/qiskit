@@ -695,7 +695,9 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_free(v_table: *const CustomO
 
 /// @ingroup QkCustomOp
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_custom_inst_name(inst: *const BoxedCustomOperation) -> *const c_char {
+pub unsafe extern "C" fn qk_custom_operation_name(
+    inst: *const BoxedCustomOperation,
+) -> *const c_char {
     let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
 
     if let Some(as_custom_op) = borrowed_inst.downcast_ref::<CustomOp>() {
@@ -710,7 +712,7 @@ pub unsafe extern "C" fn qk_custom_inst_name(inst: *const BoxedCustomOperation) 
 
 /// @ingroup QkCustomOp
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_custom_inst_num_qubits(inst: *const BoxedCustomOperation) -> u32 {
+pub unsafe extern "C" fn qk_custom_operation_num_qubits(inst: *const BoxedCustomOperation) -> u32 {
     let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
 
     borrowed_inst.num_qubits()
@@ -718,7 +720,7 @@ pub unsafe extern "C" fn qk_custom_inst_num_qubits(inst: *const BoxedCustomOpera
 
 /// @ingroup QkCustomOp
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_custom_inst_num_clbits(inst: *const BoxedCustomOperation) -> u32 {
+pub unsafe extern "C" fn qk_custom_operation_num_clbits(inst: *const BoxedCustomOperation) -> u32 {
     let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
 
     borrowed_inst.num_clbits()
@@ -726,7 +728,7 @@ pub unsafe extern "C" fn qk_custom_inst_num_clbits(inst: *const BoxedCustomOpera
 
 /// @ingroup QkCustomOp
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_custom_inst_num_params(inst: *const BoxedCustomOperation) -> u32 {
+pub unsafe extern "C" fn qk_custom_operation_num_params(inst: *const BoxedCustomOperation) -> u32 {
     let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
 
     borrowed_inst.num_params()
@@ -734,7 +736,7 @@ pub unsafe extern "C" fn qk_custom_inst_num_params(inst: *const BoxedCustomOpera
 
 /// @ingroup QkCustomOp
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_custom_inst_directive(inst: *const BoxedCustomOperation) -> bool {
+pub unsafe extern "C" fn qk_custom_operation_directive(inst: *const BoxedCustomOperation) -> bool {
     let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
 
     borrowed_inst.directive()
@@ -742,7 +744,7 @@ pub unsafe extern "C" fn qk_custom_inst_directive(inst: *const BoxedCustomOperat
 
 /// @ingroup QkCustomOp
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_custom_inst_is_unitary(inst: *const BoxedCustomOperation) -> bool {
+pub unsafe extern "C" fn qk_custom_operation_is_unitary(inst: *const BoxedCustomOperation) -> bool {
     let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
 
     borrowed_inst.is_unitary()
@@ -750,7 +752,9 @@ pub unsafe extern "C" fn qk_custom_inst_is_unitary(inst: *const BoxedCustomOpera
 
 /// @ingroup QkCustomOp
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_custom_inst_num_ctrl_qubits(inst: *const BoxedCustomOperation) -> u32 {
+pub unsafe extern "C" fn qk_custom_operation_num_ctrl_qubits(
+    inst: *const BoxedCustomOperation,
+) -> u32 {
     let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
 
     if let Some(number) = borrowed_inst.num_ctrl_qubits() {
@@ -762,7 +766,9 @@ pub unsafe extern "C" fn qk_custom_inst_num_ctrl_qubits(inst: *const BoxedCustom
 
 /// @ingroup QkCustomOp
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_custom_inst_label(inst: *const BoxedCustomOperation) -> *const c_char {
+pub unsafe extern "C" fn qk_custom_operation_label(
+    inst: *const BoxedCustomOperation,
+) -> *const c_char {
     let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
 
     if let Some(as_custom_op) = borrowed_inst.downcast_ref::<CustomOp>() {
@@ -779,7 +785,7 @@ pub unsafe extern "C" fn qk_custom_inst_label(inst: *const BoxedCustomOperation)
 
 /// @ingroup QkCustomOp
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_custom_inst_definition(
+pub unsafe extern "C" fn qk_custom_operation_definition(
     inst: *const BoxedCustomOperation,
     params: *const *const Param,
 ) -> *mut CircuitData {
@@ -804,7 +810,7 @@ pub unsafe extern "C" fn qk_custom_inst_definition(
 
 /// @ingroup QkCustomOp
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_custom_inst_eq(
+pub unsafe extern "C" fn qk_custom_operation_eq(
     inst: *const BoxedCustomOperation,
     other: *const BoxedCustomOperation,
 ) -> bool {
