@@ -28,6 +28,10 @@ use py_exceptions::UnsupportedFeatureForVersion as PyUnsupportedFeatureForVersio
 /// Python exceptions only at the boundary when returning to Python space.
 #[derive(Error, Debug)]
 pub enum QpyError {
+    /// A QPY feature that requires the Python runtime was used from a native caller.
+    #[error("QPY feature '{0}' is only available when QPY is invoked from Python")]
+    PythonOnly(&'static str),
+
     /// An unsupported feature was encountered for the target QPY version
     #[error(
         "'{feature}' is not supported in QPY version {version}. Minimum required version is {min_version}"

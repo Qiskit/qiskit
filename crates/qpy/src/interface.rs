@@ -30,7 +30,9 @@ use crate::circuit_writer::{pack_circuit, pack_layout};
 use crate::error::QpyError;
 use crate::formats::{QPYCircuit, QPYFileHeader};
 use crate::py_methods::{py_circuit_data_to_quantum_circuit, serialize_metadata};
-use crate::value::{ProgramType, SymbolicEncoding, deserialize, deserialize_with_args, serialize};
+use crate::value::{
+    ProgramType, QpyCaller, SymbolicEncoding, deserialize, deserialize_with_args, serialize,
+};
 
 use std::io::{Cursor, Seek};
 
@@ -95,6 +97,7 @@ const QPY_WRITE_MIN_VERSION: u8 = 17;
 ///   is currently Python-only, metadata and layout should be already serialized into `Bytes` objects.
 /// * qpy_version: The QPY version to use for serialization. Must be >= QPY_WRITE_MIN_VERSION.
 /// * annotation_handler: The annotation handler to use for serializing annotations. If None, the native handler is used.
+/// * caller: The caller context, either Python or Native. Use `Native` when invoking `dump_qpy` from Rust.
 ///
 /// Returns:
 /// A `Bytes` object containing the complete QPY payload.
@@ -103,6 +106,7 @@ pub fn dump_qpy(
     extra_data: Vec<ExtraCircuitData>,
     qpy_version: u8,
     annotation_handler: Option<AnnotationHandler>,
+    caller: QpyCaller,
 ) -> Result<Bytes, QpyError> {
     if qpy_version < QPY_WRITE_MIN_VERSION {
         Err(QpyError::UnsupportedFeatureForVersion {
@@ -128,6 +132,7 @@ pub fn dump_qpy(
                 extra,
                 qpy_version,
                 annotation_handler.child()?,
+                caller,
             )?)
         })
         .collect::<Result<Vec<Bytes>, QpyError>>()?;
@@ -194,7 +199,11 @@ pub fn py_dump_qpy(
     let extra_data = circuits
         .iter()
         .map(|circuit| {
-            let metadata = serialize_metadata(&circuit.metadata, metadata_serializer.as_ref())?;
+            let metadata = serialize_metadata(
+                py,
+                &circuit.metadata,
+                metadata_serializer.as_ref().map(Bound::as_unbound),
+            )?;
             let layout = pack_layout(circuit.transpile_layout.clone(), &circuit.data)
                 .and_then(|layout| serialize(&layout))?;
             Ok(ExtraCircuitData {
@@ -205,7 +214,13 @@ pub fn py_dump_qpy(
         })
         .collect::<Result<Vec<_>, QpyError>>()?;
     let circuit_data = circuits.into_iter().map(|circuit| circuit.data).collect();
-    let serialized_qpy = dump_qpy(circuit_data, extra_data, version, Some(annotation_handler))?;
+    let serialized_qpy = dump_qpy(
+        circuit_data,
+        extra_data,
+        version,
+        Some(annotation_handler),
+        QpyCaller::Python,
+    )?;
     file_obj.call_method1("write", (pyo3::types::PyBytes::new(py, &serialized_qpy),))?;
     Ok(())
 }
@@ -261,12 +276,14 @@ pub fn read_raw_circuits(
 ///
 /// * data: The complete QPY payload as a byte slice.
 /// * annotation_handler: An optional annotation handler for deserializing annotations. If None, the native (dummy) handler is used.
+/// * caller: The caller context, either Python or Native. Use `Native` when invoking `load_qpy` from Rust.
 ///
 /// # Returns
 /// A vector of [`LoadedCircuit`] values, each containing the native `CircuitData` and packed data needed for any later Python-only construction.
 pub fn load_qpy(
     data: &Bytes,
     annotation_handler: Option<AnnotationHandler>,
+    caller: QpyCaller,
 ) -> Result<Vec<LoadedCircuit>, QpyError> {
     // Every QPY file begins with "QISKIT" followed by a version byte.
     // Since the header might be effected by the version, we begin by explicitly extracting the version.
@@ -314,6 +331,7 @@ pub fn load_qpy(
                 qpy_file_header.qpy_version,
                 use_symengine,
                 annotation_handler.child()?,
+                caller,
             )?;
             circuits.push(LoadedCircuit {
                 circuit_data,
@@ -336,6 +354,7 @@ pub fn load_qpy(
                 qpy_file_header.qpy_version,
                 use_symengine,
                 annotation_handler.child()?,
+                caller,
             )?;
             circuits.push(LoadedCircuit {
                 circuit_data,
@@ -374,14 +393,105 @@ pub fn py_load_qpy(
     let data: Bytes = file_obj.call_method0("read")?.extract()?;
 
     let annotation_handler = AnnotationHandler::python(&annotation_factories.clone().unbind())?;
-    load_qpy(&data, Some(annotation_handler))?
+    load_qpy(&data, Some(annotation_handler), QpyCaller::Python)?
         .into_iter()
         .map(|loaded| {
-            py_circuit_data_to_quantum_circuit(
-                loaded.circuit_data,
-                &loaded.packed_circuit,
-                metadata_deserializer.as_ref().map(Bound::as_ref),
-            )
+            QpyCaller::Python.attach("Python circuit construction", |py| {
+                py_circuit_data_to_quantum_circuit(
+                    py,
+                    loaded.circuit_data,
+                    &loaded.packed_circuit,
+                    metadata_deserializer.as_ref().map(Bound::as_ref),
+                )
+            })
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use qiskit_circuit::Qubit;
+    use qiskit_circuit::operations::{OperationRef, Param, StandardGate};
+
+    fn roundtrip_native(circuit: CircuitData) -> Result<CircuitData, QpyError> {
+        let payload = dump_qpy(
+            vec![circuit],
+            vec![ExtraCircuitData {
+                name: Some("native-roundtrip".to_owned()),
+                metadata: "{}".into(),
+                layout: Bytes::new(),
+            }],
+            QPY_WRITE_MIN_VERSION,
+            None,
+            QpyCaller::Native,
+        )?;
+        let mut loaded = load_qpy(&payload, None, QpyCaller::Native)?;
+        if loaded.len() != 1 {
+            return Err(QpyError::ConversionError(format!(
+                "expected one loaded circuit, got {}",
+                loaded.len()
+            )));
+        }
+        Ok(loaded.remove(0).circuit_data)
+    }
+
+    fn assert_same_simple_circuit(expected: &CircuitData, actual: &CircuitData) {
+        assert_eq!(actual.num_qubits(), expected.num_qubits());
+        assert_eq!(actual.num_clbits(), expected.num_clbits());
+        match (expected.global_phase(), actual.global_phase()) {
+            (Param::Float(expected), Param::Float(actual)) => assert_eq!(actual, expected),
+            (expected, actual) => panic!(
+                "global phases have different representations: expected {expected:?}, got {actual:?}"
+            ),
+        }
+        assert_eq!(actual.len(), expected.len());
+
+        for (expected_instruction, actual_instruction) in expected.data().iter().zip(actual.data())
+        {
+            match (expected_instruction.op.view(), actual_instruction.op.view()) {
+                (OperationRef::StandardGate(expected), OperationRef::StandardGate(actual)) => {
+                    assert_eq!(actual, expected)
+                }
+                (expected, actual) => panic!(
+                    "operations have different representations: expected {expected:?}, got {actual:?}"
+                ),
+            }
+            assert_eq!(
+                actual.get_qargs(actual_instruction.qubits),
+                expected.get_qargs(expected_instruction.qubits)
+            );
+            assert_eq!(
+                actual.get_cargs(actual_instruction.clbits),
+                expected.get_cargs(expected_instruction.clbits)
+            );
+            assert_eq!(
+                actual_instruction.params.is_none(),
+                expected_instruction.params.is_none()
+            );
+            assert_eq!(actual_instruction.label, expected_instruction.label);
+        }
+    }
+
+    #[test]
+    fn native_roundtrip_empty_circuit() -> Result<(), QpyError> {
+        let circuit = CircuitData::with_capacity(1, 0, 0, Param::Float(0.0))?;
+        let loaded = roundtrip_native(circuit.clone())?;
+        assert_same_simple_circuit(&circuit, &loaded);
+        Ok(())
+    }
+
+    #[test]
+    fn native_roundtrip_standard_gate() -> Result<(), QpyError> {
+        let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0))?;
+        circuit.push_standard_gate(StandardGate::H, &[], &[Qubit(0)])?;
+
+        let loaded = roundtrip_native(circuit.clone())?;
+        assert_same_simple_circuit(&circuit, &loaded);
+        assert!(matches!(
+            loaded.data()[0].op.view(),
+            OperationRef::StandardGate(StandardGate::H)
+        ));
+        Ok(())
+    }
 }
