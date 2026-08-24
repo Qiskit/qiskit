@@ -1300,6 +1300,10 @@ impl TextDrawer {
     }
 
     fn draw(&self, mergewires: bool, fold: usize) -> String {
+        if self.wires.is_empty() || self.wires[0].is_empty() {
+            return String::new();
+        }
+
         // Calculate the layer ranges for each fold of the circuit
         let num_layers = self.wires[0].len();
         // We skip the first (inputs) layer since it's printed for each fold, regardless
@@ -1566,6 +1570,14 @@ mod tests {
             .unwrap();
 
         circuit
+    }
+
+    #[cfg(not(miri))]
+    #[test]
+    fn test_empty_circuit() {
+        let circuit = CircuitData::new(None, None, Param::Float(0.5)).unwrap();
+        let result = draw_circuit(&circuit, false, false, None).unwrap();
+        assert_eq!("global phase: 0.5\n", result);
     }
 
     #[cfg(not(miri))]
