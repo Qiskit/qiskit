@@ -1158,20 +1158,8 @@ pub fn synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
 ///
 /// 2. <https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py>
 pub fn synth_mcx_noaux_sp22(num_ctrl_qubits: usize) -> Result<CircuitData, CircuitDataError> {
-    if num_ctrl_qubits == 0 {
-        let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0))?;
-        circuit.x(0)?;
-        Ok(circuit)
-    } else if num_ctrl_qubits == 1 {
-        let mut circuit = CircuitData::with_capacity(2, 0, 1, Param::Float(0.0))?;
-        circuit.cx(0, 1)?;
-        Ok(circuit)
-    } else if num_ctrl_qubits == 2 {
-        Ok(ccx())
-    } else if num_ctrl_qubits == 3 {
-        Ok(c3x().into())
-    } else if num_ctrl_qubits == 4 {
-        Ok(c4x()?.into())
+    if num_ctrl_qubits <= 4 {
+        synth_mcx_explicit(num_ctrl_qubits)
     } else {
         // 2n^2-2n+1 instructions from synth_mcp_noaux_sp22, plus 2 H gates wrapping it.
         let num_instructions = 2 * num_ctrl_qubits * num_ctrl_qubits - 2 * num_ctrl_qubits + 3;
@@ -1187,6 +1175,38 @@ pub fn synth_mcx_noaux_sp22(num_ctrl_qubits: usize) -> Result<CircuitData, Circu
         circuit.compose(&mcp, &qubits, &[])?;
         circuit.h(num_ctrl_qubits as u32)?;
         Ok(circuit)
+    }
+}
+
+/// Synthesize multi-controlled X explicit gates with up to 4 control qubits.
+///
+/// # Arguments
+///
+/// - num_ctrl_qubits: The number of control qubits.
+///
+/// # Returns
+///
+/// The synthesized quantum circuit.
+fn synth_mcx_explicit(num_ctrl_qubits: usize) -> Result<CircuitData, CircuitDataError> {
+    assert!(
+        num_ctrl_qubits <= 4,
+        "synth_basic_mcx_gates called with num_ctrl_qubits = {num_ctrl_qubits}, expected <= 4"
+    );
+    match num_ctrl_qubits {
+        0 => {
+            let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0))?;
+            circuit.x(0)?;
+            Ok(circuit)
+        }
+        1 => {
+            let mut circuit = CircuitData::with_capacity(2, 0, 1, Param::Float(0.0))?;
+            circuit.cx(0, 1)?;
+            Ok(circuit)
+        }
+        2 => Ok(ccx()),
+        3 => Ok(c3x().into()),
+        4 => Ok(c4x()?.into()),
+        _ => unreachable!(),
     }
 }
 
