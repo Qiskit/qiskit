@@ -233,7 +233,9 @@ def synth_mcx_noaux_sp22(num_ctrl_qubits: int) -> QuantumCircuit:
             "synth_mcx_noaux_sp22 cannot be called with a negative number of control qubits."
         )
 
-    return QuantumCircuit._from_circuit_data(synth_mcx_noaux_sp22_rs(num_ctrl_qubits),  legacy_qubits=True)
+    return QuantumCircuit._from_circuit_data(
+        synth_mcx_noaux_sp22_rs(num_ctrl_qubits), legacy_qubits=True
+    )
 
 
 def synth_mcx_noaux_v24(num_ctrl_qubits: int) -> QuantumCircuit:
