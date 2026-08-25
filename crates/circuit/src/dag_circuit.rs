@@ -13,6 +13,7 @@
 use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::hash::Hash;
+use std::iter::zip;
 use std::sync::Arc;
 
 use foldhash::fast::RandomState;
@@ -2201,10 +2202,12 @@ impl DAGCircuit {
                                 (
                                     ControlFlowView::Box {
                                         duration: duration_a,
+                                        annotations: annotations_a,
                                         body: body_a,
                                     },
                                     ControlFlowView::Box {
                                         duration: duration_b,
+                                        annotations: annotations_b,
                                         body: body_b,
                                     },
                                 ) => {
@@ -2227,7 +2230,13 @@ impl DAGCircuit {
                                         },
                                         None => duration_b.is_none(),
                                     };
-                                    Ok(duration_eq && block_eq(body_a, body_b)?)
+                                    Ok(duration_eq
+                                        && annotations_a.len() == annotations_b.len()
+                                        && zip(annotations_a, annotations_b)
+                                            .try_fold(true, |tot, (a, b)| {
+                                                a.bind(py).eq(b).map(|res| res && tot)
+                                            })?
+                                        && block_eq(body_a, body_b)?)
                                 }
                                 (ControlFlowView::BreakLoop, ControlFlowView::BreakLoop) => {
                                     Ok(true)
@@ -6842,6 +6851,39 @@ impl DAGCircuit {
                 &HashMap::from_iter(other_blocks.zip(self_blocks))
             }
         };
+
+        // Transfer DAG-level variable declarations from the replacement DAG.
+        // This is similar to how compose() handles variables, but only transfer variables
+        // that are not already present in the target DAG.
+        for var in other.vars_stretches.iter_vars(VarType::Input) {
+            if self.vars_stretches.vars().find(var).is_none() {
+                self.add_var(var.clone(), VarType::Input)?;
+            }
+        }
+
+        for var in other.vars_stretches.iter_vars(VarType::Capture) {
+            if self.vars_stretches.vars().find(var).is_none() {
+                self.add_var(var.clone(), VarType::Capture)?;
+            }
+        }
+
+        for var in other.vars_stretches.iter_vars(VarType::Declare) {
+            if self.vars_stretches.vars().find(var).is_none() {
+                self.add_var(var.clone(), VarType::Declare)?;
+            }
+        }
+
+        for stretch in other.vars_stretches.iter_stretches(StretchType::Capture) {
+            if self.vars_stretches.stretches().find(stretch).is_none() {
+                self.add_stretch(stretch.clone(), StretchType::Capture)?;
+            }
+        }
+
+        for stretch in other.vars_stretches.iter_stretches(StretchType::Declare) {
+            if self.vars_stretches.stretches().find(stretch).is_none() {
+                self.add_stretch(stretch.clone(), StretchType::Declare)?;
+            }
+        }
 
         let out_map = self.substitute_node_with_graph(
             node_index, other, qubit_map, clbit_map, var_map, block_map,
