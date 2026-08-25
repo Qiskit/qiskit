@@ -1,12 +1,11 @@
-use std::result;
+use std::{cmp::Reverse, result};
 
-use ndarray::{Array2, ArrayView2};
+use ndarray::{Array2, ArrayView2, linalg::kron};
 use num_complex::Complex64;
+use qiskit_util::complex::c64;
 use thiserror::Error;
 
-use crate::sparse_observable::SparseTermView;
-
-use super::{BitTerm, SparseObservable};
+use super::{BitTerm, SparseObservable, SparseTermView};
 
 pub type Result<T> = result::Result<T, MatrixError>;
 
@@ -94,88 +93,82 @@ fn add_term_pauli(matrix: &mut Array2<Complex64>, term: &PauliTerm) {
 }
 
 fn add_term_kron(matrix: &mut Array2<Complex64>, term: &SparseTermView) {
-    todo!()
-}
+    let n = matrix.nrows().trailing_zeros();
+    let m = term.indices.len();
 
-fn get_bit_term_matrix(bit_term: BitTerm) -> ArrayView2<'static, Complex64> {
-    const X: &[Complex64] = &[
-        Complex64::new(0.0, 0.0),
-        Complex64::new(1.0, 0.0),
-        Complex64::new(1.0, 0.0),
-        Complex64::new(0.0, 0.0),
-    ];
+    let mut order: Vec<usize> = (0..m).collect();
+    order.sort_unstable_by_key(|&idx| Reverse(term.indices[idx]));
 
-    const Y: &[Complex64] = &[
-        Complex64::new(0.0, 0.0),
-        Complex64::new(0.0, -1.0),
-        Complex64::new(0.0, 1.0),
-        Complex64::new(0.0, 0.0),
-    ];
+    let mut local = Array2::from_elem((1, 1), term.coeff);
+    for &idx in &order {
+        local = kron(&local, &bit_term_matrix(term.bit_terms[idx]));
+    }
 
-    const Z: &[Complex64] = &[
-        Complex64::new(1.0, 0.0),
-        Complex64::new(0.0, 0.0),
-        Complex64::new(0.0, 0.0),
-        Complex64::new(-1.0, 0.0),
-    ];
+    let local_bit_to_qubit: Vec<u32> = order.iter().rev().map(|&idx| term.indices[idx]).collect();
 
-    const PLUS: &[Complex64] = &[
-        Complex64::new(1.0, 0.0),
-        Complex64::new(1.0, 0.0),
-        Complex64::new(1.0, 0.0),
-        Complex64::new(1.0, 0.0),
-    ];
+    let support: u32 = term.indices.iter().fold(0u32, |acc, &q| acc | (1 << q));
+    let identity_qubits: Vec<u32> = (0..n).filter(|q| support & (1 << q) == 0).collect();
 
-    const MINUS: &[Complex64] = &[
-        Complex64::new(1.0, 0.0),
-        Complex64::new(-1.0, 0.0),
-        Complex64::new(-1.0, 0.0),
-        Complex64::new(1.0, 0.0),
-    ];
+    let n_free = 1usize << identity_qubits.len();
+    let mut free_patterns = vec![0usize; n_free];
+    for (bit_pos, &q) in identity_qubits.iter().enumerate() {
+        for (pattern_idx, pattern) in free_patterns.iter_mut().enumerate() {
+            if (pattern_idx >> bit_pos) & 1 == 1 {
+                *pattern |= 1usize << q;
+            }
+        }
+    }
 
-    const RIGHT: &[Complex64] = &[
-        Complex64::new(1.0, 0.0),
-        Complex64::new(0.0, -1.0),
-        Complex64::new(0.0, 1.0),
-        Complex64::new(1.0, 0.0),
-    ];
-
-    const LEFT: &[Complex64] = &[
-        Complex64::new(1.0, 0.0),
-        Complex64::new(0.0, 1.0),
-        Complex64::new(0.0, -1.0),
-        Complex64::new(1.0, 0.0),
-    ];
-
-    const ZERO: &[Complex64] = &[
-        Complex64::new(1.0, 0.0),
-        Complex64::new(0.0, 0.0),
-        Complex64::new(0.0, 0.0),
-        Complex64::new(0.0, 0.0),
-    ];
-
-    const ONE: &[Complex64] = &[
-        Complex64::new(0.0, 0.0),
-        Complex64::new(0.0, 0.0),
-        Complex64::new(0.0, 0.0),
-        Complex64::new(1.0, 0.0),
-    ];
-
-    let data = match bit_term {
-        BitTerm::X => X,
-        BitTerm::Y => Y,
-        BitTerm::Z => Z,
-        BitTerm::Plus => PLUS,
-        BitTerm::Minus => MINUS,
-        BitTerm::Right => RIGHT,
-        BitTerm::Left => LEFT,
-        BitTerm::Zero => ZERO,
-        BitTerm::One => ONE,
+    let scatter = |local_idx: usize| -> usize {
+        local_bit_to_qubit
+            .iter()
+            .enumerate()
+            .fold(0usize, |acc, (bit_pos, &q)| {
+                acc | (((local_idx >> bit_pos) & 1) << q)
+            })
     };
 
-    ArrayView2::from_shape((2, 2), data).expect("shape fits len")
+    let local_dim = local.nrows();
+    for local_row in 0..local_dim {
+        let base_row = scatter(local_row);
+        for local_col in 0..local_dim {
+            let val = local[(local_row, local_col)];
+            if val == Complex64::ZERO {
+                continue;
+            }
+            let base_col = scatter(local_col);
+            for &pattern in &free_patterns {
+                matrix[(base_row | pattern, base_col | pattern)] += val;
+            }
+        }
+    }
 }
 
+fn bit_term_matrix(bit_term: BitTerm) -> ArrayView2<'static, Complex64> {
+    const X: [Complex64; 4] = [c64(0.0, 0.0), c64(1.0, 0.0), c64(1.0, 0.0), c64(0.0, 0.0)];
+    const Y: [Complex64; 4] = [c64(0.0, 0.0), c64(0.0, -1.0), c64(0.0, 1.0), c64(0.0, 0.0)];
+    const Z: [Complex64; 4] = [c64(1.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(-1.0, 0.0)];
+    const PLUS: [Complex64; 4] = [c64(0.5, 0.0), c64(0.5, 0.0), c64(0.5, 0.0), c64(0.5, 0.0)];
+    const MINUS: [Complex64; 4] = [c64(0.5, 0.0), c64(-0.5, 0.0), c64(-0.5, 0.0), c64(0.5, 0.0)];
+    const RIGHT: [Complex64; 4] = [c64(0.5, 0.0), c64(0.0, -0.5), c64(0.0, 0.5), c64(0.5, 0.0)];
+    const LEFT: [Complex64; 4] = [c64(0.5, 0.0), c64(0.0, 0.5), c64(0.0, -0.5), c64(0.5, 0.0)];
+    const ZERO: [Complex64; 4] = [c64(1.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0)];
+    const ONE: [Complex64; 4] = [c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(1.0, 0.0)];
+
+    let data = match bit_term {
+        BitTerm::X => &X,
+        BitTerm::Y => &Y,
+        BitTerm::Z => &Z,
+        BitTerm::Plus => &PLUS,
+        BitTerm::Minus => &MINUS,
+        BitTerm::Right => &RIGHT,
+        BitTerm::Left => &LEFT,
+        BitTerm::Zero => &ZERO,
+        BitTerm::One => &ONE,
+    };
+
+    ArrayView2::from_shape((2, 2), data).expect("shape fits data")
+}
 #[cfg(test)]
 mod tests {
     use ndarray::arr2;
