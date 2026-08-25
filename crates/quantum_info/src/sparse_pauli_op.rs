@@ -1022,7 +1022,7 @@ pub fn to_matrix_dense<'py>(
     paulis.combine();
     let parallel = !force_serial && qiskit_util::getenv_use_multiple_threads();
     let out = paulis.to_matrix_dense(parallel);
-    Ok(PyArray2::from_array(py, &out))
+    Ok(PyArray2::from_owned_array(py, out))
 }
 
 type CSRData<T> = (Vec<Complex64>, Vec<T>, Vec<T>);
