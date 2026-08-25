@@ -203,7 +203,7 @@ fn pack_sparse_pauli_op(
         let bitterm_data = sparse_observable
             .bit_terms()
             .iter()
-            .map(|&bitterm| bitterm as u16)
+            .map(|&bitterm| bitterm as u8)
             .collect();
         let inds_data = sparse_observable.indices().to_vec();
         let bounds_data = sparse_observable

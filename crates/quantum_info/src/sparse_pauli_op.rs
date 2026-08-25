@@ -359,20 +359,8 @@ impl MatrixCompressedPaulis {
     /// Returns a C-ordered [Vec] of the 2D matrix.
     pub fn to_matrix_dense(&self, parallel: bool) -> Array2<Complex64> {
         let side = 1usize << self.num_qubits();
-        #[allow(clippy::uninit_vec)]
-        let mut out = {
-            let mut out = Vec::with_capacity(side * side);
-            // SAFETY: we iterate through the vec in chunks of `side`, and start each row by filling it
-            // with zeros before ever reading from it.  It's fine to overwrite the uninitialised memory
-            // because `Complex64: !Drop`.
-            unsafe { out.set_len(side * side) };
-            out
-        };
+        let mut out = bytemuck::allocation::zeroed_vec(side * side);
         let write_row = |(i_row, row): (usize, &mut [Complex64])| {
-            // Doing the initialization here means that when we're in parallel contexts, we do the
-            // zeroing across the whole threadpool.  This also seems to give a speed-up in serial
-            // contexts, but I don't understand that. ---Jake
-            row.fill(C_ZERO);
             for ((&x_like, &z_like), &coeff) in self
                 .x_like
                 .iter()
@@ -1022,7 +1010,7 @@ pub fn to_matrix_dense<'py>(
     paulis.combine();
     let parallel = !force_serial && qiskit_util::getenv_use_multiple_threads();
     let out = paulis.to_matrix_dense(parallel);
-    Ok(PyArray2::from_array(py, &out))
+    Ok(PyArray2::from_owned_array(py, out))
 }
 
 type CSRData<T> = (Vec<Complex64>, Vec<T>, Vec<T>);
