@@ -572,8 +572,8 @@ pub struct SparsePauliOpListElemPack {
 /// representation is always `u8` and this parser absorbs the difference, so nothing downstream has
 /// to care which version produced the payload.
 #[binrw::parser(reader, endian)]
-fn read_bitterms(version: u8, count: u64) -> BinResult<Vec<u8>> {
-    let count = count as usize;
+fn read_bitterms(version: u8, byte_count: u64) -> BinResult<Vec<u8>> {
+    let count = (byte_count / bitterm_size(version) as u64) as usize;
     if version >= 18 {
         Vec::<u8>::read_options(reader, endian, binrw::VecArgs { count, inner: () })
     } else {
@@ -602,6 +602,14 @@ fn write_bitterms(bitterms: &Vec<u8>, version: u8) -> BinResult<()> {
     }
 }
 
+const fn bitterm_size(version: u8) -> usize {
+    if version <= 17 {
+        std::mem::size_of::<u16>()
+    } else {
+        std::mem::size_of::<u8>()
+    }
+}
+
 // SparsePauiObservable has explicit data that can be used to reconstruct
 // a rust SparseObservable struct
 //
@@ -615,7 +623,7 @@ pub struct SparsePauliObservableElemPack {
     // coeffs are Complex64 numbers, stored as a vector of f64 in the format [re1, im1, re2, im2,...]
     #[bw(calc = (coeff_data.len() * std::mem::size_of::<f64>()) as u64)]
     pub coeff_data_size: u64,
-    #[bw(calc = (bitterm_data.len() * std::mem::size_of::<u16>()) as u64)]
+    #[bw(calc = (bitterm_data.len() * bitterm_size(version)) as u64)]
     pub bitterm_data_size: u64,
     #[bw(calc = (inds_data.len() * std::mem::size_of::<u32>()) as u64)]
     pub inds_data_size: u64,
@@ -627,7 +635,7 @@ pub struct SparsePauliObservableElemPack {
     #[br(parse_with = read_bitterms, args(version, bitterm_data_size))]
     #[bw(write_with = write_bitterms, args(version))]
     pub bitterm_data: Vec<u8>,
-    #[br(count = inds_data_size)]
+    #[br(count = inds_data_size / std::mem::size_of::<u32>() as u64)]
     pub inds_data: Vec<u32>,
     #[br(count = bounds_data_size / std::mem::size_of::<u64>() as u64)]
     pub bounds_data: Vec<u64>,
