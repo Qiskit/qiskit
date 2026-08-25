@@ -1,9 +1,0 @@
----
-upgrade_qpy:
-  - |
-    QPY has been upgraded to version 18, which gives a :class:`.Duration` value and an
-    arbitrary-precision integer type keys of their own, ``'D'`` and ``'I'``.  Up to version 17 they
-    shared the keys of a tuple and of a 64-bit integer, so a reader had to know from context which
-    of the two a payload held; a value can now be decoded from its own bytes.  The payloads
-    themselves are unchanged, and version 17 and earlier are read exactly as before.  See
-    :ref:`qpy_version_18` for the format description.
