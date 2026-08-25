@@ -187,7 +187,10 @@ impl BytecodeIterator {
         if self.buffer_used >= self.buffer.len() {
             self.buffer.clear();
             self.buffer_used = 0;
-            self.parser_state.parse_next(&mut self.buffer, py)?;
+            let evaluator = |callable: &ClassicalCallableExt, params: &[f64]| {
+                callable.call_attached(py, params)
+            };
+            self.parser_state.parse_next(&mut self.buffer, &evaluator)?;
         }
         if self.buffer.is_empty() {
             Ok(None)

@@ -77,19 +77,8 @@ impl ClassicalBuiltinExt {
     }
 }
 
-#[cfg(feature = "py")]
-pub type Attachment<'py> = Python<'py>;
-
-#[cfg(not(feature = "py"))]
-#[derive(Clone, Copy)]
-pub struct Attachment<'py>(std::marker::PhantomData<&'py ()>);
-
-#[cfg(not(feature = "py"))]
-impl Attachment<'_> {
-    pub fn detached() -> Self {
-        Self(std::marker::PhantomData)
-    }
-}
+pub type ClassicalEvaluator<'a> =
+    &'a dyn Fn(&ClassicalCallableExt, &[f64]) -> Result<f64, ParseError>;
 
 /// A pure-Rust callable type for custom classical functions.
 pub type ClassicalFn = Arc<dyn Fn(&[f64]) -> Result<f64, ParseError> + Send + Sync>;

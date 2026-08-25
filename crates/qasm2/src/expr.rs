@@ -28,7 +28,7 @@ use crate::error::{
 };
 use crate::lex::{Token, TokenContext, TokenStream, TokenType};
 use crate::parse::{GateSymbol, GlobalSymbol, ParamId};
-use crate::{Attachment, ClassicalCallableExt};
+use crate::{ClassicalCallableExt, ClassicalEvaluator};
 
 /// Enum representation of the builtin OpenQASM 2 functions.  The built-in Qiskit parser adds the
 /// inverse trigonometric functions, but these are an extension to the version as given in the
@@ -288,8 +288,7 @@ pub struct ExprParser<'a> {
     pub gate_symbols: &'a HashMap<String, GateSymbol>,
     pub global_symbols: &'a HashMap<String, GlobalSymbol>,
     pub strict: bool,
-    /// GIL attachment for Python custom classical callable
-    pub attachment: Attachment<'a>,
+    pub evaluator: ClassicalEvaluator<'a>,
 }
 
 impl ExprParser<'_> {
@@ -503,10 +502,7 @@ impl ExprParser<'_> {
         let Some(floats) = as_f64 else {
             return Ok(Expr::CustomFunction(callable.clone(), exprs));
         };
-        #[cfg(feature = "py")]
-        let folded = callable.call_attached(self.attachment, &floats);
-        #[cfg(not(feature = "py"))]
-        let folded = callable.call(&floats);
+        let folded = (self.evaluator)(callable, &floats);
         folded.map(Expr::Constant).map_err(|err| {
             let message = message_generic(Some(&self.cur_position_of(token)), &err.message);
             err.with_message(message)
