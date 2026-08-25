@@ -61,6 +61,7 @@ pub struct QPYFileHeader {
 #[derive(Debug)]
 #[brw(import (version: u8))]
 pub struct QPYCircuit {
+    #[brw(args(version,))]
     pub header: CircuitHeaderV12Pack,
     #[br(count = header.num_vars)]
     pub standalone_vars: Vec<ExpressionVarDeclarationPack>,
@@ -69,8 +70,9 @@ pub struct QPYCircuit {
     pub custom_instructions: CustomCircuitInstructionsPack,
     #[br(count = header.num_instructions, args { inner: (true,) })]
     pub instructions: Vec<CircuitInstructionV2Pack>,
-    #[br(args(version,))]
-    pub calibrations: CalibrationsPack,
+    #[brw(if(version < 18), args(version,))]
+    pub calibrations: Option<CalibrationsPack>,
+    #[brw(args(version,))]
     pub layout: LayoutV2Pack,
 }
 
@@ -80,6 +82,7 @@ pub struct QPYCircuit {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
+#[brw(import (version: u8))]
 pub struct CircuitHeaderV12Pack {
     #[bw(calc = circuit_name.len() as u16)]
     pub name_size: u16,
@@ -101,8 +104,19 @@ pub struct CircuitHeaderV12Pack {
     pub global_phase_data: Bytes,
     #[br(count = metadata_size)]
     pub metadata: Bytes,
-    #[br(count = num_registers)]
-    pub registers: Vec<RegisterV4Pack>,
+    #[br(count = num_registers, args { inner: (version,) })]
+    pub registers: Vec<RegisterPack>,
+}
+
+#[binrw]
+#[derive(Debug)]
+#[br(import (version: u8))]
+pub enum RegisterPack {
+    #[br(pre_assert(version < 18))]
+    V4(RegisterV4Pack),
+
+    #[br(pre_assert(version >= 18))]
+    V18(RegisterV18Pack),
 }
 
 // The data for a specific instruction in the circuit
@@ -226,6 +240,30 @@ pub struct CustomCircuitInstructionDefPack {
     pub base_gate_raw: Bytes,
 }
 
+#[binread]
+#[binwrite]
+#[brw(big)]
+#[derive(Debug)]
+pub struct RegisterV18Pack {
+    pub register_type: RegisterType,
+    pub standalone: u8,
+    pub size: u32,
+    #[bw(calc = name.len() as u16)]
+    pub name_size: u16,
+    pub in_circuit: u8,
+    pub register_attachment: u8,
+    #[br(count = name_size as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
+    pub name: String,
+    #[br(if(register_attachment == 1))]
+    #[bw(if(*register_attachment == 1))]
+    pub start_index: u32,
+
+    #[br(if(register_attachment == 0), count = size)]
+    #[bw(if(*register_attachment == 0))]
+    pub bit_indices: Vec<u32>,
+}
+
 // Register data. Containing its type (qubits/clbits), its size, name,
 // whether it's a standalone register or aliasing register,
 // whether it's part of the circuit or not
@@ -254,7 +292,8 @@ pub struct RegisterV4Pack {
 // 1) None.
 // 2) Two-tuple: a tuple of the form (register, target) where the register value should be compared with the target.
 // In this case the target is a python int, represented in rust as BigUInt, but in python qpy it was saved using i64 so we keep it for now.
-// Note that we also use (clbit, bool_target) as two tuple, where the clbit is encoded using the "\x00" hack that can be seen in ParamRegisterValue
+// Note that we also use (clbit, bool_target) as two tuple; register and clbit alike are encoded as
+// a register payload, see `ParamRegisterPack` below
 // 3) Expression
 // In the two-tuple representation, the target value is stored in the `value` field and the number of bytes in the serialized registered are stored in the
 // `register_size` fields. Both are unused in the other cases, making the packing and decoding of this struct rather non-uniform.
@@ -286,13 +325,33 @@ impl TryFrom<u8> for ConditionType {
     }
 }
 
-// register SHOULD be a string, but since we encode some registers starting with "\x00" they are rendered illegal
-// we should probably change this in future versions to support magic numbers (TODO: change in QPY18?)
+// The condition's register is carried as an opaque blob because its encoding depends on the QPY
+// version: up to 17 it is the string hack described on `ParamRegisterPack`, from 18 it is that
+// tagged struct.  `value::load_param_register_value` decodes it.
 #[derive(Debug)]
 pub enum ConditionData {
     None,
     Register(Bytes),
     Expression(GenericDataPack),
+}
+
+/// A `Register` payload, which is either a whole `ClassicalRegister` or a single `Clbit`.  It
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub enum ParamRegisterPack {
+    /// A classical register, identified by name.  The name runs to the end of the payload, whose
+    /// length the enclosing field already carries (`condition_register_size` for a condition, the
+    /// `INSTRUCTION_PARAM` header's `size` for a parameter), so it needs no length of its own.
+    #[brw(magic = 1u8)]
+    Register {
+        #[br(parse_with = binrw::helpers::until_eof, try_map = String::from_utf8)]
+        #[bw(map = |name| name.as_bytes())]
+        name: String,
+    },
+    /// A single clbit, identified by its index in the circuit's clbit list.
+    #[brw(magic = 0u8)]
+    Clbit { index: u32 },
 }
 
 // most of the data here is "virtual" in the sense that is is not stored as-is
@@ -371,6 +430,7 @@ impl ConditionPack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
+#[brw(import (version: u8))]
 pub struct LayoutV2Pack {
     pub exists: u8,
     pub initial_layout_size: i32,
@@ -379,8 +439,8 @@ pub struct LayoutV2Pack {
     #[bw(calc = extra_registers.len() as u32)]
     pub extra_registers_length: u32,
     pub input_qubit_count: i32,
-    #[br(count = extra_registers_length)]
-    pub extra_registers: Vec<RegisterV4Pack>,
+    #[br(count = extra_registers_length, args { inner: (version,) })]
+    pub extra_registers: Vec<RegisterPack>,
     #[br(count = initial_layout_size.max(0))]
     pub initial_layout_items: Vec<InitialLayoutItemV2Pack>,
     #[br(count = input_mapping_size.max(0))]
@@ -438,7 +498,7 @@ pub struct GenericDataSequencePack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[br(import (version: u8))]
+#[brw(import (version: u8))]
 pub struct PauliEvolutionDefPack {
     #[bw(calc = pauli_data.len() as u64)]
     pub operator_size: u64,
@@ -449,6 +509,7 @@ pub struct PauliEvolutionDefPack {
     #[bw(calc = synth_data.len() as u64)]
     pub synth_method_size: u64,
     #[br(count = operator_size, args { inner: (version,) })]
+    #[bw(args(version))]
     pub pauli_data: Vec<PauliDataPack>,
     #[br(count = time_size)]
     pub time_data: Bytes,
@@ -459,14 +520,19 @@ pub struct PauliEvolutionDefPack {
 // A pauli operator data for pauli evolution gates
 // The operator is given either as a SparesePauliOp list or as a SparasePauliObservable
 // SparsePauliObservable was added in V17
+//
+// This variant covers V17 *and later*: the only difference from V18 onwards is the width of the
+// bit terms inside `SparsePauliObservableElemPack`, which that struct handles itself given
+// `version`.
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
+#[brw(import(version: u8))]
 pub enum PauliDataPackV17 {
     #[brw(magic = 0u8)] // old style: sparse pauli op list
     SparsePauliOp(SparsePauliOpListElemPack),
     #[brw(magic = 1u8)] // new style added in v17: sparse observable
-    SparseObservable(SparsePauliObservableElemPack),
+    SparseObservable(#[brw(args(version))] SparsePauliObservableElemPack),
 }
 
 // The V16 version of the Pauli data pack only allows SparsePauliOp and doesn't use a distinguishing first byte
@@ -479,13 +545,13 @@ pub enum PauliDataPackV16 {
 
 #[binrw]
 #[derive(Debug)]
-#[br(import(version: u8))]
+#[brw(import(version: u8))]
 pub enum PauliDataPack {
     #[br(pre_assert(version <= 16))]
     V16(PauliDataPackV16),
 
     #[br(pre_assert(version >= 17))]
-    V17(PauliDataPackV17),
+    V17(#[brw(args(version))] PauliDataPackV17),
 }
 
 // SparsePauliOpList is a serialized python numpy array
@@ -499,28 +565,79 @@ pub struct SparsePauliOpListElemPack {
     pub data: Bytes,
 }
 
+/// Read the bit terms of a `SPARSE_OBSERVABLE` payload.
+///
+/// `BitTerm` is `#[repr(u8)]`, so a single byte is always enough.  QPY 17 nonetheless stored each
+/// bit term as a `u16`, wasting a byte per term; QPY 18 narrowed it to `u8`.  The in-memory
+/// representation is always `u8` and this parser absorbs the difference, so nothing downstream has
+/// to care which version produced the payload.
+#[binrw::parser(reader, endian)]
+fn read_bitterms(version: u8, byte_count: u64) -> BinResult<Vec<u8>> {
+    let count = (byte_count / bitterm_size(version) as u64) as usize;
+    if version >= 18 {
+        Vec::<u8>::read_options(reader, endian, binrw::VecArgs { count, inner: () })
+    } else {
+        let wide = Vec::<u16>::read_options(reader, endian, binrw::VecArgs { count, inner: () })?;
+        let pos = reader.stream_position().unwrap_or(0);
+        wide.into_iter()
+            .map(|term| {
+                u8::try_from(term).map_err(|_| binrw::Error::AssertFail {
+                    pos,
+                    message: format!("bit term {term} does not fit in a u8"),
+                })
+            })
+            .collect()
+    }
+}
+
+/// Write the bit terms of a `SPARSE_OBSERVABLE` payload, widening back to `u16` for QPY < 18.
+/// Mirror of [`read_bitterms`].
+#[binrw::writer(writer, endian)]
+fn write_bitterms(bitterms: &Vec<u8>, version: u8) -> BinResult<()> {
+    if version >= 18 {
+        bitterms.write_options(writer, endian, ())
+    } else {
+        let wide: Vec<u16> = bitterms.iter().map(|&term| term as u16).collect();
+        wide.write_options(writer, endian, ())
+    }
+}
+
+const fn bitterm_size(version: u8) -> usize {
+    if version <= 17 {
+        std::mem::size_of::<u16>()
+    } else {
+        std::mem::size_of::<u8>()
+    }
+}
+
 // SparsePauiObservable has explicit data that can be used to reconstruct
 // a rust SparseObservable struct
+//
+// Note that the `*_size` fields are element *counts*, not byte lengths.
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
+#[brw(import(version: u8))]
 pub struct SparsePauliObservableElemPack {
     pub num_qubits: u32,
-    #[bw(calc = coeff_data.len() as u64)]
+    // coeffs are Complex64 numbers, stored as a vector of f64 in the format [re1, im1, re2, im2,...]
+    #[bw(calc = (coeff_data.len() * std::mem::size_of::<f64>()) as u64)]
     pub coeff_data_size: u64,
-    #[bw(calc = bitterm_data.len() as u64)]
+    #[bw(calc = (bitterm_data.len() * bitterm_size(version)) as u64)]
     pub bitterm_data_size: u64,
-    #[bw(calc = inds_data.len() as u64)]
+    #[bw(calc = (inds_data.len() * std::mem::size_of::<u32>()) as u64)]
     pub inds_data_size: u64,
-    #[bw(calc = bounds_data.len() as u64)]
+    #[bw(calc = (bounds_data.len() * std::mem::size_of::<u64>()) as u64)]
     pub bounds_data_size: u64,
-    #[br(count = coeff_data_size)]
+    #[br(count = coeff_data_size / std::mem::size_of::<f64>() as u64)]
     pub coeff_data: Vec<f64>, // complex numbers stored in format [re1, im1, re2, im2,...]
-    #[br(count = bitterm_data_size)]
-    pub bitterm_data: Vec<u16>,
-    #[br(count = inds_data_size)]
+    // Stored as `u16` up to QPY 17 and as `u8` from QPY 18 on; always `u8` in memory.
+    #[br(parse_with = read_bitterms, args(version, bitterm_data_size))]
+    #[bw(write_with = write_bitterms, args(version))]
+    pub bitterm_data: Vec<u8>,
+    #[br(count = inds_data_size / std::mem::size_of::<u32>() as u64)]
     pub inds_data: Vec<u32>,
-    #[br(count = bounds_data_size)]
+    #[br(count = bounds_data_size / std::mem::size_of::<u64>() as u64)]
     pub bounds_data: Vec<u64>,
 }
 
@@ -765,7 +882,7 @@ pub struct MappingItem {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[br(import(qpy_read_data: &'a QPYReadData<'a>))]
+#[br(import(qpy_read_data: &QPYReadData))]
 #[bw(import(qpy_write_data: &'a QPYWriteData<'a>))]
 pub struct ExpressionPack<'a> {
     #[br(parse_with = read_expression, args(qpy_read_data))]
