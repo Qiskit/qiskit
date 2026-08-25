@@ -503,13 +503,14 @@ impl ExprParser<'_> {
         let Some(floats) = as_f64 else {
             return Ok(Expr::CustomFunction(callable.clone(), exprs));
         };
-        callable
-            .call(&floats, self.attachment)
-            .map(Expr::Constant)
-            .map_err(|err| {
-                let message = message_generic(Some(&self.cur_position_of(token)), &err.message);
-                err.with_message(message)
-            })
+        #[cfg(feature = "py")]
+        let folded = callable.call_attached(self.attachment, &floats);
+        #[cfg(not(feature = "py"))]
+        let folded = callable.call(&floats);
+        folded.map(Expr::Constant).map_err(|err| {
+            let message = message_generic(Some(&self.cur_position_of(token)), &err.message);
+            err.with_message(message)
+        })
     }
 
     /// If in `strict` mode, and we have a trailing comma, emit a suitable error message.

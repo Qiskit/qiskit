@@ -118,9 +118,7 @@ impl ClassicalCallableExt {
         }
     }
 
-    pub fn call(&self, params: &[f64], attachment: Attachment<'_>) -> Result<f64, ParseError> {
-        #[cfg(not(feature = "py"))]
-        let _ = attachment;
+    pub fn call(&self, params: &[f64]) -> Result<f64, ParseError> {
         match self {
             Self::Builtin(builtin) => builtin.call(params).map_err(|expected| {
                 ParseError::new(format!(
@@ -130,25 +128,34 @@ impl ClassicalCallableExt {
             }),
             Self::Custom { f, .. } => f(params),
             #[cfg(feature = "py")]
-            Self::Python {
-                num_params: _,
-                callable,
-            } => {
-                let pyargs = pyo3::types::PyTuple::new(attachment, params)
-                    .expect("f64 to pyfloat wont fail");
-                let result = callable.call1(attachment, pyargs).map_err(|e| {
+            Self::Python { .. } => Err(ParseError::new(
+                "cannot constant-fold with a Python callable without an attached Python interpreter",
+            )),
+        }
+    }
+
+    /// Call the function on the given parameters, with an attached Python interpreter available for
+    /// the callables that need one.
+    #[cfg(feature = "py")]
+    pub fn call_attached(&self, py: Python<'_>, params: &[f64]) -> Result<f64, ParseError> {
+        match self {
+            Self::Python { callable, .. } => {
+                let pyargs =
+                    pyo3::types::PyTuple::new(py, params).expect("f64 to pyfloat wont fail");
+                let result = callable.call1(py, pyargs).map_err(|e| {
                     ParseError::with_source(
                         format!("caught exception when constant folding: {e}"),
                         e,
                     )
                 })?;
-                result.extract::<f64>(attachment).map_err(|e| {
+                result.extract::<f64>(py).map_err(|e| {
                     ParseError::with_source(
                         "user provided classical function returned non-float",
                         e,
                     )
                 })
             }
+            _ => self.call(params),
         }
     }
 }

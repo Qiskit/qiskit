@@ -111,7 +111,7 @@ pub struct ExprCustom {
 impl ExprCustom {
     /// Invoke the custom callable with pre-evaluated float arguments.
     fn call(&self, py: Python<'_>, args: Vec<f64>) -> PyResult<f64> {
-        Ok(self.callable.call(&args, py)?)
+        Ok(self.callable.call_attached(py, &args)?)
     }
 }
 
