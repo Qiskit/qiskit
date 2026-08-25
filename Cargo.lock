@@ -2416,7 +2416,7 @@ dependencies = [
  "qiskit-circuit",
  "qiskit-transpiler",
  "smallvec",
- "thiserror 2.0.19",
+ "thiserror 2.0.20",
 ]
 
 [[package]]

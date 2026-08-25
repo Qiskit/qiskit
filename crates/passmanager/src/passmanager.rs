@@ -16,6 +16,7 @@ use std::any::{Any, TypeId};
 use thiserror::Error;
 
 /// Context information provided to the passes.
+#[derive(Default)]
 pub struct PassContext {
     /// The data provided to the passes.
     pub data: HashMap<String, Box<dyn Any>>,
@@ -23,15 +24,7 @@ pub struct PassContext {
 
 impl PassContext {
     pub fn new() -> Self {
-        Self {
-            data: HashMap::new(),
-        }
-    }
-}
-
-impl Default for PassContext {
-    fn default() -> Self {
-        Self::new()
+        Self::default()
     }
 }
 
@@ -112,33 +105,21 @@ pub enum Task {
     /// Runs the body until the condition function returns false.
     Loop {
         condition: fn(&dyn Any, &PassContext) -> bool,
-        body: Box<Task>, // must be boxed to define Task's size
+        body: Box<Task>,
     },
 }
 
 impl Task {
-    fn io_types(&self) -> Result<(TypeId, TypeId), PassManagerError> {
+    fn io_types(&self) -> Option<(TypeId, TypeId)> {
         match self {
-            Task::Transformation(pass) => Ok((pass.input_type_id(), pass.output_type_id())),
-            Task::Group(group) => {
-                // If the group has length 0, or the type is None, return None
-                match (group.first(), group.last()) {
-                    (Some(first), Some(last)) => Ok((first.io_types()?.0, last.io_types()?.1)),
-                    _ => Err(PassManagerError::EmptyTask),
-                }
-            }
+            Task::Transformation(pass) => Some((pass.input_type_id(), pass.output_type_id())),
+            Task::Group(group) => Some((group.first()?.io_types()?.0, group.last()?.io_types()?.1)),
             Task::Loop { condition: _, body } => (*body).io_types(),
-            Task::Switch { switch: _, cases } => {
-                if let Some(case0) = cases.first() {
-                    case0.io_types()
-                } else {
-                    Err(PassManagerError::EmptyTask)
-                }
-            }
-            Task::Stages(stages) => match (stages.first(), stages.last()) {
-                (Some(first), Some(last)) => Ok((first.1.io_types()?.0, last.1.io_types()?.1)),
-                _ => Err(PassManagerError::EmptyTask),
-            },
+            Task::Switch { switch: _, cases } => cases.first()?.io_types(),
+            Task::Stages(stages) => Some((
+                stages.first()?.1.io_types()?.0,
+                stages.last()?.1.io_types()?.1,
+            )),
         }
     }
 }
@@ -153,6 +134,7 @@ pub type Callback = dyn Fn(&dyn Any, &PassContext);
 /// in a [Task::Stage] variant.
 ///
 /// Each callback is called with the type-erased IR and the pass context.
+#[derive(Default)]
 pub struct CallbackRegistry {
     post_pass: Vec<Box<Callback>>,
     post_task: Vec<Box<Callback>>,
@@ -168,11 +150,7 @@ pub enum CallbackType {
 
 impl CallbackRegistry {
     pub fn new() -> Self {
-        Self {
-            post_pass: vec![],
-            post_task: vec![],
-            post_stage: vec![],
-        }
+        Self::default()
     }
 
     /// Register a callback.
@@ -203,13 +181,8 @@ impl CallbackRegistry {
     }
 }
 
-impl Default for CallbackRegistry {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 /// Qiskit's pass manager.
+#[derive(Default)]
 pub struct PassManager {
     // It is UNSAFE to directly mutate the task vector since we are checking that the types
     // match upon construction, hence the tasks are private.
@@ -232,7 +205,7 @@ pub enum PassManagerError {
 
 impl PassManager {
     pub fn new() -> Self {
-        Self { tasks: vec![] }
+        Self::default()
     }
 
     /// Run the pass manager on the input IR.
@@ -245,13 +218,24 @@ impl PassManager {
         IRIn: 'static,
         IROut: 'static,
     {
-        if self.tasks.is_empty() {
+        if let Some(first) = self.tasks.first() {
+            // Validate the input ID of the first task matches IRIn
+            let Some((first_in_id, _)) = first.io_types() else {
+                return Err(PassManagerError::EmptyTask);
+            };
+            if first_in_id != TypeId::of::<IRIn>() {
+                return Err(PassManagerError::IncompatibleTypes);
+            }
+        } else {
             // If there are no tasks, return the input, but cast to IROut
             return cast_box::<IROut>(Box::new(ir));
         }
 
-        let (first, _) = self.tasks[0].io_types()?;
-        if first != TypeId::of::<IROut>() {
+        let last = self.tasks.last().expect("There is at least 1 task now");
+        let Some((_, last_out_id)) = last.io_types() else {
+            return Err(PassManagerError::EmptyTask);
+        };
+        if last_out_id != TypeId::of::<IROut>() {
             return Err(PassManagerError::IncompatibleTypes);
         }
 
@@ -280,8 +264,12 @@ impl PassManager {
         // Check that the task types are compatible, if there's an existing task and if
         // neither of the tasks are empty.
         if let Some(last_task) = self.tasks.last() {
-            let (_, out_type) = last_task.io_types()?;
-            let (in_type, _) = task.io_types()?;
+            let Some((_, out_type)) = last_task.io_types() else {
+                return Err(PassManagerError::EmptyTask);
+            };
+            let Some((in_type, _)) = task.io_types() else {
+                return Err(PassManagerError::EmptyTask);
+            };
             if in_type != out_type {
                 return Err(PassManagerError::IncompatibleTypes);
             }
@@ -309,8 +297,12 @@ impl PassManager {
         }
 
         if index > 0 && index < self.tasks.len() - 1 {
-            let (_, before) = self.tasks[index - 1].io_types()?;
-            let (after, _) = self.tasks[index + 1].io_types()?;
+            let (Some((_, before)), Some((after, _))) = (
+                self.tasks[index - 1].io_types(),
+                self.tasks[index + 1].io_types(),
+            ) else {
+                return Err(PassManagerError::EmptyTask);
+            };
             if before != after {
                 return Err(PassManagerError::IncompatibleTypes);
             }
@@ -333,15 +325,21 @@ impl PassManager {
         }
 
         if !self.tasks.is_empty() {
-            let (in_type, out_type) = task.io_types()?;
+            let Some((in_type, out_type)) = task.io_types() else {
+                return Err(PassManagerError::EmptyTask);
+            };
             if index > 0 {
-                let (_, before) = self.tasks[index - 1].io_types()?;
+                let Some((_, before)) = self.tasks[index - 1].io_types() else {
+                    return Err(PassManagerError::EmptyTask);
+                };
                 if before != in_type {
                     return Err(PassManagerError::IncompatibleTypes);
                 }
             }
             if index < self.tasks.len() - 1 {
-                let (after, _) = self.tasks[index + 1].io_types()?;
+                let Some((after, _)) = self.tasks[index + 1].io_types() else {
+                    return Err(PassManagerError::EmptyTask);
+                };
                 if out_type != after {
                     return Err(PassManagerError::IncompatibleTypes);
                 }
@@ -353,21 +351,8 @@ impl PassManager {
     }
 
     /// Get a reference to a [Task] at a given index.
-    pub fn try_get_task_ref(&self, index: usize) -> Result<&Task, PassManagerError> {
-        if index > self.tasks.len() {
-            return Err(PassManagerError::IndexError {
-                index,
-                len: self.tasks.len(),
-            });
-        }
-
-        Ok(&self.tasks[index])
-    }
-}
-
-impl Default for PassManager {
-    fn default() -> Self {
-        Self::new()
+    pub fn get_task(&self, index: usize) -> Option<&Task> {
+        self.tasks.get(index)
     }
 }
 
@@ -432,7 +417,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use std::{assert_matches, cell::Cell, rc::Rc};
+    use std::{cell::Cell, rc::Rc};
 
     use super::*;
     use qiskit_circuit::{
@@ -504,25 +489,25 @@ mod test {
         let circ_type = TypeId::of::<CircuitData>();
 
         let make_dag_pass = || Task::Transformation(Box::new(RemoveIdentities {}));
-        assert_eq!(make_dag_pass().io_types()?, (dag_type, dag_type));
+        assert_eq!(make_dag_pass().io_types().unwrap(), (dag_type, dag_type));
 
         let circ_pass = Task::Transformation(Box::new(CountT {}));
-        assert_eq!(circ_pass.io_types()?, (circ_type, circ_type));
+        assert_eq!(circ_pass.io_types().unwrap(), (circ_type, circ_type));
 
         let infinity = Task::Loop {
             condition: |_, _| true,
             body: Box::new(make_dag_pass()),
         };
-        assert_eq!(infinity.io_types()?, (dag_type, dag_type));
+        assert_eq!(infinity.io_types().unwrap(), (dag_type, dag_type));
 
         let switch = Task::Switch {
             switch: |_, _| 0,
             cases: vec![make_dag_pass()],
         };
-        assert_eq!(switch.io_types()?, (dag_type, dag_type));
+        assert_eq!(switch.io_types().unwrap(), (dag_type, dag_type));
 
         let stages = Task::Stages(vec![("one_and_only".to_string(), make_dag_pass())]);
-        assert_eq!(stages.io_types()?, (dag_type, dag_type));
+        assert_eq!(stages.io_types().unwrap(), (dag_type, dag_type));
 
         let nested = Task::Stages(vec![
             ("pass".to_string(), make_dag_pass()),
@@ -530,7 +515,7 @@ mod test {
             ("switch".to_string(), switch),
             ("stages".to_string(), stages),
         ]);
-        assert_eq!(nested.io_types()?, (dag_type, dag_type));
+        assert_eq!(nested.io_types().unwrap(), (dag_type, dag_type));
 
         Ok(())
     }
@@ -637,10 +622,10 @@ mod test {
         pm.try_insert_task(1, make_dag_task())?;
         pm.try_insert_task(0, make_dag_task())?;
 
-        assert_matches!(
+        assert!(matches!(
             pm.try_insert_task(1, make_circ_task()),
             Err(PassManagerError::IncompatibleTypes)
-        );
+        ));
 
         Ok(())
     }
@@ -653,15 +638,10 @@ mod test {
         pm.try_push_pass(Box::new(DagToCircuit {}))?;
         pm.try_push_pass(Box::new(CountT {}))?;
 
-        // we cannot use assert_matches! directly, which requires Task to implement Debug
-        match pm.try_remove_task(2) {
-            Ok(_) => assert!(false, "Expected failure"),
-            Err(e) => assert_matches!(e, PassManagerError::IncompatibleTypes),
-        };
-        // assert!(matches!(
-        //     pm.try_remove_task(2),
-        //     Err(PassManagerError::IncompatibleTypes)
-        // ));
+        assert!(matches!(
+            pm.try_remove_task(2),
+            Err(PassManagerError::IncompatibleTypes)
+        ));
 
         pm.try_remove_task(3)?;
         pm.try_remove_task(2)?;
@@ -694,19 +674,18 @@ mod test {
         pm.try_push_task(switch)?;
         pm.try_push_task(stages)?;
 
-        // we cannot use assert_matches! directly, which requires Task to implement Debug
-        assert!(matches!(pm.try_get_task_ref(0)?, Task::Transformation(_)));
+        assert!(matches!(pm.get_task(0), Some(Task::Transformation(_))));
 
-        if let Ok(Task::Group(group)) = pm.try_get_task_ref(1) {
+        if let Some(Task::Group(group)) = pm.get_task(1) {
             assert_eq!(group.len(), 2);
         } else {
             assert!(false, "Expected a Task::Group");
         }
 
-        assert!(matches!(pm.try_get_task_ref(2)?, Task::Loop { .. }));
-        assert!(matches!(pm.try_get_task_ref(3)?, Task::Switch { .. }));
+        assert!(matches!(pm.get_task(2), Some(Task::Loop { .. })));
+        assert!(matches!(pm.get_task(3), Some(Task::Switch { .. })));
 
-        if let Ok(Task::Stages(stages)) = pm.try_get_task_ref(4) {
+        if let Some(Task::Stages(stages)) = pm.get_task(4) {
             assert_eq!(stages.len(), 1);
             assert_eq!(stages[0].0, "one_and_only".to_string());
         } else {
