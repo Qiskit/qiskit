@@ -151,7 +151,7 @@ mod tests {
             [c64(0.0, 1.0), c64(2.0, 0.0), c64(0.0, 0.0), c64(-3.0, 0.0)],
         ]);
 
-        let result = observable.to_matrix_old().expect("is supported");
+        let result = observable.to_matrix().expect("is supported");
         assert_eq!(result, expect);
     }
 
@@ -166,7 +166,7 @@ mod tests {
             [c64(2.0, 0.0), c64(0.0, -5.0), c64(0.0, 3.0), c64(0.0, 0.0)],
         ]);
 
-        let result = observable.to_matrix_old().expect("is supported");
+        let result = observable.to_matrix().expect("is supported");
         assert_eq!(result, expect);
     }
 
@@ -180,7 +180,7 @@ mod tests {
             [c64(-3.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0)],
         ]);
 
-        let result = observable.to_matrix_old().expect("is supported");
+        let result = observable.to_matrix().expect("is supported");
         assert_eq!(result, expect);
     }
 

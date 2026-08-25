@@ -101,7 +101,7 @@ fn add_term_kron(matrix: &mut Array2<Complex64>, term: &SparseTermView) {
 
     let mut local = Array2::from_elem((1, 1), term.coeff);
     for &idx in &order {
-        local = kron(&local, &bit_term_matrix(term.bit_terms[idx]));
+        local = kron(&local, &get_bit_term_matrix(term.bit_terms[idx]));
     }
 
     let local_bit_to_qubit: Vec<u32> = order.iter().rev().map(|&idx| term.indices[idx]).collect();
@@ -144,31 +144,30 @@ fn add_term_kron(matrix: &mut Array2<Complex64>, term: &SparseTermView) {
     }
 }
 
-fn bit_term_matrix(bit_term: BitTerm) -> ArrayView2<'static, Complex64> {
-    const X: [Complex64; 4] = [c64(0.0, 0.0), c64(1.0, 0.0), c64(1.0, 0.0), c64(0.0, 0.0)];
-    const Y: [Complex64; 4] = [c64(0.0, 0.0), c64(0.0, -1.0), c64(0.0, 1.0), c64(0.0, 0.0)];
-    const Z: [Complex64; 4] = [c64(1.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(-1.0, 0.0)];
-    const PLUS: [Complex64; 4] = [c64(0.5, 0.0), c64(0.5, 0.0), c64(0.5, 0.0), c64(0.5, 0.0)];
-    const MINUS: [Complex64; 4] = [c64(0.5, 0.0), c64(-0.5, 0.0), c64(-0.5, 0.0), c64(0.5, 0.0)];
-    const RIGHT: [Complex64; 4] = [c64(0.5, 0.0), c64(0.0, -0.5), c64(0.0, 0.5), c64(0.5, 0.0)];
-    const LEFT: [Complex64; 4] = [c64(0.5, 0.0), c64(0.0, 0.5), c64(0.0, -0.5), c64(0.5, 0.0)];
-    const ZERO: [Complex64; 4] = [c64(1.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0)];
-    const ONE: [Complex64; 4] = [c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(1.0, 0.0)];
-
+fn get_bit_term_matrix(bit_term: BitTerm) -> ArrayView2<'static, Complex64> {
     let data = match bit_term {
-        BitTerm::X => &X,
-        BitTerm::Y => &Y,
-        BitTerm::Z => &Z,
-        BitTerm::Plus => &PLUS,
-        BitTerm::Minus => &MINUS,
-        BitTerm::Right => &RIGHT,
-        BitTerm::Left => &LEFT,
-        BitTerm::Zero => &ZERO,
-        BitTerm::One => &ONE,
+        BitTerm::X => const { &[re(0.0), re(1.0), re(1.0), re(0.0)] },
+        BitTerm::Y => const { &[re(0.0), im(-1.0), im(1.0), re(0.0)] },
+        BitTerm::Z => const { &[re(1.0), re(0.0), re(0.0), re(-1.0)] },
+        BitTerm::Plus => const { &[re(0.5), re(0.5), re(0.5), re(0.5)] },
+        BitTerm::Minus => const { &[re(0.5), re(-0.5), re(-0.5), re(0.5)] },
+        BitTerm::Right => const { &[re(0.5), im(-0.5), im(0.5), re(0.5)] },
+        BitTerm::Left => const { &[re(0.5), im(0.5), im(-0.5), re(0.5)] },
+        BitTerm::Zero => const { &[re(1.0), re(0.0), re(0.0), re(0.0)] },
+        BitTerm::One => const { &[re(0.0), re(0.0), re(0.0), re(1.0)] },
     };
 
     ArrayView2::from_shape((2, 2), data).expect("shape fits data")
 }
+
+const fn re(n: f64) -> Complex64 {
+    Complex64::new(n, 0.0)
+}
+
+const fn im(n: f64) -> Complex64 {
+    Complex64::new(0.0, n)
+}
+
 #[cfg(test)]
 mod tests {
     use ndarray::arr2;
@@ -187,7 +186,7 @@ mod tests {
             [c64(0.0, 1.0), c64(2.0, 0.0), c64(0.0, 0.0), c64(-3.0, 0.0)],
         ]);
 
-        let result = observable.to_matrix_old().expect("is supported");
+        let result = observable.to_matrix().expect("is supported");
         assert_eq!(result, expect);
     }
 
@@ -202,7 +201,7 @@ mod tests {
             [c64(2.0, 0.0), c64(0.0, -5.0), c64(0.0, 3.0), c64(0.0, 0.0)],
         ]);
 
-        let result = observable.to_matrix_old().expect("is supported");
+        let result = observable.to_matrix().expect("is supported");
         assert_eq!(result, expect);
     }
 
@@ -216,7 +215,7 @@ mod tests {
             [c64(-3.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0)],
         ]);
 
-        let result = observable.to_matrix_old().expect("is supported");
+        let result = observable.to_matrix().expect("is supported");
         assert_eq!(result, expect);
     }
 
