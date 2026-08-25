@@ -550,7 +550,7 @@ static int test_expr_value(void) {
             biguint_val = qk_value_biguint(value);
 
             if (biguint_val.num_limbs != 1) {
-                printf("Expected biguint value length 1 (one limb), got %" PRIu64 "\n",
+                printf("Expected biguint value length 1 (one limb), got %zu\n",
                        biguint_val.num_limbs);
                 result = EqualityError;
                 goto cleanup;
