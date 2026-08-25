@@ -6,5 +6,3 @@ fixes:
     :class:`.PauliProductRotationGate`, or :class:`.PauliProductMeasurement`
     acting on the same qubits in different orders would incorrectly compare as
     equal.
-
-    See `#15019 <https://github.com/Qiskit/qiskit/issues/15019>`__.
