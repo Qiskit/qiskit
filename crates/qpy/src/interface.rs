@@ -126,12 +126,10 @@ pub fn dump_qpy(
         .iter_mut()
         .zip(extra_data)
         .map(|(circuit, extra)| {
-            serialize(&pack_circuit(
-                circuit,
-                extra,
-                qpy_version,
-                annotation_handler.child()?,
-            )?)
+            serialize_with_args::<QPYCircuit, (u8,)>(
+                &pack_circuit(circuit, extra, qpy_version, annotation_handler.child()?)?,
+                (qpy_version,),
+            )
         })
         .collect::<Result<Vec<Bytes>, QpyError>>()?;
     // Since QPY doesn't use symengine anymore, we default to SymbolicEncoding::Sympy
