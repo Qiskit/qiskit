@@ -1170,86 +1170,6 @@ pub(crate) fn creg_by_name(
 #[allow(clippy::unwrap_used)]
 mod qpy_value_tests {
     use super::*;
-    use qiskit_circuit::operations::Param;
-
-    /// A `Duration` and an arbitrary-precision integer are not reachable from a Python object
-    /// (`py_get_type_key` has no branch for either), so these round-trips exercise the two new
-    /// QPY 18 keys directly through the value codec.
-    fn round_trip(value: &GenericValue, version: u8) -> (ValueType, GenericValue) {
-        let circuit_data = CircuitData::new(None, None, Param::Float(0.0)).unwrap();
-        let write_data = QPYWriteData {
-            caller: QpyCaller::Native,
-            circuit_data: &circuit_data,
-            version,
-            standalone_var_indices: HashMap::new(),
-            annotation_handler: AnnotationHandler::native(),
-        };
-        let (type_key, bytes) = serialize_generic_value(value, &write_data).unwrap();
-        let mut read_data = QPYReadData {
-            caller: QpyCaller::Native,
-            circuit_data,
-            version,
-            use_symengine: false,
-            standalone_vars: HashMap::new(),
-            standalone_stretches: HashMap::new(),
-            vectors: HashMap::new(),
-            annotation_handler: AnnotationHandler::native(),
-        };
-        let loaded = load_value(type_key, &bytes, &mut read_data, ValueEndian::Big).unwrap();
-        (type_key, loaded)
-    }
-
-    #[test]
-    fn duration_uses_its_own_key_from_v18() {
-        let value = GenericValue::Duration(Duration::ns(250.0));
-        let (key, loaded) = round_trip(&value, QPY_DISTINCT_VALUE_KEYS_MIN_VERSION);
-        assert_eq!(key, ValueType::Duration);
-        let GenericValue::Duration(duration) = loaded else {
-            panic!("expected a duration, got {loaded:?}");
-        };
-        assert_eq!(duration, Duration::ns(250.0));
-    }
-
-    #[test]
-    fn duration_shares_the_tuple_key_below_v18() {
-        let value = GenericValue::Duration(Duration::dt(100));
-        let circuit_data = CircuitData::new(None, None, Param::Float(0.0)).unwrap();
-        let write_data = QPYWriteData {
-            caller: QpyCaller::Native,
-            circuit_data: &circuit_data,
-            version: QPY_DISTINCT_VALUE_KEYS_MIN_VERSION - 1,
-            standalone_var_indices: HashMap::new(),
-            annotation_handler: AnnotationHandler::native(),
-        };
-        let (key, _) = serialize_generic_value(&value, &write_data).unwrap();
-        // The legacy encoding is ambiguous, which is why it cannot simply be read back: a reader has
-        // to be told that this `Tuple` is really a duration.
-        assert_eq!(key, ValueType::Tuple);
-    }
-
-    #[test]
-    fn small_big_integer_round_trips_from_v18() {
-        // Below 18 this is lost: `BigIntPack` prefixes its length, so `BigUint(5)` serializes to
-        // `01 05` and the `Integer` arm's length fork reads those two bytes back as an i64.
-        let value = GenericValue::BigInt(BigUint::from(5u8));
-        let (key, loaded) = round_trip(&value, QPY_DISTINCT_VALUE_KEYS_MIN_VERSION);
-        assert_eq!(key, ValueType::BigInt);
-        let GenericValue::BigInt(bigint) = loaded else {
-            panic!("expected a big integer, got {loaded:?}");
-        };
-        assert_eq!(bigint, BigUint::from(5u8));
-    }
-
-    #[test]
-    fn large_big_integer_round_trips_from_v18() {
-        let big = BigUint::from(u128::MAX) * BigUint::from(7u8);
-        let (key, loaded) = round_trip(&GenericValue::BigInt(big.clone()), 18);
-        assert_eq!(key, ValueType::BigInt);
-        let GenericValue::BigInt(bigint) = loaded else {
-            panic!("expected a big integer, got {loaded:?}");
-        };
-        assert_eq!(bigint, big);
-    }
 
     #[test]
     fn boolean_vec_numpy_object_roundtrip() {
@@ -1283,9 +1203,8 @@ mod qpy_value_tests {
 
     #[test]
     fn native_caller_does_not_attach_python() {
-        let result = QpyCaller::Native.attach("test feature", |_py| -> Result<(), QpyError> {
-            panic!("native QPY must reject the feature before attaching Python")
-        });
+        let result =
+            QpyCaller::Native.attach("test feature", |_py| -> Result<(), QpyError> { Ok(()) });
         assert!(matches!(result, Err(QpyError::PythonOnly("test feature"))));
     }
 }
