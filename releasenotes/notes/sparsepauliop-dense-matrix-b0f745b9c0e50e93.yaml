@@ -1,0 +1,5 @@
+---
+performance:
+  - |
+    :meth:`.SparsePauliOp.to_matrix` in dense mode no longer spuriously copies the output matrix on
+    return.
