@@ -359,20 +359,15 @@ impl MatrixCompressedPaulis {
     /// Returns a C-ordered [Vec] of the 2D matrix.
     pub fn to_matrix_dense(&self, parallel: bool) -> Array2<Complex64> {
         let side = 1usize << self.num_qubits();
-        #[allow(clippy::uninit_vec)]
-        let mut out = {
-            let mut out = Vec::with_capacity(side * side);
-            // SAFETY: we iterate through the vec in chunks of `side`, and start each row by filling it
-            // with zeros before ever reading from it.  It's fine to overwrite the uninitialised memory
-            // because `Complex64: !Drop`.
-            unsafe { out.set_len(side * side) };
-            out
-        };
+        let len = side * side;
+        // We allocate this here as a double-size `Vec<f64>` instead of `Vec<Complex64>` directly
+        // because `rustc` has special optimisations to lower `vec![0; size]` to calls to `calloc`
+        // when the literal is a primitive, but can't lower `Complex64::zero()` in the same way (as
+        // of Rust 1.98).  From Rust 1.92 onwards this could also be spelt as
+        // `Box::<[Complex64]>::new_zeroed_slice().assume_init().into_vec()`.
+        let mut out = bytemuck::allocation::try_cast_vec::<f64, Complex64>(vec![0.0f64; 2 * len])
+            .expect("Complex<f64> aligns as f64 with exactly double size");
         let write_row = |(i_row, row): (usize, &mut [Complex64])| {
-            // Doing the initialization here means that when we're in parallel contexts, we do the
-            // zeroing across the whole threadpool.  This also seems to give a speed-up in serial
-            // contexts, but I don't understand that. ---Jake
-            row.fill(C_ZERO);
             for ((&x_like, &z_like), &coeff) in self
                 .x_like
                 .iter()
