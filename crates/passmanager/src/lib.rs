@@ -104,7 +104,7 @@ impl<'a> PassContext<'a> {
     /// Get an entry, if it exists.
     ///
     /// This first queries from the local context, then the global.
-    pub fn get<S: AsRef<str>>(&mut self, key: S) -> Option<&dyn Any> {
+    pub fn get<S: AsRef<str>>(&self, key: S) -> Option<&dyn Any> {
         // The local registry takes precedence.
         if let Some(value) = self.updates.get(&key) {
             Some(value)
@@ -146,9 +146,14 @@ pub trait AnyPass {
     fn input_type_id(&self) -> TypeId;
     fn output_type_id(&self) -> TypeId;
     fn run(&self, ir: Box<dyn Any>, context: &mut PassContext) -> anyhow::Result<Box<dyn Any>>;
+    fn as_any(&self) -> &dyn Any;
 }
 
-impl<P: Pass> AnyPass for P {
+impl<P: Pass + 'static> AnyPass for P {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     fn input_type_id(&self) -> TypeId {
         TypeId::of::<P::InputIR>()
     }
@@ -214,11 +219,12 @@ impl Task {
 }
 
 /// Hookpoint for the callback.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[repr(u8)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum CallbackType {
-    PostPass,
-    PostTask,
-    PostStage,
+    PostPass = 0,
+    PostTask = 1,
+    PostStage = 2,
 }
 
 /// A (set of) callback(s) to trigger during the pass manager execution.
@@ -240,11 +246,21 @@ pub trait Callback {
 }
 
 /// Qiskit's pass manager.
-#[derive(Default)]
 pub struct PassManager {
     // It is UNSAFE to directly mutate the task vector since we are checking that the types
     // match upon construction, hence the tasks are private.
     tasks: Vec<Task>,
+
+    whitelist: [TypeId; 1],
+}
+
+impl Default for PassManager {
+    fn default() -> Self {
+        Self {
+            tasks: Vec::default(),
+            whitelist: [TypeId::of::<::std::ffi::c_void>()],
+        }
+    }
 }
 
 #[derive(Error, Debug)]
@@ -282,9 +298,7 @@ impl PassManager {
             let Some((first_in_id, _)) = first.io_types() else {
                 return Err(PassManagerError::EmptyTask);
             };
-            if first_in_id != TypeId::of::<IRIn>() {
-                return Err(PassManagerError::IncompatibleTypes);
-            }
+            self.maybe_compare_types(first_in_id, TypeId::of::<IRIn>())?;
         } else {
             // If there are no tasks, return the input, but cast to IROut
             let ir_out = cast_box::<IROut>(Box::new(ir))?;
@@ -295,9 +309,7 @@ impl PassManager {
         let Some((_, last_out_id)) = last.io_types() else {
             return Err(PassManagerError::EmptyTask);
         };
-        if last_out_id != TypeId::of::<IROut>() {
-            return Err(PassManagerError::IncompatibleTypes);
-        }
+        self.maybe_compare_types(last_out_id, TypeId::of::<IROut>())?;
 
         // Erase the type to pass it through the task execution
         let mut ir: Box<dyn Any> = Box::new(ir);
@@ -333,9 +345,7 @@ impl PassManager {
             let Some((in_type, _)) = task.io_types() else {
                 return Err(PassManagerError::EmptyTask);
             };
-            if in_type != out_type {
-                return Err(PassManagerError::IncompatibleTypes);
-            }
+            self.maybe_compare_types(in_type, out_type)?;
         }
         self.tasks.push(task);
         Ok(())
@@ -366,9 +376,7 @@ impl PassManager {
             ) else {
                 return Err(PassManagerError::EmptyTask);
             };
-            if before != after {
-                return Err(PassManagerError::IncompatibleTypes);
-            }
+            self.maybe_compare_types(before, after)?;
         }
         let task = self.tasks.remove(index);
 
@@ -395,17 +403,13 @@ impl PassManager {
                 let Some((_, before)) = self.tasks[index - 1].io_types() else {
                     return Err(PassManagerError::EmptyTask);
                 };
-                if before != in_type {
-                    return Err(PassManagerError::IncompatibleTypes);
-                }
+                self.maybe_compare_types(before, in_type)?;
             }
             if index < self.tasks.len() - 1 {
                 let Some((after, _)) = self.tasks[index + 1].io_types() else {
                     return Err(PassManagerError::EmptyTask);
                 };
-                if out_type != after {
-                    return Err(PassManagerError::IncompatibleTypes);
-                }
+                self.maybe_compare_types(out_type, after)?;
             }
         }
 
@@ -416,6 +420,17 @@ impl PassManager {
     /// Get a reference to a [Task] at a given index.
     pub fn get_task(&self, index: usize) -> Option<&Task> {
         self.tasks.get(index)
+    }
+
+    fn maybe_compare_types(&self, type1: TypeId, type2: TypeId) -> Result<(), PassManagerError> {
+        if self.whitelist.contains(&type1) || self.whitelist.contains(&type2) {
+            // we cannot compare these types (like c_void), we allow them
+            Ok(())
+        } else if type1 != type2 {
+            Err(PassManagerError::IncompatibleTypes)
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -433,8 +448,8 @@ fn execute_task(
             if let Some(cb) = callback
                 && cb.trigger(&CallbackType::PostPass)
             {
-                cb.ir_and_context(&out, context);
-                cb.with_pass(pass.as_ref(), &out, context);
+                cb.ir_and_context(&*out, context);
+                cb.with_pass(&**pass, &*out, context);
             }
             Ok(out)
         }
@@ -460,18 +475,18 @@ fn execute_task(
                 if let Some(cb) = callback
                     && cb.trigger(&CallbackType::PostStage)
                 {
-                    cb.ir_and_context(&ir, context)
+                    cb.ir_and_context(&*ir, context)
                 }
             }
             Ok(ir)
         }
-    };
+    }?;
     if let Some(cb) = callback
         && cb.trigger(&CallbackType::PostTask)
     {
-        cb.ir_and_context(&out, context)
+        cb.ir_and_context(&*out, context)
     }
-    out
+    Ok(out)
 }
 
 /// Internal helper to cast a Box<dyn Any> to an output type.
