@@ -227,13 +227,13 @@ pub struct QPYReadData {
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ValueType {
     Bool = b'b',
-    Integer = b'i',
+    Integer = b'i', // this is also used by "BigInt" which may arise in more specialized contexts
     Float = b'f',
     Complex = b'c',
     CaseDefault = b'd',
     Register = b'R',
     Range = b'r',
-    Tuple = b't',
+    Tuple = b't', // this is also used by "Duration" which may arise in more specialized contexts
     NumpyObject = b'n',
     Parameter = b'p',
     ParameterVector = b'v',
@@ -243,16 +243,7 @@ pub enum ValueType {
     Expression = b'x',
     Modifier = b'm',
     Circuit = b'q',
-    // Added in QPY 18.  Before that, an arbitrary-precision integer shared `Integer`'s key and a
-    // `Duration` shared `Tuple`'s, so a payload could not be decoded from its own bytes; see
-    // `QPY_DISTINCT_VALUE_KEYS_MIN_VERSION`.
-    BigInt = b'I',
-    Duration = b'D',
 }
-
-/// First QPY version in which an arbitrary-precision integer and a `Duration` carry their own type
-/// keys, rather than sharing `Integer`'s and `Tuple`'s.
-pub(crate) const QPY_DISTINCT_VALUE_KEYS_MIN_VERSION: u8 = 18;
 
 pub(crate) fn type_name(type_key: &ValueType) -> String {
     String::from(match type_key {
@@ -273,8 +264,6 @@ pub(crate) fn type_name(type_key: &ValueType) -> String {
         ValueType::Expression => "expression",
         ValueType::Modifier => "modifier",
         ValueType::Circuit => "circuit",
-        ValueType::BigInt => "big integer",
-        ValueType::Duration => "duration",
     })
 }
 
@@ -615,25 +604,19 @@ pub(crate) fn load_value(
             Ok(GenericValue::Bool(value))
         }
         ValueType::Integer => {
-            // Up to QPY 17 this key was shared with an arbitrary-precision integer, and the only way
-            // to tell them apart was the payload length.  From QPY 18 a `BigInt` has its own key, so
-            // an `Integer` is always an i64.
-            if bytes.len() > 8 && qpy_data.version < QPY_DISTINCT_VALUE_KEYS_MIN_VERSION {
-                return load_biguint_value(bytes);
+            // a little tricky since this can be either i64 or biguint
+            if bytes.len() <= 8 {
+                let mut bytes_array: [u8; 8] = [0; 8];
+                for (idx, byte) in bytes.iter().enumerate() {
+                    bytes_array[idx] = *byte;
+                }
+                match endian.resolve(qpy_data.version) {
+                    Endian::Little => Ok(GenericValue::Int64(i64::from_le_bytes(bytes_array))),
+                    Endian::Big => Ok(GenericValue::Int64(i64::from_be_bytes(bytes_array))),
+                }
+            } else {
+                load_biguint_value(bytes)
             }
-            let mut bytes_array: [u8; 8] = [0; 8];
-            for (idx, byte) in bytes.iter().enumerate() {
-                bytes_array[idx] = *byte;
-            }
-            match endian.resolve(qpy_data.version) {
-                Endian::Little => Ok(GenericValue::Int64(i64::from_le_bytes(bytes_array))),
-                Endian::Big => Ok(GenericValue::Int64(i64::from_be_bytes(bytes_array))),
-            }
-        }
-        ValueType::BigInt => load_biguint_value(bytes),
-        ValueType::Duration => {
-            let (duration_pack, _) = deserialize::<DurationPack>(bytes)?;
-            Ok(GenericValue::Duration(unpack_duration(duration_pack)))
         }
         ValueType::Float => {
             let value: f64 = bytes.try_to_f64(endian.resolve(qpy_data.version))?;
@@ -714,10 +697,9 @@ pub(crate) fn load_value(
     }
 }
 
-/// Reads an arbitrary-precision integer.  This is the `BigInt` arm of [`load_value`] from QPY 18 on;
-/// for earlier versions it is also what the length fork in the `Integer` arm falls back to, since
-/// the two shared a key.
-fn load_biguint_value(bytes: &Bytes) -> Result<GenericValue, QpyError> {
+// a specialized method used for biguints (marked by 'i' like Int64)
+// since the general load method will attempt to load a Int64 instead
+pub(crate) fn load_biguint_value(bytes: &Bytes) -> Result<GenericValue, QpyError> {
     let (bigint_pack, _) = deserialize::<BigIntPack>(bytes)?;
     let bigint = unpack_biguint(bigint_pack);
     Ok(GenericValue::BigInt(bigint))
@@ -731,16 +713,7 @@ pub(crate) fn serialize_generic_value(
     Ok(match value {
         GenericValue::Bool(value) => (ValueType::Bool, value.into()),
         GenericValue::Int64(value) => (ValueType::Integer, value.into()),
-        GenericValue::BigInt(bigint) => (
-            if qpy_data.version >= QPY_DISTINCT_VALUE_KEYS_MIN_VERSION {
-                ValueType::BigInt
-            } else {
-                // Up to QPY 17 this reuses `Int64`'s key, and a reader of those versions tells the
-                // two apart by payload length.
-                ValueType::Integer
-            },
-            serialize(&pack_biguint(bigint))?,
-        ),
+        GenericValue::BigInt(bigint) => (ValueType::Integer, serialize(&pack_biguint(bigint))?),
         GenericValue::Float64(value) => (ValueType::Float, value.into()),
         GenericValue::Complex64(value) => (ValueType::Complex, value.into()),
         GenericValue::String(value) => (ValueType::String, value.into()),
@@ -769,13 +742,7 @@ pub(crate) fn serialize_generic_value(
                 });
             }
             (
-                if qpy_data.version >= QPY_DISTINCT_VALUE_KEYS_MIN_VERSION {
-                    ValueType::Duration
-                } else {
-                    // Shared with `Tuple` up to QPY 17, which is why a reader of those versions has
-                    // to be told which of the two a payload holds.
-                    ValueType::Tuple
-                },
+                ValueType::Tuple, // due to historical reasons, 't' is shared between these data types
                 serialize(&pack_duration(duration))?,
             )
         }
@@ -845,6 +812,22 @@ pub(crate) fn unpack_generic_value(
 ) -> Result<GenericValue, QpyError> {
     let result = load_value(value_pack.type_key, &value_pack.data, qpy_data, endian)?;
     Ok(result)
+}
+
+/// dedicated method for handling the special case where the data pack encodes a `Duration` value
+/// this cannot be determined automatically since in the current QPY format, both duration and tuple
+/// share the 't' key.
+pub(crate) fn unpack_duration_value(
+    value_pack: &GenericDataPack,
+    qpy_data: &mut QPYReadData,
+) -> Result<GenericValue, QpyError> {
+    match value_pack.type_key {
+        ValueType::Tuple => {
+            let duration = unpack_duration(deserialize::<DurationPack>(&value_pack.data)?.0);
+            Ok(GenericValue::Duration(duration))
+        }
+        _ => unpack_generic_value(value_pack, qpy_data, ValueEndian::LittleForV17AndBelow), // fallback (duration can also be expression)
+    }
 }
 
 pub(crate) fn pack_for_collection(value: &ForCollection, version: u8) -> GenericValue {
