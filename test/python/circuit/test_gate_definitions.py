@@ -359,7 +359,6 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "_SingletonGateOverrides",
         "_SingletonControlledGateOverrides",
         "QFTGate",
-        "_InverseQFTGate",
         "ModularAdderGate",
         "HalfAdderGate",
         "FullAdderGate",

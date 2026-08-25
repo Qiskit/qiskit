@@ -1299,6 +1299,34 @@ class TestTranspile(QiskitTestCase):
         self.assertTrue(Operator(out).equiv(qc))
         self.assertTrue(set(out.count_ops()).issubset(basis_gates))
 
+    def test_translation_method_synthesis_custom_1q_gate(self):
+        """Verify translation_method='synthesis' handles a custom one-qubit gate that only
+        has a definition, both as-is and inverted."""
+        custom_circuit = QuantumCircuit(1, name="custom_h")
+        custom_circuit.h(0)
+        custom_gate = custom_circuit.to_gate()
+        # the gate must not carry a matrix of its own, otherwise this is not a regression test
+        self.assertFalse(hasattr(custom_gate, "__array__"))
+
+        qc = QuantumCircuit(1)
+        qc.x(0)
+        qc.append(custom_gate, [0])
+        qc.sx(0)
+        qc.append(custom_gate.inverse(), [0])
+        qc.z(0)
+
+        basis_gates = ["ecr", "id", "rz", "sx", "x"]
+        out = transpile(
+            qc,
+            translation_method="synthesis",
+            basis_gates=basis_gates,
+            optimization_level=3,
+            seed_transpiler=42,
+        )
+
+        self.assertTrue(Operator(out).equiv(qc))
+        self.assertTrue(set(out.count_ops()).issubset(basis_gates))
+
     @data(0, 1, 2, 3)
     def test_circuit_with_delay(self, optimization_level):
         """Verify a circuit with delay can transpile to a scheduled circuit."""
