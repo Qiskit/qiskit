@@ -1,6 +1,6 @@
 use std::result;
 
-use ndarray::Array2;
+use ndarray::{Array2, ArrayView2};
 use num_complex::Complex64;
 use thiserror::Error;
 
@@ -95,6 +95,85 @@ fn add_term_pauli(matrix: &mut Array2<Complex64>, term: &PauliTerm) {
 
 fn add_term_kron(matrix: &mut Array2<Complex64>, term: &SparseTermView) {
     todo!()
+}
+
+fn get_bit_term_matrix(bit_term: BitTerm) -> ArrayView2<'static, Complex64> {
+    const X: &[Complex64] = &[
+        Complex64::new(0.0, 0.0),
+        Complex64::new(1.0, 0.0),
+        Complex64::new(1.0, 0.0),
+        Complex64::new(0.0, 0.0),
+    ];
+
+    const Y: &[Complex64] = &[
+        Complex64::new(0.0, 0.0),
+        Complex64::new(0.0, -1.0),
+        Complex64::new(0.0, 1.0),
+        Complex64::new(0.0, 0.0),
+    ];
+
+    const Z: &[Complex64] = &[
+        Complex64::new(1.0, 0.0),
+        Complex64::new(0.0, 0.0),
+        Complex64::new(0.0, 0.0),
+        Complex64::new(-1.0, 0.0),
+    ];
+
+    const PLUS: &[Complex64] = &[
+        Complex64::new(1.0, 0.0),
+        Complex64::new(1.0, 0.0),
+        Complex64::new(1.0, 0.0),
+        Complex64::new(1.0, 0.0),
+    ];
+
+    const MINUS: &[Complex64] = &[
+        Complex64::new(1.0, 0.0),
+        Complex64::new(-1.0, 0.0),
+        Complex64::new(-1.0, 0.0),
+        Complex64::new(1.0, 0.0),
+    ];
+
+    const RIGHT: &[Complex64] = &[
+        Complex64::new(1.0, 0.0),
+        Complex64::new(0.0, -1.0),
+        Complex64::new(0.0, 1.0),
+        Complex64::new(1.0, 0.0),
+    ];
+
+    const LEFT: &[Complex64] = &[
+        Complex64::new(1.0, 0.0),
+        Complex64::new(0.0, 1.0),
+        Complex64::new(0.0, -1.0),
+        Complex64::new(1.0, 0.0),
+    ];
+
+    const ZERO: &[Complex64] = &[
+        Complex64::new(1.0, 0.0),
+        Complex64::new(0.0, 0.0),
+        Complex64::new(0.0, 0.0),
+        Complex64::new(0.0, 0.0),
+    ];
+
+    const ONE: &[Complex64] = &[
+        Complex64::new(0.0, 0.0),
+        Complex64::new(0.0, 0.0),
+        Complex64::new(0.0, 0.0),
+        Complex64::new(1.0, 0.0),
+    ];
+
+    let data = match bit_term {
+        BitTerm::X => X,
+        BitTerm::Y => Y,
+        BitTerm::Z => Z,
+        BitTerm::Plus => PLUS,
+        BitTerm::Minus => MINUS,
+        BitTerm::Right => RIGHT,
+        BitTerm::Left => LEFT,
+        BitTerm::Zero => ZERO,
+        BitTerm::One => ONE,
+    };
+
+    ArrayView2::from_shape((2, 2), data).expect("shape fits len")
 }
 
 #[cfg(test)]
