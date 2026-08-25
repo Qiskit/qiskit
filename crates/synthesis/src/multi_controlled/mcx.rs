@@ -1169,10 +1169,14 @@ pub fn synth_mcx_noaux_sp22(num_ctrl_qubits: usize) -> Result<CircuitData, Circu
             num_instructions,
             Param::Float(0.0),
         )?;
-        let mcp = synth_mcp_noaux_sp22(num_ctrl_qubits, Param::Float(PI))?;
-        let qubits: Vec<Qubit> = (0..=(num_ctrl_qubits as u32)).map(Qubit).collect();
         circuit.h(num_ctrl_qubits as u32)?;
-        circuit.compose(&mcp, &qubits, &[])?;
+        let pi_phase = Param::Float(PI);
+        // Inline MCP(π) steps — same as synth_mcp_noaux_sp22 but directly
+        // on `circuit` which has target qubit at index `num_ctrl_qubits`
+        sp22::step_1(&mut circuit, &pi_phase, num_ctrl_qubits)?;
+        sp22::step_2(&mut circuit, &pi_phase, num_ctrl_qubits)?;
+        sp22::step_3(&mut circuit, num_ctrl_qubits)?;
+        sp22::step_4(&mut circuit, num_ctrl_qubits)?;
         circuit.h(num_ctrl_qubits as u32)?;
         Ok(circuit)
     }
@@ -1190,7 +1194,7 @@ pub fn synth_mcx_noaux_sp22(num_ctrl_qubits: usize) -> Result<CircuitData, Circu
 fn synth_mcx_explicit(num_ctrl_qubits: usize) -> Result<CircuitData, CircuitDataError> {
     assert!(
         num_ctrl_qubits <= 4,
-        "synth_basic_mcx_gates called with num_ctrl_qubits = {num_ctrl_qubits}, expected <= 4"
+        "synth_mcx_explicit called with num_ctrl_qubits = {num_ctrl_qubits}, expected <= 4"
     );
     match num_ctrl_qubits {
         0 => {
