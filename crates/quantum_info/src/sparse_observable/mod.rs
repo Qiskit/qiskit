@@ -12,7 +12,6 @@
 
 mod lookup;
 pub mod matrix;
-pub mod matrix_old;
 
 use hashbrown::HashSet;
 use itertools::Itertools;

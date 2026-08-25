@@ -1,8 +1,8 @@
 use std::{cmp::Reverse, result};
 
+use bytemuck::zeroed_vec;
 use ndarray::{Array2, ArrayView2, linalg::kron};
 use num_complex::Complex64;
-use qiskit_util::complex::c64;
 use thiserror::Error;
 
 use super::{BitTerm, SparseObservable, SparseTermView};
@@ -10,8 +10,12 @@ use super::{BitTerm, SparseObservable, SparseTermView};
 pub type Result<T> = result::Result<T, MatrixError>;
 
 #[derive(Debug, Error)]
-#[error("{0} qubit matrix too large for this system")]
-pub struct MatrixError(u32);
+pub enum MatrixError {
+    #[error("number of qubits is 0")]
+    ZeroQubits,
+    #[error("{0} qubit matrix too large for this system")]
+    TooManyQubits(u32),
+}
 
 impl SparseObservable {
     pub fn to_matrix(&self) -> Result<Array2<Complex64>> {
@@ -26,14 +30,20 @@ impl SparseObservable {
 }
 
 fn create_matrix_with_zeros(num_qubits: u32) -> Result<Array2<Complex64>> {
+    if num_qubits == 0 {
+        return Err(MatrixError::ZeroQubits);
+    }
+
     let dim = 1usize
         .checked_shl(num_qubits)
-        .ok_or(MatrixError(num_qubits))?;
+        .ok_or(MatrixError::TooManyQubits(num_qubits))?;
 
-    let len = dim.checked_mul(dim).ok_or(MatrixError(num_qubits))?;
-    let data = vec![Complex64::ZERO; len];
+    let len = dim
+        .checked_mul(dim)
+        .ok_or(MatrixError::TooManyQubits(num_qubits))?;
 
-    let matrix = Array2::from_shape_vec((dim, dim), data).expect("shape fits len");
+    let data = zeroed_vec(len);
+    let matrix = Array2::from_shape_vec((dim, dim), data).expect("shape fits data");
     Ok(matrix)
 }
 
@@ -170,76 +180,107 @@ const fn im(n: f64) -> Complex64 {
 
 #[cfg(test)]
 mod tests {
-    use ndarray::arr2;
+    use approx::{assert_abs_diff_eq, assert_relative_eq};
     use num_complex::c64;
 
     use super::*;
 
     #[test]
-    fn test_2xi_xy_3iz() {
-        let terms = &[(2.0.into(), "XI"), (1.0.into(), "XY"), (3.0.into(), "IZ")];
-        let observable = parse_observable(terms);
-        let expect = arr2(&[
-            [c64(3.0, 0.0), c64(0.0, 0.0), c64(2.0, 0.0), c64(0.0, -1.0)],
-            [c64(0.0, 0.0), c64(-3.0, 0.0), c64(0.0, 1.0), c64(2.0, 0.0)],
-            [c64(2.0, 0.0), c64(0.0, -1.0), c64(3.0, 0.0), c64(0.0, 0.0)],
-            [c64(0.0, 1.0), c64(2.0, 0.0), c64(0.0, 0.0), c64(-3.0, 0.0)],
-        ]);
+    fn test_zero_qubits() {
+        let num_qubits = 0;
 
-        let result = observable.to_matrix().expect("is supported");
-        assert_eq!(result, expect);
+        let res = SparseObservable::new(num_qubits, vec![], vec![], vec![], vec![0])
+            .expect("is coherent")
+            .to_matrix();
+
+        assert!(matches!(res, Err(MatrixError::ZeroQubits)));
     }
 
     #[test]
-    fn test_5yz_2xx_3iy() {
-        let terms = &[(5.0.into(), "YZ"), (2.0.into(), "XX"), (3.0.into(), "IY")];
-        let observable = parse_observable(terms);
-        let expect = arr2(&[
-            [c64(0.0, 0.0), c64(0.0, -3.0), c64(0.0, -5.0), c64(2.0, 0.0)],
-            [c64(0.0, 3.0), c64(0.0, 0.0), c64(2.0, 0.0), c64(0.0, 5.0)],
-            [c64(0.0, 5.0), c64(2.0, 0.0), c64(0.0, 0.0), c64(0.0, -3.0)],
-            [c64(2.0, 0.0), c64(0.0, -5.0), c64(0.0, 3.0), c64(0.0, 0.0)],
-        ]);
+    fn test_too_many_qubits() {
+        let num_qubits = 0usize.count_zeros();
 
-        let result = observable.to_matrix().expect("is supported");
-        assert_eq!(result, expect);
+        let res = SparseObservable::new(num_qubits, vec![], vec![], vec![], vec![0])
+            .expect("is coherent")
+            .to_matrix();
+
+        assert!(matches!(res, Err(MatrixError::TooManyQubits(_))));
     }
 
     #[test]
-    fn test_3yy() {
-        let observable = parse_observable(&[(3.0.into(), "YY")]);
-        let expect = arr2(&[
-            [c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(-3.0, 0.0)],
-            [c64(0.0, 0.0), c64(0.0, 0.0), c64(3.0, 0.0), c64(0.0, 0.0)],
-            [c64(0.0, 0.0), c64(3.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0)],
-            [c64(-3.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0), c64(0.0, 0.0)],
-        ]);
+    fn test_dimension_scaling() {
+        const DIMS: &[usize] = &[2, 4, 8, 16, 32, 64, 128, 256];
 
-        let result = observable.to_matrix().expect("is supported");
-        assert_eq!(result, expect);
+        for (i, dim) in DIMS.iter().copied().enumerate() {
+            let num_qubits = (i + 1) as u32;
+            let obs = SparseObservable::new(num_qubits, vec![], vec![], vec![], vec![0])
+                .expect("is coherent");
+
+            let matrix = obs.to_matrix().unwrap();
+            assert_eq!(matrix.dim(), (dim, dim));
+        }
     }
 
-    fn parse_observable<'a>(
-        terms: impl IntoIterator<Item = &'a (Complex64, &'a str)>,
-    ) -> SparseObservable {
+    #[test]
+    fn test_pauli_only() {
+        let terms = &[
+            (c64(-3.0, 0.0), "XI"),
+            (c64(0.0, 4.4), "YZ"),
+            (c64(0.2, -0.1), "YY"),
+            (c64(66.12, 0.0), "ZZ"),
+        ];
+
+        let obs = create_obs(terms);
+        let res = obs.to_matrix();
+        assert!(res.is_ok());
+
+        let data = &[
+            // Row 1
+            c64(66.12, 0.0),
+            c64(0.0, 0.0),
+            c64(1.4, 0.0),
+            c64(-0.2, 0.1),
+            // Row 2
+            c64(0.0, 0.0),
+            c64(-66.12, 0.0),
+            c64(0.2, -0.1),
+            c64(-7.4, 0.0),
+            // Row 3
+            c64(-7.4, 0.0),
+            c64(0.2, -0.1),
+            c64(-66.12, 0.0),
+            c64(0.0, 0.0),
+            // Row 4
+            c64(-0.2, 0.1),
+            c64(1.4, 0.0),
+            c64(0.0, 0.0),
+            c64(66.12, 0.0),
+        ];
+
+        let exp = ArrayView2::from_shape((4, 4), data).expect("shape fits data");
+        let res = res.unwrap();
+        assert_abs_diff_eq!(res, exp, epsilon = 0.001);
+    }
+
+    fn create_obs(terms: &[(Complex64, &str)]) -> SparseObservable {
         let mut num_qubits = 0;
-        let mut coeffs = Vec::new();
-        let mut bit_terms = Vec::new();
-        let mut indicies = Vec::new();
+        let mut coeffs = vec![];
+        let mut bit_terms = vec![];
+        let mut indices = vec![];
         let mut boundaries = vec![0];
 
         for (coeff, term) in terms {
-            num_qubits = term.len() as u32;
+            num_qubits = term.len();
             coeffs.push(*coeff);
 
             let mut num_bit_terms = 0;
-            for (i, bit_term) in term.as_bytes().iter().rev().enumerate() {
-                let bit_term = BitTerm::try_from_u8(*bit_term).expect("is bit term char");
+            for (i, ch) in term.as_bytes().iter().rev().enumerate() {
+                let bit_term = BitTerm::try_from_u8(*ch).expect("ch is bit term");
 
                 if let Some(non_identity) = bit_term {
                     bit_terms.push(non_identity);
+                    indices.push(i as u32);
                     num_bit_terms += 1;
-                    indicies.push(i as u32);
                 }
             }
 
@@ -247,7 +288,7 @@ mod tests {
             boundaries.push(next_boundary);
         }
 
-        SparseObservable::new(num_qubits, coeffs, bit_terms, indicies, boundaries)
+        SparseObservable::new(num_qubits as u32, coeffs, bit_terms, indices, boundaries)
             .expect("is coherent")
     }
 }
