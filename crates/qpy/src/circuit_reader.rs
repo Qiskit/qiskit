@@ -69,7 +69,7 @@ use crate::value::unpack_for_collection;
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, GenericValue,
     QPYReadData, RegisterType, ValueEndian, ValueType, deserialize_with_args,
-    load_param_register_value, load_value, unpack_duration_value, unpack_generic_value,
+    load_param_register_value, load_value, unpack_generic_value,
 };
 
 use ndarray::{Array2, ShapeBuilder};
@@ -576,23 +576,20 @@ fn unpack_control_flow(
         .map_err(|_| QpyError::InvalidInstruction("Unable to find control flow".to_string()))?;
     let control_flow = match control_flow_name {
         ControlFlowType::Box => {
-            // we need specialized handling for the params here, since the first param is duration
-            // which sadly shares the 't' key with tuple, so we can't deserialize using the general `unpack_generic_value`
-            param_values = instruction
+            // Every param decodes the same way; only the *meaning* of the first one is special, in
+            // that it carries the duration rather than a block.
+            let mut values = instruction
                 .params
                 .iter()
-                .skip(1)
-                .map(|param| {
-                    unpack_generic_value(param, qpy_data, ValueEndian::LittleForV17AndBelow)
-                })
-                .collect::<Result<_, QpyError>>()?;
-            let duration_value = if let Some(duration_pack) = instruction.params.first() {
-                unpack_duration_value(duration_pack, qpy_data)?
-            } else {
+                .map(|param| unpack_generic_value(param, qpy_data, ValueEndian::Little))
+                .collect::<Result<Vec<_>, QpyError>>()?
+                .into_iter();
+            let Some(duration_value) = values.next() else {
                 return Err(QpyError::MissingData(
                     "Box control flow instruction missing parameters".to_string(),
                 ));
             };
+            param_values = values.collect();
             let duration = match duration_value {
                 GenericValue::Duration(duration) => Some(BoxDuration::Duration(duration)),
                 GenericValue::Expression(exp) => Some(BoxDuration::Expr(exp.clone())),

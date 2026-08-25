@@ -512,6 +512,25 @@ The register name needs no length of its own because the enclosing field already
 payload: ``conditional_reg_name_size`` for a condition, and the ``INSTRUCTION_PARAM`` header's
 ``size`` for a parameter.
 
+Distinct type keys for ``Duration`` and big integers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Version 18 gives two value types a type key of their own, in the ``type`` field of an
+``INSTRUCTION_PARAM`` (see :ref:`qpy_instructions`) and anywhere else a value is stored with its key:
+
+* ``'D'`` for a :class:`.Duration`, which up to :ref:`version 17 <qpy_version_17>` shared ``'t'``
+  with a tuple.  The payload is unchanged: the one-byte unit discriminator followed by that unit's
+  value, exactly as in a ``DURATION`` item.
+* ``'I'`` for an arbitrary-precision integer, which up to version 17 shared ``'i'`` with a 64-bit
+  integer.  The payload is unchanged: one byte of length followed by that many big-endian magnitude
+  bytes.
+
+Reusing those keys is unambiguous for a decoder that knows which kind of value to expect at each
+point in the payload, and up to version 17 a decoder had to rely on that: an ``'i'`` payload longer
+than eight bytes was an arbitrary-precision integer rather than a 64-bit one.  The distinct keys
+additionally allow a value to be decoded from its own key and length, without that context.
+
+Payloads of :ref:`version 17 <qpy_version_17>` and earlier are read exactly as before.
+
 Changes to REGISTER_PACK
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -2262,6 +2281,11 @@ struct (on QPY format :ref:`qpy_version_3` the format is tweak slightly see:
 and in QPY :ref:`qpy_version_3` ``'v'`` represents a
 :class:`~qiskit.circuit.ParameterVectorElement` which is represented by a
 :ref:`qpy_param_vector` struct.
+
+From :ref:`version 18 <qpy_version_18>` two further keys are used: ``'D'`` for a
+:class:`.Duration` and ``'I'`` for an arbitrary-precision integer.  Before that version those
+values shared the keys of a tuple and of a 64-bit integer respectively, and were told apart by
+context rather than by their key.
 
 .. _qpy_param_struct:
 
