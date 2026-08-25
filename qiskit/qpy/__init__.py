@@ -512,6 +512,15 @@ The register name needs no length of its own because the enclosing field already
 payload: ``conditional_reg_name_size`` for a condition, and the ``INSTRUCTION_PARAM`` header's
 ``size`` for a parameter.
 
+Version 18 also narrows the bit-term elements of the `SPARSE_OBSERVABLE` payload from `"!H"`
+(``uint16_t``) to `"!B"` (``uint8_t``).
+
+The values of :class:`.SparseObservable.BitTerm` always fit in a single byte, so the wider type
+stored a byte of padding for every bit term.  A version 18 payload is therefore one byte smaller
+per bit term than the equivalent version 17 payload.  No other field of `SPARSE_OBSERVABLE`
+changes, and the meaning of `bitterm_data_len` is unaffected because it counts elements rather
+than bytes.
+
 Changes to REGISTER_PACK
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -583,14 +592,15 @@ The `SPARSE_OBSERVABLE` format represents an instance of a :class:`.SparseObserv
   }
 
 which is immediately followed by the number of qubits and then the data arrays of the
-coefficients, bit terms, indices, and boundaries of the observable. The format specifies the
-number of bytes each array occupies. The number of elements can be calculated by dividing
-the number of bytes by the size of each element.
+coefficients, bit terms, indices, and boundaries of the observable. Each of the four ``*_len``
+fields is the number of **elements** in the corresponding array, not the number of bytes it
+occupies; multiply by the size of the element type to get the byte length.
 
  * Each coefficient is stored as two consecutive `"!d"` elements, first the real and then
-   the imaginary part.
- * The bit term elements are of type `"!H"` and represents the `u8` value of the
-   :class:`.SparseObservable.BitTerm`
+   the imaginary part, so ``coeff_data_len`` is twice the number of coefficients.
+ * The bit term elements are of type `"!H"` and represent the `u8` value of the
+   :class:`.SparseObservable.BitTerm`.  From :ref:`version 18 <qpy_version_18>` onwards these
+   are stored as `"!B"` instead.
  * The indices elements are of type `"!I"`.
  * The boundaries elements are of type `"!Q"`.
 
