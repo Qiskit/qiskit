@@ -145,8 +145,8 @@ impl ProgramNode for Variance {
             Tensor::F64(a) => Tensor::F64(a.var_axis(Axis(self.axis), self.ddof).into_shared()),
             Tensor::C64(a) => {
                 let n = a.shape()[self.axis] as f32;
-                let mean = (a.sum_axis(Axis(self.axis)) / Complex::new(n, 0.0))
-                    .insert_axis(Axis(self.axis));
+                let mut mean = a.sum_axis(Axis(self.axis)) / Complex::new(n, 0.0);
+                mean.insert_axis_inplace(Axis(self.axis));
                 let sq_mod = (a - &mean).mapv(|c| c.re * c.re + c.im * c.im);
                 Tensor::F32(
                     (sq_mod.sum_axis(Axis(self.axis)) / (n - self.ddof as f32)).into_shared(),
@@ -154,8 +154,8 @@ impl ProgramNode for Variance {
             }
             Tensor::C128(a) => {
                 let n = a.shape()[self.axis] as f64;
-                let mean = (a.sum_axis(Axis(self.axis)) / Complex::new(n, 0.0))
-                    .insert_axis(Axis(self.axis));
+                let mut mean = a.sum_axis(Axis(self.axis)) / Complex::new(n, 0.0);
+                mean.insert_axis_inplace(Axis(self.axis));
                 let sq_mod = (a - &mean).mapv(|c| c.re * c.re + c.im * c.im);
                 Tensor::F64((sq_mod.sum_axis(Axis(self.axis)) / (n - self.ddof)).into_shared())
             }
@@ -215,9 +215,10 @@ impl ProgramNode for Std {
             Tensor::F64(a) => Tensor::F64(a.std_axis(Axis(self.axis), self.ddof).into_shared()),
             Tensor::C64(a) => {
                 let n = a.shape()[self.axis] as f32;
-                let mean = (a.sum_axis(Axis(self.axis)) / Complex::new(n, 0.0))
-                    .insert_axis(Axis(self.axis));
-                let sq_mod = (a - &mean).mapv(|c| c.re * c.re + c.im * c.im);
+                let mut mean = a.sum_axis(Axis(self.axis)) / Complex::new(n, 0.0);
+                mean.insert_axis_inplace(Axis(self.axis));
+                let mut sq_mod = (a - &mean);
+                sq_mod.mapv_inplace(|c| c.re * c.re + c.im * c.im);
                 Tensor::F32(
                     (sq_mod.sum_axis(Axis(self.axis)) / (n - self.ddof as f32))
                         .mapv(f32::sqrt)
@@ -226,8 +227,8 @@ impl ProgramNode for Std {
             }
             Tensor::C128(a) => {
                 let n = a.shape()[self.axis] as f64;
-                let mean = (a.sum_axis(Axis(self.axis)) / Complex::new(n, 0.0))
-                    .insert_axis(Axis(self.axis));
+                let mut mean = a.sum_axis(Axis(self.axis)) / Complex::new(n, 0.0);
+                mean.insert_axis_inplace(Axis(self.axis));
                 let sq_mod = (a - &mean).mapv(|c| c.re * c.re + c.im * c.im);
                 Tensor::F64(
                     (sq_mod.sum_axis(Axis(self.axis)) / (n - self.ddof))
