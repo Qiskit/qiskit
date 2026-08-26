@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 
-from numpy.testing import assert_raises
 import copy
 import itertools
 import pickle

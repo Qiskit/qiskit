@@ -3976,6 +3976,13 @@ impl PySparseObservable {
     /// :math:`n` is the number of qubits. The algorithm is limited by
     /// the time required to allocate the :math:`2^n \times 2^n` matrix.
     ///
+    /// .. warning::
+    ///
+    ///     The number of matrix elements scales exponentially with the number of
+    ///     qubits. You risk running out of memory when the number of qubits is
+    ///     sufficiently large. For example, an 8 qubit matrix uses ~4 KB of
+    ///     memory, whereas 16 qubits uses ~69 GB!
+    ///
     /// Returns:
     ///     The observable represented as a dense matrix.
     ///
