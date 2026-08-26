@@ -297,11 +297,26 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
     def _evolve_clifford(self, other, qargs=None, frame="h"):
         """Evolve a Pauli by a Clifford (default is Heisenberg frame)."""
 
-        if frame == "s":
-            adj = other
-        else:
-            adj = other.adjoint()
-
+        if frame == "h":
+            # Heisenberg evolution C^dg.P.C.
+            # Naively, would evolve by C^dg in Schrodinger frame, but getting the
+            # phase of C^dg (in `adjoint`) is expensive (N^3). Skip it for now:
+            inv = other.copy()
+            tmp = inv.destab_x.copy()
+            inv.destab_x = inv.stab_z.T
+            inv.destab_z = inv.destab_z.T
+            inv.stab_x = inv.stab_x.T
+            inv.stab_z = tmp.T
+            # We have z and x of C^dg, but not the phase.
+            ret = self._evolve_clifford(inv, qargs=qargs, frame="s")
+            # This evolution yields z, x of desired result but wrong phase.
+            # Fix answer by evolving this forward by C; excess phase after
+            # the round-trip should be subtracted from ret:
+            fwd = ret._evolve_clifford(other, qargs=qargs, frame="s")
+            ret.phase -= (fwd.phase - self.phase)
+            return ret
+        
+        # Schrodinger evolution C.P.C^dg.
         if qargs is None:
             qargs_ = slice(None)
         else:
@@ -320,7 +335,9 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         keep = np.nonzero(idx.any(axis=0))[0]
         for idx_, row in zip(
             idx[:, keep].T,
-            PauliList.from_symplectic(z=adj.z[keep], x=adj.x[keep], phase=2 * adj.phase[keep]),
+            PauliList.from_symplectic(
+                z=other.z[keep], x=other.x[keep], phase=2 * other.phase[keep]
+            ),
             strict=True,
         ):
             # most of the logic below is to properly index if self is a PauliList (2D),
