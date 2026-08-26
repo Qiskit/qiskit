@@ -802,7 +802,7 @@ impl Operation for ControlFlowInstruction {
 pub enum ControlFlowView<'a, T> {
     Box {
         duration: Option<&'a BoxDuration>,
-        annotations: &'a [Py<PyAny>],
+        annotations: &'a [Arc<dyn Annotation>],
         body: &'a T,
     },
     BreakLoop,
