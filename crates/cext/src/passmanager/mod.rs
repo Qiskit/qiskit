@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use qiskit_passmanager::{AnyPass, PassContext, PassManager};
+use qiskit_passmanager::{AnyPass, PassContext, PassManager, PassManagerContext};
 use std::{
     any::{Any, TypeId},
     ffi::c_void,
@@ -192,7 +192,7 @@ pub extern "C" fn qk_passmanager_push_pass(
 #[repr(C)]
 pub struct PassManagerResult {
     ir: *mut c_void,
-    // other things? context?
+    context: *mut PassManagerContext,
 }
 
 #[unsafe(no_mangle)]
@@ -207,13 +207,38 @@ pub extern "C" fn qk_passmanager_run(
     let result = unsafe { mut_ptr_as_ref(result) };
 
     match pm.run(ir, None) {
-        Ok(ir_out) => {
+        Ok((ir_out, context)) => {
             result.ir = ir_out;
+            result.context = Box::into_raw(Box::new(context));
             ExitCode::Success
         }
         Err(e) => {
             result.ir = null_mut();
             ExitCode::from(e)
+        }
+    }
+}
+
+/// @ingroup QkPassManager
+/// Free the pass manager context.
+///
+/// @param context A pointer to the pass manager context to free.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``context`` is not either null or a valid pointer to a
+/// ``QkPassManagerContext``.
+#[unsafe(no_mangle)]
+pub extern "C" fn qk_passmanager_context_free(context: *mut PassManagerContext) {
+    if !context.is_null() {
+        if !context.is_aligned() {
+            panic!("Attempted to free a non-aligned pointer.")
+        }
+
+        // SAFETY: We have verified the pointer is non-null and aligned, so it should be
+        // readable by Box.
+        unsafe {
+            let _ = Box::from_raw(context);
         }
     }
 }

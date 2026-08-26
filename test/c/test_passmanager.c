@@ -71,7 +71,7 @@ static int test_circuit(void) {
     qk_circuit_gate(circuit, QkGate_RZ, q0, nonzero);
     qk_circuit_gate(circuit, QkGate_H, q0, NULL);
 
-    QkPassManagerResult pm_result = {NULL};
+    QkPassManagerResult pm_result = {NULL, NULL};
     QkExitCode exit = qk_passmanager_run(pm, (void *)circuit, &pm_result);
     if (exit != QkExitCode_Success) {
         printf("Exited with %i\n", exit);
@@ -111,6 +111,7 @@ static int test_circuit(void) {
 
 cleanup_circuit:
     qk_circuit_free(circuit);
+    qk_passmanager_context_free(pm_result.context);
 cleanup:
     qk_passmanager_free(pm);
     qk_pass_free(remove_identity);
@@ -156,7 +157,7 @@ static int test_lowering(void) {
         goto cleanup;
     }
 
-    QkPassManagerResult pm_result = {NULL};
+    QkPassManagerResult pm_result = {NULL, NULL};
     // note: as the passmanager is set up, it takes ownership of the input IR, which no longer
     // needs to be freed -- only the output IR must be freed
     if (qk_passmanager_run(pm, (void *)circuit, &pm_result) != QkExitCode_Success) {
@@ -199,6 +200,7 @@ static int test_lowering(void) {
 dag_cleanup:
     free(op_indices);
     qk_dag_free(out);
+    qk_passmanager_context_free(pm_result.context);
 cleanup:
     qk_pass_free(remove_identity);
     qk_pass_free(circuit_to_dag);
