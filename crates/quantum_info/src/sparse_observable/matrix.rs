@@ -1,3 +1,15 @@
+// This code is part of Qiskit.
+//
+// (C) Copyright IBM 2026
+//
+// This code is licensed under the Apache License, Version 2.0. You may
+// obtain a copy of this license in the LICENSE.txt file in the root directory
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
+//
+// Any modifications or derivative works of this code must retain this
+// copyright notice, and modified files need to carry a notice indicating
+// that they have been altered from the originals.
+
 use std::{cmp::Reverse, result};
 
 use bytemuck::zeroed_vec;
@@ -180,7 +192,7 @@ const fn im(n: f64) -> Complex64 {
 
 #[cfg(test)]
 mod tests {
-    use approx::{assert_abs_diff_eq, assert_relative_eq};
+    use approx::assert_abs_diff_eq;
     use num_complex::c64;
 
     use super::*;
@@ -216,23 +228,21 @@ mod tests {
             let obs = SparseObservable::new(num_qubits, vec![], vec![], vec![], vec![0])
                 .expect("is coherent");
 
-            let matrix = obs.to_matrix().unwrap();
+            let matrix = obs.to_matrix().expect("no errors");
             assert_eq!(matrix.dim(), (dim, dim));
         }
     }
 
     #[test]
-    fn test_pauli_only() {
+    fn test_paulis() {
         let terms = &[
             (c64(-3.0, 0.0), "XI"),
             (c64(0.0, 4.4), "YZ"),
             (c64(0.2, -0.1), "YY"),
             (c64(66.12, 0.0), "ZZ"),
         ];
-
         let obs = create_obs(terms);
-        let res = obs.to_matrix();
-        assert!(res.is_ok());
+        let res = obs.to_matrix().expect("no errors");
 
         let data = &[
             // Row 1
@@ -258,8 +268,35 @@ mod tests {
         ];
 
         let exp = ArrayView2::from_shape((4, 4), data).expect("shape fits data");
-        let res = res.unwrap();
-        assert_abs_diff_eq!(res, exp, epsilon = 0.001);
+        assert_abs_diff_eq!(res, exp, epsilon = 0.0001);
+    }
+
+    #[test]
+    fn test_paulis_and_projectors() {
+        let terms = &[
+            (c64(0.5, -1.0), "X+"),
+            (c64(8.1, 0.0), "Y-"),
+            (c64(0.7, -0.1), "Zr"),
+            (c64(9.1, 0.0), "Il"),
+            (c64(2.0, 0.0), "I0"),
+            (c64(0.5, 0.0), "I1"),
+        ];
+        let obs = create_obs(terms);
+        let res = obs.to_matrix().expect("no errors");
+
+        let exp = obs.as_paulis().to_matrix().expect("no errors");
+        assert_abs_diff_eq!(res, exp, epsilon = 0.0001);
+    }
+
+    #[test]
+    fn test_zero_coeff() {
+        let terms = &[(c64(0.0, 0.0), "II")];
+        let obs = create_obs(terms);
+        let res = obs.to_matrix().expect("no errors");
+
+        let data = &[Complex64::ZERO; 16];
+        let exp = ArrayView2::from_shape((4, 4), data).expect("shape fits data");
+        assert_eq!(res, exp);
     }
 
     fn create_obs(terms: &[(Complex64, &str)]) -> SparseObservable {
