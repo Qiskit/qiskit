@@ -14,71 +14,81 @@ use hashbrown::HashMap;
 use std::any::{Any, TypeId};
 use thiserror::Error;
 
-pub enum PreservedAnalyses {
-    All,
-    None,
-    Preserves(Vec<String>),
-    Invalidates(Vec<String>),
+/// The pass manager execution environment.
+///
+/// This contains data managed by the pass manager. A local handle to this is passed into
+/// the passes.
+#[derive(Default)]
+pub struct PassManagerContext {
+    /// The global, catch-all data. The local [PassContext] handles get read-only access to
+    /// this data and after pass execution this global state is updated.
+    data: HashMap<String, Box<dyn Any>>,
 }
 
 /// Context information provided to the passes.
-pub struct PassContext {
+pub struct PassContext<'a> {
+    /// A reference to the global execution environment.
+    global_context: &'a PassManagerContext,
+
     /// Whether the pass changed the IR or not. If this is `false`, the pass manager
     /// can assume that no changes to IR have been made and potentially perform optimizations.
     pub has_changed: bool,
 
-    /// The data provided to the passes. We do not provide a public handle to this data,
-    /// since [PassContext] may act as handle to a larger execution environment. We provide
-    /// getters and setters, which allows use to return references to the larger environment
-    /// and keep a mutable list of local updates separately.
+    /// A local cache of new data.
+    updates: ContextUpdates,
+}
+
+/// A private struct representing the context updates performed. As long as this contains only
+/// a HashMap, we could skip this object, but the context is supposed to contain more generic
+/// information.
+#[derive(Default)]
+struct ContextUpdates {
     data: HashMap<String, Box<dyn Any>>,
 }
 
-impl PassContext {
-    /// Set a new entry in the pass context.
-    /// Returns the existing value under that key, if it exists.
-    pub fn set(&mut self, key: String, value: Box<dyn Any>) -> Option<Box<dyn Any>> {
-        self.data.insert(key, value)
+impl PassManagerContext {
+    fn new() -> Self {
+        Self::default()
     }
 
-    /// Get an entry, if it exists.
-    pub fn get<S: AsRef<str>>(&mut self, key: S) -> Option<&dyn Any> {
-        self.data.get(key.as_ref()).map(|value| value.as_ref())
-    }
-
-    /// Update the entries with preserved analyses.
-    /// This also sets [Self::has_changed] to `true`, if any analysis is invalidated.
-    pub fn update(&mut self, preserved_analyses: &PreservedAnalyses) {
-        match preserved_analyses {
-            PreservedAnalyses::All => (),
-            PreservedAnalyses::None => {
-                self.data.clear();
-                self.has_changed = true;
-            }
-            PreservedAnalyses::Invalidates(invalid) => {
-                for entry in invalid.iter() {
-                    self.data.remove(entry);
-                }
-                self.has_changed = true;
-            }
-            PreservedAnalyses::Preserves(preserved) => {
-                let all_keys = self.data.keys().cloned().collect::<Vec<String>>();
-                for key in all_keys.iter() {
-                    if !preserved.contains(key) {
-                        self.has_changed = true;
-                        self.data.remove(key);
-                    }
-                }
-            }
+    fn update(&mut self, mut updates: ContextUpdates) {
+        for (key, value) in updates.data.drain() {
+            self.data.insert(key, value);
         }
     }
 }
 
-impl Default for PassContext {
-    fn default() -> Self {
+impl<'a> PassContext<'a> {
+    fn spawn(global_context: &'a PassManagerContext) -> Self {
         Self {
-            data: HashMap::default(),
+            global_context,
             has_changed: true,
+            updates: ContextUpdates::default(),
+        }
+    }
+
+    fn into_updates(self) -> ContextUpdates {
+        self.updates
+    }
+
+    /// Set a new entry in the pass context.
+    /// Overwrites the existing value under that key, if it exists.
+    pub fn set(&mut self, key: String, value: Box<dyn Any>) {
+        self.updates.data.insert(key, value);
+    }
+
+    /// Get an entry, if it exists.
+    ///
+    /// This first queries from the local context, then the global.
+    pub fn get<S: AsRef<str>>(&mut self, key: S) -> Option<&dyn Any> {
+        // The local registry takes precedence.
+        if let Some(value) = self.updates.data.get(key.as_ref()) {
+            Some(value.as_ref())
+        } else {
+            self.global_context
+                .data
+                .get(key.as_ref())
+                .map(|value| value.as_ref())
         }
     }
 }
@@ -268,11 +278,12 @@ impl PassManager {
         &self,
         ir: IRIn,
         callbacks: Option<&CallbackRegistry>,
-    ) -> Result<IROut, PassManagerError>
+    ) -> Result<(IROut, PassManagerContext), PassManagerError>
     where
         IRIn: 'static,
         IROut: 'static,
     {
+        let mut context = PassManagerContext::new();
         if let Some(first) = self.tasks.first() {
             // Validate the input ID of the first task matches IRIn
             let Some((first_in_id, _)) = first.io_types() else {
@@ -283,7 +294,8 @@ impl PassManager {
             }
         } else {
             // If there are no tasks, return the input, but cast to IROut
-            return cast_box::<IROut>(Box::new(ir));
+            let ir_out = cast_box::<IROut>(Box::new(ir))?;
+            return Ok((ir_out, context));
         }
 
         let last = self.tasks.last().expect("There is at least 1 task now");
@@ -298,12 +310,15 @@ impl PassManager {
         let mut ir: Box<dyn Any> = Box::new(ir);
 
         // Main iteration loop over tasks
-        let mut context = PassContext::default();
         for task in self.tasks.iter() {
-            ir = execute_task(task, ir, &mut context, callbacks)?;
+            let mut pass_context = PassContext::spawn(&context);
+            ir = execute_task(task, ir, &mut pass_context, callbacks)?;
+            let updates = pass_context.into_updates();
+            context.update(updates);
         }
 
-        cast_box::<IROut>(ir)
+        let ir_out = cast_box::<IROut>(ir)?;
+        return Ok((ir_out, context));
     }
 
     /// The number of first-level tasks in the pass manager.
@@ -626,7 +641,7 @@ mod test {
         )
         .unwrap();
 
-        let out: DAGCircuit = pm.run(dag, None)?;
+        let (out, _) = pm.run::<_, DAGCircuit>(dag, None)?;
         let ops = out.count_ops(false).unwrap();
         assert_eq!(ops.get("h").map(|v| *v), Some(1));
         assert_eq!(ops.get("rx"), None);
@@ -687,7 +702,7 @@ mod test {
         callbacks.register_callback(Box::new(cb_task), CallbackType::PostTask);
         callbacks.register_callback(Box::new(cb_stage), CallbackType::PostStage);
 
-        let _out: DAGCircuit = pm.run(DAGCircuit::new(), Some(&callbacks))?;
+        let (_, _) = pm.run::<_, DAGCircuit>(DAGCircuit::new(), Some(&callbacks))?;
 
         assert_eq!(pass_counter.get(), 9);
         assert_eq!(task_counter.get(), 11);
@@ -794,6 +809,16 @@ mod test {
         pm.try_push_pass(Box::new(CheckTCount {
             expected_t_count: num_t as usize,
         }))?;
+
+        let (_, context) = pm.run::<_, CircuitData>(circuit, None)?;
+        let t_count = context
+            .data
+            .get("t_count")
+            .expect("Failed to retrieve `t_count`")
+            .downcast_ref::<usize>()
+            .expect("Downcasting failed");
+        assert_eq!(*t_count, num_t as usize);
+
         Ok(())
     }
 }
