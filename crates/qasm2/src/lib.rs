@@ -87,6 +87,7 @@ pub fn qasm2(module: &Bound<PyModule>) -> PyResult<()> {
     module.add_class::<bytecode::UnaryOpCode>()?;
     module.add_class::<bytecode::BinaryOpCode>()?;
     module.add_class::<bytecode::Bytecode>()?;
+    module.add_class::<bytecode::GateBodyArguments>()?;
     module.add_class::<bytecode::ExprConstant>()?;
     module.add_class::<bytecode::ExprArgument>()?;
     module.add_class::<bytecode::ExprUnary>()?;
