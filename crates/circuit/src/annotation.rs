@@ -15,6 +15,7 @@ use std::fmt::Debug;
 use std::sync::Arc;
 use std::sync::OnceLock;
 
+use pyo3::exceptions::PyNotImplementedError;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyString;
@@ -90,7 +91,11 @@ impl PyAnnotation {
 }
 
 impl PyAnnotation {
-    pub(crate) fn new(inner: Arc<dyn Annotation>) -> Self {
+    pub fn new(inner: Arc<dyn Annotation>) -> Self {
+        assert!(
+            inner.downcast_ref::<PythonAnnotation>().is_none(),
+            "PyAnnotation can never wrap a PythonAnnotation."
+        );
         Self { inner: Some(inner) }
     }
 
@@ -131,6 +136,13 @@ mod custom_traits {
 pub trait Annotation: Any + Debug + Send + Sync + ComparableAnnotation {
     /// Return the namespace of the annotation.
     fn namespace(&self) -> &str;
+
+    /// Return a Python representation of this annotation.
+    fn create_py_annotation(&self, _: Python) -> PyResult<Py<PyAny>> {
+        Err(PyNotImplementedError::new_err(
+            "Custom annotations from Rust cannot be exposed to Python.",
+        ))
+    }
 }
 
 impl PartialEq for dyn Annotation {
@@ -162,10 +174,6 @@ impl PythonAnnotation {
             namespace: OnceLock::new(),
         }
     }
-
-    pub fn annotation(&self, py: Python) -> Py<PyAny> {
-        self.annotation.clone_ref(py)
-    }
 }
 
 impl Annotation for PythonAnnotation {
@@ -182,6 +190,10 @@ impl Annotation for PythonAnnotation {
                     .unwrap_or_default()
             })
         })
+    }
+
+    fn create_py_annotation(&self, py: Python) -> PyResult<Py<PyAny>> {
+        Ok(self.annotation.clone_ref(py))
     }
 }
 
@@ -213,13 +225,6 @@ impl<'a, 'py> FromPyObject<'a, 'py> for AnnotationFromPython {
             Err(e) => Err(Self::Error::from(e)),
         }
     }
-}
-
-pub fn annotation_to_py(py: Python, annotation: &Arc<dyn Annotation>) -> PyResult<Py<PyAny>> {
-    if let Some(from_py) = annotation.downcast_ref::<PythonAnnotation>() {
-        return Ok(from_py.annotation(py));
-    }
-    Ok(Py::new(py, PyAnnotation::new(Arc::clone(annotation)))?.into_any())
 }
 
 #[cfg(test)]

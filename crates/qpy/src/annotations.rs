@@ -81,7 +81,7 @@ impl AnnotationHandler {
                     ));
                 };
                 Ok(serialization_state
-                    .call_method1(py, "serialize", (ob.annotation(py),))?
+                    .call_method1(py, "serialize", (ob.create_py_annotation(py)?,))?
                     .extract(py)?)
             }),
             Self::Native => Err(Self::native_error("serialize")),
