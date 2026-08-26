@@ -1234,8 +1234,7 @@ fn deserialize_pauli_evolution_gate(
                     .bitterm_data
                     .iter()
                     .map(|&bitterm| -> Result<_, QpyError> {
-                        let reduced_bitterm = u8::try_from(bitterm)?;
-                        BitTerm::try_from(reduced_bitterm).map_err(|_| {
+                        BitTerm::try_from(bitterm).map_err(|_| {
                             QpyError::DeserializationError(
                                 "Could not read sparse observable data".to_string(),
                             )
