@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 
+from numpy.testing import assert_raises
 import copy
 import itertools
 import pickle
@@ -2527,6 +2528,21 @@ class TestSparseObservable(QiskitTestCase):
         )
         zz = SparseObservable.from_sparse_list([("ZZ", [0, 1], 1)], num_qubits=2)
         self.assertTrue(zz.commutes(xxyy))
+
+    def test_to_matrix(self):
+        """Assert that `to_matrix` succeeds."""
+        obs = SparseObservable.zero(2)
+        res = obs.to_matrix()
+
+        exp = np.zeros((4, 4), dtype=complex)
+        np.testing.assert_array_equal(res, exp)
+
+    def test_to_matrix_value_error(self):
+        """Assert that the error case correctly maps to `ValueError`."""
+        obs = SparseObservable.zero(0)
+
+        with self.assertRaises(ValueError):
+            obs.to_matrix()
 
 
 def canonicalize_term(pauli, indices, coeff):

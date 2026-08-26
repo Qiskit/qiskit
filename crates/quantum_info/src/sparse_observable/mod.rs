@@ -1286,7 +1286,7 @@ impl SparseObservable {
     ///
     /// The reduced time complexity of this function is _O(4<sup>n</sup>)_,
     /// where _n_ is the number of qubits. The algorithm is limited by the time
-    /// required to allocate an _2<sup>n</sup> × 2<sup>n</sup>_ matrix.
+    /// required to allocate the _2<sup>n</sup> × 2<sup>n</sup>_ matrix.
     ///
     /// # Warning
     ///
@@ -1907,6 +1907,13 @@ impl From<LabelError> for PyErr {
 #[cfg(feature = "python")]
 impl From<ArithmeticError> for PyErr {
     fn from(value: ArithmeticError) -> PyErr {
+        PyValueError::new_err(value.to_string())
+    }
+}
+
+#[cfg(feature = "python")]
+impl From<MatrixError> for PyErr {
+    fn from(value: MatrixError) -> Self {
         PyValueError::new_err(value.to_string())
     }
 }
@@ -3961,6 +3968,23 @@ impl PySparseObservable {
         let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
 
         Ok(self_inner.commutes(&other_inner, tol))
+    }
+
+    /// Expand the observable into its dense matrix form.
+    ///
+    /// The reduced time complexity of this function is :math:`O(4^n)` where
+    /// :math:`n` is the number of qubits. The algorithm is limited by
+    /// the time required to allocate the :math:`2^n \times 2^n` matrix.
+    ///
+    /// Returns:
+    ///     The observable represented as a dense matrix.
+    ///
+    /// Raises:
+    ///     TypeError: If the number of qubits is 0 or too large.
+    pub fn to_matrix<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyArray2<Complex64>>> {
+        let obs = self.inner.read().map_err(|_| InnerReadError)?;
+        let matrix = obs.to_matrix()?;
+        Ok(PyArray2::from_owned_array(py, matrix))
     }
 
     fn __len__(&self) -> PyResult<usize> {
