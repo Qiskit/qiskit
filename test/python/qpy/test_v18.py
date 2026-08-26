@@ -15,7 +15,13 @@
 import io
 import struct
 
-from qiskit.circuit import AncillaRegister, ClassicalRegister, QuantumCircuit, QuantumRegister, Qubit
+from qiskit.circuit import (
+    AncillaRegister,
+    ClassicalRegister,
+    QuantumCircuit,
+    QuantumRegister,
+    Qubit,
+)
 from qiskit.circuit.classical import expr
 from qiskit.qpy import dump, load
 from qiskit.qpy import formats

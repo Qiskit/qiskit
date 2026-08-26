@@ -1121,11 +1121,11 @@ fn unpack_transpile_layout<'py>(
         match register_type {
             RegisterType::Qreg => extra_register_map.insert(
                 name.as_str(),
-                QuantumRegister::new_ancilla_owning(name.clone(), bit_indices_len as u32),
+                QuantumRegister::new_owning(name.clone(), bit_indices_len as u32),
             ),
             RegisterType::Areg => extra_register_map.insert(
                 name.as_str(),
-                QuantumRegister::new_owning(name.clone(), bit_indices_len as u32),
+                QuantumRegister::new_ancilla_owning(name.clone(), bit_indices_len as u32),
             ),
             _ => None,
         };
