@@ -14,7 +14,7 @@ use crate::data_tree::DataTree;
 use crate::program_node::ProgramNode;
 use crate::tensor::{DType, DTypeLike, Tensor, TensorType};
 use crate::unpack_tensor_args;
-use ndarray::Axis;
+use ndarray::{ArrayBase, ArrayD, Axis, Data, IxDyn, NdFloat, Zip};
 use num_complex::Complex;
 use std::sync::LazyLock;
 
@@ -35,6 +35,76 @@ static OUTPUT_TYPES: LazyLock<DataTree<TensorType>> = LazyLock::new(|| {
         broadcastable: true,
     })
 });
+
+/// Smallest output length at which the slice traversal in [`sum_sq_deviations`] is
+/// faster than the lane traversal.
+///
+/// The slice traversal runs one [`Zip`] per position along the reduced axis, so its
+/// fixed per-slice cost is amortized only once the output holds enough elements. The
+/// crossover is therefore set by the ratio of that setup cost to the per-element
+/// work, and measurement on `C64` data puts it near 16. The per-element work is
+/// smaller on a target with wider vectors, so the crossover there should be larger.
+///
+/// The exact value matters little, and any of 8, 16 or 32 would do. Some threshold is
+/// still needed. The output of a one-dimensional reduction is a single element, and
+/// the slice traversal on it is more than forty times slower.
+const MIN_SLICE_OUTPUT_LEN: usize = 16;
+
+/// Mean of `a` along `axis`, with that axis removed.
+///
+/// A zero-length axis gives a NaN mean.
+fn complex_mean<A, S>(a: &ArrayBase<S, IxDyn>, axis: Axis) -> ArrayD<Complex<A>>
+where
+    A: NdFloat,
+    S: Data<Elem = Complex<A>>,
+{
+    let n = A::from(a.len_of(axis)).expect("an axis length converts to a float");
+    a.sum_axis(axis)
+        .mapv_into(|c| Complex::new(c.re / n, c.im / n))
+}
+
+/// Sum of the squared moduli of the deviations of `a` from its mean along `axis`,
+/// with that axis removed.
+///
+/// Peak memory is independent of the length of the reduced axis.
+/// The sum is accumulated in `f64` for both `f32` and `f64` to hold the summation error
+/// below the rounding error of `f32` inputs.
+fn sum_sq_deviations<A, S>(a: &ArrayBase<S, IxDyn>, axis: Axis) -> ArrayD<f64>
+where
+    A: NdFloat + Into<f64>,
+    S: Data<Elem = Complex<A>>,
+{
+    let mean = complex_mean(a, axis);
+    // This function contains two implementations. One does a reduction over each lane,
+    // which is fast when lanes ar contigous in memory. The other accumulates over
+    // slices, which is fast when slices are contigous in memory. We inspect stride
+    // information to form a heuristic about which one to choose: the difference in
+    // speed can be as much as 40x.
+    let reduced_stride = a.strides()[axis.index()].unsigned_abs();
+    let fastest_stride = a
+        .shape()
+        .iter()
+        .zip(a.strides())
+        .filter_map(|(&len, &stride)| (len > 1).then_some(stride.unsigned_abs()))
+        .min()
+        .unwrap_or(1);
+    if mean.len() >= MIN_SLICE_OUTPUT_LEN && reduced_stride > fastest_stride {
+        // Perform an accumulation, one slice at a time.
+        let mut accumulated = ArrayD::<f64>::zeros(mean.raw_dim());
+        for slice in a.axis_iter(axis) {
+            Zip::from(&mut accumulated)
+                .and(&slice)
+                .and(&mean)
+                .for_each(|total, &x, &m| *total += (x - m).norm_sqr().into());
+        }
+        accumulated
+    } else {
+        // Perform a reduction of each lane separately.
+        Zip::from(a.lanes(axis))
+            .and(&mean)
+            .map_collect(|lane, &m| lane.iter().map(|&x| (x - m).norm_sqr().into()).sum())
+    }
+}
 
 /// Mean of a tensor along a specified axis, removing that axis.
 ///
@@ -144,20 +214,14 @@ impl ProgramNode for Variance {
             }
             Tensor::F64(a) => Tensor::F64(a.var_axis(Axis(self.axis), self.ddof).into_shared()),
             Tensor::C64(a) => {
-                let n = a.shape()[self.axis] as f32;
-                let mean = (a.sum_axis(Axis(self.axis)) / Complex::new(n, 0.0))
-                    .insert_axis(Axis(self.axis));
-                let sq_mod = (a - &mean).mapv(|c| c.re * c.re + c.im * c.im);
-                Tensor::F32(
-                    (sq_mod.sum_axis(Axis(self.axis)) / (n - self.ddof as f32)).into_shared(),
-                )
+                let denom = a.shape()[self.axis] as f64 - self.ddof;
+                let var = sum_sq_deviations(a, Axis(self.axis));
+                Tensor::F32(var.mapv(|total| (total / denom) as f32).into_shared())
             }
             Tensor::C128(a) => {
-                let n = a.shape()[self.axis] as f64;
-                let mean = (a.sum_axis(Axis(self.axis)) / Complex::new(n, 0.0))
-                    .insert_axis(Axis(self.axis));
-                let sq_mod = (a - &mean).mapv(|c| c.re * c.re + c.im * c.im);
-                Tensor::F64((sq_mod.sum_axis(Axis(self.axis)) / (n - self.ddof)).into_shared())
+                let denom = a.shape()[self.axis] as f64 - self.ddof;
+                let var = sum_sq_deviations(a, Axis(self.axis));
+                Tensor::F64(var.mapv_into(|total| total / denom).into_shared())
             }
             other => {
                 let Tensor::F64(a) = other.clone().cast(DType::F64) else {
@@ -214,26 +278,17 @@ impl ProgramNode for Std {
             }
             Tensor::F64(a) => Tensor::F64(a.std_axis(Axis(self.axis), self.ddof).into_shared()),
             Tensor::C64(a) => {
-                let n = a.shape()[self.axis] as f32;
-                let mean = (a.sum_axis(Axis(self.axis)) / Complex::new(n, 0.0))
-                    .insert_axis(Axis(self.axis));
-                let sq_mod = (a - &mean).mapv(|c| c.re * c.re + c.im * c.im);
+                let denom = a.shape()[self.axis] as f64 - self.ddof;
+                let var = sum_sq_deviations(a, Axis(self.axis));
                 Tensor::F32(
-                    (sq_mod.sum_axis(Axis(self.axis)) / (n - self.ddof as f32))
-                        .mapv(f32::sqrt)
+                    var.mapv(|total| (total / denom).sqrt() as f32)
                         .into_shared(),
                 )
             }
             Tensor::C128(a) => {
-                let n = a.shape()[self.axis] as f64;
-                let mean = (a.sum_axis(Axis(self.axis)) / Complex::new(n, 0.0))
-                    .insert_axis(Axis(self.axis));
-                let sq_mod = (a - &mean).mapv(|c| c.re * c.re + c.im * c.im);
-                Tensor::F64(
-                    (sq_mod.sum_axis(Axis(self.axis)) / (n - self.ddof))
-                        .mapv(f64::sqrt)
-                        .into_shared(),
-                )
+                let denom = a.shape()[self.axis] as f64 - self.ddof;
+                let var = sum_sq_deviations(a, Axis(self.axis));
+                Tensor::F64(var.mapv_into(|total| (total / denom).sqrt()).into_shared())
             }
             other => {
                 let Tensor::F64(a) = other.clone().cast(DType::F64) else {
