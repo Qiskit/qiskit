@@ -10,21 +10,76 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use anyhow;
 use hashbrown::HashMap;
 use std::any::{Any, TypeId};
 use thiserror::Error;
 
+pub enum PreservedAnalyses {
+    All,
+    None,
+    Preserves(Vec<String>),
+    Invalidates(Vec<String>),
+}
+
 /// Context information provided to the passes.
-#[derive(Default)]
 pub struct PassContext {
-    /// The data provided to the passes.
-    pub data: HashMap<String, Box<dyn Any>>,
+    /// Whether the pass changed the IR or not. If this is `false`, the pass manager
+    /// can assume that no changes to IR have been made and potentially perform optimizations.
+    pub has_changed: bool,
+
+    /// The data provided to the passes. We do not provide a public handle to this data,
+    /// since [PassContext] may act as handle to a larger execution environment. We provide
+    /// getters and setters, which allows use to return references to the larger environment
+    /// and keep a mutable list of local updates separately.
+    data: HashMap<String, Box<dyn Any>>,
 }
 
 impl PassContext {
-    pub fn new() -> Self {
-        Self::default()
+    /// Set a new entry in the pass context.
+    /// Returns the existing value under that key, if it exists.
+    pub fn set(&mut self, key: String, value: Box<dyn Any>) -> Option<Box<dyn Any>> {
+        self.data.insert(key, value)
+    }
+
+    /// Get an entry, if it exists.
+    pub fn get<S: AsRef<str>>(&mut self, key: S) -> Option<&dyn Any> {
+        self.data.get(key.as_ref()).map(|value| value.as_ref())
+    }
+
+    /// Update the entries with preserved analyses.
+    /// This also sets [Self::has_changed] to `true`, if any analysis is invalidated.
+    pub fn update(&mut self, preserved_analyses: &PreservedAnalyses) {
+        match preserved_analyses {
+            PreservedAnalyses::All => (),
+            PreservedAnalyses::None => {
+                self.data.clear();
+                self.has_changed = true;
+            }
+            PreservedAnalyses::Invalidates(invalid) => {
+                for entry in invalid.iter() {
+                    self.data.remove(entry);
+                }
+                self.has_changed = true;
+            }
+            PreservedAnalyses::Preserves(preserved) => {
+                let all_keys = self.data.keys().cloned().collect::<Vec<String>>();
+                for key in all_keys.iter() {
+                    if !preserved.contains(key) {
+                        self.has_changed = true;
+                        self.data.remove(key);
+                    }
+                }
+            }
+        }
+    }
+}
+
+impl Default for PassContext {
+    fn default() -> Self {
+        Self {
+            data: HashMap::default(),
+            has_changed: true,
+        }
     }
 }
 
@@ -243,7 +298,7 @@ impl PassManager {
         let mut ir: Box<dyn Any> = Box::new(ir);
 
         // Main iteration loop over tasks
-        let mut context = PassContext::new();
+        let mut context = PassContext::default();
         for task in self.tasks.iter() {
             ir = execute_task(task, ir, &mut context, callbacks)?;
         }
@@ -421,6 +476,7 @@ mod test {
 
     use super::*;
     use qiskit_circuit::{
+        Qubit,
         bit::ShareableQubit,
         circuit_data::CircuitData,
         dag_circuit::DAGCircuit,
@@ -460,10 +516,38 @@ mod test {
             context: &mut PassContext,
         ) -> anyhow::Result<Self::OutputIR> {
             let count = ir.count_ops();
-            let t_count = count.get("t").unwrap_or(&0) + count.get("tdg").unwrap_or(&0);
-            context
-                .data
-                .insert("t_count".to_string(), Box::new(t_count));
+            let t_count: usize = count.get("t").unwrap_or(&0) + count.get("tdg").unwrap_or(&0);
+            context.set("t_count".to_string(), Box::new(t_count));
+            Ok(ir)
+        }
+    }
+
+    struct CheckTCount {
+        expected_t_count: usize,
+    }
+
+    impl Pass for CheckTCount {
+        type InputIR = CircuitData;
+        type OutputIR = CircuitData;
+
+        fn run(
+            &self,
+            ir: Self::InputIR,
+            context: &mut PassContext,
+        ) -> anyhow::Result<Self::OutputIR> {
+            let Some(t_count) = context.get("t_count") else {
+                return Err(anyhow::anyhow!("Missing `t_count`"));
+            };
+            let Some(t_count) = t_count.downcast_ref::<usize>() else {
+                return Err(anyhow::anyhow!("Downcasting to usize failed"));
+            };
+            if *t_count != self.expected_t_count {
+                return Err(anyhow::anyhow!(
+                    "Expected T count of {} but got {}",
+                    self.expected_t_count,
+                    t_count
+                ));
+            }
             Ok(ir)
         }
     }
@@ -692,6 +776,24 @@ mod test {
             assert!(false, "Expected a Task::Stage");
         }
 
+        Ok(())
+    }
+
+    #[test]
+    fn test_pass_context() -> anyhow::Result<()> {
+        let qubits: Vec<ShareableQubit> = (0..3).map(|_| ShareableQubit::new_anonymous()).collect();
+        let mut circuit = CircuitData::new(Some(qubits), None, Param::Float(0.))?;
+        let num_t = 50;
+        for i in 0..num_t {
+            circuit.push_standard_gate(StandardGate::T, &[], &[Qubit(i % 3)])?;
+            circuit.push_standard_gate(StandardGate::H, &[], &[Qubit(i % 3)])?;
+        }
+
+        let mut pm = PassManager::new();
+        pm.try_push_pass(Box::new(CountT {}))?;
+        pm.try_push_pass(Box::new(CheckTCount {
+            expected_t_count: num_t as usize,
+        }))?;
         Ok(())
     }
 }
