@@ -23,6 +23,7 @@ use pyo3::types::{PyBool, PyList, PyTuple, PyType};
 use pyo3::{PyResult, intern};
 
 use crate::circuit_data::{CircuitData, PyCircuitData};
+use crate::custom_operations::QFTGate;
 use crate::dag_circuit::DAGCircuit;
 use crate::duration::Duration;
 use crate::imports::{CONTROLLED_GATE, WARNINGS_WARN};
@@ -849,6 +850,20 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
                         label: extract_label()?,
                     });
                 };
+            }
+        } else if ob_name == "qft" {
+            // ToDo:
+            // 1. How should we check that this is a real QFTGate and not just some other gate also called "QFT"?
+            // 2. How should we handle subclasses of QFTGate gates (coming from Python)?
+            if extract_label()?.is_none() {
+                let num_qubits = ob.getattr(intern!(py, "num_qubits"))?.extract::<u32>()?;
+                return Ok(OperationFromPython {
+                    operation: PackedOperation::from_custom_operation(Box::new(QFTGate::new(
+                        num_qubits,
+                    ))),
+                    params: None,
+                    label: None,
+                });
             }
         } else if ob_name == "pauli_product_measurement" {
             let z = ob
