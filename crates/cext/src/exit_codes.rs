@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use qiskit_circuit::parameter::parameter_expression::ParameterError;
-use qiskit_passmanager::passmanager::PassManagerError;
+use qiskit_passmanager::PassManagerError;
 use qiskit_quantum_info::sparse_observable::ArithmeticError;
 use qiskit_transpiler::target::TargetError;
 use thiserror::Error;
@@ -65,6 +65,8 @@ pub enum ExitCode {
     TranspilerError = 400,
     /// Incompatible types.
     IncompatibleTypes = 401,
+    /// Failed conversion to an output IR.
+    FailedOutputConversion = 402,
     /// QkDag operation error
     DagError = 500,
     /// The DAGs have mismatching qubit/clbit amounts during compose.
@@ -126,6 +128,7 @@ impl From<PassManagerError> for ExitCode {
     fn from(value: PassManagerError) -> Self {
         match value {
             PassManagerError::IncompatibleTypes => ExitCode::IncompatibleTypes,
+            PassManagerError::FailedOutputConversion => ExitCode::FailedOutputConversion,
             _ => ExitCode::TranspilerError, // TODO maybe use new category?
         }
     }

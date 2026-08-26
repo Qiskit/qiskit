@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use qiskit_passmanager::passmanager::{AnyPass, PassContext, PassManager};
+use qiskit_passmanager::{AnyPass, PassContext, PassManager};
 use std::{
     any::{Any, TypeId},
     ffi::c_void,
@@ -22,7 +22,9 @@ use crate::{
     pointers::{const_ptr_as_ref, mut_ptr_as_ref},
 };
 
-type RunFunctionPtr = extern "C" fn(*const c_void, *mut PassContext) -> *const c_void;
+/// The pass' run method with signature
+/// void* run(void *self, void *ir, QkPassContext *context);
+type RunFunctionPtr = extern "C" fn(*mut c_void, *mut c_void, *mut PassContext) -> *mut c_void;
 
 /// A struct representing a Qiskit pass in C.
 ///
@@ -32,20 +34,28 @@ pub struct PassFromC {
     /// The pass' run function is taking the IR as void pointer and returns a void
     /// pointer, since we cannot do general type checking C-side
     run_ptr: Option<RunFunctionPtr>,
+    /// The pass object, aka `self`.
+    self_ptr: Option<*mut c_void>,
 }
 
 impl AnyPass for &PassFromC {
     fn input_type_id(&self) -> TypeId {
-        TypeId::of::<c_void>()
+        TypeId::of::<*mut c_void>()
     }
 
     fn output_type_id(&self) -> TypeId {
-        TypeId::of::<c_void>()
+        TypeId::of::<*mut c_void>()
     }
 
     fn run(&self, ir: Box<dyn Any>, context: &mut PassContext) -> anyhow::Result<Box<dyn Any>> {
-        let ir = ir.downcast::<*const c_void>().expect("Anything is c_void");
-        let out = (self.run_ptr.expect("C pass was required to be complete!"))(*ir, context);
+        let ir = ir.downcast::<*mut c_void>().expect("Anything is c_void");
+        let self_ptr = self
+            .self_ptr
+            .expect("C pass was required to be complete: `self` is missing.");
+        let run_ptr = self
+            .run_ptr
+            .expect("C pass was required to be complete: `run` is missing.");
+        let out = run_ptr(self_ptr, *ir, context);
         Ok(Box::new(out))
     }
 }
@@ -57,7 +67,10 @@ impl AnyPass for &PassFromC {
 /// for pass execution.
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_pass_new() -> *mut PassFromC {
-    Box::into_raw(Box::new(PassFromC { run_ptr: None }))
+    Box::into_raw(Box::new(PassFromC {
+        self_ptr: None,
+        run_ptr: None,
+    }))
 }
 
 /// @ingroup QkPassManager
@@ -93,11 +106,26 @@ pub unsafe extern "C" fn qk_pass_free(pass: *mut PassFromC) {
 ///
 /// Behavior is undefined if ``pass`` is not a non-null, valid pointer to a ``QkPass``.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_pass_set_run(pass: *mut PassFromC, run_ptr: *const c_void) {
+pub unsafe extern "C" fn qk_pass_set_run(pass: *mut PassFromC, run_ptr: RunFunctionPtr) {
     // SAFETY: Per documentation, `pass` is valid and non-null
     let pass = unsafe { mut_ptr_as_ref(pass) };
-    let run_ptr = unsafe { std::mem::transmute(run_ptr) };
     pass.run_ptr = Some(run_ptr);
+}
+
+/// @ingroup QkPassManager
+/// Set the function pointer for self.
+///
+/// This must be called at least once for a new ``QkPass`` to be valid. Not setting the
+/// function pointer and executing a pass manager with such a pass is undefined behavior.
+///
+/// # Safety
+///
+/// Behavior is undefined if ``pass`` is not a non-null, valid pointer to a ``QkPass``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_pass_set_self(pass: *mut PassFromC, self_ptr: *mut c_void) {
+    // SAFETY: Per documentation, `pass` is valid and non-null
+    let pass = unsafe { mut_ptr_as_ref(pass) };
+    pass.self_ptr = Some(self_ptr);
 }
 
 /// @ingroup QkPassManager
@@ -170,7 +198,7 @@ pub struct PassManagerResult {
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_passmanager_run(
     pm: *mut PassManager,
-    ir: *const c_void,
+    ir: *mut c_void,
     result: *mut PassManagerResult,
     // callback:
 ) -> ExitCode {

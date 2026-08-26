@@ -11,7 +11,10 @@
 // that they have been altered from the originals.
 
 use hashbrown::{HashMap, HashSet};
-use std::any::{Any, TypeId};
+use std::{
+    any::{Any, TypeId},
+    cell::LazyCell,
+};
 use thiserror::Error;
 
 /// The pass manager execution environment.
@@ -282,9 +285,7 @@ impl PassManager {
             let Some((first_in_id, _)) = first.io_types() else {
                 return Err(PassManagerError::EmptyTask);
             };
-            if first_in_id != TypeId::of::<IRIn>() {
-                return Err(PassManagerError::IncompatibleTypes);
-            }
+            maybe_compare_types(first_in_id, TypeId::of::<IRIn>())?;
         } else {
             // If there are no tasks, return the input, but cast to IROut
             let ir_out = cast_box::<IROut>(Box::new(ir))?;
@@ -295,9 +296,7 @@ impl PassManager {
         let Some((_, last_out_id)) = last.io_types() else {
             return Err(PassManagerError::EmptyTask);
         };
-        if last_out_id != TypeId::of::<IROut>() {
-            return Err(PassManagerError::IncompatibleTypes);
-        }
+        maybe_compare_types(last_out_id, TypeId::of::<IROut>())?;
 
         // Erase the type to pass it through the task execution
         let mut ir: Box<dyn Any> = Box::new(ir);
@@ -333,9 +332,7 @@ impl PassManager {
             let Some((in_type, _)) = task.io_types() else {
                 return Err(PassManagerError::EmptyTask);
             };
-            if in_type != out_type {
-                return Err(PassManagerError::IncompatibleTypes);
-            }
+            maybe_compare_types(in_type, out_type)?;
         }
         self.tasks.push(task);
         Ok(())
@@ -366,9 +363,7 @@ impl PassManager {
             ) else {
                 return Err(PassManagerError::EmptyTask);
             };
-            if before != after {
-                return Err(PassManagerError::IncompatibleTypes);
-            }
+            maybe_compare_types(before, after)?;
         }
         let task = self.tasks.remove(index);
 
@@ -395,17 +390,13 @@ impl PassManager {
                 let Some((_, before)) = self.tasks[index - 1].io_types() else {
                     return Err(PassManagerError::EmptyTask);
                 };
-                if before != in_type {
-                    return Err(PassManagerError::IncompatibleTypes);
-                }
+                maybe_compare_types(before, in_type)?;
             }
             if index < self.tasks.len() - 1 {
                 let Some((after, _)) = self.tasks[index + 1].io_types() else {
                     return Err(PassManagerError::EmptyTask);
                 };
-                if out_type != after {
-                    return Err(PassManagerError::IncompatibleTypes);
-                }
+                maybe_compare_types(out_type, after)?;
             }
         }
 
@@ -482,6 +473,19 @@ where
     match obj.downcast::<OutType>() {
         Ok(out) => Ok(*out),
         Err(_) => Err(PassManagerError::FailedOutputConversion),
+    }
+}
+
+const WHITELIST: LazyCell<[TypeId; 1]> = LazyCell::new(|| [TypeId::of::<::std::ffi::c_void>()]);
+
+fn maybe_compare_types(type1: TypeId, type2: TypeId) -> Result<(), PassManagerError> {
+    if WHITELIST.contains(&type1) || WHITELIST.contains(&type2) {
+        // we cannot compare these types, we allow them
+        Ok(())
+    } else if type1 != type2 {
+        Err(PassManagerError::IncompatibleTypes)
+    } else {
+        Ok(())
     }
 }
 
