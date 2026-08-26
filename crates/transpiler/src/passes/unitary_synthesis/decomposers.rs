@@ -23,9 +23,9 @@ use std::sync::LazyLock;
 
 use approx::relative_eq;
 use hashbrown::{HashMap, HashSet, hash_map};
-use indexmap::{IndexMap, IndexSet};
 use ndarray::{ArrayView2, CowArray, Ix2};
 use num_complex::Complex64;
+use qiskit_util::{IndexMap, IndexSet};
 use smallvec::{SmallVec, smallvec};
 
 use numpy::convert::ToPyArray;
@@ -322,9 +322,7 @@ impl Decomposer2q {
 ///
 /// This exists mostly just to attach methods to and to shorten a bunch of type signatures.
 #[derive(Clone, Debug, Default)]
-struct Decomposer2qCacheInner(
-    IndexMap<Decomposer2qConstructor, Option<Decomposer2q>, ::foldhash::fast::RandomState>,
-);
+struct Decomposer2qCacheInner(IndexMap<Decomposer2qConstructor, Option<Decomposer2q>>);
 impl Decomposer2qCacheInner {
     /// Get a decomposer by known-good index.
     ///
@@ -641,7 +639,7 @@ fn get_2q_decomposers(
             let euler_bases = euler_bases_from_target(target, qubits[0]);
             let candidates_2q =
                 get_candidate_2q_operations(target, qubits, config.decomposition_direction_2q);
-            let mut decomposers = IndexSet::new();
+            let mut decomposers = IndexSet::default();
 
             // Ising-like gates.
             for candidate in candidates_2q.iter() {

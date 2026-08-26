@@ -39,10 +39,6 @@ features = ["num-complex"]
 workspace = true
 features = ["rayon"]
 
-[dependencies.indexmap]
-workspace = true
-features = ["rayon"]
-
 [dependencies.pyo3]
 workspace = true
 features = ["hashbrown", "indexmap", "num-complex", "num-bigint", "smallvec"]

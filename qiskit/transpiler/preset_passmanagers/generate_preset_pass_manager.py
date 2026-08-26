@@ -218,7 +218,7 @@ def generate_preset_pass_manager(
     config = user_config.get_config()
 
     if seed_transpiler is None:
-        if seed := os.getenv("QISKIT_TRANSPILER_SEED", None) is not None:
+        if (seed := os.getenv("QISKIT_TRANSPILER_SEED", None)) is not None:
             seed_transpiler = int(seed)
         else:
             seed_transpiler = config.get("transpiler_seed", None)
@@ -377,7 +377,7 @@ def generate_preset_clifford_t_pass_manager(
     """
     config = user_config.get_config()
     if seed_transpiler is None:
-        if seed := os.getenv("QISKIT_TRANSPILER_SEED", None) is not None:
+        if (seed := os.getenv("QISKIT_TRANSPILER_SEED", None)) is not None:
             seed_transpiler = int(seed)
         else:
             seed_transpiler = config.get("transpiler_seed", None)

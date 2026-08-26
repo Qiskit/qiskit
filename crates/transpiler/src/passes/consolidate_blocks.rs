@@ -617,7 +617,7 @@ pub fn consolidate_blocks_mod(m: &Bound<PyModule>) -> PyResult<()> {
 #[cfg(all(test, not(miri)))]
 mod test_consolidate_blocks {
 
-    use indexmap::IndexMap;
+    use qiskit_util::IndexMap;
 
     use qiskit_circuit::{
         PhysicalQubit, Qubit, circuit_data::CircuitData, dag_circuit::DAGCircuit,

@@ -24,7 +24,6 @@ use std::io::Write;
 
 use crate::printer::BasicPrinter;
 use hashbrown::{HashMap, HashSet};
-use indexmap::IndexMap;
 use pyo3::Python;
 use pyo3::prelude::*;
 use qiskit_circuit::bit::{
@@ -36,6 +35,7 @@ use qiskit_circuit::operations::{Operation, Param};
 use qiskit_circuit::packed_instruction::PackedInstruction;
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr;
+use qiskit_util::IndexMap;
 use thiserror::Error;
 
 use lazy_static::lazy_static;
@@ -263,7 +263,7 @@ impl SymbolTable {
             symbols,
             bitinfo,
             reginfo,
-            gates: IndexMap::new(),
+            gates: IndexMap::default(),
             stdgates: HashSet::new(),
             _counter: Counter::new(),
         }

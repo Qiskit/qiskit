@@ -80,7 +80,7 @@ pub fn run_litinski_transformation(
         .sum();
     let clifford_count = dag.size(false)? - non_clifford_handled_count;
 
-    let new_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep)?;
+    let new_dag = dag.copy_empty_like_with_same_capacity(VarsMode::Alike, BlocksMode::Keep);
     let mut new_dag = new_dag.into_builder();
 
     let num_qubits = dag.num_qubits();

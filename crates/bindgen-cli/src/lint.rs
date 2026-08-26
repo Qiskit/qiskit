@@ -11,8 +11,8 @@
 // that they have been altered from the originals.
 
 use crate::SlotsLists;
-use indexmap::IndexMap;
 use qiskit_bindgen::fn_attrs;
+use qiskit_util::IndexMap;
 use std::fmt::Write;
 
 /// Tracked failures from the linting of a resolved vtable listing against a set of extracted
@@ -68,8 +68,8 @@ pub fn lint(
     bindings: &cbindgen::Bindings,
     slots: &SlotsLists,
 ) -> anyhow::Result<Result<(), Failures>> {
-    let mut seen = IndexMap::<&str, (&str, usize)>::new();
-    let mut duplicates = IndexMap::<String, Vec<(String, usize)>>::new();
+    let mut seen = IndexMap::<&str, (&str, usize)>::default();
+    let mut duplicates = IndexMap::<String, Vec<(String, usize)>>::default();
     for (api_name, list) in slots.slots.iter() {
         for (slot, export) in list.iter_names() {
             if let Some((prev_api, prev_slot)) = seen.insert(export, (api_name, slot)) {
@@ -82,7 +82,7 @@ pub fn lint(
             }
         }
     }
-    let mut skipped_but_exported = IndexMap::new();
+    let mut skipped_but_exported = IndexMap::default();
     let mut missing = Vec::new();
     for func in bindings.functions.iter() {
         let fname = func.path.name();
