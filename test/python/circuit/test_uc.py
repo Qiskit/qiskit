@@ -17,6 +17,8 @@ Tests for uniformly controlled single-qubit unitaries.
 
 import unittest
 from ddt import ddt
+
+from qiskit.utils.optionals import HAS_AER
 from test import combine
 import numpy as np
 from scipy.linalg import block_diag
@@ -111,8 +113,12 @@ class TestUCGate(QiskitTestCase):
 
         self.assertTrue(np.allclose(unitary_desired, unitary))
 
+    @unittest.skipUnless(HAS_AER, "Aer backend required for this test")
     def test_double_inverse_transpilation_safety(self):
         """Test that double inverse of UCGate preserves correct unitary and params"""
+        from qiskit_aer import AerSimulator
+
+        backend = AerSimulator()
         gates = [random_unitary(2, seed=42 + s).data for s in range(2**2)]
         num_con = int(np.log2(len(gates)))
         q = QuantumRegister(num_con + 1)
@@ -129,16 +135,10 @@ class TestUCGate(QiskitTestCase):
             "Double inverted UCGate does not evaluate to the original unitary matrix."
         )
 
-        compiled_qc = transpile(qc_double_inv)
+        compiled_qc = transpile(qc_double_inv, backend)
 
-        for inst in compiled_qc.data:
-            if inst.operation.name == "multiplexer":
-                self.assertTrue(
-                    len(inst.operation.params) > 0,
-                    "Transpiled circuit contains a parameterless multiplexer gate, "
-                    "which indicates loss of parameters during double inversion, "
-                    "which might cause downstream errors"
-                )
+        result = backend.run(compiled_qc).result()
+        self.assertTrue(result.success)
 
     def test_ucge(self):
         """test ucg simplification"""
