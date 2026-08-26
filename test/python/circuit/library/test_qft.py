@@ -269,7 +269,7 @@ class TestQFTGate(QiskitTestCase):
         qc = QuantumCircuit(5)
         qc.append(QFTGate(4), [1, 2, 0, 4])
         self.assertIsInstance(qc.data[0].operation, QFTGate)
-        self.assertEq(qc.data[0].operation, QFTGate(4))
+        self.assertEqual(qc.data[0].operation, QFTGate(4))
 
     @data(2, 3, 4, 5, 6)
     def test_circuit_with_gate_equivalent_to_original(self, num_qubits):
