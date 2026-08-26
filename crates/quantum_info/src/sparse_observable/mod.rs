@@ -11,12 +11,11 @@
 // that they have been altered from the originals.
 
 mod lookup;
-pub mod matrix;
+mod matrix;
 
 use hashbrown::HashSet;
 use itertools::Itertools;
 use lookup::conjugate_bitterm;
-#[cfg(feature = "python")]
 use ndarray::Array2;
 use num_complex::Complex64;
 #[cfg(feature = "python")]
@@ -282,6 +281,15 @@ pub enum LabelError {
     DuplicateIndex { index: u32 },
     #[error("labels must only contain letters from the alphabet 'IXYZ+-rl01'")]
     OutsideAlphabet,
+}
+
+/// The error returned for failed matrix operations.
+#[derive(Debug, Error)]
+pub enum MatrixError {
+    #[error("{0} qubit matrix too large for this system")]
+    TooManyQubits(u32),
+    #[error("number of qubits is 0")]
+    ZeroQubits,
 }
 
 #[derive(Error, Debug)]
@@ -1272,6 +1280,33 @@ impl SparseObservable {
         let ab = self.compose(other).canonicalize(tol);
         let ba = other.compose(self).canonicalize(tol);
         ab == ba
+    }
+
+    /// Expand the observable into its dense matrix form.
+    ///
+    /// The reduced time complexity of this function is _O(4<sup>n</sup>)_,
+    /// where _n_ is the number of qubits. The algorithm is limited by the time
+    /// required to allocate an _2<sup>n</sup> × 2<sup>n</sup>_ matrix.
+    ///
+    /// # Warning
+    ///
+    /// The number of matrix elements scales exponentially with the number of
+    /// qubits. You risk running out of memory when the number of qubits is
+    /// sufficiently large. For example, an 8 qubit matrix uses ~4 KB of
+    /// memory, whereas 16 qubits uses ~69 GB!
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the total number of matrix elements would exceed
+    /// [`usize::MAX`] or the number of qubits is 0.
+    pub fn to_matrix(&self) -> Result<Array2<Complex64>, MatrixError> {
+        let mut matrix = matrix::create_with_zeros(self.num_qubits)?;
+
+        for term in self.iter() {
+            matrix::add_term(&mut matrix, &term)
+        }
+
+        Ok(matrix)
     }
 }
 

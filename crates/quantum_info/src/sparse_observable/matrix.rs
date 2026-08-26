@@ -10,38 +10,15 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::{cmp::Reverse, result};
+use std::cmp::Reverse;
 
 use bytemuck::zeroed_vec;
 use ndarray::{Array2, ArrayView2, linalg::kron};
 use num_complex::Complex64;
-use thiserror::Error;
 
-use super::{BitTerm, SparseObservable, SparseTermView};
+use super::{BitTerm, MatrixError, SparseTermView};
 
-pub type Result<T> = result::Result<T, MatrixError>;
-
-#[derive(Debug, Error)]
-pub enum MatrixError {
-    #[error("number of qubits is 0")]
-    ZeroQubits,
-    #[error("{0} qubit matrix too large for this system")]
-    TooManyQubits(u32),
-}
-
-impl SparseObservable {
-    pub fn to_matrix(&self) -> Result<Array2<Complex64>> {
-        let mut matrix = create_matrix_with_zeros(self.num_qubits)?;
-
-        for term in self.iter() {
-            add_term(&mut matrix, &term)
-        }
-
-        Ok(matrix)
-    }
-}
-
-fn create_matrix_with_zeros(num_qubits: u32) -> Result<Array2<Complex64>> {
+pub fn create_with_zeros(num_qubits: u32) -> Result<Array2<Complex64>, MatrixError> {
     if num_qubits == 0 {
         return Err(MatrixError::ZeroQubits);
     }
@@ -65,7 +42,7 @@ struct PauliTerm {
     z: u32,
 }
 
-fn add_term(matrix: &mut Array2<Complex64>, term: &SparseTermView) {
+pub fn add_term(matrix: &mut Array2<Complex64>, term: &SparseTermView) {
     if let Some(pauli) = maybe_compress_pauli(term) {
         add_term_pauli(matrix, &pauli);
     } else {
@@ -196,17 +173,7 @@ mod tests {
     use num_complex::c64;
 
     use super::*;
-
-    #[test]
-    fn test_zero_qubits() {
-        let num_qubits = 0;
-
-        let res = SparseObservable::new(num_qubits, vec![], vec![], vec![], vec![0])
-            .expect("is coherent")
-            .to_matrix();
-
-        assert!(matches!(res, Err(MatrixError::ZeroQubits)));
-    }
+    use crate::sparse_observable::SparseObservable;
 
     #[test]
     fn test_too_many_qubits() {
@@ -217,6 +184,17 @@ mod tests {
             .to_matrix();
 
         assert!(matches!(res, Err(MatrixError::TooManyQubits(_))));
+    }
+
+    #[test]
+    fn test_zero_qubits() {
+        let num_qubits = 0;
+
+        let res = SparseObservable::new(num_qubits, vec![], vec![], vec![], vec![0])
+            .expect("is coherent")
+            .to_matrix();
+
+        assert!(matches!(res, Err(MatrixError::ZeroQubits)));
     }
 
     #[test]
