@@ -331,7 +331,7 @@ class _DefinedGate(Gate):
                 gate_id, args, op_qubits = op.operands
                 qc._append(
                     CircuitInstruction(
-                        self._gates[gate_id](*(_evaluate_argument(a, self.params) for a in args)),
+                        self._gates[gate_id](*args.evaluate(self.params)),
                         [qubits[q] for q in op_qubits],
                     )
                 )
