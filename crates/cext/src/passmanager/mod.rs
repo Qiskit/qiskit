@@ -104,11 +104,18 @@ pub unsafe extern "C" fn qk_pass_free(pass: *mut PassFromC) {
 ///
 /// # Safety
 ///
-/// Behavior is undefined if ``pass`` is not a non-null, valid pointer to a ``QkPass``.
+/// Behavior is undefined if ``pass`` is not a non-null, valid pointer to a ``QkPass``,
+/// or if `run_ptr` cannot be interpreted as function pointer to a function with signature
+/// `void *run(void *self, void *ir, QkPassContext *context)`.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_pass_set_run(pass: *mut PassFromC, run_ptr: RunFunctionPtr) {
+pub unsafe extern "C" fn qk_pass_set_run(pass: *mut PassFromC, run_ptr: *mut c_void) {
+    // TODO This takes `run_ptr` as void* and transmutes it to RunFunctionPtr -- we could
+    // properly expose this type to the C header if we extend ctypes by typedefs and funcptrs
+
     // SAFETY: Per documentation, `pass` is valid and non-null
     let pass = unsafe { mut_ptr_as_ref(pass) };
+    // SAFETY: Per documentation, we can transmute the run ptr.
+    let run_ptr = unsafe { ::std::mem::transmute(run_ptr) };
     pass.run_ptr = Some(run_ptr);
 }
 
