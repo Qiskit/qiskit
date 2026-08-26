@@ -12,7 +12,7 @@
 
 use std::sync::Arc;
 
-use qiskit_circuit::annotation::{Annotation, extract_annotation};
+use qiskit_circuit::annotation::{Annotation, AnnotationFromPython, PythonAnnotation};
 
 use crate::bytes::Bytes;
 use crate::error::QpyError;
@@ -74,9 +74,14 @@ impl AnnotationHandler {
                 serialization_state,
                 ..
             } => Python::attach(|py| {
-                let ob = annotation.create_py_annotation(py)?;
+                let Some(ob) = annotation.downcast_ref::<PythonAnnotation>() else {
+                    return Err(QpyError::AnnotationError(
+                        "Rust native annotations cannot be serialized by the Python QPY path"
+                            .to_owned(),
+                    ));
+                };
                 Ok(serialization_state
-                    .call_method1(py, "serialize", (ob,))?
+                    .call_method1(py, "serialize", (ob.annotation(py),))?
                     .extract(py)?)
             }),
             Self::Native => Err(Self::native_error("serialize")),
@@ -96,9 +101,11 @@ impl AnnotationHandler {
     pub fn load(&self, index: u32, payload: Bytes) -> Result<Arc<dyn Annotation>, QpyError> {
         match self {
             Self::Python { .. } => Python::attach(|py| {
-                Ok(extract_annotation(
-                    self.load_py(py, index, payload)?.bind(py),
-                ))
+                Ok(self
+                    .load_py(py, index, payload)?
+                    .bind(py)
+                    .extract::<AnnotationFromPython>()?
+                    .0)
             }),
             Self::Native => Err(Self::native_error("deserialize")),
         }

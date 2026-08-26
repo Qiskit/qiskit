@@ -90,7 +90,7 @@ impl PyAnnotation {
 }
 
 impl PyAnnotation {
-    pub fn new(inner: Arc<dyn Annotation>) -> Self {
+    pub(crate) fn new(inner: Arc<dyn Annotation>) -> Self {
         Self { inner: Some(inner) }
     }
 
@@ -131,9 +131,6 @@ mod custom_traits {
 pub trait Annotation: Any + Debug + Send + Sync + ComparableAnnotation {
     /// Return the namespace of the annotation.
     fn namespace(&self) -> &str;
-
-    /// Return a Python representation of this annotation.
-    fn create_py_annotation(&self, py: Python) -> PyResult<Py<PyAny>>;
 }
 
 impl PartialEq for dyn Annotation {
@@ -165,6 +162,10 @@ impl PythonAnnotation {
             namespace: OnceLock::new(),
         }
     }
+
+    pub fn annotation(&self, py: Python) -> Py<PyAny> {
+        self.annotation.clone_ref(py)
+    }
 }
 
 impl Annotation for PythonAnnotation {
@@ -173,21 +174,14 @@ impl Annotation for PythonAnnotation {
     /// On construction, the underlying namespace field is uninitialized. The first time this method is called,
     /// it sets the namespace from Python.
     fn namespace(&self) -> &str {
-        if let Some(namespace) = self.namespace.get() {
-            return namespace;
-        }
-        let namespace = Python::attach(|py| {
-            self.annotation
-                .getattr(py, "namespace")
-                .and_then(|py_ctrl_state| py_ctrl_state.extract::<String>(py))
-                .unwrap()
-        });
-        let _ = self.namespace.set(namespace);
-        self.namespace.get().expect("Value was set.")
-    }
-
-    fn create_py_annotation(&self, py: Python) -> PyResult<Py<PyAny>> {
-        Ok(self.annotation.clone_ref(py))
+        self.namespace.get_or_init(|| {
+            Python::attach(|py| {
+                self.annotation
+                    .getattr(py, intern!(py, "namespace"))
+                    .and_then(|namespace| namespace.extract::<String>(py))
+                    .unwrap_or_default()
+            })
+        })
     }
 }
 
@@ -198,26 +192,39 @@ impl PartialEq for PythonAnnotation {
                 self.annotation
                     .bind(py)
                     .eq(other.annotation.bind(py))
-                    .unwrap()
+                    .is_ok_and(|b| b)
             })
     }
 }
 
-/// Return the internal representation of a Python annotation.
-pub fn extract_annotation(ob: &Bound<'_, PyAny>) -> Arc<dyn Annotation> {
-    if let Ok(base) = ob.cast::<PyAnnotation>()
-        && let Some(native) = base.get().inner()
-    {
-        return Arc::clone(native);
-    }
+pub struct AnnotationFromPython(pub Arc<dyn Annotation>);
 
-    Arc::new(PythonAnnotation::new(ob.clone().unbind()))
+impl<'a, 'py> FromPyObject<'a, 'py> for AnnotationFromPython {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
+        match ob.cast::<PyAnnotation>() {
+            Ok(base) => {
+                if let Some(native) = base.get().inner() {
+                    return Ok(Self(Arc::clone(native)));
+                };
+                Ok(Self(Arc::new(PythonAnnotation::new(ob.into()))))
+            }
+            Err(e) => Err(Self::Error::from(e)),
+        }
+    }
+}
+
+pub fn annotation_to_py(py: Python, annotation: &Arc<dyn Annotation>) -> PyResult<Py<PyAny>> {
+    if let Some(from_py) = annotation.downcast_ref::<PythonAnnotation>() {
+        return Ok(from_py.annotation(py));
+    }
+    Ok(Py::new(py, PyAnnotation::new(Arc::clone(annotation)))?.into_any())
 }
 
 #[cfg(test)]
 mod test_annotation {
     use crate::annotation::Annotation;
-    use pyo3::prelude::*;
     use std::sync::Arc;
 
     macro_rules! impl_annotation {
@@ -225,10 +232,6 @@ mod test_annotation {
             impl $crate::annotation::Annotation for $ty {
                 fn namespace(&self) -> &str {
                     $namespace
-                }
-
-                fn create_py_annotation(&self, _: Python) -> PyResult<Py<PyAny>> {
-                    unimplemented!()
                 }
             }
         };
