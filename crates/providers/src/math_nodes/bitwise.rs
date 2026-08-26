@@ -67,10 +67,10 @@ macro_rules! bitwise_binary_node {
         impl ProgramNode for $name {
             type CallError = super::MathNodeError;
 
-            fn name(&self) -> &'static str {
+            fn name(&self) -> &str {
                 $node_name
             }
-            fn namespace(&self) -> &'static str {
+            fn namespace(&self) -> &str {
                 "qiskit"
             }
             fn input_types(&self) -> &DataTree<TensorType> {
@@ -107,10 +107,10 @@ pub struct BitwiseNot;
 impl ProgramNode for BitwiseNot {
     type CallError = super::MathNodeError;
 
-    fn name(&self) -> &'static str {
+    fn name(&self) -> &str {
         "bitwise_not"
     }
-    fn namespace(&self) -> &'static str {
+    fn namespace(&self) -> &str {
         "qiskit"
     }
     fn input_types(&self) -> &DataTree<TensorType> {
@@ -150,10 +150,10 @@ impl Parity {
 impl ProgramNode for Parity {
     type CallError = super::MathNodeError;
 
-    fn name(&self) -> &'static str {
+    fn name(&self) -> &str {
         "parity"
     }
-    fn namespace(&self) -> &'static str {
+    fn namespace(&self) -> &str {
         "qiskit"
     }
     fn input_types(&self) -> &DataTree<TensorType> {

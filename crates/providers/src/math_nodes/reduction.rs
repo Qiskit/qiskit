@@ -55,10 +55,10 @@ impl Mean {
 impl ProgramNode for Mean {
     type CallError = super::MathNodeError;
 
-    fn name(&self) -> &'static str {
+    fn name(&self) -> &str {
         "mean"
     }
-    fn namespace(&self) -> &'static str {
+    fn namespace(&self) -> &str {
         "qiskit"
     }
     fn input_types(&self) -> &DataTree<TensorType> {
@@ -120,10 +120,10 @@ impl Variance {
 impl ProgramNode for Variance {
     type CallError = super::MathNodeError;
 
-    fn name(&self) -> &'static str {
+    fn name(&self) -> &str {
         "variance"
     }
-    fn namespace(&self) -> &'static str {
+    fn namespace(&self) -> &str {
         "qiskit"
     }
     fn input_types(&self) -> &DataTree<TensorType> {
@@ -190,10 +190,10 @@ impl Std {
 impl ProgramNode for Std {
     type CallError = super::MathNodeError;
 
-    fn name(&self) -> &'static str {
+    fn name(&self) -> &str {
         "std"
     }
-    fn namespace(&self) -> &'static str {
+    fn namespace(&self) -> &str {
         "qiskit"
     }
     fn input_types(&self) -> &DataTree<TensorType> {
