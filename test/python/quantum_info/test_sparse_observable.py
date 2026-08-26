@@ -2529,7 +2529,7 @@ class TestSparseObservable(QiskitTestCase):
         self.assertTrue(zz.commutes(xxyy))
 
     def test_to_matrix(self):
-        """Assert that `to_matrix` succeeds."""
+        """Test `to_matrix` success."""
         obs = SparseObservable.zero(2)
         res = obs.to_matrix()
 
@@ -2537,7 +2537,7 @@ class TestSparseObservable(QiskitTestCase):
         np.testing.assert_array_equal(res, exp)
 
     def test_to_matrix_value_error(self):
-        """Assert that the error case correctly maps to `ValueError`."""
+        """Test `to_matrix` error returns `ValueError`."""
         obs = SparseObservable.zero(0)
 
         with self.assertRaises(ValueError):
