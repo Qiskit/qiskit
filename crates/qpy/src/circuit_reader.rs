@@ -1118,10 +1118,17 @@ fn unpack_transpile_layout<'py>(
                 &packed_register.register_type,
             ),
         };
-        if *register_type == RegisterType::Qreg {
-            let register = QuantumRegister::new_owning(name.clone(), bit_indices_len as u32);
-            extra_register_map.insert(name.as_str(), register);
-        }
+        match register_type {
+            RegisterType::Qreg => extra_register_map.insert(
+                name.as_str(),
+                QuantumRegister::new_ancilla_owning(name.clone(), bit_indices_len as u32),
+            ),
+            RegisterType::Areg => extra_register_map.insert(
+                name.as_str(),
+                QuantumRegister::new_owning(name.clone(), bit_indices_len as u32),
+            ),
+            _ => None,
+        };
     }
     // add the registers from the circuit, to streamline the search phase
     for qreg in circuit_data.qregs() {
@@ -1470,11 +1477,18 @@ fn add_registers_and_bits(
                     non_standalone_registers.push(raw_register);
                 } else {
                     match packed_register.register_type {
-                        RegisterType::Qreg => {
-                            let qreg = QuantumRegister::new_owning(
-                                &packed_register.name,
-                                packed_register.bit_indices.len() as u32,
-                            );
+                        RegisterType::Qreg | RegisterType::Areg => {
+                            let qreg = match packed_register.register_type {
+                                RegisterType::Qreg => QuantumRegister::new_owning(
+                                    &packed_register.name,
+                                    packed_register.bit_indices.len() as u32,
+                                ),
+                                RegisterType::Areg => QuantumRegister::new_ancilla_owning(
+                                    packed_register.name.clone(),
+                                    packed_register.bit_indices.len() as u32,
+                                ),
+                                _ => unreachable!(),
+                            };
                             for (qubit, &index) in
                                 qreg.bits().zip(packed_register.bit_indices.iter())
                             {
@@ -1512,11 +1526,19 @@ fn add_registers_and_bits(
                     non_standalone_registers.push(raw_register);
                 } else {
                     match packed_register.register_type {
-                        RegisterType::Qreg => {
-                            let qreg = QuantumRegister::new_owning(
-                                &packed_register.name,
-                                packed_register.size,
-                            );
+                        RegisterType::Qreg | RegisterType::Areg => {
+                            let qreg = match packed_register.register_type {
+                                RegisterType::Qreg => QuantumRegister::new_owning(
+                                    &packed_register.name,
+                                    packed_register.size,
+                                ),
+                                RegisterType::Areg => QuantumRegister::new_ancilla_owning(
+                                    packed_register.name.clone(),
+                                    packed_register.size,
+                                ),
+                                _ => unreachable!(),
+                            };
+
                             if packed_register.register_attachment == 1 {
                                 let start = packed_register.start_index;
                                 for i in 0..packed_register.size {
@@ -1595,7 +1617,7 @@ fn add_registers_and_bits(
     for raw_register in non_standalone_registers {
         match raw_register {
             formats::RegisterPack::V4(packed_register) => match packed_register.register_type {
-                RegisterType::Qreg => {
+                RegisterType::Qreg | RegisterType::Areg => {
                     let bits: Vec<ShareableQubit> = packed_register
                         .bit_indices
                         .iter()
@@ -1607,7 +1629,20 @@ fn add_registers_and_bits(
                             }
                         })
                         .collect();
-                    let qreg = QuantumRegister::new_alias(Some(packed_register.name.clone()), bits);
+                    let qreg = match packed_register.register_type {
+                        RegisterType::Qreg => {
+                            QuantumRegister::new_alias(Some(packed_register.name.clone()), bits)
+                        }
+                        RegisterType::Areg => {
+                            QuantumRegister::new_ancilla_alias(packed_register.name.clone(), bits)
+                                .ok_or_else(|| {
+                                QpyError::InvalidRegister(
+                                    "all bits from an ancilla register must be ancillas".to_owned(),
+                                )
+                            })?
+                        }
+                        _ => unreachable!(),
+                    };
                     qregs.push(qreg);
                 }
                 RegisterType::Creg => {
@@ -1634,7 +1669,7 @@ fn add_registers_and_bits(
                     ));
                 }
                 match packed_register.register_type {
-                    RegisterType::Qreg => {
+                    RegisterType::Qreg | RegisterType::Areg => {
                         let bits: Vec<ShareableQubit> = packed_register
                             .bit_indices
                             .iter()
@@ -1646,8 +1681,21 @@ fn add_registers_and_bits(
                                 }
                             })
                             .collect();
-                        let qreg =
-                            QuantumRegister::new_alias(Some(packed_register.name.clone()), bits);
+                        let qreg = match packed_register.register_type {
+                            RegisterType::Qreg => {
+                                QuantumRegister::new_alias(Some(packed_register.name.clone()), bits)
+                            }
+                            RegisterType::Areg => QuantumRegister::new_ancilla_alias(
+                                packed_register.name.clone(),
+                                bits,
+                            )
+                            .ok_or_else(|| {
+                                QpyError::InvalidRegister(
+                                    "all bits from an ancilla register must be ancillas".to_owned(),
+                                )
+                            })?,
+                            _ => unreachable!(),
+                        };
                         qregs.push(qreg);
                     }
                     RegisterType::Creg => {

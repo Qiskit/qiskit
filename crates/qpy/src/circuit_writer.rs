@@ -713,7 +713,11 @@ fn pack_quantum_register(
             .collect();
 
         formats::RegisterPack::V4(formats::RegisterV4Pack {
-            register_type: RegisterType::Qreg,
+            register_type: if qreg.is_ancilla() {
+                RegisterType::Areg
+            } else {
+                RegisterType::Qreg
+            },
             standalone: qreg.is_owning() as u8,
             in_circuit: in_circuit as u8,
             name: qreg.name().to_string(),
@@ -743,7 +747,11 @@ fn pack_quantum_register(
             0
         };
         formats::RegisterPack::V18(formats::RegisterV18Pack {
-            register_type: RegisterType::Qreg,
+            register_type: if qreg.is_ancilla() {
+                RegisterType::Areg
+            } else {
+                RegisterType::Qreg
+            },
             standalone: qreg.is_owning() as u8,
             size: qreg.len() as u32,
             register_attachment,
