@@ -286,10 +286,10 @@ pub enum LabelError {
 /// The error returned for failed matrix operations.
 #[derive(Debug, Error)]
 pub enum MatrixError {
-    #[error("{0} qubit matrix too large for this system")]
-    TooManyQubits(u32),
-    #[error("number of qubits is 0")]
-    ZeroQubits,
+    #[error("{0} qubit matrix exceeds system limits")]
+    LimitExceeded(u32),
+    #[error("0 qubit matrix is undefined")]
+    Undefined,
 }
 
 #[derive(Error, Debug)]
@@ -3987,7 +3987,8 @@ impl PySparseObservable {
     ///     The observable represented as a dense matrix.
     ///
     /// Raises:
-    ///     TypeError: If the number of qubits is 0 or too large.
+    ///     ValueError: If the number of qubits exceeds system limits.
+    ///     ValueError: If the number of qubits is 0.
     pub fn to_matrix<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyArray2<Complex64>>> {
         let obs = self.inner.read().map_err(|_| InnerReadError)?;
         let matrix = obs.to_matrix()?;

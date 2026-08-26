@@ -20,16 +20,16 @@ use super::{BitTerm, MatrixError, SparseTermView};
 
 pub fn create_with_zeros(num_qubits: u32) -> Result<Array2<Complex64>, MatrixError> {
     if num_qubits == 0 {
-        return Err(MatrixError::ZeroQubits);
+        return Err(MatrixError::Undefined);
     }
 
     let dim = 1usize
         .checked_shl(num_qubits)
-        .ok_or(MatrixError::TooManyQubits(num_qubits))?;
+        .ok_or(MatrixError::LimitExceeded(num_qubits))?;
 
     let len = dim
         .checked_mul(dim)
-        .ok_or(MatrixError::TooManyQubits(num_qubits))?;
+        .ok_or(MatrixError::LimitExceeded(num_qubits))?;
 
     let data = zeroed_vec(len);
     let matrix = Array2::from_shape_vec((dim, dim), data).expect("shape fits data");
@@ -183,7 +183,7 @@ mod tests {
             .expect("is coherent")
             .to_matrix();
 
-        assert!(matches!(res, Err(MatrixError::TooManyQubits(_))));
+        assert!(matches!(res, Err(MatrixError::LimitExceeded(_))));
     }
 
     #[test]
@@ -194,7 +194,7 @@ mod tests {
             .expect("is coherent")
             .to_matrix();
 
-        assert!(matches!(res, Err(MatrixError::ZeroQubits)));
+        assert!(matches!(res, Err(MatrixError::Undefined)));
     }
 
     #[test]
