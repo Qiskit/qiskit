@@ -1,0 +1,6 @@
+---
+performance:
+  - The methods :meth:`.Pauli.evolve` and :meth:`.PauliList.evolve` are now significantly
+   faster in the specific case where 1) `other` is a :class:`.Clifford`, 2) `frame` is
+   `'s'` (Schrodinger), and 3) the object being evolved has non-identity support on only
+   a small fraction of its qubits.
