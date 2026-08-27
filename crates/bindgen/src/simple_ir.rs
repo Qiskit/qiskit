@@ -26,6 +26,7 @@ pub enum PtrKind {
 pub enum TypeKind<T> {
     Builtin(T),
     Custom(String),
+    FuncPtr(Box<Function<T>>),
 }
 #[derive(Clone, Debug)]
 pub struct Type<T> {

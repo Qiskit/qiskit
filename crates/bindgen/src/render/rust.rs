@@ -199,7 +199,32 @@ mod parse {
                     break TypeKind::Builtin(Primitive::try_from_cbindgen_primitive(ty)?);
                 }
                 ir::Type::Array(..) => bail!("array types not yet handled"),
-                ir::Type::FuncPtr { .. } => bail!("funcptrs not yet handled"),
+                ir::Type::FuncPtr {
+                    ret,
+                    args,
+                    is_nullable,
+                    never_return,
+                } => {
+                    assert!(!is_nullable, "nullability of funcptrs is not handled");
+                    assert!(!never_return, "diverging functions not handled");
+                    let args = args
+                        .iter()
+                        .map(|(name, ty)| {
+                            Ok(simple_ir::FunctionArg {
+                                name: name.clone(),
+                                ty: r#type(ty)?,
+                            })
+                        })
+                        .collect::<anyhow::Result<Vec<_>>>()?;
+                    let ret = (**ret != ir::Type::Primitive(ir::PrimitiveType::Void))
+                        .then(|| r#type(ret))
+                        .transpose()?;
+                    break TypeKind::FuncPtr(Box::new(simple_ir::Function {
+                        name: String::new(),
+                        args,
+                        ret,
+                    }));
+                }
             }
         };
         Ok(simple_ir::Type { ptrs, base })
@@ -316,6 +341,21 @@ mod export {
         match &ty.base {
             TypeKind::Builtin(ty) => out.push_str(ty.qualname()),
             TypeKind::Custom(name) => out.push_str(name),
+            TypeKind::FuncPtr(func) => {
+                out.push_str("extern \"C\" fn(");
+                if let Some((first, rest)) = func.args.split_first() {
+                    render_type(&first.ty, out);
+                    for arg in rest {
+                        out.push_str(", ");
+                        render_type(&arg.ty, out);
+                    }
+                }
+                out.push(')');
+                if let Some(ret) = func.ret.as_ref() {
+                    out.push_str(" -> ");
+                    render_type(ret, out);
+                }
+            }
         }
     }
 
