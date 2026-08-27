@@ -318,7 +318,7 @@ impl PassManager {
         }
 
         let ir_out = cast_box::<IROut>(ir)?;
-        return Ok((ir_out, context));
+        Ok((ir_out, context))
     }
 
     /// The number of first-level tasks in the pass manager.
@@ -643,7 +643,7 @@ mod test {
 
         let (out, _) = pm.run::<_, DAGCircuit>(dag, None)?;
         let ops = out.count_ops(false).unwrap();
-        assert_eq!(ops.get("h").map(|v| *v), Some(1));
+        assert_eq!(ops.get("h"), Some(&1));
         assert_eq!(ops.get("rx"), None);
         Ok(())
     }
@@ -778,7 +778,7 @@ mod test {
         if let Some(Task::Group(group)) = pm.get_task(1) {
             assert_eq!(group.len(), 2);
         } else {
-            assert!(false, "Expected a Task::Group");
+            panic!("Expected a Task::Group");
         }
 
         assert!(matches!(pm.get_task(2), Some(Task::Loop { .. })));
@@ -788,7 +788,7 @@ mod test {
             assert_eq!(stages.len(), 1);
             assert_eq!(stages[0].0, "one_and_only".to_string());
         } else {
-            assert!(false, "Expected a Task::Stage");
+            panic!("Expected a Task::Stage");
         }
 
         Ok(())
