@@ -268,6 +268,17 @@ mod parse {
         })
     }
 
+    pub fn r#typedef(
+        val: &ir::Typedef,
+        mut override_fn: impl FnMut(&str) -> Option<Primitive>,
+    ) -> anyhow::Result<simple_ir::Typedef<Primitive>> {
+        let ty = r#type(&val.aliased, &mut override_fn)?;
+        Ok(simple_ir::Typedef {
+            name: val.export_name.clone(),
+            ty,
+        })
+    }
+
     /// Extract all objects from a set of `cbindgen::Bindings`, adding them to ourselves.
     ///
     /// This fails if the bindings contain any unsupported constructs.
@@ -299,9 +310,10 @@ mod parse {
                 ir::ItemContainer::Union(item) => items
                     .unions
                     .push(r#union(item, |path| overrides.get(path).copied())?),
-                ir::ItemContainer::Constant(_)
-                | ir::ItemContainer::Static(_)
-                | ir::ItemContainer::Typedef(_) => {
+                ir::ItemContainer::Typedef(item) => items
+                    .typedefs
+                    .push(r#typedef(item, |path| overrides.get(path).copied())?),
+                ir::ItemContainer::Constant(_) | ir::ItemContainer::Static(_) => {
                     bail!("unhandled item: {item:?}");
                 }
             }
@@ -522,6 +534,7 @@ impl Items {
             structs: vec![complex],
             functions: vec![],
             unions: vec![],
+            typedefs: vec![],
         }
     }
 

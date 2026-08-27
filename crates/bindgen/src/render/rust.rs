@@ -261,6 +261,13 @@ mod parse {
         })
     }
 
+    pub fn r#typedef(val: &ir::Typedef) -> anyhow::Result<simple_ir::Typedef<Primitive>> {
+        Ok(simple_ir::Typedef {
+            name: val.export_name.clone(),
+            ty: r#type(&val.aliased)?,
+        })
+    }
+
     /// Extract all objects from a set of `cbindgen::Bindings`, adding them to ourselves.
     ///
     /// This fails if the bindings contain any unsupported constructs.
@@ -278,9 +285,8 @@ mod parse {
                     .push(simple_ir::Struct::opaque(item.export_name.clone())),
                 ir::ItemContainer::Struct(item) => items.structs.push(r#struct(item)?),
                 ir::ItemContainer::Union(item) => items.unions.push(r#union(item)?),
-                ir::ItemContainer::Constant(_)
-                | ir::ItemContainer::Static(_)
-                | ir::ItemContainer::Typedef(_) => {
+                ir::ItemContainer::Typedef(item) => items.typedefs.push(r#typedef(item)?),
+                ir::ItemContainer::Constant(_) | ir::ItemContainer::Static(_) => {
                     bail!("unhandled item: {item:?}");
                 }
             }
