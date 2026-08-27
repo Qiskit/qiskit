@@ -119,7 +119,7 @@ class DiagonalGate(Gate):
             target_qubit = self.num_qubits - num_act_qubits
 
             ucrz = UCRZGate(angles_rz)
-            circuit.append(ucrz, [target_qubit] + ctrl_qubits)
+            circuit.append(ucrz, qargs=[target_qubit] + ctrl_qubits)
 
             n //= 2
         circuit.global_phase += diag_phases[0]

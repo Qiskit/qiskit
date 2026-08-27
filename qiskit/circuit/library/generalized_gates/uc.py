@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import math
+from warnings import deprecated
 
 import numpy as np
 
@@ -108,14 +109,16 @@ class UCGate(Gate):
             if not is_unitary_matrix(gate, _EPS):
                 raise QiskitError("A controlled gate is not unitary.")
 
-        new_controls = set()
-        if mux_simp:
-            new_controls, gate_list = self._simplify(gate_list, num_contr)
-        self.simp_contr = (mux_simp, new_controls)
+        # new_controls = set()
+        # if mux_simp:
+        #     new_ctrl_list, gate_list = uc_gate.uc_simplify(gate_list, int(num_contr))
+        #     new_controls = set(new_ctrl_list)
+        # self.simp_contr = (mux_simp, new_controls)
 
         # Create new gate.
         super().__init__("multiplexer", int(num_contr) + 1, gate_list)
         self.up_to_diagonal = up_to_diagonal
+        self.mux_simp = mux_simp
 
     def _simplify(self, gate_list, num_contr):
         """https://arxiv.org/abs/2409.05618"""
@@ -180,7 +183,8 @@ class UCGate(Gate):
                 name=self.name + "_dg", num_qubits=self.num_qubits, params=[]
             )  # removing the params because arrays are deprecated
 
-            definition = QuantumCircuit(*self.definition.qregs)
+            #definition = QuantumCircuit(*self.definition.qregs)
+            definition = QuantumCircuit(list(self.definition.qubits))
             for inst in reversed(self._definition):
                 definition._append(
                     inst.replace(operation=inst.operation.inverse(annotated=annotated))
@@ -199,26 +203,26 @@ class UCGate(Gate):
         # q[k-1],...,q[0],q_target, decreasingly ordered with respect to the
         # significance of the qubit in the computational basis
         _, diag = self._dec_ucg()
-        if self.simp_contr[1]:
-            q_controls = [self.num_qubits - i for i in self.simp_contr[1]]
-            q_controls.reverse()
-            for i in range(self.num_qubits):
-                if i not in [0] + q_controls:
-                    d = 2**i
-                    new_diag = []
-                    n = len(diag)
-                    for j in range(n):
-                        new_diag.append(diag[j])
-                        if (j + 1) % d == 0:
-                            new_diag.extend(diag[j + 1 - d : j + 1])
-                    diag = np.array(new_diag)
+        # if self.simp_contr[1]:
+        #     q_controls = [self.num_qubits - i for i in self.simp_contr[1]]
+        #     q_controls.reverse()
+        #     for i in range(self.num_qubits):
+        #         if i not in [0] + q_controls:
+        #             d = 2**i
+        #             new_diag = []
+        #             n = len(diag)
+        #             for j in range(n):
+        #                 new_diag.append(diag[j])
+        #                 if (j + 1) % d == 0:
+        #                     new_diag.extend(diag[j + 1 - d : j + 1])
+        #             diag = np.array(new_diag)
         return diag
 
     def _define(self):
         ucg_circuit, _ = self._dec_ucg()
         self.definition = ucg_circuit
 
-    def _dec_ucg(self):
+    def _dec_ucg_org(self):
         """
         Call to create a circuit that implements the uniformly controlled gate. If
         up_to_diagonal=True, the circuit implements the gate up to a diagonal gate and
@@ -276,8 +280,44 @@ class UCGate(Gate):
             diagonal = DiagonalGate(diag)
 
             circuit.append(diagonal, [q_target] + q_controls)
+
+        #(circuit, diagonal) = self._dec_ucg_new()
         return circuit, diag
 
+    def _dec_ucg(self):
+        """
+        This method finds the single qubit gate arising in the decomposition of UCGates given in
+        https://arxiv.org/pdf/quant-ph/0410066.pdf.
+        """
+        single_qubit_gates = [np.asarray(gate, dtype=complex, order="f") for gate in self.params]
+
+        # if self.simp_contr[0]:
+        #     simplified_num_qubits = len(self.simp_contr[1]) + 1
+        #     if simplified_num_qubits == 1:
+        #         # no controls remain — just place the single unitary, diagonal is trivially identity
+        #         inner_circ, _ = uc_gate.dec_ucg(
+        #             single_qubit_gates, 1, self.up_to_diagonal, self.mux_simp)
+
+        #         q = QuantumRegister(self.num_qubits, "q")
+        #         full_circ = QuantumCircuit(q, name="uc")
+        #         full_circ.append(inner_circ.to_gate(), [q[0]])          
+        #         return full_circ, [1.0] * (2 ** self.num_qubits)
+        #     # get the simplified-width circuit from Rust
+        #     inner_circ, diag = uc_gate.dec_ucg(
+        #         single_qubit_gates, simplified_num_qubits, self.up_to_diagonal
+        #     )
+        #     # wrap in full-width circuit, placing on the right qubits
+        #     q = QuantumRegister(self.num_qubits, "q")
+        #     full_circ = QuantumCircuit(q, name="uc")
+        #     q_controls = [q[self.num_qubits - i] for i in self.simp_contr[1]]
+        #     q_controls.reverse()
+        #     qargs = [q[0]] + q_controls   # target + simplified controls
+        #     full_circ.append(inner_circ.to_gate(), qargs)           
+        #     return full_circ, diag
+        # else:
+        return uc_gate.dec_ucg(single_qubit_gates, self.num_qubits, self.up_to_diagonal, self.mux_simp)
+    
+  
     def _dec_ucg_help(self):
         """
         This method finds the single qubit gate arising in the decomposition of UCGates given in

@@ -24,6 +24,7 @@ pub mod pauli_products;
 mod permutation;
 mod qft;
 pub mod qsd;
+pub mod ucrz;
 pub mod ross_selinger;
 pub mod two_qubit_decompose;
 
