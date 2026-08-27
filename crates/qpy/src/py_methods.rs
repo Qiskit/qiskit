@@ -185,7 +185,7 @@ pub(crate) fn py_deserialize_numpy_object(data: &Bytes) -> Result<Py<PyAny>, Qpy
 
 fn pack_sparse_pauli_op(
     operator: &Bound<PyAny>,
-    qpy_data: &QPYWriteData,
+    qpy_data: &mut QPYWriteData,
 ) -> Result<formats::PauliDataPack, QpyError> {
     if operator.is_instance_of::<PySparseObservable>() {
         let py_sparse_observable: PyRef<PySparseObservable> = operator
@@ -235,7 +235,7 @@ fn pack_sparse_pauli_op(
 
 pub(crate) fn py_pack_pauli_evolution_gate(
     evolution_gate: &Bound<PyAny>,
-    qpy_data: &QPYWriteData,
+    qpy_data: &mut QPYWriteData,
 ) -> Result<formats::PauliEvolutionDefPack, QpyError> {
     let py = evolution_gate.py();
     let operators = evolution_gate.getattr("operator")?;
@@ -479,7 +479,7 @@ pub(crate) fn py_convert_from_generic_value(value: &GenericValue) -> Result<Py<P
 // Not to be confused with Parameter, which is an atom of ParameterExpression
 pub(crate) fn py_pack_param(
     py_object: &Bound<PyAny>,
-    qpy_data: &QPYWriteData,
+    qpy_data: &mut QPYWriteData,
     endian: ValueEndian,
 ) -> Result<formats::GenericDataPack, QpyError> {
     let value = py_convert_to_generic_value(py_object)?;
