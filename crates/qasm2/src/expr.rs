@@ -20,7 +20,7 @@ use hashbrown::HashMap;
 #[cfg(feature = "py")]
 use pyo3::prelude::*;
 #[cfg(feature = "py")]
-use qiskit_circuit::parameter::parameter_expression::{ParameterError, ParameterExpression};
+use qiskit_circuit::parameter::symbol_expr::Value;
 use std::ops::ControlFlow;
 
 #[cfg(feature = "py")]
@@ -226,71 +226,119 @@ impl<'py> IntoPyObject<'py> for Expr {
     }
 }
 
+/// A single pending step of the iterative evaluator
+#[cfg(feature = "py")]
+enum Step<'a> {
+    /// Evaluate this (sub)expression, pushing its value onto the value stack.
+    Eval(&'a Expr),
+    /// Pop one value, negate it, and push the result.
+    Negate,
+    /// Pop one value, apply the builtin function, and push the result.
+    Function(&'a Function),
+    /// Pop two values apply the operation, and push the result.
+    Binary(BinaryKind),
+    /// Pop the given number of values, call the classical function with them, and push the result.
+    Custom(&'a ClassicalCallableExt, usize),
+}
+
+#[cfg(feature = "py")]
+#[derive(Clone, Copy)]
+enum BinaryKind {
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    Power,
+}
+
 #[cfg(feature = "py")]
 pub fn evaluate(
     expr: &Expr,
     params: &[f64],
     attachment: Attachment<'_>,
 ) -> Result<f64, ParseError> {
-    to_parameter_expression(expr, params, attachment)?
-        .try_to_value(true)
-        .map(|value| value.as_real())
-        .map_err(|err| ParseError::new(err.to_string()))
+    let mut work = vec![Step::Eval(expr)];
+    let mut values = Vec::<Value>::new();
+
+    while let Some(step) = work.pop() {
+        match step {
+            Step::Eval(expr) => match expr {
+                Expr::Constant(value) => values.push(Value::Real(*value)),
+                Expr::Parameter(index) => {
+                    let value = params.get(index.index()).copied().ok_or_else(|| {
+                        ParseError::new("gate parameter index out of range".to_owned())
+                    })?;
+                    values.push(Value::Real(value));
+                }
+                Expr::Negate(inner) => {
+                    work.push(Step::Negate);
+                    work.push(Step::Eval(inner));
+                }
+                Expr::Add(lhs, rhs) => push_binary(&mut work, BinaryKind::Add, lhs, rhs),
+                Expr::Subtract(lhs, rhs) => push_binary(&mut work, BinaryKind::Subtract, lhs, rhs),
+                Expr::Multiply(lhs, rhs) => push_binary(&mut work, BinaryKind::Multiply, lhs, rhs),
+                Expr::Divide(lhs, rhs) => push_binary(&mut work, BinaryKind::Divide, lhs, rhs),
+                Expr::Power(lhs, rhs) => push_binary(&mut work, BinaryKind::Power, lhs, rhs),
+                Expr::Function(func, inner) => {
+                    work.push(Step::Function(func));
+                    work.push(Step::Eval(inner));
+                }
+                Expr::CustomFunction(callable, exprs) => {
+                    work.push(Step::Custom(callable, exprs.len()));
+                    // Pushed in reverse so that they pop (and so evaluate) left-to-right, leaving
+                    // the values on the stack in argument order.
+                    work.extend(exprs.iter().rev().map(Step::Eval));
+                }
+            },
+            Step::Negate => {
+                let value = values.pop().expect("negation has one operand");
+                values.push(-value);
+            }
+            Step::Function(func) => {
+                let value = values.pop().expect("a function has one operand");
+                values.push(match func {
+                    Function::Cos => value.cos(),
+                    Function::Exp => value.exp(),
+                    Function::Ln => value.log(),
+                    Function::Sin => value.sin(),
+                    // `pow` rather than `Value::sqrt` to keep the promotion behaviour of the
+                    // `ParameterExpression`-based evaluator this replaced.
+                    Function::Sqrt => value.pow(&Value::Real(0.5)),
+                    Function::Tan => value.tan(),
+                });
+            }
+            Step::Binary(op) => {
+                let rhs = values.pop().expect("a binary op has two operands");
+                let lhs = values.pop().expect("a binary op has two operands");
+                values.push(match op {
+                    BinaryKind::Add => lhs + rhs,
+                    BinaryKind::Subtract => lhs - rhs,
+                    BinaryKind::Multiply => lhs * rhs,
+                    BinaryKind::Divide => lhs / rhs,
+                    BinaryKind::Power => lhs.pow(&rhs),
+                });
+            }
+            Step::Custom(callable, num_args) => {
+                let args = values
+                    .split_off(values.len() - num_args)
+                    .iter()
+                    .map(Value::as_real)
+                    .collect::<Vec<_>>();
+                values.push(Value::Real(callable.call(&args, attachment)?));
+            }
+        }
+    }
+
+    let value = values.pop().expect("the expression evaluates to one value");
+    debug_assert!(values.is_empty());
+    Ok(value.as_real())
 }
 
 #[cfg(feature = "py")]
-fn to_parameter_expression(
-    expr: &Expr,
-    params: &[f64],
-    attachment: Attachment<'_>,
-) -> Result<ParameterExpression, ParseError> {
-    let param_error = |err: ParameterError| ParseError::new(err.to_string());
-    Ok(match expr {
-        Expr::Constant(value) => ParameterExpression::from_f64(*value),
-        Expr::Parameter(index) => {
-            let value = params
-                .get(index.index())
-                .copied()
-                .ok_or_else(|| ParseError::new("gate parameter index out of range".to_owned()))?;
-            ParameterExpression::from_f64(value)
-        }
-        Expr::Negate(inner) => to_parameter_expression(inner, params, attachment)?.neg(),
-        Expr::Add(lhs, rhs) => to_parameter_expression(lhs, params, attachment)?
-            .add(&to_parameter_expression(rhs, params, attachment)?)
-            .map_err(param_error)?,
-        Expr::Subtract(lhs, rhs) => to_parameter_expression(lhs, params, attachment)?
-            .sub(&to_parameter_expression(rhs, params, attachment)?)
-            .map_err(param_error)?,
-        Expr::Multiply(lhs, rhs) => to_parameter_expression(lhs, params, attachment)?
-            .mul(&to_parameter_expression(rhs, params, attachment)?)
-            .map_err(param_error)?,
-        Expr::Divide(lhs, rhs) => to_parameter_expression(lhs, params, attachment)?
-            .div(&to_parameter_expression(rhs, params, attachment)?)
-            .map_err(param_error)?,
-        Expr::Power(lhs, rhs) => to_parameter_expression(lhs, params, attachment)?
-            .pow(&to_parameter_expression(rhs, params, attachment)?)
-            .map_err(param_error)?,
-        Expr::Function(func, inner) => {
-            let inner = to_parameter_expression(inner, params, attachment)?;
-            match func {
-                Function::Cos => inner.cos(),
-                Function::Exp => inner.exp(),
-                Function::Ln => inner.log(),
-                Function::Sin => inner.sin(),
-                Function::Sqrt => inner
-                    .pow(&ParameterExpression::from_f64(0.5))
-                    .map_err(param_error)?,
-                Function::Tan => inner.tan(),
-            }
-        }
-        Expr::CustomFunction(callable, exprs) => {
-            let floats = exprs
-                .iter()
-                .map(|expr| evaluate(expr, params, attachment))
-                .collect::<Result<Vec<_>, _>>()?;
-            ParameterExpression::from_f64(callable.call(&floats, attachment)?)
-        }
-    })
+fn push_binary<'a>(work: &mut Vec<Step<'a>>, op: BinaryKind, lhs: &'a Expr, rhs: &'a Expr) {
+    work.push(Step::Binary(op));
+    work.push(Step::Eval(rhs));
+    work.push(Step::Eval(lhs));
 }
 
 /// Calculate the binding power of an [Op] when used in a prefix position.  Returns [None] if the
