@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Removed an unused, redundant computation of non-zero coefficients
+    inside :meth:`.SparsePauliOp.simplify`.

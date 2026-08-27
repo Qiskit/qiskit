@@ -491,7 +491,7 @@ class SparsePauliOp(LinearOp):
         coeffs = np.zeros(indexes.shape[0], dtype=self.coeffs.dtype)
         np.add.at(coeffs, inverses, nz_coeffs)
 
-        # Filter non-zero coefficients
+        # Delete zero coefficient rows
         if self.coeffs.dtype == object:
 
             def to_complex(coeff):
@@ -504,14 +504,6 @@ class SparsePauliOp(LinearOp):
                 except TypeError:
                     return np.nan
 
-            non_zero = np.logical_not(
-                np.isclose([to_complex(x) for x in self.coeffs], 0, atol=atol, rtol=rtol)
-            )
-        else:
-            non_zero = np.logical_not(np.isclose(self.coeffs, 0, atol=atol, rtol=rtol))
-
-        # Delete zero coefficient rows
-        if self.coeffs.dtype == object:
             is_zero = np.array(
                 [np.isclose(to_complex(coeff), 0, atol=atol, rtol=rtol) for coeff in coeffs]
             )
