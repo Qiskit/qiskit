@@ -466,7 +466,11 @@ mod tests {
         };
         approx_eq_slice(
             arr.as_slice().unwrap(),
-            strided.mapv(|x| x.re).var_axis(Axis(0), 0.).as_slice().unwrap()
+            strided
+                .mapv(|x| x.re)
+                .var_axis(Axis(0), 0.)
+                .as_slice()
+                .unwrap(),
         );
     }
 
@@ -605,7 +609,9 @@ mod tests {
     fn test_i8_cast_to_float() {
         let data: Vec<i8> = vec![1, 3];
         let x = Tensor::I8(ndarray::Array1::from(data).into_dyn().into_shared());
-        let result = Std::new(0, 0.0).call_flat(std::slice::from_ref(&x)).unwrap();
+        let result = Std::new(0, 0.0)
+            .call_flat(std::slice::from_ref(&x))
+            .unwrap();
         assert_eq!(result[0].dtype(), DType::F64, "I64 std should return F64");
         let Tensor::F64(arr) = &result[0] else {
             panic!()
@@ -629,7 +635,9 @@ mod tests {
     fn test_i16_cast_to_float() {
         let data: Vec<i16> = vec![1, 3];
         let x = Tensor::I16(ndarray::Array1::from(data).into_dyn().into_shared());
-        let result = Std::new(0, 0.0).call_flat(std::slice::from_ref(&x)).unwrap();
+        let result = Std::new(0, 0.0)
+            .call_flat(std::slice::from_ref(&x))
+            .unwrap();
         assert_eq!(result[0].dtype(), DType::F64, "I64 std should return F64");
         let Tensor::F64(arr) = &result[0] else {
             panic!()
@@ -652,7 +660,9 @@ mod tests {
     fn test_i32_cast_to_float() {
         let data: Vec<i32> = vec![1, 3];
         let x = Tensor::I32(ndarray::Array1::from(data).into_dyn().into_shared());
-        let result = Std::new(0, 0.0).call_flat(std::slice::from_ref(&x)).unwrap();
+        let result = Std::new(0, 0.0)
+            .call_flat(std::slice::from_ref(&x))
+            .unwrap();
         assert_eq!(result[0].dtype(), DType::F64, "I64 std should return F64");
         let Tensor::F64(arr) = &result[0] else {
             panic!()
@@ -676,7 +686,9 @@ mod tests {
     fn test_i64_cast_to_float() {
         let data: Vec<i64> = vec![1, 3];
         let x = Tensor::I64(ndarray::Array1::from(data).into_dyn().into_shared());
-        let result = Std::new(0, 0.0).call_flat(std::slice::from_ref(&x)).unwrap();
+        let result = Std::new(0, 0.0)
+            .call_flat(std::slice::from_ref(&x))
+            .unwrap();
         assert_eq!(result[0].dtype(), DType::F64, "I64 std should return F64");
         let Tensor::F64(arr) = &result[0] else {
             panic!()
@@ -700,7 +712,9 @@ mod tests {
     fn test_u8_cast_to_float() {
         let data: Vec<u8> = vec![1, 3];
         let x = Tensor::U8(ndarray::Array1::from(data).into_dyn().into_shared());
-        let result = Std::new(0, 0.0).call_flat(std::slice::from_ref(&x)).unwrap();
+        let result = Std::new(0, 0.0)
+            .call_flat(std::slice::from_ref(&x))
+            .unwrap();
         assert_eq!(result[0].dtype(), DType::F64, "I64 std should return F64");
         let Tensor::F64(arr) = &result[0] else {
             panic!()
@@ -724,7 +738,9 @@ mod tests {
     fn test_u16_cast_to_float() {
         let data: Vec<u16> = vec![1, 3];
         let x = Tensor::U16(ndarray::Array1::from(data).into_dyn().into_shared());
-        let result = Std::new(0, 0.0).call_flat(std::slice::from_ref(&x)).unwrap();
+        let result = Std::new(0, 0.0)
+            .call_flat(std::slice::from_ref(&x))
+            .unwrap();
         assert_eq!(result[0].dtype(), DType::F64, "I64 std should return F64");
         let Tensor::F64(arr) = &result[0] else {
             panic!()
@@ -747,7 +763,9 @@ mod tests {
     fn test_u32_cast_to_float() {
         let data: Vec<u32> = vec![1, 3];
         let x = Tensor::U32(ndarray::Array1::from(data).into_dyn().into_shared());
-        let result = Std::new(0, 0.0).call_flat(std::slice::from_ref(&x)).unwrap();
+        let result = Std::new(0, 0.0)
+            .call_flat(std::slice::from_ref(&x))
+            .unwrap();
         assert_eq!(result[0].dtype(), DType::F64, "I64 std should return F64");
         let Tensor::F64(arr) = &result[0] else {
             panic!()
@@ -771,7 +789,9 @@ mod tests {
     fn test_u64_cast_to_float() {
         let data: Vec<u64> = vec![1, 3];
         let x = Tensor::U64(ndarray::Array1::from(data).into_dyn().into_shared());
-        let result = Std::new(0, 0.0).call_flat(std::slice::from_ref(&x)).unwrap();
+        let result = Std::new(0, 0.0)
+            .call_flat(std::slice::from_ref(&x))
+            .unwrap();
         assert_eq!(result[0].dtype(), DType::F64, "I64 std should return F64");
         let Tensor::F64(arr) = &result[0] else {
             panic!()
