@@ -32,6 +32,7 @@ use qiskit_circuit::bit::{
 };
 use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::circuit_instruction::OperationFromPython;
+use qiskit_circuit::custom_operations;
 use qiskit_circuit::instruction::{Parameters, create_py_op};
 use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::{
@@ -97,6 +98,8 @@ pub enum InstructionType {
     PauliProductRotation,
     Unitary,
     ControlFlow,
+    // covers Rust based CusomOperations
+    CustomOperation,
     // covers instruction types require resorting to python space
     Custom,
     Python,
@@ -198,6 +201,8 @@ fn recognize_instruction_type(
         || ["Barrier", "Delay", "Measure", "Reset"].contains(&name)
     {
         InstructionType::StandardInstruction
+    } else if is_custom_operation(name) {
+        InstructionType::CustomOperation
     } else if custom_instructions.get(name).is_some() {
         InstructionType::Custom
     } else {
@@ -214,6 +219,13 @@ fn recognize_instruction_type(
             InstructionType::Python
         }
     }
+}
+
+fn is_custom_operation(name: &str) -> bool {
+    // This is a placeholder function; we'll need either a list of CustomOperation names
+    // Or a better mechanism to iterate over all CustomOperations defined in qiskit.
+    // For now, compare against a hard coded list
+    ["qft"].contains(&name)
 }
 
 type InstructionBits = (Interned<[Qubit]>, Interned<[Clbit]>);
@@ -364,6 +376,7 @@ fn unpack_instruction(
         }
         InstructionType::Unitary => unpack_unitary(instruction, qpy_data)?,
         InstructionType::ControlFlow => unpack_control_flow(instruction, qpy_data)?,
+        InstructionType::CustomOperation => unpack_custom_operation(instruction, qpy_data)?,
         InstructionType::Custom => {
             unpack_custom_instruction(instruction, label.as_deref(), qpy_data, custom_instructions)?
         }
@@ -430,6 +443,27 @@ fn unpack_standard_instruction(
     Ok((op, param_values))
 }
 
+fn unpack_custom_operation(
+    instruction: &formats::CircuitInstructionV2Pack,
+    qpy_data: &mut QPYReadData,
+) -> Result<(PackedOperation, Vec<GenericValue>), QpyError> {
+    // This is a placeholder implementation; in a real implementation, you would deserialize the custom operation properly.
+    // let op = PackedOperation::from_custom_operation_name(&instruction.gate_class_name);
+    let op = match instruction.gate_class_name.as_str() {
+        "qft" => PackedOperation::from_custom_operation(Box::new(custom_operations::QFTGate::new(
+            instruction.num_qargs,
+        ))),
+        _ => {
+            return Err(QpyError::InvalidInstruction(format!(
+                "Unrecognized custom operation {}",
+                instruction.gate_class_name
+            )));
+        }
+    };
+    let param_values =
+        get_instruction_values(instruction, qpy_data, ValueEndian::LittleForV17AndBelow)?;
+    Ok((op, param_values))
+}
 fn unpack_pauli_product_measurement(
     instruction: &formats::CircuitInstructionV2Pack,
     qpy_data: &mut QPYReadData,
