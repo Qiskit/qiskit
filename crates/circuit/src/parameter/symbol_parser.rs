@@ -99,7 +99,8 @@ fn parse_unary<'a>(
         .parse(s)
 }
 
-fn parse_expr<'a>(
+// sign is separately parsed in this function
+fn parse_sign<'a>(
     s: &'a str,
     sym_fn: &impl Fn(&'a str) -> Option<Symbol>,
 ) -> IResult<&'a str, SymbolExpr, VerboseError<&'a str>> {
@@ -107,11 +108,7 @@ fn parse_expr<'a>(
     let parse_symbol = |s| parse_symbol(s, sym_fn);
     let parse_addsub = |s| parse_addsub(s, sym_fn);
     (
-        opt(delimited(
-            multispace0,
-            alt((char('-'), char('+'))),
-            multispace0,
-        )),
+        delimited(multispace0, alt((char('-'), char('+'))), multispace0),
         alt((
             parse_imaginary_value,
             parse_value,
@@ -124,14 +121,42 @@ fn parse_expr<'a>(
             ),
         )),
     )
-        .map(|(op, expr)| match op {
-            Some('-') => SymbolExpr::Unary {
-                op: UnaryOp::Neg,
-                expr: Arc::new(expr),
-            },
-            _ => expr,
+        .map(|(op, expr)| {
+            if op == '+' {
+                expr
+            } else {
+                SymbolExpr::Unary {
+                    op: UnaryOp::Neg,
+                    expr: Arc::new(expr),
+                }
+            }
         })
         .parse(s)
+}
+
+fn parse_expr<'a>(
+    s: &'a str,
+    sym_fn: &impl Fn(&'a str) -> Option<Symbol>,
+) -> IResult<&'a str, SymbolExpr, VerboseError<&'a str>> {
+    let parse_sign = |s| parse_sign(s, sym_fn);
+    let parse_unary = |s| parse_unary(s, sym_fn);
+    let parse_symbol = |s| parse_symbol(s, sym_fn);
+    let parse_addsub = |s| parse_addsub(s, sym_fn);
+    alt((
+        parse_imaginary_value,
+        // Note that `parse_value` will consume a possible `-` or `+` and fold it into the value, so
+        // this ordering of `parse_value` and `parse_sign` in the alternatives can affect the parse.
+        parse_value,
+        parse_sign,
+        parse_unary,
+        parse_symbol,
+        delimited(
+            char('('),
+            delimited(multispace0, parse_addsub, multispace0),
+            char(')'),
+        ),
+    ))
+    .parse(s)
 }
 
 // parse pow
