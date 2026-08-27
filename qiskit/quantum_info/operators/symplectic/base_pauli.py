@@ -300,7 +300,15 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         if frame == "h":
             # Heisenberg evolution C^dg.P.C.
             # Naively, would evolve by C^dg in Schrodinger frame, but getting the
-            # phase of C^dg (in `adjoint`) is expensive (N^3). Skip it for now:
+            # phase of C^dg (in `adjoint`) is expensive (N^3). Alternatively,
+            # it can be faster to compute phase via a second Schrodinger evolution,
+            # at a cost L*N^2, where L is number of Paulis in `self`. Empirically,
+            # thresholding on N <= L gave near-optimal performance across benchmarks
+            # that went up to 250 qubits.
+            if other.num_qubits <= self.z.shape[0]:
+                other = other.adjoint()
+                return self._evolve_clifford(other, qargs=qargs, frame="s")
+
             inv = other.copy()
             tmp = inv.destab_x.copy()
             inv.destab_x = inv.stab_z.T
