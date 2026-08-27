@@ -321,9 +321,9 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             # Fix answer by evolving this forward by C; excess phase after
             # the round-trip should be subtracted from ret:
             fwd = ret._evolve_clifford(other, qargs=qargs, frame="s")
-            ret.phase -= (fwd.phase - self.phase)
+            ret.phase -= fwd.phase - self.phase
             return ret
-        
+
         # Schrodinger evolution C.P.C^dg.
         if qargs is None:
             qargs_ = slice(None)
