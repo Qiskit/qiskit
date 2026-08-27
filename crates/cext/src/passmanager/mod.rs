@@ -115,7 +115,7 @@ pub unsafe extern "C" fn qk_pass_set_run(pass: *mut PassFromC, run_ptr: *mut c_v
     // SAFETY: Per documentation, `pass` is valid and non-null
     let pass = unsafe { mut_ptr_as_ref(pass) };
     // SAFETY: Per documentation, we can transmute the run ptr.
-    let run_ptr = unsafe { ::std::mem::transmute(run_ptr) };
+    let run_ptr: RunFunctionPtr = unsafe { ::std::mem::transmute(run_ptr) };
     pass.run_ptr = Some(run_ptr);
 }
 
@@ -180,7 +180,7 @@ pub unsafe extern "C" fn qk_passmanager_free(pm: *mut PassManager) {
 /// Behavior is undefined in ``pm`` is not a non-null, valid pointer to a ``QkPassManager`` or
 /// ``pass`` is not a non-null, valid pointer to a ``QkPass``.
 #[unsafe(no_mangle)]
-pub extern "C" fn qk_passmanager_push_pass(
+pub unsafe extern "C" fn qk_passmanager_push_pass(
     pm: *mut PassManager,
     pass: *const PassFromC,
 ) -> ExitCode {
@@ -202,14 +202,28 @@ pub struct PassManagerResult {
     context: *mut PassManagerContext,
 }
 
+/// @ingroup QkPassManager
+/// Run the pass manager.
+///
+/// @param pm A pointer to the pass manager to run.
+/// @param ir A `void *` to the IR to run.
+/// @param result A pointer to a `QkPassManagerResult` object to write the results into.
+///
+/// @return An exit code describing the error if the compilation failed and the result pointers
+/// are set to `NULL`.
+///
+/// # Safety
+///
+/// Behavior is undefined if `pm` not a valid, non-null pointer to a `QkPassManager`, or
+/// `result` is not a valid, non-null pointer to a `QkPassManagerResult`.
 #[unsafe(no_mangle)]
-pub extern "C" fn qk_passmanager_run(
+pub unsafe extern "C" fn qk_passmanager_run(
     pm: *mut PassManager,
     ir: *mut c_void,
     result: *mut PassManagerResult,
     // callback:
 ) -> ExitCode {
-    // SAFETY: Per documentation the pointer is non-null and valid
+    // SAFETY: Per documentation these pointers are non-null and valid
     let pm = unsafe { mut_ptr_as_ref(pm) };
     let result = unsafe { mut_ptr_as_ref(result) };
 
@@ -221,6 +235,7 @@ pub extern "C" fn qk_passmanager_run(
         }
         Err(e) => {
             result.ir = null_mut();
+            result.context = null_mut();
             ExitCode::from(e)
         }
     }
@@ -236,7 +251,7 @@ pub extern "C" fn qk_passmanager_run(
 /// Behavior is undefined if ``context`` is not either null or a valid pointer to a
 /// ``QkPassManagerContext``.
 #[unsafe(no_mangle)]
-pub extern "C" fn qk_passmanager_context_free(context: *mut PassManagerContext) {
+pub unsafe extern "C" fn qk_passmanager_context_free(context: *mut PassManagerContext) {
     if !context.is_null() {
         if !context.is_aligned() {
             panic!("Attempted to free a non-aligned pointer.")

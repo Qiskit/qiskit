@@ -11,10 +11,7 @@
 // that they have been altered from the originals.
 
 use hashbrown::{HashMap, HashSet};
-use std::{
-    any::{Any, TypeId},
-    cell::LazyCell,
-};
+use std::any::{Any, TypeId};
 use thiserror::Error;
 
 /// The pass manager execution environment.
@@ -243,11 +240,21 @@ pub trait Callback {
 }
 
 /// Qiskit's pass manager.
-#[derive(Default)]
 pub struct PassManager {
     // It is UNSAFE to directly mutate the task vector since we are checking that the types
     // match upon construction, hence the tasks are private.
     tasks: Vec<Task>,
+
+    whitelist: [TypeId; 1],
+}
+
+impl Default for PassManager {
+    fn default() -> Self {
+        Self {
+            tasks: Vec::default(),
+            whitelist: [TypeId::of::<::std::ffi::c_void>()],
+        }
+    }
 }
 
 #[derive(Error, Debug)]
@@ -285,7 +292,7 @@ impl PassManager {
             let Some((first_in_id, _)) = first.io_types() else {
                 return Err(PassManagerError::EmptyTask);
             };
-            maybe_compare_types(first_in_id, TypeId::of::<IRIn>())?;
+            self.maybe_compare_types(first_in_id, TypeId::of::<IRIn>())?;
         } else {
             // If there are no tasks, return the input, but cast to IROut
             let ir_out = cast_box::<IROut>(Box::new(ir))?;
@@ -296,7 +303,7 @@ impl PassManager {
         let Some((_, last_out_id)) = last.io_types() else {
             return Err(PassManagerError::EmptyTask);
         };
-        maybe_compare_types(last_out_id, TypeId::of::<IROut>())?;
+        self.maybe_compare_types(last_out_id, TypeId::of::<IROut>())?;
 
         // Erase the type to pass it through the task execution
         let mut ir: Box<dyn Any> = Box::new(ir);
@@ -332,7 +339,7 @@ impl PassManager {
             let Some((in_type, _)) = task.io_types() else {
                 return Err(PassManagerError::EmptyTask);
             };
-            maybe_compare_types(in_type, out_type)?;
+            self.maybe_compare_types(in_type, out_type)?;
         }
         self.tasks.push(task);
         Ok(())
@@ -363,7 +370,7 @@ impl PassManager {
             ) else {
                 return Err(PassManagerError::EmptyTask);
             };
-            maybe_compare_types(before, after)?;
+            self.maybe_compare_types(before, after)?;
         }
         let task = self.tasks.remove(index);
 
@@ -390,13 +397,13 @@ impl PassManager {
                 let Some((_, before)) = self.tasks[index - 1].io_types() else {
                     return Err(PassManagerError::EmptyTask);
                 };
-                maybe_compare_types(before, in_type)?;
+                self.maybe_compare_types(before, in_type)?;
             }
             if index < self.tasks.len() - 1 {
                 let Some((after, _)) = self.tasks[index + 1].io_types() else {
                     return Err(PassManagerError::EmptyTask);
                 };
-                maybe_compare_types(out_type, after)?;
+                self.maybe_compare_types(out_type, after)?;
             }
         }
 
@@ -407,6 +414,17 @@ impl PassManager {
     /// Get a reference to a [Task] at a given index.
     pub fn get_task(&self, index: usize) -> Option<&Task> {
         self.tasks.get(index)
+    }
+
+    fn maybe_compare_types(&self, type1: TypeId, type2: TypeId) -> Result<(), PassManagerError> {
+        if self.whitelist.contains(&type1) || self.whitelist.contains(&type2) {
+            // we cannot compare these types (like c_void), we allow them
+            Ok(())
+        } else if type1 != type2 {
+            Err(PassManagerError::IncompatibleTypes)
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -473,19 +491,6 @@ where
     match obj.downcast::<OutType>() {
         Ok(out) => Ok(*out),
         Err(_) => Err(PassManagerError::FailedOutputConversion),
-    }
-}
-
-const WHITELIST: LazyCell<[TypeId; 1]> = LazyCell::new(|| [TypeId::of::<::std::ffi::c_void>()]);
-
-fn maybe_compare_types(type1: TypeId, type2: TypeId) -> Result<(), PassManagerError> {
-    if WHITELIST.contains(&type1) || WHITELIST.contains(&type2) {
-        // we cannot compare these types, we allow them
-        Ok(())
-    } else if type1 != type2 {
-        Err(PassManagerError::IncompatibleTypes)
-    } else {
-        Ok(())
     }
 }
 
