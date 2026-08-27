@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 from qiskit.circuit import QuantumCircuit, Gate
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils.deprecation import deprecate_func
 
 
@@ -131,14 +132,14 @@ class HalfAdderGate(Gate):
 
 
 class ModularAdderGate(Gate):
-    r"""Compute the sum modulo :math:`2^n` of two :math:`n`-sized qubit registers.
+    r"""Compute the sum modulo an integer :math:`N` of two :math:`n`-sized qubit registers.
 
     For two registers :math:`|a\rangle_n` and :math:`|b\rangle_n` with :math:`n` qubits each, an
     adder performs the following operation
 
     .. math::
 
-        |a\rangle_n |b\rangle_n \mapsto |a\rangle_n |a + b \text{ mod } 2^n\rangle_n.
+        |a\rangle_n |b\rangle_n \mapsto |a\rangle_n |a + b \text{ mod } N\rangle_n.
 
     The quantum register :math:`|a\rangle_n` (and analogously :math:`|b\rangle_n`)
 
@@ -152,19 +153,44 @@ class ModularAdderGate(Gate):
 
         a = 2^{0}a_{0} + 2^{1}a_{1} + \cdots + 2^{n - 1}a_{n - 1}.
 
+    If ``modulus`` is not given (or equals :math:`2^n`), :math:`N = 2^n` and the operation is
+    simply addition modulo the full range representable on :math:`n` qubits, as above. For a
+    smaller modulus :math:`N < 2^n`, the map :math:`b \mapsto (a + b) \text{ mod } N` is only
+    well-defined -- and therefore the action of this gate is only specified -- on inputs with
+    :math:`a, b < N`. Applying the gate to a state with :math:`a \geq N` or :math:`b \geq N` is
+    undefined behaviour and is left to the chosen synthesis method.
+
     """
 
-    def __init__(self, num_state_qubits: int, label: str | None = None) -> None:
-        """
+    def __init__(
+        self, num_state_qubits: int, label: str | None = None, modulus: int | None = None
+    ) -> None:
+        r"""
         Args:
             num_state_qubits: The number of qubits in each of the registers.
             label: An optional label for identifying the instruction.
+            modulus: The modulus :math:`N` of the modular addition. Must satisfy
+                :math:`1 \leq N \leq 2^n`, where :math:`n` is ``num_state_qubits``. Defaults to
+                :math:`2^n`, in which case this gate is addition modulo the full range of
+                ``num_state_qubits`` qubits, and is identical to the behaviour before this
+                argument was introduced.
+
+        Raises:
+            ValueError: If ``num_state_qubits`` is smaller than 1, or if ``modulus`` is given
+                and is not in the range :math:`[1, 2^n]`.
         """
         if num_state_qubits < 1:
             raise ValueError("Need at least 1 state qubit.")
 
+        if modulus is not None and not 1 <= modulus <= 2**num_state_qubits:
+            raise ValueError(
+                "modulus must satisfy 1 <= modulus <= 2 ** num_state_qubits "
+                f"(2 ** {num_state_qubits} = {2**num_state_qubits}), got {modulus}."
+            )
+
         super().__init__("ModularAdder", 2 * num_state_qubits, [], label=label)
         self._num_state_qubits = num_state_qubits
+        self.modulus = modulus
 
     @property
     def num_state_qubits(self) -> int:
@@ -178,6 +204,18 @@ class ModularAdderGate(Gate):
     def _define(self):
         """Populates self.definition with some decomposition of this gate."""
         from qiskit.synthesis.arithmetic import adder_modular_v17
+
+        if self.modulus not in (None, 2**self.num_state_qubits):
+            # No ancilla-free (or otherwise) synthesis method is registered yet for an
+            # arbitrary modulus; see https://github.com/Qiskit/qiskit/issues/13608.
+            raise CircuitError(
+                "No default synthesis method is available for a ModularAdderGate with "
+                f"modulus={self.modulus}. A synthesis method for this gate is only "
+                "available when modulus is None or equal to 2 ** num_state_qubits. "
+                "Use qiskit.transpiler.passes.HighLevelSynthesis with a plugin that "
+                "supports this modulus, once one is registered for the 'ModularAdder' "
+                "high-level-synthesis key."
+            )
 
         # This particular decomposition does not use any ancilla qubits.
         # Note that the transpiler may choose a different decomposition

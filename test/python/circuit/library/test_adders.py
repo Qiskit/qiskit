@@ -19,6 +19,7 @@ import numpy as np
 from ddt import ddt, data, unpack
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info import Statevector
 from qiskit.circuit.library import (
     CDKMRippleCarryAdder,
@@ -331,6 +332,71 @@ class TestAdder(QiskitTestCase):
             synth = hls(circuit)
             ops = set(synth.count_ops().keys())
             self.assertTrue("rccx" in ops)
+
+    @data(0, -1, -5)
+    def test_modulus_raises_below_one(self, modulus):
+        """Test a ValueError is raised if modulus is smaller than 1."""
+        with self.assertRaises(ValueError):
+            ModularAdderGate(3, modulus=modulus)
+
+    @data(9, 16, 100)
+    def test_modulus_raises_above_range(self, modulus):
+        """Test a ValueError is raised if modulus is larger than 2 ** num_state_qubits."""
+        with self.assertRaises(ValueError):
+            ModularAdderGate(3, modulus=modulus)
+
+    @data(1, 3, 5, 7, 8)
+    def test_modulus_valid_range_accepted(self, modulus):
+        """Test values in [1, 2 ** num_state_qubits] are accepted without error."""
+        gate = ModularAdderGate(3, modulus=modulus)
+        self.assertEqual(gate.modulus, modulus)
+
+    def test_modulus_defaults_to_none(self):
+        """Test the modulus attribute defaults to None."""
+        gate = ModularAdderGate(3)
+        self.assertIsNone(gate.modulus)
+
+    def test_modulus_none_matches_full_range(self):
+        """Test that modulus=None and modulus=2**n give the identical decomposition."""
+        default_gate = ModularAdderGate(3)
+        explicit_gate = ModularAdderGate(3, modulus=8)
+        self.assertEqual(default_gate.definition, explicit_gate.definition)
+
+    def test_modulus_non_default_has_no_synthesis_yet(self):
+        """Test that a non-power-of-two modulus currently has no default synthesis.
+
+        This is expected until a synthesis method for arbitrary modulus (tracked as
+        adder_modular_s21 in https://github.com/Qiskit/qiskit/issues/13608) is added; the
+        gate should fail clearly rather than silently synthesizing the wrong operation.
+        """
+        gate = ModularAdderGate(3, modulus=5)
+        with self.assertRaises(CircuitError):
+            gate.definition  # pylint: disable=pointless-statement
+
+    @data("modular_v17", "ripple_c04", "ripple_v95", "qft_d00")
+    def test_modulus_guard_in_plugins(self, plugin):
+        """Test the existing ModularAdder plugins decline a non-default modulus."""
+        adder = ModularAdderGate(3, modulus=5)
+        circuit = QuantumCircuit(7)
+        circuit.append(adder, range(adder.num_qubits))
+
+        hls_config = HLSConfig(ModularAdder=[plugin])
+        hls = HighLevelSynthesis(hls_config=hls_config)
+        synth = hls(circuit)
+
+        # none of the existing plugins support this modulus, so the gate is left as-is
+        self.assertEqual(synth.count_ops(), {"ModularAdder": 1})
+
+    def test_modulus_guard_in_default_plugin(self):
+        """Test the default ModularAdder synthesis declines a non-default modulus too."""
+        adder = ModularAdderGate(3, modulus=5)
+        circuit = QuantumCircuit(7)
+        circuit.append(adder, range(adder.num_qubits))
+
+        hls = HighLevelSynthesis()
+        synth = hls(circuit)
+
+        self.assertEqual(synth.count_ops(), {"ModularAdder": 1})
 
 
 if __name__ == "__main__":

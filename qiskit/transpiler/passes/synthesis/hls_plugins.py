@@ -1781,7 +1781,8 @@ class ModularAdderSynthesisV17(HighLevelSynthesisPlugin):
     The plugin name is :``ModularAdder.v17`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
-    This plugin requires no auxiliary qubits.
+    This plugin requires no auxiliary qubits, and only supports the default modulus
+    (``None``, i.e. :math:`2^n`).
 
     """
 
@@ -1790,6 +1791,10 @@ class ModularAdderSynthesisV17(HighLevelSynthesisPlugin):
             return None
 
         num_state_qubits = high_level_object.num_state_qubits
+
+        # this method only implements modular addition modulo 2 ** num_state_qubits
+        if high_level_object.modulus not in (None, 2**num_state_qubits):
+            return None
 
         return adder_modular_v17(num_state_qubits)
 
@@ -1800,33 +1805,8 @@ class ModularAdderSynthesisC04(HighLevelSynthesisPlugin):
     This plugin name is:``ModularAdder.ripple_c04`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
-    This plugin requires at least one clean auxiliary qubit.
-
-    The plugin supports the following plugin-specific options:
-
-    * ``num_clean_ancillas``: The number of clean auxiliary qubits available.
-
-    """
-
-    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
-        if not isinstance(high_level_object, ModularAdderGate):
-            return None
-
-        # unless we implement the full adder, this implementation needs an ancilla qubit
-        if options.get("num_clean_ancillas", 0) < 1:
-            return None
-
-        return adder_ripple_c04(high_level_object.num_state_qubits, kind="fixed")
-
-
-class ModularAdderSynthesisV95(HighLevelSynthesisPlugin):
-    r"""A ripple-carry adder, modulo :math:`2^n`.
-
-    This plugin name is:``ModularAdder.ripple_v95`` which can be used as the key on
-    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
-
-    For an adder on 2 registers with :math:`n` qubits each, this plugin requires at
-    least :math:`n-1` clean auxiliary qubit.
+    This plugin requires at least one clean auxiliary qubit, and only supports the
+    default modulus (``None``, i.e. :math:`2^n`).
 
     The plugin supports the following plugin-specific options:
 
@@ -1839,6 +1819,43 @@ class ModularAdderSynthesisV95(HighLevelSynthesisPlugin):
             return None
 
         num_state_qubits = high_level_object.num_state_qubits
+
+        # this method only implements modular addition modulo 2 ** num_state_qubits
+        if high_level_object.modulus not in (None, 2**num_state_qubits):
+            return None
+
+        # unless we implement the full adder, this implementation needs an ancilla qubit
+        if options.get("num_clean_ancillas", 0) < 1:
+            return None
+
+        return adder_ripple_c04(num_state_qubits, kind="fixed")
+
+
+class ModularAdderSynthesisV95(HighLevelSynthesisPlugin):
+    r"""A ripple-carry adder, modulo :math:`2^n`.
+
+    This plugin name is:``ModularAdder.ripple_v95`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    For an adder on 2 registers with :math:`n` qubits each, this plugin requires at
+    least :math:`n-1` clean auxiliary qubit. It only supports the default modulus
+    (``None``, i.e. :math:`2^n`).
+
+    The plugin supports the following plugin-specific options:
+
+    * ``num_clean_ancillas``: The number of clean auxiliary qubits available.
+
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        if not isinstance(high_level_object, ModularAdderGate):
+            return None
+
+        num_state_qubits = high_level_object.num_state_qubits
+
+        # this method only implements modular addition modulo 2 ** num_state_qubits
+        if high_level_object.modulus not in (None, 2**num_state_qubits):
+            return None
 
         # The synthesis method needs n-1 clean ancilla qubits
         if num_state_qubits - 1 > options.get("num_clean_ancillas", 0):
@@ -1852,13 +1869,21 @@ class ModularAdderSynthesisD00(HighLevelSynthesisPlugin):
 
     This plugin name is:``ModularAdder.qft_d00`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    This plugin only supports the default modulus (``None``, i.e. :math:`2^n`).
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         if not isinstance(high_level_object, ModularAdderGate):
             return None
 
-        return adder_qft_d00(high_level_object.num_state_qubits, kind="fixed", annotated=True)
+        num_state_qubits = high_level_object.num_state_qubits
+
+        # this method only implements modular addition modulo 2 ** num_state_qubits
+        if high_level_object.modulus not in (None, 2**num_state_qubits):
+            return None
+
+        return adder_qft_d00(num_state_qubits, kind="fixed", annotated=True)
 
 
 class HalfAdderSynthesisDefault(HighLevelSynthesisPlugin):

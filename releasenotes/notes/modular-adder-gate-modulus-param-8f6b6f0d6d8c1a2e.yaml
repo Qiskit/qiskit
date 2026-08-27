@@ -1,0 +1,26 @@
+---
+features_circuits:
+  - |
+    :class:`.ModularAdderGate` now accepts a ``modulus`` argument, allowing the gate to
+    represent modular addition with respect to an arbitrary modulus :math:`N`, rather than
+    only the full range :math:`2^n` representable on its ``num_state_qubits`` qubits::
+
+        from qiskit.circuit.library import ModularAdderGate
+
+        # addition modulo 2 ** num_state_qubits, as before
+        gate = ModularAdderGate(3)
+
+        # addition modulo 5, restricted to inputs a, b < 5
+        gate = ModularAdderGate(3, modulus=5)
+
+    ``modulus`` defaults to ``None``, which is equivalent to :math:`2^n` and reproduces the
+    previous behaviour exactly. This is the API proposed in
+    `#13608 (comment) <https://github.com/Qiskit/qiskit/issues/13608#issuecomment-2859127930>`__.
+
+    No synthesis method is available yet for a modulus that is not a power of two (or
+    ``None``); constructing the gate's definition, or requesting its high-level synthesis,
+    for such a modulus currently raises an error. The existing
+    :class:`.ModularAdderSynthesisV17`, :class:`.ModularAdderSynthesisC04`,
+    :class:`.ModularAdderSynthesisV95` and :class:`.ModularAdderSynthesisD00` plugins are
+    unaffected and continue to apply only to the default modulus. Support for arbitrary
+    moduli is tracked in `#13608 <https://github.com/Qiskit/qiskit/issues/13608>`__.
