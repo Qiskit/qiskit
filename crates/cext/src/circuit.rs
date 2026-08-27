@@ -1645,23 +1645,23 @@ pub unsafe extern "C" fn qk_circuit_get_instruction(
 pub struct CInstructionView {
     /// The `name_len` UTF-8 encoded bytes that represent the instruction name.  This is not
     /// nul-terminated; you must take care to use functions like `strncmp` bounded by `name_len`
-    name: *const c_char,
+    pub name: *const c_char,
     /// The qubits used by the instruction.
-    qubits: *const u32,
+    pub qubits: *const u32,
     /// The clbits used by the instruction.
-    clbits: *const u32,
+    pub clbits: *const u32,
     /// An array of `num_params` `QkParam` instances. Offset the pointer by `qk_param_type_width`
     /// bytes to iterate through valid `*const QkParam` instances; you cannot use regular pointer
     /// arithmetic because the size of `QkParam` is not specified in the compile-time API.
-    params: *const Param,
+    pub params: *const Param,
     /// How many bytes the non-nul-terminated UTF-8 string in `name` is.
-    name_len: usize,
+    pub name_len: usize,
     /// The number of elements of `qubits`.
-    num_qubits: u32,
+    pub num_qubits: u32,
     /// The number of elements of `clbits`.
-    num_clbits: u32,
+    pub num_clbits: u32,
     /// The number of elements of `params`.
-    num_params: usize,
+    pub num_params: usize,
 }
 impl CInstructionView {
     /// Create a new instruction from a [`PackedInstruction`].
