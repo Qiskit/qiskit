@@ -204,10 +204,10 @@ mod parse {
                     is_nullable,
                     never_return,
                 } => {
-                    if !is_nullable {
+                    if *is_nullable {
                         bail!("nullability of funcptrs is not yet handled");
                     }
-                    if !never_return {
+                    if *never_return {
                         bail!("diverging functions not yet handled");
                     }
                     let mut parsed_args = Vec::with_capacity(args.len());
@@ -217,15 +217,14 @@ mod parse {
                             ty: r#type(ty, override_fn)?,
                         });
                     }
-                    let args = parsed_args;
                     let ret = if **ret == VOID {
                         None
                     } else {
                         Some(r#type(ret, override_fn)?)
                     };
                     break TypeKind::FuncPtr(Box::new(simple_ir::Function {
-                        name: String::new(),
-                        args,
+                        name: String::new(), // no function name for function pointers
+                        args: parsed_args,
                         ret,
                     }));
                 }

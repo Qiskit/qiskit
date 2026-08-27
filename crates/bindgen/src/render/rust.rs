@@ -205,8 +205,12 @@ mod parse {
                     is_nullable,
                     never_return,
                 } => {
-                    assert!(!is_nullable, "nullability of funcptrs is not handled");
-                    assert!(!never_return, "diverging functions not handled");
+                    if *is_nullable {
+                        bail!("nullability of funcptrs is not yet handled");
+                    }
+                    if *never_return {
+                        bail!("diverging functions not yet handled");
+                    }
                     let args = args
                         .iter()
                         .map(|(name, ty)| {
