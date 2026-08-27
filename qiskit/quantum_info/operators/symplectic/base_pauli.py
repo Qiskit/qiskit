@@ -305,7 +305,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             # at a cost L*N^2, where L is number of Paulis in `self`. Empirically,
             # thresholding on N <= L gave near-optimal performance across benchmarks
             # that went up to 250 qubits.
-            if other.num_qubits <= self.z.shape[0]:
+            if other.num_qubits <= self._x.shape[0]:
                 other = other.adjoint()
                 return self._evolve_clifford(other, qargs=qargs, frame="s")
 
