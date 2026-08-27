@@ -156,7 +156,7 @@ impl ProgramNode for Mean {
             }
             other => {
                 let Tensor::F64(a) = other.clone().cast(DType::F64) else {
-                    unreachable!()
+                    unreachable!("Value cast as F64 can't be another dtype")
                 };
                 Tensor::F64(a.mean_axis(Axis(self.axis)).unwrap().into_shared())
             }
@@ -225,7 +225,7 @@ impl ProgramNode for Variance {
             }
             other => {
                 let Tensor::F64(a) = other.clone().cast(DType::F64) else {
-                    unreachable!()
+                    unreachable!("Value cast as F64 can't be another dtype")
                 };
                 Tensor::F64(a.var_axis(Axis(self.axis), self.ddof).into_shared())
             }
@@ -292,7 +292,7 @@ impl ProgramNode for Std {
             }
             other => {
                 let Tensor::F64(a) = other.clone().cast(DType::F64) else {
-                    unreachable!()
+                    unreachable!("Value cast as F64 can't be another dtype")
                 };
                 Tensor::F64(a.std_axis(Axis(self.axis), self.ddof).into_shared())
             }
