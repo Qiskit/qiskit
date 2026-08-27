@@ -48,9 +48,6 @@ fn parse_symbol<'a>(
     s: &'a str,
     sym_fn: &impl Fn(&'a str) -> Option<Symbol>,
 ) -> IResult<&'a str, SymbolExpr, VerboseError<&'a str>> {
-    // At this point, we just consume the entire name string, regardless of index; it's up to a
-    // "name map" later to replace names with complete `Symbol` implementations, since the string
-    // form doesn't carry sufficient information to correctly assign UUIDs or base vectors.
     recognize(
         pair(
             alt((alpha1, tag("_"), tag("\\"), tag("$"))),
