@@ -307,12 +307,20 @@ mod tests {
     use crate::math_nodes::MathNodeError;
     use crate::program_node::{CallError, CallInputError, ProgramNodeExt};
     use crate::tensor::{DType, Tensor};
-    use ndarray::arr2;
+    use ndarray::{ArrayView, ShapeBuilder, arr2};
+    use num_complex::Complex;
+    use num_traits::{Float, NumCast, Signed, abs, cast};
+    use std::ops::Sub;
 
-    fn approx_eq_slice(a: &[f64], b: &[f64]) {
+    fn approx_eq_slice<'a, T>(a: &'a [T], b: &'a [T])
+    where
+        T: Float + NumCast + std::fmt::Display,
+        &'a T: Sub<&'a T>,
+        <&'a T as Sub>::Output: Signed + Float,
+    {
         assert_eq!(a.len(), b.len(), "slice lengths differ");
         for (x, y) in a.iter().zip(b.iter()) {
-            assert!((x - y).abs() < 1e-10, "{x} != {y}");
+            assert!(abs(x - y) < cast(1e-10).unwrap(), "{x} != {y}");
         }
     }
 
@@ -334,6 +342,21 @@ mod tests {
     }
 
     #[test]
+    fn test_mean_f32_axis0() {
+        // [[1,2,3],[4,5,6]] along axis 0 → [2.5, 3.5, 4.5]
+        let x = Tensor::F32(
+            arr2(&[[1.0_f32, 2.0, 3.0], [4.0, 5.0, 6.0]])
+                .into_dyn()
+                .into_shared(),
+        );
+        let result = Mean::new(0).call_flat(&[x]).unwrap();
+        let Tensor::F32(arr) = &result[0] else {
+            panic!("expected F32 leaf");
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[2.5, 3.5, 4.5]);
+    }
+
+    #[test]
     fn test_mean_i32_casts_to_f64() {
         let x = Tensor::from([1_i32, 2, 3, 4]);
         let result = Mean::new(0).call_flat(&[x]).unwrap();
@@ -350,7 +373,6 @@ mod tests {
 
     #[test]
     fn test_mean_c128() {
-        use num_complex::Complex;
         let data: Vec<Complex<f64>> = vec![
             Complex::new(1.0, 2.0),
             Complex::new(3.0, 4.0),
@@ -364,6 +386,88 @@ mod tests {
         let v = arr.as_slice().unwrap()[0];
         assert!((v.re - 3.0).abs() < 1e-10);
         assert!((v.im - 4.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_mean_c64() {
+        let data: Vec<Complex<f32>> = vec![
+            Complex::new(1.0, 2.0),
+            Complex::new(3.0, 4.0),
+            Complex::new(5.0, 6.0),
+        ];
+        let x = Tensor::C64(ndarray::Array1::from(data).into_dyn().into_shared());
+        let result = Mean::new(0).call_flat(&[x]).unwrap();
+        let Tensor::C64(arr) = &result[0] else {
+            panic!("expected C64 leaf");
+        };
+        let v = arr.as_slice().unwrap()[0];
+        assert!((v.re - 3.0).abs() < 1e-10);
+        assert!((v.im - 4.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_large_strided_mean() {
+        let raw_array: [Complex<f64>; 48] = [
+            2.0.into(),
+            4.0.into(),
+            4.0.into(),
+            4.0.into(),
+            5.0.into(),
+            5.0.into(),
+            7.0.into(),
+            9.0.into(),
+            2.0.into(),
+            4.0.into(),
+            4.0.into(),
+            4.0.into(),
+            5.0.into(),
+            5.0.into(),
+            7.0.into(),
+            9.0.into(),
+            2.0.into(),
+            4.0.into(),
+            4.0.into(),
+            4.0.into(),
+            5.0.into(),
+            7.0.into(),
+            9.0.into(),
+            1.0.into(),
+            2.0.into(),
+            4.0.into(),
+            4.0.into(),
+            4.0.into(),
+            5.0.into(),
+            5.0.into(),
+            7.0.into(),
+            9.0.into(),
+            2.0.into(),
+            4.0.into(),
+            4.0.into(),
+            4.0.into(),
+            5.0.into(),
+            5.0.into(),
+            7.0.into(),
+            9.0.into(),
+            2.0.into(),
+            4.0.into(),
+            4.0.into(),
+            4.0.into(),
+            5.0.into(),
+            7.0.into(),
+            9.0.into(),
+            1.0.into(),
+        ];
+        // For shape that triggers accumulation over slice path
+        let strided = ArrayView::from_shape((4, 5, 4).strides((1, 4, 2)), &raw_array).unwrap();
+        let x = Tensor::C128(strided.into_dyn().into_owned().into_shared());
+        let result = Variance::new(0, 0.).call_flat(&[x]).unwrap();
+        let Tensor::F64(arr) = &result[0] else {
+            panic!("Expected F64 leaf")
+        };
+        approx_eq_slice(
+            arr.as_slice().unwrap(),
+            strided.mapv(|x| x.re).var_axis(Axis(0), 0.).as_slice().unwrap()
+        );
     }
 
     // --- Variance tests ---
@@ -392,8 +496,30 @@ mod tests {
     }
 
     #[test]
+    fn test_variance_f32_ddof0() {
+        // [2, 4, 4, 4, 5, 5, 7, 9] — classic example, population variance = 4.0
+        let x = Tensor::from([2.0_f32, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0]);
+        let result = Variance::new(0, 0.0).call_flat(&[x]).unwrap();
+        let Tensor::F32(arr) = &result[0] else {
+            panic!("expected F32 leaf");
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[4.0]);
+    }
+
+    #[test]
+    fn test_variance_f32_ddof1() {
+        // Sample variance (ddof=1) of the same sequence
+        let x = Tensor::from([2.0_f32, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0]);
+        let result = Variance::new(0, 1.0).call_flat(&[x]).unwrap();
+        let Tensor::F32(arr) = &result[0] else {
+            panic!("expected F32 leaf");
+        };
+        // sample variance = population variance * n / (n-1) = 4.0 * 8/7
+        approx_eq_slice(arr.as_slice().unwrap(), &[4.0 * 8.0 / 7.0]);
+    }
+
+    #[test]
     fn test_variance_c128_returns_real() {
-        use num_complex::Complex;
         // [1+1i, 3+3i] — mean = 2+2i, deviations = [−1−i, 1+i], |.|^2 = [2, 2], var = 2.0
         let data: Vec<Complex<f64>> = vec![Complex::new(1.0, 1.0), Complex::new(3.0, 3.0)];
         let x = Tensor::C128(ndarray::Array1::from(data).into_dyn().into_shared());
@@ -404,6 +530,23 @@ mod tests {
             "C128 variance should return F64"
         );
         let Tensor::F64(arr) = &result[0] else {
+            panic!()
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[2.0]);
+    }
+
+    #[test]
+    fn test_variance_c64_returns_real() {
+        // [1+1i, 3+3i] — mean = 2+2i, deviations = [−1−i, 1+i], |.|^2 = [2, 2], var = 2.0
+        let data: Vec<Complex<f32>> = vec![Complex::new(1.0, 1.0), Complex::new(3.0, 3.0)];
+        let x = Tensor::C64(ndarray::Array1::from(data).into_dyn().into_shared());
+        let result = Variance::new(0, 0.0).call_flat(&[x]).unwrap();
+        assert_eq!(
+            result[0].dtype(),
+            DType::F32,
+            "C64 variance should return F32"
+        );
+        let Tensor::F32(arr) = &result[0] else {
             panic!()
         };
         approx_eq_slice(arr.as_slice().unwrap(), &[2.0]);
@@ -434,7 +577,6 @@ mod tests {
 
     #[test]
     fn test_std_c128_returns_real() {
-        use num_complex::Complex;
         let data: Vec<Complex<f64>> = vec![Complex::new(1.0, 1.0), Complex::new(3.0, 3.0)];
         let x = Tensor::C128(ndarray::Array1::from(data).into_dyn().into_shared());
         let result = Std::new(0, 0.0).call_flat(&[x]).unwrap();
@@ -444,6 +586,209 @@ mod tests {
         };
         // std = sqrt(2.0)
         approx_eq_slice(arr.as_slice().unwrap(), &[2.0_f64.sqrt()]);
+    }
+
+    #[test]
+    fn test_std_c64_returns_real() {
+        let data: Vec<Complex<f32>> = vec![Complex::new(1.0, 1.0), Complex::new(3.0, 3.0)];
+        let x = Tensor::C64(ndarray::Array1::from(data).into_dyn().into_shared());
+        let result = Std::new(0, 0.0).call_flat(&[x]).unwrap();
+        assert_eq!(result[0].dtype(), DType::F32, "C64 std should return F32");
+        let Tensor::F32(arr) = &result[0] else {
+            panic!()
+        };
+        // std = sqrt(2.0)
+        approx_eq_slice(arr.as_slice().unwrap(), &[2.0_f32.sqrt()]);
+    }
+
+    #[test]
+    fn test_i8_cast_to_float() {
+        let data: Vec<i8> = vec![1, 3];
+        let x = Tensor::I8(ndarray::Array1::from(data).into_dyn().into_shared());
+        let result = Std::new(0, 0.0).call_flat(std::slice::from_ref(&x)).unwrap();
+        assert_eq!(result[0].dtype(), DType::F64, "I64 std should return F64");
+        let Tensor::F64(arr) = &result[0] else {
+            panic!()
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[1.0]);
+        let result = Mean::new(0).call_flat(std::slice::from_ref(&x)).unwrap();
+        assert_eq!(result[0].dtype(), DType::F64, "I64 mean should return F64");
+        let Tensor::F64(arr) = &result[0] else {
+            panic!()
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[2.]);
+        let result = Variance::new(0, 0.).call_flat(&[x]).unwrap();
+        assert_eq!(result[0].dtype(), DType::F64, "I64 mean should return F64");
+        let Tensor::F64(arr) = &result[0] else {
+            panic!()
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[1.])
+    }
+
+    #[test]
+    fn test_i16_cast_to_float() {
+        let data: Vec<i16> = vec![1, 3];
+        let x = Tensor::I16(ndarray::Array1::from(data).into_dyn().into_shared());
+        let result = Std::new(0, 0.0).call_flat(std::slice::from_ref(&x)).unwrap();
+        assert_eq!(result[0].dtype(), DType::F64, "I64 std should return F64");
+        let Tensor::F64(arr) = &result[0] else {
+            panic!()
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[1.0]);
+        let result = Mean::new(0).call_flat(std::slice::from_ref(&x)).unwrap();
+        assert_eq!(result[0].dtype(), DType::F64, "I64 mean should return F64");
+        let Tensor::F64(arr) = &result[0] else {
+            panic!()
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[2.]);
+        let result = Variance::new(0, 0.).call_flat(&[x]).unwrap();
+        assert_eq!(result[0].dtype(), DType::F64, "I64 mean should return F64");
+        let Tensor::F64(arr) = &result[0] else {
+            panic!()
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[1.])
+    }
+    #[test]
+    fn test_i32_cast_to_float() {
+        let data: Vec<i32> = vec![1, 3];
+        let x = Tensor::I32(ndarray::Array1::from(data).into_dyn().into_shared());
+        let result = Std::new(0, 0.0).call_flat(std::slice::from_ref(&x)).unwrap();
+        assert_eq!(result[0].dtype(), DType::F64, "I64 std should return F64");
+        let Tensor::F64(arr) = &result[0] else {
+            panic!()
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[1.0]);
+        let result = Mean::new(0).call_flat(std::slice::from_ref(&x)).unwrap();
+        assert_eq!(result[0].dtype(), DType::F64, "I64 mean should return F64");
+        let Tensor::F64(arr) = &result[0] else {
+            panic!()
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[2.]);
+        let result = Variance::new(0, 0.).call_flat(&[x]).unwrap();
+        assert_eq!(result[0].dtype(), DType::F64, "I64 mean should return F64");
+        let Tensor::F64(arr) = &result[0] else {
+            panic!()
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[1.])
+    }
+
+    #[test]
+    fn test_i64_cast_to_float() {
+        let data: Vec<i64> = vec![1, 3];
+        let x = Tensor::I64(ndarray::Array1::from(data).into_dyn().into_shared());
+        let result = Std::new(0, 0.0).call_flat(std::slice::from_ref(&x)).unwrap();
+        assert_eq!(result[0].dtype(), DType::F64, "I64 std should return F64");
+        let Tensor::F64(arr) = &result[0] else {
+            panic!()
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[1.0]);
+        let result = Mean::new(0).call_flat(std::slice::from_ref(&x)).unwrap();
+        assert_eq!(result[0].dtype(), DType::F64, "I64 mean should return F64");
+        let Tensor::F64(arr) = &result[0] else {
+            panic!()
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[2.]);
+        let result = Variance::new(0, 0.).call_flat(&[x]).unwrap();
+        assert_eq!(result[0].dtype(), DType::F64, "I64 mean should return F64");
+        let Tensor::F64(arr) = &result[0] else {
+            panic!()
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[1.])
+    }
+
+    #[test]
+    fn test_u8_cast_to_float() {
+        let data: Vec<u8> = vec![1, 3];
+        let x = Tensor::U8(ndarray::Array1::from(data).into_dyn().into_shared());
+        let result = Std::new(0, 0.0).call_flat(std::slice::from_ref(&x)).unwrap();
+        assert_eq!(result[0].dtype(), DType::F64, "I64 std should return F64");
+        let Tensor::F64(arr) = &result[0] else {
+            panic!()
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[1.0]);
+        let result = Mean::new(0).call_flat(std::slice::from_ref(&x)).unwrap();
+        assert_eq!(result[0].dtype(), DType::F64, "I64 mean should return F64");
+        let Tensor::F64(arr) = &result[0] else {
+            panic!()
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[2.]);
+        let result = Variance::new(0, 0.).call_flat(&[x]).unwrap();
+        assert_eq!(result[0].dtype(), DType::F64, "I64 mean should return F64");
+        let Tensor::F64(arr) = &result[0] else {
+            panic!()
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[1.])
+    }
+
+    #[test]
+    fn test_u16_cast_to_float() {
+        let data: Vec<u16> = vec![1, 3];
+        let x = Tensor::U16(ndarray::Array1::from(data).into_dyn().into_shared());
+        let result = Std::new(0, 0.0).call_flat(std::slice::from_ref(&x)).unwrap();
+        assert_eq!(result[0].dtype(), DType::F64, "I64 std should return F64");
+        let Tensor::F64(arr) = &result[0] else {
+            panic!()
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[1.0]);
+        let result = Mean::new(0).call_flat(std::slice::from_ref(&x)).unwrap();
+        assert_eq!(result[0].dtype(), DType::F64, "I64 mean should return F64");
+        let Tensor::F64(arr) = &result[0] else {
+            panic!()
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[2.]);
+        let result = Variance::new(0, 0.).call_flat(&[x]).unwrap();
+        assert_eq!(result[0].dtype(), DType::F64, "I64 mean should return F64");
+        let Tensor::F64(arr) = &result[0] else {
+            panic!()
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[1.])
+    }
+    #[test]
+    fn test_u32_cast_to_float() {
+        let data: Vec<u32> = vec![1, 3];
+        let x = Tensor::U32(ndarray::Array1::from(data).into_dyn().into_shared());
+        let result = Std::new(0, 0.0).call_flat(std::slice::from_ref(&x)).unwrap();
+        assert_eq!(result[0].dtype(), DType::F64, "I64 std should return F64");
+        let Tensor::F64(arr) = &result[0] else {
+            panic!()
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[1.0]);
+        let result = Mean::new(0).call_flat(std::slice::from_ref(&x)).unwrap();
+        assert_eq!(result[0].dtype(), DType::F64, "I64 mean should return F64");
+        let Tensor::F64(arr) = &result[0] else {
+            panic!()
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[2.]);
+        let result = Variance::new(0, 0.).call_flat(&[x]).unwrap();
+        assert_eq!(result[0].dtype(), DType::F64, "I64 mean should return F64");
+        let Tensor::F64(arr) = &result[0] else {
+            panic!()
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[1.])
+    }
+
+    #[test]
+    fn test_u64_cast_to_float() {
+        let data: Vec<u64> = vec![1, 3];
+        let x = Tensor::U64(ndarray::Array1::from(data).into_dyn().into_shared());
+        let result = Std::new(0, 0.0).call_flat(std::slice::from_ref(&x)).unwrap();
+        assert_eq!(result[0].dtype(), DType::F64, "I64 std should return F64");
+        let Tensor::F64(arr) = &result[0] else {
+            panic!()
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[1.0]);
+        let result = Mean::new(0).call_flat(std::slice::from_ref(&x)).unwrap();
+        assert_eq!(result[0].dtype(), DType::F64, "I64 mean should return F64");
+        let Tensor::F64(arr) = &result[0] else {
+            panic!()
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[2.]);
+        let result = Variance::new(0, 0.).call_flat(&[x]).unwrap();
+        assert_eq!(result[0].dtype(), DType::F64, "I64 mean should return F64");
+        let Tensor::F64(arr) = &result[0] else {
+            panic!()
+        };
+        approx_eq_slice(arr.as_slice().unwrap(), &[1.])
     }
 
     #[test]
