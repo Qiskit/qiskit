@@ -101,14 +101,8 @@ static int test_custom_operation_in_circuit(void) {
         goto exit;
     }
 
-    QkCustomOp test_3q = {
-        .orig = &test_3q_op,
-        .v_table = foo_vtable,
-    };
-    QkCustomOp test_2q_1c = {
-        .orig = &test_2q_op,
-        .v_table = foo_vtable,
-    };
+    QkCustomOperation *test_3q = qk_custom_op_new(&test_3q_op, foo_vtable);
+    QkCustomOperation *test_2q_1c = qk_custom_op_new(&test_2q_op, foo_vtable);
 
     QkCircuit *circuit = qk_circuit_new(3, 2);
     uint32_t qubits[3] = {0, 1, 2};
@@ -221,14 +215,8 @@ static int test_custom_operation_in_dag(void) {
         goto exit;
     }
 
-    QkCustomOp test_1q = {
-        .orig = &test_1q_op,
-        .v_table = foo_vtable,
-    };
-    QkCustomOp test_3q_1c = {
-        .orig = &test_3q_op,
-        .v_table = foo_vtable,
-    };
+    QkCustomOperation *test_1q = qk_custom_op_new(&test_1q_op, foo_vtable);
+    QkCustomOperation *test_3q_1c = qk_custom_op_new(&test_3q_op, foo_vtable);
 
     QkDag *circuit = qk_dag_new();
     QkQuantumRegister *qreg = qk_quantum_register_new(3, "qreg0");
