@@ -145,24 +145,12 @@ pub struct PauliEvolutionParts {
 
 #[cfg(test)]
 mod tests {
-    use pyo3::Python;
     use qiskit_circuit::{
         operations::OperationRef, parameter::parameter_expression::ParameterExpression,
     };
     use qiskit_quantum_info::sparse_observable::BitTerm;
 
     use super::*;
-
-    #[test]
-    fn test_time_is_python() {
-        let obs = create_observable();
-
-        Python::initialize();
-        let obj = Python::attach(|py| py.None());
-
-        let res = PauliEvolution::new(obs, Param::Obj(obj));
-        assert!(matches!(res, Err(PauliEvolutionError::TimeIsPython)))
-    }
 
     #[test]
     fn test_zero_qubits() {

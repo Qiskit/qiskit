@@ -15,11 +15,13 @@
 import io
 import struct
 
-from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister, Qubit
 from qiskit.circuit.classical import expr
+from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.qpy import dump, load
 from qiskit.qpy import formats
 from qiskit.qpy.exceptions import QpyError
+from qiskit.quantum_info import SparseObservable, SparsePauliOp
 from test import QiskitTestCase
 
 
@@ -34,7 +36,9 @@ class TestV17VsV18(QiskitTestCase):
 
     def test_v18_smaller_than_v17_by_calibration_header(self):
         """v18 output is exactly 2 bytes smaller than v17 (CalibrationsPack removed)."""
-        qc = QuantumCircuit(2)
+        # Use raw bits because register sizes also shrink in QPY v18
+        qubits = [Qubit(), Qubit()]
+        qc = QuantumCircuit(qubits)
         qc.h(0)
         qc.cx(0, 1)
 
@@ -170,3 +174,60 @@ class TestV18RegisterParam(QiskitTestCase):
         data[start + 1 : start + 5] = b"zzzz"  # same length, so no size field to fix up
         with self.assertRaises(QpyError):
             load(io.BytesIO(bytes(data)))
+
+
+class TestV18SparseObservable(QiskitTestCase):
+    """``SPARSE_OBSERVABLE`` payloads, whose bit terms narrowed from ``uint16_t`` to ``uint8_t``.
+
+    QPY gained :class:`.SparseObservable` in v17 and v18 narrowed the stored bit terms, so between
+    them these two versions cover both encodings.
+
+    Only those two are covered, for two independent reasons.  The Rust writer is the only one that
+    emits QPY >= 17 (``QPY_RUST_WRITE_MIN_VERSION``), and a payload written by one implementation
+    cannot currently be read by the other, because the two codecs disagree over whether the
+    ``*_data_len`` fields hold a byte length or an element count.  Separately, asking for a version
+    below 17 does not raise: the writer emits a v17-shaped element into the older payload, which no
+    reader can then parse.
+    """
+
+    # TODO - the cross-implementation half of this is bug #16722; once that is fixed these can also
+    # be covered by the writer/reader matrix in test_roundtrip.py.
+    VERSIONS = (17, 18)
+
+    def _assert_roundtrips(self, circuit):
+        """The circuit survives a dump/load at each version that can express it."""
+        for version in self.VERSIONS:
+            with self.subTest(version=version):
+                self.assertEqual(load(io.BytesIO(_dump(circuit, version)))[0], circuit)
+
+    def test_evolutiongate_sparse_observable(self):
+        """An evolution gate over a SparseObservable round-trips under both bit-term widths.
+
+        The operator uses every :class:`.SparseObservable.BitTerm` variant, so the full value range
+        of that field is exercised.
+        """
+        op = SparseObservable.from_list(
+            [
+                ("XIII", 0.1),
+                ("YIII", 0.2),
+                ("ZIII", 0.3),
+                ("+III", 0.4),
+                ("-III", 0.5),
+                ("rIII", 0.6),
+                ("lIII", 0.7),
+                ("0III", 0.8),
+                ("1III", 0.9),
+            ]
+        )
+        qc = QuantumCircuit(op.num_qubits)
+        qc.append(PauliEvolutionGate(op, time=0.3), qc.qubits)
+        self._assert_roundtrips(qc)
+
+    def test_evolutiongate_mixed_operators(self):
+        """An evolution gate over a list mixing SparseObservable and SparsePauliOp."""
+        op1 = SparseObservable.from_list([("XIX", 0.1), ("ZIZ", 0.3)])
+        op2 = SparsePauliOp.from_list([("ZZI", 1), ("XIX", -0.1)])
+        evo = PauliEvolutionGate([op1, op2], time=0.5)
+        qc = QuantumCircuit(evo.num_qubits)
+        qc.append(evo, qc.qubits)
+        self._assert_roundtrips(qc)
