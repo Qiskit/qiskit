@@ -25,8 +25,8 @@ use qiskit_circuit::dag_circuit::PyDAGCircuit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, NodeIndex, NodeType};
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
-    ArrayType, CustomOperation, Operation, OperationRef, Param, StandardGate, StandardInstruction,
-    UnitaryGate,
+    ArrayType, BoxedCustomOperation, Operation, OperationRef, Param, StandardGate,
+    StandardInstruction, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
@@ -1959,15 +1959,15 @@ pub unsafe extern "C" fn qk_dag_convert_from_python(
 }
 
 /// @ingroup QkDag
-/// Adds a `QkCustomOp` into the circuit.
+/// Adds a `QkCustomOperation` into the circuit.
 ///
-/// The addition of this `QkCustomOp` depends on its validity and can be rejected.
+/// The addition of this `QkCustomOperation` depends on its validity and can be rejected.
 /// If the operation's vtable points to a null pointer due to any errors during construction,
-/// or invalid input being received by ``qk_custom_op_new_vtable``, the operation will be
+/// or invalid input being received by ``qk_custom_op_vtable_new``, the operation will be
 /// rejected and an `ExitCode` will be returned due to an unexpected null pointer.
 ///
 /// @param dag A pointer to the DAG to apply the operation to.
-/// @param operation The `QkCustomOp` object.
+/// @param operation The `QkCustomOperation` object.
 /// @param qubits The pointer to the array of ``uint32_t`` qubit indices to add the operation on. This
 ///     can be a null pointer if there are no qubits for ``operation`` (e.g. ``QkGate_GlobalPhase``).
 /// @param clbits The pointer to the array of ``uint32_t`` qubit indices to add the operation on. This
@@ -1996,18 +1996,15 @@ pub unsafe extern "C" fn qk_dag_convert_from_python(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_dag_apply_custom_operation(
     dag: *mut DAGCircuit,
-    operation: CustomOp,
+    operation: *mut BoxedCustomOperation,
     qubits: *const u32,
     clbits: *const u32,
     params: *mut *mut Param,
     node: *mut u32,
     front: bool,
 ) -> ExitCode {
-    if !operation.is_valid() {
-        return ExitCode::CInputError;
-    }
-    let boxed: Box<dyn CustomOperation> = Box::new(operation);
-    let op = PackedOperation::from_custom_operation(boxed);
+    let boxed: Box<BoxedCustomOperation> = unsafe { Box::from_raw(operation) };
+    let op = PackedOperation::from(boxed);
 
     let circ = unsafe { mut_ptr_as_ref(dag) };
 
