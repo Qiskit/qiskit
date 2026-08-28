@@ -26,7 +26,7 @@ use num_complex::{Complex64, ComplexFloat};
 use qiskit_circuit::bit::{ClassicalRegister, QuantumRegister};
 use qiskit_circuit::bit::{ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
-use qiskit_circuit::circuit_drawer::{DEFAULT_BARRIER_LABEL_LEN, draw_circuit};
+use qiskit_circuit::circuit_drawer::draw_circuit;
 use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interner;
@@ -2505,14 +2505,10 @@ pub unsafe extern "C" fn qk_circuit_draw(
             } else {
                 None
             },
-            if config.barrier_label_len != 0 {
-                config.barrier_label_len
-            } else {
-                DEFAULT_BARRIER_LABEL_LEN
-            },
+            config.barrier_label_len,
         )
     } else {
-        (true, true, None, DEFAULT_BARRIER_LABEL_LEN)
+        (true, true, None, 0)
     };
 
     let circuit_str =
