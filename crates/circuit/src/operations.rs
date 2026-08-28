@@ -2004,8 +2004,11 @@ pub trait CustomOperation:
 
     /// If the instance is a gate, returns the unitary matrix that represents it,
     /// if the parameters are correct. Otherwise, it returns None.
-    fn to_matrix(&self, _params: &[Param]) -> Result<Array2<Complex64>, Box<dyn error::Error>> {
-        Err("operation is unimplemented".into())
+    fn to_matrix(
+        &self,
+        _params: &[Param],
+    ) -> Result<Option<Array2<Complex64>>, Box<dyn error::Error>> {
+        Ok(None)
     }
 
     /// If the instance is a gate, returns the number of control qubits.
@@ -2187,12 +2190,11 @@ mod test_custom_operations {
             .ok()
         }
 
-        fn to_matrix(&self, params: &[Param]) -> Result<Array2<Complex64>, Box<dyn error::Error>> {
-            if params.is_empty() {
-                Ok(aview2(&H_GATE).to_owned())
-            } else {
-                Err("params are empty".into())
-            }
+        fn to_matrix(
+            &self,
+            params: &[Param],
+        ) -> Result<Option<Array2<Complex64>>, Box<dyn error::Error>> {
+            Ok(params.is_empty().then_some(aview2(&H_GATE).to_owned()))
         }
 
         fn is_unitary(&self) -> bool {
@@ -2218,10 +2220,13 @@ mod test_custom_operations {
             true
         }
 
-        fn to_matrix(&self, params: &[Param]) -> Result<Array2<Complex64>, Box<dyn error::Error>> {
+        fn to_matrix(
+            &self,
+            params: &[Param],
+        ) -> Result<Option<Array2<Complex64>>, Box<dyn error::Error>> {
             match params {
-                [Param::Float(theta)] => Ok(aview2(&rz_gate(*theta)).to_owned()),
-                _ => Err("param is not float".into()),
+                [Param::Float(theta)] => Ok(Some(aview2(&rz_gate(*theta)).to_owned())),
+                _ => Ok(None),
             }
         }
 
@@ -2321,9 +2326,9 @@ mod test_custom_operations {
 
         assert!(gate.is_unitary());
 
-        let matrix_res = gate.to_matrix(&[]).unwrap();
+        let matrix_res = gate.to_matrix(&[]);
         let matrix_exp = aview2(&H_GATE);
-        assert_eq!(matrix_res, matrix_exp);
+        assert!(matches!(matrix_res, Ok(Some(matrix)) if matrix == matrix_exp));
 
         let matrix_res = gate.to_matrix(&[Param::Float(PI)]);
         assert!(matrix_res.is_err());
@@ -2358,10 +2363,10 @@ mod test_custom_operations {
         // Check that the retreived gate is still valid.
         assert_eq!(gate_as_h.num_qubits(), 1);
         assert!(gate_as_h.is_unitary());
-        assert_eq!(
-            gate_as_h.to_matrix(&[]).unwrap(),
-            aview2(&H_GATE).to_owned()
-        );
+        assert!(matches!(
+            gate_as_h.to_matrix(&[]),
+            Ok(Some(matrix)) if matrix == aview2(&H_GATE).to_owned()
+        ));
 
         // Final instance equality check.
         assert_eq!(Some(&CustomH), Some(downcast_gate))
@@ -2476,7 +2481,7 @@ mod test_custom_operations {
         let labeled_rz = ParametrizedAndLabeled::new(Some("rz"));
         let theta: Param = (PI / 4.0).into();
 
-        let Ok(matrix) = labeled_rz.to_matrix(&[theta]) else {
+        let Ok(Some(matrix)) = labeled_rz.to_matrix(&[theta]) else {
             panic!("Matrix should exist");
         };
         // Compare matrices
