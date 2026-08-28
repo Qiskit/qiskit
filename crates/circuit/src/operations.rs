@@ -18,7 +18,7 @@ use std::num::NonZero;
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 use std::sync::Arc;
-use std::{fmt, vec};
+use std::{error, fmt, vec};
 
 use crate::bit::{ClassicalRegister, ShareableClbit};
 use crate::circuit_data::{CircuitData, PyCircuitData};
@@ -2004,9 +2004,8 @@ pub trait CustomOperation:
 
     /// If the instance is a gate, returns the unitary matrix that represents it,
     /// if the parameters are correct. Otherwise, it returns None.
-    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
-        // TODO: Make fallible.
-        None
+    fn to_matrix(&self, _params: &[Param]) -> Result<Array2<Complex64>, Box<dyn error::Error>> {
+        Err("operation is unimplemented".into())
     }
 
     /// If the instance is a gate, returns the number of control qubits.
@@ -2149,6 +2148,8 @@ mod test_custom_operations {
     use smallvec::smallvec;
     use std::f64::consts::PI;
 
+    use super::*;
+
     macro_rules! impl_static_operation {
         ($ty:ident; $name:expr, $qubits:expr, $clbits:expr, $params:expr, $directive:expr) => {
             impl $crate::operations::Operation for $ty {
@@ -2186,8 +2187,12 @@ mod test_custom_operations {
             .ok()
         }
 
-        fn matrix(&self, params: &[Param]) -> Option<ndarray::Array2<numpy::Complex64>> {
-            params.is_empty().then_some(aview2(&H_GATE).to_owned())
+        fn to_matrix(&self, params: &[Param]) -> Result<Array2<Complex64>, Box<dyn error::Error>> {
+            if params.is_empty() {
+                Ok(aview2(&H_GATE).to_owned())
+            } else {
+                Err("params are empty".into())
+            }
         }
 
         fn is_unitary(&self) -> bool {
@@ -2213,10 +2218,10 @@ mod test_custom_operations {
             true
         }
 
-        fn matrix(&self, params: &[Param]) -> Option<ndarray::Array2<numpy::Complex64>> {
+        fn to_matrix(&self, params: &[Param]) -> Result<Array2<Complex64>, Box<dyn error::Error>> {
             match params {
-                [Param::Float(theta)] => Some(aview2(&rz_gate(*theta)).to_owned()),
-                _ => None,
+                [Param::Float(theta)] => Ok(aview2(&rz_gate(*theta)).to_owned()),
+                _ => Err("param is not float".into()),
             }
         }
 
@@ -2316,13 +2321,12 @@ mod test_custom_operations {
 
         assert!(gate.is_unitary());
 
-        let matrix_res = gate.matrix(&[]);
-        let matrix_exp = Some(aview2(&H_GATE));
-        assert_eq!(matrix_res.as_ref().map(|mat| mat.view()), matrix_exp);
+        let matrix_res = gate.to_matrix(&[]).unwrap();
+        let matrix_exp = aview2(&H_GATE);
+        assert_eq!(matrix_res, matrix_exp);
 
-        let matrix_res = gate.matrix(&[Param::Float(PI)]);
-        let matrix_exp = None;
-        assert_eq!(matrix_res, matrix_exp,);
+        let matrix_res = gate.to_matrix(&[Param::Float(PI)]);
+        assert!(matrix_res.is_err());
 
         let circuit = gate.definition(&[]).expect("Circuit should exist.");
         assert_eq!(circuit.len(), 1);
@@ -2354,7 +2358,10 @@ mod test_custom_operations {
         // Check that the retreived gate is still valid.
         assert_eq!(gate_as_h.num_qubits(), 1);
         assert!(gate_as_h.is_unitary());
-        assert_eq!(gate_as_h.matrix(&[]), Some(aview2(&H_GATE).to_owned()));
+        assert_eq!(
+            gate_as_h.to_matrix(&[]).unwrap(),
+            aview2(&H_GATE).to_owned()
+        );
 
         // Final instance equality check.
         assert_eq!(Some(&CustomH), Some(downcast_gate))
@@ -2469,7 +2476,7 @@ mod test_custom_operations {
         let labeled_rz = ParametrizedAndLabeled::new(Some("rz"));
         let theta: Param = (PI / 4.0).into();
 
-        let Some(matrix) = labeled_rz.matrix(&[theta]) else {
+        let Ok(matrix) = labeled_rz.to_matrix(&[theta]) else {
             panic!("Matrix should exist");
         };
         // Compare matrices
@@ -2480,7 +2487,7 @@ mod test_custom_operations {
         ));
 
         // Compare null case
-        assert_eq!(labeled_rz.matrix(&[]), None,);
+        assert!(labeled_rz.to_matrix(&[]).is_err());
     }
 
     // Test inversed gate

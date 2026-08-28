@@ -998,7 +998,7 @@ impl PackedInstruction {
     pub fn try_matrix(&self) -> Option<Array2<Complex64>> {
         match self.op.view() {
             OperationRef::StandardGate(g) => g.matrix(self.params_view()),
-            OperationRef::CustomOperation(g) => g.matrix(self.params_view()),
+            OperationRef::CustomOperation(g) => g.to_matrix(self.params_view()).ok(),
             OperationRef::PyCustom(p) => p.matrix(),
             OperationRef::Unitary(u) => u.matrix(),
             OperationRef::PauliProductRotation(ppr) => ppr.matrix(),
@@ -1016,7 +1016,9 @@ impl PackedInstruction {
             OperationRef::PyCustom(p) => p.matrix().map(CowArray::from),
             OperationRef::PauliProductRotation(ppr) => ppr.matrix().map(CowArray::from),
             OperationRef::Unitary(u) => Some(CowArray::from(u.matrix_view())),
-            OperationRef::CustomOperation(g) => g.matrix(self.params_view()).map(CowArray::from),
+            OperationRef::CustomOperation(g) => {
+                g.to_matrix(self.params_view()).map(CowArray::from).ok()
+            }
             _ => None,
         }
     }
@@ -1033,8 +1035,9 @@ impl PackedInstruction {
             OperationRef::Unitary(unitary) => unitary.matrix_as_static_1q(),
             OperationRef::CustomOperation(g) => {
                 if g.num_qubits() == 1 {
-                    g.matrix(self.params_view())
+                    g.to_matrix(self.params_view())
                         .map(|mat| [[mat[(0, 0)], mat[(0, 1)]], [mat[(1, 0)], mat[(1, 1)]]])
+                        .ok()
                 } else {
                     None
                 }
