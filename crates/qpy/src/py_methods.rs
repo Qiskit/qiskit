@@ -203,7 +203,7 @@ fn pack_sparse_pauli_op(
         let bitterm_data = sparse_observable
             .bit_terms()
             .iter()
-            .map(|&bitterm| bitterm as u16)
+            .map(|&bitterm| bitterm as u8)
             .collect();
         let inds_data = sparse_observable.indices().to_vec();
         let bounds_data = sparse_observable
@@ -433,12 +433,6 @@ pub(crate) fn py_convert_to_generic_value(
                 ))
             }
         }
-        // Unreachable: `py_get_type_key` produces neither key -- every Python `int` maps to
-        // `Integer`, and it has no `Duration` branch at all.  Both only arise when *reading*, from
-        // an `'I'`/`'D'` payload, so there is nothing to convert here.
-        ValueType::BigInt | ValueType::Duration => Err(QpyError::ConversionError(
-            "big integer and duration values are not produced from Python objects".to_string(),
-        )),
     }
 }
 
