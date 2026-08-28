@@ -28,6 +28,7 @@ from qiskit.quantum_info.operators.symplectic import PauliList, SparsePauliOp
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 from qiskit.utils import optionals as _optionals
 from qiskit.circuit.tools.pi_check import pi_check
+from qiskit.circuit.library import HGate
 
 from .array import _num_to_latex, array_to_latex
 from .utils import matplotlib_close_if_inline
@@ -1275,9 +1276,39 @@ def _shade_colors(color, normals, lightsource=None):
 
     return colors
 
+def _transform_state_vector_to_ket_basis(state: Statevector | DensityMatrix, ket_basis: str) -> Statevector | DensityMatrix:
+    """Transform a state to the specified ket basis.
+
+    Args:
+        state: The state to transform.
+        ket_basis: The ket basis to transform to. Must be one of 'z', 'x', 'y', or 'h'.
+
+    Returns:
+        The transformed state.
+
+    Raises:
+        VisualizationError: If the ket basis is not supported.
+    """
+    match ket_basis:
+        case "z":
+            return state
+        case "x":
+            return Operator(HGate()) @ state
+        case "h":
+            return Operator(HGate()) @ state
+        case "y":
+            from qiskit.circuit.library import SGate
+            h = Operator(HGate())
+            s_dag = Operator(SGate()).adjoint()
+            return s_dag @ h @ state
+            
+        case _:
+            raise VisualizationError(
+                f"Ket basis {ket_basis} is not supported. Only 'x, y, h, and z' are supported."
+            )
 
 def state_to_latex(
-    state: Statevector | DensityMatrix, dims: bool | None = None, convention: str = "ket", **args
+    state: Statevector | DensityMatrix, dims: bool | None = None, convention: str = "ket", ket_basis: str = "z", **args
 ) -> str:
     """Return a Latex representation of a state. Wrapper function
     for `qiskit.visualization.array_to_latex` for convention 'vector'.
@@ -1289,6 +1320,7 @@ def state_to_latex(
         dims (bool): Whether to display the state's `dims`
         convention (str): Either 'vector' or 'ket'. For 'ket' plot the state in the ket-notation.
                 Otherwise plot as a vector
+        ket_basis (str): The basis for the ket notation. Default is 'z'.
         **args: Arguments to be passed directly to `array_to_latex` for convention 'ket'
 
     Returns:
@@ -1297,6 +1329,7 @@ def state_to_latex(
             ``'latex_source'`` is selected for ``output``.
 
     """
+    state = _transform_state_vector_to_ket_basis(state, ket_basis)
     if dims is None:  # show dims if state is not only qubits
         if set(state.dims()) == {2}:
             dims = False
