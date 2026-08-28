@@ -21,13 +21,17 @@ use smallvec::SmallVec;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-#[error("time is python object")]
-pub struct PauliEvolutionError;
+pub enum PauliEvolutionError {
+    #[error("time is python object")]
+    TimeIsPython,
+    #[error("operator has 0 qubits")]
+    ZeroQubits,
+}
 
 /// Time-evolution of a hermitian operator.
 ///
-/// For a hermitian operator **H** and time **t**, this gate represents the
-/// unitary **U(t) = e<sup>-itH</sup>**.
+/// For a hermitian operator **H** and time **t**, this gate represents the unitary
+/// **U(t) = e<sup>-itH</sup>**.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PauliEvolution {
     operator: SparseObservable,
@@ -39,16 +43,18 @@ impl PauliEvolution {
     ///
     /// # Errors
     ///
-    /// Returns an error if `time` is [`Param::Obj`].
+    /// Returns an error if `time` is [`Param::Obj`] or `operator` has 0 qubits.
     pub fn new(operator: SparseObservable, time: Param) -> Result<Self, PauliEvolutionError> {
         if matches!(time, Param::Obj(_)) {
-            return Err(PauliEvolutionError);
+            Err(PauliEvolutionError::TimeIsPython)
+        } else if operator.num_qubits() == 0 {
+            Err(PauliEvolutionError::ZeroQubits)
+        } else {
+            Ok(Self {
+                operator,
+                time: ComparableParam(time),
+            })
         }
-
-        Ok(Self {
-            operator,
-            time: ComparableParam(time),
-        })
     }
 
     /// Returns a reference to the hermitian `operator`.
@@ -148,14 +154,21 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_time_python_obj() {
+    fn test_time_is_python() {
         let obs = create_observable();
 
         Python::initialize();
         let obj = Python::attach(|py| py.None());
 
         let res = PauliEvolution::new(obs, Param::Obj(obj));
-        assert!(matches!(res, Err(PauliEvolutionError)))
+        assert!(matches!(res, Err(PauliEvolutionError::TimeIsPython)))
+    }
+
+    #[test]
+    fn test_zero_qubits() {
+        let obs = SparseObservable::new(0, vec![], vec![], vec![], vec![0]).expect("is coherent");
+        let res = PauliEvolution::new(obs, Param::Float(3.0));
+        assert!(matches!(res, Err(PauliEvolutionError::ZeroQubits)))
     }
 
     #[test]
