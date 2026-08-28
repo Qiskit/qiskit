@@ -106,7 +106,9 @@ def synth_mcx_n_dirty_m15(num_ctrl_qubits: int) -> QuantumCircuit:
             "synth_mcx_n_dirty_m15 cannot be called with a negative number of control qubits."
         )
 
-    return QuantumCircuit._from_circuit_data(synth_mcx_n_dirty_m15_rs(num_ctrl_qubits))
+    return QuantumCircuit._from_circuit_data(
+        synth_mcx_n_dirty_m15_rs(num_ctrl_qubits), legacy_qubits=True
+    )
 
 
 def _synth_mcx_special_cases(num_ctrl_qubits: int) -> QuantumCircuit:
