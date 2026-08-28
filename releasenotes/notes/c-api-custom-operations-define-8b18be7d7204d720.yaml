@@ -1,7 +1,7 @@
 ---
 features_c:
   - |
-    Custom operations can now be defined via the C API using :c:struct:`QkCustomOp`.
+    Custom operations can now be defined via the C API using :c:struct:`QkCustomOperation`.
     Any implementors should refer to the documentation defined in :ref:`capi-operations`
     for further information.
   - |
