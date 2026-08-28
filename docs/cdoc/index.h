@@ -8,7 +8,7 @@
  * @defgroup QkCircuitLibrary QkCircuitLibrary
  * @defgroup QkClassicalRegister QkClassicalRegister
  * @defgroup QkComplex64 QkComplex64
- * @defgroup QkCustomOp QkCustomOp
+ * @defgroup QkCustomOperation QkCustomOperation
  * @defgroup QkDag QkDag
  * @defgroup QkNeighbors QkNeighbors
  * @defgroup QkObs QkObs
