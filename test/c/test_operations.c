@@ -93,7 +93,7 @@ static int test_custom_operation_in_circuit(void) {
     };
 
     // Initialize Vtable
-    foo_vtable = qk_custom_op_new_vtable(entries);
+    foo_vtable = qk_custom_op_vtable_new(entries);
 
     if (foo_vtable == NULL) {
         printf("Retrieved a Null pointer instead of a Vtable pointer.");
@@ -213,7 +213,7 @@ static int test_custom_operation_in_dag(void) {
     };
 
     // Initialize Vtable
-    foo_vtable = qk_custom_op_new_vtable(entries);
+    foo_vtable = qk_custom_op_vtable_new(entries);
 
     if (foo_vtable == NULL) {
         printf("Retrieved a Null pointer instead of a Vtable pointer.");

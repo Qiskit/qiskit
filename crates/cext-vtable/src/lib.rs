@@ -259,8 +259,12 @@ mod operations {
     #[cfg(feature = "addr")]
     use qiskit_cext::operations::*;
 
-    pub static FUNCTIONS: ExportedFunctions =
-        ExportedFunctions::leaves(50, || vec![export_fn!(qk_custom_op_new_vtable)]);
+    pub static FUNCTIONS: ExportedFunctions = ExportedFunctions::leaves(50, || {
+        vec![
+            export_fn!(qk_custom_op_vtable_new),
+            export_fn!(qk_custom_op_new),
+        ]
+    });
 }
 
 mod sparse_observable {

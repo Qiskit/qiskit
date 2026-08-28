@@ -17,7 +17,6 @@ use crate::circuit_library::pbc::{CPauliProductMeasurement, CPauliProductRotatio
 use crate::control_flow::CControlFlowInstruction;
 use crate::dag::COperationKind;
 use crate::exit_codes::ExitCode;
-use crate::operations::CustomOp;
 use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 use crate::transpiler::target::parse_params;
 
@@ -33,7 +32,7 @@ use qiskit_circuit::dag_circuit::DAGCircuit;
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::interner::Interner;
 use qiskit_circuit::operations::{
-    ArrayType, CustomOperation, DelayUnit, Operation, OperationRef, Param, PauliBased,
+    ArrayType, BoxedCustomOperation, DelayUnit, Operation, OperationRef, Param, PauliBased,
     PauliProductMeasurement, PauliProductRotation, StandardGate, StandardInstruction, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
@@ -2752,15 +2751,15 @@ pub unsafe extern "C" fn qk_control_flow_instruction_free(cf_inst: *mut CControl
 }
 
 /// @ingroup QkCircuit
-/// Adds a `QkCustomOp` into the circuit.
+/// Adds a `QkCustomOperation` into the circuit.
 ///
-/// The addition of this `QkCustomOp` depends on its validity and can be rejected.
+/// The addition of this `QkCustomOperation` depends on its validity and can be rejected.
 /// If the operation's vtable points to a null pointer due to any errors during construction,
-/// or invalid input being received by ``qk_custom_op_new_vtable``, the operation will be
+/// or invalid input being received by ``qk_custom_op_vtable_new``, the operation will be
 /// rejected and an `ExitCode` will be returned due to an unexpected null pointer.
 ///
 /// @param circuit A pointer to the circuit object.
-/// @param operation The `QkCustomOp` object.
+/// @param operation The `QkCustomOperation` object.
 /// @param qubits The pointer to the array of ``uint32_t`` qubit indices to add the operation on. This
 ///     can be a null pointer if there are no qubits for ``operation`` (e.g. ``QkGate_GlobalPhase``).
 /// @param clbits The pointer to the array of ``uint32_t`` qubit indices to add the operation on. This
@@ -2783,16 +2782,13 @@ pub unsafe extern "C" fn qk_control_flow_instruction_free(cf_inst: *mut CControl
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_add_custom_operation(
     circuit: *mut CircuitData,
-    operation: CustomOp,
+    operation: *mut BoxedCustomOperation,
     qubits: *const u32,
     clbits: *const u32,
     params: *mut *mut Param,
 ) -> ExitCode {
-    if !operation.is_valid() {
-        return ExitCode::CInputError;
-    }
-    let boxed: Box<dyn CustomOperation> = Box::new(operation);
-    let op = PackedOperation::from_custom_operation(boxed);
+    let boxed: Box<BoxedCustomOperation> = unsafe { Box::from_raw(operation) };
+    let op: PackedOperation = boxed.into();
 
     let circ = unsafe { mut_ptr_as_ref(circuit) };
 
