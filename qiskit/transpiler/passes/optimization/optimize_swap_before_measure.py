@@ -39,14 +39,16 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
         """
 
         swaps = dag.op_nodes(SwapGate)
+        order = None
         for swap in swaps[::-1]:
             if getattr(swap.op, "_condition", None) is not None:
                 continue
             final_successor = []
-            for successor in dag.descendants(swap):
+            swap_descendants = dag.descendants(swap)
+            for measure in swap_descendants:
                 final_successor.append(
-                    isinstance(successor, DAGOutNode)
-                    or (isinstance(successor, DAGOpNode) and isinstance(successor.op, Measure))
+                    isinstance(measure, DAGOutNode)
+                    or (isinstance(measure, DAGOpNode) and isinstance(measure.op, Measure))
                 )
             if all(final_successor):
                 # the node swap needs to be removed and, if a measure follows, needs to be adapted
@@ -56,16 +58,27 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
                     measure_layer.add_qreg(qreg)
                 for creg in dag.cregs.values():
                     measure_layer.add_creg(creg)
-                for successor in list(dag.descendants(swap)):
-                    if isinstance(successor, DAGOpNode) and isinstance(successor.op, Measure):
-                        # replace measure node with a new one, where qargs is set with the "other"
-                        # swap qarg.
-                        dag.remove_op_node(successor)
-                        old_measure_qarg = successor.qargs[0]
-                        new_measure_qarg = swap_qargs[swap_qargs.index(old_measure_qarg) - 1]
-                        measure_layer.apply_operation_back(
-                            Measure(), (new_measure_qarg,), (successor.cargs[0],), check=False
-                        )
+
+                measures = [
+                    successor
+                    for successor in swap_descendants
+                    if isinstance(successor, DAGOpNode) and isinstance(successor.op, Measure)
+                ]
+                if len(measures) > 1:
+                    # following the topological order
+                    order = {node: i for i, node in enumerate(dag.topological_nodes())}
+                    measures.sort(key=order.get)
+                for measure in measures:
+                    # replace measure node with a new one, where qargs is set with the "other"
+                    # swap qarg.
+                    dag.remove_op_node(measure)
+                    measure_qarg = measure.qargs[0]
+                    if measure_qarg in swap_qargs:
+                        measure_qarg = swap_qargs[swap_qargs.index(measure_qarg) - 1]
+                    measure_layer.apply_operation_back(
+                        Measure(), (measure_qarg,), (measure.cargs[0],), check=False
+                    )
+
                 dag.compose(measure_layer)
                 dag.remove_op_node(swap)
         return dag
