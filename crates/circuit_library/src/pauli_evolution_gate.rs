@@ -62,8 +62,11 @@ impl PauliEvolution {
     }
 
     /// Decomposes `PauliEvolution` into its raw components: `(operator, time)`.
-    pub fn into_parts(self) -> (SparseObservable, Param) {
-        (self.operator, self.time.0)
+    pub fn into_parts(self) -> PauliEvolutionParts {
+        PauliEvolutionParts {
+            operator: self.operator,
+            time: self.time.0,
+        }
     }
 }
 
@@ -126,6 +129,12 @@ impl PartialEq for ComparableParam {
             _ => false,
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct PauliEvolutionParts {
+    pub operator: SparseObservable,
+    pub time: Param,
 }
 
 #[cfg(test)]
