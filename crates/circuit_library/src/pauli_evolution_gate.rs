@@ -130,34 +130,68 @@ impl PartialEq for ComparableParam {
 
 #[cfg(test)]
 mod tests {
-    use qiskit_circuit::operations::OperationRef;
+    use pyo3::Python;
+    use qiskit_circuit::{
+        operations::OperationRef, parameter::parameter_expression::ParameterExpression,
+    };
     use qiskit_quantum_info::sparse_observable::BitTerm;
 
     use super::*;
 
     #[test]
+    fn test_time_python_obj() {
+        let obs = create_observable();
+
+        Python::initialize();
+        let obj = Python::attach(|py| py.None());
+
+        let res = PauliEvolution::new(obs, Param::Obj(obj));
+        assert!(matches!(res, Err(PauliEvolutionError)))
+    }
+
+    #[test]
     fn test_inverse_float() {
-        let operator = SparseObservable::new(
+        let obs = create_observable();
+
+        let gate = PauliEvolution::new(obs, Param::Float(3.0)).unwrap();
+        let (packed, _) = gate.inverse(&[]).unwrap();
+
+        let OperationRef::CustomOperation(custom) = packed.view() else {
+            panic!("inverse is not custom operation");
+        };
+
+        let res: &PauliEvolution = custom.downcast_ref().unwrap();
+        assert!(matches!(
+            res.time(),
+            Param::Float(time) if *time == -3.0
+        ));
+    }
+
+    #[test]
+    fn test_inverse_param() {
+        let obs = create_observable();
+
+        let expr = Arc::new(ParameterExpression::from_f64(3.0));
+        let gate = PauliEvolution::new(obs, Param::ParameterExpression(expr)).unwrap();
+        let (packed, _) = gate.inverse(&[]).unwrap();
+
+        let OperationRef::CustomOperation(custom) = packed.view() else {
+            panic!("inverse is not custom operation");
+        };
+
+        let exp = ParameterExpression::from_f64(-3.0);
+        let res: &PauliEvolution = custom.downcast_ref().unwrap();
+        assert!(matches!(res.time(), Param::ParameterExpression(expr) if expr.as_ref() == &exp));
+    }
+
+    fn create_observable() -> SparseObservable {
+        SparseObservable::new(
             2,
             vec![1.0.into()],
             vec![BitTerm::Y, BitTerm::X],
             vec![0, 1],
             vec![0, 2],
         )
-        .expect("is valid");
-
-        let evolution = PauliEvolution::new(operator, Param::Float(3.0)).unwrap();
-        let (inverse, _) = evolution.inverse(&[]).unwrap();
-
-        let OperationRef::CustomOperation(inverse) = inverse.view() else {
-            panic!("inverse is not custom operation");
-        };
-
-        let inverse: &PauliEvolution = inverse.downcast_ref().unwrap();
-
-        assert!(matches!(
-            inverse.time(),
-            Param::Float(time) if *time == -3.0
-        ));
+        .expect("is valid")
     }
 }
