@@ -20,7 +20,7 @@ use super::{BitTerm, MatrixError, SparseTermView};
 
 pub fn create_with_zeros(num_qubits: u32) -> Result<Array2<Complex64>, MatrixError> {
     if num_qubits == 0 {
-        return Err(MatrixError::Undefined);
+        return Err(MatrixError::ZeroQubits);
     }
 
     let dim = 1usize
@@ -194,7 +194,7 @@ mod tests {
             .expect("is coherent")
             .to_matrix();
 
-        assert!(matches!(res, Err(MatrixError::Undefined)));
+        assert!(matches!(res, Err(MatrixError::ZeroQubits)));
     }
 
     #[test]

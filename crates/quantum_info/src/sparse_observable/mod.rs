@@ -286,10 +286,10 @@ pub enum LabelError {
 /// The error returned for failed matrix operations.
 #[derive(Debug, Error)]
 pub enum MatrixError {
-    #[error("{0} qubit matrix exceeds system limits")]
+    #[error("{0} qubit matrix exceeds size limit")]
     LimitExceeded(u32),
-    #[error("0 qubit matrix is undefined")]
-    Undefined,
+    #[error("number of qubits is 0")]
+    ZeroQubits,
 }
 
 #[derive(Error, Debug)]
