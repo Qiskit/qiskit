@@ -2331,7 +2331,7 @@ mod test_custom_operations {
         assert!(matches!(matrix_res, Ok(Some(matrix)) if matrix == matrix_exp));
 
         let matrix_res = gate.to_matrix(&[Param::Float(PI)]);
-        assert!(matrix_res.is_err());
+        assert!(matches!(matrix_res, Ok(None)));
 
         let circuit = gate.definition(&[]).expect("Circuit should exist.");
         assert_eq!(circuit.len(), 1);
@@ -2492,7 +2492,7 @@ mod test_custom_operations {
         ));
 
         // Compare null case
-        assert!(labeled_rz.to_matrix(&[]).is_err());
+        assert!(matches!(labeled_rz.to_matrix(&[]), Ok(None)));
     }
 
     // Test inversed gate
