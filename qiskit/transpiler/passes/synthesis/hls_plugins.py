@@ -355,6 +355,10 @@ Pauli Evolution Synthesis
       - Plugin class
       - Description
       - Targeted connectivity
+    * - ``"basic"``
+      - :class:`~.PauliEvolutionSynthesisBasic`
+      - use a diagonalizing Clifford per Pauli term
+      - all-to-all
     * - ``"rustiq"``
       - :class:`~.PauliEvolutionSynthesisRustiq`
       - use the synthesis method from `Rustiq circuit synthesis library
@@ -366,13 +370,14 @@ Pauli Evolution Synthesis
       - all-to-all
     * - ``"default"``
       - :class:`~.PauliEvolutionSynthesisDefault`
-      - use a diagonalizing Clifford per Pauli term
+      - Uses the best synthesis method available.
       - all-to-all
 
 .. autosummary::
    :toctree: ../stubs/
 
    PauliEvolutionSynthesisDefault
+   PauliEvolutionSynthesisBasic
    PauliEvolutionSynthesisRustiq
    PauliEvolutionSynthesisMcts
 
@@ -2122,7 +2127,28 @@ class MultiplierSynthesisDefault(HighLevelSynthesisPlugin):
 class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
     """Synthesize a :class:`.PauliEvolutionGate` using the default synthesis algorithm.
 
+    Currently always selects the basic algorithm.
+
+    All options passed to this plugin are forwarded to the selected synthesis
+    plugin. For best controllability, use the relevant synthesis plugin
+    directly.
+
     This plugin name is:``PauliEvolution.default`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        synth_object = PauliEvolutionSynthesisBasic().run(
+            high_level_object, coupling_map, target, qubits, **options
+        )
+        return synth_object
+
+
+class PauliEvolutionSynthesisBasic(HighLevelSynthesisPlugin):
+    """Synthesize a :class:`.PauliEvolutionGate` using the basic synthesis algorithm.
+
+    This plugin name is:``PauliEvolution.basic`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
     The following plugin option can be set:
