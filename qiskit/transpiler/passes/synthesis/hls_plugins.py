@@ -2416,6 +2416,7 @@ class AnnotatedSynthesisDefault(HighLevelSynthesisPlugin):
             min_qubits=0,
             unroll_definitions=data.unroll_definitions,
             optimize_clifford_t=data.optimize_clifford_t,
+            optimization_level=data.optimization_level,
         )
 
         num_ctrl = sum(mod.num_ctrl_qubits for mod in modifiers if isinstance(mod, ControlModifier))

@@ -232,6 +232,19 @@ class OpAPluginNeedsQubits(HighLevelSynthesisPlugin):
         return qc
 
 
+class OpAPluginUsingOptimizationLevel(HighLevelSynthesis):
+    """A synthesis plugin for OpA that uses ``optimization_level``."""
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        optimization_level = options.get("optimization_level", None)
+        qc = QuantumCircuit(1)
+        if optimization_level == 1:
+            qc.x(0)
+        else:
+            qc.y(0)
+        return qc
+
+
 class MockPluginManager:
     """Mocks the functionality of HighLevelSynthesisPluginManager,
     without actually depending on the stevedore extension manager.
@@ -244,10 +257,11 @@ class MockPluginManager:
             "op_b.simple": OpBSimpleSynthesisPlugin,
             "op_a.needs_coupling_map": OpAPluginNeedsCouplingMap,
             "op_a.needs_qubits": OpAPluginNeedsQubits,
+            "op_a.using_opt_level": OpAPluginUsingOptimizationLevel,
         }
 
         self.plugins_by_op = {
-            "op_a": ["default", "repeat", "needs_coupling_map", "needs_qubits"],
+            "op_a": ["default", "repeat", "needs_coupling_map", "needs_qubits", "using_opt_level"],
             "op_b": ["simple"],
         }
 
@@ -824,6 +838,7 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
             min_qubits=0,
             unroll_definitions=True,
             optimize_clifford_t=False,
+            optimization_level=2,
         )
 
         # The tracker keeps the state of each qubits in the circuit.
@@ -846,6 +861,21 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
         # must be clean.
         for q in range(num_qubits):
             self.assertEqual(tracker.is_qubit_clean(q), q not in gate_qubits)
+
+    def test_optimization_level_is_passed(self):
+        """Check that HighLevelSynthesis sets optimization_level for its plugins."""
+        qc = QuantumCircuit(1)
+        qc.append(OpA(), [0])
+        mock_plugin_manager = MockPluginManager
+        with unittest.mock.patch(
+            "qiskit.transpiler.passes.synthesis.high_level_synthesis.HighLevelSynthesisPluginManager",
+            wraps=mock_plugin_manager,
+        ):
+            config = HLSConfig(op_a=["using_opt_level"])
+            qct_opt1 = HighLevelSynthesis(hls_config=config, optimization_level=1)(qc)
+            self.assertEqual(set(qct_opt1.count_ops()), {"x"})
+            qct_opt1 = HighLevelSynthesis(hls_config=config, optimization_level=2)(qc)
+            self.assertEqual(set(qct_opt1.count_ops()), {"y"})
 
 
 class TestHighLevelSynthesisQuality(QiskitTestCase):
