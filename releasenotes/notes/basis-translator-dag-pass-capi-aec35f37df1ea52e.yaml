@@ -1,0 +1,16 @@
+---
+features_c:
+  - |
+    Added a new C API function :c:func:`qk_transpiler_pass_basis_translator`,
+    which runs the :class:`.BasisTranslator` transpiler pass on a ``QkDag``
+    in place. Unlike the standalone variant
+    :c:func:`qk_transpiler_pass_standalone_basis_translator`, this function
+    takes the equivalence library as an input parameter so callers can build
+    it once and reuse it across repeated calls (for example, when running
+    the pass inside a custom transpiler stage).
+  - |
+    Added a new opaque type ``QkEquivalenceLibrary`` together with the
+    constructor :c:func:`qk_equivalence_library_new_standard` and the
+    destructor :c:func:`qk_equivalence_library_free`. These let C callers
+    obtain Qiskit's standard library of gate equivalences for use with the
+    basis translator pass.
