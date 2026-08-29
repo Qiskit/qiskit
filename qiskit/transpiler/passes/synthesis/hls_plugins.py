@@ -2127,7 +2127,7 @@ class MultiplierSynthesisDefault(HighLevelSynthesisPlugin):
 class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
     """Synthesize a :class:`.PauliEvolutionGate` using the default synthesis algorithm.
 
-    Currently always selects the basic algorithm.
+    Selects the best synthesis algorithms based on ``options``.
 
     All options passed to this plugin are forwarded to the selected synthesis
     plugin. For best controllability, use the relevant synthesis plugin
@@ -2136,12 +2136,24 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
     This plugin name is:``PauliEvolution.default`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
+    The following plugin option can be set:
+
+    * optimization_level: The optimization level used to select the synthesis
+        algorithm. An optimization level of 2 or higher selects the MCTS algorithm;
+        lower levels select the basic algorithm. All other options are passed to the
+        selected plugin.
+
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
-        synth_object = PauliEvolutionSynthesisBasic().run(
-            high_level_object, coupling_map, target, qubits, **options
-        )
+        if options.get("optimization_level", 2) >= 2:
+            synth_object = PauliEvolutionSynthesisMcts().run(
+                high_level_object, coupling_map, target, qubits, **options
+            )
+        else:
+            synth_object = PauliEvolutionSynthesisBasic().run(
+                high_level_object, coupling_map, target, qubits, **options
+            )
         return synth_object
 
 
