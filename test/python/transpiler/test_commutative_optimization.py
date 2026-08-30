@@ -336,6 +336,20 @@ class TestCommutativeOptimization(QiskitTestCase):
 
         self.assertEqual(qct, qc)
 
+    def test_not_merge_pauli_evolutions_different_hamiltonian_small_diff(self):
+        """Test that PauliEvolutionGates with slightly different Hamiltonians are not merged.
+        gh-16873
+        """
+        op1 = SparsePauliOp.from_list([("Z", 1.0)])
+        op2 = SparsePauliOp.from_list([("Z", 1.000000005)])
+        qc = QuantumCircuit(1)
+        qc.append(PauliEvolutionGate(op1, 2e8), [0])
+        qc.append(PauliEvolutionGate(op2, 2e8), [0])
+
+        qct = CommutativeOptimization()(qc)
+
+        self.assertEqual(len(qct.data), 2)
+
     def test_merge_pauli_product_rotations(self):
         """Test that the pass merges PauliProductRotationGates."""
 

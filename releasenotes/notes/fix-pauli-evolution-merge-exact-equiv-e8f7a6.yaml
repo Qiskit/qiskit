@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue in :func:`._merge_two_pauli_evolutions` (used by
+    :class:`.CommutativeOptimization`) where :class:`.SparsePauliOp` Hamiltonians
+    were compared using approximate equivalence rather than exact canonical
+    equality, which could cause gates with slight coefficient differences to be
+    incorrectly merged when evolution times are large.
