@@ -12,33 +12,29 @@
 
 use ndarray::ArrayViewMut1;
 use ndarray::{Array1, ArrayView1};
-use pyo3::exceptions::PyValueError;
-use pyo3::prelude::*;
 use std::vec::Vec;
+use crate::permutation::PermutationError;
 
 use qiskit_util::py::PySequenceIndex;
 
-pub fn validate_permutation(pattern: &ArrayView1<i64>) -> PyResult<()> {
+pub fn validate_permutation(pattern: &ArrayView1<i64>) -> Result<(), PermutationError> {
     let n = pattern.len();
     let mut seen: Vec<bool> = vec![false; n];
 
     for &x in pattern {
         if x < 0 {
-            return Err(PyValueError::new_err(
-                "Invalid permutation: input contains a negative number.",
-            ));
+            return Err(PermutationError::NegativeEntry);
         }
 
         if x as usize >= n {
-            return Err(PyValueError::new_err(format!(
-                "Invalid permutation: input has length {n} and contains {x}."
-            )));
+            return Err(PermutationError::OutOfBounds {
+                length: n,
+                value: x,
+            });
         }
 
         if seen[x as usize] {
-            return Err(PyValueError::new_err(format!(
-                "Invalid permutation: input contains {x} more than once."
-            )));
+            return Err(PermutationError::DuplicateEntry { value: x });
         }
 
         seen[x as usize] = true;
