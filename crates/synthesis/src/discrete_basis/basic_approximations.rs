@@ -36,6 +36,9 @@ pub enum DiscreteBasisError {
 
     #[error("Cannot extract matrix from operation.")]
     NoMatrix,
+
+    #[error("Only standard gates are allowed in GateSequence.from_gates_and_matrix.")]
+    NonStandardGate,
 }
 
 impl From<DiscreteBasisError> for PyErr {
@@ -330,11 +333,10 @@ impl GateSequence {
             .iter()
             .map(|op| match op.operation.view() {
                 OperationRef::StandardGate(gate) => Ok(gate),
-                _ => Err(PyValueError::new_err(
-                    "Only standard gates are allowed in GateSequence.from_gates_and_matrix",
-                )),
+                _ => Err(DiscreteBasisError::NonStandardGate),
             })
-            .collect::<PyResult<_>>()?;
+            .collect::<Result<_, DiscreteBasisError>>()
+            .map_err(PyErr::from)?;
 
         let matrix_so3 = matrix3_from_pyreadonly(&matrix_so3);
         Ok(Self {
