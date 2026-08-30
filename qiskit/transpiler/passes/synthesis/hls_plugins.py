@@ -2146,6 +2146,10 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        def is_all_to_all(coupling_map):
+            return coupling_map is not None and coupling_map == CouplingMap.from_full(
+                target.num_qubits
+            )
 
         def size2q(circuit):
             return circuit.size(lambda x: x.operation.num_qubits == 2)
@@ -2154,7 +2158,7 @@ class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
             high_level_object, coupling_map, target, qubits, **options
         )
 
-        if options.get("optimization_level", 2) >= 2:
+        if options.get("optimization_level", 2) >= 2 and is_all_to_all(coupling_map):
             synth_mcts = PauliEvolutionSynthesisMcts().run(
                 high_level_object, coupling_map, target, qubits, **options
             )
