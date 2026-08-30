@@ -406,14 +406,14 @@ pub fn synth_mcx_n_dirty_i15(
 
 /// Synthesize a multi-controlled X gate with :math:`k` controls using no auxiliary qubits via the relation
 /// MCX = H · MCP(π) · H.
+/// For details on MCP synthesis see Python's `synth_mcp_noaux_default` in `qiskit/synthesis/multi_controlled/mcp_synthesis.py`.
 ///
 /// # Arguments
 /// - num_controls: the number of control qubits.
 ///
 /// # Returns
 ///
-/// A quantum circuit with :math:`k + 1` qubits. The number of CX-gates is
-/// quadratic in :math:`k`.
+/// A quantum circuit with :math:`k + 1` qubits.
 ///
 #[allow(dead_code)]
 pub fn synth_mcx_mcp_noaux(
