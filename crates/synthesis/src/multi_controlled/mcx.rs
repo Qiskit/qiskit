@@ -404,7 +404,7 @@ pub fn synth_mcx_n_dirty_i15(
     }
 }
 
-/// Synthesize a multi-controlled X gate with :math:`k` using no auxiliary qubits via the relation
+/// Synthesize a multi-controlled X gate with :math:`k` controls using no auxiliary qubits via the relation
 /// MCX = H · MCP(π) · H.
 ///
 /// # Arguments
