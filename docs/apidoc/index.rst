@@ -75,6 +75,8 @@ Other:
 .. toctree::
    :maxdepth: 1
 
+   capi
    compiler
    exceptions
+   root
    utils

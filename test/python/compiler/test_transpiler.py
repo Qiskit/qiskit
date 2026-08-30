@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -97,6 +97,7 @@ from qiskit.transpiler.passes import (
     GateDirection,
     VF2PostLayout,
     WrapAngles,
+    SabreLayout,
 )
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
@@ -105,7 +106,7 @@ from qiskit.transpiler.target import InstructionProperties, Target
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler import WrapAngleRegistry
 
-from test import QiskitTestCase, combine, slow_test  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine, slow_test
 
 from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP, TOKYO_CMAP, MUMBAI_CMAP
 
@@ -1931,6 +1932,41 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(Operator.from_circuit(result), Operator.from_circuit(qc))
 
     @data(0, 1, 2, 3)
+    def test_target_as_positional_backend_arg(self, opt_level):
+        """Test that a Target can be passed as the second positional argument to transpile(),
+        consistent with the behaviour of generate_preset_pass_manager()."""
+        theta = Parameter("θ")
+        phi = Parameter("ϕ")
+        lam = Parameter("λ")
+        target = Target(num_qubits=2)
+        target.add_instruction(UGate(theta, phi, lam), {(0,): None, (1,): None})
+        target.add_instruction(CXGate(), {(0, 1): None})
+        target.add_instruction(Measure(), {(0,): None, (1,): None})
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        result = transpile(qc, target, optimization_level=opt_level, seed_transpiler=42)
+
+        self.assertEqual(Operator.from_circuit(result), Operator.from_circuit(qc))
+
+    def test_target_as_positional_backend_arg_conflicts_with_target_kwarg(self):
+        """Test that passing a Target positionally as backend and also as target= raises TypeError."""
+        theta = Parameter("θ")
+        phi = Parameter("ϕ")
+        lam = Parameter("λ")
+        target = Target(num_qubits=2)
+        target.add_instruction(UGate(theta, phi, lam), {(0,): None, (1,): None})
+        target.add_instruction(CXGate(), {(0, 1): None})
+        target.add_instruction(Measure(), {(0,): None, (1,): None})
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        with self.assertRaises(TypeError):
+            transpile(qc, target, target=target)
+
+    @data(0, 1, 2, 3)
     def test_transpile_control_flow_no_backend(self, opt_level):
         """Test `transpile` with control flow and no specified hardware constraints."""
         qc = QuantumCircuit(QuantumRegister(1, "q"), ClassicalRegister(1, "c"))
@@ -2100,7 +2136,7 @@ class TestTranspile(QiskitTestCase):
         self.assertNotIn("barrier", tqc.count_ops())
 
     @data(0, 1, 2, 3)
-    def test_barrier_not_output_input_preservered(self, opt_level):
+    def test_barrier_not_output_input_preserved(self, opt_level):
         """Test that barriers added as part internal transpiler operations do not leak out."""
         qc = QuantumCircuit(2, 2)
         qc.cx(0, 1)
@@ -2182,7 +2218,7 @@ class TestTranspile(QiskitTestCase):
         target.add_instruction(XGate(), {(i,): None for i in range(5)})
         target.add_instruction(SXGate(), {(i,): None for i in range(5)})
         target.add_instruction(RZGate(Parameter("a")), {(i,): None for i in range(5)})
-        target.add_instruction(CZGate(), {pair: None for pair in CouplingMap.from_line(5)})
+        target.add_instruction(CZGate(), dict.fromkeys(CouplingMap.from_line(5)))
         target.add_instruction(IfElseOp, name="if_else")
 
         self.assertEqual(
@@ -2193,7 +2229,7 @@ class TestTranspile(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_no_cancelling_around_box(self, level):
         """Test that operations aren't cancelled through the walls of a 'box'."""
-        # In linear opeartion, we do cz(0,1) - cz(0,1) - cx(1,2) - cx(1,2), so without the `box`,
+        # In linear operation, we do cz(0,1) - cz(0,1) - cx(1,2) - cx(1,2), so without the `box`,
         # the circuit would optimise to the identity.  We want to be sure that the box itself is
         # treated as atomic, though.
         qc = QuantumCircuit(3)
@@ -2206,8 +2242,8 @@ class TestTranspile(QiskitTestCase):
         target = Target(3)
         target.add_instruction(SXGate(), {(i,): None for i in range(3)})
         target.add_instruction(RZGate(Parameter("a")), {(i,): None for i in range(3)})
-        target.add_instruction(CZGate(), {pair: None for pair in CouplingMap.from_line(3)})
-        target.add_instruction(CXGate(), {pair: None for pair in CouplingMap.from_line(3)})
+        target.add_instruction(CZGate(), dict.fromkeys(CouplingMap.from_line(3)))
+        target.add_instruction(CXGate(), dict.fromkeys(CouplingMap.from_line(3)))
         target.add_instruction(BoxOp, name="box")
 
         out = transpile(qc, target=target, optimization_level=level, initial_layout=[0, 1, 2])
@@ -2225,7 +2261,7 @@ class TestTranspile(QiskitTestCase):
         target = Target(3)
         target.add_instruction(SXGate(), {(i,): None for i in range(3)})
         target.add_instruction(RZGate(Parameter("a")), {(i,): None for i in range(3)})
-        target.add_instruction(CZGate(), {pair: None for pair in CouplingMap.from_line(3)})
+        target.add_instruction(CZGate(), dict.fromkeys(CouplingMap.from_line(3)))
         target.add_instruction(BoxOp, name="box")
 
         out = transpile(qc, target=target, optimization_level=level, initial_layout=[0, 1, 2])
@@ -2246,7 +2282,7 @@ class TestTranspile(QiskitTestCase):
         target = Target(num_qubits)
         target.add_instruction(SXGate(), {(i,): None for i in range(num_qubits)})
         target.add_instruction(RZGate(Parameter("a")), {(i,): None for i in range(num_qubits)})
-        target.add_instruction(CZGate(), {pair: None for pair in CouplingMap.from_line(num_qubits)})
+        target.add_instruction(CZGate(), dict.fromkeys(CouplingMap.from_line(num_qubits)))
         target.add_instruction(BoxOp, name="box")
 
         out = transpile(
@@ -2286,17 +2322,19 @@ class TestTranspile(QiskitTestCase):
         # `dt` set.  For that test to work, we need to check that compiling explicitly without
         # errors produces a different layout to transpiling with them, so we can then later check
         # that the "custom dt" transpile matches the "with errors" case.
-
-        tqc_no_error = transpile(qc, coupling_map=coupling_map, seed_transpiler=4242)
+        seed_transpiler = 2025_07_07
+        tqc_no_error = transpile(qc, coupling_map=coupling_map, seed_transpiler=seed_transpiler)
         # transpile with gate errors
-        tqc_no_dt = transpile(qc, backend=backend, seed_transpiler=4242)
-        # confirm that the output layouts are different
+        tqc_no_dt = transpile(qc, backend=backend, seed_transpiler=seed_transpiler)
+        # confirm that the output layouts are different. This can fail spurious if the built-in
+        # layout pass happened to choose the same initial layout that the noise-aware remapping
+        # converges to.  In that case, you can bump the transpiler seed.
         self.assertNotEqual(
             tqc_no_dt.layout.final_index_layout(), tqc_no_error.layout.final_index_layout()
         )
         # now modify dt with gate errors
-        tqc_dt = transpile(qc, backend=backend, seed_transpiler=4242, dt=backend.dt * 2)
-        # confirm that dt doesn't affect layout
+        tqc_dt = transpile(qc, backend=backend, seed_transpiler=seed_transpiler, dt=backend.dt * 2)
+        # confirm that dt doesn't affect layout.
         self.assertEqual(tqc_no_dt.layout.final_index_layout(), tqc_dt.layout.final_index_layout())
 
     @combine(optimization_level=[0, 1, 2, 3], control_flow=[False, True])
@@ -2389,6 +2427,28 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(shared_circuits, own_circuits)
         together_circuits = make_pm().run(circuits)
         self.assertEqual(together_circuits, own_circuits)
+
+    def test_parse_seed_transpiler_from_env_var(self):
+        """Test that the environment variable QISKIT_TRANSPILER_SEED is passed to the transpiler."""
+        qc = QuantumCircuit(3)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.cx(2, 0)
+
+        # Save the original SabreLayout.run method, and create a mock method that calls the original method,
+        # but also records the value for seed.
+        original_run = SabreLayout.run
+        run_calls = []
+
+        def mock_run(self, dag):
+            run_calls.append(self.seed)
+            original_run(self, dag)
+
+        with patch.dict(os.environ, {"QISKIT_TRANSPILER_SEED": "1234"}):
+            with patch.object(SabreLayout, "run", new=mock_run):
+                _ = transpile(qc, optimization_level=1, coupling_map=CouplingMap.from_line(3))
+        self.assertEqual(len(run_calls), 1)
+        self.assertEqual(run_calls[0], 1234)
 
 
 @ddt
@@ -2795,9 +2855,9 @@ class TestPostTranspileIntegration(QiskitTestCase):
         for i in range(5):
             qc.cx(i % qubits, int(i + qubits / 2) % qubits)
 
-        tqc = transpile(qc, backend=backend, seed_transpiler=4242, callback=callback)
+        tqc = transpile(qc, backend=backend, seed_transpiler=2025_07_07, callback=callback)
         self.assertTrue(vf2_post_layout_called)
-        self.assertEqual([1, 3, 4], _get_index_layout(tqc, qubits))
+        self.assertEqual([1, 4, 3], _get_index_layout(tqc, qubits))
 
     @data("sabre", "lookahead", "basic")
     def test_final_layout_combined_correctly(self, routing):
@@ -2849,7 +2909,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
 
         # When the annotation framework expands to have more semantics, the test here might need to
         # expand to mark the custom annotations as being safe under any circuit transformation.
-        class Custom(Annotation):  # pylint: disable=missing-class-docstring
+        class Custom(Annotation):
             namespace = "custom"
 
             def __init__(self, value):
@@ -3205,7 +3265,7 @@ class TestTranspileParallel(QiskitTestCase):
                     check=False,
                 )
             else:
-                raise RuntimeError()
+                raise RuntimeError
 
             if pi < angle % (4 * pi) < 3 * pi:
                 new_dag.global_phase += pi

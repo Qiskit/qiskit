@@ -15,5 +15,7 @@ workspace = true
 [dependencies]
 num-bigint.workspace = true
 hashbrown.workspace = true
-pyo3.workspace = true
-qiskit-circuit.workspace = true
+
+[dependencies.pyo3]
+workspace = true
+features = ["py-clone", "num-bigint"]
