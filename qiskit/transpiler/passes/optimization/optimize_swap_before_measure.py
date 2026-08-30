@@ -52,6 +52,8 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
                 # the node swap needs to be removed and, if a measure follows, needs to be adapted
                 swap_qargs = swap.qargs
                 measure_layer = DAGCircuit()
+                measure_layer.add_qubits(dag.qubits)
+                measure_layer.add_clbits(dag.clbits)
                 for qreg in dag.qregs.values():
                     measure_layer.add_qreg(qreg)
                 for creg in dag.cregs.values():

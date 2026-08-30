@@ -352,6 +352,29 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
 
         self.assertEqual(expected, after)
 
+    def test_optimize_swap_loose_qubit_before_register(self):
+        """Verify that loose qubits preceding registers preserve correct wire targeting.
+        gh-16874
+        """
+        from qiskit.circuit import Qubit
+        loose_q = Qubit()
+        qreg = QuantumRegister(2, "q")
+        creg = ClassicalRegister(1, "c")
+
+        circuit = QuantumCircuit([loose_q], qreg, creg)
+        circuit.x(qreg[1])
+        circuit.swap(qreg[0], qreg[1])
+        circuit.measure(qreg[0], creg[0])
+
+        expected = QuantumCircuit([loose_q], qreg, creg)
+        expected.x(qreg[1])
+        expected.measure(qreg[1], creg[0])
+
+        pass_ = OptimizeSwapBeforeMeasure()
+        after = pass_.run(circuit_to_dag(circuit))
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
 
 if __name__ == "__main__":
     unittest.main()

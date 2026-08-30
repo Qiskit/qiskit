@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`.OptimizeSwapBeforeMeasure` where circuits containing
+    loose qubits preceding quantum registers in the wire order would have
+    measurements retargeted to incorrect qubits when removing terminal SWAP gates.
