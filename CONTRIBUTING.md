@@ -12,9 +12,9 @@ community in this goal.
 * [Installing Qiskit from source](#installing-qiskit-from-source)
 * [Issues and pull requests](#issues-and-pull-requests)
   * [Pull request author checklist](#pull-request-author-checklist)
+  * [Use of generative AI](#use-of-generative-ai)
   * [Code review](#code-review)
   * [Pull request merging checking](#pull-request-merging-checklist)
-  * [Use of AI tools](#use-of-ai-tools)
 * [Contributor Licensing Agreement](#contributor-licensing-agreement)
 * [Changelog generation](#changelog-generation)
 * [Release notes](#release-notes)
@@ -282,25 +282,86 @@ please ensure that:
    syntax to link the PR to that issue (**you must use the exact phrasing in order for GitHub
    to automatically close the issue when the PR merges**)
 
-### Use of AI tools
+8. You have disclosed all substantial use of AI tooling, including large language models (LLMs).
+   See [Use of generative AI](#use-of-generative-ai) for your responsibilities.
 
-> [!WARNING]
-> If you use any AI tool while preparing your code contribution, you **must** disclose the name of the tool and its version in the PR description.
 
-When using AI tools for code generation, your submission must still be your own original work of authorship, as required by the [Contributor License Agreement (CLA)](https://qisk.it/cla). It is your responsibility to make sure that:
+### Use of generative AI
 
-- You review and fully understand the generated code, and you can explain the reasoning behind it during review.
-- The usage of the AI tool does not violate any third-party license obligations.
-- The AI tool's terms and conditions allow its output to be used in open source projects and are compatible with the [Qiskit license](LICENSE.txt), the [Qiskit CLA](https://qisk.it/cla), and [these Contributor Guidelines](CONTRIBUTING.md).
-- You only use AI tools that have features to:
-  * filter out generated code substantially similar to training data, or
-  * identify similar training code so you can comply with the original license obligations (notice, attribution, etc.) and only contribute if it's compatible with the [Qiskit license](LICENSE.txt).
-- You disclose the name and version of the AI tool in your PR description.
+> [!NOTE]
+> By "generative AI", we mean tools like large language models (LLMs).
 
-Submissions that appear unreviewed or copied directly from an AI tool without proper understanding may be requested to be revised or declined.
+All interactions must be driven by a human.
+It is forbidden to allow an agent to post any content autonomously to the Qiskit repository, whether
+code, PRs, issues, or comments.
 
-Remember that spamming issues or pull requests with AI-generated comments is prohibited under the [Qiskit Code of Conduct](https://qisk.it/coc).
+You are responsible for the suitability, understanding, and explanation of any code you submit to
+Qiskit, no matter how it was produced.
 
+Qiskit maintainers may close any pull request if the review effort is expected to outweigh the
+benefit to the project, even with no proposed alternative.  This is a subjective decision made by
+maintainers, and does not require proof of generative AI use.
+
+#### Your responsibilities
+
+Your responsibilities for your code are not changed by using generative AI tooling.  These include,
+without being exhaustive:
+
+- You must submit the pull request and drive all communications.  It is not acceptable to allow an
+  agent to publicly interact autonomously with the Qiskit repository.
+
+- You have fully reviewed and understood all code you submit, and can explain the reasoning for it.
+  Using an LLM to generate the explanation is not acceptable.
+
+- Your use of the tool, or the use of the output in Qiskit, does not violate any third-party
+  license obligations of source code used during the generation, or the terms and conditions of the
+  tool.  This may mean including license notices or source attribution with the generated code.
+
+- You assert that your submission is your own original work of authorship, as required by the
+  [Contributor License Agreement (CLA)](https://qisk.it/cla) that you signed (or will sign) on your
+  first contribution to Qiskit.
+
+Any use of generative tooling to produce code or public communications (for example, comments or
+pull-request descriptions) must be disclosed in the pull-request description, using the template.
+
+#### Appropriate use of AI tools
+
+AI tools can be used to assist contributions, but this must not be done at the expense of
+maintainers.  Any contribution must be more valuable than the maintainer time required to review
+it and its architectural decisions.
+
+As a rule of thumb: to be a useful contributor, you as a human should have put in at least as much
+effort as is required for review.
+
+Qiskit development is not bottlenecked by the speed of writing code.
+If you, as a human, have not added value to the contribution beyond prompting an LLM, the
+contribution is not valuable to the project and will be rejected.
+
+LLM-generated code and prose tends to be over verbose, which transfers a lot of work to maintainers.
+You must make an effort to ensure all submissions are as simple and concise as possible.
+
+Generative-AI tooling *must not* be used for any content generation on issues labelled "good first
+issue".  These issues are expected to be simple, non-critical, and for newcomers to learn the
+process of contribution.
+
+We recommend that you do not use generative-language tooling to assist in producing PR descriptions
+or explanations in comments, but do not forbid it.  Writing the explanations yourself forces you to
+prove you understand the contribution at the level required for submission.  Imperfect human words
+are more valuable than LLM output, even if English is not your native language.
+
+
+#### Further reading
+
+This policy was informed by other projects' policies.  These links are to policies that further
+explain the same spirit as Qiskit's policy, as of 2026-08-18:
+
+- [LLVM AI Tool Use Policy](https://llvm.org/docs/AIToolPolicy.html)
+- [NumPy AI policy](https://numpy.org/devdocs/dev/ai_policy.html)
+- [Scientific Python Community Considerations around AI](https://blog.scientific-python.org/scientific-python/community-considerations-around-ai/)
+
+You can consult these documents for more explanations on what constitutes a "useful" contribution,
+what the concerns around generative-AI tooling are from a maintainer's perspective, and some
+recommendations for using generative tooling effectively.
 
 ### Code review
 
@@ -656,8 +717,9 @@ particular will be located at `docs/_build/html/release_notes.html`
 Once you've made a code change, it is important to verify that your change
 does not break any existing tests and that any new tests that you've added
 also run successfully. Before you open a new pull request for your change,
-you'll want to run Qiskit's Python test suite (as well as its Rust-based
-unit tests if you've modified native code).
+you'll want to run Qiskit's Python test suite, as well as its Rust-based
+unit tests if you've modified native Rust code, and the C API tests if you're
+working with the C API or Rust code.
 
 ### Qiskit's Python test suite
 
@@ -823,10 +885,19 @@ Note: If you have run `test/ipynb/mpl_tester.ipynb` locally it is possible some 
 
 ### Testing Rust components
 
-Many of Qiskit's core data structures and algorithms are implemented in Rust.
-The bulk of this code is exercised heavily by our Python-based unit testing,
+The core Qiskit data structures and algorithms are implemented in Rust.
+However, the bulk of this code is still primarily exercised by our Python-based unit testing,
 but this coverage really only provides integration-level testing from the
-perspective of Rust.
+perspective of Rust. This is primarily an artifact of the development history of Qiskit,
+where it originally started as a pure Python library and the core of the library was migrated
+to Rust over time. For new functionality being added to Qiskit the expectation is to add
+Rust tests in addition to integration level tests for Python and C.
+
+For C APIs there are potential benefits to writing Rust tests to exercise the C API entrypoints.
+Besides the ergonomic advantages of testing via Rust vs C, writing Rust tests for the C API enable
+more detailed analysis, such as potentially running under [miri](#Unsafe code and Miri). Rust tests
+should not be used in lieu of C tests, it is still required that all public interfaces added to
+C are exercised via the C tests.
 
 To provide Rust unit testing, we use `cargo test`. Rust tests are
 integrated directly into the Rust file being tested within a `tests` module.
@@ -846,76 +917,15 @@ mod tests {
 For more detailed guidance on how to write Rust tests, you can refer to the Rust
 documentation's [guide on writing tests](https://doc.rust-lang.org/book/ch11-01-writing-tests.html).
 
-Rust tests are run separately from the Python tests. The easiest way to run
-them is via `tox`, which creates an isolated venv and pre-installs `qiskit`
-prior to running `cargo test`:
+Rust tests are run separately from the Python and C tests. To run the tests you can simply invoke
+`cargo test`.
 
 ```bash
-tox -erust
+cargo test
 ```
 
-> [!TIP]
-> If you've already built your changes (e.g. `python setup.py build_rust --release --inplace`),
-> you can pass `--skip-pkg-install` when invoking `tox` to avoid a rebuild. This works because
-> Python will instead find and use Qiskit from the current working directory (since we skipped
-> its installation).
-
-#### Using a custom venv instead of `tox`
-
-If you're not using `tox`, you can also execute Cargo tests directly in your own virtual environment.
-If you haven't done so already, [create a Python virtual environment](#set-up-a-python-venv) and
-**_activate it_**.
-
-You will need to install (at least) the `build` and `test` dependency groups, such as
-```
-pip install --group build --group test
-```
-You can alternatively install the `dev` group, which encompasses both of these.
-
-Then, run the following commands:
-
-```bash
-python setup.py build_rust --inplace
-tools/run_cargo_test.py
-```
-
-The first command builds Qiskit in editable mode,
-which ensures that Rust tests that interact with Qiskit's Python code actually
-use the latest Python code from your working directory. The second command invokes
-the tests via Cargo.
-
-#### Calling Python from Rust tests
-By default, our Cargo project configuration allows Rust tests to interact with the
-Python interpreter by calling `Python::with_gil` to obtain a `Python` (`py`) token.
-This is particularly helpful when testing Rust code that (still) requires interaction
-with Python.
-
-To execute code that needs the GIL in your tests, define the `tests` module as
-follows:
-
-```rust
-#[cfg(all(test, not(miri)))] // disable for Miri!
-mod tests {
-    use pyo3::prelude::*;
-    
-    #[test]
-    fn my_first_test() {
-        Python::with_gil(|py| {
-            todo!() // do something that needs a `py` token.
-        })
-    }
-}
-```
-
-> [!IMPORTANT]
-> Note that we explicitly disable compilation of such tests when running with Miri, i.e.
-`#[cfg(not(miri))]`. This is necessary because Miri doesn't support the FFI
-> code used internally by PyO3.
->
-> If not all of your tests will use the `Python` token, you can disable Miri on a per-test
-basis within the same module by decorating *the specific test* with `#[cfg_attr(miri, ignore)]`
-instead of disabling Miri for the entire module.
-
+If you want to run the tests for a single [crate](https://doc.rust-lang.org/book/ch07-01-packages-and-crates.html)
+you can either change your working directory to that crate and run `cargo test`.
 
 ### Unsafe code and Miri
 
@@ -950,6 +960,21 @@ the top-level `Makefile`, which you can run with
 ```bash
 make ctest
 ```
+
+You can pass arbitrary CMake flags to the `ctest` recipe by setting the
+`CMAKE_FLAGS` environment variable, such as:
+
+```bash
+CMAKE_FLAGS='-DCMAKE_C_STANDARD=23 -DCMAKE_C_EXTENSIONS=ON' make ctest
+```
+
+which will run the C API tests in `gnu23` (or equivalent) mode, instead of the
+default.
+
+> [!NOTE]
+> Overriding any `CMAKE_FLAGS` from the command line will cause them to become
+> your new cached default values.  Run `make cclean` to fully clear all caches
+> if you want to reset to the defaults later.
 
 #### Writing C API tests
 

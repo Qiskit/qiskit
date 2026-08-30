@@ -179,6 +179,50 @@ class TestSynthesizeRzRotations(QiskitTestCase):
             )
             self.assertLessEqual(operator_norm_distance(qct, angle), synthesis_error)
 
+    def test_large_synthesis_error(self):
+        """
+        Test with large synthesis error and rotations that previously made
+        `rsgridsynth` panic.
+        """
+
+        synthesis_error = 1e-2
+        angles = [
+            0.25,
+            -0.25,
+            0.5,
+            -0.5,
+            1.0,
+            -1.0,
+            -0.7853981633974483,
+            2.0,
+            -2.0,
+            0.7853981633974483,
+            -0.7853981633974483,
+            0.39269908169872414,
+            -1.1780972450961724,
+            0.7853981633974483,
+            -0.7853981633974483,
+            -0.39269908169872414,
+            0.19634954084936207,
+            0.39269908169872414,
+            -1.3744467859455345,
+            0.7853981633974483,
+            -0.7853981633974483,
+            -0.39269908169872414,
+            -0.19634954084936207,
+        ]
+
+        qc = QuantumCircuit(1)
+        for angle in angles:
+            qc.rz(angle, 0)
+
+        qc = SynthesizeRZRotations(synthesis_error=synthesis_error, cache_error=1e-10)(qc)
+
+        full_angle = sum(angles)
+        full_error = synthesis_error * len(angles)
+
+        self.assertLessEqual(operator_norm_distance(qc, full_angle), full_error)
+
 
 def operator_norm_distance(circuit, angle):
     """Return the operator norm distance of the circuit to RZ(angle)."""

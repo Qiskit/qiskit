@@ -18,11 +18,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ env.RUSTUP_TOOLCHAIN }}
-          components: miri
+      - name: Install Rust
+        run:
+          rustup toolchain install ${{ env.RUSTUP_TOOLCHAIN }}
+            --override
+            --profile minimal
+            --component miri
+            --no-self-update
 
       - name: Prepare Miri
         run: |
