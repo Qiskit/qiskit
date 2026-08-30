@@ -24,6 +24,7 @@ pub mod exit_codes;
 pub mod param;
 pub mod sparse_observable;
 pub mod transpiler;
+pub mod qpy;
 
 pub use exit_codes::ExitCode;
 
