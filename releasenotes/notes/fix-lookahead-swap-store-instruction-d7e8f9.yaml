@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed an issue in :class:`.LookaheadSwap` where zero-qubit operations with
+    classical side effects (such as :class:`.Store` instructions) were silently
+    dropped during routing.

@@ -301,6 +301,8 @@ def _map_free_gates(state, gates):
             qubits = _first_op_node(gate["graph"]).qargs
 
             if not qubits:
+                mapped_gate = _transform_gate_for_system(gate, state)
+                mapped_gates.append(mapped_gate)
                 continue
 
             if blocked_qubits.intersection(qubits):

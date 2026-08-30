@@ -315,6 +315,19 @@ class TestLookaheadSwap(QiskitTestCase):
             mapped_dag.count_ops().get("swap", 0), dag_circuit.count_ops().get("swap", 0) + 1
         )
 
+    def test_zero_qubit_store_instruction_preserved(self):
+        """Test that LookaheadSwap preserves zero-qubit Store instructions.
+        gh-16858
+        """
+        circuit = QuantumCircuit(1, 1)
+        circuit.measure(0, 0)
+        circuit.store(circuit.clbits[0], True)
+
+        coupling_map = CouplingMap([[0, 0]])
+        mapped_dag = LookaheadSwap(coupling_map).run(circuit_to_dag(circuit))
+
+        self.assertEqual(mapped_dag.count_ops().get("store", 0), 1)
+
 
 if __name__ == "__main__":
     unittest.main()
