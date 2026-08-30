@@ -490,8 +490,7 @@ PARAMETER_VECTOR_TABLE
 Version 18 stores each :class:`.ParameterVector` once per circuit payload and has its elements refer
 to it by index, instead of repeating the vector's identity in every element.
 
-The circuit payload gains a ``PARAMETER_VECTOR_TABLE`` immediately after the annotation headers (see
-:ref:`qpy_circuit`), before the custom instruction definitions:
+The circuit payload gains a ``PARAMETER_VECTOR_TABLE`` immediately after the annotation headers, before the custom instruction definitions:
 
 .. code-block:: c
 
