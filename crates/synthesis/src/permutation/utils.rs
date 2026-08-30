@@ -10,10 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::permutation::PermutationError;
 use ndarray::ArrayViewMut1;
 use ndarray::{Array1, ArrayView1};
 use std::vec::Vec;
-use crate::permutation::PermutationError;
 
 use qiskit_util::py::PySequenceIndex;
 

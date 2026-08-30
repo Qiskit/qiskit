@@ -17,10 +17,7 @@ use nalgebra::{DMatrix, DMatrixView, Dim, Dyn, MatrixView, Scalar, ViewStorage};
 use ndarray::ArrayView2;
 use ndarray::ShapeBuilder;
 use num_complex::Complex64;
-use pyo3::PyErr;
 use thiserror::Error;
-
-use crate::QiskitError;
 
 pub mod cos_sin_decomp;
 
@@ -38,22 +35,6 @@ pub enum LinAlgError {
 
     #[error("SVD decomposition failed")]
     SVDDecompositionFailed,
-}
-
-impl From<LinAlgError> for PyErr {
-    fn from(error: LinAlgError) -> Self {
-        match error {
-            LinAlgError::EigenDecompositionFailed => QiskitError::new_err(
-                "Internal eigendecomposition failed. \
-                This can point to a numerical tolerance issue.",
-            ),
-
-            LinAlgError::SVDDecompositionFailed => QiskitError::new_err(
-                "Internal SVD decomposition failed. \
-                This can point to a numerical tolerance issue.",
-            ),
-        }
-    }
 }
 
 #[inline]

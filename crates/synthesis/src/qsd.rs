@@ -24,6 +24,7 @@ use pyo3::prelude::*;
 use smallvec::smallvec;
 use thiserror::Error;
 
+use crate::QiskitError;
 use crate::euler_one_qubit_decomposer::{
     EulerBasis, EulerBasisSet, unitary_to_gate_sequence_inner,
 };
@@ -68,6 +69,22 @@ impl From<QSDError> for PyErr {
             QSDError::ErrorFromCircuitData(err) => err.into(),
 
             QSDError::ErrorFromPython(err) => err,
+        }
+    }
+}
+
+impl From<LinAlgError> for PyErr {
+    fn from(error: LinAlgError) -> Self {
+        match error {
+            LinAlgError::EigenDecompositionFailed => QiskitError::new_err(
+                "Internal eigendecomposition failed. \
+                This can point to a numerical tolerance issue.",
+            ),
+
+            LinAlgError::SVDDecompositionFailed => QiskitError::new_err(
+                "Internal SVD decomposition failed. \
+                This can point to a numerical tolerance issue.",
+            ),
         }
     }
 }

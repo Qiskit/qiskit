@@ -33,7 +33,7 @@ pub enum PermutationError {
 
     #[error("Invalid permutation: input has length {length} and contains {value}.")]
     OutOfBounds { length: usize, value: i64 },
-    
+
     #[error("Invalid permutation: input contains {value} more than once.")]
     DuplicateEntry { value: i64 },
 }
