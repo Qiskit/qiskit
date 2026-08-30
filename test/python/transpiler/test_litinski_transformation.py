@@ -621,6 +621,16 @@ class TestLitinskiTransformation(QiskitTestCase):
 
         self.assertEqual(qct, expected)
 
+    @data("Z", "-Z", "X", "-X", "Y", "-Y")
+    def test_preserves_ppm_sign(self, pauli1q):
+        """Test that Litinski transformation preserves the PPM instruction (including
+        its sign), when evolving under identity.
+        """
+        qc = QuantumCircuit(1, 1)
+        qc.append(PauliProductMeasurement(Pauli(pauli1q)), [0], [0])
+        qct = LitinskiTransformation(use_ppr=True)(qc)
+        self.assertEqual(qc, qct)
+
     def test_on_circuits_with_ppr_ppm(self):
         """Test the Litinski transformation pass on a more complex with Clifford gates,
         T gates and Z-measures.
@@ -645,9 +655,9 @@ class TestLitinskiTransformation(QiskitTestCase):
         qc.append(PauliProductRotationGate(Pauli("X"), np.pi / 2), [1])
         qc.append(PauliProductRotationGate(Pauli("X"), np.pi / 2), [2])
         qc.append(PauliProductRotationGate(Pauli("X"), np.pi / 2), [3])
-        qc.append(PauliProductMeasurement(Pauli("Z")), [0], [0])
+        qc.append(PauliProductMeasurement(Pauli("-Z")), [0], [0])
         qc.append(PauliProductMeasurement(Pauli("Z")), [1], [1])
-        qc.append(PauliProductMeasurement(Pauli("Z")), [2], [2])
+        qc.append(PauliProductMeasurement(Pauli("-Z")), [2], [2])
         qc.append(PauliProductMeasurement(Pauli("Z")), [3], [3])
 
         # Apply the Litinski transform with fix_cliffords=False (ignoring the Clifford gates
@@ -660,9 +670,9 @@ class TestLitinskiTransformation(QiskitTestCase):
         expected.append(PauliProductRotationGate(Pauli("YX"), np.pi / 4), [1, 2])
         expected.append(PauliProductRotationGate(Pauli("Y"), -np.pi / 4), [3])
         expected.append(PauliProductRotationGate(Pauli("YZZZ"), -np.pi / 4), [0, 1, 2, 3])
-        expected.append(PauliProductMeasurement(Pauli("YZZY")), [0, 1, 2, 3], [0])
+        expected.append(PauliProductMeasurement(Pauli("-YZZY")), [0, 1, 2, 3], [0])
         expected.append(PauliProductMeasurement(Pauli("XX")), [0, 1], [1])
-        expected.append(PauliProductMeasurement(Pauli("-Z")), [2], [2])
+        expected.append(PauliProductMeasurement(Pauli("Z")), [2], [2])
         expected.append(PauliProductMeasurement(Pauli("XX")), [0, 3], [3])
 
         self.assertEqual(qct, expected)
