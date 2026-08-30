@@ -2127,33 +2127,40 @@ class MultiplierSynthesisDefault(HighLevelSynthesisPlugin):
 class PauliEvolutionSynthesisDefault(HighLevelSynthesisPlugin):
     """Synthesize a :class:`.PauliEvolutionGate` using the default synthesis algorithm.
 
-    Selects the best synthesis algorithms based on ``options``.
-
-    All options passed to this plugin are forwarded to the selected synthesis
-    plugin. For best controllability, use the relevant synthesis plugin
-    directly.
-
     This plugin name is:``PauliEvolution.default`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
 
-    The following plugin option can be set:
+    This plugin runs other implemented synthesis plugins, forwarding all options to
+    the selected plugins. The choice of which synthesis plugins to run is manually
+    determined based on experiments.
+
+    For greater control, specify :class:`~.HLSConfig` with the relevant synthesis plugins
+    directly.
+
+    The following plugin option directly influences this plugin:
 
     * optimization_level: The optimization level used to select the synthesis
-        algorithm. An optimization level of 2 or higher selects the MCTS algorithm;
-        lower levels select the basic algorithm. All other options are passed to the
-        selected plugin.
+        algorithm. Higher levels generate potentially more optimized circuits,
+        at the expense of longer transpilation time.
 
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+
+        def size2q(circuit):
+            return circuit.size(lambda x: x.operation.num_qubits == 2)
+
+        synth_object = PauliEvolutionSynthesisBasic().run(
+            high_level_object, coupling_map, target, qubits, **options
+        )
+
         if options.get("optimization_level", 2) >= 2:
-            synth_object = PauliEvolutionSynthesisMcts().run(
+            synth_mcts = PauliEvolutionSynthesisMcts().run(
                 high_level_object, coupling_map, target, qubits, **options
             )
-        else:
-            synth_object = PauliEvolutionSynthesisBasic().run(
-                high_level_object, coupling_map, target, qubits, **options
-            )
+            if size2q(synth_mcts) < size2q(synth_object):
+                synth_object = synth_mcts
+
         return synth_object
 
 
