@@ -439,7 +439,11 @@ pub fn run_litinski_transformation(
                         .collect();
 
                     let (sign, z, x, indices) = clifford.evolve_pauli(in_z, in_x, &indices_in);
-                    let ppm = PauliProductMeasurement { z, x, neg: pp_meas.neg ^ sign };
+                    let ppm = PauliProductMeasurement {
+                        z,
+                        x,
+                        neg: pp_meas.neg ^ sign,
+                    };
                     qargs.clear();
                     qargs.extend(bytemuck::cast_slice(&indices));
 
