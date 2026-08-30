@@ -31,9 +31,8 @@ class TestGraySynth(QiskitTestCase):
 
     @ddt.data(
         (["s", "t", "z", "s", "t", "t"],),
-        # Angles applied on PhaseGate are 'angles%numpy.pi',
-        # So, to get PhaseGate(numpy.pi) we subtract a tiny value from pi.
-        ([pi / 2, pi / 4, pi - 1e-09, pi / 2, pi / 4, pi / 4],),
+        # Angles applied on PhaseGate are 'angles%(2*numpy.pi)'
+        ([pi / 2, pi / 4, pi, pi / 2, pi / 4, pi / 4],),
         (["s", "t", "z", "s", "t", pi / 4],),
     )
     @ddt.unpack

@@ -6,7 +6,5 @@ performance:
     See `#12937 <https://github.com/Qiskit/qiskit/pull/12937>`__ for more details.
 
 fixes:
-  - :class:`PhaseGate` are 2pi periodic, that means any angle modulo 2pi will yeild the same PhaseGate.
-    A bug where angle modulo pi was applied, was fixed by changing it to angle modulo 2pi.
-    See `#12937 <https://github.com/Qiskit/qiskit/pull/12937>`__ for more details.
+  - Fixed a bug in :func:`~.synth_cnot_phase_aam` where the angles were reduced modulo :math:`\pi` instead of :math:`2 * \pi`.
 

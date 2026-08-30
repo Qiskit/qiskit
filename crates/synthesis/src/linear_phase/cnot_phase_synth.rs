@@ -43,9 +43,9 @@ fn get_instr(angle: AngleSpec, qubit_idx: usize) -> Instruction {
     }
 }
 
-// A parity is a vector in `F_2^n`: the set of qubits that participate in one
-// phase term. We store it as a `FixedBitSet` of exactly `n` bits, where bit `k`
-// is set iff qubit `k` is in the parity.
+// A parity is a vector in `F_2^n`. We store the set of qubits that participates
+// in all the parities, as a `FixedBitSet` of `n` bits, where bit `k` is set if
+// qubit `k` participates in that particular parity of the phase polynomial.
 
 type Data = (FixedBitSet, AngleSpec);
 
@@ -58,7 +58,8 @@ struct Frame {
     // its phase gates are applied on `target`.
     indices: Vec<usize>,
 
-    // The qubit that accumulates the parities.
+    // The qubit that accumulates the parity and gets the phase gates applied to it,
+    // for a given step in the recursion.
     target: Option<usize>,
 }
 
@@ -77,7 +78,7 @@ pub fn synth_cnot_phase_aam(
 
     if num_parities != angles.len() {
         return Err(QiskitError::new_err(
-            "Number of parities (column of cnots) and angles do not match.",
+            "Number of parities (columns of cnots) and angles do not match.",
         ));
     }
 
@@ -133,39 +134,35 @@ pub fn synth_cnot_phase_aam(
 
     let mut circuit: Vec<Instruction> = Vec::new();
 
-    // Schedule phase gates that can be applied immediately, before any CNOT.
-    // The initial linear function is the identity, so at the very start of the
-    // circuit qubit `k` already carries exactly the parity x_k. Any parity in `s`
-    // that is a single unit vector e_k (exactly one set bit, at position k) can
-    // therefore have its phase gate placed directly on qubit `k` with zero CNOTs.
-    // Apply those phase gates now, and drop them from `s`, so the recursion below
-    // never routes them.
+    // If a parity in `s` has exactly one set bit, at position `k`, then it's phase
+    // gate can be placed directly on qubit `k` with zero CNOTs.
+    // Apply those phase gates now, and drop them from `s`.
 
     s.retain(|(parity, angle)| {
         let mut ones = parity.ones();
         match (ones.next(), ones.next()) {
-            // Exactly one set bit `k` => parity == e_k: emit on qubit k, drop it.
-            (Some(k), None) => {
-                circuit.push(get_instr(*angle, k));
+            // Exactly one set bit `k` => parity == e_k. Apply on qubit `k`, then drop it.
+            (Some(bit_k), None) => {
+                circuit.push(get_instr(*angle, bit_k));
                 false
             }
-            // Empty or weight >= 2: keep for the recursion.
+            // Weight >= 2 is kept for the recursion.
             _ => true,
         }
     });
 
-    // `common` will hold the bitwise AND of all parities in the current S.
-    // Bit `k` of `common` is 1 iff every y ∈ S has bit k set, that is, bit
-    // k is shared by all remaining parities.
+    // `common` will hold the bitwise AND of all parities in the current `s`.
+    // Bit `k` of `common` is 1 if every y ∈ s has bit `k` set, that is, bit
+    // `k` is shared by all remaining parities.
     let mut common = FixedBitSet::with_capacity(num_qubits);
 
-    // `parities_per_qubit[k]` will hold the number of parities in the current S whose
-    // bit k is 1. Used to pick the best split bit.
-    let mut parities_per_qubit: Vec<usize> = vec![0usize; num_qubits];
+    // `set_bit_count[k]` will hold the number of parities in the current `s` whose
+    // bit `k` is 1. Used to pick the best split bit.
+    let mut set_bit_count: Vec<usize> = vec![0usize; num_qubits];
 
-    // We pre-allocate space for ~2n+4 frames, enough to avoid most
-    // reallocations: the recursion tree has depth ≤ n, and each level
-    // pushes two children.
+    // We pre-allocate space for 2n+4 frames, enough to avoid most
+    // reallocations. The recursion tree has depth ≤ n, and each level
+    // pushes two 'Frame'.
     let mut stack: Vec<Frame> = Vec::with_capacity(2 * num_qubits + 4);
 
     stack.push(Frame {
@@ -185,23 +182,21 @@ pub fn synth_cnot_phase_aam(
             continue;
         }
 
-        // While every remaining parity in `S` shares a `1` in some bit other than
-        // the target, we can emit ONE CNOT to fold that bit into the
-        // target. Each such CNOT advances every parity in S simultaneously.
+        // While every remaining parity in `s` shares a `1` in some bit other than
+        // the target, we can apply one CNOT from that bit as control to the bit in
+        // target, after that corresponding parities on the wires are also altered
+        // accordingly.
         if let Some(target) = target_opt {
             loop {
-                // AND all parities in `S` into `common`. Seed with the first
-                // parity (`clone_from` reuses `common`'s allocation), then
-                // intersect the rest in place.
+                // AND all parities in `s` into `common`. Seed with the first
+                // parity.
                 common.clone_from(&s[0].0);
 
-                // `s.iter().skip(1)` walks `s` starting from index 1; we've
-                // already used `s[0]` for the seed. If `common` collapses to
-                // all-zero we can stop early and further ANDs stay zero.
+                // If none of the bits in `common` is 1, we can stop early.
                 for (parity, _) in s.iter().skip(1) {
                     common.intersect_with(parity);
                     if common.is_clear() {
-                        break; // all-zero already: further ANDs can't restore bits
+                        break; // no bit set, so furthur ANDs will only be 0.
                     }
                 }
 
@@ -212,7 +207,7 @@ pub fn synth_cnot_phase_aam(
                 // num_qubits, so no `control < num_qubits` guard is needed.
                 match common.ones().next() {
                     Some(control) => {
-                        // Emit the CNOT.
+                        // Apply a CNOT.
                         circuit.push((
                             StandardGate::CX,
                             smallvec![],
@@ -243,25 +238,24 @@ pub fn synth_cnot_phase_aam(
             continue;
         }
 
-        // Pick the bit to split on (the paper's `j`, Algorithm 1 line 18): the one giving the most
-        // lopsided partition of S. Here, `j` is called `split_idx`.
+        // Pick the bit to split on (the paper's `j`, Algorithm 1 line 18) the one giving the most
+        // lopsided partition of `s`. Here, `j` is called `split_idx`.
         // split_idx = argmax_{split_idx ∈ indices} max(|{y : y_split_idx = 0}|, |{y : y_split_idx = 1}|)
 
-        // Reset `parities_per_qubit` to zero without reallocating.
-        parities_per_qubit.fill(0);
+        // Reset `set_bit_count` to zero.
+        set_bit_count.fill(0);
 
-        // Count how many parities have each bit set. `ones()` yields exactly
-        // the set-bit indices (increasing, all < num_qubits).
+        // Count how many parities have each bit set.
         for (parity, _) in &s {
             for idx in parity.ones() {
-                parities_per_qubit[idx] += 1;
+                set_bit_count[idx] += 1;
             }
         }
 
         let count_0s_1s = s.len();
         let (mut largest_idx, mut largest_subset) = (indices[0], 0usize);
         for &idx in &indices {
-            let count_1s = parities_per_qubit[idx];
+            let count_1s = set_bit_count[idx];
             let larger_subset = count_1s.max(count_0s_1s - count_1s);
             if larger_subset > largest_subset {
                 largest_subset = larger_subset;
@@ -319,7 +313,7 @@ fn apply_row_op_stack(stack: &mut [Frame], control: usize, target: usize) {
     }
 }
 
-/// Apply  y_control = y_control XOR y_target  to every parity in the given slice.
+/// Apply  y_control = y_control XOR y_target to every parity in the given slice.
 /// For each parity, if bit `target` is set we flip bit `control` (that is exactly XOR).
 fn apply_row_op_set(s: &mut [Data], control: usize, target: usize) {
     for (y, _) in s.iter_mut() {
