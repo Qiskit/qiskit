@@ -282,7 +282,14 @@ pub fn native_dump_qpy(circuits: Vec<CircuitData>, qpy_version: u8) -> Result<Ve
             layout: Bytes::new(),
         })
         .collect();
-    dump_qpy(circuits, extra_data, qpy_version, None, Some(QpyCaller::Native)).map(|bytes| bytes.0)
+    dump_qpy(
+        circuits,
+        extra_data,
+        qpy_version,
+        None,
+        Some(QpyCaller::Native),
+    )
+    .map(|bytes| bytes.0)
 }
 
 /// Deserializes native circuits from a complete QPY payload.

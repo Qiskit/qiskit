@@ -47,11 +47,19 @@ pub unsafe extern "C" fn qk_qpy_dump_file(
     let Ok(filename) = unsafe { CStr::from_ptr(filename) }.to_str() else {
         return ExitCode::QpyError;
     };
-    // SAFETY: upheld by the caller contract and checked for alignment/null above.
-    let circuit = unsafe { &*circuit }.clone();
-    match qiskit_qpy::native_dump_qpy(vec![circuit], version)
-        .and_then(|payload| fs::write(filename, payload).map_err(Into::into))
-    {
+    #[cfg(feature = "python_binding")]
+    let result = pyo3::Python::attach(|_| {
+        // SAFETY: upheld by the caller contract and checked for alignment/null above.
+        let circuit = unsafe { &*circuit }.clone();
+        qiskit_qpy::native_dump_qpy(vec![circuit], version)
+    });
+    #[cfg(not(feature = "python_binding"))]
+    let result = {
+        // SAFETY: upheld by the caller contract and checked for alignment/null above.
+        let circuit = unsafe { &*circuit }.clone();
+        qiskit_qpy::native_dump_qpy(vec![circuit], version)
+    };
+    match result.and_then(|payload| fs::write(filename, payload).map_err(Into::into)) {
         Ok(()) => ExitCode::Success,
         Err(_) => ExitCode::QpyError,
     }

@@ -35,7 +35,7 @@ pub static FUNCTIONS_QPY: ExportedFunctions = ExportedFunctions::leaves(10, || {
         impl_::export_fn!(qiskit_cext::qpy::qk_qpy_dump_file),
         impl_::export_fn!(qiskit_cext::qpy::qk_qpy_load_file),
     ]
-});    
+});
 pub use transpiler::FUNCTIONS as FUNCTIONS_TRANSPILE;
 
 // Below this line is close to a mirror of the actual `cext` structure.  Ideally, all of the
