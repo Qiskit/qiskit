@@ -2943,8 +2943,7 @@ impl PyDAGCircuit {
             let cargs_set: HashSet<&ShareableClbit> =
                 HashSet::from_iter(cargs_list.iter().cloned());
             if self.inner.may_have_additional_wires(&node) {
-                let (add_cargs, _add_vars) =
-                    Python::attach(|py| self.inner.additional_wires(py, &node))?;
+                let (add_cargs, _add_vars) = self.inner.additional_wires(&node)?;
                 for wire in add_cargs {
                     let clbit = self.inner.clbits.get(wire).unwrap();
                     if !cargs_set.contains(clbit) {
@@ -3072,7 +3071,7 @@ impl PyDAGCircuit {
             .collect();
 
         let node_vars = if self.inner.may_have_additional_wires(&node) {
-            let (_additional_clbits, additional_vars) = self.inner.additional_wires(py, &node)?;
+            let (_additional_clbits, additional_vars) = self.inner.additional_wires(&node)?;
             let var_set: HashSet<&expr::Var> = additional_vars
                 .into_iter()
                 .map(|v| self.inner.vars_stretches.vars().get(v).unwrap())
@@ -6085,8 +6084,7 @@ impl DAGCircuit {
             if self.may_have_additional_wires(instr) {
                 let mut clbits: IndexSet<Clbit> =
                     IndexSet::from_iter(self.cargs_interner.get(instr.clbits).iter().copied());
-                let (additional_clbits, additional_vars) =
-                    Python::attach(|py| self.additional_wires(py, instr))?;
+                let (additional_clbits, additional_vars) = self.additional_wires(instr)?;
                 for clbit in additional_clbits {
                     clbits.insert(clbit);
                 }
@@ -6301,10 +6299,9 @@ impl DAGCircuit {
 
     fn additional_wires(
         &self,
-        py: Python,
         instr: &PackedInstruction,
-    ) -> PyResult<(Vec<Clbit>, Vec<Var>)> {
-        let wires_from_expr = |node: &expr::Expr| -> PyResult<(Vec<Clbit>, Vec<Var>)> {
+    ) -> Result<(Vec<Clbit>, Vec<Var>), DAGError> {
+        let wires_from_expr = |node: &expr::Expr| -> Result<(Vec<Clbit>, Vec<Var>), DAGError> {
             let mut clbits = Vec::new();
             let mut vars: Vec<Var> = Vec::new();
             for var in node.vars() {
@@ -6382,23 +6379,29 @@ impl DAGCircuit {
                 }
             }
         } else if let OperationRef::PyCustom(instr) = instr.op.view() {
-            let op = instr.ob.bind(py);
-            if op.is_instance(imports::STORE_OP.get_bound(py))? {
-                let (expr_clbits, expr_vars) = wires_from_expr(&op.getattr("lvalue")?.extract()?)?;
-                for bit in expr_clbits {
-                    clbits.push(bit);
+            Python::attach(|py| {
+                let op = instr.ob.bind(py);
+                if op.is_instance(imports::STORE_OP.get_bound(py))? {
+                    let (expr_clbits, expr_vars) =
+                        wires_from_expr(&op.getattr("lvalue")?.extract()?)?;
+                    for bit in expr_clbits {
+                        clbits.push(bit);
+                    }
+                    for var in expr_vars {
+                        vars.push(var);
+                    }
+                    let (expr_clbits, expr_vars) =
+                        wires_from_expr(&op.getattr("rvalue")?.extract()?)?;
+                    for bit in expr_clbits {
+                        clbits.push(bit);
+                    }
+                    for var in expr_vars {
+                        vars.push(var);
+                    }
                 }
-                for var in expr_vars {
-                    vars.push(var);
-                }
-                let (expr_clbits, expr_vars) = wires_from_expr(&op.getattr("rvalue")?.extract()?)?;
-                for bit in expr_clbits {
-                    clbits.push(bit);
-                }
-                for var in expr_vars {
-                    vars.push(var);
-                }
-            }
+                Ok(())
+            })
+            .map_err(DAGError::Python)?;
         }
         Ok((clbits, vars))
     }
@@ -7346,8 +7349,7 @@ impl DAGCircuit {
         }
 
         if self.may_have_additional_wires(inst) {
-            let (clbits, vars) =
-                Python::attach(|py| self.additional_wires(py, inst).map_err(DAGError::Python))?;
+            let (clbits, vars) = self.additional_wires(inst)?;
             for b in clbits {
                 if !self.clbit_io_map.len() - 1 < b.index() {
                     return Err(DAGError::WireNotInOutput(ShareableWire::Clbit(
@@ -7794,9 +7796,7 @@ impl DAGCircuit {
             block_qargs.extend(self.qargs_interner.get(instr.qubits));
             block_cargs.extend(self.cargs_interner.get(instr.clbits));
             if self.may_have_additional_wires(instr) {
-                let (additional_clbits, _) = Python::attach(|py| {
-                    self.additional_wires(py, instr).map_err(DAGError::Python)
-                })?;
+                let (additional_clbits, _) = self.additional_wires(instr)?;
                 for clbit in additional_clbits {
                     block_cargs.insert(clbit);
                 }
@@ -8250,10 +8250,7 @@ impl DAGCircuit {
             py_op: OnceLock::from(op.clone().unbind()),
         };
 
-        let (additional_clbits, additional_vars) = Python::attach(|py| {
-            self.additional_wires(py, &new_instr)
-                .map_err(DAGError::Python)
-        })?;
+        let (additional_clbits, additional_vars) = self.additional_wires(&new_instr)?;
         new_wires.extend(additional_clbits.iter().map(|x| Wire::Clbit(*x)));
         new_wires.extend(additional_vars.iter().map(|x| Wire::Var(*x)));
 
