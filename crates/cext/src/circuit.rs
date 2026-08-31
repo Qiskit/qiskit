@@ -88,7 +88,7 @@ pub extern "C" fn qk_circuit_new(num_qubits: u32, num_clbits: u32) -> *mut Circu
 ///
 /// # Example
 /// ```c
-///     QkQuantumRegister *qr = qk_quantum_register_new(5, "five_qubits");
+/// QkQuantumRegister *qr = qk_quantum_register_new(5, "five_qubits");
 /// ```
 ///
 /// # Safety
@@ -119,8 +119,8 @@ pub unsafe extern "C" fn qk_quantum_register_new(
 ///
 /// # Example
 /// ```c
-///     QkQuantumRegister *qr = qk_quantum_register_new(1024, "qreg");
-///     qk_quantum_register_free(qr);
+/// QkQuantumRegister *qr = qk_quantum_register_new(1024, "qreg");
+/// qk_quantum_register_free(qr);
 /// ```
 ///
 /// # Safety
@@ -154,11 +154,11 @@ pub unsafe extern "C" fn qk_quantum_register_free(reg: *mut QuantumRegister) {
 ///
 /// # Example
 /// ```c
-///     QkQuantumRegister *qr = qk_quantum_register_new(5, "my_qreg");
-///     char *name = qk_quantum_register_name(qr);
-///     printf("Register name: %s\n", name);
-///     qk_str_free(name);
-///     qk_quantum_register_free(qr);
+/// QkQuantumRegister *qr = qk_quantum_register_new(5, "my_qreg");
+/// char *name = qk_quantum_register_name(qr);
+/// printf("Register name: %s\n", name);
+/// qk_str_free(name);
+/// qk_quantum_register_free(qr);
 /// ```
 ///
 /// # Safety
@@ -185,10 +185,10 @@ pub unsafe extern "C" fn qk_quantum_register_name(qreg: *const QuantumRegister) 
 ///
 /// # Example
 /// ```c
-///     QkQuantumRegister *qr = qk_quantum_register_new(5, "my_qreg");
-///     size_t num_qubits = qk_quantum_register_num_bits(qr);
-///     printf("Number of qubits: %zu\n", num_qubits);  // Prints: 5
-///     qk_quantum_register_free(qr);
+/// QkQuantumRegister *qr = qk_quantum_register_new(5, "my_qreg");
+/// size_t num_qubits = qk_quantum_register_num_bits(qr);
+/// printf("Number of qubits: %zu\n", num_qubits);  // Prints: 5
+/// qk_quantum_register_free(qr);
 /// ```
 ///
 /// # Safety
@@ -218,19 +218,19 @@ pub unsafe extern "C" fn qk_quantum_register_num_bits(qreg: *const QuantumRegist
 ///
 /// # Example
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(2, 0);
-///     QkQuantumRegister *qr = qk_quantum_register_new(3, "my_qreg");
-///     qk_circuit_add_quantum_register(qc, qr);
+/// QkCircuit *qc = qk_circuit_new(2, 0);
+/// QkQuantumRegister *qr = qk_quantum_register_new(3, "my_qreg");
+/// qk_circuit_add_quantum_register(qc, qr);
 ///
-///     uint32_t bit_indices[3];
+/// uint32_t bit_indices[3];
 ///
-///     qk_quantum_register_circuit_bits(qr, qc, bit_indices);
+/// qk_quantum_register_circuit_bits(qr, qc, bit_indices);
 ///
-///     // bit_indices now contains [2, 3, 4] since all qubits are in the circuit
-///     // and the circuit has 2 anonymous qubits
+/// // bit_indices now contains [2, 3, 4] since all qubits are in the circuit
+/// // and the circuit has 2 anonymous qubits
 ///
-///     qk_quantum_register_free(qr);
-///     qk_circuit_free(qc);
+/// qk_quantum_register_free(qr);
+/// qk_circuit_free(qc);
 /// ```
 ///
 /// # Safety
@@ -269,7 +269,7 @@ pub unsafe extern "C" fn qk_quantum_register_circuit_bits(
 ///
 /// # Example
 /// ```c
-///     QkClassicalRegister *cr = qk_classical_register_new(5, "five_qubits");
+/// QkClassicalRegister *cr = qk_classical_register_new(5, "five_qubits");
 /// ```
 ///
 /// # Safety
@@ -300,8 +300,8 @@ pub unsafe extern "C" fn qk_classical_register_new(
 ///
 /// # Example
 /// ```c
-///     QkClassicalRegister *cr = qk_classical_register_new(1024, "creg");
-///     qk_classical_register_free(cr);
+/// QkClassicalRegister *cr = qk_classical_register_new(1024, "creg");
+/// qk_classical_register_free(cr);
 /// ```
 ///
 /// # Safety
@@ -335,11 +335,11 @@ pub unsafe extern "C" fn qk_classical_register_free(reg: *mut ClassicalRegister)
 ///
 /// # Example
 /// ```c
-///     QkClassicalRegister *cr = qk_classical_register_new(3, "my_creg");
-///     char *name = qk_classical_register_name(cr);
-///     printf("Register name: %s\n", name);
-///     qk_str_free(name);
-///     qk_classical_register_free(cr);
+/// QkClassicalRegister *cr = qk_classical_register_new(3, "my_creg");
+/// char *name = qk_classical_register_name(cr);
+/// printf("Register name: %s\n", name);
+/// qk_str_free(name);
+/// qk_classical_register_free(cr);
 /// ```
 ///
 /// # Safety
@@ -366,10 +366,10 @@ pub unsafe extern "C" fn qk_classical_register_name(creg: *const ClassicalRegist
 ///
 /// # Example
 /// ```c
-///     QkClassicalRegister *cr = qk_classical_register_new(3, "my_creg");
-///     size_t num_clbits = qk_classical_register_num_bits(cr);
-///     printf("Number of clbits: %zu\n", num_clbits);  // Prints: 3
-///     qk_classical_register_free(cr);
+/// QkClassicalRegister *cr = qk_classical_register_new(3, "my_creg");
+/// size_t num_clbits = qk_classical_register_num_bits(cr);
+/// printf("Number of clbits: %zu\n", num_clbits);  // Prints: 3
+/// qk_classical_register_free(cr);
 /// ```
 ///
 /// # Safety
@@ -399,19 +399,19 @@ pub unsafe extern "C" fn qk_classical_register_num_bits(creg: *const ClassicalRe
 ///
 /// # Example
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(0, 2);
-///     QkClassicalRegister *cr = qk_classical_register_new(3, "my_creg");
-///     qk_circuit_add_classical_register(qc, cr);
+/// QkCircuit *qc = qk_circuit_new(0, 2);
+/// QkClassicalRegister *cr = qk_classical_register_new(3, "my_creg");
+/// qk_circuit_add_classical_register(qc, cr);
 ///
-///     uint32_t bit_indices[3];
+/// uint32_t bit_indices[3];
 ///
-///     qk_classical_register_circuit_bits(cr, qc, bit_indices);
+/// qk_classical_register_circuit_bits(cr, qc, bit_indices);
 ///
-///     // bit_indices now contains [2, 3, 4] since all clbits are in the circuit
-///     // and the circuit has 2 anonymous clbits
+/// // bit_indices now contains [2, 3, 4] since all clbits are in the circuit
+/// // and the circuit has 2 anonymous clbits
 ///
-///     qk_classical_register_free(cr);
-///     qk_circuit_free(qc);
+/// qk_classical_register_free(cr);
+/// qk_circuit_free(qc);
 /// ```
 ///
 /// # Safety
@@ -447,11 +447,11 @@ pub unsafe extern "C" fn qk_classical_register_circuit_bits(
 ///
 /// # Example
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(0, 0);
-///     QkQuantumRegister *qr = qk_quantum_register_new(1024, "my_little_register");
-///     qk_circuit_add_quantum_register(qc, qr);
-///     qk_quantum_register_free(qr);
-///     qk_circuit_free(qc);
+/// QkCircuit *qc = qk_circuit_new(0, 0);
+/// QkQuantumRegister *qr = qk_quantum_register_new(1024, "my_little_register");
+/// qk_circuit_add_quantum_register(qc, qr);
+/// qk_quantum_register_free(qr);
+/// qk_circuit_free(qc);
 /// ```
 ///
 /// # Safety
@@ -483,18 +483,18 @@ pub unsafe extern "C" fn qk_circuit_add_quantum_register(
 ///
 /// # Example
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(0, 0);
-///     QkQuantumRegister *qr1 = qk_quantum_register_new(2, "qr1");
-///     QkQuantumRegister *qr2 = qk_quantum_register_new(3, "qr2");
-///     qk_circuit_add_quantum_register(qc, qr1);
-///     qk_circuit_add_quantum_register(qc, qr2);
+/// QkCircuit *qc = qk_circuit_new(0, 0);
+/// QkQuantumRegister *qr1 = qk_quantum_register_new(2, "qr1");
+/// QkQuantumRegister *qr2 = qk_quantum_register_new(3, "qr2");
+/// qk_circuit_add_quantum_register(qc, qr1);
+/// qk_circuit_add_quantum_register(qc, qr2);
 ///
-///     size_t num_qregs = qk_circuit_num_quantum_registers(qc);
-///     printf("Number of quantum registers: %zu\n", num_qregs);  // Prints: 2
+/// size_t num_qregs = qk_circuit_num_quantum_registers(qc);
+/// printf("Number of quantum registers: %zu\n", num_qregs);  // Prints: 2
 ///
-///     qk_quantum_register_free(qr1);
-///     qk_quantum_register_free(qr2);
-///     qk_circuit_free(qc);
+/// qk_quantum_register_free(qr1);
+/// qk_quantum_register_free(qr2);
+/// qk_circuit_free(qc);
 /// ```
 ///
 /// # Safety
@@ -523,14 +523,14 @@ pub unsafe extern "C" fn qk_circuit_num_quantum_registers(circuit: *const Circui
 ///
 /// # Example
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(0, 0);
-///     QkQuantumRegister *qr1 = qk_quantum_register_new(2, "qr1");
-///     qk_circuit_add_quantum_register(qc, qr1);
+/// QkCircuit *qc = qk_circuit_new(0, 0);
+/// QkQuantumRegister *qr1 = qk_quantum_register_new(2, "qr1");
+/// qk_circuit_add_quantum_register(qc, qr1);
 ///
-///     const QkQuantumRegister *retrieved = qk_circuit_get_quantum_register(qc, 0);
+/// const QkQuantumRegister *retrieved = qk_circuit_get_quantum_register(qc, 0);
 ///
-///     qk_quantum_register_free(qr1);
-///     qk_circuit_free(qc);
+/// qk_quantum_register_free(qr1);
+/// qk_circuit_free(qc);
 /// ```
 ///
 /// # Safety
@@ -556,11 +556,11 @@ pub unsafe extern "C" fn qk_circuit_get_quantum_register(
 ///
 /// # Example
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(0, 0);
-///     QkClassicalRegister *cr = qk_classical_register_new(24, "my_big_register");
-///     qk_circuit_add_classical_register(qc, cr);
-///     qk_classical_register_free(cr);
-///     qk_circuit_free(qc);
+/// QkCircuit *qc = qk_circuit_new(0, 0);
+/// QkClassicalRegister *cr = qk_classical_register_new(24, "my_big_register");
+/// qk_circuit_add_classical_register(qc, cr);
+/// qk_classical_register_free(cr);
+/// qk_circuit_free(qc);
 /// ```
 ///
 /// # Safety
@@ -592,18 +592,18 @@ pub unsafe extern "C" fn qk_circuit_add_classical_register(
 ///
 /// # Example
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(0, 0);
-///     QkClassicalRegister *cr1 = qk_classical_register_new(2, "cr1");
-///     QkClassicalRegister *cr2 = qk_classical_register_new(3, "cr2");
-///     qk_circuit_add_classical_register(qc, cr1);
-///     qk_circuit_add_classical_register(qc, cr2);
+/// QkCircuit *qc = qk_circuit_new(0, 0);
+/// QkClassicalRegister *cr1 = qk_classical_register_new(2, "cr1");
+/// QkClassicalRegister *cr2 = qk_classical_register_new(3, "cr2");
+/// qk_circuit_add_classical_register(qc, cr1);
+/// qk_circuit_add_classical_register(qc, cr2);
 ///
-///     size_t num_cregs = qk_circuit_num_classical_registers(qc);
-///     printf("Number of classical registers: %zu\n", num_cregs);  // Prints: 2
+/// size_t num_cregs = qk_circuit_num_classical_registers(qc);
+/// printf("Number of classical registers: %zu\n", num_cregs);  // Prints: 2
 ///
-///     qk_classical_register_free(cr1);
-///     qk_classical_register_free(cr2);
-///     qk_circuit_free(qc);
+/// qk_classical_register_free(cr1);
+/// qk_classical_register_free(cr2);
+/// qk_circuit_free(qc);
 /// ```
 ///
 /// # Safety
@@ -632,14 +632,14 @@ pub unsafe extern "C" fn qk_circuit_num_classical_registers(circuit: *const Circ
 ///
 /// # Example
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(0, 0);
-///     QkClassicalRegister *cr1 = qk_classical_register_new(2, "cr1");
-///     qk_circuit_add_classical_register(qc, cr1);
+/// QkCircuit *qc = qk_circuit_new(0, 0);
+/// QkClassicalRegister *cr1 = qk_classical_register_new(2, "cr1");
+/// qk_circuit_add_classical_register(qc, cr1);
 ///
-///     const QkClassicalRegister *retrieved = qk_circuit_get_classical_register(qc, 0);
+/// const QkClassicalRegister *retrieved = qk_circuit_get_classical_register(qc, 0);
 ///
-///     qk_classical_register_free(cr1);
-///     qk_circuit_free(qc);
+/// qk_classical_register_free(cr1);
+/// qk_circuit_free(qc);
 /// ```
 ///
 /// # Safety
@@ -666,8 +666,8 @@ pub unsafe extern "C" fn qk_circuit_get_classical_register(
 ///
 /// # Example
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(100, 100);
-///     QkCircuit *copy = qk_circuit_copy(qc);
+/// QkCircuit *qc = qk_circuit_new(100, 100);
+/// QkCircuit *copy = qk_circuit_copy(qc);
 /// ```
 ///
 /// # Safety
@@ -689,8 +689,8 @@ pub unsafe extern "C" fn qk_circuit_copy(circuit: *const CircuitData) -> *mut Ci
 ///
 /// # Example
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(100, 100);
-///     uint32_t num_qubits = qk_circuit_num_qubits(qc);  // num_qubits==100
+/// QkCircuit *qc = qk_circuit_new(100, 100);
+/// uint32_t num_qubits = qk_circuit_num_qubits(qc);  // num_qubits==100
 /// ```
 ///
 /// # Safety
@@ -713,8 +713,8 @@ pub unsafe extern "C" fn qk_circuit_num_qubits(circuit: *const CircuitData) -> u
 ///
 /// # Example
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(100, 50);
-///     uint32_t num_clbits = qk_circuit_num_clbits(qc);  // num_clbits==50
+/// QkCircuit *qc = qk_circuit_new(100, 50);
+/// uint32_t num_clbits = qk_circuit_num_clbits(qc);  // num_clbits==50
 /// ```
 ///
 /// # Safety
@@ -852,8 +852,8 @@ pub unsafe extern "C" fn qk_circuit_set_global_phase(
 ///
 /// # Example
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(100, 100);
-///     qk_circuit_free(qc);
+/// QkCircuit *qc = qk_circuit_new(100, 100);
+/// qk_circuit_free(qc);
 /// ```
 ///
 /// # Safety
@@ -889,9 +889,9 @@ pub unsafe extern "C" fn qk_circuit_free(circuit: *mut CircuitData) {
 ///
 /// # Example
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(100, 0);
-///     uint32_t qubit[1] = {0};
-///     qk_circuit_gate(qc, QkGate_H, qubit, NULL);
+/// QkCircuit *qc = qk_circuit_new(100, 0);
+/// uint32_t qubit[1] = {0};
+/// qk_circuit_gate(qc, QkGate_H, qubit, NULL);
 /// ```
 ///
 /// # Safety
@@ -1061,7 +1061,7 @@ pub unsafe extern "C" fn qk_circuit_parameterized_gate(
 ///
 /// # Example
 /// ```c
-///     uint32_t num_qubits = qk_gate_num_qubits(QkGate_CCX);
+/// uint32_t num_qubits = qk_gate_num_qubits(QkGate_CCX);
 /// ```
 ///
 #[unsafe(no_mangle)]
@@ -1078,7 +1078,7 @@ pub extern "C" fn qk_gate_num_qubits(gate: StandardGate) -> u32 {
 ///
 /// # Example
 /// ```c
-///     uint32_t num_params = qk_gate_num_params(QkGate_R);
+/// uint32_t num_params = qk_gate_num_params(QkGate_R);
 /// ```
 ///
 #[unsafe(no_mangle)]
@@ -1097,8 +1097,8 @@ pub extern "C" fn qk_gate_num_params(gate: StandardGate) -> u32 {
 ///
 /// # Example
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(100, 1);
-///     qk_circuit_measure(qc, 0, 0);
+/// QkCircuit *qc = qk_circuit_new(100, 1);
+/// qk_circuit_measure(qc, 0, 0);
 /// ```
 ///
 /// # Safety
@@ -1133,8 +1133,8 @@ pub unsafe extern "C" fn qk_circuit_measure(
 ///
 /// # Example
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(100, 0);
-///     qk_circuit_reset(qc, 0);
+/// QkCircuit *qc = qk_circuit_new(100, 0);
+/// qk_circuit_reset(qc, 0);
 /// ```
 ///
 /// # Safety
@@ -1166,9 +1166,9 @@ pub unsafe extern "C" fn qk_circuit_reset(circuit: *mut CircuitData, qubit: u32)
 ///
 /// # Example
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(100, 1);
-///     uint32_t qubits[5] = {0, 1, 2, 3, 4};
-///     qk_circuit_barrier(qc, qubits, 5);
+/// QkCircuit *qc = qk_circuit_new(100, 1);
+/// uint32_t qubits[5] = {0, 1, 2, 3, 4};
+/// qk_circuit_barrier(qc, qubits, 5);
 /// ```
 ///
 /// # Safety
@@ -1464,12 +1464,12 @@ pub unsafe extern "C" fn qk_circuit_instruction_kind(
 ///
 /// # Example
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(100, 0);
-///     uint32_t qubits[1] = {0};
-///     qk_circuit_gate(qc, QkGate_H, qubits, NULL);
-///     QkOpCounts counts = qk_circuit_count_ops(qc);
-///     // .. once done
-///     qk_opcounts_clear(&counts);
+/// QkCircuit *qc = qk_circuit_new(100, 0);
+/// uint32_t qubits[1] = {0};
+/// qk_circuit_gate(qc, QkGate_H, qubits, NULL);
+/// QkOpCounts counts = qk_circuit_count_ops(qc);
+/// // .. once done
+/// qk_opcounts_clear(&counts);
 /// ```
 ///
 /// # Safety
@@ -1504,10 +1504,10 @@ pub unsafe extern "C" fn qk_circuit_count_ops(circuit: *const CircuitData) -> Op
 ///
 /// # Example
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(100, 0);
-///     uint32_t qubit[1] = {0};
-///     qk_circuit_gate(qc, QkGate_H, qubit, NULL);
-///     size_t num = qk_circuit_num_instructions(qc); // 1
+/// QkCircuit *qc = qk_circuit_new(100, 0);
+/// uint32_t qubit[1] = {0};
+/// qk_circuit_gate(qc, QkGate_H, qubit, NULL);
+/// size_t num = qk_circuit_num_instructions(qc); // 1
 /// ```
 ///
 /// # Safety
@@ -1601,12 +1601,12 @@ impl CInstruction {
 ///
 /// # Example
 /// ```c
-///     QkCircuitInstruction inst;
-///     QkCircuit *qc = qk_circuit_new(100, 0);
-///     uint32_t qubit[1] = {0};
-///     qk_circuit_gate(qc, QkGate_H, qubit, NULL);
-///     qk_circuit_get_instruction(qc, 0, &inst);
-///     qk_circuit_instruction_clear(&inst);
+/// QkCircuitInstruction inst;
+/// QkCircuit *qc = qk_circuit_new(100, 0);
+/// uint32_t qubit[1] = {0};
+/// qk_circuit_gate(qc, QkGate_H, qubit, NULL);
+/// qk_circuit_get_instruction(qc, 0, &inst);
+/// qk_circuit_instruction_clear(&inst);
 /// ```
 ///
 /// # Safety
@@ -1888,14 +1888,14 @@ pub unsafe extern "C" fn qk_circuit_inst_pauli_product_measurement(
 ///
 /// # Example
 /// ```c
-///     QkCircuitInstruction *inst = malloc(sizeof(QkCircuitInstruction));
-///     QkCircuit *qc = qk_circuit_new(100, 0);
-///     uint32_t q0[1] = {0};
-///     qk_circuit_gate(qc, QkGate_H, q0, NULL);
-///     qk_circuit_get_instruction(qc, 0, inst);
-///     qk_circuit_instruction_clear(inst); // clear internal allocations
-///     free(inst); // free struct
-///     qk_circuit_free(qc); // free the circuit
+/// QkCircuitInstruction *inst = malloc(sizeof(QkCircuitInstruction));
+/// QkCircuit *qc = qk_circuit_new(100, 0);
+/// uint32_t q0[1] = {0};
+/// qk_circuit_gate(qc, QkGate_H, q0, NULL);
+/// qk_circuit_get_instruction(qc, 0, inst);
+/// qk_circuit_instruction_clear(inst); // clear internal allocations
+/// free(inst); // free struct
+/// qk_circuit_free(qc); // free the circuit
 /// ```
 ///
 /// # Safety
@@ -2397,8 +2397,8 @@ impl From<CDelayUnit> for DelayUnit {
 ///
 /// # Example
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(1, 0);
-///     qk_circuit_delay(qc, 0, 100.0, QkDelayUnit_NS);
+/// QkCircuit *qc = qk_circuit_new(1, 0);
+/// qk_circuit_delay(qc, 0, 100.0, QkDelayUnit_NS);
 /// ```
 ///
 /// # Safety
@@ -2460,21 +2460,21 @@ pub struct CircuitDrawerConfig {
 ///
 /// # Example
 /// ```c
-///     QkCircuit *circuit = qk_circuit_new(2, 1);
+/// QkCircuit *circuit = qk_circuit_new(2, 1);
 ///
-///     qk_circuit_gate(circuit, QkGate_H, (uint32_t[]){0}, NULL);
-///     qk_circuit_gate(circuit, QkGate_CX, (uint32_t[]){0, 1}, NULL);
-///     qk_circuit_measure(circuit, 0, 0);
-///     qk_circuit_measure(circuit, 1, 0);
+/// qk_circuit_gate(circuit, QkGate_H, (uint32_t[]){0}, NULL);
+/// qk_circuit_gate(circuit, QkGate_CX, (uint32_t[]){0, 1}, NULL);
+/// qk_circuit_measure(circuit, 0, 0);
+/// qk_circuit_measure(circuit, 1, 0);
 ///
-///     QkCircuitDrawerConfig config = {false, true, 0};
+/// QkCircuitDrawerConfig config = {false, true, 0};
 ///
-///     char *circ_str = qk_circuit_draw(circuit, &config);
+/// char *circ_str = qk_circuit_draw(circuit, &config);
 ///
-///     printf("%s", circ_str);
+/// printf("%s", circ_str);
 ///
-///     qk_str_free(circ_str);
-///     qk_circuit_free(circuit);
+/// qk_str_free(circ_str);
+/// qk_circuit_free(circuit);
 /// ```
 ///
 /// # Safety
@@ -2523,15 +2523,15 @@ pub unsafe extern "C" fn qk_circuit_draw(
 ///
 /// # Example
 /// ```c
-///     QkCircuit *qc = qk_circuit_new(0, 0);
-///     QkQuantumRegister *qr = qk_quantum_register_new(3, "qr");
-///     qk_circuit_add_quantum_register(qc, qr);
-///     qk_quantum_register_free(qr);
+/// QkCircuit *qc = qk_circuit_new(0, 0);
+/// QkQuantumRegister *qr = qk_quantum_register_new(3, "qr");
+/// qk_circuit_add_quantum_register(qc, qr);
+/// qk_quantum_register_free(qr);
 ///
-///     QkDag *dag = qk_circuit_to_dag(qc);
+/// QkDag *dag = qk_circuit_to_dag(qc);
 ///
-///     qk_dag_free(dag);
-///     qk_circuit_free(qc);
+/// qk_dag_free(dag);
+/// qk_circuit_free(qc);
 /// ```
 ///
 /// # Safety
@@ -2698,10 +2698,10 @@ pub unsafe extern "C" fn qk_circuit_estimate_fidelity(
 ///
 /// # Example
 /// ```c
-///     QkCircuit *circuit = ...; // Assume circuit contains a control flow instruction at index 0
-///     QkControlFlowInstruction *cf_inst = qk_circuit_get_control_flow_instruction(circuit, 0, NULL);
-///     QkControlFlowKind kind = qk_control_flow_kind(cf_inst);
-///     qk_control_flow_instruction_free(cf_inst);
+/// QkCircuit *circuit = ...; // Assume circuit contains a control flow instruction at index 0
+/// QkControlFlowInstruction *cf_inst = qk_circuit_get_control_flow_instruction(circuit, 0, NULL);
+/// QkControlFlowKind kind = qk_control_flow_kind(cf_inst);
+/// qk_control_flow_instruction_free(cf_inst);
 /// ```
 ///
 /// # Safety
@@ -2766,9 +2766,9 @@ pub unsafe extern "C" fn qk_circuit_get_control_flow_instruction(
 ///
 /// # Example
 /// ```c
-///     QkCircuit *circuit = ...; // Assume circuit contains a control flow instruction at index 0
-///     QkControlFlowInstruction *cf_inst = qk_circuit_get_control_flow_instruction(circuit, 0, NULL);
-///     qk_control_flow_instruction_free(cf_inst);
+/// QkCircuit *circuit = ...; // Assume circuit contains a control flow instruction at index 0
+/// QkControlFlowInstruction *cf_inst = qk_circuit_get_control_flow_instruction(circuit, 0, NULL);
+/// qk_control_flow_instruction_free(cf_inst);
 /// ```
 ///
 /// # Safety
