@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """An analysis pass to find evolution gates in which the Paulis commute."""
+from collections import defaultdict
 
 import numpy as np
 
@@ -124,10 +125,10 @@ class FindCommutingPauliEvolutions(TransformationPass):
         """
         sub_dag = dag.copy_empty_like()
 
-        required_paulis = {}
+        required_paulis = defaultdict(int)
         for pauli, coeff in zip(op.operator.paulis, op.operator.coeffs):
             edge = self._pauli_to_edge(pauli)
-            required_paulis[(pauli, edge)] = required_paulis.get((pauli, edge), 0) + coeff
+            required_paulis[(pauli, edge)] += coeff
 
         for (pauli, edge), coeff in required_paulis.items():
             qubits = [dag.qubits[edge[0]], dag.qubits[edge[1]]]
