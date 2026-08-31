@@ -288,6 +288,7 @@ pub enum OperationRef<'a> {
     PauliProductMeasurement(&'a PauliProductMeasurement),
     PauliProductRotation(&'a PauliProductRotation),
     CustomOperation(&'a dyn CustomOperation),
+    Store(&'a Store),
 }
 
 impl Operation for OperationRef<'_> {
@@ -302,6 +303,7 @@ impl Operation for OperationRef<'_> {
             Self::PauliProductMeasurement(ppm) => ppm.name(),
             Self::PauliProductRotation(rotation) => rotation.name(),
             Self::CustomOperation(operation) => operation.name(),
+            Self::Store(store) => store.name(),
         }
     }
     #[inline]
@@ -315,6 +317,7 @@ impl Operation for OperationRef<'_> {
             Self::PauliProductMeasurement(ppm) => ppm.num_qubits(),
             Self::PauliProductRotation(rotation) => rotation.num_qubits(),
             Self::CustomOperation(operation) => operation.num_qubits(),
+            Self::Store(store) => store.num_qubits(),
         }
     }
     #[inline]
@@ -328,6 +331,7 @@ impl Operation for OperationRef<'_> {
             Self::PauliProductMeasurement(ppm) => ppm.num_clbits(),
             Self::PauliProductRotation(rotation) => rotation.num_clbits(),
             Self::CustomOperation(operation) => operation.num_clbits(),
+            Self::Store(store) => store.num_clbits(),
         }
     }
     #[inline]
@@ -341,6 +345,7 @@ impl Operation for OperationRef<'_> {
             Self::PauliProductMeasurement(ppm) => ppm.num_params(),
             Self::PauliProductRotation(rotation) => rotation.num_params(),
             Self::CustomOperation(operation) => operation.num_params(),
+            Self::Store(store) => store.num_params(),
         }
     }
     #[inline]
@@ -354,6 +359,7 @@ impl Operation for OperationRef<'_> {
             Self::PauliProductMeasurement(ppm) => ppm.directive(),
             Self::PauliProductRotation(rotation) => rotation.directive(),
             Self::CustomOperation(operation) => operation.directive(),
+            Self::Store(store) => store.directive(),
         }
     }
 }
@@ -1918,6 +1924,62 @@ impl PartialEq for PauliProductMeasurement {
 }
 
 impl Eq for PauliProductMeasurement {}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Store {
+    lhs: expr::Expr,
+    rhs: expr::Expr,
+}
+
+impl Store {
+    pub fn create_py_op(&self, py: Python, label: Option<&str>) -> PyResult<Py<PyAny>> {
+        if let Some(label) = label {
+            Ok(imports::STORE
+                .get_bound(py)
+                .call1((self.lhs.clone(), self.rhs.clone(), label))?
+                .unbind())
+        } else {
+            Ok(imports::STORE
+                .get_bound(py)
+                .call1((self.lhs.clone(), self.rhs.clone()))?
+                .unbind())
+        }
+    }
+
+    pub fn lhs(&self) -> &expr::Expr {
+        &self.lhs
+    }
+
+    pub fn rhs(&self) -> &expr::Expr {
+        &self.rhs
+    }
+
+    pub fn new(lhs: expr::Expr, rhs: expr::Expr) -> Self {
+        Self { lhs, rhs }
+    }
+}
+
+impl Operation for Store {
+    fn name(&self) -> &str {
+        "store"
+    }
+
+    fn num_qubits(&self) -> u32 {
+        0
+    }
+
+    fn num_clbits(&self) -> u32 {
+        0
+    }
+
+    fn num_params(&self) -> u32 {
+        0
+    }
+
+    fn directive(&self) -> bool {
+        true
+    }
+}
 
 /// Private module with especific traits that allow for the implementation
 /// of non dyn-compatible traits for [`CustomOperation`]. Namely [`PartialEq`]
