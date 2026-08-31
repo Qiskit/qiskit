@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -42,29 +42,21 @@ fn parse_imaginary_value(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str
         .parse(s)
 }
 
-fn parse_symbol_string(s: &str) -> IResult<&str, &str, VerboseError<&str>> {
-    recognize(pair(
-        alt((alpha1, tag("_"), tag("\\"), tag("$"))),
-        many0_count(alt((alphanumeric1, tag("_"), tag("\\"), tag("$")))),
-    ))
-    .parse(s)
-}
-
 // parse string as symbol
 // symbol starting with alphabet and can contain numbers and '_', '\', '$', '[', ']'
 fn parse_symbol(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
-    (
-        parse_symbol_string,
-        opt(delimited(char('['), digit1, char(']'))),
+    // At this point, we just consume the entire name string, regardless of index; it's up to a
+    // "name map" later to replace names with complete `Symbol` implementations, since the string
+    // form doesn't carry sufficient information to correctly assign UUIDs or base vectors.
+    recognize(
+        pair(
+            alt((alpha1, tag("_"), tag("\\"), tag("$"))),
+            many0_count(alt((alphanumeric1, tag("_"), tag("\\"), tag("$")))),
+        )
+        .and(opt(delimited(char('['), digit1, char(']')))),
     )
-        .map_res(|(v, array_idx)| -> Result<_, &str> {
-            let index = array_idx
-                .map(|i| i.parse::<u32>())
-                .transpose()
-                .map_err(|_| "index out of bounds")?;
-            Ok(SymbolExpr::Symbol(Arc::new(Symbol::new(v, None, index))))
-        })
-        .parse(s)
+    .map(|v: &str| SymbolExpr::Symbol(Arc::new(Symbol::standalone(v.to_owned(), None))))
+    .parse(s)
 }
 
 // parse unary operations
@@ -100,7 +92,7 @@ fn parse_unary(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
         .parse(s)
 }
 
-// sign is separetely parsed in this function
+// sign is separately parsed in this function
 fn parse_sign(s: &str) -> IResult<&str, SymbolExpr, VerboseError<&str>> {
     (
         delimited(multispace0, alt((char('-'), char('+'))), multispace0),

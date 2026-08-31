@@ -1,5 +1,7 @@
-INPUT = docs/cdoc/ dist/c/include/qiskit.h dist/c/include/qiskit/
+INPUT = docs/cdoc/ dist/c/include/
 
+RECURSIVE = YES
+INCLUDE_PATH = dist/c/include
 OPTIMIZE_OUTPUT_FOR_C = YES
 ENABLE_PREPROCESSING = YES
 MACRO_EXPANSION = YES

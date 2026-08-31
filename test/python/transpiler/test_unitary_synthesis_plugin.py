@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -32,7 +32,7 @@ from qiskit.transpiler.passes.synthesis.plugin import (
     unitary_synthesis_plugin_names,
 )
 from qiskit.transpiler.passes.synthesis.default_unitary_synth_plugin import DefaultUnitarySynthesis
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 
 class _MockExtensionManager:
@@ -324,7 +324,7 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         with self.mock_default_run_method() as mocked:
             _ = pm.run(qc)
             mocked.assert_not_called()
-            self.MOCK_PLUGINS["_controllable"].run.assert_called()  # pylint: disable=no-member
+            self.MOCK_PLUGINS["_controllable"].run.assert_called()
             call_kwargs = self.MOCK_PLUGINS["_controllable"].run.call_args.kwargs
 
         self.assertIn("basis_gates", call_kwargs)

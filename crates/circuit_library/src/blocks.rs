@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -33,7 +33,6 @@ pub enum BlockOperation {
 impl BlockOperation {
     pub fn assign_parameters(
         &self,
-        py: Python,
         params: &[&Param],
     ) -> PyResult<(PackedOperation, SmallVec<[Param; 3]>)> {
         match self {
@@ -41,7 +40,7 @@ impl BlockOperation {
                 (*gate).into(),
                 SmallVec::from_iter(params.iter().map(|&p| p.clone())),
             )),
-            Self::PyCustom { builder } => {
+            Self::PyCustom { builder } => Python::attach(|py| {
                 // the builder returns a Python operation plus the bound parameters
                 let py_params = PyList::new(py, params.iter().map(|&p| p.clone()))?.into_any();
 
@@ -56,13 +55,13 @@ impl BlockOperation {
                     .collect::<PyResult<SmallVec<[Param; 3]>>>()?;
 
                 Ok((operation.operation, bound_params))
-            }
+            }),
         }
     }
 }
 
 #[derive(Debug, Clone)]
-#[pyclass]
+#[pyclass(skip_from_py_object)]
 pub struct Block {
     pub operation: BlockOperation,
     pub num_qubits: u32,
@@ -120,7 +119,7 @@ pub struct Entanglement {
     // This could be done more efficiently, e.g., by creating entanglement objects that store
     // their underlying representation (e.g. a string or a list of connections) and returning
     // these when given a layer-index.
-    entanglement_vec: Vec<LayerEntanglement>,
+    pub entanglement_vec: Vec<LayerEntanglement>,
 }
 
 impl Entanglement {

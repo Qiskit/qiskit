@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -23,7 +23,7 @@ from numpy.testing import assert_allclose
 from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import transpile
-from qiskit.circuit.library import HGate, QFTGate, GlobalPhaseGate
+from qiskit.circuit.library import HGate, QFTGate, GlobalPhaseGate, DiagonalGate, CXGate, XGate
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.utils import optionals
 from qiskit.quantum_info.random import random_unitary, random_statevector, random_pauli
@@ -32,7 +32,7 @@ from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.visualization.state_visualization import state_to_latex
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase
 
 logger = logging.getLogger(__name__)
 
@@ -335,6 +335,115 @@ class TestStatevector(QiskitTestCase):
             target = Statevector(np.dot(op.data, vec))
             evolved = Statevector(vec).evolve(op)
             self.assertEqual(target, evolved)
+
+    def test_evolve_no_modification_with_xgate(self):
+        """Test evolve by XGate doesn't modify original vector"""
+
+        # |00> is sensitive to IX
+        original_vec = Statevector([1.0, 0.0, 0.0, 0.0])
+
+        # Copy so we can compare to original_vec
+        new_vec = original_vec.copy()
+        evolved_vec = new_vec.evolve(XGate(), [0])
+
+        # Check that the evolved state is different to the original state. If they aren't, then
+        # either our initial state is an eigenstate of the operator or evolve() with the given
+        # operator is broken.
+        self.assertNotEqual(
+            evolved_vec,
+            original_vec,
+            "The evolved state is unchanged. Either the state is an eigenvector or evolve() is broken.",
+        )
+        self.assertEqual(original_vec, new_vec, "Evolving by XGate modified original Statevector")
+
+    def test_evolve_no_modification_with_cxgate(self):
+        """Test evolve by CXGate doesn't modify original vector"""
+
+        # |01> is sensitive to CX
+        original_vec = Statevector([0.0, 1.0, 0.0, 0.0])
+
+        # Copy so we can compare to original_vec
+        new_vec = original_vec.copy()
+        evolved_vec = new_vec.evolve(CXGate(), [0, 1])
+
+        # Check that the evolved state is different to the original state. If they aren't, then
+        # either our initial state is an eigenstate of the operator or evolve() with the given
+        # operator is broken.
+        self.assertNotEqual(
+            evolved_vec,
+            original_vec,
+            "The evolved state is unchanged. Either the state is an eigenvector or evolve() is broken.",
+        )
+        self.assertEqual(original_vec, new_vec, "Evolving by CXGate modified original Statevector")
+
+    def test_evolve_no_modification_with_diagonalgate(self):
+        """Test evolve by DiagonalGate doesn't modify original vector"""
+
+        # All superposition is sensitive to the given DiagonalGate
+        original_vec = Statevector(np.ones(4) / np.sqrt(4))
+
+        # Copy so we can compare to original_vec
+        new_vec = original_vec.copy()
+        evolved_vec = new_vec.evolve(DiagonalGate([1.0, -1.0, -1.0, 1.0]), [0, 1])
+
+        # Check that the evolved state is different to the original state. If they aren't, then
+        # either our initial state is an eigenstate of the operator or evolve() with the given
+        # operator is broken.
+        self.assertNotEqual(
+            evolved_vec,
+            original_vec,
+            "The evolved state is unchanged. Either the state is an eigenvector or evolve() is broken.",
+        )
+        self.assertEqual(
+            original_vec, new_vec, "Evolving by DiagonalGate modified original Statevector"
+        )
+
+    def test_evolve_no_modification_with_operator(self):
+        """Test evolve by Operator doesn't modify original vector"""
+
+        # |0> is sensitive to X
+        original_vec = Statevector([1.0, 0.0, 0.0, 0.0])
+        # Copy so we can compare to original_vec
+        new_vec = original_vec.copy()
+        evolved_vec = new_vec.evolve(Operator(XGate()), [0])
+
+        # Check that the evolved state is different to the original state. If they aren't, then
+        # either our initial state is an eigenstate of the operator or evolve() with the given
+        # operator is broken.
+        self.assertNotEqual(
+            evolved_vec,
+            original_vec,
+            "The evolved state is unchanged. Either the state is an eigenvector or evolve() is broken.",
+        )
+        self.assertEqual(
+            original_vec, new_vec, "Evolving by Operator modified original Statevector"
+        )
+
+    def test_evolve_no_modification_with_quantumcircuit(self):
+        """Test by QuantumCircuit method doesn't modify original vector"""
+
+        # |00> is sensitive to a Bell-state preparation circuit
+        original_vec = Statevector([1.0, 0.0, 0.0, 0.0])
+
+        # Copy so we can compare to original_vec
+        new_vec = original_vec.copy()
+        circ = QuantumCircuit(2)
+        circ.h(0)
+        circ.cx(0, 1)
+        evolved_vec = new_vec.evolve(circ, [0, 1])
+
+        # Check that the evolved state is different to the original state. If they aren't, then
+        # either our initial state is an eigenstate of the operator or evolve() with the given
+        # operator is broken.
+
+        self.assertNotEqual(
+            evolved_vec,
+            original_vec,
+            "The evolved state is unchanged. Either the state is an eigenvector or evolve() is broken.",
+        )
+        self.assertEqual(
+            original_vec, new_vec, "Evolving by QuantumCircuit modified original Statevector"
+        )
 
     def test_evolve_operator_overload_dimensions(self):
         """Test that the @ operator returns a Statevector of correct dimension, type and value."""
@@ -818,22 +927,9 @@ class TestStatevector(QiskitTestCase):
 
         self.assertDictEqual(
             state.probabilities_dict(),
-            {
-                s: p
-                for s in [
-                    "110",
-                    "111",
-                    "112",
-                    "120",
-                    "121",
-                    "311",
-                    "312",
-                    "320",
-                    "321",
-                    "322",
-                    "330",
-                ]
-            },
+            dict.fromkeys(
+                ["110", "111", "112", "120", "121", "311", "312", "320", "321", "322", "330"], p
+            ),
         )
 
         # differences due to rounding

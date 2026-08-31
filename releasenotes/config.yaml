@@ -46,6 +46,7 @@ sections:
   - [critical, Critical Issues]
   - [security, Security Issues]
   - [fixes, Bug Fixes]
+  - [performance, Performance Improvements]
   - [other, Other Notes]
 template: |
   ---
@@ -76,6 +77,15 @@ template: |
 
       See `#15019 <https://github.com/Qiskit/qiskit/issues/15019>`__.
 
+  # Performance release notes are for runtime and output quality improvements which do not 
+  # include API or semantic changes. 
+  performance:
+    - Measurable performance improvements.
+
+  # A feature is a new user-visible functionality. It can come in the form of a new function, 
+  # class, parameter, environment variable or any other user accessible and publicly documented 
+  # endpoint. In addition, new capabilities (for example "Qiskit can now compile to Clifford+T"), 
+  # newly supported workflows and new types of language interoperability are considered features.
   # Choose only the "features" sections you need and delete the rest.  Try to be concise.  You may
   # use a code example for complicated features.
   features_c:

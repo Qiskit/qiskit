@@ -4,7 +4,7 @@
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
-# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+# of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 #
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
@@ -12,7 +12,7 @@
 """
 Optimized list of Pauli operators
 """
-# pylint: disable=invalid-name
+
 
 from __future__ import annotations
 import copy
@@ -105,7 +105,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         Args:
             a ({cls}): an operator object.
             b ({cls}): an operator object.
-            qargs (list or None): Optional, qubits to apply dot product
+            qargs (list or None):  qubits to apply dot product
                                   on (default: None).
             inplace (bool): If True update in-place (default: False).
 
@@ -283,7 +283,6 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
                 ret = ret.compose(other, front=True, qargs=qargs)
             return ret
 
-        # pylint: disable=cyclic-import
         from qiskit.quantum_info.operators.symplectic.clifford import Clifford
 
         # Convert Clifford to quantum circuits
@@ -308,7 +307,6 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         else:
             qargs_ = list(qargs)
 
-        # pylint: disable=cyclic-import
         from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 
         num_paulis = self._x.shape[0]
@@ -354,7 +352,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         return ret
 
     def _count_y(self, dtype=None):
-        """Count the number of I Paulis"""
+        """Count the number of Y Paulis"""
         return _count_y(self._x, self._z, dtype=dtype)
 
     @staticmethod
@@ -422,7 +420,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             group_phase (bool): Optional. If ``True`` use group-phase convention
                                 instead of BasePauli ZX-phase convention.
                                 (default: ``False``).
-            sparse (bool): Optional. Of ``True`` return a sparse CSR matrix,
+            sparse (bool): Optional. If ``True`` return a sparse CSR matrix,
                            otherwise return a dense Numpy array
                            (default: ``False``).
 
@@ -638,7 +636,22 @@ def _evolve_sdg(base_pauli, qubit):
     return base_pauli
 
 
-# pylint: disable=unused-argument
+def _evolve_sx(base_pauli, qubit):
+    """Update P -> SX.P.SXdg"""
+    z = base_pauli._z[:, qubit]
+    base_pauli._x[:, qubit] ^= z
+    base_pauli._phase -= z.T.astype(base_pauli._phase.dtype)
+    return base_pauli
+
+
+def _evolve_sxdg(base_pauli, qubit):
+    """Update P -> SXdg.P.SX"""
+    z = base_pauli._z[:, qubit]
+    base_pauli._x[:, qubit] ^= z
+    base_pauli._phase += z.T.astype(base_pauli._phase.dtype)
+    return base_pauli
+
+
 def _evolve_i(base_pauli, qubit):
     """Update P -> P"""
     return base_pauli
@@ -693,6 +706,15 @@ def _evolve_cy(base_pauli, qctrl, qtrgt):
     return base_pauli
 
 
+def _evolve_dcx(base_pauli, qctrl, qtrgt):
+    """Update P -> DCX.P.DCXdg"""
+    base_pauli._x[:, qtrgt] ^= base_pauli._x[:, qctrl]
+    base_pauli._z[:, qctrl] ^= base_pauli._z[:, qtrgt]
+    base_pauli._x[:, qctrl] ^= base_pauli._x[:, qtrgt]
+    base_pauli._z[:, qtrgt] ^= base_pauli._z[:, qctrl]
+    return base_pauli
+
+
 def _evolve_swap(base_pauli, q1, q2):
     """Update P -> SWAP.P.SWAP"""
     x1 = base_pauli._x[:, q1].copy()
@@ -701,6 +723,22 @@ def _evolve_swap(base_pauli, q1, q2):
     base_pauli._z[:, q1] = base_pauli._z[:, q2]
     base_pauli._x[:, q2] = x1
     base_pauli._z[:, q2] = z1
+    return base_pauli
+
+
+def _evolve_iswap(base_pauli, q1, q2):
+    """Update P -> iSWAP.P.iSWAP"""
+    x1 = base_pauli._x[:, q1].copy()
+    z1 = base_pauli._z[:, q1].copy()
+    x2 = base_pauli._x[:, q2].copy()
+    z2 = base_pauli._z[:, q2].copy()
+
+    base_pauli._x[:, q1] = x2
+    base_pauli._x[:, q2] = x1
+    base_pauli._z[:, q1] = x1 ^ x2 ^ z2
+    base_pauli._z[:, q2] = x1 ^ x2 ^ z1
+
+    base_pauli._phase += np.logical_xor(x1, x2).T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -727,7 +765,7 @@ def _evolve_rz(base_pauli, qubit, multiple):
 
 
 def _count_y(x, z, dtype=None):
-    """Count the number of I Paulis"""
+    """Count the number of Y Paulis"""
     return (x & z).sum(axis=1, dtype=dtype)
 
 
@@ -743,13 +781,17 @@ _basis_1q = {
     "s": _evolve_s,
     "sdg": _evolve_sdg,
     "sinv": _evolve_sdg,
+    "sx": _evolve_sx,
+    "sxdg": _evolve_sxdg,
 }
 _basis_2q = {
     "cx": _evolve_cx,
     "cz": _evolve_cz,
     "cy": _evolve_cy,
     "swap": _evolve_swap,
+    "iswap": _evolve_iswap,
     "ecr": _evolve_ecr,
+    "dcx": _evolve_dcx,
 }
 
 # Non-Clifford gates

@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -14,6 +14,7 @@ use crate::circuit_data::CircuitData;
 use crate::operations::{OperationRef, Param};
 use ndarray::Array2;
 use num_complex::Complex64;
+use pyo3::exceptions::PyNotImplementedError;
 use pyo3::prelude::*;
 use smallvec::SmallVec;
 
@@ -57,7 +58,7 @@ impl<T> Parameters<T> {
     #[inline]
     pub fn unwrap_blocks(self) -> Vec<T> {
         match self {
-            Parameters::Params(_) => panic!("expected params, got blocks"),
+            Parameters::Params(_) => panic!("expected blocks, got params"),
             Parameters::Blocks(blocks) => blocks,
         }
     }
@@ -162,8 +163,9 @@ pub trait Instruction {
     fn try_matrix(&self) -> Option<Array2<Complex64>> {
         match self.op() {
             OperationRef::StandardGate(g) => g.matrix(self.params_view()),
-            OperationRef::Gate(g) => g.matrix(),
+            OperationRef::PyCustom(i) => i.matrix(),
             OperationRef::Unitary(u) => u.matrix(),
+            OperationRef::PauliProductRotation(ppr) => ppr.matrix(),
             _ => None,
         }
     }
@@ -180,15 +182,17 @@ pub fn create_py_op(
             cf.create_py_op(py, params.map(|p| p.unwrap_blocks()), label)
         }
         OperationRef::PauliProductMeasurement(ppm) => ppm.create_py_op(py, label),
+        OperationRef::PauliProductRotation(rotation) => rotation.create_py_op(py, label),
         OperationRef::StandardGate(gate) => {
             gate.create_py_op(py, params.map(|p| p.unwrap_params()), label)
         }
         OperationRef::StandardInstruction(instruction) => {
             instruction.create_py_op(py, params.map(|p| p.unwrap_params()), label)
         }
-        OperationRef::Gate(gate) => Ok(gate.gate.clone_ref(py)),
-        OperationRef::Instruction(instruction) => Ok(instruction.instruction.clone_ref(py)),
-        OperationRef::Operation(operation) => Ok(operation.operation.clone_ref(py)),
+        OperationRef::PyCustom(inst) => Ok(inst.ob.clone_ref(py)),
         OperationRef::Unitary(unitary) => unitary.create_py_op(py, label),
+        OperationRef::CustomOperation(_) => Err(PyNotImplementedError::new_err(
+            "Custom operations from Rust cannot be exposed to Python",
+        )),
     }
 }

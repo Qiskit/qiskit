@@ -4,7 +4,7 @@
 //
 // This code is licensed under the Apache License, Version 2.0. You may
 // obtain a copy of this license in the LICENSE.txt file in the root directory
-// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+// of this source tree or at https://www.apache.org/licenses/LICENSE-2.0.
 //
 // Any modifications or derivative works of this code must retain this
 // copyright notice, and modified files need to carry a notice indicating
@@ -31,12 +31,12 @@ use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
 use pyo3::pybacked::PyBackedStr;
 
-use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::circuit_data::{CircuitData, PyCircuitData};
 use qiskit_circuit::dag_node::DAGOpNode;
 use qiskit_circuit::operations::{Operation, Param, StandardGate};
-use qiskit_circuit::slice::{PySequenceIndex, SequenceIndex};
-use qiskit_circuit::util::c64;
 use qiskit_circuit::{Qubit, impl_intopyobject_for_copy_pyclass};
+use qiskit_util::complex::c64;
+use qiskit_util::py::{PySequenceIndex, SequenceIndex};
 
 pub const ANGLE_ZERO_EPSILON: f64 = 1e-12;
 
@@ -605,7 +605,7 @@ pub static EULER_BASIS_NAMES: [EulerBasis; EULER_BASIS_SIZE] = [
 ];
 
 /// A structure containing a set of supported `EulerBasis` for running 1q synthesis
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct EulerBasisSet {
     basis: [bool; EULER_BASIS_SIZE],
     initialized: bool,
@@ -618,6 +618,24 @@ impl EulerBasisSet {
             basis: [false; EULER_BASIS_SIZE],
             initialized: false,
         }
+    }
+
+    /// Get the set of supported bases given a function that marks whether each basis gate (by name)
+    /// is supported.
+    ///
+    /// The `is_supported` function may be called more than once for the same gate name.
+    pub fn from_support(mut is_supported: impl FnMut(&str) -> bool) -> Self {
+        let mut out = Self {
+            basis: EULER_BASES.map(|basis| basis.iter().all(|gate| is_supported(gate))),
+            initialized: true,
+        };
+        if out.basis_supported(EulerBasis::U321) && out.basis_supported(EulerBasis::U3) {
+            out.remove(EulerBasis::U3);
+        }
+        if out.basis_supported(EulerBasis::ZSXX) && out.basis_supported(EulerBasis::ZSX) {
+            out.remove(EulerBasis::ZSX);
+        }
+        out
     }
 
     /// Return true if this has been initialized any basis is supported
@@ -669,7 +687,12 @@ impl Default for EulerBasisSet {
 }
 
 #[derive(Clone, Debug, Copy, Eq, Hash, PartialEq)]
-#[pyclass(module = "qiskit._accelerate.euler_one_qubit_decomposer", eq, eq_int)]
+#[pyclass(
+    module = "qiskit._accelerate.euler_one_qubit_decomposer",
+    eq,
+    eq_int,
+    from_py_object
+)]
 pub enum EulerBasis {
     U3 = 0,
     U321 = 1,
@@ -877,7 +900,7 @@ pub fn unitary_to_circuit(
     error_map: Option<&OneQubitGateErrorMap>,
     simplify: bool,
     atol: Option<f64>,
-) -> PyResult<Option<CircuitData>> {
+) -> PyResult<Option<PyCircuitData>> {
     let mut target_basis_set = EulerBasisSet::new();
     for basis in target_basis_list
         .iter()
@@ -905,6 +928,7 @@ pub fn unitary_to_circuit(
             }),
             Param::Float(seq.global_phase),
         )
+        .map(Into::into)
         .expect("Unexpected Qiskit python bug")
     }))
 }
