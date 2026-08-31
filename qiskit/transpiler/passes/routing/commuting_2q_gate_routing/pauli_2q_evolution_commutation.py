@@ -124,13 +124,12 @@ class FindCommutingPauliEvolutions(TransformationPass):
         """
         sub_dag = dag.copy_empty_like()
 
-        required_paulis = {
-            self._pauli_to_edge(pauli): (pauli, coeff)
-            for pauli, coeff in zip(op.operator.paulis, op.operator.coeffs)
-        }
+        required_paulis = {}
+        for pauli, coeff in zip(op.operator.paulis, op.operator.coeffs):
+            edge = self._pauli_to_edge(pauli)
+            required_paulis[(pauli, edge)] = required_paulis.get((pauli, edge), 0) + coeff
 
-        for edge, (pauli, coeff) in required_paulis.items():
-
+        for ((pauli, edge), coeff) in required_paulis.items():
             qubits = [dag.qubits[edge[0]], dag.qubits[edge[1]]]
 
             simple_pauli = Pauli(pauli.to_label().replace("I", ""))

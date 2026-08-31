@@ -747,3 +747,27 @@ class TestSwapRouterExceptions(QiskitTestCase):
 
         assigned_circuit = circuit_with_block.assign_parameters({gamma: 0.7})
         self.assertEqual(len(assigned_circuit.parameters), 1)
+
+    def test_identical_terms_added(self):
+        term_a = SparsePauliOp(["ZZ", "ZZ"], coeffs = [0.2, 0.4])
+        term_b = SparsePauliOp(["ZZ"], coeffs = [0.6])
+
+        circuit_a = QuantumCircuit(2)
+        circuit_a.append(PauliEvolutionGate(term_a, time=1.0), [0, 1])
+
+        circuit_b = QuantumCircuit(2)
+        circuit_b.append(PauliEvolutionGate(term_b, time=1.0), [0, 1])
+
+        manager = PassManager([
+            FindCommutingPauliEvolutions(),
+            Commuting2qGateRouter(SwapStrategy.from_line([0, 1]))
+        ])
+
+        pass_a = manager.run(circuit_a)
+        pass_b = manager.run(circuit_b)
+
+        operator_a = Operator(pass_a)
+        operator_b = Operator(pass_b)
+
+        self.assertEqual(operator_a, operator_b)
+
