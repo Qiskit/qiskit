@@ -1,4 +1,0 @@
-fixes:
-  - |
-    Fixed :class:`.FindCommutingPauliEvolutions` dropping identical terms with
-    different coefficients. See `#16856 <https://github.com/Qiskit/qiskit/issues/16856>`.
