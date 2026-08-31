@@ -1354,15 +1354,11 @@ impl PyDAGCircuit {
     // You likely want `copy_empty_like_with_same_capacity`.
     #[pyo3(name = "copy_empty_like", signature = (*, vars_mode=VarsMode::Alike))]
     pub fn py_copy_empty_like(&self, vars_mode: VarsMode) -> Self {
-        PyDAGCircuit {
-            name: self.name.clone(),
-            metadata: self.metadata.as_ref().cloned(),
-            inner: self
-                .inner
+        PyDAGCircuit::from_dagcircuit_with_cloned_metadata(
+            self.inner
                 .copy_empty_like_with_capacity(0, 0, vars_mode, BlocksMode::Drop),
-            duration: None,
-            unit: "dt".to_string(),
-        }
+            self,
+        )
     }
 
     /// Put ``self`` into the canonical physical form, with the given number of qubits.
