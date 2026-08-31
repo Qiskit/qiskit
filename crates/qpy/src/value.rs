@@ -184,9 +184,13 @@ impl ParameterVectorTableBuilder {
         if let Some(index) = self.indices.get(&vector.uuid.as_u128()) {
             return Ok(*index);
         }
-        let index = u16::try_from(self.vectors.len()).map_err(|_| {
-            QpyError::ConversionError("too many parameter vectors in one circuit".to_string())
-        })?;
+        if self.vectors.len() >= u16::MAX as usize {
+            return Err(QpyError::ConversionError(format!(
+                "too many parameter vectors in one circuit: QPY stores at most {}",
+                u16::MAX as usize
+            )));
+        }
+        let index = self.vectors.len() as u16;
         self.indices.insert(vector.uuid.as_u128(), index);
         self.vectors.push(Arc::clone(vector));
         Ok(index)
