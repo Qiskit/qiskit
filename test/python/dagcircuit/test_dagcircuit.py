@@ -58,7 +58,12 @@ from qiskit.circuit.library import (
     U1Gate,
     RXGate,
     CSGate,
+    CHGate,
+    UnitaryGate,
+    PauliProductRotationGate,
+    PauliProductMeasurement,
 )
+from qiskit.quantum_info import Pauli
 from qiskit.converters import circuit_to_dag
 from test import QiskitTestCase
 
@@ -2036,6 +2041,47 @@ class TestDagEquivalence(DAGTest):
         dag2 = circuit_to_dag(circ2)
 
         self.assertNotEqual(self.dag1, dag2)
+
+    def test_dag_neq_reversed_unitary(self):
+        """Test that reversing the order of qubits of a unitary gate leads to a different circuit."""
+        unitary = UnitaryGate(CHGate())
+
+        qc1 = QuantumCircuit(4)
+        qc1.append(unitary, [0, 1])
+
+        qc2 = QuantumCircuit(4)
+        qc2.append(unitary, [1, 0])
+
+        self.assertNotEqual(qc1, qc2)
+        self.assertNotEqual(circuit_to_dag(qc1), circuit_to_dag(qc2))
+
+    def test_dag_neq_reversed_ppr(self):
+        """Test that reversing the order of qubits of a PPR gate leads to a different
+        circuit."""
+        ppr = PauliProductRotationGate(Pauli("ZX"), 0.1)
+
+        qc1 = QuantumCircuit(4)
+        qc1.append(ppr, [0, 1])
+
+        qc2 = QuantumCircuit(4)
+        qc2.append(ppr, [1, 0])
+
+        self.assertNotEqual(qc1, qc2)
+        self.assertNotEqual(circuit_to_dag(qc1), circuit_to_dag(qc2))
+
+    def test_dag_neq_reversed_ppm(self):
+        """Test that reversing the order of qubits of a PPM instruction leads to a different
+        circuit."""
+        ppm = PauliProductMeasurement(Pauli("ZX"))
+
+        qc1 = QuantumCircuit(4, 1)
+        qc1.append(ppm, [0, 1], [0])
+
+        qc2 = QuantumCircuit(4, 1)
+        qc2.append(ppm, [1, 0], [0])
+
+        self.assertNotEqual(qc1, qc2)
+        self.assertNotEqual(circuit_to_dag(qc1), circuit_to_dag(qc2))
 
     def test_node_params_equal_unequal(self):
         """Test node params are equal or unequal."""
