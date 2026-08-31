@@ -813,59 +813,58 @@ class TestLitinskiTransformation(QiskitTestCase):
         circuit_target.compose(circuit, [0, 1], inplace=True)
         self.assertEqual(circuit_out, circuit_target)
 
-    @data("ppm", "ppr")
-    def test_litinski_with_ppr_ppm_input(self, pp_type):
+    @combine(pp_type=["ppm", "ppr"], seed=list(range(5678, 5688)))
+    def test_litinski_with_ppr_ppm_input(self, pp_type, seed):
         """Test that LitinskiTransformation is correct for PPR/PPM as input"""
         num_qubits = 5
         qarg_paulis = [1, 2, 4]
 
-        for seed in range(5678, 5688):
-            cliff = random_clifford_circuit(num_qubits, num_gates=20, seed=1234)
-            pauli = random_pauli(len(qarg_paulis), seed=5680)
+        cliff = random_clifford_circuit(num_qubits, num_gates=20, seed=1234)
+        pauli = random_pauli(len(qarg_paulis), seed=5680)
 
-            # pad the original pauli
-            p = pauli.to_label()
-            p_pad = Pauli(p[0] + "I" + p[1] + p[2] + "I")
+        # pad the original pauli
+        p = pauli.to_label()
+        p_pad = Pauli(p[0] + "I" + p[1] + p[2] + "I")
 
-            pauli_ev = p_pad.evolve(cliff)
-            # unpad the evolved pauli
-            q = pauli_ev.to_label()
-            phase = 0
-            if q[0] == "-":
-                q = q[1:]
-                phase = 2
-            out_str = ""
-            out_ind = []
-            for i in range(num_qubits):
-                j = num_qubits - i - 1
-                if q[j] != "I":
-                    out_str += q[j]
-                    out_ind.append(num_qubits - 1 - j)
-            out_ev = Pauli(out_str[::-1])
-            out_ev.phase = phase
+        pauli_ev = p_pad.evolve(cliff)
+        # unpad the evolved pauli
+        q = pauli_ev.to_label()
+        phase = 0
+        if q[0] == "-":
+            q = q[1:]
+            phase = 2
+        out_str = ""
+        out_ind = []
+        for i in range(num_qubits):
+            j = num_qubits - i - 1
+            if q[j] != "I":
+                out_str += q[j]
+                out_ind.append(num_qubits - 1 - j)
+        out_ev = Pauli(out_str[::-1])
+        out_ev.phase = phase
 
-            if pp_type == "ppr":
-                circuit = QuantumCircuit(num_qubits)
-                circuit.compose(cliff, range(num_qubits), inplace=True)
-                circuit.append(PauliProductRotationGate(pauli, angle=0.123), qarg_paulis)
-            else:  # pp_type == "ppm"
-                circuit = QuantumCircuit(num_qubits, 1)
-                circuit.compose(cliff, range(num_qubits), inplace=True)
-                circuit.append(PauliProductMeasurement(pauli), qarg_paulis, [0])
+        if pp_type == "ppr":
+            circuit = QuantumCircuit(num_qubits)
+            circuit.compose(cliff, range(num_qubits), inplace=True)
+            circuit.append(PauliProductRotationGate(pauli, angle=0.123), qarg_paulis)
+        else:  # pp_type == "ppm"
+            circuit = QuantumCircuit(num_qubits, 1)
+            circuit.compose(cliff, range(num_qubits), inplace=True)
+            circuit.append(PauliProductMeasurement(pauli), qarg_paulis, [0])
 
-            transform = LitinskiTransformation(fix_clifford=True, use_ppr=True)
-            circuit_out = transform(circuit)
+        transform = LitinskiTransformation(fix_clifford=True, use_ppr=True)
+        circuit_out = transform(circuit)
 
-            if pp_type == "ppr":
-                circuit_target = QuantumCircuit(num_qubits)
-                circuit_target.append(PauliProductRotationGate(out_ev, angle=0.123), out_ind)
-                circuit_target.compose(cliff, range(num_qubits), inplace=True)
-            else:  # pp_type == "ppm"
-                circuit_target = QuantumCircuit(num_qubits, 1)
-                circuit_target.append(PauliProductMeasurement(out_ev), out_ind, [0])
-                circuit_target.compose(cliff, range(num_qubits), inplace=True)
+        if pp_type == "ppr":
+            circuit_target = QuantumCircuit(num_qubits)
+            circuit_target.append(PauliProductRotationGate(out_ev, angle=0.123), out_ind)
+            circuit_target.compose(cliff, range(num_qubits), inplace=True)
+        else:  # pp_type == "ppm"
+            circuit_target = QuantumCircuit(num_qubits, 1)
+            circuit_target.append(PauliProductMeasurement(out_ev), out_ind, [0])
+            circuit_target.compose(cliff, range(num_qubits), inplace=True)
 
-            self.assertEqual(circuit_out, circuit_target)
+        self.assertEqual(circuit_out, circuit_target)
 
     def test_litinski_with_clifford_ppr_pi2_angle(self):
         """Test that LitinskiTransformation is does not change the gates for Clifford and PPR input with pi/2 angle"""
