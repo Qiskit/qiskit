@@ -813,14 +813,14 @@ class TestLitinskiTransformation(QiskitTestCase):
         circuit_target.compose(circuit, [0, 1], inplace=True)
         self.assertEqual(circuit_out, circuit_target)
 
-    @combine(pp_type=["ppm", "ppr"], seed=list(range(5678, 5688)))
-    def test_litinski_with_ppr_ppm_input(self, pp_type, seed):
+    @combine(pp_type=["ppm", "ppr"], random_pauli_seed=list(range(5678, 5688)))
+    def test_litinski_with_ppr_ppm_input(self, pp_type, random_pauli_seed):
         """Test that LitinskiTransformation is correct for PPR/PPM as input"""
         num_qubits = 5
         qarg_paulis = [1, 2, 4]
 
         cliff = random_clifford_circuit(num_qubits, num_gates=20, seed=1234)
-        pauli = random_pauli(len(qarg_paulis), seed=5680)
+        pauli = random_pauli(len(qarg_paulis), seed=random_pauli_seed)
 
         # pad the original pauli
         p = pauli.to_label()
