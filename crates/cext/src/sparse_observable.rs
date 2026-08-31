@@ -109,9 +109,8 @@ pub extern "C" fn qk_obs_identity(num_qubits: u32) -> *mut SparseObservable {
 ///
 /// # Example
 /// ```c
-///     QkObs *empty = qk_obs_with_capacity(100, 100, 1000);
+/// QkObs *empty = qk_obs_with_capacity(100, 100, 1000);
 /// ```
-///
 #[unsafe(no_mangle)]
 pub extern "C" fn qk_obs_with_capacity(
     num_qubits: u32,
