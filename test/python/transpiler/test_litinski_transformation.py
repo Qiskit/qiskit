@@ -621,6 +621,16 @@ class TestLitinskiTransformation(QiskitTestCase):
 
         self.assertEqual(qct, expected)
 
+    @data("Z", "-Z", "X", "-X", "Y", "-Y")
+    def test_preserves_ppm_sign(self, pauli1q):
+        """Test that Litinski transformation preserves the PPM instruction (including
+        its sign), when evolving under identity.
+        """
+        qc = QuantumCircuit(1, 1)
+        qc.append(PauliProductMeasurement(Pauli(pauli1q)), [0], [0])
+        qct = LitinskiTransformation(use_ppr=True)(qc)
+        self.assertEqual(qc, qct)
+
     def test_on_circuits_with_ppr_ppm(self):
         """Test the Litinski transformation pass on a more complex with Clifford gates,
         T gates and Z-measures.
@@ -803,17 +813,19 @@ class TestLitinskiTransformation(QiskitTestCase):
         circuit_target.compose(circuit, [0, 1], inplace=True)
         self.assertEqual(circuit_out, circuit_target)
 
-    @data("ppm", "ppr")
-    def test_litinski_with_ppr_ppm_input(self, pp_type):
+    @combine(pp_type=["ppm", "ppr"], random_pauli_seed=list(range(5678, 5688)))
+    def test_litinski_with_ppr_ppm_input(self, pp_type, random_pauli_seed):
         """Test that LitinskiTransformation is correct for PPR/PPM as input"""
         num_qubits = 5
         qarg_paulis = [1, 2, 4]
+
         cliff = random_clifford_circuit(num_qubits, num_gates=20, seed=1234)
-        pauli = random_pauli(len(qarg_paulis), seed=5678)
+        pauli = random_pauli(len(qarg_paulis), seed=random_pauli_seed)
 
         # pad the original pauli
         p = pauli.to_label()
         p_pad = Pauli(p[0] + "I" + p[1] + p[2] + "I")
+
         pauli_ev = p_pad.evolve(cliff)
         # unpad the evolved pauli
         q = pauli_ev.to_label()
@@ -824,10 +836,11 @@ class TestLitinskiTransformation(QiskitTestCase):
         out_str = ""
         out_ind = []
         for i in range(num_qubits):
-            if q[i] != "I":
-                out_str += q[i]
-                out_ind.append(num_qubits - i - 1)
-        out_ev = Pauli(out_str)
+            j = num_qubits - i - 1
+            if q[j] != "I":
+                out_str += q[j]
+                out_ind.append(num_qubits - 1 - j)
+        out_ev = Pauli(out_str[::-1])
         out_ev.phase = phase
 
         if pp_type == "ppr":
