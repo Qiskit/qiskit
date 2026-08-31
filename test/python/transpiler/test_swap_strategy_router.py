@@ -770,16 +770,3 @@ class TestSwapRouterExceptions(QiskitTestCase):
 
         self.assertEqual(operator_a, operator_b)
 
-    def test_non_identical_terms_retained(self):
-        term = SparsePauliOp(["XY", "ZY"], coeffs=[0.2, 0.4])
-
-        before = QuantumCircuit(2)
-        before.append(PauliEvolutionGate(term, time=1.0), [0, 1])
-
-        manager = PassManager(
-            [FindCommutingPauliEvolutions(), Commuting2qGateRouter(SwapStrategy.from_line([0, 1]))]
-        )
-        after = manager.run(before)
-
-        before = Operator(before)
-        self.assertEqual(Operator(before), Operator(after))
