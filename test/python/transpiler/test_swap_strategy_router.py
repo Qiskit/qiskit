@@ -769,4 +769,3 @@ class TestSwapRouterExceptions(QiskitTestCase):
         operator_b = Operator(circuit_b)
 
         self.assertEqual(operator_a, operator_b)
-
