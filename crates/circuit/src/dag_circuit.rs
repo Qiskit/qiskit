@@ -2507,67 +2507,86 @@ impl DAGCircuit {
                                     OperationRef::StandardInstruction(_),
                                 ] => Ok(other.unpack_py_op(py, inst2)?.eq(ob)? && check_args()),
                                 [OperationRef::Unitary(op_a), OperationRef::Unitary(op_b)] => {
-                                    match [&op_a.array, &op_b.array] {
-                                        [ArrayType::NDArray(a), ArrayType::NDArray(b)] => Ok(
-                                            relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8),
-                                        ),
-                                        [ArrayType::OneQ(a), ArrayType::NDArray(b)]
-                                        | [ArrayType::NDArray(b), ArrayType::OneQ(a)] => {
-                                            if b.shape()[0] == 2 {
-                                                for i in 0..2 {
-                                                    for j in 0..2 {
-                                                        if !relative_eq!(
-                                                            b[[i, j]],
-                                                            a[(i, j)],
-                                                            max_relative = 1e-5,
-                                                            epsilon = 1e-8
-                                                        ) {
-                                                            return Ok(false);
+                                    if check_args() {
+                                        match [&op_a.array, &op_b.array] {
+                                            [ArrayType::NDArray(a), ArrayType::NDArray(b)] => {
+                                                Ok(relative_eq!(
+                                                    a,
+                                                    b,
+                                                    max_relative = 1e-5,
+                                                    epsilon = 1e-8
+                                                ))
+                                            }
+                                            [ArrayType::OneQ(a), ArrayType::NDArray(b)]
+                                            | [ArrayType::NDArray(b), ArrayType::OneQ(a)] => {
+                                                if b.shape()[0] == 2 {
+                                                    for i in 0..2 {
+                                                        for j in 0..2 {
+                                                            if !relative_eq!(
+                                                                b[[i, j]],
+                                                                a[(i, j)],
+                                                                max_relative = 1e-5,
+                                                                epsilon = 1e-8
+                                                            ) {
+                                                                return Ok(false);
+                                                            }
                                                         }
                                                     }
+                                                    Ok(true)
+                                                } else {
+                                                    Ok(false)
                                                 }
-                                                Ok(true)
-                                            } else {
-                                                Ok(false)
                                             }
-                                        }
-                                        [ArrayType::TwoQ(a), ArrayType::NDArray(b)]
-                                        | [ArrayType::NDArray(b), ArrayType::TwoQ(a)] => {
-                                            if b.shape()[0] == 4 {
-                                                for i in 0..4 {
-                                                    for j in 0..4 {
-                                                        if !relative_eq!(
-                                                            b[[i, j]],
-                                                            a[(i, j)],
-                                                            max_relative = 1e-5,
-                                                            epsilon = 1e-8
-                                                        ) {
-                                                            return Ok(false);
+                                            [ArrayType::TwoQ(a), ArrayType::NDArray(b)]
+                                            | [ArrayType::NDArray(b), ArrayType::TwoQ(a)] => {
+                                                if b.shape()[0] == 4 {
+                                                    for i in 0..4 {
+                                                        for j in 0..4 {
+                                                            if !relative_eq!(
+                                                                b[[i, j]],
+                                                                a[(i, j)],
+                                                                max_relative = 1e-5,
+                                                                epsilon = 1e-8
+                                                            ) {
+                                                                return Ok(false);
+                                                            }
                                                         }
                                                     }
+                                                    Ok(true)
+                                                } else {
+                                                    Ok(false)
                                                 }
-                                                Ok(true)
-                                            } else {
-                                                Ok(false)
                                             }
+                                            [ArrayType::OneQ(a), ArrayType::OneQ(b)] => {
+                                                Ok(relative_eq!(
+                                                    a,
+                                                    b,
+                                                    max_relative = 1e-5,
+                                                    epsilon = 1e-8
+                                                ))
+                                            }
+                                            [ArrayType::TwoQ(a), ArrayType::TwoQ(b)] => {
+                                                Ok(relative_eq!(
+                                                    a,
+                                                    b,
+                                                    max_relative = 1e-5,
+                                                    epsilon = 1e-8
+                                                ))
+                                            }
+                                            _ => Ok(false),
                                         }
-                                        [ArrayType::OneQ(a), ArrayType::OneQ(b)] => Ok(
-                                            relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8),
-                                        ),
-                                        [ArrayType::TwoQ(a), ArrayType::TwoQ(b)] => Ok(
-                                            relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8),
-                                        ),
-                                        _ => Ok(false),
+                                    } else {
+                                        Ok(false)
                                     }
                                 }
                                 [
                                     OperationRef::PauliProductMeasurement(op_a),
                                     OperationRef::PauliProductMeasurement(op_b),
-                                ] => Ok(op_a == op_b),
+                                ] => Ok((op_a == op_b) && check_args()),
                                 [
                                     OperationRef::PauliProductRotation(op_a),
                                     OperationRef::PauliProductRotation(op_b),
-                                ] => Ok(op_a == op_b),
+                                ] => Ok((op_a == op_b) && check_args()),
                                 _ => Ok(false),
                             }
                         }
