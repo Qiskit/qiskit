@@ -41,7 +41,7 @@ use num_complex::{Complex64, c64};
 use smallvec::SmallVec;
 
 use numpy::{PyArray1, PyReadonlyArray2, ToPyArray};
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyNotImplementedError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyDict, PyFloat, PyTuple, PyType};
 use pyo3::{IntoPyObjectExt, Python, intern};
@@ -2021,6 +2021,18 @@ pub trait CustomOperation:
 
     /// Returns whether the operation is based on a unitary matrix.
     fn is_unitary(&self) -> bool;
+
+    fn create_py_op(
+        &self,
+        _py: Python,
+        _params: Option<SmallVec<[Param; 3]>>,
+        _label: Option<&str>,
+    ) -> PyResult<Py<PyAny>> {
+        Err(PyNotImplementedError::new_err(format!(
+            "custom operation '{}' cannot be exposed to Python",
+            self.name()
+        )))
+    }
 }
 
 impl PartialEq for dyn CustomOperation {
@@ -2096,11 +2108,10 @@ impl From<Box<dyn CustomOperation>> for BoxedCustomOperation {
 
 #[cfg(test)]
 mod test {
+    use crate::operations::{Param, PauliProductRotation};
     use approx::assert_abs_diff_eq;
     use ndarray::{Array2, arr2, linalg::kron};
     use qiskit_util::complex::{C_ONE, C_ZERO, IM};
-
-    use crate::operations::{Param, PauliProductRotation};
 
     #[test]
     fn test_ppr_matrix() {
@@ -2140,6 +2151,7 @@ mod test {
 #[cfg(test)]
 mod test_custom_operations {
     use crate::circuit_data::CircuitData;
+    use crate::custom_operations::QFTGate;
     use crate::gate_matrix::{H_GATE, rz_gate};
     use crate::instruction::Parameters;
     use crate::operations::{CustomOperation, Operation, OperationRef, Param, StandardGate};
@@ -2577,5 +2589,46 @@ mod test_custom_operations {
             assert_eq!(op.num_params(), view.num_params());
             assert_eq!(op.directive(), view.directive());
         }
+    }
+
+    // Tests basic QFT gate properties
+    #[test]
+    fn test_qft() {
+        let qft3 = QFTGate::new(3);
+        let another_qft3 = QFTGate::new(3);
+        assert_eq!(qft3, another_qft3);
+
+        let qft4 = QFTGate::new(4);
+        assert_ne!(qft3, qft4);
+
+        let mat = qft3.matrix(&[]);
+        assert!(mat.is_some());
+    }
+
+    // Tests putting QFT gates in a circuit and retrieving them back
+    #[test]
+    fn test_qft_rountrip() {
+        let qft = QFTGate::new(4);
+
+        // Add a QFT gate to a circuit
+        let mut qc = CircuitData::with_capacity(1, 0, 1, 0.0.into())
+            .expect("Circuit with small capacity should be built.");
+        let qft_op = PackedOperation::from_custom_operation(Box::new(qft));
+        qc.push_packed_operation(qft_op, None, &[Qubit(0)], &[])
+            .expect("Instruction should be added to the circuit.");
+
+        let retrieved_op = &qc.data()[0];
+
+        let OperationRef::CustomOperation(dyn_cast_op) = retrieved_op.op.view() else {
+            panic!("Gate should be a custom operation");
+        };
+
+        let Some(downcast_op) = dyn_cast_op.downcast_ref::<QFTGate>() else {
+            panic!("Gate should be a custom gate of type QFTGate");
+        };
+
+        assert!(downcast_op.is_unitary());
+        assert_eq!(downcast_op.num_qubits(), 4);
+        assert_eq!(downcast_op, &qft);
     }
 }

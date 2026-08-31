@@ -290,6 +290,9 @@ class QFTGate(Gate):
 
     """
 
+    # Used from Rust to recognize that this is a QFTGate and not some other custom gate named "qft".
+    _is_rust_custom_operation = True
+
     def __init__(
         self,
         num_qubits: int,

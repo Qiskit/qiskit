@@ -23,6 +23,7 @@ use pyo3::types::{PyBool, PyList, PyTuple, PyType};
 use pyo3::{PyResult, intern};
 
 use crate::circuit_data::{CircuitData, PyCircuitData};
+use crate::custom_operations::QFTGate;
 use crate::dag_circuit::DAGCircuit;
 use crate::duration::Duration;
 use crate::imports::{CONTROLLED_GATE, WARNINGS_WARN};
@@ -814,104 +815,136 @@ impl<'a, 'py, T: CircuitBlock> FromPyObject<'a, 'py> for OperationFromPython<T> 
 
         // We need to check by name here to avoid a circular import during initial loading
         let ob_name = ob.getattr(intern!(py, "name"))?.extract::<String>()?;
-        if ob_name == "unitary" {
-            let params: SmallVec<[Param; 3]> = get_params()?.extract()?;
-            if let Some(Param::Obj(data)) = params.first() {
-                let py_matrix: PyReadonlyArray2<Complex64> = data.extract(py)?;
-                let matrix: Option<MatrixView2<Complex64, Dyn, Dyn>> = py_matrix.try_as_matrix();
-                if let Some(x) = matrix {
-                    let unitary_gate = Box::new(UnitaryGate {
-                        array: ArrayType::OneQ(x.into_owned()),
-                    });
+        match ob_name.as_str() {
+            "unitary" => {
+                let params: SmallVec<[Param; 3]> = get_params()?.extract()?;
+                if let Some(Param::Obj(data)) = params.first() {
+                    let py_matrix: PyReadonlyArray2<Complex64> = data.extract(py)?;
+                    let matrix: Option<MatrixView2<Complex64, Dyn, Dyn>> =
+                        py_matrix.try_as_matrix();
+                    if let Some(x) = matrix {
+                        let unitary_gate = Box::new(UnitaryGate {
+                            array: ArrayType::OneQ(x.into_owned()),
+                        });
+                        return Ok(OperationFromPython {
+                            operation: PackedOperation::from_unitary(unitary_gate),
+                            params: None,
+                            label: extract_label()?,
+                        });
+                    }
+                    let matrix: Option<MatrixView4<Complex64, Dyn, Dyn>> =
+                        py_matrix.try_as_matrix();
+                    if let Some(x) = matrix {
+                        let unitary_gate = Box::new(UnitaryGate {
+                            array: ArrayType::TwoQ(x.into_owned()),
+                        });
+                        return Ok(OperationFromPython {
+                            operation: PackedOperation::from_unitary(unitary_gate),
+                            params: None,
+                            label: extract_label()?,
+                        });
+                    } else {
+                        let unitary_gate = Box::new(UnitaryGate {
+                            array: ArrayType::NDArray(py_matrix.as_array().to_owned()),
+                        });
+                        return Ok(OperationFromPython {
+                            operation: PackedOperation::from_unitary(unitary_gate),
+                            params: None,
+                            label: extract_label()?,
+                        });
+                    };
+                }
+            }
+            "qft" => 'qft: {
+                // ToDo: should we handle subclasses of QFTGate gates (coming from Python)?
+
+                // To ensure that this is a real QFT gate from Python and not some other custom gate also named "qft",
+                // the Python QFT gates have a `_is_rust_custom_operation` field at the class level so we can
+                // quickly identify them here without an `isinstance` check.
+                let is_qft = ob_type
+                    .getattr(intern!(py, "_is_rust_custom_operation"))
+                    .ok()
+                    .and_then(|marker| marker.extract::<bool>().ok())
+                    .unwrap_or(false);
+                if !is_qft {
+                    break 'qft;
+                }
+                if extract_label()?.is_none() {
+                    let num_qubits = ob.getattr(intern!(py, "num_qubits"))?.extract::<u32>()?;
                     return Ok(OperationFromPython {
-                        operation: PackedOperation::from_unitary(unitary_gate),
+                        operation: PackedOperation::from_custom_operation(Box::new(QFTGate::new(
+                            num_qubits,
+                        ))),
                         params: None,
-                        label: extract_label()?,
+                        label: None,
                     });
                 }
-                let matrix: Option<MatrixView4<Complex64, Dyn, Dyn>> = py_matrix.try_as_matrix();
-                if let Some(x) = matrix {
-                    let unitary_gate = Box::new(UnitaryGate {
-                        array: ArrayType::TwoQ(x.into_owned()),
-                    });
-                    return Ok(OperationFromPython {
-                        operation: PackedOperation::from_unitary(unitary_gate),
-                        params: None,
-                        label: extract_label()?,
-                    });
-                } else {
-                    let unitary_gate = Box::new(UnitaryGate {
-                        array: ArrayType::NDArray(py_matrix.as_array().to_owned()),
-                    });
-                    return Ok(OperationFromPython {
-                        operation: PackedOperation::from_unitary(unitary_gate),
-                        params: None,
-                        label: extract_label()?,
-                    });
+            }
+            "pauli_product_measurement" => {
+                let z = ob
+                    .getattr(intern!(py, "_pauli_z"))?
+                    .extract::<PyReadonlyArray1<bool>>()?
+                    .as_slice()?
+                    .to_vec();
+
+                let x = ob
+                    .getattr(intern!(py, "_pauli_x"))?
+                    .extract::<PyReadonlyArray1<bool>>()?
+                    .as_slice()?
+                    .to_vec();
+
+                let phase = ob.getattr(intern!(py, "_pauli_phase"))?.extract::<u8>()?;
+
+                let pauli_product_measurement = PauliProductMeasurement {
+                    z: z.to_owned(),
+                    x: x.to_owned(),
+                    neg: phase == 2, // phase is only 0 (represents 1) or 2 (represents -1)
                 };
-            }
-        } else if ob_name == "pauli_product_measurement" {
-            let z = ob
-                .getattr(intern!(py, "_pauli_z"))?
-                .extract::<PyReadonlyArray1<bool>>()?
-                .as_slice()?
-                .to_vec();
-
-            let x = ob
-                .getattr(intern!(py, "_pauli_x"))?
-                .extract::<PyReadonlyArray1<bool>>()?
-                .as_slice()?
-                .to_vec();
-
-            let phase = ob.getattr(intern!(py, "_pauli_phase"))?.extract::<u8>()?;
-
-            let pauli_product_measurement = PauliProductMeasurement {
-                z: z.to_owned(),
-                x: x.to_owned(),
-                neg: phase == 2, // phase is only 0 (represents 1) or 2 (represents -1)
-            };
-            let pbc = Box::new(PauliBased::PauliProductMeasurement(
-                pauli_product_measurement,
-            ));
-
-            return Ok(OperationFromPython {
-                operation: PackedOperation::from_pauli_based(pbc),
-                params: None,
-                label: extract_label()?,
-            });
-        } else if ob_name == "pauli_product_rotation" {
-            let z = ob
-                .getattr(intern!(py, "_pauli_z"))?
-                .extract::<PyReadonlyArray1<bool>>()?
-                .as_slice()?
-                .to_vec();
-
-            let x = ob
-                .getattr(intern!(py, "_pauli_x"))?
-                .extract::<PyReadonlyArray1<bool>>()?
-                .as_slice()?
-                .to_vec();
-
-            let py_angle = get_params()?.get_item(0)?;
-            let angle = Param::extract(py_angle.as_borrowed())?;
-            if matches!(angle, Param::Obj(_)) {
-                return Err(PyTypeError::new_err(
-                    "invalid type for angle in PauliProductRotation",
+                let pbc = Box::new(PauliBased::PauliProductMeasurement(
+                    pauli_product_measurement,
                 ));
+
+                return Ok(OperationFromPython {
+                    operation: PackedOperation::from_pauli_based(pbc),
+                    params: None,
+                    label: extract_label()?,
+                });
             }
+            "pauli_product_rotation" => {
+                let z = ob
+                    .getattr(intern!(py, "_pauli_z"))?
+                    .extract::<PyReadonlyArray1<bool>>()?
+                    .as_slice()?
+                    .to_vec();
 
-            let pauli_rotation = PauliProductRotation {
-                z: z.to_owned(),
-                x: x.to_owned(),
-                angle: angle.clone(),
-            };
-            let pbc = Box::new(PauliBased::PauliProductRotation(pauli_rotation));
+                let x = ob
+                    .getattr(intern!(py, "_pauli_x"))?
+                    .extract::<PyReadonlyArray1<bool>>()?
+                    .as_slice()?
+                    .to_vec();
 
-            return Ok(OperationFromPython {
-                operation: PackedOperation::from_pauli_based(pbc),
-                params: Some(Parameters::Params(smallvec![angle])),
-                label: extract_label()?,
-            });
+                let py_angle = get_params()?.get_item(0)?;
+                let angle = Param::extract(py_angle.as_borrowed())?;
+                if matches!(angle, Param::Obj(_)) {
+                    return Err(PyTypeError::new_err(
+                        "invalid type for angle in PauliProductRotation",
+                    ));
+                }
+
+                let pauli_rotation = PauliProductRotation {
+                    z: z.to_owned(),
+                    x: x.to_owned(),
+                    angle: angle.clone(),
+                };
+                let pbc = Box::new(PauliBased::PauliProductRotation(pauli_rotation));
+
+                return Ok(OperationFromPython {
+                    operation: PackedOperation::from_pauli_based(pbc),
+                    params: Some(Parameters::Params(smallvec![angle])),
+                    label: extract_label()?,
+                });
+            }
+            _ => {}
         }
 
         let Some(kind) = PyOpKind::from_type(ob_type.as_borrowed())? else {
