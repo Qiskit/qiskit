@@ -99,6 +99,30 @@ pub extern "C" fn qk_obs_identity(num_qubits: u32) -> *mut SparseObservable {
 }
 
 /// @ingroup QkObs
+/// Construct an empty observable with a pre-allocated capacity.
+///
+/// @param num_qubits The number of qubits the observable is defined on.
+/// @param num_terms The number of terms for which to pre-allocate capacity.
+/// @param num_bit_terms The number of bit terms for which to pre-allocate capacity.
+///
+/// @return A pointer to the created observable.
+///
+/// # Example
+/// ```c
+///     QkObs *empty = qk_obs_with_capacity(100, 100, 1000);
+/// ```
+///
+#[unsafe(no_mangle)]
+pub extern "C" fn qk_obs_with_capacity(
+    num_qubits: u32,
+    num_terms: usize,
+    num_bit_terms: usize,
+) -> *mut SparseObservable {
+    let obs = SparseObservable::with_capacity(num_qubits, num_terms, num_bit_terms);
+    Box::into_raw(Box::new(obs))
+}
+
+/// @ingroup QkObs
 /// Construct a new observable from raw data.
 ///
 /// Any of the pointer arguments may be ``NULL`` if and only if their corresponding length is zero.
