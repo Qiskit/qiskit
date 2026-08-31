@@ -866,7 +866,7 @@ qi = [
     "qk_obs_to_python",
     "qk_obs_borrow_from_python",
     "qk_obs_convert_from_python",
-    "qk_obs_with_capacity",
+    "",
     "",
     "",
     "",
