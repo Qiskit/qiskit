@@ -621,6 +621,16 @@ class TestLitinskiTransformation(QiskitTestCase):
 
         self.assertEqual(qct, expected)
 
+    @data("Z", "-Z", "X", "-X", "Y", "-Y")
+    def test_preserves_ppm_sign(self, pauli1q):
+        """Test that Litinski transformation preserves the PPM instruction (including
+        its sign), when evolving under identity.
+        """
+        qc = QuantumCircuit(1, 1)
+        qc.append(PauliProductMeasurement(Pauli(pauli1q)), [0], [0])
+        qct = LitinskiTransformation(use_ppr=True)(qc)
+        self.assertEqual(qc, qct)
+
     def test_on_circuits_with_ppr_ppm(self):
         """Test the Litinski transformation pass on a more complex with Clifford gates,
         T gates and Z-measures.
