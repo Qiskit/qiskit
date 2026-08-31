@@ -47,7 +47,6 @@ static int test_round_trip(void) {
         result = EqualityError;
     }
 
-cleanup:
     qk_circuit_free(loaded);
     qk_circuit_free(source);
     return result;
@@ -57,8 +56,8 @@ int test_qpy(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_round_trip);
 
-    fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
+    fflush(stderr);
 
     return num_failed;
 }
