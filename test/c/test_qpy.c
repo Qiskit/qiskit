@@ -52,7 +52,7 @@ static int test_round_trip(void) {
     return result;
 }
 
-int test_qpy(void) { 
+int test_qpy(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_round_trip);
 
