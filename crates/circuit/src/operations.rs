@@ -20,6 +20,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::{fmt, vec};
 
+use crate::annotation::Annotation;
 use crate::bit::{ClassicalRegister, ShareableClbit};
 use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::classical::expr;
@@ -540,7 +541,7 @@ impl<'py> IntoPyObject<'py> for LoopParam {
 pub enum ControlFlow {
     Box {
         duration: Option<BoxDuration>,
-        annotations: Vec<Py<PyAny>>,
+        annotations: Vec<Box<dyn Annotation>>,
     },
     BreakLoop,
     ContinueLoop,
@@ -585,7 +586,7 @@ impl ControlFlowInstruction {
                         return Ok(false);
                     }
                     for (a, b) in self_annotations.iter().zip(other_annotations) {
-                        if !a.bind(py).eq(b)? {
+                        if !a.py_eq(py, b.as_ref())? {
                             return Ok(false);
                         }
                     }
@@ -670,6 +671,10 @@ impl ControlFlowInstruction {
                     },
                     None => (None, None),
                 };
+                let annotations = annotations
+                    .iter()
+                    .map(|annotation| annotation.to_python(py))
+                    .collect::<PyResult<Vec<_>>>()?;
                 imports::BOX_OP.get(py).call1(
                     py,
                     (

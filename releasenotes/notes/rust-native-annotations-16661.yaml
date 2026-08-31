@@ -1,0 +1,9 @@
+---
+features_circuits:
+  - |
+    Added a Rust-native ``Annotation`` trait for storing instruction-local
+    annotations in circuit data. Existing Python annotations attached to
+    :class:`.BoxOp` are now wrapped in a Python-backed Rust annotation object,
+    preserving Python equality and QPY serialization behavior.
+
+    See `#16661 <https://github.com/Qiskit/qiskit/issues/16661>`__.
