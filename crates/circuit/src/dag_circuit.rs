@@ -13,6 +13,7 @@
 use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::hash::Hash;
+use std::ops::Deref;
 use std::sync::Arc;
 
 use foldhash::fast::RandomState;
@@ -1694,7 +1695,33 @@ impl PyDAGCircuit {
     ///     DAGCircuitError: If the DAG is invalid
     #[pyo3(signature=(ignore=None))]
     fn idle_wires(&self, py: Python, ignore: Option<&Bound<PyList>>) -> PyResult<Py<PyIterator>> {
-        idle_wires(&self.inner, py, ignore)
+        let dag = self.try_read()?;
+        let ignore: Option<Vec<String>> = ignore.map(|set| set.extract()).transpose()?;
+        let as_set: Option<HashSet<&str>> = ignore
+            .as_deref()
+            .map(|name| HashSet::from_iter(name.iter().map(Deref::deref)));
+
+        let converter = |wire: Wire| -> PyResult<Py<PyAny>> {
+            match wire {
+                Wire::Qubit(qubit) => dag.qubits.get(qubit).unwrap().into_py_any(py),
+                Wire::Clbit(clbit) => dag.clbits.get(clbit).unwrap().into_py_any(py),
+                Wire::Var(var) => dag
+                    .vars_stretches
+                    .vars()
+                    .get(var)
+                    .unwrap()
+                    .clone()
+                    .into_py_any(py),
+            }
+        };
+
+        let idle_wires_convert: Vec<_> = native_idle_wires(dag, as_set)
+            .map(converter)
+            .collect::<PyResult<_>>()?;
+        Ok(PyTuple::new(py, idle_wires_convert)?
+            .into_any()
+            .try_iter()?
+            .unbind())
     }
 
     /// Return `true` if there are no operation nodes in the graph.
@@ -3319,22 +3346,23 @@ impl PyDAGCircuit {
                 }
             }
             if remove_idle_qubits {
-                let idle_wires: Vec<Bound<PyAny>> = idle_wires(new_dag, py, None)?
-                    .into_bound(py)
-                    .map(|q| q.unwrap())
-                    .filter(|e| e.cast::<PyQubit>().is_ok())
-                    .collect();
+                let qubits = || {
+                    new_dag.idle_wires(None).filter_map(|e| match e {
+                        Wire::Qubit(qubit) => new_dag.qubits().get(qubit),
+                        _ => None,
+                    })
+                };
 
-                let qubits = PyTuple::new(py, idle_wires)?;
                 let bit_iter = match self
                     .inner
                     .qubits
-                    .map_objects(qubits.iter().map(|x| x.extract().unwrap()))
+                    .map_objects(qubits().cloned().collect::<Vec<_>>())
                 {
                     Ok(bit_iter) => bit_iter,
                     Err(_) => {
                         return Err(DAGCircuitError::new_err(format!(
-                            "qubits not in circuit: {qubits:?}"
+                            "qubits not in circuit: {:?}",
+                            qubits().collect::<Vec<_>>()
                         )));
                     }
                 };
@@ -8537,6 +8565,30 @@ impl DAGCircuit {
             None => panic!("not a DAG"),
         }
     }
+
+    fn idle_wires(&self, ignore: Option<HashSet<&str>>) -> impl Iterator<Item = Wire> {
+        (0..self.qubit_io_map.len())
+            .map(|idx| Wire::Qubit(Qubit::new(idx)))
+            .chain((0..self.clbit_io_map.len()).map(|idx| Wire::Clbit(Clbit::new(idx))))
+            .chain((0..self.var_io_map.len()).map(|idx| Wire::Var(Var::new(idx))))
+            .filter(move |wire| match ignore.as_ref() {
+                Some(ignore) => {
+                    let nodes_found = self
+                        .nodes_on_wire(*wire)
+                        .filter(|node| matches!(self.dag[*node], NodeType::Operation(_)))
+                        .any(|node| {
+                            let weight = self.dag.node_weight(node).unwrap();
+                            if let NodeType::Operation(packed) = weight {
+                                !ignore.contains(packed.op.name())
+                            } else {
+                                false
+                            }
+                        });
+                    !nodes_found
+                }
+                None => self.is_wire_idle(*wire),
+            })
+    }
 }
 
 struct NodesOnWireIter<'a> {
@@ -8952,70 +9004,31 @@ impl From<DAGCircuit> for PyDAGCircuit {
     }
 }
 
-fn idle_wires(
+fn native_idle_wires(
     dag: &DAGCircuit,
-    py: Python,
-    ignore: Option<&Bound<PyList>>,
-) -> PyResult<Py<PyIterator>> {
-    let mut result: Vec<Py<PyAny>> = Vec::new();
-    let wires = (0..dag.qubit_io_map.len())
+    ignore: Option<HashSet<&str>>,
+) -> impl Iterator<Item = Wire> {
+    (0..dag.qubit_io_map.len())
         .map(|idx| Wire::Qubit(Qubit::new(idx)))
         .chain((0..dag.clbit_io_map.len()).map(|idx| Wire::Clbit(Clbit::new(idx))))
-        .chain((0..dag.var_io_map.len()).map(|idx| Wire::Var(Var::new(idx))));
-    match ignore {
-        Some(ignore) => {
-            // Convert the list to a Rust set.
-            let ignore_set = ignore
-                .into_iter()
-                .map(|s| s.extract())
-                .collect::<PyResult<HashSet<String>>>()?;
-            for wire in wires {
+        .chain((0..dag.var_io_map.len()).map(|idx| Wire::Var(Var::new(idx))))
+        .filter(move |wire| match ignore.as_ref() {
+            Some(ignore) => {
                 let nodes_found = dag
-                    .nodes_on_wire(wire)
+                    .nodes_on_wire(*wire)
                     .filter(|node| matches!(dag.dag[*node], NodeType::Operation(_)))
                     .any(|node| {
                         let weight = dag.dag.node_weight(node).unwrap();
                         if let NodeType::Operation(packed) = weight {
-                            !ignore_set.contains(packed.op.name())
+                            !ignore.contains(packed.op.name())
                         } else {
                             false
                         }
                     });
-
-                if !nodes_found {
-                    result.push(match wire {
-                        Wire::Qubit(qubit) => dag.qubits.get(qubit).unwrap().into_py_any(py)?,
-                        Wire::Clbit(clbit) => dag.clbits.get(clbit).unwrap().into_py_any(py)?,
-                        Wire::Var(var) => dag
-                            .vars_stretches
-                            .vars()
-                            .get(var)
-                            .unwrap()
-                            .clone()
-                            .into_py_any(py)?,
-                    });
-                }
+                !nodes_found
             }
-        }
-        None => {
-            for wire in wires {
-                if dag.is_wire_idle(wire) {
-                    result.push(match wire {
-                        Wire::Qubit(qubit) => dag.qubits.get(qubit).unwrap().into_py_any(py)?,
-                        Wire::Clbit(clbit) => dag.clbits.get(clbit).unwrap().into_py_any(py)?,
-                        Wire::Var(var) => dag
-                            .vars_stretches
-                            .vars()
-                            .get(var)
-                            .unwrap()
-                            .clone()
-                            .into_py_any(py)?,
-                    });
-                }
-            }
-        }
-    }
-    Ok(PyTuple::new(py, result)?.into_any().try_iter()?.unbind())
+            None => dag.is_wire_idle(*wire),
+        })
 }
 
 /// Add to global phase. Global phase can only be Float or ParameterExpression so this
