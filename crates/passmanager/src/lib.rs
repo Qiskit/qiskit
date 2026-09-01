@@ -13,7 +13,7 @@
 pub mod py;
 
 use hashbrown::{HashMap, HashSet};
-use pyo3::{BoundObject, IntoPyObject, Py, PyAny, PyResult, Python};
+use pyo3::{BoundObject, IntoPyObject, Py, PyAny, PyResult, Python, pyclass};
 use std::{
     any::{Any, TypeId},
     fmt::Debug,
@@ -310,6 +310,7 @@ pub trait Callback {
 
 /// Qiskit's pass manager.
 #[derive(Default, Debug)]
+#[pyclass]
 pub struct PassManager {
     // It is UNSAFE to directly mutate the task vector since we are checking that the types
     // match upon construction, hence the tasks are private.
