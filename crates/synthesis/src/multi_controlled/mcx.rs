@@ -332,18 +332,8 @@ pub fn synth_mcx_n_dirty_i15(
     relative_phase: bool,
     action_only: bool,
 ) -> Result<CircuitData, CircuitDataError> {
-    if num_controls == 0 {
-        let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0))?;
-        circuit.x(0)?;
-        Ok(circuit)
-    } else if num_controls == 1 {
-        let mut circuit = CircuitData::with_capacity(2, 0, 1, Param::Float(0.0))?;
-        circuit.cx(0, 1)?;
-        Ok(circuit)
-    } else if num_controls == 2 {
-        Ok(ccx())
-    } else if num_controls == 3 && !relative_phase {
-        Ok(c3x())
+    if num_controls <= 2 || (num_controls == 3 && !relative_phase) {
+        synth_mcx_explicit(num_controls)
     } else {
         let num_ancillas = num_controls - 2;
         let num_qubits = num_controls + 1 + num_ancillas;
@@ -417,20 +407,8 @@ pub fn synth_mcx_mcp_noaux(
     py: Python,
     num_controls: usize,
 ) -> Result<CircuitData, CircuitDataError> {
-    if num_controls == 0 {
-        let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0))?;
-        circuit.x(0)?;
-        Ok(circuit)
-    } else if num_controls == 1 {
-        let mut circuit = CircuitData::with_capacity(2, 0, 1, Param::Float(0.0))?;
-        circuit.cx(0, 1)?;
-        Ok(circuit)
-    } else if num_controls == 2 {
-        Ok(ccx())
-    } else if num_controls == 3 {
-        Ok(c3x())
-    } else if num_controls == 4 {
-        c4x()
+    if num_controls <= 4 {
+        synth_mcx_explicit(num_controls)
     } else {
         let num_qubits = (num_controls + 1) as u32;
         let target = num_controls as u32;
@@ -485,20 +463,8 @@ pub fn synth_mcx_mcp_noaux(
 /// 2. Iten et al., *Quantum Circuits for Isometries*, Phys. Rev. A 93, 032318 (2016),
 ///    [arXiv:1501.06911] (https://arxiv.org/abs/1501.06911).
 pub fn synth_mcx_1_clean_b95(num_controls: usize) -> Result<CircuitData, CircuitDataError> {
-    if num_controls == 0 {
-        let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0))?;
-        circuit.x(0)?;
-        Ok(circuit)
-    } else if num_controls == 1 {
-        let mut circuit = CircuitData::with_capacity(2, 0, 1, Param::Float(0.0))?;
-        circuit.cx(0, 1)?;
-        Ok(circuit)
-    } else if num_controls == 2 {
-        Ok(ccx())
-    } else if num_controls == 3 {
-        Ok(c3x())
-    } else if num_controls == 4 {
-        c4x()
+    if num_controls <= 4 {
+        synth_mcx_explicit(num_controls)
     } else {
         // k >= 5: 1-clean-ancilla construction (Barenco et al. 1995, Lemma 7.3)
         // decompose the gate into two halves and add 2 qubits, target and ancilla
@@ -581,16 +547,9 @@ pub fn synth_mcx_1_clean_b95(num_controls: usize) -> Result<CircuitData, Circuit
 ///    relative-phase Toffoli gates with an application to multiple control Toffoli optimization",
 ///    [arXiv:1508.03273] (https://arxiv.org/pdf/1508.03273).
 pub fn synth_mcx_n_clean_m15(num_controls: usize) -> Result<CircuitData, CircuitDataError> {
-    if num_controls == 0 {
-        let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0))?;
-        circuit.x(0)?;
-        Ok(circuit)
-    } else if num_controls == 1 {
-        let mut circuit = CircuitData::with_capacity(2, 0, 1, Param::Float(0.0))?;
-        circuit.cx(0, 1)?;
-        Ok(circuit)
-    } else if num_controls == 2 {
-        Ok(ccx())
+    if num_controls <= 2 {
+        // should we use <-4 ? explicit cases are better then m15
+        synth_mcx_explicit(num_controls)
     } else {
         let num_qubits = 2 * num_controls - 1;
         let num_instructions = 2 * num_controls - 3;
@@ -1057,16 +1016,13 @@ fn increment_2_dirty(n: u32, flag_add: bool) -> PyResult<CircuitData> {
 /// 1. Huang and Palsberg, *Compiling Conditional Quantum Gates without Using Helper Qubits*, PLDI (2024),
 ///    https://dl.acm.org/doi/10.1145/3656436.
 pub fn synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
-    let n = num_controls + 1;
-
-    let mut circuit = CircuitData::with_capacity(n as u32, 0, 0, Param::Float(0.0))?;
-
-    // Handle small cases explicitly
-    if n == 1 {
-        circuit.x(0)?;
-    } else if n == 2 {
-        circuit.cx(0, 1)?;
+    // Handle small cases explicitly.
+    // should we use <=4? explicit cases are better than hp24
+    if num_controls <= 2 {
+        synth_mcx_explicit(num_controls).map_err(Into::into)
     } else {
+        let n: usize = num_controls + 1;
+        let mut circuit = CircuitData::with_capacity(n as u32, 0, 0, Param::Float(0.0))?;
         circuit.h(num_controls as u32)?;
 
         // The construction described in Fig.7 of the paper only works for even values of n.
@@ -1130,9 +1086,8 @@ pub fn synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
         }
 
         circuit.h(num_controls as u32)?;
+        Ok(circuit)
     }
-
-    Ok(circuit)
 }
 
 /// Synthesize a multi-controlled X gate with :math:`k` controls using the relation
