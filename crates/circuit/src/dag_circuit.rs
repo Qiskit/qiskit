@@ -13,6 +13,7 @@
 use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::hash::Hash;
+use std::iter::zip;
 use std::sync::Arc;
 
 use foldhash::fast::RandomState;
@@ -1052,10 +1053,10 @@ impl DAGCircuit {
     fn remove_all_ops_named(&mut self, opname: &str) {
         let mut to_remove = Vec::new();
         for (id, weight) in self.dag.node_references() {
-            if let NodeType::Operation(packed) = &weight {
-                if opname == packed.op.name() {
-                    to_remove.push(id);
-                }
+            if let NodeType::Operation(packed) = &weight
+                && opname == packed.op.name()
+            {
+                to_remove.push(id);
             }
         }
         for node in to_remove {
@@ -2201,10 +2202,12 @@ impl DAGCircuit {
                                 (
                                     ControlFlowView::Box {
                                         duration: duration_a,
+                                        annotations: annotations_a,
                                         body: body_a,
                                     },
                                     ControlFlowView::Box {
                                         duration: duration_b,
+                                        annotations: annotations_b,
                                         body: body_b,
                                     },
                                 ) => {
@@ -2227,7 +2230,13 @@ impl DAGCircuit {
                                         },
                                         None => duration_b.is_none(),
                                     };
-                                    Ok(duration_eq && block_eq(body_a, body_b)?)
+                                    Ok(duration_eq
+                                        && annotations_a.len() == annotations_b.len()
+                                        && zip(annotations_a, annotations_b)
+                                            .try_fold(true, |tot, (a, b)| {
+                                                a.bind(py).eq(b).map(|res| res && tot)
+                                            })?
+                                        && block_eq(body_a, body_b)?)
                                 }
                                 (ControlFlowView::BreakLoop, ControlFlowView::BreakLoop) => {
                                     Ok(true)
@@ -2507,67 +2516,86 @@ impl DAGCircuit {
                                     OperationRef::StandardInstruction(_),
                                 ] => Ok(other.unpack_py_op(py, inst2)?.eq(ob)? && check_args()),
                                 [OperationRef::Unitary(op_a), OperationRef::Unitary(op_b)] => {
-                                    match [&op_a.array, &op_b.array] {
-                                        [ArrayType::NDArray(a), ArrayType::NDArray(b)] => Ok(
-                                            relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8),
-                                        ),
-                                        [ArrayType::OneQ(a), ArrayType::NDArray(b)]
-                                        | [ArrayType::NDArray(b), ArrayType::OneQ(a)] => {
-                                            if b.shape()[0] == 2 {
-                                                for i in 0..2 {
-                                                    for j in 0..2 {
-                                                        if !relative_eq!(
-                                                            b[[i, j]],
-                                                            a[(i, j)],
-                                                            max_relative = 1e-5,
-                                                            epsilon = 1e-8
-                                                        ) {
-                                                            return Ok(false);
+                                    if check_args() {
+                                        match [&op_a.array, &op_b.array] {
+                                            [ArrayType::NDArray(a), ArrayType::NDArray(b)] => {
+                                                Ok(relative_eq!(
+                                                    a,
+                                                    b,
+                                                    max_relative = 1e-5,
+                                                    epsilon = 1e-8
+                                                ))
+                                            }
+                                            [ArrayType::OneQ(a), ArrayType::NDArray(b)]
+                                            | [ArrayType::NDArray(b), ArrayType::OneQ(a)] => {
+                                                if b.shape()[0] == 2 {
+                                                    for i in 0..2 {
+                                                        for j in 0..2 {
+                                                            if !relative_eq!(
+                                                                b[[i, j]],
+                                                                a[(i, j)],
+                                                                max_relative = 1e-5,
+                                                                epsilon = 1e-8
+                                                            ) {
+                                                                return Ok(false);
+                                                            }
                                                         }
                                                     }
+                                                    Ok(true)
+                                                } else {
+                                                    Ok(false)
                                                 }
-                                                Ok(true)
-                                            } else {
-                                                Ok(false)
                                             }
-                                        }
-                                        [ArrayType::TwoQ(a), ArrayType::NDArray(b)]
-                                        | [ArrayType::NDArray(b), ArrayType::TwoQ(a)] => {
-                                            if b.shape()[0] == 4 {
-                                                for i in 0..4 {
-                                                    for j in 0..4 {
-                                                        if !relative_eq!(
-                                                            b[[i, j]],
-                                                            a[(i, j)],
-                                                            max_relative = 1e-5,
-                                                            epsilon = 1e-8
-                                                        ) {
-                                                            return Ok(false);
+                                            [ArrayType::TwoQ(a), ArrayType::NDArray(b)]
+                                            | [ArrayType::NDArray(b), ArrayType::TwoQ(a)] => {
+                                                if b.shape()[0] == 4 {
+                                                    for i in 0..4 {
+                                                        for j in 0..4 {
+                                                            if !relative_eq!(
+                                                                b[[i, j]],
+                                                                a[(i, j)],
+                                                                max_relative = 1e-5,
+                                                                epsilon = 1e-8
+                                                            ) {
+                                                                return Ok(false);
+                                                            }
                                                         }
                                                     }
+                                                    Ok(true)
+                                                } else {
+                                                    Ok(false)
                                                 }
-                                                Ok(true)
-                                            } else {
-                                                Ok(false)
                                             }
+                                            [ArrayType::OneQ(a), ArrayType::OneQ(b)] => {
+                                                Ok(relative_eq!(
+                                                    a,
+                                                    b,
+                                                    max_relative = 1e-5,
+                                                    epsilon = 1e-8
+                                                ))
+                                            }
+                                            [ArrayType::TwoQ(a), ArrayType::TwoQ(b)] => {
+                                                Ok(relative_eq!(
+                                                    a,
+                                                    b,
+                                                    max_relative = 1e-5,
+                                                    epsilon = 1e-8
+                                                ))
+                                            }
+                                            _ => Ok(false),
                                         }
-                                        [ArrayType::OneQ(a), ArrayType::OneQ(b)] => Ok(
-                                            relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8),
-                                        ),
-                                        [ArrayType::TwoQ(a), ArrayType::TwoQ(b)] => Ok(
-                                            relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8),
-                                        ),
-                                        _ => Ok(false),
+                                    } else {
+                                        Ok(false)
                                     }
                                 }
                                 [
                                     OperationRef::PauliProductMeasurement(op_a),
                                     OperationRef::PauliProductMeasurement(op_b),
-                                ] => Ok(op_a == op_b),
+                                ] => Ok((op_a == op_b) && check_args()),
                                 [
                                     OperationRef::PauliProductRotation(op_a),
                                     OperationRef::PauliProductRotation(op_b),
-                                ] => Ok(op_a == op_b),
+                                ] => Ok((op_a == op_b) && check_args()),
                                 _ => Ok(false),
                             }
                         }
@@ -3713,10 +3741,10 @@ impl DAGCircuit {
         }
         let mut result: Vec<Py<PyAny>> = Vec::new();
         for (id, weight) in self.dag.node_references() {
-            if let NodeType::Operation(packed) = weight {
-                if names_set.contains(packed.op.name()) {
-                    result.push(self.unpack_into(py, id, weight)?);
-                }
+            if let NodeType::Operation(packed) = weight
+                && names_set.contains(packed.op.name())
+            {
+                result.push(self.unpack_into(py, id, weight)?);
             }
         }
         Ok(result)
@@ -4093,6 +4121,7 @@ impl DAGCircuit {
             }
 
             let mut new_layer = self.copy_empty_like(vars_mode, BlocksMode::Drop);
+            new_layer.global_phase = Param::Float(0.);
             let mut block_map = BlockMapper::new();
             let data: Vec<_> = op_nodes
                 .iter()
@@ -4135,6 +4164,7 @@ impl DAGCircuit {
                 _ => unreachable!("A non-operation node was obtained from topological_op_nodes."),
             };
             let mut new_layer = self.copy_empty_like(vars_mode, BlocksMode::Drop);
+            new_layer.global_phase = Param::Float(0.);
             let mut block_map = BlockMapper::new();
 
             // Save the support of the operation we add to the layer
@@ -4420,15 +4450,13 @@ impl DAGCircuit {
                     for pred_index in self.quantum_predecessors(cur_index) {
                         if let NodeType::Operation(pred_packed) =
                             self.dag.node_weight(pred_index).unwrap()
-                        {
-                            if self
+                            && self
                                 .qargs_interner
                                 .get(pred_packed.qubits)
                                 .iter()
                                 .any(|x| qubits_in_cone.contains(x))
-                            {
-                                queue.push_back(pred_index);
-                            }
+                        {
+                            queue.push_back(pred_index);
                         }
                     }
                 }
@@ -5398,7 +5426,7 @@ impl DAGCircuit {
         &mut self,
         qubits: T,
     ) -> Result<(), DAGError> {
-        let qubits: HashSet<Qubit> = qubits.into_iter().collect();
+        let qubits: IndexSet<Qubit> = qubits.into_iter().collect();
 
         let mut busy_bits = Vec::new();
         for bit in qubits.iter() {
@@ -5532,7 +5560,7 @@ impl DAGCircuit {
         &mut self,
         clbits: T,
     ) -> Result<(), DAGError> {
-        let clbits: HashSet<Clbit> = clbits.into_iter().collect();
+        let clbits: IndexSet<Clbit> = clbits.into_iter().collect();
         let mut busy_bits = Vec::new();
         for bit in clbits.iter() {
             if !self.is_wire_idle(Wire::Clbit(*bit)) {
@@ -6843,6 +6871,39 @@ impl DAGCircuit {
             }
         };
 
+        // Transfer DAG-level variable declarations from the replacement DAG.
+        // This is similar to how compose() handles variables, but only transfer variables
+        // that are not already present in the target DAG.
+        for var in other.vars_stretches.iter_vars(VarType::Input) {
+            if self.vars_stretches.vars().find(var).is_none() {
+                self.add_var(var.clone(), VarType::Input)?;
+            }
+        }
+
+        for var in other.vars_stretches.iter_vars(VarType::Capture) {
+            if self.vars_stretches.vars().find(var).is_none() {
+                self.add_var(var.clone(), VarType::Capture)?;
+            }
+        }
+
+        for var in other.vars_stretches.iter_vars(VarType::Declare) {
+            if self.vars_stretches.vars().find(var).is_none() {
+                self.add_var(var.clone(), VarType::Declare)?;
+            }
+        }
+
+        for stretch in other.vars_stretches.iter_stretches(StretchType::Capture) {
+            if self.vars_stretches.stretches().find(stretch).is_none() {
+                self.add_stretch(stretch.clone(), StretchType::Capture)?;
+            }
+        }
+
+        for stretch in other.vars_stretches.iter_stretches(StretchType::Declare) {
+            if self.vars_stretches.stretches().find(stretch).is_none() {
+                self.add_stretch(stretch.clone(), StretchType::Declare)?;
+            }
+        }
+
         let out_map = self.substitute_node_with_graph(
             node_index, other, qubit_map, clbit_map, var_map, block_map,
         )?;
@@ -6864,27 +6925,59 @@ impl DAGCircuit {
 
         for (old_node_index, new_node_index) in out_map.iter() {
             let old_node = &other.dag[*old_node_index];
-            if let NodeType::Operation(old_inst) = old_node {
-                if let OperationRef::ControlFlow(cf) = old_inst.op.view() {
-                    match &cf.control_flow {
-                        ControlFlow::Switch {
-                            target,
-                            label_spec,
-                            cases,
-                        } => {
-                            let mapped_target = variable_mapper
-                                .map_target(target, |new_reg| self.add_creg(new_reg.clone()))?;
+            if let NodeType::Operation(old_inst) = old_node
+                && let OperationRef::ControlFlow(cf) = old_inst.op.view()
+            {
+                match &cf.control_flow {
+                    ControlFlow::Switch {
+                        target,
+                        label_spec,
+                        cases,
+                    } => {
+                        let mapped_target = variable_mapper
+                            .map_target(target, |new_reg| self.add_creg(new_reg.clone()))?;
 
-                            if let NodeType::Operation(new_inst) = &mut self.dag[*new_node_index] {
-                                #[cfg(feature = "cache_pygates")]
-                                {
-                                    new_inst.py_op.take();
-                                }
+                        if let NodeType::Operation(new_inst) = &mut self.dag[*new_node_index] {
+                            #[cfg(feature = "cache_pygates")]
+                            {
+                                new_inst.py_op.take();
+                            }
+                            new_inst.op = ControlFlowInstruction {
+                                control_flow: ControlFlow::Switch {
+                                    target: mapped_target,
+                                    label_spec: label_spec.clone(),
+                                    cases: *cases,
+                                },
+                                num_qubits: cf.num_qubits,
+                                num_clbits: cf.num_clbits,
+                            }
+                            .into();
+                        }
+                    }
+                    ControlFlow::IfElse { condition } | ControlFlow::While { condition } => {
+                        let mapped_condition =
+                            variable_mapper.map_condition(condition, false, |new_reg| {
+                                self.add_creg(new_reg.clone())
+                            })?;
+
+                        if let NodeType::Operation(new_inst) = &mut self.dag[*new_node_index] {
+                            #[cfg(feature = "cache_pygates")]
+                            {
+                                new_inst.py_op.take();
+                            }
+                            if matches!(&cf.control_flow, ControlFlow::While { .. }) {
                                 new_inst.op = ControlFlowInstruction {
-                                    control_flow: ControlFlow::Switch {
-                                        target: mapped_target,
-                                        label_spec: label_spec.clone(),
-                                        cases: *cases,
+                                    control_flow: ControlFlow::While {
+                                        condition: mapped_condition,
+                                    },
+                                    num_qubits: cf.num_qubits,
+                                    num_clbits: cf.num_clbits,
+                                }
+                                .into();
+                            } else {
+                                new_inst.op = ControlFlowInstruction {
+                                    control_flow: ControlFlow::IfElse {
+                                        condition: mapped_condition,
                                     },
                                     num_qubits: cf.num_qubits,
                                     num_clbits: cf.num_clbits,
@@ -6892,40 +6985,8 @@ impl DAGCircuit {
                                 .into();
                             }
                         }
-                        ControlFlow::IfElse { condition } | ControlFlow::While { condition } => {
-                            let mapped_condition =
-                                variable_mapper.map_condition(condition, false, |new_reg| {
-                                    self.add_creg(new_reg.clone())
-                                })?;
-
-                            if let NodeType::Operation(new_inst) = &mut self.dag[*new_node_index] {
-                                #[cfg(feature = "cache_pygates")]
-                                {
-                                    new_inst.py_op.take();
-                                }
-                                if matches!(&cf.control_flow, ControlFlow::While { .. }) {
-                                    new_inst.op = ControlFlowInstruction {
-                                        control_flow: ControlFlow::While {
-                                            condition: mapped_condition,
-                                        },
-                                        num_qubits: cf.num_qubits,
-                                        num_clbits: cf.num_clbits,
-                                    }
-                                    .into();
-                                } else {
-                                    new_inst.op = ControlFlowInstruction {
-                                        control_flow: ControlFlow::IfElse {
-                                            condition: mapped_condition,
-                                        },
-                                        num_qubits: cf.num_qubits,
-                                        num_clbits: cf.num_clbits,
-                                    }
-                                    .into();
-                                }
-                            }
-                        }
-                        _ => (),
                     }
+                    _ => (),
                 }
             }
         }
@@ -7556,11 +7617,22 @@ impl DAGCircuit {
     ) -> Result<Self, DAGError> {
         // Extract necessary attributes
         let qc_data = qc.data;
+        let metadata = qc
+            .metadata
+            .map(|ob| {
+                if copy_op {
+                    ob.call_method0(intern!(ob.py(), "copy")).map(Bound::unbind)
+                } else {
+                    Ok(ob.unbind())
+                }
+            })
+            .transpose()
+            .map_err(DAGError::Python)?;
         Self::from_circuit_data(
             &qc_data,
             copy_op,
             qc.name,
-            qc.metadata.map(|x| x.unbind()),
+            metadata,
             qubit_order,
             clbit_order,
         )

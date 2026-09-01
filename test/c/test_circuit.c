@@ -200,6 +200,35 @@ static int test_circuit_copy_empty_like(void) {
     return Ok;
 }
 
+static int test_barrier_null_ptr(void) {
+    int ret = Ok;
+    const uint32_t num_qubits = 16;
+    QkCircuitInstruction a_inst, b_inst;
+    QkCircuit *a = qk_circuit_new(num_qubits, 0);
+    QkCircuit *b = qk_circuit_copy_empty_like(a, QkVarsMode_Alike, QkBlocksMode_Keep);
+
+    uint32_t *all_qubits = malloc(num_qubits * sizeof(*all_qubits));
+    for (uint32_t i = 0; i < num_qubits; i++)
+        all_qubits[i] = i;
+
+    qk_circuit_barrier(a, all_qubits, num_qubits);
+    qk_circuit_barrier(b, NULL, 0);
+    qk_circuit_get_instruction(a, 0, &a_inst);
+    qk_circuit_get_instruction(b, 0, &b_inst);
+    if (num_qubits != a_inst.num_qubits || a_inst.num_qubits != b_inst.num_qubits ||
+        memcmp(a_inst.qubits, all_qubits, num_qubits * sizeof(*all_qubits)) ||
+        memcmp(b_inst.qubits, all_qubits, num_qubits * sizeof(*all_qubits))) {
+        ret = EqualityError;
+    }
+
+    qk_circuit_instruction_clear(&a_inst);
+    qk_circuit_instruction_clear(&b_inst);
+    qk_circuit_free(a);
+    qk_circuit_free(b);
+    free(all_qubits);
+    return ret;
+}
+
 static int test_no_gate_1000_bits(void) {
     QkCircuit *qc = qk_circuit_new(1000, 1000);
     uint32_t num_qubits = qk_circuit_num_qubits(qc);
@@ -1656,6 +1685,7 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_circuit_copy);
     num_failed += RUN_TEST(test_circuit_copy_with_instructions);
     num_failed += RUN_TEST(test_circuit_copy_empty_like);
+    num_failed += RUN_TEST(test_barrier_null_ptr);
     num_failed += RUN_TEST(test_no_gate_1000_bits);
     num_failed += RUN_TEST(test_get_gate_counts);
     num_failed += RUN_TEST(test_get_gate_counts_bv_no_measure);
