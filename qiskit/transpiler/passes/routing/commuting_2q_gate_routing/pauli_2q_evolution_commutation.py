@@ -25,13 +25,13 @@ from .commuting_2q_block import Commuting2qBlock
 
 class FindCommutingPauliEvolutions(TransformationPass):
     """
-    Finds :class:`.PauliEvolutionGate` objects where the operators, that are evolved, all commute.
+    Simplifies :class:`.PauliEvolutionGate`s where all summands commute.
     """
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """
-        Check for :class:`.PauliEvolutionGate`s where the summands all commute. This pass skips
-        gates that interact with exactly 1 qubit.
+        Simplifies :class:`.PauliEvolutionGate`s where all summands commute. The pass skips gates
+        that interact with exactly 1 qubit.
 
         Args:
             dag: The DAG circuit in which to look for the commuting evolutions.
