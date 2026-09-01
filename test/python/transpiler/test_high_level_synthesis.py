@@ -843,6 +843,35 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
         for q in range(num_qubits):
             self.assertEqual(tracker.is_qubit_clean(q), q not in gate_qubits)
 
+    def test_if_else_tracking(self):
+        """
+        Test that the pass correctly tracks qubits states for if-else operations.
+        Regression test for gh-16859.
+        """
+
+        # HLS would mark qubit 4 as clean at the end of the true block.
+        true_body = QuantumCircuit(5)
+        true_body.reset(4)
+
+        false_body = QuantumCircuit(5)
+        false_body.mcx([0, 1, 2], 3)
+
+        qc = QuantumCircuit(5, 1)
+        qc.h([0, 1, 2, 3, 4])
+
+        qc.if_else((0, True), true_body, false_body, [0, 1, 2, 3, 4], [])
+
+        dag = circuit_to_dag(qc)
+
+        # This specified MCX synthesis method requires one clean ancilla, and hence should not synthesize
+        # the MCX gate. HighLevelSynthesis is currently suboptimal when processing control-flow operations
+        # (treating all qubits as dirty) however previously the reset instruction from the if-branch
+        # set the qubit status to clean, which (incorrectly) propagated to the else-branch, and the MCX
+        # gate was (incorrectly) synthesized.
+        hls_config = HLSConfig(mcx=["1_clean_kg24"])
+        transpiled = HighLevelSynthesis(hls_config=hls_config).run(dag)
+        self.assertIn("mcx", transpiled.count_ops())
+
 
 class TestHighLevelSynthesisQuality(QiskitTestCase):
     """Test the "quality" of circuits produced by HighLevelSynthesis."""
