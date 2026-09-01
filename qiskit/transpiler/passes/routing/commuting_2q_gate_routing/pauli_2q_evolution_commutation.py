@@ -30,8 +30,8 @@ class FindCommutingPauliEvolutions(TransformationPass):
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """
-        Simplifies :class:`.PauliEvolutionGate`s where all summands commute. The pass skips gates
-        that interact with exactly 1 qubit.
+        Simplifies :class:`.PauliEvolutionGate`s where all summands commute, skipping those
+        with exactly 1 qubit.
 
         Args:
             dag: The DAG circuit in which to look for the commuting evolutions.
@@ -45,7 +45,7 @@ class FindCommutingPauliEvolutions(TransformationPass):
             QiskitError: If any :class:`.PauliEvolutionGate` in the circuit interacts with more
                          than 2 qubits.
             QiskitError: If any :class:`.PauliEvolutionGate` in the circuit interacts with 2
-                         qubits, but some terms interact with 1 qubit.
+                         qubits, but term(s) interact with 1 qubit.
         """
 
         for node in dag.op_nodes():
