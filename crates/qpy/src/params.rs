@@ -12,7 +12,6 @@
 use crate::value::ValueEndian;
 use binrw::Endian;
 use num_complex::Complex64;
-use pyo3::prelude::*;
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::parameter::parameter_expression::{
     OPReplay, ParameterExpression, ParameterValueType,
@@ -26,8 +25,8 @@ use crate::error::QpyError;
 use crate::formats;
 use crate::py_methods::{py_convert_from_generic_value, py_pack_param};
 use crate::value::{
-    GenericValue, QPYReadData, QPYWriteData, ValueType, deserialize, deserialize_vec, load_value,
-    pack_generic_value, serialize,
+    GenericValue, QPYReadData, QPYWriteData, QpyCaller, ValueType, deserialize, deserialize_vec,
+    load_value, pack_generic_value, serialize,
 };
 use binrw::binrw;
 use hashbrown::hash_map::HashMap;
@@ -623,9 +622,9 @@ pub(crate) fn pack_param_obj(
             },
         },
         Param::ParameterExpression(exp) => pack_param_expression(exp, qpy_data)?,
-        Param::Obj(py_object) => {
-            Python::attach(|py| py_pack_param(py_object.bind(py), qpy_data, endian))?
-        }
+        Param::Obj(py_object) => qpy_data.caller.attach("Python parameter", |py| {
+            py_pack_param(py_object.bind(py), qpy_data, endian)
+        })?,
     })
 }
 
@@ -641,7 +640,9 @@ pub(crate) fn generic_value_to_param(value: &GenericValue) -> Result<Param, QpyE
             Ok(Param::ParameterExpression(Arc::new(parameter_expression)))
         }
         GenericValue::ParameterExpression(exp) => Ok(Param::ParameterExpression(exp.clone())),
-        _ => Ok(Param::Obj(py_convert_from_generic_value(value)?)),
+        _ => QpyCaller::Python.attach("Arbitrary value to python Param", |py| {
+            Ok(Param::Obj(py_convert_from_generic_value(py, value)?))
+        }),
     }
 }
 
