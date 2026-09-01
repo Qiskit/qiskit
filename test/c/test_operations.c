@@ -75,8 +75,6 @@ QkCustomOpVTableEntry entries[7] = {
     {.slot = -1, .func = NULL},
 };
 
-static QkCustomOpVtable *foo_vtable = NULL;
-
 /// Test adding a custom operation in the cicuit;
 static int test_custom_operation_in_circuit(void) {
     int res = Ok;
@@ -93,7 +91,7 @@ static int test_custom_operation_in_circuit(void) {
     };
 
     // Initialize Vtable
-    foo_vtable = qk_custom_op_vtable_new(entries);
+    const QkCustomOpVtable *foo_vtable = qk_custom_op_vtable_new(entries);
 
     if (foo_vtable == NULL) {
         printf("Retrieved a Null pointer instead of a Vtable pointer.");
@@ -207,7 +205,7 @@ static int test_custom_operation_in_dag(void) {
     };
 
     // Initialize Vtable
-    foo_vtable = qk_custom_op_vtable_new(entries);
+    const QkCustomOpVtable *foo_vtable = qk_custom_op_vtable_new(entries);
 
     if (foo_vtable == NULL) {
         printf("Retrieved a Null pointer instead of a Vtable pointer.");

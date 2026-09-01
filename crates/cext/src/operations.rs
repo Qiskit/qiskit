@@ -14,6 +14,7 @@ use std::{
     ffi::{CStr, c_char, c_void},
     num::NonZero,
     ptr::{null, null_mut},
+    sync::Arc,
 };
 
 use qiskit_circuit::{
@@ -473,7 +474,7 @@ pub unsafe extern "C" fn qk_custom_op_new(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_custom_op_vtable_new(
     mut slots: *const CustomOpVTableEntry,
-) -> *mut CustomOpVtable {
+) -> *const CustomOpVtable {
     let mut vtable = CustomOpVtablePartial::default();
     let mut slot = unsafe { slots.read() };
     while slot.slot != u32::MAX {
@@ -589,6 +590,6 @@ pub unsafe extern "C" fn qk_custom_op_vtable_new(
         slot = unsafe { slots.read() };
     }
     CustomOpVtable::try_from(vtable)
-        .map(|x| Box::into_raw(Box::new(x)))
-        .unwrap_or(std::ptr::null_mut())
+        .map(|x| Arc::into_raw(Arc::new(x)))
+        .unwrap_or(std::ptr::null())
 }
