@@ -7230,10 +7230,9 @@ class QuantumCircuit:
                 qc.measure(0, 0)
 
         Args:
-            condition (Tuple[Union[ClassicalRegister, Clbit], int]): An equality condition to be
-                checked prior to executing ``body``. The left-hand side of the condition must be a
-                :obj:`~ClassicalRegister` or a :obj:`~Clbit`, and the right-hand side must be an
-                integer or boolean.
+            condition (expr.Expr | Tuple[Union[ClassicalRegister, Clbit], int]): A condition to be
+                checked prior to executing ``body``.  Either an :class:`~.expr.Expr` of ``Bool()``
+                type, or the legacy two-tuple equality form ``(register_or_bit, value)``.
             body (Optional[QuantumCircuit]): The loop body to be repeatedly executed.  Omit this to
                 use the context-manager mode.
             qubits (Optional[Sequence[Qubit]]): The circuit qubits over which the loop body should
@@ -7426,11 +7425,10 @@ class QuantumCircuit:
                 qc.z(2)
 
         Args:
-            condition (Tuple[Union[ClassicalRegister, Clbit], int]): A condition to be evaluated in
-                real time during circuit execution, which, if true, will trigger the evaluation of
-                ``true_body``. Can be specified as either a tuple of a ``ClassicalRegister`` to be
-                tested for equality with a given ``int``, or as a tuple of a ``Clbit`` to be
-                compared to either a ``bool`` or an ``int``.
+            condition (expr.Expr | Tuple[Union[ClassicalRegister, Clbit], int]): A condition to be
+                evaluated in real time during circuit execution which, if true, will trigger the
+                evaluation of ``true_body``.  Either an :class:`~.expr.Expr` of ``Bool()`` type, or
+                the legacy two-tuple equality form ``(register_or_bit, value)``.
             true_body (Optional[QuantumCircuit]): The circuit body to be run if ``condition`` is
                 true.
             qubits (Optional[Sequence[QubitSpecifier]]): The circuit qubits over which the if/else
@@ -7504,11 +7502,10 @@ class QuantumCircuit:
                     qc.x(0)
 
         Args:
-            condition: A condition to be evaluated in real time at circuit execution, which,
-                if true, will trigger the evaluation of ``true_body``. Can be
-                specified as either a tuple of a ``ClassicalRegister`` to be
-                tested for equality with a given ``int``, or as a tuple of a
-                ``Clbit`` to be compared to either a ``bool`` or an ``int``.
+            condition: A condition to be evaluated in real time at circuit execution which, if
+                true, will trigger the evaluation of ``true_body``.  Either an
+                :class:`~.expr.Expr` of ``Bool()`` type, or the legacy two-tuple equality form
+                ``(register_or_bit, value)``.
             true_body: The circuit body to be run if ``condition`` is true.
             false_body: The circuit to be run if ``condition`` is false.
             qubits: The circuit qubits over which the if/else should be run.
@@ -7582,8 +7579,9 @@ class QuantumCircuit:
                     qc.cx(0, 1)
 
         Args:
-            target (Union[ClassicalRegister, Clbit]): The classical value to switch one.  This must
-                be integer-like.
+            target (expr.Expr | Union[ClassicalRegister, Clbit]): The classical value to switch on.
+                Either an :class:`~.expr.Expr` of ``Uint(n)`` or ``Bool()`` type, or a
+                :obj:`~ClassicalRegister` or :obj:`~Clbit`.
             cases (Iterable[Tuple[typing.Any, QuantumCircuit]]): A sequence of case specifiers.
                 Each tuple defines one case body (the second item).  The first item of the tuple can
                 be either a single integer value, the special value :data:`.CASE_DEFAULT`, or a
