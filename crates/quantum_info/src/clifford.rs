@@ -1030,8 +1030,13 @@ impl fmt::Debug for Clifford {
         writeln!(f)?;
         writeln!(f, "Tableau:")?;
         for i in 0..2 * self.tableau.num_qubits {
-            for j in 0..2 * self.tableau.num_qubits + 1 {
-                write!(f, "{} ", self.tableau.data[j][i] as u8)?;
+            for row in self
+                .tableau
+                .data
+                .iter()
+                .take(2 * self.tableau.num_qubits + 1)
+            {
+                write!(f, "{} ", row[i] as u8)?;
             }
             writeln!(f)?;
         }
