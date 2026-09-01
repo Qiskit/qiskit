@@ -19,3 +19,4 @@ smallvec.workspace = true
 anyhow.workspace = true
 thiserror.workspace = true
 hashbrown.workspace = true
+pyo3.workspace = true

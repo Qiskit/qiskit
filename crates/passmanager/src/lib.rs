@@ -10,12 +10,53 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+pub mod py;
+
 use hashbrown::{HashMap, HashSet};
+use pyo3::{BoundObject, IntoPyObject, Py, PyAny, PyResult, Python};
 use std::{
     any::{Any, TypeId},
     fmt::Debug,
+    sync::Arc,
 };
 use thiserror::Error;
+
+pub trait PyConvertible: Any + Send + Sync + Debug {
+    fn as_any(&self) -> &(dyn Any + Send + Sync);
+    fn to_py_any(&self, py: Python<'_>) -> PyResult<Py<PyAny>>;
+}
+
+impl<T> PyConvertible for T
+where
+    T: Any + Send + Sync + Clone + Debug + for<'py> IntoPyObject<'py>,
+{
+    fn as_any(&self) -> &(dyn Any + Send + Sync) {
+        self
+    }
+
+    fn to_py_any(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        match self.clone().into_pyobject(py) {
+            Ok(value) => Ok(value.into_any().unbind()),
+            Err(e) => Err(e.into()),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Value {
+    Any(Box<dyn Any + Send + Sync>),
+    // #[cfg(feature = "python")]
+    PyCompatible(Box<dyn PyConvertible>),
+}
+
+impl AsRef<dyn Any + Send + Sync> for Value {
+    fn as_ref(&self) -> &(dyn Any + Send + Sync) {
+        match self {
+            Value::Any(any) => any.as_ref(),
+            Value::PyCompatible(pyany) => pyany.as_ref(),
+        }
+    }
+}
 
 /// The pass manager execution environment.
 ///
@@ -25,14 +66,14 @@ use thiserror::Error;
 pub struct PassManagerContext {
     /// The global, catch-all data. The local [PassContext] handles get read-only access to
     /// this data and after pass execution this global state is updated.
-    data: HashMap<String, Box<dyn Any>>,
+    data: HashMap<String, Value>,
 }
 
 /// Context information provided to the passes.
 #[derive(Debug)]
-pub struct PassContext<'a> {
+pub struct PassContext {
     /// A reference to the global execution environment.
-    global_context: &'a PassManagerContext,
+    global_context: Arc<PassManagerContext>,
 
     /// Whether the pass changed the IR or not. If this is `false`, the pass manager
     /// can assume that no changes to IR have been made and potentially perform optimizations.
@@ -48,13 +89,13 @@ pub struct PassContext<'a> {
 #[derive(Default, Debug)]
 struct ContextUpdates {
     /// New values to insert into the global context.
-    insertions: HashMap<String, Box<dyn Any>>,
+    insertions: HashMap<String, Value>,
     /// Keys to delete from the global context.
     deletions: HashSet<String>,
 }
 
 impl ContextUpdates {
-    fn insert(&mut self, key: String, value: Box<dyn Any>) {
+    fn insert(&mut self, key: String, value: Value) {
         self.deletions.remove(&key);
         self.insertions.insert(key, value);
     }
@@ -64,7 +105,7 @@ impl ContextUpdates {
         self.deletions.insert(key);
     }
 
-    fn get(&self, key: impl AsRef<str>) -> Option<&dyn Any> {
+    fn get(&self, key: impl AsRef<str>) -> Option<&Value> {
         Some(self.insertions.get(key.as_ref())?)
     }
 }
@@ -84,10 +125,10 @@ impl PassManagerContext {
     }
 }
 
-impl<'a> PassContext<'a> {
-    fn spawn(global_context: &'a PassManagerContext) -> Self {
+impl PassContext {
+    fn spawn(global_context: Arc<PassManagerContext>) -> Self {
         Self {
-            global_context,
+            global_context: global_context,
             has_changed: true,
             updates: ContextUpdates::default(),
         }
@@ -99,7 +140,7 @@ impl<'a> PassContext<'a> {
 
     /// Set a new entry in the pass context.
     /// Overwrites the existing value under that key, if it exists.
-    pub fn set(&mut self, key: String, value: Box<dyn Any>) {
+    pub fn set(&mut self, key: String, value: Value) {
         self.updates.insert(key, value);
     }
 
@@ -110,7 +151,7 @@ impl<'a> PassContext<'a> {
     /// Get an entry, if it exists.
     ///
     /// This first queries from the local context, then the global.
-    pub fn get(&self, key: impl AsRef<str>) -> Option<&dyn Any> {
+    pub fn get(&self, key: impl AsRef<str>) -> Option<&Value> {
         let key = key.as_ref();
 
         // The local registry takes precedence.
@@ -332,9 +373,12 @@ impl PassManager {
 
         // Main iteration loop over tasks
         for task in self.tasks.iter() {
-            let mut pass_context = PassContext::spawn(&context);
+            let context_ptr = Arc::new(context);
+            let mut pass_context = PassContext::spawn(Arc::clone(&context_ptr));
             ir = execute_task(task, ir, &mut pass_context, callback)?;
             let updates = pass_context.into_updates();
+
+            context = Arc::into_inner(context_ptr).expect("There is only a single handle");
             context.update(updates);
         }
 
@@ -564,7 +608,7 @@ mod test {
         ) -> anyhow::Result<Self::OutputIR> {
             let count = ir.count_ops();
             let t_count: usize = count.get("t").unwrap_or(&0) + count.get("tdg").unwrap_or(&0);
-            context.set("t_count".to_string(), Box::new(t_count));
+            context.set("t_count".to_string(), Value::Any(Box::new(t_count)));
             Ok(ir)
         }
     }
@@ -582,7 +626,7 @@ mod test {
             ir: Self::InputIR,
             context: &mut PassContext,
         ) -> anyhow::Result<Self::OutputIR> {
-            let Some(t_count) = context.get("t_count") else {
+            let Some(Value::Any(t_count)) = context.get("t_count") else {
                 return Err(anyhow::anyhow!("Missing `t_count`"));
             };
             let Some(t_count) = t_count.downcast_ref::<usize>() else {
@@ -855,6 +899,7 @@ mod test {
             .data
             .get("t_count")
             .expect("Failed to retrieve `t_count`")
+            .as_ref()
             .downcast_ref::<usize>()
             .expect("Downcasting failed");
         assert_eq!(*t_count, num_t as usize);
