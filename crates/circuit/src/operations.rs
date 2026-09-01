@@ -98,7 +98,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for Param {
             // TODO: remove this branch when we raise the NumPy version to 2.4.
             Param::Float(val)
         } else if let Ok(int) = b.extract::<u64>() {
-            Param::Int(int)
+            Param::Float(int as f64)
         } else {
             Param::Obj(b.to_owned().unbind())
         })
