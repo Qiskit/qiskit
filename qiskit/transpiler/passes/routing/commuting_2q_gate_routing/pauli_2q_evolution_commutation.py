@@ -24,18 +24,28 @@ from .commuting_2q_block import Commuting2qBlock
 
 
 class FindCommutingPauliEvolutions(TransformationPass):
-    """Finds :class:`.PauliEvolutionGate` objects where the operators, that are evolved, all commute."""
+    """
+    Finds :class:`.PauliEvolutionGate` objects where the operators, that are evolved, all commute.
+    """
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
-        """Check for :class:`.PauliEvolutionGate` objects where the summands all commute.
+        """
+        Check for :class:`.PauliEvolutionGate`s where the summands all commute. This pass skips
+        gates that interact with exactly 1 qubit.
 
         Args:
             dag: The DAG circuit in which to look for the commuting evolutions.
 
         Returns:
-            The dag in which :class:`.PauliEvolutionGate` objects made of commuting two-qubit Paulis
-            have been replaced with :class:`.Commuting2qBlocks`` gate instructions. These gates
-            contain nodes of two-qubit :class:`.PauliEvolutionGate` objects.
+            The dag in which :class:`.PauliEvolutionGate` objects made of commuting two-qubit
+            Paulis have been replaced with :class:`.Commuting2qBlocks`` gate instructions. These
+            gates contain nodes of two-qubit :class:`.PauliEvolutionGate` objects.
+
+        Raises:
+            QiskitError: If any :class:`.PauliEvolutionGate` in the circuit interacts with more
+                         than 2 qubits.
+            QiskitError: If any :class:`.PauliEvolutionGate` in the circuit interacts with 2
+                         qubits, but some terms interact with 1 qubit.
         """
 
         for node in dag.op_nodes():
