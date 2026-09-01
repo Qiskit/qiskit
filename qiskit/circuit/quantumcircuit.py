@@ -7189,11 +7189,11 @@ class QuantumCircuit:
     def while_loop(
         self,
         condition: tuple[ClassicalRegister | Clbit, int] | expr.Expr,
-        body: None,
-        qubits: None,
-        clbits: None,
+        body: None = ...,
+        qubits: None = ...,
+        clbits: None = ...,
         *,
-        label: str | None,
+        label: str | None = ...,
     ) -> WhileLoopContext: ...
 
     @typing.overload
@@ -7204,7 +7204,7 @@ class QuantumCircuit:
         qubits: Sequence[QubitSpecifier],
         clbits: Sequence[ClbitSpecifier],
         *,
-        label: str | None,
+        label: str | None = ...,
     ) -> InstructionSet: ...
 
     def while_loop(self, condition, body=None, qubits=None, clbits=None, *, label=None):
@@ -7274,12 +7274,12 @@ class QuantumCircuit:
     def for_loop(
         self,
         indexset: Iterable[int],
-        loop_parameter: Parameter | expr.Var | None,
-        body: None,
-        qubits: None,
-        clbits: None,
+        loop_parameter: Parameter | expr.Var | None = ...,
+        body: None = ...,
+        qubits: None = ...,
+        clbits: None = ...,
         *,
-        label: str | None,
+        label: str | None = ...,
     ) -> ForLoopContext: ...
 
     @typing.overload
@@ -7291,7 +7291,7 @@ class QuantumCircuit:
         qubits: Sequence[QubitSpecifier],
         clbits: Sequence[ClbitSpecifier],
         *,
-        label: str | None,
+        label: str | None = ...,
     ) -> InstructionSet: ...
 
     def for_loop(
@@ -7370,12 +7370,14 @@ class QuantumCircuit:
         )
 
     @typing.overload
-    def if_test(self, condition: tuple[ClassicalRegister | Clbit, int]) -> IfContext: ...
+    def if_test(
+        self, condition: tuple[ClassicalRegister | Clbit, int] | expr.Expr
+    ) -> IfContext: ...
 
     @typing.overload
     def if_test(
         self,
-        condition: tuple[ClassicalRegister | Clbit, int],
+        condition: tuple[ClassicalRegister | Clbit, int] | expr.Expr,
         true_body: QuantumCircuit,
         qubits: Sequence[QubitSpecifier],
         clbits: Sequence[ClbitSpecifier],
@@ -7473,7 +7475,9 @@ class QuantumCircuit:
 
     def if_else(
         self,
-        condition: tuple[ClassicalRegister, int] | tuple[Clbit, int] | tuple[Clbit, bool],
+        condition: (
+            tuple[ClassicalRegister, int] | tuple[Clbit, int] | tuple[Clbit, bool] | expr.Expr
+        ),
         true_body: QuantumCircuit,
         false_body: QuantumCircuit,
         qubits: Sequence[QubitSpecifier],
@@ -7531,23 +7535,23 @@ class QuantumCircuit:
     @typing.overload
     def switch(
         self,
-        target: ClbitSpecifier | ClassicalRegister,
-        cases: None,
-        qubits: None,
-        clbits: None,
+        target: ClbitSpecifier | ClassicalRegister | expr.Expr,
+        cases: None = ...,
+        qubits: None = ...,
+        clbits: None = ...,
         *,
-        label: str | None,
+        label: str | None = ...,
     ) -> SwitchContext: ...
 
     @typing.overload
     def switch(
         self,
-        target: ClbitSpecifier | ClassicalRegister,
+        target: ClbitSpecifier | ClassicalRegister | expr.Expr,
         cases: Iterable[tuple[typing.Any, QuantumCircuit]],
         qubits: Sequence[QubitSpecifier],
         clbits: Sequence[ClbitSpecifier],
         *,
-        label: str | None,
+        label: str | None = ...,
     ) -> InstructionSet: ...
 
     def switch(self, target, cases=None, qubits=None, clbits=None, *, label=None):
