@@ -1172,7 +1172,7 @@ pub fn synth_mcx_noaux_sp22(num_ctrl_qubits: usize) -> Result<CircuitData, Circu
         circuit.h(num_ctrl_qubits as u32)?;
         let pi_phase = Param::Float(PI);
         // Adding MCP(π) on `circuit` which has target qubit at index `num_ctrl_qubits`.
-        // Instead of calling `synth_mcp_noaux_sp22` we call it's step functions directly. This avoids
+        // Instead of calling `synth_mcp_noaux_sp22`, we call its step functions directly. This avoids
         // allocating and copying an intermediate circuit and is ~2x faster.
         sp22::step_1(&mut circuit, &pi_phase, num_ctrl_qubits)?;
         sp22::step_2(&mut circuit, &pi_phase, num_ctrl_qubits)?;
