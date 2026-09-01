@@ -10,10 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::prelude::*;
 use pyo3::types::PyAnyMethods;
 use pyo3::{PyResult, Python};
-use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError, PyCircuitData};
+use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
 use qiskit_circuit::operations::{
     Operation, OperationRef, Param, PyInstruction, PyOpKind, StandardGate, multiply_param,
 };
@@ -33,9 +32,8 @@ pub fn ccx() -> CircuitData {
 }
 
 /// Definition circuit for C3X.
-#[pyfunction]
-pub fn c3x() -> PyCircuitData {
-    StandardGate::C3X.definition(&[]).unwrap().into()
+pub fn c3x() -> CircuitData {
+    StandardGate::C3X.definition(&[]).unwrap()
 }
 
 /// Definition circuit for RCCX.
@@ -265,8 +263,7 @@ impl CircuitDataForSynthesis for CircuitData {
 }
 
 /// Efficient synthesis for 4-controlled X-gate.
-#[pyfunction]
-pub fn c4x() -> Result<PyCircuitData, CircuitDataError> {
+pub fn c4x() -> Result<CircuitData, CircuitDataError> {
     let mut circuit = CircuitData::with_capacity(5, 0, 0, Param::Float(0.0))?;
     circuit.h(4)?;
     circuit.cp(PI2, 3, 4)?;
@@ -281,7 +278,7 @@ pub fn c4x() -> Result<PyCircuitData, CircuitDataError> {
         &[],
     )?;
     circuit.compose(&c3sx(), &[Qubit(0), Qubit(1), Qubit(2), Qubit(4)], &[])?;
-    Ok(circuit.into())
+    Ok(circuit)
 }
 
 /// Adds gates of the "action gadget" to the circuit
@@ -346,7 +343,7 @@ pub fn synth_mcx_n_dirty_i15(
     } else if num_controls == 2 {
         Ok(ccx())
     } else if num_controls == 3 && !relative_phase {
-        Ok(c3x().into())
+        Ok(c3x())
     } else {
         let num_ancillas = num_controls - 2;
         let num_qubits = num_controls + 1 + num_ancillas;
@@ -431,9 +428,9 @@ pub fn synth_mcx_mcp_noaux(
     } else if num_controls == 2 {
         Ok(ccx())
     } else if num_controls == 3 {
-        Ok(c3x().into())
+        Ok(c3x())
     } else if num_controls == 4 {
-        c4x().map(Into::into)
+        c4x()
     } else {
         let num_qubits = (num_controls + 1) as u32;
         let target = num_controls as u32;
@@ -499,9 +496,9 @@ pub fn synth_mcx_1_clean_b95(num_controls: usize) -> Result<CircuitData, Circuit
     } else if num_controls == 2 {
         Ok(ccx())
     } else if num_controls == 3 {
-        Ok(c3x().into())
+        Ok(c3x())
     } else if num_controls == 4 {
-        Ok(c4x()?.into())
+        c4x()
     } else {
         // k >= 5: 1-clean-ancilla construction (Barenco et al. 1995, Lemma 7.3)
         // decompose the gate into two halves and add 2 qubits, target and ancilla
@@ -1211,8 +1208,8 @@ fn synth_mcx_explicit(num_ctrl_qubits: usize) -> Result<CircuitData, CircuitData
             Ok(circuit)
         }
         2 => Ok(ccx()),
-        3 => Ok(c3x().into()),
-        4 => Ok(c4x()?.into()),
+        3 => Ok(c3x()),
+        4 => c4x(),
         _ => unreachable!(),
     }
 }
