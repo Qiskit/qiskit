@@ -1018,7 +1018,7 @@ fn increment_2_dirty(n: u32, flag_add: bool) -> PyResult<CircuitData> {
 pub fn synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
     // Handle small cases explicitly.
     // should we use <=4? explicit cases are better than hp24
-    if num_controls <= 2 {
+    if num_controls <= 1 {
         synth_mcx_explicit(num_controls).map_err(Into::into)
     } else {
         let n: usize = num_controls + 1;
