@@ -146,8 +146,11 @@ jobs:
         run: python3 -m pip install --user -r ./.github/workflows/wheels/requirements.txt
       - name: Run cibuildwheel
         run: python3 -m cibuildwheel
-
+      - name: run dmesg
+        if: always()
+        run: dmesg
       - uses: actions/upload-artifact@v7
+        if: always()
         with:
           path: ./wheelhouse/*.whl
           name: ${{ inputs.artifact-prefix }}wheels-macos-intel
