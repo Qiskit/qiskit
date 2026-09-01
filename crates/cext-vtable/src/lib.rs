@@ -298,6 +298,7 @@ mod sparse_observable {
             export_fn!(qk_obs_to_python, feature = "python_binding"),
             export_fn!(qk_obs_borrow_from_python, feature = "python_binding"),
             export_fn!(qk_obs_convert_from_python, feature = "python_binding"),
+            export_fn!(qk_obs_with_capacity),
         ]
     });
 }
