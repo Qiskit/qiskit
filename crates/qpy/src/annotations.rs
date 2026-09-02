@@ -242,31 +242,27 @@ mod tests {
     }
 
     #[test]
-    fn test_native_serialize() {
+    fn test_native_serialize() -> Result<(), Box<dyn std::error::Error>> {
         let annotation: Arc<dyn Annotation> = Arc::new(Tag("my_tag"));
         let other_annotation: Arc<dyn Annotation> = Arc::new(Tag("my_other_tag"));
         let mark: Arc<dyn Annotation> = Arc::new(Mark);
         let mut handler = AnnotationHandler::native(Vec::new(), NativeLoaders::default());
 
-        let (idx, payload) = handler.serialize(&annotation).expect("Serializable.");
-        let (other_idx, other_payload) = handler.serialize(&other_annotation).expect("Serializable.");
-        let (mark_idx, mark_payload) = handler.serialize(&mark).expect("Serializable.");
+        let (idx, payload) = handler.serialize(&annotation)?;
+        let (other_idx, other_payload) = handler.serialize(&other_annotation)?;
+        let (mark_idx, mark_payload) = handler.serialize(&mark)?;
 
+        assert_eq!(TryInto::<&str>::try_into(&payload)?, "tag\x00my_tag");
         assert_eq!(
-            TryInto::<&str>::try_into(&payload).expect("Has a value."),
-            "tag\x00my_tag"
-        );
-        assert_eq!(
-            TryInto::<&str>::try_into(&other_payload).expect("Has a value."),
+            TryInto::<&str>::try_into(&other_payload)?,
             "tag\x00my_other_tag"
         );
-        assert_eq!(
-            TryInto::<&str>::try_into(&mark_payload).expect("Has a value."),
-            "mark\x00mark"
-        );
+        assert_eq!(TryInto::<&str>::try_into(&mark_payload)?, "mark\x00mark");
 
         assert_eq!(idx, other_idx);
         assert_ne!(idx, mark_idx);
+
+        Ok(())
     }
 
     #[test]
@@ -281,7 +277,7 @@ mod tests {
     }
 
     #[test]
-    fn test_native_dump_serializers() {
+    fn test_native_dump_serializers() -> Result<(), Box<dyn std::error::Error>> {
         let handler = AnnotationHandler::native(
             vec![
                 "randomization".to_string(),
@@ -290,8 +286,7 @@ mod tests {
             NativeLoaders::default(),
         );
         let serializers = handler
-            .dump_serializers()
-            .expect("Dump is okay.")
+            .dump_serializers()?
             .into_iter()
             .map(|(s, _)| s)
             .collect::<Vec<_>>();
@@ -302,6 +297,7 @@ mod tests {
                 "randomization.twirl".to_string()
             ]
         );
+        Ok(())
     }
 
     #[test]
@@ -324,15 +320,15 @@ mod tests {
     }
 
     #[test]
-    fn test_native_child() {
+    fn test_native_child() -> Result<(), Box<dyn std::error::Error>> {
         let handler =
             AnnotationHandler::native(vec!["some.namespace".to_string()], NativeLoaders::default())
-                .child()
-                .expect("Is okay.");
+                .child()?;
         assert!(
             handler
                 .dump_serializers()
                 .is_ok_and(|states| states.is_empty())
         );
+        Ok(())
     }
 }

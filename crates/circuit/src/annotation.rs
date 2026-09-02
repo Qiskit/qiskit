@@ -488,9 +488,10 @@ mod test_annotated_boxes {
                 if let Some(box_op) = dag.try_view_control_flow(instr) {
                     return match box_op {
                         ControlFlowView::Box { annotations, .. } => {
-                            if annotations.iter().any(|annotation| {
-                                annotation.namespace().starts_with(namespace)
-                            }) {
+                            if annotations
+                                .iter()
+                                .any(|annotation| annotation.namespace().starts_with(namespace))
+                            {
                                 return Some(node_idx);
                             }
                             None
