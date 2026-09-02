@@ -225,7 +225,7 @@ impl Drop for SymbolExpr {
         // Without loss of generality, let's assume we're now dealing only with `Binary`.  We
         // traverse the nodes in depth-first, left-first order, and drop each node in post order.
         // We "reuse" the `lhs` pointer of each `Binary` we need to walk through to store its
-        // parent:
+        // parent.
 
         // Arbitrary `Arc<SymbolExpr>` we use that never drops (or would be non-recursive if it
         // does).  We use this in the way a sole-owning tree might use a null pointer.  There's only
@@ -281,7 +281,6 @@ impl Drop for SymbolExpr {
         // Walk down the left edges of the current tree until we reach something that can either
         // drop non-recursively, or isn't eligible to drop.  Drop our reference to it, and then walk
         // back up the tree to the nearest `rhs` edge that hasn't been taken yet.
-        // At that point
         while let Some(mut cur_arc) = cur.take() {
             // This `strong_count`/`make_mut` form is imperfect and if there are `Weak` pointers, it
             // might cause us to do a fairly cheap extra Clone+Drop (if a racing `Weak` upgrades to
