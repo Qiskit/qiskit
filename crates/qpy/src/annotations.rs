@@ -12,7 +12,9 @@
 
 use std::sync::Arc;
 
-use qiskit_circuit::annotation::{Annotation, AnnotationFromPython, PythonAnnotation};
+use qiskit_circuit::annotation::{
+    Annotation, AnnotationFromPython, NativeLoaders, PythonAnnotation,
+};
 
 use crate::bytes::Bytes;
 use crate::error::QpyError;
@@ -31,7 +33,10 @@ pub enum AnnotationHandler {
         serialization_state: Py<PyAny>,
         deserialization_state: Py<PyAny>,
     },
-    Native,
+    Native {
+        namespaces: Vec<String>,
+        loaders: NativeLoaders,
+    },
 }
 
 impl AnnotationHandler {
@@ -54,21 +59,25 @@ impl AnnotationHandler {
         })
     }
 
-    // we will use this as part of the python-independance path
-    #[allow(dead_code)]
-    pub fn native() -> Self {
-        Self::Native
+    pub fn native(namespaces: Vec<String>, loaders: NativeLoaders) -> Self {
+        Self::Native {
+            namespaces,
+            loaders,
+        }
     }
 
     /// Create independent annotation state for a nested circuit while preserving the caller mode.
     pub fn child(&self) -> Result<Self, QpyError> {
         match self {
             Self::Python { factories, .. } => Self::python(factories),
-            Self::Native => Ok(Self::Native),
+            Self::Native { loaders, .. } => Ok(Self::native(Vec::new(), loaders.clone())),
         }
     }
 
-    pub fn serialize(&self, annotation: &dyn Annotation) -> Result<(u32, Bytes), QpyError> {
+    pub fn serialize(
+        &mut self,
+        annotation: &Arc<dyn Annotation>,
+    ) -> Result<(u32, Bytes), QpyError> {
         match self {
             Self::Python {
                 serialization_state,
@@ -81,10 +90,24 @@ impl AnnotationHandler {
                     ));
                 };
                 Ok(serialization_state
-                    .call_method1(py, "serialize", (ob.create_py_annotation(py)?,))?
+                    .call_method1(py, "serialize", (ob.annotation(py),))?
                     .extract(py)?)
             }),
-            Self::Native => Err(Self::native_error("serialize")),
+            Self::Native { namespaces, .. } => {
+                let ns = annotation.namespace();
+                let index = if let Some(i) = namespaces.iter().position(|a| a == ns) {
+                    i
+                } else {
+                    namespaces.push(annotation.namespace().to_string());
+                    namespaces.len() - 1
+                };
+                let Some(payload) = annotation.payload() else {
+                    return Err(QpyError::AnnotationError(format!(
+                        "Could not find an appropriate serializer for namespace {ns}."
+                    )));
+                };
+                Ok((index as u32, format!("{ns}\x00{payload}").into()))
+            }
         }
     }
 
@@ -94,7 +117,7 @@ impl AnnotationHandler {
                 deserialization_state,
                 ..
             } => Ok(deserialization_state.call_method1(py, "load", (index, payload))?),
-            Self::Native => Err(Self::native_error("deserialize")),
+            Self::Native { .. } => Err(Self::native_error("deserialize")),
         }
     }
 
@@ -107,7 +130,15 @@ impl AnnotationHandler {
                     .extract::<AnnotationFromPython>()?
                     .0)
             }),
-            Self::Native => Err(Self::native_error("deserialize")),
+            Self::Native { loaders, .. } => {
+                let text: &str = (&payload).try_into()?;
+                let (ns, payload) = text.split_once("\x00").ok_or_else(|| {
+                    QpyError::AnnotationError("Incorrectly formatted payload.".to_owned())
+                })?;
+                loaders.load(ns, payload).ok_or_else(|| {
+                    QpyError::AnnotationError(format!("Could not find a deserializer for {ns}."))
+                })
+            }
         }
     }
 
@@ -121,11 +152,14 @@ impl AnnotationHandler {
                     .call_method0(py, "dump_states")?
                     .extract(py)?)
             }),
-            Self::Native => Ok(Vec::new()),
+            Self::Native { namespaces, .. } => Ok(namespaces
+                .iter()
+                .map(|ns| (ns.clone(), Bytes::new()))
+                .collect()),
         }
     }
 
-    pub fn load_deserializers(&self, data: Vec<(String, Bytes)>) -> Result<(), QpyError> {
+    pub fn load_deserializers(&mut self, data: Vec<(String, Bytes)>) -> Result<(), QpyError> {
         if data.is_empty() {
             return Ok(());
         }
@@ -134,12 +168,15 @@ impl AnnotationHandler {
                 deserialization_state,
                 ..
             } => Python::attach(|py| {
-                for (namespace, state) in data {
-                    deserialization_state.call_method1(py, "initialize", (namespace, state))?;
+                for (ns, state) in data {
+                    deserialization_state.call_method1(py, "initialize", (ns, state))?;
                 }
                 Ok(())
             }),
-            Self::Native => Err(Self::native_error("deserialize")),
+            Self::Native { namespaces, .. } => {
+                *namespaces = data.into_iter().map(|(ns, _)| ns).collect();
+                Ok(())
+            }
         }
     }
 
@@ -153,31 +190,149 @@ impl AnnotationHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::{assert_eq, assert_ne};
+
+    #[derive(Debug, Clone, PartialEq)]
+    struct Tag(&'static str);
+
+    impl Annotation for Tag {
+        fn namespace(&self) -> &str {
+            "tag"
+        }
+
+        fn payload(&self) -> Option<std::borrow::Cow<'_, str>> {
+            Some(std::borrow::Cow::Borrowed(self.0))
+        }
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    struct Mark;
+
+    impl Annotation for Mark {
+        fn namespace(&self) -> &str {
+            "mark"
+        }
+
+        fn payload(&self) -> Option<std::borrow::Cow<'_, str>> {
+            Some(std::borrow::Cow::Borrowed("mark"))
+        }
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    struct NonSerializable;
+
+    impl Annotation for NonSerializable {
+        fn namespace(&self) -> &str {
+            "no_payload"
+        }
+    }
 
     #[test]
     fn native_handler_is_inert_without_annotations() {
         assert!(
-            AnnotationHandler::native()
+            AnnotationHandler::native(Vec::new(), NativeLoaders::default())
                 .dump_serializers()
                 .is_ok_and(|states| states.is_empty())
         );
         assert!(
-            AnnotationHandler::native()
+            AnnotationHandler::native(Vec::new(), NativeLoaders::default())
                 .load_deserializers(Vec::new())
                 .is_ok()
         );
     }
 
     #[test]
-    fn native_handler_rejects_annotations() {
-        let handler = AnnotationHandler::native();
+    fn test_native_serialize() {
+        let annotation: Arc<dyn Annotation> = Arc::new(Tag("my_tag"));
+        let other_annotation: Arc<dyn Annotation> = Arc::new(Tag("my_other_tag"));
+        let mark: Arc<dyn Annotation> = Arc::new(Mark);
+        let mut handler = AnnotationHandler::native(Vec::new(), NativeLoaders::default());
+
+        let (idx, payload) = handler.serialize(&annotation).unwrap();
+        let (other_idx, other_payload) = handler.serialize(&other_annotation).unwrap();
+        let (mark_idx, mark_payload) = handler.serialize(&mark).unwrap();
+
+        assert_eq!(
+            TryInto::<&str>::try_into(&payload).unwrap(),
+            "tag\x00my_tag"
+        );
+        assert_eq!(
+            TryInto::<&str>::try_into(&other_payload).unwrap(),
+            "tag\x00my_other_tag"
+        );
+        assert_eq!(
+            TryInto::<&str>::try_into(&mark_payload).unwrap(),
+            "mark\x00mark"
+        );
+
+        assert_eq!(idx, other_idx);
+        assert_ne!(idx, mark_idx);
+    }
+
+    #[test]
+    fn test_native_serialize_error() {
+        let annotation: Arc<dyn Annotation> = Arc::new(NonSerializable);
+        let mut handler = AnnotationHandler::native(Vec::new(), NativeLoaders::default());
+
         assert!(matches!(
-            handler.load(0, Bytes::new()),
+            handler.serialize(&annotation),
             Err(QpyError::AnnotationError(_))
         ));
+    }
+
+    #[test]
+    fn test_native_dump_serializers() {
+        let handler = AnnotationHandler::native(
+            vec![
+                "randomization".to_string(),
+                "randomization.twirl".to_string(),
+            ],
+            NativeLoaders::default(),
+        );
+        let serializers = handler
+            .dump_serializers()
+            .unwrap()
+            .into_iter()
+            .map(|(s, _)| s)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            serializers,
+            vec![
+                "randomization".to_string(),
+                "randomization.twirl".to_string()
+            ]
+        );
+    }
+
+    #[test]
+    fn test_native_load_deserializers() {
+        let mut handler = AnnotationHandler::native(Vec::new(), NativeLoaders::default());
+        assert!(
+            handler
+                .load_deserializers(vec![("a.namespace".to_string(), Bytes::new())])
+                .is_ok()
+        );
+    }
+
+    #[test]
+    fn test_native_load_error() {
+        let handler = AnnotationHandler::native(Vec::new(), NativeLoaders::default());
         assert!(matches!(
-            handler.load_deserializers(vec![("namespace".to_owned(), Bytes::new())]),
+            handler.load(0, "bad_payload".into()),
             Err(QpyError::AnnotationError(_))
         ));
+    }
+
+    #[test]
+    fn test_native_child() {
+        let handler =
+            AnnotationHandler::native(vec!["some.namespace".to_string()], NativeLoaders::default())
+                .child()
+                .unwrap();
+        assert!(
+            handler
+                .dump_serializers()
+                .is_ok_and(|states| states.is_empty())
+        );
     }
 }

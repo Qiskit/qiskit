@@ -11,16 +11,36 @@
 // that they have been altered from the originals.
 
 use std::any::Any;
+use std::borrow::Cow;
 use std::fmt::Debug;
 use std::sync::Arc;
 use std::sync::OnceLock;
 
-use pyo3::exceptions::PyNotImplementedError;
+use hashbrown::HashMap;
+use pyo3::exceptions::PyValueError;
+use thiserror::Error;
+
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyString;
 
 use crate::annotation::custom_traits::ComparableAnnotation;
+
+/// Error conditions for the [Annotation] trait.
+#[non_exhaustive]
+#[derive(Error, Debug)]
+pub enum AnnotationError {
+    #[error("tried to recurse with annotation in namespace {0}")]
+    WrappedPythonError(String),
+}
+
+impl From<AnnotationError> for PyErr {
+    fn from(error: AnnotationError) -> Self {
+        match error {
+            AnnotationError::WrappedPythonError(e) => PyValueError::new_err(e.to_string()),
+        }
+    }
+}
 
 /// An arbitrary annotation for instructions.
 ///
@@ -56,17 +76,14 @@ use crate::annotation::custom_traits::ComparableAnnotation;
 /// selected will not invalidate the annotation.  We expect to have more first-class support for
 /// annotations to declare their validity requirements in the future.
 #[pyclass(module = "qiskit.circuit", name = "Annotation", subclass, frozen)]
-pub struct PyAnnotation {
-    inner: Option<Arc<dyn Annotation>>,
-}
-
+pub struct PyAnnotation;
 #[pymethods]
 impl PyAnnotation {
     #[allow(unused_variables)]
     #[new]
     #[pyo3(signature = (*args, **kwargs))]
     fn py_new(args: &Bound<'_, PyAny>, kwargs: Option<&Bound<'_, PyAny>>) -> Self {
-        Self { inner: None }
+        Self
     }
 
     /// The "namespace" the annotation belongs to.
@@ -90,17 +107,38 @@ impl PyAnnotation {
     }
 }
 
-impl PyAnnotation {
-    pub fn new(inner: Arc<dyn Annotation>) -> Self {
-        assert!(
-            inner.downcast_ref::<PythonAnnotation>().is_none(),
-            "PyAnnotation can never wrap a PythonAnnotation."
-        );
-        Self { inner: Some(inner) }
+/// An annotation native to Qiskit.
+///
+/// This subclass will be used natively in Qiskit and abides by the same "namespace" semantics as
+/// its base class.
+#[pyclass(name = "NativeAnnotation", module = "qiskit.circuit", extends = PyAnnotation, frozen)]
+pub struct PyNativeAnnotation {
+    inner: Arc<dyn Annotation>,
+}
+#[pymethods]
+impl PyNativeAnnotation {
+    /// The namespace the annotation belongs to.
+    #[getter]
+    pub fn namespace(&self) -> &str {
+        self.inner.namespace()
+    }
+}
+
+impl PyNativeAnnotation {
+    /// Return a new instance.
+    ///
+    /// This method guards against [PythonAnnotation] to avoid recursion.
+    pub fn new(inner: Arc<dyn Annotation>) -> Result<Self, AnnotationError> {
+        match inner.downcast_ref::<PythonAnnotation>() {
+            Some(py_ann) => Err(AnnotationError::WrappedPythonError(
+                py_ann.namespace().to_string(),
+            )),
+            None => Ok(Self { inner }),
+        }
     }
 
-    pub fn inner(&self) -> Option<&Arc<dyn Annotation>> {
-        self.inner.as_ref()
+    pub fn inner(&self) -> &Arc<dyn Annotation> {
+        &self.inner
     }
 }
 
@@ -137,11 +175,14 @@ pub trait Annotation: Any + Debug + Send + Sync + ComparableAnnotation {
     /// Return the namespace of the annotation.
     fn namespace(&self) -> &str;
 
-    /// Return a Python representation of this annotation.
-    fn create_py_annotation(&self, _: Python) -> PyResult<Py<PyAny>> {
-        Err(PyNotImplementedError::new_err(
-            "Custom annotations from Rust cannot be exposed to Python.",
-        ))
+    /// The payload.
+    ///
+    /// Note that there is no inverse method on the trait. This is deliberately omitted
+    /// and is implemented with a [NativeLoader]. The [NativeLoader] could do this directly,
+    /// or can defer to a per [Annotation] call. The payload can be borrowed when it's
+    /// already on self and owned if it has to be built.
+    fn payload(&self) -> Option<Cow<'_, str>> {
+        None
     }
 }
 
@@ -174,6 +215,10 @@ impl PythonAnnotation {
             namespace: OnceLock::new(),
         }
     }
+
+    pub fn annotation(&self, py: Python) -> Py<PyAny> {
+        self.annotation.clone_ref(py)
+    }
 }
 
 impl Annotation for PythonAnnotation {
@@ -191,10 +236,6 @@ impl Annotation for PythonAnnotation {
             })
         })
     }
-
-    fn create_py_annotation(&self, py: Python) -> PyResult<Py<PyAny>> {
-        Ok(self.annotation.clone_ref(py))
-    }
 }
 
 impl PartialEq for PythonAnnotation {
@@ -209,6 +250,61 @@ impl PartialEq for PythonAnnotation {
     }
 }
 
+/// Iterate through namespaces from narrowest to broadest.
+pub fn iter_namespaces(namespace: &str) -> impl Iterator<Item = &str> {
+    std::iter::successors((!namespace.is_empty()).then_some(namespace), |ns| {
+        ns.rsplit_once('.')
+            .map(|(p, _)| p)
+            .filter(|p| !p.is_empty())
+    })
+    .chain(std::iter::once(""))
+}
+
+/// A loader for an [Annotation].
+///
+/// This function takes a namespace and a payload, and returns an annotation.
+pub type NativeLoader = fn(&str, &str) -> Option<Arc<dyn Annotation>>;
+
+/// Loaders for annotations.
+///
+/// This structure contains a bank of loaders keyed by namespace. Note that this struct does not
+#[derive(Debug, Default, Clone)]
+pub struct NativeLoaders(HashMap<String, NativeLoader>);
+
+impl NativeLoaders {
+    pub fn insert(&mut self, namespace: &str, loader: NativeLoader) {
+        self.0.insert(namespace.to_string(), loader);
+    }
+
+    /// Load an annotation from a payload.
+    ///
+    /// This method uses [iter_namespaces] to find the narrowest namespace contained in this loader
+    /// that matches the namespace of a given payload, then uses the corresponding [NativeLoader].
+    pub fn load(&self, namespace: &str, payload: &str) -> Option<Arc<dyn Annotation>> {
+        if let Some(loader) = iter_namespaces(namespace).find_map(|ns| self.0.get(ns)) {
+            loader(namespace, payload)
+        } else {
+            None
+        }
+    }
+}
+
+/// Create a Python annotation.
+///
+/// For a [PythonAnnotation], returns the underlying [PyAnnotation], while for other annotation types,
+/// creates and returns a [PyNativeAnnotation].
+pub fn create_py_annotation(annotation: &Arc<dyn Annotation>, py: Python) -> PyResult<Py<PyAny>> {
+    if let Some(annotation) = annotation.downcast_ref::<PythonAnnotation>() {
+        return Ok(annotation.annotation(py));
+    }
+    let init = match PyNativeAnnotation::new(Arc::clone(annotation)) {
+        Ok(py_annotation) => PyClassInitializer::from(PyAnnotation).add_subclass(py_annotation),
+        Err(e) => return Err(e.into()),
+    };
+    Ok(Py::new(py, init)?.into_any())
+}
+
+/// Used to extract an instance of [Annotation].
 pub struct AnnotationFromPython(pub Arc<dyn Annotation>);
 
 impl<'a, 'py> FromPyObject<'a, 'py> for AnnotationFromPython {
@@ -216,12 +312,10 @@ impl<'a, 'py> FromPyObject<'a, 'py> for AnnotationFromPython {
 
     fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
         match ob.cast::<PyAnnotation>() {
-            Ok(base) => {
-                if let Some(native) = base.get().inner() {
-                    return Ok(Self(Arc::clone(native)));
-                };
-                Ok(Self(Arc::new(PythonAnnotation::new(ob.into()))))
-            }
+            Ok(base) => match base.cast::<PyNativeAnnotation>() {
+                Ok(native) => Ok(Self(Arc::clone(native.get().inner()))),
+                Err(..) => Ok(Self(Arc::new(PythonAnnotation::new(ob.into())))),
+            },
             Err(e) => Err(Self::Error::from(e)),
         }
     }
@@ -229,8 +323,8 @@ impl<'a, 'py> FromPyObject<'a, 'py> for AnnotationFromPython {
 
 #[cfg(test)]
 mod test_annotation {
-    use crate::annotation::Annotation;
-    use std::sync::Arc;
+    use crate::annotation::{Annotation, NativeLoaders, iter_namespaces};
+    use std::{assert_eq, sync::Arc};
 
     macro_rules! impl_annotation {
         ($ty:ident; $namespace:expr,) => {
@@ -287,5 +381,274 @@ mod test_annotation {
         for a_mark in mark_vec {
             assert!(Arc::ptr_eq(&mark, &a_mark));
         }
+    }
+
+    #[test]
+    fn test_iter_namespaces() {
+        assert_eq!(iter_namespaces("").collect::<Vec<_>>(), vec![""]);
+        assert_eq!(iter_namespaces("a").collect::<Vec<_>>(), vec!["a", ""]);
+        assert_eq!(
+            iter_namespaces("hello.world").collect::<Vec<_>>(),
+            vec!["hello.world", "hello", ""]
+        );
+        assert_eq!(
+            iter_namespaces("a.b.c").collect::<Vec<_>>(),
+            vec!["a.b.c", "a.b", "a", ""]
+        );
+        assert_eq!(
+            iter_namespaces(".leading").collect::<Vec<_>>(),
+            vec![".leading", ""]
+        );
+        assert_eq!(
+            iter_namespaces("trailing.").collect::<Vec<_>>(),
+            vec!["trailing.", "trailing", ""]
+        );
+        assert_eq!(iter_namespaces(".").collect::<Vec<_>>(), vec![".", ""]);
+        assert_eq!(
+            iter_namespaces("a..b").collect::<Vec<_>>(),
+            vec!["a..b", "a.", "a", ""]
+        );
+    }
+
+    #[test]
+    fn test_load_native_annotation() {
+        assert_eq!(NativeLoaders::default().load("a.b", "c"), None);
+    }
+}
+
+#[cfg(test)]
+mod test_annotated_boxes {
+    use smallvec::smallvec;
+    use std::sync::Arc;
+
+    use crate::Qubit;
+    use crate::annotation::Annotation;
+    use crate::circuit_data::CircuitData;
+    use crate::dag_circuit::DAGCircuit;
+    use crate::instruction::Parameters;
+    use crate::operations::{ControlFlow, ControlFlowInstruction, ControlFlowView, Param};
+    use crate::packed_instruction::PackedOperation;
+    use crate::standard_gate::StandardGate;
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    struct Twirl {
+        twirl: String,
+    }
+
+    impl Annotation for Twirl {
+        fn namespace(&self) -> &str {
+            "randomization.twirl"
+        }
+    }
+
+    /// Add a [`ControlFlow::Box`] with a twirl annotation with the given name around
+    /// all two-qubit operations.
+    pub fn twirl_2q(dag: &mut DAGCircuit, twirl: &str) {
+        let twirl: Arc<dyn Annotation> = Arc::new(Twirl {
+            twirl: twirl.to_string(),
+        });
+        let node_indices: Vec<_> = dag
+            .two_qubit_ops()
+            .map(|(node_idx, _)| node_idx)
+            .collect::<Vec<_>>();
+        for node_idx in node_indices {
+            let instruction = dag[node_idx].unwrap_operation();
+            let new_op = PackedOperation::from_control_flow(Box::new(ControlFlowInstruction {
+                control_flow: ControlFlow::Box {
+                    duration: None,
+                    annotations: vec![twirl.clone()],
+                },
+                num_qubits: 2,
+                num_clbits: 0,
+            }));
+
+            let mut body = DAGCircuit::new();
+            _ = body.apply_operation_back(
+                instruction.op.clone(),
+                dag.get_qargs(instruction.qubits),
+                dag.get_cargs(instruction.clbits),
+                None,
+                None,
+            );
+            let block = dag.add_block(body);
+            _ = dag.substitute_op(
+                node_idx,
+                new_op,
+                Some(Parameters::Blocks(vec![block])),
+                None,
+            );
+        }
+    }
+
+    /// Remove any [`ControlFlow::Box`] with annotations in the given namespace.
+    pub fn remove_namespace(dag: &mut DAGCircuit, namespace: &str) {
+        let to_remove: Vec<_> = dag
+            .op_nodes(false)
+            .map(|(node_idx, instr)| {
+                if let Some(box_op) = dag.try_view_control_flow(instr) {
+                    return match box_op {
+                        ControlFlowView::Box { annotations, .. } => {
+                            if annotations.iter().fold(false, |b, annotation| {
+                                b || annotation.namespace().starts_with(namespace)
+                            }) {
+                                return Some(node_idx);
+                            }
+                            None
+                        }
+                        _ => None,
+                    };
+                }
+                None
+            })
+            .flatten()
+            .collect();
+
+        for node_idx in to_remove {
+            dag.remove_op_node(node_idx);
+        }
+    }
+
+    #[test]
+    fn test_box_annotations() {
+        let circuit1 = CircuitData::from_packed_operations(
+            2,
+            1,
+            vec![
+                Ok((
+                    StandardGate::CX.into(),
+                    smallvec![],
+                    vec![Qubit(0), Qubit(1)],
+                    vec![],
+                )),
+                Ok((
+                    StandardGate::CX.into(),
+                    smallvec![],
+                    vec![Qubit(0), Qubit(1)],
+                    vec![],
+                )),
+            ],
+            Param::Float(0.),
+        )
+        .unwrap();
+
+        let mut dag =
+            DAGCircuit::from_circuit_data(&circuit1, false, None, None, None, None).unwrap();
+
+        // Twirl both CXs, this pass replaces two-qubit gates with annotated box with the operation.
+        twirl_2q(&mut dag, "twirl");
+
+        // This just checks that the Arc::strong_count is the same on both annotations, it should be unique.
+        // The Arc from the pass is out of scope at the assert.
+        for op_node_idx in dag.op_node_indices(false) {
+            let annotations = match dag
+                .try_view_control_flow(dag[op_node_idx].unwrap_operation())
+                .unwrap()
+            {
+                ControlFlowView::Box { annotations, .. } => Some(annotations),
+                _ => None,
+            }
+            .unwrap();
+            assert!(annotations.len() == 1);
+
+            let annotation = &annotations[0];
+            assert_eq!(2, Arc::strong_count(&annotation));
+        }
+
+        // Remove every box with an annotation in the namespace.
+        remove_namespace(&mut dag, "randomization");
+        assert_eq!(0, dag.op_node_indices(false).collect::<Vec<_>>().len());
+    }
+}
+
+#[cfg(test)]
+mod test_annotation_loading {
+    use crate::annotation::{Annotation, NativeLoaders};
+    use std::sync::Arc;
+
+    #[derive(Debug, PartialEq)]
+    struct Twirl {
+        twirl: String,
+    }
+
+    impl Twirl {
+        pub fn from_payload(payload: &str) -> Self {
+            let (_, twirl) = payload
+                .rsplit_once("twirl:")
+                .expect("Should be dispatched.");
+            Twirl {
+                twirl: twirl.to_string(),
+            }
+        }
+    }
+
+    impl Annotation for Twirl {
+        fn namespace(&self) -> &str {
+            "randomization.twirl"
+        }
+
+        fn payload(&self) -> Option<std::borrow::Cow<'_, str>> {
+            Some(std::borrow::Cow::Owned(format!("twirl:{}", self.twirl)))
+        }
+    }
+
+    #[derive(Debug, PartialEq)]
+    struct InjectNoise(String);
+
+    impl InjectNoise {
+        pub fn from_payload(payload: &str) -> Self {
+            InjectNoise(payload.to_string())
+        }
+    }
+
+    impl Annotation for InjectNoise {
+        fn namespace(&self) -> &str {
+            "randomization.inject_noise"
+        }
+
+        fn payload(&self) -> Option<std::borrow::Cow<'_, str>> {
+            Some(std::borrow::Cow::Borrowed(&self.0))
+        }
+    }
+
+    #[test]
+    fn test_native_loaders() {
+        let mut loaders = NativeLoaders::default();
+
+        // A loader than handles the randomization namespace and returns new instances with their corresponding payloads.
+        loaders.insert("randomization", |ns, payload| match ns.rsplit_once(".") {
+            Some((_, ns)) => match ns {
+                "twirl" => Some(Arc::new(Twirl::from_payload(payload))),
+                "inject_noise" => Some(Arc::new(InjectNoise::from_payload(payload))),
+                _ => None,
+            },
+            None => None,
+        });
+
+        // A loader with a narrower namespace that returns an inject noise with a fixed payload.
+        loaders.insert("randomization.inject_noise", |_, _| {
+            Some(Arc::new(InjectNoise("different".to_string())))
+        });
+
+        let annotation: Arc<dyn Annotation> = Arc::new(Twirl {
+            twirl: "pauli".to_string(),
+        });
+        let roundtrip = loaders
+            .load(
+                "randomization.twirl",
+                &annotation.payload().expect("It's implemented."),
+            )
+            .expect("It's implemented.");
+        assert_eq!(roundtrip.as_ref(), annotation.as_ref());
+
+        let annotation: Arc<dyn Annotation> = Arc::new(InjectNoise("ok".to_string()));
+        let roundtrip = loaders
+            .load(
+                "randomization.inject_noise",
+                &annotation.payload().expect("It's implemented."),
+            )
+            .expect("It's implemented.");
+        let expected: Arc<dyn Annotation> = Arc::new(InjectNoise("different".to_string()));
+        assert_ne!(roundtrip.as_ref(), annotation.as_ref());
+        assert_eq!(roundtrip.as_ref(), expected.as_ref());
     }
 }

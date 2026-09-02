@@ -20,7 +20,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::{fmt, vec};
 
-use crate::annotation::Annotation;
+use crate::annotation::{Annotation, create_py_annotation};
 use crate::bit::{ClassicalRegister, ShareableClbit};
 use crate::circuit_data::{CircuitData, PyCircuitData};
 use crate::classical::expr;
@@ -603,7 +603,7 @@ impl ControlFlowInstruction {
                             py,
                             annotations
                                 .iter()
-                                .map(|a| a.create_py_annotation(py))
+                                .map(|a| create_py_annotation(a, py))
                                 .collect::<PyResult<Vec<_>>>()?,
                         )?,
                     ),

@@ -20,6 +20,7 @@ use binrw::{BinRead, Endian, VecArgs};
 use pyo3::PyResult;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict};
+use qiskit_circuit::annotation::NativeLoaders;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::QuantumCircuitData;
 
@@ -114,7 +115,10 @@ pub fn dump_qpy(
             min_version: QPY_WRITE_MIN_VERSION,
         })?;
     }
-    let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native());
+    let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native(
+        Vec::new(),
+        NativeLoaders::default(),
+    ));
     if circuits.len() != extra_data.len() {
         return Err(QpyError::ConversionError(format!(
             "Expected extra data for {} circuits, got {}",
@@ -285,7 +289,10 @@ pub fn load_qpy(
             min_version: QPY_READ_MIN_VERSION,
         })?;
     }
-    let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native());
+    let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native(
+        Vec::new(),
+        NativeLoaders::default(),
+    ));
     let (qpy_file_header, header_size) = deserialize::<QPYFileHeader>(data)?;
     // Verify the type key is for circuits
     if qpy_file_header.type_key == ProgramType::Schedule {
