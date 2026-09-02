@@ -30,8 +30,13 @@ class FindCommutingPauliEvolutions(TransformationPass):
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """
-        Simplifies :class:`.PauliEvolutionGate`s where all summands commute, skipping those
-        with exactly 1 qubit.
+        Replaces :class:`.PauliEvolutionGate` objects where all summands commute by
+        :class:`.Commuting2qBlock` objects.
+        
+        The pass only modifies Pauli evolution gates that are defined on 2 or more qubits whose
+         Pauli terms all act nontrivially on exactly 2 qubits and commute qubit-wise. The pass
+         raises an error for Pauli evolution gates defined on 2 or more qubits and contains Pauli terms
+         that do not act nontrivially on 2 qubits.
 
         Args:
             dag: The DAG circuit in which to look for the commuting evolutions.
