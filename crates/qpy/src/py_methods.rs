@@ -684,20 +684,20 @@ pub fn unpack_py_instruction(
             })?;
             let annotations = match &instruction.annotations {
                 Some(annotation_pack) => PyList::new(
-                        py,
-                        annotation_pack
-                            .annotations
-                            .iter()
-                            .map(|annotation| {
-                                qpy_data.annotation_handler.load_py(
-                                    py,
-                                    annotation.namespace_index,
-                                    annotation.payload.clone(),
-                                )
-                            })
-                            .collect::<Result<Vec<_>, QpyError>>()?,
-                    )?,
-                    None => PyList::empty(py),
+                    py,
+                    annotation_pack
+                        .annotations
+                        .iter()
+                        .map(|annotation| {
+                            qpy_data.annotation_handler.load_py(
+                                py,
+                                annotation.namespace_index,
+                                annotation.payload.clone(),
+                            )
+                        })
+                        .collect::<Result<Vec<_>, QpyError>>()?,
+                )?,
+                None => PyList::empty(py),
             }
             .into_any();
             let kwargs = [

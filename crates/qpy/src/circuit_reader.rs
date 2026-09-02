@@ -24,8 +24,8 @@ use num_bigint::BigUint;
 use num_complex::Complex64;
 use pyo3::IntoPyObjectExt;
 use pyo3::prelude::*;
-use qiskit_circuit::annotation::Annotation;
 use pyo3::types::{PyAny, PyDict, PyList};
+use qiskit_circuit::annotation::Annotation;
 use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
