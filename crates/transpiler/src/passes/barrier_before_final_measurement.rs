@@ -13,7 +13,9 @@
 use hashbrown::HashSet;
 use pyo3::prelude::*;
 use rayon::prelude::*;
+use rustworkx_core::petgraph::algo::toposort;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
+use rustworkx_core::petgraph::visit::NodeFiltered;
 
 use qiskit_circuit::Qubit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, NodeType};
@@ -136,10 +138,9 @@ pub fn run_barrier_before_final_measurements(
     }
 
     let final_ops: HashSet<NodeIndex> = final_ops.into_iter().collect();
-    let ordered_final_ops: Vec<NodeIndex> = dag
-        .topological_op_nodes(false)
-        .filter(|node| final_ops.contains(node))
-        .collect();
+    let final_ops_dag = NodeFiltered(dag.dag(), |node: NodeIndex| final_ops.contains(&node));
+    let ordered_final_ops = toposort(&final_ops_dag, None)
+        .unwrap_or_else(|_| panic!("DAG should prevent itself from becoming cyclic"));
     let final_packed_ops: Vec<PackedInstruction> = ordered_final_ops
         .into_iter()
         .map(|node| dag.remove_op_node(node))
