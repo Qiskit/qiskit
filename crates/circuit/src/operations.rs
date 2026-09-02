@@ -1925,10 +1925,11 @@ impl PartialEq for PauliProductMeasurement {
 
 impl Eq for PauliProductMeasurement {}
 
+/// A manual storage of some classical value to a classical memory location
 #[derive(Debug, Clone, PartialEq)]
 pub struct Store {
-    lhs: expr::Expr,
-    rhs: expr::Expr,
+    lvalue: expr::Expr,
+    rvalue: expr::Expr,
 }
 
 impl Store {
@@ -1936,26 +1937,39 @@ impl Store {
         if let Some(label) = label {
             Ok(imports::STORE
                 .get_bound(py)
-                .call1((self.lhs.clone(), self.rhs.clone(), label))?
+                .call1((self.lvalue.clone(), self.rvalue.clone(), label))?
                 .unbind())
         } else {
             Ok(imports::STORE
                 .get_bound(py)
-                .call1((self.lhs.clone(), self.rhs.clone()))?
+                .call1((self.lvalue.clone(), self.rvalue.clone()))?
                 .unbind())
         }
     }
 
-    pub fn lhs(&self) -> &expr::Expr {
-        &self.lhs
+    /// Get an immutable borrow to the lvalue of this Store operation
+    pub fn lvalue(&self) -> &expr::Expr {
+        &self.lvalue
     }
 
-    pub fn rhs(&self) -> &expr::Expr {
-        &self.rhs
+    /// Get an immutable borrow to the rvalue of this Store operation
+    pub fn rvalue(&self) -> &expr::Expr {
+        &self.rvalue
     }
 
-    pub fn new(lhs: expr::Expr, rhs: expr::Expr) -> Self {
-        Self { lhs, rhs }
+    /// Create a new Store operation
+    ///
+    /// The `lvalue` argument must be a valid lvalue (typically a var)
+    /// and the `rvalue` argument must be a valid value for that
+    /// storage location. This is a raw interface that has no input
+    /// checking done by this function to validate these constraints.
+    /// If they are violated you will create an invalid Store operation
+    /// that will potentially corrupt the [`CircuitData`] or [`DAGCircuit`]
+    /// objects when they are added. This is primarily intended to be used
+    /// when created the rust source of truth from a user created object
+    /// in Python (which has the input validation).
+    pub fn new(lvalue: expr::Expr, rvalue: expr::Expr) -> Self {
+        Self { lvalue, rvalue }
     }
 }
 

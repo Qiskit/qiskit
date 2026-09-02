@@ -624,8 +624,8 @@ fn pack_store(
     qpy_data: &mut QPYWriteData,
 ) -> Result<formats::CircuitInstructionV2Pack, QpyError> {
     let params: Vec<formats::GenericDataPack> = vec![
-        pack_generic_value(&GenericValue::Expression(store.lhs().clone()), qpy_data)?,
-        pack_generic_value(&GenericValue::Expression(store.rhs().clone()), qpy_data)?,
+        pack_generic_value(&GenericValue::Expression(store.lvalue().clone()), qpy_data)?,
+        pack_generic_value(&GenericValue::Expression(store.rvalue().clone()), qpy_data)?,
     ];
     Ok(formats::CircuitInstructionV2Pack {
         num_qargs: 0,
