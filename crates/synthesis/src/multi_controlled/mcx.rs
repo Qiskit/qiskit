@@ -404,26 +404,19 @@ pub fn synth_mcx_n_dirty_i15(
     }
 }
 
-/// Synthesize a multi-controlled X gate with :math:`k` controls based on
-/// the implementation for `MCPhaseGate`.
-///
-/// In turn, the MCPhase gate uses the decomposition for multi-controlled
-/// special unitaries described in [1].
+/// Synthesize a multi-controlled X gate with :math:`k` controls using no auxiliary qubits via the relation
+/// MCX = H · MCP(π) · H.
+/// For details on MCP synthesis see Python's `synth_mcp_noaux_default` in `qiskit/synthesis/multi_controlled/mcp_synthesis.py`.
 ///
 /// # Arguments
 /// - num_controls: the number of control qubits.
 ///
 /// # Returns
 ///
-/// A quantum circuit with :math:`k + 1` qubits. The number of CX-gates is
-/// quadratic in :math:`k`.
+/// A quantum circuit with :math:`k + 1` qubits.
 ///
-/// # References
-///
-/// 1. Vale et. al., *Circuit Decomposition of Multicontrolled Special Unitary
-///    Single-Qubit Gates*, IEEE TCAD 43(3) (2024),
-///    [arXiv:2302.06377] (https://arxiv.org/abs/2302.06377).
-pub fn synth_mcx_noaux_v24(
+#[allow(dead_code)]
+pub fn synth_mcx_mcp_noaux(
     py: Python,
     num_controls: usize,
 ) -> Result<CircuitData, CircuitDataError> {
@@ -1379,6 +1372,85 @@ pub fn synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
     }
 
     Ok(circuit)
+}
+
+/// Synthesize a multi-controlled X gate with :math:`k` controls using the relation
+/// MCX = H · MCP(π) · H, where MCP is synthesized via `synth_mcp_noaux_sp22` [1][2].
+///
+/// Produces a quantum circuit with :math:`k + 1` qubits.
+/// The number of CX-gates is quadratic in :math:`k`.
+///
+/// # Arguments
+///
+/// - num_ctrl_qubits: The number of control qubits.
+///
+/// # Returns
+///
+/// The synthesized quantum circuit.
+///
+/// # References
+/// 1. A. J. da Silva and D. K. Park, *Linear-depth quantum circuits for multiqubit controlled gates*,
+///    [Phys. Rev. A 106, 042602](https://journals.aps.org/pra/abstract/10.1103/PhysRevA.106.042602).
+///
+/// 2. <https://github.com/qclib/qclib/blob/master/qclib/gates/ldmcu.py>
+pub fn synth_mcx_noaux_sp22(num_ctrl_qubits: usize) -> Result<CircuitData, CircuitDataError> {
+    if num_ctrl_qubits <= 4 {
+        synth_mcx_explicit(num_ctrl_qubits)
+    } else {
+        // 2n^2-2n+1 instructions from synth_mcp_noaux_sp22, plus 2 H gates wrapping it.
+        let num_instructions = 2 * num_ctrl_qubits * num_ctrl_qubits - 2 * num_ctrl_qubits + 3;
+        let mut circuit = CircuitData::with_capacity(
+            (num_ctrl_qubits + 1) as u32,
+            0,
+            num_instructions,
+            Param::Float(0.0),
+        )?;
+        circuit.h(num_ctrl_qubits as u32)?;
+        let pi_phase = Param::Float(PI);
+        // Adding MCP(π) on `circuit` which has target qubit at index `num_ctrl_qubits`.
+        // Instead of calling `synth_mcp_noaux_sp22`, we call its step functions directly. This avoids
+        // allocating and copying an intermediate circuit and is ~2x faster.
+        sp22::step_1(&mut circuit, &pi_phase, num_ctrl_qubits)?;
+        sp22::step_2(&mut circuit, &pi_phase, num_ctrl_qubits)?;
+        sp22::step_3(&mut circuit, num_ctrl_qubits)?;
+        sp22::step_4(&mut circuit, num_ctrl_qubits)?;
+        circuit.h(num_ctrl_qubits as u32)?;
+        Ok(circuit)
+    }
+}
+
+/// Synthesize multi-controlled X explicit gates with up to 4 control qubits.
+///
+/// # Arguments
+///
+/// - num_ctrl_qubits: The number of control qubits.
+///
+/// Panics if called with more than 4 control qubits.
+///
+/// # Returns
+///
+/// The synthesized quantum circuit.
+fn synth_mcx_explicit(num_ctrl_qubits: usize) -> Result<CircuitData, CircuitDataError> {
+    assert!(
+        num_ctrl_qubits <= 4,
+        "synth_mcx_explicit called with num_ctrl_qubits = {num_ctrl_qubits}, expected <= 4"
+    );
+    match num_ctrl_qubits {
+        0 => {
+            let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0))?;
+            circuit.x(0)?;
+            Ok(circuit)
+        }
+        1 => {
+            let mut circuit = CircuitData::with_capacity(2, 0, 1, Param::Float(0.0))?;
+            circuit.cx(0, 1)?;
+            Ok(circuit)
+        }
+        2 => Ok(ccx()),
+        3 => Ok(c3x().into()),
+        4 => Ok(c4x()?.into()),
+        _ => unreachable!(),
+    }
 }
 
 // The following code (synth_mcp_noaux_sp22 and mod sp22) is a derivative work of qclib

@@ -10,16 +10,16 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use hashbrown::HashMap;
 use std::borrow::Cow;
 use std::cmp::{Ord, Ordering, PartialOrd};
 use std::convert::From;
-use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::{Add, Div, Mul, Neg, Sub};
-use std::sync::{Arc, atomic};
+use std::sync::{Arc, LazyLock, atomic};
+use std::{fmt, mem};
 use uuid::Uuid;
 
+use hashbrown::HashMap;
 use num_complex::Complex64;
 use pyo3::prelude::*;
 
@@ -208,6 +208,117 @@ pub enum SymbolExpr {
         lhs: Arc<SymbolExpr>,
         rhs: Arc<SymbolExpr>,
     },
+}
+
+// The derived `Drop` is naturally recursive, which is slow and will overflow the stack on
+// deeply nested expressions.  We instead need to iterate through a dropping expression, clearing
+// out the recursive structure iteratively in a safe order before allowing the final drop glue.
+impl Drop for SymbolExpr {
+    fn drop(&mut self) {
+        // There's no recursive worries for `Symbol` or `Value`, or the `UnaryOp` or `BinaryOp`
+        // elements; it's just the `Arc<SymbolExpr>` parts that are an issue.  `Unary` is easy
+        // enough; we replace `expr` with a non-recursive object, allow _that_ `Unary` to drop, then
+        // iterate onto the previous content of `expr`.  With `Binary`, we need to depth-first
+        // traverse the drops, but we _must_ do that non-recursively, and we _want_ to do that
+        // without allocating in the `Drop` implementation.
+        //
+        // Without loss of generality, let's assume we're now dealing only with `Binary`.  We
+        // traverse the nodes in depth-first, left-first order, and drop each node in post order.
+        // We "reuse" the `lhs` pointer of each `Binary` we need to walk through to store its
+        // parent.
+
+        // Arbitrary `Arc<SymbolExpr>` we use that never drops (or would be non-recursive if it
+        // does).  We use this in the way a sole-owning tree might use a null pointer.  There's only
+        // ever one of these per process, so on average there's no heap allocation per `Drop` call.
+        static NULL: LazyLock<Arc<SymbolExpr>> =
+            LazyLock::new(|| Arc::new(SymbolExpr::Value(Value::Int(0))));
+
+        let mut cur: Option<Arc<Self>>;
+        // Always a `Binary` variant; we never need to backtrack to it if it's 0- or 1-ary.
+        let mut cur_parent: Option<Arc<Self>> = None;
+        // If the root node is a `Binary`, we put its rhs here, because we can't store `self` in
+        // `cur_parent` without an `Arc`.
+        let mut root_rhs: Option<Arc<Self>>;
+
+        (cur, root_rhs) = match self {
+            Self::Symbol(_) | Self::Value(_) => (None, None),
+            Self::Unary { op: _, expr } => (Some(mem::replace(expr, Arc::clone(&NULL))), None),
+            Self::Binary { op: _, lhs, rhs } => (
+                Some(mem::replace(lhs, Arc::clone(&NULL))),
+                Some(mem::replace(rhs, Arc::clone(&NULL))),
+            ),
+        };
+
+        // Call when `cur` is completely ready or unable to drop, and we need to walk up the tree
+        // and find the next node that needs to be cleared out.  `cur` should always be `None` at
+        // the point that this function is called, but we have to pass ownership of the reference
+        // into the function to prove the lifetimes around access to it are valid.
+        let mut backtrack = |parent: &mut Option<Arc<Self>>| {
+            while let Some(mut parent_arc) = parent.take() {
+                let parent_inner = Arc::get_mut(&mut parent_arc)
+                    .expect("only `Arc`s set by `Arc::make_mut` can be backtrack parents");
+                let Self::Binary { op: _, lhs, rhs } = parent_inner else {
+                    panic!("internal logic error: backtrack parents must always be `Binary`");
+                };
+                // During a backtrack, the `lhs` is always fully visited.  The `rhs` might not be.
+                if Arc::ptr_eq(rhs, &NULL) {
+                    // `rhs` is visited; let `parent_arc` drop and go up a level (if there is one).
+                    *parent =
+                        (!Arc::ptr_eq(lhs, &NULL)).then(|| mem::replace(lhs, Arc::clone(&NULL)));
+                } else {
+                    // `rhs` isn't visited; put ourselves back as the parent, and return the `rhs`
+                    // for iteration.
+                    let cur = Some(mem::replace(rhs, Arc::clone(&NULL)));
+                    *parent = Some(parent_arc);
+                    return cur;
+                }
+            }
+            // If we get here, we've exhausted the whole `cur` tree, so if there's any remaining
+            // `rhs` from the root, swap to it.
+            root_rhs.take()
+        };
+
+        // Walk down the left edges of the current tree until we reach something that can either
+        // drop non-recursively, or isn't eligible to drop.  Drop our reference to it, and then walk
+        // back up the tree to the nearest `rhs` edge that hasn't been taken yet.
+        while let Some(mut cur_arc) = cur.take() {
+            // This `strong_count`/`make_mut` form is imperfect and if there are `Weak` pointers, it
+            // might cause us to do a fairly cheap extra Clone+Drop (if a racing `Weak` upgrades to
+            // an `Arc` between the count and the `make_mut`), or make a new extra `Arc` allocation
+            // (otherwise).  However, we don't expect any `Weak`s to exist, and if they do, this
+            // should still be safe, just a little less efficient.
+            //
+            // We have to mutate the inner `cur` both to clear out the recursive items, and to
+            // (temporarily) use its `lhs` space as a storage location for a linked list of back
+            // refs through the parents.
+            if Arc::strong_count(&cur_arc) > 1 {
+                // `cur_arc` isn't eligible to drop because of other references.  We drop our copy
+                // by letting it go out of scope, and continue.
+                cur = backtrack(&mut cur_parent);
+                continue;
+            }
+            match Arc::make_mut(&mut cur_arc) {
+                Self::Symbol(_) | Self::Value(_) => {
+                    // `cur_arc`/`cur_inner` can drop without risking recursion because it's a base
+                    // case.  It drops simply by going out of scope.
+                    cur = backtrack(&mut cur_parent)
+                }
+                Self::Unary { op: _, expr } => {
+                    // This is like "contracting" the edge through a `Unary`; we put a null object
+                    // into the actual `Unary`, let `cur_inner` drop (so guaranteed one level of
+                    // recursion), and pretend its parent node pointed directly to its child.
+                    cur = Some(mem::replace(expr, Arc::clone(&NULL)));
+                }
+                Self::Binary { op: _, lhs, rhs: _ } => {
+                    // `parent` is the parent of this node; we store a backref in `lhs` so we can
+                    // walk back up later.
+                    let parent = cur_parent.take().unwrap_or_else(|| Arc::clone(&NULL));
+                    cur = Some(mem::replace(lhs, parent));
+                    cur_parent = Some(cur_arc);
+                }
+            }
+        }
+    }
 }
 
 /// Value type, can be integer, real or complex number
@@ -3781,34 +3892,21 @@ impl PartialOrd for Value {
     }
 }
 
-/// Replace [Symbol]s in a [SymbolExpr] according to the name map. This
-/// is used to reconstruct a parameter expression from a string.
-pub fn replace_symbol(symbol_expr: &SymbolExpr, name_map: &HashMap<String, Symbol>) -> SymbolExpr {
-    match symbol_expr {
-        SymbolExpr::Symbol(existing_symbol) => {
-            let name = existing_symbol.repr(false);
-            if let Some(new_symbol) = name_map.get(&name) {
-                SymbolExpr::Symbol(Arc::new(new_symbol.clone()))
-            } else {
-                symbol_expr.clone()
-            }
-        }
-        SymbolExpr::Value(_) => symbol_expr.clone(), // nothing to do
-        SymbolExpr::Binary { op, lhs, rhs } => SymbolExpr::Binary {
-            op: op.clone(),
-            lhs: Arc::new(replace_symbol(lhs, name_map)),
-            rhs: Arc::new(replace_symbol(rhs, name_map)),
-        },
-        SymbolExpr::Unary { op, expr } => SymbolExpr::Unary {
-            op: op.clone(),
-            expr: Arc::new(replace_symbol(expr, name_map)),
-        },
-    }
-}
-
 #[cfg(test)]
 mod test {
+    use std::mem;
+    use std::sync::Arc;
+
     use super::*;
+
+    /// In normal use, a number that's a problem if a recursive call stack gets this deep.  If
+    /// running under Miri, though, a much smaller number so that the runtime isn't excessive.
+    ///
+    /// Used in tests of implementations like `Drop`.  When under Miri, we're testing directly by
+    /// instrumentation for leaks and undefined behaviour.  When not under Miri, we're deliberately
+    /// stressing the system such that a crash/segfault is indicative that the algorithm is
+    /// accidentally recursive, rather than iterative.
+    const BIG_CALL_STACK: usize = if cfg!(miri) { 100 } else { 20_000 };
 
     #[test]
     fn test_eval_subtraction() {
@@ -3823,5 +3921,270 @@ mod test {
         };
         let value = test_expr.eval(true);
         assert_eq!(Some(Value::Complex(Complex64::ZERO)), value);
+    }
+
+    #[test]
+    fn test_drop_unary_large() {
+        let base = Arc::new(SymbolExpr::Value(Value::Real(0.0)));
+        let mut expr = Arc::new(SymbolExpr::Unary {
+            op: UnaryOp::Neg,
+            expr: Arc::clone(&base),
+        });
+        for _ in 0..BIG_CALL_STACK {
+            expr = Arc::new(SymbolExpr::Unary {
+                op: UnaryOp::Neg,
+                expr,
+            });
+        }
+        assert_eq!(Arc::strong_count(&base), 2);
+        mem::drop(expr);
+        assert_eq!(Arc::strong_count(&base), 1);
+    }
+
+    #[test]
+    fn test_drop_binary_left() {
+        let base = Arc::new(SymbolExpr::Value(Value::Real(0.0)));
+        let count = BIG_CALL_STACK;
+        let mut expr = Arc::new(SymbolExpr::Binary {
+            op: BinaryOp::Add,
+            lhs: Arc::clone(&base),
+            rhs: Arc::clone(&base),
+        });
+        for _ in 0..count {
+            expr = Arc::new(SymbolExpr::Binary {
+                op: BinaryOp::Add,
+                lhs: expr,
+                rhs: Arc::clone(&base),
+            });
+        }
+        // `count` from the loop, two from the initialiser, and one from our `base`.
+        assert_eq!(Arc::strong_count(&base), count + 3);
+        mem::drop(expr);
+        assert_eq!(Arc::strong_count(&base), 1);
+    }
+
+    #[test]
+    fn test_drop_binary_right() {
+        let base = Arc::new(SymbolExpr::Value(Value::Real(0.0)));
+        let count = BIG_CALL_STACK;
+        let mut expr = Arc::new(SymbolExpr::Binary {
+            op: BinaryOp::Add,
+            lhs: Arc::clone(&base),
+            rhs: Arc::clone(&base),
+        });
+        for _ in 0..count {
+            expr = Arc::new(SymbolExpr::Binary {
+                op: BinaryOp::Add,
+                lhs: Arc::clone(&base),
+                rhs: expr,
+            });
+        }
+        // `count` from the loop, two from the initialiser, and one from our `base`.
+        assert_eq!(Arc::strong_count(&base), count + 3);
+        mem::drop(expr);
+        assert_eq!(Arc::strong_count(&base), 1);
+    }
+
+    #[test]
+    fn test_drop_binary_balanced() {
+        let base = Arc::new(SymbolExpr::Value(Value::Real(0.0)));
+        let mut expr = Arc::new(SymbolExpr::Binary {
+            op: BinaryOp::Add,
+            lhs: Arc::clone(&base),
+            rhs: Arc::clone(&base),
+        });
+        let count = BIG_CALL_STACK / 10;
+        for _ in 0..count {
+            expr = Arc::new(SymbolExpr::Binary {
+                op: BinaryOp::Add,
+                lhs: Arc::clone(&expr),
+                rhs: expr,
+            });
+        }
+        // Two in the initialiser of `expr`, one in `base`.
+        assert_eq!(Arc::strong_count(&base), 3);
+        mem::drop(expr);
+        assert_eq!(Arc::strong_count(&base), 1);
+    }
+
+    #[test]
+    fn test_drop_mixed() {
+        // A messy tree that on average is balanced left and right, and includes a couple of nested
+        // `Unary`s at some levels, just for good measure.
+        let base = Arc::new(SymbolExpr::Value(Value::Real(0.0)));
+        let mut expr = Arc::new(SymbolExpr::Binary {
+            op: BinaryOp::Add,
+            lhs: Arc::clone(&base),
+            rhs: Arc::clone(&base),
+        });
+        let count = BIG_CALL_STACK / 2;
+        for half in 0..count {
+            let mut unary = Arc::new(SymbolExpr::Unary {
+                op: UnaryOp::Neg,
+                expr: Arc::clone(&expr),
+            });
+            for _ in 0..half {
+                unary = Arc::new(SymbolExpr::Unary {
+                    op: UnaryOp::Neg,
+                    expr: unary,
+                });
+            }
+            if half % 2 == 0 {
+                expr = Arc::new(SymbolExpr::Binary {
+                    op: BinaryOp::Add,
+                    lhs: unary,
+                    rhs: expr,
+                });
+            } else {
+                expr = Arc::new(SymbolExpr::Binary {
+                    op: BinaryOp::Add,
+                    lhs: expr,
+                    rhs: unary,
+                });
+            }
+        }
+        assert_eq!(Arc::strong_count(&base), 3);
+        mem::drop(expr);
+        assert_eq!(Arc::strong_count(&base), 1);
+    }
+
+    #[test]
+    fn test_drop_partial() {
+        // We'll keep some refs to partial expressions, and make sure that drops all happen at the
+        // correct time.  This test can't catch the case that we make a spurious clone-and-drop
+        // because we can't observe the temporary increase in strong counts because of the clone,
+        // unless we attempt to race the drop in a separate thread, which would be disgusting.
+        let base = Arc::new(SymbolExpr::Value(Value::Real(0.0)));
+        let bottom_unary = Arc::new(SymbolExpr::Unary {
+            op: UnaryOp::Neg,
+            expr: Arc::clone(&base),
+        });
+        let bottom_binary = Arc::new(SymbolExpr::Binary {
+            op: BinaryOp::Add,
+            lhs: Arc::clone(&base),
+            rhs: Arc::clone(&base),
+        });
+        let mut expr = Arc::new(SymbolExpr::Binary {
+            op: BinaryOp::Add,
+            // We keep _our_ refs to `bottom_unary` and `bottom_binary` alive here.
+            lhs: Arc::clone(&bottom_unary),
+            rhs: Arc::clone(&bottom_binary),
+        });
+
+        for _ in 0..BIG_CALL_STACK {
+            expr = Arc::new(SymbolExpr::Binary {
+                op: BinaryOp::Add,
+                lhs: Arc::clone(&expr),
+                rhs: expr,
+            });
+        }
+
+        let mid_binary = expr;
+        let mut mid_unaries = Vec::new();
+        let mut mid_unary = Arc::new(SymbolExpr::Unary {
+            op: UnaryOp::Neg,
+            expr: Arc::clone(&mid_binary),
+        });
+        for _ in 0..BIG_CALL_STACK {
+            mid_unary = Arc::new(SymbolExpr::Unary {
+                op: UnaryOp::Neg,
+                expr: mid_unary,
+            });
+            // Keep loads of layers of these alive to catch the case of accidental recursion when
+            // many strong references are alive.
+            mid_unaries.push(Arc::clone(&mid_unary));
+        }
+
+        expr = Arc::new(SymbolExpr::Binary {
+            op: BinaryOp::Add,
+            lhs: Arc::clone(&mid_unary),
+            rhs: Arc::clone(&mid_binary),
+        });
+        for _ in 0..BIG_CALL_STACK {
+            expr = Arc::new(SymbolExpr::Binary {
+                op: BinaryOp::Add,
+                rhs: Arc::clone(&expr),
+                lhs: expr,
+            });
+        }
+
+        // `base`, `bottom_unary` and 2x `bottom_binary`.
+        assert_eq!(Arc::strong_count(&base), 4);
+        // `bottom_unary` and initialiser of `expr`.
+        assert_eq!(Arc::strong_count(&bottom_unary), 2);
+        // `bottom_binary` and initialiser of `expr`.
+        assert_eq!(Arc::strong_count(&bottom_binary), 2);
+        // `mid_unary`, the `mid_unaries` vec, and the relevant layer of `expr`.
+        assert_eq!(Arc::strong_count(&mid_unary), 3);
+        // `mid_binary`, the relevant layer of `expr`, and the bottom of `mid_unary`.
+        assert_eq!(Arc::strong_count(&mid_binary), 3);
+
+        mem::drop(expr);
+        assert_eq!(Arc::strong_count(&base), 4); // Unchanged; all refs should surive.
+        assert_eq!(Arc::strong_count(&bottom_unary), 2); // Unchanged: the `mid`s aren't dropped.
+        assert_eq!(Arc::strong_count(&bottom_binary), 2); // Unchanged: same reason.
+        assert_eq!(Arc::strong_count(&mid_unary), 2); // Dropped everything above.
+        assert_eq!(Arc::strong_count(&mid_binary), 2); // Dropped everything above.
+
+        mem::drop(mid_unaries); // Mostly no effect because `mid_unary` survives.
+        assert_eq!(Arc::strong_count(&mid_unary), 1);
+        mem::drop(mid_unary);
+        assert_eq!(Arc::strong_count(&base), 4); // Unchanged; all refs should surive.
+        assert_eq!(Arc::strong_count(&bottom_unary), 2); // Unchanged: `mid_binary` still survives.
+        assert_eq!(Arc::strong_count(&bottom_binary), 2); // Unchanged: same reason.
+
+        mem::drop(mid_binary);
+        assert_eq!(Arc::strong_count(&base), 4); // Unchanged; all refs should surive.
+        assert_eq!(Arc::strong_count(&bottom_unary), 1);
+        assert_eq!(Arc::strong_count(&bottom_binary), 1);
+
+        mem::drop(bottom_unary);
+        mem::drop(bottom_binary);
+        assert_eq!(Arc::strong_count(&base), 1);
+    }
+
+    #[test]
+    fn test_drop_weak() {
+        // We'll keep hold of a `Weak` ref to some partial expressions during the drop, and make
+        // sure that everything still drops right without a segfault; `Weak` shouldn't prevent the
+        // drop from occurring or cause it to become recursive.
+        let base = Arc::new(SymbolExpr::Value(Value::Real(0.0)));
+
+        let mut expr = Arc::new(SymbolExpr::Binary {
+            op: BinaryOp::Add,
+            lhs: Arc::clone(&base),
+            rhs: Arc::clone(&base),
+        });
+        for _ in 0..BIG_CALL_STACK {
+            expr = Arc::new(SymbolExpr::Binary {
+                op: BinaryOp::Add,
+                lhs: Arc::clone(&expr),
+                rhs: expr,
+            });
+        }
+
+        // We keep _loads_ of intermediate `Weak`s alive to catch any unbounded recursion caused by
+        // holding a `Weak`.
+        let mut weaks = Vec::new();
+        for _ in 0..BIG_CALL_STACK {
+            weaks.push(Arc::downgrade(&expr));
+            expr = Arc::new(SymbolExpr::Binary {
+                op: BinaryOp::Add,
+                lhs: Arc::clone(&expr),
+                rhs: expr,
+            });
+        }
+        for _ in 0..BIG_CALL_STACK {
+            weaks.push(Arc::downgrade(&expr));
+            expr = Arc::new(SymbolExpr::Unary {
+                op: UnaryOp::Neg,
+                expr,
+            });
+        }
+
+        assert_eq!(Arc::strong_count(&base), 3);
+        mem::drop(expr);
+        assert_eq!(Arc::strong_count(&base), 1);
+        assert_eq!(weaks[0].strong_count(), 0);
     }
 }
