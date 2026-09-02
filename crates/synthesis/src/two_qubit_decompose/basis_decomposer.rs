@@ -54,14 +54,20 @@ use qiskit_util::complex::{C_M_ONE, C_ONE, IM, M_IM, c64};
 /// Errors that can occur during two-qubit basis decomposition.
 #[derive(Error, Debug)]
 pub enum TwoQubitBasisError {
-    #[error("'pulse_optimize' currently only works with ZSX basis ({basis} used)")]
+    #[error("'{basis}' is not a ZSX basis; 'pulse_optimize' requires ZSX")]
     PulseOptimizeWrongBasis { basis: String },
 
-    #[error("pulse_optimizer currently only works with CNOT entangling gate")]
+    #[error("'pulse_optimize' requires a CNOT entangling gate")]
     PulseOptimizeNotCNOT,
 
-    #[error("Failed to compute requested pulse optimal decomposition")]
+    #[error("pulse optimal decomposition could not be computed")]
     PulseOptimizeFailed,
+
+    #[error("control flow operations are not supported by the two-qubit decomposer")]
+    UnsupportedControlFlow,
+
+    #[error("KAK gate must be unparameterized")]
+    ParameterizedKAKGate,
 }
 
 impl From<TwoQubitBasisError> for PyErr {
@@ -789,18 +795,14 @@ impl TwoQubitBasisDecomposer {
         pulse_optimize: Option<bool>,
     ) -> PyResult<Self> {
         if gate.operation.try_control_flow().is_some() {
-            return Err(PyValueError::new_err(
-                "Only gates are supported by two qubit decomposer",
-            ));
+            return Err(TwoQubitBasisError::UnsupportedControlFlow.into());
         }
-        let gate_params: PyResult<SmallVec<[f64; 3]>> = gate
+        let gate_params: Result<SmallVec<[f64; 3]>, TwoQubitBasisError> = gate
             .params_view()
             .iter()
             .map(|x| match x {
                 Param::Float(val) => Ok(*val),
-                _ => Err(PyValueError::new_err(
-                    "Only unparameterized gates are supported as KAK gate",
-                )),
+                _ => Err(TwoQubitBasisError::ParameterizedKAKGate),
             })
             .collect();
         TwoQubitBasisDecomposer::new_inner(
@@ -808,7 +810,9 @@ impl TwoQubitBasisDecomposer {
             gate_params?,
             gate_matrix.as_array(),
             basis_fidelity,
-            EulerBasis::from_str(euler_basis).map_err(PyValueError::new_err)?,
+            EulerBasis::from_str(euler_basis).map_err(|_| {
+                PyValueError::new_err(format!("unknown euler basis: {euler_basis}"))
+            })?,
             pulse_optimize,
         )
     }
