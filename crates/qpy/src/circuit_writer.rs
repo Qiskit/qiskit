@@ -49,8 +49,8 @@ use crate::interface::ExtraCircuitData;
 use crate::params::pack_param_obj;
 use crate::py_methods::{
     PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME,
-    UNITARY_GATE_CLASS_NAME, gate_class_name, py_pack_param, py_pack_pauli_evolution_gate,
-    recognize_custom_operation, serialize_metadata,
+    STORE_INSTR_CLASS_NAME, UNITARY_GATE_CLASS_NAME, gate_class_name, py_pack_param,
+    py_pack_pauli_evolution_gate, recognize_custom_operation, serialize_metadata,
 };
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionVarDeclaration, GenericValue, ParamRegisterValue,
@@ -633,7 +633,7 @@ fn pack_store(
         extras_key: 0,
         num_ctrl_qubits: 0,
         ctrl_state: 0,
-        gate_class_name: "Store".to_string(),
+        gate_class_name: STORE_INSTR_CLASS_NAME.to_string(),
         label: instruction
             .label
             .as_ref()
