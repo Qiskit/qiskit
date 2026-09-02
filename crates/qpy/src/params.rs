@@ -240,7 +240,7 @@ fn pack_parameter_replay_entry(
 
 pub(crate) fn unpack_parameter_expression(
     pack: &formats::ParameterExpressionPack,
-    qpy_data: &mut QPYReadData,
+    qpy_data: &mut QPYReadData<'_>,
 ) -> Result<ParameterExpression, QpyError> {
     let uuid_map = pack.symbol_table_data.iter().try_fold(
         HashMap::new(),
@@ -523,7 +523,7 @@ pub(crate) fn pack_parameter_vector(
 /// definitions of this vector that we've seen.
 pub(crate) fn unpack_parameter_vector(
     pack: &formats::ParameterVectorElementPack,
-    qpy_data: &mut QPYReadData,
+    qpy_data: &mut QPYReadData<'_>,
 ) -> Result<Symbol, QpyError> {
     let pack = match pack {
         formats::ParameterVectorElementPack::V18(formats::ParameterVectorElementV18Pack {

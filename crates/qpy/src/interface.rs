@@ -17,6 +17,7 @@
 // including headers, circuit tables, and multiple circuits.
 
 use binrw::{BinRead, Endian, VecArgs};
+use hashbrown::HashMap;
 use pyo3::PyResult;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict};
@@ -328,12 +329,16 @@ pub fn load_qpy(
                 raw_circuit,
                 (qpy_file_header.qpy_version,),
             )?;
+            let mut qubit_uid_table = HashMap::new();
+            let mut clbit_uid_table = HashMap::new();
             let circuit_data = unpack_circuit(
                 &packed_circuit,
                 qpy_file_header.qpy_version,
                 use_symengine,
                 annotation_handler.child()?,
                 caller,
+                &mut qubit_uid_table,
+                &mut clbit_uid_table,
             )?;
             circuits.push(LoadedCircuit {
                 circuit_data,
@@ -350,6 +355,8 @@ pub fn load_qpy(
                 inner: (qpy_file_header.qpy_version,),
             },
         )?;
+        let mut qubit_uid_table = HashMap::new();
+        let mut clbit_uid_table = HashMap::new();
         for packed_circuit in packed_qpy_circuits {
             let circuit_data = unpack_circuit(
                 &packed_circuit,
@@ -357,6 +364,8 @@ pub fn load_qpy(
                 use_symengine,
                 annotation_handler.child()?,
                 caller,
+                &mut qubit_uid_table,
+                &mut clbit_uid_table,
             )?;
             circuits.push(LoadedCircuit {
                 circuit_data,

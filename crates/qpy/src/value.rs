@@ -21,7 +21,7 @@ use hashbrown::HashMap;
 use pyo3::prelude::*;
 use pyo3::types::PyAny;
 
-use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
+use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit, ShareableQubit};
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::classical::expr::{Expr, Stretch, Var};
 use qiskit_circuit::classical::types::Type;
@@ -251,7 +251,7 @@ pub struct QPYWriteData<'a> {
 
 // Data that is needed globally while reading the circuit
 #[derive(Debug)]
-pub struct QPYReadData {
+pub struct QPYReadData<'u> {
     pub caller: QpyCaller,
     pub circuit_data: CircuitData,
     pub version: u8,
@@ -261,6 +261,8 @@ pub struct QPYReadData {
     pub vectors: HashMap<Uuid, Arc<SymbolVector>>,
     pub parameter_vectors: Vec<Arc<SymbolVector>>,
     pub annotation_handler: AnnotationHandler,
+    pub qubit_uid_table: &'u mut HashMap<u64, ShareableQubit>,
+    pub clbit_uid_table: &'u mut HashMap<u64, ShareableClbit>,
 }
 
 // this is how tags for various value types are encoded in a QPY file
@@ -638,7 +640,7 @@ impl<T: FromGenericValue> FromGenericValue for Vec<T> {
 pub(crate) fn load_value(
     type_key: ValueType,
     bytes: &Bytes,
-    qpy_data: &mut QPYReadData,
+    qpy_data: &mut QPYReadData<'_>,
     endian: ValueEndian,
 ) -> Result<GenericValue, QpyError> {
     match type_key {
@@ -738,6 +740,8 @@ pub(crate) fn load_value(
                 qpy_data.use_symengine,
                 qpy_data.annotation_handler.child()?,
                 qpy_data.caller,
+                qpy_data.qubit_uid_table,
+                qpy_data.clbit_uid_table,
             )?;
             Ok(GenericValue::CircuitData(Box::new(circuit)))
         }
@@ -822,7 +826,10 @@ pub(crate) fn serialize_generic_value(
                 qpy_data.annotation_handler.child()?,
                 qpy_data.caller,
             )?;
-            (ValueType::Circuit, serialize(&packed_circuit)?)
+            (
+                ValueType::Circuit,
+                serialize_with_args(&packed_circuit, (qpy_data.version,))?,
+            )
         }
         GenericValue::NumpyObject(bytes) => (ValueType::NumpyObject, bytes.clone()),
         GenericValue::Range(py_range) => {
@@ -860,7 +867,7 @@ pub(crate) fn pack_generic_value(
 
 pub(crate) fn unpack_generic_value(
     value_pack: &GenericDataPack,
-    qpy_data: &mut QPYReadData,
+    qpy_data: &mut QPYReadData<'_>,
     endian: ValueEndian,
 ) -> Result<GenericValue, QpyError> {
     let result = load_value(value_pack.type_key, &value_pack.data, qpy_data, endian)?;
@@ -872,7 +879,7 @@ pub(crate) fn unpack_generic_value(
 /// share the 't' key.
 pub(crate) fn unpack_duration_value(
     value_pack: &GenericDataPack,
-    qpy_data: &mut QPYReadData,
+    qpy_data: &mut QPYReadData<'_>,
 ) -> Result<GenericValue, QpyError> {
     match value_pack.type_key {
         ValueType::Tuple => {
@@ -932,7 +939,7 @@ pub(crate) fn pack_generic_value_sequence(
 
 pub(crate) fn unpack_generic_value_sequence(
     value_seqeunce_pack: GenericDataSequencePack,
-    qpy_data: &mut QPYReadData,
+    qpy_data: &mut QPYReadData<'_>,
     endian: ValueEndian,
 ) -> Result<Vec<GenericValue>, QpyError> {
     value_seqeunce_pack
@@ -1001,7 +1008,7 @@ pub(crate) fn serialize_expression(exp: &Expr, qpy_data: &QPYWriteData) -> Resul
 
 pub(crate) fn deserialize_expression(
     raw_expression: &Bytes,
-    qpy_data: &QPYReadData,
+    qpy_data: &QPYReadData<'_>,
 ) -> Result<Expr, QpyError> {
     let (exp_pack, _) = deserialize_with_args::<formats::ExpressionPack, (&QPYReadData,)>(
         raw_expression,
@@ -1142,7 +1149,7 @@ pub(crate) fn serialize_param_register_value(
 
 pub(crate) fn load_param_register_value(
     bytes: &Bytes,
-    qpy_data: &mut QPYReadData,
+    qpy_data: &mut QPYReadData<'_>,
 ) -> Result<ParamRegisterValue, QpyError> {
     if qpy_data.version >= 18 {
         let (pack, _) = deserialize::<formats::ParamRegisterPack>(bytes)?;
@@ -1193,7 +1200,7 @@ pub(crate) fn clbit_index(
 }
 
 /// The clbit at `index` in the circuit being read.
-pub(crate) fn clbit_at(index: u32, qpy_data: &QPYReadData) -> Result<ShareableClbit, QpyError> {
+pub(crate) fn clbit_at(index: u32, qpy_data: &QPYReadData<'_>) -> Result<ShareableClbit, QpyError> {
     qpy_data
         .circuit_data
         .clbits()
@@ -1207,7 +1214,7 @@ pub(crate) fn clbit_at(index: u32, qpy_data: &QPYReadData) -> Result<ShareableCl
 /// Uses the name-keyed [`CircuitData::cregs_data`] map rather than scanning `cregs()`.
 pub(crate) fn creg_by_name(
     name: &str,
-    qpy_data: &QPYReadData,
+    qpy_data: &QPYReadData<'_>,
 ) -> Result<ClassicalRegister, QpyError> {
     qpy_data
         .circuit_data
