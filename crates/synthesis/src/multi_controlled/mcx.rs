@@ -1288,7 +1288,7 @@ mod sp22 {
         let mut pairs: Vec<(usize, usize)> = (0..n_qubits)
             .flat_map(|target| (0..target).map(move |control| (control, target)))
             .collect();
-        pairs.sort_by(|a, b| (b.0 + b.1).cmp(&(a.0 + a.1)));
+        pairs.sort_by_key(|a| std::cmp::Reverse(a.0 + a.1));
         pairs
     }
 
@@ -1298,7 +1298,7 @@ mod sp22 {
         let mut pairs: Vec<(usize, usize)> = (1..n_qubits)
             .flat_map(|target| (1..target).map(move |control| (control, target)))
             .collect();
-        pairs.sort_by(|a, b| (a.0 + a.1).cmp(&(b.0 + b.1)));
+        pairs.sort_by_key(|a| a.0 + a.1);
         pairs
     }
 

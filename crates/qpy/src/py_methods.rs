@@ -913,7 +913,9 @@ pub fn deserialize_pauli_evolution_gate(
                 let num_qubits = sparse_observable_pack.num_qubits;
                 let coeffs = sparse_observable_pack
                     .coeff_data
-                    .chunks_exact(2)
+                    .as_chunks::<2>()
+                    .0
+                    .iter()
                     .map(|c| Complex64::new(c[0], c[1]))
                     .collect();
                 let bit_terms = sparse_observable_pack

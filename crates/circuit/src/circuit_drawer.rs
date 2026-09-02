@@ -355,8 +355,8 @@ impl<'a> VisualizationLayer<'a> {
             | StandardGate::XXPlusYY
             | StandardGate::RCCX
             | StandardGate::RC3X => {
-                for q in minima..=maxima {
-                    self.0[q] = VisualizationElement::Boxed(BoxedElement::Multi(inst));
+                for qarg in self.0.iter_mut().take(maxima + 1).skip(minima) {
+                    *qarg = VisualizationElement::Boxed(BoxedElement::Multi(inst));
                 }
             }
             StandardGate::H
@@ -490,8 +490,8 @@ impl<'a> VisualizationLayer<'a> {
                 VisualizationElement::Boxed(BoxedElement::Single(inst));
         } else {
             let (minima, maxima) = get_instruction_range(qargs, &[], 0);
-            for q in minima..=maxima {
-                self.0[q] = VisualizationElement::Boxed(BoxedElement::Multi(inst));
+            for qarg in self.0.iter_mut().take(maxima + 1).skip(minima) {
+                *qarg = VisualizationElement::Boxed(BoxedElement::Multi(inst));
             }
         }
     }
