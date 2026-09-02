@@ -877,38 +877,36 @@ impl SymbolExpr {
                     },
                 }
             }
-            SymbolExpr::Binary { op, lhs, rhs } => {
-                match op {
-                    BinaryOp::Mul => match lhs.mul_expand(rhs) {
-                        Some(e) => e,
-                        None => _mul(lhs.as_ref().clone(), rhs.as_ref().clone()),
-                    },
-                    BinaryOp::Div => match lhs.div_expand(rhs) {
-                        Some(e) => e,
-                        None => _div(lhs.as_ref().clone(), rhs.as_ref().clone()),
-                    },
-                    BinaryOp::Add => match lhs.add_opt(rhs, true) {
-                        Some(e) => e,
-                        None => _add(lhs.as_ref().clone(), rhs.as_ref().clone()),
-                    },
-                    BinaryOp::Sub => match lhs.sub_opt(rhs, true) {
-                        Some(e) => e,
-                        None => _sub(lhs.as_ref().clone(), rhs.as_ref().clone()),
-                    },
-                    BinaryOp::Pow => {
-                        let base = lhs.expand();
-                        let exponent = rhs.expand();
-                        match &exponent {
-                            SymbolExpr::Value(v) if v.is_minus_one() => base.rcp(),
-                            SymbolExpr::Value(v) if v.is_negative() => {
-                                let pos_exponent = SymbolExpr::Value(-*v);
-                                base.pow(&pos_exponent).rcp()
-                            }
-                            _ => _pow(base, exponent),
+            SymbolExpr::Binary { op, lhs, rhs } => match op {
+                BinaryOp::Mul => match lhs.mul_expand(rhs) {
+                    Some(e) => e,
+                    None => _mul(lhs.as_ref().clone(), rhs.as_ref().clone()),
+                },
+                BinaryOp::Div => match lhs.div_expand(rhs) {
+                    Some(e) => e,
+                    None => _div(lhs.as_ref().clone(), rhs.as_ref().clone()),
+                },
+                BinaryOp::Add => match lhs.add_opt(rhs, true) {
+                    Some(e) => e,
+                    None => _add(lhs.as_ref().clone(), rhs.as_ref().clone()),
+                },
+                BinaryOp::Sub => match lhs.sub_opt(rhs, true) {
+                    Some(e) => e,
+                    None => _sub(lhs.as_ref().clone(), rhs.as_ref().clone()),
+                },
+                BinaryOp::Pow => {
+                    let base = lhs.expand();
+                    let exponent = rhs.expand();
+                    match &exponent {
+                        SymbolExpr::Value(v) if v.is_minus_one() => base.rcp(),
+                        SymbolExpr::Value(v) if v.is_negative() => {
+                            let pos_exponent = SymbolExpr::Value(-*v);
+                            base.pow(&pos_exponent).rcp()
                         }
+                        _ => _pow(base, exponent),
                     }
                 }
-            }
+            },
         }
     }
 
