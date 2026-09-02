@@ -25,10 +25,10 @@ from qiskit._accelerate.synthesis.multi_controlled import (
     synth_mcx_noaux_hp24 as synth_mcx_noaux_hp24_rs,
     synth_mcx_n_clean_m15 as synth_mcx_n_clean_m15_rs,
     synth_mcx_1_clean_b95 as synth_mcx_1_clean_b95_rs,
+    synth_mcx_noaux_sp22 as synth_mcx_noaux_sp22_rs,
 )
 from .gray_code import gray_code_chain
 from qiskit.synthesis.multi_controlled.mcp_synthesis import (
-    synth_mcp_noaux_sp22,
     synth_mcp_noaux_v24,
 )
 
@@ -232,22 +232,10 @@ def synth_mcx_noaux_sp22(num_ctrl_qubits: int) -> QuantumCircuit:
         raise QiskitError(
             "synth_mcx_noaux_sp22 cannot be called with a negative number of control qubits."
         )
-    circ = QuantumCircuit(num_ctrl_qubits + 1)
-    if num_ctrl_qubits <= 2:
-        return _synth_mcx_special_cases(num_ctrl_qubits)
-    elif num_ctrl_qubits == 3:
-        circ = synth_c3x()
-    elif num_ctrl_qubits == 4:
-        circ = synth_c4x()
-    else:
-        circ.h(num_ctrl_qubits)
-        circ.compose(
-            synth_mcp_noaux_sp22(num_ctrl_qubits, phase=np.pi),
-            range(num_ctrl_qubits + 1),
-            inplace=True,
-        )
-        circ.h(num_ctrl_qubits)
-    return circ
+
+    return QuantumCircuit._from_circuit_data(
+        synth_mcx_noaux_sp22_rs(num_ctrl_qubits), legacy_qubits=True
+    )
 
 
 def synth_mcx_noaux_v24(num_ctrl_qubits: int) -> QuantumCircuit:
