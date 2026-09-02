@@ -15,6 +15,7 @@ use num_complex::{Complex64, ComplexFloat};
 use pyo3::Python;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
+
 use std::collections::BTreeSet;
 use std::f64::consts::{FRAC_1_SQRT_2, PI};
 
@@ -152,6 +153,23 @@ fn expand_diagonal(mut diag: Vec<Complex64>, new_ctrl: &[u32], num_qubits: u32) 
     }
     diag
 }
+
+fn push_1q_unitary(
+    circuit: &mut CircuitData,
+    mat: Matrix2<Complex64>,
+    qubit: Qubit,
+) -> Result<(), CircuitDataError> {
+    circuit.push_packed_operation(
+        PackedOperation::from_unitary(Box::new(UnitaryGate {
+            array: ArrayType::OneQ(mat),
+        })),
+        None,
+        &[qubit],
+        &[],
+    )?;
+    Ok(())
+}
+
 pub fn dec_ucg_inner(
     single_qubit_gates: Vec<Matrix2<Complex64>>,
     num_qubits: u32,
@@ -160,14 +178,7 @@ pub fn dec_ucg_inner(
 ) -> Result<(CircuitData, Vec<Complex64>), CircuitDataError> {
     if num_qubits == 1 {
         let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0))?;
-        circuit.push_packed_operation(
-            PackedOperation::from_unitary(Box::new(UnitaryGate {
-                array: ArrayType::OneQ(single_qubit_gates[0]),
-            })),
-            None,
-            &[Qubit(0)],
-            &[],
-        )?;
+        push_1q_unitary(&mut circuit, single_qubit_gates[0], Qubit(0))?;
         return Ok((circuit, vec![Complex64::ONE; 2]));
     }
     let num_contr = num_qubits - 1;
@@ -178,28 +189,22 @@ pub fn dec_ucg_inner(
         (mapped, gates, ctrls)
     } else {
         let ctrls: Vec<u32> = (1..num_qubits).collect();
-        (ctrls.clone(), single_qubit_gates.clone(), ctrls)
+        // clone for q_controls, move for raw_ctrls
+        (ctrls.clone(), single_qubit_gates, ctrls)
     };
 
-    let simplified_num_quibits = q_controls.len() as u32 + 1;
+    let simplified_num_qubits = q_controls.len() as u32 + 1;
 
-    if simplified_num_quibits == 1 {
+    if simplified_num_qubits == 1 {
         let mut circuit = CircuitData::with_capacity(num_qubits, 0, 1, Param::Float(0.0))?;
-        circuit.push_packed_operation(
-            PackedOperation::from_unitary(Box::new(UnitaryGate {
-                array: ArrayType::OneQ(new_gates[0]),
-            })),
-            None,
-            &[Qubit(0)],
-            &[],
-        )?;
+        push_1q_unitary(&mut circuit, new_gates[0], Qubit(0))?;
         return Ok((circuit, vec![Complex64::ONE; 1_usize << num_qubits]));
     }
 
     let mut global_phase = 0.0;
     let mut circuit = CircuitData::with_capacity(num_qubits, 0, 0, Param::Float(global_phase))?;
     let mut gates = new_gates;
-    let diagonal = dec_ucg_help_inner(&mut gates, simplified_num_quibits);
+    let diagonal = dec_ucg_help_inner(&mut gates, simplified_num_qubits);
     let n = gates.len();
 
     for (i, gate) in gates.iter().enumerate() {
@@ -208,14 +213,7 @@ pub fn dec_ucg_inner(
             i if i == n - 1 => gate * RZ_PI2_MAT * H_MAT,
             _ => H_MAT * (gate * RZ_PI2_MAT) * H_MAT,
         };
-        circuit.push_packed_operation(
-            PackedOperation::from_unitary(Box::new(UnitaryGate {
-                array: ArrayType::OneQ(squ), // squ: Matrix2<Complex64>
-            })),
-            None,
-            &[Qubit(0)], // target qubit index
-            &[],
-        )?;
+        push_1q_unitary(&mut circuit, squ, Qubit(0))?;
 
         // push CX after every gate except the last
         if i < n - 1 {
@@ -223,7 +221,6 @@ pub fn dec_ucg_inner(
             circuit.push_standard_gate(
                 StandardGate::CX,
                 &[],
-                //&[Qubit(1 + control_ind as u32), Qubit(0)],  // control, target
                 &[Qubit(q_controls[control_ind]), Qubit(0)], // control, target
             )?;
 
@@ -236,9 +233,9 @@ pub fn dec_ucg_inner(
         let mut diag_phases: Vec<f64> = diagonal.iter().map(|x| x.arg()).collect();
         let diag_circuit: CircuitData =
             diagonal_gate_circuit(&mut diag_phases, num_qubits as usize)?;
-        let quibit_map: Vec<Qubit> = (0..num_qubits).map(Qubit).collect();
+        let qubit_map: Vec<Qubit> = (0..num_qubits).map(Qubit).collect();
 
-        append(&mut circuit, diag_circuit, &quibit_map)?;
+        append(&mut circuit, diag_circuit, &qubit_map)?;
     }
 
     Ok((circuit, diagonal))
@@ -270,20 +267,17 @@ pub fn simplify(
     gate_list: &[Matrix2<Complex64>],
     num_ctrls: u32,
 ) -> (Vec<u32>, Vec<Matrix2<Complex64>>) {
-    let mut new_mux = gate_list.to_owned();
-
     let mut c: BTreeSet<u32> = BTreeSet::new();
-    let mut nc: BTreeSet<u32> = BTreeSet::new();
-
     for i in 0..num_ctrls {
         c.insert(i + 1);
     }
 
-    if gate_list.len() > 1 {
+    let (new_mux, nc) = if gate_list.len() > 1 {
         let (found_nc, mux_copy) = repetition_search(gate_list, num_ctrls);
-        new_mux = mux_copy;
-        nc = found_nc;
-    }
+        (mux_copy, found_nc)
+    } else {
+        (gate_list.to_owned(), BTreeSet::new())
+    };
 
     let new_ctrl: Vec<u32> = c.difference(&nc).copied().collect();
     (new_ctrl, new_mux)
@@ -294,32 +288,32 @@ fn repetition_search(
     num_ctrls: u32,
 ) -> (BTreeSet<u32>, Vec<Matrix2<Complex64>>) {
     let mut nc: BTreeSet<u32> = BTreeSet::new();
-    //let new_mux = mux.clone();
     let mut mux_copy: Vec<Option<Matrix2<Complex64>>> = mux.iter().map(|x| Some(*x)).collect();
 
     let mut d = 1;
 
     while d <= mux.len() / 2 {
-        let mut disentalgement = false;
+        let mut disentanglement = false;
         if abs_diff_eq!(mux[d], mux[0], epsilon = 1e-8) {
             let mux_org = mux_copy.clone();
-            let mut repetitions = mux.len() / (2 * d);
+            let repetitions = mux.len() / (2 * d);
             let mut p = 0;
-            while repetitions > 0 {
-                repetitions -= 1;
-                let (valid, mux_res) = repetition_verify(p, d, mux, mux_copy);
-                mux_copy = mux_res;
+            let mut broke_early = false;
+
+            for _ in 0..repetitions {
+                let valid = repetition_verify(p, d, mux, &mut mux_copy);
                 p += 2 * d;
                 if !valid {
                     mux_copy = mux_org;
+                    broke_early = true;
                     break;
                 }
-                if repetitions == 0 {
-                    disentalgement = true;
-                }
+            }
+            if !broke_early {
+                disentanglement = true;
             }
         }
-        if disentalgement {
+        if disentanglement {
             let removed_contr = num_ctrls as f64 - (d as f64).log2();
             nc.insert(removed_contr as u32);
         }
@@ -333,21 +327,21 @@ fn repetition_verify(
     mut base: usize,
     d: usize,
     mux: &[Matrix2<Complex64>],
-    mut mux_copy: Vec<Option<Matrix2<Complex64>>>,
-) -> (bool, Vec<Option<Matrix2<Complex64>>>) {
+    mux_copy: &mut [Option<Matrix2<Complex64>>],
+) -> bool {
     let mut i = 0;
     let mut next_base = base + d;
 
     while i < d {
         if !abs_diff_eq!(mux[base], mux[next_base], epsilon = 1e-8) {
-            return (false, mux_copy);
+            return false;
         }
         mux_copy[next_base] = None;
         base += 1;
         next_base += 1;
         i += 1;
     }
-    (true, mux_copy)
+    true
 }
 
 pub fn dec_ucg_help_inner(
@@ -436,91 +430,6 @@ pub fn dec_ucg_help(
         })
         .collect();
     let diag = dec_ucg_help_inner(&mut single_qubit_gates, num_qubits);
-    (
-        single_qubit_gates
-            .into_iter()
-            .map(|x| x.to_pyarray(py).into_any().unbind())
-            .collect(),
-        diag.into_pyarray(py).into_any().unbind(),
-    )
-}
-
-#[pyfunction]
-pub fn dec_ucg_help_org(
-    py: Python,
-    sq_gates: Vec<PyReadonlyArray2<Complex64>>,
-    num_qubits: u32,
-) -> (Vec<Py<PyAny>>, Py<PyAny>) {
-    let mut single_qubit_gates: Vec<Matrix2<Complex64>> = sq_gates
-        .into_iter()
-        .map(|x| {
-            let res: MatrixView2<Complex64> = x.try_as_matrix().unwrap();
-            res.into_owned()
-        })
-        .collect();
-    let mut diag: Vec<Complex64> = vec![Complex64::ONE; 2_usize.pow(num_qubits)];
-    let num_controls = num_qubits - 1;
-    for dec_step in 0..num_controls {
-        let num_ucgs = 2_usize.pow(dec_step);
-        // The decomposition works recursively and the following loop goes over the different
-        // UCGates that arise in the decomposition
-        for ucg_index in 0..num_ucgs {
-            let len_ucg = 2_usize.pow(num_controls - dec_step);
-            for i in 0..len_ucg / 2 {
-                let shift = ucg_index * len_ucg;
-                let a = single_qubit_gates[shift + i];
-                let b = single_qubit_gates[shift + len_ucg / 2 + i];
-                // Apply the decomposition for UCGates given in equation (3) in
-                // https://arxiv.org/pdf/quant-ph/0410066.pdf
-                // to demultiplex one control of all the num_ucgs uniformly-controlled gates
-                // with log2(len_ucg) uniform controls
-
-                let [v, u, r] = demultiplex_single_uc(&a, &b);
-
-                // replace the single-qubit gates with v,u (the already existing ones
-                // are not needed any more)
-                single_qubit_gates[shift + i] = v;
-                single_qubit_gates[shift + len_ucg / 2 + i] = u;
-                // Now we decompose the gates D as described in Figure 4 in
-                // https://arxiv.org/pdf/quant-ph/0410066.pdf and merge some of the gates
-                // into the UCGates and the diagonal at the end of the circuit
-
-                // Remark: The Rz(pi/2) rotation acting on the target qubit and the Hadamard
-                // gates arising in the decomposition of D are ignored for the moment (they will
-                // be added together with the C-NOT gates at the end of the decomposition
-                // (in the method dec_ucg()))
-                let r_conj_t = r.adjoint();
-                if ucg_index < num_ucgs - 1 {
-                    // Absorb the Rz(pi/2) rotation on the control into the UC-Rz gate and
-                    // merge the UC-Rz rotation with the following UCGate,
-                    // which hasn't been decomposed yet
-                    let k = shift + len_ucg + i;
-
-                    single_qubit_gates[k] *= r_conj_t;
-                    single_qubit_gates[k]
-                        .iter_mut()
-                        .for_each(|x| *x *= RZ_PI2_00);
-                    let k = k + len_ucg / 2;
-                    single_qubit_gates[k] *= r;
-                    single_qubit_gates[k]
-                        .iter_mut()
-                        .for_each(|x| *x *= RZ_PI2_11);
-                } else {
-                    // Absorb the Rz(pi/2) rotation on the control into the UC-Rz gate and merge
-                    // the trailing UC-Rz rotation into a diagonal gate at the end of the circuit
-                    for ucg_index_2 in 0..num_ucgs {
-                        let shift_2 = ucg_index_2 * len_ucg;
-                        let k = 2 * (i + shift_2);
-                        diag[k] *= r_conj_t[(0, 0)] * RZ_PI2_00;
-                        diag[k + 1] *= r_conj_t[(1, 1)] * RZ_PI2_00;
-                        let k = len_ucg + k;
-                        diag[k] *= r[(0, 0)] * RZ_PI2_11;
-                        diag[k + 1] *= r[(1, 1)] * RZ_PI2_11;
-                    }
-                }
-            }
-        }
-    }
     (
         single_qubit_gates
             .into_iter()

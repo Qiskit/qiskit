@@ -113,7 +113,6 @@ class UCGate(Gate):
         super().__init__("multiplexer", int(num_contr) + 1, gate_list)
         self.up_to_diagonal = up_to_diagonal
         self.mux_simp = mux_simp
-   
 
     def inverse(self, annotated: bool = False) -> Gate:
         """Return the inverse.
@@ -126,7 +125,7 @@ class UCGate(Gate):
                 name=self.name + "_dg", num_qubits=self.num_qubits, params=[]
             )  # removing the params because arrays are deprecated
 
-            #definition = QuantumCircuit(*self.definition.qregs)
+            # definition = QuantumCircuit(*self.definition.qregs)
             definition = QuantumCircuit(list(self.definition.qubits))
             for inst in reversed(self._definition):
                 definition._append(
@@ -151,7 +150,6 @@ class UCGate(Gate):
     def _define(self):
         ucg_circuit, _ = self._dec_ucg()
         self.definition = ucg_circuit
-   
 
     def _dec_ucg(self):
         """
@@ -159,8 +157,10 @@ class UCGate(Gate):
         https://arxiv.org/pdf/quant-ph/0410066.pdf.
         """
         single_qubit_gates = [np.asarray(gate, dtype=complex, order="f") for gate in self.params]
-        return uc_gate.dec_ucg(single_qubit_gates, self.num_qubits, self.up_to_diagonal, self.mux_simp)
-    
+        return uc_gate.dec_ucg(
+            single_qubit_gates, self.num_qubits, self.up_to_diagonal, self.mux_simp
+        )
+
     # @staticmethod
     # def _rz(alpha):
     #     return np.array([[np.exp(1j * alpha / 2), 0], [0, np.exp(-1j * alpha / 2)]])
