@@ -12,7 +12,7 @@
 
 use std::ptr;
 
-use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
+use crate::pointers::{check_ptr, const_ptr_as_ref};
 use num_bigint::BigUint;
 use num_traits::{ToPrimitive, Zero};
 use qiskit_circuit::{
@@ -832,6 +832,32 @@ pub struct CBigUint {
     num_limbs: usize,
 }
 
+impl CBigUint {
+    /// Convert BigUint to an CBigUint that owns its allocation.
+    pub fn from_biguint(biguint: &BigUint) -> Self {
+        let biguint_slice = biguint
+            .iter_u64_digits()
+            .collect::<Vec<_>>()
+            .into_boxed_slice();
+        let result = CBigUint {
+            limbs: biguint_slice.as_ptr(),
+            num_limbs: biguint_slice.len(),
+        };
+        std::mem::forget(biguint_slice);
+        result
+    }
+}
+
+impl Drop for CBigUint {
+    fn drop(&mut self) {
+        // SAFETY: We own the slice.
+        unsafe {
+            let slice = ptr::slice_from_raw_parts_mut(self.limbs as *mut u64, self.num_limbs);
+            drop(Box::from_raw(slice));
+        }
+    }
+}
+
 /// @ingroup QkClassicalExpressions
 /// Extract the unsigned bigint value from a ``QkValue``. The data is copied
 /// to a freshly allocated `QkBigUint` which the caller owns after calling
@@ -868,13 +894,7 @@ pub unsafe extern "C" fn qk_value_biguint(value: *const Value) -> CBigUint {
         panic!("qk_value_biguint called on non-uint value")
     };
 
-    let biguint_slice = raw.iter_u64_digits().collect::<Vec<_>>().into_boxed_slice();
-    let result = CBigUint {
-        limbs: biguint_slice.as_ptr(),
-        num_limbs: biguint_slice.len(),
-    };
-    std::mem::forget(biguint_slice);
-    result
+    CBigUint::from_biguint(raw)
 }
 
 /// @ingroup QkClassicalExpressions
@@ -890,14 +910,18 @@ pub unsafe extern "C" fn qk_value_biguint(value: *const Value) -> CBigUint {
 /// Behavior is undefined if ``biguint`` is not a valid, non-null pointer to a `QkBigUint`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_biguint_clear(biguint: *mut CBigUint) {
+    check_ptr(biguint).unwrap();
     // SAFETY: Per documentation, `biguint` is a valid, non-null pointer.
-    let biguint = unsafe { mut_ptr_as_ref(biguint) };
-    let slice = ptr::slice_from_raw_parts_mut(biguint.limbs as *mut u64, biguint.num_limbs);
-    // SAFETY: Per documentation, converting the value to an owned slice must be valid.
-    unsafe { drop(Box::from_raw(slice)) };
-
-    biguint.limbs = ptr::null();
-    biguint.num_limbs = 0;
+    unsafe {
+        ptr::drop_in_place(biguint);
+        ptr::write(
+            biguint,
+            CBigUint {
+                limbs: ptr::null(),
+                num_limbs: 0,
+            },
+        );
+    }
 }
 
 /// @ingroup QkClassicalExpressions

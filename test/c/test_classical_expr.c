@@ -577,6 +577,18 @@ cleanup:
     return result;
 }
 
+int biguint_cmp(const QkBigUint a, const QkBigUint b) {
+    ptrdiff_t limb_count_diff = (ptrdiff_t)a.num_limbs - (ptrdiff_t)b.num_limbs;
+    if (limb_count_diff != 0) {
+        return limb_count_diff;
+    }
+    return memcmp(a.limbs, b.limbs, a.num_limbs * sizeof(uint64_t));
+}
+
+bool biguint_eq(const QkBigUint a, const QkBigUint b) {
+    return biguint_cmp(a, b) == 0;
+}
+
 typedef struct {
     const char *label;
 
@@ -591,25 +603,25 @@ typedef struct {
 static enum TestResult check_biguint_value(const BigUint_TestCase *tc) {
     enum TestResult result = Ok;
 
-    // Create test QkValue:
     QkValue *value =
         inner_test_value_biguint(tc->bytes, tc->bytes_len, tc->bit_width_auto, tc->bit_width);
 
     // Extract QkBigUint from QkValue (copy):
     QkBigUint actual = qk_value_biguint(value);
 
-    // Check that actual and expected biguints are equal:
-    if (!(actual.num_limbs == tc->expected.num_limbs &&
-          memcmp(actual.limbs, tc->expected.limbs, tc->expected.num_limbs * sizeof(uint64_t)) ==
-              0)) {
+    if (!biguint_eq(actual, tc->expected)) {
         printf("Unexpected QkBigUint value for '%s'\n", tc->label);
         biguint_debug_print(&tc->expected, "expected");
         biguint_debug_print(&actual, "actual");
         result = EqualityError;
     }
 
-    // Cleanup:
     qk_biguint_clear(&actual);
+    if (!(actual.num_limbs == 0 && actual.limbs == NULL)) {
+        printf("Expected zeroed memory after calling 'qk_biguint_clear'\n");
+        result = RuntimeError;
+    }
+
     inner_value_free(value);
 
     return result;
