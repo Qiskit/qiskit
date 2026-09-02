@@ -447,10 +447,18 @@ pub unsafe extern "C" fn qk_custom_op_new(
 /// | ``definition``       | `const void *`, `QkParam *`    | `QkCircuit *` |   8   |    No    |
 /// | ``eq``               | `const void *`, `const void *` | `bool`        |   9   |    No    |
 ///
+/// Each function will be seen as a `void` pointer to Rust and will be transmuted
+/// to a function pointer of the correct signature.
+/// 
 /// If a required slot is not received, the vtable will not be constructed
 /// and this function will return a `NULL` pointer. If an optional slot is not
 /// included, the vtable will still be built and its slots will point to default
 /// implementations of the said method(s).
+/// 
+/// If a slot does not have a valid index (other than the sentinel value), the provided
+/// function pointer will be ignored. This ensures that if any non-required methods are
+/// added or removed from the chart above, the program should still be able to run
+/// without issues.
 ///
 /// Every list of slots should be delimited by a sentinel valued
 /// ``QkCustomOpVTableEntry`` at the end. The sentinel should look as follows:
@@ -471,6 +479,9 @@ pub unsafe extern "C" fn qk_custom_op_new(
 ///
 /// Behavior is undefined if a list of entries without delimiting sentinel
 /// value are provided.
+/// 
+/// Undefined behavior may also happen during transmutation if the provided
+/// function pointer does not have the correct signature.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_custom_op_vtable_new(
     mut slots: *const CustomOpVTableEntry,
@@ -584,7 +595,10 @@ pub unsafe extern "C" fn qk_custom_op_vtable_new(
                     >(slot.func)
                 })
             }
-            Err(e) => panic!("Expected valid slot, obtained {}", e),
+            Err(e) => {
+                println!("Slot at index {} was ignored as it doesn't represent a valid VTable slot for QkCustomOp.", e);
+                continue
+            },
         }
         slots = unsafe { slots.add(1) };
         slot = unsafe { slots.read() };
