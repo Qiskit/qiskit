@@ -6350,19 +6350,11 @@ impl DAGCircuit {
             }
         } else if let OperationRef::Store(store) = instr.op.view() {
             let (expr_clbits, expr_vars) = wires_from_expr(store.lvalue())?;
-            for bit in expr_clbits {
-                clbits.push(bit);
-            }
-            for var in expr_vars {
-                vars.push(var);
-            }
+            clbits.extend(expr_clbits);
+            vars.extend(expr_vars);
             let (expr_clbits, expr_vars) = wires_from_expr(store.rvalue())?;
-            for bit in expr_clbits {
-                clbits.push(bit);
-            }
-            for var in expr_vars {
-                vars.push(var);
-            }
+            clbits.extend(expr_clbits);
+            vars.extend(expr_vars);
         }
         Ok((clbits, vars))
     }
