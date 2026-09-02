@@ -314,8 +314,8 @@ fn repetition_search(
             }
         }
         if disentanglement {
-            let removed_contr = num_ctrls as f64 - (d as f64).log2();
-            nc.insert(removed_contr as u32);
+            let removed_contr = num_ctrls - d.trailing_zeros();
+            nc.insert(removed_contr);
         }
         d *= 2;
     }

@@ -23,15 +23,11 @@ import math
 import numpy as np
 
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.library.standard_gates.h import HGate
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
-from qiskit.circuit import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.exceptions import QiskitError
 from qiskit._accelerate import uc_gate
-
-from .diagonal import DiagonalGate
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
