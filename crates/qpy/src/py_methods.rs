@@ -479,29 +479,6 @@ pub(crate) fn py_convert_from_generic_value(
         GenericValue::RangeExpr(range_expr) => Ok(range_expr.clone().into_py_any(py)?),
     }
 }
-        }
-        GenericValue::ParameterExpression(exp) => Ok(exp.as_ref().clone().into_py_any(py)?),
-        GenericValue::CircuitData(circuit_data) => {
-            Ok(circuit_data.clone().into_py_quantum_circuit(py)?.unbind())
-        }
-        GenericValue::Modifier(py_object) => Ok(py_object.clone()),
-        GenericValue::Range(py_range) => Ok(py_range.into_py_any(py)?),
-        GenericValue::NumpyObject(bytes) => py_deserialize_numpy_object(py, bytes),
-        GenericValue::Tuple(values) => {
-            let elements: Vec<Py<PyAny>> = values
-                .iter()
-                .map(|v| py_convert_from_generic_value(py, v))
-                .collect::<Result<_, QpyError>>()?;
-            Ok(PyTuple::new(py, &elements)?.into_py_any(py)?)
-        }
-        GenericValue::Register(reg_value) => match reg_value {
-            ParamRegisterValue::Register(reg) => Ok(reg.clone().into_py_any(py)?),
-            ParamRegisterValue::ShareableClbit(clbit) => Ok(clbit.clone().into_py_any(py)?),
-        },
-        GenericValue::BigInt(bigint) => Ok(bigint.clone().into_py_any(py)?),
-        GenericValue::Duration(duration) => Ok((*duration).into_py_any(py)?),
-    }
-}
 
 // This functions packs an instruction parameter, which can be an arbitrary piece of data
 // Not to be confused with Parameter, which is an atom of ParameterExpression
