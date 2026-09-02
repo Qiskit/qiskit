@@ -1175,14 +1175,53 @@ static int test_delay_instruction(void) {
     QkCircuit *qc = qk_circuit_new(2, 0);
     int result = Ok;
 
-    QkExitCode delay_s_code;
-
-    delay_s_code = qk_circuit_delay(qc, 0, 0.001, QkDelayUnit_S);
+    QkExitCode delay_s_code = qk_circuit_delay(qc, 0, 0.001, QkDelayUnit_S);
     if (delay_s_code != QkExitCode_Success) {
         result = RuntimeError;
         goto cleanup;
     }
 
+    QkDelayUnit unit_s = qk_circuit_delay_get_unit(qc, 0);
+    if (unit_s != QkDelayUnit_S) {
+        result = EqualityError;
+        printf("Expected 's' (0) delay unit, found (%d)", result);
+        goto cleanup;
+    }
+
+    QkCircuitInstruction instr;
+    qk_circuit_get_instruction(qc, 0, &instr);
+    double s_delay_val = qk_param_as_real(instr.params[0]);
+
+    if (s_delay_val != 0.001) {
+        result = EqualityError;
+        printf("Expected 'dt' (5) delay unit, found (%d)", result);
+        goto instr_cleanup;
+    }
+
+    QkExitCode delay_dt_code = qk_circuit_delay_dt(qc, 1, 145);
+    if (delay_dt_code != QkExitCode_Success) {
+        result = RuntimeError;
+        goto instr_cleanup;
+    }
+
+    QkDelayUnit unit_dt = qk_circuit_delay_get_unit(qc, 1);
+    if (unit_dt != QkDelayUnit_DT) {
+        result = EqualityError;
+        printf("Expected 'dt' (5) delay unit, found (%d)", result);
+        goto instr_cleanup;
+    }
+
+    qk_circuit_get_instruction(qc, 1, &instr);
+    double dt_delay_val = qk_param_as_real(instr.params[0]);
+
+    if (dt_delay_val != 145.0) {
+        result = EqualityError;
+        printf("Expected 'dt' (5) delay unit, found (%d)", result);
+        goto instr_cleanup;
+    }
+
+instr_cleanup:
+    qk_circuit_instruction_clear(&instr);
 cleanup:
     qk_circuit_free(qc);
     return result;
