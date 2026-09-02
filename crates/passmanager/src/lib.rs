@@ -189,61 +189,30 @@ impl Task {
     }
 }
 
-// clippy is complaining about complex callback types, hence this typedef, even
-// though I'm not a huge fan of using them
-pub type Callback = dyn Fn(&dyn Any, &PassContext);
-
-/// A callback registry.
-///
-/// Callbacks can be registered to be run after a [Pass], a [Task], or after every stage
-/// in a [Task::Stage] variant.
-///
-/// Each callback is called with the type-erased IR and the pass context.
-#[derive(Default)]
-pub struct CallbackRegistry {
-    post_pass: Vec<Box<Callback>>,
-    post_task: Vec<Box<Callback>>,
-    post_stage: Vec<Box<Callback>>,
-}
-
 /// Hookpoint for the callback.
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CallbackType {
     PostPass,
     PostTask,
     PostStage,
 }
 
-impl CallbackRegistry {
-    pub fn new() -> Self {
-        Self::default()
-    }
+/// A (set of) callback(s) to trigger during the pass manager execution.
+///
+/// A callback sets hookpoints (usually a single one), upon which the functions
+/// are called with the defined arguments.
+///
+/// This trait only requires the trigger to be implemented, the function calls are
+/// all optional.
+pub trait Callback {
+    /// The hookpoints for when the functions are called.
+    fn trigger(&self, hookpoint: &CallbackType) -> bool;
 
-    /// Register a callback.
-    pub fn register_callback(&mut self, callback: Box<Callback>, when: CallbackType) {
-        match when {
-            CallbackType::PostPass => self.post_pass.push(callback),
-            CallbackType::PostTask => self.post_task.push(callback),
-            CallbackType::PostStage => self.post_stage.push(callback),
-        }
-    }
+    /// The standard callback providing only the IR and pass context.
+    fn ir_and_context(&self, _ir: &dyn Any, _context: &PassContext) {}
 
-    fn call_post_pass(&self, ir: &dyn Any, context: &PassContext) {
-        for callback in self.post_pass.iter() {
-            callback(ir, context);
-        }
-    }
-
-    fn call_post_task(&self, ir: &dyn Any, context: &PassContext) {
-        for callback in self.post_task.iter() {
-            callback(ir, context);
-        }
-    }
-
-    fn call_post_stage(&self, ir: &dyn Any, context: &PassContext) {
-        for callback in self.post_stage.iter() {
-            callback(ir, context);
-        }
-    }
+    /// A callback also providing the pass. This is only called for [CallbackType::PostPass].
+    fn with_pass(&self, _pass: &dyn AnyPass, _ir: &dyn Any, _context: &PassContext) {}
 }
 
 /// Qiskit's pass manager.
@@ -277,7 +246,7 @@ impl PassManager {
     pub fn run<IRIn, IROut>(
         &self,
         ir: IRIn,
-        callbacks: Option<&CallbackRegistry>,
+        callback: Option<&dyn Callback>,
     ) -> Result<(IROut, PassManagerContext), PassManagerError>
     where
         IRIn: 'static,
@@ -312,7 +281,7 @@ impl PassManager {
         // Main iteration loop over tasks
         for task in self.tasks.iter() {
             let mut pass_context = PassContext::spawn(&context);
-            ir = execute_task(task, ir, &mut pass_context, callbacks)?;
+            ir = execute_task(task, ir, &mut pass_context, callback)?;
             let updates = pass_context.into_updates();
             context.update(updates);
         }
@@ -432,44 +401,51 @@ fn execute_task(
     task: &Task,
     mut ir: Box<dyn Any>,
     context: &mut PassContext,
-    callbacks: Option<&CallbackRegistry>,
+    callback: Option<&dyn Callback>,
 ) -> Result<Box<dyn Any>, PassManagerError> {
     let out = match task {
         Task::Transformation(pass) => {
             let out = pass.run(ir, context).map_err(PassManagerError::PassError)?;
-            if let Some(cb) = callbacks {
-                cb.call_post_pass(&out, context)
+            if let Some(cb) = callback {
+                if cb.trigger(&CallbackType::PostPass) {
+                    cb.ir_and_context(&out, context);
+                    cb.with_pass(pass.as_ref(), &out, context);
+                }
             };
             Ok(out)
         }
         Task::Group(tasks) => {
             for task in tasks.iter() {
-                ir = execute_task(task, ir, context, callbacks)?;
+                ir = execute_task(task, ir, context, callback)?;
             }
             Ok(ir)
         }
         Task::Switch { switch, cases } => {
             let index = switch(&ir, context);
-            execute_task(&cases[index], ir, context, callbacks)
+            execute_task(&cases[index], ir, context, callback)
         }
         Task::Loop { condition, body } => {
             while condition(&ir, context) {
-                ir = execute_task(body, ir, context, callbacks)?;
+                ir = execute_task(body, ir, context, callback)?;
             }
             Ok(ir)
         }
         Task::Stages(stages) => {
             for (_name, task) in stages.iter() {
-                ir = execute_task(task, ir, context, callbacks)?;
-                if let Some(cb) = callbacks {
-                    cb.call_post_stage(&ir, context)
+                ir = execute_task(task, ir, context, callback)?;
+                if let Some(cb) = callback {
+                    if cb.trigger(&CallbackType::PostStage) {
+                        cb.ir_and_context(&ir, context)
+                    }
                 };
             }
             Ok(ir)
         }
     };
-    if let Some(cb) = callbacks {
-        cb.call_post_task(&out, context)
+    if let Some(cb) = callback {
+        if cb.trigger(&CallbackType::PostTask) {
+            cb.ir_and_context(&out, context)
+        }
     };
     out
 }
@@ -582,6 +558,30 @@ mod test {
         }
     }
 
+    struct CounterCallback {
+        counter: Rc<Cell<usize>>,
+        hookpoint: CallbackType,
+    }
+
+    impl CounterCallback {
+        fn new(hookpoint: CallbackType) -> Self {
+            Self {
+                counter: Rc::new(Cell::new(0)),
+                hookpoint,
+            }
+        }
+    }
+
+    impl Callback for CounterCallback {
+        fn trigger(&self, hookpoint: &CallbackType) -> bool {
+            self.hookpoint.eq(hookpoint)
+        }
+
+        fn ir_and_context(&self, _ir: &dyn Any, _context: &PassContext) {
+            self.counter.set(self.counter.get() + 1);
+        }
+    }
+
     #[test]
     fn test_io_types() -> Result<(), PassManagerError> {
         let dag_type = TypeId::of::<DAGCircuit>();
@@ -662,26 +662,6 @@ mod test {
 
     #[test]
     fn test_callback() -> Result<(), PassManagerError> {
-        // The ownership story around the callback is a bit tricky: The callback is immutable (Fn,
-        // not FnMut), so it cannot simply modify a local variable. To get around this, we store
-        // the data as refcell and pass a clone to the callback (which takes ownership) so we can
-        // later check the original refcell for the value
-        let pass_counter = Rc::new(Cell::new(0usize));
-        let task_counter = Rc::new(Cell::new(0usize));
-        let stage_counter = Rc::new(Cell::new(0usize));
-
-        let pass_clone = pass_counter.clone();
-        let cb_pass =
-            move |_ir: &dyn Any, _context: &PassContext| pass_clone.set(pass_clone.get() + 1);
-
-        let task_clone = task_counter.clone();
-        let cb_task =
-            move |_ir: &dyn Any, _context: &PassContext| task_clone.set(task_clone.get() + 1);
-
-        let stage_clone = stage_counter.clone();
-        let cb_stage =
-            move |_ir: &dyn Any, _context: &PassContext| stage_clone.set(stage_clone.get() + 1);
-
         let make_task = || Task::Transformation(Box::new(RemoveIdentities {}));
 
         let mut pm = PassManager::new();
@@ -697,16 +677,20 @@ mod test {
 
         pm.try_push_task(Task::Group(vec![make_task(), make_task(), make_task()]))?;
 
-        let mut callbacks = CallbackRegistry::new();
-        callbacks.register_callback(Box::new(cb_pass), CallbackType::PostPass);
-        callbacks.register_callback(Box::new(cb_task), CallbackType::PostTask);
-        callbacks.register_callback(Box::new(cb_stage), CallbackType::PostStage);
+        for (hookpoint, expected_count) in [
+            (CallbackType::PostPass, 9),
+            (CallbackType::PostStage, 3),
+            (CallbackType::PostTask, 11),
+        ] {
+            // The ownership story around the callback is a bit tricky: The callback is immutable (Fn,
+            // not FnMut), so it cannot simply modify a local variable. To get around this, we store
+            // the data as refcell and pass a clone to the callback (which takes ownership) so we can
+            // later check the original refcell for the value
+            let callback = CounterCallback::new(hookpoint);
+            let (_, _) = pm.run::<_, DAGCircuit>(DAGCircuit::new(), Some(&callback))?;
 
-        let (_, _) = pm.run::<_, DAGCircuit>(DAGCircuit::new(), Some(&callbacks))?;
-
-        assert_eq!(pass_counter.get(), 9);
-        assert_eq!(task_counter.get(), 11);
-        assert_eq!(stage_counter.get(), 3);
+            assert_eq!(expected_count, callback.counter.get())
+        }
 
         Ok(())
     }
