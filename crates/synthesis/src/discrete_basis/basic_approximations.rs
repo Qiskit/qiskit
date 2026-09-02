@@ -506,7 +506,15 @@ impl BasicApproximations {
             .collect::<HashMap<usize, SerializableGateSequence>>();
 
         // Write the HashMap to file using binrw
-        let mut file = ::std::fs::File::create(filename)?;
+        // Prevent path traversal attacks by rejecting paths containing '..'.
+        let path = ::std::path::Path::new(filename);
+        if path.components().any(|c| c == ::std::path::Component::ParentDir) {
+            return Err(::std::io::Error::new(
+                ::std::io::ErrorKind::InvalidInput,
+                format!("Invalid input: {}", path.display()),
+            ));
+        }
+        let mut file = ::std::fs::File::create(path)?;
         SerializableHashMap::from_hashmap(serializable_approx)
             .write(&mut file)
             .map_err(::std::io::Error::other)
@@ -514,7 +522,15 @@ impl BasicApproximations {
 
     /// Load the basic approximations from a file. See [Self::save] for saving the object.
     pub fn load(filename: &str) -> ::std::io::Result<Self> {
-        let mut file = ::std::fs::File::open(filename)?;
+        // Prevent path traversal attacks by rejecting paths containing '..'.
+        let path = ::std::path::Path::new(filename);
+        if path.components().any(|c| c == ::std::path::Component::ParentDir) {
+            return Err(::std::io::Error::new(
+                ::std::io::ErrorKind::InvalidInput,
+                format!("Invalid input: {}", path.display()),
+            ));
+        }
+        let mut file = ::std::fs::File::open(path)?;
         let serializable_approx = SerializableHashMap::read(&mut file)
             .map_err(::std::io::Error::other)?
             .into_hashmap();
@@ -541,4 +557,38 @@ impl BasicApproximations {
 #[inline]
 fn matrix3_from_pyreadonly(array: &PyReadonlyArray2<f64>) -> Matrix3<f64> {
     Matrix3::from_fn(|i, j| *array.get((i, j)).unwrap())
+}
+
+
+#[test]
+fn test_load_rejects_parent_dir() {
+    // These should all fail with InvalidInput error
+    let malicious_paths = vec![
+        "../etc/passwd",
+        "../../secret.txt",
+        "data/../../../etc/passwd",
+        "./data/../../secret.txt",
+    ];
+    
+    for path in malicious_paths {
+        let result = BasicApproximations::load(path);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert_eq!(err.kind(), std::io::ErrorKind::InvalidInput);
+        assert!(err.to_string().contains("Invalid input"));
+    }
+}
+
+#[test]
+fn test_save_rejects_parent_dir() {
+    // Should reject paths with parent directory references
+    let approx = BasicApproximations::generate_from(&[StandardGate::H], 2, None).unwrap();
+
+    assert!(approx.save("../../../tmp/evil.bin").is_err());
+    assert!(approx.save("../../evil.bin").is_err());
+    assert!(approx.save("subdir/../../../evil.bin").is_err());
+    
+    assert!(approx.save("valid_file.bin").is_ok());
+    assert!(approx.save("subdir/valid_file.bin").is_ok());
+    assert!(approx.save("./valid_file.bin").is_ok());
 }
