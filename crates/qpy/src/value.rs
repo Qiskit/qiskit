@@ -16,6 +16,68 @@ use std::sync::Arc;
 use binrw::meta::{ReadEndian, WriteEndian};
 use binrw::{BinRead, BinWrite, Endian, binrw};
 
+use hashbrown::HashMap;
+use pyo3::prelude::*;
+use pyo3::types::PyAny;
+
+use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
+use qiskit_circuit::circuit_data::CircuitData;
+use qiskit_circuit::classical::expr::{Expr, Stretch, Var};
+use qiskit_circuit::classical::types::Type;
+use qiskit_circuit::duration::Duration;
+use qiskit_circuit::operations::{ForCollection, OperationRef, PyInstruction, PyOpKind, PyRange};
+use qiskit_circuit::packed_instruction::PackedOperation;
+use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
+use qiskit_circuit::parameter::symbol_expr::{Symbol, SymbolVector};
+use qiskit_circuit::{Clbit, imports};
+
+use crate::annotations::AnnotationHandler;
+use crate::bytes::Bytes;
+use crate::circuit_reader::unpack_circuit;
+use crate::circuit_writer::pack_circuit;
+use crate::error::QpyError;
+use crate::error::from_binrw_error;
+use crate::formats::{self, BigIntPack, DurationPack, GenericDataPack, GenericDataSequencePack};
+use crate::interface::ExtraCircuitData;
+use crate::params::{
+    pack_parameter_expression, pack_parameter_vector, pack_symbol, unpack_parameter_expression,
+    unpack_parameter_vector, unpack_symbol,
+};
+use crate::py_methods::{py_pack_modifier, py_unpack_modifier};
+
+use ndarray::Array2;
+use npyz::{NpyFile, WriterBuilder};
+use num_bigint::BigUint;
+use num_complex::Complex64;
+use std::fmt::Debug;
+use std::io::Cursor;
+use uuid::Uuid;
+
+// Data that is needed globally while writing the circuit
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum QpyCaller {
+    Python,
+    // This is consumed by the C entry point when it is compiled into the QPY crate.
+    #[allow(dead_code)]
+    Native,
+}
+
+impl QpyCaller {
+    pub(crate) fn attach<T, E>(
+        self,
+        feature: &'static str,
+        f: impl for<'py> FnOnce(Python<'py>) -> Result<T, E>,
+    ) -> Result<T, E>
+    where
+        E: From<QpyError>,
+    {
+        if self != Self::Python {
+            return Err(QpyError::PythonOnly(feature).into());
+        }
+        Python::attach(f)
+    }
+}
+
 /// Endianness selector for QPY value serialization and deserialization.
 ///
 /// QPY's format spec requires big-endian (network byte order) for all values.
@@ -67,42 +129,6 @@ impl ValueEndian {
         }
     }
 }
-
-use hashbrown::HashMap;
-use pyo3::prelude::*;
-use pyo3::types::PyAny;
-
-use qiskit_circuit::bit::{ClassicalRegister, ShareableClbit};
-use qiskit_circuit::circuit_data::CircuitData;
-use qiskit_circuit::classical::expr::{Expr, Range, Stretch, Var};
-use qiskit_circuit::classical::types::Type;
-use qiskit_circuit::duration::Duration;
-use qiskit_circuit::operations::{ForCollection, OperationRef, PyInstruction, PyOpKind, PyRange};
-use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
-use qiskit_circuit::parameter::symbol_expr::{Symbol, SymbolVector};
-use qiskit_circuit::{Clbit, imports};
-
-use crate::annotations::AnnotationHandler;
-use crate::bytes::Bytes;
-use crate::circuit_reader::unpack_circuit;
-use crate::circuit_writer::pack_circuit;
-use crate::error::QpyError;
-use crate::error::from_binrw_error;
-use crate::formats::{self, BigIntPack, DurationPack, GenericDataPack, GenericDataSequencePack};
-use crate::interface::ExtraCircuitData;
-use crate::params::{
-    pack_parameter_expression, pack_parameter_vector, pack_symbol, unpack_parameter_expression,
-    unpack_parameter_vector, unpack_symbol,
-};
-use crate::py_methods::{py_pack_modifier, py_unpack_modifier};
-
-use npyz::NpyFile;
-use num_bigint::BigUint;
-use num_complex::Complex64;
-use std::fmt::Debug;
-use std::io::Cursor;
-use uuid::Uuid;
 
 // Standard char representation of register types: 'q' qreg, 'c' for creg
 #[binrw]
@@ -174,6 +200,7 @@ pub(crate) fn unpack_biguint(big_int_pack: BigIntPack) -> BigUint {
 // Data that is needed globally while writing the circuit
 #[derive(Debug)]
 pub struct QPYWriteData<'a> {
+    pub caller: QpyCaller,
     pub circuit_data: &'a CircuitData,
     pub version: u8,
     pub standalone_var_indices: HashMap<u128, u16>, // mapping from the variable's UUID to its index in the standalone variables list
@@ -183,6 +210,7 @@ pub struct QPYWriteData<'a> {
 // Data that is needed globally while reading the circuit
 #[derive(Debug)]
 pub struct QPYReadData {
+    pub caller: QpyCaller,
     pub circuit_data: CircuitData,
     pub version: u8,
     pub use_symengine: bool,
@@ -199,13 +227,13 @@ pub struct QPYReadData {
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ValueType {
     Bool = b'b',
-    Integer = b'i',
+    Integer = b'i', // this is also used by "BigInt" which may arise in more specialized contexts
     Float = b'f',
     Complex = b'c',
     CaseDefault = b'd',
     Register = b'R',
     Range = b'r',
-    Tuple = b't',
+    Tuple = b't', // this is also used by "Duration" which may arise in more specialized contexts
     NumpyObject = b'n',
     Parameter = b'p',
     ParameterVector = b'v',
@@ -215,16 +243,7 @@ pub enum ValueType {
     Expression = b'x',
     Modifier = b'm',
     Circuit = b'q',
-    // Added in QPY 18.  Before that, an arbitrary-precision integer shared `Integer`'s key and a
-    // `Duration` shared `Tuple`'s, so a payload could not be decoded from its own bytes; see
-    // `QPY_DISTINCT_VALUE_KEYS_MIN_VERSION`.
-    BigInt = b'I',
-    Duration = b'D',
 }
-
-/// First QPY version in which an arbitrary-precision integer and a `Duration` carry their own type
-/// keys, rather than sharing `Integer`'s and `Tuple`'s.
-pub(crate) const QPY_DISTINCT_VALUE_KEYS_MIN_VERSION: u8 = 18;
 
 pub(crate) fn type_name(type_key: &ValueType) -> String {
     String::from(match type_key {
@@ -245,8 +264,6 @@ pub(crate) fn type_name(type_key: &ValueType) -> String {
         ValueType::Expression => "expression",
         ValueType::Modifier => "modifier",
         ValueType::Circuit => "circuit",
-        ValueType::BigInt => "big integer",
-        ValueType::Duration => "duration",
     })
 }
 
@@ -483,6 +500,36 @@ impl GenericValue {
             _ => None,
         }
     }
+    pub(crate) fn numpy_array_from_boolean_vec(values: &[bool]) -> Result<Self, QpyError> {
+        let mut bytes = Vec::new();
+        {
+            let mut writer = npyz::WriteOptions::<bool>::new()
+                .default_dtype()
+                .shape(&[values.len() as u64])
+                .writer(&mut bytes)
+                .begin_nd()?;
+            writer.extend(values.iter().copied())?;
+            writer.finish()?;
+        }
+        Ok(Self::NumpyObject(bytes.into()))
+    }
+
+    pub(crate) fn numpy_array_from_complex_matrix(
+        values: &Array2<Complex64>,
+    ) -> Result<Self, QpyError> {
+        let shape = values.shape();
+        let mut bytes = Vec::new();
+        {
+            let mut writer = npyz::WriteOptions::<Complex64>::new()
+                .default_dtype()
+                .shape(&[shape[0] as u64, shape[1] as u64])
+                .writer(&mut bytes)
+                .begin_nd()?;
+            writer.extend(values.iter().copied())?;
+            writer.finish()?;
+        }
+        Ok(Self::NumpyObject(bytes.into()))
+    }
 }
 
 macro_rules! impl_from_generic {
@@ -558,25 +605,19 @@ pub(crate) fn load_value(
             Ok(GenericValue::Bool(value))
         }
         ValueType::Integer => {
-            // Up to QPY 17 this key was shared with an arbitrary-precision integer, and the only way
-            // to tell them apart was the payload length.  From QPY 18 a `BigInt` has its own key, so
-            // an `Integer` is always an i64.
-            if bytes.len() > 8 && qpy_data.version < QPY_DISTINCT_VALUE_KEYS_MIN_VERSION {
-                return load_biguint_value(bytes);
+            // a little tricky since this can be either i64 or biguint
+            if bytes.len() <= 8 {
+                let mut bytes_array: [u8; 8] = [0; 8];
+                for (idx, byte) in bytes.iter().enumerate() {
+                    bytes_array[idx] = *byte;
+                }
+                match endian.resolve(qpy_data.version) {
+                    Endian::Little => Ok(GenericValue::Int64(i64::from_le_bytes(bytes_array))),
+                    Endian::Big => Ok(GenericValue::Int64(i64::from_be_bytes(bytes_array))),
+                }
+            } else {
+                load_biguint_value(bytes)
             }
-            let mut bytes_array: [u8; 8] = [0; 8];
-            for (idx, byte) in bytes.iter().enumerate() {
-                bytes_array[idx] = *byte;
-            }
-            match endian.resolve(qpy_data.version) {
-                Endian::Little => Ok(GenericValue::Int64(i64::from_le_bytes(bytes_array))),
-                Endian::Big => Ok(GenericValue::Int64(i64::from_be_bytes(bytes_array))),
-            }
-        }
-        ValueType::BigInt => load_biguint_value(bytes),
-        ValueType::Duration => {
-            let (duration_pack, _) = deserialize::<DurationPack>(bytes)?;
-            Ok(GenericValue::Duration(unpack_duration(duration_pack)))
         }
         ValueType::Float => {
             let value: f64 = bytes.try_to_f64(endian.resolve(qpy_data.version))?;
@@ -625,7 +666,11 @@ pub(crate) fn load_value(
         ValueType::NumpyObject => Ok(GenericValue::NumpyObject(bytes.clone())),
         ValueType::Modifier => {
             let (modifier_pack, _) = deserialize::<formats::ModifierPack>(bytes)?;
-            let values = py_unpack_modifier(&modifier_pack)?;
+            let values = qpy_data
+                .caller
+                .attach("unpack modifier", |py| -> Result<_, QpyError> {
+                    py_unpack_modifier(py, &modifier_pack)
+                })?;
             Ok(GenericValue::Modifier(values))
         }
         ValueType::Expression => {
@@ -646,16 +691,16 @@ pub(crate) fn load_value(
                 qpy_data.version,
                 qpy_data.use_symengine,
                 qpy_data.annotation_handler.child()?,
+                qpy_data.caller,
             )?;
             Ok(GenericValue::CircuitData(Box::new(circuit)))
         }
     }
 }
 
-/// Reads an arbitrary-precision integer.  This is the `BigInt` arm of [`load_value`] from QPY 18 on;
-/// for earlier versions it is also what the length fork in the `Integer` arm falls back to, since
-/// the two shared a key.
-fn load_biguint_value(bytes: &Bytes) -> Result<GenericValue, QpyError> {
+// a specialized method used for biguints (marked by 'i' like Int64)
+// since the general load method will attempt to load a Int64 instead
+pub(crate) fn load_biguint_value(bytes: &Bytes) -> Result<GenericValue, QpyError> {
     let (bigint_pack, _) = deserialize::<BigIntPack>(bytes)?;
     let bigint = unpack_biguint(bigint_pack);
     Ok(GenericValue::BigInt(bigint))
@@ -669,16 +714,7 @@ pub(crate) fn serialize_generic_value(
     Ok(match value {
         GenericValue::Bool(value) => (ValueType::Bool, value.into()),
         GenericValue::Int64(value) => (ValueType::Integer, value.into()),
-        GenericValue::BigInt(bigint) => (
-            if qpy_data.version >= QPY_DISTINCT_VALUE_KEYS_MIN_VERSION {
-                ValueType::BigInt
-            } else {
-                // Up to QPY 17 this reuses `Int64`'s key, and a reader of those versions tells the
-                // two apart by payload length.
-                ValueType::Integer
-            },
-            serialize(&pack_biguint(bigint))?,
-        ),
+        GenericValue::BigInt(bigint) => (ValueType::Integer, serialize(&pack_biguint(bigint))?),
         GenericValue::Float64(value) => (ValueType::Float, value.into()),
         GenericValue::Complex64(value) => (ValueType::Complex, value.into()),
         GenericValue::String(value) => (ValueType::String, value.into()),
@@ -707,13 +743,7 @@ pub(crate) fn serialize_generic_value(
                 });
             }
             (
-                if qpy_data.version >= QPY_DISTINCT_VALUE_KEYS_MIN_VERSION {
-                    ValueType::Duration
-                } else {
-                    // Shared with `Tuple` up to QPY 17, which is why a reader of those versions has
-                    // to be told which of the two a payload holds.
-                    ValueType::Tuple
-                },
+                ValueType::Tuple, // due to historical reasons, 't' is shared between these data types
                 serialize(&pack_duration(duration))?,
             )
         }
@@ -738,6 +768,7 @@ pub(crate) fn serialize_generic_value(
                 },
                 qpy_data.version,
                 qpy_data.annotation_handler.child()?,
+                qpy_data.caller,
             )?;
             (ValueType::Circuit, serialize(&packed_circuit)?)
         }
@@ -748,6 +779,14 @@ pub(crate) fn serialize_generic_value(
             let step = py_range.step.get() as i64;
             let range_pack = formats::RangePack { start, stop, step };
             (ValueType::Range, serialize(&range_pack)?)
+        }
+        GenericValue::Modifier(py_object) => {
+            let packed_modifier = qpy_data
+                .caller
+                .attach("pack modifier", |py| -> Result<_, QpyError> {
+                    py_pack_modifier(py, py_object)
+                })?;
+            (ValueType::Modifier, serialize(&packed_modifier)?)
         }
         GenericValue::RangeExpr(range_expr) => {
             if qpy_data.version < 18 {
@@ -764,10 +803,6 @@ pub(crate) fn serialize_generic_value(
                 serialize_expression(&expr, qpy_data)?,
             )
         }
-        GenericValue::Modifier(py_object) => (
-            ValueType::Modifier,
-            serialize(&py_pack_modifier(py_object)?)?,
-        ),
         GenericValue::Register(param_register_value) => (
             ValueType::Register,
             serialize_param_register_value(param_register_value, qpy_data)?,
@@ -793,6 +828,22 @@ pub(crate) fn unpack_generic_value(
 ) -> Result<GenericValue, QpyError> {
     let result = load_value(value_pack.type_key, &value_pack.data, qpy_data, endian)?;
     Ok(result)
+}
+
+/// dedicated method for handling the special case where the data pack encodes a `Duration` value
+/// this cannot be determined automatically since in the current QPY format, both duration and tuple
+/// share the 't' key.
+pub(crate) fn unpack_duration_value(
+    value_pack: &GenericDataPack,
+    qpy_data: &mut QPYReadData,
+) -> Result<GenericValue, QpyError> {
+    match value_pack.type_key {
+        ValueType::Tuple => {
+            let duration = unpack_duration(deserialize::<DurationPack>(&value_pack.data)?.0);
+            Ok(GenericValue::Duration(duration))
+        }
+        _ => unpack_generic_value(value_pack, qpy_data, ValueEndian::LittleForV17AndBelow), // fallback (duration can also be expression)
+    }
 }
 
 pub(crate) fn pack_for_collection(value: &ForCollection, version: u8) -> GenericValue {
@@ -871,6 +922,7 @@ pub(crate) fn unpack_generic_value_sequence(
 /// Each instruction type has a char representation in qpy
 pub(crate) fn get_circuit_type_key(
     op: &PackedOperation,
+    caller: QpyCaller,
 ) -> Result<CircuitInstructionType, QpyError> {
     match op.view() {
         OperationRef::StandardGate(_)
@@ -879,30 +931,32 @@ pub(crate) fn get_circuit_type_key(
         OperationRef::StandardInstruction(_)
         | OperationRef::ControlFlow(_)
         | OperationRef::PauliProductMeasurement(_) => Ok(CircuitInstructionType::Instruction),
-        OperationRef::PyCustom(PyInstruction { kind, ob, .. }) => Python::attach(|py| {
-            let ob = ob.bind(py);
-            match kind {
-                PyOpKind::Instruction => Ok(CircuitInstructionType::Instruction),
-                PyOpKind::Gate => {
-                    if ob.is_instance(imports::PAULI_EVOLUTION_GATE.get_bound(py))? {
-                        Ok(CircuitInstructionType::PauliEvolutionGate)
-                    } else if ob.is_instance(imports::CONTROLLED_GATE.get_bound(py))? {
-                        Ok(CircuitInstructionType::ControlledGate)
-                    } else {
-                        Ok(CircuitInstructionType::Gate)
+        OperationRef::PyCustom(PyInstruction { kind, ob, .. }) => {
+            caller.attach("Python-defined operations", |py| {
+                let ob = ob.bind(py);
+                match kind {
+                    PyOpKind::Instruction => Ok(CircuitInstructionType::Instruction),
+                    PyOpKind::Gate => {
+                        if ob.is_instance(imports::PAULI_EVOLUTION_GATE.get_bound(py))? {
+                            Ok(CircuitInstructionType::PauliEvolutionGate)
+                        } else if ob.is_instance(imports::CONTROLLED_GATE.get_bound(py))? {
+                            Ok(CircuitInstructionType::ControlledGate)
+                        } else {
+                            Ok(CircuitInstructionType::Gate)
+                        }
+                    }
+                    PyOpKind::Operation => {
+                        if ob.is_instance(imports::ANNOTATED_OPERATION.get_bound(py))? {
+                            Ok(CircuitInstructionType::AnnotatedOperation)
+                        } else {
+                            Err(QpyError::InvalidInstruction(format!(
+                                "Unable to determine circuit type key for {ob:?}"
+                            )))
+                        }
                     }
                 }
-                PyOpKind::Operation => {
-                    if ob.is_instance(imports::ANNOTATED_OPERATION.get_bound(py))? {
-                        Ok(CircuitInstructionType::AnnotatedOperation)
-                    } else {
-                        Err(QpyError::InvalidInstruction(format!(
-                            "Unable to determine circuit type key for {ob:?}"
-                        )))
-                    }
-                }
-            }
-        }),
+            })
+        }
         OperationRef::CustomOperation(custom_gate) => match custom_gate.is_controlled_gate() {
             true => Ok(CircuitInstructionType::ControlledGate),
             false => match custom_gate.is_unitary() {
@@ -1144,83 +1198,43 @@ pub(crate) fn creg_by_name(
 #[cfg(test)]
 // Tests are allowed to unwrap; the crate-level deny exists for the deserializer, not for fixtures.
 #[allow(clippy::unwrap_used)]
-mod tests {
+mod qpy_value_tests {
     use super::*;
-    use qiskit_circuit::operations::Param;
 
-    /// A `Duration` and an arbitrary-precision integer are not reachable from a Python object
-    /// (`py_get_type_key` has no branch for either), so these round-trips exercise the two new
-    /// QPY 18 keys directly through the value codec.
-    fn round_trip(value: &GenericValue, version: u8) -> (ValueType, GenericValue) {
-        let circuit_data = CircuitData::new(None, None, Param::Float(0.0)).unwrap();
-        let write_data = QPYWriteData {
-            circuit_data: &circuit_data,
-            version,
-            standalone_var_indices: HashMap::new(),
-            annotation_handler: AnnotationHandler::native(),
-        };
-        let (type_key, bytes) = serialize_generic_value(value, &write_data).unwrap();
-        let mut read_data = QPYReadData {
-            circuit_data,
-            version,
-            use_symengine: false,
-            standalone_vars: HashMap::new(),
-            standalone_stretches: HashMap::new(),
-            vectors: HashMap::new(),
-            annotation_handler: AnnotationHandler::native(),
-        };
-        let loaded = load_value(type_key, &bytes, &mut read_data, ValueEndian::Big).unwrap();
-        (type_key, loaded)
+    #[test]
+    fn boolean_vec_numpy_object_roundtrip() {
+        for values in [vec![], vec![false], vec![true, false, true]] {
+            let value =
+                GenericValue::numpy_array_from_boolean_vec(&values).unwrap_or(GenericValue::Null);
+            assert_eq!(value.to_boolean_vec(), Some(values));
+        }
     }
 
     #[test]
-    fn duration_uses_its_own_key_from_v18() {
-        let value = GenericValue::Duration(Duration::ns(250.0));
-        let (key, loaded) = round_trip(&value, QPY_DISTINCT_VALUE_KEYS_MIN_VERSION);
-        assert_eq!(key, ValueType::Duration);
-        let GenericValue::Duration(duration) = loaded else {
-            panic!("expected a duration, got {loaded:?}");
+    fn complex_matrix_numpy_object_roundtrip() -> Result<(), Box<dyn std::error::Error>> {
+        let matrix = ndarray::array![
+            [Complex64::new(1.0, 0.0), Complex64::new(0.0, 1.0)],
+            [Complex64::new(0.0, -1.0), Complex64::new(-1.0, 0.0)],
+        ];
+        let GenericValue::NumpyObject(bytes) =
+            GenericValue::numpy_array_from_complex_matrix(&matrix)?
+        else {
+            return Err("expected a numpy object".into());
         };
-        assert_eq!(duration, Duration::ns(250.0));
+        let npy = NpyFile::new(Cursor::new(bytes.0))?;
+        assert_eq!(npy.shape(), &[2, 2]);
+        assert_eq!(npy.order(), npyz::Order::C);
+        assert_eq!(
+            npy.into_vec::<Complex64>()?,
+            matrix.iter().copied().collect::<Vec<_>>()
+        );
+        Ok(())
     }
 
     #[test]
-    fn duration_shares_the_tuple_key_below_v18() {
-        let value = GenericValue::Duration(Duration::dt(100));
-        let circuit_data = CircuitData::new(None, None, Param::Float(0.0)).unwrap();
-        let write_data = QPYWriteData {
-            circuit_data: &circuit_data,
-            version: QPY_DISTINCT_VALUE_KEYS_MIN_VERSION - 1,
-            standalone_var_indices: HashMap::new(),
-            annotation_handler: AnnotationHandler::native(),
-        };
-        let (key, _) = serialize_generic_value(&value, &write_data).unwrap();
-        // The legacy encoding is ambiguous, which is why it cannot simply be read back: a reader has
-        // to be told that this `Tuple` is really a duration.
-        assert_eq!(key, ValueType::Tuple);
-    }
-
-    #[test]
-    fn small_big_integer_round_trips_from_v18() {
-        // Below 18 this is lost: `BigIntPack` prefixes its length, so `BigUint(5)` serializes to
-        // `01 05` and the `Integer` arm's length fork reads those two bytes back as an i64.
-        let value = GenericValue::BigInt(BigUint::from(5u8));
-        let (key, loaded) = round_trip(&value, QPY_DISTINCT_VALUE_KEYS_MIN_VERSION);
-        assert_eq!(key, ValueType::BigInt);
-        let GenericValue::BigInt(bigint) = loaded else {
-            panic!("expected a big integer, got {loaded:?}");
-        };
-        assert_eq!(bigint, BigUint::from(5u8));
-    }
-
-    #[test]
-    fn large_big_integer_round_trips_from_v18() {
-        let big = BigUint::from(u128::MAX) * BigUint::from(7u8);
-        let (key, loaded) = round_trip(&GenericValue::BigInt(big.clone()), 18);
-        assert_eq!(key, ValueType::BigInt);
-        let GenericValue::BigInt(bigint) = loaded else {
-            panic!("expected a big integer, got {loaded:?}");
-        };
-        assert_eq!(bigint, big);
+    fn native_caller_does_not_attach_python() {
+        let result =
+            QpyCaller::Native.attach("test feature", |_py| -> Result<(), QpyError> { Ok(()) });
+        assert!(matches!(result, Err(QpyError::PythonOnly("test feature"))));
     }
 }
