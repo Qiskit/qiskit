@@ -278,7 +278,9 @@ def parallel_map(task, values, task_args=(), task_kwargs=None, num_processes=Non
     multiprocessing with this function by either explicitly calling
     :func:`multiprocessing.set_start_method` to either ``"fork"`` or ``"forkserver"``,
     setting the environment variable ``QISKIT_PARALLEL=TRUE``, or setting
-    ``parallel_enabled`` in your user configuration file.
+    ``parallel`` in your user configuration file. You can find more details
+    on these configuration options here:
+    https://quantum.cloud.ibm.com/docs/en/guides/configure-qiskit-local
 
     Args:
         task (func): Function that is to be called for each value in ``values``.

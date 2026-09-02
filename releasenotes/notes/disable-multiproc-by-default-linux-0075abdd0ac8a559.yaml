@@ -21,6 +21,6 @@ upgrade_misc:
     setting ``"spawn"`` still disables multiprocessing by default because of the
     extra overhead and complexities associated with it and you'll need to enable
     multiprocessing with spawn using the other two options), set the environment
-    variable ``QISKIT_PARALLEL=TRUE``, or set ``parallel_enabled`` to ``True`` in
+    variable ``QISKIT_PARALLEL=TRUE``, or set ``parallel`` to ``True`` in
     your `user configuration file <https://quantum.cloud.ibm.com/docs/en/guides/configure-qiskit-local#user-configuration-file>`__.
 
