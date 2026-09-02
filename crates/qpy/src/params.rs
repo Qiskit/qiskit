@@ -667,6 +667,7 @@ mod tests {
                 .map(|index| SymbolVector::new(format!("v{index}"), 2))
                 .collect(),
             annotation_handler: AnnotationHandler::native(),
+            caller: QpyCaller::Native,
         }
     }
 

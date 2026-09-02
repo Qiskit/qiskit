@@ -37,7 +37,7 @@ use qiskit_circuit::operations::{
     StandardInstruction, StandardInstructionType, SwitchTarget, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
-use qiskit_circuit::parameter::parameter_expression::{ParameterExpression, PyParameter};
+use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
 use qiskit_circuit::parameter::symbol_expr::SymbolVector;
 use qiskit_circuit::var_stretch_container::{StretchType, VarType};
 use qiskit_circuit::{Block, classical, imports};
