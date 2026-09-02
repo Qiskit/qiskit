@@ -870,6 +870,18 @@ fn pack_classical_register(
     }
 }
 
+fn pack_anonymous_bits_info<T>(
+    bits: &[T],
+    get_anonymous_uid: impl Fn(&T) -> Option<u64>,
+) -> Vec<formats::BitInfoPack> {
+    bits.iter()
+        .map(|bit| match get_anonymous_uid(bit) {
+            Some(uid) => formats::BitInfoPack::Anonymous { uid },
+            None => formats::BitInfoPack::Registered,
+        })
+        .collect()
+}
+
 fn pack_circuit_header(
     circuit_name: Option<String>,
     metadata: Bytes,
@@ -883,6 +895,14 @@ fn pack_circuit_header(
     let qregs = pack_quantum_registers(qpy_data.circuit_data, qpy_data.version);
     let cregs = pack_classical_registers(qpy_data.circuit_data, qpy_data.version);
     let mut registers = qregs;
+    let qubits_info = pack_anonymous_bits_info(
+        qpy_data.circuit_data.qubits().objects(),
+        ShareableQubit::get_anonymous_uid,
+    );
+    let clbits_info = pack_anonymous_bits_info(
+        qpy_data.circuit_data.clbits().objects(),
+        ShareableClbit::get_anonymous_uid,
+    );
     registers.extend(cregs);
     let header = formats::CircuitHeaderV12Pack {
         num_qubits: qpy_data.circuit_data.num_qubits() as u32,
@@ -897,6 +917,8 @@ fn pack_circuit_header(
         global_phase_type: global_phase_data.type_key,
         metadata,
         registers,
+        qubits_info,
+        clbits_info,
     };
 
     Ok(header)
@@ -1174,17 +1196,20 @@ fn pack_custom_instruction(
                 &definition.data,
                 qpy_data.version,
             )?)?;
-            Some(serialize(&pack_circuit(
-                &definition.data,
-                ExtraCircuitData {
-                    name: definition.name,
-                    metadata,
-                    layout,
-                },
-                qpy_data.version,
-                qpy_data.annotation_handler.child()?,
-                qpy_data.caller,
-            )?)?)
+            Some(serialize_with_args(
+                &pack_circuit(
+                    &definition.data,
+                    ExtraCircuitData {
+                        name: definition.name,
+                        metadata,
+                        layout,
+                    },
+                    qpy_data.version,
+                    qpy_data.annotation_handler.child()?,
+                    qpy_data.caller,
+                )?,
+                (qpy_data.version,),
+            )?)
         }
         CircuitInstructionType::AnnotatedOperation => {
             base_gate = inst.ob.bind(py).getattr("base_op")?.clone();
@@ -1210,7 +1235,7 @@ fn pack_custom_instruction(
                     qpy_data.annotation_handler.child()?,
                     qpy_data.caller,
                 )
-                .and_then(|fmt| serialize(&fmt))
+                .and_then(|fmt| serialize_with_args(&fmt, (qpy_data.version,)))
             })
             .transpose()?,
     };

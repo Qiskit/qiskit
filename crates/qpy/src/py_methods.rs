@@ -600,7 +600,7 @@ pub fn unpack_py_instruction(
     py: Python,
     instruction: &formats::CircuitInstructionV2Pack,
     label: Option<&String>,
-    qpy_data: &mut QPYReadData,
+    qpy_data: &mut QPYReadData<'_>,
 ) -> Result<(PackedOperation, Vec<GenericValue>), QpyError> {
     let name = instruction.gate_class_name.clone();
     let mut instruction_values =
@@ -758,7 +758,7 @@ pub fn unpack_custom_instruction(
     py: Python,
     instruction: &formats::CircuitInstructionV2Pack,
     label: Option<&String>,
-    qpy_data: &mut QPYReadData,
+    qpy_data: &mut QPYReadData<'_>,
     custom_instructions_map: &HashMap<String, CustomCircuitInstructionData>,
 ) -> Result<(PackedOperation, Vec<GenericValue>), QpyError> {
     let name = instruction.gate_class_name.clone();
@@ -896,7 +896,7 @@ pub fn unpack_custom_instruction(
 pub fn deserialize_pauli_evolution_gate(
     py: Python,
     data: &Bytes,
-    qpy_data: &mut QPYReadData,
+    qpy_data: &mut QPYReadData<'_>,
 ) -> Result<Py<PyAny>, QpyError> {
     let json = py.import("json")?;
     let evo_synth_library = py.import("qiskit.synthesis.evolution")?;

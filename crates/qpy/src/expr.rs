@@ -138,7 +138,7 @@ pub(crate) fn pack_expression_var(
 pub(crate) fn unpack_expression_var(
     var_type_pack: ExpressionTypePack,
     var_element_pack: ExpressionVarElementPack,
-    qpy_data: &QPYReadData,
+    qpy_data: &QPYReadData<'_>,
 ) -> Result<Var, QpyError> {
     let ty = unpack_expression_type(var_type_pack);
     match var_element_pack {

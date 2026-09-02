@@ -15,7 +15,7 @@
 import io
 import struct
 
-from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister, Qubit
+from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister, Qubit, Clbit
 from qiskit.circuit.classical import expr
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.qpy import dump, load
@@ -33,25 +33,6 @@ def _dump(qc: QuantumCircuit, version: int) -> bytes:
 
 class TestV17VsV18(QiskitTestCase):
     """Verify the binary-level differences between QPY v17 and v18."""
-
-    def test_v18_smaller_than_v17_by_calibration_header(self):
-        """v18 output is exactly 2 bytes smaller than v17 (CalibrationsPack removed)."""
-        # Use raw bits because register sizes also shrink in QPY v18
-        qubits = [Qubit(), Qubit()]
-        qc = QuantumCircuit(qubits)
-        qc.h(0)
-        qc.cx(0, 1)
-
-        size17 = len(_dump(qc, 17))
-        size18 = len(_dump(qc, 18))
-        cal_header_size = struct.calcsize(formats.CALIBRATION_PACK)  # 2 bytes
-
-        self.assertEqual(
-            size17 - size18,
-            cal_header_size,
-            f"Expected v18 to be {cal_header_size} bytes smaller than v17, "
-            f"got v17={size17} v18={size18} diff={size17 - size18}",
-        )
 
     def test_float_param_bytes_differ_v17_vs_v18(self):
         """v17 and v18 serialise float parameters in different byte order."""
@@ -231,3 +212,29 @@ class TestV18SparseObservable(QiskitTestCase):
         qc = QuantumCircuit(evo.num_qubits)
         qc.append(evo, qc.qubits)
         self._assert_roundtrips(qc)
+
+
+class TestV18CircuitWithNestedReferencing(QiskitTestCase):
+    """Test that anonymous bits shared between a circuit and a control-flow block's body keep
+    their identity across a QPY roundtrip.
+    """
+
+    def test_nested_reference_after_load(self):
+        bits = [Qubit(), Clbit()]
+        circuit = QuantumCircuit(bits)
+        with circuit.while_loop(expr.logic_not(bits[1])):
+            circuit.x(0)
+
+        # Sanity - before the roundtrip, the inner and outer bits should be equal.
+        inner_circuit = circuit.data[0].operation.blocks[0]
+        self.assertEqual(circuit.qubits[0], inner_circuit.qubits[0])
+        self.assertEqual(circuit.clbits[0], inner_circuit.clbits[0])
+
+        bytes_io = io.BytesIO()
+        dump(circuit, bytes_io)
+        bytes_io.seek(0)
+        loaded_circuit = load(bytes_io)[0]
+        # Main check - after the roundtrip, the inner and outer equality should be preserved.
+        inner_circuit = loaded_circuit.data[0].operation.blocks[0]
+        self.assertEqual(loaded_circuit.qubits[0], inner_circuit.qubits[0])
+        self.assertEqual(loaded_circuit.clbits[0], inner_circuit.clbits[0])
