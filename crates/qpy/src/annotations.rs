@@ -248,20 +248,20 @@ mod tests {
         let mark: Arc<dyn Annotation> = Arc::new(Mark);
         let mut handler = AnnotationHandler::native(Vec::new(), NativeLoaders::default());
 
-        let (idx, payload) = handler.serialize(&annotation).unwrap();
-        let (other_idx, other_payload) = handler.serialize(&other_annotation).unwrap();
-        let (mark_idx, mark_payload) = handler.serialize(&mark).unwrap();
+        let (idx, payload) = handler.serialize(&annotation).expect("Serializable.");
+        let (other_idx, other_payload) = handler.serialize(&other_annotation).expect("Serializable.");
+        let (mark_idx, mark_payload) = handler.serialize(&mark).expect("Serializable.");
 
         assert_eq!(
-            TryInto::<&str>::try_into(&payload).unwrap(),
+            TryInto::<&str>::try_into(&payload).expect("Has a value."),
             "tag\x00my_tag"
         );
         assert_eq!(
-            TryInto::<&str>::try_into(&other_payload).unwrap(),
+            TryInto::<&str>::try_into(&other_payload).expect("Has a value."),
             "tag\x00my_other_tag"
         );
         assert_eq!(
-            TryInto::<&str>::try_into(&mark_payload).unwrap(),
+            TryInto::<&str>::try_into(&mark_payload).expect("Has a value."),
             "mark\x00mark"
         );
 
@@ -291,7 +291,7 @@ mod tests {
         );
         let serializers = handler
             .dump_serializers()
-            .unwrap()
+            .expect("Dump is okay.")
             .into_iter()
             .map(|(s, _)| s)
             .collect::<Vec<_>>();
@@ -328,7 +328,7 @@ mod tests {
         let handler =
             AnnotationHandler::native(vec!["some.namespace".to_string()], NativeLoaders::default())
                 .child()
-                .unwrap();
+                .expect("Is okay.");
         assert!(
             handler
                 .dump_serializers()

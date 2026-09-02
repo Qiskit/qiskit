@@ -484,12 +484,12 @@ mod test_annotated_boxes {
     pub fn remove_namespace(dag: &mut DAGCircuit, namespace: &str) {
         let to_remove: Vec<_> = dag
             .op_nodes(false)
-            .map(|(node_idx, instr)| {
+            .filter_map(|(node_idx, instr)| {
                 if let Some(box_op) = dag.try_view_control_flow(instr) {
                     return match box_op {
                         ControlFlowView::Box { annotations, .. } => {
-                            if annotations.iter().fold(false, |b, annotation| {
-                                b || annotation.namespace().starts_with(namespace)
+                            if annotations.iter().any(|annotation| {
+                                annotation.namespace().starts_with(namespace)
                             }) {
                                 return Some(node_idx);
                             }
@@ -500,7 +500,6 @@ mod test_annotated_boxes {
                 }
                 None
             })
-            .flatten()
             .collect();
 
         for node_idx in to_remove {
@@ -551,7 +550,7 @@ mod test_annotated_boxes {
             assert!(annotations.len() == 1);
 
             let annotation = &annotations[0];
-            assert_eq!(2, Arc::strong_count(&annotation));
+            assert_eq!(2, Arc::strong_count(annotation));
         }
 
         // Remove every box with an annotation in the namespace.
