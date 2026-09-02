@@ -28,13 +28,13 @@ mod utils;
 /// Possible errors that can occur when validating a permutation pattern.
 #[derive(Debug, thiserror::Error)]
 pub enum PermutationError {
-    #[error("Invalid permutation: input contains a negative number.")]
+    #[error("invalid permutation: input contains a negative number")]
     NegativeEntry,
 
-    #[error("Invalid permutation: input has length {length} and contains {value}.")]
+    #[error("invalid permutation: input has length {length} and contains {value}")]
     OutOfBounds { length: usize, value: i64 },
 
-    #[error("Invalid permutation: input contains {value} more than once.")]
+    #[error("invalid permutation: input contains {value} more than once")]
     DuplicateEntry { value: i64 },
 }
 

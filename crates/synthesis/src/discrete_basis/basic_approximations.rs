@@ -31,13 +31,13 @@ use super::math;
 
 #[derive(Error, Debug)]
 pub enum DiscreteBasisError {
-    #[error("Parameterized gates cannot be decomposed.")]
+    #[error("parameterized gates cannot be decomposed")]
     ParameterizedGate,
 
-    #[error("Cannot extract matrix from operation.")]
+    #[error("cannot extract matrix from operation")]
     NoMatrix,
 
-    #[error("Only standard gates are allowed in GateSequence.from_gates_and_matrix.")]
+    #[error("only standard gates are allowed in GateSequence.from_gates_and_matrix")]
     NonStandardGate,
 }
 
