@@ -12,7 +12,7 @@
 
 use std::ptr;
 
-use crate::pointers::{check_ptr, const_ptr_as_ref};
+use crate::pointers::{const_ptr_as_ref, mut_ptr_as_ref};
 use num_bigint::BigUint;
 use num_traits::{ToPrimitive, Zero};
 use qiskit_circuit::{
@@ -910,18 +910,15 @@ pub unsafe extern "C" fn qk_value_biguint(value: *const Value) -> CBigUint {
 /// Behavior is undefined if ``biguint`` is not a valid, non-null pointer to a `QkBigUint`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_biguint_clear(biguint: *mut CBigUint) {
-    check_ptr(biguint).unwrap();
     // SAFETY: Per documentation, `biguint` is a valid, non-null pointer.
-    unsafe {
-        ptr::drop_in_place(biguint);
-        ptr::write(
-            biguint,
-            CBigUint {
-                limbs: ptr::null(),
-                num_limbs: 0,
-            },
-        );
-    }
+    let biguint = unsafe { mut_ptr_as_ref(biguint) };
+    drop(std::mem::replace(
+        biguint,
+        CBigUint {
+            limbs: ptr::null(),
+            num_limbs: 0,
+        },
+    ))
 }
 
 /// @ingroup QkClassicalExpressions
