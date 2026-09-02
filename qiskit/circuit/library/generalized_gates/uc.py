@@ -19,7 +19,6 @@
 from __future__ import annotations
 
 import math
-from warnings import deprecated
 
 import numpy as np
 
@@ -125,7 +124,6 @@ class UCGate(Gate):
                 name=self.name + "_dg", num_qubits=self.num_qubits, params=[]
             )  # removing the params because arrays are deprecated
 
-            # definition = QuantumCircuit(*self.definition.qregs)
             definition = QuantumCircuit(list(self.definition.qubits))
             for inst in reversed(self._definition):
                 definition._append(
@@ -160,10 +158,6 @@ class UCGate(Gate):
         return uc_gate.dec_ucg(
             single_qubit_gates, self.num_qubits, self.up_to_diagonal, self.mux_simp
         )
-
-    # @staticmethod
-    # def _rz(alpha):
-    #     return np.array([[np.exp(1j * alpha / 2), 0], [0, np.exp(-1j * alpha / 2)]])
 
     def validate_parameter(self, parameter):
         """Uniformly controlled gate parameter has to be an ndarray."""
