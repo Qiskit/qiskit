@@ -32,11 +32,11 @@ class FindCommutingPauliEvolutions(TransformationPass):
         """
         Replaces :class:`.PauliEvolutionGate` objects where all summands commute by
         :class:`.Commuting2qBlock` objects.
-        
+
         The pass only modifies Pauli evolution gates that are defined on 2 or more qubits whose
-         Pauli terms all act nontrivially on exactly 2 qubits and commute qubit-wise. The pass
-         raises an error for Pauli evolution gates defined on 2 or more qubits and contains Pauli terms
-         that do not act nontrivially on 2 qubits.
+        Pauli terms all act nontrivially on exactly 2 qubits and commute qubit-wise. The pass
+        raises an error for Pauli evolution gates defined on 2 or more qubits and contains Pauli
+        terms that do not act nontrivially on 2 qubits.
 
         Args:
             dag: The DAG circuit in which to look for the commuting evolutions.
@@ -47,10 +47,8 @@ class FindCommutingPauliEvolutions(TransformationPass):
             gates contain nodes of two-qubit :class:`.PauliEvolutionGate` objects.
 
         Raises:
-            QiskitError: If any :class:`.PauliEvolutionGate` in the circuit interacts with more
-                         than 2 qubits.
-            QiskitError: If any :class:`.PauliEvolutionGate` in the circuit interacts with 2
-                         qubits, but term(s) interact with 1 qubit.
+            QiskitError: If a :class:`.PauliEvolutionGate` is defined on 2+ qubits, but its terms
+                         don't act non-trivially on exactly 2 qubits.
         """
 
         for node in dag.op_nodes():
