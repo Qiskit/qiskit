@@ -34,7 +34,7 @@ use crate::linalg::{
 };
 use crate::matrix::two_qubit;
 use crate::two_qubit_decompose::{TwoQubitBasisDecomposer, two_qubit_decompose_up_to_diagonal};
-use crate::ucrz::{get_ucrz};
+use crate::ucrz::get_ucrz;
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError, PyCircuitData};
 use qiskit_circuit::interner::Interned;
@@ -42,7 +42,6 @@ use qiskit_circuit::operations::{ArrayType, OperationRef, Param, StandardGate, U
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::{BlocksMode, Qubit, VarsMode};
 
-//const EPS: f64 = 1e-10;
 const MINIMUM_TOL: f64 = 1e-12;
 
 /// Errors that might occur during QSD synthesis algorithm

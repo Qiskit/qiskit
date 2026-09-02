@@ -10,25 +10,25 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use approx::abs_diff_eq;
 use num_complex::{Complex64, ComplexFloat};
 use pyo3::Python;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
-use std::f64::consts::{FRAC_1_SQRT_2, PI};
 use std::collections::BTreeSet;
-use approx::abs_diff_eq;
+use std::f64::consts::{FRAC_1_SQRT_2, PI};
 
 use nalgebra::{Matrix2, MatrixView2, Vector2};
 use numpy::{IntoPyArray, PyReadonlyArray2, ToPyArray};
 
-use qiskit_util::complex::{C_ZERO, IM, c64};
+use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
 use qiskit_circuit::operations::Param;
-use qiskit_circuit::operations::{ArrayType, UnitaryGate, StandardGate};
+use qiskit_circuit::operations::{ArrayType, StandardGate, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_circuit::Qubit;
-use qiskit_synthesis::ucrz::{diagonal_gate_circuit};
-use qiskit_synthesis::qsd::{append};
+use qiskit_synthesis::qsd::append;
+use qiskit_synthesis::ucrz::diagonal_gate_circuit;
+use qiskit_util::complex::{C_ZERO, IM, c64};
 const EPS: f64 = 1e-10;
 
 /// Compute the eigenvectors and eigenvalues for a 2x2 matrix
@@ -88,14 +88,13 @@ fn compute_2x2_eig(mat: Matrix2<Complex64>) -> ([Complex64; 2], Matrix2<Complex6
 const RZ_PI2_11: Complex64 = c64(FRAC_1_SQRT_2, -FRAC_1_SQRT_2);
 const RZ_PI2_00: Complex64 = c64(FRAC_1_SQRT_2, FRAC_1_SQRT_2);
 
-const RZ_PI2_MAT: Matrix2<Complex64> = Matrix2::new(
-    RZ_PI2_00, C_ZERO,
-    C_ZERO,    RZ_PI2_11,
-);
+const RZ_PI2_MAT: Matrix2<Complex64> = Matrix2::new(RZ_PI2_00, C_ZERO, C_ZERO, RZ_PI2_11);
 
 const H_MAT: Matrix2<Complex64> = Matrix2::new(
-    c64(FRAC_1_SQRT_2, 0.0),  c64(FRAC_1_SQRT_2,  0.0),
-    c64(FRAC_1_SQRT_2, 0.0),  c64(-FRAC_1_SQRT_2, 0.0),
+    c64(FRAC_1_SQRT_2, 0.0),
+    c64(FRAC_1_SQRT_2, 0.0),
+    c64(FRAC_1_SQRT_2, 0.0),
+    c64(-FRAC_1_SQRT_2, 0.0),
 );
 
 /// This method implements the decomposition given in equation (3) in
@@ -134,36 +133,31 @@ fn demultiplex_single_uc(
     [v, u, r]
 }
 
-fn expand_diagonal(mut diag: Vec<Complex64>, new_ctrl: &[u32], num_qubits: u32) -> Vec<Complex64>
-{
-  let active: Vec<u32> = new_ctrl.iter().map(|&x| num_qubits - x).collect();  
-  for i in 0..num_qubits {
-    if i !=0 && !active.contains(&i) {
-        let d = 1_usize << i;
-        let mut new_diag:Vec<Complex64> = Vec::new();
-        let n = diag.len();
+fn expand_diagonal(mut diag: Vec<Complex64>, new_ctrl: &[u32], num_qubits: u32) -> Vec<Complex64> {
+    let active: Vec<u32> = new_ctrl.iter().map(|&x| num_qubits - x).collect();
+    for i in 0..num_qubits {
+        if i != 0 && !active.contains(&i) {
+            let d = 1_usize << i;
+            let mut new_diag: Vec<Complex64> = Vec::new();
+            let n = diag.len();
 
-        for j in 0..n {
-            new_diag.push(diag[j]);
-            if (j+1) % d == 0 {
-                new_diag.extend_from_slice(&diag[j+1-d..j+1].to_vec());
-            }           
+            for j in 0..n {
+                new_diag.push(diag[j]);
+                if (j + 1) % d == 0 {
+                    new_diag.extend_from_slice(&diag[j + 1 - d..j + 1]);
+                }
+            }
+            diag = new_diag
         }
-        diag = new_diag
-    }    
-  }
-  return diag
-
+    }
+    diag
 }
 pub fn dec_ucg_inner(
     single_qubit_gates: Vec<Matrix2<Complex64>>,
     num_qubits: u32,
     up_to_diagonal: bool,
-    mux_simp: bool
-) -> Result<(CircuitData, Vec<Complex64>), CircuitDataError> {  
-    //TODO: add handling of mux_simplify , need to port this function to rust, skip for now
-    //TODO: add handling of false case of not for up_to_diagonal 
-
+    mux_simp: bool,
+) -> Result<(CircuitData, Vec<Complex64>), CircuitDataError> {
     if num_qubits == 1 {
         let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0))?;
         circuit.push_packed_operation(
@@ -176,18 +170,16 @@ pub fn dec_ucg_inner(
         )?;
         return Ok((circuit, vec![Complex64::ONE; 2]));
     }
-    let num_contr = num_qubits - 1 ;
-    let (q_controls, new_gates,raw_ctrls) = if mux_simp 
-    { 
-        //simplify(&single_qubit_gates, num_contr) 
-         let (ctrls, gates) = simplify(&single_qubit_gates, num_contr);
-    let mut mapped: Vec<u32> = ctrls.iter().map(|&x| num_qubits - x).collect();
-    mapped.reverse();
-    (mapped, gates, ctrls)
-    }
-     else { 
+    let num_contr = num_qubits - 1;
+    let (q_controls, new_gates, raw_ctrls) = if mux_simp {
+        let (ctrls, gates) = simplify(&single_qubit_gates, num_contr);
+        let mut mapped: Vec<u32> = ctrls.iter().map(|&x| num_qubits - x).collect();
+        mapped.reverse();
+        (mapped, gates, ctrls)
+    } else {
         let ctrls: Vec<u32> = (1..num_qubits).collect();
-        ( ctrls.clone(), single_qubit_gates.clone(),ctrls) };
+        (ctrls.clone(), single_qubit_gates.clone(), ctrls)
+    };
 
     let simplified_num_quibits = q_controls.len() as u32 + 1;
 
@@ -203,67 +195,53 @@ pub fn dec_ucg_inner(
         )?;
         return Ok((circuit, vec![Complex64::ONE; 1_usize << num_qubits]));
     }
-//    let mux_simp = true;
-//    let num_contr = single_qubit_gates.len().trailing_zeros();
-//    let mut q_controls: Vec<u32> = (1..num_contr+1).collect();
 
-//    println!("q_contr before {:?}",q_controls);
-//    if mux_simp {
-//       let (q_controls_updated, new_gates) = simplify(&single_qubit_gates, num_contr);
-//        single_qubit_gates = new_gates;
-//        q_controls = q_controls_updated;
-//    }
-//    println!("q_contr after {:?}",q_controls);
-
-
-    let mut global_phase= 0.0;
-    let mut circuit = CircuitData::with_capacity(num_qubits, 0,0, Param::Float(global_phase))?;  
+    let mut global_phase = 0.0;
+    let mut circuit = CircuitData::with_capacity(num_qubits, 0, 0, Param::Float(global_phase))?;
     let mut gates = new_gates;
-    let diagonal = dec_ucg_help_inner(&mut gates,simplified_num_quibits);
+    let diagonal = dec_ucg_help_inner(&mut gates, simplified_num_quibits);
     let n = gates.len();
-    
- 
-    for (i,gate) in gates.iter().enumerate() {
+
+    for (i, gate) in gates.iter().enumerate() {
         let squ = match i {
-          0 => { H_MAT*gate},
-          i if i == n - 1 => {gate * RZ_PI2_MAT * H_MAT}
-          _ => { H_MAT * (gate * RZ_PI2_MAT) * H_MAT}
-          };
+            0 => H_MAT * gate,
+            i if i == n - 1 => gate * RZ_PI2_MAT * H_MAT,
+            _ => H_MAT * (gate * RZ_PI2_MAT) * H_MAT,
+        };
         circuit.push_packed_operation(
             PackedOperation::from_unitary(Box::new(UnitaryGate {
-                array: ArrayType::OneQ(squ),   // squ: Matrix2<Complex64>
+                array: ArrayType::OneQ(squ), // squ: Matrix2<Complex64>
             })),
             None,
-            &[Qubit(0)],   // target qubit index
+            &[Qubit(0)], // target qubit index
             &[],
-            )?;
-        
-        // push CX after every gate except the last
-        if i < n -1 {
-            let control_ind = (i+1).trailing_zeros() as usize;
-            circuit.push_standard_gate(
-            StandardGate::CX,
-            &[],
-            //&[Qubit(1 + control_ind as u32), Qubit(0)],  // control, target
-             &[Qubit(q_controls[control_ind] as u32), Qubit(0)],  // control, target
         )?;
 
-        global_phase -= 0.25 * PI
+        // push CX after every gate except the last
+        if i < n - 1 {
+            let control_ind = (i + 1).trailing_zeros() as usize;
+            circuit.push_standard_gate(
+                StandardGate::CX,
+                &[],
+                //&[Qubit(1 + control_ind as u32), Qubit(0)],  // control, target
+                &[Qubit(q_controls[control_ind]), Qubit(0)], // control, target
+            )?;
+
+            global_phase -= 0.25 * PI
         }
-    
     }
-    circuit.add_global_phase(&Param::Float(global_phase))?;  
+    circuit.add_global_phase(&Param::Float(global_phase))?;
     let diagonal = expand_diagonal(diagonal, &raw_ctrls, num_qubits);
     if !up_to_diagonal {
         let mut diag_phases: Vec<f64> = diagonal.iter().map(|x| x.arg()).collect();
-        let diag_circuit:CircuitData = diagonal_gate_circuit(&mut diag_phases, num_qubits as usize)?;
-        let quibit_map: Vec<Qubit> =(0..num_qubits).map(|i| Qubit(i as u32)).collect();
+        let diag_circuit: CircuitData =
+            diagonal_gate_circuit(&mut diag_phases, num_qubits as usize)?;
+        let quibit_map: Vec<Qubit> = (0..num_qubits).map(Qubit).collect();
 
         append(&mut circuit, diag_circuit, &quibit_map)?;
     }
 
     Ok((circuit, diagonal))
-
 }
 
 #[pyfunction]
@@ -272,32 +250,33 @@ pub fn dec_ucg(
     single_qubit_gates: Vec<PyReadonlyArray2<Complex64>>,
     num_qubits: u32,
     up_to_diagonal: bool,
-    mux_simp: bool
+    mux_simp: bool,
 ) -> PyResult<(Py<PyAny>, Vec<Complex64>)> {
-    let  gates: Vec<Matrix2<Complex64>> = single_qubit_gates
+    let gates: Vec<Matrix2<Complex64>> = single_qubit_gates
         .into_iter()
         .map(|x| {
             let res: MatrixView2<Complex64> = x.try_as_matrix().unwrap();
             res.into_owned()
         })
         .collect();
-    let (circuit, diag) = dec_ucg_inner(gates, num_qubits, up_to_diagonal, mux_simp)
-        .map_err(PyErr::from)?;
+    let (circuit, diag) =
+        dec_ucg_inner(gates, num_qubits, up_to_diagonal, mux_simp).map_err(PyErr::from)?;
     let qc = circuit.into_py_quantum_circuit(py)?;
     qc.setattr("name", "uc")?;
     Ok((qc.unbind(), diag))
 }
 
-pub fn simplify(gate_list:&Vec<Matrix2<Complex64>> ,num_ctrls: u32)-> (Vec<u32>,Vec<Matrix2<Complex64>>)  {
-    //let mut new_ctrl: Vec<u32> = (1..num_ctrls+1).collect();
-    let mut new_mux = gate_list.clone();
-
+pub fn simplify(
+    gate_list: &[Matrix2<Complex64>],
+    num_ctrls: u32,
+) -> (Vec<u32>, Vec<Matrix2<Complex64>>) {
+    let mut new_mux = gate_list.to_owned();
 
     let mut c: BTreeSet<u32> = BTreeSet::new();
     let mut nc: BTreeSet<u32> = BTreeSet::new();
 
     for i in 0..num_ctrls {
-        c.insert((i+1) as u32);
+        c.insert(i + 1);
     }
 
     if gate_list.len() > 1 {
@@ -305,28 +284,22 @@ pub fn simplify(gate_list:&Vec<Matrix2<Complex64>> ,num_ctrls: u32)-> (Vec<u32>,
         new_mux = mux_copy;
         nc = found_nc;
     }
-      
-    let new_ctrl: Vec<u32> = c.difference(&nc).copied().collect();
-    //let new_mux = mux_copy.iter().filter_map(|x| *x).collect();
-    
-    //new_controls = {x for x in c if x not in nc}
-    //new_mux = [gate for gate in mux_copy if gate is not None]
-    //println!("{}",new_mux.len());
-    return (new_ctrl, new_mux)
 
+    let new_ctrl: Vec<u32> = c.difference(&nc).copied().collect();
+    (new_ctrl, new_mux)
 }
 
-fn repetition_search(mux:&Vec<Matrix2<Complex64>>, num_ctrls: u32) 
--> (BTreeSet<u32>,Vec<Matrix2<Complex64>>)
-{
+fn repetition_search(
+    mux: &[Matrix2<Complex64>],
+    num_ctrls: u32,
+) -> (BTreeSet<u32>, Vec<Matrix2<Complex64>>) {
     let mut nc: BTreeSet<u32> = BTreeSet::new();
     //let new_mux = mux.clone();
-    let mut mux_copy: Vec<Option<Matrix2<Complex64>>> 
-    = mux.iter().map(|x| Some(*x)).collect();
-    
-    let mut d = 1;    
+    let mut mux_copy: Vec<Option<Matrix2<Complex64>>> = mux.iter().map(|x| Some(*x)).collect();
 
-    while d <= mux.len() / 2  {
+    let mut d = 1;
+
+    while d <= mux.len() / 2 {
         let mut disentalgement = false;
         if abs_diff_eq!(mux[d], mux[0], epsilon = 1e-8) {
             let mux_org = mux_copy.clone();
@@ -334,50 +307,53 @@ fn repetition_search(mux:&Vec<Matrix2<Complex64>>, num_ctrls: u32)
             let mut p = 0;
             while repetitions > 0 {
                 repetitions -= 1;
-                let (valid, mux_res) = repetition_verify(p,d,mux,mux_copy);
+                let (valid, mux_res) = repetition_verify(p, d, mux, mux_copy);
                 mux_copy = mux_res;
                 p += 2 * d;
-                if !valid
-                {
+                if !valid {
                     mux_copy = mux_org;
                     break;
                 }
                 if repetitions == 0 {
-                    disentalgement = true;                    
-                }        
+                    disentalgement = true;
+                }
             }
-        }        
-        if disentalgement 
-        {
-            let removed_contr = num_ctrls as f64 - (d as f64).log2();
-            nc.insert(removed_contr as u32); 
         }
-        d *= 2;        
+        if disentalgement {
+            let removed_contr = num_ctrls as f64 - (d as f64).log2();
+            nc.insert(removed_contr as u32);
+        }
+        d *= 2;
     }
-    let new_mux =mux_copy.into_iter().flatten().collect();
+    let new_mux = mux_copy.into_iter().flatten().collect();
     (nc, new_mux)
 }
 
-fn repetition_verify(mut base: usize, d: usize, mux: &[Matrix2<Complex64>], mut mux_copy: Vec<Option<Matrix2<Complex64>>>) ->
-(bool, Vec<Option<Matrix2<Complex64>>>)
-{
-  let mut i = 0;
-  let mut next_base = base + d;  
+fn repetition_verify(
+    mut base: usize,
+    d: usize,
+    mux: &[Matrix2<Complex64>],
+    mut mux_copy: Vec<Option<Matrix2<Complex64>>>,
+) -> (bool, Vec<Option<Matrix2<Complex64>>>) {
+    let mut i = 0;
+    let mut next_base = base + d;
 
-  while i < d {
-    if !abs_diff_eq!(mux[base], mux[next_base], epsilon = 1e-8) {
-        return (false,mux_copy);
+    while i < d {
+        if !abs_diff_eq!(mux[base], mux[next_base], epsilon = 1e-8) {
+            return (false, mux_copy);
+        }
+        mux_copy[next_base] = None;
+        base += 1;
+        next_base += 1;
+        i += 1;
     }
-    mux_copy[next_base] = None;
-    base += 1;
-    next_base += 1;
-    i +=1;
-  }
-  (true, mux_copy)
+    (true, mux_copy)
 }
 
-pub fn dec_ucg_help_inner(single_qubit_gates: &mut [Matrix2<Complex64>], num_qubits: u32) ->Vec<Complex64>
-{
+pub fn dec_ucg_help_inner(
+    single_qubit_gates: &mut [Matrix2<Complex64>],
+    num_qubits: u32,
+) -> Vec<Complex64> {
     let mut diag: Vec<Complex64> = vec![Complex64::ONE; 2_usize.pow(num_qubits)];
     let num_controls = num_qubits - 1;
     for dec_step in 0..num_controls {
@@ -446,6 +422,8 @@ pub fn dec_ucg_help_inner(single_qubit_gates: &mut [Matrix2<Complex64>], num_qub
 
 #[pyfunction]
 pub fn dec_ucg_help(
+    // This method finds the single qubit gate arising in the decomposition of UCGates given in
+    // https://arxiv.org/pdf/quant-ph/0410066.pdf.
     py: Python,
     sq_gates: Vec<PyReadonlyArray2<Complex64>>,
     num_qubits: u32,
@@ -457,7 +435,7 @@ pub fn dec_ucg_help(
             res.into_owned()
         })
         .collect();
-    let diag = dec_ucg_help_inner(&mut single_qubit_gates,num_qubits);
+    let diag = dec_ucg_help_inner(&mut single_qubit_gates, num_qubits);
     (
         single_qubit_gates
             .into_iter()
@@ -467,14 +445,12 @@ pub fn dec_ucg_help(
     )
 }
 
-
 #[pyfunction]
 pub fn dec_ucg_help_org(
     py: Python,
     sq_gates: Vec<PyReadonlyArray2<Complex64>>,
     num_qubits: u32,
 ) -> (Vec<Py<PyAny>>, Py<PyAny>) {
-    println!("in old help");
     let mut single_qubit_gates: Vec<Matrix2<Complex64>> = sq_gates
         .into_iter()
         .map(|x| {
@@ -699,7 +675,7 @@ mod test {
         let (new_ctrl, new_mux) = simplify(&gate_list, num_ctrls);
 
         assert_eq!(new_ctrl, vec![2_u32]); // control 1 removed
-        assert_eq!(new_mux.len(), 2);      // [A, B] after Nones removed
+        assert_eq!(new_mux.len(), 2); // [A, B] after Nones removed
         assert!(abs_diff_eq!(new_mux[0], a, epsilon = 1e-12));
         assert!(abs_diff_eq!(new_mux[1], b, epsilon = 1e-12));
     }
@@ -797,7 +773,16 @@ mod test {
         let result = expand_diagonal(diag, &new_ctrl, 3);
         assert_eq!(
             result,
-            vec![c(1.0), c(2.0), c(3.0), c(4.0), c(1.0), c(2.0), c(3.0), c(4.0)]
+            vec![
+                c(1.0),
+                c(2.0),
+                c(3.0),
+                c(4.0),
+                c(1.0),
+                c(2.0),
+                c(3.0),
+                c(4.0)
+            ]
         );
     }
 

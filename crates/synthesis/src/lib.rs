@@ -24,9 +24,9 @@ pub mod pauli_products;
 mod permutation;
 mod qft;
 pub mod qsd;
-pub mod ucrz;
 pub mod ross_selinger;
 pub mod two_qubit_decompose;
+pub mod ucrz;
 
 use pyo3::import_exception;
 use pyo3::prelude::*;
