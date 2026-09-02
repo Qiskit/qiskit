@@ -406,12 +406,12 @@ fn execute_task(
     let out = match task {
         Task::Transformation(pass) => {
             let out = pass.run(ir, context).map_err(PassManagerError::PassError)?;
-            if let Some(cb) = callback {
-                if cb.trigger(&CallbackType::PostPass) {
-                    cb.ir_and_context(&out, context);
-                    cb.with_pass(pass.as_ref(), &out, context);
-                }
-            };
+            if let Some(cb) = callback
+                && cb.trigger(&CallbackType::PostPass)
+            {
+                cb.ir_and_context(&out, context);
+                cb.with_pass(pass.as_ref(), &out, context);
+            }
             Ok(out)
         }
         Task::Group(tasks) => {
@@ -433,20 +433,20 @@ fn execute_task(
         Task::Stages(stages) => {
             for (_name, task) in stages.iter() {
                 ir = execute_task(task, ir, context, callback)?;
-                if let Some(cb) = callback {
-                    if cb.trigger(&CallbackType::PostStage) {
-                        cb.ir_and_context(&ir, context)
-                    }
-                };
+                if let Some(cb) = callback
+                    && cb.trigger(&CallbackType::PostStage)
+                {
+                    cb.ir_and_context(&ir, context)
+                }
             }
             Ok(ir)
         }
     };
-    if let Some(cb) = callback {
-        if cb.trigger(&CallbackType::PostTask) {
-            cb.ir_and_context(&out, context)
-        }
-    };
+    if let Some(cb) = callback
+        && cb.trigger(&CallbackType::PostTask)
+    {
+        cb.ir_and_context(&out, context)
+    }
     out
 }
 
