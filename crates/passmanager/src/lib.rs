@@ -62,6 +62,7 @@ impl AsRef<dyn Any + Send + Sync> for Value {
 ///
 /// This contains data managed by the pass manager. A local handle to this is passed into
 /// the passes.
+#[pyclass]
 #[derive(Default, Debug)]
 pub struct PassManagerContext {
     /// The global, catch-all data. The local [PassContext] handles get read-only access to

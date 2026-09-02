@@ -38,6 +38,17 @@ impl From<PassManagerError> for PyErr {
     }
 }
 
+/// Context information provided to passes during their execution.
+///
+/// This local context can hold free-form data like a dictionary using :meth:`get` and :meth:`set`.
+/// The :meth:`get` method also has access to data from the global execution context of the pass
+/// manager, which is queried if the data is not available locally. The global execution
+/// context is backed by Rust and might contain data that is not compatible with Python, in
+/// which case ``None`` is returned.
+///
+/// This local context is drained into the global context after the pass is executed. All data
+/// in this object will be removed and writing new data into this object will have no effect.
+/// Drained contexts are marked with :attr:`is_drained` set to ``True``.
 // #[cfg(feature = "python")]
 #[pyclass]
 #[pyo3(name = "PassContext")]
@@ -76,7 +87,6 @@ impl PyPassContext {
 
 #[pymethods]
 impl PyPassContext {
-    #[pyo3(signature = (key,))]
     /// Get a value from the pass context.
     ///
     /// Args:
@@ -88,20 +98,24 @@ impl PyPassContext {
     /// Raises:
     ///     RuntimeError: If the pass context instance has already been drained into the global
     ///         pass manager execution context. See also :attr:`is_drained`.
-    pub fn get(&self, py: Python<'_>, key: Bound<'_, PyString>) -> PyResult<Option<Py<PyAny>>> {
+    ///     ValueError: If the value exists but it not Python compatible.
+    #[pyo3(signature = (key, default=None))]
+    pub fn get(
+        &self,
+        py: Python<'_>,
+        key: Bound<'_, PyString>,
+        default: Option<Bound<'_, PyAny>>,
+    ) -> PyResult<Option<Py<PyAny>>> {
         if self.is_drained {
             return Err(PyRuntimeError::new_err(
                 "PassContext is already drained and cannot be read",
             ));
         }
-        let key = key.to_str()?;
 
-        if let Some(value) = self.data.get(key) {
+        if let Some(value) = self.data.get(key.to_str()?) {
             Ok(Some(value.clone_ref(py)))
-        } else if let Some(Value::PyCompatible(py_value)) = self.global.data.get(key) {
-            Ok(Some(py_value.to_py_any(py)?.clone_ref(py)))
         } else {
-            Ok(None)
+            self.global.get(py, key, default)
         }
     }
 
@@ -168,11 +182,48 @@ impl PassManager {
     }
 
     #[pyo3(name = "run")]
-    fn py_run(&self, ir: Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
+    fn py_run(&self, ir: Bound<'_, PyAny>) -> PyResult<(Py<PyAny>, PassManagerContext)> {
         let ir_in = ir.unbind();
-        let (ir_out, _) = self.run::<_, Py<PyAny>>(ir_in, None)?;
+        let (ir_out, context) = self.run::<_, Py<PyAny>>(ir_in, None)?;
 
-        Ok(ir_out)
+        Ok((ir_out, context))
+    }
+}
+
+#[pymethods]
+impl PassManagerContext {
+    /// Get a value from the pass manager context.
+    ///
+    /// Args:
+    ///     key: The lookup key.
+    ///
+    /// Returns:
+    ///     The value, if it exists and can be represented in Python. Else ``None`` is returned.
+    ///
+    /// Raises:
+    ///     ValueError: If the value exists but it not Python compatible.
+    #[pyo3(signature = (key, default=None))]
+    pub fn get(
+        &self,
+        py: Python<'_>,
+        key: Bound<'_, PyString>,
+        default: Option<Bound<'_, PyAny>>,
+    ) -> PyResult<Option<Py<PyAny>>> {
+        let key = key.to_str()?;
+
+        match self.data.get(key) {
+            Some(Value::PyCompatible(value)) => Ok(Some(value.to_py_any(py)?.clone_ref(py))),
+            Some(Value::Any(_)) => Err(PyValueError::new_err(format!(
+                "The value of {key} is Python incompatible."
+            ))),
+            None => {
+                if let Some(default) = default {
+                    Ok(Some(default.unbind().clone_ref(py)))
+                } else {
+                    Ok(None)
+                }
+            }
+        }
     }
 }
 

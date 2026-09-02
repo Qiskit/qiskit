@@ -57,7 +57,8 @@ class TestPassManager(QiskitTestCase):
         pm.push(SetLayout(target))
         pm.push(ResetComputationalQubits())
 
-        out = pm.run(circuit)
+        out, context = pm.run(circuit)
 
         self.assertIsInstance(out, QuantumCircuit)
         self.assertEqual(out.count_ops().get("reset", 0), 2)
+        self.assertEqual(context.get("layout", []), [0, 1])
