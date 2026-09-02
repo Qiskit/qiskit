@@ -502,7 +502,7 @@ impl ExprParser<'_> {
         let Some(floats) = as_f64 else {
             return Ok(Expr::CustomFunction(callable.clone(), exprs));
         };
-        let folded = (self.evaluator)(callable, &floats);
+        let folded = self.evaluator.eval(callable, &floats);
         folded.map(Expr::Constant).map_err(|err| {
             let message = message_generic(Some(&self.cur_position_of(token)), &err.message);
             err.with_message(message)

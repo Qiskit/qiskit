@@ -13,7 +13,7 @@
 use pyo3::prelude::*;
 pyo3::import_exception!(qiskit.qasm2.exceptions, QASM2ParseError);
 
-use crate::ext::ClassicalCallableExt;
+use crate::ext::{ClassicalCallableExt, ClassicalEvaluator};
 use crate::parse::ParamId;
 use crate::{CustomClassical, CustomInstruction, lex, parse};
 
@@ -111,7 +111,7 @@ pub struct ExprCustom {
 impl ExprCustom {
     /// Invoke the custom callable with pre-evaluated float arguments.
     fn call(&self, py: Python<'_>, args: Vec<f64>) -> PyResult<f64> {
-        Ok(self.callable.call_attached(py, &args)?)
+        Ok(ClassicalEvaluator::attached(py).eval(&self.callable, &args)?)
     }
 }
 
@@ -187,10 +187,8 @@ impl BytecodeIterator {
         if self.buffer_used >= self.buffer.len() {
             self.buffer.clear();
             self.buffer_used = 0;
-            let evaluator = |callable: &ClassicalCallableExt, params: &[f64]| {
-                callable.call_attached(py, params)
-            };
-            self.parser_state.parse_next(&mut self.buffer, &evaluator)?;
+            self.parser_state
+                .parse_next(&mut self.buffer, ClassicalEvaluator::attached(py))?;
         }
         if self.buffer.is_empty() {
             Ok(None)

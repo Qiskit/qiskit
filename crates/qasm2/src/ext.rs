@@ -77,8 +77,27 @@ impl ClassicalBuiltinExt {
     }
 }
 
-pub type ClassicalEvaluator<'a> =
-    &'a dyn Fn(&ClassicalCallableExt, &[f64]) -> Result<f64, ParseError>;
+#[derive(Clone, Copy)]
+pub struct ClassicalEvaluator<'py> {
+    #[cfg(feature = "py")]
+    py: Python<'py>,
+    #[cfg(not(feature = "py"))]
+    _lifetime: std::marker::PhantomData<&'py ()>,
+}
+
+impl<'py> ClassicalEvaluator<'py> {
+    #[cfg(feature = "py")]
+    pub fn attached(py: Python<'py>) -> Self {
+        Self { py }
+    }
+
+    pub fn eval(&self, callable: &ClassicalCallableExt, params: &[f64]) -> Result<f64, ParseError> {
+        #[cfg(feature = "py")]
+        return callable.call_attached(self.py, params);
+        #[cfg(not(feature = "py"))]
+        callable.call(params)
+    }
+}
 
 /// A pure-Rust callable type for custom classical functions.
 pub type ClassicalFn = Arc<dyn Fn(&[f64]) -> Result<f64, ParseError> + Send + Sync>;
@@ -107,7 +126,7 @@ impl ClassicalCallableExt {
         }
     }
 
-    pub fn call(&self, params: &[f64]) -> Result<f64, ParseError> {
+    fn call(&self, params: &[f64]) -> Result<f64, ParseError> {
         match self {
             Self::Builtin(builtin) => builtin.call(params).map_err(|expected| {
                 ParseError::new(format!(
@@ -126,7 +145,7 @@ impl ClassicalCallableExt {
     /// Call the function on the given parameters, with an attached Python interpreter available for
     /// the callables that need one.
     #[cfg(feature = "py")]
-    pub fn call_attached(&self, py: Python<'_>, params: &[f64]) -> Result<f64, ParseError> {
+    fn call_attached(&self, py: Python<'_>, params: &[f64]) -> Result<f64, ParseError> {
         match self {
             Self::Python { callable, .. } => {
                 let pyargs =
