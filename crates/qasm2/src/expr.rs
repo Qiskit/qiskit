@@ -255,7 +255,7 @@ enum BinaryKind {
 pub fn evaluate(
     expr: &Expr,
     params: &[f64],
-    attachment: Attachment<'_>,
+    evaluator: ClassicalEvaluator<'_>,
 ) -> Result<f64, ParseError> {
     let mut work = vec![Step::Eval(expr)];
     let mut values = Vec::<Value>::new();
@@ -324,7 +324,7 @@ pub fn evaluate(
                     .iter()
                     .map(Value::as_real)
                     .collect::<Vec<_>>();
-                values.push(Value::Real(callable.call(&args, attachment)?));
+                values.push(Value::Real(evaluator.eval(callable, &args)?));
             }
         }
     }

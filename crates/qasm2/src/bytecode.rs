@@ -178,7 +178,7 @@ impl<'py> IntoPyObject<'py> for InternalBytecode {
                     // parameters changing here, so we can just use `OpCode::Gate` unlike in the
                     // internal bytecode.
                     opcode: OpCode::Gate,
-                    operands: (id, arguments.into_pyobject(py)?, qubits)
+                    operands: (id, py::GateBodyArguments::new(arguments), qubits)
                         .into_pyobject(py)?
                         .into_any()
                         .unbind(),

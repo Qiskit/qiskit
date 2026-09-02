@@ -208,12 +208,21 @@ impl BytecodeIterator {
 #[pyclass(module = "qiskit._accelerate.qasm2", frozen, skip_from_py_object)]
 pub struct GateBodyArguments(Vec<Expr>);
 
+impl GateBodyArguments {
+    pub(super) fn new(arguments: Vec<Expr>) -> Self {
+        Self(arguments)
+    }
+}
+
 #[pymethods]
 impl GateBodyArguments {
     fn evaluate(&self, params: Vec<f64>, py: Python<'_>) -> PyResult<Vec<f64>> {
         self.0
             .iter()
-            .map(|expr| crate::expr::evaluate(expr, &params, py).map_err(PyErr::from))
+            .map(|expr| {
+                crate::expr::evaluate(expr, &params, ClassicalEvaluator::attached(py))
+                    .map_err(PyErr::from)
+            })
             .collect()
     }
 }
