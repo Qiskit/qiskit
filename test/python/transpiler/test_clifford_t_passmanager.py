@@ -417,7 +417,7 @@ class TestCliffordTPassManager(QiskitTestCase):
 
         # The resulting decomposition should use the dirty Maslov construction.
         t_count = _get_t_count(transpiled)
-        expected_t_count = {2: 7, 3: 16, 4: 24, 5: 32, 6: 40, 7: 48}
+        expected_t_count = {1: 0, 2: 7, 3: 16, 4: 24, 5: 32, 6: 40, 7: 48}
         self.assertLessEqual(t_count, expected_t_count[n])
 
     @data(

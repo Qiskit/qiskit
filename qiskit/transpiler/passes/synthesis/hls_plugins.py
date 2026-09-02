@@ -1135,7 +1135,8 @@ class MCXSynthesisNDirtyI15(HighLevelSynthesisPlugin):
 
 class MCXSynthesisNDirtyM15(HighLevelSynthesisPlugin):
     r"""Synthesis plugin for a multi-controlled X gate using dirty ancillas, following
-    Proposition 5 of Maslov (2016).
+    circuit (5) for three controls and Proposition 5 for four or more controls in
+    Maslov (2016).
 
     This plugin name is ``mcx.n_dirty_m15``. For :math:`k = 3` control qubits it requires
     one dirty ancilla and produces 16 T gates and 14 CX gates. For :math:`k \ge 4` it requires
@@ -1148,7 +1149,7 @@ class MCXSynthesisNDirtyM15(HighLevelSynthesisPlugin):
     * num_dirty_ancillas: The number of dirty auxiliary qubits available.
 
     References:
-        1. Maslov, *On the advantages of using relative phase Toffolis with an application
+        1. D. Maslov, *Advantages of using relative-phase Toffoli gates with an application
            to multiple control Toffoli optimization*, Phys. Rev. A 93, 022311 (2016),
            `arXiv:1508.03273 <https://arxiv.org/abs/1508.03273>`_
     """
@@ -1187,8 +1188,9 @@ class MCXSynthesisNCleanM15(HighLevelSynthesisPlugin):
     * num_clean_ancillas: The number of clean auxiliary qubits available.
 
     References:
-        1. Maslov., Phys. Rev. A 93, 022311 (2016),
-           `arXiv:1508.03273 <https://arxiv.org/pdf/1508.03273>`_
+        1. D. Maslov, *Advantages of using relative-phase Toffoli gates with an application
+           to multiple control Toffoli optimization*, Phys. Rev. A 93, 022311 (2016),
+           `arXiv:1508.03273 <https://arxiv.org/abs/1508.03273>`_
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):

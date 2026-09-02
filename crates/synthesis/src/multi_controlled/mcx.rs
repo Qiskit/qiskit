@@ -566,14 +566,15 @@ pub fn synth_mcx_1_clean_b95(num_controls: usize) -> Result<CircuitData, Circuit
     }
 }
 
-/// The short relative-phase Toffoli ``RT^S`` from Maslov (2016), Figure 3.
+/// The short relative-phase Toffoli ``RT^S`` from Maslov (2016), Figure 3, gates 2--6.
 fn rts() -> Result<CircuitData, CircuitDataError> {
     let mut circuit = CircuitData::with_capacity(3, 0, 5, Param::Float(0.0))?;
     add_action_gadget(&mut circuit, 1, 0, 2)?;
     Ok(circuit)
 }
 
-/// The short special-form relative-phase Toffoli ``SRT^S`` from Maslov (2016), circuit (3).
+/// The short special-form relative-phase Toffoli ``SRT^S`` from Maslov (2016),
+/// circuit (3), dashed.
 fn srts() -> Result<CircuitData, CircuitDataError> {
     let mut circuit = CircuitData::with_capacity(3, 0, 9, Param::Float(0.0))?;
     circuit.h(2)?;
@@ -588,7 +589,8 @@ fn srts() -> Result<CircuitData, CircuitDataError> {
     Ok(circuit)
 }
 
-/// The short relative-phase four-qubit Toffoli ``RT4^S`` from Maslov (2016), Figure 4.
+/// The short relative-phase four-qubit Toffoli ``RT4^S`` from Maslov (2016),
+/// Figure 4, dashed.
 fn rt4s() -> Result<CircuitData, CircuitDataError> {
     let mut circuit = CircuitData::with_capacity(4, 0, 10, Param::Float(0.0))?;
     circuit.h(3)?;
@@ -621,9 +623,9 @@ fn rt4s() -> Result<CircuitData, CircuitDataError> {
 ///
 /// # References
 ///
-/// 1. Maslov, Phys. Rev. A 93, 022311 (2016), "Advantages of using
+/// 1. D. Maslov, Phys. Rev. A 93, 022311 (2016), "Advantages of using
 ///    relative-phase Toffoli gates with an application to multiple control Toffoli optimization",
-///    [arXiv:1508.03273] (https://arxiv.org/pdf/1508.03273).
+///    [arXiv:1508.03273](https://arxiv.org/abs/1508.03273).
 pub fn synth_mcx_n_clean_m15(num_controls: usize) -> Result<CircuitData, CircuitDataError> {
     if num_controls == 0 {
         let mut circuit = CircuitData::with_capacity(1, 0, 1, Param::Float(0.0))?;
@@ -644,7 +646,6 @@ pub fn synth_mcx_n_clean_m15(num_controls: usize) -> Result<CircuitData, Circuit
         let target = num_controls as u32;
         let first_ancilla = (num_controls + 1) as u32;
         let rccx_gate = rccx();
-        let rccx_inverse = rccx_gate.inverse()?;
         let rc3x_gate = rc3x();
         let rc3x_inverse = rc3x_gate.inverse()?;
 
@@ -700,11 +701,8 @@ pub fn synth_mcx_n_clean_m15(num_controls: usize) -> Result<CircuitData, Circuit
         }
 
         if num_controls % 2 == 1 {
-            circuit.compose(
-                &rccx_inverse,
-                &[Qubit(0), Qubit(1), Qubit(first_ancilla)],
-                &[],
-            )?;
+            // Inverse RCCX (RCCX is self-inverse).
+            circuit.compose(&rccx_gate, &[Qubit(0), Qubit(1), Qubit(first_ancilla)], &[])?;
         } else {
             circuit.compose(
                 &rc3x_inverse,
@@ -718,15 +716,16 @@ pub fn synth_mcx_n_clean_m15(num_controls: usize) -> Result<CircuitData, Circuit
 }
 
 /// Synthesize a multi-controlled X gate using dirty ancillary qubits, following
-/// Proposition 5 of Maslov (2016).
+/// circuit (5) for three controls and Proposition 5 for four or more controls in
+/// Maslov (2016).
 ///
-/// For three controls the construction uses one dirty ancilla and has 16 T gates and 14 CNOTs.
+/// For three controls the construction uses one dirty ancilla and has 16 T gates and 14 CX gates.
 /// For :math:`k \ge 4` controls it uses :math:`\lceil(k - 2) / 2\rceil` dirty ancillas and has
-/// :math:`8k - 8` T gates and :math:`8k - 12` CNOTs.
+/// :math:`8k - 8` T gates and :math:`8k - 12` CX gates.
 ///
 /// # References
 ///
-/// 1. Maslov, *On the advantages of using relative phase Toffolis with an application to
+/// 1. D. Maslov, *Advantages of using relative-phase Toffoli gates with an application to
 ///    multiple control Toffoli optimization*, Phys. Rev. A 93, 022311 (2016),
 ///    [arXiv:1508.03273](https://arxiv.org/abs/1508.03273).
 pub fn synth_mcx_n_dirty_m15(num_controls: usize) -> Result<CircuitData, CircuitDataError> {
@@ -745,14 +744,14 @@ pub fn synth_mcx_n_dirty_m15(num_controls: usize) -> Result<CircuitData, Circuit
     let srts_gate = srts()?;
     let srts_inverse = srts_gate.inverse()?;
     let rtl_gate = rccx();
-    let rtl_inverse = rtl_gate.inverse()?;
 
     if num_controls == 3 {
         let mut circuit = CircuitData::with_capacity(5, 0, 36, Param::Float(0.0))?;
         circuit.compose(&srts_gate, &[Qubit(2), Qubit(4), Qubit(3)], &[])?;
         circuit.compose(&rtl_gate, &[Qubit(0), Qubit(1), Qubit(4)], &[])?;
         circuit.compose(&srts_inverse, &[Qubit(2), Qubit(4), Qubit(3)], &[])?;
-        circuit.compose(&rtl_inverse, &[Qubit(0), Qubit(1), Qubit(4)], &[])?;
+        // Inverse RCCX (RCCX is self-inverse).
+        circuit.compose(&rtl_gate, &[Qubit(0), Qubit(1), Qubit(4)], &[])?;
         return Ok(circuit);
     }
 
@@ -760,7 +759,7 @@ pub fn synth_mcx_n_dirty_m15(num_controls: usize) -> Result<CircuitData, Circuit
     // and the target 2n-3. The RT4 replacements eliminate ancillas n, n+2, ...;
     // compact the remaining paper indices into Qiskit's controls-target-ancillas order.
     let n = num_controls + 1;
-    let paper_q = |original: usize| {
+    let map_qubit_idx = |original: usize| {
         let compact = if original < n {
             original - 1
         } else if original == 2 * n - 3 {
@@ -782,7 +781,11 @@ pub fn synth_mcx_n_dirty_m15(num_controls: usize) -> Result<CircuitData, Circuit
 
     circuit.compose(
         &srts_gate,
-        &[paper_q(n - 1), paper_q(2 * n - 4), paper_q(2 * n - 3)],
+        &[
+            map_qubit_idx(n - 1),
+            map_qubit_idx(2 * n - 4),
+            map_qubit_idx(2 * n - 3),
+        ],
         &[],
     )?;
 
@@ -791,7 +794,11 @@ pub fn synth_mcx_n_dirty_m15(num_controls: usize) -> Result<CircuitData, Circuit
         let first_unpaired = if n % 2 == 0 {
             circuit.compose(
                 &rts_gate,
-                &[paper_q(2 * n - 5), paper_q(n - 2), paper_q(2 * n - 4)],
+                &[
+                    map_qubit_idx(2 * n - 5),
+                    map_qubit_idx(n - 2),
+                    map_qubit_idx(2 * n - 4),
+                ],
                 &[],
             )?;
             2
@@ -802,10 +809,10 @@ pub fn synth_mcx_n_dirty_m15(num_controls: usize) -> Result<CircuitData, Circuit
             circuit.compose(
                 &rt4s_gate,
                 &[
-                    paper_q(2 * n - 5 - k),
-                    paper_q(n - 2 - k),
-                    paper_q(n - 1 - k),
-                    paper_q(2 * n - 3 - k),
+                    map_qubit_idx(2 * n - 5 - k),
+                    map_qubit_idx(n - 2 - k),
+                    map_qubit_idx(n - 1 - k),
+                    map_qubit_idx(2 * n - 3 - k),
                 ],
                 &[],
             )?;
@@ -817,7 +824,12 @@ pub fn synth_mcx_n_dirty_m15(num_controls: usize) -> Result<CircuitData, Circuit
             } else {
                 &rt4l_inverse
             },
-            &[paper_q(1), paper_q(2), paper_q(3), paper_q(n + 1)],
+            &[
+                map_qubit_idx(1),
+                map_qubit_idx(2),
+                map_qubit_idx(3),
+                map_qubit_idx(n + 1),
+            ],
             &[],
         )?;
 
@@ -826,10 +838,10 @@ pub fn synth_mcx_n_dirty_m15(num_controls: usize) -> Result<CircuitData, Circuit
             circuit.compose(
                 &rt4s_inverse,
                 &[
-                    paper_q(n - 1 + k),
-                    paper_q(k + 2),
-                    paper_q(k + 3),
-                    paper_q(n + k + 1),
+                    map_qubit_idx(n - 1 + k),
+                    map_qubit_idx(k + 2),
+                    map_qubit_idx(k + 3),
+                    map_qubit_idx(n + k + 1),
                 ],
                 &[],
             )?;
@@ -838,7 +850,11 @@ pub fn synth_mcx_n_dirty_m15(num_controls: usize) -> Result<CircuitData, Circuit
             let k = n - 4;
             circuit.compose(
                 &rts_inverse,
-                &[paper_q(n - 1 + k), paper_q(k + 2), paper_q(n + k)],
+                &[
+                    map_qubit_idx(n - 1 + k),
+                    map_qubit_idx(k + 2),
+                    map_qubit_idx(n + k),
+                ],
                 &[],
             )?;
         }
@@ -846,7 +862,11 @@ pub fn synth_mcx_n_dirty_m15(num_controls: usize) -> Result<CircuitData, Circuit
         if forward_pass {
             circuit.compose(
                 &srts_inverse,
-                &[paper_q(n - 1), paper_q(2 * n - 4), paper_q(2 * n - 3)],
+                &[
+                    map_qubit_idx(n - 1),
+                    map_qubit_idx(2 * n - 4),
+                    map_qubit_idx(2 * n - 3),
+                ],
                 &[],
             )?;
         }
