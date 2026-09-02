@@ -32,7 +32,7 @@ use crate::error::QpyError;
 use crate::formats::{LayoutV2Pack, QPYCircuit, QPYFileHeader};
 use crate::py_methods::{py_circuit_data_to_quantum_circuit, serialize_metadata};
 use crate::value::{
-    ProgramType, SymbolicEncoding, deserialize, deserialize_with_args, serialize,
+    ProgramType, QpyCaller, SymbolicEncoding, deserialize, deserialize_with_args, serialize,
     serialize_with_args,
 };
 
@@ -107,6 +107,7 @@ pub fn dump_qpy(
     extra_data: Vec<ExtraCircuitData>,
     qpy_version: u8,
     annotation_handler: Option<AnnotationHandler>,
+    caller: Option<QpyCaller>,
 ) -> Result<Bytes, QpyError> {
     if qpy_version < QPY_WRITE_MIN_VERSION {
         Err(QpyError::UnsupportedFeatureForVersion {
@@ -115,6 +116,7 @@ pub fn dump_qpy(
             min_version: QPY_WRITE_MIN_VERSION,
         })?;
     }
+    let caller = caller.unwrap_or(QpyCaller::Native);
     let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native(
         Vec::new(),
         NativeLoaders::default(),
@@ -135,6 +137,7 @@ pub fn dump_qpy(
                 extra,
                 qpy_version,
                 annotation_handler.child()?,
+                caller,
             )?)
         })
         .collect::<Result<Vec<Bytes>, QpyError>>()?;
@@ -214,7 +217,13 @@ pub fn py_dump_qpy(
         })
         .collect::<Result<Vec<_>, QpyError>>()?;
     let circuit_data = circuits.into_iter().map(|circuit| circuit.data).collect();
-    let serialized_qpy = dump_qpy(circuit_data, extra_data, version, Some(annotation_handler))?;
+    let serialized_qpy = dump_qpy(
+        circuit_data,
+        extra_data,
+        version,
+        Some(annotation_handler),
+        Some(QpyCaller::Python),
+    )?;
     file_obj.call_method1("write", (pyo3::types::PyBytes::new(py, &serialized_qpy),))?;
     Ok(())
 }
@@ -276,6 +285,7 @@ pub fn read_raw_circuits(
 pub fn load_qpy(
     data: &Bytes,
     annotation_handler: Option<AnnotationHandler>,
+    caller: Option<QpyCaller>,
 ) -> Result<Vec<LoadedCircuit>, QpyError> {
     // Every QPY file begins with "QISKIT" followed by a version byte.
     // Since the header might be effected by the version, we begin by explicitly extracting the version.
@@ -289,6 +299,7 @@ pub fn load_qpy(
             min_version: QPY_READ_MIN_VERSION,
         })?;
     }
+    let caller = caller.unwrap_or(QpyCaller::Native);
     let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native(
         Vec::new(),
         NativeLoaders::default(),
@@ -326,6 +337,7 @@ pub fn load_qpy(
                 qpy_file_header.qpy_version,
                 use_symengine,
                 annotation_handler.child()?,
+                caller,
             )?;
             circuits.push(LoadedCircuit {
                 circuit_data,
@@ -348,6 +360,7 @@ pub fn load_qpy(
                 qpy_file_header.qpy_version,
                 use_symengine,
                 annotation_handler.child()?,
+                caller,
             )?;
             circuits.push(LoadedCircuit {
                 circuit_data,
@@ -386,14 +399,17 @@ pub fn py_load_qpy(
     let data: Bytes = file_obj.call_method0("read")?.extract()?;
 
     let annotation_handler = AnnotationHandler::python(&annotation_factories.clone().unbind())?;
-    load_qpy(&data, Some(annotation_handler))?
+    load_qpy(&data, Some(annotation_handler), Some(QpyCaller::Python))?
         .into_iter()
         .map(|loaded| {
-            py_circuit_data_to_quantum_circuit(
-                loaded.circuit_data,
-                &loaded.packed_circuit,
-                metadata_deserializer.as_ref().map(Bound::as_ref),
-            )
+            QpyCaller::Python.attach("Python circuit construction", |py| {
+                py_circuit_data_to_quantum_circuit(
+                    py,
+                    loaded.circuit_data,
+                    &loaded.packed_circuit,
+                    metadata_deserializer.as_ref().map(Bound::as_ref),
+                )
+            })
         })
         .collect()
 }
