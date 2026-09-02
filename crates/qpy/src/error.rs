@@ -22,8 +22,6 @@ mod py_exceptions {
 use py_exceptions::QpyError as PyQpyError;
 use py_exceptions::UnsupportedFeatureForVersion as PyUnsupportedFeatureForVersion;
 
-// The initial version of the QpyError enum and its helper functions were created with Bob 0.14 (probably using Claude Sonnet 3.5)
-
 /// Errors that can occur during QPY serialization and deserialization operations.
 ///
 /// This error type is used internally within the QPY module. It is converted to
@@ -143,6 +141,10 @@ pub enum QpyError {
     /// Python error that occurred during a Python call
     #[error("Python error: {0}")]
     PythonError(#[from] PyErr),
+
+    /// A QPY feature that requires the Python runtime was used from a native caller.
+    #[error("QPY feature '{0}' is only available when QPY is invoked from Python")]
+    PythonOnly(&'static str),
 }
 
 impl From<QpyError> for PyErr {
