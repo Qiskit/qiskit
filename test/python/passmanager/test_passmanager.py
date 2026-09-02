@@ -15,7 +15,7 @@
 
 from test import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
-from qiskit.passmanager import Pass, PassManager
+from qiskit.passmanager import Pass, PassManager, CallbackType, Callback
 from qiskit.transpiler import Target
 
 
@@ -40,6 +40,22 @@ class ResetComputationalQubits(Pass):
         return ir
 
 
+class CallbackTester(Callback):
+    def __init__(self, hookpoint, required_keys={}):
+        self.hookpoint = hookpoint
+        self.counter = 0
+        self.required_keys = required_keys
+
+    def trigger(self, hookpoint):
+        return hookpoint == self.hookpoint
+
+    def ir_and_context(self, ir, context):
+        self.counter += 1
+        for key in self.required_keys:
+            if context.get(key, None) is None:
+                raise ValueError("Missing key: %s", key)
+
+
 class TestPassManager(QiskitTestCase):
     """Pass manager tests."""
 
@@ -62,3 +78,22 @@ class TestPassManager(QiskitTestCase):
         self.assertIsInstance(out, QuantumCircuit)
         self.assertEqual(out.count_ops().get("reset", 0), 2)
         self.assertEqual(context.get("layout", []), [0, 1])
+
+    def test_callback(self):
+        """Test the callbacks."""
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.t(1)
+        circuit.cx(0, 1)
+
+        target = Target(num_qubits=10)
+
+        pm = PassManager()
+        pm.push(SetLayout(target))
+        pm.push(ResetComputationalQubits())
+
+        for hookpoint, expected_count in [(CallbackType.PostPass, 2)]:
+            with self.subTest(hookpoint=hookpoint):
+                callback = CallbackTester(hookpoint, required_keys={"layout"})
+                _, _ = pm.run(circuit, callback)
+                self.assertEqual(callback.counter, expected_count)

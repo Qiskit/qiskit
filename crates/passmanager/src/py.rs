@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::sync::Arc;
+use std::{any::Any, sync::Arc};
 
 use hashbrown::HashMap;
 use pyo3::{
@@ -20,7 +20,10 @@ use pyo3::{
     types::PyString,
 };
 
-use crate::{Pass, PassContext, PassManager, PassManagerContext, PassManagerError, Value};
+use crate::{
+    Callback, CallbackError, CallbackType, Pass, PassContext, PassManager, PassManagerContext,
+    PassManagerError, Value,
+};
 
 impl From<PassManagerError> for PyErr {
     fn from(value: PassManagerError) -> Self {
@@ -34,6 +37,7 @@ impl From<PassManagerError> for PyErr {
                 PyIndexError::new_err(format!("Index {index} out of bounds ({len})"))
             }
             PassManagerError::PassError(p) => PyRuntimeError::new_err(p.to_string()),
+            PassManagerError::CallbackError(e) => PyRuntimeError::new_err(e.to_string()),
         }
     }
 }
@@ -54,6 +58,7 @@ impl From<PassManagerError> for PyErr {
 #[pyo3(name = "PassContext")]
 #[derive(Debug)]
 pub struct PyPassContext {
+    // inner: Arc<PassContext>,
     global: Arc<PassManagerContext>,
     data: HashMap<String, Py<PyAny>>,
     /// If ``True``, the pass has changed the IR.  If ``False``, no updates have been made.
@@ -65,11 +70,28 @@ pub struct PyPassContext {
 
 impl PyPassContext {
     fn new_bound<'py>(py: Python<'py>, pass_context: &PassContext) -> PyResult<Bound<'py, Self>> {
+        // build the Python data dict from the PassContext
+        let py_data = pass_context
+            .updates
+            .insertions
+            .iter()
+            .filter_map(|(key, value)| {
+                if let Value::PyCompatible(py_value) = value {
+                    match py_value.to_py_any(py) {
+                        Err(e) => Some(Err(e)),
+                        Ok(py_any) => Some(Ok((key.clone(), py_any))),
+                    }
+                } else {
+                    None
+                }
+            })
+            .collect::<PyResult<_>>()?;
+
         Bound::new(
             py,
             PyPassContext {
                 global: Arc::clone(&pass_context.global_context),
-                data: HashMap::new(),
+                data: py_data,
                 has_changed: pass_context.has_changed,
                 is_drained: false,
             },
@@ -123,6 +145,48 @@ impl PyPassContext {
     pub fn set(&mut self, key: Bound<'_, PyString>, value: Bound<'_, PyAny>) {
         let key = key.to_string();
         self.data.insert(key, value.unbind());
+    }
+}
+
+#[pyclass]
+pub struct PyCallback {
+    /// A handle to the Python class implementing the callback interface.
+    py_obj: Py<PyAny>,
+}
+
+impl PyCallback {
+    fn from_bound(py_obj: Bound<'_, PyAny>) -> Self {
+        // TODO do instance check
+        Self {
+            py_obj: py_obj.unbind(),
+        }
+    }
+}
+
+impl Callback for PyCallback {
+    fn trigger(&self, hookpoint: &CallbackType) -> Result<bool, CallbackError> {
+        Python::attach(|py| -> PyResult<_> {
+            self.py_obj
+                .bind(py)
+                .call_method1(intern!(py, "trigger"), (*hookpoint,))?
+                .extract::<bool>()
+        })
+        .map_err(|e| e.into())
+    }
+
+    fn ir_and_context(&self, ir: &dyn Any, context: &PassContext) -> Result<(), CallbackError> {
+        let Some(py_ir) = ir.downcast_ref::<Py<PyAny>>() else {
+            return Err(CallbackError::CastingError);
+        };
+
+        Python::attach(|py| -> PyResult<_> {
+            let py_context = PyPassContext::new_bound(py, context)?;
+            self.py_obj
+                .bind(py)
+                .call_method1(intern!(py, "ir_and_context"), (py_ir, py_context))?;
+            Ok(())
+        })
+        .map_err(|e| e.into())
     }
 }
 
@@ -181,10 +245,16 @@ impl PassManager {
             .map_err(|e| e.into())
     }
 
-    #[pyo3(name = "run")]
-    fn py_run(&self, ir: Bound<'_, PyAny>) -> PyResult<(Py<PyAny>, PassManagerContext)> {
+    #[pyo3(name = "run", signature = (ir, callback=None))]
+    fn py_run(
+        &self,
+        ir: Bound<'_, PyAny>,
+        callback: Option<Bound<'_, PyAny>>,
+    ) -> PyResult<(Py<PyAny>, PassManagerContext)> {
         let ir_in = ir.unbind();
-        let (ir_out, context) = self.run::<_, Py<PyAny>>(ir_in, None)?;
+        let py_callback = callback.map(PyCallback::from_bound);
+        let (ir_out, context) =
+            self.run::<_, Py<PyAny>>(ir_in, py_callback.as_ref().map(|cb| cb as &dyn Callback))?;
 
         Ok((ir_out, context))
     }
@@ -230,5 +300,6 @@ impl PassManagerContext {
 pub fn passmanager(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<PyPassContext>()?;
     m.add_class::<PassManager>()?;
+    m.add_class::<CallbackType>()?;
     Ok(())
 }

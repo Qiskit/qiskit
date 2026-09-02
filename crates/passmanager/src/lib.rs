@@ -13,7 +13,7 @@
 pub mod py;
 
 use hashbrown::{HashMap, HashSet};
-use pyo3::{BoundObject, IntoPyObject, Py, PyAny, PyResult, Python, pyclass};
+use pyo3::{BoundObject, IntoPyObject, Py, PyAny, PyErr, PyResult, Python, pyclass};
 use std::{
     any::{Any, TypeId},
     fmt::Debug,
@@ -129,7 +129,7 @@ impl PassManagerContext {
 impl PassContext {
     fn spawn(global_context: Arc<PassManagerContext>) -> Self {
         Self {
-            global_context: global_context,
+            global_context,
             has_changed: true,
             updates: ContextUpdates::default(),
         }
@@ -285,10 +285,19 @@ impl Task {
 
 /// Hookpoint for the callback.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[pyclass(skip_from_py_object)]
 pub enum CallbackType {
     PostPass,
     PostTask,
     PostStage,
+}
+
+#[derive(Error, Debug)]
+pub enum CallbackError {
+    #[error(transparent)]
+    PyErr(#[from] PyErr),
+    #[error("Failed to cast IR to target type.")]
+    CastingError,
 }
 
 /// A (set of) callback(s) to trigger during the pass manager execution.
@@ -300,13 +309,22 @@ pub enum CallbackType {
 /// all optional.
 pub trait Callback {
     /// The hookpoints for when the functions are called.
-    fn trigger(&self, hookpoint: &CallbackType) -> bool;
+    fn trigger(&self, hookpoint: &CallbackType) -> Result<bool, CallbackError>;
 
     /// The standard callback providing only the IR and pass context.
-    fn ir_and_context(&self, _ir: &dyn Any, _context: &PassContext) {}
+    fn ir_and_context(&self, _ir: &dyn Any, _context: &PassContext) -> Result<(), CallbackError> {
+        Ok(())
+    }
 
     /// A callback also providing the pass. This is only called for [CallbackType::PostPass].
-    fn with_pass(&self, _pass: &dyn AnyPass, _ir: &dyn Any, _context: &PassContext) {}
+    fn with_pass(
+        &self,
+        _pass: &dyn AnyPass,
+        _ir: &dyn Any,
+        _context: &PassContext,
+    ) -> Result<(), CallbackError> {
+        Ok(())
+    }
 }
 
 /// Qiskit's pass manager.
@@ -330,6 +348,8 @@ pub enum PassManagerError {
     EmptyTask,
     #[error("Invalid index ({index}) for ({len}) tasks")]
     IndexError { index: usize, len: usize },
+    #[error(transparent)]
+    CallbackError(#[from] CallbackError),
 }
 
 impl PassManager {
@@ -505,14 +525,14 @@ fn execute_task(
         Task::Transformation(pass) => {
             let out = pass.run(ir, context).map_err(PassManagerError::PassError)?;
             if let Some(cb) = callback
-                && cb.trigger(&CallbackType::PostPass)
+                && cb.trigger(&CallbackType::PostPass)?
             {
                 // Note that we want to pass a reference to the box content, not cast the
                 // box itself to any. Hence we deref, before passing the reference. Not doing this
                 // still compiles since Box<dyn Any> itself is castable to Any, but the downcasting
                 // further down the line will fail since it tries to cast Box<..> into the type.
-                cb.ir_and_context(&*out, context);
-                cb.with_pass(&**pass, &out, context);
+                cb.ir_and_context(&*out, context)?;
+                cb.with_pass(&**pass, &out, context)?;
             }
             Ok(out)
         }
@@ -536,18 +556,18 @@ fn execute_task(
             for (_name, task) in stages.iter() {
                 ir = execute_task(task, ir, context, callback)?;
                 if let Some(cb) = callback
-                    && cb.trigger(&CallbackType::PostStage)
+                    && cb.trigger(&CallbackType::PostStage)?
                 {
-                    cb.ir_and_context(&*ir, context)
+                    cb.ir_and_context(&*ir, context)?
                 }
             }
             Ok(ir)
         }
     }?;
     if let Some(cb) = callback
-        && cb.trigger(&CallbackType::PostTask)
+        && cb.trigger(&CallbackType::PostTask)?
     {
-        cb.ir_and_context(&*out, context)
+        cb.ir_and_context(&*out, context)?
     }
     Ok(out)
 }
@@ -675,12 +695,17 @@ mod test {
     }
 
     impl Callback for CounterCallback {
-        fn trigger(&self, hookpoint: &CallbackType) -> bool {
-            self.hookpoint.eq(hookpoint)
+        fn trigger(&self, hookpoint: &CallbackType) -> Result<bool, CallbackError> {
+            Ok(self.hookpoint.eq(hookpoint))
         }
 
-        fn ir_and_context(&self, _ir: &dyn Any, _context: &PassContext) {
+        fn ir_and_context(
+            &self,
+            _ir: &dyn Any,
+            _context: &PassContext,
+        ) -> Result<(), CallbackError> {
             self.counter.set(self.counter.get() + 1);
+            Ok(())
         }
     }
 

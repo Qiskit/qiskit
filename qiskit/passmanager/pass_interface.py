@@ -12,7 +12,7 @@
 
 from abc import ABC, abstractmethod
 from typing import Any
-from qiskit._accelerate.passmanager import PassContext
+from qiskit._accelerate.passmanager import PassContext, CallbackType
 
 
 class Pass(ABC):
@@ -20,3 +20,13 @@ class Pass(ABC):
 
     @abstractmethod
     def run(self, ir: Any, context: PassContext) -> Any: ...
+
+
+class Callback(ABC):
+    """The callback interface."""
+
+    @abstractmethod
+    def trigger(self, hookpoint: CallbackType) -> bool: ...
+
+    def ir_and_context(self, ir: Any, context: PassContext):
+        pass  # empty default implementation
