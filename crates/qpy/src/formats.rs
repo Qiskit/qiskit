@@ -498,7 +498,7 @@ pub struct GenericDataSequencePack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[br(import (version: u8))]
+#[brw(import (version: u8))]
 pub struct PauliEvolutionDefPack {
     #[bw(calc = pauli_data.len() as u64)]
     pub operator_size: u64,
@@ -509,6 +509,7 @@ pub struct PauliEvolutionDefPack {
     #[bw(calc = synth_data.len() as u64)]
     pub synth_method_size: u64,
     #[br(count = operator_size, args { inner: (version,) })]
+    #[bw(args(version))]
     pub pauli_data: Vec<PauliDataPack>,
     #[br(count = time_size)]
     pub time_data: Bytes,
@@ -519,14 +520,19 @@ pub struct PauliEvolutionDefPack {
 // A pauli operator data for pauli evolution gates
 // The operator is given either as a SparesePauliOp list or as a SparasePauliObservable
 // SparsePauliObservable was added in V17
+//
+// This variant covers V17 *and later*: the only difference from V18 onwards is the width of the
+// bit terms inside `SparsePauliObservableElemPack`, which that struct handles itself given
+// `version`.
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
+#[brw(import(version: u8))]
 pub enum PauliDataPackV17 {
     #[brw(magic = 0u8)] // old style: sparse pauli op list
     SparsePauliOp(SparsePauliOpListElemPack),
     #[brw(magic = 1u8)] // new style added in v17: sparse observable
-    SparseObservable(SparsePauliObservableElemPack),
+    SparseObservable(#[brw(args(version))] SparsePauliObservableElemPack),
 }
 
 // The V16 version of the Pauli data pack only allows SparsePauliOp and doesn't use a distinguishing first byte
@@ -539,13 +545,13 @@ pub enum PauliDataPackV16 {
 
 #[binrw]
 #[derive(Debug)]
-#[br(import(version: u8))]
+#[brw(import(version: u8))]
 pub enum PauliDataPack {
     #[br(pre_assert(version <= 16))]
     V16(PauliDataPackV16),
 
     #[br(pre_assert(version >= 17))]
-    V17(PauliDataPackV17),
+    V17(#[brw(args(version))] PauliDataPackV17),
 }
 
 // SparsePauliOpList is a serialized python numpy array
@@ -559,17 +565,65 @@ pub struct SparsePauliOpListElemPack {
     pub data: Bytes,
 }
 
+/// Read the bit terms of a `SPARSE_OBSERVABLE` payload.
+///
+/// `BitTerm` is `#[repr(u8)]`, so a single byte is always enough.  QPY 17 nonetheless stored each
+/// bit term as a `u16`, wasting a byte per term; QPY 18 narrowed it to `u8`.  The in-memory
+/// representation is always `u8` and this parser absorbs the difference, so nothing downstream has
+/// to care which version produced the payload.
+#[binrw::parser(reader, endian)]
+fn read_bitterms(version: u8, byte_count: u64) -> BinResult<Vec<u8>> {
+    let count = (byte_count / bitterm_size(version) as u64) as usize;
+    if version >= 18 {
+        Vec::<u8>::read_options(reader, endian, binrw::VecArgs { count, inner: () })
+    } else {
+        let wide = Vec::<u16>::read_options(reader, endian, binrw::VecArgs { count, inner: () })?;
+        let pos = reader.stream_position().unwrap_or(0);
+        wide.into_iter()
+            .map(|term| {
+                u8::try_from(term).map_err(|_| binrw::Error::AssertFail {
+                    pos,
+                    message: format!("bit term {term} does not fit in a u8"),
+                })
+            })
+            .collect()
+    }
+}
+
+/// Write the bit terms of a `SPARSE_OBSERVABLE` payload, widening back to `u16` for QPY < 18.
+/// Mirror of [`read_bitterms`].
+#[binrw::writer(writer, endian)]
+fn write_bitterms(bitterms: &Vec<u8>, version: u8) -> BinResult<()> {
+    if version >= 18 {
+        bitterms.write_options(writer, endian, ())
+    } else {
+        let wide: Vec<u16> = bitterms.iter().map(|&term| term as u16).collect();
+        wide.write_options(writer, endian, ())
+    }
+}
+
+const fn bitterm_size(version: u8) -> usize {
+    if version <= 17 {
+        std::mem::size_of::<u16>()
+    } else {
+        std::mem::size_of::<u8>()
+    }
+}
+
 // SparsePauiObservable has explicit data that can be used to reconstruct
 // a rust SparseObservable struct
+//
+// Note that the `*_size` fields are element *counts*, not byte lengths.
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
+#[brw(import(version: u8))]
 pub struct SparsePauliObservableElemPack {
     pub num_qubits: u32,
     // coeffs are Complex64 numbers, stored as a vector of f64 in the format [re1, im1, re2, im2,...]
     #[bw(calc = (coeff_data.len() * std::mem::size_of::<f64>()) as u64)]
     pub coeff_data_size: u64,
-    #[bw(calc = (bitterm_data.len() * std::mem::size_of::<u16>()) as u64)]
+    #[bw(calc = (bitterm_data.len() * bitterm_size(version)) as u64)]
     pub bitterm_data_size: u64,
     #[bw(calc = (inds_data.len() * std::mem::size_of::<u32>()) as u64)]
     pub inds_data_size: u64,
@@ -577,8 +631,10 @@ pub struct SparsePauliObservableElemPack {
     pub bounds_data_size: u64,
     #[br(count = coeff_data_size / std::mem::size_of::<f64>() as u64)]
     pub coeff_data: Vec<f64>, // complex numbers stored in format [re1, im1, re2, im2,...]
-    #[br(count = bitterm_data_size / std::mem::size_of::<u16>() as u64)]
-    pub bitterm_data: Vec<u16>,
+    // Stored as `u16` up to QPY 17 and as `u8` from QPY 18 on; always `u8` in memory.
+    #[br(parse_with = read_bitterms, args(version, bitterm_data_size))]
+    #[bw(write_with = write_bitterms, args(version))]
+    pub bitterm_data: Vec<u8>,
     #[br(count = inds_data_size / std::mem::size_of::<u32>() as u64)]
     pub inds_data: Vec<u32>,
     #[br(count = bounds_data_size / std::mem::size_of::<u64>() as u64)]
