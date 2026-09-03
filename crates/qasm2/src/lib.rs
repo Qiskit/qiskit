@@ -84,15 +84,8 @@ fn bytecode_from_file(
 #[cfg(feature = "py")]
 pub fn qasm2(module: &Bound<PyModule>) -> PyResult<()> {
     module.add_class::<bytecode::OpCode>()?;
-    module.add_class::<bytecode::UnaryOpCode>()?;
-    module.add_class::<bytecode::BinaryOpCode>()?;
     module.add_class::<bytecode::Bytecode>()?;
     module.add_class::<bytecode::GateBodyArguments>()?;
-    module.add_class::<bytecode::ExprConstant>()?;
-    module.add_class::<bytecode::ExprArgument>()?;
-    module.add_class::<bytecode::ExprUnary>()?;
-    module.add_class::<bytecode::ExprBinary>()?;
-    module.add_class::<bytecode::ExprCustom>()?;
     module.add_class::<CustomInstruction>()?;
     module.add_class::<CustomClassical>()?;
     module.add_function(wrap_pyfunction!(bytecode_from_string, module)?)?;
