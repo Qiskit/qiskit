@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
 use std::any::{Any, TypeId};
 use thiserror::Error;
 
@@ -43,7 +43,24 @@ pub struct PassContext<'a> {
 /// information.
 #[derive(Default)]
 struct ContextUpdates {
-    data: HashMap<String, Box<dyn Any>>,
+    insertions: HashMap<String, Box<dyn Any>>,
+    deletions: HashSet<String>,
+}
+
+impl ContextUpdates {
+    fn insert(&mut self, key: String, value: Box<dyn Any>) {
+        self.deletions.remove(&key);
+        self.insertions.insert(key, value);
+    }
+
+    fn delete(&mut self, key: String) {
+        self.insertions.remove(&key);
+        self.deletions.insert(key);
+    }
+
+    fn get<S: AsRef<str>>(&self, key: S) -> Option<&dyn Any> {
+        Some(self.insertions.get(key.as_ref())?)
+    }
 }
 
 impl PassManagerContext {
@@ -52,8 +69,11 @@ impl PassManagerContext {
     }
 
     fn update(&mut self, mut updates: ContextUpdates) {
-        for (key, value) in updates.data.drain() {
+        for (key, value) in updates.insertions.drain() {
             self.data.insert(key, value);
+        }
+        for key in updates.deletions.iter() {
+            self.data.remove(key);
         }
     }
 }
@@ -74,7 +94,11 @@ impl<'a> PassContext<'a> {
     /// Set a new entry in the pass context.
     /// Overwrites the existing value under that key, if it exists.
     pub fn set(&mut self, key: String, value: Box<dyn Any>) {
-        self.updates.data.insert(key, value);
+        self.updates.insert(key, value);
+    }
+
+    pub fn delete(&mut self, key: String) {
+        self.updates.delete(key);
     }
 
     /// Get an entry, if it exists.
@@ -82,8 +106,8 @@ impl<'a> PassContext<'a> {
     /// This first queries from the local context, then the global.
     pub fn get<S: AsRef<str>>(&mut self, key: S) -> Option<&dyn Any> {
         // The local registry takes precedence.
-        if let Some(value) = self.updates.data.get(key.as_ref()) {
-            Some(value.as_ref())
+        if let Some(value) = self.updates.get(&key) {
+            Some(value)
         } else {
             self.global_context
                 .data
