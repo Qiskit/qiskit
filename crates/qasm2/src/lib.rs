@@ -16,6 +16,8 @@ use pyo3::prelude::*;
 #[cfg(feature = "py")]
 use crate::bytecode::QASM2ParseError;
 
+#[cfg(feature = "circuit")]
+mod build;
 mod bytecode;
 mod error;
 mod expr;
@@ -23,10 +25,48 @@ mod ext;
 mod lex;
 mod parse;
 
+pub use self::error::ParseError;
 pub use self::ext::{
     ClassicalBuiltinExt, ClassicalCallableExt, ClassicalEvaluator, CustomClassical,
     CustomInstruction,
 };
+
+/// Parse an OpenQASM 2 program into a [CircuitData][qiskit_circuit::circuit_data::CircuitData],
+/// with no involvement from Python.
+///
+/// This is the native counterpart to `bytecode_from_string`: instead of handing a bytecode stream
+/// to `qiskit/qasm2/parse.py` to interpret, the bytecode is consumed by the Rust builder in
+/// `build.rs`.  `qiskit.qasm2.loads` still takes the Python route, so the two are independent.
+///
+/// Any `custom_classical` must be callable without an interpreter (see
+/// [ClassicalEvaluator::detached]); a Python callable here is an error, not a panic.
+#[cfg(feature = "circuit")]
+pub fn circuit_from_string(
+    program: String,
+    include_path: Vec<std::path::PathBuf>,
+    custom_instructions: &[CustomInstruction],
+    custom_classical: &[CustomClassical],
+    strict: bool,
+) -> Result<qiskit_circuit::circuit_data::CircuitData, ParseError> {
+    let mut state = parse::State::new(
+        lex::TokenStream::from_string(program, strict),
+        include_path,
+        custom_instructions,
+        custom_classical,
+        strict,
+    )?;
+    // `parse_next` handles a single statement, which can expand to several instructions; we drain
+    // its buffer into `bytecode` after each call so the buffer allocation is reused.
+    let mut buffer = Vec::new();
+    let mut bytecode = Vec::new();
+    while state
+        .parse_next(&mut buffer, ClassicalEvaluator::detached())?
+        .is_some()
+    {
+        bytecode.extend(buffer.drain(..).flatten());
+    }
+    build::build_circuit(&bytecode)
+}
 
 /// Create a bytecode iterable from a string containing an OpenQASM 2 program.  The iterable will
 /// lex and parse the source lazily; evaluating OpenQASM 2 statements as required, without loading
