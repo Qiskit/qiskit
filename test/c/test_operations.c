@@ -556,6 +556,11 @@ static int test_custom_operation_query(void) {
     // Initialize Vtable
     const QkCustomOpVtable *fee_vtable = qk_custom_operation_vtable_new(fee_entries);
 
+    // Foo type_id
+    uint64_t foo_type = (uint64_t)foo_vtable;
+    // Fee type_id
+    uint64_t fee_type = (uint64_t)fee_vtable;
+
     if (foo_vtable == NULL) {
         printf("Retrieved a Null pointer instead of a Vtable pointer for foo_gate.");
         res = NullptrError;
@@ -641,6 +646,35 @@ static int test_custom_operation_query(void) {
         goto cleanup_definitions;
     }
 
+    uint64_t retreived_foo_type = qk_custom_operation_type_id(op);
+    if (retreived_foo_type != foo_type) {
+        printf("Unexpected type retrieved for '%s'.\n, expected: %llu, got %llu", retrieved_name,
+               foo_type, retreived_foo_type);
+        res = EqualityError;
+        goto cleanup;
+    }
+
+    // Should result in corrupted data if wrong.
+    struct foo_gate *cast_foo = (struct foo_gate *)qk_custom_operation_raw(op);
+    if (cast_foo->num_clbits != test_3q_op->num_clbits) {
+        printf("Unexpected num_clbits retrieved for '%s' pointer.\n, expected: %d, got %d",
+               retrieved_name, test_3q_op->num_clbits, cast_foo->num_clbits);
+        res = EqualityError;
+        goto cleanup;
+    }
+    if (cast_foo->num_qubits != test_3q_op->num_qubits) {
+        printf("Unexpected num_qubits retrieved for '%s' pointer.\n, expected: %d, got %d",
+               retrieved_name, test_3q_op->num_qubits, cast_foo->num_qubits);
+        res = EqualityError;
+        goto cleanup;
+    }
+    if (cast_foo->num_params != test_3q_op->num_params) {
+        printf("Unexpected num_params retrieved for '%s' pointer.\n, expected: %d, got %d",
+               retrieved_name, test_3q_op->num_params, cast_foo->num_params);
+        res = EqualityError;
+        goto cleanup;
+    }
+
     if (qk_circuit_instruction_kind(circuit, 1) != QkOperationKind_Unknown) {
         res = RuntimeError;
         goto cleanup_definitions;
@@ -710,6 +744,23 @@ static int test_custom_operation_query(void) {
         print_circuit(orig_definition);
         res = EqualityError;
         goto cleanup_definitions_1;
+    }
+
+    uint64_t retreived_fee_type = qk_custom_operation_type_id(op);
+    if (retreived_fee_type != fee_type) {
+        printf("Unexpected type retrieved for '%s'.\n, expected: %llu, got %llu", retrieved_name,
+               fee_type, retreived_fee_type);
+        res = EqualityError;
+        goto cleanup_definitions;
+    }
+
+    // Should result in corrupted data if wrong.
+    struct fee_gate *cast_fee = (struct fee_gate *)qk_custom_operation_raw(op);
+    if (strcmp(cast_fee->label, test_2q_op.label) != 0) {
+        printf("Unexpected label retrieved for '%s' pointer.\n, expected: %s, got %s",
+               retrieved_name, test_2q_op.label, cast_fee->label);
+        res = EqualityError;
+        goto cleanup_definitions;
     }
 
 cleanup_definitions_1:
