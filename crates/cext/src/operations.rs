@@ -36,7 +36,7 @@ use qiskit_circuit::{
 /// To achieve this, an operation is defined by two parts:
 /// - The original pointer to the operation struct.
 /// - The pointer to a vtable with the function slots that define
-///   the functionality of this operation. See ``qk_custom_op_vtable_new``
+///   the functionality of this operation. See ``qk_custom_operation_vtable_new``
 ///   for more details.
 ///
 /// Here's a quick example of what that looks like:
@@ -85,7 +85,7 @@ use qiskit_circuit::{
 /// };
 ///
 /// // Create a vtable
-/// QkCustomOpVTable *foo_vtable = qk_custom_op_vtable_new(entries);
+/// QkCustomOpVTable *foo_vtable = qk_custom_operation_vtable_new(entries);
 ///
 /// // Declare a sample instance
 /// struct foo_gate foo_3q = {
@@ -384,7 +384,7 @@ impl CustomOpVTableEntry {
 /// };
 ///
 /// // Create a vtable
-/// QkCustomOpVTable *foo_vtable = qk_custom_op_vtable_new(entries);
+/// QkCustomOpVTable *foo_vtable = qk_custom_operation_vtable_new(entries);
 ///
 /// // Declare a sample instance
 /// struct foo_gate foo_3q = {
@@ -392,7 +392,7 @@ impl CustomOpVTableEntry {
 /// };
 ///
 /// // Create the custom operation
-/// QkCustomOperation foo_3q_custom = qk_custom_op_new(&foo_3q, foo_vtable);
+/// QkCustomOperation foo_3q_custom = qk_custom_operation_new(&foo_3q, foo_vtable);
 /// ```
 ///
 /// @param operation A pointer to the operation struct.
@@ -413,7 +413,7 @@ impl CustomOpVTableEntry {
 ///
 /// Failure to comply with these conditions may result in undefined behavior.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_custom_op_new(
+pub unsafe extern "C" fn qk_custom_operation_new(
     operation: *mut (),
     v_table: *const CustomOpVTable,
 ) -> *mut BoxedCustomOperation {
@@ -483,7 +483,7 @@ pub unsafe extern "C" fn qk_custom_op_new(
 /// Undefined behavior may also happen during transmutation if the provided
 /// function pointer does not have the correct signature.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_custom_op_vtable_new(
+pub unsafe extern "C" fn qk_custom_operation_vtable_new(
     mut slots: *const CustomOpVTableEntry,
 ) -> *const CustomOpVTable {
     let mut vtable = CustomOpVtablePartial::default();

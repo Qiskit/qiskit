@@ -1916,7 +1916,7 @@ pub unsafe extern "C" fn qk_dag_convert_from_python(
 ///
 /// The addition of this `QkCustomOperation` depends on its validity and can be rejected.
 /// If the operation's vtable points to a null pointer due to any errors during construction,
-/// or invalid input being received by ``qk_custom_op_vtable_new``, the operation will be
+/// or invalid input being received by ``qk_custom_operation_vtable_new``, the operation will be
 /// rejected and an `ExitCode` will be returned due to an unexpected null pointer.
 ///
 /// @param dag A pointer to the DAG to apply the operation to.
