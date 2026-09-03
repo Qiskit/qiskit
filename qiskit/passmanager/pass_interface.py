@@ -30,3 +30,6 @@ class Callback(ABC):
 
     def ir_and_context(self, ir: Any, context: PassContext):
         pass  # empty default implementation
+
+    def with_pass(self, pass_: Pass, ir: Any, context: PassContext):
+        pass

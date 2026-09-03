@@ -12,7 +12,7 @@
 
 use qiskit_util::py::ImportOnceCell;
 
-pub static GENERIC_PASS: ImportOnceCell = ImportOnceCell::new("qiskit.passmanager", "GenericPass");
+pub static TASK: ImportOnceCell = ImportOnceCell::new("qiskit.passmanager", "Task");
 pub static PASS: ImportOnceCell = ImportOnceCell::new("qiskit.passmanager", "Pass");
 pub static STATE_FROM_CONTEXT: ImportOnceCell = ImportOnceCell::new(
     "qiskit.passmanager.compilation_status",

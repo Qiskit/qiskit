@@ -43,7 +43,7 @@ where
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum Value {
     Any(Box<dyn Any + Send + Sync>),
     // #[cfg(feature = "python")]
@@ -108,7 +108,7 @@ impl ContextUpdates {
     }
 
     fn get(&self, key: impl AsRef<str>) -> Option<&Value> {
-        Some(self.insertions.get(key.as_ref())?)
+        self.insertions.get(key.as_ref())
     }
 }
 
@@ -298,7 +298,9 @@ pub enum CallbackError {
     #[error(transparent)]
     PyErr(#[from] PyErr),
     #[error("Failed to cast IR to target type.")]
-    CastingError,
+    IRCastingError,
+    #[error("Failed to cast pass to target type.")]
+    PassCastingError,
 }
 
 /// A (set of) callback(s) to trigger during the pass manager execution.
@@ -401,12 +403,7 @@ impl PassManager {
             ir = execute_task(task, ir, &mut pass_context, callback)?;
             let updates = pass_context.into_updates();
 
-            context = match Arc::into_inner(context_ptr) {
-                Some(context) => context,
-                // Someone (Python) still holds a reference to the PassContext so we can't mutate
-                // the inner PassManagerContext and have to clone it.
-                None => (*Arc::clone(&context_ptr)).clone(),
-            };
+            context = Arc::into_inner(context_ptr).expect("There should only be a single arc!");
             context.update(updates);
         }
 
@@ -538,7 +535,7 @@ fn execute_task(
                 // still compiles since Box<dyn Any> itself is castable to Any, but the downcasting
                 // further down the line will fail since it tries to cast Box<..> into the type.
                 cb.ir_and_context(&*out, context)?;
-                cb.with_pass(&**pass, &out, context)?;
+                cb.with_pass(&**pass, &*out, context)?;
             }
             Ok(out)
         }

@@ -12,7 +12,7 @@
 
 use std::{any::Any, sync::Arc};
 
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
 use pyo3::{
     exceptions::{PyIndexError, PyRuntimeError, PyTypeError, PyValueError},
     intern,
@@ -58,9 +58,9 @@ impl From<PassManagerError> for PyErr {
 #[pyo3(name = "PassContext")]
 #[derive(Debug)]
 pub struct PyPassContext {
-    // inner: Arc<PassContext>,
-    global: Arc<PassManagerContext>,
+    global: Option<Arc<PassManagerContext>>,
     data: HashMap<String, Py<PyAny>>,
+    deletions: HashSet<String>,
     /// If ``True``, the pass has changed the IR.  If ``False``, no updates have been made.
     pub has_changed: bool,
     /// If ``True``, all values have been drained into the global pass manager context and it is
@@ -90,8 +90,9 @@ impl PyPassContext {
         Bound::new(
             py,
             PyPassContext {
-                global: Arc::clone(&pass_context.global_context),
+                global: Some(Arc::clone(&pass_context.global_context)),
                 data: py_data,
+                deletions: HashSet::new(),
                 has_changed: pass_context.has_changed,
                 is_drained: false,
             },
@@ -100,8 +101,12 @@ impl PyPassContext {
 
     fn drain_into_context<'py>(slf: Bound<'py, Self>, pass_context: &mut PassContext) {
         let mut borrowed = slf.borrow_mut();
+        borrowed.global = None;
         for (key, value) in borrowed.data.drain() {
             pass_context.set(key, Value::PyCompatible(Box::new(value)));
+        }
+        for key in borrowed.deletions.drain() {
+            pass_context.delete(key);
         }
         borrowed.is_drained = true;
     }
@@ -136,14 +141,17 @@ impl PyPassContext {
 
         if let Some(value) = self.data.get(key.to_str()?) {
             Ok(Some(value.clone_ref(py)))
+        } else if let Some(global) = self.global.as_ref() {
+            global.get(py, key, default)
         } else {
-            self.global.get(py, key, default)
+            Ok(None)
         }
     }
 
     /// Set a value in the pass context.
     pub fn set(&mut self, key: Bound<'_, PyString>, value: Bound<'_, PyAny>) {
         let key = key.to_string();
+        self.deletions.remove(&key);
         self.data.insert(key, value.unbind());
     }
 
@@ -157,6 +165,26 @@ impl PyPassContext {
 
     pub fn __setitem__(&mut self, key: Bound<'_, PyString>, value: Bound<'_, PyAny>) {
         self.set(key, value)
+    }
+
+    pub fn __delitem__(&mut self, key: Bound<'_, PyString>) {
+        let key = key.to_string();
+        self.data.remove(&key);
+        self.deletions.insert(key);
+    }
+
+    pub fn __contains__(&self, key: Bound<'_, PyString>) -> bool {
+        let key = key.to_string();
+        if self.data.contains_key(&key) {
+            return true;
+        }
+        if !self.deletions.contains(&key)
+            && let Some(global) = self.global.as_ref()
+        {
+            global.data.contains_key(&key)
+        } else {
+            false
+        }
     }
 }
 
@@ -188,7 +216,7 @@ impl Callback for PyCallback {
 
     fn ir_and_context(&self, ir: &dyn Any, context: &PassContext) -> Result<(), CallbackError> {
         let Some(py_ir) = ir.downcast_ref::<Py<PyAny>>() else {
-            return Err(CallbackError::CastingError);
+            return Err(CallbackError::IRCastingError);
         };
 
         Python::attach(|py| -> PyResult<_> {
@@ -196,6 +224,33 @@ impl Callback for PyCallback {
             self.py_obj
                 .bind(py)
                 .call_method1(intern!(py, "ir_and_context"), (py_ir, py_context))?;
+            Ok(())
+        })
+        .map_err(|e| e.into())
+    }
+
+    fn with_pass(
+        &self,
+        pass: &dyn crate::AnyPass,
+        ir: &dyn Any,
+        context: &PassContext,
+    ) -> Result<(), CallbackError> {
+        let py_pass = if let Some(from_py) = pass.as_any().downcast_ref::<PassFromPy>() {
+            &from_py.py_obj
+        } else if let Some(from_task) = pass.as_any().downcast_ref::<PassFromLegacy>() {
+            &from_task.py_obj
+        } else {
+            return Err(CallbackError::PassCastingError);
+        };
+        let Some(py_ir) = ir.downcast_ref::<Py<PyAny>>() else {
+            return Err(CallbackError::IRCastingError);
+        };
+
+        Python::attach(|py| -> PyResult<_> {
+            let py_context = PyPassContext::new_bound(py, context)?;
+            self.py_obj
+                .bind(py)
+                .call_method1(intern!(py, "with_pass"), (py_pass, py_ir, py_context))?;
             Ok(())
         })
         .map_err(|e| e.into())
@@ -283,14 +338,13 @@ impl Pass for PassFromLegacy {
 
             let ir_out = result_tuple.get_item(0)?.unbind();
             // TODO replace this by just getattr("property_set")?
-            // let py_state_out = result_tuple.get_item(1)?;
-            // let py_context_out = imports::CONTEXT_FROM_STATE
-            //     .get_bound(py)
-            //     .call1((py_state_out,))?
-            //     .cast_into::<PyPassContext>()?;
-            // .clone();
+            let py_state_out = result_tuple.get_item(1)?;
+            let py_context_out = imports::CONTEXT_FROM_STATE
+                .get_bound(py)
+                .call1((py_state_out,))?
+                .cast_into::<PyPassContext>()?;
 
-            // PyPassContext::drain_into_context(py_context, context);
+            PyPassContext::drain_into_context(py_context_out, context);
             Ok(ir_out)
         })?;
 
@@ -309,7 +363,7 @@ impl PassManager {
         if py_pass.is_instance(imports::PASS.get_bound(py))? {
             self.try_push_pass(Box::new(PassFromPy::from_bound(py_pass)))
                 .map_err(|e| e.into())
-        } else if py_pass.is_instance(imports::GENERIC_PASS.get_bound(py))? {
+        } else if py_pass.is_instance(imports::TASK.get_bound(py))? {
             self.try_push_pass(Box::new(PassFromLegacy::from_bound(py_pass)))
                 .map_err(|e| e.into())
         } else {

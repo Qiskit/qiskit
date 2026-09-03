@@ -531,6 +531,7 @@ fn py_run_consolidate_blocks(
                 .collect::<Result<Vec<_>, _>>()
         })
         .transpose()?;
+
     let run_in_parallel = getenv_use_multiple_threads();
     if run_in_parallel && blocks.len() > PARALLEL_THRESHOLD {
         let consolidations = py.detach(|| {
@@ -569,6 +570,7 @@ fn py_run_consolidate_blocks(
             apply_consolidation(dag, block, result)?;
         }
     }
+
     if let Some(runs) = runs {
         let all_block_gates: HashSet<NodeIndex> = blocks.iter().flatten().copied().collect();
         let mut phys_qargs = PhysQargsMap::new(qubit_map);

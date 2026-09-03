@@ -17,7 +17,7 @@ from test import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager import Pass, PassManager, CallbackType, Callback
-from qiskit.transpiler import Target, passes
+from qiskit.transpiler import Target, passes, generate_preset_pass_manager
 
 
 class SetLayout(Pass):
@@ -57,6 +57,17 @@ class CallbackTester(Callback):
         for key in self.required_keys:
             if context.get(key, None) is None:
                 raise ValueError("Missing key: %s", key)
+
+
+class CallbackPrinter(Callback):
+    def __init__(self):
+        self.pass_names = set()
+
+    def trigger(self, hookpoint):
+        return hookpoint == CallbackType.PostPass
+
+    def with_pass(self, pass_, ir, context):
+        self.pass_names.add(pass_.__class__.__name__)
 
 
 class CircuitToDAG(Pass):
@@ -126,3 +137,33 @@ class TestPassManager(QiskitTestCase):
 
         self.assertIsInstance(out, DAGCircuit)
         self.assertTrue("rz" not in out.count_ops().keys())
+
+    def test_legacy_pipeline(self):
+        """Test a full compiler pipeline from earlier."""
+        full_pm = generate_preset_pass_manager()
+        pm = PassManager()
+        pm.push(CircuitToDAG())
+
+        all_passes = {}
+        for i, task in enumerate(full_pm.to_flow_controller().iter_tasks(None)):
+            try:
+                pm.push(task)
+                all_passes[i] = task
+            except Exception as exc:
+                raise TypeError(f"Can't push {task}") from exc
+
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.rz(0.2, 0)
+        circuit.cx(0, 1)
+
+        callback = CallbackPrinter()
+        out, _ = pm.run(circuit, callback)
+        reference = full_pm.run(circuit)
+
+        self.assertEqual(reference, out.to_circuit())
+        self.assertTrue(
+            {"HighLevelSynthesis", "UnitarySynthesis", "BasisTranslator"}.issubset(
+                callback.pass_names
+            )
+        )
