@@ -20,7 +20,7 @@ use std::collections::BTreeSet;
 use std::f64::consts::{FRAC_1_SQRT_2, PI};
 
 use nalgebra::{Matrix2, MatrixView2, Vector2};
-use numpy::{IntoPyArray, PyReadonlyArray2, ToPyArray};
+use numpy::{PyReadonlyArray2, ToPyArray};
 
 use crate::qsd::append;
 use crate::ucrz::diagonal_gate_circuit;
@@ -204,7 +204,7 @@ pub fn dec_ucg_inner(
     let mut global_phase = 0.0;
     let mut circuit = CircuitData::with_capacity(num_qubits, 0, 0, Param::Float(global_phase))?;
     let mut gates = new_gates;
-    let diagonal = dec_ucg_help_inner(&mut gates, simplified_num_qubits);
+    let diagonal = dec_ucg_help(&mut gates, simplified_num_qubits);
     let n = gates.len();
 
     for (i, gate) in gates.iter().enumerate() {
@@ -344,7 +344,7 @@ fn repetition_verify(
     true
 }
 
-pub fn dec_ucg_help_inner(
+pub fn dec_ucg_help(
     single_qubit_gates: &mut [Matrix2<Complex64>],
     num_qubits: u32,
 ) -> Vec<Complex64> {
@@ -415,31 +415,6 @@ pub fn dec_ucg_help_inner(
 }
 
 #[pyfunction]
-pub fn dec_ucg_help(
-    // This method finds the single qubit gate arising in the decomposition of UCGates given in
-    // https://arxiv.org/pdf/quant-ph/0410066.pdf.
-    py: Python,
-    sq_gates: Vec<PyReadonlyArray2<Complex64>>,
-    num_qubits: u32,
-) -> (Vec<Py<PyAny>>, Py<PyAny>) {
-    let mut single_qubit_gates: Vec<Matrix2<Complex64>> = sq_gates
-        .into_iter()
-        .map(|x| {
-            let res: MatrixView2<Complex64> = x.try_as_matrix().unwrap();
-            res.into_owned()
-        })
-        .collect();
-    let diag = dec_ucg_help_inner(&mut single_qubit_gates, num_qubits);
-    (
-        single_qubit_gates
-            .into_iter()
-            .map(|x| x.to_pyarray(py).into_any().unbind())
-            .collect(),
-        diag.into_pyarray(py).into_any().unbind(),
-    )
-}
-
-#[pyfunction]
 pub fn uc_simplify(
     py: Python,
     gate_list: Vec<PyReadonlyArray2<Complex64>>,
@@ -461,7 +436,6 @@ pub fn uc_simplify(
 }
 
 pub fn uc_gate(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(dec_ucg_help, m)?)?;
     m.add_function(wrap_pyfunction!(dec_ucg, m)?)?;
     m.add_function(wrap_pyfunction!(uc_simplify, m)?)?;
     Ok(())
