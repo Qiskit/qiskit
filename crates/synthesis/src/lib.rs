@@ -28,6 +28,7 @@ pub mod ross_selinger;
 pub mod two_qubit_decompose;
 pub mod uc_gate;
 pub mod ucrz;
+pub mod diagonal;
 
 use pyo3::import_exception;
 use pyo3::prelude::*;
@@ -70,6 +71,14 @@ pub fn synthesis(m: &Bound<PyModule>) -> PyResult<()> {
     let qft_mod = PyModule::new(m.py(), "qft")?;
     qft::qft(&qft_mod)?;
     m.add_submodule(&qft_mod)?;
+
+    let diagonal_mod = PyModule::new(m.py(), "diagonal")?;
+    diagonal::diagonal(&diagonal_mod)?;
+    m.add_submodule(&diagonal_mod)?;
+
+    let uc_gate_mod = PyModule::new(m.py(), "uc_gate")?;
+    uc_gate::uc_gate(&uc_gate_mod)?;
+    m.add_submodule(&uc_gate_mod)?;
 
     Ok(())
 }

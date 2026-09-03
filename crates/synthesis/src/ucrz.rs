@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::qsd::append;
+
 use qiskit_circuit::Qubit;
 use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
@@ -86,41 +86,3 @@ fn decompose_uc_rotations(
 fn update_angle(angle_1: f64, angle_2: f64) -> [f64; 2] {
     [(angle_1 + angle_2) / 2., (angle_1 - angle_2) / 2.]
 }
-
-pub fn diagonal_gate_circuit(
-    diag_phases: &mut [f64],
-    num_qubits: usize,
-) -> Result<CircuitData, CircuitDataError> {
-    let out_qubits = (0..num_qubits)
-        .map(|_| ShareableQubit::new_anonymous())
-        .collect::<Vec<_>>();
-    let mut circuit = CircuitData::new(Some(out_qubits), None, Param::Float(0.))?;
-
-    let mut n = diag_phases.len();
-
-    while n >= 2 {
-        let mut angles_rz = Vec::<f64>::new();
-        for i in (0..n).step_by(2) {
-            let phi1 = diag_phases[i];
-            let phi2 = diag_phases[i + 1];
-            diag_phases[i / 2] = (phi1 + phi2) / 2.0;
-            angles_rz.push(phi2 - phi1);
-        }
-        let num_act_qubits = n.trailing_zeros() as usize;
-        let target_qubit = num_qubits - num_act_qubits;
-        let ucrz = get_ucrz(num_act_qubits, &mut angles_rz, true)?;
-
-        let quibit_map: Vec<Qubit> = (0..num_act_qubits)
-            .map(|q| Qubit((q + target_qubit) as u32))
-            .collect();
-        append(&mut circuit, ucrz, &quibit_map)?;
-        n /= 2;
-    }
-    circuit.add_global_phase(&Param::Float(diag_phases[0]))?;
-    Ok(circuit)
-}
-
-// pub fn ucrz(m: &Bound<PyModule>) -> PyResult<()> {
-//     m.add_function(wrap_pyfunction!(diagonal_gate_circuit, m)?)?;
-//     Ok(())
-// }
