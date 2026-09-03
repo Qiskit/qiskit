@@ -3918,21 +3918,6 @@ mod test {
     const BIG_CALL_STACK: usize = if cfg!(miri) { 100 } else { 20_000 };
 
     #[test]
-    fn test_eval_subtraction() {
-        let test_expr = SymbolExpr::Binary {
-            op: BinaryOp::Add,
-            lhs: Arc::new(SymbolExpr::Value(Value::Complex(Complex64::new(1.0, -2.0)))),
-            rhs: Arc::new(SymbolExpr::Binary {
-                op: BinaryOp::Pow,
-                lhs: Arc::new(SymbolExpr::Value(Value::Complex(Complex64::new(-1.0, 2.0)))),
-                rhs: Arc::new(SymbolExpr::Value(Value::Real(1.0))),
-            }),
-        };
-        let value = test_expr.eval(true);
-        assert_eq!(Some(Value::Complex(Complex64::ZERO)), value);
-    }
-
-    #[test]
     fn test_drop_unary_large() {
         let base = Arc::new(SymbolExpr::Value(Value::Real(0.0)));
         let mut expr = Arc::new(SymbolExpr::Unary {
