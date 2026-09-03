@@ -54,20 +54,14 @@ use qiskit_util::complex::{C_M_ONE, C_ONE, IM, M_IM, c64};
 /// Errors that can occur during two-qubit basis decomposition.
 #[derive(Error, Debug)]
 pub enum TwoQubitBasisError {
-    #[error("'{basis}' is not a ZSX basis; 'pulse_optimize' requires ZSX")]
+    #[error("'{basis}' is not a ZSX/SZXX basis; 'pulse_optimize' requires ZSX or ZSXX")]
     PulseOptimizeWrongBasis { basis: String },
 
     #[error("'pulse_optimize' requires a CNOT entangling gate")]
     PulseOptimizeNotCNOT,
 
-    #[error("pulse optimal decomposition could not be computed")]
+    #[error("failed to compute requested pulse optimal decomposition")]
     PulseOptimizeFailed,
-
-    #[error("control flow operations are not supported by the two-qubit decomposer")]
-    UnsupportedControlFlow,
-
-    #[error("KAK gate must be unparameterized")]
-    ParameterizedKAKGate,
 }
 
 impl From<TwoQubitBasisError> for PyErr {
@@ -695,8 +689,7 @@ impl TwoQubitBasisDecomposer {
         };
         let pulse_optimize = self.pulse_optimize.unwrap_or(true);
         let sequence = if pulse_optimize {
-            self.pulse_optimal_chooser(best_nbasis, &decomposition, &target_decomposed)
-                .map_err(PyErr::from)?
+            self.pulse_optimal_chooser(best_nbasis, &decomposition, &target_decomposed)?
         } else {
             None
         };
@@ -795,14 +788,18 @@ impl TwoQubitBasisDecomposer {
         pulse_optimize: Option<bool>,
     ) -> PyResult<Self> {
         if gate.operation.try_control_flow().is_some() {
-            return Err(TwoQubitBasisError::UnsupportedControlFlow.into());
+            return Err(PyValueError::new_err(
+                "Only gates are supported by two qubit decomposer",
+            ));
         }
-        let gate_params: Result<SmallVec<[f64; 3]>, TwoQubitBasisError> = gate
+        let gate_params: Result<SmallVec<[f64; 3]>, PyErr> = gate
             .params_view()
             .iter()
             .map(|x| match x {
                 Param::Float(val) => Ok(*val),
-                _ => Err(TwoQubitBasisError::ParameterizedKAKGate),
+                _ => Err(PyValueError::new_err(
+                    "Only unparameterized gates are supported as KAK gate",
+                )),
             })
             .collect();
         TwoQubitBasisDecomposer::new_inner(

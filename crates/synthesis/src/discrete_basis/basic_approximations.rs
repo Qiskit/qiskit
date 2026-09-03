@@ -335,8 +335,7 @@ impl GateSequence {
                 OperationRef::StandardGate(gate) => Ok(gate),
                 _ => Err(DiscreteBasisError::NonStandardGate),
             })
-            .collect::<Result<_, DiscreteBasisError>>()
-            .map_err(PyErr::from)?;
+            .collect::<Result<_, DiscreteBasisError>>()?;
 
         let matrix_so3 = matrix3_from_pyreadonly(&matrix_so3);
         Ok(Self {
