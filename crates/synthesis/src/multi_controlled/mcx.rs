@@ -263,22 +263,28 @@ impl CircuitDataForSynthesis for CircuitData {
 }
 
 /// Efficient synthesis for 4-controlled X-gate.
-pub fn c4x() -> Result<CircuitData, CircuitDataError> {
-    let mut circuit = CircuitData::with_capacity(5, 0, 0, Param::Float(0.0))?;
-    circuit.h(4)?;
-    circuit.cp(PI2, 3, 4)?;
-    circuit.h(4)?;
-    circuit.compose(&rc3x(), &[Qubit(0), Qubit(1), Qubit(2), Qubit(3)], &[])?;
-    circuit.h(4)?;
-    circuit.cp(-PI2, 3, 4)?;
-    circuit.h(4)?;
-    circuit.compose(
-        &rc3x().inverse()?,
-        &[Qubit(0), Qubit(1), Qubit(2), Qubit(3)],
-        &[],
-    )?;
-    circuit.compose(&c3sx(), &[Qubit(0), Qubit(1), Qubit(2), Qubit(4)], &[])?;
-    Ok(circuit)
+pub fn c4x() -> CircuitData {
+    let mut circuit = CircuitData::with_capacity(5, 0, 0, Param::Float(0.0)).unwrap();
+    circuit.h(4).unwrap();
+    circuit.cp(PI2, 3, 4).unwrap();
+    circuit.h(4).unwrap();
+    circuit
+        .compose(&rc3x(), &[Qubit(0), Qubit(1), Qubit(2), Qubit(3)], &[])
+        .unwrap();
+    circuit.h(4).unwrap();
+    circuit.cp(-PI2, 3, 4).unwrap();
+    circuit.h(4).unwrap();
+    circuit
+        .compose(
+            &rc3x().inverse().unwrap(),
+            &[Qubit(0), Qubit(1), Qubit(2), Qubit(3)],
+            &[],
+        )
+        .unwrap();
+    circuit
+        .compose(&c3sx(), &[Qubit(0), Qubit(1), Qubit(2), Qubit(4)], &[])
+        .unwrap();
+    circuit
 }
 
 /// Adds gates of the "action gadget" to the circuit
@@ -548,7 +554,8 @@ pub fn synth_mcx_1_clean_b95(num_controls: usize) -> Result<CircuitData, Circuit
 ///    [arXiv:1508.03273] (https://arxiv.org/pdf/1508.03273).
 pub fn synth_mcx_n_clean_m15(num_controls: usize) -> Result<CircuitData, CircuitDataError> {
     if num_controls <= 2 {
-        // should we use <-4 ? explicit cases are better then m15
+        // for k=3,4 this function produce circuits with less CX gates comparing to the explicit
+        // versions (although a bit larger) so we do not route them to synth_mcx_explicit
         synth_mcx_explicit(num_controls)
     } else {
         let num_qubits = 2 * num_controls - 1;
@@ -1017,7 +1024,7 @@ fn increment_2_dirty(n: u32, flag_add: bool) -> PyResult<CircuitData> {
 ///    https://dl.acm.org/doi/10.1145/3656436.
 pub fn synth_mcx_noaux_hp24(num_controls: usize) -> PyResult<CircuitData> {
     // Handle small cases explicitly.
-    // should we use <=4? explicit cases are better than hp24
+    // should we use <=4? explicit cases are better than hp24 (fewer CX gates)
     if num_controls <= 1 {
         synth_mcx_explicit(num_controls).map_err(Into::into)
     } else {
@@ -1164,7 +1171,7 @@ fn synth_mcx_explicit(num_ctrl_qubits: usize) -> Result<CircuitData, CircuitData
         }
         2 => Ok(ccx()),
         3 => Ok(c3x()),
-        4 => c4x(),
+        4 => Ok(c4x()),
         _ => unreachable!(),
     }
 }

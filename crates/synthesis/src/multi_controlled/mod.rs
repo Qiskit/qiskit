@@ -78,7 +78,7 @@ fn py_c3x() -> PyResult<PyCircuitData> {
 #[pyfunction]
 #[pyo3(name = "c4x")]
 fn py_c4x() -> PyResult<PyCircuitData> {
-    Ok(c4x()?.into())
+    Ok(c4x().into())
 }
 
 pub fn multi_controlled(m: &Bound<PyModule>) -> PyResult<()> {
