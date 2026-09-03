@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    The :func:`.state_to_latex` function now supports visualizing quantum states
+    in different bases. Use the new ``ket_basis`` parameter to see your states
+    in the computational, Hadamard, or Y basis instead of always defaulting to
+    the computational basis.
+    
+    Supported bases are:
+    
+    * ``'z'`` (default): Computational basis with |0⟩ and |1⟩
+    * ``'x'`` or ``'h'``: Hadamard basis with |+⟩ and |-⟩
+    * ``'y'``: Y basis with |+i⟩ and |-i⟩
+    
+    For example, to see a quantum state in the Hadamard basis::
+    
+        from qiskit.quantum_info import Statevector
+        from qiskit.visualization.state_visualization import state_to_latex
+        
+        sv = Statevector.from_label("0")
+        print(state_to_latex(sv, ket_basis='x'))
