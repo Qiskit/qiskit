@@ -17,14 +17,8 @@
 use core::f64;
 
 use hashbrown::HashMap;
-#[cfg(feature = "py")]
-use pyo3::prelude::*;
-#[cfg(feature = "py")]
-use qiskit_circuit::parameter::symbol_expr::Value;
 use std::ops::ControlFlow;
 
-#[cfg(feature = "py")]
-use crate::bytecode;
 use crate::error::{
     ParseError, Position, message_bad_eof, message_generic, message_incorrect_requirement,
 };
@@ -55,20 +49,6 @@ impl From<TokenType> for Function {
             TokenType::Sqrt => Function::Sqrt,
             TokenType::Tan => Function::Tan,
             _ => panic!(),
-        }
-    }
-}
-
-#[cfg(feature = "py")]
-impl From<Function> for bytecode::UnaryOpCode {
-    fn from(value: Function) -> Self {
-        match value {
-            Function::Cos => Self::Cos,
-            Function::Exp => Self::Exp,
-            Function::Ln => Self::Ln,
-            Function::Sin => Self::Sin,
-            Function::Sqrt => Self::Sqrt,
-            Function::Tan => Self::Tan,
         }
     }
 }
@@ -152,80 +132,6 @@ pub enum Expr {
     CustomFunction(ClassicalCallableExt, Vec<Expr>),
 }
 
-#[cfg(feature = "py")]
-impl<'py> IntoPyObject<'py> for Expr {
-    type Target = PyAny; // the Python type
-    type Output = Bound<'py, Self::Target>; // in most cases this will be `Bound`
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        Ok(match self {
-            Expr::Constant(value) => bytecode::ExprConstant { value }
-                .into_pyobject(py)?
-                .into_any(),
-            Expr::Parameter(index) => bytecode::ExprArgument { index }
-                .into_pyobject(py)?
-                .into_any(),
-            Expr::Negate(expr) => bytecode::ExprUnary {
-                opcode: bytecode::UnaryOpCode::Negate,
-                argument: expr.into_pyobject(py)?.unbind(),
-            }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::Add(left, right) => bytecode::ExprBinary {
-                opcode: bytecode::BinaryOpCode::Add,
-                left: left.into_pyobject(py)?.unbind(),
-                right: right.into_pyobject(py)?.unbind(),
-            }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::Subtract(left, right) => bytecode::ExprBinary {
-                opcode: bytecode::BinaryOpCode::Subtract,
-                left: left.into_pyobject(py)?.unbind(),
-                right: right.into_pyobject(py)?.unbind(),
-            }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::Multiply(left, right) => bytecode::ExprBinary {
-                opcode: bytecode::BinaryOpCode::Multiply,
-                left: left.into_pyobject(py)?.unbind(),
-                right: right.into_pyobject(py)?.unbind(),
-            }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::Divide(left, right) => bytecode::ExprBinary {
-                opcode: bytecode::BinaryOpCode::Divide,
-                left: left.into_pyobject(py)?.unbind(),
-                right: right.into_pyobject(py)?.unbind(),
-            }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::Power(left, right) => bytecode::ExprBinary {
-                opcode: bytecode::BinaryOpCode::Power,
-                left: left.into_pyobject(py)?.unbind(),
-                right: right.into_pyobject(py)?.unbind(),
-            }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::Function(func, expr) => bytecode::ExprUnary {
-                opcode: func.into(),
-                argument: expr.into_pyobject(py)?.unbind(),
-            }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::CustomFunction(callable, exprs) => bytecode::ExprCustom {
-                callable,
-                arguments: exprs
-                    .into_iter()
-                    .map(|arg| arg.into_pyobject(py).map(|obj| obj.unbind()))
-                    .collect::<Result<Vec<_>, _>>()?,
-            }
-            .into_pyobject(py)?
-            .into_any(),
-        })
-    }
-}
-
 /// A single pending step of the iterative evaluator
 #[cfg(feature = "py")]
 enum Step<'a> {
@@ -258,17 +164,17 @@ pub fn evaluate(
     evaluator: ClassicalEvaluator<'_>,
 ) -> Result<f64, ParseError> {
     let mut work = vec![Step::Eval(expr)];
-    let mut values = Vec::<Value>::new();
+    let mut values = Vec::<f64>::new();
 
     while let Some(step) = work.pop() {
         match step {
             Step::Eval(expr) => match expr {
-                Expr::Constant(value) => values.push(Value::Real(*value)),
+                Expr::Constant(value) => values.push(*value),
                 Expr::Parameter(index) => {
                     let value = params.get(index.index()).copied().ok_or_else(|| {
                         ParseError::new("gate parameter index out of range".to_owned())
                     })?;
-                    values.push(Value::Real(value));
+                    values.push(value);
                 }
                 Expr::Negate(inner) => {
                     work.push(Step::Negate);
@@ -299,11 +205,23 @@ pub fn evaluate(
                 values.push(match func {
                     Function::Cos => value.cos(),
                     Function::Exp => value.exp(),
-                    Function::Ln => value.log(),
+                    Function::Ln => {
+                        if value <= 0.0 {
+                            return Err(ParseError::new(format!(
+                                "'ln' is undefined for non-positive {value}"
+                            )));
+                        }
+                        value.ln()
+                    }
                     Function::Sin => value.sin(),
-                    // `pow` rather than `Value::sqrt` to keep the promotion behaviour of the
-                    // `ParameterExpression`-based evaluator this replaced.
-                    Function::Sqrt => value.pow(&Value::Real(0.5)),
+                    Function::Sqrt => {
+                        if value < 0.0 {
+                            return Err(ParseError::new(format!(
+                                "'sqrt' is undefined for negative {value}"
+                            )));
+                        }
+                        value.sqrt()
+                    }
                     Function::Tan => value.tan(),
                 });
             }
@@ -315,23 +233,26 @@ pub fn evaluate(
                     BinaryKind::Subtract => lhs - rhs,
                     BinaryKind::Multiply => lhs * rhs,
                     BinaryKind::Divide => lhs / rhs,
-                    BinaryKind::Power => lhs.pow(&rhs),
+                    BinaryKind::Power => {
+                        if lhs < 0.0 && rhs.fract() != 0.0 {
+                            return Err(ParseError::new(format!(
+                                "'^': negative base {lhs} with non-integer power {rhs}"
+                            )));
+                        }
+                        lhs.powf(rhs)
+                    }
                 });
             }
             Step::Custom(callable, num_args) => {
-                let args = values
-                    .split_off(values.len() - num_args)
-                    .iter()
-                    .map(Value::as_real)
-                    .collect::<Vec<_>>();
-                values.push(Value::Real(evaluator.eval(callable, &args)?));
+                let args = values.split_off(values.len() - num_args);
+                values.push(evaluator.eval(callable, &args)?);
             }
         }
     }
 
     let value = values.pop().expect("the expression evaluates to one value");
     debug_assert!(values.is_empty());
-    Ok(value.as_real())
+    Ok(value)
 }
 
 #[cfg(feature = "py")]
