@@ -30,6 +30,7 @@ use crate::{ClassicalCallableExt, ClassicalEvaluator};
 /// inverse trigonometric functions, but these are an extension to the version as given in the
 /// arXiv paper describing OpenQASM 2.  This enum is essentially just a subset of the [TokenType]
 /// enum, to allow for better pattern-match checking in the Rust compiler.
+#[derive(Clone, Copy)]
 pub enum Function {
     Cos,
     Exp,
@@ -120,6 +121,7 @@ enum Atom {
 /// floating-point numbers, so these will simply be evaluated into a `Constant` variant rather than
 /// represented in full tree form.  For references to the gate parameters, we just store the index
 /// of which parameter it is.
+#[derive(Clone)]
 pub enum Expr {
     Constant(f64),
     Parameter(ParamId),
@@ -134,7 +136,7 @@ pub enum Expr {
 }
 
 /// A single pending step of the iterative evaluator
-#[cfg(feature = "py")]
+#[cfg(feature = "circuit")]
 enum Step<'a> {
     /// Evaluate this (sub)expression, pushing its value onto the value stack.
     Eval(&'a Expr),
@@ -148,7 +150,7 @@ enum Step<'a> {
     Custom(&'a ClassicalCallableExt, usize),
 }
 
-#[cfg(feature = "py")]
+#[cfg(feature = "circuit")]
 pub fn evaluate(
     expr: &Expr,
     params: &[f64],
@@ -251,7 +253,7 @@ pub fn evaluate(
     Ok(value)
 }
 
-#[cfg(feature = "py")]
+#[cfg(feature = "circuit")]
 fn push_binary<'a>(work: &mut Vec<Step<'a>>, op: Op, lhs: &'a Expr, rhs: &'a Expr) {
     work.push(Step::Binary(op));
     work.push(Step::Eval(rhs));
