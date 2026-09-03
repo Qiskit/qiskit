@@ -1378,6 +1378,12 @@ Where a value of ``-1`` indicates ``None`` (as in no register is associated
 with the bit). Following each ``INITIAL_LAYOUT_BIT`` struct is ``register_size``
 bytes for a ``utf8`` encoded string for the register name.
 
+.. note::
+
+    From version 18, anonymous qubits (``index == -1``) omit the ``register_size``
+    field entirely — the struct is just a single ``int32_t``. Named qubits are
+    unchanged.
+
 Following the initial layout there is ``input_mapping_size`` array of
 ``uint32_t`` integers representing the positions of the physical bit from the
 initial layout. This enables constructing a list of virtual bits where the

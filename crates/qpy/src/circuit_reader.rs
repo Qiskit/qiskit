@@ -53,6 +53,7 @@ use crate::error::QpyError;
 use crate::formats;
 use crate::formats::ConditionData;
 use crate::formats::QPYCircuit;
+use crate::formats::VirtualQBitPack;
 use crate::params::generic_value_to_param;
 use crate::py_methods::{
     PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME,
@@ -865,23 +866,29 @@ fn unpack_transpile_layout<'py>(
     }
     let initial_layout_virtual_bits = PyList::new(py, Vec::<Py<PyAny>>::new())?;
     for virtual_bit in &layout.initial_layout_items {
-        let qubit = if let Some(register) =
-            extra_register_map.get(virtual_bit.register_name.as_str())
-        {
-            if let Some(qubit) = register.get(virtual_bit.index_value as usize) {
-                qubit
-            } else {
-                ShareableQubit::new_anonymous()
+        let qubit = match virtual_bit {
+            VirtualQBitPack::Anonymous => ShareableQubit::new_anonymous(),
+            VirtualQBitPack::InRegister {
+                index,
+                register_name,
+            } => {
+                // look in extra registers (layout-only) first, then in the circuit's own registers
+                let register = extra_register_map
+                    .get(register_name.as_str())
+                    .or_else(|| existing_register_map.get(register_name.as_str()).copied())
+                    .ok_or_else(|| {
+                        QpyError::InvalidBit(format!(
+                            "register '{}' not found in layout",
+                            register_name
+                        ))
+                    })?;
+                register.get(*index as usize).ok_or_else(|| {
+                    QpyError::InvalidBit(format!(
+                        "index {} out of bounds in register '{}'",
+                        index, register_name
+                    ))
+                })?
             }
-        } else if let Some(register) = existing_register_map.get(virtual_bit.register_name.as_str())
-        {
-            if let Some(qubit) = register.get(virtual_bit.index_value as usize) {
-                qubit
-            } else {
-                ShareableQubit::new_anonymous()
-            }
-        } else {
-            ShareableQubit::new_anonymous()
         };
         initial_layout_virtual_bits.append(qubit)?;
     }

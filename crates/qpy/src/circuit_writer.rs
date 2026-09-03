@@ -44,7 +44,7 @@ use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::error::QpyError;
-use crate::formats;
+use crate::formats::{self, VirtualQBitPack};
 use crate::interface::ExtraCircuitData;
 use crate::params::pack_param_obj;
 use crate::py_methods::{
@@ -969,7 +969,7 @@ fn pack_transpile_layout(
 ) -> Result<formats::LayoutV2Pack, QpyError> {
     let mut initial_layout_size = -1; // initial_size
     let mut input_qubit_mapping: HashMap<ShareableQubit, usize> = HashMap::new();
-    let mut initial_layout_array: Vec<(Option<u32>, Option<QuantumRegister>)> = Vec::new();
+    let mut initial_layout_items: Vec<VirtualQBitPack> = Vec::new();
     let mut extra_registers: HashSet<QuantumRegister> = HashSet::new();
     let mut extra_registers_qubits: HashSet<ShareableQubit> = HashSet::new();
 
@@ -983,15 +983,21 @@ fn pack_transpile_layout(
                 .extract::<ShareableQubit>()
                 .map_err(|e| QpyError::from(PyErr::from(e)))?;
             input_qubit_mapping.insert(qubit.clone(), i);
-            let register = qubit.owning_register();
-            let index = qubit.owning_register_index();
-            if let Some(reg) = register.clone() {
-                extra_registers.insert(reg);
-                extra_registers_qubits.insert(qubit);
-            } else if index.is_some() {
-                extra_registers_qubits.insert(qubit);
-            }
-            initial_layout_array.push((index, register));
+            let register_entry = match qubit.owning_register() {
+                Some(reg) => {
+                    let index = qubit.owning_register_index().ok_or_else(|| {
+                        QpyError::ConversionError("qubit has register but no index".to_string())
+                    })?;
+                    extra_registers.insert(reg.clone());
+                    extra_registers_qubits.insert(qubit);
+                    VirtualQBitPack::InRegister {
+                        index,
+                        register_name: reg.name().to_string(),
+                    }
+                }
+                None => VirtualQBitPack::Anonymous,
+            };
+            initial_layout_items.push(register_entry);
         }
     }
 
@@ -1069,25 +1075,6 @@ fn pack_transpile_layout(
         circuit_data,
         version,
     )?;
-
-    let initial_layout_items: Vec<formats::InitialLayoutItemV2Pack> = initial_layout_array
-        .iter()
-        .map(|(index, qreg)| {
-            let index_value = match index {
-                None => -1,
-                Some(val) => *val as i32,
-            };
-            let (register_name, register_name_length) = match qreg {
-                None => (String::new(), -1),
-                Some(qreg_val) => (qreg_val.name().to_string(), qreg_val.name().len() as i32),
-            };
-            formats::InitialLayoutItemV2Pack {
-                index_value,
-                register_name_length,
-                register_name,
-            }
-        })
-        .collect();
 
     Ok(formats::LayoutV2Pack {
         exists: true as u8,

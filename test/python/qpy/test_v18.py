@@ -18,10 +18,13 @@ import struct
 from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister, Qubit
 from qiskit.circuit.classical import expr
 from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.compiler.transpiler import transpile
+from qiskit.providers.fake_provider.generic_backend_v2 import GenericBackendV2
 from qiskit.qpy import dump, load
 from qiskit.qpy import formats
 from qiskit.qpy.exceptions import QpyError
 from qiskit.quantum_info import SparseObservable, SparsePauliOp
+from qiskit.transpiler.coupling import CouplingMap
 from test import QiskitTestCase
 
 
@@ -50,6 +53,24 @@ class TestV17VsV18(QiskitTestCase):
             size17 - size18,
             cal_header_size,
             f"Expected v18 to be {cal_header_size} bytes smaller than v17, "
+            f"got v17={size17} v18={size18} diff={size17 - size18}",
+        )
+
+    def test_v18_smaller_than_v17_for_anonymous_qbits(self):
+        """v18 output is exactly 1 bytes smaller than v17."""
+        # anonymous qubit
+        qubits = [Qubit()]
+        qc = QuantumCircuit(qubits)
+        qc.h(0)
+        backend = GenericBackendV2(num_qubits=2, coupling_map=CouplingMap.from_line(2), seed=42)
+        tqc = transpile(qc, backend, optimization_level=0)
+
+        size17 = len(_dump(tqc, 17))
+        size18 = len(_dump(tqc, 18))
+
+        self.assertTrue(
+            size17 - size18 > 0,
+            f"Expected v18 to be smaller than v17, "
             f"got v17={size17} v18={size18} diff={size17 - size18}",
         )
 

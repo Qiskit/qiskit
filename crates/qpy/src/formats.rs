@@ -441,25 +441,80 @@ pub struct LayoutV2Pack {
     pub input_qubit_count: i32,
     #[br(count = extra_registers_length, args { inner: (version,) })]
     pub extra_registers: Vec<RegisterPack>,
-    #[br(count = initial_layout_size.max(0))]
-    pub initial_layout_items: Vec<InitialLayoutItemV2Pack>,
+    #[br(count = initial_layout_size.max(0), args { inner: (version,) })]
+    #[bw(args_raw = (version,))]
+    pub initial_layout_items: Vec<VirtualQBitPack>,
     #[br(count = input_mapping_size.max(0))]
     pub input_mapping_items: Vec<u32>,
     #[br(count = final_layout_size.max(0))]
     pub final_layout_items: Vec<u32>,
 }
 
-// Data for initial layout item: its index and its register name, stored in a rather ad-hoc manner
-// TODO: Improve in QPY18?
-#[binrw]
-#[brw(big)]
 #[derive(Debug)]
-pub struct InitialLayoutItemV2Pack {
-    pub index_value: i32,
-    pub register_name_length: i32, // in this special case, reg_name_length can be -1 indicating "no name"
-    #[br(count = register_name_length.max(0) as usize, try_map = String::from_utf8)]
-    #[bw(map = |s| s.as_bytes())]
-    pub register_name: String,
+pub enum VirtualQBitPack {
+    Anonymous,
+    InRegister { index: u32, register_name: String },
+}
+
+impl BinRead for VirtualQBitPack {
+    type Args<'a> = (u8,); // version
+
+    fn read_options<R: Read + Seek>(
+        reader: &mut R,
+        endian: Endian,
+        (version,): (u8,),
+    ) -> BinResult<Self> {
+        let first = i32::read_options(reader, endian, ())?;
+        if first < 0 {
+            // Anonymous: v<=17 has a second i32 (-1) that we must consume; v>=18 does not
+            if version < 18 {
+                let _ = i32::read_options(reader, endian, ())?;
+            }
+            Ok(VirtualQBitPack::Anonymous)
+        } else {
+            // InRegister: first value is the index; name_length is always i32
+            let name_length = i32::read_options(reader, endian, ())? as usize;
+            let mut buf = vec![0u8; name_length];
+            reader.read_exact(&mut buf)?;
+            let register_name = String::from_utf8(buf).map_err(|e| binrw::Error::Custom {
+                pos: reader.stream_position().unwrap_or(0),
+                err: Box::new(e),
+            })?;
+            Ok(VirtualQBitPack::InRegister {
+                index: first as u32,
+                register_name,
+            })
+        }
+    }
+}
+
+impl BinWrite for VirtualQBitPack {
+    type Args<'a> = (u8,); // version
+
+    fn write_options<W: Write + Seek>(
+        &self,
+        writer: &mut W,
+        endian: Endian,
+        (version,): (u8,),
+    ) -> BinResult<()> {
+        match self {
+            VirtualQBitPack::Anonymous => {
+                (-1i32).write_options(writer, endian, ())?;
+                if version < 18 {
+                    (-1i32).write_options(writer, endian, ())?;
+                }
+            }
+            VirtualQBitPack::InRegister {
+                index,
+                register_name,
+            } => {
+                (*index as i32).write_options(writer, endian, ())?;
+                (register_name.len() as i32).write_options(writer, endian, ())?;
+                writer.write_all(register_name.as_bytes())?;
+            }
+        }
+        Ok(())
+    }
 }
 
 // A serialized "generic data".
