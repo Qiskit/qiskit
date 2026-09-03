@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed :func:`.qpy.load` so that anonymous bits which are shared across circuit - 
+    (such as bits that used for :class:`.WhileLoopOp` or :class:`.IfElseOp`) are 
+    reconstructed as the same bit object, rather than distinct copies.
+
+    See `#15482 <https://github.com/Qiskit/qiskit/issues/15482>`__.

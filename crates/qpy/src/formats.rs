@@ -106,6 +106,12 @@ pub struct CircuitHeaderV12Pack {
     pub metadata: Bytes,
     #[br(count = num_registers, args { inner: (version,) })]
     pub registers: Vec<RegisterPack>,
+    #[br(if(version >=18), count = num_qubits)]
+    #[bw(if(version >=18))]
+    pub qubits_info: Vec<BitInfoPack>,
+    #[br(if(version >=18), count = num_clbits)]
+    #[bw(if(version >=18))]
+    pub clbits_info: Vec<BitInfoPack>,
 }
 
 #[binrw]
@@ -166,6 +172,16 @@ pub struct CircuitInstructionV2Pack {
     pub params: Vec<GenericDataPack>,
     #[br(if(has_annotations(extras_key)))]
     pub annotations: Option<InstructionsAnnotationPack>,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub enum BitInfoPack {
+    #[brw(magic = 0u8)]
+    Registered,
+    #[brw(magic = 1u8)]
+    Anonymous { uid: u64 },
 }
 
 // To save space, the extras key encoded data about the existence of annotations
@@ -882,7 +898,7 @@ pub struct MappingItem {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-#[br(import(qpy_read_data: &QPYReadData))]
+#[br(import(qpy_read_data:&QPYReadData<'_>))]
 #[bw(import(qpy_write_data: &'a QPYWriteData<'a>))]
 pub struct ExpressionPack<'a> {
     #[br(parse_with = read_expression, args(qpy_read_data))]

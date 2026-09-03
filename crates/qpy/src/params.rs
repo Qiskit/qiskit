@@ -238,7 +238,7 @@ fn pack_parameter_replay_entry(
 
 pub(crate) fn unpack_parameter_expression(
     pack: &formats::ParameterExpressionPack,
-    qpy_data: &mut QPYReadData,
+    qpy_data: &mut QPYReadData<'_>,
 ) -> Result<ParameterExpression, QpyError> {
     let uuid_map = pack.symbol_table_data.iter().try_fold(
         HashMap::new(),
@@ -505,7 +505,7 @@ pub(crate) fn pack_parameter_vector(
 /// ensuring it is consistent with any other definitions of this vector that we've seen.
 pub(crate) fn unpack_parameter_vector(
     pack: &formats::ParameterVectorElementPack,
-    qpy_data: &mut QPYReadData,
+    qpy_data: &mut QPYReadData<'_>,
 ) -> Result<Symbol, QpyError> {
     // Historical versions of Qiskit assigned independent UUIDs to every element of a vector.
     // Modern Qiskit doesn't even permit this representation; elements' UUIDs are offset from the

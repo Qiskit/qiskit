@@ -400,6 +400,13 @@ macro_rules! create_bit_object {
                     BitInfo::Anonymous { .. } => None,
                 }
             }
+            pub fn get_anonymous_uid(&self) -> Option<u64> {
+                match &self.0 {
+                    BitInfo::Owned{ .. } => None,
+                    BitInfo::Anonymous {uid, ..} => Some(*uid)
+                }
+
+            }
 
             /// Create `count` new anonymous bits, returned as an iterator.
             ///
