@@ -91,7 +91,7 @@ static int test_custom_operation_in_circuit(void) {
     };
 
     // Initialize Vtable
-    const QkCustomOpVTable *foo_vtable = qk_custom_op_vtable_new(entries);
+    const QkCustomOpVTable *foo_vtable = qk_custom_operation_vtable_new(entries);
 
     if (foo_vtable == NULL) {
         printf("Retrieved a Null pointer instead of a Vtable pointer.");
@@ -99,8 +99,8 @@ static int test_custom_operation_in_circuit(void) {
         goto exit;
     }
 
-    QkCustomOperation *test_3q = qk_custom_op_new(&test_3q_op, foo_vtable);
-    QkCustomOperation *test_2q_1c = qk_custom_op_new(&test_2q_op, foo_vtable);
+    QkCustomOperation *test_3q = qk_custom_operation_new(&test_3q_op, foo_vtable);
+    QkCustomOperation *test_2q_1c = qk_custom_operation_new(&test_2q_op, foo_vtable);
 
     QkCircuit *circuit = qk_circuit_new(3, 2);
     uint32_t qubits[3] = {0, 1, 2};
@@ -205,7 +205,7 @@ static int test_custom_operation_in_dag(void) {
     };
 
     // Initialize Vtable
-    const QkCustomOpVTable *foo_vtable = qk_custom_op_vtable_new(entries);
+    const QkCustomOpVTable *foo_vtable = qk_custom_operation_vtable_new(entries);
 
     if (foo_vtable == NULL) {
         printf("Retrieved a Null pointer instead of a Vtable pointer.");
@@ -213,8 +213,8 @@ static int test_custom_operation_in_dag(void) {
         goto exit;
     }
 
-    QkCustomOperation *test_1q = qk_custom_op_new(&test_1q_op, foo_vtable);
-    QkCustomOperation *test_3q_1c = qk_custom_op_new(&test_3q_op, foo_vtable);
+    QkCustomOperation *test_1q = qk_custom_operation_new(&test_1q_op, foo_vtable);
+    QkCustomOperation *test_3q_1c = qk_custom_operation_new(&test_3q_op, foo_vtable);
 
     QkDag *circuit = qk_dag_new();
     QkQuantumRegister *qreg = qk_quantum_register_new(3, "qreg0");
