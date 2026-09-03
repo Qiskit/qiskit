@@ -2416,6 +2416,7 @@ dependencies = [
  "pyo3",
  "qiskit-circuit",
  "qiskit-transpiler",
+ "qiskit-util",
  "smallvec",
  "thiserror 2.0.20",
 ]

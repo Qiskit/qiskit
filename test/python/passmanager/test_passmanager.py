@@ -15,19 +15,22 @@
 
 from test import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager import Pass, PassManager, CallbackType, Callback
-from qiskit.transpiler import Target
+from qiskit.transpiler import Target, passes
 
 
 class SetLayout(Pass):
     def __init__(self, target: Target):
         self.target = target
+        self.properties = None
 
     def run(self, ir, context):
         if ir.num_qubits > self.target.num_qubits:
             raise ValueError("Not enough qubits")
 
         context.set("layout", list(range(ir.num_qubits)))
+        self.properties = context
         return ir
 
 
@@ -54,6 +57,11 @@ class CallbackTester(Callback):
         for key in self.required_keys:
             if context.get(key, None) is None:
                 raise ValueError("Missing key: %s", key)
+
+
+class CircuitToDAG(Pass):
+    def run(self, ir, context):
+        return ir.to_dag(copy_operations=False)
 
 
 class TestPassManager(QiskitTestCase):
@@ -97,3 +105,24 @@ class TestPassManager(QiskitTestCase):
                 callback = CallbackTester(hookpoint, required_keys={"layout"})
                 _, _ = pm.run(circuit, callback)
                 self.assertEqual(callback.counter, expected_count)
+
+    def test_unsupported_pass_type(self):
+        """Test an unsupported pass type raises."""
+        with self.assertRaisesRegex(TypeError, "Unsupported pass type"):
+            PassManager().push("potato salad")
+
+    def test_legacy_passes(self):
+        """Test calling single legacy passes."""
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.rz(0.2, 0)
+        circuit.cx(0, 1)
+
+        pm = PassManager()
+        pm.push(CircuitToDAG())
+        pm.push(passes.SynthesizeRZRotations())
+
+        out, _ = pm.run(circuit)
+
+        self.assertIsInstance(out, DAGCircuit)
+        self.assertTrue("rz" not in out.count_ops().keys())

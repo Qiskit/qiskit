@@ -10,6 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+mod imports;
 pub mod py;
 
 use hashbrown::{HashMap, HashSet};
@@ -42,7 +43,7 @@ where
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Value {
     Any(Box<dyn Any + Send + Sync>),
     // #[cfg(feature = "python")]
@@ -400,7 +401,12 @@ impl PassManager {
             ir = execute_task(task, ir, &mut pass_context, callback)?;
             let updates = pass_context.into_updates();
 
-            context = Arc::into_inner(context_ptr).expect("There is only a single handle");
+            context = match Arc::into_inner(context_ptr) {
+                Some(context) => context,
+                // Someone (Python) still holds a reference to the PassContext so we can't mutate
+                // the inner PassManagerContext and have to clone it.
+                None => (*Arc::clone(&context_ptr)).clone(),
+            };
             context.update(updates);
         }
 

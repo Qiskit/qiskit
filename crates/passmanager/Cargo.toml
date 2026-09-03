@@ -15,6 +15,7 @@ workspace = true
 [dependencies]
 qiskit-circuit.workspace = true    # only needed for testing! Keep?
 qiskit-transpiler.workspace = true # only needed for testing! Keep?
+qiskit-util.workspace = true
 smallvec.workspace = true
 anyhow.workspace = true
 thiserror.workspace = true

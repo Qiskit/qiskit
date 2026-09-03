@@ -17,12 +17,12 @@ use pyo3::{
     exceptions::{PyIndexError, PyRuntimeError, PyTypeError, PyValueError},
     intern,
     prelude::*,
-    types::PyString,
+    types::{PyString, PyTuple},
 };
 
 use crate::{
     Callback, CallbackError, CallbackType, Pass, PassContext, PassManager, PassManagerContext,
-    PassManagerError, Value,
+    PassManagerError, Value, imports,
 };
 
 impl From<PassManagerError> for PyErr {
@@ -146,6 +146,18 @@ impl PyPassContext {
         let key = key.to_string();
         self.data.insert(key, value.unbind());
     }
+
+    pub fn __getitem__(
+        &self,
+        py: Python<'_>,
+        key: Bound<'_, PyString>,
+    ) -> PyResult<Option<Py<PyAny>>> {
+        self.get(py, key, None)
+    }
+
+    pub fn __setitem__(&mut self, key: Bound<'_, PyString>, value: Bound<'_, PyAny>) {
+        self.set(key, value)
+    }
 }
 
 #[pyclass]
@@ -231,6 +243,60 @@ impl Pass for PassFromPy {
     }
 }
 
+pub struct PassFromLegacy {
+    /// A handle to the Python `GenericPass` instance
+    py_obj: Py<PyAny>,
+}
+
+impl PassFromLegacy {
+    fn from_bound(py_pass: Bound<'_, PyAny>) -> Self {
+        Self {
+            py_obj: py_pass.unbind(),
+        }
+    }
+}
+
+impl Pass for PassFromLegacy {
+    type InputIR = Py<PyAny>;
+    type OutputIR = Py<PyAny>;
+
+    fn run(
+        &self,
+        ir: Self::InputIR,
+        context: &mut crate::PassContext,
+    ) -> anyhow::Result<Self::OutputIR> {
+        // We create a PyPassContext from a PassContext, which clones the Arc<PassManagerContext>
+        // and keeps a local update HashMap with PyAny values. After the pass is run, we drain
+        // the PyAny values into the &mut PassContext, which is then handled in the main loop.
+        // This means that the values are no longer valid to read from Python.
+        let ir_out = Python::attach(|py| -> PyResult<_> {
+            let py_context = PyPassContext::new_bound(py, context)?;
+            let py_state = imports::STATE_FROM_CONTEXT
+                .get_bound(py)
+                .call1((py_context,))?;
+
+            let result = self
+                .py_obj
+                .bind(py)
+                .call_method1(intern!(py, "execute"), (ir, py_state))?;
+            let result_tuple = result.cast::<PyTuple>()?;
+
+            let ir_out = result_tuple.get_item(0)?.unbind();
+            // TODO replace this by just getattr("property_set")?
+            // let py_state_out = result_tuple.get_item(1)?;
+            // let py_context_out = imports::CONTEXT_FROM_STATE
+            //     .get_bound(py)
+            //     .call1((py_state_out,))?
+            //     .cast_into::<PyPassContext>()?;
+            // .clone();
+
+            // PyPassContext::drain_into_context(py_context, context);
+            Ok(ir_out)
+        })?;
+
+        Ok(ir_out)
+    }
+}
 #[pymethods]
 impl PassManager {
     #[new]
@@ -239,10 +305,16 @@ impl PassManager {
     }
 
     #[pyo3(name = "push")]
-    fn py_push_pass(&mut self, py_pass: Bound<'_, PyAny>) -> PyResult<()> {
-        // TODO instance-check
-        self.try_push_pass(Box::new(PassFromPy::from_bound(py_pass)))
-            .map_err(|e| e.into())
+    fn py_push_pass(&mut self, py: Python<'_>, py_pass: Bound<'_, PyAny>) -> PyResult<()> {
+        if py_pass.is_instance(imports::PASS.get_bound(py))? {
+            self.try_push_pass(Box::new(PassFromPy::from_bound(py_pass)))
+                .map_err(|e| e.into())
+        } else if py_pass.is_instance(imports::GENERIC_PASS.get_bound(py))? {
+            self.try_push_pass(Box::new(PassFromLegacy::from_bound(py_pass)))
+                .map_err(|e| e.into())
+        } else {
+            Err(PyTypeError::new_err("Unsupported pass type."))
+        }
     }
 
     #[pyo3(name = "run", signature = (ir, callback=None))]
