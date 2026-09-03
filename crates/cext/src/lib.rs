@@ -22,6 +22,7 @@ pub mod control_flow;
 pub mod dag;
 pub mod exit_codes;
 pub mod param;
+pub mod qasm2;
 pub mod sparse_observable;
 pub mod transpiler;
 
