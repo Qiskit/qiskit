@@ -19,10 +19,10 @@
 #include <string.h>
 
 int biguint_cmp(const QkBigUint a, const QkBigUint b) {
-    ptrdiff_t limb_count_diff = (ptrdiff_t)a.num_limbs - (ptrdiff_t)b.num_limbs;
-    if (limb_count_diff != 0) {
-        return limb_count_diff;
-    }
+    if (a.num_limbs < b.num_limbs)
+        return -1;
+    if (a.num_limbs > b.num_limbs)
+        return 1;
     return memcmp(a.limbs, b.limbs, a.num_limbs * sizeof(uint64_t));
 }
 
