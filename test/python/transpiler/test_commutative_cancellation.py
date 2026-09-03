@@ -994,6 +994,28 @@ measure q0[1] -> c0[1];
         pass_ = CommutativeCancellation(["sx", "rz"])
         self.assertEqual(pass_(qc), expected)
 
+    def test_approximation_degree(self):
+        """Test that approximation_degree controls commutation-based cancellation.
+
+        A small RZ rotation between two CX gates prevents the CX gates from canceling with
+        ``approximation_degree=1.0``. The CX gates do cancel with maximal approximation
+        ``approximation_degree=0.0``. Omitting ``approximation_degree`` has the same
+        behavior as ``1.0``.
+        """
+        eps = 1e-5
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.rz(eps, 1)
+        qc.cx(0, 1)
+
+        strict = CommutativeCancellation(approximation_degree=1.0)(qc)
+        approx = CommutativeCancellation(approximation_degree=0.0)(qc)
+        default = CommutativeCancellation()(qc)
+
+        self.assertEqual(strict.count_ops().get("cx", 0), 2)
+        self.assertEqual(approx.count_ops().get("cx", 0), 0)
+        self.assertEqual(default, strict)
+
 
 if __name__ == "__main__":
     unittest.main()

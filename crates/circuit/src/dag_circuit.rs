@@ -13,6 +13,7 @@
 use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::hash::Hash;
+use std::iter::zip;
 use std::sync::Arc;
 
 use foldhash::fast::RandomState;
@@ -2201,10 +2202,12 @@ impl DAGCircuit {
                                 (
                                     ControlFlowView::Box {
                                         duration: duration_a,
+                                        annotations: annotations_a,
                                         body: body_a,
                                     },
                                     ControlFlowView::Box {
                                         duration: duration_b,
+                                        annotations: annotations_b,
                                         body: body_b,
                                     },
                                 ) => {
@@ -2227,7 +2230,13 @@ impl DAGCircuit {
                                         },
                                         None => duration_b.is_none(),
                                     };
-                                    Ok(duration_eq && block_eq(body_a, body_b)?)
+                                    Ok(duration_eq
+                                        && annotations_a.len() == annotations_b.len()
+                                        && zip(annotations_a, annotations_b)
+                                            .try_fold(true, |tot, (a, b)| {
+                                                a.bind(py).eq(b).map(|res| res && tot)
+                                            })?
+                                        && block_eq(body_a, body_b)?)
                                 }
                                 (ControlFlowView::BreakLoop, ControlFlowView::BreakLoop) => {
                                     Ok(true)
@@ -2507,67 +2516,89 @@ impl DAGCircuit {
                                     OperationRef::StandardInstruction(_),
                                 ] => Ok(other.unpack_py_op(py, inst2)?.eq(ob)? && check_args()),
                                 [OperationRef::Unitary(op_a), OperationRef::Unitary(op_b)] => {
-                                    match [&op_a.array, &op_b.array] {
-                                        [ArrayType::NDArray(a), ArrayType::NDArray(b)] => Ok(
-                                            relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8),
-                                        ),
-                                        [ArrayType::OneQ(a), ArrayType::NDArray(b)]
-                                        | [ArrayType::NDArray(b), ArrayType::OneQ(a)] => {
-                                            if b.shape()[0] == 2 {
-                                                for i in 0..2 {
-                                                    for j in 0..2 {
-                                                        if !relative_eq!(
-                                                            b[[i, j]],
-                                                            a[(i, j)],
-                                                            max_relative = 1e-5,
-                                                            epsilon = 1e-8
-                                                        ) {
-                                                            return Ok(false);
+                                    if check_args() {
+                                        match [&op_a.array, &op_b.array] {
+                                            [ArrayType::NDArray(a), ArrayType::NDArray(b)] => {
+                                                Ok(relative_eq!(
+                                                    a,
+                                                    b,
+                                                    max_relative = 1e-5,
+                                                    epsilon = 1e-8
+                                                ))
+                                            }
+                                            [ArrayType::OneQ(a), ArrayType::NDArray(b)]
+                                            | [ArrayType::NDArray(b), ArrayType::OneQ(a)] => {
+                                                if b.shape()[0] == 2 {
+                                                    for i in 0..2 {
+                                                        for j in 0..2 {
+                                                            if !relative_eq!(
+                                                                b[[i, j]],
+                                                                a[(i, j)],
+                                                                max_relative = 1e-5,
+                                                                epsilon = 1e-8
+                                                            ) {
+                                                                return Ok(false);
+                                                            }
                                                         }
                                                     }
+                                                    Ok(true)
+                                                } else {
+                                                    Ok(false)
                                                 }
-                                                Ok(true)
-                                            } else {
-                                                Ok(false)
                                             }
-                                        }
-                                        [ArrayType::TwoQ(a), ArrayType::NDArray(b)]
-                                        | [ArrayType::NDArray(b), ArrayType::TwoQ(a)] => {
-                                            if b.shape()[0] == 4 {
-                                                for i in 0..4 {
-                                                    for j in 0..4 {
-                                                        if !relative_eq!(
-                                                            b[[i, j]],
-                                                            a[(i, j)],
-                                                            max_relative = 1e-5,
-                                                            epsilon = 1e-8
-                                                        ) {
-                                                            return Ok(false);
+                                            [ArrayType::TwoQ(a), ArrayType::NDArray(b)]
+                                            | [ArrayType::NDArray(b), ArrayType::TwoQ(a)] => {
+                                                if b.shape()[0] == 4 {
+                                                    for i in 0..4 {
+                                                        for j in 0..4 {
+                                                            if !relative_eq!(
+                                                                b[[i, j]],
+                                                                a[(i, j)],
+                                                                max_relative = 1e-5,
+                                                                epsilon = 1e-8
+                                                            ) {
+                                                                return Ok(false);
+                                                            }
                                                         }
                                                     }
+                                                    Ok(true)
+                                                } else {
+                                                    Ok(false)
                                                 }
-                                                Ok(true)
-                                            } else {
-                                                Ok(false)
                                             }
+                                            [ArrayType::OneQ(a), ArrayType::OneQ(b)] => {
+                                                Ok(relative_eq!(
+                                                    a,
+                                                    b,
+                                                    max_relative = 1e-5,
+                                                    epsilon = 1e-8
+                                                ))
+                                            }
+                                            [ArrayType::TwoQ(a), ArrayType::TwoQ(b)] => {
+                                                Ok(relative_eq!(
+                                                    a,
+                                                    b,
+                                                    max_relative = 1e-5,
+                                                    epsilon = 1e-8
+                                                ))
+                                            }
+                                            _ => Ok(false),
                                         }
-                                        [ArrayType::OneQ(a), ArrayType::OneQ(b)] => Ok(
-                                            relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8),
-                                        ),
-                                        [ArrayType::TwoQ(a), ArrayType::TwoQ(b)] => Ok(
-                                            relative_eq!(a, b, max_relative = 1e-5, epsilon = 1e-8),
-                                        ),
-                                        _ => Ok(false),
+                                    } else {
+                                        Ok(false)
                                     }
                                 }
                                 [
                                     OperationRef::PauliProductMeasurement(op_a),
                                     OperationRef::PauliProductMeasurement(op_b),
-                                ] => Ok(op_a == op_b),
+                                ] => Ok((op_a == op_b) && check_args()),
                                 [
                                     OperationRef::PauliProductRotation(op_a),
                                     OperationRef::PauliProductRotation(op_b),
-                                ] => Ok(op_a == op_b),
+                                ] => Ok((op_a == op_b) && check_args()),
+                                [OperationRef::Store(store_a), OperationRef::Store(store_b)] => {
+                                    Ok(store_a == store_b)
+                                }
                                 _ => Ok(false),
                             }
                         }
@@ -3034,7 +3065,7 @@ impl DAGCircuit {
             let cargs_set: HashSet<&ShareableClbit> =
                 HashSet::from_iter(cargs_list.iter().cloned());
             if self.may_have_additional_wires(&node) {
-                let (add_cargs, _add_vars) = Python::attach(|py| self.additional_wires(py, &node))?;
+                let (add_cargs, _add_vars) = self.additional_wires(&node)?;
                 for wire in add_cargs {
                     let clbit = self.clbits.get(wire).unwrap();
                     if !cargs_set.contains(clbit) {
@@ -3148,7 +3179,7 @@ impl DAGCircuit {
             input_dag.vars_stretches.vars().objects().iter().collect();
 
         let node_vars = if self.may_have_additional_wires(&node) {
-            let (_additional_clbits, additional_vars) = self.additional_wires(py, &node)?;
+            let (_additional_clbits, additional_vars) = self.additional_wires(&node)?;
             let var_set: HashSet<&expr::Var> = additional_vars
                 .into_iter()
                 .map(|v| self.vars_stretches.vars().get(v).unwrap())
@@ -6036,8 +6067,7 @@ impl DAGCircuit {
             if self.may_have_additional_wires(instr) {
                 let mut clbits: IndexSet<Clbit> =
                     IndexSet::from_iter(self.cargs_interner.get(instr.clbits).iter().copied());
-                let (additional_clbits, additional_vars) =
-                    Python::attach(|py| self.additional_wires(py, instr))?;
+                let (additional_clbits, additional_vars) = self.additional_wires(instr)?;
                 for clbit in additional_clbits {
                     clbits.insert(clbit);
                 }
@@ -6234,22 +6264,13 @@ impl DAGCircuit {
     }
 
     fn may_have_additional_wires(&self, instr: &PackedInstruction) -> bool {
-        match instr.op.view() {
-            OperationRef::ControlFlow(_) => true,
-            OperationRef::PyCustom(PyInstruction {
-                kind: PyOpKind::Instruction,
-                op_name,
-                ..
-            }) => op_name == "store",
-            _ => false,
-        }
+        matches!(
+            instr.op.view(),
+            OperationRef::ControlFlow(_) | OperationRef::Store(_)
+        )
     }
 
-    fn additional_wires(
-        &self,
-        py: Python,
-        instr: &PackedInstruction,
-    ) -> PyResult<(Vec<Clbit>, Vec<Var>)> {
+    fn additional_wires(&self, instr: &PackedInstruction) -> PyResult<(Vec<Clbit>, Vec<Var>)> {
         let wires_from_expr = |node: &expr::Expr| -> PyResult<(Vec<Clbit>, Vec<Var>)> {
             let mut clbits = Vec::new();
             let mut vars: Vec<Var> = Vec::new();
@@ -6327,24 +6348,13 @@ impl DAGCircuit {
                     vars.push(self.vars_stretches.vars().find(var).unwrap());
                 }
             }
-        } else if let OperationRef::PyCustom(instr) = instr.op.view() {
-            let op = instr.ob.bind(py);
-            if op.is_instance(imports::STORE_OP.get_bound(py))? {
-                let (expr_clbits, expr_vars) = wires_from_expr(&op.getattr("lvalue")?.extract()?)?;
-                for bit in expr_clbits {
-                    clbits.push(bit);
-                }
-                for var in expr_vars {
-                    vars.push(var);
-                }
-                let (expr_clbits, expr_vars) = wires_from_expr(&op.getattr("rvalue")?.extract()?)?;
-                for bit in expr_clbits {
-                    clbits.push(bit);
-                }
-                for var in expr_vars {
-                    vars.push(var);
-                }
-            }
+        } else if let OperationRef::Store(store) = instr.op.view() {
+            let (expr_clbits, expr_vars) = wires_from_expr(store.lvalue())?;
+            clbits.extend(expr_clbits);
+            vars.extend(expr_vars);
+            let (expr_clbits, expr_vars) = wires_from_expr(store.rvalue())?;
+            clbits.extend(expr_clbits);
+            vars.extend(expr_vars);
         }
         Ok((clbits, vars))
     }
@@ -7294,8 +7304,7 @@ impl DAGCircuit {
         }
 
         if self.may_have_additional_wires(inst) {
-            let (clbits, vars) =
-                Python::attach(|py| self.additional_wires(py, inst).map_err(DAGError::Python))?;
+            let (clbits, vars) = self.additional_wires(inst).map_err(DAGError::Python)?;
             for b in clbits {
                 if !self.clbit_io_map.len() - 1 < b.index() {
                     return Err(DAGError::WireNotInOutput(ShareableWire::Clbit(
@@ -7784,9 +7793,8 @@ impl DAGCircuit {
             block_qargs.extend(self.qargs_interner.get(instr.qubits));
             block_cargs.extend(self.cargs_interner.get(instr.clbits));
             if self.may_have_additional_wires(instr) {
-                let (additional_clbits, _) = Python::attach(|py| {
-                    self.additional_wires(py, instr).map_err(DAGError::Python)
-                })?;
+                let (additional_clbits, _) =
+                    self.additional_wires(instr).map_err(DAGError::Python)?;
                 for clbit in additional_clbits {
                     block_cargs.insert(clbit);
                 }
@@ -8240,10 +8248,9 @@ impl DAGCircuit {
             py_op: OnceLock::from(op.clone().unbind()),
         };
 
-        let (additional_clbits, additional_vars) = Python::attach(|py| {
-            self.additional_wires(py, &new_instr)
-                .map_err(DAGError::Python)
-        })?;
+        let (additional_clbits, additional_vars) = self
+            .additional_wires(&new_instr)
+            .map_err(DAGError::Python)?;
         new_wires.extend(additional_clbits.iter().map(|x| Wire::Clbit(*x)));
         new_wires.extend(additional_vars.iter().map(|x| Wire::Var(*x)));
 
