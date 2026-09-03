@@ -12,6 +12,7 @@
  * @defgroup QkNeighbors QkNeighbors
  * @defgroup QkObs QkObs
  * @defgroup QkObsTerm QkObsTerm
+ * @defgroup QkOpenQasm2 QkOpenQasm2
  * @defgroup QkParam QkParam
  * @defgroup QkQuantumRegister QkQuantumRegister
  * @defgroup QkSabreLayoutOptions QkSabreLayoutOptions

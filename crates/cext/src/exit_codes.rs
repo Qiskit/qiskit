@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 use qiskit_circuit::parameter::parameter_expression::ParameterError;
+use qiskit_qasm2::ParseError as Qasm2ParseError;
 use qiskit_quantum_info::sparse_observable::ArithmeticError;
 use qiskit_transpiler::target::TargetError;
 use thiserror::Error;
@@ -72,6 +73,8 @@ pub enum ExitCode {
     ParameterError = 600,
     /// Parameter name conflict.
     ParameterNameConflict = 601,
+    /// The OpenQASM 2 program could not be parsed.
+    Qasm2ParseError = 700,
 }
 
 impl From<ArithmeticError> for ExitCode {
@@ -116,5 +119,12 @@ impl From<TargetError> for ExitCode {
 impl From<ParameterError> for ExitCode {
     fn from(_value: ParameterError) -> Self {
         ExitCode::ArithmeticError
+    }
+}
+
+impl From<Qasm2ParseError> for ExitCode {
+    fn from(_value: Qasm2ParseError) -> Self {
+        // One code for every parse failure; the detail travels through the `error` out-parameter.
+        ExitCode::Qasm2ParseError
     }
 }
