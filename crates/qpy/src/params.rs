@@ -136,12 +136,13 @@ pub(crate) fn pack_parameter_expression_by_op(
 // this is no longer used in the rust-based parameter expressions, so we do not fully utilize the formats
 pub(crate) fn pack_parameter_expression(
     exp: &ParameterExpression,
+    qpy_data: &mut QPYWriteData,
 ) -> Result<formats::ParameterExpressionPack, QpyError> {
     let packed_expression_data = pack_parameter_expression_elements(exp)?;
     let expression_data = serialize(&packed_expression_data)?;
     let symbol_table_data: Vec<formats::ParameterExpressionSymbolPack> = exp
         .iter_symbols()
-        .map(pack_symbol_table_element)
+        .map(|symbol| pack_symbol_table_element(symbol, qpy_data))
         .collect::<Result<_, QpyError>>()?;
     Ok(formats::ParameterExpressionPack {
         expression_data,
@@ -151,6 +152,7 @@ pub(crate) fn pack_parameter_expression(
 
 fn pack_symbol_table_element(
     symbol: &Symbol,
+    qpy_data: &mut QPYWriteData,
 ) -> Result<formats::ParameterExpressionSymbolPack, QpyError> {
     // The `value_data` part in the QPY format is only used for "substitute" commands in the replay,
     // but the Rust-space writer has no need to output those, so it's always empty for us.
@@ -168,7 +170,7 @@ fn pack_symbol_table_element(
             let pack = formats::ParameterExpressionParameterVectorSymbolPack {
                 value_key: ValueType::ParameterVector,
                 value_data,
-                symbol_data: pack_parameter_vector(symbol)?,
+                symbol_data: pack_parameter_vector(symbol, qpy_data)?,
             };
             Ok(formats::ParameterExpressionSymbolPack::ParameterVector(
                 pack,
@@ -484,6 +486,7 @@ pub(crate) fn unpack_symbol(parameter_pack: &formats::ParameterSymbolPack) -> Sy
 
 pub(crate) fn pack_parameter_vector(
     symbol: &Symbol,
+    qpy_data: &mut QPYWriteData,
 ) -> Result<formats::ParameterVectorElementPack, QpyError> {
     let Symbol::Element { index, base } = symbol else {
         return Err(QpyError::ConversionError(
@@ -491,22 +494,63 @@ pub(crate) fn pack_parameter_vector(
                 .to_owned(),
         ));
     };
-    Ok(formats::ParameterVectorElementPack {
-        vector_size: base.len.load(atomic::Ordering::Relaxed) as u64,
-        uuid: *symbol.uuid().as_bytes(),
-        index: *index as u64,
-        name: base.name.clone(),
-    })
+    if qpy_data.version >= 18 {
+        // The vector itself goes in this payload's table; the element only points at it.  Its UUID is
+        // not stored, being the vector's plus the index.
+        let vector_index = qpy_data.parameter_vectors.index_of(base)?;
+        return Ok(formats::ParameterVectorElementPack::V18(
+            formats::ParameterVectorElementV18Pack {
+                vector_index,
+                index: *index as u64,
+            },
+        ));
+    }
+    Ok(formats::ParameterVectorElementPack::V17(
+        formats::ParameterVectorElementV17Pack {
+            vector_size: base.len.load(atomic::Ordering::Relaxed) as u64,
+            uuid: *symbol.uuid().as_bytes(),
+            index: *index as u64,
+            name: base.name.clone(),
+        },
+    ))
 }
 
 /// Unpack a `ParameterVectorElement` into a `Symbol`.
 ///
-/// Actually, the majority of the work we have to do here is unpacking the underlying _vector_ and
-/// ensuring it is consistent with any other definitions of this vector that we've seen.
+/// From QPY 18 the element just names its vector's index in the
+/// payload's table, so there is nothing to reconstruct or reconcile.  Before that, the majority of
+/// the work is unpacking the underlying _vector_ and ensuring it is consistent with any other
+/// definitions of this vector that we've seen.
 pub(crate) fn unpack_parameter_vector(
     pack: &formats::ParameterVectorElementPack,
     qpy_data: &mut QPYReadData,
 ) -> Result<Symbol, QpyError> {
+    let pack = match pack {
+        formats::ParameterVectorElementPack::V18(formats::ParameterVectorElementV18Pack {
+            vector_index,
+            index,
+        }) => {
+            let vector = qpy_data
+                .parameter_vectors
+                .get(*vector_index as usize)
+                .ok_or_else(|| {
+                    QpyError::InvalidParameter(format!(
+                        "parameter vector index {} is out of range; the circuit declares {}",
+                        vector_index,
+                        qpy_data.parameter_vectors.len()
+                    ))
+                })?;
+            return vector.get(*index as usize).ok_or_else(|| {
+                QpyError::InvalidParameter(format!(
+                    "index {} is out of range for vector '{}[{}]'",
+                    index,
+                    vector.name,
+                    vector.len.load(atomic::Ordering::Relaxed)
+                ))
+            });
+        }
+        formats::ParameterVectorElementPack::V17(pack) => pack,
+    };
     // Historical versions of Qiskit assigned independent UUIDs to every element of a vector.
     // Modern Qiskit doesn't even permit this representation; elements' UUIDs are offset from the
     // base vector's.  With certain payloads from very old Qiskit versions (pre Terra 0.25), this
@@ -538,7 +582,7 @@ pub(crate) fn unpack_parameter_vector(
 
 pub(crate) fn pack_param_expression(
     exp: &ParameterExpression,
-    qpy_data: &QPYWriteData,
+    qpy_data: &mut QPYWriteData,
 ) -> Result<formats::GenericDataPack, QpyError> {
     // if the parameter expression is a single symbol, we should treat it like a parameter
     // or a parameter vector, depending on whether the `vector` field exists
@@ -562,7 +606,7 @@ pub(crate) fn pack_param_expression(
 
 pub(crate) fn pack_param_obj(
     param: &Param,
-    qpy_data: &QPYWriteData,
+    qpy_data: &mut QPYWriteData,
     endian: ValueEndian,
 ) -> Result<formats::GenericDataPack, QpyError> {
     let resolved = endian.resolve(qpy_data.version);
@@ -599,5 +643,86 @@ pub(crate) fn generic_value_to_param(value: &GenericValue) -> Result<Param, QpyE
         _ => QpyCaller::Python.attach("Arbitrary value to python Param", |py| {
             Ok(Param::Obj(py_convert_from_generic_value(py, value)?))
         }),
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use crate::annotations::AnnotationHandler;
+    use qiskit_circuit::circuit_data::CircuitData;
+    use qiskit_circuit::operations::Param;
+
+    /// A reader whose payload declares `num_vectors` parameter vectors, each of length 2.
+    fn read_data(num_vectors: usize) -> QPYReadData {
+        QPYReadData {
+            circuit_data: CircuitData::new(None, None, Param::Float(0.0)).unwrap(),
+            version: 18,
+            use_symengine: false,
+            standalone_vars: HashMap::new(),
+            standalone_stretches: HashMap::new(),
+            vectors: HashMap::new(),
+            parameter_vectors: (0..num_vectors)
+                .map(|index| SymbolVector::new(format!("v{index}"), 2))
+                .collect(),
+            annotation_handler: AnnotationHandler::native(),
+            caller: QpyCaller::Native,
+        }
+    }
+
+    #[test]
+    fn indexed_element_resolves_through_the_table() {
+        let mut qpy_data = read_data(2);
+        let symbol = unpack_parameter_vector(
+            &formats::ParameterVectorElementPack::V18(formats::ParameterVectorElementV18Pack {
+                vector_index: 1,
+                index: 1,
+            }),
+            &mut qpy_data,
+        )
+        .unwrap();
+        let Symbol::Element { index, base } = &symbol else {
+            panic!("expected a vector element, got {symbol:?}");
+        };
+        assert_eq!(*index, 1);
+        assert_eq!(base.name, "v1");
+        // The element's UUID is not stored; it is the vector's offset by the index.
+        assert_eq!(symbol.uuid(), Uuid::from_u128(base.uuid.as_u128() + 1u128));
+    }
+
+    #[test]
+    fn vector_index_past_the_table_is_an_error() {
+        let mut qpy_data = read_data(1);
+        let result = unpack_parameter_vector(
+            &formats::ParameterVectorElementPack::V18(formats::ParameterVectorElementV18Pack {
+                vector_index: 7,
+                index: 0,
+            }),
+            &mut qpy_data,
+        );
+        let Err(error) = result else {
+            panic!("an index past the end of the table must not resolve: {result:?}");
+        };
+        assert!(
+            format!("{error}").contains("out of range"),
+            "unexpected error: {error}"
+        );
+    }
+
+    #[test]
+    fn element_index_past_the_vector_length_is_an_error() {
+        let mut qpy_data = read_data(1);
+        let result = unpack_parameter_vector(
+            &formats::ParameterVectorElementPack::V18(formats::ParameterVectorElementV18Pack {
+                vector_index: 0,
+                index: 99,
+            }),
+            &mut qpy_data,
+        );
+        assert!(
+            result.is_err(),
+            "an index past the end of the vector must not resolve: {result:?}"
+        );
     }
 }

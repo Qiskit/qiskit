@@ -52,10 +52,11 @@ pub struct QPYFileHeader {
 // 1) Header: Contains the global data such as name, number of qubits etc.
 // 2) Standalone vars: Contains the qiskit_circuit::Var elements used in expressions
 // 3) Annotation Headers: The annotation-related global data.
-// 4) Custom instructions: List of custom gates used in the circuits, e.g. gate with nonstandard control
-// 5) Instruction: The sequential list of gates in the circuit.
-// 6) Calibrations: Obsolete; this was pulse-related data. Here for backwards compatibility.
-// 7) Layout: The transpilation layout, if one exists (otherwise a dummy is used).
+// 4) Parameter vectors (QPY 18+): the `ParameterVector`s that elements in this circuit belong to.
+// 5) Custom instructions: List of custom gates used in the circuits, e.g. gate with nonstandard control
+// 6) Instruction: The sequential list of gates in the circuit.
+// 7) Calibrations: Obsolete; this was pulse-related data. Here for backwards compatibility.
+// 8) Layout: The transpilation layout, if one exists (otherwise a dummy is used).
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
@@ -67,6 +68,8 @@ pub struct QPYCircuit {
     pub standalone_vars: Vec<ExpressionVarDeclarationPack>,
     #[br(if(version >= 15))]
     pub annotation_headers: Option<AnnotationHeaderStaticPack>,
+    #[br(if(version >= 18))]
+    pub parameter_vectors: Option<ParameterVectorTablePack>,
     pub custom_instructions: CustomCircuitInstructionsPack,
     #[br(count = header.num_instructions, args { inner: (true,) })]
     pub instructions: Vec<CircuitInstructionV2Pack>,
@@ -656,13 +659,51 @@ pub struct ParameterSymbolPack {
     pub name: String,
 }
 
-// A single parameter vector element. Since vectors has no standalone representation in QPY
-// the vector data (name and size) is stored along with the element-specific data (uuid and index in the vector)
-// This is obviously not optimal compared to storing a list of vector and keeping a pointer in each element so TODO: improve in QPY18?
+// A `ParameterVector`, stored once per circuit payload and referred to by index from each of its
+// elements.
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
-pub struct ParameterVectorElementPack {
+pub struct ParameterVectorPack {
+    #[bw(calc = name.len() as u16)]
+    pub name_size: u16,
+    pub vector_size: u64,
+    pub uuid: [u8; 16],
+    #[br(count = name_size as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
+    pub name: String,
+}
+
+// The parameter vectors referenced by this circuit payload, in index order.  Nested payloads (a
+// control-flow block, or a custom instruction definition) carry their own table, so that a circuit
+// remains decodable on its own.
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ParameterVectorTablePack {
+    #[bw(calc = vectors.len() as u16)]
+    pub num_vectors: u16,
+    #[br(count = num_vectors)]
+    pub vectors: Vec<ParameterVectorPack>,
+}
+
+// A single parameter vector element.
+// From QPY 18 the vector lives once in `ParameterVectorTablePack` and the element only points at it.
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+#[brw(import(version: u8))]
+pub enum ParameterVectorElementPack {
+    #[br(pre_assert(version < 18))]
+    V17(ParameterVectorElementV17Pack),
+    #[br(pre_assert(version >= 18))]
+    V18(ParameterVectorElementV18Pack),
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ParameterVectorElementV17Pack {
     #[bw(calc = name.len() as u16)]
     pub name_size: u16,
     pub vector_size: u64,
@@ -671,6 +712,17 @@ pub struct ParameterVectorElementPack {
     #[br(count = name_size as usize, try_map = String::from_utf8)]
     #[bw(map = |s| s.as_bytes())]
     pub name: String,
+}
+
+// The QPY 18 element encoding: a pointer into the payload's parameter vector table.
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+pub struct ParameterVectorElementV18Pack {
+    /// Index into this payload's `ParameterVectorTablePack`.
+    pub vector_index: u16,
+    /// Index of this element within that vector.
+    pub index: u64,
 }
 
 // The various types of components available in a parameter expression
@@ -775,6 +827,7 @@ pub struct ParameterExpressionSubsOpPack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
+#[brw(import(version: u8))]
 pub struct ParameterExpressionPack {
     #[bw(calc = symbol_table_data.len() as u64)]
     pub symbol_tables_length: u64,
@@ -782,7 +835,8 @@ pub struct ParameterExpressionPack {
     pub expression_data_length: u64,
     #[br(count = expression_data_length)]
     pub expression_data: Bytes,
-    #[br(count = symbol_tables_length)]
+    #[br(count = symbol_tables_length, args { inner: (version,) })]
+    #[bw(args(version))]
     pub symbol_table_data: Vec<ParameterExpressionSymbolPack>,
 }
 
@@ -793,18 +847,19 @@ pub struct ParameterExpressionPack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
+#[brw(import(version: u8))]
 pub enum ParameterExpressionSymbolPack {
     #[brw(magic = b'p')]
     Parameter(ParameterExpressionParameterSymbolPack),
     #[brw(magic = b'v')]
-    ParameterVector(ParameterExpressionParameterVectorSymbolPack),
+    ParameterVector(#[brw(args(version))] ParameterExpressionParameterVectorSymbolPack),
     /// This variant _should not_ exist; it is counter to the QPY spec, and has no semantic meaning.
     /// However, Qiskit 2.0 (with QPY 13 non-symengine serialisation but before Rust-space
     /// `ParameterExpression` or QPY) would populate the "symbol map" with the raw dictionaries
     /// given to `ParameterExpression.subs` calls, which include expressions.  The equivalent "read"
     /// code would load up the entries, then immediately filter them out to make the symbol map.
     #[brw(magic = b'e')]
-    ParameterExpression(ParameterExpressionParameterExpressionSymbolPack),
+    ParameterExpression(#[brw(args(version))] ParameterExpressionParameterExpressionSymbolPack),
 }
 
 // symbol->value mapping for parameter expressions
@@ -824,10 +879,12 @@ pub struct ParameterExpressionParameterSymbolPack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
+#[brw(import(version: u8))]
 pub struct ParameterExpressionParameterVectorSymbolPack {
     pub value_key: ValueType,
     #[bw(calc = value_data.len() as u64)]
     pub value_data_len: u64,
+    #[brw(args(version))]
     pub symbol_data: ParameterVectorElementPack,
     #[br(count = value_data_len)]
     pub value_data: Bytes,
@@ -837,10 +894,12 @@ pub struct ParameterExpressionParameterVectorSymbolPack {
 #[binrw]
 #[brw(big)]
 #[derive(Debug)]
+#[brw(import(version: u8))]
 pub struct ParameterExpressionParameterExpressionSymbolPack {
     pub value_key: u8,
     #[bw(calc = value_data.len() as u64)]
     pub value_data_len: u64,
+    #[brw(args(version))]
     pub symbol_data: ParameterExpressionPack,
     #[br(count = value_data_len)]
     pub value_data: Bytes,

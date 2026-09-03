@@ -38,11 +38,13 @@ use qiskit_circuit::operations::{
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
+use qiskit_circuit::parameter::symbol_expr::SymbolVector;
 use qiskit_circuit::var_stretch_container::{StretchType, VarType};
 use qiskit_circuit::{Block, classical, imports};
 use qiskit_circuit::{Clbit, Qubit};
 use std::str::FromStr;
 use std::sync::Arc;
+use uuid::Uuid;
 
 use smallvec::SmallVec;
 
@@ -1307,6 +1309,24 @@ pub(crate) fn unpack_circuit(
         standalone_vars: HashMap::new(),
         standalone_stretches: HashMap::new(),
         vectors: HashMap::new(),
+        // From QPY 18 the payload declares its vectors up front
+        parameter_vectors: packed_circuit
+            .parameter_vectors
+            .as_ref()
+            .map(|table| {
+                table
+                    .vectors
+                    .iter()
+                    .map(|vector| {
+                        Arc::new(SymbolVector {
+                            name: vector.name.clone(),
+                            uuid: Uuid::from_bytes(vector.uuid),
+                            len: (vector.vector_size as usize).into(),
+                        })
+                    })
+                    .collect()
+            })
+            .unwrap_or_default(),
         annotation_handler,
     };
     if let Some(annotation_headers) = &packed_circuit.annotation_headers {

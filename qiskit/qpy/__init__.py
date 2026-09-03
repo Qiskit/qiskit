@@ -485,6 +485,48 @@ Version 18 also corrects the encoding of integer and float ``INSTRUCTION_PARAM``
 to big-endian byte order, consistent with the rest of the QPY specification. In versions
 1–17 these were mistakenly written in little-endian.
 
+PARAMETER_VECTOR_TABLE
+~~~~~~~~~~~~~~~~~~~~~~
+Version 18 stores each :class:`.ParameterVector` once per circuit payload and has its elements refer
+to it by index, instead of repeating the vector's identity in every element.
+
+The circuit payload gains a ``PARAMETER_VECTOR_TABLE`` immediately after the annotation headers, before the custom instruction definitions:
+
+.. code-block:: c
+
+    struct {
+        uint16_t num_vectors;
+    }
+
+followed by ``num_vectors`` entries of
+
+.. code-block:: c
+
+    struct {
+        uint16_t vector_name_size;
+        uint64_t vector_size;
+        char     uuid[16];        // the vector's root UUID
+    }
+
+each immediately followed by ``vector_name_size`` utf8 bytes of the vector's name.
+
+A :ref:`PARAMETER_VECTOR_ELEMENT <qpy_param_vector>` is correspondingly reduced to a reference:
+
+.. code-block:: c
+
+    struct {
+        uint16_t vector_index;    // index into PARAMETER_VECTOR_TABLE
+        uint64_t index;           // index of this element within that vector
+    }
+
+The element's own UUID is no longer stored, because it is the vector's root UUID plus the element's
+index -- the relationship the reader has always used to recover the owning vector.  An element
+therefore costs 10 bytes rather than 34 plus the length of the vector name, at the cost of two bytes
+per circuit for the count when a circuit uses no parameter vectors at all.
+
+A nested payload -- a control-flow block, or a custom instruction definition -- carries its own
+table, so that each circuit remains decodable on its own.
+
 New ParamRegisterPack
 ~~~~~~~~~~~~~~~~~~~~~
 Version 18 replaces the encoding of a `Register` payload, which stores either a whole
@@ -1953,6 +1995,12 @@ defined as:
 
 which is immediately followed by ``vector_name_size`` utf8 bytes representing
 the parameter's vector name.
+
+.. versionchanged:: QPY 18
+
+    The vector is stored once in the circuit's ``PARAMETER_VECTOR_TABLE`` and this payload became a
+    reference to it, ``uint16_t vector_index`` followed by ``uint64_t index``, with no name, size or
+    UUID of its own.  See :ref:`qpy_version_18`.
 
 .. _qpy_param_expr_v3:
 

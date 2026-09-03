@@ -137,7 +137,7 @@ pub(crate) fn pack_annotations(
 
 fn pack_condition(
     condition: Condition,
-    qpy_data: &QPYWriteData,
+    qpy_data: &mut QPYWriteData,
 ) -> Result<formats::ConditionPack, QpyError> {
     match condition {
         Condition::Expr(exp) => {
@@ -350,7 +350,7 @@ pub fn standard_instruction_class_name(inst: &StandardInstruction) -> &str {
 fn pack_pauli_product_measurement(
     ppm: &PauliProductMeasurement,
     instruction: &PackedInstruction,
-    qpy_data: &QPYWriteData,
+    qpy_data: &mut QPYWriteData,
 ) -> Result<formats::CircuitInstructionV2Pack, QpyError> {
     // since we won't recreate this gate via python, it's not important to verify the python name is identical to the one we use here
     // so we simply hard-code it instead of going through python
@@ -386,7 +386,7 @@ fn pack_pauli_product_measurement(
 fn pack_pauli_product_rotation(
     rotation: &PauliProductRotation,
     instruction: &PackedInstruction,
-    qpy_data: &QPYWriteData,
+    qpy_data: &mut QPYWriteData,
 ) -> Result<formats::CircuitInstructionV2Pack, QpyError> {
     // since we won't recreate this gate via python, it's not important to verify the python name is identical to the one we use here
     // so we simply hard-code it instead of going through python
@@ -587,7 +587,7 @@ fn pack_control_flow_inst(
 }
 fn pack_unitary_gate(
     unitary_gate: &UnitaryGate,
-    qpy_data: &QPYWriteData,
+    qpy_data: &mut QPYWriteData,
 ) -> Result<formats::CircuitInstructionV2Pack, QpyError> {
     // unitary gates are special since they are uniquely determined by a matrix, which is not
     // a "parameter", strictly speaking, but is treated as such when serializing
@@ -902,7 +902,7 @@ fn pack_classical_register(
 fn pack_circuit_header(
     circuit_name: Option<String>,
     metadata: Bytes,
-    qpy_data: &QPYWriteData,
+    qpy_data: &mut QPYWriteData,
 ) -> Result<formats::CircuitHeaderV12Pack, QpyError> {
     let global_phase_data = pack_param_obj(
         qpy_data.circuit_data.global_phase(),
@@ -1395,10 +1395,11 @@ pub(crate) fn pack_circuit(
         circuit_data,
         version,
         standalone_var_indices: HashMap::new(),
+        parameter_vectors: Default::default(),
         annotation_handler,
     };
     let standalone_vars = pack_standalone_vars(&mut qpy_data)?;
-    let header = pack_circuit_header(extra.name, extra.metadata, &qpy_data)?;
+    let header = pack_circuit_header(extra.name, extra.metadata, &mut qpy_data)?;
     // CalibrationsPack was dropped in v18; for v13-17 write an empty block (pulse
     // gates were removed in Qiskit 2.0 but older format versions require the field)
     let calibrations = if version < 18 {
@@ -1427,10 +1428,14 @@ pub(crate) fn pack_circuit(
         .map(|(namespace, state)| formats::AnnotationStateHeaderPack { namespace, state })
         .collect();
     let annotation_headers = Some(formats::AnnotationHeaderStaticPack { state_headers });
+    // Built only now that packing is done, since that is what discovered which vectors the circuit
+    // refers to -- even though the table is serialized ahead of the instructions that point into it.
+    let parameter_vectors = (version >= 18).then(|| qpy_data.parameter_vectors.to_pack());
     Ok(formats::QPYCircuit {
         header,
         standalone_vars,
         annotation_headers,
+        parameter_vectors,
         custom_instructions,
         instructions,
         calibrations,
