@@ -99,6 +99,10 @@ class PauliEvolutionGate(Gate):
         q_1: ┤1                         ├
              └──────────────────────────┘
 
+    .. warning::
+
+        The ``synthesis`` argument exists for backwards compatibility. The transpiler may silently
+        invalidate the chosen synthesis strategy.
 
     References:
 
@@ -131,12 +135,6 @@ class PauliEvolutionGate(Gate):
                 class docstring for an example.
             synthesis: A synthesis strategy. If None, the default synthesis is the Lie-Trotter
                 product formula with a single repetition.
-
-        .. warning::
-
-        This class is the mathematical Pauli Evolution operation. Thus, the `synthesis` argument
-        exists for backwards compatibility only. The transpiler may silently invalidate a chosen
-        synthesis strategy.
         """
 
         if isinstance(operator, list):
