@@ -37,7 +37,7 @@ use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction, LoopParam,
     Operation, OperationRef, Param, PauliProductMeasurement, PauliProductRotation, PyInstruction,
-    PyOpKind, StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
+    PyOpKind, StandardGate, StandardInstruction, Store, SwitchTarget, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
@@ -49,8 +49,8 @@ use crate::interface::ExtraCircuitData;
 use crate::params::pack_param_obj;
 use crate::py_methods::{
     PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME,
-    UNITARY_GATE_CLASS_NAME, gate_class_name, py_pack_param, py_pack_pauli_evolution_gate,
-    recognize_custom_operation, serialize_metadata,
+    STORE_INSTR_CLASS_NAME, UNITARY_GATE_CLASS_NAME, gate_class_name, py_pack_param,
+    py_pack_pauli_evolution_gate, recognize_custom_operation, serialize_metadata,
 };
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionVarDeclaration, GenericValue, ParamRegisterValue,
@@ -269,6 +269,7 @@ fn pack_instruction(
                 "compiled custom operations are not yet supported in QPY".to_owned(),
             ));
         }
+        OperationRef::Store(store) => pack_store(store, instruction, qpy_data)?,
     };
 
     // common data extraction for all instruction types
@@ -614,6 +615,34 @@ fn pack_unitary_gate(
         ctrl_state: 0,
         gate_class_name,
         label: Default::default(),
+        condition: Default::default(),
+        bit_data: Default::default(),
+        params,
+        annotations: None,
+    })
+}
+
+fn pack_store(
+    store: &Store,
+    instruction: &PackedInstruction,
+    qpy_data: &mut QPYWriteData,
+) -> Result<formats::CircuitInstructionV2Pack, QpyError> {
+    let params: Vec<formats::GenericDataPack> = vec![
+        pack_generic_value(&GenericValue::Expression(store.lvalue().clone()), qpy_data)?,
+        pack_generic_value(&GenericValue::Expression(store.rvalue().clone()), qpy_data)?,
+    ];
+    Ok(formats::CircuitInstructionV2Pack {
+        num_qargs: 0,
+        num_cargs: 0,
+        extras_key: 0,
+        num_ctrl_qubits: 0,
+        ctrl_state: 0,
+        gate_class_name: STORE_INSTR_CLASS_NAME.to_string(),
+        label: instruction
+            .label
+            .as_ref()
+            .map(|x| x.as_ref().clone())
+            .unwrap_or("".to_string()),
         condition: Default::default(),
         bit_data: Default::default(),
         params,

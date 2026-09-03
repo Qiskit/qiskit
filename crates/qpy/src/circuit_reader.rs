@@ -34,7 +34,7 @@ use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::{
     ArrayType, BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction,
     ControlFlowType, LoopParam, Param, PauliBased, PauliProductMeasurement, PauliProductRotation,
-    StandardInstruction, StandardInstructionType, SwitchTarget, UnitaryGate,
+    StandardInstruction, StandardInstructionType, Store, SwitchTarget, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
@@ -56,8 +56,8 @@ use crate::formats::QPYCircuit;
 use crate::params::generic_value_to_param;
 use crate::py_methods::{
     PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME,
-    UNITARY_GATE_CLASS_NAME, deserialize_pauli_evolution_gate, py_convert_from_generic_value,
-    unpack_custom_instruction, unpack_py_instruction,
+    STORE_INSTR_CLASS_NAME, UNITARY_GATE_CLASS_NAME, deserialize_pauli_evolution_gate,
+    py_convert_from_generic_value, unpack_custom_instruction, unpack_py_instruction,
 };
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, GenericValue,
@@ -91,6 +91,7 @@ pub enum InstructionType {
     PauliProductRotation,
     Unitary,
     ControlFlow,
+    Store,
     // covers instruction types require resorting to python space
     Custom,
     Python,
@@ -192,6 +193,8 @@ fn recognize_instruction_type(
         || ["Barrier", "Delay", "Measure", "Reset"].contains(&name)
     {
         InstructionType::StandardInstruction
+    } else if name == STORE_INSTR_CLASS_NAME {
+        InstructionType::Store
     } else if custom_instructions.get(name).is_some() {
         InstructionType::Custom
     } else {
@@ -363,6 +366,7 @@ pub fn unpack_instruction(
         }
         InstructionType::Unitary => unpack_unitary(instruction, qpy_data)?,
         InstructionType::ControlFlow => unpack_control_flow(instruction, qpy_data)?,
+        InstructionType::Store => unpack_store(instruction, qpy_data)?,
         InstructionType::Custom => {
             QpyCaller::Python.attach("Python custom instruction unpacking", |py| {
                 unpack_custom_instruction(
@@ -438,6 +442,33 @@ fn unpack_standard_instruction(
     let param_values =
         get_instruction_values(instruction, qpy_data, ValueEndian::LittleForV17AndBelow)?;
     Ok((op, param_values))
+}
+
+fn unpack_store(
+    instruction: &formats::CircuitInstructionV2Pack,
+    qpy_data: &mut QPYReadData,
+) -> Result<(PackedOperation, Vec<GenericValue>), QpyError> {
+    if instruction.params.len() != 2 {
+        return Err(QpyError::InvalidParameter(
+            "Store operations should have exactly 2 parameters".to_string(),
+        ));
+    }
+    let GenericValue::Expression(lvalue) =
+        unpack_generic_value(&instruction.params[0], qpy_data, ValueEndian::Big)?
+    else {
+        return Err(QpyError::InvalidExpression(
+            "could not determine expression for instruction's lvalue".to_string(),
+        ));
+    };
+    let GenericValue::Expression(rvalue) =
+        unpack_generic_value(&instruction.params[1], qpy_data, ValueEndian::Big)?
+    else {
+        return Err(QpyError::InvalidExpression(
+            "could not determine expression for store instruction's rvalue".to_string(),
+        ));
+    };
+    let store = Store::new(lvalue, rvalue);
+    Ok((Box::new(store).into(), vec![]))
 }
 
 fn unpack_pauli_product_measurement(
