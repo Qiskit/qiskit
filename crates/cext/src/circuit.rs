@@ -2826,6 +2826,18 @@ pub unsafe extern "C" fn qk_circuit_add_custom_operation(
 }
 
 /// @ingroup QkCircuit
+/// 
+/// Retrieves a ``QkCustomOperation`` from a circuit.
+/// 
+/// @param circuit A pointer to the circuit instance
+/// @param index The index in which the instruction is located.
+/// 
+/// @return A pointer to the ``QkCustomOperation`` instance or a `NULL` pointer if
+/// the operation is not custom.
+/// 
+/// # Safety
+/// 
+/// Undefined behavior may happen if the `circuit` pointer is null or unaligned.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_circuit_get_custom_operation(
     circuit: *mut CircuitData,
