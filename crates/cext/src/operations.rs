@@ -773,11 +773,7 @@ pub unsafe extern "C" fn qk_custom_operation_label(
 
     if let Some(as_custom_op) = borrowed_inst.downcast_ref::<CustomOp>() {
         // Use vtable directly to avoid converting
-        unsafe { (as_custom_op.v_table.label)(as_custom_op.orig) }
-    } else if let Some(label) = borrowed_inst.label() {
-        CString::new(label)
-            .expect("Label should not contain null bytes")
-            .into_raw()
+        unsafe { ((&*as_custom_op.v_table).label)(as_custom_op.orig) }
     } else {
         null()
     }
@@ -818,4 +814,15 @@ pub unsafe extern "C" fn qk_custom_operation_eq(
     let borrowed_other = unsafe { const_ptr_as_ref(other) };
 
     **borrowed_inst == **borrowed_other
+}
+
+/// @ingroup QkCustomOp
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_operation_type_id(inst: *const BoxedCustomOperation) -> u64 {
+    let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
+    let Some(op): Option<&CustomOp> = borrowed_inst.downcast_ref() else {
+        return u64::MAX;
+    };
+
+    op.v_table.as_ref() as *const _ as u64
 }
