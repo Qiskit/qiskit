@@ -26,8 +26,8 @@ mod qft;
 pub mod qsd;
 pub mod ross_selinger;
 pub mod two_qubit_decompose;
-pub mod ucrz;
 pub mod uc_gate;
+pub mod ucrz;
 
 use pyo3::import_exception;
 use pyo3::prelude::*;

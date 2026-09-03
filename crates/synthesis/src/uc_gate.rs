@@ -22,13 +22,13 @@ use std::f64::consts::{FRAC_1_SQRT_2, PI};
 use nalgebra::{Matrix2, MatrixView2, Vector2};
 use numpy::{IntoPyArray, PyReadonlyArray2, ToPyArray};
 
+use crate::qsd::append;
+use crate::ucrz::diagonal_gate_circuit;
 use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::{ArrayType, StandardGate, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use crate::qsd::append;
-use crate::ucrz::diagonal_gate_circuit;
 use qiskit_util::complex::{C_ZERO, IM, c64};
 const EPS: f64 = 1e-10;
 
