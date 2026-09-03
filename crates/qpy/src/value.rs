@@ -926,7 +926,8 @@ pub(crate) fn get_circuit_type_key(
         | OperationRef::Unitary(_) => Ok(CircuitInstructionType::Gate),
         OperationRef::StandardInstruction(_)
         | OperationRef::ControlFlow(_)
-        | OperationRef::PauliProductMeasurement(_) => Ok(CircuitInstructionType::Instruction),
+        | OperationRef::PauliProductMeasurement(_)
+        | OperationRef::Store(_) => Ok(CircuitInstructionType::Instruction),
         OperationRef::PyCustom(PyInstruction { kind, ob, .. }) => {
             caller.attach("Python-defined operations", |py| {
                 let ob = ob.bind(py);
