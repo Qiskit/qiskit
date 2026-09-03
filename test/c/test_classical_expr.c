@@ -676,12 +676,12 @@ static int test_expr_value_biguint(void) {
 
     // Bigger BigUint
     {
-        const size_t BIG_LIMB_LEN = 2000;
-        uint8_t big_bytes[BIG_LIMB_LEN * sizeof(uint64_t)];
+        enum { BIG_LIMB_LEN = 2000 };
+        static uint8_t big_bytes[BIG_LIMB_LEN * sizeof(uint64_t)];
         for (size_t i = 0; i < sizeof(big_bytes); i++)
             big_bytes[i] = (uint8_t)i;
 
-        uint64_t big_expected[BIG_LIMB_LEN];
+        static uint64_t big_expected[BIG_LIMB_LEN];
         for (size_t limb_idx = 0; limb_idx < BIG_LIMB_LEN; limb_idx++) {
             for (size_t i = 0; i < sizeof(uint64_t); i++) {
                 big_expected[limb_idx] |= (uint64_t)big_bytes[limb_idx * sizeof(uint64_t) + i]
