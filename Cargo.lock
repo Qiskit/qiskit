@@ -2479,6 +2479,7 @@ dependencies = [
  "hashbrown 0.15.5",
  "num-bigint",
  "pyo3",
+ "qiskit-circuit",
 ]
 
 [[package]]

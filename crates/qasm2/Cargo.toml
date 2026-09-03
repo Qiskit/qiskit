@@ -14,7 +14,11 @@ workspace = true
 
 [features]
 default = ["py"]
-py = ["dep:pyo3"]
+# Enables the native circuit builder.  This needs `qiskit-circuit` but not `pyo3`; note that
+# `qiskit-circuit` itself depends on `pyo3` unconditionally, so this alone does not give a
+# build free of `libpython`.
+circuit = ["dep:qiskit-circuit"]
+py = ["dep:pyo3", "circuit"]
 
 [dependencies]
 num-bigint.workspace = true
@@ -24,3 +28,7 @@ hashbrown.workspace = true
 workspace = true
 optional = true
 features = ["py-clone", "num-bigint"]
+
+[dependencies.qiskit-circuit]
+workspace = true
+optional = true
