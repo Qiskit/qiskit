@@ -1153,7 +1153,7 @@ pub fn synth_mcx_noaux_sp22(num_ctrl_qubits: usize) -> Result<CircuitData, Circu
 /// # Returns
 ///
 /// The synthesized quantum circuit.
-fn synth_mcx_explicit(num_ctrl_qubits: usize) -> Result<CircuitData, CircuitDataError> {
+pub fn synth_mcx_explicit(num_ctrl_qubits: usize) -> Result<CircuitData, CircuitDataError> {
     assert!(
         num_ctrl_qubits <= 4,
         "synth_mcx_explicit called with num_ctrl_qubits = {num_ctrl_qubits}, expected <= 4"
