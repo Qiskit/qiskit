@@ -85,7 +85,7 @@ use qiskit_circuit::{
 /// };
 ///
 /// // Create a vtable
-/// QkCustomOpVtable *foo_vtable = qk_custom_op_vtable_new(entries);
+/// QkCustomOpVTable *foo_vtable = qk_custom_op_vtable_new(entries);
 ///
 /// // Declare a sample instance
 /// struct foo_gate foo_3q = {
@@ -121,7 +121,7 @@ struct CustomOp {
     /// A pointer to the original gate.
     orig: *mut (),
     /// A pointer to a vtable designed for the original gate.
-    v_table: *const CustomOpVtable,
+    v_table: *const CustomOpVTable,
 }
 
 impl PartialEq for CustomOp {
@@ -219,7 +219,7 @@ impl CustomOperation for CustomOp {
 /// * ``eq(*const (), *const ())`` -> ``bool``, to compare two operations of the same kind.
 #[derive(Debug, Clone)]
 // #[repr(C)]
-pub struct CustomOpVtable {
+pub struct CustomOpVTable {
     pub name: unsafe extern "C" fn(*const ()) -> *const c_char,
     pub num_qubits: unsafe extern "C" fn(*const ()) -> u32,
     pub num_clbits: unsafe extern "C" fn(*const ()) -> u32,
@@ -252,7 +252,7 @@ extern "C" fn default_eq(slf: *const (), other: *const ()) -> bool {
     slf.eq(&other)
 }
 
-impl TryFrom<CustomOpVtablePartial> for CustomOpVtable {
+impl TryFrom<CustomOpVtablePartial> for CustomOpVTable {
     type Error = CustomOpMethod;
 
     fn try_from(value: CustomOpVtablePartial) -> Result<Self, Self::Error> {
@@ -384,7 +384,7 @@ impl CustomOpVTableEntry {
 /// };
 ///
 /// // Create a vtable
-/// QkCustomOpVtable *foo_vtable = qk_custom_op_vtable_new(entries);
+/// QkCustomOpVTable *foo_vtable = qk_custom_op_vtable_new(entries);
 ///
 /// // Declare a sample instance
 /// struct foo_gate foo_3q = {
@@ -415,7 +415,7 @@ impl CustomOpVTableEntry {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_custom_op_new(
     operation: *mut (),
-    v_table: *const CustomOpVtable,
+    v_table: *const CustomOpVTable,
 ) -> *mut BoxedCustomOperation {
     let as_custom_op = CustomOp {
         orig: operation,
@@ -485,7 +485,7 @@ pub unsafe extern "C" fn qk_custom_op_new(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_custom_op_vtable_new(
     mut slots: *const CustomOpVTableEntry,
-) -> *const CustomOpVtable {
+) -> *const CustomOpVTable {
     let mut vtable = CustomOpVtablePartial::default();
     let mut slot = unsafe { slots.read() };
     while slot.slot != u32::MAX {
@@ -602,7 +602,7 @@ pub unsafe extern "C" fn qk_custom_op_vtable_new(
         slots = unsafe { slots.add(1) };
         slot = unsafe { slots.read() };
     }
-    CustomOpVtable::try_from(vtable)
+    CustomOpVTable::try_from(vtable)
         .map(|x| Arc::into_raw(Arc::new(x)))
         .unwrap_or(std::ptr::null())
 }
