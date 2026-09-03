@@ -608,7 +608,7 @@ fn run_on_circuitdata(
         // Currently we do not allow subcircuits within the control flow to use auxiliary qubits
         // and mark all the usable qubits as dirty. This is done in order to avoid complications
         // that different subcircuits may choose to use different auxiliary global qubits, and to
-        // avoid complications related to tracking qubit status for while- loops.
+        // avoid complications related to tracking qubit status for while-loops.
         // In the future, this handling can potentially be improved.
         if let Some(control_flow) = input_circuit.try_view_control_flow(inst) {
             // We do not allow using any additional qubits outside of the block.
@@ -623,8 +623,10 @@ fn run_on_circuitdata(
                 .blocks()
                 .into_iter()
                 .map(|block| -> PyResult<_> {
+                    // Make sure that each arm of an if-then-else block starts with an "all-dirty" qubit tracker.
+                    let mut new_tracker = block_tracker.clone();
                     let (new_block, _) =
-                        run_on_circuitdata(py, block, &op_qubits, data, &mut block_tracker)?;
+                        run_on_circuitdata(py, block, &op_qubits, data, &mut new_tracker)?;
                     Ok(output_circuit.add_block(new_block))
                 })
                 .collect::<PyResult<_>>()?;
