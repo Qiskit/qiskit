@@ -136,7 +136,6 @@ class PauliEvolutionGate(Gate):
             synthesis: A synthesis strategy. If None, the default synthesis is the Lie-Trotter
                 product formula with a single repetition.
         """
-
         if isinstance(operator, list):
             operator = [_to_sparse_op(op) for op in operator]
         else:
