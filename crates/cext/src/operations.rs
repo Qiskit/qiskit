@@ -444,7 +444,7 @@ pub unsafe extern "C" fn qk_custom_op_new(
 /// | ``is_unitary``       | `const void *`                 | `bool`        |   5   |    Yes   |
 /// | ``num_ctrl_qubits``  | `const void *`                 | `uint32_t`    |   6   |    No    |
 /// | ``label``            | `const void *`                 | `char *`      |   7   |    No    |
-/// | ``definition``       | `const void *`, `QkParam *`    | `QkCircuit *` |   8   |    No    |
+/// | ``definition``       | `const void *`, `QkParam **`   | `QkCircuit *` |   8   |    No    |
 /// | ``eq``               | `const void *`, `const void *` | `bool`        |   9   |    No    |
 ///
 /// Each function will be seen as a `void` pointer to Rust and will be transmuted
