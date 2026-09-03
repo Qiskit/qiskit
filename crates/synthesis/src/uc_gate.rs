@@ -22,8 +22,8 @@ use std::f64::consts::{FRAC_1_SQRT_2, PI};
 use nalgebra::{Matrix2, MatrixView2, Vector2};
 use numpy::{PyReadonlyArray2, ToPyArray};
 
-use crate::qsd::append;
 use crate::diagonal::diagonal_gate_circuit;
+use crate::qsd::append;
 use qiskit_circuit::Qubit;
 use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
 use qiskit_circuit::operations::Param;

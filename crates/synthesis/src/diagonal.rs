@@ -21,7 +21,6 @@ use qiskit_circuit::bit::ShareableQubit;
 use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
 use qiskit_circuit::operations::Param;
 
-
 pub fn diagonal_gate_circuit(
     diag_phases: &mut [f64],
     num_qubits: usize,
@@ -55,7 +54,6 @@ pub fn diagonal_gate_circuit(
     Ok(circuit)
 }
 
-
 #[pyfunction]
 pub fn py_synth_diagonal(
     py: Python,
@@ -63,14 +61,13 @@ pub fn py_synth_diagonal(
     num_qubits: u32,
 ) -> PyResult<Py<PyAny>> {
     let mut phases = diag_pahses;
-    let circuit =
-        diagonal_gate_circuit(&mut phases, num_qubits as usize).map_err(PyErr::from)?;
+    let circuit = diagonal_gate_circuit(&mut phases, num_qubits as usize).map_err(PyErr::from)?;
     let qc = circuit.into_py_quantum_circuit(py)?;
     qc.setattr("name", "diagonal")?;
     Ok(qc.unbind())
 }
 
 pub fn diagonal(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(py_synth_diagonal, m)?)?;  
+    m.add_function(wrap_pyfunction!(py_synth_diagonal, m)?)?;
     Ok(())
 }

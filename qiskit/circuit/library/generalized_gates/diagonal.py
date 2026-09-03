@@ -101,11 +101,12 @@ class DiagonalGate(Gate):
 
         super().__init__("diagonal", num_qubits, diag)
 
-    def _define(self):       
+    def _define(self):
         from qiskit._accelerate.synthesis.diagonal import py_synth_diagonal
+
         diag_phases = [cmath.phase(z) for z in self.params]
         self.definition = py_synth_diagonal(diag_phases, self.num_qubits)
-        
+
     def validate_parameter(self, parameter):
         """Diagonal Gate parameter should accept complex
         (in addition to the Gate parameter types) and always return built-in complex."""
@@ -131,4 +132,3 @@ class DiagonalGate(Gate):
             raise CircuitError("The number of diagonal entries is not a positive power of 2.")
         if not np.allclose(np.abs(diag), 1, atol=_EPS):
             raise CircuitError("A diagonal element does not have absolute value one.")
-
