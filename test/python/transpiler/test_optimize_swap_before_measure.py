@@ -15,6 +15,7 @@
 import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
+from qiskit.circuit import Qubit
 from qiskit.passmanager.flow_controllers import DoWhileController
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure, DAGFixedPoint
@@ -351,6 +352,35 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
         after = pass_manager.run(circuit)
 
         self.assertEqual(expected, after)
+
+    def test_optimize_swap_with_anonymous_qubit_and_reg(self):
+        """Anonymous bit doesn't mess up the indices
+        0: ─────────────       0: ────────
+                     ┌─┐               ┌─┐
+        q_0: ──────X─┤M├     q_0: ─────┤M├
+             ┌───┐ │ └╥┘ ==>      ┌───┐└╥┘
+        q_1: ┤ X ├─X──╫─     q_1: ┤ X ├─╫─
+             └───┘    ║           └───┘ ║
+        c: 1/═════════╩═     c: 1/══════╩═
+                      0                 0
+        """
+        loose_q = Qubit()
+        qreg = QuantumRegister(2, "q")
+        creg = ClassicalRegister(1, "c")
+
+        # Qubit order: [loose_q, qreg[0], qreg[1]]
+        source = QuantumCircuit([loose_q], qreg, creg)
+
+        source.x(qreg[1])
+        source.swap(qreg[0], qreg[1])
+        source.measure(qreg[0], creg[0])
+
+        output = PassManager([OptimizeSwapBeforeMeasure()]).run(source.copy())
+        measurement = next(
+            instruction for instruction in output.data if instruction.operation.name == "measure"
+        )
+        measured_qubit_index = output.find_bit(measurement.qubits[0]).index
+        self.assertEqual(measured_qubit_index, 2)
 
 
 if __name__ == "__main__":
