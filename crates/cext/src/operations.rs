@@ -723,7 +723,7 @@ pub unsafe extern "C" fn qk_custom_operation_name(
     }
 }
 
-/// @ingroup QkCustomOperation
+/// @ingroup QkCustomOp
 ///
 /// Returns the number of qubits an instance of ``QkCustomOperation`` can operate on.
 ///
@@ -744,7 +744,7 @@ pub unsafe extern "C" fn qk_custom_operation_num_qubits(inst: *const BoxedCustom
     borrowed_inst.num_qubits()
 }
 
-/// @ingroup QkCustomOperation
+/// @ingroup QkCustomOp
 ///
 /// Returns the number of classical bits (clbits) an instance of ``QkCustomOperation`` can operate with.
 ///
@@ -765,7 +765,7 @@ pub unsafe extern "C" fn qk_custom_operation_num_clbits(inst: *const BoxedCustom
     borrowed_inst.num_clbits()
 }
 
-/// @ingroup QkCustomOperation
+/// @ingroup QkCustomOp
 ///
 /// Returns the number of parameters an instance of ``QkCustomOperation`` can operate with.
 ///
@@ -786,7 +786,7 @@ pub unsafe extern "C" fn qk_custom_operation_num_params(inst: *const BoxedCustom
     borrowed_inst.num_params()
 }
 
-/// @ingroup QkCustomOperation
+/// @ingroup QkCustomOp
 ///
 /// Checks whether an instance of ``QkCustomOperation`` is a directive or not.
 ///
@@ -810,7 +810,7 @@ pub unsafe extern "C" fn qk_custom_operation_directive(inst: *const BoxedCustomO
     borrowed_inst.directive()
 }
 
-/// @ingroup QkCustomOperation
+/// @ingroup QkCustomOp
 ///
 /// Checks whether an instance of ``QkCustomOperation`` is a unitary operation or not.
 ///
@@ -838,7 +838,7 @@ pub unsafe extern "C" fn qk_custom_operation_is_unitary(inst: *const BoxedCustom
     borrowed_inst.is_unitary()
 }
 
-/// @ingroup QkCustomOperation
+/// @ingroup QkCustomOp
 ///
 /// Returns the number of control qubits supported by this ``QkCustomOperation``
 /// instance, if it is a controlled operation.
@@ -866,7 +866,7 @@ pub unsafe extern "C" fn qk_custom_operation_num_ctrl_qubits(
     }
 }
 
-/// @ingroup QkCustomOperation
+/// @ingroup QkCustomOp
 ///
 /// Returns the label of an instance of ``QkCustomOperation`` .
 ///
@@ -894,7 +894,7 @@ pub unsafe extern "C" fn qk_custom_operation_label(
     }
 }
 
-/// @ingroup QkCustomOperation
+/// @ingroup QkCustomOp
 ///
 /// Returns the definition of an instance of `QkCustomOperation` if the correct
 /// parameters are provided.
@@ -939,7 +939,7 @@ pub unsafe extern "C" fn qk_custom_operation_definition(
     }
 }
 
-/// @ingroup QkCustomOperation
+/// @ingroup QkCustomOp
 ///
 /// Compares two different instances of ``QkCustomOperation``.
 ///
@@ -973,7 +973,7 @@ pub unsafe extern "C" fn qk_custom_operation_eq(
     **borrowed_inst == **borrowed_other
 }
 
-/// @ingroup QkCustomOperation
+/// @ingroup QkCustomOp
 ///
 /// Returns the `type_id` discriminant for this ``QkCustomOperation`` if it
 /// originates from C. Otherwise it returns ``UINT64_MAX``.
