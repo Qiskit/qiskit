@@ -19,6 +19,8 @@ use hashbrown::{HashMap, HashSet};
 use num_bigint::BigUint;
 #[cfg(feature = "py")]
 use pyo3::prelude::*;
+#[cfg(feature = "circuit")]
+use qiskit_circuit::standard_gate::StandardGate;
 
 use crate::bytecode::InternalBytecode;
 use crate::error::{
@@ -56,6 +58,35 @@ const QELIB1: [(&str, usize, usize); 23] = [
     ("crz", 1, 2),
     ("cu1", 1, 2),
     ("cu3", 3, 2),
+];
+
+/// The native `StandardGate` for each entry of [QELIB1], in the same order.  `QELIB1[i]` and
+/// `QELIB1_STANDARD_GATES[i]` describe the same gate.
+#[cfg(feature = "circuit")]
+pub(crate) const QELIB1_STANDARD_GATES: [StandardGate; 23] = [
+    StandardGate::U3,
+    StandardGate::U2,
+    StandardGate::U1,
+    StandardGate::CX,
+    StandardGate::I,
+    StandardGate::X,
+    StandardGate::Y,
+    StandardGate::Z,
+    StandardGate::H,
+    StandardGate::S,
+    StandardGate::Sdg,
+    StandardGate::T,
+    StandardGate::Tdg,
+    StandardGate::RX,
+    StandardGate::RY,
+    StandardGate::RZ,
+    StandardGate::CZ,
+    StandardGate::CY,
+    StandardGate::CH,
+    StandardGate::CCX,
+    StandardGate::CRZ,
+    StandardGate::CU1,
+    StandardGate::CU3,
 ];
 
 const BUILTIN_CLASSICAL: [&str; 6] = ["cos", "exp", "ln", "sin", "sqrt", "tan"];
@@ -1830,5 +1861,31 @@ impl State {
             }
         }
         Ok(None)
+    }
+}
+
+#[cfg(all(test, feature = "circuit"))]
+mod tests {
+    use super::{QELIB1, QELIB1_STANDARD_GATES};
+    use qiskit_circuit::operations::Operation;
+
+    #[test]
+    fn qelib1_standard_gates_match() {
+        assert_eq!(QELIB1.len(), QELIB1_STANDARD_GATES.len());
+        for (&(name, num_params, num_qubits), gate) in QELIB1.iter().zip(&QELIB1_STANDARD_GATES) {
+            // Arity alone would not catch a swap between `x`/`y`/`z`/`h`/`s`/`t`/`id`/`sdg`/`tdg`,
+            // which are all zero-parameter one-qubit gates.
+            assert_eq!(gate.name(), name, "name mismatch for '{name}'");
+            assert_eq!(
+                gate.num_params() as usize,
+                num_params,
+                "param count mismatch for '{name}'"
+            );
+            assert_eq!(
+                gate.num_qubits() as usize,
+                num_qubits,
+                "qubit count mismatch for '{name}'"
+            );
+        }
     }
 }

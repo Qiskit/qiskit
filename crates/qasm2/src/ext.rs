@@ -77,23 +77,45 @@ impl ClassicalBuiltinExt {
     }
 }
 
+/// The only thing permitted to invoke a [ClassicalCallableExt].
+///
+/// Encapsulating the call this way means call sites don't have to know which arm of the enum they
+/// hold, nor whether an interpreter is available.
 #[derive(Clone, Copy)]
 pub struct ClassicalEvaluator<'py> {
+    /// `None` when no interpreter is attached; see [ClassicalEvaluator::detached].
     #[cfg(feature = "py")]
-    py: Python<'py>,
+    py: Option<Python<'py>>,
     #[cfg(not(feature = "py"))]
     _lifetime: std::marker::PhantomData<&'py ()>,
 }
 
 impl<'py> ClassicalEvaluator<'py> {
+    /// An evaluator that can call every kind of callable, including Python ones.
     #[cfg(feature = "py")]
     pub fn attached(py: Python<'py>) -> Self {
-        Self { py }
+        Self { py: Some(py) }
+    }
+
+    /// An evaluator for callers with no attached interpreter, such as the C API.
+    ///
+    /// Python callables can't be invoked through this; that is reported as an error rather than
+    /// trying to attach, since the interpreter may not even be initialised.
+    pub fn detached() -> Self {
+        Self {
+            #[cfg(feature = "py")]
+            py: None,
+            #[cfg(not(feature = "py"))]
+            _lifetime: std::marker::PhantomData,
+        }
     }
 
     pub fn eval(&self, callable: &ClassicalCallableExt, params: &[f64]) -> Result<f64, ParseError> {
         #[cfg(feature = "py")]
-        return callable.call_attached(self.py, params);
+        return match self.py {
+            Some(py) => callable.call_attached(py, params),
+            None => callable.call(params),
+        };
         #[cfg(not(feature = "py"))]
         callable.call(params)
     }
