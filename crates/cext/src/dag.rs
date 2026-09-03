@@ -2019,17 +2019,17 @@ pub unsafe extern "C" fn qk_dag_apply_custom_operation(
 }
 
 /// @ingroup QkDag
-/// 
+///
 /// Retrieves a ``QkCustomOperation`` from a dag.
-/// 
+///
 /// @param dag A pointer to the dag instance
 /// @param index The index in which the instruction is located.
-/// 
+///
 /// @return A pointer to the ``QkCustomOperation`` instance or a `NULL` pointer if
 /// the operation is not custom.
-/// 
+///
 /// # Safety
-/// 
+///
 /// Undefined behavior may happen if the `dag` pointer is null or unaligned.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_dag_get_custom_operation(

@@ -611,18 +611,18 @@ pub unsafe extern "C" fn qk_custom_operation_vtable_new(
 }
 
 /// @ingroup QkCustomOperation
-/// 
+///
 /// Returns the name of an instance of ``QkCustomOperation``.
-/// 
+///
 /// This method is guaranteed to return a string containing the operation name
 /// as it is a required method for any defined operation.
-/// 
+///
 /// @param inst A pointer to the ``QkCustomOperation`` instance.
-/// 
+///
 /// @return The instruction's name.
-/// 
+///
 /// # Safety
-/// 
+///
 /// Behavior is undefined if the `inst` pointer is null or unaligned.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_custom_operation_name(
@@ -641,18 +641,18 @@ pub unsafe extern "C" fn qk_custom_operation_name(
 }
 
 /// @ingroup QkCustomOperation
-/// 
+///
 /// Returns the number of qubits an instance of ``QkCustomOperation`` can operate on.
-/// 
+///
 /// This method is guaranteed to return a number of qubits or 0, as it is a
 /// required method for any defined operation.
-/// 
+///
 /// @param inst A pointer to the ``QkCustomOperation`` instance.
-/// 
+///
 /// @return The number of classical bits the operation supports.
-/// 
+///
 /// # Safety
-/// 
+///
 /// Behavior is undefined if the `inst` pointer is null or unaligned.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_custom_operation_num_qubits(inst: *const BoxedCustomOperation) -> u32 {
@@ -662,18 +662,18 @@ pub unsafe extern "C" fn qk_custom_operation_num_qubits(inst: *const BoxedCustom
 }
 
 /// @ingroup QkCustomOperation
-/// 
+///
 /// Returns the number of classical bits (clbits) an instance of ``QkCustomOperation`` can operate with.
-/// 
+///
 /// This method is guaranteed to return a number of clbits or 0, as it is a
 /// required method for any defined operation.
-/// 
+///
 /// @param inst A pointer to the ``QkCustomOperation`` instance.
-/// 
+///
 /// @return The number of classical bits the operation supports.
-/// 
+///
 /// # Safety
-/// 
+///
 /// Behavior is undefined if the `inst` pointer is null or unaligned.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_custom_operation_num_clbits(inst: *const BoxedCustomOperation) -> u32 {
@@ -683,18 +683,18 @@ pub unsafe extern "C" fn qk_custom_operation_num_clbits(inst: *const BoxedCustom
 }
 
 /// @ingroup QkCustomOperation
-/// 
+///
 /// Returns the number of parameters an instance of ``QkCustomOperation`` can operate with.
-/// 
+///
 /// This method is guaranteed to return a number of parameters or 0, as it is a
 /// required method for any defined operation.
-/// 
+///
 /// @param inst A pointer to the ``QkCustomOperation`` instance.
-/// 
+///
 /// @return The number of parameters this operation supports.
-/// 
+///
 /// # Safety
-/// 
+///
 /// Behavior is undefined if the `inst` pointer is null or unaligned.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_custom_operation_num_params(inst: *const BoxedCustomOperation) -> u32 {
@@ -704,21 +704,21 @@ pub unsafe extern "C" fn qk_custom_operation_num_params(inst: *const BoxedCustom
 }
 
 /// @ingroup QkCustomOperation
-/// 
+///
 /// Checks whether an instance of ``QkCustomOperation`` is a directive or not.
-/// 
+///
 /// Directives are operations to the quantum stack meant to be interpreted by
 /// the backed or the transpiler.
-/// 
+///
 /// This method is guaranteed to return a boolean as it is a required method
 /// for any defined operation.
-/// 
+///
 /// @param inst A pointer to the ``QkCustomOperation`` instance.
-/// 
+///
 /// @return `true` if this instruction is a directive, otherwise `false`.
-/// 
+///
 /// # Safety
-/// 
+///
 /// Behavior is undefined if the `inst` pointer is null or unaligned.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_custom_operation_directive(inst: *const BoxedCustomOperation) -> bool {
@@ -728,25 +728,25 @@ pub unsafe extern "C" fn qk_custom_operation_directive(inst: *const BoxedCustomO
 }
 
 /// @ingroup QkCustomOperation
-/// 
+///
 /// Checks whether an instance of ``QkCustomOperation`` is a unitary operation or not.
-/// 
+///
 /// A unitary operation is represented by a unitary matrix which is a complex square
 /// invertible matrix.
-/// 
+///
 /// Unitary operations (or gates) operate exclusively on quantum resources
 /// and therefore should always have ``qk_custom_operation_num_clbits`` return ``0``
 /// and they cannot be directives.
-/// 
+///
 /// This method is guaranteed to return a boolean as it is a required method
 /// for any defined operation.
-/// 
+///
 /// @param inst A pointer to the ``QkCustomOperation`` instance.
-/// 
+///
 /// @return `true` if the instruction is defined as unitary
-/// 
+///
 /// # Safety
-/// 
+///
 /// Behavior is undefined if the `inst` pointer is null or unaligned.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_custom_operation_is_unitary(inst: *const BoxedCustomOperation) -> bool {
@@ -756,19 +756,19 @@ pub unsafe extern "C" fn qk_custom_operation_is_unitary(inst: *const BoxedCustom
 }
 
 /// @ingroup QkCustomOperation
-/// 
-/// Returns the number of control qubits supported by this ``QkCustomOperation`` 
+///
+/// Returns the number of control qubits supported by this ``QkCustomOperation``
 /// instance, if it is a controlled operation.
-/// 
+///
 /// This method is not required for every ``QkCustomOperation`` definition. Therefoere,
 /// it will return ``0`` by default unless otherwise specified.
-/// 
+///
 /// @param inst A pointer to the ``QkCustomOperation`` instance.
-/// 
+///
 /// @return The number of supported control qubits, otherwise ``0``.
-/// 
+///
 /// # Safety
-/// 
+///
 /// Behavior is undefined if the `inst` pointer is null or unaligned.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_custom_operation_num_ctrl_qubits(
@@ -784,18 +784,18 @@ pub unsafe extern "C" fn qk_custom_operation_num_ctrl_qubits(
 }
 
 /// @ingroup QkCustomOperation
-/// 
+///
 /// Returns the label of an instance of ``QkCustomOperation`` .
-/// 
+///
 /// This method is not required for every ``QkCustomOperation`` definition. Therefoere,
 /// it may return a null pointer instead of a string.
-/// 
+///
 /// @param inst A pointer to the ``QkCustomOperation`` instance.
-/// 
+///
 /// @return The instruction's label, if defined, otherwise `NULL`.
-/// 
+///
 /// # Safety
-/// 
+///
 /// Behavior is undefined if the `inst` pointer is null or unaligned.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_custom_operation_label(
@@ -818,25 +818,25 @@ pub unsafe extern "C" fn qk_custom_operation_label(
 }
 
 /// @ingroup QkCustomOperation
-/// 
+///
 /// Returns the definition of an instance of `QkCustomOperation` if the correct
 /// parameters are provided.
-/// 
+///
 /// When an operation is structurally complex, it may be broken down into a `QkCircuit`
 /// made of other operations that perform the same transformations and result in the
 /// same state. This is what we call the gate's deifnition.
-/// 
+///
 /// This method is not required for every ``QkCustomOperation``. Therefoere,
 /// it may return a null pointer instead of a Circuit.
-/// 
+///
 /// @param inst A pointer to the ``QkCustomOperation`` instance.
 /// @param params A pointer to an array of `QkParam` pointers.
-/// 
+///
 /// @return The instruction's definition if it was defined and the correct parameters are passed,
 /// otherwise, a `NULL` pointer.
-/// 
+///
 /// # Safety
-/// 
+///
 /// Behavior is undefined if the `inst` pointer is null or unaligned.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_custom_operation_definition(
@@ -863,27 +863,27 @@ pub unsafe extern "C" fn qk_custom_operation_definition(
 }
 
 /// @ingroup QkCustomOperation
-/// 
+///
 /// Compares two different instances of ``QkCustomOperation``.
-/// 
+///
 /// If the user defined a method to compare between instances, it will be used
 /// to perform this comparison. Otherwise, the comparison will be based on the
 /// memory addresses passed on.
-/// 
+///
 /// By default, this method will try to downcast the original pointer to its
 /// type of origin and use the provided `eq` method to compare between the two.
 /// If it's unable to downcast, it will return ``false``.
-/// 
+///
 /// This method is not required for every ``QkCustomOperation``. Therefoere,
 /// it may perform comparison via memory addresses.
-/// 
+///
 /// @param inst A pointer to the ``QkCustomOperation``  instance.
 /// @param other A pointer to another ``QkCustomOperation``  instance to compare.
-/// 
+///
 /// @return Whether these instructions are the same.
-/// 
+///
 /// # Safety
-/// 
+///
 /// Behavior is undefined if the `inst` pointer is null or unaligned.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_custom_operation_eq(
@@ -892,37 +892,35 @@ pub unsafe extern "C" fn qk_custom_operation_eq(
 ) -> bool {
     let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
     let borrowed_other = unsafe { const_ptr_as_ref(other) };
-    
+
     **borrowed_inst == **borrowed_other
 }
 
 /// @ingroup QkCustomOperation
-/// 
+///
 /// Returns the `type_id` discriminant for this ``QkCustomOperation`` if it
 /// originates from C. Otherwise it returns ``UINT64_MAX``.
-/// 
+///
 /// If the user plans on casting the original pointer back to its original
 /// type for additional functionality, the user must keep track of the ``type_id``
 /// of the operation in question.
-/// 
+///
 /// In this case the `type_id` will match the memory address of the operation's
 /// `QkCustomOpVTable vtable` as the same v-table should always be used with every
 /// instance of the same operation.
-/// 
+///
 /// This method should only work with gates defined in C. For any other case the return
 /// value will always be ``UINT64_MAX``.
-/// 
+///
 /// @param inst A pointer to the ``QkCustomOperation``  instance.
-/// 
+///
 /// @return The operation's `type_id` discriminant.
-/// 
+///
 /// # Safety
-/// 
+///
 /// Behavior is undefined if the `inst` pointer is null or unaligned.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn qk_custom_operation_type_id(
-    inst: *const BoxedCustomOperation,
-) -> u64 {
+pub unsafe extern "C" fn qk_custom_operation_type_id(inst: *const BoxedCustomOperation) -> u64 {
     let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
     let Some(op): Option<&CustomOp> = borrowed_inst.downcast_ref() else {
         return u64::MAX;
@@ -932,22 +930,22 @@ pub unsafe extern "C" fn qk_custom_operation_type_id(
 }
 
 /// @ingroup QkCustomOperation
-/// 
+///
 /// Frees the memory space allocated for a ``QkCustomOperation`` if not consumed by
 /// a ``QkCircuit`` or a ``QkDAG``.
-/// 
+///
 /// When a user creates a ``QkCustomOperation`` that just happens to never get consumed
 /// by any `circuit` representation. The memory address should be freed using this method.
-/// 
+///
 /// In this case that the ``QkCustomOperation`` instance was retrieved using
 /// ``qk_circuit_get_custom_operation`` or ``qk_dag_get_custom_operation``, the user does
-/// not need to call this method as the memory will be freed once ``qk_circuit_free`` or 
+/// not need to call this method as the memory will be freed once ``qk_circuit_free`` or
 /// ``qk_dag_free`` is called.
-/// 
+///
 /// @param inst A pointer to the ``QkCustomOperation`` instance.
-/// 
+///
 /// # Safety
-/// 
+///
 /// Behavior is undefined if the `inst` pointer is unaligned.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn qk_custom_operation_free(inst: *mut BoxedCustomOperation) {
