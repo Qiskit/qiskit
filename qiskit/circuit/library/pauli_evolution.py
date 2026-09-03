@@ -102,7 +102,7 @@ class PauliEvolutionGate(Gate):
     .. warning::
 
         The ``synthesis`` argument exists for backwards compatibility. The transpiler may silently
-        invalidate the chosen synthesis strategy.
+        invalidate the chosen synthesis strategy during optimization.
 
     References:
 
