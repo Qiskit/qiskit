@@ -2281,7 +2281,6 @@ dependencies = [
  "pyo3",
  "qiskit-circuit",
  "qiskit-quantum-info",
- "qiskit-synthesis",
  "qiskit-transpiler",
  "qiskit-util",
  "rand 0.10.2",

@@ -27,8 +27,8 @@ use qiskit_circuit::circuit_data::{CircuitData, CircuitDataError};
 use qiskit_circuit::operations::Param;
 use qiskit_circuit::operations::{ArrayType, StandardGate, UnitaryGate};
 use qiskit_circuit::packed_instruction::PackedOperation;
-use qiskit_synthesis::qsd::append;
-use qiskit_synthesis::ucrz::diagonal_gate_circuit;
+use crate::qsd::append;
+use crate::ucrz::diagonal_gate_circuit;
 use qiskit_util::complex::{C_ZERO, IM, c64};
 const EPS: f64 = 1e-10;
 
@@ -470,6 +470,7 @@ pub fn uc_gate(m: &Bound<PyModule>) -> PyResult<()> {
 #[cfg(test)]
 mod test {
     use super::compute_2x2_eig;
+    use super::dec_ucg_inner;
     use super::expand_diagonal;
     use super::simplify;
     use approx::abs_diff_eq;
@@ -706,5 +707,30 @@ mod test {
         let new_ctrl: Vec<u32> = vec![]; // all controls removed
         let result = expand_diagonal(diag, &new_ctrl, 3);
         assert_eq!(result.len(), 8); // 2^3
+    }
+    #[test]
+    fn test_dec_ucg_inner_single_qubit() {
+        let gate = ry(0.5);
+        let (circuit, diag) = dec_ucg_inner(vec![gate], 1, true, false).unwrap();
+        assert_eq!(circuit.num_qubits(), 1);
+        assert_eq!(diag, vec![Complex64::ONE; 2]);
+    }
+
+    // dec_ucg_inner: full decomposition up_to_diagonal=false
+    #[test]
+    fn test_dec_ucg_inner_two_qubits_full() {
+        let gates = vec![ry(0.3), ry(0.9)];
+        let (circuit, diag) = dec_ucg_inner(gates, 2, false, false).unwrap();
+        assert!(circuit.num_qubits() > 0);
+        assert_eq!(diag.len(), 4);
+    }
+
+    // dec_ucg_inner: simplified_num_qubits == 1 (all controls removed)
+    #[test]
+    fn test_dec_ucg_inner_all_controls_simplified() {
+        let gate = ry(0.7);
+        let gates = vec![gate; 4]; // all identical → all controls removed
+        let (circuit, _diag) = dec_ucg_inner(gates, 3, true, true).unwrap();
+        assert!(circuit.num_qubits() > 0);
     }
 }
