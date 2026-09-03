@@ -912,7 +912,7 @@ pub unsafe extern "C" fn qk_custom_operation_eq(
 /// This method should only work with gates defined in C. For any other case the return
 /// value will always be ``UINT64_MAX``.
 ///
-/// @param inst A pointer to the ``QkCustomOperation``  instance.
+/// @param inst A pointer to the ``QkCustomOperation`` instance.
 ///
 /// @return The operation's `type_id` discriminant.
 ///
@@ -927,6 +927,33 @@ pub unsafe extern "C" fn qk_custom_operation_type_id(inst: *const BoxedCustomOpe
     };
 
     op.v_table as u64
+}
+
+/// @ingroup QkCustomOperation
+///
+/// Returns the original pointer to the operation enclosed within.
+///
+/// Users are expected to use ``qk_custom_operation_type_id`` to discriminate the object
+/// based on its ``type_id``.
+///
+/// This method should only work with gates defined in C. For any other case the return
+/// value will always be ``NULL``.
+///
+/// @param inst A pointer to the ``QkCustomOperation`` instance.
+///
+/// @return The operation's original raw pointer.
+///
+/// # Safety
+///
+/// Behavior is undefined if the `inst` pointer is null or unaligned.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_custom_operation_raw(inst: *const BoxedCustomOperation) -> *const () {
+    let borrowed_inst = unsafe { const_ptr_as_ref(inst) };
+    let Some(op): Option<&CustomOp> = borrowed_inst.downcast_ref() else {
+        return null();
+    };
+
+    op.orig.cast_const()
 }
 
 /// @ingroup QkCustomOperation

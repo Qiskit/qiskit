@@ -276,6 +276,8 @@ mod operations {
             export_fn!(qk_custom_operation_definition),
             export_fn!(qk_custom_operation_eq),
             export_fn!(qk_custom_operation_free),
+            export_fn!(qk_custom_operation_type_id),
+            export_fn!(qk_custom_operation_raw),
         ]
     });
 }
