@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use crate::data_tree::DataTree;
-use crate::program_node::ProgramNode;
+use crate::nodes::OpNodeType;
 use crate::tensor::{DTypeLike, Tensor, TensorType, promotion};
 use crate::unpack_tensor_args;
 use std::sync::LazyLock;
@@ -49,13 +49,13 @@ static OUTPUT_TYPES: LazyLock<DataTree<TensorType>> = LazyLock::new(|| {
     })
 });
 
-/// Generate a [`ProgramNode`] struct for an elementwise binary operation.
+/// Generate a [`OpNodeType`] struct for an elementwise binary operation.
 macro_rules! elementwise_binary_node {
     ($name:ident, $node_name:literal, $call_fn:expr) => {
         #[doc = concat!("Elementwise `", $node_name, "` of two broadcastable tensors.")]
         pub struct $name;
 
-        impl ProgramNode for $name {
+        impl OpNodeType for $name {
             type CallError = super::MathNodeError;
 
             fn name(&self) -> &str {
@@ -94,8 +94,8 @@ elementwise_binary_node!(Power, "power", Tensor::pow);
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::math_nodes::MathNodeError;
-    use crate::program_node::{CallError, CallInputError, ProgramNodeExt};
+    use crate::nodes::math::MathNodeError;
+    use crate::nodes::{CallError, CallInputError, OpNodeTypeExt};
     use crate::tensor::{DType, Tensor};
 
     #[test]
