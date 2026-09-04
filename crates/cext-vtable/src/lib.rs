@@ -142,7 +142,7 @@ mod circuit {
             export_fn!(qk_control_flow_switch_case_labels_clear),
             export_fn!(qk_circuit_view_instruction),
             export_fn!(qk_circuit_delay_dt),
-            export_fn!(qk_circuit_delay_get_unit),
+            export_fn!(qk_circuit_delay_unit),
         ]
     });
 }

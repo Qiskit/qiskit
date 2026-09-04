@@ -1181,7 +1181,7 @@ static int test_delay_instruction(void) {
         goto cleanup;
     }
 
-    QkDelayUnit unit_s = qk_circuit_delay_get_unit(qc, 0);
+    QkDelayUnit unit_s = qk_circuit_delay_unit(qc, 0);
     if (unit_s != QkDelayUnit_S) {
         result = EqualityError;
         printf("Expected 's' (0) delay unit, found (%d).\n", unit_s);
@@ -1204,7 +1204,7 @@ static int test_delay_instruction(void) {
         goto instr_cleanup;
     }
 
-    QkDelayUnit unit_dt = qk_circuit_delay_get_unit(qc, 1);
+    QkDelayUnit unit_dt = qk_circuit_delay_unit(qc, 1);
     if (unit_dt != QkDelayUnit_DT) {
         result = EqualityError;
         printf("Expected 'dt' (5) delay unit, found (%d).\n", unit_dt);
