@@ -10,10 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use std::{any::Any, sync::Arc};
+use std::{any::Any, fmt::Debug, sync::Arc};
 
 use hashbrown::{HashMap, HashSet};
 use pyo3::{
+    BoundObject,
     exceptions::{PyIndexError, PyRuntimeError, PyTypeError, PyValueError},
     intern,
     prelude::*,
@@ -38,6 +39,27 @@ impl From<PassManagerError> for PyErr {
             }
             PassManagerError::PassError(p) => PyRuntimeError::new_err(p.to_string()),
             PassManagerError::CallbackError(e) => PyRuntimeError::new_err(e.to_string()),
+        }
+    }
+}
+
+pub trait PyConvertible: Any + Send + Sync + Debug {
+    fn as_any(&self) -> &(dyn Any + Send + Sync);
+    fn to_py_any(&self, py: Python<'_>) -> PyResult<Py<PyAny>>;
+}
+
+impl<T> PyConvertible for T
+where
+    T: Any + Send + Sync + Clone + Debug + for<'py> IntoPyObject<'py>,
+{
+    fn as_any(&self) -> &(dyn Any + Send + Sync) {
+        self
+    }
+
+    fn to_py_any(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        match self.clone().into_pyobject(py) {
+            Ok(value) => Ok(value.into_any().unbind()),
+            Err(e) => Err(e.into()),
         }
     }
 }

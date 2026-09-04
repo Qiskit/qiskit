@@ -14,7 +14,7 @@ mod imports;
 pub mod py;
 
 use hashbrown::{HashMap, HashSet};
-use pyo3::{BoundObject, IntoPyObject, Py, PyAny, PyErr, PyResult, Python, pyclass};
+use pyo3::{PyErr, pyclass};
 use std::{
     any::{Any, TypeId},
     fmt::Debug,
@@ -22,26 +22,7 @@ use std::{
 };
 use thiserror::Error;
 
-pub trait PyConvertible: Any + Send + Sync + Debug {
-    fn as_any(&self) -> &(dyn Any + Send + Sync);
-    fn to_py_any(&self, py: Python<'_>) -> PyResult<Py<PyAny>>;
-}
-
-impl<T> PyConvertible for T
-where
-    T: Any + Send + Sync + Clone + Debug + for<'py> IntoPyObject<'py>,
-{
-    fn as_any(&self) -> &(dyn Any + Send + Sync) {
-        self
-    }
-
-    fn to_py_any(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
-        match self.clone().into_pyobject(py) {
-            Ok(value) => Ok(value.into_any().unbind()),
-            Err(e) => Err(e.into()),
-        }
-    }
-}
+use crate::py::PyConvertible;
 
 #[derive(Debug)]
 pub enum Value {
