@@ -1,0 +1,8 @@
+---
+features_c:
+  - |
+    Add ``qk_param_kind`` to obtiain the type of any  ``QkParam`` instances before using functions
+    such as ``qk_param_as_real`` or ``qk_param_as_int`` to obtain its bound value.
+  - |
+    Add ``qk_param_as_int`` to obtiain the integer value of a parameter that can only be represented
+    by an integer.
