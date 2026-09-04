@@ -2331,6 +2331,7 @@ dependencies = [
  "pyo3",
  "qiskit-circuit",
  "qiskit-circuit-library",
+ "qiskit-passmanager",
  "qiskit-quantum-info",
  "qiskit-transpiler",
  "qiskit-util",
@@ -2405,6 +2406,18 @@ dependencies = [
  "smallvec",
  "thiserror 2.0.20",
  "uuid",
+]
+
+[[package]]
+name = "qiskit-passmanager"
+version = "2.6.0-dev"
+dependencies = [
+ "anyhow",
+ "hashbrown 0.15.5",
+ "qiskit-circuit",
+ "qiskit-transpiler",
+ "smallvec",
+ "thiserror 2.0.20",
 ]
 
 [[package]]
