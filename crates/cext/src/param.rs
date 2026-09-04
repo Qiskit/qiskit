@@ -1071,8 +1071,8 @@ pub unsafe extern "C" fn qk_param_as_int(param: *const Param) -> u64 {
 #[repr(u8)]
 /// Represents the type of a ``QkParam`` instance.
 pub enum ParamKind {
-    /// Represents a floating point parameter.
-    Float = 0,
+    /// Represents a real floating point parameter.
+    Real = 0,
     /// Represents an unbound parameter symbol.
     ParameterExpression = 1,
     /// Represents a parameter that can only be represented by an integer. Usually a duration in terms of `Dt`.
@@ -1097,9 +1097,19 @@ pub unsafe extern "C" fn qk_param_kind(param: *const Param) -> ParamKind {
     let param = unsafe { const_ptr_as_ref(param) };
 
     match param {
-        Param::ParameterExpression(_) => ParamKind::ParameterExpression,
+        Param::ParameterExpression(expression) => match expression.try_to_value(true) {
+            Ok(Value::Int(_)) => ParamKind::Int,
+            Ok(val) => {
+                if val.is_real() {
+                    ParamKind::Real
+                } else {
+                    ParamKind::ParameterExpression
+                }
+            }
+            Err(_) => ParamKind::ParameterExpression,
+        },
         Param::Int(_) => ParamKind::Int,
-        Param::Float(_) => ParamKind::Float,
+        Param::Float(_) => ParamKind::Real,
         _ => ParamKind::Unknown,
     }
 }
