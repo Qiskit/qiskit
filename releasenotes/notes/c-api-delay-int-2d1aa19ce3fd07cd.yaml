@@ -1,0 +1,7 @@
+---
+features_c:
+  - |
+    Added ability to add :class:`.Delay` in terms of ``Dt`` to a ``QkCircuit`` (via :c:func:`qk_circuit_delay_dt`).
+  - |
+    Add :c:func:`qk_circuit_delay_get_unit` to retrieve the unit type of a :class:`.Delay` instruction in the
+    C API.

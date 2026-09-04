@@ -2483,7 +2483,7 @@ unsafe fn qk_circuit_delay_inner(
 /// ```c
 /// QkCircuit *qc = qk_circuit_new(1, 0);
 /// qk_circuit_delay_dt(qc, 0, 100);
-/// QkDelayUnit unit = qk_circuit_delay_dt(qc, 0);
+/// QkDelayUnit unit = qk_circuit_delay_get_unit(qc, 0);
 /// ```
 ///
 /// # Safety
