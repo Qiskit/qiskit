@@ -11,11 +11,11 @@
 // that they have been altered from the originals.
 
 mod lookup;
+mod matrix;
 
 use hashbrown::HashSet;
 use itertools::Itertools;
 use lookup::conjugate_bitterm;
-#[cfg(feature = "python")]
 use ndarray::Array2;
 use num_complex::Complex64;
 #[cfg(feature = "python")]
@@ -281,6 +281,15 @@ pub enum LabelError {
     DuplicateIndex { index: u32 },
     #[error("labels must only contain letters from the alphabet 'IXYZ+-rl01'")]
     OutsideAlphabet,
+}
+
+/// The error returned for failed matrix operations.
+#[derive(Debug, Error)]
+pub enum MatrixError {
+    #[error("{0} qubit matrix exceeds size limit")]
+    LimitExceeded(u32),
+    #[error("number of qubits is 0")]
+    ZeroQubits,
 }
 
 #[derive(Error, Debug)]
@@ -1272,6 +1281,33 @@ impl SparseObservable {
         let ba = other.compose(self).canonicalize(tol);
         ab == ba
     }
+
+    /// Expand the observable into its dense matrix form.
+    ///
+    /// The reduced time complexity of this function is _O(4<sup>n</sup>)_,
+    /// where _n_ is the number of qubits. The algorithm is limited by the time
+    /// required to allocate the _2<sup>n</sup> × 2<sup>n</sup>_ matrix.
+    ///
+    /// # Warning
+    ///
+    /// The number of matrix elements scales exponentially with the number of
+    /// qubits. You risk running out of memory when the number of qubits is
+    /// sufficiently large. For example, an 8 qubit matrix uses ~4 KB of
+    /// memory, whereas 16 qubits uses ~69 GB!
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the total number of matrix elements would exceed
+    /// [`usize::MAX`] or the number of qubits is 0.
+    pub fn to_matrix(&self) -> Result<Array2<Complex64>, MatrixError> {
+        let mut matrix = matrix::create_with_zeros(self.num_qubits)?;
+
+        for term in self.iter() {
+            matrix::add_term(&mut matrix, &term)
+        }
+
+        Ok(matrix)
+    }
 }
 
 impl ::std::ops::Add<&SparseObservable> for SparseObservable {
@@ -1871,6 +1907,13 @@ impl From<LabelError> for PyErr {
 #[cfg(feature = "python")]
 impl From<ArithmeticError> for PyErr {
     fn from(value: ArithmeticError) -> PyErr {
+        PyValueError::new_err(value.to_string())
+    }
+}
+
+#[cfg(feature = "python")]
+impl From<MatrixError> for PyErr {
+    fn from(value: MatrixError) -> Self {
         PyValueError::new_err(value.to_string())
     }
 }
@@ -3925,6 +3968,31 @@ impl PySparseObservable {
         let other_inner = other.inner.read().map_err(|_| InnerReadError)?;
 
         Ok(self_inner.commutes(&other_inner, tol))
+    }
+
+    /// Expand the observable into its dense matrix form.
+    ///
+    /// The reduced time complexity of this function is :math:`O(4^n)` where
+    /// :math:`n` is the number of qubits. The algorithm is limited by
+    /// the time required to allocate the :math:`2^n \times 2^n` matrix.
+    ///
+    /// .. warning::
+    ///
+    ///     The number of matrix elements scales exponentially with the number of
+    ///     qubits. You risk running out of memory when the number of qubits is
+    ///     sufficiently large. For example, an 8 qubit matrix uses ~4 KB of
+    ///     memory, whereas 16 qubits uses ~69 GB!
+    ///
+    /// Returns:
+    ///     The observable represented as a dense matrix.
+    ///
+    /// Raises:
+    ///     ValueError: If the number of qubits exceeds system limits.
+    ///     ValueError: If the number of qubits is 0.
+    pub fn to_matrix<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyArray2<Complex64>>> {
+        let obs = self.inner.read().map_err(|_| InnerReadError)?;
+        let matrix = obs.to_matrix()?;
+        Ok(PyArray2::from_owned_array(py, matrix))
     }
 
     fn __len__(&self) -> PyResult<usize> {

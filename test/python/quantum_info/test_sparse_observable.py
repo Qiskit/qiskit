@@ -2528,6 +2528,21 @@ class TestSparseObservable(QiskitTestCase):
         zz = SparseObservable.from_sparse_list([("ZZ", [0, 1], 1)], num_qubits=2)
         self.assertTrue(zz.commutes(xxyy))
 
+    def test_to_matrix(self):
+        """Test `to_matrix` success."""
+        obs = SparseObservable.zero(2)
+        res = obs.to_matrix()
+
+        exp = np.zeros((4, 4), dtype=complex)
+        np.testing.assert_array_equal(res, exp)
+
+    def test_to_matrix_value_error(self):
+        """Test `to_matrix` error returns `ValueError`."""
+        obs = SparseObservable.zero(0)
+
+        with self.assertRaises(ValueError):
+            obs.to_matrix()
+
 
 def canonicalize_term(pauli, indices, coeff):
     # canonicalize a sparse list term by sorting by indices (which is unique as
