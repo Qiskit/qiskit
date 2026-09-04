@@ -1077,7 +1077,7 @@ pub enum ParamKind {
     ParameterExpression = 1,
     /// Represents a parameter that can only be represented by an integer. Usually a duration in terms of `Dt`.
     Int = 2,
-    /// Represents an unknown parameter originating.
+    /// Represents an unknown parameter.
     Unknown = 3,
 }
 
