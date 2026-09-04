@@ -1184,7 +1184,7 @@ static int test_delay_instruction(void) {
     QkDelayUnit unit_s = qk_circuit_delay_get_unit(qc, 0);
     if (unit_s != QkDelayUnit_S) {
         result = EqualityError;
-        printf("Expected 's' (0) delay unit, found (%d)", result);
+        printf("Expected 's' (0) delay unit, found (%d).\n", unit_s);
         goto cleanup;
     }
 
@@ -1194,7 +1194,7 @@ static int test_delay_instruction(void) {
 
     if (s_delay_val != 0.001) {
         result = EqualityError;
-        printf("Expected 'dt' (5) delay unit, found (%d)", result);
+        printf("Expected 's' (0.001) delay value, found (%f).\n", s_delay_val);
         goto instr_cleanup;
     }
 
@@ -1207,16 +1207,23 @@ static int test_delay_instruction(void) {
     QkDelayUnit unit_dt = qk_circuit_delay_get_unit(qc, 1);
     if (unit_dt != QkDelayUnit_DT) {
         result = EqualityError;
-        printf("Expected 'dt' (5) delay unit, found (%d)", result);
+        printf("Expected 'dt' (5) delay unit, found (%d).\n", unit_dt);
         goto instr_cleanup;
     }
 
     qk_circuit_get_instruction(qc, 1, &instr);
-    double dt_delay_val = qk_param_as_real(instr.params[0]);
 
-    if (dt_delay_val != 145.0) {
+    QkParamKind param_kind = qk_param_kind(instr.params[0]);
+    if (param_kind != QkParamKind_Int) {
         result = EqualityError;
-        printf("Expected 'dt' (5) delay unit, found (%d)", result);
+        printf("Expected 'Int' typed param %u found (%u).\n", QkParamKind_Int, param_kind);
+        goto instr_cleanup;
+    }
+    uint64_t dt_delay_val = qk_param_as_int(instr.params[0]);
+
+    if (dt_delay_val != 145) {
+        result = EqualityError;
+        printf("Expected 'dt' (145) delay value, found %" PRIu64 ".\n", dt_delay_val);
         goto instr_cleanup;
     }
 
