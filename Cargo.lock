@@ -2331,6 +2331,7 @@ dependencies = [
  "pyo3",
  "qiskit-circuit",
  "qiskit-circuit-library",
+ "qiskit-qasm2",
  "qiskit-quantum-info",
  "qiskit-transpiler",
  "qiskit-util",
@@ -2449,6 +2450,7 @@ dependencies = [
  "hashbrown 0.15.5",
  "num-bigint",
  "pyo3",
+ "qiskit-circuit",
 ]
 
 [[package]]

@@ -19,6 +19,7 @@ num-complex.workspace = true
 qiskit-quantum-info.workspace = true
 qiskit-circuit.workspace = true
 qiskit-circuit-library.workspace = true
+qiskit-qasm2 = { workspace = true, default-features = false, features = ["circuit"] }
 qiskit-transpiler.workspace = true
 pyo3 = { workspace = true, optional = true }
 qiskit-util.workspace = true
