@@ -11,6 +11,8 @@
 // that they have been altered from the originals.
 
 #include "common.h"
+#include <inttypes.h>
+#include <math.h>
 #include <qiskit.h>
 #include <stdio.h>
 #include <string.h>
@@ -621,17 +623,12 @@ exit:
 static int test_custom_operation_query(void) {
     int res = Ok;
 
-    struct foo_gate *test_3q_op = malloc(sizeof(struct foo_gate));
-    test_3q_op->num_qubits = 3;
-    test_3q_op->num_clbits = 0;
-    test_3q_op->num_params = 0;
-
+    struct foo_gate test_3q_op = {
+        .num_qubits = 3,
+    };
     struct fee_gate test_2q_op = {
         .label = "fee",
     };
-
-    // Clone for testing
-    struct foo_gate *copy_of_3q = foo_clone(test_3q_op);
 
     // Initialize Vtable
     const QkCustomOpVtable *foo_vtable = qk_custom_operation_vtable_new(foo_entries);
@@ -654,7 +651,7 @@ static int test_custom_operation_query(void) {
         goto exit;
     }
 
-    QkCustomOp *test_3q = qk_custom_operation_new(test_3q_op, foo_vtable);
+    QkCustomOp *test_3q = qk_custom_operation_new(foo_clone(&test_3q_op), foo_vtable);
     QkCustomOp *test_2q_1c = qk_custom_operation_new(&test_2q_op, fee_vtable);
 
     QkCircuit *circuit = qk_circuit_new(3, 2);
@@ -666,7 +663,7 @@ static int test_custom_operation_query(void) {
     qk_circuit_custom_operation(circuit, test_3q, qubits, NULL, NULL);
     qk_circuit_custom_operation(circuit, test_2q_1c, qubits_2, clbits_2, (QkParam **)params);
 
-    void *gates[2] = {(void *)copy_of_3q, (void *)&test_2q_op};
+    void *gates[2] = {(void *)&test_3q_op, (void *)&test_2q_op};
     if (qk_circuit_instruction_kind(circuit, 0) != QkOperationKind_Unknown) {
         res = RuntimeError;
         goto exit;
@@ -730,29 +727,29 @@ static int test_custom_operation_query(void) {
 
     uint64_t retreived_foo_type = qk_custom_operation_type_id(op);
     if (retreived_foo_type != foo_type) {
-        printf("Unexpected type retrieved for '%s'.\n, expected: %llu, got %llu", retrieved_name,
-               foo_type, retreived_foo_type);
+        printf("Unexpected type retrieved for '%s'.\n, expected: %" PRIu64 ", got %" PRIu64 "",
+               retrieved_name, foo_type, retreived_foo_type);
         res = EqualityError;
         goto cleanup;
     }
 
     // Should result in corrupted data if wrong.
     struct foo_gate *cast_foo = (struct foo_gate *)qk_custom_operation_raw(op);
-    if (cast_foo->num_clbits != test_3q_op->num_clbits) {
+    if (cast_foo->num_clbits != test_3q_op.num_clbits) {
         printf("Unexpected num_clbits retrieved for '%s' pointer.\n, expected: %d, got %d",
-               retrieved_name, test_3q_op->num_clbits, cast_foo->num_clbits);
+               retrieved_name, test_3q_op.num_clbits, cast_foo->num_clbits);
         res = EqualityError;
         goto cleanup;
     }
-    if (cast_foo->num_qubits != test_3q_op->num_qubits) {
+    if (cast_foo->num_qubits != test_3q_op.num_qubits) {
         printf("Unexpected num_qubits retrieved for '%s' pointer.\n, expected: %d, got %d",
-               retrieved_name, test_3q_op->num_qubits, cast_foo->num_qubits);
+               retrieved_name, test_3q_op.num_qubits, cast_foo->num_qubits);
         res = EqualityError;
         goto cleanup;
     }
-    if (cast_foo->num_params != test_3q_op->num_params) {
+    if (cast_foo->num_params != test_3q_op.num_params) {
         printf("Unexpected num_params retrieved for '%s' pointer.\n, expected: %d, got %d",
-               retrieved_name, test_3q_op->num_params, cast_foo->num_params);
+               retrieved_name, test_3q_op.num_params, cast_foo->num_params);
         res = EqualityError;
         goto cleanup;
     }
@@ -830,8 +827,8 @@ static int test_custom_operation_query(void) {
 
     uint64_t retreived_fee_type = qk_custom_operation_type_id(op);
     if (retreived_fee_type != fee_type) {
-        printf("Unexpected type retrieved for '%s'.\n, expected: %llu, got %llu", retrieved_name,
-               fee_type, retreived_fee_type);
+        printf("Unexpected type retrieved for '%s'.\n, expected: %" PRIu64 ", got %" PRIu64 "",
+               retrieved_name, fee_type, retreived_fee_type);
         res = EqualityError;
         goto cleanup_definitions;
     }
@@ -852,7 +849,6 @@ cleanup_definitions:
     qk_circuit_free(retrieved_definition_foo);
     qk_circuit_free(orig_definition_foo);
 cleanup:
-    free(copy_of_3q);
     qk_circuit_free(circuit);
 exit:
     return res;
@@ -877,9 +873,9 @@ static int test_custom_operation_eq(void) {
     // ...and one with different attributes.
     struct foo_gate c = {.num_qubits = 2, .num_clbits = 1, .num_params = 0};
 
-    QkCustomOp *op_a = qk_custom_operation_new(&a, vtable);
-    QkCustomOp *op_b = qk_custom_operation_new(&b, vtable);
-    QkCustomOp *op_c = qk_custom_operation_new(&c, vtable);
+    QkCustomOp *op_a = qk_custom_operation_new(foo_clone(&a), vtable);
+    QkCustomOp *op_b = qk_custom_operation_new(foo_clone(&b), vtable);
+    QkCustomOp *op_c = qk_custom_operation_new(foo_clone(&c), vtable);
 
     if (!qk_custom_operation_eq(op_a, op_b)) {
         printf("Expected operations with equal attributes to compare equal.\n");
@@ -921,8 +917,8 @@ static int test_custom_operation_type_id(void) {
     struct foo_gate b = {.num_qubits = 1, .num_clbits = 0, .num_params = 0};
     struct fee_gate f = {.label = "fee"};
 
-    QkCustomOp *op_a = qk_custom_operation_new(&a, foo_vtable);
-    QkCustomOp *op_b = qk_custom_operation_new(&b, foo_vtable);
+    QkCustomOp *op_a = qk_custom_operation_new(foo_clone(&a), foo_vtable);
+    QkCustomOp *op_b = qk_custom_operation_new(foo_clone(&b), foo_vtable);
     QkCustomOp *op_f = qk_custom_operation_new(&f, fee_vtable);
 
     uint64_t id_a = qk_custom_operation_type_id(op_a);
@@ -930,8 +926,9 @@ static int test_custom_operation_type_id(void) {
     uint64_t id_f = qk_custom_operation_type_id(op_f);
 
     if (id_a != id_b) {
-        printf("Expected equal type ids for operations sharing a vtable. Got %llu and %llu.\n",
-               (unsigned long long)id_a, (unsigned long long)id_b);
+        printf("Expected equal type ids for operations sharing a vtable. Got %" PRIu64
+               " and %" PRIu64 ".\n",
+               id_a, id_b);
         res = EqualityError;
         goto cleanup;
     }
@@ -965,7 +962,7 @@ static int test_custom_operation_num_ctrl_qubits(void) {
     struct foo_gate fg = {.num_qubits = 3, .num_clbits = 0, .num_params = 0};
 
     QkCustomOp *op_ctrl = qk_custom_operation_new(&cg, ctrl_vtable);
-    QkCustomOp *op_foo = qk_custom_operation_new(&fg, foo_vtable);
+    QkCustomOp *op_foo = qk_custom_operation_new(foo_clone(&fg), foo_vtable);
 
     uint32_t ctrl = qk_custom_operation_num_ctrl_qubits(op_ctrl);
     if (ctrl != cg.num_ctrl_qubits) {
@@ -1067,14 +1064,14 @@ static int test_custom_vtable_missing_required_slot(void) {
 static int test_custom_operation_defaults(void) {
     int res = Ok;
 
-    const QkCustomOpVtable *foo_vtable = qk_custom_operation_vtable_new(foo_entries);
-    if (foo_vtable == NULL) {
+    const QkCustomOpVtable *dir_vtable = qk_custom_operation_vtable_new(dir_entries);
+    if (dir_vtable == NULL) {
         printf("Retrieved a Null pointer instead of a Vtable pointer.");
         return NullptrError;
     }
 
-    struct foo_gate fg = {.num_qubits = 2, .num_clbits = 0, .num_params = 0};
-    QkCustomOp *op = qk_custom_operation_new(&fg, foo_vtable);
+    struct dir_gate dir_g = {.num_qubits = 2};
+    QkCustomOp *op = qk_custom_operation_new(&dir_g, dir_vtable);
 
     if (qk_custom_operation_num_ctrl_qubits(op) != 0) {
         printf("Expected default num_ctrl_qubits of 0.\n");
