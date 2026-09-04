@@ -21,7 +21,7 @@ use rustworkx_core::petgraph::stable_graph::NodeIndex;
 
 use crate::commutation_checker::{CommutationChecker, CommutationError};
 use qiskit_circuit::Qubit;
-use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, Wire};
+use qiskit_circuit::dag_circuit::{DAGCircuit, NodeType, PyDAGCircuit, Wire};
 
 // Custom types to store the commutation sets and node indices,
 // see the docstring below for more information.
@@ -156,10 +156,10 @@ pub fn analyze_commutations(
 }
 
 #[pyfunction]
-#[pyo3(name = "analyze_commutations", signature = (dag, commutation_checker, approximation_degree=1.))]
+#[pyo3(name = "analyze_commutations", signature = (py_dag, commutation_checker, approximation_degree=1.))]
 pub fn py_analyze_commutations(
     py: Python,
-    dag: &mut DAGCircuit,
+    py_dag: &mut PyDAGCircuit,
     commutation_checker: &mut CommutationChecker,
     approximation_degree: f64,
 ) -> PyResult<Py<PyDict>> {
@@ -167,11 +167,14 @@ pub fn py_analyze_commutations(
     //   * The commuting nodes per wire: {wire: [commuting_nodes_1, commuting_nodes_2, ...]}
     //   * The index in which commutation set a given node is located on a wire: {(node, wire): index}
     // The Python dict will store both of these dictionaries in one.
-    let (commutation_set, node_indices) =
-        analyze_commutations(dag, commutation_checker, approximation_degree)?;
+    let (commutation_set, node_indices) = analyze_commutations(
+        py_dag.try_write()?,
+        commutation_checker,
+        approximation_degree,
+    )?;
 
     let out_dict = PyDict::new(py);
-
+    let dag = py_dag.try_read()?;
     // First set the {wire: [commuting_nodes_1, ...]} bit
     for (wire_index, commutations) in commutation_set.into_iter().enumerate() {
         if commutations.is_empty() {
