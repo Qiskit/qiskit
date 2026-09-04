@@ -2470,6 +2470,9 @@ impl PyDAGCircuit {
                                     OperationRef::PauliProductRotation(op_a),
                                     OperationRef::PauliProductRotation(op_b),
                                 ] => Ok((op_a == op_b) && check_args()),
+                                [OperationRef::Store(store_a), OperationRef::Store(store_b)] => {
+                                    Ok(store_a == store_b)
+                                }
                                 _ => Ok(false),
                             }
                         }
@@ -6310,15 +6313,10 @@ impl DAGCircuit {
     }
 
     fn may_have_additional_wires(&self, instr: &PackedInstruction) -> bool {
-        match instr.op.view() {
-            OperationRef::ControlFlow(_) => true,
-            OperationRef::PyCustom(PyInstruction {
-                kind: PyOpKind::Instruction,
-                op_name,
-                ..
-            }) => op_name == "store",
-            _ => false,
-        }
+        matches!(
+            instr.op.view(),
+            OperationRef::ControlFlow(_) | OperationRef::Store(_)
+        )
     }
 
     fn additional_wires(
@@ -6402,30 +6400,13 @@ impl DAGCircuit {
                     vars.push(self.vars_stretches.vars().find(var).unwrap());
                 }
             }
-        } else if let OperationRef::PyCustom(instr) = instr.op.view() {
-            Python::attach(|py| {
-                let op = instr.ob.bind(py);
-                if op.is_instance(imports::STORE_OP.get_bound(py))? {
-                    let (expr_clbits, expr_vars) =
-                        wires_from_expr(&op.getattr("lvalue")?.extract()?)?;
-                    for bit in expr_clbits {
-                        clbits.push(bit);
-                    }
-                    for var in expr_vars {
-                        vars.push(var);
-                    }
-                    let (expr_clbits, expr_vars) =
-                        wires_from_expr(&op.getattr("rvalue")?.extract()?)?;
-                    for bit in expr_clbits {
-                        clbits.push(bit);
-                    }
-                    for var in expr_vars {
-                        vars.push(var);
-                    }
-                }
-                Ok(())
-            })
-            .map_err(DAGError::Python)?;
+        } else if let OperationRef::Store(store) = instr.op.view() {
+            let (expr_clbits, expr_vars) = wires_from_expr(store.lvalue())?;
+            clbits.extend(expr_clbits);
+            vars.extend(expr_vars);
+            let (expr_clbits, expr_vars) = wires_from_expr(store.rvalue())?;
+            clbits.extend(expr_clbits);
+            vars.extend(expr_vars);
         }
         Ok((clbits, vars))
     }

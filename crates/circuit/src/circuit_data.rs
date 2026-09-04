@@ -1311,7 +1311,8 @@ impl CircuitData {
                     | OperationRef::Unitary(_)
                     | OperationRef::PauliProductMeasurement(_)
                     | OperationRef::PauliProductRotation(_)
-                    | OperationRef::CustomOperation(_) => {
+                    | OperationRef::CustomOperation(_)
+                    | OperationRef::Store(_) => {
                         // TODO: `PauliProductRotation` actually stores a `Param` inside itself,
                         // which this code does not account for.  We most likely need to make an
                         // `OperationRefMut` in order to modify that without cloning the whole
@@ -2549,6 +2550,7 @@ impl PyCircuitData {
                     OperationRef::CustomOperation(custom_operation) => {
                         BoxedCustomOperation::from(custom_operation.clone_dyn()).into()
                     }
+                    OperationRef::Store(store) => store.clone().into(),
                 };
                 res.data.push(PackedInstruction {
                     op: new_op,
@@ -2577,6 +2579,7 @@ impl PyCircuitData {
                     OperationRef::CustomOperation(custom_operation) => {
                         BoxedCustomOperation::from(custom_operation.clone_dyn()).into()
                     }
+                    OperationRef::Store(store) => store.clone().into(),
                 };
                 res.data.push(PackedInstruction {
                     op: new_op,

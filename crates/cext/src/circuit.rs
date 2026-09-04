@@ -1421,6 +1421,7 @@ pub unsafe extern "C" fn qk_circuit_instruction_kind(
         OperationRef::PauliProductRotation(_) => COperationKind::PauliProductRotation,
         OperationRef::ControlFlow(_) => COperationKind::ControlFlow,
         OperationRef::PyCustom(_) | OperationRef::CustomOperation(_) => COperationKind::Unknown,
+        OperationRef::Store(_) => COperationKind::Unknown,
     }
 }
 
@@ -2419,6 +2420,10 @@ pub struct CircuitDrawerConfig {
     /// to auto-detect console width. Use `SIZE_MAX` to effectively skip
     /// wrapping altogether.
     fold: usize,
+    /// Sets the number of characters to display for barrier labels. If
+    /// this number is exceeded, the label is truncated at that number and
+    /// '...' is appended. Use 0 to apply the default of 16 characters.
+    barrier_label_len: usize,
 }
 
 /// @ingroup QkCircuit
@@ -2430,6 +2435,7 @@ pub struct CircuitDrawerConfig {
 ///     * ``bundle_cregs = true``
 ///     * ``merge_wires = true``
 ///     * ``fold = 0``
+///     * ``barrier_label_len = 16``
 ///
 /// @return A pointer to a null-terminated string containing the circuit representation.
 ///     You must use ``qk_str_free`` to release the allocated memory when done.
@@ -2443,7 +2449,7 @@ pub struct CircuitDrawerConfig {
 /// qk_circuit_measure(circuit, 0, 0);
 /// qk_circuit_measure(circuit, 1, 0);
 ///
-/// QkCircuitDrawerConfig config = {false, true, 0};
+/// QkCircuitDrawerConfig config = {false, true, 0, 16};
 ///
 /// char *circ_str = qk_circuit_draw(circuit, &config);
 ///
@@ -2465,7 +2471,7 @@ pub unsafe extern "C" fn qk_circuit_draw(
     // SAFETY: Per documentation, the pointer is non-null and aligned.
     let circuit = unsafe { const_ptr_as_ref(circuit) };
 
-    let (bundle_cregs, merge_wires, fold) = if !config.is_null() {
+    let (bundle_cregs, merge_wires, fold, barrier_label_len) = if !config.is_null() {
         // SAFETY: Per documentation, the pointer is to a valid QkCircuitDrawerConfig struct.
         let config = unsafe { const_ptr_as_ref(config) };
         (
@@ -2476,12 +2482,14 @@ pub unsafe extern "C" fn qk_circuit_draw(
             } else {
                 None
             },
+            config.barrier_label_len,
         )
     } else {
-        (true, true, None)
+        (true, true, None, 0)
     };
 
-    let circuit_str = draw_circuit(circuit, bundle_cregs, merge_wires, fold).unwrap();
+    let circuit_str =
+        draw_circuit(circuit, bundle_cregs, merge_wires, fold, barrier_label_len).unwrap();
 
     CString::new(circuit_str).unwrap().into_raw()
 }
