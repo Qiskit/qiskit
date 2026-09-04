@@ -13,6 +13,7 @@
 use numpy::PyArrayLike1;
 use smallvec::smallvec;
 
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
@@ -24,6 +25,25 @@ use super::linear_phase::cz_depth_lnn::LnnGatesVec;
 
 mod utils;
 
+/// Possible errors that can occur when validating a permutation pattern.
+#[derive(Debug, thiserror::Error)]
+pub enum PermutationError {
+    #[error("invalid permutation: input contains a negative number")]
+    NegativeEntry,
+
+    #[error("invalid permutation: input has length {length} and contains {value}")]
+    OutOfBounds { length: usize, value: i64 },
+
+    #[error("invalid permutation: input contains {value} more than once")]
+    DuplicateEntry { value: i64 },
+}
+
+impl From<PermutationError> for PyErr {
+    fn from(value: PermutationError) -> Self {
+        PyValueError::new_err(value.to_string())
+    }
+}
+
 /// Checks whether an array of size N is a permutation of 0, 1, ..., N - 1.
 #[pyfunction]
 #[pyo3(signature = (pattern))]
@@ -32,7 +52,7 @@ pub fn _validate_permutation(
     pattern: PyArrayLike1<i64, numpy::AllowTypeChange>,
 ) -> PyResult<Py<PyAny>> {
     let view = pattern.as_array();
-    utils::validate_permutation(&view)?;
+    utils::validate_permutation(&view).map_err(PyErr::from)?;
     Ok(py.None())
 }
 
