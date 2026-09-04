@@ -581,6 +581,16 @@ pub(crate) fn pack_param_obj(
         Param::Obj(py_object) => qpy_data.caller.attach("Python parameter", |py| {
             py_pack_param(py_object.bind(py), qpy_data, endian)
         })?,
+        Param::Int(int) => match resolved {
+            Endian::Little => formats::GenericDataPack {
+                type_key: ValueType::Integer,
+                data: int.to_le_bytes().into(),
+            },
+            Endian::Big => formats::GenericDataPack {
+                type_key: ValueType::Integer,
+                data: int.to_be_bytes().into(),
+            },
+        },
     })
 }
 

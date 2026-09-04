@@ -1539,7 +1539,7 @@ impl CInstruction {
             .params_view()
             .iter()
             .map(|p| match p {
-                Param::Float(_) | Param::ParameterExpression(_) => {
+                Param::Float(_) | Param::ParameterExpression(_) | Param::Int(_) => {
                     Some(Box::into_raw(Box::new(p.clone())))
                 }
                 _ => None,
