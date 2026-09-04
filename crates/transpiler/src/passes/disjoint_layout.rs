@@ -326,7 +326,10 @@ fn build_coupling_map(target: &Target) -> Option<UnGraph<PhysicalQubit, ()>> {
     if target.num_qargs() == 0 {
         return None;
     }
-    let mut cm_graph = UnGraph::with_capacity(num_qubits, target.num_qargs() - num_qubits);
+    // The number of qargs is only a rough estimate of the number of edges: it assumes every
+    // qubit has a 1q operation defined on it, which need not be true, so saturate at zero.
+    let mut cm_graph =
+        UnGraph::with_capacity(num_qubits, target.num_qargs().saturating_sub(num_qubits));
     for i in 0..num_qubits {
         cm_graph.add_node(PhysicalQubit::new(i as u32));
     }
