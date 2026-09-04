@@ -222,7 +222,7 @@ class TestEvolutionGate(QiskitTestCase):
 
         synthesis = SuzukiTrotter(order=2, reps=reps)
         if use_plugin:
-            hls_config = HLSConfig(PauliEvolution=[("default", {"preserve_order": False})])
+            hls_config = HLSConfig(PauliEvolution=[("basic", {"preserve_order": False})])
         else:
             synthesis.preserve_order = False
             hls_config = None
