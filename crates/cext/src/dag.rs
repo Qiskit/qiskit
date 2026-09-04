@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::ptr::null;
+
 use anyhow::Error;
 use hashbrown::HashMap;
 use num_complex::Complex64;
@@ -22,8 +24,10 @@ use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, NodeIndex, NodeType};
 use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
-    ArrayType, Operation, OperationRef, Param, StandardGate, StandardInstruction, UnitaryGate,
+    ArrayType, BoxedCustomOperation, Operation, OperationRef, Param, StandardGate,
+    StandardInstruction, UnitaryGate,
 };
+use qiskit_circuit::packed_instruction::PackedOperation;
 use qiskit_circuit::{Clbit, Qubit};
 
 use crate::circuit::{CBlocksMode, CInstruction, CVarsMode};
@@ -1908,4 +1912,140 @@ pub unsafe extern "C" fn qk_dag_convert_from_python(
     unsafe {
         crate::py::convert_mut::<DAGCircuit>(::pyo3::Python::assume_attached(), object, address)
     }
+}
+
+/// @ingroup QkDag
+/// Adds a `QkCustomOperation` into the circuit.
+///
+/// The addition of this `QkCustomOperation` depends on its validity and can be rejected.
+/// If the operation's vtable points to a null pointer due to any errors during construction,
+/// or invalid input being received by ``qk_custom_operation_vtable_new``, the operation will be
+/// rejected and an `ExitCode` will be returned due to an unexpected null pointer.
+///
+/// @param dag A pointer to the DAG to apply the operation to.
+/// @param operation The `QkCustomOperation` object.
+/// @param qubits The pointer to the array of ``uint32_t`` qubit indices to add the operation on. This
+///     can be a null pointer if there are no qubits for ``operation`` (e.g. ``QkGate_GlobalPhase``).
+/// @param clbits The pointer to the array of ``uint32_t`` qubit indices to add the operation on. This
+///     can be a null pointer if there are no qubits for ``operation`` (e.g. ``QkGate_GlobalPhase``).
+/// @param params The pointer to the array of ``double`` values to use for the operation parameters.
+///     This can be a null pointer if there are no parameters for ``operation`` (e.g. ``QkGate_H``).
+/// @param front If ``true``, the operation is applied as the first operation on the specified qubits,
+///     rather than as the last.
+/// @param node The pointer to an address big enough to write the unsigned 32-bit integer index to.
+///
+/// @return an ExitCode.
+///
+/// # Safety
+///
+/// The ``qubits``, ``clbits``, and ``params`` types are expected to be a pointer to an
+/// array of ``uint32_t`` (for ``qubits``, ``clbits``) or  ``QkParam`` (for ``params``)
+/// where the length is matching the expectations for operation. If the array is
+/// insufficiently long the behavior of this function is undefined as this will read
+/// outside the bounds of the array. It can be a null pointer if there are no qubits
+/// or params for a given operation.
+///
+/// Behavior is undefined if ``node`` is not a valid non-null pointer to an address big
+/// enough to store a 32-bit unsigned integer.
+///
+/// Behavior is undefined if ``dag`` is not a valid, non-null pointer to a ``QkDag``.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_dag_apply_custom_operation(
+    dag: *mut DAGCircuit,
+    operation: *mut BoxedCustomOperation,
+    qubits: *const u32,
+    clbits: *const u32,
+    params: *mut *mut Param,
+    node: *mut u32,
+    front: bool,
+) -> ExitCode {
+    let boxed: Box<BoxedCustomOperation> = unsafe { Box::from_raw(operation) };
+    let op = PackedOperation::from(boxed);
+
+    let circ = unsafe { mut_ptr_as_ref(dag) };
+
+    let qubits = if !qubits.is_null() {
+        unsafe { std::slice::from_raw_parts(qubits, op.num_qubits() as usize) }
+    } else {
+        Default::default()
+    };
+    let qargs: &[Qubit] = bytemuck::cast_slice(qubits);
+
+    let clbits = if !clbits.is_null() {
+        unsafe { std::slice::from_raw_parts(clbits, op.num_clbits() as usize) }
+    } else {
+        Default::default()
+    };
+    let cargs: &[Clbit] = bytemuck::cast_slice(clbits);
+
+    let params = (!params.is_null()).then(|| {
+        let params = if !params.is_null() {
+            unsafe { std::slice::from_raw_parts(*params, op.num_params() as usize) }
+        } else {
+            Default::default()
+        };
+        Parameters::Params(params.iter().cloned().collect())
+    });
+
+    let ret = if front {
+        circ.apply_operation_front(
+            op,
+            qargs,
+            cargs,
+            params,
+            None,
+            #[cfg(feature = "cache_pygates")]
+            None,
+        )
+    } else {
+        circ.apply_operation_back(
+            op,
+            qargs,
+            cargs,
+            params,
+            None,
+            #[cfg(feature = "cache_pygates")]
+            None,
+        )
+    };
+    match ret {
+        Ok(val) => {
+            // SAFETY: `node` is a non-null pointer to an address that can hold a 32-bit integer.
+            unsafe { node.write(val.index() as u32) };
+            ExitCode::Success
+        }
+        Err(DAGError::WireOutOfRange(_wire, _size)) => ExitCode::MismatchedQubits,
+        Err(_) => ExitCode::DagError,
+    }
+}
+
+/// @ingroup QkDag
+///
+/// Retrieves a ``QkCustomOperation`` from a dag.
+///
+/// @param dag A pointer to the dag instance
+/// @param index The index in which the instruction is located.
+///
+/// @return A pointer to the ``QkCustomOperation`` instance or a `NULL` pointer if
+/// the operation is not custom.
+///
+/// # Safety
+///
+/// Undefined behavior may happen if the `dag` pointer is null or unaligned.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn qk_dag_get_custom_operation(
+    dag: *mut DAGCircuit,
+    index: u32,
+) -> *const BoxedCustomOperation {
+    let dag_borrowed = unsafe { const_ptr_as_ref(dag) };
+
+    let NodeType::Operation(operation) = &dag_borrowed.dag()[NodeIndex::from(index)] else {
+        return null();
+    };
+
+    let Ok(custom): Result<&'_ BoxedCustomOperation, _> = (&operation.op).try_into() else {
+        return null();
+    };
+
+    custom as *const BoxedCustomOperation
 }
