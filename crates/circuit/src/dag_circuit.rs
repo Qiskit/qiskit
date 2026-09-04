@@ -6427,7 +6427,7 @@ impl DAGCircuit {
                 &mut self.global_phase,
                 Param::ParameterExpression(angle),
             )),
-            Param::Obj(_) => Err(DAGError::ObjGlobalPhase),
+            Param::Obj(_) | Param::Int(_) => Err(DAGError::ObjGlobalPhase),
         }
     }
 
