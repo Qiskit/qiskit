@@ -2408,6 +2408,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "qiskit-passmanager"
+version = "2.6.0-dev"
+dependencies = [
+ "anyhow",
+ "hashbrown 0.15.5",
+ "qiskit-circuit",
+ "qiskit-transpiler",
+ "smallvec",
+ "thiserror 2.0.20",
+]
+
+[[package]]
 name = "qiskit-providers"
 version = "2.6.0-dev"
 dependencies = [
