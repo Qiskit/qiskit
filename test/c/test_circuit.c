@@ -1677,6 +1677,134 @@ cleanup:
     return result;
 }
 
+static int test_get_circuit_params(void) {
+    QkCircuit *qc = qk_circuit_new(2, 0);
+    QkParam *x = qk_param_new_symbol("x");
+    QkParam *y = qk_param_new_symbol("somey longery namey");
+
+    uint32_t q0[1] = {0};
+    uint32_t q1[1] = {1};
+    uint32_t q01[2] = {0, 1};
+    const QkParam *rx_param[1] = {x};
+    const QkParam *rzz_param[1] = {y};
+
+    int result = Ok;
+    if (qk_circuit_parameterized_gate(qc, QkGate_RX, q0, rx_param) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+    if (qk_circuit_parameterized_gate(qc, QkGate_RX, q1, rx_param) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+    if (qk_circuit_parameterized_gate(qc, QkGate_RZZ, q01, rzz_param) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    // check the number of parameters
+    size_t num_symbols = qk_circuit_num_param_symbols(qc);
+    if (num_symbols != 2) {
+        result = EqualityError;
+        printf("Expected 2 symbols, found %zu\n", num_symbols);
+        goto cleanup;
+    }
+    char **parameters = malloc(sizeof(char *) * num_symbols);
+    size_t count = 0;
+    bool callback_fn(const char *symbol) {
+        parameters[count] = malloc(strlen(symbol) + 1);
+        strcpy(parameters[count], symbol);
+        count++;
+        return true;
+    }
+    qk_circuit_get_param_symbols(qc, &callback_fn);
+    if (count != num_symbols) {
+        result = EqualityError;
+        printf("Expected 2 symbols in the output parameters list, found: %zu\n", count);
+        goto result_cleanup;
+    }
+    if (strcmp(parameters[0], "somey longery namey") != 0) {
+        result = EqualityError;
+        printf("Expected second symbol returned to be 'somey longery namey', found: %s\n",
+               parameters[0]);
+        goto result_cleanup;
+    }
+    if (strcmp(parameters[1], "x") != 0) {
+        result = EqualityError;
+        printf("Expected first symbol returned to be 'x', found: %s\n", parameters[1]);
+    }
+result_cleanup:
+    for (size_t i = 0; i < count; i++) {
+        free(parameters[i]);
+    }
+    free(parameters);
+cleanup:
+    qk_param_free(x);
+    qk_param_free(y);
+    qk_circuit_free(qc);
+    return result;
+}
+
+static int test_get_circuit_params_iter_break(void) {
+    QkCircuit *qc = qk_circuit_new(2, 0);
+    QkParam *x = qk_param_new_symbol("x");
+    QkParam *y = qk_param_new_symbol("somey longery namey");
+
+    uint32_t q0[1] = {0};
+    uint32_t q1[1] = {1};
+    uint32_t q01[2] = {0, 1};
+    const QkParam *rx_param[1] = {x};
+    const QkParam *rzz_param[1] = {y};
+
+    int result = Ok;
+    if (qk_circuit_parameterized_gate(qc, QkGate_RX, q0, rx_param) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+    if (qk_circuit_parameterized_gate(qc, QkGate_RX, q1, rx_param) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+    if (qk_circuit_parameterized_gate(qc, QkGate_RZZ, q01, rzz_param) != QkExitCode_Success) {
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    // check the number of parameters
+    size_t num_symbols = qk_circuit_num_param_symbols(qc);
+    if (num_symbols != 2) {
+        result = EqualityError;
+        printf("Expected 2 symbols, found %zu\n", num_symbols);
+        goto cleanup;
+    }
+    char *parameter;
+    size_t count = 0;
+    bool callback_fn(const char *symbol) {
+        parameter = malloc(strlen(symbol) + 1);
+        strcpy(parameter, symbol);
+        count++;
+        return false;
+    }
+    qk_circuit_get_param_symbols(qc, &callback_fn);
+    if (count != 1) {
+        result = EqualityError;
+        printf("Expected 1 symbols in the output parameters list, found: %zu\n", count);
+        goto result_cleanup;
+    }
+    if (strcmp(parameter, "somey longery namey") != 0) {
+        result = EqualityError;
+        printf("Expected second symbol returned to be 'somey longery namey', found: %s\n",
+               parameter);
+    }
+result_cleanup:
+    free(parameter);
+cleanup:
+    qk_param_free(x);
+    qk_param_free(y);
+    qk_circuit_free(qc);
+    return result;
+}
+
 int test_circuit(void) {
     int num_failed = 0;
     num_failed += RUN_TEST(test_empty);
@@ -1710,6 +1838,8 @@ int test_circuit(void) {
     num_failed += RUN_TEST(test_estimate_fidelity_non_physical);
     num_failed += RUN_TEST(test_basic_register_queries);
     num_failed += RUN_TEST(test_register_bits);
+    num_failed += RUN_TEST(test_get_circuit_params);
+    num_failed += RUN_TEST(test_get_circuit_params_iter_break);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests: %i\n", num_failed);
