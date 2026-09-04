@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 #include "common.h"
+#include <inttypes.h>
 #include <math.h>
 #include <qiskit.h>
 #include <stdio.h>
@@ -576,8 +577,8 @@ static int test_custom_operation_query(void) {
 
     uint64_t retreived_foo_type = qk_custom_operation_type_id(op);
     if (retreived_foo_type != foo_type) {
-        printf("Unexpected type retrieved for '%s'.\n, expected: %llu, got %llu", retrieved_name,
-               foo_type, retreived_foo_type);
+        printf("Unexpected type retrieved for '%s'.\n, expected: %" PRIu64 ", got %" PRIu64 "",
+               retrieved_name, foo_type, retreived_foo_type);
         res = EqualityError;
         goto cleanup;
     }
@@ -677,8 +678,8 @@ static int test_custom_operation_query(void) {
 
     uint64_t retreived_fee_type = qk_custom_operation_type_id(op);
     if (retreived_fee_type != fee_type) {
-        printf("Unexpected type retrieved for '%s'.\n, expected: %llu, got %llu", retrieved_name,
-               fee_type, retreived_fee_type);
+        printf("Unexpected type retrieved for '%s'.\n, expected: %" PRIu64 ", got %" PRIu64 "",
+               retrieved_name, fee_type, retreived_fee_type);
         res = EqualityError;
         goto cleanup_definitions;
     }
@@ -773,8 +774,9 @@ static int test_custom_operation_type_id(void) {
     uint64_t id_f = qk_custom_operation_type_id(op_f);
 
     if (id_a != id_b) {
-        printf("Expected equal type ids for operations sharing a vtable. Got %llu and %llu.\n",
-               (unsigned long long)id_a, (unsigned long long)id_b);
+        printf("Expected equal type ids for operations sharing a vtable. Got %" PRIu64
+               " and %" PRIu64 ".\n",
+               id_a, id_b);
         res = EqualityError;
         goto cleanup;
     }
