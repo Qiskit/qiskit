@@ -17,7 +17,6 @@
 use core::f64;
 
 use hashbrown::HashMap;
-use pyo3::prelude::*;
 use std::ops::ControlFlow;
 
 use crate::error::{
@@ -25,12 +24,13 @@ use crate::error::{
 };
 use crate::lex::{Token, TokenContext, TokenStream, TokenType};
 use crate::parse::{GateSymbol, GlobalSymbol, ParamId};
-use crate::{ClassicalCallableExt, bytecode};
+use crate::{ClassicalCallableExt, ClassicalEvaluator};
 
 /// Enum representation of the builtin OpenQASM 2 functions.  The built-in Qiskit parser adds the
 /// inverse trigonometric functions, but these are an extension to the version as given in the
 /// arXiv paper describing OpenQASM 2.  This enum is essentially just a subset of the [TokenType]
 /// enum, to allow for better pattern-match checking in the Rust compiler.
+#[derive(Clone, Copy)]
 pub enum Function {
     Cos,
     Exp,
@@ -50,19 +50,6 @@ impl From<TokenType> for Function {
             TokenType::Sqrt => Function::Sqrt,
             TokenType::Tan => Function::Tan,
             _ => panic!(),
-        }
-    }
-}
-
-impl From<Function> for bytecode::UnaryOpCode {
-    fn from(value: Function) -> Self {
-        match value {
-            Function::Cos => Self::Cos,
-            Function::Exp => Self::Exp,
-            Function::Ln => Self::Ln,
-            Function::Sin => Self::Sin,
-            Function::Sqrt => Self::Sqrt,
-            Function::Tan => Self::Tan,
         }
     }
 }
@@ -133,6 +120,7 @@ enum Atom {
 /// floating-point numbers, so these will simply be evaluated into a `Constant` variant rather than
 /// represented in full tree form.  For references to the gate parameters, we just store the index
 /// of which parameter it is.
+#[derive(Clone)]
 pub enum Expr {
     Constant(f64),
     Parameter(ParamId),
@@ -146,77 +134,134 @@ pub enum Expr {
     CustomFunction(ClassicalCallableExt, Vec<Expr>),
 }
 
-impl<'py> IntoPyObject<'py> for Expr {
-    type Target = PyAny; // the Python type
-    type Output = Bound<'py, Self::Target>; // in most cases this will be `Bound`
-    type Error = PyErr;
+/// A single pending step of the iterative evaluator
+#[cfg(feature = "circuit")]
+enum Step<'a> {
+    /// Evaluate this (sub)expression, pushing its value onto the value stack.
+    Eval(&'a Expr),
+    /// Pop one value, negate it, and push the result.
+    Negate,
+    /// Pop one value, apply the builtin function, and push the result.
+    Function(&'a Function),
+    /// Pop two values apply the operation, and push the result.
+    Binary(BinaryKind),
+    /// Pop the given number of values, call the classical function with them, and push the result.
+    Custom(&'a ClassicalCallableExt, usize),
+}
 
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        Ok(match self {
-            Expr::Constant(value) => bytecode::ExprConstant { value }
-                .into_pyobject(py)?
-                .into_any(),
-            Expr::Parameter(index) => bytecode::ExprArgument { index }
-                .into_pyobject(py)?
-                .into_any(),
-            Expr::Negate(expr) => bytecode::ExprUnary {
-                opcode: bytecode::UnaryOpCode::Negate,
-                argument: expr.into_pyobject(py)?.unbind(),
+#[cfg(feature = "circuit")]
+#[derive(Clone, Copy)]
+enum BinaryKind {
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    Power,
+}
+
+#[cfg(feature = "circuit")]
+pub fn evaluate(
+    expr: &Expr,
+    params: &[f64],
+    evaluator: ClassicalEvaluator<'_>,
+) -> Result<f64, ParseError> {
+    let mut work = vec![Step::Eval(expr)];
+    let mut values = Vec::<f64>::new();
+
+    while let Some(step) = work.pop() {
+        match step {
+            Step::Eval(expr) => match expr {
+                Expr::Constant(value) => values.push(*value),
+                Expr::Parameter(index) => {
+                    let value = params.get(index.index()).copied().ok_or_else(|| {
+                        ParseError::new("gate parameter index out of range".to_owned())
+                    })?;
+                    values.push(value);
+                }
+                Expr::Negate(inner) => {
+                    work.push(Step::Negate);
+                    work.push(Step::Eval(inner));
+                }
+                Expr::Add(lhs, rhs) => push_binary(&mut work, BinaryKind::Add, lhs, rhs),
+                Expr::Subtract(lhs, rhs) => push_binary(&mut work, BinaryKind::Subtract, lhs, rhs),
+                Expr::Multiply(lhs, rhs) => push_binary(&mut work, BinaryKind::Multiply, lhs, rhs),
+                Expr::Divide(lhs, rhs) => push_binary(&mut work, BinaryKind::Divide, lhs, rhs),
+                Expr::Power(lhs, rhs) => push_binary(&mut work, BinaryKind::Power, lhs, rhs),
+                Expr::Function(func, inner) => {
+                    work.push(Step::Function(func));
+                    work.push(Step::Eval(inner));
+                }
+                Expr::CustomFunction(callable, exprs) => {
+                    work.push(Step::Custom(callable, exprs.len()));
+                    // Pushed in reverse so that they pop (and so evaluate) left-to-right, leaving
+                    // the values on the stack in argument order.
+                    work.extend(exprs.iter().rev().map(Step::Eval));
+                }
+            },
+            Step::Negate => {
+                let value = values.pop().expect("negation has one operand");
+                values.push(-value);
             }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::Add(left, right) => bytecode::ExprBinary {
-                opcode: bytecode::BinaryOpCode::Add,
-                left: left.into_pyobject(py)?.unbind(),
-                right: right.into_pyobject(py)?.unbind(),
+            Step::Function(func) => {
+                let value = values.pop().expect("a function has one operand");
+                values.push(match func {
+                    Function::Cos => value.cos(),
+                    Function::Exp => value.exp(),
+                    Function::Ln => {
+                        if value <= 0.0 {
+                            return Err(ParseError::new(format!(
+                                "'ln' is undefined for non-positive {value}"
+                            )));
+                        }
+                        value.ln()
+                    }
+                    Function::Sin => value.sin(),
+                    Function::Sqrt => {
+                        if value < 0.0 {
+                            return Err(ParseError::new(format!(
+                                "'sqrt' is undefined for negative {value}"
+                            )));
+                        }
+                        value.sqrt()
+                    }
+                    Function::Tan => value.tan(),
+                });
             }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::Subtract(left, right) => bytecode::ExprBinary {
-                opcode: bytecode::BinaryOpCode::Subtract,
-                left: left.into_pyobject(py)?.unbind(),
-                right: right.into_pyobject(py)?.unbind(),
+            Step::Binary(op) => {
+                let rhs = values.pop().expect("a binary op has two operands");
+                let lhs = values.pop().expect("a binary op has two operands");
+                values.push(match op {
+                    BinaryKind::Add => lhs + rhs,
+                    BinaryKind::Subtract => lhs - rhs,
+                    BinaryKind::Multiply => lhs * rhs,
+                    BinaryKind::Divide => lhs / rhs,
+                    BinaryKind::Power => {
+                        if lhs < 0.0 && rhs.fract() != 0.0 {
+                            return Err(ParseError::new(format!(
+                                "'^': negative base {lhs} with non-integer power {rhs}"
+                            )));
+                        }
+                        lhs.powf(rhs)
+                    }
+                });
             }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::Multiply(left, right) => bytecode::ExprBinary {
-                opcode: bytecode::BinaryOpCode::Multiply,
-                left: left.into_pyobject(py)?.unbind(),
-                right: right.into_pyobject(py)?.unbind(),
+            Step::Custom(callable, num_args) => {
+                let args = values.split_off(values.len() - num_args);
+                values.push(evaluator.eval(callable, &args)?);
             }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::Divide(left, right) => bytecode::ExprBinary {
-                opcode: bytecode::BinaryOpCode::Divide,
-                left: left.into_pyobject(py)?.unbind(),
-                right: right.into_pyobject(py)?.unbind(),
-            }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::Power(left, right) => bytecode::ExprBinary {
-                opcode: bytecode::BinaryOpCode::Power,
-                left: left.into_pyobject(py)?.unbind(),
-                right: right.into_pyobject(py)?.unbind(),
-            }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::Function(func, expr) => bytecode::ExprUnary {
-                opcode: func.into(),
-                argument: expr.into_pyobject(py)?.unbind(),
-            }
-            .into_pyobject(py)?
-            .into_any(),
-            Expr::CustomFunction(callable, exprs) => bytecode::ExprCustom {
-                callable,
-                arguments: exprs
-                    .into_iter()
-                    .map(|arg| arg.into_pyobject(py).map(|obj| obj.unbind()))
-                    .collect::<Result<Vec<_>, _>>()?,
-            }
-            .into_pyobject(py)?
-            .into_any(),
-        })
+        }
     }
+
+    let value = values.pop().expect("the expression evaluates to one value");
+    debug_assert!(values.is_empty());
+    Ok(value)
+}
+
+#[cfg(feature = "circuit")]
+fn push_binary<'a>(work: &mut Vec<Step<'a>>, op: BinaryKind, lhs: &'a Expr, rhs: &'a Expr) {
+    work.push(Step::Binary(op));
+    work.push(Step::Eval(rhs));
+    work.push(Step::Eval(lhs));
 }
 
 /// Calculate the binding power of an [Op] when used in a prefix position.  Returns [None] if the
@@ -283,6 +328,7 @@ pub struct ExprParser<'a> {
     pub gate_symbols: &'a HashMap<String, GateSymbol>,
     pub global_symbols: &'a HashMap<String, GlobalSymbol>,
     pub strict: bool,
+    pub evaluator: ClassicalEvaluator<'a>,
 }
 
 impl ExprParser<'_> {
@@ -496,7 +542,8 @@ impl ExprParser<'_> {
         let Some(floats) = as_f64 else {
             return Ok(Expr::CustomFunction(callable.clone(), exprs));
         };
-        callable.call(&floats).map(Expr::Constant).map_err(|err| {
+        let folded = self.evaluator.eval(callable, &floats);
+        folded.map(Expr::Constant).map_err(|err| {
             let message = message_generic(Some(&self.cur_position_of(token)), &err.message);
             err.with_message(message)
         })

@@ -17,7 +17,10 @@
 
 use hashbrown::{HashMap, HashSet};
 use num_bigint::BigUint;
+#[cfg(feature = "py")]
 use pyo3::prelude::*;
+#[cfg(feature = "circuit")]
+use qiskit_circuit::standard_gate::StandardGate;
 
 use crate::bytecode::InternalBytecode;
 use crate::error::{
@@ -25,7 +28,7 @@ use crate::error::{
 };
 use crate::expr::{Expr, ExprParser};
 use crate::lex::{Token, TokenContext, TokenStream, TokenType, Version};
-use crate::{ClassicalCallableExt, CustomClassical, CustomInstruction};
+use crate::{ClassicalCallableExt, ClassicalEvaluator, CustomClassical, CustomInstruction};
 
 /// The number of gates that are built in to the OpenQASM 2 language.  This is U and CX.
 const N_BUILTIN_GATES: usize = 2;
@@ -57,6 +60,35 @@ const QELIB1: [(&str, usize, usize); 23] = [
     ("cu3", 3, 2),
 ];
 
+/// The native `StandardGate` for each entry of [QELIB1], in the same order.  `QELIB1[i]` and
+/// `QELIB1_STANDARD_GATES[i]` describe the same gate.
+#[cfg(feature = "circuit")]
+pub(crate) const QELIB1_STANDARD_GATES: [StandardGate; 23] = [
+    StandardGate::U3,
+    StandardGate::U2,
+    StandardGate::U1,
+    StandardGate::CX,
+    StandardGate::I,
+    StandardGate::X,
+    StandardGate::Y,
+    StandardGate::Z,
+    StandardGate::H,
+    StandardGate::S,
+    StandardGate::Sdg,
+    StandardGate::T,
+    StandardGate::Tdg,
+    StandardGate::RX,
+    StandardGate::RY,
+    StandardGate::RZ,
+    StandardGate::CZ,
+    StandardGate::CY,
+    StandardGate::CH,
+    StandardGate::CCX,
+    StandardGate::CRZ,
+    StandardGate::CU1,
+    StandardGate::CU3,
+];
+
 const BUILTIN_CLASSICAL: [&str; 6] = ["cos", "exp", "ln", "sin", "sqrt", "tan"];
 
 /// Define a simple newtype that just has a single non-public `usize` field, has a `new`
@@ -64,12 +96,17 @@ const BUILTIN_CLASSICAL: [&str; 6] = ["cos", "exp", "ln", "sin", "sqrt", "tan"];
 /// the second is whether to also define addition to make offsetting the newtype easier.
 macro_rules! newtype_id {
     ($id:ident, false) => {
-        #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, IntoPyObject, IntoPyObjectRef)]
+        #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+        #[cfg_attr(feature = "py", derive(IntoPyObject, IntoPyObjectRef))]
         pub struct $id(usize);
 
         impl $id {
             pub fn new(value: usize) -> Self {
                 Self(value)
+            }
+
+            pub fn index(&self) -> usize {
+                self.0
             }
         }
     };
@@ -689,6 +726,7 @@ impl State {
     fn parse_gate_definition(
         &mut self,
         bc: &mut Vec<Option<InternalBytecode>>,
+        evaluator: ClassicalEvaluator<'_>,
     ) -> Result<usize, ParseError> {
         let gate_token = self.expect_known(TokenType::Gate);
         let name_token = self.expect(TokenType::Id, "an identifier", &gate_token)?;
@@ -783,7 +821,9 @@ impl State {
         let mut statements = 0usize;
         loop {
             match self.peek_token()?.map(|tok| tok.ttype) {
-                Some(TokenType::Id) => statements += self.parse_gate_application(bc, None, true)?,
+                Some(TokenType::Id) => {
+                    statements += self.parse_gate_application(bc, None, true, evaluator)?
+                }
                 Some(TokenType::Barrier) => {
                     statements += self.parse_barrier(bc, Some(num_qubits))?
                 }
@@ -893,6 +933,7 @@ impl State {
         bc: &mut Vec<Option<InternalBytecode>>,
         condition: Option<Condition>,
         in_gate: bool,
+        evaluator: ClassicalEvaluator<'_>,
     ) -> Result<usize, ParseError> {
         let name_token = self.expect_known(TokenType::Id);
         let name = name_token.id(&self.context);
@@ -920,7 +961,8 @@ impl State {
                 Err(ParseError::new(message_generic(Some(&pos), &message)))
             }
         }?;
-        let parameters = self.expect_gate_parameters(&name_token, num_params, in_gate)?;
+        let parameters =
+            self.expect_gate_parameters(&name_token, num_params, in_gate, evaluator)?;
         let mut qargs = Vec::<Operand<QubitId>>::with_capacity(num_qubits);
         let mut comma = None;
         if in_gate {
@@ -977,13 +1019,18 @@ impl State {
     }
 
     /// Parse an expected expression at this position.
-    fn expect_expression(&mut self, cause: &Token) -> Result<Expr, ParseError> {
+    fn expect_expression(
+        &mut self,
+        cause: &Token,
+        evaluator: ClassicalEvaluator<'_>,
+    ) -> Result<Expr, ParseError> {
         ExprParser {
             tokens: &mut self.tokens,
             context: &mut self.context,
             gate_symbols: &self.gate_symbols,
             global_symbols: &self.symbols,
             strict: self.strict,
+            evaluator,
         }
         .parse_expression(cause)
     }
@@ -994,6 +1041,7 @@ impl State {
         name_token: &Token,
         num_params: usize,
         in_gate: bool,
+        evaluator: ClassicalEvaluator<'_>,
     ) -> Result<GateParameters, ParseError> {
         let lparen_token = match self.accept(TokenType::LParen)? {
             Some(lparen_token) => lparen_token,
@@ -1013,7 +1061,7 @@ impl State {
         let parameters = if in_gate {
             let mut parameters = Vec::<Expr>::with_capacity(num_params);
             while !self.next_is(TokenType::RParen)? {
-                parameters.push(self.expect_expression(&lparen_token)?);
+                parameters.push(self.expect_expression(&lparen_token, evaluator)?);
                 seen_params += 1;
                 comma = self.accept(TokenType::Comma)?;
                 if comma.is_none() {
@@ -1025,7 +1073,7 @@ impl State {
         } else {
             let mut parameters = Vec::<f64>::with_capacity(num_params);
             while !self.next_is(TokenType::RParen)? {
-                match self.expect_expression(&lparen_token)? {
+                match self.expect_expression(&lparen_token, evaluator)? {
                     Expr::Constant(value) => parameters.push(value),
                     _ => {
                         return Err(ParseError::new(message_generic(
@@ -1252,6 +1300,7 @@ impl State {
     fn parse_conditional(
         &mut self,
         bc: &mut Vec<Option<InternalBytecode>>,
+        evaluator: ClassicalEvaluator<'_>,
     ) -> Result<usize, ParseError> {
         let if_token = self.expect_known(TokenType::If);
         let lparen_token = self.expect(TokenType::LParen, "'('", &if_token)?;
@@ -1287,7 +1336,7 @@ impl State {
         }?;
         let condition = Some(Condition { creg, value });
         match self.peek_token()?.map(|tok| tok.ttype) {
-            Some(TokenType::Id) => self.parse_gate_application(bc, condition, false),
+            Some(TokenType::Id) => self.parse_gate_application(bc, condition, false, evaluator),
             Some(TokenType::Measure) => self.parse_measure(bc, condition),
             Some(TokenType::Reset) => self.parse_reset(bc, condition),
             Some(_) => {
@@ -1725,6 +1774,7 @@ impl State {
     pub fn parse_next(
         &mut self,
         bc: &mut Vec<Option<InternalBytecode>>,
+        evaluator: ClassicalEvaluator<'_>,
     ) -> Result<Option<usize>, ParseError> {
         if self.strict && self.allow_version {
             match self.peek_token()?.map(|tok| tok.ttype) {
@@ -1751,16 +1801,16 @@ impl State {
         self.allow_version = false;
         while let Some(ttype) = self.peek_token()?.map(|tok| tok.ttype) {
             let emitted = match ttype {
-                TokenType::Id => self.parse_gate_application(bc, None, false)?,
+                TokenType::Id => self.parse_gate_application(bc, None, false, evaluator)?,
                 TokenType::Creg => self.parse_creg(bc)?,
                 TokenType::Qreg => self.parse_qreg(bc)?,
                 TokenType::Include => self.parse_include(bc)?,
                 TokenType::Measure => self.parse_measure(bc, None)?,
                 TokenType::Reset => self.parse_reset(bc, None)?,
                 TokenType::Barrier => self.parse_barrier(bc, None)?,
-                TokenType::If => self.parse_conditional(bc)?,
+                TokenType::If => self.parse_conditional(bc, evaluator)?,
                 TokenType::Opaque => self.parse_opaque_definition(bc)?,
-                TokenType::Gate => self.parse_gate_definition(bc)?,
+                TokenType::Gate => self.parse_gate_definition(bc, evaluator)?,
                 TokenType::OpenQASM => {
                     if allow_version {
                         self.parse_version()?
@@ -1811,5 +1861,31 @@ impl State {
             }
         }
         Ok(None)
+    }
+}
+
+#[cfg(all(test, feature = "circuit"))]
+mod tests {
+    use super::{QELIB1, QELIB1_STANDARD_GATES};
+    use qiskit_circuit::operations::Operation;
+
+    #[test]
+    fn qelib1_standard_gates_match() {
+        assert_eq!(QELIB1.len(), QELIB1_STANDARD_GATES.len());
+        for (&(name, num_params, num_qubits), gate) in QELIB1.iter().zip(&QELIB1_STANDARD_GATES) {
+            // Arity alone would not catch a swap between `x`/`y`/`z`/`h`/`s`/`t`/`id`/`sdg`/`tdg`,
+            // which are all zero-parameter one-qubit gates.
+            assert_eq!(gate.name(), name, "name mismatch for '{name}'");
+            assert_eq!(
+                gate.num_params() as usize,
+                num_params,
+                "param count mismatch for '{name}'"
+            );
+            assert_eq!(
+                gate.num_qubits() as usize,
+                num_qubits,
+                "qubit count mismatch for '{name}'"
+            );
+        }
     }
 }
