@@ -14,7 +14,7 @@
 
 use std::fmt;
 
-use super::DTypeLike;
+use super::DType;
 use super::rules;
 
 /// A tensor axis dimension.
@@ -45,14 +45,12 @@ pub(super) fn fmt_shape(shape: &[Dim]) -> String {
 }
 
 /// A specification of a tensor without any data.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TensorType {
-    /// The type of the tensor.
-    pub dtype: DTypeLike,
+    /// The element type of the tensor.
+    pub dtype: DType,
     /// The dimension of each tensor axis.
     pub shape: Vec<Dim>,
-    /// Whether the tensor supports leading-axis (i.e. NumPy-style) broadcasting semantics.
-    pub broadcastable: bool,
 }
 
 impl TensorType {
@@ -62,17 +60,22 @@ impl TensorType {
     }
 }
 
+/// Render as `F64[4000, <=2]`, so that a type can be named in an error a caller reads.
+impl fmt::Display for TensorType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}{}", self.dtype, fmt_shape(&self.shape))
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::tensor::DType;
 
     /// A `TensorType` over `shape`; the dtype is irrelevant to every test that uses this.
     fn bit_type(shape: Vec<Dim>) -> TensorType {
         TensorType {
-            dtype: DTypeLike::Concrete(DType::Bit),
+            dtype: DType::Bit,
             shape,
-            broadcastable: false,
         }
     }
 
@@ -95,5 +98,14 @@ mod test {
     fn test_dim_display() {
         assert_eq!(Dim::Fixed(4000).to_string(), "4000");
         assert_eq!(Dim::Bounded { max: 2 }.to_string(), "<=2");
+    }
+
+    #[test]
+    fn test_tensor_type_display() {
+        assert_eq!(
+            bit_type(vec![Dim::Fixed(4000), Dim::Bounded { max: 2 }]).to_string(),
+            "Bit[4000, <=2]"
+        );
+        assert_eq!(bit_type(vec![]).to_string(), "Bit[]");
     }
 }

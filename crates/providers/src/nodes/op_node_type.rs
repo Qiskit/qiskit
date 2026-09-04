@@ -10,100 +10,24 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::data_tree::{ArityMismatch, DataTree, TreeMatchError};
-use crate::tensor::{DType, Tensor, TensorType};
-use thiserror::Error;
+//! The contract every node type satisfies.
 
-/// Destructure `$args: &[Tensor]` into the named bindings, returning
-/// [`CallInputError::WrongArity`] if the slice length does not match the pattern.
+use crate::tensor::{Tensor, TensorType};
+
+/// The [`OpNodeType::namespace`] of every node type Qiskit defines.
+pub const QISKIT: &str = "qiskit";
+
+/// One step in a program function: a typed mapping from tensors to tensors.
 ///
-/// ```ignore
-/// crate::unpack_tensor_args!(args, [x, y]);   // expects exactly 2
-/// crate::unpack_tensor_args!(args, [x]);      // expects exactly 1
-/// ```
-#[macro_export]
-macro_rules! unpack_tensor_args {
-    ($args:ident, [$($x:ident),+]) => {
-        let [$($x),+] = $args else {
-            return Err($crate::nodes::CallInputError::WrongArity {
-                expected: $crate::unpack_tensor_args!(@count $($x),+),
-                actual: $args.len(),
-            }
-            .into());
-        };
-    };
-    (@count $x:ident) => { 1usize };
-    (@count $x:ident, $($rest:ident),+) => { 1usize + $crate::unpack_tensor_args!(@count $($rest),+) };
-}
-
-/// Errors returned when a tree-shaped argument does not match [`OpNodeType::input_types`].
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
-pub enum CallInputError {
-    #[error("missing required input {key:?}")]
-    MissingInput { key: String },
-
-    #[error("expected a leaf at {key:?}, found a branch")]
-    ExpectedLeaf { key: String },
-
-    #[error("unexpected dtype at {key:?}: expected {expected}, found {actual}")]
-    UnexpectedDType {
-        key: String,
-        expected: String,
-        actual: DType,
-    },
-
-    #[error("expected {expected} total inputs, got {actual}")]
-    WrongArity { expected: usize, actual: usize },
-}
-
-impl From<TreeMatchError> for CallInputError {
-    fn from(e: TreeMatchError) -> Self {
-        match e {
-            TreeMatchError::MissingPath { path } => Self::MissingInput { key: path },
-            TreeMatchError::ExpectedLeaf { path } => Self::ExpectedLeaf { key: path },
-        }
-    }
-}
-
-/// Returned by implementations with a missing call implementation when called.
-#[derive(Debug, Clone, PartialEq, Eq, Error)]
-#[error("node {0:?} does not implement call()")]
-pub struct MissingCallError(pub String);
-
-impl MissingCallError {
-    /// Construct a new [`MissingCallError`] tagged with the node's full name.
-    pub fn new(name: impl Into<String>) -> Self {
-        Self(name.into())
-    }
-}
-
-/// Errors returned by [`OpNodeTypeExt::call`].
-#[derive(Debug, Error)]
-pub enum CallError<E> {
-    /// The input tree did not match the contract declared by `input_types()`.
-    #[error(transparent)]
-    Input(CallInputError),
-    /// The node's [`OpNodeType::call_flat`] returned an error.
-    #[error(transparent)]
-    Call(E),
-    /// The node's [`OpNodeType::call_flat`] returned a vector whose length
-    /// did not match the leaf count of `output_types()`.
-    #[error("call_flat returned {actual} outputs, expected {expected}")]
-    OutputArityMismatch { expected: usize, actual: usize },
-}
-
-impl<E> From<ArityMismatch> for CallError<E> {
-    fn from(e: ArityMismatch) -> Self {
-        Self::OutputArityMismatch {
-            expected: e.expected,
-            actual: e.actual,
-        }
-    }
-}
-
-/// A node in a quantum program graph that transforms tensors.
+/// A node declares how many operands it takes ([`Self::arity`]) and how to derive its result
+/// types from theirs ([`Self::infer_output_types`]). Operands and results are flat and
+/// positional, and a node instance is monomorphic: given operand types it accepts, its result
+/// types are determined.
+///
+/// The boolean [`Self::has_builtin_eval`] specifies whether [`Self::eval`] contains an implementation.
 pub trait OpNodeType {
-    type CallError;
+    /// The error this node reports for a rejected operand type or a failed evaluation.
+    type Error;
 
     /// The name of this program node.
     fn name(&self) -> &str;
@@ -116,48 +40,33 @@ pub trait OpNodeType {
         format!("{}.{}", self.namespace(), self.name())
     }
 
-    /// The inputs expected at call time.
-    fn input_types(&self) -> &DataTree<TensorType>;
+    /// The number of operand tensors this node consumes.
+    fn arity(&self) -> usize;
 
-    /// The outputs promised on call return.
-    fn output_types(&self) -> &DataTree<TensorType>;
+    /// Whether [`Self::eval`] contains an implementation.
+    fn has_builtin_eval(&self) -> bool;
 
-    /// Whether this program node implements the call method.
-    fn implements_call(&self) -> bool;
-
-    /// The action of this program node with flattened I/O.
+    /// Infer the types of this node's results from the types of its operands.
     ///
-    /// `args` is in input-tree DFS leaf order matching `input_types()` and
-    /// the returned vector is in output-tree DFS leaf order matching
-    /// `output_types()`.
+    /// This runs when the node is added to a program function, and is therefore what makes a
+    /// built function well-typed: an operand type this node cannot accept must be reported as an
+    /// error here, naming the operand position at fault.
     ///
     /// # Panics
     ///
-    /// Implementations are allowed to panic if `args.len()` does not equal
-    /// the leaf count of `input_types()`; callers are responsible for upholding
-    /// this invariant. On the other hand, implementations should raise a call
-    /// error if they find tensors that they don't like.
-    /// [`OpNodeTypeExt::call`] and [`QuantumProgram::call_flat`] both do.
-    fn call_flat(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::CallError>;
-}
+    /// May panic if `inputs.len()` is not [`Self::arity`].
+    fn infer_output_types(&self, inputs: &[TensorType]) -> Result<Vec<TensorType>, Self::Error>;
 
-/// Extension with the wrapper over [`OpNodeType::call_flat`] whose I/O are data trees.
-///
-/// Provided via a blanket impl over every `T: OpNodeType` so that it cannot
-/// be overridden in stable Rust.
-pub trait OpNodeTypeExt: OpNodeType {
-    /// The action of this program node.
-    fn call(
-        &self,
-        args: &DataTree<Tensor>,
-    ) -> Result<DataTree<Tensor>, CallError<Self::CallError>> {
-        let flat = self
-            .input_types()
-            .flatten_against(args)
-            .map_err(|e| CallError::Input(e.into()))?;
-        let out = self.call_flat(&flat).map_err(CallError::Call)?;
-        self.output_types().unflatten(out).map_err(Into::into)
-    }
+    /// Evaluate this node on `args`, returning one tensor per result.
+    ///
+    /// The returned tensors match, in count and type, what [`Self::infer_output_types`] promised
+    /// for the corresponding operand types. An error is a last resort: a division node, for
+    /// instance, returns non-finite values for a zero divisor rather than failing, because some
+    /// of the data from elsewhere in the program may still be usable. A node whose
+    /// [`Self::has_builtin_eval`] is false always returns an error.
+    ///
+    /// # Panics
+    ///
+    /// May panic if `args` does not match the operand types this node was type-checked against.
+    fn eval(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::Error>;
 }
-
-impl<T: OpNodeType + ?Sized> OpNodeTypeExt for T {}
