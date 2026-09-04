@@ -209,8 +209,8 @@ of QPY in qiskit-terra 0.18.0.
      - 13, 14, 15, 16, 17
      - 17
    * - 2.5.0
-     - 13, 14, 15, 16, 17
-     - 17
+     - 13, 14, 15, 16, 17, 18
+     - 18
    * - 2.4.1
      - 13, 14, 15, 16, 17
      - 17
@@ -552,6 +552,30 @@ name with the bit indices be a length of 1 and that contains the
 starting index of the register. The indices are then the range of length
 ``size`` from that starting index. For example, if the starting index is 5
 and the ``size`` is 10 the indices are 5, 6, 7, 8, 9, 10, 11, 12, 13, 14.
+
+Version 18 adds support for serializing and deserializing classical
+:class:`~.expr.Range` expressions used as :class:`.ForLoopOp` indexsets.
+New Expression.RANGE classical-expression element
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+A new classical-expression discriminator ``RANGE`` (type key ``r``) represents an
+:class:`~.expr.Range` with start, stop, and step sub-expressions. This is used when a
+:class:`.ForLoopOp` indexset is an :class:`~.expr.Range` (serialized as a
+``Value.EXPRESSION`` instruction parameter whose payload contains ``RANGE`` nodes).
+QPY format versions below 18 cannot read or write this element; attempting to
+serialize a circuit that contains one with ``version < 18`` raises
+:exc:`~.UnsupportedFeatureForVersion`.
+
+ForLoopOp runtime loop variable
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When a :class:`.ForLoopOp` loop parameter is a real-time :class:`~.expr.Var` (paired with
+an :class:`~.expr.Range` indexset), the loop variable is the loop body's single ``input``
+variable.  It is therefore serialized as part of the body circuit's variable table, and the
+instruction's loop-parameter slot is written as ``Null``.  On read, the loop variable is
+re-inferred from the body circuit's lone ``input`` variable, so no dedicated instruction
+parameter element is needed.  This mechanism is independent of the QPY version (it reuses the
+existing body-circuit variable serialization), but the ``expr.Range`` indexset it is paired with
+requires version 18 as described above.
 
 .. _qpy_version_17:
 
