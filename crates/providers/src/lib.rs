@@ -17,13 +17,20 @@
 //!
 //! - [`tensor`] is the value domain. A [`Tensor`](tensor::Tensor) is a dense array over one of a
 //!   fixed set of dtypes, and a [`TensorType`](tensor::TensorType) is its data-less counterpart.
-//! - [`nodes`] holds the [`OpNodeType`] contract and the node types Qiskit defines. The set is
-//!   open: a node type may be defined outside this crate, in its own namespace.
+//! - [`nodes`] holds the [`OpNodeType`] contract and the node types Qiskit defines. The set is open: a
+//!   node type may be defined outside this crate, in its own namespace.
+//! - [`program`] holds [`ProgramFunction`], one dataflow graph. Nodes are the only entity it holds:
+//!   a [`Value`] is an output slot of the node producing it, and a function's parameters and results
+//!   are nodes too, so every value has a producer.
 //! - [`data_tree`] holds [`DataTree`], the container for structured values.
 
 pub mod data_tree;
 pub mod nodes;
+pub mod program;
 pub mod tensor;
 
 pub use data_tree::{ArityMismatch, DataTree, InvalidName, Name, PathEntry, TreeMatchError};
-pub use nodes::{Constant, OpNodeType};
+pub use nodes::{BoxedOpNodeError, BoxedOpNodeType, Constant, ErasedOpNodeType, OpNodeType};
+pub use program::{
+    FunctionError, FunctionEvalError, NodeId, NodeRef, NodeRole, ProgramFunction, Signature, Value,
+};
