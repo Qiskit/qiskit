@@ -19,10 +19,12 @@
 //!   fixed set of dtypes, and a [`TensorType`](tensor::TensorType) is its data-less counterpart.
 //! - [`nodes`] holds the [`OpNodeType`] contract and the node types Qiskit defines. The set is open: a
 //!   node type may be defined outside this crate, in its own namespace.
-//! - [`program`] holds [`ProgramFunction`], one dataflow graph. Nodes are the only entity it holds:
-//!   a [`Value`] is an output slot of the node producing it, and a function's parameters and results
+//! - [`program`] holds [`QuantumProgram`], a whole computation, and the [`ProgramFunction`]s it is
+//!   made of, each of which is one dataflow graph. Nodes are the only entity a function holds: a
+//!   [`Value`] is an output slot of the node producing it, and a function's parameters and results
 //!   are nodes too, so every value has a producer.
-//! - [`data_tree`] holds [`DataTree`], the container for structured values.
+//! - [`data_tree`] holds [`DataTree`], the container for structured values. A program's inputs and
+//!   outputs arrive in one, arranged by the structures it declares, which is where all naming lives.
 
 pub mod data_tree;
 pub mod nodes;
@@ -32,5 +34,6 @@ pub mod tensor;
 pub use data_tree::{ArityMismatch, DataTree, InvalidName, Name, PathEntry, TreeMatchError};
 pub use nodes::{BoxedOpNodeError, BoxedOpNodeType, Constant, ErasedOpNodeType, OpNodeType};
 pub use program::{
-    FunctionError, FunctionEvalError, NodeId, NodeRef, NodeRole, ProgramFunction, Signature, Value,
+    FunctionError, FunctionEvalError, FunctionId, NodeId, NodeRef, NodeRole, ProgramError,
+    ProgramEvalError, ProgramFunction, QuantumProgram, Signature, Value,
 };
