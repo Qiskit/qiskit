@@ -42,16 +42,38 @@ void *run_circuit_to_dag(void *self, void *ir, QkPassContext *context) {
     return (void *)dag;
 }
 
+/// A callback struct keeping track of the op count.
+typedef struct {
+    QkOpCounts *counts;
+    size_t num_counts;
+    size_t current_index;
+} CounterCallback;
+
+bool trigger(void *self, uint8_t hookpoint) {
+    UNUSED_VARIABLE(self);
+    return (hookpoint == 0); // post pass
+}
+
+void ir_and_context(void *self, void *ir, QkPassManager *context) {
+    UNUSED_VARIABLE(context);
+
+    // cast self and the IR to the expected types
+    CounterCallback *slf = (CounterCallback *)self;
+    QkCircuit *circuit = (QkCircuit *)ir;
+
+    // store the opcount in the current index and increase by one for the next call
+    slf->counts[slf->current_index] = qk_circuit_count_ops(circuit);
+    slf->current_index++;
+}
+
 /**
  * Test running a single RemoveIdentity pass on a circuit.
  */
 static int test_circuit(void) {
-    QkPass *remove_identity = qk_pass_new();
     QkTarget *target = qk_target_new(10);
     RemoveIdentity remove_identity_config = {target};
-
-    qk_pass_set_self(remove_identity, (void *)(&remove_identity_config));
-    qk_pass_set_run(remove_identity, run_remove_identity);
+    QkVTableSlot slots[1] = {{.index = 0, .ptr = (void *)(&run_remove_identity)}};
+    QkPass *remove_identity = qk_pass_new((void *)(&remove_identity_config), slots, 1);
 
     QkPassManager *pm = qk_passmanager_new();
 
@@ -72,7 +94,7 @@ static int test_circuit(void) {
     qk_circuit_gate(circuit, QkGate_H, q0, NULL);
 
     QkPassManagerResult pm_result = {NULL, NULL};
-    QkExitCode exit = qk_passmanager_run(pm, (void *)circuit, &pm_result);
+    QkExitCode exit = qk_passmanager_run(pm, (void *)circuit, NULL, &pm_result);
     if (exit != QkExitCode_Success) {
         printf("Exited with %i\n", exit);
         result = RuntimeError;
@@ -114,7 +136,6 @@ cleanup_circuit:
     qk_passmanager_context_free(pm_result.context);
 cleanup:
     qk_passmanager_free(pm);
-    qk_pass_free(remove_identity);
 
     return result;
 }
@@ -123,15 +144,15 @@ cleanup:
  * Test a pass manager lowering from circuit to dag.
  */
 static int test_lowering(void) {
-    QkPass *remove_identity = qk_pass_new();
     QkTarget *target = qk_target_new(10);
     RemoveIdentity remove_identity_config = {target};
-    qk_pass_set_self(remove_identity, (void *)(&remove_identity_config));
-    qk_pass_set_run(remove_identity, run_remove_identity);
 
-    QkPass *circuit_to_dag = qk_pass_new();
-    qk_pass_set_self(circuit_to_dag, NULL); // no self struct
-    qk_pass_set_run(circuit_to_dag, run_circuit_to_dag);
+    QkVTableSlot remove_identity_slots[1] = {{.index = 0, .ptr = (void *)(&run_remove_identity)}};
+    QkPass *remove_identity =
+        qk_pass_new((void *)(&remove_identity_config), remove_identity_slots, 1);
+
+    QkVTableSlot circuit_to_dag_slots[1] = {{.index = 0, .ptr = (void *)(&run_circuit_to_dag)}};
+    QkPass *circuit_to_dag = qk_pass_new(NULL, circuit_to_dag_slots, 1);
 
     QkCircuit *circuit = qk_circuit_new(10, 0);
     uint32_t q0[1] = {0};
@@ -160,7 +181,7 @@ static int test_lowering(void) {
     QkPassManagerResult pm_result = {NULL, NULL};
     // note: as the passmanager is set up, it takes ownership of the input IR, which no longer
     // needs to be freed -- only the output IR must be freed
-    if (qk_passmanager_run(pm, (void *)circuit, &pm_result) != QkExitCode_Success) {
+    if (qk_passmanager_run(pm, (void *)circuit, NULL, &pm_result) != QkExitCode_Success) {
         printf("Failed running pass.\n");
         result = RuntimeError;
         qk_circuit_free(circuit);
@@ -202,8 +223,84 @@ dag_cleanup:
     qk_dag_free(out);
     qk_passmanager_context_free(pm_result.context);
 cleanup:
-    qk_pass_free(remove_identity);
-    qk_pass_free(circuit_to_dag);
+    qk_passmanager_free(pm);
+
+    return result;
+}
+
+static int test_callback(void) {
+    QkTarget *target = qk_target_new(10);
+    RemoveIdentity remove_identity_config = {target};
+
+    QkVTableSlot pass_slots[1] = {{.index = 0, .ptr = (void *)(&run_remove_identity)}};
+    QkPass *remove_identity = qk_pass_new((void *)(&remove_identity_config), pass_slots, 1);
+
+    QkVTableSlot cb_slots[2] = {{.index = 0, .ptr = (void *)(&trigger)},
+                                {.index = 1, .ptr = (void *)(&ir_and_context)}};
+
+    CounterCallback cb_config = {malloc(sizeof(QkOpCounts) * 1),
+                                 1, // 1 pass run
+                                 0};
+    QkCCallback *callback = qk_callback_new((void *)(&cb_config), cb_slots, 2);
+
+    QkPassManager *pm = qk_passmanager_new();
+
+    int result = Ok;
+    if (qk_passmanager_push_pass(pm, remove_identity) != QkExitCode_Success) {
+        printf("Failed pushing pass.\n");
+        result = RuntimeError;
+        goto cleanup;
+    }
+
+    QkCircuit *circuit = qk_circuit_new(10, 0);
+    uint32_t q0[1] = {0};
+    double almost_zero[1] = {1e-20};
+    double nonzero[1] = {1.23};
+    qk_circuit_gate(circuit, QkGate_H, q0, NULL);
+    qk_circuit_gate(circuit, QkGate_RX, q0, almost_zero);
+    qk_circuit_gate(circuit, QkGate_RZ, q0, nonzero);
+    qk_circuit_gate(circuit, QkGate_H, q0, NULL);
+
+    QkPassManagerResult pm_result = {NULL, NULL};
+    QkExitCode exit = qk_passmanager_run(pm, (void *)circuit, callback, &pm_result);
+    if (exit != QkExitCode_Success) {
+        printf("Exited with %i\n", exit);
+        result = RuntimeError;
+        goto cleanup_circuit;
+    }
+
+    if (pm_result.ir == NULL) {
+        printf("Compilation returned NULL.\n");
+        result = RuntimeError;
+        goto cleanup_circuit;
+    }
+
+    QkOpCounts counts = cb_config.counts[0];
+    for (size_t i = 0; i < counts.len; i++) {
+        QkOpCount count = counts.data[i];
+        if (strcmp(count.name, "h") == 0) {
+            if (count.count != 2) {
+                printf("Expected 2 H gates, found %zu\n", count.count);
+                result = EqualityError;
+                goto cleanup_circuit;
+            }
+        } else if (strcmp(count.name, "rz") == 0) {
+            if (count.count != 1) {
+                printf("Expected 1 RZ gate, found %zu\n", count.count);
+                result = EqualityError;
+                goto cleanup_circuit;
+            }
+        } else {
+            printf("Unexpected gate.\n");
+            result = EqualityError;
+            goto cleanup_circuit;
+        }
+    }
+
+cleanup_circuit:
+    qk_circuit_free(circuit);
+    qk_passmanager_context_free(pm_result.context);
+cleanup:
     qk_passmanager_free(pm);
 
     return result;
@@ -214,6 +311,7 @@ int test_passmanager(void) {
 
     num_failed += RUN_TEST(test_circuit);
     num_failed += RUN_TEST(test_lowering);
+    num_failed += RUN_TEST(test_callback);
 
     fflush(stderr);
     fprintf(stderr, "=== Number of failed subtests (passmanager): %i\n", num_failed);

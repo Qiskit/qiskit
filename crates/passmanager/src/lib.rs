@@ -104,7 +104,7 @@ impl<'a> PassContext<'a> {
     /// Get an entry, if it exists.
     ///
     /// This first queries from the local context, then the global.
-    pub fn get<S: AsRef<str>>(&mut self, key: S) -> Option<&dyn Any> {
+    pub fn get<S: AsRef<str>>(&self, key: S) -> Option<&dyn Any> {
         // The local registry takes precedence.
         if let Some(value) = self.updates.get(&key) {
             Some(value)
@@ -146,9 +146,14 @@ pub trait AnyPass {
     fn input_type_id(&self) -> TypeId;
     fn output_type_id(&self) -> TypeId;
     fn run(&self, ir: Box<dyn Any>, context: &mut PassContext) -> anyhow::Result<Box<dyn Any>>;
+    fn as_any(&self) -> &dyn Any;
 }
 
-impl<P: Pass> AnyPass for P {
+impl<P: Pass + 'static> AnyPass for P {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     fn input_type_id(&self) -> TypeId {
         TypeId::of::<P::InputIR>()
     }
@@ -214,11 +219,12 @@ impl Task {
 }
 
 /// Hookpoint for the callback.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[repr(u8)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum CallbackType {
-    PostPass,
-    PostTask,
-    PostStage,
+    PostPass = 0,
+    PostTask = 1,
+    PostStage = 2,
 }
 
 /// A (set of) callback(s) to trigger during the pass manager execution.
@@ -442,8 +448,8 @@ fn execute_task(
             if let Some(cb) = callback
                 && cb.trigger(&CallbackType::PostPass)
             {
-                cb.ir_and_context(&out, context);
-                cb.with_pass(pass.as_ref(), &out, context);
+                cb.ir_and_context(&*out, context);
+                cb.with_pass(&**pass, &*out, context);
             }
             Ok(out)
         }
@@ -469,18 +475,18 @@ fn execute_task(
                 if let Some(cb) = callback
                     && cb.trigger(&CallbackType::PostStage)
                 {
-                    cb.ir_and_context(&ir, context)
+                    cb.ir_and_context(&*ir, context)
                 }
             }
             Ok(ir)
         }
-    };
+    }?;
     if let Some(cb) = callback
         && cb.trigger(&CallbackType::PostTask)
     {
-        cb.ir_and_context(&out, context)
+        cb.ir_and_context(&*out, context)
     }
-    out
+    Ok(out)
 }
 
 /// Internal helper to cast a Box<dyn Any> to an output type.
