@@ -109,6 +109,45 @@ where
     }
 }
 
+/// Generate the [`OpNodeType`] implementation for a reduction along one axis.
+///
+/// Each reduction takes one operand, accepts every dtype, and folds along `self.axis`. They differ
+/// only in the dtype they produce and in the fold itself, so each node supplies `$result_dtype` and
+/// an inherent `fn reduce_axis(&self, x: &Tensor) -> Tensor`. `reduce_axis` may assume `self.axis` is
+/// in bounds for `x`.
+macro_rules! reduction_node {
+    ($name:ident, $node_name:literal, $result_dtype:expr) => {
+        impl OpNodeType for $name {
+            type Error = MathNodeError;
+
+            fn name(&self) -> &str {
+                $node_name
+            }
+            fn namespace(&self) -> &str {
+                QISKIT
+            }
+            fn arity(&self) -> usize {
+                1
+            }
+            fn has_builtin_eval(&self) -> bool {
+                true
+            }
+            fn infer_output_types(
+                &self,
+                inputs: &[TensorType],
+            ) -> Result<Vec<TensorType>, Self::Error> {
+                crate::unpack_operands!(self, inputs, [x]);
+                Ok(vec![reduce(x, self.axis, any, $result_dtype)?])
+            }
+            fn eval(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::Error> {
+                crate::unpack_operands!(self, args, [x]);
+                check_axis(self.axis, x.shape().len())?;
+                Ok(vec![self.reduce_axis(x)])
+            }
+        }
+    };
+}
+
 /// Mean of a tensor along a specified axis, removing that axis.
 ///
 /// Integer inputs are cast to `F64` before computing the mean. `F32` inputs
@@ -129,43 +168,14 @@ impl Mean {
     pub fn new(axis: usize) -> Self {
         Self { axis }
     }
-}
 
-impl OpNodeType for Mean {
-    type Error = MathNodeError;
-
-    fn name(&self) -> &str {
-        "mean"
-    }
-    fn namespace(&self) -> &str {
-        QISKIT
-    }
-    fn arity(&self) -> usize {
-        1
-    }
-    fn has_builtin_eval(&self) -> bool {
-        true
-    }
-    fn infer_output_types(&self, inputs: &[TensorType]) -> Result<Vec<TensorType>, Self::Error> {
-        let [x] = inputs else {
-            panic!(
-                "{} expects 1 operand, got {}",
-                self.full_name(),
-                inputs.len()
-            )
-        };
-        Ok(vec![reduce(x, self.axis, any, mean_out_dtype)?])
-    }
-    fn eval(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::Error> {
-        let [x] = args else {
-            panic!("{} expects 1 operand, got {}", self.full_name(), args.len())
-        };
-        check_axis(self.axis, x.shape().len())?;
+    /// The mean of `x` along `self.axis`, which must be in bounds for `x`.
+    fn reduce_axis(&self, x: &Tensor) -> Tensor {
         // Every arm divides a sum by the reduced axis's length, which is what `ndarray::mean_axis`
         // computes, except that `mean_axis` returns `None` for a zero-length axis rather than
         // dividing by zero. See the degenerate-divisor convention on `Mean`.
         let n = x.shape()[self.axis];
-        let result = match x {
+        match x {
             Tensor::F32(a) => Tensor::F32((a.sum_axis(Axis(self.axis)) / n as f32).into_shared()),
             Tensor::F64(a) => Tensor::F64((a.sum_axis(Axis(self.axis)) / n as f64).into_shared()),
             Tensor::C64(a) => Tensor::C64(
@@ -180,10 +190,11 @@ impl OpNodeType for Mean {
                 };
                 Tensor::F64((a.sum_axis(Axis(self.axis)) / n as f64).into_shared())
             }
-        };
-        Ok(vec![result])
+        }
     }
 }
+
+reduction_node!(Mean, "mean", mean_out_dtype);
 
 /// Variance of a tensor along a specified axis, removing that axis.
 ///
@@ -206,47 +217,11 @@ impl Variance {
     pub fn new(axis: usize, ddof: f64) -> Self {
         Self { axis, ddof }
     }
-}
 
-impl OpNodeType for Variance {
-    type Error = MathNodeError;
-
-    fn name(&self) -> &str {
-        "variance"
-    }
-    fn namespace(&self) -> &str {
-        QISKIT
-    }
-    fn arity(&self) -> usize {
-        1
-    }
-    fn has_builtin_eval(&self) -> bool {
-        true
-    }
-    fn infer_output_types(&self, inputs: &[TensorType]) -> Result<Vec<TensorType>, Self::Error> {
-        let [x] = inputs else {
-            panic!(
-                "{} expects 1 operand, got {}",
-                self.full_name(),
-                inputs.len()
-            )
-        };
-        Ok(vec![reduce(x, self.axis, any, real_out_dtype)?])
-    }
-    fn eval(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::Error> {
-        let [x] = args else {
-            panic!("{} expects 1 operand, got {}", self.full_name(), args.len())
-        };
-        check_axis(self.axis, x.shape().len())?;
-        Ok(vec![self.variance(x)])
-    }
-}
-
-impl Variance {
     /// The variance of `x` along `self.axis`, which [`Std`] takes the square root of.
     ///
     /// `self.axis` must be in bounds for `x`.
-    fn variance(&self, x: &Tensor) -> Tensor {
+    fn reduce_axis(&self, x: &Tensor) -> Tensor {
         match x {
             Tensor::F32(a) => {
                 let (n, ddof) = (a.shape()[self.axis] as f32, self.ddof as f32);
@@ -277,6 +252,8 @@ impl Variance {
     }
 }
 
+reduction_node!(Variance, "variance", real_out_dtype);
+
 /// Standard deviation of a tensor along a specified axis, removing that axis.
 ///
 /// This is the square root of [`Variance`]. See that type for details on `ddof`,
@@ -293,46 +270,18 @@ impl Std {
     pub fn new(axis: usize, ddof: f64) -> Self {
         Self { axis, ddof }
     }
-}
 
-impl OpNodeType for Std {
-    type Error = MathNodeError;
-
-    fn name(&self) -> &str {
-        "std"
-    }
-    fn namespace(&self) -> &str {
-        QISKIT
-    }
-    fn arity(&self) -> usize {
-        1
-    }
-    fn has_builtin_eval(&self) -> bool {
-        true
-    }
-    fn infer_output_types(&self, inputs: &[TensorType]) -> Result<Vec<TensorType>, Self::Error> {
-        let [x] = inputs else {
-            panic!(
-                "{} expects 1 operand, got {}",
-                self.full_name(),
-                inputs.len()
-            )
-        };
-        Ok(vec![reduce(x, self.axis, any, real_out_dtype)?])
-    }
-    fn eval(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::Error> {
-        let [x] = args else {
-            panic!("{} expects 1 operand, got {}", self.full_name(), args.len())
-        };
-        check_axis(self.axis, x.shape().len())?;
-        let result = match Variance::new(self.axis, self.ddof).variance(x) {
+    /// The standard deviation of `x` along `self.axis`, which must be in bounds for `x`.
+    fn reduce_axis(&self, x: &Tensor) -> Tensor {
+        match Variance::new(self.axis, self.ddof).reduce_axis(x) {
             Tensor::F32(v) => Tensor::F32(v.mapv(f32::sqrt).into_shared()),
             Tensor::F64(v) => Tensor::F64(v.mapv(f64::sqrt).into_shared()),
             other => unreachable!("a variance is real, got {:?}", other.dtype()),
-        };
-        Ok(vec![result])
+        }
     }
 }
+
+reduction_node!(Std, "std", real_out_dtype);
 
 #[cfg(test)]
 mod tests {

@@ -50,23 +50,11 @@ macro_rules! bitwise_binary_node {
                 &self,
                 inputs: &[TensorType],
             ) -> Result<Vec<TensorType>, Self::Error> {
-                let [x, y] = inputs else {
-                    panic!(
-                        "{} expects 2 operands, got {}",
-                        self.full_name(),
-                        inputs.len()
-                    )
-                };
+                crate::unpack_operands!(self, inputs, [x, y]);
                 Ok(vec![elementwise_binary(x, y, is_bit)?])
             }
             fn eval(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::Error> {
-                let [x, y] = args else {
-                    panic!(
-                        "{} expects 2 operands, got {}",
-                        self.full_name(),
-                        args.len()
-                    )
-                };
+                crate::unpack_operands!(self, args, [x, y]);
                 check_dtype(0, x.dtype(), DType::Bit)?;
                 check_dtype(1, y.dtype(), DType::Bit)?;
                 Ok(vec![$eval_fn(x, y)?])
@@ -99,19 +87,11 @@ impl OpNodeType for BitwiseNot {
         true
     }
     fn infer_output_types(&self, inputs: &[TensorType]) -> Result<Vec<TensorType>, Self::Error> {
-        let [x] = inputs else {
-            panic!(
-                "{} expects 1 operand, got {}",
-                self.full_name(),
-                inputs.len()
-            )
-        };
+        crate::unpack_operands!(self, inputs, [x]);
         Ok(vec![elementwise_unary(x, is_bit)?])
     }
     fn eval(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::Error> {
-        let [x] = args else {
-            panic!("{} expects 1 operand, got {}", self.full_name(), args.len())
-        };
+        crate::unpack_operands!(self, args, [x]);
         check_dtype(0, x.dtype(), DType::Bit)?;
         let Tensor::Bit(arr) = x else {
             unreachable!("dtype checked above")
@@ -153,20 +133,12 @@ impl OpNodeType for Parity {
         true
     }
     fn infer_output_types(&self, inputs: &[TensorType]) -> Result<Vec<TensorType>, Self::Error> {
-        let [x] = inputs else {
-            panic!(
-                "{} expects 1 operand, got {}",
-                self.full_name(),
-                inputs.len()
-            )
-        };
+        crate::unpack_operands!(self, inputs, [x]);
         // Folding bits with exclusive-or leaves them bits, so the result dtype is the operand's.
         Ok(vec![reduce(x, self.axis, is_bit, |dtype| dtype)?])
     }
     fn eval(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::Error> {
-        let [x] = args else {
-            panic!("{} expects 1 operand, got {}", self.full_name(), args.len())
-        };
+        crate::unpack_operands!(self, args, [x]);
         check_dtype(0, x.dtype(), DType::Bit)?;
         check_axis(self.axis, x.shape().len())?;
         let Tensor::Bit(arr) = x else {

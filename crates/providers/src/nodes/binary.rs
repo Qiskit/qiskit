@@ -48,23 +48,11 @@ macro_rules! elementwise_binary_node {
                 &self,
                 inputs: &[TensorType],
             ) -> Result<Vec<TensorType>, Self::Error> {
-                let [x, y] = inputs else {
-                    panic!(
-                        "{} expects 2 operands, got {}",
-                        self.full_name(),
-                        inputs.len()
-                    )
-                };
+                crate::unpack_operands!(self, inputs, [x, y]);
                 Ok(vec![elementwise_binary(x, y, $accepts)?])
             }
             fn eval(&self, args: &[Tensor]) -> Result<Vec<Tensor>, Self::Error> {
-                let [x, y] = args else {
-                    panic!(
-                        "{} expects 2 operands, got {}",
-                        self.full_name(),
-                        args.len()
-                    )
-                };
+                crate::unpack_operands!(self, args, [x, y]);
                 // Coerce to the dtype inference promised, so that the tensors agree with the type
                 // the node was given when it was added. A cast to the dtype a tensor already has
                 // is free.

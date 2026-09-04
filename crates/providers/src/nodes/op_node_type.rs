@@ -17,6 +17,26 @@ use crate::tensor::{Tensor, TensorType};
 /// The [`OpNodeType::namespace`] of every node type Qiskit defines.
 pub const QISKIT: &str = "qiskit";
 
+/// Destructure a node's operands into one binding each, panicking if the count is wrong.
+///
+/// The panic should be unreachable when the node is part of a
+/// [`ProgramFunction`](crate::ProgramFunction), because static analysis is done while inserting
+/// nodes.
+#[macro_export]
+macro_rules! unpack_operands {
+    ($node:expr, $operands:expr, [$($name:ident),+ $(,)?]) => {
+        let operands = $operands;
+        let [$($name),+] = operands else {
+            panic!(
+                "{} expects {} operand(s), got {}",
+                $node.full_name(),
+                $node.arity(),
+                operands.len()
+            )
+        };
+    };
+}
+
 /// An atomic operation in a quantum program: a typed mapping from tensors to tensors.
 ///
 /// A node declares how many operands it takes ([`Self::arity`]) and how to derive its result types
@@ -186,4 +206,16 @@ where
     }
 
     Box::new(Erased(node))
+}
+
+#[cfg(test)]
+mod test {
+    use crate::nodes::{Add, OpNodeType};
+    use crate::tensor::Tensor;
+
+    #[test]
+    #[should_panic(expected = "qiskit.add expects 2 operand(s), got 1")]
+    fn test_unpack_operands_names_the_node_and_the_arity_it_declares() {
+        let _ = Add.eval(&[Tensor::from([1.0_f64])]);
+    }
 }
