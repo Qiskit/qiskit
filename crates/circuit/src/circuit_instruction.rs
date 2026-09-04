@@ -29,9 +29,10 @@ use crate::duration::Duration;
 use crate::imports::{CONTROLLED_GATE, WARNINGS_WARN};
 use crate::instruction::{Instruction, Parameters, create_py_op};
 use crate::operations::{
-    ArrayType, BoxDuration, ControlFlow, ControlFlowInstruction, ControlFlowType, Operation,
-    OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation, PyInstruction,
-    PyOpKind, StandardGate, StandardInstruction, StandardInstructionType, Store, UnitaryGate,
+    ArrayType, BoxDuration, ControlFlow, ControlFlowInstruction, ControlFlowType, DelayUnit,
+    Operation, OperationRef, Param, PauliBased, PauliProductMeasurement, PauliProductRotation,
+    PyInstruction, PyOpKind, StandardGate, StandardInstruction, StandardInstructionType, Store,
+    UnitaryGate,
 };
 use crate::packed_instruction::PackedOperation;
 use crate::parameter::parameter_expression::ParameterExpression;
@@ -444,6 +445,7 @@ impl CircuitInstruction {
                                     &ParameterExpression::from_f64(*left) == right.as_ref()
                                 }
                                 Param::Obj(right) => right.bind(py).eq(left)?,
+                                Param::Int(right) => left == &(*right as f64),
                             },
                             Param::ParameterExpression(left) => match right {
                                 Param::Float(right) => {
@@ -451,8 +453,19 @@ impl CircuitInstruction {
                                 }
                                 Param::ParameterExpression(right) => left == right,
                                 Param::Obj(right) => right.bind(py).eq(left.as_ref().clone())?,
+                                Param::Int(right) => {
+                                    left.as_ref() == &ParameterExpression::try_from(*right)?
+                                }
                             },
                             Param::Obj(left) => left.bind(py).eq(right)?,
+                            Param::Int(left) => match right {
+                                Param::Float(right) => &(*left as f64) == right,
+                                Param::ParameterExpression(right) => {
+                                    &ParameterExpression::try_from(*left)? == right.as_ref()
+                                }
+                                Param::Obj(right) => right.bind(py).eq(left)?,
+                                Param::Int(right) => left == right,
+                            },
                         };
                         if !eq {
                             return Ok(false);
@@ -999,13 +1012,16 @@ pub fn extract_params<T: CircuitBlock>(
         OperationRef::StandardInstruction(i) => {
             match &i {
                 StandardInstruction::Barrier(_) => None,
-                StandardInstruction::Delay(_) => {
+                StandardInstruction::Delay(unit) => {
                     // If the delay's duration is a Python int, we preserve it rather than
                     // coercing it to a float (e.g. when unit is 'dt').
                     Some(Parameters::Params(
                         params
                             .try_iter()?
-                            .map(|p| Param::extract_no_coerce(p?.as_borrowed()))
+                            .map(|p| match unit {
+                                DelayUnit::DT => Param::extract_no_coerce(p?.as_borrowed()),
+                                _ => Ok(p?.extract::<Param>()?),
+                            })
                             .collect::<PyResult<_>>()?,
                     ))
                 }
