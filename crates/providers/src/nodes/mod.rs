@@ -24,6 +24,7 @@ mod error;
 mod inference;
 mod op_node_type;
 mod reduction;
+mod shot_loop;
 
 pub use binary::{Add, Divide, Multiply, Power, Remainder, Subtract};
 pub use bitwise::{BitwiseAnd, BitwiseNot, BitwiseOr, BitwiseXor, Parity};
@@ -33,3 +34,4 @@ pub use op_node_type::{BoxedOpNodeError, BoxedOpNodeType, ErasedOpNodeType, OpNo
 
 pub(crate) use op_node_type::erase;
 pub use reduction::{Mean, Std, Variance};
+pub use shot_loop::{ShotLoop, ShotLoopError};
