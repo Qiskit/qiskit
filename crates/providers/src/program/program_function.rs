@@ -829,8 +829,9 @@ mod test {
     use std::sync::atomic::{AtomicUsize, Ordering};
 
     use super::*;
-    use crate::nodes::{Add, Constant, Mean};
+    use crate::nodes::{Add, BroadcastTo, Cast, Constant, Mean};
     use crate::tensor::{DType, Dim};
+    use ndarray::arr2;
 
     /// The type of a 1-D `F64` tensor of `len` elements.
     fn f64_1d(len: usize) -> TensorType {
@@ -1402,6 +1403,47 @@ mod test {
             panic!("expected one F64 result, got {results:?}")
         };
         assert_eq!(mean.iter().copied().collect::<Vec<f64>>(), vec![0.75]);
+    }
+
+    #[test]
+    fn mean_cast_and_broadcast_combined() {
+        // Smoke test with mean, cast, and broadcast combined.
+        let mut function = ProgramFunction::new();
+        let shots = function.add_parameter(TensorType {
+            dtype: DType::Bit,
+            shape: vec![Dim::Fixed(4), Dim::Fixed(2)],
+        });
+        let mean = function.add_node(Mean::new(0), &[shots]).unwrap()[0];
+        let whole = function.add_node(Cast::new(DType::I64), &[mean]).unwrap()[0];
+        let per_shot = function
+            .add_node(
+                BroadcastTo::new(vec![Dim::Fixed(4), Dim::Fixed(2)]),
+                &[whole],
+            )
+            .unwrap()[0];
+        function.add_result(per_shot).unwrap();
+
+        assert_eq!(
+            function.type_of(per_shot),
+            Some(&TensorType {
+                dtype: DType::I64,
+                shape: vec![Dim::Fixed(4), Dim::Fixed(2)],
+            })
+        );
+
+        // Evaluate
+        let bits = arr2(&[[1_u8, 0], [1, 1], [1, 1], [1, 1]]).into_dyn();
+        let results = function
+            .eval(&[Tensor::from(bits).cast(DType::Bit)])
+            .unwrap();
+        assert_eq!(
+            results,
+            vec![Tensor::I64(
+                arr2(&[[1_i64, 0], [1, 0], [1, 0], [1, 0]])
+                    .into_dyn()
+                    .into_shared()
+            )]
+        );
     }
 
     #[test]

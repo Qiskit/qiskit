@@ -10,21 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-//! How operand types become result types, written once per family of node.
-//!
-//! A node type names one of these rather than spelling out its own inference, contributing only the
-//! dtypes it accepts and, where a family allows it, how its result dtype follows from its operand's.
-//! The number of distinct rules in the catalogue is therefore the number of functions here, which is
-//! what keeps two nodes in the same family from drifting apart.
-//!
-//! The rules coerce: an elementwise operation promotes its operand dtypes and broadcasts their
-//! shapes rather than demanding that a caller insert conversions. Nothing is lost by that, because a
-//! node records both its operand types and its result types, so the explicit form remains
-//! reconstructible from a built program.
+//! Various rules for output tensor type inference.
 
 use super::error::MathNodeError;
-use crate::tensor::rules::{broadcast_dims, promotion};
-use crate::tensor::{DType, TensorType};
+use crate::tensor::rules::{broadcast_dims, broadcast_dims_to, promotion};
+use crate::tensor::{DType, Dim, TensorType};
 
 /// Which dtypes a node admits.
 ///
@@ -40,12 +30,12 @@ pub(super) fn any(_dtype: DType) -> bool {
     true
 }
 
-/// Type an elementwise operation over two operands: dtypes promote, shapes broadcast.
+/// Infer the result type of an elementwise operation over two operands.
 ///
-/// The accepted set is checked against the *promoted* dtype rather than each operand's, because that
-/// is the dtype the operation will actually compute in. So `add` admits a `Bit` operand alongside an
-/// `F64` one, which promote to `F64`, while refusing two `Bit` operands, which do not promote to
-/// anything it implements.
+/// The operand dtypes promote and the shapes broadcast. `accepts` is checked against the promoted
+/// dtype rather than against each operand, because the promoted dtype is the one the operation
+/// computes in. So `add` accepts a `Bit` operand alongside an `F64` one, which promote to `F64`, and
+/// rejects two `Bit` operands.
 pub(super) fn elementwise_binary(
     x: &TensorType,
     y: &TensorType,
@@ -65,10 +55,9 @@ pub(super) fn elementwise_binary(
     })
 }
 
-/// Type an elementwise operation over one operand: dtype and shape forwarded untouched.
+/// Infer the result type of an elementwise operation over one operand.
 ///
-/// Being elementwise and unary, this needs no size for any axis, so a bounded one passes straight
-/// through.
+/// The dtype and shape are unchanged.
 pub(super) fn elementwise_unary(
     x: &TensorType,
     accepts: Accepts,
@@ -77,10 +66,10 @@ pub(super) fn elementwise_unary(
     Ok(x.clone())
 }
 
-/// Type a reduction along `axis`, which the result does not have.
+/// Infer the result type of a reduction along `axis`.
 ///
-/// The result dtype is the family's own function of the operand's, not a promotion: averaging a bit
-/// tensor yields a float, which no promotion rule could express.
+/// The result does not have `axis`. Its dtype is `result_dtype` of the operand's dtype; the mean of a
+/// bit tensor is a float, for instance.
 pub(super) fn reduce(
     x: &TensorType,
     axis: usize,
@@ -94,6 +83,22 @@ pub(super) fn reduce(
     })
 }
 
+/// Return the tensor type of a dtype cast to `target`.
+pub(super) fn cast(x: &TensorType, target: DType) -> Result<TensorType, MathNodeError> {
+    Ok(TensorType {
+        dtype: cast_dtype(x.dtype, target)?,
+        shape: x.shape.clone(),
+    })
+}
+
+/// Return the tensor type of a broadcast to `target`.
+pub(super) fn broadcast_to(x: &TensorType, target: &[Dim]) -> Result<TensorType, MathNodeError> {
+    Ok(TensorType {
+        dtype: x.dtype,
+        shape: broadcast_dims_to(&x.shape, target)?,
+    })
+}
+
 /// Validate that a single operand's dtype is admitted.
 fn check_accepts(dtype: DType, accepts: Accepts) -> Result<(), MathNodeError> {
     if !accepts(dtype) {
@@ -102,11 +107,23 @@ fn check_accepts(dtype: DType, accepts: Accepts) -> Result<(), MathNodeError> {
     Ok(())
 }
 
-/// The dtype an elementwise binary operation will compute in, for an evaluation that has tensors in
-/// hand rather than types.
+/// The dtype a cast from `from` to `to` produces.
 ///
-/// Evaluation coerces its operands to this before computing, which is what makes the tensors agree
-/// with the types inference promised.
+/// This is the evaluation-time counterpart of [`cast`], which works from types. Every cast is
+/// supported except from a complex dtype to a real one.
+pub(super) fn cast_dtype(from: DType, to: DType) -> Result<DType, MathNodeError> {
+    let complex = |dtype| matches!(dtype, DType::C64 | DType::C128);
+    if complex(from) && !complex(to) {
+        return Err(MathNodeError::UnsupportedCast { from, to });
+    }
+    Ok(to)
+}
+
+/// The dtype an elementwise binary operation computes in.
+///
+/// This is the evaluation-time counterpart of [`elementwise_binary`], which works from types.
+/// Evaluation casts both operands to this dtype first, so the result matches the type that was
+/// inferred.
 pub(super) fn promoted_dtype(x: DType, y: DType, accepts: Accepts) -> Result<DType, MathNodeError> {
     let dtype = promotion(x, y);
     if !accepts(dtype) {
@@ -255,6 +272,73 @@ mod test {
                 dtype: DType::Bit,
             },
             "a promotion the node does not admit is refused at evaluation time too"
+        );
+    }
+
+    #[test]
+    fn test_cast_replaces_the_dtype_and_keeps_the_shape() {
+        let shape = vec![Dim::Bounded { max: 10 }, Dim::Fixed(2)];
+        assert_eq!(
+            cast(
+                &TensorType {
+                    dtype: DType::Bit,
+                    shape: shape.clone(),
+                },
+                DType::C128
+            )
+            .unwrap(),
+            TensorType {
+                dtype: DType::C128,
+                shape,
+            }
+        );
+    }
+
+    #[test]
+    fn test_cast_refuses_a_complex_operand_and_a_real_target() {
+        let err = cast(&ty(DType::C64, &[2]), DType::F64).unwrap_err();
+        assert_eq!(
+            err,
+            MathNodeError::UnsupportedCast {
+                from: DType::C64,
+                to: DType::F64,
+            }
+        );
+        assert_eq!(err.to_string(), "cannot cast C64 to F64");
+        assert_eq!(
+            cast(&ty(DType::C64, &[2]), DType::C128).unwrap(),
+            ty(DType::C128, &[2]),
+            "a complex target is admitted in either width"
+        );
+    }
+
+    #[test]
+    fn test_cast_dtype_is_the_dtype_cast_infers() {
+        assert_eq!(cast_dtype(DType::Bit, DType::C128).unwrap(), DType::C128);
+        assert_eq!(
+            cast_dtype(DType::C128, DType::I8).unwrap_err(),
+            MathNodeError::UnsupportedCast {
+                from: DType::C128,
+                to: DType::I8,
+            },
+            "a cast the node does not admit is refused at evaluation time too"
+        );
+    }
+
+    #[test]
+    fn test_broadcast_to_makes_the_target_the_result_shape() {
+        let target = [Dim::Fixed(4), Dim::Fixed(2), Dim::Fixed(3)];
+        assert_eq!(
+            broadcast_to(&ty(DType::F32, &[1, 3]), &target).unwrap(),
+            ty(DType::F32, &[4, 2, 3]),
+            "the dtype is unchanged and the shape is the target"
+        );
+        assert_eq!(
+            broadcast_to(&ty(DType::F32, &[2]), &target).unwrap_err(),
+            MathNodeError::Tensor(TensorError::DimShapeMismatch {
+                lhs: vec![Dim::Fixed(2)],
+                rhs: target.to_vec(),
+            })
         );
     }
 }
