@@ -29,7 +29,8 @@
 // The circuit contains these instruction in order:
 // | inst  | inst kind        |
 // +-------+------------------+---------------------------------------------------------------
-// |   0   | Box              | Box mapped to qubits [2,0], clbit [1], duration=0.1s
+// |   0   | Barrier          | Was a Box, until boxes could be built from C. Replaced by a barrier
+// |       |                  | rather than dropped, so the indices below stay unchanged
 // |   1   | For Loop         | Loop over [1,2], If-Else(clbit: Break, else: Continue), param
 // |   2   | Switch           | Target: ClassicalRegister, 2 Cases and Default 
 // |   3   | While Loop       | Condition: clbit 
@@ -42,16 +43,51 @@
 // clang-format on
 QkCircuit *inner_test_control_flow_circuit();
 
-// Test a box which is constructed like this in Python
-// qc = QuantumCircuit(3,3)
-// inner = QuantumCircuit(2,1)
-// inner.cx(0,1)
-// inner.measure(0,0)
-// qc.box(inner, [2,0], [1], duration=0.1, unit='s')
-static int test_box_and_bit_mapping(void) {
+// Build a circuit containing a single Box, constructed entirely through the public C API.
+//
+// This is the C equivalent of:
+// qc = QuantumCircuit(3, 3)
+// body = QuantumCircuit(2, 1)
+// body.cx(0, 1)
+// body.measure(0, 0)
+// qc.box(body, [2, 0], [1], duration=<duration>)
+//
+// Returns NULL if `qk_circuit_box` fails, in which case there is nothing left to free.
+static QkCircuit *build_box_circuit(const QkDurationInfo *duration) {
+    QkCircuit *circuit = qk_circuit_new(3, 3);
+
+    QkCircuit *body = qk_circuit_new(2, 1);
+    uint32_t cx_qubits[2] = {0, 1};
+    qk_circuit_gate(body, QkGate_CX, cx_qubits, NULL);
+    qk_circuit_measure(body, 0, 0);
+
+    uint32_t box_qubits[2] = {2, 0};
+    uint32_t box_clbits[1] = {1};
+
+    // `qk_circuit_box` copies `body`, so it is freed here either way.
+    QkExitCode result = qk_circuit_box(circuit, body, box_qubits, box_clbits, duration);
+    qk_circuit_free(body);
+    if (result != QkExitCode_Success) {
+        printf("qk_circuit_box failed with exit code %d\n", result);
+        qk_circuit_free(circuit);
+        return NULL;
+    }
+
+    return circuit;
+}
+
+// Test that a Box added with `qk_circuit_box` reads back correctly through the control flow
+// accessors, on a circuit built entirely from C rather than by the
+// `inner_test_control_flow_circuit` fixture.
+static int test_box_construction(void) {
     int result = Ok;
-    QkCircuit *circuit = inner_test_control_flow_circuit();
+    QkDurationInfo duration = {QkDurationType_S, {.time = 0.1}};
+    QkCircuit *circuit = build_box_circuit(&duration);
     QkControlFlowInstruction *cf_inst = NULL;
+
+    if (circuit == NULL) {
+        return RuntimeError;
+    }
 
     cf_inst = qk_circuit_get_control_flow_instruction(circuit, 0, NULL);
     if (cf_inst == NULL) {
@@ -88,6 +124,35 @@ static int test_box_and_bit_mapping(void) {
         goto cleanup;
     }
 
+    uint32_t num_clbits = qk_circuit_num_clbits(block_circuit);
+    if (num_clbits != 1) {
+        printf("Expected 1 clbit in block circuit, got %u\n", num_clbits);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    QkCircuitInstruction body_inst;
+    qk_circuit_get_instruction(block_circuit, 0, &body_inst);
+    bool cx_ok = strcmp(body_inst.name, "cx") == 0 && body_inst.num_qubits == 2 &&
+                 body_inst.qubits[0] == 0 && body_inst.qubits[1] == 1;
+    qk_circuit_instruction_clear(&body_inst);
+    if (!cx_ok) {
+        printf("Expected the block circuit to begin with cx on qubits [0, 1]\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
+    qk_circuit_get_instruction(block_circuit, 1, &body_inst);
+    bool measure_ok = strcmp(body_inst.name, "measure") == 0 && body_inst.num_qubits == 1 &&
+                      body_inst.qubits[0] == 0 && body_inst.num_clbits == 1 &&
+                      body_inst.clbits[0] == 0;
+    qk_circuit_instruction_clear(&body_inst);
+    if (!measure_ok) {
+        printf("Expected the block circuit to end with measure of qubit 0 into clbit 0\n");
+        result = EqualityError;
+        goto cleanup;
+    }
+
     const uint32_t *qubit_mapping = qk_control_flow_qubit_map(cf_inst);
     if (qubit_mapping == NULL) {
         printf("Failed to get qubit mapping\n");
@@ -95,21 +160,8 @@ static int test_box_and_bit_mapping(void) {
         goto cleanup;
     }
 
-    if (qubit_mapping[0] != 2) {
-        printf("Expected qubit_mapping[0] == 2, got %u\n", qubit_mapping[0]);
-        result = EqualityError;
-        goto cleanup;
-    }
-
-    if (qubit_mapping[1] != 0) {
-        printf("Expected qubit_mapping[1] == 0, got %u\n", qubit_mapping[1]);
-        result = EqualityError;
-        goto cleanup;
-    }
-
-    uint32_t num_clbits = qk_circuit_num_clbits(block_circuit);
-    if (num_clbits != 1) {
-        printf("Expected 1 clbit in block circuit, got %u\n", num_clbits);
+    if (qubit_mapping[0] != 2 || qubit_mapping[1] != 0) {
+        printf("Expected qubit mapping [2, 0], got [%u, %u]\n", qubit_mapping[0], qubit_mapping[1]);
         result = EqualityError;
         goto cleanup;
     }
@@ -148,9 +200,39 @@ static int test_box_and_bit_mapping(void) {
     }
 
 cleanup:
-    if (cf_inst != NULL) {
-        qk_control_flow_instruction_free(cf_inst);
+    qk_control_flow_instruction_free(cf_inst);
+    qk_circuit_free(circuit);
+    return result;
+}
+
+// Test that passing NULL for the duration of `qk_circuit_box` produces a Box
+// with no duration, i.e. the C equivalent of:
+// qc.box(body, [2, 0], [1])
+static int test_box_without_duration(void) {
+    int result = Ok;
+    QkCircuit *circuit = build_box_circuit(NULL);
+    QkControlFlowInstruction *cf_inst = NULL;
+
+    if (circuit == NULL) {
+        return RuntimeError;
     }
+
+    cf_inst = qk_circuit_get_control_flow_instruction(circuit, 0, NULL);
+    if (cf_inst == NULL) {
+        printf("Failed to get control flow instruction\n");
+        result = NullptrError;
+        goto cleanup;
+    }
+
+    QkBoxDurationKind duration_kind = qk_control_flow_box_duration_kind(cf_inst);
+    if (duration_kind != QkBoxDurationKind_NoDuration) {
+        printf("Expected QkBoxDurationKind_NoDuration, got %d\n", duration_kind);
+        result = EqualityError;
+        goto cleanup;
+    }
+
+cleanup:
+    qk_control_flow_instruction_free(cf_inst);
     qk_circuit_free(circuit);
     return result;
 }
@@ -770,7 +852,8 @@ cleanup:
 int test_control_flow(void) {
     int num_failed = 0;
 
-    num_failed += RUN_TEST(test_box_and_bit_mapping);
+    num_failed += RUN_TEST(test_box_construction);
+    num_failed += RUN_TEST(test_box_without_duration);
     num_failed += RUN_TEST(test_for_nested_break_continue);
     num_failed += RUN_TEST(test_switch_case_on_register);
     num_failed += RUN_TEST(test_while_on_bit);

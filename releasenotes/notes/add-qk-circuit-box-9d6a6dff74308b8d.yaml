@@ -1,0 +1,10 @@
+---
+features_c:
+  - |
+    Added :c:func:`qk_circuit_box` to append a ``box`` control-flow instruction to a
+    ``QkCircuit`` from the C API. The body of the box is supplied as a separate ``QkCircuit``,
+    together with the qubit and clbit indices of the outer circuit that its bits map onto, and
+    an optional duration. The body is copied into the outer circuit, so the caller keeps
+    ownership of it and is responsible for freeing it. This is a very basic implementation: the
+    duration must be a concrete value, durations given as a classical expression are not
+    supported yet, and annotations cannot be attached to the box.
