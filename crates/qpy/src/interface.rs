@@ -20,11 +20,10 @@ use binrw::{BinRead, Endian, VecArgs};
 use pyo3::PyResult;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict};
-use qiskit_circuit::annotation::NativeLoaders;
 use qiskit_circuit::circuit_data::CircuitData;
 use qiskit_circuit::converters::QuantumCircuitData;
 
-use crate::annotations::AnnotationHandler;
+use crate::annotations::{AnnotationHandler, NativeDeserializers, NativeSerializers};
 use crate::bytes::Bytes;
 use crate::circuit_reader::unpack_circuit;
 use crate::circuit_writer::{pack_circuit, pack_layout};
@@ -119,7 +118,8 @@ pub fn dump_qpy(
     let caller = caller.unwrap_or(QpyCaller::Native);
     let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native(
         Vec::new(),
-        NativeLoaders::default(),
+        NativeSerializers::default(),
+        NativeDeserializers::default(),
     ));
     if circuits.len() != extra_data.len() {
         return Err(QpyError::ConversionError(format!(
@@ -302,7 +302,8 @@ pub fn load_qpy(
     let caller = caller.unwrap_or(QpyCaller::Native);
     let annotation_handler = annotation_handler.unwrap_or(AnnotationHandler::native(
         Vec::new(),
-        NativeLoaders::default(),
+        NativeSerializers::default(),
+        NativeDeserializers::default(),
     ));
     let (qpy_file_header, header_size) = deserialize::<QPYFileHeader>(data)?;
     // Verify the type key is for circuits

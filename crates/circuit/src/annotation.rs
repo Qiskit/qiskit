@@ -11,12 +11,10 @@
 // that they have been altered from the originals.
 
 use std::any::Any;
-use std::borrow::Cow;
 use std::fmt::Debug;
 use std::sync::Arc;
 use std::sync::OnceLock;
 
-use hashbrown::HashMap;
 use pyo3::exceptions::PyValueError;
 use thiserror::Error;
 
@@ -174,16 +172,6 @@ mod custom_traits {
 pub trait Annotation: Any + Debug + Send + Sync + ComparableAnnotation {
     /// Return the namespace of the annotation.
     fn namespace(&self) -> &str;
-
-    /// The payload.
-    ///
-    /// Note that there is no inverse method on the trait. This is deliberately omitted
-    /// and is implemented with a [NativeLoader]. The [NativeLoader] could do this directly,
-    /// or can defer to a per [Annotation] call. The payload can be borrowed when it's
-    /// already on self and owned if it has to be built.
-    fn payload(&self) -> Option<Cow<'_, str>> {
-        None
-    }
 }
 
 impl PartialEq for dyn Annotation {
@@ -260,35 +248,6 @@ pub fn iter_namespaces(namespace: &str) -> impl Iterator<Item = &str> {
     .chain(std::iter::once(""))
 }
 
-/// A loader for an [Annotation].
-///
-/// This function takes a namespace and a payload, and returns an annotation.
-pub type NativeLoader = fn(&str, &str) -> Option<Arc<dyn Annotation>>;
-
-/// Loaders for annotations.
-///
-/// This structure contains a bank of loaders keyed by namespace. Note that this struct does not
-#[derive(Debug, Default, Clone)]
-pub struct NativeLoaders(HashMap<String, NativeLoader>);
-
-impl NativeLoaders {
-    pub fn insert(&mut self, namespace: &str, loader: NativeLoader) {
-        self.0.insert(namespace.to_string(), loader);
-    }
-
-    /// Load an annotation from a payload.
-    ///
-    /// This method uses [iter_namespaces] to find the narrowest namespace contained in this loader
-    /// that matches the namespace of a given payload, then uses the corresponding [NativeLoader].
-    pub fn load(&self, namespace: &str, payload: &str) -> Option<Arc<dyn Annotation>> {
-        if let Some(loader) = iter_namespaces(namespace).find_map(|ns| self.0.get(ns)) {
-            loader(namespace, payload)
-        } else {
-            None
-        }
-    }
-}
-
 /// Create a Python annotation.
 ///
 /// For a [PythonAnnotation], returns the underlying [PyAnnotation], while for other annotation types,
@@ -323,7 +282,7 @@ impl<'a, 'py> FromPyObject<'a, 'py> for AnnotationFromPython {
 
 #[cfg(test)]
 mod test_annotation {
-    use crate::annotation::{Annotation, NativeLoaders, iter_namespaces};
+    use crate::annotation::{Annotation, iter_namespaces};
     use std::{assert_eq, sync::Arc};
 
     macro_rules! impl_annotation {
@@ -353,7 +312,6 @@ mod test_annotation {
     #[test]
     fn test_downcast() {
         let tag: Arc<dyn Annotation> = Arc::new(Tag("my_tag"));
-
         let tag = tag.downcast_ref::<Tag>().expect("Should be a Tag.");
         assert_eq!(tag, &Tag("my_tag"));
     }
@@ -408,11 +366,6 @@ mod test_annotation {
             iter_namespaces("a..b").collect::<Vec<_>>(),
             vec!["a..b", "a.", "a", ""]
         );
-    }
-
-    #[test]
-    fn test_load_native_annotation() {
-        assert_eq!(NativeLoaders::default().load("a.b", "c"), None);
     }
 }
 
@@ -557,98 +510,5 @@ mod test_annotated_boxes {
         // Remove every box with an annotation in the namespace.
         remove_namespace(&mut dag, "randomization");
         assert_eq!(0, dag.op_node_indices(false).collect::<Vec<_>>().len());
-    }
-}
-
-#[cfg(test)]
-mod test_annotation_loading {
-    use crate::annotation::{Annotation, NativeLoaders};
-    use std::sync::Arc;
-
-    #[derive(Debug, PartialEq)]
-    struct Twirl {
-        twirl: String,
-    }
-
-    impl Twirl {
-        pub fn from_payload(payload: &str) -> Self {
-            let (_, twirl) = payload
-                .rsplit_once("twirl:")
-                .expect("Should be dispatched.");
-            Twirl {
-                twirl: twirl.to_string(),
-            }
-        }
-    }
-
-    impl Annotation for Twirl {
-        fn namespace(&self) -> &str {
-            "randomization.twirl"
-        }
-
-        fn payload(&self) -> Option<std::borrow::Cow<'_, str>> {
-            Some(std::borrow::Cow::Owned(format!("twirl:{}", self.twirl)))
-        }
-    }
-
-    #[derive(Debug, PartialEq)]
-    struct InjectNoise(String);
-
-    impl InjectNoise {
-        pub fn from_payload(payload: &str) -> Self {
-            InjectNoise(payload.to_string())
-        }
-    }
-
-    impl Annotation for InjectNoise {
-        fn namespace(&self) -> &str {
-            "randomization.inject_noise"
-        }
-
-        fn payload(&self) -> Option<std::borrow::Cow<'_, str>> {
-            Some(std::borrow::Cow::Borrowed(&self.0))
-        }
-    }
-
-    #[test]
-    fn test_native_loaders() {
-        let mut loaders = NativeLoaders::default();
-
-        // A loader than handles the randomization namespace and returns new instances with their corresponding payloads.
-        loaders.insert("randomization", |ns, payload| match ns.rsplit_once(".") {
-            Some((_, ns)) => match ns {
-                "twirl" => Some(Arc::new(Twirl::from_payload(payload))),
-                "inject_noise" => Some(Arc::new(InjectNoise::from_payload(payload))),
-                _ => None,
-            },
-            None => None,
-        });
-
-        // A loader with a narrower namespace that returns an inject noise with a fixed payload.
-        loaders.insert("randomization.inject_noise", |_, _| {
-            Some(Arc::new(InjectNoise("different".to_string())))
-        });
-
-        let annotation: Arc<dyn Annotation> = Arc::new(Twirl {
-            twirl: "pauli".to_string(),
-        });
-        let roundtrip = loaders
-            .load(
-                "randomization.twirl",
-                &annotation.payload().expect("It's implemented."),
-            )
-            .expect("It's implemented.");
-        assert_eq!(roundtrip.as_ref(), annotation.as_ref());
-
-        let annotation: Arc<dyn Annotation> = Arc::new(InjectNoise("ok".to_string()));
-        let roundtrip = loaders
-            .load(
-                "randomization.inject_noise",
-                &annotation.payload().expect("It's implemented."),
-            )
-            .expect("It's implemented.");
-        let expected: Arc<dyn Annotation> = Arc::new(InjectNoise("different".to_string()));
-        assert_ne!(roundtrip.as_ref(), annotation.as_ref());
-        assert_eq!(roundtrip.as_ref(), expected.as_ref());
     }
 }
