@@ -72,6 +72,7 @@ impl OpNodeType for Store {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::data_tree::Name;
     use crate::tensor::{DType, DTypeLike, Dim, Tensor};
 
     #[test]
@@ -102,8 +103,8 @@ mod tests {
     #[test]
     fn test_store_branched() {
         let mut data = DataTree::new();
-        data.insert_leaf("a", Tensor::from([1.0_f64, 2.0]));
-        data.insert_leaf("b", Tensor::from([10_i32, 20, 30]));
+        data.insert_leaf(Name::new("a").unwrap(), Tensor::from([1.0_f64, 2.0]));
+        data.insert_leaf(Name::new("b").unwrap(), Tensor::from([10_i32, 20, 30]));
         let store = Store::new(data);
 
         assert!(store.input_types().is_empty());
@@ -128,8 +129,8 @@ mod tests {
     #[test]
     fn test_store_branched_call_returns_flat_in_dfs_order() {
         let mut data = DataTree::new();
-        data.insert_leaf("a", Tensor::from([1.0_f64]));
-        data.insert_leaf("b", Tensor::from([2.0_f64]));
+        data.insert_leaf(Name::new("a").unwrap(), Tensor::from([1.0_f64]));
+        data.insert_leaf(Name::new("b").unwrap(), Tensor::from([2.0_f64]));
         let store = Store::new(data);
         let result = store.call_flat(&[]).unwrap();
         assert_eq!(result.len(), 2);
