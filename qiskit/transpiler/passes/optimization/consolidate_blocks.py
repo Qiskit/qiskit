@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Replace each block of consecutive gates by a single Unitary node."""
+
 from __future__ import annotations
 
 import typing
@@ -37,7 +38,6 @@ from qiskit._accelerate.consolidate_blocks import consolidate_blocks
 
 from .collect_1q_runs import Collect1qRuns
 from .collect_2q_blocks import Collect2qBlocks
-
 
 if typing.TYPE_CHECKING:
     from qiskit.transpiler.target import Target
@@ -178,6 +178,7 @@ class ConsolidateBlocks(TransformationPass):
             decomposer = self.decomposer._inner_decomposer
         else:
             decomposer = None
+
         consolidate_blocks(
             dag,
             decomposer,

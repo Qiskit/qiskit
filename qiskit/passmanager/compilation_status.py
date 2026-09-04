@@ -12,9 +12,9 @@
 
 """A property set dictionary that is shared among optimization passes."""
 
-
 from dataclasses import dataclass, field
 from enum import Enum
+from qiskit._accelerate.passmanager import PassContext
 
 
 class PropertySet(dict):
@@ -70,5 +70,21 @@ class PassManagerState:
     workflow_status: WorkflowStatus
     """Status of the current compilation workflow."""
 
-    property_set: PropertySet
+    property_set: PropertySet | PassContext
     """Information about IR being optimized."""
+
+
+def state_from_passcontext(context: PassContext) -> PassManagerState:
+    """Create a PassManagerState from a PassContext for the new pass manager calling legacy passes.
+
+    The workflow status is *not* tracked across passes and the new pass context is duck typed
+    as property set.
+    """
+    empty_workflow_status = WorkflowStatus()
+    return PassManagerState(empty_workflow_status, context)
+
+
+def passcontext_from_state(state: PassManagerState) -> PassContext:
+    if not isinstance(state.property_set, PassContext):
+        raise TypeError("Cannot extract pass context from pass manager state.")
+    return state.property_set
