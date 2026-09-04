@@ -327,8 +327,8 @@ fn should_substitute(
                 .to_owned();
             Ok(matrix)
         })?;
-        let trace = matrix[(0, 0)] + matrix[(1, 1)];
-        let dim = 2.0;
+        let trace = matrix.diag().sum();
+        let dim = matrix.nrows() as f64;
         if let Some(phase_update) = average_gate_fidelity_below_tol(trace / dim, dim, tol) {
             return Ok(ConsolidateResult::Identity(phase_update));
         } else {

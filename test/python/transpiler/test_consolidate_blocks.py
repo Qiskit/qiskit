@@ -35,7 +35,12 @@ from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.measures import process_fidelity
 from qiskit.transpiler import PassManager, Target, generate_preset_pass_manager
-from qiskit.transpiler.passes import ConsolidateBlocks, Collect1qRuns, Collect2qBlocks
+from qiskit.transpiler.passes import (
+    ConsolidateBlocks,
+    Collect1qRuns,
+    Collect2qBlocks,
+    CollectMultiQBlocks,
+)
 from test import QiskitTestCase
 
 
@@ -465,6 +470,13 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc.h(0)
         pm = PassManager([Collect2qBlocks(), Collect1qRuns(), ConsolidateBlocks()])
         self.assertEqual(QuantumCircuit(5, global_phase=np.pi), pm.run(qc))
+
+    def test_toffoli_is_not_removed(self):
+        """Test that toffoli gate is not removed during consolidated block pass."""
+        qc = QuantumCircuit(3)
+        qc.ccx(0, 1, 2)
+        pm = PassManager([CollectMultiQBlocks(max_block_size=3), ConsolidateBlocks()])
+        self.assertTrue(Operator(qc).equiv(Operator(pm.run(qc))))
 
     def test_descent_into_control_flow(self):
         """Test consolidation in blocks when control flow op is the same as at top level."""
