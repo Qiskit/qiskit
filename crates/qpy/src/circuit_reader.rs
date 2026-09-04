@@ -25,6 +25,7 @@ use num_complex::Complex64;
 use pyo3::IntoPyObjectExt;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict, PyList};
+use qiskit_circuit::annotation::Annotation;
 use qiskit_circuit::bit::{
     ClassicalRegister, QuantumRegister, Register, ShareableClbit, ShareableQubit,
 };
@@ -331,7 +332,7 @@ pub fn instruction_values_to_params(
 fn unpack_annotations(
     packed_annotations: &Option<formats::InstructionsAnnotationPack>,
     qpy_data: &mut QPYReadData,
-) -> Result<Vec<Py<PyAny>>, QpyError> {
+) -> Result<Vec<Arc<dyn Annotation>>, QpyError> {
     if let Some(annotations_vec) = packed_annotations {
         annotations_vec
             .annotations
