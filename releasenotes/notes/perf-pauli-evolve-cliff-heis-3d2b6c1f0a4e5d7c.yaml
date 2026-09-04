@@ -1,0 +1,9 @@
+---
+performance:
+  - |
+    :meth:`.Pauli.evolve` and :meth:`.PauliList.evolve` are faster for most cases where 1) ``other``
+    is a :class:`.Clifford`, 2) ``frame`` is ``'h'`` (Heisenberg), and 3) the number of qubits N in
+    the :class:`.Clifford` is smaller than the number of Paulis L being evolved. Previously this would
+    always call :meth:`.Clifford.adjoint`, which is :math:`O(N^3)`. Now when these 3 conditions are met,
+    the phase is instead obtained via a second Schrodinger-frame evolution, which is :math:`O(L N^2)`.
+    For example, this makes Heisenberg evolution of a single many-qubit Pauli much faster.

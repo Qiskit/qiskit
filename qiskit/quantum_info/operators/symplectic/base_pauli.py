@@ -295,13 +295,36 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         return self.copy()._append_circuit(other.inverse(), qargs=qargs)
 
     def _evolve_clifford(self, other, qargs=None, frame="h"):
-        """Heisenberg picture evolution of a Pauli by a Clifford."""
+        """Evolve a Pauli by a Clifford (default is Heisenberg frame)."""
 
-        if frame == "s":
-            adj = other
-        else:
-            adj = other.adjoint()
+        if frame == "h":
+            # Heisenberg evolution C^dg.P.C.
+            # Naively, would evolve by C^dg in Schrodinger frame, but getting the
+            # phase of C^dg (in `adjoint`) is expensive (N^3). Alternatively,
+            # it can be faster to compute phase via a second Schrodinger evolution,
+            # at a cost L*N^2, where L is number of Paulis in `self`. Empirically,
+            # thresholding on N <= L gave near-optimal performance across benchmarks
+            # that went up to 250 qubits.
+            if other.num_qubits <= self._x.shape[0]:
+                other = other.adjoint()
+                return self._evolve_clifford(other, qargs=qargs, frame="s")
 
+            inv = other.copy()
+            tmp = inv.destab_x.copy()
+            inv.destab_x = inv.stab_z.T
+            inv.destab_z = inv.destab_z.T
+            inv.stab_x = inv.stab_x.T
+            inv.stab_z = tmp.T
+            # We have z and x of C^dg, but not the phase.
+            ret = self._evolve_clifford(inv, qargs=qargs, frame="s")
+            # This evolution yields z, x of desired result but wrong phase.
+            # Fix answer by evolving this forward by C; excess phase after
+            # the round-trip should be subtracted from ret:
+            fwd = ret._evolve_clifford(other, qargs=qargs, frame="s")
+            ret.phase -= fwd.phase - self.phase
+            return ret
+
+        # Schrodinger evolution C.P.C^dg.
         if qargs is None:
             qargs_ = slice(None)
         else:
@@ -316,17 +339,21 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         ret._z[:, qargs_] = False
 
         idx = np.concatenate((self._x[:, qargs_], self._z[:, qargs_]), axis=1)
+        # Only iterate rows of `other` selected by at least one Pauli in `self`:
+        keep = np.nonzero(idx.any(axis=0))[0]
         for idx_, row in zip(
-            idx.T,
-            PauliList.from_symplectic(z=adj.z, x=adj.x, phase=2 * adj.phase),
+            idx[:, keep].T,
+            PauliList.from_symplectic(
+                z=other.z[keep], x=other.x[keep], phase=2 * other.phase[keep]
+            ),
+            strict=True,
         ):
             # most of the logic below is to properly index if self is a PauliList (2D),
             # while not trying to index if the object is just a Pauli (1D).
-            if idx_.any():
-                if np.sum(idx_) == num_paulis:
-                    ret.compose(row, qargs=qargs, inplace=True)
-                else:
-                    ret[idx_] = ret[idx_].compose(row, qargs=qargs)
+            if np.sum(idx_) == num_paulis:
+                ret.compose(row, qargs=qargs, inplace=True)
+            else:
+                ret[idx_] = ret[idx_].compose(row, qargs=qargs)
 
         return ret
 
