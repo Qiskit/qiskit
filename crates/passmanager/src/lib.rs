@@ -11,14 +11,17 @@
 // that they have been altered from the originals.
 
 use hashbrown::{HashMap, HashSet};
-use std::any::{Any, TypeId};
+use std::{
+    any::{Any, TypeId},
+    fmt::Debug,
+};
 use thiserror::Error;
 
 /// The pass manager execution environment.
 ///
 /// This contains data managed by the pass manager. A local handle to this is passed into
 /// the passes.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct PassManagerContext {
     /// The global, catch-all data. The local [PassContext] handles get read-only access to
     /// this data and after pass execution this global state is updated.
@@ -26,6 +29,7 @@ pub struct PassManagerContext {
 }
 
 /// Context information provided to the passes.
+#[derive(Debug)]
 pub struct PassContext<'a> {
     /// A reference to the global execution environment.
     global_context: &'a PassManagerContext,
@@ -41,9 +45,11 @@ pub struct PassContext<'a> {
 /// A private struct representing the context updates performed. As long as this contains only
 /// a HashMap, we could skip this object, but the context is supposed to contain more generic
 /// information.
-#[derive(Default)]
+#[derive(Default, Debug)]
 struct ContextUpdates {
+    /// New values to insert into the global context.
     insertions: HashMap<String, Box<dyn Any>>,
+    /// Keys to delete from the global context.
     deletions: HashSet<String>,
 }
 
@@ -58,7 +64,7 @@ impl ContextUpdates {
         self.deletions.insert(key);
     }
 
-    fn get<S: AsRef<str>>(&self, key: S) -> Option<&dyn Any> {
+    fn get(&self, key: impl AsRef<str>) -> Option<&dyn Any> {
         Some(self.insertions.get(key.as_ref())?)
     }
 }
@@ -104,16 +110,13 @@ impl<'a> PassContext<'a> {
     /// Get an entry, if it exists.
     ///
     /// This first queries from the local context, then the global.
-    pub fn get<S: AsRef<str>>(&mut self, key: S) -> Option<&dyn Any> {
+    pub fn get(&self, key: impl AsRef<str>) -> Option<&dyn Any> {
+        let key = key.as_ref();
+
         // The local registry takes precedence.
-        if let Some(value) = self.updates.get(&key) {
-            Some(value)
-        } else {
-            self.global_context
-                .data
-                .get(key.as_ref())
-                .map(|value| value.as_ref())
-        }
+        self.updates
+            .get(key)
+            .or_else(|| self.global_context.data.get(key).map(|value| value as _))
     }
 }
 
@@ -122,7 +125,7 @@ impl<'a> PassContext<'a> {
 /// This represents an atomic unit of work done by the compiler, which runs a
 /// (possibly non-linear) flow of passes. This trait must be implemented by
 /// passes that should run in the compiler.
-pub trait Pass {
+pub trait Pass: Send + Sync {
     // We store a type-erased version of this Pass, and to store the [TypeId] we need the
     // IRs here to have static lifetimes.  This is a requirement of [TypeId] which is only
     // currently defined for static types.
@@ -142,13 +145,22 @@ pub trait Pass {
 
 /// A type-erased version of the [Pass] trait. This is required to store passes with different
 /// associated types in the generic [Task::Transformation] variant.
-pub trait AnyPass {
+pub trait AnyPass: Send + Sync {
+    /// Cast the pass to Any to allow downcasting to a target type.
+    fn as_any(&self) -> &dyn Any;
+    /// Return the type ID of the input IR.
     fn input_type_id(&self) -> TypeId;
+    /// Return the type ID of the output IR.
     fn output_type_id(&self) -> TypeId;
+    /// Run the pass.
     fn run(&self, ir: Box<dyn Any>, context: &mut PassContext) -> anyhow::Result<Box<dyn Any>>;
 }
 
-impl<P: Pass> AnyPass for P {
+impl<P: Pass + 'static> AnyPass for P {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     fn input_type_id(&self) -> TypeId {
         TypeId::of::<P::InputIR>()
     }
@@ -198,6 +210,22 @@ pub enum Task {
     },
 }
 
+impl Debug for Task {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Task::Transformation(_) => writeln!(f, "Transformation(Box<dyn AnyPass>)"),
+            Task::Group(tasks) => writeln!(f, "Group({tasks:?}"),
+            Task::Stages(stages) => writeln!(f, "Stages({stages:?}"),
+            Task::Switch { switch, cases } => {
+                writeln!(f, "Switch {{ switch: {switch:?}, cases: {cases:?} }}")
+            }
+            Task::Loop { condition, body } => {
+                writeln!(f, "Loop {{ condition: {condition:?}, body: {body:?} }}")
+            }
+        }
+    }
+}
+
 impl Task {
     fn io_types(&self) -> Option<(TypeId, TypeId)> {
         match self {
@@ -214,7 +242,7 @@ impl Task {
 }
 
 /// Hookpoint for the callback.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum CallbackType {
     PostPass,
     PostTask,
@@ -240,7 +268,7 @@ pub trait Callback {
 }
 
 /// Qiskit's pass manager.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct PassManager {
     // It is UNSAFE to directly mutate the task vector since we are checking that the types
     // match upon construction, hence the tasks are private.
@@ -433,8 +461,12 @@ fn execute_task(
             if let Some(cb) = callback
                 && cb.trigger(&CallbackType::PostPass)
             {
-                cb.ir_and_context(&out, context);
-                cb.with_pass(pass.as_ref(), &out, context);
+                // Note that we want to pass a reference to the box content, not cast the
+                // box itself to any. Hence we deref, before passing the reference. Not doing this
+                // still compiles since Box<dyn Any> itself is castable to Any, but the downcasting
+                // further down the line will fail since it tries to cast Box<..> into the type.
+                cb.ir_and_context(&*out, context);
+                cb.with_pass(&**pass, &out, context);
             }
             Ok(out)
         }
@@ -460,18 +492,18 @@ fn execute_task(
                 if let Some(cb) = callback
                     && cb.trigger(&CallbackType::PostStage)
                 {
-                    cb.ir_and_context(&ir, context)
+                    cb.ir_and_context(&*ir, context)
                 }
             }
             Ok(ir)
         }
-    };
+    }?;
     if let Some(cb) = callback
         && cb.trigger(&CallbackType::PostTask)
     {
-        cb.ir_and_context(&out, context)
+        cb.ir_and_context(&*out, context)
     }
-    out
+    Ok(out)
 }
 
 /// Internal helper to cast a Box<dyn Any> to an output type.
