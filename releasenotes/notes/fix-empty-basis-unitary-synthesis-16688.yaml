@@ -1,10 +1,10 @@
 ---
 fixes:
   - |
-    :class:`.UnitarySynthesis` no longer treats an empty loose basis (no
-    ``basis_gates`` and no ``target``) as a Clifford+T-only basis. That
-    misclassification previously routed 1-qubit unitaries through Solovay-Kitaev
-    approximation and could expand a single unitary into tens of thousands of
-    ``h``/``t``/``tdg`` gates. An empty loose basis now defaults to the exact
-    continuous basis ``["u", "cx"]``.
+    :class:`.UnitarySynthesis` no longer interprets an empty loose basis as a
+    Clifford+T-only basis. Previously, constructing the pass without
+    ``basis_gates`` or ``target`` could route 1-qubit unitaries through
+    Solovay-Kitaev approximation and expand a single unitary into tens of
+    thousands of ``h``, ``t``, and ``tdg`` gates. The pass now uses ``u`` and
+    ``cx`` as its default synthesis constraints.
     Fixes `#16688 <https://github.com/Qiskit/qiskit/issues/16688>`__.

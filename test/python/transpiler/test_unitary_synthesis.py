@@ -117,24 +117,6 @@ class FakeBackend5QV2(GenericBackendV2):
 class TestUnitarySynthesisBasisGates(QiskitTestCase):
     """Test UnitarySynthesis pass with basis gates."""
 
-    def test_empty_basis_gates(self):
-        """Empty/None basis_gates defaults to ['u', 'cx'] and synthesizes exactly."""
-        qc = QuantumCircuit(3)
-        op_1q = random_unitary(2, seed=0)
-        op_2q = random_unitary(4, seed=0)
-        op_3q = random_unitary(8, seed=0)
-        qc.unitary(op_1q.data, [0])
-        qc.unitary(op_2q.data, [0, 1])
-        qc.unitary(op_3q.data, [0, 1, 2])
-        out = UnitarySynthesis(basis_gates=None)(qc)
-        ops = out.count_ops()
-        # 1q/2q use the default continuous basis; 3q uses QSD (may emit intermediate 1q gates).
-        self.assertNotIn("unitary", ops)
-        self.assertTrue(np.allclose(Operator(qc), Operator(out)))
-        # Guard against the historical Solovay-Kitaev Clifford+T blow-up.
-        self.assertLess(ops.get("t", 0) + ops.get("tdg", 0), 10)
-        self.assertLess(sum(ops.values()), 200)
-
     def test_empty_basis_gates_defaults_to_u_cx_not_solovay_kitaev(self):
         """Empty UnitarySynthesis() uses exact [u, cx], not Clifford+T (issue #16688)."""
         qc = QuantumCircuit(1)
@@ -145,15 +127,45 @@ class TestUnitarySynthesisBasisGates(QiskitTestCase):
         qc.unitary(unitary, [0])
 
         compiled = PassManager([UnitarySynthesis()]).run(qc)
+        ops = compiled.count_ops()
 
-        self.assertTrue(set(compiled.count_ops()).issubset({"u"}))
-        self.assertTrue(np.allclose(Operator(qc), Operator(compiled)))
-        # Guard against the historical Clifford+T blow-up (~24k H/T/Tdg gates).
-        self.assertNotIn("h", compiled.count_ops())
-        self.assertNotIn("t", compiled.count_ops())
-        self.assertNotIn("tdg", compiled.count_ops())
-        self.assertNotIn("unitary", compiled.count_ops())
-        self.assertLess(sum(compiled.count_ops().values()), 10)
+        self.assertEqual(ops, {"u": 1})
+        self.assertTrue(Operator(qc).equiv(compiled))
+        self.assertNotIn("unitary", ops)
+        self.assertNotIn("h", ops)
+        self.assertNotIn("t", ops)
+        self.assertNotIn("tdg", ops)
+
+    def test_empty_basis_gates_synthesizes_1q_and_2q_exactly(self):
+        """Fallback synthesizes 1q and 2q unitaries exactly into the default basis."""
+        qc = QuantumCircuit(2)
+        qc.unitary(random_unitary(2, seed=0).data, [0])
+        qc.unitary(random_unitary(4, seed=1).data, [0, 1])
+        out = UnitarySynthesis(basis_gates=None)(qc)
+        ops = out.count_ops()
+        self.assertNotIn("unitary", ops)
+        self.assertTrue(set(ops).issubset({"u", "cx"}))
+        self.assertTrue(Operator(qc).equiv(out))
+
+    def test_empty_basis_gates_3q_removes_unitary(self):
+        """Fallback synthesizes 3q unitaries; QSD may emit intermediate gates."""
+        qc = QuantumCircuit(3)
+        qc.unitary(random_unitary(8, seed=0).data, [0, 1, 2])
+        out = UnitarySynthesis(basis_gates=None)(qc)
+        self.assertNotIn("unitary", out.count_ops())
+        self.assertTrue(Operator(qc).equiv(out))
+
+    def test_empty_target_defaults_to_u_cx(self):
+        """An empty Target() is not usable, so the pass falls back to [u, cx]."""
+        qc = QuantumCircuit(1)
+        unitary = np.array(
+            [[1.0, 0.0], [0.0, np.exp(1j * np.pi / 6)]],
+            dtype=complex,
+        )
+        qc.unitary(unitary, [0])
+        out = UnitarySynthesis(target=Target())(qc)
+        self.assertEqual(out.count_ops(), {"u": 1})
+        self.assertTrue(Operator(qc).equiv(out))
 
     @data(
         ["u3", "cx"],

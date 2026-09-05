@@ -156,9 +156,8 @@ class UnitarySynthesis(TransformationPass):
         if target is not None:
             self._coupling_map = target.build_coupling_map()
             self._basis_gates = set(target.operation_names)
-        elif not self._basis_gates:
-            # Exact continuous default when neither target nor basis_gates is provided.
-            # Avoids treating an empty basis as Clifford+T (see Qiskit/qiskit#16688).
+        # Default continuous basis when there is no usable target or loose basis.
+        if self._target is None and not self._basis_gates:
             self._basis_gates = {"u", "cx"}
         if synth_gates:
             self._synth_gates = synth_gates
