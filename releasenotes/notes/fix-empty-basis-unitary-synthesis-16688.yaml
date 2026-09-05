@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    :class:`.UnitarySynthesis` no longer treats an empty loose basis (no
+    ``basis_gates`` and no ``target``) as a Clifford+T-only basis. That
+    misclassification previously routed 1-qubit unitaries through Solovay-Kitaev
+    approximation and could expand a single unitary into tens of thousands of
+    ``h``/``t``/``tdg`` gates. An empty loose basis now defaults to the exact
+    continuous basis ``["u", "cx"]``.
+    Fixes `#16688 <https://github.com/Qiskit/qiskit/issues/16688>`__.

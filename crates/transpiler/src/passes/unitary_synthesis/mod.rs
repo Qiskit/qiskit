@@ -1105,6 +1105,24 @@ fn conjugate_with_swaps(mut m: ArrayViewMut2<Complex64>) {
     azip!((x in &mut col_1, y in &mut col_2) (*x, *y) = (*y, *x));
 }
 
+/// Default continuous basis used when neither ``basis_gates`` nor ``target`` is provided.
+///
+/// An empty loose basis must not be treated as Clifford+T (vacuous ``Iterator::all``), which
+/// previously routed 1q unitaries through Solovay-Kitaev
+/// (https://github.com/Qiskit/qiskit/issues/16688). Maintainers preferred an exact default of
+/// ``[u, cx]``.
+const DEFAULT_LOOSE_BASIS: &[&str] = &["u", "cx"];
+
+fn loose_basis_gates<'a>(basis_gates: &'a HashSet<String>) -> IndexSet<&'a str> {
+    let mut basis_gates_set: IndexSet<&str> = if basis_gates.is_empty() {
+        DEFAULT_LOOSE_BASIS.iter().copied().collect()
+    } else {
+        basis_gates.iter().map(String::as_str).collect()
+    };
+    basis_gates_set.sort();
+    basis_gates_set
+}
+
 /// Python entry point to [run_unitary_synthesis].
 #[allow(clippy::too_many_arguments)]
 #[pyfunction]
@@ -1135,8 +1153,7 @@ pub fn py_unitary_synthesis(
     let constraint = match target {
         Some(target) => QpuConstraint::Target(target),
         None => {
-            basis_gates_set = basis_gates.iter().map(String::as_str).collect();
-            basis_gates_set.sort();
+            basis_gates_set = loose_basis_gates(&basis_gates);
             QpuConstraint::Loose {
                 basis_gates: &basis_gates_set,
                 coupling: &coupling_edges,
@@ -1213,8 +1230,7 @@ pub fn py_synthesize_unitary_matrix(
     let constraint = match target {
         Some(target) => QpuConstraint::Target(target),
         None => {
-            basis_gates_set = basis_gates.iter().map(String::as_str).collect();
-            basis_gates_set.sort();
+            basis_gates_set = loose_basis_gates(&basis_gates);
             QpuConstraint::Loose {
                 basis_gates: &basis_gates_set,
                 coupling: &coupling_edges,
