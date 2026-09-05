@@ -27,12 +27,20 @@ if typing.TYPE_CHECKING:
 class Collect1qRuns(AnalysisPass):
     """Collect one-qubit subcircuits."""
 
-    def __init__(self, filter_fn: Callable[[DAGCircuit, list[DAGOpNode]], bool] | None = None):
+    def __init__(
+        self,
+        filter_fn: Callable[[DAGCircuit, list[DAGOpNode]], bool] | None = None,
+        *,
+        include_custom_gates: bool = False,
+    ):
         """
         Args:
             filter_fn: An optional function that filters collected one-qubit runs.
+            include_custom_gates: If ``True``, include custom one-qubit gates with
+                definitions even when they do not provide a direct matrix.
         """
         self.filter_fn = filter_fn
+        self.include_custom_gates = include_custom_gates
         super().__init__()
 
     def run(self, dag):
@@ -45,7 +53,7 @@ class Collect1qRuns(AnalysisPass):
         After the execution, ``property_set['run_list']`` is set to a list of
         tuples of "op" node.
         """
-        run_list = dag.collect_1q_runs()
+        run_list = dag.collect_1q_runs(self.include_custom_gates)
         if self.filter_fn is not None:
             run_list = [run for run in run_list if self.filter_fn(dag, run)]
         self.property_set["run_list"] = run_list

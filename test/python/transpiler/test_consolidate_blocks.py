@@ -887,6 +887,32 @@ class TestCollect1qRuns(QiskitTestCase):
             runs = pm.property_set.get("run_list", [])
             self.assertEqual(len(runs), 0)
 
+    def test_include_custom_gates(self):
+        """Test include_custom_gates argument."""
+        custom = QuantumCircuit(1, name="custom")
+        custom.h(0)
+        custom_gate = custom.to_gate()
+        self.assertFalse(hasattr(custom_gate, "__array__"))
+
+        qc = QuantumCircuit(1)
+        qc.t(0)
+        qc.append(custom_gate, [0])
+        qc.s(0)
+
+        with self.subTest("include_custom_gates is not specified"):
+            pm = PassManager([Collect1qRuns()])
+            pm.run(qc)
+            runs = pm.property_set.get("run_list", [])
+            self.assertEqual([[node.op.name for node in run] for run in runs], [["t"], ["s"]])
+
+        with self.subTest("include_custom_gates is True"):
+            pm = PassManager([Collect1qRuns(include_custom_gates=True)])
+            pm.run(qc)
+            runs = pm.property_set.get("run_list", [])
+            self.assertEqual(
+                [[node.op.name for node in run] for run in runs], [["t", "custom", "s"]]
+            )
+
 
 class TestCollect2qBlocks(QiskitTestCase):
     """

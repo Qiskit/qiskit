@@ -1,0 +1,18 @@
+---
+features_transpiler:
+  - |
+    Added a new ``include_custom_gates`` keyword argument to the analysis pass
+    :class:`.Collect1qRuns`, and a matching argument to
+    :meth:`.DAGCircuit.collect_1q_runs`. When set to ``True``, custom one-qubit
+    :class:`.Gate` instances that only have a definition, and no direct matrix of
+    their own, are collected as well, since their matrix can still be computed from
+    that definition. It defaults to ``False``, which keeps the previous behavior.
+fixes:
+  - |
+    Fixed ``transpile(..., translation_method="synthesis")`` failing on custom
+    one-qubit gates whose matrix is defined by their decomposition instead of a
+    direct :meth:`.Gate.to_matrix` implementation. These gates are now collected
+    before synthesis, so cases such as ``QFTGate(1).inverse()`` can be
+    synthesized to the requested basis instead of failing with a
+    ``TranspilerError``.
+    Fixed `#13152 <https://github.com/Qiskit/qiskit/issues/13152>`__.
