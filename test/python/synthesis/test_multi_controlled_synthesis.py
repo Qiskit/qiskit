@@ -65,6 +65,7 @@ from qiskit.synthesis.multi_controlled import (
     synth_mcx_gray_code,
     synth_mcx_n_clean_m15,
     synth_mcx_n_dirty_i15,
+    synth_mcx_n_dirty_m15,
     synth_mcx_noaux_hp24,
     synth_mcx_noaux_sp22,
     synth_mcx_noaux_v24,
@@ -216,6 +217,14 @@ class TestMCSynthesisCorrectness(QiskitTestCase):
     def test_mcx_n_dirty_i15(self, num_ctrl_qubits: int):
         """Test synth_mcx_n_dirty_i15 by comparing synthesized and expected matrices."""
         synthesized_circuit = synth_mcx_n_dirty_i15(num_ctrl_qubits)
+        self.assertSynthesisCorrect(
+            XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
+        )
+
+    @data(0, 1, 2, 3, 4, 5, 6)
+    def test_mcx_n_dirty_m15(self, num_ctrl_qubits: int):
+        """Test synth_mcx_n_dirty_m15, including arbitrary dirty-ancilla states."""
+        synthesized_circuit = synth_mcx_n_dirty_m15(num_ctrl_qubits)
         self.assertSynthesisCorrect(
             XGate(), num_ctrl_qubits, synthesized_circuit, clean_ancillas=False
         )
@@ -429,14 +438,28 @@ class TestMCSynthesisCounts(QiskitTestCase):
         # The bound from the documentation of synth_mcx_n_dirty_i15
         self.assertLessEqual(cx_count, 8 * num_ctrl_qubits - 6)
 
-    @data(5, 10, 15)
-    def test_mcx_n_clean_m15_cx_count(self, num_ctrl_qubits: int):
-        """Test synth_mcx_n_clean_m15 bound on CX count."""
-        synthesized_circuit = synth_mcx_n_clean_m15(num_ctrl_qubits)
-        transpiled_circuit = self.pm.run(synthesized_circuit)
-        cx_count = transpiled_circuit.count_ops()["cx"]
-        # The bound from the documentation of synth_mcx_n_clean_m15
-        self.assertLessEqual(cx_count, 6 * num_ctrl_qubits - 6)
+    @data(3, 4, 5, 10, 15)
+    def test_mcx_n_dirty_m15_resources(self, num_ctrl_qubits: int):
+        """Test the exact ancillary-qubit, T, and CX counts of synth_mcx_n_dirty_m15."""
+        circuit = synth_mcx_n_dirty_m15(num_ctrl_qubits)
+        counts = circuit.count_ops()
+        expected_ancillas = 1 if num_ctrl_qubits == 3 else (num_ctrl_qubits - 1) // 2
+        expected_cx = 14 if num_ctrl_qubits == 3 else 8 * num_ctrl_qubits - 12
+        expected_t = 16 if num_ctrl_qubits == 3 else 8 * num_ctrl_qubits - 8
+
+        self.assertEqual(circuit.num_qubits, num_ctrl_qubits + 1 + expected_ancillas)
+        self.assertEqual(counts["cx"], expected_cx)
+        self.assertEqual(counts["t"] + counts["tdg"], expected_t)
+
+    @data(3, 4, 5, 10, 15)
+    def test_mcx_n_clean_m15_resources(self, num_ctrl_qubits: int):
+        """Test the exact ancillary-qubit, T, and CX counts of synth_mcx_n_clean_m15."""
+        circuit = synth_mcx_n_clean_m15(num_ctrl_qubits)
+        counts = circuit.count_ops()
+
+        self.assertEqual(circuit.num_qubits, num_ctrl_qubits + 1 + (num_ctrl_qubits - 1) // 2)
+        self.assertEqual(counts["cx"], 6 * num_ctrl_qubits - 6)
+        self.assertEqual(counts["t"] + counts["tdg"], 8 * num_ctrl_qubits - 9)
 
     @data(5, 10, 15)
     def test_mcx_1_clean_b95_cx_count(self, num_ctrl_qubits: int):

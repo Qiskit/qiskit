@@ -104,6 +104,7 @@ clifford = "qiskit.transpiler.passes.synthesis.clifford_unitary_synth_plugin:Cli
 "linear_function.kms" = "qiskit.transpiler.passes.synthesis.hls_plugins:KMSSynthesisLinearFunction"
 "linear_function.pmh" = "qiskit.transpiler.passes.synthesis.hls_plugins:PMHSynthesisLinearFunction"
 "mcx.n_dirty_i15" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisNDirtyI15"
+"mcx.n_dirty_m15" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisNDirtyM15"
 "mcx.n_clean_m15" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesisNCleanM15"
 "mcx.2_clean_kg24" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesis2CleanKG24"
 "mcx.2_dirty_kg24" = "qiskit.transpiler.passes.synthesis.hls_plugins:MCXSynthesis2DirtyKG24"
