@@ -20,7 +20,7 @@ use std::collections::BTreeSet;
 use std::f64::consts::{FRAC_1_SQRT_2, PI};
 
 use nalgebra::{Matrix2, MatrixView2, Vector2};
-use numpy::{PyReadonlyArray2, ToPyArray};
+use numpy::PyReadonlyArray2;
 
 use crate::diagonal::diagonal_gate_circuit;
 use crate::qsd::append;
@@ -263,7 +263,7 @@ pub fn dec_ucg(
     Ok((qc.unbind(), diag))
 }
 
-pub fn simplify(
+fn simplify(
     gate_list: &[Matrix2<Complex64>],
     num_ctrls: u32,
 ) -> (Vec<u32>, Vec<Matrix2<Complex64>>) {
@@ -411,30 +411,8 @@ fn dec_ucg_help(single_qubit_gates: &mut [Matrix2<Complex64>], num_qubits: u32) 
     diag
 }
 
-#[pyfunction]
-pub fn uc_simplify(
-    py: Python,
-    gate_list: Vec<PyReadonlyArray2<Complex64>>,
-    num_ctrls: u32,
-) -> PyResult<(Vec<u32>, Vec<Py<PyAny>>)> {
-    let gates: Vec<Matrix2<Complex64>> = gate_list
-        .into_iter()
-        .map(|x| {
-            let res: MatrixView2<Complex64> = x.try_as_matrix().unwrap();
-            res.into_owned()
-        })
-        .collect();
-    let (new_ctrl, new_mux) = simplify(&gates, num_ctrls);
-    let new_mux_py: Vec<Py<PyAny>> = new_mux
-        .into_iter()
-        .map(|m| m.to_pyarray(py).into_any().unbind())
-        .collect();
-    Ok((new_ctrl, new_mux_py))
-}
-
 pub fn uc_gate(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(dec_ucg, m)?)?;
-    m.add_function(wrap_pyfunction!(uc_simplify, m)?)?;
     Ok(())
 }
 
