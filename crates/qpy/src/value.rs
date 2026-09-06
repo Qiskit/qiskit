@@ -247,6 +247,33 @@ pub struct QPYWriteData<'a> {
     pub standalone_var_indices: HashMap<u128, u16>, // mapping from the variable's UUID to its index in the standalone variables list
     pub parameter_vectors: ParameterVectorTableBuilder,
     pub annotation_handler: AnnotationHandler,
+    custom_gate_counter: u32,
+}
+
+impl<'a> QPYWriteData<'a> {
+    pub fn next_custom_gate_id(&mut self) -> u32 {
+        let id = self.custom_gate_counter;
+        self.custom_gate_counter += 1;
+        id
+    }
+
+    pub fn new(
+        caller: QpyCaller,
+        circuit_data: &'a CircuitData,
+        version: u8,
+        standalone_var_indices: HashMap<u128, u16>,
+        annotation_handler: AnnotationHandler,
+    ) -> Self {
+        Self {
+            caller,
+            circuit_data,
+            version,
+            standalone_var_indices,
+            parameter_vectors: ParameterVectorTableBuilder::default(),
+            annotation_handler,
+            custom_gate_counter: 0,
+        }
+    }
 }
 
 // Data that is needed globally while reading the circuit
