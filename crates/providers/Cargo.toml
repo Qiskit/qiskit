@@ -8,6 +8,9 @@ license.workspace = true
 [lib]
 name = "qiskit_providers"
 
+[dev-dependencies]
+num-traits.workspace = true# = "0.2"
+
 [dependencies]
 rustworkx-core.workspace = true
 num-complex.workspace = true

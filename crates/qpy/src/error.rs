@@ -141,6 +141,10 @@ pub enum QpyError {
     /// Python error that occurred during a Python call
     #[error("Python error: {0}")]
     PythonError(#[from] PyErr),
+
+    /// A QPY feature that requires the Python runtime was used from a native caller.
+    #[error("QPY feature '{0}' is only available when QPY is invoked from Python")]
+    PythonOnly(&'static str),
 }
 
 impl From<QpyError> for PyErr {

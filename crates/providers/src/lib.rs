@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 mod data_tree;
+pub mod math_nodes;
 mod program_node;
 mod store;
 pub mod tensor;

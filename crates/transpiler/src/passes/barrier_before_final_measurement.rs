@@ -10,9 +10,12 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use hashbrown::HashSet;
 use pyo3::prelude::*;
 use rayon::prelude::*;
+use rustworkx_core::petgraph::algo::toposort;
 use rustworkx_core::petgraph::stable_graph::NodeIndex;
+use rustworkx_core::petgraph::visit::NodeFiltered;
 
 use qiskit_circuit::Qubit;
 use qiskit_circuit::dag_circuit::{DAGCircuit, DAGError, NodeType};
@@ -133,18 +136,14 @@ pub fn run_barrier_before_final_measurements(
     if final_ops.is_empty() {
         return Ok(());
     }
-    let final_packed_ops: Vec<PackedInstruction> = final_ops
+
+    let final_ops: HashSet<NodeIndex> = final_ops.into_iter().collect();
+    let final_ops_dag = NodeFiltered(dag.dag(), |node: NodeIndex| final_ops.contains(&node));
+    let ordered_final_ops = toposort(&final_ops_dag, None)
+        .unwrap_or_else(|_| panic!("DAG should prevent itself from becoming cyclic"));
+    let final_packed_ops: Vec<PackedInstruction> = ordered_final_ops
         .into_iter()
-        .filter_map(|node| match dag.dag().node_weight(node) {
-            Some(weight) => {
-                let NodeType::Operation(_) = weight else {
-                    return None;
-                };
-                let res = dag.remove_op_node(node);
-                Some(res)
-            }
-            None => None,
-        })
+        .map(|node| dag.remove_op_node(node))
         .collect();
     let qargs: Vec<Qubit> = (0..dag.num_qubits() as u32).map(Qubit).collect();
     dag.apply_operation_back(
