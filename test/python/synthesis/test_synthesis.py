@@ -1129,13 +1129,15 @@ class TestTwoQubitDecompose(CheckDecompositions):
 
     def test_cx_decomposition_no_identity_one_qubit_gates(self):
         """Decomposing CX in the CX basis should give a bare CX, with no identity 1q gates."""
+        expected = QuantumCircuit(2)
+        expected.cx(0, 1)
+
         for euler_basis in ("U", "U3"):
             with self.subTest(euler_basis=euler_basis):
                 decomposer = TwoQubitBasisDecomposer(CXGate(), euler_basis=euler_basis)
                 decomposed = decomposer(CXGate().to_matrix())
 
-                self.assertEqual(dict(decomposed.count_ops()), {"cx": 1})
-                self.assertEqual(Operator(decomposed), Operator(CXGate()))
+                self.assertEqual(decomposed, expected)
 
     def test_cx_equivalence_2cx(self, seed=2):
         """Check circuits with  2 cx gates locally equivalent to some circuit with 2 cx."""
