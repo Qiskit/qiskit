@@ -53,6 +53,7 @@ use crate::value::{
 };
 
 pub const UNITARY_GATE_CLASS_NAME: &str = "UnitaryGate";
+pub const STORE_INSTR_CLASS_NAME: &str = "Store";
 pub const PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME: &str = "PauliProductMeasurement";
 pub const PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME: &str = "PauliProductRotationGate";
 
@@ -302,6 +303,7 @@ pub(crate) fn gate_class_name(py: Python, op: &PackedOperation) -> Result<String
             Ok(String::from(PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME))
         }
         OperationRef::ControlFlow(inst) => Ok(inst.name().to_string()),
+        OperationRef::Store(_store) => Ok(STORE_INSTR_CLASS_NAME.to_string()),
         OperationRef::CustomOperation(_) => {
             Err(PyTypeError::new_err("Custom gates from rust are not classes.").into())
         }
