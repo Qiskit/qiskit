@@ -269,6 +269,7 @@ impl<'a> QPYWriteData<'a> {
             circuit_data,
             version,
             standalone_var_indices,
+            parameter_vectors: ParameterVectorTableBuilder::default(),
             annotation_handler,
             custom_gate_counter: 0,
         }

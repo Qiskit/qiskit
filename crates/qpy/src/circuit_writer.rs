@@ -1382,8 +1382,7 @@ pub(crate) fn pack_circuit(
         caller,
         circuit_data,
         version,
-        standalone_var_indices: HashMap::new(),
-        parameter_vectors: Default::default(),
+        HashMap::new(),
         annotation_handler,
     );
     let standalone_vars = pack_standalone_vars(&mut qpy_data)?;
