@@ -122,7 +122,59 @@ pub enum RegisterPack {
     V18(RegisterV18Pack),
 }
 
-// The data for a specific instruction in the circuit
+// The data for a specific instruction in the circuit, for QPY version 19 and higher
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+#[br(import(read_bits: bool))]
+pub struct CircuitInstructionV19Pack {
+    operation: CircuitOperationType,
+    // Interner index
+    qargs: u32,
+    // Interner index
+    cargs: u32,
+
+    OperationData: Bytes,
+    
+    // Get param size from OperationData during decoding (it's either static from rust definition
+    // or dynamic in the body)
+    #[bw(calc = params.len() as u16)]
+    pub num_parameters: u16,
+     #[br(count = num_parameters as usize)]
+    params: Vec<ParamDataPack>,
+    
+    annotations: Option<InstructionsAnnotationPack>,
+    
+    #[bw(calc = label.len() as u16)]
+    pub label_size: u16,
+    #[br(count = label_size as usize, try_map = String::from_utf8)]
+    #[bw(map = |s| s.as_bytes())]
+    label: String,
+}
+
+#[binrw]
+#[brw(big)]
+#[derive(Debug)]
+#[brw(repr = u8)]
+#[repr(u8)]
+enum CircuitOperationType {
+    StandardGate = 0,
+    StandardInstruction = 1,
+    Custom = 2,
+    FromPython = 3,
+    UnitaryGate = 4,
+    Controlled = 5,
+    ControlFlow = 6,
+}
+
+#[binrw]
+#[derive(Debug)]
+struct ParamDataPack {
+    // placeholder; this should be an improved, nongeneric version of GenericDataPack
+}
+
+
+// The data for a specific instruction in the circuit, for QPY versions until QPY18
 // Each instruction has a name, an optional label,
 // number of qubits ("qargs") and clbits ("cargs")
 // and a "gate_class_name" used to identify the instruction (for Python-based gates, this will be the
