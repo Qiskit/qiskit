@@ -34,15 +34,17 @@ use qiskit_circuit::interner::Interned;
 use qiskit_circuit::operations::{
     ArrayType, BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction,
     ControlFlowType, LoopParam, Param, PauliBased, PauliProductMeasurement, PauliProductRotation,
-    StandardInstruction, StandardInstructionType, SwitchTarget, UnitaryGate,
+    StandardInstruction, StandardInstructionType, Store, SwitchTarget, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 use qiskit_circuit::parameter::parameter_expression::ParameterExpression;
+use qiskit_circuit::parameter::symbol_expr::SymbolVector;
 use qiskit_circuit::var_stretch_container::{StretchType, VarType};
 use qiskit_circuit::{Block, classical, imports};
 use qiskit_circuit::{Clbit, Qubit};
 use std::str::FromStr;
 use std::sync::Arc;
+use uuid::Uuid;
 
 use smallvec::SmallVec;
 
@@ -53,11 +55,12 @@ use crate::error::QpyError;
 use crate::formats;
 use crate::formats::ConditionData;
 use crate::formats::QPYCircuit;
+use crate::formats::VirtualQBitPack;
 use crate::params::generic_value_to_param;
 use crate::py_methods::{
     PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME,
-    UNITARY_GATE_CLASS_NAME, deserialize_pauli_evolution_gate, py_convert_from_generic_value,
-    unpack_custom_instruction, unpack_py_instruction,
+    STORE_INSTR_CLASS_NAME, UNITARY_GATE_CLASS_NAME, deserialize_pauli_evolution_gate,
+    py_convert_from_generic_value, unpack_custom_instruction, unpack_py_instruction,
 };
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionType, ExpressionVarDeclaration, GenericValue,
@@ -91,6 +94,7 @@ pub enum InstructionType {
     PauliProductRotation,
     Unitary,
     ControlFlow,
+    Store,
     // covers instruction types require resorting to python space
     Custom,
     Python,
@@ -192,6 +196,8 @@ fn recognize_instruction_type(
         || ["Barrier", "Delay", "Measure", "Reset"].contains(&name)
     {
         InstructionType::StandardInstruction
+    } else if name == STORE_INSTR_CLASS_NAME {
+        InstructionType::Store
     } else if custom_instructions.get(name).is_some() {
         InstructionType::Custom
     } else {
@@ -363,6 +369,7 @@ pub fn unpack_instruction(
         }
         InstructionType::Unitary => unpack_unitary(instruction, qpy_data)?,
         InstructionType::ControlFlow => unpack_control_flow(instruction, qpy_data)?,
+        InstructionType::Store => unpack_store(instruction, qpy_data)?,
         InstructionType::Custom => {
             QpyCaller::Python.attach("Python custom instruction unpacking", |py| {
                 unpack_custom_instruction(
@@ -438,6 +445,33 @@ fn unpack_standard_instruction(
     let param_values =
         get_instruction_values(instruction, qpy_data, ValueEndian::LittleForV17AndBelow)?;
     Ok((op, param_values))
+}
+
+fn unpack_store(
+    instruction: &formats::CircuitInstructionV2Pack,
+    qpy_data: &mut QPYReadData,
+) -> Result<(PackedOperation, Vec<GenericValue>), QpyError> {
+    if instruction.params.len() != 2 {
+        return Err(QpyError::InvalidParameter(
+            "Store operations should have exactly 2 parameters".to_string(),
+        ));
+    }
+    let GenericValue::Expression(lvalue) =
+        unpack_generic_value(&instruction.params[0], qpy_data, ValueEndian::Big)?
+    else {
+        return Err(QpyError::InvalidExpression(
+            "could not determine expression for instruction's lvalue".to_string(),
+        ));
+    };
+    let GenericValue::Expression(rvalue) =
+        unpack_generic_value(&instruction.params[1], qpy_data, ValueEndian::Big)?
+    else {
+        return Err(QpyError::InvalidExpression(
+            "could not determine expression for store instruction's rvalue".to_string(),
+        ));
+    };
+    let store = Store::new(lvalue, rvalue);
+    Ok((Box::new(store).into(), vec![]))
 }
 
 fn unpack_pauli_product_measurement(
@@ -834,23 +868,29 @@ fn unpack_transpile_layout<'py>(
     }
     let initial_layout_virtual_bits = PyList::new(py, Vec::<Py<PyAny>>::new())?;
     for virtual_bit in &layout.initial_layout_items {
-        let qubit = if let Some(register) =
-            extra_register_map.get(virtual_bit.register_name.as_str())
-        {
-            if let Some(qubit) = register.get(virtual_bit.index_value as usize) {
-                qubit
-            } else {
-                ShareableQubit::new_anonymous()
+        let qubit = match virtual_bit {
+            VirtualQBitPack::Anonymous => ShareableQubit::new_anonymous(),
+            VirtualQBitPack::InRegister {
+                index,
+                register_name,
+            } => {
+                // look in extra registers (layout-only) first, then in the circuit's own registers
+                let register = extra_register_map
+                    .get(register_name.as_str())
+                    .or_else(|| existing_register_map.get(register_name.as_str()).copied())
+                    .ok_or_else(|| {
+                        QpyError::InvalidBit(format!(
+                            "register '{}' not found in layout",
+                            register_name
+                        ))
+                    })?;
+                register.get(*index as usize).ok_or_else(|| {
+                    QpyError::InvalidBit(format!(
+                        "index {} out of bounds in register '{}'",
+                        index, register_name
+                    ))
+                })?
             }
-        } else if let Some(register) = existing_register_map.get(virtual_bit.register_name.as_str())
-        {
-            if let Some(qubit) = register.get(virtual_bit.index_value as usize) {
-                qubit
-            } else {
-                ShareableQubit::new_anonymous()
-            }
-        } else {
-            ShareableQubit::new_anonymous()
         };
         initial_layout_virtual_bits.append(qubit)?;
     }
@@ -1276,6 +1316,24 @@ pub(crate) fn unpack_circuit(
         standalone_vars: HashMap::new(),
         standalone_stretches: HashMap::new(),
         vectors: HashMap::new(),
+        // From QPY 18 the payload declares its vectors up front
+        parameter_vectors: packed_circuit
+            .parameter_vectors
+            .as_ref()
+            .map(|table| {
+                table
+                    .vectors
+                    .iter()
+                    .map(|vector| {
+                        Arc::new(SymbolVector {
+                            name: vector.name.clone(),
+                            uuid: Uuid::from_bytes(vector.uuid),
+                            len: (vector.vector_size as usize).into(),
+                        })
+                    })
+                    .collect()
+            })
+            .unwrap_or_default(),
         annotation_handler,
     };
     if let Some(annotation_headers) = &packed_circuit.annotation_headers {

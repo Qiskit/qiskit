@@ -37,20 +37,20 @@ use qiskit_circuit::instruction::Parameters;
 use qiskit_circuit::operations::{
     BoxDuration, CaseSpecifier, Condition, ControlFlow, ControlFlowInstruction, LoopParam,
     Operation, OperationRef, Param, PauliProductMeasurement, PauliProductRotation, PyInstruction,
-    PyOpKind, StandardGate, StandardInstruction, SwitchTarget, UnitaryGate,
+    PyOpKind, StandardGate, StandardInstruction, Store, SwitchTarget, UnitaryGate,
 };
 use qiskit_circuit::packed_instruction::{PackedInstruction, PackedOperation};
 
 use crate::annotations::AnnotationHandler;
 use crate::bytes::Bytes;
 use crate::error::QpyError;
-use crate::formats;
+use crate::formats::{self, VirtualQBitPack};
 use crate::interface::ExtraCircuitData;
 use crate::params::pack_param_obj;
 use crate::py_methods::{
     PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME, PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME,
-    UNITARY_GATE_CLASS_NAME, gate_class_name, py_pack_param, py_pack_pauli_evolution_gate,
-    recognize_custom_operation, serialize_metadata,
+    STORE_INSTR_CLASS_NAME, UNITARY_GATE_CLASS_NAME, gate_class_name, py_pack_param,
+    py_pack_pauli_evolution_gate, recognize_custom_operation, serialize_metadata,
 };
 use crate::value::{
     BitType, CircuitInstructionType, ExpressionVarDeclaration, GenericValue, ParamRegisterValue,
@@ -137,7 +137,7 @@ pub(crate) fn pack_annotations(
 
 fn pack_condition(
     condition: Condition,
-    qpy_data: &QPYWriteData,
+    qpy_data: &mut QPYWriteData,
 ) -> Result<formats::ConditionPack, QpyError> {
     match condition {
         Condition::Expr(exp) => {
@@ -269,6 +269,7 @@ fn pack_instruction(
                 "compiled custom operations are not yet supported in QPY".to_owned(),
             ));
         }
+        OperationRef::Store(store) => pack_store(store, instruction, qpy_data)?,
     };
 
     // common data extraction for all instruction types
@@ -349,7 +350,7 @@ pub fn standard_instruction_class_name(inst: &StandardInstruction) -> &str {
 fn pack_pauli_product_measurement(
     ppm: &PauliProductMeasurement,
     instruction: &PackedInstruction,
-    qpy_data: &QPYWriteData,
+    qpy_data: &mut QPYWriteData,
 ) -> Result<formats::CircuitInstructionV2Pack, QpyError> {
     // since we won't recreate this gate via python, it's not important to verify the python name is identical to the one we use here
     // so we simply hard-code it instead of going through python
@@ -385,7 +386,7 @@ fn pack_pauli_product_measurement(
 fn pack_pauli_product_rotation(
     rotation: &PauliProductRotation,
     instruction: &PackedInstruction,
-    qpy_data: &QPYWriteData,
+    qpy_data: &mut QPYWriteData,
 ) -> Result<formats::CircuitInstructionV2Pack, QpyError> {
     // since we won't recreate this gate via python, it's not important to verify the python name is identical to the one we use here
     // so we simply hard-code it instead of going through python
@@ -586,7 +587,7 @@ fn pack_control_flow_inst(
 }
 fn pack_unitary_gate(
     unitary_gate: &UnitaryGate,
-    qpy_data: &QPYWriteData,
+    qpy_data: &mut QPYWriteData,
 ) -> Result<formats::CircuitInstructionV2Pack, QpyError> {
     // unitary gates are special since they are uniquely determined by a matrix, which is not
     // a "parameter", strictly speaking, but is treated as such when serializing
@@ -610,6 +611,34 @@ fn pack_unitary_gate(
         ctrl_state: 0,
         gate_class_name,
         label: Default::default(),
+        condition: Default::default(),
+        bit_data: Default::default(),
+        params,
+        annotations: None,
+    })
+}
+
+fn pack_store(
+    store: &Store,
+    instruction: &PackedInstruction,
+    qpy_data: &mut QPYWriteData,
+) -> Result<formats::CircuitInstructionV2Pack, QpyError> {
+    let params: Vec<formats::GenericDataPack> = vec![
+        pack_generic_value(&GenericValue::Expression(store.lvalue().clone()), qpy_data)?,
+        pack_generic_value(&GenericValue::Expression(store.rvalue().clone()), qpy_data)?,
+    ];
+    Ok(formats::CircuitInstructionV2Pack {
+        num_qargs: 0,
+        num_cargs: 0,
+        extras_key: 0,
+        num_ctrl_qubits: 0,
+        ctrl_state: 0,
+        gate_class_name: STORE_INSTR_CLASS_NAME.to_string(),
+        label: instruction
+            .label
+            .as_ref()
+            .map(|x| x.as_ref().clone())
+            .unwrap_or("".to_string()),
         condition: Default::default(),
         bit_data: Default::default(),
         params,
@@ -873,7 +902,7 @@ fn pack_classical_register(
 fn pack_circuit_header(
     circuit_name: Option<String>,
     metadata: Bytes,
-    qpy_data: &QPYWriteData,
+    qpy_data: &mut QPYWriteData,
 ) -> Result<formats::CircuitHeaderV12Pack, QpyError> {
     let global_phase_data = pack_param_obj(
         qpy_data.circuit_data.global_phase(),
@@ -940,7 +969,7 @@ fn pack_transpile_layout(
 ) -> Result<formats::LayoutV2Pack, QpyError> {
     let mut initial_layout_size = -1; // initial_size
     let mut input_qubit_mapping: HashMap<ShareableQubit, usize> = HashMap::new();
-    let mut initial_layout_array: Vec<(Option<u32>, Option<QuantumRegister>)> = Vec::new();
+    let mut initial_layout_items: Vec<VirtualQBitPack> = Vec::new();
     let mut extra_registers: HashSet<QuantumRegister> = HashSet::new();
     let mut extra_registers_qubits: HashSet<ShareableQubit> = HashSet::new();
 
@@ -954,15 +983,21 @@ fn pack_transpile_layout(
                 .extract::<ShareableQubit>()
                 .map_err(|e| QpyError::from(PyErr::from(e)))?;
             input_qubit_mapping.insert(qubit.clone(), i);
-            let register = qubit.owning_register();
-            let index = qubit.owning_register_index();
-            if let Some(reg) = register.clone() {
-                extra_registers.insert(reg);
-                extra_registers_qubits.insert(qubit);
-            } else if index.is_some() {
-                extra_registers_qubits.insert(qubit);
-            }
-            initial_layout_array.push((index, register));
+            let register_entry = match qubit.owning_register() {
+                Some(reg) => {
+                    let index = qubit.owning_register_index().ok_or_else(|| {
+                        QpyError::ConversionError("qubit has register but no index".to_string())
+                    })?;
+                    extra_registers.insert(reg.clone());
+                    extra_registers_qubits.insert(qubit);
+                    VirtualQBitPack::InRegister {
+                        index,
+                        register_name: reg.name().to_string(),
+                    }
+                }
+                None => VirtualQBitPack::Anonymous,
+            };
+            initial_layout_items.push(register_entry);
         }
     }
 
@@ -1040,25 +1075,6 @@ fn pack_transpile_layout(
         circuit_data,
         version,
     )?;
-
-    let initial_layout_items: Vec<formats::InitialLayoutItemV2Pack> = initial_layout_array
-        .iter()
-        .map(|(index, qreg)| {
-            let index_value = match index {
-                None => -1,
-                Some(val) => *val as i32,
-            };
-            let (register_name, register_name_length) = match qreg {
-                None => (String::new(), -1),
-                Some(qreg_val) => (qreg_val.name().to_string(), qreg_val.name().len() as i32),
-            };
-            formats::InitialLayoutItemV2Pack {
-                index_value,
-                register_name_length,
-                register_name,
-            }
-        })
-        .collect();
 
     Ok(formats::LayoutV2Pack {
         exists: true as u8,
@@ -1366,10 +1382,11 @@ pub(crate) fn pack_circuit(
         circuit_data,
         version,
         standalone_var_indices: HashMap::new(),
+        parameter_vectors: Default::default(),
         annotation_handler,
     };
     let standalone_vars = pack_standalone_vars(&mut qpy_data)?;
-    let header = pack_circuit_header(extra.name, extra.metadata, &qpy_data)?;
+    let header = pack_circuit_header(extra.name, extra.metadata, &mut qpy_data)?;
     // CalibrationsPack was dropped in v18; for v13-17 write an empty block (pulse
     // gates were removed in Qiskit 2.0 but older format versions require the field)
     let calibrations = if version < 18 {
@@ -1398,10 +1415,14 @@ pub(crate) fn pack_circuit(
         .map(|(namespace, state)| formats::AnnotationStateHeaderPack { namespace, state })
         .collect();
     let annotation_headers = Some(formats::AnnotationHeaderStaticPack { state_headers });
+    // Built only now that packing is done, since that is what discovered which vectors the circuit
+    // refers to -- even though the table is serialized ahead of the instructions that point into it.
+    let parameter_vectors = (version >= 18).then(|| qpy_data.parameter_vectors.to_pack());
     Ok(formats::QPYCircuit {
         header,
         standalone_vars,
         annotation_headers,
+        parameter_vectors,
         custom_instructions,
         instructions,
         calibrations,

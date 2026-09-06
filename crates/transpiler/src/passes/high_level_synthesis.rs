@@ -809,6 +809,7 @@ fn extract_definition(op: &PackedOperation, params: &[Param]) -> PyResult<Option
             | StandardInstruction::Barrier(_)
             | StandardInstruction::Delay(_) => Ok(None),
         },
+        OperationRef::Store(_) => Ok(None),
         OperationRef::ControlFlow(_) => Ok(None),
         OperationRef::CustomOperation(custom_gate) => Ok(custom_gate.definition(params)),
     }
@@ -958,6 +959,7 @@ fn synthesize_op_using_plugins(
         OperationRef::PauliProductRotation(rotation) => {
             rotation.create_py_op(py, label)?.into_any()
         }
+        OperationRef::Store(store) => store.create_py_op(py, label)?.into_any(),
         OperationRef::CustomOperation(_) => {
             return Err(PyNotImplementedError::new_err(
                 "Custom Operations from Rust cannot be exposed to Python.",

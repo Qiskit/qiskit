@@ -53,6 +53,7 @@ use crate::value::{
 };
 
 pub const UNITARY_GATE_CLASS_NAME: &str = "UnitaryGate";
+pub const STORE_INSTR_CLASS_NAME: &str = "Store";
 pub const PAULI_PRODUCT_MEASUREMENT_GATE_CLASS_NAME: &str = "PauliProductMeasurement";
 pub const PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME: &str = "PauliProductRotationGate";
 
@@ -190,7 +191,7 @@ pub(crate) fn py_deserialize_numpy_object(py: Python, data: &Bytes) -> Result<Py
 
 fn pack_sparse_pauli_op(
     operator: &Bound<PyAny>,
-    qpy_data: &QPYWriteData,
+    qpy_data: &mut QPYWriteData,
 ) -> Result<formats::PauliDataPack, QpyError> {
     if operator.is_instance_of::<PySparseObservable>() {
         let py_sparse_observable: PyRef<PySparseObservable> = operator
@@ -240,7 +241,7 @@ fn pack_sparse_pauli_op(
 
 pub(crate) fn py_pack_pauli_evolution_gate(
     evolution_gate: &Bound<PyAny>,
-    qpy_data: &QPYWriteData,
+    qpy_data: &mut QPYWriteData,
 ) -> Result<formats::PauliEvolutionDefPack, QpyError> {
     let py = evolution_gate.py();
     let operators = evolution_gate.getattr("operator")?;
@@ -302,6 +303,7 @@ pub(crate) fn gate_class_name(py: Python, op: &PackedOperation) -> Result<String
             Ok(String::from(PAULI_PRODUCT_ROTATION_GATE_CLASS_NAME))
         }
         OperationRef::ControlFlow(inst) => Ok(inst.name().to_string()),
+        OperationRef::Store(_store) => Ok(STORE_INSTR_CLASS_NAME.to_string()),
         OperationRef::CustomOperation(_) => {
             Err(PyTypeError::new_err("Custom gates from rust are not classes.").into())
         }
@@ -483,7 +485,7 @@ pub(crate) fn py_convert_from_generic_value(
 // Not to be confused with Parameter, which is an atom of ParameterExpression
 pub(crate) fn py_pack_param(
     py_object: &Bound<PyAny>,
-    qpy_data: &QPYWriteData,
+    qpy_data: &mut QPYWriteData,
     endian: ValueEndian,
 ) -> Result<formats::GenericDataPack, QpyError> {
     let value = py_convert_to_generic_value(py_object)?;
