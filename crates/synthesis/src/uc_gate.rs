@@ -170,7 +170,7 @@ fn push_1q_unitary(
     Ok(())
 }
 
-pub fn dec_ucg_inner(
+fn dec_ucg_inner(
     single_qubit_gates: Vec<Matrix2<Complex64>>,
     num_qubits: u32,
     up_to_diagonal: bool,
@@ -344,10 +344,7 @@ fn repetition_verify(
     true
 }
 
-pub fn dec_ucg_help(
-    single_qubit_gates: &mut [Matrix2<Complex64>],
-    num_qubits: u32,
-) -> Vec<Complex64> {
+fn dec_ucg_help(single_qubit_gates: &mut [Matrix2<Complex64>], num_qubits: u32) -> Vec<Complex64> {
     let mut diag: Vec<Complex64> = vec![Complex64::ONE; 2_usize.pow(num_qubits)];
     let num_controls = num_qubits - 1;
     for dec_step in 0..num_controls {

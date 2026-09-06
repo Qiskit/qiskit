@@ -18,7 +18,7 @@ const EPS: f64 = 1e-10;
 
 /// This function synthesizes UCRZ without the final CX gate,
 /// unless _vw_type = ``all``.
-pub fn get_ucrz(
+pub(crate) fn get_ucrz(
     num_qubits: usize,
     angles: &mut [f64],
     vw_type_all: bool,

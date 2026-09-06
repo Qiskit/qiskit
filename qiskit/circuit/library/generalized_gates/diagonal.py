@@ -102,10 +102,10 @@ class DiagonalGate(Gate):
         super().__init__("diagonal", num_qubits, diag)
 
     def _define(self):
-        from qiskit._accelerate.synthesis.diagonal import py_synth_diagonal
+        from qiskit._accelerate.synthesis.diagonal import synth_diagonal
 
         diag_phases = [cmath.phase(z) for z in self.params]
-        self.definition = py_synth_diagonal(diag_phases, self.num_qubits)
+        self.definition = synth_diagonal(diag_phases, self.num_qubits)
 
     def validate_parameter(self, parameter):
         """Diagonal Gate parameter should accept complex

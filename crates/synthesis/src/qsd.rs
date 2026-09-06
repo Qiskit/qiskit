@@ -522,7 +522,7 @@ fn demultiplex_verify(
     (u_block.as_ref() - u_check.as_ref()).norm_max() < VERIFY_TOL
 }
 
-pub fn append(
+pub(crate) fn append(
     circ: &mut CircuitData,
     new: CircuitData,
     qubit_map: &[Qubit],
