@@ -128,36 +128,37 @@ pub enum RegisterPack {
 #[derive(Debug)]
 #[br(import(read_bits: bool))]
 pub struct CircuitInstructionV19Pack {
-    operation: CircuitOperationType,
+    pub operation: CircuitOperationType,
     // Interner index
-    qargs: u32,
+    pub qargs: u32,
     // Interner index
-    cargs: u32,
+    pub cargs: u32,
 
-    OperationData: Bytes,
+    #[br(args(operation))]
+    pub operation_data: OperationData,
     
     // Get param size from OperationData during decoding (it's either static from rust definition
     // or dynamic in the body)
     #[bw(calc = params.len() as u16)]
     pub num_parameters: u16,
-     #[br(count = num_parameters as usize)]
-    params: Vec<ParamDataPack>,
+    #[br(count = num_parameters as usize)]
+    pub params: Vec<ParamDataPack>,
     
-    annotations: Option<InstructionsAnnotationPack>,
+    pub annotations: Option<InstructionsAnnotationPack>,
     
     #[bw(calc = label.len() as u16)]
     pub label_size: u16,
     #[br(count = label_size as usize, try_map = String::from_utf8)]
     #[bw(map = |s| s.as_bytes())]
-    label: String,
+    pub label: String,
 }
 
 #[binrw]
 #[brw(big)]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[brw(repr = u8)]
 #[repr(u8)]
-enum CircuitOperationType {
+pub enum CircuitOperationType {
     StandardGate = 0,
     StandardInstruction = 1,
     Custom = 2,
@@ -168,9 +169,61 @@ enum CircuitOperationType {
 }
 
 #[binrw]
+#[brw(big)]
 #[derive(Debug)]
-struct ParamDataPack {
+#[br(import(op_type: CircuitOperationType))]
+pub enum OperationData {
+    // The value of the gate from qiskit_circuit::standard_gate::StandardGate
+    #[br(pre_assert(op_type == CircuitOperationType::StandardGate))]
+    StandardGate(u8),
+    // The value of the instruction from qiskit_circuit::operations::StandardInstruction
+    #[br(pre_assert(op_type == CircuitOperationType::StandardInstruction))]
+    StandardInstruction(u8),
+    // Index into custom gate table
+    #[br(pre_assert(op_type == CircuitOperationType::Custom))]
+    Custom(u64),
+    // Store gate class name like is done now for Python defined operations in Qiskit
+    #[br(pre_assert(op_type == CircuitOperationType::FromPython))]
+    FromPython(FromPythonPack),
+    // Store the raw npy bytes of the underlying array
+    #[br(pre_assert(op_type == CircuitOperationType::UnitaryGate))]
+    UnitaryGate(UnitaryGatePack),
+    // Store the base gate and then the extra control metadata
+    #[br(pre_assert(op_type == CircuitOperationType::Controlled))]
+    Controlled(ControlledGatePack),
+    // Store the circuit bodies and the condition explicitly in the pack
+    #[br(pre_assert(op_type == CircuitOperationType::ControlFlow))]
+    ControlFlow(ControlFlowPack),
+}
+
+#[binrw]
+#[derive(Debug)]
+pub struct ParamDataPack {
     // placeholder; this should be an improved, nongeneric version of GenericDataPack
+}
+
+#[binrw]
+#[derive(Debug)]
+pub struct FromPythonPack {
+    // placeholder
+}
+
+#[binrw]
+#[derive(Debug)]
+pub struct UnitaryGatePack {
+    // placeholder
+}
+
+#[binrw]
+#[derive(Debug)]
+pub struct ControlledGatePack {
+    // placeholder
+}
+
+#[binrw]
+#[derive(Debug)]
+pub struct ControlFlowPack {
+    // placeholder
 }
 
 
